@@ -1,0 +1,41 @@
+.table-wrap {
+  max-width: 100%;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border: 1px solid #aeb8c8;
+  background: #d9e1ee;
+  color: #183154;
+  text-align: left;
+}
+
+td {
+  border: 1px solid #cbd3df;
+  background: #fff;
+}
+
+th,
+td {
+  height: 27px;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+td.hot {
+  color: #a11d1d;
+  font-weight: 700;
+}
