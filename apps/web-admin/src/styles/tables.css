@@ -963,3 +963,221 @@ td.hot {
 .sales-invoice-summary {
   flex-wrap: wrap;
 }
+
+.purchase-invoice-screen {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.purchase-invoice-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  border: 1px solid #b8c2d0;
+  background: #e6ebf3;
+}
+
+.purchase-toolbar-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px;
+}
+
+.purchase-toolbar-title strong {
+  color: #0c2d5b;
+  font-size: 14px;
+}
+
+.purchase-toolbar-title span {
+  color: #4d5a6b;
+  font-size: 12px;
+}
+
+.purchase-toolbar-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.purchase-toolbar-actions button {
+  height: 27px;
+  min-width: 66px;
+  border: 1px solid #aeb8c8;
+  background: #fff;
+  color: #203047;
+}
+
+.purchase-toolbar-actions button.primary {
+  border-color: #1d4f8d;
+  background: #dce8f8;
+  color: #0c2d5b;
+  font-weight: 700;
+}
+
+.purchase-invoice-layout {
+  display: grid;
+  grid-template-columns: minmax(720px, 1.55fr) minmax(330px, 0.72fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+}
+
+.purchase-invoice-header {
+  min-width: 0;
+}
+
+.purchase-header-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 7px;
+  padding: 8px;
+}
+
+.purchase-header-grid label {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.purchase-header-grid span {
+  color: #40516a;
+}
+
+.purchase-header-grid input {
+  width: 100%;
+  height: 26px;
+  border: 1px solid #b9c3d0;
+  padding: 0 7px;
+  background: #fff;
+  color: #1d2838;
+  font-size: 12px;
+}
+
+.purchase-description-field {
+  grid-column: span 2;
+}
+
+.purchase-supplier-panel {
+  min-width: 0;
+}
+
+.purchase-supplier-panel dl,
+.purchase-totals-panel dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 8px;
+}
+
+.purchase-supplier-panel dl div,
+.purchase-totals-panel dl div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 26px;
+  border-bottom: 1px solid #e1e6ee;
+  font-size: 12px;
+}
+
+.purchase-supplier-panel dt,
+.purchase-totals-panel dt {
+  color: #40516a;
+}
+
+.purchase-supplier-panel dd,
+.purchase-totals-panel dd {
+  margin: 0;
+  color: #0c2d5b;
+  font-weight: 700;
+}
+
+.purchase-items-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.purchase-items-wrap {
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.purchase-items-table {
+  min-width: 1380px;
+}
+
+.purchase-items-table th {
+  top: 0;
+  height: 28px;
+}
+
+.purchase-items-table td {
+  height: 25px;
+}
+
+.purchase-items-table tbody tr {
+  cursor: default;
+}
+
+.purchase-items-table tbody tr.selected td {
+  background: #dce8f8;
+}
+
+.purchase-stock-in {
+  color: #1f6b42;
+  font-weight: 700;
+}
+
+.purchase-totals-panel {
+  min-width: 0;
+}
+
+.purchase-grand-total {
+  margin-top: 3px;
+  border-top: 2px solid #b8c2d0;
+}
+
+.purchase-grand-total dd {
+  color: #1f6b42;
+  font-size: 15px;
+}
+
+.purchase-totals-panel p {
+  margin: 0 8px 8px;
+  padding: 7px;
+  border: 1px solid #c5cedb;
+  background: #f7f9fc;
+  color: #40516a;
+  font-size: 12px;
+}
+
+.purchase-rules-panel {
+  min-width: 0;
+}
+
+.purchase-rule-list {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  color: #40516a;
+  font-size: 12px;
+}
+
+.purchase-rule-list span {
+  padding: 5px 7px;
+  border: 1px solid #d1d8e2;
+  border-left: 4px solid #1f6b42;
+  background: #fff;
+}
+
+.purchase-invoice-summary {
+  flex-wrap: wrap;
+}

@@ -4,6 +4,7 @@ import { MockScreen } from './MockScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
+import { PurchaseInvoiceScreen } from '../../modules/purchase/PurchaseInvoiceScreen.jsx';
 import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 
@@ -30,6 +31,10 @@ export function Workspace({ activeTab, onOpenScreen }) {
 
   if (activeTab.id === 'sales-invoice') {
     return <SalesInvoiceScreen />;
+  }
+
+  if (activeTab.id === 'purchase-invoice') {
+    return <PurchaseInvoiceScreen />;
   }
 
   return <MockScreen screen={activeTab} />;
