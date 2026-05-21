@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.env
+.env.local
+.DS_Store
+logs
+temp
+.expo
+android/build
+ios/build

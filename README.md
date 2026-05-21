@@ -1,0 +1,42 @@
+# Melisa ERP v2
+
+Melisa ERP v2, Melisa Bebe için web tabanlı, desktop-first ve Vega/Wolvox hissinde tasarlanacak yeni ERP projesidir.
+
+## Hedef
+
+- Web tabanlı web-admin deneyimi.
+- Desktop-first, yoğun ERP çalışma alanı.
+- İleride Electron'a uygun mimari.
+- Android terminal app desteği.
+- SQL Server uyumlu backend ve veri modeli.
+- Çoklu döviz, stok, cari, satış, alış, katalog, audit ve terminal sync desteği.
+
+## Repo Yapısı
+
+```text
+apps/
+  web-admin/
+  api/
+  terminal-app/
+packages/
+  ui/
+  shared/
+docs/
+  erp-v2/
+scripts/
+infra/
+```
+
+## Dokümantasyon
+
+ERP v2 karar ve mimari dokümanları ana kaynak olarak [docs/erp-v2](docs/erp-v2/README.md) altında tutulur.
+
+Kodlamaya başlamadan önce özellikle şu dosyalar okunmalıdır:
+
+- [Karar Defteri](docs/erp-v2/karar-defteri.md)
+- [UI Blueprint](docs/erp-v2/ui-blueprint.md)
+- [Implementation Roadmap](docs/erp-v2/implementation-roadmap.md)
+
+## Geliştirme Notu
+
+Bu repo iskeleti henüz uygulama kodu veya package kurulumu içermez. İlk kod sprinti `docs/erp-v2/implementation-roadmap.md` içindeki Faz 1 kapsamına göre başlatılmalıdır.
