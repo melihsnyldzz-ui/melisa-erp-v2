@@ -39,3 +39,152 @@ td.hot {
   color: #a11d1d;
   font-weight: 700;
 }
+
+.stock-list-screen {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.stock-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  border: 1px solid #b8c2d0;
+  background: #e6ebf3;
+}
+
+.stock-toolbar-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px;
+}
+
+.stock-toolbar-title strong {
+  color: #0c2d5b;
+  font-size: 14px;
+}
+
+.stock-toolbar-title span {
+  color: #4d5a6b;
+  font-size: 12px;
+}
+
+.stock-toolbar-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.stock-toolbar-actions button,
+.stock-filter-panel button {
+  height: 27px;
+  min-width: 66px;
+  border: 1px solid #aeb8c8;
+  background: #fff;
+  color: #203047;
+}
+
+.stock-toolbar-actions button.pressed {
+  border-color: #1d4f8d;
+  background: #dce8f8;
+  color: #0c2d5b;
+  font-weight: 700;
+}
+
+.stock-filter-panel {
+  display: grid;
+  grid-template-columns: 110px 130px minmax(180px, 1fr) 125px 130px 145px 105px 110px 76px;
+  gap: 6px;
+  align-items: end;
+  padding: 7px;
+  border: 1px solid #c5cedb;
+  background: #f7f9fc;
+}
+
+.stock-filter-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.stock-filter-panel span {
+  color: #40516a;
+  font-size: 11px;
+}
+
+.stock-filter-panel input,
+.stock-filter-panel select {
+  width: 100%;
+  height: 25px;
+  border: 1px solid #b9c3d0;
+  padding: 0 6px;
+  background: #fff;
+  color: #1d2838;
+  font-size: 12px;
+}
+
+.stock-list-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.stock-panel-title {
+  min-height: 32px;
+}
+
+.stock-table-wrap {
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.stock-table {
+  min-width: 1320px;
+}
+
+.stock-table th {
+  top: 0;
+  height: 28px;
+}
+
+.stock-table td {
+  height: 25px;
+}
+
+.stock-table tbody tr {
+  cursor: default;
+}
+
+.stock-table tbody tr.selected td {
+  background: #dce8f8;
+}
+
+.code-cell {
+  color: #0c2d5b;
+  font-weight: 700;
+}
+
+.money-cell {
+  text-align: right;
+}
+
+.stock-negative,
+.stock-zero,
+.status-passive {
+  color: #a11d1d;
+  font-weight: 700;
+}
+
+.status-active {
+  color: #1f6b42;
+  font-weight: 700;
+}
+
+.stock-summary {
+  flex-wrap: wrap;
+}
