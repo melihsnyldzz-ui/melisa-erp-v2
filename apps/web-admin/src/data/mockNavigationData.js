@@ -35,6 +35,7 @@ export const sidebarGroups = [
     title: 'Cari / Katalog',
     items: [
       { label: 'Cari Listesi', screenId: 'customer-list' },
+      { label: 'Cari KartÄ±', screenId: 'customer-card' },
       { label: 'Katalog Listesi', screenId: 'catalog-list' },
     ],
   },
@@ -75,6 +76,13 @@ export const screenRegistry = {
     label: 'Cari Listesi',
     module: 'Cari',
     type: 'liste',
+  },
+  'customer-card': {
+    id: 'customer-card',
+    label: 'Cari KartÄ±',
+    module: 'Cari',
+    type: 'kart',
+    dirty: true,
   },
   'sales-invoice': {
     id: 'sales-invoice',
