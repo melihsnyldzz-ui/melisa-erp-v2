@@ -8,15 +8,20 @@ import {
 } from '../../data/mockDashboardData.js';
 import { DataTable } from './DataTable.jsx';
 
-export function Dashboard() {
+export function Dashboard({ onOpenScreen }) {
   return (
     <main className="work-area">
       <section className="dashboard-grid">
         {kpis.map((kpi) => (
-          <article className={`kpi ${kpi.tone}`} key={kpi.label}>
+          <button
+            className={`kpi ${kpi.tone}`}
+            key={kpi.label}
+            onClick={() => onOpenScreen(kpi.screenId)}
+            type="button"
+          >
             <span>{kpi.label}</span>
             <strong>{kpi.value}</strong>
-          </article>
+          </button>
         ))}
       </section>
 

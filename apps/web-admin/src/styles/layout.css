@@ -138,6 +138,13 @@
   background: #fff;
 }
 
+.side-group button.active {
+  border-color: #1d4f8d;
+  background: #dce8f8;
+  color: #0c2d5b;
+  font-weight: 700;
+}
+
 .side-group.compact p {
   margin: 5px 0;
   font-size: 12px;
@@ -157,7 +164,8 @@
   padding: 5px 8px 0;
   border-bottom: 1px solid #aeb8c8;
   background: #cfd7e3;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .tab {
@@ -166,10 +174,12 @@
   gap: 7px;
   height: 30px;
   min-width: 132px;
+  max-width: 210px;
   padding: 0 9px;
   border-bottom: 0;
   background: #e9edf4;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .tab.active {
@@ -182,6 +192,17 @@
   margin-left: auto;
   font-style: normal;
   color: #6b7686;
+}
+
+.tab em[role="button"] {
+  min-width: 18px;
+  color: #7a1d1d;
+  text-align: center;
+}
+
+.tab .pin {
+  color: #1f6b42;
+  font-size: 11px;
 }
 
 .tab b {

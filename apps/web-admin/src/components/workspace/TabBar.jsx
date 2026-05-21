@@ -1,17 +1,34 @@
 import React from 'react';
-import { tabs } from '../../data/mockNavigationData.js';
 
-export function TabBar() {
+export function TabBar({ tabs, activeTabId, onActivateTab, onCloseTab }) {
   return (
-    <div className="tab-bar">
+    <div className="tab-bar" aria-label="Açık ekran sekmeleri">
       {tabs.map((tab) => (
-        <button className={tab.active ? 'tab active' : 'tab'} key={tab.label}>
+        <button
+          className={tab.id === activeTabId ? 'tab active' : 'tab'}
+          key={tab.id}
+          onClick={() => onActivateTab(tab.id)}
+          type="button"
+        >
           <span>{tab.label}</span>
           {tab.dirty ? <b>*</b> : null}
-          <em>×</em>
+          {tab.pinned ? (
+            <em className="pin">Sabit</em>
+          ) : (
+            <em
+              aria-label={`${tab.label} sekmesini kapat`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onCloseTab(tab.id);
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              ×
+            </em>
+          )}
         </button>
       ))}
-      <button className="tab more">+ Ekran</button>
     </div>
   );
 }

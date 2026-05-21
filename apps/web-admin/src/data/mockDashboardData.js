@@ -1,10 +1,10 @@
 export const kpis = [
-  { label: 'Günlük Satış', value: '₺128.450', tone: 'good' },
-  { label: 'Açık Fiş', value: '18', tone: 'warn' },
-  { label: 'Eksi Stok', value: '7', tone: 'danger' },
-  { label: 'Sync Hatası', value: '3', tone: 'danger' },
-  { label: 'Stok Değeri', value: '₺4.82M', tone: 'info' },
-  { label: 'Cari Risk', value: '12', tone: 'warn' },
+  { label: 'Günlük Satış', value: '₺128.450', tone: 'good', screenId: 'sales-invoice' },
+  { label: 'Açık Fiş', value: '18', tone: 'warn', screenId: 'sales-invoice' },
+  { label: 'Eksi Stok', value: '7', tone: 'danger', screenId: 'stock-list' },
+  { label: 'Sync Hatası', value: '3', tone: 'danger', screenId: 'catalog-list' },
+  { label: 'Stok Değeri', value: '₺4.82M', tone: 'info', screenId: 'stock-list' },
+  { label: 'Cari Risk', value: '12', tone: 'warn', screenId: 'customer-list' },
 ];
 
 export const stockRows = [

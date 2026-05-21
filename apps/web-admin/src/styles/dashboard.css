@@ -19,6 +19,7 @@
   min-height: 58px;
   padding: 8px 10px;
   border-top: 4px solid #2f5f9e;
+  text-align: left;
 }
 
 .kpi span {
@@ -146,4 +147,91 @@
 
 .totals strong {
   color: #0c2d5b;
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  margin-bottom: 8px;
+  border: 1px solid #b8c2d0;
+  background: #e6ebf3;
+}
+
+.screen-header div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px;
+}
+
+.screen-header strong {
+  color: #0c2d5b;
+  font-size: 14px;
+}
+
+.screen-header span,
+.screen-summary {
+  color: #4d5a6b;
+  font-size: 12px;
+}
+
+.screen-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.screen-actions button {
+  height: 27px;
+  min-width: 68px;
+  border: 1px solid #aeb8c8;
+  background: #fff;
+  color: #203047;
+}
+
+.screen-filter {
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  margin-bottom: 8px;
+  border: 1px solid #c5cedb;
+}
+
+.screen-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid #c5cedb;
+  background: #f7f9fc;
+}
+
+.screen-form-grid label {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.screen-form-grid input {
+  height: 26px;
+  border: 1px solid #b9c3d0;
+  padding: 0 7px;
+  background: #fff;
+}
+
+.screen-table-panel {
+  margin-bottom: 8px;
+}
+
+.screen-summary {
+  display: flex;
+  gap: 14px;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid #c5cedb;
+  background: #f7f9fc;
 }

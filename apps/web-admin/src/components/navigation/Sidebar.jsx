@@ -1,18 +1,25 @@
 import React from 'react';
 import { sidebarGroups } from '../../data/mockNavigationData.js';
 
-export function Sidebar() {
+export function Sidebar({ activeTab, onOpenScreen }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <strong>İşlem Paneli</strong>
-        <span>Stok / Satış bağlamı</span>
+        <span>{activeTab.module} / {activeTab.type} bağlamı</span>
       </div>
       {sidebarGroups.map((group) => (
         <section className="side-group" key={group.title}>
           <h3>{group.title}</h3>
           {group.items.map((item) => (
-            <button key={item}>{item}</button>
+            <button
+              className={activeTab.id === item.screenId ? 'active' : ''}
+              key={`${group.title}-${item.label}`}
+              onClick={() => onOpenScreen(item.screenId)}
+              type="button"
+            >
+              {item.label}
+            </button>
           ))}
         </section>
       ))}
