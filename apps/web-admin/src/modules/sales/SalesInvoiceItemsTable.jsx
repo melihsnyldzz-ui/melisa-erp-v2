@@ -8,12 +8,20 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem }) {
+function formatPercent(value) {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'percent',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem, showProfitColumns = false }) {
   return (
     <section className="erp-panel sales-items-panel">
       <div className="panel-title">
         <strong>Urun Satirlari</strong>
-        <span>Satir: {items.length} / sticky header / kompakt giris</span>
+        <span>Satir: {items.length} / sticky header / kompakt giris / maliyet snapshot</span>
       </div>
       <div className="table-wrap sales-items-wrap">
         <table className="sales-items-table">
@@ -26,6 +34,9 @@ export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem }) 
               <th>Para birimi</th>
               <th>Birim fiyat</th>
               <th>Satir toplami</th>
+              {showProfitColumns && <th>Maliyet TRY</th>}
+              {showProfitColumns && <th>Brut kar</th>}
+              {showProfitColumns && <th>Kar %</th>}
               <th>Stok durumu</th>
               <th>Not</th>
             </tr>
@@ -46,6 +57,9 @@ export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem }) 
                   <td>{item.currency}</td>
                   <td className="money-cell">{formatMoney(item.unitPrice, item.currency)}</td>
                   <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
+                  {showProfitColumns && <td className="money-cell">{formatMoney(item.averageCostTry || 0, 'TRY')}</td>}
+                  {showProfitColumns && <td className="money-cell">{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
+                  {showProfitColumns && <td className="money-cell">{formatPercent(item.grossProfitRate || 0)}</td>}
                   <td className={item.stockState === 'Eksiye duser' ? 'sales-stock-risk' : ''}>{item.stockState}</td>
                   <td>{item.note}</td>
                 </tr>

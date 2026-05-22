@@ -40,8 +40,14 @@ export function SalesInvoiceTotals({ totals }) {
           <dt>Tahmini kar</dt>
           <dd>{formatMoney(totals.estimatedProfit, 'TRY')}</dd>
         </div>
+        {totals.grossProfit !== null && (
+          <div>
+            <dt>Kesinlesen brut kar</dt>
+            <dd>{formatMoney(totals.grossProfit, 'TRY')}</dd>
+          </div>
+        )}
       </dl>
-      <p>Average cost TRY notu: tahmini kar mock satir average cost TRY degerleriyle hesaplanir.</p>
+      <p>Average cost TRY notu: kesinlesen fislerde satir maliyeti ve brut kar DB snapshot alanlarindan okunur.</p>
     </section>
   );
 }

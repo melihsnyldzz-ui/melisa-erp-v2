@@ -22,6 +22,9 @@ import {
 function calculateTotals(items, discountRate) {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
   const totalCost = items.reduce((total, item) => total + item.quantity * item.averageCostTry, 0);
+  const grossProfit = items.some((item) => item.grossProfitTry !== null && item.grossProfitTry !== undefined)
+    ? items.reduce((total, item) => total + Number(item.grossProfitTry || 0), 0)
+    : null;
   const discountAmount = subtotal * (discountRate / 100);
   const grandTotal = subtotal - discountAmount;
   const estimatedProfit = grandTotal - totalCost;
@@ -33,6 +36,7 @@ function calculateTotals(items, discountRate) {
     grandTotal,
     tryEquivalent: grandTotal,
     estimatedProfit,
+    grossProfit,
   };
 }
 
@@ -72,6 +76,8 @@ function mapDraftItems(items = []) {
     stockState: item.stockStatus || '-',
     note: item.note || '-',
     averageCostTry: Number(item.averageCostTry || 0),
+    grossProfitTry: item.grossProfitTry === null || item.grossProfitTry === undefined ? null : Number(item.grossProfitTry || 0),
+    grossProfitRate: item.grossProfitRate === null || item.grossProfitRate === undefined ? null : Number(item.grossProfitRate || 0),
   }));
 }
 
@@ -269,6 +275,7 @@ export function SalesInvoiceScreen({ salesDraftId }) {
           items={items}
           selectedItemId={selectedItemId}
           onSelectItem={setSelectedItemId}
+          showProfitColumns={isFinalized}
         />
         <SalesInvoiceTotals totals={totals} />
         <SalesInvoiceRulesPanel rules={salesInvoiceRules} statusMessage={statusMessage} />

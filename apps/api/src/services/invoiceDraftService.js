@@ -96,6 +96,46 @@ function toFinalizeResult(snapshot, warnings = []) {
   };
 }
 
+function safeNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function calculateWeightedAverageCostTry({
+  currentStock,
+  currentAverageCostTry,
+  purchaseQuantity,
+  purchaseAmountTry,
+}) {
+  if (purchaseQuantity <= 0) {
+    return 0;
+  }
+
+  const incomingUnitCostTry = purchaseAmountTry / purchaseQuantity;
+
+  if (currentStock <= 0) {
+    return incomingUnitCostTry;
+  }
+
+  const nextStock = currentStock + purchaseQuantity;
+
+  if (nextStock <= 0) {
+    return incomingUnitCostTry;
+  }
+
+  return ((currentStock * currentAverageCostTry) + purchaseAmountTry) / nextStock;
+}
+
+function calculateSalesProfitSnapshot({ salesAmountTry, averageCostTry, quantity }) {
+  const costAmountTry = averageCostTry * quantity;
+  const grossProfitTry = salesAmountTry - costAmountTry;
+
+  return {
+    grossProfitTry,
+    grossProfitRate: salesAmountTry > 0 ? grossProfitTry / salesAmountTry : 0,
+  };
+}
+
 function normalizeSalesPayload(payload = {}) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const discountRate = numberValue(payload.discountRate ?? 0, 'discountRate');
@@ -287,6 +327,8 @@ async function getSalesSnapshot(request, id) {
         unit_price AS unitPrice,
         line_total AS lineTotal,
         average_cost_try_snapshot AS averageCostTry,
+        gross_profit_try AS grossProfitTry,
+        gross_profit_rate AS grossProfitRate,
         stock_status_snapshot AS stockStatus,
         note
       FROM dbo.sales_invoice_items
@@ -407,6 +449,7 @@ async function getSalesFinalizeSnapshot(request, id) {
         sii.id,
         sii.product_id AS productId,
         p.current_stock_qty AS currentStockQty,
+        p.average_cost_try AS productAverageCostTry,
         sii.stock_code_snapshot AS stockCode,
         sii.barcode_snapshot AS barcode,
         sii.product_name_snapshot AS productName,
@@ -415,6 +458,8 @@ async function getSalesFinalizeSnapshot(request, id) {
         sii.unit_price AS unitPrice,
         sii.line_total AS lineTotal,
         sii.average_cost_try_snapshot AS averageCostTry,
+        sii.gross_profit_try AS grossProfitTry,
+        sii.gross_profit_rate AS grossProfitRate,
         sii.stock_status_snapshot AS stockStatus,
         sii.note
       FROM dbo.sales_invoice_items sii
@@ -474,6 +519,7 @@ async function getPurchaseFinalizeSnapshot(request, id) {
         pii.id,
         pii.product_id AS productId,
         p.current_stock_qty AS currentStockQty,
+        p.average_cost_try AS currentAverageCostTry,
         pii.stock_code_snapshot AS stockCode,
         pii.barcode_snapshot AS barcode,
         pii.product_name_snapshot AS productName,
@@ -1060,12 +1106,30 @@ export async function finalizeSalesInvoice(id) {
     }
 
     const warnings = [];
+    const profitSnapshots = [];
 
     for (const item of beforeSnapshot.items) {
-      const quantity = Number(item.quantity || 0);
-      const currentStock = Number(item.currentStockQty || 0);
+      const quantity = safeNumber(item.quantity);
+      const currentStock = safeNumber(item.currentStockQty);
       const nextStock = currentStock - quantity;
-      const amountTry = Number(item.lineTotal || 0) * Number(beforeSnapshot.exchangeRate || 1);
+      const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const averageCostTrySnapshot = safeNumber(item.productAverageCostTry ?? item.averageCostTry);
+      const profitSnapshot = calculateSalesProfitSnapshot({
+        salesAmountTry: amountTry,
+        averageCostTry: averageCostTrySnapshot,
+        quantity,
+      });
+
+      profitSnapshots.push({
+        itemId: item.id,
+        productId: item.productId,
+        stockCode: item.stockCode,
+        quantity,
+        salesAmountTry: amountTry,
+        averageCostTrySnapshot,
+        grossProfitTry: profitSnapshot.grossProfitTry,
+        grossProfitRate: profitSnapshot.grossProfitRate,
+      });
 
       if (nextStock < 0) {
         warnings.push({
@@ -1077,6 +1141,20 @@ export async function finalizeSalesInvoice(id) {
           projectedStock: nextStock,
         });
       }
+
+      await new sqlDriver.Request(transaction)
+        .input('profitSnapshotItemId', sql.BigInt, item.id)
+        .input('profitSnapshotAverageCostTry', sql.Decimal(18, 4), averageCostTrySnapshot)
+        .input('profitSnapshotGrossProfitTry', sql.Decimal(18, 4), profitSnapshot.grossProfitTry)
+        .input('profitSnapshotGrossProfitRate', sql.Decimal(18, 6), profitSnapshot.grossProfitRate)
+        .query(`
+          UPDATE dbo.sales_invoice_items
+          SET
+            average_cost_try_snapshot = @profitSnapshotAverageCostTry,
+            gross_profit_try = @profitSnapshotGrossProfitTry,
+            gross_profit_rate = @profitSnapshotGrossProfitRate
+          WHERE id = @profitSnapshotItemId;
+        `);
 
       await new sqlDriver.Request(transaction)
         .input('productIdForStockUpdate', sql.BigInt, item.productId)
@@ -1094,6 +1172,7 @@ export async function finalizeSalesInvoice(id) {
         .input('movementSourceId', sql.BigInt, invoiceId)
         .input('movementQuantityOut', sql.Decimal(18, 3), quantity)
         .input('movementQuantityNet', sql.Decimal(18, 3), -quantity)
+        .input('movementUnitCostTry', sql.Decimal(18, 4), averageCostTrySnapshot)
         .input('movementUnitPrice', sql.Decimal(18, 4), Number(item.unitPrice || 0))
         .input('movementCurrency', sql.NVarChar(3), item.currency)
         .input('movementAmountTry', sql.Decimal(18, 4), amountTry)
@@ -1126,8 +1205,8 @@ export async function finalizeSalesInvoice(id) {
             0,
             @movementQuantityOut,
             @movementQuantityNet,
-            0,
-            0,
+            @movementUnitCostTry,
+            @movementUnitCostTry,
             @movementDocumentDate,
             @movementCustomerId,
             SYSUTCDATETIME(),
@@ -1138,6 +1217,16 @@ export async function finalizeSalesInvoice(id) {
           );
         `);
     }
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'sales_profit_snapshot_created',
+      entityType: 'sales_invoice',
+      entityId: invoiceId,
+      afterSnapshot: {
+        invoiceId,
+        snapshots: profitSnapshots,
+      },
+    });
 
     await new sqlDriver.Request(transaction)
       .input('customerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
@@ -1544,33 +1633,63 @@ export async function finalizePurchaseInvoice(id) {
       throw makeServiceError('PURCHASE_FINALIZE_TOTAL_INVALID', 'Purchase invoice total cannot be negative', 400);
     }
 
-    const warnings = [
-      {
-        code: 'AVERAGE_COST_ENGINE_DEFERRED',
-        message: 'Full average cost engine is not applied in this sprint.',
-      },
-    ];
+    const warnings = [];
 
     for (const item of beforeSnapshot.items) {
-      const quantity = Number(item.quantity || 0);
-      const lineTotalTry = Number(item.lineTotalTry || item.lineTotal || 0) * Number(beforeSnapshot.exchangeRate || 1);
+      const quantity = safeNumber(item.quantity);
+      const currentStock = safeNumber(item.currentStockQty);
+      const currentAverageCostTry = safeNumber(item.currentAverageCostTry);
+      const lineTotalTry = safeNumber(item.lineTotalTry || item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const unitCostTry = quantity > 0 ? lineTotalTry / quantity : 0;
+      const nextStock = currentStock + quantity;
+      const nextAverageCostTry = calculateWeightedAverageCostTry({
+        currentStock,
+        currentAverageCostTry,
+        purchaseQuantity: quantity,
+        purchaseAmountTry: lineTotalTry,
+      });
 
       await new sqlDriver.Request(transaction)
         .input('purchaseProductIdForStockUpdate', sql.BigInt, item.productId)
         .input('purchaseQuantityForStockUpdate', sql.Decimal(18, 3), quantity)
+        .input('purchaseAverageCostTryForUpdate', sql.Decimal(18, 4), nextAverageCostTry)
         .query(`
           UPDATE dbo.products
           SET
             current_stock_qty = current_stock_qty + @purchaseQuantityForStockUpdate,
+            average_cost_try = @purchaseAverageCostTryForUpdate,
             updated_at = SYSUTCDATETIME()
           WHERE id = @purchaseProductIdForStockUpdate;
         `);
+
+      await writeAuditLog(new sqlDriver.Request(transaction), {
+        action: 'product_average_cost_updated',
+        entityType: 'product',
+        entityId: item.productId,
+        beforeSnapshot: {
+          productId: item.productId,
+          purchaseInvoiceId: invoiceId,
+          currentStock,
+          averageCostTry: currentAverageCostTry,
+        },
+        afterSnapshot: {
+          productId: item.productId,
+          purchaseInvoiceId: invoiceId,
+          quantity,
+          purchaseAmountTry: lineTotalTry,
+          unitCostTry,
+          nextStock,
+          averageCostTry: nextAverageCostTry,
+        },
+      });
 
       await new sqlDriver.Request(transaction)
         .input('purchaseMovementProductId', sql.BigInt, item.productId)
         .input('purchaseMovementSourceId', sql.BigInt, invoiceId)
         .input('purchaseMovementQuantityIn', sql.Decimal(18, 3), quantity)
         .input('purchaseMovementQuantityNet', sql.Decimal(18, 3), quantity)
+        .input('purchaseMovementUnitCostTry', sql.Decimal(18, 4), unitCostTry)
+        .input('purchaseMovementAverageCostTry', sql.Decimal(18, 4), nextAverageCostTry)
         .input('purchaseMovementUnitPrice', sql.Decimal(18, 4), Number(item.purchasePrice || 0))
         .input('purchaseMovementCurrency', sql.NVarChar(3), item.currency)
         .input('purchaseMovementAmountTry', sql.Decimal(18, 4), lineTotalTry)
@@ -1603,8 +1722,8 @@ export async function finalizePurchaseInvoice(id) {
             @purchaseMovementQuantityIn,
             0,
             @purchaseMovementQuantityNet,
-            0,
-            0,
+            @purchaseMovementUnitCostTry,
+            @purchaseMovementAverageCostTry,
             @purchaseMovementDocumentDate,
             @purchaseMovementSupplierId,
             SYSUTCDATETIME(),
