@@ -1,11 +1,11 @@
-import { mockDataService } from '../services/mockDataService.js';
-import { paginateRows } from '../utils/pagination.js';
-import { ok } from '../utils/response.js';
+import { getCustomersList } from '../services/customerService.js';
+import { fail, ok } from '../utils/response.js';
 
-export function getCustomers(req, res) {
-  const { data, meta } = paginateRows(mockDataService.getCustomers(), req.query);
-  return ok(res, data, {
-    ...meta,
-    source: 'mock',
-  });
+export async function getCustomers(req, res) {
+  try {
+    const { data, meta } = await getCustomersList(req.query);
+    return ok(res, data, meta);
+  } catch (error) {
+    return fail(res, error.statusCode || 503, 'SQL_SELECT_FAILED', 'Customers query failed');
+  }
 }

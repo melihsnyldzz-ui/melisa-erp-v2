@@ -43,7 +43,7 @@ Bu repo iskeleti henüz uygulama kodu veya package kurulumu içermez. İlk kod s
 
 ## API Gelistirme
 
-API foundation `apps/api` altinda Node.js + Express ile baslatilir. Simdilik SQL Server, Vega ve auth database baglantisi kapalidir; endpointler mock veri doner.
+API foundation `apps/api` altinda Node.js + Express ile baslatilir. Vega ve auth database baglantisi kapalidir. `GET /api/products` ve `GET /api/customers` endpointleri `MELISA_ERP_V2` uzerinden SELECT-only SQL okuma yapar; diger endpointler simdilik mock veri doner.
 
 ```powershell
 cd apps/api
@@ -67,3 +67,14 @@ Ilk mock endpointler:
 - `GET /api/customers`
 - `GET /api/sales-invoices`
 - `GET /api/purchase-invoices`
+
+SQL SELECT-only endpoint ornekleri:
+
+```text
+GET /api/products?page=1&limit=20&activeOnly=true&search=tulum
+GET /api/customers?page=1&limit=20&activeOnly=true&search=istanbul
+GET /api/sql/health
+GET /api/sql/tables-preview
+```
+
+`/api/products` ve `/api/customers` response alanlari barkod ve telefon gibi hassas degerleri maskeler. Liste limitleri en fazla `100` satirla sinirlidir ve sorgular parametreli SQL ile calisir.
