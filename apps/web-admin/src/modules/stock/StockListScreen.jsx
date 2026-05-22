@@ -90,6 +90,7 @@ export function StockListScreen({ onOpenScreen }) {
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [selectionWarning, setSelectionWarning] = useState('');
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
@@ -157,13 +158,37 @@ export function StockListScreen({ onOpenScreen }) {
   function resetFilters() {
     setFilters(stockFilterDefaults);
     setSelectedRowId(rows[0]?.id ?? null);
+    setSelectionWarning('');
+  }
+
+  function openSelectedProduct() {
+    const productId = selectedRow?.id;
+
+    if (!productId) {
+      setSelectionWarning('Urun karti acmak icin listeden bir urun secin.');
+      return;
+    }
+
+    setSelectionWarning('');
+    onOpenScreen('product-card', { productId });
+  }
+
+  function selectRow(rowId) {
+    setSelectedRowId(rowId);
+    setSelectionWarning('');
+  }
+
+  function openProductRow(rowId) {
+    setSelectedRowId(rowId);
+    setSelectionWarning('');
+    onOpenScreen('product-card', { productId: rowId });
   }
 
   return (
     <main className="work-area stock-list-screen">
       <StockListToolbar
         showPassive={filters.status === 'all'}
-        onOpenProductCard={() => onOpenScreen('product-card')}
+        onOpenProductCard={openSelectedProduct}
         onTogglePassive={togglePassive}
       />
       <StockListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
@@ -181,8 +206,16 @@ export function StockListScreen({ onOpenScreen }) {
         {!isLoading && !errorMessage && filteredRows.length === 0 && (
           <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
         )}
+        {!isLoading && !errorMessage && selectionWarning && (
+          <div className="list-state list-state-error">{selectionWarning}</div>
+        )}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
-          <StockListTable rows={filteredRows} selectedRowId={selectedRow?.id} onSelectRow={setSelectedRowId} />
+          <StockListTable
+            rows={filteredRows}
+            selectedRowId={selectedRow?.id}
+            onOpenRow={openProductRow}
+            onSelectRow={selectRow}
+          />
         )}
       </section>
       <section className="screen-summary stock-summary">

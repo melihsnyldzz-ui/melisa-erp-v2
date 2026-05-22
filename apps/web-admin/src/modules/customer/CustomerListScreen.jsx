@@ -83,6 +83,7 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [selectionWarning, setSelectionWarning] = useState('');
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
@@ -151,13 +152,37 @@ export function CustomerListScreen({ onOpenScreen }) {
   function resetFilters() {
     setFilters(customerFilterDefaults);
     setSelectedRowId(rows[0]?.id ?? null);
+    setSelectionWarning('');
+  }
+
+  function openSelectedCustomer() {
+    const customerId = selectedRow?.id;
+
+    if (!customerId) {
+      setSelectionWarning('Cari kart acmak icin listeden bir cari secin.');
+      return;
+    }
+
+    setSelectionWarning('');
+    onOpenScreen('customer-card', { customerId });
+  }
+
+  function selectRow(rowId) {
+    setSelectedRowId(rowId);
+    setSelectionWarning('');
+  }
+
+  function openCustomerRow(rowId) {
+    setSelectedRowId(rowId);
+    setSelectionWarning('');
+    onOpenScreen('customer-card', { customerId: rowId });
   }
 
   return (
     <main className="work-area customer-list-screen">
       <CustomerListToolbar
         showPassive={filters.status === 'all'}
-        onOpenCustomerCard={() => onOpenScreen('customer-card')}
+        onOpenCustomerCard={openSelectedCustomer}
         onTogglePassive={togglePassive}
       />
       <CustomerListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
@@ -175,8 +200,16 @@ export function CustomerListScreen({ onOpenScreen }) {
         {!isLoading && !errorMessage && filteredRows.length === 0 && (
           <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
         )}
+        {!isLoading && !errorMessage && selectionWarning && (
+          <div className="list-state list-state-error">{selectionWarning}</div>
+        )}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
-          <CustomerListTable rows={filteredRows} selectedRowId={selectedRow?.id} onSelectRow={setSelectedRowId} />
+          <CustomerListTable
+            rows={filteredRows}
+            selectedRowId={selectedRow?.id}
+            onOpenRow={openCustomerRow}
+            onSelectRow={selectRow}
+          />
         )}
       </section>
       <section className="screen-summary customer-summary">

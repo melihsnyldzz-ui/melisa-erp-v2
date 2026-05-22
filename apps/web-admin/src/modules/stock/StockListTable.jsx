@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function StockListTable({ rows, selectedRowId, onSelectRow }) {
+export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) {
   return (
     <div className="stock-table-wrap">
       <table className="stock-table">
@@ -25,6 +25,7 @@ export function StockListTable({ rows, selectedRowId, onSelectRow }) {
               className={selectedRowId === row.id ? 'selected' : ''}
               key={row.id}
               onClick={() => onSelectRow(row.id)}
+              onDoubleClick={() => onOpenRow(row.id)}
             >
               <td className="code-cell">{row.stockCode}</td>
               <td>{row.barcode}</td>

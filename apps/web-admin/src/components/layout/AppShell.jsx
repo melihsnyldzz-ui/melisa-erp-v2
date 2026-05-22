@@ -15,21 +15,43 @@ export function AppShell() {
     [activeTabId, tabs],
   );
 
-  function openScreen(screenId) {
+  function createTab(screen, payload = {}) {
+    const recordId = payload.productId ?? payload.customerId;
+
+    if (!recordId) {
+      return {
+        ...screen,
+        screenId: screen.id,
+        payload,
+      };
+    }
+
+    return {
+      ...screen,
+      id: `${screen.id}:${recordId}`,
+      screenId: screen.id,
+      label: `${screen.label} #${recordId}`,
+      payload,
+    };
+  }
+
+  function openScreen(screenId, payload = {}) {
     const screen = screenRegistry[screenId];
 
     if (!screen) {
       return;
     }
 
+    const nextTab = createTab(screen, payload);
+
     setTabs((currentTabs) => {
-      if (currentTabs.some((tab) => tab.id === screen.id)) {
+      if (currentTabs.some((tab) => tab.id === nextTab.id)) {
         return currentTabs;
       }
 
-      return [...currentTabs, screen];
+      return [...currentTabs, nextTab];
     });
-    setActiveTabId(screen.id);
+    setActiveTabId(nextTab.id);
   }
 
   function closeTab(tabId) {

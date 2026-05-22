@@ -6,8 +6,6 @@ import { CustomerTransactionsPanel } from './CustomerTransactionsPanel.jsx';
 import { customerRules } from './customerMockData.js';
 import { fetchCustomerDetail } from '../../services/customerDetailApi.js';
 
-const SELECTED_CUSTOMER_ID = 1;
-
 function mapCustomerType(type) {
   const labels = {
     customer: 'Musteri',
@@ -72,7 +70,7 @@ function mapTransactions(detail) {
   ];
 }
 
-export function CustomerCardScreen() {
+export function CustomerCardScreen({ customerId }) {
   const [customer, setCustomer] = useState(null);
   const [balances, setBalances] = useState([]);
   const [paymentSummary, setPaymentSummary] = useState(null);
@@ -84,11 +82,21 @@ export function CustomerCardScreen() {
     let isMounted = true;
 
     async function loadCustomer() {
+      if (!customerId) {
+        setCustomer(null);
+        setBalances([]);
+        setPaymentSummary(null);
+        setTransactions([]);
+        setErrorMessage('');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage('');
 
       try {
-        const response = await fetchCustomerDetail(SELECTED_CUSTOMER_ID);
+        const response = await fetchCustomerDetail(customerId);
         const detail = response.data;
 
         if (isMounted) {
@@ -117,7 +125,7 @@ export function CustomerCardScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [customerId]);
 
   return (
     <main className="work-area customer-card-screen">
@@ -128,7 +136,7 @@ export function CustomerCardScreen() {
         </div>
       )}
       {!isLoading && !errorMessage && !customer && (
-        <div className="list-state">Cari kart bulunamadi.</div>
+        <div className="list-state">Cari kart acmak icin cari listesinden bir cari secin.</div>
       )}
       {!isLoading && !errorMessage && customer && (
         <>

@@ -6,8 +6,6 @@ import { ProductImagePanel } from './ProductImagePanel.jsx';
 import { ProductStockSummary } from './ProductStockSummary.jsx';
 import { fetchProductDetail } from '../../services/productDetailApi.js';
 
-const SELECTED_PRODUCT_ID = 1;
-
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
@@ -59,7 +57,7 @@ function mapBarcodes(detail) {
   ];
 }
 
-export function ProductCardScreen() {
+export function ProductCardScreen({ productId }) {
   const [product, setProduct] = useState(null);
   const [stockSummary, setStockSummary] = useState(null);
   const [barcodes, setBarcodes] = useState([]);
@@ -70,11 +68,20 @@ export function ProductCardScreen() {
     let isMounted = true;
 
     async function loadProduct() {
+      if (!productId) {
+        setProduct(null);
+        setStockSummary(null);
+        setBarcodes([]);
+        setErrorMessage('');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage('');
 
       try {
-        const response = await fetchProductDetail(SELECTED_PRODUCT_ID);
+        const response = await fetchProductDetail(productId);
         const detail = response.data;
 
         if (isMounted) {
@@ -101,7 +108,7 @@ export function ProductCardScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [productId]);
 
   return (
     <main className="work-area product-card-screen">
@@ -112,7 +119,7 @@ export function ProductCardScreen() {
         </div>
       )}
       {!isLoading && !errorMessage && !product && (
-        <div className="list-state">Urun karti bulunamadi.</div>
+        <div className="list-state">Urun karti acmak icin stok listesinden bir urun secin.</div>
       )}
       {!isLoading && !errorMessage && product && (
         <>

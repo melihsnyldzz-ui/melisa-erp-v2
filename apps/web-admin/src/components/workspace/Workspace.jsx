@@ -9,31 +9,33 @@ import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 
 export function Workspace({ activeTab, onOpenScreen }) {
-  if (activeTab.id === 'dashboard') {
+  const screenId = activeTab.screenId ?? activeTab.id;
+
+  if (screenId === 'dashboard') {
     return <DashboardScreen onOpenScreen={onOpenScreen} />;
   }
 
-  if (activeTab.id === 'stock-list') {
+  if (screenId === 'stock-list') {
     return <StockListScreen onOpenScreen={onOpenScreen} />;
   }
 
-  if (activeTab.id === 'product-card') {
-    return <ProductCardScreen />;
+  if (screenId === 'product-card') {
+    return <ProductCardScreen productId={activeTab.payload?.productId} />;
   }
 
-  if (activeTab.id === 'customer-list') {
+  if (screenId === 'customer-list') {
     return <CustomerListScreen onOpenScreen={onOpenScreen} />;
   }
 
-  if (activeTab.id === 'customer-card') {
-    return <CustomerCardScreen />;
+  if (screenId === 'customer-card') {
+    return <CustomerCardScreen customerId={activeTab.payload?.customerId} />;
   }
 
-  if (activeTab.id === 'sales-invoice') {
+  if (screenId === 'sales-invoice') {
     return <SalesInvoiceScreen />;
   }
 
-  if (activeTab.id === 'purchase-invoice') {
+  if (screenId === 'purchase-invoice') {
     return <PurchaseInvoiceScreen />;
   }
 

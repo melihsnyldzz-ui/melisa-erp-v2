@@ -8,7 +8,7 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function CustomerListTable({ rows, selectedRowId, onSelectRow }) {
+export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) {
   return (
     <div className="table-wrap customer-table-wrap">
       <table className="customer-table">
@@ -32,6 +32,7 @@ export function CustomerListTable({ rows, selectedRowId, onSelectRow }) {
               key={row.id}
               className={row.id === selectedRowId ? 'selected' : ''}
               onClick={() => onSelectRow(row.id)}
+              onDoubleClick={() => onOpenRow(row.id)}
             >
               <td className="code-cell">{row.code}</td>
               <td>{row.name}</td>
