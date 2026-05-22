@@ -1369,3 +1369,174 @@ td.hot {
 .invoice-list-summary {
   flex-wrap: wrap;
 }
+
+.import-screen {
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.import-toolbar,
+.import-file-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  border: 1px solid #b8c2d0;
+  background: #e6ebf3;
+}
+
+.import-title-block,
+.import-file-panel div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px;
+}
+
+.import-title-block strong,
+.import-file-panel strong {
+  color: #0c2d5b;
+  font-size: 14px;
+}
+
+.import-title-block span,
+.import-file-panel span {
+  color: #4d5a6b;
+  font-size: 12px;
+}
+
+.import-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.import-actions button {
+  height: 27px;
+  min-width: 72px;
+  border: 1px solid #aeb8c8;
+  background: #fff;
+  color: #203047;
+}
+
+.import-actions button.pressed,
+.import-actions button.primary {
+  border-color: #1d4f8d;
+  background: #dce8f8;
+  color: #0c2d5b;
+  font-weight: 700;
+}
+
+.import-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.import-file-panel {
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 7px;
+  background: #f7f9fc;
+}
+
+.import-file-panel label {
+  display: grid;
+  grid-template-columns: 52px 320px;
+  gap: 7px;
+  align-items: center;
+  color: #40516a;
+  font-size: 12px;
+}
+
+.import-file-panel input {
+  height: 27px;
+  border: 1px solid #b9c3d0;
+  background: #fff;
+  color: #1d2838;
+  font-size: 12px;
+}
+
+.import-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 7px;
+}
+
+.import-summary-box {
+  display: grid;
+  gap: 3px;
+  min-height: 46px;
+  border: 1px solid #b8c2d0;
+  padding: 7px;
+  background: #fff;
+}
+
+.import-summary-box span {
+  color: #40516a;
+  font-size: 11px;
+}
+
+.import-summary-box strong {
+  color: #0c2d5b;
+  font-size: 17px;
+}
+
+.import-summary-box.good strong {
+  color: #1f6b42;
+}
+
+.import-summary-box.warn strong {
+  color: #8a5b00;
+}
+
+.import-summary-box.danger strong {
+  color: #a11d1d;
+}
+
+.import-summary-box.info strong {
+  color: #1d4f8d;
+}
+
+.import-validation-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.import-table-wrap {
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.import-table {
+  min-width: 1120px;
+}
+
+.import-table th {
+  top: 0;
+  height: 28px;
+}
+
+.import-table td {
+  height: 25px;
+}
+
+.import-row-valid td {
+  color: #1f3a2a;
+}
+
+.import-row-invalid td {
+  background: #fff1f1;
+  color: #8a1f1f;
+}
+
+.import-row-duplicate td {
+  background: #fff8e8;
+  color: #725014;
+}
+
+.import-summary {
+  flex-wrap: wrap;
+}

@@ -4,6 +4,7 @@ import { MockScreen } from './MockScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
 import { DashboardScreen } from '../../modules/dashboard/DashboardScreen.jsx';
+import { ImportScreen } from '../../modules/import/ImportScreen.jsx';
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
 import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { PurchaseInvoiceScreen } from '../../modules/purchase/PurchaseInvoiceScreen.jsx';
@@ -52,6 +53,14 @@ export function Workspace({ activeTab, onOpenScreen, permissions = [] }) {
 
   if (screenId === 'purchase-invoice-list') {
     return <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'import-foundation') {
+    if (!permissions.includes('import.run')) {
+      return <UnauthorizedScreen message="Import calistirma yetkiniz yok." />;
+    }
+
+    return <ImportScreen />;
   }
 
   return <MockScreen screen={activeTab} />;

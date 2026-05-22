@@ -40,6 +40,12 @@ export const sidebarGroups = [
     ],
   },
   {
+    title: 'Import / Aktarim',
+    items: [
+      { label: 'Excel CSV Aktarim', screenId: 'import-foundation' },
+    ],
+  },
+  {
     title: 'Hizli Filtreler',
     items: [
       { label: 'Eksi Stok', screenId: 'stock-list' },
@@ -114,6 +120,12 @@ export const screenRegistry = {
     label: 'Katalog Listesi',
     module: 'Katalog',
     type: 'liste',
+  },
+  'import-foundation': {
+    id: 'import-foundation',
+    label: 'Excel CSV Aktarim',
+    module: 'Yetki / Audit',
+    type: 'import',
   },
 };
 
