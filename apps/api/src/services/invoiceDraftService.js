@@ -1,6 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
+import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 function makeServiceError(code, message, statusCode = 400) {
@@ -44,6 +45,46 @@ function createDocumentNo(prefix) {
   ].join('');
 
   return `${prefix}-${stamp}`;
+}
+
+function parseDraftListQuery(query = {}) {
+  const options = parseListQuery(query);
+  const status = trimText(query.status || 'DRAFT').toUpperCase();
+  const partySearch = trimText(query.customer || query.supplier || query.party);
+
+  return {
+    ...options,
+    status: status === 'DRAFT' ? 'draft' : 'unsupported',
+    partySearch,
+  };
+}
+
+function toSalesListDto(row) {
+  return {
+    id: row.id,
+    invoiceNo: row.invoice_no,
+    customerName: row.customer_name || '-',
+    currency: row.currency_code,
+    totalAmount: Number(row.total_amount || 0),
+    status: String(row.status || '').toUpperCase(),
+    itemCount: Number(row.item_count || 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toPurchaseListDto(row) {
+  return {
+    id: row.id,
+    invoiceNo: row.invoice_no,
+    supplierName: row.supplier_name || '-',
+    currency: row.currency_code,
+    totalAmount: Number(row.total_amount || 0),
+    status: String(row.status || '').toUpperCase(),
+    itemCount: Number(row.item_count || 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 function normalizeSalesPayload(payload = {}) {
@@ -195,24 +236,26 @@ async function getSalesSnapshot(request, id) {
     .input('salesSnapshotId', sql.BigInt, id)
     .query(`
       SELECT TOP (1)
-        id,
-        document_no AS documentNo,
-        document_date AS documentDate,
-        customer_id AS customerId,
-        status,
-        customer_currency AS customerCurrency,
-        document_currency AS documentCurrency,
-        exchange_rate_snapshot AS exchangeRate,
-        description,
-        subtotal,
-        discount_rate AS discountRate,
-        discount_total AS discountTotal,
-        grand_total AS grandTotal,
-        amount_try AS amountTry,
-        estimated_profit_try AS estimatedProfitTry,
-        updated_at AS updatedAt
-      FROM dbo.sales_invoices
-      WHERE id = @salesSnapshotId;
+        si.id,
+        si.document_no AS documentNo,
+        si.document_date AS documentDate,
+        si.customer_id AS customerId,
+        c.name AS customerName,
+        si.status,
+        si.customer_currency AS customerCurrency,
+        si.document_currency AS documentCurrency,
+        si.exchange_rate_snapshot AS exchangeRate,
+        si.description,
+        si.subtotal,
+        si.discount_rate AS discountRate,
+        si.discount_total AS discountTotal,
+        si.grand_total AS grandTotal,
+        si.amount_try AS amountTry,
+        si.estimated_profit_try AS estimatedProfitTry,
+        si.updated_at AS updatedAt
+      FROM dbo.sales_invoices si
+      LEFT JOIN dbo.customers c ON c.id = si.customer_id
+      WHERE si.id = @salesSnapshotId;
     `);
 
   const row = header.recordset?.[0];
@@ -254,26 +297,28 @@ async function getPurchaseSnapshot(request, id) {
     .input('purchaseSnapshotId', sql.BigInt, id)
     .query(`
       SELECT TOP (1)
-        id,
-        document_no AS documentNo,
-        document_date AS documentDate,
-        supplier_id AS supplierId,
-        status,
-        supplier_currency AS supplierCurrency,
-        document_currency AS documentCurrency,
-        exchange_rate_snapshot AS exchangeRate,
-        description,
-        subtotal,
-        line_discount_total AS lineDiscountTotal,
-        invoice_discount_rate AS invoiceDiscountRate,
-        supplier_discount_rate AS supplierDiscountRate,
-        discount_total AS discountTotal,
-        grand_total AS grandTotal,
-        amount_try AS amountTry,
-        stock_cost_effect_try AS stockCostEffectTry,
-        updated_at AS updatedAt
-      FROM dbo.purchase_invoices
-      WHERE id = @purchaseSnapshotId;
+        pi.id,
+        pi.document_no AS documentNo,
+        pi.document_date AS documentDate,
+        pi.supplier_id AS supplierId,
+        s.name AS supplierName,
+        pi.status,
+        pi.supplier_currency AS supplierCurrency,
+        pi.document_currency AS documentCurrency,
+        pi.exchange_rate_snapshot AS exchangeRate,
+        pi.description,
+        pi.subtotal,
+        pi.line_discount_total AS lineDiscountTotal,
+        pi.invoice_discount_rate AS invoiceDiscountRate,
+        pi.supplier_discount_rate AS supplierDiscountRate,
+        pi.discount_total AS discountTotal,
+        pi.grand_total AS grandTotal,
+        pi.amount_try AS amountTry,
+        pi.stock_cost_effect_try AS stockCostEffectTry,
+        pi.updated_at AS updatedAt
+      FROM dbo.purchase_invoices pi
+      LEFT JOIN dbo.suppliers s ON s.id = pi.supplier_id
+      WHERE pi.id = @purchaseSnapshotId;
     `);
 
   const row = header.recordset?.[0];
@@ -573,6 +618,93 @@ export async function getSalesDraft(id) {
   return snapshot;
 }
 
+export async function getSalesDraftsList(query) {
+  const options = parseDraftListQuery(query);
+
+  if (options.status === 'unsupported') {
+    return {
+      data: [],
+      meta: buildListMeta({
+        ...options,
+        total: 0,
+        source: 'sql-select-only',
+        filters: {
+          search: options.search || null,
+          status: 'DRAFT',
+          customer: options.partySearch || null,
+        },
+      }),
+    };
+  }
+
+  const pool = await getSqlPool();
+  const request = pool.request()
+    .input('search', sql.NVarChar(160), options.search ? `%${options.search}%` : null)
+    .input('customerSearch', sql.NVarChar(160), options.partySearch ? `%${options.partySearch}%` : null)
+    .input('offset', sql.Int, options.offset);
+
+  const result = await request.query(`
+    WITH filtered_sales AS (
+      SELECT
+        si.id,
+        si.document_no AS invoice_no,
+        c.name AS customer_name,
+        si.document_currency AS currency_code,
+        si.grand_total AS total_amount,
+        si.status,
+        si.created_at,
+        si.updated_at,
+        item_counts.item_count
+      FROM dbo.sales_invoices si
+      LEFT JOIN dbo.customers c ON c.id = si.customer_id
+      OUTER APPLY (
+        SELECT COUNT_BIG(1) AS item_count
+        FROM dbo.sales_invoice_items sii
+        WHERE sii.sales_invoice_id = si.id
+      ) item_counts
+      WHERE
+        si.status = N'draft'
+        AND (
+          @search IS NULL
+          OR si.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+        )
+        AND (
+          @customerSearch IS NULL
+          OR c.name COLLATE Latin1_General_CI_AI LIKE @customerSearch COLLATE Latin1_General_CI_AI
+        )
+    ),
+    numbered_sales AS (
+      SELECT
+        fs.*,
+        ROW_NUMBER() OVER (ORDER BY fs.created_at DESC, fs.id DESC) AS row_number,
+        COUNT_BIG(1) OVER () AS total_count
+      FROM filtered_sales fs
+    )
+    SELECT TOP (${options.limit}) ns.*
+    FROM numbered_sales ns
+    WHERE ns.row_number > @offset
+    ORDER BY ns.row_number ASC;
+  `);
+
+  const rows = result.recordset || [];
+  const total = rows.length > 0 ? Number(rows[0].total_count || 0) : 0;
+
+  return {
+    data: rows.map(toSalesListDto),
+    meta: buildListMeta({
+      ...options,
+      total,
+      source: 'sql-select-only',
+      filters: {
+        search: options.search || null,
+        status: 'DRAFT',
+        customer: options.partySearch || null,
+      },
+    }),
+  };
+}
+
 export async function createSalesDraft(payload) {
   assertMelisaWriteEnabled();
 
@@ -762,6 +894,93 @@ export async function getPurchaseDraft(id) {
   }
 
   return snapshot;
+}
+
+export async function getPurchaseDraftsList(query) {
+  const options = parseDraftListQuery(query);
+
+  if (options.status === 'unsupported') {
+    return {
+      data: [],
+      meta: buildListMeta({
+        ...options,
+        total: 0,
+        source: 'sql-select-only',
+        filters: {
+          search: options.search || null,
+          status: 'DRAFT',
+          supplier: options.partySearch || null,
+        },
+      }),
+    };
+  }
+
+  const pool = await getSqlPool();
+  const request = pool.request()
+    .input('search', sql.NVarChar(160), options.search ? `%${options.search}%` : null)
+    .input('supplierSearch', sql.NVarChar(160), options.partySearch ? `%${options.partySearch}%` : null)
+    .input('offset', sql.Int, options.offset);
+
+  const result = await request.query(`
+    WITH filtered_purchase AS (
+      SELECT
+        pi.id,
+        pi.document_no AS invoice_no,
+        s.name AS supplier_name,
+        pi.document_currency AS currency_code,
+        pi.grand_total AS total_amount,
+        pi.status,
+        pi.created_at,
+        pi.updated_at,
+        item_counts.item_count
+      FROM dbo.purchase_invoices pi
+      LEFT JOIN dbo.suppliers s ON s.id = pi.supplier_id
+      OUTER APPLY (
+        SELECT COUNT_BIG(1) AS item_count
+        FROM dbo.purchase_invoice_items pii
+        WHERE pii.purchase_invoice_id = pi.id
+      ) item_counts
+      WHERE
+        pi.status = N'draft'
+        AND (
+          @search IS NULL
+          OR pi.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR s.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+        )
+        AND (
+          @supplierSearch IS NULL
+          OR s.name COLLATE Latin1_General_CI_AI LIKE @supplierSearch COLLATE Latin1_General_CI_AI
+        )
+    ),
+    numbered_purchase AS (
+      SELECT
+        fp.*,
+        ROW_NUMBER() OVER (ORDER BY fp.created_at DESC, fp.id DESC) AS row_number,
+        COUNT_BIG(1) OVER () AS total_count
+      FROM filtered_purchase fp
+    )
+    SELECT TOP (${options.limit}) np.*
+    FROM numbered_purchase np
+    WHERE np.row_number > @offset
+    ORDER BY np.row_number ASC;
+  `);
+
+  const rows = result.recordset || [];
+  const total = rows.length > 0 ? Number(rows[0].total_count || 0) : 0;
+
+  return {
+    data: rows.map(toPurchaseListDto),
+    meta: buildListMeta({
+      ...options,
+      total,
+      source: 'sql-select-only',
+      filters: {
+        search: options.search || null,
+        status: 'DRAFT',
+        supplier: options.partySearch || null,
+      },
+    }),
+  };
 }
 
 export async function createPurchaseDraft(payload) {

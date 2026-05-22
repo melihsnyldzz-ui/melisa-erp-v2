@@ -1,13 +1,13 @@
-import { mockDataService } from '../services/mockDataService.js';
 import {
   createPurchaseDraft,
   createSalesDraft,
   getPurchaseDraft,
+  getPurchaseDraftsList,
   getSalesDraft,
+  getSalesDraftsList,
   updatePurchaseDraft,
   updateSalesDraft,
 } from '../services/invoiceDraftService.js';
-import { paginateRows } from '../utils/pagination.js';
 import { created, fail, ok } from '../utils/response.js';
 
 function writeError(res, error, fallbackCode) {
@@ -19,20 +19,28 @@ function writeError(res, error, fallbackCode) {
   );
 }
 
-export function getSalesInvoices(req, res) {
-  const { data, meta } = paginateRows(mockDataService.getSalesInvoices(), req.query);
-  return ok(res, data, {
-    ...meta,
-    source: 'mock',
-  });
+export async function getSalesInvoices(req, res) {
+  try {
+    const { data, meta } = await getSalesDraftsList(req.query);
+    return ok(res, data, {
+      ...meta,
+      commercialEffect: false,
+    });
+  } catch (error) {
+    return writeError(res, error, 'SALES_DRAFT_LIST_FAILED');
+  }
 }
 
-export function getPurchaseInvoices(req, res) {
-  const { data, meta } = paginateRows(mockDataService.getPurchaseInvoices(), req.query);
-  return ok(res, data, {
-    ...meta,
-    source: 'mock',
-  });
+export async function getPurchaseInvoices(req, res) {
+  try {
+    const { data, meta } = await getPurchaseDraftsList(req.query);
+    return ok(res, data, {
+      ...meta,
+      commercialEffect: false,
+    });
+  } catch (error) {
+    return writeError(res, error, 'PURCHASE_DRAFT_LIST_FAILED');
+  }
 }
 
 export async function postSalesDraft(req, res) {

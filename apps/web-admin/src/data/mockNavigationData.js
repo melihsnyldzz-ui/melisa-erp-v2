@@ -1,8 +1,8 @@
 export const modules = [
   'Ana Sayfa',
   'Stok',
-  'Satış',
-  'Alış',
+  'Satis',
+  'Alis',
   'Cari',
   'Katalog',
   'Raporlar',
@@ -13,21 +13,21 @@ export const modules = [
 
 export const sidebarGroups = [
   {
-    title: 'Stok İşlemleri',
+    title: 'Stok Islemleri',
     items: [
       { label: 'Stok Listesi', screenId: 'stock-list' },
-      { label: 'Ürün Kartı', screenId: 'product-card' },
+      { label: 'Urun Karti', screenId: 'product-card' },
       { label: 'Barkodlar', screenId: 'stock-list' },
       { label: 'Stok Hareketleri', screenId: 'stock-list' },
-      { label: 'Pasif Ürünler', screenId: 'stock-list' },
+      { label: 'Pasif Urunler', screenId: 'stock-list' },
     ],
   },
   {
-    title: 'Satış / Alış',
+    title: 'Satis / Alis',
     items: [
-      { label: 'Yeni Satış Fişi', screenId: 'sales-invoice' },
-      { label: 'Taslak Satışlar', screenId: 'sales-invoice' },
-      { label: 'Alış Fişleri', screenId: 'purchase-invoice' },
+      { label: 'Yeni Satis Fisi', screenId: 'sales-invoice' },
+      { label: 'Satis Fisleri', screenId: 'sales-invoice-list' },
+      { label: 'Alis Fisleri', screenId: 'purchase-invoice-list' },
       { label: 'Terminalden Gelenler', screenId: 'sales-invoice' },
     ],
   },
@@ -35,17 +35,17 @@ export const sidebarGroups = [
     title: 'Cari / Katalog',
     items: [
       { label: 'Cari Listesi', screenId: 'customer-list' },
-      { label: 'Cari KartÄ±', screenId: 'customer-card' },
+      { label: 'Cari Karti', screenId: 'customer-card' },
       { label: 'Katalog Listesi', screenId: 'catalog-list' },
     ],
   },
   {
-    title: 'Hızlı Filtreler',
+    title: 'Hizli Filtreler',
     items: [
       { label: 'Eksi Stok', screenId: 'stock-list' },
-      { label: 'Bugünkü Fişler', screenId: 'sales-invoice' },
-      { label: 'Hatalı Sync', screenId: 'catalog-list' },
-      { label: 'Borç Riski', screenId: 'customer-list' },
+      { label: 'Bugunku Fisler', screenId: 'sales-invoice-list' },
+      { label: 'Hatali Sync', screenId: 'catalog-list' },
+      { label: 'Borc Riski', screenId: 'customer-list' },
     ],
   },
 ];
@@ -66,7 +66,7 @@ export const screenRegistry = {
   },
   'product-card': {
     id: 'product-card',
-    label: 'Ürün Kartı',
+    label: 'Urun Karti',
     module: 'Stok',
     type: 'kart',
     dirty: true,
@@ -79,23 +79,35 @@ export const screenRegistry = {
   },
   'customer-card': {
     id: 'customer-card',
-    label: 'Cari KartÄ±',
+    label: 'Cari Karti',
     module: 'Cari',
     type: 'kart',
     dirty: true,
   },
   'sales-invoice': {
     id: 'sales-invoice',
-    label: 'Satış Fişi',
-    module: 'Satış',
-    type: 'fiş',
+    label: 'Satis Fisi',
+    module: 'Satis',
+    type: 'fis',
     dirty: true,
+  },
+  'sales-invoice-list': {
+    id: 'sales-invoice-list',
+    label: 'Satis Fisleri',
+    module: 'Satis',
+    type: 'liste',
   },
   'purchase-invoice': {
     id: 'purchase-invoice',
-    label: 'Alış Fişi',
-    module: 'Alış',
-    type: 'fiş',
+    label: 'Alis Fisi',
+    module: 'Alis',
+    type: 'fis',
+  },
+  'purchase-invoice-list': {
+    id: 'purchase-invoice-list',
+    label: 'Alis Fisleri',
+    module: 'Alis',
+    type: 'liste',
   },
   'catalog-list': {
     id: 'catalog-list',

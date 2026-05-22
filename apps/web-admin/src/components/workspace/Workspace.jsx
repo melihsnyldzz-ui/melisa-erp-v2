@@ -4,7 +4,9 @@ import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.js
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
 import { DashboardScreen } from '../../modules/dashboard/DashboardScreen.jsx';
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
+import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { PurchaseInvoiceScreen } from '../../modules/purchase/PurchaseInvoiceScreen.jsx';
+import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
 import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 
@@ -32,11 +34,19 @@ export function Workspace({ activeTab, onOpenScreen }) {
   }
 
   if (screenId === 'sales-invoice') {
-    return <SalesInvoiceScreen />;
+    return <SalesInvoiceScreen salesDraftId={activeTab.payload?.salesDraftId} />;
+  }
+
+  if (screenId === 'sales-invoice-list') {
+    return <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />;
   }
 
   if (screenId === 'purchase-invoice') {
-    return <PurchaseInvoiceScreen />;
+    return <PurchaseInvoiceScreen purchaseDraftId={activeTab.payload?.purchaseDraftId} />;
+  }
+
+  if (screenId === 'purchase-invoice-list') {
+    return <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />;
   }
 
   return <MockScreen screen={activeTab} />;

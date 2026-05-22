@@ -1,5 +1,9 @@
 import { get, post, put } from './apiClient.js';
 
+export async function fetchSalesDrafts(params = {}) {
+  return get('/api/sales-invoices', params);
+}
+
 export async function createSalesDraft(payload) {
   return post('/api/sales-invoices/draft', payload);
 }
@@ -10,6 +14,10 @@ export async function updateSalesDraft(id, payload) {
 
 export async function fetchSalesInvoice(id) {
   return get(`/api/sales-invoices/${id}`);
+}
+
+export async function fetchPurchaseDrafts(params = {}) {
+  return get('/api/purchase-invoices', params);
 }
 
 export async function createPurchaseDraft(payload) {

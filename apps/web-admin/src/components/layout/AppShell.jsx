@@ -16,7 +16,7 @@ export function AppShell() {
   );
 
   function createTab(screen, payload = {}) {
-    const recordId = payload.productId ?? payload.customerId;
+    const recordId = payload.productId ?? payload.customerId ?? payload.salesDraftId ?? payload.purchaseDraftId;
 
     if (!recordId) {
       return {
