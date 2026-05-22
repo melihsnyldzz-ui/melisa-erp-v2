@@ -87,6 +87,15 @@ function toPurchaseListDto(row) {
   };
 }
 
+function toFinalizeResult(snapshot, warnings = []) {
+  return {
+    ...snapshot,
+    finalizedAt: snapshot.finalizedAt || null,
+    commercialEffect: true,
+    warnings,
+  };
+}
+
 function normalizeSalesPayload(payload = {}) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const discountRate = numberValue(payload.discountRate ?? 0, 'discountRate');
@@ -347,6 +356,71 @@ async function getPurchaseSnapshot(request, id) {
       FROM dbo.purchase_invoice_items
       WHERE purchase_invoice_id = @purchaseItemsSnapshotId
       ORDER BY id ASC;
+    `);
+
+  return {
+    ...row,
+    status: row.status?.toUpperCase(),
+    items: items.recordset || [],
+  };
+}
+
+async function getSalesFinalizeSnapshot(request, id) {
+  const header = await request
+    .input('finalizeSnapshotId', sql.BigInt, id)
+    .query(`
+      SELECT TOP (1)
+        si.id,
+        si.document_no AS documentNo,
+        si.document_date AS documentDate,
+        si.customer_id AS customerId,
+        c.name AS customerName,
+        c.is_active AS customerIsActive,
+        si.status,
+        si.customer_currency AS customerCurrency,
+        si.document_currency AS documentCurrency,
+        si.exchange_rate_snapshot AS exchangeRate,
+        si.description,
+        si.subtotal,
+        si.discount_rate AS discountRate,
+        si.discount_total AS discountTotal,
+        si.grand_total AS grandTotal,
+        si.amount_try AS amountTry,
+        si.estimated_profit_try AS estimatedProfitTry,
+        si.finalized_at AS finalizedAt,
+        si.updated_at AS updatedAt
+      FROM dbo.sales_invoices si
+      LEFT JOIN dbo.customers c ON c.id = si.customer_id
+      WHERE si.id = @finalizeSnapshotId;
+    `);
+
+  const row = header.recordset?.[0];
+
+  if (!row) {
+    return null;
+  }
+
+  const items = await request
+    .input('finalizeItemsSnapshotId', sql.BigInt, id)
+    .query(`
+      SELECT
+        sii.id,
+        sii.product_id AS productId,
+        p.current_stock_qty AS currentStockQty,
+        sii.stock_code_snapshot AS stockCode,
+        sii.barcode_snapshot AS barcode,
+        sii.product_name_snapshot AS productName,
+        sii.quantity,
+        sii.currency_code AS currency,
+        sii.unit_price AS unitPrice,
+        sii.line_total AS lineTotal,
+        sii.average_cost_try_snapshot AS averageCostTry,
+        sii.stock_status_snapshot AS stockStatus,
+        sii.note
+      FROM dbo.sales_invoice_items sii
+      INNER JOIN dbo.products p ON p.id = sii.product_id
+      WHERE sii.sales_invoice_id = @finalizeItemsSnapshotId
+      ORDER BY sii.id ASC;
     `);
 
   return {
@@ -873,6 +947,200 @@ export async function updateSalesDraft(id, payload) {
     await transaction.commit();
 
     return getSalesDraft(invoiceId);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function finalizeSalesInvoice(id) {
+  assertMelisaWriteEnabled();
+
+  const invoiceId = Number(id);
+
+  if (!Number.isInteger(invoiceId) || invoiceId < 1) {
+    throw makeServiceError('SALES_FINALIZE_ID_INVALID', 'Sales invoice id is invalid');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const beforeSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('SALES_FINALIZE_NOT_FOUND', 'Sales invoice not found', 404);
+    }
+
+    if (beforeSnapshot.status !== 'DRAFT') {
+      throw makeServiceError('SALES_FINALIZE_STATUS_INVALID', 'Only DRAFT sales invoices can be finalized', 409);
+    }
+
+    if (!beforeSnapshot.customerId || !beforeSnapshot.customerName) {
+      throw makeServiceError('SALES_FINALIZE_CUSTOMER_INVALID', 'Sales invoice customer is missing', 400);
+    }
+
+    if (!beforeSnapshot.items.length) {
+      throw makeServiceError('SALES_FINALIZE_ITEMS_REQUIRED', 'Sales invoice must contain at least one item', 400);
+    }
+
+    if (Number(beforeSnapshot.grandTotal || 0) < 0) {
+      throw makeServiceError('SALES_FINALIZE_TOTAL_INVALID', 'Sales invoice total cannot be negative', 400);
+    }
+
+    const warnings = [];
+
+    for (const item of beforeSnapshot.items) {
+      const quantity = Number(item.quantity || 0);
+      const currentStock = Number(item.currentStockQty || 0);
+      const nextStock = currentStock - quantity;
+      const amountTry = Number(item.lineTotal || 0) * Number(beforeSnapshot.exchangeRate || 1);
+
+      if (nextStock < 0) {
+        warnings.push({
+          code: 'NEGATIVE_STOCK',
+          productId: item.productId,
+          stockCode: item.stockCode,
+          currentStock,
+          quantity,
+          projectedStock: nextStock,
+        });
+      }
+
+      await new sqlDriver.Request(transaction)
+        .input('productIdForStockUpdate', sql.BigInt, item.productId)
+        .input('quantityForStockUpdate', sql.Decimal(18, 3), quantity)
+        .query(`
+          UPDATE dbo.products
+          SET
+            current_stock_qty = current_stock_qty - @quantityForStockUpdate,
+            updated_at = SYSUTCDATETIME()
+          WHERE id = @productIdForStockUpdate;
+        `);
+
+      await new sqlDriver.Request(transaction)
+        .input('movementProductId', sql.BigInt, item.productId)
+        .input('movementSourceId', sql.BigInt, invoiceId)
+        .input('movementQuantityOut', sql.Decimal(18, 3), quantity)
+        .input('movementQuantityNet', sql.Decimal(18, 3), -quantity)
+        .input('movementUnitPrice', sql.Decimal(18, 4), Number(item.unitPrice || 0))
+        .input('movementCurrency', sql.NVarChar(3), item.currency)
+        .input('movementAmountTry', sql.Decimal(18, 4), amountTry)
+        .input('movementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+        .input('movementCustomerId', sql.BigInt, beforeSnapshot.customerId)
+        .query(`
+          INSERT INTO dbo.stock_movements (
+            product_id,
+            movement_type,
+            source_type,
+            source_id,
+            quantity_in,
+            quantity_out,
+            quantity_net,
+            unit_cost_try,
+            average_cost_try_after,
+            document_date,
+            customer_id,
+            created_at,
+            created_by,
+            unit_price,
+            currency_code,
+            amount_try
+          )
+          VALUES (
+            @movementProductId,
+            N'out',
+            N'sales_invoice',
+            @movementSourceId,
+            0,
+            @movementQuantityOut,
+            @movementQuantityNet,
+            0,
+            0,
+            @movementDocumentDate,
+            @movementCustomerId,
+            SYSUTCDATETIME(),
+            NULL,
+            @movementUnitPrice,
+            @movementCurrency,
+            @movementAmountTry
+          );
+        `);
+    }
+
+    await new sqlDriver.Request(transaction)
+      .input('customerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
+      .input('customerMovementInvoiceId', sql.BigInt, invoiceId)
+      .input('customerMovementAmount', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
+      .input('customerMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
+      .input('customerMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+      .query(`
+        INSERT INTO dbo.customer_movements (
+          customer_id,
+          sales_invoice_id,
+          movement_type,
+          amount,
+          currency_code,
+          balance_effect,
+          document_date,
+          created_at,
+          created_by
+        )
+        VALUES (
+          @customerMovementCustomerId,
+          @customerMovementInvoiceId,
+          N'sales_invoice',
+          @customerMovementAmount,
+          @customerMovementCurrency,
+          @customerMovementAmount,
+          @customerMovementDocumentDate,
+          SYSUTCDATETIME(),
+          NULL
+        );
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('customerBalanceId', sql.BigInt, beforeSnapshot.customerId)
+      .input('customerBalanceEffect', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
+      .query(`
+        UPDATE dbo.customers
+        SET
+          balance = balance + @customerBalanceEffect,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @customerBalanceId;
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('finalizeInvoiceId', sql.BigInt, invoiceId)
+      .query(`
+        UPDATE dbo.sales_invoices
+        SET
+          status = N'finalized',
+          finalized_at = SYSUTCDATETIME(),
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @finalizeInvoiceId
+          AND status = N'draft';
+      `);
+
+    const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'sales_invoice_finalized',
+      entityType: 'sales_invoice',
+      entityId: invoiceId,
+      beforeSnapshot,
+      afterSnapshot: {
+        ...afterSnapshot,
+        warnings,
+      },
+    });
+
+    await transaction.commit();
+
+    return toFinalizeResult(afterSnapshot, warnings);
   } catch (error) {
     await transaction.rollback();
     throw error;

@@ -38,7 +38,7 @@ export function SalesInvoiceHeader({ invoice, status }) {
         </label>
         <label>
           <span>Durum</span>
-          <input className={status === 'Kesinlesti' ? 'status-finalized-input' : ''} value={status} readOnly />
+          <input className={status === 'FINALIZED' ? 'status-finalized-input' : ''} value={status} readOnly />
         </label>
       </div>
     </section>

@@ -4,6 +4,7 @@ import {
   getPurchaseInvoices,
   getSalesInvoice,
   getSalesInvoices,
+  postSalesFinalize,
   postPurchaseDraft,
   postSalesDraft,
   putPurchaseDraft,
@@ -14,6 +15,7 @@ export const invoiceRoutes = Router();
 
 invoiceRoutes.get('/sales-invoices', getSalesInvoices);
 invoiceRoutes.post('/sales-invoices/draft', postSalesDraft);
+invoiceRoutes.post('/sales-invoices/:id/finalize', postSalesFinalize);
 invoiceRoutes.get('/sales-invoices/:id', getSalesInvoice);
 invoiceRoutes.put('/sales-invoices/:id/draft', putSalesDraft);
 invoiceRoutes.get('/purchase-invoices', getPurchaseInvoices);

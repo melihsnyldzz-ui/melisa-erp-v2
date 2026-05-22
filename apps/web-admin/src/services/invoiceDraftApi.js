@@ -16,6 +16,10 @@ export async function fetchSalesInvoice(id) {
   return get(`/api/sales-invoices/${id}`);
 }
 
+export async function finalizeSalesInvoice(id) {
+  return post(`/api/sales-invoices/${id}/finalize`);
+}
+
 export async function fetchPurchaseDrafts(params = {}) {
   return get('/api/purchase-invoices', params);
 }

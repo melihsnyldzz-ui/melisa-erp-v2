@@ -1,6 +1,14 @@
 import React from 'react';
 
-export function SalesInvoiceToolbar({ status, isSaving, onNewDraft, onSaveDraft, onFinalize }) {
+export function SalesInvoiceToolbar({
+  status,
+  isSaving,
+  isFinalizing,
+  isFinalized,
+  onNewDraft,
+  onSaveDraft,
+  onFinalize,
+}) {
   return (
     <section className="sales-invoice-toolbar">
       <div className="sales-toolbar-title">
@@ -9,10 +17,12 @@ export function SalesInvoiceToolbar({ status, isSaving, onNewDraft, onSaveDraft,
       </div>
       <div className="sales-toolbar-actions">
         <button type="button" onClick={onNewDraft}>Yeni Fis</button>
-        <button type="button" onClick={onSaveDraft} disabled={isSaving}>
+        <button type="button" onClick={onSaveDraft} disabled={isSaving || isFinalized || isFinalizing}>
           {isSaving ? 'Kaydediliyor' : 'Taslak Kaydet'}
         </button>
-        <button type="button" className="primary" onClick={onFinalize} disabled>Kesinlestir / yakinda</button>
+        <button type="button" className="primary" onClick={onFinalize} disabled={isFinalized || isFinalizing || !onFinalize}>
+          {isFinalizing ? 'Kesinlestiriliyor' : isFinalized ? 'Kesinlesti' : 'Kesinlestir'}
+        </button>
         <button type="button">Yazdir</button>
         <button type="button">Iptal Et</button>
         <button type="button">Musteri Ekstresi</button>
