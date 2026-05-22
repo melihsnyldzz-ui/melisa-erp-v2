@@ -4,7 +4,7 @@ import { env } from './env.js';
 
 let poolPromise;
 
-function getSqlDriver() {
+export function getSqlDriver() {
   return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
 }
 
@@ -75,10 +75,10 @@ export async function getSqlPool() {
     throw error;
   }
 
-  if (!env.sql.readOnly) {
-    const error = new Error('SQL_READ_ONLY must remain true for this API foundation');
-    error.code = 'SQL_READ_ONLY_REQUIRED';
-    error.statusCode = 503;
+  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_V2') {
+    const error = new Error('SQL write mode is only allowed for MELISA_ERP_V2');
+    error.code = 'SQL_WRITE_TARGET_INVALID';
+    error.statusCode = 403;
     throw error;
   }
 

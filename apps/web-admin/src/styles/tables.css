@@ -161,6 +161,12 @@ td.hot {
   color: #8a1f1f;
 }
 
+.list-state-success {
+  border-top-color: #80b386;
+  background: #f3fff5;
+  color: #22612b;
+}
+
 .stock-table {
   min-width: 1320px;
 }
@@ -287,7 +293,8 @@ td.hot {
   color: #40516a;
 }
 
-.product-form-grid input {
+.product-form-grid input,
+.product-form-grid select {
   height: 26px;
   border: 1px solid #b9c3d0;
   padding: 0 7px;
@@ -609,6 +616,21 @@ td.hot {
   color: #203047;
 }
 
+.product-card-toolbar button:disabled,
+.customer-card-toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.toolbar-mode {
+  align-self: center;
+  border: 1px solid #b9c3d0;
+  background: #f7f9fc;
+  color: #40516a;
+  font-size: 11px;
+  padding: 5px 7px;
+}
+
 .customer-card-layout {
   display: grid;
   grid-template-columns: minmax(620px, 1.4fr) minmax(320px, 0.8fr);
@@ -641,7 +663,8 @@ td.hot {
 }
 
 .customer-form-grid input,
-.customer-form-grid textarea {
+.customer-form-grid textarea,
+.customer-form-grid select {
   width: 100%;
   border: 1px solid #b9c3d0;
   padding: 0 7px;
@@ -650,7 +673,8 @@ td.hot {
   font-size: 12px;
 }
 
-.customer-form-grid input {
+.customer-form-grid input,
+.customer-form-grid select {
   height: 26px;
 }
 

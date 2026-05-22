@@ -1,40 +1,53 @@
 import React from 'react';
 
-export function CustomerCardForm({ customer, rules }) {
+export function CustomerCardForm({ customer, form, mode, onChange, rules }) {
+  const phonePlaceholder = mode === 'update' && form.phoneMasked
+    ? `Mevcut: ${form.phoneMasked} / degistirmek icin yeni telefon girin`
+    : 'Telefon';
+
   return (
     <section className="erp-panel customer-form-panel">
       <div className="panel-title">
         <strong>Cari Bilgileri</strong>
-        <span>Gercek API kaydi / read-only</span>
+        <span>{mode === 'create' ? 'Yeni kayit / API write' : 'Mevcut kayit / API update'}</span>
       </div>
       <div className="customer-form-grid">
         <label>
           <span>Cari kodu</span>
-          <input value={customer.code} readOnly />
+          <input value={form.customerCode} onChange={(event) => onChange('customerCode', event.target.value)} />
         </label>
         <label>
           <span>Ad / unvan</span>
-          <input value={customer.name} readOnly />
+          <input value={form.customerName} onChange={(event) => onChange('customerName', event.target.value)} />
         </label>
         <label>
           <span>Telefon</span>
-          <input value={customer.phone} readOnly />
+          <input value={form.phone} placeholder={phonePlaceholder} onChange={(event) => onChange('phone', event.target.value)} />
         </label>
         <label>
           <span>Para birimi</span>
-          <input value={customer.currency} readOnly />
+          <select value={form.currency} onChange={(event) => onChange('currency', event.target.value)}>
+            <option value="TRY">TRY</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
         </label>
         <label>
           <span>Cari tipi</span>
-          <input value={customer.type} readOnly />
+          <select value={form.customerType} onChange={(event) => onChange('customerType', event.target.value)}>
+            <option value="customer">Musteri</option>
+            <option value="wholesale">Toptan</option>
+            <option value="retail">Perakende</option>
+            <option value="mixed">Karma</option>
+          </select>
         </label>
         <label>
           <span>Sehir</span>
-          <input value={customer.city} readOnly />
+          <input value={form.city} onChange={(event) => onChange('city', event.target.value)} />
         </label>
         <label>
           <span>Ulke</span>
-          <input value={customer.country} readOnly />
+          <input value={form.country} onChange={(event) => onChange('country', event.target.value)} />
         </label>
         <label className="customer-note-field">
           <span>Not</span>
@@ -50,6 +63,7 @@ export function CustomerCardForm({ customer, rules }) {
         {rules.map((rule) => (
           <span key={rule}>{rule}</span>
         ))}
+        <span>Update modunda telefon ham degeri API'den maskeli gelir; degistirmek icin yeni telefon girilir.</span>
       </div>
     </section>
   );

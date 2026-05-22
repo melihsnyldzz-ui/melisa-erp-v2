@@ -1,92 +1,134 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CustomerBalanceSummary } from './CustomerBalanceSummary.jsx';
 import { CustomerCardForm } from './CustomerCardForm.jsx';
 import { CustomerCardHeader } from './CustomerCardHeader.jsx';
 import { CustomerTransactionsPanel } from './CustomerTransactionsPanel.jsx';
 import { customerRules } from './customerMockData.js';
-import { fetchCustomerDetail } from '../../services/customerDetailApi.js';
+import { createCustomer, fetchCustomerDetail, updateCustomer } from '../../services/customerDetailApi.js';
 
-function mapCustomerType(type) {
-  const labels = {
-    customer: 'Musteri',
-    wholesale: 'Toptan',
-    retail: 'Perakende',
-    mixed: 'Karma',
-  };
+const emptyCustomerForm = {
+  customerCode: '',
+  customerName: '',
+  phone: '',
+  phoneMasked: '',
+  currency: 'TRY',
+  customerType: 'customer',
+  city: '',
+  country: 'Turkiye',
+  note: '',
+  isPassive: false,
+  balance: 0,
+  lastTransactionDate: '',
+};
 
-  return labels[type] || type || '-';
-}
+const customerTypeLabels = {
+  customer: 'Musteri',
+  wholesale: 'Toptan',
+  retail: 'Perakende',
+  mixed: 'Karma',
+};
 
-function mapCustomer(detail) {
+function mapDetailToForm(detail) {
   return {
-    id: detail.id,
-    code: detail.customerCode,
-    name: detail.customerName,
-    phone: detail.phoneMasked || '-',
-    currency: detail.currency,
-    type: mapCustomerType(detail.customerType),
-    city: detail.city || '-',
-    country: detail.country || '-',
+    customerCode: detail.customerCode || '',
+    customerName: detail.customerName || '',
+    phone: '',
+    phoneMasked: detail.phoneMasked || '',
+    currency: detail.currency || 'TRY',
+    customerType: detail.customerType || 'customer',
+    city: detail.city || '',
+    country: detail.country || '',
     note: 'Gercek API kaydi. Not alani sonraki fazda database alanina baglanacak.',
-    status: detail.isPassive ? 'Pasif' : 'Aktif',
-    hasMovements: Boolean(detail.lastTransactionDate),
-    lastTransactionDate: detail.lastTransactionDate || '-',
+    isPassive: Boolean(detail.isPassive),
+    balance: detail.balance || 0,
+    lastTransactionDate: detail.lastTransactionDate || '',
   };
 }
 
-function mapBalances(detail) {
+function buildCustomerView(form, detailId = null) {
+  return {
+    id: detailId,
+    code: form.customerCode || 'YENI-CARI',
+    name: form.customerName || 'Yeni cari',
+    phone: form.phone || form.phoneMasked || '-',
+    currency: form.currency || 'TRY',
+    type: customerTypeLabels[form.customerType] || form.customerType || '-',
+    city: form.city || '-',
+    country: form.country || '-',
+    note: form.note || 'Not alani sonraki fazda database alanina baglanacak.',
+    status: form.isPassive ? 'Pasif' : 'Aktif',
+    hasMovements: Boolean(form.lastTransactionDate),
+    lastTransactionDate: form.lastTransactionDate || '-',
+    balance: Number(form.balance || 0),
+  };
+}
+
+function mapBalances(form) {
   return ['TRY', 'USD', 'EUR'].map((currency) => ({
     currency,
-    debit: currency === detail.currency && detail.balance > 0 ? detail.balance : 0,
-    credit: currency === detail.currency && detail.balance < 0 ? Math.abs(detail.balance) : 0,
-    balance: currency === detail.currency ? detail.balance : 0,
+    debit: currency === form.currency && Number(form.balance || 0) > 0 ? Number(form.balance || 0) : 0,
+    credit: currency === form.currency && Number(form.balance || 0) < 0 ? Math.abs(Number(form.balance || 0)) : 0,
+    balance: currency === form.currency ? Number(form.balance || 0) : 0,
   }));
 }
 
-function mapPaymentSummary(detail) {
+function mapPaymentSummary(form) {
   return {
-    lastCollection: detail.lastTransactionDate || '-',
+    lastCollection: form.lastTransactionDate || '-',
     lastPayment: '-',
     openInvoiceCount: 0,
     riskLimit: 0,
   };
 }
 
-function mapTransactions(detail) {
-  if (!detail.lastTransactionDate) {
+function mapTransactions(form, detailId) {
+  if (!form.lastTransactionDate) {
     return [];
   }
 
   return [
     {
-      id: `${detail.id}-last`,
-      date: detail.lastTransactionDate,
+      id: `${detailId || 'new'}-last`,
+      date: form.lastTransactionDate,
       type: 'Son ticari hareket',
       documentNo: '-',
-      currency: detail.currency,
-      amount: detail.balance,
+      currency: form.currency,
+      amount: Number(form.balance || 0),
       status: 'API kaydi',
     },
   ];
 }
 
+function validateCustomerForm(form, mode) {
+  const missing = [];
+
+  if (!form.customerCode.trim()) missing.push('cari kodu');
+  if (!form.customerName.trim()) missing.push('ad/unvan');
+  if (mode === 'create' && !form.phone.trim()) missing.push('telefon');
+  if (!form.currency.trim()) missing.push('para birimi');
+  if (!form.customerType.trim()) missing.push('cari tipi');
+
+  return missing;
+}
+
 export function CustomerCardScreen({ customerId }) {
-  const [customer, setCustomer] = useState(null);
-  const [balances, setBalances] = useState([]);
-  const [paymentSummary, setPaymentSummary] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeCustomerId, setActiveCustomerId] = useState(customerId || null);
+  const [form, setForm] = useState(emptyCustomerForm);
+  const [isLoading, setIsLoading] = useState(Boolean(customerId));
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    setActiveCustomerId(customerId || null);
+  }, [customerId]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadCustomer() {
-      if (!customerId) {
-        setCustomer(null);
-        setBalances([]);
-        setPaymentSummary(null);
-        setTransactions([]);
+      if (!activeCustomerId) {
+        setForm(emptyCustomerForm);
         setErrorMessage('');
         setIsLoading(false);
         return;
@@ -96,21 +138,14 @@ export function CustomerCardScreen({ customerId }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchCustomerDetail(customerId);
-        const detail = response.data;
+        const response = await fetchCustomerDetail(activeCustomerId);
 
         if (isMounted) {
-          setCustomer(mapCustomer(detail));
-          setBalances(mapBalances(detail));
-          setPaymentSummary(mapPaymentSummary(detail));
-          setTransactions(mapTransactions(detail));
+          setForm(mapDetailToForm(response.data));
         }
       } catch (error) {
         if (isMounted) {
-          setCustomer(null);
-          setBalances([]);
-          setPaymentSummary(null);
-          setTransactions([]);
+          setForm(emptyCustomerForm);
           setErrorMessage(error.message || 'Cari kart API baglantisi basarisiz.');
         }
       } finally {
@@ -125,31 +160,96 @@ export function CustomerCardScreen({ customerId }) {
     return () => {
       isMounted = false;
     };
-  }, [customerId]);
+  }, [activeCustomerId]);
+
+  const mode = activeCustomerId ? 'update' : 'create';
+  const customer = useMemo(() => buildCustomerView(form, activeCustomerId), [form, activeCustomerId]);
+  const balances = useMemo(() => mapBalances(form), [form]);
+  const paymentSummary = useMemo(() => mapPaymentSummary(form), [form]);
+  const transactions = useMemo(() => mapTransactions(form, activeCustomerId), [form, activeCustomerId]);
+
+  function updateField(field, value) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    setSuccessMessage('');
+  }
+
+  function startNewCustomer() {
+    setActiveCustomerId(null);
+    setForm(emptyCustomerForm);
+    setErrorMessage('');
+    setSuccessMessage('');
+  }
+
+  async function saveCustomer() {
+    const missing = validateCustomerForm(form, mode);
+
+    if (missing.length > 0) {
+      setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
+      setSuccessMessage('');
+      return;
+    }
+
+    const payload = {
+      customerCode: form.customerCode,
+      customerName: form.customerName,
+      phone: form.phone,
+      currency: form.currency,
+      customerType: form.customerType,
+      city: form.city,
+      country: form.country,
+    };
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = mode === 'create'
+        ? await createCustomer(payload)
+        : await updateCustomer(activeCustomerId, payload);
+
+      setActiveCustomerId(response.data.id);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage(mode === 'create' ? 'Cari olusturuldu ve audit kaydi yazildi.' : 'Cari guncellendi ve audit kaydi yazildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Cari kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <main className="work-area customer-card-screen">
       {isLoading && <div className="list-state">API'den cari kart yukleniyor...</div>}
-      {!isLoading && errorMessage && (
-        <div className="list-state list-state-error">
-          {errorMessage} API baglantisi kontrol edilmeli; mock veriye gecilmedi.
-        </div>
-      )}
-      {!isLoading && !errorMessage && !customer && (
-        <div className="list-state">Cari kart acmak icin cari listesinden bir cari secin.</div>
-      )}
-      {!isLoading && !errorMessage && customer && (
+      {!isLoading && (
         <>
-          <CustomerCardHeader customer={customer} />
+          <CustomerCardHeader
+            customer={customer}
+            mode={mode}
+            isSaving={isSaving}
+            onSave={saveCustomer}
+            onNew={startNewCustomer}
+          />
+          {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+          {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
           <section className="customer-card-layout">
-            <CustomerCardForm customer={customer} rules={customerRules} />
+            <CustomerCardForm
+              customer={customer}
+              form={form}
+              mode={mode}
+              onChange={updateField}
+              rules={customerRules}
+            />
             <CustomerBalanceSummary balances={balances} paymentSummary={paymentSummary} />
             <CustomerTransactionsPanel transactions={transactions} />
           </section>
           <section className="screen-summary customer-card-summary">
             <span>Cari: {customer.code}</span>
             <span>Durum: {customer.status}</span>
-            <span>Hareket: {customer.hasMovements ? 'var' : 'yok'}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayit' : 'Guncelleme'}</span>
             <span>Kaynak: API</span>
           </section>
         </>

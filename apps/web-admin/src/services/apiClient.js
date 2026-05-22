@@ -12,11 +12,15 @@ function buildUrl(path, params = {}) {
   return url;
 }
 
-export async function get(path, params = {}) {
+async function request(method, path, { params = {}, body } = {}) {
   let response;
 
   try {
-    response = await fetch(buildUrl(path, params));
+    response = await fetch(buildUrl(path, params), {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
   } catch (error) {
     const networkError = new Error('API sunucusuna ulasilamadi.');
     networkError.code = 'NETWORK_ERROR';
@@ -40,4 +44,16 @@ export async function get(path, params = {}) {
   }
 
   return payload;
+}
+
+export async function get(path, params = {}) {
+  return request('GET', path, { params });
+}
+
+export async function post(path, body = {}) {
+  return request('POST', path, { body });
+}
+
+export async function put(path, body = {}) {
+  return request('PUT', path, { body });
 }

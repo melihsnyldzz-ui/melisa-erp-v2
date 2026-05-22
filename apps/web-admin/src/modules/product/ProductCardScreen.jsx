@@ -1,77 +1,135 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ProductBarcodePanel } from './ProductBarcodePanel.jsx';
 import { ProductCardForm } from './ProductCardForm.jsx';
 import { ProductCardHeader } from './ProductCardHeader.jsx';
 import { ProductImagePanel } from './ProductImagePanel.jsx';
 import { ProductStockSummary } from './ProductStockSummary.jsx';
-import { fetchProductDetail } from '../../services/productDetailApi.js';
+import { createProduct, fetchProductDetail, updateProduct } from '../../services/productDetailApi.js';
+
+const emptyProductForm = {
+  stockCode: '',
+  barcode: '',
+  existingBarcodeMasked: '',
+  productName: '',
+  brand: '',
+  category: '',
+  currency: 'TRY',
+  salePrice: '',
+  purchasePrice: '',
+  supplierName: '',
+  isPassive: false,
+  hasMovements: false,
+  stockQuantity: 0,
+  averageCostTry: 0,
+  lastPurchaseDate: '',
+  lastSaleDate: '',
+};
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(Number(amount || 0));
 }
 
-function mapProduct(detail) {
+function mapDetailToForm(detail) {
   return {
-    id: detail.id,
-    stockCode: detail.stockCode,
-    primaryBarcode: detail.barcodeMasked || '-',
-    name: detail.productName,
-    brand: detail.brand || '-',
-    category: detail.category || '-',
-    currency: detail.currency,
-    salesPrice: formatMoney(detail.salePrice, detail.currency),
-    purchasePrice: formatMoney(detail.purchasePrice, detail.currency),
-    supplier: detail.supplierName || '-',
-    status: detail.isPassive ? 'Pasif' : 'Aktif',
+    stockCode: detail.stockCode || '',
+    barcode: '',
+    existingBarcodeMasked: detail.barcodeMasked || '',
+    productName: detail.productName || '',
+    brand: detail.brand || '',
+    category: detail.category || '',
+    currency: detail.currency || 'TRY',
+    salePrice: String(detail.salePrice ?? ''),
+    purchasePrice: String(detail.purchasePrice ?? ''),
+    supplierName: detail.supplierName || '',
+    isPassive: Boolean(detail.isPassive),
     hasMovements: Boolean(detail.lastPurchaseDate || detail.lastSaleDate),
-    currencyRule: detail.lastPurchaseDate || detail.lastSaleDate
+    stockQuantity: detail.stockQuantity || 0,
+    averageCostTry: detail.averageCostTry || 0,
+    lastPurchaseDate: detail.lastPurchaseDate || '',
+    lastSaleDate: detail.lastSaleDate || '',
+  };
+}
+
+function buildProductView(form, detailId = null) {
+  return {
+    id: detailId,
+    stockCode: form.stockCode || 'YENI-URUN',
+    primaryBarcode: form.barcode || form.existingBarcodeMasked || '-',
+    name: form.productName || 'Yeni urun',
+    brand: form.brand || '-',
+    category: form.category || '-',
+    currency: form.currency || 'TRY',
+    salesPrice: formatMoney(form.salePrice, form.currency || 'TRY'),
+    purchasePrice: formatMoney(form.purchasePrice, form.currency || 'TRY'),
+    supplier: form.supplierName || '-',
+    status: form.isPassive ? 'Pasif' : 'Aktif',
+    hasMovements: Boolean(form.hasMovements),
+    currencyRule: form.hasMovements
       ? 'Hareket gormus urun: para birimi kilitli. Admin ozel islem ve audit gerekir.'
       : 'Hareket gormemis urun: para birimi degistirilebilir.',
     imageNote: 'Toplu gorsel eslesme sonraki fazda stok kodu/barkod adina gore yapilacak.',
   };
 }
 
-function mapStockSummary(detail) {
+function mapStockSummary(form) {
   return {
-    currentStock: detail.stockQuantity,
-    averageCostTry: formatMoney(detail.averageCostTry, 'TRY'),
-    lastPurchaseDate: detail.lastPurchaseDate || '-',
-    lastSaleDate: detail.lastSaleDate || '-',
-    negativeStockWarning: detail.stockQuantity < 0 ? 'Eksi stok uyarisi: satis/sync kontrol edilmeli.' : '',
+    currentStock: Number(form.stockQuantity || 0),
+    averageCostTry: formatMoney(form.averageCostTry || form.purchasePrice || 0, 'TRY'),
+    lastPurchaseDate: form.lastPurchaseDate || '-',
+    lastSaleDate: form.lastSaleDate || '-',
+    negativeStockWarning: Number(form.stockQuantity || 0) < 0 ? 'Eksi stok uyarisi: satis/sync kontrol edilmeli.' : '',
   };
 }
 
-function mapBarcodes(detail) {
-  return [
-    {
-      id: `${detail.id}-primary`,
-      barcode: detail.barcodeMasked || '-',
+function mapBarcodes(form, detailId) {
+  const barcode = form.barcode || form.existingBarcodeMasked;
+
+  return barcode
+    ? [{
+      id: `${detailId || 'new'}-primary`,
+      barcode,
       type: 'Ana barkod',
       isPrimary: true,
-      status: detail.isPassive ? 'Pasif' : 'Aktif',
-    },
-  ];
+      status: form.isPassive ? 'Pasif' : 'Aktif',
+    }]
+    : [];
+}
+
+function validateProductForm(form, mode) {
+  const missing = [];
+
+  if (!form.stockCode.trim()) missing.push('stok kodu');
+  if (!form.productName.trim()) missing.push('urun adi');
+  if (mode === 'create' && !form.barcode.trim()) missing.push('barkod');
+  if (!form.currency.trim()) missing.push('para birimi');
+  if (form.salePrice === '' || Number.isNaN(Number(form.salePrice))) missing.push('satis fiyati');
+  if (form.purchasePrice === '' || Number.isNaN(Number(form.purchasePrice))) missing.push('alis fiyati');
+
+  return missing;
 }
 
 export function ProductCardScreen({ productId }) {
-  const [product, setProduct] = useState(null);
-  const [stockSummary, setStockSummary] = useState(null);
-  const [barcodes, setBarcodes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeProductId, setActiveProductId] = useState(productId || null);
+  const [form, setForm] = useState(emptyProductForm);
+  const [isLoading, setIsLoading] = useState(Boolean(productId));
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    setActiveProductId(productId || null);
+  }, [productId]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadProduct() {
-      if (!productId) {
-        setProduct(null);
-        setStockSummary(null);
-        setBarcodes([]);
+      if (!activeProductId) {
+        setForm(emptyProductForm);
         setErrorMessage('');
         setIsLoading(false);
         return;
@@ -81,19 +139,14 @@ export function ProductCardScreen({ productId }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchProductDetail(productId);
-        const detail = response.data;
+        const response = await fetchProductDetail(activeProductId);
 
         if (isMounted) {
-          setProduct(mapProduct(detail));
-          setStockSummary(mapStockSummary(detail));
-          setBarcodes(mapBarcodes(detail));
+          setForm(mapDetailToForm(response.data));
         }
       } catch (error) {
         if (isMounted) {
-          setProduct(null);
-          setStockSummary(null);
-          setBarcodes([]);
+          setForm(emptyProductForm);
           setErrorMessage(error.message || 'Urun karti API baglantisi basarisiz.');
         }
       } finally {
@@ -108,34 +161,98 @@ export function ProductCardScreen({ productId }) {
     return () => {
       isMounted = false;
     };
-  }, [productId]);
+  }, [activeProductId]);
+
+  const mode = activeProductId ? 'update' : 'create';
+  const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
+  const stockSummary = useMemo(() => mapStockSummary(form), [form]);
+  const barcodes = useMemo(() => mapBarcodes(form, activeProductId), [form, activeProductId]);
+
+  function updateField(field, value) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    setSuccessMessage('');
+  }
+
+  function startNewProduct() {
+    setActiveProductId(null);
+    setForm(emptyProductForm);
+    setErrorMessage('');
+    setSuccessMessage('');
+  }
+
+  async function saveProduct() {
+    const missing = validateProductForm(form, mode);
+
+    if (missing.length > 0) {
+      setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
+      setSuccessMessage('');
+      return;
+    }
+
+    const payload = {
+      stockCode: form.stockCode,
+      productName: form.productName,
+      barcode: form.barcode,
+      brand: form.brand,
+      category: form.category,
+      currency: form.currency,
+      salePrice: Number(form.salePrice),
+      purchasePrice: Number(form.purchasePrice),
+    };
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = mode === 'create'
+        ? await createProduct(payload)
+        : await updateProduct(activeProductId, payload);
+
+      setActiveProductId(response.data.id);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage(mode === 'create' ? 'Urun olusturuldu ve audit kaydi yazildi.' : 'Urun guncellendi ve audit kaydi yazildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Urun kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <main className="work-area product-card-screen">
       {isLoading && <div className="list-state">API'den urun karti yukleniyor...</div>}
-      {!isLoading && errorMessage && (
-        <div className="list-state list-state-error">
-          {errorMessage} API baglantisi kontrol edilmeli; mock veriye gecilmedi.
-        </div>
-      )}
-      {!isLoading && !errorMessage && !product && (
-        <div className="list-state">Urun karti acmak icin stok listesinden bir urun secin.</div>
-      )}
-      {!isLoading && !errorMessage && product && (
+      {!isLoading && (
         <>
-          <ProductCardHeader product={product} />
+          <ProductCardHeader
+            product={productView}
+            mode={mode}
+            isSaving={isSaving}
+            onSave={saveProduct}
+            onNew={startNewProduct}
+          />
+          {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+          {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
           <section className="product-card-layout">
-            <ProductCardForm product={product} />
+            <ProductCardForm
+              product={productView}
+              form={form}
+              mode={mode}
+              onChange={updateField}
+            />
             <aside className="product-side-panels">
-              <ProductImagePanel product={product} />
+              <ProductImagePanel product={productView} />
               <ProductStockSummary summary={stockSummary} />
             </aside>
             <ProductBarcodePanel barcodes={barcodes} />
           </section>
           <section className="screen-summary product-card-summary">
-            <span>Urun: {product.stockCode}</span>
-            <span>Durum: {product.status}</span>
-            <span>Hareket: {product.hasMovements ? 'var' : 'yok'}</span>
+            <span>Urun: {productView.stockCode}</span>
+            <span>Durum: {productView.status}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayit' : 'Guncelleme'}</span>
             <span>Kaynak: API</span>
           </section>
         </>
