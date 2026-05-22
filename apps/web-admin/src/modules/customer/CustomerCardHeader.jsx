@@ -5,6 +5,8 @@ export function CustomerCardHeader({
   mode,
   isSaving,
   isPassiveSaving,
+  canSave = true,
+  canTogglePassive = true,
   onSave,
   onNew,
   onTogglePassive,
@@ -18,15 +20,15 @@ export function CustomerCardHeader({
         <span>{customer.code} / {customer.name} / {customer.type}</span>
       </div>
       <div className="customer-card-toolbar">
-        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving}>
+        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving || !canSave} title={canSave ? 'Kaydet' : 'customer.update yetkisi gerekli'}>
           {isSaving ? 'Kaydediliyor' : 'Kaydet'}
         </button>
         <button type="button" onClick={onNew}>Yeni</button>
         <button
           type="button"
           onClick={onTogglePassive}
-          disabled={mode === 'create' || isSaving || isPassiveSaving}
-          title={mode === 'create' ? 'Pasif/Aktif islemi icin kayitli cari gerekir' : 'Kaydi silmeden aktif/pasif durumunu degistirir'}
+          disabled={mode === 'create' || isSaving || isPassiveSaving || !canTogglePassive}
+          title={!canTogglePassive ? 'customer.passive yetkisi gerekli' : mode === 'create' ? 'Pasif/Aktif islemi icin kayitli cari gerekir' : 'Kaydi silmeden aktif/pasif durumunu degistirir'}
         >
           {isPassiveSaving ? 'Isleniyor' : passiveLabel}
         </button>

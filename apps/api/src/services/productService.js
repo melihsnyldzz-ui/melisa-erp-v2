@@ -313,7 +313,7 @@ export async function getProductDetail(productId) {
   return toProductDetailDto(row);
 }
 
-export async function createProduct(payload) {
+export async function createProduct(payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const product = validateProductPayload(payload, { requireBarcode: true });
@@ -407,6 +407,7 @@ export async function createProduct(payload) {
       entityType: 'product',
       entityId: productId,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -418,7 +419,7 @@ export async function createProduct(payload) {
   }
 }
 
-export async function updateProduct(productId, payload) {
+export async function updateProduct(productId, payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const id = Number(productId);
@@ -528,6 +529,7 @@ export async function updateProduct(productId, payload) {
       entityId: id,
       beforeSnapshot,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -539,7 +541,7 @@ export async function updateProduct(productId, payload) {
   }
 }
 
-export async function changeProductPassive(productId, payload = {}) {
+export async function changeProductPassive(productId, payload = {}, actor = null) {
   assertMelisaWriteEnabled();
 
   const id = Number(productId);
@@ -595,6 +597,7 @@ export async function changeProductPassive(productId, payload = {}) {
       entityId: id,
       beforeSnapshot,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();

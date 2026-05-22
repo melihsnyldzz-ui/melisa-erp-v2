@@ -1,4 +1,5 @@
 import React from 'react';
+import { UnauthorizedScreen } from '../auth/UnauthorizedScreen.jsx';
 import { MockScreen } from './MockScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
@@ -10,10 +11,14 @@ import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScre
 import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 
-export function Workspace({ activeTab, onOpenScreen }) {
+export function Workspace({ activeTab, onOpenScreen, permissions = [] }) {
   const screenId = activeTab.screenId ?? activeTab.id;
 
   if (screenId === 'dashboard') {
+    if (!permissions.includes('dashboard.view')) {
+      return <UnauthorizedScreen message="Dashboard goruntuleme yetkiniz yok." />;
+    }
+
     return <DashboardScreen onOpenScreen={onOpenScreen} />;
   }
 
@@ -22,7 +27,7 @@ export function Workspace({ activeTab, onOpenScreen }) {
   }
 
   if (screenId === 'product-card') {
-    return <ProductCardScreen productId={activeTab.payload?.productId} />;
+    return <ProductCardScreen productId={activeTab.payload?.productId} permissions={permissions} />;
   }
 
   if (screenId === 'customer-list') {
@@ -30,11 +35,11 @@ export function Workspace({ activeTab, onOpenScreen }) {
   }
 
   if (screenId === 'customer-card') {
-    return <CustomerCardScreen customerId={activeTab.payload?.customerId} />;
+    return <CustomerCardScreen customerId={activeTab.payload?.customerId} permissions={permissions} />;
   }
 
   if (screenId === 'sales-invoice') {
-    return <SalesInvoiceScreen salesDraftId={activeTab.payload?.salesDraftId} />;
+    return <SalesInvoiceScreen salesDraftId={activeTab.payload?.salesDraftId} permissions={permissions} />;
   }
 
   if (screenId === 'sales-invoice-list') {
@@ -42,7 +47,7 @@ export function Workspace({ activeTab, onOpenScreen }) {
   }
 
   if (screenId === 'purchase-invoice') {
-    return <PurchaseInvoiceScreen purchaseDraftId={activeTab.payload?.purchaseDraftId} />;
+    return <PurchaseInvoiceScreen purchaseDraftId={activeTab.payload?.purchaseDraftId} permissions={permissions} />;
   }
 
   if (screenId === 'purchase-invoice-list') {

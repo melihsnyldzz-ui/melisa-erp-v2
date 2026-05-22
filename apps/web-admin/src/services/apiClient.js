@@ -1,5 +1,31 @@
 import { API_BASE_URL } from '../config/apiConfig.js';
 
+const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
+const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
+
+export function getStoredAccessToken() {
+  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function getStoredRefreshToken() {
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function storeAuthTokens({ accessToken, refreshToken }) {
+  if (accessToken) {
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  }
+
+  if (refreshToken) {
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+}
+
+export function clearAuthTokens() {
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
 function buildUrl(path, params = {}) {
   const url = new URL(path, API_BASE_URL);
 
@@ -16,9 +42,16 @@ async function request(method, path, { params = {}, body } = {}) {
   let response;
 
   try {
+    const headers = body ? { 'Content-Type': 'application/json' } : {};
+    const accessToken = getStoredAccessToken();
+
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+
     response = await fetch(buildUrl(path, params), {
       method,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
@@ -40,6 +73,11 @@ async function request(method, path, { params = {}, body } = {}) {
     const apiError = new Error(payload.error?.message || 'API istegi basarisiz oldu.');
     apiError.code = payload.error?.code || 'API_ERROR';
     apiError.status = response.status;
+
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('melisa-auth-expired'));
+    }
+
     throw apiError;
   }
 

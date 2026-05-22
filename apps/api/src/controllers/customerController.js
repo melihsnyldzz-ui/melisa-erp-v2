@@ -38,7 +38,7 @@ export async function getCustomer(req, res) {
 
 export async function postCustomer(req, res) {
   try {
-    const data = await createCustomer(req.body);
+    const data = await createCustomer(req.body, req.user);
     return created(res, data, {
       source: 'sql-write',
       audit: 'customer_created',
@@ -50,7 +50,7 @@ export async function postCustomer(req, res) {
 
 export async function putCustomer(req, res) {
   try {
-    const data = await updateCustomer(req.params.id, req.body);
+    const data = await updateCustomer(req.params.id, req.body, req.user);
     return ok(res, data, {
       source: 'sql-write',
       audit: 'customer_updated',
@@ -62,7 +62,7 @@ export async function putCustomer(req, res) {
 
 export async function patchCustomerPassive(req, res) {
   try {
-    const result = await changeCustomerPassive(req.params.id, req.body);
+    const result = await changeCustomerPassive(req.params.id, req.body, req.user);
     return ok(res, result.data, {
       source: 'sql-write',
       audit: result.auditWritten ? 'customer_passive_changed' : 'skipped_no_state_change',

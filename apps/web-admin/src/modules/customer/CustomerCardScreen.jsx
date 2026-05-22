@@ -116,7 +116,7 @@ function validateCustomerForm(form, mode) {
   return missing;
 }
 
-export function CustomerCardScreen({ customerId }) {
+export function CustomerCardScreen({ customerId, permissions = [] }) {
   const [activeCustomerId, setActiveCustomerId] = useState(customerId || null);
   const [form, setForm] = useState(emptyCustomerForm);
   const [isLoading, setIsLoading] = useState(Boolean(customerId));
@@ -169,6 +169,8 @@ export function CustomerCardScreen({ customerId }) {
   }, [activeCustomerId]);
 
   const mode = activeCustomerId ? 'update' : 'create';
+  const canSave = permissions.includes('customer.update');
+  const canTogglePassive = permissions.includes('customer.passive');
   const customer = useMemo(() => buildCustomerView(form, activeCustomerId), [form, activeCustomerId]);
   const balances = useMemo(() => mapBalances(form), [form]);
   const paymentSummary = useMemo(() => mapPaymentSummary(form), [form]);
@@ -191,6 +193,12 @@ export function CustomerCardScreen({ customerId }) {
 
   async function saveCustomer() {
     const missing = validateCustomerForm(form, mode);
+
+    if (!canSave) {
+      setErrorMessage('Bu islem icin customer.update yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
 
     if (missing.length > 0) {
       setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
@@ -234,6 +242,12 @@ export function CustomerCardScreen({ customerId }) {
       return;
     }
 
+    if (!canTogglePassive) {
+      setErrorMessage('Bu islem icin customer.passive yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
     const nextIsPassive = !form.isPassive;
 
     setIsPassiveSaving(true);
@@ -263,6 +277,8 @@ export function CustomerCardScreen({ customerId }) {
             mode={mode}
             isSaving={isSaving}
             isPassiveSaving={isPassiveSaving}
+            canSave={canSave}
+            canTogglePassive={canTogglePassive}
             onSave={saveCustomer}
             onNew={startNewCustomer}
             onTogglePassive={togglePassiveCustomer}

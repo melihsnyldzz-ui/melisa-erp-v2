@@ -249,7 +249,7 @@ export async function getCustomerDetail(customerId) {
   return toCustomerDetailDto(row);
 }
 
-export async function createCustomer(payload) {
+export async function createCustomer(payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const customer = validateCustomerPayload(payload, { requirePhone: true });
@@ -316,6 +316,7 @@ export async function createCustomer(payload) {
       entityType: 'customer',
       entityId: customerId,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -327,7 +328,7 @@ export async function createCustomer(payload) {
   }
 }
 
-export async function updateCustomer(customerId, payload) {
+export async function updateCustomer(customerId, payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const id = Number(customerId);
@@ -384,6 +385,7 @@ export async function updateCustomer(customerId, payload) {
       entityId: id,
       beforeSnapshot,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -395,7 +397,7 @@ export async function updateCustomer(customerId, payload) {
   }
 }
 
-export async function changeCustomerPassive(customerId, payload = {}) {
+export async function changeCustomerPassive(customerId, payload = {}, actor = null) {
   assertMelisaWriteEnabled();
 
   const id = Number(customerId);
@@ -451,6 +453,7 @@ export async function changeCustomerPassive(customerId, payload = {}) {
       entityId: id,
       beforeSnapshot,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();

@@ -6,7 +6,7 @@ import { Workspace } from '../workspace/Workspace.jsx';
 import { StatusBar } from './StatusBar.jsx';
 import { initialTabs, screenRegistry } from '../../data/mockNavigationData.js';
 
-export function AppShell() {
+export function AppShell({ user, permissions, onLogout }) {
   const [tabs, setTabs] = useState(initialTabs);
   const [activeTabId, setActiveTabId] = useState(initialTabs[0].id);
 
@@ -74,15 +74,15 @@ export function AppShell() {
 
   return (
     <div className="erp-shell">
-      <TopMenu />
+      <TopMenu user={user} onLogout={onLogout} />
       <div className="main-layout">
         <Sidebar activeTab={activeTab} onOpenScreen={openScreen} />
         <section className="content-shell">
           <TabBar tabs={tabs} activeTabId={activeTab.id} onActivateTab={setActiveTabId} onCloseTab={closeTab} />
-          <Workspace activeTab={activeTab} onOpenScreen={openScreen} />
+          <Workspace activeTab={activeTab} onOpenScreen={openScreen} permissions={permissions} />
         </section>
       </div>
-      <StatusBar activeTab={activeTab} openTabCount={tabs.length} />
+      <StatusBar activeTab={activeTab} openTabCount={tabs.length} user={user} />
     </div>
   );
 }

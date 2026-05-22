@@ -117,7 +117,7 @@ function validateProductForm(form, mode) {
   return missing;
 }
 
-export function ProductCardScreen({ productId }) {
+export function ProductCardScreen({ productId, permissions = [] }) {
   const [activeProductId, setActiveProductId] = useState(productId || null);
   const [form, setForm] = useState(emptyProductForm);
   const [isLoading, setIsLoading] = useState(Boolean(productId));
@@ -170,6 +170,8 @@ export function ProductCardScreen({ productId }) {
   }, [activeProductId]);
 
   const mode = activeProductId ? 'update' : 'create';
+  const canSave = permissions.includes('product.update');
+  const canTogglePassive = permissions.includes('product.passive');
   const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
   const stockSummary = useMemo(() => mapStockSummary(form), [form]);
   const barcodes = useMemo(() => mapBarcodes(form, activeProductId), [form, activeProductId]);
@@ -191,6 +193,12 @@ export function ProductCardScreen({ productId }) {
 
   async function saveProduct() {
     const missing = validateProductForm(form, mode);
+
+    if (!canSave) {
+      setErrorMessage('Bu islem icin product.update yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
 
     if (missing.length > 0) {
       setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
@@ -235,6 +243,12 @@ export function ProductCardScreen({ productId }) {
       return;
     }
 
+    if (!canTogglePassive) {
+      setErrorMessage('Bu islem icin product.passive yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
     const nextIsPassive = !form.isPassive;
 
     setIsPassiveSaving(true);
@@ -264,6 +278,8 @@ export function ProductCardScreen({ productId }) {
             mode={mode}
             isSaving={isSaving}
             isPassiveSaving={isPassiveSaving}
+            canSave={canSave}
+            canTogglePassive={canTogglePassive}
             onSave={saveProduct}
             onNew={startNewProduct}
             onTogglePassive={togglePassiveProduct}

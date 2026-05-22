@@ -81,7 +81,7 @@ function mapDraftItems(items = []) {
   }));
 }
 
-export function SalesInvoiceScreen({ salesDraftId }) {
+export function SalesInvoiceScreen({ salesDraftId, permissions = [] }) {
   const [draftId, setDraftId] = useState(salesDraftId ?? null);
   const [invoice, setInvoice] = useState(salesInvoiceHeader);
   const [items, setItems] = useState(salesInvoiceItems);
@@ -95,6 +95,8 @@ export function SalesInvoiceScreen({ salesDraftId }) {
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(() => calculateTotals(items, discountRate), [discountRate, items]);
   const isFinalized = status === 'FINALIZED';
+  const canSaveDraft = permissions.includes('sales.draft.write');
+  const canFinalize = permissions.includes('sales.finalize');
 
   useEffect(() => {
     if (!salesDraftId) {
@@ -183,6 +185,11 @@ export function SalesInvoiceScreen({ salesDraftId }) {
       return;
     }
 
+    if (!canSaveDraft) {
+      setErrorMessage('Bu islem icin sales.draft.write yetkisi gerekli.');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage('');
 
@@ -220,6 +227,11 @@ export function SalesInvoiceScreen({ salesDraftId }) {
       return;
     }
 
+    if (!canFinalize) {
+      setErrorMessage('Bu islem icin sales.finalize yetkisi gerekli.');
+      return;
+    }
+
     setIsFinalizing(true);
     setErrorMessage('');
 
@@ -254,6 +266,8 @@ export function SalesInvoiceScreen({ salesDraftId }) {
         isSaving={isSaving}
         isFinalizing={isFinalizing}
         isFinalized={isFinalized}
+        canSaveDraft={canSaveDraft}
+        canFinalize={canFinalize}
         onNewDraft={createNewDraft}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}

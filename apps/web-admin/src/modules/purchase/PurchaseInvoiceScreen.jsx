@@ -82,7 +82,7 @@ function mapDraftItems(items = []) {
   }));
 }
 
-export function PurchaseInvoiceScreen({ purchaseDraftId }) {
+export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [] }) {
   const [draftId, setDraftId] = useState(purchaseDraftId ?? null);
   const [invoice, setInvoice] = useState(purchaseInvoiceHeader);
   const [items, setItems] = useState(purchaseInvoiceItems);
@@ -100,6 +100,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
     [invoiceRate, items, supplierRate],
   );
   const isFinalized = status === 'FINALIZED';
+  const canSaveDraft = permissions.includes('purchase.draft.write');
+  const canFinalize = permissions.includes('purchase.finalize');
 
   useEffect(() => {
     if (!purchaseDraftId) {
@@ -191,6 +193,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
       return;
     }
 
+    if (!canSaveDraft) {
+      setErrorMessage('Bu islem icin purchase.draft.write yetkisi gerekli.');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage('');
 
@@ -229,6 +236,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
       return;
     }
 
+    if (!canFinalize) {
+      setErrorMessage('Bu islem icin purchase.finalize yetkisi gerekli.');
+      return;
+    }
+
     setIsFinalizing(true);
     setErrorMessage('');
 
@@ -243,7 +255,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus('FINALIZED');
       setSelectedItemId(nextItems[0]?.id ?? null);
-      setStatusMessage('Alis fisi kesinlesti; stok girisi, tedarikci hareketi ve audit olustu. Average cost motoru ertelendi.');
+      setStatusMessage('Alis fisi kesinlesti; stok girisi, tedarikci hareketi, average cost ve audit olustu.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Alis fisi kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Alis kesinlestirme basarisiz; transaction rollback edildi.');
@@ -259,6 +271,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
         isSaving={isSaving}
         isFinalizing={isFinalizing}
         isFinalized={isFinalized}
+        canSaveDraft={canSaveDraft}
+        canFinalize={canFinalize}
         onNewDraft={createNewDraft}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}

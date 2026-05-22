@@ -5,6 +5,8 @@ export function PurchaseInvoiceToolbar({
   isSaving,
   isFinalizing,
   isFinalized,
+  canSaveDraft = true,
+  canFinalize = true,
   onNewDraft,
   onSaveDraft,
   onFinalize,
@@ -17,10 +19,10 @@ export function PurchaseInvoiceToolbar({
       </div>
       <div className="purchase-toolbar-actions">
         <button type="button" onClick={onNewDraft}>Yeni Fis</button>
-        <button type="button" onClick={onSaveDraft} disabled={isSaving || isFinalized || isFinalizing}>
+        <button type="button" onClick={onSaveDraft} disabled={isSaving || isFinalized || isFinalizing || !canSaveDraft} title={canSaveDraft ? 'Taslak kaydet' : 'purchase.draft.write yetkisi gerekli'}>
           {isSaving ? 'Kaydediliyor' : 'Taslak Kaydet'}
         </button>
-        <button type="button" className="primary" onClick={onFinalize} disabled={isFinalized || isFinalizing || !onFinalize}>
+        <button type="button" className="primary" onClick={onFinalize} disabled={isFinalized || isFinalizing || !onFinalize || !canFinalize} title={canFinalize ? 'Kesinlestir' : 'purchase.finalize yetkisi gerekli'}>
           {isFinalizing ? 'Kesinlestiriliyor' : isFinalized ? 'Kesinlesti' : 'Kesinlestir'}
         </button>
         <button type="button">Yazdir</button>

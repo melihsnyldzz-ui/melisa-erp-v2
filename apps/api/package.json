@@ -10,9 +10,11 @@
     "start": "node src/server.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
     "msnodesqlv8": "^5.2.0",
     "mssql": "^12.5.4"

@@ -7,7 +7,8 @@ const server = app.listen(env.port, () => {
   console.log(`Melisa ERP API listening on http://127.0.0.1:${env.port}`);
   console.log(`API version: ${env.apiVersion}`);
   console.log(`SQL integration: ${env.sql.enabled ? 'configured' : 'disabled'}`);
-  console.log('Vega/Auth database integrations: disabled');
+  console.log('Vega integration: disabled');
+  console.log('Auth integration: enabled');
 });
 
 function shutdown(signal) {

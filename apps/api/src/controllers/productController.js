@@ -38,7 +38,7 @@ export async function getProduct(req, res) {
 
 export async function postProduct(req, res) {
   try {
-    const data = await createProduct(req.body);
+    const data = await createProduct(req.body, req.user);
     return created(res, data, {
       source: 'sql-write',
       audit: 'product_created',
@@ -50,7 +50,7 @@ export async function postProduct(req, res) {
 
 export async function putProduct(req, res) {
   try {
-    const data = await updateProduct(req.params.id, req.body);
+    const data = await updateProduct(req.params.id, req.body, req.user);
     return ok(res, data, {
       source: 'sql-write',
       audit: 'product_updated',
@@ -62,7 +62,7 @@ export async function putProduct(req, res) {
 
 export async function patchProductPassive(req, res) {
   try {
-    const result = await changeProductPassive(req.params.id, req.body);
+    const result = await changeProductPassive(req.params.id, req.body, req.user);
     return ok(res, result.data, {
       source: 'sql-write',
       audit: result.auditWritten ? 'product_passive_changed' : 'skipped_no_state_change',

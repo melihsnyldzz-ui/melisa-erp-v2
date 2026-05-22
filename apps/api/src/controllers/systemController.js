@@ -19,7 +19,7 @@ export function getVersion(req, res) {
     integrations: {
       sql: env.sql.enabled,
       vega: env.vega.enabled,
-      authDatabase: false,
+      authDatabase: true,
     },
   });
 }

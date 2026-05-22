@@ -47,7 +47,7 @@ export async function getPurchaseInvoices(req, res) {
 
 export async function postSalesDraft(req, res) {
   try {
-    const data = await createSalesDraft(req.body);
+    const data = await createSalesDraft(req.body, req.user);
     return created(res, data, {
       source: 'sql-write',
       audit: 'sales_invoice_draft_created',
@@ -60,7 +60,7 @@ export async function postSalesDraft(req, res) {
 
 export async function putSalesDraft(req, res) {
   try {
-    const data = await updateSalesDraft(req.params.id, req.body);
+    const data = await updateSalesDraft(req.params.id, req.body, req.user);
     return ok(res, data, {
       source: 'sql-write',
       audit: 'sales_invoice_draft_updated',
@@ -85,7 +85,7 @@ export async function getSalesInvoice(req, res) {
 
 export async function postSalesFinalize(req, res) {
   try {
-    const data = await finalizeSalesInvoice(req.params.id);
+    const data = await finalizeSalesInvoice(req.params.id, req.user);
     return ok(res, data, {
       source: 'sql-write',
       audit: 'sales_invoice_finalized',
@@ -99,7 +99,7 @@ export async function postSalesFinalize(req, res) {
 
 export async function postPurchaseDraft(req, res) {
   try {
-    const data = await createPurchaseDraft(req.body);
+    const data = await createPurchaseDraft(req.body, req.user);
     return created(res, data, {
       source: 'sql-write',
       audit: 'purchase_invoice_draft_created',
@@ -112,7 +112,7 @@ export async function postPurchaseDraft(req, res) {
 
 export async function putPurchaseDraft(req, res) {
   try {
-    const data = await updatePurchaseDraft(req.params.id, req.body);
+    const data = await updatePurchaseDraft(req.params.id, req.body, req.user);
     return ok(res, data, {
       source: 'sql-write',
       audit: 'purchase_invoice_draft_updated',
@@ -125,7 +125,7 @@ export async function putPurchaseDraft(req, res) {
 
 export async function postPurchaseFinalize(req, res) {
   try {
-    const data = await finalizePurchaseInvoice(req.params.id);
+    const data = await finalizePurchaseInvoice(req.params.id, req.user);
     return ok(res, data, {
       source: 'sql-write',
       audit: 'purchase_invoice_finalized',

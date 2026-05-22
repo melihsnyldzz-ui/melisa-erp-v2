@@ -25,3 +25,76 @@ input {
 button {
   cursor: default;
 }
+
+.login-shell {
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  background: #dfe6ef;
+}
+
+.login-panel {
+  display: grid;
+  gap: 10px;
+  width: 360px;
+  padding: 16px;
+  border: 1px solid #9facbd;
+  background: #f7f9fc;
+  box-shadow: 0 10px 30px rgba(24, 40, 62, 0.18);
+}
+
+.login-title {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #c5cedb;
+}
+
+.login-title strong {
+  color: #0c2d5b;
+  font-size: 18px;
+}
+
+.login-title span,
+.login-panel label,
+.login-error,
+.unauthorized-body {
+  font-size: 12px;
+}
+
+.login-panel label {
+  display: grid;
+  gap: 5px;
+  color: #40516a;
+}
+
+.login-panel input {
+  height: 30px;
+  border: 1px solid #aeb8c8;
+  padding: 0 8px;
+}
+
+.login-panel button {
+  height: 32px;
+  border: 1px solid #1d4f8d;
+  background: #1d4f8d;
+  color: #fff;
+  font-weight: 700;
+}
+
+.login-error {
+  padding: 7px;
+  border: 1px solid #c88989;
+  background: #fff1f1;
+  color: #9b1b1b;
+}
+
+.unauthorized-panel {
+  max-width: 520px;
+}
+
+.unauthorized-body {
+  padding: 14px;
+  color: #6b1b1b;
+}

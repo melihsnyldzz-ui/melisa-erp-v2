@@ -893,7 +893,7 @@ export async function getSalesDraftsList(query) {
   };
 }
 
-export async function createSalesDraft(payload) {
+export async function createSalesDraft(payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const draft = normalizeSalesPayload(payload);
@@ -971,6 +971,7 @@ export async function createSalesDraft(payload) {
       entityType: 'sales_invoice',
       entityId: invoiceId,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -982,7 +983,7 @@ export async function createSalesDraft(payload) {
   }
 }
 
-export async function updateSalesDraft(id, payload) {
+export async function updateSalesDraft(id, payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -1056,6 +1057,7 @@ export async function updateSalesDraft(id, payload) {
       entityId: invoiceId,
       beforeSnapshot,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -1067,7 +1069,7 @@ export async function updateSalesDraft(id, payload) {
   }
 }
 
-export async function finalizeSalesInvoice(id) {
+export async function finalizeSalesInvoice(id, actor = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -1226,6 +1228,7 @@ export async function finalizeSalesInvoice(id) {
         invoiceId,
         snapshots: profitSnapshots,
       },
+      actor,
     });
 
     await new sqlDriver.Request(transaction)
@@ -1293,6 +1296,7 @@ export async function finalizeSalesInvoice(id) {
         ...afterSnapshot,
         warnings,
       },
+      actor,
     });
 
     await transaction.commit();
@@ -1408,7 +1412,7 @@ export async function getPurchaseDraftsList(query) {
   };
 }
 
-export async function createPurchaseDraft(payload) {
+export async function createPurchaseDraft(payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const draft = normalizePurchasePayload(payload);
@@ -1493,6 +1497,7 @@ export async function createPurchaseDraft(payload) {
       entityType: 'purchase_invoice',
       entityId: invoiceId,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -1504,7 +1509,7 @@ export async function createPurchaseDraft(payload) {
   }
 }
 
-export async function updatePurchaseDraft(id, payload) {
+export async function updatePurchaseDraft(id, payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -1584,6 +1589,7 @@ export async function updatePurchaseDraft(id, payload) {
       entityId: invoiceId,
       beforeSnapshot,
       afterSnapshot,
+      actor,
     });
 
     await transaction.commit();
@@ -1595,7 +1601,7 @@ export async function updatePurchaseDraft(id, payload) {
   }
 }
 
-export async function finalizePurchaseInvoice(id) {
+export async function finalizePurchaseInvoice(id, actor = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -1681,6 +1687,7 @@ export async function finalizePurchaseInvoice(id) {
           nextStock,
           averageCostTry: nextAverageCostTry,
         },
+        actor,
       });
 
       await new sqlDriver.Request(transaction)
@@ -1800,6 +1807,7 @@ export async function finalizePurchaseInvoice(id) {
         ...afterSnapshot,
         warnings,
       },
+      actor,
     });
 
     await transaction.commit();

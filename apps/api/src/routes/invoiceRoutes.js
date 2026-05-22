@@ -11,16 +11,17 @@ import {
   putPurchaseDraft,
   putSalesDraft,
 } from '../controllers/invoiceController.js';
+import { requireAuth, requirePermission } from '../middleware/authMiddleware.js';
 
 export const invoiceRoutes = Router();
 
 invoiceRoutes.get('/sales-invoices', getSalesInvoices);
-invoiceRoutes.post('/sales-invoices/draft', postSalesDraft);
-invoiceRoutes.post('/sales-invoices/:id/finalize', postSalesFinalize);
+invoiceRoutes.post('/sales-invoices/draft', requireAuth, requirePermission('sales.draft.write'), postSalesDraft);
+invoiceRoutes.post('/sales-invoices/:id/finalize', requireAuth, requirePermission('sales.finalize'), postSalesFinalize);
 invoiceRoutes.get('/sales-invoices/:id', getSalesInvoice);
-invoiceRoutes.put('/sales-invoices/:id/draft', putSalesDraft);
+invoiceRoutes.put('/sales-invoices/:id/draft', requireAuth, requirePermission('sales.draft.write'), putSalesDraft);
 invoiceRoutes.get('/purchase-invoices', getPurchaseInvoices);
-invoiceRoutes.post('/purchase-invoices/draft', postPurchaseDraft);
-invoiceRoutes.post('/purchase-invoices/:id/finalize', postPurchaseFinalize);
+invoiceRoutes.post('/purchase-invoices/draft', requireAuth, requirePermission('purchase.draft.write'), postPurchaseDraft);
+invoiceRoutes.post('/purchase-invoices/:id/finalize', requireAuth, requirePermission('purchase.finalize'), postPurchaseFinalize);
 invoiceRoutes.get('/purchase-invoices/:id', getPurchaseInvoice);
-invoiceRoutes.put('/purchase-invoices/:id/draft', putPurchaseDraft);
+invoiceRoutes.put('/purchase-invoices/:id/draft', requireAuth, requirePermission('purchase.draft.write'), putPurchaseDraft);

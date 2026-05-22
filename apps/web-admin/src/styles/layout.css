@@ -8,7 +8,7 @@
 
 .top-menu {
   display: grid;
-  grid-template-columns: 210px 1fr 430px;
+  grid-template-columns: 210px 1fr 560px;
   align-items: stretch;
   border-bottom: 1px solid #081f44;
   background: #0c2d5b;
@@ -71,10 +71,25 @@
 
 .top-actions {
   display: grid;
-  grid-template-columns: 1fr 82px 72px;
+  grid-template-columns: 1fr 120px 76px 68px 62px;
   gap: 6px;
   align-items: center;
   padding: 0 10px;
+}
+
+.session-badge {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fbff;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .top-actions button {
