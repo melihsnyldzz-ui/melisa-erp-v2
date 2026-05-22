@@ -1,4 +1,4 @@
-import { getProductsList } from '../services/productService.js';
+import { getProductDetail, getProductsList } from '../services/productService.js';
 import { fail, ok } from '../utils/response.js';
 
 export async function getProducts(req, res) {
@@ -7,5 +7,16 @@ export async function getProducts(req, res) {
     return ok(res, data, meta);
   } catch (error) {
     return fail(res, error.statusCode || 503, 'SQL_SELECT_FAILED', 'Products query failed');
+  }
+}
+
+export async function getProduct(req, res) {
+  try {
+    const data = await getProductDetail(req.params.id);
+    return ok(res, data, {
+      source: 'sql-select-only',
+    });
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'SQL_SELECT_FAILED', 'Product detail query failed');
   }
 }

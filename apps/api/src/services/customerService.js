@@ -17,6 +17,22 @@ function toCustomerDto(row) {
   };
 }
 
+function toCustomerDetailDto(row) {
+  return {
+    id: row.id,
+    customerCode: row.customer_code,
+    customerName: row.customer_name,
+    phoneMasked: maskPhone(row.phone_raw),
+    city: row.city,
+    country: row.country,
+    currency: row.currency_code,
+    customerType: row.customer_type,
+    balance: Number(row.balance || 0),
+    isPassive: !row.is_active,
+    lastTransactionDate: row.last_transaction_date || null,
+  };
+}
+
 export async function getCustomersList(query) {
   const options = parseListQuery(query);
   const pool = await getSqlPool();
@@ -91,4 +107,53 @@ export async function getCustomersList(query) {
       },
     }),
   };
+}
+
+export async function getCustomerDetail(customerId) {
+  const id = Number(customerId);
+
+  if (!Number.isInteger(id) || id < 1) {
+    const error = new Error('Customer id is invalid');
+    error.code = 'CUSTOMER_ID_INVALID';
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const pool = await getSqlPool();
+  const request = pool.request()
+    .input('id', sql.BigInt, id);
+
+  const result = await request.query(`
+    SELECT TOP (1)
+      c.id,
+      c.customer_code,
+      c.name AS customer_name,
+      c.phone AS phone_raw,
+      c.city,
+      c.country,
+      c.currency_code,
+      c.customer_type,
+      c.balance,
+      c.is_active,
+      ls.last_transaction_date
+    FROM dbo.customers c
+    OUTER APPLY (
+      SELECT MAX(si.document_date) AS last_transaction_date
+      FROM dbo.sales_invoices si
+      WHERE si.customer_id = c.id
+        AND si.status IN (N'finalized', N'cancelled')
+    ) ls
+    WHERE c.id = @id;
+  `);
+
+  const row = result.recordset?.[0];
+
+  if (!row) {
+    const error = new Error('Customer not found');
+    error.code = 'CUSTOMER_NOT_FOUND';
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return toCustomerDetailDto(row);
 }

@@ -18,7 +18,7 @@ export function ProductCardForm({ product }) {
     <section className="erp-panel product-form-panel">
       <div className="panel-title">
         <strong>Temel Ürün Bilgileri</strong>
-        <span>Zorunlu kart alanları</span>
+        <span>Gercek API kaydi / read-only</span>
       </div>
       <div className="product-form-grid">
         {fields.map(([label, value]) => (

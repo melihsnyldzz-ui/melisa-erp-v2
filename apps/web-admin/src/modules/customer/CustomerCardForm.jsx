@@ -5,7 +5,7 @@ export function CustomerCardForm({ customer, rules }) {
     <section className="erp-panel customer-form-panel">
       <div className="panel-title">
         <strong>Cari Bilgileri</strong>
-        <span>Mock kart formu / API bagli degil</span>
+        <span>Gercek API kaydi / read-only</span>
       </div>
       <div className="customer-form-grid">
         <label>
