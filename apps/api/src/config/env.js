@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 
+dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 export const env = {
@@ -7,10 +8,19 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   apiVersion: process.env.API_VERSION || 'v0.1.0',
   sql: {
-    enabled: Boolean(process.env.SQL_SERVER && process.env.SQL_DATABASE && process.env.SQL_USER && process.env.SQL_PASSWORD),
+    trustedConnection: String(process.env.SQL_TRUSTED_CONNECTION || 'false').toLowerCase() === 'true',
+    enabled: Boolean(
+      process.env.SQL_SERVER
+        && process.env.SQL_DATABASE
+        && (
+          String(process.env.SQL_TRUSTED_CONNECTION || 'false').toLowerCase() === 'true'
+          || (process.env.SQL_USER && process.env.SQL_PASSWORD)
+        ),
+    ),
     server: process.env.SQL_SERVER || '',
     port: process.env.SQL_PORT ? Number(process.env.SQL_PORT) : undefined,
     database: process.env.SQL_DATABASE || '',
+    odbcDriver: process.env.SQL_ODBC_DRIVER || 'ODBC Driver 17 for SQL Server',
     user: process.env.SQL_USER || '',
     password: process.env.SQL_PASSWORD || '',
     encrypt: String(process.env.SQL_ENCRYPT || 'false').toLowerCase() === 'true',

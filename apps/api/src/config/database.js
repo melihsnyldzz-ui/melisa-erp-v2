@@ -1,15 +1,35 @@
-import sql from 'mssql';
+import sqlDefault from 'mssql';
+import sqlTrusted from 'mssql/msnodesqlv8.js';
 import { env } from './env.js';
 
 let poolPromise;
 
+function getSqlDriver() {
+  return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
+}
+
 export function getSqlConfig() {
-  return {
+  if (env.sql.trustedConnection) {
+    const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
+    const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
+
+    return {
+      connectionString: [
+        `Driver={${driver}}`,
+        `Server=${server}`,
+        `Database=${env.sql.database}`,
+        'Trusted_Connection=Yes',
+        env.sql.trustServerCertificate ? 'TrustServerCertificate=Yes' : 'TrustServerCertificate=No',
+        env.sql.encrypt ? 'Encrypt=Yes' : 'Encrypt=No',
+      ].join(';'),
+      connectionTimeout: 10000,
+      requestTimeout: 10000,
+    };
+  }
+
+  const config = {
     server: env.sql.server,
-    port: env.sql.port,
     database: env.sql.database,
-    user: env.sql.user,
-    password: env.sql.password,
     options: {
       encrypt: env.sql.encrypt,
       trustServerCertificate: env.sql.trustServerCertificate,
@@ -23,6 +43,14 @@ export function getSqlConfig() {
     requestTimeout: 10000,
     connectionTimeout: 10000,
   };
+
+  if (env.sql.port) {
+    config.port = env.sql.port;
+  }
+
+  config.user = env.sql.user;
+  config.password = env.sql.password;
+  return config;
 }
 
 export function getSafeSqlInfo() {
@@ -31,8 +59,10 @@ export function getSafeSqlInfo() {
     serverConfigured: Boolean(env.sql.server),
     portConfigured: Boolean(env.sql.port),
     databaseConfigured: Boolean(env.sql.database),
+    odbcDriverConfigured: Boolean(env.sql.odbcDriver),
     encrypt: env.sql.encrypt,
     trustServerCertificate: env.sql.trustServerCertificate,
+    trustedConnection: env.sql.trustedConnection,
     readOnly: env.sql.readOnly,
   };
 }
@@ -53,6 +83,7 @@ export async function getSqlPool() {
   }
 
   if (!poolPromise) {
+    const sql = getSqlDriver();
     poolPromise = sql.connect(getSqlConfig()).catch((error) => {
       poolPromise = undefined;
       throw error;
