@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Melisa Terminal v2",
+    "slug": "melisa-terminal-v2",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "jsEngine": "jsc",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.melisaerp.terminalv2"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:4100",
+      "deviceName": "Depo Terminal",
+      "terminalCode": "TERM-V2-001"
+    }
+  }
+}

@@ -78,3 +78,16 @@ GET /api/sql/tables-preview
 ```
 
 `/api/products` ve `/api/customers` response alanlari barkod ve telefon gibi hassas degerleri maskeler. Liste limitleri en fazla `100` satirla sinirlidir ve sorgular parametreli SQL ile calisir.
+
+## Terminal App v2
+
+Android depo terminali foundation `apps/terminal-app` altinda Expo ile baslatilir.
+
+```powershell
+cd apps/terminal-app
+npm install
+npm run start
+npm run android
+```
+
+Terminal app mevcut auth API ile login olur, `/api/products` uzerinden barkod/urun lookup yapar ve offline-first local queue/cache temelini kullanir. Fiziksel Android cihazda `EXPO_PUBLIC_API_BASE_URL` LAN IP ile verilmelidir.
