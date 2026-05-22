@@ -6,7 +6,7 @@ export const customerFilterDefaults = {
   country: '',
   currency: 'all',
   type: 'all',
-  status: 'active',
+  status: 'all',
   balanceState: 'all',
 };
 

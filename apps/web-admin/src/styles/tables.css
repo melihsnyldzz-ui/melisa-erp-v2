@@ -143,6 +143,24 @@ td.hot {
   overflow: auto;
 }
 
+.list-state {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  border-top: 1px solid #c5cedb;
+  padding: 10px 12px;
+  background: #f7f9fc;
+  color: #203047;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.list-state-error {
+  border-top-color: #c78a8a;
+  background: #fff1f1;
+  color: #8a1f1f;
+}
+
 .stock-table {
   min-width: 1320px;
 }

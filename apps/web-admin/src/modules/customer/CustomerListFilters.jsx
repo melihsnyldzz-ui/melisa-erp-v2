@@ -41,7 +41,9 @@ export function CustomerListFilters({ filters, onChange, onReset }) {
         <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)}>
           <option value="all">Tumu</option>
           <option value="Musteri">Musteri</option>
-          <option value="Tedarikci">Tedarikci</option>
+          <option value="Toptan">Toptan</option>
+          <option value="Perakende">Perakende</option>
+          <option value="Karma">Karma</option>
         </select>
       </label>
       <label>

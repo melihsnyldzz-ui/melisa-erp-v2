@@ -1,20 +1,58 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CustomerListFilters } from './CustomerListFilters.jsx';
 import { CustomerListTable } from './CustomerListTable.jsx';
 import { CustomerListToolbar } from './CustomerListToolbar.jsx';
-import { customerFilterDefaults, customerRows } from './customerMockData.js';
+import { customerFilterDefaults } from './customerMockData.js';
+import { fetchCustomers } from '../../services/customerApi.js';
 
 function normalize(value) {
-  return String(value).toLocaleLowerCase('tr-TR');
+  return String(value ?? '').toLowerCase();
 }
 
 function matchesText(value, filter) {
   return !filter || normalize(value).includes(normalize(filter));
 }
 
+function buildSearch(filters) {
+  return [
+    filters.code,
+    filters.name,
+    filters.phone,
+    filters.city,
+    filters.country,
+  ].filter(Boolean).join(' ');
+}
+
+function mapCustomerType(type) {
+  const labels = {
+    customer: 'Musteri',
+    wholesale: 'Toptan',
+    retail: 'Perakende',
+    mixed: 'Karma',
+  };
+
+  return labels[type] || type || '-';
+}
+
+function toCustomerRow(customer) {
+  return {
+    id: customer.id,
+    code: customer.customerCode,
+    name: customer.customerName,
+    phone: customer.phoneMasked || '-',
+    city: customer.city || '-',
+    country: customer.country || '-',
+    currency: customer.currency,
+    type: mapCustomerType(customer.customerType),
+    balance: customer.balance,
+    lastTransactionDate: '-',
+    status: customer.isPassive ? 'Pasif' : 'Aktif',
+  };
+}
+
 function applyCustomerFilters(row, filters) {
   const matchesCurrency = filters.currency === 'all' || row.currency === filters.currency;
-  const matchesType = filters.type === 'all' || row.type === filters.type;
+  const matchesType = filters.type === 'all' || row.type === filters.type || row.type === mapCustomerType(filters.type);
   const matchesStatus =
     filters.status === 'all' ||
     (filters.status === 'active' && row.status === 'Aktif') ||
@@ -40,17 +78,68 @@ function applyCustomerFilters(row, filters) {
 
 export function CustomerListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState(customerFilterDefaults);
-  const [selectedRowId, setSelectedRowId] = useState(customerRows[0]?.id);
+  const [rows, setRows] = useState([]);
+  const [selectedRowId, setSelectedRowId] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const search = useMemo(() => buildSearch(filters), [filters]);
+  const activeOnly = filters.status === 'active';
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCustomers() {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      try {
+        const response = await fetchCustomers({
+          page: 1,
+          limit: 100,
+          search,
+          activeOnly,
+        });
+        const nextRows = response.data.map(toCustomerRow);
+
+        if (isMounted) {
+          setRows(nextRows);
+          setMeta(response.meta);
+          setSelectedRowId((currentId) => (
+            nextRows.some((row) => row.id === currentId) ? currentId : nextRows[0]?.id ?? null
+          ));
+        }
+      } catch (error) {
+        if (isMounted) {
+          setRows([]);
+          setMeta(null);
+          setSelectedRowId(null);
+          setErrorMessage(error.message || 'Cari listesi API baglantisi basarisiz.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadCustomers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeOnly, search]);
 
   const filteredRows = useMemo(
-    () => customerRows.filter((row) => applyCustomerFilters(row, filters)),
-    [filters],
+    () => rows.filter((row) => applyCustomerFilters(row, filters)),
+    [filters, rows],
   );
   const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? filteredRows[0];
-  const activeCount = customerRows.filter((row) => row.status === 'Aktif').length;
-  const passiveCount = customerRows.length - activeCount;
-  const receivableCount = customerRows.filter((row) => row.balance > 0).length;
-  const payableCount = customerRows.filter((row) => row.balance < 0).length;
+  const activeCount = rows.filter((row) => row.status === 'Aktif').length;
+  const passiveCount = rows.length - activeCount;
+  const receivableCount = rows.filter((row) => row.balance > 0).length;
+  const payableCount = rows.filter((row) => row.balance < 0).length;
 
   function togglePassive() {
     setFilters((currentFilters) => ({
@@ -61,7 +150,7 @@ export function CustomerListScreen({ onOpenScreen }) {
 
   function resetFilters() {
     setFilters(customerFilterDefaults);
-    setSelectedRowId(customerRows[0]?.id);
+    setSelectedRowId(rows[0]?.id ?? null);
   }
 
   return (
@@ -77,15 +166,27 @@ export function CustomerListScreen({ onOpenScreen }) {
           <strong>Cari Hesap Tablosu</strong>
           <span>Secili: {selectedRow?.code ?? 'yok'} / Satir: {filteredRows.length}</span>
         </div>
-        <CustomerListTable rows={filteredRows} selectedRowId={selectedRow?.id} onSelectRow={setSelectedRowId} />
+        {isLoading && <div className="list-state">API'den cari kayitlari yukleniyor...</div>}
+        {!isLoading && errorMessage && (
+          <div className="list-state list-state-error">
+            {errorMessage} API baglantisi kontrol edilmeli; mock veriye gecilmedi.
+          </div>
+        )}
+        {!isLoading && !errorMessage && filteredRows.length === 0 && (
+          <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
+        )}
+        {!isLoading && !errorMessage && filteredRows.length > 0 && (
+          <CustomerListTable rows={filteredRows} selectedRowId={selectedRow?.id} onSelectRow={setSelectedRowId} />
+        )}
       </section>
       <section className="screen-summary customer-summary">
-        <span>Toplam cari: {customerRows.length}</span>
+        <span>Toplam cari: {meta?.total ?? rows.length}</span>
         <span>Aktif: {activeCount}</span>
         <span>Pasif: {passiveCount}</span>
         <span>Borclu: {receivableCount}</span>
         <span>Alacakli: {payableCount}</span>
         <span>Liste kaydi: {filteredRows.length}</span>
+        <span>Kaynak: API</span>
       </section>
     </main>
   );

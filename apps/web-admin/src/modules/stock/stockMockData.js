@@ -176,7 +176,7 @@ export const stockFilterDefaults = {
   brand: '',
   category: '',
   supplier: '',
-  status: 'active',
+  status: 'all',
   stockState: 'all',
 };
 
