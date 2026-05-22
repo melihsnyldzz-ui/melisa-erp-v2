@@ -53,11 +53,11 @@ export async function getProductsList(query) {
         (@activeOnly = 0 OR p.is_active = 1)
         AND (
           @search IS NULL
-          OR p.stock_code LIKE @search
-          OR p.name LIKE @search
-          OR p.brand LIKE @search
-          OR p.category LIKE @search
-          OR pb.barcode LIKE @search
+          OR p.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR p.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR p.brand COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR p.category COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR pb.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
         )
     ),
     numbered_products AS (

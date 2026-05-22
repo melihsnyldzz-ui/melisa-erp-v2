@@ -44,12 +44,12 @@ export async function getCustomersList(query) {
         (@activeOnly = 0 OR c.is_active = 1)
         AND (
           @search IS NULL
-          OR c.customer_code LIKE @search
-          OR c.name LIKE @search
-          OR c.phone LIKE @search
-          OR c.city LIKE @search
-          OR c.country LIKE @search
-          OR c.customer_type LIKE @search
+          OR c.customer_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR c.phone COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR c.city COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR c.country COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR c.customer_type COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
         )
     ),
     numbered_customers AS (
