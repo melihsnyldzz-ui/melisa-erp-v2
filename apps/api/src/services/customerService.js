@@ -394,3 +394,73 @@ export async function updateCustomer(customerId, payload) {
     throw error;
   }
 }
+
+export async function changeCustomerPassive(customerId, payload = {}) {
+  assertMelisaWriteEnabled();
+
+  const id = Number(customerId);
+
+  if (!Number.isInteger(id) || id < 1) {
+    throw makeServiceError('CUSTOMER_ID_INVALID', 'Customer id is invalid');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const beforeSnapshot = await getCustomerSnapshot(new sqlDriver.Request(transaction), id);
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('CUSTOMER_NOT_FOUND', 'Customer not found', 404);
+    }
+
+    const currentIsPassive = !beforeSnapshot.isActive;
+    const nextIsPassive = typeof payload.isPassive === 'boolean' ? payload.isPassive : !currentIsPassive;
+
+    if (nextIsPassive === currentIsPassive) {
+      await transaction.commit();
+      return {
+        data: await getCustomerDetail(id),
+        auditWritten: false,
+      };
+    }
+
+    await new sqlDriver.Request(transaction)
+      .input('id', sql.BigInt, id)
+      .input('isActive', sql.Bit, !nextIsPassive)
+      .input('passiveReason', sql.NVarChar(250), nextIsPassive ? 'SYSTEM passive toggle' : null)
+      .query(`
+        UPDATE dbo.customers
+        SET
+          is_active = @isActive,
+          passive_at = CASE WHEN @isActive = 0 THEN SYSUTCDATETIME() ELSE NULL END,
+          passive_reason = @passiveReason,
+          updated_by = NULL,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @id;
+      `);
+
+    const afterSnapshot = await getCustomerSnapshot(new sqlDriver.Request(transaction), id);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'customer_passive_changed',
+      entityType: 'customer',
+      entityId: id,
+      beforeSnapshot,
+      afterSnapshot,
+    });
+
+    await transaction.commit();
+
+    return {
+      data: await getCustomerDetail(id),
+      auditWritten: true,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}

@@ -1,6 +1,16 @@
 import React from 'react';
 
-export function ProductCardHeader({ product, mode, isSaving, onSave, onNew }) {
+export function ProductCardHeader({
+  product,
+  mode,
+  isSaving,
+  isPassiveSaving,
+  onSave,
+  onNew,
+  onTogglePassive,
+}) {
+  const passiveLabel = product.status === 'Pasif' ? 'Aktif Yap' : 'Pasif Yap';
+
   return (
     <section className="product-card-header">
       <div className="product-title-block">
@@ -8,11 +18,18 @@ export function ProductCardHeader({ product, mode, isSaving, onSave, onNew }) {
         <span>{product.stockCode} / {product.name}</span>
       </div>
       <div className="product-card-toolbar">
-        <button type="button" onClick={onSave} disabled={isSaving}>
+        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving}>
           {isSaving ? 'Kaydediliyor' : 'Kaydet'}
         </button>
         <button type="button" onClick={onNew}>Yeni</button>
-        <button type="button" disabled title="Pasif yapma ayri endpoint olarak sonraki fazda acilacak">Pasif Yap</button>
+        <button
+          type="button"
+          onClick={onTogglePassive}
+          disabled={mode === 'create' || isSaving || isPassiveSaving}
+          title={mode === 'create' ? 'Pasif/Aktif islemi icin kayitli urun gerekir' : 'Kaydi silmeden aktif/pasif durumunu degistirir'}
+        >
+          {isPassiveSaving ? 'Isleniyor' : passiveLabel}
+        </button>
         <button type="button" disabled title="Silme yok; hareket gormus kayitlar silinmeyecek">Sil</button>
         <button type="button">Hareketleri Gor</button>
         <button type="button">Yazdir</button>

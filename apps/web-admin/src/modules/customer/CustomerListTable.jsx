@@ -30,7 +30,10 @@ export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow 
           {rows.map((row) => (
             <tr
               key={row.id}
-              className={row.id === selectedRowId ? 'selected' : ''}
+              className={[
+                row.id === selectedRowId ? 'selected' : '',
+                row.status === 'Pasif' ? 'passive-row' : '',
+              ].filter(Boolean).join(' ')}
               onClick={() => onSelectRow(row.id)}
               onDoubleClick={() => onOpenRow(row.id)}
             >

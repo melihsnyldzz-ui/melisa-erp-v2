@@ -538,3 +538,73 @@ export async function updateProduct(productId, payload) {
     throw error;
   }
 }
+
+export async function changeProductPassive(productId, payload = {}) {
+  assertMelisaWriteEnabled();
+
+  const id = Number(productId);
+
+  if (!Number.isInteger(id) || id < 1) {
+    throw makeServiceError('PRODUCT_ID_INVALID', 'Product id is invalid');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const beforeSnapshot = await getProductSnapshot(new sqlDriver.Request(transaction), id);
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('PRODUCT_NOT_FOUND', 'Product not found', 404);
+    }
+
+    const currentIsPassive = !beforeSnapshot.isActive;
+    const nextIsPassive = typeof payload.isPassive === 'boolean' ? payload.isPassive : !currentIsPassive;
+
+    if (nextIsPassive === currentIsPassive) {
+      await transaction.commit();
+      return {
+        data: await getProductDetail(id),
+        auditWritten: false,
+      };
+    }
+
+    await new sqlDriver.Request(transaction)
+      .input('id', sql.BigInt, id)
+      .input('isActive', sql.Bit, !nextIsPassive)
+      .input('passiveReason', sql.NVarChar(250), nextIsPassive ? 'SYSTEM passive toggle' : null)
+      .query(`
+        UPDATE dbo.products
+        SET
+          is_active = @isActive,
+          passive_at = CASE WHEN @isActive = 0 THEN SYSUTCDATETIME() ELSE NULL END,
+          passive_reason = @passiveReason,
+          updated_by = NULL,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @id;
+      `);
+
+    const afterSnapshot = await getProductSnapshot(new sqlDriver.Request(transaction), id);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'product_passive_changed',
+      entityType: 'product',
+      entityId: id,
+      beforeSnapshot,
+      afterSnapshot,
+    });
+
+    await transaction.commit();
+
+    return {
+      data: await getProductDetail(id),
+      auditWritten: true,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}

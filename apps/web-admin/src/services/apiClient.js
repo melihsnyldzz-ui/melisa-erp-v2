@@ -57,3 +57,7 @@ export async function post(path, body = {}) {
 export async function put(path, body = {}) {
   return request('PUT', path, { body });
 }
+
+export async function patch(path, body = {}) {
+  return request('PATCH', path, { body });
+}

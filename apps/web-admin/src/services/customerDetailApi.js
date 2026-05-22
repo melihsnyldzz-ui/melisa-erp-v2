@@ -1,4 +1,4 @@
-import { get, post, put } from './apiClient.js';
+import { get, patch, post, put } from './apiClient.js';
 
 export async function fetchCustomerDetail(id) {
   return get(`/api/customers/${id}`);
@@ -10,4 +10,8 @@ export async function createCustomer(payload) {
 
 export async function updateCustomer(id, payload) {
   return put(`/api/customers/${id}`, payload);
+}
+
+export async function changeCustomerPassive(id, isPassive) {
+  return patch(`/api/customers/${id}/passive`, { isPassive });
 }

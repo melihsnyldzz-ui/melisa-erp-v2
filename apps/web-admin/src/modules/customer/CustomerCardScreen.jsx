@@ -4,7 +4,12 @@ import { CustomerCardForm } from './CustomerCardForm.jsx';
 import { CustomerCardHeader } from './CustomerCardHeader.jsx';
 import { CustomerTransactionsPanel } from './CustomerTransactionsPanel.jsx';
 import { customerRules } from './customerMockData.js';
-import { createCustomer, fetchCustomerDetail, updateCustomer } from '../../services/customerDetailApi.js';
+import {
+  changeCustomerPassive,
+  createCustomer,
+  fetchCustomerDetail,
+  updateCustomer,
+} from '../../services/customerDetailApi.js';
 
 const emptyCustomerForm = {
   customerCode: '',
@@ -116,6 +121,7 @@ export function CustomerCardScreen({ customerId }) {
   const [form, setForm] = useState(emptyCustomerForm);
   const [isLoading, setIsLoading] = useState(Boolean(customerId));
   const [isSaving, setIsSaving] = useState(false);
+  const [isPassiveSaving, setIsPassiveSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -221,6 +227,32 @@ export function CustomerCardScreen({ customerId }) {
     }
   }
 
+  async function togglePassiveCustomer() {
+    if (!activeCustomerId) {
+      setErrorMessage('Pasif/Aktif islemi icin once kayitli cari acilmali.');
+      setSuccessMessage('');
+      return;
+    }
+
+    const nextIsPassive = !form.isPassive;
+
+    setIsPassiveSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await changeCustomerPassive(activeCustomerId, nextIsPassive);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage(nextIsPassive
+        ? 'Cari pasif yapildi ve audit kaydi yazildi.'
+        : 'Cari aktif yapildi ve audit kaydi yazildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Pasif/Aktif islemi basarisiz.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsPassiveSaving(false);
+    }
+  }
+
   return (
     <main className="work-area customer-card-screen">
       {isLoading && <div className="list-state">API'den cari kart yukleniyor...</div>}
@@ -230,11 +262,18 @@ export function CustomerCardScreen({ customerId }) {
             customer={customer}
             mode={mode}
             isSaving={isSaving}
+            isPassiveSaving={isPassiveSaving}
             onSave={saveCustomer}
             onNew={startNewCustomer}
+            onTogglePassive={togglePassiveCustomer}
           />
           {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
           {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
+          {form.isPassive && (
+            <div className="list-state list-state-passive">
+              PASIF cari: yeni fislerde secilemez, gecmis ekstre ve raporlarda gorunmeye devam eder.
+            </div>
+          )}
           <section className="customer-card-layout">
             <CustomerCardForm
               customer={customer}

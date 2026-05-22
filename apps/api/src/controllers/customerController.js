@@ -1,4 +1,5 @@
 import {
+  changeCustomerPassive,
   createCustomer,
   getCustomerDetail,
   getCustomersList,
@@ -53,6 +54,18 @@ export async function putCustomer(req, res) {
     return ok(res, data, {
       source: 'sql-write',
       audit: 'customer_updated',
+    });
+  } catch (error) {
+    return writeError(res, error);
+  }
+}
+
+export async function patchCustomerPassive(req, res) {
+  try {
+    const result = await changeCustomerPassive(req.params.id, req.body);
+    return ok(res, result.data, {
+      source: 'sql-write',
+      audit: result.auditWritten ? 'customer_passive_changed' : 'skipped_no_state_change',
     });
   } catch (error) {
     return writeError(res, error);

@@ -1,4 +1,5 @@
 import {
+  changeProductPassive,
   createProduct,
   getProductDetail,
   getProductsList,
@@ -53,6 +54,18 @@ export async function putProduct(req, res) {
     return ok(res, data, {
       source: 'sql-write',
       audit: 'product_updated',
+    });
+  } catch (error) {
+    return writeError(res, error);
+  }
+}
+
+export async function patchProductPassive(req, res) {
+  try {
+    const result = await changeProductPassive(req.params.id, req.body);
+    return ok(res, result.data, {
+      source: 'sql-write',
+      audit: result.auditWritten ? 'product_passive_changed' : 'skipped_no_state_change',
     });
   } catch (error) {
     return writeError(res, error);

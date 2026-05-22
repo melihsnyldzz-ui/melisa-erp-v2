@@ -4,7 +4,12 @@ import { ProductCardForm } from './ProductCardForm.jsx';
 import { ProductCardHeader } from './ProductCardHeader.jsx';
 import { ProductImagePanel } from './ProductImagePanel.jsx';
 import { ProductStockSummary } from './ProductStockSummary.jsx';
-import { createProduct, fetchProductDetail, updateProduct } from '../../services/productDetailApi.js';
+import {
+  changeProductPassive,
+  createProduct,
+  fetchProductDetail,
+  updateProduct,
+} from '../../services/productDetailApi.js';
 
 const emptyProductForm = {
   stockCode: '',
@@ -117,6 +122,7 @@ export function ProductCardScreen({ productId }) {
   const [form, setForm] = useState(emptyProductForm);
   const [isLoading, setIsLoading] = useState(Boolean(productId));
   const [isSaving, setIsSaving] = useState(false);
+  const [isPassiveSaving, setIsPassiveSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -222,6 +228,32 @@ export function ProductCardScreen({ productId }) {
     }
   }
 
+  async function togglePassiveProduct() {
+    if (!activeProductId) {
+      setErrorMessage('Pasif/Aktif islemi icin once kayitli urun acilmali.');
+      setSuccessMessage('');
+      return;
+    }
+
+    const nextIsPassive = !form.isPassive;
+
+    setIsPassiveSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await changeProductPassive(activeProductId, nextIsPassive);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage(nextIsPassive
+        ? 'Urun pasif yapildi ve audit kaydi yazildi.'
+        : 'Urun aktif yapildi ve audit kaydi yazildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Pasif/Aktif islemi basarisiz.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsPassiveSaving(false);
+    }
+  }
+
   return (
     <main className="work-area product-card-screen">
       {isLoading && <div className="list-state">API'den urun karti yukleniyor...</div>}
@@ -231,11 +263,18 @@ export function ProductCardScreen({ productId }) {
             product={productView}
             mode={mode}
             isSaving={isSaving}
+            isPassiveSaving={isPassiveSaving}
             onSave={saveProduct}
             onNew={startNewProduct}
+            onTogglePassive={togglePassiveProduct}
           />
           {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
           {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
+          {form.isPassive && (
+            <div className="list-state list-state-passive">
+              PASIF kayit: yeni fislerde secilemez, gecmis rapor ve hareketlerde gorunmeye devam eder.
+            </div>
+          )}
           <section className="product-card-layout">
             <ProductCardForm
               product={productView}

@@ -22,7 +22,10 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) 
         <tbody>
           {rows.map((row) => (
             <tr
-              className={selectedRowId === row.id ? 'selected' : ''}
+              className={[
+                selectedRowId === row.id ? 'selected' : '',
+                row.status === 'Pasif' ? 'passive-row' : '',
+              ].filter(Boolean).join(' ')}
               key={row.id}
               onClick={() => onSelectRow(row.id)}
               onDoubleClick={() => onOpenRow(row.id)}

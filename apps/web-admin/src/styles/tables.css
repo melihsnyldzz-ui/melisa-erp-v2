@@ -167,6 +167,13 @@ td.hot {
   color: #22612b;
 }
 
+.list-state-passive {
+  min-height: 42px;
+  border-top-color: #c1a565;
+  background: #fff8e8;
+  color: #725014;
+}
+
 .stock-table {
   min-width: 1320px;
 }
@@ -186,6 +193,18 @@ td.hot {
 
 .stock-table tbody tr.selected td {
   background: #dce8f8;
+}
+
+.stock-table tbody tr.passive-row td,
+.customer-table tbody tr.passive-row td {
+  background: #f1f3f6;
+  color: #747d8b;
+  opacity: 0.78;
+}
+
+.stock-table tbody tr.passive-row.selected td,
+.customer-table tbody tr.passive-row.selected td {
+  background: #d9e0eb;
 }
 
 .code-cell {
