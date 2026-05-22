@@ -74,9 +74,9 @@ export function AppShell({ user, permissions, onLogout }) {
 
   return (
     <div className="erp-shell">
-      <TopMenu user={user} onLogout={onLogout} />
+      <TopMenu activeModule={activeTab.module} user={user} onLogout={onLogout} />
       <div className="main-layout">
-        <Sidebar activeTab={activeTab} onOpenScreen={openScreen} />
+        <Sidebar activeTab={activeTab} user={user} onOpenScreen={openScreen} />
         <section className="content-shell">
           <TabBar tabs={tabs} activeTabId={activeTab.id} onActivateTab={setActiveTabId} onCloseTab={closeTab} />
           <Workspace activeTab={activeTab} onOpenScreen={openScreen} permissions={permissions} />

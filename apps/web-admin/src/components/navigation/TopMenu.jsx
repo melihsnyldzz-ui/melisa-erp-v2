@@ -1,7 +1,7 @@
 import React from 'react';
 import { modules } from '../../data/mockNavigationData.js';
 
-export function TopMenu({ user, onLogout }) {
+export function TopMenu({ activeModule, user, onLogout }) {
   return (
     <header className="top-menu">
       <div className="brand-block">
@@ -10,7 +10,7 @@ export function TopMenu({ user, onLogout }) {
       </div>
       <nav className="module-menu" aria-label="Ana moduller">
         {modules.map((module) => (
-          <button className={module === 'Ana Sayfa' ? 'module active' : 'module'} key={module}>
+          <button className={module === activeModule ? 'module active' : 'module'} key={module}>
             {module}
           </button>
         ))}

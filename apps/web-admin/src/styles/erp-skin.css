@@ -1,0 +1,693 @@
+:root {
+  --erp-navy-900: #10233e;
+  --erp-navy-800: #173154;
+  --erp-navy-700: #234b78;
+  --erp-border-dark: #858b94;
+  --erp-border: #a9b0ba;
+  --erp-border-light: #c8cdd5;
+  --erp-surface: #d8d4c8;
+  --erp-surface-2: #e8e4d8;
+  --erp-panel: #fbfaf5;
+  --erp-panel-alt: #f2f0e8;
+  --erp-header: #d5d0c2;
+  --erp-header-dark: #aaa391;
+  --erp-row-hover: #e8f1fb;
+  --erp-row-selected: #c8dbf2;
+  --erp-green: #17713d;
+  --erp-red: #a52626;
+  --erp-amber: #9a6500;
+}
+
+body {
+  font-size: 12px;
+  line-height: 1.22;
+  background: #b7bec9;
+}
+
+button,
+input,
+select,
+textarea {
+  border-radius: 0 !important;
+}
+
+button:disabled {
+  color: #7c828a !important;
+  background: #dedbd2 !important;
+  border-color: #b6b1a4 !important;
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #315f99;
+  outline-offset: -1px;
+}
+
+.erp-shell {
+  grid-template-rows: 74px 1fr 24px;
+  background: var(--erp-surface);
+}
+
+.top-menu {
+  grid-template-columns: 220px 1fr 590px;
+  border-bottom: 1px solid #6d675c;
+  background: linear-gradient(#f0eee4 0 22px, #d9d4c5 22px 24px, var(--erp-navy-800) 24px);
+}
+
+.brand-block {
+  gap: 2px;
+  padding: 24px 14px 0;
+  border-right-color: rgba(255, 255, 255, 0.22);
+  background: linear-gradient(#e9e5d9 0 24px, var(--erp-navy-900) 24px);
+}
+
+.brand-block strong {
+  font-size: 17px;
+}
+
+.brand-block span,
+.top-actions,
+.panel-title span,
+.sidebar-header span {
+  font-size: 11px;
+}
+
+.module-menu {
+  gap: 2px;
+  padding: 30px 8px 0;
+}
+
+.module,
+.top-actions button,
+.side-group button,
+.tab,
+.stock-toolbar-actions button,
+.customer-toolbar-actions button,
+.sales-toolbar-actions button,
+.purchase-toolbar-actions button,
+.invoice-list-actions button,
+.dashboard-toolbar-actions button,
+.product-card-toolbar button,
+.customer-card-toolbar button,
+.import-actions button,
+.screen-actions button {
+  border: 1px solid var(--erp-border-dark);
+  background: linear-gradient(#fffef8, #dedbd0);
+  color: #172333;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.module {
+  min-width: 76px;
+  height: 33px;
+  border-color: #72819a;
+  border-bottom: 0;
+  background: linear-gradient(#315c8e, #183456);
+  color: #edf4ff;
+  font-size: 11px;
+}
+
+.module.active {
+  background: linear-gradient(#fffef8, #ddd8c8);
+  color: var(--erp-navy-900);
+  border-color: #9b8f73;
+  font-weight: 700;
+}
+
+.module:hover,
+.top-actions button:hover,
+.side-group button:hover,
+.tab:hover,
+.stock-toolbar-actions button:hover,
+.customer-toolbar-actions button:hover,
+.sales-toolbar-actions button:hover,
+.purchase-toolbar-actions button:hover,
+.invoice-list-actions button:hover,
+.dashboard-toolbar-actions button:hover,
+.product-card-toolbar button:hover,
+.customer-card-toolbar button:hover,
+.import-actions button:hover,
+.screen-actions button:hover {
+  border-color: #315f99;
+  background: linear-gradient(#fffef8, #dce8f8);
+  color: var(--erp-navy-900);
+}
+
+.top-actions {
+  grid-template-columns: 1fr 128px 78px 70px 62px;
+  gap: 4px;
+  padding: 29px 8px 5px;
+}
+
+.top-actions button,
+.session-badge,
+.search-box {
+  height: 25px;
+  font-size: 11px;
+}
+
+.top-actions button {
+  font-weight: 700;
+}
+
+.session-badge,
+.search-box {
+  border: 1px solid #7b8aa1;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.main-layout {
+  grid-template-columns: 238px 1fr;
+}
+
+.sidebar {
+  border-right: 1px solid #8d9480;
+  background: #efeee7;
+}
+
+.sidebar-header {
+  padding: 8px 10px;
+  border-bottom: 1px solid #9a9485;
+  background: linear-gradient(#bbb5a5, #958f80);
+  color: #fff;
+}
+
+.side-group {
+  padding: 7px;
+  border-bottom: 1px solid #c6c0b2;
+}
+
+.side-group h3 {
+  margin: 0 0 5px;
+  padding: 4px 6px;
+  border: 1px solid #b9b2a0;
+  background: linear-gradient(#d2ccbc, #b7ad98);
+  color: #252c35;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.side-group button {
+  position: relative;
+  height: 24px;
+  margin-bottom: 3px;
+  padding: 0 8px 0 22px;
+  background: #fffdf6;
+  font-size: 11px;
+}
+
+.side-group button::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid #647085;
+  background: #dbe5f2;
+}
+
+.side-group button.active {
+  border-color: #244f82;
+  background: linear-gradient(#dce9fa, #bfd4ef);
+  color: var(--erp-navy-900);
+  font-weight: 700;
+}
+
+.side-group button.active::before {
+  background: var(--erp-green);
+  border-color: #164c2e;
+}
+
+.side-group.compact p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0;
+  font-size: 11px;
+}
+
+.status-dot,
+.status-led {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #31503a;
+  background: #2aa84f;
+  box-shadow: 0 0 3px rgba(42, 168, 79, 0.55);
+}
+
+.status-led {
+  margin-right: 4px;
+}
+
+.content-shell {
+  grid-template-rows: 31px 1fr;
+}
+
+.tab-bar {
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid #8f97a3;
+  background: linear-gradient(#c8c4b8, #b1ad9f);
+}
+
+.tab {
+  height: 27px;
+  min-width: 124px;
+  padding: 0 7px;
+  background: linear-gradient(#eceae1, #d3cec1);
+  font-size: 11px;
+}
+
+.tab.active {
+  height: 28px;
+  border-color: #6c7890;
+  background: #fffdf6;
+  box-shadow: inset 0 3px 0 #244f82;
+}
+
+.tab span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab em[role="button"] {
+  min-width: 16px;
+  height: 16px;
+  border: 1px solid transparent;
+  color: #7a1d1d;
+  text-align: center;
+}
+
+.tab em[role="button"]:hover {
+  border-color: var(--erp-red);
+  background: #fff1f1;
+}
+
+.tab .pin {
+  color: var(--erp-green);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.work-area {
+  padding: 6px;
+  background: #d6d2c6;
+}
+
+.status-bar {
+  gap: 0;
+  padding: 0 8px;
+  border-top: 1px solid #7e8794;
+  background: linear-gradient(#e6e3d8, #c7c1b3);
+  color: #26313f;
+  font-size: 11px;
+}
+
+.status-bar span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 9px;
+  border-right: 1px solid #a9a293;
+}
+
+.status-bar strong {
+  color: #15562f;
+}
+
+.erp-panel,
+.kpi,
+.dashboard-kpi,
+.import-summary-box {
+  border: 1px solid var(--erp-border-dark);
+  background: var(--erp-panel);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.75), inset -1px -1px 0 rgba(120, 120, 110, 0.12);
+}
+
+.panel-title,
+.screen-header,
+.dashboard-toolbar,
+.stock-toolbar,
+.customer-toolbar,
+.product-card-header,
+.customer-card-header,
+.sales-invoice-toolbar,
+.purchase-invoice-toolbar,
+.invoice-list-toolbar,
+.import-toolbar {
+  min-height: 34px;
+  border: 1px solid var(--erp-border-dark);
+  background: linear-gradient(#e2ded0, #c9c1af);
+}
+
+.panel-title {
+  min-height: 28px;
+  padding: 5px 7px;
+  border-width: 0 0 1px;
+  border-color: var(--erp-border-dark);
+}
+
+.panel-title strong,
+.screen-header strong,
+.dashboard-toolbar-title strong,
+.stock-toolbar-title strong,
+.customer-toolbar-title strong,
+.product-title-block strong,
+.customer-title-block strong,
+.sales-toolbar-title strong,
+.purchase-toolbar-title strong,
+.invoice-list-title strong,
+.import-title-block strong {
+  color: var(--erp-navy-900);
+  font-size: 13px;
+}
+
+.panel-title span,
+.screen-header span,
+.dashboard-toolbar-title span,
+.stock-toolbar-title span,
+.customer-toolbar-title span,
+.product-title-block span,
+.customer-title-block span,
+.sales-toolbar-title span,
+.purchase-toolbar-title span,
+.invoice-list-title span,
+.import-title-block span {
+  color: #4d5662;
+  font-size: 11px;
+}
+
+.dashboard-toolbar-actions button,
+.dashboard-toolbar-actions select,
+.stock-toolbar-actions button,
+.customer-toolbar-actions button,
+.product-card-toolbar button,
+.customer-card-toolbar button,
+.sales-toolbar-actions button,
+.purchase-toolbar-actions button,
+.invoice-list-actions button,
+.import-actions button,
+.screen-actions button,
+.product-panel-actions button,
+.product-image-panel button {
+  height: 24px;
+  min-width: 62px;
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+.dashboard-toolbar-actions button.pressed,
+.stock-toolbar-actions button.pressed,
+.customer-toolbar-actions button.pressed,
+.import-actions button.pressed,
+.sales-toolbar-actions button.primary,
+.purchase-toolbar-actions button.primary,
+.import-actions button.primary,
+.dashboard-toolbar-actions button.pressed {
+  border-color: #244f82;
+  background: linear-gradient(#dce9fa, #bfd4ef);
+  color: var(--erp-navy-900);
+  font-weight: 700;
+}
+
+.stock-filter-panel,
+.customer-filter-panel,
+.invoice-list-filters,
+.filter-row,
+.screen-form-grid,
+.product-form-grid,
+.customer-form-grid,
+.import-file-panel {
+  border: 1px solid var(--erp-border);
+  background: var(--erp-panel-alt);
+}
+
+.stock-filter-panel,
+.customer-filter-panel,
+.invoice-list-filters {
+  padding: 5px;
+  gap: 5px;
+}
+
+.stock-filter-panel span,
+.customer-filter-panel span,
+.invoice-list-filters span,
+.product-form-grid span,
+.customer-form-grid span,
+.sales-header-grid span,
+.purchase-header-grid span,
+.import-file-panel span {
+  color: #3f4b59;
+  font-size: 11px;
+}
+
+.stock-filter-panel input,
+.stock-filter-panel select,
+.customer-filter-panel input,
+.customer-filter-panel select,
+.invoice-list-filters input,
+.product-form-grid input,
+.product-form-grid select,
+.customer-form-grid input,
+.customer-form-grid textarea,
+.customer-form-grid select,
+.sales-header-grid input,
+.purchase-header-grid input,
+.import-file-panel input,
+.login-panel input {
+  height: 23px;
+  border: 1px solid var(--erp-border-dark);
+  background: #fffef8;
+  color: #111820;
+  font-size: 11px;
+}
+
+.sales-header-grid,
+.purchase-header-grid {
+  gap: 5px;
+  padding: 6px;
+}
+
+.sales-header-grid label,
+.purchase-header-grid label,
+.product-form-grid label,
+.customer-form-grid label,
+.screen-form-grid label {
+  font-size: 11px;
+}
+
+table {
+  font-size: 11px;
+}
+
+th {
+  height: 24px !important;
+  border: 1px solid #8e98a6;
+  background: linear-gradient(#d9d4c5, #bdb5a3);
+  color: #10233e;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+td {
+  height: 22px !important;
+  border: 1px solid #c1c6ce;
+  background: #fffef8;
+}
+
+tbody tr:nth-child(even) td {
+  background: #f2f0e8;
+}
+
+tbody tr:hover td {
+  background: var(--erp-row-hover);
+}
+
+.stock-table tbody tr.selected td,
+.customer-table tbody tr.selected td,
+.invoice-list-table tbody tr.selected td,
+.sales-items-table tbody tr.selected td,
+.purchase-items-table tbody tr.selected td {
+  background: var(--erp-row-selected);
+  color: #10233e;
+}
+
+.stock-table tbody tr.passive-row td,
+.customer-table tbody tr.passive-row td {
+  background: #e5e3dc;
+  color: #6a6f78;
+}
+
+.money-cell,
+.dashboard-risk-cell,
+.sales-totals-panel dd,
+.purchase-totals-panel dd,
+.customer-balance-total strong,
+.product-stock-summary dd {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-negative,
+.stock-zero,
+.status-passive,
+.sales-stock-risk,
+.customer-payable,
+.dashboard-risk-cell {
+  color: var(--erp-red);
+  font-weight: 700;
+}
+
+.status-active,
+.purchase-stock-in {
+  color: var(--erp-green);
+  font-weight: 700;
+}
+
+.list-state {
+  min-height: 44px;
+  border: 1px solid var(--erp-border);
+  background: #fffdf6;
+  font-size: 11px;
+}
+
+.list-state-error {
+  border-color: #bd8a8a;
+  background: #fff1f1;
+}
+
+.list-state-success {
+  border-color: #7eaa83;
+  background: #f3fff5;
+}
+
+.dashboard-screen,
+.stock-list-screen,
+.customer-list-screen,
+.product-card-screen,
+.customer-card-screen,
+.sales-invoice-screen,
+.purchase-invoice-screen,
+.invoice-list-screen,
+.import-screen {
+  gap: 5px;
+}
+
+.dashboard-kpi-grid {
+  grid-template-columns: repeat(6, minmax(132px, 1fr));
+  gap: 5px;
+}
+
+.dashboard-kpi {
+  min-height: 46px;
+  padding: 5px 7px;
+  border-left-width: 4px;
+  background: #fffef8;
+}
+
+.dashboard-kpi span {
+  font-size: 11px;
+}
+
+.dashboard-kpi strong {
+  font-size: 14px;
+}
+
+.dashboard-kpi small {
+  font-size: 10px;
+}
+
+.dashboard-main-grid {
+  gap: 6px;
+}
+
+.dashboard-alert-list {
+  gap: 4px;
+  padding: 5px;
+}
+
+.dashboard-alert-row {
+  min-height: 25px;
+  padding: 3px 5px;
+  border-color: var(--erp-border-light);
+  background: #fffef8;
+  font-size: 11px;
+}
+
+.product-card-layout,
+.customer-card-layout,
+.sales-invoice-layout,
+.purchase-invoice-layout {
+  gap: 6px;
+}
+
+.currency-rule,
+.customer-rule-list,
+.sales-rule-list span,
+.purchase-rule-list span,
+.sales-totals-panel p,
+.purchase-totals-panel p,
+.product-stock-warning {
+  border-color: var(--erp-border);
+  background: #fff8e8;
+  font-size: 11px;
+}
+
+.status-finalized-input,
+input[readonly],
+textarea[readonly] {
+  background: #ece9df !important;
+  color: #25303b;
+}
+
+.draft-badge {
+  min-height: 18px;
+  border-color: #a77a20;
+  background: #fff4d8;
+  color: #704b00;
+  font-size: 10px;
+}
+
+.sales-grand-total dd,
+.purchase-grand-total dd {
+  color: var(--erp-green);
+  font-size: 14px;
+}
+
+.import-summary-grid {
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  gap: 5px;
+}
+
+.import-summary-box {
+  min-height: 40px;
+  padding: 5px 7px;
+}
+
+.import-summary-box span {
+  font-size: 10px;
+}
+
+.import-summary-box strong {
+  font-size: 15px;
+}
+
+@media (min-width: 2100px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: repeat(8, minmax(140px, 1fr));
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: minmax(420px, 0.9fr) minmax(680px, 1.5fr) minmax(420px, 0.9fr);
+  }
+
+  .main-layout {
+    grid-template-columns: 260px 1fr;
+  }
+}
