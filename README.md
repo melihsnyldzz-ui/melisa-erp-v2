@@ -40,3 +40,30 @@ Kodlamaya başlamadan önce özellikle şu dosyalar okunmalıdır:
 ## Geliştirme Notu
 
 Bu repo iskeleti henüz uygulama kodu veya package kurulumu içermez. İlk kod sprinti `docs/erp-v2/implementation-roadmap.md` içindeki Faz 1 kapsamına göre başlatılmalıdır.
+
+## API Gelistirme
+
+API foundation `apps/api` altinda Node.js + Express ile baslatilir. Simdilik SQL Server, Vega ve auth database baglantisi kapalidir; endpointler mock veri doner.
+
+```powershell
+cd apps/api
+npm install
+npm run dev
+npm run start
+```
+
+Varsayilan API adresi:
+
+```text
+http://127.0.0.1:4100/api
+```
+
+Ilk mock endpointler:
+
+- `GET /api/health`
+- `GET /api/version`
+- `GET /api/dashboard/summary`
+- `GET /api/products`
+- `GET /api/customers`
+- `GET /api/sales-invoices`
+- `GET /api/purchase-invoices`
