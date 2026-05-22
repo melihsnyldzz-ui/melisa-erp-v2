@@ -1,18 +1,31 @@
-import { env } from './config/env.js';
+import { env, getStartupWarnings } from './config/env.js';
 import { createApp } from './app.js';
+import { logger } from './utils/logger.js';
 
 const app = createApp();
 
 const server = app.listen(env.port, () => {
-  console.log(`Melisa ERP API listening on http://127.0.0.1:${env.port}`);
-  console.log(`API version: ${env.apiVersion}`);
-  console.log(`SQL integration: ${env.sql.enabled ? 'configured' : 'disabled'}`);
-  console.log('Vega integration: disabled');
-  console.log('Auth integration: enabled');
+  logger.info('Melisa ERP API listening', {
+    port: env.port,
+    apiVersion: env.apiVersion,
+    nodeEnv: env.nodeEnv,
+    sqlConfigured: env.sql.enabled,
+    vegaEnabled: env.vega.enabled,
+    authEnabled: true,
+  });
+
+  for (const warning of getStartupWarnings()) {
+    logger.warn('Startup readiness warning', {
+      category: 'startup_warning',
+      warning,
+    });
+  }
 });
 
 function shutdown(signal) {
-  console.log(`${signal} received, shutting down API server`);
+  logger.warn('API server shutdown requested', {
+    signal,
+  });
   server.close(() => process.exit(0));
 }
 

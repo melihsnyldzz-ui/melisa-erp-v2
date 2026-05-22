@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
-import { ok } from '../utils/response.js';
+import { getMonitoringSummaryData } from '../services/monitoringService.js';
+import { fail, ok } from '../utils/response.js';
 
 export function getHealth(req, res) {
   return ok(res, {
@@ -22,4 +23,19 @@ export function getVersion(req, res) {
       authDatabase: true,
     },
   });
+}
+
+export async function getMonitoringSummary(req, res) {
+  try {
+    const data = await getMonitoringSummaryData();
+    return ok(res, data, {
+      source: 'sql-monitoring-aggregate',
+      readOnly: true,
+      requestId: req.requestId,
+    });
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'MONITORING_SUMMARY_FAILED', 'Monitoring summary query failed', {
+      requestId: req.requestId,
+    });
+  }
 }

@@ -14,12 +14,13 @@ export function created(res, data, meta = {}) {
   });
 }
 
-export function fail(res, statusCode, code, message) {
+export function fail(res, statusCode, code, message, meta = {}) {
   return res.status(statusCode).json({
     success: false,
     error: {
       code,
       message,
     },
+    meta,
   });
 }

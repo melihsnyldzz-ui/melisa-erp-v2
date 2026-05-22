@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 
 export function errorHandler(err, req, res, next) {
   if (res.headersSent) {
@@ -11,11 +12,23 @@ export function errorHandler(err, req, res, next) {
     ? 'Unexpected server error'
     : err.message || 'Unexpected server error';
 
+  logger.error('API error normalized', {
+    requestId: req.requestId,
+    method: req.method,
+    path: req.originalUrl,
+    statusCode,
+    code,
+    category: err.category || 'api_error',
+  });
+
   return res.status(statusCode).json({
     success: false,
     error: {
       code,
       message,
+    },
+    meta: {
+      requestId: req.requestId,
     },
   });
 }

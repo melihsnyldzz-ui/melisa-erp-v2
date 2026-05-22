@@ -1,16 +1,21 @@
 import cors from 'cors';
 import express from 'express';
-import morgan from 'morgan';
 import { apiRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFound.js';
+import { requestContext } from './middleware/requestContext.js';
+import { apiRateLimit, corsOptions, securityHeaders } from './middleware/security.js';
+import { env } from './config/env.js';
 
 export function createApp() {
   const app = express();
 
-  app.use(cors());
-  app.use(express.json({ limit: '10mb' }));
-  app.use(morgan('dev'));
+  app.disable('x-powered-by');
+  app.use(securityHeaders());
+  app.use(cors(corsOptions()));
+  app.use(requestContext);
+  app.use(apiRateLimit());
+  app.use(express.json({ limit: env.requestBodyLimit }));
 
   app.use('/api', apiRoutes);
 

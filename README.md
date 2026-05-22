@@ -91,3 +91,11 @@ npm run android
 ```
 
 Terminal app mevcut auth API ile login olur, `/api/products` uzerinden barkod/urun lookup yapar ve offline-first local queue/cache temelini kullanir. Fiziksel Android cihazda `EXPO_PUBLIC_API_BASE_URL` LAN IP ile verilmelidir.
+
+## Production Readiness
+
+Production hazirlik dokumanlari:
+
+- [Backup / Restore Plan](docs/erp-v2/backup-restore-plan.md)
+- [Production Readiness Checklist](docs/erp-v2/production-readiness-checklist.md)
+- [QA Stabilization Report](docs/erp-v2/qa-stabilization-report.md)

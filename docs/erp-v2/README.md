@@ -14,6 +14,9 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Terminal Sync Protocol](terminal-sync-protocol.md)
 - [Auth Permission Architecture](auth-permission-architecture.md)
 - [Implementation Roadmap](implementation-roadmap.md)
+- [QA Stabilization Report](qa-stabilization-report.md)
+- [Backup / Restore Plan](backup-restore-plan.md)
+- [Production Readiness Checklist](production-readiness-checklist.md)
 
 ## Tasarım Standardı
 
