@@ -4,6 +4,7 @@ import {
   getPurchaseInvoices,
   getSalesInvoice,
   getSalesInvoices,
+  postPurchaseFinalize,
   postSalesFinalize,
   postPurchaseDraft,
   postSalesDraft,
@@ -20,5 +21,6 @@ invoiceRoutes.get('/sales-invoices/:id', getSalesInvoice);
 invoiceRoutes.put('/sales-invoices/:id/draft', putSalesDraft);
 invoiceRoutes.get('/purchase-invoices', getPurchaseInvoices);
 invoiceRoutes.post('/purchase-invoices/draft', postPurchaseDraft);
+invoiceRoutes.post('/purchase-invoices/:id/finalize', postPurchaseFinalize);
 invoiceRoutes.get('/purchase-invoices/:id', getPurchaseInvoice);
 invoiceRoutes.put('/purchase-invoices/:id/draft', putPurchaseDraft);

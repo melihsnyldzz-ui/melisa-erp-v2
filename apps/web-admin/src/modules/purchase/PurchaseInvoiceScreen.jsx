@@ -13,7 +13,12 @@ import {
   purchaseInvoiceRules,
   supplierGeneralDiscountRate,
 } from './purchaseInvoiceMockData.js';
-import { createPurchaseDraft, fetchPurchaseInvoice, updatePurchaseDraft } from '../../services/invoiceDraftApi.js';
+import {
+  createPurchaseDraft,
+  fetchPurchaseInvoice,
+  finalizePurchaseInvoice,
+  updatePurchaseDraft,
+} from '../../services/invoiceDraftApi.js';
 
 function calculateTotals(items, invoiceRate, supplierRate) {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.purchasePrice, 0);
@@ -57,7 +62,7 @@ function mapDraftToInvoice(draft) {
     exchangeRate: `${draft.documentCurrency} ${Number(draft.exchangeRate || 1).toFixed(4)}`,
     exchangeRateValue: Number(draft.exchangeRate || 1),
     description: draft.description || '',
-    status: draft.status === 'DRAFT' ? 'Taslak' : draft.status,
+    status: draft.status === 'DRAFT' ? 'Taslak' : 'FINALIZED',
   };
 }
 
@@ -88,11 +93,13 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
   const [statusMessage, setStatusMessage] = useState('Taslak alis fisi stok artirmaz ve cari hareket olusturmaz.');
   const [isLoading, setIsLoading] = useState(Boolean(purchaseDraftId));
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(
     () => calculateTotals(items, invoiceRate, supplierRate),
     [invoiceRate, items, supplierRate],
   );
+  const isFinalized = status === 'FINALIZED';
 
   useEffect(() => {
     if (!purchaseDraftId) {
@@ -179,6 +186,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
   }
 
   async function saveDraft() {
+    if (isFinalized) {
+      setStatusMessage('Kesinlesmis alis fisi guncellenemez; iptal/duzeltme akisi ayri sprintte ele alinacak.');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage('');
 
@@ -195,7 +207,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
       setItems(nextItems);
       setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
-      setStatus('Taslak');
+      setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setStatusMessage(`Alis taslagi DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi olusmadi.`);
     } catch (error) {
@@ -206,8 +218,38 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
     }
   }
 
-  function finalizeInvoice() {
-    setStatusMessage('Kesinlestirme bu sprintte kapali; stok artisi, cari hareket ve average cost etkisi olusmaz.');
+  async function finalizeInvoice() {
+    if (!draftId) {
+      setErrorMessage('Kesinlestirme icin once alis taslagi kaydedilmeli.');
+      return;
+    }
+
+    if (isFinalized) {
+      setStatusMessage('Bu alis fisi zaten kesinlesmis; tekrar kesinlestirilemez.');
+      return;
+    }
+
+    setIsFinalizing(true);
+    setErrorMessage('');
+
+    try {
+      const response = await finalizePurchaseInvoice(draftId);
+      const nextInvoice = mapDraftToInvoice(response.data);
+      const nextItems = mapDraftItems(response.data.items);
+
+      setInvoice(nextInvoice);
+      setItems(nextItems);
+      setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
+      setSupplierRate(Number(response.data.supplierDiscountRate || 0));
+      setStatus('FINALIZED');
+      setSelectedItemId(nextItems[0]?.id ?? null);
+      setStatusMessage('Alis fisi kesinlesti; stok girisi, tedarikci hareketi ve audit olustu. Average cost motoru ertelendi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Alis fisi kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Alis kesinlestirme basarisiz; transaction rollback edildi.');
+    } finally {
+      setIsFinalizing(false);
+    }
   }
 
   return (
@@ -215,6 +257,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
       <PurchaseInvoiceToolbar
         status={status}
         isSaving={isSaving}
+        isFinalizing={isFinalizing}
+        isFinalized={isFinalized}
         onNewDraft={createNewDraft}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
@@ -223,6 +267,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId }) {
         {isLoading && <div className="list-state">Alis taslagi API'den okunuyor...</div>}
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {isSaving && <div className="list-state">Alis taslagi API'ye kaydediliyor...</div>}
+        {isFinalizing && <div className="list-state">Alis fisi kesinlestiriliyor; stok/tedarikci/audit transaction icinde yaziliyor...</div>}
+        {isFinalized && (
+          <div className="list-state list-state-success">FINALIZED alis fisi readonly modda; tekrar kayit/kesinlestirme kapali.</div>
+        )}
         {!isLoading && !errorMessage && items.length === 0 && (
           <div className="list-state">Alis taslak satiri bulunamadi.</div>
         )}

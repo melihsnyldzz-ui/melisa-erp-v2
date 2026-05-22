@@ -430,6 +430,74 @@ async function getSalesFinalizeSnapshot(request, id) {
   };
 }
 
+async function getPurchaseFinalizeSnapshot(request, id) {
+  const header = await request
+    .input('purchaseFinalizeSnapshotId', sql.BigInt, id)
+    .query(`
+      SELECT TOP (1)
+        pi.id,
+        pi.document_no AS documentNo,
+        pi.document_date AS documentDate,
+        pi.supplier_id AS supplierId,
+        s.name AS supplierName,
+        s.is_active AS supplierIsActive,
+        pi.status,
+        pi.supplier_currency AS supplierCurrency,
+        pi.document_currency AS documentCurrency,
+        pi.exchange_rate_snapshot AS exchangeRate,
+        pi.description,
+        pi.subtotal,
+        pi.line_discount_total AS lineDiscountTotal,
+        pi.invoice_discount_rate AS invoiceDiscountRate,
+        pi.supplier_discount_rate AS supplierDiscountRate,
+        pi.discount_total AS discountTotal,
+        pi.grand_total AS grandTotal,
+        pi.amount_try AS amountTry,
+        pi.stock_cost_effect_try AS stockCostEffectTry,
+        pi.finalized_at AS finalizedAt,
+        pi.updated_at AS updatedAt
+      FROM dbo.purchase_invoices pi
+      LEFT JOIN dbo.suppliers s ON s.id = pi.supplier_id
+      WHERE pi.id = @purchaseFinalizeSnapshotId;
+    `);
+
+  const row = header.recordset?.[0];
+
+  if (!row) {
+    return null;
+  }
+
+  const items = await request
+    .input('purchaseFinalizeItemsSnapshotId', sql.BigInt, id)
+    .query(`
+      SELECT
+        pii.id,
+        pii.product_id AS productId,
+        p.current_stock_qty AS currentStockQty,
+        pii.stock_code_snapshot AS stockCode,
+        pii.barcode_snapshot AS barcode,
+        pii.product_name_snapshot AS productName,
+        pii.quantity,
+        pii.currency_code AS currency,
+        pii.purchase_price AS purchasePrice,
+        pii.line_discount_rate AS lineDiscountRate,
+        pii.line_total AS lineTotal,
+        pii.line_total_try AS lineTotalTry,
+        pii.stock_effect_snapshot AS stockEffect,
+        pii.note
+      FROM dbo.purchase_invoice_items pii
+      INNER JOIN dbo.products p ON p.id = pii.product_id
+      WHERE pii.purchase_invoice_id = @purchaseFinalizeItemsSnapshotId
+      ORDER BY pii.id ASC;
+    `);
+
+  return {
+    ...row,
+    status: row.status?.toUpperCase(),
+    items: items.recordset || [],
+  };
+}
+
 async function updateSalesItems(sqlDriver, transaction, invoiceId, items) {
   const existing = await new sqlDriver.Request(transaction)
     .input('invoiceIdForItems', sql.BigInt, invoiceId)
@@ -1432,6 +1500,192 @@ export async function updatePurchaseDraft(id, payload) {
     await transaction.commit();
 
     return getPurchaseDraft(invoiceId);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function finalizePurchaseInvoice(id) {
+  assertMelisaWriteEnabled();
+
+  const invoiceId = Number(id);
+
+  if (!Number.isInteger(invoiceId) || invoiceId < 1) {
+    throw makeServiceError('PURCHASE_FINALIZE_ID_INVALID', 'Purchase invoice id is invalid');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const beforeSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('PURCHASE_FINALIZE_NOT_FOUND', 'Purchase invoice not found', 404);
+    }
+
+    if (beforeSnapshot.status !== 'DRAFT') {
+      throw makeServiceError('PURCHASE_FINALIZE_STATUS_INVALID', 'Only DRAFT purchase invoices can be finalized', 409);
+    }
+
+    if (!beforeSnapshot.supplierId || !beforeSnapshot.supplierName) {
+      throw makeServiceError('PURCHASE_FINALIZE_SUPPLIER_INVALID', 'Purchase invoice supplier is missing', 400);
+    }
+
+    if (!beforeSnapshot.items.length) {
+      throw makeServiceError('PURCHASE_FINALIZE_ITEMS_REQUIRED', 'Purchase invoice must contain at least one item', 400);
+    }
+
+    if (Number(beforeSnapshot.grandTotal || 0) < 0) {
+      throw makeServiceError('PURCHASE_FINALIZE_TOTAL_INVALID', 'Purchase invoice total cannot be negative', 400);
+    }
+
+    const warnings = [
+      {
+        code: 'AVERAGE_COST_ENGINE_DEFERRED',
+        message: 'Full average cost engine is not applied in this sprint.',
+      },
+    ];
+
+    for (const item of beforeSnapshot.items) {
+      const quantity = Number(item.quantity || 0);
+      const lineTotalTry = Number(item.lineTotalTry || item.lineTotal || 0) * Number(beforeSnapshot.exchangeRate || 1);
+
+      await new sqlDriver.Request(transaction)
+        .input('purchaseProductIdForStockUpdate', sql.BigInt, item.productId)
+        .input('purchaseQuantityForStockUpdate', sql.Decimal(18, 3), quantity)
+        .query(`
+          UPDATE dbo.products
+          SET
+            current_stock_qty = current_stock_qty + @purchaseQuantityForStockUpdate,
+            updated_at = SYSUTCDATETIME()
+          WHERE id = @purchaseProductIdForStockUpdate;
+        `);
+
+      await new sqlDriver.Request(transaction)
+        .input('purchaseMovementProductId', sql.BigInt, item.productId)
+        .input('purchaseMovementSourceId', sql.BigInt, invoiceId)
+        .input('purchaseMovementQuantityIn', sql.Decimal(18, 3), quantity)
+        .input('purchaseMovementQuantityNet', sql.Decimal(18, 3), quantity)
+        .input('purchaseMovementUnitPrice', sql.Decimal(18, 4), Number(item.purchasePrice || 0))
+        .input('purchaseMovementCurrency', sql.NVarChar(3), item.currency)
+        .input('purchaseMovementAmountTry', sql.Decimal(18, 4), lineTotalTry)
+        .input('purchaseMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+        .input('purchaseMovementSupplierId', sql.BigInt, beforeSnapshot.supplierId)
+        .query(`
+          INSERT INTO dbo.stock_movements (
+            product_id,
+            movement_type,
+            source_type,
+            source_id,
+            quantity_in,
+            quantity_out,
+            quantity_net,
+            unit_cost_try,
+            average_cost_try_after,
+            document_date,
+            supplier_id,
+            created_at,
+            created_by,
+            unit_price,
+            currency_code,
+            amount_try
+          )
+          VALUES (
+            @purchaseMovementProductId,
+            N'in',
+            N'purchase_invoice',
+            @purchaseMovementSourceId,
+            @purchaseMovementQuantityIn,
+            0,
+            @purchaseMovementQuantityNet,
+            0,
+            0,
+            @purchaseMovementDocumentDate,
+            @purchaseMovementSupplierId,
+            SYSUTCDATETIME(),
+            NULL,
+            @purchaseMovementUnitPrice,
+            @purchaseMovementCurrency,
+            @purchaseMovementAmountTry
+          );
+        `);
+    }
+
+    await new sqlDriver.Request(transaction)
+      .input('supplierMovementSupplierId', sql.BigInt, beforeSnapshot.supplierId)
+      .input('supplierMovementInvoiceId', sql.BigInt, invoiceId)
+      .input('supplierMovementAmount', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
+      .input('supplierMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
+      .input('supplierMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+      .query(`
+        INSERT INTO dbo.supplier_movements (
+          supplier_id,
+          purchase_invoice_id,
+          movement_type,
+          amount,
+          currency_code,
+          balance_effect,
+          document_date,
+          created_at,
+          created_by
+        )
+        VALUES (
+          @supplierMovementSupplierId,
+          @supplierMovementInvoiceId,
+          N'purchase_invoice',
+          @supplierMovementAmount,
+          @supplierMovementCurrency,
+          @supplierMovementAmount,
+          @supplierMovementDocumentDate,
+          SYSUTCDATETIME(),
+          NULL
+        );
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('supplierBalanceId', sql.BigInt, beforeSnapshot.supplierId)
+      .input('supplierBalanceEffect', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
+      .query(`
+        UPDATE dbo.suppliers
+        SET
+          balance = balance + @supplierBalanceEffect,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @supplierBalanceId;
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('finalizePurchaseInvoiceId', sql.BigInt, invoiceId)
+      .query(`
+        UPDATE dbo.purchase_invoices
+        SET
+          status = N'finalized',
+          finalized_at = SYSUTCDATETIME(),
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @finalizePurchaseInvoiceId
+          AND status = N'draft';
+      `);
+
+    const afterSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'purchase_invoice_finalized',
+      entityType: 'purchase_invoice',
+      entityId: invoiceId,
+      beforeSnapshot,
+      afterSnapshot: {
+        ...afterSnapshot,
+        warnings,
+      },
+    });
+
+    await transaction.commit();
+
+    return toFinalizeResult(afterSnapshot, warnings);
   } catch (error) {
     await transaction.rollback();
     throw error;

@@ -1,6 +1,7 @@
 import {
   createPurchaseDraft,
   createSalesDraft,
+  finalizePurchaseInvoice,
   finalizeSalesInvoice,
   getPurchaseDraft,
   getPurchaseDraftsList,
@@ -119,6 +120,20 @@ export async function putPurchaseDraft(req, res) {
     });
   } catch (error) {
     return writeError(res, error, 'PURCHASE_DRAFT_WRITE_FAILED');
+  }
+}
+
+export async function postPurchaseFinalize(req, res) {
+  try {
+    const data = await finalizePurchaseInvoice(req.params.id);
+    return ok(res, data, {
+      source: 'sql-write',
+      audit: 'purchase_invoice_finalized',
+      commercialEffect: true,
+      warningCount: data.warnings?.length || 0,
+    });
+  } catch (error) {
+    return writeError(res, error, 'PURCHASE_FINALIZE_FAILED');
   }
 }
 

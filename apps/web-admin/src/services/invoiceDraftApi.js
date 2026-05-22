@@ -35,3 +35,7 @@ export async function updatePurchaseDraft(id, payload) {
 export async function fetchPurchaseInvoice(id) {
   return get(`/api/purchase-invoices/${id}`);
 }
+
+export async function finalizePurchaseInvoice(id) {
+  return post(`/api/purchase-invoices/${id}/finalize`);
+}

@@ -1,6 +1,14 @@
 import React from 'react';
 
-export function PurchaseInvoiceToolbar({ status, isSaving, onNewDraft, onSaveDraft, onFinalize }) {
+export function PurchaseInvoiceToolbar({
+  status,
+  isSaving,
+  isFinalizing,
+  isFinalized,
+  onNewDraft,
+  onSaveDraft,
+  onFinalize,
+}) {
   return (
     <section className="purchase-invoice-toolbar">
       <div className="purchase-toolbar-title">
@@ -9,10 +17,12 @@ export function PurchaseInvoiceToolbar({ status, isSaving, onNewDraft, onSaveDra
       </div>
       <div className="purchase-toolbar-actions">
         <button type="button" onClick={onNewDraft}>Yeni Fis</button>
-        <button type="button" onClick={onSaveDraft} disabled={isSaving}>
+        <button type="button" onClick={onSaveDraft} disabled={isSaving || isFinalized || isFinalizing}>
           {isSaving ? 'Kaydediliyor' : 'Taslak Kaydet'}
         </button>
-        <button type="button" className="primary" onClick={onFinalize} disabled>Kesinlestir / yakinda</button>
+        <button type="button" className="primary" onClick={onFinalize} disabled={isFinalized || isFinalizing || !onFinalize}>
+          {isFinalizing ? 'Kesinlestiriliyor' : isFinalized ? 'Kesinlesti' : 'Kesinlestir'}
+        </button>
         <button type="button">Yazdir</button>
         <button type="button">Iptal Et</button>
         <button type="button">Tedarikci Ekstresi</button>
