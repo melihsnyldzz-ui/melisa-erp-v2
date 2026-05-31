@@ -3,6 +3,7 @@ import { LoginScreen } from './components/auth/LoginScreen.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
 import { clearAuthTokens, getStoredAccessToken } from './services/apiClient.js';
 import { fetchMe, login as loginRequest, logout as logoutRequest, refreshSession } from './services/authApi.js';
+import { apiConfig } from './config/apiConfig.js';
 
 export function App() {
   const [user, setUser] = useState(null);
@@ -87,5 +88,5 @@ export function App() {
     return <LoginScreen errorMessage={authError} isLoading={isLoggingIn} onLogin={handleLogin} />;
   }
 
-  return <AppShell user={user} permissions={permissions} onLogout={handleLogout} />;
+  return <AppShell user={user} permissions={permissions} isDemoMode={apiConfig.demoMode} onLogout={handleLogout} />;
 }

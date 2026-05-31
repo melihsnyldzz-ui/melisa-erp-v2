@@ -207,7 +207,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [] }) {
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
-      setStatusMessage(`Taslak fis DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi olusmadi.`);
+      setStatusMessage(response.message || `Taslak fis DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi olusmadi.`);
     } catch (error) {
       setErrorMessage(`${error.message || 'Taslak kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Taslak kaydi basarisiz; API/DB kontrol edilmeli.');
@@ -247,9 +247,9 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [] }) {
       setStatus('FINALIZED');
       setSelectedItemId(nextItems[0]?.id ?? null);
       setStatusMessage(
-        warningCount > 0
+        response.message || (warningCount > 0
           ? `Fis kesinlesti; ${warningCount} eksi stok uyarisi olustu.`
-          : 'Fis kesinlesti; stok hareketi, cari hareket ve audit olustu.',
+          : 'Fis kesinlesti; stok hareketi, cari hareket ve audit olustu.'),
       );
     } catch (error) {
       setErrorMessage(`${error.message || 'Fis kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);

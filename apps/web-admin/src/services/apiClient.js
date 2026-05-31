@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config/apiConfig.js';
+import { API_BASE_URL, apiConfig } from '../config/apiConfig.js';
 
 const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
 const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
@@ -39,6 +39,12 @@ function buildUrl(path, params = {}) {
 }
 
 async function request(method, path, { params = {}, body } = {}) {
+  if (apiConfig.demoMode) {
+    const demoError = new Error(`Demo mode icin servis mock response tanimli degil: ${method} ${path}`);
+    demoError.code = 'DEMO_ROUTE_MISSING';
+    throw demoError;
+  }
+
   let response;
 
   try {

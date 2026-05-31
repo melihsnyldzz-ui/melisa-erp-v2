@@ -136,7 +136,7 @@ export function ImportScreen() {
         ? await commitProductsImport(selectedFile)
         : await commitCustomersImport(selectedFile);
       setPreview(response.data.preview);
-      setMessage(`${response.data.insertedCount} kayit aktarildi. Audit log yazildi.`);
+      setMessage(response.message || `${response.data.insertedCount} kayit aktarildi. Audit log yazildi.`);
     } catch (error) {
       setErrorMessage(`${error.message || 'Commit basarisiz.'} (${error.code || 'API_ERROR'})`);
     } finally {

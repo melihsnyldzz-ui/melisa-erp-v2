@@ -216,7 +216,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [] }) {
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
-      setStatusMessage(`Alis taslagi DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi olusmadi.`);
+      setStatusMessage(response.message || `Alis taslagi DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi olusmadi.`);
     } catch (error) {
       setErrorMessage(`${error.message || 'Alis taslagi kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Alis taslak kaydi basarisiz; API/DB kontrol edilmeli.');
@@ -255,7 +255,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [] }) {
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus('FINALIZED');
       setSelectedItemId(nextItems[0]?.id ?? null);
-      setStatusMessage('Alis fisi kesinlesti; stok girisi, tedarikci hareketi, average cost ve audit olustu.');
+      setStatusMessage(response.message || 'Alis fisi kesinlesti; stok girisi, tedarikci hareketi, average cost ve audit olustu.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Alis fisi kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Alis kesinlestirme basarisiz; transaction rollback edildi.');

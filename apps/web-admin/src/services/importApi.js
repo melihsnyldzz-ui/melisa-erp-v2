@@ -1,4 +1,6 @@
 import { post } from './apiClient.js';
+import { apiConfig } from '../config/apiConfig.js';
+import { demoImportCommitResponse, demoImportPreviewResponse } from '../demo/demoImport.js';
 
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -26,17 +28,33 @@ async function buildImportPayload(file) {
 }
 
 export async function previewProductsImport(file) {
+  if (apiConfig.demoMode) {
+    return demoImportPreviewResponse(file);
+  }
+
   return post('/import/products/preview', await buildImportPayload(file));
 }
 
 export async function commitProductsImport(file) {
+  if (apiConfig.demoMode) {
+    return demoImportCommitResponse(file);
+  }
+
   return post('/import/products/commit', await buildImportPayload(file));
 }
 
 export async function previewCustomersImport(file) {
+  if (apiConfig.demoMode) {
+    return demoImportPreviewResponse(file);
+  }
+
   return post('/import/customers/preview', await buildImportPayload(file));
 }
 
 export async function commitCustomersImport(file) {
+  if (apiConfig.demoMode) {
+    return demoImportCommitResponse(file);
+  }
+
   return post('/import/customers/commit', await buildImportPayload(file));
 }

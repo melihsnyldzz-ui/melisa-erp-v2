@@ -6,7 +6,7 @@ import { Workspace } from '../workspace/Workspace.jsx';
 import { StatusBar } from './StatusBar.jsx';
 import { initialTabs, screenRegistry } from '../../data/mockNavigationData.js';
 
-export function AppShell({ user, permissions, onLogout }) {
+export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   const [tabs, setTabs] = useState(initialTabs);
   const [activeTabId, setActiveTabId] = useState(initialTabs[0].id);
 
@@ -73,16 +73,21 @@ export function AppShell({ user, permissions, onLogout }) {
   }
 
   return (
-    <div className="erp-shell">
+    <div className={isDemoMode ? 'erp-shell demo-mode-shell' : 'erp-shell'}>
+      {isDemoMode && (
+        <div className="demo-mode-banner">
+          DEMO MODE: API/SQL kapali, islemler kaydedilmez
+        </div>
+      )}
       <TopMenu activeModule={activeTab.module} user={user} onLogout={onLogout} />
       <div className="main-layout">
-        <Sidebar activeTab={activeTab} user={user} onOpenScreen={openScreen} />
+        <Sidebar activeTab={activeTab} isDemoMode={isDemoMode} user={user} onOpenScreen={openScreen} />
         <section className="content-shell">
           <TabBar tabs={tabs} activeTabId={activeTab.id} onActivateTab={setActiveTabId} onCloseTab={closeTab} />
           <Workspace activeTab={activeTab} onOpenScreen={openScreen} permissions={permissions} />
         </section>
       </div>
-      <StatusBar activeTab={activeTab} openTabCount={tabs.length} user={user} />
+      <StatusBar activeTab={activeTab} isDemoMode={isDemoMode} openTabCount={tabs.length} user={user} />
     </div>
   );
 }

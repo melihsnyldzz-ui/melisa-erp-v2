@@ -228,7 +228,7 @@ export function ProductCardScreen({ productId, permissions = [] }) {
 
       setActiveProductId(response.data.id);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(mode === 'create' ? 'Urun olusturuldu ve audit kaydi yazildi.' : 'Urun guncellendi ve audit kaydi yazildi.');
+      setSuccessMessage(response.message || (mode === 'create' ? 'Urun olusturuldu ve audit kaydi yazildi.' : 'Urun guncellendi ve audit kaydi yazildi.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Urun kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -258,9 +258,9 @@ export function ProductCardScreen({ productId, permissions = [] }) {
     try {
       const response = await changeProductPassive(activeProductId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(nextIsPassive
+      setSuccessMessage(response.message || (nextIsPassive
         ? 'Urun pasif yapildi ve audit kaydi yazildi.'
-        : 'Urun aktif yapildi ve audit kaydi yazildi.');
+        : 'Urun aktif yapildi ve audit kaydi yazildi.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Pasif/Aktif islemi basarisiz.'} (${error.code || 'API_ERROR'})`);
     } finally {

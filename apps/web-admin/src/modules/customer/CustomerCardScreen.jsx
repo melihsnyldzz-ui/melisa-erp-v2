@@ -227,7 +227,7 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
 
       setActiveCustomerId(response.data.id);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(mode === 'create' ? 'Cari olusturuldu ve audit kaydi yazildi.' : 'Cari guncellendi ve audit kaydi yazildi.');
+      setSuccessMessage(response.message || (mode === 'create' ? 'Cari olusturuldu ve audit kaydi yazildi.' : 'Cari guncellendi ve audit kaydi yazildi.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Cari kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -257,9 +257,9 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
     try {
       const response = await changeCustomerPassive(activeCustomerId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(nextIsPassive
+      setSuccessMessage(response.message || (nextIsPassive
         ? 'Cari pasif yapildi ve audit kaydi yazildi.'
-        : 'Cari aktif yapildi ve audit kaydi yazildi.');
+        : 'Cari aktif yapildi ve audit kaydi yazildi.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Pasif/Aktif islemi basarisiz.'} (${error.code || 'API_ERROR'})`);
     } finally {

@@ -52,6 +52,22 @@ textarea:focus-visible {
   background: var(--erp-surface);
 }
 
+.erp-shell.demo-mode-shell {
+  grid-template-rows: 24px 74px 1fr 24px;
+}
+
+.demo-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #7a4d00;
+  background: #fff1c7;
+  color: #653900;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .top-menu {
   grid-template-columns: 220px 1fr 590px;
   border-bottom: 1px solid #6d675c;
@@ -243,6 +259,25 @@ textarea:focus-visible {
 
 .status-led {
   margin-right: 4px;
+}
+
+.status-led.offline {
+  border-color: #7a4d00;
+  background: #d08300;
+  box-shadow: 0 0 3px rgba(208, 131, 0, 0.4);
+}
+
+.status-dot.offline {
+  border-color: #7a4d00;
+  background: #d08300;
+  box-shadow: 0 0 3px rgba(208, 131, 0, 0.4);
+}
+
+.demo-mode-pill {
+  border: 1px solid #8b5a00 !important;
+  background: #fff1c7;
+  color: #653900;
+  font-weight: 700;
 }
 
 .content-shell {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { sidebarGroups } from '../../data/mockNavigationData.js';
 
-export function Sidebar({ activeTab, user, onOpenScreen }) {
+export function Sidebar({ activeTab, isDemoMode = false, user, onOpenScreen }) {
   const activeScreenId = activeTab.screenId ?? activeTab.id;
 
   return (
@@ -27,8 +27,8 @@ export function Sidebar({ activeTab, user, onOpenScreen }) {
       ))}
       <section className="side-group compact">
         <h3>Durum</h3>
-        <p><span className="status-dot online" /> API: aktif</p>
-        <p><span className="status-dot online" /> SQL: MELISA_ERP_V2</p>
+        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo kapali' : 'aktif'}</p>
+        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'demo kapali' : 'MELISA_ERP_V2'}</p>
         <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
       </section>
     </aside>
