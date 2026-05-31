@@ -1,10 +1,10 @@
 export const demoDashboardSummary = {
   patron: {
-    todaySalesTry: 428500,
-    finalizedSalesToday: 18,
-    todayGrossProfitTry: 103250,
+    todaySalesTry: 684000,
+    finalizedSalesToday: 26,
+    todayGrossProfitTry: 171000,
     totalStockValueTry: 12840000,
-    customerReceivablesTry: 21950000,
+    customerReceivablesTry: 22400000,
     supplierPayablesTry: 3840000,
     negativeStockCount: 7,
     finalizedPurchasesToday: 4,
@@ -14,6 +14,17 @@ export const demoDashboardSummary = {
     syncWarningCount: 3,
     salesDraftCount: 12,
     purchaseDraftCount: 5,
+    whatsappRepliesToday: 73,
+    whatsappOrdersToday: 18,
+  },
+  melisa: {
+    todayProfitRate: 25,
+    openAccountCustomerCount: 96,
+    romaniaReceivablesTry: 11200000,
+    romaniaSalesShare: 50,
+    top20ReceivablesTry: 16800000,
+    top20ReceivableShare: 75,
+    overstockProductCount: 142,
   },
   accounting: {
     todayCollectionsTry: 185000,
@@ -28,26 +39,65 @@ export const demoDashboardSummary = {
       { createdAt: '2026-05-31T09:15:00', invoiceNo: 'AF-DEMO-3001', supplierName: 'Kardelen Bebe Uretim', totalAmountTry: 212000, status: 'DRAFT' },
     ],
   },
+  countryPerformance: [
+    { country: 'Romanya', salesTry: 342000, receivableTry: 11200000, activeCustomers: 48, note: '%50 satis / ana pazar' },
+    { country: 'Bulgaristan', salesTry: 84000, receivableTry: 2460000, activeCustomers: 18, note: 'Balkan tekrar siparis' },
+    { country: 'Moldova', salesTry: 52000, receivableTry: 1280000, activeCustomers: 11, note: 'Romanya benzer sepet' },
+    { country: 'Sirbistan', salesTry: 47000, receivableTry: 980000, activeCustomers: 9, note: 'Fiyat hassas' },
+    { country: 'Kosova', salesTry: 39000, receivableTry: 760000, activeCustomers: 7, note: 'Kucuk ama aktif' },
+    { country: 'Gurcistan', salesTry: 31000, receivableTry: 640000, activeCustomers: 5, note: 'Kontrollu sevk' },
+  ],
   topProducts: [
-    { stockCode: 'STK-100245', productName: 'Bebek Zibin Takimi 5 Parca', quantity: 180, salesTry: 51300, stockQuantity: 420 },
+    { stockCode: 'STK-100245', productName: 'Zibin Takimi 5 Parca', quantity: 180, salesTry: 51300, stockQuantity: 420 },
     { stockCode: 'STK-100318', productName: 'Kiz Bebek Elbise Seti', quantity: 96, salesTry: 40320, stockQuantity: 118 },
     { stockCode: 'STK-100612', productName: 'Patikli Alt Ust Takim', quantity: 240, salesTry: 47520, stockQuantity: 760 },
+    { stockCode: 'STK-100509', productName: 'Pamuk Battaniye', quantity: 54, salesTry: 29160, stockQuantity: -3 },
+    { stockCode: 'STK-NEW-044', productName: 'Yeni Sezon Tulum', quantity: 72, salesTry: 36720, stockQuantity: 540 },
   ],
   receivables: [
     { customerName: 'Bucharest Baby SRL', balanceTry: 5820000, lastMove: '2026-05-29', risk: 'B' },
+    { customerName: 'Romania Kids Depot', balanceTry: 3980000, lastMove: '2026-05-28', risk: 'B' },
     { customerName: 'Sofia Mini Wear', balanceTry: 2140000, lastMove: '2026-05-24', risk: 'C' },
-    { customerName: 'Tbilisi Kids Market', balanceTry: 980000, lastMove: '2026-05-18', risk: 'B' },
+    { customerName: 'Chisinau Baby Line', balanceTry: 1280000, lastMove: '2026-05-20', risk: 'B' },
+    { customerName: 'Tbilisi Kids Market', balanceTry: 980000, lastMove: '2026-05-18', risk: 'C' },
   ],
-  supplierPerformance: [
-    { supplierName: 'Kardelen Bebe Uretim', openPurchases: 3, finalizedPurchases: 12, debtTry: 840000 },
-    { supplierName: 'Bursa Bebek', openPurchases: 2, finalizedPurchases: 8, debtTry: 420000 },
-  ],
+  melisaPanels: {
+    whatsapp: [
+      { id: 'wa-ro', group: 'Romanya VIP', plan: 'Yeni sezon 2-6 yas', reply: '31 cevap / 9 aday', owner: 'Melih' },
+      { id: 'wa-bg', group: 'Balkan Karma', plan: 'Cok satan takimlar', reply: '18 cevap / 4 aday', owner: 'Satis' },
+      { id: 'wa-stock', group: 'Stok Eritme', plan: 'Battaniye + tulum', reply: '11 cevap / 3 aday', owner: 'Depo' },
+    ],
+    collections: [
+      { id: 'col-1', customer: 'Bucharest Baby SRL', country: 'Romanya', amount: '$164K', action: 'Odeme plani iste' },
+      { id: 'col-2', customer: 'Sofia Mini Wear', country: 'Bulgaristan', amount: '$61K', action: 'Yeni sevk oncesi tahsilat' },
+      { id: 'col-3', customer: 'Tbilisi Kids Market', country: 'Gurcistan', amount: '$28K', action: 'Kontrollu paylasim' },
+    ],
+    productFocus: [
+      { id: 'pf-1', product: 'STK-NEW-044 Tulum', type: 'Yeni gelen', stock: '540', country: 'Romanya' },
+      { id: 'pf-2', product: 'STK-100245 Zibin', type: 'Cok satan', stock: '420', country: 'Balkan' },
+      { id: 'pf-3', product: 'STK-OLD-044 Tulum', type: 'Stokta fazla', stock: '710', country: 'Moldova' },
+      { id: 'pf-4', product: 'STK-100509 Battaniye', type: 'Eksi stok', stock: '-3', country: 'Paylasma' },
+    ],
+    topReceivableFocus: [
+      { id: 'tr-1', customer: 'Ilk 10 musteri', share: '%52', risk: 'B/C', note: 'Alacak yarisi burada' },
+      { id: 'tr-2', customer: 'Ilk 20 musteri', share: '%75', risk: 'B', note: 'Gunluk takip' },
+      { id: 'tr-3', customer: 'Romanya ilk 8', share: '%41', risk: 'B', note: 'Satis durmaz, tahsilat takip' },
+    ],
+    countryOpportunities: [
+      { id: 'co-1', country: 'Romanya', category: '2-6 yas takim', reason: 'WhatsApp donusu yuksek' },
+      { id: 'co-2', country: 'Bulgaristan', category: 'Pamuklu seri', reason: 'Butce uyumu' },
+      { id: 'co-3', country: 'Moldova', category: 'Romanya benzeri', reason: 'Sepet benzerligi' },
+      { id: 'co-4', country: 'Gurcistan', category: 'Dusuk riskli stok', reason: 'Acik hesap kontrollu' },
+    ],
+  },
 };
 
 export const demoDashboardAlerts = [
-  { id: 'alert-1', severity: 'danger', type: 'Eksi stok', subject: 'Pamuk Battaniye', value: 7, owner: 'Demo' },
-  { id: 'alert-2', severity: 'warn', type: 'Riskli alacak', subject: 'Sofia Mini Wear', value: '2.1M TRY', owner: 'Demo' },
-  { id: 'alert-3', severity: 'info', type: 'WhatsApp firsati', subject: 'Romanya paylasim listesi', value: 18, owner: 'Demo' },
+  { id: 'alert-1', severity: 'danger', type: 'Tahsilat', subject: 'Ilk 10 musteri alacagin %52si', value: '$360K', owner: 'Patron' },
+  { id: 'alert-2', severity: 'warn', type: 'Romanya', subject: 'Acik hesap 11.2M TRY', value: '%50', owner: 'Satis' },
+  { id: 'alert-3', severity: 'info', type: 'WhatsApp', subject: 'Romanya VIP paylasim bekliyor', value: 31, owner: 'Melih' },
+  { id: 'alert-4', severity: 'danger', type: 'Stok', subject: 'Pamuk Battaniye eksiye dustu', value: 7, owner: 'Depo' },
+  { id: 'alert-5', severity: 'warn', type: 'Musteri', subject: 'Sofia Mini Wear C risk', value: '$61K', owner: 'Muhasebe' },
 ];
 
 export function demoDashboardSummaryResponse() {

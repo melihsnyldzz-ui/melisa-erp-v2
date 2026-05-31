@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardAlertsPanel } from './DashboardAlertsPanel.jsx';
 import { DashboardKpiGrid } from './DashboardKpiGrid.jsx';
+import { DashboardOperationsPanel } from './DashboardOperationsPanel.jsx';
 import { DashboardRecentTransactions } from './DashboardRecentTransactions.jsx';
 import { DashboardReceivablesPanel } from './DashboardReceivablesPanel.jsx';
-import { DashboardSupplierPerformance } from './DashboardSupplierPerformance.jsx';
 import { DashboardToolbar } from './DashboardToolbar.jsx';
 import { DashboardTopProducts } from './DashboardTopProducts.jsx';
 import { fetchDashboardAlerts, fetchDashboardSummary } from '../../services/dashboardApi.js';
@@ -50,6 +50,7 @@ function formatDate(value) {
 function buildPatronKpis(summary) {
   const patron = summary?.patron || {};
   const operations = summary?.operations || {};
+  const melisa = summary?.melisa || {};
 
   return [
     {
@@ -60,32 +61,25 @@ function buildPatronKpis(summary) {
       screenId: 'sales-invoice-list',
     },
     {
-      label: 'Gunluk brut kar',
+      label: 'Gunluk kar',
       value: formatMoney(patron.todayGrossProfitTry),
-      detail: 'Finalized satis satir gross profit',
+      detail: `${formatNumber(melisa.todayProfitRate || 0)}% brut oran`,
       tone: Number(patron.todayGrossProfitTry || 0) >= 0 ? 'good' : 'danger',
       screenId: 'sales-invoice-list',
     },
     {
-      label: 'Toplam stok degeri',
-      value: formatMoney(patron.totalStockValueTry),
-      detail: 'Stok x average cost TRY',
-      tone: 'info',
-      screenId: 'stock-list',
-    },
-    {
-      label: 'Musteri borclari',
+      label: 'Acik hesap toplam',
       value: formatMoney(patron.customerReceivablesTry),
-      detail: 'Pozitif cari bakiyeler',
+      detail: `${formatNumber(melisa.openAccountCustomerCount || 0)} musteri`,
       tone: 'warn',
       screenId: 'customer-list',
     },
     {
-      label: 'Tedarikci borclari',
-      value: formatMoney(patron.supplierPayablesTry),
-      detail: 'Pozitif tedarikci bakiyeleri',
+      label: 'Romanya acik hesap',
+      value: formatMoney(melisa.romaniaReceivablesTry),
+      detail: `${formatNumber(melisa.romaniaSalesShare || 0)}% satis payi`,
       tone: 'warn',
-      screenId: 'purchase-invoice-list',
+      screenId: 'customer-list',
     },
     {
       label: 'Eksi stok uyarisi',
@@ -95,18 +89,25 @@ function buildPatronKpis(summary) {
       screenId: 'stock-list',
     },
     {
-      label: 'Bugunku alis',
-      value: formatNumber(patron.finalizedPurchasesToday),
-      detail: `${formatMoney(operations.todayPurchasesTry)} kesinlesen`,
+      label: 'WhatsApp donusleri',
+      value: formatNumber(operations.whatsappRepliesToday),
+      detail: `${formatNumber(operations.whatsappOrdersToday)} siparis adayi`,
       tone: 'info',
-      screenId: 'purchase-invoice-list',
+      screenId: 'catalog-list',
     },
     {
-      label: 'Terminal sync uyarisi',
-      value: formatNumber(operations.syncWarningCount),
-      detail: 'Pending/failed queue',
-      tone: Number(operations.syncWarningCount || 0) > 0 ? 'danger' : 'good',
-      screenId: 'catalog-list',
+      label: 'Ilk 20 alacak',
+      value: formatMoney(melisa.top20ReceivablesTry),
+      detail: `${formatNumber(melisa.top20ReceivableShare || 0)}% yogunluk`,
+      tone: 'danger',
+      screenId: 'customer-list',
+    },
+    {
+      label: 'Stokta fazla',
+      value: formatNumber(melisa.overstockProductCount),
+      detail: 'Paylasim/kampanya adayi',
+      tone: 'info',
+      screenId: 'stock-list',
     },
   ];
 }
@@ -219,12 +220,13 @@ function mapReceivables(summary) {
 }
 
 function mapSupplierPerformance(summary) {
-  return (summary?.supplierPerformance || []).map((row) => ({
-    supplier: row.supplierName,
-    openPurchases: row.openPurchases,
-    delivery: `${row.finalizedPurchases} kesin`,
-    defect: '-',
-    debt: formatMoney(row.debtTry),
+  return (summary?.countryPerformance || []).map((row) => ({
+    id: row.country,
+    country: row.country,
+    sales: formatMoney(row.salesTry),
+    receivable: formatMoney(row.receivableTry),
+    customers: row.activeCustomers,
+    note: row.note,
   }));
 }
 
@@ -251,8 +253,9 @@ export function DashboardScreen({ onOpenScreen }) {
   const recentTransactions = useMemo(() => mapRecentTransactions(summaryData), [summaryData]);
   const topProducts = useMemo(() => mapTopProducts(summaryData), [summaryData]);
   const receivables = useMemo(() => mapReceivables(summaryData), [summaryData]);
-  const supplierPerformance = useMemo(() => mapSupplierPerformance(summaryData), [summaryData]);
+  const countryPerformance = useMemo(() => mapSupplierPerformance(summaryData), [summaryData]);
   const criticalAlerts = useMemo(() => mapAlerts(alertsData), [alertsData]);
+  const melisaRows = summaryData?.melisaPanels || {};
   const summary = useMemo(
     () => `${visibleTitle} / ${periodLabels[period]} / SQL yenileme ${refreshCount}`,
     [period, refreshCount, visibleTitle],
@@ -299,10 +302,75 @@ export function DashboardScreen({ onOpenScreen }) {
       <DashboardKpiGrid kpis={kpis} onOpenScreen={onOpenScreen} />
       <section className="dashboard-main-grid">
         <DashboardAlertsPanel alerts={criticalAlerts} />
+        <DashboardOperationsPanel
+          columns={[
+            { key: 'country', label: 'Ulke' },
+            { key: 'sales', label: 'Satis', align: 'right' },
+            { key: 'receivable', label: 'Alacak', align: 'right' },
+            { key: 'customers', label: 'M.' },
+            { key: 'note', label: 'Not' },
+          ]}
+          rows={countryPerformance}
+          subtitle="Romanya %50 / Balkan agirlik"
+          title="Ulke Bazli Satis / Alacak"
+        />
+        <DashboardOperationsPanel
+          columns={[
+            { key: 'group', label: 'Grup' },
+            { key: 'plan', label: 'Plan' },
+            { key: 'reply', label: 'Donus' },
+            { key: 'owner', label: 'Takip' },
+          ]}
+          rows={melisaRows.whatsapp || []}
+          subtitle="Foto paylasim / cevap / siparis adayi"
+          title="WhatsApp Grup Takibi"
+        />
         <DashboardRecentTransactions rows={recentTransactions} />
         <DashboardTopProducts rows={topProducts} />
-        <DashboardSupplierPerformance rows={supplierPerformance} />
         <DashboardReceivablesPanel rows={receivables} />
+        <DashboardOperationsPanel
+          columns={[
+            { key: 'customer', label: 'Musteri' },
+            { key: 'country', label: 'Ulke' },
+            { key: 'amount', label: 'Bekleyen', align: 'right' },
+            { key: 'action', label: 'Aksiyon' },
+          ]}
+          rows={melisaRows.collections || []}
+          subtitle="Acil tahsilat / acik hesap"
+          title="Tahsilat Bekleyenler"
+        />
+        <DashboardOperationsPanel
+          columns={[
+            { key: 'product', label: 'Urun' },
+            { key: 'type', label: 'Tip' },
+            { key: 'stock', label: 'Stok' },
+            { key: 'country', label: 'Ulke' },
+          ]}
+          rows={melisaRows.productFocus || []}
+          subtitle="Yeni gelen / cok satan / stokta fazla"
+          title="Urun Odak Listesi"
+        />
+        <DashboardOperationsPanel
+          columns={[
+            { key: 'customer', label: 'Musteri' },
+            { key: 'share', label: 'Pay' },
+            { key: 'risk', label: 'Risk' },
+            { key: 'note', label: 'Not' },
+          ]}
+          rows={melisaRows.topReceivableFocus || []}
+          subtitle="Ilk 20 musteri yogunlugu"
+          title="Alacak Yogunlugu"
+        />
+        <DashboardOperationsPanel
+          columns={[
+            { key: 'country', label: 'Ulke' },
+            { key: 'category', label: 'Kategori' },
+            { key: 'reason', label: 'Firsat' },
+          ]}
+          rows={melisaRows.countryOpportunities || []}
+          subtitle="Bugun one cikarilacak pazarlar"
+          title="Ulke Bazli Firsatlar"
+        />
       </section>
       <section className="screen-summary dashboard-summary">
         <span>{summary}</span>

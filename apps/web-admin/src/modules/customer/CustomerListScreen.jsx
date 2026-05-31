@@ -164,7 +164,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     }
 
     setSelectionWarning('');
-    onOpenScreen('customer-card', { customerId });
+    onOpenScreen('customer-card', { customerId, customerCode: selectedRow?.code });
   }
 
   function selectRow(rowId) {
@@ -175,7 +175,8 @@ export function CustomerListScreen({ onOpenScreen }) {
   function openCustomerRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
-    onOpenScreen('customer-card', { customerId: rowId });
+    const row = rows.find((item) => item.id === rowId);
+    onOpenScreen('customer-card', { customerId: rowId, customerCode: row?.code });
   }
 
   return (

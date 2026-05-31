@@ -4,8 +4,8 @@ export function DashboardToolbar({ activeView, period, onPeriodChange, onRefresh
   return (
     <section className="dashboard-toolbar">
       <div className="dashboard-toolbar-title">
-        <strong>ERP Dashboard</strong>
-        <span>Stok / cari / satis / alis operasyon ozeti</span>
+        <strong>Melisa Bebe Operasyon Masasi</strong>
+        <span>Ulke / WhatsApp / acik hesap / stok hareket merkezi</span>
       </div>
       <div className="dashboard-toolbar-actions">
         <button

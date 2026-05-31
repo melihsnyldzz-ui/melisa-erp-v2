@@ -17,6 +17,11 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
 
   function createTab(screen, payload = {}) {
     const recordId = payload.productId ?? payload.customerId ?? payload.salesDraftId ?? payload.purchaseDraftId;
+    const recordLabel = payload.tabLabel
+      ?? payload.stockCode
+      ?? payload.customerCode
+      ?? payload.invoiceNo
+      ?? (recordId ? `#${recordId}` : '');
 
     if (!recordId) {
       return {
@@ -30,7 +35,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       ...screen,
       id: `${screen.id}:${recordId}`,
       screenId: screen.id,
-      label: `${screen.label} #${recordId}`,
+      label: `${screen.label}: ${recordLabel}`,
       payload,
     };
   }

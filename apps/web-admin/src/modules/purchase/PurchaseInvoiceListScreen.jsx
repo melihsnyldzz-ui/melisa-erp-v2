@@ -106,7 +106,8 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     }
 
     setErrorMessage('');
-    onOpenScreen('purchase-invoice', { purchaseDraftId: rowId });
+    const row = rows.find((item) => item.id === rowId);
+    onOpenScreen('purchase-invoice', { purchaseDraftId: rowId, invoiceNo: row?.invoiceNo });
   }
 
   return (

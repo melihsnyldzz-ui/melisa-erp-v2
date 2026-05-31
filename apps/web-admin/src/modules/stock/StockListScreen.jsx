@@ -170,7 +170,7 @@ export function StockListScreen({ onOpenScreen }) {
     }
 
     setSelectionWarning('');
-    onOpenScreen('product-card', { productId });
+    onOpenScreen('product-card', { productId, stockCode: selectedRow?.stockCode });
   }
 
   function selectRow(rowId) {
@@ -181,7 +181,8 @@ export function StockListScreen({ onOpenScreen }) {
   function openProductRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
-    onOpenScreen('product-card', { productId: rowId });
+    const row = rows.find((item) => item.id === rowId);
+    onOpenScreen('product-card', { productId: rowId, stockCode: row?.stockCode });
   }
 
   return (
