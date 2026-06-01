@@ -20,7 +20,7 @@ export function ProductCardHeader({
         <span>{product.stockCode} / {product.name}</span>
       </div>
       <div className="product-card-toolbar">
-        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving || !canSave} title={canSave ? 'Kaydet' : 'product.update yetkisi gerekli'}>
+        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving || !canSave} title={canSave ? 'Kaydet' : 'product.edit yetkisi gerekli'}>
           {isSaving ? 'Kaydediliyor' : 'Kaydet'}
         </button>
         <button type="button" onClick={onNew}>Yeni</button>

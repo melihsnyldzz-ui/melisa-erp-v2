@@ -20,7 +20,7 @@ export function CustomerCardHeader({
         <span>{customer.code} / {customer.name} / {customer.type}</span>
       </div>
       <div className="customer-card-toolbar">
-        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving || !canSave} title={canSave ? 'Kaydet' : 'customer.update yetkisi gerekli'}>
+        <button type="button" onClick={onSave} disabled={isSaving || isPassiveSaving || !canSave} title={canSave ? 'Kaydet' : 'customer.edit yetkisi gerekli'}>
           {isSaving ? 'Kaydediliyor' : 'Kaydet'}
         </button>
         <button type="button" onClick={onNew}>Yeni</button>

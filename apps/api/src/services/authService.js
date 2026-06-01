@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import sql from 'mssql';
 import { env } from '../config/env.js';
 import { getSqlPool } from '../config/database.js';
+import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 function makeAuthError(code, message, statusCode = 401) {
@@ -45,6 +46,8 @@ function getRefreshExpiresAt() {
 }
 
 function toUserDto(row, permissions = []) {
+  const expandedPermissions = applyRolePermissionDefaults(permissions, row.role_code);
+
   return {
     id: Number(row.id),
     username: row.username,
@@ -54,7 +57,7 @@ function toUserDto(row, permissions = []) {
       code: row.role_code,
       name: row.role_name,
     },
-    permissions,
+    permissions: expandedPermissions,
   };
 }
 
@@ -62,14 +65,19 @@ async function getPermissionKeys(request, roleId) {
   const result = await request
     .input('permissionRoleId', sql.BigInt, roleId)
     .query(`
-      SELECT permission_key
+      SELECT
+        permission_key,
+        can_view,
+        can_create,
+        can_update,
+        can_approve
       FROM dbo.permissions
       WHERE role_id = @permissionRoleId
         AND (can_view = 1 OR can_create = 1 OR can_update = 1 OR can_approve = 1)
       ORDER BY permission_key ASC;
     `);
 
-  return (result.recordset || []).map((row) => row.permission_key);
+  return expandPermissions(result.recordset || []);
 }
 
 export async function getUserById(userId) {
@@ -107,7 +115,6 @@ export async function getUserById(userId) {
 }
 
 export async function login({ username, password }, userAgent = '') {
-  assertMelisaWriteEnabled();
   assertAuthSecretsConfigured();
 
   const normalizedUsername = trimText(username);
@@ -155,6 +162,20 @@ export async function login({ username, password }, userAgent = '') {
     env.auth.jwtSecret,
     { expiresIn: env.auth.accessExpiresIn },
   );
+
+  if (env.sql.readOnly) {
+    return {
+      user,
+      accessToken,
+      refreshToken: null,
+      tokenType: 'Bearer',
+      expiresIn: env.auth.accessExpiresIn,
+      readOnlySession: true,
+    };
+  }
+
+  assertMelisaWriteEnabled();
+
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
   const refreshExpiresAt = getRefreshExpiresAt();
@@ -193,11 +214,11 @@ export async function login({ username, password }, userAgent = '') {
 }
 
 export async function logout(refreshToken) {
-  assertMelisaWriteEnabled();
-
   if (!refreshToken) {
     return { revoked: false };
   }
+
+  assertMelisaWriteEnabled();
 
   const pool = await getSqlPool();
   const result = await pool.request()

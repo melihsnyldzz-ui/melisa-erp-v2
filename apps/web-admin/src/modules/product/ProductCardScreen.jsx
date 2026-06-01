@@ -170,7 +170,7 @@ export function ProductCardScreen({ productId, permissions = [] }) {
   }, [activeProductId]);
 
   const mode = activeProductId ? 'update' : 'create';
-  const canSave = permissions.includes('product.update');
+  const canSave = permissions.includes('product.edit');
   const canTogglePassive = permissions.includes('product.passive');
   const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
   const stockSummary = useMemo(() => mapStockSummary(form), [form]);
@@ -195,7 +195,7 @@ export function ProductCardScreen({ productId, permissions = [] }) {
     const missing = validateProductForm(form, mode);
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin product.update yetkisi gerekli.');
+      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }

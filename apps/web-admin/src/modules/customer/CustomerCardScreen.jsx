@@ -196,7 +196,7 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
   }, [activeCustomerId]);
 
   const mode = activeCustomerId ? 'update' : 'create';
-  const canSave = permissions.includes('customer.update');
+  const canSave = permissions.includes('customer.edit');
   const canTogglePassive = permissions.includes('customer.passive');
   const customer = useMemo(() => buildCustomerView(form, activeCustomerId), [form, activeCustomerId]);
   const balances = useMemo(() => mapBalances(form), [form]);
@@ -321,7 +321,7 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
     const missing = validateCustomerForm(form, mode);
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin customer.update yetkisi gerekli.');
+      setErrorMessage('Bu islem icin customer.edit yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
