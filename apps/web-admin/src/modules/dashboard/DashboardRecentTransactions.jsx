@@ -4,7 +4,7 @@ export function DashboardRecentTransactions({ rows }) {
   return (
     <section className="erp-panel dashboard-table-panel">
       <div className="panel-title">
-        <strong>Son Ticari Islemler</strong>
+        <strong>Son Satislar / Son Alislar</strong>
         <span>Satis / alis / cari / sync</span>
       </div>
       <div className="table-wrap dashboard-table-wrap">

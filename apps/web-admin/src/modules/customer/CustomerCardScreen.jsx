@@ -116,8 +116,35 @@ function validateCustomerForm(form, mode) {
   return missing;
 }
 
+const customerDetailTabs = [
+  { id: 'addresses', label: 'Adres Bilgileri' },
+  { id: 'contacts', label: 'İletişim Bilgileri' },
+  { id: 'extra', label: 'Ek Bilgiler' },
+  { id: 'movements', label: 'Cari Hareketler' },
+  { id: 'statement', label: 'Ekstre' },
+];
+
+const quickActions = [
+  'Cari Hareketler',
+  'Tahsilatlar',
+  'Ödemeler',
+  'Siparişler',
+  'Teklifler',
+  'Mail Gönder',
+  'Sms Gönder',
+];
+
+function formatMoney(amount, currency) {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 export function CustomerCardScreen({ customerId, permissions = [] }) {
   const [activeCustomerId, setActiveCustomerId] = useState(customerId || null);
+  const [activeDetailTab, setActiveDetailTab] = useState(customerDetailTabs[0].id);
   const [form, setForm] = useState(emptyCustomerForm);
   const [isLoading, setIsLoading] = useState(Boolean(customerId));
   const [isSaving, setIsSaving] = useState(false);
@@ -175,6 +202,105 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
   const balances = useMemo(() => mapBalances(form), [form]);
   const paymentSummary = useMemo(() => mapPaymentSummary(form), [form]);
   const transactions = useMemo(() => mapTransactions(form, activeCustomerId), [form, activeCustomerId]);
+  const currentBalance = balances.find((balance) => balance.currency === customer.currency)?.balance ?? customer.balance;
+
+  function renderDetailPanel() {
+    if (activeDetailTab === 'contacts') {
+      return (
+        <div className="table-wrap customer-detail-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Yetkili</th>
+                <th>Telefon</th>
+                <th>E-posta</th>
+                <th>Varsayilan</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Satın alma</td>
+                <td>{customer.name}</td>
+                <td>{customer.phone}</td>
+                <td>info@melisabebe.demo</td>
+                <td>Evet</td>
+              </tr>
+              <tr>
+                <td>Muhasebe</td>
+                <td>Yetkili</td>
+                <td>{customer.phone}</td>
+                <td>muhasebe@melisabebe.demo</td>
+                <td>Hayır</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (activeDetailTab === 'extra') {
+      return (
+        <div className="customer-extra-grid">
+          <label>
+            <span>Ticari işlem grubu</span>
+            <input readOnly value={customer.country === 'Turkiye' ? 'YURTİÇİ SATIŞ' : 'İHRACAT / BALKAN'} />
+          </label>
+          <label>
+            <span>Ödeme şekli</span>
+            <input readOnly value="HAVALE / AÇIK HESAP" />
+          </label>
+          <label>
+            <span>Vade</span>
+            <input readOnly value="30 GÜN" />
+          </label>
+          <label>
+            <span>Risk notu</span>
+            <input readOnly value={currentBalance > 0 ? 'Tahsilat takibi gerekli' : 'Normal'} />
+          </label>
+        </div>
+      );
+    }
+
+    if (activeDetailTab === 'movements' || activeDetailTab === 'statement') {
+      return <CustomerTransactionsPanel transactions={transactions} compact />;
+    }
+
+    return (
+      <div className="table-wrap customer-detail-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Adres Tipi</th>
+              <th>Adres</th>
+              <th>İl</th>
+              <th>İlçe</th>
+              <th>Posta Kodu</th>
+              <th>Varsayilan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>FATURA</td>
+              <td>{customer.name} ticari adresi</td>
+              <td>{customer.city}</td>
+              <td>Merkez</td>
+              <td>34164</td>
+              <td>Evet</td>
+            </tr>
+            <tr>
+              <td>TESLİMAT</td>
+              <td>Depo teslim / WhatsApp sevk adresi</td>
+              <td>{customer.city}</td>
+              <td>Merkez</td>
+              <td>34164</td>
+              <td>Hayır</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   function updateField(field, value) {
     setForm((current) => ({
@@ -290,7 +416,7 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
               PASIF cari: yeni fislerde secilemez, gecmis ekstre ve raporlarda gorunmeye devam eder.
             </div>
           )}
-          <section className="customer-card-layout">
+          <section className="customer-card-layout customer-card-modern-layout">
             <CustomerCardForm
               customer={customer}
               form={form}
@@ -299,7 +425,41 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
               rules={customerRules}
             />
             <CustomerBalanceSummary balances={balances} paymentSummary={paymentSummary} />
-            <CustomerTransactionsPanel transactions={transactions} />
+            <section className="erp-panel customer-detail-tabs-panel">
+              <div className="customer-detail-tabbar">
+                {customerDetailTabs.map((tab) => (
+                  <button
+                    className={activeDetailTab === tab.id ? 'active' : ''}
+                    key={tab.id}
+                    onClick={() => setActiveDetailTab(tab.id)}
+                    type="button"
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <div className="customer-detail-body">
+                {renderDetailPanel()}
+              </div>
+            </section>
+            <section className="erp-panel customer-quick-actions-panel">
+              <div className="panel-title">
+                <strong>Hızlı İşlemler</strong>
+                <span>Cari üzerinde sık kullanılan komutlar</span>
+              </div>
+              <div className="quick-action-list">
+                {quickActions.map((action) => (
+                  <button key={action} type="button">
+                    <span>□</span>
+                    {action}
+                  </button>
+                ))}
+              </div>
+              <div className="customer-risk-mini">
+                <span>Güncel bakiye</span>
+                <strong className={currentBalance < 0 ? 'customer-payable' : ''}>{formatMoney(currentBalance, customer.currency)}</strong>
+              </div>
+            </section>
           </section>
           <section className="screen-summary customer-card-summary">
             <span>Cari: {customer.code}</span>

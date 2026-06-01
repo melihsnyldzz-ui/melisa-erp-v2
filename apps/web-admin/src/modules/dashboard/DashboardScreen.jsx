@@ -51,8 +51,23 @@ function buildPatronKpis(summary) {
   const patron = summary?.patron || {};
   const operations = summary?.operations || {};
   const melisa = summary?.melisa || {};
+  const masterCounts = summary?.masterCounts || {};
 
   return [
+    {
+      label: 'Toplam musteri',
+      value: formatNumber(masterCounts.totalCustomers),
+      detail: 'Cari kart sayisi',
+      tone: 'info',
+      screenId: 'customer-list',
+    },
+    {
+      label: 'Toplam urun',
+      value: formatNumber(masterCounts.totalProducts),
+      detail: 'Aktif barkodlu urunler',
+      tone: 'info',
+      screenId: 'stock-list',
+    },
     {
       label: 'Gunluk satis',
       value: formatMoney(patron.todaySalesTry),
@@ -116,8 +131,23 @@ function buildAccountingKpis(summary) {
   const accounting = summary?.accounting || {};
   const patron = summary?.patron || {};
   const operations = summary?.operations || {};
+  const masterCounts = summary?.masterCounts || {};
 
   return [
+    {
+      label: 'Toplam musteri',
+      value: formatNumber(masterCounts.totalCustomers),
+      detail: 'Cari kart sayisi',
+      tone: 'info',
+      screenId: 'customer-list',
+    },
+    {
+      label: 'Toplam urun',
+      value: formatNumber(masterCounts.totalProducts),
+      detail: 'Aktif barkodlu urunler',
+      tone: 'info',
+      screenId: 'stock-list',
+    },
     {
       label: 'Gunluk tahsilat',
       value: formatMoney(accounting.todayCollectionsTry),

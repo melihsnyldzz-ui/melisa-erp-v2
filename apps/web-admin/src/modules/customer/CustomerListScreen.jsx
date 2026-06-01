@@ -80,6 +80,7 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState(customerFilterDefaults);
   const [rows, setRows] = useState([]);
   const [selectedRowId, setSelectedRowId] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'code', direction: 'asc' });
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -132,10 +133,21 @@ export function CustomerListScreen({ onOpenScreen }) {
     };
   }, [activeOnly, search]);
 
-  const filteredRows = useMemo(
-    () => rows.filter((row) => applyCustomerFilters(row, filters)),
-    [filters, rows],
-  );
+  const filteredRows = useMemo(() => {
+    const nextRows = rows.filter((row) => applyCustomerFilters(row, filters));
+    const direction = sortConfig.direction === 'asc' ? 1 : -1;
+
+    return [...nextRows].sort((first, second) => {
+      const firstValue = first[sortConfig.key];
+      const secondValue = second[sortConfig.key];
+
+      if (typeof firstValue === 'number' || typeof secondValue === 'number') {
+        return (Number(firstValue || 0) - Number(secondValue || 0)) * direction;
+      }
+
+      return String(firstValue ?? '').localeCompare(String(secondValue ?? ''), 'tr') * direction;
+    });
+  }, [filters, rows, sortConfig]);
   const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? filteredRows[0];
   const activeCount = rows.filter((row) => row.status === 'Aktif').length;
   const passiveCount = rows.length - activeCount;
@@ -179,6 +191,13 @@ export function CustomerListScreen({ onOpenScreen }) {
     onOpenScreen('customer-card', { customerId: rowId, customerCode: row?.code });
   }
 
+  function sortRows(key) {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }
+
   return (
     <main className="work-area customer-list-screen">
       <CustomerListToolbar
@@ -210,6 +229,8 @@ export function CustomerListScreen({ onOpenScreen }) {
             selectedRowId={selectedRow?.id}
             onOpenRow={openCustomerRow}
             onSelectRow={selectRow}
+            onSort={sortRows}
+            sortConfig={sortConfig}
           />
         )}
       </section>

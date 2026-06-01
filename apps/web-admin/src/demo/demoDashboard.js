@@ -26,6 +26,10 @@ export const demoDashboardSummary = {
     top20ReceivableShare: 75,
     overstockProductCount: 142,
   },
+  masterCounts: {
+    totalCustomers: 250,
+    totalProducts: 4820,
+  },
   accounting: {
     todayCollectionsTry: 185000,
     todayPaymentsTry: 94000,

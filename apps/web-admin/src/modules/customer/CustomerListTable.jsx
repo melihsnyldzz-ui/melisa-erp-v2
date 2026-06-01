@@ -8,22 +8,40 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) {
+const columns = [
+  ['code', 'Cari kodu'],
+  ['name', 'Musteri / tedarikci adi'],
+  ['phone', 'Telefon'],
+  ['city', 'Sehir'],
+  ['country', 'Ulke'],
+  ['currency', 'Para birimi'],
+  ['type', 'Cari tipi'],
+  ['balance', 'Bakiye'],
+  ['lastTransactionDate', 'Son islem tarihi'],
+  ['status', 'Aktif / pasif'],
+];
+
+export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow, onSort, sortConfig }) {
+  function sortMark(key) {
+    if (sortConfig?.key !== key) {
+      return '';
+    }
+
+    return sortConfig.direction === 'asc' ? ' ASC' : ' DESC';
+  }
+
   return (
     <div className="table-wrap customer-table-wrap">
       <table className="customer-table">
         <thead>
           <tr>
-            <th>Cari kodu</th>
-            <th>Musteri / tedarikci adi</th>
-            <th>Telefon</th>
-            <th>Sehir</th>
-            <th>Ulke</th>
-            <th>Para birimi</th>
-            <th>Cari tipi</th>
-            <th>Bakiye</th>
-            <th>Son islem tarihi</th>
-            <th>Aktif / pasif</th>
+            {columns.map(([key, label]) => (
+              <th key={key}>
+                <button className="table-sort-button" onClick={() => onSort(key)} type="button">
+                  {label}{sortMark(key)}
+                </button>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
