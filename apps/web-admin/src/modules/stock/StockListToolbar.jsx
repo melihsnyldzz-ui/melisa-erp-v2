@@ -5,7 +5,7 @@ export function StockListToolbar({ showPassive, onTogglePassive, onOpenProductCa
     <div className="stock-toolbar">
       <div className="stock-toolbar-title">
         <strong>Stok Listesi</strong>
-        <span>Ürün kartı zorunlu alanları / mock data</span>
+        <span>Urun karti ve stok takip alani</span>
       </div>
       <div className="stock-toolbar-actions">
         <button type="button" onClick={onOpenProductCard}>Yeni Ürün</button>
