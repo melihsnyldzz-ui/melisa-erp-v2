@@ -32,9 +32,21 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dt>Tedarikci genel iskonto %</dt>
           <dd>%{totals.supplierDiscountRate}</dd>
         </div>
+        <div>
+          <dt>Toplam iskonto</dt>
+          <dd>{formatMoney(totals.totalDiscount, 'TRY')}</dd>
+        </div>
         <div className="purchase-grand-total">
           <dt>Genel toplam</dt>
           <dd>{formatMoney(totals.grandTotal, 'TRY')}</dd>
+        </div>
+        <div>
+          <dt>Satir sayisi</dt>
+          <dd>{totals.lineCount}</dd>
+        </div>
+        <div>
+          <dt>Toplam adet</dt>
+          <dd>{totals.totalQuantity}</dd>
         </div>
         <div>
           <dt>TRY karsilik</dt>

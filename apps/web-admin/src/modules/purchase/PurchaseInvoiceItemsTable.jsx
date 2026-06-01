@@ -8,7 +8,14 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function PurchaseInvoiceItemsTable({ items, selectedItemId, onSelectItem }) {
+export function PurchaseInvoiceItemsTable({
+  isReadonly = false,
+  items,
+  selectedItemId,
+  onDeleteItem,
+  onSelectItem,
+  onUpdateItem,
+}) {
   return (
     <section className="erp-panel purchase-items-panel">
       <div className="panel-title">
@@ -29,6 +36,7 @@ export function PurchaseInvoiceItemsTable({ items, selectedItemId, onSelectItem 
               <th>Satir toplami</th>
               <th>Stok etkisi</th>
               <th>Not</th>
+              {!isReadonly && <th>Islem</th>}
             </tr>
           </thead>
           <tbody>
@@ -45,13 +53,47 @@ export function PurchaseInvoiceItemsTable({ items, selectedItemId, onSelectItem 
                   <td className="code-cell">{item.stockCode}</td>
                   <td>{item.barcode}</td>
                   <td>{item.productName}</td>
-                  <td className="money-cell">{item.quantity}</td>
+                  <td className="money-cell">
+                    {isReadonly ? item.quantity : (
+                      <input
+                        min="1"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(event) => onUpdateItem(item.id, 'quantity', Number(event.target.value || 0))}
+                      />
+                    )}
+                  </td>
                   <td>{item.currency}</td>
-                  <td className="money-cell">{formatMoney(item.purchasePrice, item.currency)}</td>
-                  <td className="money-cell">%{item.lineDiscountRate}</td>
+                  <td className="money-cell">
+                    {isReadonly ? formatMoney(item.purchasePrice, item.currency) : (
+                      <input
+                        min="0.01"
+                        step="0.01"
+                        type="number"
+                        value={item.purchasePrice}
+                        onChange={(event) => onUpdateItem(item.id, 'purchasePrice', Number(event.target.value || 0))}
+                      />
+                    )}
+                  </td>
+                  <td className="money-cell">
+                    {isReadonly ? `%${item.lineDiscountRate}` : (
+                      <input
+                        min="0"
+                        max="100"
+                        type="number"
+                        value={item.lineDiscountRate}
+                        onChange={(event) => onUpdateItem(item.id, 'lineDiscountRate', Number(event.target.value || 0))}
+                      />
+                    )}
+                  </td>
                   <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
                   <td className="purchase-stock-in">{item.stockEffect}</td>
                   <td>{item.note}</td>
+                  {!isReadonly && (
+                    <td>
+                      <button type="button" onClick={() => onDeleteItem(item.id)}>Sil</button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

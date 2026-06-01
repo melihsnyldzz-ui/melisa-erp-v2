@@ -85,22 +85,6 @@ export function demoSalesDraftWriteResponse(payload = {}, id = salesDraft.id) {
   };
 }
 
-export function demoSalesFinalizeResponse(id = salesDraft.id) {
-  const data = withSalesTotals({
-    ...salesDraft,
-    id: Number(id) || salesDraft.id,
-    status: 'FINALIZED',
-    description: 'Demo kesinlestirme. Demo islem kaydedilmedi.',
-    items: salesDraft.items.map((item) => ({
-      ...item,
-      grossProfitTry: (Number(item.unitPrice) - Number(item.averageCostTry)) * Number(item.quantity),
-      grossProfitRate: 42,
-    })),
-    warnings: ['Demo islem kaydedilmedi.'],
-  });
-  return { success: true, message: 'Demo islem kaydedilmedi.', data };
-}
-
 export function demoPurchaseDraftsResponse() {
   const data = [withPurchaseTotals(purchaseDraft)];
   return { success: true, data, meta: { page: 1, limit: data.length, total: data.length } };
@@ -121,19 +105,6 @@ export function demoPurchaseDraftWriteResponse(payload = {}, id = purchaseDraft.
       documentNo: payload.documentNo || purchaseDraft.documentNo,
       items: payload.items || purchaseDraft.items,
       status: 'DRAFT',
-    }),
-  };
-}
-
-export function demoPurchaseFinalizeResponse(id = purchaseDraft.id) {
-  return {
-    success: true,
-    message: 'Demo islem kaydedilmedi.',
-    data: withPurchaseTotals({
-      ...purchaseDraft,
-      id: Number(id) || purchaseDraft.id,
-      status: 'FINALIZED',
-      description: 'Demo kesinlestirme. Demo islem kaydedilmedi.',
     }),
   };
 }

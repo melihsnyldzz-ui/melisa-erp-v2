@@ -17,6 +17,14 @@ export function PurchaseInvoiceSupplierPanel({ invoice, permissions }) {
           <dd>{invoice.supplierCurrency}</dd>
         </div>
         <div>
+          <dt>Tedarikci bakiye</dt>
+          <dd>{invoice.supplierBalanceLabel || '-'}</dd>
+        </div>
+        <div>
+          <dt>Genel iskonto</dt>
+          <dd>%{invoice.supplierDiscountRate ?? 0}</dd>
+        </div>
+        <div>
           <dt>Isleyen rol</dt>
           <dd>{permissions.entryOwner}</dd>
         </div>

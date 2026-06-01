@@ -3,11 +3,9 @@ import { apiConfig } from '../config/apiConfig.js';
 import {
   demoPurchaseDraftsResponse,
   demoPurchaseDraftWriteResponse,
-  demoPurchaseFinalizeResponse,
   demoPurchaseInvoiceResponse,
   demoSalesDraftsResponse,
   demoSalesDraftWriteResponse,
-  demoSalesFinalizeResponse,
   demoSalesInvoiceResponse,
 } from '../demo/demoInvoices.js';
 
@@ -43,14 +41,6 @@ export async function fetchSalesInvoice(id) {
   return get(`/api/sales-invoices/${id}`);
 }
 
-export async function finalizeSalesInvoice(id) {
-  if (apiConfig.demoMode) {
-    return demoSalesFinalizeResponse(id);
-  }
-
-  return post(`/api/sales-invoices/${id}/finalize`);
-}
-
 export async function fetchPurchaseDrafts(params = {}) {
   if (apiConfig.demoMode) {
     return demoPurchaseDraftsResponse(params);
@@ -81,12 +71,4 @@ export async function fetchPurchaseInvoice(id) {
   }
 
   return get(`/api/purchase-invoices/${id}`);
-}
-
-export async function finalizePurchaseInvoice(id) {
-  if (apiConfig.demoMode) {
-    return demoPurchaseFinalizeResponse(id);
-  }
-
-  return post(`/api/purchase-invoices/${id}/finalize`);
 }
