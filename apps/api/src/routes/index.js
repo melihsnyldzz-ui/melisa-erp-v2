@@ -6,6 +6,7 @@ import { importRoutes } from './importRoutes.js';
 import { invoiceRoutes } from './invoiceRoutes.js';
 import { productRoutes } from './productRoutes.js';
 import { sqlHealthRoutes } from './sqlHealthRoutes.js';
+import { supplierRoutes } from './supplierRoutes.js';
 import { systemRoutes } from './systemRoutes.js';
 
 export const apiRoutes = Router();
@@ -15,6 +16,7 @@ apiRoutes.use(authRoutes);
 apiRoutes.use(dashboardRoutes);
 apiRoutes.use(productRoutes);
 apiRoutes.use(customerRoutes);
+apiRoutes.use(supplierRoutes);
 apiRoutes.use(invoiceRoutes);
 apiRoutes.use(importRoutes);
 apiRoutes.use(sqlHealthRoutes);

@@ -14,27 +14,15 @@ import {
   supplierGeneralDiscountRate,
 } from './purchaseInvoiceMockData.js';
 import {
+  cancelPurchaseDraft,
   createPurchaseDraft,
   fetchPurchaseInvoice,
+  finalizePurchaseDraft,
   updatePurchaseDraft,
 } from '../../services/invoiceDraftApi.js';
-
-const draftSupplierOptions = [
-  { id: 501, name: 'Kardelen Bebe Uretim', currency: 'TRY', discountRate: 2, balance: 184000 },
-  { id: 502, name: 'Bursa Bebek', currency: 'TRY', discountRate: 3, balance: 94000 },
-  { id: 503, name: 'Cotton Baby Global', currency: 'USD', discountRate: 1, balance: 42000 },
-];
-
-const draftPurchaseProductOptions = purchaseInvoiceItems.map((item) => ({
-  productId: item.productId || item.id,
-  stockCode: item.stockCode,
-  barcode: item.barcode,
-  productName: item.productName,
-  currency: item.currency,
-  purchasePrice: item.purchasePrice,
-  lineDiscountRate: item.lineDiscountRate,
-  isPassive: item.stockCode === 'STK-100411',
-}));
+import { apiConfig } from '../../config/apiConfig.js';
+import { fetchProducts } from '../../services/productApi.js';
+import { fetchSuppliers } from '../../services/supplierApi.js';
 
 const emptyPurchaseInvoice = {
   ...purchaseInvoiceHeader,
@@ -97,6 +85,8 @@ function formatDate(value) {
 }
 
 function mapDraftToInvoice(draft) {
+  const status = String(draft.status || '').toUpperCase();
+
   return {
     invoiceNo: draft.documentNo,
     date: formatDate(draft.documentDate),
@@ -109,7 +99,7 @@ function mapDraftToInvoice(draft) {
     exchangeRate: `${draft.documentCurrency} ${Number(draft.exchangeRate || 1).toFixed(4)}`,
     exchangeRateValue: Number(draft.exchangeRate || 1),
     description: draft.description || '',
-    status: draft.status === 'DRAFT' ? 'Taslak' : 'FINALIZED',
+    status: status === 'DRAFT' ? 'Taslak' : status,
   };
 }
 
@@ -138,23 +128,32 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [status, setStatus] = useState(purchaseInvoiceHeader.status);
   const [selectedItemId, setSelectedItemId] = useState(purchaseDraftId ? purchaseInvoiceItems[0]?.id : null);
   const [statusMessage, setStatusMessage] = useState('Taslak alis fisi stok artirmaz ve cari hareket olusturmaz.');
+  const [supplierQuery, setSupplierQuery] = useState('');
+  const [supplierOptions, setSupplierOptions] = useState([]);
   const [productQuery, setProductQuery] = useState('');
-  const [productToAddId, setProductToAddId] = useState(String(draftPurchaseProductOptions[0]?.productId ?? ''));
+  const [purchaseProductOptions, setPurchaseProductOptions] = useState([]);
+  const [productToAddId, setProductToAddId] = useState('');
+  const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(purchaseDraftId));
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(
     () => calculateTotals(items, invoiceRate, supplierRate),
     [invoiceRate, items, supplierRate],
   );
   const isFinalized = status === 'FINALIZED';
-  const canSaveDraft = permissions.includes('purchase.draft.write');
+  const isCancelled = status === 'CANCELLED';
+  const isReadonly = isFinalized || isCancelled;
+  const canSaveDraft = draftId ? permissions.includes('purchase.edit') : permissions.includes('purchase.create');
   const canFinalize = permissions.includes('purchase.finalize');
+  const canCancel = permissions.includes('purchase.cancel');
   const filteredProducts = useMemo(() => {
     const query = productQuery.trim().toLowerCase();
 
-    return draftPurchaseProductOptions.filter((product) => {
+    return purchaseProductOptions.filter((product) => {
       const matchesQuery = !query || [
         product.stockCode,
         product.barcode,
@@ -163,11 +162,81 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
       return matchesQuery && !product.isPassive;
     });
-  }, [productQuery]);
+  }, [productQuery, purchaseProductOptions]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLookups() {
+      setIsLookupLoading(true);
+
+      try {
+        const [supplierResponse, productResponse] = await Promise.all([
+          fetchSuppliers({
+            page: 1,
+            limit: 100,
+            search: supplierQuery,
+            activeOnly: true,
+          }),
+          fetchProducts({
+            page: 1,
+            limit: 100,
+            search: productQuery,
+            activeOnly: true,
+          }),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const nextSuppliers = supplierResponse.data || [];
+        const nextProducts = (productResponse.data || []).map((product) => ({
+          productId: product.id,
+          stockCode: product.stockCode,
+          barcode: product.barcodeMasked || '-',
+          productName: product.productName,
+          currency: product.currency,
+          purchasePrice: Number(product.purchasePrice || 0),
+          lineDiscountRate: 0,
+          isPassive: Boolean(product.isPassive),
+        }));
+
+        setSupplierOptions(nextSuppliers);
+        setPurchaseProductOptions(nextProducts);
+        setProductToAddId((currentId) => {
+          if (currentId && nextProducts.some((product) => String(product.productId) === String(currentId))) {
+            return currentId;
+          }
+
+          return String(nextProducts.find((product) => !product.isPassive)?.productId ?? '');
+        });
+        setErrorMessage('');
+      } catch (error) {
+        if (isMounted) {
+          setSupplierOptions([]);
+          setPurchaseProductOptions([]);
+          setProductToAddId('');
+          setErrorMessage(`${error.message || 'Alis lookup verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
+          setStatusMessage('Tedarikci/urun lookup API hatasi; gercek modda mock fallback yapilmadi.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLookupLoading(false);
+        }
+      }
+    }
+
+    loadLookups();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productQuery, supplierQuery]);
 
   useEffect(() => {
     if (!purchaseDraftId) {
@@ -250,6 +319,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setSupplierRate(0);
     setStatus('Taslak');
     setSelectedItemId(null);
+    setSupplierQuery('');
+    setProductQuery('');
     setErrorMessage('');
     setIsDirty(false);
     setStatusMessage('Yeni alis taslagi hazirlandi; kaydedilene kadar ticari etki yok.');
@@ -292,21 +363,21 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   }
 
   function selectSupplier(supplierId) {
-    const supplier = draftSupplierOptions.find((item) => String(item.id) === String(supplierId));
+    const supplier = supplierOptions.find((item) => String(item.id) === String(supplierId));
 
     if (!supplier) {
       return;
     }
 
     setErrorMessage('');
-    setSupplierRate(supplier.discountRate);
+    setSupplierRate(0);
     setInvoice((current) => ({
       ...current,
       supplierId: supplier.id,
-      supplier: supplier.name,
+      supplier: supplier.supplierName,
       supplierCurrency: supplier.currency,
       supplierBalanceLabel: formatMoney(supplier.balance, supplier.currency),
-      supplierDiscountRate: supplier.discountRate,
+      supplierDiscountRate: 0,
       invoiceCurrency: supplier.currency,
       exchangeRate: `${supplier.currency} 1.0000`,
       exchangeRateValue: 1,
@@ -327,9 +398,9 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       return;
     }
 
-    const product = draftPurchaseProductOptions.find((item) => String(item.productId) === String(productToAddId));
+    const product = purchaseProductOptions.find((item) => String(item.productId) === String(productToAddId));
 
-    if (!product || isFinalized) {
+    if (!product || isReadonly) {
       setErrorMessage('Secilen urun bulunamadi veya fis readonly.');
       return;
     }
@@ -361,7 +432,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           barcode: product.barcode,
           productName: product.productName,
           quantity: 1,
-          currency: invoice.invoiceCurrency,
+          currency: product.currency || invoice.invoiceCurrency,
           purchasePrice: product.purchasePrice,
           lineDiscountRate: product.lineDiscountRate,
           stockEffect: '+1 taslak',
@@ -405,13 +476,13 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   }
 
   async function saveDraft() {
-    if (isFinalized) {
+    if (isReadonly) {
       setStatusMessage('Kesinlesmis alis fisi guncellenemez; iptal/duzeltme akisi ayri sprintte ele alinacak.');
       return;
     }
 
     if (!canSaveDraft) {
-      setErrorMessage('Bu islem icin purchase.draft.write yetkisi gerekli.');
+      setErrorMessage(draftId ? 'Bu islem icin purchase.edit yetkisi gerekli.' : 'Bu islem icin purchase.create yetkisi gerekli.');
       return;
     }
 
@@ -464,8 +535,96 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   }
 
   async function finalizeInvoice() {
+    if (apiConfig.demoMode) {
+      setErrorMessage('');
+      setStatusMessage('Demo modda alis kesinlestirme kapalidir. Gercek stok ve tedarikci hareketleri yazilmaz.');
+      return;
+    }
+
+    if (!draftId) {
+      setErrorMessage('Kesinlestirmek icin once alis taslagini kaydedin.');
+      return;
+    }
+
+    if (!canFinalize) {
+      setErrorMessage('Bu islem icin purchase.cancel yetkisi gerekli.');
+      return;
+    }
+
+    setIsFinalizing(true);
     setErrorMessage('');
-    setStatusMessage('Phase 1’de alış kesinleştirme kapalıdır. Gerçek stok artışı ve tedarikçi cari hareketleri Phase 2’de bağlanacaktır.');
+
+    try {
+      const response = await finalizePurchaseDraft(draftId);
+      const nextInvoice = mapDraftToInvoice(response.data);
+      const nextItems = mapDraftItems(response.data.items);
+
+      setInvoice(nextInvoice);
+      setItems(nextItems);
+      setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
+      setSupplierRate(Number(response.data.supplierDiscountRate || 0));
+      setStatus(nextInvoice.status);
+      setSelectedItemId(nextItems[0]?.id ?? null);
+      setIsDirty(false);
+      setStatusMessage(`Alis fisi kesinlesti (#${response.data.id}); stok ve tedarikci hareketleri olustu.`);
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Alis fisi kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Alis kesinlestirme basarisiz; API/DB kontrol edilmeli.');
+    } finally {
+      setIsFinalizing(false);
+    }
+  }
+
+  async function cancelInvoice() {
+    if (apiConfig.demoMode) {
+      setErrorMessage('');
+      setStatusMessage('Demo modda alis iptal simule edilir; gercek stok ve tedarikci hareketleri yazilmaz.');
+      return;
+    }
+
+    if (!draftId) {
+      setErrorMessage('Iptal etmek icin kayitli alis fisi gerekli.');
+      return;
+    }
+
+    if (!isFinalized) {
+      setErrorMessage('Sadece finalized alis fisleri iptal edilebilir.');
+      return;
+    }
+
+    if (!canCancel) {
+      setErrorMessage('Bu islem icin purchase.finalize yetkisi gerekli.');
+      return;
+    }
+
+    const reason = window.prompt('Alis fisi iptal nedeni zorunludur:');
+    if (!reason || !reason.trim()) {
+      setErrorMessage('Iptal nedeni zorunludur.');
+      return;
+    }
+
+    setIsCancelling(true);
+    setErrorMessage('');
+
+    try {
+      const response = await cancelPurchaseDraft(draftId, reason.trim());
+      const nextInvoice = mapDraftToInvoice(response.data);
+      const nextItems = mapDraftItems(response.data.items);
+
+      setInvoice(nextInvoice);
+      setItems(nextItems);
+      setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
+      setSupplierRate(Number(response.data.supplierDiscountRate || 0));
+      setStatus(nextInvoice.status);
+      setSelectedItemId(nextItems[0]?.id ?? null);
+      setIsDirty(false);
+      setStatusMessage(`Alis fisi iptal edildi (#${response.data.id}); stok ve tedarikci ters hareketleri olustu. Average cost rollback yapilmadi.`);
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Alis fisi iptal edilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Alis iptal basarisiz; API/DB kontrol edilmeli.');
+    } finally {
+      setIsCancelling(false);
+    }
   }
 
   return (
@@ -473,20 +632,24 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       <PurchaseInvoiceToolbar
         status={status}
         isSaving={isSaving}
-        isFinalizing={false}
-        isFinalized={isFinalized}
+        isCancelling={isCancelling}
+        isFinalizing={isFinalizing}
+        isReadonly={isReadonly}
         canSaveDraft={canSaveDraft}
         canFinalize={canFinalize}
+        canCancel={canCancel}
         onNewDraft={createNewDraft}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
+        onCancel={cancelInvoice}
       />
       <section className="purchase-invoice-layout">
         {isLoading && <div className="list-state">Alis taslagi API'den okunuyor...</div>}
+        {isLookupLoading && <div className="list-state">Tedarikci ve urun lookup API'den okunuyor...</div>}
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {isSaving && <div className="list-state">Alis taslagi API'ye kaydediliyor...</div>}
-        {isFinalized && (
-          <div className="list-state list-state-success">FINALIZED alis fisi readonly modda; tekrar kayit/kesinlestirme kapali.</div>
+        {isReadonly && (
+          <div className="list-state list-state-success">{status} alis fisi readonly modda; tekrar kayit/kesinlestirme kapali.</div>
         )}
         {!isLoading && !errorMessage && items.length === 0 && (
           <div className="list-state">Alis taslak satiri bulunamadi.</div>
@@ -494,7 +657,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         <PurchaseInvoiceHeader
           invoice={invoice}
           invoiceRate={invoiceRate}
-          isReadonly={isFinalized}
+          isReadonly={isReadonly}
           status={status}
           supplierRate={supplierRate}
           onChange={updateInvoiceField}
@@ -508,24 +671,35 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           </div>
           <div className="purchase-draft-control-grid">
             <label>
+              <span>Tedarikci ara</span>
+              <input
+                disabled={isReadonly}
+                placeholder="Ad / telefon / sehir / ulke"
+                value={supplierQuery}
+                onChange={(event) => setSupplierQuery(event.target.value)}
+              />
+            </label>
+            <label>
               <span>Tedarikci sec</span>
-              <select value={invoice.supplierId || ''} disabled={isFinalized} onChange={(event) => selectSupplier(event.target.value)}>
+              <select value={invoice.supplierId || ''} disabled={isReadonly} onChange={(event) => selectSupplier(event.target.value)}>
                 <option value="">Tedarikci secin</option>
-                {draftSupplierOptions.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                {supplierOptions.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.supplierCode} / {supplier.supplierName}
+                  </option>
                 ))}
               </select>
             </label>
             <label>
               <span>Urun ara</span>
               <input
-                disabled={isFinalized}
+                disabled={isReadonly}
                 placeholder="Barkod / stok kodu / urun adi"
                 value={productQuery}
                 onChange={(event) => {
                   setProductQuery(event.target.value);
                   const query = event.target.value.trim().toLowerCase();
-                  const match = draftPurchaseProductOptions.find((product) => (
+                  const match = purchaseProductOptions.find((product) => (
                     !product.isPassive &&
                     [product.stockCode, product.barcode, product.productName].some((value) => (
                       String(value || '').toLowerCase().includes(query)
@@ -537,7 +711,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
             </label>
             <label>
               <span>Urun sec</span>
-              <select value={productToAddId} disabled={isFinalized} onChange={(event) => setProductToAddId(event.target.value)}>
+              <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)}>
                 <option value="">Urun secin</option>
                 {filteredProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>
@@ -546,12 +720,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                 ))}
               </select>
             </label>
-            <button type="button" disabled={isFinalized} onClick={addDraftItem}>Satir Ekle</button>
+            <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
           </div>
         </section>
         <PurchaseInvoiceSupplierPanel invoice={invoice} permissions={purchaseInvoicePermissions} />
         <PurchaseInvoiceItemsTable
-          isReadonly={isFinalized}
+          isReadonly={isReadonly}
           items={items}
           selectedItemId={selectedItemId}
           onDeleteItem={deleteDraftItem}
