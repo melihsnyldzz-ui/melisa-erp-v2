@@ -37,6 +37,14 @@ export function SalesInvoiceTotals({ totals }) {
           <dd>{formatMoney(totals.tryEquivalent, 'TRY')}</dd>
         </div>
         <div>
+          <dt>Satir sayisi</dt>
+          <dd>{totals.lineCount}</dd>
+        </div>
+        <div>
+          <dt>Toplam adet</dt>
+          <dd>{totals.totalQuantity}</dd>
+        </div>
+        <div>
           <dt>Tahmini kar</dt>
           <dd>{formatMoney(totals.estimatedProfit, 'TRY')}</dd>
         </div>

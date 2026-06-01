@@ -16,7 +16,15 @@ function formatPercent(value) {
   }).format(value);
 }
 
-export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem, showProfitColumns = false }) {
+export function SalesInvoiceItemsTable({
+  items,
+  selectedItemId,
+  onDeleteItem,
+  onSelectItem,
+  onUpdateItem,
+  showProfitColumns = false,
+  isReadonly = false,
+}) {
   return (
     <section className="erp-panel sales-items-panel">
       <div className="panel-title">
@@ -39,6 +47,7 @@ export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem, sh
               {showProfitColumns && <th>Kar %</th>}
               <th>Stok durumu</th>
               <th>Not</th>
+              {!isReadonly && <th>Islem</th>}
             </tr>
           </thead>
           <tbody>
@@ -53,15 +62,39 @@ export function SalesInvoiceItemsTable({ items, selectedItemId, onSelectItem, sh
                   <td className="code-cell">{item.stockCode}</td>
                   <td>{item.barcode}</td>
                   <td>{item.productName}</td>
-                  <td className="money-cell">{item.quantity}</td>
+                  <td className="money-cell">
+                    {isReadonly ? item.quantity : (
+                      <input
+                        min="1"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(event) => onUpdateItem(item.id, 'quantity', Number(event.target.value || 0))}
+                      />
+                    )}
+                  </td>
                   <td>{item.currency}</td>
-                  <td className="money-cell">{formatMoney(item.unitPrice, item.currency)}</td>
+                  <td className="money-cell">
+                    {isReadonly ? formatMoney(item.unitPrice, item.currency) : (
+                      <input
+                        min="0.01"
+                        step="0.01"
+                        type="number"
+                        value={item.unitPrice}
+                        onChange={(event) => onUpdateItem(item.id, 'unitPrice', Number(event.target.value || 0))}
+                      />
+                    )}
+                  </td>
                   <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
                   {showProfitColumns && <td className="money-cell">{formatMoney(item.averageCostTry || 0, 'TRY')}</td>}
                   {showProfitColumns && <td className="money-cell">{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
                   {showProfitColumns && <td className="money-cell">{formatPercent(item.grossProfitRate || 0)}</td>}
                   <td className={item.stockState === 'Eksiye duser' ? 'sales-stock-risk' : ''}>{item.stockState}</td>
                   <td>{item.note}</td>
+                  {!isReadonly && (
+                    <td>
+                      <button type="button" onClick={() => onDeleteItem(item.id)}>Sil</button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

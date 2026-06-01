@@ -17,6 +17,10 @@ export function SalesInvoiceCustomerPanel({ invoice, permissions }) {
           <dd>{invoice.customerCurrency}</dd>
         </div>
         <div>
+          <dt>Cari bakiye</dt>
+          <dd>{invoice.customerBalanceLabel || '-'}</dd>
+        </div>
+        <div>
           <dt>Fiyat degisikligi</dt>
           <dd>{permissions.priceChange}</dd>
         </div>
