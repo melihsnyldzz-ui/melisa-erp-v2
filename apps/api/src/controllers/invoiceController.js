@@ -1,4 +1,6 @@
 import {
+  cancelPurchaseInvoice,
+  cancelSalesInvoice,
   createPurchaseDraft,
   createSalesDraft,
   finalizePurchaseInvoice,
@@ -97,6 +99,20 @@ export async function postSalesFinalize(req, res) {
   }
 }
 
+export async function postSalesCancel(req, res) {
+  try {
+    const data = await cancelSalesInvoice(req.params.id, req.body, req.user);
+    return ok(res, data, {
+      source: 'sql-write',
+      audit: 'sales_invoice_cancelled',
+      commercialEffect: true,
+      warningCount: data.warnings?.length || 0,
+    });
+  } catch (error) {
+    return writeError(res, error, 'SALES_CANCEL_FAILED');
+  }
+}
+
 export async function postPurchaseDraft(req, res) {
   try {
     const data = await createPurchaseDraft(req.body, req.user);
@@ -134,6 +150,20 @@ export async function postPurchaseFinalize(req, res) {
     });
   } catch (error) {
     return writeError(res, error, 'PURCHASE_FINALIZE_FAILED');
+  }
+}
+
+export async function postPurchaseCancel(req, res) {
+  try {
+    const data = await cancelPurchaseInvoice(req.params.id, req.body, req.user);
+    return ok(res, data, {
+      source: 'sql-write',
+      audit: 'purchase_invoice_cancelled',
+      commercialEffect: true,
+      warningCount: data.warnings?.length || 0,
+    });
+  } catch (error) {
+    return writeError(res, error, 'PURCHASE_CANCEL_FAILED');
   }
 }
 

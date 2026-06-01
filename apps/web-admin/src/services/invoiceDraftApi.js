@@ -41,6 +41,30 @@ export async function fetchSalesInvoice(id) {
   return get(`/api/sales-invoices/${id}`);
 }
 
+export async function finalizeSalesDraft(id) {
+  if (apiConfig.demoMode) {
+    return demoSalesInvoiceResponse(id);
+  }
+
+  return post(`/api/sales-invoices/${id}/finalize`);
+}
+
+export async function cancelSalesDraft(id, reason) {
+  if (apiConfig.demoMode) {
+    const response = demoSalesInvoiceResponse(id);
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        status: 'CANCELLED',
+        cancelReason: reason,
+      },
+    };
+  }
+
+  return post(`/api/sales-invoices/${id}/cancel`, { reason });
+}
+
 export async function fetchPurchaseDrafts(params = {}) {
   if (apiConfig.demoMode) {
     return demoPurchaseDraftsResponse(params);
@@ -71,4 +95,28 @@ export async function fetchPurchaseInvoice(id) {
   }
 
   return get(`/api/purchase-invoices/${id}`);
+}
+
+export async function finalizePurchaseDraft(id) {
+  if (apiConfig.demoMode) {
+    return demoPurchaseInvoiceResponse(id);
+  }
+
+  return post(`/api/purchase-invoices/${id}/finalize`);
+}
+
+export async function cancelPurchaseDraft(id, reason) {
+  if (apiConfig.demoMode) {
+    const response = demoPurchaseInvoiceResponse(id);
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        status: 'CANCELLED',
+        cancelReason: reason,
+      },
+    };
+  }
+
+  return post(`/api/purchase-invoices/${id}/cancel`, { reason });
 }

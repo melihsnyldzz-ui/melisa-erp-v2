@@ -38,7 +38,7 @@ export async function checkSqlHealth() {
         durationMs: Date.now() - startedAt,
       },
       meta: {
-        readOnly: true,
+        readOnly: getSafeSqlInfo().readOnly,
         source: 'sql-select-only',
       },
     };
@@ -54,7 +54,7 @@ export async function checkSqlHealth() {
       },
       error: sanitizeSqlError(error),
       meta: {
-        readOnly: true,
+        readOnly: getSafeSqlInfo().readOnly,
         source: 'sql-select-only',
       },
     };
@@ -81,7 +81,7 @@ export async function getTablesPreview() {
       meta: {
         durationMs: Date.now() - startedAt,
         limit: 20,
-        readOnly: true,
+        readOnly: getSafeSqlInfo().readOnly,
         source: 'information_schema.tables',
       },
     };
@@ -93,7 +93,7 @@ export async function getTablesPreview() {
       meta: {
         durationMs: Date.now() - startedAt,
         limit: 20,
-        readOnly: true,
+        readOnly: getSafeSqlInfo().readOnly,
         source: 'information_schema.tables',
       },
     };

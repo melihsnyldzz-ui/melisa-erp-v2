@@ -13,29 +13,15 @@ import {
   salesInvoiceRules,
 } from './salesInvoiceMockData.js';
 import {
+  cancelSalesDraft,
   createSalesDraft,
   fetchSalesInvoice,
+  finalizeSalesDraft,
   updateSalesDraft,
 } from '../../services/invoiceDraftApi.js';
-
-const draftCustomerOptions = [
-  { id: 201, name: 'Bucharest Baby SRL', currency: 'USD', balance: 582000 },
-  { id: 202, name: 'Sofia Mini Wear', currency: 'USD', balance: 214000 },
-  { id: 203, name: 'Tbilisi Kids Market', currency: 'USD', balance: 98000 },
-  { id: 301, name: 'Melisa Bebe Dukkan', currency: 'TRY', balance: 0 },
-];
-
-const draftProductOptions = salesInvoiceItems.map((item) => ({
-  productId: item.productId || item.id,
-  stockCode: item.stockCode,
-  barcode: item.barcode,
-  productName: item.productName,
-  currency: item.currency,
-  unitPrice: item.unitPrice,
-  averageCostTry: item.averageCostTry,
-  stockState: item.stockState,
-  isPassive: item.stockCode === 'STK-100411',
-}));
+import { fetchCustomers } from '../../services/customerApi.js';
+import { fetchProducts } from '../../services/productApi.js';
+import { apiConfig } from '../../config/apiConfig.js';
 
 const emptySalesInvoice = {
   ...salesInvoiceHeader,
@@ -93,6 +79,8 @@ function formatDate(value) {
 }
 
 function mapDraftToInvoice(draft) {
+  const status = String(draft.status || '').toUpperCase();
+
   return {
     invoiceNo: draft.documentNo,
     date: formatDate(draft.documentDate),
@@ -104,7 +92,7 @@ function mapDraftToInvoice(draft) {
     exchangeRate: `${draft.documentCurrency} ${Number(draft.exchangeRate || 1).toFixed(4)}`,
     exchangeRateValue: Number(draft.exchangeRate || 1),
     description: draft.description || '',
-    status: draft.status === 'DRAFT' ? 'Taslak' : 'FINALIZED',
+    status: status === 'DRAFT' ? 'Taslak' : status,
   };
 }
 
@@ -126,6 +114,29 @@ function mapDraftItems(items = []) {
   }));
 }
 
+function mapCustomerOption(customer) {
+  return {
+    id: customer.id,
+    name: customer.customerName,
+    currency: customer.currency,
+    balance: Number(customer.balance || 0),
+  };
+}
+
+function mapProductOption(product) {
+  return {
+    productId: product.id,
+    stockCode: product.stockCode,
+    barcode: product.barcodeMasked || '-',
+    productName: product.productName,
+    currency: product.currency,
+    unitPrice: Number(product.salePrice || 0),
+    averageCostTry: Number(product.averageCostTry || product.purchasePrice || 0),
+    stockState: `Stok: ${Number(product.stockQuantity || 0)}`,
+    isPassive: product.isPassive,
+  };
+}
+
 export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChange }) {
   const [draftId, setDraftId] = useState(salesDraftId ?? null);
   const [invoice, setInvoice] = useState(salesDraftId ? salesInvoiceHeader : emptySalesInvoice);
@@ -134,16 +145,24 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   const [status, setStatus] = useState(salesInvoiceHeader.status);
   const [selectedItemId, setSelectedItemId] = useState(salesDraftId ? salesInvoiceItems[0]?.id : null);
   const [statusMessage, setStatusMessage] = useState('Taslak fis henuz stok veya cari hareket olusturmaz.');
-  const [productToAddId, setProductToAddId] = useState(String(draftProductOptions[0]?.productId ?? ''));
+  const [draftCustomerOptions, setDraftCustomerOptions] = useState([]);
+  const [draftProductOptions, setDraftProductOptions] = useState([]);
+  const [productToAddId, setProductToAddId] = useState('');
   const [productQuery, setProductQuery] = useState('');
+  const [referenceOptionsError, setReferenceOptionsError] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(salesDraftId));
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(() => calculateTotals(items, discountRate), [discountRate, items]);
   const isFinalized = status === 'FINALIZED';
-  const canSaveDraft = permissions.includes('sales.draft.write');
+  const isCancelled = status === 'CANCELLED';
+  const isReadonly = isFinalized || isCancelled;
+  const canSaveDraft = draftId ? permissions.includes('sales.edit') : permissions.includes('sales.create');
   const canFinalize = permissions.includes('sales.finalize');
+  const canCancel = permissions.includes('sales.cancel');
   const filteredProducts = useMemo(() => {
     const query = productQuery.trim().toLowerCase();
 
@@ -156,11 +175,71 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
       return matchesQuery && !product.isPassive;
     });
-  }, [productQuery]);
+  }, [draftProductOptions, productQuery]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCustomers() {
+      try {
+        const response = await fetchCustomers({ page: 1, limit: 50, activeOnly: true });
+        if (isMounted) {
+          setDraftCustomerOptions((response.data || []).map(mapCustomerOption));
+        }
+      } catch (error) {
+        if (isMounted) {
+          setReferenceOptionsError(`Cari listesi okunamadi: ${error.message || 'API_ERROR'}`);
+        }
+      }
+    }
+
+    loadCustomers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProducts() {
+      try {
+        const response = await fetchProducts({
+          page: 1,
+          limit: 50,
+          search: productQuery,
+          activeOnly: true,
+        });
+        const options = (response.data || []).map(mapProductOption);
+
+        if (isMounted) {
+          setDraftProductOptions(options);
+          setProductToAddId((current) => (
+            options.some((product) => String(product.productId) === String(current))
+              ? current
+              : String(options[0]?.productId ?? '')
+          ));
+        }
+      } catch (error) {
+        if (isMounted) {
+          setReferenceOptionsError(`Urun listesi okunamadi: ${error.message || 'API_ERROR'}`);
+          setDraftProductOptions([]);
+          setProductToAddId('');
+        }
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productQuery]);
 
   useEffect(() => {
     if (!salesDraftId) {
@@ -293,7 +372,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
     const product = draftProductOptions.find((item) => String(item.productId) === String(productToAddId));
 
-    if (!product || isFinalized) {
+    if (!product || isReadonly) {
       setErrorMessage('Secilen urun bulunamadi veya fis readonly.');
       return;
     }
@@ -361,13 +440,13 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   async function saveDraft() {
-    if (isFinalized) {
+    if (isReadonly) {
       setStatusMessage('Kesinlesmis fis guncellenemez; iptal/duzeltme akisi ayri sprintte ele alinacak.');
       return;
     }
 
     if (!canSaveDraft) {
-      setErrorMessage('Bu islem icin sales.draft.write yetkisi gerekli.');
+      setErrorMessage(draftId ? 'Bu islem icin sales.edit yetkisi gerekli.' : 'Bu islem icin sales.create yetkisi gerekli.');
       return;
     }
 
@@ -414,8 +493,94 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   async function finalizeInvoice() {
+    if (apiConfig.demoMode) {
+      setErrorMessage('');
+      setStatusMessage('Demo modda kesinlestirme kapalidir. Gercek stok ve cari hareketleri yazilmaz.');
+      return;
+    }
+
+    if (!draftId) {
+      setErrorMessage('Kesinlestirmek icin once taslagi kaydedin.');
+      return;
+    }
+
+    if (!canFinalize) {
+      setErrorMessage('Bu islem icin sales.cancel yetkisi gerekli.');
+      return;
+    }
+
+    setIsFinalizing(true);
     setErrorMessage('');
-    setStatusMessage('Phase 1’de kesinleştirme kapalıdır. Gerçek stok ve cari hareketleri Phase 2’de bağlanacaktır.');
+
+    try {
+      const response = await finalizeSalesDraft(draftId);
+      const nextInvoice = mapDraftToInvoice(response.data);
+      const nextItems = mapDraftItems(response.data.items);
+
+      setInvoice(nextInvoice);
+      setItems(nextItems);
+      setDiscountRate(Number(response.data.discountRate || 0));
+      setStatus(nextInvoice.status);
+      setSelectedItemId(nextItems[0]?.id ?? null);
+      setIsDirty(false);
+      setStatusMessage(`Satis fisi kesinlesti (#${response.data.id}); stok ve cari hareketleri olustu.`);
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Fis kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Kesinlestirme basarisiz; API/DB kontrol edilmeli.');
+    } finally {
+      setIsFinalizing(false);
+    }
+  }
+
+  async function cancelInvoice() {
+    if (apiConfig.demoMode) {
+      setErrorMessage('');
+      setStatusMessage('Demo modda satis iptal simule edilir; gercek stok ve cari hareketleri yazilmaz.');
+      return;
+    }
+
+    if (!draftId) {
+      setErrorMessage('Iptal etmek icin kayitli satis fisi gerekli.');
+      return;
+    }
+
+    if (!isFinalized) {
+      setErrorMessage('Sadece finalized satis fisleri iptal edilebilir.');
+      return;
+    }
+
+    if (!canCancel) {
+      setErrorMessage('Bu islem icin sales.finalize yetkisi gerekli.');
+      return;
+    }
+
+    const reason = window.prompt('Satis fisi iptal nedeni zorunludur:');
+    if (!reason || !reason.trim()) {
+      setErrorMessage('Iptal nedeni zorunludur.');
+      return;
+    }
+
+    setIsCancelling(true);
+    setErrorMessage('');
+
+    try {
+      const response = await cancelSalesDraft(draftId, reason.trim());
+      const nextInvoice = mapDraftToInvoice(response.data);
+      const nextItems = mapDraftItems(response.data.items);
+
+      setInvoice(nextInvoice);
+      setItems(nextItems);
+      setDiscountRate(Number(response.data.discountRate || 0));
+      setStatus(nextInvoice.status);
+      setSelectedItemId(nextItems[0]?.id ?? null);
+      setIsDirty(false);
+      setStatusMessage(`Satis fisi iptal edildi (#${response.data.id}); stok ve cari ters hareketleri olustu.`);
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Fis iptal edilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Satis iptal basarisiz; API/DB kontrol edilmeli.');
+    } finally {
+      setIsCancelling(false);
+    }
   }
 
   return (
@@ -423,20 +588,24 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       <SalesInvoiceToolbar
         status={status}
         isSaving={isSaving}
-        isFinalizing={false}
-        isFinalized={isFinalized}
+        isCancelling={isCancelling}
+        isFinalizing={isFinalizing}
+        isReadonly={isReadonly}
         canSaveDraft={canSaveDraft}
         canFinalize={canFinalize}
+        canCancel={canCancel}
         onNewDraft={createNewDraft}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
+        onCancel={cancelInvoice}
       />
       <section className="sales-invoice-layout">
         {isLoading && <div className="list-state">Taslak fis API'den okunuyor...</div>}
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+        {referenceOptionsError && <div className="list-state list-state-error">{referenceOptionsError}</div>}
         {isSaving && <div className="list-state">Taslak fis API'ye kaydediliyor...</div>}
-        {isFinalized && (
-          <div className="list-state list-state-success">FINALIZED fis readonly modda; tekrar kayit/kesinlestirme kapali.</div>
+        {isReadonly && (
+          <div className="list-state list-state-success">{status} fis readonly modda; tekrar kayit/kesinlestirme kapali.</div>
         )}
         {!isLoading && !errorMessage && items.length === 0 && (
           <div className="list-state">Taslak fis satiri bulunamadi.</div>
@@ -444,7 +613,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         <SalesInvoiceHeader
           discountRate={discountRate}
           invoice={invoice}
-          isReadonly={isFinalized}
+          isReadonly={isReadonly}
           status={status}
           onChange={updateInvoiceField}
           onDiscountChange={setDiscountRate}
@@ -457,7 +626,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           <div className="sales-draft-control-grid">
             <label>
               <span>Cari sec</span>
-              <select value={invoice.customerId || ''} disabled={isFinalized} onChange={(event) => selectCustomer(event.target.value)}>
+              <select value={invoice.customerId || ''} disabled={isReadonly} onChange={(event) => selectCustomer(event.target.value)}>
                 <option value="">Cari secin</option>
                 {draftCustomerOptions.map((customer) => (
                   <option key={customer.id} value={customer.id}>{customer.name}</option>
@@ -467,25 +636,18 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
             <label>
               <span>Urun ara</span>
               <input
-                disabled={isFinalized}
+                disabled={isReadonly}
                 placeholder="Barkod / stok kodu / urun adi"
                 value={productQuery}
                 onChange={(event) => {
                   setProductQuery(event.target.value);
-                  const query = event.target.value.trim().toLowerCase();
-                  const match = draftProductOptions.find((product) => (
-                    !product.isPassive &&
-                    [product.stockCode, product.barcode, product.productName].some((value) => (
-                      String(value || '').toLowerCase().includes(query)
-                    ))
-                  ));
-                  setProductToAddId(query && match ? String(match.productId) : '');
+                  setReferenceOptionsError('');
                 }}
               />
             </label>
             <label>
               <span>Urun sec</span>
-              <select value={productToAddId} disabled={isFinalized} onChange={(event) => setProductToAddId(event.target.value)}>
+              <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)}>
                 <option value="">Urun secin</option>
                 {filteredProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>
@@ -494,18 +656,18 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
                 ))}
               </select>
             </label>
-            <button type="button" disabled={isFinalized} onClick={addDraftItem}>Satir Ekle</button>
+            <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
           </div>
         </section>
         <SalesInvoiceCustomerPanel invoice={invoice} permissions={salesInvoicePermissions} />
         <SalesInvoiceItemsTable
-          isReadonly={isFinalized}
+          isReadonly={isReadonly}
           items={items}
           selectedItemId={selectedItemId}
           onDeleteItem={deleteDraftItem}
           onSelectItem={setSelectedItemId}
           onUpdateItem={updateDraftItem}
-          showProfitColumns={isFinalized}
+          showProfitColumns={isFinalized || isCancelled}
         />
         <SalesInvoiceTotals totals={totals} />
         <SalesInvoiceRulesPanel rules={salesInvoiceRules} statusMessage={statusMessage} />

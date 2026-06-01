@@ -33,6 +33,16 @@ function normalizeDate(value) {
   return trimText(value) || new Date().toISOString().slice(0, 10);
 }
 
+function normalizeCancelReason(value, code = 'SALES_CANCEL_REASON_REQUIRED') {
+  const reason = trimText(value);
+
+  if (!reason) {
+    throw makeServiceError(code, 'Cancel reason is required', 400);
+  }
+
+  return reason.slice(0, 500);
+}
+
 function createDocumentNo(prefix) {
   const now = new Date();
   const stamp = [
@@ -407,7 +417,8 @@ async function getPurchaseSnapshot(request, id) {
   };
 }
 
-async function getSalesFinalizeSnapshot(request, id) {
+async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}) {
+  const invoiceTable = lockHeader ? 'dbo.sales_invoices si WITH (UPDLOCK, HOLDLOCK)' : 'dbo.sales_invoices si';
   const header = await request
     .input('finalizeSnapshotId', sql.BigInt, id)
     .query(`
@@ -431,7 +442,7 @@ async function getSalesFinalizeSnapshot(request, id) {
         si.estimated_profit_try AS estimatedProfitTry,
         si.finalized_at AS finalizedAt,
         si.updated_at AS updatedAt
-      FROM dbo.sales_invoices si
+      FROM ${invoiceTable}
       LEFT JOIN dbo.customers c ON c.id = si.customer_id
       WHERE si.id = @finalizeSnapshotId;
     `);
@@ -475,7 +486,8 @@ async function getSalesFinalizeSnapshot(request, id) {
   };
 }
 
-async function getPurchaseFinalizeSnapshot(request, id) {
+async function getPurchaseFinalizeSnapshot(request, id, { lockHeader = false } = {}) {
+  const invoiceTable = lockHeader ? 'dbo.purchase_invoices pi WITH (UPDLOCK, HOLDLOCK)' : 'dbo.purchase_invoices pi';
   const header = await request
     .input('purchaseFinalizeSnapshotId', sql.BigInt, id)
     .query(`
@@ -501,7 +513,7 @@ async function getPurchaseFinalizeSnapshot(request, id) {
         pi.stock_cost_effect_try AS stockCostEffectTry,
         pi.finalized_at AS finalizedAt,
         pi.updated_at AS updatedAt
-      FROM dbo.purchase_invoices pi
+      FROM ${invoiceTable}
       LEFT JOIN dbo.suppliers s ON s.id = pi.supplier_id
       WHERE pi.id = @purchaseFinalizeSnapshotId;
     `);
@@ -1085,7 +1097,7 @@ export async function finalizeSalesInvoice(id, actor = null) {
   await transaction.begin();
 
   try {
-    const beforeSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+    const beforeSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
 
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_FINALIZE_NOT_FOUND', 'Sales invoice not found', 404);
@@ -1273,7 +1285,7 @@ export async function finalizeSalesInvoice(id, actor = null) {
         WHERE id = @customerBalanceId;
       `);
 
-    await new sqlDriver.Request(transaction)
+    const finalizeResult = await new sqlDriver.Request(transaction)
       .input('finalizeInvoiceId', sql.BigInt, invoiceId)
       .query(`
         UPDATE dbo.sales_invoices
@@ -1285,6 +1297,10 @@ export async function finalizeSalesInvoice(id, actor = null) {
           AND status = N'draft';
       `);
 
+    if (Number(finalizeResult.rowsAffected?.[0] || 0) !== 1) {
+      throw makeServiceError('SALES_FINALIZE_STATUS_CHANGED', 'Sales invoice status changed during finalize', 409);
+    }
+
     const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -1294,6 +1310,202 @@ export async function finalizeSalesInvoice(id, actor = null) {
       beforeSnapshot,
       afterSnapshot: {
         ...afterSnapshot,
+        warnings,
+      },
+      actor,
+    });
+
+    await transaction.commit();
+
+    return toFinalizeResult(afterSnapshot, warnings);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function cancelSalesInvoice(id, payload = {}, actor = null) {
+  assertMelisaWriteEnabled();
+
+  const invoiceId = Number(id);
+
+  if (!Number.isInteger(invoiceId) || invoiceId < 1) {
+    throw makeServiceError('SALES_CANCEL_ID_INVALID', 'Sales invoice id is invalid');
+  }
+
+  const reason = normalizeCancelReason(payload.reason);
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const beforeSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('SALES_CANCEL_NOT_FOUND', 'Sales invoice not found', 404);
+    }
+
+    if (beforeSnapshot.status !== 'FINALIZED') {
+      throw makeServiceError('SALES_CANCEL_STATUS_INVALID', 'Only FINALIZED sales invoices can be cancelled', 409);
+    }
+
+    if (!beforeSnapshot.items.length) {
+      throw makeServiceError('SALES_CANCEL_ITEMS_REQUIRED', 'Sales invoice must contain at least one item', 400);
+    }
+
+    const warnings = [];
+    let reversedStockTotal = 0;
+
+    for (const item of beforeSnapshot.items) {
+      const quantity = safeNumber(item.quantity);
+      const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const averageCostTrySnapshot = safeNumber(item.averageCostTry ?? item.productAverageCostTry);
+
+      reversedStockTotal += quantity;
+
+      await new sqlDriver.Request(transaction)
+        .input('cancelProductIdForStockUpdate', sql.BigInt, item.productId)
+        .input('cancelQuantityForStockUpdate', sql.Decimal(18, 3), quantity)
+        .query(`
+          UPDATE dbo.products
+          SET
+            current_stock_qty = current_stock_qty + @cancelQuantityForStockUpdate,
+            updated_at = SYSUTCDATETIME()
+          WHERE id = @cancelProductIdForStockUpdate;
+        `);
+
+      await new sqlDriver.Request(transaction)
+        .input('cancelMovementProductId', sql.BigInt, item.productId)
+        .input('cancelMovementSourceId', sql.BigInt, invoiceId)
+        .input('cancelMovementQuantityIn', sql.Decimal(18, 3), quantity)
+        .input('cancelMovementQuantityNet', sql.Decimal(18, 3), quantity)
+        .input('cancelMovementUnitCostTry', sql.Decimal(18, 4), averageCostTrySnapshot)
+        .input('cancelMovementUnitPrice', sql.Decimal(18, 4), Number(item.unitPrice || 0))
+        .input('cancelMovementCurrency', sql.NVarChar(3), item.currency)
+        .input('cancelMovementAmountTry', sql.Decimal(18, 4), -amountTry)
+        .input('cancelMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+        .input('cancelMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
+        .input('cancelMovementCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+        .query(`
+          INSERT INTO dbo.stock_movements (
+            product_id,
+            movement_type,
+            source_type,
+            source_id,
+            quantity_in,
+            quantity_out,
+            quantity_net,
+            unit_cost_try,
+            average_cost_try_after,
+            document_date,
+            customer_id,
+            created_at,
+            created_by,
+            unit_price,
+            currency_code,
+            amount_try
+          )
+          VALUES (
+            @cancelMovementProductId,
+            N'in',
+            N'sales_invoice',
+            @cancelMovementSourceId,
+            @cancelMovementQuantityIn,
+            0,
+            @cancelMovementQuantityNet,
+            @cancelMovementUnitCostTry,
+            @cancelMovementUnitCostTry,
+            @cancelMovementDocumentDate,
+            @cancelMovementCustomerId,
+            SYSUTCDATETIME(),
+            @cancelMovementCreatedBy,
+            @cancelMovementUnitPrice,
+            @cancelMovementCurrency,
+            @cancelMovementAmountTry
+          );
+        `);
+    }
+
+    const reversedCustomerAmount = Number(beforeSnapshot.grandTotal || 0);
+
+    await new sqlDriver.Request(transaction)
+      .input('cancelCustomerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
+      .input('cancelCustomerMovementInvoiceId', sql.BigInt, invoiceId)
+      .input('cancelCustomerMovementAmount', sql.Decimal(18, 4), reversedCustomerAmount)
+      .input('cancelCustomerMovementBalanceEffect', sql.Decimal(18, 4), -reversedCustomerAmount)
+      .input('cancelCustomerMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
+      .input('cancelCustomerMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+      .input('cancelCustomerMovementCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.customer_movements (
+          customer_id,
+          sales_invoice_id,
+          movement_type,
+          amount,
+          currency_code,
+          balance_effect,
+          document_date,
+          created_at,
+          created_by
+        )
+        VALUES (
+          @cancelCustomerMovementCustomerId,
+          @cancelCustomerMovementInvoiceId,
+          N'sales_invoice',
+          @cancelCustomerMovementAmount,
+          @cancelCustomerMovementCurrency,
+          @cancelCustomerMovementBalanceEffect,
+          @cancelCustomerMovementDocumentDate,
+          SYSUTCDATETIME(),
+          @cancelCustomerMovementCreatedBy
+        );
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('cancelCustomerBalanceId', sql.BigInt, beforeSnapshot.customerId)
+      .input('cancelCustomerBalanceEffect', sql.Decimal(18, 4), reversedCustomerAmount)
+      .query(`
+        UPDATE dbo.customers
+        SET
+          balance = balance - @cancelCustomerBalanceEffect,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @cancelCustomerBalanceId;
+      `);
+
+    const cancelResult = await new sqlDriver.Request(transaction)
+      .input('cancelInvoiceId', sql.BigInt, invoiceId)
+      .input('cancelReason', sql.NVarChar(500), reason)
+      .input('cancelUpdatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        UPDATE dbo.sales_invoices
+        SET
+          status = N'cancelled',
+          cancelled_at = SYSUTCDATETIME(),
+          cancel_reason = @cancelReason,
+          updated_at = SYSUTCDATETIME(),
+          updated_by = @cancelUpdatedBy
+        WHERE id = @cancelInvoiceId
+          AND status = N'finalized';
+      `);
+
+    if (Number(cancelResult.rowsAffected?.[0] || 0) !== 1) {
+      throw makeServiceError('SALES_CANCEL_STATUS_INVALID', 'Sales invoice status changed during cancel', 409);
+    }
+
+    const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'sales_invoice_cancelled',
+      entityType: 'sales_invoice',
+      entityId: invoiceId,
+      beforeSnapshot,
+      afterSnapshot: {
+        ...afterSnapshot,
+        reason,
+        reversedStockTotal,
+        reversedCustomerAmount,
         warnings,
       },
       actor,
@@ -1617,7 +1829,7 @@ export async function finalizePurchaseInvoice(id, actor = null) {
   await transaction.begin();
 
   try {
-    const beforeSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+    const beforeSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
 
     if (!beforeSnapshot) {
       throw makeServiceError('PURCHASE_FINALIZE_NOT_FOUND', 'Purchase invoice not found', 404);
@@ -1784,7 +1996,7 @@ export async function finalizePurchaseInvoice(id, actor = null) {
         WHERE id = @supplierBalanceId;
       `);
 
-    await new sqlDriver.Request(transaction)
+    const finalizeResult = await new sqlDriver.Request(transaction)
       .input('finalizePurchaseInvoiceId', sql.BigInt, invoiceId)
       .query(`
         UPDATE dbo.purchase_invoices
@@ -1796,6 +2008,10 @@ export async function finalizePurchaseInvoice(id, actor = null) {
           AND status = N'draft';
       `);
 
+    if (Number(finalizeResult.rowsAffected?.[0] || 0) !== 1) {
+      throw makeServiceError('PURCHASE_FINALIZE_STATUS_CHANGED', 'Purchase invoice status changed during finalize', 409);
+    }
+
     const afterSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -1805,6 +2021,220 @@ export async function finalizePurchaseInvoice(id, actor = null) {
       beforeSnapshot,
       afterSnapshot: {
         ...afterSnapshot,
+        warnings,
+      },
+      actor,
+    });
+
+    await transaction.commit();
+
+    return toFinalizeResult(afterSnapshot, warnings);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
+  assertMelisaWriteEnabled();
+
+  const invoiceId = Number(id);
+
+  if (!Number.isInteger(invoiceId) || invoiceId < 1) {
+    throw makeServiceError('PURCHASE_CANCEL_ID_INVALID', 'Purchase invoice id is invalid');
+  }
+
+  const reason = normalizeCancelReason(payload.reason, 'PURCHASE_CANCEL_REASON_REQUIRED');
+  const averageCostPolicy = {
+    average_cost_cancel_policy: 'no_direct_rollback',
+    reason: 'Purchase cancellation does not directly rollback average cost. Cost recalculation will be handled by a future recalculation service.',
+  };
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const beforeSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('PURCHASE_CANCEL_NOT_FOUND', 'Purchase invoice not found', 404);
+    }
+
+    if (beforeSnapshot.status !== 'FINALIZED') {
+      throw makeServiceError('PURCHASE_CANCEL_STATUS_INVALID', 'Only FINALIZED purchase invoices can be cancelled', 409);
+    }
+
+    if (!beforeSnapshot.items.length) {
+      throw makeServiceError('PURCHASE_CANCEL_ITEMS_REQUIRED', 'Purchase invoice must contain at least one item', 400);
+    }
+
+    const warnings = [];
+    let reversedStockTotal = 0;
+
+    for (const item of beforeSnapshot.items) {
+      const quantity = safeNumber(item.quantity);
+      const currentStock = safeNumber(item.currentStockQty);
+      const nextStock = currentStock - quantity;
+      const lineTotalTry = safeNumber(item.lineTotalTry || item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const currentAverageCostTry = safeNumber(item.currentAverageCostTry);
+
+      reversedStockTotal += quantity;
+
+      if (nextStock < 0) {
+        warnings.push({
+          code: 'NEGATIVE_STOCK_AFTER_PURCHASE_CANCEL',
+          productId: item.productId,
+          stockCode: item.stockCode,
+          currentStock,
+          quantity,
+          projectedStock: nextStock,
+        });
+      }
+
+      await new sqlDriver.Request(transaction)
+        .input('cancelPurchaseProductIdForStockUpdate', sql.BigInt, item.productId)
+        .input('cancelPurchaseQuantityForStockUpdate', sql.Decimal(18, 3), quantity)
+        .query(`
+          UPDATE dbo.products
+          SET
+            current_stock_qty = current_stock_qty - @cancelPurchaseQuantityForStockUpdate,
+            updated_at = SYSUTCDATETIME()
+          WHERE id = @cancelPurchaseProductIdForStockUpdate;
+        `);
+
+      await new sqlDriver.Request(transaction)
+        .input('cancelPurchaseMovementProductId', sql.BigInt, item.productId)
+        .input('cancelPurchaseMovementSourceId', sql.BigInt, invoiceId)
+        .input('cancelPurchaseMovementQuantityOut', sql.Decimal(18, 3), quantity)
+        .input('cancelPurchaseMovementQuantityNet', sql.Decimal(18, 3), -quantity)
+        .input('cancelPurchaseMovementUnitCostTry', sql.Decimal(18, 4), currentAverageCostTry)
+        .input('cancelPurchaseMovementUnitPrice', sql.Decimal(18, 4), Number(item.purchasePrice || 0))
+        .input('cancelPurchaseMovementCurrency', sql.NVarChar(3), item.currency)
+        .input('cancelPurchaseMovementAmountTry', sql.Decimal(18, 4), -lineTotalTry)
+        .input('cancelPurchaseMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+        .input('cancelPurchaseMovementSupplierId', sql.BigInt, beforeSnapshot.supplierId)
+        .input('cancelPurchaseMovementCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+        .query(`
+          INSERT INTO dbo.stock_movements (
+            product_id,
+            movement_type,
+            source_type,
+            source_id,
+            quantity_in,
+            quantity_out,
+            quantity_net,
+            unit_cost_try,
+            average_cost_try_after,
+            document_date,
+            supplier_id,
+            created_at,
+            created_by,
+            unit_price,
+            currency_code,
+            amount_try
+          )
+          VALUES (
+            @cancelPurchaseMovementProductId,
+            N'out',
+            N'purchase_invoice',
+            @cancelPurchaseMovementSourceId,
+            0,
+            @cancelPurchaseMovementQuantityOut,
+            @cancelPurchaseMovementQuantityNet,
+            @cancelPurchaseMovementUnitCostTry,
+            @cancelPurchaseMovementUnitCostTry,
+            @cancelPurchaseMovementDocumentDate,
+            @cancelPurchaseMovementSupplierId,
+            SYSUTCDATETIME(),
+            @cancelPurchaseMovementCreatedBy,
+            @cancelPurchaseMovementUnitPrice,
+            @cancelPurchaseMovementCurrency,
+            @cancelPurchaseMovementAmountTry
+          );
+        `);
+    }
+
+    const reversedSupplierAmount = Number(beforeSnapshot.grandTotal || 0);
+
+    await new sqlDriver.Request(transaction)
+      .input('cancelSupplierMovementSupplierId', sql.BigInt, beforeSnapshot.supplierId)
+      .input('cancelSupplierMovementInvoiceId', sql.BigInt, invoiceId)
+      .input('cancelSupplierMovementAmount', sql.Decimal(18, 4), reversedSupplierAmount)
+      .input('cancelSupplierMovementBalanceEffect', sql.Decimal(18, 4), -reversedSupplierAmount)
+      .input('cancelSupplierMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
+      .input('cancelSupplierMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+      .input('cancelSupplierMovementCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.supplier_movements (
+          supplier_id,
+          purchase_invoice_id,
+          movement_type,
+          amount,
+          currency_code,
+          balance_effect,
+          document_date,
+          created_at,
+          created_by
+        )
+        VALUES (
+          @cancelSupplierMovementSupplierId,
+          @cancelSupplierMovementInvoiceId,
+          N'purchase_invoice',
+          @cancelSupplierMovementAmount,
+          @cancelSupplierMovementCurrency,
+          @cancelSupplierMovementBalanceEffect,
+          @cancelSupplierMovementDocumentDate,
+          SYSUTCDATETIME(),
+          @cancelSupplierMovementCreatedBy
+        );
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('cancelSupplierBalanceId', sql.BigInt, beforeSnapshot.supplierId)
+      .input('cancelSupplierBalanceEffect', sql.Decimal(18, 4), reversedSupplierAmount)
+      .query(`
+        UPDATE dbo.suppliers
+        SET
+          balance = balance - @cancelSupplierBalanceEffect,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @cancelSupplierBalanceId;
+      `);
+
+    const cancelResult = await new sqlDriver.Request(transaction)
+      .input('cancelPurchaseInvoiceId', sql.BigInt, invoiceId)
+      .input('cancelPurchaseReason', sql.NVarChar(500), reason)
+      .input('cancelPurchaseUpdatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        UPDATE dbo.purchase_invoices
+        SET
+          status = N'cancelled',
+          cancelled_at = SYSUTCDATETIME(),
+          cancel_reason = @cancelPurchaseReason,
+          updated_at = SYSUTCDATETIME(),
+          updated_by = @cancelPurchaseUpdatedBy
+        WHERE id = @cancelPurchaseInvoiceId
+          AND status = N'finalized';
+      `);
+
+    if (Number(cancelResult.rowsAffected?.[0] || 0) !== 1) {
+      throw makeServiceError('PURCHASE_CANCEL_STATUS_INVALID', 'Purchase invoice status changed during cancel', 409);
+    }
+
+    const afterSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'purchase_invoice_cancelled',
+      entityType: 'purchase_invoice',
+      entityId: invoiceId,
+      beforeSnapshot,
+      afterSnapshot: {
+        ...afterSnapshot,
+        reason,
+        reversedStockTotal,
+        reversedSupplierAmount,
+        averageCostPolicy,
         warnings,
       },
       actor,
