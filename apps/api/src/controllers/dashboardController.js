@@ -1,4 +1,8 @@
-import { getDashboardAlertsData, getDashboardSummaryData } from '../services/dashboardService.js';
+import {
+  getDashboardAlertsData,
+  getDashboardSummaryData,
+  getManagementReportingData,
+} from '../services/dashboardService.js';
 import { fail, ok } from '../utils/response.js';
 
 export async function getDashboardSummary(req, res) {
@@ -24,5 +28,18 @@ export async function getDashboardAlerts(req, res) {
     });
   } catch (error) {
     return fail(res, error.statusCode || 503, error.code || 'DASHBOARD_ALERTS_FAILED', 'Dashboard alerts query failed');
+  }
+}
+
+export async function getManagementReporting(req, res) {
+  try {
+    const data = await getManagementReportingData();
+    return ok(res, data, {
+      source: 'sql-select-management-reporting',
+      refreshPolicySeconds: 60,
+      readOnly: true,
+    });
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'MANAGEMENT_REPORTING_FAILED', 'Management reporting query failed');
   }
 }

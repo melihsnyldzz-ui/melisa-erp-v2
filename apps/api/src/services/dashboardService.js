@@ -68,6 +68,67 @@ function toSupplierPerformance(row) {
   };
 }
 
+function toDailySalesSummary(row) {
+  return {
+    salesCount: numberValue(row.sales_count),
+    salesAmountTry: numberValue(row.sales_amount_try),
+    grossProfitTry: numberValue(row.gross_profit_try),
+    cancelledSalesCount: numberValue(row.cancelled_sales_count),
+    cancelledSalesAmountTry: numberValue(row.cancelled_sales_amount_try),
+  };
+}
+
+function toDailyPurchaseSummary(row) {
+  return {
+    purchaseCount: numberValue(row.purchase_count),
+    purchaseAmountTry: numberValue(row.purchase_amount_try),
+    cancelledPurchaseCount: numberValue(row.cancelled_purchase_count),
+    cancelledPurchaseAmountTry: numberValue(row.cancelled_purchase_amount_try),
+  };
+}
+
+function toManagementTopProduct(row) {
+  return {
+    productId: row.product_id,
+    stockCode: row.stock_code,
+    productName: row.product_name,
+    quantity: numberValue(row.quantity),
+    revenueTry: numberValue(row.revenue_try),
+    grossProfitTry: numberValue(row.gross_profit_try),
+  };
+}
+
+function toCustomerAnalysis(row) {
+  return {
+    customerId: row.customer_id,
+    customerCode: row.customer_code,
+    customerName: row.customer_name,
+    totalSalesTry: numberValue(row.total_sales_try),
+    balanceTry: numberValue(row.balance_try),
+    lastSaleDate: row.last_sale_date,
+  };
+}
+
+function toSupplierAnalysis(row) {
+  return {
+    supplierId: row.supplier_id,
+    supplierCode: row.supplier_code,
+    supplierName: row.supplier_name,
+    totalPurchasesTry: numberValue(row.total_purchases_try),
+    balanceTry: numberValue(row.balance_try),
+    lastPurchaseDate: row.last_purchase_date,
+  };
+}
+
+function toCriticalWarning(row) {
+  return {
+    type: row.warning_type,
+    subject: row.subject,
+    value: numberValue(row.warning_value),
+    severity: row.severity,
+  };
+}
+
 async function fetchSummaryRows(pool) {
   const [
     salesToday,
@@ -411,4 +472,172 @@ export async function getDashboardAlertsData() {
   }
 
   return alerts.slice(0, 30);
+}
+
+export async function getManagementReportingData() {
+  const pool = await getSqlPool();
+  const [
+    dailySales,
+    dailyPurchases,
+    topProducts,
+    customerAnalysis,
+    supplierAnalysis,
+    widgets,
+    criticalWarnings,
+  ] = await Promise.all([
+    pool.request().query(`
+      SELECT
+        COALESCE(SUM(CASE WHEN status = N'finalized' THEN 1 ELSE 0 END), 0) AS sales_count,
+        COALESCE(SUM(CASE WHEN status = N'finalized' THEN amount_try ELSE 0 END), 0) AS sales_amount_try,
+        COALESCE((
+          SELECT SUM(sii.gross_profit_try)
+          FROM dbo.sales_invoice_items sii
+          INNER JOIN dbo.sales_invoices si2 ON si2.id = sii.sales_invoice_id
+          WHERE si2.status = N'finalized'
+            AND si2.document_date = CONVERT(date, SYSUTCDATETIME())
+        ), 0) AS gross_profit_try,
+        COALESCE(SUM(CASE WHEN status = N'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_sales_count,
+        COALESCE(SUM(CASE WHEN status = N'cancelled' THEN amount_try ELSE 0 END), 0) AS cancelled_sales_amount_try
+      FROM dbo.sales_invoices
+      WHERE document_date = CONVERT(date, SYSUTCDATETIME());
+    `),
+    pool.request().query(`
+      SELECT
+        COALESCE(SUM(CASE WHEN status = N'finalized' THEN 1 ELSE 0 END), 0) AS purchase_count,
+        COALESCE(SUM(CASE WHEN status = N'finalized' THEN amount_try ELSE 0 END), 0) AS purchase_amount_try,
+        COALESCE(SUM(CASE WHEN status = N'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_purchase_count,
+        COALESCE(SUM(CASE WHEN status = N'cancelled' THEN amount_try ELSE 0 END), 0) AS cancelled_purchase_amount_try
+      FROM dbo.purchase_invoices
+      WHERE document_date = CONVERT(date, SYSUTCDATETIME());
+    `),
+    pool.request().query(`
+      SELECT TOP (10)
+        sii.product_id,
+        sii.stock_code_snapshot AS stock_code,
+        sii.product_name_snapshot AS product_name,
+        COALESCE(SUM(sii.quantity), 0) AS quantity,
+        COALESCE(SUM(sii.line_total * si.exchange_rate_snapshot), 0) AS revenue_try,
+        COALESCE(SUM(sii.gross_profit_try), 0) AS gross_profit_try
+      FROM dbo.sales_invoice_items sii
+      INNER JOIN dbo.sales_invoices si ON si.id = sii.sales_invoice_id
+      WHERE si.status = N'finalized'
+      GROUP BY sii.product_id, sii.stock_code_snapshot, sii.product_name_snapshot
+      ORDER BY quantity DESC, revenue_try DESC;
+    `),
+    pool.request().query(`
+      SELECT TOP (10)
+        c.id AS customer_id,
+        c.customer_code,
+        c.name AS customer_name,
+        COALESCE(sales_totals.total_sales_try, 0) AS total_sales_try,
+        c.balance AS balance_try,
+        sales_totals.last_sale_date
+      FROM dbo.customers c
+      OUTER APPLY (
+        SELECT
+          SUM(si.amount_try) AS total_sales_try,
+          MAX(si.document_date) AS last_sale_date
+        FROM dbo.sales_invoices si
+        WHERE si.customer_id = c.id
+          AND si.status = N'finalized'
+      ) sales_totals
+      WHERE c.is_deleted = 0
+      ORDER BY COALESCE(sales_totals.total_sales_try, 0) DESC, ABS(c.balance) DESC, c.id DESC;
+    `),
+    pool.request().query(`
+      SELECT TOP (10)
+        s.id AS supplier_id,
+        s.supplier_code,
+        s.name AS supplier_name,
+        COALESCE(purchase_totals.total_purchases_try, 0) AS total_purchases_try,
+        s.balance AS balance_try,
+        purchase_totals.last_purchase_date
+      FROM dbo.suppliers s
+      OUTER APPLY (
+        SELECT
+          SUM(pi.amount_try) AS total_purchases_try,
+          MAX(pi.document_date) AS last_purchase_date
+        FROM dbo.purchase_invoices pi
+        WHERE pi.supplier_id = s.id
+          AND pi.status = N'finalized'
+      ) purchase_totals
+      WHERE s.is_deleted = 0
+      ORDER BY COALESCE(purchase_totals.total_purchases_try, 0) DESC, ABS(s.balance) DESC, s.id DESC;
+    `),
+    pool.request().query(`
+      SELECT
+        COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_sales_try,
+        COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_purchases_try,
+        COALESCE((SELECT SUM(current_stock_qty * average_cost_try) FROM dbo.products WHERE is_deleted = 0), 0) AS total_stock_value_try,
+        COALESCE((SELECT SUM(balance) FROM dbo.customers WHERE is_deleted = 0), 0) AS customer_balance_try,
+        COALESCE((SELECT SUM(balance) FROM dbo.suppliers WHERE is_deleted = 0), 0) AS supplier_balance_try,
+        COALESCE((SELECT COUNT_BIG(1) FROM dbo.products WHERE is_deleted = 0 AND current_stock_qty < 0), 0) AS negative_stock_count,
+        COALESCE((SELECT COUNT_BIG(1) FROM dbo.sales_invoices WHERE status = N'draft'), 0) AS sales_draft_count,
+        COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count;
+    `),
+    pool.request().query(`
+      SELECT TOP (20)
+        warning_type,
+        subject,
+        warning_value,
+        severity
+      FROM (
+        SELECT
+          N'negative_stock' AS warning_type,
+          CONCAT(p.stock_code, N' / ', p.name) AS subject,
+          CAST(p.current_stock_qty AS DECIMAL(18, 4)) AS warning_value,
+          N'danger' AS severity
+        FROM dbo.products p
+        WHERE p.is_deleted = 0
+          AND p.current_stock_qty < 0
+
+        UNION ALL
+
+        SELECT
+          N'customer_balance' AS warning_type,
+          CONCAT(c.customer_code, N' / ', c.name) AS subject,
+          CAST(c.balance AS DECIMAL(18, 4)) AS warning_value,
+          N'warn' AS severity
+        FROM dbo.customers c
+        WHERE c.is_deleted = 0
+          AND c.balance >= 100000
+
+        UNION ALL
+
+        SELECT
+          N'supplier_balance' AS warning_type,
+          CONCAT(s.supplier_code, N' / ', s.name) AS subject,
+          CAST(s.balance AS DECIMAL(18, 4)) AS warning_value,
+          N'warn' AS severity
+        FROM dbo.suppliers s
+        WHERE s.is_deleted = 0
+          AND s.balance >= 100000
+      ) warnings
+      ORDER BY
+        CASE severity WHEN N'danger' THEN 1 WHEN N'warn' THEN 2 ELSE 3 END,
+        ABS(warning_value) DESC;
+    `),
+  ]);
+
+  const widgetRow = widgets.recordset?.[0] || {};
+
+  return {
+    generatedAt: new Date().toISOString(),
+    dailySales: toDailySalesSummary(dailySales.recordset?.[0] || {}),
+    dailyPurchases: toDailyPurchaseSummary(dailyPurchases.recordset?.[0] || {}),
+    topProducts: (topProducts.recordset || []).map(toManagementTopProduct),
+    customerAnalysis: (customerAnalysis.recordset || []).map(toCustomerAnalysis),
+    supplierAnalysis: (supplierAnalysis.recordset || []).map(toSupplierAnalysis),
+    widgets: {
+      todaySalesTry: numberValue(widgetRow.today_sales_try),
+      todayPurchasesTry: numberValue(widgetRow.today_purchases_try),
+      totalStockValueTry: numberValue(widgetRow.total_stock_value_try),
+      customerBalanceTry: numberValue(widgetRow.customer_balance_try),
+      supplierBalanceTry: numberValue(widgetRow.supplier_balance_try),
+      negativeStockCount: numberValue(widgetRow.negative_stock_count),
+      salesDraftCount: numberValue(widgetRow.sales_draft_count),
+      purchaseDraftCount: numberValue(widgetRow.purchase_draft_count),
+    },
+    criticalWarnings: (criticalWarnings.recordset || []).map(toCriticalWarning),
+  };
 }
