@@ -7,7 +7,7 @@ export function Sidebar({ activeTab, isDemoMode = false, user, onOpenScreen }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <strong>Islem Paneli</strong>
+        <strong>Modul Paneli</strong>
         <span>{activeTab.module} / {activeTab.type} baglami</span>
       </div>
       {sidebarGroups.map((group) => (
@@ -27,8 +27,8 @@ export function Sidebar({ activeTab, isDemoMode = false, user, onOpenScreen }) {
       ))}
       <section className="side-group compact">
         <h3>Durum</h3>
-        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo kapali' : 'aktif'}</p>
-        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'demo kapali' : 'MELISA_ERP_V2'}</p>
+        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo mode' : 'aktif'}</p>
+        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'baglanti yok' : 'MELISA_ERP_V2'}</p>
         <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
       </section>
     </aside>

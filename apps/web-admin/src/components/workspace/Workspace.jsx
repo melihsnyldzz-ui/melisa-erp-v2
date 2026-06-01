@@ -12,7 +12,7 @@ import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScre
 import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 
-export function Workspace({ activeTab, onOpenScreen, permissions = [] }) {
+export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [] }) {
   const screenId = activeTab.screenId ?? activeTab.id;
 
   if (screenId === 'dashboard') {
@@ -40,7 +40,13 @@ export function Workspace({ activeTab, onOpenScreen, permissions = [] }) {
   }
 
   if (screenId === 'sales-invoice') {
-    return <SalesInvoiceScreen salesDraftId={activeTab.payload?.salesDraftId} permissions={permissions} />;
+    return (
+      <SalesInvoiceScreen
+        salesDraftId={activeTab.payload?.salesDraftId}
+        permissions={permissions}
+        onDirtyChange={onDirtyChange}
+      />
+    );
   }
 
   if (screenId === 'sales-invoice-list') {
@@ -48,7 +54,13 @@ export function Workspace({ activeTab, onOpenScreen, permissions = [] }) {
   }
 
   if (screenId === 'purchase-invoice') {
-    return <PurchaseInvoiceScreen purchaseDraftId={activeTab.payload?.purchaseDraftId} permissions={permissions} />;
+    return (
+      <PurchaseInvoiceScreen
+        purchaseDraftId={activeTab.payload?.purchaseDraftId}
+        permissions={permissions}
+        onDirtyChange={onDirtyChange}
+      />
+    );
   }
 
   if (screenId === 'purchase-invoice-list') {

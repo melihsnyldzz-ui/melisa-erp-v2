@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { TopMenu } from '../navigation/TopMenu.jsx';
 import { Sidebar } from '../navigation/Sidebar.jsx';
 import { TabBar } from '../workspace/TabBar.jsx';
@@ -66,6 +66,14 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       return;
     }
 
+    if (closingTab.dirty) {
+      const shouldClose = window.confirm(`${closingTab.label} ekraninda kaydedilmemis degisiklikler var. Sekme kapatilsin mi?`);
+
+      if (!shouldClose) {
+        return;
+      }
+    }
+
     const closingIndex = tabs.findIndex((tab) => tab.id === tabId);
     const nextTabs = tabs.filter((tab) => tab.id !== tabId);
 
@@ -77,6 +85,22 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     }
   }
 
+  const updateActiveTabDirty = useCallback((isDirty) => {
+    setTabs((currentTabs) => {
+      let didChange = false;
+      const nextTabs = currentTabs.map((tab) => {
+        if (tab.id !== activeTabId || tab.dirty === isDirty) {
+          return tab;
+        }
+
+        didChange = true;
+        return { ...tab, dirty: isDirty };
+      });
+
+      return didChange ? nextTabs : currentTabs;
+    });
+  }, [activeTabId]);
+
   return (
     <div className={isDemoMode ? 'erp-shell demo-mode-shell' : 'erp-shell'}>
       {isDemoMode && (
@@ -84,12 +108,17 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
           DEMO MODE: API/SQL kapali, islemler kaydedilmez
         </div>
       )}
-      <TopMenu activeModule={activeTab.module} user={user} onLogout={onLogout} />
+      <TopMenu activeModule={activeTab.module} user={user} onLogout={onLogout} onOpenScreen={openScreen} />
       <div className="main-layout">
         <Sidebar activeTab={activeTab} isDemoMode={isDemoMode} user={user} onOpenScreen={openScreen} />
         <section className="content-shell">
           <TabBar tabs={tabs} activeTabId={activeTab.id} onActivateTab={setActiveTabId} onCloseTab={closeTab} />
-          <Workspace activeTab={activeTab} onOpenScreen={openScreen} permissions={permissions} />
+          <Workspace
+            activeTab={activeTab}
+            onDirtyChange={updateActiveTabDirty}
+            onOpenScreen={openScreen}
+            permissions={permissions}
+          />
         </section>
       </div>
       <StatusBar activeTab={activeTab} isDemoMode={isDemoMode} openTabCount={tabs.length} user={user} />
