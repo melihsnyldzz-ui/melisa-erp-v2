@@ -4,6 +4,7 @@ import { ProductCardForm } from './ProductCardForm.jsx';
 import { ProductCardHeader } from './ProductCardHeader.jsx';
 import { ProductImagePanel } from './ProductImagePanel.jsx';
 import { ProductStockSummary } from './ProductStockSummary.jsx';
+import { stockFilterOptions } from '../stock/stockMockData.js';
 import {
   changeProductPassive,
   createProduct,
@@ -296,6 +297,7 @@ export function ProductCardScreen({ productId, permissions = [] }) {
               product={productView}
               form={form}
               mode={mode}
+              suggestions={stockFilterOptions}
               onChange={updateField}
             />
             <aside className="product-side-panels">

@@ -18,8 +18,10 @@ function formatPercent(value) {
 
 export function SalesInvoiceItemsTable({
   items,
+  onAdjustQuantity,
   selectedItemId,
   onDeleteItem,
+  onOpenProduct,
   onSelectItem,
   onUpdateItem,
   showProfitColumns = false,
@@ -88,11 +90,20 @@ export function SalesInvoiceItemsTable({
                   {showProfitColumns && <td className="money-cell">{formatMoney(item.averageCostTry || 0, 'TRY')}</td>}
                   {showProfitColumns && <td className="money-cell">{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
                   {showProfitColumns && <td className="money-cell">{formatPercent(item.grossProfitRate || 0)}</td>}
-                  <td className={item.stockState === 'Eksiye duser' ? 'sales-stock-risk' : ''}>{item.stockState}</td>
+                  <td>
+                    <span className={item.stockState === 'Eksiye duser' ? 'sales-stock-pill risk' : 'sales-stock-pill'}>
+                      {item.stockState}
+                    </span>
+                  </td>
                   <td>{item.note}</td>
                   {!isReadonly && (
-                    <td>
-                      <button type="button" onClick={() => onDeleteItem(item.id)}>Sil</button>
+                    <td className="row-action-cell">
+                      <div className="row-actions">
+                        <button aria-label="Adet azalt" type="button" onClick={() => onAdjustQuantity?.(item.id, -1)}>-</button>
+                        <button aria-label="Adet artır" type="button" onClick={() => onAdjustQuantity?.(item.id, 1)}>+</button>
+                        <button type="button" onClick={() => onOpenProduct?.(item.productId, item.stockCode)}>Kart</button>
+                        <button type="button" onClick={() => onDeleteItem(item.id)}>Sil</button>
+                      </div>
                     </td>
                   )}
                 </tr>

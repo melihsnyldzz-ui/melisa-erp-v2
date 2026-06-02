@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
@@ -9,11 +9,21 @@ function formatMoney(amount, currency) {
 }
 
 export function SalesInvoiceTotals({ totals }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <section className="erp-panel sales-totals-panel">
+    <section className={isOpen ? 'erp-panel sales-totals-panel open' : 'erp-panel sales-totals-panel'}>
       <div className="panel-title">
         <strong>Toplamlar</strong>
-        <span>Fis geneli yuzde iskonto</span>
+        <span className="mini-total-value">{formatMoney(totals.grandTotal, 'TRY')}</span>
+        <button
+          aria-expanded={isOpen}
+          className="mini-total-toggle"
+          onClick={() => setIsOpen((current) => !current)}
+          type="button"
+        >
+          {isOpen ? 'Kapat' : 'Detay'}
+        </button>
       </div>
       <dl>
         <div>

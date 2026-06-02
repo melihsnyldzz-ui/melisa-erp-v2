@@ -4,7 +4,7 @@ export function DashboardReceivablesPanel({ rows }) {
   return (
     <section className="erp-panel dashboard-table-panel">
       <div className="panel-title">
-        <strong>Cari Borc / Ekstre Ozeti</strong>
+        <strong>Cari Borç / Ekstre Özeti</strong>
         <span>Musteri borclari ve risk</span>
       </div>
       <div className="table-wrap dashboard-table-wrap">

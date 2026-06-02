@@ -38,11 +38,17 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) 
               <td>{row.currency}</td>
               <td className="money-cell">{row.salesPrice}</td>
               <td className="money-cell">{row.purchasePrice}</td>
-              <td className={row.currentStock < 0 ? 'stock-negative' : row.currentStock === 0 ? 'stock-zero' : ''}>
-                {row.currentStock}
+              <td>
+                <span className={row.currentStock < 0 ? 'stock-pill negative' : row.currentStock === 0 ? 'stock-pill zero' : 'stock-pill positive'}>
+                  {row.currentStock}
+                </span>
               </td>
               <td>{row.supplier}</td>
-              <td className={row.status === 'Pasif' ? 'status-passive' : 'status-active'}>{row.status}</td>
+              <td>
+                <span className={row.status === 'Pasif' ? 'status-badge passive' : 'status-badge active'}>
+                  {row.status}
+                </span>
+              </td>
             </tr>
           ))}
         </tbody>

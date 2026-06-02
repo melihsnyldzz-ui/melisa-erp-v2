@@ -137,7 +137,7 @@ function mapProductOption(product) {
   };
 }
 
-export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChange }) {
+export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChange, onOpenScreen }) {
   const [draftId, setDraftId] = useState(salesDraftId ?? null);
   const [invoice, setInvoice] = useState(salesDraftId ? salesInvoiceHeader : emptySalesInvoice);
   const [items, setItems] = useState(salesDraftId ? salesInvoiceItems : []);
@@ -149,6 +149,8 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   const [draftProductOptions, setDraftProductOptions] = useState([]);
   const [productToAddId, setProductToAddId] = useState('');
   const [productQuery, setProductQuery] = useState('');
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [quickQuantity, setQuickQuantity] = useState(1);
   const [referenceOptionsError, setReferenceOptionsError] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(salesDraftId));
@@ -176,6 +178,19 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return matchesQuery && !product.isPassive;
     });
   }, [draftProductOptions, productQuery]);
+  const filteredCustomers = useMemo(() => {
+    const query = customerQuery.trim().toLowerCase();
+
+    return draftCustomerOptions.filter((customer) => (
+      !query || [customer.name, customer.currency].some((value) => String(value || '').toLowerCase().includes(query))
+    ));
+  }, [customerQuery, draftCustomerOptions]);
+  const flowSteps = useMemo(() => [
+    { key: 'customer', label: 'Cari', done: Boolean(invoice.customerId) },
+    { key: 'item', label: 'Ürün', done: items.length > 0 },
+    { key: 'draft', label: 'Taslak', done: Boolean(draftId) },
+    { key: 'final', label: 'Kesin', done: isFinalized },
+  ], [draftId, invoice.customerId, isFinalized, items.length]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -354,7 +369,38 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       exchangeRate: `${customer.currency} 1.0000`,
       exchangeRateValue: 1,
     }));
+    setCustomerQuery(customer.name);
     markDirty('Cari secildi; taslak henuz stok veya cari hareket olusturmaz.');
+  }
+
+  function selectCustomerByQuery(value) {
+    setCustomerQuery(value);
+    const normalizedValue = value.trim().toLowerCase();
+    const exactCustomer = draftCustomerOptions.find((customer) => customer.name.toLowerCase() === normalizedValue);
+    const firstMatch = draftCustomerOptions.find((customer) => customer.name.toLowerCase().includes(normalizedValue));
+    const customer = exactCustomer || (normalizedValue ? firstMatch : null);
+
+    if (customer) {
+      selectCustomer(customer.id);
+    }
+  }
+
+  function updateProductQuery(value) {
+    setProductQuery(value);
+    setReferenceOptionsError('');
+    const normalizedValue = value.trim().toLowerCase();
+    const exactProduct = draftProductOptions.find((product) => (
+      [product.stockCode, product.barcode, product.productName, `${product.stockCode} / ${product.productName}`]
+        .some((fieldValue) => String(fieldValue || '').toLowerCase() === normalizedValue)
+    ));
+    const firstMatch = draftProductOptions.find((product) => (
+      !product.isPassive &&
+      [product.stockCode, product.barcode, product.productName, `${product.stockCode} / ${product.productName}`]
+        .some((fieldValue) => String(fieldValue || '').toLowerCase().includes(normalizedValue))
+    ));
+    const product = exactProduct || (normalizedValue ? firstMatch : null);
+
+    setProductToAddId(product ? String(product.productId) : '');
   }
 
   function addDraftItem() {
@@ -390,7 +436,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       if (existingItem) {
         setSelectedItemId(existingItem.id);
         return currentItems.map((item) => (
-          item.id === existingItem.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === existingItem.id ? { ...item, quantity: item.quantity + Math.max(1, Number(quickQuantity || 1)) } : item
         ));
       }
 
@@ -403,7 +449,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           stockCode: product.stockCode,
           barcode: product.barcode,
           productName: product.productName,
-          quantity: 1,
+          quantity: Math.max(1, Number(quickQuantity || 1)),
           currency: product.currency,
           unitPrice: product.unitPrice,
           stockState: product.stockState,
@@ -415,6 +461,30 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       ];
     });
     markDirty('Urun taslak satira eklendi; gercek stok dusumu yok.');
+  }
+
+  function addDraftItemFromKeyboard(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addDraftItem();
+    }
+  }
+
+  function adjustDraftItemQuantity(itemId, delta) {
+    const item = items.find((currentItem) => currentItem.id === itemId);
+    if (!item) {
+      return;
+    }
+
+    updateDraftItem(itemId, 'quantity', Math.max(1, Number(item.quantity || 1) + delta));
+  }
+
+  function openProductCard(productId, stockCode) {
+    if (!productId || !onOpenScreen) {
+      return;
+    }
+
+    onOpenScreen('product-card', { productId, stockCode });
   }
 
   function updateDraftItem(itemId, field, value) {
@@ -491,6 +561,18 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       setIsSaving(false);
     }
   }
+
+  useEffect(() => {
+    function handleShortcut(event) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        saveDraft();
+      }
+    }
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  });
 
   async function finalizeInvoice() {
     if (apiConfig.demoMode) {
@@ -607,9 +689,13 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         {isReadonly && (
           <div className="list-state list-state-success">{status} fis readonly modda; tekrar kayit/kesinlestirme kapali.</div>
         )}
-        {!isLoading && !errorMessage && items.length === 0 && (
-          <div className="list-state">Taslak fis satiri bulunamadi.</div>
-        )}
+        <section className="sales-flow-steps" aria-label="Satış fişi adımları">
+          {flowSteps.map((step, index) => (
+            <span className={step.done ? 'done' : ''} key={step.key}>
+              <b>{index + 1}</b>{step.label}
+            </span>
+          ))}
+        </section>
         <SalesInvoiceHeader
           discountRate={discountRate}
           invoice={invoice}
@@ -618,35 +704,48 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           onChange={updateInvoiceField}
           onDiscountChange={setDiscountRate}
         />
-        <section className="erp-panel sales-draft-controls">
+        <section className="erp-panel sales-draft-controls sales-quick-add-panel">
           <div className="panel-title">
-            <strong>Taslak Islem Paneli</strong>
-            <span>Cari sec / urun ekle / stok dusumu yok</span>
+            <strong>Hızlı Satır</strong>
+            <span>Cari seç, barkod/ürün yaz, Enter ile satır ekle</span>
           </div>
-          <div className="sales-draft-control-grid">
+          <div className="sales-quick-add-grid">
             <label>
-              <span>Cari sec</span>
-              <select value={invoice.customerId || ''} disabled={isReadonly} onChange={(event) => selectCustomer(event.target.value)}>
-                <option value="">Cari secin</option>
-                {draftCustomerOptions.map((customer) => (
-                  <option key={customer.id} value={customer.id}>{customer.name}</option>
+              <span>Cari</span>
+              <input
+                disabled={isReadonly}
+                list="sales-customer-suggestions"
+                placeholder="Cari adı yaz"
+                value={customerQuery || invoice.customer}
+                onChange={(event) => selectCustomerByQuery(event.target.value)}
+              />
+              <datalist id="sales-customer-suggestions">
+                {filteredCustomers.map((customer) => (
+                  <option key={customer.id} value={customer.name} />
                 ))}
-              </select>
+              </datalist>
             </label>
             <label>
-              <span>Urun ara</span>
+              <span>Ürün / barkod</span>
               <input
                 disabled={isReadonly}
                 placeholder="Barkod / stok kodu / urun adi"
+                list="sales-product-suggestions"
                 value={productQuery}
-                onChange={(event) => {
-                  setProductQuery(event.target.value);
-                  setReferenceOptionsError('');
-                }}
+                onChange={(event) => updateProductQuery(event.target.value)}
+                onKeyDown={addDraftItemFromKeyboard}
               />
+              <datalist id="sales-product-suggestions">
+                {filteredProducts.map((product) => (
+                  <option
+                    key={product.productId}
+                    value={`${product.stockCode} / ${product.productName}`}
+                  />
+                ))}
+              </datalist>
             </label>
             <label>
-              <span>Urun sec</span>
+              <span>Seçim</span>
               <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)}>
                 <option value="">Urun secin</option>
                 {filteredProducts.map((product) => (
@@ -656,15 +755,34 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
                 ))}
               </select>
             </label>
+            <label className="quick-qty-field">
+              <span>Adet</span>
+              <input
+                disabled={isReadonly}
+                min="1"
+                type="number"
+                value={quickQuantity}
+                onChange={(event) => setQuickQuantity(Math.max(1, Number(event.target.value || 1)))}
+                onKeyDown={addDraftItemFromKeyboard}
+              />
+            </label>
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
           </div>
         </section>
+        {!isLoading && !errorMessage && items.length === 0 && (
+          <section className="sales-empty-state">
+            <strong>Satır bekleniyor</strong>
+            <span>Önce cari seç, sonra ürün/barkod ara. Enter veya Satır Ekle ile taslağa eklenir.</span>
+          </section>
+        )}
         <SalesInvoiceCustomerPanel invoice={invoice} permissions={salesInvoicePermissions} />
         <SalesInvoiceItemsTable
           isReadonly={isReadonly}
           items={items}
+          onAdjustQuantity={adjustDraftItemQuantity}
           selectedItemId={selectedItemId}
           onDeleteItem={deleteDraftItem}
+          onOpenProduct={openProductCard}
           onSelectItem={setSelectedItemId}
           onUpdateItem={updateDraftItem}
           showProfitColumns={isFinalized || isCancelled}

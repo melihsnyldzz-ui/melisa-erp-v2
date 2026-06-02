@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { StockListFilters } from './StockListFilters.jsx';
 import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
-import { stockFilterDefaults } from './stockMockData.js';
+import { stockFilterDefaults, stockFilterOptions } from './stockMockData.js';
 import { fetchProducts } from '../../services/productApi.js';
 
 function normalize(value) {
@@ -55,7 +55,7 @@ function toStockRow(product) {
     salesPrice: formatMoney(product.salePrice, product.currency),
     purchasePrice: formatMoney(product.purchasePrice, product.currency),
     currentStock: product.stockQuantity,
-    supplier: '-',
+    supplier: product.supplierName || product.supplier || '-',
     status: product.isPassive ? 'Pasif' : 'Aktif',
   };
 }
@@ -147,6 +147,11 @@ export function StockListScreen({ onOpenScreen }) {
   const activeCount = rows.filter((row) => row.status === 'Aktif').length;
   const passiveCount = rows.length - activeCount;
   const negativeCount = rows.filter((row) => row.currentStock < 0).length;
+  const suggestionOptions = useMemo(() => ({
+    brands: [...stockFilterOptions.brands, ...rows.map((row) => row.brand)],
+    categories: [...stockFilterOptions.categories, ...rows.map((row) => row.category)],
+    suppliers: [...stockFilterOptions.suppliers, ...rows.map((row) => row.supplier)],
+  }), [rows]);
 
   function togglePassive() {
     setFilters((currentFilters) => ({
@@ -165,7 +170,7 @@ export function StockListScreen({ onOpenScreen }) {
     const productId = selectedRow?.id;
 
     if (!productId) {
-      setSelectionWarning('Urun karti acmak icin listeden bir urun secin.');
+      setSelectionWarning('Ürün kartı açmak için listeden bir ürün seçin.');
       return;
     }
 
@@ -192,16 +197,21 @@ export function StockListScreen({ onOpenScreen }) {
         onOpenProductCard={openSelectedProduct}
         onTogglePassive={togglePassive}
       />
-      <StockListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
+      <StockListFilters
+        filters={filters}
+        suggestions={suggestionOptions}
+        onChange={setFilters}
+        onReset={resetFilters}
+      />
       <section className="erp-panel stock-list-panel">
         <div className="panel-title stock-panel-title">
-          <strong>Urun Stok Tablosu</strong>
-          <span>Secili: {selectedRow?.stockCode ?? 'yok'} / Satir: {filteredRows.length}</span>
+          <strong>Ürün Stok Tablosu</strong>
+          <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Satır: {filteredRows.length}</span>
         </div>
         {isLoading && <div className="list-state">API'den stok kayitlari yukleniyor...</div>}
         {!isLoading && errorMessage && (
           <div className="list-state list-state-error">
-            {errorMessage} API baglantisi kontrol edilmeli; mock veriye gecilmedi.
+            {errorMessage} API bağlantısı kontrol edilmeli; canlı veri okunamadı.
           </div>
         )}
         {!isLoading && !errorMessage && filteredRows.length === 0 && (
@@ -220,7 +230,7 @@ export function StockListScreen({ onOpenScreen }) {
         )}
       </section>
       <section className="screen-summary stock-summary">
-        <span>Toplam urun: {meta?.total ?? rows.length}</span>
+        <span>Toplam ürün: {meta?.total ?? rows.length}</span>
         <span>Aktif: {activeCount}</span>
         <span>Pasif: {passiveCount}</span>
         <span>Eksi stok: {negativeCount}</span>

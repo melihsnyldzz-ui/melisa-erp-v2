@@ -5,7 +5,7 @@ export function DashboardRecentTransactions({ rows }) {
     <section className="erp-panel dashboard-table-panel">
       <div className="panel-title">
         <strong>Son Satislar / Son Alislar</strong>
-        <span>Satis / alis / cari / sync</span>
+        <span>Satış / alış / cari / terminal sync</span>
       </div>
       <div className="table-wrap dashboard-table-wrap">
         <table>

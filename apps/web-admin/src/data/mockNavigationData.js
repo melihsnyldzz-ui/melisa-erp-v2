@@ -2,26 +2,26 @@ export const modules = [
   { label: 'Ana Sayfa', screenId: 'dashboard' },
   { label: 'Stok', screenId: 'stock-list' },
   { label: 'Cari', screenId: 'customer-list' },
-  { label: 'Satis', screenId: 'sales-invoice-list' },
-  { label: 'Alis', screenId: 'purchase-invoice-list' },
+  { label: 'Satış', screenId: 'sales-invoice-list' },
+  { label: 'Alış', screenId: 'purchase-invoice-list' },
   { label: 'Finans', screenId: 'finance-overview' },
   { label: 'Raporlar', screenId: 'reports-overview' },
-  { label: 'Tanimlar', screenId: 'definitions-overview' },
+  { label: 'Tanımlar', screenId: 'definitions-overview' },
   { label: 'Ayarlar', screenId: 'settings-overview' },
 ];
 
 export const sidebarGroups = [
   {
-    title: 'Dashboard',
+    title: 'Operasyon',
     items: [
-      { label: 'Operasyon Masasi', screenId: 'dashboard' },
+      { label: 'Operasyon Masası', screenId: 'dashboard' },
     ],
   },
   {
-    title: 'Stok Yonetimi',
+    title: 'Stok Yönetimi',
     items: [
       { label: 'Stok Listesi', screenId: 'stock-list' },
-      { label: 'Urun Karti', screenId: 'product-card' },
+      { label: 'Ürün Kartı', screenId: 'product-card' },
       { label: 'Fiyat Listesi', screenId: 'price-list' },
       { label: 'Stok Hareketleri', screenId: 'stock-movements' },
     ],
@@ -36,41 +36,41 @@ export const sidebarGroups = [
     ],
   },
   {
-    title: 'Satis Yonetimi',
+    title: 'Satış Yönetimi',
     items: [
-      { label: 'Yeni Satis Fisi', screenId: 'sales-invoice' },
-      { label: 'Satis Fisleri', screenId: 'sales-invoice-list' },
+      { label: 'Yeni Satış Fişi', screenId: 'sales-invoice' },
+      { label: 'Satış Fişleri', screenId: 'sales-invoice-list' },
       { label: 'Teklifler', screenId: 'sales-offers' },
-      { label: 'Siparisler', screenId: 'sales-orders' },
+      { label: 'Siparişler', screenId: 'sales-orders' },
     ],
   },
   {
-    title: 'Alis Yonetimi',
+    title: 'Alış Yönetimi',
     items: [
-      { label: 'Yeni Alis Fisi', screenId: 'purchase-invoice' },
-      { label: 'Alis Fisleri', screenId: 'purchase-invoice-list' },
+      { label: 'Yeni Alış Fişi', screenId: 'purchase-invoice' },
+      { label: 'Alış Fişleri', screenId: 'purchase-invoice-list' },
     ],
   },
   {
-    title: 'Finans Yonetimi',
+    title: 'Finans Yönetimi',
     items: [
-      { label: 'Finans Ozeti', screenId: 'finance-overview' },
+      { label: 'Finans Özeti', screenId: 'finance-overview' },
       { label: 'Tahsilatlar', screenId: 'collections-overview' },
       { label: 'Riskli Cariler', screenId: 'customer-list' },
     ],
   },
   {
-    title: 'Katalog Yonetimi',
+    title: 'Satış Kanalları',
     items: [
       { label: 'Katalog Listesi', screenId: 'catalog-list' },
-      { label: 'WhatsApp Paylasim', screenId: 'whatsapp-planner' },
+      { label: 'WhatsApp Paylaşım', screenId: 'whatsapp-planner' },
     ],
   },
   {
     title: 'Depo / Terminal',
     items: [
-      { label: 'Terminal Ekranlari', screenId: 'terminal-overview' },
-      { label: 'Excel CSV Aktarim', screenId: 'import-foundation' },
+      { label: 'Terminal Ekranları', screenId: 'terminal-overview' },
+      { label: 'Excel / CSV Aktarım', screenId: 'import-foundation' },
     ],
   },
   {
@@ -80,21 +80,21 @@ export const sidebarGroups = [
     ],
   },
   {
-    title: 'Tanimlar',
+    title: 'Tanımlar',
     items: [
-      { label: 'Tanim Listeleri', screenId: 'definitions-overview' },
+      { label: 'Tanım Listeleri', screenId: 'definitions-overview' },
     ],
   },
   {
     title: 'Ayarlar',
     items: [
-      { label: 'Sistem Ayarlari', screenId: 'settings-overview' },
+      { label: 'Sistem Ayarları', screenId: 'settings-overview' },
     ],
   },
   {
-    title: 'Yetki Yonetimi',
+    title: 'Güvenlik',
     items: [
-      { label: 'Yetki ve Audit', screenId: 'auth-overview' },
+      { label: 'Yetki ve Denetim', screenId: 'auth-overview' },
     ],
   },
 ];
@@ -102,7 +102,7 @@ export const sidebarGroups = [
 export const screenRegistry = {
   dashboard: {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Operasyon Masası',
     module: 'Ana Sayfa',
     type: 'dashboard',
     pinned: true,
@@ -115,7 +115,7 @@ export const screenRegistry = {
   },
   'product-card': {
     id: 'product-card',
-    label: 'Urun Karti',
+    label: 'Ürün Kartı',
     module: 'Stok',
     type: 'kart',
     dirty: true,
@@ -128,34 +128,34 @@ export const screenRegistry = {
   },
   'customer-card': {
     id: 'customer-card',
-    label: 'Cari Karti',
+    label: 'Cari Kartı',
     module: 'Cari',
     type: 'kart',
     dirty: true,
   },
   'sales-invoice': {
     id: 'sales-invoice',
-    label: 'Satis Fisi',
-    module: 'Satis',
+    label: 'Satış Fişi',
+    module: 'Satış',
     type: 'fis',
     dirty: true,
   },
   'sales-invoice-list': {
     id: 'sales-invoice-list',
-    label: 'Satis Fisleri',
-    module: 'Satis',
+    label: 'Satış Fişleri',
+    module: 'Satış',
     type: 'liste',
   },
   'purchase-invoice': {
     id: 'purchase-invoice',
-    label: 'Alis Fisi',
-    module: 'Alis',
+    label: 'Alış Fişi',
+    module: 'Alış',
     type: 'fis',
   },
   'purchase-invoice-list': {
     id: 'purchase-invoice-list',
-    label: 'Alis Fisleri',
-    module: 'Alis',
+    label: 'Alış Fişleri',
+    module: 'Alış',
     type: 'liste',
   },
   'catalog-list': {
@@ -202,7 +202,7 @@ export const screenRegistry = {
   },
   'finance-overview': {
     id: 'finance-overview',
-    label: 'Finans Ozeti',
+    label: 'Finans Özeti',
     module: 'Finans',
     type: 'ozet',
   },
@@ -214,13 +214,13 @@ export const screenRegistry = {
   },
   'whatsapp-planner': {
     id: 'whatsapp-planner',
-    label: 'WhatsApp Paylasim',
+    label: 'WhatsApp Paylaşım',
     module: 'Katalog',
     type: 'plan',
   },
   'terminal-overview': {
     id: 'terminal-overview',
-    label: 'Terminal Ekranlari',
+    label: 'Terminal Ekranları',
     module: 'Terminal',
     type: 'ozet',
   },
@@ -232,25 +232,25 @@ export const screenRegistry = {
   },
   'definitions-overview': {
     id: 'definitions-overview',
-    label: 'Tanim Listeleri',
-    module: 'Tanimlar',
+    label: 'Tanım Listeleri',
+    module: 'Tanımlar',
     type: 'liste',
   },
   'settings-overview': {
     id: 'settings-overview',
-    label: 'Sistem Ayarlari',
+    label: 'Sistem Ayarları',
     module: 'Ayarlar',
     type: 'ayar',
   },
   'auth-overview': {
     id: 'auth-overview',
-    label: 'Yetki ve Audit',
-    module: 'Yetki',
+    label: 'Yetki ve Denetim',
+    module: 'Güvenlik',
     type: 'ayar',
   },
   'import-foundation': {
     id: 'import-foundation',
-    label: 'Excel CSV Aktarim',
+    label: 'Excel / CSV Aktarım',
     module: 'Terminal',
     type: 'import',
   },

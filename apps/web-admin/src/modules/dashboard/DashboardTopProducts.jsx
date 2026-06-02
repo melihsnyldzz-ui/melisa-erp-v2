@@ -4,15 +4,15 @@ export function DashboardTopProducts({ rows }) {
   return (
     <section className="erp-panel dashboard-table-panel">
       <div className="panel-title">
-        <strong>En Cok Satan Urunler</strong>
-        <span>Adet / satis / stok</span>
+        <strong>En Çok Satan Ürünler</strong>
+        <span>Adet / satış / stok</span>
       </div>
       <div className="table-wrap dashboard-table-wrap">
         <table>
           <thead>
             <tr>
               <th>Stok kodu</th>
-              <th>Urun</th>
+              <th>Ürün</th>
               <th>Adet</th>
               <th>Satis</th>
               <th>Stok</th>

@@ -21,6 +21,17 @@ export async function fetchDashboardAlerts() {
 export async function fetchManagementReporting() {
   if (apiConfig.demoMode) {
     const summary = demoDashboardSummaryResponse();
+    const receivables = summary.data.receivables || [];
+    const suppliers = summary.data.supplierPerformance || [];
+    const criticalWarnings = summary.data.patron.negativeStockCount > 0
+      ? [{
+        type: 'Stok',
+        subject: 'Eksi stoklu urunler',
+        value: summary.data.patron.negativeStockCount,
+        severity: 'danger',
+      }]
+      : [];
+
     return {
       success: true,
       data: {
@@ -46,17 +57,17 @@ export async function fetchManagementReporting() {
           revenueTry: row.salesTry,
           grossProfitTry: row.salesTry * 0.32,
         })),
-        customerAnalysis: summary.data.receivables.map((row) => ({
-          customerId: row.customerId,
-          customerCode: `C-${row.customerId}`,
+        customerAnalysis: receivables.map((row, index) => ({
+          customerId: row.customerId || index + 1,
+          customerCode: row.customerCode || `C-${String(index + 1).padStart(3, '0')}`,
           customerName: row.customerName,
           totalSalesTry: row.balanceTry * 1.8,
           balanceTry: row.balanceTry,
           lastSaleDate: row.lastMove,
         })),
-        supplierAnalysis: summary.data.supplierPerformance.map((row) => ({
-          supplierId: row.supplierId,
-          supplierCode: `S-${row.supplierId}`,
+        supplierAnalysis: suppliers.map((row, index) => ({
+          supplierId: row.supplierId || index + 1,
+          supplierCode: row.supplierCode || `S-${String(index + 1).padStart(3, '0')}`,
           supplierName: row.supplierName,
           totalPurchasesTry: row.debtTry * 1.2,
           balanceTry: row.debtTry,
@@ -72,7 +83,7 @@ export async function fetchManagementReporting() {
           salesDraftCount: summary.data.operations.salesDraftCount,
           purchaseDraftCount: summary.data.operations.purchaseDraftCount,
         },
-        criticalWarnings: [],
+        criticalWarnings,
       },
     };
   }

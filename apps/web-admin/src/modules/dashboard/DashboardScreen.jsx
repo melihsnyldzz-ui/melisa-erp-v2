@@ -55,21 +55,21 @@ function buildPatronKpis(summary) {
 
   return [
     {
-      label: 'Toplam musteri',
+      label: 'Toplam müşteri',
       value: formatNumber(masterCounts.totalCustomers),
-      detail: 'Cari kart sayisi',
+      detail: 'Cari kart sayısı',
       tone: 'info',
       screenId: 'customer-list',
     },
     {
-      label: 'Toplam urun',
+      label: 'Toplam ürün',
       value: formatNumber(masterCounts.totalProducts),
-      detail: 'Aktif barkodlu urunler',
+      detail: 'Aktif barkodlu ürünler',
       tone: 'info',
       screenId: 'stock-list',
     },
     {
-      label: 'Gunluk satis',
+      label: 'Günlük satış',
       value: formatMoney(patron.todaySalesTry),
       detail: `${formatNumber(patron.finalizedSalesToday)} kesinlesen fis`,
       tone: 'good',
@@ -85,14 +85,14 @@ function buildPatronKpis(summary) {
     {
       label: 'Acik hesap toplam',
       value: formatMoney(patron.customerReceivablesTry),
-      detail: `${formatNumber(melisa.openAccountCustomerCount || 0)} musteri`,
+      detail: `${formatNumber(melisa.openAccountCustomerCount || 0)} müşteri`,
       tone: 'warn',
       screenId: 'customer-list',
     },
     {
       label: 'Romanya acik hesap',
       value: formatMoney(melisa.romaniaReceivablesTry),
-      detail: `${formatNumber(melisa.romaniaSalesShare || 0)}% satis payi`,
+      detail: `${formatNumber(melisa.romaniaSalesShare || 0)}% satış payı`,
       tone: 'warn',
       screenId: 'customer-list',
     },
@@ -135,16 +135,16 @@ function buildAccountingKpis(summary) {
 
   return [
     {
-      label: 'Toplam musteri',
+      label: 'Toplam müşteri',
       value: formatNumber(masterCounts.totalCustomers),
-      detail: 'Cari kart sayisi',
+      detail: 'Cari kart sayısı',
       tone: 'info',
       screenId: 'customer-list',
     },
     {
-      label: 'Toplam urun',
+      label: 'Toplam ürün',
       value: formatNumber(masterCounts.totalProducts),
-      detail: 'Aktif barkodlu urunler',
+      detail: 'Aktif barkodlu ürünler',
       tone: 'info',
       screenId: 'stock-list',
     },
@@ -177,23 +177,23 @@ function buildAccountingKpis(summary) {
       screenId: 'purchase-invoice-list',
     },
     {
-      label: 'Son satis fisleri',
+      label: 'Son satış fişleri',
       value: formatNumber(accounting.recentSalesInvoices?.length),
       detail: `${formatNumber(operations.salesDraftCount)} draft acik`,
       tone: 'info',
       screenId: 'sales-invoice-list',
     },
     {
-      label: 'Son alis fisleri',
+      label: 'Son alış fişleri',
       value: formatNumber(accounting.recentPurchaseInvoices?.length),
       detail: `${formatNumber(operations.purchaseDraftCount)} draft acik`,
       tone: 'info',
       screenId: 'purchase-invoice-list',
     },
     {
-      label: 'Bugunku toplam satis',
+      label: 'Bugünkü toplam satış',
       value: formatMoney(patron.todaySalesTry),
-      detail: 'Kesinlesen satis',
+      detail: 'Kesinleşen satış',
       tone: 'good',
       screenId: 'sales-invoice-list',
     },
@@ -279,7 +279,7 @@ export function DashboardScreen({ onOpenScreen }) {
     () => (activeView === 'patron' ? buildPatronKpis(summaryData) : buildAccountingKpis(summaryData)),
     [activeView, summaryData],
   );
-  const visibleTitle = activeView === 'patron' ? 'Patron gorunumu' : 'Muhasebe gorunumu';
+  const visibleTitle = activeView === 'patron' ? 'Yönetim görünümü' : 'Finans görünümü';
   const recentTransactions = useMemo(() => mapRecentTransactions(summaryData), [summaryData]);
   const topProducts = useMemo(() => mapTopProducts(summaryData), [summaryData]);
   const receivables = useMemo(() => mapReceivables(summaryData), [summaryData]);
@@ -371,14 +371,14 @@ export function DashboardScreen({ onOpenScreen }) {
         />
         <DashboardOperationsPanel
           columns={[
-            { key: 'product', label: 'Urun' },
+            { key: 'product', label: 'Ürün' },
             { key: 'type', label: 'Tip' },
             { key: 'stock', label: 'Stok' },
             { key: 'country', label: 'Ulke' },
           ]}
           rows={melisaRows.productFocus || []}
           subtitle="Yeni gelen / cok satan / stokta fazla"
-          title="Urun Odak Listesi"
+          title="Ürün Odak Listesi"
         />
         <DashboardOperationsPanel
           columns={[
@@ -388,7 +388,7 @@ export function DashboardScreen({ onOpenScreen }) {
             { key: 'note', label: 'Not' },
           ]}
           rows={melisaRows.topReceivableFocus || []}
-          subtitle="Ilk 20 musteri yogunlugu"
+          subtitle="İlk 20 müşteri yoğunluğu"
           title="Alacak Yogunlugu"
         />
         <DashboardOperationsPanel
@@ -404,8 +404,8 @@ export function DashboardScreen({ onOpenScreen }) {
       </section>
       <section className="screen-summary dashboard-summary">
         <span>{summary}</span>
-        <span>Kaynak: MELISA_ERP_V2 SELECT aggregate</span>
-        <span>30 sn auto-refresh aktif</span>
+        <span>Kaynak: Yönetim raporu / okuma modu</span>
+        <span>30 sn otomatik yenileme aktif</span>
       </section>
     </main>
   );

@@ -4,6 +4,7 @@ import { DataTable } from '../dashboard/DataTable.jsx';
 
 export function MockScreen({ screen }) {
   const content = mockScreenContent[screen.id];
+  const actions = content?.actions || ['Yenile', 'Kolonlar', 'Dışa aktar'];
 
   if (!content) {
     return (
@@ -26,10 +27,9 @@ export function MockScreen({ screen }) {
           <span>{content.subtitle}</span>
         </div>
         <div className="screen-actions">
-          <button type="button">Yeni</button>
-          <button type="button">Kaydet</button>
-          <button type="button">Yazdır</button>
-          <button type="button">Aktar</button>
+          {actions.map((action) => (
+            <button key={action} type="button">{action}</button>
+          ))}
         </div>
       </section>
 
@@ -37,6 +37,14 @@ export function MockScreen({ screen }) {
         <section className="filter-row screen-filter">
           {content.filters.map((filter) => (
             <span key={filter}>{filter}</span>
+          ))}
+        </section>
+      ) : null}
+
+      {content.insights ? (
+        <section className="screen-summary screen-insights">
+          {content.insights.map((item) => (
+            <span key={item}>{item}</span>
           ))}
         </section>
       ) : null}

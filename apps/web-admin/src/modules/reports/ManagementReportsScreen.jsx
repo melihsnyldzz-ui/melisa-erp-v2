@@ -84,7 +84,7 @@ export function ManagementReportsScreen() {
       const response = await fetchManagementReporting();
       setReport(response.data);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Yonetim raporu okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Yönetim raporu okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -100,34 +100,34 @@ export function ManagementReportsScreen() {
     const purchases = report?.dailyPurchases || {};
 
     return [
-      { label: 'Bugun satis', value: formatMoney(widgets.todaySalesTry), detail: `${formatNumber(sales.salesCount)} fis`, tone: 'good' },
-      { label: 'Bugun alis', value: formatMoney(widgets.todayPurchasesTry), detail: `${formatNumber(purchases.purchaseCount)} fis`, tone: 'info' },
+      { label: 'Bugün satış', value: formatMoney(widgets.todaySalesTry), detail: `${formatNumber(sales.salesCount)} fiş`, tone: 'good' },
+      { label: 'Bugün alış', value: formatMoney(widgets.todayPurchasesTry), detail: `${formatNumber(purchases.purchaseCount)} fiş`, tone: 'info' },
       { label: 'Stok degeri', value: formatMoney(widgets.totalStockValueTry), detail: 'Kart stogu x ortalama maliyet', tone: 'info' },
-      { label: 'Musteri bakiye', value: formatMoney(widgets.customerBalanceTry), detail: 'Cari kart toplam bakiye', tone: 'warn' },
-      { label: 'Tedarikci bakiye', value: formatMoney(widgets.supplierBalanceTry), detail: 'Tedarikci kart toplam bakiye', tone: 'warn' },
-      { label: 'Kritik uyari', value: formatNumber((report?.criticalWarnings || []).length), detail: `${formatNumber(widgets.negativeStockCount)} eksi stok`, tone: Number(widgets.negativeStockCount || 0) > 0 ? 'danger' : 'good' },
+      { label: 'Müşteri bakiye', value: formatMoney(widgets.customerBalanceTry), detail: 'Cari kart toplam bakiye', tone: 'warn' },
+      { label: 'Tedarikçi bakiye', value: formatMoney(widgets.supplierBalanceTry), detail: 'Tedarikçi kart toplam bakiye', tone: 'warn' },
+      { label: 'Kritik uyarı', value: formatNumber((report?.criticalWarnings || []).length), detail: `${formatNumber(widgets.negativeStockCount)} eksi stok`, tone: Number(widgets.negativeStockCount || 0) > 0 ? 'danger' : 'good' },
     ];
   }, [report]);
 
   const salesRows = report ? [{
-    metric: 'Gunluk satis',
+    metric: 'Günlük satış',
     count: formatNumber(report.dailySales.salesCount),
     amount: formatMoney(report.dailySales.salesAmountTry),
     extra: formatMoney(report.dailySales.grossProfitTry),
   }, {
-    metric: 'Iptal satis',
+    metric: 'İptal satış',
     count: formatNumber(report.dailySales.cancelledSalesCount),
     amount: formatMoney(report.dailySales.cancelledSalesAmountTry),
     extra: '-',
   }] : [];
 
   const purchaseRows = report ? [{
-    metric: 'Gunluk alis',
+    metric: 'Günlük alış',
     count: formatNumber(report.dailyPurchases.purchaseCount),
     amount: formatMoney(report.dailyPurchases.purchaseAmountTry),
     extra: '-',
   }, {
-    metric: 'Iptal alis',
+    metric: 'İptal alış',
     count: formatNumber(report.dailyPurchases.cancelledPurchaseCount),
     amount: formatMoney(report.dailyPurchases.cancelledPurchaseAmountTry),
     extra: '-',
@@ -169,15 +169,15 @@ export function ManagementReportsScreen() {
     <main className="work-area dashboard-screen management-reports-screen">
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
-          <strong>Yonetim Raporlari</strong>
-          <span>Gunluk satis / alis / stok / cari / tedarikci</span>
+          <strong>Yönetim Raporları</strong>
+          <span>Günlük satış, alış, stok, cari ve tedarikçi görünümü</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={loadReport}>Yenile</button>
         </div>
       </section>
 
-      {isLoading && <div className="list-state">Yonetim raporlari API'den okunuyor...</div>}
+      {isLoading && <div className="list-state">Yönetim raporları API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid">
@@ -195,8 +195,8 @@ export function ManagementReportsScreen() {
             { key: 'extra', label: 'Brut kar', align: 'right' },
           ]}
           rows={salesRows}
-          subtitle="Finalized ve cancelled satislar ayri hesaplanir"
-          title="Gunluk Satis Ozeti"
+          subtitle="Kesinleşen ve iptal edilen satışlar ayrı hesaplanır"
+          title="Günlük Satış Özeti"
         />
         <TablePanel
           columns={[
@@ -206,41 +206,41 @@ export function ManagementReportsScreen() {
             { key: 'extra', label: 'Ek' },
           ]}
           rows={purchaseRows}
-          subtitle="Finalized ve cancelled alislar ayri hesaplanir"
-          title="Gunluk Alis Ozeti"
+          subtitle="Kesinleşen ve iptal edilen alışlar ayrı hesaplanır"
+          title="Günlük Alış Özeti"
         />
         <TablePanel
           columns={[
-            { key: 'product', label: 'Urun' },
+            { key: 'product', label: 'Ürün' },
             { key: 'quantity', label: 'Miktar', align: 'right' },
             { key: 'revenue', label: 'Ciro', align: 'right' },
             { key: 'profit', label: 'Kar', align: 'right' },
           ]}
           rows={topProductRows}
-          subtitle="Finalized satis satirlari"
-          title="En Cok Satan Urunler"
+          subtitle="Kesinleşen satış satırları"
+          title="En Çok Satan Ürünler"
         />
         <TablePanel
           columns={[
             { key: 'customer', label: 'Cari' },
-            { key: 'sales', label: 'Toplam satis', align: 'right' },
+            { key: 'sales', label: 'Toplam satış', align: 'right' },
             { key: 'balance', label: 'Bakiye', align: 'right' },
-            { key: 'lastSale', label: 'Son satis' },
+            { key: 'lastSale', label: 'Son satış' },
           ]}
           rows={customerRows}
-          subtitle="Finalized satis ve kart bakiyesi"
+          subtitle="Kesinleşen satış ve kart bakiyesi"
           title="Musteri Analizi"
         />
         <TablePanel
           columns={[
-            { key: 'supplier', label: 'Tedarikci' },
-            { key: 'purchases', label: 'Toplam alis', align: 'right' },
+            { key: 'supplier', label: 'Tedarikçi' },
+            { key: 'purchases', label: 'Toplam alış', align: 'right' },
             { key: 'balance', label: 'Bakiye', align: 'right' },
-            { key: 'lastPurchase', label: 'Son alis' },
+            { key: 'lastPurchase', label: 'Son alış' },
           ]}
           rows={supplierRows}
-          subtitle="Finalized alis ve tedarikci bakiyesi"
-          title="Tedarikci Analizi"
+          subtitle="Kesinleşen alış ve tedarikçi bakiyesi"
+          title="Tedarikçi Analizi"
         />
         <TablePanel
           columns={[
@@ -250,14 +250,14 @@ export function ManagementReportsScreen() {
             { key: 'severity', label: 'Seviye' },
           ]}
           rows={warningRows}
-          subtitle="Eksi stok ve yuksek bakiye uyarilari"
-          title="Kritik Uyarilar"
+          subtitle="Eksi stok ve yüksek bakiye uyarıları"
+          title="Kritik Uyarılar"
         />
       </section>
 
       <section className="screen-summary dashboard-summary">
-        <span>Kaynak: MELISA_ERP_V2 SELECT aggregate</span>
-        <span>Generated: {formatDate(report?.generatedAt)}</span>
+        <span>Kaynak: Yönetim raporu / okuma modu</span>
+        <span>Üretim zamanı: {formatDate(report?.generatedAt)}</span>
         <span>Yetki: dashboard.view</span>
       </section>
     </main>

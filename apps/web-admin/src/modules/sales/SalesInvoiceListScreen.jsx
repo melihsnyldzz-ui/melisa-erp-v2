@@ -49,7 +49,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       setRows([]);
       setMeta(null);
       setSelectedRowId(null);
-      setErrorMessage(error.message || 'Satis taslak listesi API baglantisi basarisiz.');
+      setErrorMessage(error.message || 'Satış taslak listesi API bağlantısı başarısız.');
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +83,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           setRows([]);
           setMeta(null);
           setSelectedRowId(null);
-          setErrorMessage(error.message || 'Satis taslak listesi API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Satış taslak listesi API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -101,7 +101,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
   function openDraft(rowId = selectedRow?.id) {
     if (!rowId) {
-      setErrorMessage('Fis acmak icin listeden bir taslak secin.');
+      setErrorMessage('Fiş açmak için listeden bir taslak seçin.');
       return;
     }
 
@@ -114,24 +114,24 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
     <main className="work-area invoice-list-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
-          <strong>Satis Fisleri</strong>
-          <span>Kaydedilmis taslak satis fisleri / SQL SELECT</span>
+          <strong>Satış Fişleri</strong>
+          <span>Taslak satışlar, e-belge hazırlığı ve stok kontrol listesi</span>
         </div>
         <div className="invoice-list-actions">
-          <button type="button" onClick={() => onOpenScreen('sales-invoice')}>Yeni Fis</button>
-          <button type="button" onClick={() => openDraft()}>Fis Ac</button>
+          <button type="button" onClick={() => onOpenScreen('sales-invoice')}>Yeni Fiş</button>
+          <button type="button" onClick={() => openDraft()}>Fiş Aç</button>
           <button type="button" onClick={loadDrafts}>Yenile</button>
         </div>
       </section>
 
       <section className="invoice-list-filters">
         <label>
-          <span>Fis / genel arama</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fis no veya musteri" />
+          <span>Fiş / genel arama</span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fiş no veya müşteri" />
         </label>
         <label>
-          <span>Musteri</span>
-          <input value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="Musteri adi" />
+          <span>Müşteri</span>
+          <input value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="Müşteri adı" />
         </label>
         <label>
           <span>Durum</span>
@@ -141,29 +141,29 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
       <section className="erp-panel invoice-list-panel">
         <div className="panel-title">
-          <strong>Satis Taslak Tablosu</strong>
-          <span>Secili: {selectedRow?.invoiceNo ?? 'yok'} / Satir: {rows.length}</span>
+          <strong>Satış Taslak Tablosu</strong>
+          <span>Seçili: {selectedRow?.invoiceNo ?? 'yok'} / Satır: {rows.length}</span>
         </div>
-        {isLoading && <div className="list-state">API'den satis taslaklari yukleniyor...</div>}
+        {isLoading && <div className="list-state">API'den satış taslakları yükleniyor...</div>}
         {!isLoading && errorMessage && (
-          <div className="list-state list-state-error">{errorMessage} Mock fallback yok.</div>
+          <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>
         )}
         {!isLoading && !errorMessage && rows.length === 0 && (
-          <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
+          <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
         )}
         {!isLoading && !errorMessage && rows.length > 0 && (
           <div className="table-wrap invoice-table-wrap">
             <table className="invoice-list-table">
               <thead>
                 <tr>
-                  <th>Fis no</th>
-                  <th>Musteri</th>
+                  <th>Fiş no</th>
+                  <th>Müşteri</th>
                   <th>PB</th>
                   <th>Toplam</th>
                   <th>Durum</th>
-                  <th>Satir</th>
-                  <th>Olusturma</th>
-                  <th>Guncelleme</th>
+                  <th>Satır</th>
+                  <th>Oluşturma</th>
+                  <th>Güncelleme</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,9 +192,9 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
       <section className="screen-summary invoice-list-summary">
         <span>Toplam taslak: {meta?.total ?? rows.length}</span>
-        <span>Liste kaydi: {rows.length}</span>
+        <span>Liste kaydı: {rows.length}</span>
         <span>Durum: DRAFT</span>
-        <span>Kaynak: API SQL</span>
+        <span>Kaynak: API / okuma modu</span>
       </section>
     </main>
   );

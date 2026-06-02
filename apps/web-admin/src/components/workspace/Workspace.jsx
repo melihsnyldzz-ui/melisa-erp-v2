@@ -66,6 +66,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
         salesDraftId={activeTab.payload?.salesDraftId}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
+        onOpenScreen={onOpenScreen}
       />
     );
   }
