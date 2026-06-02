@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SalesInvoiceCustomerPanel } from './SalesInvoiceCustomerPanel.jsx';
 import { SalesInvoiceHeader } from './SalesInvoiceHeader.jsx';
 import { SalesInvoiceItemsTable } from './SalesInvoiceItemsTable.jsx';
-import { SalesInvoiceRulesPanel } from './SalesInvoiceRulesPanel.jsx';
 import { SalesInvoiceToolbar } from './SalesInvoiceToolbar.jsx';
 import { SalesInvoiceTotals } from './SalesInvoiceTotals.jsx';
 import {
   invoiceDiscountRate,
   salesInvoiceHeader,
   salesInvoiceItems,
-  salesInvoicePermissions,
-  salesInvoiceRules,
 } from './salesInvoiceMockData.js';
 import {
   cancelSalesDraft,
@@ -20,12 +16,15 @@ import {
   updateSalesDraft,
 } from '../../services/invoiceDraftApi.js';
 import { fetchCustomers } from '../../services/customerApi.js';
+import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { apiConfig } from '../../config/apiConfig.js';
+import { exportRowsToCsv, printBusinessDocument } from '../../utils/exportUtils.js';
 
 const emptySalesInvoice = {
   ...salesInvoiceHeader,
   invoiceNo: 'Taslak',
+  date: todayIsoDate(),
   customerId: '',
   customer: '',
   customerCurrency: '-',
@@ -37,7 +36,24 @@ const emptySalesInvoice = {
   status: 'Taslak',
 };
 
-function calculateTotals(items, discountRate) {
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatExchangeRate(currency, value) {
+  return `${currency || 'TRY'} ${Number(value || 1).toFixed(4)}`;
+}
+
+function roundCurrency(value) {
+  return Math.round(Number(value || 0) * 10000) / 10000;
+}
+
+function applyDiscount(amount, discountRate) {
+  const rate = Math.min(100, Math.max(0, Number(discountRate || 0)));
+  return Number(amount || 0) * (1 - (rate / 100));
+}
+
+function calculateTotals(items, discountRate, exchangeRate = 1, currency = 'TRY') {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
   const totalCost = items.reduce((total, item) => total + item.quantity * item.averageCostTry, 0);
   const lineCount = items.length;
@@ -45,20 +61,71 @@ function calculateTotals(items, discountRate) {
   const grossProfit = items.some((item) => item.grossProfitTry !== null && item.grossProfitTry !== undefined)
     ? items.reduce((total, item) => total + Number(item.grossProfitTry || 0), 0)
     : null;
+  const grossProfitDocument = grossProfit === null ? null : grossProfit / Number(exchangeRate || 1);
   const discountAmount = subtotal * (discountRate / 100);
   const grandTotal = subtotal - discountAmount;
-  const estimatedProfit = grandTotal - totalCost;
+  const tryEquivalent = grandTotal * Number(exchangeRate || 1);
+  const estimatedProfit = tryEquivalent - totalCost;
 
   return {
+    currency,
+    exchangeRate: Number(exchangeRate || 1),
     subtotal,
     discountRate,
     discountAmount,
     grandTotal,
-    tryEquivalent: grandTotal,
+    tryEquivalent,
     estimatedProfit,
     grossProfit,
+    grossProfitDocument,
     lineCount,
     totalQuantity,
+  };
+}
+
+function resolveUnitCostTry(item, invoiceCurrency, exchangeRate) {
+  const productCurrency = String(item.cardCurrency || item.productCurrency || item.currency || 'TRY').toUpperCase();
+  const lineCurrency = String(invoiceCurrency || item.currency || 'TRY').toUpperCase();
+  const rate = Number(exchangeRate || 1);
+  const productRateToTry = Number(item.cardRateToTry || 0);
+  const purchasePrice = applyDiscount(item.cardPurchasePrice ?? item.purchasePrice ?? 0, item.purchaseDiscountRate);
+  const averageCostTry = Number(item.productAverageCostTry ?? item.averageCostTry ?? 0);
+
+  if (productCurrency !== 'TRY' && purchasePrice > 0) {
+    if (productRateToTry > 0) {
+      return roundCurrency(purchasePrice * productRateToTry);
+    }
+
+    if (productCurrency === lineCurrency && rate > 0) {
+      return roundCurrency(purchasePrice * rate);
+    }
+  }
+
+  if (averageCostTry > 0) {
+    return roundCurrency(averageCostTry);
+  }
+
+  if (productCurrency === 'TRY' && purchasePrice > 0) {
+    return roundCurrency(purchasePrice);
+  }
+
+  return 0;
+}
+
+function withProfitSnapshot(item, invoiceCurrency, exchangeRate) {
+  const quantity = Number(item.quantity || 0);
+  const unitPrice = Number(item.unitPrice || 0);
+  const rate = Number(exchangeRate || 1);
+  const unitCostTry = resolveUnitCostTry(item, invoiceCurrency, rate);
+  const lineTotalTry = quantity * unitPrice * rate;
+  const totalCostTry = quantity * unitCostTry;
+  const grossProfitTry = lineTotalTry - totalCostTry;
+
+  return {
+    ...item,
+    averageCostTry: unitCostTry,
+    grossProfitTry,
+    grossProfitRate: lineTotalTry > 0 ? grossProfitTry / lineTotalTry : 0,
   };
 }
 
@@ -68,6 +135,11 @@ function formatMoney(amount, currency) {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
+}
+
+function formatProductPrice(product) {
+  const currency = product?.currency || product?.cardCurrency || 'TRY';
+  return formatMoney(product?.unitPrice || 0, currency);
 }
 
 function formatDate(value) {
@@ -89,7 +161,7 @@ function mapDraftToInvoice(draft) {
     customerCurrency: draft.customerCurrency,
     customerBalanceLabel: draft.customerBalanceLabel || '-',
     invoiceCurrency: draft.documentCurrency,
-    exchangeRate: `${draft.documentCurrency} ${Number(draft.exchangeRate || 1).toFixed(4)}`,
+    exchangeRate: formatExchangeRate(draft.documentCurrency, draft.exchangeRate),
     exchangeRateValue: Number(draft.exchangeRate || 1),
     description: draft.description || '',
     status: status === 'DRAFT' ? 'Taslak' : status,
@@ -106,6 +178,12 @@ function mapDraftItems(items = []) {
     quantity: Number(item.quantity || 0),
     currency: item.currency,
     unitPrice: Number(item.unitPrice || 0),
+    cardCurrency: item.currency,
+    cardUnitPrice: Number(item.unitPrice || 0),
+    cardPurchasePrice: Number(item.purchasePrice || 0),
+    purchaseDiscountRate: Number(item.purchaseDiscountRate || 0),
+    cardRateToTry: 0,
+    productAverageCostTry: Number(item.averageCostTry || 0),
     stockState: item.stockStatus || '-',
     note: item.note || '-',
     averageCostTry: Number(item.averageCostTry || 0),
@@ -128,13 +206,66 @@ function mapProductOption(product) {
     productId: product.id,
     stockCode: product.stockCode,
     barcode: product.barcodeMasked || '-',
+    matchedBarcode: product.matchedBarcode || product.barcodeMatched || null,
     productName: product.productName,
     currency: product.currency,
     unitPrice: Number(product.salePrice || 0),
-    averageCostTry: Number(product.averageCostTry || product.purchasePrice || 0),
+    cardCurrency: product.currency,
+    cardUnitPrice: Number(product.salePrice || 0),
+    cardPurchasePrice: Number(product.purchasePrice || 0),
+    purchaseDiscountRate: Number(product.purchaseDiscountRate || 0),
+    cardRateToTry: 0,
+    productAverageCostTry: Number(product.averageCostTry || 0),
+    purchasePrice: Number(product.purchasePrice || 0),
+    averageCostTry: Number(product.averageCostTry || 0),
     stockState: `Stok: ${Number(product.stockQuantity || 0)}`,
     isPassive: product.isPassive,
   };
+}
+
+function normalizeSearchValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function productSearchValues(product) {
+  return [
+    product.stockCode,
+    product.barcode,
+    product.matchedBarcode,
+    product.productName,
+    `${product.stockCode} / ${product.productName}`,
+  ].map(normalizeSearchValue).filter(Boolean);
+}
+
+function resolveProductFromQuery(products, value) {
+  const normalizedValue = normalizeSearchValue(value);
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const exactProduct = products.find((product) => (
+    !product.isPassive && productSearchValues(product).some((fieldValue) => fieldValue === normalizedValue)
+  ));
+
+  if (exactProduct) {
+    return exactProduct;
+  }
+
+  return products.find((product) => (
+    !product.isPassive && productSearchValues(product).some((fieldValue) => fieldValue.includes(normalizedValue))
+  )) || null;
+}
+
+function productApiSearchValue(value) {
+  return String(value || '').split('/')[0].trim();
+}
+
+function mergeProductOptions(currentProducts, nextProducts) {
+  const productsById = new Map(currentProducts.map((product) => [String(product.productId), product]));
+  nextProducts.forEach((product) => {
+    productsById.set(String(product.productId), product);
+  });
+  return Array.from(productsById.values());
 }
 
 export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChange, onOpenScreen }) {
@@ -147,37 +278,45 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   const [statusMessage, setStatusMessage] = useState('Taslak fis henuz stok veya cari hareket olusturmaz.');
   const [draftCustomerOptions, setDraftCustomerOptions] = useState([]);
   const [draftProductOptions, setDraftProductOptions] = useState([]);
+  const [productOptionCache, setProductOptionCache] = useState([]);
   const [productToAddId, setProductToAddId] = useState('');
   const [productQuery, setProductQuery] = useState('');
   const [customerQuery, setCustomerQuery] = useState('');
   const [quickQuantity, setQuickQuantity] = useState(1);
   const [referenceOptionsError, setReferenceOptionsError] = useState('');
+  const [currencyRates, setCurrencyRates] = useState(null);
+  const [currencyRateError, setCurrencyRateError] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(salesDraftId));
   const [isSaving, setIsSaving] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const totals = useMemo(() => calculateTotals(items, discountRate), [discountRate, items]);
+  const totals = useMemo(
+    () => calculateTotals(items, discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
+    [discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency, items],
+  );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
-  const isReadonly = isFinalized || isCancelled;
+  const isReadonly = isCancelled;
   const canSaveDraft = draftId ? permissions.includes('sales.edit') : permissions.includes('sales.create');
   const canFinalize = permissions.includes('sales.finalize');
   const canCancel = permissions.includes('sales.cancel');
+  const productLookupOptions = useMemo(
+    () => mergeProductOptions(productOptionCache, draftProductOptions),
+    [draftProductOptions, productOptionCache],
+  );
   const filteredProducts = useMemo(() => {
-    const query = productQuery.trim().toLowerCase();
+    const query = normalizeSearchValue(productQuery);
 
-    return draftProductOptions.filter((product) => {
-      const matchesQuery = !query || [
-        product.stockCode,
-        product.barcode,
-        product.productName,
-      ].some((value) => String(value || '').toLowerCase().includes(query));
+    const visibleOptions = draftProductOptions.length > 0 ? draftProductOptions : productLookupOptions;
+
+    return visibleOptions.filter((product) => {
+      const matchesQuery = !query || productSearchValues(product).some((value) => value.includes(query));
 
       return matchesQuery && !product.isPassive;
     });
-  }, [draftProductOptions, productQuery]);
+  }, [draftProductOptions, productLookupOptions, productQuery]);
   const filteredCustomers = useMemo(() => {
     const query = customerQuery.trim().toLowerCase();
 
@@ -195,6 +334,48 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCurrencyRates() {
+      try {
+        const response = await fetchCurrencyRates({ date: invoice.date });
+
+        if (isMounted) {
+          setCurrencyRates(response.data);
+          setCurrencyRateError('');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setCurrencyRateError(`Kur bilgisi okunamadi: ${error.message || 'API_ERROR'}`);
+        }
+      }
+    }
+
+    loadCurrencyRates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [invoice.date]);
+
+  useEffect(() => {
+    if (draftId || invoice.invoiceCurrency === 'TRY') {
+      return;
+    }
+
+    const nextRate = centralRateForCurrency(invoice.invoiceCurrency);
+    if (nextRate === null) {
+      return;
+    }
+
+    setInvoice((current) => ({
+      ...current,
+      exchangeRateValue: nextRate,
+      exchangeRate: formatExchangeRate(current.invoiceCurrency, nextRate),
+    }));
+  }, [currencyRates, draftId, invoice.invoiceCurrency]);
 
   useEffect(() => {
     let isMounted = true;
@@ -227,18 +408,27 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         const response = await fetchProducts({
           page: 1,
           limit: 50,
-          search: productQuery,
+          search: productApiSearchValue(productQuery),
           activeOnly: true,
         });
         const options = (response.data || []).map(mapProductOption);
 
         if (isMounted) {
           setDraftProductOptions(options);
-          setProductToAddId((current) => (
-            options.some((product) => String(product.productId) === String(current))
-              ? current
-              : String(options[0]?.productId ?? '')
-          ));
+          setProductOptionCache((current) => mergeProductOptions(current, options));
+          setProductToAddId((current) => {
+            if (options.some((product) => String(product.productId) === String(current))) {
+              return current;
+            }
+            const queryMatch = resolveProductFromQuery(options, productQuery);
+            if (queryMatch) {
+              return String(queryMatch.productId);
+            }
+            if (productQuery.trim()) {
+              return current;
+            }
+            return String(options[0]?.productId ?? '');
+          });
         }
       } catch (error) {
         if (isMounted) {
@@ -329,7 +519,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
   function createNewDraft() {
     setDraftId(null);
-    setInvoice(emptySalesInvoice);
+    setInvoice({ ...emptySalesInvoice, date: todayIsoDate() });
     setItems([]);
     setDiscountRate(0);
     setStatus('Taslak');
@@ -344,7 +534,92 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     setStatusMessage(message);
   }
 
+  function centralRateForCurrency(currency) {
+    const nextCurrency = String(currency || 'TRY').toUpperCase();
+    if (nextCurrency === 'TRY') {
+      return 1;
+    }
+
+    const nextRate = rateValueForCurrency(currencyRates, nextCurrency);
+    if (nextRate === null) {
+      setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
+      return null;
+    }
+
+    setCurrencyRateError('');
+    return nextRate;
+  }
+
+  function convertCurrencyAmount(amount, sourceCurrency, targetCurrency) {
+    const source = String(sourceCurrency || 'TRY').toUpperCase();
+    const target = String(targetCurrency || 'TRY').toUpperCase();
+    const sourceRate = centralRateForCurrency(source);
+    const targetRate = centralRateForCurrency(target);
+
+    if (sourceRate === null || targetRate === null) {
+      return null;
+    }
+
+    const amountTry = Number(amount || 0) * sourceRate;
+    return roundCurrency(amountTry / targetRate);
+  }
+
+  function convertItemToInvoiceCurrency(item, targetCurrency) {
+    const sourceCurrency = item.cardCurrency || item.currency || 'TRY';
+    const sourceUnitPrice = item.cardUnitPrice ?? item.unitPrice;
+    const convertedUnitPrice = convertCurrencyAmount(sourceUnitPrice, sourceCurrency, targetCurrency);
+
+    if (convertedUnitPrice === null) {
+      return null;
+    }
+
+    return {
+      ...item,
+      currency: String(targetCurrency || 'TRY').toUpperCase(),
+      unitPrice: convertedUnitPrice,
+      cardCurrency: sourceCurrency,
+      cardUnitPrice: sourceUnitPrice,
+    };
+  }
+
   function updateInvoiceField(field, value) {
+    if (field === 'invoiceCurrency') {
+      const nextCurrency = String(value || 'TRY').toUpperCase();
+      const nextRate = centralRateForCurrency(nextCurrency);
+      if (nextRate === null) {
+        setInvoice((current) => ({
+          ...current,
+          invoiceCurrency: nextCurrency,
+          exchangeRateValue: '',
+          exchangeRate: `${nextCurrency} tanimsiz`,
+        }));
+        return;
+      }
+      const convertedItems = items.map((item) => {
+        const convertedItem = convertItemToInvoiceCurrency(item, nextCurrency);
+        return convertedItem ? withProfitSnapshot(convertedItem, nextCurrency, nextRate) : null;
+      });
+      if (convertedItems.some((item) => item === null)) {
+        setErrorMessage(`${nextCurrency} icin satir fiyatlari cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+        return;
+      }
+
+      setInvoice((current) => ({
+        ...current,
+        invoiceCurrency: nextCurrency,
+        exchangeRateValue: nextRate,
+        exchangeRate: formatExchangeRate(nextCurrency, nextRate),
+      }));
+      setItems(convertedItems);
+      markDirty('Fis para birimi degisti; tanimli kur snapshot olarak kaydedilecek.');
+      return;
+    }
+
+    if (field === 'exchangeRateValue') {
+      setStatusMessage('Kur fis uzerinden degismez; Ayarlar > Doviz Kurlari ekranindan tanimlanir.');
+      return;
+    }
+
     setInvoice((current) => ({
       ...current,
       [field]: value,
@@ -359,6 +634,16 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
+    const nextRate = centralRateForCurrency(customer.currency);
+    const convertedItems = items.map((item) => {
+      const convertedItem = convertItemToInvoiceCurrency(item, customer.currency);
+      return convertedItem ? withProfitSnapshot(convertedItem, customer.currency, nextRate) : null;
+    });
+    if (nextRate !== null && convertedItems.some((item) => item === null)) {
+      setErrorMessage(`${customer.currency} icin mevcut satir fiyatlari cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      return;
+    }
+
     setInvoice((current) => ({
       ...current,
       customerId: customer.id,
@@ -366,11 +651,14 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       customerCurrency: customer.currency,
       customerBalanceLabel: formatMoney(customer.balance, customer.currency),
       invoiceCurrency: customer.currency,
-      exchangeRate: `${customer.currency} 1.0000`,
-      exchangeRateValue: 1,
+      exchangeRate: nextRate === null ? `${customer.currency} tanimsiz` : formatExchangeRate(customer.currency, nextRate),
+      exchangeRateValue: nextRate === null ? '' : nextRate,
     }));
+    if (nextRate !== null) {
+      setItems(convertedItems);
+    }
     setCustomerQuery(customer.name);
-    markDirty('Cari secildi; taslak henuz stok veya cari hareket olusturmaz.');
+    markDirty('Cari secildi; fis para birimi icin tanimli kur alindi.');
   }
 
   function selectCustomerByQuery(value) {
@@ -388,19 +676,13 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   function updateProductQuery(value) {
     setProductQuery(value);
     setReferenceOptionsError('');
-    const normalizedValue = value.trim().toLowerCase();
-    const exactProduct = draftProductOptions.find((product) => (
-      [product.stockCode, product.barcode, product.productName, `${product.stockCode} / ${product.productName}`]
-        .some((fieldValue) => String(fieldValue || '').toLowerCase() === normalizedValue)
-    ));
-    const firstMatch = draftProductOptions.find((product) => (
-      !product.isPassive &&
-      [product.stockCode, product.barcode, product.productName, `${product.stockCode} / ${product.productName}`]
-        .some((fieldValue) => String(fieldValue || '').toLowerCase().includes(normalizedValue))
-    ));
-    const product = exactProduct || (normalizedValue ? firstMatch : null);
-
+    const product = resolveProductFromQuery(productLookupOptions, value);
     setProductToAddId(product ? String(product.productId) : '');
+  }
+
+  function resolveProductToAdd() {
+    const selectedProduct = productLookupOptions.find((item) => String(item.productId) === String(productToAddId));
+    return selectedProduct || resolveProductFromQuery(productLookupOptions, productQuery);
   }
 
   function addDraftItem() {
@@ -410,18 +692,15 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
-    if (!productToAddId) {
-      setErrorMessage('Satir eklemek icin once urun secin.');
+    const product = resolveProductToAdd();
+
+    if (!product || isReadonly) {
+      setErrorMessage(productQuery ? 'Yazilan barkod/stok kodu ile urun bulunamadi.' : 'Satir eklemek icin once urun secin.');
       setStatusMessage('Urun secilmeden satir eklenemez.');
       return;
     }
 
-    const product = draftProductOptions.find((item) => String(item.productId) === String(productToAddId));
-
-    if (!product || isReadonly) {
-      setErrorMessage('Secilen urun bulunamadi veya fis readonly.');
-      return;
-    }
+    setProductToAddId(String(product.productId));
 
     if (product.isPassive) {
       setErrorMessage('Pasif urunler satis taslagina eklenemez.');
@@ -429,6 +708,18 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     }
 
     const nextId = Math.max(0, ...items.map((item) => Number(item.id) || 0)) + 1;
+    const productRateToTry = centralRateForCurrency(product.currency);
+    if (productRateToTry === null) {
+      setErrorMessage(`${product.currency} maliyeti TRY'ye cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      return;
+    }
+
+    const convertedUnitPrice = convertCurrencyAmount(product.unitPrice, product.currency, invoice.invoiceCurrency);
+    if (convertedUnitPrice === null) {
+      setErrorMessage(`${product.currency} fiyatli urun ${invoice.invoiceCurrency} fisine cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      return;
+    }
+
     setErrorMessage('');
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => String(item.productId) === String(product.productId));
@@ -436,29 +727,41 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       if (existingItem) {
         setSelectedItemId(existingItem.id);
         return currentItems.map((item) => (
-          item.id === existingItem.id ? { ...item, quantity: item.quantity + Math.max(1, Number(quickQuantity || 1)) } : item
+          item.id === existingItem.id
+            ? withProfitSnapshot(
+              { ...item, quantity: item.quantity + Math.max(1, Number(quickQuantity || 1)) },
+              invoice.invoiceCurrency,
+              invoice.exchangeRateValue,
+            )
+            : item
         ));
       }
 
       setSelectedItemId(nextId);
-      return [
-        ...currentItems,
-        {
+      const nextItem = withProfitSnapshot({
           id: nextId,
           productId: product.productId,
           stockCode: product.stockCode,
           barcode: product.barcode,
           productName: product.productName,
           quantity: Math.max(1, Number(quickQuantity || 1)),
-          currency: product.currency,
-          unitPrice: product.unitPrice,
+          currency: invoice.invoiceCurrency,
+          unitPrice: convertedUnitPrice,
+          cardCurrency: product.currency,
+          cardUnitPrice: product.unitPrice,
+          cardPurchasePrice: product.cardPurchasePrice,
+          purchaseDiscountRate: product.purchaseDiscountRate,
+          cardRateToTry: productRateToTry,
+          productAverageCostTry: product.productAverageCostTry,
+          purchasePrice: product.purchasePrice,
           stockState: product.stockState,
           note: 'Taslak satir',
           averageCostTry: product.averageCostTry,
           grossProfitTry: null,
           grossProfitRate: null,
-        },
-      ];
+        }, invoice.invoiceCurrency, invoice.exchangeRateValue);
+
+      return [...currentItems, nextItem];
     });
     markDirty('Urun taslak satira eklendi; gercek stok dusumu yok.');
   }
@@ -495,7 +798,9 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
     setErrorMessage('');
     setItems((currentItems) => currentItems.map((item) => (
-      item.id === itemId ? { ...item, [field]: value } : item
+      item.id === itemId
+        ? withProfitSnapshot({ ...item, [field]: value }, invoice.invoiceCurrency, invoice.exchangeRateValue)
+        : item
     )));
     markDirty('Satir guncellendi; taslak kaydedilene kadar ticari etki yok.');
   }
@@ -510,8 +815,8 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   async function saveDraft() {
-    if (isReadonly) {
-      setStatusMessage('Kesinlesmis fis guncellenemez; iptal/duzeltme akisi ayri sprintte ele alinacak.');
+    if (isCancelled) {
+      setStatusMessage('Iptal edilmis fis guncellenemez; yeni taslak kullanin.');
       return;
     }
 
@@ -535,6 +840,12 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
+    if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
+      setErrorMessage(`${invoice.invoiceCurrency} kuru tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
+      setStatusMessage('Kur tanimi olmadan dovizli fis kaydedilemez.');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage('');
 
@@ -553,7 +864,9 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(response.message || `Taslak fis DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi olusmadi.`);
+      setStatusMessage(response.message || (nextInvoice.status === 'FINALIZED'
+        ? `Kesinlesmis fis duzeltmesi kaydedildi (#${response.data.id}).`
+        : `Taslak fis DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi olusmadi.`));
     } catch (error) {
       setErrorMessage(`${error.message || 'Taslak kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Taslak kaydi basarisiz; API/DB kontrol edilmeli.');
@@ -665,6 +978,43 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     }
   }
 
+  function printSalesInvoice() {
+    printBusinessDocument({
+      title: 'Satış Fişi',
+      documentNo: invoice.invoiceNo,
+      status,
+      date: invoice.date,
+      partyLabel: 'Müşteri',
+      partyName: invoice.customer,
+      currency: invoice.invoiceCurrency,
+      exchangeRate: invoice.exchangeRate,
+      description: invoice.description,
+      items,
+      totals,
+      extraInfo: [
+        { label: 'Cari PB', value: invoice.customerCurrency },
+        { label: 'Cari Bakiye', value: invoice.customerBalanceLabel },
+      ],
+    });
+  }
+
+  function exportSalesInvoiceRows() {
+    exportRowsToCsv({
+      filename: `satis-fisi-${invoice.invoiceNo}`,
+      rows: items,
+      columns: [
+        { label: 'Stok Kodu', key: 'stockCode' },
+        { label: 'Barkod', key: 'barcode' },
+        { label: 'Urun', key: 'productName' },
+        { label: 'Miktar', key: 'quantity' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Birim Fiyat', key: 'unitPrice' },
+        { label: 'Satir Toplami', value: (row) => Number(row.quantity || 0) * Number(row.unitPrice || 0) },
+        { label: 'Not', key: 'note' },
+      ],
+    });
+  }
+
   return (
     <main className="work-area sales-invoice-screen">
       <SalesInvoiceToolbar
@@ -680,14 +1030,20 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
         onCancel={cancelInvoice}
+        onExport={exportSalesInvoiceRows}
+        onPrint={printSalesInvoice}
       />
       <section className="sales-invoice-layout">
         {isLoading && <div className="list-state">Taslak fis API'den okunuyor...</div>}
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {referenceOptionsError && <div className="list-state list-state-error">{referenceOptionsError}</div>}
+        {currencyRateError && <div className="list-state list-state-error">{currencyRateError}</div>}
         {isSaving && <div className="list-state">Taslak fis API'ye kaydediliyor...</div>}
-        {isReadonly && (
-          <div className="list-state list-state-success">{status} fis readonly modda; tekrar kayit/kesinlestirme kapali.</div>
+        {isFinalized && (
+          <div className="list-state list-state-success">FINALIZED fis duzeltmeye acik; kaydet ile degisiklikler API/SQL'e yazilir.</div>
+        )}
+        {isCancelled && (
+          <div className="list-state list-state-success">CANCELLED fis kapali; yeni islem icin yeni taslak kullanin.</div>
         )}
         <section className="sales-flow-steps" aria-label="Satış fişi adımları">
           {flowSteps.map((step, index) => (
@@ -696,14 +1052,6 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
             </span>
           ))}
         </section>
-        <SalesInvoiceHeader
-          discountRate={discountRate}
-          invoice={invoice}
-          isReadonly={isReadonly}
-          status={status}
-          onChange={updateInvoiceField}
-          onDiscountChange={setDiscountRate}
-        />
         <section className="erp-panel sales-draft-controls sales-quick-add-panel">
           <div className="panel-title">
             <strong>Hızlı Satır</strong>
@@ -730,19 +1078,30 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
               <input
                 disabled={isReadonly}
                 placeholder="Barkod / stok kodu / urun adi"
-                list="sales-product-suggestions"
                 value={productQuery}
                 onChange={(event) => updateProductQuery(event.target.value)}
                 onKeyDown={addDraftItemFromKeyboard}
               />
-              <datalist id="sales-product-suggestions">
-                {filteredProducts.map((product) => (
-                  <option
-                    key={product.productId}
-                    value={`${product.stockCode} / ${product.productName}`}
-                  />
-                ))}
-              </datalist>
+              {productQuery.trim() && filteredProducts.length > 0 && (
+                <div className="sales-product-suggestion-list">
+                  {filteredProducts.slice(0, 8).map((product) => (
+                    <button
+                      key={product.productId}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        setProductToAddId(String(product.productId));
+                        setProductQuery(`${product.stockCode} / ${product.productName}`);
+                      }}
+                    >
+                      <span className="product-suggestion-title">
+                        {product.stockCode} / {product.productName}
+                      </span>
+                      <span className="product-suggestion-price">{formatProductPrice(product)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </label>
             <label>
               <span>Seçim</span>
@@ -750,7 +1109,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
                 <option value="">Urun secin</option>
                 {filteredProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>
-                    {product.stockCode} / {product.productName}
+                    {product.stockCode} / {product.productName} / {formatProductPrice(product)}
                   </option>
                 ))}
               </select>
@@ -769,14 +1128,26 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
           </div>
         </section>
+        <SalesInvoiceHeader
+          discountRate={discountRate}
+          invoice={invoice}
+          isReadonly={isReadonly}
+          status={status}
+          onChange={updateInvoiceField}
+          onDiscountChange={(value) => {
+            setDiscountRate(value);
+            markDirty('Genel iskonto degisti; kaydedilince fis toplamlarina yansir.');
+          }}
+        />
         {!isLoading && !errorMessage && items.length === 0 && (
           <section className="sales-empty-state">
             <strong>Satır bekleniyor</strong>
             <span>Önce cari seç, sonra ürün/barkod ara. Enter veya Satır Ekle ile taslağa eklenir.</span>
           </section>
         )}
-        <SalesInvoiceCustomerPanel invoice={invoice} permissions={salesInvoicePermissions} />
         <SalesInvoiceItemsTable
+          exchangeRate={invoice.exchangeRateValue}
+          invoiceCurrency={invoice.invoiceCurrency}
           isReadonly={isReadonly}
           items={items}
           onAdjustQuantity={adjustDraftItemQuantity}
@@ -788,7 +1159,6 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           showProfitColumns={isFinalized || isCancelled}
         />
         <SalesInvoiceTotals totals={totals} />
-        <SalesInvoiceRulesPanel rules={salesInvoiceRules} statusMessage={statusMessage} />
       </section>
       <section className="screen-summary sales-invoice-summary">
         <span>Fis: {invoice.invoiceNo}</span>

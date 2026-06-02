@@ -8,12 +8,12 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function CustomerTransactionsPanel({ transactions }) {
+export function CustomerTransactionsPanel({ transactions, onOpenTransaction }) {
   return (
     <section className="erp-panel customer-transactions-panel">
       <div className="panel-title">
-        <strong>Son Satis / Alis Hareketleri</strong>
-        <span>Fis, tahsilat ve duzeltme ozeti</span>
+        <strong>Cari Hareketler</strong>
+        <span>Satira tiklayinca ilgili isleme gider</span>
       </div>
       <div className="table-wrap customer-transactions-wrap">
         <table>
@@ -27,8 +27,17 @@ export function CustomerTransactionsPanel({ transactions }) {
             </tr>
           </thead>
           <tbody>
+            {transactions.length === 0 && (
+              <tr>
+                <td colSpan="5">Cari hareket bulunamadi.</td>
+              </tr>
+            )}
             {transactions.map((transaction) => (
-              <tr key={transaction.id}>
+              <tr
+                className={transaction.salesInvoiceId ? 'clickable-row' : ''}
+                key={transaction.id}
+                onClick={() => onOpenTransaction?.(transaction)}
+              >
                 <td>{transaction.date}</td>
                 <td>{transaction.type}</td>
                 <td className="code-cell">{transaction.documentNo}</td>

@@ -1,8 +1,10 @@
 import { Router } from 'express';
-import { getSupplier, getSuppliers } from '../controllers/supplierController.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { getSupplier, getSuppliers, postSupplier, putSupplier } from '../controllers/supplierController.js';
+import { requireAuth, requirePermission } from '../middleware/authMiddleware.js';
 
 export const supplierRoutes = Router();
 
 supplierRoutes.get('/suppliers', requireAuth, getSuppliers);
+supplierRoutes.post('/suppliers', requireAuth, requirePermission('customer.edit'), postSupplier);
 supplierRoutes.get('/suppliers/:id', requireAuth, getSupplier);
+supplierRoutes.put('/suppliers/:id', requireAuth, requirePermission('customer.edit'), putSupplier);

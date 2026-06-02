@@ -11,7 +11,9 @@ import {
   LayoutDashboard,
   Package,
   ReceiptText,
+  Search,
   Settings,
+  Star,
   Tags,
   Terminal,
   Users,
@@ -19,11 +21,74 @@ import {
 } from 'lucide-react';
 import { sidebarGroups } from '../../data/mockNavigationData.js';
 
-const sidebarAccordionStorageKey = 'melisaErpSidebarOpenGroups';
+const sidebarAccordionStorageKey = 'melisaErpSidebarOpenGroupV2';
+
+const favoriteScreens = [
+  'dashboard',
+  'sales-invoice',
+  'sales-invoice-list',
+  'stock-list',
+  'customer-list',
+  'supplier-list',
+  'import-foundation',
+];
+
+const groupDisplayLabels = {
+  Operasyon: 'Operasyon',
+  Dashboard: 'Ana Sayfa',
+  'Musteri Carileri': 'Müşteri Carileri',
+  'Tedarikci Carileri': 'Tedarikçi Carileri',
+  'Stok YÃ¶netimi': 'Stok Yönetimi',
+  'Cari Hesaplar': 'Cari Hesaplar',
+  'SatÄ±ÅŸ YÃ¶netimi': 'Satış Yönetimi',
+  'AlÄ±ÅŸ YÃ¶netimi': 'Alış Yönetimi',
+  'Finans YÃ¶netimi': 'Finans Yönetimi',
+  'SatÄ±ÅŸ KanallarÄ±': 'Satış Kanalları',
+  'Depo / Terminal': 'Depo / Terminal',
+  Raporlar: 'Raporlar',
+  'TanÄ±mlar': 'Tanımlar',
+  Ayarlar: 'Ayarlar',
+  'GÃ¼venlik': 'Güvenlik',
+};
+
+const itemDisplayLabels = {
+  dashboard: 'Operasyon Masası',
+  'stock-list': 'Stok Listesi',
+  'product-card': 'Ürün Kartı',
+  'price-list': 'Fiyat Listesi',
+  'stock-movements': 'Stok Hareketleri',
+  'customer-list': 'Müşteri Cari Listesi',
+  'customer-card': 'Müşteri Cari Kartı',
+  'customer-movements': 'Müşteri Cari Hareketleri',
+  'customer-statement': 'Müşteri Ekstre',
+  'supplier-list': 'Tedarikçi Cari Listesi',
+  'supplier-card': 'Tedarikçi Cari Kartı',
+  'supplier-movements': 'Tedarikçi Cari Hareketleri',
+  'supplier-statement': 'Tedarikçi Ekstre',
+  'sales-invoice': 'Yeni Satış Fişi',
+  'sales-invoice-list': 'Satış Fişleri',
+  'sales-offers': 'Teklifler',
+  'sales-orders': 'Siparişler',
+  'purchase-invoice': 'Yeni Alış Fişi',
+  'purchase-invoice-list': 'Alış Fişleri',
+  'finance-overview': 'Finans Özeti',
+  'collections-overview': 'Tahsilatlar',
+  'catalog-list': 'Katalog Listesi',
+  'whatsapp-planner': 'WhatsApp Paylaşım',
+  'terminal-overview': 'Terminal Ekranları',
+  'import-foundation': 'Excel / CSV Aktarım',
+  'reports-overview': 'Rapor Merkezi',
+  'definitions-overview': 'Tanım Listeleri',
+  'settings-overview': 'Sistem Ayarları',
+  'currency-rates': 'Döviz Kurları',
+  'auth-overview': 'Yetki ve Denetim',
+};
 
 const groupIcons = {
   Dashboard: LayoutDashboard,
   Operasyon: LayoutDashboard,
+  'Musteri Carileri': Users,
+  'Tedarikci Carileri': ClipboardList,
   'Stok Yönetimi': Package,
   'Cari Hesaplar': Users,
   'Satış Yönetimi': ReceiptText,
@@ -47,6 +112,10 @@ const itemIcons = {
   'customer-card': FileText,
   'customer-movements': FileSpreadsheet,
   'customer-statement': FileSpreadsheet,
+  'supplier-list': Users,
+  'supplier-card': FileText,
+  'supplier-movements': FileSpreadsheet,
+  'supplier-statement': FileSpreadsheet,
   'sales-invoice': ReceiptText,
   'sales-invoice-list': ReceiptText,
   'purchase-invoice': ClipboardList,
@@ -64,6 +133,7 @@ const itemIcons = {
 
 export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, onOpenScreen }) {
   const activeScreenId = activeTab.screenId ?? activeTab.id;
+  const [searchTerm, setSearchTerm] = useState('');
   const visibleGroups = useMemo(() => (roleScreenIds
     ? sidebarGroups
       .map((group) => ({
@@ -72,59 +142,99 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
       }))
       .filter((group) => group.items.length > 0)
     : sidebarGroups), [roleScreenIds]);
+  const favoriteItems = useMemo(() => (
+    favoriteScreens
+      .map((screenId) => visibleGroups.flatMap((group) => group.items).find((item) => item.screenId === screenId))
+      .filter(Boolean)
+  ), [visibleGroups]);
+  const normalizedSearch = normalizeSearch(searchTerm);
+  const filteredGroups = useMemo(() => {
+    if (!normalizedSearch) {
+      return visibleGroups;
+    }
+
+    return visibleGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => (
+          normalizeSearch(getItemLabel(item)).includes(normalizedSearch) ||
+          normalizeSearch(getGroupLabel(group.title)).includes(normalizedSearch)
+        )),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [normalizedSearch, visibleGroups]);
   const activeGroupTitle = useMemo(() => (
     visibleGroups.find((group) => group.items.some((item) => item.screenId === activeScreenId))?.title
   ), [activeScreenId, visibleGroups]);
-  const [openGroups, setOpenGroups] = useState(() => readStoredOpenGroups(activeGroupTitle, visibleGroups));
+  const [openGroupTitle, setOpenGroupTitle] = useState(() => readStoredOpenGroup(activeGroupTitle, visibleGroups));
 
   useEffect(() => {
-    setOpenGroups((currentGroups) => {
+    setOpenGroupTitle((currentGroupTitle) => {
       const visibleTitles = new Set(visibleGroups.map((group) => group.title));
-      const nextGroups = new Set([...currentGroups].filter((groupTitle) => visibleTitles.has(groupTitle)));
 
       if (activeGroupTitle) {
-        nextGroups.add(activeGroupTitle);
+        window.localStorage.setItem(sidebarAccordionStorageKey, activeGroupTitle);
+        return activeGroupTitle;
       }
 
-      if (nextGroups.size === currentGroups.size && [...nextGroups].every((groupTitle) => currentGroups.has(groupTitle))) {
-        return currentGroups;
+      if (currentGroupTitle && visibleTitles.has(currentGroupTitle)) {
+        return currentGroupTitle;
       }
 
-      window.localStorage.setItem(sidebarAccordionStorageKey, JSON.stringify([...nextGroups]));
-      return nextGroups;
+      return visibleGroups[0]?.title || '';
     });
   }, [activeGroupTitle, visibleGroups]);
 
   const toggleGroup = useCallback((groupTitle) => {
-    setOpenGroups((currentGroups) => {
-      const nextGroups = new Set(currentGroups);
-      if (nextGroups.has(groupTitle)) {
-        nextGroups.delete(groupTitle);
-      } else {
-        nextGroups.add(groupTitle);
-      }
-
-      window.localStorage.setItem(sidebarAccordionStorageKey, JSON.stringify([...nextGroups]));
-      return nextGroups;
+    setOpenGroupTitle((currentGroupTitle) => {
+      const nextGroupTitle = currentGroupTitle === groupTitle ? '' : groupTitle;
+      window.localStorage.setItem(sidebarAccordionStorageKey, nextGroupTitle);
+      return nextGroupTitle;
     });
   }, []);
 
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <strong>Modul Paneli</strong>
-        <span>{activeTab.module} / {activeTab.type} baglami</span>
+        <strong>Modül Paneli</strong>
+        <span>{activeTab.module} / {activeTab.type}</span>
+        <label className="sidebar-search">
+          <Search size={14} />
+          <input
+            placeholder="Menüde ara"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </label>
       </div>
-      {visibleGroups.map((group) => (
+      {!normalizedSearch && (
+        <section className="side-group favorites">
+          <h3><Star size={13} /> Sık Kullanılanlar</h3>
+          <div className="side-group-items">
+            {favoriteItems.map((item) => (
+              <SidebarItem
+                isActive={activeScreenId === item.screenId}
+                item={item}
+                key={`favorite-${item.screenId}`}
+                onOpenScreen={onOpenScreen}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+      {filteredGroups.map((group) => (
         <SidebarGroup
           activeScreenId={activeScreenId}
           group={group}
-          isOpen={openGroups.has(group.title)}
+          isOpen={normalizedSearch ? true : openGroupTitle === group.title}
           key={group.title}
           onOpenScreen={onOpenScreen}
           onToggleGroup={toggleGroup}
         />
       ))}
+      {filteredGroups.length === 0 && (
+        <div className="sidebar-empty">Menüde eşleşen ekran yok.</div>
+      )}
       <section className="side-group compact connection-details">
         <h3>Durum</h3>
         <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo mode' : 'aktif'}</p>
@@ -135,24 +245,39 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   );
 }
 
-function readStoredOpenGroups(activeGroupTitle, visibleGroups) {
+function readStoredOpenGroup(activeGroupTitle, visibleGroups) {
   try {
-    const storedGroups = JSON.parse(window.localStorage.getItem(sidebarAccordionStorageKey) || '[]');
+    const storedGroup = window.localStorage.getItem(sidebarAccordionStorageKey) || '';
     const visibleTitles = new Set(visibleGroups.map((group) => group.title));
-    const initialGroups = new Set(storedGroups.filter((groupTitle) => visibleTitles.has(groupTitle)));
 
     if (activeGroupTitle) {
-      initialGroups.add(activeGroupTitle);
+      return activeGroupTitle;
     }
 
-    if (initialGroups.size > 0) {
-      return initialGroups;
+    if (storedGroup && visibleTitles.has(storedGroup)) {
+      return storedGroup;
     }
-  } catch (error) {
+  } catch {
     // fall through to compact default below
   }
 
-  return new Set(visibleGroups.slice(0, 2).map((group) => group.title));
+  return visibleGroups[0]?.title || '';
+}
+
+function normalizeSearch(value) {
+  return String(value || '')
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim();
+}
+
+function getGroupLabel(title) {
+  return groupDisplayLabels[title] || title;
+}
+
+function getItemLabel(item) {
+  return itemDisplayLabels[item.screenId] || item.label;
 }
 
 function SidebarGroup({ group, activeScreenId, isOpen, onOpenScreen, onToggleGroup }) {
@@ -166,7 +291,7 @@ function SidebarGroup({ group, activeScreenId, isOpen, onOpenScreen, onToggleGro
         onClick={() => onToggleGroup(group.title)}
         type="button"
       >
-        <span><GroupIcon size={13} strokeWidth={2.2} /> {group.title}</span>
+        <span><GroupIcon size={13} strokeWidth={2.2} /> {getGroupLabel(group.title)}</span>
         <small>{group.items.length}</small>
         <ChevronDown size={14} />
       </button>
@@ -188,15 +313,18 @@ function SidebarGroup({ group, activeScreenId, isOpen, onOpenScreen, onToggleGro
 
 function SidebarItem({ item, isActive, onOpenScreen }) {
   const Icon = itemIcons[item.screenId] || FileText;
+  const isComingSoon = Boolean(item.comingSoon);
+  const label = getItemLabel(item);
 
   return (
     <button
-      className={isActive ? 'active' : ''}
+      className={[isActive ? 'active' : '', isComingSoon ? 'coming-soon' : ''].filter(Boolean).join(' ')}
       onClick={() => onOpenScreen(item.screenId)}
       type="button"
     >
       <Icon size={14} strokeWidth={2.1} />
-      <span>{item.label}</span>
+      <span>{label}</span>
+      {isComingSoon && <small>Hazır</small>}
     </button>
   );
 }

@@ -4,6 +4,7 @@ import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
 import { stockFilterDefaults, stockFilterOptions } from './stockMockData.js';
 import { fetchProducts } from '../../services/productApi.js';
+import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 
 function normalize(value) {
   return String(value ?? '').toLowerCase();
@@ -20,9 +21,8 @@ function matchesMaskedBarcode(value, filter) {
 
   const barcode = normalize(value);
   const query = normalize(filter);
-  const queryTail = query.slice(-2);
 
-  return barcode.includes(query) || (queryTail.length >= 2 && barcode.endsWith(queryTail));
+  return barcode.includes(query);
 }
 
 function formatMoney(amount, currency) {
@@ -35,6 +35,7 @@ function formatMoney(amount, currency) {
 
 function buildSearch(filters) {
   return [
+    filters.quickSearch,
     filters.stockCode,
     filters.name,
     filters.brand,
@@ -44,10 +45,14 @@ function buildSearch(filters) {
 }
 
 function toStockRow(product) {
+  const barcode = product.matchedBarcode || product.barcodeMasked || '-';
+
   return {
     id: product.id,
     stockCode: product.stockCode,
-    barcode: product.barcodeMasked || '-',
+    barcode,
+    primaryBarcode: product.barcodeMasked || '-',
+    matchedBarcode: product.matchedBarcode || '',
     name: product.productName,
     brand: product.brand || '-',
     category: product.category || '-',
@@ -70,10 +75,22 @@ function applyStockFilters(row, filters) {
     (filters.stockState === 'in-stock' && row.currentStock > 0) ||
     (filters.stockState === 'out-of-stock' && row.currentStock === 0) ||
     (filters.stockState === 'negative' && row.currentStock < 0);
+  const matchesCurrency = filters.currency === 'all' || row.currency === filters.currency;
+  const matchesQuickSearch = !filters.quickSearch || [
+    row.stockCode,
+    row.barcode,
+    row.name,
+    row.brand,
+    row.category,
+    row.supplier,
+    row.currency,
+  ].some((value) => matchesText(value, filters.quickSearch));
 
   return (
     matchesStatus &&
     matchesStockState &&
+    matchesCurrency &&
+    matchesQuickSearch &&
     matchesText(row.stockCode, filters.stockCode) &&
     matchesMaskedBarcode(row.barcode, filters.barcode) &&
     matchesText(row.name, filters.name) &&
@@ -89,6 +106,7 @@ export function StockListScreen({ onOpenScreen }) {
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
 
@@ -107,6 +125,7 @@ export function StockListScreen({ onOpenScreen }) {
           page: 1,
           limit: 100,
           search,
+          barcode: filters.barcode,
           activeOnly,
         });
         const nextRows = response.data.map(toStockRow);
@@ -137,7 +156,7 @@ export function StockListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, search]);
+  }, [activeOnly, filters.barcode, reloadKey, search]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => applyStockFilters(row, filters)),
@@ -190,17 +209,46 @@ export function StockListScreen({ onOpenScreen }) {
     onOpenScreen('product-card', { productId: rowId, stockCode: row?.stockCode });
   }
 
+  function refreshProducts() {
+    setReloadKey((current) => current + 1);
+    setSelectionWarning('');
+  }
+
+  function exportStockRows() {
+    exportRowsToCsv({
+      filename: 'stok-listesi',
+      rows: filteredRows,
+      columns: [
+        { label: 'Stok Kodu', key: 'stockCode' },
+        { label: 'Barkod', key: 'barcode' },
+        { label: 'Urun Adi', key: 'name' },
+        { label: 'Marka', key: 'brand' },
+        { label: 'Kategori', key: 'category' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Satis Fiyati', key: 'salesPrice' },
+        { label: 'Alis Fiyati', key: 'purchasePrice' },
+        { label: 'Stok', key: 'currentStock' },
+        { label: 'Tedarikci', key: 'supplier' },
+        { label: 'Durum', key: 'status' },
+      ],
+    });
+  }
+
   return (
     <main className="work-area stock-list-screen">
       <StockListToolbar
         showPassive={filters.status === 'all'}
         onOpenProductCard={openSelectedProduct}
         onTogglePassive={togglePassive}
+        onExportCsv={exportStockRows}
+        onPrint={() => printCurrentScreen('Melisa ERP - Stok Listesi')}
+        onRefresh={refreshProducts}
       />
       <StockListFilters
         filters={filters}
         suggestions={suggestionOptions}
         onChange={setFilters}
+        onRefresh={refreshProducts}
         onReset={resetFilters}
       />
       <section className="erp-panel stock-list-panel">

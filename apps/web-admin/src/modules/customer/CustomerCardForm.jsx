@@ -1,8 +1,8 @@
 import React from 'react';
 
-export function CustomerCardForm({ customer, form, mode, onChange, rules }) {
+export function CustomerCardForm({ customer, form, mode, onChange }) {
   const phonePlaceholder = mode === 'update' && form.phoneMasked
-    ? `Mevcut: ${form.phoneMasked} / degistirmek icin yeni telefon girin`
+    ? 'Telefon'
     : 'Telefon';
 
   return (
@@ -57,13 +57,6 @@ export function CustomerCardForm({ customer, form, mode, onChange, rules }) {
           <span>Aktif / pasif</span>
           <input value={customer.status} readOnly />
         </label>
-      </div>
-      <div className="customer-rule-list">
-        <strong>Kritik is kurallari</strong>
-        {rules.map((rule) => (
-          <span key={rule}>{rule}</span>
-        ))}
-        <span>Update modunda telefon ham degeri API'den maskeli gelir; degistirmek icin yeni telefon girilir.</span>
       </div>
     </section>
   );

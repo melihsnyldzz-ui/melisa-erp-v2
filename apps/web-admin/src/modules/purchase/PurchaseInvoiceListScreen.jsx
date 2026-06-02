@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchPurchaseDrafts } from '../../services/invoiceDraftApi.js';
+import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
@@ -49,7 +50,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
       setRows([]);
       setMeta(null);
       setSelectedRowId(null);
-      setErrorMessage(error.message || 'Alış taslak listesi API bağlantısı başarısız.');
+      setErrorMessage(error.message || 'Alis fis listesi API baglantisi basarisiz.');
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +84,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           setRows([]);
           setMeta(null);
           setSelectedRowId(null);
-          setErrorMessage(error.message || 'Alış taslak listesi API bağlantısı başarısız.');
+          setErrorMessage(error.message || 'Alis fis listesi API baglantisi basarisiz.');
         }
       } finally {
         if (isMounted) {
@@ -101,7 +102,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
   function openDraft(rowId = selectedRow?.id) {
     if (!rowId) {
-      setErrorMessage('Fiş açmak için listeden bir taslak seçin.');
+      setErrorMessage('Fis acmak icin listeden bir kayit secin.');
       return;
     }
 
@@ -110,28 +111,47 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     onOpenScreen('purchase-invoice', { purchaseDraftId: rowId, invoiceNo: row?.invoiceNo });
   }
 
+  function exportPurchaseRows() {
+    exportRowsToCsv({
+      filename: 'alis-fisleri',
+      rows,
+      columns: [
+        { label: 'Fis No', key: 'invoiceNo' },
+        { label: 'Tedarikci', key: 'supplierName' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Toplam', key: 'totalAmount' },
+        { label: 'Durum', key: 'status' },
+        { label: 'Satir', key: 'itemCount' },
+        { label: 'Olusturma', value: (row) => formatDate(row.createdAt) },
+        { label: 'Guncelleme', value: (row) => formatDate(row.updatedAt) },
+      ],
+    });
+  }
+
   return (
     <main className="work-area invoice-list-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
-          <strong>Alış Fişleri</strong>
-          <span>Tedarikçi alış taslakları, maliyet etkisi ve irsaliye eşleştirme</span>
+          <strong>Alis Fisleri</strong>
+          <span>Tedarikci alis fisleri, maliyet etkisi ve stok girisi</span>
         </div>
         <div className="invoice-list-actions">
-          <button type="button" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Fiş</button>
-          <button type="button" onClick={() => openDraft()}>Fiş Aç</button>
+          <button type="button" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Fis</button>
+          <button type="button" onClick={() => openDraft()}>Fis Ac</button>
+          <button type="button" onClick={exportPurchaseRows}>Excel</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Alis Fisleri')}>Yazdir</button>
           <button type="button" onClick={loadDrafts}>Yenile</button>
         </div>
       </section>
 
       <section className="invoice-list-filters">
         <label>
-          <span>Fiş / genel arama</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fiş no veya tedarikçi" />
+          <span>Fis / genel arama</span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fis no veya tedarikci" />
         </label>
         <label>
-          <span>Tedarikçi</span>
-          <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder="Tedarikçi adı" />
+          <span>Tedarikci</span>
+          <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder="Tedarikci adi" />
         </label>
         <label>
           <span>Durum</span>
@@ -141,29 +161,29 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
       <section className="erp-panel invoice-list-panel">
         <div className="panel-title">
-          <strong>Alış Taslak Tablosu</strong>
-          <span>Seçili: {selectedRow?.invoiceNo ?? 'yok'} / Satır: {rows.length}</span>
+          <strong>Alis Fisleri Tablosu</strong>
+          <span>Secili: {selectedRow?.invoiceNo ?? 'yok'} / Satir: {rows.length}</span>
         </div>
-        {isLoading && <div className="list-state">API'den alış taslakları yükleniyor...</div>}
+        {isLoading && <div className="list-state">API'den alis fisleri yukleniyor...</div>}
         {!isLoading && errorMessage && (
-          <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>
+          <div className="list-state list-state-error">{errorMessage} Demo fallback kullanilmadi.</div>
         )}
         {!isLoading && !errorMessage && rows.length === 0 && (
-          <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
+          <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
         )}
         {!isLoading && !errorMessage && rows.length > 0 && (
           <div className="table-wrap invoice-table-wrap">
             <table className="invoice-list-table">
               <thead>
                 <tr>
-                  <th>Fiş no</th>
-                  <th>Tedarikçi</th>
+                  <th>Fis no</th>
+                  <th>Tedarikci</th>
                   <th>PB</th>
                   <th>Toplam</th>
                   <th>Durum</th>
-                  <th>Satır</th>
-                  <th>Oluşturma</th>
-                  <th>Güncelleme</th>
+                  <th>Satir</th>
+                  <th>Olusturma</th>
+                  <th>Guncelleme</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,10 +211,10 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
       </section>
 
       <section className="screen-summary invoice-list-summary">
-        <span>Toplam taslak: {meta?.total ?? rows.length}</span>
-        <span>Liste kaydı: {rows.length}</span>
+        <span>Toplam fis: {meta?.total ?? rows.length}</span>
+        <span>Liste kaydi: {rows.length}</span>
         <span>Durum: DRAFT</span>
-        <span>Kaynak: API / okuma modu</span>
+        <span>Kaynak: API / canli SQL</span>
       </section>
     </main>
   );

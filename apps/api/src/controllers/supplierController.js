@@ -1,5 +1,5 @@
-import { getSupplierDetail, getSuppliersList } from '../services/supplierService.js';
-import { fail, ok } from '../utils/response.js';
+import { createSupplier, getSupplierDetail, getSuppliersList, updateSupplier } from '../services/supplierService.js';
+import { created, fail, ok } from '../utils/response.js';
 
 export async function getSuppliers(req, res) {
   try {
@@ -18,5 +18,39 @@ export async function getSupplier(req, res) {
     });
   } catch (error) {
     return fail(res, error.statusCode || 503, error.code || 'SQL_SELECT_FAILED', 'Supplier detail query failed');
+  }
+}
+
+export async function postSupplier(req, res) {
+  try {
+    const data = await createSupplier(req.body, req.user);
+    return created(res, data, {
+      source: 'sql-write',
+      audit: 'supplier_created',
+    });
+  } catch (error) {
+    return fail(
+      res,
+      error.statusCode || 503,
+      error.code || 'SUPPLIER_WRITE_FAILED',
+      error.statusCode ? error.message : 'Supplier create failed',
+    );
+  }
+}
+
+export async function putSupplier(req, res) {
+  try {
+    const data = await updateSupplier(req.params.id, req.body, req.user);
+    return ok(res, data, {
+      source: 'sql-write',
+      audit: 'supplier_updated',
+    });
+  } catch (error) {
+    return fail(
+      res,
+      error.statusCode || 503,
+      error.code || 'SUPPLIER_WRITE_FAILED',
+      error.statusCode ? error.message : 'Supplier update failed',
+    );
   }
 }

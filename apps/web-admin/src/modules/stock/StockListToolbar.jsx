@@ -1,22 +1,21 @@
 import React from 'react';
 
-export function StockListToolbar({ showPassive, onTogglePassive, onOpenProductCard }) {
+export function StockListToolbar({ showPassive, onTogglePassive, onOpenProductCard, onExportCsv, onPrint, onRefresh }) {
   return (
     <div className="stock-toolbar">
       <div className="stock-toolbar-title">
         <strong>Stok Listesi</strong>
-        <span>Canlı stok, rezerve miktar ve terminal hareketleri</span>
+        <span>Canli stok, rezerve miktar ve terminal hareketleri</span>
       </div>
       <div className="stock-toolbar-actions">
-        <button type="button" onClick={onOpenProductCard}>Yeni Ürün</button>
-        <button type="button" onClick={onOpenProductCard}>Ürün Kartı Aç</button>
+        <button type="button" onClick={onOpenProductCard}>Yeni Urun</button>
+        <button type="button" onClick={onOpenProductCard}>Urun Karti Ac</button>
+        <button type="button" onClick={onExportCsv}>Excel</button>
+        <button type="button" onClick={onPrint}>Yazdir</button>
+        <button type="button" onClick={onRefresh}>Yenile</button>
         <button className={showPassive ? 'pressed' : ''} type="button" onClick={onTogglePassive}>
-          Pasifleri Göster
+          Pasifleri Goster
         </button>
-        <button type="button">Kolonlar</button>
-        <button type="button">XLSX</button>
-        <button type="button">PDF</button>
-        <button type="button">Yenile</button>
       </div>
     </div>
   );

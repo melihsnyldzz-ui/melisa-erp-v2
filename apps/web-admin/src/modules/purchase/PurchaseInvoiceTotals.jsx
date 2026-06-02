@@ -10,12 +10,13 @@ function formatMoney(amount, currency) {
 
 export function PurchaseInvoiceTotals({ totals }) {
   const [isOpen, setIsOpen] = useState(false);
+  const currency = totals.currency || 'TRY';
 
   return (
     <section className={isOpen ? 'erp-panel purchase-totals-panel open' : 'erp-panel purchase-totals-panel'}>
       <div className="panel-title">
         <strong>Toplamlar</strong>
-        <span className="mini-total-value">{formatMoney(totals.grandTotal, 'TRY')}</span>
+        <span className="mini-total-value">{formatMoney(totals.grandTotal, currency)}</span>
         <button
           aria-expanded={isOpen}
           className="mini-total-toggle"
@@ -28,11 +29,11 @@ export function PurchaseInvoiceTotals({ totals }) {
       <dl>
         <div>
           <dt>Ara toplam</dt>
-          <dd>{formatMoney(totals.subtotal, 'TRY')}</dd>
+          <dd>{formatMoney(totals.subtotal, currency)}</dd>
         </div>
         <div>
           <dt>Satir iskonto toplami</dt>
-          <dd>{formatMoney(totals.lineDiscountTotal, 'TRY')}</dd>
+          <dd>{formatMoney(totals.lineDiscountTotal, currency)}</dd>
         </div>
         <div>
           <dt>Fis geneli iskonto %</dt>
@@ -44,11 +45,15 @@ export function PurchaseInvoiceTotals({ totals }) {
         </div>
         <div>
           <dt>Toplam iskonto</dt>
-          <dd>{formatMoney(totals.totalDiscount, 'TRY')}</dd>
+          <dd>{formatMoney(totals.totalDiscount, currency)}</dd>
         </div>
         <div className="purchase-grand-total">
           <dt>Genel toplam</dt>
-          <dd>{formatMoney(totals.grandTotal, 'TRY')}</dd>
+          <dd>{formatMoney(totals.grandTotal, currency)}</dd>
+        </div>
+        <div>
+          <dt>Kur</dt>
+          <dd>{currency} {Number(totals.exchangeRate || 1).toFixed(4)}</dd>
         </div>
         <div>
           <dt>Satir sayisi</dt>

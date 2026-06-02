@@ -256,7 +256,7 @@ export function ManagementReportsScreen() {
       </section>
 
       <section className="screen-summary dashboard-summary">
-        <span>Kaynak: Yönetim raporu / okuma modu</span>
+        <span>Kaynak: Yönetim raporu / canli SQL</span>
         <span>Üretim zamanı: {formatDate(report?.generatedAt)}</span>
         <span>Yetki: dashboard.view</span>
       </section>

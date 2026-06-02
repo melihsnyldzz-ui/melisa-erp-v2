@@ -17,6 +17,7 @@ export const GRANULAR_PERMISSIONS = [
   'customer.passive',
   'audit.view',
   'dashboard.view',
+  'settings.manage',
 ];
 
 const FULL_ACCESS_ROLE_CODES = new Set(['admin', 'owner_manager', 'owner_partner']);

@@ -27,12 +27,21 @@ export const sidebarGroups = [
     ],
   },
   {
-    title: 'Cari Hesaplar',
+    title: 'Musteri Carileri',
     items: [
-      { label: 'Cari Kart Listesi', screenId: 'customer-list' },
-      { label: 'Cari Kart', screenId: 'customer-card' },
-      { label: 'Cari Hareketler', screenId: 'customer-movements' },
-      { label: 'Cari Ekstre', screenId: 'customer-statement' },
+      { label: 'Musteri Cari Listesi', screenId: 'customer-list' },
+      { label: 'Musteri Cari Karti', screenId: 'customer-card' },
+      { label: 'Musteri Cari Hareketleri', screenId: 'customer-movements' },
+      { label: 'Musteri Ekstre', screenId: 'customer-statement' },
+    ],
+  },
+  {
+    title: 'Tedarikci Carileri',
+    items: [
+      { label: 'Tedarikci Cari Listesi', screenId: 'supplier-list' },
+      { label: 'Tedarikci Cari Karti', screenId: 'supplier-card' },
+      { label: 'Tedarikci Cari Hareketleri', screenId: 'supplier-movements' },
+      { label: 'Tedarikci Ekstre', screenId: 'supplier-statement' },
     ],
   },
   {
@@ -89,6 +98,7 @@ export const sidebarGroups = [
     title: 'Ayarlar',
     items: [
       { label: 'Sistem Ayarları', screenId: 'settings-overview' },
+      { label: 'Döviz Kurları', screenId: 'currency-rates' },
     ],
   },
   {
@@ -120,18 +130,67 @@ export const screenRegistry = {
     type: 'kart',
     dirty: true,
   },
+  'price-list': {
+    id: 'price-list',
+    label: 'Fiyat Listesi',
+    module: 'Stok',
+    type: 'liste',
+  },
+  'stock-movements': {
+    id: 'stock-movements',
+    label: 'Stok Hareketleri',
+    module: 'Stok',
+    type: 'hareket',
+  },
   'customer-list': {
     id: 'customer-list',
-    label: 'Cari Listesi',
+    label: 'Musteri Cari Listesi',
     module: 'Cari',
     type: 'liste',
   },
   'customer-card': {
     id: 'customer-card',
-    label: 'Cari Kartı',
+    label: 'Musteri Cari Karti',
     module: 'Cari',
     type: 'kart',
     dirty: true,
+  },
+  'customer-movements': {
+    id: 'customer-movements',
+    label: 'Musteri Cari Hareketleri',
+    module: 'Cari',
+    type: 'hareket',
+  },
+  'customer-statement': {
+    id: 'customer-statement',
+    label: 'Musteri Ekstre',
+    module: 'Cari',
+    type: 'ekstre',
+  },
+  'supplier-list': {
+    id: 'supplier-list',
+    label: 'Tedarikci Cari Listesi',
+    module: 'Cari',
+    type: 'liste',
+  },
+  'supplier-card': {
+    id: 'supplier-card',
+    label: 'Tedarikci Cari Karti',
+    module: 'Cari',
+    type: 'kart',
+    dirty: true,
+  },
+  'supplier-movements': {
+    id: 'supplier-movements',
+    label: 'Tedarikci Cari Hareketleri',
+    module: 'Cari',
+    type: 'hareket',
+  },
+  'supplier-statement': {
+    id: 'supplier-statement',
+    label: 'Tedarikci Ekstre',
+    module: 'Cari',
+    type: 'ekstre',
   },
   'sales-invoice': {
     id: 'sales-invoice',
@@ -146,6 +205,32 @@ export const screenRegistry = {
     module: 'Satış',
     type: 'liste',
   },
+  'sales-offers': {
+    id: 'sales-offers',
+    label: 'Teklifler',
+    module: 'Satış',
+    type: 'liste',
+  },
+  'sales-offer': {
+    id: 'sales-offer',
+    label: 'Teklif Kartı',
+    module: 'Satış',
+    type: 'kart',
+    dirty: true,
+  },
+  'sales-orders': {
+    id: 'sales-orders',
+    label: 'Siparişler',
+    module: 'Satış',
+    type: 'liste',
+  },
+  'sales-order': {
+    id: 'sales-order',
+    label: 'Sipariş Kartı',
+    module: 'Satış',
+    type: 'kart',
+    dirty: true,
+  },
   'purchase-invoice': {
     id: 'purchase-invoice',
     label: 'Alış Fişi',
@@ -156,48 +241,6 @@ export const screenRegistry = {
     id: 'purchase-invoice-list',
     label: 'Alış Fişleri',
     module: 'Alış',
-    type: 'liste',
-  },
-  'catalog-list': {
-    id: 'catalog-list',
-    label: 'Katalog Listesi',
-    module: 'Katalog',
-    type: 'liste',
-  },
-  'price-list': {
-    id: 'price-list',
-    label: 'Fiyat Listesi',
-    module: 'Stok',
-    type: 'liste',
-  },
-  'stock-movements': {
-    id: 'stock-movements',
-    label: 'Stok Hareketleri',
-    module: 'Stok',
-    type: 'hareket',
-  },
-  'customer-movements': {
-    id: 'customer-movements',
-    label: 'Cari Hareketler',
-    module: 'Cari',
-    type: 'hareket',
-  },
-  'customer-statement': {
-    id: 'customer-statement',
-    label: 'Cari Ekstre',
-    module: 'Cari',
-    type: 'ekstre',
-  },
-  'sales-offers': {
-    id: 'sales-offers',
-    label: 'Teklifler',
-    module: 'Satis',
-    type: 'liste',
-  },
-  'sales-orders': {
-    id: 'sales-orders',
-    label: 'Siparisler',
-    module: 'Satis',
     type: 'liste',
   },
   'finance-overview': {
@@ -212,6 +255,12 @@ export const screenRegistry = {
     module: 'Finans',
     type: 'liste',
   },
+  'catalog-list': {
+    id: 'catalog-list',
+    label: 'Katalog Listesi',
+    module: 'Katalog',
+    type: 'liste',
+  },
   'whatsapp-planner': {
     id: 'whatsapp-planner',
     label: 'WhatsApp Paylaşım',
@@ -223,6 +272,12 @@ export const screenRegistry = {
     label: 'Terminal Ekranları',
     module: 'Terminal',
     type: 'ozet',
+  },
+  'import-foundation': {
+    id: 'import-foundation',
+    label: 'Excel / CSV Aktarım',
+    module: 'Terminal',
+    type: 'import',
   },
   'reports-overview': {
     id: 'reports-overview',
@@ -242,17 +297,17 @@ export const screenRegistry = {
     module: 'Ayarlar',
     type: 'ayar',
   },
+  'currency-rates': {
+    id: 'currency-rates',
+    label: 'Döviz Kurları',
+    module: 'Ayarlar',
+    type: 'ayar',
+  },
   'auth-overview': {
     id: 'auth-overview',
     label: 'Yetki ve Denetim',
     module: 'Güvenlik',
     type: 'ayar',
-  },
-  'import-foundation': {
-    id: 'import-foundation',
-    label: 'Excel / CSV Aktarım',
-    module: 'Terminal',
-    type: 'import',
   },
 };
 

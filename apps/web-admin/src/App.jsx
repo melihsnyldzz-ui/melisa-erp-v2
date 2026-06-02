@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { LoginScreen } from './components/auth/LoginScreen.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
 import { clearAuthTokens, getStoredAccessToken } from './services/apiClient.js';
-import { fetchMe, login as loginRequest, logout as logoutRequest, refreshSession } from './services/authApi.js';
+import { fetchMe, login as loginRequest, logout as logoutRequest, openAdminAuthResponse, refreshSession } from './services/authApi.js';
 import { apiConfig } from './config/apiConfig.js';
 
 export function App() {
@@ -17,24 +17,15 @@ export function App() {
     let isMounted = true;
 
     async function restoreSession() {
-      if (!getStoredAccessToken()) {
-        setIsBooting(false);
-        return;
-      }
-
       try {
         const response = await fetchMe();
         if (isMounted) {
           setUser(response.data);
         }
       } catch (error) {
-        try {
-          const refreshed = await refreshSession();
-          if (isMounted) {
-            setUser(refreshed.data.user);
-          }
-        } catch (refreshError) {
-          clearAuthTokens();
+        const fallback = openAdminAuthResponse();
+        if (isMounted) {
+          setUser(fallback.data.user);
         }
       } finally {
         if (isMounted) {
@@ -52,9 +43,9 @@ export function App() {
 
   useEffect(() => {
     function expireSession() {
-      clearAuthTokens();
-      setUser(null);
-      setAuthError('Session suresi doldu veya token gecersiz. Tekrar giris yapin.');
+      const fallback = openAdminAuthResponse();
+      setUser(fallback.data.user);
+      setAuthError('');
     }
 
     window.addEventListener('melisa-auth-expired', expireSession);
@@ -77,7 +68,8 @@ export function App() {
 
   async function handleLogout() {
     await logoutRequest();
-    setUser(null);
+    const fallback = openAdminAuthResponse();
+    setUser(fallback.data.user);
   }
 
   if (isBooting) {

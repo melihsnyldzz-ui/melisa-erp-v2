@@ -1,6 +1,4 @@
 import { post } from './apiClient.js';
-import { apiConfig } from '../config/apiConfig.js';
-import { demoImportCommitResponse, demoImportPreviewResponse } from '../demo/demoImport.js';
 
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -13,7 +11,7 @@ function arrayBufferToBase64(buffer) {
   return window.btoa(binary);
 }
 
-async function buildImportPayload(file) {
+async function buildImportPayload(file, options = {}) {
   if (!file) {
     const error = new Error('Aktarim dosyasi secilmedi.');
     error.code = 'IMPORT_FILE_REQUIRED';
@@ -24,37 +22,22 @@ async function buildImportPayload(file) {
   return {
     fileName: file.name,
     contentBase64: arrayBufferToBase64(buffer),
+    ...options,
   };
 }
 
 export async function previewProductsImport(file) {
-  if (apiConfig.demoMode) {
-    return demoImportPreviewResponse(file);
-  }
-
-  return post('/import/products/preview', await buildImportPayload(file));
+  return post('/api/import/products/preview', await buildImportPayload(file));
 }
 
-export async function commitProductsImport(file) {
-  if (apiConfig.demoMode) {
-    return demoImportCommitResponse(file);
-  }
-
-  return post('/import/products/commit', await buildImportPayload(file));
+export async function commitProductsImport(file, options = {}) {
+  return post('/api/import/products/commit', await buildImportPayload(file, options));
 }
 
 export async function previewCustomersImport(file) {
-  if (apiConfig.demoMode) {
-    return demoImportPreviewResponse(file);
-  }
-
-  return post('/import/customers/preview', await buildImportPayload(file));
+  return post('/api/import/customers/preview', await buildImportPayload(file));
 }
 
-export async function commitCustomersImport(file) {
-  if (apiConfig.demoMode) {
-    return demoImportCommitResponse(file);
-  }
-
-  return post('/import/customers/commit', await buildImportPayload(file));
+export async function commitCustomersImport(file, options = {}) {
+  return post('/api/import/customers/commit', await buildImportPayload(file, options));
 }

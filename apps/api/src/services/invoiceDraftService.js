@@ -61,11 +61,16 @@ function parseDraftListQuery(query = {}) {
   const options = parseListQuery(query);
   const status = trimText(query.status || 'DRAFT').toUpperCase();
   const partySearch = trimText(query.customer || query.supplier || query.party);
+  const dateFrom = trimText(query.dateFrom);
+  const dateTo = trimText(query.dateTo);
+  const allowedStatuses = new Set(['DRAFT', 'FINALIZED', 'CANCELLED']);
 
   return {
     ...options,
-    status: status === 'DRAFT' ? 'draft' : 'unsupported',
+    status: status === 'ALL' || status === '' ? 'all' : allowedStatuses.has(status) ? status.toLowerCase() : 'unsupported',
     partySearch,
+    dateFrom: dateFrom || null,
+    dateTo: dateTo || null,
   };
 }
 
@@ -146,6 +151,137 @@ function calculateSalesProfitSnapshot({ salesAmountTry, averageCostTry, quantity
   };
 }
 
+function purchaseLineCostTry(item, exchangeRate) {
+  const lineTotal = safeNumber(item.lineTotal);
+  const lineTotalTry = safeNumber(item.lineTotalTry);
+  const rate = safeNumber(exchangeRate, 1);
+
+  if (lineTotalTry > 0 && (rate <= 1 || lineTotalTry > lineTotal * 1.0001)) {
+    return lineTotalTry;
+  }
+
+  return lineTotal * rate;
+}
+
+function applyDiscount(amount, discountRate) {
+  const rate = Math.min(100, Math.max(0, safeNumber(discountRate)));
+  return safeNumber(amount) * (1 - (rate / 100));
+}
+
+function rateToTryForCurrency(currencyRateMap, currency, fallback = 1) {
+  const normalizedCurrency = normalizeCurrency(currency);
+  if (normalizedCurrency === 'TRY') {
+    return 1;
+  }
+
+  return safeNumber(currencyRateMap?.get(normalizedCurrency), fallback);
+}
+
+function calculatePurchaseLineTotals(items, invoiceDiscountRate, supplierDiscountRate, exchangeRate) {
+  const normalizedItems = items.map((item) => {
+    const quantity = safeNumber(item.quantity);
+    const purchasePrice = safeNumber(item.purchasePrice);
+    const lineDiscountRate = safeNumber(item.lineDiscountRate);
+    const gross = quantity * purchasePrice;
+    const lineDiscount = gross * (lineDiscountRate / 100);
+    const afterLineDiscount = gross - lineDiscount;
+
+    return {
+      item,
+      gross,
+      lineDiscount,
+      afterLineDiscount,
+    };
+  });
+
+  const subtotal = normalizedItems.reduce((total, entry) => total + entry.gross, 0);
+  const lineDiscountTotal = normalizedItems.reduce((total, entry) => total + entry.lineDiscount, 0);
+  const afterLineDiscounts = normalizedItems.reduce((total, entry) => total + entry.afterLineDiscount, 0);
+  const invoiceDiscountTotal = afterLineDiscounts * (safeNumber(invoiceDiscountRate) / 100);
+  const afterInvoiceDiscount = afterLineDiscounts - invoiceDiscountTotal;
+  const supplierDiscountTotal = afterInvoiceDiscount * (safeNumber(supplierDiscountRate) / 100);
+  const grandTotal = afterInvoiceDiscount - supplierDiscountTotal;
+  const rate = safeNumber(exchangeRate, 1);
+  const allocationBase = afterLineDiscounts > 0 ? afterLineDiscounts : 0;
+
+  return {
+    subtotal,
+    lineDiscountTotal,
+    invoiceDiscountTotal,
+    supplierDiscountTotal,
+    grandTotal,
+    amountTry: grandTotal * rate,
+    stockCostEffectTry: grandTotal * rate,
+    items: normalizedItems.map((entry) => {
+      const share = allocationBase > 0 ? entry.afterLineDiscount / allocationBase : 0;
+      const invoiceDiscountShare = invoiceDiscountTotal * share;
+      const afterInvoiceDiscountShare = entry.afterLineDiscount - invoiceDiscountShare;
+      const supplierDiscountShare = supplierDiscountTotal * (afterInvoiceDiscount > 0 ? afterInvoiceDiscountShare / afterInvoiceDiscount : share);
+      const netLineTotal = afterInvoiceDiscountShare - supplierDiscountShare;
+
+      return {
+        item: entry.item,
+        lineTotal: entry.afterLineDiscount,
+        netLineTotal,
+        lineTotalTry: netLineTotal * rate,
+      };
+    }),
+  };
+}
+
+async function readCurrencyRateMap(request) {
+  const result = await request.query(`
+    WITH latest_rates AS (
+      SELECT
+        currency_code,
+        rate_to_try,
+        ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS row_number
+      FROM dbo.currency_rates
+      WHERE currency_code IN (N'USD', N'EUR')
+    )
+    SELECT currency_code, rate_to_try
+    FROM latest_rates
+    WHERE row_number = 1;
+  `);
+
+  return new Map((result.recordset || []).map((row) => [row.currency_code, safeNumber(row.rate_to_try)]));
+}
+
+function resolveSalesUnitCostTry(item, documentCurrency, exchangeRate, currencyRateMap = new Map()) {
+  const productCurrency = normalizeCurrency(item.productCurrency || item.currency);
+  const lineCurrency = normalizeCurrency(documentCurrency || item.currency);
+  const purchasePrice = applyDiscount(item.productPurchasePrice, item.productPurchaseDiscountRate);
+  const rate = safeNumber(exchangeRate, 1);
+
+  const productAverageCostTry = safeNumber(item.productAverageCostTry);
+  if (productAverageCostTry > 0) {
+    return productAverageCostTry;
+  }
+
+  const itemAverageCostTry = safeNumber(item.averageCostTry);
+  if (itemAverageCostTry > 0) {
+    return itemAverageCostTry;
+  }
+
+  if (productCurrency !== 'TRY' && purchasePrice > 0) {
+    const productRate = rateToTryForCurrency(
+      currencyRateMap,
+      productCurrency,
+      productCurrency === lineCurrency ? rate : 0,
+    );
+
+    if (productRate > 0) {
+      return purchasePrice * productRate;
+    }
+  }
+
+  if (productCurrency === 'TRY' && purchasePrice > 0) {
+    return purchasePrice;
+  }
+
+  return 0;
+}
+
 function normalizeSalesPayload(payload = {}) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const discountRate = numberValue(payload.discountRate ?? 0, 'discountRate');
@@ -215,16 +351,9 @@ function normalizePurchasePayload(payload = {}) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const invoiceDiscountRate = numberValue(payload.invoiceDiscountRate ?? 0, 'invoiceDiscountRate');
   const supplierDiscountRate = numberValue(payload.supplierDiscountRate ?? 0, 'supplierDiscountRate');
-  const subtotal = items.reduce((total, item) => total + Number(item.quantity || 0) * Number(item.purchasePrice || 0), 0);
-  const lineDiscountTotal = items.reduce((total, item) => {
-    const gross = Number(item.quantity || 0) * Number(item.purchasePrice || 0);
-    return total + gross * (Number(item.lineDiscountRate || 0) / 100);
-  }, 0);
-  const afterLineDiscounts = subtotal - lineDiscountTotal;
-  const invoiceDiscountTotal = afterLineDiscounts * (invoiceDiscountRate / 100);
-  const afterInvoiceDiscount = afterLineDiscounts - invoiceDiscountTotal;
-  const supplierDiscountTotal = afterInvoiceDiscount * (supplierDiscountRate / 100);
-  const grandTotal = afterInvoiceDiscount - supplierDiscountTotal;
+  const exchangeRate = numberValue(payload.exchangeRate ?? 1, 'exchangeRate', { min: 0, allowZero: false });
+  const normalizedItems = items.map((item, index) => normalizePurchaseItem(item, index));
+  const totals = calculatePurchaseLineTotals(normalizedItems, invoiceDiscountRate, supplierDiscountRate, exchangeRate);
 
   if (!payload.supplierId && !trimText(payload.supplierName)) {
     throw makeServiceError('DRAFT_INVOICE_VALIDATION_FAILED', 'supplierId or supplierName is required');
@@ -234,7 +363,7 @@ function normalizePurchasePayload(payload = {}) {
     throw makeServiceError('DRAFT_INVOICE_VALIDATION_FAILED', 'At least one product line is required');
   }
 
-  if (grandTotal < 0) {
+  if (totals.grandTotal < 0) {
     throw makeServiceError('DRAFT_INVOICE_VALIDATION_FAILED', 'grandTotal cannot be negative');
   }
 
@@ -245,17 +374,21 @@ function normalizePurchasePayload(payload = {}) {
     supplierName: trimText(payload.supplierName),
     supplierCurrency: normalizeCurrency(payload.supplierCurrency),
     documentCurrency: normalizeCurrency(payload.documentCurrency),
-    exchangeRate: numberValue(payload.exchangeRate ?? 1, 'exchangeRate', { min: 0, allowZero: false }),
+    exchangeRate,
     description: trimText(payload.description),
-    subtotal,
-    lineDiscountTotal,
+    subtotal: totals.subtotal,
+    lineDiscountTotal: totals.lineDiscountTotal,
     invoiceDiscountRate,
     supplierDiscountRate,
-    discountTotal: lineDiscountTotal + invoiceDiscountTotal + supplierDiscountTotal,
-    grandTotal,
-    amountTry: grandTotal * Number(payload.exchangeRate ?? 1),
-    stockCostEffectTry: grandTotal,
-    items: items.map((item, index) => normalizePurchaseItem(item, index)),
+    discountTotal: totals.lineDiscountTotal + totals.invoiceDiscountTotal + totals.supplierDiscountTotal,
+    grandTotal: totals.grandTotal,
+    amountTry: totals.amountTry,
+    stockCostEffectTry: totals.stockCostEffectTry,
+    items: totals.items.map((entry) => ({
+      ...entry.item,
+      lineTotal: entry.lineTotal,
+      lineTotalTry: entry.lineTotalTry,
+    })),
   };
 }
 
@@ -460,6 +593,9 @@ async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}
         sii.id,
         sii.product_id AS productId,
         p.current_stock_qty AS currentStockQty,
+        p.currency_code AS productCurrency,
+        p.purchase_price AS productPurchasePrice,
+        p.purchase_discount_rate AS productPurchaseDiscountRate,
         p.average_cost_try AS productAverageCostTry,
         sii.stock_code_snapshot AS stockCode,
         sii.barcode_snapshot AS barcode,
@@ -841,6 +977,9 @@ export async function getSalesDraftsList(query) {
   const request = pool.request()
     .input('search', sql.NVarChar(160), options.search ? `%${options.search}%` : null)
     .input('customerSearch', sql.NVarChar(160), options.partySearch ? `%${options.partySearch}%` : null)
+    .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
+    .input('dateFrom', sql.Date, options.dateFrom)
+    .input('dateTo', sql.Date, options.dateTo)
     .input('offset', sql.Int, options.offset);
 
   const result = await request.query(`
@@ -863,7 +1002,9 @@ export async function getSalesDraftsList(query) {
         WHERE sii.sales_invoice_id = si.id
       ) item_counts
       WHERE
-        si.status = N'draft'
+        (@status IS NULL OR si.status = @status)
+        AND (@dateFrom IS NULL OR CONVERT(date, si.created_at) >= @dateFrom)
+        AND (@dateTo IS NULL OR CONVERT(date, si.created_at) <= @dateTo)
         AND (
           @search IS NULL
           OR si.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
@@ -898,8 +1039,10 @@ export async function getSalesDraftsList(query) {
       source: 'sql-select-only',
       filters: {
         search: options.search || null,
-        status: 'DRAFT',
+        status: options.status,
         customer: options.partySearch || null,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo,
       },
     }),
   };
@@ -1018,8 +1161,8 @@ export async function updateSalesDraft(id, payload, actor = null) {
       throw makeServiceError('SALES_DRAFT_NOT_FOUND', 'Sales draft not found', 404);
     }
 
-    if (beforeSnapshot.status !== 'DRAFT') {
-      throw makeServiceError('SALES_DRAFT_STATUS_INVALID', 'Only DRAFT sales invoices can be updated', 409);
+    if (!['DRAFT', 'FINALIZED'].includes(beforeSnapshot.status)) {
+      throw makeServiceError('SALES_DRAFT_STATUS_INVALID', 'Only DRAFT or FINALIZED sales invoices can be corrected', 409);
     }
 
     await new sqlDriver.Request(transaction)
@@ -1056,7 +1199,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
           updated_by = NULL,
           updated_at = SYSUTCDATETIME()
         WHERE id = @invoiceId
-          AND status = N'draft';
+          AND status IN (N'draft', N'finalized');
       `);
 
     await updateSalesItems(sqlDriver, transaction, invoiceId, draft.items);
@@ -1064,7 +1207,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
     const afterSnapshot = await getSalesSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
-      action: 'sales_invoice_draft_updated',
+      action: beforeSnapshot.status === 'FINALIZED' ? 'sales_invoice_finalized_corrected' : 'sales_invoice_draft_updated',
       entityType: 'sales_invoice',
       entityId: invoiceId,
       beforeSnapshot,
@@ -1121,13 +1264,19 @@ export async function finalizeSalesInvoice(id, actor = null) {
 
     const warnings = [];
     const profitSnapshots = [];
+    const currencyRateMap = await readCurrencyRateMap(new sqlDriver.Request(transaction));
 
     for (const item of beforeSnapshot.items) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
       const nextStock = currentStock - quantity;
       const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
-      const averageCostTrySnapshot = safeNumber(item.productAverageCostTry ?? item.averageCostTry);
+      const averageCostTrySnapshot = resolveSalesUnitCostTry(
+        item,
+        beforeSnapshot.documentCurrency,
+        beforeSnapshot.exchangeRate,
+        currencyRateMap,
+      );
       const profitSnapshot = calculateSalesProfitSnapshot({
         salesAmountTry: amountTry,
         averageCostTry: averageCostTrySnapshot,
@@ -1560,6 +1709,9 @@ export async function getPurchaseDraftsList(query) {
   const request = pool.request()
     .input('search', sql.NVarChar(160), options.search ? `%${options.search}%` : null)
     .input('supplierSearch', sql.NVarChar(160), options.partySearch ? `%${options.partySearch}%` : null)
+    .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
+    .input('dateFrom', sql.Date, options.dateFrom)
+    .input('dateTo', sql.Date, options.dateTo)
     .input('offset', sql.Int, options.offset);
 
   const result = await request.query(`
@@ -1582,7 +1734,9 @@ export async function getPurchaseDraftsList(query) {
         WHERE pii.purchase_invoice_id = pi.id
       ) item_counts
       WHERE
-        pi.status = N'draft'
+        (@status IS NULL OR pi.status = @status)
+        AND (@dateFrom IS NULL OR CONVERT(date, pi.created_at) >= @dateFrom)
+        AND (@dateTo IS NULL OR CONVERT(date, pi.created_at) <= @dateTo)
         AND (
           @search IS NULL
           OR pi.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
@@ -1617,8 +1771,10 @@ export async function getPurchaseDraftsList(query) {
       source: 'sql-select-only',
       filters: {
         search: options.search || null,
-        status: 'DRAFT',
+        status: options.status,
         supplier: options.partySearch || null,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo,
       },
     }),
   };
@@ -1857,7 +2013,7 @@ export async function finalizePurchaseInvoice(id, actor = null) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
       const currentAverageCostTry = safeNumber(item.currentAverageCostTry);
-      const lineTotalTry = safeNumber(item.lineTotalTry || item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const lineTotalTry = purchaseLineCostTry(item, beforeSnapshot.exchangeRate);
       const unitCostTry = quantity > 0 ? lineTotalTry / quantity : 0;
       const nextStock = currentStock + quantity;
       const nextAverageCostTry = calculateWeightedAverageCostTry({
@@ -2077,7 +2233,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
       const nextStock = currentStock - quantity;
-      const lineTotalTry = safeNumber(item.lineTotalTry || item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const lineTotalTry = purchaseLineCostTry(item, beforeSnapshot.exchangeRate);
       const currentAverageCostTry = safeNumber(item.currentAverageCostTry);
 
       reversedStockTotal += quantity;
@@ -2181,7 +2337,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
         VALUES (
           @cancelSupplierMovementSupplierId,
           @cancelSupplierMovementInvoiceId,
-          N'purchase_invoice',
+          N'purchase_invoice_cancel',
           @cancelSupplierMovementAmount,
           @cancelSupplierMovementCurrency,
           @cancelSupplierMovementBalanceEffect,

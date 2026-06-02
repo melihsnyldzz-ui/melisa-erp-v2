@@ -478,5 +478,13 @@
 }
 
 .dashboard-summary {
+  position: static !important;
+  inset: auto !important;
+  float: none !important;
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  z-index: auto !important;
   flex-wrap: wrap;
 }

@@ -10,12 +10,13 @@ function formatMoney(amount, currency) {
 
 export function SalesInvoiceTotals({ totals }) {
   const [isOpen, setIsOpen] = useState(false);
+  const currency = totals.currency || 'TRY';
 
   return (
     <section className={isOpen ? 'erp-panel sales-totals-panel open' : 'erp-panel sales-totals-panel'}>
       <div className="panel-title">
         <strong>Toplamlar</strong>
-        <span className="mini-total-value">{formatMoney(totals.grandTotal, 'TRY')}</span>
+        <span className="mini-total-value">{formatMoney(totals.grandTotal, currency)}</span>
         <button
           aria-expanded={isOpen}
           className="mini-total-toggle"
@@ -28,7 +29,7 @@ export function SalesInvoiceTotals({ totals }) {
       <dl>
         <div>
           <dt>Ara toplam</dt>
-          <dd>{formatMoney(totals.subtotal, 'TRY')}</dd>
+          <dd>{formatMoney(totals.subtotal, currency)}</dd>
         </div>
         <div>
           <dt>Genel iskonto %</dt>
@@ -36,11 +37,15 @@ export function SalesInvoiceTotals({ totals }) {
         </div>
         <div>
           <dt>Iskonto tutari</dt>
-          <dd>{formatMoney(totals.discountAmount, 'TRY')}</dd>
+          <dd>{formatMoney(totals.discountAmount, currency)}</dd>
         </div>
         <div className="sales-grand-total">
           <dt>Genel toplam</dt>
-          <dd>{formatMoney(totals.grandTotal, 'TRY')}</dd>
+          <dd>{formatMoney(totals.grandTotal, currency)}</dd>
+        </div>
+        <div>
+          <dt>Kur</dt>
+          <dd>{currency} {Number(totals.exchangeRate || 1).toFixed(4)}</dd>
         </div>
         <div>
           <dt>TRY karsilik</dt>
@@ -55,17 +60,22 @@ export function SalesInvoiceTotals({ totals }) {
           <dd>{totals.totalQuantity}</dd>
         </div>
         <div>
-          <dt>Tahmini kar</dt>
+          <dt>Tahmini kar TRY</dt>
           <dd>{formatMoney(totals.estimatedProfit, 'TRY')}</dd>
         </div>
         {totals.grossProfit !== null && (
           <div>
-            <dt>Kesinlesen brut kar</dt>
+            <dt>Kesinlesen net kar</dt>
+            <dd>{formatMoney(totals.grossProfitDocument, currency)}</dd>
+          </div>
+        )}
+        {totals.grossProfit !== null && (
+          <div>
+            <dt>Kesinlesen net kar TRY</dt>
             <dd>{formatMoney(totals.grossProfit, 'TRY')}</dd>
           </div>
         )}
       </dl>
-      <p>Average cost TRY notu: kesinlesen fislerde satir maliyeti ve brut kar DB snapshot alanlarindan okunur.</p>
     </section>
   );
 }

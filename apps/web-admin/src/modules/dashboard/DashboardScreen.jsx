@@ -402,11 +402,6 @@ export function DashboardScreen({ onOpenScreen }) {
           title="Ulke Bazli Firsatlar"
         />
       </section>
-      <section className="screen-summary dashboard-summary">
-        <span>{summary}</span>
-        <span>Kaynak: Yönetim raporu / okuma modu</span>
-        <span>30 sn otomatik yenileme aktif</span>
-      </section>
     </main>
   );
 }

@@ -8,7 +8,6 @@ import {
   LogOut,
   Package,
   PanelTop,
-  Printer,
   ReceiptText,
   Search,
   Settings,
@@ -136,7 +135,6 @@ export function TopMenu({
           )}
         </div>
         <button className="top-primary-action" type="button" onClick={() => onOpenScreen('sales-invoice')}><FileText size={15} /> Yeni Fiş</button>
-        <button className="print-action" type="button"><Printer size={15} /> Yazdir</button>
         <button type="button" onClick={onLogout}><LogOut size={15} /> Cikis</button>
       </div>
     </header>

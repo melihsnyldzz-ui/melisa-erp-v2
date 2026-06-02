@@ -17,6 +17,8 @@ function formatPercent(value) {
 }
 
 export function SalesInvoiceItemsTable({
+  exchangeRate = 1,
+  invoiceCurrency = 'TRY',
   items,
   onAdjustQuantity,
   selectedItemId,
@@ -31,7 +33,7 @@ export function SalesInvoiceItemsTable({
     <section className="erp-panel sales-items-panel">
       <div className="panel-title">
         <strong>Urun Satirlari</strong>
-        <span>Satir: {items.length} / sticky header / kompakt giris / maliyet snapshot</span>
+        <span>{items.length} satir</span>
       </div>
       <div className="table-wrap sales-items-wrap">
         <table className="sales-items-table">
@@ -44,17 +46,20 @@ export function SalesInvoiceItemsTable({
               <th>Para birimi</th>
               <th>Birim fiyat</th>
               <th>Satir toplami</th>
-              {showProfitColumns && <th>Maliyet TRY</th>}
-              {showProfitColumns && <th>Brut kar</th>}
+              {showProfitColumns && <th>Net maliyet</th>}
+              {showProfitColumns && <th>Net kar</th>}
+              {showProfitColumns && <th>TRY kar</th>}
               {showProfitColumns && <th>Kar %</th>}
               <th>Stok durumu</th>
-              <th>Not</th>
               {!isReadonly && <th>Islem</th>}
             </tr>
           </thead>
           <tbody>
             {items.map((item) => {
               const lineTotal = item.quantity * item.unitPrice;
+              const rate = Number(exchangeRate || 1);
+              const costInInvoiceCurrency = rate > 0 ? Number(item.averageCostTry || 0) / rate : 0;
+              const profitInInvoiceCurrency = rate > 0 ? Number(item.grossProfitTry || 0) / rate : 0;
               return (
                 <tr
                   key={item.id}
@@ -87,7 +92,8 @@ export function SalesInvoiceItemsTable({
                     )}
                   </td>
                   <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
-                  {showProfitColumns && <td className="money-cell">{formatMoney(item.averageCostTry || 0, 'TRY')}</td>}
+                  {showProfitColumns && <td className="money-cell">{formatMoney(costInInvoiceCurrency, invoiceCurrency)}</td>}
+                  {showProfitColumns && <td className="money-cell">{formatMoney(profitInInvoiceCurrency, invoiceCurrency)}</td>}
                   {showProfitColumns && <td className="money-cell">{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
                   {showProfitColumns && <td className="money-cell">{formatPercent(item.grossProfitRate || 0)}</td>}
                   <td>
@@ -95,7 +101,6 @@ export function SalesInvoiceItemsTable({
                       {item.stockState}
                     </span>
                   </td>
-                  <td>{item.note}</td>
                   {!isReadonly && (
                     <td className="row-action-cell">
                       <div className="row-actions">

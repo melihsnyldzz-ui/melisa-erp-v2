@@ -2,7 +2,7 @@ import { get } from './apiClient.js';
 import { apiConfig } from '../config/apiConfig.js';
 import { demoProductsResponse } from '../demo/demoProducts.js';
 
-export async function fetchProducts({ page = 1, limit = 100, search = '', activeOnly = true } = {}) {
+export async function fetchProducts({ page = 1, limit = 100, search = '', barcode = '', activeOnly = true } = {}) {
   if (apiConfig.demoMode) {
     return demoProductsResponse({ page, limit, search, activeOnly });
   }
@@ -11,6 +11,7 @@ export async function fetchProducts({ page = 1, limit = 100, search = '', active
     page,
     limit,
     search,
+    barcode,
     activeOnly,
   });
 }

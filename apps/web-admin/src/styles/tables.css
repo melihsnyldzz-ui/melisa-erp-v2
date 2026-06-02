@@ -13,9 +13,12 @@ th {
   position: sticky;
   top: 0;
   z-index: 1;
+  min-width: 60px;
   border: 1px solid #aeb8c8;
   background: #d9e1ee;
   color: #183154;
+  overflow: hidden;
+  resize: horizontal;
   text-align: left;
 }
 
@@ -454,6 +457,30 @@ td.hot {
 
 .product-card-summary {
   flex-wrap: wrap;
+}
+
+.product-duplicate-error {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.product-duplicate-error span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-duplicate-error button {
+  min-height: 28px;
+  border: 1px solid #a11d1d;
+  background: #fff;
+  color: #8a1f1f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.product-duplicate-error button:hover {
+  background: #fff1f1;
 }
 
 .customer-list-screen {
@@ -1372,7 +1399,7 @@ td.hot {
 
 .import-screen {
   display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
   gap: 7px;
 }
 
@@ -1408,6 +1435,7 @@ td.hot {
 
 .import-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 0 8px;
 }
@@ -1455,6 +1483,58 @@ td.hot {
   background: #fff;
   color: #1d2838;
   font-size: 12px;
+}
+
+.import-grid-controls {
+  display: grid;
+  grid-template-columns: minmax(230px, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  border: 1px solid #b8c2d0;
+  padding: 7px;
+  background: #f7f9fc;
+}
+
+.import-valid-only-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #7fc9b7;
+  background: #edfdf7;
+  color: #1f6b42;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.import-column-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.import-column-controls label {
+  display: inline-grid;
+  grid-template-columns: auto minmax(72px, max-content) 58px;
+  gap: 5px;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid #c5cedb;
+  padding: 3px 6px;
+  background: #fff;
+  color: #40516a;
+  font-size: 11px;
+}
+
+.import-column-controls input[type="number"] {
+  width: 58px;
+  height: 22px;
+  border: 1px solid #b9c3d0;
+  padding: 0 4px;
+  color: #1d2838;
+  font-size: 11px;
+  text-align: right;
 }
 
 .import-summary-grid {
@@ -1511,16 +1591,21 @@ td.hot {
 }
 
 .import-table {
-  min-width: 1120px;
+  min-width: max-content;
+  table-layout: fixed;
 }
 
 .import-table th {
   top: 0;
   height: 28px;
+  max-width: 620px;
 }
 
 .import-table td {
   height: 25px;
+  max-width: 620px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .import-row-valid td {

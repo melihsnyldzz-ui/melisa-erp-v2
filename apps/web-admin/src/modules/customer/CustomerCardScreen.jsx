@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CustomerBalanceSummary } from './CustomerBalanceSummary.jsx';
 import { CustomerCardForm } from './CustomerCardForm.jsx';
 import { CustomerCardHeader } from './CustomerCardHeader.jsx';
+import { CustomerProductTracePanel } from './CustomerProductTracePanel.jsx';
 import { CustomerTransactionsPanel } from './CustomerTransactionsPanel.jsx';
-import { customerRules } from './customerMockData.js';
 import {
   changeCustomerPassive,
   createCustomer,
@@ -24,6 +24,8 @@ const emptyCustomerForm = {
   isPassive: false,
   balance: 0,
   lastTransactionDate: '',
+  movements: [],
+  productTrace: [],
 };
 
 const customerTypeLabels = {
@@ -37,7 +39,7 @@ function mapDetailToForm(detail) {
   return {
     customerCode: detail.customerCode || '',
     customerName: detail.customerName || '',
-    phone: '',
+    phone: detail.phoneMasked || '',
     phoneMasked: detail.phoneMasked || '',
     currency: detail.currency || 'TRY',
     customerType: detail.customerType || 'customer',
@@ -47,6 +49,8 @@ function mapDetailToForm(detail) {
     isPassive: Boolean(detail.isPassive),
     balance: detail.balance || 0,
     lastTransactionDate: detail.lastTransactionDate || '',
+    movements: detail.movements || [],
+    productTrace: detail.productTrace || [],
   };
 }
 
@@ -86,14 +90,18 @@ function mapPaymentSummary(form) {
   };
 }
 
-function mapTransactions(form, detailId) {
+function mapTransactions(form) {
+  if (form.movements?.length > 0) {
+    return form.movements;
+  }
+
   if (!form.lastTransactionDate) {
     return [];
   }
 
   return [
     {
-      id: `${detailId || 'new'}-last`,
+      id: 'last',
       date: form.lastTransactionDate,
       type: 'Son ticari hareket',
       documentNo: '-',
@@ -117,10 +125,11 @@ function validateCustomerForm(form, mode) {
 }
 
 const customerDetailTabs = [
+  { id: 'movements', label: 'Cari Hareketler' },
+  { id: 'products', label: 'Satilan Urunler' },
   { id: 'addresses', label: 'Adres Bilgileri' },
   { id: 'contacts', label: 'İletişim Bilgileri' },
   { id: 'extra', label: 'Ek Bilgiler' },
-  { id: 'movements', label: 'Cari Hareketler' },
   { id: 'statement', label: 'Ekstre' },
 ];
 
@@ -142,9 +151,9 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function CustomerCardScreen({ customerId, permissions = [] }) {
+export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen }) {
   const [activeCustomerId, setActiveCustomerId] = useState(customerId || null);
-  const [activeDetailTab, setActiveDetailTab] = useState(customerDetailTabs[0].id);
+  const [activeDetailTab, setActiveDetailTab] = useState('movements');
   const [form, setForm] = useState(emptyCustomerForm);
   const [isLoading, setIsLoading] = useState(Boolean(customerId));
   const [isSaving, setIsSaving] = useState(false);
@@ -154,6 +163,7 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
 
   useEffect(() => {
     setActiveCustomerId(customerId || null);
+    setActiveDetailTab('movements');
   }, [customerId]);
 
   useEffect(() => {
@@ -201,10 +211,20 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
   const customer = useMemo(() => buildCustomerView(form, activeCustomerId), [form, activeCustomerId]);
   const balances = useMemo(() => mapBalances(form), [form]);
   const paymentSummary = useMemo(() => mapPaymentSummary(form), [form]);
-  const transactions = useMemo(() => mapTransactions(form, activeCustomerId), [form, activeCustomerId]);
+  const transactions = useMemo(() => mapTransactions(form), [form]);
   const currentBalance = balances.find((balance) => balance.currency === customer.currency)?.balance ?? customer.balance;
 
   function renderDetailPanel() {
+    if (activeDetailTab === 'products') {
+      return (
+        <CustomerProductTracePanel
+          rows={form.productTrace}
+          onOpenInvoice={openProductTraceInvoice}
+          onOpenProduct={openProductTraceProduct}
+        />
+      );
+    }
+
     if (activeDetailTab === 'contacts') {
       return (
         <div className="table-wrap customer-detail-wrap">
@@ -263,7 +283,7 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
     }
 
     if (activeDetailTab === 'movements' || activeDetailTab === 'statement') {
-      return <CustomerTransactionsPanel transactions={transactions} compact />;
+      return <CustomerTransactionsPanel transactions={transactions} onOpenTransaction={openTransaction} compact />;
     }
 
     return (
@@ -313,8 +333,27 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
   function startNewCustomer() {
     setActiveCustomerId(null);
     setForm(emptyCustomerForm);
+    setActiveDetailTab('movements');
     setErrorMessage('');
     setSuccessMessage('');
+  }
+
+  function openTransaction(transaction) {
+    if (transaction.salesInvoiceId && onOpenScreen) {
+      onOpenScreen('sales-invoice', { salesDraftId: transaction.salesInvoiceId });
+    }
+  }
+
+  function openProductTraceInvoice(row) {
+    if (row.salesInvoiceId && onOpenScreen) {
+      onOpenScreen('sales-invoice', { salesDraftId: row.salesInvoiceId, invoiceNo: row.documentNo });
+    }
+  }
+
+  function openProductTraceProduct(row) {
+    if (row.productId && onOpenScreen) {
+      onOpenScreen('product-card', { productId: row.productId, stockCode: row.stockCode });
+    }
   }
 
   async function saveCustomer() {
@@ -422,7 +461,6 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
               form={form}
               mode={mode}
               onChange={updateField}
-              rules={customerRules}
             />
             <CustomerBalanceSummary balances={balances} paymentSummary={paymentSummary} />
             <section className="erp-panel customer-detail-tabs-panel">
@@ -449,10 +487,10 @@ export function CustomerCardScreen({ customerId, permissions = [] }) {
               </div>
               <div className="quick-action-list">
                 {quickActions.map((action) => (
-                  <button key={action} type="button">
+                  <span key={action}>
                     <span>□</span>
                     {action}
-                  </button>
+                  </span>
                 ))}
               </div>
               <div className="customer-risk-mini">

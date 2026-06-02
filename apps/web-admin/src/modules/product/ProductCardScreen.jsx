@@ -3,14 +3,20 @@ import { ProductBarcodePanel } from './ProductBarcodePanel.jsx';
 import { ProductCardForm } from './ProductCardForm.jsx';
 import { ProductCardHeader } from './ProductCardHeader.jsx';
 import { ProductImagePanel } from './ProductImagePanel.jsx';
+import { ProductStockUsagePanel } from './ProductStockUsagePanel.jsx';
 import { ProductStockSummary } from './ProductStockSummary.jsx';
 import { stockFilterOptions } from '../stock/stockMockData.js';
 import {
+  addProductBarcode,
   changeProductPassive,
+  changeProductBarcodePassive,
   createProduct,
   fetchProductDetail,
+  fetchProductStockMovements,
+  saveProductImage,
   updateProduct,
 } from '../../services/productDetailApi.js';
+import { fetchSuppliers } from '../../services/supplierApi.js';
 
 const emptyProductForm = {
   stockCode: '',
@@ -22,6 +28,7 @@ const emptyProductForm = {
   currency: 'TRY',
   salePrice: '',
   purchasePrice: '',
+  purchaseDiscountRate: '',
   supplierName: '',
   isPassive: false,
   hasMovements: false,
@@ -29,6 +36,8 @@ const emptyProductForm = {
   averageCostTry: 0,
   lastPurchaseDate: '',
   lastSaleDate: '',
+  barcodes: [],
+  images: [],
 };
 
 function formatMoney(amount, currency) {
@@ -50,13 +59,18 @@ function mapDetailToForm(detail) {
     currency: detail.currency || 'TRY',
     salePrice: String(detail.salePrice ?? ''),
     purchasePrice: String(detail.purchasePrice ?? ''),
-    supplierName: detail.supplierName || '',
+    purchaseDiscountRate: String(detail.purchaseDiscountRate ?? 0),
+    supplierName: detail.supplierCode && detail.supplierName
+      ? `${detail.supplierCode} / ${detail.supplierName}`
+      : detail.supplierName || '',
     isPassive: Boolean(detail.isPassive),
     hasMovements: Boolean(detail.lastPurchaseDate || detail.lastSaleDate),
     stockQuantity: detail.stockQuantity || 0,
     averageCostTry: detail.averageCostTry || 0,
     lastPurchaseDate: detail.lastPurchaseDate || '',
     lastSaleDate: detail.lastSaleDate || '',
+    barcodes: detail.barcodes || [],
+    images: detail.images || [],
   };
 }
 
@@ -71,13 +85,14 @@ function buildProductView(form, detailId = null) {
     currency: form.currency || 'TRY',
     salesPrice: formatMoney(form.salePrice, form.currency || 'TRY'),
     purchasePrice: formatMoney(form.purchasePrice, form.currency || 'TRY'),
+    purchaseDiscountRate: Number(form.purchaseDiscountRate || 0),
     supplier: form.supplierName || '-',
     status: form.isPassive ? 'Pasif' : 'Aktif',
     hasMovements: Boolean(form.hasMovements),
     currencyRule: form.hasMovements
       ? 'Hareket gormus urun: para birimi kilitli. Admin ozel islem ve audit gerekir.'
       : 'Hareket gormemis urun: para birimi degistirilebilir.',
-    imageNote: 'Toplu gorsel eslesme sonraki fazda stok kodu/barkod adina gore yapilacak.',
+    imageNote: 'Gorsel URL veya dosya yolu kaydedilebilir. Binary dosya yukleme sonraki faz.',
   };
 }
 
@@ -91,18 +106,23 @@ function mapStockSummary(form) {
   };
 }
 
-function mapBarcodes(form, detailId) {
-  const barcode = form.barcode || form.existingBarcodeMasked;
+function mapBarcodes(form) {
+  if (form.barcodes?.length > 0) {
+    return form.barcodes.map((barcode) => ({
+      ...barcode,
+      status: barcode.isActive ? 'Aktif' : 'Pasif',
+    }));
+  }
 
-  return barcode
-    ? [{
-      id: `${detailId || 'new'}-primary`,
-      barcode,
-      type: 'Ana barkod',
-      isPrimary: true,
-      status: form.isPassive ? 'Pasif' : 'Aktif',
-    }]
-    : [];
+  const barcode = form.barcode || form.existingBarcodeMasked;
+  return barcode ? [{
+    id: 'pending-primary',
+    barcode,
+    type: 'primary',
+    isPrimary: true,
+    isActive: !form.isPassive,
+    status: form.isPassive ? 'Pasif' : 'Aktif',
+  }] : [];
 }
 
 function validateProductForm(form, mode) {
@@ -114,18 +134,25 @@ function validateProductForm(form, mode) {
   if (!form.currency.trim()) missing.push('para birimi');
   if (form.salePrice === '' || Number.isNaN(Number(form.salePrice))) missing.push('satis fiyati');
   if (form.purchasePrice === '' || Number.isNaN(Number(form.purchasePrice))) missing.push('alis fiyati');
+  if (form.purchaseDiscountRate !== '' && (Number.isNaN(Number(form.purchaseDiscountRate)) || Number(form.purchaseDiscountRate) < 0 || Number(form.purchaseDiscountRate) > 100)) {
+    missing.push('alis iskontosu 0-100');
+  }
 
   return missing;
 }
 
-export function ProductCardScreen({ productId, permissions = [] }) {
+export function ProductCardScreen({ productId, permissions = [], onOpenScreen }) {
   const [activeProductId, setActiveProductId] = useState(productId || null);
   const [form, setForm] = useState(emptyProductForm);
   const [isLoading, setIsLoading] = useState(Boolean(productId));
   const [isSaving, setIsSaving] = useState(false);
   const [isPassiveSaving, setIsPassiveSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [duplicateProductSuggestion, setDuplicateProductSuggestion] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [stockMovements, setStockMovements] = useState([]);
+  const [isMovementsLoading, setIsMovementsLoading] = useState(false);
+  const [supplierSuggestions, setSupplierSuggestions] = useState([]);
 
   useEffect(() => {
     setActiveProductId(productId || null);
@@ -138,6 +165,7 @@ export function ProductCardScreen({ productId, permissions = [] }) {
       if (!activeProductId) {
         setForm(emptyProductForm);
         setErrorMessage('');
+        setDuplicateProductSuggestion(null);
         setIsLoading(false);
         return;
       }
@@ -170,12 +198,82 @@ export function ProductCardScreen({ productId, permissions = [] }) {
     };
   }, [activeProductId]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSuppliers() {
+      try {
+        const response = await fetchSuppliers({
+          page: 1,
+          limit: 100,
+          activeOnly: true,
+        });
+
+        if (isMounted) {
+          setSupplierSuggestions((response.data || []).map((supplier) => (
+            `${supplier.supplierCode} / ${supplier.supplierName}`
+          )));
+        }
+      } catch {
+        if (isMounted) {
+          setSupplierSuggestions([]);
+        }
+      }
+    }
+
+    loadSuppliers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMovements() {
+      if (!activeProductId) {
+        setStockMovements([]);
+        setIsMovementsLoading(false);
+        return;
+      }
+
+      setIsMovementsLoading(true);
+
+      try {
+        const response = await fetchProductStockMovements(activeProductId);
+        if (isMounted) {
+          setStockMovements(response.data || []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setStockMovements([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsMovementsLoading(false);
+        }
+      }
+    }
+
+    loadMovements();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeProductId]);
+
   const mode = activeProductId ? 'update' : 'create';
   const canSave = permissions.includes('product.edit');
   const canTogglePassive = permissions.includes('product.passive');
   const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
   const stockSummary = useMemo(() => mapStockSummary(form), [form]);
-  const barcodes = useMemo(() => mapBarcodes(form, activeProductId), [form, activeProductId]);
+  const barcodes = useMemo(() => mapBarcodes(form), [form]);
+  const images = useMemo(() => form.images || [], [form.images]);
+  const productSuggestions = useMemo(() => ({
+    ...stockFilterOptions,
+    suppliers: supplierSuggestions.length > 0 ? supplierSuggestions : stockFilterOptions.suppliers,
+  }), [supplierSuggestions]);
 
   function updateField(field, value) {
     setForm((current) => ({
@@ -183,13 +281,59 @@ export function ProductCardScreen({ productId, permissions = [] }) {
       [field]: value,
     }));
     setSuccessMessage('');
+    setDuplicateProductSuggestion(null);
   }
 
   function startNewProduct() {
     setActiveProductId(null);
     setForm(emptyProductForm);
     setErrorMessage('');
+    setDuplicateProductSuggestion(null);
     setSuccessMessage('');
+  }
+
+  function setProductError(error, fallbackMessage) {
+    const duplicateProduct = error.meta?.duplicateProduct || null;
+    setDuplicateProductSuggestion(duplicateProduct);
+    setErrorMessage(`${error.message || fallbackMessage} (${error.code || 'API_ERROR'})`);
+  }
+
+  function openDuplicateProduct() {
+    if (!duplicateProductSuggestion?.productId || !onOpenScreen) {
+      return;
+    }
+
+    onOpenScreen('product-card', {
+      productId: duplicateProductSuggestion.productId,
+      stockCode: duplicateProductSuggestion.stockCode,
+    });
+  }
+
+  function openStockMovement(row) {
+    if (!onOpenScreen || !row?.sourceId) {
+      return;
+    }
+
+    if (row.sourceType === 'sales_invoice') {
+      onOpenScreen('sales-invoice', {
+        salesDraftId: row.sourceId,
+        invoiceNo: row.sourceDocumentNo,
+      });
+      return;
+    }
+
+    if (row.sourceType === 'purchase_invoice') {
+      onOpenScreen('purchase-invoice', {
+        purchaseDraftId: row.sourceId,
+        invoiceNo: row.sourceDocumentNo,
+      });
+      return;
+    }
+
+    onOpenScreen('stock-movements', {
+      productId: activeProductId,
+      stockCode: form.stockCode,
+    });
   }
 
   async function saveProduct() {
@@ -216,6 +360,8 @@ export function ProductCardScreen({ productId, permissions = [] }) {
       currency: form.currency,
       salePrice: Number(form.salePrice),
       purchasePrice: Number(form.purchasePrice),
+      purchaseDiscountRate: Number(form.purchaseDiscountRate || 0),
+      supplierName: form.supplierName,
     };
 
     setIsSaving(true);
@@ -231,7 +377,7 @@ export function ProductCardScreen({ productId, permissions = [] }) {
       setForm(mapDetailToForm(response.data));
       setSuccessMessage(response.message || (mode === 'create' ? 'Urun olusturuldu ve audit kaydi yazildi.' : 'Urun guncellendi ve audit kaydi yazildi.'));
     } catch (error) {
-      setErrorMessage(`${error.message || 'Urun kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+      setProductError(error, 'Urun kaydedilemedi.');
     } finally {
       setIsSaving(false);
     }
@@ -269,6 +415,88 @@ export function ProductCardScreen({ productId, permissions = [] }) {
     }
   }
 
+  async function addBarcode(payload) {
+    if (!activeProductId) {
+      setErrorMessage('Ek barkod eklemek icin once urunu kaydedin.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (!canSave) {
+      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await addProductBarcode(activeProductId, payload);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage('Barkod kaydedildi. Terminal barkod aramasinda kullanilabilir.');
+    } catch (error) {
+      setProductError(error, 'Barkod kaydedilemedi.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function toggleBarcode(barcodeId, currentIsActive) {
+    if (!activeProductId || barcodeId === 'pending-primary') {
+      return;
+    }
+
+    if (!canSave) {
+      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await changeProductBarcodePassive(activeProductId, barcodeId, currentIsActive);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage(currentIsActive ? 'Barkod pasif yapildi.' : 'Barkod aktif yapildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Barkod durumu degistirilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function saveImage(payload) {
+    if (!activeProductId) {
+      setErrorMessage('Gorsel kaydetmek icin once urunu kaydedin.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (!canSave) {
+      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await saveProductImage(activeProductId, payload);
+      setForm(mapDetailToForm(response.data));
+      setSuccessMessage('Urun gorseli kaydedildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Gorsel kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <main className="work-area product-card-screen">
       {isLoading && <div className="list-state">API'den urun karti yukleniyor...</div>}
@@ -285,7 +513,16 @@ export function ProductCardScreen({ productId, permissions = [] }) {
             onNew={startNewProduct}
             onTogglePassive={togglePassiveProduct}
           />
-          {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+          {errorMessage && (
+            <div className="list-state list-state-error product-duplicate-error">
+              <span>{errorMessage}</span>
+              {duplicateProductSuggestion ? (
+                <button onClick={openDuplicateProduct} type="button">
+                  Kullanilan stok kartini ac: {duplicateProductSuggestion.stockCode} / {duplicateProductSuggestion.productName}
+                </button>
+              ) : null}
+            </div>
+          )}
           {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
           {form.isPassive && (
             <div className="list-state list-state-passive">
@@ -297,14 +534,31 @@ export function ProductCardScreen({ productId, permissions = [] }) {
               product={productView}
               form={form}
               mode={mode}
-              suggestions={stockFilterOptions}
+              suggestions={productSuggestions}
               onChange={updateField}
             />
             <aside className="product-side-panels">
-              <ProductImagePanel product={productView} />
+              <ProductImagePanel
+                product={productView}
+                images={images}
+                canEdit={canSave}
+                disabled={isSaving || !activeProductId}
+                onSaveImage={saveImage}
+              />
               <ProductStockSummary summary={stockSummary} />
             </aside>
-            <ProductBarcodePanel barcodes={barcodes} />
+            <ProductBarcodePanel
+              barcodes={barcodes}
+              canEdit={canSave}
+              disabled={isSaving || !activeProductId}
+              onAddBarcode={addBarcode}
+              onToggleBarcode={toggleBarcode}
+            />
+            <ProductStockUsagePanel
+              isLoading={isMovementsLoading}
+              movements={stockMovements}
+              onOpenMovement={openStockMovement}
+            />
           </section>
           <section className="screen-summary product-card-summary">
             <span>Urun: {productView.stockCode}</span>

@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, maskPhone, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 const ALLOWED_CUSTOMER_TYPES = new Set(['customer', 'wholesale', 'retail', 'mixed']);
@@ -11,7 +11,7 @@ function toCustomerDto(row) {
     id: row.id,
     customerCode: row.customer_code,
     customerName: row.customer_name,
-    phoneMasked: maskPhone(row.phone_raw),
+    phoneMasked: row.phone_raw || null,
     city: row.city,
     country: row.country,
     currency: row.currency_code,
@@ -26,7 +26,7 @@ function toCustomerDetailDto(row) {
     id: row.id,
     customerCode: row.customer_code,
     customerName: row.customer_name,
-    phoneMasked: maskPhone(row.phone_raw),
+    phoneMasked: row.phone_raw || null,
     city: row.city,
     country: row.country,
     currency: row.currency_code,
@@ -34,6 +34,44 @@ function toCustomerDetailDto(row) {
     balance: Number(row.balance || 0),
     isPassive: !row.is_active,
     lastTransactionDate: row.last_transaction_date || null,
+    movements: row.movements || [],
+    productTrace: row.productTrace || [],
+  };
+}
+
+function toCustomerMovementDto(row) {
+  return {
+    id: row.id,
+    date: row.document_date ? String(row.document_date).slice(0, 10) : null,
+    type: row.movement_type,
+    documentNo: row.document_no || '-',
+    salesInvoiceId: row.sales_invoice_id || null,
+    currency: row.currency_code,
+    amount: Number(row.amount || 0),
+    balanceEffect: Number(row.balance_effect || 0),
+    status: row.invoice_status || 'kayit',
+  };
+}
+
+function toCustomerProductTraceDto(row) {
+  return {
+    id: Number(row.id),
+    salesInvoiceId: Number(row.sales_invoice_id),
+    documentNo: row.document_no || '-',
+    documentDate: row.document_date ? String(row.document_date).slice(0, 10) : null,
+    invoiceStatus: row.invoice_status || '-',
+    productId: Number(row.product_id),
+    stockCode: row.stock_code_snapshot || '-',
+    barcode: row.barcode_snapshot || '-',
+    productName: row.product_name_snapshot || '-',
+    quantity: Number(row.quantity || 0),
+    currency: row.currency_code || 'TRY',
+    unitPrice: Number(row.unit_price || 0),
+    lineTotal: Number(row.line_total || 0),
+    lineTotalTry: Number(row.line_total_try || 0),
+    unitCostTry: Number(row.average_cost_try_snapshot || 0),
+    grossProfitTry: row.gross_profit_try === null || row.gross_profit_try === undefined ? null : Number(row.gross_profit_try || 0),
+    grossProfitRate: row.gross_profit_rate === null || row.gross_profit_rate === undefined ? null : Number(row.gross_profit_rate || 0),
   };
 }
 
@@ -102,7 +140,8 @@ async function getCustomerSnapshot(request, id) {
         is_active AS isActive,
         updated_at AS updatedAt
       FROM dbo.customers
-      WHERE id = @snapshotCustomerId;
+      WHERE id = @snapshotCustomerId
+        AND is_deleted = 0;
     `);
 
   return result.recordset?.[0] || null;
@@ -116,6 +155,7 @@ async function assertCustomerDuplicates(request, customer, currentCustomerId = n
       SELECT TOP (1) id
       FROM dbo.customers
       WHERE customer_code = @duplicateCustomerCode
+        AND is_deleted = 0
         AND (@duplicateCustomerId = 0 OR id <> @duplicateCustomerId);
     `);
 
@@ -148,7 +188,8 @@ export async function getCustomersList(query) {
         c.created_at
       FROM dbo.customers c
       WHERE
-        (@activeOnly = 0 OR c.is_active = 1)
+        c.is_deleted = 0
+        AND (@activeOnly = 0 OR c.is_active = 1)
         AND (
           @search IS NULL
           OR c.customer_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
@@ -234,7 +275,8 @@ export async function getCustomerDetail(customerId) {
       WHERE si.customer_id = c.id
         AND si.status IN (N'finalized', N'cancelled')
     ) ls
-    WHERE c.id = @id;
+    WHERE c.id = @id
+      AND c.is_deleted = 0;
   `);
 
   const row = result.recordset?.[0];
@@ -246,7 +288,58 @@ export async function getCustomerDetail(customerId) {
     throw error;
   }
 
-  return toCustomerDetailDto(row);
+  const movementsResult = await pool.request()
+    .input('movementCustomerId', sql.BigInt, id)
+    .query(`
+      SELECT TOP (50)
+        cm.id,
+        cm.document_date,
+        cm.movement_type,
+        cm.sales_invoice_id,
+        cm.amount,
+        cm.currency_code,
+        cm.balance_effect,
+        si.document_no,
+        si.status AS invoice_status
+      FROM dbo.customer_movements cm
+      LEFT JOIN dbo.sales_invoices si ON si.id = cm.sales_invoice_id
+      WHERE cm.customer_id = @movementCustomerId
+      ORDER BY cm.document_date DESC, cm.id DESC;
+    `);
+
+  const productTraceResult = await pool.request()
+    .input('traceCustomerId', sql.BigInt, id)
+    .query(`
+      SELECT TOP (100)
+        sii.id,
+        sii.sales_invoice_id,
+        si.document_no,
+        si.document_date,
+        si.status AS invoice_status,
+        sii.product_id,
+        sii.stock_code_snapshot,
+        sii.barcode_snapshot,
+        sii.product_name_snapshot,
+        sii.quantity,
+        sii.currency_code,
+        sii.unit_price,
+        sii.line_total,
+        sii.line_total * COALESCE(si.exchange_rate_snapshot, 1) AS line_total_try,
+        sii.average_cost_try_snapshot,
+        sii.gross_profit_try,
+        sii.gross_profit_rate
+      FROM dbo.sales_invoice_items sii
+      INNER JOIN dbo.sales_invoices si ON si.id = sii.sales_invoice_id
+      WHERE si.customer_id = @traceCustomerId
+        AND si.status IN (N'finalized', N'cancelled')
+      ORDER BY si.document_date DESC, sii.id DESC;
+    `);
+
+  return toCustomerDetailDto({
+    ...row,
+    movements: (movementsResult.recordset || []).map(toCustomerMovementDto),
+    productTrace: (productTraceResult.recordset || []).map(toCustomerProductTraceDto),
+  });
 }
 
 export async function createCustomer(payload, actor = null) {

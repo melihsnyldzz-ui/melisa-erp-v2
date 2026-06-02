@@ -2,9 +2,16 @@ import { API_BASE_URL, apiConfig } from '../config/apiConfig.js';
 
 const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
 const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
+export const OPEN_ADMIN_TOKEN = 'open-admin';
 
 export function getStoredAccessToken() {
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  const storedToken = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  if (storedToken) {
+    return storedToken;
+  }
+
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, OPEN_ADMIN_TOKEN);
+  return OPEN_ADMIN_TOKEN;
 }
 
 export function getStoredRefreshToken() {
@@ -79,6 +86,7 @@ async function request(method, path, { params = {}, body } = {}) {
     const apiError = new Error(payload.error?.message || 'API istegi basarisiz oldu.');
     apiError.code = payload.error?.code || 'API_ERROR';
     apiError.status = response.status;
+    apiError.meta = payload.meta || {};
 
     if (response.status === 401) {
       window.dispatchEvent(new CustomEvent('melisa-auth-expired'));

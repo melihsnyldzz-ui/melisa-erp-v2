@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { PurchaseInvoiceHeader } from './PurchaseInvoiceHeader.jsx';
 import { PurchaseInvoiceItemsTable } from './PurchaseInvoiceItemsTable.jsx';
-import { PurchaseInvoiceRulesPanel } from './PurchaseInvoiceRulesPanel.jsx';
-import { PurchaseInvoiceSupplierPanel } from './PurchaseInvoiceSupplierPanel.jsx';
 import { PurchaseInvoiceToolbar } from './PurchaseInvoiceToolbar.jsx';
 import { PurchaseInvoiceTotals } from './PurchaseInvoiceTotals.jsx';
 import {
   invoiceDiscountRate,
   purchaseInvoiceHeader,
   purchaseInvoiceItems,
-  purchaseInvoicePermissions,
-  purchaseInvoiceRules,
   supplierGeneralDiscountRate,
 } from './purchaseInvoiceMockData.js';
 import {
@@ -21,8 +17,10 @@ import {
   updatePurchaseDraft,
 } from '../../services/invoiceDraftApi.js';
 import { apiConfig } from '../../config/apiConfig.js';
+import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
+import { exportRowsToCsv, printBusinessDocument } from '../../utils/exportUtils.js';
 
 const emptyPurchaseInvoice = {
   ...purchaseInvoiceHeader,
@@ -39,7 +37,11 @@ const emptyPurchaseInvoice = {
   status: 'Taslak',
 };
 
-function calculateTotals(items, invoiceRate, supplierRate) {
+function formatExchangeRate(currency, value) {
+  return `${currency || 'TRY'} ${Number(value || 1).toFixed(4)}`;
+}
+
+function calculateTotals(items, invoiceRate, supplierRate, exchangeRate = 1, currency = 'TRY') {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.purchasePrice, 0);
   const lineDiscountTotal = items.reduce((total, item) => {
     const gross = item.quantity * item.purchasePrice;
@@ -53,16 +55,19 @@ function calculateTotals(items, invoiceRate, supplierRate) {
   const totalDiscount = lineDiscountTotal + invoiceDiscountAmount + supplierDiscountAmount;
   const lineCount = items.length;
   const totalQuantity = items.reduce((total, item) => total + Number(item.quantity || 0), 0);
+  const tryEquivalent = grandTotal * Number(exchangeRate || 1);
 
   return {
+    currency,
+    exchangeRate: Number(exchangeRate || 1),
     subtotal,
     lineDiscountTotal,
     invoiceDiscountRate: invoiceRate,
     supplierDiscountRate: supplierRate,
     totalDiscount,
     grandTotal,
-    tryEquivalent: grandTotal,
-    stockCostEffect: grandTotal,
+    tryEquivalent,
+    stockCostEffect: tryEquivalent,
     lineCount,
     totalQuantity,
   };
@@ -134,6 +139,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [purchaseProductOptions, setPurchaseProductOptions] = useState([]);
   const [productToAddId, setProductToAddId] = useState('');
   const [isLookupLoading, setIsLookupLoading] = useState(false);
+  const [currencyRates, setCurrencyRates] = useState(null);
+  const [currencyRateError, setCurrencyRateError] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(purchaseDraftId));
   const [isSaving, setIsSaving] = useState(false);
@@ -141,8 +148,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [isCancelling, setIsCancelling] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(
-    () => calculateTotals(items, invoiceRate, supplierRate),
-    [invoiceRate, items, supplierRate],
+    () => calculateTotals(items, invoiceRate, supplierRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
+    [invoice.exchangeRateValue, invoice.invoiceCurrency, invoiceRate, items, supplierRate],
   );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
@@ -157,6 +164,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       const matchesQuery = !query || [
         product.stockCode,
         product.barcode,
+        product.matchedBarcode,
         product.productName,
       ].some((value) => String(value || '').toLowerCase().includes(query));
 
@@ -167,6 +175,48 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCurrencyRates() {
+      try {
+        const response = await fetchCurrencyRates({ date: invoice.date });
+
+        if (isMounted) {
+          setCurrencyRates(response.data);
+          setCurrencyRateError('');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setCurrencyRateError(`Kur bilgisi okunamadi: ${error.message || 'API_ERROR'}`);
+        }
+      }
+    }
+
+    loadCurrencyRates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [invoice.date]);
+
+  useEffect(() => {
+    if (draftId || invoice.invoiceCurrency === 'TRY') {
+      return;
+    }
+
+    const nextRate = rateValueForCurrency(currencyRates, invoice.invoiceCurrency);
+    if (nextRate === null) {
+      return;
+    }
+
+    setInvoice((current) => ({
+      ...current,
+      exchangeRateValue: nextRate,
+      exchangeRate: formatExchangeRate(current.invoiceCurrency, nextRate),
+    }));
+  }, [currencyRates, draftId, invoice.invoiceCurrency]);
 
   useEffect(() => {
     let isMounted = true;
@@ -186,6 +236,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
             page: 1,
             limit: 100,
             search: productQuery,
+            barcode: productQuery,
             activeOnly: true,
           }),
         ]);
@@ -199,10 +250,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           productId: product.id,
           stockCode: product.stockCode,
           barcode: product.barcodeMasked || '-',
+          matchedBarcode: product.matchedBarcode || null,
           productName: product.productName,
           currency: product.currency,
           purchasePrice: Number(product.purchasePrice || 0),
-          lineDiscountRate: 0,
+          lineDiscountRate: Number(product.purchaseDiscountRate || 0),
           isPassive: Boolean(product.isPassive),
         }));
 
@@ -331,6 +383,18 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setStatusMessage(message);
   }
 
+  function centralRateForCurrency(currency) {
+    const nextCurrency = String(currency || 'TRY').toUpperCase();
+    const nextRate = rateValueForCurrency(currencyRates, nextCurrency);
+    if (nextRate === null) {
+      setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
+      return null;
+    }
+
+    setCurrencyRateError('');
+    return nextRate;
+  }
+
   function updateInvoiceField(field, value) {
     setInvoice((current) => ({
       ...current,
@@ -370,19 +434,23 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
 
     setErrorMessage('');
-    setSupplierRate(0);
+    const nextSupplierRate = Number(supplier.purchaseDiscountRate || 0);
+    const nextRate = centralRateForCurrency(supplier.currency);
+    setSupplierRate(nextSupplierRate);
     setInvoice((current) => ({
       ...current,
       supplierId: supplier.id,
       supplier: supplier.supplierName,
       supplierCurrency: supplier.currency,
       supplierBalanceLabel: formatMoney(supplier.balance, supplier.currency),
-      supplierDiscountRate: 0,
+      supplierDiscountRate: nextSupplierRate,
       invoiceCurrency: supplier.currency,
-      exchangeRate: `${supplier.currency} 1.0000`,
-      exchangeRateValue: 1,
+      exchangeRate: nextRate === null ? `${supplier.currency} tanimsiz` : formatExchangeRate(supplier.currency, nextRate),
+      exchangeRateValue: nextRate === null ? '' : nextRate,
     }));
-    markDirty('Tedarikci secildi; alis taslagi henuz stok veya cari hareket olusturmaz.');
+    markDirty(nextSupplierRate > 0
+      ? `Tedarikci secildi; alis iskontosu %${nextSupplierRate} onerildi.`
+      : 'Tedarikci secildi; alis taslagi henuz stok veya cari hareket olusturmaz.');
   }
 
   function addDraftItem() {
@@ -407,6 +475,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
     if (product.isPassive) {
       setErrorMessage('Pasif urunler alis taslagina eklenemez.');
+      return;
+    }
+
+    if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
+      setErrorMessage(`${invoice.invoiceCurrency} kuru tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
+      setStatusMessage('Kur tanimi olmadan dovizli alis satiri eklenemez.');
       return;
     }
 
@@ -503,6 +577,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
     if (items.some((item) => item.lineDiscountRate < 0 || item.lineDiscountRate > 100)) {
       setErrorMessage('Alis taslagi kaydedilemez: satir iskonto orani 0-100 arasinda olmali.');
+      return;
+    }
+
+    if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
+      setErrorMessage(`${invoice.invoiceCurrency} kuru tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
+      setStatusMessage('Kur tanimi olmadan dovizli alis fisi kaydedilemez.');
       return;
     }
 
@@ -627,6 +707,44 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
   }
 
+  function printPurchaseInvoice() {
+    printBusinessDocument({
+      title: 'Alış Fişi',
+      documentNo: invoice.invoiceNo,
+      status,
+      date: invoice.date,
+      partyLabel: 'Tedarikçi',
+      partyName: invoice.supplier,
+      currency: invoice.invoiceCurrency,
+      exchangeRate: invoice.exchangeRate,
+      description: invoice.description,
+      items,
+      totals,
+      extraInfo: [
+        { label: 'Tedarikçi PB', value: invoice.supplierCurrency },
+        { label: 'Tedarikçi Bakiye', value: invoice.supplierBalanceLabel },
+      ],
+    });
+  }
+
+  function exportPurchaseInvoiceRows() {
+    exportRowsToCsv({
+      filename: `alis-fisi-${invoice.invoiceNo}`,
+      rows: items,
+      columns: [
+        { label: 'Stok Kodu', key: 'stockCode' },
+        { label: 'Barkod', key: 'barcode' },
+        { label: 'Urun', key: 'productName' },
+        { label: 'Miktar', key: 'quantity' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Alis Fiyati', key: 'purchasePrice' },
+        { label: 'Satir Iskonto %', key: 'lineDiscountRate' },
+        { label: 'Satir Toplami', value: (row) => Number(row.quantity || 0) * Number(row.purchasePrice || 0) },
+        { label: 'Not', key: 'note' },
+      ],
+    });
+  }
+
   return (
     <main className="work-area purchase-invoice-screen">
       <PurchaseInvoiceToolbar
@@ -642,32 +760,22 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
         onCancel={cancelInvoice}
+        onExport={exportPurchaseInvoiceRows}
+        onPrint={printPurchaseInvoice}
       />
       <section className="purchase-invoice-layout">
         {isLoading && <div className="list-state">Alis taslagi API'den okunuyor...</div>}
         {isLookupLoading && <div className="list-state">Tedarikci ve urun lookup API'den okunuyor...</div>}
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+        {currencyRateError && <div className="list-state list-state-error">{currencyRateError}</div>}
         {isSaving && <div className="list-state">Alis taslagi API'ye kaydediliyor...</div>}
         {isReadonly && (
-          <div className="list-state list-state-success">{status} alis fisi readonly modda; tekrar kayit/kesinlestirme kapali.</div>
+          <div className="list-state list-state-success">{status} alis fisi kesinlesmis; degisiklik icin iptal veya yeni taslak kullanin.</div>
         )}
-        {!isLoading && !errorMessage && items.length === 0 && (
-          <div className="list-state">Alis taslak satiri bulunamadi.</div>
-        )}
-        <PurchaseInvoiceHeader
-          invoice={invoice}
-          invoiceRate={invoiceRate}
-          isReadonly={isReadonly}
-          status={status}
-          supplierRate={supplierRate}
-          onChange={updateInvoiceField}
-          onInvoiceRateChange={updateInvoiceRate}
-          onSupplierRateChange={updateSupplierRate}
-        />
         <section className="erp-panel purchase-draft-controls">
           <div className="panel-title">
-            <strong>Alis Taslak Islem Paneli</strong>
-            <span>Tedarikci sec / urun ekle / stok artisi yok</span>
+            <strong>Hizli Alis Satiri</strong>
+            <span>Tedarikci sec, barkod/stok kodu yaz, satir ekle</span>
           </div>
           <div className="purchase-draft-control-grid">
             <label>
@@ -685,7 +793,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                 <option value="">Tedarikci secin</option>
                 {supplierOptions.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierCode} / {supplier.supplierName}
+                    {supplier.supplierCode} / {supplier.supplierName} / Isk %{Number(supplier.purchaseDiscountRate || 0)}
                   </option>
                 ))}
               </select>
@@ -701,7 +809,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                   const query = event.target.value.trim().toLowerCase();
                   const match = purchaseProductOptions.find((product) => (
                     !product.isPassive &&
-                    [product.stockCode, product.barcode, product.productName].some((value) => (
+                    [product.stockCode, product.barcode, product.matchedBarcode, product.productName].some((value) => (
                       String(value || '').toLowerCase().includes(query)
                     ))
                   ));
@@ -715,7 +823,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                 <option value="">Urun secin</option>
                 {filteredProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>
-                    {product.stockCode} / {product.productName}
+                    {product.stockCode} / {product.productName} / Satir isk %{Number(product.lineDiscountRate || 0)}
                   </option>
                 ))}
               </select>
@@ -723,7 +831,19 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
           </div>
         </section>
-        <PurchaseInvoiceSupplierPanel invoice={invoice} permissions={purchaseInvoicePermissions} />
+        <PurchaseInvoiceHeader
+          invoice={invoice}
+          invoiceRate={invoiceRate}
+          isReadonly={isReadonly}
+          status={status}
+          supplierRate={supplierRate}
+          onChange={updateInvoiceField}
+          onInvoiceRateChange={updateInvoiceRate}
+          onSupplierRateChange={updateSupplierRate}
+        />
+        {!isLoading && !errorMessage && items.length === 0 && (
+          <div className="list-state purchase-empty-state">Alis taslak satiri yok. Ustten tedarikci ve urun secip Satir Ekle ile baslayin.</div>
+        )}
         <PurchaseInvoiceItemsTable
           isReadonly={isReadonly}
           items={items}
@@ -733,7 +853,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           onUpdateItem={updateDraftItem}
         />
         <PurchaseInvoiceTotals totals={totals} />
-        <PurchaseInvoiceRulesPanel rules={purchaseInvoiceRules} statusMessage={statusMessage} />
+        <section className="purchase-status-line">{statusMessage}</section>
       </section>
       <section className="screen-summary purchase-invoice-summary">
         <span>Fis: {invoice.invoiceNo}</span>

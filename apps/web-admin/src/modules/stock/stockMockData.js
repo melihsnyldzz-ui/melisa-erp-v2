@@ -170,12 +170,14 @@ export const stockRows = [
 ];
 
 export const stockFilterDefaults = {
+  quickSearch: '',
   stockCode: '',
   barcode: '',
   name: '',
   brand: '',
   category: '',
   supplier: '',
+  currency: 'all',
   status: 'all',
   stockState: 'all',
 };

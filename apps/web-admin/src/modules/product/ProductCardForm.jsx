@@ -82,6 +82,17 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <span>Alis fiyati</span>
             <input type="number" step="0.01" value={form.purchasePrice} onChange={(event) => onChange('purchasePrice', event.target.value)} />
           </label>
+          <label>
+            <span>Alis iskontosu %</span>
+            <input
+              max="100"
+              min="0"
+              type="number"
+              step="0.01"
+              value={form.purchaseDiscountRate}
+              onChange={(event) => onChange('purchaseDiscountRate', event.target.value)}
+            />
+          </label>
         </div>
         <div className="product-form-section status-section">
           <h3>Durum</h3>
@@ -98,7 +109,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
       <div className={product.hasMovements ? 'currency-rule locked' : 'currency-rule'}>
         <strong>Para birimi kurali</strong>
         <span>{product.currencyRule}</span>
-        <small>Update modunda barkod ham degeri API'den maskeli gelir; degistirmek icin yeni barkod girilir.</small>
+        <small>Update modunda barkod tam degeri API'den gelir; degistirmek icin yeni barkod girilir.</small>
       </div>
     </section>
   );

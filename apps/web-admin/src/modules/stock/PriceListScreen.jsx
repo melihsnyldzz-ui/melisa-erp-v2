@@ -1,0 +1,201 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { fetchProducts } from '../../services/productApi.js';
+import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+
+function formatMoney(value, currency = 'TRY') {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: currency || 'TRY',
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
+
+function normalize(value) {
+  return String(value ?? '').toLowerCase();
+}
+
+function Kpi({ label, value, detail, tone = 'info' }) {
+  return (
+    <article className={`dashboard-kpi ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </article>
+  );
+}
+
+export function PriceListScreen({ onOpenScreen }) {
+  const [filters, setFilters] = useState({ search: '', currency: '', onlyActive: true });
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  async function loadRows() {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const response = await fetchProducts({
+        page: 1,
+        limit: 200,
+        search: filters.search,
+        activeOnly: filters.onlyActive,
+      });
+      setRows(response.data || []);
+      setMeta(response.meta || null);
+    } catch (error) {
+      setRows([]);
+      setMeta(null);
+      setErrorMessage(`${error.message || 'Fiyat listesi okunamadi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRows();
+  }, []);
+
+  function updateFilter(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  const filteredRows = useMemo(() => rows.filter((row) => {
+    const matchesCurrency = !filters.currency || row.currency === filters.currency;
+    const search = normalize(filters.search);
+    const matchesText = !search
+      || normalize(row.stockCode).includes(search)
+      || normalize(row.productName).includes(search)
+      || normalize(row.brand).includes(search)
+      || normalize(row.category).includes(search);
+
+    return matchesCurrency && matchesText;
+  }), [filters, rows]);
+
+  const totals = filteredRows.reduce((summary, row) => ({
+    products: summary.products + 1,
+    saleValue: summary.saleValue + Number(row.salePrice || 0),
+    purchaseValue: summary.purchaseValue + Number(row.purchasePrice || 0),
+    zeroSalePrice: summary.zeroSalePrice + (Number(row.salePrice || 0) <= 0 ? 1 : 0),
+  }), { products: 0, saleValue: 0, purchaseValue: 0, zeroSalePrice: 0 });
+
+  function exportPriceRows() {
+    exportRowsToCsv({
+      filename: 'fiyat-listesi',
+      rows: filteredRows,
+      columns: [
+        { label: 'Stok Kodu', key: 'stockCode' },
+        { label: 'Barkod', key: 'barcodeMasked' },
+        { label: 'Urun', key: 'productName' },
+        { label: 'Marka', key: 'brand' },
+        { label: 'Kategori', key: 'category' },
+        { label: 'PB', key: 'currency' },
+        { label: 'Alis Fiyat', key: 'purchasePrice' },
+        { label: 'Satis Fiyat', key: 'salePrice' },
+        { label: 'Stok', key: 'stockQuantity' },
+      ],
+    });
+  }
+
+  return (
+    <main className="work-area dashboard-screen price-list-screen">
+      <section className="dashboard-toolbar">
+        <div className="dashboard-toolbar-title">
+          <strong>Fiyat Listesi</strong>
+          <span>Gercek SQL stok kart fiyatlari / satis ve alis fiyat kontrolu</span>
+        </div>
+        <div className="dashboard-toolbar-actions">
+          <button type="button" onClick={exportPriceRows}>Excel</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Fiyat Listesi')}>Yazdir</button>
+          <button type="button" onClick={loadRows}>Yenile</button>
+        </div>
+      </section>
+
+      {isLoading && <div className="list-state">Fiyat listesi API'den okunuyor...</div>}
+      {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+
+      <section className="dashboard-kpi-grid">
+        <Kpi label="Urun" value={totals.products} detail={`API toplam: ${meta?.total ?? rows.length}`} tone="info" />
+        <Kpi label="Satis toplami" value={formatMoney(totals.saleValue)} detail="Liste satir toplami" tone="good" />
+        <Kpi label="Alis toplami" value={formatMoney(totals.purchaseValue)} detail="Liste satir toplami" tone="warn" />
+        <Kpi label="Fiyatsiz" value={totals.zeroSalePrice} detail="Satis fiyati 0 olan" tone={totals.zeroSalePrice > 0 ? 'warn' : 'good'} />
+      </section>
+
+      <section className="erp-panel">
+        <div className="panel-title">
+          <strong>Filtreler</strong>
+          <span>Stok kodu, urun, marka, kategori ve para birimi</span>
+        </div>
+        <div className="filter-grid">
+          <label>
+            Arama
+            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Stok kodu / urun / marka" />
+          </label>
+          <label>
+            Para birimi
+            <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
+              <option value="">Tum PB</option>
+              <option value="TRY">TRY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </label>
+          <label className="checkbox-label">
+            <input type="checkbox" checked={filters.onlyActive} onChange={(event) => updateFilter('onlyActive', event.target.checked)} />
+            Sadece aktif stoklar
+          </label>
+          <button type="button" onClick={loadRows}>Ara</button>
+        </div>
+      </section>
+
+      <section className="erp-panel">
+        <div className="panel-title">
+          <strong>Fiyat Satirlari</strong>
+          <span>{filteredRows.length} satir</span>
+        </div>
+        {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Fiyat satiri bulunamadi.</div>}
+        {filteredRows.length > 0 && (
+          <div className="table-shell">
+            <table className="erp-table">
+              <thead>
+                <tr>
+                  <th>Stok Kodu</th>
+                  <th>Barkod</th>
+                  <th>Urun</th>
+                  <th>Marka</th>
+                  <th>Kategori</th>
+                  <th>PB</th>
+                  <th>Alis</th>
+                  <th>Satis</th>
+                  <th>Stok</th>
+                  <th>Islem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.stockCode}</td>
+                    <td>{row.barcodeMasked || '-'}</td>
+                    <td>{row.productName}</td>
+                    <td>{row.brand || '-'}</td>
+                    <td>{row.category || '-'}</td>
+                    <td><span className="status-pill">{row.currency}</span></td>
+                    <td>{formatMoney(row.purchasePrice, row.currency)}</td>
+                    <td>{formatMoney(row.salePrice, row.currency)}</td>
+                    <td>{row.stockQuantity}</td>
+                    <td>
+                      <button type="button" className="mini-button" onClick={() => onOpenScreen('product-card', { productId: row.id })}>
+                        Kart
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}

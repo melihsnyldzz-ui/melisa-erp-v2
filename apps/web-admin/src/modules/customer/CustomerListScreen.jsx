@@ -4,6 +4,7 @@ import { CustomerListTable } from './CustomerListTable.jsx';
 import { CustomerListToolbar } from './CustomerListToolbar.jsx';
 import { customerFilterDefaults } from './customerMockData.js';
 import { fetchCustomers } from '../../services/customerApi.js';
+import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 
 function normalize(value) {
   return String(value ?? '').toLowerCase();
@@ -198,12 +199,32 @@ export function CustomerListScreen({ onOpenScreen }) {
     }));
   }
 
+  function exportCustomerRows() {
+    exportRowsToCsv({
+      filename: 'cari-listesi',
+      rows: filteredRows,
+      columns: [
+        { label: 'Cari Kodu', key: 'code' },
+        { label: 'Ad Unvan', key: 'name' },
+        { label: 'Telefon', key: 'phone' },
+        { label: 'Sehir', key: 'city' },
+        { label: 'Ulke', key: 'country' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Cari Tipi', key: 'type' },
+        { label: 'Bakiye', key: 'balance' },
+        { label: 'Durum', key: 'status' },
+      ],
+    });
+  }
+
   return (
     <main className="work-area customer-list-screen">
       <CustomerListToolbar
         showPassive={filters.status === 'all'}
         onOpenCustomerCard={openSelectedCustomer}
         onTogglePassive={togglePassive}
+        onExportCsv={exportCustomerRows}
+        onPrint={() => printCurrentScreen('Melisa ERP - Cari Listesi')}
       />
       <CustomerListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
       <section className="erp-panel customer-list-panel">

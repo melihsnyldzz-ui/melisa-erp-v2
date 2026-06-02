@@ -32,9 +32,6 @@ export function CustomerCardHeader({
         >
           {isPassiveSaving ? 'Isleniyor' : passiveLabel}
         </button>
-        <button type="button" disabled title="Silme yok; hareket gormus kayitlar silinmeyecek">Sil</button>
-        <button type="button">Ekstre</button>
-        <button type="button">Yazdir</button>
         <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Update'}</span>
       </div>
     </section>

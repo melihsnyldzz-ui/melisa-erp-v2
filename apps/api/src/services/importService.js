@@ -25,6 +25,8 @@ const productFieldAliases = {
   currency: 'currency',
   parabirimi: 'currency',
   para_birimi: 'currency',
+  urunparabirimi: 'currency',
+  urun_para_birimi: 'currency',
   saleprice: 'salePrice',
   satisfiyati: 'salePrice',
   satis_fiyati: 'salePrice',
@@ -33,6 +35,10 @@ const productFieldAliases = {
   alis_fiyati: 'purchasePrice',
   stockquantity: 'stockQuantity',
   stokmiktari: 'stockQuantity',
+  stok_adedi: 'stockQuantity',
+  stokadedi: 'stockQuantity',
+  miktar: 'stockQuantity',
+  quantity: 'stockQuantity',
   mevcutstok: 'stockQuantity',
 };
 
@@ -71,6 +77,20 @@ function normalizeHeader(value) {
   return String(value || '')
     .trim()
     .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replaceAll('\u0131', 'i')
+    .replaceAll('\u011f', 'g')
+    .replaceAll('\u00fc', 'u')
+    .replaceAll('\u015f', 's')
+    .replaceAll('\u00f6', 'o')
+    .replaceAll('\u00e7', 'c')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replaceAll('ı', 'i')
+    .replaceAll('ğ', 'g')
+    .replaceAll('ü', 'u')
+    .replaceAll('ş', 's')
+    .replaceAll('ö', 'o')
+    .replaceAll('ç', 'c')
     .replaceAll('ı', 'i')
     .replaceAll('ğ', 'g')
     .replaceAll('ü', 'u')
@@ -409,9 +429,25 @@ export async function previewCustomerImport(filePayload) {
   return summarizePreview('customers', fileName, rows);
 }
 
-function assertPreviewClean(preview) {
+function getCommitRows(preview, { validOnly = false } = {}) {
+  if (validOnly) {
+    return preview.rows.filter((row) => row.status === 'valid');
+  }
+
+  return preview.rows;
+}
+
+function assertPreviewClean(preview, { validOnly = false } = {}) {
   if (preview.totalRows < 1) {
     throw makeImportError('IMPORT_NO_ROWS', 'Import file has no data rows');
+  }
+
+  if (validOnly) {
+    if (preview.validRowCount < 1) {
+      throw makeImportError('IMPORT_NO_VALID_ROWS', 'Import file has no valid rows to commit', 422);
+    }
+
+    return;
   }
 
   if (preview.invalidRowCount > 0 || preview.duplicateRowCount > 0) {
@@ -423,7 +459,9 @@ export async function commitProductImport(filePayload, actor = null) {
   assertMelisaWriteEnabled();
 
   const preview = await previewProductImport(filePayload);
-  assertPreviewClean(preview);
+  const validOnly = Boolean(filePayload?.validOnly);
+  assertPreviewClean(preview, { validOnly });
+  const commitRows = getCommitRows(preview, { validOnly });
 
   const pool = await getSqlPool();
   const sqlDriver = getSqlDriver();
@@ -434,7 +472,7 @@ export async function commitProductImport(filePayload, actor = null) {
   try {
     const insertedIds = [];
 
-    for (const row of preview.rows) {
+    for (const row of commitRows) {
       const product = row.data;
       const insertResult = await new sqlDriver.Request(transaction)
         .input('stockCode', sql.NVarChar(80), product.stockCode)
@@ -520,6 +558,8 @@ export async function commitProductImport(filePayload, actor = null) {
         fileName: preview.fileName,
         insertedCount: insertedIds.length,
         insertedIds,
+        skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
+        skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
         warningCount: preview.warnings.length,
       },
       actor,
@@ -531,6 +571,8 @@ export async function commitProductImport(filePayload, actor = null) {
       entityType: 'products',
       insertedCount: insertedIds.length,
       insertedIds,
+      skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
+      skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
       preview,
     };
   } catch (error) {
@@ -543,7 +585,9 @@ export async function commitCustomerImport(filePayload, actor = null) {
   assertMelisaWriteEnabled();
 
   const preview = await previewCustomerImport(filePayload);
-  assertPreviewClean(preview);
+  const validOnly = Boolean(filePayload?.validOnly);
+  assertPreviewClean(preview, { validOnly });
+  const commitRows = getCommitRows(preview, { validOnly });
 
   const pool = await getSqlPool();
   const sqlDriver = getSqlDriver();
@@ -554,7 +598,7 @@ export async function commitCustomerImport(filePayload, actor = null) {
   try {
     const insertedIds = [];
 
-    for (const row of preview.rows) {
+    for (const row of commitRows) {
       const customer = row.data;
       const insertResult = await new sqlDriver.Request(transaction)
         .input('customerCode', sql.NVarChar(80), customer.customerCode)
@@ -611,6 +655,8 @@ export async function commitCustomerImport(filePayload, actor = null) {
         fileName: preview.fileName,
         insertedCount: insertedIds.length,
         insertedIds,
+        skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
+        skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
       },
       actor,
     });
@@ -621,6 +667,8 @@ export async function commitCustomerImport(filePayload, actor = null) {
       entityType: 'customers',
       insertedCount: insertedIds.length,
       insertedIds,
+      skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
+      skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
       preview,
     };
   } catch (error) {

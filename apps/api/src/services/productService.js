@@ -1,20 +1,26 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, maskValue, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 function toProductDto(row) {
   return {
     id: row.id,
     stockCode: row.stock_code,
-    barcodeMasked: maskValue(row.barcode_raw, 3, 2),
+    barcodeMasked: row.barcode_raw || null,
+    matchedBarcode: row.matched_barcode || null,
     productName: row.product_name,
     brand: row.brand,
     category: row.category,
+    supplierId: row.supplier_id ? Number(row.supplier_id) : null,
+    supplierCode: row.supplier_code || null,
+    supplierName: row.supplier_name || null,
     currency: row.currency_code,
     salePrice: Number(row.sale_price || 0),
     purchasePrice: Number(row.purchase_price || 0),
+    purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
+    averageCostTry: Number(row.average_cost_try || 0),
     stockQuantity: Number(row.stock_quantity || 0),
     isPassive: !row.is_active,
   };
@@ -24,26 +30,56 @@ function toProductDetailDto(row) {
   return {
     id: row.id,
     stockCode: row.stock_code,
-    barcodeMasked: maskValue(row.barcode_raw, 3, 2),
+    barcodeMasked: row.barcode_raw || null,
     productName: row.product_name,
     brand: row.brand,
     category: row.category,
+    supplierId: row.supplier_id ? Number(row.supplier_id) : null,
+    supplierCode: row.supplier_code || null,
     currency: row.currency_code,
     salePrice: Number(row.sale_price || 0),
     purchasePrice: Number(row.purchase_price || 0),
+    purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
     stockQuantity: Number(row.stock_quantity || 0),
     supplierName: row.supplier_name || null,
     isPassive: !row.is_active,
     averageCostTry: Number(row.average_cost_try || 0),
     lastPurchaseDate: row.last_purchase_date || null,
     lastSaleDate: row.last_sale_date || null,
+    barcodes: [],
+    images: [],
   };
 }
 
-function makeServiceError(code, message, statusCode = 400) {
+function toBarcodeDto(row) {
+  return {
+    id: Number(row.id),
+    barcode: row.barcode,
+    type: row.barcode_type,
+    isPrimary: Boolean(row.is_primary),
+    isActive: Boolean(row.is_active),
+    status: row.is_active ? 'Aktif' : 'Pasif',
+    createdAt: row.created_at,
+  };
+}
+
+function toImageDto(row) {
+  return {
+    id: Number(row.id),
+    filePath: row.file_path || '',
+    storageKey: row.storage_key || '',
+    isPrimary: Boolean(row.is_primary),
+    isActive: Boolean(row.is_active),
+    sortOrder: Number(row.sort_order || 0),
+    createdAt: row.created_at,
+  };
+}
+
+function makeServiceError(code, message, statusCode = 400, meta = {}) {
   const error = new Error(message);
   error.code = code;
   error.statusCode = statusCode;
+  error.meta = meta;
   return error;
 }
 
@@ -61,20 +97,39 @@ function parseMoney(value, fieldName) {
   return number;
 }
 
+function parseDiscountRate(value, fieldName) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw makeServiceError('PRODUCT_VALIDATION_FAILED', `${fieldName} must be between 0 and 100`);
+  }
+
+  return number;
+}
+
+function applyDiscount(amount, discountRate) {
+  const rate = Math.min(100, Math.max(0, Number(discountRate || 0)));
+  return Number(amount || 0) * (1 - (rate / 100));
+}
+
 function normalizeCurrency(value) {
   return trimText(value).toUpperCase();
 }
 
 function validateProductPayload(payload, { requireBarcode }) {
+  const supplierId = Number(payload?.supplierId || 0);
   const product = {
     stockCode: trimText(payload?.stockCode),
     productName: trimText(payload?.productName),
     barcode: trimText(payload?.barcode),
     brand: trimText(payload?.brand),
     category: trimText(payload?.category),
+    supplierId: Number.isInteger(supplierId) && supplierId > 0 ? supplierId : null,
+    supplierName: trimText(payload?.supplierName),
     currency: normalizeCurrency(payload?.currency),
     salePrice: parseMoney(payload?.salePrice, 'salePrice'),
     purchasePrice: parseMoney(payload?.purchasePrice, 'purchasePrice'),
+    purchaseDiscountRate: parseDiscountRate(payload?.purchaseDiscountRate ?? 0, 'purchaseDiscountRate'),
   };
 
   const missingFields = [];
@@ -94,6 +149,50 @@ function validateProductPayload(payload, { requireBarcode }) {
   return product;
 }
 
+async function resolveSupplierId(request, product) {
+  if (product.supplierId) {
+    const result = await request
+      .input('resolveSupplierId', sql.BigInt, product.supplierId)
+      .query(`
+        SELECT TOP (1) id
+        FROM dbo.suppliers
+        WHERE id = @resolveSupplierId
+          AND is_deleted = 0
+          AND is_active = 1;
+      `);
+
+    if (!result.recordset?.[0]) {
+      throw makeServiceError('PRODUCT_SUPPLIER_NOT_FOUND', 'Supplier not found or passive', 404);
+    }
+
+    return product.supplierId;
+  }
+
+  if (!product.supplierName) {
+    return null;
+  }
+
+  const parts = product.supplierName.split('/').map((part) => part.trim()).filter(Boolean);
+  const supplierCode = parts.length > 1 ? parts[0] : '';
+  const supplierName = parts.length > 1 ? parts.slice(1).join(' / ') : product.supplierName;
+  const result = await request
+    .input('resolveSupplierCode', sql.NVarChar(80), supplierCode || null)
+    .input('resolveSupplierName', sql.NVarChar(250), supplierName)
+    .query(`
+      SELECT TOP (1) id
+      FROM dbo.suppliers
+      WHERE is_deleted = 0
+        AND is_active = 1
+        AND (
+          (@resolveSupplierCode IS NOT NULL AND supplier_code = @resolveSupplierCode)
+          OR name = @resolveSupplierName
+        )
+      ORDER BY CASE WHEN @resolveSupplierCode IS NOT NULL AND supplier_code = @resolveSupplierCode THEN 0 ELSE 1 END, id DESC;
+    `);
+
+  return result.recordset?.[0]?.id ? Number(result.recordset[0].id) : null;
+}
+
 async function getProductSnapshot(request, id) {
   const result = await request
     .input('snapshotProductId', sql.BigInt, id)
@@ -105,6 +204,9 @@ async function getProductSnapshot(request, id) {
         p.name AS productName,
         p.brand,
         p.category,
+        p.supplier_id AS supplierId,
+        s.supplier_code AS supplierCode,
+        s.name AS supplierName,
         p.currency_code AS currency,
         p.sales_price AS salePrice,
         p.purchase_price AS purchasePrice,
@@ -113,6 +215,7 @@ async function getProductSnapshot(request, id) {
         p.is_active AS isActive,
         p.updated_at AS updatedAt
       FROM dbo.products p
+      LEFT JOIN dbo.suppliers s ON s.id = p.supplier_id
       OUTER APPLY (
         SELECT TOP (1) b.barcode
         FROM dbo.product_barcodes b
@@ -120,7 +223,8 @@ async function getProductSnapshot(request, id) {
           AND b.is_active = 1
         ORDER BY b.is_primary DESC, b.id ASC
       ) pb
-      WHERE p.id = @snapshotProductId;
+      WHERE p.id = @snapshotProductId
+        AND p.is_deleted = 0;
     `);
 
   return result.recordset?.[0] || null;
@@ -134,6 +238,7 @@ async function assertProductDuplicates(request, product, currentProductId = null
       SELECT TOP (1) id
       FROM dbo.products
       WHERE stock_code = @duplicateStockCode
+        AND is_deleted = 0
         AND (@duplicateProductId = 0 OR id <> @duplicateProductId);
     `);
 
@@ -149,23 +254,127 @@ async function assertProductDuplicates(request, product, currentProductId = null
     .input('duplicateBarcode', sql.NVarChar(120), product.barcode)
     .input('duplicateBarcodeProductId', sql.BigInt, currentProductId || 0)
     .query(`
-      SELECT TOP (1) product_id
-      FROM dbo.product_barcodes
-      WHERE barcode = @duplicateBarcode
-        AND is_active = 1
-        AND (@duplicateBarcodeProductId = 0 OR product_id <> @duplicateBarcodeProductId);
+      SELECT TOP (1)
+        b.product_id,
+        b.barcode,
+        p.stock_code,
+        p.name AS product_name
+      FROM dbo.product_barcodes b
+      INNER JOIN dbo.products p ON p.id = b.product_id
+      WHERE b.barcode = @duplicateBarcode
+        AND b.is_active = 1
+        AND p.is_deleted = 0
+        AND (@duplicateBarcodeProductId = 0 OR b.product_id <> @duplicateBarcodeProductId);
     `);
 
-  if (barcodeDuplicate.recordset?.[0]) {
-    throw makeServiceError('PRODUCT_BARCODE_DUPLICATE', 'Product main barcode already exists', 409);
+  const duplicateProduct = barcodeDuplicate.recordset?.[0];
+  if (duplicateProduct) {
+    throw makeServiceError('PRODUCT_BARCODE_DUPLICATE', 'Product main barcode already exists', 409, {
+      duplicateProduct: {
+        productId: Number(duplicateProduct.product_id),
+        stockCode: duplicateProduct.stock_code,
+        productName: duplicateProduct.product_name,
+        barcode: duplicateProduct.barcode,
+      },
+    });
   }
+}
+
+async function assertProductExists(request, id) {
+  const result = await request
+    .input('existsProductId', sql.BigInt, id)
+    .query(`
+      SELECT TOP (1) id
+      FROM dbo.products
+      WHERE id = @existsProductId
+        AND is_deleted = 0;
+    `);
+
+  if (!result.recordset?.[0]) {
+    throw makeServiceError('PRODUCT_NOT_FOUND', 'Product not found', 404);
+  }
+}
+
+async function assertBarcodeAvailable(request, barcode, currentBarcodeId = null) {
+  const result = await request
+    .input('availableBarcode', sql.NVarChar(120), barcode)
+    .input('availableBarcodeId', sql.BigInt, currentBarcodeId || 0)
+    .query(`
+      SELECT TOP (1)
+        b.id,
+        b.product_id,
+        b.barcode,
+        p.stock_code,
+        p.name AS product_name
+      FROM dbo.product_barcodes b
+      INNER JOIN dbo.products p ON p.id = b.product_id
+      WHERE b.barcode = @availableBarcode
+        AND b.is_active = 1
+        AND p.is_deleted = 0
+        AND (@availableBarcodeId = 0 OR b.id <> @availableBarcodeId);
+    `);
+
+  const duplicateProduct = result.recordset?.[0];
+  if (duplicateProduct) {
+    throw makeServiceError('PRODUCT_BARCODE_DUPLICATE', 'Barcode already exists on another active product', 409, {
+      duplicateProduct: {
+        productId: Number(duplicateProduct.product_id),
+        stockCode: duplicateProduct.stock_code,
+        productName: duplicateProduct.product_name,
+        barcode: duplicateProduct.barcode,
+      },
+    });
+  }
+}
+
+async function readProductRelations(pool, id) {
+  const [barcodeResult, imageResult] = await Promise.all([
+    pool.request()
+      .input('relationBarcodeProductId', sql.BigInt, id)
+      .query(`
+        SELECT
+          id,
+          barcode,
+          barcode_type,
+          is_primary,
+          is_active,
+          created_at
+        FROM dbo.product_barcodes
+        WHERE product_id = @relationBarcodeProductId
+        ORDER BY is_primary DESC, is_active DESC, id ASC;
+      `),
+    pool.request()
+      .input('relationImageProductId', sql.BigInt, id)
+      .query(`
+        SELECT
+          id,
+          file_path,
+          storage_key,
+          is_primary,
+          sort_order,
+          is_active,
+          created_at
+        FROM dbo.product_images
+        WHERE product_id = @relationImageProductId
+        ORDER BY is_primary DESC, sort_order ASC, id ASC;
+      `),
+  ]);
+
+  return {
+    barcodes: (barcodeResult.recordset || []).map(toBarcodeDto),
+    images: (imageResult.recordset || []).map(toImageDto),
+  };
 }
 
 export async function getProductsList(query) {
   const options = parseListQuery(query);
+  const barcode = trimText(query?.barcode);
+  const barcodeLike = barcode ? `%${barcode}%` : null;
   const pool = await getSqlPool();
   const request = pool.request()
     .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('barcode', sql.NVarChar(120), barcode || null)
+    .input('barcodeLike', sql.NVarChar(120), barcodeLike)
     .input('activeOnly', sql.Bit, options.activeOnly)
     .input('offset', sql.Int, options.offset);
 
@@ -175,16 +384,23 @@ export async function getProductsList(query) {
         p.id,
         p.stock_code,
         pb.barcode AS barcode_raw,
+        mb.barcode AS matched_barcode,
         p.name AS product_name,
         p.brand,
         p.category,
+        p.supplier_id,
+        s.supplier_code,
+        s.name AS supplier_name,
         p.currency_code,
         p.sales_price AS sale_price,
         p.purchase_price,
+        p.purchase_discount_rate,
+        p.average_cost_try,
         p.current_stock_qty AS stock_quantity,
         p.is_active,
         p.created_at
       FROM dbo.products p
+      LEFT JOIN dbo.suppliers s ON s.id = p.supplier_id
       OUTER APPLY (
         SELECT TOP (1) b.barcode
         FROM dbo.product_barcodes b
@@ -192,15 +408,46 @@ export async function getProductsList(query) {
           AND b.is_active = 1
         ORDER BY b.is_primary DESC, b.id ASC
       ) pb
+      OUTER APPLY (
+        SELECT TOP (1) b.barcode
+        FROM dbo.product_barcodes b
+        WHERE b.product_id = p.id
+          AND b.is_active = 1
+          AND (
+            (@barcodeLike IS NOT NULL AND b.barcode COLLATE Latin1_General_CI_AI LIKE @barcodeLike COLLATE Latin1_General_CI_AI)
+            OR (@search IS NOT NULL AND b.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI)
+          )
+        ORDER BY
+          CASE WHEN @barcode IS NOT NULL AND b.barcode = @barcode THEN 0 ELSE 1 END,
+          b.is_primary DESC,
+          b.id ASC
+      ) mb
       WHERE
-        (@activeOnly = 0 OR p.is_active = 1)
+        p.is_deleted = 0
+        AND (@activeOnly = 0 OR p.is_active = 1)
+        AND (
+          @barcodeLike IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM dbo.product_barcodes barcode_filter
+            WHERE barcode_filter.product_id = p.id
+              AND barcode_filter.is_active = 1
+              AND barcode_filter.barcode COLLATE Latin1_General_CI_AI LIKE @barcodeLike COLLATE Latin1_General_CI_AI
+          )
+        )
         AND (
           @search IS NULL
           OR p.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
           OR p.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
           OR p.brand COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
           OR p.category COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR pb.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR EXISTS (
+            SELECT 1
+            FROM dbo.product_barcodes search_barcode
+            WHERE search_barcode.product_id = p.id
+              AND search_barcode.is_active = 1
+              AND search_barcode.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          )
         )
     ),
     numbered_products AS (
@@ -208,12 +455,18 @@ export async function getProductsList(query) {
         fp.id,
         fp.stock_code,
         fp.barcode_raw,
+        fp.matched_barcode,
         fp.product_name,
         fp.brand,
         fp.category,
+        fp.supplier_id,
+        fp.supplier_code,
+        fp.supplier_name,
         fp.currency_code,
         fp.sale_price,
         fp.purchase_price,
+        fp.purchase_discount_rate,
+        fp.average_cost_try,
         fp.stock_quantity,
         fp.is_active,
         fp.created_at,
@@ -239,6 +492,7 @@ export async function getProductsList(query) {
       source: 'sql-select-only',
       filters: {
         search: options.search || null,
+        barcode: barcode || null,
         activeOnly: options.activeOnly,
       },
     }),
@@ -270,13 +524,17 @@ export async function getProductDetail(productId) {
       p.currency_code,
       p.sales_price AS sale_price,
       p.purchase_price,
+      p.purchase_discount_rate,
       p.current_stock_qty AS stock_quantity,
-      CAST(NULL AS NVARCHAR(250)) AS supplier_name,
+      p.supplier_id,
+      s.supplier_code,
+      s.name AS supplier_name,
       p.is_active,
       p.average_cost_try,
       lp.last_purchase_date,
       ls.last_sale_date
     FROM dbo.products p
+    LEFT JOIN dbo.suppliers s ON s.id = p.supplier_id
     OUTER APPLY (
       SELECT TOP (1) b.barcode
       FROM dbo.product_barcodes b
@@ -298,7 +556,8 @@ export async function getProductDetail(productId) {
       WHERE sii.product_id = p.id
         AND si.status = N'finalized'
     ) ls
-    WHERE p.id = @id;
+    WHERE p.id = @id
+      AND p.is_deleted = 0;
   `);
 
   const row = result.recordset?.[0];
@@ -310,7 +569,12 @@ export async function getProductDetail(productId) {
     throw error;
   }
 
-  return toProductDetailDto(row);
+  const detail = toProductDetailDto(row);
+  const relations = await readProductRelations(pool, id);
+  return {
+    ...detail,
+    ...relations,
+  };
 }
 
 export async function createProduct(payload, actor = null) {
@@ -325,6 +589,7 @@ export async function createProduct(payload, actor = null) {
 
   try {
     await assertProductDuplicates(new sqlDriver.Request(transaction), product);
+    const supplierId = await resolveSupplierId(new sqlDriver.Request(transaction), product);
 
     const insertProductResult = await new sqlDriver.Request(transaction)
       .input('stockCode', sql.NVarChar(80), product.stockCode)
@@ -334,16 +599,23 @@ export async function createProduct(payload, actor = null) {
       .input('currency', sql.NVarChar(3), product.currency)
       .input('salePrice', sql.Decimal(18, 4), product.salePrice)
       .input('purchasePrice', sql.Decimal(18, 4), product.purchasePrice)
+      .input('purchaseDiscountRate', sql.Decimal(9, 4), product.purchaseDiscountRate)
+      .input('supplierId', sql.BigInt, supplierId)
+      .input('initialAverageCostTry', sql.Decimal(18, 4), product.currency === 'TRY'
+        ? applyDiscount(product.purchasePrice, product.purchaseDiscountRate)
+        : 0)
       .query(`
         INSERT INTO dbo.products (
           stock_code,
           name,
           category,
           brand,
+          supplier_id,
           unit,
           currency_code,
           sales_price,
           purchase_price,
+          purchase_discount_rate,
           average_cost_try,
           current_stock_qty,
           is_active,
@@ -357,11 +629,13 @@ export async function createProduct(payload, actor = null) {
           @productName,
           @category,
           @brand,
+          @supplierId,
           N'ADET',
           @currency,
           @salePrice,
           @purchasePrice,
-          @purchasePrice,
+          @purchaseDiscountRate,
+          @initialAverageCostTry,
           0,
           1,
           0,
@@ -443,6 +717,7 @@ export async function updateProduct(productId, payload, actor = null) {
     }
 
     await assertProductDuplicates(new sqlDriver.Request(transaction), product, id);
+    const supplierId = await resolveSupplierId(new sqlDriver.Request(transaction), product);
 
     await new sqlDriver.Request(transaction)
       .input('id', sql.BigInt, id)
@@ -453,6 +728,8 @@ export async function updateProduct(productId, payload, actor = null) {
       .input('currency', sql.NVarChar(3), product.currency)
       .input('salePrice', sql.Decimal(18, 4), product.salePrice)
       .input('purchasePrice', sql.Decimal(18, 4), product.purchasePrice)
+      .input('purchaseDiscountRate', sql.Decimal(9, 4), product.purchaseDiscountRate)
+      .input('supplierId', sql.BigInt, supplierId)
       .query(`
         UPDATE dbo.products
         SET
@@ -460,9 +737,11 @@ export async function updateProduct(productId, payload, actor = null) {
           name = @productName,
           category = @category,
           brand = @brand,
+          supplier_id = @supplierId,
           currency_code = @currency,
           sales_price = @salePrice,
           purchase_price = @purchasePrice,
+          purchase_discount_rate = @purchaseDiscountRate,
           updated_by = NULL,
           updated_at = SYSUTCDATETIME()
         WHERE id = @id;
@@ -606,6 +885,234 @@ export async function changeProductPassive(productId, payload = {}, actor = null
       data: await getProductDetail(id),
       auditWritten: true,
     };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function addProductBarcode(productId, payload, actor = null) {
+  assertMelisaWriteEnabled();
+
+  const id = Number(productId);
+  const barcode = trimText(payload?.barcode);
+  const barcodeType = trimText(payload?.type || payload?.barcodeType || 'extra').toLowerCase();
+  const isPrimary = Boolean(payload?.isPrimary);
+
+  if (!Number.isInteger(id) || id < 1) {
+    throw makeServiceError('PRODUCT_ID_INVALID', 'Product id is invalid');
+  }
+
+  if (!barcode) {
+    throw makeServiceError('PRODUCT_BARCODE_REQUIRED', 'Barcode is required');
+  }
+
+  if (!['primary', 'extra', 'package'].includes(barcodeType)) {
+    throw makeServiceError('PRODUCT_BARCODE_TYPE_INVALID', 'Barcode type is invalid');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    await assertProductExists(new sqlDriver.Request(transaction), id);
+    await assertBarcodeAvailable(new sqlDriver.Request(transaction), barcode);
+
+    if (isPrimary) {
+      await new sqlDriver.Request(transaction)
+        .input('primaryProductId', sql.BigInt, id)
+        .query(`
+          UPDATE dbo.product_barcodes
+          SET is_primary = 0,
+              barcode_type = CASE WHEN barcode_type = N'primary' THEN N'extra' ELSE barcode_type END,
+              updated_at = SYSUTCDATETIME()
+          WHERE product_id = @primaryProductId
+            AND is_active = 1;
+        `);
+    }
+
+    const result = await new sqlDriver.Request(transaction)
+      .input('barcodeProductId', sql.BigInt, id)
+      .input('barcode', sql.NVarChar(120), barcode)
+      .input('barcodeType', sql.NVarChar(30), isPrimary ? 'primary' : barcodeType)
+      .input('isPrimary', sql.Bit, isPrimary)
+      .input('createdBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.product_barcodes (
+          product_id,
+          barcode,
+          barcode_type,
+          is_primary,
+          is_active,
+          created_by,
+          updated_by
+        )
+        OUTPUT inserted.id
+        VALUES (
+          @barcodeProductId,
+          @barcode,
+          @barcodeType,
+          @isPrimary,
+          1,
+          @createdBy,
+          @createdBy
+        );
+      `);
+
+    const barcodeId = Number(result.recordset?.[0]?.id);
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'product_barcode_added',
+      entityType: 'product_barcode',
+      entityId: barcodeId,
+      afterSnapshot: { productId: id, barcode, barcodeType, isPrimary },
+      actor,
+    });
+
+    await transaction.commit();
+    return getProductDetail(id);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function changeProductBarcodePassive(productId, barcodeId, payload = {}, actor = null) {
+  assertMelisaWriteEnabled();
+
+  const id = Number(productId);
+  const targetBarcodeId = Number(barcodeId);
+  const isPassive = Boolean(payload?.isPassive);
+
+  if (!Number.isInteger(id) || id < 1 || !Number.isInteger(targetBarcodeId) || targetBarcodeId < 1) {
+    throw makeServiceError('PRODUCT_BARCODE_ID_INVALID', 'Product or barcode id is invalid');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    const beforeResult = await new sqlDriver.Request(transaction)
+      .input('targetProductId', sql.BigInt, id)
+      .input('targetBarcodeId', sql.BigInt, targetBarcodeId)
+      .query(`
+        SELECT TOP (1) *
+        FROM dbo.product_barcodes
+        WHERE id = @targetBarcodeId
+          AND product_id = @targetProductId;
+      `);
+    const beforeSnapshot = beforeResult.recordset?.[0];
+
+    if (!beforeSnapshot) {
+      throw makeServiceError('PRODUCT_BARCODE_NOT_FOUND', 'Barcode not found', 404);
+    }
+
+    await new sqlDriver.Request(transaction)
+      .input('targetBarcodeId', sql.BigInt, targetBarcodeId)
+      .input('isActive', sql.Bit, !isPassive)
+      .input('updatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        UPDATE dbo.product_barcodes
+        SET is_active = @isActive,
+            is_primary = CASE WHEN @isActive = 0 THEN 0 ELSE is_primary END,
+            updated_at = SYSUTCDATETIME(),
+            updated_by = @updatedBy
+        WHERE id = @targetBarcodeId;
+      `);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: isPassive ? 'product_barcode_passivated' : 'product_barcode_activated',
+      entityType: 'product_barcode',
+      entityId: targetBarcodeId,
+      beforeSnapshot,
+      afterSnapshot: { isActive: !isPassive },
+      actor,
+    });
+
+    await transaction.commit();
+    return getProductDetail(id);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function saveProductImage(productId, payload, actor = null) {
+  assertMelisaWriteEnabled();
+
+  const id = Number(productId);
+  const filePath = trimText(payload?.filePath || payload?.imageUrl || payload?.url);
+  const storageKey = trimText(payload?.storageKey || filePath);
+
+  if (!Number.isInteger(id) || id < 1) {
+    throw makeServiceError('PRODUCT_ID_INVALID', 'Product id is invalid');
+  }
+
+  if (!filePath) {
+    throw makeServiceError('PRODUCT_IMAGE_PATH_REQUIRED', 'Image URL or file path is required');
+  }
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    await assertProductExists(new sqlDriver.Request(transaction), id);
+
+    await new sqlDriver.Request(transaction)
+      .input('imageProductId', sql.BigInt, id)
+      .query(`
+        UPDATE dbo.product_images
+        SET is_primary = 0,
+            updated_at = SYSUTCDATETIME()
+        WHERE product_id = @imageProductId
+          AND is_active = 1;
+      `);
+
+    const result = await new sqlDriver.Request(transaction)
+      .input('imageProductId', sql.BigInt, id)
+      .input('filePath', sql.NVarChar(500), filePath)
+      .input('storageKey', sql.NVarChar(200), storageKey.slice(0, 200))
+      .input('createdBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.product_images (
+          product_id,
+          file_path,
+          storage_key,
+          is_primary,
+          sort_order,
+          is_active,
+          created_by,
+          updated_by
+        )
+        OUTPUT inserted.id
+        VALUES (
+          @imageProductId,
+          @filePath,
+          @storageKey,
+          1,
+          0,
+          1,
+          @createdBy,
+          @createdBy
+        );
+      `);
+
+    const imageId = Number(result.recordset?.[0]?.id);
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'product_image_saved',
+      entityType: 'product_image',
+      entityId: imageId,
+      afterSnapshot: { productId: id, filePath, storageKey },
+      actor,
+    });
+
+    await transaction.commit();
+    return getProductDetail(id);
   } catch (error) {
     await transaction.rollback();
     throw error;

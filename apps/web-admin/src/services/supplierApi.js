@@ -1,4 +1,4 @@
-import { get } from './apiClient.js';
+import { get, post, put } from './apiClient.js';
 import { apiConfig } from '../config/apiConfig.js';
 import { demoSupplierDetailResponse, demoSuppliersResponse } from '../demo/demoSuppliers.js';
 
@@ -21,4 +21,12 @@ export async function fetchSupplier(id) {
   }
 
   return get(`/api/suppliers/${id}`);
+}
+
+export async function createSupplier(payload) {
+  return post('/api/suppliers', payload);
+}
+
+export async function updateSupplier(id, payload) {
+  return put(`/api/suppliers/${id}`, payload);
 }
