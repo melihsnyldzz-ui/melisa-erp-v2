@@ -38,17 +38,17 @@ const groupDisplayLabels = {
   Dashboard: 'Ana Sayfa',
   'Musteri Carileri': 'Müşteri Carileri',
   'Tedarikci Carileri': 'Tedarikçi Carileri',
-  'Stok YÃ¶netimi': 'Stok Yönetimi',
+  'Stok Yönetimi': 'Stok Yönetimi',
   'Cari Hesaplar': 'Cari Hesaplar',
-  'SatÄ±ÅŸ YÃ¶netimi': 'Satış Yönetimi',
-  'AlÄ±ÅŸ YÃ¶netimi': 'Alış Yönetimi',
-  'Finans YÃ¶netimi': 'Finans Yönetimi',
-  'SatÄ±ÅŸ KanallarÄ±': 'Satış Kanalları',
+  'Satış Yönetimi': 'Satış Yönetimi',
+  'Alış Yönetimi': 'Alış Yönetimi',
+  'Finans Yönetimi': 'Finans Yönetimi',
+  'Satış Kanalları': 'Satış Kanalları',
   'Depo / Terminal': 'Depo / Terminal',
   Raporlar: 'Raporlar',
-  'TanÄ±mlar': 'Tanımlar',
+  Tanımlar: 'Tanımlar',
   Ayarlar: 'Ayarlar',
-  'GÃ¼venlik': 'Güvenlik',
+  Güvenlik: 'Güvenlik',
 };
 
 const itemDisplayLabels = {
@@ -57,6 +57,7 @@ const itemDisplayLabels = {
   'product-card': 'Ürün Kartı',
   'price-list': 'Fiyat Listesi',
   'stock-movements': 'Stok Hareketleri',
+  'stock-valuation': 'Stok Değerleme',
   'customer-list': 'Müşteri Cari Listesi',
   'customer-card': 'Müşteri Cari Kartı',
   'customer-movements': 'Müşteri Cari Hareketleri',
@@ -73,6 +74,8 @@ const itemDisplayLabels = {
   'purchase-invoice-list': 'Alış Fişleri',
   'finance-overview': 'Finans Özeti',
   'collections-overview': 'Tahsilatlar',
+  'cash-bank-ledger': 'Kasa/Banka Defteri',
+  'accounting-journal': 'Muhasebe Defteri',
   'catalog-list': 'Katalog Listesi',
   'whatsapp-planner': 'WhatsApp Paylaşım',
   'terminal-overview': 'Terminal Ekranları',
@@ -108,6 +111,7 @@ const itemIcons = {
   'product-card': FileText,
   'price-list': Tags,
   'stock-movements': FileSpreadsheet,
+  'stock-valuation': BarChart3,
   'customer-list': Users,
   'customer-card': FileText,
   'customer-movements': FileSpreadsheet,
@@ -122,6 +126,8 @@ const itemIcons = {
   'purchase-invoice-list': ClipboardList,
   'finance-overview': WalletCards,
   'collections-overview': WalletCards,
+  'cash-bank-ledger': WalletCards,
+  'accounting-journal': FileSpreadsheet,
   'catalog-list': Tags,
   'terminal-overview': Terminal,
   'import-foundation': Database,
@@ -238,7 +244,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
       <section className="side-group compact connection-details">
         <h3>Durum</h3>
         <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo mode' : 'aktif'}</p>
-        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'baglanti yok' : 'MELISA_ERP_V2'}</p>
+        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'bağlantı yok' : 'MELISA_ERP_V2'}</p>
         <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
       </section>
     </aside>

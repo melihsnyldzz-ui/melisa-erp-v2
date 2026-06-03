@@ -11,16 +11,37 @@ function formatMoney(amount, currency) {
 export function PurchaseInvoiceItemsTable({
   isReadonly = false,
   items,
+  invoiceRate = 0,
+  supplierRate = 0,
+  exchangeRate = 1,
+  invoiceCurrency = 'TRY',
   selectedItemId,
   onDeleteItem,
   onSelectItem,
   onUpdateItem,
 }) {
+  const afterLineDiscounts = items.reduce((sum, item) => {
+    const gross = Number(item.quantity || 0) * Number(item.purchasePrice || 0);
+    return sum + (gross - gross * (Number(item.lineDiscountRate || 0) / 100));
+  }, 0);
+  const invoiceDiscountTotal = afterLineDiscounts * (Number(invoiceRate || 0) / 100);
+  const afterInvoiceDiscount = afterLineDiscounts - invoiceDiscountTotal;
+  const supplierDiscountTotal = afterInvoiceDiscount * (Number(supplierRate || 0) / 100);
+  const rate = Number(exchangeRate || 1);
+
+  function netLineCostTry(lineTotal) {
+    const share = afterLineDiscounts > 0 ? lineTotal / afterLineDiscounts : 0;
+    const invoiceShare = invoiceDiscountTotal * share;
+    const afterInvoiceShare = lineTotal - invoiceShare;
+    const supplierShare = supplierDiscountTotal * (afterInvoiceDiscount > 0 ? afterInvoiceShare / afterInvoiceDiscount : share);
+    return (afterInvoiceShare - supplierShare) * rate;
+  }
+
   return (
     <section className="erp-panel purchase-items-panel">
       <div className="panel-title">
         <strong>Urun Satirlari</strong>
-        <span>Satir bazli iskonto / stok giris etkisi</span>
+        <span>Satir bazli iskonto / {invoiceCurrency} belge maliyeti / stok giris etkisi</span>
       </div>
       <div className="table-wrap purchase-items-wrap">
         <table className="purchase-items-table">
@@ -34,6 +55,8 @@ export function PurchaseInvoiceItemsTable({
               <th>Alis fiyati</th>
               <th>Satir iskonto %</th>
               <th>Satir toplami</th>
+              <th>Net maliyet TRY</th>
+              <th>Birim maliyet TRY</th>
               <th>Stok etkisi</th>
               <th>Not</th>
               {!isReadonly && <th>Islem</th>}
@@ -43,6 +66,8 @@ export function PurchaseInvoiceItemsTable({
             {items.map((item) => {
               const gross = item.quantity * item.purchasePrice;
               const lineTotal = gross - gross * (item.lineDiscountRate / 100);
+              const lineCostTry = netLineCostTry(lineTotal);
+              const unitCostTry = Number(item.quantity || 0) > 0 ? lineCostTry / Number(item.quantity || 0) : 0;
 
               return (
                 <tr
@@ -87,6 +112,8 @@ export function PurchaseInvoiceItemsTable({
                     )}
                   </td>
                   <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
+                  <td className="money-cell purchase-cost-try">{formatMoney(lineCostTry, 'TRY')}</td>
+                  <td className="money-cell purchase-cost-try">{formatMoney(unitCostTry, 'TRY')}</td>
                   <td className="purchase-stock-in">{item.stockEffect}</td>
                   <td>{item.note}</td>
                   {!isReadonly && (

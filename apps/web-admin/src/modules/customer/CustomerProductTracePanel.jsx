@@ -25,34 +25,36 @@ export function CustomerProductTracePanel({ rows = [], onOpenInvoice, onOpenProd
     quantity: total.quantity + Number(row.quantity || 0),
     amountTry: total.amountTry + Number(row.lineTotalTry || 0),
     profitTry: total.profitTry + Number(row.grossProfitTry || 0),
-  }), { quantity: 0, amountTry: 0, profitTry: 0 });
+    cancelled: total.cancelled + (row.invoiceStatus === 'cancelled' ? 1 : 0),
+  }), { quantity: 0, amountTry: 0, profitTry: 0, cancelled: 0 });
 
   return (
     <section className="linked-trace-panel customer-product-trace-panel">
       <div className="panel-title">
-        <strong>Satilan Urunler / Stok Cikislari</strong>
-        <span>Musteriden urune, fisten karta tek tik izleme</span>
+        <strong>Satılan Ürünler / Stok Çıkışları</strong>
+        <span>Müşteriden ürüne, fişten karta tek tık izleme</span>
       </div>
       <div className="trace-summary-strip">
-        <span><b>{rows.length}</b> satir</span>
-        <span className="out-cell"><b>{summary.quantity}</b> adet cikis</span>
-        <span><b>{formatMoney(summary.amountTry, 'TRY')}</b> satis TRY</span>
-        <span><b>{formatMoney(summary.profitTry, 'TRY')}</b> net kar TRY</span>
+        <span><b>{rows.length}</b> satır</span>
+        <span className="out-cell"><b>{summary.quantity}</b> adet çıkış</span>
+        <span><b>{formatMoney(summary.amountTry, 'TRY')}</b> satış TRY</span>
+        <span><b>{formatMoney(summary.profitTry, 'TRY')}</b> brüt kar TRY</span>
+        {summary.cancelled > 0 && <span className="cancelled-ledger-badge"><b>{summary.cancelled}</b> iptal izi</span>}
       </div>
       {rows.length === 0 ? (
-        <div className="list-state">Bu musteriye ait kesinlesmis urun satis izi yok.</div>
+        <div className="list-state">Bu müşteriye ait kesinleşmiş ürün satış izi yok.</div>
       ) : (
         <div className="table-wrap linked-trace-wrap">
           <table>
             <thead>
               <tr>
                 <th>Tarih</th>
-                <th>Fis</th>
+                <th>Fiş</th>
                 <th>Stok kodu</th>
-                <th>Urun</th>
+                <th>Ürün</th>
                 <th>Adet</th>
                 <th>Birim fiyat</th>
-                <th>Satis TRY</th>
+                <th>Satış TRY</th>
                 <th>Kar TRY</th>
                 <th>Kar %</th>
                 <th>Git</th>
@@ -75,7 +77,7 @@ export function CustomerProductTracePanel({ rows = [], onOpenInvoice, onOpenProd
                   <td className="money-cell">{row.grossProfitTry === null ? '-' : formatMoney(row.grossProfitTry, 'TRY')}</td>
                   <td>{formatPercent(row.grossProfitRate)}</td>
                   <td>
-                    <button type="button" className="mini-button" onClick={() => onOpenProduct?.(row)}>Urun</button>
+                    <button type="button" className="mini-button" onClick={() => onOpenProduct?.(row)}>Ürün</button>
                   </td>
                 </tr>
               ))}

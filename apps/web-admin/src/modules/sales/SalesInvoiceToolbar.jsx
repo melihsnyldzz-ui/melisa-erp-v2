@@ -18,7 +18,7 @@ export function SalesInvoiceToolbar({
 }) {
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
-  const saveLabel = isFinalized ? 'Duzeltmeyi Kaydet' : 'Taslak Kaydet';
+  const saveLabel = isFinalized ? 'Kesin Fis' : 'Taslak Kaydet';
 
   return (
     <section className="sales-invoice-toolbar">
@@ -28,7 +28,7 @@ export function SalesInvoiceToolbar({
       </div>
       <div className="sales-toolbar-actions">
         <button type="button" onClick={onNewDraft}>Yeni Fis</button>
-        <button type="button" onClick={onSaveDraft} disabled={isSaving || isCancelled || isFinalizing || isCancelling || !canSaveDraft} title={canSaveDraft ? saveLabel : 'sales.create/sales.edit yetkisi gerekli'}>
+        <button type="button" onClick={onSaveDraft} disabled={isSaving || isReadonly || isCancelled || isFinalizing || isCancelling || !canSaveDraft} title={canSaveDraft ? saveLabel : 'sales.create/sales.edit yetkisi gerekli'}>
           {isSaving ? 'Kaydediliyor' : saveLabel}
         </button>
         <button type="button" className="primary" onClick={onFinalize} disabled={isReadonly || isFinalized || isFinalizing || isCancelling || !onFinalize || !canFinalize} title={canFinalize ? 'Kesinlestir' : 'sales.finalize yetkisi gerekli'}>

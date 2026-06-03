@@ -2,6 +2,7 @@ import {
   getDashboardAlertsData,
   getDashboardSummaryData,
   getManagementReportingData,
+  getPeriodicAccountingData,
 } from '../services/dashboardService.js';
 import { fail, ok } from '../utils/response.js';
 
@@ -41,5 +42,18 @@ export async function getManagementReporting(req, res) {
     });
   } catch (error) {
     return fail(res, error.statusCode || 503, error.code || 'MANAGEMENT_REPORTING_FAILED', 'Management reporting query failed');
+  }
+}
+
+export async function getPeriodicAccounting(req, res) {
+  try {
+    const data = await getPeriodicAccountingData(req.query);
+    return ok(res, data, {
+      source: 'sql-select-periodic-accounting',
+      refreshPolicySeconds: 60,
+      readOnly: true,
+    });
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'PERIODIC_ACCOUNTING_FAILED', 'Periodic accounting query failed');
   }
 }

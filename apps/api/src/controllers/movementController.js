@@ -4,6 +4,8 @@ import {
   getSupplierMovementsList,
   getSupplierStatement,
   getStockMovementsList,
+  getStockValuationReport,
+  applyStockCountAdjustment,
 } from '../services/movementService.js';
 import { fail, ok } from '../utils/response.js';
 
@@ -22,6 +24,27 @@ export async function getStockMovements(req, res) {
     return ok(res, data, meta);
   } catch (error) {
     return movementError(res, error, 'STOCK_MOVEMENTS_FAILED');
+  }
+}
+
+export async function getStockValuation(req, res) {
+  try {
+    const { data, meta } = await getStockValuationReport(req.query);
+    return ok(res, data, meta);
+  } catch (error) {
+    return movementError(res, error, 'STOCK_VALUATION_FAILED');
+  }
+}
+
+export async function postStockCountAdjustment(req, res) {
+  try {
+    const data = await applyStockCountAdjustment(req.body, req.user);
+    return ok(res, data, {
+      source: 'sql-stock-count-adjustment',
+      write: true,
+    });
+  } catch (error) {
+    return movementError(res, error, 'STOCK_COUNT_ADJUSTMENT_FAILED');
   }
 }
 

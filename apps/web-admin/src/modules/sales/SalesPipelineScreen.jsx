@@ -55,6 +55,14 @@ function formatMoney(value, currency = 'TRY') {
   }).format(Number(value || 0));
 }
 
+function productDisplayName(product = {}) {
+  return product.productName || product.name || product.product_name || '';
+}
+
+function productBarcode(product = {}) {
+  return product.matchedBarcode || product.barcodeMasked || product.barcode || product.primaryBarcode || '';
+}
+
 function normalizeDetail(detail) {
   return {
     id: detail.id,
@@ -186,8 +194,8 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     const line = {
       productId: product.id,
       stockCode: product.stockCode || product.stock_code || '',
-      barcode: product.barcode || product.primaryBarcode || '',
-      productName: product.name,
+      barcode: productBarcode(product),
+      productName: productDisplayName(product),
       quantity: qty,
       currency: form.documentCurrency || product.currency || product.currencyCode || 'TRY',
       unitPrice,
@@ -305,7 +313,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
         const salesDraft = response.data?.salesDraft;
         setMessage(response.data?.duplicate ? 'Bu siparis icin satis fisi zaten olusturulmus.' : 'Siparis satis fisine donusturuldu.');
         if (salesDraft?.id) {
-          onOpenScreen?.('sales-invoice', { salesDraftId: salesDraft.id, invoiceNo: salesDraft.invoiceNo });
+          onOpenScreen?.('sales-invoice', { salesDraftId: salesDraft.id, invoiceNo: salesDraft.invoiceNo || salesDraft.documentNo });
         }
       }
     } catch (error) {
@@ -465,7 +473,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
             <select value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)}>
               <option value="">Urun sec</option>
               {products.map((product) => (
-                <option key={product.id} value={product.id}>{product.stockCode || product.stock_code} / {product.name}</option>
+                <option key={product.id} value={product.id}>{product.stockCode || product.stock_code} / {productDisplayName(product)}</option>
               ))}
             </select>
           </label>

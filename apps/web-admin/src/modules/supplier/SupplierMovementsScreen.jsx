@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchSupplierMovements } from '../../services/movementApi.js';
-import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { exportRowsToCsv, printRowsReport } from '../../utils/exportUtils.js';
+import { openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -12,16 +13,52 @@ function formatMoney(value, currency = 'TRY') {
 
 function movementLabel(type) {
   const labels = {
-    purchase_invoice: 'Alis fisi',
-    purchase_invoice_cancel: 'Alis iptal',
-    payment: 'Odeme',
+    purchase_invoice: 'Alış fişi',
+    purchase_invoice_cancel: 'Alış iptal',
+    payment: 'Ödeme',
   };
 
   return labels[type] || type || '-';
 }
 
 function isCancelledMovement(row) {
-  return row.movementType === 'purchase_invoice_cancel' || row.invoiceStatus === 'cancelled';
+  return Boolean(row.isCancelled) || row.movementType === 'purchase_invoice_cancel' || row.invoiceStatus === 'cancelled';
+}
+
+function displayMovementLabel(row) {
+  if (isCancelledMovement(row)) {
+    return 'Alış iptal';
+  }
+
+  return movementLabel(row.movementType);
+}
+
+function movementActionLabel(row) {
+  if (row.targetScreen === 'collections-overview' || row.movementType === 'payment') {
+    return 'Ödemeye Git';
+  }
+
+  return 'Fişe Git';
+}
+
+function summarizeRows(rows) {
+  return rows.reduce((summary, row) => {
+    const currency = row.currency || 'TRY';
+    const effect = Number(row.balanceEffect || row.amount || 0);
+
+    if (!summary[currency]) {
+      summary[currency] = { debit: 0, credit: 0, balance: 0 };
+    }
+
+    if (effect < 0) {
+      summary[currency].debit += Math.abs(effect);
+    } else {
+      summary[currency].credit += effect;
+    }
+
+    summary[currency].balance += effect;
+    return summary;
+  }, {});
 }
 
 export function SupplierMovementsScreen({ onOpenScreen }) {
@@ -54,7 +91,7 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
         if (isMounted) {
           setRows([]);
           setMeta(null);
-          setErrorMessage(error.message || 'Tedarikci cari hareketleri okunamadi.');
+          setErrorMessage(error.message || 'Tedarikçi cari hareketleri okunamadı.');
         }
       } finally {
         if (isMounted) {
@@ -79,9 +116,7 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
   }
 
   function openMovement(row) {
-    if (row.purchaseInvoiceId) {
-      onOpenScreen?.('purchase-invoice', { purchaseDraftId: row.purchaseInvoiceId });
-    }
+    openLedgerTarget(row, onOpenScreen);
   }
 
   function exportMovementRows() {
@@ -90,44 +125,48 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
       rows,
       columns: [
         { label: 'Tarih', key: 'documentDate' },
-        { label: 'Tedarikci Kodu', key: 'supplierCode' },
-        { label: 'Tedarikci', key: 'supplierName' },
+        { label: 'Tedarikçi Kodu', key: 'supplierCode' },
+        { label: 'Tedarikçi', key: 'supplierName' },
         { label: 'Belge No', key: 'documentNo' },
-        { label: 'Islem', value: (row) => movementLabel(row.movementType) },
-        { label: 'Tutar', key: 'amount' },
-        { label: 'Bakiye Etkisi', key: 'balanceEffect' },
+        { label: 'İşlem', value: (row) => displayMovementLabel(row) },
+        { label: 'Borç', value: (row) => Number(row.balanceEffect || 0) < 0 ? Math.abs(Number(row.balanceEffect || 0)) : '' },
+        { label: 'Alacak', value: (row) => Number(row.balanceEffect || 0) >= 0 ? row.balanceEffect : '' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Durum', key: 'invoiceStatus' },
       ],
     });
   }
 
-  const totals = rows.reduce((summary, row) => {
-    const currency = row.currency || 'TRY';
-    const amount = Number(row.balanceEffect || row.amount || 0);
+  function printMovementRows() {
+    printRowsReport({
+      title: 'Melisa ERP - Tedarikçi Cari Hareketleri',
+      subtitle: `${regularRows.length} normal hareket / ${cancelledRows.length} iptal izi / ${filters.dateFrom || '-'} - ${filters.dateTo || '-'}`,
+      rows: regularRows,
+      columns: [
+        { label: 'Tarih', key: 'documentDate' },
+        { label: 'Tedarikçi Kodu', key: 'supplierCode' },
+        { label: 'Tedarikçi', key: 'supplierName' },
+        { label: 'Belge No', key: 'documentNo' },
+        { label: 'İşlem', value: (row) => displayMovementLabel(row) },
+        { label: 'Borç', value: (row) => Number(row.balanceEffect || 0) < 0 ? formatMoney(Math.abs(Number(row.balanceEffect || 0)), row.currency) : '' },
+        { label: 'Alacak', value: (row) => Number(row.balanceEffect || 0) >= 0 ? formatMoney(row.balanceEffect, row.currency) : '' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Durum', key: 'invoiceStatus' },
+      ],
+    });
+  }
 
-    if (!summary[currency]) {
-      summary[currency] = { debit: 0, credit: 0, balance: 0 };
-    }
-
-    if (amount >= 0) {
-      summary[currency].debit += amount;
-    } else {
-      summary[currency].credit += Math.abs(amount);
-    }
-
-    summary[currency].balance += amount;
-    return summary;
-  }, {});
   const cancelledRows = rows.filter(isCancelledMovement);
   const regularRows = rows.filter((row) => !isCancelledMovement(row));
+  const totals = summarizeRows(regularRows);
+  const cancelledTotals = summarizeRows(cancelledRows);
 
   return (
     <main className="work-area">
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Tedarikci Cari Hareketler</strong>
-          <span>Alis, odeme ve iptal hareketleri / Satir: {meta?.total ?? rows.length}</span>
+          <strong>Tedarikçi Cari Hareketleri</strong>
+          <span>Alış, ödeme ve iptal hareketleri / Satır: {meta?.total ?? rows.length}</span>
         </div>
         <div className="filter-grid">
           <label>
@@ -135,36 +174,36 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
             <input
               value={filters.search}
               onChange={(event) => updateFilter('search', event.target.value)}
-              placeholder="Tedarikci kodu, unvan, belge no"
+              placeholder="Tedarikçi kodu, unvan, belge no"
             />
           </label>
           <label>
-            Baslangic
+            Başlangıç
             <input type="date" value={filters.dateFrom} onChange={(event) => updateFilter('dateFrom', event.target.value)} />
           </label>
           <label>
-            Bitis
+            Bitiş
             <input type="date" value={filters.dateTo} onChange={(event) => updateFilter('dateTo', event.target.value)} />
           </label>
           <button type="button" className="ghost-button" onClick={resetFilters}>Temizle</button>
           <button type="button" onClick={exportMovementRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikci Cari Hareketler')}>Yazdir</button>
+          <button type="button" onClick={printMovementRows}>Yazdır / PDF</button>
         </div>
       </section>
 
       <section className="summary-strip">
         {Object.entries(totals).map(([currency, values]) => (
           <article className="summary-card" key={currency}>
-            <span>{currency}</span>
+            <span>{currency} tedarikçi bakiyesi</span>
             <strong>{formatMoney(values.balance, currency)}</strong>
-            <small>Borc: {formatMoney(values.debit, currency)} / Alacak: {formatMoney(values.credit, currency)}</small>
+            <small>Borç: {formatMoney(values.debit, currency)} / Alacak: {formatMoney(values.credit, currency)}</small>
           </article>
         ))}
         {Object.keys(totals).length === 0 && (
           <article className="summary-card">
-            <span>Tedarikci ekstresi</span>
+            <span>Tedarikçi bakiyesi</span>
             <strong>0</strong>
-            <small>Filtreye uygun hareket yok</small>
+            <small>Filtreye uygun normal hareket yok</small>
           </article>
         )}
       </section>
@@ -172,33 +211,71 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
       {cancelledRows.length > 0 && (
         <section className="erp-panel cancelled-ledger-panel">
           <div className="panel-title">
-            <strong>Iptal Edilen Alis Fisleri</strong>
-            <span>{cancelledRows.length} iptal hareketi / normal tedarikci hareketlerinden ayrildi</span>
+            <strong>İptal Edilen Alış Fişleri</strong>
+            <span>{cancelledRows.length} iptal hareketi / normal bakiyeden ayrı izlenir</span>
+          </div>
+          <div className="cancelled-ledger-summary">
+            {Object.entries(cancelledTotals).map(([currency, values]) => (
+              <div key={currency}>
+                <span>{currency} iptal iz toplamı</span>
+                <strong>{formatMoney(values.balance, currency)}</strong>
+                <small>İptal hareketleri silinmez; denetim izi olarak ayrı görünür.</small>
+              </div>
+            ))}
+          </div>
+          <div className="table-shell compact-table-shell">
+            <table className="erp-table cancelled-ledger-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Tedarikçi</th>
+                  <th>Belge No</th>
+                  <th>İşlem</th>
+                  <th>Tutar</th>
+                  <th>PB</th>
+                  <th>Git</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cancelledRows.map((row) => (
+                  <tr className="clickable-row" key={`supplier-cancelled-${row.id}`} onClick={() => openMovement(row)}>
+                    <td>{row.documentDate || '-'}</td>
+                    <td>{row.supplierName || row.supplierCode || '-'}</td>
+                    <td>{row.documentNo || '-'}</td>
+                    <td><span className="cancelled-ledger-badge">{displayMovementLabel(row)}</span></td>
+                    <td>{formatMoney(Math.abs(Number(row.balanceEffect || row.amount || 0)), row.currency)}</td>
+                    <td><span className="status-pill danger">{row.currency || 'TRY'}</span></td>
+                    <td><button type="button" className="mini-button danger" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{movementActionLabel(row)}</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Tedarikci Hareket Satirlari</strong>
-          <span>Normal hareketler / iptal edilen alislar ustte ayrilir</span>
+          <strong>Tedarikçi Hareket Satırları</strong>
+          <span>Alış/stok girişi yeşil, ödeme çıkışı kırmızı olarak okunur</span>
         </div>
-        {isLoading && <div className="list-state">Tedarikci cari hareketleri yukleniyor...</div>}
+        {isLoading && <div className="list-state">Tedarikçi cari hareketleri yükleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
-        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Tedarikci cari hareketi bulunamadi.</div>}
+        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Tedarikçi cari hareketi bulunamadı.</div>}
+        {!isLoading && !errorMessage && rows.length > 0 && regularRows.length === 0 && <div className="list-state">Normal hareket yok; sadece iptal hareketi var.</div>}
         {!isLoading && !errorMessage && regularRows.length > 0 && (
           <div className="table-shell">
             <table className="erp-table">
               <thead>
                 <tr>
                   <th>Tarih</th>
-                  <th>Tedarikci Kodu</th>
-                  <th>Tedarikci</th>
+                  <th>Tedarikçi Kodu</th>
+                  <th>Tedarikçi</th>
                   <th>Belge No</th>
-                  <th>Islem</th>
-                  <th>Borc</th>
+                  <th>İşlem</th>
+                  <th>Borç</th>
                   <th>Alacak</th>
-                  <th>Para Birimi</th>
+                  <th>PB</th>
                   <th>Durum</th>
                   <th>Git</th>
                 </tr>
@@ -207,21 +284,17 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
                 {regularRows.map((row) => {
                   const effect = Number(row.balanceEffect || row.amount || 0);
                   return (
-                    <tr key={row.id}>
+                    <tr className="clickable-row" key={row.id} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
                       <td>{row.supplierCode || '-'}</td>
                       <td>{row.supplierName || '-'}</td>
                       <td>{row.documentNo || '-'}</td>
-                      <td>{movementLabel(row.movementType)}</td>
-                      <td>{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
-                      <td>{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>
+                      <td>{displayMovementLabel(row)}</td>
+                      <td className="ledger-out">{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
+                      <td className="ledger-in">{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>
                       <td><span className="status-pill">{row.currency || 'TRY'}</span></td>
-                      <td>{row.invoiceStatus || '-'}</td>
-                      <td>
-                        {row.purchaseInvoiceId ? (
-                          <button type="button" className="mini-button" onClick={() => openMovement(row)}>Fise Git</button>
-                        ) : '-'}
-                      </td>
+                      <td>{String(row.invoiceStatus || '-').toUpperCase()}</td>
+                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{movementActionLabel(row)}</button></td>
                     </tr>
                   );
                 })}

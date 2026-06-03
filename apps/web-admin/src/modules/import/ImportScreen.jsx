@@ -2,20 +2,33 @@ import React, { useMemo, useState } from 'react';
 import {
   commitCustomersImport,
   commitProductsImport,
+  commitSuppliersImport,
   previewCustomersImport,
   previewProductsImport,
+  previewSuppliersImport,
 } from '../../services/importApi.js';
 
 const tabs = [
   {
     id: 'products',
-    label: 'Urun Aktarimi',
+    label: 'Ürün Aktarımı',
+    shortLabel: 'Ürünler',
     description: 'Zorunlu: stockCode, barcode, productName, currency, salePrice, purchasePrice. currency: TRY / USD / EUR.',
+    audit: 'import_products',
   },
   {
     id: 'customers',
-    label: 'Cari Aktarimi',
-    description: 'Zorunlu: customerCode, customerName, phone, currency, customerType. currency: TRY / USD / EUR.',
+    label: 'Müşteri Cari Aktarımı',
+    shortLabel: 'Müşteri Carileri',
+    description: 'Zorunlu: customerCode, customerName, phone, currency, customerType. customerType: customer / wholesale / retail / mixed.',
+    audit: 'import_customers',
+  },
+  {
+    id: 'suppliers',
+    label: 'Tedarikçi Cari Aktarımı',
+    shortLabel: 'Tedarikçi Carileri',
+    description: 'Zorunlu: supplierCode, supplierName, currency. purchaseDiscountRate alış fişinde önerilecek iskonto oranıdır.',
+    audit: 'import_suppliers',
   },
 ];
 
@@ -23,20 +36,32 @@ const csvTemplates = {
   products: {
     fileName: 'melisa-urun-import-sablon.csv',
     excelFileName: 'melisa-urun-import-sablon.xls',
+    sheetName: 'Urun Import',
     rows: [
       ['stockCode', 'barcode', 'productName', 'brand', 'category', 'currency', 'salePrice', 'purchasePrice', 'stockQuantity'],
       ['STK-ORNEK-001', '8690000000012', 'Pamuk Bebek Battaniye', 'Melisa Bebe', 'Battaniye', 'TRY', '350', '210', '25'],
-      ['STK-ORNEK-002', '8690000000029', 'Organik Zibin Seti', 'Melisa Bebe', 'Zibin', 'USD', '18.50', '10.25', '40'],
-      ['STK-ORNEK-003', '8690000000036', 'Kiz Bebek Elbise', 'Melisa Bebe', 'Elbise', 'EUR', '22.90', '14.40', '12'],
+      ['STK-ORNEK-002', '8690000000029', 'Organik Zıbın Seti', 'Melisa Bebe', 'Zıbın', 'USD', '18.50', '10.25', '40'],
+      ['STK-ORNEK-003', '8690000000036', 'Kız Bebek Elbise', 'Melisa Bebe', 'Elbise', 'EUR', '22.90', '14.40', '12'],
     ],
   },
   customers: {
-    fileName: 'melisa-cari-import-sablon.csv',
-    excelFileName: 'melisa-cari-import-sablon.xls',
+    fileName: 'melisa-musteri-cari-import-sablon.csv',
+    excelFileName: 'melisa-musteri-cari-import-sablon.xls',
+    sheetName: 'Musteri Cari Import',
     rows: [
       ['customerCode', 'customerName', 'phone', 'city', 'country', 'currency', 'customerType', 'balance'],
-      ['C-ORNEK-001', 'Semih Bebe', '05320000000', 'Istanbul', 'TR', 'TRY', 'customer', '0'],
-      ['C-ORNEK-002', 'Melisa Export', '05330000000', 'Bursa', 'TR', 'USD', 'wholesale', '1250'],
+      ['MC-ORNEK-001', 'Semih Bebe', '05320000000', 'İstanbul', 'TR', 'TRY', 'customer', '0'],
+      ['MC-ORNEK-002', 'Melisa Export', '05330000000', 'Bursa', 'TR', 'USD', 'wholesale', '1250'],
+    ],
+  },
+  suppliers: {
+    fileName: 'melisa-tedarikci-cari-import-sablon.csv',
+    excelFileName: 'melisa-tedarikci-cari-import-sablon.xls',
+    sheetName: 'Tedarikci Cari Import',
+    rows: [
+      ['supplierCode', 'supplierName', 'phone', 'city', 'country', 'currency', 'purchaseDiscountRate', 'balance'],
+      ['TC-ORNEK-001', 'Kardelen Bebe Üretim', '02120000000', 'İstanbul', 'TR', 'TRY', '0', '0'],
+      ['TC-ORNEK-002', 'Estella Concept', '02160000000', 'Bursa', 'TR', 'USD', '15', '0'],
     ],
   },
 };
@@ -50,14 +75,7 @@ function downloadCsvTemplate(entity) {
   const template = csvTemplates[entity];
   const csv = template.rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
   const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = template.fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, template.fileName);
 }
 
 function escapeXmlCell(value) {
@@ -82,82 +100,134 @@ function downloadExcelTemplate(entity) {
   xmlns:o="urn:schemas-microsoft-com:office:office"
   xmlns:x="urn:schemas-microsoft-com:office:excel"
   xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Worksheet ss:Name="${entity === 'products' ? 'Urun Import' : 'Cari Import'}">
+  <Worksheet ss:Name="${template.sheetName}">
     <Table>${rows}</Table>
   </Worksheet>
 </Workbook>`;
   const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  downloadBlob(blob, template.excelFileName);
+}
+
+function downloadBlob(blob, fileName) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = template.excelFileName;
+  link.download = fileName;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 }
 
+function downloadPreviewErrors(preview, activeEntity) {
+  const rows = (preview?.rows || []).filter((row) => row.status !== 'valid');
+  const columns = getImportColumns(activeEntity);
+  const csvRows = [
+    columns.map((column) => column.label),
+    ...rows.map((row) => columns.map((column) => column.value(row))),
+  ];
+  const csv = csvRows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
+  const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, `melisa-${activeEntity}-hata-raporu.csv`);
+}
+
 function formatStatus(status) {
-  if (status === 'valid') return 'Gecerli';
+  if (status === 'valid') return 'Geçerli';
   if (status === 'duplicate') return 'Duplicate';
-  return 'Hatali';
+  return 'Hatalı';
+}
+
+function getRowCode(row, activeEntity) {
+  if (activeEntity === 'products') return row.data?.stockCode;
+  if (activeEntity === 'suppliers') return row.data?.supplierCode;
+  return row.data?.customerCode;
+}
+
+function getRowName(row, activeEntity) {
+  if (activeEntity === 'products') return row.data?.productName;
+  if (activeEntity === 'suppliers') return row.data?.supplierName;
+  return row.data?.customerName;
+}
+
+function getContactLabel(activeEntity) {
+  if (activeEntity === 'products') return 'Barkod';
+  return 'Telefon';
+}
+
+function getContactValue(row, activeEntity) {
+  if (activeEntity === 'products') return row.data?.barcode;
+  return row.data?.phone;
+}
+
+function getAmountLabel(activeEntity) {
+  if (activeEntity === 'products') return 'Stok';
+  if (activeEntity === 'suppliers') return 'Bakiye / İskonto';
+  return 'Bakiye';
+}
+
+function getAmountValue(row, activeEntity) {
+  if (activeEntity === 'products') return row.data?.stockQuantity ?? '-';
+  if (activeEntity === 'suppliers') {
+    return `${row.data?.balance ?? 0} / %${row.data?.purchaseDiscountRate ?? 0}`;
+  }
+  return row.data?.balance ?? '-';
 }
 
 function getImportColumns(activeEntity) {
   return [
-    { key: 'rowNumber', label: 'Satir', width: 70, value: (row) => row.rowNumber },
+    { key: 'rowNumber', label: 'Satır', width: 70, value: (row) => row.rowNumber },
     { key: 'status', label: 'Durum', width: 110, value: (row) => formatStatus(row.status) },
     {
       key: 'code',
       label: 'Kod',
       width: 180,
-      value: (row) => (activeEntity === 'products' ? row.data?.stockCode : row.data?.customerCode) || '-',
+      value: (row) => getRowCode(row, activeEntity) || '-',
     },
     {
       key: 'name',
-      label: 'Ad / Unvan',
-      width: 240,
-      value: (row) => (activeEntity === 'products' ? row.data?.productName : row.data?.customerName) || '-',
+      label: activeEntity === 'products' ? 'Ürün Adı' : 'Ad / Ünvan',
+      width: 260,
+      value: (row) => getRowName(row, activeEntity) || '-',
     },
     {
       key: 'contact',
-      label: activeEntity === 'products' ? 'Barkod' : 'Telefon',
+      label: getContactLabel(activeEntity),
       width: 180,
-      value: (row) => (activeEntity === 'products' ? row.data?.barcode : row.data?.phone) || '-',
+      value: (row) => getContactValue(row, activeEntity) || '-',
     },
     {
       key: 'currency',
-      label: activeEntity === 'products' ? 'Urun Para Birimi' : 'Cari Para Birimi',
-      width: 150,
+      label: activeEntity === 'products' ? 'Ürün Para Birimi' : 'Cari Para Birimi',
+      width: 160,
       value: (row) => row.data?.currency || '-',
     },
     {
       key: 'amount',
-      label: activeEntity === 'products' ? 'Stok' : 'Bakiye',
-      width: 120,
+      label: getAmountLabel(activeEntity),
+      width: 140,
       align: 'right',
-      value: (row) => (activeEntity === 'products' ? row.data?.stockQuantity : row.data?.balance) ?? '-',
+      value: (row) => getAmountValue(row, activeEntity),
     },
     {
       key: 'messages',
-      label: 'Hata / Uyari',
-      width: 320,
+      label: 'Hata / Uyarı',
+      width: 360,
       value: (row) => [...(row.errors || []), ...(row.warnings || [])].join(' | ') || '-',
     },
   ];
 }
 
-function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWidths }) {
+function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWidths, onOpenDuplicateProduct }) {
   const rows = preview?.rows || [];
-  const visibleRows = rows.slice(0, 80);
+  const visibleRows = rows.slice(0, 120);
   const columns = getImportColumns(activeEntity).filter((column) => visibleColumns[column.key] !== false);
 
   if (!preview) {
-    return <div className="list-state">Dosya secilip preview alindiginda validasyon satirlari burada gorunur.</div>;
+    return <div className="list-state">Dosya seçilip preview alındığında validasyon satırları burada görünür.</div>;
   }
 
   if (rows.length === 0) {
-    return <div className="list-state list-state-passive">Dosyada aktarilacak satir bulunamadi.</div>;
+    return <div className="list-state list-state-passive">Dosyada aktarılacak satır bulunamadı.</div>;
   }
 
   return (
@@ -173,28 +243,36 @@ function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWi
           </tr>
         </thead>
         <tbody>
-          {visibleRows.map((row) => {
-            return (
-              <tr className={`import-row-${row.status}`} key={`${row.rowNumber}-${row.data?.stockCode || row.data?.customerCode || row.status}`}>
-                {columns.map((column) => (
-                  <td
-                    className={[
-                      column.key === 'code' ? 'code-cell' : '',
-                      column.align === 'right' ? 'money-cell' : '',
-                    ].filter(Boolean).join(' ')}
-                    key={column.key}
-                    style={{ width: columnWidths[column.key] || column.width }}
-                  >
-                    {column.value(row)}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          {visibleRows.map((row) => (
+            <tr className={`import-row-${row.status}`} key={`${row.rowNumber}-${getRowCode(row, activeEntity) || row.status}`}>
+              {columns.map((column) => (
+                <td
+                  className={[
+                    column.key === 'code' ? 'code-cell' : '',
+                    column.align === 'right' ? 'money-cell' : '',
+                  ].filter(Boolean).join(' ')}
+                  key={column.key}
+                  style={{ width: columnWidths[column.key] || column.width }}
+                  title={String(column.value(row) ?? '')}
+                >
+                  {column.value(row)}
+                  {column.key === 'messages' && activeEntity === 'products' && row.duplicateProduct ? (
+                    <button
+                      className="mini-button import-duplicate-link"
+                      onClick={() => onOpenDuplicateProduct?.(row.duplicateProduct)}
+                      type="button"
+                    >
+                      Stok kartini ac: {row.duplicateProduct.stockCode}
+                    </button>
+                  ) : null}
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
       {rows.length > visibleRows.length ? (
-        <div className="list-state list-state-passive">Ilk 80 satir gosteriliyor. Toplam satir: {rows.length}</div>
+        <div className="list-state list-state-passive">İlk 120 satır gösteriliyor. Toplam satır: {rows.length}</div>
       ) : null}
     </div>
   );
@@ -209,7 +287,19 @@ function SummaryBox({ label, value, tone }) {
   );
 }
 
-export function ImportScreen() {
+async function previewImport(entity, file) {
+  if (entity === 'products') return previewProductsImport(file);
+  if (entity === 'suppliers') return previewSuppliersImport(file);
+  return previewCustomersImport(file);
+}
+
+async function commitImport(entity, file, options) {
+  if (entity === 'products') return commitProductsImport(file, options);
+  if (entity === 'suppliers') return commitSuppliersImport(file, options);
+  return commitCustomersImport(file, options);
+}
+
+export function ImportScreen({ onOpenScreen }) {
   const [activeEntity, setActiveEntity] = useState('products');
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -231,22 +321,38 @@ export function ImportScreen() {
     rowNumber: 70,
     status: 110,
     code: 180,
-    name: 240,
+    name: 260,
     contact: 180,
-    currency: 150,
-    amount: 120,
-    messages: 320,
+    currency: 160,
+    amount: 140,
+    messages: 360,
   });
   const activeTab = useMemo(() => tabs.find((tab) => tab.id === activeEntity), [activeEntity]);
   const activeColumns = useMemo(() => getImportColumns(activeEntity), [activeEntity]);
+  const validTotal = Number(preview?.validRowCount || 0);
+  const invalidTotal = Number(preview?.invalidRowCount || 0) + Number(preview?.duplicateRowCount || 0);
+  const skippedCommitTotal = commitValidOnly ? invalidTotal : 0;
+  const commitPlanText = preview
+    ? commitValidOnly
+      ? `${validTotal} gecerli satir DB'ye yazilacak, ${skippedCommitTotal} hatali/duplicate satir atlanacak.`
+      : invalidTotal > 0
+        ? `${invalidTotal} hatali/duplicate satir var; tam commit kapali.`
+        : `${validTotal} satirin tamami DB'ye yazilabilir.`
+    : 'Preview alindiginda commit plani burada gorunur.';
   const canCommit = preview
-    && preview.validRowCount > 0
-    && (commitValidOnly || (preview.invalidRowCount === 0 && preview.duplicateRowCount === 0));
+    && validTotal > 0
+    && (commitValidOnly || invalidTotal === 0);
 
   function resetResult() {
     setPreview(null);
     setMessage('');
     setErrorMessage('');
+  }
+
+  function switchEntity(entity) {
+    setActiveEntity(entity);
+    setSelectedFile(null);
+    resetResult();
   }
 
   async function handlePreview() {
@@ -255,13 +361,11 @@ export function ImportScreen() {
     setErrorMessage('');
 
     try {
-      const response = activeEntity === 'products'
-        ? await previewProductsImport(selectedFile)
-        : await previewCustomersImport(selectedFile);
+      const response = await previewImport(activeEntity, selectedFile);
       setPreview(response.data);
-      setMessage('Preview tamamlandi. DB yazimi yapilmadi.');
+      setMessage('Preview tamamlandı. DB yazımı yapılmadı.');
     } catch (error) {
-      setErrorMessage(`${error.message || 'Preview basarisiz.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Preview başarısız.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -273,61 +377,61 @@ export function ImportScreen() {
     setErrorMessage('');
 
     try {
-      const response = activeEntity === 'products'
-        ? await commitProductsImport(selectedFile, { validOnly: commitValidOnly })
-        : await commitCustomersImport(selectedFile, { validOnly: commitValidOnly });
+      const response = await commitImport(activeEntity, selectedFile, { validOnly: commitValidOnly });
       setPreview(response.data.preview);
       const skipped = Number(response.data.skippedInvalidCount || 0) + Number(response.data.skippedDuplicateCount || 0);
-      setMessage(
-        response.message
-        || `${response.data.insertedCount} kayit aktarildi. ${skipped ? `${skipped} hatali/duplicate satir atlandi.` : 'Audit log yazildi.'}`,
-      );
+      setMessage(`${response.data.insertedCount} kayıt aktarıldı. ${skipped ? `${skipped} hatalı/duplicate satır atlandı.` : 'Audit log yazıldı.'}`);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Commit basarisiz.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Commit başarısız.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function openDuplicateProduct(duplicateProduct) {
+    const productId = duplicateProduct?.productId || duplicateProduct?.id;
+    if (!productId || !onOpenScreen) {
+      return;
+    }
+
+    onOpenScreen('product-card', {
+      productId,
+      stockCode: duplicateProduct.stockCode,
+    });
   }
 
   return (
     <main className="work-area import-screen">
       <section className="import-toolbar">
         <div className="import-title-block">
-          <strong>Excel / CSV Aktarim Merkezi</strong>
-          <span>Preview, validasyon, duplicate kontrol ve audit destekli aktarim</span>
+          <strong>Excel / CSV Aktarım Merkezi</strong>
+          <span>Preview, validasyon, duplicate kontrol ve audit destekli aktarım</span>
         </div>
         <div className="import-actions">
-          <button
-            className={activeEntity === 'products' ? 'pressed' : ''}
-            onClick={() => {
-              setActiveEntity('products');
-              resetResult();
-            }}
-            type="button"
-          >
-            Urunler
-          </button>
-          <button
-            className={activeEntity === 'customers' ? 'pressed' : ''}
-            onClick={() => {
-              setActiveEntity('customers');
-              resetResult();
-            }}
-            type="button"
-          >
-            Cariler
-          </button>
+          {tabs.map((tab) => (
+            <button
+              className={activeEntity === tab.id ? 'pressed' : ''}
+              key={tab.id}
+              onClick={() => switchEntity(tab.id)}
+              type="button"
+            >
+              {tab.shortLabel}
+            </button>
+          ))}
           <button disabled={isLoading || !selectedFile} onClick={handlePreview} type="button">
             Preview
           </button>
           <button className="primary" disabled={isLoading || !canCommit} onClick={handleCommit} type="button">
-            {commitValidOnly ? 'Gecerli Satirlari Ekle' : 'Commit'}
+            {commitValidOnly ? 'Geçerli Satırları Ekle' : 'Tamamını Commit Et'}
           </button>
           <button onClick={() => downloadCsvTemplate(activeEntity)} type="button">
-            Ornek CSV Sablon Indir
+            Örnek CSV İndir
           </button>
           <button onClick={() => downloadExcelTemplate(activeEntity)} type="button">
-            Ornek Excel Sablon Indir
+            Örnek Excel İndir
+          </button>
+          <button disabled={!invalidTotal} onClick={() => downloadPreviewErrors(preview, activeEntity)} type="button">
+            Hata Raporu CSV
           </button>
         </div>
       </section>
@@ -339,7 +443,7 @@ export function ImportScreen() {
             onChange={(event) => setCommitValidOnly(event.target.checked)}
             type="checkbox"
           />
-          <span>Sadece hatasiz/gecerli satirlari ekle</span>
+          <span>Sadece hatasız/geçerli satırları ekle</span>
         </label>
         <div className="import-column-controls">
           {activeColumns.map((column) => (
@@ -354,7 +458,7 @@ export function ImportScreen() {
               />
               <span>{column.label}</span>
               <input
-                aria-label={`${column.label} genislik`}
+                aria-label={`${column.label} genişlik`}
                 min="60"
                 onChange={(event) => setColumnWidths((current) => ({
                   ...current,
@@ -374,6 +478,7 @@ export function ImportScreen() {
           <span>Dosya</span>
           <input
             accept=".csv,.xls,.xlsx"
+            key={activeEntity}
             onChange={(event) => {
               setSelectedFile(event.target.files?.[0] || null);
               resetResult();
@@ -385,33 +490,40 @@ export function ImportScreen() {
           <strong>{activeTab.label}</strong>
           <span>{activeTab.description}</span>
           {activeEntity === 'products' ? (
-            <span>
-              Urun para birimi fiyatlarin para birimidir. Stok miktari toplu giris icin baslangic adedi olarak okunur.
-            </span>
+            <span>Ürün para birimi fiyatların para birimidir. Stok miktarı toplu giriş için başlangıç adedi olarak okunur.</span>
+          ) : null}
+          {activeEntity === 'suppliers' ? (
+            <span>Tedarikçi alış iskontosu kart üzerinde saklanır ve alış fişinde öneri olarak kullanılabilir.</span>
           ) : null}
         </div>
       </section>
 
       <section className="import-summary-grid">
-        <SummaryBox label="Toplam satir" value={preview?.totalRows ?? '-'} />
-        <SummaryBox label="Gecerli" value={preview?.validRowCount ?? '-'} tone="good" />
-        <SummaryBox label="Hatali" value={preview?.invalidRowCount ?? '-'} tone="danger" />
+        <SummaryBox label="Toplam satır" value={preview?.totalRows ?? '-'} />
+        <SummaryBox label="Geçerli" value={preview?.validRowCount ?? '-'} tone="good" />
+        <SummaryBox label="Hatalı" value={preview?.invalidRowCount ?? '-'} tone="danger" />
         <SummaryBox label="Duplicate" value={preview?.duplicateRowCount ?? '-'} tone="warn" />
-        <SummaryBox label="Uyari" value={preview?.warnings?.length ?? '-'} tone="info" />
+        <div className={`import-commit-plan-inline ${canCommit ? 'commit-ready' : 'commit-waiting'}`}>
+          <span>Commit plani</span>
+          <strong>{commitPlanText}</strong>
+          <small>{selectedFile?.name || 'Dosya secilmedi'}</small>
+        </div>
+        <SummaryBox label="Uyarı" value={preview?.warnings?.length ?? '-'} tone="info" />
       </section>
 
-      {isLoading && <div className="list-state">Aktarim islemi calisiyor...</div>}
+      {isLoading && <div className="list-state">Aktarım işlemi çalışıyor...</div>}
       {message && <div className="list-state list-state-success">{message}</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="erp-panel import-validation-panel">
         <div className="panel-title">
           <strong>Validasyon Grid</strong>
-          <span>Validation basarisizsa commit DB'ye yazmaz</span>
+          <span>{commitValidOnly ? 'Hatalı/duplicate satırlar atlanır, sadece geçerli satırlar yazılır.' : 'Hata varsa commit DB’ye yazmaz.'}</span>
         </div>
         <ImportValidationTable
           activeEntity={activeEntity}
           columnWidths={columnWidths}
+          onOpenDuplicateProduct={openDuplicateProduct}
           preview={preview}
           visibleColumns={visibleColumns}
         />
@@ -419,9 +531,9 @@ export function ImportScreen() {
 
       <section className="screen-summary import-summary">
         <span>Hedef DB: MELISA_ERP_V2</span>
-        <span>Vega import yok</span>
-        <span>Commit sadece temiz preview ile acilir</span>
-        <span>Audit: import_products / import_customers</span>
+        <span>Ürün / müşteri / tedarikçi ayrı import</span>
+        <span>Geçerli satır seçeneği aktif</span>
+        <span>Audit: {activeTab.audit}</span>
       </section>
     </main>
   );

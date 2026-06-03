@@ -31,7 +31,9 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) 
               onDoubleClick={() => onOpenRow(row.id)}
             >
               <td className="code-cell">{row.stockCode}</td>
-              <td>{row.barcode}</td>
+              <td title={row.primaryBarcode !== row.barcode ? `Ana barkod: ${row.primaryBarcode}` : row.barcode}>
+                {row.barcode}
+              </td>
               <td>{row.name}</td>
               <td>{row.brand}</td>
               <td>{row.category}</td>

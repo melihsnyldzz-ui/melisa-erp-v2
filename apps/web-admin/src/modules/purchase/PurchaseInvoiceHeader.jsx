@@ -7,6 +7,7 @@ export function PurchaseInvoiceHeader({
   status,
   supplierRate = 0,
   onChange,
+  onCurrencyChange,
   onInvoiceRateChange,
   onSupplierRateChange,
 }) {
@@ -47,7 +48,11 @@ export function PurchaseInvoiceHeader({
         </label>
         <label>
           <span>Fis para birimi</span>
-          <input value={invoice.invoiceCurrency} readOnly />
+          <select value={invoice.invoiceCurrency || 'TRY'} disabled={isReadonly} onChange={(event) => onCurrencyChange?.(event.target.value)}>
+            <option value="TRY">TRY</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
         </label>
         <label>
           <span>Kur bilgisi</span>

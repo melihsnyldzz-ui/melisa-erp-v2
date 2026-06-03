@@ -90,3 +90,7 @@ export async function fetchManagementReporting() {
 
   return get('/api/dashboard/management-reporting');
 }
+
+export async function fetchPeriodicAccounting(params = {}) {
+  return get('/api/dashboard/periodic-accounting', params);
+}

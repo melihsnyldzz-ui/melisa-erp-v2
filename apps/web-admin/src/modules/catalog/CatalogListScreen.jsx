@@ -31,9 +31,22 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 }
 
 export function CatalogListScreen({ onOpenScreen }) {
-  const [filters, setFilters] = useState({ search: '', status: '' });
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    catalogId: '',
+    productSearch: '',
+    brand: '',
+    category: '',
+    currency: '',
+    stockMode: '',
+    imageMode: '',
+    minPrice: '',
+    maxPrice: '',
+  });
   const [overview, setOverview] = useState(null);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [selectedProductMap, setSelectedProductMap] = useState({});
   const [draftName, setDraftName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,18 +57,20 @@ export function CatalogListScreen({ onOpenScreen }) {
   const catalogs = overview?.catalogs || [];
   const items = overview?.items || [];
   const summary = overview?.summary || {};
+  const filterOptions = overview?.filterOptions || {};
 
-  const selectedProducts = useMemo(
-    () => candidates.filter((product) => selectedProductIds.includes(product.productId)),
-    [candidates, selectedProductIds],
-  );
+  const selectedProducts = useMemo(() => (
+    selectedProductIds
+      .map((productId) => selectedProductMap[productId])
+      .filter(Boolean)
+  ), [selectedProductIds, selectedProductMap]);
 
-  async function loadOverview() {
+  async function loadOverview(nextFilters = filters) {
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      const response = await fetchCatalogOverview(filters);
+      const response = await fetchCatalogOverview(nextFilters);
       setOverview(response.data);
     } catch (error) {
       setOverview(null);
@@ -73,12 +88,60 @@ export function CatalogListScreen({ onOpenScreen }) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
-  function toggleProduct(productId) {
+  function clearProductFilters() {
+    const nextFilters = {
+      ...filters,
+      productSearch: '',
+      brand: '',
+      category: '',
+      currency: '',
+      stockMode: '',
+      imageMode: '',
+      minPrice: '',
+      maxPrice: '',
+    };
+    setFilters(nextFilters);
+    loadOverview(nextFilters);
+  }
+
+  function selectCatalog(catalogId) {
+    const nextFilters = { ...filters, catalogId: String(catalogId || '') };
+    setFilters(nextFilters);
+    loadOverview(nextFilters);
+  }
+
+  function toggleProduct(product) {
+    const productId = product.productId;
     setSelectedProductIds((current) => (
       current.includes(productId)
         ? current.filter((id) => id !== productId)
         : [...current, productId]
     ));
+    setSelectedProductMap((current) => {
+      if (current[productId]) {
+        const next = { ...current };
+        delete next[productId];
+        return next;
+      }
+      return { ...current, [productId]: product };
+    });
+  }
+
+  function selectVisibleProducts() {
+    const visibleIds = candidates.map((product) => product.productId);
+    setSelectedProductIds((current) => [...new Set([...current, ...visibleIds])]);
+    setSelectedProductMap((current) => {
+      const next = { ...current };
+      candidates.forEach((product) => {
+        next[product.productId] = product;
+      });
+      return next;
+    });
+  }
+
+  function clearSelectedProducts() {
+    setSelectedProductIds([]);
+    setSelectedProductMap({});
   }
 
   async function handleCreateDraft() {
@@ -93,8 +156,14 @@ export function CatalogListScreen({ onOpenScreen }) {
       });
       setSuccessMessage(`${response.data.catalogNo} katalog taslagi olusturuldu.`);
       setSelectedProductIds([]);
+      setSelectedProductMap({});
       setDraftName('');
-      await loadOverview();
+      const nextFilters = {
+        ...filters,
+        catalogId: String(response.data.catalogId || ''),
+      };
+      setFilters(nextFilters);
+      await loadOverview(nextFilters);
     } catch (error) {
       setErrorMessage(`${error.message || 'Katalog taslagi olusturulamadi.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -144,7 +213,7 @@ export function CatalogListScreen({ onOpenScreen }) {
         <Kpi label="Urun satiri" value={summary.catalogItemCount || 0} detail="Katalog urun toplamı" tone="info" />
         <Kpi label="Gorselli" value={summary.imageReadyCount || 0} detail="Ana gorsel eslesmis" tone="good" />
         <Kpi label="Stokta" value={summary.stockReadyCount || 0} detail="Pozitif stoklu satir" tone="warn" />
-        <Kpi label="Secilen" value={selectedProducts.length} detail="Yeni taslak icin" tone="info" />
+        <Kpi label="Secilen" value={selectedProductIds.length} detail="Yeni taslak icin" tone="info" />
       </section>
 
       <section className="erp-panel">
@@ -152,7 +221,7 @@ export function CatalogListScreen({ onOpenScreen }) {
           <strong>Katalog Filtreleri</strong>
           <span>Katalog no, ad, musteri ve durum</span>
         </div>
-        <div className="filter-grid">
+        <div className="filter-grid catalog-main-filter-grid">
           <label>
             Arama
             <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Katalog no / ad / musteri" />
@@ -170,11 +239,135 @@ export function CatalogListScreen({ onOpenScreen }) {
             Yeni katalog adi
             <input value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="Orn. Haziran Toptan Katalog" />
           </label>
-          <button type="button" onClick={loadOverview}>Ara</button>
+          <button type="button" onClick={() => loadOverview()}>Ara</button>
+        </div>
+        <div className="catalog-draft-actions">
+          <span>{selectedProductIds.length} urun secili</span>
           <button type="button" disabled={isSaving || selectedProductIds.length === 0} onClick={handleCreateDraft}>
             {isSaving ? 'Kaydediliyor' : 'Taslak Olustur'}
           </button>
         </div>
+      </section>
+
+      <section className="erp-panel">
+        <div className="panel-title">
+          <strong>Urun Secim Filtreleri</strong>
+          <span>Barkod, stok kodu, urun adi, marka, kategori, para birimi ve hazirlik durumu</span>
+        </div>
+        <div className="filter-grid catalog-product-filter-grid">
+          <label>
+            Urun / barkod
+            <input
+              value={filters.productSearch}
+              onChange={(event) => updateFilter('productSearch', event.target.value)}
+              placeholder="Barkod / stok kodu / urun adi / marka"
+            />
+          </label>
+          <label>
+            Marka
+            <select value={filters.brand} onChange={(event) => updateFilter('brand', event.target.value)}>
+              <option value="">Tum markalar</option>
+              {(filterOptions.brands || []).map((brand) => (
+                <option key={brand} value={brand}>{brand}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Kategori
+            <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)}>
+              <option value="">Tum kategoriler</option>
+              {(filterOptions.categories || []).map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Para birimi
+            <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
+              <option value="">Tum PB</option>
+              {(filterOptions.currencies || ['TRY', 'USD', 'EUR']).map((currency) => (
+                <option key={currency} value={currency}>{currency}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Stok
+            <select value={filters.stockMode} onChange={(event) => updateFilter('stockMode', event.target.value)}>
+              <option value="">Tum stoklar</option>
+              <option value="inStock">Stokta olan</option>
+              <option value="zero">Sifir stok</option>
+              <option value="negative">Eksi stok</option>
+            </select>
+          </label>
+          <label>
+            Gorsel
+            <select value={filters.imageMode} onChange={(event) => updateFilter('imageMode', event.target.value)}>
+              <option value="">Tum gorseller</option>
+              <option value="withImage">Gorseli olan</option>
+              <option value="withoutImage">Gorseli eksik</option>
+            </select>
+          </label>
+          <label>
+            Min fiyat
+            <input type="number" min="0" value={filters.minPrice} onChange={(event) => updateFilter('minPrice', event.target.value)} />
+          </label>
+          <label>
+            Max fiyat
+            <input type="number" min="0" value={filters.maxPrice} onChange={(event) => updateFilter('maxPrice', event.target.value)} />
+          </label>
+          <button type="button" onClick={() => loadOverview()}>Urun Ara</button>
+          <button type="button" onClick={clearProductFilters}>Filtre Temizle</button>
+          <button type="button" onClick={selectVisibleProducts} disabled={candidates.length === 0}>Gorunenleri Sec</button>
+          <button type="button" onClick={clearSelectedProducts} disabled={selectedProductIds.length === 0}>Secimi Temizle</button>
+        </div>
+      </section>
+
+      <section className="erp-panel">
+        <div className="panel-title">
+          <strong>Taslak Sepeti</strong>
+          <span>{selectedProductIds.length} urun secili / filtre degisse de secim korunur</span>
+        </div>
+        {selectedProducts.length === 0 && <div className="list-state">Taslak icin henuz urun secilmedi.</div>}
+        {selectedProducts.length > 0 && (
+          <div className="table-shell compact-table-shell">
+            <table className="erp-table">
+              <thead>
+                <tr>
+                  <th>Stok Kodu</th>
+                  <th>Barkod</th>
+                  <th>Urun</th>
+                  <th>Marka</th>
+                  <th>Stok</th>
+                  <th>Fiyat</th>
+                  <th>Islem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedProducts.map((product) => (
+                  <tr key={`selected-${product.productId}`}>
+                    <td>{product.stockCode}</td>
+                    <td>{product.barcode || '-'}</td>
+                    <td>{product.productName}</td>
+                    <td>{product.brand || '-'}</td>
+                    <td>{product.stockQuantity}</td>
+                    <td>{formatMoney(product.salePrice, product.currency)}</td>
+                    <td>
+                      <button className="mini-button danger" type="button" onClick={() => toggleProduct(product)}>Cikar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {selectedProducts.length > 0 && (
+          <div className="catalog-draft-actions">
+            <span>{selectedProducts.length} urun katalog taslagi icin hazir.</span>
+            <button type="button" disabled={isSaving} onClick={handleCreateDraft}>
+              {isSaving ? 'Kaydediliyor' : 'Secilenlerle Taslak Olustur'}
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="split-grid">
@@ -200,7 +393,11 @@ export function CatalogListScreen({ onOpenScreen }) {
                 </thead>
                 <tbody>
                   {catalogs.map((catalog) => (
-                    <tr key={catalog.id}>
+                    <tr
+                      className={Number(overview?.selectedCatalogId) === Number(catalog.id) ? 'selected-row' : 'clickable-row'}
+                      key={catalog.id}
+                      onClick={() => selectCatalog(catalog.id)}
+                    >
                       <td>{catalog.catalogNo}</td>
                       <td>{catalog.name}</td>
                       <td>{catalog.customerName || 'Genel'}</td>
@@ -219,15 +416,19 @@ export function CatalogListScreen({ onOpenScreen }) {
         <section className="erp-panel">
           <div className="panel-title">
             <strong>Urun Secimi</strong>
-            <span>Stokta / gorselli urunler one gelir</span>
+            <span>{candidates.length} aday / {selectedProductIds.length} secili</span>
           </div>
+          {!isLoading && candidates.length === 0 && <div className="list-state">Filtreye uygun urun bulunamadi.</div>}
           <div className="table-shell">
             <table className="erp-table">
               <thead>
                 <tr>
                   <th>Sec</th>
                   <th>Stok Kodu</th>
+                  <th>Barkod</th>
                   <th>Urun</th>
+                  <th>Marka</th>
+                  <th>Kategori</th>
                   <th>Stok</th>
                   <th>Fiyat</th>
                   <th>Hazirlik</th>
@@ -240,11 +441,14 @@ export function CatalogListScreen({ onOpenScreen }) {
                       <input
                         type="checkbox"
                         checked={selectedProductIds.includes(product.productId)}
-                        onChange={() => toggleProduct(product.productId)}
+                        onChange={() => toggleProduct(product)}
                       />
                     </td>
                     <td>{product.stockCode}</td>
+                    <td>{product.barcode || '-'}</td>
                     <td>{product.productName}</td>
+                    <td>{product.brand || '-'}</td>
+                    <td>{product.category || '-'}</td>
                     <td>{product.stockQuantity}</td>
                     <td>{formatMoney(product.salePrice, product.currency)}</td>
                     <td>

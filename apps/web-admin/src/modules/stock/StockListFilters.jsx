@@ -2,16 +2,10 @@ import React from 'react';
 import { SuggestedTextInput } from '../../components/forms/SuggestedTextInput.jsx';
 
 const stockQuickStates = [
-  { value: 'all', label: 'Tum stok' },
+  { value: 'all', label: 'Tüm stok' },
   { value: 'in-stock', label: 'Stokta var' },
   { value: 'out-of-stock', label: 'Stok yok' },
   { value: 'negative', label: 'Eksi stok' },
-];
-
-const stockStatusOptions = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'passive', label: 'Pasif' },
-  { value: 'all', label: 'Tumu' },
 ];
 
 const stockCurrencies = ['TRY', 'USD', 'EUR'];
@@ -21,7 +15,7 @@ function uniqueOptions(values = []) {
 }
 
 const filterLabels = {
-  quickSearch: 'Hizli arama',
+  quickSearch: 'Hızlı arama',
   stockCode: 'Stok kodu',
   barcode: 'Barkod',
   name: 'Ürün',
@@ -46,7 +40,7 @@ const filterValueLabels = {
     negative: 'Eksi stok',
   },
   currency: {
-    all: 'Tumu',
+    all: 'Tümü',
     TRY: 'TRY',
     USD: 'USD',
     EUR: 'EUR',
@@ -56,22 +50,10 @@ const filterValueLabels = {
 function getActiveFilters(filters) {
   return Object.entries(filters)
     .filter(([key, value]) => {
-      if (!value) {
-        return false;
-      }
-
-      if (key === 'status') {
-        return value !== 'all';
-      }
-
-      if (key === 'stockState') {
-        return value !== 'all';
-      }
-
-      if (key === 'currency') {
-        return value !== 'all';
-      }
-
+      if (!value) return false;
+      if (key === 'status') return value !== 'all';
+      if (key === 'stockState') return value !== 'all';
+      if (key === 'currency') return value !== 'all';
       return true;
     })
     .map(([key, value]) => ({
@@ -94,9 +76,9 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
     <section className="stock-search-panel stock-filter-panel-modern" aria-label="Stok listesi filtreleri">
       <div className="stock-search-primary">
         <label className="stock-quick-search">
-          <span>Hizli arama</span>
+          <span>Hızlı arama</span>
           <input
-            placeholder="Stok kodu, barkod, urun adi, marka veya kategori yaz"
+            placeholder="Stok kodu, barkod, ürün adı, marka veya kategori yaz"
             value={filters.quickSearch}
             onChange={(event) => updateFilter('quickSearch', event.target.value)}
           />
@@ -128,6 +110,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <button type="button" onClick={onReset}>Temizle</button>
         </div>
       </div>
+
       <div className="stock-quick-picks">
         <strong>Marka</strong>
         {brandQuickOptions.slice(0, 8).map((brand) => (
@@ -152,6 +135,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           </button>
         ))}
       </div>
+
       <div className="stock-filter-fields">
         <label>
           <span>Stok kodu</span>
@@ -162,7 +146,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <input value={filters.barcode} onChange={(event) => updateFilter('barcode', event.target.value)} />
         </label>
         <label>
-          <span>Urun adi</span>
+          <span>Ürün adı</span>
           <input value={filters.name} onChange={(event) => updateFilter('name', event.target.value)} />
         </label>
         <label>
@@ -188,7 +172,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           />
         </label>
         <label>
-          <span>Tedarikci</span>
+          <span>Tedarikçi</span>
           <SuggestedTextInput
             ariaLabel="Tedarikçi ara"
             name="stock-filter-supplier"
@@ -203,13 +187,13 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
             <option value="active">Aktif</option>
             <option value="passive">Pasif</option>
-            <option value="all">Tumu</option>
+            <option value="all">Tümü</option>
           </select>
         </label>
         <label>
           <span>Para birimi</span>
           <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
-            <option value="all">Tumu</option>
+            <option value="all">Tümü</option>
             {stockCurrencies.map((currency) => (
               <option key={currency} value={currency}>{currency}</option>
             ))}
@@ -218,7 +202,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
         <label>
           <span>Stok durumu</span>
           <select value={filters.stockState} onChange={(event) => updateFilter('stockState', event.target.value)}>
-            <option value="all">Tumu</option>
+            <option value="all">Tümü</option>
             <option value="in-stock">Stokta var</option>
             <option value="out-of-stock">Stokta yok</option>
             <option value="negative">Eksi stok</option>
@@ -226,6 +210,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
         </label>
         <button type="button" onClick={onReset}>Temizle</button>
       </div>
+
       <div className="active-filter-chips" aria-label="Aktif filtreler">
         {activeFilters.length === 0 ? (
           <span className="filter-chip muted">Filtre yok</span>

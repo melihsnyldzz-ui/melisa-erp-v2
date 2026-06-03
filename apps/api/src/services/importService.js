@@ -66,6 +66,33 @@ const customerFieldAliases = {
   bakiye: 'balance',
 };
 
+const supplierFieldAliases = {
+  suppliercode: 'supplierCode',
+  tedarikcikodu: 'supplierCode',
+  tedarikci_kodu: 'supplierCode',
+  carikodu: 'supplierCode',
+  cari_kodu: 'supplierCode',
+  suppliername: 'supplierName',
+  tedarikciadi: 'supplierName',
+  tedarikci_adi: 'supplierName',
+  unvan: 'supplierName',
+  phone: 'phone',
+  telefon: 'phone',
+  city: 'city',
+  sehir: 'city',
+  country: 'country',
+  ulke: 'country',
+  currency: 'currency',
+  parabirimi: 'currency',
+  para_birimi: 'currency',
+  purchasediscountrate: 'purchaseDiscountRate',
+  alisiskontosu: 'purchaseDiscountRate',
+  alis_iskontosu: 'purchaseDiscountRate',
+  iskonto: 'purchaseDiscountRate',
+  balance: 'balance',
+  bakiye: 'balance',
+};
+
 function makeImportError(code, message, statusCode = 400) {
   const error = new Error(message);
   error.code = code;
@@ -291,6 +318,45 @@ function buildCustomerRow(row, rowNumber) {
   };
 }
 
+function buildSupplierRow(row, rowNumber) {
+  const data = normalizeRecord(row, supplierFieldAliases);
+  const errors = [];
+  const requiredFields = ['supplierCode', 'supplierName', 'currency'];
+
+  requiredFields.forEach((field) => {
+    if (!trimText(data[field])) {
+      errors.push(`${field} required`);
+    }
+  });
+
+  data.currency = trimText(data.currency || 'TRY').toUpperCase();
+  if (data.currency && !ALLOWED_CURRENCIES.has(data.currency)) {
+    errors.push('currency invalid');
+  }
+
+  data.purchaseDiscountRate = parseNumber(data.purchaseDiscountRate, 'purchaseDiscountRate', errors);
+  if (data.purchaseDiscountRate < 0 || data.purchaseDiscountRate > 100) {
+    errors.push('purchaseDiscountRate must be between 0 and 100');
+  }
+  data.balance = parseNumber(data.balance, 'balance', errors, { allowNegative: true });
+
+  return {
+    rowNumber,
+    data: {
+      supplierCode: trimText(data.supplierCode),
+      supplierName: trimText(data.supplierName),
+      phone: trimText(data.phone),
+      city: trimText(data.city),
+      country: trimText(data.country),
+      currency: data.currency,
+      purchaseDiscountRate: data.purchaseDiscountRate,
+      balance: data.balance,
+    },
+    errors,
+    warnings: [],
+  };
+}
+
 function markFileDuplicates(rows, keyName, label) {
   const counts = new Map();
 
@@ -331,24 +397,59 @@ async function markDbProductDuplicates(rows) {
   });
 
   const result = await request.query(`
-    SELECT stock_code AS value, N'stockCode' AS field
-    FROM dbo.products
-    WHERE stock_code IN (${stockParams.join(', ')})
+    SELECT
+      p.stock_code AS value,
+      N'stockCode' AS field,
+      p.id AS product_id,
+      p.stock_code,
+      p.name AS product_name,
+      pb.barcode
+    FROM dbo.products p
+    OUTER APPLY (
+      SELECT TOP (1) barcode
+      FROM dbo.product_barcodes
+      WHERE product_id = p.id
+        AND is_active = 1
+      ORDER BY is_primary DESC, id ASC
+    ) pb
+    WHERE p.stock_code IN (${stockParams.join(', ')})
+      AND p.is_deleted = 0
     UNION ALL
-    SELECT barcode AS value, N'barcode' AS field
-    FROM dbo.product_barcodes
-    WHERE is_active = 1
-      AND barcode IN (${barcodeParams.join(', ')});
+    SELECT
+      b.barcode AS value,
+      N'barcode' AS field,
+      p.id AS product_id,
+      p.stock_code,
+      p.name AS product_name,
+      b.barcode
+    FROM dbo.product_barcodes b
+    INNER JOIN dbo.products p ON p.id = b.product_id
+    WHERE b.is_active = 1
+      AND p.is_deleted = 0
+      AND b.barcode IN (${barcodeParams.join(', ')});
   `);
 
-  const duplicates = new Set((result.recordset || []).map((row) => `${row.field}:${String(row.value).toUpperCase()}`));
+  const duplicates = new Map((result.recordset || []).map((row) => [
+    `${row.field}:${String(row.value).toUpperCase()}`,
+    {
+      productId: Number(row.product_id),
+      stockCode: row.stock_code,
+      productName: row.product_name,
+      barcode: row.barcode,
+    },
+  ]));
   candidates.forEach((row) => {
-    if (duplicates.has(`stockCode:${row.data.stockCode.toUpperCase()}`)) {
+    const stockDuplicate = duplicates.get(`stockCode:${row.data.stockCode.toUpperCase()}`);
+    const barcodeDuplicate = duplicates.get(`barcode:${row.data.barcode.toUpperCase()}`);
+
+    if (stockDuplicate) {
       row.errors.push('stockCode duplicate in database');
+      row.duplicateProduct = stockDuplicate;
     }
 
-    if (duplicates.has(`barcode:${row.data.barcode.toUpperCase()}`)) {
+    if (barcodeDuplicate) {
       row.errors.push('barcode duplicate in database');
+      row.duplicateProduct = row.duplicateProduct || barcodeDuplicate;
     }
   });
 }
@@ -380,6 +481,38 @@ async function markDbCustomerDuplicates(rows) {
   candidates.forEach((row) => {
     if (duplicates.has(row.data.customerCode.toUpperCase())) {
       row.errors.push('customerCode duplicate in database');
+    }
+  });
+}
+
+async function markDbSupplierDuplicates(rows) {
+  const candidates = rows.filter((row) => row.errors.length === 0);
+
+  if (!candidates.length) {
+    return;
+  }
+
+  const pool = await getSqlPool();
+  const request = pool.request();
+  const params = [];
+
+  candidates.forEach((row, index) => {
+    const param = `supplierCode${index}`;
+    params.push(`@${param}`);
+    request.input(param, sql.NVarChar(80), row.data.supplierCode);
+  });
+
+  const result = await request.query(`
+    SELECT supplier_code
+    FROM dbo.suppliers
+    WHERE supplier_code IN (${params.join(', ')})
+      AND is_deleted = 0;
+  `);
+
+  const duplicates = new Set((result.recordset || []).map((row) => String(row.supplier_code).toUpperCase()));
+  candidates.forEach((row) => {
+    if (duplicates.has(row.data.supplierCode.toUpperCase())) {
+      row.errors.push('supplierCode duplicate in database');
     }
   });
 }
@@ -427,6 +560,16 @@ export async function previewCustomerImport(filePayload) {
   await markDbCustomerDuplicates(rows);
 
   return summarizePreview('customers', fileName, rows);
+}
+
+export async function previewSupplierImport(filePayload) {
+  const { fileName, rows: rawRows } = parseRows(filePayload);
+  const rows = rawRows.map((row, index) => buildSupplierRow(row, index + 2));
+
+  markFileDuplicates(rows, 'supplierCode', 'supplierCode');
+  await markDbSupplierDuplicates(rows);
+
+  return summarizePreview('suppliers', fileName, rows);
 }
 
 function getCommitRows(preview, { validOnly = false } = {}) {
@@ -665,6 +808,95 @@ export async function commitCustomerImport(filePayload, actor = null) {
 
     return {
       entityType: 'customers',
+      insertedCount: insertedIds.length,
+      insertedIds,
+      skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
+      skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
+      preview,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export async function commitSupplierImport(filePayload, actor = null) {
+  assertMelisaWriteEnabled();
+
+  const preview = await previewSupplierImport(filePayload);
+  const validOnly = Boolean(filePayload?.validOnly);
+  assertPreviewClean(preview, { validOnly });
+  const commitRows = getCommitRows(preview, { validOnly });
+
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+
+  await transaction.begin();
+
+  try {
+    const insertedIds = [];
+
+    for (const row of commitRows) {
+      const supplier = row.data;
+      const insertResult = await new sqlDriver.Request(transaction)
+        .input('supplierCode', sql.NVarChar(80), supplier.supplierCode)
+        .input('supplierName', sql.NVarChar(250), supplier.supplierName)
+        .input('phone', sql.NVarChar(40), supplier.phone || null)
+        .input('city', sql.NVarChar(120), supplier.city || null)
+        .input('country', sql.NVarChar(120), supplier.country || null)
+        .input('currency', sql.NVarChar(3), supplier.currency)
+        .input('purchaseDiscountRate', sql.Decimal(9, 4), supplier.purchaseDiscountRate)
+        .input('balance', sql.Decimal(18, 4), supplier.balance)
+        .query(`
+          INSERT INTO dbo.suppliers (
+            supplier_code,
+            name,
+            phone,
+            city,
+            country,
+            currency_code,
+            purchase_discount_rate,
+            balance,
+            is_active,
+            is_deleted
+          )
+          OUTPUT INSERTED.id AS supplierId
+          VALUES (
+            @supplierCode,
+            @supplierName,
+            @phone,
+            @city,
+            @country,
+            @currency,
+            @purchaseDiscountRate,
+            @balance,
+            1,
+            0
+          );
+        `);
+
+      insertedIds.push(Number(insertResult.recordset?.[0]?.supplierId));
+    }
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'import_suppliers',
+      entityType: 'import',
+      entityId: null,
+      afterSnapshot: {
+        fileName: preview.fileName,
+        insertedCount: insertedIds.length,
+        insertedIds,
+        skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
+        skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
+      },
+      actor,
+    });
+
+    await transaction.commit();
+
+    return {
+      entityType: 'suppliers',
       insertedCount: insertedIds.length,
       insertedIds,
       skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,

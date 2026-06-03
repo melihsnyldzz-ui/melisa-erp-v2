@@ -242,8 +242,22 @@ async function assertProductDuplicates(request, product, currentProductId = null
         AND (@duplicateProductId = 0 OR id <> @duplicateProductId);
     `);
 
-  if (stockDuplicate.recordset?.[0]) {
-    throw makeServiceError('PRODUCT_STOCK_CODE_DUPLICATE', 'Product stockCode already exists', 409);
+  const duplicateStockProduct = stockDuplicate.recordset?.[0];
+  if (duplicateStockProduct) {
+    const snapshot = await getProductSnapshot(request, duplicateStockProduct.id);
+    throw makeServiceError('PRODUCT_STOCK_CODE_DUPLICATE', 'Product stockCode already exists', 409, {
+      duplicateProduct: snapshot ? {
+        productId: Number(snapshot.id),
+        stockCode: snapshot.stockCode,
+        productName: snapshot.productName,
+        barcode: snapshot.barcode,
+      } : {
+        productId: Number(duplicateStockProduct.id),
+        stockCode: product.stockCode,
+        productName: '',
+        barcode: '',
+      },
+    });
   }
 
   if (!product.barcode) {
@@ -470,7 +484,17 @@ export async function getProductsList(query) {
         fp.stock_quantity,
         fp.is_active,
         fp.created_at,
-        ROW_NUMBER() OVER (ORDER BY fp.id DESC) AS row_number,
+        ROW_NUMBER() OVER (
+          ORDER BY
+            CASE
+              WHEN @barcode IS NOT NULL AND fp.matched_barcode = @barcode THEN 0
+              WHEN @barcodeLike IS NOT NULL AND fp.matched_barcode IS NOT NULL THEN 1
+              WHEN @search IS NOT NULL AND fp.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI THEN 2
+              WHEN @search IS NOT NULL AND fp.matched_barcode IS NOT NULL THEN 3
+              ELSE 9
+            END,
+            fp.id DESC
+        ) AS row_number,
         COUNT_BIG(1) OVER () AS total_count
       FROM filtered_products fp
     )

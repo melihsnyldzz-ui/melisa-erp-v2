@@ -7,22 +7,34 @@ import { fetchProducts } from '../../services/productApi.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 
 function normalize(value) {
-  return String(value ?? '').toLowerCase();
+  return String(value ?? '').toLocaleLowerCase('tr-TR');
 }
 
 function matchesText(value, filter) {
   return !filter || normalize(value).includes(normalize(filter));
 }
 
-function matchesMaskedBarcode(value, filter) {
+function normalizeBarcode(value) {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
+function matchesBarcode(row, filter) {
   if (!filter) {
     return true;
   }
 
-  const barcode = normalize(value);
-  const query = normalize(filter);
+  const query = normalizeBarcode(filter);
+  const barcodeValues = [
+    row.barcode,
+    row.primaryBarcode,
+    row.matchedBarcode,
+  ];
 
-  return barcode.includes(query);
+  if (!query) {
+    return barcodeValues.some((value) => matchesText(value, filter));
+  }
+
+  return barcodeValues.some((value) => normalizeBarcode(value).includes(query));
 }
 
 function formatMoney(amount, currency) {
@@ -79,6 +91,8 @@ function applyStockFilters(row, filters) {
   const matchesQuickSearch = !filters.quickSearch || [
     row.stockCode,
     row.barcode,
+    row.primaryBarcode,
+    row.matchedBarcode,
     row.name,
     row.brand,
     row.category,
@@ -92,7 +106,7 @@ function applyStockFilters(row, filters) {
     matchesCurrency &&
     matchesQuickSearch &&
     matchesText(row.stockCode, filters.stockCode) &&
-    matchesMaskedBarcode(row.barcode, filters.barcode) &&
+    matchesBarcode(row, filters.barcode) &&
     matchesText(row.name, filters.name) &&
     matchesText(row.brand, filters.brand) &&
     matchesText(row.category, filters.category) &&
@@ -142,7 +156,7 @@ export function StockListScreen({ onOpenScreen }) {
           setRows([]);
           setMeta(null);
           setSelectedRowId(null);
-          setErrorMessage(error.message || 'Stok listesi API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Stok listesi API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -162,7 +176,7 @@ export function StockListScreen({ onOpenScreen }) {
     () => rows.filter((row) => applyStockFilters(row, filters)),
     [filters, rows],
   );
-  const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? filteredRows[0];
+  const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? null;
   const activeCount = rows.filter((row) => row.status === 'Aktif').length;
   const passiveCount = rows.length - activeCount;
   const negativeCount = rows.filter((row) => row.currentStock < 0).length;
@@ -197,6 +211,14 @@ export function StockListScreen({ onOpenScreen }) {
     onOpenScreen('product-card', { productId, stockCode: selectedRow?.stockCode });
   }
 
+  function openNewProduct() {
+    setSelectionWarning('');
+    onOpenScreen('product-card', {
+      mode: 'create',
+      tabLabel: 'Yeni Urun',
+    });
+  }
+
   function selectRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
@@ -221,14 +243,14 @@ export function StockListScreen({ onOpenScreen }) {
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
         { label: 'Barkod', key: 'barcode' },
-        { label: 'Urun Adi', key: 'name' },
+        { label: 'Ürün Adı', key: 'name' },
         { label: 'Marka', key: 'brand' },
         { label: 'Kategori', key: 'category' },
         { label: 'Para Birimi', key: 'currency' },
-        { label: 'Satis Fiyati', key: 'salesPrice' },
-        { label: 'Alis Fiyati', key: 'purchasePrice' },
+        { label: 'Satış Fiyatı', key: 'salesPrice' },
+        { label: 'Alış Fiyatı', key: 'purchasePrice' },
         { label: 'Stok', key: 'currentStock' },
-        { label: 'Tedarikci', key: 'supplier' },
+        { label: 'Tedarikçi', key: 'supplier' },
         { label: 'Durum', key: 'status' },
       ],
     });
@@ -237,7 +259,9 @@ export function StockListScreen({ onOpenScreen }) {
   return (
     <main className="work-area stock-list-screen">
       <StockListToolbar
+        hasSelection={Boolean(selectedRow)}
         showPassive={filters.status === 'all'}
+        onOpenNewProduct={openNewProduct}
         onOpenProductCard={openSelectedProduct}
         onTogglePassive={togglePassive}
         onExportCsv={exportStockRows}
@@ -256,14 +280,14 @@ export function StockListScreen({ onOpenScreen }) {
           <strong>Ürün Stok Tablosu</strong>
           <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Satır: {filteredRows.length}</span>
         </div>
-        {isLoading && <div className="list-state">API'den stok kayitlari yukleniyor...</div>}
+        {isLoading && <div className="list-state">API'den stok kayıtları yükleniyor...</div>}
         {!isLoading && errorMessage && (
           <div className="list-state list-state-error">
             {errorMessage} API bağlantısı kontrol edilmeli; canlı veri okunamadı.
           </div>
         )}
         {!isLoading && !errorMessage && filteredRows.length === 0 && (
-          <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
+          <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
         )}
         {!isLoading && !errorMessage && selectionWarning && (
           <div className="list-state list-state-error">{selectionWarning}</div>
@@ -282,7 +306,7 @@ export function StockListScreen({ onOpenScreen }) {
         <span>Aktif: {activeCount}</span>
         <span>Pasif: {passiveCount}</span>
         <span>Eksi stok: {negativeCount}</span>
-        <span>Liste kaydi: {filteredRows.length}</span>
+        <span>Liste kaydı: {filteredRows.length}</span>
         <span>Kaynak: API</span>
       </section>
     </main>

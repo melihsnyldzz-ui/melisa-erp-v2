@@ -129,6 +129,51 @@ function toCriticalWarning(row) {
   };
 }
 
+function normalizeReportDate(value, fallback) {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10))) {
+    return value.slice(0, 10);
+  }
+  return fallback;
+}
+
+function monthStartDate() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toCurrencyTotal(row) {
+  return {
+    currency: row.currency_code || row.document_currency || 'TRY',
+    count: numberValue(row.row_count),
+    amount: numberValue(row.amount),
+    amountTry: numberValue(row.amount_try),
+  };
+}
+
+function toBalanceTotal(row) {
+  return {
+    currency: row.currency_code || 'TRY',
+    partyCount: numberValue(row.party_count),
+    debit: numberValue(row.debit),
+    credit: numberValue(row.credit),
+    balance: numberValue(row.balance),
+  };
+}
+
+function toDailyCashRow(row) {
+  return {
+    date: row.document_date,
+    currency: row.currency_code || 'TRY',
+    collections: numberValue(row.collections),
+    payments: numberValue(row.payments),
+    net: numberValue(row.net_amount),
+  };
+}
+
 async function fetchSummaryRows(pool) {
   const [
     salesToday,
@@ -639,5 +684,168 @@ export async function getManagementReportingData() {
       purchaseDraftCount: numberValue(widgetRow.purchase_draft_count),
     },
     criticalWarnings: (criticalWarnings.recordset || []).map(toCriticalWarning),
+  };
+}
+
+export async function getPeriodicAccountingData(query = {}) {
+  const dateFrom = normalizeReportDate(query.dateFrom, monthStartDate());
+  const dateTo = normalizeReportDate(query.dateTo, todayDate());
+  const pool = await getSqlPool();
+
+  const [
+    salesByCurrency,
+    purchasesByCurrency,
+    financeByCurrency,
+    dailyCash,
+    customerBalances,
+    supplierBalances,
+    widgets,
+  ] = await Promise.all([
+    pool.request()
+      .input('periodSalesFrom', sql.Date, dateFrom)
+      .input('periodSalesTo', sql.Date, dateTo)
+      .query(`
+        SELECT
+          document_currency AS currency_code,
+          COUNT_BIG(1) AS row_count,
+          COALESCE(SUM(grand_total), 0) AS amount,
+          COALESCE(SUM(amount_try), 0) AS amount_try
+        FROM dbo.sales_invoices
+        WHERE status = N'finalized'
+          AND document_date >= @periodSalesFrom
+          AND document_date <= @periodSalesTo
+        GROUP BY document_currency
+        ORDER BY document_currency;
+      `),
+    pool.request()
+      .input('periodPurchaseFrom', sql.Date, dateFrom)
+      .input('periodPurchaseTo', sql.Date, dateTo)
+      .query(`
+        SELECT
+          document_currency AS currency_code,
+          COUNT_BIG(1) AS row_count,
+          COALESCE(SUM(grand_total), 0) AS amount,
+          COALESCE(SUM(amount_try), 0) AS amount_try
+        FROM dbo.purchase_invoices
+        WHERE status = N'finalized'
+          AND document_date >= @periodPurchaseFrom
+          AND document_date <= @periodPurchaseTo
+        GROUP BY document_currency
+        ORDER BY document_currency;
+      `),
+    pool.request()
+      .input('periodFinanceFrom', sql.Date, dateFrom)
+      .input('periodFinanceTo', sql.Date, dateTo)
+      .query(`
+        WITH finance_rows AS (
+          SELECT currency_code, amount, N'collection' AS movement_type
+          FROM dbo.customer_movements
+          WHERE movement_type = N'collection'
+            AND document_date >= @periodFinanceFrom
+            AND document_date <= @periodFinanceTo
+          UNION ALL
+          SELECT currency_code, amount, N'payment' AS movement_type
+          FROM dbo.supplier_movements
+          WHERE movement_type = N'payment'
+            AND document_date >= @periodFinanceFrom
+            AND document_date <= @periodFinanceTo
+        )
+        SELECT
+          currency_code,
+          COUNT_BIG(1) AS row_count,
+          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) AS amount,
+          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) AS amount_try
+        FROM finance_rows
+        GROUP BY currency_code
+        ORDER BY currency_code;
+      `),
+    pool.request()
+      .input('periodCashFrom', sql.Date, dateFrom)
+      .input('periodCashTo', sql.Date, dateTo)
+      .query(`
+        WITH cash_rows AS (
+          SELECT document_date, currency_code, amount AS collection_amount, CAST(0 AS DECIMAL(18,4)) AS payment_amount
+          FROM dbo.customer_movements
+          WHERE movement_type = N'collection'
+            AND document_date >= @periodCashFrom
+            AND document_date <= @periodCashTo
+          UNION ALL
+          SELECT document_date, currency_code, CAST(0 AS DECIMAL(18,4)), amount
+          FROM dbo.supplier_movements
+          WHERE movement_type = N'payment'
+            AND document_date >= @periodCashFrom
+            AND document_date <= @periodCashTo
+        )
+        SELECT TOP (40)
+          document_date,
+          currency_code,
+          COALESCE(SUM(collection_amount), 0) AS collections,
+          COALESCE(SUM(payment_amount), 0) AS payments,
+          COALESCE(SUM(collection_amount - payment_amount), 0) AS net_amount
+        FROM cash_rows
+        GROUP BY document_date, currency_code
+        ORDER BY document_date DESC, currency_code ASC;
+      `),
+    pool.request().query(`
+      SELECT
+        currency_code,
+        COUNT_BIG(1) AS party_count,
+        COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) AS debit,
+        COALESCE(SUM(CASE WHEN balance < 0 THEN ABS(balance) ELSE 0 END), 0) AS credit,
+        COALESCE(SUM(balance), 0) AS balance
+      FROM dbo.customers
+      WHERE is_deleted = 0
+      GROUP BY currency_code
+      ORDER BY currency_code;
+    `),
+    pool.request().query(`
+      SELECT
+        currency_code,
+        COUNT_BIG(1) AS party_count,
+        COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) AS debit,
+        COALESCE(SUM(CASE WHEN balance < 0 THEN ABS(balance) ELSE 0 END), 0) AS credit,
+        COALESCE(SUM(balance), 0) AS balance
+      FROM dbo.suppliers
+      WHERE is_deleted = 0
+      GROUP BY currency_code
+      ORDER BY currency_code;
+    `),
+    pool.request()
+      .input('periodWidgetFrom', sql.Date, dateFrom)
+      .input('periodWidgetTo', sql.Date, dateTo)
+      .query(`
+        SELECT
+          COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS sales_try,
+          COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS purchases_try,
+          COALESCE((SELECT SUM(amount) FROM dbo.customer_movements WHERE movement_type = N'collection' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS collections,
+          COALESCE((SELECT SUM(amount) FROM dbo.supplier_movements WHERE movement_type = N'payment' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS payments,
+          COALESCE((SELECT SUM(current_balance) FROM dbo.finance_accounts WHERE is_active = 1 AND currency_code = N'TRY'), 0) AS cash_bank_try,
+          COALESCE((SELECT SUM(balance) FROM dbo.customers WHERE is_deleted = 0), 0) AS customer_balance,
+          COALESCE((SELECT SUM(balance) FROM dbo.suppliers WHERE is_deleted = 0), 0) AS supplier_balance;
+      `),
+  ]);
+
+  const widgetRow = widgets.recordset?.[0] || {};
+
+  return {
+    generatedAt: new Date().toISOString(),
+    dateFrom,
+    dateTo,
+    widgets: {
+      salesTry: numberValue(widgetRow.sales_try),
+      purchasesTry: numberValue(widgetRow.purchases_try),
+      collections: numberValue(widgetRow.collections),
+      payments: numberValue(widgetRow.payments),
+      netCash: numberValue(widgetRow.collections) - numberValue(widgetRow.payments),
+      cashBankTry: numberValue(widgetRow.cash_bank_try),
+      customerBalance: numberValue(widgetRow.customer_balance),
+      supplierBalance: numberValue(widgetRow.supplier_balance),
+    },
+    salesByCurrency: (salesByCurrency.recordset || []).map(toCurrencyTotal),
+    purchasesByCurrency: (purchasesByCurrency.recordset || []).map(toCurrencyTotal),
+    financeByCurrency: (financeByCurrency.recordset || []).map(toCurrencyTotal),
+    dailyCash: (dailyCash.recordset || []).map(toDailyCashRow),
+    customerBalances: (customerBalances.recordset || []).map(toBalanceTotal),
+    supplierBalances: (supplierBalances.recordset || []).map(toBalanceTotal),
   };
 }

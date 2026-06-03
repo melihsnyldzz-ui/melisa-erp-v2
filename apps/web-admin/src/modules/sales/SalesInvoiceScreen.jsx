@@ -19,7 +19,7 @@ import { fetchCustomers } from '../../services/customerApi.js';
 import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { apiConfig } from '../../config/apiConfig.js';
-import { exportRowsToCsv, printBusinessDocument } from '../../utils/exportUtils.js';
+import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtils.js';
 
 const emptySalesInvoice = {
   ...salesInvoiceHeader,
@@ -298,7 +298,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
-  const isReadonly = isCancelled;
+  const isReadonly = isFinalized || isCancelled;
   const canSaveDraft = draftId ? permissions.includes('sales.edit') : permissions.includes('sales.create');
   const canFinalize = permissions.includes('sales.finalize');
   const canCancel = permissions.includes('sales.cancel');
@@ -495,7 +495,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     return {
       documentNo: invoice.invoiceNo,
       documentDate: invoice.date,
-      customerId: invoice.customerId || 1,
+      customerId: invoice.customerId,
       customerCurrency: invoice.customerCurrency,
       documentCurrency: invoice.invoiceCurrency,
       exchangeRate: invoice.exchangeRateValue || 1,
@@ -820,6 +820,11 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
+    if (isFinalized) {
+      setStatusMessage('Kesinlesmis satis fisi dogrudan degistirilemez; iptal edip yeni fis girin.');
+      return;
+    }
+
     if (!canSaveDraft) {
       setErrorMessage(draftId ? 'Bu islem icin sales.edit yetkisi gerekli.' : 'Bu islem icin sales.create yetkisi gerekli.');
       return;
@@ -864,9 +869,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(response.message || (nextInvoice.status === 'FINALIZED'
-        ? `Kesinlesmis fis duzeltmesi kaydedildi (#${response.data.id}).`
-        : `Taslak fis DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi olusmadi.`));
+      setStatusMessage(response.message || `Taslak fis DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi olusmadi.`);
     } catch (error) {
       setErrorMessage(`${error.message || 'Taslak kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Taslak kaydi basarisiz; API/DB kontrol edilmeli.');
@@ -900,7 +903,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     }
 
     if (!canFinalize) {
-      setErrorMessage('Bu islem icin sales.cancel yetkisi gerekli.');
+      setErrorMessage('Bu islem icin sales.finalize yetkisi gerekli.');
       return;
     }
 
@@ -945,7 +948,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     }
 
     if (!canCancel) {
-      setErrorMessage('Bu islem icin sales.finalize yetkisi gerekli.');
+      setErrorMessage('Bu islem icin sales.cancel yetkisi gerekli.');
       return;
     }
 
@@ -994,22 +997,28 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       extraInfo: [
         { label: 'Cari PB', value: invoice.customerCurrency },
         { label: 'Cari Bakiye', value: invoice.customerBalanceLabel },
+        { label: 'Satır Sayısı', value: totals.lineCount },
+        { label: 'Toplam Adet', value: totals.totalQuantity },
+        { label: 'Fiş İskonto', value: `%${discountRate}` },
       ],
     });
   }
 
   function exportSalesInvoiceRows() {
-    exportRowsToCsv({
+    exportRowsToExcel({
       filename: `satis-fisi-${invoice.invoiceNo}`,
+      title: `Satış Fişi ${invoice.invoiceNo}`,
       rows: items,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
         { label: 'Barkod', key: 'barcode' },
-        { label: 'Urun', key: 'productName' },
+        { label: 'Ürün', key: 'productName' },
         { label: 'Miktar', key: 'quantity' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Birim Fiyat', key: 'unitPrice' },
-        { label: 'Satir Toplami', value: (row) => Number(row.quantity || 0) * Number(row.unitPrice || 0) },
+        { label: 'Satır Toplamı', value: (row) => Number(row.quantity || 0) * Number(row.unitPrice || 0) },
+        { label: 'Maliyet TRY', key: 'totalCostTry' },
+        { label: 'Brüt Kar TRY', key: 'grossProfitTry' },
         { label: 'Not', key: 'note' },
       ],
     });
@@ -1040,7 +1049,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         {currencyRateError && <div className="list-state list-state-error">{currencyRateError}</div>}
         {isSaving && <div className="list-state">Taslak fis API'ye kaydediliyor...</div>}
         {isFinalized && (
-          <div className="list-state list-state-success">FINALIZED fis duzeltmeye acik; kaydet ile degisiklikler API/SQL'e yazilir.</div>
+          <div className="list-state list-state-success">FINALIZED fis kapali; stok ve cari izi olustu. Degisiklik icin iptal edip yeni fis girin.</div>
         )}
         {isCancelled && (
           <div className="list-state list-state-success">CANCELLED fis kapali; yeni islem icin yeni taslak kullanin.</div>

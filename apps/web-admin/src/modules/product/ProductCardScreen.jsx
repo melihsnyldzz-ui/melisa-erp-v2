@@ -299,18 +299,32 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   }
 
   function openDuplicateProduct() {
-    if (!duplicateProductSuggestion?.productId || !onOpenScreen) {
+    const duplicateProductId = Number(duplicateProductSuggestion?.productId || duplicateProductSuggestion?.id || 0);
+
+    if (!duplicateProductId) {
       return;
     }
 
-    onOpenScreen('product-card', {
-      productId: duplicateProductSuggestion.productId,
-      stockCode: duplicateProductSuggestion.stockCode,
-    });
+    setActiveProductId(duplicateProductId);
+    setErrorMessage('');
+    setDuplicateProductSuggestion(null);
+    setSuccessMessage(`Kullanilan stok karti aciliyor: ${duplicateProductSuggestion.stockCode || duplicateProductId}`);
+
+    if (onOpenScreen) {
+      onOpenScreen('product-card', {
+        productId: duplicateProductId,
+        stockCode: duplicateProductSuggestion.stockCode,
+      });
+    }
   }
 
   function openStockMovement(row) {
-    if (!onOpenScreen || !row?.sourceId) {
+    if (!onOpenScreen) {
+      return;
+    }
+
+    if (row.targetScreen && row.targetPayload) {
+      onOpenScreen(row.targetScreen, row.targetPayload);
       return;
     }
 
@@ -334,6 +348,32 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       productId: activeProductId,
       stockCode: form.stockCode,
     });
+  }
+
+  function openUsageParty(row) {
+    if (!onOpenScreen) {
+      return;
+    }
+
+    if (row.partyTargetScreen && row.partyTargetPayload) {
+      onOpenScreen(row.partyTargetScreen, row.partyTargetPayload);
+      return;
+    }
+
+    if (row.customerId) {
+      onOpenScreen('customer-card', {
+        customerId: row.customerId,
+        customerName: row.customerName,
+      });
+      return;
+    }
+
+    if (row.supplierId) {
+      onOpenScreen('supplier-card', {
+        supplierId: row.supplierId,
+        supplierName: row.supplierName,
+      });
+    }
   }
 
   async function saveProduct() {
@@ -518,7 +558,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
               <span>{errorMessage}</span>
               {duplicateProductSuggestion ? (
                 <button onClick={openDuplicateProduct} type="button">
-                  Kullanilan stok kartini ac: {duplicateProductSuggestion.stockCode} / {duplicateProductSuggestion.productName}
+                  Kullanılan stok kartını aç: {duplicateProductSuggestion.stockCode} / {duplicateProductSuggestion.productName}
                 </button>
               ) : null}
             </div>
@@ -526,7 +566,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
           {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
           {form.isPassive && (
             <div className="list-state list-state-passive">
-              PASIF kayit: yeni fislerde secilemez, gecmis rapor ve hareketlerde gorunmeye devam eder.
+              PASİF kayıt: yeni fişlerde seçilemez, geçmiş rapor ve hareketlerde görünmeye devam eder.
             </div>
           )}
           <section className="product-card-layout">
@@ -558,12 +598,13 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
               isLoading={isMovementsLoading}
               movements={stockMovements}
               onOpenMovement={openStockMovement}
+              onOpenParty={openUsageParty}
             />
           </section>
           <section className="screen-summary product-card-summary">
-            <span>Urun: {productView.stockCode}</span>
+            <span>Ürün: {productView.stockCode}</span>
             <span>Durum: {productView.status}</span>
-            <span>Mod: {mode === 'create' ? 'Yeni kayit' : 'Guncelleme'}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : 'Güncelleme'}</span>
             <span>Kaynak: API</span>
           </section>
         </>

@@ -58,3 +58,16 @@ export function requirePermission(permissionKey) {
     return next();
   };
 }
+
+export function requireAnyPermission(permissionKeys = []) {
+  return (req, res, next) => {
+    const permissions = req.user?.permissions || [];
+    const allowed = permissionKeys.some((permissionKey) => permissions.includes(permissionKey));
+
+    if (!allowed) {
+      return next(authError('AUTH_PERMISSION_DENIED', `Permission required: ${permissionKeys.join(' or ')}`, 403));
+    }
+
+    return next();
+  };
+}

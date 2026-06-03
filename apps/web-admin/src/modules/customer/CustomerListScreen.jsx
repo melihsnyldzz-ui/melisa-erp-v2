@@ -149,7 +149,7 @@ export function CustomerListScreen({ onOpenScreen }) {
       return String(firstValue ?? '').localeCompare(String(secondValue ?? ''), 'tr') * direction;
     });
   }, [filters, rows, sortConfig]);
-  const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? filteredRows[0];
+  const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? null;
   const activeCount = rows.filter((row) => row.status === 'Aktif').length;
   const passiveCount = rows.length - activeCount;
   const receivableCount = rows.filter((row) => row.balance > 0).length;
@@ -178,6 +178,11 @@ export function CustomerListScreen({ onOpenScreen }) {
 
     setSelectionWarning('');
     onOpenScreen('customer-card', { customerId, customerCode: selectedRow?.code });
+  }
+
+  function openNewCustomer() {
+    setSelectionWarning('');
+    onOpenScreen('customer-card', { mode: 'create', tabLabel: 'Yeni Cari' });
   }
 
   function selectRow(rowId) {
@@ -220,7 +225,9 @@ export function CustomerListScreen({ onOpenScreen }) {
   return (
     <main className="work-area customer-list-screen">
       <CustomerListToolbar
+        hasSelection={Boolean(selectedRow)}
         showPassive={filters.status === 'all'}
+        onOpenNewCustomer={openNewCustomer}
         onOpenCustomerCard={openSelectedCustomer}
         onTogglePassive={togglePassive}
         onExportCsv={exportCustomerRows}

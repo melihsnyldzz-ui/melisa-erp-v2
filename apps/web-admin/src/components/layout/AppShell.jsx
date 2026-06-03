@@ -45,11 +45,19 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   const roleScreenIds = useMemo(() => getRoleScreenIds(roleViewId), [roleViewId]);
 
   function createTab(screen, payload = {}) {
-    const recordId = payload.productId ?? payload.customerId ?? payload.salesDraftId ?? payload.purchaseDraftId;
+    const recordId = payload.productId
+      ?? payload.customerId
+      ?? payload.supplierId
+      ?? payload.salesDraftId
+      ?? payload.purchaseDraftId
+      ?? payload.offerId
+      ?? payload.orderId;
     const recordLabel = payload.tabLabel
       ?? payload.stockCode
       ?? payload.customerCode
+      ?? payload.supplierCode
       ?? payload.invoiceNo
+      ?? payload.documentNo
       ?? (recordId ? `#${recordId}` : '');
 
     if (!recordId) {

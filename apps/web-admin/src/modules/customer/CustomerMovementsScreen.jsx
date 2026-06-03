@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchCustomerMovements } from '../../services/movementApi.js';
-import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { exportRowsToCsv, printRowsReport } from '../../utils/exportUtils.js';
+import { openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -12,25 +13,57 @@ function formatMoney(value, currency = 'TRY') {
 
 function movementLabel(type) {
   const labels = {
-    sales_invoice: 'Satis fisi',
-    sales_invoice_cancel: 'Satis iptal',
+    sales_invoice: 'Satış fişi',
+    sales_invoice_cancel: 'Satış iptal',
     collection: 'Tahsilat',
-    payment: 'Odeme',
+    payment: 'Ödeme',
   };
 
   return labels[type] || type || '-';
 }
 
 function isCancelledMovement(row) {
-  return row.movementType === 'sales_invoice_cancel' || row.invoiceStatus === 'cancelled';
+  return Boolean(row.isCancelled) || row.movementType === 'sales_invoice_cancel' || row.invoiceStatus === 'cancelled';
+}
+
+function displayMovementLabel(row) {
+  if (isCancelledMovement(row)) {
+    return 'Satış iptal';
+  }
+
+  return movementLabel(row.movementType);
+}
+
+function movementActionLabel(row) {
+  if (row.targetScreen === 'collections-overview' || row.movementType === 'collection') {
+    return 'Tahsilata Git';
+  }
+
+  return 'Fişe Git';
+}
+
+function summarizeRows(rows) {
+  return rows.reduce((summary, row) => {
+    const currency = row.currency || 'TRY';
+    const effect = Number(row.balanceEffect || row.amount || 0);
+
+    if (!summary[currency]) {
+      summary[currency] = { debit: 0, credit: 0, balance: 0 };
+    }
+
+    if (effect >= 0) {
+      summary[currency].debit += effect;
+    } else {
+      summary[currency].credit += Math.abs(effect);
+    }
+
+    summary[currency].balance += effect;
+    return summary;
+  }, {});
 }
 
 export function CustomerMovementsScreen({ onOpenScreen }) {
-  const [filters, setFilters] = useState({
-    search: '',
-    dateFrom: '',
-    dateTo: '',
-  });
+  const [filters, setFilters] = useState({ search: '', dateFrom: '', dateTo: '' });
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,7 +92,7 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
         if (isMounted) {
           setRows([]);
           setMeta(null);
-          setErrorMessage(error.message || 'Cari hareketler okunamadi.');
+          setErrorMessage(error.message || 'Cari hareketler okunamadı.');
         }
       } finally {
         if (isMounted) {
@@ -84,56 +117,57 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
   }
 
   function openMovement(row) {
-    if (row.salesInvoiceId) {
-      onOpenScreen('sales-invoice', { salesDraftId: row.salesInvoiceId });
-    }
+    openLedgerTarget(row, onOpenScreen);
   }
 
   function exportMovementRows() {
     exportRowsToCsv({
-      filename: 'cari-hareketler',
+      filename: 'musteri-cari-hareketler',
       rows,
       columns: [
         { label: 'Tarih', key: 'documentDate' },
         { label: 'Cari Kodu', key: 'customerCode' },
         { label: 'Cari', key: 'customerName' },
         { label: 'Belge No', key: 'documentNo' },
-        { label: 'Islem', value: (row) => movementLabel(row.movementType) },
-        { label: 'Tutar', key: 'amount' },
-        { label: 'Bakiye Etkisi', key: 'balanceEffect' },
+        { label: 'İşlem', value: (row) => displayMovementLabel(row) },
+        { label: 'Borç', value: (row) => Number(row.balanceEffect || 0) >= 0 ? row.balanceEffect : '' },
+        { label: 'Alacak', value: (row) => Number(row.balanceEffect || 0) < 0 ? Math.abs(Number(row.balanceEffect || 0)) : '' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Durum', key: 'invoiceStatus' },
       ],
     });
   }
 
-  const totals = rows.reduce((summary, row) => {
-    const currency = row.currency || 'TRY';
-    const amount = Number(row.balanceEffect || row.amount || 0);
+  function printMovementRows() {
+    printRowsReport({
+      title: 'Melisa ERP - Müşteri Cari Hareketleri',
+      subtitle: `${regularRows.length} normal hareket / ${cancelledRows.length} iptal izi / ${filters.dateFrom || '-'} - ${filters.dateTo || '-'}`,
+      rows: regularRows,
+      columns: [
+        { label: 'Tarih', key: 'documentDate' },
+        { label: 'Cari Kodu', key: 'customerCode' },
+        { label: 'Cari', key: 'customerName' },
+        { label: 'Belge No', key: 'documentNo' },
+        { label: 'İşlem', value: (row) => displayMovementLabel(row) },
+        { label: 'Borç', value: (row) => Number(row.balanceEffect || 0) >= 0 ? formatMoney(row.balanceEffect, row.currency) : '' },
+        { label: 'Alacak', value: (row) => Number(row.balanceEffect || 0) < 0 ? formatMoney(Math.abs(Number(row.balanceEffect || 0)), row.currency) : '' },
+        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Durum', key: 'invoiceStatus' },
+      ],
+    });
+  }
 
-    if (!summary[currency]) {
-      summary[currency] = { debit: 0, credit: 0, balance: 0 };
-    }
-
-    if (amount >= 0) {
-      summary[currency].debit += amount;
-    } else {
-      summary[currency].credit += Math.abs(amount);
-    }
-
-    summary[currency].balance += amount;
-    return summary;
-  }, {});
   const cancelledRows = rows.filter(isCancelledMovement);
   const regularRows = rows.filter((row) => !isCancelledMovement(row));
-  const cancelledTotal = cancelledRows.reduce((total, row) => total + Math.abs(Number(row.balanceEffect || row.amount || 0)), 0);
+  const totals = summarizeRows(regularRows);
+  const cancelledTotals = summarizeRows(cancelledRows);
 
   return (
     <main className="work-area">
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Cari Hareketler</strong>
-          <span>Gercek cari hareket defteri / Satir: {meta?.total ?? rows.length}</span>
+          <strong>Müşteri Cari Hareketleri</strong>
+          <span>Satış, tahsilat ve iptal izleri / Satır: {meta?.total ?? rows.length}</span>
         </div>
         <div className="filter-grid">
           <label>
@@ -141,36 +175,36 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
             <input
               value={filters.search}
               onChange={(event) => updateFilter('search', event.target.value)}
-              placeholder="Cari kodu, cari adi, belge no"
+              placeholder="Cari kodu, cari adı, belge no"
             />
           </label>
           <label>
-            Baslangic
+            Başlangıç
             <input type="date" value={filters.dateFrom} onChange={(event) => updateFilter('dateFrom', event.target.value)} />
           </label>
           <label>
-            Bitis
+            Bitiş
             <input type="date" value={filters.dateTo} onChange={(event) => updateFilter('dateTo', event.target.value)} />
           </label>
           <button type="button" className="ghost-button" onClick={resetFilters}>Temizle</button>
           <button type="button" onClick={exportMovementRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Cari Hareketler')}>Yazdir</button>
+          <button type="button" onClick={printMovementRows}>Yazdır / PDF</button>
         </div>
       </section>
 
       <section className="summary-strip">
         {Object.entries(totals).map(([currency, values]) => (
           <article className="summary-card" key={currency}>
-            <span>{currency}</span>
+            <span>{currency} müşteri bakiyesi</span>
             <strong>{formatMoney(values.balance, currency)}</strong>
-            <small>Borc: {formatMoney(values.debit, currency)} / Alacak: {formatMoney(values.credit, currency)}</small>
+            <small>Borç: {formatMoney(values.debit, currency)} / Alacak: {formatMoney(values.credit, currency)}</small>
           </article>
         ))}
         {Object.keys(totals).length === 0 && (
           <article className="summary-card">
-            <span>Ekstre</span>
+            <span>Müşteri bakiyesi</span>
             <strong>0</strong>
-            <small>Filtreye uygun hareket yok</small>
+            <small>Filtreye uygun normal hareket yok</small>
           </article>
         )}
       </section>
@@ -178,13 +212,17 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
       {cancelledRows.length > 0 && (
         <section className="erp-panel cancelled-ledger-panel">
           <div className="panel-title">
-            <strong>Iptal Edilen Fisler</strong>
-            <span>{cancelledRows.length} iptal hareketi / normal cari hareketlerden ayrildi</span>
+            <strong>İptal Edilen Satış Fişleri</strong>
+            <span>{cancelledRows.length} iptal hareketi / normal bakiyeden ayrı izlenir</span>
           </div>
           <div className="cancelled-ledger-summary">
-            <span>Iptal toplam etkisi</span>
-            <strong>{formatMoney(cancelledTotal, cancelledRows[0]?.currency || 'TRY')}</strong>
-            <small>Iptal satirlari ekstre izinde kalir, normal hareketlerden ayri okunur.</small>
+            {Object.entries(cancelledTotals).map(([currency, values]) => (
+              <div key={currency}>
+                <span>{currency} iptal iz toplamı</span>
+                <strong>{formatMoney(values.balance, currency)}</strong>
+                <small>İptal hareketleri silinmez; denetim izi olarak ayrı görünür.</small>
+              </div>
+            ))}
           </div>
           <div className="table-shell compact-table-shell">
             <table className="erp-table cancelled-ledger-table">
@@ -193,26 +231,22 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
                   <th>Tarih</th>
                   <th>Cari</th>
                   <th>Belge No</th>
-                  <th>Islem</th>
+                  <th>İşlem</th>
                   <th>Tutar</th>
                   <th>PB</th>
-                  <th>Ilgili Islem</th>
+                  <th>Git</th>
                 </tr>
               </thead>
               <tbody>
                 {cancelledRows.map((row) => (
-                  <tr key={`cancelled-${row.id}`}>
+                  <tr className="clickable-row" key={`cancelled-${row.id}`} onClick={() => openMovement(row)}>
                     <td>{row.documentDate || '-'}</td>
                     <td>{row.customerName || row.customerCode || '-'}</td>
                     <td>{row.documentNo || '-'}</td>
-                    <td><span className="cancelled-ledger-badge">{movementLabel(row.movementType)}</span></td>
+                    <td><span className="cancelled-ledger-badge">{displayMovementLabel(row)}</span></td>
                     <td>{formatMoney(Math.abs(Number(row.balanceEffect || row.amount || 0)), row.currency)}</td>
                     <td><span className="status-pill danger">{row.currency || 'TRY'}</span></td>
-                    <td>
-                      {row.salesInvoiceId ? (
-                        <button type="button" className="mini-button danger" onClick={() => openMovement(row)}>Fişe Git</button>
-                      ) : '-'}
-                    </td>
+                    <td><button type="button" className="mini-button danger" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{movementActionLabel(row)}</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -223,12 +257,12 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Hareket Satirlari</strong>
-          <span>Normal hareketler / iptal edilen fisler ustte ayrica gosterilir</span>
+          <strong>Hareket Satırları</strong>
+          <span>Girişler yeşil, çıkışlar kırmızı; iptaller üstte ayrı izlenir</span>
         </div>
-        {isLoading && <div className="list-state">Cari hareketler yukleniyor...</div>}
+        {isLoading && <div className="list-state">Cari hareketler yükleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
-        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Cari hareket bulunamadi.</div>}
+        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Cari hareket bulunamadı.</div>}
         {!isLoading && !errorMessage && rows.length > 0 && regularRows.length === 0 && <div className="list-state">Normal hareket yok; sadece iptal hareketi var.</div>}
         {!isLoading && !errorMessage && regularRows.length > 0 && (
           <div className="table-shell">
@@ -239,10 +273,10 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
                   <th>Cari Kodu</th>
                   <th>Cari</th>
                   <th>Belge No</th>
-                  <th>Islem</th>
-                  <th>Borc</th>
+                  <th>İşlem</th>
+                  <th>Borç</th>
                   <th>Alacak</th>
-                  <th>Para Birimi</th>
+                  <th>PB</th>
                   <th>Durum</th>
                   <th>Git</th>
                 </tr>
@@ -251,21 +285,17 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
                 {regularRows.map((row) => {
                   const effect = Number(row.balanceEffect || row.amount || 0);
                   return (
-                    <tr key={row.id}>
+                    <tr className="clickable-row" key={row.id} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
                       <td>{row.customerCode || '-'}</td>
                       <td>{row.customerName || '-'}</td>
                       <td>{row.documentNo || '-'}</td>
-                      <td>{movementLabel(row.movementType)}</td>
-                      <td>{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>
-                      <td>{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
+                      <td>{displayMovementLabel(row)}</td>
+                      <td className="ledger-out">{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>
+                      <td className="ledger-in">{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
                       <td><span className="status-pill">{row.currency || 'TRY'}</span></td>
-                      <td>{row.invoiceStatus || '-'}</td>
-                      <td>
-                        {row.salesInvoiceId ? (
-                          <button type="button" className="mini-button" onClick={() => openMovement(row)}>Fişe Git</button>
-                        ) : '-'}
-                      </td>
+                      <td>{String(row.invoiceStatus || '-').toUpperCase()}</td>
+                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{movementActionLabel(row)}</button></td>
                     </tr>
                   );
                 })}

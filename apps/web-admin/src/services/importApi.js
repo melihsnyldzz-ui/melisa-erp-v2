@@ -41,3 +41,11 @@ export async function previewCustomersImport(file) {
 export async function commitCustomersImport(file, options = {}) {
   return post('/api/import/customers/commit', await buildImportPayload(file, options));
 }
+
+export async function previewSuppliersImport(file) {
+  return post('/api/import/suppliers/preview', await buildImportPayload(file));
+}
+
+export async function commitSuppliersImport(file, options = {}) {
+  return post('/api/import/suppliers/commit', await buildImportPayload(file, options));
+}

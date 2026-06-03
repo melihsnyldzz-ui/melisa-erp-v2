@@ -107,7 +107,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
         </div>
       </div>
       <div className={product.hasMovements ? 'currency-rule locked' : 'currency-rule'}>
-        <strong>Para birimi kurali</strong>
+        <strong>Para birimi kuralı</strong>
         <span>{product.currencyRule}</span>
         <small>Update modunda barkod tam degeri API'den gelir; degistirmek icin yeni barkod girilir.</small>
       </div>

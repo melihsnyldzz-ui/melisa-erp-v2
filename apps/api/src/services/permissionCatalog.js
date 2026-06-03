@@ -15,8 +15,12 @@ export const GRANULAR_PERMISSIONS = [
   'customer.view',
   'customer.edit',
   'customer.passive',
+  'finance.view',
+  'finance.collection',
+  'finance.payment',
   'audit.view',
   'dashboard.view',
+  'import.run',
   'settings.manage',
 ];
 
@@ -104,6 +108,22 @@ export function expandPermissions(permissionRows = []) {
     if (key === 'customer.passive') {
       addWhen(expanded, canView, 'customer.view');
       addWhen(expanded, canUpdate || canApprove, 'customer.passive');
+    }
+
+    if (key === 'finance.movements' || key === 'finance.manage') {
+      addWhen(expanded, canView, 'finance.view');
+      addWhen(expanded, canCreate || canUpdate, 'finance.collection');
+      addWhen(expanded, canCreate || canUpdate, 'finance.payment');
+    }
+
+    if (key === 'collections.manage') {
+      addWhen(expanded, canView, 'finance.view');
+      addWhen(expanded, canCreate || canUpdate, 'finance.collection');
+    }
+
+    if (key === 'payments.manage') {
+      addWhen(expanded, canView, 'finance.view');
+      addWhen(expanded, canCreate || canUpdate, 'finance.payment');
     }
 
     if (GRANULAR_PERMISSIONS.includes(key)) {

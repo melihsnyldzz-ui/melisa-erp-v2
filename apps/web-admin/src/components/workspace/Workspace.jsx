@@ -6,9 +6,13 @@ import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.js
 import { CustomerMovementsScreen } from '../../modules/customer/CustomerMovementsScreen.jsx';
 import { CustomerStatementScreen } from '../../modules/customer/CustomerStatementScreen.jsx';
 import { DashboardScreen } from '../../modules/dashboard/DashboardScreen.jsx';
+import { AccountingJournalScreen } from '../../modules/finance/AccountingJournalScreen.jsx';
+import { AccountingControlScreen } from '../../modules/finance/AccountingControlScreen.jsx';
+import { CashBankLedgerScreen } from '../../modules/finance/CashBankLedgerScreen.jsx';
 import { CollectionsOverviewScreen } from '../../modules/finance/CollectionsOverviewScreen.jsx';
 import { FinanceOverviewScreen } from '../../modules/finance/FinanceOverviewScreen.jsx';
 import { ImportScreen } from '../../modules/import/ImportScreen.jsx';
+import { ExportCenterScreen } from '../../modules/reports/ExportCenterScreen.jsx';
 import { ManagementReportsScreen } from '../../modules/reports/ManagementReportsScreen.jsx';
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
 import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
@@ -22,8 +26,10 @@ import { CurrencyRatesScreen } from '../../modules/settings/CurrencyRatesScreen.
 import { DefinitionsScreen } from '../../modules/settings/DefinitionsScreen.jsx';
 import { SystemSettingsScreen } from '../../modules/settings/SystemSettingsScreen.jsx';
 import { PriceListScreen } from '../../modules/stock/PriceListScreen.jsx';
+import { StockCountScreen } from '../../modules/stock/StockCountScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 import { StockMovementsScreen } from '../../modules/stock/StockMovementsScreen.jsx';
+import { StockValuationScreen } from '../../modules/stock/StockValuationScreen.jsx';
 import { SupplierCardScreen } from '../../modules/supplier/SupplierCardScreen.jsx';
 import { SupplierListScreen } from '../../modules/supplier/SupplierListScreen.jsx';
 import { SupplierMovementsScreen } from '../../modules/supplier/SupplierMovementsScreen.jsx';
@@ -45,6 +51,10 @@ function UnmappedScreen({ screen }) {
       </section>
     </main>
   );
+}
+
+function hasAnyPermission(permissions, permissionKeys) {
+  return permissionKeys.some((permissionKey) => permissions.includes(permissionKey));
 }
 
 export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [] }) {
@@ -80,6 +90,22 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
     }
 
     return <StockMovementsScreen onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'stock-valuation') {
+    if (!permissions.includes('product.view')) {
+      return <UnauthorizedScreen message="Stok degerleme goruntuleme yetkiniz yok." />;
+    }
+
+    return <StockValuationScreen onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'stock-count') {
+    if (!permissions.includes('product.edit')) {
+      return <UnauthorizedScreen message="Stok sayimi uygulama yetkiniz yok." />;
+    }
+
+    return <StockCountScreen onOpenScreen={onOpenScreen} />;
   }
 
   if (screenId === 'price-list') {
@@ -253,7 +279,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
   }
 
   if (screenId === 'finance-overview') {
-    if (!permissions.includes('dashboard.view')) {
+    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
       return <UnauthorizedScreen message="Finans ozeti goruntuleme yetkiniz yok." />;
     }
 
@@ -261,11 +287,35 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
   }
 
   if (screenId === 'collections-overview') {
-    if (!permissions.includes('customer.edit')) {
-      return <UnauthorizedScreen message="Tahsilat/odeme kaydi icin cari duzenleme yetkiniz yok." />;
+    if (!hasAnyPermission(permissions, ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'])) {
+      return <UnauthorizedScreen message="Tahsilat/odeme kaydi icin finans yetkiniz yok." />;
     }
 
-    return <CollectionsOverviewScreen />;
+    return <CollectionsOverviewScreen initialPayload={activeTab.payload} onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'cash-bank-ledger') {
+    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view', 'customer.view'])) {
+      return <UnauthorizedScreen message="Kasa/banka defteri goruntuleme yetkiniz yok." />;
+    }
+
+    return <CashBankLedgerScreen onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'accounting-journal') {
+    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
+      return <UnauthorizedScreen message="Muhasebe defteri goruntuleme yetkiniz yok." />;
+    }
+
+    return <AccountingJournalScreen onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'accounting-control') {
+    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
+      return <UnauthorizedScreen message="Muhasebe kontrol paneli goruntuleme yetkiniz yok." />;
+    }
+
+    return <AccountingControlScreen onOpenScreen={onOpenScreen} />;
   }
 
   if (screenId === 'catalog-list') {
@@ -289,7 +339,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
       return <UnauthorizedScreen message="Import calistirma yetkiniz yok." />;
     }
 
-    return <ImportScreen />;
+    return <ImportScreen onOpenScreen={onOpenScreen} />;
   }
 
   if (screenId === 'reports-overview') {
@@ -298,6 +348,14 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
     }
 
     return <ManagementReportsScreen />;
+  }
+
+  if (screenId === 'export-center') {
+    if (!permissions.includes('dashboard.view')) {
+      return <UnauthorizedScreen message="Cikti merkezi goruntuleme yetkiniz yok." />;
+    }
+
+    return <ExportCenterScreen />;
   }
 
   if (screenId === 'currency-rates') {
@@ -337,7 +395,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
       return <UnauthorizedScreen message="Audit goruntuleme yetkiniz yok." />;
     }
 
-    return <AuthAdminScreen />;
+    return <AuthAdminScreen permissions={permissions} />;
   }
 
   return <UnmappedScreen screen={activeTab} />;

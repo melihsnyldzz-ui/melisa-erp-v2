@@ -18,6 +18,9 @@ export function CurrencyRatesScreen() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const currentRates = useMemo(() => rateMap(rateData), [rateData]);
+  const usdRate = Number(rates.USD || 0);
+  const eurRate = Number(rates.EUR || 0);
+  const canSaveRates = Boolean(date) && usdRate > 0 && eurRate > 0 && !isSaving;
 
   async function loadRates(nextDate = date) {
     setIsLoading(true);
@@ -43,6 +46,12 @@ export function CurrencyRatesScreen() {
   }, []);
 
   async function saveRates() {
+    if (!canSaveRates) {
+      setErrorMessage('USD ve EUR kuru 0’dan buyuk olmali. Bos kur kaydedilemez.');
+      setSuccessMessage('');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage('');
     setSuccessMessage('');
@@ -87,7 +96,7 @@ export function CurrencyRatesScreen() {
         </div>
         <div className="invoice-list-actions">
           <button type="button" onClick={() => loadRates(date)} disabled={isLoading}>Yenile</button>
-          <button type="button" className="primary" onClick={saveRates} disabled={isSaving}>
+          <button type="button" className="primary" onClick={saveRates} disabled={!canSaveRates}>
             {isSaving ? 'Kaydediliyor' : 'Kaydet'}
           </button>
         </div>

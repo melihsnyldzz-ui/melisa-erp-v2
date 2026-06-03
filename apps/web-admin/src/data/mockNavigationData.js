@@ -24,6 +24,8 @@ export const sidebarGroups = [
       { label: 'Ürün Kartı', screenId: 'product-card' },
       { label: 'Fiyat Listesi', screenId: 'price-list' },
       { label: 'Stok Hareketleri', screenId: 'stock-movements' },
+      { label: 'Stok Değerleme', screenId: 'stock-valuation' },
+      { label: 'Stok Sayım', screenId: 'stock-count' },
     ],
   },
   {
@@ -65,6 +67,9 @@ export const sidebarGroups = [
     items: [
       { label: 'Finans Özeti', screenId: 'finance-overview' },
       { label: 'Tahsilatlar', screenId: 'collections-overview' },
+      { label: 'Kasa/Banka Defteri', screenId: 'cash-bank-ledger' },
+      { label: 'Muhasebe Defteri', screenId: 'accounting-journal' },
+      { label: 'Muhasebe Kontrol', screenId: 'accounting-control' },
       { label: 'Riskli Cariler', screenId: 'customer-list' },
     ],
   },
@@ -86,6 +91,7 @@ export const sidebarGroups = [
     title: 'Raporlar',
     items: [
       { label: 'Rapor Merkezi', screenId: 'reports-overview' },
+      { label: 'Cikti Merkezi', screenId: 'export-center' },
     ],
   },
   {
@@ -141,6 +147,19 @@ export const screenRegistry = {
     label: 'Stok Hareketleri',
     module: 'Stok',
     type: 'hareket',
+  },
+  'stock-valuation': {
+    id: 'stock-valuation',
+    label: 'Stok Değerleme',
+    module: 'Stok',
+    type: 'rapor',
+  },
+  'stock-count': {
+    id: 'stock-count',
+    label: 'Stok Sayım',
+    module: 'Stok',
+    type: 'islem',
+    dirty: true,
   },
   'customer-list': {
     id: 'customer-list',
@@ -255,6 +274,24 @@ export const screenRegistry = {
     module: 'Finans',
     type: 'liste',
   },
+  'cash-bank-ledger': {
+    id: 'cash-bank-ledger',
+    label: 'Kasa/Banka Defteri',
+    module: 'Finans',
+    type: 'defter',
+  },
+  'accounting-journal': {
+    id: 'accounting-journal',
+    label: 'Muhasebe Defteri',
+    module: 'Finans',
+    type: 'defter',
+  },
+  'accounting-control': {
+    id: 'accounting-control',
+    label: 'Muhasebe Kontrol',
+    module: 'Finans',
+    type: 'kontrol',
+  },
   'catalog-list': {
     id: 'catalog-list',
     label: 'Katalog Listesi',
@@ -284,6 +321,12 @@ export const screenRegistry = {
     label: 'Rapor Merkezi',
     module: 'Raporlar',
     type: 'ozet',
+  },
+  'export-center': {
+    id: 'export-center',
+    label: 'Cikti Merkezi',
+    module: 'Raporlar',
+    type: 'rapor',
   },
   'definitions-overview': {
     id: 'definitions-overview',

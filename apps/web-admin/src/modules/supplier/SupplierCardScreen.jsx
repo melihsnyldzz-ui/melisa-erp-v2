@@ -26,11 +26,49 @@ function formatMoney(amount, currency) {
   }).format(Number(amount || 0));
 }
 
+function buildSupplierBalanceRows(form) {
+  const summary = new Map(['TRY', 'USD', 'EUR'].map((currency) => [currency, {
+    currency,
+    debit: 0,
+    credit: 0,
+    balance: 0,
+  }]));
+
+  (form.movements || []).forEach((movement) => {
+    const currency = movement.currency || form.currency || 'TRY';
+    const effect = Number(movement.balanceEffect ?? movement.amount ?? 0);
+    const amount = Math.abs(Number(movement.amount || effect || 0));
+    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
+
+    if (effect > 0) {
+      row.credit += amount;
+    } else if (effect < 0) {
+      row.debit += amount;
+    }
+
+    row.balance += effect;
+    summary.set(currency, row);
+  });
+
+  if ((form.movements || []).length === 0) {
+    const currency = form.currency || 'TRY';
+    const balance = Number(form.balance || 0);
+    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
+
+    row.credit = balance > 0 ? balance : 0;
+    row.debit = balance < 0 ? Math.abs(balance) : 0;
+    row.balance = balance;
+    summary.set(currency, row);
+  }
+
+  return Array.from(summary.values());
+}
+
 function movementLabel(type) {
   const labels = {
-    purchase_invoice: 'Alis fisi',
-    purchase_invoice_cancel: 'Alis iptal',
-    payment: 'Odeme',
+    purchase_invoice: 'Alış fişi',
+    purchase_invoice_cancel: 'Alış iptal',
+    payment: 'Ödeme',
   };
 
   return labels[type] || type || '-';
@@ -137,8 +175,11 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
       paymentCount: paymentMovements.length,
       purchaseTotal: purchaseMovements.reduce((sum, row) => sum + Number(row.amount || 0), 0),
       paymentTotal: paymentMovements.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      productQuantity: form.productTrace.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
+      productAmountTry: form.productTrace.reduce((sum, row) => sum + Number(row.lineTotalTry || 0), 0),
     };
-  }, [form.movements, form.purchaseCount]);
+  }, [form.movements, form.purchaseCount, form.productTrace]);
+  const balanceRows = useMemo(() => buildSupplierBalanceRows(form), [form]);
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -188,9 +229,9 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
       setActiveSupplierId(response.data.id);
       setForm(mapDetailToForm(response.data));
       setIsDirty(false);
-      setSuccessMessage(mode === 'create' ? 'Tedarikci karti olusturuldu.' : 'Tedarikci karti guncellendi.');
+      setSuccessMessage(mode === 'create' ? 'Tedarikçi kartı oluşturuldu.' : 'Tedarikçi kartı güncellendi.');
     } catch (error) {
-      setErrorMessage(`${error.message || 'Tedarikci kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Tedarikçi kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsSaving(false);
     }
@@ -199,6 +240,15 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
   function openPurchaseInvoice(row) {
     if (row.purchaseInvoiceId && onOpenScreen) {
       onOpenScreen('purchase-invoice', { purchaseDraftId: row.purchaseInvoiceId });
+      return;
+    }
+
+    if (row.type === 'payment' && onOpenScreen) {
+      onOpenScreen('collections-overview', {
+        mode: 'payment',
+        movementId: row.id,
+        supplierId: activeSupplierId,
+      });
     }
   }
 
@@ -216,13 +266,13 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
 
   return (
     <main className="work-area supplier-card-screen">
-      {isLoading && <div className="list-state">API'den tedarikci karti yukleniyor...</div>}
+      {isLoading && <div className="list-state">API'den tedarikçi kartı yükleniyor...</div>}
       {!isLoading && (
         <>
           <section className="customer-card-header">
             <div className="customer-title-block">
-              <strong>Tedarikci Karti</strong>
-              <span>{form.supplierCode || 'YENI-TED'} / {form.supplierName || 'Yeni tedarikci'}</span>
+              <strong>Tedarikçi Kartı</strong>
+              <span>{form.supplierCode || 'YENI-TED'} / {form.supplierName || 'Yeni tedarikçi'}</span>
             </div>
             <div className="customer-card-toolbar">
               <button type="button" onClick={saveSupplier} disabled={isSaving || !canSave}>
@@ -230,7 +280,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
               </button>
               <button type="button" onClick={startNewSupplier}>Yeni</button>
               <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}>Alis Fisleri</button>
-              <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Update'}</span>
+              <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Güncelleme'}</span>
             </div>
           </section>
 
@@ -240,12 +290,12 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
           <section className="supplier-card-layout">
             <section className="erp-panel customer-form-panel supplier-form-panel">
               <div className="panel-title">
-                <strong>Tedarikci Bilgileri</strong>
-                <span>Alis fisleri ve odemeler bu karti besler</span>
+                <strong>Tedarikçi Bilgileri</strong>
+                <span>Alış fişleri ve ödemeler bu alış carisini besler</span>
               </div>
               <div className="customer-form-grid">
                 <label>
-                  <span>Tedarikci kodu</span>
+                  <span>Tedarikçi kodu</span>
                   <input value={form.supplierCode} onChange={(event) => updateField('supplierCode', event.target.value)} />
                 </label>
                 <label>
@@ -265,15 +315,15 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                   </select>
                 </label>
                 <label>
-                  <span>Alis iskontosu %</span>
+                  <span>Alış iskontosu %</span>
                   <input min="0" max="100" step="0.01" type="number" value={form.purchaseDiscountRate} onChange={(event) => updateField('purchaseDiscountRate', event.target.value)} />
                 </label>
                 <label>
-                  <span>Sehir</span>
+                  <span>Şehir</span>
                   <input value={form.city} onChange={(event) => updateField('city', event.target.value)} />
                 </label>
                 <label>
-                  <span>Ulke</span>
+                  <span>Ülke</span>
                   <input value={form.country} onChange={(event) => updateField('country', event.target.value)} />
                 </label>
                 <label>
@@ -285,33 +335,53 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
 
             <aside className="erp-panel supplier-summary-panel">
               <div className="panel-title">
-                <strong>Tedarikci Ozeti</strong>
-                <span>Alis ve borc etkisi</span>
+                <strong>Tedarikçi Özeti</strong>
+                <span>Alış, borç ve ürün etkisi</span>
               </div>
               <dl className="supplier-summary-list">
                 <div>
                   <dt>Bakiye</dt>
                   <dd className="customer-payable">{formatMoney(form.balance, form.currency)}</dd>
                 </div>
+                {balanceRows.map((balance) => (
+                  <div className="supplier-currency-balance" key={balance.currency}>
+                    <dt>{balance.currency}</dt>
+                    <dd>
+                      <span>Borç {formatMoney(balance.debit, balance.currency)}</span>
+                      <span>Alacak {formatMoney(balance.credit, balance.currency)}</span>
+                      <b className={balance.balance > 0 ? 'customer-payable' : 'status-active'}>
+                        {formatMoney(balance.balance, balance.currency)}
+                      </b>
+                    </dd>
+                  </div>
+                ))}
                 <div>
-                  <dt>Alis fisi</dt>
+                  <dt>Alış fişi</dt>
                   <dd>{summary.purchaseCount}</dd>
                 </div>
                 <div>
-                  <dt>Alis toplami</dt>
+                  <dt>Alış toplamı</dt>
                   <dd>{formatMoney(summary.purchaseTotal, form.currency)}</dd>
                 </div>
                 <div>
-                  <dt>Odeme</dt>
+                  <dt>Ödeme</dt>
                   <dd>{formatMoney(summary.paymentTotal, form.currency)}</dd>
                 </div>
                 <div>
-                  <dt>Iptal hareketi</dt>
+                  <dt>İptal hareketi</dt>
                   <dd>{summary.cancelCount}</dd>
                 </div>
                 <div>
-                  <dt>Son alis</dt>
+                  <dt>Son alış</dt>
                   <dd>{form.lastPurchaseDate ? String(form.lastPurchaseDate).slice(0, 10) : '-'}</dd>
+                </div>
+                <div>
+                  <dt>Alınan adet</dt>
+                  <dd className="in-cell">{summary.productQuantity}</dd>
+                </div>
+                <div>
+                  <dt>Net maliyet TRY</dt>
+                  <dd>{formatMoney(summary.productAmountTry, 'TRY')}</dd>
                 </div>
               </dl>
             </aside>
@@ -319,11 +389,11 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
 
           <section className="erp-panel supplier-movements-panel">
             <div className="panel-title">
-              <strong>Alis / Odeme Hareketleri</strong>
-              <span>Alis fisleri kesinlesince tedarikci kartini besler</span>
+              <strong>Alış / Ödeme Hareketleri</strong>
+              <span>Alış fişleri kesinleşince tedarikçi kartını besler</span>
             </div>
             {form.movements.length === 0 ? (
-              <div className="list-state">Bu tedarikci icin hareket yok.</div>
+              <div className="list-state">Bu tedarikçi için hareket yok.</div>
             ) : (
               <div className="table-wrap">
                 <table>
@@ -335,12 +405,16 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                       <th>Tutar</th>
                       <th>Bakiye etkisi</th>
                       <th>Durum</th>
-                      <th>Islem</th>
+                      <th>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
                     {form.movements.map((row) => (
-                      <tr key={row.id} className={row.type === 'purchase_invoice_cancel' ? 'cancel-row' : ''}>
+                      <tr
+                        key={row.id}
+                        className={`${row.purchaseInvoiceId || row.type === 'payment' ? 'clickable-row' : ''} ${row.type === 'purchase_invoice_cancel' ? 'cancel-row' : ''}`}
+                        onClick={() => openPurchaseInvoice(row)}
+                      >
                         <td>{row.date || '-'}</td>
                         <td>{movementLabel(row.type)}</td>
                         <td className="code-cell">{row.documentNo}</td>
@@ -351,7 +425,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                         <td>{String(row.status || '-').toUpperCase()}</td>
                         <td>
                           {row.purchaseInvoiceId ? (
-                            <button type="button" onClick={() => openPurchaseInvoice(row)}>Fise Git</button>
+                            <button type="button" onClick={() => openPurchaseInvoice(row)}>Fişe Git</button>
                           ) : '-'}
                         </td>
                       </tr>
@@ -369,10 +443,10 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
           />
 
           <section className="screen-summary customer-summary">
-            <span>Tedarikci: {form.supplierCode || 'Yeni'}</span>
+            <span>Tedarikçi: {form.supplierCode || 'Yeni'}</span>
             <span>Bakiye: {formatMoney(form.balance, form.currency)}</span>
-            <span>Alis iskonto: %{Number(form.purchaseDiscountRate || 0)}</span>
-            <span>{isDirty ? 'Degisti' : 'Temiz'}</span>
+            <span>Alış iskonto: %{Number(form.purchaseDiscountRate || 0)}</span>
+            <span>{isDirty ? 'Değişti' : 'Temiz'}</span>
             <span>Kaynak: API / SQL</span>
           </section>
         </>

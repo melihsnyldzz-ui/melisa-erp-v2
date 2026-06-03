@@ -20,7 +20,7 @@ import { apiConfig } from '../../config/apiConfig.js';
 import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
-import { exportRowsToCsv, printBusinessDocument } from '../../utils/exportUtils.js';
+import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtils.js';
 
 const emptyPurchaseInvoice = {
   ...purchaseInvoiceHeader,
@@ -34,11 +34,15 @@ const emptyPurchaseInvoice = {
   exchangeRate: 'TRY 1.0000',
   exchangeRateValue: 1,
   description: '',
-  status: 'Taslak',
+  status: 'DRAFT',
 };
 
 function formatExchangeRate(currency, value) {
   return `${currency || 'TRY'} ${Number(value || 1).toFixed(4)}`;
+}
+
+function roundCurrency(value) {
+  return Math.round(Number(value || 0) * 10000) / 10000;
 }
 
 function calculateTotals(items, invoiceRate, supplierRate, exchangeRate = 1, currency = 'TRY') {
@@ -96,7 +100,7 @@ function mapDraftToInvoice(draft) {
     invoiceNo: draft.documentNo,
     date: formatDate(draft.documentDate),
     supplierId: draft.supplierId,
-    supplier: draft.supplierName || `Tedarikci #${draft.supplierId}`,
+    supplier: draft.supplierName || `Tedarikçi #${draft.supplierId}`,
     supplierCurrency: draft.supplierCurrency,
     supplierBalanceLabel: draft.supplierBalanceLabel || '-',
     supplierDiscountRate: Number(draft.supplierDiscountRate || 0),
@@ -104,7 +108,7 @@ function mapDraftToInvoice(draft) {
     exchangeRate: `${draft.documentCurrency} ${Number(draft.exchangeRate || 1).toFixed(4)}`,
     exchangeRateValue: Number(draft.exchangeRate || 1),
     description: draft.description || '',
-    status: status === 'DRAFT' ? 'Taslak' : status,
+    status,
   };
 }
 
@@ -130,7 +134,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [items, setItems] = useState(purchaseDraftId ? purchaseInvoiceItems : []);
   const [invoiceRate, setInvoiceRate] = useState(purchaseDraftId ? invoiceDiscountRate : 0);
   const [supplierRate, setSupplierRate] = useState(purchaseDraftId ? supplierGeneralDiscountRate : 0);
-  const [status, setStatus] = useState(purchaseInvoiceHeader.status);
+  const [status, setStatus] = useState('DRAFT');
   const [selectedItemId, setSelectedItemId] = useState(purchaseDraftId ? purchaseInvoiceItems[0]?.id : null);
   const [statusMessage, setStatusMessage] = useState('Taslak alis fisi stok artirmaz ve cari hareket olusturmaz.');
   const [supplierQuery, setSupplierQuery] = useState('');
@@ -171,6 +175,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       return matchesQuery && !product.isPassive;
     });
   }, [productQuery, purchaseProductOptions]);
+  const selectedSupplier = useMemo(
+    () => supplierOptions.find((item) => String(item.id) === String(invoice.supplierId)) || null,
+    [invoice.supplierId, supplierOptions],
+  );
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -369,7 +377,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setItems([]);
     setInvoiceRate(0);
     setSupplierRate(0);
-    setStatus('Taslak');
+    setStatus('DRAFT');
     setSelectedItemId(null);
     setSupplierQuery('');
     setProductQuery('');
@@ -385,6 +393,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
   function centralRateForCurrency(currency) {
     const nextCurrency = String(currency || 'TRY').toUpperCase();
+    if (nextCurrency === 'TRY') {
+      return 1;
+    }
+
     const nextRate = rateValueForCurrency(currencyRates, nextCurrency);
     if (nextRate === null) {
       setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
@@ -395,12 +407,64 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     return nextRate;
   }
 
+  function convertCurrencyAmount(amount, sourceCurrency, targetCurrency) {
+    const source = String(sourceCurrency || 'TRY').toUpperCase();
+    const target = String(targetCurrency || 'TRY').toUpperCase();
+    const sourceRate = centralRateForCurrency(source);
+    const targetRate = centralRateForCurrency(target);
+
+    if (sourceRate === null || targetRate === null) {
+      return null;
+    }
+
+    const amountTry = Number(amount || 0) * sourceRate;
+    return roundCurrency(amountTry / targetRate);
+  }
+
   function updateInvoiceField(field, value) {
     setInvoice((current) => ({
       ...current,
       [field]: value,
     }));
     markDirty('Alis taslagi degisti; stok ve tedarikci cari hareketi olusmadi.');
+  }
+
+  function updateInvoiceCurrency(currency) {
+    const nextCurrency = String(currency || 'TRY').toUpperCase();
+    const nextRate = centralRateForCurrency(nextCurrency);
+    if (nextRate === null) {
+      setInvoice((current) => ({
+        ...current,
+        invoiceCurrency: nextCurrency,
+        exchangeRate: `${nextCurrency} tanimsiz`,
+        exchangeRateValue: '',
+      }));
+      markDirty('Fis para birimi degisti ancak kur tanimli degil; kayit icin kur girilmeli.');
+      return;
+    }
+
+    const convertedItems = items.map((item) => {
+      const convertedPrice = convertCurrencyAmount(item.purchasePrice, item.currency, nextCurrency);
+      return convertedPrice === null ? null : {
+        ...item,
+        currency: nextCurrency,
+        purchasePrice: convertedPrice,
+      };
+    });
+
+    if (convertedItems.some((item) => item === null)) {
+      setErrorMessage(`${nextCurrency} icin alis satirlari cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      return;
+    }
+
+    setInvoice((current) => ({
+      ...current,
+      invoiceCurrency: nextCurrency,
+      exchangeRate: formatExchangeRate(nextCurrency, nextRate),
+      exchangeRateValue: nextRate,
+    }));
+    setItems(convertedItems);
+    markDirty('Fis para birimi degisti; kur snapshot merkezi kurdan alindi.');
   }
 
   function updateInvoiceRate(value) {
@@ -484,6 +548,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       return;
     }
 
+    const convertedPurchasePrice = convertCurrencyAmount(product.purchasePrice, product.currency, invoice.invoiceCurrency);
+    if (convertedPurchasePrice === null) {
+      setErrorMessage(`${product.currency} fiyatli urun ${invoice.invoiceCurrency} alis fisine cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      return;
+    }
+
     const nextId = Math.max(0, ...items.map((item) => Number(item.id) || 0)) + 1;
     setErrorMessage('');
     setItems((currentItems) => {
@@ -506,8 +576,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           barcode: product.barcode,
           productName: product.productName,
           quantity: 1,
-          currency: product.currency || invoice.invoiceCurrency,
-          purchasePrice: product.purchasePrice,
+          currency: invoice.invoiceCurrency,
+          purchasePrice: convertedPurchasePrice,
           lineDiscountRate: product.lineDiscountRate,
           stockEffect: '+1 taslak',
           note: 'Alis taslak satir',
@@ -627,7 +697,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
 
     if (!canFinalize) {
-      setErrorMessage('Bu islem icin purchase.cancel yetkisi gerekli.');
+      setErrorMessage('Bu islem icin purchase.finalize yetkisi gerekli.');
       return;
     }
 
@@ -673,7 +743,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
 
     if (!canCancel) {
-      setErrorMessage('Bu islem icin purchase.finalize yetkisi gerekli.');
+      setErrorMessage('Bu islem icin purchase.cancel yetkisi gerekli.');
       return;
     }
 
@@ -723,23 +793,29 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       extraInfo: [
         { label: 'Tedarikçi PB', value: invoice.supplierCurrency },
         { label: 'Tedarikçi Bakiye', value: invoice.supplierBalanceLabel },
+        { label: 'Satir Sayisi', value: totals.lineCount },
+        { label: 'Toplam Adet', value: totals.totalQuantity },
+        { label: 'Fis Iskonto', value: `%${invoiceRate}` },
+        { label: 'Tedarikci Iskonto', value: `%${supplierRate}` },
       ],
     });
   }
 
   function exportPurchaseInvoiceRows() {
-    exportRowsToCsv({
+    exportRowsToExcel({
       filename: `alis-fisi-${invoice.invoiceNo}`,
+      title: `Alış Fişi ${invoice.invoiceNo}`,
       rows: items,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
         { label: 'Barkod', key: 'barcode' },
-        { label: 'Urun', key: 'productName' },
+        { label: 'Ürün', key: 'productName' },
         { label: 'Miktar', key: 'quantity' },
         { label: 'Para Birimi', key: 'currency' },
-        { label: 'Alis Fiyati', key: 'purchasePrice' },
-        { label: 'Satir Iskonto %', key: 'lineDiscountRate' },
-        { label: 'Satir Toplami', value: (row) => Number(row.quantity || 0) * Number(row.purchasePrice || 0) },
+        { label: 'Alış Fiyatı', key: 'purchasePrice' },
+        { label: 'Satır İskonto %', key: 'lineDiscountRate' },
+        { label: 'Satır Toplamı', value: (row) => Number(row.quantity || 0) * Number(row.purchasePrice || 0) },
+        { label: 'Net Satır Toplamı', key: 'lineTotal' },
         { label: 'Not', key: 'note' },
       ],
     });
@@ -830,6 +906,15 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
             </label>
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
           </div>
+          {selectedSupplier && (
+            <div className="purchase-supplier-snapshot">
+              <span><b>Tedarikçi</b>{selectedSupplier.supplierCode} / {selectedSupplier.supplierName}</span>
+              <span><b>Para birimi</b>{selectedSupplier.currency}</span>
+              <span><b>Bakiye</b>{formatMoney(selectedSupplier.balance, selectedSupplier.currency)}</span>
+              <span><b>Alış iskontosu</b>%{Number(selectedSupplier.purchaseDiscountRate || 0)}</span>
+              <span><b>Fiş kuru</b>{invoice.exchangeRate}</span>
+            </div>
+          )}
         </section>
         <PurchaseInvoiceHeader
           invoice={invoice}
@@ -838,6 +923,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           status={status}
           supplierRate={supplierRate}
           onChange={updateInvoiceField}
+          onCurrencyChange={updateInvoiceCurrency}
           onInvoiceRateChange={updateInvoiceRate}
           onSupplierRateChange={updateSupplierRate}
         />
@@ -845,8 +931,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           <div className="list-state purchase-empty-state">Alis taslak satiri yok. Ustten tedarikci ve urun secip Satir Ekle ile baslayin.</div>
         )}
         <PurchaseInvoiceItemsTable
+          exchangeRate={invoice.exchangeRateValue}
+          invoiceCurrency={invoice.invoiceCurrency}
+          invoiceRate={invoiceRate}
           isReadonly={isReadonly}
           items={items}
+          supplierRate={supplierRate}
           selectedItemId={selectedItemId}
           onDeleteItem={deleteDraftItem}
           onSelectItem={setSelectedItemId}

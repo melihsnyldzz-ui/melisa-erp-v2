@@ -21,10 +21,23 @@ function toSupplierDto(row) {
   };
 }
 
+function formatSqlDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const text = String(value);
+  return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+}
+
 function toSupplierMovementDto(row) {
   return {
     id: row.id,
-    date: row.document_date ? String(row.document_date).slice(0, 10) : null,
+    date: formatSqlDate(row.document_date),
     type: row.movement_type,
     documentNo: row.document_no || '-',
     purchaseInvoiceId: row.purchase_invoice_id || null,
@@ -41,7 +54,7 @@ function toSupplierProductTraceDto(row) {
     id: Number(row.id),
     purchaseInvoiceId: Number(row.purchase_invoice_id),
     documentNo: row.document_no || '-',
-    documentDate: row.document_date ? String(row.document_date).slice(0, 10) : null,
+    documentDate: formatSqlDate(row.document_date),
     invoiceStatus: row.invoice_status || '-',
     productId: Number(row.product_id),
     stockCode: row.stock_code_snapshot || '-',
@@ -312,7 +325,15 @@ export async function getSupplierDetail(supplierId) {
         pii.purchase_price,
         pii.line_discount_rate,
         pii.line_total,
-        pii.line_total * COALESCE(pi.exchange_rate_snapshot, 1) AS line_total_try
+        CASE
+          WHEN COALESCE(pii.line_total_try, 0) > 0
+            AND (
+              COALESCE(pi.exchange_rate_snapshot, 1) <= 1
+              OR COALESCE(pii.line_total_try, 0) > pii.line_total * 1.0001
+            )
+            THEN pii.line_total_try
+          ELSE pii.line_total * COALESCE(pi.exchange_rate_snapshot, 1)
+        END AS line_total_try
       FROM dbo.purchase_invoice_items pii
       INNER JOIN dbo.purchase_invoices pi ON pi.id = pii.purchase_invoice_id
       WHERE pi.supplier_id = @traceSupplierId

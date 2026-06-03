@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchTerminalAdminOverview } from '../../services/terminalAdminApi.js';
-import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString('tr-TR') : '-';
@@ -44,8 +44,27 @@ function Kpi({ label, value, detail, tone = 'info' }) {
   );
 }
 
+const queueColumns = [
+  { label: 'Cihaz', key: 'deviceCode' },
+  { label: 'Cihaz Adi', key: 'deviceName' },
+  { label: 'Kullanici', key: 'username' },
+  { label: 'Event', key: 'eventType' },
+  { label: 'Client Request', key: 'clientRequestId' },
+  { label: 'Durum', value: (row) => statusLabel(row.status) },
+  { label: 'Retry', key: 'retryCount' },
+  { label: 'Hata', key: 'lastError' },
+  { label: 'Alinma', value: (row) => formatDate(row.receivedAt) },
+  { label: 'Islenme', value: (row) => formatDate(row.processedAt) },
+];
+
 export function TerminalAdminScreen() {
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filters, setFilters] = useState({
+    status: '',
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    deviceId: '',
+  });
   const [data, setData] = useState({ summary: {}, devices: [], queue: [] });
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,18 +75,23 @@ export function TerminalAdminScreen() {
     [data.devices, selectedDeviceId],
   );
 
-  const selectedDeviceQueue = useMemo(() => (
-    selectedDevice ? data.queue.filter((row) => row.deviceId === selectedDevice.id) : data.queue
-  ), [data.queue, selectedDevice]);
+  const visibleQueue = useMemo(() => {
+    if (!selectedDevice || filters.deviceId) {
+      return data.queue;
+    }
+    return data.queue.filter((row) => row.deviceId === selectedDevice.id);
+  }, [data.queue, filters.deviceId, selectedDevice]);
 
-  async function loadTerminalData(nextStatus = statusFilter) {
+  async function loadTerminalData(nextFilters = filters) {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const response = await fetchTerminalAdminOverview({ status: nextStatus });
+      const response = await fetchTerminalAdminOverview(nextFilters);
       const nextData = response.data || { summary: {}, devices: [], queue: [] };
       setData(nextData);
-      setSelectedDeviceId((current) => nextData.devices.some((device) => device.id === current) ? current : nextData.devices[0]?.id ?? null);
+      setSelectedDeviceId((current) => (
+        nextData.devices.some((device) => device.id === current) ? current : nextData.devices[0]?.id ?? null
+      ));
     } catch (error) {
       setData({ summary: {}, devices: [], queue: [] });
       setErrorMessage(`${error.message || 'Terminal verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
@@ -80,27 +104,44 @@ export function TerminalAdminScreen() {
     loadTerminalData();
   }, []);
 
-  function changeStatusFilter(value) {
-    setStatusFilter(value);
-    loadTerminalData(value);
+  function updateFilter(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
   }
 
-  function exportQueue() {
+  function applyFilters(event) {
+    event.preventDefault();
+    loadTerminalData(filters);
+  }
+
+  function resetFilters() {
+    const nextFilters = { status: '', search: '', dateFrom: '', dateTo: '', deviceId: '' };
+    setFilters(nextFilters);
+    loadTerminalData(nextFilters);
+  }
+
+  function exportQueueCsv() {
     exportRowsToCsv({
       filename: 'terminal-sync-kuyrugu',
-      rows: data.queue,
-      columns: [
-        { label: 'Cihaz', key: 'deviceCode' },
-        { label: 'Cihaz Adi', key: 'deviceName' },
-        { label: 'Kullanici', key: 'username' },
-        { label: 'Event', key: 'eventType' },
-        { label: 'Client Request', key: 'clientRequestId' },
-        { label: 'Durum', key: 'status' },
-        { label: 'Retry', key: 'retryCount' },
-        { label: 'Hata', key: 'lastError' },
-        { label: 'Alinma', value: (row) => formatDate(row.receivedAt) },
-        { label: 'Islenme', value: (row) => formatDate(row.processedAt) },
-      ],
+      rows: visibleQueue,
+      columns: queueColumns,
+    });
+  }
+
+  function exportQueueExcel() {
+    exportRowsToExcel({
+      filename: 'terminal-sync-kuyrugu',
+      title: 'Terminal Sync Kuyrugu',
+      rows: visibleQueue,
+      columns: queueColumns,
+    });
+  }
+
+  function printQueue() {
+    printRowsReport({
+      title: 'Terminal Yonetimi',
+      subtitle: `Satir: ${visibleQueue.length}`,
+      rows: visibleQueue,
+      columns: queueColumns,
     });
   }
 
@@ -110,12 +151,13 @@ export function TerminalAdminScreen() {
     <main className="work-area dashboard-screen terminal-admin-screen">
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
-          <strong>Terminal Yönetimi</strong>
+          <strong>Terminal Yonetimi</strong>
           <span>Android cihazlar, offline queue, sync loglari ve hatali gonderimler</span>
         </div>
         <div className="dashboard-toolbar-actions">
-          <button type="button" onClick={exportQueue}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Terminal Yonetimi')}>Yazdir</button>
+          <button type="button" onClick={exportQueueCsv} disabled={!visibleQueue.length}>CSV</button>
+          <button type="button" onClick={exportQueueExcel} disabled={!visibleQueue.length}>Excel</button>
+          <button type="button" onClick={printQueue} disabled={!visibleQueue.length}>Yazdir/PDF</button>
           <button type="button" onClick={() => loadTerminalData()}>Yenile</button>
         </div>
       </section>
@@ -161,6 +203,9 @@ export function TerminalAdminScreen() {
                     <td>{formatDate(device.lastSeenAt)}</td>
                   </tr>
                 ))}
+                {!isLoading && data.devices.length === 0 && (
+                  <tr><td colSpan="6">Terminal cihaz kaydi yok.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -190,12 +235,16 @@ export function TerminalAdminScreen() {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Offline Queue / Sync Loglari</strong>
-          <span>{data.queue.length} satir / Secili cihaz: {selectedDeviceQueue.length}</span>
+          <span>{data.queue.length} satir / Gosterilen: {visibleQueue.length}</span>
         </div>
-        <div className="filter-grid">
+        <form className="filter-grid" onSubmit={applyFilters}>
+          <label>
+            Arama
+            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Cihaz, kullanici, event, request id" />
+          </label>
           <label>
             Durum
-            <select value={statusFilter} onChange={(event) => changeStatusFilter(event.target.value)}>
+            <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
               <option value="">Tum durumlar</option>
               <option value="pending">Bekleyen</option>
               <option value="processing">Isleniyor</option>
@@ -203,7 +252,26 @@ export function TerminalAdminScreen() {
               <option value="failed">Hatali</option>
             </select>
           </label>
-        </div>
+          <label>
+            Cihaz
+            <select value={filters.deviceId} onChange={(event) => updateFilter('deviceId', event.target.value)}>
+              <option value="">Tum cihazlar</option>
+              {data.devices.map((device) => (
+                <option key={device.id} value={device.id}>{device.deviceCode} / {device.deviceName}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Baslangic
+            <input type="date" value={filters.dateFrom} onChange={(event) => updateFilter('dateFrom', event.target.value)} />
+          </label>
+          <label>
+            Bitis
+            <input type="date" value={filters.dateTo} onChange={(event) => updateFilter('dateTo', event.target.value)} />
+          </label>
+          <button type="submit" className="primary">Filtrele</button>
+          <button type="button" className="ghost-button" onClick={resetFilters}>Temizle</button>
+        </form>
         <div className="table-shell">
           <table className="erp-table">
             <thead>
@@ -219,7 +287,7 @@ export function TerminalAdminScreen() {
               </tr>
             </thead>
             <tbody>
-              {data.queue.map((row) => (
+              {visibleQueue.map((row) => (
                 <tr key={row.id}>
                   <td>{formatDate(row.receivedAt)}</td>
                   <td>{row.deviceCode}</td>
@@ -227,11 +295,11 @@ export function TerminalAdminScreen() {
                   <td>{row.eventType}</td>
                   <td><span className={`status-pill ${statusClass(row.status)}`}>{statusLabel(row.status)}</span></td>
                   <td>{row.retryCount}</td>
-                  <td>{row.lastError || '-'}</td>
+                  <td className={row.lastError ? 'ledger-credit' : ''}>{row.lastError || '-'}</td>
                   <td>{row.targetEntity ? `${row.targetEntity} #${row.targetEntityId || '-'}` : '-'}</td>
                 </tr>
               ))}
-              {!isLoading && data.queue.length === 0 && (
+              {!isLoading && visibleQueue.length === 0 && (
                 <tr><td colSpan="8">Sync kaydi bulunamadi.</td></tr>
               )}
             </tbody>

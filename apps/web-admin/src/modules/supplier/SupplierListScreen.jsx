@@ -37,6 +37,7 @@ export function SupplierListScreen({ onOpenScreen }) {
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [selectionWarning, setSelectionWarning] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -92,7 +93,7 @@ export function SupplierListScreen({ onOpenScreen }) {
 
     return currencyMatch && normalize(text).includes(normalize(filters.search));
   }), [filters, rows]);
-  const selectedRow = filteredRows.find((row) => row.id === selectedRowId) || filteredRows[0];
+  const selectedRow = filteredRows.find((row) => row.id === selectedRowId) || null;
   const totalBalance = filteredRows.reduce((sum, row) => sum + Number(row.balance || 0), 0);
 
   function updateFilter(field, value) {
@@ -101,9 +102,11 @@ export function SupplierListScreen({ onOpenScreen }) {
 
   function openSupplier(row = selectedRow) {
     if (!row?.id) {
+      setSelectionWarning('Tedarikci karti acmak icin listeden bir tedarikci secin.');
       return;
     }
 
+    setSelectionWarning('');
     onOpenScreen('supplier-card', { supplierId: row.id, supplierCode: row.code });
   }
 
@@ -134,7 +137,7 @@ export function SupplierListScreen({ onOpenScreen }) {
           <span>Alis fisleri, bakiye ve tedarikci iskonto takibi</span>
         </div>
         <div className="customer-toolbar-actions">
-          <button type="button" onClick={() => openSupplier()}>Tedarikci Karti Ac</button>
+          <button type="button" onClick={() => openSupplier()} disabled={!selectedRow}>Tedarikci Karti Ac</button>
           <button type="button" onClick={() => onOpenScreen('supplier-card')}>Yeni Tedarikci</button>
           <button type="button" onClick={exportSuppliers}>CSV</button>
           <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikci Listesi')}>Yazdir</button>
@@ -172,6 +175,7 @@ export function SupplierListScreen({ onOpenScreen }) {
         {isLoading && <div className="list-state">API'den tedarikci kayitlari yukleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Tedarikci kaydi bulunamadi.</div>}
+        {!isLoading && !errorMessage && selectionWarning && <div className="list-state list-state-error">{selectionWarning}</div>}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
           <div className="table-wrap customer-table-wrap">
             <table className="customer-table">

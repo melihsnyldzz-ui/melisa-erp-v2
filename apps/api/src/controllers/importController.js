@@ -1,8 +1,10 @@
 import {
   commitCustomerImport,
   commitProductImport,
+  commitSupplierImport,
   previewCustomerImport,
   previewProductImport,
+  previewSupplierImport,
 } from '../services/importService.js';
 import { created, fail, ok } from '../utils/response.js';
 
@@ -57,6 +59,30 @@ export async function postCustomersCommit(req, res) {
     return created(res, result, {
       source: 'import-commit',
       audit: 'import_customers',
+    });
+  } catch (error) {
+    return importError(res, error);
+  }
+}
+
+export async function postSuppliersPreview(req, res) {
+  try {
+    const preview = await previewSupplierImport(req.body);
+    return ok(res, preview, {
+      source: 'import-preview',
+      writes: false,
+    });
+  } catch (error) {
+    return importError(res, error);
+  }
+}
+
+export async function postSuppliersCommit(req, res) {
+  try {
+    const result = await commitSupplierImport(req.body, req.user);
+    return created(res, result, {
+      source: 'import-commit',
+      audit: 'import_suppliers',
     });
   } catch (error) {
     return importError(res, error);

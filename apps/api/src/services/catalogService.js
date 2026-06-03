@@ -131,6 +131,15 @@ export async function getCatalogOverview(query = {}) {
   const pool = await getSqlPool();
   const search = trimText(query.search);
   const status = trimText(query.status);
+  const catalogId = Number(query.catalogId || 0) || null;
+  const productSearch = trimText(query.productSearch);
+  const brand = trimText(query.brand);
+  const category = trimText(query.category);
+  const currency = trimText(query.currency).toUpperCase();
+  const stockMode = trimText(query.stockMode);
+  const imageMode = trimText(query.imageMode);
+  const minPrice = Number(query.minPrice);
+  const maxPrice = Number(query.maxPrice);
 
   const catalogResult = await pool.request()
     .input('search', sql.NVarChar(120), search ? `%${search}%` : null)
@@ -168,7 +177,17 @@ export async function getCatalogOverview(query = {}) {
       ORDER BY c.id DESC;
     `);
 
-  const candidateResult = await pool.request().query(`
+  const candidateRequest = pool.request()
+    .input('productSearch', sql.NVarChar(160), productSearch ? `%${productSearch}%` : null)
+    .input('brand', sql.NVarChar(120), brand || null)
+    .input('category', sql.NVarChar(120), category || null)
+    .input('currency', sql.NVarChar(3), currency || null)
+    .input('stockMode', sql.NVarChar(20), stockMode || null)
+    .input('imageMode', sql.NVarChar(20), imageMode || null)
+    .input('minPrice', sql.Decimal(18, 4), Number.isFinite(minPrice) ? minPrice : null)
+    .input('maxPrice', sql.Decimal(18, 4), Number.isFinite(maxPrice) ? maxPrice : null);
+
+  const candidateResult = await candidateRequest.query(`
     SELECT TOP (80)
       p.id AS product_id,
       p.stock_code,
@@ -193,12 +212,61 @@ export async function getCatalogOverview(query = {}) {
       WHERE i.product_id = p.id AND i.is_active = 1
       ORDER BY i.is_primary DESC, i.sort_order ASC, i.id ASC
     ) pi
-    WHERE p.is_deleted = 0 AND p.is_active = 1
-    ORDER BY CASE WHEN pi.id IS NULL THEN 1 ELSE 0 END ASC, p.current_stock_qty DESC, p.id DESC;
+    WHERE p.is_deleted = 0
+      AND p.is_active = 1
+      AND (
+        @productSearch IS NULL
+        OR p.stock_code COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+        OR p.name COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+        OR p.brand COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+        OR p.category COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+        OR EXISTS (
+          SELECT 1
+          FROM dbo.product_barcodes bx
+          WHERE bx.product_id = p.id
+            AND bx.is_active = 1
+            AND bx.barcode COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+        )
+      )
+      AND (@brand IS NULL OR p.brand = @brand)
+      AND (@category IS NULL OR p.category = @category)
+      AND (@currency IS NULL OR p.currency_code = @currency)
+      AND (
+        @stockMode IS NULL
+        OR (@stockMode = N'inStock' AND p.current_stock_qty > 0)
+        OR (@stockMode = N'zero' AND p.current_stock_qty = 0)
+        OR (@stockMode = N'negative' AND p.current_stock_qty < 0)
+      )
+      AND (
+        @imageMode IS NULL
+        OR (@imageMode = N'withImage' AND pi.id IS NOT NULL)
+        OR (@imageMode = N'withoutImage' AND pi.id IS NULL)
+      )
+      AND (@minPrice IS NULL OR p.sales_price >= @minPrice)
+      AND (@maxPrice IS NULL OR p.sales_price <= @maxPrice)
+    ORDER BY
+      CASE WHEN p.current_stock_qty > 0 THEN 0 ELSE 1 END ASC,
+      CASE WHEN pi.id IS NULL THEN 1 ELSE 0 END ASC,
+      p.current_stock_qty DESC,
+      p.id DESC;
+  `);
+
+  const filterOptionsResult = await pool.request().query(`
+    SELECT TOP (80) brand AS value
+    FROM dbo.products
+    WHERE is_deleted = 0 AND is_active = 1 AND ISNULL(brand, N'') <> N''
+    GROUP BY brand
+    ORDER BY brand;
+
+    SELECT TOP (80) category AS value
+    FROM dbo.products
+    WHERE is_deleted = 0 AND is_active = 1 AND ISNULL(category, N'') <> N''
+    GROUP BY category
+    ORDER BY category;
   `);
 
   const catalogs = (catalogResult.recordset || []).map(toCatalogDto);
-  const selectedCatalogId = query.catalogId || catalogs[0]?.id || null;
+  const selectedCatalogId = catalogId || catalogs[0]?.id || null;
   const items = selectedCatalogId ? await getCatalogItems(pool, selectedCatalogId) : [];
 
   return {
@@ -207,6 +275,24 @@ export async function getCatalogOverview(query = {}) {
     selectedCatalogId: selectedCatalogId ? Number(selectedCatalogId) : null,
     items,
     productCandidates: (candidateResult.recordset || []).map(toCandidateDto),
+    filterOptions: {
+      brands: (filterOptionsResult.recordsets?.[0] || []).map((row) => row.value),
+      categories: (filterOptionsResult.recordsets?.[1] || []).map((row) => row.value),
+      currencies: ['TRY', 'USD', 'EUR'],
+    },
+    filters: {
+      search,
+      status,
+      catalogId: selectedCatalogId ? Number(selectedCatalogId) : null,
+      productSearch,
+      brand,
+      category,
+      currency,
+      stockMode,
+      imageMode,
+      minPrice: Number.isFinite(minPrice) ? minPrice : null,
+      maxPrice: Number.isFinite(maxPrice) ? maxPrice : null,
+    },
   };
 }
 

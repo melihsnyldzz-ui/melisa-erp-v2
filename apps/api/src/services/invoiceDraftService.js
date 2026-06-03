@@ -3,6 +3,7 @@ import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { assertAccountingPeriodOpen } from './periodLockService.js';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -63,7 +64,7 @@ function parseDraftListQuery(query = {}) {
   const partySearch = trimText(query.customer || query.supplier || query.party);
   const dateFrom = trimText(query.dateFrom);
   const dateTo = trimText(query.dateTo);
-  const allowedStatuses = new Set(['DRAFT', 'FINALIZED', 'CANCELLED']);
+  const allowedStatuses = new Set(['DRAFT', 'FINALIZED', 'CANCELLED', 'ARCHIVED_TEST']);
 
   return {
     ...options,
@@ -433,7 +434,7 @@ async function getSalesSnapshot(request, id) {
         si.document_date AS documentDate,
         si.customer_id AS customerId,
         c.name AS customerName,
-        si.status,
+        CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
         si.customer_currency AS customerCurrency,
         si.document_currency AS documentCurrency,
         si.exchange_rate_snapshot AS exchangeRate,
@@ -562,7 +563,7 @@ async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}
         si.customer_id AS customerId,
         c.name AS customerName,
         c.is_active AS customerIsActive,
-        si.status,
+        CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
         si.customer_currency AS customerCurrency,
         si.document_currency AS documentCurrency,
         si.exchange_rate_snapshot AS exchangeRate,
@@ -990,7 +991,7 @@ export async function getSalesDraftsList(query) {
         c.name AS customer_name,
         si.document_currency AS currency_code,
         si.grand_total AS total_amount,
-        si.status,
+        CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
         si.created_at,
         si.updated_at,
         item_counts.item_count
@@ -1002,7 +1003,11 @@ export async function getSalesDraftsList(query) {
         WHERE sii.sales_invoice_id = si.id
       ) item_counts
       WHERE
-        (@status IS NULL OR si.status = @status)
+        (
+          (@status IS NULL AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
+          OR (@status = N'archived_test' AND COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%')
+          OR (@status IS NOT NULL AND @status <> N'archived_test' AND si.status = @status AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
+        )
         AND (@dateFrom IS NULL OR CONVERT(date, si.created_at) >= @dateFrom)
         AND (@dateTo IS NULL OR CONVERT(date, si.created_at) <= @dateTo)
         AND (
@@ -1059,6 +1064,8 @@ export async function createSalesDraft(payload, actor = null) {
   await transaction.begin();
 
   try {
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
+
     const insert = await new sqlDriver.Request(transaction)
       .input('documentNo', sql.NVarChar(30), draft.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
@@ -1165,6 +1172,9 @@ export async function updateSalesDraft(id, payload, actor = null) {
       throw makeServiceError('SALES_DRAFT_STATUS_INVALID', 'Only DRAFT or FINALIZED sales invoices can be corrected', 409);
     }
 
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Satış fişi düzeltme');
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi düzeltme');
+
     await new sqlDriver.Request(transaction)
       .input('invoiceId', sql.BigInt, invoiceId)
       .input('documentNo', sql.NVarChar(30), draft.documentNo)
@@ -1249,6 +1259,8 @@ export async function finalizeSalesInvoice(id, actor = null) {
     if (beforeSnapshot.status !== 'DRAFT') {
       throw makeServiceError('SALES_FINALIZE_STATUS_INVALID', 'Only DRAFT sales invoices can be finalized', 409);
     }
+
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Satış fişi kesinleştirme');
 
     if (!beforeSnapshot.customerId || !beforeSnapshot.customerName) {
       throw makeServiceError('SALES_FINALIZE_CUSTOMER_INVALID', 'Sales invoice customer is missing', 400);
@@ -1392,6 +1404,11 @@ export async function finalizeSalesInvoice(id, actor = null) {
       actor,
     });
 
+    const estimatedProfitTry = profitSnapshots.reduce(
+      (total, snapshot) => total + safeNumber(snapshot.grossProfitTry),
+      0,
+    );
+
     await new sqlDriver.Request(transaction)
       .input('customerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
       .input('customerMovementInvoiceId', sql.BigInt, invoiceId)
@@ -1436,10 +1453,12 @@ export async function finalizeSalesInvoice(id, actor = null) {
 
     const finalizeResult = await new sqlDriver.Request(transaction)
       .input('finalizeInvoiceId', sql.BigInt, invoiceId)
+      .input('finalizeEstimatedProfitTry', sql.Decimal(18, 4), estimatedProfitTry)
       .query(`
         UPDATE dbo.sales_invoices
         SET
           status = N'finalized',
+          estimated_profit_try = @finalizeEstimatedProfitTry,
           finalized_at = SYSUTCDATETIME(),
           updated_at = SYSUTCDATETIME()
         WHERE id = @finalizeInvoiceId
@@ -1499,6 +1518,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null) {
     if (beforeSnapshot.status !== 'FINALIZED') {
       throw makeServiceError('SALES_CANCEL_STATUS_INVALID', 'Only FINALIZED sales invoices can be cancelled', 409);
     }
+
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Satış fişi iptal');
 
     if (!beforeSnapshot.items.length) {
       throw makeServiceError('SALES_CANCEL_ITEMS_REQUIRED', 'Sales invoice must contain at least one item', 400);
@@ -1722,7 +1743,7 @@ export async function getPurchaseDraftsList(query) {
         s.name AS supplier_name,
         pi.document_currency AS currency_code,
         pi.grand_total AS total_amount,
-        pi.status,
+        CASE WHEN COALESCE(pi.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE pi.status END AS status,
         pi.created_at,
         pi.updated_at,
         item_counts.item_count
@@ -1734,7 +1755,11 @@ export async function getPurchaseDraftsList(query) {
         WHERE pii.purchase_invoice_id = pi.id
       ) item_counts
       WHERE
-        (@status IS NULL OR pi.status = @status)
+        (
+          (@status IS NULL AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
+          OR (@status = N'archived_test' AND COALESCE(pi.description, N'') LIKE N'%TEST_ARCHIVED%')
+          OR (@status IS NOT NULL AND @status <> N'archived_test' AND pi.status = @status AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
+        )
         AND (@dateFrom IS NULL OR CONVERT(date, pi.created_at) >= @dateFrom)
         AND (@dateTo IS NULL OR CONVERT(date, pi.created_at) <= @dateTo)
         AND (
@@ -1791,6 +1816,8 @@ export async function createPurchaseDraft(payload, actor = null) {
   await transaction.begin();
 
   try {
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Alış fişi taslak kaydı');
+
     const supplierId = await ensureSupplier(sqlDriver, transaction, draft);
     const insert = await new sqlDriver.Request(transaction)
       .input('documentNo', sql.NVarChar(30), draft.documentNo)
@@ -1904,6 +1931,9 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
       throw makeServiceError('PURCHASE_DRAFT_STATUS_INVALID', 'Only DRAFT purchase invoices can be updated', 409);
     }
 
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Alış fişi düzeltme');
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Alış fişi düzeltme');
+
     const supplierId = await ensureSupplier(sqlDriver, transaction, draft);
 
     await new sqlDriver.Request(transaction)
@@ -1994,6 +2024,8 @@ export async function finalizePurchaseInvoice(id, actor = null) {
     if (beforeSnapshot.status !== 'DRAFT') {
       throw makeServiceError('PURCHASE_FINALIZE_STATUS_INVALID', 'Only DRAFT purchase invoices can be finalized', 409);
     }
+
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Alış fişi kesinleştirme');
 
     if (!beforeSnapshot.supplierId || !beforeSnapshot.supplierName) {
       throw makeServiceError('PURCHASE_FINALIZE_SUPPLIER_INVALID', 'Purchase invoice supplier is missing', 400);
@@ -2221,6 +2253,8 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
     if (beforeSnapshot.status !== 'FINALIZED') {
       throw makeServiceError('PURCHASE_CANCEL_STATUS_INVALID', 'Only FINALIZED purchase invoices can be cancelled', 409);
     }
+
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Alış fişi iptal');
 
     if (!beforeSnapshot.items.length) {
       throw makeServiceError('PURCHASE_CANCEL_ITEMS_REQUIRED', 'Purchase invoice must contain at least one item', 400);

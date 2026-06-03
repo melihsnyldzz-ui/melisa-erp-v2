@@ -1,7 +1,15 @@
-import { get } from './apiClient.js';
+import { get, post } from './apiClient.js';
 
 export async function fetchStockMovements(params = {}) {
   return get('/api/stock-movements', params);
+}
+
+export async function fetchStockValuation(params = {}) {
+  return get('/api/stock-valuation', params);
+}
+
+export async function applyStockCountAdjustment(payload = {}) {
+  return post('/api/stock-count/adjust', payload);
 }
 
 export async function fetchCustomerMovements(params = {}) {

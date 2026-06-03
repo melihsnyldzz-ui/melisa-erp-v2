@@ -73,19 +73,55 @@ function buildCustomerView(form, detailId = null) {
 }
 
 function mapBalances(form) {
-  return ['TRY', 'USD', 'EUR'].map((currency) => ({
+  const summary = new Map(['TRY', 'USD', 'EUR'].map((currency) => [currency, {
     currency,
-    debit: currency === form.currency && Number(form.balance || 0) > 0 ? Number(form.balance || 0) : 0,
-    credit: currency === form.currency && Number(form.balance || 0) < 0 ? Math.abs(Number(form.balance || 0)) : 0,
-    balance: currency === form.currency ? Number(form.balance || 0) : 0,
-  }));
+    debit: 0,
+    credit: 0,
+    balance: 0,
+  }]));
+
+  (form.movements || []).forEach((movement) => {
+    const currency = movement.currency || form.currency || 'TRY';
+    const effect = Number(movement.balanceEffect ?? movement.amount ?? 0);
+    const amount = Math.abs(Number(movement.amount || effect || 0));
+    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
+
+    if (effect > 0) {
+      row.debit += amount;
+    } else if (effect < 0) {
+      row.credit += amount;
+    }
+
+    row.balance += effect;
+    summary.set(currency, row);
+  });
+
+  if ((form.movements || []).length === 0) {
+    const currency = form.currency || 'TRY';
+    const balance = Number(form.balance || 0);
+    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
+
+    row.debit = balance > 0 ? balance : 0;
+    row.credit = balance < 0 ? Math.abs(balance) : 0;
+    row.balance = balance;
+    summary.set(currency, row);
+  }
+
+  return Array.from(summary.values());
 }
 
 function mapPaymentSummary(form) {
+  const movements = form.movements || [];
+  const lastCollection = movements.find((movement) => movement.type === 'collection');
+  const lastPayment = movements.find((movement) => movement.type === 'payment');
+  const openInvoiceCount = movements.filter((movement) => (
+    movement.type === 'sales_invoice' && !['finalized', 'cancelled'].includes(movement.status)
+  )).length;
+
   return {
-    lastCollection: form.lastTransactionDate || '-',
-    lastPayment: '-',
-    openInvoiceCount: 0,
+    lastCollection: lastCollection?.date || form.lastTransactionDate || '-',
+    lastPayment: lastPayment?.date || '-',
+    openInvoiceCount,
     riskLimit: 0,
   };
 }
@@ -133,14 +169,11 @@ const customerDetailTabs = [
   { id: 'statement', label: 'Ekstre' },
 ];
 
-const quickActions = [
-  'Cari Hareketler',
-  'Tahsilatlar',
-  'Ödemeler',
-  'Siparişler',
-  'Teklifler',
-  'Mail Gönder',
-  'Sms Gönder',
+const quickActionItems = [
+  { label: 'Cari Hareketler', screenId: 'customer-statement' },
+  { label: 'Tahsilat Girişi', screenId: 'collections-overview', mode: 'collection' },
+  { label: 'Satış Fişleri', screenId: 'sales-invoice-list' },
+  { label: 'Yeni Satış Fişi', screenId: 'sales-invoice' },
 ];
 
 function formatMoney(amount, currency) {
@@ -341,6 +374,15 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   function openTransaction(transaction) {
     if (transaction.salesInvoiceId && onOpenScreen) {
       onOpenScreen('sales-invoice', { salesDraftId: transaction.salesInvoiceId });
+      return;
+    }
+
+    if ((transaction.type === 'collection' || transaction.type === 'payment') && onOpenScreen) {
+      onOpenScreen('collections-overview', {
+        mode: transaction.type === 'payment' ? 'payment' : 'collection',
+        movementId: transaction.id,
+        customerId: activeCustomerId,
+      });
     }
   }
 
@@ -462,7 +504,12 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
               mode={mode}
               onChange={updateField}
             />
-            <CustomerBalanceSummary balances={balances} paymentSummary={paymentSummary} />
+            <CustomerBalanceSummary
+              accountBalance={customer.balance}
+              accountCurrency={customer.currency}
+              balances={balances}
+              paymentSummary={paymentSummary}
+            />
             <section className="erp-panel customer-detail-tabs-panel">
               <div className="customer-detail-tabbar">
                 {customerDetailTabs.map((tab) => (
@@ -486,11 +533,15 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
                 <span>Cari üzerinde sık kullanılan komutlar</span>
               </div>
               <div className="quick-action-list">
-                {quickActions.map((action) => (
-                  <span key={action}>
+                {quickActionItems.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    onClick={() => onOpenScreen?.(action.screenId, { mode: action.mode, customerId: activeCustomerId, customerCode: form.customerCode })}
+                  >
                     <span>□</span>
-                    {action}
-                  </span>
+                    {action.label}
+                  </button>
                 ))}
               </div>
               <div className="customer-risk-mini">
