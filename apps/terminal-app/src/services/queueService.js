@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { terminalConfig } from '../config/env';
+import { submitTerminalSale } from './terminalSalesService';
 
 const queueKey = 'terminalPendingQueue';
 
@@ -40,6 +41,14 @@ export async function enqueueAction({ eventType, payload = {}, status = 'pending
   return event;
 }
 
+export async function enqueueTerminalSale(payload) {
+  return enqueueAction({
+    eventType: 'terminal_sale',
+    payload,
+    status: 'pending',
+  });
+}
+
 export async function getPendingQueue() {
   return readQueue();
 }
@@ -66,6 +75,78 @@ export async function markRetryWait(clientEventId, error) {
   });
 
   await writeQueue(updated);
+}
+
+async function updateQueueEvent(clientEventId, patch) {
+  const queue = await readQueue();
+  const updated = queue.map((event) => (
+    event.clientEventId === clientEventId
+      ? { ...event, ...patch }
+      : event
+  ));
+  await writeQueue(updated);
+}
+
+export async function syncPendingTerminalSales({ token } = {}) {
+  const queue = await readQueue();
+  const saleEvents = queue.filter((event) => (
+    event.eventType === 'terminal_sale'
+    && ['pending', 'retry_wait', 'failed'].includes(event.status)
+  ));
+
+  const result = {
+    attempted: 0,
+    synced: 0,
+    duplicate: 0,
+    failed: 0,
+    lastErrorMessage: null,
+  };
+
+  for (const event of saleEvents) {
+    result.attempted += 1;
+    await updateQueueEvent(event.clientEventId, {
+      status: 'syncing',
+      lastAttemptAt: new Date().toISOString(),
+    });
+
+    try {
+      const response = await submitTerminalSale({
+        token,
+        payload: {
+          ...event.payload,
+          clientEventId: event.clientEventId,
+          terminalCode: event.terminalCode || terminalConfig.terminalCode,
+        },
+      });
+
+      const isDuplicate = Boolean(response?.data?.duplicate || response?.duplicate);
+      await updateQueueEvent(event.clientEventId, {
+        status: 'synced',
+        lastAttemptAt: new Date().toISOString(),
+        lastErrorCode: null,
+        lastErrorMessage: isDuplicate ? 'Daha once gonderilmis' : null,
+        serverResponse: response?.data || response,
+      });
+
+      if (isDuplicate) {
+        result.duplicate += 1;
+      } else {
+        result.synced += 1;
+      }
+    } catch (error) {
+      result.failed += 1;
+      result.lastErrorMessage = error.message || 'Sync basarisiz';
+      await updateQueueEvent(event.clientEventId, {
+        status: 'failed',
+        retryCount: Number(event.retryCount || 0) + 1,
+        lastAttemptAt: new Date().toISOString(),
+        lastErrorCode: error.code || 'SYNC_FAILED',
+        lastErrorMessage: error.message || 'Sync basarisiz',
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function getQueueSummary() {

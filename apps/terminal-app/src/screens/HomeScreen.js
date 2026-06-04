@@ -19,6 +19,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
       </View>
 
       <View style={styles.quickGrid}>
+        <TerminalButton label="Yeni satis" onPress={navigation.openNewSale} />
         <TerminalButton label="Barkod okut" onPress={navigation.openBarcode} />
         <TerminalButton label="Urun ara" onPress={navigation.openProductLookup} variant="secondary" />
         <TerminalButton label="Sync durumu" onPress={navigation.openSyncStatus} variant="secondary" />
@@ -28,8 +29,8 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
       <View style={styles.notice}>
         <Text style={styles.noticeTitle}>Faz 1 terminal kurali</Text>
         <Text style={styles.noticeText}>
-          Bu app depo kullanimi icin hizli barkod arama, cache, local queue ve sync temelini hazirlar.
-          Satis finalize, odeme ve stok sayim islemleri bu sprintte yoktur.
+          Bu app depo kullanimi icin hizli barkod arama, yeni satis, cache, local queue ve manuel sync temelini hazirlar.
+          Odeme ve stok sayim islemleri sonraki sprinttedir.
         </Text>
       </View>
 

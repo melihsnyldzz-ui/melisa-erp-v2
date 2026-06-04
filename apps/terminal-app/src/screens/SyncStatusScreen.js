@@ -4,7 +4,7 @@ import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { getCacheSummary } from '../services/cacheService';
-import { enqueueAction, getPendingQueue } from '../services/queueService';
+import { enqueueAction, getPendingQueue, syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) {
@@ -30,6 +30,12 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
       },
     });
     await refreshLocalState();
+  }
+
+  async function syncSalesQueue() {
+    const result = await syncPendingTerminalSales({ token: session.accessToken });
+    await refreshLocalState();
+    return result;
   }
 
   useEffect(() => {
@@ -64,6 +70,7 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
       </View>
 
       <TerminalButton label="Device ping queue ekle" onPress={createPingEvent} />
+      <TerminalButton label="Satis Kuyrugunu Gonder" onPress={syncSalesQueue} />
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
     </ScrollView>

@@ -26,3 +26,19 @@ export async function submitTerminalSale({ token, payload }) {
     timeoutMs: 20000,
   });
 }
+
+export function buildTerminalSalePayload({ customer, lines, terminalCode, note }) {
+  return {
+    terminalCode,
+    customerId: Number(customer.id),
+    documentCurrency: customer.currency || 'TRY',
+    note: note || 'Terminal satis',
+    items: lines.map((line) => ({
+      productId: Number(line.product.id),
+      barcode: line.product.barcodeMasked || line.product.barcode || '',
+      quantity: Number(line.quantity || 1),
+      unitPrice: Number(line.unitPrice || line.product.salePrice || 0),
+      currency: line.product.currency || customer.currency || 'TRY',
+    })),
+  };
+}
