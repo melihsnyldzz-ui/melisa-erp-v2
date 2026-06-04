@@ -87,6 +87,16 @@ async function updateQueueEvent(clientEventId, patch) {
   await writeQueue(updated);
 }
 
+export async function markQueueSynced(clientEventId, serverResponse = null) {
+  await updateQueueEvent(clientEventId, {
+    status: 'synced',
+    lastAttemptAt: new Date().toISOString(),
+    lastErrorCode: null,
+    lastErrorMessage: null,
+    serverResponse,
+  });
+}
+
 export async function syncPendingTerminalSales({ token } = {}) {
   const queue = await readQueue();
   const saleEvents = queue.filter((event) => (
@@ -153,12 +163,18 @@ export async function getQueueSummary() {
   const queue = await readQueue();
   const pendingCount = queue.filter((event) => ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
   const failedCount = queue.filter((event) => event.status === 'failed').length;
+  const syncedCount = queue.filter((event) => event.status === 'synced').length;
+  const salePendingCount = queue.filter((event) => event.eventType === 'terminal_sale' && ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
+  const saleFailedCount = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'failed').length;
   const syncedEvents = queue.filter((event) => event.status === 'synced' && event.lastAttemptAt);
   const lastSyncAt = syncedEvents[0]?.lastAttemptAt || null;
 
   return {
     pendingCount,
     failedCount,
+    syncedCount,
+    salePendingCount,
+    saleFailedCount,
     lastSyncAt,
     totalCount: queue.length,
   };

@@ -37,6 +37,9 @@ export default function App() {
       apiStatus: apiResult.online ? 'API online' : apiResult.message || 'API offline',
       pendingCount: queueSummary.pendingCount,
       failedCount: queueSummary.failedCount,
+      syncedCount: queueSummary.syncedCount,
+      salePendingCount: queueSummary.salePendingCount,
+      saleFailedCount: queueSummary.saleFailedCount,
       lastSyncAt: queueSummary.lastSyncAt,
     });
   }, []);

@@ -10,6 +10,8 @@ import { colors } from '../styles/theme';
 export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
   const [cacheSummary, setCacheSummary] = useState({ productCount: 0, customerCount: 0 });
+  const [syncMessage, setSyncMessage] = useState('');
+  const [syncError, setSyncError] = useState('');
 
   async function refreshLocalState() {
     const [nextQueue, nextCache] = await Promise.all([
@@ -33,9 +35,18 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
   }
 
   async function syncSalesQueue() {
-    const result = await syncPendingTerminalSales({ token: session.accessToken });
-    await refreshLocalState();
-    return result;
+    setSyncMessage('');
+    setSyncError('');
+    try {
+      const result = await syncPendingTerminalSales({ token: session.accessToken });
+      await refreshLocalState();
+      setSyncMessage(`Satis sync: ${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
+      if (result.lastErrorMessage) {
+        setSyncError(result.lastErrorMessage);
+      }
+    } catch (error) {
+      setSyncError(error.message || 'Satis sync basarisiz');
+    }
   }
 
   useEffect(() => {
@@ -51,6 +62,9 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
         <InfoRow label="Cihaz" value={terminalConfig.deviceName} />
         <InfoRow label="Bekleyen queue" value={String(syncState.pendingCount)} tone={syncState.pendingCount ? 'danger' : 'success'} />
         <InfoRow label="Hatali queue" value={String(syncState.failedCount)} tone={syncState.failedCount ? 'danger' : 'success'} />
+        <InfoRow label="Bekleyen satis" value={String(syncState.salePendingCount || 0)} tone={syncState.salePendingCount ? 'danger' : 'success'} />
+        <InfoRow label="Hatali satis" value={String(syncState.saleFailedCount || 0)} tone={syncState.saleFailedCount ? 'danger' : 'success'} />
+        <InfoRow label="Gonderilen" value={String(syncState.syncedCount || 0)} tone="success" />
         <InfoRow label="Son sync" value={syncState.lastSyncAt || 'Henuz yok'} />
         <InfoRow label="Urun cache" value={String(cacheSummary.productCount)} />
         <InfoRow label="Cari cache" value={String(cacheSummary.customerCount)} />
@@ -68,6 +82,9 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
           </View>
         ))}
       </View>
+
+      {syncMessage ? <Text style={styles.message}>{syncMessage}</Text> : null}
+      {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
 
       <TerminalButton label="Device ping queue ekle" onPress={createPingEvent} />
       <TerminalButton label="Satis Kuyrugunu Gonder" onPress={syncSalesQueue} />
@@ -135,5 +152,15 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     fontWeight: '700',
+  },
+  message: {
+    color: colors.success,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  error: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '900',
   },
 });

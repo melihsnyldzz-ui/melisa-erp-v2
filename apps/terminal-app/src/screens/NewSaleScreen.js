@@ -4,7 +4,7 @@ import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { lookupProductByBarcode } from '../services/productService';
-import { enqueueTerminalSale, syncPendingTerminalSales } from '../services/queueService';
+import { enqueueTerminalSale, markQueueSynced, syncPendingTerminalSales } from '../services/queueService';
 import { buildTerminalSalePayload, searchTerminalCustomers, submitTerminalSale } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
@@ -21,6 +21,8 @@ function normalizeCustomer(row) {
 function formatMoney(value, currency) {
   return `${Number(value || 0).toFixed(2)} ${currency || ''}`.trim();
 }
+
+const cashCustomerCodes = ['PESIN-TL', 'PESIN-USD', 'PESIN-EUR'];
 
 export function NewSaleScreen({ session, navigation, onRefresh }) {
   const barcodeRef = useRef(null);
@@ -61,6 +63,36 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       }
     } catch (searchError) {
       setError(searchError.message || 'Cari arama basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function selectCashCustomer(code) {
+    setCustomerQuery(code);
+    setCustomerResults([]);
+    setSelectedCustomer(null);
+    setMessage('');
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await searchTerminalCustomers({
+        q: code,
+        token: session.accessToken,
+        limit: 5,
+      });
+      const customers = (response.data || []).map(normalizeCustomer);
+      const exact = customers.find((customer) => customer.customerCode === code) || customers[0];
+      if (!exact) {
+        setError(`${code} carisi bulunamadi`);
+        return;
+      }
+      setSelectedCustomer(exact);
+      setMessage(`${exact.customerName} secildi`);
+      setTimeout(() => barcodeRef.current?.focus(), 100);
+    } catch (selectError) {
+      setError(selectError.message || `${code} secilemedi`);
     } finally {
       setLoading(false);
     }
@@ -150,9 +182,9 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
         },
       });
       const duplicate = Boolean(response?.data?.duplicate || response?.duplicate);
+      await markQueueSynced(queuedEvent.clientEventId, response?.data || response);
       setMessage(duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
       setLines([]);
-      await syncPendingTerminalSales({ token: session.accessToken });
       await onRefresh();
     } catch (submitError) {
       setMessage('Baglanti yok, fis gonderilemeyenlere alindi');
@@ -161,6 +193,21 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function adjustLineQuantity(productId, delta) {
+    setLines((current) => current.flatMap((line) => {
+      if (String(line.product.id) !== String(productId)) {
+        return [line];
+      }
+
+      const nextQuantity = Number(line.quantity || 0) + delta;
+      return nextQuantity <= 0 ? [] : [{ ...line, quantity: nextQuantity }];
+    }));
+  }
+
+  function removeLine(productId) {
+    setLines((current) => current.filter((line) => String(line.product.id) !== String(productId)));
   }
 
   async function syncQueue() {
@@ -187,6 +234,17 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
         <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
 
         <Text style={styles.label}>Cari ara</Text>
+        <View style={styles.cashRow}>
+          {cashCustomerCodes.map((code) => (
+            <TerminalButton
+              key={code}
+              label={code.replace('PESIN-', '')}
+              onPress={() => selectCashCustomer(code)}
+              disabled={loading}
+              variant="secondary"
+            />
+          ))}
+        </View>
         <View style={styles.row}>
           <TextInput
             value={customerQuery}
@@ -257,9 +315,16 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
               <Text style={styles.lineName}>{line.product.productName}</Text>
               <Text style={styles.lineMeta}>{line.product.stockCode} / {line.product.barcodeMasked}</Text>
             </View>
-            <Text style={styles.lineAmount}>
-              {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
-            </Text>
+            <View style={styles.lineActions}>
+              <Text style={styles.lineAmount}>
+                {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
+              </Text>
+              <View style={styles.lineButtons}>
+                <TerminalButton label="-" onPress={() => adjustLineQuantity(line.product.id, -1)} variant="secondary" />
+                <TerminalButton label="+" onPress={() => adjustLineQuantity(line.product.id, 1)} variant="secondary" />
+                <TerminalButton label="Sil" onPress={() => removeLine(line.product.id)} variant="danger" />
+              </View>
+            </View>
           </View>
         ))}
         <InfoRow label="Toplam" value={formatMoney(total, selectedCustomer?.currency || 'TRY')} tone="success" />
@@ -307,6 +372,9 @@ const styles = StyleSheet.create({
   row: {
     gap: 8,
   },
+  cashRow: {
+    gap: 7,
+  },
   input: {
     minHeight: 48,
     borderColor: colors.borderDark,
@@ -342,13 +410,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lineRow: {
-    minHeight: 54,
+    minHeight: 72,
     borderBottomColor: colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 8,
+    paddingVertical: 6,
   },
   lineText: {
     flex: 1,
@@ -367,6 +433,12 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontSize: 14,
     fontWeight: '900',
+  },
+  lineActions: {
+    gap: 6,
+  },
+  lineButtons: {
+    gap: 6,
   },
   message: {
     color: colors.success,
