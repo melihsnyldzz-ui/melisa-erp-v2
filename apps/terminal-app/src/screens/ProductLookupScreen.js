@@ -1,42 +1,178 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
+import { findCachedProduct, saveProductCache } from '../services/cacheService';
+import { searchTerminalProducts } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
 function formatMoney(value, currency) {
   return `${Number(value || 0).toFixed(2)} ${currency || ''}`.trim();
 }
 
-export function ProductLookupScreen({ lastLookup, navigation }) {
-  const product = lastLookup?.selectedProduct || null;
+function normalizeProduct(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    stockCode: row.stockCode,
+    barcodeMasked: row.barcodeMasked || row.barcode || row.matchedBarcode || '-',
+    productName: row.productName || row.name || '-',
+    brand: row.brand || '-',
+    category: row.category || '-',
+    currency: row.currency || 'TRY',
+    salePrice: Number(row.salePrice || 0),
+    stockQuantity: Number(row.stockQuantity || row.quantity || 0),
+    isPassive: Boolean(row.isPassive),
+  };
+}
+
+function getProductsFromResponse(response) {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.products)) {
+    return response.products;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  return [];
+}
+
+export function ProductLookupScreen({ lastLookup, navigation, session }) {
+  const initialProduct = normalizeProduct(lastLookup?.selectedProduct);
+  const [query, setQuery] = useState(lastLookup?.barcode || '');
+  const [selectedProduct, setSelectedProduct] = useState(initialProduct);
+  const [results, setResults] = useState(initialProduct ? [initialProduct] : []);
+  const [source, setSource] = useState(lastLookup?.source || 'manual');
+  const [warning, setWarning] = useState(lastLookup?.warning || '');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const nextProduct = normalizeProduct(lastLookup?.selectedProduct);
+    if (nextProduct) {
+      setSelectedProduct(nextProduct);
+      setResults([nextProduct]);
+      setSource(lastLookup?.source || 'barcode');
+      setWarning(lastLookup?.warning || '');
+      setQuery(lastLookup?.barcode || nextProduct.barcodeMasked || nextProduct.stockCode || '');
+    }
+  }, [lastLookup]);
+
+  const search = async () => {
+    const normalizedQuery = String(query || '').trim();
+    if (!normalizedQuery) {
+      setError('Arama icin barkod, stok kodu veya urun adi yazin.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setWarning('');
+
+    try {
+      const response = await searchTerminalProducts({
+        q: normalizedQuery,
+        token: session?.accessToken,
+        limit: 20,
+      });
+      const products = getProductsFromResponse(response).map(normalizeProduct).filter(Boolean);
+      await saveProductCache(products);
+
+      setResults(products);
+      setSelectedProduct(products[0] || null);
+      setSource('API');
+      if (!products.length) {
+        setWarning('API sonucu bos. Barkod/stok kodu veya urun adini kontrol edin.');
+      }
+    } catch (err) {
+      const cached = normalizeProduct(await findCachedProduct(normalizedQuery));
+      setSource('local cache');
+      setResults(cached ? [cached] : []);
+      setSelectedProduct(cached);
+      setWarning(cached ? 'API erisilemedi, local cache sonucu gosteriliyor.' : '');
+      setError(cached ? '' : `Hata: ${err.message || 'Urun bulunamadi'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.panel}>
-        <Text style={styles.title}>Urun Lookup</Text>
+        <Text style={styles.title}>Urun Arama</Text>
         <Text style={styles.meta}>
-          Kaynak: {lastLookup?.source === 'cache' ? 'local cache' : 'API'} / Barkod: {lastLookup?.barcode || '-'}
+          Kaynak: {source} / Son barkod: {lastLookup?.barcode || '-'}
         </Text>
-        {lastLookup?.warning ? <Text style={styles.warning}>{lastLookup.warning}</Text> : null}
+
+        <View style={styles.searchRow}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Barkod, stok kodu veya urun adi"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            autoCapitalize="none"
+            returnKeyType="search"
+            onSubmitEditing={search}
+          />
+          <TerminalButton label={loading ? 'Araniyor' : 'Ara'} onPress={search} disabled={loading} />
+        </View>
+
+        {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
+        {warning ? <Text style={styles.warning}>{warning}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
-      {!product ? (
+      {results.length > 1 ? (
+        <View style={styles.resultPanel}>
+          <Text style={styles.sectionTitle}>Bulunan urunler</Text>
+          {results.map((product) => (
+            <Pressable
+              key={`${product.id || product.stockCode}-${product.barcodeMasked}`}
+              onPress={() => setSelectedProduct(product)}
+              style={[
+                styles.resultRow,
+                selectedProduct?.id === product.id && styles.selectedResultRow,
+              ]}
+            >
+              <Text style={styles.resultName}>{product.productName}</Text>
+              <Text style={styles.resultMeta}>
+                {product.stockCode} / {product.barcodeMasked} / Stok {product.stockQuantity}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {!selectedProduct ? (
         <View style={styles.emptyPanel}>
           <Text style={styles.emptyTitle}>Urun secili degil</Text>
-          <Text style={styles.emptyText}>Barkod okut ekranindan lookup yapin.</Text>
+          <Text style={styles.emptyText}>Barkod okutun veya yukaridan manuel arama yapin.</Text>
         </View>
       ) : (
-        <View style={[styles.productPanel, product.isPassive && styles.passivePanel]}>
-          <Text style={styles.productName}>{product.productName}</Text>
-          <InfoRow label="Stok kodu" value={product.stockCode} />
-          <InfoRow label="Barkod" value={product.barcodeMasked} />
-          <InfoRow label="Marka" value={product.brand} />
-          <InfoRow label="Kategori" value={product.category} />
-          <InfoRow label="Mevcut stok" value={String(product.stockQuantity)} tone={product.stockQuantity < 0 ? 'danger' : 'normal'} />
-          <InfoRow label="Satis fiyat" value={formatMoney(product.salePrice, product.currency)} />
-          <InfoRow label="Durum" value={product.isPassive ? 'PASIF' : 'AKTIF'} tone={product.isPassive ? 'danger' : 'success'} />
+        <View style={[styles.productPanel, selectedProduct.isPassive && styles.passivePanel]}>
+          <Text style={styles.productName}>{selectedProduct.productName}</Text>
+          <InfoRow label="Stok kodu" value={selectedProduct.stockCode} />
+          <InfoRow label="Barkod" value={selectedProduct.barcodeMasked} />
+          <InfoRow label="Marka" value={selectedProduct.brand} />
+          <InfoRow label="Kategori" value={selectedProduct.category} />
+          <InfoRow label="Mevcut stok" value={String(selectedProduct.stockQuantity)} tone={selectedProduct.stockQuantity < 0 ? 'danger' : 'normal'} />
+          <InfoRow label="Satis fiyat" value={formatMoney(selectedProduct.salePrice, selectedProduct.currency)} />
+          <InfoRow label="Durum" value={selectedProduct.isPassive ? 'PASIF' : 'AKTIF'} tone={selectedProduct.isPassive ? 'danger' : 'success'} />
 
-          {product.isPassive ? (
+          {selectedProduct.isPassive ? (
             <Text style={styles.passiveNote}>Pasif urun yeni terminal satisinda secilmemelidir.</Text>
           ) : null}
         </View>
@@ -59,6 +195,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 4,
     padding: 12,
+    gap: 10,
   },
   title: {
     color: colors.text,
@@ -66,16 +203,69 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   meta: {
-    marginTop: 4,
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
   },
+  searchRow: {
+    gap: 8,
+  },
+  input: {
+    minHeight: 52,
+    backgroundColor: colors.input,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
   warning: {
-    marginTop: 8,
     color: colors.warning,
     fontSize: 13,
     fontWeight: '900',
+  },
+  error: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  resultPanel: {
+    backgroundColor: '#ffffff',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    gap: 8,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  resultRow: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    backgroundColor: colors.panel,
+  },
+  selectedResultRow: {
+    borderColor: colors.success,
+    backgroundColor: '#ecfff3',
+  },
+  resultName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  resultMeta: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
   },
   emptyPanel: {
     minHeight: 170,

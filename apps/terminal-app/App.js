@@ -3,6 +3,7 @@ import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text } from 're
 import { TerminalShell } from './src/components/TerminalShell';
 import { BarcodeScreen } from './src/screens/BarcodeScreen';
 import { DataUpdateScreen } from './src/screens/DataUpdateScreen';
+import { FieldTestScreen } from './src/screens/FieldTestScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { NewSaleScreen } from './src/screens/NewSaleScreen';
@@ -88,6 +89,7 @@ export default function App() {
     goHome: () => setActiveScreen('home'),
     openBarcode: () => setActiveScreen('barcode'),
     openDataUpdate: () => setActiveScreen('dataUpdate'),
+    openFieldTest: () => setActiveScreen('fieldTest'),
     openNewSale: () => setActiveScreen('newSale'),
     openProductLookup: () => setActiveScreen('productLookup'),
     openSettings: () => setActiveScreen('settings'),
@@ -117,7 +119,7 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" backgroundColor={colors.header} />
       <TerminalShell
-        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : 'Urun Bilgisi'}
+        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
         session={session}
         syncState={syncState}
@@ -153,6 +155,7 @@ export default function App() {
           <ProductLookupScreen
             lastLookup={lastLookup}
             navigation={navigation}
+            session={session}
           />
         )}
 
@@ -177,6 +180,13 @@ export default function App() {
             session={session}
             navigation={navigation}
             onRefresh={refreshSyncState}
+          />
+        )}
+
+        {activeScreen === 'fieldTest' && (
+          <FieldTestScreen
+            navigation={navigation}
+            syncState={syncState}
           />
         )}
       </TerminalShell>

@@ -27,7 +27,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <Text style={styles.statusValue}>{syncState.pendingCount || 0}</Text>
         </View>
         <View style={[styles.statusCard, syncState.saleFailedCount ? styles.badCard : styles.goodCard]}>
-          <Text style={styles.statusLabel}>Hatalı</Text>
+          <Text style={styles.statusLabel}>Hatali</Text>
           <Text style={styles.statusValue}>{syncState.saleFailedCount || 0}</Text>
         </View>
       </View>
@@ -35,9 +35,10 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
       <View style={styles.secondaryGrid}>
         <TerminalButton label="Sync durumu" onPress={navigation.openSyncStatus} variant="secondary" />
         <TerminalButton label="Veri guncelle" onPress={navigation.openDataUpdate} variant="secondary" />
-        <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
+        <TerminalButton label="Saha testi" onPress={navigation.openFieldTest} variant="secondary" />
         <TerminalButton label="Urun bilgisi" onPress={navigation.openProductLookup} variant="secondary" />
         <TerminalButton label="Ayarlar" onPress={navigation.openSettings} variant="secondary" />
+        <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
       </View>
 
       <View style={styles.notice}>
