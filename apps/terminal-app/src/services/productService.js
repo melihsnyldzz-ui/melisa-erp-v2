@@ -6,7 +6,7 @@ function normalizeProduct(row) {
   return {
     id: row.id,
     stockCode: row.stockCode,
-    barcodeMasked: row.barcodeMasked,
+    barcodeMasked: row.barcodeMasked || row.barcode,
     productName: row.productName,
     brand: row.brand,
     category: row.category,
@@ -27,11 +27,11 @@ export async function lookupProductByBarcode({ barcode, token }) {
   }
 
   try {
-    const response = await apiRequest(`/products?search=${encodeURIComponent(trimmedBarcode)}&page=1&limit=20&activeOnly=false`, {
+    const response = await apiRequest(`/terminal/products/barcode/${encodeURIComponent(trimmedBarcode)}`, {
       token,
     });
 
-    const products = (response.data || []).map(normalizeProduct);
+    const products = [normalizeProduct(response.data)];
     await saveProductCache(products);
 
     return {

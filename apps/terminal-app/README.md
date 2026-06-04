@@ -17,13 +17,15 @@ npm run doctor
 `.env.example` icindeki degerler:
 
 ```text
-EXPO_PUBLIC_API_BASE_URL=http://localhost:4100
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.47:4100
 EXPO_PUBLIC_DEVICE_NAME=Depo Terminal
 EXPO_PUBLIC_TERMINAL_CODE=TERM-V2-001
 EXPO_PUBLIC_APP_ENV=development
 ```
 
-Fiziksel Android cihazda `localhost` cihazin kendisini gosterecegi icin API adresi LAN IP olarak verilmelidir. Android emulator icin gerekirse `http://10.0.2.2:4100` kullanilabilir.
+Fiziksel Android cihazda `localhost` cihazin kendisini gosterecegi icin API adresi LAN IP olarak verilmelidir. Expo LAN modunda app dev server host IP'sinden otomatik `http://PC_IP:4100` tahmini yapar. Android emulator icin gerekirse `http://10.0.2.2:4100` kullanilabilir.
+
+Local gelistirme modunda sifresiz test icin login ekranindaki `Local Acik Admin` butonu `open-admin` token'i ile giris yapar. Bu sadece backend tarafinda local open-admin kabul edildiginde calisir.
 
 Web preview icin:
 

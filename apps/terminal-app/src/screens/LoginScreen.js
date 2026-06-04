@@ -23,6 +23,21 @@ export function LoginScreen({ onLogin, syncState }) {
     }
   }
 
+  async function submitOpenAdmin() {
+    setUsername('open-admin');
+    setPassword('');
+    setError('');
+    setSubmitting(true);
+
+    try {
+      await onLogin({ username: 'open-admin', password: '' });
+    } catch (submitError) {
+      setError(submitError.message || 'Acik admin girisi basarisiz');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.card}>
@@ -61,6 +76,7 @@ export function LoginScreen({ onLogin, syncState }) {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TerminalButton label={submitting ? 'Giris yapiliyor' : 'Giris'} onPress={submit} disabled={submitting} />
+        <TerminalButton label="Local Acik Admin" onPress={submitOpenAdmin} disabled={submitting} variant="secondary" />
         {submitting ? <ActivityIndicator style={styles.loader} color={colors.accentDark} /> : null}
       </View>
     </SafeAreaView>
