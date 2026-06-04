@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const productCacheKey = 'terminalProductCache';
 const customerCacheKey = 'terminalCustomerCache';
+const cacheMetaKey = 'terminalCacheMeta';
 
 async function readJson(key, fallback) {
   const raw = await AsyncStorage.getItem(key);
@@ -44,14 +45,17 @@ export async function findCachedProduct(query) {
 }
 
 export async function getCacheSummary() {
-  const [products, customers] = await Promise.all([
+  const [products, customers, meta] = await Promise.all([
     readJson(productCacheKey, {}),
     readJson(customerCacheKey, {}),
+    readJson(cacheMetaKey, {}),
   ]);
 
   return {
     productCount: Object.keys(products).length,
     customerCount: Object.keys(customers).length,
+    productCachedAt: meta.productCachedAt || null,
+    customerCachedAt: meta.customerCachedAt || null,
   };
 }
 
@@ -67,4 +71,16 @@ export async function saveCustomerCache(customers = []) {
   });
 
   await writeJson(customerCacheKey, next);
+}
+
+export async function markCacheUpdated(type, count) {
+  const meta = await readJson(cacheMetaKey, {});
+  const now = new Date().toISOString();
+  const next = {
+    ...meta,
+    [`${type}CachedAt`]: now,
+    [`${type}CachedCount`]: count,
+  };
+  await writeJson(cacheMetaKey, next);
+  return next;
 }

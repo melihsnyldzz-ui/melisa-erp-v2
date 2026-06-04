@@ -34,6 +34,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
 
       <View style={styles.secondaryGrid}>
         <TerminalButton label="Sync durumu" onPress={navigation.openSyncStatus} variant="secondary" />
+        <TerminalButton label="Veri guncelle" onPress={navigation.openDataUpdate} variant="secondary" />
         <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
         <TerminalButton label="Urun bilgisi" onPress={navigation.openProductLookup} variant="secondary" />
         <TerminalButton label="Ayarlar" onPress={navigation.openSettings} variant="secondary" />

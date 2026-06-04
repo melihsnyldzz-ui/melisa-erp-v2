@@ -18,6 +18,14 @@ export async function searchTerminalCustomers({ q = '', token, limit = 30 } = {}
   });
 }
 
+export async function downloadTerminalProducts({ token, limit = 100 } = {}) {
+  return searchTerminalProducts({ q: '', token, limit });
+}
+
+export async function downloadTerminalCustomers({ token, limit = 100 } = {}) {
+  return searchTerminalCustomers({ q: '', token, limit });
+}
+
 export async function submitTerminalSale({ token, payload }) {
   return apiRequest('/terminal/sales/submit', {
     method: 'POST',

@@ -68,6 +68,8 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
         <InfoRow label="Son sync" value={syncState.lastSyncAt || 'Henuz yok'} />
         <InfoRow label="Urun cache" value={String(cacheSummary.productCount)} />
         <InfoRow label="Cari cache" value={String(cacheSummary.customerCount)} />
+        <InfoRow label="Urun cache zamani" value={cacheSummary.productCachedAt ? new Date(cacheSummary.productCachedAt).toLocaleString('tr-TR') : 'Henuz yok'} />
+        <InfoRow label="Cari cache zamani" value={cacheSummary.customerCachedAt ? new Date(cacheSummary.customerCachedAt).toLocaleString('tr-TR') : 'Henuz yok'} />
       </View>
 
       <View style={styles.queuePanel}>

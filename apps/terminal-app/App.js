@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text } from 'react-native';
 import { TerminalShell } from './src/components/TerminalShell';
 import { BarcodeScreen } from './src/screens/BarcodeScreen';
+import { DataUpdateScreen } from './src/screens/DataUpdateScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { NewSaleScreen } from './src/screens/NewSaleScreen';
@@ -10,6 +11,7 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SyncStatusScreen } from './src/screens/SyncStatusScreen';
 import { pingApi } from './src/services/apiClient';
 import { clearSession, getStoredSession, login, logout } from './src/services/authService';
+import { getCacheSummary } from './src/services/cacheService';
 import { getQueueSummary } from './src/services/queueService';
 import { colors } from './src/styles/theme';
 
@@ -29,9 +31,10 @@ export default function App() {
   const [syncState, setSyncState] = useState(initialSyncState);
 
   const refreshSyncState = useCallback(async () => {
-    const [apiResult, queueSummary] = await Promise.all([
+    const [apiResult, queueSummary, cacheSummary] = await Promise.all([
       pingApi(),
       getQueueSummary(),
+      getCacheSummary(),
     ]);
 
     setSyncState({
@@ -42,6 +45,10 @@ export default function App() {
       syncedCount: queueSummary.syncedCount,
       salePendingCount: queueSummary.salePendingCount,
       saleFailedCount: queueSummary.saleFailedCount,
+      productCount: cacheSummary.productCount,
+      customerCount: cacheSummary.customerCount,
+      productCachedAt: cacheSummary.productCachedAt,
+      customerCachedAt: cacheSummary.customerCachedAt,
       lastSyncAt: queueSummary.lastSyncAt,
     });
   }, []);
@@ -80,6 +87,7 @@ export default function App() {
   const navigation = useMemo(() => ({
     goHome: () => setActiveScreen('home'),
     openBarcode: () => setActiveScreen('barcode'),
+    openDataUpdate: () => setActiveScreen('dataUpdate'),
     openNewSale: () => setActiveScreen('newSale'),
     openProductLookup: () => setActiveScreen('productLookup'),
     openSettings: () => setActiveScreen('settings'),
@@ -109,7 +117,7 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" backgroundColor={colors.header} />
       <TerminalShell
-        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'settings' ? 'Ayarlar' : 'Urun Bilgisi'}
+        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
         session={session}
         syncState={syncState}
@@ -159,6 +167,14 @@ export default function App() {
 
         {activeScreen === 'settings' && (
           <SettingsScreen
+            navigation={navigation}
+            onRefresh={refreshSyncState}
+          />
+        )}
+
+        {activeScreen === 'dataUpdate' && (
+          <DataUpdateScreen
+            session={session}
             navigation={navigation}
             onRefresh={refreshSyncState}
           />
