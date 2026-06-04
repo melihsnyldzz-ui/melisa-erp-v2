@@ -9,8 +9,13 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
     <View style={styles.shell}>
       <View style={styles.topbar}>
         <View style={styles.brandBlock}>
-          <Text style={styles.brand}>Melisa Terminal</Text>
-          <Text style={styles.meta}>{terminalConfig.terminalCode} / {session?.user?.username || 'open-admin'}</Text>
+          <View style={styles.brandMark}>
+            <Text style={styles.brandMarkText}>M</Text>
+          </View>
+          <View style={styles.brandTextBlock}>
+            <Text style={styles.brand}>Melisa Terminal</Text>
+            <Text style={styles.meta}>{terminalConfig.terminalCode} / {session?.user?.username || 'open-admin'}</Text>
+          </View>
         </View>
         <View style={[styles.statusBadge, syncState.online ? styles.online : styles.offline]}>
           <Text style={styles.statusText}>{syncState.online ? 'ONLINE' : 'OFFLINE'}</Text>
@@ -48,9 +53,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topbar: {
-    minHeight: 58,
-    backgroundColor: colors.header,
-    borderBottomColor: colors.borderDark,
+    minHeight: 64,
+    backgroundColor: colors.white,
+    borderBottomColor: colors.border,
     borderBottomWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -60,14 +65,33 @@ const styles = StyleSheet.create({
   },
   brandBlock: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandMark: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.accent,
+  },
+  brandMarkText: {
+    color: colors.headerText,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  brandTextBlock: {
+    flex: 1,
   },
   brand: {
-    color: colors.headerText,
+    color: colors.text,
     fontSize: 20,
     fontWeight: '900',
   },
   meta: {
-    color: colors.headerSubtle,
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '800',
     marginTop: 2,
@@ -75,7 +99,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     minWidth: 88,
     alignItems: 'center',
-    borderRadius: 4,
+    borderRadius: 7,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
@@ -101,10 +125,10 @@ const styles = StyleSheet.create({
   },
   contextItem: {
     flex: 1,
-    backgroundColor: '#1a222c',
-    borderColor: '#3b4652',
+    backgroundColor: '#172033',
+    borderColor: '#263449',
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 7,
     paddingHorizontal: 8,
     paddingVertical: 6,
   },
@@ -126,7 +150,7 @@ const styles = StyleSheet.create({
     color: '#ff9a9a',
   },
   screenHeader: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
     paddingHorizontal: 12,
