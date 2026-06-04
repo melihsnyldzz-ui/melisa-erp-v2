@@ -4,12 +4,12 @@ export function SalesInvoiceCustomerPanel({ invoice, permissions }) {
   return (
     <section className="erp-panel sales-customer-panel">
       <div className="panel-title">
-        <strong>Musteri / Yetki</strong>
-        <span>Fis baglam bilgisi</span>
+        <strong>Müşteri / Yetki</strong>
+        <span>Fiş bağlam bilgisi</span>
       </div>
       <dl>
         <div>
-          <dt>Musteri</dt>
+          <dt>Müşteri</dt>
           <dd>{invoice.customer}</dd>
         </div>
         <div>
@@ -21,15 +21,15 @@ export function SalesInvoiceCustomerPanel({ invoice, permissions }) {
           <dd>{invoice.customerBalanceLabel || '-'}</dd>
         </div>
         <div>
-          <dt>Fiyat degisikligi</dt>
+          <dt>Fiyat değişikliği</dt>
           <dd>{permissions.priceChange}</dd>
         </div>
         <div>
-          <dt>Iskonto</dt>
+          <dt>İskonto</dt>
           <dd>{permissions.discount}</dd>
         </div>
         <div>
-          <dt>Fis iptal</dt>
+          <dt>Fiş iptal</dt>
           <dd>{permissions.cancel}</dd>
         </div>
       </dl>

@@ -20,17 +20,17 @@ export function CustomerListFilters({ filters, onChange, onReset }) {
         <input value={filters.phone} onChange={(event) => updateFilter('phone', event.target.value)} />
       </label>
       <label>
-        <span>Sehir</span>
+        <span>Şehir</span>
         <input value={filters.city} onChange={(event) => updateFilter('city', event.target.value)} />
       </label>
       <label>
-        <span>Ulke</span>
+        <span>Ülke</span>
         <input value={filters.country} onChange={(event) => updateFilter('country', event.target.value)} />
       </label>
       <label>
         <span>Para birimi</span>
         <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
-          <option value="all">Tumu</option>
+          <option value="all">Tümü</option>
           <option value="TRY">TRY</option>
           <option value="USD">USD</option>
           <option value="EUR">EUR</option>
@@ -39,8 +39,8 @@ export function CustomerListFilters({ filters, onChange, onReset }) {
       <label>
         <span>Cari tipi</span>
         <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)}>
-          <option value="all">Tumu</option>
-          <option value="Musteri">Musteri</option>
+          <option value="all">Tümü</option>
+          <option value="Müşteri">Müşteri</option>
           <option value="Toptan">Toptan</option>
           <option value="Perakende">Perakende</option>
           <option value="Karma">Karma</option>
@@ -50,17 +50,17 @@ export function CustomerListFilters({ filters, onChange, onReset }) {
         <span>Aktif / pasif</span>
         <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
           <option value="active">Aktif</option>
-          <option value="all">Tumu</option>
+          <option value="all">Tümü</option>
           <option value="passive">Pasif</option>
         </select>
       </label>
       <label>
-        <span>Borclu / alacakli</span>
+        <span>Borçlu / alacaklı</span>
         <select value={filters.balanceState} onChange={(event) => updateFilter('balanceState', event.target.value)}>
-          <option value="all">Tumu</option>
-          <option value="receivable">Borclu</option>
-          <option value="payable">Alacakli</option>
-          <option value="zero">Sifir</option>
+          <option value="all">Tümü</option>
+          <option value="receivable">Borçlu</option>
+          <option value="payable">Alacaklı</option>
+          <option value="zero">Sıfır</option>
         </select>
       </label>
       <button type="button" onClick={onReset}>Temizle</button>

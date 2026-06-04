@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export function ProductImagePanel({ product, images = [], canEdit = false, disabled = false, onSaveImage }) {
-  const primaryImage = images.find((image) => image.isPrimary && image.isActive) || images.find((image) => image.isActive);
+  const primaryImage = images.find((image) => image.isPrimary && image.isActive) || images.find((image) => image.isActive) || {};
   const [imageUrl, setImageUrl] = useState('');
 
   async function saveImage(event) {
@@ -17,17 +17,17 @@ export function ProductImagePanel({ product, images = [], canEdit = false, disab
   return (
     <section className="erp-panel product-image-panel">
       <div className="panel-title">
-        <strong>Urun Gorseli</strong>
-        <span>Katalog ve stok karti ana gorseli</span>
+        <strong>Ürün Görseli</strong>
+        <span>Katalog ve stok kartı ana görseli</span>
       </div>
-      {primaryImage?.filePath ? (
+      {primaryImage.filePath ? (
         <div className="product-image-preview">
           <img alt={product.name} src={primaryImage.filePath} />
         </div>
       ) : (
         <div className="product-image-placeholder">
           <div>
-            <strong>Gorsel yok</strong>
+            <strong>Görsel yok</strong>
             <span>{product.stockCode}</span>
           </div>
         </div>
@@ -37,11 +37,11 @@ export function ProductImagePanel({ product, images = [], canEdit = false, disab
           disabled={disabled || !canEdit}
           value={imageUrl}
           onChange={(event) => setImageUrl(event.target.value)}
-          placeholder="Gorsel URL veya dosya yolu"
+          placeholder="Görsel URL veya dosya yolu"
         />
-        <button disabled={disabled || !canEdit || !imageUrl.trim()} type="submit">Gorsel Kaydet</button>
+        <button disabled={disabled || !canEdit || !imageUrl.trim()} type="submit">Görsel Kaydet</button>
       </form>
-      <p>{primaryImage?.filePath || product.imageNote}</p>
+      <p>{primaryImage.filePath || product.imageNote}</p>
     </section>
   );
 }

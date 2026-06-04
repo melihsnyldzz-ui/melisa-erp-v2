@@ -282,7 +282,7 @@ export const mockScreenContent = {
       ['API bağlantısı', 'http://localhost:4100', 'Frontend', 'Kontrol edilir', 'Health endpoint'],
       ['Demo modu', 'Env kontrollü', 'Frontend', 'Aktif/Pasif', 'Canlı yazma yapmaz'],
     ],
-    summary: ['Görünüm: kullanıcı tercihi', 'API health: kontrol edilir', 'Secret değerleri gösterilmez'],
+    summary: ['Görünüm: kullanıcı tercihi', 'API health: kontrol edilir', 'Se?ret değerleri gösterilmez'],
   },
   'auth-overview': {
     title: 'Yetki ve Denetim',

@@ -4,20 +4,20 @@ export function PurchaseInvoiceSupplierPanel({ invoice, permissions }) {
   return (
     <section className="erp-panel purchase-supplier-panel">
       <div className="panel-title">
-        <strong>Tedarikci / Yetki</strong>
-        <span>Alis fisi baglami</span>
+        <strong>Tedarikçi / Yetki</strong>
+        <span>Alış fişi bağlamı</span>
       </div>
       <dl>
         <div>
-          <dt>Tedarikci</dt>
+          <dt>Tedarikçi</dt>
           <dd>{invoice.supplier}</dd>
         </div>
         <div>
-          <dt>Tedarikci PB</dt>
+          <dt>Tedarikçi PB</dt>
           <dd>{invoice.supplierCurrency}</dd>
         </div>
         <div>
-          <dt>Tedarikci bakiye</dt>
+          <dt>Tedarikçi bakiye</dt>
           <dd>{invoice.supplierBalanceLabel || '-'}</dd>
         </div>
         <div>
@@ -25,15 +25,15 @@ export function PurchaseInvoiceSupplierPanel({ invoice, permissions }) {
           <dd>%{invoice.supplierDiscountRate ?? 0}</dd>
         </div>
         <div>
-          <dt>Isleyen rol</dt>
+          <dt>İşleyen rol</dt>
           <dd>{permissions.entryOwner}</dd>
         </div>
         <div>
-          <dt>Fiyat degisikligi</dt>
+          <dt>Fiyat değişikliği</dt>
           <dd>{permissions.priceChange}</dd>
         </div>
         <div>
-          <dt>Fis iptal</dt>
+          <dt>Fiş iptal</dt>
           <dd>{permissions.cancel}</dd>
         </div>
         <div>

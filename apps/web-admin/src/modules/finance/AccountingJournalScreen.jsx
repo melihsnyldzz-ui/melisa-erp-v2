@@ -22,7 +22,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 
 export function AccountingJournalScreen({ onOpenScreen }) {
   const [rows, setRows] = useState([]);
-  const [summary, setSummary] = useState(null);
+  const [summary, setSummary] = useState({});
   const [filters, setFilters] = useState({
     search: '',
     partyType: '',
@@ -45,11 +45,11 @@ export function AccountingJournalScreen({ onOpenScreen }) {
         dateFrom: nextFilters.dateFrom || undefined,
         dateTo: nextFilters.dateTo || undefined,
       });
-      setRows(response.data?.rows || []);
-      setSummary(response.data?.summary || null);
+      setRows(response.data.rows || []);
+      setSummary(response.data.summary || null);
     } catch (error) {
       setRows([]);
-      setSummary(null);
+      setSummary({});
       setErrorMessage(`${error.message || 'Muhasebe defteri okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
@@ -122,7 +122,7 @@ export function AccountingJournalScreen({ onOpenScreen }) {
   function printJournal() {
     printRowsReport({
       title: 'Melisa ERP - Muhasebe Defteri',
-      subtitle: `${rows.length} yevmiye satırı / ${summary?.balanced ? 'Borç alacak dengeli' : 'Kontrol gerekli'}`,
+      subtitle: `${rows.length} yevmiye satırı / ${summary.balanced ? 'Borç alacak dengeli' : 'Kontrol gerekli'}`,
       rows,
       columns: [
         { label: 'Tarih', key: 'documentDate' },
@@ -157,9 +157,9 @@ export function AccountingJournalScreen({ onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid">
-        <Kpi label="Borç toplamı" value={formatMoney(summary?.debit)} detail={`${summary?.lineCount || 0} yevmiye satırı`} tone="good" />
-        <Kpi label="Alacak toplamı" value={formatMoney(summary?.credit)} detail={`${summary?.movementCount || 0} ticari hareket`} tone="danger" />
-        <Kpi label="Denge farkı" value={formatMoney(summary?.difference)} detail={summary?.balanced ? 'Borç/alacak dengeli' : 'Kontrol gerekli'} tone={summary?.balanced ? 'good' : 'warn'} />
+        <Kpi label="Borç toplamı" value={formatMoney(summary.debit)} detail={`${summary.lineCount || 0} yevmiye satırı`} tone="good" />
+        <Kpi label="Alacak toplamı" value={formatMoney(summary.credit)} detail={`${summary.movementCount || 0} ticari hareket`} tone="danger" />
+        <Kpi label="Denge farkı" value={formatMoney(summary.difference)} detail={summary.balanced ? 'Borç/alacak dengeli' : 'Kontrol gerekli'} tone={summary.balanced ? 'good' : 'warn'} />
         <Kpi label="Kaynak" value="Canlı SQL" detail="Cari ve kasa/banka hareketlerinden türetilir" tone="info" />
       </section>
 

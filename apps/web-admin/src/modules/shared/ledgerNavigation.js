@@ -13,7 +13,7 @@ export function resolveLedgerTarget(row = {}) {
       payload: {
         salesDraftId: row.salesInvoiceId,
         invoiceNo: row.documentNo,
-        tabLabel: row.documentNo ? `Satis Fisi: ${row.documentNo}` : undefined,
+        tabLabel: row.documentNo ? `Satış Fişi: ${row.documentNo}` : undefined,
       },
       reason: 'sales-invoice',
     };
@@ -25,7 +25,7 @@ export function resolveLedgerTarget(row = {}) {
       payload: {
         purchaseDraftId: row.purchaseInvoiceId,
         invoiceNo: row.documentNo,
-        tabLabel: row.documentNo ? `Alis Fisi: ${row.documentNo}` : undefined,
+        tabLabel: row.documentNo ? `Alış Fişi: ${row.documentNo}` : undefined,
       },
       reason: 'purchase-invoice',
     };
@@ -51,7 +51,7 @@ export function resolveLedgerTarget(row = {}) {
         mode: 'payment',
         movementId: row.id,
         supplierId: row.supplierId,
-        tabLabel: row.documentNo ? `Odeme: ${row.documentNo}` : 'Odeme',
+        tabLabel: row.documentNo ? `Ödeme: ${row.documentNo}` : 'Ödeme',
       },
       reason: 'payment',
     };
@@ -63,7 +63,7 @@ export function resolveLedgerTarget(row = {}) {
       payload: {
         supplierId: row.supplierId,
         supplierCode: row.supplierCode,
-        tabLabel: row.supplierName || row.supplierCode || 'Tedarikci Kart',
+        tabLabel: row.supplierName || row.supplierCode || 'Tedarikçi Kart',
       },
       reason: 'supplier-card',
     };
@@ -100,19 +100,19 @@ export function ledgerTargetActionLabel(row = {}) {
   }
 
   if (row.movementType === 'payment') {
-    return 'Odemeye Git';
+    return 'Ödemeye Git';
   }
 
   if (row.purchaseInvoiceId || row.movementType === 'purchase_invoice' || row.movementType === 'purchase_invoice_cancel') {
-    return 'Alis Fisine Git';
+    return 'Alış Fişine Git';
   }
 
   if (row.salesInvoiceId || row.movementType === 'sales_invoice' || row.movementType === 'sales_invoice_cancel') {
-    return 'Satis Fisine Git';
+    return 'Satış Fişine Git';
   }
 
   if (row.partyType === 'supplier') {
-    return 'Tedarikciye Git';
+    return 'Tedarikçiye Git';
   }
 
   return 'Cariye Git';

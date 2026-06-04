@@ -18,27 +18,27 @@ export function SalesInvoiceToolbar({
 }) {
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
-  const saveLabel = isFinalized ? 'Kesin Fis' : 'Taslak Kaydet';
+  const saveLabel = isFinalized ? 'Kesin Fi?' : 'Taslak Kaydet';
 
   return (
     <section className="sales-invoice-toolbar">
       <div className="sales-toolbar-title">
-        <strong>Satis Fisi</strong>
+        <strong>Satış Fişi</strong>
         <span>{status}</span>
       </div>
       <div className="sales-toolbar-actions">
-        <button type="button" onClick={onNewDraft}>Yeni Fis</button>
+        <button type="button" onClick={onNewDraft}>Yeni Fiş</button>
         <button type="button" onClick={onSaveDraft} disabled={isSaving || isReadonly || isCancelled || isFinalizing || isCancelling || !canSaveDraft} title={canSaveDraft ? saveLabel : 'sales.create/sales.edit yetkisi gerekli'}>
           {isSaving ? 'Kaydediliyor' : saveLabel}
         </button>
-        <button type="button" className="primary" onClick={onFinalize} disabled={isReadonly || isFinalized || isFinalizing || isCancelling || !onFinalize || !canFinalize} title={canFinalize ? 'Kesinlestir' : 'sales.finalize yetkisi gerekli'}>
-          {isFinalizing ? 'Kesinlestiriliyor' : isFinalized ? 'Kesin' : isReadonly ? 'Kapali' : 'Kesinlestir'}
+        <button type="button" className="primary" onClick={onFinalize} disabled={isReadonly || isFinalized || isFinalizing || isCancelling || !onFinalize || !canFinalize} title={canFinalize ? 'Kesinleştir' : 'sales.finalize yetkisi gerekli'}>
+          {isFinalizing ? 'Kesinleştiriliyor' : isFinalized ? 'Kesin' : isReadonly ? 'Kapalı' : 'Kesinleştir'}
         </button>
-        <button type="button" onClick={onCancel} disabled={!onCancel || isCancelling || status !== 'FINALIZED' || !canCancel} title={canCancel ? 'Finalized fisi iptal et' : 'sales.cancel yetkisi gerekli'}>
-          {isCancelling ? 'Iptal ediliyor' : 'Iptal Et'}
+        <button type="button" onClick={onCancel} disabled={!onCancel || isCancelling || status !== 'FINALIZED' || !canCancel} title={canCancel ? 'Finalized fişi iptal et' : 'sales.cancel yetkisi gerekli'}>
+          {isCancelling ? 'İptal ediliyor' : 'İptal Et'}
         </button>
         <button type="button" onClick={onExport}>Excel</button>
-        <button type="button" onClick={onPrint}>Yazdir</button>
+        <button type="button" onClick={onPrint}>Yazdır</button>
       </div>
     </section>
   );

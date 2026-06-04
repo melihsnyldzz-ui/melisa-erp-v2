@@ -120,7 +120,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
         }
       } catch (error) {
         if (isMounted) {
-          setErrorMessage(error.message || 'Cari/urun listesi okunamadi.');
+          setErrorMessage(error.message || 'Cari/ürün listesi okunamadı.');
         }
       }
     }
@@ -176,8 +176,8 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     setForm((current) => ({
       ...current,
       customerId,
-      customerCurrency: customer?.currency || customer?.currencyCode || current.customerCurrency || 'TRY',
-      documentCurrency: customer?.currency || customer?.currencyCode || current.documentCurrency || 'TRY',
+      customerCurrency: customer.currency || customer.currencyCode || current.customerCurrency || 'TRY',
+      documentCurrency: customer.currency || customer.currencyCode || current.documentCurrency || 'TRY',
     }));
     onDirtyChange?.(true);
   }
@@ -185,7 +185,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
   function addLine() {
     const product = products.find((item) => String(item.id) === String(selectedProductId));
     if (!product) {
-      setErrorMessage('Satir eklemek icin urun secin.');
+      setErrorMessage('Satır eklemek için ürün seçin.');
       return;
     }
 
@@ -259,13 +259,13 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     try {
       const payload = toPayload();
       const response = form.id
-        ? await (isOffer ? updateSalesOffer : updateSalesOrder)(form.id, payload)
+         ? await (isOffer ? updateSalesOffer : updateSalesOrder)(form.id, payload)
         : await (isOffer ? createSalesOffer : createSalesOrder)(payload);
       setForm(normalizeDetail(response.data));
       setMessage(`${isOffer ? 'Teklif' : 'Siparis'} kaydedildi.`);
       onDirtyChange?.(false);
     } catch (error) {
-      setErrorMessage(error.message || 'Kayit basarisiz.');
+      setErrorMessage(error.message || 'Kayıt başarısız.');
     } finally {
       setIsSaving(false);
     }
@@ -273,7 +273,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
 
   async function changeStatus(status) {
     if (!form.id) {
-      setErrorMessage('Durum degistirmek icin once kaydedin.');
+      setErrorMessage('Durum değiştirmek için önce kaydedin.');
       return;
     }
     setIsSaving(true);
@@ -282,10 +282,10 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     try {
       const response = await (isOffer ? changeSalesOfferStatus : changeSalesOrderStatus)(form.id, status);
       setForm(normalizeDetail(response.data));
-      setMessage('Durum guncellendi.');
+      setMessage('Durum g?ncellendi.');
       onDirtyChange?.(false);
     } catch (error) {
-      setErrorMessage(error.message || 'Durum guncellenemedi.');
+      setErrorMessage(error.message || 'Durum g?ncellenemedi.');
     } finally {
       setIsSaving(false);
     }
@@ -293,7 +293,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
 
   async function convertDocument() {
     if (!form.id) {
-      setErrorMessage('Donusturmek icin once belgeyi kaydedin.');
+      setErrorMessage('Dönüştürmek için önce belgeyi kaydedin.');
       return;
     }
 
@@ -303,21 +303,21 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     try {
       if (isOffer) {
         const response = await convertSalesOfferToOrder(form.id);
-        const order = response.data?.order;
-        setMessage(response.data?.duplicate ? 'Bu teklif daha once siparise donusturulmus.' : 'Teklif siparise donusturuldu.');
-        if (order?.id) {
+        const order = response.data.order;
+        setMessage(response.data.duplicate ? 'Bu teklif daha once siparie donusturulmus.' : 'Teklif siparie donusturuldu.');
+        if (order.id) {
           onOpenScreen?.('sales-order', { orderId: order.id, documentNo: order.documentNo });
         }
       } else {
         const response = await convertSalesOrderToSalesDraft(form.id);
-        const salesDraft = response.data?.salesDraft;
-        setMessage(response.data?.duplicate ? 'Bu siparis icin satis fisi zaten olusturulmus.' : 'Siparis satis fisine donusturuldu.');
-        if (salesDraft?.id) {
+        const salesDraft = response.data.salesDraft;
+        setMessage(response.data.duplicate ? 'Bu sipariş için satış fişi zaten oluşturulmuş.' : 'Sipariş satış fişine dönüştürüldü.');
+        if (salesDraft.id) {
           onOpenScreen?.('sales-invoice', { salesDraftId: salesDraft.id, invoiceNo: salesDraft.invoiceNo || salesDraft.documentNo });
         }
       }
     } catch (error) {
-      setErrorMessage(error.message || 'Donusum basarisiz.');
+      setErrorMessage(error.message || 'Dönüşüm başarısız.');
     } finally {
       setIsSaving(false);
     }
@@ -331,7 +331,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
       status: form.status,
       date: form.documentDate,
       partyLabel: 'Cari',
-      partyName: selectedCustomer?.name || selectedCustomer?.customerName || `Cari #${form.customerId || '-'}`,
+      partyName: selectedCustomer.name || selectedCustomer.customerName || `Cari #${form.customerId || '-'}`,
       currency: form.documentCurrency,
       exchangeRate: form.exchangeRate,
       description: form.description,
@@ -352,23 +352,23 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
 
   function exportPipelineRows() {
     exportRowsToCsv({
-      filename: `${isOffer ? 'teklif' : 'siparis'}-${form.documentNo || 'taslak'}`,
+      filename: `${isOffer ? 'teklif' : 'sipari'}-${form.documentNo || 'taslak'}`,
       rows: form.items,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
         { label: 'Barkod', key: 'barcode' },
-        { label: 'Urun', key: 'productName' },
+        { label: 'Ürün', key: 'productName' },
         { label: 'Miktar', key: 'quantity' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Birim Fiyat', key: 'unitPrice' },
-        { label: 'Satir Toplami', value: (row) => Number(row.quantity || 0) * Number(row.unitPrice || 0) },
+        { label: 'Satır Toplamı', value: (row) => Number(row.quantity || 0) * Number(row.unitPrice || 0) },
         { label: 'Not', key: 'note' },
       ],
     });
   }
 
   if (isLoading) {
-    return <main className="work-area"><div className="list-state">Belge yukleniyor...</div></main>;
+    return <main className="work-area"><div className="list-state">Belge yükleniyor...</div></main>;
   }
 
   return (
@@ -384,21 +384,21 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
             {isSaving ? 'Kaydediliyor' : 'Kaydet'}
           </button>
           <button type="button" onClick={exportPipelineRows}>Excel</button>
-          <button type="button" onClick={printPipelineDocument}>Yazdir/PDF</button>
+          <button type="button" onClick={printPipelineDocument}>Yazdır/PDF</button>
           {isOffer ? (
             <>
-              <button type="button" onClick={() => changeStatus('sent')}>Gonderildi</button>
+              <button type="button" onClick={() => changeStatus('sent')}>Gönderildi</button>
               <button type="button" onClick={() => changeStatus('accepted')}>Kabul</button>
-              <button type="button" onClick={convertDocument} disabled={isSaving}>Siparise Donustur</button>
+              <button type="button" onClick={convertDocument} disabled={isSaving}>Siparişe Dönüştür</button>
             </>
           ) : (
             <>
               <button type="button" onClick={() => changeStatus('confirmed')}>Onayla</button>
               <button type="button" onClick={() => changeStatus('fulfilled')}>Tamamla</button>
-              <button type="button" onClick={convertDocument} disabled={isSaving}>Satis Fisine Donustur</button>
+              <button type="button" onClick={convertDocument} disabled={isSaving}>Satış Fişine Dönüştür</button>
             </>
           )}
-          <button type="button" className="danger-button" onClick={() => changeStatus('cancelled')}>Iptal</button>
+          <button type="button" className="danger-button" onClick={() => changeStatus('cancelled')}>İptal</button>
         </div>
       </section>
 
@@ -422,7 +422,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
           <label>
             Cari
             <select value={form.customerId} onChange={(event) => selectCustomer(event.target.value)}>
-              <option value="">Cari sec</option>
+              <option value="">Cari seç</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>{customer.customerCode || customer.code} / {customer.name}</option>
               ))}
@@ -441,12 +441,12 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
             <input type="number" step="0.0001" value={form.exchangeRate} onChange={(event) => updateField('exchangeRate', event.target.value)} />
           </label>
           <label>
-            Iskonto %
+            İskonto %
             <input type="number" step="0.01" value={form.discountRate} onChange={(event) => updateField('discountRate', event.target.value)} />
           </label>
           {isOffer ? (
             <label>
-              Gecerlilik
+              Geçerlilik
               <input type="date" value={form.validUntil} onChange={(event) => updateField('validUntil', event.target.value)} />
             </label>
           ) : (
@@ -456,7 +456,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
             </label>
           )}
           <label>
-            Aciklama
+            Açıklama
             <input value={form.description} onChange={(event) => updateField('description', event.target.value)} />
           </label>
         </div>
@@ -464,14 +464,14 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Hizli Satir</strong>
-          <span>Urun sec, adet gir, satir ekle</span>
+          <strong>Hzl Satr</strong>
+          <span>Ürün seç, adet gir, satır ekle</span>
         </div>
         <div className="quick-line-grid">
           <label>
-            Urun
+            Ürün
             <select value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)}>
-              <option value="">Urun sec</option>
+              <option value="">Ürün seç</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>{product.stockCode || product.stock_code} / {productDisplayName(product)}</option>
               ))}
@@ -481,14 +481,14 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
             Adet
             <input type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
           </label>
-          <button type="button" className="primary-button" onClick={addLine}>Satir Ekle</button>
+          <button type="button" className="primary-button" onClick={addLine}>Satır Ekle</button>
         </div>
       </section>
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Satirlar</strong>
-          <span>{form.items.length} satir</span>
+          <strong>Satırlar</strong>
+          <span>{form.items.length} satır</span>
         </div>
         <div className="table-wrap">
           <table className="erp-table">
@@ -496,17 +496,17 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
               <tr>
                 <th>Stok Kodu</th>
                 <th>Barkod</th>
-                <th>Urun</th>
+                <th>Ürün</th>
                 <th>Miktar</th>
                 <th>PB</th>
                 <th>Birim Fiyat</th>
-                <th>Satir Toplami</th>
-                <th>Islem</th>
+                <th>Satır Toplamı</th>
+                <th>İşlem</th>
               </tr>
             </thead>
             <tbody>
               {form.items.length === 0 && (
-                <tr><td colSpan="8">Satir bekleniyor.</td></tr>
+                <tr><td colSpan="8">Satır bekleniyor.</td></tr>
               )}
               {form.items.map((item, index) => (
                 <tr key={`${item.productId}-${index}`}>
@@ -528,7 +528,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
       <section className="floating-summary">
         <strong>Toplamlar</strong>
         <span>Ara: {formatMoney(totals.subtotal, form.documentCurrency)}</span>
-        <span>Iskonto: {formatMoney(totals.discountTotal, form.documentCurrency)}</span>
+        <span>İskonto: {formatMoney(totals.discountTotal, form.documentCurrency)}</span>
         <span>Genel: {formatMoney(totals.grandTotal, form.documentCurrency)}</span>
         <span>TRY: {formatMoney(totals.amountTry, 'TRY')}</span>
       </section>

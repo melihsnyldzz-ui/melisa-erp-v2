@@ -12,12 +12,12 @@ function movementLabel(row) {
   const quantityIn = Number(row.quantityIn || 0);
   const quantityOut = Number(row.quantityOut || 0);
 
-  if (row.sourceType === 'sales_invoice' && quantityOut > 0) return 'Satis cikis';
-  if (row.sourceType === 'sales_invoice' && quantityIn > 0) return 'Satis iptal/iade';
-  if (row.sourceType === 'purchase_invoice' && quantityIn > 0) return 'Alis giris';
-  if (row.sourceType === 'purchase_invoice' && quantityOut > 0) return 'Alis iptal/iade';
-  if (row.movementType === 'in') return 'Giris';
-  if (row.movementType === 'out') return 'Cikis';
+  if (row.sourceType === 'sales_invoice' && quantityOut > 0) return 'Satış çıkış';
+  if (row.sourceType === 'sales_invoice' && quantityIn > 0) return 'Satış iptal/iade';
+  if (row.sourceType === 'purchase_invoice' && quantityIn > 0) return 'Alış giriş';
+  if (row.sourceType === 'purchase_invoice' && quantityOut > 0) return 'Alış iptal/iade';
+  if (row.movementType === 'in') return 'Giriş';
+  if (row.movementType === 'out') return 'Çıkış';
   return row.movementType || 'Hareket';
 }
 
@@ -28,8 +28,8 @@ function movementClass(row) {
 }
 
 function partyLabel(row) {
-  if (row.customerName) return `Musteri: ${row.customerName}`;
-  if (row.supplierName) return `Tedarikci: ${row.supplierName}`;
+  if (row.customerName) return `Müşteri: ${row.customerName}`;
+  if (row.supplierName) return `Tedarikçi: ${row.supplierName}`;
   return '-';
 }
 
@@ -87,8 +87,8 @@ function filterMovements(movements, filter) {
 }
 
 function targetButtonLabel(row) {
-  if (row.sourceType === 'sales_invoice') return 'Satis Fisi';
-  if (row.sourceType === 'purchase_invoice') return 'Alis Fisi';
+  if (row.sourceType === 'sales_invoice') return 'Satış Fişi';
+  if (row.sourceType === 'purchase_invoice') return 'Alış Fişi';
   return 'Hareket';
 }
 
@@ -109,38 +109,38 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
   return (
     <section className="erp-panel product-stock-usage-panel">
       <div className="panel-title">
-        <strong>Stok Fis Kullanimi</strong>
-        <span>Alis, satis, cari, adet ve fiyat izi</span>
+        <strong>Stok Fiş Kullanımı</strong>
+        <span>Alış, satış, cari, adet ve fiyat izi</span>
       </div>
 
       {!isLoading && movements.length > 0 ? (
         <>
           <div className="product-usage-summary">
-            <span><b>Alis fisi</b>{summary.purchaseCount}</span>
-            <span><b>Satis fisi</b>{summary.salesCount}</span>
-            <span className="usage-in-total"><b>Giris</b>+{summary.inQuantity}</span>
-            <span className="usage-out-total"><b>Cikis</b>-{summary.outQuantity}</span>
-            <span><b>Alis TRY</b>{formatMoney(summary.purchaseValueTry, 'TRY')}</span>
-            <span><b>Satis TRY</b>{formatMoney(summary.salesValueTry, 'TRY')}</span>
-            <span><b>Son giris</b>{summary.lastInDate || '-'}</span>
-            <span><b>Son cikis</b>{summary.lastOutDate || '-'}</span>
+            <span><b>Alış fişi</b>{summary.purchaseCount}</span>
+            <span><b>Satış fişi</b>{summary.salesCount}</span>
+            <span className="usage-in-total"><b>Giriş</b>+{summary.inQuantity}</span>
+            <span className="usage-out-total"><b>Çıkış</b>-{summary.outQuantity}</span>
+            <span><b>Alış TRY</b>{formatMoney(summary.purchaseValueTry, 'TRY')}</span>
+            <span><b>Satış TRY</b>{formatMoney(summary.salesValueTry, 'TRY')}</span>
+            <span><b>Son giriş</b>{summary.lastInDate || '-'}</span>
+            <span><b>Son çıkış</b>{summary.lastOutDate || '-'}</span>
           </div>
           <div className="product-usage-filter">
-            <button className={filter === 'all' ? 'pressed' : ''} type="button" onClick={() => setFilter('all')}>Tumu</button>
-            <button className={filter === 'in' ? 'pressed' : ''} type="button" onClick={() => setFilter('in')}>Girisler</button>
-            <button className={filter === 'out' ? 'pressed' : ''} type="button" onClick={() => setFilter('out')}>Cikislar</button>
-            <button className={filter === 'purchase' ? 'pressed' : ''} type="button" onClick={() => setFilter('purchase')}>Alis fisleri</button>
-            <button className={filter === 'sales' ? 'pressed' : ''} type="button" onClick={() => setFilter('sales')}>Satis fisleri</button>
+            <button className={filter === 'all' ? 'pressed' : ''} type="button" onClick={() => setFilter('all')}>Tümü</button>
+            <button className={filter === 'in' ? 'pressed' : ''} type="button" onClick={() => setFilter('in')}>Girişler</button>
+            <button className={filter === 'out' ? 'pressed' : ''} type="button" onClick={() => setFilter('out')}>Çıkışlar</button>
+            <button className={filter === 'purchase' ? 'pressed' : ''} type="button" onClick={() => setFilter('purchase')}>Alış fişleri</button>
+            <button className={filter === 'sales' ? 'pressed' : ''} type="button" onClick={() => setFilter('sales')}>Satış fişleri</button>
             <span>{visibleMovements.length} / {movements.length} hareket</span>
           </div>
         </>
       ) : null}
 
       {isLoading ? (
-        <div className="list-state">Urun hareketleri yukleniyor...</div>
+        <div className="list-state">Ürün hareketleri yükleniyor...</div>
       ) : null}
       {!isLoading && movements.length === 0 ? (
-        <div className="list-state list-state-passive">Bu urun icin kayitli fis hareketi bulunamadi.</div>
+        <div className="list-state list-state-passive">Bu ürün için kayıtlı fiş hareketi bulunamadı.</div>
       ) : null}
       {!isLoading && movements.length > 0 ? (
         <div className="table-wrap product-stock-usage-wrap">
@@ -149,8 +149,8 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
               <tr>
                 <th>Tarih</th>
                 <th>Tip</th>
-                <th>Fis No</th>
-                <th>Musteri / Tedarikci</th>
+                <th>Fiş No</th>
+                <th>Müşteri / Tedarikçi</th>
                 <th>Adet</th>
                 <th>Birim Fiyat</th>
                 <th>Maliyet TRY</th>

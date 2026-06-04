@@ -12,11 +12,11 @@ export function SalesInvoiceHeader({ invoice, status, discountRate = 0, onChange
   return (
     <section className="erp-panel sales-invoice-header">
       <div className="panel-title">
-        <strong>Fis Ozeti</strong>
+        <strong>Fiş Özeti</strong>
         <span>{invoice.invoiceNo} / {status}</span>
       </div>
       <div className="sales-header-strip">
-        <div><span>Fis no</span><strong>{invoice.invoiceNo}</strong></div>
+        <div><span>Fiş no</span><strong>{invoice.invoiceNo}</strong></div>
         <div><span>Tarih</span><strong>{invoice.date}</strong></div>
         <div><span>Cari</span><strong>{invoice.customer || '-'}</strong></div>
         <label>
@@ -33,7 +33,7 @@ export function SalesInvoiceHeader({ invoice, status, discountRate = 0, onChange
             min="0.0001"
             readOnly
             step="0.0001"
-            title="Kur Doviz Kurlari ekranindan gelir ve fis uzerinde snapshot olarak saklanir."
+            title="Kur Döviz Kurları ekranından gelir ve fiş üzerinde snapshot olarak saklanır."
             type="number"
             value={invoice.exchangeRateValue}
             onChange={(event) => updateField('exchangeRateValue', event.target.value)}
@@ -41,7 +41,7 @@ export function SalesInvoiceHeader({ invoice, status, discountRate = 0, onChange
         </label>
         <div><span>Bakiye</span><strong>{invoice.customerBalanceLabel || '-'}</strong></div>
         <label className="sales-description-field">
-          <span>Aciklama</span>
+          <span>Açıklama</span>
           <input value={invoice.description} readOnly={isReadonly} onChange={(event) => updateField('description', event.target.value)} />
         </label>
         <label>

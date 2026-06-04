@@ -32,8 +32,8 @@ export function SalesInvoiceItemsTable({
   return (
     <section className="erp-panel sales-items-panel">
       <div className="panel-title">
-        <strong>Urun Satirlari</strong>
-        <span>{items.length} satir</span>
+        <strong>Ürün Satırları</strong>
+        <span>{items.length} satır</span>
       </div>
       <div className="table-wrap sales-items-wrap">
         <table className="sales-items-table">
@@ -41,17 +41,17 @@ export function SalesInvoiceItemsTable({
             <tr>
               <th>Stok kodu</th>
               <th>Barkod</th>
-              <th>Urun adi</th>
+              <th>Ürün adı</th>
               <th>Miktar</th>
               <th>Para birimi</th>
               <th>Birim fiyat</th>
-              <th>Satir toplami</th>
+              <th>Satır toplamı</th>
               {showProfitColumns && <th>Net maliyet</th>}
-              {showProfitColumns && <th>Net kar</th>}
-              {showProfitColumns && <th>TRY kar</th>}
-              {showProfitColumns && <th>Kar %</th>}
+              {showProfitColumns && <th>Net kâr</th>}
+              {showProfitColumns && <th>TRY kâr</th>}
+              {showProfitColumns && <th>Kâr %</th>}
               <th>Stok durumu</th>
-              {!isReadonly && <th>Islem</th>}
+              {!isReadonly && <th>İşlem</th>}
             </tr>
           </thead>
           <tbody>

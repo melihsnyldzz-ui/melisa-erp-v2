@@ -10,7 +10,7 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
     }
 
     function handlePointerDown(event) {
-      if (!statusRef.current?.contains(event.target)) {
+      if (!statusRef.current.contains(event.target)) {
         setIsDetailOpen(false);
       }
     }
@@ -42,14 +42,14 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
       </button>
       <span>{activeTab.label}</span>
       <span>{openTabCount} sekme</span>
-      <span>{user?.username || '-'}</span>
+      <span>{user.username || '-'}</span>
       <strong>Detaylar</strong>
       {isDetailOpen && (
         <div className="status-detail-popover" role="dialog">
           <div><b>Firma</b><span>Melisa Bebe</span></div>
           <div><b>Dönem</b><span>2026</span></div>
-          <div><b>Kullanıcı</b><span>{user?.username || '-'}</span></div>
-          <div><b>Rol</b><span>{user?.role?.name || '-'}</span></div>
+          <div><b>Kullanıcı</b><span>{user.username || '-'}</span></div>
+          <div><b>Rol</b><span>{user.role.name || '-'}</span></div>
           <div><b>API</b><span>{isDemoMode ? 'kapalı / demo' : 'aktif'}</span></div>
           <div><b>SQL</b><span>{isDemoMode ? 'kapalı / demo' : 'MELISA_ERP_V2'}</span></div>
           <div><b>Seçili ekran</b><span>{activeTab.label}</span></div>

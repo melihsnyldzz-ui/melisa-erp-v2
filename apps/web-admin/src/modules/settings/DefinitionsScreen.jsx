@@ -25,11 +25,11 @@ export function DefinitionsScreen() {
     setErrorMessage('');
     try {
       const response = await fetchSettingsOverview();
-      const list = response.data?.settings || [];
+      const list = response.data.settings || [];
       setSettings(list.filter((item) => item.group === 'definitions'));
       setForm(Object.fromEntries(DEFINITION_FIELDS.map(([key]) => [key, (getValue(list, key, []) || []).join(',')])));
     } catch (error) {
-      setErrorMessage(`${error.message || 'Tanimlar okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Tanımlar okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -51,10 +51,10 @@ export function DefinitionsScreen() {
         value: String(form[key] || '').split(',').map((item) => item.trim()).filter(Boolean),
       }));
       const response = await updateSettings({ settings: payload });
-      setSettings((response.data?.settings || []).filter((item) => item.group === 'definitions'));
+      setSettings((response.data.settings || []).filter((item) => item.group === 'definitions'));
       setMessage('Tanım listeleri kaydedildi.');
     } catch (error) {
-      setErrorMessage(`${error.message || 'Tanimlar kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Tanımlar kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsSaving(false);
     }

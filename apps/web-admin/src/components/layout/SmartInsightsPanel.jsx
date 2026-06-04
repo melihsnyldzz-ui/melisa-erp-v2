@@ -4,28 +4,28 @@ import { getRoleView } from '../../config/roleViews.js';
 
 const roleInsights = {
   yonetici: [
-    { tone: 'danger', title: '7 ürün eksi stokta', detail: 'Depo ve terminal hareketlerini karşılaştır', screenId: 'stock-list' },
-    { tone: 'warn', title: '18 tahsilat bugün aranacak', detail: 'Geciken cari notlarını aç', screenId: 'collections-overview' },
+    { tone: 'good', title: 'Stok kontrolü temiz', detail: 'Canlı stok değerleme raporunu aç', screenId: 'stock-valuation' },
+    { tone: 'info', title: 'Tahsilat ekranı hazır', detail: 'Bugünün kasa/banka hareketlerini kontrol et', screenId: 'collections-overview' },
     { tone: 'info', title: 'Yönetim raporu hazır', detail: 'Kârlılık ve kanal performansını incele', screenId: 'reports-overview' },
   ],
   patron: [
-    { tone: 'info', title: 'Brüt kâr trendi yükseldi', detail: 'Son 7 gün raporunu aç', screenId: 'reports-overview' },
-    { tone: 'warn', title: 'Risk limiti aşan 5 cari', detail: 'Tahsilat önceliklerini gözden geçir', screenId: 'customer-list' },
-    { tone: 'good', title: 'Terminal satışları senkron', detail: 'Kanal özetini kontrol et', screenId: 'finance-overview' },
+    { tone: 'info', title: 'Brüt kâr raporu hazır', detail: 'Son 7 gün raporunu aç', screenId: 'reports-overview' },
+    { tone: 'info', title: 'Cari riskleri izle', detail: 'Tahsilat önceliklerini gözden geçir', screenId: 'customer-list' },
+    { tone: 'good', title: 'Terminal özeti hazır', detail: 'Kanal özetini kontrol et', screenId: 'finance-overview' },
   ],
   muhasebe: [
-    { tone: 'warn', title: '12 ekstre onay bekliyor', detail: 'Cari ekstreleri sıraya al', screenId: 'customer-statement' },
-    { tone: 'danger', title: '3 fişte maliyet uyarısı', detail: 'Satış ve alış fişlerini karşılaştır', screenId: 'sales-invoice-list' },
-    { tone: 'info', title: 'Tahsilat takibi açık', detail: 'Bugünün arama listesini gör', screenId: 'collections-overview' },
+    { tone: 'info', title: 'Ekstre ekranı hazır', detail: 'Cari ekstreleri sıraya al', screenId: 'customer-statement' },
+    { tone: 'info', title: 'Fiş kontrolü hazır', detail: 'Satış ve alış fişlerini karşılaştır', screenId: 'sales-invoice-list' },
+    { tone: 'info', title: 'Tahsilat takibi açık', detail: 'Bugünün hareket listesini gör', screenId: 'collections-overview' },
   ],
   depo: [
-    { tone: 'danger', title: 'Eksi stok alarmı var', detail: 'Depo raf ve sistem farkını kontrol et', screenId: 'stock-list' },
-    { tone: 'warn', title: 'Terminal aktarımı bekliyor', detail: 'El terminali iş kuyruğunu aç', screenId: 'terminal-overview' },
-    { tone: 'info', title: 'Yeni CSV şablonu hazır', detail: 'Aktarım ekranını incele', screenId: 'import-foundation' },
+    { tone: 'good', title: 'Eksi stok yok', detail: 'Stok hareketlerini kontrol et', screenId: 'stock-movements' },
+    { tone: 'info', title: 'Terminal kuyruğu hazır', detail: 'El terminali iş kuyruğunu aç', screenId: 'terminal-overview' },
+    { tone: 'info', title: 'CSV şablonu hazır', detail: 'Aktarım ekranını incele', screenId: 'import-foundation' },
   ],
   satis: [
-    { tone: 'good', title: 'Bugün 9 teklif takipte', detail: 'Teklif ve sipariş ekranını aç', screenId: 'sales-offers' },
-    { tone: 'warn', title: '4 müşteride fiyat onayı', detail: 'Cari ve fiyat kontrolünü yap', screenId: 'customer-list' },
+    { tone: 'good', title: 'Satış ekranı hazır', detail: 'Teklif ve sipariş ekranını aç', screenId: 'sales-offers' },
+    { tone: 'info', title: 'Cari fiyat kontrolü', detail: 'Cari ve fiyat kontrolünü yap', screenId: 'customer-list' },
     { tone: 'info', title: 'WhatsApp paylaşım hazır', detail: 'Katalog gönderim listesini gör', screenId: 'whatsapp-planner' },
   ],
 };
@@ -40,7 +40,7 @@ const toneIcons = {
 export function SmartInsightsPanel({ activeTab, isCollapsed = false, roleViewId, onOpenScreen, onToggleCollapsed }) {
   const roleView = getRoleView(roleViewId);
   const insights = useMemo(() => roleInsights[roleView.id] || roleInsights.yonetici, [roleView.id]);
-  const activeContext = activeTab?.label || 'Operasyon Masası';
+  const activeContext = activeTab.label || 'Operasyon Masası';
 
   return (
     <aside className={isCollapsed ? 'smart-panel collapsed' : 'smart-panel'} aria-label="Bugün önemli">

@@ -54,7 +54,7 @@ export function TopMenu({
     }
 
     function handlePointerDown(event) {
-      if (!viewMenuRef.current?.contains(event.target)) {
+      if (!viewMenuRef.current.contains(event.target)) {
         setIsViewMenuOpen(false);
       }
     }
@@ -79,7 +79,7 @@ export function TopMenu({
         <strong>Melisa ERP v2</strong>
         <span>Melisa Bebe Tekstil</span>
       </div>
-      <nav className="module-menu" aria-label="Ana moduller">
+      <nav className="module-menu" aria-label="Ana modüller">
         {modules.map((module) => (
           <ModuleButton
             isActive={module.label === activeModule}
@@ -101,7 +101,7 @@ export function TopMenu({
             <option key={roleView.id} value={roleView.id}>{roleView.label}</option>
           ))}
         </select>
-        <span className="session-badge">{user?.displayName || user?.username}</span>
+        <span className="session-badge">{user.displayName || user.username}</span>
         <div className="view-options-wrap" ref={viewMenuRef}>
           <button
             aria-expanded={isViewMenuOpen}
@@ -110,13 +110,13 @@ export function TopMenu({
             onClick={() => setIsViewMenuOpen((isOpen) => !isOpen)}
             type="button"
           >
-            <SlidersHorizontal size={15} /> Gorunum
+            <SlidersHorizontal size={15} /> Görünüm
           </button>
           {isViewMenuOpen && (
             <div className="view-options-menu" role="menu">
               <div className="view-options-title">
-                <strong>{activeTab?.label || 'Pencere'} secenekleri</strong>
-                <button type="button" onClick={onResetViewOptions}>Sifirla</button>
+                <strong>{activeTab.label || 'Pencere'} seçenekleri</strong>
+                <button type="button" onClick={onResetViewOptions}>Sıfırla</button>
               </div>
               {viewOptionItems.map((item) => (
                 <label className="view-option-row" key={item.key}>
@@ -135,7 +135,7 @@ export function TopMenu({
           )}
         </div>
         <button className="top-primary-action" type="button" onClick={() => onOpenScreen('sales-invoice')}><FileText size={15} /> Yeni Fiş</button>
-        <button type="button" onClick={onLogout}><LogOut size={15} /> Cikis</button>
+        <button type="button" onClick={onLogout}><LogOut size={15} /> Çıkış</button>
       </div>
     </header>
   );

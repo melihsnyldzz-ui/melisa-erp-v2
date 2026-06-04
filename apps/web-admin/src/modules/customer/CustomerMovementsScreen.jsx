@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchCustomerMovements } from '../../services/movementApi.js';
 import { exportRowsToCsv, printRowsReport } from '../../utils/exportUtils.js';
-import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
+
+const movementFilterOptions = [
+  { value: '', label: 'Tüm normal hareketler' },
+  { value: 'sales_invoice', label: 'Satış fişleri' },
+  { value: 'collection', label: 'Tahsilatlar' },
+];
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -27,19 +33,7 @@ function isCancelledMovement(row) {
 }
 
 function displayMovementLabel(row) {
-  if (isCancelledMovement(row)) {
-    return 'Satış iptal';
-  }
-
-  return movementLabel(row.movementType);
-}
-
-function movementActionLabel(row) {
-  if (row.targetScreen === 'collections-overview' || row.movementType === 'collection') {
-    return 'Tahsilata Git';
-  }
-
-  return 'Fişe Git';
+  return isCancelledMovement(row) ? 'Satış iptal' : movementLabel(row.movementType);
 }
 
 function summarizeRows(rows) {
@@ -62,8 +56,19 @@ function summarizeRows(rows) {
   }, {});
 }
 
+function filterRegularRows(rows, movementType) {
+  if (!movementType) return rows;
+  return rows.filter((row) => row.movementType === movementType);
+}
+
 export function CustomerMovementsScreen({ onOpenScreen }) {
-  const [filters, setFilters] = useState({ search: '', dateFrom: '', dateTo: '' });
+  const [filters, setFilters] = useState({
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    movementType: '',
+    showCancelled: true,
+  });
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,9 +76,11 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
 
   const query = useMemo(() => ({
     page: 1,
-    limit: 100,
-    ...filters,
-  }), [filters]);
+    limit: 150,
+    search: filters.search,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+  }), [filters.dateFrom, filters.dateTo, filters.search]);
 
   useEffect(() => {
     let isMounted = true;
@@ -108,22 +115,45 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
     };
   }, [query]);
 
+  const cancelledRows = useMemo(() => rows.filter(isCancelledMovement), [rows]);
+  const regularRows = useMemo(() => rows.filter((row) => !isCancelledMovement(row)), [rows]);
+  const visibleRegularRows = useMemo(
+    () => filterRegularRows(regularRows, filters.movementType),
+    [filters.movementType, regularRows],
+  );
+  const totals = useMemo(() => summarizeRows(visibleRegularRows), [visibleRegularRows]);
+  const cancelledTotals = useMemo(() => summarizeRows(cancelledRows), [cancelledRows]);
+
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
+  function applyMovementFilter(movementType) {
+    setFilters((current) => ({ ...current, movementType }));
+  }
+
   function resetFilters() {
-    setFilters({ search: '', dateFrom: '', dateTo: '' });
+    setFilters({ search: '', dateFrom: '', dateTo: '', movementType: '', showCancelled: true });
   }
 
   function openMovement(row) {
     openLedgerTarget(row, onOpenScreen);
   }
 
+  function openCustomer(row) {
+    if (row.customerId) {
+      onOpenScreen?.('customer-card', {
+        customerId: row.customerId,
+        customerCode: row.customerCode,
+        tabLabel: row.customerName || row.customerCode || 'Cari Kart',
+      });
+    }
+  }
+
   function exportMovementRows() {
     exportRowsToCsv({
       filename: 'musteri-cari-hareketler',
-      rows,
+      rows: [...visibleRegularRows, ...(filters.showCancelled ? cancelledRows : [])],
       columns: [
         { label: 'Tarih', key: 'documentDate' },
         { label: 'Cari Kodu', key: 'customerCode' },
@@ -141,8 +171,8 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
   function printMovementRows() {
     printRowsReport({
       title: 'Melisa ERP - Müşteri Cari Hareketleri',
-      subtitle: `${regularRows.length} normal hareket / ${cancelledRows.length} iptal izi / ${filters.dateFrom || '-'} - ${filters.dateTo || '-'}`,
-      rows: regularRows,
+      subtitle: `${visibleRegularRows.length} normal hareket / ${cancelledRows.length} iptal izi / ${filters.dateFrom || '-'} - ${filters.dateTo || '-'}`,
+      rows: visibleRegularRows,
       columns: [
         { label: 'Tarih', key: 'documentDate' },
         { label: 'Cari Kodu', key: 'customerCode' },
@@ -157,17 +187,20 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
     });
   }
 
-  const cancelledRows = rows.filter(isCancelledMovement);
-  const regularRows = rows.filter((row) => !isCancelledMovement(row));
-  const totals = summarizeRows(regularRows);
-  const cancelledTotals = summarizeRows(cancelledRows);
-
   return (
-    <main className="work-area">
+    <main className="work-area customer-ledger-screen">
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Müşteri Cari Hareketleri</strong>
           <span>Satış, tahsilat ve iptal izleri / Satır: {meta?.total ?? rows.length}</span>
+        </div>
+        <div className="movement-quick-filters">
+          <button type="button" className={!filters.movementType ? 'pressed' : ''} onClick={() => applyMovementFilter('')}>Tüm Normal</button>
+          <button type="button" className={filters.movementType === 'sales_invoice' ? 'pressed out' : 'out'} onClick={() => applyMovementFilter('sales_invoice')}>Satış Fişleri</button>
+          <button type="button" className={filters.movementType === 'collection' ? 'pressed in' : 'in'} onClick={() => applyMovementFilter('collection')}>Tahsilatlar</button>
+          <button type="button" className={filters.showCancelled ? 'pressed danger' : 'danger'} onClick={() => updateFilter('showCancelled', !filters.showCancelled)}>
+            İptaller {filters.showCancelled ? 'Açık' : 'Kapalı'}
+          </button>
         </div>
         <div className="filter-grid">
           <label>
@@ -196,7 +229,7 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
         {Object.entries(totals).map(([currency, values]) => (
           <article className="summary-card" key={currency}>
             <span>{currency} müşteri bakiyesi</span>
-            <strong>{formatMoney(values.balance, currency)}</strong>
+            <strong className={values.balance >= 0 ? 'ledger-out' : 'ledger-in'}>{formatMoney(values.balance, currency)}</strong>
             <small>Borç: {formatMoney(values.debit, currency)} / Alacak: {formatMoney(values.credit, currency)}</small>
           </article>
         ))}
@@ -209,7 +242,7 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
         )}
       </section>
 
-      {cancelledRows.length > 0 && (
+      {filters.showCancelled && cancelledRows.length > 0 && (
         <section className="erp-panel cancelled-ledger-panel">
           <div className="panel-title">
             <strong>İptal Edilen Satış Fişleri</strong>
@@ -241,12 +274,16 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
                 {cancelledRows.map((row) => (
                   <tr className="clickable-row" key={`cancelled-${row.id}`} onClick={() => openMovement(row)}>
                     <td>{row.documentDate || '-'}</td>
-                    <td>{row.customerName || row.customerCode || '-'}</td>
+                    <td>
+                      <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openCustomer(row); }}>
+                        {row.customerName || row.customerCode || '-'}
+                      </button>
+                    </td>
                     <td>{row.documentNo || '-'}</td>
                     <td><span className="cancelled-ledger-badge">{displayMovementLabel(row)}</span></td>
                     <td>{formatMoney(Math.abs(Number(row.balanceEffect || row.amount || 0)), row.currency)}</td>
                     <td><span className="status-pill danger">{row.currency || 'TRY'}</span></td>
-                    <td><button type="button" className="mini-button danger" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{movementActionLabel(row)}</button></td>
+                    <td><button type="button" className="mini-button danger" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{ledgerTargetActionLabel(row)}</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -258,14 +295,14 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Hareket Satırları</strong>
-          <span>Girişler yeşil, çıkışlar kırmızı; iptaller üstte ayrı izlenir</span>
+          <span>Borç kırmızı, tahsilat/alacak yeşil; satırdan ilgili fişe veya tahsilata gidilir</span>
         </div>
         {isLoading && <div className="list-state">Cari hareketler yükleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Cari hareket bulunamadı.</div>}
-        {!isLoading && !errorMessage && rows.length > 0 && regularRows.length === 0 && <div className="list-state">Normal hareket yok; sadece iptal hareketi var.</div>}
-        {!isLoading && !errorMessage && regularRows.length > 0 && (
-          <div className="table-shell">
+        {!isLoading && !errorMessage && rows.length > 0 && visibleRegularRows.length === 0 && <div className="list-state">Bu filtrede normal hareket yok.</div>}
+        {!isLoading && !errorMessage && visibleRegularRows.length > 0 && (
+          <div className="table-shell ledger-table-shell">
             <table className="erp-table">
               <thead>
                 <tr>
@@ -282,20 +319,24 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
                 </tr>
               </thead>
               <tbody>
-                {regularRows.map((row) => {
+                {visibleRegularRows.map((row) => {
                   const effect = Number(row.balanceEffect || row.amount || 0);
                   return (
                     <tr className="clickable-row" key={row.id} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
                       <td>{row.customerCode || '-'}</td>
-                      <td>{row.customerName || '-'}</td>
+                      <td>
+                        <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openCustomer(row); }}>
+                          {row.customerName || '-'}
+                        </button>
+                      </td>
                       <td>{row.documentNo || '-'}</td>
                       <td>{displayMovementLabel(row)}</td>
                       <td className="ledger-out">{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>
                       <td className="ledger-in">{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
                       <td><span className="status-pill">{row.currency || 'TRY'}</span></td>
                       <td>{String(row.invoiceStatus || '-').toUpperCase()}</td>
-                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{movementActionLabel(row)}</button></td>
+                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{ledgerTargetActionLabel(row)}</button></td>
                     </tr>
                   );
                 })}

@@ -4,6 +4,8 @@ import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
+import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
+import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -84,6 +86,7 @@ function toSalesListDto(row) {
     totalAmount: Number(row.total_amount || 0),
     status: String(row.status || '').toUpperCase(),
     itemCount: Number(row.item_count || 0),
+    documentDate: row.document_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -98,6 +101,7 @@ function toPurchaseListDto(row) {
     totalAmount: Number(row.total_amount || 0),
     status: String(row.status || '').toUpperCase(),
     itemCount: Number(row.item_count || 0),
+    documentDate: row.document_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -140,6 +144,63 @@ function calculateWeightedAverageCostTry({
   }
 
   return ((currentStock * currentAverageCostTry) + purchaseAmountTry) / nextStock;
+}
+
+async function recalculateProductAverageCostTry(sqlDriver, transaction, productId, actor = null) {
+  const purchaseTotals = await new sqlDriver.Request(transaction)
+    .input('averageCostProductId', sql.BigInt, productId)
+    .query(`
+      SELECT
+        COALESCE(SUM(quantity_net), 0) AS net_purchase_quantity,
+        COALESCE(SUM(amount_try), 0) AS net_purchase_amount_try
+      FROM dbo.stock_movements
+      WHERE product_id = @averageCostProductId
+        AND source_type = N'purchase_invoice';
+    `);
+
+  const totalRow = purchaseTotals.recordset?.[0] || {};
+  const netPurchaseQuantity = safeNumber(totalRow.net_purchase_quantity);
+  const netPurchaseAmountTry = safeNumber(totalRow.net_purchase_amount_try);
+  const nextAverageCostTry = netPurchaseQuantity > 0 ? netPurchaseAmountTry / netPurchaseQuantity : 0;
+
+  const beforeProduct = await new sqlDriver.Request(transaction)
+    .input('averageCostBeforeProductId', sql.BigInt, productId)
+    .query(`
+      SELECT TOP (1)
+        average_cost_try AS averageCostTry
+      FROM dbo.products
+      WHERE id = @averageCostBeforeProductId;
+    `);
+  const beforeAverageCostTry = safeNumber(beforeProduct.recordset?.[0]?.averageCostTry);
+
+  await new sqlDriver.Request(transaction)
+    .input('averageCostUpdateProductId', sql.BigInt, productId)
+    .input('averageCostUpdateValue', sql.Decimal(18, 4), nextAverageCostTry)
+    .query(`
+      UPDATE dbo.products
+      SET
+        average_cost_try = @averageCostUpdateValue,
+        updated_at = SYSUTCDATETIME()
+      WHERE id = @averageCostUpdateProductId;
+    `);
+
+  await writeAuditLog(new sqlDriver.Request(transaction), {
+    action: 'product_average_cost_recalculated',
+    entityType: 'product',
+    entityId: productId,
+    beforeSnapshot: {
+      averageCostTry: beforeAverageCostTry,
+    },
+    afterSnapshot: {
+      averageCostTry: nextAverageCostTry,
+      netPurchaseQuantity,
+      netPurchaseAmountTry,
+      policy: 'recalculate_from_purchase_stock_movements',
+    },
+    actor,
+  });
+
+  return nextAverageCostTry;
 }
 
 function calculateSalesProfitSnapshot({ salesAmountTry, averageCostTry, quantity }) {
@@ -433,6 +494,7 @@ async function getSalesSnapshot(request, id) {
         si.document_no AS documentNo,
         si.document_date AS documentDate,
         si.customer_id AS customerId,
+        c.customer_code AS customerCode,
         c.name AS customerName,
         CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
         si.customer_currency AS customerCurrency,
@@ -992,6 +1054,7 @@ export async function getSalesDraftsList(query) {
         si.document_currency AS currency_code,
         si.grand_total AS total_amount,
         CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
+        si.document_date,
         si.created_at,
         si.updated_at,
         item_counts.item_count
@@ -1008,8 +1071,8 @@ export async function getSalesDraftsList(query) {
           OR (@status = N'archived_test' AND COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%')
           OR (@status IS NOT NULL AND @status <> N'archived_test' AND si.status = @status AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
-        AND (@dateFrom IS NULL OR CONVERT(date, si.created_at) >= @dateFrom)
-        AND (@dateTo IS NULL OR CONVERT(date, si.created_at) <= @dateTo)
+        AND (@dateFrom IS NULL OR si.document_date >= @dateFrom)
+        AND (@dateTo IS NULL OR si.document_date <= @dateTo)
         AND (
           @search IS NULL
           OR si.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
@@ -1244,6 +1307,8 @@ export async function finalizeSalesInvoice(id, actor = null) {
   }
 
   const pool = await getSqlPool();
+  await ensureCashCustomers(pool);
+  await ensureFinanceAccountTables(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
 
@@ -1272,6 +1337,15 @@ export async function finalizeSalesInvoice(id, actor = null) {
 
     if (Number(beforeSnapshot.grandTotal || 0) < 0) {
       throw makeServiceError('SALES_FINALIZE_TOTAL_INVALID', 'Sales invoice total cannot be negative', 400);
+    }
+
+    const cashCustomerCurrency = getCashCustomerCurrency(beforeSnapshot.customerCode);
+    if (cashCustomerCurrency && cashCustomerCurrency !== beforeSnapshot.documentCurrency) {
+      throw makeServiceError(
+        'SALES_FINALIZE_CASH_CUSTOMER_CURRENCY_MISMATCH',
+        'Pesin cari para birimi ile fis para birimi ayni olmali',
+        400,
+      );
     }
 
     const warnings = [];
@@ -1451,6 +1525,82 @@ export async function finalizeSalesInvoice(id, actor = null) {
         WHERE id = @customerBalanceId;
       `);
 
+    let autoCashCollection = null;
+
+    if (isCashCustomerCode(beforeSnapshot.customerCode) && Number(beforeSnapshot.grandTotal || 0) > 0) {
+      const cashAmount = Number(beforeSnapshot.grandTotal || 0);
+      const cashCurrency = beforeSnapshot.documentCurrency;
+      const paymentMethod = 'cash';
+      const account = await resolveFinanceAccount(transaction, sqlDriver, {
+        paymentMethod,
+        currency: cashCurrency,
+      });
+
+      const cashMovementResult = await new sqlDriver.Request(transaction)
+        .input('cashCollectionCustomerId', sql.BigInt, beforeSnapshot.customerId)
+        .input('cashCollectionInvoiceId', sql.BigInt, invoiceId)
+        .input('cashCollectionAmount', sql.Decimal(18, 4), cashAmount)
+        .input('cashCollectionCurrency', sql.NVarChar(3), cashCurrency)
+        .input('cashCollectionDocumentDate', sql.Date, beforeSnapshot.documentDate)
+        .input('cashCollectionCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+        .query(`
+          INSERT INTO dbo.customer_movements (
+            customer_id,
+            sales_invoice_id,
+            movement_type,
+            amount,
+            currency_code,
+            balance_effect,
+            document_date,
+            created_at,
+            created_by
+          )
+          OUTPUT inserted.*
+          VALUES (
+            @cashCollectionCustomerId,
+            @cashCollectionInvoiceId,
+            N'collection',
+            @cashCollectionAmount,
+            @cashCollectionCurrency,
+            -@cashCollectionAmount,
+            @cashCollectionDocumentDate,
+            SYSUTCDATETIME(),
+            @cashCollectionCreatedBy
+          );
+
+          UPDATE dbo.customers
+          SET
+            balance = balance - @cashCollectionAmount,
+            updated_at = SYSUTCDATETIME()
+          WHERE id = @cashCollectionCustomerId;
+        `);
+
+      const cashMovement = cashMovementResult.recordset?.[0];
+      const updatedAccount = await writeFinanceAccountMovement(transaction, sqlDriver, {
+        account,
+        sourceType: 'collection',
+        partyType: 'customer',
+        partyMovementId: cashMovement.id,
+        amount: cashAmount,
+        currency: cashCurrency,
+        paymentMethod,
+        documentNo: `PS-${beforeSnapshot.documentNo || invoiceId}`,
+        documentDate: beforeSnapshot.documentDate,
+        description: `Pesin satis otomatik tahsilat - ${beforeSnapshot.documentNo || invoiceId}`,
+        actor,
+      });
+
+      autoCashCollection = {
+        movementId: Number(cashMovement.id),
+        customerId: Number(beforeSnapshot.customerId),
+        customerCode: beforeSnapshot.customerCode,
+        amount: cashAmount,
+        currency: cashCurrency,
+        accountId: updatedAccount.id,
+        accountCode: updatedAccount.code,
+      };
+    }
+
     const finalizeResult = await new sqlDriver.Request(transaction)
       .input('finalizeInvoiceId', sql.BigInt, invoiceId)
       .input('finalizeEstimatedProfitTry', sql.Decimal(18, 4), estimatedProfitTry)
@@ -1479,6 +1629,7 @@ export async function finalizeSalesInvoice(id, actor = null) {
       afterSnapshot: {
         ...afterSnapshot,
         warnings,
+        autoCashCollection,
       },
       actor,
     });
@@ -1623,7 +1774,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null) {
         VALUES (
           @cancelCustomerMovementCustomerId,
           @cancelCustomerMovementInvoiceId,
-          N'sales_invoice',
+          N'sales_invoice_cancel',
           @cancelCustomerMovementAmount,
           @cancelCustomerMovementCurrency,
           @cancelCustomerMovementBalanceEffect,
@@ -1744,6 +1895,7 @@ export async function getPurchaseDraftsList(query) {
         pi.document_currency AS currency_code,
         pi.grand_total AS total_amount,
         CASE WHEN COALESCE(pi.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE pi.status END AS status,
+        pi.document_date,
         pi.created_at,
         pi.updated_at,
         item_counts.item_count
@@ -1760,8 +1912,8 @@ export async function getPurchaseDraftsList(query) {
           OR (@status = N'archived_test' AND COALESCE(pi.description, N'') LIKE N'%TEST_ARCHIVED%')
           OR (@status IS NOT NULL AND @status <> N'archived_test' AND pi.status = @status AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
-        AND (@dateFrom IS NULL OR CONVERT(date, pi.created_at) >= @dateFrom)
-        AND (@dateTo IS NULL OR CONVERT(date, pi.created_at) <= @dateTo)
+        AND (@dateFrom IS NULL OR pi.document_date >= @dateFrom)
+        AND (@dateTo IS NULL OR pi.document_date <= @dateTo)
         AND (
           @search IS NULL
           OR pi.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
@@ -2234,8 +2386,8 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
 
   const reason = normalizeCancelReason(payload.reason, 'PURCHASE_CANCEL_REASON_REQUIRED');
   const averageCostPolicy = {
-    average_cost_cancel_policy: 'no_direct_rollback',
-    reason: 'Purchase cancellation does not directly rollback average cost. Cost recalculation will be handled by a future recalculation service.',
+    average_cost_cancel_policy: 'recalculate_from_purchase_stock_movements',
+    reason: 'Purchase cancellation recalculates product average cost from net purchase stock movements for the affected product.',
   };
   const pool = await getSqlPool();
   const sqlDriver = getSqlDriver();
@@ -2294,7 +2446,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
           WHERE id = @cancelPurchaseProductIdForStockUpdate;
         `);
 
-      await new sqlDriver.Request(transaction)
+      const cancelMovementInsert = await new sqlDriver.Request(transaction)
         .input('cancelPurchaseMovementProductId', sql.BigInt, item.productId)
         .input('cancelPurchaseMovementSourceId', sql.BigInt, invoiceId)
         .input('cancelPurchaseMovementQuantityOut', sql.Decimal(18, 3), quantity)
@@ -2325,6 +2477,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
             currency_code,
             amount_try
           )
+          OUTPUT INSERTED.id AS movementId
           VALUES (
             @cancelPurchaseMovementProductId,
             N'out',
@@ -2344,6 +2497,25 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
             @cancelPurchaseMovementAmountTry
           );
         `);
+
+      const recalculatedAverageCostTry = await recalculateProductAverageCostTry(
+        sqlDriver,
+        transaction,
+        item.productId,
+        actor,
+      );
+      const movementId = Number(cancelMovementInsert.recordset?.[0]?.movementId || 0);
+
+      if (movementId > 0) {
+        await new sqlDriver.Request(transaction)
+          .input('cancelPurchaseMovementAverageAfterId', sql.BigInt, movementId)
+          .input('cancelPurchaseMovementAverageAfterValue', sql.Decimal(18, 4), recalculatedAverageCostTry)
+          .query(`
+            UPDATE dbo.stock_movements
+            SET average_cost_try_after = @cancelPurchaseMovementAverageAfterValue
+            WHERE id = @cancelPurchaseMovementAverageAfterId;
+          `);
+      }
     }
 
     const reversedSupplierAmount = Number(beforeSnapshot.grandTotal || 0);

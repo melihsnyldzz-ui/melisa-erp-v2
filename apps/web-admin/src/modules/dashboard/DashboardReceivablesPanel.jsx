@@ -5,13 +5,13 @@ export function DashboardReceivablesPanel({ rows }) {
     <section className="erp-panel dashboard-table-panel">
       <div className="panel-title">
         <strong>Cari Borç / Ekstre Özeti</strong>
-        <span>Musteri borclari ve risk</span>
+        <span>Müşteri borçları ve risk</span>
       </div>
       <div className="table-wrap dashboard-table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Musteri</th>
+              <th>Müşteri</th>
               <th>Bakiye</th>
               <th>Son hareket</th>
               <th>Risk</th>

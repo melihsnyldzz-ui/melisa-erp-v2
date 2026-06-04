@@ -67,7 +67,7 @@ function maintenanceReportRows({ cleanupPreview, treePreview, restorePreview }) 
     reason: row.reason,
   }));
   const tree = treeRows(treePreview).map((row) => ({
-    section: 'Test Fis Arsivi',
+    section: 'Test Fi? Ar?ivi',
     type: row.groupLabel,
     code: row.documentNo,
     name: row.partyName,
@@ -76,7 +76,7 @@ function maintenanceReportRows({ cleanupPreview, treePreview, restorePreview }) 
     reason: row.reason,
   }));
   const restore = treeRows(restorePreview).map((row) => ({
-    section: 'Arsiv Geri Alma',
+    section: 'Ar?iv Geri Alma',
     type: row.groupLabel,
     code: row.documentNo,
     name: row.partyName,
@@ -183,7 +183,7 @@ export function SystemSettingsScreen() {
     setErrorMessage('');
     try {
       const response = await fetchSettingsOverview();
-      const list = response.data?.settings || [];
+      const list = response.data.settings || [];
       const company = Object.fromEntries(COMPANY_FIELDS.map(([key]) => [key, getValue(list, 'company', key, '')]));
       setSettings(list);
       setForm({
@@ -271,11 +271,11 @@ export function SystemSettingsScreen() {
         ...SERIES_FIELDS.map(([key]) => ({ group: 'documentSeries', key, value: form.documentSeries[key] || '', valueType: 'string' })),
         { group: 'tax', key: 'defaultVatRate', value: Number(form.tax.defaultVatRate || 0), valueType: 'number' },
         { group: 'tax', key: 'vatRates', value: vatRatesText.split(',').map((item) => Number(item.trim())).filter((item) => Number.isFinite(item)), valueType: 'json' },
-        { group: 'accounting', key: 'periodLockEnabled', value: Boolean(form.accounting.periodLockEnabled), valueType: 'boolean', description: 'Kapali donem eski tarihli ticari hareket girisini durdurur' },
+        { group: 'accounting', key: 'periodLockEnabled', value: Boolean(form.accounting.periodLockEnabled), valueType: 'boolean', description: 'Kapali donem eski tarihli ticari hareket girişini durdurur' },
         { group: 'accounting', key: 'periodLockedThroughDate', value: form.accounting.periodLockedThroughDate || '', valueType: 'string', description: 'Bu tarih ve oncesi muhasebe donemi kapali kabul edilir' },
       ];
       const response = await updateSettings({ settings: payload });
-      setSettings(response.data?.settings || []);
+      setSettings(response.data.settings || []);
       savePrintCompanyInfo(form.company);
       setMessage('Sistem ayarları kaydedildi.');
     } catch (error) {
@@ -291,9 +291,9 @@ export function SystemSettingsScreen() {
     setErrorMessage('');
     try {
       const response = await applyTestTreeCleanup({ confirmation: treeConfirmation });
-      setTreePreview(response.data?.preview || null);
+      setTreePreview(response.data.preview || null);
       setTreeConfirmation('');
-      const result = response.data?.result || {};
+      const result = response.data.result || {};
       setMessage(`Test işlem ağacı arşivlendi. Satış fişi: ${result.salesInvoicesArchived || 0}, alış fişi: ${result.purchaseInvoicesArchived || 0}.`);
       await Promise.all([loadCleanupPreview(), loadRestorePreview()]);
     } catch (error) {
@@ -309,9 +309,9 @@ export function SystemSettingsScreen() {
     setErrorMessage('');
     try {
       const response = await applyTestArchiveRestore({ confirmation: restoreConfirmation });
-      setRestorePreview(response.data?.preview || null);
+      setRestorePreview(response.data.preview || null);
       setRestoreConfirmation('');
-      const result = response.data?.result || {};
+      const result = response.data.result || {};
       setMessage(`Test arşivi geri alındı. Satış fişi: ${result.salesInvoicesRestored || 0}, alış fişi: ${result.purchaseInvoicesRestored || 0}.`);
       await Promise.all([loadCleanupPreview(), loadTreePreview()]);
     } catch (error) {
@@ -327,8 +327,8 @@ export function SystemSettingsScreen() {
     setErrorMessage('');
     try {
       const response = await applyDemoCleanup({ confirmation: cleanupConfirmation });
-      setCleanupPreview(response.data?.preview || null);
-      const result = response.data?.result || {};
+      setCleanupPreview(response.data.preview || null);
+      const result = response.data.result || {};
       setCleanupConfirmation('');
       setMessage(`Demo/test temizlik tamamlandı. Stok: ${result.productsCleaned || 0}, müşteri: ${result.customersCleaned || 0}, tedarikçi: ${result.suppliersCleaned || 0}.`);
     } catch (error) {
@@ -358,7 +358,7 @@ export function SystemSettingsScreen() {
   function printMaintenanceReport() {
     printRowsReport({
       title: 'Melisa ERP - Demo/Test Temizlik Raporu',
-      subtitle: `${maintenanceRows.length} satir / ${apiConfig.demoMode ? 'DEMO MOD' : 'CANLI SQL'}`,
+      subtitle: `${maintenanceRows.length} sat?r / ${apiConfig.demoMode ? 'DEMO MOD' : 'CANLI SQL'}`,
       rows: maintenanceRows,
       columns: [
         { label: 'Bolum', key: 'section' },
@@ -392,7 +392,7 @@ export function SystemSettingsScreen() {
 
       <section className="dashboard-kpi-grid">
         <article className={apiConfig.demoMode ? 'dashboard-kpi danger' : 'dashboard-kpi good'}>
-          <span>Calisma modu</span>
+          <span>Çalışma modu</span>
           <strong>{apiConfig.demoMode ? 'DEMO' : 'CANLI SQL'}</strong>
           <small>{apiConfig.baseUrl}</small>
         </article>
@@ -404,10 +404,10 @@ export function SystemSettingsScreen() {
         <article className={(treePreview?.totals?.totalInvoices || 0) > 0 ? 'dashboard-kpi warn' : 'dashboard-kpi good'}>
           <span>Test fis adayi</span>
           <strong>{treePreview?.totals?.totalInvoices || 0}</strong>
-          <small>Normal rapordan arsivlenebilir</small>
+          <small>Normal rapordan ar?ivlenebilir</small>
         </article>
         <article className={(restorePreview?.totals?.totalInvoices || 0) > 0 ? 'dashboard-kpi info' : 'dashboard-kpi good'}>
-          <span>Arsivde test fis</span>
+          <span>Ar?ivde test fis</span>
           <strong>{restorePreview?.totals?.totalInvoices || 0}</strong>
           <small>Gerekirse geri alinabilir</small>
         </article>
@@ -449,7 +449,7 @@ export function SystemSettingsScreen() {
               value={form.accounting.periodLockEnabled ? 'true' : 'false'}
               onChange={(event) => updateField('accounting', 'periodLockEnabled', event.target.value === 'true')}
             >
-              <option value="false">Acik - eski tarihe kayit serbest</option>
+              <option value="false">Açık - eski tarihe kayıt serbest</option>
               <option value="true">Kilitli - eski donem kapali</option>
             </select>
           </label>
@@ -463,7 +463,7 @@ export function SystemSettingsScreen() {
           </label>
         </div>
         <div className="list-state">
-          Kilit aktifken bu tarih ve oncesine ait satis, alis, iptal, tahsilat, odeme ve stok sayim duzeltmesi kaydedilmez.
+          Kilit aktifken bu tarih ve öncesine ait satış, alış, iptal, tahsilat, ödeme ve stok sayım düzeltmesi kaydedilmez.
         </div>
       </section>
 
@@ -476,9 +476,9 @@ export function SystemSettingsScreen() {
         {treePreview && (
           <>
             <div className="cleanup-summary-grid">
-              <article><span>Toplam fiş</span><strong>{treePreview.totals?.totalInvoices || 0}</strong></article>
-              <article className="cleanup-blocked"><span>Satış fişi</span><strong>{treePreview.totals?.salesInvoices || 0}</strong></article>
-              <article className="cleanup-blocked"><span>Alış fişi</span><strong>{treePreview.totals?.purchaseInvoices || 0}</strong></article>
+              <article><span>Toplam fiş</span><strong>{treePreview.totals.totalInvoices || 0}</strong></article>
+              <article className="cleanup-blocked"><span>Satış fişi</span><strong>{treePreview.totals.salesInvoices || 0}</strong></article>
+              <article className="cleanup-blocked"><span>Alış fişi</span><strong>{treePreview.totals.purchaseInvoices || 0}</strong></article>
               <article><span>Onay metni</span><strong>{treePreview.confirmationText}</strong></article>
             </div>
             <div className="cleanup-rules">
@@ -492,7 +492,7 @@ export function SystemSettingsScreen() {
               <button
                 type="button"
                 className="danger-button"
-                disabled={isApplyingTree || treeConfirmation !== treePreview.confirmationText || (treePreview.totals?.totalInvoices || 0) === 0}
+                disabled={isApplyingTree || treeConfirmation !== treePreview.confirmationText || (treePreview.totals.totalInvoices || 0) === 0}
                 onClick={runTreeApply}
               >
                 {isApplyingTree ? 'Arşivleniyor' : 'Test Fişlerini Arşivle'}
@@ -513,9 +513,9 @@ export function SystemSettingsScreen() {
         {restorePreview && (
           <>
             <div className="cleanup-summary-grid">
-              <article><span>Arşivdeki fiş</span><strong>{restorePreview.totals?.totalInvoices || 0}</strong></article>
-              <article className="cleanup-safe"><span>Satış fişi</span><strong>{restorePreview.totals?.salesInvoices || 0}</strong></article>
-              <article className="cleanup-safe"><span>Alış fişi</span><strong>{restorePreview.totals?.purchaseInvoices || 0}</strong></article>
+              <article><span>Arşivdeki fiş</span><strong>{restorePreview.totals.totalInvoices || 0}</strong></article>
+              <article className="cleanup-safe"><span>Satış fişi</span><strong>{restorePreview.totals.salesInvoices || 0}</strong></article>
+              <article className="cleanup-safe"><span>Alış fişi</span><strong>{restorePreview.totals.purchaseInvoices || 0}</strong></article>
               <article><span>Onay metni</span><strong>{restorePreview.confirmationText}</strong></article>
             </div>
             <div className="cleanup-rules">
@@ -528,7 +528,7 @@ export function SystemSettingsScreen() {
               </label>
               <button
                 type="button"
-                disabled={isApplyingRestore || restoreConfirmation !== restorePreview.confirmationText || (restorePreview.totals?.totalInvoices || 0) === 0}
+                disabled={isApplyingRestore || restoreConfirmation !== restorePreview.confirmationText || (restorePreview.totals.totalInvoices || 0) === 0}
                 onClick={runRestoreApply}
               >
                 {isApplyingRestore ? 'Geri Alınıyor' : 'Arşivi Geri Al'}
@@ -549,12 +549,12 @@ export function SystemSettingsScreen() {
         {cleanupPreview && (
           <>
             <div className="cleanup-summary-grid">
-              <article><span>Toplam aday</span><strong>{cleanupPreview.totals?.total || 0}</strong></article>
-              <article className="cleanup-safe"><span>Temizlenebilir</span><strong>{cleanupPreview.totals?.safe || 0}</strong></article>
-              <article className="cleanup-blocked"><span>Bloklu</span><strong>{cleanupPreview.totals?.blocked || 0}</strong></article>
-              <article className={(cleanupPreview.totals?.financeMovementCount || 0) > 0 ? 'cleanup-blocked' : 'cleanup-safe'}>
+              <article><span>Toplam aday</span><strong>{cleanupPreview.totals.total || 0}</strong></article>
+              <article className="cleanup-safe"><span>Temizlenebilir</span><strong>{cleanupPreview.totals.safe || 0}</strong></article>
+              <article className="cleanup-blocked"><span>Bloklu</span><strong>{cleanupPreview.totals.blocked || 0}</strong></article>
+              <article className={(cleanupPreview.totals.financeMovementCount || 0) > 0 ? 'cleanup-blocked' : 'cleanup-safe'}>
                 <span>Test finans izi</span>
-                <strong>{cleanupPreview.totals?.financeMovementCount || 0}</strong>
+                <strong>{cleanupPreview.totals.financeMovementCount || 0}</strong>
               </article>
               <article><span>Onay metni</span><strong>{cleanupPreview.confirmationText}</strong></article>
             </div>
@@ -569,7 +569,7 @@ export function SystemSettingsScreen() {
               <button
                 type="button"
                 className="danger-button"
-                disabled={isApplyingCleanup || cleanupConfirmation !== cleanupPreview.confirmationText || (cleanupPreview.totals?.safe || 0) === 0}
+                disabled={isApplyingCleanup || cleanupConfirmation !== cleanupPreview.confirmationText || (cleanupPreview.totals.safe || 0) === 0}
                 onClick={runCleanupApply}
               >
                 {isApplyingCleanup ? 'Temizleniyor' : 'Güvenli Temizle'}

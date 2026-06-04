@@ -30,14 +30,15 @@ const favoriteScreens = [
   'stock-list',
   'customer-list',
   'supplier-list',
+  'cash-customers',
   'import-foundation',
 ];
 
 const groupDisplayLabels = {
   Operasyon: 'Operasyon',
   Dashboard: 'Ana Sayfa',
-  'Musteri Carileri': 'Müşteri Carileri',
-  'Tedarikci Carileri': 'Tedarikçi Carileri',
+  'Müşteri Carileri': 'Müşteri Carileri',
+  'Tedarikçi Carileri': 'Tedarikçi Carileri',
   'Stok Yönetimi': 'Stok Yönetimi',
   'Cari Hesaplar': 'Cari Hesaplar',
   'Satış Yönetimi': 'Satış Yönetimi',
@@ -58,6 +59,7 @@ const itemDisplayLabels = {
   'price-list': 'Fiyat Listesi',
   'stock-movements': 'Stok Hareketleri',
   'stock-valuation': 'Stok Değerleme',
+  'stock-count': 'Stok Sayım',
   'customer-list': 'Müşteri Cari Listesi',
   'customer-card': 'Müşteri Cari Kartı',
   'customer-movements': 'Müşteri Cari Hareketleri',
@@ -74,13 +76,16 @@ const itemDisplayLabels = {
   'purchase-invoice-list': 'Alış Fişleri',
   'finance-overview': 'Finans Özeti',
   'collections-overview': 'Tahsilatlar',
+  'cash-customers': 'Peşin Cariler',
   'cash-bank-ledger': 'Kasa/Banka Defteri',
   'accounting-journal': 'Muhasebe Defteri',
+  'accounting-control': 'Muhasebe Kontrol',
   'catalog-list': 'Katalog Listesi',
   'whatsapp-planner': 'WhatsApp Paylaşım',
   'terminal-overview': 'Terminal Ekranları',
   'import-foundation': 'Excel / CSV Aktarım',
   'reports-overview': 'Rapor Merkezi',
+  'export-center': 'Çıktı Merkezi',
   'definitions-overview': 'Tanım Listeleri',
   'settings-overview': 'Sistem Ayarları',
   'currency-rates': 'Döviz Kurları',
@@ -90,8 +95,8 @@ const itemDisplayLabels = {
 const groupIcons = {
   Dashboard: LayoutDashboard,
   Operasyon: LayoutDashboard,
-  'Musteri Carileri': Users,
-  'Tedarikci Carileri': ClipboardList,
+  'Müşteri Carileri': Users,
+  'Tedarikçi Carileri': ClipboardList,
   'Stok Yönetimi': Package,
   'Cari Hesaplar': Users,
   'Satış Yönetimi': ReceiptText,
@@ -112,6 +117,7 @@ const itemIcons = {
   'price-list': Tags,
   'stock-movements': FileSpreadsheet,
   'stock-valuation': BarChart3,
+  'stock-count': Database,
   'customer-list': Users,
   'customer-card': FileText,
   'customer-movements': FileSpreadsheet,
@@ -122,18 +128,25 @@ const itemIcons = {
   'supplier-statement': FileSpreadsheet,
   'sales-invoice': ReceiptText,
   'sales-invoice-list': ReceiptText,
+  'sales-offers': FileText,
+  'sales-orders': ClipboardList,
   'purchase-invoice': ClipboardList,
   'purchase-invoice-list': ClipboardList,
   'finance-overview': WalletCards,
   'collections-overview': WalletCards,
+  'cash-customers': WalletCards,
   'cash-bank-ledger': WalletCards,
   'accounting-journal': FileSpreadsheet,
+  'accounting-control': FileCog,
   'catalog-list': Tags,
+  'whatsapp-planner': Tags,
   'terminal-overview': Terminal,
   'import-foundation': Database,
   'reports-overview': BarChart3,
+  'export-center': FileSpreadsheet,
   'definitions-overview': FolderKanban,
   'settings-overview': Settings,
+  'currency-rates': Settings,
   'auth-overview': FileCog,
 };
 
@@ -141,12 +154,12 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   const activeScreenId = activeTab.screenId ?? activeTab.id;
   const [searchTerm, setSearchTerm] = useState('');
   const visibleGroups = useMemo(() => (roleScreenIds
-    ? sidebarGroups
-      .map((group) => ({
+      ? sidebarGroups
+        .map((group) => ({
         ...group,
         items: group.items.filter((item) => roleScreenIds.has(item.screenId)),
       }))
-      .filter((group) => group.items.length > 0)
+        .filter((group) => group.items.length > 0)
     : sidebarGroups), [roleScreenIds]);
   const favoriteItems = useMemo(() => (
     favoriteScreens
@@ -155,9 +168,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   ), [visibleGroups]);
   const normalizedSearch = normalizeSearch(searchTerm);
   const filteredGroups = useMemo(() => {
-    if (!normalizedSearch) {
-      return visibleGroups;
-    }
+    if (!normalizedSearch) return visibleGroups;
 
     return visibleGroups
       .map((group) => ({
@@ -183,9 +194,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
         return activeGroupTitle;
       }
 
-      if (currentGroupTitle && visibleTitles.has(currentGroupTitle)) {
-        return currentGroupTitle;
-      }
+      if (currentGroupTitle && visibleTitles.has(currentGroupTitle)) return currentGroupTitle;
 
       return visibleGroups[0]?.title || '';
     });
@@ -256,15 +265,10 @@ function readStoredOpenGroup(activeGroupTitle, visibleGroups) {
     const storedGroup = window.localStorage.getItem(sidebarAccordionStorageKey) || '';
     const visibleTitles = new Set(visibleGroups.map((group) => group.title));
 
-    if (activeGroupTitle) {
-      return activeGroupTitle;
-    }
-
-    if (storedGroup && visibleTitles.has(storedGroup)) {
-      return storedGroup;
-    }
+    if (activeGroupTitle) return activeGroupTitle;
+    if (storedGroup && visibleTitles.has(storedGroup)) return storedGroup;
   } catch {
-    // fall through to compact default below
+    // Fall through to default group.
   }
 
   return visibleGroups[0]?.title || '';
@@ -325,6 +329,7 @@ function SidebarItem({ item, isActive, onOpenScreen }) {
   return (
     <button
       className={[isActive ? 'active' : '', isComingSoon ? 'coming-soon' : ''].filter(Boolean).join(' ')}
+      data-screen-id={item.screenId}
       onClick={() => onOpenScreen(item.screenId)}
       type="button"
     >

@@ -47,7 +47,7 @@ function buildUrl(path, params = {}) {
 
 async function request(method, path, { params = {}, body } = {}) {
   if (apiConfig.demoMode) {
-    const demoError = new Error(`Demo mode icin servis mock response tanimli degil: ${method} ${path}`);
+    const demoError = new Error(`Demo mode icin servis mock response tanimli de?il: ${method} ${path}`);
     demoError.code = 'DEMO_ROUTE_MISSING';
     throw demoError;
   }
@@ -83,8 +83,8 @@ async function request(method, path, { params = {}, body } = {}) {
   }
 
   if (!response.ok || payload.success === false) {
-    const apiError = new Error(payload.error?.message || 'API istegi basarisiz oldu.');
-    apiError.code = payload.error?.code || 'API_ERROR';
+    const apiError = new Error(payload.error.message || 'API istegi basarisiz oldu.');
+    apiError.code = payload.error.code || 'API_ERROR';
     apiError.status = response.status;
     apiError.meta = payload.meta || {};
 

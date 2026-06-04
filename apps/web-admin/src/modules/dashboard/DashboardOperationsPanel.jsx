@@ -28,7 +28,7 @@ export function DashboardOperationsPanel({ columns, rows, title, subtitle }) {
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <div className="list-state">Bu bölüm için kayıt bulunamadı.</div>}
+        {rows.length === 0 && <div className="list-state dashboard-empty-state">Bu bölüm için kayıt bulunamadı.</div>}
       </div>
     </section>
   );

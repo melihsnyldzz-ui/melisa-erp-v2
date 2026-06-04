@@ -23,7 +23,7 @@ export function CustomerBalanceSummary({
   accountBalance = 0,
 }) {
   const rows = balances.length > 0
-    ? balances
+     ? balances
     : [{ currency: accountCurrency, debit: Math.max(Number(accountBalance || 0), 0), credit: Math.max(Number(accountBalance || 0) * -1, 0), balance: Number(accountBalance || 0) }];
   const tryBalance = rows.find((item) => item.currency === 'TRY')?.balance ?? 0;
   const accountCurrencyBalance = rows.find((item) => item.currency === accountCurrency)?.balance ?? accountBalance;
@@ -55,10 +55,10 @@ export function CustomerBalanceSummary({
         ))}
       </div>
       <div className="customer-payment-summary">
-        <span>Son tahsilat: {paymentSummary?.lastCollection || '-'}</span>
-        <span>Son ödeme: {paymentSummary?.lastPayment || '-'}</span>
-        <span>Açık fiş: {paymentSummary?.openInvoiceCount || 0}</span>
-        <span>Risk limiti: {formatMoney(paymentSummary?.riskLimit || 0, 'TRY')}</span>
+        <span>Son tahsilat: {paymentSummary.lastCollection || '-'}</span>
+        <span>Son ödeme: {paymentSummary.lastPayment || '-'}</span>
+        <span>Açık fiş: {paymentSummary.openInvoiceCount || 0}</span>
+        <span>Risk limiti: {formatMoney(paymentSummary.riskLimit || 0, 'TRY')}</span>
       </div>
     </section>
   );

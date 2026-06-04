@@ -17,7 +17,7 @@ export function LoginScreen({ errorMessage, isLoading, onLogin }) {
           <span>Web-admin guvenli giris</span>
         </div>
         <label>
-          Kullanici adi
+          Kullanıcı adı
           <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
         </label>
         <label>
@@ -31,7 +31,7 @@ export function LoginScreen({ errorMessage, isLoading, onLogin }) {
         </label>
         {errorMessage && <div className="login-error">{errorMessage}</div>}
         <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Giris kontrol ediliyor' : 'Giris yap'}
+          {isLoading ? 'Giriş kontrol ediliyor' : 'Giriş yap'}
         </button>
       </form>
     </main>

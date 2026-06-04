@@ -16,7 +16,7 @@ export function MockScreen({ screen }) {
           <span>Bu ekran henuz gercek API ekranina baglanmadi</span>
         </div>
         <div className="list-state list-state-passive">
-          Bu modul kullanima acik degil. Calisan ekranlar: dashboard, stok listesi, urun karti, cari listesi, cari kart, satis fisleri, satis fisi, alis fisleri, alis fisi, import, rapor merkezi ve doviz kurlari.
+          Bu modül kullanıma açık değil. Çalışan ekranlar: dashboard, stok listesi, ürün kartı, cari listesi, cari kart, satış fişleri, satış fişi, alış fişleri, alış fişi, import, rapor merkezi ve döviz kurları.
         </div>
       </section>
     </main>

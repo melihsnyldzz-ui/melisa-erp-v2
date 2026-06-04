@@ -9,6 +9,7 @@ import { DashboardScreen } from '../../modules/dashboard/DashboardScreen.jsx';
 import { AccountingJournalScreen } from '../../modules/finance/AccountingJournalScreen.jsx';
 import { AccountingControlScreen } from '../../modules/finance/AccountingControlScreen.jsx';
 import { CashBankLedgerScreen } from '../../modules/finance/CashBankLedgerScreen.jsx';
+import { CashCustomerTrackingScreen } from '../../modules/finance/CashCustomerTrackingScreen.jsx';
 import { CollectionsOverviewScreen } from '../../modules/finance/CollectionsOverviewScreen.jsx';
 import { FinanceOverviewScreen } from '../../modules/finance/FinanceOverviewScreen.jsx';
 import { ImportScreen } from '../../modules/import/ImportScreen.jsx';
@@ -62,7 +63,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'dashboard') {
     if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Dashboard goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Dashboard görüntüleme yetkiniz yok." />;
     }
 
     return <DashboardScreen onOpenScreen={onOpenScreen} />;
@@ -70,7 +71,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'stock-list') {
     if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Stok goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Stok görüntüleme yetkiniz yok." />;
     }
 
     return <StockListScreen onOpenScreen={onOpenScreen} />;
@@ -78,7 +79,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'product-card') {
     if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Urun goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Ürün görüntüleme yetkiniz yok." />;
     }
 
     return <ProductCardScreen productId={activeTab.payload?.productId} permissions={permissions} onOpenScreen={onOpenScreen} />;
@@ -86,7 +87,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'stock-movements') {
     if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Stok hareketleri goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Stok hareketleri görüntüleme yetkiniz yok." />;
     }
 
     return <StockMovementsScreen onOpenScreen={onOpenScreen} />;
@@ -94,7 +95,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'stock-valuation') {
     if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Stok degerleme goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Stok değerleme görüntüleme yetkiniz yok." />;
     }
 
     return <StockValuationScreen onOpenScreen={onOpenScreen} />;
@@ -102,7 +103,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'stock-count') {
     if (!permissions.includes('product.edit')) {
-      return <UnauthorizedScreen message="Stok sayimi uygulama yetkiniz yok." />;
+      return <UnauthorizedScreen message="Stok sayımı uygulama yetkiniz yok." />;
     }
 
     return <StockCountScreen onOpenScreen={onOpenScreen} />;
@@ -110,7 +111,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'price-list') {
     if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Fiyat listesi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Fiyat listesi görüntüleme yetkiniz yok." />;
     }
 
     return <PriceListScreen onOpenScreen={onOpenScreen} />;
@@ -118,7 +119,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'customer-list') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Cari görüntüleme yetkiniz yok." />;
     }
 
     return <CustomerListScreen onOpenScreen={onOpenScreen} />;
@@ -126,7 +127,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'customer-card') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Cari görüntüleme yetkiniz yok." />;
     }
 
     return <CustomerCardScreen customerId={activeTab.payload?.customerId} permissions={permissions} onOpenScreen={onOpenScreen} />;
@@ -134,7 +135,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'customer-movements') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari hareketleri goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Cari hareketleri görüntüleme yetkiniz yok." />;
     }
 
     return <CustomerMovementsScreen onOpenScreen={onOpenScreen} />;
@@ -142,7 +143,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'customer-statement') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari ekstre goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Cari ekstre görüntüleme yetkiniz yok." />;
     }
 
     return <CustomerStatementScreen onOpenScreen={onOpenScreen} />;
@@ -150,7 +151,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'supplier-list') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikci goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Tedarikçi görüntüleme yetkiniz yok." />;
     }
 
     return <SupplierListScreen onOpenScreen={onOpenScreen} />;
@@ -158,7 +159,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'supplier-card') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikci karti goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Tedarikçi kartı görüntüleme yetkiniz yok." />;
     }
 
     return (
@@ -173,7 +174,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'supplier-movements') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikci cari hareketleri goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Tedarikçi cari hareketleri görüntüleme yetkiniz yok." />;
     }
 
     return <SupplierMovementsScreen onOpenScreen={onOpenScreen} />;
@@ -181,7 +182,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'supplier-statement') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikci ekstresi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Tedarikçi ekstresi görüntüleme yetkiniz yok." />;
     }
 
     return <SupplierStatementScreen onOpenScreen={onOpenScreen} />;
@@ -189,7 +190,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'sales-invoice') {
     if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Satis fisi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Satış fişi görüntüleme yetkiniz yok." />;
     }
 
     return (
@@ -204,7 +205,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'sales-invoice-list') {
     if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Satis listesi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Satış listesi görüntüleme yetkiniz yok." />;
     }
 
     return <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />;
@@ -212,7 +213,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'sales-offers') {
     if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Teklif goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Teklif görüntüleme yetkiniz yok." />;
     }
 
     return <SalesPipelineListScreen type="offer" onOpenScreen={onOpenScreen} />;
@@ -220,7 +221,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'sales-offer') {
     if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Teklif goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Teklif görüntüleme yetkiniz yok." />;
     }
 
     return (
@@ -235,7 +236,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'sales-orders') {
     if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Siparis goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Sipariş görüntüleme yetkiniz yok." />;
     }
 
     return <SalesPipelineListScreen type="order" onOpenScreen={onOpenScreen} />;
@@ -243,7 +244,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'sales-order') {
     if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Siparis goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Sipariş görüntüleme yetkiniz yok." />;
     }
 
     return (
@@ -258,7 +259,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'purchase-invoice') {
     if (!permissions.includes('purchase.view')) {
-      return <UnauthorizedScreen message="Alis fisi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Alış fişi görüntüleme yetkiniz yok." />;
     }
 
     return (
@@ -272,7 +273,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'purchase-invoice-list') {
     if (!permissions.includes('purchase.view')) {
-      return <UnauthorizedScreen message="Alis listesi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Alış listesi görüntüleme yetkiniz yok." />;
     }
 
     return <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />;
@@ -280,7 +281,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'finance-overview') {
     if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
-      return <UnauthorizedScreen message="Finans ozeti goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Finans özeti görüntüleme yetkiniz yok." />;
     }
 
     return <FinanceOverviewScreen onOpenScreen={onOpenScreen} />;
@@ -288,15 +289,23 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'collections-overview') {
     if (!hasAnyPermission(permissions, ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'])) {
-      return <UnauthorizedScreen message="Tahsilat/odeme kaydi icin finans yetkiniz yok." />;
+      return <UnauthorizedScreen message="Tahsilat/ödeme kaydı için finans yetkiniz yok." />;
     }
 
     return <CollectionsOverviewScreen initialPayload={activeTab.payload} onOpenScreen={onOpenScreen} />;
   }
 
+  if (screenId === 'cash-customers') {
+    if (!hasAnyPermission(permissions, ['finance.view', 'customer.view', 'sales.view'])) {
+      return <UnauthorizedScreen message="Pesin cari takibi goruntuleme yetkiniz yok." />;
+    }
+
+    return <CashCustomerTrackingScreen onOpenScreen={onOpenScreen} />;
+  }
+
   if (screenId === 'cash-bank-ledger') {
     if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view', 'customer.view'])) {
-      return <UnauthorizedScreen message="Kasa/banka defteri goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Kasa/banka defteri görüntüleme yetkiniz yok." />;
     }
 
     return <CashBankLedgerScreen onOpenScreen={onOpenScreen} />;
@@ -304,7 +313,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'accounting-journal') {
     if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
-      return <UnauthorizedScreen message="Muhasebe defteri goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Muhasebe defteri görüntüleme yetkiniz yok." />;
     }
 
     return <AccountingJournalScreen onOpenScreen={onOpenScreen} />;
@@ -312,7 +321,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'accounting-control') {
     if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
-      return <UnauthorizedScreen message="Muhasebe kontrol paneli goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Muhasebe kontrol paneli görüntüleme yetkiniz yok." />;
     }
 
     return <AccountingControlScreen onOpenScreen={onOpenScreen} />;
@@ -320,7 +329,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'catalog-list') {
     if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Katalog goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Katalog görüntüleme yetkiniz yok." />;
     }
 
     return <CatalogListScreen onOpenScreen={onOpenScreen} />;
@@ -328,7 +337,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'whatsapp-planner') {
     if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="WhatsApp paylasim listesi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="WhatsApp paylaşım listesi görüntüleme yetkiniz yok." />;
     }
 
     return <WhatsappPlannerScreen onOpenScreen={onOpenScreen} />;
@@ -336,7 +345,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'import-foundation') {
     if (!permissions.includes('import.run')) {
-      return <UnauthorizedScreen message="Import calistirma yetkiniz yok." />;
+      return <UnauthorizedScreen message="Import calıştirma yetkiniz yok." />;
     }
 
     return <ImportScreen onOpenScreen={onOpenScreen} />;
@@ -344,7 +353,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'reports-overview') {
     if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Rapor goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Rapor görüntüleme yetkiniz yok." />;
     }
 
     return <ManagementReportsScreen />;
@@ -352,7 +361,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'export-center') {
     if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Cikti merkezi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Çıktı merkezi görüntüleme yetkiniz yok." />;
     }
 
     return <ExportCenterScreen />;
@@ -360,7 +369,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'currency-rates') {
     if (!permissions.includes('settings.manage')) {
-      return <UnauthorizedScreen message="Doviz kuru yonetimi yetkiniz yok." />;
+      return <UnauthorizedScreen message="Döviz kuru ynetimi yetkiniz yok." />;
     }
 
     return <CurrencyRatesScreen />;
@@ -368,7 +377,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'settings-overview') {
     if (!permissions.includes('settings.manage')) {
-      return <UnauthorizedScreen message="Sistem ayarlari yonetimi yetkiniz yok." />;
+      return <UnauthorizedScreen message="Sistem ayarları yönetimi yetkiniz yok." />;
     }
 
     return <SystemSettingsScreen />;
@@ -376,7 +385,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'definitions-overview') {
     if (!permissions.includes('settings.manage')) {
-      return <UnauthorizedScreen message="Tanim listeleri yonetimi yetkiniz yok." />;
+      return <UnauthorizedScreen message="Tanım listeleri yönetimi yetkiniz yok." />;
     }
 
     return <DefinitionsScreen />;
@@ -384,7 +393,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'terminal-overview') {
     if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Terminal yonetimi goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Terminal yönetimi görüntüleme yetkiniz yok." />;
     }
 
     return <TerminalAdminScreen />;
@@ -392,7 +401,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
 
   if (screenId === 'auth-overview') {
     if (!permissions.includes('audit.view')) {
-      return <UnauthorizedScreen message="Audit goruntuleme yetkiniz yok." />;
+      return <UnauthorizedScreen message="Audit görüntüleme yetkiniz yok." />;
     }
 
     return <AuthAdminScreen permissions={permissions} />;

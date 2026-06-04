@@ -26,7 +26,7 @@ function buildSearch(filters) {
 
 function mapCustomerType(type) {
   const labels = {
-    customer: 'Musteri',
+    customer: 'Müşteri',
     wholesale: 'Toptan',
     retail: 'Perakende',
     mixed: 'Karma',
@@ -86,6 +86,7 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
@@ -118,7 +119,7 @@ export function CustomerListScreen({ onOpenScreen }) {
           setRows([]);
           setMeta(null);
           setSelectedRowId(null);
-          setErrorMessage(error.message || 'Cari listesi API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Cari listesi API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -132,7 +133,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, search]);
+  }, [activeOnly, refreshKey, search]);
 
   const filteredRows = useMemo(() => {
     const nextRows = rows.filter((row) => applyCustomerFilters(row, filters));
@@ -172,7 +173,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     const customerId = selectedRow?.id;
 
     if (!customerId) {
-      setSelectionWarning('Cari kart acmak icin listeden bir cari secin.');
+      setSelectionWarning('Cari kart açmak için listeden bir cari seçin.');
       return;
     }
 
@@ -212,8 +213,8 @@ export function CustomerListScreen({ onOpenScreen }) {
         { label: 'Cari Kodu', key: 'code' },
         { label: 'Ad Unvan', key: 'name' },
         { label: 'Telefon', key: 'phone' },
-        { label: 'Sehir', key: 'city' },
-        { label: 'Ulke', key: 'country' },
+        { label: 'Şehir', key: 'city' },
+        { label: 'Ülke', key: 'country' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Cari Tipi', key: 'type' },
         { label: 'Bakiye', key: 'balance' },
@@ -232,21 +233,22 @@ export function CustomerListScreen({ onOpenScreen }) {
         onTogglePassive={togglePassive}
         onExportCsv={exportCustomerRows}
         onPrint={() => printCurrentScreen('Melisa ERP - Cari Listesi')}
+        onRefresh={() => setRefreshKey((current) => current + 1)}
       />
       <CustomerListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
       <section className="erp-panel customer-list-panel">
         <div className="panel-title customer-panel-title">
           <strong>Cari Hesap Tablosu</strong>
-          <span>Secili: {selectedRow?.code ?? 'yok'} / Satir: {filteredRows.length}</span>
+          <span>Seçili: {selectedRow?.code ?? 'yok'} / Satır: {filteredRows.length}</span>
         </div>
-        {isLoading && <div className="list-state">API'den cari kayitlari yukleniyor...</div>}
+        {isLoading && <div className="list-state">API'den cari kayıtları yükleniyor...</div>}
         {!isLoading && errorMessage && (
           <div className="list-state list-state-error">
-            {errorMessage} API baglantisi kontrol edilmeli; mock veriye gecilmedi.
+            {errorMessage} API bağlantısı kontrol edilmeli; mock veriye geçilmedi.
           </div>
         )}
         {!isLoading && !errorMessage && filteredRows.length === 0 && (
-          <div className="list-state">Kayit bulunamadi veya secilen filtreler bos.</div>
+          <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
         )}
         {!isLoading && !errorMessage && selectionWarning && (
           <div className="list-state list-state-error">{selectionWarning}</div>
@@ -266,9 +268,9 @@ export function CustomerListScreen({ onOpenScreen }) {
         <span>Toplam cari: {meta?.total ?? rows.length}</span>
         <span>Aktif: {activeCount}</span>
         <span>Pasif: {passiveCount}</span>
-        <span>Borclu: {receivableCount}</span>
-        <span>Alacakli: {payableCount}</span>
-        <span>Liste kaydi: {filteredRows.length}</span>
+        <span>Borçlu: {receivableCount}</span>
+        <span>Alacaklı: {payableCount}</span>
+        <span>Liste kaydı: {filteredRows.length}</span>
         <span>Kaynak: API</span>
       </section>
     </main>

@@ -1,6 +1,14 @@
 import React from 'react';
 
-export function DashboardToolbar({ activeView, period, onPeriodChange, onRefresh, onViewChange }) {
+export function DashboardToolbar({
+  activeView,
+  isLayoutEditorOpen,
+  onLayoutEditorToggle,
+  period,
+  onPeriodChange,
+  onRefresh,
+  onViewChange,
+}) {
   return (
     <section className="dashboard-toolbar">
       <div className="dashboard-toolbar-title">
@@ -23,10 +31,17 @@ export function DashboardToolbar({ activeView, period, onPeriodChange, onRefresh
           Finans görünümü
         </button>
         <select value={period} onChange={(event) => onPeriodChange(event.target.value)}>
-          <option value="today">Bugun</option>
+          <option value="today">Bugün</option>
           <option value="week">Bu hafta</option>
           <option value="month">Bu ay</option>
         </select>
+        <button
+          type="button"
+          className={isLayoutEditorOpen ? 'pressed' : ''}
+          onClick={onLayoutEditorToggle}
+        >
+          Masayı Düzenle
+        </button>
         <span className="auto-refresh-label">30 sn otomatik yenileme</span>
         <button type="button" onClick={onRefresh}>Yenile</button>
       </div>

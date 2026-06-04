@@ -40,8 +40,8 @@ export function ProductBarcodePanel({
   return (
     <section className="erp-panel product-barcode-panel">
       <div className="panel-title">
-        <strong>Diger Barkodlar</strong>
-        <span>Ayni ana urun stok kartina bagli barkodlar</span>
+        <strong>Diğer Barkodlar</strong>
+        <span>Aynı ana ürün stok kartına bağlı barkodlar</span>
       </div>
 
       <form className="filter-grid" onSubmit={addBarcode}>
@@ -81,13 +81,13 @@ export function ProductBarcodePanel({
               <th>Barkod</th>
               <th>Tip</th>
               <th>Durum</th>
-              <th>Islem</th>
+              <th>İşlem</th>
             </tr>
           </thead>
           <tbody>
             {barcodes.length === 0 && (
               <tr>
-                <td colSpan="4">Bu urune bagli barkod yok.</td>
+                <td colSpan="4">Bu ürüne bağlı barkod yok.</td>
               </tr>
             )}
             {barcodes.map((item) => (

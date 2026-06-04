@@ -4,7 +4,7 @@ import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
 import { stockFilterDefaults, stockFilterOptions } from './stockMockData.js';
 import { fetchProducts } from '../../services/productApi.js';
-import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function normalize(value) {
   return String(value ?? '').toLocaleLowerCase('tr-TR');
@@ -19,16 +19,10 @@ function normalizeBarcode(value) {
 }
 
 function matchesBarcode(row, filter) {
-  if (!filter) {
-    return true;
-  }
+  if (!filter) return true;
 
   const query = normalizeBarcode(filter);
-  const barcodeValues = [
-    row.barcode,
-    row.primaryBarcode,
-    row.matchedBarcode,
-  ];
+  const barcodeValues = [row.barcode, row.primaryBarcode, row.matchedBarcode];
 
   if (!query) {
     return barcodeValues.some((value) => matchesText(value, filter));
@@ -113,6 +107,20 @@ function applyStockFilters(row, filters) {
     matchesText(row.supplier, filters.supplier)
   );
 }
+
+const stockExportColumns = [
+  { label: 'Stok Kodu', key: 'stockCode' },
+  { label: 'Barkod', key: 'barcode' },
+  { label: 'Ürün Adı', key: 'name' },
+  { label: 'Marka', key: 'brand' },
+  { label: 'Kategori', key: 'category' },
+  { label: 'Para Birimi', key: 'currency' },
+  { label: 'Satış Fiyatı', key: 'salesPrice' },
+  { label: 'Alış Fiyatı', key: 'purchasePrice' },
+  { label: 'Stok', key: 'currentStock' },
+  { label: 'Tedarikçi', key: 'supplier' },
+  { label: 'Durum', key: 'status' },
+];
 
 export function StockListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState(stockFilterDefaults);
@@ -215,7 +223,7 @@ export function StockListScreen({ onOpenScreen }) {
     setSelectionWarning('');
     onOpenScreen('product-card', {
       mode: 'create',
-      tabLabel: 'Yeni Urun',
+      tabLabel: 'Yeni Ürün',
     });
   }
 
@@ -228,7 +236,7 @@ export function StockListScreen({ onOpenScreen }) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
     const row = rows.find((item) => item.id === rowId);
-    onOpenScreen('product-card', { productId: rowId, stockCode: row?.stockCode });
+    onOpenScreen('product-card', { productId: rowId, stockCode: row.stockCode });
   }
 
   function refreshProducts() {
@@ -236,23 +244,29 @@ export function StockListScreen({ onOpenScreen }) {
     setSelectionWarning('');
   }
 
-  function exportStockRows() {
+  function exportStockRowsCsv() {
     exportRowsToCsv({
       filename: 'stok-listesi',
       rows: filteredRows,
-      columns: [
-        { label: 'Stok Kodu', key: 'stockCode' },
-        { label: 'Barkod', key: 'barcode' },
-        { label: 'Ürün Adı', key: 'name' },
-        { label: 'Marka', key: 'brand' },
-        { label: 'Kategori', key: 'category' },
-        { label: 'Para Birimi', key: 'currency' },
-        { label: 'Satış Fiyatı', key: 'salesPrice' },
-        { label: 'Alış Fiyatı', key: 'purchasePrice' },
-        { label: 'Stok', key: 'currentStock' },
-        { label: 'Tedarikçi', key: 'supplier' },
-        { label: 'Durum', key: 'status' },
-      ],
+      columns: stockExportColumns,
+    });
+  }
+
+  function exportStockRowsExcel() {
+    exportRowsToExcel({
+      filename: 'stok-listesi',
+      title: 'Stok Listesi',
+      rows: filteredRows,
+      columns: stockExportColumns,
+    });
+  }
+
+  function printStockRows() {
+    printRowsReport({
+      title: 'Melisa ERP - Stok Listesi',
+      subtitle: `Satır: ${filteredRows.length} / Aktif: ${activeCount} / Pasif: ${passiveCount}`,
+      rows: filteredRows,
+      columns: stockExportColumns,
     });
   }
 
@@ -264,8 +278,9 @@ export function StockListScreen({ onOpenScreen }) {
         onOpenNewProduct={openNewProduct}
         onOpenProductCard={openSelectedProduct}
         onTogglePassive={togglePassive}
-        onExportCsv={exportStockRows}
-        onPrint={() => printCurrentScreen('Melisa ERP - Stok Listesi')}
+        onExportCsv={exportStockRowsCsv}
+        onExportExcel={exportStockRowsExcel}
+        onPrint={printStockRows}
         onRefresh={refreshProducts}
       />
       <StockListFilters

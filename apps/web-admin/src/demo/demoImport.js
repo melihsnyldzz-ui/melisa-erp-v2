@@ -22,14 +22,14 @@ const demoPreview = {
     {
       rowNumber: 3,
       status: 'valid',
-      data: { customerCode: 'CR-DEMO-001', customerName: 'Demo Romanya Musteri', phone: '+40 *** *** 001', currency: 'USD', balance: 0 },
+      data: { customerCode: 'CR-DEMO-001', customerName: 'Demo Romanya Müşteri', phone: '+40 *** *** 001', currency: 'USD', balance: 0 },
       errors: [],
       warnings: ['Demo validasyon basarili'],
     },
     {
       rowNumber: 4,
       status: 'valid',
-      data: { customerCode: 'CR-DEMO-002', customerName: 'Demo Balkan Musteri', phone: '+381 *** *** 002', currency: 'USD', balance: 0 },
+      data: { customerCode: 'CR-DEMO-002', customerName: 'Demo Balkan Müşteri', phone: '+381 *** *** 002', currency: 'USD', balance: 0 },
       errors: [],
       warnings: ['Demo validasyon basarili'],
     },
@@ -39,7 +39,7 @@ const demoPreview = {
 export function demoImportPreviewResponse() {
   return {
     success: true,
-    message: 'Demo preview olusturuldu.',
+    message: 'Demo preview oluşturuldu.',
     data: demoPreview,
   };
 }

@@ -56,7 +56,7 @@ export function StockValuationScreen({ onOpenScreen }) {
         if (isMounted) {
           setRows(response.data || []);
           setMeta(response.meta || null);
-          setSummary(response.meta?.summary || {});
+          setSummary(response.meta.summary || {});
         }
       } catch (error) {
         if (isMounted) {

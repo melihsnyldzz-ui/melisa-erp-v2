@@ -47,7 +47,7 @@ export function PriceListScreen({ onOpenScreen }) {
     } catch (error) {
       setRows([]);
       setMeta(null);
-      setErrorMessage(`${error.message || 'Fiyat listesi okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Fiyat listesi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -87,12 +87,12 @@ export function PriceListScreen({ onOpenScreen }) {
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
         { label: 'Barkod', key: 'barcodeMasked' },
-        { label: 'Urun', key: 'productName' },
+        { label: 'Ürün', key: 'productName' },
         { label: 'Marka', key: 'brand' },
         { label: 'Kategori', key: 'category' },
         { label: 'PB', key: 'currency' },
-        { label: 'Alis Fiyat', key: 'purchasePrice' },
-        { label: 'Satis Fiyat', key: 'salePrice' },
+        { label: 'Alış Fiyat', key: 'purchasePrice' },
+        { label: 'Satış Fiyat', key: 'salePrice' },
         { label: 'Stok', key: 'stockQuantity' },
       ],
     });
@@ -103,11 +103,11 @@ export function PriceListScreen({ onOpenScreen }) {
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Fiyat Listesi</strong>
-          <span>Gercek SQL stok kart fiyatlari / satis ve alis fiyat kontrolu</span>
+          <span>Gerçek SQL stok kart fiyatları / satış ve alış fiyat kontrolü</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={exportPriceRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Fiyat Listesi')}>Yazdir</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Fiyat Listesi')}>Yazdır</button>
           <button type="button" onClick={loadRows}>Yenile</button>
         </div>
       </section>
@@ -116,26 +116,26 @@ export function PriceListScreen({ onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid">
-        <Kpi label="Urun" value={totals.products} detail={`API toplam: ${meta?.total ?? rows.length}`} tone="info" />
-        <Kpi label="Satis toplami" value={formatMoney(totals.saleValue)} detail="Liste satir toplami" tone="good" />
-        <Kpi label="Alis toplami" value={formatMoney(totals.purchaseValue)} detail="Liste satir toplami" tone="warn" />
-        <Kpi label="Fiyatsiz" value={totals.zeroSalePrice} detail="Satis fiyati 0 olan" tone={totals.zeroSalePrice > 0 ? 'warn' : 'good'} />
+        <Kpi label="Ürün" value={totals.products} detail={`API toplam: ${meta?.total ?? rows.length}`} tone="info" />
+        <Kpi label="Satış toplamı" value={formatMoney(totals.saleValue)} detail="Liste satır toplamı" tone="good" />
+        <Kpi label="Alış toplamı" value={formatMoney(totals.purchaseValue)} detail="Liste satır toplamı" tone="warn" />
+        <Kpi label="Fiyatsız" value={totals.zeroSalePrice} detail="Satış fiyatı 0 olan" tone={totals.zeroSalePrice > 0 ? 'warn' : 'good'} />
       </section>
 
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Filtreler</strong>
-          <span>Stok kodu, urun, marka, kategori ve para birimi</span>
+          <span>Stok kodu, ürün, marka, kategori ve para birimi</span>
         </div>
         <div className="filter-grid">
           <label>
             Arama
-            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Stok kodu / urun / marka" />
+            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Stok kodu / ürün / marka" />
           </label>
           <label>
             Para birimi
             <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
-              <option value="">Tum PB</option>
+              <option value="">Tüm PB</option>
               <option value="TRY">TRY</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
@@ -151,10 +151,10 @@ export function PriceListScreen({ onOpenScreen }) {
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Fiyat Satirlari</strong>
-          <span>{filteredRows.length} satir</span>
+          <strong>Fiyat Satırları</strong>
+          <span>{filteredRows.length} satır</span>
         </div>
-        {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Fiyat satiri bulunamadi.</div>}
+        {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Fiyat satırı bulunamadı.</div>}
         {filteredRows.length > 0 && (
           <div className="table-shell">
             <table className="erp-table">
@@ -162,14 +162,14 @@ export function PriceListScreen({ onOpenScreen }) {
                 <tr>
                   <th>Stok Kodu</th>
                   <th>Barkod</th>
-                  <th>Urun</th>
+                  <th>Ürün</th>
                   <th>Marka</th>
                   <th>Kategori</th>
                   <th>PB</th>
-                  <th>Alis</th>
-                  <th>Satis</th>
+                  <th>Alış</th>
+                  <th>Satış</th>
                   <th>Stok</th>
-                  <th>Islem</th>
+                  <th>İşlem</th>
                 </tr>
               </thead>
               <tbody>

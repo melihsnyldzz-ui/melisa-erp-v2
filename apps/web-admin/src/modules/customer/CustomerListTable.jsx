@@ -10,20 +10,20 @@ function formatMoney(amount, currency) {
 
 const columns = [
   ['code', 'Cari kodu'],
-  ['name', 'Musteri / tedarikci adi'],
+  ['name', 'Müşteri / tedarikçi adı'],
   ['phone', 'Telefon'],
-  ['city', 'Sehir'],
-  ['country', 'Ulke'],
+  ['city', 'Şehir'],
+  ['country', 'Ülke'],
   ['currency', 'Para birimi'],
   ['type', 'Cari tipi'],
   ['balance', 'Bakiye'],
-  ['lastTransactionDate', 'Son islem tarihi'],
+  ['lastTransactionDate', 'Son işlem tarihi'],
   ['status', 'Aktif / pasif'],
 ];
 
 export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow, onSort, sortConfig }) {
   function sortMark(key) {
-    if (sortConfig?.key !== key) {
+    if (sortConfig.key !== key) {
       return '';
     }
 

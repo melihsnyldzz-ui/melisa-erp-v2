@@ -17,10 +17,6 @@ function monthStartDate() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function value(key) {
-  return { key };
-}
-
 const exportDefinitions = {
   products: {
     title: 'Stok Listesi',
@@ -29,58 +25,58 @@ const exportDefinitions = {
     columns: [
       { label: 'Stok Kodu', key: 'stockCode' },
       { label: 'Barkod', value: (row) => row.matchedBarcode || row.barcodeMasked || '' },
-      { label: 'Urun', key: 'productName' },
+      { label: 'Ürün', key: 'productName' },
       { label: 'Marka', key: 'brand' },
       { label: 'Kategori', key: 'category' },
       { label: 'Para Birimi', key: 'currency' },
-      { label: 'Satis Fiyati', key: 'salePrice' },
-      { label: 'Alis Fiyati', key: 'purchasePrice' },
+      { label: 'Satış Fiyatı', key: 'salePrice' },
+      { label: 'Alış Fiyatı', key: 'purchasePrice' },
       { label: 'Stok', key: 'stockQuantity' },
     ],
   },
   customers: {
-    title: 'Musteri Cari Listesi',
+    title: 'Müşteri Cari Listesi',
     filename: 'musteri-cari-listesi',
     fetcher: ({ search }) => fetchCustomers({ search, limit: 500, activeOnly: false }),
     columns: [
       { label: 'Cari Kod', key: 'customerCode' },
       { label: 'Ad / Unvan', value: (row) => row.customerName || row.name || '' },
       { label: 'Telefon', value: (row) => row.phone || row.phoneMasked || '' },
-      { label: 'Sehir', key: 'city' },
-      { label: 'Ulke', key: 'country' },
+      { label: 'Şehir', key: 'city' },
+      { label: 'Ülke', key: 'country' },
       { label: 'Para Birimi', key: 'currency' },
       { label: 'Bakiye', key: 'balance' },
       { label: 'Durum', value: (row) => row.isPassive ? 'Pasif' : 'Aktif' },
     ],
   },
   suppliers: {
-    title: 'Tedarikci Cari Listesi',
-    filename: 'tedarikci-cari-listesi',
+    title: 'Tedarikçi Cari Listesi',
+    filename: 'tedarik?i-cari-listesi',
     fetcher: ({ search }) => fetchSuppliers({ search, limit: 500, activeOnly: false }),
     columns: [
       { label: 'Cari Kod', key: 'supplierCode' },
       { label: 'Ad / Unvan', value: (row) => row.supplierName || row.name || '' },
       { label: 'Telefon', value: (row) => row.phone || row.phoneMasked || '' },
-      { label: 'Sehir', key: 'city' },
-      { label: 'Ulke', key: 'country' },
+      { label: 'Şehir', key: 'city' },
+      { label: 'Ülke', key: 'country' },
       { label: 'Para Birimi', key: 'currency' },
       { label: 'Bakiye', key: 'balance' },
       { label: 'Durum', value: (row) => row.isPassive ? 'Pasif' : 'Aktif' },
     ],
   },
   sales: {
-    title: 'Satis Fisleri',
+    title: 'Satış Fişleri',
     filename: 'satis-fisleri',
     fetcher: ({ search, status, dateFrom, dateTo }) => fetchSalesDrafts({ search, status, dateFrom, dateTo, limit: 500 }),
     columns: [
-      { label: 'Fis No', key: 'invoiceNo' },
-      { label: 'Musteri', key: 'customerName' },
+      { label: 'Fiş No', key: 'invoiceNo' },
+      { label: 'Müşteri', key: 'customerName' },
       { label: 'Para Birimi', key: 'currency' },
       { label: 'Toplam', key: 'totalAmount' },
       { label: 'Durum', key: 'status' },
-      { label: 'Satir', key: 'itemCount' },
-      { label: 'Olusturma', key: 'createdAt' },
-      { label: 'Guncelleme', key: 'updatedAt' },
+      { label: 'Satır', key: 'itemCount' },
+      { label: 'Oluşturma', key: 'createdAt' },
+      { label: 'Güncelleme', key: 'updatedAt' },
     ],
   },
   offers: {
@@ -95,12 +91,12 @@ const exportDefinitions = {
       { label: 'PB', key: 'documentCurrency' },
       { label: 'Toplam', key: 'grandTotal' },
       { label: 'TRY', key: 'amountTry' },
-      { label: 'Satir', key: 'itemCount' },
+      { label: 'Satır', key: 'itemCount' },
     ],
   },
   orders: {
-    title: 'Siparisler',
-    filename: 'siparisler',
+    title: 'Siparişler',
+    filename: 'sipari?ler',
     fetcher: ({ search, status, dateFrom, dateTo }) => fetchSalesOrders({ search, status, dateFrom, dateTo, limit: 500 }),
     columns: [
       { label: 'Belge No', key: 'documentNo' },
@@ -110,22 +106,22 @@ const exportDefinitions = {
       { label: 'PB', key: 'documentCurrency' },
       { label: 'Toplam', key: 'grandTotal' },
       { label: 'TRY', key: 'amountTry' },
-      { label: 'Satir', key: 'itemCount' },
+      { label: 'Satır', key: 'itemCount' },
     ],
   },
   purchases: {
-    title: 'Alis Fisleri',
+    title: 'Alış Fişleri',
     filename: 'alis-fisleri',
     fetcher: ({ search, status }) => fetchPurchaseDrafts({ search, status, limit: 500 }),
     columns: [
-      { label: 'Fis No', key: 'invoiceNo' },
-      { label: 'Tedarikci', key: 'supplierName' },
+      { label: 'Fiş No', key: 'invoiceNo' },
+      { label: 'Tedarikçi', key: 'supplierName' },
       { label: 'Para Birimi', key: 'currency' },
       { label: 'Toplam', key: 'totalAmount' },
       { label: 'Durum', key: 'status' },
-      { label: 'Satir', key: 'itemCount' },
-      { label: 'Olusturma', key: 'createdAt' },
-      { label: 'Guncelleme', key: 'updatedAt' },
+      { label: 'Satır', key: 'itemCount' },
+      { label: 'Oluşturma', key: 'createdAt' },
+      { label: 'Güncelleme', key: 'updatedAt' },
     ],
   },
   stockMovements: {
@@ -137,49 +133,49 @@ const exportDefinitions = {
       { label: 'Kaynak', key: 'sourceType' },
       { label: 'Belge No', key: 'sourceDocumentNo' },
       { label: 'Stok Kodu', key: 'stockCode' },
-      { label: 'Urun', key: 'productName' },
-      { label: 'Giris', key: 'quantityIn' },
-      { label: 'Cikis', key: 'quantityOut' },
+      { label: 'Ürün', key: 'productName' },
+      { label: 'Giriş', key: 'quantityIn' },
+      { label: 'Çıkış', key: 'quantityOut' },
       { label: 'Net', key: 'quantityNet' },
-      { label: 'Musteri', key: 'customerName' },
-      { label: 'Tedarikci', key: 'supplierName' },
+      { label: 'Müşteri', key: 'customerName' },
+      { label: 'Tedarikçi', key: 'supplierName' },
     ],
   },
   stockValuation: {
-    title: 'Stok Degerleme',
+    title: 'Stok Değerleme',
     filename: 'stok-degerleme',
     fetcher: ({ search }) => fetchStockValuation({ search, limit: 500 }),
     columns: [
       { label: 'Stok Kodu', key: 'stockCode' },
       { label: 'Barkod', key: 'barcode' },
-      { label: 'Urun', key: 'productName' },
+      { label: 'Ürün', key: 'productName' },
       { label: 'Marka', key: 'brand' },
       { label: 'PB', key: 'currency' },
       { label: 'Stok', key: 'stockQuantity' },
       { label: 'Ort. Maliyet TRY', key: 'averageCostTry' },
-      { label: 'Stok Degeri TRY', key: 'stockValueTry' },
+      { label: 'Stok Değeri TRY', key: 'stockValueTry' },
       { label: 'Potansiyel Kar TRY', key: 'potentialGrossProfitTry' },
     ],
   },
   terminalSync: {
-    title: 'Terminal Sync Loglari',
+    title: 'Terminal Sync Logları',
     filename: 'terminal-sync-loglari',
     fetcher: async ({ search, status, dateFrom, dateTo }) => {
       const response = await fetchTerminalAdminOverview({ search, status, dateFrom, dateTo });
       return {
         ...response,
-        data: response.data?.queue || [],
+        data: response.data.queue || [],
         meta: {
-          source: response.meta?.source || 'terminal-admin',
-          total: response.data?.queue?.length || 0,
+          source: response.meta.source || 'terminal-admin',
+          total: response.data.queue.length || 0,
         },
       };
     },
     columns: [
       { label: 'Tarih', key: 'receivedAt' },
       { label: 'Cihaz', key: 'deviceCode' },
-      { label: 'Cihaz Adi', key: 'deviceName' },
-      { label: 'Kullanici', key: 'username' },
+      { label: 'Cihaz Adı', key: 'deviceName' },
+      { label: 'Kullanıcı', key: 'username' },
       { label: 'Event', key: 'eventType' },
       { label: 'Request', key: 'clientRequestId' },
       { label: 'Durum', key: 'status' },
@@ -209,7 +205,7 @@ export function ExportCenterScreen() {
   const previewRows = useMemo(() => rows.slice(0, 20), [rows]);
 
   async function loadRows(event) {
-    event?.preventDefault();
+    event.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
 
@@ -220,7 +216,7 @@ export function ExportCenterScreen() {
     } catch (error) {
       setRows([]);
       setMeta(null);
-      setErrorMessage(`${error.message || 'Cikti verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Çıktı verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -237,7 +233,7 @@ export function ExportCenterScreen() {
   function printReport() {
     printRowsReport({
       title: definition.title,
-      subtitle: `${dateFrom || '-'} / ${dateTo || '-'} - ${rows.length} satir`,
+      subtitle: `${dateFrom || '-'} / ${dateTo || '-'} - ${rows.length} satır`,
       rows,
       columns: definition.columns,
     });
@@ -248,7 +244,7 @@ export function ExportCenterScreen() {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Çıktı Merkezi</strong>
-          <span>CSV, Excel ve PDF olarak kaydedilebilir yazdirma ciktilari</span>
+          <span>CSV, Excel ve PDF olarak kaydedilebilir yazdırma çıktıları</span>
         </div>
         <form className="filter-grid" onSubmit={loadRows}>
           <label>
@@ -266,18 +262,18 @@ export function ExportCenterScreen() {
           <label>
             Durum
             <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="ALL">Tumu</option>
+              <option value="ALL">Tümü</option>
               <option value="DRAFT">Taslak</option>
-              <option value="FINALIZED">Kesinlesen</option>
-              <option value="CANCELLED">Iptal</option>
+              <option value="FINALIZED">Kesinleşen</option>
+              <option value="CANCELLED">İptal</option>
             </select>
           </label>
           <label>
-            Baslangic
+            Başlangıç
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
           </label>
           <label>
-            Bitis
+            Bitiş
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </label>
           <button type="submit" className="primary" disabled={isLoading}>{isLoading ? 'Okunuyor...' : 'Veriyi Getir'}</button>

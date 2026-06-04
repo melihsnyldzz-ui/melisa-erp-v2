@@ -5,6 +5,20 @@ import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 const ALLOWED_CUSTOMER_TYPES = new Set(['customer', 'wholesale', 'retail', 'mixed']);
+export const CASH_CUSTOMER_DEFINITIONS = [
+  { code: 'PESIN-TL', name: 'Pesin TL Musteri', currency: 'TRY' },
+  { code: 'PESIN-USD', name: 'Pesin USD Musteri', currency: 'USD' },
+  { code: 'PESIN-EUR', name: 'Pesin EUR Musteri', currency: 'EUR' },
+];
+
+const CASH_CUSTOMER_CODE_ALIASES = new Map([
+  ['PESIN-TL', 'TRY'],
+  ['PESIN-TRY', 'TRY'],
+  ['PESIN-USD', 'USD'],
+  ['PESIN-DOLAR', 'USD'],
+  ['PESIN-EUR', 'EUR'],
+  ['PESIN-EURO', 'EUR'],
+]);
 
 function toCustomerDto(row) {
   return {
@@ -90,6 +104,80 @@ function normalizeCurrency(value) {
   return trimText(value).toUpperCase();
 }
 
+function normalizeCustomerCode(value) {
+  return trimText(value).toUpperCase().replace(/\s+/g, '-');
+}
+
+export function getCashCustomerCurrency(customerCode) {
+  return CASH_CUSTOMER_CODE_ALIASES.get(normalizeCustomerCode(customerCode)) || null;
+}
+
+export function isCashCustomerCode(customerCode) {
+  return Boolean(getCashCustomerCurrency(customerCode));
+}
+
+export async function ensureCashCustomers(poolArg = null) {
+  const pool = poolArg || await getSqlPool();
+
+  for (const customer of CASH_CUSTOMER_DEFINITIONS) {
+    await pool.request()
+      .input('cashCustomerCode', sql.NVarChar(80), customer.code)
+      .input('cashCustomerName', sql.NVarChar(250), customer.name)
+      .input('cashCustomerCurrency', sql.NVarChar(3), customer.currency)
+      .query(`
+        IF NOT EXISTS (
+          SELECT 1
+          FROM dbo.customers WITH (UPDLOCK, HOLDLOCK)
+          WHERE customer_code = @cashCustomerCode
+        )
+        BEGIN
+          INSERT INTO dbo.customers (
+            customer_code,
+            name,
+            phone,
+            city,
+            country,
+            currency_code,
+            customer_type,
+            balance,
+            risk_limit,
+            is_active,
+            is_deleted,
+            created_by,
+            updated_by
+          )
+          VALUES (
+            @cashCustomerCode,
+            @cashCustomerName,
+            N'',
+            N'',
+            N'Turkiye',
+            @cashCustomerCurrency,
+            N'retail',
+            0,
+            0,
+            1,
+            0,
+            NULL,
+            NULL
+          );
+        END
+        ELSE
+        BEGIN
+          UPDATE dbo.customers
+          SET
+            name = @cashCustomerName,
+            currency_code = @cashCustomerCurrency,
+            customer_type = N'retail',
+            is_active = 1,
+            is_deleted = 0,
+            updated_at = SYSUTCDATETIME()
+          WHERE customer_code = @cashCustomerCode;
+        END;
+      `);
+  }
+}
+
 function validateCustomerPayload(payload, { requirePhone }) {
   const customer = {
     customerCode: trimText(payload?.customerCode),
@@ -167,6 +255,9 @@ async function assertCustomerDuplicates(request, customer, currentCustomerId = n
 export async function getCustomersList(query) {
   const options = parseListQuery(query);
   const pool = await getSqlPool();
+
+  await ensureCashCustomers(pool);
+
   const request = pool.request()
     .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
     .input('activeOnly', sql.Bit, options.activeOnly)

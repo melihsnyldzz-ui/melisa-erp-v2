@@ -22,12 +22,12 @@ export function PurchaseInvoiceHeader({
   return (
     <section className="erp-panel purchase-invoice-header">
       <div className="panel-title">
-        <strong>Fis Bilgileri</strong>
-        <span>Tedarikci, kur ve belge snapshot alani</span>
+        <strong>Fiş Bilgileri</strong>
+        <span>Tedarikçi, kur ve belge snapshot alanı</span>
       </div>
       <div className="purchase-header-grid">
         <label>
-          <span>Fis no</span>
+          <span>Fiş no</span>
           <input value={invoice.invoiceNo} readOnly={isReadonly} onChange={(event) => updateField('invoiceNo', event.target.value)} />
         </label>
         <label>
@@ -35,19 +35,19 @@ export function PurchaseInvoiceHeader({
           <input value={invoice.date} readOnly={isReadonly} onChange={(event) => updateField('date', event.target.value)} />
         </label>
         <label>
-          <span>Tedarikci</span>
+          <span>Tedarikçi</span>
           <input value={invoice.supplier} readOnly />
         </label>
         <label>
-          <span>Tedarikci para birimi</span>
+          <span>Tedarikçi para birimi</span>
           <input value={invoice.supplierCurrency} readOnly />
         </label>
         <label>
-          <span>Tedarikci bakiye</span>
+          <span>Tedarikçi bakiye</span>
           <input value={invoice.supplierBalanceLabel || '-'} readOnly />
         </label>
         <label>
-          <span>Fis para birimi</span>
+          <span>Fiş para birimi</span>
           <select value={invoice.invoiceCurrency || 'TRY'} disabled={isReadonly} onChange={(event) => onCurrencyChange?.(event.target.value)}>
             <option value="TRY">TRY</option>
             <option value="USD">USD</option>
@@ -59,11 +59,11 @@ export function PurchaseInvoiceHeader({
           <input value={invoice.exchangeRate} readOnly />
         </label>
         <label className="purchase-description-field">
-          <span>Aciklama</span>
+          <span>Açıklama</span>
           <input value={invoice.description} readOnly={isReadonly} onChange={(event) => updateField('description', event.target.value)} />
         </label>
         <label>
-          <span>Fis iskonto %</span>
+          <span>Fiş iskonto %</span>
           <input
             min="0"
             max="100"
@@ -74,7 +74,7 @@ export function PurchaseInvoiceHeader({
           />
         </label>
         <label>
-          <span>Tedarikci iskonto %</span>
+          <span>Tedarikçi iskonto %</span>
           <input
             min="0"
             max="100"

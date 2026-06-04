@@ -28,11 +28,11 @@ export function CustomerCardHeader({
           type="button"
           onClick={onTogglePassive}
           disabled={mode === 'create' || isSaving || isPassiveSaving || !canTogglePassive}
-          title={!canTogglePassive ? 'customer.passive yetkisi gerekli' : mode === 'create' ? 'Pasif/Aktif islemi icin kayitli cari gerekir' : 'Kaydi silmeden aktif/pasif durumunu degistirir'}
+          title={!canTogglePassive ? 'customer.passive yetkisi gerekli' : mode === 'create' ? 'Pasif/Aktif işlemi için kayıtlı cari gerekir' : 'Kaydı silmeden aktif/pasif durumunu değiştirir'}
         >
           {isPassiveSaving ? 'Isleniyor' : passiveLabel}
         </button>
-        <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Update'}</span>
+        <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Güncelleme'}</span>
       </div>
     </section>
   );

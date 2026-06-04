@@ -5,7 +5,7 @@ export const salesInvoiceHeader = {
   customerCurrency: 'TRY',
   invoiceCurrency: 'TRY',
   exchangeRate: 'TRY 1.0000',
-  description: 'Sezon ara sevkiyat satis fisi. Fiyatlar mock veridir.',
+  description: 'Sezon ara sevkiyat satış fişi. Fiyatlar mock veridir.',
   status: 'Taslak',
 };
 
@@ -73,14 +73,14 @@ export const salesInvoiceItems = [
 ];
 
 export const salesInvoiceRules = [
-  'Taslak fis stok dusurmez.',
-  'Taslak fis cari hareket olusturmaz.',
+  'Taslak fiş stok düşürmez.',
+  'Taslak fis cari hareket olu?turmaz.',
   'Kesinlesince stok duser.',
   'Kesinlesince cari hareket olusur.',
   'Fiyat degisikligi yetkiye baglidir.',
-  'Satista sadece fis geneli yuzde iskonto vardir.',
+  'Satışta sadece fiş geneli yüzde iskonto vardır.',
   'Tutar bazli iskonto yoktur.',
-  'Fis silinmez, iptal edilir.',
+  'Fi? silinmez, iptal edilir.',
   'Kur snapshot korunur.',
 ];
 

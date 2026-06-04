@@ -4,11 +4,11 @@ import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js'
 
 const STATUS_LABELS = {
   DRAFT: 'Taslak',
-  SENT: 'Gonderildi',
+  SENT: 'G?nderildi',
   ACCEPTED: 'Kabul',
-  CONFIRMED: 'Onayli',
+  CONFIRMED: 'Onayl?',
   FULFILLED: 'Tamamlandi',
-  CANCELLED: 'Iptal',
+  CANCELLED: 'İptal',
 };
 
 function todayIsoDate() {
@@ -63,7 +63,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
       setRows([]);
       setMeta(null);
       setSelectedId(null);
-      setErrorMessage(error.message || 'Liste API baglantisi basarisiz.');
+      setErrorMessage(error.message || 'Liste API balants baarsz.');
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +88,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
           setRows([]);
           setMeta(null);
           setSelectedId(null);
-          setErrorMessage(error.message || 'Liste API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Liste API balants baarsz.');
         }
       } finally {
         if (isMounted) {
@@ -109,7 +109,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
 
   function openDocument(row = selectedRow) {
     if (!row) {
-      setErrorMessage('Acacak kayit secin.');
+      setErrorMessage('Açacak kayıt seçin.');
       return;
     }
     onOpenScreen(isOffer ? 'sales-offer' : 'sales-order', {
@@ -120,7 +120,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
 
   function exportRows() {
     exportRowsToCsv({
-      filename: isOffer ? 'teklifler' : 'siparisler',
+      filename: isOffer ? 'teklifler' : 'sipariler',
       rows,
       columns: [
         { label: 'Belge No', key: 'documentNo' },
@@ -130,7 +130,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
         { label: 'PB', key: 'documentCurrency' },
         { label: 'Toplam', key: 'grandTotal' },
         { label: 'TRY', key: 'amountTry' },
-        { label: 'Satir', key: 'itemCount' },
+        { label: 'Satır', key: 'itemCount' },
       ],
     });
   }
@@ -139,14 +139,14 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
     <main className="work-area invoice-list-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
-          <strong>{isOffer ? 'Teklifler' : 'Siparisler'}</strong>
-          <span>Gercek API listesi / Satir: {meta?.total ?? rows.length}</span>
+          <strong>{isOffer ? 'Teklifler' : 'Sipari?ler'}</strong>
+          <span>Gerçek API listesi / Satır: {meta?.total ?? rows.length}</span>
         </div>
         <div className="invoice-list-actions">
           <button type="button" onClick={() => onOpenScreen(isOffer ? 'sales-offer' : 'sales-order')}>Yeni</button>
           <button type="button" onClick={() => openDocument()}>Ac</button>
           <button type="button" onClick={exportRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen(`Melisa ERP - ${isOffer ? 'Teklifler' : 'Siparisler'}`)}>Yazdir</button>
+          <button type="button" onClick={() => printCurrentScreen(`Melisa ERP - ${isOffer ? 'Teklifler' : 'Sipari?ler'}`)}>Yazd?r</button>
           <button type="button" onClick={loadRows}>Yenile</button>
         </div>
       </section>
@@ -165,9 +165,9 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
           <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
             <option value="all">Tumu</option>
             <option value="draft">Taslak</option>
-            {isOffer ? <option value="sent">Gonderildi</option> : <option value="confirmed">Onayli</option>}
+            {isOffer ? <option value="sent">G?nderildi</option> : <option value="confirmed">Onayl?</option>}
             {isOffer ? <option value="accepted">Kabul</option> : <option value="fulfilled">Tamamlandi</option>}
-            <option value="cancelled">Iptal</option>
+            <option value="cancelled">İptal</option>
           </select>
         </label>
         <label>
@@ -183,11 +183,11 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
       <section className="erp-panel invoice-list-panel">
         <div className="panel-title">
           <strong>{isOffer ? 'Teklif Listesi' : 'Siparis Listesi'}</strong>
-          <span>Secili: {selectedRow?.documentNo ?? 'yok'}</span>
+          <span>Seçili: {selectedRow?.documentNo ?? 'yok'}</span>
         </div>
         {isLoading && <div className="list-state">API'den liste yukleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
-        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Kayit bulunamadi.</div>}
+        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Kay?t bulunamad?.</div>}
         {!isLoading && !errorMessage && rows.length > 0 && (
           <div className="table-wrap invoice-table-wrap">
             <table className="invoice-list-table">
@@ -200,7 +200,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
                   <th>PB</th>
                   <th>Toplam</th>
                   <th>TRY</th>
-                  <th>Satir</th>
+                  <th>Satır</th>
                 </tr>
               </thead>
               <tbody>

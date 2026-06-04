@@ -26,7 +26,7 @@ export async function fetchManagementReporting() {
     const criticalWarnings = summary.data.patron.negativeStockCount > 0
       ? [{
         type: 'Stok',
-        subject: 'Eksi stoklu urunler',
+        subject: 'Eksi stoklu ürünler',
         value: summary.data.patron.negativeStockCount,
         severity: 'danger',
       }]

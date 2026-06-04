@@ -46,11 +46,11 @@ function partyLabel(type) {
 }
 
 function partyCode(party, mode) {
-  return mode === 'collection' ? party?.customerCode : party?.supplierCode;
+  return mode === 'collection' ? party.customerCode : party.supplierCode;
 }
 
 function partyName(party, mode) {
-  return mode === 'collection' ? party?.customerName : party?.supplierName;
+  return mode === 'collection' ? party.customerName : party.supplierName;
 }
 
 function accountReceiptLabel(account) {
@@ -59,15 +59,15 @@ function accountReceiptLabel(account) {
 }
 
 export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
-  const initialMode = initialPayload?.mode === 'payment' ? 'payment' : 'collection';
+  const initialMode = initialPayload.mode === 'payment' ? 'payment' : 'collection';
   const [mode, setMode] = useState(initialMode);
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [movements, setMovements] = useState([]);
   const [form, setForm] = useState({
-    customerId: initialMode === 'collection' && initialPayload?.customerId ? String(initialPayload.customerId) : '',
-    supplierId: initialMode === 'payment' && initialPayload?.supplierId ? String(initialPayload.supplierId) : '',
+    customerId: initialMode === 'collection' && initialPayload.customerId ? String(initialPayload.customerId) : '',
+    supplierId: initialMode === 'payment' && initialPayload.supplierId ? String(initialPayload.supplierId) : '',
     amount: '',
     currency: 'TRY',
     paymentMethod: 'cash',
@@ -123,13 +123,12 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
   const nextBalance = currentParty ? currentBalance - amount : 0;
   const partyCurrency = currentParty?.currency || form.currency || 'TRY';
   const selectedPartyId = mode === 'collection' ? form.customerId : form.supplierId;
-  const accountTypeForPayment = form.paymentMethod === 'bank'
-    ? 'bank'
-    : form.paymentMethod === 'card'
-      ? 'card'
-      : form.paymentMethod === 'other'
-        ? 'other'
-        : 'cash';
+  const accountTypeByPaymentMethod = {
+    bank: 'bank',
+    card: 'card',
+    other: 'other',
+  };
+  const accountTypeForPayment = accountTypeByPaymentMethod[form.paymentMethod] || 'cash';
   const accountOptions = accounts.filter((account) => (
     account.isActive &&
     account.currency === form.currency &&
@@ -216,17 +215,17 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
   function buildReceiptFromResponse(responseData, party, currentMode) {
     const isPayment = currentMode === 'payment';
     return {
-      receiptNo: `${isPayment ? 'OD' : 'TH'}-${responseData?.id || 'YENI'}`,
+      receiptNo: `${isPayment ? 'OD' : 'TH'}-${responseData.id || 'YENI'}`,
       type: isPayment ? 'Ödeme Makbuzu' : 'Tahsilat Makbuzu',
       partyType: isPayment ? 'supplier' : 'customer',
       partyCode: partyCode(party, currentMode),
       partyName: partyName(party, currentMode),
-      documentDate: responseData?.documentDate || form.documentDate,
-      amount: responseData?.amount || amount,
-      currency: responseData?.currency || form.currency,
-      paymentMethod: paymentMethodLabel(responseData?.paymentMethod || form.paymentMethod),
-      accountLabel: accountReceiptLabel(responseData?.account),
-      balanceEffect: responseData?.balanceEffect || -amount,
+      documentDate: responseData.documentDate || form.documentDate,
+      amount: responseData.amount || amount,
+      currency: responseData.currency || form.currency,
+      paymentMethod: paymentMethodLabel(responseData.paymentMethod || form.paymentMethod),
+      accountLabel: accountReceiptLabel(responseData.account),
+      balanceEffect: responseData.balanceEffect || -amount,
       source: 'Yeni kayıt',
       description: form.description || `${partyCode(party, currentMode)} ${paymentMethodLabel(form.paymentMethod)}`,
     };
@@ -277,15 +276,15 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
       };
 
       const response = mode === 'collection'
-        ? await createCustomerCollection({ ...payload, customerId: Number(form.customerId) })
+         ? await createCustomerCollection({ ...payload, customerId: Number(form.customerId) })
         : await createSupplierPayment({ ...payload, supplierId: Number(form.supplierId) });
 
-      const effect = Number(response.data?.balanceEffect || 0);
+      const effect = Number(response.data.balanceEffect || 0);
       const resultText = mode === 'collection'
-        ? 'Tahsilat kaydedildi, müşteri borcu azaldı'
+         ? 'Tahsilat kaydedildi, müşteri borcu azaldı'
         : 'Ödeme kaydedildi, tedarikçi borcu azaldı';
 
-      setMessage(`${resultText}. Bakiye etkisi: ${formatMoney(effect, response.data?.currency || form.currency)}.`);
+      setMessage(`${resultText}. Bakiye etkisi: ${formatMoney(effect, response.data.currency || form.currency)}.`);
       setSelectedReceipt(buildReceiptFromResponse(response.data, currentParty, mode));
       setForm((current) => ({
         ...current,
@@ -357,7 +356,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
                 {partyOptions.map((party) => (
                   <option key={party.id} value={party.id}>
                     {mode === 'collection'
-                      ? `${party.customerCode} / ${party.customerName} / ${formatMoney(party.balance, party.currency)}`
+                       ? `${party.customerCode} / ${party.customerName} / ${formatMoney(party.balance, party.currency)}`
                       : `${party.supplierCode} / ${party.supplierName} / ${formatMoney(party.balance, party.currency)}`}
                   </option>
                 ))}

@@ -12,10 +12,14 @@ const ARCHIVED_TEST_MARKER = '[TEST_ARCHIVED]';
 const CUSTOMER_TEST_PARTY_PATTERN = `(
   c.customer_code LIKE N'QA-%'
   OR c.customer_code LIKE N'AKIS-%'
+  OR c.customer_code LIKE N'E2E-%'
+  OR c.customer_code LIKE N'CUS-FIELD-%'
   OR c.customer_code LIKE N'TEST%'
   OR c.customer_code LIKE N'IMP-%'
   OR c.name LIKE N'QA %'
   OR c.name LIKE N'AKIS %'
+  OR c.name LIKE N'E2E %'
+  OR c.name LIKE N'Saha Test%'
   OR c.name LIKE N'TEST %'
   OR c.name LIKE N'Import Test%'
 )`;
@@ -23,11 +27,15 @@ const CUSTOMER_TEST_PARTY_PATTERN = `(
 const SUPPLIER_TEST_PARTY_PATTERN = `(
   s.supplier_code LIKE N'QA-%'
   OR s.supplier_code LIKE N'AKIS-%'
+  OR s.supplier_code LIKE N'E2E-%'
+  OR s.supplier_code LIKE N'SUP-FIELD-%'
   OR s.supplier_code LIKE N'TEST%'
   OR s.supplier_code LIKE N'DRAFT-%'
   OR s.supplier_code LIKE N'IMP-%'
   OR s.name LIKE N'QA %'
   OR s.name LIKE N'AKIS %'
+  OR s.name LIKE N'E2E %'
+  OR s.name LIKE N'Saha Test%'
   OR s.name LIKE N'TEST %'
   OR s.name LIKE N'%Draft Supplier%'
 )`;
@@ -43,10 +51,16 @@ const SALES_TEST_DOCUMENT_PATTERN = `(
   OR si.document_no LIKE N'S-TST-%'
   OR si.document_no LIKE N'SDR-%'
   OR si.document_no LIKE N'SF-FIN-TEST-%'
+  OR si.document_no LIKE N'SF-FIELD-%'
+  OR si.document_no LIKE N'E2E-SA-%'
+  OR si.document_no LIKE N'SPR-SA-%'
+  OR si.document_no LIKE N'SPR-SC-%'
   OR si.document_no LIKE N'SAVG-%'
   OR si.document_no LIKE N'SNEG-%'
   OR si.document_no LIKE N'TERM-TEST%'
   OR COALESCE(si.description, N'') LIKE N'%QA E2E%'
+  OR COALESCE(si.description, N'') LIKE N'%SPRINT_%'
+  OR COALESCE(si.description, N'') LIKE N'%Saha Test%'
   OR COALESCE(si.description, N'') LIKE N'%ERP_TEST%'
   OR COALESCE(si.description, N'') LIKE N'%mock%'
   OR EXISTS (
@@ -56,10 +70,14 @@ const SALES_TEST_DOCUMENT_PATTERN = `(
     WHERE sii_pattern.sales_invoice_id = si.id
       AND (
         p_pattern.stock_code LIKE N'QA-%'
+        OR p_pattern.stock_code LIKE N'E2E-%'
+        OR p_pattern.stock_code LIKE N'UI-STK-%'
+        OR p_pattern.stock_code LIKE N'STK-FIELD-%'
         OR p_pattern.stock_code LIKE N'TEST%'
         OR p_pattern.stock_code LIKE N'DBG%'
         OR p_pattern.stock_code LIKE N'DRAFT-%'
         OR p_pattern.stock_code LIKE N'IMP-%'
+        OR p_pattern.name LIKE N'UI Test%'
       )
   )
 )`;
@@ -76,7 +94,13 @@ const PURCHASE_TEST_DOCUMENT_PATTERN = `(
   OR pi.document_no LIKE N'PAVG-%'
   OR pi.document_no LIKE N'PDR-%'
   OR pi.document_no LIKE N'AF-FIN-TEST-%'
+  OR pi.document_no LIKE N'AF-FIELD-%'
+  OR pi.document_no LIKE N'E2E-AL-%'
+  OR pi.document_no LIKE N'SPR-AL-%'
+  OR pi.document_no LIKE N'SPR-AVG-%'
   OR COALESCE(pi.description, N'') LIKE N'%QA E2E%'
+  OR COALESCE(pi.description, N'') LIKE N'%SPRINT_%'
+  OR COALESCE(pi.description, N'') LIKE N'%Saha Test%'
   OR COALESCE(pi.description, N'') LIKE N'%ERP_TEST%'
   OR COALESCE(pi.description, N'') LIKE N'%mock%'
   OR EXISTS (
@@ -85,9 +109,13 @@ const PURCHASE_TEST_DOCUMENT_PATTERN = `(
     WHERE s_pattern.id = pi.supplier_id
       AND (
         s_pattern.supplier_code LIKE N'QA-%'
+        OR s_pattern.supplier_code LIKE N'E2E-%'
+        OR s_pattern.supplier_code LIKE N'SUP-FIELD-%'
         OR s_pattern.supplier_code LIKE N'TEST%'
         OR s_pattern.supplier_code LIKE N'DRAFT-%'
         OR s_pattern.supplier_code LIKE N'IMP-%'
+        OR s_pattern.name LIKE N'E2E %'
+        OR s_pattern.name LIKE N'Saha Test%'
         OR s_pattern.name LIKE N'%Draft Supplier%'
       )
   )
@@ -189,8 +217,14 @@ async function readProductCandidates(request) {
           WHEN p.stock_code LIKE N'DBG%' THEN N'DBG stok kodu'
           WHEN p.stock_code LIKE N'DRAFT-%' THEN N'DRAFT stok kodu'
           WHEN p.stock_code LIKE N'IMP-%' THEN N'IMP stok kodu'
+          WHEN p.stock_code LIKE N'E2E-%' THEN N'E2E test stok kodu'
+          WHEN p.stock_code LIKE N'UI-STK-%' THEN N'UI test stok kodu'
+          WHEN p.stock_code LIKE N'STK-FIELD-%' THEN N'saha test stok kodu'
           WHEN p.name LIKE N'QA %' THEN N'QA urun adi'
           WHEN p.name LIKE N'TEST %' THEN N'TEST urun adi'
+          WHEN p.name LIKE N'E2E %' THEN N'E2E test urun'
+          WHEN p.name LIKE N'UI Test%' THEN N'UI test urun'
+          WHEN p.name LIKE N'Saha Test%' THEN N'saha test urun'
           WHEN p.name LIKE N'Import Test%' THEN N'import test urun'
           ELSE N'test deseni'
         END AS reason
@@ -202,8 +236,14 @@ async function readProductCandidates(request) {
           OR p.stock_code LIKE N'DBG%'
           OR p.stock_code LIKE N'DRAFT-%'
           OR p.stock_code LIKE N'IMP-%'
+          OR p.stock_code LIKE N'E2E-%'
+          OR p.stock_code LIKE N'UI-STK-%'
+          OR p.stock_code LIKE N'STK-FIELD-%'
           OR p.name LIKE N'QA %'
           OR p.name LIKE N'TEST %'
+          OR p.name LIKE N'E2E %'
+          OR p.name LIKE N'UI Test%'
+          OR p.name LIKE N'Saha Test%'
           OR p.name LIKE N'Import Test%'
         )
     )
@@ -250,9 +290,13 @@ async function readCustomerCandidates(request) {
           WHEN c.customer_code LIKE N'AKIS-%' THEN N'AKIS test cari kodu'
           WHEN c.customer_code LIKE N'TEST%' THEN N'TEST cari kodu'
           WHEN c.customer_code LIKE N'IMP-%' THEN N'IMP cari kodu'
+          WHEN c.customer_code LIKE N'E2E-%' THEN N'E2E test cari kodu'
+          WHEN c.customer_code LIKE N'CUS-FIELD-%' THEN N'saha test cari kodu'
           WHEN c.name LIKE N'QA %' THEN N'QA cari adi'
           WHEN c.name LIKE N'AKIS %' THEN N'AKIS test cari adi'
           WHEN c.name LIKE N'TEST %' THEN N'TEST cari adi'
+          WHEN c.name LIKE N'E2E %' THEN N'E2E test cari adi'
+          WHEN c.name LIKE N'Saha Test%' THEN N'saha test cari'
           WHEN c.name LIKE N'Import Test%' THEN N'import test cari'
           ELSE N'test deseni'
         END AS reason
@@ -263,9 +307,13 @@ async function readCustomerCandidates(request) {
           OR c.customer_code LIKE N'AKIS-%'
           OR c.customer_code LIKE N'TEST%'
           OR c.customer_code LIKE N'IMP-%'
+          OR c.customer_code LIKE N'E2E-%'
+          OR c.customer_code LIKE N'CUS-FIELD-%'
           OR c.name LIKE N'QA %'
           OR c.name LIKE N'AKIS %'
           OR c.name LIKE N'TEST %'
+          OR c.name LIKE N'E2E %'
+          OR c.name LIKE N'Saha Test%'
           OR c.name LIKE N'Import Test%'
         )
     )
@@ -279,7 +327,16 @@ async function readCustomerCandidates(request) {
         FROM dbo.customer_movements cm
         LEFT JOIN dbo.sales_invoices si ON si.id = cm.sales_invoice_id
         WHERE cm.customer_id = c.id
+          AND cm.movement_type NOT LIKE N'%_test_archived'
           AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.finance_account_movements fam_archived
+            WHERE fam_archived.party_type = N'customer'
+              AND fam_archived.source_type = N'collection'
+              AND fam_archived.party_movement_id = cm.id
+              AND COALESCE(fam_archived.description, N'') LIKE N'%TEST_ARCHIVED%'
+          )
       ) + (
         SELECT COUNT_BIG(1)
         FROM dbo.sales_invoices si
@@ -305,9 +362,13 @@ async function readSupplierCandidates(request) {
           WHEN s.supplier_code LIKE N'TEST%' THEN N'TEST tedarikci kodu'
           WHEN s.supplier_code LIKE N'DRAFT-%' THEN N'DRAFT tedarikci kodu'
           WHEN s.supplier_code LIKE N'IMP-%' THEN N'IMP tedarikci kodu'
+          WHEN s.supplier_code LIKE N'E2E-%' THEN N'E2E test tedarikci kodu'
+          WHEN s.supplier_code LIKE N'SUP-FIELD-%' THEN N'saha test tedarikci kodu'
           WHEN s.name LIKE N'QA %' THEN N'QA tedarikci adi'
           WHEN s.name LIKE N'AKIS %' THEN N'AKIS test tedarikci adi'
           WHEN s.name LIKE N'TEST %' THEN N'TEST tedarikci adi'
+          WHEN s.name LIKE N'E2E %' THEN N'E2E test tedarikci adi'
+          WHEN s.name LIKE N'Saha Test%' THEN N'saha test tedarikci'
           WHEN s.name LIKE N'%Draft Supplier%' THEN N'draft supplier test'
           ELSE N'test deseni'
         END AS reason
@@ -319,9 +380,13 @@ async function readSupplierCandidates(request) {
           OR s.supplier_code LIKE N'TEST%'
           OR s.supplier_code LIKE N'DRAFT-%'
           OR s.supplier_code LIKE N'IMP-%'
+          OR s.supplier_code LIKE N'E2E-%'
+          OR s.supplier_code LIKE N'SUP-FIELD-%'
           OR s.name LIKE N'QA %'
           OR s.name LIKE N'AKIS %'
           OR s.name LIKE N'TEST %'
+          OR s.name LIKE N'E2E %'
+          OR s.name LIKE N'Saha Test%'
           OR s.name LIKE N'%Draft Supplier%'
         )
     )
@@ -335,7 +400,16 @@ async function readSupplierCandidates(request) {
         FROM dbo.supplier_movements sm
         LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.purchase_invoice_id
         WHERE sm.supplier_id = c.id
+          AND sm.movement_type NOT LIKE N'%_test_archived'
           AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.finance_account_movements fam_archived
+            WHERE fam_archived.party_type = N'supplier'
+              AND fam_archived.source_type = N'payment'
+              AND fam_archived.party_movement_id = sm.id
+              AND COALESCE(fam_archived.description, N'') LIKE N'%TEST_ARCHIVED%'
+          )
       ) + (
         SELECT COUNT_BIG(1)
         FROM dbo.purchase_invoices pi
@@ -370,12 +444,19 @@ async function readTestFinanceMovementCandidates(request) {
         WHEN c.customer_code LIKE N'QA-%' THEN N'QA müşteri tahsilatı'
         WHEN c.customer_code LIKE N'TEST%' THEN N'TEST müşteri tahsilatı'
         WHEN c.customer_code LIKE N'IMP-%' THEN N'import test müşteri tahsilatı'
+        WHEN c.customer_code LIKE N'E2E-%' THEN N'E2E test müşteri tahsilatı'
+        WHEN c.customer_code LIKE N'CUS-FIELD-%' THEN N'saha test müşteri tahsilatı'
         ELSE N'test müşteri hareketi'
       END AS reason
     FROM dbo.customer_movements cm
     INNER JOIN dbo.customers c ON c.id = cm.customer_id
+    LEFT JOIN dbo.finance_account_movements fam
+      ON fam.source_type = N'collection'
+     AND fam.party_type = N'customer'
+     AND fam.party_movement_id = cm.id
     WHERE cm.movement_type = N'collection'
       AND cm.sales_invoice_id IS NULL
+      AND COALESCE(fam.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
       AND ${CUSTOMER_TEST_PARTY_PATTERN}
 
     UNION ALL
@@ -396,12 +477,19 @@ async function readTestFinanceMovementCandidates(request) {
         WHEN s.supplier_code LIKE N'QA-%' THEN N'QA tedarikçi ödemesi'
         WHEN s.supplier_code LIKE N'TEST%' THEN N'TEST tedarikçi ödemesi'
         WHEN s.supplier_code LIKE N'IMP-%' THEN N'import test tedarikçi ödemesi'
+        WHEN s.supplier_code LIKE N'E2E-%' THEN N'E2E test tedarikçi ödemesi'
+        WHEN s.supplier_code LIKE N'SUP-FIELD-%' THEN N'saha test tedarikçi ödemesi'
         ELSE N'test tedarikçi hareketi'
       END AS reason
     FROM dbo.supplier_movements sm
     INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
+    LEFT JOIN dbo.finance_account_movements fam
+      ON fam.source_type = N'payment'
+     AND fam.party_type = N'supplier'
+     AND fam.party_movement_id = sm.id
     WHERE sm.movement_type = N'payment'
       AND sm.purchase_invoice_id IS NULL
+      AND COALESCE(fam.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
       AND ${SUPPLIER_TEST_PARTY_PATTERN}
     ORDER BY document_date DESC, id DESC;
   `);
@@ -430,10 +518,14 @@ async function readSalesTestInvoiceCandidates(request) {
           WHERE sii_reason.sales_invoice_id = si.id
             AND (
               p_reason.stock_code LIKE N'QA-%'
+              OR p_reason.stock_code LIKE N'E2E-%'
+              OR p_reason.stock_code LIKE N'UI-STK-%'
+              OR p_reason.stock_code LIKE N'STK-FIELD-%'
               OR p_reason.stock_code LIKE N'TEST%'
               OR p_reason.stock_code LIKE N'DBG%'
               OR p_reason.stock_code LIKE N'DRAFT-%'
               OR p_reason.stock_code LIKE N'IMP-%'
+              OR p_reason.name LIKE N'UI Test%'
             )
         ) THEN N'test stok karti kullanimi'
         ELSE N'test belge deseni'
@@ -472,9 +564,13 @@ async function readPurchaseTestInvoiceCandidates(request) {
           WHERE s_reason.id = pi.supplier_id
             AND (
               s_reason.supplier_code LIKE N'QA-%'
+              OR s_reason.supplier_code LIKE N'E2E-%'
+              OR s_reason.supplier_code LIKE N'SUP-FIELD-%'
               OR s_reason.supplier_code LIKE N'TEST%'
               OR s_reason.supplier_code LIKE N'DRAFT-%'
               OR s_reason.supplier_code LIKE N'IMP-%'
+              OR s_reason.name LIKE N'E2E %'
+              OR s_reason.name LIKE N'Saha Test%'
               OR s_reason.name LIKE N'%Draft Supplier%'
             )
         ) THEN N'test tedarikci karti'
@@ -618,7 +714,7 @@ async function buildCleanupPreview(request) {
       'Fiziksel silme yok; sadece is_deleted=1 ve is_active=0 soft-delete uygulanir.',
       'Archived_test durumundaki test fişleri blok sayımına dahil edilmez.',
       'Fiş, hareket veya bağlı kaydı olan aktif adaylar temizlenmez; bloklu listede kalır.',
-      'Adaylar sadece QA/TEST/DBG/DRAFT/IMP gibi acik test desenleriyle bulunur.',
+      'Adaylar sadece QA/TEST/DBG/DRAFT/IMP/E2E/FIELD gibi acik test desenleriyle bulunur.',
     ],
     summary,
     financeMovements: summarizeFinanceMovementCandidates(financeMovements),
@@ -651,6 +747,116 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
   try {
     const before = await buildCleanupPreview(new sqlDriver.Request(transaction));
 
+    const customerFinanceArchive = await new sqlDriver.Request(transaction)
+      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        DECLARE @archivedCustomer TABLE (
+          movement_id BIGINT NOT NULL,
+          customer_id BIGINT NOT NULL,
+          balance_effect DECIMAL(18,4) NOT NULL,
+          account_id BIGINT NULL,
+          account_amount DECIMAL(18,4) NULL
+        );
+
+        INSERT INTO @archivedCustomer (movement_id, customer_id, balance_effect, account_id, account_amount)
+        SELECT
+          cm.id,
+          cm.customer_id,
+          cm.balance_effect,
+          fam.account_id,
+          fam.amount
+        FROM dbo.customer_movements cm WITH (UPDLOCK, HOLDLOCK)
+        INNER JOIN dbo.customers c ON c.id = cm.customer_id
+        LEFT JOIN dbo.finance_account_movements fam
+          ON fam.source_type = N'collection'
+         AND fam.party_type = N'customer'
+         AND fam.party_movement_id = cm.id
+        WHERE cm.movement_type = N'collection'
+          AND cm.sales_invoice_id IS NULL
+          AND COALESCE(fam.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+          AND ${CUSTOMER_TEST_PARTY_PATTERN};
+
+        UPDATE c
+        SET balance = balance - a.balance_effect,
+            updated_at = SYSUTCDATETIME(),
+            updated_by = @actorId
+        FROM dbo.customers c
+        INNER JOIN @archivedCustomer a ON a.customer_id = c.id;
+
+        UPDATE fa
+        SET current_balance = current_balance - COALESCE(a.account_amount, 0),
+            updated_at = SYSUTCDATETIME()
+        FROM dbo.finance_accounts fa
+        INNER JOIN @archivedCustomer a ON a.account_id = fa.id;
+
+        UPDATE fam
+        SET description = CASE
+              WHEN COALESCE(fam.description, N'') LIKE N'%TEST_ARCHIVED%' THEN fam.description
+              ELSE CONCAT(LEFT(COALESCE(fam.description, N''), 480), N' ${ARCHIVED_TEST_MARKER}')
+            END
+        FROM dbo.finance_account_movements fam
+        INNER JOIN @archivedCustomer a ON a.movement_id = fam.party_movement_id
+        WHERE fam.source_type = N'collection'
+          AND fam.party_type = N'customer';
+
+        SELECT COUNT_BIG(1) AS archived_count FROM @archivedCustomer;
+      `);
+
+    const supplierFinanceArchive = await new sqlDriver.Request(transaction)
+      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        DECLARE @archivedSupplier TABLE (
+          movement_id BIGINT NOT NULL,
+          supplier_id BIGINT NOT NULL,
+          balance_effect DECIMAL(18,4) NOT NULL,
+          account_id BIGINT NULL,
+          account_amount DECIMAL(18,4) NULL
+        );
+
+        INSERT INTO @archivedSupplier (movement_id, supplier_id, balance_effect, account_id, account_amount)
+        SELECT
+          sm.id,
+          sm.supplier_id,
+          sm.balance_effect,
+          fam.account_id,
+          fam.amount
+        FROM dbo.supplier_movements sm WITH (UPDLOCK, HOLDLOCK)
+        INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
+        LEFT JOIN dbo.finance_account_movements fam
+          ON fam.source_type = N'payment'
+         AND fam.party_type = N'supplier'
+         AND fam.party_movement_id = sm.id
+        WHERE sm.movement_type = N'payment'
+          AND sm.purchase_invoice_id IS NULL
+          AND COALESCE(fam.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+          AND ${SUPPLIER_TEST_PARTY_PATTERN};
+
+        UPDATE s
+        SET balance = balance - a.balance_effect,
+            updated_at = SYSUTCDATETIME(),
+            updated_by = @actorId
+        FROM dbo.suppliers s
+        INNER JOIN @archivedSupplier a ON a.supplier_id = s.id;
+
+        UPDATE fa
+        SET current_balance = current_balance + COALESCE(a.account_amount, 0),
+            updated_at = SYSUTCDATETIME()
+        FROM dbo.finance_accounts fa
+        INNER JOIN @archivedSupplier a ON a.account_id = fa.id;
+
+        UPDATE fam
+        SET description = CASE
+              WHEN COALESCE(fam.description, N'') LIKE N'%TEST_ARCHIVED%' THEN fam.description
+              ELSE CONCAT(LEFT(COALESCE(fam.description, N''), 480), N' ${ARCHIVED_TEST_MARKER}')
+            END
+        FROM dbo.finance_account_movements fam
+        INNER JOIN @archivedSupplier a ON a.movement_id = fam.party_movement_id
+        WHERE fam.source_type = N'payment'
+          AND fam.party_type = N'supplier';
+
+        SELECT COUNT_BIG(1) AS archived_count FROM @archivedSupplier;
+      `);
+
     const productUpdate = await new sqlDriver.Request(transaction)
       .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
@@ -660,11 +866,17 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
           WHERE p.is_deleted = 0
             AND (
               p.stock_code LIKE N'QA-%'
+              OR p.stock_code LIKE N'E2E-%'
+              OR p.stock_code LIKE N'UI-STK-%'
+              OR p.stock_code LIKE N'STK-FIELD-%'
               OR p.stock_code LIKE N'TEST%'
               OR p.stock_code LIKE N'DBG%'
               OR p.stock_code LIKE N'DRAFT-%'
               OR p.stock_code LIKE N'IMP-%'
               OR p.name LIKE N'QA %'
+              OR p.name LIKE N'E2E %'
+              OR p.name LIKE N'UI Test%'
+              OR p.name LIKE N'Saha Test%'
               OR p.name LIKE N'TEST %'
               OR p.name LIKE N'Import Test%'
             )
@@ -709,9 +921,13 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
           WHERE c.is_deleted = 0
             AND (
               c.customer_code LIKE N'QA-%'
+              OR c.customer_code LIKE N'E2E-%'
+              OR c.customer_code LIKE N'CUS-FIELD-%'
               OR c.customer_code LIKE N'TEST%'
               OR c.customer_code LIKE N'IMP-%'
               OR c.name LIKE N'QA %'
+              OR c.name LIKE N'E2E %'
+              OR c.name LIKE N'Saha Test%'
               OR c.name LIKE N'TEST %'
               OR c.name LIKE N'Import Test%'
             )
@@ -720,7 +936,16 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
               FROM dbo.customer_movements cm
               LEFT JOIN dbo.sales_invoices si ON si.id = cm.sales_invoice_id
               WHERE cm.customer_id = c.id
+                AND cm.movement_type NOT LIKE N'%_test_archived'
                 AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM dbo.finance_account_movements fam_archived
+                  WHERE fam_archived.party_type = N'customer'
+                    AND fam_archived.source_type = N'collection'
+                    AND fam_archived.party_movement_id = cm.id
+                    AND COALESCE(fam_archived.description, N'') LIKE N'%TEST_ARCHIVED%'
+                )
             )
             AND NOT EXISTS (SELECT 1 FROM dbo.sales_invoices si WHERE si.customer_id = c.id AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
@@ -742,10 +967,14 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
           WHERE s.is_deleted = 0
             AND (
               s.supplier_code LIKE N'QA-%'
+              OR s.supplier_code LIKE N'E2E-%'
+              OR s.supplier_code LIKE N'SUP-FIELD-%'
               OR s.supplier_code LIKE N'TEST%'
               OR s.supplier_code LIKE N'DRAFT-%'
               OR s.supplier_code LIKE N'IMP-%'
               OR s.name LIKE N'QA %'
+              OR s.name LIKE N'E2E %'
+              OR s.name LIKE N'Saha Test%'
               OR s.name LIKE N'TEST %'
               OR s.name LIKE N'%Draft Supplier%'
             )
@@ -754,7 +983,16 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
               FROM dbo.supplier_movements sm
               LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.purchase_invoice_id
               WHERE sm.supplier_id = s.id
+                AND sm.movement_type NOT LIKE N'%_test_archived'
                 AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM dbo.finance_account_movements fam_archived
+                  WHERE fam_archived.party_type = N'supplier'
+                    AND fam_archived.source_type = N'payment'
+                    AND fam_archived.party_movement_id = sm.id
+                    AND COALESCE(fam_archived.description, N'') LIKE N'%TEST_ARCHIVED%'
+                )
             )
             AND NOT EXISTS (SELECT 1 FROM dbo.purchase_invoices pi WHERE pi.supplier_id = s.id AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
             AND NOT EXISTS (SELECT 1 FROM dbo.products p WHERE p.supplier_id = s.id AND p.is_deleted = 0)
@@ -768,11 +1006,27 @@ export async function applyDemoCleanup(payload = {}, actor = null) {
         INNER JOIN safe_candidates c ON c.id = s.id;
       `);
 
+    await new sqlDriver.Request(transaction).query(`
+      UPDATE fa
+      SET current_balance = COALESCE(calc.balance, 0),
+          updated_at = SYSUTCDATETIME()
+      FROM dbo.finance_accounts fa
+      OUTER APPLY (
+        SELECT SUM(CASE WHEN fam.direction = N'in' THEN fam.amount ELSE -fam.amount END) AS balance
+        FROM dbo.finance_account_movements fam
+        WHERE fam.account_id = fa.id
+          AND COALESCE(fam.description, N'') NOT LIKE N'%TEST_ARCHIVED%'
+      ) calc;
+    `);
+
     const result = {
       productsCleaned: productUpdate.rowsAffected?.[0] || 0,
       customersCleaned: customerUpdate.rowsAffected?.[0] || 0,
       suppliersCleaned: supplierUpdate.rowsAffected?.[0] || 0,
+      customerFinanceMovementsArchived: Number(customerFinanceArchive.recordset?.[0]?.archived_count || 0),
+      supplierFinanceMovementsArchived: Number(supplierFinanceArchive.recordset?.[0]?.archived_count || 0),
     };
+    result.financeMovementsArchived = result.customerFinanceMovementsArchived + result.supplierFinanceMovementsArchived;
     result.totalCleaned = result.productsCleaned + result.customersCleaned + result.suppliersCleaned;
 
     const after = await buildCleanupPreview(new sqlDriver.Request(transaction));

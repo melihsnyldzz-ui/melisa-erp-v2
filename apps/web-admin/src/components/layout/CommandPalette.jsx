@@ -21,8 +21,8 @@ function buildCommandList() {
         label: item.label,
         screenId: item.screenId,
         group: group.title,
-        module: screen?.module || group.title,
-        hint: screen?.label || item.label,
+        module: screen.module || group.title,
+        hint: screen.label || item.label,
       };
     })
   ));
@@ -71,7 +71,7 @@ export function CommandPalette({ isOpen, onClose, onOpenScreen }) {
 
     setQuery('');
     setActiveIndex(0);
-    window.setTimeout(() => inputRef.current?.focus(), 0);
+    window.setTimeout(() => inputRef.current.focus(), 0);
   }, [isOpen]);
 
   useEffect(() => {

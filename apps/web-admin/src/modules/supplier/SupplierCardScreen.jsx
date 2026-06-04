@@ -95,11 +95,11 @@ function mapDetailToForm(detail) {
 function validateSupplierForm(form) {
   const missing = [];
 
-  if (!form.supplierCode.trim()) missing.push('tedarikci kodu');
+  if (!form.supplierCode.trim()) missing.push('tedariki kodu');
   if (!form.supplierName.trim()) missing.push('ad/unvan');
   if (!form.currency.trim()) missing.push('para birimi');
   if (Number.isNaN(Number(form.purchaseDiscountRate)) || Number(form.purchaseDiscountRate) < 0 || Number(form.purchaseDiscountRate) > 100) {
-    missing.push('alis iskontosu 0-100');
+    missing.push('al iskontosu 0-100');
   }
 
   return missing;
@@ -144,7 +144,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
       } catch (error) {
         if (isMounted) {
           setForm(emptySupplierForm);
-          setErrorMessage(error.message || 'Tedarikci kart API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Tedariki kart API balants baarsz.');
         }
       } finally {
         if (isMounted) {
@@ -199,12 +199,12 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
     const missing = validateSupplierForm(form);
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin customer.edit yetkisi gerekli.');
+      setErrorMessage('Bu ilem i?in customer.edit yetkisi gerekli.');
       return;
     }
 
     if (missing.length > 0) {
-      setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
+      setErrorMessage(`Kaydetmeden nce zorunlu alanlar tamamlayn: ${missing.join(', ')}.`);
       return;
     }
 
@@ -224,7 +224,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
 
     try {
       const response = mode === 'create'
-        ? await createSupplier(payload)
+         ? await createSupplier(payload)
         : await updateSupplier(activeSupplierId, payload);
       setActiveSupplierId(response.data.id);
       setForm(mapDetailToForm(response.data));
@@ -272,14 +272,14 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
           <section className="customer-card-header">
             <div className="customer-title-block">
               <strong>Tedarikçi Kartı</strong>
-              <span>{form.supplierCode || 'YENI-TED'} / {form.supplierName || 'Yeni tedarikçi'}</span>
+              <span>{form.supplierCode || 'YEN-TED'} / {form.supplierName || 'Yeni tedarikçi'}</span>
             </div>
             <div className="customer-card-toolbar">
               <button type="button" onClick={saveSupplier} disabled={isSaving || !canSave}>
                 {isSaving ? 'Kaydediliyor' : 'Kaydet'}
               </button>
               <button type="button" onClick={startNewSupplier}>Yeni</button>
-              <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}>Alis Fisleri</button>
+              <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}>Al Fileri</button>
               <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Güncelleme'}</span>
             </div>
           </section>

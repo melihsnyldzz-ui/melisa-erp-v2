@@ -32,15 +32,15 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dd>{formatMoney(totals.subtotal, currency)}</dd>
         </div>
         <div>
-          <dt>Satir iskonto toplami</dt>
+          <dt>Satır iskonto toplamı</dt>
           <dd>{formatMoney(totals.lineDiscountTotal, currency)}</dd>
         </div>
         <div>
-          <dt>Fis geneli iskonto %</dt>
+          <dt>Fiş geneli iskonto %</dt>
           <dd>%{totals.invoiceDiscountRate}</dd>
         </div>
         <div>
-          <dt>Tedarikci genel iskonto %</dt>
+          <dt>Tedarikçi genel iskonto %</dt>
           <dd>%{totals.supplierDiscountRate}</dd>
         </div>
         <div>
@@ -56,7 +56,7 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dd>{currency} {Number(totals.exchangeRate || 1).toFixed(4)}</dd>
         </div>
         <div>
-          <dt>Satir sayisi</dt>
+          <dt>Satır sayısı</dt>
           <dd>{totals.lineCount}</dd>
         </div>
         <div>
@@ -64,7 +64,7 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dd>{totals.totalQuantity}</dd>
         </div>
         <div>
-          <dt>TRY karsilik</dt>
+          <dt>TRY karşılık</dt>
           <dd>{formatMoney(totals.tryEquivalent, 'TRY')}</dd>
         </div>
         <div>
@@ -72,7 +72,7 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dd>{formatMoney(totals.stockCostEffect, 'TRY')}</dd>
         </div>
       </dl>
-      <p>Average cost TRY notu: kesinlesen alis satirlari agirlikli ortalama maliyet hesaplamasini tetikler.</p>
+      <p>Average cost TRY notu: kesinleşen alış satırları ağırlıklı ortalama maliyet hesaplamasını tetikler.</p>
     </section>
   );
 }

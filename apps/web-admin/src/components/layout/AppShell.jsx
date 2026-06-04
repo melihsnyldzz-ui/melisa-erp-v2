@@ -30,6 +30,43 @@ function getShellClassName(isDemoMode, viewOptions) {
   ].filter(Boolean).join(' ');
 }
 
+class ScreenErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidUpdate(previousProps) {
+    if (previousProps.screenId !== this.props.screenId && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <main className="work-area">
+          <section className="erp-panel">
+            <div className="panel-title">
+              <strong>Ekran yüklenemedi</strong>
+              <span>{this.props.label}</span>
+            </div>
+            <div className="list-state list-state-error">
+              {this.state.error.message}
+            </div>
+          </section>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   const [tabs, setTabs] = useState(initialTabs);
   const [activeTabId, setActiveTabId] = useState(initialTabs[0].id);
@@ -104,7 +141,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     }
 
     if (closingTab.dirty) {
-      const shouldClose = window.confirm(`${closingTab.label} ekraninda kaydedilmemis degisiklikler var. Sekme kapatilsin mi?`);
+      const shouldClose = window.confirm(`${closingTab.label} ekranında kaydedilmemiş değişiklikler var. Sekme kapatılsın mı?`);
 
       if (!shouldClose) {
         return;
@@ -172,7 +209,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     <div className={getShellClassName(isDemoMode, viewOptions)}>
       {isDemoMode && (
         <div className="demo-mode-banner">
-          DEMO MODE: API/SQL kapali, islemler kaydedilmez
+          DEMO MODE: API/SQL kapalı, işlemler kaydedilmez
         </div>
       )}
       <TopMenu
@@ -198,12 +235,14 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
         />
         <section className="content-shell">
           <TabBar tabs={tabs} activeTabId={activeTab.id} onActivateTab={setActiveTabId} onCloseTab={closeTab} />
-          <Workspace
-            activeTab={activeTab}
-            onDirtyChange={updateActiveTabDirty}
-            onOpenScreen={openScreen}
-            permissions={permissions}
-          />
+          <ScreenErrorBoundary label={activeTab.label} screenId={activeTab.id}>
+            <Workspace
+              activeTab={activeTab}
+              onDirtyChange={updateActiveTabDirty}
+              onOpenScreen={openScreen}
+              permissions={permissions}
+            />
+          </ScreenErrorBoundary>
         </section>
         <SmartInsightsPanel
           activeTab={activeTab}

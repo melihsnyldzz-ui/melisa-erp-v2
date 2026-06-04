@@ -135,8 +135,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [invoiceRate, setInvoiceRate] = useState(purchaseDraftId ? invoiceDiscountRate : 0);
   const [supplierRate, setSupplierRate] = useState(purchaseDraftId ? supplierGeneralDiscountRate : 0);
   const [status, setStatus] = useState('DRAFT');
-  const [selectedItemId, setSelectedItemId] = useState(purchaseDraftId ? purchaseInvoiceItems[0]?.id : null);
-  const [statusMessage, setStatusMessage] = useState('Taslak alis fisi stok artirmaz ve cari hareket olusturmaz.');
+  const [selectedItemId, setSelectedItemId] = useState(purchaseDraftId ? purchaseInvoiceItems[0].id : null);
+  const [statusMessage, setStatusMessage] = useState('Taslak alış fişi stok artırmaz ve cari hareket oluşturmaz.');
   const [supplierQuery, setSupplierQuery] = useState('');
   const [supplierOptions, setSupplierOptions] = useState([]);
   const [productQuery, setProductQuery] = useState('');
@@ -197,7 +197,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         }
       } catch (error) {
         if (isMounted) {
-          setCurrencyRateError(`Kur bilgisi okunamadi: ${error.message || 'API_ERROR'}`);
+          setCurrencyRateError(`Kur bilgisi okunamadı: ${error.message || 'API_ERROR'}`);
         }
       }
     }
@@ -281,8 +281,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           setSupplierOptions([]);
           setPurchaseProductOptions([]);
           setProductToAddId('');
-          setErrorMessage(`${error.message || 'Alis lookup verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
-          setStatusMessage('Tedarikci/urun lookup API hatasi; gercek modda mock fallback yapilmadi.');
+          setErrorMessage(`${error.message || 'Al lookup verisi okunamad.'} (${error.code || 'API_ERROR'})`);
+          setStatusMessage('Tedarikçi/ürün lookup API hatası; gerçek modda mock fallback yapılmadı.');
         }
       } finally {
         if (isMounted) {
@@ -323,12 +323,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           setStatus(nextInvoice.status);
           setSelectedItemId(nextItems[0]?.id ?? null);
           setIsDirty(false);
-          setStatusMessage(`Alis taslagi DB'den acildi (#${response.data.id}); ticari etki yok.`);
+          setStatusMessage(`Al tasla DB'den ald (#${response.data.id}); ticari etki yok.`);
         }
       } catch (error) {
         if (isMounted) {
-          setErrorMessage(`${error.message || 'Alis taslagi okunamadi.'} (${error.code || 'API_ERROR'})`);
-          setStatusMessage('Alis taslak okuma basarisiz; API/DB kontrol edilmeli.');
+          setErrorMessage(`${error.message || 'Al tasla okunamad.'} (${error.code || 'API_ERROR'})`);
+          setStatusMessage('Al taslak okuma baarsz; API/DB kontrol edilmeli.');
         }
       } finally {
         if (isMounted) {
@@ -383,7 +383,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setProductQuery('');
     setErrorMessage('');
     setIsDirty(false);
-    setStatusMessage('Yeni alis taslagi hazirlandi; kaydedilene kadar ticari etki yok.');
+    setStatusMessage('Yeni alış taslagi hazirlandi; kaydedilene kadar ticari etki yok.');
   }
 
   function markDirty(message) {
@@ -399,7 +399,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
     const nextRate = rateValueForCurrency(currencyRates, nextCurrency);
     if (nextRate === null) {
-      setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
+      setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanıml değil. Ayarlar > Döviz Kurlar ekranından kur girin.`);
       return null;
     }
 
@@ -426,7 +426,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       ...current,
       [field]: value,
     }));
-    markDirty('Alis taslagi degisti; stok ve tedarikci cari hareketi olusmadi.');
+    markDirty('Al tasla de?i?ti; stok ve tedariki cari hareketi olumad.');
   }
 
   function updateInvoiceCurrency(currency) {
@@ -436,10 +436,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setInvoice((current) => ({
         ...current,
         invoiceCurrency: nextCurrency,
-        exchangeRate: `${nextCurrency} tanimsiz`,
+        exchangeRate: `${nextCurrency} tanımsız`,
         exchangeRateValue: '',
       }));
-      markDirty('Fis para birimi degisti ancak kur tanimli degil; kayit icin kur girilmeli.');
+      markDirty('Fi para birimi de?i?ti ancak kur tanıml değil; kayt için kur girilmeli.');
       return;
     }
 
@@ -453,7 +453,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     });
 
     if (convertedItems.some((item) => item === null)) {
-      setErrorMessage(`${nextCurrency} icin alis satirlari cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      setErrorMessage(`${nextCurrency} için al satırlar çevrilemedi. Döviz Kurlar ekranından kur tanımını kontrol edin.`);
       return;
     }
 
@@ -464,30 +464,30 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       exchangeRateValue: nextRate,
     }));
     setItems(convertedItems);
-    markDirty('Fis para birimi degisti; kur snapshot merkezi kurdan alindi.');
+    markDirty('Fi para birimi de?i?ti; kur snapshot merkezi kurdan alnd.');
   }
 
   function updateInvoiceRate(value) {
     if (value < 0 || value > 100) {
-      setErrorMessage('Fis geneli iskonto orani 0-100 arasinda olmali.');
+      setErrorMessage('Fi geneli iskonto oran 0-100 arasnda olmal.');
       return;
     }
 
     setErrorMessage('');
     setInvoiceRate(value);
-    markDirty('Fis geneli iskonto degisti; taslak henuz ticari etki olusturmaz.');
+    markDirty('Fi geneli iskonto de?i?ti; taslak henz ticari etki oluturmaz.');
   }
 
   function updateSupplierRate(value) {
     if (value < 0 || value > 100) {
-      setErrorMessage('Tedarikci iskonto orani 0-100 arasinda olmali.');
+      setErrorMessage('Tedariki iskonto oran 0-100 arasnda olmal.');
       return;
     }
 
     setErrorMessage('');
     setSupplierRate(value);
     setInvoice((current) => ({ ...current, supplierDiscountRate: value }));
-    markDirty('Tedarikci iskonto degisti; taslak henuz ticari etki olusturmaz.');
+    markDirty('Tedarikçi iskonto değişti; taslak henüz ticari etki oluşturmaz.');
   }
 
   function selectSupplier(supplierId) {
@@ -509,48 +509,48 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       supplierBalanceLabel: formatMoney(supplier.balance, supplier.currency),
       supplierDiscountRate: nextSupplierRate,
       invoiceCurrency: supplier.currency,
-      exchangeRate: nextRate === null ? `${supplier.currency} tanimsiz` : formatExchangeRate(supplier.currency, nextRate),
+      exchangeRate: nextRate === null ? `${supplier.currency} tanımsz` : formatExchangeRate(supplier.currency, nextRate),
       exchangeRateValue: nextRate === null ? '' : nextRate,
     }));
     markDirty(nextSupplierRate > 0
-      ? `Tedarikci secildi; alis iskontosu %${nextSupplierRate} onerildi.`
-      : 'Tedarikci secildi; alis taslagi henuz stok veya cari hareket olusturmaz.');
+       ? `Tedariki se?ildi; al iskontosu %${nextSupplierRate} nerildi.`
+      : 'Tedariki se?ildi; al tasla henz stok veya cari hareket oluturmaz.');
   }
 
   function addDraftItem() {
     if (!invoice.supplierId) {
-      setErrorMessage('Satir eklemek icin once tedarikci secin.');
-      setStatusMessage('Tedarikci secilmeden urun satiri eklenemez.');
+      setErrorMessage('Satır eklemek için önce tedarikçi seçin.');
+      setStatusMessage('Tedarikçi seçilmeden ürün satırı eklenemez.');
       return;
     }
 
     if (!productToAddId) {
-      setErrorMessage('Satir eklemek icin once urun secin.');
-      setStatusMessage('Urun secilmeden satir eklenemez.');
+      setErrorMessage('Satır eklemek için önce ürün seçin.');
+      setStatusMessage('Ürün seçilmeden satır eklenemez.');
       return;
     }
 
     const product = purchaseProductOptions.find((item) => String(item.productId) === String(productToAddId));
 
     if (!product || isReadonly) {
-      setErrorMessage('Secilen urun bulunamadi veya fis readonly.');
+      setErrorMessage('Seçilen ürün bulunamadı veya fiş readonly.');
       return;
     }
 
     if (product.isPassive) {
-      setErrorMessage('Pasif urunler alis taslagina eklenemez.');
+      setErrorMessage('Pasif ürünler alış taslağına eklenemez.');
       return;
     }
 
     if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
-      setErrorMessage(`${invoice.invoiceCurrency} kuru tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
-      setStatusMessage('Kur tanimi olmadan dovizli alis satiri eklenemez.');
+      setErrorMessage(`${invoice.invoiceCurrency} kuru tanıml değil. Ayarlar > Döviz Kurlar ekranından kur girin.`);
+      setStatusMessage('Kur tanım olmadan dvizli al satır eklenemez.');
       return;
     }
 
     const convertedPurchasePrice = convertCurrencyAmount(product.purchasePrice, product.currency, invoice.invoiceCurrency);
     if (convertedPurchasePrice === null) {
-      setErrorMessage(`${product.currency} fiyatli urun ${invoice.invoiceCurrency} alis fisine cevrilemedi. Doviz Kurlari ekranindan kur tanimini kontrol edin.`);
+      setErrorMessage(`${product.currency} fiyatlı ürün ${invoice.invoiceCurrency} alış fişine ççevrilemedi. Döviz Kurları ekranından kur tanımını kontrol edin.`);
       return;
     }
 
@@ -580,21 +580,21 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           purchasePrice: convertedPurchasePrice,
           lineDiscountRate: product.lineDiscountRate,
           stockEffect: '+1 taslak',
-          note: 'Alis taslak satir',
+          note: 'Al taslak satır',
         },
       ];
     });
-    markDirty('Urun alis taslagina eklendi; gercek stok artisi yok.');
+    markDirty('Ürün alış taslağına eklendi; gerçek stok artışı yok.');
   }
 
   function updateDraftItem(itemId, field, value) {
     if ((field === 'quantity' || field === 'purchasePrice') && value <= 0) {
-      setErrorMessage(field === 'quantity' ? 'Miktar 0 veya negatif olamaz.' : 'Alis fiyati 0 veya negatif olamaz.');
+      setErrorMessage(field === 'quantity' ? 'Miktar 0 veya negatif olamaz.' : 'Al fiyat 0 veya negatif olamaz.');
       return;
     }
 
     if (field === 'lineDiscountRate' && (value < 0 || value > 100)) {
-      setErrorMessage('Satir iskonto orani 0-100 arasinda olmali.');
+      setErrorMessage('Satr iskonto oran 0-100 arasnda olmal.');
       return;
     }
 
@@ -607,7 +607,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       const nextItem = { ...item, [field]: value };
       return field === 'quantity' ? { ...nextItem, stockEffect: `+${value} taslak` } : nextItem;
     }));
-    markDirty('Alis satiri guncellendi; taslak kaydedilene kadar ticari etki yok.');
+    markDirty('Alış satırı güncellendi; taslak kaydedilene kadar ticari etki yok.');
   }
 
   function deleteDraftItem(itemId) {
@@ -616,12 +616,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setSelectedItemId(nextItems[0]?.id ?? null);
       return nextItems;
     });
-    markDirty('Alis satiri taslaktan silindi; stok hareketi olusmadi.');
+    markDirty('Alış satırı taslaktan silindi; stok hareketi oluşmadı.');
   }
 
   async function saveDraft() {
     if (isReadonly) {
-      setStatusMessage('Kesinlesmis alis fisi guncellenemez; iptal/duzeltme akisi ayri sprintte ele alinacak.');
+      setStatusMessage('Kesinleşmiş alış fişi güncellenemez; iptal/düzeltme akışı ayrı sprintte ele alınacak.');
       return;
     }
 
@@ -631,28 +631,28 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
 
     if (!invoice.supplierId) {
-      setErrorMessage('Alis taslagi kaydetmek icin tedarikci secin.');
+      setErrorMessage('Alış taslağı kaydetmek için tedarikçi seçin.');
       return;
     }
 
     if (items.length === 0) {
-      setErrorMessage('Bos alis taslagi kaydedilemez. En az bir urun satiri ekleyin.');
+      setErrorMessage('Boş alış taslağı kaydedilemez. En az bir ürün satırı ekleyin.');
       return;
     }
 
     if (items.some((item) => item.quantity <= 0 || item.purchasePrice <= 0)) {
-      setErrorMessage('Alis taslagi kaydedilemez: miktar ve alis fiyati 0 veya negatif olamaz.');
+      setErrorMessage('Alış taslağı kaydedilemez: miktar ve alış fiyatı 0 veya negatif olamaz.');
       return;
     }
 
     if (items.some((item) => item.lineDiscountRate < 0 || item.lineDiscountRate > 100)) {
-      setErrorMessage('Alis taslagi kaydedilemez: satir iskonto orani 0-100 arasinda olmali.');
+      setErrorMessage('Alış taslağı kaydedilemez: satır iskonto oranı 0-100 arasında olmalı.');
       return;
     }
 
     if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
-      setErrorMessage(`${invoice.invoiceCurrency} kuru tanimli degil. Ayarlar > Doviz Kurlari ekranindan kur girin.`);
-      setStatusMessage('Kur tanimi olmadan dovizli alis fisi kaydedilemez.');
+      setErrorMessage(`${invoice.invoiceCurrency} kuru tanımlı değil. Ayarlar > Döviz Kurları ekranından kur girin.`);
+      setStatusMessage('Kur tanımı olmadan dövizli alış fişi kaydedilemez.');
       return;
     }
 
@@ -662,7 +662,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     try {
       const payload = buildDraftPayload();
       const response = draftId
-        ? await updatePurchaseDraft(draftId, payload)
+         ? await updatePurchaseDraft(draftId, payload)
         : await createPurchaseDraft(payload);
       const nextInvoice = mapDraftToInvoice(response.data);
       const nextItems = mapDraftItems(response.data.items);
@@ -675,10 +675,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(response.message || `Alis taslagi DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi olusmadi.`);
+      setStatusMessage(response.message || `Alış taslağı DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi oluşmadı.`);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Alis taslagi kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
-      setStatusMessage('Alis taslak kaydi basarisiz; API/DB kontrol edilmeli.');
+      setErrorMessage(`${error.message || 'Alış taslağı kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Alış taslak kaydı başarısız; API/DB kontrol edilmeli.');
     } finally {
       setIsSaving(false);
     }
@@ -687,17 +687,17 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   async function finalizeInvoice() {
     if (apiConfig.demoMode) {
       setErrorMessage('');
-      setStatusMessage('Demo modda alis kesinlestirme kapalidir. Gercek stok ve tedarikci hareketleri yazilmaz.');
+      setStatusMessage('Demo modda alış kesinleştirme kapalıdır. Gerçek stok ve tedarikçi hareketleri yazılmaz.');
       return;
     }
 
     if (!draftId) {
-      setErrorMessage('Kesinlestirmek icin once alis taslagini kaydedin.');
+      setErrorMessage('Kesinleştirmek için önce alış taslağını kaydedin.');
       return;
     }
 
     if (!canFinalize) {
-      setErrorMessage('Bu islem icin purchase.finalize yetkisi gerekli.');
+      setErrorMessage('Bu işlem için purchase.finalize yetkisi gerekli.');
       return;
     }
 
@@ -716,10 +716,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(`Alis fisi kesinlesti (#${response.data.id}); stok ve tedarikci hareketleri olustu.`);
+      setStatusMessage(`Alış fişi kesinleşti (#${response.data.id}); stok ve tedarikçi hareketleri oluştu.`);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Alis fisi kesinlestirilemedi.'} (${error.code || 'API_ERROR'})`);
-      setStatusMessage('Alis kesinlestirme basarisiz; API/DB kontrol edilmeli.');
+      setErrorMessage(`${error.message || 'Alış fişi kesinleştirilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Alış kesinleştirme başarısız; API/DB kontrol edilmeli.');
     } finally {
       setIsFinalizing(false);
     }
@@ -728,28 +728,28 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   async function cancelInvoice() {
     if (apiConfig.demoMode) {
       setErrorMessage('');
-      setStatusMessage('Demo modda alis iptal simule edilir; gercek stok ve tedarikci hareketleri yazilmaz.');
+      setStatusMessage('Demo modda alış iptal simüle edilir; gerçek stok ve tedarikçi hareketleri yazılmaz.');
       return;
     }
 
     if (!draftId) {
-      setErrorMessage('Iptal etmek icin kayitli alis fisi gerekli.');
+      setErrorMessage('İptal etmek için kayıtlı alış fişi gerekli.');
       return;
     }
 
     if (!isFinalized) {
-      setErrorMessage('Sadece finalized alis fisleri iptal edilebilir.');
+      setErrorMessage('Sadece finalized alış fişleri iptal edilebilir.');
       return;
     }
 
     if (!canCancel) {
-      setErrorMessage('Bu islem icin purchase.cancel yetkisi gerekli.');
+      setErrorMessage('Bu işlem için purchase.cancel yetkisi gerekli.');
       return;
     }
 
-    const reason = window.prompt('Alis fisi iptal nedeni zorunludur:');
+    const reason = window.prompt('Alış fişi iptal nedeni zorunludur:');
     if (!reason || !reason.trim()) {
-      setErrorMessage('Iptal nedeni zorunludur.');
+      setErrorMessage('İptal nedeni zorunludur.');
       return;
     }
 
@@ -768,10 +768,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(`Alis fisi iptal edildi (#${response.data.id}); stok ve tedarikci ters hareketleri olustu. Average cost rollback yapilmadi.`);
+      setStatusMessage(`Alış fişi iptal edildi (#${response.data.id}); stok ve tedarikçi ters hareketleri oluştu. Average cost rollback yapılmadı.`);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Alis fisi iptal edilemedi.'} (${error.code || 'API_ERROR'})`);
-      setStatusMessage('Alis iptal basarisiz; API/DB kontrol edilmeli.');
+      setErrorMessage(`${error.message || 'Alış fişi iptal edilemedi.'} (${error.code || 'API_ERROR'})`);
+      setStatusMessage('Alış iptal başarısız; API/DB kontrol edilmeli.');
     } finally {
       setIsCancelling(false);
     }
@@ -793,17 +793,17 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       extraInfo: [
         { label: 'Tedarikçi PB', value: invoice.supplierCurrency },
         { label: 'Tedarikçi Bakiye', value: invoice.supplierBalanceLabel },
-        { label: 'Satir Sayisi', value: totals.lineCount },
+        { label: 'Satır Sayısı', value: totals.lineCount },
         { label: 'Toplam Adet', value: totals.totalQuantity },
-        { label: 'Fis Iskonto', value: `%${invoiceRate}` },
-        { label: 'Tedarikci Iskonto', value: `%${supplierRate}` },
+        { label: 'Fiş İskonto', value: `%${invoiceRate}` },
+        { label: 'Tedarikçi İskonto', value: `%${supplierRate}` },
       ],
     });
   }
 
   function exportPurchaseInvoiceRows() {
     exportRowsToExcel({
-      filename: `alis-fisi-${invoice.invoiceNo}`,
+      filename: `alış-fişi-${invoice.invoiceNo}`,
       title: `Alış Fişi ${invoice.invoiceNo}`,
       rows: items,
       columns: [
@@ -840,45 +840,45 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         onPrint={printPurchaseInvoice}
       />
       <section className="purchase-invoice-layout">
-        {isLoading && <div className="list-state">Alis taslagi API'den okunuyor...</div>}
-        {isLookupLoading && <div className="list-state">Tedarikci ve urun lookup API'den okunuyor...</div>}
+        {isLoading && <div className="list-state">Alış taslağı API'den okunuyor...</div>}
+        {isLookupLoading && <div className="list-state">Tedarikçi ve ürün lookup API'den okunuyor...</div>}
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {currencyRateError && <div className="list-state list-state-error">{currencyRateError}</div>}
-        {isSaving && <div className="list-state">Alis taslagi API'ye kaydediliyor...</div>}
+        {isSaving && <div className="list-state">Alış taslağı API'ye kaydediliyor...</div>}
         {isReadonly && (
-          <div className="list-state list-state-success">{status} alis fisi kesinlesmis; degisiklik icin iptal veya yeni taslak kullanin.</div>
+          <div className="list-state list-state-success">{status} alış fişi kesinleşmiş; değişiklik için iptal veya yeni taslak kullanın.</div>
         )}
         <section className="erp-panel purchase-draft-controls">
           <div className="panel-title">
-            <strong>Hizli Alis Satiri</strong>
-            <span>Tedarikci sec, barkod/stok kodu yaz, satir ekle</span>
+            <strong>Hızlı Alış Satırı</strong>
+            <span>Tedarikçi seç, barkod/stok kodu yaz, satır ekle</span>
           </div>
           <div className="purchase-draft-control-grid">
             <label>
-              <span>Tedarikci ara</span>
+              <span>Tedarikçi ara</span>
               <input
                 disabled={isReadonly}
-                placeholder="Ad / telefon / sehir / ulke"
+                placeholder="Ad / telefon / şehir / ülke"
                 value={supplierQuery}
                 onChange={(event) => setSupplierQuery(event.target.value)}
               />
             </label>
             <label>
-              <span>Tedarikci sec</span>
+              <span>Tedarikçi seç</span>
               <select value={invoice.supplierId || ''} disabled={isReadonly} onChange={(event) => selectSupplier(event.target.value)}>
-                <option value="">Tedarikci secin</option>
+                <option value="">Tedarikçi seçin</option>
                 {supplierOptions.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierCode} / {supplier.supplierName} / Isk %{Number(supplier.purchaseDiscountRate || 0)}
+                    {supplier.supplierCode} / {supplier.supplierName} / İsk %{Number(supplier.purchaseDiscountRate || 0)}
                   </option>
                 ))}
               </select>
             </label>
             <label>
-              <span>Urun ara</span>
+              <span>Ürün ara</span>
               <input
                 disabled={isReadonly}
-                placeholder="Barkod / stok kodu / urun adi"
+                placeholder="Barkod / stok kodu / ürün adı"
                 value={productQuery}
                 onChange={(event) => {
                   setProductQuery(event.target.value);
@@ -894,17 +894,17 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
               />
             </label>
             <label>
-              <span>Urun sec</span>
+              <span>Ürün seç</span>
               <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)}>
-                <option value="">Urun secin</option>
+                <option value="">Ürün seçin</option>
                 {filteredProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>
-                    {product.stockCode} / {product.productName} / Satir isk %{Number(product.lineDiscountRate || 0)}
+                    {product.stockCode} / {product.productName} / Satır isk %{Number(product.lineDiscountRate || 0)}
                   </option>
                 ))}
               </select>
             </label>
-            <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satir Ekle</button>
+            <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satır Ekle</button>
           </div>
           {selectedSupplier && (
             <div className="purchase-supplier-snapshot">
@@ -928,7 +928,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           onSupplierRateChange={updateSupplierRate}
         />
         {!isLoading && !errorMessage && items.length === 0 && (
-          <div className="list-state purchase-empty-state">Alis taslak satiri yok. Ustten tedarikci ve urun secip Satir Ekle ile baslayin.</div>
+          <div className="list-state purchase-empty-state">Alış taslak satırı yok. Üstten tedarikçi ve ürün seçip Satır Ekle ile başlayın.</div>
         )}
         <PurchaseInvoiceItemsTable
           exchangeRate={invoice.exchangeRateValue}
@@ -946,12 +946,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         <section className="purchase-status-line">{statusMessage}</section>
       </section>
       <section className="screen-summary purchase-invoice-summary">
-        <span>Fis: {invoice.invoiceNo}</span>
-        <span>Draft ID: {draftId ?? 'yok'}</span>
-        <span>{draftId ? 'Kaydedilmis taslak' : 'Kaydedilmemis taslak'}</span>
-        <span>{isDirty ? 'Degisti' : 'Temiz'}</span>
+        <span>Fiş: {invoice.invoiceNo}</span>
+        <span>Draft ID: {draftId || 'yok'}</span>
+        <span>{draftId ? 'Kaydedilmiş taslak' : 'Kaydedilmemiş taslak'}</span>
+        <span>{isDirty ? 'Değişti' : 'Temiz'}</span>
         <span>Durum: {status}</span>
-        <span>Satir: {items.length}</span>
+        <span>Satır: {items.length}</span>
         <span>Adet: {totals.totalQuantity}</span>
         <span>Kaynak: API draft</span>
       </section>

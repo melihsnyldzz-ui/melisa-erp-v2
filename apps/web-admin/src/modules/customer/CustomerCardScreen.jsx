@@ -29,7 +29,7 @@ const emptyCustomerForm = {
 };
 
 const customerTypeLabels = {
-  customer: 'Musteri',
+  customer: 'Müşteri',
   wholesale: 'Toptan',
   retail: 'Perakende',
   mixed: 'Karma',
@@ -127,7 +127,7 @@ function mapPaymentSummary(form) {
 }
 
 function mapTransactions(form) {
-  if (form.movements?.length > 0) {
+  if (form.movements.length > 0) {
     return form.movements;
   }
 
@@ -162,7 +162,7 @@ function validateCustomerForm(form, mode) {
 
 const customerDetailTabs = [
   { id: 'movements', label: 'Cari Hareketler' },
-  { id: 'products', label: 'Satilan Urunler' },
+  { id: 'products', label: 'Satılan Ürünler' },
   { id: 'addresses', label: 'Adres Bilgileri' },
   { id: 'contacts', label: 'İletişim Bilgileri' },
   { id: 'extra', label: 'Ek Bilgiler' },
@@ -222,7 +222,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
       } catch (error) {
         if (isMounted) {
           setForm(emptyCustomerForm);
-          setErrorMessage(error.message || 'Cari kart API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Cari kart API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -402,13 +402,13 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
     const missing = validateCustomerForm(form, mode);
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin customer.edit yetkisi gerekli.');
+      setErrorMessage('Bu işlem için customer.edit yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
 
     if (missing.length > 0) {
-      setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
+      setErrorMessage(`Kaydetmeden önce zorunlu alanları tamamlayın: ${missing.join(', ')}.`);
       setSuccessMessage('');
       return;
     }
@@ -429,12 +429,12 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
 
     try {
       const response = mode === 'create'
-        ? await createCustomer(payload)
+         ? await createCustomer(payload)
         : await updateCustomer(activeCustomerId, payload);
 
       setActiveCustomerId(response.data.id);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(response.message || (mode === 'create' ? 'Cari olusturuldu ve audit kaydi yazildi.' : 'Cari guncellendi ve audit kaydi yazildi.'));
+      setSuccessMessage(response.message || (mode === 'create' ? 'Cari oluşturuldu ve audit kaydı yazıldı.' : 'Cari güncellendi ve audit kaydı yazıldı.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Cari kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -444,13 +444,13 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
 
   async function togglePassiveCustomer() {
     if (!activeCustomerId) {
-      setErrorMessage('Pasif/Aktif islemi icin once kayitli cari acilmali.');
+      setErrorMessage('Pasif/Aktif işlemi için önce kayıtlı cari açılmalı.');
       setSuccessMessage('');
       return;
     }
 
     if (!canTogglePassive) {
-      setErrorMessage('Bu islem icin customer.passive yetkisi gerekli.');
+      setErrorMessage('Bu işlem için customer.passive yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
@@ -465,10 +465,10 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
       const response = await changeCustomerPassive(activeCustomerId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
       setSuccessMessage(response.message || (nextIsPassive
-        ? 'Cari pasif yapildi ve audit kaydi yazildi.'
-        : 'Cari aktif yapildi ve audit kaydi yazildi.'));
+         ? 'Cari pasif yapıldı ve audit kaydı yazıldı.'
+        : 'Cari aktif yapıldı ve audit kaydı yazıldı.'));
     } catch (error) {
-      setErrorMessage(`${error.message || 'Pasif/Aktif islemi basarisiz.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Pasif/Aktif işlemi başarısız.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsPassiveSaving(false);
     }
@@ -476,7 +476,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
 
   return (
     <main className="work-area customer-card-screen">
-      {isLoading && <div className="list-state">API'den cari kart yukleniyor...</div>}
+      {isLoading && <div className="list-state">API'den cari kart yükleniyor...</div>}
       {!isLoading && (
         <>
           <CustomerCardHeader
@@ -494,7 +494,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
           {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
           {form.isPassive && (
             <div className="list-state list-state-passive">
-              PASIF cari: yeni fislerde secilemez, gecmis ekstre ve raporlarda gorunmeye devam eder.
+              PASİF cari: yeni fişlerde seçilemez, geçmiş ekstre ve raporlarda görünmeye devam eder.
             </div>
           )}
           <section className="customer-card-layout customer-card-modern-layout">
@@ -553,7 +553,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
           <section className="screen-summary customer-card-summary">
             <span>Cari: {customer.code}</span>
             <span>Durum: {customer.status}</span>
-            <span>Mod: {mode === 'create' ? 'Yeni kayit' : 'Guncelleme'}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : 'Güncelleme'}</span>
             <span>Kaynak: API</span>
           </section>
         </>

@@ -32,7 +32,7 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
     try {
       const response = await fetchWhatsappPlan(catalogId ? { catalogId } : {});
       setPlan(response.data);
-      setSelectedCatalogId(response.data?.selectedCatalogId ? String(response.data.selectedCatalogId) : '');
+      setSelectedCatalogId(response.data.selectedCatalogId ? String(response.data.selectedCatalogId) : '');
     } catch (error) {
       setPlan(null);
       setErrorMessage(`${error.message || 'WhatsApp plani okunamadi.'} (${error.code || 'API_ERROR'})`);
@@ -48,7 +48,7 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
   function toggleCustomer(customerId) {
     setSelectedCustomerIds((current) => (
       current.includes(customerId)
-        ? current.filter((id) => id !== customerId)
+         ? current.filter((id) => id !== customerId)
         : [...current, customerId]
     ));
   }
@@ -73,10 +73,10 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
         { label: 'Cari Kodu', key: 'customerCode' },
         { label: 'Cari', key: 'customerName' },
         { label: 'Sehir', key: 'city' },
-        { label: 'Ulke', key: 'country' },
+        { label: 'Ülke', key: 'country' },
         { label: 'PB', key: 'currency' },
         { label: 'Bakiye', key: 'balance' },
-        { label: 'Son Satis', key: 'lastSaleDate' },
+        { label: 'Son Satış', key: 'lastSaleDate' },
         { label: 'Mesaj', key: 'whatsappText' },
       ],
     });
@@ -86,14 +86,14 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
     <main className="work-area dashboard-screen catalog-screen">
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
-          <strong>WhatsApp Paylasim</strong>
+          <strong>WhatsApp Paylaşım</strong>
           <span>Katalog sec, cari listesini hazirla, mesaj metnini kopyala</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={() => onOpenScreen('catalog-list')}>Katalog Listesi</button>
           <button type="button" onClick={copySelectedMessages} disabled={selectedCustomerIds.length === 0}>Mesaji Kopyala</button>
           <button type="button" onClick={exportPlan}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - WhatsApp Paylasim')}>Yazdir</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - WhatsApp Paylaşım')}>Yazdır</button>
           <button type="button" onClick={() => loadPlan()}>Yenile</button>
         </div>
       </section>
@@ -105,7 +105,7 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
         <article className="dashboard-kpi info">
           <span>Katalog</span>
           <strong>{catalogs.length}</strong>
-          <small>Paylasim icin secilebilir</small>
+          <small>Paylaşım için seçilebilir</small>
         </article>
         <article className="dashboard-kpi good">
           <span>Cari</span>
@@ -113,12 +113,12 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
           <small>Aktif cari kaydi</small>
         </article>
         <article className="dashboard-kpi warn">
-          <span>Secilen</span>
+          <span>Seçilen</span>
           <strong>{selectedCustomerIds.length}</strong>
           <small>Mesaj kopyalama listesi</small>
         </article>
         <article className="dashboard-kpi info">
-          <span>Son satisli</span>
+          <span>Son satışli</span>
           <strong>{customers.filter((customer) => customer.lastSaleDate).length}</strong>
           <small>Geri donus onceligi</small>
         </article>
@@ -126,7 +126,7 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Paylasim Ayari</strong>
+          <strong>Paylaşım Ayarı</strong>
           <span>Dis servise gondermez; metin ve liste hazirlar</span>
         </div>
         <div className="filter-grid">
@@ -150,23 +150,23 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Cari Paylasim Listesi</strong>
+          <strong>Cari Paylaşım Listesi</strong>
           <span>{customers.length} aktif cari / {selectedCustomerIds.length} secili</span>
         </div>
-        {!isLoading && customers.length === 0 && <div className="list-state">Paylasim icin cari bulunamadi.</div>}
+        {!isLoading && customers.length === 0 && <div className="list-state">Paylaşım için cari bulunamadı.</div>}
         {customers.length > 0 && (
           <div className="table-shell">
             <table className="erp-table">
               <thead>
                 <tr>
-                  <th>Sec</th>
+                  <th>Seç</th>
                   <th>Cari Kodu</th>
                   <th>Cari</th>
                   <th>Sehir</th>
-                  <th>Ulke</th>
+                  <th>Ülke</th>
                   <th>Bakiye</th>
-                  <th>Son Satis</th>
-                  <th>Fis</th>
+                  <th>Son Satış</th>
+                  <th>Fiş</th>
                   <th>Mesaj</th>
                 </tr>
               </thead>

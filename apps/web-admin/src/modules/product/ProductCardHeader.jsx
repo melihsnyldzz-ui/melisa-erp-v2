@@ -16,7 +16,7 @@ export function ProductCardHeader({
   return (
     <section className="product-card-header">
       <div className="product-title-block">
-        <strong>Urun Karti</strong>
+        <strong>Ürün Kartı</strong>
         <span>{product.stockCode} / {product.name}</span>
       </div>
       <div className="product-card-toolbar">
@@ -28,11 +28,11 @@ export function ProductCardHeader({
           type="button"
           onClick={onTogglePassive}
           disabled={mode === 'create' || isSaving || isPassiveSaving || !canTogglePassive}
-          title={!canTogglePassive ? 'product.passive yetkisi gerekli' : mode === 'create' ? 'Pasif/Aktif islemi icin kayitli urun gerekir' : 'Kaydi silmeden aktif/pasif durumunu degistirir'}
+          title={!canTogglePassive ? 'product.passive yetkisi gerekli' : mode === 'create' ? 'Pasif/Aktif işlemi için kayıtlı ürün gerekir' : 'Kaydı silmeden aktif/pasif durumunu değiştirir'}
         >
           {isPassiveSaving ? 'Isleniyor' : passiveLabel}
         </button>
-        <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Update'}</span>
+        <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : 'Güncelleme'}</span>
       </div>
     </section>
   );

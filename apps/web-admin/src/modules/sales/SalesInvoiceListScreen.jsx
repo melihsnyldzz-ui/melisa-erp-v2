@@ -172,8 +172,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           <span>Bugün çıkan satış fişleri, taslaklar ve kesinleşen düzeltmeler</span>
         </div>
         <div className="invoice-list-actions">
-          <button type="button" onClick={() => onOpenScreen('sales-invoice')}>Yeni Fiş</button>
-          <button type="button" onClick={() => openInvoice()} disabled={!selectedRow}>Fiş Aç</button>
+          <button type="button" onClick={() => onOpenScreen('sales-invoice')}>Yeni Satış Fişi Oluştur</button>
+          <button type="button" onClick={() => openInvoice()} disabled={!selectedRow}>Seçili Satış Fişini Aç</button>
           <button type="button" onClick={exportSalesRows}>Excel</button>
           <button type="button" onClick={printSalesRows}>Yazdır</button>
           <button type="button" onClick={loadSalesInvoices}>Yenile</button>

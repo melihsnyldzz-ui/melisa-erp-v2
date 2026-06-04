@@ -22,6 +22,34 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+function printHtmlDocument(html, title = 'Melisa ERP') {
+  const iframe = document.createElement('iframe');
+  iframe.title = title;
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+
+  iframe.onload = () => {
+    const printWindow = iframe.contentWindow;
+
+    if (!printWindow) {
+      iframe.remove();
+      return;
+    }
+
+    printWindow.focus();
+    printWindow.print();
+    window.setTimeout(() => iframe.remove(), 1000);
+  };
+
+  iframe.srcdoc = html;
+  document.body.appendChild(iframe);
+}
+
 const PRINT_COMPANY_INFO_STORAGE_KEY = 'melisa.erp.printCompanyInfo';
 
 const defaultPrintCompanyInfo = {
@@ -97,7 +125,7 @@ export function exportRowsToExcel({ filename, title = 'Melisa ERP Raporu', colum
           <thead>
             <tr>${columns.map((column) => `<th>${htmlEscape(column.label)}</th>`).join('')}</tr>
           </thead>
-          <tbody>${tableRows || `<tr><td colspan="${columns.length}">KayÄ±t yok.</td></tr>`}</tbody>
+          <tbody>${tableRows || `<tr><td colspan="${columns.length}">Kayıt yok.</td></tr>`}</tbody>
         </table>
       </body>
     </html>`;
@@ -106,13 +134,6 @@ export function exportRowsToExcel({ filename, title = 'Melisa ERP Raporu', colum
 }
 
 export function printRowsReport({ title = 'Melisa ERP Raporu', subtitle = '', columns, rows }) {
-  const printWindow = window.open('', '_blank', 'width=1120,height=760');
-
-  if (!printWindow) {
-    printCurrentScreen(title);
-    return;
-  }
-
   const printCompany = getPrintCompanyInfo();
   const companySubline = [printCompany.address, printCompany.phone].filter(Boolean).join(' / ');
   const html = `<!doctype html>
@@ -157,10 +178,10 @@ export function printRowsReport({ title = 'Melisa ERP Raporu', subtitle = '', co
           <tbody>
             ${rows.length ? rows.map((row) => `
               <tr>${columns.map((column) => `<td>${htmlEscape(columnValue(column, row))}</td>`).join('')}</tr>
-            `).join('') : `<tr><td colspan="${columns.length}">KayÄ±t yok.</td></tr>`}
+            `).join('') : `<tr><td colspan="${columns.length}">Kayıt yok.</td></tr>`}
           </tbody>
         </table>
-        <section class="footer">SatÄ±r sayÄ±sÄ±: ${rows.length}</section>
+        <section class="footer">Satır sayısı: ${rows.length}</section>
         <script>
           window.onload = function () {
             window.focus();
@@ -170,9 +191,7 @@ export function printRowsReport({ title = 'Melisa ERP Raporu', subtitle = '', co
       </body>
     </html>`;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlDocument(html, title);
 }
 
 export function printCurrentScreen(title = 'Melisa ERP') {
@@ -213,7 +232,7 @@ function formatDocumentIdentity(documentNo = '-') {
     return { series: '-', number: '-' };
   }
 
-  const match = text.match(/^([A-Z]+[-_]?[A-Z0-9]*?)[-_](\d{3,})$/i);
+  const match = text.match(/^([A-Z]+[-_][A-Z0-9]*)[-_](\d{3,})$/i);
   if (match) {
     return { series: match[1], number: match[2] };
   }
@@ -277,12 +296,6 @@ export function printBusinessDocument({
   extraInfo = [],
   companyInfo = {},
 }) {
-  const printWindow = window.open('', '_blank', 'width=980,height=720');
-  if (!printWindow) {
-    printCurrentScreen(`Melisa ERP - ${title}`);
-    return;
-  }
-
   const totalCurrency = totals.currency || currency || 'TRY';
   const discountValue = totals.discountAmount ?? totals.discountTotal ?? totals.totalDiscount ?? 0;
   const tryValue = totals.tryEquivalent ?? totals.amountTry ?? totals.totalTry ?? 0;
@@ -395,26 +408,18 @@ export function printBusinessDocument({
       </body>
     </html>`;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlDocument(html, title);
 }
 export function printFinanceReceipt(receipt = {}) {
-  const printWindow = window.open('', '_blank', 'width=760,height=720');
-  if (!printWindow) {
-    printCurrentScreen(`Melisa ERP - ${receipt.type || 'Makbuz'}`);
-    return;
-  }
-
   const type = receipt.type || 'Cari Makbuz';
   const receiptNo = receipt.receiptNo || '-';
   const currency = receipt.currency || 'TRY';
-  const isPayment = String(type).toLocaleLowerCase('tr-TR').includes('odeme')
-    || String(type).toLocaleLowerCase('tr-TR').includes('Ã¶deme')
+  const isPayment = String(type).toLocaleLowerCase('tr-TR').includes('ödeme')
+    || String(type).toLocaleLowerCase('tr-TR').includes('ödeme')
     || receipt.partyType === 'supplier';
   const titleColor = isPayment ? '#b42318' : '#007a4d';
-  const directionLabel = isPayment ? 'Ã‡Ä±kÄ±ÅŸ' : 'GiriÅŸ';
-  const partyTypeLabel = receipt.partyType === 'supplier' ? 'TedarikÃ§i' : 'MÃ¼ÅŸteri';
+  const directionLabel = isPayment ? 'Çıkış' : 'Giriş';
+  const partyTypeLabel = receipt.partyType === 'supplier' ? 'Tedarikçi' : 'Müşteri';
   const balanceEffect = Number(receipt.balanceEffect ?? 0);
   const amount = Number(receipt.amount || 0);
   const printCompany = getPrintCompanyInfo();
@@ -467,28 +472,28 @@ export function printFinanceReceipt(receipt = {}) {
             ${buildInfoRows([
               { label: 'Makbuz No', value: receiptNo },
               { label: 'Tarih', value: receipt.documentDate || '-' },
-              { label: 'Cari TÃ¼rÃ¼', value: partyTypeLabel },
+              { label: 'Cari Türü', value: partyTypeLabel },
               { label: 'Cari', value: `${receipt.partyCode || '-'} / ${receipt.partyName || '-'}` },
-              { label: 'Ã–deme Åekli', value: receipt.paymentMethod || '-' },
+              { label: 'Ödeme Şekli', value: receipt.paymentMethod || '-' },
               { label: 'Kasa / Banka', value: receipt.accountLabel || receipt.accountName || receipt.accountCode || '-' },
-              { label: 'Hareket YÃ¶nÃ¼', value: directionLabel },
+              { label: 'Hareket Yönü', value: directionLabel },
               { label: 'Para Birimi', value: currency },
               { label: 'Bakiye Etkisi', value: formatMoney(balanceEffect, currency) },
             ])}
           </section>
           <section class="amount-box">
-            <span>${htmlEscape(isPayment ? 'Ã–denen Tutar' : 'Tahsil Edilen Tutar')}</span>
+            <span>${htmlEscape(isPayment ? 'Ödenen Tutar' : 'Tahsil Edilen Tutar')}</span>
             <strong>${formatMoney(amount, currency)}</strong>
           </section>
           <section class="note">
-            <strong>AÃ§Ä±klama:</strong> ${htmlEscape(receipt.description || `${partyTypeLabel} cari hareket makbuzu`)}
+            <strong>Açıklama:</strong> ${htmlEscape(receipt.description || `${partyTypeLabel} cari hareket makbuzu`)}
           </section>
           <section class="signatures">
             <div class="signature">Teslim Eden</div>
             <div class="signature">Teslim Alan</div>
           </section>
           <section class="footer">
-            Bu belge Melisa ERP finans hareketlerinden Ã¼retilmiÅŸtir. Eski kayÄ±tlarda Ã¶deme ÅŸekli DB'de saklanmadÄ±ÄŸÄ±nda '-' gÃ¶rÃ¼nebilir.
+            Bu belge Melisa ERP finans hareketlerinden üretilmiştir. Eski kayıtlarda ödeme şekli DB'de saklanmadığında '-' görünebilir.
           </section>
         </main>
         <script>
@@ -500,19 +505,17 @@ export function printFinanceReceipt(receipt = {}) {
       </body>
     </html>`;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlDocument(html, type);
 }
 
 function buildStatementRows(rows = [], { partyKey, movementLabel, debitWhenPositive = true }) {
   return rows.map((row) => {
     const effect = Number(row.balanceEffect || row.amount || 0);
     const debit = debitWhenPositive
-      ? (effect >= 0 ? effect : 0)
+       ? (effect >= 0 ? effect : 0)
       : (effect < 0 ? Math.abs(effect) : 0);
     const credit = debitWhenPositive
-      ? (effect < 0 ? Math.abs(effect) : 0)
+       ? (effect < 0 ? Math.abs(effect) : 0)
       : (effect >= 0 ? effect : 0);
 
     return `
@@ -535,7 +538,7 @@ function buildStatementTotals(totals = []) {
     <div class="total-card">
       <span>${htmlEscape(total.currency)} bakiye</span>
       <strong>${formatMoney(total.balance, total.currency)}</strong>
-      <small>BorÃ§ ${formatMoney(total.debit, total.currency)} / Alacak ${formatMoney(total.credit, total.currency)}</small>
+      <small>Borç ${formatMoney(total.debit, total.currency)} / Alacak ${formatMoney(total.credit, total.currency)}</small>
     </div>
   `).join('');
 }
@@ -552,12 +555,6 @@ export function printLedgerStatement({
   partyKey = 'partyName',
   debitWhenPositive = true,
 }) {
-  const printWindow = window.open('', '_blank', 'width=1120,height=760');
-  if (!printWindow) {
-    printCurrentScreen(`Melisa ERP - ${title}`);
-    return;
-  }
-
   const printCompany = getPrintCompanyInfo();
   const companySubline = [printCompany.address, printCompany.phone].filter(Boolean).join(' / ');
   const html = `<!doctype html>
@@ -613,35 +610,35 @@ export function printLedgerStatement({
         </section>
         <section class="info-grid">
           ${buildInfoRows([
-            { label: 'Cari tÃ¼rÃ¼', value: partyLabel },
+            { label: 'Cari türü', value: partyLabel },
             { label: 'Arama', value: filters.search || '-' },
-            { label: 'BaÅŸlangÄ±Ã§', value: filters.dateFrom || '-' },
-            { label: 'BitiÅŸ', value: filters.dateTo || '-' },
+            { label: 'Başlangıç', value: filters.dateFrom || '-' },
+            { label: 'Bitiş', value: filters.dateTo || '-' },
           ])}
         </section>
         <section class="totals">
           ${totals.length ? buildStatementTotals(totals) : '<div class="total-card"><span>Bakiye</span><strong>0</strong><small>Normal hareket yok</small></div>'}
         </section>
-        <h2>Normal Ekstre SatÄ±rlarÄ±</h2>
+        <h2>Normal Ekstre Satırları</h2>
         <table>
           <thead>
             <tr>
               <th>Tarih</th>
               <th>${htmlEscape(partyLabel)}</th>
               <th>Belge No</th>
-              <th>Ä°ÅŸlem</th>
-              <th class="num">BorÃ§</th>
+              <th>İşlem</th>
+              <th class="num">Borç</th>
               <th class="num">Alacak</th>
               <th class="num">Bakiye Etkisi</th>
               <th>PB</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.length ? buildStatementRows(rows, { partyKey, movementLabel, debitWhenPositive }) : '<tr><td colspan="8">Normal ekstre satÄ±rÄ± yok.</td></tr>'}
+            ${rows.length ? buildStatementRows(rows, { partyKey, movementLabel, debitWhenPositive }) : '<tr><td colspan="8">Normal ekstre satırı yok.</td></tr>'}
           </tbody>
         </table>
         ${cancelledRows.length ? `
-          <h2>Ä°ptal Ä°zleri</h2>
+          <h2>İptal İzleri</h2>
           <section class="totals">${buildStatementTotals(cancelledTotals)}</section>
           <table class="cancelled">
             <thead>
@@ -649,8 +646,8 @@ export function printLedgerStatement({
                 <th>Tarih</th>
                 <th>${htmlEscape(partyLabel)}</th>
                 <th>Belge No</th>
-                <th>Ä°ÅŸlem</th>
-                <th class="num">BorÃ§</th>
+                <th>İşlem</th>
+                <th class="num">Borç</th>
                 <th class="num">Alacak</th>
                 <th class="num">Bakiye Etkisi</th>
                 <th>PB</th>
@@ -660,7 +657,7 @@ export function printLedgerStatement({
           </table>
         ` : ''}
         <section class="footer">
-          <div class="signature">HazÄ±rlayan</div>
+          <div class="signature">Hazırlayan</div>
           <div class="signature">Onaylayan</div>
         </section>
         <script>
@@ -672,8 +669,5 @@ export function printLedgerStatement({
       </body>
     </html>`;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlDocument(html, title);
 }
-

@@ -14,7 +14,7 @@ export function DashboardTopProducts({ rows }) {
               <th>Stok kodu</th>
               <th>Ürün</th>
               <th>Adet</th>
-              <th>Satis</th>
+              <th>Satış</th>
               <th>Stok</th>
             </tr>
           </thead>

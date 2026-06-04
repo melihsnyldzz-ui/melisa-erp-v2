@@ -6,7 +6,7 @@ export function DashboardKpiGrid({ kpis, onOpenScreen }) {
       {kpis.map((kpi) => (
         <button
           type="button"
-          className={`dashboard-kpi ${kpi.tone}`}
+          className={`dashboard-kpi ${kpi.tone} dashboard-kpi-${kpi.tone}`}
           key={kpi.label}
           onClick={() => onOpenScreen(kpi.screenId)}
         >

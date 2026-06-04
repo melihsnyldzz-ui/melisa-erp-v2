@@ -19,7 +19,7 @@ function formatCurrencyTotals(totals, key) {
 }
 
 function formatSummaryCurrencies(summary, key, fallbackValue) {
-  const entries = Object.entries(summary?.currencySummary?.[key] || {});
+  const entries = Object.entries(summary.currencySummary?.[key] || {});
   if (entries.length === 0) return formatMoney(fallbackValue);
   return entries
     .map(([currency, value]) => formatMoney(value, currency))
@@ -63,7 +63,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 }
 
 export function FinanceOverviewScreen({ onOpenScreen }) {
-  const [summary, setSummary] = useState(null);
+  const [summary, setSummary] = useState({});
   const [rows, setRows] = useState([]);
   const [filters, setFilters] = useState({
     search: '',
@@ -94,7 +94,7 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
       setSummary(summaryResponse.data);
       setRows(movementResponse.data || []);
     } catch (error) {
-      setSummary(null);
+      setSummary({});
       setRows([]);
       setErrorMessage(`${error.message || 'Finans verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -128,7 +128,7 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
       payments: total.payments + (row.movementType === 'payment' ? amount : 0),
       positiveEffect: total.positiveEffect + (effect > 0 ? effect : 0),
       negativeEffect: total.negativeEffect + (effect < 0 ? Math.abs(effect) : 0),
-      cancelled: total.cancelled + (String(row.movementType || '').includes('cancel') ? 1 : 0),
+        cancelled: total.cancelled + (String(row.movementType || '').includes('cancel') ? 1 : 0),
       byCurrency: total.byCurrency,
     };
   }, {
@@ -229,12 +229,12 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid">
-        <Kpi label="Müşteri alacak" value={formatSummaryCurrencies(summary, 'customerReceivables', summary?.customerReceivables)} detail="Satışlardan doğan açık müşteri borcu" tone="warn" />
-        <Kpi label="Tedarikçi borç" value={formatSummaryCurrencies(summary, 'supplierPayables', summary?.supplierPayables)} detail="Alışlardan doğan açık tedarikçi borcu" tone="warn" />
-        <Kpi label="Bugün tahsilat" value={formatSummaryCurrencies(summary, 'todayCollections', summary?.todayCollections)} detail={`${summary?.collectionCount || 0} toplam tahsilat kaydı`} tone="good" />
-        <Kpi label="Bugün ödeme" value={formatSummaryCurrencies(summary, 'todayPayments', summary?.todayPayments)} detail={`${summary?.paymentCount || 0} toplam ödeme kaydı`} tone="info" />
-        <Kpi label="Müşteri avans" value={formatSummaryCurrencies(summary, 'customerAdvances', summary?.customerAdvances)} detail="Müşterinin alacaklı göründüğü bakiyeler" tone="info" />
-        <Kpi label="Tedarikçi avans" value={formatSummaryCurrencies(summary, 'supplierAdvances', summary?.supplierAdvances)} detail="Tedarikçiye fazla ödeme bakiyeleri" tone="info" />
+        <Kpi label="Müşteri alacak" value={formatSummaryCurrencies(summary, 'customerReceivables', summary.customerReceivables)} detail="Satışlardan doğan açık müşteri borcu" tone="warn" />
+        <Kpi label="Tedarikçi borç" value={formatSummaryCurrencies(summary, 'supplierPayables', summary.supplierPayables)} detail="Alışlardan doğan açık tedarikçi borcu" tone="warn" />
+        <Kpi label="Bugün tahsilat" value={formatSummaryCurrencies(summary, 'todayCollections', summary.todayCollections)} detail={`${summary.collectionCount || 0} toplam tahsilat kaydı`} tone="good" />
+        <Kpi label="Bugün ödeme" value={formatSummaryCurrencies(summary, 'todayPayments', summary.todayPayments)} detail={`${summary.paymentCount || 0} toplam ödeme kaydı`} tone="info" />
+        <Kpi label="Müşteri avans" value={formatSummaryCurrencies(summary, 'customerAdvances', summary.customerAdvances)} detail="Müşterinin alacaklı göründüğü bakiyeler" tone="info" />
+        <Kpi label="Tedarikçi avans" value={formatSummaryCurrencies(summary, 'supplierAdvances', summary.supplierAdvances)} detail="Tedarikçiye fazla ödeme bakiyeleri" tone="info" />
       </section>
 
       <section className="erp-panel">

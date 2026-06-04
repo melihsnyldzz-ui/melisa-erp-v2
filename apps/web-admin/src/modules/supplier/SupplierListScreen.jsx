@@ -38,6 +38,7 @@ export function SupplierListScreen({ onOpenScreen }) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,7 +66,7 @@ export function SupplierListScreen({ onOpenScreen }) {
         if (isMounted) {
           setRows([]);
           setSelectedRowId(null);
-          setErrorMessage(error.message || 'Tedarikci listesi API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Tedarikçi listesi API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -79,7 +80,7 @@ export function SupplierListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [filters.search, filters.status]);
+  }, [filters.search, filters.status, refreshKey]);
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     const currencyMatch = filters.currency === 'all' || row.currency === filters.currency;
@@ -102,7 +103,7 @@ export function SupplierListScreen({ onOpenScreen }) {
 
   function openSupplier(row = selectedRow) {
     if (!row?.id) {
-      setSelectionWarning('Tedarikci karti acmak icin listeden bir tedarikci secin.');
+      setSelectionWarning('Tedarikçi kartı açmak için listeden bir tedarikçi seçin.');
       return;
     }
 
@@ -112,19 +113,19 @@ export function SupplierListScreen({ onOpenScreen }) {
 
   function exportSuppliers() {
     exportRowsToCsv({
-      filename: 'tedarikci-listesi',
+      filename: 'tedarik?i-listesi',
       rows: filteredRows,
       columns: [
-        { label: 'Tedarikci Kodu', key: 'code' },
+        { label: 'Tedarikçi Kodu', key: 'code' },
         { label: 'Ad Unvan', key: 'name' },
         { label: 'Telefon', key: 'phone' },
-        { label: 'Sehir', key: 'city' },
-        { label: 'Ulke', key: 'country' },
+        { label: 'Şehir', key: 'city' },
+        { label: 'Ülke', key: 'country' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Bakiye', key: 'balance' },
-        { label: 'Alis Iskonto %', key: 'purchaseDiscountRate' },
-        { label: 'Alis Fisi', key: 'purchaseCount' },
-        { label: 'Son Alis', key: 'lastPurchaseDate' },
+        { label: 'Alış İskonto %', key: 'purchaseDiscountRate' },
+        { label: 'Alış Fişi', key: 'purchaseCount' },
+        { label: 'Son Alış', key: 'lastPurchaseDate' },
       ],
     });
   }
@@ -133,26 +134,27 @@ export function SupplierListScreen({ onOpenScreen }) {
     <main className="work-area supplier-list-screen">
       <section className="customer-list-toolbar">
         <div className="customer-title-block">
-          <strong>Tedarikci Kartlari</strong>
-          <span>Alis fisleri, bakiye ve tedarikci iskonto takibi</span>
+          <strong>Tedarikçi Kartları</strong>
+          <span>Alış fişleri, bakiye ve tedarikçi iskonto takibi</span>
         </div>
         <div className="customer-toolbar-actions">
-          <button type="button" onClick={() => openSupplier()} disabled={!selectedRow}>Tedarikci Karti Ac</button>
-          <button type="button" onClick={() => onOpenScreen('supplier-card')}>Yeni Tedarikci</button>
+          <button type="button" onClick={() => openSupplier()} disabled={!selectedRow}>Tedarikçi Kartı Aç</button>
+          <button type="button" onClick={() => onOpenScreen('supplier-card')}>Yeni Tedarikçi</button>
+          <button type="button" onClick={() => setRefreshKey((current) => current + 1)}>Yenile</button>
           <button type="button" onClick={exportSuppliers}>CSV</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikci Listesi')}>Yazdir</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikçi Listesi')}>Yazdır</button>
         </div>
       </section>
 
       <section className="erp-panel customer-filter-panel supplier-filter-panel">
         <label>
           <span>Arama</span>
-          <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Kod / ad / telefon / sehir" />
+          <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Kod / ad / telefon / şehir" />
         </label>
         <label>
           <span>Para birimi</span>
           <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
-            <option value="all">Tum PB</option>
+            <option value="all">Tüm PB</option>
             <option value="TRY">TRY</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -162,19 +164,19 @@ export function SupplierListScreen({ onOpenScreen }) {
           <span>Durum</span>
           <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
             <option value="active">Aktif</option>
-            <option value="all">Tum kayitlar</option>
+            <option value="all">Tüm kayıtlar</option>
           </select>
         </label>
       </section>
 
       <section className="erp-panel customer-list-panel">
         <div className="panel-title customer-panel-title">
-          <strong>Tedarikci Tablosu</strong>
-          <span>Secili: {selectedRow?.code ?? 'yok'} / Satir: {filteredRows.length}</span>
+          <strong>Tedarikçi Tablosu</strong>
+          <span>Seçili: {selectedRow?.code ?? 'yok'} / Satır: {filteredRows.length}</span>
         </div>
-        {isLoading && <div className="list-state">API'den tedarikci kayitlari yukleniyor...</div>}
+        {isLoading && <div className="list-state">API'den tedarikçi kayıtları yükleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
-        {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Tedarikci kaydi bulunamadi.</div>}
+        {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Tedarikçi kaydı bulunamadı.</div>}
         {!isLoading && !errorMessage && selectionWarning && <div className="list-state list-state-error">{selectionWarning}</div>}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
           <div className="table-wrap customer-table-wrap">
@@ -182,14 +184,14 @@ export function SupplierListScreen({ onOpenScreen }) {
               <thead>
                 <tr>
                   <th>Kod</th>
-                  <th>Tedarikci</th>
+                  <th>Tedarikçi</th>
                   <th>Telefon</th>
-                  <th>Sehir</th>
+                  <th>Şehir</th>
                   <th>PB</th>
                   <th>Bakiye</th>
-                  <th>Alis isk %</th>
-                  <th>Fis</th>
-                  <th>Son alis</th>
+                  <th>Alış isk %</th>
+                  <th>Fiş</th>
+                  <th>Son alış</th>
                   <th>Durum</th>
                 </tr>
               </thead>
@@ -220,7 +222,7 @@ export function SupplierListScreen({ onOpenScreen }) {
       </section>
 
       <section className="screen-summary customer-summary">
-        <span>Tedarikci: {filteredRows.length}</span>
+        <span>Tedarikçi: {filteredRows.length}</span>
         <span>Bakiye: {formatMoney(totalBalance, selectedRow?.currency || 'TRY')}</span>
         <span>Kaynak: API / SQL</span>
       </section>

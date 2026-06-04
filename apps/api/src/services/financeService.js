@@ -118,7 +118,7 @@ function mapFinanceAccount(row) {
   };
 }
 
-async function ensureFinanceAccountTables(pool) {
+export async function ensureFinanceAccountTables(pool) {
   await pool.request().query(`
     IF OBJECT_ID(N'dbo.finance_accounts', N'U') IS NULL
     BEGIN
@@ -209,7 +209,7 @@ async function getOrCreateDefaultFinanceAccount(request, sqlDriver, { accountTyp
   return mapFinanceAccount(inserted.recordset[0]);
 }
 
-async function resolveFinanceAccount(transaction, sqlDriver, payload) {
+export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
   const accountId = Number(payload.accountId);
   const accountType = paymentMethodToAccountType(payload.paymentMethod);
   const currency = payload.currency;
@@ -238,7 +238,7 @@ async function resolveFinanceAccount(transaction, sqlDriver, payload) {
   return getOrCreateDefaultFinanceAccount(new sqlDriver.Request(transaction), sqlDriver, { accountType, currency });
 }
 
-async function writeFinanceAccountMovement(transaction, sqlDriver, payload) {
+export async function writeFinanceAccountMovement(transaction, sqlDriver, payload) {
   const direction = payload.sourceType === 'payment' ? 'out' : 'in';
   const balanceEffect = direction === 'out' ? -payload.amount : payload.amount;
 
@@ -339,6 +339,7 @@ function mapFinanceMovement(row) {
     accountName: row.account_name || null,
     accountType: row.account_type || null,
     paymentMethod: row.payment_method || null,
+    description: row.description || null,
     amount: Number(row.amount || 0),
     currency: row.currency_code,
     balanceEffect: Number(row.balance_effect || 0),
@@ -459,71 +460,131 @@ export async function getFinanceSummary() {
   const result = await pool.request().query(`
     SELECT
       COALESCE((
-        SELECT SUM(balance)
-        FROM dbo.customers
-        WHERE is_deleted = 0 AND balance > 0
-          AND customer_code NOT LIKE N'QA-%'
-          AND customer_code NOT LIKE N'CUS-QA-%'
-          AND customer_code NOT LIKE N'AKIS-%'
-          AND customer_code NOT LIKE N'TEST%'
-          AND customer_code NOT LIKE N'IMP-%'
+        SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+        FROM dbo.customers c
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = c.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
+        WHERE c.is_deleted = 0 AND c.balance > 0
+          AND c.customer_code NOT LIKE N'QA-%'
+          AND c.customer_code NOT LIKE N'CUS-QA-%'
+          AND c.customer_code NOT LIKE N'AKIS-%'
+          AND c.customer_code NOT LIKE N'E2E-%'
+          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
+          AND c.customer_code NOT LIKE N'TEST%'
+          AND c.customer_code NOT LIKE N'IMP-%'
+          AND c.name NOT LIKE N'E2E %'
+          AND c.name NOT LIKE N'Saha Test%'
       ), 0) AS customer_receivables,
       COALESCE((
-        SELECT SUM(ABS(balance))
-        FROM dbo.customers
-        WHERE is_deleted = 0 AND balance < 0
-          AND customer_code NOT LIKE N'QA-%'
-          AND customer_code NOT LIKE N'CUS-QA-%'
-          AND customer_code NOT LIKE N'AKIS-%'
-          AND customer_code NOT LIKE N'TEST%'
-          AND customer_code NOT LIKE N'IMP-%'
+        SELECT SUM(ABS(c.balance) * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+        FROM dbo.customers c
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = c.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
+        WHERE c.is_deleted = 0 AND c.balance < 0
+          AND c.customer_code NOT LIKE N'QA-%'
+          AND c.customer_code NOT LIKE N'CUS-QA-%'
+          AND c.customer_code NOT LIKE N'AKIS-%'
+          AND c.customer_code NOT LIKE N'E2E-%'
+          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
+          AND c.customer_code NOT LIKE N'TEST%'
+          AND c.customer_code NOT LIKE N'IMP-%'
+          AND c.name NOT LIKE N'E2E %'
+          AND c.name NOT LIKE N'Saha Test%'
       ), 0) AS customer_advances,
       COALESCE((
-        SELECT SUM(balance)
-        FROM dbo.suppliers
-        WHERE is_deleted = 0 AND balance > 0
-          AND supplier_code NOT LIKE N'QA-%'
-          AND supplier_code NOT LIKE N'SUP-QA-%'
-          AND supplier_code NOT LIKE N'AKIS-%'
-          AND supplier_code NOT LIKE N'TEST%'
-          AND supplier_code NOT LIKE N'DRAFT-%'
-          AND supplier_code NOT LIKE N'IMP-%'
+        SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+        FROM dbo.suppliers s
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = s.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
+        WHERE s.is_deleted = 0 AND s.balance > 0
+          AND s.supplier_code NOT LIKE N'QA-%'
+          AND s.supplier_code NOT LIKE N'SUP-QA-%'
+          AND s.supplier_code NOT LIKE N'AKIS-%'
+          AND s.supplier_code NOT LIKE N'E2E-%'
+          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
+          AND s.supplier_code NOT LIKE N'TEST%'
+          AND s.supplier_code NOT LIKE N'DRAFT-%'
+          AND s.supplier_code NOT LIKE N'IMP-%'
+          AND s.name NOT LIKE N'E2E %'
+          AND s.name NOT LIKE N'Saha Test%'
       ), 0) AS supplier_payables,
       COALESCE((
-        SELECT SUM(ABS(balance))
-        FROM dbo.suppliers
-        WHERE is_deleted = 0 AND balance < 0
-          AND supplier_code NOT LIKE N'QA-%'
-          AND supplier_code NOT LIKE N'SUP-QA-%'
-          AND supplier_code NOT LIKE N'AKIS-%'
-          AND supplier_code NOT LIKE N'TEST%'
-          AND supplier_code NOT LIKE N'DRAFT-%'
-          AND supplier_code NOT LIKE N'IMP-%'
+        SELECT SUM(ABS(s.balance) * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+        FROM dbo.suppliers s
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = s.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
+        WHERE s.is_deleted = 0 AND s.balance < 0
+          AND s.supplier_code NOT LIKE N'QA-%'
+          AND s.supplier_code NOT LIKE N'SUP-QA-%'
+          AND s.supplier_code NOT LIKE N'AKIS-%'
+          AND s.supplier_code NOT LIKE N'E2E-%'
+          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
+          AND s.supplier_code NOT LIKE N'TEST%'
+          AND s.supplier_code NOT LIKE N'DRAFT-%'
+          AND s.supplier_code NOT LIKE N'IMP-%'
+          AND s.name NOT LIKE N'E2E %'
+          AND s.name NOT LIKE N'Saha Test%'
       ), 0) AS supplier_advances,
       COALESCE((
-        SELECT SUM(cm.amount)
+        SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
         FROM dbo.customer_movements cm
         INNER JOIN dbo.customers c ON c.id = cm.customer_id
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = cm.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
         WHERE cm.movement_type = N'collection'
           AND cm.document_date = CONVERT(date, SYSUTCDATETIME())
           AND c.customer_code NOT LIKE N'QA-%'
           AND c.customer_code NOT LIKE N'CUS-QA-%'
           AND c.customer_code NOT LIKE N'AKIS-%'
+          AND c.customer_code NOT LIKE N'E2E-%'
+          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
           AND c.customer_code NOT LIKE N'TEST%'
           AND c.customer_code NOT LIKE N'IMP-%'
+          AND c.name NOT LIKE N'E2E %'
+          AND c.name NOT LIKE N'Saha Test%'
       ), 0) AS today_collections,
       COALESCE((
-        SELECT SUM(sm.amount)
+        SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
         FROM dbo.supplier_movements sm
         INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = sm.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
         WHERE sm.movement_type = N'payment'
           AND sm.document_date = CONVERT(date, SYSUTCDATETIME())
           AND s.supplier_code NOT LIKE N'QA-%'
           AND s.supplier_code NOT LIKE N'SUP-QA-%'
           AND s.supplier_code NOT LIKE N'AKIS-%'
+          AND s.supplier_code NOT LIKE N'E2E-%'
+          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
           AND s.supplier_code NOT LIKE N'TEST%'
           AND s.supplier_code NOT LIKE N'DRAFT-%'
           AND s.supplier_code NOT LIKE N'IMP-%'
+          AND s.name NOT LIKE N'E2E %'
+          AND s.name NOT LIKE N'Saha Test%'
       ), 0) AS today_payments,
       COALESCE((
         SELECT COUNT_BIG(1)
@@ -533,8 +594,12 @@ export async function getFinanceSummary() {
           AND c.customer_code NOT LIKE N'QA-%'
           AND c.customer_code NOT LIKE N'CUS-QA-%'
           AND c.customer_code NOT LIKE N'AKIS-%'
+          AND c.customer_code NOT LIKE N'E2E-%'
+          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
           AND c.customer_code NOT LIKE N'TEST%'
           AND c.customer_code NOT LIKE N'IMP-%'
+          AND c.name NOT LIKE N'E2E %'
+          AND c.name NOT LIKE N'Saha Test%'
       ), 0) AS collection_count,
       COALESCE((
         SELECT COUNT_BIG(1)
@@ -544,11 +609,25 @@ export async function getFinanceSummary() {
           AND s.supplier_code NOT LIKE N'QA-%'
           AND s.supplier_code NOT LIKE N'SUP-QA-%'
           AND s.supplier_code NOT LIKE N'AKIS-%'
+          AND s.supplier_code NOT LIKE N'E2E-%'
+          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
           AND s.supplier_code NOT LIKE N'TEST%'
           AND s.supplier_code NOT LIKE N'DRAFT-%'
           AND s.supplier_code NOT LIKE N'IMP-%'
+          AND s.name NOT LIKE N'E2E %'
+          AND s.name NOT LIKE N'Saha Test%'
       ), 0) AS payment_count,
-      COALESCE((SELECT SUM(current_balance) FROM dbo.finance_accounts WHERE is_active = 1 AND currency_code = N'TRY'), 0) AS finance_try_balance;
+      COALESCE((
+        SELECT SUM(fa.current_balance * CASE WHEN fa.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+        FROM dbo.finance_accounts fa
+        OUTER APPLY (
+          SELECT TOP (1) rate_to_try
+          FROM dbo.currency_rates cr
+          WHERE cr.currency_code = fa.currency_code
+          ORDER BY cr.rate_date DESC, cr.id DESC
+        ) r
+        WHERE fa.is_active = 1
+      ), 0) AS finance_try_balance;
   `);
   const breakdownResult = await pool.request().query(`
     SELECT N'customerReceivables' AS metric, currency_code, SUM(balance) AS amount
@@ -557,8 +636,12 @@ export async function getFinanceSummary() {
       AND customer_code NOT LIKE N'QA-%'
           AND customer_code NOT LIKE N'CUS-QA-%'
       AND customer_code NOT LIKE N'AKIS-%'
+      AND customer_code NOT LIKE N'E2E-%'
+      AND customer_code NOT LIKE N'CUS-FIELD-%'
       AND customer_code NOT LIKE N'TEST%'
       AND customer_code NOT LIKE N'IMP-%'
+      AND name NOT LIKE N'E2E %'
+      AND name NOT LIKE N'Saha Test%'
     GROUP BY currency_code
     UNION ALL
     SELECT N'customerAdvances' AS metric, currency_code, SUM(ABS(balance)) AS amount
@@ -567,8 +650,12 @@ export async function getFinanceSummary() {
       AND customer_code NOT LIKE N'QA-%'
           AND customer_code NOT LIKE N'CUS-QA-%'
       AND customer_code NOT LIKE N'AKIS-%'
+      AND customer_code NOT LIKE N'E2E-%'
+      AND customer_code NOT LIKE N'CUS-FIELD-%'
       AND customer_code NOT LIKE N'TEST%'
       AND customer_code NOT LIKE N'IMP-%'
+      AND name NOT LIKE N'E2E %'
+      AND name NOT LIKE N'Saha Test%'
     GROUP BY currency_code
     UNION ALL
     SELECT N'supplierPayables' AS metric, currency_code, SUM(balance) AS amount
@@ -577,9 +664,13 @@ export async function getFinanceSummary() {
       AND supplier_code NOT LIKE N'QA-%'
           AND supplier_code NOT LIKE N'SUP-QA-%'
       AND supplier_code NOT LIKE N'AKIS-%'
+      AND supplier_code NOT LIKE N'E2E-%'
+      AND supplier_code NOT LIKE N'SUP-FIELD-%'
       AND supplier_code NOT LIKE N'TEST%'
       AND supplier_code NOT LIKE N'DRAFT-%'
       AND supplier_code NOT LIKE N'IMP-%'
+      AND name NOT LIKE N'E2E %'
+      AND name NOT LIKE N'Saha Test%'
     GROUP BY currency_code
     UNION ALL
     SELECT N'supplierAdvances' AS metric, currency_code, SUM(ABS(balance)) AS amount
@@ -588,9 +679,13 @@ export async function getFinanceSummary() {
       AND supplier_code NOT LIKE N'QA-%'
           AND supplier_code NOT LIKE N'SUP-QA-%'
       AND supplier_code NOT LIKE N'AKIS-%'
+      AND supplier_code NOT LIKE N'E2E-%'
+      AND supplier_code NOT LIKE N'SUP-FIELD-%'
       AND supplier_code NOT LIKE N'TEST%'
       AND supplier_code NOT LIKE N'DRAFT-%'
       AND supplier_code NOT LIKE N'IMP-%'
+      AND name NOT LIKE N'E2E %'
+      AND name NOT LIKE N'Saha Test%'
     GROUP BY currency_code
     UNION ALL
     SELECT N'todayCollections' AS metric, cm.currency_code, SUM(cm.amount) AS amount
@@ -601,8 +696,12 @@ export async function getFinanceSummary() {
       AND c.customer_code NOT LIKE N'QA-%'
           AND c.customer_code NOT LIKE N'CUS-QA-%'
       AND c.customer_code NOT LIKE N'AKIS-%'
+      AND c.customer_code NOT LIKE N'E2E-%'
+      AND c.customer_code NOT LIKE N'CUS-FIELD-%'
       AND c.customer_code NOT LIKE N'TEST%'
       AND c.customer_code NOT LIKE N'IMP-%'
+      AND c.name NOT LIKE N'E2E %'
+      AND c.name NOT LIKE N'Saha Test%'
     GROUP BY cm.currency_code
     UNION ALL
     SELECT N'todayPayments' AS metric, sm.currency_code, SUM(sm.amount) AS amount
@@ -613,9 +712,13 @@ export async function getFinanceSummary() {
       AND s.supplier_code NOT LIKE N'QA-%'
           AND s.supplier_code NOT LIKE N'SUP-QA-%'
       AND s.supplier_code NOT LIKE N'AKIS-%'
+      AND s.supplier_code NOT LIKE N'E2E-%'
+      AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
       AND s.supplier_code NOT LIKE N'TEST%'
       AND s.supplier_code NOT LIKE N'DRAFT-%'
       AND s.supplier_code NOT LIKE N'IMP-%'
+      AND s.name NOT LIKE N'E2E %'
+      AND s.name NOT LIKE N'Saha Test%'
     GROUP BY sm.currency_code
     UNION ALL
     SELECT N'financeBalances' AS metric, currency_code, SUM(current_balance) AS amount
@@ -1085,7 +1188,8 @@ export async function getFinanceMovements(query = {}) {
           fa.account_code,
           fa.account_name,
           fa.account_type,
-          fam.payment_method
+          fam.payment_method,
+          fam.description
         FROM dbo.customer_movements cm
         INNER JOIN dbo.customers c ON c.id = cm.customer_id
         LEFT JOIN dbo.sales_invoices si ON si.id = cm.sales_invoice_id
@@ -1096,10 +1200,14 @@ export async function getFinanceMovements(query = {}) {
             c.customer_code LIKE N'QA-%'
             OR c.customer_code LIKE N'CUS-QA-%'
             OR c.customer_code LIKE N'AKIS-%'
+            OR c.customer_code LIKE N'E2E-%'
+            OR c.customer_code LIKE N'CUS-FIELD-%'
             OR c.customer_code LIKE N'TEST%'
             OR c.customer_code LIKE N'IMP-%'
             OR c.name LIKE N'QA %'
             OR c.name LIKE N'AKIS %'
+            OR c.name LIKE N'E2E %'
+            OR c.name LIKE N'Saha Test%'
             OR c.name LIKE N'TEST %'
             OR c.name LIKE N'Import Test%'
           )
@@ -1117,10 +1225,16 @@ export async function getFinanceMovements(query = {}) {
               AND ISNULL(si.document_no, N'') NOT LIKE N'S-TST-%'
               AND ISNULL(si.document_no, N'') NOT LIKE N'SDR-%'
               AND ISNULL(si.document_no, N'') NOT LIKE N'SF-FIN-TEST-%'
+              AND ISNULL(si.document_no, N'') NOT LIKE N'SF-FIELD-%'
+              AND ISNULL(si.document_no, N'') NOT LIKE N'E2E-SA-%'
+              AND ISNULL(si.document_no, N'') NOT LIKE N'SPR-SA-%'
+              AND ISNULL(si.document_no, N'') NOT LIKE N'SPR-SC-%'
               AND ISNULL(si.document_no, N'') NOT LIKE N'SAVG-%'
               AND ISNULL(si.document_no, N'') NOT LIKE N'SNEG-%'
               AND ISNULL(si.document_no, N'') NOT LIKE N'TERM-TEST%'
               AND COALESCE(si.description, N'') NOT LIKE N'%QA E2E%'
+              AND COALESCE(si.description, N'') NOT LIKE N'%SPRINT_%'
+              AND COALESCE(si.description, N'') NOT LIKE N'%Saha Test%'
             )
           )
 
@@ -1146,7 +1260,8 @@ export async function getFinanceMovements(query = {}) {
           fa.account_code,
           fa.account_name,
           fa.account_type,
-          fam.payment_method
+          fam.payment_method,
+          fam.description
         FROM dbo.supplier_movements sm
         INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
         LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.purchase_invoice_id
@@ -1157,11 +1272,15 @@ export async function getFinanceMovements(query = {}) {
             s.supplier_code LIKE N'QA-%'
             OR s.supplier_code LIKE N'SUP-QA-%'
             OR s.supplier_code LIKE N'AKIS-%'
+            OR s.supplier_code LIKE N'E2E-%'
+            OR s.supplier_code LIKE N'SUP-FIELD-%'
             OR s.supplier_code LIKE N'TEST%'
             OR s.supplier_code LIKE N'DRAFT-%'
             OR s.supplier_code LIKE N'IMP-%'
             OR s.name LIKE N'QA %'
             OR s.name LIKE N'AKIS %'
+            OR s.name LIKE N'E2E %'
+            OR s.name LIKE N'Saha Test%'
             OR s.name LIKE N'TEST %'
             OR s.name LIKE N'%Draft Supplier%'
           )
@@ -1180,7 +1299,13 @@ export async function getFinanceMovements(query = {}) {
               AND ISNULL(pi.document_no, N'') NOT LIKE N'PAVG-%'
               AND ISNULL(pi.document_no, N'') NOT LIKE N'PDR-%'
               AND ISNULL(pi.document_no, N'') NOT LIKE N'AF-FIN-TEST-%'
+              AND ISNULL(pi.document_no, N'') NOT LIKE N'AF-FIELD-%'
+              AND ISNULL(pi.document_no, N'') NOT LIKE N'E2E-AL-%'
+              AND ISNULL(pi.document_no, N'') NOT LIKE N'SPR-AL-%'
+              AND ISNULL(pi.document_no, N'') NOT LIKE N'SPR-AVG-%'
               AND COALESCE(pi.description, N'') NOT LIKE N'%QA E2E%'
+              AND COALESCE(pi.description, N'') NOT LIKE N'%SPRINT_%'
+              AND COALESCE(pi.description, N'') NOT LIKE N'%Saha Test%'
             )
           )
       )
@@ -1200,6 +1325,7 @@ export async function getFinanceMovements(query = {}) {
           OR party_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
           OR party_name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
           OR document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR description COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
         )
       ORDER BY document_date DESC, created_at DESC, id DESC;
     `);

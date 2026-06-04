@@ -36,7 +36,7 @@ const csvTemplates = {
   products: {
     fileName: 'melisa-urun-import-sablon.csv',
     excelFileName: 'melisa-urun-import-sablon.xls',
-    sheetName: 'Urun Import',
+    sheetName: 'Ürün Import',
     rows: [
       ['stockCode', 'barcode', 'productName', 'brand', 'category', 'currency', 'salePrice', 'purchasePrice', 'stockQuantity'],
       ['STK-ORNEK-001', '8690000000012', 'Pamuk Bebek Battaniye', 'Melisa Bebe', 'Battaniye', 'TRY', '350', '210', '25'],
@@ -47,7 +47,7 @@ const csvTemplates = {
   customers: {
     fileName: 'melisa-musteri-cari-import-sablon.csv',
     excelFileName: 'melisa-musteri-cari-import-sablon.xls',
-    sheetName: 'Musteri Cari Import',
+    sheetName: 'Müşteri Cari Import',
     rows: [
       ['customerCode', 'customerName', 'phone', 'city', 'country', 'currency', 'customerType', 'balance'],
       ['MC-ORNEK-001', 'Semih Bebe', '05320000000', 'İstanbul', 'TR', 'TRY', 'customer', '0'],
@@ -55,9 +55,9 @@ const csvTemplates = {
     ],
   },
   suppliers: {
-    fileName: 'melisa-tedarikci-cari-import-sablon.csv',
-    excelFileName: 'melisa-tedarikci-cari-import-sablon.xls',
-    sheetName: 'Tedarikci Cari Import',
+    fileName: 'melisa-tedarik?i-cari-import-sablon.csv',
+    excelFileName: 'melisa-tedarik?i-cari-import-sablon.xls',
+    sheetName: 'Tedarik?i Cari Import',
     rows: [
       ['supplierCode', 'supplierName', 'phone', 'city', 'country', 'currency', 'purchaseDiscountRate', 'balance'],
       ['TC-ORNEK-001', 'Kardelen Bebe Üretim', '02120000000', 'İstanbul', 'TR', 'TRY', '0', '0'],
@@ -94,8 +94,8 @@ function downloadExcelTemplate(entity) {
         ${row.map((cell) => `<Cell><Data ss:Type="String">${escapeXmlCell(cell)}</Data></Cell>`).join('')}
       </Row>`)
     .join('');
-  const workbook = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
+  const workbook = `<xml version="1.0" encoding="UTF-8">
+<mso-application progid="Excel.Sheet">
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
   xmlns:o="urn:schemas-microsoft-com:office:office"
   xmlns:x="urn:schemas-microsoft-com:office:excel"
@@ -120,7 +120,7 @@ function downloadBlob(blob, fileName) {
 }
 
 function downloadPreviewErrors(preview, activeEntity) {
-  const rows = (preview?.rows || []).filter((row) => row.status !== 'valid');
+  const rows = (preview.rows || []).filter((row) => row.status !== 'valid');
   const columns = getImportColumns(activeEntity);
   const csvRows = [
     columns.map((column) => column.label),
@@ -138,15 +138,15 @@ function formatStatus(status) {
 }
 
 function getRowCode(row, activeEntity) {
-  if (activeEntity === 'products') return row.data?.stockCode;
-  if (activeEntity === 'suppliers') return row.data?.supplierCode;
-  return row.data?.customerCode;
+  if (activeEntity === 'products') return row.data.stockCode;
+  if (activeEntity === 'suppliers') return row.data.supplierCode;
+  return row.data.customerCode;
 }
 
 function getRowName(row, activeEntity) {
-  if (activeEntity === 'products') return row.data?.productName;
-  if (activeEntity === 'suppliers') return row.data?.supplierName;
-  return row.data?.customerName;
+  if (activeEntity === 'products') return row.data.productName;
+  if (activeEntity === 'suppliers') return row.data.supplierName;
+  return row.data.customerName;
 }
 
 function getContactLabel(activeEntity) {
@@ -155,8 +155,8 @@ function getContactLabel(activeEntity) {
 }
 
 function getContactValue(row, activeEntity) {
-  if (activeEntity === 'products') return row.data?.barcode;
-  return row.data?.phone;
+  if (activeEntity === 'products') return row.data.barcode;
+  return row.data.phone;
 }
 
 function getAmountLabel(activeEntity) {
@@ -168,7 +168,7 @@ function getAmountLabel(activeEntity) {
 function getAmountValue(row, activeEntity) {
   if (activeEntity === 'products') return row.data?.stockQuantity ?? '-';
   if (activeEntity === 'suppliers') {
-    return `${row.data?.balance ?? 0} / %${row.data?.purchaseDiscountRate ?? 0}`;
+    return `${row.data.balance ?? 0} / %${row.data.purchaseDiscountRate ?? 0}`;
   }
   return row.data?.balance ?? '-';
 }
@@ -199,7 +199,7 @@ function getImportColumns(activeEntity) {
       key: 'currency',
       label: activeEntity === 'products' ? 'Ürün Para Birimi' : 'Cari Para Birimi',
       width: 160,
-      value: (row) => row.data?.currency || '-',
+      value: (row) => row.data.currency || '-',
     },
     {
       key: 'amount',
@@ -262,7 +262,7 @@ function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWi
                       onClick={() => onOpenDuplicateProduct?.(row.duplicateProduct)}
                       type="button"
                     >
-                      Stok kartini ac: {row.duplicateProduct.stockCode}
+                      Stok kart?ni ac: {row.duplicateProduct.stockCode}
                     </button>
                   ) : null}
                 </td>
@@ -332,13 +332,14 @@ export function ImportScreen({ onOpenScreen }) {
   const validTotal = Number(preview?.validRowCount || 0);
   const invalidTotal = Number(preview?.invalidRowCount || 0) + Number(preview?.duplicateRowCount || 0);
   const skippedCommitTotal = commitValidOnly ? invalidTotal : 0;
-  const commitPlanText = preview
-    ? commitValidOnly
-      ? `${validTotal} gecerli satir DB'ye yazilacak, ${skippedCommitTotal} hatali/duplicate satir atlanacak.`
-      : invalidTotal > 0
-        ? `${invalidTotal} hatali/duplicate satir var; tam commit kapali.`
-        : `${validTotal} satirin tamami DB'ye yazilabilir.`
-    : 'Preview alindiginda commit plani burada gorunur.';
+  let commitPlanText = 'Preview alındığında commit planı burada görünür.';
+  if (preview && commitValidOnly) {
+    commitPlanText = `${validTotal} geçerli satır DB'ye yazılacak, ${skippedCommitTotal} hatalı/duplicate satır atlanacak.`;
+  } else if (preview && invalidTotal > 0) {
+    commitPlanText = `${invalidTotal} hatalı/duplicate satır var; tam commit kapalı.`;
+  } else if (preview) {
+    commitPlanText = `${validTotal} satırın tamamı DB'ye yazılabilir.`;
+  }
   const canCommit = preview
     && validTotal > 0
     && (commitValidOnly || invalidTotal === 0);
@@ -389,7 +390,7 @@ export function ImportScreen({ onOpenScreen }) {
   }
 
   function openDuplicateProduct(duplicateProduct) {
-    const productId = duplicateProduct?.productId || duplicateProduct?.id;
+    const productId = duplicateProduct.productId || duplicateProduct.id;
     if (!productId || !onOpenScreen) {
       return;
     }
@@ -506,7 +507,7 @@ export function ImportScreen({ onOpenScreen }) {
         <div className={`import-commit-plan-inline ${canCommit ? 'commit-ready' : 'commit-waiting'}`}>
           <span>Commit plani</span>
           <strong>{commitPlanText}</strong>
-          <small>{selectedFile?.name || 'Dosya secilmedi'}</small>
+          <small>{selectedFile?.name || 'Dosya se?ilmedi'}</small>
         </div>
         <SummaryBox label="Uyarı" value={preview?.warnings?.length ?? '-'} tone="info" />
       </section>

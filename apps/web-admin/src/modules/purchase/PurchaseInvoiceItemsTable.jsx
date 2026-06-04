@@ -40,8 +40,8 @@ export function PurchaseInvoiceItemsTable({
   return (
     <section className="erp-panel purchase-items-panel">
       <div className="panel-title">
-        <strong>Urun Satirlari</strong>
-        <span>Satir bazli iskonto / {invoiceCurrency} belge maliyeti / stok giris etkisi</span>
+        <strong>Ürün Satırları</strong>
+        <span>Satır bazlı iskonto / {invoiceCurrency} belge maliyeti / stok giriş etkisi</span>
       </div>
       <div className="table-wrap purchase-items-wrap">
         <table className="purchase-items-table">
@@ -49,17 +49,17 @@ export function PurchaseInvoiceItemsTable({
             <tr>
               <th>Stok kodu</th>
               <th>Barkod</th>
-              <th>Urun adi</th>
+              <th>Ürün adı</th>
               <th>Miktar</th>
               <th>Para birimi</th>
-              <th>Alis fiyati</th>
-              <th>Satir iskonto %</th>
-              <th>Satir toplami</th>
+              <th>Alış fiyatı</th>
+              <th>Satır iskonto %</th>
+              <th>Satır toplamı</th>
               <th>Net maliyet TRY</th>
               <th>Birim maliyet TRY</th>
               <th>Stok etkisi</th>
               <th>Not</th>
-              {!isReadonly && <th>Islem</th>}
+              {!isReadonly && <th>İşlem</th>}
             </tr>
           </thead>
           <tbody>

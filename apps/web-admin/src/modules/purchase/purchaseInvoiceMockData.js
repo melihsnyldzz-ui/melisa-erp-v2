@@ -5,7 +5,7 @@ export const purchaseInvoiceHeader = {
   supplierCurrency: 'TRY',
   invoiceCurrency: 'TRY',
   exchangeRate: 'TRY 1.0000',
-  description: 'Yeni sezon stok girisi. Alis fiyatlari mock veridir.',
+  description: 'Yeni sezon stok girişi. Alış fiyatları mock veridir.',
   status: 'Taslak',
 };
 
@@ -76,16 +76,16 @@ export const invoiceDiscountRate = 3;
 export const supplierGeneralDiscountRate = 2;
 
 export const purchaseInvoiceRules = [
-  'Alis fisi web-admin’den girilir.',
-  'Alis fisini muhasebe isler.',
+  'Alış fişi web-admin’den girilir.',
+  'Alış fişini muhasebe işler.',
   'Kesinlesince stok artar.',
-  'Kesinlesince tedarikci borcu olusur.',
+  'Kesinlesince tedarik?i borcu olusur.',
   'Cari hareket olusur.',
-  'Alista satir bazli iskonto olabilir.',
-  'Alista fis geneli iskonto olabilir.',
-  'Tedarikci genel iskontosu uygulanabilir.',
+  'Alışta satır bazlı iskonto olabilir.',
+  'Alışta fiş geneli iskonto olabilir.',
+  'Tedarik?i genel iskontosu uygulanabilir.',
   'Kur snapshot korunur.',
-  'Fis silinmez, iptal edilir.',
+  'Fi? silinmez, iptal edilir.',
 ];
 
 export const purchaseInvoicePermissions = {

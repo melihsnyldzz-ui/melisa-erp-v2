@@ -3,14 +3,14 @@ import { SuggestedTextInput } from '../../components/forms/SuggestedTextInput.js
 
 export function ProductCardForm({ product, form, mode, suggestions, onChange }) {
   const barcodePlaceholder = mode === 'update' && form.existingBarcodeMasked
-    ? `Mevcut: ${form.existingBarcodeMasked} / degistirmek icin yeni barkod girin`
+     ? `Mevcut: ${form.existingBarcodeMasked} / degistirmek icin yeni barkod girin`
     : 'Ana barkod';
 
   return (
     <section className="erp-panel product-form-panel">
       <div className="panel-title">
-        <strong>Temel Urun Bilgileri</strong>
-        <span>{mode === 'create' ? 'Yeni kayit / API write' : 'Mevcut kayit / API update'}</span>
+        <strong>Temel Ürün Bilgileri</strong>
+        <span>{mode === 'create' ? 'Yeni kayıt / API write' : 'Mevcut kayıt / API update'}</span>
       </div>
       <div className="product-form-grid product-form-grid-modern">
         <div className="product-form-section identity-section">
@@ -24,7 +24,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <input value={form.barcode} placeholder={barcodePlaceholder} onChange={(event) => onChange('barcode', event.target.value)} />
           </label>
           <label className="wide-field">
-            <span>Urun adi</span>
+            <span>Ürün adı</span>
             <input value={form.productName} onChange={(event) => onChange('productName', event.target.value)} />
           </label>
         </div>
@@ -35,7 +35,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <SuggestedTextInput
               ariaLabel="Ürün markası"
               name="product-card-brand"
-              options={suggestions?.brands}
+              options={suggestions.brands}
               placeholder="Yaz ve mevcut markalardan seç"
               value={form.brand}
               onChange={(value) => onChange('brand', value)}
@@ -46,18 +46,18 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <SuggestedTextInput
               ariaLabel="Ürün kategorisi"
               name="product-card-category"
-              options={suggestions?.categories}
+              options={suggestions.categories}
               placeholder="Yaz ve mevcut kategorilerden seç"
               value={form.category}
               onChange={(value) => onChange('category', value)}
             />
           </label>
           <label>
-            <span>Ana tedarikci</span>
+            <span>Ana tedarikçi</span>
             <SuggestedTextInput
               ariaLabel="Ana tedarikçi"
               name="product-card-supplier"
-              options={suggestions?.suppliers}
+              options={suggestions.suppliers}
               placeholder="Yaz ve mevcut tedarikçilerden seç"
               value={form.supplierName}
               onChange={(value) => onChange('supplierName', value)}
@@ -75,15 +75,15 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             </select>
           </label>
           <label>
-            <span>Satis fiyati</span>
+            <span>Satış fiyatı</span>
             <input type="number" step="0.01" value={form.salePrice} onChange={(event) => onChange('salePrice', event.target.value)} />
           </label>
           <label>
-            <span>Alis fiyati</span>
+            <span>Alış fiyatı</span>
             <input type="number" step="0.01" value={form.purchasePrice} onChange={(event) => onChange('purchasePrice', event.target.value)} />
           </label>
           <label>
-            <span>Alis iskontosu %</span>
+            <span>Alış iskontosu %</span>
             <input
               max="100"
               min="0"
@@ -109,7 +109,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
       <div className={product.hasMovements ? 'currency-rule locked' : 'currency-rule'}>
         <strong>Para birimi kuralı</strong>
         <span>{product.currencyRule}</span>
-        <small>Update modunda barkod tam degeri API'den gelir; degistirmek icin yeni barkod girilir.</small>
+        <small>Güncelleme modunda barkod tam değeri API'den gelir; değiştirmek için yeni barkod girilir.</small>
       </div>
     </section>
   );

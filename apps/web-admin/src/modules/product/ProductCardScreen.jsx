@@ -61,7 +61,7 @@ function mapDetailToForm(detail) {
     purchasePrice: String(detail.purchasePrice ?? ''),
     purchaseDiscountRate: String(detail.purchaseDiscountRate ?? 0),
     supplierName: detail.supplierCode && detail.supplierName
-      ? `${detail.supplierCode} / ${detail.supplierName}`
+       ? `${detail.supplierCode} / ${detail.supplierName}`
       : detail.supplierName || '',
     isPassive: Boolean(detail.isPassive),
     hasMovements: Boolean(detail.lastPurchaseDate || detail.lastSaleDate),
@@ -79,7 +79,7 @@ function buildProductView(form, detailId = null) {
     id: detailId,
     stockCode: form.stockCode || 'YENI-URUN',
     primaryBarcode: form.barcode || form.existingBarcodeMasked || '-',
-    name: form.productName || 'Yeni urun',
+    name: form.productName || 'Yeni ürün',
     brand: form.brand || '-',
     category: form.category || '-',
     currency: form.currency || 'TRY',
@@ -90,9 +90,9 @@ function buildProductView(form, detailId = null) {
     status: form.isPassive ? 'Pasif' : 'Aktif',
     hasMovements: Boolean(form.hasMovements),
     currencyRule: form.hasMovements
-      ? 'Hareket gormus urun: para birimi kilitli. Admin ozel islem ve audit gerekir.'
-      : 'Hareket gormemis urun: para birimi degistirilebilir.',
-    imageNote: 'Gorsel URL veya dosya yolu kaydedilebilir. Binary dosya yukleme sonraki faz.',
+       ? 'Hareket görmüş ürün: para birimi kilitli. Admin özel işlem ve audit gerekir.'
+      : 'Hareket görmemiş ürün: para birimi değiştirilebilir.',
+    imageNote: 'Görsel URL veya dosya yolu kaydedilebilir. Binary dosya yükleme sonraki faz.',
   };
 }
 
@@ -102,12 +102,12 @@ function mapStockSummary(form) {
     averageCostTry: formatMoney(form.averageCostTry || form.purchasePrice || 0, 'TRY'),
     lastPurchaseDate: form.lastPurchaseDate || '-',
     lastSaleDate: form.lastSaleDate || '-',
-    negativeStockWarning: Number(form.stockQuantity || 0) < 0 ? 'Eksi stok uyarisi: satis/sync kontrol edilmeli.' : '',
+    negativeStockWarning: Number(form.stockQuantity || 0) < 0 ? 'Eksi stok uyarısı: satış/sync kontrol edilmeli.' : '',
   };
 }
 
 function mapBarcodes(form) {
-  if (form.barcodes?.length > 0) {
+  if (form.barcodes.length > 0) {
     return form.barcodes.map((barcode) => ({
       ...barcode,
       status: barcode.isActive ? 'Aktif' : 'Pasif',
@@ -129,13 +129,13 @@ function validateProductForm(form, mode) {
   const missing = [];
 
   if (!form.stockCode.trim()) missing.push('stok kodu');
-  if (!form.productName.trim()) missing.push('urun adi');
+  if (!form.productName.trim()) missing.push('ürün adı');
   if (mode === 'create' && !form.barcode.trim()) missing.push('barkod');
   if (!form.currency.trim()) missing.push('para birimi');
-  if (form.salePrice === '' || Number.isNaN(Number(form.salePrice))) missing.push('satis fiyati');
-  if (form.purchasePrice === '' || Number.isNaN(Number(form.purchasePrice))) missing.push('alis fiyati');
+  if (form.salePrice === '' || Number.isNaN(Number(form.salePrice))) missing.push('satış fiyatı');
+  if (form.purchasePrice === '' || Number.isNaN(Number(form.purchasePrice))) missing.push('alış fiyatı');
   if (form.purchaseDiscountRate !== '' && (Number.isNaN(Number(form.purchaseDiscountRate)) || Number(form.purchaseDiscountRate) < 0 || Number(form.purchaseDiscountRate) > 100)) {
-    missing.push('alis iskontosu 0-100');
+    missing.push('alış iskontosu 0-100');
   }
 
   return missing;
@@ -182,7 +182,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       } catch (error) {
         if (isMounted) {
           setForm(emptyProductForm);
-          setErrorMessage(error.message || 'Urun karti API baglantisi basarisiz.');
+          setErrorMessage(error.message || 'Ürün kartı API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -293,13 +293,13 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   }
 
   function setProductError(error, fallbackMessage) {
-    const duplicateProduct = error.meta?.duplicateProduct || null;
+    const duplicateProduct = error.meta.duplicateProduct || null;
     setDuplicateProductSuggestion(duplicateProduct);
     setErrorMessage(`${error.message || fallbackMessage} (${error.code || 'API_ERROR'})`);
   }
 
   function openDuplicateProduct() {
-    const duplicateProductId = Number(duplicateProductSuggestion?.productId || duplicateProductSuggestion?.id || 0);
+    const duplicateProductId = Number(duplicateProductSuggestion.productId || duplicateProductSuggestion.id || 0);
 
     if (!duplicateProductId) {
       return;
@@ -308,7 +308,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     setActiveProductId(duplicateProductId);
     setErrorMessage('');
     setDuplicateProductSuggestion(null);
-    setSuccessMessage(`Kullanilan stok karti aciliyor: ${duplicateProductSuggestion.stockCode || duplicateProductId}`);
+    setSuccessMessage(`Kullanilan stok kart? aciliyor: ${duplicateProductSuggestion.stockCode || duplicateProductId}`);
 
     if (onOpenScreen) {
       onOpenScreen('product-card', {
@@ -410,14 +410,14 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
     try {
       const response = mode === 'create'
-        ? await createProduct(payload)
+         ? await createProduct(payload)
         : await updateProduct(activeProductId, payload);
 
       setActiveProductId(response.data.id);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(response.message || (mode === 'create' ? 'Urun olusturuldu ve audit kaydi yazildi.' : 'Urun guncellendi ve audit kaydi yazildi.'));
+      setSuccessMessage(response.message || (mode === 'create' ? 'Ürün oluşturuldu ve audit kaydı yazıldı.' : 'Ürün güncellendi ve audit kaydı yazıldı.'));
     } catch (error) {
-      setProductError(error, 'Urun kaydedilemedi.');
+      setProductError(error, 'Ürün kaydedilemedi.');
     } finally {
       setIsSaving(false);
     }
@@ -425,13 +425,13 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
   async function togglePassiveProduct() {
     if (!activeProductId) {
-      setErrorMessage('Pasif/Aktif islemi icin once kayitli urun acilmali.');
+      setErrorMessage('Pasif/Aktif işlemi için önce kayıtlı ürün açılmalı.');
       setSuccessMessage('');
       return;
     }
 
     if (!canTogglePassive) {
-      setErrorMessage('Bu islem icin product.passive yetkisi gerekli.');
+      setErrorMessage('Bu işlem için product.passive yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
@@ -446,10 +446,10 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       const response = await changeProductPassive(activeProductId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
       setSuccessMessage(response.message || (nextIsPassive
-        ? 'Urun pasif yapildi ve audit kaydi yazildi.'
-        : 'Urun aktif yapildi ve audit kaydi yazildi.'));
+         ? 'Ürün pasif yapıldı ve audit kaydı yazıldı.'
+        : 'Ürün aktif yapıldı ve audit kaydı yazıldı.'));
     } catch (error) {
-      setErrorMessage(`${error.message || 'Pasif/Aktif islemi basarisiz.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Pasif/Aktif işlemi başarısız.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsPassiveSaving(false);
     }
@@ -457,13 +457,13 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
   async function addBarcode(payload) {
     if (!activeProductId) {
-      setErrorMessage('Ek barkod eklemek icin once urunu kaydedin.');
+      setErrorMessage('Ek barkod eklemek için önce ürünü kaydedin.');
       setSuccessMessage('');
       return;
     }
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setErrorMessage('Bu işlem için product.edit yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
@@ -475,7 +475,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await addProductBarcode(activeProductId, payload);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage('Barkod kaydedildi. Terminal barkod aramasinda kullanilabilir.');
+      setSuccessMessage('Barkod kaydedildi. Terminal barkod aramasında kullanılabilir.');
     } catch (error) {
       setProductError(error, 'Barkod kaydedilemedi.');
     } finally {
@@ -489,7 +489,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     }
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setErrorMessage('Bu işlem için product.edit yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
@@ -501,9 +501,9 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await changeProductBarcodePassive(activeProductId, barcodeId, currentIsActive);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage(currentIsActive ? 'Barkod pasif yapildi.' : 'Barkod aktif yapildi.');
+      setSuccessMessage(currentIsActive ? 'Barkod pasif yapıldı.' : 'Barkod aktif yapıldı.');
     } catch (error) {
-      setErrorMessage(`${error.message || 'Barkod durumu degistirilemedi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Barkod durumu değiştirilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsSaving(false);
     }
@@ -511,13 +511,13 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
   async function saveImage(payload) {
     if (!activeProductId) {
-      setErrorMessage('Gorsel kaydetmek icin once urunu kaydedin.');
+      setErrorMessage('Görsel kaydetmek için önce ürünü kaydedin.');
       setSuccessMessage('');
       return;
     }
 
     if (!canSave) {
-      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setErrorMessage('Bu işlem için product.edit yetkisi gerekli.');
       setSuccessMessage('');
       return;
     }
@@ -529,9 +529,9 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await saveProductImage(activeProductId, payload);
       setForm(mapDetailToForm(response.data));
-      setSuccessMessage('Urun gorseli kaydedildi.');
+      setSuccessMessage('Ürün görseli kaydedildi.');
     } catch (error) {
-      setErrorMessage(`${error.message || 'Gorsel kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Görsel kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsSaving(false);
     }
@@ -539,7 +539,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
   return (
     <main className="work-area product-card-screen">
-      {isLoading && <div className="list-state">API'den urun karti yukleniyor...</div>}
+      {isLoading && <div className="list-state">API'den ürün kartı yükleniyor...</div>}
       {!isLoading && (
         <>
           <ProductCardHeader

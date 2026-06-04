@@ -36,7 +36,7 @@ export function SalesInvoiceTotals({ totals }) {
           <dd>%{totals.discountRate}</dd>
         </div>
         <div>
-          <dt>Iskonto tutari</dt>
+          <dt>İskonto tutarı</dt>
           <dd>{formatMoney(totals.discountAmount, currency)}</dd>
         </div>
         <div className="sales-grand-total">
@@ -48,11 +48,11 @@ export function SalesInvoiceTotals({ totals }) {
           <dd>{currency} {Number(totals.exchangeRate || 1).toFixed(4)}</dd>
         </div>
         <div>
-          <dt>TRY karsilik</dt>
+          <dt>TRY karşılık</dt>
           <dd>{formatMoney(totals.tryEquivalent, 'TRY')}</dd>
         </div>
         <div>
-          <dt>Satir sayisi</dt>
+          <dt>Satır sayısı</dt>
           <dd>{totals.lineCount}</dd>
         </div>
         <div>
@@ -60,18 +60,18 @@ export function SalesInvoiceTotals({ totals }) {
           <dd>{totals.totalQuantity}</dd>
         </div>
         <div>
-          <dt>Tahmini kar TRY</dt>
+          <dt>Tahmini kâr TRY</dt>
           <dd>{formatMoney(totals.estimatedProfit, 'TRY')}</dd>
         </div>
         {totals.grossProfit !== null && (
           <div>
-            <dt>Kesinlesen net kar</dt>
+            <dt>Kesinleşen net kâr</dt>
             <dd>{formatMoney(totals.grossProfitDocument, currency)}</dd>
           </div>
         )}
         {totals.grossProfit !== null && (
           <div>
-            <dt>Kesinlesen net kar TRY</dt>
+            <dt>Kesinleşen net kâr TRY</dt>
             <dd>{formatMoney(totals.grossProfit, 'TRY')}</dd>
           </div>
         )}

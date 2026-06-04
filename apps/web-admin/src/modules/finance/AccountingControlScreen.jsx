@@ -22,7 +22,7 @@ function statusText(status) {
 }
 
 export function AccountingControlScreen({ onOpenScreen }) {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState({ summary: {}, issues: [], checks: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isFixingDocumentNo, setIsFixingDocumentNo] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -35,7 +35,7 @@ export function AccountingControlScreen({ onOpenScreen }) {
       const response = await fetchAccountingControl();
       setData(response.data || null);
     } catch (error) {
-      setData(null);
+      setData({ summary: {}, issues: [], checks: [] });
       setErrorMessage(`${error.message || 'Muhasebe kontrol verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
@@ -48,13 +48,13 @@ export function AccountingControlScreen({ onOpenScreen }) {
     setMaintenanceMessage('');
     try {
       const response = await applyDocumentNumberFix();
-      const fixedCount = response.data?.fixedCount || 0;
+      const fixedCount = response.data.fixedCount || 0;
       setMaintenanceMessage(fixedCount > 0
-        ? `${fixedCount} kesin fis belge numarasi duzeltildi.`
-        : 'Duzeltilecek Taslak belge no kalmadi.');
+         ? `${fixedCount} kesin fiş belge numarası düzeltildi.`
+        : 'D?zeltilecek Taslak belge no kalmadi.');
       await loadControl();
     } catch (error) {
-      setErrorMessage(`${error.message || 'Belge no duzeltme calismadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Belge no düzeltme çalışmadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsFixingDocumentNo(false);
     }
@@ -65,8 +65,8 @@ export function AccountingControlScreen({ onOpenScreen }) {
   }, []);
 
   const issuesBySeverity = useMemo(() => ({
-    danger: (data?.issues || []).filter((issue) => issue.severity === 'danger'),
-    warning: (data?.issues || []).filter((issue) => issue.severity === 'warning'),
+    danger: (data.issues || []).filter((issue) => issue.severity === 'danger'),
+    warning: (data.issues || []).filter((issue) => issue.severity === 'warning'),
   }), [data]);
 
   function openIssue(issue) {
@@ -81,7 +81,7 @@ export function AccountingControlScreen({ onOpenScreen }) {
     }
   }
 
-  const summary = data?.summary || {};
+  const summary = data.summary || {};
 
   return (
     <main className="work-area dashboard-screen accounting-control-screen">
@@ -93,7 +93,7 @@ export function AccountingControlScreen({ onOpenScreen }) {
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={loadControl}>Yenile</button>
           <button type="button" onClick={fixDocumentNumbers} disabled={isFixingDocumentNo}>
-            {isFixingDocumentNo ? 'Duzeltiliyor...' : 'Belge No Duzelt'}
+            {isFixingDocumentNo ? 'D?zeltiliyor...' : 'Belge No D?zelt'}
           </button>
           <button type="button" onClick={() => onOpenScreen?.('accounting-journal')}>Muhasebe Defteri</button>
           <button type="button" onClick={() => onOpenScreen?.('cash-bank-ledger')}>Kasa/Banka</button>
@@ -133,7 +133,7 @@ export function AccountingControlScreen({ onOpenScreen }) {
           <span>Yeşil çalışır, sarı takip, kırmızı müdahale ister</span>
         </div>
         <div className="accounting-control-grid">
-          {(data?.checks || []).map((check) => (
+          {(data.checks || []).map((check) => (
             <button className={`accounting-control-card ${toneForSeverity(check.severity)}`} key={check.id} type="button" onClick={() => openCheck(check)}>
               <span>{statusText(check.status)}</span>
               <strong>{check.title}</strong>

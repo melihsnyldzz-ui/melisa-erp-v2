@@ -26,8 +26,8 @@ export async function updateCurrencyRates(payload) {
         date: payload.date || fallbackRates.date,
         rates: [
           fallbackRates.rates[0],
-          { currency: 'USD', rateToTry: Number(payload.rates?.USD || 1), source: 'demo', defined: true },
-          { currency: 'EUR', rateToTry: Number(payload.rates?.EUR || 1), source: 'demo', defined: true },
+          { currency: 'USD', rateToTry: Number(payload.rates.USD || 1), source: 'demo', defined: true },
+          { currency: 'EUR', rateToTry: Number(payload.rates.EUR || 1), source: 'demo', defined: true },
         ],
       },
       meta: { source: 'demo' },
@@ -42,8 +42,8 @@ export function rateValueForCurrency(rateData, currency) {
     return 1;
   }
 
-  const rate = rateData?.rates?.find((item) => item.currency === currency);
-  if (!rate?.defined) {
+  const rate = rateData.rates.find((item) => item.currency === currency);
+  if (!rate.defined) {
     return null;
   }
 

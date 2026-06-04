@@ -20,9 +20,9 @@ function statusLabel(status) {
     offline: 'Offline',
     unknown: 'Bilinmiyor',
     pending: 'Bekleyen',
-    processing: 'Isleniyor',
-    synced: 'Gonderildi',
-    failed: 'Hatali',
+    processing: 'İşleniyor',
+    synced: 'Gönderildi',
+    failed: 'Hatalı',
   };
   return labels[status] || status || '-';
 }
@@ -46,15 +46,15 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 
 const queueColumns = [
   { label: 'Cihaz', key: 'deviceCode' },
-  { label: 'Cihaz Adi', key: 'deviceName' },
-  { label: 'Kullanici', key: 'username' },
+  { label: 'Cihaz Adı', key: 'deviceName' },
+  { label: 'Kullanıcı', key: 'username' },
   { label: 'Event', key: 'eventType' },
   { label: 'Client Request', key: 'clientRequestId' },
   { label: 'Durum', value: (row) => statusLabel(row.status) },
   { label: 'Retry', key: 'retryCount' },
   { label: 'Hata', key: 'lastError' },
-  { label: 'Alinma', value: (row) => formatDate(row.receivedAt) },
-  { label: 'Islenme', value: (row) => formatDate(row.processedAt) },
+  { label: 'Alınma', value: (row) => formatDate(row.receivedAt) },
+  { label: 'İşlenme', value: (row) => formatDate(row.processedAt) },
 ];
 
 export function TerminalAdminScreen() {
@@ -94,7 +94,7 @@ export function TerminalAdminScreen() {
       ));
     } catch (error) {
       setData({ summary: {}, devices: [], queue: [] });
-      setErrorMessage(`${error.message || 'Terminal verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Terminal verisi okunamad.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +130,7 @@ export function TerminalAdminScreen() {
   function exportQueueExcel() {
     exportRowsToExcel({
       filename: 'terminal-sync-kuyrugu',
-      title: 'Terminal Sync Kuyrugu',
+      title: 'Terminal Sync Kuyruğu',
       rows: visibleQueue,
       columns: queueColumns,
     });
@@ -138,8 +138,8 @@ export function TerminalAdminScreen() {
 
   function printQueue() {
     printRowsReport({
-      title: 'Terminal Yonetimi',
-      subtitle: `Satir: ${visibleQueue.length}`,
+      title: 'Terminal Yönetimi',
+      subtitle: `Satır: ${visibleQueue.length}`,
       rows: visibleQueue,
       columns: queueColumns,
     });
@@ -151,13 +151,13 @@ export function TerminalAdminScreen() {
     <main className="work-area dashboard-screen terminal-admin-screen">
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
-          <strong>Terminal Yonetimi</strong>
-          <span>Android cihazlar, offline queue, sync loglari ve hatali gonderimler</span>
+          <strong>Terminal Yönetimi</strong>
+          <span>Android cihazlar, offline queue, sync logları ve hatalı gönderimler</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={exportQueueCsv} disabled={!visibleQueue.length}>CSV</button>
           <button type="button" onClick={exportQueueExcel} disabled={!visibleQueue.length}>Excel</button>
-          <button type="button" onClick={printQueue} disabled={!visibleQueue.length}>Yazdir/PDF</button>
+          <button type="button" onClick={printQueue} disabled={!visibleQueue.length}>Yazdır/PDF</button>
           <button type="button" onClick={() => loadTerminalData()}>Yenile</button>
         </div>
       </section>
@@ -167,17 +167,17 @@ export function TerminalAdminScreen() {
 
       <section className="dashboard-kpi-grid">
         <Kpi label="Cihaz" value={summary.deviceCount || 0} detail={`${summary.activeDeviceCount || 0} aktif`} tone="info" />
-        <Kpi label="Offline" value={summary.offlineDeviceCount || 0} detail="Offline isaretli cihaz" tone={summary.offlineDeviceCount ? 'warn' : 'good'} />
+        <Kpi label="Offline" value={summary.offlineDeviceCount || 0} detail="Offline işaretli cihaz" tone={summary.offlineDeviceCount ? 'warn' : 'good'} />
         <Kpi label="Bekleyen" value={summary.pendingSyncCount || 0} detail="Terminal queue pending" tone={summary.pendingSyncCount ? 'warn' : 'good'} />
-        <Kpi label="Hatali" value={summary.failedSyncCount || 0} detail="Failed sync kaydi" tone={summary.failedSyncCount ? 'danger' : 'good'} />
-        <Kpi label="Gonderilen" value={summary.syncedSyncCount || 0} detail="Basarili sync" tone="good" />
-        <Kpi label="Son islem" value={formatDate(summary.lastQueueAt)} detail="Queue'a gelen son kayit" tone="info" />
+        <Kpi label="Hatalı" value={summary.failedSyncCount || 0} detail="Failed sync kaydı" tone={summary.failedSyncCount ? 'danger' : 'good'} />
+        <Kpi label="G?nderilen" value={summary.syncedSyncCount || 0} detail="Başarılı sync" tone="good" />
+        <Kpi label="Son işlem" value={formatDate(summary.lastQueueAt)} detail="Queue'a gelen son kayıt" tone="info" />
       </section>
 
       <section className="split-grid">
         <section className="erp-panel">
           <div className="panel-title">
-            <strong>Terminal Cihazlari</strong>
+            <strong>Terminal Cihazları</strong>
             <span>{data.devices.length} cihaz</span>
           </div>
           <div className="table-shell">
@@ -185,11 +185,11 @@ export function TerminalAdminScreen() {
               <thead>
                 <tr>
                   <th>Cihaz</th>
-                  <th>Kullanici</th>
+                  <th>Kullanıcı</th>
                   <th>Durum</th>
                   <th>Bekleyen</th>
-                  <th>Hatali</th>
-                  <th>Son Gorulme</th>
+                  <th>Hatalı</th>
+                  <th>Son Görülme</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,7 +204,7 @@ export function TerminalAdminScreen() {
                   </tr>
                 ))}
                 {!isLoading && data.devices.length === 0 && (
-                  <tr><td colSpan="6">Terminal cihaz kaydi yok.</td></tr>
+                  <tr><td colSpan="6">Terminal cihaz kaydı yok.</td></tr>
                 )}
               </tbody>
             </table>
@@ -213,60 +213,60 @@ export function TerminalAdminScreen() {
 
         <section className="erp-panel">
           <div className="panel-title">
-            <strong>Cihaz Detayi</strong>
-            <span>{selectedDevice?.deviceCode || 'Cihaz secin'}</span>
+            <strong>Cihaz Detayı</strong>
+            <span>{selectedDevice?.deviceCode || 'Cihaz seçin'}</span>
           </div>
           {selectedDevice ? (
             <div className="filter-grid">
               <label>Cihaz Kodu<input value={selectedDevice.deviceCode} disabled /></label>
-              <label>Cihaz Adi<input value={selectedDevice.deviceName} disabled /></label>
-              <label>Kullanici<input value={selectedDevice.assignedUser} disabled /></label>
-              <label>Aktif<input value={selectedDevice.isActive ? 'Evet' : 'Hayir'} disabled /></label>
+              <label>Cihaz Adı<input value={selectedDevice.deviceName} disabled /></label>
+              <label>Kullanıcı<input value={selectedDevice.assignedUser} disabled /></label>
+              <label>Aktif<input value={selectedDevice.isActive ? 'Evet' : 'Hayır'} disabled /></label>
               <label>Son Sync<input value={formatDate(selectedDevice.lastSyncAt)} disabled /></label>
-              <label>Son Gorulme<input value={formatDate(selectedDevice.lastSeenAt)} disabled /></label>
+              <label>Son Görülme<input value={formatDate(selectedDevice.lastSeenAt)} disabled /></label>
               <label>Bekleyen<input value={selectedDevice.pendingCount} disabled /></label>
-              <label>Hatali<input value={selectedDevice.failedCount} disabled /></label>
-              <label>Satis<input value={`${selectedDevice.saleCount} fis / ${formatMoney(selectedDevice.saleTotal)}`} disabled /></label>
+              <label>Hatalı<input value={selectedDevice.failedCount} disabled /></label>
+              <label>Satış<input value={`${selectedDevice.saleCount} fiş / ${formatMoney(selectedDevice.saleTotal)}`} disabled /></label>
             </div>
-          ) : <div className="list-state">Cihaz kaydi yok.</div>}
+          ) : <div className="list-state">Cihaz kaydı yok.</div>}
         </section>
       </section>
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Offline Queue / Sync Loglari</strong>
-          <span>{data.queue.length} satir / Gosterilen: {visibleQueue.length}</span>
+          <strong>Offline Queue / Sync Logları</strong>
+          <span>{data.queue.length} sat?r / Gösterilen: {visibleQueue.length}</span>
         </div>
         <form className="filter-grid" onSubmit={applyFilters}>
           <label>
             Arama
-            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Cihaz, kullanici, event, request id" />
+            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Cihaz, kullanıcı, event, request id" />
           </label>
           <label>
             Durum
             <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
-              <option value="">Tum durumlar</option>
+              <option value="">Tüm durumlar</option>
               <option value="pending">Bekleyen</option>
-              <option value="processing">Isleniyor</option>
-              <option value="synced">Gonderildi</option>
-              <option value="failed">Hatali</option>
+              <option value="processing">İşleniyor</option>
+              <option value="synced">Gönderildi</option>
+              <option value="failed">Hatalı</option>
             </select>
           </label>
           <label>
             Cihaz
             <select value={filters.deviceId} onChange={(event) => updateFilter('deviceId', event.target.value)}>
-              <option value="">Tum cihazlar</option>
+              <option value="">Tüm cihazlar</option>
               {data.devices.map((device) => (
                 <option key={device.id} value={device.id}>{device.deviceCode} / {device.deviceName}</option>
               ))}
             </select>
           </label>
           <label>
-            Baslangic
+            Başlangıç
             <input type="date" value={filters.dateFrom} onChange={(event) => updateFilter('dateFrom', event.target.value)} />
           </label>
           <label>
-            Bitis
+            Bitiş
             <input type="date" value={filters.dateTo} onChange={(event) => updateFilter('dateTo', event.target.value)} />
           </label>
           <button type="submit" className="primary">Filtrele</button>
@@ -278,7 +278,7 @@ export function TerminalAdminScreen() {
               <tr>
                 <th>Tarih</th>
                 <th>Cihaz</th>
-                <th>Kullanici</th>
+                <th>Kullanıcı</th>
                 <th>Event</th>
                 <th>Durum</th>
                 <th>Retry</th>

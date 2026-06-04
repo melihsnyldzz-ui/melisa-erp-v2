@@ -65,8 +65,8 @@ function getActiveFilters(filters) {
 
 export function StockListFilters({ filters, suggestions, onChange, onRefresh, onReset }) {
   const activeFilters = getActiveFilters(filters);
-  const brandQuickOptions = uniqueOptions(suggestions?.brands);
-  const categoryQuickOptions = uniqueOptions(suggestions?.categories);
+  const brandQuickOptions = uniqueOptions(suggestions.brands);
+  const categoryQuickOptions = uniqueOptions(suggestions.categories);
 
   function updateFilter(key, value) {
     onChange({ ...filters, [key]: value });
@@ -154,7 +154,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <SuggestedTextInput
             ariaLabel="Marka ara"
             name="stock-filter-brand"
-            options={suggestions?.brands}
+            options={suggestions.brands}
             placeholder="Yaz ve mevcut markalardan seç"
             value={filters.brand}
             onChange={(value) => updateFilter('brand', value)}
@@ -165,7 +165,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <SuggestedTextInput
             ariaLabel="Kategori ara"
             name="stock-filter-category"
-            options={suggestions?.categories}
+            options={suggestions.categories}
             placeholder="Yaz ve mevcut kategorilerden seç"
             value={filters.category}
             onChange={(value) => updateFilter('category', value)}
@@ -176,7 +176,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <SuggestedTextInput
             ariaLabel="Tedarikçi ara"
             name="stock-filter-supplier"
-            options={suggestions?.suppliers}
+            options={suggestions.suppliers}
             placeholder="Yaz ve mevcut tedarikçilerden seç"
             value={filters.supplier}
             onChange={(value) => updateFilter('supplier', value)}

@@ -48,12 +48,13 @@ function toTopProduct(row) {
 }
 
 function toReceivable(row) {
+  const balanceTry = numberValue(row.balance_try ?? row.balance);
   return {
     customerId: row.id,
     customerName: row.name,
-    balanceTry: numberValue(row.balance),
+    balanceTry,
     lastMove: row.last_move,
-    risk: numberValue(row.balance) >= 100000 ? 'Yuksek' : 'Orta',
+    risk: balanceTry >= 100000 ? 'Yuksek' : 'Orta',
   };
 }
 
@@ -63,7 +64,7 @@ function toSupplierPerformance(row) {
     supplierName: row.name,
     openPurchases: numberValue(row.open_purchases),
     finalizedPurchases: numberValue(row.finalized_purchases),
-    debtTry: numberValue(row.balance),
+    debtTry: numberValue(row.balance_try ?? row.balance),
     lastPurchaseAt: row.last_purchase_at,
   };
 }
@@ -181,6 +182,8 @@ async function fetchSummaryRows(pool) {
     stockValue,
     balances,
     draftCounts,
+    dailyFinance,
+    masterCounts,
     recentSales,
     recentPurchases,
     topProducts,
@@ -226,9 +229,29 @@ async function fetchSummaryRows(pool) {
     `),
     pool.request().query(`
       SELECT
-        COALESCE((SELECT SUM(balance) FROM dbo.customers WHERE is_deleted = 0 AND balance > 0), 0) AS customer_receivables_try,
+        COALESCE((
+          SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+          FROM dbo.customers c
+          OUTER APPLY (
+            SELECT TOP (1) rate_to_try
+            FROM dbo.currency_rates cr
+            WHERE cr.currency_code = c.currency_code
+            ORDER BY cr.rate_date DESC, cr.id DESC
+          ) r
+          WHERE c.is_deleted = 0 AND c.balance > 0
+        ), 0) AS customer_receivables_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.customers WHERE is_deleted = 0 AND balance > 0), 0) AS customer_balance_count,
-        COALESCE((SELECT SUM(balance) FROM dbo.suppliers WHERE is_deleted = 0 AND balance > 0), 0) AS supplier_payables_try,
+        COALESCE((
+          SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+          FROM dbo.suppliers s
+          OUTER APPLY (
+            SELECT TOP (1) rate_to_try
+            FROM dbo.currency_rates cr
+            WHERE cr.currency_code = s.currency_code
+            ORDER BY cr.rate_date DESC, cr.id DESC
+          ) r
+          WHERE s.is_deleted = 0 AND s.balance > 0
+        ), 0) AS supplier_payables_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.suppliers WHERE is_deleted = 0 AND balance > 0), 0) AS supplier_balance_count;
     `),
     pool.request().query(`
@@ -236,6 +259,46 @@ async function fetchSummaryRows(pool) {
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.sales_invoices WHERE status = N'draft'), 0) AS sales_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.terminal_sync_queue WHERE status IN (N'pending', N'failed')), 0) AS sync_warning_count;
+    `),
+    pool.request().query(`
+      SELECT
+        COALESCE((
+          SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+          FROM dbo.customer_movements cm
+          OUTER APPLY (
+            SELECT TOP (1) rate_to_try
+            FROM dbo.currency_rates cr
+            WHERE cr.currency_code = cm.currency_code
+            ORDER BY cr.rate_date DESC, cr.id DESC
+          ) r
+          WHERE cm.movement_type = N'collection'
+            AND cm.document_date = CONVERT(date, SYSUTCDATETIME())
+        ), 0) AS today_collections_try,
+        COALESCE((
+          SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+          FROM dbo.supplier_movements sm
+          OUTER APPLY (
+            SELECT TOP (1) rate_to_try
+            FROM dbo.currency_rates cr
+            WHERE cr.currency_code = sm.currency_code
+            ORDER BY cr.rate_date DESC, cr.id DESC
+          ) r
+          WHERE sm.movement_type = N'payment'
+            AND sm.document_date = CONVERT(date, SYSUTCDATETIME())
+        ), 0) AS today_payments_try;
+    `),
+    pool.request().query(`
+      SELECT
+        COALESCE((SELECT COUNT_BIG(1) FROM dbo.customers WHERE is_deleted = 0), 0) AS total_customers,
+        COALESCE((SELECT COUNT_BIG(1) FROM dbo.products WHERE is_deleted = 0), 0) AS total_products,
+        COALESCE((
+          SELECT COUNT_BIG(1)
+          FROM dbo.product_barcodes pb
+          INNER JOIN dbo.products p ON p.id = pb.product_id
+          WHERE p.is_deleted = 0
+            AND p.is_active = 1
+            AND pb.is_active = 1
+        ), 0) AS active_barcoded_products;
     `),
     pool.request().query(`
       SELECT TOP (10)
@@ -299,8 +362,15 @@ async function fetchSummaryRows(pool) {
         c.id,
         c.name,
         c.balance,
+        c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
         last_move.last_move
       FROM dbo.customers c
+      OUTER APPLY (
+        SELECT TOP (1) rate_to_try
+        FROM dbo.currency_rates cr
+        WHERE cr.currency_code = c.currency_code
+        ORDER BY cr.rate_date DESC, cr.id DESC
+      ) rate
       OUTER APPLY (
         SELECT MAX(cm.document_date) AS last_move
         FROM dbo.customer_movements cm
@@ -315,10 +385,17 @@ async function fetchSummaryRows(pool) {
         s.id,
         s.name,
         s.balance,
+        s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
         COALESCE(open_counts.open_purchases, 0) AS open_purchases,
         COALESCE(final_counts.finalized_purchases, 0) AS finalized_purchases,
         last_purchase.last_purchase_at
       FROM dbo.suppliers s
+      OUTER APPLY (
+        SELECT TOP (1) rate_to_try
+        FROM dbo.currency_rates cr
+        WHERE cr.currency_code = s.currency_code
+        ORDER BY cr.rate_date DESC, cr.id DESC
+      ) rate
       OUTER APPLY (
         SELECT COUNT_BIG(1) AS open_purchases
         FROM dbo.purchase_invoices pi
@@ -346,6 +423,8 @@ async function fetchSummaryRows(pool) {
     purchaseToday: purchaseToday.recordset[0] || {},
     stockValue: stockValue.recordset[0] || {},
     balances: balances.recordset[0] || {},
+    dailyFinance: dailyFinance.recordset[0] || {},
+    masterCounts: masterCounts.recordset[0] || {},
     draftCounts: draftCounts.recordset[0] || {},
     recentSales: recentSales.recordset || [],
     recentPurchases: recentPurchases.recordset || [],
@@ -371,8 +450,8 @@ export async function getDashboardSummaryData() {
       finalizedPurchasesToday: numberValue(rows.purchaseToday.finalized_purchases_today),
     },
     accounting: {
-      todayCollectionsTry: 0,
-      todayPaymentsTry: 0,
+      todayCollectionsTry: numberValue(rows.dailyFinance.today_collections_try),
+      todayPaymentsTry: numberValue(rows.dailyFinance.today_payments_try),
       customerBalanceCount: numberValue(rows.balances.customer_balance_count),
       supplierBalanceCount: numberValue(rows.balances.supplier_balance_count),
       recentSalesInvoices: rows.recentSales.map(toRecentSalesInvoice),
@@ -383,6 +462,11 @@ export async function getDashboardSummaryData() {
       purchaseDraftCount: numberValue(rows.draftCounts.purchase_draft_count),
       syncWarningCount: numberValue(rows.draftCounts.sync_warning_count),
       todayPurchasesTry: numberValue(rows.purchaseToday.today_purchases_try),
+    },
+    masterCounts: {
+      totalCustomers: numberValue(rows.masterCounts.total_customers),
+      totalProducts: numberValue(rows.masterCounts.total_products),
+      activeBarcodedProducts: numberValue(rows.masterCounts.active_barcoded_products),
     },
     topProducts: rows.topProducts.map(toTopProduct),
     receivables: rows.receivables.map(toReceivable),
@@ -595,9 +679,15 @@ export async function getManagementReportingData() {
         s.supplier_code,
         s.name AS supplier_name,
         COALESCE(purchase_totals.total_purchases_try, 0) AS total_purchases_try,
-        s.balance AS balance_try,
+        s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
         purchase_totals.last_purchase_date
       FROM dbo.suppliers s
+      OUTER APPLY (
+        SELECT TOP (1) rate_to_try
+        FROM dbo.currency_rates cr
+        WHERE cr.currency_code = s.currency_code
+        ORDER BY cr.rate_date DESC, cr.id DESC
+      ) rate
       OUTER APPLY (
         SELECT
           SUM(pi.amount_try) AS total_purchases_try,
@@ -614,8 +704,28 @@ export async function getManagementReportingData() {
         COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_sales_try,
         COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_purchases_try,
         COALESCE((SELECT SUM(current_stock_qty * average_cost_try) FROM dbo.products WHERE is_deleted = 0), 0) AS total_stock_value_try,
-        COALESCE((SELECT SUM(balance) FROM dbo.customers WHERE is_deleted = 0), 0) AS customer_balance_try,
-        COALESCE((SELECT SUM(balance) FROM dbo.suppliers WHERE is_deleted = 0), 0) AS supplier_balance_try,
+        COALESCE((
+          SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+          FROM dbo.customers c
+          OUTER APPLY (
+            SELECT TOP (1) rate_to_try
+            FROM dbo.currency_rates cr
+            WHERE cr.currency_code = c.currency_code
+            ORDER BY cr.rate_date DESC, cr.id DESC
+          ) r
+          WHERE c.is_deleted = 0
+        ), 0) AS customer_balance_try,
+        COALESCE((
+          SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+          FROM dbo.suppliers s
+          OUTER APPLY (
+            SELECT TOP (1) rate_to_try
+            FROM dbo.currency_rates cr
+            WHERE cr.currency_code = s.currency_code
+            ORDER BY cr.rate_date DESC, cr.id DESC
+          ) r
+          WHERE s.is_deleted = 0
+        ), 0) AS supplier_balance_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.products WHERE is_deleted = 0 AND current_stock_qty < 0), 0) AS negative_stock_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.sales_invoices WHERE status = N'draft'), 0) AS sales_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count;

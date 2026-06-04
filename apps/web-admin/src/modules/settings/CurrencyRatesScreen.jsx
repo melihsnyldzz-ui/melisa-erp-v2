@@ -71,7 +71,7 @@ export function CurrencyRatesScreen() {
         USD: nextRates.USD?.defined ? Number(nextRates.USD.rateToTry) : '',
         EUR: nextRates.EUR?.defined ? Number(nextRates.EUR.rateToTry) : '',
       });
-      setSuccessMessage('Doviz kurlari kaydedildi. Yeni satis fisleri bu tanimli kuru kullanir.');
+      setSuccessMessage('Döviz kurlar kaydedildi. Yeni sat fişleri bu tanıml kuru kullanır.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Kur kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -91,8 +91,8 @@ export function CurrencyRatesScreen() {
     <main className="work-area currency-rates-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
-          <strong>Doviz Kurlari</strong>
-          <span>Merkezi USD/EUR kur tanimi. Fisler son tanimli kuru snapshot olarak alir.</span>
+          <strong>Döviz Kurlar</strong>
+          <span>Merkezi USD/EUR kur tanım. Filer son tanıml kuru snapshot olarak alr.</span>
         </div>
         <div className="invoice-list-actions">
           <button type="button" onClick={() => loadRates(date)} disabled={isLoading}>Yenile</button>
@@ -108,7 +108,7 @@ export function CurrencyRatesScreen() {
 
       <section className="erp-panel currency-rate-panel">
         <div className="panel-title">
-          <strong>Gunluk Kur Tanimi</strong>
+          <strong>Gnlk Kur Tanm</strong>
           <span>TRY sabit 1.0000, USD/EUR manuel tanimlanir</span>
         </div>
         <div className="currency-rate-grid">
@@ -160,14 +160,14 @@ export function CurrencyRatesScreen() {
                   <td className="code-cell">{currency}</td>
                   <td>
                     {currency === 'TRY'
-                      ? '1.0000'
+                       ? '1.0000'
                       : currentRates[currency]?.defined
-                        ? Number(currentRates[currency].rateToTry).toFixed(4)
+                         ? Number(currentRates[currency].rateToTry).toFixed(4)
                         : '-'}
                   </td>
                   <td>{currentRates[currency]?.rateDate || date}</td>
                   <td>{currentRates[currency]?.source || '-'}</td>
-                  <td>{currentRates[currency]?.defined ? 'Tanimli' : 'Tanim bekliyor'}</td>
+                  <td>{currentRates[currency]?.defined ? 'Tanımlı' : 'Tanım bekliyor'}</td>
                 </tr>
               ))}
             </tbody>
@@ -176,8 +176,8 @@ export function CurrencyRatesScreen() {
       </section>
 
       <section className="screen-summary">
-        <span>USD: {rates.USD === '' ? 'Tanim yok' : Number(rates.USD).toFixed(4)}</span>
-        <span>EUR: {rates.EUR === '' ? 'Tanim yok' : Number(rates.EUR).toFixed(4)}</span>
+        <span>USD: {rates.USD === '' ? 'Tanım yok' : Number(rates.USD).toFixed(4)}</span>
+        <span>EUR: {rates.EUR === '' ? 'Tanım yok' : Number(rates.EUR).toFixed(4)}</span>
         <span>Kaynak: SQL currency_rates</span>
       </section>
     </main>

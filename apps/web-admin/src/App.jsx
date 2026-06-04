@@ -60,7 +60,7 @@ export function App() {
       const response = await loginRequest(username, password);
       setUser(response.data.user);
     } catch (error) {
-      setAuthError(`${error.message || 'Giris basarisiz.'} (${error.code || 'AUTH_ERROR'})`);
+      setAuthError(`${error.message || 'Giri? ba?ar?s?z.'} (${error.code || 'AUTH_ERROR'})`);
     } finally {
       setIsLoggingIn(false);
     }

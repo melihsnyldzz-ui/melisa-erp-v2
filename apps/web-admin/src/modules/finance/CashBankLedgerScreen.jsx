@@ -159,7 +159,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
       setAccounts([]);
       setCleanupPreview(null);
       setRows([]);
-      setErrorMessage(`${error.message || 'Kasa/banka hareketleri okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Kasa/banka hareketleri okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -262,6 +262,12 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
     loadLedger(cleanFilters);
   }
 
+  function applyQuickFilter(patch) {
+    const nextFilters = { ...filters, ...patch };
+    setFilters(nextFilters);
+    loadLedger(nextFilters);
+  }
+
   function updateNewAccount(key, value) {
     setNewAccount((current) => {
       const next = { ...current, [key]: value };
@@ -270,14 +276,14 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
         if (!current.code.trim() || current.code === previousStandard) {
           next.code = standardAccountCode(next.type, next.currency);
         }
-        if (!current.name.trim() || current.name === `${current.currency} Ana Kasa` || current.name === `${current.currency} Banka Hesabi` || current.name === `${current.currency} POS / Kart Hesabi`) {
+        if (!current.name.trim() || current.name === `${current.currency} Ana Kasa` || current.name === `${current.currency} Banka Hesabı` || current.name === `${current.currency} POS / Kart Hesabı`) {
           const nameMap = {
             cash: `${next.currency} Ana Kasa`,
-            bank: `${next.currency} Banka Hesabi`,
-            card: `${next.currency} POS / Kart Hesabi`,
-            other: `${next.currency} Diger Finans Hesabi`,
+            bank: `${next.currency} Banka Hesabı`,
+            card: `${next.currency} POS / Kart Hesabı`,
+            other: `${next.currency} Diğer Finans Hesabı`,
           };
-          next.name = nameMap[next.type] || `${next.currency} Finans Hesabi`;
+          next.name = nameMap[next.type] || `${next.currency} Finans Hesabı`;
         }
       }
       return next;
@@ -366,10 +372,10 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
         currency: 'TRY',
         openingBalance: '0',
       });
-      setMessage('Kasa/Banka hesabi olusturuldu.');
+      setMessage('Kasa/Banka hesabı oluşturuldu.');
       await loadLedger(filters);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Hesap olusturulamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Hesap oluşturulamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsAccountSaving(false);
     }
@@ -399,6 +405,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
         { label: 'Cari Kod', key: 'partyCode' },
         { label: 'Cari Ad', key: 'partyName' },
         { label: 'Belge', key: 'documentNo' },
+        { label: 'Açıklama', key: 'description' },
         { label: 'İşlem', value: (row) => movementLabel(row.movementType) },
         { label: 'Tutar', key: 'amount' },
         { label: 'Para Birimi', key: 'currency' },
@@ -421,6 +428,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
         { label: 'Cari Kod', key: 'partyCode' },
         { label: 'Cari Ad', key: 'partyName' },
         { label: 'Belge', key: 'documentNo' },
+        { label: 'Açıklama', key: 'description' },
         { label: 'İşlem', value: (row) => movementLabel(row.movementType) },
         { label: 'Tutar', key: 'amount' },
         { label: 'Para Birimi', key: 'currency' },
@@ -494,7 +502,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Kasa / Banka Hesap Kartlari</strong>
+          <strong>Kasa / Banka Hesap Kartları</strong>
           <span>{accounts.length} hesap / {duplicateAccountCount} aktif mükerrer hesap uyarısı</span>
         </div>
         {duplicateAccountCount > 0 && (
@@ -547,7 +555,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
               </article>
             );
           })}
-          {accounts.length === 0 && <div className="list-state">Kasa/banka hesabi yok.</div>}
+          {accounts.length === 0 && <div className="list-state">Kasa/banka hesabı yok.</div>}
         </div>
         <form className="filter-grid finance-account-create" onSubmit={saveNewAccount}>
           <label>
@@ -555,7 +563,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
             <input value={newAccount.code} onChange={(event) => updateNewAccount('code', event.target.value)} placeholder="KASA-USD" />
           </label>
           <label>
-            Hesap Adi
+            Hesap Adı
             <input value={newAccount.name} onChange={(event) => updateNewAccount('name', event.target.value)} placeholder="USD Ana Kasa" />
           </label>
           <label>
@@ -590,6 +598,50 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
           <strong>Defter Filtreleri</strong>
           <span>Tarih, işlem tipi, para birimi ve cari/belge araması</span>
         </div>
+        <div className="movement-quick-filters cash-bank-quick-filters">
+          <button
+            type="button"
+            className={!filters.movementType && !filters.accountType ? 'pressed' : ''}
+            onClick={() => applyQuickFilter({ movementType: '', accountType: '', accountId: '' })}
+          >
+            Tüm Defter
+          </button>
+          <button
+            type="button"
+            className={`in ${filters.movementType === 'collection' ? 'pressed' : ''}`}
+            onClick={() => applyQuickFilter({ movementType: 'collection', accountId: '' })}
+          >
+            Girişler
+          </button>
+          <button
+            type="button"
+            className={`out ${filters.movementType === 'payment' ? 'pressed' : ''}`}
+            onClick={() => applyQuickFilter({ movementType: 'payment', accountId: '' })}
+          >
+            Çıkışlar
+          </button>
+          <button
+            type="button"
+            className={filters.accountType === 'cash' ? 'pressed' : ''}
+            onClick={() => applyQuickFilter({ accountType: 'cash', accountId: '' })}
+          >
+            Kasa
+          </button>
+          <button
+            type="button"
+            className={filters.accountType === 'bank' ? 'pressed' : ''}
+            onClick={() => applyQuickFilter({ accountType: 'bank', accountId: '' })}
+          >
+            Banka
+          </button>
+          <button
+            type="button"
+            className={filters.accountType === 'card' ? 'pressed' : ''}
+            onClick={() => applyQuickFilter({ accountType: 'card', accountId: '' })}
+          >
+            POS / Kart
+          </button>
+        </div>
         <form className="filter-grid" onSubmit={applyFilters}>
           <label>
             Hesap
@@ -619,7 +671,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
             <input type="date" value={filters.dateTo} onChange={(event) => updateFilter('dateTo', event.target.value)} />
           </label>
           <label>
-            Islem
+            İşlem
             <select value={filters.movementType} onChange={(event) => updateFilter('movementType', event.target.value)}>
               <option value="">Tahsilat + Ödeme</option>
               <option value="collection">Sadece tahsilat</option>
@@ -672,17 +724,18 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
         {isLoading && <div className="list-state">Kasa/banka defteri yükleniyor...</div>}
         {!isLoading && rows.length === 0 && !errorMessage && <div className="list-state">Hareket bulunamadı.</div>}
         {!isLoading && rows.length > 0 && (
-          <div className="table-shell">
+          <div className="table-shell ledger-table-shell cash-bank-table-shell">
             <table className="erp-table cash-bank-table">
               <thead>
                 <tr>
                   <th>Tarih</th>
-                  <th>Yon</th>
+                  <th>Yön</th>
                   <th>Hesap</th>
-                  <th>Cari Turu</th>
+                  <th>Cari Türü</th>
                   <th>Cari / Tedarikçi</th>
                   <th>Belge</th>
-                  <th>Islem</th>
+                  <th>Açıklama</th>
+                  <th>İşlem</th>
                   <th>Giriş</th>
                   <th>Çıkış</th>
                   <th>PB</th>
@@ -702,6 +755,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
                       <td>{partyLabel(row)}</td>
                       <td>{row.partyCode} / {row.partyName}</td>
                       <td>{row.documentNo || '-'}</td>
+                      <td>{row.description || '-'}</td>
                       <td>{movementLabel(row.movementType)}</td>
                       <td className="ledger-credit">{isIn ? formatMoney(row.amount, row.currency) : '-'}</td>
                       <td className="ledger-debit">{isOut ? formatMoney(row.amount, row.currency) : '-'}</td>

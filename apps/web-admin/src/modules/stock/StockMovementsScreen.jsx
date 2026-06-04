@@ -24,9 +24,25 @@ function sourceLabel(sourceType) {
   return labels[sourceType] || sourceType || '-';
 }
 
+function movementTypeLabel(value) {
+  const labels = {
+    in: 'Giriş',
+    out: 'Çıkış',
+    cancel: 'İptal',
+  };
+
+  return labels[value] || 'Tüm hareketler';
+}
+
 function movementTone(row) {
-  if (Number(row.quantityIn || 0) > 0) return 'ledger-debit';
-  if (Number(row.quantityOut || 0) > 0) return 'ledger-credit';
+  if (Number(row.quantityIn || 0) > 0) return 'ledger-in';
+  if (Number(row.quantityOut || 0) > 0) return 'ledger-out';
+  return '';
+}
+
+function sourceTone(row) {
+  if (row.sourceType === 'purchase_invoice') return 'in-cell';
+  if (row.sourceType === 'sales_invoice') return 'out-cell';
   return '';
 }
 
@@ -45,7 +61,7 @@ export function StockMovementsScreen({ onOpenScreen }) {
 
   const query = useMemo(() => ({
     page: 1,
-    limit: 100,
+    limit: 150,
     ...filters,
   }), [filters]);
 
@@ -82,8 +98,20 @@ export function StockMovementsScreen({ onOpenScreen }) {
     };
   }, [query]);
 
+  const totals = useMemo(() => rows.reduce((summary, row) => ({
+    in: summary.in + Number(row.quantityIn || 0),
+    out: summary.out + Number(row.quantityOut || 0),
+    net: summary.net + Number(row.quantityNet || 0),
+    inValueTry: summary.inValueTry + (Number(row.quantityIn || 0) > 0 ? Number(row.amountTry || 0) : 0),
+    outValueTry: summary.outValueTry + (Number(row.quantityOut || 0) > 0 ? Number(row.amountTry || 0) : 0),
+  }), { in: 0, out: 0, net: 0, inValueTry: 0, outValueTry: 0 }), [rows]);
+
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  function applyQuickFilter(patch) {
+    setFilters((current) => ({ ...current, ...patch }));
   }
 
   function resetFilters() {
@@ -93,6 +121,16 @@ export function StockMovementsScreen({ onOpenScreen }) {
   function openSource(row) {
     if (row.targetScreen && row.targetPayload) {
       onOpenScreen?.(row.targetScreen, row.targetPayload);
+    }
+  }
+
+  function openProduct(row) {
+    if (row.productId) {
+      onOpenScreen?.('product-card', {
+        productId: row.productId,
+        stockCode: row.stockCode,
+        tabLabel: row.stockCode ? `Ürün: ${row.stockCode}` : 'Ürün Kartı',
+      });
     }
   }
 
@@ -108,7 +146,6 @@ export function StockMovementsScreen({ onOpenScreen }) {
       { label: 'Kaynak', value: (row) => sourceLabel(row.sourceType) },
       { label: 'Belge No', key: 'sourceDocumentNo' },
       { label: 'Stok Kodu', key: 'stockCode' },
-      { label: 'Barkod', key: 'barcode' },
       { label: 'Ürün', key: 'productName' },
       { label: 'Giriş', key: 'quantityIn' },
       { label: 'Çıkış', key: 'quantityOut' },
@@ -145,20 +182,19 @@ export function StockMovementsScreen({ onOpenScreen }) {
     });
   }
 
-  const totals = rows.reduce((summary, row) => ({
-    in: summary.in + Number(row.quantityIn || 0),
-    out: summary.out + Number(row.quantityOut || 0),
-    net: summary.net + Number(row.quantityNet || 0),
-    inValueTry: summary.inValueTry + (Number(row.quantityIn || 0) > 0 ? Number(row.amountTry || 0) : 0),
-    outValueTry: summary.outValueTry + (Number(row.quantityOut || 0) > 0 ? Number(row.amountTry || 0) : 0),
-  }), { in: 0, out: 0, net: 0, inValueTry: 0, outValueTry: 0 });
-
   return (
-    <main className="work-area">
+    <main className="work-area stock-movements-screen">
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Stok Hareketleri</strong>
-          <span>Gerçek stok hareket defteri / Satır: {meta?.total ?? rows.length}</span>
+          <span>Alış girişleri, satış çıkışları, stok düzeltmeleri / Satır: {meta?.total ?? rows.length}</span>
+        </div>
+        <div className="movement-quick-filters">
+          <button type="button" className={!filters.movementType && !filters.sourceType ? 'pressed' : ''} onClick={resetFilters}>Tüm Hareketler</button>
+          <button type="button" className={filters.movementType === 'in' ? 'pressed in' : 'in'} onClick={() => applyQuickFilter({ movementType: 'in', sourceType: '' })}>Girişler</button>
+          <button type="button" className={filters.movementType === 'out' ? 'pressed out' : 'out'} onClick={() => applyQuickFilter({ movementType: 'out', sourceType: '' })}>Çıkışlar</button>
+          <button type="button" className={filters.sourceType === 'purchase_invoice' ? 'pressed in' : 'in'} onClick={() => applyQuickFilter({ sourceType: 'purchase_invoice', movementType: '' })}>Alış Fişleri</button>
+          <button type="button" className={filters.sourceType === 'sales_invoice' ? 'pressed out' : 'out'} onClick={() => applyQuickFilter({ sourceType: 'sales_invoice', movementType: '' })}>Satış Fişleri</button>
         </div>
         <div className="filter-grid">
           <label>
@@ -203,32 +239,32 @@ export function StockMovementsScreen({ onOpenScreen }) {
 
       <section className="summary-strip">
         <article className="summary-card">
-          <span>Giriş</span>
-          <strong className="ledger-debit">+{formatNumber(totals.in)}</strong>
+          <span>Toplam giriş</span>
+          <strong className="ledger-in">+{formatNumber(totals.in)}</strong>
           <small>{formatMoney(totals.inValueTry, 'TRY')}</small>
         </article>
         <article className="summary-card">
-          <span>Çıkış</span>
-          <strong className="ledger-credit">-{formatNumber(totals.out)}</strong>
+          <span>Toplam çıkış</span>
+          <strong className="ledger-out">-{formatNumber(totals.out)}</strong>
           <small>{formatMoney(totals.outValueTry, 'TRY')}</small>
         </article>
         <article className="summary-card">
-          <span>Net</span>
-          <strong>{formatNumber(totals.net)}</strong>
-          <small>Filtre sonucu stok etkisi</small>
+          <span>Net stok etkisi</span>
+          <strong className={totals.net < 0 ? 'ledger-out' : 'ledger-in'}>{formatNumber(totals.net)}</strong>
+          <small>{movementTypeLabel(filters.movementType)} / {sourceLabel(filters.sourceType)}</small>
         </article>
       </section>
 
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Hareket Satırları</strong>
-          <span>Yeşil giriş, kırmızı çıkış; satıra tıklayınca ilgili fiş açılır</span>
+          <span>Yeşil giriş, kırmızı çıkış; belge no fişe, stok kodu ürün kartına götürür</span>
         </div>
         {isLoading && <div className="list-state">Stok hareketleri yükleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Hareket bulunamadı.</div>}
         {!isLoading && !errorMessage && rows.length > 0 && (
-          <div className="table-shell">
+          <div className="table-shell stock-movement-table-shell">
             <table className="erp-table">
               <thead>
                 <tr>
@@ -242,7 +278,7 @@ export function StockMovementsScreen({ onOpenScreen }) {
                   <th>Net</th>
                   <th>Maliyet TRY</th>
                   <th>Tutar TRY</th>
-                  <th>Müşteri / Tedarikçi</th>
+                  <th>Cari</th>
                   <th>Git</th>
                 </tr>
               </thead>
@@ -250,12 +286,20 @@ export function StockMovementsScreen({ onOpenScreen }) {
                 {rows.map((row) => (
                   <tr className="clickable-row" key={row.id} onClick={() => openSource(row)}>
                     <td>{row.documentDate || '-'}</td>
-                    <td>{sourceLabel(row.sourceType)}</td>
-                    <td>{row.sourceDocumentNo}</td>
-                    <td>{row.stockCode}</td>
-                    <td>{row.productName}</td>
-                    <td className="ledger-debit">{Number(row.quantityIn || 0) > 0 ? formatNumber(row.quantityIn) : '-'}</td>
-                    <td className="ledger-credit">{Number(row.quantityOut || 0) > 0 ? formatNumber(row.quantityOut) : '-'}</td>
+                    <td><span className={`movement-source-pill ${sourceTone(row)}`}>{sourceLabel(row.sourceType)}</span></td>
+                    <td>
+                      <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openSource(row); }}>
+                        {row.sourceDocumentNo || '-'}
+                      </button>
+                    </td>
+                    <td>
+                      <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openProduct(row); }}>
+                        {row.stockCode || '-'}
+                      </button>
+                    </td>
+                    <td>{row.productName || '-'}</td>
+                    <td className="ledger-in">{Number(row.quantityIn || 0) > 0 ? formatNumber(row.quantityIn) : '-'}</td>
+                    <td className="ledger-out">{Number(row.quantityOut || 0) > 0 ? formatNumber(row.quantityOut) : '-'}</td>
                     <td className={movementTone(row)}>{formatNumber(row.quantityNet)}</td>
                     <td>{formatMoney(row.unitCostTry, 'TRY')}</td>
                     <td>{formatMoney(row.amountTry, 'TRY')}</td>
