@@ -4,7 +4,7 @@ import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { lookupProductByBarcode } from '../services/productService';
-import { enqueueTerminalSale, markQueueSynced, syncPendingTerminalSales } from '../services/queueService';
+import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales } from '../services/queueService';
 import { buildTerminalSalePayload, searchTerminalCustomers, submitTerminalSale } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
@@ -172,8 +172,9 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       note: 'Terminal hizli satis',
     });
 
+    const queuedEvent = await enqueueTerminalSale(basePayload);
+
     try {
-      const queuedEvent = await enqueueTerminalSale(basePayload);
       const response = await submitTerminalSale({
         token: session.accessToken,
         payload: {
@@ -187,6 +188,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       setLines([]);
       await onRefresh();
     } catch (submitError) {
+      await markQueueFailed(queuedEvent.clientEventId, submitError);
       setMessage('Baglanti yok, fis gonderilemeyenlere alindi');
       setError(submitError.message || 'Online gonderim basarisiz');
       await onRefresh();

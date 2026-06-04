@@ -7,6 +7,22 @@ import { getCacheSummary } from '../services/cacheService';
 import { enqueueAction, getPendingQueue, syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
 
+function eventTypeLabel(eventType) {
+  if (eventType === 'terminal_sale') return 'Satis fisi';
+  if (eventType === 'device_ping') return 'Cihaz ping';
+  if (eventType === 'barcode_lookup') return 'Barkod arama';
+  return eventType || '-';
+}
+
+function statusLabel(status) {
+  if (status === 'pending') return 'Bekliyor';
+  if (status === 'retry_wait') return 'Tekrar denenecek';
+  if (status === 'syncing') return 'Gonderiliyor';
+  if (status === 'synced') return 'Gonderildi';
+  if (status === 'failed') return 'Hatali';
+  return status || '-';
+}
+
 export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
   const [cacheSummary, setCacheSummary] = useState({ productCount: 0, customerCount: 0 });
@@ -78,8 +94,11 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
           <Text style={styles.empty}>Bekleyen local event yok.</Text>
         ) : queue.slice(0, 8).map((event) => (
           <View key={event.clientEventId} style={styles.queueRow}>
-            <Text style={styles.queueType}>{event.eventType}</Text>
-            <Text style={styles.queueMeta}>{event.status} / retry {event.retryCount}</Text>
+            <Text style={styles.queueType}>{eventTypeLabel(event.eventType)}</Text>
+            <Text style={[styles.queueMeta, event.status === 'failed' && styles.queueError, event.status === 'synced' && styles.queueSuccess]}>
+              {statusLabel(event.status)} / deneme {event.retryCount}
+            </Text>
+            {event.lastErrorMessage ? <Text style={styles.queueErrorText}>{event.lastErrorMessage}</Text> : null}
             <Text style={styles.queueId}>{event.clientEventId}</Text>
           </View>
         ))}
@@ -154,6 +173,18 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     fontWeight: '700',
+  },
+  queueSuccess: {
+    color: colors.success,
+  },
+  queueError: {
+    color: colors.danger,
+  },
+  queueErrorText: {
+    marginTop: 2,
+    color: colors.danger,
+    fontSize: 11,
+    fontWeight: '800',
   },
   message: {
     color: colors.success,

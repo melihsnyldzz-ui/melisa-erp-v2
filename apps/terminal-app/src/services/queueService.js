@@ -87,6 +87,16 @@ async function updateQueueEvent(clientEventId, patch) {
   await writeQueue(updated);
 }
 
+export async function markQueueFailed(clientEventId, error) {
+  await updateQueueEvent(clientEventId, {
+    status: 'failed',
+    retryCount: 1,
+    lastAttemptAt: new Date().toISOString(),
+    lastErrorCode: error?.code || 'SYNC_FAILED',
+    lastErrorMessage: error?.message || 'Online gonderim basarisiz',
+  });
+}
+
 export async function markQueueSynced(clientEventId, serverResponse = null) {
   await updateQueueEvent(clientEventId, {
     status: 'synced',
