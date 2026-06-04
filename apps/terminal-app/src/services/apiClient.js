@@ -14,7 +14,7 @@ export async function apiRequest(path, { method = 'GET', token, body, timeoutMs 
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(getApiUrl(path), {
+    const response = await fetch(await getApiUrl(path), {
       method,
       headers: {
         ...defaultHeaders,

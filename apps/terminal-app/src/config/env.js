@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const extra = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
+const runtimeSettingsKey = 'terminalRuntimeSettings';
 
 function getDevServerApiBaseUrl() {
   const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || Constants.manifest?.debuggerHost;
@@ -13,7 +15,7 @@ function getDevServerApiBaseUrl() {
   return `http://${host}:4100`;
 }
 
-function normalizeApiBaseUrl(value) {
+export function normalizeApiBaseUrl(value) {
   return String(value || '')
     .trim()
     .replace(/\/+$/, '')
@@ -31,8 +33,38 @@ export const terminalConfig = {
   terminalCode: process.env.EXPO_PUBLIC_TERMINAL_CODE || extra.terminalCode || 'TERM-V2-001',
 };
 
-export function getApiUrl(path) {
-  const normalizedBase = normalizeApiBaseUrl(terminalConfig.apiBaseUrl);
+export async function getRuntimeSettings() {
+  const raw = await AsyncStorage.getItem(runtimeSettingsKey);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export async function saveRuntimeSettings(settings = {}) {
+  const next = {
+    apiBaseUrl: normalizeApiBaseUrl(settings.apiBaseUrl) || terminalConfig.apiBaseUrl,
+  };
+  await AsyncStorage.setItem(runtimeSettingsKey, JSON.stringify(next));
+  return next;
+}
+
+export async function resetRuntimeSettings() {
+  await AsyncStorage.removeItem(runtimeSettingsKey);
+}
+
+export async function getActiveApiBaseUrl() {
+  const settings = await getRuntimeSettings();
+  return normalizeApiBaseUrl(settings.apiBaseUrl || terminalConfig.apiBaseUrl);
+}
+
+export async function getApiUrl(path) {
+  const normalizedBase = await getActiveApiBaseUrl();
   const normalizedPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? path : `/${path}`}`;
   return `${normalizedBase}${normalizedPath}`;
 }

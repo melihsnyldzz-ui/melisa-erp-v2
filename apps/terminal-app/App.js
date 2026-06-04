@@ -6,6 +6,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { NewSaleScreen } from './src/screens/NewSaleScreen';
 import { ProductLookupScreen } from './src/screens/ProductLookupScreen';
+import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SyncStatusScreen } from './src/screens/SyncStatusScreen';
 import { pingApi } from './src/services/apiClient';
 import { clearSession, getStoredSession, login, logout } from './src/services/authService';
@@ -81,6 +82,7 @@ export default function App() {
     openBarcode: () => setActiveScreen('barcode'),
     openNewSale: () => setActiveScreen('newSale'),
     openProductLookup: () => setActiveScreen('productLookup'),
+    openSettings: () => setActiveScreen('settings'),
     openSyncStatus: () => setActiveScreen('syncStatus'),
   }), []);
 
@@ -107,7 +109,7 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" backgroundColor={colors.header} />
       <TerminalShell
-        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : 'Urun Bilgisi'}
+        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'settings' ? 'Ayarlar' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
         session={session}
         syncState={syncState}
@@ -150,6 +152,13 @@ export default function App() {
           <SyncStatusScreen
             session={session}
             syncState={syncState}
+            navigation={navigation}
+            onRefresh={refreshSyncState}
+          />
+        )}
+
+        {activeScreen === 'settings' && (
+          <SettingsScreen
             navigation={navigation}
             onRefresh={refreshSyncState}
           />
