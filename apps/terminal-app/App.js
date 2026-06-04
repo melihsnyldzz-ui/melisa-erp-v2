@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text } from 'react-native';
+import { TerminalShell } from './src/components/TerminalShell';
 import { BarcodeScreen } from './src/screens/BarcodeScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
@@ -105,58 +106,55 @@ export default function App() {
   return (
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" backgroundColor={colors.header} />
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Melisa Terminal v2</Text>
-          <Text style={styles.headerMeta}>{session.user?.username || 'Terminal kullanicisi'}</Text>
-        </View>
-        <View style={[styles.onlineBadge, syncState.online ? styles.online : styles.offline]}>
-          <Text style={styles.onlineText}>{syncState.online ? 'ONLINE' : 'OFFLINE'}</Text>
-        </View>
-      </View>
+      <TerminalShell
+        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : 'Urun Bilgisi'}
+        subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
+        session={session}
+        syncState={syncState}
+      >
+        {activeScreen === 'home' && (
+          <HomeScreen
+            session={session}
+            syncState={syncState}
+            navigation={navigation}
+            onLogout={handleLogout}
+            onRefresh={refreshSyncState}
+          />
+        )}
 
-      {activeScreen === 'home' && (
-        <HomeScreen
-          session={session}
-          syncState={syncState}
-          navigation={navigation}
-          onLogout={handleLogout}
-          onRefresh={refreshSyncState}
-        />
-      )}
+        {activeScreen === 'barcode' && (
+          <BarcodeScreen
+            session={session}
+            syncState={syncState}
+            navigation={navigation}
+            onLookupResult={handleLookupResult}
+          />
+        )}
 
-      {activeScreen === 'barcode' && (
-        <BarcodeScreen
-          session={session}
-          syncState={syncState}
-          navigation={navigation}
-          onLookupResult={handleLookupResult}
-        />
-      )}
+        {activeScreen === 'newSale' && (
+          <NewSaleScreen
+            session={session}
+            navigation={navigation}
+            onRefresh={refreshSyncState}
+          />
+        )}
 
-      {activeScreen === 'newSale' && (
-        <NewSaleScreen
-          session={session}
-          navigation={navigation}
-          onRefresh={refreshSyncState}
-        />
-      )}
+        {activeScreen === 'productLookup' && (
+          <ProductLookupScreen
+            lastLookup={lastLookup}
+            navigation={navigation}
+          />
+        )}
 
-      {activeScreen === 'productLookup' && (
-        <ProductLookupScreen
-          lastLookup={lastLookup}
-          navigation={navigation}
-        />
-      )}
-
-      {activeScreen === 'syncStatus' && (
-        <SyncStatusScreen
-          session={session}
-          syncState={syncState}
-          navigation={navigation}
-          onRefresh={refreshSyncState}
-        />
-      )}
+        {activeScreen === 'syncStatus' && (
+          <SyncStatusScreen
+            session={session}
+            syncState={syncState}
+            navigation={navigation}
+            onRefresh={refreshSyncState}
+          />
+        )}
+      </TerminalShell>
     </SafeAreaView>
   );
 }
@@ -177,44 +175,5 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontSize: 16,
     fontWeight: '700',
-  },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: colors.header,
-    borderBottomColor: colors.borderDark,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    color: colors.headerText,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  headerMeta: {
-    color: colors.headerSubtle,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  onlineBadge: {
-    minWidth: 82,
-    alignItems: 'center',
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  online: {
-    backgroundColor: colors.success,
-  },
-  offline: {
-    backgroundColor: colors.danger,
-  },
-  onlineText: {
-    color: colors.headerText,
-    fontSize: 12,
-    fontWeight: '900',
   },
 });

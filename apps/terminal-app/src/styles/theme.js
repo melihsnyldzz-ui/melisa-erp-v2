@@ -1,5 +1,5 @@
 export const colors = {
-  background: '#d9dde2',
+  background: '#dfe4ea',
   panel: '#f3f5f7',
   panelDark: '#26313d',
   header: '#1d2733',

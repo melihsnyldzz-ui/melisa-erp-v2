@@ -22,7 +22,7 @@ export function TerminalButton({ label, onPress, variant = 'primary', disabled =
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 48,
+    minHeight: 54,
     borderRadius: 4,
     borderWidth: 1,
     alignItems: 'center',
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
     textTransform: 'uppercase',
   },

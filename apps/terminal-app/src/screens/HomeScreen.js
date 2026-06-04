@@ -1,36 +1,47 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { colors } from '../styles/theme';
 
 export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh }) {
-  const permissionCount = session.user?.permissions?.length || 0;
-
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Depo Terminal</Text>
-        <InfoRow label="Kullanici" value={session.user?.username || '-'} />
-        <InfoRow label="Yetki sayisi" value={String(permissionCount)} />
-        <InfoRow label="Terminal" value={terminalConfig.terminalCode} />
-        <InfoRow label="API" value={syncState.apiStatus} tone={syncState.online ? 'success' : 'danger'} />
-        <InfoRow label="Bekleyen queue" value={String(syncState.pendingCount)} tone={syncState.pendingCount ? 'danger' : 'success'} />
+      <View style={styles.heroPanel}>
+        <Text style={styles.heroLabel}>Aktif terminal</Text>
+        <Text style={styles.heroTitle}>{terminalConfig.deviceName}</Text>
+        <Text style={styles.heroMeta}>{terminalConfig.terminalCode} / {session.user?.username || 'open-admin'}</Text>
       </View>
 
-      <View style={styles.quickGrid}>
+      <View style={styles.primaryGrid}>
         <TerminalButton label="Yeni satis" onPress={navigation.openNewSale} />
         <TerminalButton label="Barkod okut" onPress={navigation.openBarcode} />
-        <TerminalButton label="Urun ara" onPress={navigation.openProductLookup} variant="secondary" />
+      </View>
+
+      <View style={styles.statusGrid}>
+        <View style={[styles.statusCard, syncState.online ? styles.goodCard : styles.badCard]}>
+          <Text style={styles.statusLabel}>API</Text>
+          <Text style={styles.statusValue}>{syncState.online ? 'Online' : 'Offline'}</Text>
+        </View>
+        <View style={[styles.statusCard, syncState.pendingCount ? styles.badCard : styles.goodCard]}>
+          <Text style={styles.statusLabel}>Bekleyen</Text>
+          <Text style={styles.statusValue}>{syncState.pendingCount || 0}</Text>
+        </View>
+        <View style={[styles.statusCard, syncState.saleFailedCount ? styles.badCard : styles.goodCard]}>
+          <Text style={styles.statusLabel}>Hatalı</Text>
+          <Text style={styles.statusValue}>{syncState.saleFailedCount || 0}</Text>
+        </View>
+      </View>
+
+      <View style={styles.secondaryGrid}>
         <TerminalButton label="Sync durumu" onPress={navigation.openSyncStatus} variant="secondary" />
         <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
+        <TerminalButton label="Urun bilgisi" onPress={navigation.openProductLookup} variant="secondary" />
       </View>
 
       <View style={styles.notice}>
-        <Text style={styles.noticeTitle}>Faz 1 terminal kurali</Text>
+        <Text style={styles.noticeTitle}>Saha kullanim karari</Text>
         <Text style={styles.noticeText}>
-          Bu app depo kullanimi icin hizli barkod arama, yeni satis, cache, local queue ve manuel sync temelini hazirlar.
-          Odeme ve stok sayim islemleri sonraki sprinttedir.
+          Ana akis satis ve barkod okutmadir. Sync ve ayarlar ikinci planda kalir; hata varsa ust durum cubugunda kirmizi gorunur.
         </Text>
       </View>
 
@@ -44,22 +55,68 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 12,
   },
-  panel: {
-    backgroundColor: colors.panel,
-    borderColor: colors.border,
+  heroPanel: {
+    backgroundColor: colors.panelDark,
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    padding: 14,
   },
-  panelTitle: {
-    color: colors.text,
-    fontSize: 18,
+  heroLabel: {
+    color: colors.headerSubtle,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    color: colors.headerText,
+    fontSize: 24,
     fontWeight: '900',
-    marginBottom: 4,
+    marginTop: 3,
   },
-  quickGrid: {
+  heroMeta: {
+    color: colors.headerSubtle,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  primaryGrid: {
+    gap: 10,
+  },
+  secondaryGrid: {
     gap: 8,
+  },
+  statusGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusCard: {
+    flex: 1,
+    minHeight: 66,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
+  goodCard: {
+    backgroundColor: '#ecfff3',
+    borderColor: colors.success,
+  },
+  badCard: {
+    backgroundColor: '#fff0f0',
+    borderColor: colors.danger,
+  },
+  statusLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  statusValue: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 3,
   },
   notice: {
     backgroundColor: '#fff6dd',
