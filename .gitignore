@@ -7,6 +7,7 @@ build
 logs
 vite-*.log
 vite-5187.*.log
+apps/terminal-app/*.log
 temp
 .expo
 android/build
