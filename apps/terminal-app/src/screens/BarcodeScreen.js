@@ -4,6 +4,10 @@ import { TerminalButton } from '../components/TerminalButton';
 import { lookupProductByBarcode } from '../services/productService';
 import { colors } from '../styles/theme';
 
+function formatMoney(value, currency) {
+  return `${Number(value || 0).toFixed(2)} ${currency || ''}`.trim();
+}
+
 export function BarcodeScreen({ session, syncState, navigation, onLookupResult }) {
   const inputRef = useRef(null);
   const [barcode, setBarcode] = useState('');
@@ -62,6 +66,15 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
   return (
     <View style={styles.screen}>
       <View style={styles.panel}>
+        <View style={[styles.modePanel, syncState.online ? styles.modeOnline : styles.modeOffline]}>
+          <Text style={styles.modeTitle}>{syncState.online ? 'Online barkod arama' : 'Offline cache arama'}</Text>
+          <Text style={styles.modeText}>
+            {syncState.online
+              ? 'API cevap verirse en guncel stok karti acilir.'
+              : 'API kapaliysa telefondaki local cache sonucu kullanilir.'}
+          </Text>
+        </View>
+
         <Text style={styles.title}>Barkod Okut</Text>
         <Text style={styles.subText}>
           Donanim scanner Enter gonderdiginde arama otomatik baslar.
@@ -95,8 +108,12 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
               >
                 <Text style={styles.alternativeName}>{product.productName}</Text>
                 <Text style={styles.alternativeMeta}>
-                  {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
+                  {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'}
                 </Text>
+                <View style={styles.alternativeFacts}>
+                  <Text style={styles.factPill}>Stok {product.stockQuantity}</Text>
+                  <Text style={styles.factPill}>{formatMoney(product.salePrice, product.currency)}</Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -133,6 +150,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
+  },
+  modePanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    gap: 3,
+  },
+  modeOnline: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  modeOffline: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  modeTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  modeText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
   },
   title: {
     color: colors.text,
@@ -201,6 +244,23 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
+  },
+  alternativeFacts: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 8,
+  },
+  factPill: {
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.accentSoft,
+    color: colors.accentDark,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   loader: {
     marginTop: 12,

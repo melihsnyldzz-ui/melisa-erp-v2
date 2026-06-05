@@ -56,6 +56,15 @@ function sourceLabel(source) {
   return source || 'manual';
 }
 
+function ProductFact({ label, value, tone = 'neutral' }) {
+  return (
+    <View style={[styles.factCard, styles[`factCard_${tone}`]]}>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={styles.factValue}>{value}</Text>
+    </View>
+  );
+}
+
 export function ProductLookupScreen({ lastLookup, navigation, session }) {
   const initialProduct = normalizeProduct(lastLookup?.selectedProduct);
   const [query, setQuery] = useState(lastLookup?.barcode || '');
@@ -170,7 +179,25 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
         </View>
       ) : (
         <View style={[styles.productPanel, selectedProduct.isPassive && styles.passivePanel]}>
+          <View style={styles.sourceRow}>
+            <Text style={styles.sourceBadge}>Kaynak: {sourceLabel(source)}</Text>
+            <Text style={[styles.sourceBadge, selectedProduct.isPassive ? styles.sourceDanger : styles.sourceSuccess]}>
+              {selectedProduct.isPassive ? 'PASIF' : 'AKTIF'}
+            </Text>
+          </View>
           <Text style={styles.productName}>{selectedProduct.productName}</Text>
+          <View style={styles.factGrid}>
+            <ProductFact
+              label="Stok"
+              value={String(selectedProduct.stockQuantity)}
+              tone={selectedProduct.stockQuantity > 0 ? 'success' : 'danger'}
+            />
+            <ProductFact
+              label="Satis"
+              value={formatMoney(selectedProduct.salePrice, selectedProduct.currency)}
+              tone="neutral"
+            />
+          </View>
           <InfoRow label="Stok kodu" value={selectedProduct.stockCode} />
           <InfoRow label="Barkod" value={selectedProduct.barcodeMasked} />
           <InfoRow label="Marka" value={selectedProduct.brand} />
@@ -273,6 +300,70 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    gap: 7,
+    marginBottom: 8,
+  },
+  sourceBadge: {
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  sourceSuccess: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+  },
+  sourceDanger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
+  },
+  factGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  factCard: {
+    flex: 1,
+    minHeight: 74,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  factCard_success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  factCard_danger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  factCard_neutral: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+  },
+  factLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  factValue: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 3,
   },
   emptyPanel: {
     minHeight: 170,
