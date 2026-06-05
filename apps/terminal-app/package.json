@@ -8,6 +8,7 @@
     "android": "expo start --android",
     "web": "expo start --web",
     "doctor": "npx expo-doctor",
+    "check:all": "node scripts/check-terminal-all.mjs",
     "check:api": "node scripts/check-terminal-api.mjs",
     "check:submit": "node scripts/check-terminal-submit.mjs"
   },
