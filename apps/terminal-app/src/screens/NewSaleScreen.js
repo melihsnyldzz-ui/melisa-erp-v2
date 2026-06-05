@@ -100,14 +100,18 @@ function LastProductPanel({ product, quantity }) {
 
   return (
     <View style={styles.lastProductPanel}>
-      <Text style={styles.lastProductLabel}>Bulunan urun</Text>
-      <Text style={styles.lastProductName}>{product.productName}</Text>
+      <View style={styles.lastProductHeader}>
+        <View style={styles.lastProductTitleBlock}>
+          <Text style={styles.lastProductLabel}>Bulunan urun</Text>
+          <Text style={styles.lastProductName} numberOfLines={1}>{product.productName}</Text>
+        </View>
+        <Text style={styles.lastProductPrice}>{formatMoney(product.salePrice, product.currency)}</Text>
+      </View>
       <View style={styles.lastProductFacts}>
         <Text style={styles.lastProductPill}>{product.stockCode}</Text>
         <Text style={styles.lastProductPill}>{product.matchedBarcode || product.barcodeMasked || '-'}</Text>
         <Text style={styles.lastProductPill}>Stok {product.stockQuantity}</Text>
         <Text style={styles.lastProductPill}>{quantity} adet</Text>
-        <Text style={styles.lastProductPill}>{formatMoney(product.salePrice, product.currency)}</Text>
       </View>
     </View>
   );
@@ -1400,38 +1404,67 @@ const styles = StyleSheet.create({
   lastProductPanel: {
     borderColor: colors.success,
     borderWidth: 1,
+    borderLeftColor: colors.success,
+    borderLeftWidth: 5,
     borderRadius: 8,
     backgroundColor: colors.successSoft,
-    padding: 10,
-    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    gap: 6,
+    ...terminalStyles.rowShadow,
+  },
+  lastProductHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  lastProductTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   lastProductLabel: {
     color: colors.success,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
     textTransform: 'uppercase',
   },
   lastProductName: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '900',
+    marginTop: 1,
+  },
+  lastProductPrice: {
+    overflow: 'hidden',
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    textAlign: 'center',
   },
   lastProductFacts: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    gap: 5,
   },
   lastProductPill: {
+    flex: 1,
     overflow: 'hidden',
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.white,
     color: colors.text,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+    textAlign: 'center',
   },
   saleCompactBar: {
     borderColor: colors.success,
