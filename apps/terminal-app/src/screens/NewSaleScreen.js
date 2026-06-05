@@ -612,6 +612,21 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
         ) : null}
       </View>
 
+      {!selectedCustomer ? (
+        <>
+          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
+          <View style={styles.customerOnlyPanel}>
+            <Text style={styles.customerOnlyTitle}>Once cari secin</Text>
+            <Text style={styles.customerOnlyText}>
+              Cari secildikten sonra barkod okutma ve fis satirlari ekrani acilir.
+            </Text>
+          </View>
+          <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+        </>
+      ) : (
+        <>
       <View style={styles.panel}>
         <View style={styles.barcodeHeader}>
           <View>
@@ -804,6 +819,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       </View>
       <TerminalButton label="Bekleyenleri Gonder" onPress={syncQueue} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -842,6 +859,25 @@ const styles = StyleSheet.create({
   },
   compactCustomerPanel: {
     backgroundColor: colors.white,
+  },
+  customerOnlyPanel: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    padding: 12,
+    gap: 4,
+  },
+  customerOnlyTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  customerOnlyText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   title: {
     color: colors.text,
