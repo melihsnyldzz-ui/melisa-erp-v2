@@ -67,6 +67,7 @@ function normalizeSubmitPayload(payload = {}) {
     customerId: Number(payload.customerId),
     documentNumber: trimText(payload.documentNumber),
     documentCurrency: trimText(payload.documentCurrency).toUpperCase(),
+    exchangeRate: numberValue(payload.exchangeRate ?? 1, 'exchangeRate', { min: 0, allowZero: false }),
     note: trimText(payload.note),
     items: items.map((item, index) => ({
       productId: Number(item.productId),
@@ -246,7 +247,7 @@ export async function submitTerminalSale(payload = {}, actor = null) {
     customerId: normalized.customerId,
     customerCurrency: customer.currency || documentCurrency,
     documentCurrency,
-    exchangeRate: 1,
+    exchangeRate: normalized.exchangeRate,
     description,
     discountRate: 0,
     items: normalized.items.map((item) => {

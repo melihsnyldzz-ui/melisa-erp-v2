@@ -87,11 +87,12 @@ export async function submitTerminalSale({ token, payload }) {
   });
 }
 
-export function buildTerminalSalePayload({ customer, lines, terminalCode, note, testMode = false }) {
+export function buildTerminalSalePayload({ customer, lines, terminalCode, note, testMode = false, exchangeRate = 1 }) {
   return {
     terminalCode,
     customerId: Number(customer.id),
     documentCurrency: customer.currency || 'TRY',
+    exchangeRate: Number(exchangeRate || 1),
     note: note || 'Terminal satis',
     testMode: Boolean(testMode),
     items: lines.map((line) => ({

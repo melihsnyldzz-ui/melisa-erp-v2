@@ -77,12 +77,16 @@ if (!product) {
   throw new Error('No active product found for terminal submit test');
 }
 
+const rateResponse = await requestJson('/currency-rates');
+const rateRow = (rateResponse.data?.rates || []).find((rate) => rate.currency === (customer.currency || 'TRY'));
+const exchangeRate = customer.currency === 'TRY' ? 1 : Number(rateRow?.rateToTry || 1);
 const clientEventId = `terminal-submit-check-${Date.now()}`;
 const payload = {
   clientEventId,
   terminalCode: process.env.TERMINAL_TEST_CODE || 'TERM-V2-CHECK',
   customerId: Number(customer.id),
   documentCurrency: customer.currency || 'TRY',
+  exchangeRate,
   note: 'Terminal guarded write test',
   items: [
     {
@@ -110,6 +114,7 @@ const duplicate = Boolean(secondSubmit?.data?.duplicate || secondSubmit?.duplica
 console.log(`Terminal API base: ${baseUrl}`);
 console.log(`Customer: ${customer.customerCode} / ${customer.customerName}`);
 console.log(`Product: ${product.stockCode} / ${product.productName}`);
+console.log(`Exchange rate: ${customer.currency || 'TRY'}=${exchangeRate}`);
 console.log(`Client event: ${clientEventId}`);
 console.log(`First submit invoice: ${firstSubmit?.data?.documentNumber || firstSubmit?.data?.invoiceId || '-'}`);
 console.log(`Duplicate replay: ${duplicate ? 'PASS' : 'FAIL'}`);

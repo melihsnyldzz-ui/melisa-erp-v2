@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
+import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/currencyRateService';
 import { lookupProductByBarcode } from '../services/productService';
 import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales } from '../services/queueService';
 import { buildTerminalSalePayload, searchTerminalCustomers, searchTerminalProducts, submitTerminalSale } from '../services/terminalSalesService';
@@ -111,6 +112,33 @@ function LastProductPanel({ product, quantity }) {
   );
 }
 
+function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
+  if (!customer) return null;
+
+  const rateRow = getRateRow(rateSet, customer.currency);
+  const rate = getRateToTry(rateSet, customer.currency);
+  const defined = Boolean(rateRow?.defined);
+  const toneStyle = defined ? styles.ratePanelReady : styles.ratePanelWarning;
+
+  return (
+    <View style={[styles.ratePanel, toneStyle]}>
+      <View style={styles.rateText}>
+        <Text style={styles.rateTitle}>ERP kuru</Text>
+        <Text style={styles.rateMeta}>
+          {customer.currency || 'TRY'} = {Number(rate || 1).toFixed(4)} TRY / {rateRow?.source || rateSet?.source || '-'}
+        </Text>
+        <Text style={styles.rateMeta}>
+          Tarih: {rateRow?.rateDate || rateSet?.date || '-'}
+        </Text>
+        {!defined ? (
+          <Text style={styles.rateWarning}>Bu para birimi icin tanimli kur bulunamadi. Fallback 1 kullaniliyor.</Text>
+        ) : null}
+      </View>
+      <TerminalButton label={loading ? 'Kur' : 'Yenile'} onPress={onRefresh} disabled={loading} variant="secondary" />
+    </View>
+  );
+}
+
 export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
@@ -127,6 +155,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const [lastScannedQuantity, setLastScannedQuantity] = useState(0);
   const [testMode, setTestMode] = useState(false);
   const [testNote, setTestNote] = useState('');
+  const [currencyRates, setCurrencyRates] = useState(null);
+  const [rateMessage, setRateMessage] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saleResult, setSaleResult] = useState(null);
@@ -148,6 +178,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   }, {}), [lines, selectedCustomer?.currency]);
   const lineCurrencies = Object.keys(totalsByCurrency);
   const hasMixedCurrency = selectedCustomer && lineCurrencies.some((currency) => currency !== selectedCustomer.currency);
+  const selectedExchangeRate = getRateToTry(currencyRates, selectedCustomer?.currency || 'TRY');
 
   useEffect(() => {
     async function loadRecentCustomers() {
@@ -156,6 +187,23 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
 
     loadRecentCustomers();
   }, []);
+
+  useEffect(() => {
+    refreshRates(false);
+  }, []);
+
+  async function refreshRates(showMessage = true) {
+    if (showMessage) {
+      setRateMessage('');
+    }
+
+    const rates = await fetchCurrencyRates({ token: session.accessToken });
+    setCurrencyRates(rates);
+
+    if (showMessage) {
+      setRateMessage(rates.warning || 'ERP kuru yenilendi');
+    }
+  }
 
   async function selectCustomer(customer) {
     setSelectedCustomer(customer);
@@ -400,6 +448,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       terminalCode: terminalConfig.terminalCode,
       note: saleNote,
       testMode,
+      exchangeRate: selectedExchangeRate,
     });
 
     const queuedEvent = await enqueueTerminalSale(basePayload);
@@ -591,6 +640,15 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
               </Pressable>
             </View>
           </View>
+        ) : null}
+
+        {selectedCustomer ? (
+          <RateInfoPanel
+            customer={selectedCustomer}
+            rateSet={currencyRates}
+            onRefresh={() => refreshRates()}
+            loading={loading}
+          />
         ) : null}
 
         {customerResults.length > 1 ? (
@@ -796,6 +854,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       </View>
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
+      {rateMessage ? <Text style={styles.message}>{rateMessage}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
@@ -1025,6 +1084,41 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successSoft,
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  ratePanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ratePanelReady: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+  },
+  ratePanelWarning: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft,
+  },
+  rateText: {
+    flex: 1,
+    gap: 2,
+  },
+  rateTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  rateMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  rateWarning: {
+    color: colors.warning,
+    fontSize: 12,
+    fontWeight: '900',
   },
   selectedCustomerHeader: {
     flexDirection: 'row',

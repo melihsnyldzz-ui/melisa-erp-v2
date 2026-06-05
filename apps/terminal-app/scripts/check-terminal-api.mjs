@@ -54,6 +54,7 @@ async function runCheck(label, fn) {
 }
 
 const health = await runCheck('API health', () => requestJson('/health', { token: '' }));
+const rates = await runCheck('Currency rates', () => requestJson('/currency-rates'));
 const products = await runCheck('Terminal products search', () => requestJson('/terminal/products/search?q=&limit=5'));
 const customers = await runCheck('Terminal customers search', () => requestJson('/terminal/customers/search?q=&limit=5'));
 
@@ -90,6 +91,10 @@ if (customers?.meta) {
 
 if (health?.data?.status) {
   console.log(`Health status: ${health.data.status}`);
+}
+
+if (rates?.data?.rates) {
+  console.log(`Rates: ${rates.data.rates.map((rate) => `${rate.currency}=${rate.rateToTry}`).join(', ')}`);
 }
 
 if (failed > 0) {
