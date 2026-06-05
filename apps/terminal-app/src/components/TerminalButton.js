@@ -13,7 +13,14 @@ export function TerminalButton({ label, onPress, variant = 'primary', disabled =
         pressed && !disabled && styles.pressed,
       ]}
     >
-      <Text style={[styles.text, variant === 'primary' && styles.primaryText, variant === 'secondary' && styles.secondaryText, variant === 'danger' && styles.dangerText]}>
+      <Text style={[
+        styles.text,
+        variant === 'primary' && styles.primaryText,
+        variant === 'secondary' && styles.secondaryText,
+        variant === 'danger' && styles.dangerText,
+        disabled && styles.disabledText,
+      ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -63,5 +70,8 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     color: colors.headerText,
+  },
+  disabledText: {
+    color: colors.muted,
   },
 });

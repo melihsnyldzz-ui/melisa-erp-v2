@@ -2,6 +2,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import { terminalConfig } from '../config/env';
 import { colors } from '../styles/theme';
 
+function formatShortDate(value) {
+  if (!value) return 'Yok';
+
+  try {
+    return new Date(value).toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return 'Var';
+  }
+}
+
 export function TerminalShell({ title, subtitle, session, syncState, children }) {
   const pending = Number(syncState.salePendingCount || syncState.pendingCount || 0);
   const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
@@ -38,7 +51,7 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
         </View>
         <View style={styles.contextItem}>
           <Text style={styles.contextLabel}>Son Sync</Text>
-          <Text style={styles.contextValue}>{syncState.lastSyncAt ? 'Var' : 'Yok'}</Text>
+          <Text style={styles.contextValue}>{formatShortDate(syncState.lastSyncAt)}</Text>
         </View>
       </View>
 
@@ -140,6 +153,7 @@ const styles = StyleSheet.create({
   },
   contextItem: {
     flex: 1,
+    minHeight: 54,
     backgroundColor: '#172033',
     borderColor: '#263449',
     borderWidth: 1,
@@ -154,7 +168,7 @@ const styles = StyleSheet.create({
   },
   contextValue: {
     color: colors.headerText,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     marginTop: 2,
   },
