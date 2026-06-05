@@ -1,6 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
+import { syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 function TaskCard({ title, subtitle, meta, tone = 'primary', onPress }) {
@@ -27,6 +29,24 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
   const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
   const products = Number(syncState.productCount || 0);
   const customers = Number(syncState.customerCount || 0);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+  const canQuickSync = syncState.online && pending > 0;
+
+  async function quickSync() {
+    setSyncing(true);
+    setSyncMessage('');
+
+    try {
+      const result = await syncPendingTerminalSales({ token: session.accessToken });
+      setSyncMessage(`${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
+      await onRefresh();
+    } catch (error) {
+      setSyncMessage(error.message || 'Sync basarisiz');
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -64,6 +84,27 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           />
         </View>
       </View>
+
+      {pending ? (
+        <View style={[styles.syncPrompt, canQuickSync ? styles.syncPromptReady : styles.syncPromptOffline]}>
+          <View style={styles.syncPromptText}>
+            <Text style={styles.syncPromptTitle}>
+              {canQuickSync ? 'Bekleyen satislar gonderilebilir' : 'Bekleyen satislar var'}
+            </Text>
+            <Text style={styles.syncPromptMeta}>
+              {canQuickSync
+                ? `${pending} fis API online oldugu icin simdi gonderilebilir.`
+                : `${pending} fis API gelince Sync Merkezi'nden gonderilecek.`}
+            </Text>
+            {syncMessage ? <Text style={styles.syncPromptResult}>{syncMessage}</Text> : null}
+          </View>
+          {canQuickSync ? (
+            <TerminalButton label={syncing ? 'Gonderiliyor' : 'Simdi Gonder'} onPress={quickSync} disabled={syncing} />
+          ) : (
+            <TerminalButton label="Sync Merkezi" onPress={navigation.openSyncStatus} variant="secondary" />
+          )}
+        </View>
+      ) : null}
 
       <View style={styles.statusGrid}>
         <View style={[styles.statusCard, syncState.online ? styles.goodCard : styles.badCard]}>
@@ -229,6 +270,39 @@ const styles = StyleSheet.create({
     borderColor: '#99f6e4',
     backgroundColor: '#ccfbf1',
     color: colors.accentDark,
+  },
+  syncPrompt: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 10,
+  },
+  syncPromptReady: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  syncPromptOffline: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  syncPromptText: {
+    gap: 3,
+  },
+  syncPromptTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  syncPromptMeta: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  syncPromptResult: {
+    color: colors.accentDark,
+    fontSize: 12,
+    fontWeight: '900',
   },
   secondaryGrid: {
     gap: 8,

@@ -71,7 +71,9 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
   const actionMessage = failedSales
     ? 'Hatali fis var. Satirdaki hata mesajina bakip tekrar gonderin.'
     : pendingSales
-      ? 'Bekleyen fis var. Toplu gonder veya tek fis gonder kullanin.'
+      ? syncState.online
+        ? 'Bekleyen fis var. API online, simdi gonderilebilir.'
+        : 'Bekleyen fis var. API offline oldugu icin kuyrukta bekliyor.'
       : 'Satis kuyrugu temiz gorunuyor.';
 
   async function refreshLocalState() {
@@ -233,7 +235,11 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
       {syncMessage ? <Text style={styles.message}>{syncMessage}</Text> : null}
       {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
 
-      <TerminalButton label="Satis Kuyrugunu Gonder" onPress={syncSalesQueue} />
+      <TerminalButton
+        label={syncState.online ? 'Satis Kuyrugunu Gonder' : 'API Offline - Gonderilemez'}
+        onPress={syncSalesQueue}
+        disabled={!syncState.online}
+      />
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
       <TerminalButton label="Gonderilmisleri Temizle" onPress={clearSyncedEvents} variant="secondary" />
       <TerminalButton label="Test Eventlerini Temizle" onPress={clearTestEvents} variant="secondary" />
