@@ -35,9 +35,10 @@ function extractRows(response) {
   return [];
 }
 
-async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 50 } = {}) {
+async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500 } = {}) {
   const allRows = [];
   let page = 1;
+  let fetchedPages = 0;
   let totalPages = 1;
   let totalRows = null;
 
@@ -45,6 +46,7 @@ async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 50 } = {
     const response = await fetchPage({ page, limit: pageSize });
     const rows = extractRows(response);
     allRows.push(...rows);
+    fetchedPages = page;
 
     totalPages = Number(response?.meta?.totalPages || response?.totalPages || totalPages || 1);
     totalRows = response?.meta?.total ?? response?.total ?? totalRows;
@@ -58,9 +60,11 @@ async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 50 } = {
 
   return {
     rows: allRows,
-    pageCount: page,
+    pageCount: fetchedPages,
     totalPages,
     totalRows: Number(totalRows ?? allRows.length),
+    truncated: fetchedPages < totalPages,
+    maxPages,
   };
 }
 

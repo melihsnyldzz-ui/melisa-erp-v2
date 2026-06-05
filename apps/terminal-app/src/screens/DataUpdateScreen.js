@@ -81,8 +81,12 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         count: products.length,
         totalRows: response.totalRows,
         pageCount: response.pageCount,
+        totalPages: response.totalPages,
+        truncated: response.truncated,
       });
-      setMessage(`${products.length} urun indirildi ve local cache yenilendi`);
+      setMessage(response.truncated
+        ? `${products.length}/${response.totalRows} urun indirildi. API sayfa limiti nedeniyle eksik kaldi.`
+        : `${products.length} urun indirildi ve local cache yenilendi`);
     } catch (updateError) {
       setError(updateError.message || 'Urun cache guncellenemedi');
     } finally {
@@ -107,8 +111,12 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         count: customers.length,
         totalRows: response.totalRows,
         pageCount: response.pageCount,
+        totalPages: response.totalPages,
+        truncated: response.truncated,
       });
-      setMessage(`${customers.length} cari indirildi ve local cache yenilendi`);
+      setMessage(response.truncated
+        ? `${customers.length}/${response.totalRows} cari indirildi. API sayfa limiti nedeniyle eksik kaldi.`
+        : `${customers.length} cari indirildi ve local cache yenilendi`);
     } catch (updateError) {
       setError(updateError.message || 'Cari cache guncellenemedi');
     } finally {
@@ -145,8 +153,15 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         customerCount: customers.length,
         productPages: productResponse.pageCount,
         customerPages: customerResponse.pageCount,
+        productTotalRows: productResponse.totalRows,
+        customerTotalRows: customerResponse.totalRows,
+        productTotalPages: productResponse.totalPages,
+        customerTotalPages: customerResponse.totalPages,
+        truncated: productResponse.truncated || customerResponse.truncated,
       });
-      setMessage(`${products.length} urun, ${customers.length} cari indirildi. Terminal offline satis icin hazir.`);
+      setMessage(productResponse.truncated || customerResponse.truncated
+        ? `${products.length}/${productResponse.totalRows} urun, ${customers.length}/${customerResponse.totalRows} cari indirildi. Eksik kalan sayfa var.`
+        : `${products.length} urun, ${customers.length} cari indirildi. Terminal offline satis icin hazir.`);
     } catch (updateError) {
       setError(updateError.message || 'Tum veri guncellenemedi');
     } finally {
@@ -203,14 +218,17 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
             <>
               <InfoRow label="Urun" value={`${lastResult.productCount} kayit / ${lastResult.productPages} sayfa`} />
               <InfoRow label="Cari" value={`${lastResult.customerCount} kayit / ${lastResult.customerPages} sayfa`} />
+              <InfoRow label="API toplam urun" value={String(lastResult.productTotalRows ?? '-')} />
+              <InfoRow label="API toplam cari" value={String(lastResult.customerTotalRows ?? '-')} />
             </>
           ) : (
             <>
               <InfoRow label="Kayit" value={String(lastResult.count)} />
               <InfoRow label="API toplam" value={String(lastResult.totalRows)} />
-              <InfoRow label="Sayfa" value={String(lastResult.pageCount)} />
+              <InfoRow label="Sayfa" value={`${lastResult.pageCount}/${lastResult.totalPages || lastResult.pageCount}`} />
             </>
           )}
+          {lastResult.truncated ? <InfoRow label="Durum" value="Eksik indirildi" /> : null}
         </View>
       ) : null}
 
