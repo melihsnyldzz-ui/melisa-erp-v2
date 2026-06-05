@@ -109,6 +109,17 @@ async function updateQueueEvent(clientEventId, patch) {
   await writeQueue(updated);
 }
 
+export async function updateQueueEventPayload(clientEventId, payload) {
+  await updateQueueEvent(clientEventId, {
+    payload,
+    status: 'pending',
+    lastAttemptAt: null,
+    nextRetryAt: null,
+    lastErrorCode: null,
+    lastErrorMessage: null,
+  });
+}
+
 export async function markQueueFailed(clientEventId, error) {
   await updateQueueEvent(clientEventId, {
     status: 'failed',

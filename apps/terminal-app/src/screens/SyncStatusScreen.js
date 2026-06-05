@@ -1,156 +1,158 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
-import { terminalConfig } from '../config/env';
-import { getCacheSummary } from '../services/cacheService';
-import { clearNonSaleQueueEvents, clearSyncedQueueEvents, enqueueAction, getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
+import { clearSyncedQueueEvents, getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
 import { colors } from '../styles/theme';
-
-function eventTypeLabel(eventType) {
-  if (eventType === 'terminal_sale') return 'Satis fisi';
-  if (eventType === 'device_ping') return 'Cihaz ping';
-  if (eventType === 'barcode_lookup') return 'Barkod arama';
-  return eventType || '-';
-}
 
 function statusLabel(status) {
   if (status === 'pending') return 'Bekliyor';
-  if (status === 'retry_wait') return 'Tekrar denenecek';
+  if (status === 'retry_wait') return 'Tekrar';
   if (status === 'syncing') return 'Gonderiliyor';
   if (status === 'synced') return 'Gonderildi';
   if (status === 'failed') return 'Hatali';
   return status || '-';
 }
 
-function summaryTone(value, emptyTone = 'success') {
-  return Number(value || 0) > 0 ? 'danger' : emptyTone;
+function formatDate(value) {
+  if (!value) return '-';
+
+  try {
+    return new Date(value).toLocaleString('tr-TR');
+  } catch {
+    return String(value);
+  }
 }
 
-function SummaryCard({ label, value, tone = 'neutral', helper }) {
+function saleTotal(payload = {}) {
+  return (payload.items || []).reduce((sum, item) => (
+    sum + Number(item.quantity || 0) * Number(item.unitPrice || 0)
+  ), 0);
+}
+
+function saleQuantity(payload = {}) {
+  return (payload.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+}
+
+function saleCurrency(payload = {}) {
+  return payload.documentCurrency || payload.items?.[0]?.currency || 'TRY';
+}
+
+function formatMoney(value, currency = 'TRY') {
+  return `${Number(value || 0).toFixed(2)} ${currency}`;
+}
+
+function QueueCard({ event, syncingEventId, onSync, onEdit }) {
+  const payload = event.payload || {};
+  const isFailed = event.status === 'failed';
+  const isSynced = event.status === 'synced';
+  const currency = saleCurrency(payload);
+
   return (
-    <View style={[styles.summaryCard, styles[`summaryCard_${tone}`]]}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
-      {helper ? <Text style={styles.summaryHelper}>{helper}</Text> : null}
+    <View style={[styles.queueCard, isFailed && styles.queueCardFailed, isSynced && styles.queueCardSynced]}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardTitleBlock}>
+          <Text style={styles.customerName}>{payload.customerName || payload.customerCode || `Cari #${payload.customerId || '-'}`}</Text>
+          <Text style={styles.cardMeta}>{formatDate(event.clientCreatedAt)}</Text>
+        </View>
+        <Text style={[styles.statusPill, isFailed && styles.statusDanger, isSynced && styles.statusSuccess]}>
+          {statusLabel(event.status)}
+        </Text>
+      </View>
+
+      <View style={styles.factRow}>
+        <View style={styles.factBox}>
+          <Text style={styles.factLabel}>Satir</Text>
+          <Text style={styles.factValue}>{payload.items?.length || 0}</Text>
+        </View>
+        <View style={styles.factBox}>
+          <Text style={styles.factLabel}>Adet</Text>
+          <Text style={styles.factValue}>{saleQuantity(payload)}</Text>
+        </View>
+        <View style={styles.factBox}>
+          <Text style={styles.factLabel}>Toplam</Text>
+          <Text style={styles.factValueSmall}>{formatMoney(saleTotal(payload), currency)}</Text>
+        </View>
+      </View>
+
+      {event.lastErrorMessage ? <Text style={styles.errorText}>{event.lastErrorMessage}</Text> : null}
+
+      {event.status !== 'synced' ? (
+        <View style={styles.cardActions}>
+          <TerminalButton label="Duzenle" onPress={() => onEdit(event)} variant="secondary" disabled={Boolean(syncingEventId)} />
+          <TerminalButton
+            label={syncingEventId === event.clientEventId ? 'Gonderiliyor' : 'Gonder'}
+            onPress={() => onSync(event.clientEventId)}
+            disabled={Boolean(syncingEventId)}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
-  const [cacheSummary, setCacheSummary] = useState({ productCount: 0, customerCount: 0 });
-  const [queueFilter, setQueueFilter] = useState('problem');
-  const [syncMessage, setSyncMessage] = useState('');
-  const [syncError, setSyncError] = useState('');
+  const [filter, setFilter] = useState('open');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [syncingEventId, setSyncingEventId] = useState('');
 
-  const filteredQueue = useMemo(() => queue.filter((event) => {
-    if (queueFilter === 'problem') {
-      return ['pending', 'retry_wait', 'failed', 'syncing'].includes(event.status);
-    }
-    if (queueFilter === 'sales') {
-      return event.eventType === 'terminal_sale';
-    }
-    if (queueFilter === 'synced') {
-      return event.status === 'synced';
-    }
-    return true;
-  }), [queue, queueFilter]);
-
-  const filterCounts = useMemo(() => ({
-    problem: queue.filter((event) => ['pending', 'retry_wait', 'failed', 'syncing'].includes(event.status)).length,
-    sales: queue.filter((event) => event.eventType === 'terminal_sale').length,
-    synced: queue.filter((event) => event.status === 'synced').length,
-    all: queue.length,
-  }), [queue]);
-  const pendingSales = queue.filter((event) => event.eventType === 'terminal_sale' && ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
-  const failedSales = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'failed').length;
-  const syncedSales = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'synced').length;
-  const duplicateSales = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'synced' && event.lastErrorMessage === 'Daha once gonderilmis').length;
-  const actionMessage = failedSales
-    ? 'Hatali fis var. Satirdaki hata mesajina bakip tekrar gonderin.'
-    : pendingSales
-      ? syncState.online
-        ? 'Bekleyen fis var. API online, simdi gonderilebilir.'
-        : 'Bekleyen fis var. API offline oldugu icin kuyrukta bekliyor.'
-      : 'Satis kuyrugu temiz gorunuyor.';
+  const salesQueue = useMemo(() => queue.filter((event) => event.eventType === 'terminal_sale'), [queue]);
+  const openSales = useMemo(() => salesQueue.filter((event) => event.status !== 'synced'), [salesQueue]);
+  const failedSales = useMemo(() => salesQueue.filter((event) => event.status === 'failed'), [salesQueue]);
+  const syncedSales = useMemo(() => salesQueue.filter((event) => event.status === 'synced'), [salesQueue]);
+  const visibleQueue = filter === 'sent' ? syncedSales : filter === 'failed' ? failedSales : openSales;
 
   async function refreshLocalState() {
-    const [nextQueue, nextCache] = await Promise.all([
-      getPendingQueue(),
-      getCacheSummary(),
-    ]);
-    setQueue(nextQueue);
-    setCacheSummary(nextCache);
+    setQueue(await getPendingQueue());
     await onRefresh();
   }
 
-  async function createPingEvent() {
-    await enqueueAction({
-      eventType: 'device_ping',
-      payload: {
-        username: session.user?.username || null,
-        appVersion: '0.1.0',
-      },
-    });
-    await refreshLocalState();
-  }
-
-  async function syncSalesQueue() {
-    setSyncMessage('');
-    setSyncError('');
+  async function syncAll() {
+    setMessage('');
+    setError('');
     try {
       const result = await syncPendingTerminalSales({ token: session.accessToken });
       await refreshLocalState();
-      setSyncMessage(`Satis sync: ${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
+      setMessage(`${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
       if (result.lastErrorMessage) {
-        setSyncError(result.lastErrorMessage);
+        setError(result.lastErrorMessage);
       }
-    } catch (error) {
-      setSyncError(error.message || 'Satis sync basarisiz');
+    } catch (syncError) {
+      setError(syncError.message || 'Gonderim basarisiz');
     }
   }
 
-  async function syncSingleSale(clientEventId) {
-    setSyncMessage('');
-    setSyncError('');
+  async function syncSingle(clientEventId) {
+    setMessage('');
+    setError('');
     setSyncingEventId(clientEventId);
-
     try {
       const result = await syncTerminalSaleEvent(clientEventId, { token: session.accessToken });
       await refreshLocalState();
-      setSyncMessage(result.duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
-    } catch (error) {
+      setMessage(result.duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
+    } catch (syncError) {
       await refreshLocalState();
-      setSyncError(error.message || 'Tek fis sync basarisiz');
+      setError(syncError.message || 'Fis gonderilemedi');
     } finally {
       setSyncingEventId('');
     }
   }
 
-  async function clearSyncedEvents() {
-    setSyncMessage('');
-    setSyncError('');
+  async function clearSent() {
+    setMessage('');
+    setError('');
     try {
       const result = await clearSyncedQueueEvents();
       await refreshLocalState();
-      setSyncMessage(`${result.removed} gonderilmis kayit gizlendi/temizlendi`);
-    } catch (error) {
-      setSyncError(error.message || 'Gonderilmis kayitlar temizlenemedi');
+      setMessage(`${result.removed} gonderilmis fis temizlendi`);
+    } catch (clearError) {
+      setError(clearError.message || 'Temizleme basarisiz');
     }
   }
 
-  async function clearTestEvents() {
-    setSyncMessage('');
-    setSyncError('');
-    try {
-      const result = await clearNonSaleQueueEvents();
-      await refreshLocalState();
-      setSyncMessage(`${result.removed} test/yardimci event temizlendi`);
-    } catch (error) {
-      setSyncError(error.message || 'Test eventleri temizlenemedi');
-    }
+  function editSale(event) {
+    navigation.openNewSaleDraft?.(event);
   }
 
   useEffect(() => {
@@ -159,91 +161,59 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={[styles.heroPanel, failedSales ? styles.heroDanger : pendingSales ? styles.heroWarning : styles.heroSuccess]}>
-        <Text style={styles.heroTitle}>Sync Merkezi</Text>
-        <Text style={styles.heroText}>{actionMessage}</Text>
+      <View style={[styles.heroPanel, failedSales.length ? styles.heroDanger : openSales.length ? styles.heroWarning : styles.heroSuccess]}>
+        <Text style={styles.heroTitle}>Bekleyen Fisler</Text>
+        <Text style={styles.heroText}>
+          {failedSales.length
+            ? 'Hatali fis var. Duzenleyip tekrar gonderebilirsiniz.'
+            : openSales.length
+              ? syncState.online ? 'Bekleyen fisler gonderime hazir.' : 'API offline, fisler kuyrukta bekliyor.'
+              : 'Bekleyen fis yok.'}
+        </Text>
       </View>
 
-      <View style={styles.summaryGrid}>
-        <SummaryCard label="Bekleyen" value={String(pendingSales)} tone={summaryTone(pendingSales, 'success')} helper="Gonderilecek" />
-        <SummaryCard label="Hatali" value={String(failedSales)} tone={summaryTone(failedSales, 'success')} helper="Kontrol et" />
-        <SummaryCard label="Gonderildi" value={String(syncedSales)} tone="success" helper="Basarili" />
-        <SummaryCard label="Duplicate" value={String(duplicateSales)} tone="neutral" helper="Tekrar engeli" />
-      </View>
-
-      <View style={styles.panel}>
-        <Text style={styles.title}>Baglanti ve Veri</Text>
-        <InfoRow label="API" value={syncState.apiStatus} tone={syncState.online ? 'success' : 'danger'} />
-        <InfoRow label="Terminal" value={terminalConfig.terminalCode} />
-        <InfoRow label="Cihaz" value={terminalConfig.deviceName} />
-        <InfoRow label="Son sync" value={syncState.lastSyncAt || 'Henuz yok'} />
-        <InfoRow label="Urun cache" value={String(cacheSummary.productCount)} />
-        <InfoRow label="Cari cache" value={String(cacheSummary.customerCount)} />
-        <InfoRow label="Urun cache zamani" value={cacheSummary.productCachedAt ? new Date(cacheSummary.productCachedAt).toLocaleString('tr-TR') : 'Henuz yok'} />
-        <InfoRow label="Cari cache zamani" value={cacheSummary.customerCachedAt ? new Date(cacheSummary.customerCachedAt).toLocaleString('tr-TR') : 'Henuz yok'} />
-      </View>
-
-      <View style={styles.queuePanel}>
-        <Text style={styles.queueTitle}>Fis Kuyrugu</Text>
-        <View style={styles.filterRow}>
-          {[
-            ['problem', 'Bekleyen/Hatali'],
-            ['sales', 'Tum Fisler'],
-            ['synced', 'Gonderilen'],
-            ['all', 'Tumu'],
-          ].map(([key, label]) => (
-            <TerminalButton
-              key={key}
-              label={`${label} ${filterCounts[key]}`}
-              onPress={() => setQueueFilter(key)}
-              variant={queueFilter === key ? 'primary' : 'secondary'}
-            />
-          ))}
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryLabel}>Bekleyen</Text>
+          <Text style={styles.summaryValue}>{openSales.length}</Text>
         </View>
-        {filteredQueue.length === 0 ? (
-          <Text style={styles.empty}>Bu filtrede kayit yok.</Text>
-        ) : filteredQueue.slice(0, 12).map((event) => (
-          <View key={event.clientEventId} style={[styles.queueRow, event.status === 'failed' && styles.queueRowDanger, event.status === 'synced' && styles.queueRowSuccess]}>
-            <View style={styles.queueHeader}>
-              <View>
-                <Text style={styles.queueType}>{eventTypeLabel(event.eventType)}</Text>
-                <Text style={styles.queueCustomer}>{event.payload?.customerName || event.payload?.customerCode || event.payload?.customerId || '-'}</Text>
-              </View>
-              <Text style={[styles.statusPill, event.status === 'failed' && styles.statusPillDanger, event.status === 'synced' && styles.statusPillSuccess]}>
-                {statusLabel(event.status)}
-              </Text>
-            </View>
-            <Text style={[styles.queueMeta, event.status === 'failed' && styles.queueError, event.status === 'synced' && styles.queueSuccess]}>
-              Deneme {event.retryCount || 0} / {event.clientCreatedAt ? new Date(event.clientCreatedAt).toLocaleString('tr-TR') : 'Tarih yok'}
-            </Text>
-            {event.lastErrorMessage ? <Text style={styles.queueErrorText}>{event.lastErrorMessage}</Text> : null}
-            <Text style={styles.queueId}>{event.clientEventId}</Text>
-            {event.eventType === 'terminal_sale' && event.status !== 'synced' ? (
-              <View style={styles.queueActions}>
-                <TerminalButton
-                  label={syncingEventId === event.clientEventId ? 'Gonderiliyor' : 'Bu fisi gonder'}
-                  onPress={() => syncSingleSale(event.clientEventId)}
-                  disabled={Boolean(syncingEventId)}
-                  variant="secondary"
-                />
-              </View>
-            ) : null}
-          </View>
-        ))}
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryLabel}>Hatali</Text>
+          <Text style={styles.summaryValue}>{failedSales.length}</Text>
+        </View>
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryLabel}>Giden</Text>
+          <Text style={styles.summaryValue}>{syncedSales.length}</Text>
+        </View>
       </View>
 
-      {syncMessage ? <Text style={styles.message}>{syncMessage}</Text> : null}
-      {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
+      <View style={styles.filterRow}>
+        <TerminalButton label={`Bekleyen ${openSales.length}`} onPress={() => setFilter('open')} variant={filter === 'open' ? 'primary' : 'secondary'} />
+        <TerminalButton label={`Hatali ${failedSales.length}`} onPress={() => setFilter('failed')} variant={filter === 'failed' ? 'primary' : 'secondary'} />
+        <TerminalButton label={`Giden ${syncedSales.length}`} onPress={() => setFilter('sent')} variant={filter === 'sent' ? 'primary' : 'secondary'} />
+      </View>
 
-      <TerminalButton
-        label={syncState.online ? 'Satis Kuyrugunu Gonder' : 'API Offline - Gonderilemez'}
-        onPress={syncSalesQueue}
-        disabled={!syncState.online}
-      />
+      {visibleQueue.length === 0 ? (
+        <View style={styles.emptyPanel}>
+          <Text style={styles.emptyTitle}>Liste bos</Text>
+          <Text style={styles.emptyText}>Bu bolumde gosterilecek fis yok.</Text>
+        </View>
+      ) : visibleQueue.map((event) => (
+        <QueueCard
+          key={event.clientEventId}
+          event={event}
+          syncingEventId={syncingEventId}
+          onSync={syncSingle}
+          onEdit={editSale}
+        />
+      ))}
+
+      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <TerminalButton label={syncState.online ? 'Tum Bekleyenleri Gonder' : 'API Offline'} onPress={syncAll} disabled={!syncState.online || !openSales.length} />
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
-      <TerminalButton label="Gonderilmisleri Temizle" onPress={clearSyncedEvents} variant="secondary" />
-      <TerminalButton label="Test Eventlerini Temizle" onPress={clearTestEvents} variant="secondary" />
-      <TerminalButton label="Test Ping Ekle" onPress={createPingEvent} variant="secondary" />
+      <TerminalButton label="Gonderilmisleri Temizle" onPress={clearSent} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
     </ScrollView>
   );
@@ -283,118 +253,91 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 18,
   },
-  summaryGrid: {
+  summaryRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  summaryCard: {
-    minWidth: '47%',
-    flexGrow: 1,
+  summaryBox: {
+    flex: 1,
+    minHeight: 66,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
-    padding: 10,
-    gap: 3,
-  },
-  summaryCard_success: {
-    backgroundColor: colors.successSoft,
-    borderColor: colors.success,
-  },
-  summaryCard_danger: {
-    backgroundColor: colors.dangerSoft,
-    borderColor: colors.danger,
-  },
-  summaryCard_neutral: {
     backgroundColor: colors.white,
-    borderColor: colors.border,
+    justifyContent: 'center',
+    padding: 10,
   },
   summaryLabel: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: '900',
-    textTransform: 'uppercase',
   },
   summaryValue: {
     color: colors.text,
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
-  },
-  summaryHelper: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  panel: {
-    backgroundColor: colors.panel,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  queuePanel: {
-    backgroundColor: colors.white,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-  },
-  queueTitle: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '900',
-    marginBottom: 6,
   },
   filterRow: {
-    gap: 6,
-    marginBottom: 8,
+    gap: 7,
   },
-  empty: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  queueRow: {
+  emptyPanel: {
+    minHeight: 130,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: colors.panel,
-    padding: 10,
-    marginTop: 8,
-    gap: 4,
+    backgroundColor: colors.white,
+    padding: 12,
   },
-  queueRowDanger: {
-    backgroundColor: colors.dangerSoft,
+  emptyTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  emptyText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  queueCard: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    padding: 12,
+    gap: 10,
+  },
+  queueCardFailed: {
     borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
   },
-  queueRowSuccess: {
-    backgroundColor: colors.successSoft,
+  queueCardSynced: {
     borderColor: colors.success,
+    backgroundColor: colors.successSoft,
   },
-  queueHeader: {
+  cardHeader: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 10,
   },
-  queueType: {
+  cardTitleBlock: {
+    flex: 1,
+  },
+  customerName: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '900',
   },
-  queueCustomer: {
-    marginTop: 2,
+  cardMeta: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: '800',
+    marginTop: 2,
   },
   statusPill: {
-    alignSelf: 'flex-start',
     overflow: 'hidden',
     borderColor: colors.warning,
     borderWidth: 1,
@@ -403,45 +346,55 @@ const styles = StyleSheet.create({
     color: colors.warning,
     fontSize: 11,
     fontWeight: '900',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
-  statusPillDanger: {
+  statusDanger: {
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
     color: colors.danger,
   },
-  statusPillSuccess: {
+  statusSuccess: {
     borderColor: colors.success,
     backgroundColor: colors.successSoft,
     color: colors.success,
   },
-  queueMeta: {
-    marginTop: 2,
-    color: colors.warning,
-    fontSize: 12,
-    fontWeight: '800',
+  factRow: {
+    flexDirection: 'row',
+    gap: 7,
   },
-  queueId: {
-    marginTop: 2,
+  factBox: {
+    flex: 1,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    padding: 8,
+  },
+  factLabel: {
     color: colors.muted,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '900',
   },
-  queueActions: {
-    marginTop: 7,
-  },
-  queueSuccess: {
-    color: colors.success,
-  },
-  queueError: {
-    color: colors.danger,
-  },
-  queueErrorText: {
+  factValue: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
     marginTop: 2,
+  },
+  factValueSmall: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  cardActions: {
+    gap: 7,
+  },
+  errorText: {
     color: colors.danger,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
   },
   message: {
     color: colors.success,

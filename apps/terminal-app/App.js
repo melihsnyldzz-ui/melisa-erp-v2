@@ -41,6 +41,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [activeScreen, setActiveScreen] = useState('home');
   const [lastLookup, setLastLookup] = useState(null);
+  const [saleDraftToEdit, setSaleDraftToEdit] = useState(null);
   const [syncState, setSyncState] = useState(initialSyncState);
 
   const refreshSyncState = useCallback(async () => {
@@ -108,6 +109,10 @@ export default function App() {
     openDataUpdate: () => setActiveScreen('dataUpdate'),
     openFieldTest: () => setActiveScreen('fieldTest'),
     openNewSale: () => setActiveScreen('newSale'),
+    openNewSaleDraft: (draft) => {
+      setSaleDraftToEdit(draft);
+      setActiveScreen('newSale');
+    },
     openProductLookup: () => setActiveScreen('productLookup'),
     openSettings: () => setActiveScreen('settings'),
     openSyncStatus: () => setActiveScreen('syncStatus'),
@@ -165,6 +170,8 @@ export default function App() {
             session={session}
             syncState={syncState}
             navigation={navigation}
+            draftToEdit={saleDraftToEdit}
+            onDraftLoaded={() => setSaleDraftToEdit(null)}
             onRefresh={refreshSyncState}
           />
         )}

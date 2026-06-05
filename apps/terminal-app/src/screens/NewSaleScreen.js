@@ -6,7 +6,7 @@ import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/currencyRateService';
 import { lookupProductByBarcode } from '../services/productService';
-import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales } from '../services/queueService';
+import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales, updateQueueEventPayload } from '../services/queueService';
 import { buildTerminalSalePayload, searchTerminalCustomers, searchTerminalProducts, submitTerminalSale } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
@@ -139,7 +139,7 @@ function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
   );
 }
 
-export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
+export function NewSaleScreen({ session, syncState, navigation, onRefresh, draftToEdit, onDraftLoaded }) {
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
   const [customerResults, setCustomerResults] = useState([]);
@@ -158,6 +158,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const [currencyRates, setCurrencyRates] = useState(null);
   const [rateMessage, setRateMessage] = useState('');
   const [reviewMode, setReviewMode] = useState(false);
+  const [editingEventId, setEditingEventId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saleResult, setSaleResult] = useState(null);
@@ -208,6 +209,41 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   useEffect(() => {
     refreshRates(false);
   }, []);
+
+  useEffect(() => {
+    if (!draftToEdit?.payload) return;
+
+    const payload = draftToEdit.payload;
+    setSelectedCustomer({
+      id: payload.customerId,
+      customerCode: payload.customerCode || `CARI-${payload.customerId}`,
+      customerName: payload.customerName || `Cari #${payload.customerId}`,
+      currency: payload.documentCurrency || 'TRY',
+      balance: 0,
+    });
+    setCustomerQuery(payload.customerCode || payload.customerName || '');
+    setLines((payload.items || []).map((item) => ({
+      product: {
+        id: item.productId,
+        stockCode: item.stockCode || `STK-${item.productId}`,
+        barcodeMasked: item.barcode || '',
+        matchedBarcode: item.barcode || '',
+        productName: item.productName || `Urun #${item.productId}`,
+        brand: '-',
+        category: '-',
+        currency: item.currency || payload.documentCurrency || 'TRY',
+        salePrice: Number(item.unitPrice || 0),
+        stockQuantity: 0,
+      },
+      quantity: Number(item.quantity || 1),
+      unitPrice: Number(item.unitPrice || 0),
+    })));
+    setEditingEventId(draftToEdit.clientEventId || '');
+    setReviewMode(true);
+    setMessage('Bekleyen fis duzenleme icin acildi');
+    setError('');
+    onDraftLoaded?.();
+  }, [draftToEdit]);
 
   async function refreshRates(showMessage = true) {
     if (showMessage) {
@@ -459,18 +495,24 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
 
     const basePayload = buildSalePayloadSnapshot();
 
-    const queuedEvent = await enqueueTerminalSale(basePayload);
+    const queuedEvent = editingEventId
+      ? { clientEventId: editingEventId }
+      : await enqueueTerminalSale(basePayload);
+    if (editingEventId) {
+      await updateQueueEventPayload(editingEventId, basePayload);
+    }
+    const activeClientEventId = queuedEvent.clientEventId;
 
     try {
       const response = await submitTerminalSale({
         token: session.accessToken,
         payload: {
           ...basePayload,
-          clientEventId: queuedEvent.clientEventId,
+          clientEventId: activeClientEventId,
         },
       });
       const duplicate = Boolean(response?.data?.duplicate || response?.duplicate);
-      await markQueueSynced(queuedEvent.clientEventId, response?.data || response);
+      await markQueueSynced(activeClientEventId, response?.data || response);
       setMessage(duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
       setSaleResult({
         ...resultSnapshot,
@@ -481,7 +523,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
           : testMode
             ? 'Test fisi backend API tarafina gonderildi. ERP tarafinda test notuyla ayirt edin.'
             : 'Fis backend API tarafina basariyla gonderildi.',
-        clientEventId: queuedEvent.clientEventId,
+        clientEventId: activeClientEventId,
       });
       setLines([]);
       setBarcode('');
@@ -489,9 +531,10 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       setTestMode(false);
       setTestNote('');
       setReviewMode(false);
+      setEditingEventId('');
       await onRefresh();
     } catch (submitError) {
-      await markQueueFailed(queuedEvent.clientEventId, submitError);
+      await markQueueFailed(activeClientEventId, submitError);
       setMessage('Baglanti yok, fis gonderilemeyenlere alindi');
       setError(submitError.message || 'Online gonderim basarisiz');
       setSaleResult({
@@ -499,7 +542,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
         status: 'offline',
         title: 'Gonderilemeyenlere alindi',
         message: submitError.message || 'API baglantisi yok veya istek basarisiz. Fis local queue icinde bekliyor.',
-        clientEventId: queuedEvent.clientEventId,
+        clientEventId: activeClientEventId,
       });
       setLines([]);
       setBarcode('');
@@ -507,6 +550,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       setTestMode(false);
       setTestNote('');
       setReviewMode(false);
+      setEditingEventId('');
       await onRefresh();
     } finally {
       setLoading(false);
@@ -553,7 +597,13 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
     setMessage('');
 
     try {
-      const queuedEvent = await enqueueTerminalSale(buildSalePayloadSnapshot());
+      const payload = buildSalePayloadSnapshot();
+      const queuedEvent = editingEventId
+        ? { clientEventId: editingEventId }
+        : await enqueueTerminalSale(payload);
+      if (editingEventId) {
+        await updateQueueEventPayload(editingEventId, payload);
+      }
       setSaleResult({
         status: 'offline',
         title: 'Fis taslak kaydedildi',
@@ -570,6 +620,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       setTestMode(false);
       setTestNote('');
       setReviewMode(false);
+      setEditingEventId('');
       await onRefresh();
     } catch (saveError) {
       setError(saveError.message || 'Fis taslak kaydedilemedi');
@@ -594,6 +645,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
     setTestMode(false);
     setTestNote('');
     setReviewMode(false);
+    setEditingEventId('');
     setMessage('Fis temizlendi');
     setError('');
     setSaleResult(null);
