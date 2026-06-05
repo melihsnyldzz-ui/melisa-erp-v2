@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
 import { getPendingQueue } from '../services/queueService';
-import { colors, terminalStyles } from '../styles/theme';
+import { colors } from '../styles/theme';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -32,68 +32,88 @@ function formatMoney(value, currency = 'TRY') {
   return `${Number(value || 0).toFixed(2)} ${currency}`;
 }
 
+function receiptNumber(event) {
+  const response = event.serverResponse || {};
+  return response.receiptNo || response.salesReceiptNo || response.documentNo || response.id || event.clientEventId;
+}
+
 function isDuplicate(event) {
   return event.lastErrorMessage === 'Daha once gonderilmis'
     || Boolean(event.serverResponse?.duplicate)
     || Boolean(event.serverResponse?.data?.duplicate);
 }
 
-function SentReceiptCard({ event }) {
+function ReceiptListRow({ event, onPress }) {
+  const payload = event.payload || {};
+  const currency = saleCurrency(payload);
+
+  return (
+    <Pressable onPress={() => onPress(event)} style={({ pressed }) => [styles.receiptRow, pressed && styles.pressedRow]}>
+      <View style={styles.receiptMain}>
+        <Text style={styles.receiptCustomer} numberOfLines={1}>{payload.customerName || payload.customerCode || `Cari #${payload.customerId || '-'}`}</Text>
+        <Text style={styles.receiptSub} numberOfLines={1}>{payload.customerCode || '-'} / {formatDate(event.lastAttemptAt || event.clientCreatedAt)}</Text>
+      </View>
+      <Text style={styles.receiptQty}>{saleQuantity(payload)}</Text>
+      <Text style={styles.receiptTotal}>{formatMoney(saleTotal(payload), currency)}</Text>
+    </Pressable>
+  );
+}
+
+function ReceiptDetail({ event, onBack, onPrint }) {
   const payload = event.payload || {};
   const currency = saleCurrency(payload);
   const duplicate = isDuplicate(event);
-  const response = event.serverResponse || {};
-  const receiptNo = response.receiptNo || response.salesReceiptNo || response.documentNo || response.id || event.clientEventId;
 
   return (
-    <View style={[styles.receiptCard, duplicate && styles.receiptCardDuplicate]}>
-      <View style={styles.receiptHeader}>
-        <View style={styles.receiptTitleBlock}>
-          <Text style={styles.customerName}>{payload.customerName || payload.customerCode || `Cari #${payload.customerId || '-'}`}</Text>
-          <Text style={styles.receiptMeta}>{payload.customerCode || '-'} / {formatDate(event.lastAttemptAt || event.clientCreatedAt)}</Text>
+    <>
+      <View style={styles.detailHeader}>
+        <View style={styles.detailTitleBlock}>
+          <Text style={styles.detailTitle} numberOfLines={1}>{payload.customerName || payload.customerCode || '-'}</Text>
+          <Text style={styles.detailMeta}>{payload.customerCode || '-'} / {formatDate(event.lastAttemptAt || event.clientCreatedAt)}</Text>
+          <Text style={styles.detailId} numberOfLines={1}>{receiptNumber(event)}</Text>
         </View>
-        <Text style={[styles.statusPill, duplicate && styles.statusDuplicate]}>
-          {duplicate ? 'Duplicate' : 'Sonuclandi'}
-        </Text>
+        <Text style={[styles.statusPill, duplicate && styles.statusDuplicate]}>{duplicate ? 'Duplicate' : 'Sonuclandi'}</Text>
       </View>
 
-      <View style={styles.factRow}>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Fis</Text>
-          <Text style={styles.factValueSmall} numberOfLines={1}>{receiptNo}</Text>
-        </View>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Adet</Text>
-          <Text style={styles.factValue}>{saleQuantity(payload)}</Text>
-        </View>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Toplam</Text>
-          <Text style={styles.factValueSmall}>{formatMoney(saleTotal(payload), currency)}</Text>
-        </View>
+      <View style={styles.detailActions}>
+        <TerminalButton label="Yazdir" onPress={() => onPrint(event)} />
+        <TerminalButton label="Listeye Don" onPress={onBack} variant="secondary" />
       </View>
 
-      <View style={styles.linesBox}>
-        {(payload.items || []).slice(0, 4).map((item, index) => (
-          <View key={`${event.clientEventId}-${item.productId || index}`} style={styles.lineRow}>
-            <View style={styles.lineText}>
-              <Text style={styles.lineName}>{item.productName || item.stockCode || `Urun #${item.productId || '-'}`}</Text>
-              <Text style={styles.lineMeta}>{item.stockCode || item.barcode || '-'} / {Number(item.quantity || 0)} x {formatMoney(item.unitPrice, item.currency || currency)}</Text>
+      <View style={styles.table}>
+        <View style={[styles.tableRow, styles.tableHeader]}>
+          <Text style={[styles.cellCode, styles.headCell]}>Stok</Text>
+          <Text style={[styles.cellName, styles.headCell]}>Urun</Text>
+          <Text style={[styles.cellQty, styles.headCell]}>Adet</Text>
+          <Text style={[styles.cellPrice, styles.headCell]}>Fiyat</Text>
+        </View>
+        {(payload.items || []).map((item, index) => {
+          const itemCurrency = item.currency || currency;
+          const lineTotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+          return (
+            <View key={`${event.clientEventId}-${item.productId || index}`} style={styles.tableRow}>
+              <Text style={styles.cellCode} numberOfLines={1}>{item.stockCode || item.barcode || '-'}</Text>
+              <Text style={styles.cellName} numberOfLines={1}>{item.productName || `Urun #${item.productId || '-'}`}</Text>
+              <Text style={styles.cellQty}>{Number(item.quantity || 0)}</Text>
+              <Text style={styles.cellPrice}>{formatMoney(lineTotal, itemCurrency)}</Text>
             </View>
-            <Text style={styles.lineTotal}>{formatMoney(Number(item.quantity || 0) * Number(item.unitPrice || 0), item.currency || currency)}</Text>
-          </View>
-        ))}
-        {(payload.items || []).length > 4 ? (
-          <Text style={styles.moreText}>+{(payload.items || []).length - 4} satir daha</Text>
-        ) : null}
+          );
+        })}
       </View>
 
-      <Text style={styles.eventId}>{event.clientEventId}</Text>
-    </View>
+      <View style={styles.detailTotals}>
+        <Text style={styles.detailTotalLabel}>Toplam adet</Text>
+        <Text style={styles.detailTotalValue}>{saleQuantity(payload)}</Text>
+        <Text style={styles.detailTotalLabel}>Genel toplam</Text>
+        <Text style={styles.detailTotalValue}>{formatMoney(saleTotal(payload), currency)}</Text>
+      </View>
+    </>
   );
 }
 
 export function ReportsScreen({ navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState('');
   const [message, setMessage] = useState('');
 
   const sentSales = useMemo(() => (
@@ -102,18 +122,20 @@ export function ReportsScreen({ navigation, onRefresh }) {
       .sort((a, b) => String(b.lastAttemptAt || b.clientCreatedAt).localeCompare(String(a.lastAttemptAt || a.clientCreatedAt)))
   ), [queue]);
 
+  const selectedEvent = useMemo(() => (
+    sentSales.find((event) => event.clientEventId === selectedEventId) || null
+  ), [sentSales, selectedEventId]);
+
   const summary = useMemo(() => sentSales.reduce((acc, event) => {
     const payload = event.payload || {};
     const currency = saleCurrency(payload);
-    const total = saleTotal(payload);
-
     return {
       count: acc.count + 1,
       duplicate: acc.duplicate + (isDuplicate(event) ? 1 : 0),
       quantity: acc.quantity + saleQuantity(payload),
       totals: {
         ...acc.totals,
-        [currency]: Number(acc.totals[currency] || 0) + total,
+        [currency]: Number(acc.totals[currency] || 0) + saleTotal(payload),
       },
     };
   }, {
@@ -129,58 +151,75 @@ export function ReportsScreen({ navigation, onRefresh }) {
     await onRefresh?.();
   }
 
+  function printReceipt() {
+    if (typeof globalThis?.print === 'function') {
+      globalThis.print();
+      setMessage('Yazdirma penceresi acildi');
+      return;
+    }
+
+    setMessage('Yazdirma butonu hazir. Telefon yazici baglantisi sonraki fazda baglanacak.');
+  }
+
   useEffect(() => {
     refreshReports();
   }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.heroPanel}>
-        <Text style={styles.heroTitle}>Terminal Raporlari</Text>
-        <Text style={styles.heroText}>Gonderilen satis fisleri bu terminalde sonuc kaydi olarak kalir.</Text>
-      </View>
-
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryLabel}>Gonderilen</Text>
-          <Text style={styles.summaryValue}>{summary.count}</Text>
-        </View>
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryLabel}>Duplicate</Text>
-          <Text style={styles.summaryValue}>{summary.duplicate}</Text>
-        </View>
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryLabel}>Adet</Text>
-          <Text style={styles.summaryValue}>{summary.quantity}</Text>
-        </View>
-      </View>
-
-      <View style={styles.totalPanel}>
-        <Text style={styles.sectionTitle}>Toplamlar</Text>
-        {Object.keys(summary.totals).length ? (
-          Object.keys(summary.totals).map((currency) => (
-            <View key={currency} style={styles.totalRow}>
-              <Text style={styles.totalCurrency}>{currency}</Text>
-              <Text style={styles.totalValue}>{formatMoney(summary.totals[currency], currency)}</Text>
+      {selectedEvent ? (
+        <ReceiptDetail
+          event={selectedEvent}
+          onBack={() => setSelectedEventId('')}
+          onPrint={printReceipt}
+        />
+      ) : (
+        <>
+          <View style={styles.summaryStrip}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Fis</Text>
+              <Text style={styles.summaryValue}>{summary.count}</Text>
             </View>
-          ))
-        ) : (
-          <Text style={styles.emptyText}>Henuz gonderilmis fis yok.</Text>
-        )}
-      </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Adet</Text>
+              <Text style={styles.summaryValue}>{summary.quantity}</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Duplicate</Text>
+              <Text style={styles.summaryValue}>{summary.duplicate}</Text>
+            </View>
+          </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Gonderilen Fisler</Text>
-        <Text style={styles.sectionMeta}>Sonuclanmis terminal gecmisi</Text>
-      </View>
+          <View style={styles.totalStrip}>
+            {Object.keys(summary.totals).length ? (
+              Object.keys(summary.totals).map((currency) => (
+                <Text key={currency} style={styles.totalChip}>{formatMoney(summary.totals[currency], currency)}</Text>
+              ))
+            ) : (
+              <Text style={styles.emptyText}>Henuz gonderilmis fis yok.</Text>
+            )}
+          </View>
 
-      {sentSales.length ? sentSales.map((event) => (
-        <SentReceiptCard key={event.clientEventId} event={event} />
-      )) : (
-        <View style={styles.emptyPanel}>
-          <Text style={styles.emptyTitle}>Liste bos</Text>
-          <Text style={styles.emptyText}>Fis gonderildiginde burada sonucuyla gorunecek.</Text>
-        </View>
+          <View style={styles.listHeader}>
+            <Text style={styles.listTitle}>Gonderilen Fisler</Text>
+            <Text style={styles.listMeta}>Fis detayina girmek icin satira dokunun.</Text>
+          </View>
+
+          <View style={styles.receiptList}>
+            {sentSales.length ? sentSales.map((event) => (
+              <ReceiptListRow
+                key={event.clientEventId}
+                event={event}
+                onPress={(nextEvent) => setSelectedEventId(nextEvent.clientEventId)}
+              />
+            )) : (
+              <View style={styles.emptyPanel}>
+                <Text style={styles.emptyTitle}>Liste bos</Text>
+                <Text style={styles.emptyText}>Fis gonderildiginde burada gorunecek.</Text>
+              </View>
+            )}
+          </View>
+        </>
       )}
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -193,127 +232,144 @@ export function ReportsScreen({ navigation, onRefresh }) {
 
 const styles = StyleSheet.create({
   content: {
-    padding: 12,
-    gap: 10,
-  },
-  heroPanel: {
-    borderColor: colors.accent,
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: colors.accentSoft,
-    padding: 12,
-    gap: 5,
-  },
-  heroTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  heroText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  summaryRow: {
-    flexDirection: 'row',
+    padding: 8,
     gap: 8,
   },
-  summaryBox: {
-    flex: 1,
-    minHeight: 66,
-    borderColor: colors.border,
+  summaryStrip: {
+    minHeight: 46,
+    flexDirection: 'row',
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: colors.white,
+    overflow: 'hidden',
+  },
+  summaryItem: {
+    flex: 1,
     justifyContent: 'center',
-    padding: 10,
+    borderRightColor: colors.border,
+    borderRightWidth: 1,
+    paddingHorizontal: 8,
   },
   summaryLabel: {
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
   },
   summaryValue: {
     color: colors.text,
-    fontSize: 24,
+    fontSize: 17,
     fontWeight: '900',
   },
-  totalPanel: {
-    borderColor: colors.border,
+  totalStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  totalChip: {
+    overflow: 'hidden',
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  listHeader: {
+    gap: 2,
+  },
+  listTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  listMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  receiptList: {
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: colors.white,
-    padding: 12,
-    gap: 8,
+    overflow: 'hidden',
   },
-  totalRow: {
+  receiptRow: {
     minHeight: 44,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 7,
-    backgroundColor: colors.panel,
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
-  totalCurrency: {
-    color: colors.accentDark,
-    fontSize: 14,
-    fontWeight: '900',
+  pressedRow: {
+    backgroundColor: colors.accentSoft,
   },
-  totalValue: {
-    color: colors.success,
-    fontSize: 15,
-    fontWeight: '900',
+  receiptMain: {
+    flex: 1,
+    minWidth: 0,
   },
-  sectionHeader: {
-    gap: 2,
-  },
-  sectionTitle: {
+  receiptCustomer: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '900',
   },
-  sectionMeta: {
+  receiptSub: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
+    marginTop: 2,
   },
-  receiptCard: {
+  receiptQty: {
+    width: 34,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  receiptTotal: {
+    minWidth: 84,
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    textAlign: 'right',
+  },
+  detailHeader: {
     borderColor: colors.success,
     borderWidth: 1,
     borderLeftColor: colors.success,
     borderLeftWidth: 5,
     borderRadius: 8,
     backgroundColor: colors.successSoft,
-    padding: 12,
-    gap: 10,
-    ...terminalStyles.rowShadow,
-  },
-  receiptCardDuplicate: {
-    borderColor: colors.warning,
-    borderLeftColor: colors.warning,
-    backgroundColor: colors.warningSoft,
-  },
-  receiptHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
+    padding: 9,
   },
-  receiptTitleBlock: {
+  detailTitleBlock: {
     flex: 1,
+    minWidth: 0,
   },
-  customerName: {
+  detailTitle: {
     color: colors.text,
     fontSize: 17,
     fontWeight: '900',
   },
-  receiptMeta: {
+  detailMeta: {
     color: colors.muted,
     fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  detailId: {
+    color: colors.muted,
+    fontSize: 10,
     fontWeight: '800',
     marginTop: 2,
   },
@@ -333,85 +389,83 @@ const styles = StyleSheet.create({
     borderColor: colors.warning,
     color: colors.warning,
   },
-  factRow: {
-    flexDirection: 'row',
+  detailActions: {
     gap: 7,
   },
-  factBox: {
+  table: {
+    borderColor: '#b7ad98',
+    borderWidth: 1,
+    backgroundColor: '#f7f4eb',
+  },
+  tableRow: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomColor: '#c9c0ad',
+    borderBottomWidth: 1,
+  },
+  tableHeader: {
+    minHeight: 28,
+    backgroundColor: '#ebe6d8',
+  },
+  headCell: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  cellCode: {
+    width: 86,
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '800',
+    paddingHorizontal: 5,
+  },
+  cellName: {
     flex: 1,
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '800',
+    paddingHorizontal: 5,
+  },
+  cellQty: {
+    width: 38,
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  cellPrice: {
+    width: 82,
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '800',
+    textAlign: 'right',
+    paddingRight: 5,
+  },
+  detailTotals: {
     borderColor: colors.borderDark,
     borderWidth: 1,
-    borderRadius: 7,
+    borderRadius: 8,
     backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     padding: 8,
   },
-  factLabel: {
+  detailTotalLabel: {
     color: colors.muted,
     fontSize: 10,
     fontWeight: '900',
   },
-  factValue: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  factValueSmall: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-  linesBox: {
-    gap: 8,
-  },
-  lineRow: {
-    borderColor: colors.borderDark,
-    borderWidth: 1,
-    borderLeftColor: colors.accent,
-    borderLeftWidth: 4,
-    borderRadius: 8,
-    backgroundColor: colors.white,
-    padding: 9,
-    gap: 6,
-  },
-  lineText: {
-    flex: 1,
-  },
-  lineName: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  lineMeta: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  lineTotal: {
+  detailTotalValue: {
     color: colors.success,
     fontSize: 13,
     fontWeight: '900',
   },
-  moreText: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  eventId: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: '800',
-  },
   emptyPanel: {
-    minHeight: 130,
+    minHeight: 110,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: colors.white,
     padding: 12,
   },
   emptyTitle: {
@@ -421,13 +475,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: colors.muted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    lineHeight: 18,
   },
   message: {
     color: colors.success,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
   },
 });
