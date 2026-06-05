@@ -157,6 +157,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const [testNote, setTestNote] = useState('');
   const [currencyRates, setCurrencyRates] = useState(null);
   const [rateMessage, setRateMessage] = useState('');
+  const [reviewMode, setReviewMode] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saleResult, setSaleResult] = useState(null);
@@ -179,6 +180,22 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const lineCurrencies = Object.keys(totalsByCurrency);
   const hasMixedCurrency = selectedCustomer && lineCurrencies.some((currency) => currency !== selectedCustomer.currency);
   const selectedExchangeRate = getRateToTry(currencyRates, selectedCustomer?.currency || 'TRY');
+
+  function buildSalePayloadSnapshot() {
+    const trimmedTestNote = testNote.trim();
+    const saleNote = testMode
+      ? `SAHA TEST FISI - ${trimmedTestNote || 'Terminal saha testi'}`
+      : 'Terminal hizli satis';
+
+    return buildTerminalSalePayload({
+      customer: selectedCustomer,
+      lines,
+      terminalCode: terminalConfig.terminalCode,
+      note: saleNote,
+      testMode,
+      exchangeRate: selectedExchangeRate,
+    });
+  }
 
   useEffect(() => {
     async function loadRecentCustomers() {
@@ -244,6 +261,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   function clearSelectedCustomer() {
     setSelectedCustomer(null);
     setCustomerResults([]);
+    setReviewMode(false);
     setMessage('');
     setError('');
   }
@@ -357,6 +375,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   }
 
   function addProductLine(product, parsedQuantity = Number(quantity || 1)) {
+    setReviewMode(false);
     setLastScannedProduct(product);
     setLastScannedQuantity(parsedQuantity);
     setLines((current) => {
@@ -438,18 +457,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       itemQuantity,
     };
 
-    const trimmedTestNote = testNote.trim();
-    const saleNote = testMode
-      ? `SAHA TEST FISI - ${trimmedTestNote || 'Terminal saha testi'}`
-      : 'Terminal hizli satis';
-    const basePayload = buildTerminalSalePayload({
-      customer: selectedCustomer,
-      lines,
-      terminalCode: terminalConfig.terminalCode,
-      note: saleNote,
-      testMode,
-      exchangeRate: selectedExchangeRate,
-    });
+    const basePayload = buildSalePayloadSnapshot();
 
     const queuedEvent = await enqueueTerminalSale(basePayload);
 
@@ -480,6 +488,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       setQuantity('1');
       setTestMode(false);
       setTestNote('');
+      setReviewMode(false);
       await onRefresh();
     } catch (submitError) {
       await markQueueFailed(queuedEvent.clientEventId, submitError);
@@ -497,6 +506,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       setQuantity('1');
       setTestMode(false);
       setTestNote('');
+      setReviewMode(false);
       await onRefresh();
     } finally {
       setLoading(false);
@@ -504,6 +514,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   }
 
   function adjustLineQuantity(productId, delta) {
+    setReviewMode(false);
     setLines((current) => current.flatMap((line) => {
       if (String(line.product.id) !== String(productId)) {
         return [line];
@@ -515,7 +526,61 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   }
 
   function removeLine(productId) {
+    setReviewMode(false);
     setLines((current) => current.filter((line) => String(line.product.id) !== String(productId)));
+  }
+
+  function openDraftReview() {
+    if (!selectedCustomer || lines.length === 0) {
+      setError('Cari ve en az bir satir gerekli');
+      return;
+    }
+
+    setError('');
+    setMessage('');
+    setSaleResult(null);
+    setReviewMode(true);
+  }
+
+  async function saveDraftToQueue() {
+    if (!selectedCustomer || lines.length === 0) {
+      setError('Kaydedilecek taslak fis yok');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const queuedEvent = await enqueueTerminalSale(buildSalePayloadSnapshot());
+      setSaleResult({
+        status: 'offline',
+        title: 'Fis taslak kaydedildi',
+        message: 'Fis local kuyruga taslak olarak alindi. Sync Merkezi ekranindan gonderilebilir.',
+        customerName: selectedCustomer.customerName,
+        lineCount: lines.length,
+        itemQuantity,
+        clientEventId: queuedEvent.clientEventId,
+      });
+      setMessage('Fis taslak olarak kaydedildi');
+      setLines([]);
+      setBarcode('');
+      setQuantity('1');
+      setTestMode(false);
+      setTestNote('');
+      setReviewMode(false);
+      await onRefresh();
+    } catch (saveError) {
+      setError(saveError.message || 'Fis taslak kaydedilemedi');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function printDraft() {
+    setMessage('Yazdirma hazir degil. Bu asamada fis taslak/gonderim kontrolu yapiliyor.');
+    setError('');
   }
 
   function clearSale() {
@@ -528,6 +593,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
     setLastScannedQuantity(0);
     setTestMode(false);
     setTestNote('');
+    setReviewMode(false);
     setMessage('Fis temizlendi');
     setError('');
     setSaleResult(null);
@@ -697,6 +763,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
           <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
         </>
       ) : (
+        <>
+      {!reviewMode ? (
         <>
       <View style={styles.panel}>
         <View style={styles.barcodeHeader}>
@@ -875,7 +943,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
 
       <View style={styles.submitPanel}>
         <Text style={styles.submitTitle}>
-          {lines.length ? (syncState?.online ? 'Fis gonderime hazir' : 'Fis kuyruga alinacak') : 'Fis bos'}
+          {lines.length ? 'Fis taslagi hazir' : 'Fis bos'}
         </Text>
         <Text style={styles.submitMeta}>
           {selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir
@@ -884,13 +952,78 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
           <Text style={styles.testSubmitWarning}>SAHA TEST FISI olarak gonderilecek.</Text>
         ) : null}
         <TerminalButton
-          label={syncState?.online ? 'Fisi Gonder' : 'Offline Kuyruga Al'}
-          onPress={finishSale}
+          label="Fis Taslagini Kontrol Et"
+          onPress={openDraftReview}
           disabled={loading || lines.length === 0 || !selectedCustomer}
         />
       </View>
       <TerminalButton label="Bekleyenleri Gonder" onPress={syncQueue} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+        </>
+      ) : (
+        <>
+          <View style={styles.reviewPanel}>
+            <View style={styles.reviewHeader}>
+              <View>
+                <Text style={styles.stepLabel}>Taslak fis</Text>
+                <Text style={styles.reviewTitle}>Son Kontrol</Text>
+                <Text style={styles.reviewMeta}>{selectedCustomer.customerName} / {selectedCustomer.customerCode}</Text>
+              </View>
+              <Text style={styles.reviewStatus}>TASLAK</Text>
+            </View>
+
+            <View style={styles.reviewGrid}>
+              <View style={styles.reviewFact}>
+                <Text style={styles.reviewFactLabel}>Satir</Text>
+                <Text style={styles.reviewFactValue}>{lines.length}</Text>
+              </View>
+              <View style={styles.reviewFact}>
+                <Text style={styles.reviewFactLabel}>Adet</Text>
+                <Text style={styles.reviewFactValue}>{itemQuantity}</Text>
+              </View>
+              <View style={styles.reviewFact}>
+                <Text style={styles.reviewFactLabel}>Kur</Text>
+                <Text style={styles.reviewFactValue}>{Number(selectedExchangeRate || 1).toFixed(2)}</Text>
+              </View>
+            </View>
+
+            {lineCurrencies.map((currency) => (
+              <InfoRow
+                key={`review-${currency}`}
+                label={`Toplam ${currency}`}
+                value={formatMoney(totalsByCurrency[currency], currency)}
+                tone="success"
+              />
+            ))}
+
+            <View style={styles.reviewLines}>
+              {lines.map((line) => (
+                <View key={`review-line-${line.product.id}`} style={styles.reviewLineRow}>
+                  <View style={styles.lineText}>
+                    <Text style={styles.lineName}>{line.product.productName}</Text>
+                    <Text style={styles.lineMeta}>{line.product.stockCode} / {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}</Text>
+                  </View>
+                  <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
+                </View>
+              ))}
+            </View>
+
+            {testMode ? <Text style={styles.testSubmitWarning}>Bu fis SAHA TEST FISI olarak isaretli.</Text> : null}
+          </View>
+
+          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
+
+          <View style={styles.reviewActions}>
+            <TerminalButton label="Fisi Gonder" onPress={finishSale} disabled={loading} />
+            <TerminalButton label="Fisi Kaydet" onPress={saveDraftToQueue} disabled={loading} variant="secondary" />
+            <TerminalButton label="Fisi Yazdir" onPress={printDraft} disabled={loading} variant="secondary" />
+            <TerminalButton label="Duzenle" onPress={() => setReviewMode(false)} disabled={loading} variant="secondary" />
+          </View>
+          <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+        </>
+      )}
         </>
       )}
     </ScrollView>
@@ -1423,6 +1556,88 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
+    gap: 8,
+  },
+  reviewPanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 10,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  reviewTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  reviewMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  reviewStatus: {
+    overflow: 'hidden',
+    borderColor: colors.warning,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.warningSoft,
+    color: colors.warning,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  reviewGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reviewFact: {
+    flex: 1,
+    minHeight: 66,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.panel,
+    justifyContent: 'center',
+    padding: 10,
+  },
+  reviewFactLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  reviewFactValue: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  reviewLines: {
+    gap: 7,
+  },
+  reviewLineRow: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.panel,
+    padding: 10,
+    gap: 6,
+  },
+  reviewActions: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
     gap: 8,
   },
   testModePanel: {
