@@ -10,6 +10,7 @@ npm install
 npm run start
 npm run start:lan
 npm run start:tunnel
+npm run field:info
 npm run android
 npm run doctor
 npm run check:all
@@ -40,6 +41,7 @@ Sonra terminal app'i LAN ile baslatin:
 
 ```powershell
 cd apps/terminal-app
+npm run field:info
 npm run start:lan
 ```
 
@@ -81,13 +83,14 @@ Bu komut Expo doctor, terminal API smoke, kilitli submit kontrolu ve web export 
 
 ## Saha Test Sirasi
 
-1. Backend health: `http://PC_IP:4100/api/health`.
-2. `npm run start:lan` ile Expo QR ac.
-3. Expo Go icinden QR okut.
-4. Ayarlar ekraninda API adresini test et.
-5. Veri Guncelle ekranindan urun/cari cache indir.
-6. Barkod okut ve urun bilgisini kontrol et.
-7. Yeni Satis ekraninda pesin cari veya gercek cari sec.
-8. Test fisi modu acikken deneme fisi gonder.
-9. Wi-Fi kapali/offline iken satisi kuyruga al.
-10. Wi-Fi geri gelince Sync Merkezi'nden bekleyeni gonder.
+1. `npm run field:info` ile PC IP ve API health durumunu gor.
+2. Backend health: `http://PC_IP:4100/api/health`.
+3. `npm run start:lan` ile Expo QR ac.
+4. Expo Go icinden QR okut.
+5. Ayarlar ekraninda API adresini test et.
+6. Veri Guncelle ekranindan urun/cari cache indir.
+7. Barkod okut ve urun bilgisini kontrol et.
+8. Yeni Satis ekraninda pesin cari veya gercek cari sec.
+9. Test fisi modu acikken deneme fisi gonder.
+10. Wi-Fi kapali/offline iken satisi kuyruga al.
+11. Wi-Fi geri gelince Sync Merkezi'nden bekleyeni gonder.
