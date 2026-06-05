@@ -280,7 +280,7 @@ export async function submitTerminalSale(payload = {}, actor = null) {
 
 export async function searchTerminalProducts(query = {}) {
   return getProductsList({
-    page: 1,
+    page: query.page || 1,
     limit: query.limit || 30,
     search: query.q || query.search || '',
     activeOnly: 'true',
@@ -289,7 +289,7 @@ export async function searchTerminalProducts(query = {}) {
 
 export async function searchTerminalCustomers(query = {}) {
   return getCustomersList({
-    page: 1,
+    page: query.page || 1,
     limit: query.limit || 30,
     search: query.q || query.search || '',
     activeOnly: 'true',

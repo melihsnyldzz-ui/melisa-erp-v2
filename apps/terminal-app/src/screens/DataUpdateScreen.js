@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
-import { getCacheSummary, markCacheUpdated, saveCustomerCache, saveProductCache } from '../services/cacheService';
-import { downloadTerminalCustomers, downloadTerminalProducts } from '../services/terminalSalesService';
+import { getCacheSummary, markCacheUpdated, replaceCustomerCache, replaceProductCache } from '../services/cacheService';
+import { downloadAllTerminalCustomers, downloadAllTerminalProducts } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
 function normalizeProduct(row) {
@@ -41,6 +41,7 @@ function formatDate(value) {
 
 export function DataUpdateScreen({ session, navigation, onRefresh }) {
   const [summary, setSummary] = useState({ productCount: 0, customerCount: 0 });
+  const [lastResult, setLastResult] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,13 +60,19 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     setMessage('');
 
     try {
-      const response = await downloadTerminalProducts({ token: session.accessToken, limit: 100 });
-      const products = (response.data || []).map(normalizeProduct);
-      await saveProductCache(products);
+      const response = await downloadAllTerminalProducts({ token: session.accessToken, pageSize: 100 });
+      const products = response.rows.map(normalizeProduct);
+      await replaceProductCache(products);
       await markCacheUpdated('product', products.length);
       await refreshSummary();
       await onRefresh();
-      setMessage(`${products.length} urun cache guncellendi`);
+      setLastResult({
+        kind: 'Urun',
+        count: products.length,
+        totalRows: response.totalRows,
+        pageCount: response.pageCount,
+      });
+      setMessage(`${products.length} urun cache tam yenilendi`);
     } catch (updateError) {
       setError(updateError.message || 'Urun cache guncellenemedi');
     } finally {
@@ -79,13 +86,19 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     setMessage('');
 
     try {
-      const response = await downloadTerminalCustomers({ token: session.accessToken, limit: 100 });
-      const customers = (response.data || []).map(normalizeCustomer);
-      await saveCustomerCache(customers);
+      const response = await downloadAllTerminalCustomers({ token: session.accessToken, pageSize: 100 });
+      const customers = response.rows.map(normalizeCustomer);
+      await replaceCustomerCache(customers);
       await markCacheUpdated('customer', customers.length);
       await refreshSummary();
       await onRefresh();
-      setMessage(`${customers.length} cari cache guncellendi`);
+      setLastResult({
+        kind: 'Cari',
+        count: customers.length,
+        totalRows: response.totalRows,
+        pageCount: response.pageCount,
+      });
+      setMessage(`${customers.length} cari cache tam yenilendi`);
     } catch (updateError) {
       setError(updateError.message || 'Cari cache guncellenemedi');
     } finally {
@@ -94,8 +107,41 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
   }
 
   async function updateAll() {
-    await updateProducts();
-    await updateCustomers();
+    setLoading(true);
+    setError('');
+    setMessage('');
+    setLastResult(null);
+
+    try {
+      const [productResponse, customerResponse] = await Promise.all([
+        downloadAllTerminalProducts({ token: session.accessToken, pageSize: 100 }),
+        downloadAllTerminalCustomers({ token: session.accessToken, pageSize: 100 }),
+      ]);
+      const products = productResponse.rows.map(normalizeProduct);
+      const customers = customerResponse.rows.map(normalizeCustomer);
+
+      await Promise.all([
+        replaceProductCache(products),
+        replaceCustomerCache(customers),
+      ]);
+      await markCacheUpdated('product', products.length);
+      await markCacheUpdated('customer', customers.length);
+
+      await refreshSummary();
+      await onRefresh();
+      setLastResult({
+        kind: 'Tum veri',
+        productCount: products.length,
+        customerCount: customers.length,
+        productPages: productResponse.pageCount,
+        customerPages: customerResponse.pageCount,
+      });
+      setMessage(`${products.length} urun, ${customers.length} cari cache tam yenilendi`);
+    } catch (updateError) {
+      setError(updateError.message || 'Tum veri guncellenemedi');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -107,7 +153,28 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         <InfoRow label="Cari cache" value={String(summary.customerCount || 0)} />
         <InfoRow label="Urun son guncelleme" value={formatDate(summary.productCachedAt)} />
         <InfoRow label="Cari son guncelleme" value={formatDate(summary.customerCachedAt)} />
+        <InfoRow label="Son indirilen urun" value={summary.productCachedCount ? String(summary.productCachedCount) : '-'} />
+        <InfoRow label="Son indirilen cari" value={summary.customerCachedCount ? String(summary.customerCachedCount) : '-'} />
       </View>
+
+      {lastResult ? (
+        <View style={styles.resultPanel}>
+          <Text style={styles.resultTitle}>Son islem</Text>
+          <InfoRow label="Tur" value={lastResult.kind} />
+          {lastResult.productCount !== undefined ? (
+            <>
+              <InfoRow label="Urun" value={`${lastResult.productCount} kayit / ${lastResult.productPages} sayfa`} />
+              <InfoRow label="Cari" value={`${lastResult.customerCount} kayit / ${lastResult.customerPages} sayfa`} />
+            </>
+          ) : (
+            <>
+              <InfoRow label="Kayit" value={String(lastResult.count)} />
+              <InfoRow label="API toplam" value={String(lastResult.totalRows)} />
+              <InfoRow label="Sayfa" value={String(lastResult.pageCount)} />
+            </>
+          )}
+        </View>
+      ) : null}
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -149,6 +216,20 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontSize: 14,
     fontWeight: '900',
+  },
+  resultPanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  resultTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 4,
   },
   error: {
     color: colors.danger,

@@ -33,6 +33,19 @@ export async function saveProductCache(products = []) {
   await writeJson(productCacheKey, next);
 }
 
+export async function replaceProductCache(products = []) {
+  const next = {};
+
+  products.forEach((product) => {
+    next[String(product.id)] = {
+      ...product,
+      cachedAt: new Date().toISOString(),
+    };
+  });
+
+  await writeJson(productCacheKey, next);
+}
+
 export async function findCachedProduct(query) {
   const normalized = String(query || '').trim().toLocaleLowerCase('tr-TR');
   const cache = await readJson(productCacheKey, {});
@@ -72,12 +85,27 @@ export async function getCacheSummary() {
     customerCount: Object.keys(customers).length,
     productCachedAt: meta.productCachedAt || null,
     customerCachedAt: meta.customerCachedAt || null,
+    productCachedCount: meta.productCachedCount || null,
+    customerCachedCount: meta.customerCachedCount || null,
   };
 }
 
 export async function saveCustomerCache(customers = []) {
   const existing = await readJson(customerCacheKey, {});
   const next = { ...existing };
+
+  customers.forEach((customer) => {
+    next[String(customer.id)] = {
+      ...customer,
+      cachedAt: new Date().toISOString(),
+    };
+  });
+
+  await writeJson(customerCacheKey, next);
+}
+
+export async function replaceCustomerCache(customers = []) {
+  const next = {};
 
   customers.forEach((customer) => {
     next[String(customer.id)] = {
