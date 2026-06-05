@@ -111,7 +111,7 @@ function LastProductPanel({ product, quantity }) {
   );
 }
 
-export function NewSaleScreen({ session, navigation, onRefresh }) {
+export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
   const [customerResults, setCustomerResults] = useState([]);
@@ -497,6 +497,15 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {!syncState?.online ? (
+        <View style={styles.offlineSalePanel}>
+          <Text style={styles.offlineSaleTitle}>Offline satis modu</Text>
+          <Text style={styles.offlineSaleText}>
+            API kapali. Fisi tamamlarsaniz kayit telefonda bekler ve Sync Merkezi'nden gonderilir.
+          </Text>
+        </View>
+      ) : null}
+
       <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
         <Text style={styles.title}>Yeni Terminal Satis</Text>
         <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
@@ -735,9 +744,17 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       <SaleResultPanel result={saleResult} onOpenSync={navigation.openSyncStatus} />
 
       <View style={styles.submitPanel}>
-        <Text style={styles.submitTitle}>{lines.length ? 'Fis gonderime hazir' : 'Fis bos'}</Text>
-        <Text style={styles.submitMeta}>{selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir</Text>
-        <TerminalButton label="Fisi Gonder" onPress={finishSale} disabled={loading || lines.length === 0 || !selectedCustomer} />
+        <Text style={styles.submitTitle}>
+          {lines.length ? (syncState?.online ? 'Fis gonderime hazir' : 'Fis kuyruga alinacak') : 'Fis bos'}
+        </Text>
+        <Text style={styles.submitMeta}>
+          {selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir
+        </Text>
+        <TerminalButton
+          label={syncState?.online ? 'Fisi Gonder' : 'Offline Kuyruga Al'}
+          onPress={finishSale}
+          disabled={loading || lines.length === 0 || !selectedCustomer}
+        />
       </View>
       <TerminalButton label="Bekleyenleri Gonder" onPress={syncQueue} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
@@ -757,6 +774,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 8,
+  },
+  offlineSalePanel: {
+    borderColor: colors.danger,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.dangerSoft,
+    padding: 12,
+    gap: 4,
+  },
+  offlineSaleTitle: {
+    color: colors.danger,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  offlineSaleText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   compactCustomerPanel: {
     backgroundColor: colors.white,

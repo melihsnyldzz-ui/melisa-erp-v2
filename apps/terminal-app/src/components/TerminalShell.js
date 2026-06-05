@@ -42,6 +42,13 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
         </View>
       </View>
 
+      {!syncState.online ? (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineTitle}>OFFLINE MOD</Text>
+          <Text style={styles.offlineText}>API kapali. Satislar local kuyruga alinip Sync Merkezi'nden gonderilecek.</Text>
+        </View>
+      ) : null}
+
       <View style={styles.screenHeader}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -156,6 +163,25 @@ const styles = StyleSheet.create({
   },
   bad: {
     color: '#ff9a9a',
+  },
+  offlineBanner: {
+    backgroundColor: colors.dangerSoft,
+    borderBottomColor: colors.danger,
+    borderBottomWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  offlineTitle: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  offlineText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   screenHeader: {
     backgroundColor: colors.white,

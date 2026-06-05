@@ -163,6 +163,7 @@ export default function App() {
         {activeScreen === 'newSale' && (
           <NewSaleScreen
             session={session}
+            syncState={syncState}
             navigation={navigation}
             onRefresh={refreshSyncState}
           />
