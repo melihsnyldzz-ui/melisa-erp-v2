@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
 import { getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
-import { colors } from '../styles/theme';
+import { colors, terminalStyles } from '../styles/theme';
 
 function statusLabel(status) {
   if (status === 'pending') return 'Bekliyor';
@@ -290,19 +290,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   queueCard: {
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
+    borderLeftColor: colors.warning,
+    borderLeftWidth: 5,
     borderRadius: 8,
     backgroundColor: colors.white,
     padding: 12,
     gap: 10,
+    ...terminalStyles.rowShadow,
   },
   queueCardFailed: {
     borderColor: colors.danger,
+    borderLeftColor: colors.danger,
     backgroundColor: colors.dangerSoft,
   },
   queueCardSynced: {
     borderColor: colors.success,
+    borderLeftColor: colors.success,
     backgroundColor: colors.successSoft,
   },
   cardHeader: {
@@ -353,11 +358,11 @@ const styles = StyleSheet.create({
   },
   factBox: {
     flex: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 7,
-    backgroundColor: colors.panel,
-    padding: 8,
+    backgroundColor: colors.white,
+    padding: 9,
   },
   factLabel: {
     color: colors.muted,

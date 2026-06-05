@@ -8,7 +8,7 @@ import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/curren
 import { lookupProductByBarcode } from '../services/productService';
 import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales, updateQueueEventPayload } from '../services/queueService';
 import { buildTerminalSalePayload, searchTerminalCustomers, searchTerminalProducts, submitTerminalSale } from '../services/terminalSalesService';
-import { colors } from '../styles/theme';
+import { colors, terminalStyles } from '../styles/theme';
 
 function normalizeCustomer(row) {
   return {
@@ -1618,7 +1618,7 @@ const styles = StyleSheet.create({
   },
   customerResultRow: {
     minHeight: 52,
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: colors.white,
@@ -1626,8 +1626,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    borderLeftColor: colors.accent,
+    borderLeftWidth: 5,
+    ...terminalStyles.rowShadow,
   },
   customerResultText: {
     flex: 1,
@@ -1663,11 +1666,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lineRow: {
-    minHeight: 66,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 6,
-    paddingVertical: 5,
+    minHeight: 74,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderLeftColor: colors.accent,
+    borderLeftWidth: 5,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    marginBottom: 8,
+    ...terminalStyles.rowShadow,
   },
   lineText: {
     flex: 1,
@@ -1804,12 +1814,15 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   reviewLineRow: {
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
+    borderLeftColor: colors.success,
+    borderLeftWidth: 5,
     borderRadius: 8,
-    backgroundColor: colors.panel,
-    padding: 10,
-    gap: 6,
+    backgroundColor: colors.white,
+    padding: 11,
+    gap: 7,
+    ...terminalStyles.rowShadow,
   },
   reviewActions: {
     backgroundColor: colors.white,
@@ -1976,11 +1989,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   productAlternativeRow: {
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
-    borderRadius: 7,
+    borderLeftColor: colors.warning,
+    borderLeftWidth: 5,
+    borderRadius: 8,
     backgroundColor: colors.white,
-    padding: 10,
+    padding: 11,
+    ...terminalStyles.rowShadow,
   },
   productResultHeader: {
     flexDirection: 'row',

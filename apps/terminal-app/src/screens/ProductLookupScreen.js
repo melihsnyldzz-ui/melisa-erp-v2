@@ -5,7 +5,7 @@ import { TerminalButton } from '../components/TerminalButton';
 import { findCachedProduct, saveProductCache } from '../services/cacheService';
 import { getRecentProducts, rememberRecentProduct } from '../services/productService';
 import { searchTerminalProducts } from '../services/terminalSalesService';
-import { colors } from '../styles/theme';
+import { colors, terminalStyles } from '../styles/theme';
 
 function formatMoney(value, currency) {
   return `${Number(value || 0).toFixed(2)} ${currency || ''}`.trim();
@@ -340,14 +340,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   resultRow: {
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
-    borderRadius: 7,
-    padding: 10,
-    backgroundColor: colors.panel,
+    borderLeftColor: colors.accent,
+    borderLeftWidth: 5,
+    borderRadius: 8,
+    padding: 11,
+    backgroundColor: colors.white,
+    ...terminalStyles.rowShadow,
   },
   selectedResultRow: {
     borderColor: colors.success,
+    borderLeftColor: colors.success,
     backgroundColor: colors.successSoft,
   },
   resultName: {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
 import { getPendingQueue } from '../services/queueService';
-import { colors } from '../styles/theme';
+import { colors, terminalStyles } from '../styles/theme';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -284,13 +284,17 @@ const styles = StyleSheet.create({
   receiptCard: {
     borderColor: colors.success,
     borderWidth: 1,
+    borderLeftColor: colors.success,
+    borderLeftWidth: 5,
     borderRadius: 8,
     backgroundColor: colors.successSoft,
     padding: 12,
     gap: 10,
+    ...terminalStyles.rowShadow,
   },
   receiptCardDuplicate: {
     borderColor: colors.warning,
+    borderLeftColor: colors.warning,
     backgroundColor: colors.warningSoft,
   },
   receiptHeader: {
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
   },
   factBox: {
     flex: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.white,
@@ -359,15 +363,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   linesBox: {
-    gap: 6,
+    gap: 8,
   },
   lineRow: {
-    borderColor: colors.border,
+    borderColor: colors.borderDark,
     borderWidth: 1,
-    borderRadius: 7,
+    borderLeftColor: colors.accent,
+    borderLeftWidth: 4,
+    borderRadius: 8,
     backgroundColor: colors.white,
-    padding: 8,
-    gap: 5,
+    padding: 9,
+    gap: 6,
   },
   lineText: {
     flex: 1,

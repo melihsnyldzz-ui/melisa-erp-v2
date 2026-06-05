@@ -39,4 +39,14 @@ export const terminalStyles = {
     },
     elevation: 2,
   },
+  rowShadow: {
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 1,
+  },
 };
