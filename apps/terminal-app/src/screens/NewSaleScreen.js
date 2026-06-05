@@ -40,6 +40,9 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const total = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0) * Number(line.unitPrice || 0)
   ), 0), [lines]);
+  const itemQuantity = useMemo(() => lines.reduce((sum, line) => (
+    sum + Number(line.quantity || 0)
+  ), 0), [lines]);
   const totalsByCurrency = useMemo(() => lines.reduce((summary, line) => {
     const currency = line.product.currency || selectedCustomer?.currency || 'TRY';
     const lineTotal = Number(line.quantity || 0) * Number(line.unitPrice || 0);
@@ -77,6 +80,13 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function clearSelectedCustomer() {
+    setSelectedCustomer(null);
+    setCustomerResults([]);
+    setMessage('');
+    setError('');
   }
 
   async function selectCashCustomer(code) {
@@ -250,6 +260,16 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setLines((current) => current.filter((line) => String(line.product.id) !== String(productId)));
   }
 
+  function clearSale() {
+    setLines([]);
+    setBarcode('');
+    setQuantity('1');
+    setProductAlternatives([]);
+    setMessage('Fis temizlendi');
+    setError('');
+    setTimeout(() => barcodeRef.current?.focus(), 120);
+  }
+
   async function syncQueue() {
     setLoading(true);
     setError('');
@@ -269,39 +289,47 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.panel}>
+      <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
         <Text style={styles.title}>Yeni Terminal Satis</Text>
         <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
 
-        <Text style={styles.label}>Cari ara</Text>
-        <View style={styles.cashRow}>
-          {cashCustomerCodes.map((code) => (
-            <TerminalButton
-              key={code}
-              label={code.replace('PESIN-', '')}
-              onPress={() => selectCashCustomer(code)}
-              disabled={loading}
-              variant="secondary"
-            />
-          ))}
-        </View>
-        <View style={styles.row}>
-          <TextInput
-            value={customerQuery}
-            onChangeText={setCustomerQuery}
-            onSubmitEditing={searchCustomer}
-            style={styles.input}
-            placeholder="PESIN-TL veya cari adi"
-            autoCapitalize="none"
-          />
-          <TerminalButton label="Ara" onPress={searchCustomer} disabled={loading} />
-        </View>
+        {!selectedCustomer ? (
+          <>
+            <Text style={styles.label}>Cari ara</Text>
+            <View style={styles.cashRow}>
+              {cashCustomerCodes.map((code) => (
+                <TerminalButton
+                  key={code}
+                  label={code.replace('PESIN-', '')}
+                  onPress={() => selectCashCustomer(code)}
+                  disabled={loading}
+                  variant="secondary"
+                />
+              ))}
+            </View>
+            <View style={styles.row}>
+              <TextInput
+                value={customerQuery}
+                onChangeText={setCustomerQuery}
+                onSubmitEditing={searchCustomer}
+                style={styles.input}
+                placeholder="PESIN-TL veya cari adi"
+                autoCapitalize="none"
+              />
+              <TerminalButton label="Ara" onPress={searchCustomer} disabled={loading} />
+            </View>
+          </>
+        ) : null}
 
         {selectedCustomer ? (
           <View style={styles.selectedBox}>
-            <InfoRow label="Cari" value={selectedCustomer.customerName} />
-            <InfoRow label="Kod" value={selectedCustomer.customerCode} />
-            <InfoRow label="Para" value={selectedCustomer.currency} />
+            <View style={styles.selectedCustomerHeader}>
+              <View style={styles.selectedCustomerText}>
+                <Text style={styles.selectedCustomerName}>{selectedCustomer.customerName}</Text>
+                <Text style={styles.selectedCustomerMeta}>{selectedCustomer.customerCode} / {selectedCustomer.currency}</Text>
+              </View>
+              <TerminalButton label="Degistir" onPress={clearSelectedCustomer} disabled={loading} variant="secondary" />
+            </View>
           </View>
         ) : null}
 
@@ -324,7 +352,13 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.label}>Barkod</Text>
+        <View style={styles.barcodeHeader}>
+          <View>
+            <Text style={styles.title}>Barkod</Text>
+            <Text style={styles.meta}>{selectedCustomer ? 'Cari secili, okutmaya hazir' : 'Once cari secin'}</Text>
+          </View>
+          <Text style={styles.quantityBadge}>{itemQuantity} adet</Text>
+        </View>
         <TextInput
           ref={barcodeRef}
           value={barcode}
@@ -363,7 +397,13 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.title}>Fis Satirlari</Text>
+        <View style={styles.receiptHeader}>
+          <View>
+            <Text style={styles.title}>Fis Satirlari</Text>
+            <Text style={styles.meta}>{lines.length} satir / {itemQuantity} adet</Text>
+          </View>
+          {lines.length ? <TerminalButton label="Temizle" onPress={clearSale} disabled={loading} variant="secondary" /> : null}
+        </View>
         {hasMixedCurrency ? (
           <Text style={styles.warning}>
             Satir para birimi cari para biriminden farkli. Backend kur snapshot ile isleyecek; kur ERP tarafinda kontrol edilmeli.
@@ -406,7 +446,11 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
-      <TerminalButton label="Fisi Gonder" onPress={finishSale} disabled={loading || lines.length === 0} />
+      <View style={styles.submitPanel}>
+        <Text style={styles.submitTitle}>{lines.length ? 'Fis gonderime hazir' : 'Fis bos'}</Text>
+        <Text style={styles.submitMeta}>{selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir</Text>
+        <TerminalButton label="Fisi Gonder" onPress={finishSale} disabled={loading || lines.length === 0 || !selectedCustomer} />
+      </View>
       <TerminalButton label="Bekleyenleri Gonder" onPress={syncQueue} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
     </ScrollView>
@@ -425,6 +469,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 8,
+  },
+  compactCustomerPanel: {
+    backgroundColor: colors.white,
   },
   title: {
     color: colors.text,
@@ -474,7 +521,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.successSoft,
+    padding: 10,
+  },
+  selectedCustomerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  selectedCustomerText: {
+    flex: 1,
+  },
+  selectedCustomerName: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  selectedCustomerMeta: {
+    marginTop: 3,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  barcodeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  quantityBadge: {
+    minWidth: 70,
+    textAlign: 'center',
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
     paddingHorizontal: 8,
+    paddingVertical: 7,
   },
   resultList: {
     gap: 7,
@@ -485,7 +571,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lineRow: {
-    minHeight: 72,
+    minHeight: 78,
     borderBottomColor: colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 8,
@@ -513,7 +599,32 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   lineButtons: {
+    flexDirection: 'row',
     gap: 6,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  submitPanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  submitTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  submitMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
   },
   message: {
     color: colors.success,
