@@ -928,17 +928,15 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         <TerminalButton label={lastScannedProduct ? 'Satira Ekle' : 'Urunu Getir'} onPress={lastScannedProduct ? addBarcodeLine : lookupBarcodeProduct} disabled={loading} />
         <View style={styles.quickSearchPanel}>
           <Text style={styles.label}>Barkod yoksa urun ara</Text>
-          <View style={styles.row}>
-            <TextInput
-              value={productQuery}
-              onChangeText={setProductQuery}
-              onSubmitEditing={searchProduct}
-              style={styles.input}
-              placeholder="Urun adi, stok kodu veya barkod"
-              autoCapitalize="none"
-            />
-            <TerminalButton label="Urun Ara" onPress={searchProduct} disabled={loading} variant="secondary" />
-          </View>
+          <TextInput
+            value={productQuery}
+            onChangeText={setProductQuery}
+            onSubmitEditing={searchProduct}
+            style={styles.productSearchInput}
+            placeholder="Urun adi, stok kodu veya barkod"
+            autoCapitalize="none"
+          />
+          <TerminalButton label="Urun Ara" onPress={searchProduct} disabled={loading} variant="secondary" />
           {productResults.length ? (
             <View style={styles.productAlternativePanel}>
               {productResults.map((product) => (
@@ -947,13 +945,15 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
                   onPress={() => selectSearchedProduct(product)}
                   style={styles.productAlternativeRow}
                 >
-                  <View style={styles.productResultHeader}>
-                    <Text style={styles.lineName}>{product.productName}</Text>
-                    <Text style={styles.stockBadge}>Stok {product.stockQuantity}</Text>
+                  <View style={styles.productResultTextBlock}>
+                    <Text style={styles.productResultTitle} numberOfLines={1}>
+                      {product.stockCode} / {product.productName}
+                    </Text>
+                    <Text style={styles.productResultMeta} numberOfLines={1}>
+                      {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
+                    </Text>
                   </View>
-                  <Text style={styles.lineMeta}>
-                    {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'} / {formatMoney(product.salePrice, product.currency)}
-                  </Text>
+                  <Text style={styles.productPriceBadge}>{formatMoney(product.salePrice, product.currency)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -2052,7 +2052,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   productAlternativePanel: {
-    gap: 7,
+    overflow: 'hidden',
+    borderColor: '#1f2937',
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#07110d',
   },
   quickSearchPanel: {
     borderTopColor: colors.border,
@@ -2061,34 +2065,56 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     gap: 8,
   },
-  productAlternativeRow: {
+  productSearchInput: {
+    minHeight: 52,
     borderColor: colors.borderDark,
     borderWidth: 1,
-    borderLeftColor: colors.warning,
-    borderLeftWidth: 5,
     borderRadius: 8,
-    backgroundColor: colors.white,
-    padding: 11,
-    ...terminalStyles.rowShadow,
+    backgroundColor: colors.input,
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    paddingHorizontal: 12,
   },
-  productResultHeader: {
+  productAlternativeRow: {
+    minHeight: 46,
+    borderBottomColor: '#13261d',
+    borderBottomWidth: 1,
+    backgroundColor: '#07110d',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
-  stockBadge: {
-    minWidth: 62,
-    overflow: 'hidden',
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 7,
-    backgroundColor: colors.accentSoft,
-    color: colors.accentDark,
-    fontSize: 11,
+  productResultTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  productResultTitle: {
+    color: colors.headerSubtle,
+    fontSize: 12,
     fontWeight: '900',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+  },
+  productResultMeta: {
+    color: '#64748b',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  productPriceBadge: {
+    minWidth: 68,
+    overflow: 'hidden',
+    borderColor: '#bbf7d0',
+    borderWidth: 1,
+    borderRadius: 999,
+    backgroundColor: '#dcfce7',
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     textAlign: 'center',
   },
   error: {
