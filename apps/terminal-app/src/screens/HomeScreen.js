@@ -5,6 +5,89 @@ import { terminalConfig } from '../config/env';
 import { syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
 
+function HomeIcon({ type, tone = 'neutral' }) {
+  if (type === 'sale') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.receiptSheet}>
+          <View style={styles.receiptLineLong} />
+          <View style={styles.receiptLineShort} />
+          <View style={styles.receiptTotalLine} />
+        </View>
+      </View>
+    );
+  }
+
+  if (type === 'barcode') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.barcodeFrame}>
+          {[5, 2, 7, 3, 4, 2].map((width, index) => (
+            <View key={`${width}-${index}`} style={[styles.barcodeLine, { width }]} />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (type === 'queue') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.uploadTray} />
+        <View style={styles.uploadStem} />
+        <View style={styles.uploadArrow} />
+      </View>
+    );
+  }
+
+  if (type === 'data') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.dbTop} />
+        <View style={styles.dbBody} />
+        <View style={styles.dbBottom} />
+      </View>
+    );
+  }
+
+  if (type === 'field') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.clipboard}>
+          <View style={styles.clipTop} />
+          <View style={styles.checkRow}>
+            <Text style={styles.checkSymbol}>✓</Text>
+            <View style={styles.checkLine} />
+          </View>
+          <View style={styles.checkRow}>
+            <Text style={styles.checkSymbol}>✓</Text>
+            <View style={styles.checkLineShort} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (type === 'search') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.searchCircle} />
+        <View style={styles.searchHandle} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+      <View style={styles.gearOuter}>
+        <View style={styles.gearInner} />
+      </View>
+      <View style={styles.gearToothTop} />
+      <View style={styles.gearToothSide} />
+    </View>
+  );
+}
+
 function ActionTile({ icon, title, subtitle, meta, tone = 'neutral', onPress, wide = false }) {
   return (
     <Pressable
@@ -16,9 +99,7 @@ function ActionTile({ icon, title, subtitle, meta, tone = 'neutral', onPress, wi
         pressed && styles.pressed,
       ]}
     >
-      <View style={[styles.tileIcon, styles[`tileIcon_${tone}`]]}>
-        <Text style={[styles.tileIconText, tone === 'primary' && styles.tileIconTextPrimary]}>{icon}</Text>
-      </View>
+      <HomeIcon type={icon} tone={tone} />
       <View style={styles.actionText}>
         <Text style={[styles.actionTitle, tone === 'primary' && styles.actionTitlePrimary]}>{title}</Text>
         <Text style={[styles.actionSubtitle, tone === 'primary' && styles.actionSubtitlePrimary]}>{subtitle}</Text>
@@ -65,7 +146,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
 
       <View style={styles.actionStack}>
         <ActionTile
-          icon="FIS"
+          icon="sale"
           title="Yeni Satis"
           subtitle="Cari sec, barkod okut, fisi gonder"
           meta={syncState.online ? 'API hazir' : 'Offline queue aktif'}
@@ -75,7 +156,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         />
         <View style={styles.actionGrid}>
           <ActionTile
-            icon="|||"
+            icon="barcode"
             title="Barkod Okut"
             subtitle="Urun kontrol"
             meta="Hizli"
@@ -83,7 +164,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openBarcode}
           />
           <ActionTile
-            icon="UP"
+            icon="queue"
             title="Bekleyenler"
             subtitle="Queue gonder"
             meta={`${pending} bekleyen`}
@@ -91,7 +172,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openSyncStatus}
           />
           <ActionTile
-            icon="DB"
+            icon="data"
             title="Veri Guncelle"
             subtitle="Urun ve cari indir"
             meta={`${products}/${customers}`}
@@ -99,7 +180,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openDataUpdate}
           />
           <ActionTile
-            icon="OK"
+            icon="field"
             title="Saha Testi"
             subtitle="Kontrol listesi"
             meta={syncState.online ? 'Online' : 'Offline'}
@@ -107,7 +188,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openFieldTest}
           />
           <ActionTile
-            icon="ARA"
+            icon="search"
             title="Urun Bilgisi"
             subtitle="Stok/fiyat bak"
             meta="Arama"
@@ -115,7 +196,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openProductLookup}
           />
           <ActionTile
-            icon="SET"
+            icon="settings"
             title="Ayarlar"
             subtitle="API ve cihaz"
             meta="Kurulum"
@@ -173,19 +254,19 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
 
       <View style={styles.bottomDock}>
         <Pressable onPress={navigation.openNewSale} style={styles.dockItem}>
-          <Text style={styles.dockIcon}>FIS</Text>
+          <Text style={styles.dockIcon}>▤</Text>
           <Text style={styles.dockText}>Satis</Text>
         </Pressable>
         <Pressable onPress={navigation.openBarcode} style={styles.dockItem}>
-          <Text style={styles.dockIcon}>|||</Text>
+          <Text style={styles.dockIcon}>▥</Text>
           <Text style={styles.dockText}>Barkod</Text>
         </Pressable>
         <Pressable onPress={navigation.openSyncStatus} style={styles.dockItem}>
-          <Text style={styles.dockIcon}>UP</Text>
+          <Text style={styles.dockIcon}>↑</Text>
           <Text style={styles.dockText}>Sync</Text>
         </Pressable>
         <Pressable onPress={navigation.openSettings} style={styles.dockItem}>
-          <Text style={styles.dockIcon}>SET</Text>
+          <Text style={styles.dockIcon}>⚙</Text>
           <Text style={styles.dockText}>Ayar</Text>
         </Pressable>
       </View>
@@ -294,9 +375,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.78,
   },
-  tileIcon: {
-    width: 48,
-    height: 48,
+  iconCanvas: {
+    width: 58,
+    height: 58,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
@@ -304,33 +385,211 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.panel,
   },
-  tileIcon_primary: {
+  iconCanvas_primary: {
     borderColor: '#99f6e4',
     backgroundColor: '#ccfbf1',
   },
-  tileIcon_neutral: {
+  iconCanvas_neutral: {
     borderColor: colors.border,
     backgroundColor: colors.panel,
   },
-  tileIcon_success: {
+  iconCanvas_success: {
     borderColor: colors.success,
     backgroundColor: colors.white,
   },
-  tileIcon_danger: {
+  iconCanvas_danger: {
     borderColor: colors.danger,
     backgroundColor: colors.white,
   },
-  tileIcon_warning: {
+  iconCanvas_warning: {
     borderColor: colors.warning,
     backgroundColor: colors.white,
   },
-  tileIconText: {
-    color: colors.text,
-    fontSize: 13,
+  receiptSheet: {
+    width: 31,
+    height: 38,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.accentDark,
+    backgroundColor: colors.white,
+    padding: 5,
+    gap: 4,
+  },
+  receiptLineLong: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
+  receiptLineShort: {
+    width: 16,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderDark,
+  },
+  receiptTotalLine: {
+    marginTop: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.danger,
+  },
+  barcodeFrame: {
+    width: 36,
+    height: 32,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 5,
+  },
+  barcodeLine: {
+    height: '100%',
+    backgroundColor: colors.text,
+  },
+  uploadTray: {
+    width: 36,
+    height: 10,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.danger,
+    position: 'absolute',
+    bottom: 13,
+  },
+  uploadStem: {
+    width: 6,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: colors.danger,
+    position: 'absolute',
+    top: 16,
+  },
+  uploadArrow: {
+    width: 18,
+    height: 18,
+    borderLeftWidth: 6,
+    borderTopWidth: 6,
+    borderColor: colors.danger,
+    transform: [{ rotate: '45deg' }],
+    position: 'absolute',
+    top: 11,
+  },
+  dbTop: {
+    width: 34,
+    height: 12,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.success,
+    backgroundColor: colors.white,
+  },
+  dbBody: {
+    width: 34,
+    height: 22,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    marginTop: -6,
+  },
+  dbBottom: {
+    width: 34,
+    height: 12,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.success,
+    backgroundColor: colors.white,
+    marginTop: -6,
+  },
+  clipboard: {
+    width: 35,
+    height: 42,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.accentDark,
+    backgroundColor: colors.white,
+    paddingTop: 11,
+    paddingHorizontal: 5,
+    gap: 4,
+  },
+  clipTop: {
+    width: 16,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+    position: 'absolute',
+    top: -4,
+    alignSelf: 'center',
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  checkSymbol: {
+    color: colors.success,
+    fontSize: 11,
     fontWeight: '900',
   },
-  tileIconTextPrimary: {
-    color: colors.accentDark,
+  checkLine: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderDark,
+  },
+  checkLineShort: {
+    width: 12,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderDark,
+  },
+  searchCircle: {
+    width: 27,
+    height: 27,
+    borderRadius: 16,
+    borderWidth: 4,
+    borderColor: colors.accentDark,
+    backgroundColor: colors.white,
+  },
+  searchHandle: {
+    width: 18,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.accentDark,
+    transform: [{ rotate: '45deg' }],
+    position: 'absolute',
+    right: 10,
+    bottom: 13,
+  },
+  gearOuter: {
+    width: 31,
+    height: 31,
+    borderRadius: 18,
+    borderWidth: 6,
+    borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gearInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: colors.text,
+  },
+  gearToothTop: {
+    width: 8,
+    height: 38,
+    borderRadius: 3,
+    backgroundColor: colors.text,
+    position: 'absolute',
+  },
+  gearToothSide: {
+    width: 38,
+    height: 8,
+    borderRadius: 3,
+    backgroundColor: colors.text,
+    position: 'absolute',
   },
   actionText: {
     gap: 4,
