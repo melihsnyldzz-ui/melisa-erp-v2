@@ -186,6 +186,27 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const hasMixedCurrency = selectedCustomer && lineCurrencies.some((currency) => currency !== selectedCustomer.currency);
   const selectedExchangeRate = getRateToTry(currencyRates, selectedCustomer?.currency || 'TRY');
 
+  function convertProductForSale(product) {
+    if (!product) return product;
+
+    const sourceCurrency = product.currency || 'TRY';
+    const targetCurrency = selectedCustomer?.currency || sourceCurrency;
+    const sourceRate = getRateToTry(currencyRates, sourceCurrency);
+    const targetRate = getRateToTry(currencyRates, targetCurrency);
+    const originalSalePrice = Number(product.salePrice || 0);
+    const convertedSalePrice = targetCurrency === sourceCurrency
+      ? originalSalePrice
+      : (originalSalePrice * Number(sourceRate || 1)) / Number(targetRate || 1);
+
+    return {
+      ...product,
+      currency: targetCurrency,
+      salePrice: Number(convertedSalePrice || 0),
+      originalCurrency: sourceCurrency,
+      originalSalePrice,
+    };
+  }
+
   function buildSalePayloadSnapshot() {
     const trimmedTestNote = testNote.trim();
     const saleNote = testMode
@@ -444,18 +465,19 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function addProductLine(product, parsedQuantity = Number(quantity || 1)) {
+    const saleProduct = convertProductForSale(product);
     setReviewMode(false);
     setLastScannedProduct(product);
     setLastScannedQuantity(parsedQuantity);
     setLines((current) => {
-      const existingIndex = current.findIndex((line) => String(line.product.id) === String(product.id));
+      const existingIndex = current.findIndex((line) => String(line.product.id) === String(saleProduct.id));
       if (existingIndex < 0) {
         return [
           ...current,
           {
-            product,
+            product: saleProduct,
             quantity: parsedQuantity,
-            unitPrice: Number(product.salePrice || 0),
+            unitPrice: Number(saleProduct.salePrice || 0),
           },
         ];
       }
@@ -909,7 +931,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           keyboardType="number-pad"
           returnKeyType="done"
         />
-        <LastProductPanel product={lastScannedProduct} quantity={quantity || lastScannedQuantity} />
+        <LastProductPanel product={convertProductForSale(lastScannedProduct)} quantity={quantity || lastScannedQuantity} />
         <Text style={styles.label}>Miktar</Text>
         <View style={styles.quantityControl}>
           <Pressable onPress={() => adjustInputQuantity(-1)} style={styles.quantityButton}>
@@ -939,23 +961,26 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           <TerminalButton label="Urun Ara" onPress={searchProduct} disabled={loading} variant="secondary" />
           {productResults.length ? (
             <View style={styles.productAlternativePanel}>
-              {productResults.map((product) => (
-                <Pressable
-                  key={`${product.id}-${product.stockCode}`}
-                  onPress={() => selectSearchedProduct(product)}
-                  style={styles.productAlternativeRow}
-                >
-                  <View style={styles.productResultTextBlock}>
-                    <Text style={styles.productResultTitle} numberOfLines={1}>
-                      {product.stockCode} / {product.productName}
-                    </Text>
-                    <Text style={styles.productResultMeta} numberOfLines={1}>
-                      {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
-                    </Text>
-                  </View>
-                  <Text style={styles.productPriceBadge}>{formatMoney(product.salePrice, product.currency)}</Text>
-                </Pressable>
-              ))}
+              {productResults.map((product) => {
+                const saleProduct = convertProductForSale(product);
+                return (
+                  <Pressable
+                    key={`${product.id}-${product.stockCode}`}
+                    onPress={() => selectSearchedProduct(product)}
+                    style={styles.productAlternativeRow}
+                  >
+                    <View style={styles.productResultTextBlock}>
+                      <Text style={styles.productResultTitle} numberOfLines={1}>
+                        {product.stockCode} / {product.productName}
+                      </Text>
+                      <Text style={styles.productResultMeta} numberOfLines={1}>
+                        {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
+                      </Text>
+                    </View>
+                    <Text style={styles.productPriceBadge}>{formatMoney(saleProduct.salePrice, saleProduct.currency)}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           ) : null}
         </View>
