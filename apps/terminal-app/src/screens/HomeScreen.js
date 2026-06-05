@@ -1,9 +1,33 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { colors } from '../styles/theme';
 
+function TaskCard({ title, subtitle, meta, tone = 'primary', onPress }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.taskCard,
+        styles[`taskCard_${tone}`],
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.taskText}>
+        <Text style={[styles.taskTitle, tone === 'primary' && styles.taskTitlePrimary]}>{title}</Text>
+        <Text style={[styles.taskSubtitle, tone === 'primary' && styles.taskSubtitlePrimary]}>{subtitle}</Text>
+      </View>
+      {meta ? <Text style={[styles.taskMeta, tone === 'primary' && styles.taskMetaPrimary]}>{meta}</Text> : null}
+    </Pressable>
+  );
+}
+
 export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh }) {
+  const pending = Number(syncState.salePendingCount || syncState.pendingCount || 0);
+  const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
+  const products = Number(syncState.productCount || 0);
+  const customers = Number(syncState.customerCount || 0);
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.heroPanel}>
@@ -15,9 +39,30 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         </View>
       </View>
 
-      <View style={styles.primaryGrid}>
-        <TerminalButton label="Yeni satis" onPress={navigation.openNewSale} />
-        <TerminalButton label="Barkod okut" onPress={navigation.openBarcode} />
+      <View style={styles.taskStack}>
+        <TaskCard
+          title="Yeni Satis"
+          subtitle="Cari sec, barkod okut, fisi gonder"
+          meta={syncState.online ? 'API hazir' : 'Offline queue aktif'}
+          tone="primary"
+          onPress={navigation.openNewSale}
+        />
+        <View style={styles.taskGrid}>
+          <TaskCard
+            title="Barkod"
+            subtitle="Urun kontrol"
+            meta="Hizli bak"
+            tone="neutral"
+            onPress={navigation.openBarcode}
+          />
+          <TaskCard
+            title="Bekleyen"
+            subtitle="Queue gonder"
+            meta={`${pending} bekleyen`}
+            tone={pending || failed ? 'danger' : 'success'}
+            onPress={navigation.openSyncStatus}
+          />
+        </View>
       </View>
 
       <View style={styles.statusGrid}>
@@ -25,29 +70,40 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <Text style={styles.statusLabel}>API</Text>
           <Text style={styles.statusValue}>{syncState.online ? 'Online' : 'Offline'}</Text>
         </View>
-        <View style={[styles.statusCard, syncState.pendingCount ? styles.badCard : styles.goodCard]}>
+        <View style={[styles.statusCard, pending ? styles.badCard : styles.goodCard]}>
           <Text style={styles.statusLabel}>Bekleyen</Text>
-          <Text style={styles.statusValue}>{syncState.pendingCount || 0}</Text>
+          <Text style={styles.statusValue}>{pending}</Text>
         </View>
-        <View style={[styles.statusCard, syncState.saleFailedCount ? styles.badCard : styles.goodCard]}>
+        <View style={[styles.statusCard, failed ? styles.badCard : styles.goodCard]}>
           <Text style={styles.statusLabel}>Hatali</Text>
-          <Text style={styles.statusValue}>{syncState.saleFailedCount || 0}</Text>
+          <Text style={styles.statusValue}>{failed}</Text>
         </View>
       </View>
 
+      <View style={styles.cachePanel}>
+        <View>
+          <Text style={styles.cacheTitle}>Local veri</Text>
+          <Text style={styles.cacheMeta}>{products} urun / {customers} cari</Text>
+        </View>
+        <TerminalButton label="Guncelle" onPress={navigation.openDataUpdate} variant="secondary" />
+      </View>
+
       <View style={styles.secondaryGrid}>
-        <TerminalButton label="Sync durumu" onPress={navigation.openSyncStatus} variant="secondary" />
-        <TerminalButton label="Veri guncelle" onPress={navigation.openDataUpdate} variant="secondary" />
+        <TerminalButton label="Sync Merkezi" onPress={navigation.openSyncStatus} variant="secondary" />
         <TerminalButton label="Saha testi" onPress={navigation.openFieldTest} variant="secondary" />
         <TerminalButton label="Urun bilgisi" onPress={navigation.openProductLookup} variant="secondary" />
         <TerminalButton label="Ayarlar" onPress={navigation.openSettings} variant="secondary" />
         <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
       </View>
 
-      <View style={styles.notice}>
-        <Text style={styles.noticeTitle}>Saha kullanim karari</Text>
+      <View style={[styles.notice, failed ? styles.noticeDanger : styles.noticeInfo]}>
+        <Text style={[styles.noticeTitle, failed ? styles.noticeTitleDanger : styles.noticeTitleInfo]}>
+          {failed ? 'Mudahale gerekli' : 'Saha akisi'}
+        </Text>
         <Text style={styles.noticeText}>
-          Ana akis satis ve barkod okutmadir. Sync ve ayarlar ikinci planda kalir; hata varsa ust durum cubugunda kirmizi gorunur.
+          {failed
+            ? 'Hatali kayit var. Sync Merkezi ekranindan gercek hata mesajini gorup tekrar gonderin.'
+            : 'Ana akis satis baslatmak, barkod okutmak ve gerekirse bekleyenleri gondermektir.'}
         </Text>
       </View>
 
@@ -99,6 +155,81 @@ const styles = StyleSheet.create({
   primaryGrid: {
     gap: 10,
   },
+  taskStack: {
+    gap: 9,
+  },
+  taskGrid: {
+    flexDirection: 'row',
+    gap: 9,
+  },
+  taskCard: {
+    minHeight: 96,
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  taskCard_primary: {
+    minHeight: 124,
+    backgroundColor: colors.accent,
+    borderColor: colors.accentDark,
+  },
+  taskCard_neutral: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+  },
+  taskCard_success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  taskCard_danger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
+  taskText: {
+    gap: 4,
+  },
+  taskTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  taskTitlePrimary: {
+    color: colors.headerText,
+    fontSize: 28,
+  },
+  taskSubtitle: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
+  taskSubtitlePrimary: {
+    color: colors.headerText,
+  },
+  taskMeta: {
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  taskMetaPrimary: {
+    borderColor: '#99f6e4',
+    backgroundColor: '#ccfbf1',
+    color: colors.accentDark,
+  },
   secondaryGrid: {
     gap: 8,
   },
@@ -134,17 +265,51 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 3,
   },
+  cachePanel: {
+    minHeight: 72,
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  cacheTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  cacheMeta: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
   notice: {
-    backgroundColor: colors.warningSoft,
-    borderColor: colors.warning,
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
   },
+  noticeInfo: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  noticeDanger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
   noticeTitle: {
-    color: colors.warning,
     fontSize: 14,
     fontWeight: '900',
+  },
+  noticeTitleInfo: {
+    color: colors.warning,
+  },
+  noticeTitleDanger: {
+    color: colors.danger,
   },
   noticeText: {
     marginTop: 5,
