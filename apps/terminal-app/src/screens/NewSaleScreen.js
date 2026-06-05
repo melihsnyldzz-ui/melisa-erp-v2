@@ -123,12 +123,8 @@ function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
   return (
     <View style={[styles.ratePanel, toneStyle]}>
       <View style={styles.rateText}>
-        <Text style={styles.rateTitle}>ERP kuru</Text>
         <Text style={styles.rateMeta}>
-          {customer.currency || 'TRY'} = {Number(rate || 1).toFixed(4)} TRY / {rateRow?.source || rateSet?.source || '-'}
-        </Text>
-        <Text style={styles.rateMeta}>
-          Tarih: {rateRow?.rateDate || rateSet?.date || '-'}
+          Kur: {customer.currency || 'TRY'} {Number(rate || 1).toFixed(4)} / {rateRow?.source || rateSet?.source || '-'} / {rateRow?.rateDate || rateSet?.date || '-'}
         </Text>
         {!defined ? (
           <Text style={styles.rateWarning}>Bu para birimi icin tanimli kur bulunamadi. Fallback 1 kullaniliyor.</Text>
@@ -765,15 +761,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         {selectedCustomer ? (
           <View style={styles.selectedBox}>
             <View style={styles.selectedCustomerHeader}>
-              <View style={styles.selectedCustomerText}>
-                <Text style={styles.selectedCustomerLabel}>Secili cari</Text>
-                <Text style={styles.selectedCustomerName}>{selectedCustomer.customerName}</Text>
-                <Text style={styles.selectedCustomerMeta}>{selectedCustomer.customerCode}</Text>
-              </View>
+              <Text style={styles.selectedCustomerName} numberOfLines={1}>{selectedCustomer.customerName}</Text>
               <Text style={styles.selectedCurrencyBadge}>{selectedCustomer.currency}</Text>
-              <Pressable onPress={clearSelectedCustomer} disabled={loading} style={styles.changeCustomerButton}>
-                <Text style={styles.changeCustomerText}>Degistir</Text>
-              </Pressable>
             </View>
           </View>
         ) : null}
@@ -1167,11 +1156,11 @@ const styles = StyleSheet.create({
   },
   compactCustomerPanel: {
     backgroundColor: colors.white,
-    padding: 8,
-    gap: 6,
+    padding: 7,
+    gap: 4,
   },
   saleStepHeader: {
-    minHeight: 42,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1421,15 +1410,16 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: colors.successSoft,
     paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   ratePanel: {
     borderWidth: 1,
     borderRadius: 7,
-    padding: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
   },
   ratePanelReady: {
     borderColor: colors.success,
@@ -1441,17 +1431,11 @@ const styles = StyleSheet.create({
   },
   rateText: {
     flex: 1,
-    gap: 2,
-  },
-  rateTitle: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '900',
   },
   rateMeta: {
     color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '900',
   },
   rateWarning: {
     color: colors.warning,
@@ -1459,8 +1443,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   rateRefreshButton: {
-    minWidth: 64,
-    minHeight: 42,
+    minWidth: 48,
+    minHeight: 30,
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: colors.border,
@@ -1471,36 +1455,24 @@ const styles = StyleSheet.create({
   },
   rateRefreshText: {
     color: colors.text,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '900',
     textTransform: 'uppercase',
   },
   selectedCustomerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
   },
-  selectedCustomerText: {
-    flex: 1,
-  },
-  selectedCustomerLabel: {
-    color: colors.success,
-    fontSize: 9,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
   selectedCustomerName: {
+    flex: 1,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
-  },
-  selectedCustomerMeta: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: '800',
   },
   selectedCurrencyBadge: {
-    minWidth: 46,
+    minWidth: 42,
     overflow: 'hidden',
     borderColor: colors.success,
     borderWidth: 1,
@@ -1512,21 +1484,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 5,
     textAlign: 'center',
-  },
-  changeCustomerButton: {
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 7,
-    backgroundColor: colors.white,
-    paddingHorizontal: 9,
-  },
-  changeCustomerText: {
-    color: colors.text,
-    fontSize: 11,
-    fontWeight: '900',
   },
   barcodeHeader: {
     flexDirection: 'row',
