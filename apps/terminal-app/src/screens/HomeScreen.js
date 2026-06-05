@@ -5,21 +5,25 @@ import { terminalConfig } from '../config/env';
 import { syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
 
-function TaskCard({ title, subtitle, meta, tone = 'primary', onPress }) {
+function ActionTile({ icon, title, subtitle, meta, tone = 'neutral', onPress, wide = false }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.taskCard,
-        styles[`taskCard_${tone}`],
+        styles.actionTile,
+        wide && styles.actionTileWide,
+        styles[`actionTile_${tone}`],
         pressed && styles.pressed,
       ]}
     >
-      <View style={styles.taskText}>
-        <Text style={[styles.taskTitle, tone === 'primary' && styles.taskTitlePrimary]}>{title}</Text>
-        <Text style={[styles.taskSubtitle, tone === 'primary' && styles.taskSubtitlePrimary]}>{subtitle}</Text>
+      <View style={[styles.tileIcon, styles[`tileIcon_${tone}`]]}>
+        <Text style={[styles.tileIconText, tone === 'primary' && styles.tileIconTextPrimary]}>{icon}</Text>
       </View>
-      {meta ? <Text style={[styles.taskMeta, tone === 'primary' && styles.taskMetaPrimary]}>{meta}</Text> : null}
+      <View style={styles.actionText}>
+        <Text style={[styles.actionTitle, tone === 'primary' && styles.actionTitlePrimary]}>{title}</Text>
+        <Text style={[styles.actionSubtitle, tone === 'primary' && styles.actionSubtitlePrimary]}>{subtitle}</Text>
+      </View>
+      {meta ? <Text style={[styles.actionMeta, tone === 'primary' && styles.actionMetaPrimary]}>{meta}</Text> : null}
     </Pressable>
   );
 }
@@ -59,28 +63,64 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         </View>
       </View>
 
-      <View style={styles.taskStack}>
-        <TaskCard
+      <View style={styles.actionStack}>
+        <ActionTile
+          icon="FIS"
           title="Yeni Satis"
           subtitle="Cari sec, barkod okut, fisi gonder"
           meta={syncState.online ? 'API hazir' : 'Offline queue aktif'}
           tone="primary"
           onPress={navigation.openNewSale}
+          wide
         />
-        <View style={styles.taskGrid}>
-          <TaskCard
-            title="Barkod"
+        <View style={styles.actionGrid}>
+          <ActionTile
+            icon="|||"
+            title="Barkod Okut"
             subtitle="Urun kontrol"
-            meta="Hizli bak"
+            meta="Hizli"
             tone="neutral"
             onPress={navigation.openBarcode}
           />
-          <TaskCard
-            title="Bekleyen"
+          <ActionTile
+            icon="UP"
+            title="Bekleyenler"
             subtitle="Queue gonder"
             meta={`${pending} bekleyen`}
             tone={pending || failed ? 'danger' : 'success'}
             onPress={navigation.openSyncStatus}
+          />
+          <ActionTile
+            icon="DB"
+            title="Veri Guncelle"
+            subtitle="Urun ve cari indir"
+            meta={`${products}/${customers}`}
+            tone={products && customers ? 'success' : 'warning'}
+            onPress={navigation.openDataUpdate}
+          />
+          <ActionTile
+            icon="OK"
+            title="Saha Testi"
+            subtitle="Kontrol listesi"
+            meta={syncState.online ? 'Online' : 'Offline'}
+            tone="neutral"
+            onPress={navigation.openFieldTest}
+          />
+          <ActionTile
+            icon="ARA"
+            title="Urun Bilgisi"
+            subtitle="Stok/fiyat bak"
+            meta="Arama"
+            tone="neutral"
+            onPress={navigation.openProductLookup}
+          />
+          <ActionTile
+            icon="SET"
+            title="Ayarlar"
+            subtitle="API ve cihaz"
+            meta="Kurulum"
+            tone="neutral"
+            onPress={navigation.openSettings}
           />
         </View>
       </View>
@@ -126,14 +166,31 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <Text style={styles.cacheTitle}>Local veri</Text>
           <Text style={styles.cacheMeta}>{products} urun / {customers} cari</Text>
         </View>
-        <TerminalButton label="Guncelle" onPress={navigation.openDataUpdate} variant="secondary" />
+        <Text style={[styles.cacheBadge, products && customers ? styles.cacheBadgeReady : styles.cacheBadgeWarning]}>
+          {products && customers ? 'Hazir' : 'Eksik'}
+        </Text>
+      </View>
+
+      <View style={styles.bottomDock}>
+        <Pressable onPress={navigation.openNewSale} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>FIS</Text>
+          <Text style={styles.dockText}>Satis</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openBarcode} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>|||</Text>
+          <Text style={styles.dockText}>Barkod</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openSyncStatus} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>UP</Text>
+          <Text style={styles.dockText}>Sync</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openSettings} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>SET</Text>
+          <Text style={styles.dockText}>Ayar</Text>
+        </Pressable>
       </View>
 
       <View style={styles.secondaryGrid}>
-        <TerminalButton label="Sync Merkezi" onPress={navigation.openSyncStatus} variant="secondary" />
-        <TerminalButton label="Saha testi" onPress={navigation.openFieldTest} variant="secondary" />
-        <TerminalButton label="Urun bilgisi" onPress={navigation.openProductLookup} variant="secondary" />
-        <TerminalButton label="Ayarlar" onPress={navigation.openSettings} variant="secondary" />
         <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
       </View>
 
@@ -193,67 +250,110 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 3,
   },
-  primaryGrid: {
-    gap: 10,
-  },
-  taskStack: {
+  actionStack: {
     gap: 9,
   },
-  taskGrid: {
+  actionGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 9,
   },
-  taskCard: {
-    minHeight: 96,
-    flex: 1,
+  actionTile: {
+    width: '48.7%',
+    minHeight: 138,
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 9,
   },
-  taskCard_primary: {
+  actionTileWide: {
+    width: '100%',
     minHeight: 124,
+  },
+  actionTile_primary: {
     backgroundColor: colors.accent,
     borderColor: colors.accentDark,
   },
-  taskCard_neutral: {
+  actionTile_neutral: {
     backgroundColor: colors.white,
     borderColor: colors.border,
   },
-  taskCard_success: {
+  actionTile_success: {
     backgroundColor: colors.successSoft,
     borderColor: colors.success,
   },
-  taskCard_danger: {
+  actionTile_danger: {
     backgroundColor: colors.dangerSoft,
     borderColor: colors.danger,
+  },
+  actionTile_warning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
   },
   pressed: {
     opacity: 0.78,
   },
-  taskText: {
-    gap: 4,
+  tileIcon: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
   },
-  taskTitle: {
+  tileIcon_primary: {
+    borderColor: '#99f6e4',
+    backgroundColor: '#ccfbf1',
+  },
+  tileIcon_neutral: {
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
+  },
+  tileIcon_success: {
+    borderColor: colors.success,
+    backgroundColor: colors.white,
+  },
+  tileIcon_danger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.white,
+  },
+  tileIcon_warning: {
+    borderColor: colors.warning,
+    backgroundColor: colors.white,
+  },
+  tileIconText: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 13,
     fontWeight: '900',
   },
-  taskTitlePrimary: {
+  tileIconTextPrimary: {
+    color: colors.accentDark,
+  },
+  actionText: {
+    gap: 4,
+  },
+  actionTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  actionTitlePrimary: {
     color: colors.headerText,
     fontSize: 28,
   },
-  taskSubtitle: {
+  actionSubtitle: {
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 17,
   },
-  taskSubtitlePrimary: {
+  actionSubtitlePrimary: {
     color: colors.headerText,
   },
-  taskMeta: {
+  actionMeta: {
     alignSelf: 'flex-start',
     overflow: 'hidden',
     borderColor: colors.border,
@@ -266,7 +366,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
-  taskMetaPrimary: {
+  actionMetaPrimary: {
     borderColor: '#99f6e4',
     backgroundColor: '#ccfbf1',
     color: colors.accentDark,
@@ -306,6 +406,34 @@ const styles = StyleSheet.create({
   },
   secondaryGrid: {
     gap: 8,
+  },
+  bottomDock: {
+    minHeight: 76,
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 6,
+    gap: 6,
+  },
+  dockItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    gap: 3,
+  },
+  dockIcon: {
+    color: colors.accentDark,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  dockText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
   },
   statusGrid: {
     flexDirection: 'row',
@@ -361,6 +489,25 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
+  },
+  cacheBadge: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 7,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  cacheBadgeReady: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+  },
+  cacheBadgeWarning: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft,
+    color: colors.warning,
   },
   notice: {
     borderWidth: 1,
