@@ -135,20 +135,20 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.heroPanel}>
-        <View style={styles.heroAccent} />
-        <View style={styles.heroTextBlock}>
-          <Text style={styles.heroLabel}>Aktif terminal</Text>
-          <Text style={styles.heroTitle}>{terminalConfig.deviceName}</Text>
-          <Text style={styles.heroMeta}>{terminalConfig.terminalCode} / {session.user?.username || 'open-admin'}</Text>
-        </View>
-      </View>
-
       <View style={styles.actionStack}>
+        <View style={styles.quickHeader}>
+          <View>
+            <Text style={styles.quickTitle}>Hizli Islemler</Text>
+            <Text style={styles.quickMeta}>{terminalConfig.deviceName} / {session.user?.username || 'open-admin'}</Text>
+          </View>
+          <Text style={[styles.readyBadge, syncState.online ? styles.readyBadgeOnline : styles.readyBadgeOffline]}>
+            {syncState.online ? 'Online' : 'Offline'}
+          </Text>
+        </View>
         <ActionTile
           icon="sale"
           title="Yeni Satis"
-          subtitle="Cari sec, barkod okut, fisi gonder"
+          subtitle="Cari sec ve fisi baslat"
           meta={syncState.online ? 'API hazir' : 'Offline queue aktif'}
           tone="primary"
           onPress={navigation.openNewSale}
@@ -158,7 +158,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <ActionTile
             icon="barcode"
             title="Barkod Okut"
-            subtitle="Urun kontrol"
+            subtitle="Urun kontrol et"
             meta="Hizli"
             tone="neutral"
             onPress={navigation.openBarcode}
@@ -166,7 +166,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <ActionTile
             icon="queue"
             title="Bekleyenler"
-            subtitle="Queue gonder"
+            subtitle="Gonderim"
             meta={`${pending} bekleyen`}
             tone={pending || failed ? 'danger' : 'success'}
             onPress={navigation.openSyncStatus}
@@ -174,7 +174,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <ActionTile
             icon="data"
             title="Veri Guncelle"
-            subtitle="Urun ve cari indir"
+            subtitle="Cache indir"
             meta={`${products}/${customers}`}
             tone={products && customers ? 'success' : 'warning'}
             onPress={navigation.openDataUpdate}
@@ -182,7 +182,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <ActionTile
             icon="field"
             title="Saha Testi"
-            subtitle="Kontrol listesi"
+            subtitle="Test adimlari"
             meta={syncState.online ? 'Online' : 'Offline'}
             tone="neutral"
             onPress={navigation.openFieldTest}
@@ -190,7 +190,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <ActionTile
             icon="search"
             title="Urun Bilgisi"
-            subtitle="Stok/fiyat bak"
+            subtitle="Stok ve fiyat"
             meta="Arama"
             tone="neutral"
             onPress={navigation.openProductLookup}
@@ -227,21 +227,6 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         </View>
       ) : null}
 
-      <View style={styles.statusGrid}>
-        <View style={[styles.statusCard, syncState.online ? styles.goodCard : styles.badCard]}>
-          <Text style={styles.statusLabel}>API</Text>
-          <Text style={styles.statusValue}>{syncState.online ? 'Online' : 'Offline'}</Text>
-        </View>
-        <View style={[styles.statusCard, pending ? styles.badCard : styles.goodCard]}>
-          <Text style={styles.statusLabel}>Bekleyen</Text>
-          <Text style={styles.statusValue}>{pending}</Text>
-        </View>
-        <View style={[styles.statusCard, failed ? styles.badCard : styles.goodCard]}>
-          <Text style={styles.statusLabel}>Hatali</Text>
-          <Text style={styles.statusValue}>{failed}</Text>
-        </View>
-      </View>
-
       <View style={styles.cachePanel}>
         <View>
           <Text style={styles.cacheTitle}>Local veri</Text>
@@ -275,16 +260,12 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
       </View>
 
-      <View style={[styles.notice, failed ? styles.noticeDanger : styles.noticeInfo]}>
-        <Text style={[styles.noticeTitle, failed ? styles.noticeTitleDanger : styles.noticeTitleInfo]}>
-          {failed ? 'Mudahale gerekli' : 'Saha akisi'}
-        </Text>
-        <Text style={styles.noticeText}>
-          {failed
-            ? 'Hatali kayit var. Sync Merkezi ekranindan gercek hata mesajini gorup tekrar gonderin.'
-            : 'Ana akis satis baslatmak, barkod okutmak ve gerekirse bekleyenleri gondermektir.'}
-        </Text>
-      </View>
+      {failed ? (
+        <View style={[styles.notice, styles.noticeDanger]}>
+          <Text style={[styles.noticeTitle, styles.noticeTitleDanger]}>Mudahale gerekli</Text>
+          <Text style={styles.noticeText}>Hatali kayit var. Sync Merkezi ekranindan gercek hata mesajini gorup tekrar gonderin.</Text>
+        </View>
+      ) : null}
 
       <TerminalButton label="Cikis" onPress={onLogout} variant="danger" />
     </ScrollView>
@@ -296,40 +277,47 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 12,
   },
-  heroPanel: {
+  quickHeader: {
+    minHeight: 64,
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
     backgroundColor: colors.white,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
-    padding: 14,
+    padding: 12,
   },
-  heroAccent: {
-    width: 6,
-    borderRadius: 5,
-    backgroundColor: colors.accent,
-  },
-  heroTextBlock: {
-    flex: 1,
-  },
-  heroLabel: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
+  quickTitle: {
     color: colors.text,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
-    marginTop: 3,
   },
-  heroMeta: {
+  quickMeta: {
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
     marginTop: 3,
+  },
+  readyBadge: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 7,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  readyBadgeOnline: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+  },
+  readyBadgeOffline: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
   },
   actionStack: {
     gap: 9,
@@ -337,16 +325,17 @@ const styles = StyleSheet.create({
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    justifyContent: 'space-between',
+    rowGap: 10,
   },
   actionTile: {
-    width: '48.7%',
-    minHeight: 138,
+    width: '48%',
+    minHeight: 132,
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     justifyContent: 'space-between',
-    gap: 9,
+    gap: 8,
   },
   actionTileWide: {
     width: '100%',
@@ -596,7 +585,7 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
   },
   actionTitlePrimary: {
@@ -693,38 +682,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 11,
     fontWeight: '900',
-  },
-  statusGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statusCard: {
-    flex: 1,
-    minHeight: 66,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    justifyContent: 'center',
-  },
-  goodCard: {
-    backgroundColor: colors.successSoft,
-    borderColor: colors.success,
-  },
-  badCard: {
-    backgroundColor: colors.dangerSoft,
-    borderColor: colors.danger,
-  },
-  statusLabel: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  statusValue: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '900',
-    marginTop: 3,
   },
   cachePanel: {
     minHeight: 72,
