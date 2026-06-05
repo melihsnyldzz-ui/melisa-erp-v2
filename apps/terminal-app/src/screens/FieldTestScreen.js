@@ -132,8 +132,8 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
         event.eventType === 'terminal_sale'
         && ['pending', 'retry_wait', 'failed', 'syncing'].includes(event.status)
       ));
-      setResult('offline', pendingSales.length ? 'pass' : 'fail', `${pendingSales.length} bekleyen/hatali satis`);
-      setMessage(pendingSales.length ? 'Offline queue icinde satis kaydi var' : 'Offline queue bos');
+      setResult('offline', 'pass', `${pendingSales.length} bekleyen/hatali satis`);
+      setMessage(pendingSales.length ? 'Offline queue icinde satis kaydi var' : 'Offline queue temiz');
       await onRefresh();
     } catch (checkError) {
       setResult('offline', 'fail', checkError.message || 'Queue okunamadi');

@@ -53,6 +53,28 @@ export async function getPendingQueue() {
   return readQueue();
 }
 
+export async function clearSyncedQueueEvents() {
+  const queue = await readQueue();
+  const nextQueue = queue.filter((event) => event.status !== 'synced');
+  await writeQueue(nextQueue);
+
+  return {
+    removed: queue.length - nextQueue.length,
+    remaining: nextQueue.length,
+  };
+}
+
+export async function clearNonSaleQueueEvents() {
+  const queue = await readQueue();
+  const nextQueue = queue.filter((event) => event.eventType === 'terminal_sale');
+  await writeQueue(nextQueue);
+
+  return {
+    removed: queue.length - nextQueue.length,
+    remaining: nextQueue.length,
+  };
+}
+
 export async function markRetryWait(clientEventId, error) {
   const queue = await readQueue();
   const now = new Date().toISOString();
@@ -224,6 +246,7 @@ export async function getQueueSummary() {
   const pendingCount = queue.filter((event) => ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
   const failedCount = queue.filter((event) => event.status === 'failed').length;
   const syncedCount = queue.filter((event) => event.status === 'synced').length;
+  const nonSaleCount = queue.filter((event) => event.eventType !== 'terminal_sale').length;
   const duplicateCount = queue.filter((event) => event.status === 'synced' && event.lastErrorMessage === 'Daha once gonderilmis').length;
   const salePendingCount = queue.filter((event) => event.eventType === 'terminal_sale' && ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
   const saleFailedCount = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'failed').length;
@@ -235,6 +258,7 @@ export async function getQueueSummary() {
     pendingCount,
     failedCount,
     syncedCount,
+    nonSaleCount,
     duplicateCount,
     salePendingCount,
     saleFailedCount,

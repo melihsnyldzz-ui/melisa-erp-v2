@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { getCacheSummary } from '../services/cacheService';
-import { enqueueAction, getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
+import { clearNonSaleQueueEvents, clearSyncedQueueEvents, enqueueAction, getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 function eventTypeLabel(eventType) {
@@ -26,9 +26,30 @@ function statusLabel(status) {
 export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
   const [cacheSummary, setCacheSummary] = useState({ productCount: 0, customerCount: 0 });
+  const [queueFilter, setQueueFilter] = useState('problem');
   const [syncMessage, setSyncMessage] = useState('');
   const [syncError, setSyncError] = useState('');
   const [syncingEventId, setSyncingEventId] = useState('');
+
+  const filteredQueue = useMemo(() => queue.filter((event) => {
+    if (queueFilter === 'problem') {
+      return ['pending', 'retry_wait', 'failed', 'syncing'].includes(event.status);
+    }
+    if (queueFilter === 'sales') {
+      return event.eventType === 'terminal_sale';
+    }
+    if (queueFilter === 'synced') {
+      return event.status === 'synced';
+    }
+    return true;
+  }), [queue, queueFilter]);
+
+  const filterCounts = useMemo(() => ({
+    problem: queue.filter((event) => ['pending', 'retry_wait', 'failed', 'syncing'].includes(event.status)).length,
+    sales: queue.filter((event) => event.eventType === 'terminal_sale').length,
+    synced: queue.filter((event) => event.status === 'synced').length,
+    all: queue.length,
+  }), [queue]);
 
   async function refreshLocalState() {
     const [nextQueue, nextCache] = await Promise.all([
@@ -83,6 +104,30 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
     }
   }
 
+  async function clearSyncedEvents() {
+    setSyncMessage('');
+    setSyncError('');
+    try {
+      const result = await clearSyncedQueueEvents();
+      await refreshLocalState();
+      setSyncMessage(`${result.removed} gonderilmis kayit gizlendi/temizlendi`);
+    } catch (error) {
+      setSyncError(error.message || 'Gonderilmis kayitlar temizlenemedi');
+    }
+  }
+
+  async function clearTestEvents() {
+    setSyncMessage('');
+    setSyncError('');
+    try {
+      const result = await clearNonSaleQueueEvents();
+      await refreshLocalState();
+      setSyncMessage(`${result.removed} test/yardimci event temizlendi`);
+    } catch (error) {
+      setSyncError(error.message || 'Test eventleri temizlenemedi');
+    }
+  }
+
   useEffect(() => {
     refreshLocalState();
   }, []);
@@ -100,6 +145,7 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
         <InfoRow label="Hatali satis" value={String(syncState.saleFailedCount || 0)} tone={syncState.saleFailedCount ? 'danger' : 'success'} />
         <InfoRow label="Gonderilen" value={String(syncState.syncedCount || 0)} tone="success" />
         <InfoRow label="Duplicate" value={String(syncState.saleDuplicateCount || syncState.duplicateCount || 0)} />
+        <InfoRow label="Test eventleri" value={String(syncState.nonSaleCount || 0)} />
         <InfoRow label="Son sync" value={syncState.lastSyncAt || 'Henuz yok'} />
         <InfoRow label="Urun cache" value={String(cacheSummary.productCount)} />
         <InfoRow label="Cari cache" value={String(cacheSummary.customerCount)} />
@@ -109,9 +155,24 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
       <View style={styles.queuePanel}>
         <Text style={styles.queueTitle}>Local queue</Text>
-        {queue.length === 0 ? (
-          <Text style={styles.empty}>Bekleyen local event yok.</Text>
-        ) : queue.slice(0, 8).map((event) => (
+        <View style={styles.filterRow}>
+          {[
+            ['problem', 'Sorunlu'],
+            ['sales', 'Satis'],
+            ['synced', 'Gonderilen'],
+            ['all', 'Tumu'],
+          ].map(([key, label]) => (
+            <TerminalButton
+              key={key}
+              label={`${label} ${filterCounts[key]}`}
+              onPress={() => setQueueFilter(key)}
+              variant={queueFilter === key ? 'primary' : 'secondary'}
+            />
+          ))}
+        </View>
+        {filteredQueue.length === 0 ? (
+          <Text style={styles.empty}>Bu filtrede local event yok.</Text>
+        ) : filteredQueue.slice(0, 12).map((event) => (
           <View key={event.clientEventId} style={styles.queueRow}>
             <Text style={styles.queueType}>{eventTypeLabel(event.eventType)}</Text>
             <Text style={[styles.queueMeta, event.status === 'failed' && styles.queueError, event.status === 'synced' && styles.queueSuccess]}>
@@ -138,6 +199,8 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
       <TerminalButton label="Device ping queue ekle" onPress={createPingEvent} />
       <TerminalButton label="Satis Kuyrugunu Gonder" onPress={syncSalesQueue} />
+      <TerminalButton label="Gonderilmisleri Temizle" onPress={clearSyncedEvents} variant="secondary" />
+      <TerminalButton label="Test Eventlerini Temizle" onPress={clearTestEvents} variant="secondary" />
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
     </ScrollView>
@@ -175,6 +238,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     marginBottom: 6,
+  },
+  filterRow: {
+    gap: 6,
+    marginBottom: 8,
   },
   empty: {
     color: colors.muted,
