@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { findCachedProduct, saveProductCache } from '../services/cacheService';
+import { getRecentProducts, rememberRecentProduct } from '../services/productService';
 import { searchTerminalProducts } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
@@ -50,9 +51,11 @@ function getProductsFromResponse(response) {
 }
 
 function sourceLabel(source) {
-  if (source === 'api') return 'API';
-  if (source === 'cache') return 'local cache';
-  if (source === 'alternative') return 'operator secimi';
+  const normalizedSource = String(source || '').toLowerCase();
+  if (normalizedSource === 'api') return 'API';
+  if (normalizedSource === 'recent') return 'son okutulan';
+  if (normalizedSource === 'cache' || normalizedSource === 'local cache') return 'local cache';
+  if (normalizedSource === 'alternative') return 'operator secimi';
   return source || 'manual';
 }
 
@@ -73,6 +76,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
   const [source, setSource] = useState(lastLookup?.source || 'manual');
   const [warning, setWarning] = useState(lastLookup?.warning || '');
   const [error, setError] = useState('');
+  const [recentProducts, setRecentProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -83,8 +87,13 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
       setSource(lastLookup?.source || 'barcode');
       setWarning(lastLookup?.warning || '');
       setQuery(lastLookup?.barcode || nextProduct.barcodeMasked || nextProduct.stockCode || '');
+      rememberRecentProduct(nextProduct).then((items) => setRecentProducts(items.map(normalizeProduct).filter(Boolean)));
     }
   }, [lastLookup]);
+
+  useEffect(() => {
+    getRecentProducts().then((items) => setRecentProducts(items.map(normalizeProduct).filter(Boolean)));
+  }, []);
 
   const search = async () => {
     const normalizedQuery = String(query || '').trim();
@@ -108,15 +117,23 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
 
       setResults(products);
       setSelectedProduct(products[0] || null);
-      setSource('API');
+      if (products[0]) {
+        const nextRecent = await rememberRecentProduct(products[0]);
+        setRecentProducts(nextRecent.map(normalizeProduct).filter(Boolean));
+      }
+      setSource('api');
       if (!products.length) {
         setWarning('API sonucu bos. Barkod/stok kodu veya urun adini kontrol edin.');
       }
     } catch (err) {
       const cached = normalizeProduct(await findCachedProduct(normalizedQuery));
-      setSource('local cache');
+      setSource('cache');
       setResults(cached ? [cached] : []);
       setSelectedProduct(cached);
+      if (cached) {
+        const nextRecent = await rememberRecentProduct(cached);
+        setRecentProducts(nextRecent.map(normalizeProduct).filter(Boolean));
+      }
       setWarning(cached ? 'API erisilemedi, local cache sonucu gosteriliyor.' : '');
       setError(cached ? '' : `Hata: ${err.message || 'Urun bulunamadi'}`);
     } finally {
@@ -157,7 +174,11 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
           {results.map((product) => (
             <Pressable
               key={`${product.id || product.stockCode}-${product.barcodeMasked}`}
-              onPress={() => setSelectedProduct(product)}
+              onPress={async () => {
+                setSelectedProduct(product);
+                const nextRecent = await rememberRecentProduct(product);
+                setRecentProducts(nextRecent.map(normalizeProduct).filter(Boolean));
+              }}
               style={[
                 styles.resultRow,
                 selectedProduct?.id === product.id && styles.selectedResultRow,
@@ -166,6 +187,42 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
               <Text style={styles.resultName}>{product.productName}</Text>
               <Text style={styles.resultMeta}>
                 {product.stockCode} / {product.barcodeMasked} / Stok {product.stockQuantity}
+              </Text>
+              {Number(product.stockQuantity || 0) <= 0 ? (
+                <Text style={styles.stockWarning}>Stok yok veya eksi.</Text>
+              ) : null}
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {recentProducts.length ? (
+        <View style={styles.resultPanel}>
+          <Text style={styles.sectionTitle}>Son okutulan urunler</Text>
+          {recentProducts.slice(0, 5).map((product) => (
+            <Pressable
+              key={`recent-${product.id || product.stockCode}-${product.barcodeMasked}`}
+              onPress={() => {
+                setSelectedProduct(product);
+                setResults([product]);
+                setQuery(product.barcodeMasked || product.stockCode || '');
+                setSource('recent');
+              }}
+              style={styles.recentProductRow}
+            >
+              <View style={styles.recentProductText}>
+                <Text style={styles.resultName}>{product.productName}</Text>
+                <Text style={styles.resultMeta}>
+                  {product.stockCode} / {product.barcodeMasked}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.recentStockBadge,
+                  Number(product.stockQuantity || 0) <= 0 && styles.recentStockBadgeDanger,
+                ]}
+              >
+                Stok {product.stockQuantity}
               </Text>
             </Pressable>
           ))}
@@ -208,6 +265,9 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
 
           {selectedProduct.isPassive ? (
             <Text style={styles.passiveNote}>Pasif urun yeni terminal satisinda secilmemelidir.</Text>
+          ) : null}
+          {Number(selectedProduct.stockQuantity || 0) <= 0 ? (
+            <Text style={styles.stockWarning}>Stok yok veya eksi. Satis oncesi ERP stok durumunu kontrol edin.</Text>
           ) : null}
         </View>
       )}
@@ -300,6 +360,42 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
+  },
+  recentProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    padding: 10,
+    backgroundColor: colors.panel,
+    gap: 8,
+  },
+  recentProductText: {
+    flex: 1,
+  },
+  recentStockBadge: {
+    overflow: 'hidden',
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  recentStockBadgeDanger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
+  },
+  stockWarning: {
+    marginTop: 6,
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '900',
   },
   sourceRow: {
     flexDirection: 'row',

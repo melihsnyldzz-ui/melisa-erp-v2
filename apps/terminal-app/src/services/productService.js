@@ -1,9 +1,16 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './apiClient';
 import { findCachedProduct, findCachedProducts, saveProductCache } from './cacheService';
 import { enqueueAction } from './queueService';
 import { searchTerminalProducts } from './terminalSalesService';
 
+const recentProductsKey = 'terminalRecentProducts';
+
 function normalizeProduct(row) {
+  if (!row) {
+    return null;
+  }
+
   return {
     id: row.id,
     stockCode: row.stockCode,
@@ -27,6 +34,38 @@ function extractProducts(response) {
   return [];
 }
 
+async function readJson(key, fallback) {
+  const raw = await AsyncStorage.getItem(key);
+  if (!raw) return fallback;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getRecentProducts() {
+  return readJson(recentProductsKey, []);
+}
+
+export async function rememberRecentProduct(product) {
+  const normalized = normalizeProduct(product);
+  if (!normalized?.id) return getRecentProducts();
+
+  const current = await getRecentProducts();
+  const next = [
+    {
+      ...normalized,
+      rememberedAt: new Date().toISOString(),
+    },
+    ...current.filter((item) => String(item.id) !== String(normalized.id)),
+  ].slice(0, 8);
+
+  await AsyncStorage.setItem(recentProductsKey, JSON.stringify(next));
+  return next;
+}
+
 export async function lookupProductByBarcode({ barcode, token }) {
   const trimmedBarcode = String(barcode || '').trim();
 
@@ -43,6 +82,7 @@ export async function lookupProductByBarcode({ barcode, token }) {
 
     const products = [normalizeProduct(response.data)];
     await saveProductCache(products);
+    await rememberRecentProduct(products[0]);
 
     return {
       source: 'api',
@@ -78,6 +118,7 @@ export async function lookupProductByBarcode({ barcode, token }) {
 
     if (cachedProduct) {
       const normalizedCachedProduct = normalizeProduct(cachedProduct);
+      await rememberRecentProduct(normalizedCachedProduct);
       return {
         source: 'cache',
         barcode: trimmedBarcode,

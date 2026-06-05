@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
-import { lookupProductByBarcode } from '../services/productService';
+import { lookupProductByBarcode, rememberRecentProduct } from '../services/productService';
 import { colors } from '../styles/theme';
 
 function formatMoney(value, currency) {
@@ -52,7 +52,8 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
     }
   }
 
-  function selectAlternative(product) {
+  async function selectAlternative(product) {
+    await rememberRecentProduct(product);
     onLookupResult({
       source: 'alternative',
       barcode: lastSearchedBarcode || barcode.trim(),
@@ -111,9 +112,14 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
                   {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'}
                 </Text>
                 <View style={styles.alternativeFacts}>
-                  <Text style={styles.factPill}>Stok {product.stockQuantity}</Text>
+                  <Text style={[styles.factPill, Number(product.stockQuantity || 0) <= 0 && styles.factPillDanger]}>
+                    Stok {product.stockQuantity}
+                  </Text>
                   <Text style={styles.factPill}>{formatMoney(product.salePrice, product.currency)}</Text>
                 </View>
+                {Number(product.stockQuantity || 0) <= 0 ? (
+                  <Text style={styles.stockWarning}>Stok yok veya eksi. Satis oncesi kontrol edin.</Text>
+                ) : null}
               </Pressable>
             ))}
           </View>
@@ -261,6 +267,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     paddingHorizontal: 7,
     paddingVertical: 4,
+  },
+  factPillDanger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
+  },
+  stockWarning: {
+    marginTop: 7,
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '900',
   },
   loader: {
     marginTop: 12,
