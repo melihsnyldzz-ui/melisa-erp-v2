@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
 import {
   commitCustomersImport,
   commitProductsImport,
@@ -35,7 +36,7 @@ const tabs = [
 const csvTemplates = {
   products: {
     fileName: 'melisa-urun-import-sablon.csv',
-    excelFileName: 'melisa-urun-import-sablon.xls',
+    excelFileName: 'melisa-urun-import-sablon.xlsx',
     sheetName: 'Ürün Import',
     rows: [
       ['stockCode', 'barcode', 'productName', 'brand', 'category', 'currency', 'salePrice', 'purchasePrice', 'stockQuantity'],
@@ -46,7 +47,7 @@ const csvTemplates = {
   },
   customers: {
     fileName: 'melisa-musteri-cari-import-sablon.csv',
-    excelFileName: 'melisa-musteri-cari-import-sablon.xls',
+    excelFileName: 'melisa-musteri-cari-import-sablon.xlsx',
     sheetName: 'Müşteri Cari Import',
     rows: [
       ['customerCode', 'customerName', 'phone', 'city', 'country', 'currency', 'customerType', 'balance'],
@@ -56,7 +57,7 @@ const csvTemplates = {
   },
   suppliers: {
     fileName: 'melisa-tedarikci-cari-import-sablon.csv',
-    excelFileName: 'melisa-tedarikci-cari-import-sablon.xls',
+    excelFileName: 'melisa-tedarikci-cari-import-sablon.xlsx',
     sheetName: 'Tedarikci Cari Import',
     rows: [
       ['supplierCode', 'supplierName', 'phone', 'city', 'country', 'currency', 'purchaseDiscountRate', 'balance'],
@@ -78,47 +79,37 @@ function downloadCsvTemplate(entity) {
   downloadBlob(blob, template.fileName);
 }
 
-function escapeHtmlCell(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function downloadExcelTemplate(entity) {
   const template = csvTemplates[entity];
-  const rows = template.rows
-    .map((row, rowIndex) => `
-      <tr>
-        ${row.map((cell) => {
-          const tag = rowIndex === 0 ? 'th' : 'td';
-          return `<${tag} style="mso-number-format:'\\@';">${escapeHtmlCell(cell)}</${tag}>`;
-        }).join('')}
-      </tr>`)
-    .join('');
-  const workbook = `<!doctype html>
-<html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="ProgId" content="Excel.Sheet" />
-    <title>${escapeHtmlCell(template.sheetName)}</title>
-    <style>
-      table { border-collapse: collapse; font-family: Arial, sans-serif; }
-      caption { text-align: left; font-size: 16px; font-weight: 800; padding: 8px 0; }
-      th { background: #f2f4f7; color: #101828; border: 1px solid #98a2b3; padding: 7px; }
-      td { border: 1px solid #d0d5dd; padding: 7px; mso-number-format: "\\@"; }
-    </style>
-  </head>
-  <body>
-    <table>
-      <caption>${escapeHtmlCell(template.sheetName)}</caption>
-      ${rows}
-    </table>
-  </body>
-</html>`;
-  const blob = new Blob([`\ufeff${workbook}`], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const worksheet = XLSX.utils.aoa_to_sheet(template.rows.map((row) => row.map((cell) => String(cell ?? ''))));
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+  for (let rowIndex = range.s.r; rowIndex <= range.e.r; rowIndex += 1) {
+    for (let columnIndex = range.s.c; columnIndex <= range.e.c; columnIndex += 1) {
+      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex });
+      const cell = worksheet[cellRef];
+
+      if (cell) {
+        cell.t = 's';
+        cell.z = '@';
+      }
+    }
+  }
+
+  worksheet['!cols'] = template.rows[0].map((header, columnIndex) => ({
+    wch: Math.max(
+      String(header ?? '').length + 4,
+      ...template.rows.slice(1).map((row) => String(row[columnIndex] ?? '').length + 2),
+      14,
+    ),
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, template.sheetName.slice(0, 31));
+  const workbookArray = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([workbookArray], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
   downloadBlob(blob, template.excelFileName);
 }
 
