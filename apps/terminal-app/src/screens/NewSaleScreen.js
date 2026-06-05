@@ -928,6 +928,9 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           onSubmitEditing={lookupBarcodeProduct}
           style={styles.barcodeInput}
           placeholder="Barkod okut"
+          showSoftInputOnFocus={false}
+          caretHidden={false}
+          blurOnSubmit={false}
           keyboardType="number-pad"
           returnKeyType="done"
         />

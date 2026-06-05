@@ -88,6 +88,9 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
           onSubmitEditing={submitLookup}
           autoCapitalize="none"
           autoCorrect={false}
+          showSoftInputOnFocus={false}
+          caretHidden={false}
+          blurOnSubmit={false}
           keyboardType="number-pad"
           returnKeyType="search"
           selectTextOnFocus
