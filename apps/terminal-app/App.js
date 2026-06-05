@@ -27,6 +27,12 @@ const initialSyncState = {
   salePendingCount: 0,
   saleFailedCount: 0,
   saleDuplicateCount: 0,
+  productCount: 0,
+  customerCount: 0,
+  productCachedCount: 0,
+  customerCachedCount: 0,
+  productCachedAt: null,
+  customerCachedAt: null,
   lastSyncAt: null,
 };
 
@@ -57,6 +63,8 @@ export default function App() {
       saleDuplicateCount: queueSummary.saleDuplicateCount,
       productCount: cacheSummary.productCount,
       customerCount: cacheSummary.customerCount,
+      productCachedCount: cacheSummary.productCachedCount,
+      customerCachedCount: cacheSummary.customerCachedCount,
       productCachedAt: cacheSummary.productCachedAt,
       customerCachedAt: cacheSummary.customerCachedAt,
       lastSyncAt: queueSummary.lastSyncAt,
