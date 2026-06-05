@@ -39,6 +39,16 @@ function formatDate(value) {
   return new Date(value).toLocaleString('tr-TR');
 }
 
+function DataCard({ label, value, helper, tone = 'neutral' }) {
+  return (
+    <View style={[styles.dataCard, styles[`dataCard_${tone}`]]}>
+      <Text style={styles.dataLabel}>{label}</Text>
+      <Text style={styles.dataValue}>{value}</Text>
+      <Text style={styles.dataHelper}>{helper}</Text>
+    </View>
+  );
+}
+
 export function DataUpdateScreen({ session, navigation, onRefresh }) {
   const [summary, setSummary] = useState({ productCount: 0, customerCount: 0 });
   const [lastResult, setLastResult] = useState(null);
@@ -72,7 +82,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         totalRows: response.totalRows,
         pageCount: response.pageCount,
       });
-      setMessage(`${products.length} urun cache tam yenilendi`);
+      setMessage(`${products.length} urun indirildi ve local cache yenilendi`);
     } catch (updateError) {
       setError(updateError.message || 'Urun cache guncellenemedi');
     } finally {
@@ -98,7 +108,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         totalRows: response.totalRows,
         pageCount: response.pageCount,
       });
-      setMessage(`${customers.length} cari cache tam yenilendi`);
+      setMessage(`${customers.length} cari indirildi ve local cache yenilendi`);
     } catch (updateError) {
       setError(updateError.message || 'Cari cache guncellenemedi');
     } finally {
@@ -136,7 +146,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         productPages: productResponse.pageCount,
         customerPages: customerResponse.pageCount,
       });
-      setMessage(`${products.length} urun, ${customers.length} cari cache tam yenilendi`);
+      setMessage(`${products.length} urun, ${customers.length} cari indirildi. Terminal offline satis icin hazir.`);
     } catch (updateError) {
       setError(updateError.message || 'Tum veri guncellenemedi');
     } finally {
@@ -144,8 +154,36 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     }
   }
 
+  const hasProducts = Number(summary.productCount || 0) > 0;
+  const hasCustomers = Number(summary.customerCount || 0) > 0;
+  const ready = hasProducts && hasCustomers;
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <View style={[styles.readyPanel, ready ? styles.readyPanelSuccess : styles.readyPanelWarning]}>
+        <Text style={styles.readyTitle}>{ready ? 'Veri hazir' : 'Veri eksik'}</Text>
+        <Text style={styles.readyText}>
+          {ready
+            ? 'Urun ve cari cache var. Internet kesilse bile satis ekrani local veriden calisabilir.'
+            : 'Saha oncesi tum veriyi guncelleyin. Urun ve cari cache olmadan offline satis aksar.'}
+        </Text>
+      </View>
+
+      <View style={styles.dataGrid}>
+        <DataCard
+          label="Urun"
+          value={String(summary.productCount || 0)}
+          helper={`Son: ${formatDate(summary.productCachedAt)}`}
+          tone={hasProducts ? 'success' : 'warning'}
+        />
+        <DataCard
+          label="Cari"
+          value={String(summary.customerCount || 0)}
+          helper={`Son: ${formatDate(summary.customerCachedAt)}`}
+          tone={hasCustomers ? 'success' : 'warning'}
+        />
+      </View>
+
       <View style={styles.panel}>
         <Text style={styles.title}>Veri Guncelle</Text>
         <Text style={styles.meta}>Saha oncesi urun ve cari cache bilgisini telefona indirir.</Text>
@@ -159,7 +197,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
 
       {lastResult ? (
         <View style={styles.resultPanel}>
-          <Text style={styles.resultTitle}>Son islem</Text>
+          <Text style={styles.resultTitle}>Son indirme sonucu</Text>
           <InfoRow label="Tur" value={lastResult.kind} />
           {lastResult.productCount !== undefined ? (
             <>
@@ -192,6 +230,73 @@ const styles = StyleSheet.create({
   content: {
     padding: 12,
     gap: 10,
+  },
+  readyPanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 5,
+  },
+  readyPanelSuccess: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  readyPanelWarning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  readyTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  readyText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  dataGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dataCard: {
+    flex: 1,
+    minHeight: 92,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  dataCard_success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  dataCard_warning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  dataCard_neutral: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+  },
+  dataLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  dataValue: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  dataHelper: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
   },
   panel: {
     backgroundColor: colors.panel,
