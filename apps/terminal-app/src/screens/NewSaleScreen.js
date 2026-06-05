@@ -41,6 +41,10 @@ function normalizeProduct(row) {
 const cashCustomerCodes = ['PESIN-TL', 'PESIN-USD', 'PESIN-EUR'];
 const recentCustomersKey = 'terminalRecentSaleCustomers';
 
+function cashCurrency(code) {
+  return code.replace('PESIN-', '');
+}
+
 async function readRecentCustomers() {
   const raw = await AsyncStorage.getItem(recentCustomersKey);
   if (!raw) return [];
@@ -499,18 +503,24 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
 
         {!selectedCustomer ? (
           <>
-            <Text style={styles.label}>Cari ara</Text>
+            <Text style={styles.label}>Pesin cari</Text>
             <View style={styles.cashRow}>
               {cashCustomerCodes.map((code) => (
-                <TerminalButton
+                <Pressable
                   key={code}
-                  label={code.replace('PESIN-', '')}
                   onPress={() => selectCashCustomer(code)}
                   disabled={loading}
-                  variant="secondary"
-                />
+                  style={({ pressed }) => [
+                    styles.cashCard,
+                    pressed && styles.cashCardPressed,
+                  ]}
+                >
+                  <Text style={styles.cashTitle}>{cashCurrency(code)}</Text>
+                  <Text style={styles.cashMeta}>{code}</Text>
+                </Pressable>
               ))}
             </View>
+            <Text style={styles.label}>Cari ara</Text>
             <View style={styles.row}>
               <TextInput
                 value={customerQuery}
@@ -547,10 +557,14 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
           <View style={styles.selectedBox}>
             <View style={styles.selectedCustomerHeader}>
               <View style={styles.selectedCustomerText}>
+                <Text style={styles.selectedCustomerLabel}>Secili cari</Text>
                 <Text style={styles.selectedCustomerName}>{selectedCustomer.customerName}</Text>
-                <Text style={styles.selectedCustomerMeta}>{selectedCustomer.customerCode} / {selectedCustomer.currency}</Text>
+                <Text style={styles.selectedCustomerMeta}>{selectedCustomer.customerCode}</Text>
               </View>
-              <TerminalButton label="Degistir" onPress={clearSelectedCustomer} disabled={loading} variant="secondary" />
+              <Text style={styles.selectedCurrencyBadge}>{selectedCustomer.currency}</Text>
+              <Pressable onPress={clearSelectedCustomer} disabled={loading} style={styles.changeCustomerButton}>
+                <Text style={styles.changeCustomerText}>Degistir</Text>
+              </Pressable>
             </View>
           </View>
         ) : null}
@@ -766,7 +780,34 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cashRow: {
-    gap: 7,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cashCard: {
+    flex: 1,
+    minHeight: 82,
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.accentSoft,
+    justifyContent: 'center',
+    padding: 10,
+    gap: 3,
+  },
+  cashCardPressed: {
+    opacity: 0.75,
+  },
+  cashTitle: {
+    color: colors.accentDark,
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  cashMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   input: {
     minHeight: 48,
@@ -864,26 +905,62 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.successSoft,
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   selectedCustomerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   selectedCustomerText: {
     flex: 1,
   },
+  selectedCustomerLabel: {
+    color: colors.success,
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   selectedCustomerName: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
   },
   selectedCustomerMeta: {
-    marginTop: 3,
+    marginTop: 1,
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
+  },
+  selectedCurrencyBadge: {
+    minWidth: 46,
+    overflow: 'hidden',
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    textAlign: 'center',
+  },
+  changeCustomerButton: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    paddingHorizontal: 9,
+  },
+  changeCustomerText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
   },
   barcodeHeader: {
     flexDirection: 'row',
@@ -916,7 +993,7 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   customerResultRow: {
-    minHeight: 58,
+    minHeight: 52,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
@@ -926,14 +1003,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   customerResultText: {
     flex: 1,
   },
   customerResultName: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
   },
   customerResultMeta: {
