@@ -1250,6 +1250,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 const styles = StyleSheet.create({
   content: {
     padding: 12,
+    paddingBottom: 104,
     gap: 10,
   },
   panel: {

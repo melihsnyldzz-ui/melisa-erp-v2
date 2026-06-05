@@ -233,6 +233,7 @@ export function ReportsScreen({ navigation, onRefresh }) {
 const styles = StyleSheet.create({
   content: {
     padding: 8,
+    paddingBottom: 104,
     gap: 8,
   },
   summaryStrip: {

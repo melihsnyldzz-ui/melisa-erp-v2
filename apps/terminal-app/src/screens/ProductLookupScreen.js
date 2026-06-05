@@ -281,6 +281,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
 const styles = StyleSheet.create({
   content: {
     padding: 12,
+    paddingBottom: 104,
     gap: 10,
   },
   panel: {

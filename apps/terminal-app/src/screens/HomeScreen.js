@@ -299,6 +299,7 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
 const styles = StyleSheet.create({
   content: {
     padding: 12,
+    paddingBottom: 104,
     gap: 12,
   },
   quickHeader: {

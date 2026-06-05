@@ -403,6 +403,7 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
 const styles = StyleSheet.create({
   content: {
     padding: 12,
+    paddingBottom: 104,
     gap: 10,
   },
   panelDark: {
