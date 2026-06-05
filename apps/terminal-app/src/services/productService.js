@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './apiClient';
-import { findCachedProduct, findCachedProducts, saveProductCache } from './cacheService';
+import { findCachedProduct, findCachedProducts, findExactCachedProduct } from './cacheService';
 import { enqueueAction } from './queueService';
 import { searchTerminalProducts } from './terminalSalesService';
 
@@ -89,22 +89,31 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
     throw error;
   }
 
+  const exactCachedProduct = await findExactCachedProduct(trimmedBarcode);
+  if (exactCachedProduct) {
+    await rememberRecentProduct(exactCachedProduct);
+    return buildCacheLookupResult(
+      exactCachedProduct,
+      trimmedBarcode,
+      preferCache ? 'Offline mod, local cache sonucu gosteriliyor' : 'Local cache sonucu gosteriliyor',
+    );
+  }
+
   if (preferCache) {
-    const cachedProduct = await findCachedProduct(trimmedBarcode);
-    if (cachedProduct) {
-      await rememberRecentProduct(cachedProduct);
-      return buildCacheLookupResult(cachedProduct, trimmedBarcode, 'Offline mod, local cache sonucu gosteriliyor');
-    }
+    const error = new Error('Offline cache icinde bu barkod bulunamadi');
+    error.code = 'OFFLINE_CACHE_MISS';
+    error.alternatives = [];
+    error.lookupBarcode = trimmedBarcode;
+    throw error;
   }
 
   try {
     const response = await apiRequest(`/terminal/products/barcode/${encodeURIComponent(trimmedBarcode)}`, {
       token,
-      timeoutMs: 3500,
+      timeoutMs: 1000,
     });
 
     const products = [normalizeProduct(response.data)];
-    await saveProductCache(products);
     await rememberRecentProduct(products[0]);
 
     return {
@@ -134,7 +143,6 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
           limit: 8,
         });
         alternatives = extractProducts(response).map(normalizeProduct);
-        await saveProductCache(alternatives);
       } catch {
         alternatives = (await findCachedProducts(trimmedBarcode, 8)).map(normalizeProduct);
       }

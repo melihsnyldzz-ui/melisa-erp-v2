@@ -169,7 +169,7 @@ async function findInProductChunks(predicate, limit = 1) {
   return results;
 }
 
-async function findExactCachedProduct(query) {
+export async function findExactCachedProduct(query) {
   const normalized = normalizeSearch(query);
   if (!normalized) return null;
 
