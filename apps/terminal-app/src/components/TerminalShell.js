@@ -15,7 +15,7 @@ function formatShortDate(value) {
   }
 }
 
-export function TerminalShell({ title, subtitle, session, syncState, children }) {
+export function TerminalShell({ title, subtitle, session, syncState, children, hideScreenHeader = false }) {
   const pending = Number(syncState.salePendingCount || syncState.pendingCount || 0);
   const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
 
@@ -52,10 +52,12 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
         </View>
       ) : null}
 
-      <View style={styles.screenHeader}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
+      {!hideScreenHeader ? (
+        <View style={styles.screenHeader}>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+      ) : null}
 
       <View style={styles.body}>{children}</View>
     </View>

@@ -718,16 +718,16 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       ) : null}
 
         <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
-        <View style={styles.saleStepHeader}>
-          <View>
-            <Text style={styles.stepLabel}>{selectedCustomer ? 'Adim 2' : 'Adim 1'}</Text>
-            <Text style={styles.title}>{selectedCustomer ? 'Fis Olustur' : 'Cari Sec'}</Text>
-            <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
+        {!selectedCustomer ? (
+          <View style={styles.saleStepHeader}>
+            <View>
+              <Text style={styles.stepLabel}>Adim 1</Text>
+              <Text style={styles.title}>Cari Sec</Text>
+              <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
+            </View>
+            <Text style={[styles.stepBadge, styles.stepBadgeActive]}>Cari</Text>
           </View>
-          <Text style={[styles.stepBadge, selectedCustomer ? styles.stepBadgeReady : styles.stepBadgeActive]}>
-            {selectedCustomer ? 'Fis' : 'Cari'}
-          </Text>
-        </View>
+        ) : null}
 
         {!selectedCustomer ? (
           <>
@@ -787,21 +787,18 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         ) : null}
 
         {selectedCustomer ? (
-          <View style={styles.selectedBox}>
-            <View style={styles.selectedCustomerHeader}>
+          <View style={styles.saleCompactBar}>
+            <View style={styles.saleCompactText}>
               <Text style={styles.selectedCustomerName} numberOfLines={1}>{selectedCustomer.customerName}</Text>
-              <Text style={styles.selectedCurrencyBadge}>{selectedCustomer.currency}</Text>
+              <RateInfoPanel
+                customer={selectedCustomer}
+                rateSet={currencyRates}
+                onRefresh={() => refreshRates()}
+                loading={loading}
+              />
             </View>
+            <Text style={styles.selectedCurrencyBadge}>{selectedCustomer.currency}</Text>
           </View>
-        ) : null}
-
-        {selectedCustomer ? (
-          <RateInfoPanel
-            customer={selectedCustomer}
-            rateSet={currencyRates}
-            onRefresh={() => refreshRates()}
-            loading={loading}
-          />
         ) : null}
 
         <Modal
@@ -1436,30 +1433,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 4,
   },
-  selectedBox: {
+  saleCompactBar: {
     borderColor: colors.success,
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.successSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  ratePanel: {
-    borderWidth: 1,
-    borderRadius: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  saleCompactText: {
+    flex: 1,
+    gap: 2,
+  },
+  ratePanel: {
+    borderWidth: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   ratePanelReady: {
-    borderColor: colors.success,
-    backgroundColor: colors.successSoft,
+    backgroundColor: 'transparent',
   },
   ratePanelWarning: {
-    borderColor: colors.warning,
-    backgroundColor: colors.warningSoft,
+    backgroundColor: 'transparent',
   },
   rateText: {
     flex: 1,
@@ -1475,15 +1477,15 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   rateRefreshButton: {
-    minWidth: 48,
-    minHeight: 30,
+    minWidth: 42,
+    minHeight: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 7,
-    backgroundColor: colors.panel,
-    paddingHorizontal: 8,
+    backgroundColor: colors.white,
+    paddingHorizontal: 6,
   },
   rateRefreshText: {
     color: colors.text,
@@ -1500,7 +1502,7 @@ const styles = StyleSheet.create({
   selectedCustomerName: {
     flex: 1,
     color: colors.text,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '900',
   },
   selectedCurrencyBadge: {
