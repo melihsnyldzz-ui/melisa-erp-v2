@@ -90,6 +90,23 @@ function SaleResultPanel({ result, onOpenSync }) {
   );
 }
 
+function LastProductPanel({ product, quantity }) {
+  if (!product) return null;
+
+  return (
+    <View style={styles.lastProductPanel}>
+      <Text style={styles.lastProductLabel}>Son okutulan</Text>
+      <Text style={styles.lastProductName}>{product.productName}</Text>
+      <View style={styles.lastProductFacts}>
+        <Text style={styles.lastProductPill}>{product.stockCode}</Text>
+        <Text style={styles.lastProductPill}>Stok {product.stockQuantity}</Text>
+        <Text style={styles.lastProductPill}>{quantity} adet</Text>
+        <Text style={styles.lastProductPill}>{formatMoney(product.salePrice, product.currency)}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function NewSaleScreen({ session, navigation, onRefresh }) {
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
@@ -102,6 +119,8 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const [productResults, setProductResults] = useState([]);
   const [lines, setLines] = useState([]);
   const [productAlternatives, setProductAlternatives] = useState([]);
+  const [lastScannedProduct, setLastScannedProduct] = useState(null);
+  const [lastScannedQuantity, setLastScannedQuantity] = useState(0);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saleResult, setSaleResult] = useState(null);
@@ -284,6 +303,8 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   }
 
   function addProductLine(product, parsedQuantity = Number(quantity || 1)) {
+    setLastScannedProduct(product);
+    setLastScannedQuantity(parsedQuantity);
     setLines((current) => {
       const existingIndex = current.findIndex((line) => String(line.product.id) === String(product.id));
       if (existingIndex < 0) {
@@ -303,6 +324,13 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
           : line
       ));
     });
+  }
+
+  function adjustInputQuantity(delta) {
+    const current = Number(quantity || 1);
+    const next = Math.max(1, Number.isFinite(current) ? current + delta : 1);
+    setQuantity(String(next));
+    setTimeout(() => barcodeRef.current?.focus(), 80);
   }
 
   function selectProductAlternative(product) {
@@ -430,6 +458,8 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setQuantity('1');
     setProductAlternatives([]);
     setProductResults([]);
+    setLastScannedProduct(null);
+    setLastScannedQuantity(0);
     setMessage('Fis temizlendi');
     setError('');
     setSaleResult(null);
@@ -562,13 +592,22 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
           keyboardType="number-pad"
           returnKeyType="done"
         />
+        <LastProductPanel product={lastScannedProduct} quantity={lastScannedQuantity} />
         <Text style={styles.label}>Miktar</Text>
-        <TextInput
-          value={quantity}
-          onChangeText={setQuantity}
-          style={styles.input}
-          keyboardType="decimal-pad"
-        />
+        <View style={styles.quantityControl}>
+          <Pressable onPress={() => adjustInputQuantity(-1)} style={styles.quantityButton}>
+            <Text style={styles.quantityButtonText}>-</Text>
+          </Pressable>
+          <TextInput
+            value={quantity}
+            onChangeText={setQuantity}
+            style={styles.quantityInput}
+            keyboardType="decimal-pad"
+          />
+          <Pressable onPress={() => adjustInputQuantity(1)} style={styles.quantityButton}>
+            <Text style={styles.quantityButtonText}>+</Text>
+          </Pressable>
+        </View>
         <TerminalButton label="Satira Ekle" onPress={addBarcodeLine} disabled={loading} />
         <View style={styles.quickSearchPanel}>
           <Text style={styles.label}>Barkod yoksa urun ara</Text>
@@ -649,9 +688,15 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
               </Text>
               <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
               <View style={styles.lineButtons}>
-                <TerminalButton label="-" onPress={() => adjustLineQuantity(line.product.id, -1)} variant="secondary" />
-                <TerminalButton label="+" onPress={() => adjustLineQuantity(line.product.id, 1)} variant="secondary" />
-                <TerminalButton label="Sil" onPress={() => removeLine(line.product.id)} variant="danger" />
+                <Pressable onPress={() => adjustLineQuantity(line.product.id, -1)} style={styles.smallLineButton}>
+                  <Text style={styles.smallLineButtonText}>-</Text>
+                </Pressable>
+                <Pressable onPress={() => adjustLineQuantity(line.product.id, 1)} style={styles.smallLineButton}>
+                  <Text style={styles.smallLineButtonText}>+</Text>
+                </Pressable>
+                <Pressable onPress={() => removeLine(line.product.id)} style={[styles.smallLineButton, styles.smallLineButtonDanger]}>
+                  <Text style={[styles.smallLineButtonText, styles.smallLineButtonTextDanger]}>Sil</Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -744,6 +789,75 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     paddingHorizontal: 10,
+  },
+  quantityControl: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  quantityButton: {
+    width: 62,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+  },
+  quantityButtonText: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  quantityInput: {
+    flex: 1,
+    minHeight: 56,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.input,
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    textAlign: 'center',
+  },
+  lastProductPanel: {
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.successSoft,
+    padding: 10,
+    gap: 5,
+  },
+  lastProductLabel: {
+    color: colors.success,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  lastProductName: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  lastProductFacts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  lastProductPill: {
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   selectedBox: {
     borderColor: colors.success,
@@ -848,11 +962,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lineRow: {
-    minHeight: 78,
+    minHeight: 66,
     borderBottomColor: colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 8,
-    paddingVertical: 6,
+    gap: 6,
+    paddingVertical: 5,
   },
   lineText: {
     flex: 1,
@@ -883,6 +997,30 @@ const styles = StyleSheet.create({
   lineButtons: {
     flexDirection: 'row',
     gap: 6,
+  },
+  smallLineButton: {
+    minWidth: 44,
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    paddingHorizontal: 8,
+  },
+  smallLineButtonDanger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+  },
+  smallLineButtonText: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  smallLineButtonTextDanger: {
+    color: colors.danger,
+    fontSize: 13,
   },
   receiptHeader: {
     flexDirection: 'row',
