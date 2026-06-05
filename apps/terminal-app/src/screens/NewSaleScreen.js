@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
@@ -143,6 +143,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
   const [customerResults, setCustomerResults] = useState([]);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [recentCustomers, setRecentCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [barcode, setBarcode] = useState('');
@@ -261,6 +262,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   async function selectCustomer(customer) {
     setSelectedCustomer(customer);
     setCustomerResults([]);
+    setCustomerPickerOpen(false);
     setCustomerQuery(customer.customerCode || customer.customerName || '');
     setRecentCustomers(await writeRecentCustomer(customer));
     setMessage(`${customer.customerName} secildi`);
@@ -278,13 +280,12 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       const response = await searchTerminalCustomers({
         q,
         token: session.accessToken,
-        limit: 8,
+        limit: 5,
       });
-      const customers = (response.data || []).map(normalizeCustomer);
+      const customers = (response.data || []).map(normalizeCustomer).slice(0, 5);
       setCustomerResults(customers);
-      if (customers.length === 1) {
-        await selectCustomer(customers[0]);
-      } else if (customers.length === 0) {
+      setCustomerPickerOpen(true);
+      if (customers.length === 0) {
         setMessage('Cari bulunamadi');
       }
     } catch (searchError) {
@@ -297,6 +298,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   function clearSelectedCustomer() {
     setSelectedCustomer(null);
     setCustomerResults([]);
+    setCustomerPickerOpen(false);
     setReviewMode(false);
     setMessage('');
     setError('');
@@ -305,6 +307,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   async function selectCashCustomer(code) {
     setCustomerQuery(code);
     setCustomerResults([]);
+    setCustomerPickerOpen(false);
     setSelectedCustomer(null);
     setMessage('');
     setError('');
@@ -688,7 +691,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         </View>
       ) : null}
 
-      <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
+        <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
         <View style={styles.saleStepHeader}>
           <View>
             <Text style={styles.stepLabel}>{selectedCustomer ? 'Adim 2' : 'Adim 1'}</Text>
@@ -782,23 +785,69 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           />
         ) : null}
 
-        {customerResults.length > 1 ? (
-          <View style={styles.resultList}>
-            {customerResults.map((customer) => (
-              <Pressable
-                key={customer.id}
-                onPress={() => selectCustomer(customer)}
-                style={styles.customerResultRow}
-              >
-                <View style={styles.customerResultText}>
-                  <Text style={styles.customerResultName}>{customer.customerName}</Text>
-                  <Text style={styles.customerResultMeta}>{customer.customerCode} / Bakiye {formatMoney(customer.balance, customer.currency)}</Text>
+        <Modal
+          visible={customerPickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCustomerPickerOpen(false)}
+        >
+          <View style={styles.customerModalBackdrop}>
+            <View style={styles.customerModal}>
+              <View style={styles.customerModalHeader}>
+                <View>
+                  <Text style={styles.customerModalTitle}>Cari sec</Text>
+                  <Text style={styles.customerModalMeta}>En fazla 5 oneriyi gosteriyoruz</Text>
                 </View>
-                <Text style={styles.customerCurrencyBadge}>{customer.currency}</Text>
-              </Pressable>
-            ))}
+                <Pressable onPress={() => setCustomerPickerOpen(false)} style={styles.customerModalClose}>
+                  <Text style={styles.customerModalCloseText}>Kapat</Text>
+                </Pressable>
+              </View>
+
+              <TextInput
+                value={customerQuery}
+                onChangeText={setCustomerQuery}
+                onSubmitEditing={searchCustomer}
+                style={styles.customerModalInput}
+                placeholder="Cari adi veya kodu"
+                autoCapitalize="none"
+              />
+
+              {customerResults.length ? (
+                <View style={styles.customerSuggestionList}>
+                  {customerResults.map((customer, index) => (
+                    <Pressable
+                      key={customer.id}
+                      onPress={() => selectCustomer(customer)}
+                      style={({ pressed }) => [
+                        styles.customerSuggestionRow,
+                        pressed && styles.customerSuggestionPressed,
+                      ]}
+                    >
+                      <Text style={styles.customerSuggestionIndex}>{index + 1}</Text>
+                      <View style={styles.customerResultText}>
+                        <Text style={styles.customerResultName}>{customer.customerName}</Text>
+                        <Text style={styles.customerResultMeta}>
+                          {customer.customerCode} / Bakiye {formatMoney(customer.balance, customer.currency)}
+                        </Text>
+                      </View>
+                      <Text style={styles.customerCurrencyBadge}>{customer.currency}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.customerModalEmpty}>
+                  <Text style={styles.customerOnlyTitle}>Cari bulunamadi</Text>
+                  <Text style={styles.customerOnlyText}>Aramayi degistirip tekrar deneyin.</Text>
+                </View>
+              )}
+
+              <View style={styles.customerModalActions}>
+                <TerminalButton label="Tekrar Ara" onPress={searchCustomer} disabled={loading} />
+                <TerminalButton label="Vazgec" onPress={() => setCustomerPickerOpen(false)} variant="secondary" />
+              </View>
+            </View>
           </View>
-        ) : null}
+        </Modal>
       </View>
 
       {!selectedCustomer ? (
@@ -1481,6 +1530,107 @@ const styles = StyleSheet.create({
   },
   resultList: {
     gap: 7,
+  },
+  customerModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.58)',
+    justifyContent: 'center',
+    padding: 14,
+  },
+  customerModal: {
+    maxHeight: '86%',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    padding: 12,
+    gap: 10,
+  },
+  customerModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  customerModalTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  customerModalMeta: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  customerModalClose: {
+    minHeight: 40,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  customerModalCloseText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  customerModalInput: {
+    minHeight: 50,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.input,
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+  },
+  customerSuggestionList: {
+    gap: 8,
+  },
+  customerSuggestionRow: {
+    minHeight: 68,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 9,
+    backgroundColor: colors.panel,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  customerSuggestionPressed: {
+    opacity: 0.78,
+  },
+  customerSuggestionIndex: {
+    width: 34,
+    minHeight: 34,
+    overflow: 'hidden',
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.accentSoft,
+    color: colors.accentDark,
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'center',
+    paddingVertical: 6,
+  },
+  customerModalEmpty: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.panel,
+    padding: 12,
+    gap: 4,
+  },
+  customerModalActions: {
+    gap: 8,
   },
   recentPanel: {
     borderTopColor: colors.border,
