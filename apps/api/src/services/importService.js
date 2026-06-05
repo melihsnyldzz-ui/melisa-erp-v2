@@ -7,6 +7,7 @@ import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 const ALLOWED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const ALLOWED_CUSTOMER_TYPES = new Set(['customer', 'wholesale', 'retail', 'mixed']);
+const IMPORT_DUPLICATE_CHECK_BATCH_SIZE = 900;
 
 const productFieldAliases = {
   stockcode: 'stockCode',
@@ -129,6 +130,16 @@ function normalizeHeader(value) {
 
 function trimText(value) {
   return value === null || value === undefined ? '' : String(value).trim();
+}
+
+function chunkRows(rows, size = IMPORT_DUPLICATE_CHECK_BATCH_SIZE) {
+  const chunks = [];
+
+  for (let index = 0; index < rows.length; index += size) {
+    chunks.push(rows.slice(index, index + size));
+  }
+
+  return chunks;
 }
 
 function parseNumber(value, fieldName, errors, { allowNegative = false } = {}) {
@@ -383,61 +394,65 @@ async function markDbProductDuplicates(rows) {
   }
 
   const pool = await getSqlPool();
-  const request = pool.request();
-  const stockParams = [];
-  const barcodeParams = [];
+  const duplicates = new Map();
 
-  candidates.forEach((row, index) => {
-    const stockParam = `stockCode${index}`;
-    const barcodeParam = `barcode${index}`;
-    stockParams.push(`@${stockParam}`);
-    barcodeParams.push(`@${barcodeParam}`);
-    request.input(stockParam, sql.NVarChar(80), row.data.stockCode);
-    request.input(barcodeParam, sql.NVarChar(120), row.data.barcode);
-  });
+  for (const batch of chunkRows(candidates)) {
+    const request = pool.request();
+    const stockParams = [];
+    const barcodeParams = [];
 
-  const result = await request.query(`
-    SELECT
-      p.stock_code AS value,
-      N'stockCode' AS field,
-      p.id AS product_id,
-      p.stock_code,
-      p.name AS product_name,
-      pb.barcode
-    FROM dbo.products p
-    OUTER APPLY (
-      SELECT TOP (1) barcode
-      FROM dbo.product_barcodes
-      WHERE product_id = p.id
-        AND is_active = 1
-      ORDER BY is_primary DESC, id ASC
-    ) pb
-    WHERE p.stock_code IN (${stockParams.join(', ')})
-      AND p.is_deleted = 0
-    UNION ALL
-    SELECT
-      b.barcode AS value,
-      N'barcode' AS field,
-      p.id AS product_id,
-      p.stock_code,
-      p.name AS product_name,
-      b.barcode
-    FROM dbo.product_barcodes b
-    INNER JOIN dbo.products p ON p.id = b.product_id
-    WHERE b.is_active = 1
-      AND p.is_deleted = 0
-      AND b.barcode IN (${barcodeParams.join(', ')});
-  `);
+    batch.forEach((row, index) => {
+      const stockParam = `stockCode${index}`;
+      const barcodeParam = `barcode${index}`;
+      stockParams.push(`@${stockParam}`);
+      barcodeParams.push(`@${barcodeParam}`);
+      request.input(stockParam, sql.NVarChar(80), row.data.stockCode);
+      request.input(barcodeParam, sql.NVarChar(120), row.data.barcode);
+    });
 
-  const duplicates = new Map((result.recordset || []).map((row) => [
-    `${row.field}:${String(row.value).toUpperCase()}`,
-    {
-      productId: Number(row.product_id),
-      stockCode: row.stock_code,
-      productName: row.product_name,
-      barcode: row.barcode,
-    },
-  ]));
+    const result = await request.query(`
+      SELECT
+        p.stock_code AS value,
+        N'stockCode' AS field,
+        p.id AS product_id,
+        p.stock_code,
+        p.name AS product_name,
+        pb.barcode
+      FROM dbo.products p
+      OUTER APPLY (
+        SELECT TOP (1) barcode
+        FROM dbo.product_barcodes
+        WHERE product_id = p.id
+          AND is_active = 1
+        ORDER BY is_primary DESC, id ASC
+      ) pb
+      WHERE p.stock_code IN (${stockParams.join(', ')})
+        AND p.is_deleted = 0
+      UNION ALL
+      SELECT
+        b.barcode AS value,
+        N'barcode' AS field,
+        p.id AS product_id,
+        p.stock_code,
+        p.name AS product_name,
+        b.barcode
+      FROM dbo.product_barcodes b
+      INNER JOIN dbo.products p ON p.id = b.product_id
+      WHERE b.is_active = 1
+        AND p.is_deleted = 0
+        AND b.barcode IN (${barcodeParams.join(', ')});
+    `);
+
+    (result.recordset || []).forEach((row) => {
+      duplicates.set(`${row.field}:${String(row.value).toUpperCase()}`, {
+        productId: Number(row.product_id),
+        stockCode: row.stock_code,
+        productName: row.product_name,
+        barcode: row.barcode,
+      });
+    });
+  }
+
   candidates.forEach((row) => {
     const stockDuplicate = duplicates.get(`stockCode:${row.data.stockCode.toUpperCase()}`);
     const barcodeDuplicate = duplicates.get(`barcode:${row.data.barcode.toUpperCase()}`);
@@ -462,22 +477,27 @@ async function markDbCustomerDuplicates(rows) {
   }
 
   const pool = await getSqlPool();
-  const request = pool.request();
-  const params = [];
+  const duplicates = new Set();
 
-  candidates.forEach((row, index) => {
-    const param = `customerCode${index}`;
-    params.push(`@${param}`);
-    request.input(param, sql.NVarChar(80), row.data.customerCode);
-  });
+  for (const batch of chunkRows(candidates)) {
+    const request = pool.request();
+    const params = [];
 
-  const result = await request.query(`
-    SELECT customer_code
-    FROM dbo.customers
-    WHERE customer_code IN (${params.join(', ')});
-  `);
+    batch.forEach((row, index) => {
+      const param = `customerCode${index}`;
+      params.push(`@${param}`);
+      request.input(param, sql.NVarChar(80), row.data.customerCode);
+    });
 
-  const duplicates = new Set((result.recordset || []).map((row) => String(row.customer_code).toUpperCase()));
+    const result = await request.query(`
+      SELECT customer_code
+      FROM dbo.customers
+      WHERE customer_code IN (${params.join(', ')});
+    `);
+
+    (result.recordset || []).forEach((row) => duplicates.add(String(row.customer_code).toUpperCase()));
+  }
+
   candidates.forEach((row) => {
     if (duplicates.has(row.data.customerCode.toUpperCase())) {
       row.errors.push('customerCode duplicate in database');
@@ -493,23 +513,28 @@ async function markDbSupplierDuplicates(rows) {
   }
 
   const pool = await getSqlPool();
-  const request = pool.request();
-  const params = [];
+  const duplicates = new Set();
 
-  candidates.forEach((row, index) => {
-    const param = `supplierCode${index}`;
-    params.push(`@${param}`);
-    request.input(param, sql.NVarChar(80), row.data.supplierCode);
-  });
+  for (const batch of chunkRows(candidates)) {
+    const request = pool.request();
+    const params = [];
 
-  const result = await request.query(`
-    SELECT supplier_code
-    FROM dbo.suppliers
-    WHERE supplier_code IN (${params.join(', ')})
-      AND is_deleted = 0;
-  `);
+    batch.forEach((row, index) => {
+      const param = `supplierCode${index}`;
+      params.push(`@${param}`);
+      request.input(param, sql.NVarChar(80), row.data.supplierCode);
+    });
 
-  const duplicates = new Set((result.recordset || []).map((row) => String(row.supplier_code).toUpperCase()));
+    const result = await request.query(`
+      SELECT supplier_code
+      FROM dbo.suppliers
+      WHERE supplier_code IN (${params.join(', ')})
+        AND is_deleted = 0;
+    `);
+
+    (result.recordset || []).forEach((row) => duplicates.add(String(row.supplier_code).toUpperCase()));
+  }
+
   candidates.forEach((row) => {
     if (duplicates.has(row.data.supplierCode.toUpperCase())) {
       row.errors.push('supplierCode duplicate in database');

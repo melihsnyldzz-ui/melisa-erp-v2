@@ -5,6 +5,8 @@ build
 .env.local
 .DS_Store
 logs
+.codex-logs
+**/.codex-logs/
 vite-*.log
 vite-5187.*.log
 apps/terminal-app/*.log
