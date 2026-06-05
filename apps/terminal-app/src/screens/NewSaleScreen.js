@@ -167,6 +167,8 @@ function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
 
 export function NewSaleScreen({ session, syncState, navigation, onRefresh, draftToEdit, onDraftLoaded }) {
   const barcodeRef = useRef(null);
+  const barcodeAutoTimerRef = useRef(null);
+  const lastAutoLookupBarcodeRef = useRef('');
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
@@ -279,6 +281,42 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   useEffect(() => {
     refreshRates(false);
   }, []);
+
+  useEffect(() => () => {
+    if (barcodeAutoTimerRef.current) {
+      clearTimeout(barcodeAutoTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    const trimmedBarcode = barcode.trim();
+
+    if (barcodeAutoTimerRef.current) {
+      clearTimeout(barcodeAutoTimerRef.current);
+    }
+
+    if (
+      !selectedCustomer
+      || reviewMode
+      || loading
+      || lastScannedProduct
+      || trimmedBarcode.length < 4
+      || trimmedBarcode === lastAutoLookupBarcodeRef.current
+    ) {
+      return undefined;
+    }
+
+    barcodeAutoTimerRef.current = setTimeout(() => {
+      lastAutoLookupBarcodeRef.current = trimmedBarcode;
+      lookupBarcodeProduct(trimmedBarcode);
+    }, 250);
+
+    return () => {
+      if (barcodeAutoTimerRef.current) {
+        clearTimeout(barcodeAutoTimerRef.current);
+      }
+    };
+  }, [barcode, selectedCustomer, reviewMode, loading, lastScannedProduct, quantity]);
 
   useEffect(() => {
     if (!draftToEdit?.payload) return;
@@ -402,8 +440,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     }
   }
 
-  async function lookupBarcodeProduct() {
-    const trimmedBarcode = barcode.trim();
+  async function lookupBarcodeProduct(rawBarcode) {
+    const trimmedBarcode = String(typeof rawBarcode === 'string' ? rawBarcode : barcode).trim();
     const parsedQuantity = Number(quantity || 1);
 
     if (!selectedCustomer) {
@@ -432,6 +470,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 
       setLastScannedProduct(product);
       setLastScannedQuantity(parsedQuantity);
+      setBarcode('');
+      lastAutoLookupBarcodeRef.current = '';
       rememberScan(product, parsedQuantity);
       setMessage(`${product.productName} bulundu. Bilgileri kontrol edip Satira Ekle'ye basin.`);
       setSaleResult(null);
@@ -973,10 +1013,11 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           value={barcode}
           onChangeText={(value) => {
             setBarcode(value);
+            lastAutoLookupBarcodeRef.current = '';
             setLastScannedProduct(null);
             setProductAlternatives([]);
           }}
-          onSubmitEditing={lookupBarcodeProduct}
+          onSubmitEditing={() => lookupBarcodeProduct()}
           style={styles.barcodeInput}
           placeholder="Barkod okut"
           showSoftInputOnFocus={false}
