@@ -62,6 +62,34 @@ async function writeRecentCustomer(customer) {
   return next;
 }
 
+function SaleResultPanel({ result, onOpenSync }) {
+  if (!result) return null;
+
+  const tone = result.status === 'synced'
+    ? 'success'
+    : result.status === 'duplicate'
+      ? 'warning'
+      : 'danger';
+
+  return (
+    <View style={[styles.saleResultPanel, styles[`saleResult_${tone}`]]}>
+      <Text style={styles.saleResultTitle}>{result.title}</Text>
+      <Text style={styles.saleResultMessage}>{result.message}</Text>
+      <View style={styles.saleResultFacts}>
+        <Text style={styles.saleResultPill}>{result.customerName}</Text>
+        <Text style={styles.saleResultPill}>{result.lineCount} satir</Text>
+        <Text style={styles.saleResultPill}>{result.itemQuantity} adet</Text>
+      </View>
+      {result.clientEventId ? <Text style={styles.saleResultId}>{result.clientEventId}</Text> : null}
+      {result.status === 'offline' || result.status === 'failed' ? (
+        <View style={styles.saleResultAction}>
+          <TerminalButton label="Sync Merkezine Git" onPress={onOpenSync} variant="secondary" />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function NewSaleScreen({ session, navigation, onRefresh }) {
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
@@ -76,6 +104,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const [productAlternatives, setProductAlternatives] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [saleResult, setSaleResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const total = useMemo(() => lines.reduce((sum, line) => (
@@ -109,6 +138,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setCustomerQuery(customer.customerCode || customer.customerName || '');
     setRecentCustomers(await writeRecentCustomer(customer));
     setMessage(`${customer.customerName} secildi`);
+    setSaleResult(null);
     setTimeout(() => barcodeRef.current?.focus(), 100);
   }
 
@@ -205,6 +235,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       setBarcode('');
       setQuantity('1');
       setMessage(`${product.productName} eklendi`);
+      setSaleResult(null);
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod okunamadi');
       setProductAlternatives(Array.isArray(lookupError.alternatives) ? lookupError.alternatives : []);
@@ -287,6 +318,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setQuantity('1');
     setError('');
     setMessage(`${product.productName} alternatif olarak eklendi`);
+    setSaleResult(null);
     setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
@@ -303,6 +335,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setQuantity('1');
     setError('');
     setMessage(`${product.productName} satira eklendi`);
+    setSaleResult(null);
     setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
@@ -314,7 +347,14 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
 
     setError('');
     setMessage('');
+    setSaleResult(null);
     setLoading(true);
+
+    const resultSnapshot = {
+      customerName: selectedCustomer.customerName,
+      lineCount: lines.length,
+      itemQuantity,
+    };
 
     const basePayload = buildTerminalSalePayload({
       customer: selectedCustomer,
@@ -336,6 +376,15 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       const duplicate = Boolean(response?.data?.duplicate || response?.duplicate);
       await markQueueSynced(queuedEvent.clientEventId, response?.data || response);
       setMessage(duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
+      setSaleResult({
+        ...resultSnapshot,
+        status: duplicate ? 'duplicate' : 'synced',
+        title: duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi',
+        message: duplicate
+          ? 'Backend bu fisi daha once almis. Yeni ikinci fis olusturulmadi.'
+          : 'Fis backend API tarafina basariyla gonderildi.',
+        clientEventId: queuedEvent.clientEventId,
+      });
       setLines([]);
       setBarcode('');
       setQuantity('1');
@@ -344,6 +393,13 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       await markQueueFailed(queuedEvent.clientEventId, submitError);
       setMessage('Baglanti yok, fis gonderilemeyenlere alindi');
       setError(submitError.message || 'Online gonderim basarisiz');
+      setSaleResult({
+        ...resultSnapshot,
+        status: 'offline',
+        title: 'Gonderilemeyenlere alindi',
+        message: submitError.message || 'API baglantisi yok veya istek basarisiz. Fis local queue icinde bekliyor.',
+        clientEventId: queuedEvent.clientEventId,
+      });
       setLines([]);
       setBarcode('');
       setQuantity('1');
@@ -373,8 +429,10 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setBarcode('');
     setQuantity('1');
     setProductAlternatives([]);
+    setProductResults([]);
     setMessage('Fis temizlendi');
     setError('');
+    setSaleResult(null);
     setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
@@ -384,6 +442,14 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     try {
       const result = await syncPendingTerminalSales({ token: session.accessToken });
       setMessage(`Sync: ${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
+      setSaleResult({
+        status: result.failed ? 'failed' : 'synced',
+        title: result.failed ? 'Sync hatali kayit birakti' : 'Bekleyenler gonderildi',
+        message: `${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`,
+        customerName: 'Toplu sync',
+        lineCount: result.attempted,
+        itemQuantity: result.synced + result.duplicate,
+      });
       if (result.lastErrorMessage) {
         setError(result.lastErrorMessage);
       }
@@ -607,6 +673,8 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
+      <SaleResultPanel result={saleResult} onOpenSync={navigation.openSyncStatus} />
+
       <View style={styles.submitPanel}>
         <Text style={styles.submitTitle}>{lines.length ? 'Fis gonderime hazir' : 'Fis bos'}</Text>
         <Text style={styles.submitMeta}>{selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir</Text>
@@ -829,6 +897,60 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 8,
+  },
+  saleResultPanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 7,
+  },
+  saleResult_success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  saleResult_warning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  saleResult_danger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  saleResultTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  saleResultMessage: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  saleResultFacts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  saleResultPill: {
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  saleResultId: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  saleResultAction: {
+    marginTop: 3,
   },
   submitTitle: {
     color: colors.text,
