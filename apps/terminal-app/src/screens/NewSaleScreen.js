@@ -461,6 +461,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       const result = await lookupProductByBarcode({
         barcode: trimmedBarcode,
         token: session.accessToken,
+        preferCache: !syncState?.online,
       });
       const product = result.selectedProduct;
       if (!product) {

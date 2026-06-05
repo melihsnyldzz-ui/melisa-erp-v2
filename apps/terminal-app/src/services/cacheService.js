@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const legacyProductCacheKey = 'terminalProductCache';
 const productCacheIndexKey = 'terminalProductCacheIndexV2';
 const productCacheChunkPrefix = 'terminalProductCacheChunkV2:';
+const productLookupShardPrefix = 'terminalProductLookupShardV2:';
 const customerCacheKey = 'terminalCustomerCache';
 const cacheMetaKey = 'terminalCacheMeta';
 const PRODUCT_CACHE_CHUNK_SIZE = 200;
@@ -30,6 +31,22 @@ function normalizeSearch(value) {
   return String(value || '').trim().toLocaleLowerCase('tr-TR');
 }
 
+function lookupShardKey(normalizedValue) {
+  const prefix = normalizedValue.slice(0, 2) || '__';
+  return `${productLookupShardPrefix}${prefix}`;
+}
+
+function addProductLookup(lookupShards, value, pointer) {
+  const normalizedValue = normalizeSearch(value);
+  if (!normalizedValue) return;
+
+  const shardKey = lookupShardKey(normalizedValue);
+  lookupShards[shardKey] = {
+    ...(lookupShards[shardKey] || {}),
+    [normalizedValue]: pointer,
+  };
+}
+
 function productMatches(product, normalized) {
   if (!normalized) return false;
 
@@ -55,8 +72,10 @@ async function readProductCacheIndex() {
 
 async function removeProductCacheChunks(index) {
   const chunkKeys = Array.isArray(index?.chunkKeys) ? index.chunkKeys : [];
-  if (chunkKeys.length) {
-    await AsyncStorage.multiRemove(chunkKeys);
+  const lookupShardKeys = Array.isArray(index?.lookupShardKeys) ? index.lookupShardKeys : [];
+  const keys = [...chunkKeys, ...lookupShardKeys];
+  if (keys.length) {
+    await AsyncStorage.multiRemove(keys);
   }
 }
 
@@ -65,6 +84,7 @@ async function writeProductCacheValues(products = []) {
   await removeProductCacheChunks(previousIndex);
 
   const chunkEntries = [];
+  const lookupShards = {};
   const normalizedProducts = products.map(normalizeProductForCache);
 
   for (let start = 0; start < normalizedProducts.length; start += PRODUCT_CACHE_CHUNK_SIZE) {
@@ -72,10 +92,22 @@ async function writeProductCacheValues(products = []) {
     const key = `${productCacheChunkPrefix}${String(chunkNo).padStart(4, '0')}`;
     const chunk = normalizedProducts.slice(start, start + PRODUCT_CACHE_CHUNK_SIZE);
     chunkEntries.push([key, JSON.stringify(chunk)]);
+
+    chunk.forEach((product, index) => {
+      const pointer = { chunkKey: key, index };
+      addProductLookup(lookupShards, product.stockCode, pointer);
+      addProductLookup(lookupShards, product.barcodeMasked, pointer);
+      addProductLookup(lookupShards, product.matchedBarcode, pointer);
+    });
   }
 
   if (chunkEntries.length) {
     await AsyncStorage.multiSet(chunkEntries);
+  }
+
+  const lookupEntries = Object.entries(lookupShards).map(([key, value]) => [key, JSON.stringify(value)]);
+  if (lookupEntries.length) {
+    await AsyncStorage.multiSet(lookupEntries);
   }
 
   await writeJson(productCacheIndexKey, {
@@ -83,6 +115,7 @@ async function writeProductCacheValues(products = []) {
     count: normalizedProducts.length,
     chunkSize: PRODUCT_CACHE_CHUNK_SIZE,
     chunkKeys: chunkEntries.map(([key]) => key),
+    lookupShardKeys: lookupEntries.map(([key]) => key),
     cachedAt: new Date().toISOString(),
   });
 
@@ -136,6 +169,20 @@ async function findInProductChunks(predicate, limit = 1) {
   return results;
 }
 
+async function findExactCachedProduct(query) {
+  const normalized = normalizeSearch(query);
+  if (!normalized) return null;
+
+  const lookupShard = await readJson(lookupShardKey(normalized), {});
+  const pointer = lookupShard[normalized];
+  if (!pointer?.chunkKey || !Number.isFinite(pointer.index)) {
+    return null;
+  }
+
+  const chunk = await readJson(pointer.chunkKey, []);
+  return Array.isArray(chunk) ? chunk[pointer.index] || null : null;
+}
+
 export async function saveProductCache(products = []) {
   const existing = await readProductCacheValues();
   const next = {};
@@ -160,6 +207,11 @@ export async function replaceProductCache(products = []) {
 
 export async function findCachedProduct(query) {
   const normalized = normalizeSearch(query);
+  const exactProduct = await findExactCachedProduct(normalized);
+  if (exactProduct) {
+    return exactProduct;
+  }
+
   const matches = await findInProductChunks((product) => productMatches(product, normalized), 1);
 
   return matches[0] || null;

@@ -66,7 +66,21 @@ export async function rememberRecentProduct(product) {
   return next;
 }
 
-export async function lookupProductByBarcode({ barcode, token }) {
+function buildCacheLookupResult(product, barcode, warning = 'API kapali, local cache sonucu gosteriliyor') {
+  const normalizedCachedProduct = normalizeProduct(product);
+
+  return {
+    source: 'cache',
+    barcode,
+    products: [normalizedCachedProduct],
+    selectedProduct: normalizedCachedProduct,
+    alternatives: [],
+    warning,
+    searchedAt: new Date().toISOString(),
+  };
+}
+
+export async function lookupProductByBarcode({ barcode, token, preferCache = false }) {
   const trimmedBarcode = String(barcode || '').trim();
 
   if (!trimmedBarcode) {
@@ -75,9 +89,18 @@ export async function lookupProductByBarcode({ barcode, token }) {
     throw error;
   }
 
+  if (preferCache) {
+    const cachedProduct = await findCachedProduct(trimmedBarcode);
+    if (cachedProduct) {
+      await rememberRecentProduct(cachedProduct);
+      return buildCacheLookupResult(cachedProduct, trimmedBarcode, 'Offline mod, local cache sonucu gosteriliyor');
+    }
+  }
+
   try {
     const response = await apiRequest(`/terminal/products/barcode/${encodeURIComponent(trimmedBarcode)}`, {
       token,
+      timeoutMs: 3500,
     });
 
     const products = [normalizeProduct(response.data)];
@@ -93,18 +116,28 @@ export async function lookupProductByBarcode({ barcode, token }) {
     };
   } catch (error) {
     const cachedProduct = await findCachedProduct(trimmedBarcode);
+
+    if (cachedProduct) {
+      await rememberRecentProduct(cachedProduct);
+      return buildCacheLookupResult(cachedProduct, trimmedBarcode);
+    }
+
     let alternatives = [];
 
-    try {
-      const response = await searchTerminalProducts({
-        q: trimmedBarcode,
-        token,
-        limit: 8,
-      });
-      alternatives = extractProducts(response).map(normalizeProduct);
-      await saveProductCache(alternatives);
-    } catch {
+    if (error.code === 'NETWORK_ERROR' || error.code === 'API_TIMEOUT') {
       alternatives = (await findCachedProducts(trimmedBarcode, 8)).map(normalizeProduct);
+    } else {
+      try {
+        const response = await searchTerminalProducts({
+          q: trimmedBarcode,
+          token,
+          limit: 8,
+        });
+        alternatives = extractProducts(response).map(normalizeProduct);
+        await saveProductCache(alternatives);
+      } catch {
+        alternatives = (await findCachedProducts(trimmedBarcode, 8)).map(normalizeProduct);
+      }
     }
 
     await enqueueAction({
@@ -115,20 +148,6 @@ export async function lookupProductByBarcode({ barcode, token }) {
         alternativeCount: alternatives.length,
       },
     });
-
-    if (cachedProduct) {
-      const normalizedCachedProduct = normalizeProduct(cachedProduct);
-      await rememberRecentProduct(normalizedCachedProduct);
-      return {
-        source: 'cache',
-        barcode: trimmedBarcode,
-        products: [normalizedCachedProduct],
-        selectedProduct: normalizedCachedProduct,
-        alternatives,
-        warning: 'API kapali, local cache sonucu gosteriliyor',
-        searchedAt: new Date().toISOString(),
-      };
-    }
 
     error.alternatives = alternatives;
     error.lookupBarcode = trimmedBarcode;
