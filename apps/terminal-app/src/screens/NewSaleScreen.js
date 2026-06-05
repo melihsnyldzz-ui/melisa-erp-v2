@@ -5,9 +5,9 @@ import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/currencyRateService';
-import { lookupProductByBarcode } from '../services/productService';
+import { lookupProductByBarcode, searchProductsOfflineFirst } from '../services/productService';
 import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales, updateQueueEventPayload } from '../services/queueService';
-import { buildTerminalSalePayload, searchTerminalCustomers, searchTerminalProducts, submitTerminalSale } from '../services/terminalSalesService';
+import { buildTerminalSalePayload, searchTerminalCustomers, submitTerminalSale } from '../services/terminalSalesService';
 import { colors, terminalStyles } from '../styles/theme';
 
 function normalizeCustomer(row) {
@@ -532,19 +532,20 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setLoading(true);
 
     try {
-      const response = await searchTerminalProducts({
+      const response = await searchProductsOfflineFirst({
         q,
         token: session.accessToken,
         limit: 10,
+        preferCache: true,
       });
-      const products = (response.data || response.products || response.items || []).map(normalizeProduct);
+      const products = (response.products || response.data || response.items || []).map(normalizeProduct);
       setProductResults(products);
       if (products.length === 1) {
-        setMessage('1 urun bulundu, satira eklemek icin dokunun');
+        setMessage(`1 urun bulundu (${response.source === 'cache' ? 'offline stok' : 'API'}), satira eklemek icin dokunun`);
       } else if (products.length > 1) {
-        setMessage(`${products.length} urun bulundu`);
+        setMessage(`${products.length} urun bulundu (${response.source === 'cache' ? 'offline stok' : 'API'})`);
       } else {
-        setMessage('Urun bulunamadi');
+        setMessage(response.warning || 'Urun bulunamadi');
       }
     } catch (productError) {
       setError(productError.message || 'Urun arama basarisiz');

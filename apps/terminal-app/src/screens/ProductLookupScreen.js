@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
-import { findCachedProduct, saveProductCache } from '../services/cacheService';
-import { getRecentProducts, rememberRecentProduct } from '../services/productService';
-import { searchTerminalProducts } from '../services/terminalSalesService';
+import { getRecentProducts, rememberRecentProduct, searchProductsOfflineFirst } from '../services/productService';
 import { colors, terminalStyles } from '../styles/theme';
 
 function formatMoney(value, currency) {
@@ -28,26 +26,6 @@ function normalizeProduct(row) {
     stockQuantity: Number(row.stockQuantity || row.quantity || 0),
     isPassive: Boolean(row.isPassive),
   };
-}
-
-function getProductsFromResponse(response) {
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  if (Array.isArray(response?.items)) {
-    return response.items;
-  }
-
-  if (Array.isArray(response?.products)) {
-    return response.products;
-  }
-
-  if (Array.isArray(response?.data)) {
-    return response.data;
-  }
-
-  return [];
 }
 
 function sourceLabel(source) {
@@ -107,13 +85,13 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
     setWarning('');
 
     try {
-      const response = await searchTerminalProducts({
+      const response = await searchProductsOfflineFirst({
         q: normalizedQuery,
         token: session?.accessToken,
         limit: 20,
+        preferCache: true,
       });
-      const products = getProductsFromResponse(response).map(normalizeProduct).filter(Boolean);
-      await saveProductCache(products);
+      const products = (response.products || []).map(normalizeProduct).filter(Boolean);
 
       setResults(products);
       setSelectedProduct(products[0] || null);
@@ -121,21 +99,16 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
         const nextRecent = await rememberRecentProduct(products[0]);
         setRecentProducts(nextRecent.map(normalizeProduct).filter(Boolean));
       }
-      setSource('api');
+      setSource(response.source || 'cache');
       if (!products.length) {
-        setWarning('API sonucu bos. Barkod/stok kodu veya urun adini kontrol edin.');
+        setWarning(response.warning || 'Local stok cache sonucu bos. Veri guncelleyin veya aramayi kontrol edin.');
       }
     } catch (err) {
-      const cached = normalizeProduct(await findCachedProduct(normalizedQuery));
       setSource('cache');
-      setResults(cached ? [cached] : []);
-      setSelectedProduct(cached);
-      if (cached) {
-        const nextRecent = await rememberRecentProduct(cached);
-        setRecentProducts(nextRecent.map(normalizeProduct).filter(Boolean));
-      }
-      setWarning(cached ? 'API erisilemedi, local cache sonucu gosteriliyor.' : '');
-      setError(cached ? '' : `Hata: ${err.message || 'Urun bulunamadi'}`);
+      setResults([]);
+      setSelectedProduct(null);
+      setWarning('');
+      setError(`Hata: ${err.message || 'Urun bulunamadi'}`);
     } finally {
       setLoading(false);
     }

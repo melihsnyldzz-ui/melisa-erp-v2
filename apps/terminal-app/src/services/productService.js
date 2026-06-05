@@ -163,3 +163,42 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
     throw error;
   }
 }
+
+export async function searchProductsOfflineFirst({ q, token, limit = 10, preferCache = true } = {}) {
+  const query = String(q || '').trim();
+  if (!query) {
+    return {
+      source: 'cache',
+      products: [],
+      warning: 'Arama metni bos',
+    };
+  }
+
+  const cachedProducts = (await findCachedProducts(query, limit)).map(normalizeProduct).filter(Boolean);
+  if (preferCache || cachedProducts.length) {
+    return {
+      source: 'cache',
+      products: cachedProducts,
+      warning: cachedProducts.length ? 'Local stok cache sonucu' : 'Local stok cache icinde sonuc yok',
+    };
+  }
+
+  try {
+    const response = await searchTerminalProducts({
+      q: query,
+      token,
+      limit,
+    });
+    return {
+      source: 'api',
+      products: extractProducts(response).map(normalizeProduct).filter(Boolean),
+      warning: '',
+    };
+  } catch (error) {
+    return {
+      source: 'cache',
+      products: cachedProducts,
+      warning: cachedProducts.length ? 'API erisilemedi, local cache sonucu' : error.message || 'Urun bulunamadi',
+    };
+  }
+}
