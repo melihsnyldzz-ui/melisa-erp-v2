@@ -56,6 +56,9 @@ export function LoginScreen({ onLogin, syncState }) {
             {syncState.online ? 'API ONLINE' : 'API OFFLINE'}
           </Text>
           <Text style={styles.statusMeta}>{terminalConfig.apiBaseUrl}</Text>
+          <Text style={styles.statusHint}>
+            Local saha testinde hizli giris icin acik admin kullanilabilir.
+          </Text>
         </View>
 
         <Text style={styles.label}>Kullanici adi</Text>
@@ -82,8 +85,8 @@ export function LoginScreen({ onLogin, syncState }) {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TerminalButton label={submitting ? 'Giris yapiliyor' : 'Giris'} onPress={submit} disabled={submitting} />
-        <TerminalButton label="Local Acik Admin" onPress={submitOpenAdmin} disabled={submitting} variant="secondary" />
+        <TerminalButton label="Local Acik Admin ile Gir" onPress={submitOpenAdmin} disabled={submitting} />
+        <TerminalButton label={submitting ? 'Giris yapiliyor' : 'Kullanici/Sifre ile Giris'} onPress={submit} disabled={submitting} variant="secondary" />
         {submitting ? <ActivityIndicator style={styles.loader} color={colors.accentDark} /> : null}
       </View>
     </SafeAreaView>
@@ -152,6 +155,13 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: colors.muted,
     fontSize: 11,
+  },
+  statusHint: {
+    marginTop: 8,
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
   },
   online: {
     color: colors.success,

@@ -3,7 +3,8 @@ import { terminalConfig } from '../config/env';
 import { colors } from '../styles/theme';
 
 export function TerminalShell({ title, subtitle, session, syncState, children }) {
-  const pending = Number(syncState.pendingCount || 0);
+  const pending = Number(syncState.salePendingCount || syncState.pendingCount || 0);
+  const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
 
   return (
     <View style={styles.shell}>
@@ -30,6 +31,10 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
         <View style={styles.contextItem}>
           <Text style={styles.contextLabel}>Bekleyen</Text>
           <Text style={[styles.contextValue, pending ? styles.bad : styles.good]}>{pending}</Text>
+        </View>
+        <View style={styles.contextItem}>
+          <Text style={styles.contextLabel}>Hatali</Text>
+          <Text style={[styles.contextValue, failed ? styles.bad : styles.good]}>{failed}</Text>
         </View>
         <View style={styles.contextItem}>
           <Text style={styles.contextLabel}>Son Sync</Text>
