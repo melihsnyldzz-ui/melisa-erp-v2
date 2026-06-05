@@ -134,7 +134,9 @@ function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
           <Text style={styles.rateWarning}>Bu para birimi icin tanimli kur bulunamadi. Fallback 1 kullaniliyor.</Text>
         ) : null}
       </View>
-      <TerminalButton label={loading ? 'Kur' : 'Yenile'} onPress={onRefresh} disabled={loading} variant="secondary" />
+      <Pressable onPress={onRefresh} disabled={loading} style={styles.rateRefreshButton}>
+        <Text style={styles.rateRefreshText}>{loading ? 'Kur' : 'Yenile'}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -1141,7 +1143,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     gap: 8,
   },
   offlineSalePanel: {
@@ -1165,17 +1167,19 @@ const styles = StyleSheet.create({
   },
   compactCustomerPanel: {
     backgroundColor: colors.white,
+    padding: 8,
+    gap: 6,
   },
   saleStepHeader: {
-    minHeight: 68,
+    minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
   },
   stepLabel: {
     color: colors.accentDark,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
     textTransform: 'uppercase',
   },
@@ -1183,10 +1187,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderRadius: 7,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   stepBadgeActive: {
     borderColor: colors.accent,
@@ -1238,7 +1242,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
   },
   meta: {
@@ -1416,16 +1420,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.successSoft,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   ratePanel: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 7,
+    padding: 7,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 7,
   },
   ratePanelReady: {
     borderColor: colors.success,
@@ -1441,18 +1445,35 @@ const styles = StyleSheet.create({
   },
   rateTitle: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
   },
   rateMeta: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
   },
   rateWarning: {
     color: colors.warning,
     fontSize: 12,
     fontWeight: '900',
+  },
+  rateRefreshButton: {
+    minWidth: 64,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    paddingHorizontal: 8,
+  },
+  rateRefreshText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   selectedCustomerHeader: {
     flexDirection: 'row',
@@ -1464,19 +1485,18 @@ const styles = StyleSheet.create({
   },
   selectedCustomerLabel: {
     color: colors.success,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     textTransform: 'uppercase',
   },
   selectedCustomerName: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
   },
   selectedCustomerMeta: {
-    marginTop: 1,
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
   },
   selectedCurrencyBadge: {
@@ -1487,7 +1507,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: colors.white,
     color: colors.success,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
     paddingHorizontal: 7,
     paddingVertical: 5,
