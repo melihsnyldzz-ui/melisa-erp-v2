@@ -571,12 +571,24 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       ) : null}
 
       <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
-        <Text style={styles.title}>Yeni Terminal Satis</Text>
-        <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
+        <View style={styles.saleStepHeader}>
+          <View>
+            <Text style={styles.stepLabel}>{selectedCustomer ? 'Adim 2' : 'Adim 1'}</Text>
+            <Text style={styles.title}>{selectedCustomer ? 'Fis Olustur' : 'Cari Sec'}</Text>
+            <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
+          </View>
+          <Text style={[styles.stepBadge, selectedCustomer ? styles.stepBadgeReady : styles.stepBadgeActive]}>
+            {selectedCustomer ? 'Fis' : 'Cari'}
+          </Text>
+        </View>
 
         {!selectedCustomer ? (
           <>
-            <Text style={styles.label}>Pesin cari</Text>
+            <View style={styles.customerIntroPanel}>
+              <Text style={styles.customerIntroTitle}>Satis hangi cariye yazilacak?</Text>
+              <Text style={styles.customerIntroText}>Pesin satis icin para birimini secin veya gercek cariyi arayin.</Text>
+            </View>
+            <Text style={styles.label}>Pesin cariler</Text>
             <View style={styles.cashRow}>
               {cashCustomerCodes.map((code) => (
                 <Pressable
@@ -588,22 +600,23 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
                     pressed && styles.cashCardPressed,
                   ]}
                 >
-                  <Text style={styles.cashTitle}>{cashCurrency(code)}</Text>
+                  <Text style={styles.cashIcon}>{cashCurrency(code)}</Text>
+                  <Text style={styles.cashTitle}>Pesin {cashCurrency(code)}</Text>
                   <Text style={styles.cashMeta}>{code}</Text>
                 </Pressable>
               ))}
             </View>
-            <Text style={styles.label}>Cari ara</Text>
-            <View style={styles.row}>
+            <View style={styles.searchPanel}>
+              <Text style={styles.label}>Cari ara</Text>
               <TextInput
-                value={customerQuery}
-                onChangeText={setCustomerQuery}
-                onSubmitEditing={searchCustomer}
-                style={styles.input}
-                placeholder="PESIN-TL veya cari adi"
-                autoCapitalize="none"
-              />
-              <TerminalButton label="Ara" onPress={searchCustomer} disabled={loading} />
+                  value={customerQuery}
+                  onChangeText={setCustomerQuery}
+                  onSubmitEditing={searchCustomer}
+                  style={styles.customerSearchInput}
+                  placeholder="Cari adi, kodu veya pesin cari"
+                  autoCapitalize="none"
+                />
+              <TerminalButton label="Cari Ara" onPress={searchCustomer} disabled={loading} />
             </View>
             {recentCustomers.length ? (
               <View style={styles.recentPanel}>
@@ -919,6 +932,57 @@ const styles = StyleSheet.create({
   compactCustomerPanel: {
     backgroundColor: colors.white,
   },
+  saleStepHeader: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  stepLabel: {
+    color: colors.accentDark,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  stepBadge: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 7,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  stepBadgeActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+    color: colors.accentDark,
+  },
+  stepBadgeReady: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+  },
+  customerIntroPanel: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    padding: 10,
+    gap: 3,
+  },
+  customerIntroTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  customerIntroText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
   customerOnlyPanel: {
     borderColor: colors.border,
     borderWidth: 1,
@@ -958,25 +1022,42 @@ const styles = StyleSheet.create({
   },
   cashRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 8,
   },
   cashCard: {
-    flex: 1,
-    minHeight: 82,
+    width: '31.8%',
+    minHeight: 104,
     borderColor: colors.accent,
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: colors.accentSoft,
     justifyContent: 'center',
-    padding: 10,
-    gap: 3,
+    alignItems: 'center',
+    padding: 8,
+    gap: 5,
   },
   cashCardPressed: {
     opacity: 0.75,
   },
+  cashIcon: {
+    width: 44,
+    minHeight: 38,
+    overflow: 'hidden',
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    color: colors.accentDark,
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
   cashTitle: {
     color: colors.accentDark,
-    fontSize: 24,
+    fontSize: 13,
     fontWeight: '900',
     textAlign: 'center',
   },
@@ -985,6 +1066,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     textAlign: 'center',
+  },
+  searchPanel: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    padding: 10,
+    gap: 8,
+  },
+  customerSearchInput: {
+    minHeight: 54,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.input,
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '800',
+    paddingHorizontal: 10,
   },
   input: {
     minHeight: 48,
