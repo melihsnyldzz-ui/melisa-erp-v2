@@ -7,9 +7,12 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.heroPanel}>
-        <Text style={styles.heroLabel}>Aktif terminal</Text>
-        <Text style={styles.heroTitle}>{terminalConfig.deviceName}</Text>
-        <Text style={styles.heroMeta}>{terminalConfig.terminalCode} / {session.user?.username || 'open-admin'}</Text>
+        <View style={styles.heroAccent} />
+        <View style={styles.heroTextBlock}>
+          <Text style={styles.heroLabel}>Aktif terminal</Text>
+          <Text style={styles.heroTitle}>{terminalConfig.deviceName}</Text>
+          <Text style={styles.heroMeta}>{terminalConfig.terminalCode} / {session.user?.username || 'open-admin'}</Text>
+        </View>
       </View>
 
       <View style={styles.primaryGrid}>
@@ -59,26 +62,36 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heroPanel: {
-    backgroundColor: colors.panelDark,
-    borderColor: colors.borderDark,
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: colors.white,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     padding: 14,
   },
+  heroAccent: {
+    width: 6,
+    borderRadius: 5,
+    backgroundColor: colors.accent,
+  },
+  heroTextBlock: {
+    flex: 1,
+  },
   heroLabel: {
-    color: colors.headerSubtle,
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   heroTitle: {
-    color: colors.headerText,
+    color: colors.text,
     fontSize: 24,
     fontWeight: '900',
     marginTop: 3,
   },
   heroMeta: {
-    color: colors.headerSubtle,
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
     marginTop: 3,
@@ -97,17 +110,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 66,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     justifyContent: 'center',
   },
   goodCard: {
-    backgroundColor: '#ecfff3',
+    backgroundColor: colors.successSoft,
     borderColor: colors.success,
   },
   badCard: {
-    backgroundColor: '#fff0f0',
+    backgroundColor: colors.dangerSoft,
     borderColor: colors.danger,
   },
   statusLabel: {
@@ -122,10 +135,10 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   notice: {
-    backgroundColor: '#fff6dd',
+    backgroundColor: colors.warningSoft,
     borderColor: colors.warning,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     padding: 12,
   },
   noticeTitle: {

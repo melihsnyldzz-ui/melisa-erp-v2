@@ -41,8 +41,15 @@ export function LoginScreen({ onLogin, syncState }) {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.card}>
-        <Text style={styles.title}>Melisa Terminal v2</Text>
-        <Text style={styles.subtitle}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark}>
+            <Text style={styles.brandMarkText}>M</Text>
+          </View>
+          <View style={styles.brandText}>
+            <Text style={styles.title}>Melisa Terminal</Text>
+            <Text style={styles.subtitle}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
+          </View>
+        </View>
 
         <View style={styles.statusStrip}>
           <Text style={[styles.statusText, syncState.online ? styles.online : styles.offline]}>
@@ -87,19 +94,40 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: colors.header,
+    backgroundColor: colors.background,
     padding: 16,
   },
   card: {
-    backgroundColor: colors.panel,
-    borderColor: colors.borderDark,
+    backgroundColor: colors.white,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: 8,
     padding: 16,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandMark: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.accent,
+  },
+  brandMarkText: {
+    color: colors.headerText,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  brandText: {
+    flex: 1,
   },
   title: {
     color: colors.text,
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
   },
   subtitle: {
@@ -112,7 +140,8 @@ const styles = StyleSheet.create({
     marginVertical: 14,
     borderColor: colors.border,
     borderWidth: 1,
-    backgroundColor: '#ffffff',
+    borderRadius: 7,
+    backgroundColor: colors.panel,
     padding: 10,
   },
   statusText: {
@@ -141,9 +170,10 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderColor: colors.borderDark,
     borderWidth: 1,
+    borderRadius: 7,
     backgroundColor: colors.input,
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     paddingHorizontal: 12,
   },

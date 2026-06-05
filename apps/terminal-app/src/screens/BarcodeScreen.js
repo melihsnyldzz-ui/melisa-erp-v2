@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     padding: 12,
   },
   title: {
@@ -109,7 +109,8 @@ const styles = StyleSheet.create({
     minHeight: 72,
     borderColor: colors.borderDark,
     borderWidth: 2,
-    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    backgroundColor: colors.input,
     color: colors.text,
     fontSize: 30,
     fontWeight: '900',
@@ -132,7 +133,8 @@ const styles = StyleSheet.create({
   statusLine: {
     borderColor: colors.border,
     borderWidth: 1,
-    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    backgroundColor: colors.white,
     padding: 10,
   },
   statusText: {

@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

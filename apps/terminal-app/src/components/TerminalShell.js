@@ -50,6 +50,9 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     backgroundColor: colors.background,
   },
   topbar: {

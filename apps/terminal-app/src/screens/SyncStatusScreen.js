@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -135,10 +135,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   queuePanel: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     padding: 10,
   },
   queueTitle: {
