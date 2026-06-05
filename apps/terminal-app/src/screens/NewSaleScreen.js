@@ -5,7 +5,7 @@ import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { lookupProductByBarcode } from '../services/productService';
 import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales } from '../services/queueService';
-import { buildTerminalSalePayload, searchTerminalCustomers, submitTerminalSale } from '../services/terminalSalesService';
+import { buildTerminalSalePayload, searchTerminalCustomers, searchTerminalProducts, submitTerminalSale } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
 function normalizeCustomer(row) {
@@ -22,6 +22,21 @@ function formatMoney(value, currency) {
   return `${Number(value || 0).toFixed(2)} ${currency || ''}`.trim();
 }
 
+function normalizeProduct(row) {
+  return {
+    id: row.id,
+    stockCode: row.stockCode,
+    barcodeMasked: row.barcodeMasked || row.barcode || row.matchedBarcode,
+    matchedBarcode: row.matchedBarcode || row.barcode || row.barcodeMasked,
+    productName: row.productName,
+    brand: row.brand,
+    category: row.category,
+    currency: row.currency || 'TRY',
+    salePrice: Number(row.salePrice || 0),
+    stockQuantity: Number(row.stockQuantity || 0),
+  };
+}
+
 const cashCustomerCodes = ['PESIN-TL', 'PESIN-USD', 'PESIN-EUR'];
 
 export function NewSaleScreen({ session, navigation, onRefresh }) {
@@ -31,6 +46,8 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState('1');
+  const [productQuery, setProductQuery] = useState('');
+  const [productResults, setProductResults] = useState([]);
   const [lines, setLines] = useState([]);
   const [productAlternatives, setProductAlternatives] = useState([]);
   const [message, setMessage] = useState('');
@@ -160,6 +177,44 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     }
   }
 
+  async function searchProduct() {
+    const q = productQuery.trim();
+    if (!selectedCustomer) {
+      setError('Once cari secin');
+      return;
+    }
+
+    if (!q) {
+      setError('Urun aramak icin ad, stok kodu veya barkod girin');
+      return;
+    }
+
+    setError('');
+    setMessage('');
+    setLoading(true);
+
+    try {
+      const response = await searchTerminalProducts({
+        q,
+        token: session.accessToken,
+        limit: 10,
+      });
+      const products = (response.data || response.products || response.items || []).map(normalizeProduct);
+      setProductResults(products);
+      if (products.length === 1) {
+        setMessage('1 urun bulundu, satira eklemek icin dokunun');
+      } else if (products.length > 1) {
+        setMessage(`${products.length} urun bulundu`);
+      } else {
+        setMessage('Urun bulunamadi');
+      }
+    } catch (productError) {
+      setError(productError.message || 'Urun arama basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function addProductLine(product, parsedQuantity = Number(quantity || 1)) {
     setLines((current) => {
       const existingIndex = current.findIndex((line) => String(line.product.id) === String(product.id));
@@ -195,6 +250,22 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     setQuantity('1');
     setError('');
     setMessage(`${product.productName} alternatif olarak eklendi`);
+    setTimeout(() => barcodeRef.current?.focus(), 120);
+  }
+
+  function selectSearchedProduct(product) {
+    const parsedQuantity = Number(quantity || 1);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      setError('Miktar zorunlu');
+      return;
+    }
+
+    addProductLine(product, parsedQuantity);
+    setProductQuery('');
+    setProductResults([]);
+    setQuantity('1');
+    setError('');
+    setMessage(`${product.productName} satira eklendi`);
     setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
@@ -355,7 +426,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
         <View style={styles.barcodeHeader}>
           <View>
             <Text style={styles.title}>Barkod</Text>
-            <Text style={styles.meta}>{selectedCustomer ? 'Cari secili, okutmaya hazir' : 'Once cari secin'}</Text>
+            <Text style={styles.meta}>{selectedCustomer ? 'Cari secili, okutmaya veya aramaya hazir' : 'Once cari secin'}</Text>
           </View>
           <Text style={styles.quantityBadge}>{itemQuantity} adet</Text>
         </View>
@@ -377,6 +448,39 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
           keyboardType="decimal-pad"
         />
         <TerminalButton label="Satira Ekle" onPress={addBarcodeLine} disabled={loading} />
+        <View style={styles.quickSearchPanel}>
+          <Text style={styles.label}>Barkod yoksa urun ara</Text>
+          <View style={styles.row}>
+            <TextInput
+              value={productQuery}
+              onChangeText={setProductQuery}
+              onSubmitEditing={searchProduct}
+              style={styles.input}
+              placeholder="Urun adi, stok kodu veya barkod"
+              autoCapitalize="none"
+            />
+            <TerminalButton label="Urun Ara" onPress={searchProduct} disabled={loading} variant="secondary" />
+          </View>
+          {productResults.length ? (
+            <View style={styles.productAlternativePanel}>
+              {productResults.map((product) => (
+                <Pressable
+                  key={`${product.id}-${product.stockCode}`}
+                  onPress={() => selectSearchedProduct(product)}
+                  style={styles.productAlternativeRow}
+                >
+                  <View style={styles.productResultHeader}>
+                    <Text style={styles.lineName}>{product.productName}</Text>
+                    <Text style={styles.stockBadge}>Stok {product.stockQuantity}</Text>
+                  </View>
+                  <Text style={styles.lineMeta}>
+                    {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'} / {formatMoney(product.salePrice, product.currency)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
         {productAlternatives.length ? (
           <View style={styles.productAlternativePanel}>
             <Text style={styles.warning}>Tam barkod bulunamadi. Benzer urunlerden secin.</Text>
@@ -421,6 +525,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
               <Text style={styles.lineAmount}>
                 {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
               </Text>
+              <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
               <View style={styles.lineButtons}>
                 <TerminalButton label="-" onPress={() => adjustLineQuantity(line.product.id, -1)} variant="secondary" />
                 <TerminalButton label="+" onPress={() => adjustLineQuantity(line.product.id, 1)} variant="secondary" />
@@ -595,6 +700,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
+  lineTotal: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
   lineActions: {
     gap: 6,
   },
@@ -640,12 +750,39 @@ const styles = StyleSheet.create({
   productAlternativePanel: {
     gap: 7,
   },
+  quickSearchPanel: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    marginTop: 4,
+    paddingTop: 10,
+    gap: 8,
+  },
   productAlternativeRow: {
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 7,
     backgroundColor: colors.white,
     padding: 10,
+  },
+  productResultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  stockBadge: {
+    minWidth: 62,
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.accentSoft,
+    color: colors.accentDark,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    textAlign: 'center',
   },
   error: {
     color: colors.danger,
