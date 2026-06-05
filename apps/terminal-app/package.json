@@ -5,6 +5,8 @@
   "main": "expo/AppEntry",
   "scripts": {
     "start": "expo start",
+    "start:lan": "expo start --clear --lan --go",
+    "start:tunnel": "expo start --clear --tunnel --go",
     "android": "expo start --android",
     "web": "expo start --web",
     "doctor": "npx expo-doctor",
