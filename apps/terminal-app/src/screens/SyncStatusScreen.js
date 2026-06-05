@@ -23,6 +23,20 @@ function statusLabel(status) {
   return status || '-';
 }
 
+function summaryTone(value, emptyTone = 'success') {
+  return Number(value || 0) > 0 ? 'danger' : emptyTone;
+}
+
+function SummaryCard({ label, value, tone = 'neutral', helper }) {
+  return (
+    <View style={[styles.summaryCard, styles[`summaryCard_${tone}`]]}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+      {helper ? <Text style={styles.summaryHelper}>{helper}</Text> : null}
+    </View>
+  );
+}
+
 export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
   const [cacheSummary, setCacheSummary] = useState({ productCount: 0, customerCount: 0 });
@@ -50,6 +64,15 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
     synced: queue.filter((event) => event.status === 'synced').length,
     all: queue.length,
   }), [queue]);
+  const pendingSales = queue.filter((event) => event.eventType === 'terminal_sale' && ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
+  const failedSales = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'failed').length;
+  const syncedSales = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'synced').length;
+  const duplicateSales = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'synced' && event.lastErrorMessage === 'Daha once gonderilmis').length;
+  const actionMessage = failedSales
+    ? 'Hatali fis var. Satirdaki hata mesajina bakip tekrar gonderin.'
+    : pendingSales
+      ? 'Bekleyen fis var. Toplu gonder veya tek fis gonder kullanin.'
+      : 'Satis kuyrugu temiz gorunuyor.';
 
   async function refreshLocalState() {
     const [nextQueue, nextCache] = await Promise.all([
@@ -134,18 +157,23 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <View style={[styles.heroPanel, failedSales ? styles.heroDanger : pendingSales ? styles.heroWarning : styles.heroSuccess]}>
+        <Text style={styles.heroTitle}>Sync Merkezi</Text>
+        <Text style={styles.heroText}>{actionMessage}</Text>
+      </View>
+
+      <View style={styles.summaryGrid}>
+        <SummaryCard label="Bekleyen" value={String(pendingSales)} tone={summaryTone(pendingSales, 'success')} helper="Gonderilecek" />
+        <SummaryCard label="Hatali" value={String(failedSales)} tone={summaryTone(failedSales, 'success')} helper="Kontrol et" />
+        <SummaryCard label="Gonderildi" value={String(syncedSales)} tone="success" helper="Basarili" />
+        <SummaryCard label="Duplicate" value={String(duplicateSales)} tone="neutral" helper="Tekrar engeli" />
+      </View>
+
       <View style={styles.panel}>
-        <Text style={styles.title}>Sync Durumu</Text>
+        <Text style={styles.title}>Baglanti ve Veri</Text>
         <InfoRow label="API" value={syncState.apiStatus} tone={syncState.online ? 'success' : 'danger'} />
         <InfoRow label="Terminal" value={terminalConfig.terminalCode} />
         <InfoRow label="Cihaz" value={terminalConfig.deviceName} />
-        <InfoRow label="Bekleyen queue" value={String(syncState.pendingCount)} tone={syncState.pendingCount ? 'danger' : 'success'} />
-        <InfoRow label="Hatali queue" value={String(syncState.failedCount)} tone={syncState.failedCount ? 'danger' : 'success'} />
-        <InfoRow label="Bekleyen satis" value={String(syncState.salePendingCount || 0)} tone={syncState.salePendingCount ? 'danger' : 'success'} />
-        <InfoRow label="Hatali satis" value={String(syncState.saleFailedCount || 0)} tone={syncState.saleFailedCount ? 'danger' : 'success'} />
-        <InfoRow label="Gonderilen" value={String(syncState.syncedCount || 0)} tone="success" />
-        <InfoRow label="Duplicate" value={String(syncState.saleDuplicateCount || syncState.duplicateCount || 0)} />
-        <InfoRow label="Test eventleri" value={String(syncState.nonSaleCount || 0)} />
         <InfoRow label="Son sync" value={syncState.lastSyncAt || 'Henuz yok'} />
         <InfoRow label="Urun cache" value={String(cacheSummary.productCount)} />
         <InfoRow label="Cari cache" value={String(cacheSummary.customerCount)} />
@@ -154,11 +182,11 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
       </View>
 
       <View style={styles.queuePanel}>
-        <Text style={styles.queueTitle}>Local queue</Text>
+        <Text style={styles.queueTitle}>Fis Kuyrugu</Text>
         <View style={styles.filterRow}>
           {[
-            ['problem', 'Sorunlu'],
-            ['sales', 'Satis'],
+            ['problem', 'Bekleyen/Hatali'],
+            ['sales', 'Tum Fisler'],
             ['synced', 'Gonderilen'],
             ['all', 'Tumu'],
           ].map(([key, label]) => (
@@ -171,12 +199,20 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
           ))}
         </View>
         {filteredQueue.length === 0 ? (
-          <Text style={styles.empty}>Bu filtrede local event yok.</Text>
+          <Text style={styles.empty}>Bu filtrede kayit yok.</Text>
         ) : filteredQueue.slice(0, 12).map((event) => (
-          <View key={event.clientEventId} style={styles.queueRow}>
-            <Text style={styles.queueType}>{eventTypeLabel(event.eventType)}</Text>
+          <View key={event.clientEventId} style={[styles.queueRow, event.status === 'failed' && styles.queueRowDanger, event.status === 'synced' && styles.queueRowSuccess]}>
+            <View style={styles.queueHeader}>
+              <View>
+                <Text style={styles.queueType}>{eventTypeLabel(event.eventType)}</Text>
+                <Text style={styles.queueCustomer}>{event.payload?.customerName || event.payload?.customerCode || event.payload?.customerId || '-'}</Text>
+              </View>
+              <Text style={[styles.statusPill, event.status === 'failed' && styles.statusPillDanger, event.status === 'synced' && styles.statusPillSuccess]}>
+                {statusLabel(event.status)}
+              </Text>
+            </View>
             <Text style={[styles.queueMeta, event.status === 'failed' && styles.queueError, event.status === 'synced' && styles.queueSuccess]}>
-              {statusLabel(event.status)} / deneme {event.retryCount}
+              Deneme {event.retryCount || 0} / {event.clientCreatedAt ? new Date(event.clientCreatedAt).toLocaleString('tr-TR') : 'Tarih yok'}
             </Text>
             {event.lastErrorMessage ? <Text style={styles.queueErrorText}>{event.lastErrorMessage}</Text> : null}
             <Text style={styles.queueId}>{event.clientEventId}</Text>
@@ -197,11 +233,11 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
       {syncMessage ? <Text style={styles.message}>{syncMessage}</Text> : null}
       {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
 
-      <TerminalButton label="Device ping queue ekle" onPress={createPingEvent} />
       <TerminalButton label="Satis Kuyrugunu Gonder" onPress={syncSalesQueue} />
+      <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
       <TerminalButton label="Gonderilmisleri Temizle" onPress={clearSyncedEvents} variant="secondary" />
       <TerminalButton label="Test Eventlerini Temizle" onPress={clearTestEvents} variant="secondary" />
-      <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
+      <TerminalButton label="Test Ping Ekle" onPress={createPingEvent} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
     </ScrollView>
   );
@@ -211,6 +247,76 @@ const styles = StyleSheet.create({
   content: {
     padding: 12,
     gap: 10,
+  },
+  heroPanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 5,
+  },
+  heroSuccess: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  heroWarning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  heroDanger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  heroTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  heroText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  summaryCard: {
+    minWidth: '47%',
+    flexGrow: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    gap: 3,
+  },
+  summaryCard_success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  summaryCard_danger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  summaryCard_neutral: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+  },
+  summaryLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  summaryValue: {
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: '900',
+  },
+  summaryHelper: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
   },
   panel: {
     backgroundColor: colors.panel,
@@ -249,14 +355,60 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   queueRow: {
-    borderTopColor: colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 7,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.panel,
+    padding: 10,
+    marginTop: 8,
+    gap: 4,
+  },
+  queueRowDanger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  queueRowSuccess: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  queueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   queueType: {
     color: colors.text,
     fontSize: 14,
     fontWeight: '900',
+  },
+  queueCustomer: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+    borderColor: colors.warning,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.warningSoft,
+    color: colors.warning,
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  statusPillDanger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
+  },
+  statusPillSuccess: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
   },
   queueMeta: {
     marginTop: 2,
