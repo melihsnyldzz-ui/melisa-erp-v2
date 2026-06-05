@@ -103,12 +103,12 @@ function LastProductPanel({ product, quantity }) {
       <View style={styles.lastProductHeader}>
         <View style={styles.lastProductTitleBlock}>
           <Text style={styles.lastProductLabel}>Bulunan urun</Text>
+          <Text style={styles.lastProductStockCode} numberOfLines={1}>{product.stockCode}</Text>
           <Text style={styles.lastProductName} numberOfLines={1}>{product.productName}</Text>
         </View>
         <Text style={styles.lastProductPrice}>{formatMoney(product.salePrice, product.currency)}</Text>
       </View>
       <View style={styles.lastProductFacts}>
-        <Text style={styles.lastProductPill}>{product.stockCode}</Text>
         <Text style={styles.lastProductPill}>{product.matchedBarcode || product.barcodeMasked || '-'}</Text>
         <Text style={styles.lastProductPill}>Stok {product.stockQuantity}</Text>
         <Text style={styles.lastProductPill}>{quantity} adet</Text>
@@ -1430,22 +1430,28 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   lastProductName: {
-    color: colors.text,
-    fontSize: 15,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  lastProductStockCode: {
+    color: colors.danger,
+    fontSize: 19,
     fontWeight: '900',
     marginTop: 1,
   },
   lastProductPrice: {
     overflow: 'hidden',
-    borderColor: colors.success,
+    borderColor: colors.danger,
     borderWidth: 1,
     borderRadius: 7,
-    backgroundColor: colors.white,
-    color: colors.success,
-    fontSize: 12,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
+    fontSize: 16,
     fontWeight: '900',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
     textAlign: 'center',
   },
   lastProductFacts: {
