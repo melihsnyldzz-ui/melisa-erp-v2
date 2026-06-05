@@ -77,6 +77,18 @@ function HomeIcon({ type, tone = 'neutral' }) {
     );
   }
 
+  if (type === 'reports') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.reportPage}>
+          <View style={styles.reportBarTall} />
+          <View style={styles.reportBarMedium} />
+          <View style={styles.reportBarShort} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
       <View style={styles.gearOuter}>
@@ -196,6 +208,14 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openProductLookup}
           />
           <ActionTile
+            icon="reports"
+            title="Raporlar"
+            subtitle="Giden fisler"
+            meta={`${syncState.syncedCount || 0} sonuc`}
+            tone={syncState.syncedCount ? 'success' : 'neutral'}
+            onPress={navigation.openReports}
+          />
+          <ActionTile
             icon="settings"
             title="Ayarlar"
             subtitle="API ve cihaz"
@@ -249,6 +269,10 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         <Pressable onPress={navigation.openSyncStatus} style={styles.dockItem}>
           <Text style={styles.dockIcon}>↑</Text>
           <Text style={styles.dockText}>Sync</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openReports} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>R</Text>
+          <Text style={styles.dockText}>Rapor</Text>
         </Pressable>
         <Pressable onPress={navigation.openSettings} style={styles.dockItem}>
           <Text style={styles.dockIcon}>⚙</Text>
@@ -579,6 +603,37 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.text,
     position: 'absolute',
+  },
+  reportPage: {
+    width: 34,
+    height: 40,
+    borderColor: colors.accentDark,
+    borderWidth: 2,
+    borderRadius: 6,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 4,
+    padding: 6,
+  },
+  reportBarTall: {
+    width: 5,
+    height: 22,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+  },
+  reportBarMedium: {
+    width: 5,
+    height: 16,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+  },
+  reportBarShort: {
+    width: 5,
+    height: 10,
+    borderRadius: 3,
+    backgroundColor: colors.danger,
   },
   actionText: {
     gap: 4,

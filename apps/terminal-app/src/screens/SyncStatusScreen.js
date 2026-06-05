@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
-import { clearSyncedQueueEvents, getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
+import { getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 function statusLabel(status) {
@@ -139,18 +139,6 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
     }
   }
 
-  async function clearSent() {
-    setMessage('');
-    setError('');
-    try {
-      const result = await clearSyncedQueueEvents();
-      await refreshLocalState();
-      setMessage(`${result.removed} gonderilmis fis temizlendi`);
-    } catch (clearError) {
-      setError(clearError.message || 'Temizleme basarisiz');
-    }
-  }
-
   function editSale(event) {
     navigation.openNewSaleDraft?.(event);
   }
@@ -213,7 +201,7 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
       <TerminalButton label={syncState.online ? 'Tum Bekleyenleri Gonder' : 'API Offline'} onPress={syncAll} disabled={!syncState.online || !openSales.length} />
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
-      <TerminalButton label="Gonderilmisleri Temizle" onPress={clearSent} variant="secondary" />
+      <TerminalButton label="Raporlar" onPress={navigation.openReports} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
     </ScrollView>
   );

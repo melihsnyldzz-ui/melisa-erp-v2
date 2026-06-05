@@ -8,6 +8,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { NewSaleScreen } from './src/screens/NewSaleScreen';
 import { ProductLookupScreen } from './src/screens/ProductLookupScreen';
+import { ReportsScreen } from './src/screens/ReportsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SyncStatusScreen } from './src/screens/SyncStatusScreen';
 import { pingApi } from './src/services/apiClient';
@@ -114,6 +115,7 @@ export default function App() {
       setActiveScreen('newSale');
     },
     openProductLookup: () => setActiveScreen('productLookup'),
+    openReports: () => setActiveScreen('reports'),
     openSettings: () => setActiveScreen('settings'),
     openSyncStatus: () => setActiveScreen('syncStatus'),
   }), []);
@@ -141,7 +143,7 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" backgroundColor={colors.header} />
       <TerminalShell
-        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : 'Urun Bilgisi'}
+        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'reports' ? 'Raporlar' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
         session={session}
         syncState={syncState}
@@ -188,6 +190,13 @@ export default function App() {
           <SyncStatusScreen
             session={session}
             syncState={syncState}
+            navigation={navigation}
+            onRefresh={refreshSyncState}
+          />
+        )}
+
+        {activeScreen === 'reports' && (
+          <ReportsScreen
             navigation={navigation}
             onRefresh={refreshSyncState}
           />

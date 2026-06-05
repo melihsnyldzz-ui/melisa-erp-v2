@@ -53,17 +53,6 @@ export async function getPendingQueue() {
   return readQueue();
 }
 
-export async function clearSyncedQueueEvents() {
-  const queue = await readQueue();
-  const nextQueue = queue.filter((event) => event.status !== 'synced');
-  await writeQueue(nextQueue);
-
-  return {
-    removed: queue.length - nextQueue.length,
-    remaining: nextQueue.length,
-  };
-}
-
 export async function clearNonSaleQueueEvents() {
   const queue = await readQueue();
   const nextQueue = queue.filter((event) => event.eventType === 'terminal_sale');
