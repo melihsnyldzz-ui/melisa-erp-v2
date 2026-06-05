@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
@@ -38,11 +39,34 @@ function normalizeProduct(row) {
 }
 
 const cashCustomerCodes = ['PESIN-TL', 'PESIN-USD', 'PESIN-EUR'];
+const recentCustomersKey = 'terminalRecentSaleCustomers';
+
+async function readRecentCustomers() {
+  const raw = await AsyncStorage.getItem(recentCustomersKey);
+  if (!raw) return [];
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+async function writeRecentCustomer(customer) {
+  const current = await readRecentCustomers();
+  const next = [
+    customer,
+    ...current.filter((item) => String(item.id) !== String(customer.id)),
+  ].slice(0, 5);
+  await AsyncStorage.setItem(recentCustomersKey, JSON.stringify(next));
+  return next;
+}
 
 export function NewSaleScreen({ session, navigation, onRefresh }) {
   const barcodeRef = useRef(null);
   const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
   const [customerResults, setCustomerResults] = useState([]);
+  const [recentCustomers, setRecentCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState('1');
@@ -71,6 +95,23 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const lineCurrencies = Object.keys(totalsByCurrency);
   const hasMixedCurrency = selectedCustomer && lineCurrencies.some((currency) => currency !== selectedCustomer.currency);
 
+  useEffect(() => {
+    async function loadRecentCustomers() {
+      setRecentCustomers(await readRecentCustomers());
+    }
+
+    loadRecentCustomers();
+  }, []);
+
+  async function selectCustomer(customer) {
+    setSelectedCustomer(customer);
+    setCustomerResults([]);
+    setCustomerQuery(customer.customerCode || customer.customerName || '');
+    setRecentCustomers(await writeRecentCustomer(customer));
+    setMessage(`${customer.customerName} secildi`);
+    setTimeout(() => barcodeRef.current?.focus(), 100);
+  }
+
   async function searchCustomer() {
     const q = customerQuery.trim();
     if (!q) return;
@@ -86,9 +127,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       const customers = (response.data || []).map(normalizeCustomer);
       setCustomerResults(customers);
       if (customers.length === 1) {
-        setSelectedCustomer(customers[0]);
-        setMessage(`${customers[0].customerName} secildi`);
-        setTimeout(() => barcodeRef.current?.focus(), 100);
+        await selectCustomer(customers[0]);
       } else if (customers.length === 0) {
         setMessage('Cari bulunamadi');
       }
@@ -126,9 +165,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
         setError(`${code} carisi bulunamadi`);
         return;
       }
-      setSelectedCustomer(exact);
-      setMessage(`${exact.customerName} secildi`);
-      setTimeout(() => barcodeRef.current?.focus(), 100);
+      await selectCustomer(exact);
     } catch (selectError) {
       setError(selectError.message || `${code} secilemedi`);
     } finally {
@@ -389,6 +426,24 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
               />
               <TerminalButton label="Ara" onPress={searchCustomer} disabled={loading} />
             </View>
+            {recentCustomers.length ? (
+              <View style={styles.recentPanel}>
+                <Text style={styles.label}>Son cariler</Text>
+                {recentCustomers.map((customer) => (
+                  <Pressable
+                    key={customer.id}
+                    onPress={() => selectCustomer(customer)}
+                    style={styles.customerResultRow}
+                  >
+                    <View style={styles.customerResultText}>
+                      <Text style={styles.customerResultName}>{customer.customerName}</Text>
+                      <Text style={styles.customerResultMeta}>{customer.customerCode} / {customer.currency}</Text>
+                    </View>
+                    <Text style={styles.customerCurrencyBadge}>{customer.currency}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </>
         ) : null}
 
@@ -407,16 +462,17 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
         {customerResults.length > 1 ? (
           <View style={styles.resultList}>
             {customerResults.map((customer) => (
-              <TerminalButton
+              <Pressable
                 key={customer.id}
-                label={`${customer.customerCode} - ${customer.customerName}`}
-                onPress={() => {
-                  setSelectedCustomer(customer);
-                  setMessage(`${customer.customerName} secildi`);
-                  setTimeout(() => barcodeRef.current?.focus(), 100);
-                }}
-                variant="secondary"
-              />
+                onPress={() => selectCustomer(customer)}
+                style={styles.customerResultRow}
+              >
+                <View style={styles.customerResultText}>
+                  <Text style={styles.customerResultName}>{customer.customerName}</Text>
+                  <Text style={styles.customerResultMeta}>{customer.customerCode} / Bakiye {formatMoney(customer.balance, customer.currency)}</Text>
+                </View>
+                <Text style={styles.customerCurrencyBadge}>{customer.currency}</Text>
+              </Pressable>
             ))}
           </View>
         ) : null}
@@ -669,6 +725,54 @@ const styles = StyleSheet.create({
   },
   resultList: {
     gap: 7,
+  },
+  recentPanel: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    marginTop: 4,
+    paddingTop: 8,
+    gap: 7,
+  },
+  customerResultRow: {
+    minHeight: 58,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  customerResultText: {
+    flex: 1,
+  },
+  customerResultName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  customerResultMeta: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  customerCurrencyBadge: {
+    minWidth: 52,
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    textAlign: 'center',
   },
   empty: {
     color: colors.muted,
