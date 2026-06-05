@@ -87,12 +87,13 @@ export async function submitTerminalSale({ token, payload }) {
   });
 }
 
-export function buildTerminalSalePayload({ customer, lines, terminalCode, note }) {
+export function buildTerminalSalePayload({ customer, lines, terminalCode, note, testMode = false }) {
   return {
     terminalCode,
     customerId: Number(customer.id),
     documentCurrency: customer.currency || 'TRY',
     note: note || 'Terminal satis',
+    testMode: Boolean(testMode),
     items: lines.map((line) => ({
       productId: Number(line.product.id),
       barcode: line.product.barcodeMasked || line.product.barcode || '',

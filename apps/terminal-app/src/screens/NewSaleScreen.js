@@ -125,6 +125,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
   const [productAlternatives, setProductAlternatives] = useState([]);
   const [lastScannedProduct, setLastScannedProduct] = useState(null);
   const [lastScannedQuantity, setLastScannedQuantity] = useState(0);
+  const [testMode, setTestMode] = useState(false);
+  const [testNote, setTestNote] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saleResult, setSaleResult] = useState(null);
@@ -388,11 +390,16 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       itemQuantity,
     };
 
+    const trimmedTestNote = testNote.trim();
+    const saleNote = testMode
+      ? `SAHA TEST FISI - ${trimmedTestNote || 'Terminal saha testi'}`
+      : 'Terminal hizli satis';
     const basePayload = buildTerminalSalePayload({
       customer: selectedCustomer,
       lines,
       terminalCode: terminalConfig.terminalCode,
-      note: 'Terminal hizli satis',
+      note: saleNote,
+      testMode,
     });
 
     const queuedEvent = await enqueueTerminalSale(basePayload);
@@ -414,12 +421,16 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
         title: duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi',
         message: duplicate
           ? 'Backend bu fisi daha once almis. Yeni ikinci fis olusturulmadi.'
-          : 'Fis backend API tarafina basariyla gonderildi.',
+          : testMode
+            ? 'Test fisi backend API tarafina gonderildi. ERP tarafinda test notuyla ayirt edin.'
+            : 'Fis backend API tarafina basariyla gonderildi.',
         clientEventId: queuedEvent.clientEventId,
       });
       setLines([]);
       setBarcode('');
       setQuantity('1');
+      setTestMode(false);
+      setTestNote('');
       await onRefresh();
     } catch (submitError) {
       await markQueueFailed(queuedEvent.clientEventId, submitError);
@@ -435,6 +446,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
       setLines([]);
       setBarcode('');
       setQuantity('1');
+      setTestMode(false);
+      setTestNote('');
       await onRefresh();
     } finally {
       setLoading(false);
@@ -464,6 +477,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
     setProductResults([]);
     setLastScannedProduct(null);
     setLastScannedQuantity(0);
+    setTestMode(false);
+    setTestNote('');
     setMessage('Fis temizlendi');
     setError('');
     setSaleResult(null);
@@ -737,6 +752,34 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
         {selectedCustomer ? <InfoRow label="Fis para birimi" value={selectedCustomer.currency || 'TRY'} /> : null}
       </View>
 
+      <View style={[styles.testModePanel, testMode && styles.testModePanelActive]}>
+        <View style={styles.testModeHeader}>
+          <View style={styles.testModeText}>
+            <Text style={styles.testModeTitle}>Saha test fisi</Text>
+            <Text style={styles.testModeMeta}>
+              Test modu aciksa fis notuna SAHA TEST FISI yazilir. Gercek satisla karismamasi icin sadece deneme kayitlarinda acin.
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setTestMode((current) => !current)}
+            style={[styles.testSwitch, testMode && styles.testSwitchActive]}
+          >
+            <Text style={[styles.testSwitchText, testMode && styles.testSwitchTextActive]}>
+              {testMode ? 'ACIK' : 'KAPALI'}
+            </Text>
+          </Pressable>
+        </View>
+        {testMode ? (
+          <TextInput
+            value={testNote}
+            onChangeText={setTestNote}
+            style={styles.testNoteInput}
+            placeholder="Test aciklamasi"
+            placeholderTextColor={colors.muted}
+          />
+        ) : null}
+      </View>
+
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
@@ -750,6 +793,9 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh }) {
         <Text style={styles.submitMeta}>
           {selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir
         </Text>
+        {testMode ? (
+          <Text style={styles.testSubmitWarning}>SAHA TEST FISI olarak gonderilecek.</Text>
+        ) : null}
         <TerminalButton
           label={syncState?.online ? 'Fisi Gonder' : 'Offline Kuyruga Al'}
           onPress={finishSale}
@@ -1148,6 +1194,77 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 8,
+  },
+  testModePanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  testModePanelActive: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning,
+  },
+  testModeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  testModeText: {
+    flex: 1,
+  },
+  testModeTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  testModeMeta: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
+  testSwitch: {
+    minWidth: 76,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.panel,
+    paddingHorizontal: 10,
+  },
+  testSwitchActive: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warning,
+  },
+  testSwitchText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  testSwitchTextActive: {
+    color: colors.headerText,
+  },
+  testNoteInput: {
+    minHeight: 48,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.input,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+    paddingHorizontal: 10,
+  },
+  testSubmitWarning: {
+    color: colors.warning,
+    fontSize: 13,
+    fontWeight: '900',
   },
   saleResultPanel: {
     borderWidth: 1,
