@@ -100,10 +100,11 @@ function LastProductPanel({ product, quantity }) {
 
   return (
     <View style={styles.lastProductPanel}>
-      <Text style={styles.lastProductLabel}>Son okutulan</Text>
+      <Text style={styles.lastProductLabel}>Bulunan urun</Text>
       <Text style={styles.lastProductName}>{product.productName}</Text>
       <View style={styles.lastProductFacts}>
         <Text style={styles.lastProductPill}>{product.stockCode}</Text>
+        <Text style={styles.lastProductPill}>{product.matchedBarcode || product.barcodeMasked || '-'}</Text>
         <Text style={styles.lastProductPill}>Stok {product.stockQuantity}</Text>
         <Text style={styles.lastProductPill}>{quantity} adet</Text>
         <Text style={styles.lastProductPill}>{formatMoney(product.salePrice, product.currency)}</Text>
@@ -331,7 +332,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     }
   }
 
-  async function addBarcodeLine() {
+  async function lookupBarcodeProduct() {
     const trimmedBarcode = barcode.trim();
     const parsedQuantity = Number(quantity || 1);
 
@@ -356,21 +357,48 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       const product = result.selectedProduct;
       if (!product) {
         setError('Urun bulunamadi');
-        return;
+        return null;
       }
 
-      addProductLine(product, parsedQuantity);
-      setBarcode('');
-      setQuantity('1');
-      setMessage(`${product.productName} eklendi`);
+      setLastScannedProduct(product);
+      setLastScannedQuantity(parsedQuantity);
+      setMessage(`${product.productName} bulundu. Bilgileri kontrol edip Satira Ekle'ye basin.`);
       setSaleResult(null);
+      return product;
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod okunamadi');
       setProductAlternatives(Array.isArray(lookupError.alternatives) ? lookupError.alternatives : []);
+      return null;
     } finally {
       setLoading(false);
       setTimeout(() => barcodeRef.current?.focus(), 120);
     }
+  }
+
+  async function addBarcodeLine() {
+    const parsedQuantity = Number(quantity || 1);
+
+    if (!selectedCustomer) {
+      setError('Once cari secin');
+      return;
+    }
+
+    if (!lastScannedProduct) {
+      await lookupBarcodeProduct();
+      return;
+    }
+
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      setError('Miktar zorunlu');
+      return;
+    }
+
+    addProductLine(lastScannedProduct, parsedQuantity);
+    setBarcode('');
+    setQuantity('1');
+    setMessage(`${lastScannedProduct.productName} satira eklendi`);
+    setSaleResult(null);
+    setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
   async function searchProduct() {
@@ -869,14 +897,18 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         <TextInput
           ref={barcodeRef}
           value={barcode}
-          onChangeText={setBarcode}
-          onSubmitEditing={addBarcodeLine}
+          onChangeText={(value) => {
+            setBarcode(value);
+            setLastScannedProduct(null);
+            setProductAlternatives([]);
+          }}
+          onSubmitEditing={lookupBarcodeProduct}
           style={styles.barcodeInput}
           placeholder="Barkod okut"
           keyboardType="number-pad"
           returnKeyType="done"
         />
-        <LastProductPanel product={lastScannedProduct} quantity={lastScannedQuantity} />
+        <LastProductPanel product={lastScannedProduct} quantity={quantity || lastScannedQuantity} />
         <Text style={styles.label}>Miktar</Text>
         <View style={styles.quantityControl}>
           <Pressable onPress={() => adjustInputQuantity(-1)} style={styles.quantityButton}>
@@ -892,7 +924,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
             <Text style={styles.quantityButtonText}>+</Text>
           </Pressable>
         </View>
-        <TerminalButton label="Satira Ekle" onPress={addBarcodeLine} disabled={loading} />
+        <TerminalButton label={lastScannedProduct ? 'Satira Ekle' : 'Urunu Getir'} onPress={lastScannedProduct ? addBarcodeLine : lookupBarcodeProduct} disabled={loading} />
         <View style={styles.quickSearchPanel}>
           <Text style={styles.label}>Barkod yoksa urun ara</Text>
           <View style={styles.row}>
