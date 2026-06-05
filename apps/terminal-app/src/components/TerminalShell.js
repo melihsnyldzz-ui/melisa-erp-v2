@@ -37,22 +37,12 @@ export function TerminalShell({ title, subtitle, session, syncState, children })
       </View>
 
       <View style={styles.contextBar}>
-        <View style={styles.contextItem}>
-          <Text style={styles.contextLabel}>API</Text>
-          <Text style={[styles.contextValue, syncState.online ? styles.good : styles.bad]}>{syncState.apiStatus || '-'}</Text>
-        </View>
-        <View style={styles.contextItem}>
-          <Text style={styles.contextLabel}>Bekleyen</Text>
-          <Text style={[styles.contextValue, pending ? styles.bad : styles.good]}>{pending}</Text>
-        </View>
-        <View style={styles.contextItem}>
-          <Text style={styles.contextLabel}>Hatali</Text>
-          <Text style={[styles.contextValue, failed ? styles.bad : styles.good]}>{failed}</Text>
-        </View>
-        <View style={styles.contextItem}>
-          <Text style={styles.contextLabel}>Son Sync</Text>
-          <Text style={styles.contextValue}>{formatShortDate(syncState.lastSyncAt)}</Text>
-        </View>
+        <Text style={[styles.contextChip, syncState.online ? styles.goodChip : styles.badChip]}>
+          API {syncState.online ? 'online' : 'offline'}
+        </Text>
+        <Text style={[styles.contextChip, pending ? styles.badChip : styles.goodChip]}>Bekleyen {pending}</Text>
+        <Text style={[styles.contextChip, failed ? styles.badChip : styles.goodChip]}>Hatali {failed}</Text>
+        <Text style={styles.contextChip}>Sync {formatShortDate(syncState.lastSyncAt)}</Text>
       </View>
 
       {!syncState.online ? (
@@ -81,12 +71,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topbar: {
-    minHeight: 64,
+    minHeight: 50,
     backgroundColor: colors.white,
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -95,11 +85,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   brandMark: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
@@ -107,7 +97,7 @@ const styles = StyleSheet.create({
   },
   brandMarkText: {
     color: colors.headerText,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
   },
   brandTextBlock: {
@@ -115,21 +105,20 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
   },
   meta: {
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    marginTop: 2,
   },
   statusBadge: {
-    minWidth: 88,
+    minWidth: 74,
     alignItems: 'center',
     borderRadius: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   online: {
     backgroundColor: colors.success,
@@ -139,43 +128,37 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: colors.headerText,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
   },
   contextBar: {
     backgroundColor: colors.panelDark,
     borderBottomColor: colors.borderDark,
     borderBottomWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
     flexDirection: 'row',
-    gap: 8,
+    gap: 5,
   },
-  contextItem: {
+  contextChip: {
     flex: 1,
-    minHeight: 54,
+    minHeight: 28,
+    overflow: 'hidden',
     backgroundColor: '#172033',
     borderColor: '#263449',
     borderWidth: 1,
     borderRadius: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  contextLabel: {
-    color: colors.headerSubtle,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  contextValue: {
     color: colors.headerText,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '900',
-    marginTop: 2,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 7,
   },
-  good: {
+  goodChip: {
     color: '#78d99b',
   },
-  bad: {
+  badChip: {
     color: '#ff9a9a',
   },
   offlineBanner: {
@@ -201,12 +184,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   title: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
   },
   subtitle: {
