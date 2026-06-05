@@ -39,6 +39,16 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const total = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0) * Number(line.unitPrice || 0)
   ), 0), [lines]);
+  const totalsByCurrency = useMemo(() => lines.reduce((summary, line) => {
+    const currency = line.product.currency || selectedCustomer?.currency || 'TRY';
+    const lineTotal = Number(line.quantity || 0) * Number(line.unitPrice || 0);
+    return {
+      ...summary,
+      [currency]: Number(summary[currency] || 0) + lineTotal,
+    };
+  }, {}), [lines, selectedCustomer?.currency]);
+  const lineCurrencies = Object.keys(totalsByCurrency);
+  const hasMixedCurrency = selectedCustomer && lineCurrencies.some((currency) => currency !== selectedCustomer.currency);
 
   async function searchCustomer() {
     const q = customerQuery.trim();
@@ -186,11 +196,16 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
       await markQueueSynced(queuedEvent.clientEventId, response?.data || response);
       setMessage(duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
       setLines([]);
+      setBarcode('');
+      setQuantity('1');
       await onRefresh();
     } catch (submitError) {
       await markQueueFailed(queuedEvent.clientEventId, submitError);
       setMessage('Baglanti yok, fis gonderilemeyenlere alindi');
       setError(submitError.message || 'Online gonderim basarisiz');
+      setLines([]);
+      setBarcode('');
+      setQuantity('1');
       await onRefresh();
     } finally {
       setLoading(false);
@@ -309,6 +324,11 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
 
       <View style={styles.panel}>
         <Text style={styles.title}>Fis Satirlari</Text>
+        {hasMixedCurrency ? (
+          <Text style={styles.warning}>
+            Satir para birimi cari para biriminden farkli. Backend kur snapshot ile isleyecek; kur ERP tarafinda kontrol edilmeli.
+          </Text>
+        ) : null}
         {lines.length === 0 ? (
           <Text style={styles.empty}>Henuz satir yok.</Text>
         ) : lines.map((line) => (
@@ -329,7 +349,17 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
             </View>
           </View>
         ))}
-        <InfoRow label="Toplam" value={formatMoney(total, selectedCustomer?.currency || 'TRY')} tone="success" />
+        {lineCurrencies.length > 0 ? lineCurrencies.map((currency) => (
+          <InfoRow
+            key={currency}
+            label={`Toplam ${currency}`}
+            value={formatMoney(totalsByCurrency[currency], currency)}
+            tone="success"
+          />
+        )) : (
+          <InfoRow label="Toplam" value={formatMoney(total, selectedCustomer?.currency || 'TRY')} tone="success" />
+        )}
+        {selectedCustomer ? <InfoRow label="Fis para birimi" value={selectedCustomer.currency || 'TRY'} /> : null}
       </View>
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -449,6 +479,12 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontSize: 14,
     fontWeight: '900',
+  },
+  warning: {
+    color: colors.warning,
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 18,
   },
   error: {
     color: colors.danger,

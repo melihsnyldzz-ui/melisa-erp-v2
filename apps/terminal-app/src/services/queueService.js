@@ -107,6 +107,56 @@ export async function markQueueSynced(clientEventId, serverResponse = null) {
   });
 }
 
+export async function syncTerminalSaleEvent(clientEventId, { token } = {}) {
+  const queue = await readQueue();
+  const event = queue.find((entry) => entry.clientEventId === clientEventId);
+
+  if (!event || event.eventType !== 'terminal_sale') {
+    const error = new Error('Satis queue kaydi bulunamadi');
+    error.code = 'QUEUE_EVENT_NOT_FOUND';
+    throw error;
+  }
+
+  await updateQueueEvent(event.clientEventId, {
+    status: 'syncing',
+    lastAttemptAt: new Date().toISOString(),
+  });
+
+  try {
+    const response = await submitTerminalSale({
+      token,
+      payload: {
+        ...event.payload,
+        clientEventId: event.clientEventId,
+        terminalCode: event.terminalCode || terminalConfig.terminalCode,
+      },
+    });
+    const isDuplicate = Boolean(response?.data?.duplicate || response?.duplicate);
+    await updateQueueEvent(event.clientEventId, {
+      status: 'synced',
+      lastAttemptAt: new Date().toISOString(),
+      lastErrorCode: null,
+      lastErrorMessage: isDuplicate ? 'Daha once gonderilmis' : null,
+      serverResponse: response?.data || response,
+    });
+
+    return {
+      ok: true,
+      duplicate: isDuplicate,
+      response: response?.data || response,
+    };
+  } catch (error) {
+    await updateQueueEvent(event.clientEventId, {
+      status: 'failed',
+      retryCount: Number(event.retryCount || 0) + 1,
+      lastAttemptAt: new Date().toISOString(),
+      lastErrorCode: error.code || 'SYNC_FAILED',
+      lastErrorMessage: error.message || 'Sync basarisiz',
+    });
+    throw error;
+  }
+}
+
 export async function syncPendingTerminalSales({ token } = {}) {
   const queue = await readQueue();
   const saleEvents = queue.filter((event) => (
@@ -174,8 +224,10 @@ export async function getQueueSummary() {
   const pendingCount = queue.filter((event) => ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
   const failedCount = queue.filter((event) => event.status === 'failed').length;
   const syncedCount = queue.filter((event) => event.status === 'synced').length;
+  const duplicateCount = queue.filter((event) => event.status === 'synced' && event.lastErrorMessage === 'Daha once gonderilmis').length;
   const salePendingCount = queue.filter((event) => event.eventType === 'terminal_sale' && ['pending', 'retry_wait', 'syncing'].includes(event.status)).length;
   const saleFailedCount = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'failed').length;
+  const saleDuplicateCount = queue.filter((event) => event.eventType === 'terminal_sale' && event.status === 'synced' && event.lastErrorMessage === 'Daha once gonderilmis').length;
   const syncedEvents = queue.filter((event) => event.status === 'synced' && event.lastAttemptAt);
   const lastSyncAt = syncedEvents[0]?.lastAttemptAt || null;
 
@@ -183,8 +235,10 @@ export async function getQueueSummary() {
     pendingCount,
     failedCount,
     syncedCount,
+    duplicateCount,
     salePendingCount,
     saleFailedCount,
+    saleDuplicateCount,
     lastSyncAt,
     totalCount: queue.length,
   };

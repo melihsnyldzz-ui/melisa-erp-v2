@@ -4,7 +4,7 @@ import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
 import { getCacheSummary } from '../services/cacheService';
-import { enqueueAction, getPendingQueue, syncPendingTerminalSales } from '../services/queueService';
+import { enqueueAction, getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 function eventTypeLabel(eventType) {
@@ -28,6 +28,7 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
   const [cacheSummary, setCacheSummary] = useState({ productCount: 0, customerCount: 0 });
   const [syncMessage, setSyncMessage] = useState('');
   const [syncError, setSyncError] = useState('');
+  const [syncingEventId, setSyncingEventId] = useState('');
 
   async function refreshLocalState() {
     const [nextQueue, nextCache] = await Promise.all([
@@ -65,6 +66,23 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
     }
   }
 
+  async function syncSingleSale(clientEventId) {
+    setSyncMessage('');
+    setSyncError('');
+    setSyncingEventId(clientEventId);
+
+    try {
+      const result = await syncTerminalSaleEvent(clientEventId, { token: session.accessToken });
+      await refreshLocalState();
+      setSyncMessage(result.duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
+    } catch (error) {
+      await refreshLocalState();
+      setSyncError(error.message || 'Tek fis sync basarisiz');
+    } finally {
+      setSyncingEventId('');
+    }
+  }
+
   useEffect(() => {
     refreshLocalState();
   }, []);
@@ -81,6 +99,7 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
         <InfoRow label="Bekleyen satis" value={String(syncState.salePendingCount || 0)} tone={syncState.salePendingCount ? 'danger' : 'success'} />
         <InfoRow label="Hatali satis" value={String(syncState.saleFailedCount || 0)} tone={syncState.saleFailedCount ? 'danger' : 'success'} />
         <InfoRow label="Gonderilen" value={String(syncState.syncedCount || 0)} tone="success" />
+        <InfoRow label="Duplicate" value={String(syncState.saleDuplicateCount || syncState.duplicateCount || 0)} />
         <InfoRow label="Son sync" value={syncState.lastSyncAt || 'Henuz yok'} />
         <InfoRow label="Urun cache" value={String(cacheSummary.productCount)} />
         <InfoRow label="Cari cache" value={String(cacheSummary.customerCount)} />
@@ -100,6 +119,16 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
             </Text>
             {event.lastErrorMessage ? <Text style={styles.queueErrorText}>{event.lastErrorMessage}</Text> : null}
             <Text style={styles.queueId}>{event.clientEventId}</Text>
+            {event.eventType === 'terminal_sale' && event.status !== 'synced' ? (
+              <View style={styles.queueActions}>
+                <TerminalButton
+                  label={syncingEventId === event.clientEventId ? 'Gonderiliyor' : 'Bu fisi gonder'}
+                  onPress={() => syncSingleSale(event.clientEventId)}
+                  disabled={Boolean(syncingEventId)}
+                  variant="secondary"
+                />
+              </View>
+            ) : null}
           </View>
         ))}
       </View>
@@ -173,6 +202,9 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     fontWeight: '700',
+  },
+  queueActions: {
+    marginTop: 7,
   },
   queueSuccess: {
     color: colors.success,

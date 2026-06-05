@@ -21,6 +21,11 @@ const initialSyncState = {
   apiStatus: 'Kontrol ediliyor',
   pendingCount: 0,
   failedCount: 0,
+  duplicateCount: 0,
+  syncedCount: 0,
+  salePendingCount: 0,
+  saleFailedCount: 0,
+  saleDuplicateCount: 0,
   lastSyncAt: null,
 };
 
@@ -44,8 +49,10 @@ export default function App() {
       pendingCount: queueSummary.pendingCount,
       failedCount: queueSummary.failedCount,
       syncedCount: queueSummary.syncedCount,
+      duplicateCount: queueSummary.duplicateCount,
       salePendingCount: queueSummary.salePendingCount,
       saleFailedCount: queueSummary.saleFailedCount,
+      saleDuplicateCount: queueSummary.saleDuplicateCount,
       productCount: cacheSummary.productCount,
       customerCount: cacheSummary.customerCount,
       productCachedAt: cacheSummary.productCachedAt,
