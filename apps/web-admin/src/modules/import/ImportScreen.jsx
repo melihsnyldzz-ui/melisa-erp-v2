@@ -136,6 +136,50 @@ function downloadPreviewErrors(preview, activeEntity) {
   downloadBlob(blob, `melisa-${activeEntity}-hata-raporu.csv`);
 }
 
+function downloadPreviewValidRows(preview, activeEntity) {
+  const template = csvTemplates[activeEntity];
+  const headers = template.rows[0];
+  const rows = (preview?.rows || [])
+    .filter((row) => row.status === 'valid')
+    .map((row) => headers.map((header) => String(row.data?.[header] ?? '')));
+
+  if (!rows.length) {
+    return;
+  }
+
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+  for (let rowIndex = range.s.r; rowIndex <= range.e.r; rowIndex += 1) {
+    for (let columnIndex = range.s.c; columnIndex <= range.e.c; columnIndex += 1) {
+      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex });
+      const cell = worksheet[cellRef];
+
+      if (cell) {
+        cell.t = 's';
+        cell.z = '@';
+      }
+    }
+  }
+
+  worksheet['!cols'] = headers.map((header, columnIndex) => ({
+    wch: Math.max(
+      String(header ?? '').length + 4,
+      ...rows.slice(0, 200).map((row) => String(row[columnIndex] ?? '').length + 2),
+      14,
+    ),
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Gecerli Satirlar');
+  const workbookArray = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([workbookArray], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+
+  downloadBlob(blob, `melisa-${activeEntity}-gecerli-satirlar.xlsx`);
+}
+
 function formatStatus(status) {
   if (status === 'valid') return 'Geçerli';
   if (status === 'duplicate') return 'Duplicate';
@@ -267,7 +311,7 @@ function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWi
                       onClick={() => onOpenDuplicateProduct?.(row.duplicateProduct)}
                       type="button"
                     >
-                      Stok kart?ni ac: {row.duplicateProduct.stockCode}
+                      Stok kartini ac: {row.duplicateProduct.stockCode}
                     </button>
                   ) : null}
                 </td>
@@ -438,6 +482,9 @@ export function ImportScreen({ onOpenScreen }) {
           </button>
           <button disabled={!invalidTotal} onClick={() => downloadPreviewErrors(preview, activeEntity)} type="button">
             Hata Raporu CSV
+          </button>
+          <button disabled={!validTotal} onClick={() => downloadPreviewValidRows(preview, activeEntity)} type="button">
+            Gecerli Excel
           </button>
         </div>
       </section>

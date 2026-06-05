@@ -55,6 +55,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   async function refreshSummary() {
     setSummary(await getCacheSummary());
@@ -68,9 +69,14 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     setLoading(true);
     setError('');
     setMessage('');
+    setProgress({ label: 'Urun', downloaded: 0, page: 0, totalPages: 1, totalRows: 0 });
 
     try {
-      const response = await downloadAllTerminalProducts({ token: session.accessToken, pageSize: 100 });
+      const response = await downloadAllTerminalProducts({
+        token: session.accessToken,
+        pageSize: 100,
+        onProgress: (nextProgress) => setProgress({ label: 'Urun', ...nextProgress }),
+      });
       const products = response.rows.map(normalizeProduct);
       await replaceProductCache(products);
       await markCacheUpdated('product', products.length);
@@ -90,6 +96,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     } catch (updateError) {
       setError(updateError.message || 'Urun cache guncellenemedi');
     } finally {
+      setProgress(null);
       setLoading(false);
     }
   }
@@ -98,9 +105,14 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     setLoading(true);
     setError('');
     setMessage('');
+    setProgress({ label: 'Cari', downloaded: 0, page: 0, totalPages: 1, totalRows: 0 });
 
     try {
-      const response = await downloadAllTerminalCustomers({ token: session.accessToken, pageSize: 100 });
+      const response = await downloadAllTerminalCustomers({
+        token: session.accessToken,
+        pageSize: 100,
+        onProgress: (nextProgress) => setProgress({ label: 'Cari', ...nextProgress }),
+      });
       const customers = response.rows.map(normalizeCustomer);
       await replaceCustomerCache(customers);
       await markCacheUpdated('customer', customers.length);
@@ -120,6 +132,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     } catch (updateError) {
       setError(updateError.message || 'Cari cache guncellenemedi');
     } finally {
+      setProgress(null);
       setLoading(false);
     }
   }
@@ -129,12 +142,20 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     setError('');
     setMessage('');
     setLastResult(null);
+    setProgress({ label: 'Urun', downloaded: 0, page: 0, totalPages: 1, totalRows: 0 });
 
     try {
-      const [productResponse, customerResponse] = await Promise.all([
-        downloadAllTerminalProducts({ token: session.accessToken, pageSize: 100 }),
-        downloadAllTerminalCustomers({ token: session.accessToken, pageSize: 100 }),
-      ]);
+      const productResponse = await downloadAllTerminalProducts({
+        token: session.accessToken,
+        pageSize: 100,
+        onProgress: (nextProgress) => setProgress({ label: 'Urun', ...nextProgress }),
+      });
+      setProgress({ label: 'Cari', downloaded: 0, page: 0, totalPages: 1, totalRows: 0 });
+      const customerResponse = await downloadAllTerminalCustomers({
+        token: session.accessToken,
+        pageSize: 100,
+        onProgress: (nextProgress) => setProgress({ label: 'Cari', ...nextProgress }),
+      });
       const products = productResponse.rows.map(normalizeProduct);
       const customers = customerResponse.rows.map(normalizeCustomer);
 
@@ -165,6 +186,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     } catch (updateError) {
       setError(updateError.message || 'Tum veri guncellenemedi');
     } finally {
+      setProgress(null);
       setLoading(false);
     }
   }
@@ -172,6 +194,9 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
   const hasProducts = Number(summary.productCount || 0) > 0;
   const hasCustomers = Number(summary.customerCount || 0) > 0;
   const ready = hasProducts && hasCustomers;
+  const progressPercent = progress?.totalRows
+    ? Math.min(100, Math.round((Number(progress.downloaded || 0) / Number(progress.totalRows || 1)) * 100))
+    : 0;
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -234,6 +259,20 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {progress ? (
+        <View style={styles.progressPanel}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>{progress.label} indiriliyor</Text>
+            <Text style={styles.progressValue}>{progressPercent}%</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+          </View>
+          <Text style={styles.progressMeta}>
+            {progress.downloaded}/{progress.totalRows || '?'} kayit - sayfa {progress.page}/{progress.totalPages || '?'}
+          </Text>
+        </View>
+      ) : null}
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
       <TerminalButton label="Tum Veriyi Guncelle" onPress={updateAll} disabled={loading} />
@@ -358,5 +397,44 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 14,
     fontWeight: '900',
+  },
+  progressPanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    gap: 7,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  progressValue: {
+    color: colors.success,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  progressTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: colors.border,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.success,
+  },
+  progressMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

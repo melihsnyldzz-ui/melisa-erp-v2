@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
@@ -117,6 +117,29 @@ function LastProductPanel({ product, quantity }) {
   );
 }
 
+function RecentScanStrip({ scans, onSelect }) {
+  if (!scans.length) return null;
+
+  return (
+    <View style={styles.recentScanPanel}>
+      <Text style={styles.recentScanTitle}>Son okutulanlar</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentScanList}>
+        {scans.map((scan) => (
+          <Pressable
+            key={`${scan.product.id}-${scan.scannedAt}`}
+            onPress={() => onSelect(scan)}
+            style={styles.recentScanChip}
+          >
+            <Text style={styles.recentScanCode} numberOfLines={1}>{scan.product.stockCode}</Text>
+            <Text style={styles.recentScanName} numberOfLines={1}>{scan.product.productName}</Text>
+            <Text style={styles.recentScanMeta}>{scan.quantity} adet / {formatMoney(scan.product.salePrice, scan.product.currency)}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
   if (!customer) return null;
 
@@ -157,6 +180,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const [productAlternatives, setProductAlternatives] = useState([]);
   const [lastScannedProduct, setLastScannedProduct] = useState(null);
   const [lastScannedQuantity, setLastScannedQuantity] = useState(0);
+  const [recentScans, setRecentScans] = useState([]);
   const [testMode, setTestMode] = useState(false);
   const [testNote, setTestNote] = useState('');
   const [currencyRates, setCurrencyRates] = useState(null);
@@ -221,6 +245,27 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       testMode,
       exchangeRate: selectedExchangeRate,
     });
+  }
+
+  function vibrate(pattern) {
+    try {
+      Vibration.vibrate(pattern);
+    } catch {
+      // Vibration is optional on web/desktop previews.
+    }
+  }
+
+  function rememberScan(product, parsedQuantity) {
+    if (!product) return;
+
+    setRecentScans((current) => [
+      {
+        product,
+        quantity: parsedQuantity,
+        scannedAt: new Date().toISOString(),
+      },
+      ...current.filter((scan) => String(scan.product.id) !== String(product.id)),
+    ].slice(0, 5));
   }
 
   useEffect(() => {
@@ -387,12 +432,15 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 
       setLastScannedProduct(product);
       setLastScannedQuantity(parsedQuantity);
+      rememberScan(product, parsedQuantity);
       setMessage(`${product.productName} bulundu. Bilgileri kontrol edip Satira Ekle'ye basin.`);
       setSaleResult(null);
+      vibrate(35);
       return product;
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod okunamadi');
       setProductAlternatives(Array.isArray(lookupError.alternatives) ? lookupError.alternatives : []);
+      vibrate([0, 80, 60, 80]);
       return null;
     } finally {
       setLoading(false);
@@ -505,6 +553,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     }
 
     addProductLine(product, parsedQuantity);
+    rememberScan(product, parsedQuantity);
     setProductAlternatives([]);
     setBarcode('');
     setQuantity('1');
@@ -522,6 +571,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     }
 
     addProductLine(product, parsedQuantity);
+    rememberScan(product, parsedQuantity);
     setProductQuery('');
     setProductResults([]);
     setQuantity('1');
@@ -697,6 +747,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setProductResults([]);
     setLastScannedProduct(null);
     setLastScannedQuantity(0);
+    setRecentScans([]);
     setTestMode(false);
     setTestNote('');
     setReviewMode(false);
@@ -935,6 +986,19 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           returnKeyType="done"
         />
         <LastProductPanel product={convertProductForSale(lastScannedProduct)} quantity={quantity || lastScannedQuantity} />
+        <RecentScanStrip
+          scans={recentScans.map((scan) => ({
+            ...scan,
+            product: convertProductForSale(scan.product),
+          }))}
+          onSelect={(scan) => {
+            setLastScannedProduct(scan.product);
+            setLastScannedQuantity(scan.quantity);
+            setQuantity(String(scan.quantity || 1));
+            setMessage(`${scan.product.productName} tekrar secildi`);
+            setTimeout(() => barcodeRef.current?.focus(), 80);
+          }}
+        />
         <Text style={styles.label}>Miktar</Text>
         <View style={styles.quantityControl}>
           <Pressable onPress={() => adjustInputQuantity(-1)} style={styles.quantityButton}>
@@ -1499,6 +1563,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 5,
     textAlign: 'center',
+  },
+  recentScanPanel: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    padding: 8,
+    gap: 6,
+  },
+  recentScanTitle: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  recentScanList: {
+    gap: 7,
+    paddingRight: 6,
+  },
+  recentScanChip: {
+    width: 150,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.panel,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    gap: 2,
+  },
+  recentScanCode: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  recentScanName: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  recentScanMeta: {
+    color: colors.success,
+    fontSize: 10,
+    fontWeight: '900',
   },
   saleCompactBar: {
     borderColor: colors.success,

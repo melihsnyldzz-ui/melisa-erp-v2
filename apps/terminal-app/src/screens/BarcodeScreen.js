@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
 import { lookupProductByBarcode, rememberRecentProduct } from '../services/productService';
 import { colors } from '../styles/theme';
@@ -22,6 +22,14 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
     return () => clearTimeout(timer);
   }, []);
 
+  function vibrate(pattern) {
+    try {
+      Vibration.vibrate(pattern);
+    } catch {
+      // Vibration is optional on web/desktop previews.
+    }
+  }
+
   async function submitLookup() {
     const trimmedBarcode = barcode.trim();
     if (!trimmedBarcode || loading) return;
@@ -38,6 +46,7 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
         token: session.accessToken,
       });
       setBarcode('');
+      vibrate(35);
       onLookupResult(result);
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod bulunamadi');
@@ -46,6 +55,7 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
       if (nextAlternatives.length) {
         setWarning('Tam barkod bulunamadi. Benzer urunleri kontrol edin.');
       }
+      vibrate([0, 80, 60, 80]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 150);

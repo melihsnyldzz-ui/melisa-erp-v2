@@ -35,7 +35,7 @@ function extractRows(response) {
   return [];
 }
 
-async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500 } = {}) {
+async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500, onProgress } = {}) {
   const allRows = [];
   let page = 1;
   let fetchedPages = 0;
@@ -50,6 +50,12 @@ async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500 } = 
 
     totalPages = Number(response?.meta?.totalPages || response?.totalPages || totalPages || 1);
     totalRows = response?.meta?.total ?? response?.total ?? totalRows;
+    onProgress?.({
+      downloaded: allRows.length,
+      page,
+      totalPages,
+      totalRows: Number(totalRows ?? allRows.length),
+    });
 
     if (!rows.length || page >= totalPages) {
       break;
@@ -68,17 +74,17 @@ async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500 } = 
   };
 }
 
-export async function downloadAllTerminalProducts({ token, pageSize = 100 } = {}) {
+export async function downloadAllTerminalProducts({ token, pageSize = 100, onProgress } = {}) {
   return downloadAllPages(
     ({ page, limit }) => apiRequest(`/terminal/products/search?q=&limit=${encodeURIComponent(limit)}&page=${encodeURIComponent(page)}`, { token }),
-    { pageSize },
+    { pageSize, onProgress },
   );
 }
 
-export async function downloadAllTerminalCustomers({ token, pageSize = 100 } = {}) {
+export async function downloadAllTerminalCustomers({ token, pageSize = 100, onProgress } = {}) {
   return downloadAllPages(
     ({ page, limit }) => apiRequest(`/terminal/customers/search?q=&limit=${encodeURIComponent(limit)}&page=${encodeURIComponent(page)}`, { token }),
-    { pageSize },
+    { pageSize, onProgress },
   );
 }
 
