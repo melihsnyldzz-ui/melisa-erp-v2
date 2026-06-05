@@ -52,6 +52,15 @@ function statusText(status) {
   return 'Bekliyor';
 }
 
+function ResultCard({ label, value, tone = 'neutral' }) {
+  return (
+    <View style={[styles.resultCard, styles[`resultCard_${tone}`]]}>
+      <Text style={styles.resultCardLabel}>{label}</Text>
+      <Text style={styles.resultCardValue}>{value}</Text>
+    </View>
+  );
+}
+
 export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
   const [checked, setChecked] = useState({});
   const [results, setResults] = useState({});
@@ -62,6 +71,14 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
   const completedCount = useMemo(
     () => testItems.filter((item) => checked[item.key] || results[item.key]?.status === 'pass').length,
     [checked, results],
+  );
+  const failedCount = useMemo(
+    () => Object.values(results).filter((result) => result.status === 'fail').length,
+    [results],
+  );
+  const passCount = useMemo(
+    () => Object.values(results).filter((result) => result.status === 'pass').length,
+    [results],
   );
 
   const toggle = (key) => {
@@ -162,6 +179,16 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
     }
   }
 
+  async function runAllChecks() {
+    setMessage('');
+    setError('');
+    await runApiCheck();
+    await runCacheCheck();
+    await runQueueCheck();
+    await runSyncCheck();
+    setMessage('Canli kontroller tamamlandi. Manuel adimlari saha testinde isaretleyin.');
+  }
+
   function resetAll() {
     setChecked({});
     setResults({});
@@ -174,7 +201,13 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
       <View style={styles.panelDark}>
         <Text style={styles.heroLabel}>Saha test durumu</Text>
         <Text style={styles.heroTitle}>{completedCount}/{testItems.length} adim</Text>
-        <Text style={styles.heroText}>Telefon testini sonra yapacagiz; bu ekran uygulama icinde canli kontrol noktalarini toplar.</Text>
+        <Text style={styles.heroText}>Bu ekran terminalin API, cache, offline queue ve sync hazirligini tek yerde kontrol eder.</Text>
+      </View>
+
+      <View style={styles.resultGrid}>
+        <ResultCard label="Gecti" value={String(passCount)} tone="success" />
+        <ResultCard label="Kaldi" value={String(failedCount)} tone={failedCount ? 'danger' : 'success'} />
+        <ResultCard label="Manuel" value={String(completedCount - passCount)} tone="neutral" />
       </View>
 
       <View style={styles.statusPanel}>
@@ -188,6 +221,7 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
 
       <View style={styles.actionPanel}>
         <Text style={styles.actionTitle}>Canli kontroller</Text>
+        <TerminalButton label="Tum Kontrolleri Calistir" onPress={runAllChecks} disabled={Boolean(runningKey)} />
         <TerminalButton label="API test et" onPress={runApiCheck} disabled={Boolean(runningKey)} />
         <TerminalButton label="Cache kontrol et" onPress={runCacheCheck} disabled={Boolean(runningKey)} variant="secondary" />
         <TerminalButton label="Queue kontrol et" onPress={runQueueCheck} disabled={Boolean(runningKey)} variant="secondary" />
@@ -203,6 +237,7 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
           const result = results[item.key];
           const isDone = Boolean(checked[item.key]) || result?.status === 'pass';
           const isFailed = result?.status === 'fail';
+          const isLive = ['api', 'data', 'offline', 'sync'].includes(item.key);
           return (
             <Pressable
               key={item.key}
@@ -213,7 +248,12 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
                 <Text style={styles.checkMark}>{isDone ? 'OK' : isFailed ? '!' : ''}</Text>
               </View>
               <View style={styles.checkText}>
-                <Text style={styles.checkTitle}>{item.title}</Text>
+                <View style={styles.checkTitleRow}>
+                  <Text style={styles.checkTitle}>{item.title}</Text>
+                  <Text style={[styles.modePill, isLive ? styles.modePillLive : styles.modePillManual]}>
+                    {isLive ? 'Canli' : 'Manuel'}
+                  </Text>
+                </View>
                 <Text style={styles.checkNote}>{item.note}</Text>
                 {result ? (
                   <Text style={[styles.resultText, styles[`result${result.status}`]]}>
@@ -270,6 +310,42 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  resultGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  resultCard: {
+    flex: 1,
+    minHeight: 70,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  resultCard_success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success,
+  },
+  resultCard_danger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
+  },
+  resultCard_neutral: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+  },
+  resultCardLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  resultCardValue: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    marginTop: 3,
   },
   actionPanel: {
     backgroundColor: colors.white,
@@ -332,10 +408,36 @@ const styles = StyleSheet.create({
   checkText: {
     flex: 1,
   },
+  checkTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   checkTitle: {
+    flex: 1,
     color: colors.text,
     fontSize: 16,
     fontWeight: '900',
+  },
+  modePill: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 7,
+    fontSize: 10,
+    fontWeight: '900',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  modePillLive: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+  },
+  modePillManual: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft,
+    color: colors.warning,
   },
   checkNote: {
     color: colors.muted,
