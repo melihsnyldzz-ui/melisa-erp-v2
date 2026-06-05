@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { pingApi } from '../services/apiClient';
 import { getCacheSummary } from '../services/cacheService';
 import { getPendingQueue, syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
+
+const fieldTestLogKey = 'terminalFieldTestLog';
 
 const testItems = [
   {
@@ -45,6 +48,41 @@ const testItems = [
   },
 ];
 
+async function readFieldTestLog() {
+  const raw = await AsyncStorage.getItem(fieldTestLogKey);
+  if (!raw) return [];
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+async function appendFieldTestLog(entry) {
+  const current = await readFieldTestLog();
+  const next = [
+    {
+      ...entry,
+      createdAt: new Date().toISOString(),
+    },
+    ...current,
+  ].slice(0, 20);
+
+  await AsyncStorage.setItem(fieldTestLogKey, JSON.stringify(next));
+  return next;
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+
+  try {
+    return new Date(value).toLocaleString('tr-TR');
+  } catch {
+    return value;
+  }
+}
+
 function statusText(status) {
   if (status === 'pass') return 'PASS';
   if (status === 'fail') return 'FAIL';
@@ -65,6 +103,8 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
   const [checked, setChecked] = useState({});
   const [results, setResults] = useState({});
   const [runningKey, setRunningKey] = useState('');
+  const [note, setNote] = useState('');
+  const [logEntries, setLogEntries] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -80,6 +120,11 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
     () => Object.values(results).filter((result) => result.status === 'pass').length,
     [results],
   );
+  const progressPercent = Math.round((completedCount / testItems.length) * 100);
+
+  useEffect(() => {
+    readFieldTestLog().then(setLogEntries);
+  }, []);
 
   const toggle = (key) => {
     setChecked((current) => ({
@@ -97,6 +142,37 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
         checkedAt: new Date().toISOString(),
       },
     }));
+    appendFieldTestLog({
+      type: 'check',
+      key,
+      status,
+      detail,
+      online: syncState.online,
+      pendingSales: syncState.salePendingCount || 0,
+      failedSales: syncState.saleFailedCount || 0,
+    }).then(setLogEntries);
+  }
+
+  async function saveNote() {
+    const trimmedNote = note.trim();
+    if (!trimmedNote) {
+      setError('Kaydedilecek saha notu yazin.');
+      return;
+    }
+
+    const nextLog = await appendFieldTestLog({
+      type: 'note',
+      key: 'field_note',
+      status: 'note',
+      detail: trimmedNote,
+      online: syncState.online,
+      pendingSales: syncState.salePendingCount || 0,
+      failedSales: syncState.saleFailedCount || 0,
+    });
+    setLogEntries(nextLog);
+    setNote('');
+    setError('');
+    setMessage('Saha notu local cihaza kaydedildi.');
   }
 
   async function runApiCheck() {
@@ -202,6 +278,10 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
         <Text style={styles.heroLabel}>Saha test durumu</Text>
         <Text style={styles.heroTitle}>{completedCount}/{testItems.length} adim</Text>
         <Text style={styles.heroText}>Bu ekran terminalin API, cache, offline queue ve sync hazirligini tek yerde kontrol eder.</Text>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+        </View>
+        <Text style={styles.progressText}>{progressPercent}% tamamlandi</Text>
       </View>
 
       <View style={styles.resultGrid}>
@@ -219,6 +299,16 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
         <InfoRow label="Cari cache" value={String(syncState.customerCount || 0)} />
       </View>
 
+      <View style={styles.shortcutPanel}>
+        <Text style={styles.actionTitle}>Saha adimlari</Text>
+        <View style={styles.shortcutGrid}>
+          <TerminalButton label="Veri Guncelle" onPress={navigation.openDataUpdate} variant="secondary" />
+          <TerminalButton label="Barkod Testi" onPress={navigation.openBarcode} variant="secondary" />
+          <TerminalButton label="Satis Testi" onPress={navigation.openNewSale} variant="secondary" />
+          <TerminalButton label="Sync Merkezi" onPress={navigation.openSyncStatus} variant="secondary" />
+        </View>
+      </View>
+
       <View style={styles.actionPanel}>
         <Text style={styles.actionTitle}>Canli kontroller</Text>
         <TerminalButton label="Tum Kontrolleri Calistir" onPress={runAllChecks} disabled={Boolean(runningKey)} />
@@ -231,6 +321,19 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <View style={styles.notePanel}>
+        <Text style={styles.actionTitle}>Saha notu</Text>
+        <TextInput
+          value={note}
+          onChangeText={setNote}
+          placeholder="Orn: Offline satis denendi, API geri gelince 1 fis gonderildi."
+          placeholderTextColor={colors.muted}
+          multiline
+          style={styles.noteInput}
+        />
+        <TerminalButton label="Notu Kaydet" onPress={saveNote} variant="secondary" />
+      </View>
 
       <View style={styles.checklist}>
         {testItems.map((item) => {
@@ -267,6 +370,31 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
       </View>
 
       <TerminalButton label="Tumunu sifirla" onPress={resetAll} variant="secondary" />
+
+      {logEntries.length ? (
+        <View style={styles.logPanel}>
+          <Text style={styles.actionTitle}>Son saha kayitlari</Text>
+          {logEntries.slice(0, 6).map((entry, index) => (
+            <View key={`${entry.createdAt}-${entry.key}-${index}`} style={styles.logRow}>
+              <View style={styles.logHeader}>
+                <Text style={[
+                  styles.logStatus,
+                  entry.status === 'fail' ? styles.logStatusFail : styles.logStatusPass,
+                ]}
+                >
+                  {entry.status === 'note' ? 'NOT' : statusText(entry.status)}
+                </Text>
+                <Text style={styles.logDate}>{formatDate(entry.createdAt)}</Text>
+              </View>
+              <Text style={styles.logDetail}>{entry.detail}</Text>
+              <Text style={styles.logMeta}>
+                API {entry.online ? 'online' : 'offline'} / Bekleyen {entry.pendingSales || 0} / Hatali {entry.failedSales || 0}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} />
     </ScrollView>
   );
@@ -302,6 +430,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 18,
     marginTop: 6,
+  },
+  progressTrack: {
+    height: 10,
+    overflow: 'hidden',
+    backgroundColor: '#263244',
+    borderRadius: 6,
+    marginTop: 12,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
+  },
+  progressText: {
+    marginTop: 6,
+    color: colors.headerText,
+    fontSize: 12,
+    fontWeight: '900',
   },
   statusPanel: {
     backgroundColor: colors.white,
@@ -354,6 +499,37 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     gap: 8,
+  },
+  shortcutPanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    gap: 8,
+  },
+  shortcutGrid: {
+    gap: 8,
+  },
+  notePanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    gap: 8,
+  },
+  noteInput: {
+    minHeight: 88,
+    textAlignVertical: 'top',
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.input,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+    padding: 10,
   },
   actionTitle: {
     color: colors.text,
@@ -469,5 +645,53 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 14,
     fontWeight: '900',
+  },
+  logPanel: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    gap: 8,
+  },
+  logRow: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    padding: 10,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  logStatus: {
+    color: colors.success,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  logStatusFail: {
+    color: colors.danger,
+  },
+  logStatusPass: {
+    color: colors.success,
+  },
+  logDate: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  logDetail: {
+    marginTop: 5,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  logMeta: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
   },
 });
