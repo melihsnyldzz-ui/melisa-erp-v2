@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
@@ -32,6 +32,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [lines, setLines] = useState([]);
+  const [productAlternatives, setProductAlternatives] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -123,6 +124,7 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
     }
 
     setError('');
+    setProductAlternatives([]);
     setLoading(true);
     try {
       const result = await lookupProductByBarcode({
@@ -135,34 +137,55 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
         return;
       }
 
-      setLines((current) => {
-        const existingIndex = current.findIndex((line) => String(line.product.id) === String(product.id));
-        if (existingIndex < 0) {
-          return [
-            ...current,
-            {
-              product,
-              quantity: parsedQuantity,
-              unitPrice: Number(product.salePrice || 0),
-            },
-          ];
-        }
-
-        return current.map((line, index) => (
-          index === existingIndex
-            ? { ...line, quantity: Number(line.quantity || 0) + parsedQuantity }
-            : line
-        ));
-      });
+      addProductLine(product, parsedQuantity);
       setBarcode('');
       setQuantity('1');
       setMessage(`${product.productName} eklendi`);
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod okunamadi');
+      setProductAlternatives(Array.isArray(lookupError.alternatives) ? lookupError.alternatives : []);
     } finally {
       setLoading(false);
       setTimeout(() => barcodeRef.current?.focus(), 120);
     }
+  }
+
+  function addProductLine(product, parsedQuantity = Number(quantity || 1)) {
+    setLines((current) => {
+      const existingIndex = current.findIndex((line) => String(line.product.id) === String(product.id));
+      if (existingIndex < 0) {
+        return [
+          ...current,
+          {
+            product,
+            quantity: parsedQuantity,
+            unitPrice: Number(product.salePrice || 0),
+          },
+        ];
+      }
+
+      return current.map((line, index) => (
+        index === existingIndex
+          ? { ...line, quantity: Number(line.quantity || 0) + parsedQuantity }
+          : line
+      ));
+    });
+  }
+
+  function selectProductAlternative(product) {
+    const parsedQuantity = Number(quantity || 1);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      setError('Miktar zorunlu');
+      return;
+    }
+
+    addProductLine(product, parsedQuantity);
+    setProductAlternatives([]);
+    setBarcode('');
+    setQuantity('1');
+    setError('');
+    setMessage(`${product.productName} alternatif olarak eklendi`);
+    setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
   async function finishSale() {
@@ -320,6 +343,23 @@ export function NewSaleScreen({ session, navigation, onRefresh }) {
           keyboardType="decimal-pad"
         />
         <TerminalButton label="Satira Ekle" onPress={addBarcodeLine} disabled={loading} />
+        {productAlternatives.length ? (
+          <View style={styles.productAlternativePanel}>
+            <Text style={styles.warning}>Tam barkod bulunamadi. Benzer urunlerden secin.</Text>
+            {productAlternatives.map((product) => (
+              <Pressable
+                key={`${product.id}-${product.barcodeMasked || product.matchedBarcode || product.stockCode}`}
+                onPress={() => selectProductAlternative(product)}
+                style={styles.productAlternativeRow}
+              >
+                <Text style={styles.lineName}>{product.productName}</Text>
+                <Text style={styles.lineMeta}>
+                  {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.panel}>
@@ -485,6 +525,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     lineHeight: 18,
+  },
+  productAlternativePanel: {
+    gap: 7,
+  },
+  productAlternativeRow: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    padding: 10,
   },
   error: {
     color: colors.danger,

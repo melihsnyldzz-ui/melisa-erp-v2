@@ -49,6 +49,13 @@ function getProductsFromResponse(response) {
   return [];
 }
 
+function sourceLabel(source) {
+  if (source === 'api') return 'API';
+  if (source === 'cache') return 'local cache';
+  if (source === 'alternative') return 'operator secimi';
+  return source || 'manual';
+}
+
 export function ProductLookupScreen({ lastLookup, navigation, session }) {
   const initialProduct = normalizeProduct(lastLookup?.selectedProduct);
   const [query, setQuery] = useState(lastLookup?.barcode || '');
@@ -113,7 +120,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
       <View style={styles.panel}>
         <Text style={styles.title}>Urun Arama</Text>
         <Text style={styles.meta}>
-          Kaynak: {source} / Son barkod: {lastLookup?.barcode || '-'}
+          Kaynak: {sourceLabel(source)} / Son barkod: {lastLookup?.barcode || '-'}
         </Text>
 
         <View style={styles.searchRow}>

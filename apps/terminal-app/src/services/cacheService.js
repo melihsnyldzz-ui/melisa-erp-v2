@@ -44,6 +44,22 @@ export async function findCachedProduct(query) {
   )) || null;
 }
 
+export async function findCachedProducts(query, limit = 8) {
+  const normalized = String(query || '').trim().toLocaleLowerCase('tr-TR');
+  const cache = await readJson(productCacheKey, {});
+
+  if (!normalized) {
+    return [];
+  }
+
+  return Object.values(cache).filter((product) => (
+    String(product.stockCode || '').toLocaleLowerCase('tr-TR').includes(normalized)
+    || String(product.productName || '').toLocaleLowerCase('tr-TR').includes(normalized)
+    || String(product.barcodeMasked || '').toLocaleLowerCase('tr-TR').includes(normalized)
+    || String(product.matchedBarcode || '').toLocaleLowerCase('tr-TR').includes(normalized)
+  )).slice(0, limit);
+}
+
 export async function getCacheSummary() {
   const [products, customers, meta] = await Promise.all([
     readJson(productCacheKey, {}),

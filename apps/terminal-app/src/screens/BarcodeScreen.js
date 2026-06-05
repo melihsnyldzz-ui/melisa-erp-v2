@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
 import { lookupProductByBarcode } from '../services/productService';
 import { colors } from '../styles/theme';
@@ -8,6 +8,9 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
   const inputRef = useRef(null);
   const [barcode, setBarcode] = useState('');
   const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
+  const [alternatives, setAlternatives] = useState([]);
+  const [lastSearchedBarcode, setLastSearchedBarcode] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -20,6 +23,9 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
     if (!trimmedBarcode || loading) return;
 
     setError('');
+    setWarning('');
+    setAlternatives([]);
+    setLastSearchedBarcode(trimmedBarcode);
     setLoading(true);
 
     try {
@@ -31,10 +37,26 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
       onLookupResult(result);
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod bulunamadi');
+      const nextAlternatives = Array.isArray(lookupError.alternatives) ? lookupError.alternatives : [];
+      setAlternatives(nextAlternatives);
+      if (nextAlternatives.length) {
+        setWarning('Tam barkod bulunamadi. Benzer urunleri kontrol edin.');
+      }
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 150);
     }
+  }
+
+  function selectAlternative(product) {
+    onLookupResult({
+      source: 'alternative',
+      barcode: lastSearchedBarcode || barcode.trim(),
+      products: alternatives,
+      selectedProduct: product,
+      warning: 'Tam barkod eslesmedi; operator alternatif urun secti.',
+      searchedAt: new Date().toISOString(),
+    });
   }
 
   return (
@@ -60,6 +82,25 @@ export function BarcodeScreen({ session, syncState, navigation, onLookupResult }
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {warning ? <Text style={styles.warning}>{warning}</Text> : null}
+
+        {alternatives.length ? (
+          <View style={styles.alternativePanel}>
+            <Text style={styles.alternativeTitle}>Benzer urunler</Text>
+            {alternatives.map((product) => (
+              <Pressable
+                key={`${product.id}-${product.barcodeMasked || product.matchedBarcode || product.stockCode}`}
+                onPress={() => selectAlternative(product)}
+                style={styles.alternativeRow}
+              >
+                <Text style={styles.alternativeName}>{product.productName}</Text>
+                <Text style={styles.alternativeMeta}>
+                  {product.stockCode} / {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.buttonRow}>
           <TerminalButton label="Ara" onPress={submitLookup} disabled={loading} />
@@ -126,6 +167,40 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 15,
     fontWeight: '900',
+  },
+  warning: {
+    marginTop: 8,
+    color: colors.warning,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  alternativePanel: {
+    marginTop: 10,
+    gap: 7,
+  },
+  alternativeTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  alternativeRow: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    padding: 10,
+  },
+  alternativeName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  alternativeMeta: {
+    marginTop: 3,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
   },
   loader: {
     marginTop: 12,
