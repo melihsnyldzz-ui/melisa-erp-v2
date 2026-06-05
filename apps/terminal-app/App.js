@@ -193,7 +193,9 @@ export default function App() {
         {activeScreen === 'fieldTest' && (
           <FieldTestScreen
             navigation={navigation}
+            session={session}
             syncState={syncState}
+            onRefresh={refreshSyncState}
           />
         )}
       </TerminalShell>
