@@ -65,8 +65,6 @@ function getActiveFilters(filters) {
 
 export function StockListFilters({ filters, suggestions, onChange, onRefresh, onReset }) {
   const activeFilters = getActiveFilters(filters);
-  const brandQuickOptions = uniqueOptions(suggestions.brands);
-  const categoryQuickOptions = uniqueOptions(suggestions.categories);
 
   function updateFilter(key, value) {
     onChange({ ...filters, [key]: value });
@@ -109,31 +107,6 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <button type="button" onClick={onRefresh}>Yenile</button>
           <button type="button" onClick={onReset}>Temizle</button>
         </div>
-      </div>
-
-      <div className="stock-quick-picks">
-        <strong>Marka</strong>
-        {brandQuickOptions.slice(0, 8).map((brand) => (
-          <button
-            className={filters.brand === brand ? 'pressed' : ''}
-            key={brand}
-            onClick={() => updateFilter('brand', filters.brand === brand ? '' : brand)}
-            type="button"
-          >
-            {brand}
-          </button>
-        ))}
-        <strong>Kategori</strong>
-        {categoryQuickOptions.slice(0, 8).map((category) => (
-          <button
-            className={filters.category === category ? 'pressed' : ''}
-            key={category}
-            onClick={() => updateFilter('category', filters.category === category ? '' : category)}
-            type="button"
-          >
-            {category}
-          </button>
-        ))}
       </div>
 
       <div className="stock-filter-fields">
