@@ -384,11 +384,13 @@ export async function getProductsList(query) {
   const options = parseListQuery(query);
   const barcode = trimText(query?.barcode);
   const barcodeLike = barcode ? `%${barcode}%` : null;
+  const supplierId = Number(query?.supplierId || 0);
   const pool = await getSqlPool();
   const request = pool.request()
     .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
     .input('barcode', sql.NVarChar(120), barcode || null)
     .input('barcodeLike', sql.NVarChar(120), barcodeLike)
+    .input('supplierId', sql.BigInt, Number.isInteger(supplierId) && supplierId > 0 ? supplierId : null)
     .input('activeOnly', sql.Bit, options.activeOnly)
     .input('offset', sql.Int, options.offset);
 
@@ -439,6 +441,7 @@ export async function getProductsList(query) {
       WHERE
         p.is_deleted = 0
         AND (@activeOnly = 0 OR p.is_active = 1)
+        AND (@supplierId IS NULL OR p.supplier_id = @supplierId)
         AND (
           @barcodeLike IS NULL
           OR EXISTS (
@@ -517,6 +520,7 @@ export async function getProductsList(query) {
       filters: {
         search: options.search || null,
         barcode: barcode || null,
+        supplierId: Number.isInteger(supplierId) && supplierId > 0 ? supplierId : null,
         activeOnly: options.activeOnly,
       },
     }),

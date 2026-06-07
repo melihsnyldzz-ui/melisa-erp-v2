@@ -181,7 +181,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
       try {
         const [supplierResponse, productResponse] = await Promise.all([
           fetchSuppliers({ page: 1, limit: 100, search: supplierQuery, activeOnly: true }),
-          fetchProducts({ page: 1, limit: 100, search: productQuery, barcode: productQuery, activeOnly: true }),
+          fetchProducts({ page: 1, limit: 250, search: productQuery, barcode: productQuery, supplierId, activeOnly: true }),
         ]);
 
         if (!isMounted) {
@@ -225,7 +225,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     return () => {
       isMounted = false;
     };
-  }, [productQuery, supplierQuery]);
+  }, [productQuery, supplierId, supplierQuery]);
 
   useEffect(() => {
     if (!selectedSupplier) {
