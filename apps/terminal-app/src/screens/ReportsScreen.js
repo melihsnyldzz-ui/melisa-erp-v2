@@ -73,6 +73,46 @@ function isDuplicate(event) {
     || Boolean(event.serverResponse?.data?.duplicate);
 }
 
+function padLine(left, right, width = 32) {
+  const leftText = String(left || '').slice(0, width);
+  const rightText = String(right || '');
+  const spaceCount = Math.max(1, width - leftText.length - rightText.length);
+  return `${leftText}${' '.repeat(spaceCount)}${rightText}`;
+}
+
+function buildReceiptText(event) {
+  const payload = event.payload || {};
+  const currency = saleCurrency(payload);
+  const lines = [
+    'MELISA MINI ERP',
+    'TERMINAL FIS',
+    '-'.repeat(32),
+    `Fis: ${String(receiptNumber(event)).slice(0, 26)}`,
+    `Durum: ${statusLabel(event.status)}`,
+    `Tarih: ${formatDate(eventDate(event))}`,
+    `Cari: ${payload.customerName || payload.customerCode || '-'}`,
+    `Kod: ${payload.customerCode || '-'}`,
+    '-'.repeat(32),
+  ];
+
+  (payload.items || []).forEach((item) => {
+    const itemCurrency = item.currency || currency;
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(item.unitPrice || 0);
+    const total = quantity * unitPrice;
+    lines.push(String(item.productName || item.stockCode || `Urun #${item.productId || '-'}`).slice(0, 32));
+    lines.push(padLine(`${quantity} x ${formatMoney(unitPrice, itemCurrency)}`, formatMoney(total, itemCurrency)));
+  });
+
+  lines.push('-'.repeat(32));
+  lines.push(padLine('Toplam adet', saleQuantity(payload)));
+  lines.push(padLine('Genel toplam', formatMoney(saleTotal(payload), currency)));
+  lines.push('-'.repeat(32));
+  lines.push(event.clientEventId);
+
+  return lines.join('\n');
+}
+
 function ReceiptListRow({ event, onPress }) {
   const payload = event.payload || {};
   const currency = saleCurrency(payload);
@@ -95,6 +135,7 @@ function ReceiptDetail({ event, onBack, onPrint }) {
   const payload = event.payload || {};
   const currency = saleCurrency(payload);
   const duplicate = isDuplicate(event);
+  const receiptText = buildReceiptText(event);
 
   return (
     <>
@@ -110,8 +151,13 @@ function ReceiptDetail({ event, onBack, onPrint }) {
       </View>
 
       <View style={styles.detailActions}>
-        <TerminalButton label="Yazdir" onPress={() => onPrint(event)} />
+        <TerminalButton label="Yazdir / Paylas" onPress={() => onPrint(event, receiptText)} />
         <TerminalButton label="Listeye Don" onPress={onBack} variant="secondary" />
+      </View>
+
+      <View style={styles.printPreview}>
+        <Text style={styles.printPreviewTitle}>Fis cikti onizleme</Text>
+        <Text selectable style={styles.printText}>{receiptText}</Text>
       </View>
 
       <View style={styles.table}>
@@ -206,14 +252,14 @@ export function ReportsScreen({ navigation, onRefresh }) {
     await onRefresh?.();
   }
 
-  function printReceipt() {
+  function printReceipt(event, receiptText) {
     if (typeof globalThis?.print === 'function') {
       globalThis.print();
       setMessage('Yazdirma penceresi acildi');
       return;
     }
 
-    setMessage('Yazdirma butonu hazir. Telefon yazici baglantisi sonraki fazda baglanacak.');
+    setMessage(`Fis cikti metni hazir: ${receiptNumber(event)}. Bluetooth yazici baglantisi sonraki fazda baglanacak.`);
   }
 
   useEffect(() => {
@@ -495,6 +541,31 @@ const styles = StyleSheet.create({
   },
   detailActions: {
     gap: 7,
+  },
+  printPreview: {
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    padding: 10,
+    gap: 7,
+  },
+  printPreviewTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  printText: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: '#fffdf7',
+    color: colors.text,
+    fontFamily: 'monospace',
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 16,
+    padding: 8,
   },
   table: {
     borderColor: '#b7ad98',

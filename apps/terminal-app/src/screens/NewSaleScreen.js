@@ -781,7 +781,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function printDraft() {
-    setMessage('Yazdirma hazir degil. Bu asamada fis taslak/gonderim kontrolu yapiliyor.');
+    setMessage('Fis cikti onizlemesi Raporlar ekraninda hazirlanir. Fisi kaydedip/gonderip Raporlar > fis detayi acin.');
     setError('');
   }
 
