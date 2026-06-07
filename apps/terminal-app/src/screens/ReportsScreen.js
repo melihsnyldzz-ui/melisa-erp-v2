@@ -32,6 +32,36 @@ function formatMoney(value, currency = 'TRY') {
   return `${Number(value || 0).toFixed(2)} ${currency}`;
 }
 
+function statusLabel(status) {
+  if (status === 'pending') return 'Bekliyor';
+  if (status === 'retry_wait') return 'Tekrar';
+  if (status === 'syncing') return 'Gonderiliyor';
+  if (status === 'synced') return 'Gonderildi';
+  if (status === 'failed') return 'Hatali';
+  return status || '-';
+}
+
+function statusTone(status) {
+  if (status === 'synced') return 'success';
+  if (status === 'failed') return 'danger';
+  return 'warning';
+}
+
+function eventDate(event = {}) {
+  return event.lastAttemptAt || event.clientCreatedAt;
+}
+
+function isTodayEvent(event = {}) {
+  const value = eventDate(event);
+  if (!value) return false;
+
+  const date = new Date(value);
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate();
+}
+
 function receiptNumber(event) {
   const response = event.serverResponse || {};
   return response.receiptNo || response.salesReceiptNo || response.documentNo || response.id || event.clientEventId;
@@ -46,15 +76,17 @@ function isDuplicate(event) {
 function ReceiptListRow({ event, onPress }) {
   const payload = event.payload || {};
   const currency = saleCurrency(payload);
+  const tone = statusTone(event.status);
 
   return (
     <Pressable onPress={() => onPress(event)} style={({ pressed }) => [styles.receiptRow, pressed && styles.pressedRow]}>
       <View style={styles.receiptMain}>
         <Text style={styles.receiptCustomer} numberOfLines={1}>{payload.customerName || payload.customerCode || `Cari #${payload.customerId || '-'}`}</Text>
-        <Text style={styles.receiptSub} numberOfLines={1}>{payload.customerCode || '-'} / {formatDate(event.lastAttemptAt || event.clientCreatedAt)}</Text>
+        <Text style={styles.receiptSub} numberOfLines={1}>{payload.customerCode || '-'} / {formatDate(eventDate(event))}</Text>
       </View>
       <Text style={styles.receiptQty}>{saleQuantity(payload)}</Text>
       <Text style={styles.receiptTotal}>{formatMoney(saleTotal(payload), currency)}</Text>
+      <Text style={[styles.rowStatusPill, styles[`rowStatus_${tone}`]]}>{statusLabel(event.status)}</Text>
     </Pressable>
   );
 }
@@ -69,10 +101,12 @@ function ReceiptDetail({ event, onBack, onPrint }) {
       <View style={styles.detailHeader}>
         <View style={styles.detailTitleBlock}>
           <Text style={styles.detailTitle} numberOfLines={1}>{payload.customerName || payload.customerCode || '-'}</Text>
-          <Text style={styles.detailMeta}>{payload.customerCode || '-'} / {formatDate(event.lastAttemptAt || event.clientCreatedAt)}</Text>
+          <Text style={styles.detailMeta}>{payload.customerCode || '-'} / {formatDate(eventDate(event))}</Text>
           <Text style={styles.detailId} numberOfLines={1}>{receiptNumber(event)}</Text>
         </View>
-        <Text style={[styles.statusPill, duplicate && styles.statusDuplicate]}>{duplicate ? 'Duplicate' : 'Sonuclandi'}</Text>
+        <Text style={[styles.statusPill, duplicate && styles.statusDuplicate, styles[`status_${statusTone(event.status)}`]]}>
+          {duplicate ? 'Duplicate' : statusLabel(event.status)}
+        </Text>
       </View>
 
       <View style={styles.detailActions}>
@@ -107,6 +141,7 @@ function ReceiptDetail({ event, onBack, onPrint }) {
         <Text style={styles.detailTotalLabel}>Genel toplam</Text>
         <Text style={styles.detailTotalValue}>{formatMoney(saleTotal(payload), currency)}</Text>
       </View>
+      {event.lastErrorMessage ? <Text style={styles.errorText}>{event.lastErrorMessage}</Text> : null}
     </>
   );
 }
@@ -114,19 +149,31 @@ function ReceiptDetail({ event, onBack, onPrint }) {
 export function ReportsScreen({ navigation, onRefresh }) {
   const [queue, setQueue] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [filter, setFilter] = useState('today');
   const [message, setMessage] = useState('');
 
-  const sentSales = useMemo(() => (
+  const saleEvents = useMemo(() => (
     queue
-      .filter((event) => event.eventType === 'terminal_sale' && event.status === 'synced')
-      .sort((a, b) => String(b.lastAttemptAt || b.clientCreatedAt).localeCompare(String(a.lastAttemptAt || a.clientCreatedAt)))
+      .filter((event) => event.eventType === 'terminal_sale')
+      .sort((a, b) => String(eventDate(b)).localeCompare(String(eventDate(a))))
   ), [queue]);
+  const todaySales = useMemo(() => saleEvents.filter(isTodayEvent), [saleEvents]);
+  const pendingSales = useMemo(() => saleEvents.filter((event) => ['pending', 'retry_wait', 'syncing'].includes(event.status)), [saleEvents]);
+  const failedSales = useMemo(() => saleEvents.filter((event) => event.status === 'failed'), [saleEvents]);
+  const sentSales = useMemo(() => saleEvents.filter((event) => event.status === 'synced'), [saleEvents]);
+  const visibleSales = filter === 'sent'
+    ? sentSales
+    : filter === 'pending'
+      ? pendingSales
+      : filter === 'failed'
+        ? failedSales
+        : todaySales;
 
   const selectedEvent = useMemo(() => (
-    sentSales.find((event) => event.clientEventId === selectedEventId) || null
-  ), [sentSales, selectedEventId]);
+    saleEvents.find((event) => event.clientEventId === selectedEventId) || null
+  ), [saleEvents, selectedEventId]);
 
-  const summary = useMemo(() => sentSales.reduce((acc, event) => {
+  const summary = useMemo(() => visibleSales.reduce((acc, event) => {
     const payload = event.payload || {};
     const currency = saleCurrency(payload);
     return {
@@ -143,7 +190,15 @@ export function ReportsScreen({ navigation, onRefresh }) {
     duplicate: 0,
     quantity: 0,
     totals: {},
-  }), [sentSales]);
+  }), [visibleSales]);
+
+  const listTitle = filter === 'sent'
+    ? 'Gonderilen Fisler'
+    : filter === 'pending'
+      ? 'Bekleyen Fisler'
+      : filter === 'failed'
+        ? 'Hatali Fisler'
+        : 'Bugunku Fisler';
 
   async function refreshReports() {
     setQueue(await getPendingQueue());
@@ -190,6 +245,13 @@ export function ReportsScreen({ navigation, onRefresh }) {
             </View>
           </View>
 
+          <View style={styles.filterGrid}>
+            <TerminalButton label={`Bugun ${todaySales.length}`} onPress={() => setFilter('today')} variant={filter === 'today' ? 'primary' : 'secondary'} />
+            <TerminalButton label={`Bekleyen ${pendingSales.length}`} onPress={() => setFilter('pending')} variant={filter === 'pending' ? 'primary' : 'secondary'} />
+            <TerminalButton label={`Hatali ${failedSales.length}`} onPress={() => setFilter('failed')} variant={filter === 'failed' ? 'primary' : 'secondary'} />
+            <TerminalButton label={`Giden ${sentSales.length}`} onPress={() => setFilter('sent')} variant={filter === 'sent' ? 'primary' : 'secondary'} />
+          </View>
+
           <View style={styles.totalStrip}>
             {Object.keys(summary.totals).length ? (
               Object.keys(summary.totals).map((currency) => (
@@ -201,12 +263,12 @@ export function ReportsScreen({ navigation, onRefresh }) {
           </View>
 
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>Gonderilen Fisler</Text>
+            <Text style={styles.listTitle}>{listTitle}</Text>
             <Text style={styles.listMeta}>Fis detayina girmek icin satira dokunun.</Text>
           </View>
 
           <View style={styles.receiptList}>
-            {sentSales.length ? sentSales.map((event) => (
+            {visibleSales.length ? visibleSales.map((event) => (
               <ReceiptListRow
                 key={event.clientEventId}
                 event={event}
@@ -215,7 +277,7 @@ export function ReportsScreen({ navigation, onRefresh }) {
             )) : (
               <View style={styles.emptyPanel}>
                 <Text style={styles.emptyTitle}>Liste bos</Text>
-                <Text style={styles.emptyText}>Fis gonderildiginde burada gorunecek.</Text>
+                <Text style={styles.emptyText}>Bu filtrede gosterilecek fis yok.</Text>
               </View>
             )}
           </View>
@@ -266,6 +328,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+  },
+  filterGrid: {
+    gap: 7,
   },
   totalChip: {
     overflow: 'hidden',
@@ -335,11 +400,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   receiptTotal: {
-    minWidth: 84,
+    minWidth: 74,
     color: colors.success,
     fontSize: 12,
     fontWeight: '900',
     textAlign: 'right',
+  },
+  rowStatusPill: {
+    minWidth: 62,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 7,
+    fontSize: 10,
+    fontWeight: '900',
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    textAlign: 'center',
+  },
+  rowStatus_success: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+    color: colors.success,
+  },
+  rowStatus_warning: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warningSoft,
+    color: colors.warning,
+  },
+  rowStatus_danger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    color: colors.danger,
   },
   detailHeader: {
     borderColor: colors.success,
@@ -389,6 +480,18 @@ const styles = StyleSheet.create({
   statusDuplicate: {
     borderColor: colors.warning,
     color: colors.warning,
+  },
+  status_success: {
+    borderColor: colors.success,
+    color: colors.success,
+  },
+  status_warning: {
+    borderColor: colors.warning,
+    color: colors.warning,
+  },
+  status_danger: {
+    borderColor: colors.danger,
+    color: colors.danger,
   },
   detailActions: {
     gap: 7,
@@ -481,6 +584,11 @@ const styles = StyleSheet.create({
   },
   message: {
     color: colors.success,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  errorText: {
+    color: colors.danger,
     fontSize: 13,
     fontWeight: '900',
   },
