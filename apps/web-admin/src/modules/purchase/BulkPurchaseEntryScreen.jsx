@@ -133,6 +133,13 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     () => products.find((item) => String(item.productId) === String(productId)) || null,
     [productId, products],
   );
+  const supplierProducts = useMemo(() => {
+    if (!selectedSupplier) {
+      return [];
+    }
+
+    return products.filter((product) => String(product.supplierId || '') === String(selectedSupplier.id));
+  }, [products, selectedSupplier]);
   const groupedRows = useMemo(() => groupRowsBySupplier(rows), [rows]);
   const totals = useMemo(() => rows.reduce((summary, row) => ({
     quantity: summary.quantity + Number(row.quantity || 0),
@@ -185,6 +192,9 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
         const nextProducts = (productResponse.data || []).map((product) => ({
           productId: product.id,
           stockCode: product.stockCode,
+          supplierId: product.supplierId || null,
+          supplierCode: product.supplierCode || null,
+          supplierName: product.supplierName || null,
           barcode: product.matchedBarcode || product.barcodeMasked || '-',
           productName: product.productName,
           currency: product.currency || 'TRY',
@@ -196,7 +206,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
         setSuppliers(nextSuppliers);
         setProducts(nextProducts);
         setSupplierId((current) => (current && nextSuppliers.some((item) => String(item.id) === String(current)) ? current : String(nextSuppliers[0]?.id ?? '')));
-        setProductId((current) => (current && nextProducts.some((item) => String(item.productId) === String(current)) ? current : String(nextProducts[0]?.productId ?? '')));
+        setProductId('');
         setErrorMessage('');
       } catch (error) {
         if (isMounted) {
@@ -218,6 +228,19 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
   }, [productQuery, supplierQuery]);
 
   useEffect(() => {
+    if (!selectedSupplier) {
+      setProductId('');
+      return;
+    }
+
+    setProductId((current) => (
+      current && supplierProducts.some((item) => String(item.productId) === String(current))
+        ? current
+        : String(supplierProducts[0]?.productId ?? '')
+    ));
+  }, [selectedSupplier, supplierProducts]);
+
+  useEffect(() => {
     if (!selectedProduct) {
       setPurchasePrice('');
       setLineDiscountRate(0);
@@ -237,7 +260,12 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     }
 
     if (!selectedProduct) {
-      setErrorMessage('Satir eklemek icin urun secin.');
+      setErrorMessage('Bu tedarikciye bagli urun bulunamadi veya urun secilmedi.');
+      return;
+    }
+
+    if (String(selectedProduct.supplierId || '') !== String(selectedSupplier.id)) {
+      setErrorMessage('Secilen urun bu tedarikciye bagli degil. Once dogru tedarikciyi secin.');
       return;
     }
 
@@ -287,6 +315,20 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     setErrorMessage('');
     setResults([]);
     setStatusMessage('Satir eklendi. Kayitta tedarikciye gore ayri alis taslaklari olusacak.');
+  }
+
+  function handleEntryKeyDown(event) {
+    if (event.key !== 'Enter') {
+      return;
+    }
+
+    const tagName = String(event.target?.tagName || '').toLowerCase();
+    if (!['input', 'select'].includes(tagName)) {
+      return;
+    }
+
+    event.preventDefault();
+    addRow();
   }
 
   function deleteRow(rowId) {
@@ -382,7 +424,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
             <strong>Satir Ekle</strong>
             <span>Her satir kendi tedarikcisiyle kaydedilir</span>
           </div>
-          <div className="bulk-purchase-entry-grid">
+          <div className="bulk-purchase-entry-grid" onKeyDown={handleEntryKeyDown}>
             <label>
               <span>Tarih</span>
               <input type="date" value={documentDate} onChange={(event) => setDocumentDate(event.target.value)} />
@@ -406,7 +448,10 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
             <label>
               <span>Urun sec</span>
               <select value={productId} onChange={(event) => setProductId(event.target.value)}>
-                {products.map((product) => (
+                {supplierProducts.length === 0 && (
+                  <option value="">Bu tedarikciye bagli urun yok</option>
+                )}
+                {supplierProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>{productLabel(product)} / {formatMoney(product.purchasePrice, product.currency)}</option>
                 ))}
               </select>
