@@ -16,6 +16,7 @@ import { ImportScreen } from '../../modules/import/ImportScreen.jsx';
 import { ExportCenterScreen } from '../../modules/reports/ExportCenterScreen.jsx';
 import { ManagementReportsScreen } from '../../modules/reports/ManagementReportsScreen.jsx';
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
+import { BulkPurchaseEntryScreen } from '../../modules/purchase/BulkPurchaseEntryScreen.jsx';
 import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { PurchaseInvoiceScreen } from '../../modules/purchase/PurchaseInvoiceScreen.jsx';
 import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
@@ -267,6 +268,20 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
         purchaseDraftId={activeTab.payload?.purchaseDraftId}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
+      />
+    );
+  }
+
+  if (screenId === 'bulk-purchase-entry') {
+    if (!permissions.includes('purchase.view')) {
+      return <UnauthorizedScreen message="Toplu alis girisi goruntuleme yetkiniz yok." />;
+    }
+
+    return (
+      <BulkPurchaseEntryScreen
+        permissions={permissions}
+        onDirtyChange={onDirtyChange}
+        onOpenScreen={onOpenScreen}
       />
     );
   }

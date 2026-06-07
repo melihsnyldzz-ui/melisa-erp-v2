@@ -5419,6 +5419,124 @@ body {
   grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(120px, 1fr));
 }
 
+.bulk-purchase-screen {
+  overflow: auto;
+}
+
+.bulk-purchase-layout {
+  display: grid;
+  grid-template-columns: minmax(720px, 1fr) minmax(280px, 0.35fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.bulk-purchase-entry-panel,
+.bulk-purchase-summary-panel,
+.bulk-purchase-lines-panel,
+.bulk-purchase-results-panel {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.bulk-purchase-entry-grid {
+  display: grid;
+  grid-template-columns: 130px minmax(190px, 0.9fr) minmax(280px, 1.2fr) minmax(200px, 1fr) minmax(330px, 1.5fr) 84px 110px 96px 116px;
+  gap: 6px;
+  padding: 8px;
+  align-items: end;
+}
+
+.bulk-purchase-entry-grid label {
+  display: grid;
+  gap: 4px;
+}
+
+.bulk-purchase-entry-grid label span {
+  color: #475467;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.bulk-purchase-entry-grid input,
+.bulk-purchase-entry-grid select {
+  min-height: 30px;
+  min-width: 0;
+}
+
+.bulk-purchase-entry-grid button {
+  min-height: 31px;
+  border: 1px solid #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 950;
+}
+
+.bulk-purchase-snapshot {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  margin: 0 8px 8px;
+}
+
+.bulk-purchase-summary-grid {
+  grid-template-columns: repeat(3, minmax(80px, 1fr));
+  padding: 8px;
+}
+
+.bulk-purchase-group-list,
+.bulk-purchase-result-list {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+
+.bulk-purchase-group-list button,
+.bulk-purchase-result-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid #d8e0ea;
+  border-radius: 7px;
+  background: #fbfcfe;
+  color: #111827;
+  font-weight: 850;
+}
+
+.bulk-purchase-result-list .success-result {
+  border-color: #a7d9bd;
+  background: #effaf3;
+}
+
+.bulk-purchase-result-list .error-result {
+  border-color: #f1b8b4;
+  background: #fff5f5;
+}
+
+.bulk-purchase-lines-panel {
+  margin-top: 8px;
+}
+
+.bulk-purchase-lines-panel .table-wrap {
+  max-height: 420px;
+}
+
+.bulk-purchase-lines-panel table {
+  min-width: 1180px;
+}
+
+@media (max-width: 1500px) {
+  .bulk-purchase-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .bulk-purchase-entry-grid {
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+  }
+}
+
 .screen-summary.product-card-summary,
 .screen-summary.customer-card-summary,
 .screen-summary.sales-invoice-summary,

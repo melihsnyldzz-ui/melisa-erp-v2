@@ -156,6 +156,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           <span>Tedarikçi alış fişleri, maliyet etkisi ve stok girişi</span>
         </div>
         <div className="invoice-list-actions">
+          <button type="button" onClick={() => onOpenScreen('bulk-purchase-entry')}>Toplu Alış Girişi</button>
           <button type="button" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Alış Fişi Oluştur</button>
           <button type="button" onClick={() => openDraft()} disabled={!selectedRow}>Seçili Alış Fişini Aç</button>
           <button type="button" onClick={exportPurchaseRows}>Excel</button>

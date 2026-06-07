@@ -58,6 +58,7 @@ export const sidebarGroups = [
   {
     title: 'Alış Yönetimi',
     items: [
+      { label: 'Toplu Alış Girişi', screenId: 'bulk-purchase-entry' },
       { label: 'Yeni Alış Fişi', screenId: 'purchase-invoice' },
       { label: 'Alış Fişleri', screenId: 'purchase-invoice-list' },
     ],
@@ -256,6 +257,13 @@ export const screenRegistry = {
     label: 'Alış Fişi',
     module: 'Alış',
     type: 'fis',
+  },
+  'bulk-purchase-entry': {
+    id: 'bulk-purchase-entry',
+    label: 'Toplu Alış Girişi',
+    module: 'Alış',
+    type: 'fis',
+    dirty: true,
   },
   'purchase-invoice-list': {
     id: 'purchase-invoice-list',
