@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
-import { getCacheSummary, markCacheUpdated, replaceCustomerCache, replaceProductCache } from '../services/cacheService';
+import { clearTerminalCache, getCacheSummary, markCacheUpdated, replaceCustomerCache, replaceProductCache } from '../services/cacheService';
 import { downloadAllTerminalCustomers, downloadAllTerminalProducts } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
 
@@ -191,9 +191,31 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
     }
   }
 
+  async function resetAndUpdateAll() {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    setLastResult(null);
+    setProgress(null);
+
+    try {
+      await clearTerminalCache();
+      await refreshSummary();
+      setMessage('Cache temizlendi. Tum veri yeniden indiriliyor...');
+    } catch (clearError) {
+      setError(clearError.message || 'Cache temizlenemedi');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
+    await updateAll();
+  }
+
   const hasProducts = Number(summary.productCount || 0) > 0;
   const hasCustomers = Number(summary.customerCount || 0) > 0;
-  const ready = hasProducts && hasCustomers;
+  const hasFastIndex = Boolean(summary.productIndexReady);
+  const ready = hasProducts && hasCustomers && hasFastIndex;
   const progressPercent = progress?.totalRows
     ? Math.min(100, Math.round((Number(progress.downloaded || 0) / Number(progress.totalRows || 1)) * 100))
     : 0;
@@ -201,11 +223,11 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={[styles.readyPanel, ready ? styles.readyPanelSuccess : styles.readyPanelWarning]}>
-        <Text style={styles.readyTitle}>{ready ? 'Veri hazir' : 'Veri eksik'}</Text>
+        <Text style={styles.readyTitle}>{ready ? 'Offline stok hazir' : 'Offline hazirlik eksik'}</Text>
         <Text style={styles.readyText}>
           {ready
-            ? 'Urun ve cari cache var. Internet kesilse bile satis ekrani local veriden calisabilir.'
-            : 'Saha oncesi tum veriyi guncelleyin. Urun ve cari cache olmadan offline satis aksar.'}
+            ? 'Urun, cari ve hizli barkod index telefonda hazir. Satis ekrani API beklemeden local stoktan calisir.'
+            : 'Saha oncesi tum veriyi guncelleyin. Hizli index yoksa barkod okutma yavaslar veya sonuc gec gelir.'}
         </Text>
       </View>
 
@@ -224,6 +246,21 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         />
       </View>
 
+      <View style={styles.healthGrid}>
+        <DataCard
+          label="Barkod Index"
+          value={hasFastIndex ? 'Hazir' : 'Eksik'}
+          helper={`${summary.productLookupShardCount || 0} index / ${summary.productChunkCount || 0} parca`}
+          tone={hasFastIndex ? 'success' : 'warning'}
+        />
+        <DataCard
+          label="Offline Mod"
+          value={ready ? 'Guvenli' : 'Riskli'}
+          helper={ready ? 'Saha satisina hazir' : 'Once tum veriyi yenileyin'}
+          tone={ready ? 'success' : 'warning'}
+        />
+      </View>
+
       <View style={styles.panel}>
         <Text style={styles.title}>Veri Guncelle</Text>
         <Text style={styles.meta}>Saha oncesi urun ve cari cache bilgisini telefona indirir.</Text>
@@ -233,6 +270,10 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
         <InfoRow label="Cari son guncelleme" value={formatDate(summary.customerCachedAt)} />
         <InfoRow label="Son indirilen urun" value={summary.productCachedCount ? String(summary.productCachedCount) : '-'} />
         <InfoRow label="Son indirilen cari" value={summary.customerCachedCount ? String(summary.customerCachedCount) : '-'} />
+        <InfoRow label="Hizli barkod index" value={hasFastIndex ? 'Hazir' : 'Eksik'} />
+        <InfoRow label="Urun cache parca" value={String(summary.productChunkCount || 0)} />
+        <InfoRow label="Index parca" value={String(summary.productLookupShardCount || 0)} />
+        <InfoRow label="Index son olusum" value={formatDate(summary.productIndexCachedAt)} />
       </View>
 
       {lastResult ? (
@@ -276,6 +317,7 @@ export function DataUpdateScreen({ session, navigation, onRefresh }) {
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
       <TerminalButton label="Tum Veriyi Guncelle" onPress={updateAll} disabled={loading} />
+      <TerminalButton label="Cache Temizle ve Yeniden Indir" onPress={resetAndUpdateAll} disabled={loading} variant="secondary" />
       <TerminalButton label="Urunleri Guncelle" onPress={updateProducts} disabled={loading} variant="secondary" />
       <TerminalButton label="Carileri Guncelle" onPress={updateCustomers} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
@@ -315,6 +357,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dataGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  healthGrid: {
     flexDirection: 'row',
     gap: 8,
   },

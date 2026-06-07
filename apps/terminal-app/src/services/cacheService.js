@@ -238,20 +238,42 @@ async function getProductCacheCount() {
 }
 
 export async function getCacheSummary() {
-  const [productCount, customers, meta] = await Promise.all([
+  const [productIndex, productCount, customers, meta] = await Promise.all([
+    readProductCacheIndex(),
     getProductCacheCount(),
     readJson(customerCacheKey, {}),
     readJson(cacheMetaKey, {}),
   ]);
+  const productChunkCount = Array.isArray(productIndex?.chunkKeys) ? productIndex.chunkKeys.length : 0;
+  const productLookupShardCount = Array.isArray(productIndex?.lookupShardKeys) ? productIndex.lookupShardKeys.length : 0;
+  const productIndexReady = Number(productIndex?.count || 0) > 0
+    && productChunkCount > 0
+    && productLookupShardCount > 0;
 
   return {
     productCount,
     customerCount: Object.keys(customers).length,
+    productIndexReady,
+    productCacheVersion: productIndex?.version || 0,
+    productChunkCount,
+    productLookupShardCount,
+    productIndexCachedAt: productIndex?.cachedAt || null,
     productCachedAt: meta.productCachedAt || null,
     customerCachedAt: meta.customerCachedAt || null,
     productCachedCount: meta.productCachedCount || null,
     customerCachedCount: meta.customerCachedCount || null,
   };
+}
+
+export async function clearTerminalCache() {
+  const productIndex = await readProductCacheIndex();
+  await removeProductCacheChunks(productIndex);
+  await AsyncStorage.multiRemove([
+    legacyProductCacheKey,
+    productCacheIndexKey,
+    customerCacheKey,
+    cacheMetaKey,
+  ]);
 }
 
 export async function saveCustomerCache(customers = []) {
