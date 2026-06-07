@@ -4,6 +4,7 @@ import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
 import { stockFilterDefaults, stockFilterOptions } from './stockMockData.js';
 import { fetchProducts } from '../../services/productApi.js';
+import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function normalize(value) {
@@ -46,7 +47,6 @@ function buildSearch(filters) {
     filters.name,
     filters.brand,
     filters.category,
-    filters.supplier,
   ].filter(Boolean).join(' ');
 }
 
@@ -66,6 +66,8 @@ function toStockRow(product) {
     salesPrice: formatMoney(product.salePrice, product.currency),
     purchasePrice: formatMoney(product.purchasePrice, product.currency),
     currentStock: product.stockQuantity,
+    supplierId: product.supplierId || null,
+    supplierCode: product.supplierCode || '',
     supplier: product.supplierName || product.supplier || '-',
     status: product.isPassive ? 'Pasif' : 'Aktif',
   };
@@ -134,11 +136,72 @@ export function StockListScreen({ onOpenScreen }) {
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
+  const [resolvedSupplierId, setResolvedSupplierId] = useState('');
+  const [isResolvingSupplier, setIsResolvingSupplier] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function resolveSupplier() {
+      const supplierFilter = filters.supplier.trim();
+      if (!supplierFilter) {
+        setResolvedSupplierId('');
+        setIsResolvingSupplier(false);
+        return;
+      }
+
+      setIsResolvingSupplier(true);
+      try {
+        const response = await fetchSuppliers({
+          page: 1,
+          limit: 10,
+          search: supplierFilter,
+          activeOnly: true,
+        });
+        const normalizedFilter = normalize(supplierFilter);
+        const match = (response.data || []).find((supplier) => (
+          normalize(supplier.supplierCode) === normalizedFilter
+          || normalize(supplier.supplierName) === normalizedFilter
+          || normalize(`${supplier.supplierCode} / ${supplier.supplierName}`) === normalizedFilter
+        )) || response.data?.[0] || null;
+
+        if (isMounted) {
+          setResolvedSupplierId(match?.id ? String(match.id) : '');
+        }
+      } catch {
+        if (isMounted) {
+          setResolvedSupplierId('');
+        }
+      } finally {
+        if (isMounted) {
+          setIsResolvingSupplier(false);
+        }
+      }
+    }
+
+    resolveSupplier();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filters.supplier]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadProducts() {
+      if (filters.supplier.trim() && isResolvingSupplier) {
+        return;
+      }
+
+      if (filters.supplier.trim() && !resolvedSupplierId) {
+        setRows([]);
+        setMeta(null);
+        setSelectedRowId(null);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage('');
 
@@ -148,6 +211,7 @@ export function StockListScreen({ onOpenScreen }) {
           limit: 100,
           search,
           barcode: filters.barcode,
+          supplierId: resolvedSupplierId,
           activeOnly,
         });
         const nextRows = response.data.map(toStockRow);
@@ -178,7 +242,7 @@ export function StockListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, filters.barcode, reloadKey, search]);
+  }, [activeOnly, filters.barcode, filters.supplier, isResolvingSupplier, reloadKey, resolvedSupplierId, search]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => applyStockFilters(row, filters)),
