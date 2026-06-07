@@ -41,6 +41,10 @@ function formatMoney(value, currency = 'TRY') {
   return `${Number(value || 0).toFixed(2)} ${currency}`;
 }
 
+function shortProductName(item = {}) {
+  return item.productName || item.stockCode || item.barcode || `Urun #${item.productId || '-'}`;
+}
+
 function QueueCard({ event, syncingEventId, onSync, onEdit }) {
   const payload = event.payload || {};
   const isFailed = event.status === 'failed';
@@ -76,9 +80,23 @@ function QueueCard({ event, syncingEventId, onSync, onEdit }) {
 
       {event.lastErrorMessage ? <Text style={styles.errorText}>{event.lastErrorMessage}</Text> : null}
 
+      <View style={styles.linePreview}>
+        {(payload.items || []).slice(0, 3).map((item, index) => (
+          <View key={`${event.clientEventId}-line-${index}`} style={styles.linePreviewRow}>
+            <Text style={styles.linePreviewName} numberOfLines={1}>{shortProductName(item)}</Text>
+            <Text style={styles.linePreviewMeta}>
+              {Number(item.quantity || 0)} x {formatMoney(item.unitPrice, item.currency || currency)}
+            </Text>
+          </View>
+        ))}
+        {(payload.items || []).length > 3 ? (
+          <Text style={styles.moreLines}>+{(payload.items || []).length - 3} satir daha</Text>
+        ) : null}
+      </View>
+
       {event.status !== 'synced' ? (
         <View style={styles.cardActions}>
-          <TerminalButton label="Duzenle" onPress={() => onEdit(event)} variant="secondary" disabled={Boolean(syncingEventId)} />
+          <TerminalButton label="Fisi Duzenle" onPress={() => onEdit(event)} variant="secondary" disabled={Boolean(syncingEventId)} />
           <TerminalButton
             label={syncingEventId === event.clientEventId ? 'Gonderiliyor' : 'Gonder'}
             onPress={() => onSync(event.clientEventId)}
@@ -140,6 +158,8 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
   }
 
   function editSale(event) {
+    setMessage('Fis duzenleme ekranina aciliyor');
+    setError('');
     navigation.openNewSaleDraft?.(event);
   }
 
@@ -384,6 +404,40 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     gap: 7,
+  },
+  linePreview: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    paddingTop: 8,
+    gap: 6,
+  },
+  linePreviewRow: {
+    minHeight: 34,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  linePreviewName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  linePreviewMeta: {
+    color: colors.success,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  moreLines: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
   },
   errorText: {
     color: colors.danger,

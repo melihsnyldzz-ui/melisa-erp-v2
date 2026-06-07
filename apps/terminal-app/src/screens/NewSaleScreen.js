@@ -744,6 +744,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setMessage('');
 
     try {
+      const wasEditing = Boolean(editingEventId);
       const payload = buildSalePayloadSnapshot();
       const queuedEvent = editingEventId
         ? { clientEventId: editingEventId }
@@ -769,6 +770,9 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       setReviewMode(false);
       setEditingEventId('');
       await onRefresh();
+      if (wasEditing) {
+        navigation.openSyncStatus?.();
+      }
     } catch (saveError) {
       setError(saveError.message || 'Fis taslak kaydedilemedi');
     } finally {
@@ -833,6 +837,16 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           <Text style={styles.offlineSaleText}>
             API kapali. Fisi tamamlarsaniz kayit telefonda bekler ve Sync Merkezi'nden gonderilir.
           </Text>
+        </View>
+      ) : null}
+
+      {editingEventId ? (
+        <View style={styles.editDraftPanel}>
+          <Text style={styles.editDraftTitle}>Bekleyen fis duzenleniyor</Text>
+          <Text style={styles.editDraftText}>
+            Kaydedince ayni kuyruk kaydi guncellenir. Yeni ikinci fis olusmaz.
+          </Text>
+          <Text style={styles.editDraftId} numberOfLines={1}>{editingEventId}</Text>
         </View>
       ) : null}
 
@@ -1276,8 +1290,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
           <View style={styles.reviewActions}>
-            <TerminalButton label="Fisi Gonder" onPress={finishSale} disabled={loading} />
-            <TerminalButton label="Fisi Kaydet" onPress={saveDraftToQueue} disabled={loading} variant="secondary" />
+            <TerminalButton label={editingEventId ? 'Guncelle ve Gonder' : 'Fisi Gonder'} onPress={finishSale} disabled={loading} />
+            <TerminalButton label={editingEventId ? 'Degisiklikleri Kaydet' : 'Fisi Kaydet'} onPress={saveDraftToQueue} disabled={loading} variant="secondary" />
             <TerminalButton label="Fisi Yazdir" onPress={printDraft} disabled={loading} variant="secondary" />
             <TerminalButton label="Duzenle" onPress={() => setReviewMode(false)} disabled={loading} variant="secondary" />
           </View>
@@ -1322,6 +1336,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 18,
+  },
+  editDraftPanel: {
+    borderColor: colors.warning,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.warningSoft,
+    padding: 10,
+    gap: 4,
+  },
+  editDraftTitle: {
+    color: colors.warning,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  editDraftText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
+  editDraftId: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '900',
   },
   compactCustomerPanel: {
     backgroundColor: colors.white,
