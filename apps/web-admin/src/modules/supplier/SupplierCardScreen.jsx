@@ -287,6 +287,54 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
           {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
           {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
 
+          <section className="erp-panel entity-360-panel supplier-360-panel">
+            <div className="entity-360-head">
+              <div>
+                <strong>Tedarikci 360</strong>
+                <span>Alis fisi, odeme, borc ve alinan urun izi tek bakista.</span>
+              </div>
+              <div className="entity-360-actions">
+                <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list', { supplierId: activeSupplierId, supplierCode: form.supplierCode })}>
+                  Alis Fisleri
+                </button>
+                <button type="button" onClick={() => onOpenScreen?.('collections-overview', { mode: 'payment', supplierId: activeSupplierId })}>
+                  Odeme
+                </button>
+              </div>
+            </div>
+            <div className="entity-360-grid">
+              <div className="entity-360-card balance-card">
+                <span>Tedarikci bakiye</span>
+                <strong>{formatMoney(form.balance, form.currency)}</strong>
+                <small>{form.currency} cari para birimi</small>
+              </div>
+              <div className="entity-360-card in-card">
+                <span>Alis fisleri</span>
+                <strong>{summary.purchaseCount}</strong>
+                <small>{formatMoney(summary.purchaseTotal, form.currency)}</small>
+              </div>
+              <div className="entity-360-card">
+                <span>Odemeler</span>
+                <strong>{summary.paymentCount}</strong>
+                <small>{formatMoney(summary.paymentTotal, form.currency)}</small>
+              </div>
+              <div className="entity-360-card stock-card">
+                <span>Alinan adet</span>
+                <strong>{summary.productQuantity}</strong>
+                <small>{form.productTrace.length} urun satiri</small>
+              </div>
+              <div className="entity-360-card price-card">
+                <span>Net maliyet TRY</span>
+                <strong>{formatMoney(summary.productAmountTry, 'TRY')}</strong>
+                <small>Alis satirlari toplam</small>
+              </div>
+              <div className="entity-360-card cancel-card">
+                <span>Iptal izi</span>
+                <strong>{summary.cancelCount}</strong>
+                <small>Hareketlerde ayri izlenir</small>
+              </div>
+            </div>
+          </section>
           <section className="supplier-card-layout">
             <section className="erp-panel customer-form-panel supplier-form-panel">
               <div className="panel-title">

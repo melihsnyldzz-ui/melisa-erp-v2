@@ -106,6 +106,41 @@ function mapStockSummary(form) {
   };
 }
 
+function buildProduct360(form, stockMovements) {
+  const summary = stockMovements.reduce((total, row) => {
+    const quantityIn = Number(row.quantityIn || 0);
+    const quantityOut = Number(row.quantityOut || 0);
+    const amountTry = Math.abs(Number(row.amountTry || 0));
+
+    return {
+      purchaseCount: total.purchaseCount + (row.sourceType === 'purchase_invoice' ? 1 : 0),
+      salesCount: total.salesCount + (row.sourceType === 'sales_invoice' ? 1 : 0),
+      inQuantity: total.inQuantity + quantityIn,
+      outQuantity: total.outQuantity + quantityOut,
+      purchaseValueTry: total.purchaseValueTry + (quantityIn > 0 ? amountTry : 0),
+      salesValueTry: total.salesValueTry + (quantityOut > 0 ? amountTry : 0),
+      lastInDate: total.lastInDate || (quantityIn > 0 ? row.documentDate || '' : ''),
+    };
+  }, {
+    purchaseCount: 0,
+    salesCount: 0,
+    inQuantity: 0,
+    outQuantity: 0,
+    purchaseValueTry: 0,
+    salesValueTry: 0,
+    lastInDate: '',
+  });
+
+  return {
+    ...summary,
+    currentStock: Number(form.stockQuantity || 0),
+    averageCostTry: Number(form.averageCostTry || 0),
+    salePrice: Number(form.salePrice || 0),
+    purchasePrice: Number(form.purchasePrice || 0),
+    supplier: form.supplierName || '-',
+  };
+}
+
 function mapBarcodes(form) {
   if (form.barcodes.length > 0) {
     return form.barcodes.map((barcode) => ({
@@ -268,6 +303,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   const canTogglePassive = permissions.includes('product.passive');
   const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
   const stockSummary = useMemo(() => mapStockSummary(form), [form]);
+  const product360 = useMemo(() => buildProduct360(form, stockMovements), [form, stockMovements]);
   const barcodes = useMemo(() => mapBarcodes(form), [form]);
   const images = useMemo(() => form.images || [], [form.images]);
   const productSuggestions = useMemo(() => ({
@@ -569,6 +605,54 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
               PASİF kayıt: yeni fişlerde seçilemez, geçmiş rapor ve hareketlerde görünmeye devam eder.
             </div>
           )}
+          <section className="erp-panel entity-360-panel product-360-panel">
+            <div className="entity-360-head">
+              <div>
+                <strong>Stok 360</strong>
+                <span>Urunun alis, satis, stok ve cari izi tek bakista.</span>
+              </div>
+              <div className="entity-360-actions">
+                <button type="button" onClick={() => onOpenScreen?.('stock-movements', { productId: activeProductId, stockCode: form.stockCode })}>
+                  Stok Hareketleri
+                </button>
+                <button type="button" onClick={() => onOpenScreen?.('sales-invoice-list', { productId: activeProductId, stockCode: form.stockCode })}>
+                  Satis Fisleri
+                </button>
+              </div>
+            </div>
+            <div className="entity-360-grid">
+              <div className="entity-360-card stock-card">
+                <span>Mevcut stok</span>
+                <strong>{product360.currentStock}</strong>
+                <small>{form.isPassive ? 'Pasif kart' : 'Aktif kart'}</small>
+              </div>
+              <div className="entity-360-card in-card">
+                <span>Alis izi</span>
+                <strong>+{product360.inQuantity}</strong>
+                <small>{product360.purchaseCount} fis / {formatMoney(product360.purchaseValueTry, 'TRY')}</small>
+              </div>
+              <div className="entity-360-card out-card">
+                <span>Satis izi</span>
+                <strong>-{product360.outQuantity}</strong>
+                <small>{product360.salesCount} fis / {formatMoney(product360.salesValueTry, 'TRY')}</small>
+              </div>
+              <div className="entity-360-card">
+                <span>Ort. maliyet TRY</span>
+                <strong>{formatMoney(product360.averageCostTry, 'TRY')}</strong>
+                <small>Rapor maliyeti</small>
+              </div>
+              <div className="entity-360-card price-card">
+                <span>Satis fiyat</span>
+                <strong>{formatMoney(product360.salePrice, form.currency)}</strong>
+                <small>Alis {formatMoney(product360.purchasePrice, form.currency)}</small>
+              </div>
+              <div className="entity-360-card">
+                <span>Ana tedarikci</span>
+                <strong>{product360.supplier}</strong>
+                <small>Son alis {product360.lastInDate || '-'}</small>
+              </div>
+            </div>
+          </section>
           <section className="product-card-layout">
             <ProductCardForm
               product={productView}

@@ -160,6 +160,26 @@ function validateCustomerForm(form, mode) {
   return missing;
 }
 
+function buildCustomer360(form, transactions, currentBalance) {
+  return form.productTrace.reduce((summary, row) => ({
+    ...summary,
+    rowCount: summary.rowCount + 1,
+    quantity: summary.quantity + Number(row.quantity || 0),
+    salesTry: summary.salesTry + Number(row.lineTotalTry || 0),
+    profitTry: summary.profitTry + Number(row.grossProfitTry || 0),
+    cancelledCount: summary.cancelledCount + (row.invoiceStatus === 'cancelled' ? 1 : 0),
+  }), {
+    rowCount: 0,
+    quantity: 0,
+    salesTry: 0,
+    profitTry: 0,
+    cancelledCount: 0,
+    movementCount: transactions.length,
+    currentBalance: Number(currentBalance || 0),
+    lastTransactionDate: form.lastTransactionDate || '-',
+  });
+}
+
 const customerDetailTabs = [
   { id: 'movements', label: 'Cari Hareketler' },
   { id: 'products', label: 'Satılan Ürünler' },
@@ -246,6 +266,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   const paymentSummary = useMemo(() => mapPaymentSummary(form), [form]);
   const transactions = useMemo(() => mapTransactions(form), [form]);
   const currentBalance = balances.find((balance) => balance.currency === customer.currency)?.balance ?? customer.balance;
+  const customer360 = useMemo(() => buildCustomer360(form, transactions, currentBalance), [form, transactions, currentBalance]);
 
   function renderDetailPanel() {
     if (activeDetailTab === 'products') {
@@ -497,6 +518,51 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
               PASİF cari: yeni fişlerde seçilemez, geçmiş ekstre ve raporlarda görünmeye devam eder.
             </div>
           )}
+          <section className="erp-panel entity-360-panel customer-360-panel">
+            <div className="entity-360-head">
+              <div>
+                <strong>Cari 360</strong>
+                <span>Cari hareket, satilan urun, bakiye ve karlilik ozeti.</span>
+              </div>
+              <div className="entity-360-actions">
+                <button type="button" onClick={() => setActiveDetailTab('movements')}>Cari Hareketler</button>
+                <button type="button" onClick={() => setActiveDetailTab('products')}>Satilan Urunler</button>
+                <button type="button" onClick={() => setActiveDetailTab('statement')}>Ekstre</button>
+              </div>
+            </div>
+            <div className="entity-360-grid">
+              <div className="entity-360-card balance-card">
+                <span>Guncel bakiye</span>
+                <strong>{formatMoney(customer360.currentBalance, customer.currency)}</strong>
+                <small>{customer.currency} cari para birimi</small>
+              </div>
+              <div className="entity-360-card">
+                <span>Cari hareket</span>
+                <strong>{customer360.movementCount}</strong>
+                <small>Son {customer360.lastTransactionDate}</small>
+              </div>
+              <div className="entity-360-card out-card">
+                <span>Satilan adet</span>
+                <strong>{customer360.quantity}</strong>
+                <small>{customer360.rowCount} urun satiri</small>
+              </div>
+              <div className="entity-360-card price-card">
+                <span>Satis TRY</span>
+                <strong>{formatMoney(customer360.salesTry, 'TRY')}</strong>
+                <small>Fatura toplam izi</small>
+              </div>
+              <div className="entity-360-card profit-card">
+                <span>Brut kar TRY</span>
+                <strong>{formatMoney(customer360.profitTry, 'TRY')}</strong>
+                <small>Maliyet snapshot varsa</small>
+              </div>
+              <div className="entity-360-card cancel-card">
+                <span>Iptal izi</span>
+                <strong>{customer360.cancelledCount}</strong>
+                <small>Ayrica takip edilir</small>
+              </div>
+            </div>
+          </section>
           <section className="customer-card-layout customer-card-modern-layout">
             <CustomerCardForm
               customer={customer}
