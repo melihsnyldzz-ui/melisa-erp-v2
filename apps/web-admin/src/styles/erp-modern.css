@@ -189,7 +189,7 @@ textarea:disabled {
 }
 
 .top-actions {
-  grid-template-columns: minmax(120px, 1fr) 104px 118px 92px 82px 74px 58px;
+  grid-template-columns: minmax(120px, 1fr) 104px minmax(78px, 92px) 82px 58px;
   gap: 6px;
   min-width: 0;
   padding: 0 10px;
@@ -293,6 +293,11 @@ textarea:disabled {
   border-color: #0f766e;
   background: #ecfdf3;
   color: #067647;
+}
+
+.top-actions > .view-preset-button,
+.top-actions > .top-primary-action {
+  display: none;
 }
 
 .view-options-menu {
@@ -5048,12 +5053,12 @@ body {
 }
 
 .top-actions {
-  grid-template-columns: minmax(130px, 1fr) minmax(92px, 108px) minmax(104px, 122px) minmax(78px, 92px) minmax(74px, 84px) minmax(70px, 82px);
+  grid-template-columns: minmax(130px, 1fr) minmax(104px, 122px) minmax(78px, 92px) minmax(74px, 84px) minmax(70px, 82px);
   gap: 7px;
   min-width: 0;
   max-width: 100%;
   padding-inline: 10px 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .top-actions button,
@@ -5319,7 +5324,7 @@ body {
 
 .dashboard-quick-actions {
   display: grid;
-  grid-template-columns: minmax(145px, 180px) minmax(0, 1fr);
+  grid-template-columns: minmax(130px, 170px) minmax(0, 1fr);
   gap: 8px;
   align-items: stretch;
   padding: 8px;
@@ -5355,7 +5360,7 @@ body {
 
 .dashboard-quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(116px, 1fr));
+  grid-template-columns: repeat(4, minmax(128px, 1fr));
   gap: 6px;
   min-width: 0;
 }
@@ -8900,8 +8905,10 @@ button:active:not(:disabled) {
 }
 
 .dashboard-main-grid {
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
   grid-auto-rows: minmax(178px, auto);
+  gap: 8px;
+  align-items: start;
 }
 
 .dashboard-free-desk {
@@ -8926,6 +8933,26 @@ button:active:not(:disabled) {
 .dashboard-widget {
   min-width: 0;
   min-height: 0;
+}
+
+.dashboard-main-grid:not(.dashboard-free-desk) .dashboard-widget {
+  position: static;
+  width: auto;
+  height: auto;
+}
+
+.dashboard-main-grid:not(.dashboard-free-desk) {
+  display: block;
+  grid-auto-rows: auto;
+}
+
+.dashboard-main-grid:not(.dashboard-free-desk) .dashboard-widget > .erp-panel {
+  height: auto;
+  min-height: 178px;
+}
+
+.dashboard-main-grid:not(.dashboard-free-desk) .dashboard-widget + .dashboard-widget {
+  margin-top: 8px;
 }
 
 .dashboard-widget-free {
@@ -9047,11 +9074,11 @@ button:active:not(:disabled) {
 
 @media (max-width: 1500px) {
   .dashboard-main-grid {
-    grid-template-columns: repeat(3, minmax(240px, 1fr));
+    grid-template-columns: repeat(2, minmax(300px, 1fr));
   }
 
   .dashboard-widget-size-wide {
-    grid-column: span 2;
+    grid-column: 1 / -1;
   }
 }
 

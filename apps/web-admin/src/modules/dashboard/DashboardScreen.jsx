@@ -629,16 +629,18 @@ function DashboardWidgetFrame({
     onStartDrag(event, widget);
   }
 
+  const widgetStyle = isEditing ? {
+    left: `${widget.x}px`,
+    top: `${widget.y}px`,
+    width: `${widget.w}px`,
+    height: `${widget.h}px`,
+  } : undefined;
+
   return (
     <div
-      className={`dashboard-widget dashboard-widget-free dashboard-widget-${widget.key} dashboard-widget-size-${widget.size}${isEditing ? ' dashboard-widget-editing' : ''}`}
+      className={`dashboard-widget dashboard-widget-${widget.key} dashboard-widget-size-${widget.size}${isEditing ? ' dashboard-widget-free dashboard-widget-editing' : ''}`}
       key={widget.key}
-      style={{
-        left: `${widget.x}px`,
-        top: `${widget.y}px`,
-        width: `${widget.w}px`,
-        height: `${widget.h}px`,
-      }}
+      style={widgetStyle}
     >
       {isEditing && (
         <div className="dashboard-widget-controls" onMouseDown={handleDragMouseDown}>
@@ -986,9 +988,9 @@ export function DashboardScreen({ onOpenScreen, permissions = [] }) {
       <DashboardQuickActions onOpenScreen={onOpenScreen} permissions={permissions} />
       <DashboardKpiGrid kpis={kpis} onOpenScreen={onOpenScreen} />
       <section
-        className={`dashboard-main-grid dashboard-free-desk${isLayoutEditorOpen ? ' dashboard-free-desk-editing' : ''}`}
+        className={`dashboard-main-grid${isLayoutEditorOpen ? ' dashboard-free-desk dashboard-free-desk-editing' : ''}`}
         ref={dashboardDeskRef}
-        style={{ minHeight: `${dashboardDeskHeight}px` }}
+        style={isLayoutEditorOpen ? { minHeight: `${dashboardDeskHeight}px` } : undefined}
       >
         {visibleDashboardWidgets.map((widget, index) => (
           <DashboardWidgetFrame
