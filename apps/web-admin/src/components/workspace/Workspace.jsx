@@ -68,7 +68,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
       return <UnauthorizedScreen message="Dashboard görüntüleme yetkiniz yok." />;
     }
 
-    return <DashboardScreen onOpenScreen={onOpenScreen} />;
+    return <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} />;
   }
 
   if (screenId === 'stock-list') {
