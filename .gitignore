@@ -7,8 +7,12 @@ build
 logs
 .codex-logs
 **/.codex-logs/
+.codex_tmp/
+uploads/
+apps/api/uploads/
 vite-*.log
 vite-5187.*.log
+terminal-expo*.log
 apps/terminal-app/*.log
 temp
 .expo
