@@ -38,6 +38,8 @@ export function TopMenu({
   user,
   viewOptions,
   onLogout,
+  onApplyDetailedView,
+  onApplySimpleView,
   onOpenCommandPalette,
   onOpenScreen,
   onResetViewOptions,
@@ -91,6 +93,22 @@ export function TopMenu({
       </nav>
       <div className="top-actions">
         <button className="search-box" onClick={onOpenCommandPalette} type="button"><Search size={15} /> Ara <kbd>Ctrl K</kbd></button>
+        <button
+          className={viewOptions.simpleMode ? 'view-preset-button active' : 'view-preset-button'}
+          title="Ekranı sadeleştir"
+          type="button"
+          onClick={onApplySimpleView}
+        >
+          Sadeleştir
+        </button>
+        <button
+          className={!viewOptions.simpleMode ? 'view-preset-button active' : 'view-preset-button'}
+          title="Tüm panelleri ve yoğun ERP görünümünü aç"
+          type="button"
+          onClick={onApplyDetailedView}
+        >
+          Detaylı ERP
+        </button>
         <select
           aria-label="Rol görünümü"
           className="role-view-select"
@@ -117,6 +135,10 @@ export function TopMenu({
               <div className="view-options-title">
                 <strong>{activeTab.label || 'Pencere'} seçenekleri</strong>
                 <button type="button" onClick={onResetViewOptions}>Sıfırla</button>
+              </div>
+              <div className="view-preset-row">
+                <button type="button" onClick={onApplySimpleView}>Sadeleştir</button>
+                <button type="button" onClick={onApplyDetailedView}>Detaylı ERP</button>
               </div>
               {viewOptionItems.map((item) => (
                 <label className="view-option-row" key={item.key}>

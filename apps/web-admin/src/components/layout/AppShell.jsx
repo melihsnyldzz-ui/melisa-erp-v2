@@ -7,7 +7,13 @@ import { StatusBar } from './StatusBar.jsx';
 import { CommandPalette } from './CommandPalette.jsx';
 import { SmartInsightsPanel } from './SmartInsightsPanel.jsx';
 import { initialTabs, screenRegistry } from '../../data/mockNavigationData.js';
-import { defaultViewOptions, readStoredViewOptions, viewOptionsStorageKey } from '../../config/viewOptions.js';
+import {
+  defaultViewOptions,
+  detailedViewPreset,
+  readStoredViewOptions,
+  simpleViewPreset,
+  viewOptionsStorageKey,
+} from '../../config/viewOptions.js';
 import { getRoleScreenIds, readStoredRoleView, roleViewStorageKey } from '../../config/roleViews.js';
 
 function getShellClassName(isDemoMode, viewOptions) {
@@ -191,6 +197,12 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     setViewOptions(defaultViewOptions);
   }, []);
 
+  const applyViewPreset = useCallback((preset) => {
+    const nextOptions = { ...defaultViewOptions, ...preset };
+    window.localStorage.setItem(viewOptionsStorageKey, JSON.stringify(nextOptions));
+    setViewOptions(nextOptions);
+  }, []);
+
   const updateRoleView = useCallback((nextRoleViewId) => {
     setRoleViewId(nextRoleViewId);
     window.localStorage.setItem(roleViewStorageKey, nextRoleViewId);
@@ -224,6 +236,8 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
         onLogout={onLogout}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenScreen={openScreen}
+        onApplyDetailedView={() => applyViewPreset(detailedViewPreset)}
+        onApplySimpleView={() => applyViewPreset(simpleViewPreset)}
         onResetViewOptions={resetViewOptions}
         onUpdateRoleView={updateRoleView}
         onUpdateViewOption={updateViewOption}

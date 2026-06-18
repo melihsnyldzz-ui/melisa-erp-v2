@@ -1,4 +1,40 @@
 export const defaultViewOptions = {
+  simpleMode: true,
+  focusMode: false,
+  showSidebar: true,
+  showTabs: true,
+  showStatusBar: true,
+  showSmartPanel: false,
+  smartPanelCollapsed: false,
+  showFilters: true,
+  showKpis: true,
+  showSummaries: false,
+  showToolbarSubtitles: false,
+  showConnectionDetails: false,
+  compactRows: false,
+  rowDensity: 'normal',
+};
+
+export const viewOptionsStorageKey = 'melisaErpViewOptions';
+
+export const simpleViewPreset = {
+  simpleMode: true,
+  focusMode: false,
+  showSidebar: true,
+  showTabs: true,
+  showStatusBar: true,
+  showSmartPanel: false,
+  smartPanelCollapsed: false,
+  showFilters: true,
+  showKpis: true,
+  showSummaries: false,
+  showToolbarSubtitles: false,
+  showConnectionDetails: false,
+  compactRows: false,
+  rowDensity: 'normal',
+};
+
+export const detailedViewPreset = {
   simpleMode: false,
   focusMode: false,
   showSidebar: true,
@@ -14,8 +50,6 @@ export const defaultViewOptions = {
   compactRows: true,
   rowDensity: 'compact',
 };
-
-export const viewOptionsStorageKey = 'melisaErpViewOptions';
 
 const globalViewOptions = [
   { key: 'simpleMode', label: 'Sade mod', description: 'Daha az kalabalik, daha genis calışma alani' },
