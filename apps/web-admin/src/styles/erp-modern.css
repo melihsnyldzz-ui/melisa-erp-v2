@@ -5540,6 +5540,22 @@ body {
   background: var(--melisa-red);
 }
 
+.dashboard-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-content: stretch;
+}
+
+.dashboard-screen > .dashboard-toolbar,
+.dashboard-screen > .dashboard-quick-actions,
+.dashboard-screen > .dashboard-kpi-grid,
+.dashboard-screen > .dashboard-main-grid,
+.dashboard-screen > .screen-summary {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
 .dashboard-main-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(280px, 1fr));
