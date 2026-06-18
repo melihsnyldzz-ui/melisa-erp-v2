@@ -272,7 +272,11 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
                         {row.supplierName || row.supplierCode || '-'}
                       </button>
                     </td>
-                    <td>{row.documentNo || '-'}</td>
+                    <td>
+                      <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>
+                        {row.documentNo || '-'}
+                      </button>
+                    </td>
                     <td><span className="cancelled-ledger-badge">{displayMovementLabel(row)}</span></td>
                     <td>{formatMoney(Math.abs(Number(row.balanceEffect || row.amount || 0)), row.currency)}</td>
                     <td><span className="status-pill danger">{row.currency || 'TRY'}</span></td>
@@ -323,7 +327,11 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
                           {row.supplierName || '-'}
                         </button>
                       </td>
-                      <td>{row.documentNo || '-'}</td>
+                      <td>
+                        <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>
+                          {row.documentNo || '-'}
+                        </button>
+                      </td>
                       <td>{displayMovementLabel(row)}</td>
                       <td className="ledger-out">{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
                       <td className="ledger-in">{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>

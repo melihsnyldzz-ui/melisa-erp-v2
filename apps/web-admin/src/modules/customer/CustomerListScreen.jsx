@@ -77,6 +77,34 @@ function applyCustomerFilters(row, filters) {
   );
 }
 
+const customerListColumns = [
+  { label: 'Cari Kodu', key: 'code', width: 120, required: true },
+  { label: 'Ad / Ünvan', key: 'name', width: 240, required: true },
+  { label: 'Telefon', key: 'phone', width: 135 },
+  { label: 'Şehir', key: 'city', width: 120 },
+  { label: 'Ülke', key: 'country', width: 110 },
+  { label: 'Para Birimi', key: 'currency', width: 100 },
+  { label: 'Cari Tipi', key: 'type', width: 115 },
+  { label: 'Bakiye', key: 'balance', width: 130, required: true },
+  { label: 'Son İşlem', key: 'lastTransactionDate', width: 120 },
+  { label: 'Durum', key: 'status', width: 90 },
+];
+
+const customerColumnStorageKey = 'melisa.customerList.visibleColumns.v1';
+const defaultVisibleCustomerColumns = customerListColumns.reduce((next, column) => ({
+  ...next,
+  [column.key]: true,
+}), {});
+
+function readVisibleCustomerColumns() {
+  try {
+    const stored = window.localStorage.getItem(customerColumnStorageKey);
+    return stored ? { ...defaultVisibleCustomerColumns, ...JSON.parse(stored) } : defaultVisibleCustomerColumns;
+  } catch {
+    return defaultVisibleCustomerColumns;
+  }
+}
+
 export function CustomerListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState(customerFilterDefaults);
   const [rows, setRows] = useState([]);
@@ -87,9 +115,22 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(readVisibleCustomerColumns);
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
+  const tableColumns = useMemo(() => (
+    customerListColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
+  ), [visibleColumns]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(customerColumnStorageKey, JSON.stringify(visibleColumns));
+    } catch {
+      // Column preferences are optional; ignore storage failures.
+    }
+  }, [visibleColumns]);
 
   useEffect(() => {
     let isMounted = true;
@@ -205,6 +246,20 @@ export function CustomerListScreen({ onOpenScreen }) {
     }));
   }
 
+  function toggleColumn(columnKey) {
+    const column = customerListColumns.find((item) => item.key === columnKey);
+    if (column?.required) return;
+
+    setVisibleColumns((current) => ({
+      ...current,
+      [columnKey]: current[columnKey] === false,
+    }));
+  }
+
+  function resetColumns() {
+    setVisibleColumns(defaultVisibleCustomerColumns);
+  }
+
   function exportCustomerRows() {
     exportRowsToCsv({
       filename: 'cari-listesi',
@@ -234,8 +289,41 @@ export function CustomerListScreen({ onOpenScreen }) {
         onExportCsv={exportCustomerRows}
         onPrint={() => printCurrentScreen('Melisa ERP - Cari Listesi')}
         onRefresh={() => setRefreshKey((current) => current + 1)}
+        onToggleColumns={() => setIsColumnPanelOpen((current) => !current)}
+        isColumnPanelOpen={isColumnPanelOpen}
       />
       <CustomerListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
+      {isColumnPanelOpen && (
+        <section className="erp-panel stock-column-panel">
+          <div>
+            <strong>Kolonlar</strong>
+            <span>Cari tablosunda görünecek alanları seçin. Zorunlu kolonlar kapatılamaz.</span>
+          </div>
+          <div className="stock-column-options">
+            {customerListColumns.map((column) => {
+              const isVisible = visibleColumns[column.key] !== false || column.required;
+
+              return (
+                <button
+                  key={column.key}
+                  className={[
+                    'stock-column-toggle',
+                    isVisible ? 'active' : '',
+                    column.required ? 'required' : '',
+                  ].filter(Boolean).join(' ')}
+                  disabled={column.required}
+                  onClick={() => toggleColumn(column.key)}
+                  type="button"
+                >
+                  <span className="stock-column-check">{isVisible ? '✓' : ''}</span>
+                  <span>{column.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={resetColumns}>Tümünü Göster</button>
+        </section>
+      )}
       <section className="erp-panel customer-list-panel">
         <div className="panel-title customer-panel-title">
           <strong>Cari Hesap Tablosu</strong>
@@ -255,6 +343,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         )}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
           <CustomerListTable
+            columns={tableColumns}
             rows={filteredRows}
             selectedRowId={selectedRow?.id}
             onOpenRow={openCustomerRow}

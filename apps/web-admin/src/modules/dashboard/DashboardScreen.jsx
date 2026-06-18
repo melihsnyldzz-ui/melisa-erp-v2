@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardAlertsPanel } from './DashboardAlertsPanel.jsx';
 import { DashboardKpiGrid } from './DashboardKpiGrid.jsx';
 import { DashboardOperationsPanel } from './DashboardOperationsPanel.jsx';
@@ -51,8 +51,66 @@ const dashboardSizeOptions = [
   { value: 'full', label: 'Tam satır' },
 ];
 
+const dashboardFreeLayout = {
+  columnWidth: 410,
+  gap: 8,
+  minWidth: 280,
+  minHeight: 170,
+  rowHeight: 205,
+};
+
+const dashboardSizeSpans = {
+  small: 1,
+  medium: 2,
+  wide: 3,
+  full: 4,
+};
+
+function getDashboardWidgetWidth(size = 'small') {
+  const span = dashboardSizeSpans[size] || 1;
+  return (span * dashboardFreeLayout.columnWidth) + ((span - 1) * dashboardFreeLayout.gap);
+}
+
+function inferDashboardSize(width = dashboardFreeLayout.columnWidth) {
+  const sizes = dashboardSizeOptions.map((option) => ({
+    size: option.value,
+    distance: Math.abs(getDashboardWidgetWidth(option.value) - width),
+  }));
+  sizes.sort((left, right) => left.distance - right.distance);
+  return sizes[0]?.size || 'small';
+}
+
+function buildDashboardGeometry(layout) {
+  let column = 0;
+  let row = 0;
+
+  return layout.map((widget) => {
+    const span = Math.min(dashboardSizeSpans[widget.size] || 1, 4);
+    if (column + span > 4) {
+      column = 0;
+      row += 1;
+    }
+
+    const nextWidget = {
+      ...widget,
+      x: Number.isFinite(widget.x) ? widget.x : column * (dashboardFreeLayout.columnWidth + dashboardFreeLayout.gap),
+      y: Number.isFinite(widget.y) ? widget.y : row * (dashboardFreeLayout.rowHeight + dashboardFreeLayout.gap),
+      w: Number.isFinite(widget.w) ? widget.w : getDashboardWidgetWidth(widget.size),
+      h: Number.isFinite(widget.h) ? widget.h : dashboardFreeLayout.rowHeight,
+    };
+
+    column += span;
+    if (column >= 4) {
+      column = 0;
+      row += 1;
+    }
+
+    return nextWidget;
+  });
+}
+
 function buildDefaultDashboardLayout() {
-  return dashboardWidgetDefaults.map((widget) => ({ ...widget }));
+  return buildDashboardGeometry(dashboardWidgetDefaults.map((widget) => ({ ...widget })));
 }
 
 function normalizeDashboardLayout(savedLayout) {
@@ -70,6 +128,10 @@ function normalizeDashboardLayout(savedLayout) {
       size: dashboardSizeOptions.some((option) => option.value === widget.size)
         ? widget.size
         : defaultMap.get(widget.key).size,
+      x: Number.isFinite(widget.x) ? widget.x : undefined,
+      y: Number.isFinite(widget.y) ? widget.y : undefined,
+      w: Number.isFinite(widget.w) ? widget.w : undefined,
+      h: Number.isFinite(widget.h) ? widget.h : undefined,
     }));
 
   defaults.forEach((widget) => {
@@ -78,7 +140,7 @@ function normalizeDashboardLayout(savedLayout) {
     }
   });
 
-  return normalized;
+  return buildDashboardGeometry(normalized);
 }
 
 function loadDashboardLayout() {
@@ -381,10 +443,72 @@ function DashboardLayoutEditor({ layout, onMoveWidget, onReset, onUpdateWidget }
   );
 }
 
+function DashboardWidgetFrame({
+  children,
+  index,
+  isEditing,
+  onMoveWidget,
+  onStartDrag,
+  onStartResize,
+  onUpdateWidget,
+  total,
+  widget,
+}) {
+  function handleDragMouseDown(event) {
+    if (event.target.closest('button, select, input, textarea, a')) {
+      return;
+    }
+
+    onStartDrag(event, widget);
+  }
+
+  return (
+    <div
+      className={`dashboard-widget dashboard-widget-free dashboard-widget-${widget.key} dashboard-widget-size-${widget.size}${isEditing ? ' dashboard-widget-editing' : ''}`}
+      key={widget.key}
+      style={{
+        left: `${widget.x}px`,
+        top: `${widget.y}px`,
+        width: `${widget.w}px`,
+        height: `${widget.h}px`,
+      }}
+    >
+      {isEditing && (
+        <div className="dashboard-widget-controls" onMouseDown={handleDragMouseDown}>
+          <strong title="Mouse ile tasiyip konumlandir">{widget.label}</strong>
+          <span className="dashboard-widget-drag-handle">Tasi</span>
+          <button type="button" disabled={index === 0} onClick={() => onMoveWidget(widget.key, -1)}>Sola al</button>
+          <button type="button" disabled={index === total - 1} onClick={() => onMoveWidget(widget.key, 1)}>Sağa al</button>
+          <select
+            aria-label={`${widget.label} panel boyutu`}
+            value={widget.size}
+            onChange={(event) => onUpdateWidget(widget.key, { size: event.target.value })}
+          >
+            {dashboardSizeOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <button type="button" className="ghost-danger" onClick={() => onUpdateWidget(widget.key, { visible: false })}>Gizle</button>
+        </div>
+      )}
+      {children}
+      {isEditing && (
+        <button
+          type="button"
+          aria-label={`${widget.label} boyutlandir`}
+          className="dashboard-widget-resize-handle"
+          onMouseDown={(event) => onStartResize(event, widget)}
+        />
+      )}
+    </div>
+  );
+}
+
 export function DashboardScreen({ onOpenScreen }) {
   const [activeView, setActiveView] = useState('patron');
   const [dashboardLayout, setDashboardLayout] = useState(loadDashboardLayout);
   const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false);
+  const dashboardDeskRef = useRef(null);
   const [period, setPeriod] = useState('today');
   const [refreshCount, setRefreshCount] = useState(0);
   const [summaryData, setSummaryData] = useState(null);
@@ -516,6 +640,13 @@ export function DashboardScreen({ onOpenScreen }) {
     () => dashboardLayout.filter((widget) => widget.visible && widgetMap[widget.key]),
     [dashboardLayout, widgetMap],
   );
+  const dashboardDeskHeight = useMemo(() => {
+    const bottomEdge = visibleDashboardWidgets.reduce((max, widget) => (
+      Math.max(max, Number(widget.y || 0) + Number(widget.h || dashboardFreeLayout.rowHeight))
+    ), dashboardFreeLayout.rowHeight);
+
+    return Math.max(bottomEdge + dashboardFreeLayout.gap, 420);
+  }, [visibleDashboardWidgets]);
 
   useEffect(() => {
     window.localStorage.setItem(dashboardLayoutStorageKey, JSON.stringify(dashboardLayout));
@@ -523,9 +654,85 @@ export function DashboardScreen({ onOpenScreen }) {
 
   const updateDashboardWidget = useCallback((key, patch) => {
     setDashboardLayout((currentLayout) => currentLayout.map((widget) => (
-      widget.key === key ? { ...widget, ...patch } : widget
+      widget.key === key ? {
+        ...widget,
+        ...patch,
+        w: patch.size ? getDashboardWidgetWidth(patch.size) : (patch.w ?? widget.w),
+      } : widget
     )));
   }, []);
+
+  const startDashboardWidgetDrag = useCallback((event, widget) => {
+    if (!isLayoutEditorOpen || event.button !== 0) return;
+
+    event.preventDefault();
+    const deskWidth = dashboardDeskRef.current?.scrollWidth
+      || dashboardDeskRef.current?.getBoundingClientRect().width
+      || 1680;
+    const maxLeft = Math.max(deskWidth - Number(widget.w || dashboardFreeLayout.minWidth), 0);
+    const start = {
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      x: Number(widget.x || 0),
+      y: Number(widget.y || 0),
+    };
+
+    function handleMouseMove(moveEvent) {
+      const nextX = Math.max(0, Math.min(maxLeft, start.x + moveEvent.clientX - start.mouseX));
+      const nextY = Math.max(0, start.y + moveEvent.clientY - start.mouseY);
+      setDashboardLayout((currentLayout) => currentLayout.map((currentWidget) => (
+        currentWidget.key === widget.key ? { ...currentWidget, x: Math.round(nextX), y: Math.round(nextY) } : currentWidget
+      )));
+    }
+
+    function handleMouseUp() {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [isLayoutEditorOpen]);
+
+  const startDashboardWidgetResize = useCallback((event, widget) => {
+    if (!isLayoutEditorOpen || event.button !== 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const deskWidth = dashboardDeskRef.current?.scrollWidth
+      || dashboardDeskRef.current?.getBoundingClientRect().width
+      || 1680;
+    const maxWidth = Math.max(deskWidth - Number(widget.x || 0), dashboardFreeLayout.minWidth);
+    const start = {
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      w: Number(widget.w || getDashboardWidgetWidth(widget.size)),
+      h: Number(widget.h || dashboardFreeLayout.rowHeight),
+    };
+
+    function handleMouseMove(moveEvent) {
+      const nextWidth = Math.max(dashboardFreeLayout.minWidth, Math.min(maxWidth, start.w + moveEvent.clientX - start.mouseX));
+      const nextHeight = Math.max(dashboardFreeLayout.minHeight, start.h + moveEvent.clientY - start.mouseY);
+      setDashboardLayout((currentLayout) => currentLayout.map((currentWidget) => (
+        currentWidget.key === widget.key
+          ? {
+            ...currentWidget,
+            w: Math.round(nextWidth),
+            h: Math.round(nextHeight),
+            size: inferDashboardSize(nextWidth),
+          }
+          : currentWidget
+      )));
+    }
+
+    function handleMouseUp() {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [isLayoutEditorOpen]);
 
   const moveDashboardWidget = useCallback((key, direction) => {
     setDashboardLayout((currentLayout) => {
@@ -536,8 +743,22 @@ export function DashboardScreen({ onOpenScreen }) {
       }
 
       const nextLayout = [...currentLayout];
-      const [widget] = nextLayout.splice(index, 1);
-      nextLayout.splice(nextIndex, 0, widget);
+      const currentWidget = nextLayout[index];
+      const targetWidget = nextLayout[nextIndex];
+      nextLayout[index] = {
+        ...targetWidget,
+        x: currentWidget.x,
+        y: currentWidget.y,
+        w: currentWidget.w,
+        h: currentWidget.h,
+      };
+      nextLayout[nextIndex] = {
+        ...currentWidget,
+        x: targetWidget.x,
+        y: targetWidget.y,
+        w: targetWidget.w,
+        h: targetWidget.h,
+      };
       return nextLayout;
     });
   }, []);
@@ -596,11 +817,25 @@ export function DashboardScreen({ onOpenScreen }) {
         />
       )}
       <DashboardKpiGrid kpis={kpis} onOpenScreen={onOpenScreen} />
-      <section className="dashboard-main-grid">
-        {visibleDashboardWidgets.map((widget) => (
-          <div className={`dashboard-widget dashboard-widget-${widget.key} dashboard-widget-size-${widget.size}`} key={widget.key}>
+      <section
+        className={`dashboard-main-grid dashboard-free-desk${isLayoutEditorOpen ? ' dashboard-free-desk-editing' : ''}`}
+        ref={dashboardDeskRef}
+        style={{ minHeight: `${dashboardDeskHeight}px` }}
+      >
+        {visibleDashboardWidgets.map((widget, index) => (
+          <DashboardWidgetFrame
+            index={index}
+            isEditing={isLayoutEditorOpen}
+            key={widget.key}
+            onMoveWidget={moveDashboardWidget}
+            onStartDrag={startDashboardWidgetDrag}
+            onStartResize={startDashboardWidgetResize}
+            onUpdateWidget={updateDashboardWidget}
+            total={visibleDashboardWidgets.length}
+            widget={widget}
+          >
             {widgetMap[widget.key].node}
-          </div>
+          </DashboardWidgetFrame>
         ))}
         {visibleDashboardWidgets.length === 0 && (
           <section className="erp-panel dashboard-empty-layout">

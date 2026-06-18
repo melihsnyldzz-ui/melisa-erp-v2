@@ -1,32 +1,32 @@
 import React from 'react';
 
-export function CustomerCardForm({ customer, form, mode, onChange }) {
+export function CustomerCardForm({ customer, form, mode, isEditing = true, onChange }) {
   const phonePlaceholder = mode === 'update' && form.phoneMasked
-     ? 'Telefon'
+    ? 'Telefon'
     : 'Telefon';
 
   return (
     <section className="erp-panel customer-form-panel">
       <div className="panel-title">
         <strong>Cari Bilgileri</strong>
-        <span>{mode === 'create' ? 'Yeni kayıt / API write' : 'Mevcut kayıt / API update'}</span>
+        <span>{mode === 'create' ? 'Yeni kayıt / API write' : isEditing ? 'Düzenleme açık / API update' : 'İzleme modu / düzenlemek için üstten Düzenle'}</span>
       </div>
       <div className="customer-form-grid">
         <label>
           <span>Cari kodu</span>
-          <input value={form.customerCode} onChange={(event) => onChange('customerCode', event.target.value)} />
+          <input disabled={!isEditing} value={form.customerCode} onChange={(event) => onChange('customerCode', event.target.value)} />
         </label>
         <label>
           <span>Ad / unvan</span>
-          <input value={form.customerName} onChange={(event) => onChange('customerName', event.target.value)} />
+          <input disabled={!isEditing} value={form.customerName} onChange={(event) => onChange('customerName', event.target.value)} />
         </label>
         <label>
           <span>Telefon</span>
-          <input value={form.phone} placeholder={phonePlaceholder} onChange={(event) => onChange('phone', event.target.value)} />
+          <input disabled={!isEditing} value={form.phone} placeholder={phonePlaceholder} onChange={(event) => onChange('phone', event.target.value)} />
         </label>
         <label>
           <span>Para birimi</span>
-          <select value={form.currency} onChange={(event) => onChange('currency', event.target.value)}>
+          <select disabled={!isEditing} value={form.currency} onChange={(event) => onChange('currency', event.target.value)}>
             <option value="TRY">TRY</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -34,7 +34,7 @@ export function CustomerCardForm({ customer, form, mode, onChange }) {
         </label>
         <label>
           <span>Cari tipi</span>
-          <select value={form.customerType} onChange={(event) => onChange('customerType', event.target.value)}>
+          <select disabled={!isEditing} value={form.customerType} onChange={(event) => onChange('customerType', event.target.value)}>
             <option value="customer">Müşteri</option>
             <option value="wholesale">Toptan</option>
             <option value="retail">Perakende</option>
@@ -43,11 +43,11 @@ export function CustomerCardForm({ customer, form, mode, onChange }) {
         </label>
         <label>
           <span>Şehir</span>
-          <input value={form.city} onChange={(event) => onChange('city', event.target.value)} />
+          <input disabled={!isEditing} value={form.city} onChange={(event) => onChange('city', event.target.value)} />
         </label>
         <label>
           <span>Ülke</span>
-          <input value={form.country} onChange={(event) => onChange('country', event.target.value)} />
+          <input disabled={!isEditing} value={form.country} onChange={(event) => onChange('country', event.target.value)} />
         </label>
         <label className="customer-note-field">
           <span>Not</span>

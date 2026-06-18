@@ -3,6 +3,7 @@ import { createPurchaseDraft, finalizePurchaseDraft } from '../../services/invoi
 import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
+import { API_BASE_URL } from '../../config/apiConfig.js';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -14,6 +15,12 @@ function formatMoney(amount, currency = 'TRY') {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
+}
+
+function resolveImageUrl(imageUrl) {
+  if (!imageUrl) return '';
+  if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl;
+  return `${API_BASE_URL}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
 }
 
 function exchangeRateFor(currencyRates, currency) {
@@ -197,6 +204,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
           supplierName: product.supplierName || null,
           barcode: product.matchedBarcode || product.barcodeMasked || '-',
           productName: product.productName,
+          imageUrl: resolveImageUrl(product.imageUrl),
           currency: product.currency || 'TRY',
           purchasePrice: Number(product.purchasePrice || 0),
           lineDiscountRate: Number(product.purchaseDiscountRate || 0),
@@ -475,6 +483,22 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
             <span><b>PB</b>{selectedSupplier?.currency || '-'}</span>
             <span><b>Bakiye</b>{selectedSupplier ? formatMoney(selectedSupplier.balance, selectedSupplier.currency) : '-'}</span>
             <span><b>Kur</b>{selectedSupplier ? `${selectedSupplier.currency} ${Number(exchangeRateFor(currencyRates, selectedSupplier.currency) || 0).toFixed(4)}` : '-'}</span>
+          </div>
+          <div className={`bulk-purchase-product-preview ${selectedProduct ? 'is-ready' : ''}`}>
+            {selectedProduct?.imageUrl ? (
+              <img alt={selectedProduct.productName || selectedProduct.stockCode || 'Urun'} src={selectedProduct.imageUrl} />
+            ) : (
+              <span className="bulk-purchase-product-preview-empty">Gorsel yok</span>
+            )}
+            <div>
+              <span>Secili urun</span>
+              <strong>{selectedProduct ? selectedProduct.productName : 'Urun secilmedi'}</strong>
+              <small>
+                {selectedProduct
+                  ? `${selectedProduct.stockCode} / ${selectedProduct.barcode} / ${formatMoney(selectedProduct.purchasePrice, selectedProduct.currency)}`
+                  : 'Tedarikciye bagli urun secin'}
+              </small>
+            </div>
           </div>
         </section>
 

@@ -10,10 +10,6 @@ const stockQuickStates = [
 
 const stockCurrencies = ['TRY', 'USD', 'EUR'];
 
-function uniqueOptions(values = []) {
-  return [...new Set(values.filter((value) => value && value !== '-'))].slice(0, 12);
-}
-
 const filterLabels = {
   quickSearch: 'Hızlı arama',
   stockCode: 'Stok kodu',
@@ -196,7 +192,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           >
             <strong>{filter.label}</strong>
             <span>{filter.value}</span>
-            <small>×</small>
+            <small>x</small>
           </button>
         ))}
       </div>

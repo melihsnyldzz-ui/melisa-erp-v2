@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createCatalogDraft, fetchCatalogOverview } from '../../services/catalogApi.js';
+import { createCatalogDraft, fetchCatalogOverview, sendWhatsappCatalog } from '../../services/catalogApi.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { API_BASE_URL } from '../../config/apiConfig.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -20,14 +21,34 @@ function statusLabel(status) {
   return labels[status] || status || '-';
 }
 
-function Kpi({ label, value, detail, tone = 'info' }) {
-  return (
-    <article className={`dashboard-kpi ${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </article>
-  );
+function resolveImageUrl(imagePath) {
+  if (!imagePath) return '';
+  if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+  return `${API_BASE_URL}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
+}
+
+function buildCatalogShareText(catalog, items = []) {
+  const header = catalog
+    ? `${catalog.catalogNo} - ${catalog.name}`
+    : 'Melisa Bebe Katalog';
+  const visibleItems = items.slice(0, 24);
+  const lines = visibleItems.map((item, index) => (
+    `${index + 1}. ${item.stockCode} - ${item.productName} - ${formatMoney(item.price, item.currency)}`
+  ));
+
+  return [
+    `Merhaba, ${header} hazır.`,
+    '',
+    ...lines,
+    items.length > visibleItems.length ? `... ve ${items.length - visibleItems.length} ürün daha` : '',
+    '',
+    'Sipariş vermek istediğiniz ürün kodlarını yazabilirsiniz.',
+  ].filter(Boolean).join('\n');
+}
+
+function readinessText(product) {
+  if (product?.hasImage) return 'Görsel var';
+  return 'Görsel eksik';
 }
 
 export function CatalogListScreen({ onOpenScreen }) {
@@ -48,16 +69,25 @@ export function CatalogListScreen({ onOpenScreen }) {
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [selectedProductMap, setSelectedProductMap] = useState({});
   const [draftName, setDraftName] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   const candidates = overview?.productCandidates || [];
   const catalogs = overview?.catalogs || [];
   const items = overview?.items || [];
+  const customers = overview?.customers || [];
   const summary = overview?.summary || {};
   const filterOptions = overview?.filterOptions || {};
+  const selectedCatalog = catalogs.find((catalog) => Number(catalog.id) === Number(overview?.selectedCatalogId)) || catalogs[0] || null;
+  const selectedCustomer = customers.find((customer) => Number(customer.id) === Number(selectedCustomerId))
+    || customers.find((customer) => Number(customer.id) === Number(selectedCatalog?.customerId))
+    || null;
+  const catalogShareText = useMemo(() => buildCatalogShareText(selectedCatalog, items), [items, selectedCatalog]);
+  const previewItems = items.slice(0, 6);
 
   const selectedProducts = useMemo(() => (
     selectedProductIds
@@ -74,7 +104,7 @@ export function CatalogListScreen({ onOpenScreen }) {
       setOverview(response.data);
     } catch (error) {
       setOverview(null);
-      setErrorMessage(`${error.message || 'Katalog verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Katalog verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -84,8 +114,22 @@ export function CatalogListScreen({ onOpenScreen }) {
     loadOverview();
   }, []);
 
+  useEffect(() => {
+    if (selectedCatalog?.customerId && !selectedCustomerId) {
+      setSelectedCustomerId(String(selectedCatalog.customerId));
+    }
+  }, [selectedCatalog?.customerId, selectedCustomerId]);
+
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  function searchCatalogs() {
+    loadOverview(filters);
+  }
+
+  function searchProducts() {
+    loadOverview(filters);
   }
 
   function clearProductFilters() {
@@ -152,9 +196,10 @@ export function CatalogListScreen({ onOpenScreen }) {
     try {
       const response = await createCatalogDraft({
         name: draftName || undefined,
+        customerId: selectedCustomerId ? Number(selectedCustomerId) : undefined,
         productIds: selectedProductIds,
       });
-      setSuccessMessage(`${response.data.catalogNo} katalog tasla?? olu?turuldu.`);
+      setSuccessMessage(`${response.data.catalogNo} katalog taslağı oluşturuldu.`);
       setSelectedProductIds([]);
       setSelectedProductMap({});
       setDraftName('');
@@ -165,7 +210,7 @@ export function CatalogListScreen({ onOpenScreen }) {
       setFilters(nextFilters);
       await loadOverview(nextFilters);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Katalog tasla?? olu?turulamad?.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Katalog taslağı oluşturulamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsSaving(false);
     }
@@ -173,7 +218,7 @@ export function CatalogListScreen({ onOpenScreen }) {
 
   function exportCatalogItems() {
     exportRowsToCsv({
-      filename: 'katalog-ürünleri',
+      filename: 'katalog-urunleri',
       rows: items,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
@@ -183,23 +228,80 @@ export function CatalogListScreen({ onOpenScreen }) {
         { label: 'Stok', key: 'stockQuantity' },
         { label: 'Fiyat', key: 'price' },
         { label: 'PB', key: 'currency' },
-        { label: 'G?rsel', value: (row) => (row.hasImage ? 'Var' : 'Eksik') },
+        { label: 'Görsel', value: (row) => (row.hasImage ? 'Var' : 'Eksik') },
       ],
     });
   }
 
+  async function copyCatalogText() {
+    if (!catalogShareText || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(catalogShareText);
+    setSuccessMessage('Katalog WhatsApp metni kopyalandı.');
+  }
+
+  function openWhatsappShare() {
+    const url = `https://wa.me/?text=${encodeURIComponent(catalogShareText)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async function sendSelectedCatalogToCustomer() {
+    if (!selectedCatalog?.id || items.length === 0) {
+      setErrorMessage('Gönderim için önce katalog seçin veya taslak oluşturun.');
+      return;
+    }
+
+    if (!selectedCustomer?.phone) {
+      setErrorMessage('Seçili müşterinin kartında telefon numarası yok.');
+      return;
+    }
+
+    setIsSending(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await sendWhatsappCatalog({
+        catalogId: selectedCatalog.id,
+        phone: selectedCustomer.phone,
+      });
+      const result = response.data;
+      setSuccessMessage(`${selectedCustomer.customerName} için gönderim tamamlandı: ${result.sent} gönderildi, ${result.failed} hatalı, ${result.skipped} atlandı.`);
+    } catch (error) {
+      setErrorMessage(`${error.message || 'WhatsApp gönderimi başarısız.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSending(false);
+    }
+  }
+
   return (
-    <main className="work-area dashboard-screen catalog-screen">
-      <section className="dashboard-toolbar">
+    <main className="work-area catalog-builder-screen">
+      <section className="dashboard-toolbar catalog-builder-toolbar">
         <div className="dashboard-toolbar-title">
-          <strong>Katalog Listesi</strong>
-          <span>SQL Ürünleri, katalog taslakları ve görsel hazırlık kontrolü</span>
+          <strong>Katalog Hazırlama</strong>
+          <span>Ürün seç, taslak oluştur, WhatsApp veya çıktı için hazırla</span>
         </div>
         <div className="dashboard-toolbar-actions">
-          <button type="button" onClick={() => onOpenScreen('whatsapp-planner')}>WhatsApp Planla</button>
-          <button type="button" onClick={exportCatalogItems}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Katalog Listesi')}>Yazdır</button>
-          <button type="button" onClick={loadOverview}>Yenile</button>
+          <button type="button" onClick={() => onOpenScreen('whatsapp-planner')}>Mesaj Planı</button>
+          <button
+            type="button"
+            onClick={() => onOpenScreen('whatsapp-web-queue', {
+              catalogId: selectedCatalog?.id,
+              catalogNo: selectedCatalog?.catalogNo,
+              customerName: selectedCustomer?.customerName || selectedCatalog?.customerName || '',
+              customerPhone: selectedCustomer?.phone || selectedCatalog?.customerPhone || '',
+            })}
+            disabled={!selectedCatalog || items.length === 0}
+          >
+            Görselli Gönderim Kuyruğu
+          </button>
+          <button type="button" onClick={sendSelectedCatalogToCustomer} disabled={isSending || !selectedCatalog || items.length === 0 || !selectedCustomer?.phone}>
+            {isSending ? 'Gönderiliyor' : 'Müşteriye Gönder'}
+          </button>
+          <button type="button" onClick={copyCatalogText} disabled={items.length === 0}>Metni Kopyala</button>
+          <button type="button" onClick={openWhatsappShare} disabled={items.length === 0}>Metinle WhatsApp Aç</button>
+          <button type="button" onClick={exportCatalogItems} disabled={items.length === 0}>Excel</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Katalog')}>Yazdır/PDF</button>
+          <button type="button" onClick={() => loadOverview()}>Yenile</button>
         </div>
       </section>
 
@@ -207,178 +309,267 @@ export function CatalogListScreen({ onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
 
-      <section className="dashboard-kpi-grid">
-        <Kpi label="Katalog" value={summary.catalogCount || 0} detail="SQL katalog kaydı" tone="info" />
-        <Kpi label="Yayında" value={summary.publishedCount || 0} detail="Paylaşıma hazır" tone="good" />
-        <Kpi label="Ürün satırı" value={summary.catalogItemCount || 0} detail="Katalog ürün toplamı" tone="info" />
-        <Kpi label="Görselli" value={summary.imageReadyCount || 0} detail="Ana görsel eşleşmiş" tone="good" />
-        <Kpi label="Stokta" value={summary.stockReadyCount || 0} detail="Pozitif stoklu satır" tone="warn" />
-        <Kpi label="Seçilen" value={selectedProductIds.length} detail="Yeni taslak için" tone="info" />
+      <section className="catalog-flow-strip">
+        <article className="catalog-flow-card">
+          <span>1. Ürün Seç</span>
+          <strong>{selectedProductIds.length}</strong>
+          <small>{candidates.length} ürün adayı listede</small>
+        </article>
+        <article className="catalog-flow-card">
+          <span>2. Taslak Oluştur</span>
+          <strong>{summary.catalogCount || 0}</strong>
+          <small>{summary.catalogItemCount || 0} toplam katalog satırı</small>
+        </article>
+        <article className="catalog-flow-card">
+          <span>3. Paylaş</span>
+          <strong>{items.length}</strong>
+          <small>{selectedCatalog ? selectedCatalog.catalogNo : 'Katalog seçilmedi'}</small>
+        </article>
       </section>
 
-      <section className="erp-panel">
-        <div className="panel-title">
-          <strong>Katalog Filtreleri</strong>
-          <span>Katalog no, ad, müşteri ve durum</span>
-        </div>
-        <div className="filter-grid catalog-main-filter-grid">
-          <label>
-            Arama
-            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Katalog no / ad / müşteri" />
-          </label>
-          <label>
-            Durum
-            <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
-              <option value="">Tüm durumlar</option>
-              <option value="draft">Taslak</option>
-              <option value="published">Yayında</option>
-              <option value="archived">Arşiv</option>
-            </select>
-          </label>
-          <label>
-            Yeni katalog adı
-            <input value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="Örn. Haziran Toptan Katalog" />
-          </label>
-          <button type="button" onClick={() => loadOverview()}>Ara</button>
-        </div>
-        <div className="catalog-draft-actions">
-          <span>{selectedProductIds.length} Ürün seçili</span>
-          <button type="button" disabled={isSaving || selectedProductIds.length === 0} onClick={handleCreateDraft}>
-            {isSaving ? 'Kaydediliyor' : 'Taslak Oluştur'}
-          </button>
-        </div>
-      </section>
+      <section className="catalog-builder-layout">
+        <section className="erp-panel catalog-builder-products">
+          <div className="panel-title">
+            <strong>Ürün Seçimi</strong>
+            <span>Barkod, stok kodu, ürün adı, marka, kategori ve görsel durumuna göre süz</span>
+          </div>
 
-      <section className="erp-panel">
-        <div className="panel-title">
-          <strong>Ürün Seçim Filtreleri</strong>
-          <span>Barkod, stok kodu, Ürün adı, marka, kategori, para birimi ve hazırlık durumu</span>
-        </div>
-        <div className="filter-grid catalog-product-filter-grid">
-          <label>
-            Ürün / barkod
-            <input
-              value={filters.productSearch}
-              onChange={(event) => updateFilter('productSearch', event.target.value)}
-              placeholder="Barkod / stok kodu / Ürün adı / marka"
-            />
-          </label>
-          <label>
-            Marka
-            <select value={filters.brand} onChange={(event) => updateFilter('brand', event.target.value)}>
-              <option value="">Tüm markalar</option>
-              {(filterOptions.brands || []).map((brand) => (
-                <option key={brand} value={brand}>{brand}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Kategori
-            <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)}>
-              <option value="">Tüm kategoriler</option>
-              {(filterOptions.categories || []).map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Para birimi
-            <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
-              <option value="">Tüm PB</option>
-              {(filterOptions.currencies || ['TRY', 'USD', 'EUR']).map((currency) => (
-                <option key={currency} value={currency}>{currency}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Stok
-            <select value={filters.stockMode} onChange={(event) => updateFilter('stockMode', event.target.value)}>
-              <option value="">Tüm stoklar</option>
-              <option value="inStock">Stokta olan</option>
-              <option value="zero">Sıfır stok</option>
-              <option value="negative">Eksi stok</option>
-            </select>
-          </label>
-          <label>
-            Görsel
-            <select value={filters.imageMode} onChange={(event) => updateFilter('imageMode', event.target.value)}>
-              <option value="">Tüm görseller</option>
-              <option value="withImage">Görseli olan</option>
-              <option value="withoutImage">Görseli eksik</option>
-            </select>
-          </label>
-          <label>
-            Min fiyat
-            <input type="number" min="0" value={filters.minPrice} onChange={(event) => updateFilter('minPrice', event.target.value)} />
-          </label>
-          <label>
-            Max fiyat
-            <input type="number" min="0" value={filters.maxPrice} onChange={(event) => updateFilter('maxPrice', event.target.value)} />
-          </label>
-          <button type="button" onClick={() => loadOverview()}>Ürün Ara</button>
-          <button type="button" onClick={clearProductFilters}>Filtre Temizle</button>
-          <button type="button" onClick={selectVisibleProducts} disabled={candidates.length === 0}>Görünenleri Seç</button>
-          <button type="button" onClick={clearSelectedProducts} disabled={selectedProductIds.length === 0}>Seçimi Temizle</button>
-        </div>
-      </section>
+          <div className="catalog-filter-grid">
+            <label className="catalog-filter-wide">
+              Ürün / barkod
+              <input
+                value={filters.productSearch}
+                onChange={(event) => updateFilter('productSearch', event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') searchProducts();
+                }}
+                placeholder="Barkod / stok kodu / ürün adı / marka"
+              />
+            </label>
+            <label>
+              Marka
+              <select value={filters.brand} onChange={(event) => updateFilter('brand', event.target.value)}>
+                <option value="">Tüm markalar</option>
+                {(filterOptions.brands || []).map((brand) => (
+                  <option key={brand} value={brand}>{brand}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Kategori
+              <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)}>
+                <option value="">Tüm kategoriler</option>
+                {(filterOptions.categories || []).map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              PB
+              <select value={filters.currency} onChange={(event) => updateFilter('currency', event.target.value)}>
+                <option value="">Tümü</option>
+                {(filterOptions.currencies || ['TRY', 'USD', 'EUR']).map((currency) => (
+                  <option key={currency} value={currency}>{currency}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Stok
+              <select value={filters.stockMode} onChange={(event) => updateFilter('stockMode', event.target.value)}>
+                <option value="">Tüm stoklar</option>
+                <option value="inStock">Stokta olan</option>
+                <option value="zero">Sıfır stok</option>
+                <option value="negative">Eksi stok</option>
+              </select>
+            </label>
+            <label>
+              Görsel
+              <select value={filters.imageMode} onChange={(event) => updateFilter('imageMode', event.target.value)}>
+                <option value="">Tümü</option>
+                <option value="withImage">Görseli olan</option>
+                <option value="withoutImage">Görseli eksik</option>
+              </select>
+            </label>
+            <label>
+              Min
+              <input type="number" min="0" value={filters.minPrice} onChange={(event) => updateFilter('minPrice', event.target.value)} />
+            </label>
+            <label>
+              Max
+              <input type="number" min="0" value={filters.maxPrice} onChange={(event) => updateFilter('maxPrice', event.target.value)} />
+            </label>
+            <button type="button" onClick={searchProducts}>Ürün Ara</button>
+            <button type="button" onClick={clearProductFilters}>Temizle</button>
+            <button type="button" onClick={selectVisibleProducts} disabled={candidates.length === 0}>Görünenleri Seç</button>
+          </div>
 
-      <section className="erp-panel">
-        <div className="panel-title">
-          <strong>Taslak Sepeti</strong>
-          <span>{selectedProductIds.length} Ürün seçili / filtre değişse de seçim korunur</span>
-        </div>
-        {selectedProducts.length === 0 && <div className="list-state">Taslak için henüz Ürün seçilmedi.</div>}
-        {selectedProducts.length > 0 && (
-          <div className="table-shell compact-table-shell">
+          {!isLoading && candidates.length === 0 && <div className="list-state">Filtreye uygun ürün bulunamadı.</div>}
+          <div className="table-shell catalog-product-table-shell">
             <table className="erp-table">
               <thead>
                 <tr>
+                  <th>Seç</th>
                   <th>Stok Kodu</th>
                   <th>Barkod</th>
                   <th>Ürün</th>
                   <th>Marka</th>
+                  <th>Kategori</th>
                   <th>Stok</th>
                   <th>Fiyat</th>
-                  <th>İşlem</th>
+                  <th>Hazırlık</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedProducts.map((product) => (
-                  <tr key={`selected-${product.productId}`}>
+                {candidates.slice(0, 80).map((product) => (
+                  <tr key={product.productId} className={selectedProductIds.includes(product.productId) ? 'selected-row' : ''}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedProductIds.includes(product.productId)}
+                        onChange={() => toggleProduct(product)}
+                      />
+                    </td>
                     <td>{product.stockCode}</td>
                     <td>{product.barcode || '-'}</td>
                     <td>{product.productName}</td>
                     <td>{product.brand || '-'}</td>
+                    <td>{product.category || '-'}</td>
                     <td>{product.stockQuantity}</td>
                     <td>{formatMoney(product.salePrice, product.currency)}</td>
                     <td>
-                      <button className="mini-button danger" type="button" onClick={() => toggleProduct(product)}>Çıkar</button>
+                      <span className={`status-pill ${product.hasImage ? 'good' : 'warn'}`}>
+                        {readinessText(product)}
+                      </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-        {selectedProducts.length > 0 && (
-          <div className="catalog-draft-actions">
-            <span>{selectedProducts.length} ürün katalog taslagi icin hazir.</span>
-            <button type="button" disabled={isSaving} onClick={handleCreateDraft}>
-              {isSaving ? 'Kaydediliyor' : 'Seçilenlerle Taslak Oluştur'}
-            </button>
-          </div>
-        )}
+        </section>
+
+        <aside className="catalog-builder-side">
+          <section className="erp-panel catalog-selected-panel">
+            <div className="panel-title">
+              <strong>Taslak Sepeti</strong>
+              <span>{selectedProducts.length} ürün seçili</span>
+            </div>
+            <input
+              className="catalog-draft-name"
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              placeholder="Katalog adı: Örn. Haziran Toptan"
+            />
+            {selectedProducts.length === 0 && <div className="list-state">Taslak için ürün seçilmedi.</div>}
+            {selectedProducts.length > 0 && (
+              <div className="catalog-selected-list">
+                {selectedProducts.slice(0, 16).map((product) => (
+                  <article className="catalog-selected-item" key={`selected-${product.productId}`}>
+                    <div>
+                      <strong>{product.stockCode}</strong>
+                      <span>{product.productName}</span>
+                    </div>
+                    <b>{formatMoney(product.salePrice, product.currency)}</b>
+                    <button type="button" className="mini-button danger" onClick={() => toggleProduct(product)}>Çıkar</button>
+                  </article>
+                ))}
+                {selectedProducts.length > 16 && (
+                  <div className="list-state">+{selectedProducts.length - 16} ürün daha seçili.</div>
+                )}
+              </div>
+            )}
+            <label className="catalog-customer-select">
+              Müşteri
+              <select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}>
+                <option value="">Müşteri seç</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.customerName} / {customer.customerCode} {customer.phone ? ` / ${customer.phone}` : ' / telefon yok'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedCustomer ? (
+              <div className="catalog-customer-card">
+                <strong>{selectedCustomer.customerName}</strong>
+                <span>{selectedCustomer.customerCode} / {selectedCustomer.phone || 'Telefon yok'}</span>
+                <small>{selectedCustomer.city || '-'} / {selectedCustomer.currency}</small>
+              </div>
+            ) : (
+              <div className="list-state">Katalog gönderimi için müşteri seçin.</div>
+            )}
+            <div className="catalog-side-actions">
+              <button type="button" disabled={isSending || !selectedCatalog || !selectedCustomer?.phone || items.length === 0} onClick={sendSelectedCatalogToCustomer}>
+                {isSending ? 'Gönderiliyor' : 'Müşteriye Gönder'}
+              </button>
+              <button type="button" disabled={isSaving || selectedProducts.length === 0} onClick={handleCreateDraft}>
+                {isSaving ? 'Kaydediliyor' : 'Taslak Oluştur'}
+              </button>
+              <button type="button" disabled={selectedProducts.length === 0} onClick={clearSelectedProducts}>Seçimi Temizle</button>
+            </div>
+          </section>
+
+          <section className="erp-panel catalog-share-box">
+            <div className="panel-title">
+              <strong>Paylaşım</strong>
+              <span>{selectedCatalog ? `${selectedCatalog.catalogNo} / ${items.length} ürün` : 'Katalog seç'}</span>
+            </div>
+            {items.length === 0 && <div className="list-state">Paylaşım için katalog seçin veya taslak oluşturun.</div>}
+            {items.length > 0 && (
+              <>
+                <div className="catalog-preview-grid">
+                  {previewItems.map((item) => (
+                    <article className="catalog-preview-card" key={`preview-${item.id}`}>
+                      {item.imagePath ? (
+                        <img alt={item.productName || item.stockCode || 'Ürün'} src={resolveImageUrl(item.imagePath)} />
+                      ) : (
+                        <span>Görsel yok</span>
+                      )}
+                      <strong>{item.stockCode}</strong>
+                      <small>{formatMoney(item.price, item.currency)}</small>
+                    </article>
+                  ))}
+                </div>
+                <textarea className="catalog-share-textarea" readOnly value={catalogShareText} />
+                <div className="catalog-side-actions">
+                  <button type="button" onClick={sendSelectedCatalogToCustomer} disabled={isSending || !selectedCustomer?.phone}>
+                    {isSending ? 'Gönderiliyor' : 'Müşteriye Gönder'}
+                  </button>
+                  <button type="button" onClick={copyCatalogText}>Metni Kopyala</button>
+                  <button type="button" onClick={openWhatsappShare}>Metinle WhatsApp Aç</button>
+                </div>
+              </>
+            )}
+          </section>
+        </aside>
       </section>
 
-      <section className="split-grid">
+      <section className="catalog-bottom-grid">
         <section className="erp-panel">
           <div className="panel-title">
             <strong>Kataloglar</strong>
             <span>{catalogs.length} satır</span>
           </div>
+          <div className="catalog-list-filter-row">
+            <input
+              value={filters.search}
+              onChange={(event) => updateFilter('search', event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') searchCatalogs();
+              }}
+              placeholder="Katalog no, ad veya müşteri ara"
+            />
+            <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
+              <option value="">Tüm durumlar</option>
+              <option value="draft">Taslak</option>
+              <option value="published">Yayında</option>
+              <option value="archived">Arşiv</option>
+            </select>
+            <button type="button" onClick={searchCatalogs}>Ara</button>
+          </div>
           {!isLoading && catalogs.length === 0 && <div className="list-state">Katalog bulunamadı.</div>}
           {catalogs.length > 0 && (
-            <div className="table-shell">
+            <div className="table-shell catalog-bottom-table-shell">
               <table className="erp-table">
                 <thead>
                   <tr>
@@ -394,7 +585,7 @@ export function CatalogListScreen({ onOpenScreen }) {
                 <tbody>
                   {catalogs.map((catalog) => (
                     <tr
-                      className={Number(overview.selectedCatalogId) === Number(catalog.id) ? 'selected-row' : 'clickable-row'}
+                      className={Number(overview?.selectedCatalogId) === Number(catalog.id) ? 'selected-row' : 'clickable-row'}
                       key={catalog.id}
                       onClick={() => selectCatalog(catalog.id)}
                     >
@@ -415,93 +606,41 @@ export function CatalogListScreen({ onOpenScreen }) {
 
         <section className="erp-panel">
           <div className="panel-title">
-            <strong>Ürün Seçimi</strong>
-            <span>{candidates.length} aday / {selectedProductIds.length} seçili</span>
+            <strong>Seçili Katalog Ürünleri</strong>
+            <span>{selectedCatalog ? selectedCatalog.name : 'Katalog seçin'}</span>
           </div>
-          {!isLoading && candidates.length === 0 && <div className="list-state">Filtreye uygun Ürün bulunamadı.</div>}
-          <div className="table-shell">
-            <table className="erp-table">
-              <thead>
-                <tr>
-                  <th>Seç</th>
-                  <th>Stok Kodu</th>
-                  <th>Barkod</th>
-                  <th>Ürün</th>
-                  <th>Marka</th>
-                  <th>Kategori</th>
-                  <th>Stok</th>
-                  <th>Fiyat</th>
-                  <th>Hazırlık</th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidates.slice(0, 40).map((product) => (
-                  <tr key={product.productId}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.includes(product.productId)}
-                        onChange={() => toggleProduct(product)}
-                      />
-                    </td>
-                    <td>{product.stockCode}</td>
-                    <td>{product.barcode || '-'}</td>
-                    <td>{product.productName}</td>
-                    <td>{product.brand || '-'}</td>
-                    <td>{product.category || '-'}</td>
-                    <td>{product.stockQuantity}</td>
-                    <td>{formatMoney(product.salePrice, product.currency)}</td>
-                    <td>
-                      <span className={`status-pill ${product.readiness === 'ready' ? 'good' : 'warn'}`}>
-                        {product.hasImage ? 'Görsel var' : 'Görsel eksik'}
-                      </span>
-                    </td>
+          {items.length === 0 && <div className="list-state">Seçili katalogda ürün satırı yok.</div>}
+          {items.length > 0 && (
+            <div className="table-shell catalog-bottom-table-shell">
+              <table className="erp-table">
+                <thead>
+                  <tr>
+                    <th>Stok Kodu</th>
+                    <th>Barkod</th>
+                    <th>Ürün</th>
+                    <th>Marka</th>
+                    <th>Stok</th>
+                    <th>Fiyat</th>
+                    <th>Görsel</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.stockCode}</td>
+                      <td>{item.barcode || '-'}</td>
+                      <td>{item.productName}</td>
+                      <td>{item.brand || '-'}</td>
+                      <td>{item.stockQuantity}</td>
+                      <td>{formatMoney(item.price, item.currency)}</td>
+                      <td>{item.hasImage ? 'Var' : 'Eksik'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
-      </section>
-
-      <section className="erp-panel">
-        <div className="panel-title">
-          <strong>Seçili Katalog Ürünleri</strong>
-          <span>Ilk katalog satırlari / görsel ve stok kontrolü</span>
-        </div>
-        {items.length === 0 && <div className="list-state">Seçili katalogda ürün satıri yok.</div>}
-        {items.length > 0 && (
-          <div className="table-shell">
-            <table className="erp-table">
-              <thead>
-                <tr>
-                  <th>Stok Kodu</th>
-                  <th>Barkod</th>
-                  <th>Ürün</th>
-                  <th>Marka</th>
-                  <th>Stok</th>
-                  <th>Fiyat</th>
-                  <th>Görsel</th>
-                  <th>Not</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.stockCode}</td>
-                    <td>{item.barcode || '-'}</td>
-                    <td>{item.productName}</td>
-                    <td>{item.brand || '-'}</td>
-                    <td>{item.stockQuantity}</td>
-                    <td>{formatMoney(item.price, item.currency)}</td>
-                    <td>{item.hasImage ? 'Var' : 'Eksik'}</td>
-                    <td>{item.note || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </section>
     </main>
   );

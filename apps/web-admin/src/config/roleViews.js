@@ -91,6 +91,7 @@ export const roleViews = [
       'sales-orders',
       'catalog-list',
       'whatsapp-planner',
+      'whatsapp-web-queue',
       'customer-list',
       'collections-overview',
       'cash-customers',

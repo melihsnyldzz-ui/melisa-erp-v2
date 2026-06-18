@@ -80,6 +80,7 @@ export const sidebarGroups = [
     items: [
       { label: 'Katalog Listesi', screenId: 'catalog-list' },
       { label: 'WhatsApp Paylaşım', screenId: 'whatsapp-planner' },
+      { label: 'WhatsApp Web Kuyruğu', screenId: 'whatsapp-web-queue' },
     ],
   },
   {
@@ -318,6 +319,12 @@ export const screenRegistry = {
     label: 'WhatsApp Paylaşım',
     module: 'Katalog',
     type: 'plan',
+  },
+  'whatsapp-web-queue': {
+    id: 'whatsapp-web-queue',
+    label: 'WhatsApp Web Kuyruğu',
+    module: 'Katalog',
+    type: 'kuyruk',
   },
   'terminal-overview': {
     id: 'terminal-overview',

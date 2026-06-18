@@ -9,6 +9,8 @@ export function StockListToolbar({
   onExportExcel,
   onPrint,
   onRefresh,
+  onToggleColumns,
+  isColumnPanelOpen = false,
   hasSelection = true,
 }) {
   return (
@@ -24,6 +26,7 @@ export function StockListToolbar({
         <button type="button" onClick={onExportExcel}>Excel</button>
         <button type="button" onClick={onPrint}>Yazdır/PDF</button>
         <button type="button" onClick={onRefresh}>Yenile</button>
+        <button className={isColumnPanelOpen ? 'pressed' : ''} type="button" onClick={onToggleColumns}>Kolonlar</button>
         <button className={showPassive ? 'pressed' : ''} type="button" onClick={onTogglePassive}>
           Pasifleri Göster
         </button>

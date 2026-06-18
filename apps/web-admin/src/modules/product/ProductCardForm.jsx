@@ -1,31 +1,31 @@
 import React from 'react';
 import { SuggestedTextInput } from '../../components/forms/SuggestedTextInput.jsx';
 
-export function ProductCardForm({ product, form, mode, suggestions, onChange }) {
+export function ProductCardForm({ product, form, mode, suggestions, isEditing = true, onChange }) {
   const barcodePlaceholder = mode === 'update' && form.existingBarcodeMasked
-     ? `Mevcut: ${form.existingBarcodeMasked} / degistirmek icin yeni barkod girin`
+    ? `Mevcut: ${form.existingBarcodeMasked} / değiştirmek için yeni barkod girin`
     : 'Ana barkod';
 
   return (
     <section className="erp-panel product-form-panel">
       <div className="panel-title">
         <strong>Temel Ürün Bilgileri</strong>
-        <span>{mode === 'create' ? 'Yeni kayıt / API write' : 'Mevcut kayıt / API update'}</span>
+        <span>{mode === 'create' ? 'Yeni kayıt / API write' : isEditing ? 'Düzenleme açık / API update' : 'İzleme modu / düzenlemek için üstten Düzenle'}</span>
       </div>
       <div className="product-form-grid product-form-grid-modern">
         <div className="product-form-section identity-section">
           <h3>Kimlik</h3>
           <label>
             <span>Stok kodu</span>
-            <input value={form.stockCode} onChange={(event) => onChange('stockCode', event.target.value)} />
+            <input disabled={!isEditing} value={form.stockCode} onChange={(event) => onChange('stockCode', event.target.value)} />
           </label>
           <label>
             <span>Ana barkod</span>
-            <input value={form.barcode} placeholder={barcodePlaceholder} onChange={(event) => onChange('barcode', event.target.value)} />
+            <input disabled={!isEditing} value={form.barcode} placeholder={barcodePlaceholder} onChange={(event) => onChange('barcode', event.target.value)} />
           </label>
           <label className="wide-field">
             <span>Ürün adı</span>
-            <input value={form.productName} onChange={(event) => onChange('productName', event.target.value)} />
+            <input disabled={!isEditing} value={form.productName} onChange={(event) => onChange('productName', event.target.value)} />
           </label>
         </div>
         <div className="product-form-section classification-section">
@@ -34,6 +34,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <span>Marka</span>
             <SuggestedTextInput
               ariaLabel="Ürün markası"
+              disabled={!isEditing}
               name="product-card-brand"
               options={suggestions.brands}
               placeholder="Yaz ve mevcut markalardan seç"
@@ -45,6 +46,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <span>Kategori</span>
             <SuggestedTextInput
               ariaLabel="Ürün kategorisi"
+              disabled={!isEditing}
               name="product-card-category"
               options={suggestions.categories}
               placeholder="Yaz ve mevcut kategorilerden seç"
@@ -56,6 +58,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <span>Ana tedarikçi</span>
             <SuggestedTextInput
               ariaLabel="Ana tedarikçi"
+              disabled={!isEditing}
               name="product-card-supplier"
               options={suggestions.suppliers}
               placeholder="Yaz ve mevcut tedarikçilerden seç"
@@ -68,7 +71,7 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
           <h3>Fiyat</h3>
           <label>
             <span>Para birimi</span>
-            <select value={form.currency} onChange={(event) => onChange('currency', event.target.value)}>
+            <select disabled={!isEditing} value={form.currency} onChange={(event) => onChange('currency', event.target.value)}>
               <option value="TRY">TRY</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
@@ -76,15 +79,16 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
           </label>
           <label>
             <span>Satış fiyatı</span>
-            <input type="number" step="0.01" value={form.salePrice} onChange={(event) => onChange('salePrice', event.target.value)} />
+            <input disabled={!isEditing} type="number" step="0.01" value={form.salePrice} onChange={(event) => onChange('salePrice', event.target.value)} />
           </label>
           <label>
             <span>Alış fiyatı</span>
-            <input type="number" step="0.01" value={form.purchasePrice} onChange={(event) => onChange('purchasePrice', event.target.value)} />
+            <input disabled={!isEditing} type="number" step="0.01" value={form.purchasePrice} onChange={(event) => onChange('purchasePrice', event.target.value)} />
           </label>
           <label>
             <span>Alış iskontosu %</span>
             <input
+              disabled={!isEditing}
               max="100"
               min="0"
               type="number"
@@ -101,8 +105,8 @@ export function ProductCardForm({ product, form, mode, suggestions, onChange }) 
             <input readOnly value={product.status} />
           </label>
           <div className="product-form-mini-card">
-            <strong>{mode === 'create' ? 'Yeni kayıt' : 'Güncelleme'}</strong>
-            <span>Önerili alanlar mevcut kartlardan beslenir; yeni değer yazılabilir.</span>
+            <strong>{mode === 'create' ? 'Yeni kayıt' : isEditing ? 'Düzenleme açık' : 'İzleme modu'}</strong>
+            <span>{isEditing ? 'Alanlar düzenlenebilir.' : 'Yanlışlıkla değişiklik olmaması için alanlar kilitli.'}</span>
           </div>
         </div>
       </div>

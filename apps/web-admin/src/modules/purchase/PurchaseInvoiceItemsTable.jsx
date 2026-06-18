@@ -77,8 +77,11 @@ export function PurchaseInvoiceItemsTable({
                 >
                   <td className="code-cell">{item.stockCode}</td>
                   <td>{item.barcode}</td>
-                  <td>{item.productName}</td>
-                  <td className="money-cell">
+                  <td className="invoice-product-cell">
+                    <strong>{item.productName}</strong>
+                    <small>{item.stockCode} / {item.barcode}</small>
+                  </td>
+                  <td className="money-cell invoice-quantity-cell in-cell">
                     {isReadonly ? item.quantity : (
                       <input
                         min="1"
@@ -88,8 +91,8 @@ export function PurchaseInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td>{item.currency}</td>
-                  <td className="money-cell">
+                  <td><span className="currency-pill">{item.currency}</span></td>
+                  <td className="money-cell invoice-price-cell">
                     {isReadonly ? formatMoney(item.purchasePrice, item.currency) : (
                       <input
                         min="0.01"
@@ -100,7 +103,7 @@ export function PurchaseInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td className="money-cell">
+                  <td className="money-cell invoice-discount-cell">
                     {isReadonly ? `%${item.lineDiscountRate}` : (
                       <input
                         min="0"
@@ -111,10 +114,10 @@ export function PurchaseInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
+                  <td className="money-cell invoice-total-cell">{formatMoney(lineTotal, item.currency)}</td>
                   <td className="money-cell purchase-cost-try">{formatMoney(lineCostTry, 'TRY')}</td>
                   <td className="money-cell purchase-cost-try">{formatMoney(unitCostTry, 'TRY')}</td>
-                  <td className="purchase-stock-in">{item.stockEffect}</td>
+                  <td><span className="purchase-stock-in">{item.stockEffect}</span></td>
                   <td>{item.note}</td>
                   {!isReadonly && (
                     <td>

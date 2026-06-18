@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { ledgerTargetActionLabel, resolveLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(amount, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -86,12 +87,6 @@ function filterMovements(movements, filter) {
   return movements;
 }
 
-function targetButtonLabel(row) {
-  if (row.sourceType === 'sales_invoice') return 'Satış Fişi';
-  if (row.sourceType === 'purchase_invoice') return 'Alış Fişi';
-  return 'Hareket';
-}
-
 function unitPriceLabel(row) {
   if (row.unitPrice === null || row.unitPrice === undefined) return '-';
   return formatMoney(row.unitPrice, row.currency || 'TRY');
@@ -160,15 +155,30 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
               </tr>
             </thead>
             <tbody>
-              {visibleMovements.map((row) => (
-                <tr className={`clickable-row ${movementClass(row)}`} key={row.id} onClick={() => onOpenMovement(row)}>
+              {visibleMovements.map((row) => {
+                const canOpen = Boolean(resolveLedgerTarget(row));
+
+                return (
+                <tr className={`${canOpen ? 'clickable-row' : ''} ${movementClass(row)}`} key={row.id} onClick={() => canOpen && onOpenMovement(row)}>
                   <td>{row.documentDate || '-'}</td>
                   <td>{movementLabel(row)}</td>
-                  <td className="code-cell">{row.sourceDocumentNo || '-'}</td>
+                  <td>
+                    <button
+                      className="document-link-button"
+                      disabled={!canOpen}
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenMovement(row);
+                      }}
+                    >
+                      {row.sourceDocumentNo || '-'}
+                    </button>
+                  </td>
                   <td>
                     {onOpenParty && (row.customerId || row.supplierId) ? (
                       <button
-                        className="link-button"
+                        className="document-link-button party"
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
@@ -188,13 +198,14 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
                     <div className="row-action-group compact-actions">
                       <button
                         className="mini-button"
+                        disabled={!canOpen}
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
                           onOpenMovement(row);
                         }}
                       >
-                        {targetButtonLabel(row)}
+                        {canOpen ? ledgerTargetActionLabel(row) : 'Belge Yok'}
                       </button>
                       {onOpenParty && (row.customerId || row.supplierId) ? (
                         <button
@@ -211,7 +222,8 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

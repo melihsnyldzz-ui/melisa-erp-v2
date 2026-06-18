@@ -3,25 +3,32 @@ import React from 'react';
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
-    currency,
+    currency: currency || 'TRY',
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(Number(amount || 0));
 }
 
-const columns = [
-  ['code', 'Cari kodu'],
-  ['name', 'Müşteri / tedarikçi adı'],
-  ['phone', 'Telefon'],
-  ['city', 'Şehir'],
-  ['country', 'Ülke'],
-  ['currency', 'Para birimi'],
-  ['type', 'Cari tipi'],
-  ['balance', 'Bakiye'],
-  ['lastTransactionDate', 'Son işlem tarihi'],
-  ['status', 'Aktif / pasif'],
-];
+function renderCell(row, columnKey) {
+  if (columnKey === 'code') {
+    return <td className="code-cell">{row.code}</td>;
+  }
 
-export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow, onSort, sortConfig }) {
+  if (columnKey === 'balance') {
+    return (
+      <td className={`money-cell ${row.balance < 0 ? 'customer-payable' : ''}`}>
+        {formatMoney(row.balance, row.currency)}
+      </td>
+    );
+  }
+
+  if (columnKey === 'status') {
+    return <td className={row.status === 'Aktif' ? 'status-active' : 'status-passive'}>{row.status}</td>;
+  }
+
+  return <td>{row[columnKey] ?? '-'}</td>;
+}
+
+export function CustomerListTable({ columns, rows, selectedRowId, onOpenRow, onSelectRow, onSort, sortConfig }) {
   function sortMark(key) {
     if (sortConfig.key !== key) {
       return '';
@@ -35,10 +42,10 @@ export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow,
       <table className="customer-table">
         <thead>
           <tr>
-            {columns.map(([key, label]) => (
-              <th key={key}>
-                <button className="table-sort-button" onClick={() => onSort(key)} type="button">
-                  {label}{sortMark(key)}
+            {columns.map((column) => (
+              <th key={column.key} style={{ width: column.width }}>
+                <button className="table-sort-button" onClick={() => onSort(column.key)} type="button">
+                  {column.label}{sortMark(column.key)}
                 </button>
               </th>
             ))}
@@ -55,18 +62,9 @@ export function CustomerListTable({ rows, selectedRowId, onOpenRow, onSelectRow,
               onClick={() => onSelectRow(row.id)}
               onDoubleClick={() => onOpenRow(row.id)}
             >
-              <td className="code-cell">{row.code}</td>
-              <td>{row.name}</td>
-              <td>{row.phone}</td>
-              <td>{row.city}</td>
-              <td>{row.country}</td>
-              <td>{row.currency}</td>
-              <td>{row.type}</td>
-              <td className={`money-cell ${row.balance < 0 ? 'customer-payable' : ''}`}>
-                {formatMoney(row.balance, row.currency)}
-              </td>
-              <td>{row.lastTransactionDate}</td>
-              <td className={row.status === 'Aktif' ? 'status-active' : 'status-passive'}>{row.status}</td>
+              {columns.map((column) => (
+                <React.Fragment key={column.key}>{renderCell(row, column.key)}</React.Fragment>
+              ))}
             </tr>
           ))}
         </tbody>

@@ -1,3 +1,15 @@
+function movementKind(row = {}) {
+  return String(row.documentType || row.sourceType || row.movementType || row.type || '').toLowerCase();
+}
+
+function movementDocumentId(row = {}) {
+  return row.salesInvoiceId || row.purchaseInvoiceId || row.documentId || row.sourceId || row.invoiceId;
+}
+
+function movementDocumentNo(row = {}) {
+  return row.documentNo || row.sourceDocumentNo || row.invoiceNo;
+}
+
 export function resolveLedgerTarget(row = {}) {
   if (row.targetScreen && row.targetPayload) {
     return {
@@ -7,51 +19,55 @@ export function resolveLedgerTarget(row = {}) {
     };
   }
 
-  if (row.salesInvoiceId) {
+  const kind = movementKind(row);
+  const documentId = movementDocumentId(row);
+  const documentNo = movementDocumentNo(row);
+
+  if (row.salesInvoiceId || kind.includes('sales')) {
     return {
       screen: 'sales-invoice',
       payload: {
-        salesDraftId: row.salesInvoiceId,
-        invoiceNo: row.documentNo,
-        tabLabel: row.documentNo ? `Satış Fişi: ${row.documentNo}` : undefined,
+        salesDraftId: row.salesInvoiceId || documentId,
+        invoiceNo: documentNo,
+        tabLabel: documentNo ? `Satış Fişi: ${documentNo}` : undefined,
       },
       reason: 'sales-invoice',
     };
   }
 
-  if (row.purchaseInvoiceId) {
+  if (row.purchaseInvoiceId || kind.includes('purchase')) {
     return {
       screen: 'purchase-invoice',
       payload: {
-        purchaseDraftId: row.purchaseInvoiceId,
-        invoiceNo: row.documentNo,
-        tabLabel: row.documentNo ? `Alış Fişi: ${row.documentNo}` : undefined,
+        purchaseDraftId: row.purchaseInvoiceId || documentId,
+        invoiceNo: documentNo,
+        tabLabel: documentNo ? `Alış Fişi: ${documentNo}` : undefined,
       },
       reason: 'purchase-invoice',
     };
   }
 
-  if (row.movementType === 'collection') {
+  if (row.movementType === 'collection' || kind === 'collection') {
     return {
       screen: 'collections-overview',
       payload: {
         mode: 'collection',
         movementId: row.id,
         customerId: row.customerId,
-        tabLabel: row.documentNo ? `Tahsilat: ${row.documentNo}` : 'Tahsilat',
+        tabLabel: documentNo ? `Tahsilat: ${documentNo}` : 'Tahsilat',
       },
       reason: 'collection',
     };
   }
 
-  if (row.movementType === 'payment') {
+  if (row.movementType === 'payment' || kind === 'payment') {
     return {
       screen: 'collections-overview',
       payload: {
         mode: 'payment',
         movementId: row.id,
         supplierId: row.supplierId,
-        tabLabel: row.documentNo ? `Ödeme: ${row.documentNo}` : 'Ödeme',
+        tabLabel: documentNo ? `Ödeme: ${documentNo}` : 'Ödeme',
       },
       reason: 'payment',
     };
@@ -95,19 +111,21 @@ export function openLedgerTarget(row, onOpenScreen) {
 }
 
 export function ledgerTargetActionLabel(row = {}) {
-  if (row.movementType === 'collection') {
+  const kind = movementKind(row);
+
+  if (row.movementType === 'collection' || kind === 'collection') {
     return 'Tahsilata Git';
   }
 
-  if (row.movementType === 'payment') {
+  if (row.movementType === 'payment' || kind === 'payment') {
     return 'Ödemeye Git';
   }
 
-  if (row.purchaseInvoiceId || row.movementType === 'purchase_invoice' || row.movementType === 'purchase_invoice_cancel') {
+  if (row.purchaseInvoiceId || kind.includes('purchase')) {
     return 'Alış Fişine Git';
   }
 
-  if (row.salesInvoiceId || row.movementType === 'sales_invoice' || row.movementType === 'sales_invoice_cancel') {
+  if (row.salesInvoiceId || kind.includes('sales')) {
     return 'Satış Fişine Git';
   }
 

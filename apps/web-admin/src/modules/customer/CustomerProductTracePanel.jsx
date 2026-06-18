@@ -65,7 +65,7 @@ export function CustomerProductTracePanel({ rows = [], onOpenInvoice, onOpenProd
                 <tr key={row.id} className={row.invoiceStatus === 'cancelled' ? 'cancel-row' : ''}>
                   <td>{row.documentDate || '-'}</td>
                   <td>
-                    <button type="button" className="link-button" onClick={() => onOpenInvoice?.(row)}>
+                    <button type="button" className="document-link-button" onClick={() => onOpenInvoice?.(row)}>
                       {row.documentNo}
                     </button>
                   </td>
@@ -77,7 +77,7 @@ export function CustomerProductTracePanel({ rows = [], onOpenInvoice, onOpenProd
                   <td className="money-cell">{row.grossProfitTry === null ? '-' : formatMoney(row.grossProfitTry, 'TRY')}</td>
                   <td>{formatPercent(row.grossProfitRate)}</td>
                   <td>
-                    <button type="button" className="mini-button" onClick={() => onOpenProduct?.(row)}>Ürün</button>
+                    <button type="button" className="mini-button ghost" onClick={() => onOpenProduct?.(row)}>Ürün</button>
                   </td>
                 </tr>
               ))}

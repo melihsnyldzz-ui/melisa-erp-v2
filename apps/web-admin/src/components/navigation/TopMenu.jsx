@@ -120,11 +120,22 @@ export function TopMenu({
               </div>
               {viewOptionItems.map((item) => (
                 <label className="view-option-row" key={item.key}>
-                  <input
-                    checked={Boolean(viewOptions[item.key])}
-                    onChange={(event) => onUpdateViewOption(item.key, event.target.checked)}
-                    type="checkbox"
-                  />
+                  {item.type === 'select' ? (
+                    <select
+                      value={viewOptions[item.key] || item.values?.[0]?.value || ''}
+                      onChange={(event) => onUpdateViewOption(item.key, event.target.value)}
+                    >
+                      {(item.values || []).map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      checked={Boolean(viewOptions[item.key])}
+                      onChange={(event) => onUpdateViewOption(item.key, event.target.checked)}
+                      type="checkbox"
+                    />
+                  )}
                   <span>
                     <strong>{item.label}</strong>
                     <small>{item.description}</small>

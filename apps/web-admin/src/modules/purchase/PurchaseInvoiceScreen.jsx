@@ -41,6 +41,12 @@ function formatExchangeRate(currency, value) {
   return `${currency || 'TRY'} ${Number(value || 1).toFixed(4)}`;
 }
 
+function resolveImageUrl(imageUrl) {
+  if (!imageUrl) return '';
+  if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl;
+  return `${apiConfig.baseUrl}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
+}
+
 function roundCurrency(value) {
   return Math.round(Number(value || 0) * 10000) / 10000;
 }
@@ -179,6 +185,10 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     () => supplierOptions.find((item) => String(item.id) === String(invoice.supplierId)) || null,
     [invoice.supplierId, supplierOptions],
   );
+  const selectedPurchaseProduct = useMemo(
+    () => purchaseProductOptions.find((item) => String(item.productId) === String(productToAddId)) || null,
+    [productToAddId, purchaseProductOptions],
+  );
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -260,6 +270,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           barcode: product.barcodeMasked || '-',
           matchedBarcode: product.matchedBarcode || null,
           productName: product.productName,
+          imageUrl: resolveImageUrl(product.imageUrl),
           currency: product.currency,
           purchasePrice: Number(product.purchasePrice || 0),
           lineDiscountRate: Number(product.purchaseDiscountRate || 0),
@@ -587,6 +598,13 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     markDirty('Ürün alış taslağına eklendi; gerçek stok artışı yok.');
   }
 
+  function addDraftItemFromKeyboard(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addDraftItem();
+    }
+  }
+
   function updateDraftItem(itemId, field, value) {
     if ((field === 'quantity' || field === 'purchasePrice') && value <= 0) {
       setErrorMessage(field === 'quantity' ? 'Miktar 0 veya negatif olamaz.' : 'Al fiyat 0 veya negatif olamaz.');
@@ -865,7 +883,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
             </label>
             <label>
               <span>Tedarikçi seç</span>
-              <select value={invoice.supplierId || ''} disabled={isReadonly} onChange={(event) => selectSupplier(event.target.value)}>
+              <select value={invoice.supplierId || ''} disabled={isReadonly} onChange={(event) => selectSupplier(event.target.value)} onKeyDown={addDraftItemFromKeyboard}>
                 <option value="">Tedarikçi seçin</option>
                 {supplierOptions.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>
@@ -891,11 +909,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                   ));
                   setProductToAddId(query && match ? String(match.productId) : '');
                 }}
+                onKeyDown={addDraftItemFromKeyboard}
               />
             </label>
             <label>
               <span>Ürün seç</span>
-              <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)}>
+              <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)} onKeyDown={addDraftItemFromKeyboard}>
                 <option value="">Ürün seçin</option>
                 {filteredProducts.map((product) => (
                   <option key={product.productId} value={product.productId}>
@@ -905,6 +924,34 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
               </select>
             </label>
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satır Ekle</button>
+          </div>
+          <div className="quick-decision-strip purchase-decision-strip">
+            <div className={`quick-decision-card ${selectedSupplier ? 'is-ready' : ''}`}>
+              <span>Tedarikçi</span>
+              <strong>{selectedSupplier ? selectedSupplier.supplierName : 'Tedarikçi seçilmedi'}</strong>
+              <small>
+                {selectedSupplier
+                  ? `${selectedSupplier.supplierCode || '-'} / ${selectedSupplier.currency} / ${formatMoney(selectedSupplier.balance, selectedSupplier.currency)}`
+                  : 'Alış satırı için önce tedarikçi seçin'}
+              </small>
+            </div>
+            <div className={`quick-decision-card ${selectedPurchaseProduct ? 'is-ready' : ''}`}>
+              {selectedPurchaseProduct?.imageUrl ? (
+                <img className="quick-decision-image" alt={selectedPurchaseProduct.productName || selectedPurchaseProduct.stockCode || 'Urun'} src={selectedPurchaseProduct.imageUrl} />
+              ) : null}
+              <span>Ürün</span>
+              <strong>{selectedPurchaseProduct ? selectedPurchaseProduct.productName : 'Ürün seçilmedi'}</strong>
+              <small>
+                {selectedPurchaseProduct
+                  ? `${selectedPurchaseProduct.stockCode} / ${formatMoney(selectedPurchaseProduct.purchasePrice, selectedPurchaseProduct.currency)} / isk %${Number(selectedPurchaseProduct.lineDiscountRate || 0)}`
+                  : 'Barkod, stok kodu veya ürün adı yazın'}
+              </small>
+            </div>
+            <div className="quick-decision-card quick-decision-price">
+              <span>Alış</span>
+              <strong>İsk %{Number(supplierRate || 0)} / {invoice.invoiceCurrency || 'TRY'}</strong>
+              <small>Enter veya Satır Ekle ile taslağa alınır.</small>
+            </div>
           </div>
           {selectedSupplier && (
             <div className="purchase-supplier-snapshot">

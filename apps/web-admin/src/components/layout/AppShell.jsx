@@ -11,6 +11,8 @@ import { defaultViewOptions, readStoredViewOptions, viewOptionsStorageKey } from
 import { getRoleScreenIds, readStoredRoleView, roleViewStorageKey } from '../../config/roleViews.js';
 
 function getShellClassName(isDemoMode, viewOptions) {
+  const rowDensity = viewOptions.rowDensity || (viewOptions.compactRows ? 'compact' : 'comfortable');
+
   return [
     'erp-shell',
     isDemoMode ? 'demo-mode-shell' : '',
@@ -27,6 +29,7 @@ function getShellClassName(isDemoMode, viewOptions) {
     !viewOptions.showToolbarSubtitles ? 'hide-toolbar-subtitles' : '',
     !viewOptions.showConnectionDetails ? 'hide-connection-details' : '',
     viewOptions.compactRows ? 'compact-rows-shell' : 'comfortable-rows-shell',
+    `row-density-${rowDensity}`,
   ].filter(Boolean).join(' ');
 }
 

@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   BarChart3,
-  ChevronDown,
   ClipboardList,
   Database,
   FileCog,
@@ -21,8 +20,6 @@ import {
 } from 'lucide-react';
 import { sidebarGroups } from '../../data/mockNavigationData.js';
 
-const sidebarAccordionStorageKey = 'melisaErpSidebarOpenGroupV2';
-
 const favoriteScreens = [
   'dashboard',
   'sales-invoice',
@@ -35,79 +32,81 @@ const favoriteScreens = [
 ];
 
 const groupDisplayLabels = {
-  Operasyon: 'Operasyon',
-  Dashboard: 'Ana Sayfa',
-  'Müşteri Carileri': 'Müşteri Carileri',
-  'Tedarikçi Carileri': 'Tedarikçi Carileri',
-  'Stok Yönetimi': 'Stok Yönetimi',
-  'Cari Hesaplar': 'Cari Hesaplar',
-  'Satış Yönetimi': 'Satış Yönetimi',
-  'Alış Yönetimi': 'Alış Yönetimi',
-  'Finans Yönetimi': 'Finans Yönetimi',
-  'Satış Kanalları': 'Satış Kanalları',
-  'Depo / Terminal': 'Depo / Terminal',
-  Raporlar: 'Raporlar',
-  Tanımlar: 'Tanımlar',
-  Ayarlar: 'Ayarlar',
-  Güvenlik: 'Güvenlik',
+  operasyon: 'Operasyon',
+  dashboard: 'Ana Sayfa',
+  'musteri carileri': 'Musteri Carileri',
+  'tedarikci carileri': 'Tedarikci Carileri',
+  'stok yonetimi': 'Stok Yonetimi',
+  'cari hesaplar': 'Cari Hesaplar',
+  'satis yonetimi': 'Satis Yonetimi',
+  'alis yonetimi': 'Alis Yonetimi',
+  'finans yonetimi': 'Finans Yonetimi',
+  'satis kanallari': 'Satis Kanallari',
+  'depo / terminal': 'Depo / Terminal',
+  raporlar: 'Raporlar',
+  tanimlar: 'Tanimlar',
+  ayarlar: 'Ayarlar',
+  guvenlik: 'Guvenlik',
 };
 
 const itemDisplayLabels = {
-  dashboard: 'Operasyon Masası',
+  dashboard: 'Operasyon Masasi',
   'stock-list': 'Stok Listesi',
-  'product-card': 'Ürün Kartı',
+  'product-card': 'Urun Karti',
   'price-list': 'Fiyat Listesi',
   'stock-movements': 'Stok Hareketleri',
-  'stock-valuation': 'Stok Değerleme',
-  'stock-count': 'Stok Sayım',
-  'customer-list': 'Müşteri Cari Listesi',
-  'customer-card': 'Müşteri Cari Kartı',
-  'customer-movements': 'Müşteri Cari Hareketleri',
-  'customer-statement': 'Müşteri Ekstre',
-  'supplier-list': 'Tedarikçi Cari Listesi',
-  'supplier-card': 'Tedarikçi Cari Kartı',
-  'supplier-movements': 'Tedarikçi Cari Hareketleri',
-  'supplier-statement': 'Tedarikçi Ekstre',
-  'sales-invoice': 'Yeni Satış Fişi',
-  'sales-invoice-list': 'Satış Fişleri',
+  'stock-valuation': 'Stok Degerleme',
+  'stock-count': 'Stok Sayim',
+  'customer-list': 'Musteri Cari Listesi',
+  'customer-card': 'Musteri Cari Karti',
+  'customer-movements': 'Musteri Cari Hareketleri',
+  'customer-statement': 'Musteri Ekstre',
+  'supplier-list': 'Tedarikci Cari Listesi',
+  'supplier-card': 'Tedarikci Cari Karti',
+  'supplier-movements': 'Tedarikci Cari Hareketleri',
+  'supplier-statement': 'Tedarikci Ekstre',
+  'sales-invoice': 'Yeni Satis Fisi',
+  'sales-invoice-list': 'Satis Fisleri',
   'sales-offers': 'Teklifler',
-  'sales-orders': 'Siparişler',
-  'purchase-invoice': 'Yeni Alış Fişi',
-  'purchase-invoice-list': 'Alış Fişleri',
-  'finance-overview': 'Finans Özeti',
+  'sales-orders': 'Siparisler',
+  'purchase-invoice': 'Yeni Alis Fisi',
+  'purchase-invoice-list': 'Alis Fisleri',
+  'bulk-purchase-entry': 'Toplu Alis Girisi',
+  'finance-overview': 'Finans Ozeti',
   'collections-overview': 'Tahsilatlar',
-  'cash-customers': 'Peşin Cariler',
+  'cash-customers': 'Pesin Cariler',
   'cash-bank-ledger': 'Kasa/Banka Defteri',
   'accounting-journal': 'Muhasebe Defteri',
   'accounting-control': 'Muhasebe Kontrol',
   'catalog-list': 'Katalog Listesi',
-  'whatsapp-planner': 'WhatsApp Paylaşım',
-  'terminal-overview': 'Terminal Ekranları',
-  'import-foundation': 'Excel / CSV Aktarım',
+  'whatsapp-planner': 'WhatsApp Paylasim',
+  'whatsapp-web-queue': 'WhatsApp Web Kuyrugu',
+  'terminal-overview': 'Terminal Ekranlari',
+  'import-foundation': 'Excel / CSV Aktarim',
   'reports-overview': 'Rapor Merkezi',
-  'export-center': 'Çıktı Merkezi',
-  'definitions-overview': 'Tanım Listeleri',
-  'settings-overview': 'Sistem Ayarları',
-  'currency-rates': 'Döviz Kurları',
+  'export-center': 'Cikti Merkezi',
+  'definitions-overview': 'Tanim Listeleri',
+  'settings-overview': 'Sistem Ayarlari',
+  'currency-rates': 'Doviz Kurlari',
   'auth-overview': 'Yetki ve Denetim',
 };
 
 const groupIcons = {
-  Dashboard: LayoutDashboard,
-  Operasyon: LayoutDashboard,
-  'Müşteri Carileri': Users,
-  'Tedarikçi Carileri': ClipboardList,
-  'Stok Yönetimi': Package,
-  'Cari Hesaplar': Users,
-  'Satış Yönetimi': ReceiptText,
-  'Alış Yönetimi': ClipboardList,
-  'Finans Yönetimi': WalletCards,
-  'Satış Kanalları': Tags,
-  'Depo / Terminal': Terminal,
-  Raporlar: BarChart3,
-  Tanımlar: FolderKanban,
-  Ayarlar: Settings,
-  Güvenlik: FileCog,
+  dashboard: LayoutDashboard,
+  operasyon: LayoutDashboard,
+  'musteri carileri': Users,
+  'tedarikci carileri': ClipboardList,
+  'stok yonetimi': Package,
+  'cari hesaplar': Users,
+  'satis yonetimi': ReceiptText,
+  'alis yonetimi': ClipboardList,
+  'finans yonetimi': WalletCards,
+  'satis kanallari': Tags,
+  'depo / terminal': Terminal,
+  raporlar: BarChart3,
+  tanimlar: FolderKanban,
+  ayarlar: Settings,
+  guvenlik: FileCog,
 };
 
 const itemIcons = {
@@ -132,6 +131,7 @@ const itemIcons = {
   'sales-orders': ClipboardList,
   'purchase-invoice': ClipboardList,
   'purchase-invoice-list': ClipboardList,
+  'bulk-purchase-entry': ClipboardList,
   'finance-overview': WalletCards,
   'collections-overview': WalletCards,
   'cash-customers': WalletCards,
@@ -140,6 +140,7 @@ const itemIcons = {
   'accounting-control': FileCog,
   'catalog-list': Tags,
   'whatsapp-planner': Tags,
+  'whatsapp-web-queue': Tags,
   'terminal-overview': Terminal,
   'import-foundation': Database,
   'reports-overview': BarChart3,
@@ -154,12 +155,12 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   const activeScreenId = activeTab.screenId ?? activeTab.id;
   const [searchTerm, setSearchTerm] = useState('');
   const visibleGroups = useMemo(() => (roleScreenIds
-      ? sidebarGroups
-        .map((group) => ({
+    ? sidebarGroups
+      .map((group) => ({
         ...group,
         items: group.items.filter((item) => roleScreenIds.has(item.screenId)),
       }))
-        .filter((group) => group.items.length > 0)
+      .filter((group) => group.items.length > 0)
     : sidebarGroups), [roleScreenIds]);
   const favoriteItems = useMemo(() => (
     favoriteScreens
@@ -174,8 +175,8 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
       .map((group) => ({
         ...group,
         items: group.items.filter((item) => (
-          normalizeSearch(getItemLabel(item)).includes(normalizedSearch) ||
-          normalizeSearch(getGroupLabel(group.title)).includes(normalizedSearch)
+          normalizeSearch(getItemLabel(item)).includes(normalizedSearch)
+          || normalizeSearch(getGroupLabel(group.title)).includes(normalizedSearch)
         )),
       }))
       .filter((group) => group.items.length > 0);
@@ -183,95 +184,58 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   const activeGroupTitle = useMemo(() => (
     visibleGroups.find((group) => group.items.some((item) => item.screenId === activeScreenId))?.title
   ), [activeScreenId, visibleGroups]);
-  const [openGroupTitle, setOpenGroupTitle] = useState(() => readStoredOpenGroup(activeGroupTitle, visibleGroups));
-
-  useEffect(() => {
-    setOpenGroupTitle((currentGroupTitle) => {
-      const visibleTitles = new Set(visibleGroups.map((group) => group.title));
-
-      if (activeGroupTitle) {
-        window.localStorage.setItem(sidebarAccordionStorageKey, activeGroupTitle);
-        return activeGroupTitle;
-      }
-
-      if (currentGroupTitle && visibleTitles.has(currentGroupTitle)) return currentGroupTitle;
-
-      return visibleGroups[0]?.title || '';
-    });
-  }, [activeGroupTitle, visibleGroups]);
-
-  const toggleGroup = useCallback((groupTitle) => {
-    setOpenGroupTitle((currentGroupTitle) => {
-      const nextGroupTitle = currentGroupTitle === groupTitle ? '' : groupTitle;
-      window.localStorage.setItem(sidebarAccordionStorageKey, nextGroupTitle);
-      return nextGroupTitle;
-    });
-  }, []);
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar sidebar-flat">
       <div className="sidebar-header">
-        <strong>Modül Paneli</strong>
+        <strong>Modul Paneli</strong>
         <span>{activeTab.module} / {activeTab.type}</span>
         <label className="sidebar-search">
           <Search size={14} />
           <input
-            placeholder="Menüde ara"
+            placeholder="Menude ara"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
         </label>
       </div>
-      {!normalizedSearch && (
-        <section className="side-group favorites">
-          <h3><Star size={13} /> Sık Kullanılanlar</h3>
-          <div className="side-group-items">
-            {favoriteItems.map((item) => (
-              <SidebarItem
-                isActive={activeScreenId === item.screenId}
-                item={item}
-                key={`favorite-${item.screenId}`}
-                onOpenScreen={onOpenScreen}
-              />
-            ))}
-          </div>
+      <div className="sidebar-flat-body">
+        {!normalizedSearch && (
+          <section className="side-group favorites">
+            <h3><Star size={13} /> Sik Kullanilanlar</h3>
+            <div className="side-group-items">
+              {favoriteItems.map((item) => (
+                <SidebarItem
+                  isActive={activeScreenId === item.screenId}
+                  item={item}
+                  key={`favorite-${item.screenId}`}
+                  onOpenScreen={onOpenScreen}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+        {filteredGroups.map((group) => (
+          <SidebarGroup
+            activeGroupTitle={activeGroupTitle}
+            activeScreenId={activeScreenId}
+            group={group}
+            key={group.title}
+            onOpenScreen={onOpenScreen}
+          />
+        ))}
+        {filteredGroups.length === 0 && (
+          <div className="sidebar-empty">Menude eslesen ekran yok.</div>
+        )}
+        <section className="side-group compact connection-details">
+          <h3>Durum</h3>
+          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo mode' : 'aktif'}</p>
+          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'baglanti yok' : 'MELISA_ERP_V2'}</p>
+          <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
         </section>
-      )}
-      {filteredGroups.map((group) => (
-        <SidebarGroup
-          activeScreenId={activeScreenId}
-          group={group}
-          isOpen={normalizedSearch ? true : openGroupTitle === group.title}
-          key={group.title}
-          onOpenScreen={onOpenScreen}
-          onToggleGroup={toggleGroup}
-        />
-      ))}
-      {filteredGroups.length === 0 && (
-        <div className="sidebar-empty">Menüde eşleşen ekran yok.</div>
-      )}
-      <section className="side-group compact connection-details">
-        <h3>Durum</h3>
-        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo mode' : 'aktif'}</p>
-        <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'bağlantı yok' : 'MELISA_ERP_V2'}</p>
-        <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
-      </section>
+      </div>
     </aside>
   );
-}
-
-function readStoredOpenGroup(activeGroupTitle, visibleGroups) {
-  try {
-    const storedGroup = window.localStorage.getItem(sidebarAccordionStorageKey) || '';
-    const visibleTitles = new Set(visibleGroups.map((group) => group.title));
-
-    if (activeGroupTitle) return activeGroupTitle;
-    if (storedGroup && visibleTitles.has(storedGroup)) return storedGroup;
-  } catch {
-    // Fall through to default group.
-  }
-
-  return visibleGroups[0]?.title || '';
 }
 
 function normalizeSearch(value) {
@@ -283,45 +247,42 @@ function normalizeSearch(value) {
 }
 
 function getGroupLabel(title) {
-  return groupDisplayLabels[title] || title;
+  return groupDisplayLabels[getGroupKey(title)] || title;
+}
+
+function getGroupKey(title) {
+  return normalizeSearch(title).replace(/\s+/g, ' ');
 }
 
 function getItemLabel(item) {
   return itemDisplayLabels[item.screenId] || item.label;
 }
 
-function SidebarGroup({ group, activeScreenId, isOpen, onOpenScreen, onToggleGroup }) {
-  const GroupIcon = groupIcons[group.title] || FolderKanban;
+function SidebarGroup({ group, activeGroupTitle, activeScreenId, onOpenScreen }) {
+  const GroupIcon = groupIcons[getGroupKey(group.title)] || FolderKanban;
+  const isCurrentGroup = activeGroupTitle === group.title;
 
   return (
-    <section className={isOpen ? 'side-group open' : 'side-group collapsed'}>
-      <button
-        aria-expanded={isOpen}
-        className="side-group-toggle"
-        onClick={() => onToggleGroup(group.title)}
-        type="button"
-      >
+    <section className={isCurrentGroup ? 'side-group flat-group current' : 'side-group flat-group'}>
+      <div className="flat-group-title">
         <span><GroupIcon size={13} strokeWidth={2.2} /> {getGroupLabel(group.title)}</span>
         <small>{group.items.length}</small>
-        <ChevronDown size={14} />
-      </button>
-      {isOpen ? (
-        <div className="side-group-items">
-          {group.items.map((item) => (
-            <SidebarItem
-              isActive={activeScreenId === item.screenId}
-              item={item}
-              key={`${group.title}-${item.label}`}
-              onOpenScreen={onOpenScreen}
-            />
-          ))}
-        </div>
-      ) : null}
+      </div>
+      <div className="side-group-items">
+        {group.items.map((item) => (
+          <SidebarItem
+            isActive={activeScreenId === item.screenId}
+            item={item}
+            key={`${group.title}-${item.label}`}
+            onOpenScreen={onOpenScreen}
+          />
+        ))}
+      </div>
     </section>
   );
 }
 
-function SidebarItem({ item, isActive, onOpenScreen }) {
+function SidebarItem({ item, isActive, groupTitle, onOpenScreen }) {
   const Icon = itemIcons[item.screenId] || FileText;
   const isComingSoon = Boolean(item.comingSoon);
   const label = getItemLabel(item);
@@ -335,7 +296,8 @@ function SidebarItem({ item, isActive, onOpenScreen }) {
     >
       <Icon size={14} strokeWidth={2.1} />
       <span>{label}</span>
-      {isComingSoon && <small>Hazır</small>}
+      {groupTitle ? <em>{getGroupLabel(groupTitle)}</em> : null}
+      {isComingSoon && <small>Hazir</small>}
     </button>
   );
 }

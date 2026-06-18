@@ -24,6 +24,7 @@ function buildOptions(options) {
 
 export function SuggestedTextInput({
   ariaLabel,
+  disabled = false,
   name,
   onChange,
   options,
@@ -38,6 +39,7 @@ export function SuggestedTextInput({
     <span className="suggested-input-wrap">
       <input
         aria-label={ariaLabel}
+        disabled={disabled}
         list={optionItems.length > 0 ? listId : undefined}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

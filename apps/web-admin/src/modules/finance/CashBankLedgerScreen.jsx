@@ -9,7 +9,7 @@ import {
   updateFinanceAccount,
 } from '../../services/financeApi.js';
 import { exportRowsToExcel, printFinanceReceipt, printRowsReport } from '../../utils/exportUtils.js';
-import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -385,6 +385,17 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
     openLedgerTarget(row, onOpenScreen);
   }
 
+  function openParty(row) {
+    if (row.partyType === 'supplier' && row.supplierId) {
+      onOpenScreen?.('supplier-card', { supplierId: row.supplierId, supplierCode: row.partyCode });
+      return;
+    }
+
+    if (row.partyType !== 'supplier' && row.customerId) {
+      onOpenScreen?.('customer-card', { customerId: row.customerId, customerCode: row.partyCode });
+    }
+  }
+
   function printLedgerReceipt(row) {
     printFinanceReceipt(buildReceipt(row));
   }
@@ -753,8 +764,16 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
                       <td><span className={`status-pill ${isIn ? 'success' : 'danger'}`}>{directionLabel(row)}</span></td>
                       <td>{accountLabel(row)}</td>
                       <td>{partyLabel(row)}</td>
-                      <td>{row.partyCode} / {row.partyName}</td>
-                      <td>{row.documentNo || '-'}</td>
+                      <td>
+                        <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
+                          {row.partyCode} / {row.partyName}
+                        </button>
+                      </td>
+                      <td>
+                        <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>
+                          {row.documentNo || '-'}
+                        </button>
+                      </td>
                       <td>{row.description || '-'}</td>
                       <td>{movementLabel(row.movementType)}</td>
                       <td className="ledger-credit">{isIn ? formatMoney(row.amount, row.currency) : '-'}</td>
@@ -765,7 +784,7 @@ export function CashBankLedgerScreen({ onOpenScreen }) {
                           Makbuz
                         </button>
                       </td>
-                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>Git</button></td>
+                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{ledgerTargetActionLabel(row)}</button></td>
                     </tr>
                   );
                 })}

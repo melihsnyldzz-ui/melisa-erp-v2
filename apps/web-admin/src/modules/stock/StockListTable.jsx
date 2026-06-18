@@ -1,22 +1,95 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) {
+function renderCell(row, columnKey, imagePreviewHandlers = {}) {
+  if (columnKey === 'imageUrl') {
+    return (
+      <td className="stock-image-cell">
+        {row.imageUrl ? (
+          <img
+            alt={row.name || row.stockCode || 'Urun'}
+            onMouseEnter={(event) => imagePreviewHandlers.show?.(row, event)}
+            onMouseLeave={imagePreviewHandlers.hide}
+            onMouseMove={imagePreviewHandlers.move}
+            src={row.imageUrl}
+          />
+        ) : (
+          <span className="stock-image-placeholder">Yok</span>
+        )}
+      </td>
+    );
+  }
+
+  if (columnKey === 'barcode') {
+    return (
+      <td title={row.primaryBarcode !== row.barcode ? `Ana barkod: ${row.primaryBarcode}` : row.barcode}>
+        {row.barcode}
+      </td>
+    );
+  }
+
+  if (columnKey === 'currentStock') {
+    return (
+      <td>
+        <span className={row.currentStock < 0 ? 'stock-pill negative' : row.currentStock === 0 ? 'stock-pill zero' : 'stock-pill positive'}>
+          {row.currentStock}
+        </span>
+      </td>
+    );
+  }
+
+  if (columnKey === 'status') {
+    return (
+      <td>
+        <span className={row.status === 'Pasif' ? 'status-badge passive' : 'status-badge active'}>
+          {row.status}
+        </span>
+      </td>
+    );
+  }
+
+  const moneyColumns = new Set(['salesPrice', 'purchasePrice']);
+  const className = [
+    columnKey === 'stockCode' ? 'code-cell' : '',
+    moneyColumns.has(columnKey) ? 'money-cell' : '',
+  ].filter(Boolean).join(' ');
+
+  return <td className={className || undefined}>{row[columnKey]}</td>;
+}
+
+export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow, columns }) {
+  const [imagePreview, setImagePreview] = useState(null);
+
+  function positionPreview(event) {
+    return {
+      left: Math.min(event.clientX + 18, window.innerWidth - 656),
+      top: Math.min(event.clientY + 18, window.innerHeight - 676),
+    };
+  }
+
+  const imagePreviewHandlers = {
+    show(row, event) {
+      setImagePreview({
+        imageUrl: row.imageUrl,
+        title: row.name || row.stockCode || 'Urun',
+        ...positionPreview(event),
+      });
+    },
+    move(event) {
+      setImagePreview((current) => (current ? { ...current, ...positionPreview(event) } : current));
+    },
+    hide() {
+      setImagePreview(null);
+    },
+  };
+
   return (
     <div className="stock-table-wrap">
       <table className="stock-table">
         <thead>
           <tr>
-            <th>Stok Kodu</th>
-            <th>Barkod</th>
-            <th>Ürün Adı</th>
-            <th>Marka</th>
-            <th>Kategori</th>
-            <th>PB</th>
-            <th>Satış Fiyatı</th>
-            <th>Alış Fiyatı</th>
-            <th>Mevcut Stok</th>
-            <th>Ana Tedarikçi</th>
-            <th>Durum</th>
+            {columns.map((column) => (
+              <th key={column.key} style={{ width: column.width }}>{column.label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -30,31 +103,22 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow }) 
               onClick={() => onSelectRow(row.id)}
               onDoubleClick={() => onOpenRow(row.id)}
             >
-              <td className="code-cell">{row.stockCode}</td>
-              <td title={row.primaryBarcode !== row.barcode ? `Ana barkod: ${row.primaryBarcode}` : row.barcode}>
-                {row.barcode}
-              </td>
-              <td>{row.name}</td>
-              <td>{row.brand}</td>
-              <td>{row.category}</td>
-              <td>{row.currency}</td>
-              <td className="money-cell">{row.salesPrice}</td>
-              <td className="money-cell">{row.purchasePrice}</td>
-              <td>
-                <span className={row.currentStock < 0 ? 'stock-pill negative' : row.currentStock === 0 ? 'stock-pill zero' : 'stock-pill positive'}>
-                  {row.currentStock}
-                </span>
-              </td>
-              <td>{row.supplier}</td>
-              <td>
-                <span className={row.status === 'Pasif' ? 'status-badge passive' : 'status-badge active'}>
-                  {row.status}
-                </span>
-              </td>
+              {columns.map((column) => (
+                <React.Fragment key={column.key}>{renderCell(row, column.key, imagePreviewHandlers)}</React.Fragment>
+              ))}
             </tr>
           ))}
         </tbody>
       </table>
+      {imagePreview && (
+        <div
+          className="stock-image-hover-preview"
+          style={{ left: imagePreview.left, top: imagePreview.top }}
+        >
+          <img alt={imagePreview.title} src={imagePreview.imageUrl} />
+          <span>{imagePreview.title}</span>
+        </div>
+      )}
     </div>
   );
 }

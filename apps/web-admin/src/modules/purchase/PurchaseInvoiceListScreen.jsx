@@ -1,17 +1,74 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { fetchPurchaseDrafts } from '../../services/invoiceDraftApi.js';
-import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { fetchPurchaseDrafts, fetchPurchaseInvoice } from '../../services/invoiceDraftApi.js';
+import { exportRowsToExcel, printBusinessDocument, printRowsReport } from '../../utils/exportUtils.js';
 
-function formatMoney(amount, currency) {
+function formatMoney(amount, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(Number(amount || 0));
 }
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString('tr-TR') : '-';
+}
+
+function statusLabel(status) {
+  const labels = {
+    DRAFT: 'Taslak',
+    FINALIZED: 'Kesinleşti',
+    CANCELLED: 'İptal',
+    ARCHIVED_TEST: 'Test Arşivi',
+  };
+
+  return labels[status] || status || '-';
+}
+
+function statusClass(status) {
+  if (status === 'FINALIZED') return 'success';
+  if (status === 'CANCELLED') return 'danger';
+  if (status === 'ARCHIVED_TEST') return 'passive';
+  return 'warning';
+}
+
+function documentNo(row) {
+  const statusWords = new Set(['DRAFT', 'FINALIZED', 'CANCELLED', 'ARCHIVED_TEST', 'Taslak', 'Kesinleşti', 'İptal', 'Test Arşivi']);
+  const candidates = [row?.documentNo, row?.invoiceNo, row?.receiptNo].filter(Boolean);
+  const value = candidates.find((candidate) => !statusWords.has(String(candidate)));
+
+  return value || (row?.id ? `#${row.id}` : '-');
+}
+
+function lineTotal(item) {
+  const price = item.unitPriceOriginal ?? item.purchasePrice ?? item.unitPrice ?? 0;
+  return Number(item.quantity || 0) * Number(price || 0);
+}
+
+const purchaseInvoiceColumns = [
+  { label: 'Fiş No', key: 'documentNo', required: true },
+  { label: 'Tarih', key: 'date' },
+  { label: 'Tedarikçi', key: 'supplierName', required: true },
+  { label: 'PB', key: 'currency' },
+  { label: 'Toplam', key: 'totalAmount', required: true },
+  { label: 'Durum', key: 'status' },
+  { label: 'Satır', key: 'itemCount' },
+  { label: 'İşlem', key: 'action', required: true },
+];
+
+const purchaseColumnStorageKey = 'melisa.purchaseInvoiceList.visibleColumns.v1';
+const defaultVisiblePurchaseColumns = purchaseInvoiceColumns.reduce((next, column) => ({
+  ...next,
+  [column.key]: true,
+}), {});
+
+function readVisiblePurchaseColumns() {
+  try {
+    const stored = window.localStorage.getItem(purchaseColumnStorageKey);
+    return stored ? { ...defaultVisiblePurchaseColumns, ...JSON.parse(stored) } : defaultVisiblePurchaseColumns;
+  } catch {
+    return defaultVisiblePurchaseColumns;
+  }
 }
 
 export function PurchaseInvoiceListScreen({ onOpenScreen }) {
@@ -20,14 +77,81 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [rows, setRows] = useState([]);
   const [selectedRowId, setSelectedRowId] = useState(null);
+  const [selectedDetail, setSelectedDetail] = useState(null);
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [detailErrorMessage, setDetailErrorMessage] = useState('');
+  const [previewWidth, setPreviewWidth] = useState(480);
+  const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(readVisiblePurchaseColumns);
+  const resizeStateRef = useRef(null);
 
   const selectedRow = useMemo(
     () => rows.find((row) => row.id === selectedRowId) ?? null,
     [rows, selectedRowId],
   );
+
+  const selectedItems = selectedDetail?.items || [];
+  const hiddenColumnClasses = useMemo(() => (
+    purchaseInvoiceColumns
+      .filter((column) => visibleColumns[column.key] === false && !column.required)
+      .map((column) => `hide-col-${column.key}`)
+      .join(' ')
+  ), [visibleColumns]);
+  const selectedCurrency = selectedDetail?.documentCurrency || selectedDetail?.currency || selectedRow?.currency || 'TRY';
+  const selectedTotal = selectedDetail?.originalTotal ?? selectedDetail?.totalAmount ?? selectedRow?.totalAmount ?? 0;
+  const selectedVat = selectedDetail?.vatAmount ?? selectedDetail?.taxAmount ?? 0;
+  const selectedSubtotal = Math.max(0, Number(selectedTotal || 0) - Number(selectedVat || 0));
+  const selectedQuantity = selectedItems.reduce((total, item) => total + Number(item.quantity || 0), 0);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(purchaseColumnStorageKey, JSON.stringify(visibleColumns));
+    } catch {
+      // Column preferences are optional; ignore storage failures.
+    }
+  }, [visibleColumns]);
+
+  function startPreviewResize(event) {
+    event.preventDefault();
+
+    const handleMove = (moveEvent) => {
+      const state = resizeStateRef.current;
+      if (!state) return;
+
+      const nextWidth = state.startWidth + state.startX - moveEvent.clientX;
+      setPreviewWidth(Math.min(760, Math.max(360, nextWidth)));
+    };
+
+    const stopResize = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', stopResize);
+      document.body.classList.remove('sales-receipt-resizing');
+      resizeStateRef.current = null;
+    };
+
+    resizeStateRef.current = {
+      startWidth: previewWidth,
+      startX: event.clientX,
+      handleMove,
+      stopResize,
+    };
+
+    document.body.classList.add('sales-receipt-resizing');
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', stopResize);
+  }
+
+  useEffect(() => () => {
+    const state = resizeStateRef.current;
+    if (state) {
+      window.removeEventListener('mousemove', state.handleMove);
+      window.removeEventListener('mouseup', state.stopResize);
+      document.body.classList.remove('sales-receipt-resizing');
+    }
+  }, []);
 
   async function loadDrafts() {
     setIsLoading(true);
@@ -51,7 +175,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
       setRows([]);
       setMeta(null);
       setSelectedRowId(null);
-      setErrorMessage(error.message || 'Alış fiş listesi API bağlantısı başarısız.');
+      setErrorMessage(error.message || 'Alış fişi listesi API bağlantısı başarısız.');
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +209,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           setRows([]);
           setMeta(null);
           setSelectedRowId(null);
-          setErrorMessage(error.message || 'Alış fiş listesi API bağlantısı başarısız.');
+          setErrorMessage(error.message || 'Alış fişi listesi API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -101,6 +225,43 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     };
   }, [search, statusFilter, supplier]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDetail() {
+      if (!selectedRowId) {
+        setSelectedDetail(null);
+        setDetailErrorMessage('');
+        return;
+      }
+
+      setIsDetailLoading(true);
+      setDetailErrorMessage('');
+
+      try {
+        const response = await fetchPurchaseInvoice(selectedRowId);
+        if (isMounted) {
+          setSelectedDetail(response.data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSelectedDetail(null);
+          setDetailErrorMessage(error.message || 'Fiş detayı okunamadı.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsDetailLoading(false);
+        }
+      }
+    }
+
+    loadDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedRowId]);
+
   function openDraft(rowId = selectedRow?.id) {
     if (!rowId) {
       setErrorMessage('Fiş açmak için listeden bir kayıt seçin.');
@@ -109,7 +270,27 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
     setErrorMessage('');
     const row = rows.find((item) => item.id === rowId);
-    onOpenScreen('purchase-invoice', { purchaseDraftId: rowId, invoiceNo: row?.invoiceNo });
+    onOpenScreen('purchase-invoice', { purchaseDraftId: rowId, invoiceNo: documentNo(row) });
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setSupplier('');
+    setStatusFilter('ALL');
+  }
+
+  function toggleColumn(columnKey) {
+    const column = purchaseInvoiceColumns.find((item) => item.key === columnKey);
+    if (column?.required) return;
+
+    setVisibleColumns((current) => ({
+      ...current,
+      [columnKey]: current[columnKey] === false,
+    }));
+  }
+
+  function resetColumns() {
+    setVisibleColumns(defaultVisiblePurchaseColumns);
   }
 
   function exportPurchaseRows() {
@@ -148,31 +329,65 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     });
   }
 
+  function printSelectedPurchaseInvoice() {
+    if (!selectedRow) {
+      setErrorMessage('Yazdırmak için listeden bir alış fişi seçin.');
+      return;
+    }
+
+    printBusinessDocument({
+      title: 'Alış Fişi',
+      documentNo: documentNo(selectedRow),
+      status: statusLabel(selectedDetail?.status || selectedRow.status),
+      date: formatDate(selectedDetail?.documentDate || selectedRow.documentDate || selectedRow.createdAt),
+      partyLabel: 'Tedarikçi',
+      partyName: selectedDetail?.supplierName || selectedRow.supplierName || '-',
+      currency: selectedCurrency,
+      exchangeRate: selectedDetail?.exchangeRateToTry || selectedDetail?.exchangeRate || selectedRow.exchangeRateToTry || 1,
+      description: selectedDetail?.description || 'Alış fişi listesi önizlemesinden yazdırıldı.',
+      items: selectedItems,
+      totals: {
+        currency: selectedCurrency,
+        subtotal: selectedSubtotal,
+        discountAmount: selectedDetail?.discountAmount || selectedDetail?.totalDiscount || 0,
+        tryEquivalent: selectedDetail?.totalTry || selectedDetail?.amountTry || 0,
+        grandTotal: selectedTotal,
+      },
+      extraInfo: [
+        { label: 'Tedarikçi Kod', value: selectedDetail?.supplierCode || selectedRow.supplierCode || '-' },
+        { label: 'Satır Sayısı', value: selectedItems.length || selectedRow.itemCount || 0 },
+        { label: 'Toplam Adet', value: selectedQuantity || selectedRow.itemCount || 0 },
+        { label: 'Borç Etkisi', value: statusLabel(selectedDetail?.status || selectedRow.status) },
+      ],
+    });
+  }
+
   return (
-    <main className="work-area invoice-list-screen">
-      <section className="invoice-list-toolbar">
+    <main className="work-area invoice-list-screen sales-receipt-workspace purchase-receipt-workspace">
+      <section className="invoice-list-toolbar sales-receipt-toolbar purchase-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Alış Fişleri</strong>
-          <span>Tedarikçi alış fişleri, maliyet etkisi ve stok girişi</span>
+          <span>Tedarikçi alışları, stok girişleri, maliyet ve borç etkisi</span>
         </div>
         <div className="invoice-list-actions">
           <button type="button" onClick={() => onOpenScreen('bulk-purchase-entry')}>Toplu Alış Girişi</button>
-          <button type="button" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Alış Fişi Oluştur</button>
-          <button type="button" onClick={() => openDraft()} disabled={!selectedRow}>Seçili Alış Fişini Aç</button>
+          <button type="button" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Alış Fişi</button>
+          <button type="button" onClick={() => openDraft()} disabled={!selectedRow}>Seçili Fişi Aç</button>
           <button type="button" onClick={exportPurchaseRows}>Excel</button>
-          <button type="button" onClick={printPurchaseRows}>Yazdır</button>
+          <button type="button" onClick={printPurchaseRows}>Yazdır/PDF</button>
           <button type="button" onClick={loadDrafts}>Yenile</button>
+          <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}>Kolonlar</button>
         </div>
       </section>
 
-      <section className="invoice-list-filters">
+      <section className="invoice-list-filters sales-receipt-filters purchase-receipt-filters">
         <label>
-          <span>Fiş / genel arama</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fiş no veya tedarikçi" />
+          <span>Fiş No / Ürün / Barkod</span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fiş no, ürün adı, barkod veya stok kodu" />
         </label>
         <label>
           <span>Tedarikçi</span>
-          <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder="Tedarikçi adı" />
+          <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder="Tedarikçi adı veya kodu" />
         </label>
         <label>
           <span>Durum</span>
@@ -184,57 +399,181 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
             <option value="ARCHIVED_TEST">Test Arşivi</option>
           </select>
         </label>
+        <button type="button" className="filter-reset-button" onClick={resetFilters}>Temizle</button>
       </section>
 
-      <section className="erp-panel invoice-list-panel">
-        <div className="panel-title">
-          <strong>Alış Fişleri Tablosu</strong>
-          <span>Seçili: {selectedRow?.invoiceNo ?? 'yok'} / Satır: {rows.length}</span>
-        </div>
-        {isLoading && <div className="list-state">API'den alış fişleri yükleniyor...</div>}
-        {!isLoading && errorMessage && (
-          <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>
-        )}
-        {!isLoading && !errorMessage && rows.length === 0 && (
-          <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
-        )}
-        {!isLoading && !errorMessage && rows.length > 0 && (
-          <div className="table-wrap invoice-table-wrap">
-            <table className="invoice-list-table">
-              <thead>
-                <tr>
-                  <th>Fiş no</th>
-                  <th>Tedarikçi</th>
-                  <th>PB</th>
-                  <th>Toplam</th>
-                  <th>Durum</th>
-                  <th>Satır</th>
-                  <th>Oluşturma</th>
-                  <th>Güncelleme</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={row.id === selectedRow?.id ? 'selected' : ''}
-                    onClick={() => setSelectedRowId(row.id)}
-                    onDoubleClick={() => openDraft(row.id)}
-                  >
-                    <td className="code-cell">{row.invoiceNo}</td>
-                    <td>{row.supplierName}</td>
-                    <td>{row.currency}</td>
-                    <td className="money-cell">{formatMoney(row.totalAmount, row.currency)}</td>
-                    <td><span className={`draft-badge ${row.status === 'ARCHIVED_TEST' ? 'archived-test-badge' : ''}`}>{row.status}</span></td>
-                    <td className="money-cell">{row.itemCount}</td>
-                    <td>{formatDate(row.createdAt)}</td>
-                    <td>{formatDate(row.updatedAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {isColumnPanelOpen && (
+        <section className="erp-panel stock-column-panel">
+          <div>
+            <strong>Kolonlar</strong>
+            <span>Alış fişi tablosunda görünecek alanları seçin. Zorunlu kolonlar kapatılamaz.</span>
           </div>
-        )}
+          <div className="stock-column-options">
+            {purchaseInvoiceColumns.map((column) => {
+              const isVisible = visibleColumns[column.key] !== false || column.required;
+
+              return (
+                <button
+                  key={column.key}
+                  className={[
+                    'stock-column-toggle',
+                    isVisible ? 'active' : '',
+                    column.required ? 'required' : '',
+                  ].filter(Boolean).join(' ')}
+                  disabled={column.required}
+                  onClick={() => toggleColumn(column.key)}
+                  type="button"
+                >
+                  <span className="stock-column-check">{isVisible ? '✓' : ''}</span>
+                  <span>{column.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={resetColumns}>Tümünü Göster</button>
+        </section>
+      )}
+
+      <section className="sales-receipt-layout purchase-receipt-layout" style={{ '--sales-preview-width': `${previewWidth}px` }}>
+        <section className="erp-panel invoice-list-panel sales-receipt-list-panel purchase-receipt-list-panel">
+          <div className="panel-title">
+            <strong>Fiş Listesi</strong>
+            <span>Seçili: {selectedRow ? documentNo(selectedRow) : 'yok'} / Satır: {rows.length}</span>
+          </div>
+          {isLoading && <div className="list-state">API'den alış fişleri yükleniyor...</div>}
+          {!isLoading && errorMessage && (
+            <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>
+          )}
+          {!isLoading && !errorMessage && rows.length === 0 && (
+            <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
+          )}
+          {!isLoading && !errorMessage && rows.length > 0 && (
+            <div className="table-wrap invoice-table-wrap sales-receipt-table-wrap purchase-receipt-table-wrap">
+              <table className={`invoice-list-table sales-receipt-table purchase-receipt-table ${hiddenColumnClasses}`}>
+                <thead>
+                  <tr>
+                    <th>Fiş No</th>
+                    <th>Tarih</th>
+                    <th>Tedarikçi</th>
+                    <th>PB</th>
+                    <th>Toplam</th>
+                    <th>Durum</th>
+                    <th>Satır</th>
+                    <th>İşlem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className={row.id === selectedRow?.id ? 'selected' : ''}
+                      onClick={() => setSelectedRowId(row.id)}
+                      onDoubleClick={() => openDraft(row.id)}
+                    >
+                      <td className="code-cell">{documentNo(row)}</td>
+                      <td>{formatDate(row.documentDate || row.createdAt)}</td>
+                      <td>{row.supplierName || '-'}</td>
+                      <td><span className="status-pill info">{row.documentCurrency || row.currency || 'TRY'}</span></td>
+                      <td className="money-cell">{formatMoney(row.originalTotal ?? row.totalAmount, row.documentCurrency || row.currency || 'TRY')}</td>
+                      <td><span className={`status-pill ${statusClass(row.status)}`}>{statusLabel(row.status)}</span></td>
+                      <td className="money-cell">{row.itemCount || 0}</td>
+                      <td>
+                        <button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openDraft(row.id); }}>
+                          Detay
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <div
+          aria-label="Fiş önizleme panel genişliği"
+          className="sales-receipt-resizer"
+          onMouseDown={startPreviewResize}
+          role="separator"
+          title="Sürükle: önizleme panelini genişlet/daralt"
+        >
+          <span />
+        </div>
+
+        <aside className="erp-panel sales-receipt-preview-panel purchase-receipt-preview-panel">
+          <div className="panel-title">
+            <strong>Alış Önizleme</strong>
+            <span>{selectedRow ? documentNo(selectedRow) : 'Seçili fiş yok'}</span>
+          </div>
+
+          {!selectedRow && <div className="list-state">Detay görmek için listeden bir alış fişi seçin.</div>}
+          {selectedRow && (
+            <>
+              <div className="sales-receipt-preview-head purchase-receipt-preview-head">
+                <div>
+                  <span>Tedarikçi</span>
+                  <strong>{selectedDetail?.supplierName || selectedRow.supplierName || '-'}</strong>
+                  <small>{selectedDetail?.supplierCode || selectedRow.supplierCode || selectedDetail?.supplierCurrency || '-'}</small>
+                </div>
+                <span className={`status-pill ${statusClass(selectedDetail?.status || selectedRow.status)}`}>
+                  {statusLabel(selectedDetail?.status || selectedRow.status)}
+                </span>
+              </div>
+
+              <div className="sales-receipt-preview-metrics">
+                <div><span>Fiş</span><strong>{documentNo(selectedRow)}</strong></div>
+                <div><span>Adet</span><strong>{selectedQuantity || selectedRow.itemCount || 0}</strong></div>
+                <div><span>Toplam</span><strong>{formatMoney(selectedTotal, selectedCurrency)}</strong></div>
+              </div>
+
+              <dl className="sales-receipt-preview-facts">
+                <div><dt>Tarih</dt><dd>{formatDate(selectedDetail?.documentDate || selectedRow.documentDate || selectedRow.createdAt)}</dd></div>
+                <div><dt>Para birimi</dt><dd>{selectedCurrency}</dd></div>
+                <div><dt>Ara toplam</dt><dd>{formatMoney(selectedSubtotal, selectedCurrency)}</dd></div>
+                <div><dt>KDV</dt><dd>{formatMoney(selectedVat, selectedCurrency)}</dd></div>
+                <div><dt>Borç etkisi</dt><dd>{statusLabel(selectedDetail?.status || selectedRow.status)}</dd></div>
+              </dl>
+
+              {isDetailLoading && <div className="list-state">Fiş satırları yükleniyor...</div>}
+              {!isDetailLoading && detailErrorMessage && <div className="list-state list-state-error">{detailErrorMessage}</div>}
+              {!isDetailLoading && !detailErrorMessage && (
+                <div className="sales-receipt-lines purchase-receipt-lines">
+                  <strong>Ürün Satırları</strong>
+                  {selectedItems.length === 0 && <span>Bu fiş için satır detayı yok.</span>}
+                  {selectedItems.slice(0, 8).map((item) => {
+                    const lineCurrency = item.lineCurrency || item.currency || selectedCurrency;
+                    const price = item.unitPriceOriginal ?? item.purchasePrice ?? item.unitPrice ?? 0;
+                    const total = item.lineTotalOriginal ?? lineTotal(item);
+                    return (
+                      <button
+                        type="button"
+                        className="receipt-line-row purchase-line-row"
+                        key={item.id || `${item.productId}-${item.stockCode}`}
+                        onClick={() => item.productId && onOpenScreen?.('product-card', { productId: item.productId, stockCode: item.stockCode })}
+                      >
+                        <em>{Number(item.quantity || 0)}</em>
+                        <span>
+                          <b>{item.productName || '-'}</b>
+                          <small>{item.stockCode || '-'} / {item.barcode || '-'} / {Number(item.quantity || 0)} x {formatMoney(price, lineCurrency)}</small>
+                        </span>
+                        <strong>{formatMoney(total, lineCurrency)}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="sales-receipt-preview-actions">
+                <button type="button" onClick={() => openDraft()}>Aç / Düzenle</button>
+                <button type="button" onClick={printSelectedPurchaseInvoice}>Yazdır</button>
+                <button type="button" onClick={() => onOpenScreen?.('supplier-card', { supplierId: selectedDetail?.supplierId || selectedRow.supplierId, supplierCode: selectedDetail?.supplierCode || selectedRow.supplierCode })}>
+                  Tedarikçi
+                </button>
+                <button type="button" disabled={selectedRow.status === 'CANCELLED'}>İptal Et</button>
+              </div>
+            </>
+          )}
+        </aside>
       </section>
 
       <section className="screen-summary invoice-list-summary">

@@ -10,6 +10,7 @@ import {
   fetchCustomerDetail,
   updateCustomer,
 } from '../../services/customerDetailApi.js';
+import { openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 const emptyCustomerForm = {
   customerCode: '',
@@ -213,9 +214,11 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   const [isPassiveSaving, setIsPassiveSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isEditing, setIsEditing] = useState(!customerId);
 
   useEffect(() => {
     setActiveCustomerId(customerId || null);
+    setIsEditing(!customerId);
     setActiveDetailTab('movements');
   }, [customerId]);
 
@@ -225,6 +228,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
     async function loadCustomer() {
       if (!activeCustomerId) {
         setForm(emptyCustomerForm);
+        setIsEditing(true);
         setErrorMessage('');
         setIsLoading(false);
         return;
@@ -238,6 +242,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
 
         if (isMounted) {
           setForm(mapDetailToForm(response.data));
+          setIsEditing(false);
         }
       } catch (error) {
         if (isMounted) {
@@ -259,6 +264,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   }, [activeCustomerId]);
 
   const mode = activeCustomerId ? 'update' : 'create';
+  const canEditForm = mode === 'create' || isEditing;
   const canSave = permissions.includes('customer.edit');
   const canTogglePassive = permissions.includes('customer.passive');
   const customer = useMemo(() => buildCustomerView(form, activeCustomerId), [form, activeCustomerId]);
@@ -267,6 +273,8 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   const transactions = useMemo(() => mapTransactions(form), [form]);
   const currentBalance = balances.find((balance) => balance.currency === customer.currency)?.balance ?? customer.balance;
   const customer360 = useMemo(() => buildCustomer360(form, transactions, currentBalance), [form, transactions, currentBalance]);
+  const recentTransactions = useMemo(() => transactions.slice(0, 5), [transactions]);
+  const recentProductTrace = useMemo(() => (form.productTrace || []).slice(0, 5), [form.productTrace]);
 
   function renderDetailPanel() {
     if (activeDetailTab === 'products') {
@@ -377,6 +385,10 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   }
 
   function updateField(field, value) {
+    if (!canEditForm) {
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -387,24 +399,14 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   function startNewCustomer() {
     setActiveCustomerId(null);
     setForm(emptyCustomerForm);
+    setIsEditing(true);
     setActiveDetailTab('movements');
     setErrorMessage('');
     setSuccessMessage('');
   }
 
   function openTransaction(transaction) {
-    if (transaction.salesInvoiceId && onOpenScreen) {
-      onOpenScreen('sales-invoice', { salesDraftId: transaction.salesInvoiceId });
-      return;
-    }
-
-    if ((transaction.type === 'collection' || transaction.type === 'payment') && onOpenScreen) {
-      onOpenScreen('collections-overview', {
-        mode: transaction.type === 'payment' ? 'payment' : 'collection',
-        movementId: transaction.id,
-        customerId: activeCustomerId,
-      });
-    }
+    openLedgerTarget({ ...transaction, customerId: activeCustomerId, customerCode: form.customerCode, customerName: form.customerName }, onOpenScreen);
   }
 
   function openProductTraceInvoice(row) {
@@ -450,11 +452,12 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
 
     try {
       const response = mode === 'create'
-         ? await createCustomer(payload)
+        ? await createCustomer(payload)
         : await updateCustomer(activeCustomerId, payload);
 
       setActiveCustomerId(response.data.id);
       setForm(mapDetailToForm(response.data));
+      setIsEditing(false);
       setSuccessMessage(response.message || (mode === 'create' ? 'Cari oluşturuldu ve audit kaydı yazıldı.' : 'Cari güncellendi ve audit kaydı yazıldı.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Cari kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
@@ -486,7 +489,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
       const response = await changeCustomerPassive(activeCustomerId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
       setSuccessMessage(response.message || (nextIsPassive
-         ? 'Cari pasif yapıldı ve audit kaydı yazıldı.'
+        ? 'Cari pasif yapıldı ve audit kaydı yazıldı.'
         : 'Cari aktif yapıldı ve audit kaydı yazıldı.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Pasif/Aktif işlemi başarısız.'} (${error.code || 'API_ERROR'})`);
@@ -505,8 +508,10 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
             mode={mode}
             isSaving={isSaving}
             isPassiveSaving={isPassiveSaving}
+            isEditing={canEditForm}
             canSave={canSave}
             canTogglePassive={canTogglePassive}
+            onEdit={() => setIsEditing(true)}
             onSave={saveCustomer}
             onNew={startNewCustomer}
             onTogglePassive={togglePassiveCustomer}
@@ -522,17 +527,17 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
             <div className="entity-360-head">
               <div>
                 <strong>Cari 360</strong>
-                <span>Cari hareket, satilan urun, bakiye ve karlilik ozeti.</span>
+                <span>Cari hareket, satılan ürün, bakiye ve kârlılık özeti.</span>
               </div>
               <div className="entity-360-actions">
                 <button type="button" onClick={() => setActiveDetailTab('movements')}>Cari Hareketler</button>
-                <button type="button" onClick={() => setActiveDetailTab('products')}>Satilan Urunler</button>
+                <button type="button" onClick={() => setActiveDetailTab('products')}>Satılan Ürünler</button>
                 <button type="button" onClick={() => setActiveDetailTab('statement')}>Ekstre</button>
               </div>
             </div>
             <div className="entity-360-grid">
               <div className="entity-360-card balance-card">
-                <span>Guncel bakiye</span>
+                <span>Güncel bakiye</span>
                 <strong>{formatMoney(customer360.currentBalance, customer.currency)}</strong>
                 <small>{customer.currency} cari para birimi</small>
               </div>
@@ -542,25 +547,63 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
                 <small>Son {customer360.lastTransactionDate}</small>
               </div>
               <div className="entity-360-card out-card">
-                <span>Satilan adet</span>
+                <span>Satılan adet</span>
                 <strong>{customer360.quantity}</strong>
-                <small>{customer360.rowCount} urun satiri</small>
+                <small>{customer360.rowCount} ürün satırı</small>
               </div>
               <div className="entity-360-card price-card">
-                <span>Satis TRY</span>
+                <span>Satış TRY</span>
                 <strong>{formatMoney(customer360.salesTry, 'TRY')}</strong>
                 <small>Fatura toplam izi</small>
               </div>
               <div className="entity-360-card profit-card">
-                <span>Brut kar TRY</span>
+                <span>Brüt kâr TRY</span>
                 <strong>{formatMoney(customer360.profitTry, 'TRY')}</strong>
                 <small>Maliyet snapshot varsa</small>
               </div>
               <div className="entity-360-card cancel-card">
-                <span>Iptal izi</span>
+                <span>İptal izi</span>
                 <strong>{customer360.cancelledCount}</strong>
-                <small>Ayrica takip edilir</small>
+                <small>Ayrıca takip edilir</small>
               </div>
+            </div>
+            <div className="entity-360-trace-grid">
+              <section className="entity-360-mini-list">
+                <div className="entity-360-mini-title">
+                  <strong>Son Cari Hareketler</strong>
+                  <button type="button" onClick={() => setActiveDetailTab('movements')}>Tümünü Gör</button>
+                </div>
+                {recentTransactions.length === 0 ? (
+                  <span className="entity-360-empty">Hareket yok.</span>
+                ) : recentTransactions.map((transaction) => (
+                  <button type="button" key={transaction.id} onClick={() => openTransaction(transaction)}>
+                    <span>
+                      <b>{transaction.documentNo || transaction.type || '-'}</b>
+                      <small>{transaction.date || '-'} / {transaction.status || '-'}</small>
+                    </span>
+                    <strong className={Number(transaction.balanceEffect ?? transaction.amount ?? 0) < 0 ? 'in' : 'out'}>
+                      {formatMoney(transaction.amount, transaction.currency || customer.currency)}
+                    </strong>
+                  </button>
+                ))}
+              </section>
+              <section className="entity-360-mini-list">
+                <div className="entity-360-mini-title">
+                  <strong>Son Satılan Ürünler</strong>
+                  <button type="button" onClick={() => setActiveDetailTab('products')}>Tümünü Gör</button>
+                </div>
+                {recentProductTrace.length === 0 ? (
+                  <span className="entity-360-empty">Ürün izi yok.</span>
+                ) : recentProductTrace.map((row) => (
+                  <button type="button" key={row.id} onClick={() => openProductTraceInvoice(row)}>
+                    <span>
+                      <b>{row.productName || row.stockCode || '-'}</b>
+                      <small>{row.documentNo || '-'} / {row.quantity || 0} adet</small>
+                    </span>
+                    <strong className="out">{formatMoney(row.lineTotalTry, 'TRY')}</strong>
+                  </button>
+                ))}
+              </section>
             </div>
           </section>
           <section className="customer-card-layout customer-card-modern-layout">
@@ -568,6 +611,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
               customer={customer}
               form={form}
               mode={mode}
+              isEditing={canEditForm}
               onChange={updateField}
             />
             <CustomerBalanceSummary
@@ -619,7 +663,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
           <section className="screen-summary customer-card-summary">
             <span>Cari: {customer.code}</span>
             <span>Durum: {customer.status}</span>
-            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : 'Güncelleme'}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : canEditForm ? 'Düzenleme' : 'İzleme'}</span>
             <span>Kaynak: API</span>
           </section>
         </>

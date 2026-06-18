@@ -31,6 +31,55 @@ function toSupplierRow(supplier) {
   };
 }
 
+const supplierListColumns = [
+  { label: 'Kod', key: 'code', width: 120, required: true },
+  { label: 'Tedarikçi', key: 'name', width: 240, required: true },
+  { label: 'Telefon', key: 'phone', width: 135 },
+  { label: 'Şehir', key: 'city', width: 120 },
+  { label: 'Ülke', key: 'country', width: 110 },
+  { label: 'PB', key: 'currency', width: 80 },
+  { label: 'Bakiye', key: 'balance', width: 130, required: true },
+  { label: 'Alış İsk. %', key: 'purchaseDiscountRate', width: 105 },
+  { label: 'Fiş', key: 'purchaseCount', width: 70 },
+  { label: 'Son Alış', key: 'lastPurchaseDate', width: 115 },
+  { label: 'Durum', key: 'status', width: 90 },
+];
+
+const supplierColumnStorageKey = 'melisa.supplierList.visibleColumns.v1';
+const defaultVisibleSupplierColumns = supplierListColumns.reduce((next, column) => ({
+  ...next,
+  [column.key]: true,
+}), {});
+
+function readVisibleSupplierColumns() {
+  try {
+    const stored = window.localStorage.getItem(supplierColumnStorageKey);
+    return stored ? { ...defaultVisibleSupplierColumns, ...JSON.parse(stored) } : defaultVisibleSupplierColumns;
+  } catch {
+    return defaultVisibleSupplierColumns;
+  }
+}
+
+function renderSupplierCell(row, columnKey) {
+  if (columnKey === 'code') {
+    return <td className="code-cell">{row.code}</td>;
+  }
+
+  if (columnKey === 'balance') {
+    return <td className="money-cell customer-payable">{formatMoney(row.balance, row.currency)}</td>;
+  }
+
+  if (columnKey === 'purchaseDiscountRate') {
+    return <td>%{row.purchaseDiscountRate}</td>;
+  }
+
+  if (columnKey === 'status') {
+    return <td className={row.status === 'Aktif' ? 'status-active' : 'status-passive'}>{row.status}</td>;
+  }
+
+  return <td>{row[columnKey] ?? '-'}</td>;
+}
+
 export function SupplierListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState({ search: '', currency: 'all', status: 'active' });
   const [rows, setRows] = useState([]);
@@ -39,6 +88,20 @@ export function SupplierListScreen({ onOpenScreen }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(readVisibleSupplierColumns);
+
+  const tableColumns = useMemo(() => (
+    supplierListColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
+  ), [visibleColumns]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(supplierColumnStorageKey, JSON.stringify(visibleColumns));
+    } catch {
+      // Column preferences are optional; ignore storage failures.
+    }
+  }, [visibleColumns]);
 
   useEffect(() => {
     let isMounted = true;
@@ -111,22 +174,25 @@ export function SupplierListScreen({ onOpenScreen }) {
     onOpenScreen('supplier-card', { supplierId: row.id, supplierCode: row.code });
   }
 
+  function toggleColumn(columnKey) {
+    const column = supplierListColumns.find((item) => item.key === columnKey);
+    if (column?.required) return;
+
+    setVisibleColumns((current) => ({
+      ...current,
+      [columnKey]: current[columnKey] === false,
+    }));
+  }
+
+  function resetColumns() {
+    setVisibleColumns(defaultVisibleSupplierColumns);
+  }
+
   function exportSuppliers() {
     exportRowsToCsv({
-      filename: 'tedarik?i-listesi',
+      filename: 'tedarikci-listesi',
       rows: filteredRows,
-      columns: [
-        { label: 'Tedarikçi Kodu', key: 'code' },
-        { label: 'Ad Unvan', key: 'name' },
-        { label: 'Telefon', key: 'phone' },
-        { label: 'Şehir', key: 'city' },
-        { label: 'Ülke', key: 'country' },
-        { label: 'Para Birimi', key: 'currency' },
-        { label: 'Bakiye', key: 'balance' },
-        { label: 'Alış İskonto %', key: 'purchaseDiscountRate' },
-        { label: 'Alış Fişi', key: 'purchaseCount' },
-        { label: 'Son Alış', key: 'lastPurchaseDate' },
-      ],
+      columns: tableColumns,
     });
   }
 
@@ -143,6 +209,7 @@ export function SupplierListScreen({ onOpenScreen }) {
           <button type="button" onClick={() => setRefreshKey((current) => current + 1)}>Yenile</button>
           <button type="button" onClick={exportSuppliers}>CSV</button>
           <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikçi Listesi')}>Yazdır</button>
+          <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}>Kolonlar</button>
         </div>
       </section>
 
@@ -169,6 +236,38 @@ export function SupplierListScreen({ onOpenScreen }) {
         </label>
       </section>
 
+      {isColumnPanelOpen && (
+        <section className="erp-panel stock-column-panel">
+          <div>
+            <strong>Kolonlar</strong>
+            <span>Tedarikçi tablosunda görünecek alanları seçin. Zorunlu kolonlar kapatılamaz.</span>
+          </div>
+          <div className="stock-column-options">
+            {supplierListColumns.map((column) => {
+              const isVisible = visibleColumns[column.key] !== false || column.required;
+
+              return (
+                <button
+                  key={column.key}
+                  className={[
+                    'stock-column-toggle',
+                    isVisible ? 'active' : '',
+                    column.required ? 'required' : '',
+                  ].filter(Boolean).join(' ')}
+                  disabled={column.required}
+                  onClick={() => toggleColumn(column.key)}
+                  type="button"
+                >
+                  <span className="stock-column-check">{isVisible ? '✓' : ''}</span>
+                  <span>{column.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={resetColumns}>Tümünü Göster</button>
+        </section>
+      )}
+
       <section className="erp-panel customer-list-panel">
         <div className="panel-title customer-panel-title">
           <strong>Tedarikçi Tablosu</strong>
@@ -183,16 +282,9 @@ export function SupplierListScreen({ onOpenScreen }) {
             <table className="customer-table">
               <thead>
                 <tr>
-                  <th>Kod</th>
-                  <th>Tedarikçi</th>
-                  <th>Telefon</th>
-                  <th>Şehir</th>
-                  <th>PB</th>
-                  <th>Bakiye</th>
-                  <th>Alış isk %</th>
-                  <th>Fiş</th>
-                  <th>Son alış</th>
-                  <th>Durum</th>
+                  {tableColumns.map((column) => (
+                    <th key={column.key} style={{ width: column.width }}>{column.label}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -203,16 +295,9 @@ export function SupplierListScreen({ onOpenScreen }) {
                     onClick={() => setSelectedRowId(row.id)}
                     onDoubleClick={() => openSupplier(row)}
                   >
-                    <td className="code-cell">{row.code}</td>
-                    <td>{row.name}</td>
-                    <td>{row.phone}</td>
-                    <td>{row.city}</td>
-                    <td>{row.currency}</td>
-                    <td className="money-cell customer-payable">{formatMoney(row.balance, row.currency)}</td>
-                    <td>%{row.purchaseDiscountRate}</td>
-                    <td>{row.purchaseCount}</td>
-                    <td>{row.lastPurchaseDate}</td>
-                    <td className={row.status === 'Aktif' ? 'status-active' : 'status-passive'}>{row.status}</td>
+                    {tableColumns.map((column) => (
+                      <React.Fragment key={column.key}>{renderSupplierCell(row, column.key)}</React.Fragment>
+                    ))}
                   </tr>
                 ))}
               </tbody>

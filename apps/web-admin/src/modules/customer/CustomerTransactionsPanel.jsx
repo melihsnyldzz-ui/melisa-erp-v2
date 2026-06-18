@@ -1,4 +1,5 @@
 import React from 'react';
+import { ledgerTargetActionLabel, resolveLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
@@ -57,17 +58,18 @@ export function CustomerTransactionsPanel({ transactions = [], onOpenTransaction
               <th>Belge no</th>
               <th>Tutar</th>
               <th>Durum</th>
+              <th>Git</th>
             </tr>
           </thead>
           <tbody>
             {transactions.length === 0 && (
               <tr>
-                <td colSpan="5">Cari hareket bulunamadı.</td>
+                <td colSpan="6">Cari hareket bulunamadı.</td>
               </tr>
             )}
             {transactions.map((transaction) => {
               const effect = Number(transaction.balanceEffect ?? transaction.amount ?? 0);
-              const canOpen = transaction.salesInvoiceId || transaction.type === 'collection' || transaction.type === 'payment';
+              const canOpen = Boolean(resolveLedgerTarget(transaction));
 
               return (
                 <tr
@@ -77,11 +79,36 @@ export function CustomerTransactionsPanel({ transactions = [], onOpenTransaction
                 >
                   <td>{transaction.date || '-'}</td>
                   <td>{movementLabel(transaction.type)}</td>
-                  <td className="code-cell">{transaction.documentNo || '-'}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="document-link-button"
+                      disabled={!canOpen}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenTransaction?.(transaction);
+                      }}
+                    >
+                      {transaction.documentNo || '-'}
+                    </button>
+                  </td>
                   <td className={`money-cell ${effect < 0 ? 'in-cell' : 'out-cell'}`}>
                     {formatMoney(transaction.amount, transaction.currency || currency)}
                   </td>
                   <td>{String(transaction.status || '-').toUpperCase()}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="mini-button"
+                      disabled={!canOpen}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenTransaction?.(transaction);
+                      }}
+                    >
+                      {canOpen ? ledgerTargetActionLabel(transaction) : 'Belge Yok'}
+                    </button>
+                  </td>
                 </tr>
               );
             })}

@@ -142,6 +142,12 @@ function formatProductPrice(product) {
   return formatMoney(product.unitPrice || 0, currency);
 }
 
+function resolveImageUrl(imageUrl) {
+  if (!imageUrl) return '';
+  if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl;
+  return `${apiConfig.baseUrl}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
+}
+
 function formatDate(value) {
   if (!value) {
     return salesInvoiceHeader.date;
@@ -223,6 +229,7 @@ function mapProductOption(product) {
     barcode: product.barcodeMasked || '-',
     matchedBarcode: product.matchedBarcode || product.barcodeMatched || null,
     productName: product.productName,
+    imageUrl: resolveImageUrl(product.imageUrl),
     currency: product.currency,
     unitPrice: Number(product.salePrice || 0),
     cardCurrency: product.currency,
@@ -339,6 +346,14 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       !query || [customer.code, customer.name, customer.currency].some((value) => String(value || '').toLowerCase().includes(query))
     ));
   }, [customerQuery, draftCustomerOptions]);
+  const selectedCustomer = useMemo(
+    () => draftCustomerOptions.find((customer) => String(customer.id) === String(invoice.customerId)) || null,
+    [draftCustomerOptions, invoice.customerId],
+  );
+  const selectedQuickProduct = useMemo(
+    () => resolveProductToAdd(),
+    [productLookupOptions, productQuery, productToAddId],
+  );
   const flowSteps = useMemo(() => [
     { key: 'customer', label: 'Cari', done: Boolean(invoice.customerId) },
     { key: 'item', label: 'Ürün', done: items.length > 0 },
@@ -1151,8 +1166,15 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
                         setProductQuery(`${product.stockCode} / ${product.productName}`);
                       }}
                     >
-                      <span className="product-suggestion-title">
-                        {product.stockCode} / {product.productName}
+                      <span className="product-suggestion-main">
+                        {product.imageUrl ? (
+                          <img alt={product.productName || product.stockCode || 'Urun'} src={product.imageUrl} />
+                        ) : (
+                          <span className="product-suggestion-image-empty">Yok</span>
+                        )}
+                        <span className="product-suggestion-title">
+                          {product.stockCode} / {product.productName}
+                        </span>
                       </span>
                       <span className="product-suggestion-price">{formatProductPrice(product)}</span>
                     </button>
@@ -1183,6 +1205,34 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
               />
             </label>
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satır Ekle</button>
+          </div>
+          <div className="quick-decision-strip">
+            <div className={`quick-decision-card ${selectedCustomer ? 'is-ready' : ''}`}>
+              <span>Cari</span>
+              <strong>{selectedCustomer ? selectedCustomer.name : 'Cari seçilmedi'}</strong>
+              <small>
+                {selectedCustomer
+                  ? `${selectedCustomer.code || '-'} / ${selectedCustomer.currency} / ${formatMoney(selectedCustomer.balance, selectedCustomer.currency)}`
+                  : 'Satır eklemek için önce cari seçin'}
+              </small>
+            </div>
+            <div className={`quick-decision-card ${selectedQuickProduct ? 'is-ready' : ''}`}>
+              {selectedQuickProduct?.imageUrl ? (
+                <img className="quick-decision-image" alt={selectedQuickProduct.productName || selectedQuickProduct.stockCode || 'Urun'} src={selectedQuickProduct.imageUrl} />
+              ) : null}
+              <span>Ürün</span>
+              <strong>{selectedQuickProduct ? selectedQuickProduct.productName : 'Ürün seçilmedi'}</strong>
+              <small>
+                {selectedQuickProduct
+                  ? `${selectedQuickProduct.stockCode} / ${selectedQuickProduct.stockState} / ${formatProductPrice(selectedQuickProduct)}`
+                  : 'Barkod, stok kodu veya ürün adı yazın'}
+              </small>
+            </div>
+            <div className="quick-decision-card quick-decision-price">
+              <span>Fiş</span>
+              <strong>{invoice.invoiceCurrency || 'TRY'} kur {invoice.exchangeRateValue || 1}</strong>
+              <small>Enter veya Satır Ekle ile taslağa alınır.</small>
+            </div>
           </div>
         </section>
         <SalesInvoiceHeader

@@ -3,7 +3,7 @@ import { fetchCustomers } from '../../services/customerApi.js';
 import { createCustomerCollection, createSupplierPayment, fetchFinanceAccounts, fetchFinanceMovements } from '../../services/financeApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, printCurrentScreen, printFinanceReceipt } from '../../utils/exportUtils.js';
-import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -176,6 +176,17 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
 
   function openMovement(row) {
     openLedgerTarget(row, onOpenScreen);
+  }
+
+  function openParty(row) {
+    if (row.partyType === 'supplier' && row.supplierId) {
+      onOpenScreen?.('supplier-card', { supplierId: row.supplierId, supplierCode: row.partyCode });
+      return;
+    }
+
+    if (row.partyType !== 'supplier' && row.customerId) {
+      onOpenScreen?.('customer-card', { customerId: row.customerId, customerCode: row.partyCode });
+    }
   }
 
   function openSelectedParty() {
@@ -519,8 +530,16 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
                     <tr className={`clickable-row ${isCancelled ? 'cancel-row' : ''}`} key={`${row.partyType}-${row.id}-${row.movementType}`} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
                       <td>{partyLabel(row.partyType)}</td>
-                      <td>{row.partyCode} / {row.partyName}</td>
-                      <td>{row.documentNo || '-'}</td>
+                      <td>
+                        <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
+                          {row.partyCode} / {row.partyName}
+                        </button>
+                      </td>
+                      <td>
+                        <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>
+                          {row.documentNo || '-'}
+                        </button>
+                      </td>
                       <td>{movementLabel(row.movementType)}</td>
                       <td>{formatMoney(row.amount, row.currency)}</td>
                       <td className={effect >= 0 ? 'ledger-debit' : 'ledger-credit'}>{formatMoney(effect, row.currency)}</td>
@@ -530,7 +549,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
                           <button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); selectReceipt(row); }}>Makbuz</button>
                         ) : '-'}
                       </td>
-                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>Git</button></td>
+                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{ledgerTargetActionLabel(row)}</button></td>
                     </tr>
                   );
                 })}

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { fetchCustomers } from '../../services/customerApi.js';
 import { fetchCustomerMovements } from '../../services/movementApi.js';
 import { exportRowsToCsv, printRowsReport } from '../../utils/exportUtils.js';
-import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 const cashCustomerDefinitions = [
   { code: 'PESIN-TL', label: 'Peşin TL', currency: 'TRY', tone: 'try' },
@@ -266,8 +266,16 @@ export function CashCustomerTrackingScreen({ onOpenScreen }) {
                   return (
                     <tr className="clickable-row" key={row.id} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
-                      <td>{row.customerName || row.customerCode || '-'}</td>
-                      <td>{row.documentNo || '-'}</td>
+                      <td>
+                        <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openCashCustomerCard(); }}>
+                          {row.customerName || row.customerCode || '-'}
+                        </button>
+                      </td>
+                      <td>
+                        <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>
+                          {row.documentNo || '-'}
+                        </button>
+                      </td>
                       <td>{movementLabel(row.movementType)}</td>
                       <td className="ledger-out">{effect >= 0 ? formatMoney(effect, row.currency) : '-'}</td>
                       <td className="ledger-in">{effect < 0 ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
@@ -282,7 +290,7 @@ export function CashCustomerTrackingScreen({ onOpenScreen }) {
                             openMovement(row);
                           }}
                         >
-                          Git
+                          {ledgerTargetActionLabel(row)}
                         </button>
                       </td>
                     </tr>

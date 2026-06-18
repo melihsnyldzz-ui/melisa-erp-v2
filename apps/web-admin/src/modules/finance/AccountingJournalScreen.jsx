@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchFinanceJournal } from '../../services/financeApi.js';
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -84,11 +85,10 @@ export function AccountingJournalScreen({ onOpenScreen }) {
   }
 
   function openTarget(row) {
-    if (row.targetScreen && row.targetPayload) {
-      onOpenScreen?.(row.targetScreen, row.targetPayload);
-      return;
-    }
+    openLedgerTarget(row, onOpenScreen);
+  }
 
+  function openParty(row) {
     if (row.partyType === 'supplier' && row.supplierId) {
       onOpenScreen?.('supplier-card', { supplierId: row.supplierId, supplierCode: row.partyCode });
       return;
@@ -238,15 +238,23 @@ export function AccountingJournalScreen({ onOpenScreen }) {
                 {rows.map((row) => (
                   <tr key={row.id} className="clickable-row" onClick={() => openTarget(row)}>
                     <td>{row.documentDate || '-'}</td>
-                    <td className="code-cell">{row.documentNo}</td>
+                    <td>
+                      <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openTarget(row); }}>
+                        {row.documentNo || '-'}
+                      </button>
+                    </td>
                     <td>{row.movementLabel}</td>
                     <td>{row.accountName}</td>
-                    <td>{row.partyCode} / {row.partyName}</td>
+                    <td>
+                      <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
+                        {row.partyCode} / {row.partyName}
+                      </button>
+                    </td>
                     <td className="ledger-debit">{row.debit ? formatMoney(row.debit, row.currency) : '-'}</td>
                     <td className="ledger-credit">{row.credit ? formatMoney(row.credit, row.currency) : '-'}</td>
                     <td><span className="status-pill">{row.currency}</span></td>
                     <td>{row.note}</td>
-                    <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openTarget(row); }}>Git</button></td>
+                    <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openTarget(row); }}>{ledgerTargetActionLabel(row)}</button></td>
                   </tr>
                 ))}
               </tbody>

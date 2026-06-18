@@ -38,6 +38,7 @@ import { SupplierMovementsScreen } from '../../modules/supplier/SupplierMovement
 import { SupplierStatementScreen } from '../../modules/supplier/SupplierStatementScreen.jsx';
 import { TerminalAdminScreen } from '../../modules/terminal/TerminalAdminScreen.jsx';
 import { WhatsappPlannerScreen } from '../../modules/catalog/WhatsappPlannerScreen.jsx';
+import { WhatsappWebQueueScreen } from '../../modules/catalog/WhatsappWebQueueScreen.jsx';
 
 function UnmappedScreen({ screen }) {
   return (
@@ -356,6 +357,21 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
     }
 
     return <WhatsappPlannerScreen onOpenScreen={onOpenScreen} />;
+  }
+
+  if (screenId === 'whatsapp-web-queue') {
+    if (!permissions.includes('product.view')) {
+      return <UnauthorizedScreen message="WhatsApp gönderim kuyruğu görüntüleme yetkiniz yok." />;
+    }
+
+    return (
+      <WhatsappWebQueueScreen
+        catalogId={activeTab.payload?.catalogId}
+        customerName={activeTab.payload?.customerName}
+        customerPhone={activeTab.payload?.customerPhone}
+        onOpenScreen={onOpenScreen}
+      />
+    );
   }
 
   if (screenId === 'import-foundation') {

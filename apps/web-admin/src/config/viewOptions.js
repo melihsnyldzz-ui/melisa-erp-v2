@@ -12,6 +12,7 @@ export const defaultViewOptions = {
   showToolbarSubtitles: true,
   showConnectionDetails: true,
   compactRows: true,
+  rowDensity: 'compact',
 };
 
 export const viewOptionsStorageKey = 'melisaErpViewOptions';
@@ -52,6 +53,17 @@ const helperOptions = [
   { key: 'showToolbarSubtitles', label: 'Baslik aciklamalari', description: 'Toolbar alt metinlerini göster/gizle' },
   { key: 'showConnectionDetails', label: 'Bağlantı detayları', description: 'API/SQL durum bloklarını göster/gizle' },
   { key: 'compactRows', label: 'Kompakt tablo satırlari', description: 'Listelerde daha fazla satır goster' },
+  {
+    key: 'rowDensity',
+    label: 'Tablo yoğunluğu',
+    description: 'Satır aralığı: sıkı / normal / rahat',
+    type: 'select',
+    values: [
+      { value: 'compact', label: 'Sıkı' },
+      { value: 'normal', label: 'Normal' },
+      { value: 'comfortable', label: 'Rahat' },
+    ],
+  },
 ];
 
 export function getViewOptionItems(activeTab) {

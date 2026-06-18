@@ -60,6 +60,7 @@ export function SalesInvoiceItemsTable({
               const rate = Number(exchangeRate || 1);
               const costInInvoiceCurrency = rate > 0 ? Number(item.averageCostTry || 0) / rate : 0;
               const profitInInvoiceCurrency = rate > 0 ? Number(item.grossProfitTry || 0) / rate : 0;
+              const profitClassName = Number(item.grossProfitTry || 0) < 0 ? 'negative' : 'positive';
               return (
                 <tr
                   key={item.id}
@@ -68,8 +69,11 @@ export function SalesInvoiceItemsTable({
                 >
                   <td className="code-cell">{item.stockCode}</td>
                   <td>{item.barcode}</td>
-                  <td>{item.productName}</td>
-                  <td className="money-cell">
+                  <td className="invoice-product-cell">
+                    <strong>{item.productName}</strong>
+                    <small>{item.stockCode} / {item.barcode}</small>
+                  </td>
+                  <td className="money-cell invoice-quantity-cell out-cell">
                     {isReadonly ? item.quantity : (
                       <input
                         min="1"
@@ -79,8 +83,8 @@ export function SalesInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td>{item.currency}</td>
-                  <td className="money-cell">
+                  <td><span className="currency-pill">{item.currency}</span></td>
+                  <td className="money-cell invoice-price-cell">
                     {isReadonly ? formatMoney(item.unitPrice, item.currency) : (
                       <input
                         min="0.01"
@@ -91,11 +95,11 @@ export function SalesInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td className="money-cell">{formatMoney(lineTotal, item.currency)}</td>
+                  <td className="money-cell invoice-total-cell">{formatMoney(lineTotal, item.currency)}</td>
                   {showProfitColumns && <td className="money-cell">{formatMoney(costInInvoiceCurrency, invoiceCurrency)}</td>}
-                  {showProfitColumns && <td className="money-cell">{formatMoney(profitInInvoiceCurrency, invoiceCurrency)}</td>}
-                  {showProfitColumns && <td className="money-cell">{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
-                  {showProfitColumns && <td className="money-cell">{formatPercent(item.grossProfitRate || 0)}</td>}
+                  {showProfitColumns && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatMoney(profitInInvoiceCurrency, invoiceCurrency)}</td>}
+                  {showProfitColumns && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
+                  {showProfitColumns && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatPercent(item.grossProfitRate || 0)}</td>}
                   <td>
                     <span className={item.stockState === 'Eksiye duser' ? 'sales-stock-pill risk' : 'sales-stock-pill'}>
                       {item.stockState}

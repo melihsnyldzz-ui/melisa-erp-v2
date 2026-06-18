@@ -303,6 +303,9 @@ export function printBusinessDocument({
   const printCompany = getPrintCompanyInfo(companyInfo);
   const taxLine = [printCompany.taxOffice, printCompany.taxNumber].filter(Boolean).join(' / ');
   const documentIdentity = formatDocumentIdentity(documentNo);
+  const isPurchaseDocument = String(title || '').toLocaleLowerCase('tr-TR').includes('alış');
+  const accentColor = isPurchaseDocument ? '#067647' : '#b42318';
+  const accentSoft = isPurchaseDocument ? '#ecfdf3' : '#fff1f0';
   const html = `<!doctype html>
     <html lang="tr">
       <head>
@@ -311,12 +314,12 @@ export function printBusinessDocument({
         <style>
           * { box-sizing: border-box; }
           body { margin: 0; padding: 22px; font-family: Arial, sans-serif; color: #111827; background: #fff; }
-          .header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 4px solid #b42318; padding-bottom: 14px; margin-bottom: 14px; }
+          .header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 4px solid ${accentColor}; padding-bottom: 14px; margin-bottom: 14px; }
           .brand strong { display: block; color: #111827; font-size: 22px; }
           .brand span { display: block; margin-top: 4px; color: #667085; font-size: 12px; }
           .brand small { display: block; margin-top: 3px; color: #344054; font-size: 11px; }
           .doc-title { text-align: right; }
-          .doc-title strong { display: block; font-size: 22px; color: #b42318; }
+          .doc-title strong { display: block; font-size: 22px; color: ${accentColor}; }
           .doc-title span { display: block; margin-top: 5px; color: #344054; font-size: 12px; }
           .doc-title small { display: block; margin-top: 5px; color: #667085; font-size: 11px; }
           .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
@@ -324,16 +327,18 @@ export function printBusinessDocument({
           .info-row span { display: block; color: #667085; font-size: 11px; font-weight: 700; text-transform: uppercase; }
           .info-row strong { display: block; margin-top: 5px; font-size: 13px; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th { background: #f2f4f7; color: #182230; font-size: 11px; text-align: left; border: 1px solid #d0d5dd; padding: 7px; }
-          td { border: 1px solid #d0d5dd; padding: 7px; font-size: 12px; }
+          th { background: #182033; color: #fff; font-size: 10px; text-align: left; border: 1px solid #475467; padding: 6px; }
+          td { border: 1px solid #d0d5dd; padding: 6px; font-size: 11px; }
+          tbody tr:nth-child(even) td { background: #f8fafc; }
           .num { text-align: right; }
           .document-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 14px; align-items: start; margin-top: 14px; }
           .totals { border: 1px solid #d0d5dd; background: #fff; }
           .total-row { display: flex; justify-content: space-between; border-bottom: 1px solid #e4e7ec; padding: 8px 10px; font-size: 12px; }
-          .total-row:last-child { border-bottom: 0; font-weight: 800; color: #027a48; font-size: 15px; }
+          .total-row:last-child { border-bottom: 0; background: ${accentSoft}; font-weight: 800; color: ${accentColor}; font-size: 15px; }
           .description { border: 1px solid #d0d5dd; padding: 10px; min-height: 72px; font-size: 12px; background: #fcfcfd; }
           .footer { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; color: #667085; font-size: 11px; }
           .signature { border-top: 1px solid #98a2b3; padding-top: 8px; text-align: center; margin-top: 34px; }
+          .print-note { margin-top: 10px; color: #667085; font-size: 10px; text-align: right; }
           @media print {
             body { padding: 14mm; }
             .no-print { display: none; }
@@ -399,6 +404,7 @@ export function printBusinessDocument({
           <div class="signature">Kontrol Eden</div>
           <div class="signature">Onay / Teslim Alan</div>
         </section>
+        <section class="print-note">Melisa ERP belge çıktısı / ${new Date().toLocaleString('tr-TR')}</section>
         <script>
           window.onload = function () {
             window.focus();

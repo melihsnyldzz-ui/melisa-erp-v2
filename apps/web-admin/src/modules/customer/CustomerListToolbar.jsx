@@ -8,13 +8,15 @@ export function CustomerListToolbar({
   onExportCsv,
   onPrint,
   onRefresh,
+  onToggleColumns,
   hasSelection = true,
+  isColumnPanelOpen = false,
 }) {
   return (
     <section className="customer-toolbar">
       <div className="customer-toolbar-title">
         <strong>Cari Listesi</strong>
-        <span>Müşteri, tedarikçi, bakiye ve son hareket takibi</span>
+        <span>Müşteri, bakiye ve son hareket takibi</span>
       </div>
       <div className="customer-toolbar-actions">
         <button type="button" onClick={onOpenNewCustomer}>Yeni Cari</button>
@@ -22,6 +24,7 @@ export function CustomerListToolbar({
         <button type="button" onClick={onExportCsv}>Excel</button>
         <button type="button" onClick={onPrint}>Yazdır</button>
         <button type="button" onClick={onRefresh}>Yenile</button>
+        <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={onToggleColumns}>Kolonlar</button>
         <button type="button" className={showPassive ? 'pressed' : ''} onClick={onTogglePassive}>
           Pasifleri Göster
         </button>

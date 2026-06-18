@@ -61,7 +61,7 @@ function mapDetailToForm(detail) {
     purchasePrice: String(detail.purchasePrice ?? ''),
     purchaseDiscountRate: String(detail.purchaseDiscountRate ?? 0),
     supplierName: detail.supplierCode && detail.supplierName
-       ? `${detail.supplierCode} / ${detail.supplierName}`
+      ? `${detail.supplierCode} / ${detail.supplierName}`
       : detail.supplierName || '',
     isPassive: Boolean(detail.isPassive),
     hasMovements: Boolean(detail.lastPurchaseDate || detail.lastSaleDate),
@@ -90,7 +90,7 @@ function buildProductView(form, detailId = null) {
     status: form.isPassive ? 'Pasif' : 'Aktif',
     hasMovements: Boolean(form.hasMovements),
     currencyRule: form.hasMovements
-       ? 'Hareket görmüş ürün: para birimi kilitli. Admin özel işlem ve audit gerekir.'
+      ? 'Hareket görmüş ürün: para birimi kilitli. Admin özel işlem ve audit gerekir.'
       : 'Hareket görmemiş ürün: para birimi değiştirilebilir.',
     imageNote: 'Görsel URL veya dosya yolu kaydedilebilir. Binary dosya yükleme sonraki faz.',
   };
@@ -188,9 +188,11 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   const [stockMovements, setStockMovements] = useState([]);
   const [isMovementsLoading, setIsMovementsLoading] = useState(false);
   const [supplierSuggestions, setSupplierSuggestions] = useState([]);
+  const [isEditing, setIsEditing] = useState(!productId);
 
   useEffect(() => {
     setActiveProductId(productId || null);
+    setIsEditing(!productId);
   }, [productId]);
 
   useEffect(() => {
@@ -199,6 +201,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     async function loadProduct() {
       if (!activeProductId) {
         setForm(emptyProductForm);
+        setIsEditing(true);
         setErrorMessage('');
         setDuplicateProductSuggestion(null);
         setIsLoading(false);
@@ -213,6 +216,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
         if (isMounted) {
           setForm(mapDetailToForm(response.data));
+          setIsEditing(false);
         }
       } catch (error) {
         if (isMounted) {
@@ -299,6 +303,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   }, [activeProductId]);
 
   const mode = activeProductId ? 'update' : 'create';
+  const canEditForm = mode === 'create' || isEditing;
   const canSave = permissions.includes('product.edit');
   const canTogglePassive = permissions.includes('product.passive');
   const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
@@ -312,6 +317,10 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   }), [supplierSuggestions]);
 
   function updateField(field, value) {
+    if (!canEditForm) {
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -323,6 +332,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   function startNewProduct() {
     setActiveProductId(null);
     setForm(emptyProductForm);
+    setIsEditing(true);
     setErrorMessage('');
     setDuplicateProductSuggestion(null);
     setSuccessMessage('');
@@ -344,7 +354,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     setActiveProductId(duplicateProductId);
     setErrorMessage('');
     setDuplicateProductSuggestion(null);
-    setSuccessMessage(`Kullanilan stok kart? aciliyor: ${duplicateProductSuggestion.stockCode || duplicateProductId}`);
+    setSuccessMessage(`Kullanılan stok kartı açılıyor: ${duplicateProductSuggestion.stockCode || duplicateProductId}`);
 
     if (onOpenScreen) {
       onOpenScreen('product-card', {
@@ -446,11 +456,12 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
 
     try {
       const response = mode === 'create'
-         ? await createProduct(payload)
+        ? await createProduct(payload)
         : await updateProduct(activeProductId, payload);
 
       setActiveProductId(response.data.id);
       setForm(mapDetailToForm(response.data));
+      setIsEditing(false);
       setSuccessMessage(response.message || (mode === 'create' ? 'Ürün oluşturuldu ve audit kaydı yazıldı.' : 'Ürün güncellendi ve audit kaydı yazıldı.'));
     } catch (error) {
       setProductError(error, 'Ürün kaydedilemedi.');
@@ -482,7 +493,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       const response = await changeProductPassive(activeProductId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
       setSuccessMessage(response.message || (nextIsPassive
-         ? 'Ürün pasif yapıldı ve audit kaydı yazıldı.'
+        ? 'Ürün pasif yapıldı ve audit kaydı yazıldı.'
         : 'Ürün aktif yapıldı ve audit kaydı yazıldı.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Pasif/Aktif işlemi başarısız.'} (${error.code || 'API_ERROR'})`);
@@ -583,8 +594,10 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
             mode={mode}
             isSaving={isSaving}
             isPassiveSaving={isPassiveSaving}
+            isEditing={canEditForm}
             canSave={canSave}
             canTogglePassive={canTogglePassive}
+            onEdit={() => setIsEditing(true)}
             onSave={saveProduct}
             onNew={startNewProduct}
             onTogglePassive={togglePassiveProduct}
@@ -609,14 +622,14 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
             <div className="entity-360-head">
               <div>
                 <strong>Stok 360</strong>
-                <span>Urunun alis, satis, stok ve cari izi tek bakista.</span>
+                <span>Ürünün alış, satış, stok ve cari izi tek bakışta.</span>
               </div>
               <div className="entity-360-actions">
                 <button type="button" onClick={() => onOpenScreen?.('stock-movements', { productId: activeProductId, stockCode: form.stockCode })}>
                   Stok Hareketleri
                 </button>
                 <button type="button" onClick={() => onOpenScreen?.('sales-invoice-list', { productId: activeProductId, stockCode: form.stockCode })}>
-                  Satis Fisleri
+                  Satış Fişleri
                 </button>
               </div>
             </div>
@@ -627,14 +640,14 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
                 <small>{form.isPassive ? 'Pasif kart' : 'Aktif kart'}</small>
               </div>
               <div className="entity-360-card in-card">
-                <span>Alis izi</span>
+                <span>Alış izi</span>
                 <strong>+{product360.inQuantity}</strong>
-                <small>{product360.purchaseCount} fis / {formatMoney(product360.purchaseValueTry, 'TRY')}</small>
+                <small>{product360.purchaseCount} fiş / {formatMoney(product360.purchaseValueTry, 'TRY')}</small>
               </div>
               <div className="entity-360-card out-card">
-                <span>Satis izi</span>
+                <span>Satış izi</span>
                 <strong>-{product360.outQuantity}</strong>
-                <small>{product360.salesCount} fis / {formatMoney(product360.salesValueTry, 'TRY')}</small>
+                <small>{product360.salesCount} fiş / {formatMoney(product360.salesValueTry, 'TRY')}</small>
               </div>
               <div className="entity-360-card">
                 <span>Ort. maliyet TRY</span>
@@ -642,14 +655,14 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
                 <small>Rapor maliyeti</small>
               </div>
               <div className="entity-360-card price-card">
-                <span>Satis fiyat</span>
+                <span>Satış fiyatı</span>
                 <strong>{formatMoney(product360.salePrice, form.currency)}</strong>
-                <small>Alis {formatMoney(product360.purchasePrice, form.currency)}</small>
+                <small>Alış {formatMoney(product360.purchasePrice, form.currency)}</small>
               </div>
               <div className="entity-360-card">
-                <span>Ana tedarikci</span>
+                <span>Ana tedarikçi</span>
                 <strong>{product360.supplier}</strong>
-                <small>Son alis {product360.lastInDate || '-'}</small>
+                <small>Son alış {product360.lastInDate || '-'}</small>
               </div>
             </div>
           </section>
@@ -659,13 +672,14 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
               form={form}
               mode={mode}
               suggestions={productSuggestions}
+              isEditing={canEditForm}
               onChange={updateField}
             />
             <aside className="product-side-panels">
               <ProductImagePanel
                 product={productView}
                 images={images}
-                canEdit={canSave}
+                canEdit={canSave && canEditForm}
                 disabled={isSaving || !activeProductId}
                 onSaveImage={saveImage}
               />
@@ -673,7 +687,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
             </aside>
             <ProductBarcodePanel
               barcodes={barcodes}
-              canEdit={canSave}
+              canEdit={canSave && canEditForm}
               disabled={isSaving || !activeProductId}
               onAddBarcode={addBarcode}
               onToggleBarcode={toggleBarcode}
@@ -688,7 +702,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
           <section className="screen-summary product-card-summary">
             <span>Ürün: {productView.stockCode}</span>
             <span>Durum: {productView.status}</span>
-            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : 'Güncelleme'}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : canEditForm ? 'Düzenleme' : 'İzleme'}</span>
             <span>Kaynak: API</span>
           </section>
         </>

@@ -266,8 +266,8 @@ function getImportColumns(activeEntity) {
   ];
 }
 
-function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWidths, onOpenDuplicateProduct }) {
-  const rows = preview?.rows || [];
+function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWidths, onOpenDuplicateProduct, statusFilter = 'all' }) {
+  const rows = (preview?.rows || []).filter((row) => statusFilter === 'all' || row.status === statusFilter);
   const visibleRows = rows.slice(0, 120);
   const columns = getImportColumns(activeEntity).filter((column) => visibleColumns[column.key] !== false);
 
@@ -356,6 +356,7 @@ export function ImportScreen({ onOpenScreen }) {
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [commitValidOnly, setCommitValidOnly] = useState(true);
+  const [rowStatusFilter, setRowStatusFilter] = useState('all');
   const [visibleColumns, setVisibleColumns] = useState({
     rowNumber: true,
     status: true,
@@ -402,6 +403,7 @@ export function ImportScreen({ onOpenScreen }) {
   function switchEntity(entity) {
     setActiveEntity(entity);
     setSelectedFile(null);
+    setRowStatusFilter('all');
     resetResult();
   }
 
@@ -413,6 +415,7 @@ export function ImportScreen({ onOpenScreen }) {
     try {
       const response = await previewImport(activeEntity, selectedFile);
       setPreview(response.data);
+      setRowStatusFilter(response.data.duplicateRowCount > 0 ? 'duplicate' : response.data.invalidRowCount > 0 ? 'invalid' : 'all');
       setMessage('Preview tamamlandı. DB yazımı yapılmadı.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Preview başarısız.'} (${error.code || 'API_ERROR'})`);
@@ -429,6 +432,7 @@ export function ImportScreen({ onOpenScreen }) {
     try {
       const response = await commitImport(activeEntity, selectedFile, { validOnly: commitValidOnly });
       setPreview(response.data.preview);
+      setRowStatusFilter('all');
       const skipped = Number(response.data.skippedInvalidCount || 0) + Number(response.data.skippedDuplicateCount || 0);
       setMessage(`${response.data.insertedCount} kayıt aktarıldı. ${skipped ? `${skipped} hatalı/duplicate satır atlandı.` : 'Audit log yazıldı.'}`);
     } catch (error) {
@@ -534,6 +538,7 @@ export function ImportScreen({ onOpenScreen }) {
             key={activeEntity}
             onChange={(event) => {
               setSelectedFile(event.target.files?.[0] || null);
+              setRowStatusFilter('all');
               resetResult();
             }}
             type="file"
@@ -573,11 +578,26 @@ export function ImportScreen({ onOpenScreen }) {
           <strong>Validasyon Grid</strong>
           <span>{commitValidOnly ? 'Hatalı/duplicate satırlar atlanır, sadece geçerli satırlar yazılır.' : 'Hata varsa commit DB’ye yazmaz.'}</span>
         </div>
+        <div className="import-row-status-filter">
+          <button className={rowStatusFilter === 'all' ? 'pressed' : ''} onClick={() => setRowStatusFilter('all')} type="button">
+            Tümü {preview?.totalRows ?? 0}
+          </button>
+          <button className={rowStatusFilter === 'valid' ? 'pressed good' : 'good'} onClick={() => setRowStatusFilter('valid')} type="button">
+            Geçerli {preview?.validRowCount ?? 0}
+          </button>
+          <button className={rowStatusFilter === 'invalid' ? 'pressed danger' : 'danger'} onClick={() => setRowStatusFilter('invalid')} type="button">
+            Hatalı {preview?.invalidRowCount ?? 0}
+          </button>
+          <button className={rowStatusFilter === 'duplicate' ? 'pressed warn' : 'warn'} onClick={() => setRowStatusFilter('duplicate')} type="button">
+            Duplicate {preview?.duplicateRowCount ?? 0}
+          </button>
+        </div>
         <ImportValidationTable
           activeEntity={activeEntity}
           columnWidths={columnWidths}
           onOpenDuplicateProduct={openDuplicateProduct}
           preview={preview}
+          statusFilter={rowStatusFilter}
           visibleColumns={visibleColumns}
         />
       </section>

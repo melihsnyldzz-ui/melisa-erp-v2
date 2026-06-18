@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchStockMovements } from '../../services/movementApi.js';
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import { ledgerTargetActionLabel, resolveLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatNumber(value) {
   return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 2 }).format(Number(value || 0));
@@ -44,6 +45,10 @@ function sourceTone(row) {
   if (row.sourceType === 'purchase_invoice') return 'in-cell';
   if (row.sourceType === 'sales_invoice') return 'out-cell';
   return '';
+}
+
+function hasSourceTarget(row) {
+  return Boolean(resolveLedgerTarget(row));
 }
 
 export function StockMovementsScreen({ onOpenScreen }) {
@@ -119,9 +124,13 @@ export function StockMovementsScreen({ onOpenScreen }) {
   }
 
   function openSource(row) {
-    if (row.targetScreen && row.targetPayload) {
-      onOpenScreen?.(row.targetScreen, row.targetPayload);
+    const target = resolveLedgerTarget(row);
+    if (!target) {
+      return false;
     }
+
+    onOpenScreen?.(target.screen, target.payload);
+    return true;
   }
 
   function openProduct(row) {
@@ -283,38 +292,48 @@ export function StockMovementsScreen({ onOpenScreen }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr className="clickable-row" key={row.id} onClick={() => openSource(row)}>
-                    <td>{row.documentDate || '-'}</td>
-                    <td><span className={`movement-source-pill ${sourceTone(row)}`}>{sourceLabel(row.sourceType)}</span></td>
-                    <td>
-                      <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openSource(row); }}>
-                        {row.sourceDocumentNo || '-'}
-                      </button>
-                    </td>
-                    <td>
-                      <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openProduct(row); }}>
-                        {row.stockCode || '-'}
-                      </button>
-                    </td>
-                    <td>{row.productName || '-'}</td>
-                    <td className="ledger-in">{Number(row.quantityIn || 0) > 0 ? formatNumber(row.quantityIn) : '-'}</td>
-                    <td className="ledger-out">{Number(row.quantityOut || 0) > 0 ? formatNumber(row.quantityOut) : '-'}</td>
-                    <td className={movementTone(row)}>{formatNumber(row.quantityNet)}</td>
-                    <td>{formatMoney(row.unitCostTry, 'TRY')}</td>
-                    <td>{formatMoney(row.amountTry, 'TRY')}</td>
-                    <td>
-                      {(row.customerName || row.supplierName) ? (
-                        <button type="button" className="link-button" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
-                          {row.customerName || row.supplierName}
+                {rows.map((row) => {
+                  const sourceTarget = hasSourceTarget(row);
+                  return (
+                    <tr className={sourceTarget ? 'clickable-row' : ''} key={row.id} onClick={() => sourceTarget && openSource(row)}>
+                      <td>{row.documentDate || '-'}</td>
+                      <td><span className={`movement-source-pill ${sourceTone(row)}`}>{sourceLabel(row.sourceType)}</span></td>
+                      <td>
+                        <button type="button" className="document-link-button" disabled={!sourceTarget} onClick={(event) => { event.stopPropagation(); openSource(row); }}>
+                          {row.sourceDocumentNo || '-'}
                         </button>
-                      ) : '-'}
-                    </td>
-                    <td>
-                      <button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openSource(row); }}>Fişe Git</button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>
+                        <button type="button" className="document-link-button stock" onClick={(event) => { event.stopPropagation(); openProduct(row); }}>
+                          {row.stockCode || '-'}
+                        </button>
+                      </td>
+                      <td>{row.productName || '-'}</td>
+                      <td className="ledger-in">{Number(row.quantityIn || 0) > 0 ? formatNumber(row.quantityIn) : '-'}</td>
+                      <td className="ledger-out">{Number(row.quantityOut || 0) > 0 ? formatNumber(row.quantityOut) : '-'}</td>
+                      <td className={movementTone(row)}>{formatNumber(row.quantityNet)}</td>
+                      <td>{formatMoney(row.unitCostTry, 'TRY')}</td>
+                      <td>{formatMoney(row.amountTry, 'TRY')}</td>
+                      <td>
+                        {(row.customerName || row.supplierName) ? (
+                          <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
+                            {row.customerName || row.supplierName}
+                          </button>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <div className="movement-action-stack">
+                          <button type="button" className="mini-button" disabled={!sourceTarget} onClick={(event) => { event.stopPropagation(); openSource(row); }}>
+                            {sourceTarget ? ledgerTargetActionLabel(row) : 'Belge Yok'}
+                          </button>
+                          {row.productId && (
+                            <button type="button" className="mini-button ghost" onClick={(event) => { event.stopPropagation(); openProduct(row); }}>Ürün</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
