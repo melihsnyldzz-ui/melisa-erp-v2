@@ -136,6 +136,23 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
   ));
   const hasValidAmount = Number.isFinite(amount) && amount > 0;
   const canSubmit = Boolean(selectedPartyId) && hasValidAmount && !isSaving && !isLoading;
+  const recentSummary = useMemo(() => movements.reduce((summary, row) => {
+    const rowAmount = Number(row.amount || 0);
+    if (row.movementType === 'collection') {
+      summary.collectionCount += 1;
+      summary.collectionTotal += rowAmount;
+    }
+    if (row.movementType === 'payment') {
+      summary.paymentCount += 1;
+      summary.paymentTotal += rowAmount;
+    }
+    return summary;
+  }, {
+    collectionCount: 0,
+    collectionTotal: 0,
+    paymentCount: 0,
+    paymentTotal: 0,
+  }), [movements]);
 
   useEffect(() => {
     if (mode === 'collection' && selectedCustomer?.currency) {
@@ -331,18 +348,44 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
 
   return (
     <main className="work-area collections-overview-screen">
-      <section className="erp-panel">
-        <div className="panel-title">
+      <section className="erp-panel collections-hero-panel">
+        <div className="collections-hero-copy">
+          <span className="eyebrow">Finans işlem masası</span>
           <strong>Tahsilat / Ödeme Girişi</strong>
-          <span>Gerçek müşteri ve tedarikçi cari hareket defterine yazar</span>
+          <small>Gerçek müşteri ve tedarikçi cari hareket defterine yazar.</small>
         </div>
-        <div className="segmented-control">
+        <div className="collections-mode-switch">
           <button className={mode === 'collection' ? 'pressed' : ''} type="button" onClick={() => switchMode('collection')}>Müşteri Tahsilatı</button>
           <button className={mode === 'payment' ? 'pressed' : ''} type="button" onClick={() => switchMode('payment')}>Tedarikçi Ödemesi</button>
+        </div>
+        <div className="collections-hero-actions">
           <button type="button" onClick={exportMovementRows}>Excel</button>
           <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tahsilat Ödeme')}>Yazdır</button>
           <button type="button" onClick={loadData}>Yenile</button>
         </div>
+      </section>
+
+      <section className="collections-stat-grid" aria-label="Tahsilat ödeme özeti">
+        <article className="collections-stat-card in">
+          <span>Listede tahsilat</span>
+          <strong>{formatMoney(recentSummary.collectionTotal, form.currency)}</strong>
+          <small>{recentSummary.collectionCount} hareket</small>
+        </article>
+        <article className="collections-stat-card out">
+          <span>Listede ödeme</span>
+          <strong>{formatMoney(recentSummary.paymentTotal, form.currency)}</strong>
+          <small>{recentSummary.paymentCount} hareket</small>
+        </article>
+        <article className="collections-stat-card">
+          <span>Seçili cari</span>
+          <strong>{currentParty ? partyCode(currentParty, mode) : '-'}</strong>
+          <small>{currentParty ? partyName(currentParty, mode) : 'Cari seçilmedi'}</small>
+        </article>
+        <article className="collections-stat-card focus">
+          <span>Kayıt durumu</span>
+          <strong>{canSubmit ? 'Hazır' : 'Bekliyor'}</strong>
+          <small>{canSubmit ? 'Kaydedilebilir' : 'Cari ve tutar gerekli'}</small>
+        </article>
       </section>
 
       {isLoading && <div className="list-state">Finans verileri yükleniyor...</div>}
@@ -350,13 +393,13 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="finance-entry-layout">
-        <form className="erp-panel" onSubmit={submitFinanceMovement}>
+        <form className="erp-panel collections-entry-card" onSubmit={submitFinanceMovement}>
           <div className="panel-title">
             <strong>{mode === 'collection' ? 'Müşteriden Tahsilat' : 'Tedarikçiye Ödeme'}</strong>
             <span>{currentParty ? `Seçili bakiye: ${formatMoney(currentBalance, partyCurrency)}` : 'Önce cari seçin'}</span>
           </div>
-          <div className="filter-grid">
-            <label>
+          <div className="collections-form-grid">
+            <label className="wide">
               {mode === 'collection' ? 'Müşteri' : 'Tedarikçi'}
               <select
                 required
@@ -377,7 +420,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
               Tarih
               <input required type="date" value={form.documentDate} onChange={(event) => updateField('documentDate', event.target.value)} />
             </label>
-            <label className="positive-input">
+            <label className="positive-input amount-field">
               Giren Tutar
               <input required min="0.01" step="0.01" type="number" value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
             </label>
@@ -409,7 +452,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
                 ))}
               </select>
             </label>
-            <label>
+            <label className="wide">
               Açıklama
               <input value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Opsiyonel not" />
             </label>
@@ -423,6 +466,11 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
           <div className="panel-title">
             <strong>İşlem Etkisi</strong>
             <span>Kaydetmeden önce cari bakiyeye etkisi</span>
+          </div>
+          <div className={canSubmit ? 'finance-effect-result ready' : 'finance-effect-result'}>
+            <span>{mode === 'collection' ? 'Tahsilat etkisi' : 'Ödeme etkisi'}</span>
+            <strong>{currentParty && hasValidAmount ? formatMoney(nextBalance, partyCurrency) : '-'}</strong>
+            <small>{currentParty && hasValidAmount ? 'İşlem sonrası beklenen bakiye' : 'Cari ve tutar seçilince hesaplanır'}</small>
           </div>
           <dl className="supplier-summary-list">
             <div>
@@ -446,7 +494,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
               <dd>{currentParty && hasValidAmount ? (nextBalance < 0 ? 'Avans oluşur' : 'Bakiye azalır') : 'Bekleniyor'}</dd>
             </div>
           </dl>
-          <div className="segmented-control">
+          <div className="collections-side-actions">
             <button type="button" disabled={!currentParty} onClick={openSelectedParty}>Cari Kartı Aç</button>
           </div>
         </aside>
@@ -499,7 +547,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
         </section>
       )}
 
-      <section className="erp-panel">
+      <section className="erp-panel collections-history-panel">
         <div className="panel-title">
           <strong>Son Tahsilat / Ödeme Hareketleri</strong>
           <span>{movements.length} satır / hareketten ilgili karta veya fişe geçilebilir</span>
