@@ -318,9 +318,17 @@ export async function getTerminalProductByBarcode(barcode) {
         p.currency_code AS currency,
         p.sales_price AS salePrice,
         p.current_stock_qty AS stockQuantity,
+        pi.file_path AS imageUrl,
         p.is_active AS isActive
       FROM dbo.product_barcodes pb
       INNER JOIN dbo.products p ON p.id = pb.product_id
+      OUTER APPLY (
+        SELECT TOP (1) image.file_path
+        FROM dbo.product_images image
+        WHERE image.product_id = p.id
+          AND image.is_active = 1
+        ORDER BY image.is_primary DESC, image.sort_order ASC, image.id ASC
+      ) pi
       WHERE pb.barcode = @barcode
         AND pb.is_active = 1
         AND p.is_deleted = 0
@@ -346,6 +354,7 @@ export async function getTerminalProductByBarcode(barcode) {
     currency: product.currency,
     salePrice: Number(product.salePrice || 0),
     stockQuantity: Number(product.stockQuantity || 0),
+    imageUrl: product.imageUrl || null,
     isPassive: false,
   };
 }

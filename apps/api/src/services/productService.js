@@ -1,5 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
@@ -22,6 +24,7 @@ function toProductDto(row) {
     purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
     averageCostTry: Number(row.average_cost_try || 0),
     stockQuantity: Number(row.stock_quantity || 0),
+    imageUrl: row.image_file_path || null,
     isPassive: !row.is_active,
   };
 }
@@ -85,6 +88,67 @@ function makeServiceError(code, message, statusCode = 400, meta = {}) {
 
 function trimText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+const allowedImageMimeTypes = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+const maxProductImageBytes = 3 * 1024 * 1024;
+
+function normalizeImageBase64(value) {
+  const text = trimText(value);
+  if (!text) return '';
+
+  const dataUrlMatch = text.match(/^data:image\/[a-z0-9.+-]+;base64,(.+)$/i);
+  return dataUrlMatch ? dataUrlMatch[1] : text;
+}
+
+function safeFilePart(value) {
+  return trimText(value)
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'image';
+}
+
+async function saveUploadedProductImageFile(productId, payload = {}) {
+  const fileBase64 = normalizeImageBase64(payload.fileBase64 || payload.base64 || payload.dataUrl);
+  if (!fileBase64) {
+    return null;
+  }
+
+  const mimeType = trimText(payload.mimeType || '').toLowerCase();
+  const extension = allowedImageMimeTypes[mimeType];
+  if (!extension) {
+    throw makeServiceError('PRODUCT_IMAGE_TYPE_INVALID', 'Only JPG, PNG and WEBP product images are allowed');
+  }
+
+  let buffer;
+  try {
+    buffer = Buffer.from(fileBase64, 'base64');
+  } catch {
+    throw makeServiceError('PRODUCT_IMAGE_BASE64_INVALID', 'Image payload could not be decoded');
+  }
+
+  if (!buffer.length || buffer.length > maxProductImageBytes) {
+    throw makeServiceError('PRODUCT_IMAGE_SIZE_INVALID', 'Product image must be smaller than 3 MB');
+  }
+
+  const uploadDir = path.join(process.cwd(), 'uploads', 'products');
+  await mkdir(uploadDir, { recursive: true });
+
+  const originalName = safeFilePart(payload.fileName || payload.name || `product-${productId}`);
+  const fileName = `product-${productId}-${Date.now()}-${originalName}.${extension}`;
+  const diskPath = path.join(uploadDir, fileName);
+  await writeFile(diskPath, buffer);
+
+  return {
+    filePath: `/uploads/products/${fileName}`,
+    storageKey: `products/${fileName}`,
+  };
 }
 
 function parseMoney(value, fieldName) {
@@ -413,10 +477,18 @@ export async function getProductsList(query) {
         p.purchase_discount_rate,
         p.average_cost_try,
         p.current_stock_qty AS stock_quantity,
+        pi.file_path AS image_file_path,
         p.is_active,
         p.created_at
       FROM dbo.products p
       LEFT JOIN dbo.suppliers s ON s.id = p.supplier_id
+      OUTER APPLY (
+        SELECT TOP (1) image.file_path
+        FROM dbo.product_images image
+        WHERE image.product_id = p.id
+          AND image.is_active = 1
+        ORDER BY image.is_primary DESC, image.sort_order ASC, image.id ASC
+      ) pi
       OUTER APPLY (
         SELECT TOP (1) b.barcode
         FROM dbo.product_barcodes b
@@ -485,6 +557,7 @@ export async function getProductsList(query) {
         fp.purchase_discount_rate,
         fp.average_cost_try,
         fp.stock_quantity,
+        fp.image_file_path,
         fp.is_active,
         fp.created_at,
         ROW_NUMBER() OVER (
@@ -1072,12 +1145,14 @@ export async function saveProductImage(productId, payload, actor = null) {
   assertMelisaWriteEnabled();
 
   const id = Number(productId);
-  const filePath = trimText(payload?.filePath || payload?.imageUrl || payload?.url);
-  const storageKey = trimText(payload?.storageKey || filePath);
 
   if (!Number.isInteger(id) || id < 1) {
     throw makeServiceError('PRODUCT_ID_INVALID', 'Product id is invalid');
   }
+
+  const uploadedImage = await saveUploadedProductImageFile(id, payload);
+  const filePath = uploadedImage?.filePath || trimText(payload?.filePath || payload?.imageUrl || payload?.url);
+  const storageKey = uploadedImage?.storageKey || trimText(payload?.storageKey || filePath);
 
   if (!filePath) {
     throw makeServiceError('PRODUCT_IMAGE_PATH_REQUIRED', 'Image URL or file path is required');

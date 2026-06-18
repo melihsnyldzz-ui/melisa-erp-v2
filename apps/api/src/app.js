@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import path from 'node:path';
 import { apiRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFound.js';
@@ -16,6 +17,7 @@ export function createApp() {
   app.use(requestContext);
   app.use(apiRateLimit());
   app.use(express.json({ limit: env.requestBodyLimit }));
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   app.use('/api', apiRoutes);
 

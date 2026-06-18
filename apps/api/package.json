@@ -7,7 +7,8 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "watermark:product-images": "node scripts/watermark-existing-product-images.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -20,6 +21,8 @@
     "jsonwebtoken": "^9.0.3",
     "msnodesqlv8": "^5.2.0",
     "mssql": "^12.5.4",
+    "pdfkit": "^0.19.0",
+    "sharp": "^0.35.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

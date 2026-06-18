@@ -523,23 +523,25 @@ async function getSalesSnapshot(request, id) {
     .input('salesItemsSnapshotId', sql.BigInt, id)
     .query(`
       SELECT
-        id,
-        product_id AS productId,
-        stock_code_snapshot AS stockCode,
-        barcode_snapshot AS barcode,
-        product_name_snapshot AS productName,
-        quantity,
-        currency_code AS currency,
-        unit_price AS unitPrice,
-        line_total AS lineTotal,
-        average_cost_try_snapshot AS averageCostTry,
-        gross_profit_try AS grossProfitTry,
-        gross_profit_rate AS grossProfitRate,
-        stock_status_snapshot AS stockStatus,
-        note
-      FROM dbo.sales_invoice_items
-      WHERE sales_invoice_id = @salesItemsSnapshotId
-      ORDER BY id ASC;
+        sii.id,
+        sii.product_id AS productId,
+        p.category,
+        sii.stock_code_snapshot AS stockCode,
+        sii.barcode_snapshot AS barcode,
+        sii.product_name_snapshot AS productName,
+        sii.quantity,
+        sii.currency_code AS currency,
+        sii.unit_price AS unitPrice,
+        sii.line_total AS lineTotal,
+        sii.average_cost_try_snapshot AS averageCostTry,
+        sii.gross_profit_try AS grossProfitTry,
+        sii.gross_profit_rate AS grossProfitRate,
+        sii.stock_status_snapshot AS stockStatus,
+        sii.note
+      FROM dbo.sales_invoice_items sii
+      LEFT JOIN dbo.products p ON p.id = sii.product_id
+      WHERE sii.sales_invoice_id = @salesItemsSnapshotId
+      ORDER BY sii.id ASC;
     `);
 
   return {
@@ -656,6 +658,7 @@ async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}
         sii.id,
         sii.product_id AS productId,
         p.current_stock_qty AS currentStockQty,
+        p.category,
         p.currency_code AS productCurrency,
         p.purchase_price AS productPurchasePrice,
         p.purchase_discount_rate AS productPurchaseDiscountRate,

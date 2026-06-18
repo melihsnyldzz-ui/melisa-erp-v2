@@ -4,6 +4,7 @@ import {
   searchTerminalProducts,
   submitTerminalSale,
 } from '../services/terminalService.js';
+import { sendTerminalWhatsappShare } from '../services/catalogService.js';
 import { created, fail, ok } from '../utils/response.js';
 
 function terminalError(res, error, fallbackCode) {
@@ -58,5 +59,14 @@ export async function getTerminalCustomersSearch(req, res) {
     });
   } catch (error) {
     return terminalError(res, error, 'TERMINAL_CUSTOMER_SEARCH_FAILED');
+  }
+}
+
+export async function postTerminalWhatsappShare(req, res) {
+  try {
+    const data = await sendTerminalWhatsappShare(req.body);
+    return ok(res, data, { source: 'terminal-whatsapp-provider' });
+  } catch (error) {
+    return terminalError(res, error, 'TERMINAL_WHATSAPP_SHARE_FAILED');
   }
 }

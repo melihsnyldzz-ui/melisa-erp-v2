@@ -65,6 +65,16 @@ export const env = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
+  whatsapp: {
+    provider: process.env.WHATSAPP_PROVIDER || 'evolution',
+    enabled: String(process.env.WHATSAPP_ENABLED || 'false').toLowerCase() === 'true',
+    baseUrl: process.env.WHATSAPP_API_URL || '',
+    apiKey: process.env.WHATSAPP_API_KEY || '',
+    instance: process.env.WHATSAPP_INSTANCE || '',
+    publicApiUrl: process.env.WHATSAPP_PUBLIC_API_URL || process.env.PUBLIC_API_URL || 'http://localhost:4100',
+    timeoutMs: numberEnv('WHATSAPP_TIMEOUT_MS', 20000),
+    sendDelayMs: numberEnv('WHATSAPP_SEND_DELAY_MS', 1200),
+  },
 };
 
 export function getStartupWarnings() {
