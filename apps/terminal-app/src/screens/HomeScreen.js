@@ -1,8 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
 import { TerminalButton } from '../components/TerminalButton';
 import { terminalConfig } from '../config/env';
-import { syncPendingTerminalSales } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 function HomeIcon({ type, tone = 'neutral' }) {
@@ -89,6 +87,29 @@ function HomeIcon({ type, tone = 'neutral' }) {
     );
   }
 
+  if (type === 'catalog') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.catalogCard}>
+          <View style={styles.catalogImage} />
+          <View style={styles.catalogTextLong} />
+          <View style={styles.catalogTextShort} />
+        </View>
+      </View>
+    );
+  }
+
+  if (type === 'customer') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.customerHead} />
+        <View style={styles.customerBody} />
+        <View style={styles.customerLineLong} />
+        <View style={styles.customerLineShort} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
       <View style={styles.gearOuter}>
@@ -121,47 +142,53 @@ function ActionTile({ icon, title, subtitle, meta, tone = 'neutral', onPress, wi
   );
 }
 
+function HomeSummary({ pending, failed, sent, products, customers }) {
+  return (
+    <View style={styles.todayPanel}>
+      <View style={styles.todayItem}>
+        <Text style={styles.todayLabel}>Bekleyen</Text>
+        <Text style={[styles.todayValue, pending ? styles.todayValueDanger : styles.todayValueSuccess]}>{pending}</Text>
+      </View>
+      <View style={styles.todayItem}>
+        <Text style={styles.todayLabel}>Hatali</Text>
+        <Text style={[styles.todayValue, failed ? styles.todayValueDanger : styles.todayValueSuccess]}>{failed}</Text>
+      </View>
+      <View style={styles.todayItem}>
+        <Text style={styles.todayLabel}>Giden fis</Text>
+        <Text style={styles.todayValue}>{sent}</Text>
+      </View>
+      <View style={styles.todayItem}>
+        <Text style={styles.todayLabel}>Local veri</Text>
+        <Text style={styles.todayValueSmall}>{products}/{customers}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh }) {
   const pending = Number(syncState.salePendingCount || syncState.pendingCount || 0);
   const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
   const products = Number(syncState.productCount || 0);
   const customers = Number(syncState.customerCount || 0);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
-  const canQuickSync = syncState.online && pending > 0;
-
-  async function quickSync() {
-    setSyncing(true);
-    setSyncMessage('');
-
-    try {
-      const result = await syncPendingTerminalSales({ token: session.accessToken });
-      setSyncMessage(`${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
-      await onRefresh();
-    } catch (error) {
-      setSyncMessage(error.message || 'Sync basarisiz');
-    } finally {
-      setSyncing(false);
-    }
-  }
-
+  const sent = Number(syncState.syncedCount || 0);
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.actionStack}>
         <View style={styles.quickHeader}>
           <View>
-            <Text style={styles.quickTitle}>Hizli Islemler</Text>
+            <Text style={styles.quickTitle}>Operasyon</Text>
             <Text style={styles.quickMeta}>{terminalConfig.deviceName} / {session.user?.username || 'open-admin'}</Text>
           </View>
           <Text style={[styles.readyBadge, syncState.online ? styles.readyBadgeOnline : styles.readyBadgeOffline]}>
             {syncState.online ? 'Online' : 'Offline'}
           </Text>
         </View>
+        <HomeSummary pending={pending} failed={failed} sent={sent} products={products} customers={customers} />
         <ActionTile
           icon="sale"
           title="Yeni Satis"
-          subtitle="Cari sec ve fisi baslat"
-          meta={syncState.online ? 'API hazir' : 'Offline queue aktif'}
+          subtitle="Cari sec, barkod okut, fisi hazirla"
+          meta={syncState.online ? 'Hazir' : 'Offline'}
           tone="primary"
           onPress={navigation.openNewSale}
           wide
@@ -170,34 +197,34 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <ActionTile
             icon="barcode"
             title="Barkod Okut"
-            subtitle="Urun kontrol et"
-            meta="Hizli"
+            subtitle="Stok ve fiyat kontrol"
+            meta="Kontrol"
             tone="neutral"
             onPress={navigation.openBarcode}
           />
           <ActionTile
             icon="queue"
             title="Bekleyenler"
-            subtitle="Gonderim"
-            meta={`${pending} bekleyen`}
+            subtitle={pending || failed ? 'Gonderim bekliyor' : 'Kuyruk bos'}
+            meta={pending || failed ? `${pending} bekleyen` : 'Temiz'}
             tone={pending || failed ? 'danger' : 'success'}
             onPress={navigation.openSyncStatus}
           />
           <ActionTile
             icon="data"
             title="Veri Guncelle"
-            subtitle="Cache indir"
+            subtitle="Urun ve cari cache"
             meta={`${products}/${customers}`}
             tone={products && customers ? 'success' : 'warning'}
             onPress={navigation.openDataUpdate}
           />
           <ActionTile
             icon="field"
-            title="Saha Testi"
-            subtitle="Test adimlari"
-            meta={syncState.online ? 'Online' : 'Offline'}
+            title="Fis Toplama"
+            subtitle="Kesinlesen fisler"
+            meta={`${sent} fis`}
             tone="neutral"
-            onPress={navigation.openFieldTest}
+            onPress={navigation.openReceiptCollect}
           />
           <ActionTile
             icon="search"
@@ -208,11 +235,27 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
             onPress={navigation.openProductLookup}
           />
           <ActionTile
+            icon="customer"
+            title="Musteri Carileri"
+            subtitle="Telefon, bakiye, para birimi"
+            meta={`${customers} cari`}
+            tone={customers ? 'success' : 'warning'}
+            onPress={navigation.openCustomerAccounts}
+          />
+          <ActionTile
+            icon="catalog"
+            title="Katalog Gönder"
+            subtitle="Filtrele, cari sec, WhatsApp"
+            meta="Yeni"
+            tone="success"
+            onPress={navigation.openCatalogSend}
+          />
+          <ActionTile
             icon="reports"
             title="Raporlar"
             subtitle="Giden fisler"
-            meta={`${syncState.syncedCount || 0} sonuc`}
-            tone={syncState.syncedCount ? 'success' : 'neutral'}
+            meta={`${sent} sonuc`}
+            tone={sent ? 'success' : 'neutral'}
             onPress={navigation.openReports}
           />
           <ActionTile
@@ -226,27 +269,6 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         </View>
       </View>
 
-      {pending ? (
-        <View style={[styles.syncPrompt, canQuickSync ? styles.syncPromptReady : styles.syncPromptOffline]}>
-          <View style={styles.syncPromptText}>
-            <Text style={styles.syncPromptTitle}>
-              {canQuickSync ? 'Bekleyen satislar gonderilebilir' : 'Bekleyen satislar var'}
-            </Text>
-            <Text style={styles.syncPromptMeta}>
-              {canQuickSync
-                ? `${pending} fis API online oldugu icin simdi gonderilebilir.`
-                : `${pending} fis API gelince Sync Merkezi'nden gonderilecek.`}
-            </Text>
-            {syncMessage ? <Text style={styles.syncPromptResult}>{syncMessage}</Text> : null}
-          </View>
-          {canQuickSync ? (
-            <TerminalButton label={syncing ? 'Gonderiliyor' : 'Simdi Gonder'} onPress={quickSync} disabled={syncing} />
-          ) : (
-            <TerminalButton label="Sync Merkezi" onPress={navigation.openSyncStatus} variant="secondary" />
-          )}
-        </View>
-      ) : null}
-
       <View style={styles.cachePanel}>
         <View>
           <Text style={styles.cacheTitle}>Local veri</Text>
@@ -255,6 +277,33 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
         <Text style={[styles.cacheBadge, products && customers ? styles.cacheBadgeReady : styles.cacheBadgeWarning]}>
           {products && customers ? 'Hazir' : 'Eksik'}
         </Text>
+      </View>
+
+      <View style={styles.cleanDock}>
+        <Pressable onPress={navigation.openNewSale} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>S</Text>
+          <Text style={styles.dockText}>Satis</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openSyncStatus} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>B</Text>
+          <Text style={styles.dockText}>Bekleyen</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openReceiptCollect} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>T</Text>
+          <Text style={styles.dockText}>Toplama</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openReports} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>R</Text>
+          <Text style={styles.dockText}>Rapor</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openCatalogSend} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>K</Text>
+          <Text style={styles.dockText}>Katalog</Text>
+        </Pressable>
+        <Pressable onPress={navigation.openCustomerAccounts} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>C</Text>
+          <Text style={styles.dockText}>Cari</Text>
+        </Pressable>
       </View>
 
       <View style={styles.bottomDock}>
@@ -298,12 +347,12 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
 
 const styles = StyleSheet.create({
   content: {
-    padding: 12,
+    padding: 10,
     paddingBottom: 104,
-    gap: 12,
+    gap: 10,
   },
   quickHeader: {
-    minHeight: 64,
+    minHeight: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -312,11 +361,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   quickTitle: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
   },
   quickMeta: {
@@ -331,8 +381,8 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     fontSize: 12,
     fontWeight: '900',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
   },
   readyBadgeOnline: {
     borderColor: colors.success,
@@ -345,26 +395,65 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
   actionStack: {
-    gap: 9,
+    gap: 8,
+  },
+  todayPanel: {
+    minHeight: 58,
+    flexDirection: 'row',
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+  },
+  todayItem: {
+    flex: 1,
+    justifyContent: 'center',
+    borderRightColor: colors.border,
+    borderRightWidth: 1,
+    paddingHorizontal: 7,
+  },
+  todayLabel: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  todayValue: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  todayValueSmall: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  todayValueSuccess: {
+    color: colors.success,
+  },
+  todayValueDanger: {
+    color: colors.danger,
   },
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 10,
+    rowGap: 8,
   },
   actionTile: {
     width: '48%',
-    minHeight: 132,
+    minHeight: 120,
     borderWidth: 1,
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     justifyContent: 'space-between',
     gap: 8,
   },
   actionTileWide: {
     width: '100%',
-    minHeight: 124,
+    minHeight: 118,
   },
   actionTile_primary: {
     backgroundColor: colors.accent,
@@ -390,8 +479,8 @@ const styles = StyleSheet.create({
     opacity: 0.78,
   },
   iconCanvas: {
-    width: 58,
-    height: 58,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
@@ -636,23 +725,88 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.danger,
   },
-  actionText: {
+  catalogCard: {
+    width: 34,
+    height: 40,
+    borderColor: colors.accentDark,
+    borderWidth: 2,
+    borderRadius: 6,
+    backgroundColor: colors.white,
+    padding: 5,
     gap: 4,
+  },
+  catalogImage: {
+    height: 15,
+    borderRadius: 4,
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
+    borderWidth: 1,
+  },
+  catalogTextLong: {
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: colors.danger,
+  },
+  catalogTextShort: {
+    width: 15,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+  },
+  customerHead: {
+    width: 17,
+    height: 17,
+    borderRadius: 10,
+    backgroundColor: colors.accent,
+    position: 'absolute',
+    top: 8,
+    left: 9,
+  },
+  customerBody: {
+    width: 28,
+    height: 16,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: colors.accentDark,
+    position: 'absolute',
+    left: 5,
+    bottom: 8,
+  },
+  customerLineLong: {
+    width: 17,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: colors.danger,
+    position: 'absolute',
+    right: 6,
+    top: 12,
+  },
+  customerLineShort: {
+    width: 12,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+    position: 'absolute',
+    right: 6,
+    top: 20,
+  },
+  actionText: {
+    gap: 3,
   },
   actionTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
   },
   actionTitlePrimary: {
     color: colors.headerText,
-    fontSize: 28,
+    fontSize: 25,
   },
   actionSubtitle: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 17,
+    lineHeight: 15,
   },
   actionSubtitlePrimary: {
     color: colors.headerText,
@@ -665,54 +819,32 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: colors.panel,
     color: colors.text,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   actionMetaPrimary: {
     borderColor: '#99f6e4',
     backgroundColor: '#ccfbf1',
     color: colors.accentDark,
   },
-  syncPrompt: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    gap: 10,
-  },
-  syncPromptReady: {
-    backgroundColor: colors.warningSoft,
-    borderColor: colors.warning,
-  },
-  syncPromptOffline: {
-    backgroundColor: colors.dangerSoft,
-    borderColor: colors.danger,
-  },
-  syncPromptText: {
-    gap: 3,
-  },
-  syncPromptTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  syncPromptMeta: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  syncPromptResult: {
-    color: colors.accentDark,
-    fontSize: 12,
-    fontWeight: '900',
-  },
   secondaryGrid: {
     gap: 8,
   },
+  cleanDock: {
+    minHeight: 62,
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 6,
+    gap: 6,
+  },
   bottomDock: {
-    minHeight: 76,
+    display: 'none',
+    minHeight: 62,
     flexDirection: 'row',
     backgroundColor: colors.white,
     borderColor: colors.border,
@@ -736,16 +868,16 @@ const styles = StyleSheet.create({
   },
   dockText: {
     color: colors.text,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
   },
   cachePanel: {
-    minHeight: 72,
+    minHeight: 58,
     backgroundColor: colors.white,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -753,7 +885,7 @@ const styles = StyleSheet.create({
   },
   cacheTitle: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
   },
   cacheMeta: {

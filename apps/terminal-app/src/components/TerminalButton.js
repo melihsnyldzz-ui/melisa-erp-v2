@@ -60,7 +60,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '900',
-    textTransform: 'uppercase',
   },
   primaryText: {
     color: colors.headerText,

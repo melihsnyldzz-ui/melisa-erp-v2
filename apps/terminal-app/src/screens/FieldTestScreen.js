@@ -5,7 +5,7 @@ import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
 import { pingApi } from '../services/apiClient';
 import { getCacheSummary } from '../services/cacheService';
-import { getPendingQueue, syncPendingTerminalSales } from '../services/queueService';
+import { getPendingQueue } from '../services/queueService';
 import { colors } from '../styles/theme';
 
 const fieldTestLogKey = 'terminalFieldTestLog';
@@ -39,7 +39,7 @@ const testItems = [
   {
     key: 'sync',
     title: 'Tekrar online sync',
-    note: 'Baglanti gelince bekleyenler gonderilmeli.',
+    note: 'Baglanti gelince fis kartindan tek tek gonderilmeli.',
   },
   {
     key: 'duplicate',
@@ -236,33 +236,13 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
     }
   }
 
-  async function runSyncCheck() {
-    setRunningKey('sync');
-    setMessage('');
-    setError('');
-
-    try {
-      const result = await syncPendingTerminalSales({ token: session.accessToken });
-      const ok = result.failed === 0;
-      setResult('sync', ok ? 'pass' : 'fail', `${result.synced} gonderildi / ${result.duplicate} duplicate / ${result.failed} hatali`);
-      setMessage(ok ? 'Sync denemesi tamamlandi' : result.lastErrorMessage || 'Sync hatali kayit birakti');
-      await onRefresh();
-    } catch (checkError) {
-      setResult('sync', 'fail', checkError.message || 'Sync kontrol edilemedi');
-      setError(checkError.message || 'Sync kontrol edilemedi');
-    } finally {
-      setRunningKey('');
-    }
-  }
-
   async function runAllChecks() {
     setMessage('');
     setError('');
     await runApiCheck();
     await runCacheCheck();
     await runQueueCheck();
-    await runSyncCheck();
-    setMessage('Canli kontroller tamamlandi. Manuel adimlari saha testinde isaretleyin.');
+    setMessage('Canli kontroller tamamlandi. Sync adimini fis kartindan tek tek deneyin.');
   }
 
   function resetAll() {
@@ -315,7 +295,6 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
         <TerminalButton label="API test et" onPress={runApiCheck} disabled={Boolean(runningKey)} />
         <TerminalButton label="Cache kontrol et" onPress={runCacheCheck} disabled={Boolean(runningKey)} variant="secondary" />
         <TerminalButton label="Queue kontrol et" onPress={runQueueCheck} disabled={Boolean(runningKey)} variant="secondary" />
-        <TerminalButton label="Sync dene" onPress={runSyncCheck} disabled={Boolean(runningKey)} variant="secondary" />
         {runningKey ? <ActivityIndicator color={colors.accentDark} /> : null}
       </View>
 

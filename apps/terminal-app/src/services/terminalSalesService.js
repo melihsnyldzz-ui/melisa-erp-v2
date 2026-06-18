@@ -97,6 +97,15 @@ export async function submitTerminalSale({ token, payload }) {
   });
 }
 
+export async function sendTerminalWhatsappShare({ token, payload }) {
+  return apiRequest('/terminal/whatsapp-share', {
+    method: 'POST',
+    token,
+    body: payload,
+    timeoutMs: 180000,
+  });
+}
+
 export function buildTerminalSalePayload({ customer, lines, terminalCode, note, testMode = false, exchangeRate = 1 }) {
   return {
     terminalCode,
@@ -112,6 +121,8 @@ export function buildTerminalSalePayload({ customer, lines, terminalCode, note, 
       barcode: line.product.barcodeMasked || line.product.barcode || '',
       stockCode: line.product.stockCode || '',
       productName: line.product.productName || '',
+      category: line.product.category || '',
+      imageUrl: line.product.imageUrl || '',
       quantity: Number(line.quantity || 1),
       unitPrice: Number(line.unitPrice || line.product.salePrice || 0),
       currency: line.product.currency || customer.currency || 'TRY',

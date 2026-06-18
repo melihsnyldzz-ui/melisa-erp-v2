@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
-import { getPendingQueue, syncPendingTerminalSales, syncTerminalSaleEvent } from '../services/queueService';
+import { getPendingQueue, removeQueueEvent, syncTerminalSaleEvent } from '../services/queueService';
 import { colors, terminalStyles } from '../styles/theme';
 
 function statusLabel(status) {
@@ -45,7 +45,7 @@ function shortProductName(item = {}) {
   return item.productName || item.stockCode || item.barcode || `Urun #${item.productId || '-'}`;
 }
 
-function QueueCard({ event, syncingEventId, onSync, onEdit }) {
+function QueueCard({ event, syncingEventId, onSync, onEdit, onDelete }) {
   const payload = event.payload || {};
   const isFailed = event.status === 'failed';
   const isSynced = event.status === 'synced';
@@ -63,20 +63,9 @@ function QueueCard({ event, syncingEventId, onSync, onEdit }) {
         </Text>
       </View>
 
-      <View style={styles.factRow}>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Satir</Text>
-          <Text style={styles.factValue}>{payload.items?.length || 0}</Text>
-        </View>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Adet</Text>
-          <Text style={styles.factValue}>{saleQuantity(payload)}</Text>
-        </View>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Toplam</Text>
-          <Text style={styles.factValueSmall}>{formatMoney(saleTotal(payload), currency)}</Text>
-        </View>
-      </View>
+      <Text style={styles.cardSummary}>
+        {(payload.items?.length || 0)} satir / {saleQuantity(payload)} adet / {formatMoney(saleTotal(payload), currency)}
+      </Text>
 
       {event.lastErrorMessage ? <Text style={styles.errorText}>{event.lastErrorMessage}</Text> : null}
 
@@ -102,6 +91,7 @@ function QueueCard({ event, syncingEventId, onSync, onEdit }) {
             onPress={() => onSync(event.clientEventId)}
             disabled={Boolean(syncingEventId)}
           />
+          <TerminalButton label="Sil" onPress={() => onDelete(event.clientEventId)} variant="danger" disabled={Boolean(syncingEventId)} />
         </View>
       ) : null}
     </View>
@@ -126,21 +116,6 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
     await onRefresh();
   }
 
-  async function syncAll() {
-    setMessage('');
-    setError('');
-    try {
-      const result = await syncPendingTerminalSales({ token: session.accessToken });
-      await refreshLocalState();
-      setMessage(`${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
-      if (result.lastErrorMessage) {
-        setError(result.lastErrorMessage);
-      }
-    } catch (syncError) {
-      setError(syncError.message || 'Gonderim basarisiz');
-    }
-  }
-
   async function syncSingle(clientEventId) {
     setMessage('');
     setError('');
@@ -161,6 +136,18 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
     setMessage('Fis duzenleme ekranina aciliyor');
     setError('');
     navigation.openNewSaleDraft?.(event);
+  }
+
+  async function deleteSale(clientEventId) {
+    setMessage('');
+    setError('');
+    try {
+      const result = await removeQueueEvent(clientEventId);
+      await refreshLocalState();
+      setMessage(result.removed ? 'Fis kuyruktan silindi' : 'Fis bulunamadi');
+    } catch (deleteError) {
+      setError(deleteError.message || 'Fis silinemedi');
+    }
   }
 
   useEffect(() => {
@@ -213,13 +200,13 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
           syncingEventId={syncingEventId}
           onSync={syncSingle}
           onEdit={editSale}
+          onDelete={deleteSale}
         />
       ))}
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <TerminalButton label={syncState.online ? 'Tum Bekleyenleri Gonder' : 'API Offline'} onPress={syncAll} disabled={!syncState.online || !openSales.length} />
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
       <TerminalButton label="Raporlar" onPress={navigation.openReports} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
@@ -229,15 +216,15 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
 const styles = StyleSheet.create({
   content: {
-    padding: 12,
+    padding: 8,
     paddingBottom: 104,
-    gap: 10,
+    gap: 8,
   },
   heroPanel: {
     borderWidth: 1,
     borderRadius: 8,
-    padding: 12,
-    gap: 5,
+    padding: 9,
+    gap: 3,
   },
   heroSuccess: {
     backgroundColor: colors.successSoft,
@@ -253,14 +240,14 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '900',
   },
   heroText: {
     color: colors.text,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -317,8 +304,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 5,
     borderRadius: 8,
     backgroundColor: colors.white,
-    padding: 12,
-    gap: 10,
+    padding: 9,
+    gap: 7,
     ...terminalStyles.rowShadow,
   },
   queueCardFailed: {
@@ -373,37 +360,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successSoft,
     color: colors.success,
   },
-  factRow: {
-    flexDirection: 'row',
-    gap: 7,
-  },
-  factBox: {
-    flex: 1,
-    borderColor: colors.borderDark,
-    borderWidth: 1,
-    borderRadius: 7,
-    backgroundColor: colors.white,
-    padding: 9,
-  },
-  factLabel: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  factValue: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  factValueSmall: {
+  cardSummary: {
     color: colors.text,
     fontSize: 13,
     fontWeight: '900',
-    marginTop: 4,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.panel,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
   },
   cardActions: {
-    gap: 7,
+    gap: 6,
   },
   linePreview: {
     borderTopColor: colors.border,

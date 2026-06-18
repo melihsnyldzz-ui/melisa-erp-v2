@@ -23,6 +23,13 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Stok kartına görsel yüklemek için fotoğraf seçimine izin verin.",
+          "cameraPermission": "Stok kartına görsel yüklemek için kameraya izin verin."
+        }
       ]
     ],
     "extra": {

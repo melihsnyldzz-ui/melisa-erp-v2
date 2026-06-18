@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
 import { TerminalButton } from '../components/TerminalButton';
-import { terminalConfig } from '../config/env';
+import { getActiveApiBaseUrl, terminalConfig } from '../config/env';
 import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/currencyRateService';
-import { lookupProductByBarcode, searchProductsOfflineFirst } from '../services/productService';
-import { enqueueTerminalSale, markQueueFailed, markQueueSynced, syncPendingTerminalSales, updateQueueEventPayload } from '../services/queueService';
-import { buildTerminalSalePayload, searchTerminalCustomers, submitTerminalSale } from '../services/terminalSalesService';
+import { getProductDetail, lookupProductByBarcode, searchProductsOfflineFirst } from '../services/productService';
+import { enqueueTerminalSale, markQueueFailed, markQueueSynced, updateQueueEventPayload } from '../services/queueService';
+import { buildTerminalSalePayload, searchTerminalCustomers, sendTerminalWhatsappShare, submitTerminalSale } from '../services/terminalSalesService';
 import { colors, terminalStyles } from '../styles/theme';
 
 function normalizeCustomer(row) {
@@ -15,6 +15,7 @@ function normalizeCustomer(row) {
     id: row.id,
     customerCode: row.customerCode,
     customerName: row.customerName,
+    phone: row.phone || row.phoneMasked || row.customerPhone || '',
     currency: row.currency || 'TRY',
     balance: Number(row.balance || 0),
   };
@@ -25,6 +26,12 @@ function formatMoney(value, currency) {
 }
 
 function normalizeProduct(row) {
+  if (!row) return null;
+
+  const primaryImage = Array.isArray(row?.images)
+    ? row.images.find((image) => image?.isPrimary && image?.isActive !== false) || row.images.find((image) => image?.isActive !== false) || row.images[0]
+    : null;
+
   return {
     id: row.id,
     stockCode: row.stockCode,
@@ -33,11 +40,22 @@ function normalizeProduct(row) {
     productName: row.productName,
     brand: row.brand,
     category: row.category,
+    imageUrl: row.imageUrl || row.image_url || row.imagePath || row.image_file_path || primaryImage?.filePath || primaryImage?.url || null,
     currency: row.currency || 'TRY',
     salePrice: Number(row.salePrice || 0),
     stockQuantity: Number(row.stockQuantity || 0),
   };
 }
+
+function resolveImageUrl(imageUrl, apiBaseUrl) {
+  const value = String(imageUrl || '').trim().replace(/\\/g, '/');
+  const base = String(apiBaseUrl || '').replace(/\/+$/, '');
+  if (!value || !base) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('/')) return `${base}${value}`;
+  return `${base}/${value}`;
+}
+
 
 const cashCustomerCodes = ['PESIN-TL', 'PESIN-USD', 'PESIN-EUR'];
 const recentCustomersKey = 'terminalRecentSaleCustomers';
@@ -169,7 +187,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const barcodeRef = useRef(null);
   const barcodeAutoTimerRef = useRef(null);
   const lastAutoLookupBarcodeRef = useRef('');
-  const [customerQuery, setCustomerQuery] = useState('PESIN-TL');
+  const [customerQuery, setCustomerQuery] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [recentCustomers, setRecentCustomers] = useState([]);
@@ -193,6 +211,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const [error, setError] = useState('');
   const [saleResult, setSaleResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [apiBaseUrl, setApiBaseUrl] = useState('');
+  const [whatsappActionsOpen, setWhatsappActionsOpen] = useState(false);
 
   const total = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0) * Number(line.unitPrice || 0)
@@ -200,6 +220,26 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const itemQuantity = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0)
   ), 0), [lines]);
+  const categorySummary = useMemo(() => {
+    const summary = lines.reduce((items, line) => {
+      const category = String(line.product?.category || '').trim() || 'Kategorisiz';
+      const quantityValue = Number(line.quantity || 0);
+      const previous = items[category] || 0;
+      return {
+        ...items,
+        [category]: previous + quantityValue,
+      };
+    }, {});
+
+    return Object.entries(summary)
+      .map(([category, quantityValue]) => ({ category, quantity: quantityValue }))
+      .sort((left, right) => {
+        if (right.quantity !== left.quantity) {
+          return right.quantity - left.quantity;
+        }
+        return left.category.localeCompare(right.category, 'tr');
+      });
+  }, [lines]);
   const totalsByCurrency = useMemo(() => lines.reduce((summary, line) => {
     const currency = line.product.currency || selectedCustomer?.currency || 'TRY';
     const lineTotal = Number(line.quantity || 0) * Number(line.unitPrice || 0);
@@ -211,6 +251,70 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const lineCurrencies = Object.keys(totalsByCurrency);
   const hasMixedCurrency = selectedCustomer && lineCurrencies.some((currency) => currency !== selectedCustomer.currency);
   const selectedExchangeRate = getRateToTry(currencyRates, selectedCustomer?.currency || 'TRY');
+
+  useEffect(() => {
+    let active = true;
+
+    getActiveApiBaseUrl().then((url) => {
+      if (active) {
+        setApiBaseUrl(url);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function enrichLineImages() {
+      const missingProducts = lines
+        .map((line) => line.product)
+        .filter((product) => product?.id && !product.imageUrl);
+
+      if (!missingProducts.length) {
+        return;
+      }
+
+      const uniqueProducts = missingProducts.filter((product, index, all) => (
+        all.findIndex((item) => String(item.id) === String(product.id)) === index
+      ));
+
+      const imageByProductId = {};
+      await Promise.all(uniqueProducts.map(async (product) => {
+        try {
+          const detail = await getProductDetail({
+            productId: product.id,
+            token: session?.accessToken,
+          });
+          const normalized = normalizeProduct(detail);
+          if (normalized?.imageUrl) {
+            imageByProductId[String(product.id)] = normalized.imageUrl;
+          }
+        } catch {
+          // Gorsel zorunlu degil; satir metin bilgisiyle kalir.
+        }
+      }));
+
+      if (!active || !Object.keys(imageByProductId).length) {
+        return;
+      }
+
+      setLines((current) => current.map((line) => {
+        const imageUrl = imageByProductId[String(line.product?.id)];
+        return imageUrl
+          ? { ...line, product: { ...line.product, imageUrl } }
+          : line;
+      }));
+    }
+
+    enrichLineImages();
+    return () => {
+      active = false;
+    };
+  }, [lines, session?.accessToken]);
 
   function convertProductForSale(product) {
     if (!product) return product;
@@ -309,7 +413,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     barcodeAutoTimerRef.current = setTimeout(() => {
       lastAutoLookupBarcodeRef.current = trimmedBarcode;
       lookupBarcodeProduct(trimmedBarcode);
-    }, 250);
+    }, 120);
 
     return () => {
       if (barcodeAutoTimerRef.current) {
@@ -370,7 +474,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setSelectedCustomer(customer);
     setCustomerResults([]);
     setCustomerPickerOpen(false);
-    setCustomerQuery(customer.customerCode || customer.customerName || '');
+    setCustomerQuery('');
     setRecentCustomers(await writeRecentCustomer(customer));
     setMessage(`${customer.customerName} secildi`);
     setSaleResult(null);
@@ -412,7 +516,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   async function selectCashCustomer(code) {
-    setCustomerQuery(code);
+    setCustomerQuery('');
     setCustomerResults([]);
     setCustomerPickerOpen(false);
     setSelectedCustomer(null);
@@ -523,7 +627,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     }
 
     if (!q) {
-      setError('Urun aramak icin ad, stok kodu veya barkod girin');
+      setError('Stok kodu girin');
       return;
     }
 
@@ -537,8 +641,12 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         token: session.accessToken,
         limit: 10,
         preferCache: true,
+        stockCodeOnly: true,
       });
-      const products = (response.products || response.data || response.items || []).map(normalizeProduct);
+      const normalizedQuery = q.toLocaleLowerCase('tr-TR');
+      const products = (response.products || response.data || response.items || [])
+        .map(normalizeProduct)
+        .filter((product) => String(product.stockCode || '').toLocaleLowerCase('tr-TR').includes(normalizedQuery));
       setProductResults(products);
       if (products.length === 1) {
         setMessage(`1 urun bulundu (${response.source === 'cache' ? 'offline stok' : 'API'}), satira eklemek icin dokunun`);
@@ -730,6 +838,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setError('');
     setMessage('');
     setSaleResult(null);
+    setWhatsappActionsOpen(false);
     setReviewMode(true);
   }
 
@@ -785,6 +894,87 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setError('');
   }
 
+  function buildWhatsappSharePayload(mode) {
+    return {
+      mode,
+      phone: selectedCustomer?.phone || '',
+      customerId: selectedCustomer?.id,
+      customerCode: selectedCustomer?.customerCode || '',
+      customerName: selectedCustomer?.customerName || '',
+      documentCurrency: selectedCustomer?.currency || 'TRY',
+      exchangeRate: Number(selectedExchangeRate || 1),
+      items: lines.map((line) => ({
+        productId: Number(line.product.id),
+        stockCode: line.product.stockCode || '',
+        barcode: line.product.matchedBarcode || line.product.barcodeMasked || '',
+        productName: line.product.productName || '',
+        category: line.product.category || '',
+        imageUrl: line.product.imageUrl || '',
+        quantity: Number(line.quantity || 1),
+        unitPrice: Number(line.unitPrice || line.product.salePrice || 0),
+        currency: line.product.currency || selectedCustomer?.currency || 'TRY',
+      })),
+    };
+  }
+
+  async function shareDraftReceiptPdf() {
+    if (!selectedCustomer || !lines.length) {
+      setError('Paylasilacak fis yok');
+      return;
+    }
+
+    if (!selectedCustomer.phone) {
+      setError('Secili cari kartinda WhatsApp telefonu yok');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const result = await sendTerminalWhatsappShare({
+        token: session.accessToken,
+        payload: buildWhatsappSharePayload('receipt'),
+      });
+      const data = result?.data || result || {};
+      setMessage(`ERP uzerinden fis PDF gonderildi: ${data.sent || 0} gonderildi, ${data.failed || 0} hatali`);
+    } catch (shareError) {
+      setError(shareError.message || 'ERP uzerinden fis PDF gonderimi basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function shareDraftProductsWhatsapp() {
+    if (!selectedCustomer || !lines.length) {
+      setError('Paylasilacak urun yok');
+      return;
+    }
+
+    if (!selectedCustomer.phone) {
+      setError('Secili cari kartinda WhatsApp telefonu yok');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const result = await sendTerminalWhatsappShare({
+        token: session.accessToken,
+        payload: buildWhatsappSharePayload('products'),
+      });
+      const data = result?.data || result || {};
+      setMessage(`ERP uzerinden urunler gonderildi: ${data.sent || 0} gonderildi, ${data.failed || 0} hatali, ${data.skipped || 0} atlandi`);
+    } catch (shareError) {
+      setError(shareError.message || 'ERP uzerinden urun gonderimi basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function clearSale() {
     setLines([]);
     setBarcode('');
@@ -798,35 +988,11 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setTestNote('');
     setReviewMode(false);
     setEditingEventId('');
+    setWhatsappActionsOpen(false);
     setMessage('Fis temizlendi');
     setError('');
     setSaleResult(null);
     setTimeout(() => barcodeRef.current?.focus(), 120);
-  }
-
-  async function syncQueue() {
-    setLoading(true);
-    setError('');
-    try {
-      const result = await syncPendingTerminalSales({ token: session.accessToken });
-      setMessage(`Sync: ${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`);
-      setSaleResult({
-        status: result.failed ? 'failed' : 'synced',
-        title: result.failed ? 'Sync hatali kayit birakti' : 'Bekleyenler gonderildi',
-        message: `${result.synced} gonderildi, ${result.duplicate} duplicate, ${result.failed} hatali`,
-        customerName: 'Toplu sync',
-        lineCount: result.attempted,
-        itemQuantity: result.synced + result.duplicate,
-      });
-      if (result.lastErrorMessage) {
-        setError(result.lastErrorMessage);
-      }
-      await onRefresh();
-    } catch (syncError) {
-      setError(syncError.message || 'Sync basarisiz');
-    } finally {
-      setLoading(false);
-    }
   }
 
   return (
@@ -1043,19 +1209,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           returnKeyType="done"
         />
         <LastProductPanel product={convertProductForSale(lastScannedProduct)} quantity={quantity || lastScannedQuantity} />
-        <RecentScanStrip
-          scans={recentScans.map((scan) => ({
-            ...scan,
-            product: convertProductForSale(scan.product),
-          }))}
-          onSelect={(scan) => {
-            setLastScannedProduct(scan.product);
-            setLastScannedQuantity(scan.quantity);
-            setQuantity(String(scan.quantity || 1));
-            setMessage(`${scan.product.productName} tekrar secildi`);
-            setTimeout(() => barcodeRef.current?.focus(), 80);
-          }}
-        />
         <Text style={styles.label}>Miktar</Text>
         <View style={styles.quantityControl}>
           <Pressable onPress={() => adjustInputQuantity(-1)} style={styles.quantityButton}>
@@ -1073,13 +1226,13 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         </View>
         <TerminalButton label={lastScannedProduct ? 'Satira Ekle' : 'Urunu Getir'} onPress={lastScannedProduct ? addBarcodeLine : lookupBarcodeProduct} disabled={loading} />
         <View style={styles.quickSearchPanel}>
-          <Text style={styles.label}>Barkod yoksa urun ara</Text>
+          <Text style={styles.label}>Stok kodu ile ara</Text>
           <TextInput
             value={productQuery}
             onChangeText={setProductQuery}
             onSubmitEditing={searchProduct}
             style={styles.productSearchInput}
-            placeholder="Urun adi, stok kodu veya barkod"
+            placeholder="Stok kodu"
             autoCapitalize="none"
           />
           <TerminalButton label="Urun Ara" onPress={searchProduct} disabled={loading} variant="secondary" />
@@ -1142,31 +1295,44 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         ) : null}
         {lines.length === 0 ? (
           <Text style={styles.empty}>Henuz satir yok.</Text>
-        ) : lines.map((line) => (
-          <View key={line.product.id} style={styles.lineRow}>
-            <View style={styles.lineText}>
-              <Text style={styles.lineName}>{line.product.productName}</Text>
-              <Text style={styles.lineMeta}>{line.product.stockCode} / {line.product.barcodeMasked}</Text>
-            </View>
-            <View style={styles.lineActions}>
-              <Text style={styles.lineAmount}>
-                {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
-              </Text>
-              <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
-              <View style={styles.lineButtons}>
-                <Pressable onPress={() => adjustLineQuantity(line.product.id, -1)} style={styles.smallLineButton}>
-                  <Text style={styles.smallLineButtonText}>-</Text>
-                </Pressable>
-                <Pressable onPress={() => adjustLineQuantity(line.product.id, 1)} style={styles.smallLineButton}>
-                  <Text style={styles.smallLineButtonText}>+</Text>
-                </Pressable>
-                <Pressable onPress={() => removeLine(line.product.id)} style={[styles.smallLineButton, styles.smallLineButtonDanger]}>
-                  <Text style={[styles.smallLineButtonText, styles.smallLineButtonTextDanger]}>Sil</Text>
-                </Pressable>
+        ) : lines.map((line) => {
+          const lineImageUrl = resolveImageUrl(line.product?.imageUrl, apiBaseUrl);
+
+          return (
+            <View key={line.product.id} style={styles.lineRow}>
+              <View style={styles.lineMain}>
+                {lineImageUrl ? (
+                  <Image source={{ uri: lineImageUrl }} style={styles.lineImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.lineImageEmpty}>
+                    <Text style={styles.lineImageEmptyText}>Resim yok</Text>
+                  </View>
+                )}
+                <View style={styles.lineText}>
+                  <Text style={styles.lineCode}>{line.product.stockCode}</Text>
+                  <Text style={styles.lineName}>{line.product.productName}</Text>
+                </View>
+              </View>
+              <View style={styles.lineActions}>
+                <Text style={styles.lineAmount}>
+                  {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
+                </Text>
+                <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
+                <View style={styles.lineButtons}>
+                  <Pressable onPress={() => adjustLineQuantity(line.product.id, -1)} style={styles.smallLineButton}>
+                    <Text style={styles.smallLineButtonText}>-</Text>
+                  </Pressable>
+                  <Pressable onPress={() => adjustLineQuantity(line.product.id, 1)} style={styles.smallLineButton}>
+                    <Text style={styles.smallLineButtonText}>+</Text>
+                  </Pressable>
+                  <Pressable onPress={() => removeLine(line.product.id)} style={[styles.smallLineButton, styles.smallLineButtonDanger]}>
+                    <Text style={[styles.smallLineButtonText, styles.smallLineButtonTextDanger]}>Sil</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
         {lineCurrencies.length > 0 ? lineCurrencies.map((currency) => (
           <InfoRow
             key={currency}
@@ -1231,7 +1397,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           disabled={loading || lines.length === 0 || !selectedCustomer}
         />
       </View>
-      <TerminalButton label="Bekleyenleri Gonder" onPress={syncQueue} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
         </>
       ) : (
@@ -1270,6 +1435,26 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
               />
             ))}
 
+            <View style={styles.receiptContentPanel}>
+              <View style={styles.receiptContentHeader}>
+                <View>
+                  <Text style={styles.receiptContentTitle}>Fis Icerigi</Text>
+                  <Text style={styles.receiptContentMeta}>Kategori bazli adet ozeti</Text>
+                </View>
+                <Text style={styles.receiptContentTotal}>{itemQuantity} adet</Text>
+              </View>
+              <View style={styles.receiptCategoryList}>
+                {categorySummary.length ? categorySummary.map((item) => (
+                  <View key={`receipt-category-${item.category}`} style={styles.receiptCategoryRow}>
+                    <Text style={styles.receiptCategoryName} numberOfLines={1}>{item.category}</Text>
+                    <Text style={styles.receiptCategoryQuantity}>{item.quantity} adet</Text>
+                  </View>
+                )) : (
+                  <Text style={styles.receiptCategoryEmpty}>Kategori bilgisi yok</Text>
+                )}
+              </View>
+            </View>
+
             <View style={styles.reviewLines}>
               {lines.map((line) => (
                 <View key={`review-line-${line.product.id}`} style={styles.reviewLineRow}>
@@ -1290,6 +1475,39 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
           <View style={styles.reviewActions}>
+            <TerminalButton
+              label={whatsappActionsOpen ? 'WhatsApp Seceneklerini Kapat' : 'WhatsApp'}
+              onPress={() => setWhatsappActionsOpen((current) => !current)}
+              disabled={loading || lines.length === 0}
+            />
+            {whatsappActionsOpen ? (
+              <View style={styles.whatsappActionPanel}>
+                <Pressable
+                  onPress={shareDraftReceiptPdf}
+                  disabled={loading || lines.length === 0}
+                  style={({ pressed }) => [
+                    styles.whatsappActionButton,
+                    pressed && styles.whatsappActionPressed,
+                    loading && styles.whatsappActionDisabled,
+                  ]}
+                >
+                  <Text style={styles.whatsappActionTitle}>Fisi Gonder</Text>
+                  <Text style={styles.whatsappActionMeta}>ERP API PDF olusturur ve WhatsApp'tan yollar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={shareDraftProductsWhatsapp}
+                  disabled={loading || lines.length === 0}
+                  style={({ pressed }) => [
+                    styles.whatsappActionButton,
+                    pressed && styles.whatsappActionPressed,
+                    loading && styles.whatsappActionDisabled,
+                  ]}
+                >
+                  <Text style={styles.whatsappActionTitle}>Urunleri Gonder</Text>
+                  <Text style={styles.whatsappActionMeta}>ERP API gorsel, adet, birim fiyat ve toplam yollar</Text>
+                </Pressable>
+              </View>
+            ) : null}
             <TerminalButton label={editingEventId ? 'Guncelle ve Gonder' : 'Fisi Gonder'} onPress={finishSale} disabled={loading} />
             <TerminalButton label={editingEventId ? 'Degisiklikleri Kaydet' : 'Fisi Kaydet'} onPress={saveDraftToQueue} disabled={loading} variant="secondary" />
             <TerminalButton label="Fisi Yazdir" onPress={printDraft} disabled={loading} variant="secondary" />
@@ -1456,48 +1674,49 @@ const styles = StyleSheet.create({
   },
   cashRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 8,
+    flexWrap: 'nowrap',
+    gap: 6,
   },
   cashCard: {
-    width: '31.8%',
-    minHeight: 104,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 82,
     borderColor: colors.accent,
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: colors.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8,
-    gap: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 7,
+    gap: 4,
   },
   cashCardPressed: {
     opacity: 0.75,
   },
   cashIcon: {
-    width: 44,
-    minHeight: 38,
+    width: 40,
+    minHeight: 34,
     overflow: 'hidden',
     borderColor: colors.accent,
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: colors.white,
     color: colors.accentDark,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '900',
     textAlign: 'center',
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   cashTitle: {
     color: colors.accentDark,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     textAlign: 'center',
   },
   cashMeta: {
     color: colors.muted,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     textAlign: 'center',
   },
@@ -1956,7 +2175,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lineRow: {
-    minHeight: 74,
+    minHeight: 92,
     borderColor: colors.borderDark,
     borderWidth: 1,
     borderLeftColor: colors.accent,
@@ -1969,13 +2188,48 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     ...terminalStyles.rowShadow,
   },
+  lineMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  lineImage: {
+    width: 58,
+    height: 58,
+    borderRadius: 8,
+    borderColor: colors.border,
+    borderWidth: 1,
+    backgroundColor: colors.panel,
+  },
+  lineImageEmpty: {
+    width: 58,
+    height: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderColor: colors.border,
+    borderWidth: 1,
+    backgroundColor: colors.panel,
+  },
+  lineImageEmptyText: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
   lineText: {
     flex: 1,
+    gap: 2,
+  },
+  lineCode: {
+    color: colors.danger,
+    fontSize: 16,
+    fontWeight: '900',
   },
   lineName: {
     color: colors.text,
-    fontSize: 15,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: '800',
   },
   lineMeta: {
     color: colors.muted,
@@ -2100,6 +2354,76 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 3,
   },
+  receiptContentPanel: {
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.successSoft,
+    padding: 9,
+    gap: 8,
+  },
+  receiptContentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  receiptContentTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  receiptContentMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 1,
+  },
+  receiptContentTotal: {
+    overflow: 'hidden',
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.success,
+    fontSize: 14,
+    fontWeight: '900',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+  },
+  receiptCategoryList: {
+    gap: 6,
+  },
+  receiptCategoryRow: {
+    minHeight: 36,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  receiptCategoryName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  receiptCategoryQuantity: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  receiptCategoryEmpty: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
   reviewLines: {
     gap: 7,
   },
@@ -2121,6 +2445,42 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     gap: 8,
+  },
+  whatsappActionPanel: {
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.successSoft,
+    padding: 8,
+    gap: 7,
+  },
+  whatsappActionButton: {
+    minHeight: 58,
+    borderColor: colors.accent,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  whatsappActionPressed: {
+    opacity: 0.72,
+  },
+  whatsappActionDisabled: {
+    backgroundColor: colors.disabled,
+    borderColor: colors.disabled,
+  },
+  whatsappActionTitle: {
+    color: colors.accentDark,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  whatsappActionMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 3,
   },
   testModePanel: {
     backgroundColor: colors.white,

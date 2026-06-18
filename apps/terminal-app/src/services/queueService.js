@@ -109,6 +109,17 @@ export async function updateQueueEventPayload(clientEventId, payload) {
   });
 }
 
+export async function removeQueueEvent(clientEventId) {
+  const queue = await readQueue();
+  const nextQueue = queue.filter((event) => event.clientEventId !== clientEventId);
+  await writeQueue(nextQueue);
+
+  return {
+    removed: queue.length - nextQueue.length,
+    remaining: nextQueue.length,
+  };
+}
+
 export async function markQueueFailed(clientEventId, error) {
   await updateQueueEvent(clientEventId, {
     status: 'failed',

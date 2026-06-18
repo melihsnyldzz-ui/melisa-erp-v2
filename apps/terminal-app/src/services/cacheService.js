@@ -59,6 +59,16 @@ function productMatches(product, normalized) {
   ].some((value) => normalizeSearch(value).includes(normalized));
 }
 
+function productBarcodeEquals(product, normalized) {
+  if (!normalized) return false;
+
+  return [
+    product.barcode,
+    product.barcodeMasked,
+    product.matchedBarcode,
+  ].some((value) => normalizeSearch(value) === normalized);
+}
+
 function normalizeProductForCache(product) {
   return {
     ...product,
@@ -183,6 +193,19 @@ export async function findExactCachedProduct(query) {
   return Array.isArray(chunk) ? chunk[pointer.index] || null : null;
 }
 
+export async function findExactCachedProductByBarcode(query) {
+  const normalized = normalizeSearch(query);
+  if (!normalized) return null;
+
+  const exactProduct = await findExactCachedProduct(normalized);
+  if (exactProduct && productBarcodeEquals(exactProduct, normalized)) {
+    return exactProduct;
+  }
+
+  const matches = await findInProductChunks((product) => productBarcodeEquals(product, normalized), 1);
+  return matches[0] || null;
+}
+
 export async function saveProductCache(products = []) {
   const existing = await readProductCacheValues();
   const next = {};
@@ -225,6 +248,45 @@ export async function findCachedProducts(query, limit = 8) {
   }
 
   return findInProductChunks((product) => productMatches(product, normalized), limit);
+}
+
+export async function findCachedProductsByStockCode(query, limit = 8) {
+  const normalized = normalizeSearch(query);
+
+  if (!normalized) {
+    return [];
+  }
+
+  if (normalized.length < 2) {
+    return findInProductChunks((product) => normalizeSearch(product.stockCode).includes(normalized), limit);
+  }
+
+  const lookupShard = await readJson(lookupShardKey(normalized), {});
+  const pointers = Object.entries(lookupShard)
+    .filter(([key]) => key.includes(normalized))
+    .map(([, pointer]) => pointer)
+    .filter((pointer) => pointer?.chunkKey && Number.isFinite(pointer.index));
+
+  const results = [];
+  const seen = {};
+
+  for (const pointer of pointers) {
+    const dedupeKey = `${pointer.chunkKey}:${pointer.index}`;
+    if (seen[dedupeKey]) continue;
+    seen[dedupeKey] = true;
+
+    const chunk = await readJson(pointer.chunkKey, []);
+    const product = Array.isArray(chunk) ? chunk[pointer.index] || null : null;
+    if (product && normalizeSearch(product.stockCode).includes(normalized)) {
+      results.push(product);
+    }
+
+    if (results.length >= limit) {
+      return results.slice(0, limit);
+    }
+  }
+
+  return results;
 }
 
 async function getProductCacheCount() {

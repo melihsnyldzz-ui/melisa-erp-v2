@@ -28,6 +28,26 @@ function saleQuantity(payload = {}) {
   return (payload.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 }
 
+function categorySummary(payload = {}) {
+  const summary = (payload.items || []).reduce((items, item) => {
+    const category = String(item.category || '').trim() || 'Kategorisiz';
+    const quantity = Number(item.quantity || 0);
+    return {
+      ...items,
+      [category]: Number(items[category] || 0) + quantity,
+    };
+  }, {});
+
+  return Object.entries(summary)
+    .map(([category, quantity]) => ({ category, quantity }))
+    .sort((left, right) => {
+      if (right.quantity !== left.quantity) {
+        return right.quantity - left.quantity;
+      }
+      return left.category.localeCompare(right.category, 'tr');
+    });
+}
+
 function formatMoney(value, currency = 'TRY') {
   return `${Number(value || 0).toFixed(2)} ${currency}`;
 }
@@ -136,6 +156,7 @@ function ReceiptDetail({ event, onBack, onPrint }) {
   const currency = saleCurrency(payload);
   const duplicate = isDuplicate(event);
   const receiptText = buildReceiptText(event);
+  const categories = categorySummary(payload);
 
   return (
     <>
@@ -155,9 +176,24 @@ function ReceiptDetail({ event, onBack, onPrint }) {
         <TerminalButton label="Listeye Don" onPress={onBack} variant="secondary" />
       </View>
 
-      <View style={styles.printPreview}>
-        <Text style={styles.printPreviewTitle}>Fis cikti onizleme</Text>
-        <Text selectable style={styles.printText}>{receiptText}</Text>
+      <View style={styles.receiptContentPanel}>
+        <View style={styles.receiptContentHeader}>
+          <View>
+            <Text style={styles.receiptContentTitle}>Fis Icerigi</Text>
+            <Text style={styles.receiptContentMeta}>Kategori bazli adet ozeti</Text>
+          </View>
+          <Text style={styles.receiptContentTotal}>{saleQuantity(payload)} adet</Text>
+        </View>
+        <View style={styles.receiptCategoryList}>
+          {categories.length ? categories.map((item) => (
+            <View key={`report-category-${item.category}`} style={styles.receiptCategoryRow}>
+              <Text style={styles.receiptCategoryName} numberOfLines={1}>{item.category}</Text>
+              <Text style={styles.receiptCategoryQuantity}>{item.quantity} adet</Text>
+            </View>
+          )) : (
+            <Text style={styles.receiptCategoryEmpty}>Kategori bilgisi yok</Text>
+          )}
+        </View>
       </View>
 
       <View style={styles.table}>
@@ -542,30 +578,75 @@ const styles = StyleSheet.create({
   detailActions: {
     gap: 7,
   },
-  printPreview: {
-    borderColor: colors.borderDark,
+  receiptContentPanel: {
+    borderColor: colors.accent,
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: colors.white,
-    padding: 10,
-    gap: 7,
+    backgroundColor: colors.successSoft,
+    padding: 9,
+    gap: 8,
   },
-  printPreviewTitle: {
+  receiptContentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  receiptContentTitle: {
     color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  receiptContentMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 1,
+  },
+  receiptContentTotal: {
+    overflow: 'hidden',
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    color: colors.success,
+    fontSize: 14,
+    fontWeight: '900',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+  },
+  receiptCategoryList: {
+    gap: 6,
+  },
+  receiptCategoryRow: {
+    minHeight: 36,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  receiptCategoryName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  receiptCategoryQuantity: {
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '900',
   },
-  printText: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 7,
-    backgroundColor: '#fffdf7',
-    color: colors.text,
-    fontFamily: 'monospace',
-    fontSize: 11,
+  receiptCategoryEmpty: {
+    color: colors.muted,
+    fontSize: 12,
     fontWeight: '800',
-    lineHeight: 16,
-    padding: 8,
   },
   table: {
     borderColor: '#b7ad98',

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './apiClient';
-import { findCachedProduct, findCachedProducts, findExactCachedProduct } from './cacheService';
+import { findCachedProducts, findCachedProductsByStockCode, findExactCachedProductByBarcode } from './cacheService';
 import { enqueueAction } from './queueService';
 import { searchTerminalProducts } from './terminalSalesService';
 
@@ -19,6 +19,7 @@ function normalizeProduct(row) {
     productName: row.productName,
     brand: row.brand,
     category: row.category,
+    imageUrl: row.imageUrl || row.image_url || row.imagePath || row.image_file_path || null,
     currency: row.currency,
     salePrice: Number(row.salePrice || 0),
     stockQuantity: Number(row.stockQuantity || 0),
@@ -89,7 +90,7 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
     throw error;
   }
 
-  const exactCachedProduct = await findExactCachedProduct(trimmedBarcode);
+  const exactCachedProduct = await findExactCachedProductByBarcode(trimmedBarcode);
   if (exactCachedProduct) {
     await rememberRecentProduct(exactCachedProduct);
     return buildCacheLookupResult(
@@ -124,28 +125,11 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
       searchedAt: new Date().toISOString(),
     };
   } catch (error) {
-    const cachedProduct = await findCachedProduct(trimmedBarcode);
+    const cachedProduct = await findExactCachedProductByBarcode(trimmedBarcode);
 
     if (cachedProduct) {
       await rememberRecentProduct(cachedProduct);
       return buildCacheLookupResult(cachedProduct, trimmedBarcode);
-    }
-
-    let alternatives = [];
-
-    if (error.code === 'NETWORK_ERROR' || error.code === 'API_TIMEOUT') {
-      alternatives = (await findCachedProducts(trimmedBarcode, 8)).map(normalizeProduct);
-    } else {
-      try {
-        const response = await searchTerminalProducts({
-          q: trimmedBarcode,
-          token,
-          limit: 8,
-        });
-        alternatives = extractProducts(response).map(normalizeProduct);
-      } catch {
-        alternatives = (await findCachedProducts(trimmedBarcode, 8)).map(normalizeProduct);
-      }
     }
 
     await enqueueAction({
@@ -153,18 +137,20 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
       payload: {
         barcode: trimmedBarcode,
         errorCode: error.code || 'LOOKUP_FAILED',
-        alternativeCount: alternatives.length,
+        alternativeCount: 0,
       },
     });
 
-    error.alternatives = alternatives;
+    error.alternatives = [];
     error.lookupBarcode = trimmedBarcode;
-    error.message = error.message || 'Urun bulunamadi';
+    error.message = error.code === 'NETWORK_ERROR' || error.code === 'API_TIMEOUT'
+      ? error.message || 'Barkod sorgusu yapilamadi'
+      : 'Barkod bulunamadi. Stok kodu icin alttaki aramayi kullanin.';
     throw error;
   }
 }
 
-export async function searchProductsOfflineFirst({ q, token, limit = 10, preferCache = true } = {}) {
+export async function searchProductsOfflineFirst({ q, token, limit = 10, preferCache = true, stockCodeOnly = false } = {}) {
   const query = String(q || '').trim();
   if (!query) {
     return {
@@ -174,7 +160,10 @@ export async function searchProductsOfflineFirst({ q, token, limit = 10, preferC
     };
   }
 
-  const cachedProducts = (await findCachedProducts(query, limit)).map(normalizeProduct).filter(Boolean);
+  const cachedProducts = (await (stockCodeOnly
+    ? findCachedProductsByStockCode(query, limit)
+    : findCachedProducts(query, limit)
+  )).map(normalizeProduct).filter(Boolean);
   if (preferCache || cachedProducts.length) {
     return {
       source: 'cache',
@@ -201,4 +190,20 @@ export async function searchProductsOfflineFirst({ q, token, limit = 10, preferC
       warning: cachedProducts.length ? 'API erisilemedi, local cache sonucu' : error.message || 'Urun bulunamadi',
     };
   }
+}
+
+export async function getProductDetail({ productId, token } = {}) {
+  const id = Number(productId || 0);
+  if (!Number.isInteger(id) || id < 1) {
+    const error = new Error('Urun id gecersiz');
+    error.code = 'PRODUCT_ID_INVALID';
+    throw error;
+  }
+
+  const response = await apiRequest(`/products/${encodeURIComponent(id)}`, {
+    token,
+    timeoutMs: 8000,
+  });
+
+  return response?.data || response || null;
 }
