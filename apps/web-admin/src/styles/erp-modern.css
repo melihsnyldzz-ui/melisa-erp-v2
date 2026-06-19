@@ -6061,7 +6061,10 @@ body {
 }
 
 .table-sort-button {
+  display: inline-flex;
+  align-items: center;
   width: 100%;
+  min-height: 26px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -9234,7 +9237,7 @@ button:active:not(:disabled) {
 
 .stock-360-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 10px;
   min-height: 0;
   overflow: hidden;
@@ -10044,13 +10047,39 @@ button:active:not(:disabled) {
 }
 
 .stock-list-screen .stock-search-primary {
-  grid-template-columns: minmax(260px, 1.3fr) minmax(280px, 1.8fr) minmax(136px, auto);
+  grid-template-columns: minmax(220px, 1.2fr) minmax(220px, 1fr) minmax(120px, auto);
   gap: 6px;
 }
 
 .stock-list-screen .stock-filter-fields {
-  grid-template-columns: 112px 132px minmax(170px, 1.1fr) 128px 132px 148px 104px 104px 116px 76px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 6px;
+}
+
+.stock-list-screen .stock-filter-panel-modern,
+.stock-list-screen .stock-search-primary,
+.stock-list-screen .stock-filter-fields {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.stock-list-screen .stock-filter-buttons,
+.stock-list-screen .stock-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.stock-list-screen .stock-filter-fields > button {
+  width: 100%;
+  min-height: 30px;
+}
+
+.stock-list-screen .stock-table-wrap,
+.customer-list-screen .customer-table-wrap {
+  width: 100%;
+  max-width: 100%;
 }
 
 .customer-list-screen .customer-filter-panel,
@@ -10111,8 +10140,8 @@ button:active:not(:disabled) {
 .stock-list-screen .stock-filter-buttons button,
 .stock-list-screen .stock-filter-actions button,
 .invoice-list-screen .filter-reset-button {
-  min-height: 28px;
-  height: 28px;
+  min-height: 30px;
+  height: 30px;
   padding: 0 10px;
   border: 1px solid #cfd8e5;
   border-radius: 6px;
