@@ -12110,7 +12110,23 @@ button:active:not(:disabled) {
 
 /* Supplier statement wide band: use the empty horizontal workspace instead of a narrow card. */
 .supplier-ledger-screen > .erp-panel:first-child {
-  overflow: hidden;
+  height: auto !important;
+  min-height: 735px !important;
+  overflow: visible !important;
+}
+
+.supplier-ledger-screen > .erp-panel {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.supplier-ledger-screen > .cancelled-ledger-panel {
+  min-height: 310px !important;
+}
+
+.supplier-ledger-screen > .erp-panel:not(:first-child):not(.cancelled-ledger-panel) {
+  min-height: 430px !important;
 }
 
 .supplier-ledger-screen .supplier-ekstre-360-card {
@@ -12122,6 +12138,18 @@ button:active:not(:disabled) {
   max-width: none;
   margin: 8px 10px;
   padding: 8px;
+}
+
+.supplier-ledger-screen .table-shell {
+  max-width: 100%;
+}
+
+.collections-history-panel .mini-button,
+.collections-history-panel .document-link-button,
+.supplier-ledger-screen .mini-button,
+.supplier-ledger-screen .document-link-button {
+  min-height: 26px;
+  padding-block: 4px;
 }
 
 .supplier-ledger-screen .supplier-ekstre-360-main {
