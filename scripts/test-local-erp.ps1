@@ -152,6 +152,19 @@ foreach ($check in $readChecks) {
   Test-ApiJson -Area $check[0] -Name $check[1] -Path $check[2]
 }
 
+$navigationSmokeScript = Join-Path $RepoRoot 'scripts\web-admin-navigation-smoke.mjs'
+if (Test-Path $navigationSmokeScript) {
+  Push-Location $RepoRoot
+  try {
+    $navigationSmokeOutput = node $navigationSmokeScript 2>&1
+    Add-Check 'Web Admin' 'Navigation registry smoke' ($LASTEXITCODE -eq 0) (($navigationSmokeOutput | Select-Object -Last 1) -join ' ')
+  } finally {
+    Pop-Location
+  }
+} else {
+  Add-Check 'Web Admin' 'Navigation registry smoke' $false 'script bulunamadi'
+}
+
 if ($RunBuild) {
   Push-Location (Join-Path $RepoRoot 'apps\web-admin')
   try {
