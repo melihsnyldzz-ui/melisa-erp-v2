@@ -20,6 +20,14 @@
   --ui-success: #0b7a3b;
   --ui-shadow: 0 10px 28px rgba(17, 24, 39, 0.07);
   --ui-shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.05);
+  --erp-topbar-height: 64px;
+  --erp-demo-banner-height: 28px;
+  --erp-statusbar-height: 28px;
+  --erp-sidebar-width: 272px;
+  --erp-sidebar-compact-width: 252px;
+  --erp-smart-panel-width: 320px;
+  --erp-smart-panel-collapsed-width: 54px;
+  --erp-workspace-padding: 8px;
 }
 
 body {
@@ -12376,5 +12384,144 @@ button:active:not(:disabled) {
   .dashboard-quick-action {
     grid-template-columns: 22px minmax(0, 1fr);
     min-height: 44px;
+  }
+}
+
+/* Sprint 2 layout contract: final overrides for shell sizing after legacy skin variants. */
+.erp-shell {
+  grid-template-rows: var(--erp-topbar-height) minmax(0, 1fr) var(--erp-statusbar-height);
+  overflow: hidden;
+}
+
+.erp-shell.demo-mode-shell {
+  grid-template-rows: var(--erp-demo-banner-height) var(--erp-topbar-height) minmax(0, 1fr) var(--erp-statusbar-height);
+}
+
+.hide-status-bar.erp-shell {
+  grid-template-rows: var(--erp-topbar-height) minmax(0, 1fr);
+}
+
+.hide-status-bar.erp-shell.demo-mode-shell {
+  grid-template-rows: var(--erp-demo-banner-height) var(--erp-topbar-height) minmax(0, 1fr);
+}
+
+.main-layout {
+  grid-template-columns: var(--erp-sidebar-width) minmax(0, 1fr) var(--erp-smart-panel-width);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hide-sidebar .main-layout {
+  grid-template-columns: minmax(0, 1fr) var(--erp-smart-panel-width);
+}
+
+.smart-panel-collapsed-shell .main-layout {
+  grid-template-columns: var(--erp-sidebar-width) minmax(0, 1fr) var(--erp-smart-panel-collapsed-width);
+}
+
+.hide-sidebar.smart-panel-collapsed-shell .main-layout {
+  grid-template-columns: minmax(0, 1fr) var(--erp-smart-panel-collapsed-width);
+}
+
+.hide-smart-panel .main-layout {
+  grid-template-columns: var(--erp-sidebar-width) minmax(0, 1fr);
+}
+
+.hide-sidebar.hide-smart-panel .main-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.top-menu {
+  grid-template-columns: 232px minmax(0, 1fr) minmax(470px, 650px);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.module-menu,
+.top-actions,
+.content-shell,
+.sidebar,
+.sidebar-flat,
+.sidebar-launcher,
+.smart-panel,
+.work-area {
+  min-width: 0;
+  min-height: 0;
+}
+
+.content-shell,
+.sidebar,
+.sidebar-flat,
+.sidebar-launcher,
+.smart-panel {
+  overflow: hidden;
+}
+
+.work-area {
+  padding: var(--erp-workspace-padding);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar-flat-body,
+.sidebar-launcher-body,
+.smart-insight-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.tab-bar {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.erp-panel,
+.table-shell,
+.table-wrap,
+.filter-grid,
+.summary-strip,
+.screen-summary {
+  max-width: 100%;
+}
+
+.erp-panel,
+.table-shell,
+.table-wrap {
+  min-width: 0;
+}
+
+@media (max-width: 1366px) {
+  :root {
+    --erp-sidebar-width: var(--erp-sidebar-compact-width);
+    --erp-smart-panel-width: 300px;
+  }
+
+  .top-menu {
+    grid-template-columns: 210px minmax(0, 1fr) minmax(430px, 560px);
+  }
+
+  .top-actions {
+    grid-template-columns: minmax(100px, 1fr) 96px minmax(72px, 86px) 76px 54px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .main-layout,
+  .smart-panel-collapsed-shell .main-layout {
+    grid-template-columns: var(--erp-sidebar-compact-width) minmax(0, 1fr);
+  }
+
+  .hide-sidebar .main-layout,
+  .hide-sidebar.smart-panel-collapsed-shell .main-layout,
+  .hide-smart-panel .main-layout,
+  .hide-sidebar.hide-smart-panel .main-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .smart-insights-panel,
+  .smart-panel {
+    display: none;
   }
 }
