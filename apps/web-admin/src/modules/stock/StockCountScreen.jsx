@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { fetchProducts } from '../../services/productApi.js';
 import { applyStockCountAdjustment } from '../../services/movementApi.js';
 
@@ -20,7 +20,7 @@ function differenceTone(value) {
   return '';
 }
 
-export function StockCountScreen({ onOpenScreen }) {
+export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
   const [search, setSearch] = useState('');
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -36,6 +36,14 @@ export function StockCountScreen({ onOpenScreen }) {
     if (!selectedProduct || countedQuantity === '') return 0;
     return Number(countedQuantity || 0) - Number(selectedProduct.stockQuantity || 0);
   }, [countedQuantity, selectedProduct]);
+  const isDirty = Boolean(selectedProduct) && (
+    countedQuantity !== String(Number(selectedProduct?.stockQuantity || 0))
+    || note.trim() !== ''
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   async function searchProducts(event) {
     event.preventDefault();
@@ -60,6 +68,7 @@ export function StockCountScreen({ onOpenScreen }) {
   function selectProduct(product) {
     setSelectedProduct(product);
     setCountedQuantity(String(Number(product.stockQuantity || 0)));
+    setNote('');
     setMessage('');
     setErrorMessage('');
     setLastResult(null);
@@ -87,6 +96,7 @@ export function StockCountScreen({ onOpenScreen }) {
       setMessage(result.message || 'Stok sayımı uygulandı.');
       setSelectedProduct((current) => current ? { ...current, stockQuantity: result.countedQuantity } : current);
       setCountedQuantity(String(Number(result.countedQuantity || 0)));
+      setNote('');
     } catch (error) {
       setErrorMessage(`${error.message || 'Stok sayımı uygulanamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {

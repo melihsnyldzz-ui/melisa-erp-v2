@@ -137,7 +137,6 @@ export const screenRegistry = {
     label: 'Ürün Kartı',
     module: 'Stok',
     type: 'kart',
-    dirty: true,
   },
   'price-list': {
     id: 'price-list',
@@ -162,7 +161,6 @@ export const screenRegistry = {
     label: 'Stok Sayım',
     module: 'Stok',
     type: 'islem',
-    dirty: true,
   },
   'customer-list': {
     id: 'customer-list',
@@ -175,7 +173,6 @@ export const screenRegistry = {
     label: 'Müşteri Cari Kartı',
     module: 'Cari',
     type: 'kart',
-    dirty: true,
   },
   'customer-movements': {
     id: 'customer-movements',
@@ -200,7 +197,6 @@ export const screenRegistry = {
     label: 'Tedarikçi Cari Kartı',
     module: 'Cari',
     type: 'kart',
-    dirty: true,
   },
   'supplier-movements': {
     id: 'supplier-movements',
@@ -219,7 +215,6 @@ export const screenRegistry = {
     label: 'Satış Fişi',
     module: 'Satış',
     type: 'fis',
-    dirty: true,
   },
   'sales-invoice-list': {
     id: 'sales-invoice-list',
@@ -238,7 +233,6 @@ export const screenRegistry = {
     label: 'Teklif Kartı',
     module: 'Satış',
     type: 'kart',
-    dirty: true,
   },
   'sales-orders': {
     id: 'sales-orders',
@@ -251,7 +245,6 @@ export const screenRegistry = {
     label: 'Sipariş Kartı',
     module: 'Satış',
     type: 'kart',
-    dirty: true,
   },
   'purchase-invoice': {
     id: 'purchase-invoice',
@@ -264,7 +257,6 @@ export const screenRegistry = {
     label: 'Toplu Alış Girişi',
     module: 'Alış',
     type: 'fis',
-    dirty: true,
   },
   'purchase-invoice-list': {
     id: 'purchase-invoice-list',

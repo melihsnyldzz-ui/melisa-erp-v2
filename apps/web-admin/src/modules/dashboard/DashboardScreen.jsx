@@ -410,14 +410,14 @@ function buildAccountingKpis(summary = emptyDashboardSummary) {
       value: formatMoney(accounting.todayCollectionsTry),
       detail: 'Tahsilat modülü',
       tone: 'info',
-      screenId: 'collections',
+      screenId: 'collections-overview',
     },
     {
       label: 'Günlük ödeme',
       value: formatMoney(accounting.todayPaymentsTry),
       detail: 'Ödeme modülü',
       tone: 'info',
-      screenId: 'payments',
+      screenId: 'collections-overview',
     },
     {
       label: 'Borçlu cari sayısı',

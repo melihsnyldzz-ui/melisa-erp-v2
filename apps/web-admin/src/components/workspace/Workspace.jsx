@@ -60,382 +60,295 @@ function hasAnyPermission(permissions, permissionKeys) {
   return permissionKeys.some((permissionKey) => permissions.includes(permissionKey));
 }
 
-export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [] }) {
-  const screenId = activeTab.screenId ?? activeTab.id;
-
-  if (screenId === 'dashboard') {
-    if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Dashboard görüntüleme yetkiniz yok." />;
-    }
-
-    return <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} />;
+function hasRoutePermission(permissions, route) {
+  if (!route.permissionKeys?.length) {
+    return true;
   }
 
-  if (screenId === 'stock-list') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Stok görüntüleme yetkiniz yok." />;
-    }
+  return route.permissionMode === 'all'
+    ? route.permissionKeys.every((permissionKey) => permissions.includes(permissionKey))
+    : hasAnyPermission(permissions, route.permissionKeys);
+}
 
-    return <StockListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'product-card') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Ürün görüntüleme yetkiniz yok." />;
-    }
-
-    return <ProductCardScreen productId={activeTab.payload?.productId} permissions={permissions} onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'stock-movements') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Stok hareketleri görüntüleme yetkiniz yok." />;
-    }
-
-    return <StockMovementsScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'stock-valuation') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Stok değerleme görüntüleme yetkiniz yok." />;
-    }
-
-    return <StockValuationScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'stock-count') {
-    if (!permissions.includes('product.edit')) {
-      return <UnauthorizedScreen message="Stok sayımı uygulama yetkiniz yok." />;
-    }
-
-    return <StockCountScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'price-list') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Fiyat listesi görüntüleme yetkiniz yok." />;
-    }
-
-    return <PriceListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'customer-list') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari görüntüleme yetkiniz yok." />;
-    }
-
-    return <CustomerListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'customer-card') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari görüntüleme yetkiniz yok." />;
-    }
-
-    return <CustomerCardScreen customerId={activeTab.payload?.customerId} permissions={permissions} onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'customer-movements') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari hareketleri görüntüleme yetkiniz yok." />;
-    }
-
-    return <CustomerMovementsScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'customer-statement') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Cari ekstre görüntüleme yetkiniz yok." />;
-    }
-
-    return <CustomerStatementScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'supplier-list') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikçi görüntüleme yetkiniz yok." />;
-    }
-
-    return <SupplierListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'supplier-card') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikçi kartı görüntüleme yetkiniz yok." />;
-    }
-
-    return (
+const workspaceRouteRegistry = {
+  dashboard: {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Dashboard görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen, permissions }) => <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} />,
+  },
+  'stock-list': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'Stok görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <StockListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'product-card': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'Ürün görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions }) => (
+      <ProductCardScreen
+        productId={activeTab.payload?.productId}
+        permissions={permissions}
+        onDirtyChange={onDirtyChange}
+        onOpenScreen={onOpenScreen}
+      />
+    ),
+  },
+  'stock-movements': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'Stok hareketleri görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <StockMovementsScreen onOpenScreen={onOpenScreen} />,
+  },
+  'stock-valuation': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'Stok değerleme görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <StockValuationScreen onOpenScreen={onOpenScreen} />,
+  },
+  'stock-count': {
+    permissionKeys: ['product.edit'],
+    unauthorizedMessage: 'Stok sayımı uygulama yetkiniz yok.',
+    render: ({ onDirtyChange, onOpenScreen }) => <StockCountScreen onDirtyChange={onDirtyChange} onOpenScreen={onOpenScreen} />,
+  },
+  'price-list': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'Fiyat listesi görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <PriceListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'customer-list': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Cari görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <CustomerListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'customer-card': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Cari görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions }) => (
+      <CustomerCardScreen
+        customerId={activeTab.payload?.customerId}
+        permissions={permissions}
+        onDirtyChange={onDirtyChange}
+        onOpenScreen={onOpenScreen}
+      />
+    ),
+  },
+  'customer-movements': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Cari hareketleri görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <CustomerMovementsScreen onOpenScreen={onOpenScreen} />,
+  },
+  'customer-statement': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Cari ekstre görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <CustomerStatementScreen onOpenScreen={onOpenScreen} />,
+  },
+  'supplier-list': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Tedarikçi görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <SupplierListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'supplier-card': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Tedarikçi kartı görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions }) => (
       <SupplierCardScreen
         supplierId={activeTab.payload?.supplierId}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
       />
-    );
-  }
-
-  if (screenId === 'supplier-movements') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikçi cari hareketleri görüntüleme yetkiniz yok." />;
-    }
-
-    return <SupplierMovementsScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'supplier-statement') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="Tedarikçi ekstresi görüntüleme yetkiniz yok." />;
-    }
-
-    return <SupplierStatementScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'sales-invoice') {
-    if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Satış fişi görüntüleme yetkiniz yok." />;
-    }
-
-    return (
+    ),
+  },
+  'supplier-movements': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Tedarikçi cari hareketleri görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <SupplierMovementsScreen onOpenScreen={onOpenScreen} />,
+  },
+  'supplier-statement': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Tedarikçi ekstresi görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <SupplierStatementScreen onOpenScreen={onOpenScreen} />,
+  },
+  'sales-invoice': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Satış fişi görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions }) => (
       <SalesInvoiceScreen
         salesDraftId={activeTab.payload?.salesDraftId}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
       />
-    );
-  }
-
-  if (screenId === 'sales-invoice-list') {
-    if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Satış listesi görüntüleme yetkiniz yok." />;
-    }
-
-    return <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'sales-offers') {
-    if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Teklif görüntüleme yetkiniz yok." />;
-    }
-
-    return <SalesPipelineListScreen type="offer" onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'sales-offer') {
-    if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Teklif görüntüleme yetkiniz yok." />;
-    }
-
-    return (
+    ),
+  },
+  'sales-invoice-list': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Satış listesi görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'sales-offers': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Teklif görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <SalesPipelineListScreen type="offer" onOpenScreen={onOpenScreen} />,
+  },
+  'sales-offer': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Teklif görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, onOpenScreen }) => (
       <SalesPipelineScreen
         type="offer"
         documentId={activeTab.payload?.offerId}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
       />
-    );
-  }
-
-  if (screenId === 'sales-orders') {
-    if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Sipariş görüntüleme yetkiniz yok." />;
-    }
-
-    return <SalesPipelineListScreen type="order" onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'sales-order') {
-    if (!permissions.includes('sales.view')) {
-      return <UnauthorizedScreen message="Sipariş görüntüleme yetkiniz yok." />;
-    }
-
-    return (
+    ),
+  },
+  'sales-orders': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Sipariş görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <SalesPipelineListScreen type="order" onOpenScreen={onOpenScreen} />,
+  },
+  'sales-order': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Sipariş görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, onOpenScreen }) => (
       <SalesPipelineScreen
         type="order"
         documentId={activeTab.payload?.orderId}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
       />
-    );
-  }
-
-  if (screenId === 'purchase-invoice') {
-    if (!permissions.includes('purchase.view')) {
-      return <UnauthorizedScreen message="Alış fişi görüntüleme yetkiniz yok." />;
-    }
-
-    return (
+    ),
+  },
+  'purchase-invoice': {
+    permissionKeys: ['purchase.view'],
+    unauthorizedMessage: 'Alış fişi görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange, permissions }) => (
       <PurchaseInvoiceScreen
         purchaseDraftId={activeTab.payload?.purchaseDraftId}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
       />
-    );
-  }
-
-  if (screenId === 'bulk-purchase-entry') {
-    if (!permissions.includes('purchase.view')) {
-      return <UnauthorizedScreen message="Toplu alis girisi goruntuleme yetkiniz yok." />;
-    }
-
-    return (
+    ),
+  },
+  'bulk-purchase-entry': {
+    permissionKeys: ['purchase.view'],
+    unauthorizedMessage: 'Toplu alis girisi goruntuleme yetkiniz yok.',
+    render: ({ onDirtyChange, onOpenScreen, permissions }) => (
       <BulkPurchaseEntryScreen
         permissions={permissions}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
       />
-    );
-  }
-
-  if (screenId === 'purchase-invoice-list') {
-    if (!permissions.includes('purchase.view')) {
-      return <UnauthorizedScreen message="Alış listesi görüntüleme yetkiniz yok." />;
-    }
-
-    return <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'finance-overview') {
-    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
-      return <UnauthorizedScreen message="Finans özeti görüntüleme yetkiniz yok." />;
-    }
-
-    return <FinanceOverviewScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'collections-overview') {
-    if (!hasAnyPermission(permissions, ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'])) {
-      return <UnauthorizedScreen message="Tahsilat/ödeme kaydı için finans yetkiniz yok." />;
-    }
-
-    return <CollectionsOverviewScreen initialPayload={activeTab.payload} onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'cash-customers') {
-    if (!hasAnyPermission(permissions, ['finance.view', 'customer.view', 'sales.view'])) {
-      return <UnauthorizedScreen message="Pesin cari takibi goruntuleme yetkiniz yok." />;
-    }
-
-    return <CashCustomerTrackingScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'cash-bank-ledger') {
-    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view', 'customer.view'])) {
-      return <UnauthorizedScreen message="Kasa/banka defteri görüntüleme yetkiniz yok." />;
-    }
-
-    return <CashBankLedgerScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'accounting-journal') {
-    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
-      return <UnauthorizedScreen message="Muhasebe defteri görüntüleme yetkiniz yok." />;
-    }
-
-    return <AccountingJournalScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'accounting-control') {
-    if (!hasAnyPermission(permissions, ['dashboard.view', 'finance.view'])) {
-      return <UnauthorizedScreen message="Muhasebe kontrol paneli görüntüleme yetkiniz yok." />;
-    }
-
-    return <AccountingControlScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'catalog-list') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="Katalog görüntüleme yetkiniz yok." />;
-    }
-
-    return <CatalogListScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'whatsapp-planner') {
-    if (!permissions.includes('customer.view')) {
-      return <UnauthorizedScreen message="WhatsApp paylaşım listesi görüntüleme yetkiniz yok." />;
-    }
-
-    return <WhatsappPlannerScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'whatsapp-web-queue') {
-    if (!permissions.includes('product.view')) {
-      return <UnauthorizedScreen message="WhatsApp gönderim kuyruğu görüntüleme yetkiniz yok." />;
-    }
-
-    return (
+    ),
+  },
+  'purchase-invoice-list': {
+    permissionKeys: ['purchase.view'],
+    unauthorizedMessage: 'Alış listesi görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'finance-overview': {
+    permissionKeys: ['dashboard.view', 'finance.view'],
+    unauthorizedMessage: 'Finans özeti görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <FinanceOverviewScreen onOpenScreen={onOpenScreen} />,
+  },
+  'collections-overview': {
+    permissionKeys: ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'],
+    unauthorizedMessage: 'Tahsilat/ödeme kaydı için finans yetkiniz yok.',
+    render: ({ activeTab, onOpenScreen }) => <CollectionsOverviewScreen initialPayload={activeTab.payload} onOpenScreen={onOpenScreen} />,
+  },
+  'cash-customers': {
+    permissionKeys: ['finance.view', 'customer.view', 'sales.view'],
+    unauthorizedMessage: 'Pesin cari takibi goruntuleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <CashCustomerTrackingScreen onOpenScreen={onOpenScreen} />,
+  },
+  'cash-bank-ledger': {
+    permissionKeys: ['dashboard.view', 'finance.view', 'customer.view'],
+    unauthorizedMessage: 'Kasa/banka defteri görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <CashBankLedgerScreen onOpenScreen={onOpenScreen} />,
+  },
+  'accounting-journal': {
+    permissionKeys: ['dashboard.view', 'finance.view'],
+    unauthorizedMessage: 'Muhasebe defteri görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <AccountingJournalScreen onOpenScreen={onOpenScreen} />,
+  },
+  'accounting-control': {
+    permissionKeys: ['dashboard.view', 'finance.view'],
+    unauthorizedMessage: 'Muhasebe kontrol paneli görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <AccountingControlScreen onOpenScreen={onOpenScreen} />,
+  },
+  'catalog-list': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'Katalog görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <CatalogListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'whatsapp-planner': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'WhatsApp paylaşım listesi görüntüleme yetkiniz yok.',
+    render: ({ onOpenScreen }) => <WhatsappPlannerScreen onOpenScreen={onOpenScreen} />,
+  },
+  'whatsapp-web-queue': {
+    permissionKeys: ['product.view'],
+    unauthorizedMessage: 'WhatsApp gönderim kuyruğu görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onOpenScreen }) => (
       <WhatsappWebQueueScreen
         catalogId={activeTab.payload?.catalogId}
         customerName={activeTab.payload?.customerName}
         customerPhone={activeTab.payload?.customerPhone}
         onOpenScreen={onOpenScreen}
       />
-    );
-  }
+    ),
+  },
+  'import-foundation': {
+    permissionKeys: ['import.run'],
+    unauthorizedMessage: 'Import calıştirma yetkiniz yok.',
+    render: ({ onOpenScreen }) => <ImportScreen onOpenScreen={onOpenScreen} />,
+  },
+  'reports-overview': {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Rapor görüntüleme yetkiniz yok.',
+    render: () => <ManagementReportsScreen />,
+  },
+  'export-center': {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Çıktı merkezi görüntüleme yetkiniz yok.',
+    render: () => <ExportCenterScreen />,
+  },
+  'currency-rates': {
+    permissionKeys: ['settings.manage'],
+    unauthorizedMessage: 'Döviz kuru ynetimi yetkiniz yok.',
+    render: () => <CurrencyRatesScreen />,
+  },
+  'settings-overview': {
+    permissionKeys: ['settings.manage'],
+    unauthorizedMessage: 'Sistem ayarları yönetimi yetkiniz yok.',
+    render: () => <SystemSettingsScreen />,
+  },
+  'definitions-overview': {
+    permissionKeys: ['settings.manage'],
+    unauthorizedMessage: 'Tanım listeleri yönetimi yetkiniz yok.',
+    render: () => <DefinitionsScreen />,
+  },
+  'terminal-overview': {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Terminal yönetimi görüntüleme yetkiniz yok.',
+    render: () => <TerminalAdminScreen />,
+  },
+  'auth-overview': {
+    permissionKeys: ['audit.view'],
+    unauthorizedMessage: 'Audit görüntüleme yetkiniz yok.',
+    render: ({ permissions }) => <AuthAdminScreen permissions={permissions} />,
+  },
+};
 
-  if (screenId === 'import-foundation') {
-    if (!permissions.includes('import.run')) {
-      return <UnauthorizedScreen message="Import calıştirma yetkiniz yok." />;
+export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [] }) {
+  const screenId = activeTab.screenId ?? activeTab.id;
+  const route = workspaceRouteRegistry[screenId];
+
+  if (route) {
+    if (!hasRoutePermission(permissions, route)) {
+      return <UnauthorizedScreen message={route.unauthorizedMessage} />;
     }
 
-    return <ImportScreen onOpenScreen={onOpenScreen} />;
-  }
-
-  if (screenId === 'reports-overview') {
-    if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Rapor görüntüleme yetkiniz yok." />;
-    }
-
-    return <ManagementReportsScreen />;
-  }
-
-  if (screenId === 'export-center') {
-    if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Çıktı merkezi görüntüleme yetkiniz yok." />;
-    }
-
-    return <ExportCenterScreen />;
-  }
-
-  if (screenId === 'currency-rates') {
-    if (!permissions.includes('settings.manage')) {
-      return <UnauthorizedScreen message="Döviz kuru ynetimi yetkiniz yok." />;
-    }
-
-    return <CurrencyRatesScreen />;
-  }
-
-  if (screenId === 'settings-overview') {
-    if (!permissions.includes('settings.manage')) {
-      return <UnauthorizedScreen message="Sistem ayarları yönetimi yetkiniz yok." />;
-    }
-
-    return <SystemSettingsScreen />;
-  }
-
-  if (screenId === 'definitions-overview') {
-    if (!permissions.includes('settings.manage')) {
-      return <UnauthorizedScreen message="Tanım listeleri yönetimi yetkiniz yok." />;
-    }
-
-    return <DefinitionsScreen />;
-  }
-
-  if (screenId === 'terminal-overview') {
-    if (!permissions.includes('dashboard.view')) {
-      return <UnauthorizedScreen message="Terminal yönetimi görüntüleme yetkiniz yok." />;
-    }
-
-    return <TerminalAdminScreen />;
-  }
-
-  if (screenId === 'auth-overview') {
-    if (!permissions.includes('audit.view')) {
-      return <UnauthorizedScreen message="Audit görüntüleme yetkiniz yok." />;
-    }
-
-    return <AuthAdminScreen permissions={permissions} />;
+    return route.render({ activeTab, onDirtyChange, onOpenScreen, permissions });
   }
 
   return <UnmappedScreen screen={activeTab} />;

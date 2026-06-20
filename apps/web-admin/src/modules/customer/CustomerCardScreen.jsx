@@ -205,7 +205,7 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen }) {
+export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange, onOpenScreen }) {
   const [activeCustomerId, setActiveCustomerId] = useState(customerId || null);
   const [activeDetailTab, setActiveDetailTab] = useState('movements');
   const [form, setForm] = useState(emptyCustomerForm);
@@ -215,6 +215,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isEditing, setIsEditing] = useState(!customerId);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     setActiveCustomerId(customerId || null);
@@ -231,6 +232,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
         setIsEditing(true);
         setErrorMessage('');
         setIsLoading(false);
+        setIsDirty(false);
         return;
       }
 
@@ -243,11 +245,13 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
         if (isMounted) {
           setForm(mapDetailToForm(response.data));
           setIsEditing(false);
+          setIsDirty(false);
         }
       } catch (error) {
         if (isMounted) {
           setForm(emptyCustomerForm);
           setErrorMessage(error.message || 'Cari kart API bağlantısı başarısız.');
+          setIsDirty(false);
         }
       } finally {
         if (isMounted) {
@@ -262,6 +266,10 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
       isMounted = false;
     };
   }, [activeCustomerId]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const mode = activeCustomerId ? 'update' : 'create';
   const canEditForm = mode === 'create' || isEditing;
@@ -393,6 +401,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
       ...current,
       [field]: value,
     }));
+    setIsDirty(true);
     setSuccessMessage('');
   }
 
@@ -403,6 +412,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
     setActiveDetailTab('movements');
     setErrorMessage('');
     setSuccessMessage('');
+    setIsDirty(false);
   }
 
   function openTransaction(transaction) {
@@ -458,6 +468,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
       setActiveCustomerId(response.data.id);
       setForm(mapDetailToForm(response.data));
       setIsEditing(false);
+      setIsDirty(false);
       setSuccessMessage(response.message || (mode === 'create' ? 'Cari oluşturuldu ve audit kaydı yazıldı.' : 'Cari güncellendi ve audit kaydı yazıldı.'));
     } catch (error) {
       setErrorMessage(`${error.message || 'Cari kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
@@ -488,6 +499,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onOpenScreen 
     try {
       const response = await changeCustomerPassive(activeCustomerId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
       setSuccessMessage(response.message || (nextIsPassive
         ? 'Cari pasif yapıldı ve audit kaydı yazıldı.'
         : 'Cari aktif yapıldı ve audit kaydı yazıldı.'));

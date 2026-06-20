@@ -111,6 +111,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
         ...screen,
         screenId: screen.id,
         payload,
+        dirty: false,
       };
     }
 
@@ -120,6 +121,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       screenId: screen.id,
       label: `${screen.label}: ${recordLabel}`,
       payload,
+      dirty: false,
     };
   }
 

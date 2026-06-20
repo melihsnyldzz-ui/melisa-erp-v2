@@ -176,7 +176,7 @@ function validateProductForm(form, mode) {
   return missing;
 }
 
-export function ProductCardScreen({ productId, permissions = [], onOpenScreen }) {
+export function ProductCardScreen({ productId, permissions = [], onDirtyChange, onOpenScreen }) {
   const [activeProductId, setActiveProductId] = useState(productId || null);
   const [form, setForm] = useState(emptyProductForm);
   const [isLoading, setIsLoading] = useState(Boolean(productId));
@@ -189,6 +189,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
   const [isMovementsLoading, setIsMovementsLoading] = useState(false);
   const [supplierSuggestions, setSupplierSuggestions] = useState([]);
   const [isEditing, setIsEditing] = useState(!productId);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     setActiveProductId(productId || null);
@@ -205,6 +206,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
         setErrorMessage('');
         setDuplicateProductSuggestion(null);
         setIsLoading(false);
+        setIsDirty(false);
         return;
       }
 
@@ -217,11 +219,13 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
         if (isMounted) {
           setForm(mapDetailToForm(response.data));
           setIsEditing(false);
+          setIsDirty(false);
         }
       } catch (error) {
         if (isMounted) {
           setForm(emptyProductForm);
           setErrorMessage(error.message || 'Ürün kartı API bağlantısı başarısız.');
+          setIsDirty(false);
         }
       } finally {
         if (isMounted) {
@@ -236,6 +240,10 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       isMounted = false;
     };
   }, [activeProductId]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
     let isMounted = true;
@@ -325,6 +333,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       ...current,
       [field]: value,
     }));
+    setIsDirty(true);
     setSuccessMessage('');
     setDuplicateProductSuggestion(null);
   }
@@ -336,6 +345,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     setErrorMessage('');
     setDuplicateProductSuggestion(null);
     setSuccessMessage('');
+    setIsDirty(false);
   }
 
   function setProductError(error, fallbackMessage) {
@@ -462,6 +472,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
       setActiveProductId(response.data.id);
       setForm(mapDetailToForm(response.data));
       setIsEditing(false);
+      setIsDirty(false);
       setSuccessMessage(response.message || (mode === 'create' ? 'Ürün oluşturuldu ve audit kaydı yazıldı.' : 'Ürün güncellendi ve audit kaydı yazıldı.'));
     } catch (error) {
       setProductError(error, 'Ürün kaydedilemedi.');
@@ -492,6 +503,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await changeProductPassive(activeProductId, nextIsPassive);
       setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
       setSuccessMessage(response.message || (nextIsPassive
         ? 'Ürün pasif yapıldı ve audit kaydı yazıldı.'
         : 'Ürün aktif yapıldı ve audit kaydı yazıldı.'));
@@ -522,6 +534,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await addProductBarcode(activeProductId, payload);
       setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
       setSuccessMessage('Barkod kaydedildi. Terminal barkod aramasında kullanılabilir.');
     } catch (error) {
       setProductError(error, 'Barkod kaydedilemedi.');
@@ -548,6 +561,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await changeProductBarcodePassive(activeProductId, barcodeId, currentIsActive);
       setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
       setSuccessMessage(currentIsActive ? 'Barkod pasif yapıldı.' : 'Barkod aktif yapıldı.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Barkod durumu değiştirilemedi.'} (${error.code || 'API_ERROR'})`);
@@ -576,6 +590,7 @@ export function ProductCardScreen({ productId, permissions = [], onOpenScreen })
     try {
       const response = await saveProductImage(activeProductId, payload);
       setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
       setSuccessMessage('Ürün görseli kaydedildi.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Görsel kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
