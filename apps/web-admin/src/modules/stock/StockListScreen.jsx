@@ -179,6 +179,7 @@ const stockExportColumns = [
 ];
 
 const stockColumnStorageKey = 'melisa.stockList.visibleColumns.v1';
+const stockListPageLimit = 500;
 const defaultVisibleStockColumns = stockExportColumns.reduce((next, column) => ({
   ...next,
   [column.key]: true,
@@ -216,6 +217,10 @@ export function StockListScreen({ onOpenScreen }) {
   const stockTableColumns = useMemo(() => (
     stockExportColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
   ), [visibleColumns]);
+  const hasClientSideFilters = filters.status === 'passive'
+    || filters.stockState !== 'all'
+    || filters.currency !== 'all'
+    || Boolean(filters.stockCode || filters.name || filters.brand || filters.category || filters.supplier);
 
   useEffect(() => {
     try {
@@ -294,7 +299,7 @@ export function StockListScreen({ onOpenScreen }) {
       try {
         const response = await fetchProducts({
           page: 1,
-          limit: 100,
+          limit: stockListPageLimit,
           search,
           barcode: filters.barcode,
           supplierId: resolvedSupplierId,
@@ -563,8 +568,13 @@ export function StockListScreen({ onOpenScreen }) {
         <section className="erp-panel stock-list-panel stock-list-main-panel">
           <div className="panel-title stock-panel-title">
             <strong>Ürün Stok Tablosu</strong>
-            <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Satır: {filteredRows.length}</span>
+            <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Gösterilen: {filteredRows.length} / API toplam: {meta?.total ?? rows.length}</span>
           </div>
+          {!isLoading && !errorMessage && hasClientSideFilters && Number(meta?.total || 0) > rows.length && (
+            <div className="list-state list-state-info">
+              Bazı kolon filtreleri bu ekranda API'den gelen ilk {rows.length} kayıt üzerinde daraltılır. Daha kesin sonuç için üst arama alanına stok kodu, barkod, ürün adı veya tedarikçi yazın.
+            </div>
+          )}
           {isLoading && <div className="list-state">API'den stok kayıtları yükleniyor...</div>}
           {!isLoading && errorMessage && (
             <div className="list-state list-state-error">

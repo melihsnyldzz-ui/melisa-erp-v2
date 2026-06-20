@@ -2763,6 +2763,12 @@ tbody tr:hover td {
   color: var(--ui-primary-strong);
 }
 
+.list-state-info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .stock-count-screen .dashboard-main-grid {
   align-items: start;
 }

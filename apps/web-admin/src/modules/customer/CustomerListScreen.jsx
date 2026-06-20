@@ -91,6 +91,7 @@ const customerListColumns = [
 ];
 
 const customerColumnStorageKey = 'melisa.customerList.visibleColumns.v1';
+const customerListPageLimit = 500;
 const defaultVisibleCustomerColumns = customerListColumns.reduce((next, column) => ({
   ...next,
   [column.key]: true,
@@ -123,6 +124,11 @@ export function CustomerListScreen({ onOpenScreen }) {
   const tableColumns = useMemo(() => (
     customerListColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
   ), [visibleColumns]);
+  const hasClientSideFilters = filters.status === 'passive'
+    || filters.currency !== 'all'
+    || filters.type !== 'all'
+    || filters.balanceState !== 'all'
+    || Boolean(filters.code || filters.name || filters.phone || filters.city || filters.country);
 
   useEffect(() => {
     try {
@@ -142,7 +148,7 @@ export function CustomerListScreen({ onOpenScreen }) {
       try {
         const response = await fetchCustomers({
           page: 1,
-          limit: 100,
+          limit: customerListPageLimit,
           search,
           activeOnly,
         });
@@ -327,8 +333,13 @@ export function CustomerListScreen({ onOpenScreen }) {
       <section className="erp-panel customer-list-panel">
         <div className="panel-title customer-panel-title">
           <strong>Cari Hesap Tablosu</strong>
-          <span>Seçili: {selectedRow?.code ?? 'yok'} / Satır: {filteredRows.length}</span>
+          <span>Seçili: {selectedRow?.code ?? 'yok'} / Gösterilen: {filteredRows.length} / API toplam: {meta?.total ?? rows.length}</span>
         </div>
+        {!isLoading && !errorMessage && hasClientSideFilters && Number(meta?.total || 0) > rows.length && (
+          <div className="list-state list-state-info">
+            Bazı kolon filtreleri bu ekranda API'den gelen ilk {rows.length} kayıt üzerinde daraltılır. Daha kesin sonuç için üst arama alanına cari kodu, ünvan, telefon, şehir veya ülke yazın.
+          </div>
+        )}
         {isLoading && <div className="list-state">API'den cari kayıtları yükleniyor...</div>}
         {!isLoading && errorMessage && (
           <div className="list-state list-state-error">

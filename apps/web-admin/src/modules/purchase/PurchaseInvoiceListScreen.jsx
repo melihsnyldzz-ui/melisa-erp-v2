@@ -438,7 +438,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
         <section className="erp-panel invoice-list-panel sales-receipt-list-panel purchase-receipt-list-panel">
           <div className="panel-title">
             <strong>Fiş Listesi</strong>
-            <span>Seçili: {selectedRow ? documentNo(selectedRow) : 'yok'} / Satır: {rows.length}</span>
+            <span>Seçili: {selectedRow ? documentNo(selectedRow) : 'yok'} / Gösterilen: {rows.length} / API toplam: {meta?.total ?? rows.length}</span>
           </div>
           {isLoading && <div className="list-state">API'den alış fişleri yükleniyor...</div>}
           {!isLoading && errorMessage && (
