@@ -3,60 +3,20 @@ import { fetchCustomers } from '../../services/customerApi.js';
 import { createCustomerCollection, createSupplierPayment, fetchFinanceAccounts, fetchFinanceMovements } from '../../services/financeApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, printCurrentScreen, printFinanceReceipt } from '../../utils/exportUtils.js';
-import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatMoney(value, currency = 'TRY') {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-}
-
-function movementLabel(type) {
-  const labels = {
-    collection: 'Tahsilat',
-    payment: 'Ödeme',
-    sales_invoice: 'Satış fişi',
-    purchase_invoice: 'Alış fişi',
-    sales_invoice_cancel: 'Satış iptal',
-    purchase_invoice_cancel: 'Alış iptal',
-  };
-
-  return labels[type] || type || '-';
-}
-
-function paymentMethodLabel(value) {
-  const labels = {
-    cash: 'Nakit',
-    bank: 'Banka',
-    card: 'Kart',
-    other: 'Diğer',
-  };
-
-  return labels[value] || value || '-';
-}
-
-function partyLabel(type) {
-  return type === 'supplier' ? 'Tedarikçi' : 'Müşteri';
-}
-
-function partyCode(party, mode) {
-  return mode === 'collection' ? party.customerCode : party.supplierCode;
-}
-
-function partyName(party, mode) {
-  return mode === 'collection' ? party.customerName : party.supplierName;
-}
-
-function accountReceiptLabel(account) {
-  if (!account) return '-';
-  return `${account.code || '-'} / ${account.name || '-'} / ${account.type || '-'}`;
-}
+import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { CollectionsEntryForm, CollectionsEffectPanel } from './CollectionsEntryForm.jsx';
+import { CollectionsHistoryTable } from './CollectionsHistoryTable.jsx';
+import { CollectionsReceiptPanel } from './CollectionsReceiptPanel.jsx';
+import {
+  accountReceiptLabel,
+  formatMoney,
+  movementLabel,
+  partyCode,
+  partyLabel,
+  partyName,
+  paymentMethodLabel,
+  today,
+} from './collectionsFormatters.js';
 
 export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
   const initialMode = initialPayload.mode === 'payment' ? 'payment' : 'collection';
@@ -393,219 +353,48 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="finance-entry-layout">
-        <form className="erp-panel collections-entry-card" onSubmit={submitFinanceMovement}>
-          <div className="panel-title">
-            <strong>{mode === 'collection' ? 'Müşteriden Tahsilat' : 'Tedarikçiye Ödeme'}</strong>
-            <span>{currentParty ? `Seçili bakiye: ${formatMoney(currentBalance, partyCurrency)}` : 'Önce cari seçin'}</span>
-          </div>
-          <div className="collections-form-grid">
-            <label className="wide">
-              {mode === 'collection' ? 'Müşteri' : 'Tedarikçi'}
-              <select
-                required
-                value={selectedPartyId}
-                onChange={(event) => updateField(mode === 'collection' ? 'customerId' : 'supplierId', event.target.value)}
-              >
-                <option value="">Seçin</option>
-                {partyOptions.map((party) => (
-                  <option key={party.id} value={party.id}>
-                    {mode === 'collection'
-                       ? `${party.customerCode} / ${party.customerName} / ${formatMoney(party.balance, party.currency)}`
-                      : `${party.supplierCode} / ${party.supplierName} / ${formatMoney(party.balance, party.currency)}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Tarih
-              <input required type="date" value={form.documentDate} onChange={(event) => updateField('documentDate', event.target.value)} />
-            </label>
-            <label className="positive-input amount-field">
-              Giren Tutar
-              <input required min="0.01" step="0.01" type="number" value={form.amount} onChange={(event) => updateField('amount', event.target.value)} />
-            </label>
-            <label>
-              Para Birimi
-              <select value={form.currency} onChange={(event) => updateField('currency', event.target.value)}>
-                <option value="TRY">TRY</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </label>
-            <label>
-              Ödeme Şekli
-              <select value={form.paymentMethod} onChange={(event) => updateField('paymentMethod', event.target.value)}>
-                <option value="cash">Nakit</option>
-                <option value="bank">Banka</option>
-                <option value="card">Kart</option>
-                <option value="other">Diğer</option>
-              </select>
-            </label>
-            <label>
-              Kasa / Banka Hesabı
-              <select value={form.accountId} onChange={(event) => updateField('accountId', event.target.value)}>
-                <option value="">Otomatik seç</option>
-                {accountOptions.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.code} / {account.name} / {formatMoney(account.currentBalance, account.currency)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="wide">
-              Açıklama
-              <input value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Opsiyonel not" />
-            </label>
-            <button className="primary" disabled={!canSubmit} type="submit">
-              {isSaving ? 'Kaydediliyor...' : mode === 'collection' ? 'Tahsilat Kaydet' : 'Ödeme Kaydet'}
-            </button>
-          </div>
-        </form>
+        <CollectionsEntryForm
+          mode={mode}
+          form={form}
+          partyOptions={partyOptions}
+          selectedPartyId={selectedPartyId}
+          currentParty={currentParty}
+          currentBalance={currentBalance}
+          partyCurrency={partyCurrency}
+          accountOptions={accountOptions}
+          canSubmit={canSubmit}
+          isSaving={isSaving}
+          onUpdateField={updateField}
+          onSubmit={submitFinanceMovement}
+        />
 
-        <aside className="erp-panel finance-effect-panel">
-          <div className="panel-title">
-            <strong>İşlem Etkisi</strong>
-            <span>Kaydetmeden önce cari bakiyeye etkisi</span>
-          </div>
-          <div className={canSubmit ? 'finance-effect-result ready' : 'finance-effect-result'}>
-            <span>{mode === 'collection' ? 'Tahsilat etkisi' : 'Ödeme etkisi'}</span>
-            <strong>{currentParty && hasValidAmount ? formatMoney(nextBalance, partyCurrency) : '-'}</strong>
-            <small>{currentParty && hasValidAmount ? 'İşlem sonrası beklenen bakiye' : 'Cari ve tutar seçilince hesaplanır'}</small>
-          </div>
-          <dl className="supplier-summary-list">
-            <div>
-              <dt>Cari</dt>
-              <dd>{currentParty ? `${partyCode(currentParty, mode)} / ${partyName(currentParty, mode)}` : '-'}</dd>
-            </div>
-            <div>
-              <dt>Mevcut bakiye</dt>
-              <dd className="ledger-debit">{currentParty ? formatMoney(currentBalance, partyCurrency) : '-'}</dd>
-            </div>
-            <div>
-              <dt>{mode === 'collection' ? 'Tahsilat girişi' : 'Ödeme çıkışı'}</dt>
-              <dd className="ledger-credit">{hasValidAmount ? formatMoney(amount, form.currency) : '-'}</dd>
-            </div>
-            <div>
-              <dt>İşlem sonrası bakiye</dt>
-              <dd className={nextBalance > 0 ? 'ledger-debit' : 'ledger-credit'}>{currentParty && hasValidAmount ? formatMoney(nextBalance, partyCurrency) : '-'}</dd>
-            </div>
-            <div>
-              <dt>İşlem sonucu</dt>
-              <dd>{currentParty && hasValidAmount ? (nextBalance < 0 ? 'Avans oluşur' : 'Bakiye azalır') : 'Bekleniyor'}</dd>
-            </div>
-          </dl>
-          <div className="collections-side-actions">
-            <button type="button" disabled={!currentParty} onClick={openSelectedParty}>Cari Kartı Aç</button>
-          </div>
-        </aside>
+        <CollectionsEffectPanel
+          mode={mode}
+          currentParty={currentParty}
+          currentBalance={currentBalance}
+          nextBalance={nextBalance}
+          amount={amount}
+          hasValidAmount={hasValidAmount}
+          partyCurrency={partyCurrency}
+          formCurrency={form.currency}
+          canSubmit={canSubmit}
+          onOpenSelectedParty={openSelectedParty}
+        />
       </section>
 
-      {selectedReceipt && (
-        <section className="erp-panel finance-receipt-panel">
-          <div className="panel-title">
-            <strong>{selectedReceipt.type}</strong>
-            <span>{selectedReceipt.receiptNo} / {selectedReceipt.source}</span>
-          </div>
-          <div className="finance-receipt-paper">
-            <div>
-              <span>Makbuz No</span>
-              <strong>{selectedReceipt.receiptNo}</strong>
-            </div>
-            <div>
-              <span>Tarih</span>
-              <strong>{selectedReceipt.documentDate || '-'}</strong>
-            </div>
-            <div>
-              <span>Cari Türü</span>
-              <strong>{partyLabel(selectedReceipt.partyType)}</strong>
-            </div>
-            <div>
-              <span>Cari</span>
-              <strong>{selectedReceipt.partyCode} / {selectedReceipt.partyName}</strong>
-            </div>
-            <div>
-              <span>Ödeme Şekli</span>
-              <strong>{selectedReceipt.paymentMethod}</strong>
-            </div>
-            <div>
-              <span>Kasa / Banka</span>
-              <strong>{selectedReceipt.accountLabel || '-'}</strong>
-            </div>
-            <div>
-              <span>Tutar</span>
-              <strong className="ledger-credit">{formatMoney(selectedReceipt.amount, selectedReceipt.currency)}</strong>
-            </div>
-            <div>
-              <span>Bakiye Etkisi</span>
-              <strong className="ledger-credit">{formatMoney(selectedReceipt.balanceEffect, selectedReceipt.currency)}</strong>
-            </div>
-          </div>
-          <div className="segmented-control">
-            <button type="button" onClick={printReceipt}>Makbuz Yazdır</button>
-            <button type="button" onClick={() => setSelectedReceipt(null)}>Kapat</button>
-          </div>
-        </section>
-      )}
+      <CollectionsReceiptPanel
+        selectedReceipt={selectedReceipt}
+        onPrint={printReceipt}
+        onClose={() => setSelectedReceipt(null)}
+      />
 
-      <section className="erp-panel collections-history-panel">
-        <div className="panel-title">
-          <strong>Son Tahsilat / Ödeme Hareketleri</strong>
-          <span>{movements.length} satır / hareketten ilgili karta veya fişe geçilebilir</span>
-        </div>
-        {!isLoading && movements.length === 0 && <div className="list-state">Hareket bulunamadı.</div>}
-        {movements.length > 0 && (
-          <div className="table-shell">
-            <table className="erp-table">
-              <thead>
-                <tr>
-                  <th>Tarih</th>
-                  <th>Cari Türü</th>
-                  <th>Cari / Tedarikçi</th>
-                  <th>Belge</th>
-                  <th>İşlem</th>
-                  <th>Tutar</th>
-                  <th>Bakiye Etkisi</th>
-                  <th>PB</th>
-                  <th>Makbuz</th>
-                  <th>Git</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movements.map((row) => {
-                  const effect = Number(row.balanceEffect || 0);
-                  const isCancelled = String(row.movementType || '').includes('cancel');
-                  return (
-                    <tr className={`clickable-row ${isCancelled ? 'cancel-row' : ''}`} key={`${row.partyType}-${row.id}-${row.movementType}`} onClick={() => openMovement(row)}>
-                      <td>{row.documentDate || '-'}</td>
-                      <td>{partyLabel(row.partyType)}</td>
-                      <td>
-                        <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
-                          {row.partyCode} / {row.partyName}
-                        </button>
-                      </td>
-                      <td>
-                        <button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>
-                          {row.documentNo || '-'}
-                        </button>
-                      </td>
-                      <td>{movementLabel(row.movementType)}</td>
-                      <td>{formatMoney(row.amount, row.currency)}</td>
-                      <td className={effect >= 0 ? 'ledger-debit' : 'ledger-credit'}>{formatMoney(effect, row.currency)}</td>
-                      <td><span className="status-pill">{row.currency}</span></td>
-                      <td>
-                        {['collection', 'payment'].includes(row.movementType) ? (
-                          <button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); selectReceipt(row); }}>Makbuz</button>
-                        ) : '-'}
-                      </td>
-                      <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{ledgerTargetActionLabel(row)}</button></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <CollectionsHistoryTable
+        movements={movements}
+        isLoading={isLoading}
+        onOpenMovement={openMovement}
+        onOpenParty={openParty}
+        onSelectReceipt={selectReceipt}
+      />
     </main>
   );
 }
