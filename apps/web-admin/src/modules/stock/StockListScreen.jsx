@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { StockListFilters } from './StockListFilters.jsx';
 import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
+import { StockProduct360Panel } from './StockProduct360Panel.jsx';
+import { summarizeMovements } from './stock360Utils.js';
 import { stockFilterDefaults, stockFilterOptions } from './stockMockData.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchProductDetail, fetchProductStockMovements } from '../../services/productDetailApi.js';
@@ -40,127 +42,6 @@ function formatMoney(amount, currency = 'TRY') {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
-}
-
-function formatDate(value) {
-  return value ? String(value).slice(0, 10) : '-';
-}
-
-function resolveImageUrl(imageUrl) {
-  if (!imageUrl) return '';
-  if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl;
-  return `${API_BASE_URL}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
-}
-
-function buildSearch(filters) {
-  return [
-    filters.quickSearch,
-    filters.stockCode,
-    filters.name,
-    filters.brand,
-    filters.category,
-  ].filter(Boolean).join(' ');
-}
-
-function toStockRow(product) {
-  const barcode = product.matchedBarcode || product.barcodeMasked || '-';
-
-  return {
-    id: product.id,
-    imageUrl: resolveImageUrl(product.imageUrl),
-    stockCode: product.stockCode,
-    barcode,
-    primaryBarcode: product.barcodeMasked || '-',
-    matchedBarcode: product.matchedBarcode || '',
-    name: product.productName,
-    brand: product.brand || '-',
-    category: product.category || '-',
-    currency: product.currency,
-    salesPrice: formatMoney(product.salePrice, product.currency),
-    purchasePrice: formatMoney(product.purchasePrice, product.currency),
-    currentStock: product.stockQuantity,
-    supplierId: product.supplierId || null,
-    supplierCode: product.supplierCode || '',
-    supplier: product.supplierName || product.supplier || '-',
-    status: product.isPassive ? 'Pasif' : 'Aktif',
-  };
-}
-
-function applyStockFilters(row, filters) {
-  const matchesStatus =
-    filters.status === 'all' ||
-    (filters.status === 'active' && row.status === 'Aktif') ||
-    (filters.status === 'passive' && row.status === 'Pasif');
-  const matchesStockState =
-    filters.stockState === 'all' ||
-    (filters.stockState === 'in-stock' && row.currentStock > 0) ||
-    (filters.stockState === 'out-of-stock' && row.currentStock === 0) ||
-    (filters.stockState === 'negative' && row.currentStock < 0);
-  const matchesCurrency = filters.currency === 'all' || row.currency === filters.currency;
-  const matchesQuickSearch = !filters.quickSearch || [
-    row.stockCode,
-    row.barcode,
-    row.primaryBarcode,
-    row.matchedBarcode,
-    row.name,
-    row.brand,
-    row.category,
-    row.supplier,
-    row.currency,
-  ].some((value) => matchesText(value, filters.quickSearch));
-
-  return (
-    matchesStatus &&
-    matchesStockState &&
-    matchesCurrency &&
-    matchesQuickSearch &&
-    matchesText(row.stockCode, filters.stockCode) &&
-    matchesBarcode(row, filters.barcode) &&
-    matchesText(row.name, filters.name) &&
-    matchesText(row.brand, filters.brand) &&
-    matchesText(row.category, filters.category) &&
-    matchesText(row.supplier, filters.supplier)
-  );
-}
-
-function movementLabel(row) {
-  if (row.sourceType === 'sales_invoice' && Number(row.quantityOut || 0) > 0) return 'Satış çıkış';
-  if (row.sourceType === 'sales_invoice' && Number(row.quantityIn || 0) > 0) return 'Satış iptal';
-  if (row.sourceType === 'purchase_invoice' && Number(row.quantityIn || 0) > 0) return 'Alış giriş';
-  if (row.sourceType === 'purchase_invoice' && Number(row.quantityOut || 0) > 0) return 'Alış iptal';
-  if (row.movementType === 'in') return 'Giriş';
-  if (row.movementType === 'out') return 'Çıkış';
-  return row.movementType || 'Hareket';
-}
-
-function movementParty(row) {
-  if (row.customerName) return row.customerName;
-  if (row.supplierName) return row.supplierName;
-  return '-';
-}
-
-function quantityEffect(row) {
-  if (Number(row.quantityOut || 0) > 0) return `-${Number(row.quantityOut || 0)}`;
-  if (Number(row.quantityIn || 0) > 0) return `+${Number(row.quantityIn || 0)}`;
-  return Number(row.quantityNet || 0);
-}
-
-function summarizeMovements(movements) {
-  return movements.reduce((summary, row) => {
-    const quantityIn = Number(row.quantityIn || 0);
-    const quantityOut = Number(row.quantityOut || 0);
-
-    summary.inQuantity += quantityIn;
-    summary.outQuantity += quantityOut;
-    if (row.sourceType === 'purchase_invoice') summary.purchaseCount += 1;
-    if (row.sourceType === 'sales_invoice') summary.salesCount += 1;
-    return summary;
-  }, {
-    inQuantity: 0,
-    outQuantity: 0,
-    purchaseCount: 0,
-    salesCount: 0,
-  });
 }
 
 const stockExportColumns = [
@@ -598,75 +479,18 @@ export function StockListScreen({ onOpenScreen }) {
           )}
         </section>
 
-        <aside className="erp-panel stock-360-panel">
-          <div className="panel-title stock-panel-title">
-            <strong>Ürün 360</strong>
-            <span>{selectedRow?.stockCode || 'Seçili ürün yok'}</span>
-          </div>
-          {!selectedRow && <div className="list-state">Ürün önizleme için listeden stok seçin.</div>}
-          {selectedRow && (
-            <>
-              <div className="stock-360-head">
-                <div>
-                  <span>Ürün</span>
-                  <strong>{selectedDetail?.productName || selectedRow.name}</strong>
-                  <small>{selectedRow.stockCode} / {selectedRow.barcode}</small>
-                </div>
-                <span className={selectedRow.currentStock < 0 ? 'stock-pill negative' : selectedRow.currentStock === 0 ? 'stock-pill zero' : 'stock-pill positive'}>
-                  {selectedRow.currentStock}
-                </span>
-              </div>
-
-              <div className="stock-360-metrics">
-                <div><span>Satış</span><strong>{selectedRow.salesPrice}</strong></div>
-                <div><span>Alış</span><strong>{selectedRow.purchasePrice}</strong></div>
-                <div><span>PB</span><strong>{selectedRow.currency}</strong></div>
-                <div><span>Ort. maliyet</span><strong>{formatMoney(selectedDetail?.averageCostTry, 'TRY')}</strong></div>
-              </div>
-
-              <dl className="stock-360-facts">
-                <div><dt>Marka</dt><dd>{selectedRow.brand}</dd></div>
-                <div><dt>Kategori</dt><dd>{selectedRow.category}</dd></div>
-                <div><dt>Tedarikçi</dt><dd>{selectedRow.supplier}</dd></div>
-                <div><dt>Durum</dt><dd>{selectedRow.status}</dd></div>
-                <div><dt>Son alış</dt><dd>{formatDate(selectedDetail?.lastPurchaseDate)}</dd></div>
-                <div><dt>Son satış</dt><dd>{formatDate(selectedDetail?.lastSaleDate)}</dd></div>
-              </dl>
-
-              <div className="stock-360-movement-summary">
-                <span><b>Alış fişi</b>{movementSummary.purchaseCount}</span>
-                <span><b>Satış fişi</b>{movementSummary.salesCount}</span>
-                <span className="in"><b>Giriş</b>+{movementSummary.inQuantity}</span>
-                <span className="out"><b>Çıkış</b>-{movementSummary.outQuantity}</span>
-              </div>
-
-              {isDetailLoading && <div className="list-state">Ürün hareketleri yükleniyor...</div>}
-              {!isDetailLoading && detailErrorMessage && <div className="list-state list-state-error">{detailErrorMessage}</div>}
-              {!isDetailLoading && !detailErrorMessage && (
-                <div className="stock-360-movements">
-                  <strong>Son Fiş Hareketleri</strong>
-                  {stockMovements.length === 0 && <span>Bu ürün için fiş hareketi yok.</span>}
-                  {stockMovements.slice(0, 8).map((row) => (
-                    <button type="button" key={row.id} onClick={() => openMovement(row)}>
-                      <span>
-                        <b>{movementLabel(row)}</b>
-                        <small>{row.sourceDocumentNo || '-'} / {movementParty(row)}</small>
-                      </span>
-                      <strong className={Number(row.quantityOut || 0) > 0 ? 'out' : 'in'}>{quantityEffect(row)}</strong>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="stock-360-actions">
-                <button type="button" onClick={openSelectedProduct}>Ürün Kartı</button>
-                <button type="button" onClick={() => onOpenScreen('stock-movements', { productId: selectedRow.id, stockCode: selectedRow.stockCode })}>Hareketler</button>
-                <button type="button" onClick={() => selectedRow.supplierId && onOpenScreen('supplier-card', { supplierId: selectedRow.supplierId, supplierCode: selectedRow.supplierCode })} disabled={!selectedRow.supplierId}>Tedarikçi</button>
-                <button type="button" onClick={() => stockMovements[0] && openMovementParty(stockMovements[0])} disabled={!stockMovements.some((row) => row.customerId || row.supplierId)}>Cari</button>
-              </div>
-            </>
-          )}
-        </aside>
+        <StockProduct360Panel
+          selectedRow={selectedRow}
+          selectedDetail={selectedDetail}
+          movementSummary={movementSummary}
+          stockMovements={stockMovements}
+          isDetailLoading={isDetailLoading}
+          detailErrorMessage={detailErrorMessage}
+          onOpenMovement={openMovement}
+          onOpenSelectedProduct={openSelectedProduct}
+          onOpenScreen={onOpenScreen}
+          onOpenMovementParty={openMovementParty}
+        />
       </section>
       <section className="screen-summary stock-summary">
         <span>Toplam ürün: {meta?.total ?? rows.length}</span>
