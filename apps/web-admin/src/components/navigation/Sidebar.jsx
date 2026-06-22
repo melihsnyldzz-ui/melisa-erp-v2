@@ -241,6 +241,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
 function normalizeSearch(value) {
   return String(value || '')
     .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i')
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .trim();
