@@ -4,10 +4,10 @@ import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js'
 
 const STATUS_LABELS = {
   DRAFT: 'Taslak',
-  SENT: 'G?nderildi',
+  SENT: 'Gönderildi',
   ACCEPTED: 'Kabul',
-  CONFIRMED: 'Onayl?',
-  FULFILLED: 'Tamamlandi',
+  CONFIRMED: 'Onaylı',
+  FULFILLED: 'Tamamlandı',
   CANCELLED: 'İptal',
 };
 
@@ -49,6 +49,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
   const [meta, setMeta] = useState(null);
 
   const selectedRow = rows.find((row) => row.id === selectedId) || rows[0] || null;
+  const hasPartialList = Number(meta?.total || 0) > rows.length;
 
   async function loadRows() {
     setIsLoading(true);
@@ -58,12 +59,14 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
       const response = await loader({ page: 1, limit: 100, ...filters });
       setRows(response.data || []);
       setMeta(response.meta || null);
-      setSelectedId((current) => (response.data || []).some((row) => row.id === current) ? current : response.data?.[0]?.id ?? null);
+      setSelectedId((current) => (
+        (response.data || []).some((row) => row.id === current) ? current : response.data?.[0]?.id ?? null
+      ));
     } catch (error) {
       setRows([]);
       setMeta(null);
       setSelectedId(null);
-      setErrorMessage(error.message || 'Liste API balants baarsz.');
+      setErrorMessage(error.message || 'Liste API bağlantısı başarısız.');
     } finally {
       setIsLoading(false);
     }
@@ -81,14 +84,16 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
         if (isMounted) {
           setRows(response.data || []);
           setMeta(response.meta || null);
-          setSelectedId((current) => (response.data || []).some((row) => row.id === current) ? current : response.data?.[0]?.id ?? null);
+          setSelectedId((current) => (
+            (response.data || []).some((row) => row.id === current) ? current : response.data?.[0]?.id ?? null
+          ));
         }
       } catch (error) {
         if (isMounted) {
           setRows([]);
           setMeta(null);
           setSelectedId(null);
-          setErrorMessage(error.message || 'Liste API balants baarsz.');
+          setErrorMessage(error.message || 'Liste API bağlantısı başarısız.');
         }
       } finally {
         if (isMounted) {
@@ -120,7 +125,7 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
 
   function exportRows() {
     exportRowsToCsv({
-      filename: isOffer ? 'teklifler' : 'sipariler',
+      filename: isOffer ? 'teklifler' : 'siparisler',
       rows,
       columns: [
         { label: 'Belge No', key: 'documentNo' },
@@ -139,14 +144,14 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
     <main className="work-area invoice-list-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
-          <strong>{isOffer ? 'Teklifler' : 'Sipari?ler'}</strong>
+          <strong>{isOffer ? 'Teklifler' : 'Siparişler'}</strong>
           <span>Gerçek API listesi / Satır: {meta?.total ?? rows.length}</span>
         </div>
         <div className="invoice-list-actions">
           <button type="button" onClick={() => onOpenScreen(isOffer ? 'sales-offer' : 'sales-order')}>Yeni</button>
-          <button type="button" onClick={() => openDocument()}>Ac</button>
+          <button type="button" onClick={() => openDocument()}>Aç</button>
           <button type="button" onClick={exportRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen(`Melisa ERP - ${isOffer ? 'Teklifler' : 'Sipari?ler'}`)}>Yazd?r</button>
+          <button type="button" onClick={() => printCurrentScreen(`Melisa ERP - ${isOffer ? 'Teklifler' : 'Siparişler'}`)}>Yazdır</button>
           <button type="button" onClick={loadRows}>Yenile</button>
         </div>
       </section>
@@ -158,36 +163,43 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
         </label>
         <label>
           <span>Cari</span>
-          <input value={filters.customer} onChange={(event) => updateFilter('customer', event.target.value)} placeholder="Cari adi/kodu" />
+          <input value={filters.customer} onChange={(event) => updateFilter('customer', event.target.value)} placeholder="Cari adı/kodu" />
         </label>
         <label>
           <span>Durum</span>
           <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
-            <option value="all">Tumu</option>
+            <option value="all">Tümü</option>
             <option value="draft">Taslak</option>
-            {isOffer ? <option value="sent">G?nderildi</option> : <option value="confirmed">Onayl?</option>}
-            {isOffer ? <option value="accepted">Kabul</option> : <option value="fulfilled">Tamamlandi</option>}
+            {isOffer ? <option value="sent">Gönderildi</option> : <option value="confirmed">Onaylı</option>}
+            {isOffer ? <option value="accepted">Kabul</option> : <option value="fulfilled">Tamamlandı</option>}
             <option value="cancelled">İptal</option>
           </select>
         </label>
         <label>
-          <span>Baslangic</span>
+          <span>Başlangıç</span>
           <input type="date" value={filters.dateFrom} onChange={(event) => updateFilter('dateFrom', event.target.value)} />
         </label>
         <label>
-          <span>Bitis</span>
+          <span>Bitiş</span>
           <input type="date" value={filters.dateTo} onChange={(event) => updateFilter('dateTo', event.target.value)} />
         </label>
       </section>
 
       <section className="erp-panel invoice-list-panel">
         <div className="panel-title">
-          <strong>{isOffer ? 'Teklif Listesi' : 'Siparis Listesi'}</strong>
+          <strong>{isOffer ? 'Teklif Listesi' : 'Sipariş Listesi'}</strong>
           <span>Seçili: {selectedRow?.documentNo ?? 'yok'}</span>
         </div>
-        {isLoading && <div className="list-state">API'den liste yukleniyor...</div>}
-        {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
-        {!isLoading && !errorMessage && rows.length === 0 && <div className="list-state">Kay?t bulunamad?.</div>}
+        {isLoading && <div className="list-state">API'den liste yükleniyor...</div>}
+        {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>}
+        {!isLoading && !errorMessage && hasPartialList && (
+          <div className="list-state list-state-info">
+            Liste API'den gelen ilk {rows.length} belgeyi gösteriyor. Daha kesin sonuç için belge no, cari, durum veya tarih filtresiyle aramayı daraltın.
+          </div>
+        )}
+        {!isLoading && !errorMessage && rows.length === 0 && (
+          <div className="list-state">Kayıt bulunamadı; filtreleri temizleyip tekrar deneyin.</div>
+        )}
         {!isLoading && !errorMessage && rows.length > 0 && (
           <div className="table-wrap invoice-table-wrap">
             <table className="invoice-list-table">

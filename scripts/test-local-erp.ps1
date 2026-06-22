@@ -204,6 +204,19 @@ if (Test-Path $actionClaritySmokeScript) {
   Add-Check 'Web Admin' 'Action clarity smoke' $false 'script bulunamadi'
 }
 
+$emptyStateSmokeScript = Join-Path $RepoRoot 'scripts\web-admin-empty-state-smoke.mjs'
+if (Test-Path $emptyStateSmokeScript) {
+  Push-Location $RepoRoot
+  try {
+    $emptyStateSmokeOutput = node $emptyStateSmokeScript 2>&1
+    Add-Check 'Web Admin' 'Empty state smoke' ($LASTEXITCODE -eq 0) (($emptyStateSmokeOutput | Select-Object -Last 1) -join ' ')
+  } finally {
+    Pop-Location
+  }
+} else {
+  Add-Check 'Web Admin' 'Empty state smoke' $false 'script bulunamadi'
+}
+
 if ($RunBuild) {
   Push-Location (Join-Path $RepoRoot 'apps\web-admin')
   try {
