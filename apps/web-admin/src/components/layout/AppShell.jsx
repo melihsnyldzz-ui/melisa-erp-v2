@@ -170,11 +170,16 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     }
   }
 
-  const updateActiveTabDirty = useCallback((isDirty) => {
+  const hasDirtyTabs = useMemo(
+    () => tabs.some((tab) => tab.dirty),
+    [tabs],
+  );
+
+  const updateTabDirty = useCallback((tabId, isDirty) => {
     setTabs((currentTabs) => {
       let didChange = false;
       const nextTabs = currentTabs.map((tab) => {
-        if (tab.id !== activeTabId || tab.dirty === isDirty) {
+        if (tab.id !== tabId || tab.dirty === isDirty) {
           return tab;
         }
 
@@ -184,7 +189,11 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
 
       return didChange ? nextTabs : currentTabs;
     });
-  }, [activeTabId]);
+  }, []);
+
+  const updateActiveTabDirty = useCallback((isDirty) => {
+    updateTabDirty(activeTab.id, isDirty);
+  }, [activeTab.id, updateTabDirty]);
 
   const updateViewOption = useCallback((key, value) => {
     setViewOptions((currentOptions) => {
@@ -221,6 +230,20 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!hasDirtyTabs) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasDirtyTabs]);
 
   return (
     <div className={getShellClassName(isDemoMode, viewOptions)}>

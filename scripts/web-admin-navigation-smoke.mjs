@@ -7,6 +7,7 @@ import { roleViews } from '../apps/web-admin/src/config/roleViews.js';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
 const workspacePath = resolve(repoRoot, 'apps/web-admin/src/components/workspace/Workspace.jsx');
+const appShellPath = resolve(repoRoot, 'apps/web-admin/src/components/layout/AppShell.jsx');
 
 const checks = [];
 
@@ -47,9 +48,12 @@ function extractWorkspaceRouteIds() {
 const registryIds = Object.keys(screenRegistry);
 const registrySet = new Set(registryIds);
 const routeIds = extractWorkspaceRouteIds();
+const appShellSource = readFileSync(appShellPath, 'utf8');
 
 addCheck('screenRegistry ids match object keys', registryIds.every((id) => screenRegistry[id]?.id === id));
 addCheck('screenRegistry has no default dirty true', registryIds.every((id) => screenRegistry[id]?.dirty !== true));
+addCheck('AppShell scopes dirty updates by tab id', appShellSource.includes('function updateTabDirty') || appShellSource.includes('const updateTabDirty'));
+addCheck('AppShell warns before browser unload when tabs are dirty', appShellSource.includes('beforeunload') && appShellSource.includes('hasDirtyTabs'));
 
 const moduleMissing = modules.filter((item) => !registrySet.has(item.screenId));
 addCheck('top modules resolve to screenRegistry', moduleMissing.length === 0, moduleMissing.map((item) => item.screenId).join(', '));
