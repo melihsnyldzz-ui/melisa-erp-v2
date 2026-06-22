@@ -165,6 +165,19 @@ if (Test-Path $navigationSmokeScript) {
   Add-Check 'Web Admin' 'Navigation registry smoke' $false 'script bulunamadi'
 }
 
+$listScopeSmokeScript = Join-Path $RepoRoot 'scripts\web-admin-list-scope-smoke.mjs'
+if (Test-Path $listScopeSmokeScript) {
+  Push-Location $RepoRoot
+  try {
+    $listScopeSmokeOutput = node $listScopeSmokeScript 2>&1
+    Add-Check 'Web Admin' 'List scope smoke' ($LASTEXITCODE -eq 0) (($listScopeSmokeOutput | Select-Object -Last 1) -join ' ')
+  } finally {
+    Pop-Location
+  }
+} else {
+  Add-Check 'Web Admin' 'List scope smoke' $false 'script bulunamadi'
+}
+
 if ($RunBuild) {
   Push-Location (Join-Path $RepoRoot 'apps\web-admin')
   try {

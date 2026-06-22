@@ -92,6 +92,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     () => rows.find((row) => row.id === selectedRowId) ?? null,
     [rows, selectedRowId],
   );
+  const hasPartialList = Number(meta?.total || 0) > rows.length;
 
   const selectedItems = selectedDetail?.items || [];
   const hiddenColumnClasses = useMemo(() => (
@@ -443,6 +444,11 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           {isLoading && <div className="list-state">API'den alış fişleri yükleniyor...</div>}
           {!isLoading && errorMessage && (
             <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>
+          )}
+          {!isLoading && !errorMessage && hasPartialList && (
+            <div className="list-state list-state-info">
+              Liste API'den gelen ilk {rows.length} fişi gösteriyor. Daha kesin sonuç için fiş no, tedarikçi veya durum filtresiyle aramayı daraltın.
+            </div>
           )}
           {!isLoading && !errorMessage && rows.length === 0 && (
             <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>

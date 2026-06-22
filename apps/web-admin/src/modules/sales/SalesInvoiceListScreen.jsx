@@ -119,6 +119,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
     () => rows.find((row) => row.id === selectedRowId) ?? null,
     [rows, selectedRowId],
   );
+  const hasPartialList = Number(meta?.total || 0) > rows.length;
 
   const selectedItems = selectedDetail?.items || [];
   const tableColumns = useMemo(() => (
@@ -518,6 +519,11 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           {isLoading && <div className="list-state">API'den satış fişleri yükleniyor...</div>}
           {!isLoading && errorMessage && (
             <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>
+          )}
+          {!isLoading && !errorMessage && hasPartialList && (
+            <div className="list-state list-state-info">
+              Liste API'den gelen ilk {rows.length} fişi gösteriyor. Daha kesin sonuç için fiş no, cari, tarih veya durum filtresiyle aramayı daraltın.
+            </div>
           )}
           {!isLoading && !errorMessage && rows.length === 0 && (
             <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
