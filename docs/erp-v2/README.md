@@ -14,14 +14,15 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Terminal Sync Protocol](terminal-sync-protocol.md)
 - [Auth Permission Architecture](auth-permission-architecture.md)
 - [Implementation Roadmap](implementation-roadmap.md)
+- [Stabilizasyon Roadmap](stabilization-roadmap.md)
 - [QA Stabilization Report](qa-stabilization-report.md)
 - [Backup / Restore Plan](backup-restore-plan.md)
 - [Production Readiness Checklist](production-readiness-checklist.md)
 
 ## Tasarım Standardı
 
-ERP v2 arayüzü modern boş SaaS paneli gibi değil, Vega/Wolvox tarzı yoğun, desktop-first ve masaüstü ERP hissinde tasarlanacaktır.
+ERP v2 arayüzü modern boş SaaS paneli gibi değil; Vega/Wolvox tarzı yoğun, desktop-first ve masaüstü ERP hissinde tasarlanır.
 
 ## Kodlamaya Başlamadan Önce
 
-Kodlamaya başlamadan önce [Implementation Roadmap](implementation-roadmap.md) içindeki son kontrol listesi tamamlanmalıdır.
+Yeni geliştirme veya stabilizasyon sprintinden önce [Implementation Roadmap](implementation-roadmap.md) ve [Stabilizasyon Roadmap](stabilization-roadmap.md) kontrol edilmelidir.
