@@ -575,7 +575,14 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
                 <button type="button" onClick={() => onOpenScreen?.('supplier-card', { supplierId: selectedDetail?.supplierId || selectedRow.supplierId, supplierCode: selectedDetail?.supplierCode || selectedRow.supplierCode })}>
                   Tedarikçi
                 </button>
-                <button type="button" disabled={selectedRow.status === 'CANCELLED'}>İptal Et</button>
+                <button
+                  type="button"
+                  onClick={() => openDraft()}
+                  disabled={selectedRow.status !== 'FINALIZED'}
+                  title={selectedRow.status === 'FINALIZED' ? 'İptal işlemi için fişi aç' : 'Sadece kesinleşmiş fişler iptal edilebilir'}
+                >
+                  İptal İçin Aç
+                </button>
               </div>
             </>
           )}

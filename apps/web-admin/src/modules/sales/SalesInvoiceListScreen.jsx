@@ -699,7 +699,14 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
                 <button type="button" className="category-summary-button" onClick={() => { setSelectedCategory(''); setShowCategoryReport((current) => !current); }}>
                   {showCategoryReport ? 'Satırları Göster' : categorySummaryLabel}
                 </button>
-                <button type="button" disabled={selectedRow.status === 'CANCELLED'}>İptal Et</button>
+                <button
+                  type="button"
+                  onClick={() => openInvoice()}
+                  disabled={selectedRow.status !== 'FINALIZED'}
+                  title={selectedRow.status === 'FINALIZED' ? 'İptal işlemi için fişi aç' : 'Sadece kesinleşmiş fişler iptal edilebilir'}
+                >
+                  İptal İçin Aç
+                </button>
               </div>
             </>
           )}

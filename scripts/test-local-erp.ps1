@@ -191,6 +191,19 @@ if (Test-Path $financeFormSmokeScript) {
   Add-Check 'Web Admin' 'Finance form dirty smoke' $false 'script bulunamadi'
 }
 
+$actionClaritySmokeScript = Join-Path $RepoRoot 'scripts\web-admin-action-clarity-smoke.mjs'
+if (Test-Path $actionClaritySmokeScript) {
+  Push-Location $RepoRoot
+  try {
+    $actionClaritySmokeOutput = node $actionClaritySmokeScript 2>&1
+    Add-Check 'Web Admin' 'Action clarity smoke' ($LASTEXITCODE -eq 0) (($actionClaritySmokeOutput | Select-Object -Last 1) -join ' ')
+  } finally {
+    Pop-Location
+  }
+} else {
+  Add-Check 'Web Admin' 'Action clarity smoke' $false 'script bulunamadi'
+}
+
 if ($RunBuild) {
   Push-Location (Join-Path $RepoRoot 'apps\web-admin')
   try {
