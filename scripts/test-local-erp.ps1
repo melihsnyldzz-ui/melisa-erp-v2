@@ -217,6 +217,19 @@ if (Test-Path $emptyStateSmokeScript) {
   Add-Check 'Web Admin' 'Empty state smoke' $false 'script bulunamadi'
 }
 
+$layoutSmokeScript = Join-Path $RepoRoot 'scripts\web-admin-layout-smoke.mjs'
+if (Test-Path $layoutSmokeScript) {
+  Push-Location $RepoRoot
+  try {
+    $layoutSmokeOutput = node $layoutSmokeScript 2>&1
+    Add-Check 'Web Admin' 'Layout smoke' ($LASTEXITCODE -eq 0) (($layoutSmokeOutput | Select-Object -Last 1) -join ' ')
+  } finally {
+    Pop-Location
+  }
+} else {
+  Add-Check 'Web Admin' 'Layout smoke' $false 'script bulunamadi'
+}
+
 if ($RunBuild) {
   Push-Location (Join-Path $RepoRoot 'apps\web-admin')
   try {
