@@ -178,6 +178,19 @@ if (Test-Path $listScopeSmokeScript) {
   Add-Check 'Web Admin' 'List scope smoke' $false 'script bulunamadi'
 }
 
+$financeFormSmokeScript = Join-Path $RepoRoot 'scripts\web-admin-finance-form-smoke.mjs'
+if (Test-Path $financeFormSmokeScript) {
+  Push-Location $RepoRoot
+  try {
+    $financeFormSmokeOutput = node $financeFormSmokeScript 2>&1
+    Add-Check 'Web Admin' 'Finance form dirty smoke' ($LASTEXITCODE -eq 0) (($financeFormSmokeOutput | Select-Object -Last 1) -join ' ')
+  } finally {
+    Pop-Location
+  }
+} else {
+  Add-Check 'Web Admin' 'Finance form dirty smoke' $false 'script bulunamadi'
+}
+
 if ($RunBuild) {
   Push-Location (Join-Path $RepoRoot 'apps\web-admin')
   try {

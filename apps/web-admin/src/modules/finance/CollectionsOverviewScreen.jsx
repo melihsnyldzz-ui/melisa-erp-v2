@@ -18,7 +18,7 @@ import {
   today,
 } from './collectionsFormatters.js';
 
-export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
+export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpenScreen }) {
   const initialMode = initialPayload.mode === 'payment' ? 'payment' : 'collection';
   const [mode, setMode] = useState(initialMode);
   const [customers, setCustomers] = useState([]);
@@ -40,6 +40,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   async function loadData() {
     setIsLoading(true);
@@ -66,6 +67,10 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const selectedCustomer = useMemo(
     () => customers.find((customer) => Number(customer.id) === Number(form.customerId)),
@@ -133,6 +138,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
 
   function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
+    setIsDirty(true);
     setMessage('');
   }
 
@@ -149,6 +155,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
     setMessage('');
     setErrorMessage('');
     setSelectedReceipt(null);
+    setIsDirty(false);
   }
 
   function openMovement(row) {
@@ -280,6 +287,7 @@ export function CollectionsOverviewScreen({ initialPayload, onOpenScreen }) {
         accountId: '',
         description: '',
       }));
+      setIsDirty(false);
       await loadData();
     } catch (error) {
       setErrorMessage(`${error.message || 'Kayıt başarısız.'} (${error.code || 'API_ERROR'})`);

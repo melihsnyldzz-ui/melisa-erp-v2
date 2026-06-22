@@ -253,7 +253,13 @@ const workspaceRouteRegistry = {
   'collections-overview': {
     permissionKeys: ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'],
     unauthorizedMessage: 'Tahsilat/ödeme kaydı için finans yetkiniz yok.',
-    render: ({ activeTab, onOpenScreen }) => <CollectionsOverviewScreen initialPayload={activeTab.payload} onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onDirtyChange, onOpenScreen }) => (
+      <CollectionsOverviewScreen
+        initialPayload={activeTab.payload}
+        onDirtyChange={onDirtyChange}
+        onOpenScreen={onOpenScreen}
+      />
+    ),
   },
   'cash-customers': {
     permissionKeys: ['finance.view', 'customer.view', 'sales.view'],

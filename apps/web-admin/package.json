@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "smoke:navigation": "node ../../scripts/web-admin-navigation-smoke.mjs",
-    "smoke:list-scope": "node ../../scripts/web-admin-list-scope-smoke.mjs"
+    "smoke:list-scope": "node ../../scripts/web-admin-list-scope-smoke.mjs",
+    "smoke:finance-form": "node ../../scripts/web-admin-finance-form-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
