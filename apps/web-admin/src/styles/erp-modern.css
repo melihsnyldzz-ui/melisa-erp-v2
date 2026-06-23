@@ -9251,7 +9251,7 @@ button:active:not(:disabled) {
 
 .stock-360-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
   gap: 10px;
   min-height: 0;
   overflow: hidden;
@@ -9268,9 +9268,8 @@ button:active:not(:disabled) {
 }
 
 .stock-360-panel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  align-content: start;
+  display: block;
+  min-width: 0;
   background: #f8fafc;
   overflow: auto;
 }
@@ -9296,8 +9295,10 @@ button:active:not(:disabled) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+  min-height: 0;
   margin-top: 10px;
   padding: 10px;
+  overflow: hidden;
   border: 1px solid #b7e4dc;
   border-radius: 8px;
   background: linear-gradient(180deg, #effffb, #f8fffd);
@@ -9344,6 +9345,7 @@ button:active:not(:disabled) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
   margin-top: 9px;
+  clear: both;
 }
 
 .stock-360-metrics div,
@@ -9560,6 +9562,91 @@ button:active:not(:disabled) {
   .stock-list-main-panel .stock-table-wrap,
   .stock-360-movements {
     max-height: none;
+  }
+}
+
+@media (max-width: 1480px) {
+  .stock-360-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(288px, 312px);
+  }
+
+  .stock-360-panel > .list-state,
+  .stock-360-panel > .stock-360-head,
+  .stock-360-panel > .stock-360-metrics,
+  .stock-360-panel > .stock-360-facts,
+  .stock-360-panel > .stock-360-movement-summary,
+  .stock-360-panel > .stock-360-movements,
+  .stock-360-panel > .stock-360-actions {
+    margin-inline: 8px;
+  }
+}
+
+/* Shared anti-overlap guard for dense ERP workspaces. */
+.work-area,
+.erp-panel,
+.stock-360-layout,
+.sales-receipt-layout,
+.purchase-receipt-layout,
+.catalog-builder-layout,
+.whatsapp-queue-layout,
+.finance-entry-layout,
+.product-card-layout,
+.customer-card-modern-layout,
+.supplier-card-layout {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.erp-panel,
+.stock-list-main-panel,
+.customer-list-panel,
+.invoice-list-panel,
+.sales-receipt-list-panel,
+.sales-receipt-preview-panel {
+  contain: layout paint;
+}
+
+.stock-filter-panel-modern .stock-search-primary,
+.stock-filter-panel-modern .stock-filter-fields,
+.filter-grid,
+.summary-strip,
+.dashboard-kpi-grid,
+.stock-360-metrics,
+.stock-360-facts,
+.stock-360-movement-summary {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stock-filter-panel-modern .stock-search-primary > *,
+.stock-filter-panel-modern .stock-filter-fields > *,
+.filter-grid > *,
+.summary-strip > *,
+.stock-360-metrics > *,
+.stock-360-facts > *,
+.stock-360-movement-summary > * {
+  min-width: 0;
+}
+
+.stock-360-head strong,
+.stock-360-head small,
+.stock-360-metrics strong,
+.stock-360-facts dd,
+.stock-360-movement-summary span,
+.panel-title span,
+.screen-summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1360px) {
+  .stock-filter-panel-modern .stock-search-primary {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-filter-buttons,
+  .stock-filter-actions {
+    justify-content: start;
   }
 }
 

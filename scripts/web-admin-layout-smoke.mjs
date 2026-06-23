@@ -82,6 +82,9 @@ addCheck('work area scrolls instead of pushing shell', blocks(modernSource, '.wo
 addCheck('top menu module row can scroll horizontally', blocks(modernSource, '.module-menu').some((item) => item.includes('overflow-x: auto')));
 addCheck('top actions can scroll horizontally', blocks(modernSource, '.top-actions').some((item) => item.includes('overflow-x: auto')));
 addCheck('compact desktop sidebar is capped at 204px', /@media \(max-width: 1100px\)[\s\S]*?--erp-sidebar-width:\s*204px;/.test(modernSource));
+addCheck('stock 360 panel uses normal block flow', blocks(modernSource, '.stock-360-panel').some((item) => item.includes('display: block')));
+addCheck('stock 360 collapses to one column below 1180', /@media \(max-width: 1180px\)[\s\S]*?\.stock-360-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr;/.test(modernSource));
+addCheck('dense grid children have min-width zero overlap guard', modernSource.includes('.stock-filter-panel-modern .stock-search-primary > *') && modernSource.includes('min-width: 0;'));
 addCheck('table wrappers constrain overflow', block(modernSource, '.table-shell,\n.table-wrap,\n.filter-grid,\n.summary-strip,\n.screen-summary').includes('max-width: 100%'));
 addCheck('invoice table has horizontal scroll wrapper', block(tablesSource, '.invoice-table-wrap').includes('overflow: auto'));
 addCheck('invoice list table keeps stable minimum width', /\.invoice-list-table\s*\{[\s\S]*?min-width:\s*1120px;/.test(tablesSource));
