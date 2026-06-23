@@ -14,6 +14,7 @@ vite-*.log
 vite-5187.*.log
 terminal-expo*.log
 apps/terminal-app/*.log
+apps/desktop/*.log
 temp
 .expo
 android/build

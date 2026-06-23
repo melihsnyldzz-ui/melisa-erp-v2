@@ -1,0 +1,16 @@
+{
+  "name": "@melisa-erp/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Melisa ERP v2 Electron desktop shell",
+  "main": "src/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "check": "node --check src/main.mjs && node --check src/preload.cjs"
+  },
+  "devDependencies": {
+    "electron": "39.8.10"
+  }
+}
