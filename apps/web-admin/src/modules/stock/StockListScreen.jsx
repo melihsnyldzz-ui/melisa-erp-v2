@@ -36,6 +36,17 @@ function matchesBarcode(row, filter) {
   return barcodeValues.some((value) => normalizeBarcode(value).includes(query));
 }
 
+function buildSearch(filters) {
+  return [
+    filters.stockCode,
+    filters.barcode,
+    filters.name,
+    filters.brand,
+    filters.category,
+    filters.supplier,
+  ].filter(Boolean).join(' ');
+}
+
 function formatMoney(amount, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
