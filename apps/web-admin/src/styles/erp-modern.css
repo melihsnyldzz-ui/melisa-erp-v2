@@ -12531,3 +12531,162 @@ button:active:not(:disabled) {
     display: none;
   }
 }
+
+/* Resolution stability: keep navigation visible on smaller desktop and laptop screens. */
+.erp-shell,
+.top-menu,
+.main-layout,
+.content-shell {
+  width: 100%;
+  max-width: 100vw;
+}
+
+.top-menu {
+  grid-template-columns: minmax(170px, 214px) minmax(360px, 1fr) minmax(330px, 520px);
+}
+
+.module-menu {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.module {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.top-actions {
+  grid-template-columns: minmax(96px, 1fr) minmax(86px, 104px) minmax(78px, 96px) minmax(92px, 120px) minmax(74px, 96px) minmax(86px, 112px) minmax(64px, 82px);
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+}
+
+.top-actions > * {
+  min-width: 0;
+}
+
+.search-box kbd {
+  display: none;
+}
+
+.sidebar-flat {
+  max-width: var(--erp-sidebar-width);
+}
+
+.sidebar-flat .sidebar-header {
+  min-height: 108px;
+}
+
+.sidebar-flat-body {
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1440px) {
+  .top-menu {
+    grid-template-columns: minmax(160px, 190px) minmax(330px, 1fr) minmax(310px, 470px);
+  }
+
+  .brand-block {
+    padding-left: 52px;
+  }
+
+  .brand-block::before {
+    left: 12px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-block strong {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --erp-sidebar-width: 224px;
+    --erp-sidebar-compact-width: 224px;
+    --erp-smart-panel-width: 0px;
+  }
+
+  .erp-shell .main-layout,
+  .smart-panel-collapsed-shell .main-layout,
+  .hide-smart-panel .main-layout {
+    grid-template-columns: var(--erp-sidebar-width) minmax(0, 1fr);
+  }
+
+  .hide-sidebar .main-layout,
+  .hide-sidebar.smart-panel-collapsed-shell .main-layout,
+  .hide-sidebar.hide-smart-panel .main-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .smart-insights-panel,
+  .smart-panel {
+    display: none !important;
+  }
+
+  .top-menu {
+    grid-template-columns: minmax(146px, 170px) minmax(300px, 1fr) minmax(280px, 390px);
+  }
+
+  .top-actions {
+    grid-template-columns: repeat(7, minmax(72px, max-content));
+  }
+
+  .module {
+    padding-inline: 7px;
+  }
+
+  .module-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --erp-sidebar-width: 204px;
+    --erp-sidebar-compact-width: 204px;
+    --erp-workspace-padding: 6px;
+  }
+
+  .top-menu {
+    grid-template-columns: minmax(132px, 150px) minmax(240px, 1fr) minmax(250px, 330px);
+  }
+
+  .brand-block {
+    padding-left: 14px;
+  }
+
+  .brand-block::before,
+  .brand-block span {
+    display: none;
+  }
+
+  .brand-block strong {
+    font-size: 15px;
+  }
+
+  .module-label {
+    max-width: 74px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sidebar-flat .sidebar-header {
+    min-height: 96px;
+    padding: 10px 8px;
+  }
+
+  .sidebar-flat-body {
+    padding-inline: 6px;
+  }
+
+  .sidebar-flat .side-group-items button {
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 5px;
+    padding-inline: 6px;
+  }
+}
