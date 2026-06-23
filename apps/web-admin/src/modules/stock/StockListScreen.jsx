@@ -38,6 +38,7 @@ function matchesBarcode(row, filter) {
 
 function buildSearch(filters) {
   return [
+    filters.quickSearch,
     filters.stockCode,
     filters.barcode,
     filters.name,
@@ -53,6 +54,73 @@ function formatMoney(amount, currency = 'TRY') {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
+}
+
+function resolveImageUrl(imageUrl) {
+  if (!imageUrl) return '';
+  if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl;
+  return `${API_BASE_URL}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
+}
+
+function toStockRow(product) {
+  const barcode = product.matchedBarcode || product.barcodeMasked || product.barcode || '-';
+
+  return {
+    id: product.id,
+    imageUrl: resolveImageUrl(product.imageUrl),
+    stockCode: product.stockCode,
+    barcode,
+    primaryBarcode: product.barcodeMasked || product.barcode || '-',
+    matchedBarcode: product.matchedBarcode || '',
+    name: product.productName || product.name || '-',
+    brand: product.brand || '-',
+    category: product.category || '-',
+    currency: product.currency || 'TRY',
+    salesPrice: formatMoney(product.salePrice ?? product.salesPrice, product.currency || 'TRY'),
+    purchasePrice: formatMoney(product.purchasePrice, product.currency || 'TRY'),
+    currentStock: Number(product.stockQuantity ?? product.currentStock ?? 0),
+    supplierId: product.supplierId || null,
+    supplierCode: product.supplierCode || '',
+    supplier: product.supplierName || product.supplier || '-',
+    status: product.isPassive ? 'Pasif' : 'Aktif',
+  };
+}
+
+function applyStockFilters(row, filters) {
+  const matchesStatus =
+    filters.status === 'all' ||
+    (filters.status === 'active' && row.status === 'Aktif') ||
+    (filters.status === 'passive' && row.status === 'Pasif');
+  const matchesStockState =
+    filters.stockState === 'all' ||
+    (filters.stockState === 'in-stock' && row.currentStock > 0) ||
+    (filters.stockState === 'out-of-stock' && row.currentStock === 0) ||
+    (filters.stockState === 'negative' && row.currentStock < 0);
+  const matchesCurrency = filters.currency === 'all' || row.currency === filters.currency;
+  const matchesQuickSearch = !filters.quickSearch || [
+    row.stockCode,
+    row.barcode,
+    row.primaryBarcode,
+    row.matchedBarcode,
+    row.name,
+    row.brand,
+    row.category,
+    row.supplier,
+    row.currency,
+  ].some((value) => matchesText(value, filters.quickSearch));
+
+  return (
+    matchesStatus &&
+    matchesStockState &&
+    matchesCurrency &&
+    matchesQuickSearch &&
+    matchesText(row.stockCode, filters.stockCode) &&
+    matchesBarcode(row, filters.barcode) &&
+    matchesText(row.name, filters.name) &&
+    matchesText(row.brand, filters.brand) &&
+    matchesText(row.category, filters.category) &&
+    matchesText(row.supplier, filters.supplier)
+  );
 }
 
 const stockExportColumns = [
