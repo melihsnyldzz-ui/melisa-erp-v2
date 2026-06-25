@@ -93,6 +93,7 @@ addCheck('invoice list table keeps stable minimum width', /\.invoice-list-table\
 addCheck('dark mode option is available in view menu', viewOptionsSource.includes("key: 'darkMode'"));
 addCheck('dark mode class is mapped on shell', shellSource.includes("'dark-mode-shell'"));
 addCheck('dark mode theme layer exists', modernSource.includes('.dark-mode-shell') && modernSource.includes('color-scheme: dark'));
+addCheck('view options menu escapes top action scroller', block(modernSource, '.view-options-menu').includes('position: fixed'));
 
 const failed = checks.filter((check) => !check.ok);
 

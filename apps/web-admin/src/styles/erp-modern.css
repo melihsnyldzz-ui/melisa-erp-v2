@@ -309,14 +309,14 @@ textarea:disabled {
 }
 
 .view-options-menu {
-  position: absolute;
-  top: 42px;
-  right: 0;
-  z-index: 20;
+  position: fixed;
+  z-index: 120;
   display: grid;
   gap: 4px;
   width: 300px;
+  max-height: min(640px, calc(100vh - 72px));
   padding: 10px;
+  overflow-y: auto;
   border: 1px solid var(--ui-border);
   border-radius: 8px;
   background: #ffffff;

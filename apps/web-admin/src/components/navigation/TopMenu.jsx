@@ -47,13 +47,36 @@ export function TopMenu({
   onUpdateViewOption,
 }) {
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
+  const [viewMenuPosition, setViewMenuPosition] = useState(null);
   const viewMenuRef = useRef(null);
+  const viewButtonRef = useRef(null);
   const viewOptionItems = useMemo(() => getViewOptionItems(activeTab), [activeTab]);
+
+  function updateViewMenuPosition() {
+    if (!viewButtonRef.current) {
+      return;
+    }
+
+    const rect = viewButtonRef.current.getBoundingClientRect();
+    const menuWidth = 300;
+    const margin = 8;
+    const left = Math.min(
+      Math.max(margin, rect.right - menuWidth),
+      window.innerWidth - menuWidth - margin,
+    );
+
+    setViewMenuPosition({
+      left,
+      top: rect.bottom + 8,
+    });
+  }
 
   useEffect(() => {
     if (!isViewMenuOpen) {
       return undefined;
     }
+
+    updateViewMenuPosition();
 
     function handlePointerDown(event) {
       if (!viewMenuRef.current.contains(event.target)) {
@@ -67,11 +90,19 @@ export function TopMenu({
       }
     }
 
+    function handleViewportChange() {
+      updateViewMenuPosition();
+    }
+
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
     };
   }, [isViewMenuOpen]);
 
@@ -125,13 +156,17 @@ export function TopMenu({
             aria-expanded={isViewMenuOpen}
             aria-haspopup="menu"
             className={viewOptions.simpleMode || viewOptions.darkMode ? 'view-options-button active' : 'view-options-button'}
-            onClick={() => setIsViewMenuOpen((isOpen) => !isOpen)}
+            onClick={() => {
+              updateViewMenuPosition();
+              setIsViewMenuOpen((isOpen) => !isOpen);
+            }}
+            ref={viewButtonRef}
             type="button"
           >
             <SlidersHorizontal size={15} /> Görünüm
           </button>
           {isViewMenuOpen && (
-            <div className="view-options-menu" role="menu">
+            <div className="view-options-menu" role="menu" style={viewMenuPosition || undefined}>
               <div className="view-options-title">
                 <strong>{activeTab.label || 'Pencere'} seçenekleri</strong>
                 <button type="button" onClick={onResetViewOptions}>Sıfırla</button>
