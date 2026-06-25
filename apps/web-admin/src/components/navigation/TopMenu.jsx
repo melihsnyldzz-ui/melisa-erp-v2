@@ -124,7 +124,7 @@ export function TopMenu({
           <button
             aria-expanded={isViewMenuOpen}
             aria-haspopup="menu"
-            className={viewOptions.simpleMode ? 'view-options-button active' : 'view-options-button'}
+            className={viewOptions.simpleMode || viewOptions.darkMode ? 'view-options-button active' : 'view-options-button'}
             onClick={() => setIsViewMenuOpen((isOpen) => !isOpen)}
             type="button"
           >

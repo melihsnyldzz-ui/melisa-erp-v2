@@ -7,6 +7,8 @@ const repoRoot = resolve(scriptDir, '..');
 const baseSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/styles/base.css'), 'utf8');
 const modernSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/styles/erp-modern.css'), 'utf8');
 const tablesSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/styles/tables.css'), 'utf8');
+const shellSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/components/layout/AppShell.jsx'), 'utf8');
+const viewOptionsSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/config/viewOptions.js'), 'utf8');
 const checks = [];
 
 function addCheck(name, ok, detail = '') {
@@ -88,6 +90,9 @@ addCheck('dense grid children have min-width zero overlap guard', modernSource.i
 addCheck('table wrappers constrain overflow', block(modernSource, '.table-shell,\n.table-wrap,\n.filter-grid,\n.summary-strip,\n.screen-summary').includes('max-width: 100%'));
 addCheck('invoice table has horizontal scroll wrapper', block(tablesSource, '.invoice-table-wrap').includes('overflow: auto'));
 addCheck('invoice list table keeps stable minimum width', /\.invoice-list-table\s*\{[\s\S]*?min-width:\s*1120px;/.test(tablesSource));
+addCheck('dark mode option is available in view menu', viewOptionsSource.includes("key: 'darkMode'"));
+addCheck('dark mode class is mapped on shell', shellSource.includes("'dark-mode-shell'"));
+addCheck('dark mode theme layer exists', modernSource.includes('.dark-mode-shell') && modernSource.includes('color-scheme: dark'));
 
 const failed = checks.filter((check) => !check.ok);
 

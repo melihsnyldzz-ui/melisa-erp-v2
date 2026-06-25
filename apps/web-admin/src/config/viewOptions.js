@@ -1,4 +1,5 @@
 export const defaultViewOptions = {
+  darkMode: false,
   simpleMode: true,
   focusMode: false,
   showSidebar: true,
@@ -18,6 +19,7 @@ export const defaultViewOptions = {
 export const viewOptionsStorageKey = 'melisaErpViewOptions';
 
 export const simpleViewPreset = {
+  darkMode: false,
   simpleMode: true,
   focusMode: false,
   showSidebar: true,
@@ -35,6 +37,7 @@ export const simpleViewPreset = {
 };
 
 export const detailedViewPreset = {
+  darkMode: false,
   simpleMode: false,
   focusMode: false,
   showSidebar: true,
@@ -52,6 +55,7 @@ export const detailedViewPreset = {
 };
 
 const globalViewOptions = [
+  { key: 'darkMode', label: 'Siyah mod', description: 'Koyu arka plan ve dusuk parlaklik' },
   { key: 'simpleMode', label: 'Sade mod', description: 'Daha az kalabalik, daha genis calışma alani' },
   { key: 'focusMode', label: 'Odak modu', description: 'Menu ve yardimci panelleri gecici gizle' },
   { key: 'showSidebar', label: 'Sol modül paneli', description: 'Ekran listesini göster/gizle' },

@@ -22,6 +22,7 @@ function getShellClassName(isDemoMode, viewOptions) {
   return [
     'erp-shell',
     isDemoMode ? 'demo-mode-shell' : '',
+    viewOptions.darkMode ? 'dark-mode-shell' : '',
     viewOptions.simpleMode ? 'simple-mode-shell' : '',
     viewOptions.focusMode ? 'focus-mode-shell' : '',
     !viewOptions.showSidebar ? 'hide-sidebar' : '',
@@ -209,9 +210,15 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   }, []);
 
   const applyViewPreset = useCallback((preset) => {
-    const nextOptions = { ...defaultViewOptions, ...preset };
-    window.localStorage.setItem(viewOptionsStorageKey, JSON.stringify(nextOptions));
-    setViewOptions(nextOptions);
+    setViewOptions((currentOptions) => {
+      const nextOptions = {
+        ...defaultViewOptions,
+        ...preset,
+        darkMode: Boolean(currentOptions.darkMode),
+      };
+      window.localStorage.setItem(viewOptionsStorageKey, JSON.stringify(nextOptions));
+      return nextOptions;
+    });
   }, []);
 
   const updateRoleView = useCallback((nextRoleViewId) => {

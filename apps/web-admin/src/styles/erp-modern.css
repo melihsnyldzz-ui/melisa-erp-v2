@@ -8671,6 +8671,292 @@ button:active:not(:disabled) {
   }
 }
 
+/* Dark mode is a final theme layer so the normal ERP layout rules keep working. */
+.dark-mode-shell {
+  --ui-page: #0b111b;
+  --ui-shell: #111827;
+  --ui-surface: #151c29;
+  --ui-surface-soft: #101827;
+  --ui-sidebar: #080d16;
+  --ui-sidebar-2: #111827;
+  --ui-sidebar-muted: #9aa7ba;
+  --ui-text: #e5e7eb;
+  --ui-muted: #a7b0c0;
+  --ui-border: #2b3648;
+  --ui-border-strong: #3b485c;
+  --ui-primary: #2dd4bf;
+  --ui-primary-dark: #14b8a6;
+  --ui-primary-soft: #123b39;
+  --ui-blue: #60a5fa;
+  --ui-blue-soft: #172a46;
+  --ui-green: #34d399;
+  --ui-green-soft: #123729;
+  --ui-red: #fb7185;
+  --ui-red-soft: #3a1720;
+  --ui-amber: #fbbf24;
+  --ui-amber-soft: #332713;
+  --ui-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+  color: var(--ui-text);
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(45, 212, 191, 0.12), transparent 28%),
+    linear-gradient(180deg, #0b111b 0%, #0f172a 100%);
+}
+
+.dark-mode-shell .top-menu,
+.dark-mode-shell .tab-bar,
+.dark-mode-shell .content-shell,
+.dark-mode-shell .work-area,
+.dark-mode-shell .status-bar {
+  background: transparent;
+  color: var(--ui-text);
+  border-color: var(--ui-border);
+}
+
+.dark-mode-shell .brand-block,
+.dark-mode-shell .module,
+.dark-mode-shell .top-actions button,
+.dark-mode-shell .top-actions select,
+.dark-mode-shell .search-box,
+.dark-mode-shell .role-view-select,
+.dark-mode-shell .session-badge,
+.dark-mode-shell .view-options-button,
+.dark-mode-shell .view-preset-button,
+.dark-mode-shell .tab,
+.dark-mode-shell .sidebar-flat,
+.dark-mode-shell .smart-insights-panel,
+.dark-mode-shell .smart-panel,
+.dark-mode-shell .erp-panel,
+.dark-mode-shell .table-shell,
+.dark-mode-shell .stock-table-wrap,
+.dark-mode-shell .ledger-table-shell,
+.dark-mode-shell .stock-movement-table-shell,
+.dark-mode-shell .cash-bank-table-shell,
+.dark-mode-shell .cash-customer-table-shell,
+.dark-mode-shell .stock-list-toolbar,
+.dark-mode-shell .customer-list-toolbar,
+.dark-mode-shell .invoice-list-toolbar,
+.dark-mode-shell .stock-filter-panel,
+.dark-mode-shell .stock-filter-panel-modern,
+.dark-mode-shell .customer-filter-panel,
+.dark-mode-shell .invoice-list-filters,
+.dark-mode-shell .stock-search-panel,
+.dark-mode-shell .screen-summary,
+.dark-mode-shell .summary-strip,
+.dark-mode-shell .list-state,
+.dark-mode-shell .view-options-menu,
+.dark-mode-shell .view-option-row,
+.dark-mode-shell .view-preset-row button,
+.dark-mode-shell .dashboard-widget > .erp-panel,
+.dark-mode-shell .dashboard-kpi,
+.dark-mode-shell .stock-360-panel,
+.dark-mode-shell .stock-360-head,
+.dark-mode-shell .stock-360-metrics div,
+.dark-mode-shell .stock-360-facts div,
+.dark-mode-shell .stock-360-movement-summary span,
+.dark-mode-shell .stock-360-movements button,
+.dark-mode-shell .stock-360-actions button,
+.dark-mode-shell .catalog-screen > .erp-panel,
+.dark-mode-shell .catalog-bottom-grid > .erp-panel,
+.dark-mode-shell .catalog-product-table-shell,
+.dark-mode-shell .catalog-bottom-table-shell,
+.dark-mode-shell .auth-admin-modern-screen .erp-panel,
+.dark-mode-shell .auth-admin-modern-screen .table-shell,
+.dark-mode-shell .supplier-ledger-screen > .erp-panel,
+.dark-mode-shell .finance-overview-screen .erp-panel,
+.dark-mode-shell .cash-bank-ledger-screen .erp-panel,
+.dark-mode-shell .cash-customer-screen .erp-panel,
+.dark-mode-shell .customer-ledger-screen .erp-panel,
+.dark-mode-shell .supplier-ledger-screen .table-shell,
+.dark-mode-shell .stock-movements-screen .erp-panel {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text);
+}
+
+.dark-mode-shell .sidebar-flat,
+.dark-mode-shell .sidebar-panel,
+.dark-mode-shell .sidebar-flat .side-group {
+  background: linear-gradient(180deg, #08111f 0%, #101827 100%) !important;
+  border-color: #253244 !important;
+}
+
+.dark-mode-shell .module:hover,
+.dark-mode-shell .module.active,
+.dark-mode-shell .tab.active,
+.dark-mode-shell .view-options-button.active,
+.dark-mode-shell .view-preset-button.active,
+.dark-mode-shell .top-primary-action,
+.dark-mode-shell .stock-360-actions button:first-child {
+  background: #123b39 !important;
+  border-color: #2dd4bf !important;
+  color: #d5fffa !important;
+}
+
+.dark-mode-shell .top-primary-action {
+  box-shadow: 0 10px 20px rgba(20, 184, 166, 0.18);
+}
+
+.dark-mode-shell input,
+.dark-mode-shell select,
+.dark-mode-shell textarea,
+.dark-mode-shell .filter-grid input,
+.dark-mode-shell .filter-grid select,
+.dark-mode-shell .stock-filter-panel input,
+.dark-mode-shell .stock-filter-panel select,
+.dark-mode-shell .stock-filter-panel-modern input,
+.dark-mode-shell .stock-filter-panel-modern select,
+.dark-mode-shell .customer-filter-panel input,
+.dark-mode-shell .customer-filter-panel select,
+.dark-mode-shell .invoice-list-filters input,
+.dark-mode-shell .invoice-list-filters select {
+  background: #0f172a !important;
+  border-color: #3b485c !important;
+  color: #e5e7eb !important;
+}
+
+.dark-mode-shell input::placeholder,
+.dark-mode-shell textarea::placeholder {
+  color: #7d8aa0;
+}
+
+.dark-mode-shell .panel-title span,
+.dark-mode-shell .brand-block span,
+.dark-mode-shell .module small,
+.dark-mode-shell .sidebar-flat .side-group-title,
+.dark-mode-shell .sidebar-flat .sidebar-subtitle,
+.dark-mode-shell .screen-summary,
+.dark-mode-shell .stock-360-head small,
+.dark-mode-shell .stock-360-metrics span,
+.dark-mode-shell .stock-360-facts dt,
+.dark-mode-shell .stock-360-movement-summary b,
+.dark-mode-shell .view-option-row small,
+.dark-mode-shell .list-state {
+  color: var(--ui-muted) !important;
+}
+
+.dark-mode-shell .stock-table,
+.dark-mode-shell .table-shell table,
+.dark-mode-shell .erp-table {
+  background: #111827 !important;
+  color: var(--ui-text);
+}
+
+.dark-mode-shell .stock-table th,
+.dark-mode-shell .table-shell th,
+.dark-mode-shell .erp-table th,
+.dark-mode-shell .invoice-list-table th {
+  background: #1d2736 !important;
+  border-color: #354258 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode-shell .stock-table td,
+.dark-mode-shell .table-shell td,
+.dark-mode-shell .erp-table td,
+.dark-mode-shell .invoice-list-table td {
+  background: #121a28 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+.dark-mode-shell .stock-table tbody tr:hover td,
+.dark-mode-shell .table-shell tbody tr:hover td,
+.dark-mode-shell .erp-table tbody tr:hover td {
+  background: #172336 !important;
+}
+
+.dark-mode-shell .stock-table tbody tr.selected td,
+.dark-mode-shell .table-shell tbody tr.selected td,
+.dark-mode-shell .erp-table tbody tr.selected td {
+  background: #123b39 !important;
+  color: #eafffb !important;
+}
+
+.dark-mode-shell .code-cell,
+.dark-mode-shell .money-cell,
+.dark-mode-shell .stock-360-metrics strong,
+.dark-mode-shell .stock-360-facts dd,
+.dark-mode-shell .stock-360-movements button b,
+.dark-mode-shell .stock-360-movements button small {
+  color: #e5e7eb !important;
+}
+
+.dark-mode-shell .money-cell,
+.dark-mode-shell .text-positive,
+.dark-mode-shell .stock-360-metrics strong,
+.dark-mode-shell .stock-360-movement-summary span.in,
+.dark-mode-shell .stock-360-movements button > strong {
+  color: #34d399 !important;
+}
+
+.dark-mode-shell .text-negative,
+.dark-mode-shell .stock-360-movement-summary span.out,
+.dark-mode-shell .stock-360-movements button > strong.out,
+.dark-mode-shell .list-state-error {
+  color: #fb7185 !important;
+}
+
+.dark-mode-shell .list-state-error,
+.dark-mode-shell .stock-360-movement-summary span.out,
+.dark-mode-shell .stock-360-movements button > strong.out,
+.dark-mode-shell .stock-table tbody tr.passive-row td {
+  background: #3a1720 !important;
+  border-color: #7f1d2d !important;
+}
+
+.dark-mode-shell .list-state-success,
+.dark-mode-shell .stock-360-movement-summary span.in {
+  background: #123729 !important;
+  border-color: #1f6f4d !important;
+}
+
+.dark-mode-shell .list-state-warning,
+.dark-mode-shell .list-state-passive,
+.dark-mode-shell .badge-warning {
+  background: #332713 !important;
+  border-color: #8a6513 !important;
+  color: #fde68a !important;
+}
+
+.dark-mode-shell .stock-360-head {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.16), rgba(96, 165, 250, 0.08)) !important;
+  border-color: #2f7f77 !important;
+}
+
+.dark-mode-shell .stock-pill,
+.dark-mode-shell .pill,
+.dark-mode-shell .tag,
+.dark-mode-shell .screen-chip,
+.dark-mode-shell .status-chip,
+.dark-mode-shell .filter-pill {
+  background: #172336 !important;
+  border-color: #354258 !important;
+  color: #dbeafe !important;
+}
+
+.dark-mode-shell .sidebar-flat button,
+.dark-mode-shell .sidebar-flat a {
+  color: #dbe4f0;
+}
+
+.dark-mode-shell .sidebar-flat button:hover,
+.dark-mode-shell .sidebar-flat button.active,
+.dark-mode-shell .side-item.active {
+  background: rgba(45, 212, 191, 0.16) !important;
+  border-color: rgba(45, 212, 191, 0.38) !important;
+  color: #ecfeff !important;
+}
+
+.dark-mode-shell ::-webkit-scrollbar-track {
+  background: #0b111b;
+}
+
+.dark-mode-shell ::-webkit-scrollbar-thumb {
+  background: #3b485c;
+  border-color: #0b111b;
+}
+
 /* Peşin cari takip ekranı */
 .cash-customer-screen {
   gap: 10px;
@@ -12776,4 +13062,46 @@ button:active:not(:disabled) {
     gap: 5px;
     padding-inline: 6px;
   }
+}
+
+/* Dark mode final override: keep late screen-specific white rules from leaking through. */
+.dark-mode-shell .erp-panel,
+.dark-mode-shell .table-shell,
+.dark-mode-shell .stock-table-wrap,
+.dark-mode-shell .ledger-table-shell,
+.dark-mode-shell .stock-movement-table-shell,
+.dark-mode-shell .cash-bank-table-shell,
+.dark-mode-shell .cash-customer-table-shell,
+.dark-mode-shell .auth-admin-modern-screen .erp-panel,
+.dark-mode-shell .auth-admin-modern-screen .table-shell,
+.dark-mode-shell .finance-overview-screen .erp-panel,
+.dark-mode-shell .cash-bank-ledger-screen .erp-panel,
+.dark-mode-shell .cash-customer-screen .erp-panel,
+.dark-mode-shell .customer-ledger-screen .erp-panel,
+.dark-mode-shell .supplier-ledger-screen > .erp-panel,
+.dark-mode-shell .supplier-ledger-screen .table-shell,
+.dark-mode-shell .stock-movements-screen .erp-panel,
+.dark-mode-shell .catalog-screen > .erp-panel,
+.dark-mode-shell .catalog-bottom-grid > .erp-panel,
+.dark-mode-shell .catalog-product-table-shell,
+.dark-mode-shell .catalog-bottom-table-shell,
+.dark-mode-shell .stock-360-panel,
+.dark-mode-shell .stock-360-metrics div,
+.dark-mode-shell .stock-360-facts div,
+.dark-mode-shell .stock-360-movement-summary span,
+.dark-mode-shell .stock-360-movements button,
+.dark-mode-shell .stock-360-actions button {
+  background: var(--ui-surface) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+.dark-mode-shell .stock-table th,
+.dark-mode-shell .table-shell th,
+.dark-mode-shell .erp-table th,
+.dark-mode-shell .stock-table td,
+.dark-mode-shell .table-shell td,
+.dark-mode-shell .erp-table td {
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
 }
