@@ -8756,6 +8756,7 @@ button:active:not(:disabled) {
 .dark-mode-shell .stock-360-movement-summary span,
 .dark-mode-shell .stock-360-movements button,
 .dark-mode-shell .stock-360-actions button,
+.dark-mode-shell .supplier-list-kpis div,
 .dark-mode-shell .catalog-screen > .erp-panel,
 .dark-mode-shell .catalog-bottom-grid > .erp-panel,
 .dark-mode-shell .catalog-product-table-shell,
@@ -8831,8 +8832,14 @@ button:active:not(:disabled) {
 .dark-mode-shell .stock-360-facts dt,
 .dark-mode-shell .stock-360-movement-summary b,
 .dark-mode-shell .view-option-row small,
+.dark-mode-shell .supplier-list-kpis span,
+.dark-mode-shell .supplier-list-kpis small,
 .dark-mode-shell .list-state {
   color: var(--ui-muted) !important;
+}
+
+.dark-mode-shell .supplier-list-kpis strong {
+  color: var(--ui-text) !important;
 }
 
 .dark-mode-shell .stock-table,
@@ -10536,6 +10543,83 @@ button:active:not(:disabled) {
   color: #344054;
   font-size: 11px;
   font-weight: 900;
+}
+
+.supplier-list-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.supplier-list-kpis div {
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px 10px;
+  overflow: hidden;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.supplier-list-kpis span,
+.supplier-list-kpis small {
+  display: block;
+  overflow: hidden;
+  color: #667085;
+  font-size: 10px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplier-list-kpis strong {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplier-table-wrap {
+  min-height: 420px;
+}
+
+.supplier-table {
+  min-width: 1160px;
+  table-layout: fixed;
+}
+
+.supplier-table th,
+.supplier-table td {
+  height: 34px;
+  vertical-align: middle;
+}
+
+.supplier-table th:nth-child(1),
+.supplier-table td:nth-child(1) {
+  width: 150px;
+}
+
+.supplier-table th:nth-child(2),
+.supplier-table td:nth-child(2) {
+  width: 280px;
+}
+
+.supplier-table td:nth-child(1),
+.supplier-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .supplier-list-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .invoice-list-screen .filter-reset-button {

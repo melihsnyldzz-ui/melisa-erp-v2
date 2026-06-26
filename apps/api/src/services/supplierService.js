@@ -156,7 +156,7 @@ async function getSupplierSnapshot(request, id) {
 }
 
 export async function getSuppliersList(query) {
-  const options = parseListQuery(query);
+  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 300 });
   const pool = await getSqlPool();
   const request = pool.request()
     .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
@@ -215,7 +215,13 @@ export async function getSuppliersList(query) {
         fs.last_purchase_date,
         fs.is_active,
         fs.created_at,
-        ROW_NUMBER() OVER (ORDER BY fs.id DESC) AS row_number,
+        ROW_NUMBER() OVER (
+          ORDER BY
+            CASE WHEN fs.supplier_name IS NULL OR LTRIM(RTRIM(fs.supplier_name)) = N'' THEN 1 ELSE 0 END,
+            fs.supplier_name COLLATE Latin1_General_CI_AI ASC,
+            fs.supplier_code COLLATE Latin1_General_CI_AI ASC,
+            fs.id ASC
+        ) AS row_number,
         COUNT_BIG(1) OVER () AS total_count
       FROM filtered_suppliers fs
     )
@@ -239,6 +245,7 @@ export async function getSuppliersList(query) {
         search: options.search || null,
         activeOnly: options.activeOnly,
       },
+      maxLimit: options.maxLimit,
     }),
   };
 }

@@ -83,6 +83,7 @@ function renderSupplierCell(row, columnKey) {
 export function SupplierListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState({ search: '', currency: 'all', status: 'active' });
   const [rows, setRows] = useState([]);
+  const [listMeta, setListMeta] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -113,7 +114,7 @@ export function SupplierListScreen({ onOpenScreen }) {
       try {
         const response = await fetchSuppliers({
           page: 1,
-          limit: 150,
+          limit: 300,
           search: filters.search,
           activeOnly: filters.status === 'active',
         });
@@ -121,6 +122,7 @@ export function SupplierListScreen({ onOpenScreen }) {
 
         if (isMounted) {
           setRows(nextRows);
+          setListMeta(response.meta || null);
           setSelectedRowId((current) => (
             nextRows.some((row) => row.id === current) ? current : nextRows[0]?.id ?? null
           ));
@@ -128,6 +130,7 @@ export function SupplierListScreen({ onOpenScreen }) {
       } catch (error) {
         if (isMounted) {
           setRows([]);
+          setListMeta(null);
           setSelectedRowId(null);
           setErrorMessage(error.message || 'Tedarikçi listesi API bağlantısı başarısız.');
         }
@@ -145,20 +148,34 @@ export function SupplierListScreen({ onOpenScreen }) {
     };
   }, [filters.search, filters.status, refreshKey]);
 
-  const filteredRows = useMemo(() => rows.filter((row) => {
-    const currencyMatch = filters.currency === 'all' || row.currency === filters.currency;
-    const text = [
-      row.code,
-      row.name,
-      row.phone,
-      row.city,
-      row.country,
-    ].join(' ');
+  const filteredRows = useMemo(() => rows
+    .filter((row) => {
+      const currencyMatch = filters.currency === 'all' || row.currency === filters.currency;
+      const text = [
+        row.code,
+        row.name,
+        row.phone,
+        row.city,
+        row.country,
+      ].join(' ');
 
-    return currencyMatch && normalize(text).includes(normalize(filters.search));
-  }), [filters, rows]);
+      return currencyMatch && normalize(text).includes(normalize(filters.search));
+    })
+    .sort((first, second) => (
+      first.name.localeCompare(second.name, 'tr', { sensitivity: 'base' })
+      || first.code.localeCompare(second.code, 'tr', { sensitivity: 'base' })
+    )), [filters, rows]);
   const selectedRow = filteredRows.find((row) => row.id === selectedRowId) || null;
   const totalBalance = filteredRows.reduce((sum, row) => sum + Number(row.balance || 0), 0);
+  const totalFromApi = Number(listMeta?.total || rows.length || 0);
+  const missingApiRows = Math.max(totalFromApi - rows.length, 0);
+  const currencySummary = useMemo(() => filteredRows.reduce((summary, row) => {
+    const currency = row.currency || 'TRY';
+    return {
+      ...summary,
+      [currency]: (summary[currency] || 0) + 1,
+    };
+  }, {}), [filteredRows]);
 
   function updateFilter(field, value) {
     setFilters((current) => ({ ...current, [field]: value }));
@@ -236,6 +253,29 @@ export function SupplierListScreen({ onOpenScreen }) {
         </label>
       </section>
 
+      <section className="supplier-list-kpis" aria-label="Tedarikci liste ozeti">
+        <div>
+          <span>Toplam kart</span>
+          <strong>{totalFromApi}</strong>
+          <small>API kaydi</small>
+        </div>
+        <div>
+          <span>Gosterilen</span>
+          <strong>{filteredRows.length}</strong>
+          <small>{missingApiRows > 0 ? `${missingApiRows} kayit icin filtreyi daralt` : 'Tum cagrilan kayitlar'}</small>
+        </div>
+        <div>
+          <span>Para birimi</span>
+          <strong>{Object.entries(currencySummary).map(([currency, count]) => `${currency} ${count}`).join(' / ') || '-'}</strong>
+          <small>Secili filtreye gore</small>
+        </div>
+        <div>
+          <span>Toplam bakiye</span>
+          <strong>{formatMoney(totalBalance, selectedRow?.currency || 'TRY')}</strong>
+          <small>{filters.currency === 'all' ? 'Karma PB toplamidir' : filters.currency}</small>
+        </div>
+      </section>
+
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">
           <div>
@@ -278,8 +318,8 @@ export function SupplierListScreen({ onOpenScreen }) {
         {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Tedarikçi kaydı bulunamadı.</div>}
         {!isLoading && !errorMessage && selectionWarning && <div className="list-state list-state-error">{selectionWarning}</div>}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
-          <div className="table-wrap customer-table-wrap">
-            <table className="customer-table">
+          <div className="table-wrap customer-table-wrap supplier-table-wrap">
+            <table className="customer-table supplier-table">
               <thead>
                 <tr>
                   {tableColumns.map((column) => (

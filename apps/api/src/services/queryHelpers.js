@@ -1,6 +1,8 @@
-export function parseListQuery(query) {
+export function parseListQuery(query, settings = {}) {
+  const defaultLimit = Number(settings.defaultLimit || 20);
+  const maxLimit = Number(settings.maxLimit || 100);
   const page = Math.max(Number(query.page || 1), 1);
-  const limit = Math.min(Math.max(Number(query.limit || 20), 1), 100);
+  const limit = Math.min(Math.max(Number(query.limit || defaultLimit), 1), maxLimit);
   const offset = (page - 1) * limit;
   const search = typeof query.search === 'string' ? query.search.trim() : '';
   const activeOnly = String(query.activeOnly || 'false').toLowerCase() === 'true';
@@ -11,10 +13,11 @@ export function parseListQuery(query) {
     offset,
     search,
     activeOnly,
+    maxLimit,
   };
 }
 
-export function buildListMeta({ page, limit, offset, total, source, filters }) {
+export function buildListMeta({ page, limit, offset, total, source, filters, maxLimit = 100 }) {
   return {
     page,
     limit,
@@ -22,7 +25,7 @@ export function buildListMeta({ page, limit, offset, total, source, filters }) {
     totalPages: Math.max(Math.ceil(total / limit), 1),
     hasNextPage: offset + limit < total,
     hasPreviousPage: page > 1,
-    maxLimit: 100,
+    maxLimit,
     source,
     filters,
   };
