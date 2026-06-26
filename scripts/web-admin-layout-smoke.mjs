@@ -32,6 +32,7 @@ const stockListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modul
 const stockListFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListFilters.jsx'), 'utf8');
 const productCardSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardScreen.jsx'), 'utf8');
 const productCardFormSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardForm.jsx'), 'utf8');
+const purchaseInvoiceSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/purchase/PurchaseInvoiceScreen.jsx'), 'utf8');
 const suggestedTextInputSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/components/forms/SuggestedTextInput.jsx'), 'utf8');
 const checks = [];
 
@@ -132,6 +133,8 @@ addCheck('api text searches no longer use Latin1 LIKE for user query', ![catalog
 addCheck('web utility searches fold Turkish i variants', [commandPaletteSource, sidebarSource, authAdminSource, demoCustomersSource, demoProductsSource, demoSuppliersSource].every((source) => source.includes('normalizeSearchText')));
 addCheck('product supplier suggestions are not capped at 100 or 40', productCardSource.includes('limit: 300') && productCardFormSource.includes('maxOptions={300}') && stockListFiltersSource.includes('maxOptions={300}') && suggestedTextInputSource.includes('maxOptions = 40'));
 addCheck('suggested text input uses normalized custom filtering', suggestedTextInputSource.includes('normalizeSearchText(option).includes(query)') && suggestedTextInputSource.includes('className="suggested-options"') && !suggestedTextInputSource.includes('<datalist'));
+addCheck('purchase invoice product lookup is scoped to selected supplier', purchaseInvoiceSource.includes('supplierId: invoice.supplierId') && purchaseInvoiceSource.includes("String(product.supplierId || '') !== String(invoice.supplierId)") && purchaseInvoiceSource.includes('setPurchaseProductOptions([])'));
+addCheck('purchase draft API rejects product supplier mismatch', invoiceDraftServiceSource.includes('assertPurchaseItemsBelongToSupplier') && invoiceDraftServiceSource.includes('PURCHASE_PRODUCT_SUPPLIER_MISMATCH') && invoiceDraftServiceSource.includes('await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items)'));
 
 const failed = checks.filter((check) => !check.ok);
 

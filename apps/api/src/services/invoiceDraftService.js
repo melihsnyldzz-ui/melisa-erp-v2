@@ -957,6 +957,37 @@ async function insertPurchaseItem(sqlDriver, transaction, invoiceId, item) {
     `);
 }
 
+async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items) {
+  for (const [index, item] of items.entries()) {
+    const result = await new sqlDriver.Request(transaction)
+      .input('purchaseSupplierCheckProductId', sql.BigInt, item.productId)
+      .query(`
+        SELECT TOP (1)
+          id,
+          stock_code,
+          name,
+          supplier_id
+        FROM dbo.products
+        WHERE id = @purchaseSupplierCheckProductId
+          AND is_deleted = 0;
+      `);
+
+    const product = result.recordset?.[0];
+
+    if (!product) {
+      throw makeServiceError('PURCHASE_PRODUCT_NOT_FOUND', `items[${index}].productId not found`, 400);
+    }
+
+    if (String(product.supplier_id || '') !== String(supplierId)) {
+      throw makeServiceError(
+        'PURCHASE_PRODUCT_SUPPLIER_MISMATCH',
+        `Product ${product.stock_code || item.productId} does not belong to selected supplier`,
+        400,
+      );
+    }
+  }
+}
+
 async function ensureSupplier(sqlDriver, transaction, payload) {
   if (payload.supplierId) {
     return payload.supplierId;
@@ -1974,6 +2005,7 @@ export async function createPurchaseDraft(payload, actor = null) {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Alış fişi taslak kaydı');
 
     const supplierId = await ensureSupplier(sqlDriver, transaction, draft);
+    await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items);
     const insert = await new sqlDriver.Request(transaction)
       .input('documentNo', sql.NVarChar(30), draft.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
@@ -2090,6 +2122,7 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Alış fişi düzeltme');
 
     const supplierId = await ensureSupplier(sqlDriver, transaction, draft);
+    await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items);
 
     await new sqlDriver.Request(transaction)
       .input('invoiceId', sql.BigInt, invoiceId)

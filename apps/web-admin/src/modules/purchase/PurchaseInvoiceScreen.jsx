@@ -177,9 +177,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         product.productName,
       ].some((value) => searchTextIncludes(value, productQuery));
 
-      return matchesQuery && !product.isPassive;
+      const matchesSupplier = invoice.supplierId
+        && String(product.supplierId || '') === String(invoice.supplierId);
+
+      return matchesSupplier && matchesQuery && !product.isPassive;
     });
-  }, [productQuery, purchaseProductOptions]);
+  }, [invoice.supplierId, productQuery, purchaseProductOptions]);
   const selectedSupplier = useMemo(
     () => supplierOptions.find((item) => String(item.id) === String(invoice.supplierId)) || null,
     [invoice.supplierId, supplierOptions],
@@ -249,13 +252,16 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
             search: supplierQuery,
             activeOnly: true,
           }),
-          fetchProducts({
-            page: 1,
-            limit: 100,
-            search: productQuery,
-            barcode: productQuery,
-            activeOnly: true,
-          }),
+          invoice.supplierId
+            ? fetchProducts({
+              page: 1,
+              limit: 100,
+              search: productQuery,
+              barcode: productQuery,
+              supplierId: invoice.supplierId,
+              activeOnly: true,
+            })
+            : Promise.resolve({ data: [] }),
         ]);
 
         if (!isMounted) {
@@ -265,6 +271,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         const nextSuppliers = supplierResponse.data || [];
         const nextProducts = (productResponse.data || []).map((product) => ({
           productId: product.id,
+          supplierId: product.supplierId || null,
           stockCode: product.stockCode,
           barcode: product.barcodeMasked || '-',
           matchedBarcode: product.matchedBarcode || null,
@@ -306,7 +313,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     return () => {
       isMounted = false;
     };
-  }, [productQuery, supplierQuery]);
+  }, [invoice.supplierId, productQuery, supplierQuery]);
 
   useEffect(() => {
     if (!purchaseDraftId) {
@@ -511,6 +518,9 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     const nextSupplierRate = Number(supplier.purchaseDiscountRate || 0);
     const nextRate = centralRateForCurrency(supplier.currency);
     setSupplierRate(nextSupplierRate);
+    setProductQuery('');
+    setPurchaseProductOptions([]);
+    setProductToAddId('');
     setInvoice((current) => ({
       ...current,
       supplierId: supplier.id,
@@ -549,6 +559,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
     if (product.isPassive) {
       setErrorMessage('Pasif ürünler alış taslağına eklenemez.');
+      return;
+    }
+
+    if (String(product.supplierId || '') !== String(invoice.supplierId)) {
+      setErrorMessage('SeÃ§ilen Ã¼rÃ¼n bu tedarikÃ§iye baÄŸlÄ± deÄŸil. Ã–nce doÄŸru tedarikÃ§iyi seÃ§in.');
+      setStatusMessage('AlÄ±ÅŸ fiÅŸinde yalnÄ±zca seÃ§ili tedarikÃ§iye baÄŸlÄ± Ã¼rÃ¼nler eklenebilir.');
       return;
     }
 
@@ -900,7 +916,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                 onChange={(event) => {
                   setProductQuery(event.target.value);
                   const query = normalizeSearchText(event.target.value);
-                  const match = purchaseProductOptions.find((product) => (
+                  const match = filteredProducts.find((product) => (
                     !product.isPassive &&
                     [product.stockCode, product.barcode, product.matchedBarcode, product.productName].some((value) => (
                       normalizeSearchText(value).includes(query)
