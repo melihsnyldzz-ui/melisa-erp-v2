@@ -91,7 +91,7 @@ const customerListColumns = [
 ];
 
 const customerColumnStorageKey = 'melisa.customerList.visibleColumns.v1';
-const customerListPageLimit = 500;
+const defaultCustomerListPageLimit = 500;
 const defaultVisibleCustomerColumns = customerListColumns.reduce((next, column) => ({
   ...next,
   [column.key]: true,
@@ -108,6 +108,7 @@ function readVisibleCustomerColumns() {
 
 export function CustomerListScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState(customerFilterDefaults);
+  const [pageLimit, setPageLimit] = useState(defaultCustomerListPageLimit);
   const [rows, setRows] = useState([]);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'code', direction: 'asc' });
@@ -148,7 +149,7 @@ export function CustomerListScreen({ onOpenScreen }) {
       try {
         const response = await fetchCustomers({
           page: 1,
-          limit: customerListPageLimit,
+          limit: pageLimit,
           search,
           activeOnly,
         });
@@ -180,7 +181,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, refreshKey, search]);
+  }, [activeOnly, pageLimit, refreshKey, search]);
 
   const filteredRows = useMemo(() => {
     const nextRows = rows.filter((row) => applyCustomerFilters(row, filters));
@@ -298,7 +299,13 @@ export function CustomerListScreen({ onOpenScreen }) {
         onToggleColumns={() => setIsColumnPanelOpen((current) => !current)}
         isColumnPanelOpen={isColumnPanelOpen}
       />
-      <CustomerListFilters filters={filters} onChange={setFilters} onReset={resetFilters} />
+      <CustomerListFilters
+        filters={filters}
+        pageLimit={pageLimit}
+        onChange={setFilters}
+        onPageLimitChange={setPageLimit}
+        onReset={resetFilters}
+      />
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">
           <div>
@@ -370,7 +377,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         <span>Pasif: {passiveCount}</span>
         <span>Borçlu: {receivableCount}</span>
         <span>Alacaklı: {payableCount}</span>
-        <span>Liste kaydı: {filteredRows.length}</span>
+        <span>Liste kaydı: {filteredRows.length} / {pageLimit}</span>
         <span>Kaynak: API</span>
       </section>
     </main>

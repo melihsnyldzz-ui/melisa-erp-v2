@@ -253,7 +253,7 @@ async function assertCustomerDuplicates(request, customer, currentCustomerId = n
 }
 
 export async function getCustomersList(query) {
-  const options = parseListQuery(query);
+  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 500 });
   const pool = await getSqlPool();
 
   await ensureCashCustomers(pool);
@@ -328,6 +328,7 @@ export async function getCustomersList(query) {
         search: options.search || null,
         activeOnly: options.activeOnly,
       },
+      maxLimit: options.maxLimit,
     }),
   };
 }

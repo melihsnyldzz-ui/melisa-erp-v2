@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function CustomerListFilters({ filters, onChange, onReset }) {
+export function CustomerListFilters({ filters, pageLimit = 500, onChange, onPageLimitChange, onReset }) {
   function updateFilter(key, value) {
     onChange({ ...filters, [key]: value });
   }
@@ -61,6 +61,14 @@ export function CustomerListFilters({ filters, onChange, onReset }) {
           <option value="receivable">Borçlu</option>
           <option value="payable">Alacaklı</option>
           <option value="zero">Sıfır</option>
+        </select>
+      </label>
+      <label>
+        <span>Liste kaydÄ±</span>
+        <select value={pageLimit} onChange={(event) => onPageLimitChange(Number(event.target.value))}>
+          <option value={100}>100</option>
+          <option value={250}>250</option>
+          <option value={500}>500</option>
         </select>
       </label>
       <button type="button" onClick={onReset}>Temizle</button>

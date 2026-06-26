@@ -11,6 +11,9 @@ const shellSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/component
 const viewOptionsSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/config/viewOptions.js'), 'utf8');
 const supplierListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/supplier/SupplierListScreen.jsx'), 'utf8');
 const supplierServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/supplierService.js'), 'utf8');
+const customerListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/customer/CustomerListScreen.jsx'), 'utf8');
+const customerFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/customer/CustomerListFilters.jsx'), 'utf8');
+const customerServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/customerService.js'), 'utf8');
 const checks = [];
 
 function addCheck(name, ok, detail = '') {
@@ -98,6 +101,7 @@ addCheck('dark mode theme layer exists', modernSource.includes('.dark-mode-shell
 addCheck('view options menu escapes top action scroller', block(modernSource, '.view-options-menu').includes('position: fixed'));
 addCheck('supplier list requests enough cards', supplierListSource.includes('limit: 300') && supplierServiceSource.includes('maxLimit: 300'));
 addCheck('supplier list has stable KPI and table layout', supplierListSource.includes('supplier-list-kpis') && modernSource.includes('.supplier-table'));
+addCheck('customer list can expand to 500 rows', customerListSource.includes('defaultCustomerListPageLimit = 500') && customerFiltersSource.includes('<option value={500}>500</option>') && customerServiceSource.includes('maxLimit: 500'));
 
 const failed = checks.filter((check) => !check.ok);
 
