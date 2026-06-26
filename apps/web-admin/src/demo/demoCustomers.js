@@ -1,3 +1,5 @@
+import { normalizeSearchText } from '../utils/searchText.js';
+
 const demoCustomers = [
   {
     id: 201,
@@ -54,7 +56,7 @@ const demoCustomers = [
 ];
 
 function filterCustomers({ search = '', activeOnly = true } = {}) {
-  const query = String(search || '').toLowerCase();
+  const query = normalizeSearchText(search);
   return demoCustomers.filter((customer) => {
     const activeMatch = !activeOnly || !customer.isPassive;
     const searchMatch = !query || [
@@ -63,7 +65,7 @@ function filterCustomers({ search = '', activeOnly = true } = {}) {
       customer.phoneMasked,
       customer.city,
       customer.country,
-    ].some((value) => String(value || '').toLowerCase().includes(query));
+    ].some((value) => normalizeSearchText(value).includes(query));
     return activeMatch && searchMatch;
   });
 }

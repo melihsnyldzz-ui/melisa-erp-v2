@@ -15,8 +15,19 @@ const customerListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/mo
 const customerFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/customer/CustomerListFilters.jsx'), 'utf8');
 const customerServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/customerService.js'), 'utf8');
 const productServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/productService.js'), 'utf8');
+const catalogServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/catalogService.js'), 'utf8');
+const financeServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/financeService.js'), 'utf8');
+const invoiceDraftServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/invoiceDraftService.js'), 'utf8');
+const movementServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/movementService.js'), 'utf8');
+const terminalAdminServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/terminalAdminService.js'), 'utf8');
 const queryHelpersSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/queryHelpers.js'), 'utf8');
 const searchTextSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/utils/searchText.js'), 'utf8');
+const commandPaletteSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/components/layout/CommandPalette.jsx'), 'utf8');
+const sidebarSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/components/navigation/Sidebar.jsx'), 'utf8');
+const authAdminSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/settings/AuthAdminScreen.jsx'), 'utf8');
+const demoCustomersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/demo/demoCustomers.js'), 'utf8');
+const demoProductsSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/demo/demoProducts.js'), 'utf8');
+const demoSuppliersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/demo/demoSuppliers.js'), 'utf8');
 const stockListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListScreen.jsx'), 'utf8');
 const stockListFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListFilters.jsx'), 'utf8');
 const productCardSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardScreen.jsx'), 'utf8');
@@ -113,6 +124,9 @@ addCheck('supplier list has sortable table headers', supplierListSource.includes
 addCheck('customer list can expand to 500 rows', customerListSource.includes('defaultCustomerListPageLimit = 500') && customerFiltersSource.includes('<option value={500}>500</option>') && customerServiceSource.includes('maxLimit: 500'));
 addCheck('turkish search normalization is shared by key lists', searchTextSource.includes('normalizeSearchText') && customerListSource.includes('searchTextIncludes') && supplierListSource.includes('normalizeSearchText') && stockListSource.includes('searchTextIncludes'));
 addCheck('api list search folds Turkish i variants', queryHelpersSource.includes('toSearchPattern') && queryHelpersSource.includes('replace(/[Iİı]/g') && [customerServiceSource, supplierServiceSource, productServiceSource].every((source) => source.includes('toSearchPattern') && source.includes('sqlNormalizedLike')));
+addCheck('api extended searches fold Turkish i variants', [catalogServiceSource, financeServiceSource, invoiceDraftServiceSource, movementServiceSource, terminalAdminServiceSource].every((source) => source.includes('toSearchPattern') && source.includes('sqlNormalizedLike')));
+addCheck('api text searches no longer use Latin1 LIKE for user query', ![catalogServiceSource, financeServiceSource, invoiceDraftServiceSource, movementServiceSource, terminalAdminServiceSource].some((source) => /COLLATE Latin1_General_CI_AI LIKE @(search|productSearch|customerSearch|supplierSearch|summarySearchLike|searchLike)/.test(source)));
+addCheck('web utility searches fold Turkish i variants', [commandPaletteSource, sidebarSource, authAdminSource, demoCustomersSource, demoProductsSource, demoSuppliersSource].every((source) => source.includes('normalizeSearchText')));
 addCheck('product supplier suggestions are not capped at 100 or 40', productCardSource.includes('limit: 300') && productCardFormSource.includes('maxOptions={300}') && stockListFiltersSource.includes('maxOptions={300}') && suggestedTextInputSource.includes('maxOptions = 40'));
 addCheck('suggested text input uses normalized custom filtering', suggestedTextInputSource.includes('normalizeSearchText(option).includes(query)') && suggestedTextInputSource.includes('className="suggested-options"') && !suggestedTextInputSource.includes('<datalist'));
 

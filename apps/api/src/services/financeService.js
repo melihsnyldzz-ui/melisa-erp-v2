@@ -3,6 +3,7 @@ import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
+import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const PAYMENT_METHODS = new Set(['cash', 'bank', 'card', 'other']);
@@ -1155,9 +1156,15 @@ export async function getFinanceMovements(query = {}) {
   if (currency && !VALID_CURRENCIES.has(currency)) {
     throw makeServiceError('FINANCE_CURRENCY_INVALID', 'Currency must be TRY, USD or EUR');
   }
+  const financeSearchPredicates = [
+    'party_code',
+    'party_name',
+    'document_no',
+    'description',
+  ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
 
   const result = await pool.request()
-    .input('search', sql.NVarChar(120), search ? `%${search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(search))
     .input('partyType', sql.NVarChar(20), partyType || null)
     .input('movementType', sql.NVarChar(40), movementType || null)
     .input('accountId', sql.BigInt, Number.isInteger(accountId) && accountId > 0 ? accountId : null)
@@ -1322,10 +1329,7 @@ export async function getFinanceMovements(query = {}) {
         AND (@dateTo IS NULL OR document_date <= @dateTo)
         AND (
           @search IS NULL
-          OR party_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR party_name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR description COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${financeSearchPredicates}
         )
       ORDER BY document_date DESC, created_at DESC, id DESC;
     `);

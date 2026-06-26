@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchAuthAdminOverview, updateAuthAdminUser } from '../../services/authAdminApi.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString('tr-TR') : '-';
@@ -156,9 +157,9 @@ export function AuthAdminScreen({ permissions = [] }) {
   ), [data.permissions, selectedRole]);
 
   const visibleAuditLogs = useMemo(() => data.auditLogs.filter((log) => {
-    const search = auditFilters.search.trim().toLowerCase();
-    const action = auditFilters.action.trim().toLowerCase();
-    const source = auditFilters.source.trim().toLowerCase();
+    const search = normalizeSearchText(auditFilters.search);
+    const action = normalizeSearchText(auditFilters.action);
+    const source = normalizeSearchText(auditFilters.source);
     const haystack = [
       log.actorName,
       log.action,
@@ -167,11 +168,12 @@ export function AuthAdminScreen({ permissions = [] }) {
       log.source,
       log.reason,
       log.createdAt,
-    ].join(' ').toLowerCase();
+    ].join(' ');
+    const normalizedHaystack = normalizeSearchText(haystack);
 
-    return (!search || haystack.includes(search))
-      && (!action || String(log.action || '').toLowerCase().includes(action))
-      && (!source || String(log.source || '').toLowerCase().includes(source));
+    return (!search || normalizedHaystack.includes(search))
+      && (!action || normalizeSearchText(log.action).includes(action))
+      && (!source || normalizeSearchText(log.source).includes(source));
   }), [auditFilters, data.auditLogs]);
 
   const auditActionOptions = useMemo(() => (

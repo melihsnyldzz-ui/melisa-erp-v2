@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
@@ -1041,8 +1041,8 @@ export async function getSalesDraftsList(query) {
 
   const pool = await getSqlPool();
   const request = pool.request()
-    .input('search', sql.NVarChar(160), options.search ? `%${options.search}%` : null)
-    .input('customerSearch', sql.NVarChar(160), options.partySearch ? `%${options.partySearch}%` : null)
+    .input('search', sql.NVarChar(160), toSearchPattern(options.search))
+    .input('customerSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
     .input('dateFrom', sql.Date, options.dateFrom)
     .input('dateTo', sql.Date, options.dateTo)
@@ -1078,12 +1078,12 @@ export async function getSalesDraftsList(query) {
         AND (@dateTo IS NULL OR si.document_date <= @dateTo)
         AND (
           @search IS NULL
-          OR si.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${sqlNormalizedLike('si.document_no')}
+          OR ${sqlNormalizedLike('c.name')}
         )
         AND (
           @customerSearch IS NULL
-          OR c.name COLLATE Latin1_General_CI_AI LIKE @customerSearch COLLATE Latin1_General_CI_AI
+          OR ${sqlNormalizedLike('c.name', '@customerSearch')}
         )
     ),
     numbered_sales AS (
@@ -1882,8 +1882,8 @@ export async function getPurchaseDraftsList(query) {
 
   const pool = await getSqlPool();
   const request = pool.request()
-    .input('search', sql.NVarChar(160), options.search ? `%${options.search}%` : null)
-    .input('supplierSearch', sql.NVarChar(160), options.partySearch ? `%${options.partySearch}%` : null)
+    .input('search', sql.NVarChar(160), toSearchPattern(options.search))
+    .input('supplierSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
     .input('dateFrom', sql.Date, options.dateFrom)
     .input('dateTo', sql.Date, options.dateTo)
@@ -1919,12 +1919,12 @@ export async function getPurchaseDraftsList(query) {
         AND (@dateTo IS NULL OR pi.document_date <= @dateTo)
         AND (
           @search IS NULL
-          OR pi.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR s.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${sqlNormalizedLike('pi.document_no')}
+          OR ${sqlNormalizedLike('s.name')}
         )
         AND (
           @supplierSearch IS NULL
-          OR s.name COLLATE Latin1_General_CI_AI LIKE @supplierSearch COLLATE Latin1_General_CI_AI
+          OR ${sqlNormalizedLike('s.name', '@supplierSearch')}
         )
     ),
     numbered_purchase AS (

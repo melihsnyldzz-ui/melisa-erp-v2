@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
 import { screenRegistry, sidebarGroups } from '../../data/mockNavigationData.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
 
 const pinnedCommands = [
   { label: 'Yeni Satış Fişi', screenId: 'sales-invoice', hint: 'Satış işlemi ekranını aç' },
@@ -10,7 +11,7 @@ const pinnedCommands = [
 ];
 
 function normalize(value) {
-  return value.toLocaleLowerCase('tr-TR');
+  return normalizeSearchText(value);
 }
 
 function buildCommandList() {

@@ -1,5 +1,6 @@
 import sql from 'mssql';
 import { getSqlPool } from '../config/database.js';
+import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 
 function numberValue(value) {
   return Number(value || 0);
@@ -62,9 +63,23 @@ export async function getTerminalAdminOverview(query = {}) {
   const dateTo = normalizeDate(query.dateTo);
   const deviceId = Number(query.deviceId || 0);
   const pool = await getSqlPool();
+  const terminalSearchPredicates = [
+    'd.device_code',
+    'd.device_name',
+    'u.username',
+    'q.client_request_id',
+    'q.event_type',
+  ].map((column) => sqlNormalizedLike(column, '@searchLike')).join(' OR ');
+  const terminalSummarySearchPredicates = [
+    'd.device_code',
+    'd.device_name',
+    'u.username',
+    'q.client_request_id',
+    'q.event_type',
+  ].map((column) => sqlNormalizedLike(column, '@summarySearchLike')).join(' OR ');
   const queueFilters = [
     '(@status = N\'\' OR q.status = @status)',
-    '(@search = N\'\' OR d.device_code COLLATE Latin1_General_CI_AI LIKE @searchLike COLLATE Latin1_General_CI_AI OR d.device_name COLLATE Latin1_General_CI_AI LIKE @searchLike COLLATE Latin1_General_CI_AI OR u.username COLLATE Latin1_General_CI_AI LIKE @searchLike COLLATE Latin1_General_CI_AI OR q.client_request_id COLLATE Latin1_General_CI_AI LIKE @searchLike COLLATE Latin1_General_CI_AI OR q.event_type COLLATE Latin1_General_CI_AI LIKE @searchLike COLLATE Latin1_General_CI_AI)',
+    `(@search = N'' OR ${terminalSearchPredicates})`,
     '(@dateFrom IS NULL OR q.received_at >= @dateFrom)',
     '(@dateTo IS NULL OR q.received_at < DATEADD(day, 1, @dateTo))',
     '(@deviceId = 0 OR q.terminal_device_id = @deviceId)',
@@ -72,7 +87,7 @@ export async function getTerminalAdminOverview(query = {}) {
   const queueRequest = pool.request()
     .input('status', sql.NVarChar(20), status)
     .input('search', sql.NVarChar(120), search)
-    .input('searchLike', sql.NVarChar(140), `%${search}%`)
+    .input('searchLike', sql.NVarChar(140), toSearchPattern(search) || '')
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('deviceId', sql.BigInt, Number.isInteger(deviceId) && deviceId > 0 ? deviceId : 0);
@@ -81,7 +96,7 @@ export async function getTerminalAdminOverview(query = {}) {
     pool.request()
       .input('summaryStatus', sql.NVarChar(20), status)
       .input('summarySearch', sql.NVarChar(120), search)
-      .input('summarySearchLike', sql.NVarChar(140), `%${search}%`)
+      .input('summarySearchLike', sql.NVarChar(140), toSearchPattern(search) || '')
       .input('summaryDateFrom', sql.Date, dateFrom)
       .input('summaryDateTo', sql.Date, dateTo)
       .input('summaryDeviceId', sql.BigInt, Number.isInteger(deviceId) && deviceId > 0 ? deviceId : 0)
@@ -100,7 +115,7 @@ export async function getTerminalAdminOverview(query = {}) {
       INNER JOIN dbo.terminal_devices d ON d.id = q.terminal_device_id
       LEFT JOIN dbo.users u ON u.id = q.user_id
       WHERE (@summaryStatus = N'' OR q.status = @summaryStatus)
-        AND (@summarySearch = N'' OR d.device_code COLLATE Latin1_General_CI_AI LIKE @summarySearchLike COLLATE Latin1_General_CI_AI OR d.device_name COLLATE Latin1_General_CI_AI LIKE @summarySearchLike COLLATE Latin1_General_CI_AI OR u.username COLLATE Latin1_General_CI_AI LIKE @summarySearchLike COLLATE Latin1_General_CI_AI OR q.client_request_id COLLATE Latin1_General_CI_AI LIKE @summarySearchLike COLLATE Latin1_General_CI_AI OR q.event_type COLLATE Latin1_General_CI_AI LIKE @summarySearchLike COLLATE Latin1_General_CI_AI)
+        AND (@summarySearch = N'' OR ${terminalSummarySearchPredicates})
         AND (@summaryDateFrom IS NULL OR q.received_at >= @summaryDateFrom)
         AND (@summaryDateTo IS NULL OR q.received_at < DATEADD(day, 1, @summaryDateTo))
         AND (@summaryDeviceId = 0 OR q.terminal_device_id = @summaryDeviceId);

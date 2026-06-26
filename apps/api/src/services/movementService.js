@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 
@@ -233,24 +233,24 @@ export async function getStockMovementsList(query = {}) {
     ...buildDateFilter('sm', dateFrom, dateTo),
     productId > 0 ? 'sm.product_id = @productId' : '',
     options.search ? `(
-      p.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR p.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+      ${sqlNormalizedLike('p.stock_code')}
+      OR ${sqlNormalizedLike('p.name')}
       OR EXISTS (
         SELECT 1
         FROM dbo.product_barcodes pb
         WHERE pb.product_id = p.id
           AND pb.is_active = 1
-          AND pb.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          AND ${sqlNormalizedLike('pb.barcode')}
       )
-      OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR s.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+      OR ${sqlNormalizedLike('c.name')}
+      OR ${sqlNormalizedLike('s.name')}
     )` : '',
     movementType ? 'sm.movement_type = @movementType' : '',
     sourceType ? 'sm.source_type = @sourceType' : '',
   ].filter(Boolean);
 
   const result = await pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('movementType', sql.NVarChar(30), movementType || null)
@@ -353,15 +353,15 @@ export async function getStockValuationReport(query = {}) {
   const filters = [
     'p.is_deleted = 0',
     options.search ? `(
-      p.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR p.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR p.brand COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+      ${sqlNormalizedLike('p.stock_code')}
+      OR ${sqlNormalizedLike('p.name')}
+      OR ${sqlNormalizedLike('p.brand')}
       OR EXISTS (
         SELECT 1
         FROM dbo.product_barcodes pb2
         WHERE pb2.product_id = p.id
           AND pb2.is_active = 1
-          AND pb2.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          AND ${sqlNormalizedLike('pb2.barcode')}
       )
     )` : '',
     lowStockOnly ? 'p.current_stock_qty <= 5' : '',
@@ -369,7 +369,7 @@ export async function getStockValuationReport(query = {}) {
   ].filter(Boolean);
 
   const result = await pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('offset', sql.Int, options.offset)
     .query(`
       WITH latest_rates AS (
@@ -473,14 +473,14 @@ export async function getCustomerMovementsList(query = {}) {
     ...buildDateFilter('cm', dateFrom, dateTo),
     customerId > 0 ? 'cm.customer_id = @customerId' : '',
     options.search ? `(
-      c.customer_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR si.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+      ${sqlNormalizedLike('c.customer_code')}
+      OR ${sqlNormalizedLike('c.name')}
+      OR ${sqlNormalizedLike('si.document_no')}
     )` : '',
   ].filter(Boolean);
 
   const result = await pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('customerId', sql.Int, customerId > 0 ? customerId : null)
@@ -560,14 +560,14 @@ export async function getSupplierMovementsList(query = {}) {
     ...buildDateFilter('sm', dateFrom, dateTo),
     supplierId > 0 ? 'sm.supplier_id = @supplierId' : '',
     options.search ? `(
-      s.supplier_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR s.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-      OR pi.document_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+      ${sqlNormalizedLike('s.supplier_code')}
+      OR ${sqlNormalizedLike('s.name')}
+      OR ${sqlNormalizedLike('pi.document_no')}
     )` : '',
   ].filter(Boolean);
 
   const result = await pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('supplierId', sql.BigInt, supplierId > 0 ? supplierId : null)

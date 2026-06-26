@@ -6,6 +6,7 @@ import PDFDocument from 'pdfkit';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { env } from '../config/env.js';
 import { writeAuditLog } from './auditService.js';
+import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -385,9 +386,20 @@ export async function getCatalogOverview(query = {}) {
   const imageMode = trimText(query.imageMode);
   const minPrice = Number(query.minPrice);
   const maxPrice = Number(query.maxPrice);
+  const catalogSearchPredicates = [
+    'c.catalog_no',
+    'c.name',
+    'cu.name',
+  ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
+  const productSearchPredicates = [
+    'p.stock_code',
+    'p.name',
+    'p.brand',
+    'p.category',
+  ].map((column) => sqlNormalizedLike(column, '@productSearch')).join('\n        OR ');
 
   const catalogResult = await pool.request()
-    .input('search', sql.NVarChar(120), search ? `%${search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(search))
     .input('status', sql.NVarChar(20), status || null)
     .query(`
       SELECT TOP (80)
@@ -416,16 +428,14 @@ export async function getCatalogOverview(query = {}) {
         (@status IS NULL OR c.status = @status)
         AND (
           @search IS NULL
-          OR c.catalog_no COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR cu.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${catalogSearchPredicates}
         )
       GROUP BY c.id, c.catalog_no, c.name, c.customer_id, cu.name, cu.customer_code, cu.phone, c.status, c.valid_from, c.valid_to, c.created_at
       ORDER BY c.id DESC;
     `);
 
   const candidateRequest = pool.request()
-    .input('productSearch', sql.NVarChar(160), productSearch ? `%${productSearch}%` : null)
+    .input('productSearch', sql.NVarChar(160), toSearchPattern(productSearch))
     .input('brand', sql.NVarChar(120), brand || null)
     .input('category', sql.NVarChar(120), category || null)
     .input('currency', sql.NVarChar(3), currency || null)
@@ -464,16 +474,13 @@ export async function getCatalogOverview(query = {}) {
       AND p.is_active = 1
       AND (
         @productSearch IS NULL
-        OR p.stock_code COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
-        OR p.name COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
-        OR p.brand COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
-        OR p.category COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+        OR ${productSearchPredicates}
         OR EXISTS (
           SELECT 1
           FROM dbo.product_barcodes bx
           WHERE bx.product_id = p.id
             AND bx.is_active = 1
-            AND bx.barcode COLLATE Latin1_General_CI_AI LIKE @productSearch COLLATE Latin1_General_CI_AI
+            AND ${sqlNormalizedLike('bx.barcode', '@productSearch')}
         )
       )
       AND (@brand IS NULL OR p.brand = @brand)
@@ -579,9 +586,15 @@ export async function getPublicCatalogProducts(query = {}) {
   const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 300) : 100;
   const rawOffset = Number(query.offset || 0);
   const offset = Number.isInteger(rawOffset) && rawOffset > 0 ? rawOffset : 0;
+  const publicProductSearchPredicates = [
+    'p.stock_code',
+    'p.name',
+    'p.brand',
+    'p.category',
+  ].map((column) => sqlNormalizedLike(column)).join('\n            OR ');
 
   const result = await pool.request()
-    .input('search', sql.NVarChar(160), search ? `%${search}%` : null)
+    .input('search', sql.NVarChar(160), toSearchPattern(search))
     .input('brand', sql.NVarChar(120), brand || null)
     .input('category', sql.NVarChar(120), category || null)
     .input('inStockOnly', sql.Bit, inStockOnly)
@@ -618,10 +631,7 @@ export async function getPublicCatalogProducts(query = {}) {
           AND (@inStockOnly = 0 OR p.current_stock_qty > 0)
           AND (
             @search IS NULL
-            OR p.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-            OR p.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-            OR p.brand COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-            OR p.category COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+            OR ${publicProductSearchPredicates}
           )
       )
       SELECT TOP (${limit}) *

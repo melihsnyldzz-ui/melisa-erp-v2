@@ -19,6 +19,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { sidebarGroups } from '../../data/mockNavigationData.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
 
 const favoriteScreens = [
   'dashboard',
@@ -239,12 +240,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
 }
 
 function normalizeSearch(value) {
-  return String(value || '')
-    .toLocaleLowerCase('tr-TR')
-    .replace(/ı/g, 'i')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .trim();
+  return normalizeSearchText(value);
 }
 
 function getGroupLabel(title) {

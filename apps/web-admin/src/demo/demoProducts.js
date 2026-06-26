@@ -1,3 +1,5 @@
+import { normalizeSearchText } from '../utils/searchText.js';
+
 const demoProducts = [
   {
     id: 101,
@@ -70,7 +72,7 @@ const demoProducts = [
 ];
 
 function filterProducts({ search = '', activeOnly = true } = {}) {
-  const query = String(search || '').toLowerCase();
+  const query = normalizeSearchText(search);
   return demoProducts.filter((product) => {
     const activeMatch = !activeOnly || !product.isPassive;
     const searchMatch = !query || [
@@ -80,7 +82,7 @@ function filterProducts({ search = '', activeOnly = true } = {}) {
       product.brand,
       product.category,
       product.supplierName,
-    ].some((value) => String(value || '').toLowerCase().includes(query));
+    ].some((value) => normalizeSearchText(value).includes(query));
     return activeMatch && searchMatch;
   });
 }
