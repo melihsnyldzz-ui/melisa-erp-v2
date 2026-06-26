@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchProducts } from '../../services/productApi.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -8,10 +9,6 @@ function formatMoney(value, currency = 'TRY') {
     currency: currency || 'TRY',
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
-}
-
-function normalize(value) {
-  return String(value ?? '').toLowerCase();
 }
 
 function Kpi({ label, value, detail, tone = 'info' }) {
@@ -63,12 +60,12 @@ export function PriceListScreen({ onOpenScreen }) {
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     const matchesCurrency = !filters.currency || row.currency === filters.currency;
-    const search = normalize(filters.search);
+    const search = normalizeSearchText(filters.search);
     const matchesText = !search
-      || normalize(row.stockCode).includes(search)
-      || normalize(row.productName).includes(search)
-      || normalize(row.brand).includes(search)
-      || normalize(row.category).includes(search);
+      || searchTextIncludes(row.stockCode, search)
+      || searchTextIncludes(row.productName, search)
+      || searchTextIncludes(row.brand, search)
+      || searchTextIncludes(row.category, search);
 
     return matchesCurrency && matchesText;
   }), [filters, rows]);

@@ -10,13 +10,10 @@ import { fetchProductDetail, fetchProductStockMovements } from '../../services/p
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
-
-function normalize(value) {
-  return String(value ?? '').toLocaleLowerCase('tr-TR');
-}
+import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 function matchesText(value, filter) {
-  return !filter || normalize(value).includes(normalize(filter));
+  return searchTextIncludes(value, filter);
 }
 
 function normalizeBarcode(value) {
@@ -209,11 +206,11 @@ export function StockListScreen({ onOpenScreen }) {
           search: supplierFilter,
           activeOnly: true,
         });
-        const normalizedFilter = normalize(supplierFilter);
+        const normalizedFilter = normalizeSearchText(supplierFilter);
         const match = (response.data || []).find((supplier) => (
-          normalize(supplier.supplierCode) === normalizedFilter
-          || normalize(supplier.supplierName) === normalizedFilter
-          || normalize(`${supplier.supplierCode} / ${supplier.supplierName}`) === normalizedFilter
+          normalizeSearchText(supplier.supplierCode) === normalizedFilter
+          || normalizeSearchText(supplier.supplierName) === normalizedFilter
+          || normalizeSearchText(`${supplier.supplierCode} / ${supplier.supplierName}`) === normalizedFilter
         )) || response.data?.[0] || null;
 
         if (isMounted) {

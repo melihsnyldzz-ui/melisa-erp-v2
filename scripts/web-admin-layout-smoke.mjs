@@ -14,6 +14,10 @@ const supplierServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/servi
 const customerListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/customer/CustomerListScreen.jsx'), 'utf8');
 const customerFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/customer/CustomerListFilters.jsx'), 'utf8');
 const customerServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/customerService.js'), 'utf8');
+const productServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/productService.js'), 'utf8');
+const queryHelpersSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/queryHelpers.js'), 'utf8');
+const searchTextSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/utils/searchText.js'), 'utf8');
+const stockListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListScreen.jsx'), 'utf8');
 const checks = [];
 
 function addCheck(name, ok, detail = '') {
@@ -103,6 +107,8 @@ addCheck('supplier list requests enough cards', supplierListSource.includes('lim
 addCheck('supplier list has stable KPI and table layout', supplierListSource.includes('supplier-list-kpis') && modernSource.includes('.supplier-table'));
 addCheck('supplier list has sortable table headers', supplierListSource.includes('sortRows(column.key)') && supplierListSource.includes('numericSupplierSortKeys'));
 addCheck('customer list can expand to 500 rows', customerListSource.includes('defaultCustomerListPageLimit = 500') && customerFiltersSource.includes('<option value={500}>500</option>') && customerServiceSource.includes('maxLimit: 500'));
+addCheck('turkish search normalization is shared by key lists', searchTextSource.includes('normalizeSearchText') && customerListSource.includes('searchTextIncludes') && supplierListSource.includes('normalizeSearchText') && stockListSource.includes('searchTextIncludes'));
+addCheck('api list search folds Turkish i variants', queryHelpersSource.includes('toSearchPattern') && queryHelpersSource.includes('replace(/[Iİı]/g') && [customerServiceSource, supplierServiceSource, productServiceSource].every((source) => source.includes('toSearchPattern') && source.includes('sqlNormalizedLike')));
 
 const failed = checks.filter((check) => !check.ok);
 

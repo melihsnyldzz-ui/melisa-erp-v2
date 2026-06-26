@@ -17,6 +17,32 @@ export function parseListQuery(query, settings = {}) {
   };
 }
 
+export function normalizeSearchText(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/[Iİı]/g, 'i')
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+export function toSearchPattern(value) {
+  const normalized = normalizeSearchText(value);
+  return normalized ? `%${normalized}%` : null;
+}
+
+export function sqlNormalizedLike(columnName, parameterName = '@search') {
+  return [
+    'REPLACE(',
+    'REPLACE(',
+    `LOWER(${columnName} COLLATE Turkish_100_CI_AI),`,
+    "N'ı', N'i'",
+    '),',
+    "N'İ', N'i'",
+    `) COLLATE Turkish_100_CI_AI LIKE ${parameterName} COLLATE Turkish_100_CI_AI`,
+  ].join(' ');
+}
+
 export function buildListMeta({ page, limit, offset, total, source, filters, maxLimit = 100 }) {
   return {
     page,

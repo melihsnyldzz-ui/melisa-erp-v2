@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 const ALLOWED_CUSTOMER_TYPES = new Set(['customer', 'wholesale', 'retail', 'mixed']);
@@ -255,11 +255,19 @@ async function assertCustomerDuplicates(request, customer, currentCustomerId = n
 export async function getCustomersList(query) {
   const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 500 });
   const pool = await getSqlPool();
+  const searchPredicates = [
+    'c.customer_code',
+    'c.name',
+    'c.phone',
+    'c.city',
+    'c.country',
+    'c.customer_type',
+  ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
 
   await ensureCashCustomers(pool);
 
   const request = pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('activeOnly', sql.Bit, options.activeOnly)
     .input('offset', sql.Int, options.offset);
 
@@ -283,12 +291,7 @@ export async function getCustomersList(query) {
         AND (@activeOnly = 0 OR c.is_active = 1)
         AND (
           @search IS NULL
-          OR c.customer_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.phone COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.city COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.country COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR c.customer_type COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${searchPredicates}
         )
     ),
     numbered_customers AS (

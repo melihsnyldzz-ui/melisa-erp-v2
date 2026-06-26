@@ -5,13 +5,10 @@ import { CustomerListToolbar } from './CustomerListToolbar.jsx';
 import { customerFilterDefaults } from './customerMockData.js';
 import { fetchCustomers } from '../../services/customerApi.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
-
-function normalize(value) {
-  return String(value ?? '').toLowerCase();
-}
+import { searchTextIncludes } from '../../utils/searchText.js';
 
 function matchesText(value, filter) {
-  return !filter || normalize(value).includes(normalize(filter));
+  return searchTextIncludes(value, filter);
 }
 
 function buildSearch(filters) {

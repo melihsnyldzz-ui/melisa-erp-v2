@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 function toSupplierDto(row) {
@@ -157,9 +157,16 @@ async function getSupplierSnapshot(request, id) {
 
 export async function getSuppliersList(query) {
   const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 300 });
+  const searchPredicates = [
+    's.supplier_code',
+    's.name',
+    's.phone',
+    's.city',
+    's.country',
+  ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
   const pool = await getSqlPool();
   const request = pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('activeOnly', sql.Bit, options.activeOnly)
     .input('offset', sql.Int, options.offset);
 
@@ -193,11 +200,7 @@ export async function getSuppliersList(query) {
         AND (@activeOnly = 0 OR s.is_active = 1)
         AND (
           @search IS NULL
-          OR s.supplier_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR s.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR s.phone COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR s.city COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR s.country COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${searchPredicates}
         )
     ),
     numbered_suppliers AS (
@@ -218,8 +221,8 @@ export async function getSuppliersList(query) {
         ROW_NUMBER() OVER (
           ORDER BY
             CASE WHEN fs.supplier_name IS NULL OR LTRIM(RTRIM(fs.supplier_name)) = N'' THEN 1 ELSE 0 END,
-            fs.supplier_name COLLATE Latin1_General_CI_AI ASC,
-            fs.supplier_code COLLATE Latin1_General_CI_AI ASC,
+            fs.supplier_name COLLATE Turkish_100_CI_AI ASC,
+            fs.supplier_code COLLATE Turkish_100_CI_AI ASC,
             fs.id ASC
         ) AS row_number,
         COUNT_BIG(1) OVER () AS total_count

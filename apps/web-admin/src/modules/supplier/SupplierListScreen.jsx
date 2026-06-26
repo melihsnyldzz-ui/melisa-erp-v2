@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
@@ -8,10 +9,6 @@ function formatMoney(amount, currency) {
     currency: currency || 'TRY',
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
-}
-
-function normalize(value) {
-  return String(value ?? '').toLowerCase();
 }
 
 function toSupplierRow(supplier) {
@@ -161,7 +158,7 @@ export function SupplierListScreen({ onOpenScreen }) {
         row.country,
       ].join(' ');
 
-      return currencyMatch && normalize(text).includes(normalize(filters.search));
+      return currencyMatch && normalizeSearchText(text).includes(normalizeSearchText(filters.search));
     })
     .sort((first, second) => {
       const direction = sortConfig.direction === 'asc' ? 1 : -1;

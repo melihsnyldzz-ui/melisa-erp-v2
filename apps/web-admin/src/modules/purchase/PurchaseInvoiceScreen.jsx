@@ -21,6 +21,7 @@ import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currenc
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtils.js';
+import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 const emptyPurchaseInvoice = {
   ...purchaseInvoiceHeader,
@@ -168,15 +169,13 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const canFinalize = permissions.includes('purchase.finalize');
   const canCancel = permissions.includes('purchase.cancel');
   const filteredProducts = useMemo(() => {
-    const query = productQuery.trim().toLowerCase();
-
     return purchaseProductOptions.filter((product) => {
-      const matchesQuery = !query || [
+      const matchesQuery = [
         product.stockCode,
         product.barcode,
         product.matchedBarcode,
         product.productName,
-      ].some((value) => String(value || '').toLowerCase().includes(query));
+      ].some((value) => searchTextIncludes(value, productQuery));
 
       return matchesQuery && !product.isPassive;
     });
@@ -900,11 +899,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
                 value={productQuery}
                 onChange={(event) => {
                   setProductQuery(event.target.value);
-                  const query = event.target.value.trim().toLowerCase();
+                  const query = normalizeSearchText(event.target.value);
                   const match = purchaseProductOptions.find((product) => (
                     !product.isPassive &&
                     [product.stockCode, product.barcode, product.matchedBarcode, product.productName].some((value) => (
-                      String(value || '').toLowerCase().includes(query)
+                      normalizeSearchText(value).includes(query)
                     ))
                   ));
                   setProductToAddId(query && match ? String(match.productId) : '');

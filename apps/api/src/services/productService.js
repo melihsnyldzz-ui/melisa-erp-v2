@@ -3,7 +3,7 @@ import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeAuditLog } from './auditService.js';
-import { buildListMeta, parseListQuery } from './queryHelpers.js';
+import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 
 function toProductDto(row) {
@@ -449,9 +449,15 @@ export async function getProductsList(query) {
   const barcode = trimText(query?.barcode);
   const barcodeLike = barcode ? `%${barcode}%` : null;
   const supplierId = Number(query?.supplierId || 0);
+  const productSearchPredicates = [
+    'p.stock_code',
+    'p.name',
+    'p.brand',
+    'p.category',
+  ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
   const pool = await getSqlPool();
   const request = pool.request()
-    .input('search', sql.NVarChar(120), options.search ? `%${options.search}%` : null)
+    .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('barcode', sql.NVarChar(120), barcode || null)
     .input('barcodeLike', sql.NVarChar(120), barcodeLike)
     .input('supplierId', sql.BigInt, Number.isInteger(supplierId) && supplierId > 0 ? supplierId : null)
@@ -503,7 +509,7 @@ export async function getProductsList(query) {
           AND b.is_active = 1
           AND (
             (@barcodeLike IS NOT NULL AND b.barcode COLLATE Latin1_General_CI_AI LIKE @barcodeLike COLLATE Latin1_General_CI_AI)
-            OR (@search IS NOT NULL AND b.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI)
+            OR (@search IS NOT NULL AND ${sqlNormalizedLike('b.barcode')})
           )
         ORDER BY
           CASE WHEN @barcode IS NOT NULL AND b.barcode = @barcode THEN 0 ELSE 1 END,
@@ -526,16 +532,13 @@ export async function getProductsList(query) {
         )
         AND (
           @search IS NULL
-          OR p.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR p.name COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR p.brand COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
-          OR p.category COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+          OR ${productSearchPredicates}
           OR EXISTS (
             SELECT 1
             FROM dbo.product_barcodes search_barcode
             WHERE search_barcode.product_id = p.id
               AND search_barcode.is_active = 1
-              AND search_barcode.barcode COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI
+              AND ${sqlNormalizedLike('search_barcode.barcode')}
           )
         )
     ),
@@ -565,7 +568,7 @@ export async function getProductsList(query) {
             CASE
               WHEN @barcode IS NOT NULL AND fp.matched_barcode = @barcode THEN 0
               WHEN @barcodeLike IS NOT NULL AND fp.matched_barcode IS NOT NULL THEN 1
-              WHEN @search IS NOT NULL AND fp.stock_code COLLATE Latin1_General_CI_AI LIKE @search COLLATE Latin1_General_CI_AI THEN 2
+              WHEN @search IS NOT NULL AND ${sqlNormalizedLike('fp.stock_code')} THEN 2
               WHEN @search IS NOT NULL AND fp.matched_barcode IS NOT NULL THEN 3
               ELSE 9
             END,

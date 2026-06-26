@@ -20,6 +20,7 @@ import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currenc
 import { fetchProducts } from '../../services/productApi.js';
 import { apiConfig } from '../../config/apiConfig.js';
 import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtils.js';
+import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 const emptySalesInvoice = {
   ...salesInvoiceHeader,
@@ -246,7 +247,7 @@ function mapProductOption(product) {
 }
 
 function normalizeSearchValue(value) {
-  return String(value || '').trim().toLowerCase();
+  return normalizeSearchText(value);
 }
 
 function productSearchValues(product) {
@@ -340,10 +341,8 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     });
   }, [draftProductOptions, productLookupOptions, productQuery]);
   const filteredCustomers = useMemo(() => {
-    const query = customerQuery.trim().toLowerCase();
-
     return draftCustomerOptions.filter((customer) => (
-      !query || [customer.code, customer.name, customer.currency].some((value) => String(value || '').toLowerCase().includes(query))
+      [customer.code, customer.name, customer.currency].some((value) => searchTextIncludes(value, customerQuery))
     ));
   }, [customerQuery, draftCustomerOptions]);
   const selectedCustomer = useMemo(
@@ -713,9 +712,9 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
   function selectCustomerByQuery(value) {
     setCustomerQuery(value);
-    const normalizedValue = value.trim().toLowerCase();
-    const exactCustomer = draftCustomerOptions.find((customer) => customer.name.toLowerCase() === normalizedValue);
-    const firstMatch = draftCustomerOptions.find((customer) => customer.name.toLowerCase().includes(normalizedValue));
+    const normalizedValue = normalizeSearchText(value);
+    const exactCustomer = draftCustomerOptions.find((customer) => normalizeSearchText(customer.name) === normalizedValue);
+    const firstMatch = draftCustomerOptions.find((customer) => normalizeSearchText(customer.name).includes(normalizedValue));
     const customer = exactCustomer || (normalizedValue ? firstMatch : null);
 
     if (customer) {
