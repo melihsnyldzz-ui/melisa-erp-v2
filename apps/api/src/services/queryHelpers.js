@@ -20,8 +20,9 @@ export function parseListQuery(query, settings = {}) {
 export function normalizeSearchText(value) {
   return String(value ?? '')
     .trim()
-    .replace(/[Iİı]/g, 'i')
+    .replace(/[I\u0130\u0131]/g, 'i')
     .toLocaleLowerCase('tr-TR')
+    .replace(/\u0131/g, 'i')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 }
@@ -36,9 +37,9 @@ export function sqlNormalizedLike(columnName, parameterName = '@search') {
     'REPLACE(',
     'REPLACE(',
     `LOWER(${columnName} COLLATE Turkish_100_CI_AI),`,
-    "N'ı', N'i'",
+    "N'\u0131', N'i'",
     '),',
-    "N'İ', N'i'",
+    "N'\u0130', N'i'",
     `) COLLATE Turkish_100_CI_AI LIKE ${parameterName} COLLATE Turkish_100_CI_AI`,
   ].join(' ');
 }
