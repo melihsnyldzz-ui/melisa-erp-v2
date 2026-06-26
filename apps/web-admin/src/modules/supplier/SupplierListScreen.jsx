@@ -46,6 +46,7 @@ const supplierListColumns = [
 ];
 
 const supplierColumnStorageKey = 'melisa.supplierList.visibleColumns.v1';
+const numericSupplierSortKeys = new Set(['balance', 'purchaseDiscountRate', 'purchaseCount']);
 const defaultVisibleSupplierColumns = supplierListColumns.reduce((next, column) => ({
   ...next,
   [column.key]: true,
@@ -85,6 +86,7 @@ export function SupplierListScreen({ onOpenScreen }) {
   const [rows, setRows] = useState([]);
   const [listMeta, setListMeta] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
@@ -161,10 +163,21 @@ export function SupplierListScreen({ onOpenScreen }) {
 
       return currencyMatch && normalize(text).includes(normalize(filters.search));
     })
-    .sort((first, second) => (
-      first.name.localeCompare(second.name, 'tr', { sensitivity: 'base' })
-      || first.code.localeCompare(second.code, 'tr', { sensitivity: 'base' })
-    )), [filters, rows]);
+    .sort((first, second) => {
+      const direction = sortConfig.direction === 'asc' ? 1 : -1;
+      const firstValue = first[sortConfig.key];
+      const secondValue = second[sortConfig.key];
+
+      if (numericSupplierSortKeys.has(sortConfig.key)) {
+        return (Number(firstValue || 0) - Number(secondValue || 0)) * direction;
+      }
+
+      return (
+        String(firstValue ?? '').localeCompare(String(secondValue ?? ''), 'tr', { sensitivity: 'base' })
+        || first.name.localeCompare(second.name, 'tr', { sensitivity: 'base' })
+        || first.code.localeCompare(second.code, 'tr', { sensitivity: 'base' })
+      ) * direction;
+    }), [filters, rows, sortConfig]);
   const selectedRow = filteredRows.find((row) => row.id === selectedRowId) || null;
   const totalBalance = filteredRows.reduce((sum, row) => sum + Number(row.balance || 0), 0);
   const totalFromApi = Number(listMeta?.total || rows.length || 0);
@@ -179,6 +192,23 @@ export function SupplierListScreen({ onOpenScreen }) {
 
   function updateFilter(field, value) {
     setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function sortRows(columnKey) {
+    setSortConfig((current) => ({
+      key: columnKey,
+      direction: current.key === columnKey
+        ? (current.direction === 'asc' ? 'desc' : 'asc')
+        : (numericSupplierSortKeys.has(columnKey) ? 'desc' : 'asc'),
+    }));
+  }
+
+  function sortMark(columnKey) {
+    if (sortConfig.key !== columnKey) {
+      return '';
+    }
+
+    return sortConfig.direction === 'asc' ? ' ASC' : ' DESC';
   }
 
   function openSupplier(row = selectedRow) {
@@ -323,7 +353,11 @@ export function SupplierListScreen({ onOpenScreen }) {
               <thead>
                 <tr>
                   {tableColumns.map((column) => (
-                    <th key={column.key} style={{ width: column.width }}>{column.label}</th>
+                    <th key={column.key} style={{ width: column.width }}>
+                      <button className="table-sort-button" onClick={() => sortRows(column.key)} type="button">
+                        {column.label}{sortMark(column.key)}
+                      </button>
+                    </th>
                   ))}
                 </tr>
               </thead>
