@@ -110,6 +110,9 @@ addCheck('top actions can scroll horizontally', blocks(modernSource, '.top-actio
 addCheck('compact desktop sidebar is capped at 204px', /@media \(max-width: 1100px\)[\s\S]*?--erp-sidebar-width:\s*204px;/.test(modernSource));
 addCheck('stock 360 panel uses normal block flow', blocks(modernSource, '.stock-360-panel').some((item) => item.includes('display: block')));
 addCheck('stock 360 collapses to one column below 1180', /@media \(max-width: 1180px\)[\s\S]*?\.stock-360-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr;/.test(modernSource));
+addCheck('bulk purchase layout keeps action buttons inside panels', block(modernSource, '.bulk-purchase-layout').includes('minmax(0, 1fr)') && block(modernSource, '.bulk-purchase-layout').includes('max-width: 100%'));
+addCheck('bulk purchase entry grid can shrink without burying add button', block(modernSource, '.bulk-purchase-entry-grid').includes('max-width: 100%') && block(modernSource, '.bulk-purchase-entry-grid button').includes('width: 100%') && /@media \(max-width: 1800px\)[\s\S]*?\.bulk-purchase-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr;/.test(modernSource));
+addCheck('bulk purchase entry grid stacks below compact desktop', /@media \(max-width: 1180px\)[\s\S]*?\.bulk-purchase-entry-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(modernSource) && /@media \(max-width: 1180px\)[\s\S]*?\.bulk-purchase-entry-grid button\s*\{[\s\S]*?grid-column:\s*1 \/ -1;/.test(modernSource));
 addCheck('dense grid children have min-width zero overlap guard', modernSource.includes('.stock-filter-panel-modern .stock-search-primary > *') && modernSource.includes('min-width: 0;'));
 addCheck('table wrappers constrain overflow', block(modernSource, '.table-shell,\n.table-wrap,\n.filter-grid,\n.summary-strip,\n.screen-summary').includes('max-width: 100%'));
 addCheck('invoice table has horizontal scroll wrapper', block(tablesSource, '.invoice-table-wrap').includes('overflow: auto'));

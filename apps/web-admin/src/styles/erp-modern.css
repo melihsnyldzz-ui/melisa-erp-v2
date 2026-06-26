@@ -8144,9 +8144,10 @@ body {
 
 .bulk-purchase-layout {
   display: grid;
-  grid-template-columns: minmax(720px, 1fr) minmax(280px, 0.35fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 8px;
   align-items: start;
+  max-width: 100%;
 }
 
 .bulk-purchase-entry-panel,
@@ -8161,15 +8162,26 @@ body {
 
 .bulk-purchase-entry-grid {
   display: grid;
-  grid-template-columns: 130px minmax(190px, 0.9fr) minmax(280px, 1.2fr) minmax(200px, 1fr) minmax(330px, 1.5fr) 84px 110px 96px 116px;
+  grid-template-columns:
+    minmax(116px, 0.7fr)
+    minmax(150px, 1fr)
+    minmax(190px, 1.2fr)
+    minmax(150px, 1fr)
+    minmax(220px, 1.5fr)
+    minmax(76px, 0.55fr)
+    minmax(88px, 0.65fr)
+    minmax(82px, 0.6fr)
+    minmax(104px, 0.7fr);
   gap: 6px;
   padding: 8px;
   align-items: end;
+  max-width: 100%;
 }
 
 .bulk-purchase-entry-grid label {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .bulk-purchase-entry-grid label span {
@@ -8183,14 +8195,19 @@ body {
 .bulk-purchase-entry-grid select {
   min-height: 30px;
   min-width: 0;
+  width: 100%;
 }
 
 .bulk-purchase-entry-grid button {
   min-height: 31px;
+  min-width: 0;
+  width: 100%;
+  padding-inline: 8px;
   border: 1px solid #0f766e;
   background: #0f766e;
   color: #ffffff;
   font-weight: 950;
+  white-space: nowrap;
 }
 
 .bulk-purchase-snapshot {
@@ -8272,7 +8289,7 @@ body {
 }
 
 .bulk-purchase-summary-grid {
-  grid-template-columns: repeat(3, minmax(80px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 8px;
 }
 
@@ -8319,13 +8336,27 @@ body {
   min-width: 1180px;
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 1800px) {
   .bulk-purchase-layout {
     grid-template-columns: 1fr;
   }
 
   .bulk-purchase-entry-grid {
-    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .bulk-purchase-entry-grid button {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 1180px) {
+  .bulk-purchase-entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bulk-purchase-entry-grid button {
+    grid-column: 1 / -1;
   }
 }
 
