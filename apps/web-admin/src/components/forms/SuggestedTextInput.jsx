@@ -1,17 +1,18 @@
 import React, { useId, useMemo } from 'react';
+import { normalizeSearchText } from '../../utils/searchText.js';
 
 function normalizeOption(value) {
   return String(value || '').trim();
 }
 
-function buildOptions(options) {
+function buildOptions(options, maxOptions) {
   const seen = new Set();
 
   return (options || [])
     .map(normalizeOption)
     .filter(Boolean)
     .filter((option) => {
-      const key = option.toLocaleLowerCase('tr-TR');
+      const key = normalizeSearchText(option);
       if (seen.has(key)) {
         return false;
       }
@@ -19,13 +20,14 @@ function buildOptions(options) {
       return true;
     })
     .sort((first, second) => first.localeCompare(second, 'tr-TR'))
-    .slice(0, 40);
+    .slice(0, maxOptions);
 }
 
 export function SuggestedTextInput({
   ariaLabel,
   disabled = false,
   name,
+  maxOptions = 40,
   onChange,
   options,
   placeholder,
@@ -33,7 +35,7 @@ export function SuggestedTextInput({
 }) {
   const inputId = useId();
   const listId = `${name || 'suggested'}-${inputId}`;
-  const optionItems = useMemo(() => buildOptions(options), [options]);
+  const optionItems = useMemo(() => buildOptions(options, maxOptions), [maxOptions, options]);
 
   return (
     <span className="suggested-input-wrap">

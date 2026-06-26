@@ -18,6 +18,10 @@ const productServiceSource = readFileSync(resolve(repoRoot, 'apps/api/src/servic
 const queryHelpersSource = readFileSync(resolve(repoRoot, 'apps/api/src/services/queryHelpers.js'), 'utf8');
 const searchTextSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/utils/searchText.js'), 'utf8');
 const stockListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListScreen.jsx'), 'utf8');
+const stockListFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListFilters.jsx'), 'utf8');
+const productCardSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardScreen.jsx'), 'utf8');
+const productCardFormSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardForm.jsx'), 'utf8');
+const suggestedTextInputSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/components/forms/SuggestedTextInput.jsx'), 'utf8');
 const checks = [];
 
 function addCheck(name, ok, detail = '') {
@@ -109,6 +113,7 @@ addCheck('supplier list has sortable table headers', supplierListSource.includes
 addCheck('customer list can expand to 500 rows', customerListSource.includes('defaultCustomerListPageLimit = 500') && customerFiltersSource.includes('<option value={500}>500</option>') && customerServiceSource.includes('maxLimit: 500'));
 addCheck('turkish search normalization is shared by key lists', searchTextSource.includes('normalizeSearchText') && customerListSource.includes('searchTextIncludes') && supplierListSource.includes('normalizeSearchText') && stockListSource.includes('searchTextIncludes'));
 addCheck('api list search folds Turkish i variants', queryHelpersSource.includes('toSearchPattern') && queryHelpersSource.includes('replace(/[Iİı]/g') && [customerServiceSource, supplierServiceSource, productServiceSource].every((source) => source.includes('toSearchPattern') && source.includes('sqlNormalizedLike')));
+addCheck('product supplier suggestions are not capped at 100 or 40', productCardSource.includes('limit: 300') && productCardFormSource.includes('maxOptions={300}') && stockListFiltersSource.includes('maxOptions={300}') && suggestedTextInputSource.includes('maxOptions = 40'));
 
 const failed = checks.filter((check) => !check.ok);
 

@@ -144,6 +144,7 @@ export function StockListFilters({ filters, suggestions, onChange, onRefresh, on
           <span>Tedarikçi</span>
           <SuggestedTextInput
             ariaLabel="Tedarikçi ara"
+            maxOptions={300}
             name="stock-filter-supplier"
             options={suggestions.suppliers}
             placeholder="Yaz ve mevcut tedarikçilerden seç"

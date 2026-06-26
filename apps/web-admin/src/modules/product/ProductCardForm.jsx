@@ -59,6 +59,7 @@ export function ProductCardForm({ product, form, mode, suggestions, isEditing = 
             <SuggestedTextInput
               ariaLabel="Ana tedarikçi"
               disabled={!isEditing}
+              maxOptions={300}
               name="product-card-supplier"
               options={suggestions.suppliers}
               placeholder="Yaz ve mevcut tedarikçilerden seç"

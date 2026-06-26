@@ -104,7 +104,7 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
       try {
         const response = await fetchSuppliers({
           page: 1,
-          limit: 100,
+          limit: 300,
           activeOnly: true,
         });
 
@@ -171,10 +171,13 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   const product360 = useMemo(() => buildProduct360(form, stockMovements), [form, stockMovements]);
   const barcodes = useMemo(() => mapBarcodes(form), [form]);
   const images = useMemo(() => form.images || [], [form.images]);
-  const productSuggestions = useMemo(() => ({
-    ...stockFilterOptions,
-    suppliers: supplierSuggestions.length > 0 ? supplierSuggestions : stockFilterOptions.suppliers,
-  }), [supplierSuggestions]);
+  const productSuggestions = useMemo(() => {
+    const suppliers = supplierSuggestions.length > 0 ? supplierSuggestions : stockFilterOptions.suppliers;
+    return {
+      ...stockFilterOptions,
+      suppliers: [form.supplierName, ...suppliers].filter(Boolean),
+    };
+  }, [form.supplierName, supplierSuggestions]);
 
   function updateField(field, value) {
     if (!canEditForm) {
