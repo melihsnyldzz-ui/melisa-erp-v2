@@ -114,6 +114,7 @@ addCheck('customer list can expand to 500 rows', customerListSource.includes('de
 addCheck('turkish search normalization is shared by key lists', searchTextSource.includes('normalizeSearchText') && customerListSource.includes('searchTextIncludes') && supplierListSource.includes('normalizeSearchText') && stockListSource.includes('searchTextIncludes'));
 addCheck('api list search folds Turkish i variants', queryHelpersSource.includes('toSearchPattern') && queryHelpersSource.includes('replace(/[Iİı]/g') && [customerServiceSource, supplierServiceSource, productServiceSource].every((source) => source.includes('toSearchPattern') && source.includes('sqlNormalizedLike')));
 addCheck('product supplier suggestions are not capped at 100 or 40', productCardSource.includes('limit: 300') && productCardFormSource.includes('maxOptions={300}') && stockListFiltersSource.includes('maxOptions={300}') && suggestedTextInputSource.includes('maxOptions = 40'));
+addCheck('suggested text input uses normalized custom filtering', suggestedTextInputSource.includes('normalizeSearchText(option).includes(query)') && suggestedTextInputSource.includes('className="suggested-options"') && !suggestedTextInputSource.includes('<datalist'));
 
 const failed = checks.filter((check) => !check.ok);
 

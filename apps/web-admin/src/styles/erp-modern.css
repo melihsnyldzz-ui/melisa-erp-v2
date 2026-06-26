@@ -1466,11 +1466,65 @@ textarea:disabled {
 
 .suggested-input-wrap {
   display: block;
+  position: relative;
   min-width: 0;
 }
 
 .suggested-input-wrap input {
   width: 100%;
+}
+
+.suggested-options {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  display: grid;
+  max-height: 220px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+}
+
+.suggested-options button {
+  width: 100%;
+  min-height: 28px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-text);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggested-options button:hover,
+.suggested-options button:focus-visible {
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  outline: none;
+}
+
+.dark-mode-shell .suggested-options {
+  border-color: rgba(148, 163, 184, 0.34);
+  background: #111827;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.42);
+}
+
+.dark-mode-shell .suggested-options button {
+  color: #e5e7eb;
+}
+
+.dark-mode-shell .suggested-options button:hover,
+.dark-mode-shell .suggested-options button:focus-visible {
+  background: rgba(45, 212, 191, 0.16);
+  color: #5eead4;
 }
 
 .stock-filter-panel-modern {
