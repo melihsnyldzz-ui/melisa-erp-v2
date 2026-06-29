@@ -603,6 +603,51 @@ export async function getProductsList(query) {
   };
 }
 
+function mapOptionRows(rows) {
+  return (rows || [])
+    .map((row) => String(row.value || '').trim())
+    .filter(Boolean);
+}
+
+export async function getProductFilterOptions() {
+  const pool = await getSqlPool();
+  const result = await pool.request().query(`
+    SELECT TOP (500) brand AS value
+    FROM dbo.products
+    WHERE is_deleted = 0
+      AND is_active = 1
+      AND ISNULL(brand, N'') <> N''
+    GROUP BY brand
+    ORDER BY COUNT_BIG(1) DESC, brand ASC;
+
+    SELECT TOP (500) category AS value
+    FROM dbo.products
+    WHERE is_deleted = 0
+      AND is_active = 1
+      AND ISNULL(category, N'') <> N''
+    GROUP BY category
+    ORDER BY COUNT_BIG(1) DESC, category ASC;
+
+    SELECT TOP (500)
+      CASE
+        WHEN ISNULL(supplier_code, N'') <> N'' THEN CONCAT(supplier_code, N' / ', name)
+        ELSE name
+      END AS value
+    FROM dbo.suppliers
+    WHERE is_deleted = 0
+      AND is_active = 1
+      AND ISNULL(name, N'') <> N''
+    GROUP BY supplier_code, name
+    ORDER BY name ASC;
+  `);
+
+  return {
+    brands: mapOptionRows(result.recordsets?.[0]),
+    categories: mapOptionRows(result.recordsets?.[1]),
+    suppliers: mapOptionRows(result.recordsets?.[2]),
+  };
+}
+
 export async function getProductDetail(productId) {
   const id = Number(productId);
 

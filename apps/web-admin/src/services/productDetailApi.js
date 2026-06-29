@@ -14,6 +14,21 @@ export async function fetchProductDetail(id) {
   return get(`/api/products/${id}`);
 }
 
+export async function fetchProductOptions() {
+  if (apiConfig.demoMode) {
+    return {
+      data: {
+        brands: [],
+        categories: [],
+        suppliers: [],
+      },
+      meta: { source: 'demo-empty' },
+    };
+  }
+
+  return get('/api/products/options');
+}
+
 export async function fetchProductStockMovements(id) {
   return get('/api/stock-movements', {
     productId: id,

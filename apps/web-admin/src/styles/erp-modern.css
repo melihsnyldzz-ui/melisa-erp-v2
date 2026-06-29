@@ -4469,8 +4469,9 @@ tr.selected .row-actions {
 .stock-image-hover-preview {
   position: fixed;
   z-index: 9999;
-  width: min(638px, calc(100vw - 36px));
-  padding: 7px;
+  width: max-content;
+  max-width: min(384px, calc(100vw - 32px));
+  padding: 6px;
   border: 1px solid #0f766e;
   border-radius: 9px;
   background: #ffffff;
@@ -4480,8 +4481,10 @@ tr.selected .row-actions {
 
 .stock-image-hover-preview img {
   display: block;
-  width: min(630px, calc(100vw - 52px));
-  height: min(630px, calc(100vh - 94px));
+  width: auto;
+  height: auto;
+  max-width: min(370px, calc(100vw - 46px));
+  max-height: min(340px, calc(100vh - 142px));
   border: 1px solid #d8e0ea;
   border-radius: 7px;
   background: #f8fafc;
@@ -4490,7 +4493,7 @@ tr.selected .row-actions {
 
 .stock-image-hover-preview span {
   display: block;
-  max-width: min(630px, calc(100vw - 52px));
+  max-width: min(370px, calc(100vw - 46px));
   margin-top: 6px;
   overflow: hidden;
   color: #111827;

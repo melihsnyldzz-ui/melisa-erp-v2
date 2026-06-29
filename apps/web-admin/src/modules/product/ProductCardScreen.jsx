@@ -15,18 +15,17 @@ import {
   mapStockSummary,
   validateProductForm,
 } from './productCardUtils.js';
-import { stockFilterOptions } from '../stock/stockMockData.js';
 import {
   addProductBarcode,
   changeProductPassive,
   changeProductBarcodePassive,
   createProduct,
   fetchProductDetail,
+  fetchProductOptions,
   fetchProductStockMovements,
   saveProductImage,
   updateProduct,
 } from '../../services/productDetailApi.js';
-import { fetchSuppliers } from '../../services/supplierApi.js';
 
 export function ProductCardScreen({ productId, permissions = [], onDirtyChange, onOpenScreen }) {
   const [activeProductId, setActiveProductId] = useState(productId || null);
@@ -39,7 +38,11 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   const [successMessage, setSuccessMessage] = useState('');
   const [stockMovements, setStockMovements] = useState([]);
   const [isMovementsLoading, setIsMovementsLoading] = useState(false);
-  const [supplierSuggestions, setSupplierSuggestions] = useState([]);
+  const [optionSuggestions, setOptionSuggestions] = useState({
+    brands: [],
+    categories: [],
+    suppliers: [],
+  });
   const [isEditing, setIsEditing] = useState(!productId);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -100,27 +103,29 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadSuppliers() {
+    async function loadOptions() {
       try {
-        const response = await fetchSuppliers({
-          page: 1,
-          limit: 300,
-          activeOnly: true,
-        });
+        const response = await fetchProductOptions();
 
         if (isMounted) {
-          setSupplierSuggestions((response.data || []).map((supplier) => (
-            `${supplier.supplierCode} / ${supplier.supplierName}`
-          )));
+          setOptionSuggestions({
+            brands: response.data?.brands || [],
+            categories: response.data?.categories || [],
+            suppliers: response.data?.suppliers || [],
+          });
         }
       } catch {
         if (isMounted) {
-          setSupplierSuggestions([]);
+          setOptionSuggestions({
+            brands: [],
+            categories: [],
+            suppliers: [],
+          });
         }
       }
     }
 
-    loadSuppliers();
+    loadOptions();
 
     return () => {
       isMounted = false;
@@ -172,12 +177,12 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   const barcodes = useMemo(() => mapBarcodes(form), [form]);
   const images = useMemo(() => form.images || [], [form.images]);
   const productSuggestions = useMemo(() => {
-    const suppliers = supplierSuggestions.length > 0 ? supplierSuggestions : stockFilterOptions.suppliers;
     return {
-      ...stockFilterOptions,
-      suppliers: [form.supplierName, ...suppliers].filter(Boolean),
+      brands: [form.brand, ...optionSuggestions.brands].filter(Boolean),
+      categories: [form.category, ...optionSuggestions.categories].filter(Boolean),
+      suppliers: [form.supplierName, ...optionSuggestions.suppliers].filter(Boolean),
     };
-  }, [form.supplierName, supplierSuggestions]);
+  }, [form.brand, form.category, form.supplierName, optionSuggestions]);
 
   function updateField(field, value) {
     if (!canEditForm) {

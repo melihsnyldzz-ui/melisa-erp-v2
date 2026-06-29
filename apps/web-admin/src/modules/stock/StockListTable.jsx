@@ -9,7 +9,6 @@ function renderCell(row, columnKey, imagePreviewHandlers = {}) {
             alt={row.name || row.stockCode || 'Urun'}
             onMouseEnter={(event) => imagePreviewHandlers.show?.(row, event)}
             onMouseLeave={imagePreviewHandlers.hide}
-            onMouseMove={imagePreviewHandlers.move}
             src={row.imageUrl}
           />
         ) : (
@@ -60,9 +59,17 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow, co
   const [imagePreview, setImagePreview] = useState(null);
 
   function positionPreview(event) {
+    const previewWidth = Math.min(384, window.innerWidth - 32);
+    const anchorRect = event.currentTarget.getBoundingClientRect();
+    const top = 96;
+    const nextLeft = anchorRect.right + 14;
+    const left = nextLeft + previewWidth > window.innerWidth
+      ? anchorRect.left - previewWidth - 12
+      : nextLeft;
+
     return {
-      left: Math.min(event.clientX + 18, window.innerWidth - 656),
-      top: Math.min(event.clientY + 18, window.innerHeight - 676),
+      left: Math.max(16, Math.min(left, window.innerWidth - previewWidth - 16)),
+      top,
     };
   }
 
@@ -73,9 +80,6 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow, co
         title: row.name || row.stockCode || 'Urun',
         ...positionPreview(event),
       });
-    },
-    move(event) {
-      setImagePreview((current) => (current ? { ...current, ...positionPreview(event) } : current));
     },
     hide() {
       setImagePreview(null);

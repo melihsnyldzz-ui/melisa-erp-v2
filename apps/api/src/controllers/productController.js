@@ -4,6 +4,7 @@ import {
   changeProductBarcodePassive,
   createProduct,
   getProductDetail,
+  getProductFilterOptions,
   getProductsList,
   saveProductImage,
   updateProduct,
@@ -37,6 +38,17 @@ export async function getProduct(req, res) {
     });
   } catch (error) {
     return fail(res, error.statusCode || 503, error.code || 'SQL_SELECT_FAILED', 'Product detail query failed');
+  }
+}
+
+export async function getProductOptions(req, res) {
+  try {
+    const data = await getProductFilterOptions();
+    return ok(res, data, {
+      source: 'sql-select-only',
+    });
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'SQL_SELECT_FAILED', 'Product options query failed');
   }
 }
 

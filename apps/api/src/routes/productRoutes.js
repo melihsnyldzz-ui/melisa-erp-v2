@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getProduct,
+  getProductOptions,
   getProducts,
   patchProductBarcodePassive,
   patchProductPassive,
@@ -14,6 +15,7 @@ import { requireAuth, requirePermission } from '../middleware/authMiddleware.js'
 export const productRoutes = Router();
 
 productRoutes.get('/products', requireAuth, requirePermission('product.view'), getProducts);
+productRoutes.get('/products/options', requireAuth, requirePermission('product.view'), getProductOptions);
 productRoutes.post('/products', requireAuth, requirePermission('product.edit'), postProduct);
 productRoutes.post('/products/:id/barcodes', requireAuth, requirePermission('product.edit'), postProductBarcode);
 productRoutes.patch('/products/:id/barcodes/:barcodeId/passive', requireAuth, requirePermission('product.edit'), patchProductBarcodePassive);
