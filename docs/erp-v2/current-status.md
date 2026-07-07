@@ -62,6 +62,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Auth and permission foundation.
 - Open-admin bypass removed in commit `6e15ba6`.
 - Sprint 002 auth stabilization documented in `docs/erp-v2/auth-sprint-002-report.md`.
+- Sprint 003 product/stock reliability documented in `docs/erp-v2/product-stock-sprint-003-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -74,7 +75,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Authentication/session | Improved | Real login exists, open-admin bypass is absent, stale browser tokens are cleared on 401; live login smoke still needs explicit approval because login can write refresh-token metadata |
 | Permissions | Partial | Some supplier and finance/import boundaries need review and possible cleanup |
 | Audit | Partial | Audit service exists, but visible audit browser and coverage map are incomplete |
-| Product/Stock | Partial | Core works, but product data quality, suggestions, image UX and search consistency need hardening |
+| Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
 | Customer/Supplier ledgers | Partial | Lists/statements exist, but completeness, filters, export and supplier permission separation need validation |
 | Sales/Purchase commercial truth | Partial | Flows exist, but draft/finalize/cancel must be verified with controlled test data |
 | Finance | Partial | Collections/payments exist, but balance impact, receipt/export and operational accounting boundaries need polish |
@@ -139,21 +140,21 @@ Sprint 001 does not validate live ERP behavior. It creates the baseline needed b
 Recommended next sprint:
 
 ```text
-Complete Sprint 003.
+Complete Sprint 004.
 ```
 
-Sprint 003 should focus on Product And Stock Data Reliability.
+Sprint 004 should focus on Customer And Supplier Ledger Reliability.
 
 Business reason:
 
-- Product and stock data are the operational base for sales, purchases, finance and terminal usage.
-- Data quality, image coverage, Turkish search behavior and stock movement reliability should be stabilized before commercial-flow testing.
+- Customer receivables and supplier payables must be trusted before sales, purchase and finance validation can be accepted as business truth.
+- Ledger lists, cards, movements and statements are the next ERP Core dependency after auth and stock reliability.
 
-Expected Sprint 003 outputs:
+Expected Sprint 004 outputs:
 
-- Product/stock smoke report.
-- Search/filter/data-quality fixes if needed.
-- Stock movement and image behavior validation.
+- Customer/supplier list and statement smoke report.
+- Balance and movement consistency review.
+- Permission boundary notes for supplier/customer routes.
 - Documentation update if operator behavior changes.
 
 ## Do Not Start Yet

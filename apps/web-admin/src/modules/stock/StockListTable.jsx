@@ -60,8 +60,9 @@ export function StockListTable({ rows, selectedRowId, onOpenRow, onSelectRow, co
 
   function positionPreview(event) {
     const previewWidth = Math.min(384, window.innerWidth - 32);
+    const previewHeight = Math.min(380, window.innerHeight - 32);
     const anchorRect = event.currentTarget.getBoundingClientRect();
-    const top = 96;
+    const top = Math.max(16, Math.min(anchorRect.top - 24, window.innerHeight - previewHeight - 16));
     const nextLeft = anchorRect.right + 14;
     const left = nextLeft + previewWidth > window.innerWidth
       ? anchorRect.left - previewWidth - 12

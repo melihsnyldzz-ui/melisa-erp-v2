@@ -4,9 +4,9 @@ import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
 import { StockProduct360Panel } from './StockProduct360Panel.jsx';
 import { summarizeMovements } from './stock360Utils.js';
-import { stockFilterDefaults, stockFilterOptions } from './stockMockData.js';
+import { stockFilterDefaults } from './stockMockData.js';
 import { fetchProducts } from '../../services/productApi.js';
-import { fetchProductDetail, fetchProductStockMovements } from '../../services/productDetailApi.js';
+import { fetchProductDetail, fetchProductOptions, fetchProductStockMovements } from '../../services/productDetailApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
@@ -14,6 +14,25 @@ import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.
 
 function matchesText(value, filter) {
   return searchTextIncludes(value, filter);
+}
+
+function buildUniqueOptions(...groups) {
+  const seen = new Set();
+  const options = [];
+
+  groups.flat().forEach((value) => {
+    const text = String(value || '').trim();
+    const key = normalizeSearchText(text);
+
+    if (!text || text === '-' || seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    options.push(text);
+  });
+
+  return options;
 }
 
 function normalizeBarcode(value) {
@@ -168,6 +187,11 @@ export function StockListScreen({ onOpenScreen }) {
   const [isResolvingSupplier, setIsResolvingSupplier] = useState(false);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleStockColumns);
+  const [optionSuggestions, setOptionSuggestions] = useState({
+    brands: [],
+    categories: [],
+    suppliers: [],
+  });
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
@@ -186,6 +210,38 @@ export function StockListScreen({ onOpenScreen }) {
       // Column preferences are optional; ignore storage failures.
     }
   }, [visibleColumns]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadOptions() {
+      try {
+        const response = await fetchProductOptions();
+
+        if (isMounted) {
+          setOptionSuggestions({
+            brands: response.data?.brands || [],
+            categories: response.data?.categories || [],
+            suppliers: response.data?.suppliers || [],
+          });
+        }
+      } catch {
+        if (isMounted) {
+          setOptionSuggestions({
+            brands: [],
+            categories: [],
+            suppliers: [],
+          });
+        }
+      }
+    }
+
+    loadOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [reloadKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -302,10 +358,10 @@ export function StockListScreen({ onOpenScreen }) {
   const passiveCount = rows.length - activeCount;
   const negativeCount = rows.filter((row) => row.currentStock < 0).length;
   const suggestionOptions = useMemo(() => ({
-    brands: [...stockFilterOptions.brands, ...rows.map((row) => row.brand)],
-    categories: [...stockFilterOptions.categories, ...rows.map((row) => row.category)],
-    suppliers: [...stockFilterOptions.suppliers, ...rows.map((row) => row.supplier)],
-  }), [rows]);
+    brands: buildUniqueOptions(optionSuggestions.brands, rows.map((row) => row.brand)),
+    categories: buildUniqueOptions(optionSuggestions.categories, rows.map((row) => row.category)),
+    suppliers: buildUniqueOptions(optionSuggestions.suppliers, rows.map((row) => row.supplier)),
+  }), [optionSuggestions, rows]);
 
   useEffect(() => {
     let isMounted = true;

@@ -445,7 +445,7 @@ async function readProductRelations(pool, id) {
 }
 
 export async function getProductsList(query) {
-  const options = parseListQuery(query);
+  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 500 });
   const barcode = trimText(query?.barcode);
   const barcodeLike = barcode ? `%${barcode}%` : null;
   const supplierId = Number(query?.supplierId || 0);
@@ -454,6 +454,8 @@ export async function getProductsList(query) {
     'p.name',
     'p.brand',
     'p.category',
+    's.supplier_code',
+    's.name',
   ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
   const pool = await getSqlPool();
   const request = pool.request()
