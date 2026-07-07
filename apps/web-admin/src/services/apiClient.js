@@ -2,16 +2,9 @@ import { API_BASE_URL, apiConfig } from '../config/apiConfig.js';
 
 const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
 const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
-export const OPEN_ADMIN_TOKEN = 'open-admin';
 
 export function getStoredAccessToken() {
-  const storedToken = window.localStorage.getItem(ACCESS_TOKEN_KEY);
-  if (storedToken) {
-    return storedToken;
-  }
-
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, OPEN_ADMIN_TOKEN);
-  return OPEN_ADMIN_TOKEN;
+  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
 export function getStoredRefreshToken() {

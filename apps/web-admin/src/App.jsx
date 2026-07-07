@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LoginScreen } from './components/auth/LoginScreen.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
-import { clearAuthTokens, getStoredAccessToken } from './services/apiClient.js';
-import { fetchMe, login as loginRequest, logout as logoutRequest, openAdminAuthResponse, refreshSession } from './services/authApi.js';
+import { fetchMe, login as loginRequest, logout as logoutRequest } from './services/authApi.js';
 import { apiConfig } from './config/apiConfig.js';
 
 export function App() {
@@ -23,9 +22,8 @@ export function App() {
           setUser(response.data);
         }
       } catch (error) {
-        const fallback = openAdminAuthResponse();
         if (isMounted) {
-          setUser(fallback.data.user);
+          setUser(null);
         }
       } finally {
         if (isMounted) {
@@ -43,9 +41,8 @@ export function App() {
 
   useEffect(() => {
     function expireSession() {
-      const fallback = openAdminAuthResponse();
-      setUser(fallback.data.user);
-      setAuthError('');
+      setUser(null);
+      setAuthError('Oturum süresi doldu, tekrar giriş yapın.');
     }
 
     window.addEventListener('melisa-auth-expired', expireSession);
@@ -68,8 +65,7 @@ export function App() {
 
   async function handleLogout() {
     await logoutRequest();
-    const fallback = openAdminAuthResponse();
-    setUser(fallback.data.user);
+    setUser(null);
   }
 
   if (isBooting) {
