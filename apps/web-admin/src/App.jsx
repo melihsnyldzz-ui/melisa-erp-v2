@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LoginScreen } from './components/auth/LoginScreen.jsx';
 import { AppShell } from './components/layout/AppShell.jsx';
-import { fetchMe, login as loginRequest, logout as logoutRequest } from './services/authApi.js';
+import {
+  fetchMe,
+  localPasswordlessAdminLogin,
+  login as loginRequest,
+  logout as logoutRequest,
+} from './services/authApi.js';
 import { apiConfig } from './config/apiConfig.js';
 
 export function App() {
@@ -63,6 +68,20 @@ export function App() {
     }
   }
 
+  async function handleLocalPasswordlessLogin() {
+    setIsLoggingIn(true);
+    setAuthError('');
+
+    try {
+      const response = await localPasswordlessAdminLogin();
+      setUser(response.data.user);
+    } catch (error) {
+      setAuthError(`${error.message || 'Sifresiz local giris basarisiz.'} (${error.code || 'AUTH_ERROR'})`);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
   async function handleLogout() {
     await logoutRequest();
     setUser(null);
@@ -73,7 +92,15 @@ export function App() {
   }
 
   if (!user) {
-    return <LoginScreen errorMessage={authError} isLoading={isLoggingIn} onLogin={handleLogin} />;
+    return (
+      <LoginScreen
+        errorMessage={authError}
+        isLoading={isLoggingIn}
+        localPasswordlessEnabled={apiConfig.localPasswordlessLogin}
+        onLocalPasswordlessLogin={handleLocalPasswordlessLogin}
+        onLogin={handleLogin}
+      />
+    );
   }
 
   return <AppShell user={user} permissions={permissions} isDemoMode={apiConfig.demoMode} onLogout={handleLogout} />;

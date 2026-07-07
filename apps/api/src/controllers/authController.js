@@ -1,4 +1,4 @@
-import { login, logout, refreshAccessToken } from '../services/authService.js';
+import { localPasswordlessAdminLogin, login, logout, refreshAccessToken } from '../services/authService.js';
 import { fail, ok } from '../utils/response.js';
 
 function authFail(res, error, fallbackCode) {
@@ -18,6 +18,17 @@ export async function postLogin(req, res) {
     });
   } catch (error) {
     return authFail(res, error, 'AUTH_LOGIN_FAILED');
+  }
+}
+
+export async function postLocalPasswordlessAdminLogin(req, res) {
+  try {
+    const data = await localPasswordlessAdminLogin();
+    return ok(res, data, {
+      source: 'local-passwordless-auth',
+    });
+  } catch (error) {
+    return authFail(res, error, 'AUTH_LOCAL_PASSWORDLESS_FAILED');
   }
 }
 

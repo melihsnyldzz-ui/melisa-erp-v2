@@ -64,6 +64,7 @@ export const env = {
     refreshSecret: process.env.JWT_REFRESH_SECRET || '',
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    localPasswordlessLogin: String(process.env.MELISA_LOCAL_PASSWORDLESS_LOGIN || 'false').toLowerCase() === 'true',
   },
   whatsapp: {
     provider: process.env.WHATSAPP_PROVIDER || 'evolution',

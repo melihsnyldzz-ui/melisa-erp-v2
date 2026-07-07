@@ -61,6 +61,18 @@ function toUserDto(row, permissions = []) {
   };
 }
 
+function signAccessToken(user) {
+  return jwt.sign(
+    {
+      sub: String(user.id),
+      username: user.username,
+      role: user.role.code,
+    },
+    env.auth.jwtSecret,
+    { expiresIn: env.auth.accessExpiresIn },
+  );
+}
+
 async function getPermissionKeys(request, roleId) {
   const result = await request
     .input('permissionRoleId', sql.BigInt, roleId)
@@ -153,15 +165,7 @@ export async function login({ username, password }, userAgent = '') {
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
   const user = toUserDto(row, permissions);
-  const accessToken = jwt.sign(
-    {
-      sub: String(user.id),
-      username: user.username,
-      role: user.role.code,
-    },
-    env.auth.jwtSecret,
-    { expiresIn: env.auth.accessExpiresIn },
-  );
+  const accessToken = signAccessToken(user);
 
   if (env.sql.readOnly) {
     return {
@@ -210,6 +214,49 @@ export async function login({ username, password }, userAgent = '') {
     refreshToken,
     tokenType: 'Bearer',
     expiresIn: env.auth.accessExpiresIn,
+  };
+}
+
+export async function localPasswordlessAdminLogin() {
+  assertAuthSecretsConfigured();
+
+  if (env.nodeEnv === 'production' || !env.auth.localPasswordlessLogin) {
+    throw makeAuthError('AUTH_LOCAL_PASSWORDLESS_DISABLED', 'Local passwordless login is disabled', 403);
+  }
+
+  const pool = await getSqlPool();
+  const userResult = await pool.request()
+    .input('username', sql.NVarChar(80), 'admin')
+    .query(`
+      SELECT TOP (1)
+        u.id,
+        u.username,
+        u.display_name,
+        u.role_id,
+        r.code AS role_code,
+        r.name AS role_name,
+        u.is_active
+      FROM dbo.users u
+      INNER JOIN dbo.roles r ON r.id = u.role_id
+      WHERE u.username = @username;
+    `);
+
+  const row = userResult.recordset?.[0];
+
+  if (!row || !row.is_active) {
+    throw makeAuthError('AUTH_USER_INACTIVE', 'Admin user is inactive or not found', 401);
+  }
+
+  const permissions = await getPermissionKeys(pool.request(), row.role_id);
+  const user = toUserDto(row, permissions);
+
+  return {
+    user,
+    accessToken: signAccessToken(user),
+    refreshToken: null,
+    tokenType: 'Bearer',
+    expiresIn: env.auth.accessExpiresIn,
+    localPasswordlessSession: true,
   };
 }
 
@@ -262,15 +309,7 @@ export async function refreshAccessToken(refreshToken) {
   }
 
   const user = await getUserById(tokenRow.user_id);
-  const accessToken = jwt.sign(
-    {
-      sub: String(user.id),
-      username: user.username,
-      role: user.role.code,
-    },
-    env.auth.jwtSecret,
-    { expiresIn: env.auth.accessExpiresIn },
-  );
+  const accessToken = signAccessToken(user);
 
   return {
     user,

@@ -72,7 +72,7 @@ These areas exist but should not be treated as finished business capability yet:
 
 | Module | Current status | Main gap |
 |---|---|---|
-| Authentication/session | Improved | Real login exists, open-admin bypass is absent, stale browser tokens are cleared on 401; live login smoke still needs explicit approval because login can write refresh-token metadata |
+| Authentication/session | Improved | Real login exists, open-admin bypass is absent, stale browser tokens are cleared on 401; Electron/local dev can use documented passwordless admin login without refresh-token DB writes |
 | Permissions | Partial | Some supplier and finance/import boundaries need review and possible cleanup |
 | Audit | Partial | Audit service exists, but visible audit browser and coverage map are incomplete |
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |

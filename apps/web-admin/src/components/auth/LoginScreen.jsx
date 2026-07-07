@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 
-export function LoginScreen({ errorMessage, isLoading, onLogin }) {
+export function LoginScreen({
+  errorMessage,
+  isLoading,
+  localPasswordlessEnabled = false,
+  onLocalPasswordlessLogin,
+  onLogin,
+}) {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
 
@@ -33,6 +39,11 @@ export function LoginScreen({ errorMessage, isLoading, onLogin }) {
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Giriş kontrol ediliyor' : 'Giriş yap'}
         </button>
+        {localPasswordlessEnabled && (
+          <button type="button" disabled={isLoading} onClick={onLocalPasswordlessLogin}>
+            Admin olarak sifresiz gir
+          </button>
+        )}
       </form>
     </main>
   );

@@ -20,6 +20,18 @@ export async function login(username, password) {
   return response;
 }
 
+export async function localPasswordlessAdminLogin() {
+  if (apiConfig.demoMode) {
+    const response = demoAuthResponse();
+    storeAuthTokens(response.data);
+    return response;
+  }
+
+  const response = await post('/api/auth/local-passwordless-admin', {});
+  storeAuthTokens(response.data);
+  return response;
+}
+
 export async function logout() {
   if (apiConfig.demoMode) {
     clearAuthTokens();

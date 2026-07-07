@@ -12,6 +12,7 @@ const webRoot = path.join(repoRoot, 'apps', 'web-admin');
 const preloadPath = path.join(__dirname, 'preload.cjs');
 const apiHealthUrl = process.env.MELISA_API_HEALTH_URL || 'http://localhost:4100/api/health';
 const webUrl = process.env.MELISA_WEB_URL || 'http://localhost:5173/';
+const localPasswordlessLogin = process.env.MELISA_LOCAL_PASSWORDLESS_LOGIN || 'true';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const managedProcesses = [];
 
@@ -68,6 +69,9 @@ async function ensureLocalStack() {
     cwd: apiRoot,
     args: ['run', 'start'],
     healthUrl: apiHealthUrl,
+    env: {
+      MELISA_LOCAL_PASSWORDLESS_LOGIN: localPasswordlessLogin,
+    },
   });
 
   const webState = await startProcessIfNeeded({
@@ -78,6 +82,7 @@ async function ensureLocalStack() {
     env: {
       VITE_API_BASE_URL: 'http://localhost:4100',
       VITE_DEMO_MODE: 'false',
+      VITE_LOCAL_PASSWORDLESS_LOGIN: localPasswordlessLogin,
     },
   });
 
