@@ -82,6 +82,7 @@ async function request(method, path, { params = {}, body } = {}) {
     apiError.meta = payload.meta || {};
 
     if (response.status === 401) {
+      clearAuthTokens();
       window.dispatchEvent(new CustomEvent('melisa-auth-expired'));
     }
 

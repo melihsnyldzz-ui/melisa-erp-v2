@@ -61,6 +61,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Import preview/apply foundation for products, customers and suppliers.
 - Auth and permission foundation.
 - Open-admin bypass removed in commit `6e15ba6`.
+- Sprint 002 auth stabilization documented in `docs/erp-v2/auth-sprint-002-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -70,7 +71,7 @@ These areas exist but should not be treated as finished business capability yet:
 
 | Module | Current status | Main gap |
 |---|---|---|
-| Authentication/session | Partial | Real login exists, but full production login/session/permission smoke still needs Sprint 002 verification |
+| Authentication/session | Improved | Real login exists, open-admin bypass is absent, stale browser tokens are cleared on 401; live login smoke still needs explicit approval because login can write refresh-token metadata |
 | Permissions | Partial | Some supplier and finance/import boundaries need review and possible cleanup |
 | Audit | Partial | Audit service exists, but visible audit browser and coverage map are incomplete |
 | Product/Stock | Partial | Core works, but product data quality, suggestions, image UX and search consistency need hardening |
@@ -138,23 +139,22 @@ Sprint 001 does not validate live ERP behavior. It creates the baseline needed b
 Recommended next sprint:
 
 ```text
-Complete Sprint 002.
+Complete Sprint 003.
 ```
 
-Sprint 002 should focus on Authentication And User Access Stabilization.
+Sprint 003 should focus on Product And Stock Data Reliability.
 
 Business reason:
 
-- The open-admin bypass has been removed.
-- Real login is now required.
-- Before any larger ERP validation, the team must confirm login, session expiry, protected endpoints and permission behavior are safe and usable.
+- Product and stock data are the operational base for sales, purchases, finance and terminal usage.
+- Data quality, image coverage, Turkish search behavior and stock movement reliability should be stabilized before commercial-flow testing.
 
-Expected Sprint 002 outputs:
+Expected Sprint 003 outputs:
 
-- Auth smoke report.
-- Login/session status update.
-- Permission risk list.
-- Documentation update if behavior or operator login instructions change.
+- Product/stock smoke report.
+- Search/filter/data-quality fixes if needed.
+- Stock movement and image behavior validation.
+- Documentation update if operator behavior changes.
 
 ## Do Not Start Yet
 
