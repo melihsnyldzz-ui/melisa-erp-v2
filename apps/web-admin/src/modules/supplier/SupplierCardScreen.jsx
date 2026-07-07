@@ -117,7 +117,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
   const [isEditing, setIsEditing] = useState(!supplierId);
   const mode = activeSupplierId ? 'update' : 'create';
   const canEditForm = mode === 'create' || isEditing;
-  const canSave = permissions.includes('customer.edit');
+  const canSave = permissions.includes('supplier.edit');
 
   useEffect(() => {
     setActiveSupplierId(supplierId || null);
@@ -212,7 +212,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
     const missing = validateSupplierForm(form);
 
     if (!canSave) {
-      setErrorMessage('Bu işlem için customer.edit yetkisi gerekli.');
+      setErrorMessage('Bu islem icin supplier.edit yetkisi gerekli.');
       return;
     }
 

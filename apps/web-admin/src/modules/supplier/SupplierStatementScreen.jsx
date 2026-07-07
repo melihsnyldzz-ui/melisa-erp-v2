@@ -46,7 +46,7 @@ export function SupplierStatementScreen({ onOpenScreen }) {
       try {
         const response = await fetchSuppliers({
           page: 1,
-          limit: 120,
+          limit: 500,
           search: normalizedSearch,
           activeOnly: false,
         });

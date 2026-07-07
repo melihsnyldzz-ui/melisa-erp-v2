@@ -63,6 +63,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Open-admin bypass removed in commit `6e15ba6`.
 - Sprint 002 auth stabilization documented in `docs/erp-v2/auth-sprint-002-report.md`.
 - Sprint 003 product/stock reliability documented in `docs/erp-v2/product-stock-sprint-003-report.md`.
+- Sprint 004 customer/supplier ledger reliability documented in `docs/erp-v2/customer-supplier-sprint-004-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -76,7 +77,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Permissions | Partial | Some supplier and finance/import boundaries need review and possible cleanup |
 | Audit | Partial | Audit service exists, but visible audit browser and coverage map are incomplete |
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
-| Customer/Supplier ledgers | Partial | Lists/statements exist, but completeness, filters, export and supplier permission separation need validation |
+| Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
 | Sales/Purchase commercial truth | Partial | Flows exist, but draft/finalize/cancel must be verified with controlled test data |
 | Finance | Partial | Collections/payments exist, but balance impact, receipt/export and operational accounting boundaries need polish |
 | Import | Partial | Preview/apply exists, but reconciliation, rollback guidance and result reporting need hardening |
@@ -140,21 +141,21 @@ Sprint 001 does not validate live ERP behavior. It creates the baseline needed b
 Recommended next sprint:
 
 ```text
-Complete Sprint 004.
+Complete Sprint 005.
 ```
 
-Sprint 004 should focus on Customer And Supplier Ledger Reliability.
+Sprint 005 should focus on Sales And Purchase Commercial Truth.
 
 Business reason:
 
-- Customer receivables and supplier payables must be trusted before sales, purchase and finance validation can be accepted as business truth.
-- Ledger lists, cards, movements and statements are the next ERP Core dependency after auth and stock reliability.
+- Sales and purchase finalization drive stock, cost, customer balances and supplier balances.
+- After auth, stock and cari read reliability, commercial document effects must be verified before finance can be trusted.
 
-Expected Sprint 004 outputs:
+Expected Sprint 005 outputs:
 
-- Customer/supplier list and statement smoke report.
-- Balance and movement consistency review.
-- Permission boundary notes for supplier/customer routes.
+- Sales and purchase draft/finalize/cancel smoke report.
+- Draft-no-effect and finalized-effect validation.
+- Stock, cost and ledger impact review.
 - Documentation update if operator behavior changes.
 
 ## Do Not Start Yet

@@ -113,7 +113,7 @@ export function SupplierListScreen({ onOpenScreen }) {
       try {
         const response = await fetchSuppliers({
           page: 1,
-          limit: 300,
+          limit: 500,
           search: filters.search,
           activeOnly: filters.status === 'active',
         });

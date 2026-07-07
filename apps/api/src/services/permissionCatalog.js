@@ -15,6 +15,8 @@ export const GRANULAR_PERMISSIONS = [
   'customer.view',
   'customer.edit',
   'customer.passive',
+  'supplier.view',
+  'supplier.edit',
   'finance.view',
   'finance.collection',
   'finance.payment',
@@ -108,6 +110,11 @@ export function expandPermissions(permissionRows = []) {
     if (key === 'customer.passive') {
       addWhen(expanded, canView, 'customer.view');
       addWhen(expanded, canUpdate || canApprove, 'customer.passive');
+    }
+
+    if (key === 'supplier.update' || key === 'suppliers.manage') {
+      addWhen(expanded, canView, 'supplier.view');
+      addWhen(expanded, canCreate || canUpdate, 'supplier.edit');
     }
 
     if (key === 'finance.movements' || key === 'finance.manage') {

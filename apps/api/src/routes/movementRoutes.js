@@ -17,5 +17,5 @@ movementRoutes.get('/stock-valuation', requireAuth, requirePermission('product.v
 movementRoutes.post('/stock-count/adjust', requireAuth, requirePermission('product.edit'), postStockCountAdjustment);
 movementRoutes.get('/customer-movements', requireAuth, requirePermission('customer.view'), getCustomerMovements);
 movementRoutes.get('/customer-statement', requireAuth, requirePermission('customer.view'), getCustomerStatementReport);
-movementRoutes.get('/supplier-movements', requireAuth, requirePermission('customer.view'), getSupplierMovements);
-movementRoutes.get('/supplier-statement', requireAuth, requirePermission('customer.view'), getSupplierStatementReport);
+movementRoutes.get('/supplier-movements', requireAuth, requirePermission('supplier.view'), getSupplierMovements);
+movementRoutes.get('/supplier-statement', requireAuth, requirePermission('supplier.view'), getSupplierStatementReport);

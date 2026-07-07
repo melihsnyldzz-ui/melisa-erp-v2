@@ -264,8 +264,6 @@ export async function getCustomersList(query) {
     'c.customer_type',
   ].map((column) => sqlNormalizedLike(column)).join('\n          OR ');
 
-  await ensureCashCustomers(pool);
-
   const request = pool.request()
     .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('activeOnly', sql.Bit, options.activeOnly)

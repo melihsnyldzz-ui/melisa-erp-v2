@@ -156,7 +156,7 @@ async function getSupplierSnapshot(request, id) {
 }
 
 export async function getSuppliersList(query) {
-  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 300 });
+  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 500 });
   const searchPredicates = [
     's.supplier_code',
     's.name',

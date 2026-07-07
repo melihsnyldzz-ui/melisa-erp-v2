@@ -4,7 +4,7 @@ import { requireAuth, requirePermission } from '../middleware/authMiddleware.js'
 
 export const supplierRoutes = Router();
 
-supplierRoutes.get('/suppliers', requireAuth, getSuppliers);
-supplierRoutes.post('/suppliers', requireAuth, requirePermission('customer.edit'), postSupplier);
-supplierRoutes.get('/suppliers/:id', requireAuth, getSupplier);
-supplierRoutes.put('/suppliers/:id', requireAuth, requirePermission('customer.edit'), putSupplier);
+supplierRoutes.get('/suppliers', requireAuth, requirePermission('supplier.view'), getSuppliers);
+supplierRoutes.post('/suppliers', requireAuth, requirePermission('supplier.edit'), postSupplier);
+supplierRoutes.get('/suppliers/:id', requireAuth, requirePermission('supplier.view'), getSupplier);
+supplierRoutes.put('/suppliers/:id', requireAuth, requirePermission('supplier.edit'), putSupplier);

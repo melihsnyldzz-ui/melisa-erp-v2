@@ -141,12 +141,12 @@ const workspaceRouteRegistry = {
     render: ({ onOpenScreen }) => <CustomerStatementScreen onOpenScreen={onOpenScreen} />,
   },
   'supplier-list': {
-    permissionKeys: ['customer.view'],
+    permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <SupplierListScreen onOpenScreen={onOpenScreen} />,
   },
   'supplier-card': {
-    permissionKeys: ['customer.view'],
+    permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi kartı görüntüleme yetkiniz yok.',
     render: ({ activeTab, onDirtyChange, onOpenScreen, permissions }) => (
       <SupplierCardScreen
@@ -158,12 +158,12 @@ const workspaceRouteRegistry = {
     ),
   },
   'supplier-movements': {
-    permissionKeys: ['customer.view'],
+    permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi cari hareketleri görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <SupplierMovementsScreen onOpenScreen={onOpenScreen} />,
   },
   'supplier-statement': {
-    permissionKeys: ['customer.view'],
+    permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi ekstresi görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <SupplierStatementScreen onOpenScreen={onOpenScreen} />,
   },

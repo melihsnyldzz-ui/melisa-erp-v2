@@ -463,7 +463,7 @@ export async function getStockValuationReport(query = {}) {
 }
 
 export async function getCustomerMovementsList(query = {}) {
-  const options = parseListQuery(query);
+  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 500 });
   const dateFrom = normalizeDate(query.dateFrom);
   const dateTo = normalizeDate(query.dateTo);
   const customerId = Number(query.customerId || 0);
@@ -550,7 +550,7 @@ export async function getCustomerStatement(query = {}) {
 }
 
 export async function getSupplierMovementsList(query = {}) {
-  const options = parseListQuery(query);
+  const options = parseListQuery(query, { defaultLimit: 100, maxLimit: 500 });
   const dateFrom = normalizeDate(query.dateFrom);
   const dateTo = normalizeDate(query.dateTo);
   const supplierId = Number(query.supplierId || 0);
