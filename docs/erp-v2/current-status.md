@@ -65,6 +65,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 003 product/stock reliability documented in `docs/erp-v2/product-stock-sprint-003-report.md`.
 - Sprint 004 customer/supplier ledger reliability documented in `docs/erp-v2/customer-supplier-sprint-004-report.md`.
 - Sprint 005 sales/purchase commercial truth documented in `docs/erp-v2/sales-purchase-sprint-005-report.md`.
+- Sprint 006 finance collections/payments documented in `docs/erp-v2/finance-sprint-006-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -80,7 +81,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
 | Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
 | Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase |
-| Finance | Partial | Collections/payments exist, but balance impact, receipt/export and operational accounting boundaries need polish |
+| Finance | Improved | Collections/payments have controlled API smoke evidence for selected cari guards, customer/supplier movement impact, finance account balance impact, finance account movements and audit expectations; operational finance vs official accounting boundary is documented |
 | Import | Partial | Preview/apply exists, but reconciliation, rollback guidance and result reporting need hardening |
 | Terminal app | Partial | Field app exists, but offline queue, idempotency, sync admin and device runbook need validation |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
@@ -142,23 +143,23 @@ Sprint 001 does not validate live ERP behavior. It creates the baseline needed b
 Recommended next sprint:
 
 ```text
-Complete Sprint 006.
+Complete Sprint 007.
 ```
 
-Sprint 006 should focus on Finance Collections And Payments.
+Sprint 007 should focus on Backup, Restore, And Reset Safety.
 
 Business reason:
 
-- Sales and purchase commercial truth now has controlled API evidence.
-- Finance collections and payments must be verified next because they close the operational loop from invoices to cash/bank movement and ledger balances.
+- ERP Core transaction loops now have controlled evidence through Sprint 005 and Sprint 006.
+- Backup, restore and reset discipline is the next production-readiness risk before broader operations work.
 
-Expected Sprint 006 outputs:
+Expected Sprint 007 outputs:
 
-- Collection/payment API smoke report.
-- Customer and supplier balance impact validation.
-- Finance account balance impact validation.
-- Receipt/export and movement visibility review.
-- Documentation update if operator behavior changes.
+- Backup/restore/reset runbook review.
+- Script target and guard review.
+- Approval points for destructive or production actions.
+- Restore verification plan.
+- Production readiness checklist update if behavior changes.
 
 ## Do Not Start Yet
 
