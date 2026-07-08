@@ -597,6 +597,8 @@ Only after these are stable should the project expand into operational command c
 
 ### Sprint 010: Visual Stability And Daily Usability
 
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/visual-stability-sprint-010-report.md`.
+
 **Phase:** Operations
 
 **Business Problem:** If screens overlap, hide buttons, or break on different computers, staff cannot use ERP confidently.

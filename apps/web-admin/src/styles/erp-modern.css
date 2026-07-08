@@ -11910,6 +11910,22 @@ button:active:not(:disabled) {
   }
 }
 
+@media (max-width: 1400px) {
+  .dashboard-toolbar-actions,
+  .product-card-toolbar,
+  .sales-toolbar-actions,
+  .purchase-toolbar-actions,
+  .collections-hero-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .sales-invoice-screen .sales-invoice-layout,
+  .purchase-invoice-screen .purchase-invoice-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .stock-column-panel > button {
   min-height: 29px;
   border: 1px solid #cfd8e5;

@@ -31,8 +31,15 @@ const demoSuppliersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/d
 const stockListSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListScreen.jsx'), 'utf8');
 const stockListFiltersSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/stock/StockListFilters.jsx'), 'utf8');
 const productCardSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardScreen.jsx'), 'utf8');
+const productCardHeaderSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardHeader.jsx'), 'utf8');
 const productCardFormSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/product/ProductCardForm.jsx'), 'utf8');
+const productDetailApiSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/services/productDetailApi.js'), 'utf8');
 const purchaseInvoiceSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/purchase/PurchaseInvoiceScreen.jsx'), 'utf8');
+const purchaseInvoiceToolbarSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/purchase/PurchaseInvoiceToolbar.jsx'), 'utf8');
+const salesInvoiceSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/sales/SalesInvoiceScreen.jsx'), 'utf8');
+const salesInvoiceToolbarSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/sales/SalesInvoiceToolbar.jsx'), 'utf8');
+const collectionsOverviewSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/finance/CollectionsOverviewScreen.jsx'), 'utf8');
+const dashboardToolbarSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/modules/dashboard/DashboardToolbar.jsx'), 'utf8');
 const suggestedTextInputSource = readFileSync(resolve(repoRoot, 'apps/web-admin/src/components/forms/SuggestedTextInput.jsx'), 'utf8');
 const checks = [];
 
@@ -108,9 +115,12 @@ addCheck('main layout uses minmax workspace track', block(modernSource, '.main-l
 addCheck('work area scrolls instead of pushing shell', blocks(modernSource, '.work-area').some((item) => item.includes('overflow: auto')));
 addCheck('top menu module row can scroll horizontally', blocks(modernSource, '.module-menu').some((item) => item.includes('overflow-x: auto')));
 addCheck('top actions can scroll horizontally', blocks(modernSource, '.top-actions').some((item) => item.includes('overflow-x: auto')));
+addCheck('core screen toolbars keep actions visible', [dashboardToolbarSource, productCardHeaderSource, salesInvoiceToolbarSource, purchaseInvoiceToolbarSource].every((source) => source.includes('dashboard-toolbar') || source.includes('product-card-header') || source.includes('sales-invoice-toolbar') || source.includes('purchase-invoice-toolbar')) && [productCardSource, salesInvoiceSource, purchaseInvoiceSource].every((source) => source.includes('Toolbar') || source.includes('Header')) && collectionsOverviewSource.includes('collections-hero-actions'));
+addCheck('toolbar actions can wrap on compact desktop', blocks(modernSource, '.dashboard-toolbar-actions').some((item) => item.includes('flex-wrap: wrap')) && blocks(modernSource, '.product-card-toolbar').some((item) => item.includes('flex-wrap: wrap')) && modernSource.includes('.collections-hero-actions'));
 addCheck('compact desktop sidebar is capped at 204px', /@media \(max-width: 1100px\)[\s\S]*?--erp-sidebar-width:\s*204px;/.test(modernSource));
 addCheck('stock 360 panel uses normal block flow', blocks(modernSource, '.stock-360-panel').some((item) => item.includes('display: block')));
 addCheck('stock 360 collapses to one column below 1180', /@media \(max-width: 1180px\)[\s\S]*?\.stock-360-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr;/.test(modernSource));
+addCheck('invoice forms collapse before 1366 office width', /@media \(max-width: 1400px\)[\s\S]*?\.sales-invoice-screen \.sales-invoice-layout,[\s\S]*?\.purchase-invoice-screen \.purchase-invoice-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr;/.test(modernSource));
 addCheck('bulk purchase layout keeps action buttons inside panels', block(modernSource, '.bulk-purchase-layout').includes('minmax(0, 1fr)') && block(modernSource, '.bulk-purchase-layout').includes('max-width: 100%'));
 addCheck('bulk purchase entry grid can shrink without burying add button', block(modernSource, '.bulk-purchase-entry-grid').includes('max-width: 100%') && block(modernSource, '.bulk-purchase-entry-grid button').includes('width: 100%') && /@media \(max-width: 1800px\)[\s\S]*?\.bulk-purchase-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr;/.test(modernSource));
 addCheck('bulk purchase entry grid stacks below compact desktop', /@media \(max-width: 1180px\)[\s\S]*?\.bulk-purchase-entry-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(modernSource) && /@media \(max-width: 1180px\)[\s\S]*?\.bulk-purchase-entry-grid button\s*\{[\s\S]*?grid-column:\s*1 \/ -1;/.test(modernSource));
@@ -122,7 +132,7 @@ addCheck('dark mode option is available in view menu', viewOptionsSource.include
 addCheck('dark mode class is mapped on shell', shellSource.includes("'dark-mode-shell'"));
 addCheck('dark mode theme layer exists', modernSource.includes('.dark-mode-shell') && modernSource.includes('color-scheme: dark'));
 addCheck('view options menu escapes top action scroller', block(modernSource, '.view-options-menu').includes('position: fixed'));
-addCheck('supplier list requests enough cards', supplierListSource.includes('limit: 300') && supplierServiceSource.includes('maxLimit: 300'));
+addCheck('supplier list requests enough cards', supplierListSource.includes('limit: 500') && supplierServiceSource.includes('maxLimit: 500'));
 addCheck('supplier list has stable KPI and table layout', supplierListSource.includes('supplier-list-kpis') && modernSource.includes('.supplier-table'));
 addCheck('supplier list has sortable table headers', supplierListSource.includes('sortRows(column.key)') && supplierListSource.includes('numericSupplierSortKeys'));
 addCheck('customer list can expand to 500 rows', customerListSource.includes('defaultCustomerListPageLimit = 500') && customerFiltersSource.includes('<option value={500}>500</option>') && customerServiceSource.includes('maxLimit: 500'));
@@ -131,7 +141,7 @@ addCheck('api list search folds Turkish i variants', queryHelpersSource.includes
 addCheck('api extended searches fold Turkish i variants', [catalogServiceSource, financeServiceSource, invoiceDraftServiceSource, movementServiceSource, terminalAdminServiceSource].every((source) => source.includes('toSearchPattern') && source.includes('sqlNormalizedLike')));
 addCheck('api text searches no longer use Latin1 LIKE for user query', ![catalogServiceSource, financeServiceSource, invoiceDraftServiceSource, movementServiceSource, terminalAdminServiceSource].some((source) => /COLLATE Latin1_General_CI_AI LIKE @(search|productSearch|customerSearch|supplierSearch|summarySearchLike|searchLike)/.test(source)));
 addCheck('web utility searches fold Turkish i variants', [commandPaletteSource, sidebarSource, authAdminSource, demoCustomersSource, demoProductsSource, demoSuppliersSource].every((source) => source.includes('normalizeSearchText')));
-addCheck('product supplier suggestions are not capped at 100 or 40', productCardSource.includes('limit: 300') && productCardFormSource.includes('maxOptions={300}') && stockListFiltersSource.includes('maxOptions={300}') && suggestedTextInputSource.includes('maxOptions = 40'));
+addCheck('product supplier suggestions are not capped at 100 or 40', productCardSource.includes('fetchProductOptions') && productDetailApiSource.includes("get('/api/products/options')") && productServiceSource.includes('SELECT TOP (500)') && productCardFormSource.includes('maxOptions={300}') && stockListFiltersSource.includes('maxOptions={300}') && suggestedTextInputSource.includes('maxOptions = 40'));
 addCheck('suggested text input uses normalized custom filtering', suggestedTextInputSource.includes('normalizeSearchText(option).includes(query)') && suggestedTextInputSource.includes('className="suggested-options"') && !suggestedTextInputSource.includes('<datalist'));
 addCheck('purchase invoice product lookup is scoped to selected supplier', purchaseInvoiceSource.includes('supplierId: invoice.supplierId') && purchaseInvoiceSource.includes("String(product.supplierId || '') !== String(invoice.supplierId)") && purchaseInvoiceSource.includes('setPurchaseProductOptions([])'));
 addCheck('purchase draft API rejects product supplier mismatch', invoiceDraftServiceSource.includes('assertPurchaseItemsBelongToSupplier') && invoiceDraftServiceSource.includes('PURCHASE_PRODUCT_SUPPLIER_MISMATCH') && invoiceDraftServiceSource.includes('await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items)'));

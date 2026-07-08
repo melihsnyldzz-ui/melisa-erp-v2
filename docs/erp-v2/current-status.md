@@ -69,6 +69,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 007 backup/restore/reset safety documented in `docs/erp-v2/backup-restore-reset-sprint-007-report.md`.
 - Sprint 008 import and cleanup control documented in `docs/erp-v2/import-cleanup-sprint-008-report.md`.
 - Sprint 009 operational health and monitoring documented in `docs/erp-v2/operational-health-sprint-009-report.md`.
+- Sprint 010 visual stability and daily usability documented in `docs/erp-v2/visual-stability-sprint-010-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -137,34 +138,35 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 009 is completed when operators have a read-only Operational Health screen for API/SQL status, terminal pending/failed sync counts, import/finalize visibility notes, recent audit events, and anomaly watch points; the route remains protected by `audit.view`; and no DB write, migration, reset, restore, cleanup, WhatsApp send or production deploy was run without approval.
+Sprint 010 is completed when daily web-admin screens have compact desktop layout guards, critical buttons stay visible, invoice work areas collapse before the 1366px office target hides side panels or actions, the layout smoke passes, and 1366x768 plus 1920x1080 demo-mode browser screenshots show the Operation Desk rendering without overlap.
 
-Sprint 009 does not create automatic alerting or repair actions. It creates a visible operator surface and documents the remaining gap that import/finalize failures are not yet persisted as dedicated failure-job metrics.
+Sprint 010 does not add new modules, redesign the ERP, run live DB writes, or validate every screen through a full browser click-through suite. Critical screen risks are guarded through the focused static layout smoke, and browser screenshots were captured in `VITE_DEMO_MODE=true` only.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 010.
+Complete Sprint 011.
 ```
 
-Sprint 010 should focus on Visual Stability And Daily Usability.
+Sprint 011 should focus on Product Media Workflow.
 
 Business reason:
 
-- ERP Core transaction loops now have controlled evidence through Sprint 005 and Sprint 006.
+- ERP Core transaction loops have controlled evidence through Sprint 005 and Sprint 006.
 - Sprint 007 defined backup/restore/reset discipline without running risky operations.
 - Sprint 008 tightened import preview/apply/report and cleanup approval rules without running risky writes.
 - Sprint 009 added read-only operational health visibility.
-- Operators next need daily screens checked at office resolutions so critical actions do not overlap or disappear.
+- Sprint 010 added compact desktop visual guardrails for daily screens.
+- Product media coverage remains a high-value catalog and sales-confidence gap, but it needs dry-run/report/apply discipline.
 
-Expected Sprint 010 outputs:
+Expected Sprint 011 outputs:
 
-- 1366x768 and 1920x1080 visual checks for core screens.
-- Small usability fixes only where controls overlap, hide, or become unclear.
-- No new business modules.
-- Web-admin build and focused smoke checks.
+- Product media dry-run/report/apply workflow plan.
+- Clear high-confidence vs low-confidence image matching boundaries.
+- Coverage report by product, brand or supplier.
+- No committed uploads and no unreviewed bulk apply.
 
 ## Do Not Start Yet
 
