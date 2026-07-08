@@ -65,11 +65,12 @@ addCheck(
 );
 
 addCheck(
-  'current status preserves Sprint 016 completion and Sprint 017 follow-up context',
+  'current status preserves Sprint 016 completion and later ERP Core validation context',
   includesAll(currentStatusSource, [
     'Sprint 016 full ERP core smoke path documented',
     'Sprint 017 ERP core read-only smoke execution documented',
-    'read-only evidence exists for login, stock, purchase, sales, finance and reports',
+    'Sprint 018 controlled ERP core write smoke approval plan documented',
+    'controlled write-smoke approval plan exists for purchase, sales and finance',
   ]),
 );
 

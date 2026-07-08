@@ -202,12 +202,13 @@ addCheck(
 );
 
 addCheck(
-  'current status marks Sprint 017 complete and recommends Sprint 018',
+  'current status preserves Sprint 017 completion and later approval-gated context',
   includesAll(sources.currentStatus, [
     'Sprint 017 ERP core read-only smoke execution documented',
-    'Sprint 017 is completed',
-    'Complete Sprint 018.',
-    'Controlled ERP Core Write Smoke Approval Plan',
+    'Sprint 018 controlled ERP core write smoke approval plan documented',
+    'Sprint 018 is completed',
+    'Complete Sprint 019 only after exact Melih approval',
+    'Sprint 018 prepared the approval plan for controlled commercial write checks without executing them',
   ]),
 );
 

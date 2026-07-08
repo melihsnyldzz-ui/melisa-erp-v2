@@ -17,7 +17,8 @@
     "smoke:reporting": "node ../../scripts/sprint-014-reporting-decision-support-smoke.mjs",
     "smoke:ai-readiness": "node ../../scripts/sprint-015-ai-automation-readiness-smoke.mjs",
     "smoke:erp-core-path": "node ../../scripts/sprint-016-erp-core-smoke-path-smoke.mjs",
-    "smoke:erp-core-read-only": "node ../../scripts/sprint-017-erp-core-read-only-smoke.mjs"
+    "smoke:erp-core-read-only": "node ../../scripts/sprint-017-erp-core-read-only-smoke.mjs",
+    "smoke:erp-core-write-plan": "node ../../scripts/sprint-018-erp-core-write-smoke-approval-plan-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",

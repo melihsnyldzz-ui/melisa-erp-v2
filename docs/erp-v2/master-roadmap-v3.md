@@ -1118,12 +1118,86 @@ Only after these are stable should the project expand into operational command c
 - Sprint 017 report.
 - Current status.
 
+### Sprint 018: Controlled ERP Core Write Smoke Approval Plan
+
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/erp-core-write-smoke-approval-plan-sprint-018-report.md`.
+
+**Phase:** ERP Core Validation
+
+**Business Problem:** Sprint 017 collected safe read-only ERP Core evidence, but controlled purchase, sales, and finance write smokes still needed an exact approval plan before any commercial DB write could be executed.
+
+**Business Goal:** Prepare a controlled write-smoke approval plan that names the target environment requirements, QA record strategy, evidence rules, reversal expectations, and stop gate.
+
+**Business KPI:** 100% of planned purchase, sales, and finance write-smoke execution requirements are documented before any DB write is run.
+
+**Business Value:** High
+
+**Priority:** P1
+
+**Difficulty:** Medium
+
+**Owner:** Codex
+
+**Reviewer:** ChatGPT
+
+**Approver:** Melih
+
+**Dependencies:** Sprint 016 smoke path, Sprint 017 read-only evidence, Melisa OS safety rules, ERP commercial truth rules, approved QA records, named target environment.
+
+**Scope:**
+
+- Define exact Melih approval requirements before execution.
+- Define target environment and QA record strategy.
+- Define controlled purchase, sales, and finance write-smoke steps.
+- Define before/after evidence rules that avoid secrets and private business data.
+- Define reversal or retained-QA evidence expectations.
+- Define stop conditions before and during execution.
+
+**Out of Scope:**
+
+- Live DB write execution.
+- SQL migrations.
+- Backup, restore, reset, cleanup, import apply, or destructive scripts.
+- WhatsApp or external message sending.
+- Production deploys or public publishing.
+- Price, stock, finance, customer, supplier, permission, invoice, import, or business-rule behavior changes.
+
+**Definition of Done:**
+
+- Sprint 018 approval plan and report exist.
+- Static smoke verifies the approval plan, report, roadmap, current status, and package script.
+- Controlled write execution remains blocked until exact run-specific approval.
+
+**Required Tests:**
+
+- Sprint 018 static smoke.
+- Syntax check for the Sprint 018 smoke script.
+- Sprint 017 static smoke.
+- Sprint 016 static smoke.
+- Web-admin build.
+
+**Risks:**
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Approval plan is mistaken for permission to run writes | Critical | Document that execution remains blocked until exact Melih approval names environment, records, actions, evidence, and reversal |
+| QA records touch real business records | High | Require visible QA prefix and stop if any non-QA record is involved |
+| Reversal fails after a controlled write | High | Prefer normal ERP cancellation/reversal and prohibit direct SQL cleanup without separate approval |
+
+**Documentation to Update:**
+
+- ERP core write-smoke approval plan.
+- Sprint 018 report.
+- Current status.
+
 ## Recommended First Command
 
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Complete Sprint 018.
+Complete Sprint 019 only after exact Melih approval.
 ```
 
-Sprint 018 should prepare a controlled ERP Core write-smoke approval plan before any purchase, sales, or finance write check is executed.
+Sprint 019 should execute the controlled ERP Core write smoke only after Melih
+explicitly approves the target environment, QA records, allowed write actions,
+evidence scope, and reversal strategy for that exact run.

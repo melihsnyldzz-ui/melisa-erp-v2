@@ -77,6 +77,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 015 AI and automation readiness documented in `docs/erp-v2/ai-automation-readiness-sprint-015-report.md`.
 - Sprint 016 full ERP core smoke path documented in `docs/erp-v2/erp-core-smoke-path-sprint-016-report.md`.
 - Sprint 017 ERP core read-only smoke execution documented in `docs/erp-v2/erp-core-read-only-smoke-sprint-017-report.md`.
+- Sprint 018 controlled ERP core write smoke approval plan documented in `docs/erp-v2/erp-core-write-smoke-approval-plan-sprint-018-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -147,33 +148,35 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 017 is completed when safe read-only evidence exists for login, stock, purchase, sales, finance and reports, protected write endpoints are confirmed approval-gated, and no commercial write, SQL migration, cleanup, backup/restore/reset, deploy, public publishing, WhatsApp send, secret exposure, or production action is executed.
+Sprint 018 is completed when a controlled write-smoke approval plan exists for purchase, sales and finance, exact target-environment requirements are defined, QA record strategy is documented, before/after evidence rules avoid private business data, reversal expectations are explicit, and a clear stop gate exists before any DB write is executed.
 
-Sprint 017 does not execute live DB writes, controlled purchase/sales/finance write smokes, SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, price/stock/finance/customer/supplier changes, or official accounting actions.
+Sprint 018 does not execute live DB writes, controlled purchase/sales/finance write smokes, SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, price/stock/finance/customer/supplier changes, import apply, or official accounting actions.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 018.
+Complete Sprint 019 only after exact Melih approval.
 ```
 
-Sprint 018 should focus on Controlled ERP Core Write Smoke Approval Plan.
+Sprint 019 should focus on Controlled ERP Core Write Smoke Execution.
 
 Business reason:
 
 - Sprint 016 defined the connected ERP Core smoke path and approval boundaries.
 - Sprint 017 collected safe read-only evidence without executing commercial writes.
-- Controlled commercial write checks still require exact Melih approval and a named target environment before execution.
+- Sprint 018 prepared the approval plan for controlled commercial write checks without executing them.
+- The remaining gap is execution evidence, but that execution is blocked until Melih names the exact target environment, QA records, allowed actions, evidence scope and reversal strategy.
 
-Expected Sprint 018 outputs:
+Expected Sprint 019 outputs, only after exact approval:
 
-- A controlled write-smoke approval plan for purchase, sales and finance.
-- Exact target environment and QA record strategy.
-- Before/after evidence requirements that avoid exposing private business data.
-- Rollback/reversal expectations for each controlled write check.
-- A clear stop gate before any DB write is executed.
+- Controlled purchase write-smoke evidence.
+- Controlled sales write-smoke evidence.
+- Controlled finance write-smoke evidence.
+- Before/after evidence using QA records only.
+- Reversal or retained-QA evidence according to the approved plan.
+- Immediate stop and report if any non-QA record, private data, permission, audit or reversal risk appears.
 
 ## Do Not Start Yet
 
