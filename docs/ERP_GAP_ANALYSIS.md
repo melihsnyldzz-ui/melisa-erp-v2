@@ -46,6 +46,15 @@ CRM should own relationship workflows:
 - customer-specific catalog follow-up
 - risk/customer segmentation beyond accounting balance
 
+Sprint 013 boundary contract:
+
+- ERP remains the source of truth for product, stock, invoice, customer/supplier balance, finance, audit and permissions.
+- CRM may consume public-safe product fields and permissioned internal customer summaries through explicit APIs or validated snapshots.
+- CRM owns outreach planning, follow-up tasks, reminders, campaigns, message sequencing, communication history and customer-specific catalog follow-up.
+- Sales offers and sales orders are CRM pipeline objects until they are converted into ERP drafts or finalized ERP commercial documents.
+- CRM must not publicly expose prices, costs, margins, exact stock quantities, supplier private records, customer private records, financial records, risk scores, audit records, tokens or secrets.
+- Automatic WhatsApp sending remains approval-gated and must not be added as an ERP Core behavior.
+
 ### Mission Control
 
 Mission Control should own operator/admin supervision:
@@ -300,4 +309,3 @@ Knowledge Base should own durable learning and documentation:
 - Product media links can exist in the local database even when source image files are not in Git.
 - A reviewer should evaluate code architecture and documented workflows separately from current local business data.
 - `ERP_CODEBASE_ANALYSIS.md` should be refreshed whenever route groups, modules or database migrations materially change.
-

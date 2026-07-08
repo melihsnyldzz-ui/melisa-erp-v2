@@ -46,6 +46,16 @@ These rules are specific to Melisa ERP v2. They extend the central Melisa OS rul
   - currency-sensitive changes
 - Audit actor should come from the authenticated user whenever possible.
 
+## AI And Automation
+
+- AI-assisted ERP work is read-only by default.
+- AI may analyze, summarize, explain, draft, review, and prepare checklists from safe ERP data.
+- AI must not create, update, delete, import, cleanup, reset, restore, migrate, publish, deploy, or send messages without explicit Melih approval for the exact run.
+- AI must not change price, stock, finance, customer, supplier, invoice, permission, audit, catalog, terminal sync, or public data truth without explicit approval, audit, and rollback/reversal planning.
+- AI analysis must separate known ERP data, inference, missing data, and human verification.
+- AI-generated recommendations are review inputs only; humans remain responsible for business decisions.
+- See `docs/erp-v2/ai-automation-readiness.md` before implementing any AI or automation feature.
+
 ## Uploads And Media
 
 - `uploads/` and `apps/api/uploads/` are runtime media areas, not normal source code.
@@ -84,4 +94,3 @@ These rules are specific to Melisa ERP v2. They extend the central Melisa OS rul
 - Do not include `.env.local`, secrets, logs, build output, uploads, backups, or tool-specific local folders unless explicitly requested.
 - Before committing, inspect `git status --short`.
 - After committing, report commit hash and remaining dirty files.
-

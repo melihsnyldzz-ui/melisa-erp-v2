@@ -77,6 +77,26 @@ function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.' 
   );
 }
 
+function NotesPanel({ title, notes }) {
+  const visibleNotes = (notes || []).filter(Boolean);
+
+  if (visibleNotes.length === 0) return null;
+
+  return (
+    <section className="erp-panel report-notes-panel">
+      <div className="panel-title">
+        <strong>{title}</strong>
+        <span>Read-only reporting boundary</span>
+      </div>
+      <ul>
+        {visibleNotes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function ManagementReportsScreen() {
   const [report, setReport] = useState({});
   const [periodicReport, setPeriodicReport] = useState({});
@@ -258,7 +278,41 @@ export function ManagementReportsScreen() {
     severity: row.severity,
   }));
 
+  const reportAssumptionRows = [
+    ...((report.assumptions || []).map((note) => ({
+      section: 'Management assumption',
+      metric: 'Report boundary',
+      value: note,
+      detail: report.dataQuality?.source || 'Read-only aggregate',
+    }))),
+    ...((report.dataQuality?.reviewRequired || []).map((note) => ({
+      section: 'Data quality',
+      metric: 'Review required',
+      value: note,
+      detail: 'Human review before decision',
+    }))),
+    ...((report.dataQuality?.approvalBoundaries || []).map((note) => ({
+      section: 'Approval boundary',
+      metric: 'Not allowed in report',
+      value: note,
+      detail: 'Melih approval required for risky steps',
+    }))),
+    ...((periodicReport.assumptions || []).map((note) => ({
+      section: 'Period assumption',
+      metric: 'Report boundary',
+      value: note,
+      detail: periodicReport.dataQuality?.source || 'Read-only aggregate',
+    }))),
+    ...((periodicReport.dataQuality?.reviewRequired || []).map((note) => ({
+      section: 'Period data quality',
+      metric: 'Review required',
+      value: note,
+      detail: 'Visible date filters required',
+    }))),
+  ];
+
   const reportExportRows = [
+    ...reportAssumptionRows,
     ...kpis.map((row) => ({
       section: 'Anlık KPI',
       metric: row.label,
@@ -351,6 +405,12 @@ export function ManagementReportsScreen() {
       {isLoading && <div className="list-state">Ynetim raporlar API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
+      <section className="dashboard-main-grid">
+        <NotesPanel title="Report Assumptions" notes={report.assumptions} />
+        <NotesPanel title="Data Quality Checks" notes={report.dataQuality?.reviewRequired} />
+        <NotesPanel title="Approval Boundaries" notes={report.dataQuality?.approvalBoundaries} />
+      </section>
+
       <section className="dashboard-kpi-grid">
         {kpis.map((kpi) => (
           <Kpi key={kpi.label} {...kpi} />
@@ -379,6 +439,11 @@ export function ManagementReportsScreen() {
         {periodicKpis.map((kpi) => (
           <Kpi key={kpi.label} {...kpi} />
         ))}
+      </section>
+
+      <section className="dashboard-main-grid">
+        <NotesPanel title="Period Assumptions" notes={periodicReport.assumptions} />
+        <NotesPanel title="Period Data Quality" notes={periodicReport.dataQuality?.reviewRequired} />
       </section>
 
       <section className="dashboard-main-grid">
@@ -491,9 +556,10 @@ export function ManagementReportsScreen() {
       </section>
 
       <section className="screen-summary dashboard-summary">
-        <span>Kaynak: Y?netim raporu / canli SQL</span>
+        <span>Kaynak: Yonetim raporu / read-only SQL SELECT</span>
         <span>Uretim zamani: {formatDate(report.generatedAt)}</span>
         <span>Yetki: dashboard.view</span>
+        <span>Sinir: resmi muhasebe raporu degildir</span>
       </section>
     </main>
   );

@@ -778,6 +778,31 @@ export async function getManagementReportingData() {
 
   return {
     generatedAt: new Date().toISOString(),
+    assumptions: [
+      'Management reports are operational ERP decision support, not official accounting output.',
+      'Sales and purchase totals include finalized documents only; cancelled and draft documents are shown separately where relevant.',
+      'Customer and supplier balances come from ERP cards and movement effects; imported opening balances still require business reconciliation.',
+      'Foreign-currency TRY conversions use the latest available currency rate when a card balance is summarized in TRY.',
+      'Top product, customer, supplier, and warning sections are capped to keep the report reviewable and avoid uncontrolled heavy queries.',
+    ],
+    dataQuality: {
+      source: 'SQL Server read-only SELECT aggregates',
+      reviewRequired: [
+        'High customer or supplier balances should be checked against statements before collection, payment, or purchasing decisions.',
+        'Negative stock and average-cost based stock value require operator review before using the numbers for purchasing decisions.',
+        'Supplier performance is directional until product-level supplier attribution, purchase history, and sales margin are reviewed together.',
+      ],
+      rowLimits: {
+        topProducts: 10,
+        customerAnalysis: 10,
+        supplierAnalysis: 10,
+        criticalWarnings: 20,
+      },
+      approvalBoundaries: [
+        'No report endpoint should run DB writes, migrations, cleanup, reset, backup, restore, deployment, or external messaging.',
+        'Official accounting, tax, and payment decisions require human review outside this operational report.',
+      ],
+    },
     dailySales: toDailySalesSummary(dailySales.recordset?.[0] || {}),
     dailyPurchases: toDailyPurchaseSummary(dailyPurchases.recordset?.[0] || {}),
     topProducts: (topProducts.recordset || []).map(toManagementTopProduct),
@@ -941,6 +966,23 @@ export async function getPeriodicAccountingData(query = {}) {
     generatedAt: new Date().toISOString(),
     dateFrom,
     dateTo,
+    assumptions: [
+      'Periodic accounting is an operational summary for ERP review, not an official accounting ledger.',
+      'Period filters apply to finalized invoices and recorded collection/payment movements in the selected date range.',
+      'Customer and supplier balance sections show current card balances by currency, not a historical period-close snapshot.',
+    ],
+    dataQuality: {
+      source: 'SQL Server read-only SELECT aggregates',
+      reviewRequired: [
+        'Compare balance summaries with customer and supplier statements before decisions.',
+        'Use visible date filters for review; do not treat an unfiltered report as a full audit.',
+      ],
+      rowLimits: {
+        dailyCash: 40,
+        customerBalances: 'grouped by currency',
+        supplierBalances: 'grouped by currency',
+      },
+    },
     widgets: {
       salesTry: numberValue(widgetRow.sales_try),
       purchasesTry: numberValue(widgetRow.purchases_try),

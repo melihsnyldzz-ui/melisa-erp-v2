@@ -11,7 +11,8 @@
     "db:backup-reset:preview": "node scripts/backup-reset-melisa-db.mjs",
     "db:backup": "node scripts/backup-reset-melisa-db.mjs --backup",
     "db:backup-reset": "node scripts/backup-reset-melisa-db.mjs --backup-reset",
-    "watermark:product-images": "node scripts/watermark-existing-product-images.mjs"
+    "watermark:product-images": "node scripts/watermark-existing-product-images.mjs",
+    "media:product-workflow": "node scripts/product-media-workflow.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

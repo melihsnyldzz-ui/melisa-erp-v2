@@ -2774,6 +2774,22 @@ tbody tr:hover td {
   grid-template-columns: repeat(2, minmax(360px, 1fr));
 }
 
+.management-reports-screen .report-notes-panel {
+  min-height: 0;
+}
+
+.management-reports-screen .report-notes-panel ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.management-reports-screen .report-notes-panel li + li {
+  margin-top: 5px;
+}
+
 .management-reports-screen .dashboard-table-panel,
 .management-reports-screen .dashboard-table-panel:nth-child(4),
 .management-reports-screen .dashboard-table-panel:nth-child(5) {

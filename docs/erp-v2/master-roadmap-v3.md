@@ -788,6 +788,8 @@ Only after these are stable should the project expand into operational command c
 
 ### Sprint 013: CRM Boundary Planning
 
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/crm-boundary-sprint-013-report.md`.
+
 **Phase:** Growth
 
 **Business Problem:** Customer relationship work can clutter ERP if not separated from accounting and transaction truth.
@@ -849,6 +851,8 @@ Only after these are stable should the project expand into operational command c
 ## Phase 4: Intelligence
 
 ### Sprint 014: Reporting And Decision Support
+
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/reporting-decision-support-sprint-014-report.md`.
 
 **Phase:** Intelligence
 
@@ -913,6 +917,8 @@ Only after these are stable should the project expand into operational command c
 
 ### Sprint 015: AI And Automation Readiness
 
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/ai-automation-readiness-sprint-015-report.md`.
+
 **Phase:** Intelligence
 
 **Business Problem:** AI can help only if ERP data, permissions, audit, and workflows are already trustworthy.
@@ -974,12 +980,150 @@ Only after these are stable should the project expand into operational command c
 - AI readiness document.
 - `docs/ai/local-agent-rules.md` if AI safety rules change.
 
+### Sprint 016: Full ERP Core Smoke Path
+
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/erp-core-smoke-path-sprint-016-report.md`.
+
+**Phase:** ERP Core Validation
+
+**Business Problem:** ERP Core modules have focused sprint evidence, but the connected path from login through reports needs one documented validation sequence.
+
+**Business Goal:** Define the full ERP Core smoke path while keeping commercial writes behind explicit approval.
+
+**Business KPI:** Login, stock, purchase, sales, finance, and reports have one shared checklist with read-only and approval-gated steps separated.
+
+**Business Value:** High
+
+**Priority:** P1
+
+**Difficulty:** Medium
+
+**Owner:** Codex
+
+**Reviewer:** ChatGPT
+
+**Approver:** Melih
+
+**Dependencies:** Auth stabilization, product/stock reliability, customer/supplier ledger reliability, sales/purchase commercial truth, finance collections/payments, reporting decision support, AI safety boundaries.
+
+**Scope:**
+
+- Define the connected smoke path: login -> stock -> purchase -> sales -> finance -> reports.
+- Identify read-only checks that can run without approval.
+- Identify controlled write checks that require explicit Melih approval.
+- Tie the path to ERP commercial truth and reporting boundaries.
+
+**Out of Scope:**
+
+- Live DB write execution.
+- SQL migrations.
+- Backup, restore, reset, cleanup, or destructive scripts.
+- WhatsApp or external message sending.
+- Production deploys or public publishing.
+- Price, stock, finance, customer, supplier, permission, invoice, or import behavior changes.
+
+**Definition of Done:**
+
+- Full path checklist exists.
+- Read-only checks and approval-gated write checks are separated.
+- Commercial truth rules are listed.
+- Static smoke guards Sprint 016 documentation and package registration.
+
+**Required Tests:**
+
+- Sprint 016 static smoke.
+- Syntax check for the Sprint 016 smoke script.
+
+**Risks:**
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| A smoke path accidentally runs commercial writes | Critical | Keep Sprint 016 static/read-first and require exact Melih approval for writes |
+| Read-only evidence is mistaken for full write validation | High | Document that live write execution remains a later approval-gated sprint |
+
+**Documentation to Update:**
+
+- ERP core smoke path checklist.
+- Sprint 016 report.
+- Current status.
+
+### Sprint 017: ERP Core Read-Only Smoke Execution
+
+**Status:** Completed on 2026-07-08. See `docs/erp-v2/erp-core-read-only-smoke-sprint-017-report.md`.
+
+**Phase:** ERP Core Validation
+
+**Business Problem:** Sprint 016 defined the connected ERP Core smoke path, but safe read-only evidence still needed to be collected before any controlled commercial write smoke could be planned.
+
+**Business Goal:** Execute static/read-only checks for login, stock, purchase, sales, finance, and reports while keeping commercial writes behind explicit approval.
+
+**Business KPI:** 100% of the connected ERP Core path has source-level read-only evidence and protected write gates documented.
+
+**Business Value:** High
+
+**Priority:** P1
+
+**Difficulty:** Medium
+
+**Owner:** Codex
+
+**Reviewer:** ChatGPT
+
+**Approver:** Melih
+
+**Dependencies:** Sprint 016 smoke path, auth middleware, product routes, invoice routes, finance routes, reporting service boundaries, Melisa OS safety rules.
+
+**Scope:**
+
+- Verify login read/auth behavior from source.
+- Verify stock read routes and product write gates.
+- Verify sales and purchase read routes and draft/finalize/cancel write gates.
+- Verify finance read/report routes and write gates.
+- Verify management and periodic reporting read-only assumptions.
+- Document evidence without exposing secrets or private business data.
+
+**Out of Scope:**
+
+- Live DB write execution.
+- SQL migrations.
+- Backup, restore, reset, cleanup, or destructive scripts.
+- WhatsApp or external message sending.
+- Production deploys or public publishing.
+- Price, stock, finance, customer, supplier, permission, invoice, or import behavior changes.
+
+**Definition of Done:**
+
+- Sprint 017 checklist and report exist.
+- Static smoke verifies read-only evidence across the connected ERP Core path.
+- Protected write operations remain permission-gated.
+- Current status and roadmap point to the next approval-planning sprint.
+
+**Required Tests:**
+
+- Sprint 017 static smoke.
+- Syntax check for the Sprint 017 smoke script.
+- Sprint 016 static smoke.
+- Web-admin build.
+
+**Risks:**
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Read-only source evidence is mistaken for controlled write validation | High | Document that commercial write smokes still require exact approval |
+| A smoke accidentally calls a write endpoint | Critical | Keep Sprint 017 static and source-reading only |
+
+**Documentation to Update:**
+
+- ERP core read-only smoke checklist.
+- Sprint 017 report.
+- Current status.
+
 ## Recommended First Command
 
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Complete Sprint 001.
+Complete Sprint 018.
 ```
 
-Sprint 001 is intentionally documentation-first. It creates the stable business baseline required before more code work continues.
+Sprint 018 should prepare a controlled ERP Core write-smoke approval plan before any purchase, sales, or finance write check is executed.

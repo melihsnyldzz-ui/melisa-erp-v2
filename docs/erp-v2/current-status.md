@@ -70,6 +70,13 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 008 import and cleanup control documented in `docs/erp-v2/import-cleanup-sprint-008-report.md`.
 - Sprint 009 operational health and monitoring documented in `docs/erp-v2/operational-health-sprint-009-report.md`.
 - Sprint 010 visual stability and daily usability documented in `docs/erp-v2/visual-stability-sprint-010-report.md`.
+- Sprint 011 product media workflow documented in `docs/erp-v2/product-media-workflow-sprint-011-report.md`.
+- Sprint 012 catalog and WhatsApp preparation documented in `docs/erp-v2/catalog-whatsapp-sprint-012-report.md`.
+- Sprint 013 CRM boundary planning documented in `docs/erp-v2/crm-boundary-sprint-013-report.md`.
+- Sprint 014 reporting and decision support documented in `docs/erp-v2/reporting-decision-support-sprint-014-report.md`.
+- Sprint 015 AI and automation readiness documented in `docs/erp-v2/ai-automation-readiness-sprint-015-report.md`.
+- Sprint 016 full ERP core smoke path documented in `docs/erp-v2/erp-core-smoke-path-sprint-016-report.md`.
+- Sprint 017 ERP core read-only smoke execution documented in `docs/erp-v2/erp-core-read-only-smoke-sprint-017-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -89,21 +96,23 @@ These areas exist but should not be treated as finished business capability yet:
 | Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
 | Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, but offline queue runbook and device failure operations still need validation |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
-| Catalog/WhatsApp | Partial/Risky | Flows exist, but external sending must remain approval-gated and should move toward CRM boundary later |
-| Reporting | Partial | Many reports exist, but management reporting needs data-quality pairing and performance review |
-| Media/image workflow | Partial/Risky | Matching/watermarking has been useful locally, but needs dry-run/apply/report/rollback discipline |
+| Catalog/WhatsApp | Improved | Sprint 012 keeps public catalog fields safe, removes prices from share text, keeps automatic WhatsApp sending approval-gated, and Sprint 013 assigns outreach ownership to CRM |
+| CRM boundary | Planned | Sprint 013 defines CRM-owned outreach, follow-up, campaign, communication-history, catalog follow-up and pipeline workflows without implementation |
+| Reporting | Improved | Sprint 014 adds visible report assumptions, data-quality review notes, row-limit metadata, approval boundaries, export inclusion and reporting smoke coverage |
+| AI/Automation | Planned safely | Sprint 015 defines read-only AI analysis, prohibited autonomous actions, exact approval gates, traceability, human decision ownership and future automation candidates without implementation |
+| Media/image workflow | Improved | Sprint 011 adds a dry-run coverage/matching report and review-only manifest; apply remains approval-gated |
 
 ## Missing Or Weak Areas
 
-- Single full ERP smoke path: login -> stock -> purchase -> sales -> finance -> reports.
+- Controlled write execution evidence for the full ERP smoke path: purchase -> sales -> finance.
 - Production-ready backup/restore verification.
 - Import reconciliation against finance/accounting truth.
-- Product media coverage and safe bulk image workflow.
+- Product media reviewed apply execution after dry-run coverage reports.
 - Terminal failed sync administration beyond read-only visibility.
 - Audit browser and audit coverage map.
 - Full production deployment/runbook.
 - Current local runbook for API, web-admin, terminal and Electron together.
-- Explicit CRM/Mission Control/Media Library boundaries in menus and implementation.
+- Full CRM/Mission Control/Media Library boundaries in menus and implementation.
 
 ## Known Risk Areas
 
@@ -138,41 +147,39 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 010 is completed when daily web-admin screens have compact desktop layout guards, critical buttons stay visible, invoice work areas collapse before the 1366px office target hides side panels or actions, the layout smoke passes, and 1366x768 plus 1920x1080 demo-mode browser screenshots show the Operation Desk rendering without overlap.
+Sprint 017 is completed when safe read-only evidence exists for login, stock, purchase, sales, finance and reports, protected write endpoints are confirmed approval-gated, and no commercial write, SQL migration, cleanup, backup/restore/reset, deploy, public publishing, WhatsApp send, secret exposure, or production action is executed.
 
-Sprint 010 does not add new modules, redesign the ERP, run live DB writes, or validate every screen through a full browser click-through suite. Critical screen risks are guarded through the focused static layout smoke, and browser screenshots were captured in `VITE_DEMO_MODE=true` only.
+Sprint 017 does not execute live DB writes, controlled purchase/sales/finance write smokes, SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, price/stock/finance/customer/supplier changes, or official accounting actions.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 011.
+Complete Sprint 018.
 ```
 
-Sprint 011 should focus on Product Media Workflow.
+Sprint 018 should focus on Controlled ERP Core Write Smoke Approval Plan.
 
 Business reason:
 
-- ERP Core transaction loops have controlled evidence through Sprint 005 and Sprint 006.
-- Sprint 007 defined backup/restore/reset discipline without running risky operations.
-- Sprint 008 tightened import preview/apply/report and cleanup approval rules without running risky writes.
-- Sprint 009 added read-only operational health visibility.
-- Sprint 010 added compact desktop visual guardrails for daily screens.
-- Product media coverage remains a high-value catalog and sales-confidence gap, but it needs dry-run/report/apply discipline.
+- Sprint 016 defined the connected ERP Core smoke path and approval boundaries.
+- Sprint 017 collected safe read-only evidence without executing commercial writes.
+- Controlled commercial write checks still require exact Melih approval and a named target environment before execution.
 
-Expected Sprint 011 outputs:
+Expected Sprint 018 outputs:
 
-- Product media dry-run/report/apply workflow plan.
-- Clear high-confidence vs low-confidence image matching boundaries.
-- Coverage report by product, brand or supplier.
-- No committed uploads and no unreviewed bulk apply.
+- A controlled write-smoke approval plan for purchase, sales and finance.
+- Exact target environment and QA record strategy.
+- Before/after evidence requirements that avoid exposing private business data.
+- Rollback/reversal expectations for each controlled write check.
+- A clear stop gate before any DB write is executed.
 
 ## Do Not Start Yet
 
 Do not start these before ERP Core validation:
 
-- CRM build-out.
+- CRM implementation.
 - AI automation.
 - Mission Control automation.
 - Advanced WhatsApp sending.
