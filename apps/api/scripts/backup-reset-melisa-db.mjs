@@ -12,6 +12,7 @@ dotenv.config({ path: path.join(apiRoot, '.env.local') });
 dotenv.config({ path: path.join(apiRoot, '.env') });
 
 const TARGET_DATABASE = 'MELISA_ERP_V2';
+const BACKUP_CONFIRMATION = 'MELISA_ERP_V2_BACKUP_AL';
 const RESET_CONFIRMATION = 'MELISA_ERP_V2_SIFIRLA';
 
 const resetTables = [
@@ -252,11 +253,15 @@ async function main() {
   const confirmation = argValue('--confirm');
   const sqlDriver = getSqlDriver();
 
-  assertTargetDatabase();
-
   if ((mode === 'reset' || mode === 'backup-reset') && (!execute || confirmation !== RESET_CONFIRMATION)) {
     throw new Error(`Reset is locked. Add --execute --confirm=${RESET_CONFIRMATION} after taking/reviewing a backup.`);
   }
+
+  if (mode === 'backup' && (!execute || confirmation !== BACKUP_CONFIRMATION)) {
+    throw new Error(`Backup is locked. Add --execute --confirm=${BACKUP_CONFIRMATION} after human approval.`);
+  }
+
+  assertTargetDatabase();
 
   if (mode === 'reset' || mode === 'backup-reset') {
     assertWriteMode();
@@ -277,6 +282,7 @@ async function main() {
     if (mode === 'preview') {
       console.log('\nPreview only. No backup or reset was executed.');
       console.log(`Backup file that would be used: ${backupFile}`);
+      console.log(`Backup confirmation word: ${BACKUP_CONFIRMATION}`);
       console.log(`Reset confirmation word: ${RESET_CONFIRMATION}`);
       return;
     }

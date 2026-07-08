@@ -21,6 +21,102 @@ Bu dokuman `MELISA_ERP_V2` icin production backup, restore, migration rollback v
 - Canli restore sadece onayli bakim penceresinde yapilir.
 - Migration rollback planlanmadan production migration calistirilmaz.
 - Vega DB'ye backup/restore ya da migration islemi yapilmaz.
+- Backup dosyasi business data icerdigi icin backup alma islemi de insan onayi gerektirir.
+- Reset, restore, migration, backup/restore cleanup ve production backup islemleri Melih onayi olmadan calistirilmaz.
+
+## Sprint 007 Script Review
+
+Reviewed script:
+
+- `apps/api/scripts/backup-reset-melisa-db.mjs`
+
+Observed safety guards:
+
+- Target database is hardcoded as `MELISA_ERP_V2`.
+- Script refuses to continue unless `SQL_DATABASE` is exactly `MELISA_ERP_V2`.
+- Reset SQL contains an in-database `DB_NAME()` guard.
+- Reset requires `--execute` and `--confirm=MELISA_ERP_V2_SIFIRLA`.
+- Reset also requires `SQL_READ_ONLY=false`.
+- Preview mode prints table counts and does not run backup or reset.
+- Backup mode now also requires `--execute` and `--confirm=MELISA_ERP_V2_BACKUP_AL`.
+
+Do not run this script from an AI session unless the exact operation has explicit Melih approval.
+
+## Operator Runbook
+
+### 1. Read-only preview
+
+Purpose: confirm target, visible row counts, backup path candidate, and confirmation words.
+
+```powershell
+cd apps/api
+npm run db:backup-reset:preview
+```
+
+Rules:
+
+- This connects to SQL Server and reads counts.
+- It must not be used to expose credentials or secrets.
+- If `SQL_DATABASE` is not `MELISA_ERP_V2`, stop.
+- If the preview output looks unexpected, stop and investigate before any write operation.
+
+### 2. Approved backup
+
+Purpose: create a SQL Server backup artifact after human approval.
+
+Required approval:
+
+- Melih must approve the backup operation.
+- Backup destination must be known.
+- Backup access must be restricted.
+
+Command shape after approval:
+
+```powershell
+node scripts/backup-reset-melisa-db.mjs --backup --execute --confirm=MELISA_ERP_V2_BACKUP_AL
+```
+
+Notes:
+
+- The package script `npm run db:backup` is intentionally locked unless the execute and confirmation flags are passed through.
+- SQL backup files must stay outside Git.
+- Do not paste backup file contents, database contents, or `.env.local` values into chat or docs.
+
+### 3. Approved backup-reset
+
+Purpose: create a backup and then reset operational ERP data.
+
+Required approval:
+
+- Melih must approve this exact destructive operation.
+- Current target database must be verified as `MELISA_ERP_V2`.
+- A maintenance window must be agreed.
+- Services using the database must be stopped or isolated if needed.
+
+Command shape after approval:
+
+```powershell
+node scripts/backup-reset-melisa-db.mjs --backup-reset --execute --confirm=MELISA_ERP_V2_SIFIRLA
+```
+
+Rules:
+
+- Never run against Vega databases.
+- Never run as a casual cleanup step.
+- Preserve users, roles, permissions, currency rates, and system settings unless a separate approved plan says otherwise.
+
+### 4. Restore verification plan
+
+Restore is not automated by the reviewed script. A restore must be treated as an operator-controlled SQL Server action.
+
+Minimum verification sequence:
+
+1. Run `RESTORE VERIFYONLY` or the approved SQL Server equivalent on the backup file.
+2. Restore first into `MELISA_ERP_V2_RESTORE_TEST` or another approved staging database.
+3. Point a staging API environment at the staging database.
+4. Run the restore smoke list below.
+5. Record backup file name, restore target, date, operator, and smoke result.
+6. Only then consider a production restore during an approved maintenance window.
 
 ## SQL Backup Strategy
 

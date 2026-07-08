@@ -66,6 +66,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 004 customer/supplier ledger reliability documented in `docs/erp-v2/customer-supplier-sprint-004-report.md`.
 - Sprint 005 sales/purchase commercial truth documented in `docs/erp-v2/sales-purchase-sprint-005-report.md`.
 - Sprint 006 finance collections/payments documented in `docs/erp-v2/finance-sprint-006-report.md`.
+- Sprint 007 backup/restore/reset safety documented in `docs/erp-v2/backup-restore-reset-sprint-007-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -108,7 +109,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Live SQL Server writes | Critical | Must require explicit human approval before tests, migrations, reset, cleanup or production writes |
 | `.env.local` and secrets | Critical | Must never be exposed or committed |
 | WhatsApp/external sending | Critical | Must not send real messages without explicit human approval |
-| Backup/reset scripts | Critical | Must not be run destructively without approval and verified target DB |
+| Backup/reset scripts | Critical | Sprint 007 documented the runbook and locked backup execution behind explicit `--execute` and confirmation; reset/restore still require explicit Melih approval and verified target DB |
 | Local uploads and product images | High | Not fully represented in Git; image links may depend on local DB/files |
 | Existing imported business data | High | May contain duplicates, incomplete fields or inconsistent source data |
 | Mock/demo boundaries | High | Must be isolated so operators do not see mock data as live truth |
@@ -134,32 +135,33 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 001 is completed when this document exists, is committed, and no code files are changed.
+Sprint 007 is completed when backup/restore/reset safety is documented, the backup/reset script guard review is recorded, backup artifact creation is approval-gated, and no backup, reset, restore, migration or production action was run without approval.
 
-Sprint 001 does not validate live ERP behavior. It creates the baseline needed before validation sprints.
+Sprint 007 does not prove that a production restore has succeeded. It creates the operator discipline and verification plan required before restore testing.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 007.
+Complete Sprint 008.
 ```
 
-Sprint 007 should focus on Backup, Restore, And Reset Safety.
+Sprint 008 should focus on Import And Cleanup Control.
 
 Business reason:
 
 - ERP Core transaction loops now have controlled evidence through Sprint 005 and Sprint 006.
-- Backup, restore and reset discipline is the next production-readiness risk before broader operations work.
+- Sprint 007 defined backup/restore/reset discipline without running risky operations.
+- Import and cleanup can damage live stock/cari data unless preview/apply/report, approval and rollback rules are tightened next.
 
-Expected Sprint 007 outputs:
+Expected Sprint 008 outputs:
 
-- Backup/restore/reset runbook review.
-- Script target and guard review.
-- Approval points for destructive or production actions.
-- Restore verification plan.
-- Production readiness checklist update if behavior changes.
+- Import preview/apply/report review.
+- Cleanup endpoint safety review.
+- Approval points for write cleanup/import actions.
+- Audit and before/after result expectations.
+- Current status and production readiness updates if behavior changes.
 
 ## Do Not Start Yet
 

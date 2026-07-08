@@ -48,10 +48,13 @@ Bu checklist Melisa ERP v2'nin production'a yaklasirken gecmesi gereken teknik k
 
 - [ ] Nightly full SQL backup job kuruldu.
 - [ ] Backup dosya adi standardi tanimlandi.
+- [ ] Backup scripti insan onayi, `--execute` ve confirmation olmadan artifact uretmiyor.
+- [ ] Backup scripti `SQL_DATABASE=MELISA_ERP_V2` guard'i olmadan calismiyor.
 - [ ] `RESTORE VERIFYONLY` veya muadili dogrulama yapiliyor.
 - [ ] Staging restore testi yapildi.
 - [ ] Restore sonrasi smoke test listesi hazir.
 - [ ] Backup saklama suresi ve erisim yetkisi belirlendi.
+- [ ] Backup dosyalari Git, chat, e-posta ve herkese acik paylasim kanallari disinda tutuluyor.
 
 ## Monitoring
 
@@ -100,6 +103,8 @@ Bu checklist Melisa ERP v2'nin production'a yaklasirken gecmesi gereken teknik k
 - [ ] Migration oncesi backup zorunlu.
 - [ ] Restore test edilmeden production rollback kabul edilmiyor.
 - [ ] Destructive SQL rollback yontemi degil.
+- [ ] Reset/restore/cleanup islemleri Melih onayi ve bakim penceresi olmadan calistirilmiyor.
+- [ ] Reset scripti `--execute --confirm=MELISA_ERP_V2_SIFIRLA` olmadan destructive islem yapmiyor.
 - [ ] Deploy onceki commit hash kayit altinda.
 - [ ] Operator rollback sorumlusu belli.
 
