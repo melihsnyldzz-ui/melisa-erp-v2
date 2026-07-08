@@ -64,6 +64,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 002 auth stabilization documented in `docs/erp-v2/auth-sprint-002-report.md`.
 - Sprint 003 product/stock reliability documented in `docs/erp-v2/product-stock-sprint-003-report.md`.
 - Sprint 004 customer/supplier ledger reliability documented in `docs/erp-v2/customer-supplier-sprint-004-report.md`.
+- Sprint 005 sales/purchase commercial truth documented in `docs/erp-v2/sales-purchase-sprint-005-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -78,7 +79,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Audit | Partial | Audit service exists, but visible audit browser and coverage map are incomplete |
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
 | Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
-| Sales/Purchase commercial truth | Partial | Flows exist, but draft/finalize/cancel must be verified with controlled test data |
+| Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase |
 | Finance | Partial | Collections/payments exist, but balance impact, receipt/export and operational accounting boundaries need polish |
 | Import | Partial | Preview/apply exists, but reconciliation, rollback guidance and result reporting need hardening |
 | Terminal app | Partial | Field app exists, but offline queue, idempotency, sync admin and device runbook need validation |
@@ -141,21 +142,22 @@ Sprint 001 does not validate live ERP behavior. It creates the baseline needed b
 Recommended next sprint:
 
 ```text
-Complete Sprint 005.
+Complete Sprint 006.
 ```
 
-Sprint 005 should focus on Sales And Purchase Commercial Truth.
+Sprint 006 should focus on Finance Collections And Payments.
 
 Business reason:
 
-- Sales and purchase finalization drive stock, cost, customer balances and supplier balances.
-- After auth, stock and cari read reliability, commercial document effects must be verified before finance can be trusted.
+- Sales and purchase commercial truth now has controlled API evidence.
+- Finance collections and payments must be verified next because they close the operational loop from invoices to cash/bank movement and ledger balances.
 
-Expected Sprint 005 outputs:
+Expected Sprint 006 outputs:
 
-- Sales and purchase draft/finalize/cancel smoke report.
-- Draft-no-effect and finalized-effect validation.
-- Stock, cost and ledger impact review.
+- Collection/payment API smoke report.
+- Customer and supplier balance impact validation.
+- Finance account balance impact validation.
+- Receipt/export and movement visibility review.
 - Documentation update if operator behavior changes.
 
 ## Do Not Start Yet
@@ -168,4 +170,4 @@ Do not start these before ERP Core validation:
 - Advanced WhatsApp sending.
 - Bulk media automation.
 - Production reset/cleanup.
-- Live DB write smoke tests without approval.
+- Live DB write smoke tests without approval, except explicitly approved sprint-level controlled QA writes.
