@@ -1,14 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { fetchCatalogOverview, fetchWhatsappStatus, sendWhatsappCatalog } from '../../services/catalogApi.js';
+import { fetchCatalogOverview, fetchWhatsappStatus } from '../../services/catalogApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
-
-function formatMoney(value, currency = 'TRY') {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: currency || 'TRY',
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-}
 
 function resolveImageUrl(imagePath) {
   if (!imagePath) return '';
@@ -42,7 +34,7 @@ function buildCaption(item) {
   return [
     item.stockCode || item.productCode ? `✨ *${item.stockCode || item.productCode}* ✨` : '',
     item.productName ? `🧸 ${item.productName}` : '',
-    `💰 *Fiyat:* ${formatMoney(item.price, item.currency)}`,
+    'Fiyat ve stok bilgisi için satış ekibinden teyit alınız.',
   ].filter(Boolean).join('\n');
 }
 
@@ -63,8 +55,6 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
   const [skippedIds, setSkippedIds] = useState([]);
   const [failedRows, setFailedRows] = useState([]);
   const [providerStatus, setProviderStatus] = useState(null);
-  const [sendResult, setSendResult] = useState(null);
-  const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -107,7 +97,6 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
       setSentIds([]);
       setSkippedIds([]);
       setFailedRows([]);
-      setSendResult(null);
     } catch (error) {
       setOverview(null);
       setErrorMessage(`${error.message || 'WhatsApp kuyruğu okunamadı.'} (${error.code || 'API_ERROR'})`);
@@ -215,57 +204,6 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
     setMessage('Kuyruk sıfırlandı.');
   }
 
-  async function sendAutomatically() {
-    const normalizedPhone = normalizePhone(phone);
-    const catalogId = Number(overview?.selectedCatalogId || selectedCatalogId || 0);
-
-    if (!catalogId) {
-      setErrorMessage('Otomatik gönderim için katalog seçilmeli.');
-      return;
-    }
-
-    if (normalizedPhone.length < 10) {
-      setErrorMessage('Otomatik gönderim için WhatsApp telefon numarası gerekli.');
-      return;
-    }
-
-    setIsSending(true);
-    setErrorMessage('');
-    setMessage('');
-    setSendResult(null);
-
-    try {
-      const response = await sendWhatsappCatalog({
-        catalogId,
-        phone: normalizedPhone,
-      });
-      const result = response.data;
-      setSendResult(result);
-      const sentItemIds = result.results
-        .filter((row) => row.status === 'sent')
-        .map((row) => row.itemId);
-      const skippedItemIds = result.results
-        .filter((row) => row.status === 'skipped')
-        .map((row) => row.itemId);
-      const failedItems = result.results
-        .filter((row) => row.status === 'failed')
-        .map((row) => ({
-          itemId: row.itemId,
-          stockCode: row.stockCode,
-          message: row.message || row.code || 'Gönderim hatası',
-        }));
-      setSentIds((current) => [...new Set([...current, ...sentItemIds])]);
-      setSkippedIds((current) => [...new Set([...current, ...skippedItemIds])]);
-      setFailedRows(failedItems);
-      setMessage(`Otomatik gönderim tamamlandı: ${result.sent} gönderildi, ${result.failed} hatalı, ${result.skipped} atlandı.`);
-    } catch (error) {
-      setErrorMessage(`${error.message || 'Otomatik gönderim başarısız.'} (${error.code || 'API_ERROR'})`);
-      loadProviderStatus();
-    } finally {
-      setIsSending(false);
-    }
-  }
-
   return (
     <main className="work-area whatsapp-queue-screen">
       <section className="dashboard-toolbar whatsapp-queue-toolbar">
@@ -319,20 +257,12 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
           <button type="button" className="primary" onClick={openWhatsapp} disabled={!currentItem}>
             WhatsApp Web Aç
           </button>
-          <button
-            type="button"
-            className="good"
-            onClick={sendAutomatically}
-            disabled={isSending || !currentItem || !providerStatus?.configured}
-          >
-            {isSending ? 'Gönderiliyor...' : 'Otomatik Gönder'}
-          </button>
-          <div className={`whatsapp-provider-status ${providerStatus?.configured ? 'ready' : 'missing'}`}>
-            <strong>{providerStatus?.configured ? 'Otomatik gönderim hazır' : 'Otomatik gönderim ayarı eksik'}</strong>
+          <div className={`whatsapp-provider-status ${providerStatus?.sendEnabled ? 'ready' : 'missing'}`}>
+            <strong>{providerStatus?.sendEnabled ? 'Onaylı gönderim açık' : 'Otomatik gönderim kapalı'}</strong>
             <small>
-              {providerStatus?.configured
+              {providerStatus?.sendEnabled
                 ? `${providerStatus.provider || 'provider'} / ${providerStatus.instance || '-'}`
-                : (providerStatus?.missing || ['WHATSAPP ayarları eksik']).join(', ')}
+                : 'Mesaj gönderimi Melih onayı olmadan yapılmaz; bu ekran yalnızca hazırlık ve manuel inceleme kuyruğudur.'}
             </small>
           </div>
           <div className="whatsapp-queue-progress">
@@ -340,17 +270,6 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
             <progress value={sentIds.length} max={items.length || 1} />
             <small>{pendingCount} bekleyen, {failedRows.length} hatalı, {skippedIds.length} atlanan</small>
           </div>
-          {sendResult && (
-            <div className="whatsapp-send-result">
-              <strong>Son otomatik gönderim</strong>
-              <span>{sendResult.sent} gönderildi</span>
-              <span>{sendResult.failed} hatalı</span>
-              <span>{sendResult.skipped} atlandı</span>
-              {failedRows.slice(0, 3).map((row) => (
-                <small key={row.itemId}>{row.stockCode}: {row.message}</small>
-              ))}
-            </div>
-          )}
         </aside>
 
         <section className="erp-panel whatsapp-queue-list-panel">
@@ -375,7 +294,7 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
                 <span className="whatsapp-queue-row-main">
                   <strong>{item.stockCode}</strong>
                   <small>{item.productName}</small>
-                  <b>{formatMoney(item.price, item.currency)}</b>
+                  <b>Fiyat teyitli</b>
                   {item.failedMessage && <small>{item.failedMessage}</small>}
                 </span>
                 <em>{queueStatusLabel(item.status)}</em>

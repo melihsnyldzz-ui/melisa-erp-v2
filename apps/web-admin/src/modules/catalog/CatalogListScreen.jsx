@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createCatalogDraft, fetchCatalogOverview, sendWhatsappCatalog } from '../../services/catalogApi.js';
+import { createCatalogDraft, fetchCatalogOverview } from '../../services/catalogApi.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
 
@@ -33,7 +33,7 @@ function buildCatalogShareText(catalog, items = []) {
     : 'Melisa Bebe Katalog';
   const visibleItems = items.slice(0, 24);
   const lines = visibleItems.map((item, index) => (
-    `${index + 1}. ${item.stockCode} - ${item.productName} - ${formatMoney(item.price, item.currency)}`
+    `${index + 1}. ${item.stockCode} - ${item.productName}`
   ));
 
   return [
@@ -43,6 +43,7 @@ function buildCatalogShareText(catalog, items = []) {
     items.length > visibleItems.length ? `... ve ${items.length - visibleItems.length} ürün daha` : '',
     '',
     'Sipariş vermek istediğiniz ürün kodlarını yazabilirsiniz.',
+    'Fiyat ve stok bilgisi satış ekibi tarafından teyit edilir.',
   ].filter(Boolean).join('\n');
 }
 
@@ -72,7 +73,6 @@ export function CatalogListScreen({ onOpenScreen }) {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -244,35 +244,6 @@ export function CatalogListScreen({ onOpenScreen }) {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 
-  async function sendSelectedCatalogToCustomer() {
-    if (!selectedCatalog?.id || items.length === 0) {
-      setErrorMessage('Gönderim için önce katalog seçin veya taslak oluşturun.');
-      return;
-    }
-
-    if (!selectedCustomer?.phone) {
-      setErrorMessage('Seçili müşterinin kartında telefon numarası yok.');
-      return;
-    }
-
-    setIsSending(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    try {
-      const response = await sendWhatsappCatalog({
-        catalogId: selectedCatalog.id,
-        phone: selectedCustomer.phone,
-      });
-      const result = response.data;
-      setSuccessMessage(`${selectedCustomer.customerName} için gönderim tamamlandı: ${result.sent} gönderildi, ${result.failed} hatalı, ${result.skipped} atlandı.`);
-    } catch (error) {
-      setErrorMessage(`${error.message || 'WhatsApp gönderimi başarısız.'} (${error.code || 'API_ERROR'})`);
-    } finally {
-      setIsSending(false);
-    }
-  }
-
   return (
     <main className="work-area catalog-builder-screen">
       <section className="dashboard-toolbar catalog-builder-toolbar">
@@ -293,9 +264,6 @@ export function CatalogListScreen({ onOpenScreen }) {
             disabled={!selectedCatalog || items.length === 0}
           >
             Görselli Gönderim Kuyruğu
-          </button>
-          <button type="button" onClick={sendSelectedCatalogToCustomer} disabled={isSending || !selectedCatalog || items.length === 0 || !selectedCustomer?.phone}>
-            {isSending ? 'Gönderiliyor' : 'Müşteriye Gönder'}
           </button>
           <button type="button" onClick={copyCatalogText} disabled={items.length === 0}>Metni Kopyala</button>
           <button type="button" onClick={openWhatsappShare} disabled={items.length === 0}>Metinle WhatsApp Aç</button>
@@ -499,9 +467,6 @@ export function CatalogListScreen({ onOpenScreen }) {
               <div className="list-state">Katalog gönderimi için müşteri seçin.</div>
             )}
             <div className="catalog-side-actions">
-              <button type="button" disabled={isSending || !selectedCatalog || !selectedCustomer?.phone || items.length === 0} onClick={sendSelectedCatalogToCustomer}>
-                {isSending ? 'Gönderiliyor' : 'Müşteriye Gönder'}
-              </button>
               <button type="button" disabled={isSaving || selectedProducts.length === 0} onClick={handleCreateDraft}>
                 {isSaving ? 'Kaydediliyor' : 'Taslak Oluştur'}
               </button>
@@ -526,15 +491,12 @@ export function CatalogListScreen({ onOpenScreen }) {
                         <span>Görsel yok</span>
                       )}
                       <strong>{item.stockCode}</strong>
-                      <small>{formatMoney(item.price, item.currency)}</small>
+                      <small>Fiyat satış teyidine bağlı</small>
                     </article>
                   ))}
                 </div>
                 <textarea className="catalog-share-textarea" readOnly value={catalogShareText} />
                 <div className="catalog-side-actions">
-                  <button type="button" onClick={sendSelectedCatalogToCustomer} disabled={isSending || !selectedCustomer?.phone}>
-                    {isSending ? 'Gönderiliyor' : 'Müşteriye Gönder'}
-                  </button>
                   <button type="button" onClick={copyCatalogText}>Metni Kopyala</button>
                   <button type="button" onClick={openWhatsappShare}>Metinle WhatsApp Aç</button>
                 </div>

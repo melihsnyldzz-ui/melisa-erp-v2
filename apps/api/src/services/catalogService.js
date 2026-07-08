@@ -127,13 +127,16 @@ function toCandidateDto(row) {
 }
 
 function toPublicCatalogProductDto(row) {
+  const stockQuantity = Number(row.stock_quantity || 0);
+
   return {
     id: Number(row.product_id),
     stockCode: row.stock_code,
     productName: row.product_name,
     brand: row.brand || '',
     category: row.category || '',
-    stockQuantity: Number(row.stock_quantity || 0),
+    inStock: stockQuantity > 0,
+    stockSignal: stockQuantity > 0 ? 'in_stock' : 'ask_sales',
     imageUrl: buildPublicUrl(resolvePublicProductImagePath(row)),
     isPassive: false,
   };
@@ -188,7 +191,7 @@ function buildCleanWhatsappCaption(item) {
   const lines = [];
   if (item.stockCode) lines.push(`✨ *${item.stockCode}* ✨`);
   if (item.productName) lines.push(`🧸 ${item.productName}`);
-  lines.push(`💰 *Fiyat:* ${formatCatalogMoney(item.price, item.currency)}`);
+  lines.push('Fiyat ve stok bilgisi icin satis ekibinden teyit aliniz.');
   return lines.join('\n');
 }
 
@@ -196,7 +199,7 @@ function buildWhatsappCaption(item) {
   return [
     item.stockCode ? `✨ *${item.stockCode}* ✨` : '',
     item.productName ? `🧸 ${item.productName}` : '',
-    `💰 *Fiyat:* ${formatCatalogMoney(item.price, item.currency)}`,
+    'Fiyat ve stok bilgisi icin satis ekibinden teyit aliniz.',
   ].filter(Boolean).join('\n');
 }
 
@@ -206,15 +209,33 @@ function getWhatsappStatus() {
   if (!env.whatsapp.baseUrl) missing.push('WHATSAPP_API_URL');
   if (!env.whatsapp.apiKey) missing.push('WHATSAPP_API_KEY');
   if (!env.whatsapp.instance) missing.push('WHATSAPP_INSTANCE');
+  const configured = missing.length === 0;
 
   return {
     provider: env.whatsapp.provider,
     enabled: env.whatsapp.enabled,
-    configured: missing.length === 0,
+    configured,
+    sendApproved: env.whatsapp.sendApproved,
+    sendEnabled: configured && env.whatsapp.sendApproved,
     missing,
+    approvalRequired: !env.whatsapp.sendApproved,
     instance: env.whatsapp.instance || null,
     publicApiUrl: env.whatsapp.publicApiUrl,
   };
+}
+
+function assertWhatsappSendAllowed(status = getWhatsappStatus()) {
+  if (!status.sendApproved) {
+    throw makeServiceError(
+      'WHATSAPP_SEND_APPROVAL_REQUIRED',
+      'WhatsApp gonderimi Melih onayi olmadan kapali. Onayli calisma icin WHATSAPP_SEND_APPROVED=true gerekir.',
+      403,
+    );
+  }
+
+  if (!status.configured) {
+    throw makeServiceError('WHATSAPP_NOT_CONFIGURED', 'WhatsApp gonderimi icin Evolution API ayarlari eksik', 503);
+  }
 }
 
 async function sendEvolutionImage({ phone, imageUrl, caption, fileName }) {
@@ -973,9 +994,7 @@ function buildTerminalProductCaption(item) {
 
 export async function sendTerminalWhatsappShare(payload = {}) {
   const status = getWhatsappStatus();
-  if (!status.configured) {
-    throw makeServiceError('WHATSAPP_NOT_CONFIGURED', 'WhatsApp gonderimi icin Evolution API ayarlari eksik', 503);
-  }
+  assertWhatsappSendAllowed(status);
 
   const phone = normalizePhone(payload.phone || payload.customerPhone);
   if (phone.length < 10) {
@@ -1081,9 +1100,7 @@ export async function sendTerminalWhatsappShare(payload = {}) {
 
 export async function sendCatalogToWhatsapp(payload = {}) {
   const status = getWhatsappStatus();
-  if (!status.configured) {
-    throw makeServiceError('WHATSAPP_NOT_CONFIGURED', 'WhatsApp gonderimi icin Evolution API ayarlari eksik', 503);
-  }
+  assertWhatsappSendAllowed(status);
 
   const phone = normalizePhone(payload.phone);
   if (phone.length < 10) {

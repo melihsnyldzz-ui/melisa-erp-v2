@@ -69,6 +69,7 @@ export const env = {
   whatsapp: {
     provider: process.env.WHATSAPP_PROVIDER || 'evolution',
     enabled: String(process.env.WHATSAPP_ENABLED || 'false').toLowerCase() === 'true',
+    sendApproved: String(process.env.WHATSAPP_SEND_APPROVED || 'false').toLowerCase() === 'true',
     baseUrl: process.env.WHATSAPP_API_URL || '',
     apiKey: process.env.WHATSAPP_API_KEY || '',
     instance: process.env.WHATSAPP_INSTANCE || '',
