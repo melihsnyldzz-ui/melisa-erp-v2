@@ -52,6 +52,7 @@ const groupDisplayLabels = {
 
 const itemDisplayLabels = {
   dashboard: 'Operasyon Masasi',
+  'operational-health': 'Operasyon Sagligi',
   'stock-list': 'Stok Listesi',
   'product-card': 'Urun Karti',
   'price-list': 'Fiyat Listesi',
@@ -112,6 +113,7 @@ const groupIcons = {
 
 const itemIcons = {
   dashboard: LayoutDashboard,
+  'operational-health': BarChart3,
   'stock-list': Package,
   'product-card': FileText,
   'price-list': Tags,

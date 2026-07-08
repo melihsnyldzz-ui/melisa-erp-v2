@@ -60,11 +60,11 @@ Bu checklist Melisa ERP v2'nin production'a yaklasirken gecmesi gereken teknik k
 
 - [ ] `/api/health` uptime icin izleniyor.
 - [ ] `/api/sql/health` DB connection icin izleniyor.
-- [ ] `/api/monitoring/summary` auth arkasinda izleniyor.
-- [ ] Pending terminal sync count takip ediliyor.
-- [ ] Failed terminal sync count takip ediliyor.
-- [ ] Import failure loglari takip ediliyor.
-- [ ] Finalize failure loglari takip ediliyor.
+- [x] `/api/monitoring/summary` auth arkasinda ve `audit.view` yetkisiyle izleniyor.
+- [x] Pending terminal sync count operator ekraninda gorunuyor.
+- [x] Failed terminal sync count operator ekraninda gorunuyor.
+- [ ] Import failure loglari takip ediliyor. Sprint 009 operator ekraninda not gorunur; kalici failure-job metrigi henuz yok.
+- [ ] Finalize failure loglari takip ediliyor. Sprint 009 operator ekraninda not gorunur; kalici failed-finalize metrigi henuz yok.
 - [ ] Audit anomaly review periyodu belirlendi.
 
 ## Deploy

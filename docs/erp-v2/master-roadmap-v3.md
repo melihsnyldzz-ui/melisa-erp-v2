@@ -533,6 +533,8 @@ Only after these are stable should the project expand into operational command c
 
 ### Sprint 009: Operational Health And Monitoring
 
+**Status:** Completed in `docs/erp-v2/operational-health-sprint-009-report.md`.
+
 **Phase:** Operations
 
 **Business Problem:** Operators need early warning when API, SQL, terminal sync, or imports fail.
@@ -979,4 +981,3 @@ Complete Sprint 001.
 ```
 
 Sprint 001 is intentionally documentation-first. It creates the stable business baseline required before more code work continues.
-

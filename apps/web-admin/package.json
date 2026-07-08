@@ -12,6 +12,7 @@
     "smoke:finance-form": "node ../../scripts/web-admin-finance-form-smoke.mjs",
     "smoke:action-clarity": "node ../../scripts/web-admin-action-clarity-smoke.mjs",
     "smoke:empty-state": "node ../../scripts/web-admin-empty-state-smoke.mjs",
+    "smoke:operational-health": "node ../../scripts/web-admin-operational-health-smoke.mjs",
     "smoke:layout": "node ../../scripts/web-admin-layout-smoke.mjs"
   },
   "dependencies": {

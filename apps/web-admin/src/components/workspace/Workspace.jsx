@@ -6,6 +6,7 @@ import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.js
 import { CustomerMovementsScreen } from '../../modules/customer/CustomerMovementsScreen.jsx';
 import { CustomerStatementScreen } from '../../modules/customer/CustomerStatementScreen.jsx';
 import { DashboardScreen } from '../../modules/dashboard/DashboardScreen.jsx';
+import { OperationalHealthScreen } from '../../modules/operations/OperationalHealthScreen.jsx';
 import { AccountingJournalScreen } from '../../modules/finance/AccountingJournalScreen.jsx';
 import { AccountingControlScreen } from '../../modules/finance/AccountingControlScreen.jsx';
 import { CashBankLedgerScreen } from '../../modules/finance/CashBankLedgerScreen.jsx';
@@ -75,6 +76,11 @@ const workspaceRouteRegistry = {
     permissionKeys: ['dashboard.view'],
     unauthorizedMessage: 'Dashboard görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen, permissions }) => <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} />,
+  },
+  'operational-health': {
+    permissionKeys: ['audit.view'],
+    unauthorizedMessage: 'Operasyon sagligi goruntuleme yetkiniz yok.',
+    render: () => <OperationalHealthScreen />,
   },
   'stock-list': {
     permissionKeys: ['product.view'],

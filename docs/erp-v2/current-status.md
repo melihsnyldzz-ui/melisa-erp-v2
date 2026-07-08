@@ -68,6 +68,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 006 finance collections/payments documented in `docs/erp-v2/finance-sprint-006-report.md`.
 - Sprint 007 backup/restore/reset safety documented in `docs/erp-v2/backup-restore-reset-sprint-007-report.md`.
 - Sprint 008 import and cleanup control documented in `docs/erp-v2/import-cleanup-sprint-008-report.md`.
+- Sprint 009 operational health and monitoring documented in `docs/erp-v2/operational-health-sprint-009-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -79,13 +80,13 @@ These areas exist but should not be treated as finished business capability yet:
 |---|---|---|
 | Authentication/session | Improved | Real login exists, open-admin bypass is absent, stale browser tokens are cleared on 401; Electron/local dev can use documented passwordless admin login without refresh-token DB writes |
 | Permissions | Partial | Some supplier and finance/import boundaries need review and possible cleanup |
-| Audit | Partial | Audit service exists, but visible audit browser and coverage map are incomplete |
+| Audit | Improved | Audit service exists and recent events are visible from Operational Health; full audit browser and coverage map remain incomplete |
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
 | Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
 | Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase |
 | Finance | Improved | Collections/payments have controlled API smoke evidence for selected cari guards, customer/supplier movement impact, finance account balance impact, finance account movements and audit expectations; operational finance vs official accounting boundary is documented |
 | Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
-| Terminal app | Partial | Field app exists, but offline queue, idempotency, sync admin and device runbook need validation |
+| Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, but offline queue runbook and device failure operations still need validation |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
 | Catalog/WhatsApp | Partial/Risky | Flows exist, but external sending must remain approval-gated and should move toward CRM boundary later |
 | Reporting | Partial | Many reports exist, but management reporting needs data-quality pairing and performance review |
@@ -97,7 +98,7 @@ These areas exist but should not be treated as finished business capability yet:
 - Production-ready backup/restore verification.
 - Import reconciliation against finance/accounting truth.
 - Product media coverage and safe bulk image workflow.
-- Terminal failed sync administration.
+- Terminal failed sync administration beyond read-only visibility.
 - Audit browser and audit coverage map.
 - Full production deployment/runbook.
 - Current local runbook for API, web-admin, terminal and Electron together.
@@ -136,34 +137,34 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 008 is completed when import apply is preview-gated, duplicate and suspicious-row reporting is visible for product/customer/supplier imports, apply result expectations include before/after counts and audit, cleanup apply approval points are documented, and no import apply, cleanup apply, reset, restore, migration or production action was run without approval.
+Sprint 009 is completed when operators have a read-only Operational Health screen for API/SQL status, terminal pending/failed sync counts, import/finalize visibility notes, recent audit events, and anomaly watch points; the route remains protected by `audit.view`; and no DB write, migration, reset, restore, cleanup, WhatsApp send or production deploy was run without approval.
 
-Sprint 008 does not prove that a live business import is safe for every source file. It creates the operator discipline and technical guardrails required before controlled import batches.
+Sprint 009 does not create automatic alerting or repair actions. It creates a visible operator surface and documents the remaining gap that import/finalize failures are not yet persisted as dedicated failure-job metrics.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 009.
+Complete Sprint 010.
 ```
 
-Sprint 009 should focus on Operational Health And Monitoring.
+Sprint 010 should focus on Visual Stability And Daily Usability.
 
 Business reason:
 
 - ERP Core transaction loops now have controlled evidence through Sprint 005 and Sprint 006.
 - Sprint 007 defined backup/restore/reset discipline without running risky operations.
 - Sprint 008 tightened import preview/apply/report and cleanup approval rules without running risky writes.
-- Operators now need health, failed sync, import/finalize failure and audit visibility in one place.
+- Sprint 009 added read-only operational health visibility.
+- Operators next need daily screens checked at office resolutions so critical actions do not overlap or disappear.
 
-Expected Sprint 009 outputs:
+Expected Sprint 010 outputs:
 
-- API and SQL health visibility review.
-- Failed terminal sync visibility review.
-- Import/finalize failure visibility review.
-- Monitoring remains read-only by default.
-- Current status and production readiness updates if behavior changes.
+- 1366x768 and 1920x1080 visual checks for core screens.
+- Small usability fixes only where controls overlap, hide, or become unclear.
+- No new business modules.
+- Web-admin build and focused smoke checks.
 
 ## Do Not Start Yet
 

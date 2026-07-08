@@ -13,6 +13,7 @@ export const roleViews = [
     description: 'Kârlılık, tahsilat, risk ve yönetim raporları',
     screenIds: [
       'dashboard',
+      'operational-health',
       'reports-overview',
       'export-center',
       'finance-overview',
@@ -38,6 +39,7 @@ export const roleViews = [
     description: 'Cari, ekstre, tahsilat ve fiş kontrolleri',
     screenIds: [
       'dashboard',
+      'operational-health',
       'customer-list',
       'supplier-list',
       'supplier-card',

@@ -15,6 +15,7 @@ export const sidebarGroups = [
     title: 'Operasyon',
     items: [
       { label: 'Operasyon Masası', screenId: 'dashboard' },
+      { label: 'Operasyon Sağlığı', screenId: 'operational-health' },
     ],
   },
   {
@@ -125,6 +126,12 @@ export const screenRegistry = {
     module: 'Ana Sayfa',
     type: 'dashboard',
     pinned: true,
+  },
+  'operational-health': {
+    id: 'operational-health',
+    label: 'Operasyon Sağlığı',
+    module: 'Güvenlik',
+    type: 'izleme',
   },
   'stock-list': {
     id: 'stock-list',
