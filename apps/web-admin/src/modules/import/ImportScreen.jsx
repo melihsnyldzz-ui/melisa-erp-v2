@@ -352,6 +352,7 @@ export function ImportScreen({ onOpenScreen }) {
   const [activeEntity, setActiveEntity] = useState('products');
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [previewToken, setPreviewToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -392,10 +393,12 @@ export function ImportScreen({ onOpenScreen }) {
   }
   const canCommit = preview
     && validTotal > 0
+    && previewToken
     && (commitValidOnly || invalidTotal === 0);
 
   function resetResult() {
     setPreview(null);
+    setPreviewToken('');
     setMessage('');
     setErrorMessage('');
   }
@@ -415,6 +418,7 @@ export function ImportScreen({ onOpenScreen }) {
     try {
       const response = await previewImport(activeEntity, selectedFile);
       setPreview(response.data);
+      setPreviewToken(response.data.previewToken || '');
       setRowStatusFilter(response.data.duplicateRowCount > 0 ? 'duplicate' : response.data.invalidRowCount > 0 ? 'invalid' : 'all');
       setMessage('Preview tamamlandı. DB yazımı yapılmadı.');
     } catch (error) {
@@ -430,8 +434,9 @@ export function ImportScreen({ onOpenScreen }) {
     setErrorMessage('');
 
     try {
-      const response = await commitImport(activeEntity, selectedFile, { validOnly: commitValidOnly });
+      const response = await commitImport(activeEntity, selectedFile, { validOnly: commitValidOnly, previewToken });
       setPreview(response.data.preview);
+      setPreviewToken(response.data.preview?.previewToken || '');
       setRowStatusFilter('all');
       const skipped = Number(response.data.skippedInvalidCount || 0) + Number(response.data.skippedDuplicateCount || 0);
       setMessage(`${response.data.insertedCount} kayıt aktarıldı. ${skipped ? `${skipped} hatalı/duplicate satır atlandı.` : 'Audit log yazıldı.'}`);
@@ -605,7 +610,7 @@ export function ImportScreen({ onOpenScreen }) {
       <section className="screen-summary import-summary">
         <span>Hedef DB: MELISA_ERP_V2</span>
         <span>Ürün / müşteri / tedarikçi ayrı import</span>
-        <span>Geçerli satır seçeneği aktif</span>
+        <span>Apply icin preview token zorunlu</span>
         <span>Audit: {activeTab.audit}</span>
       </section>
     </main>

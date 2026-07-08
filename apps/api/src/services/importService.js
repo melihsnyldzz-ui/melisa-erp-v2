@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { parse as parseCsv } from 'csv-parse/sync';
 import sql from 'mssql';
 import XLSX from 'xlsx';
@@ -8,6 +9,7 @@ import { assertMelisaWriteEnabled } from './writeGuardService.js';
 const ALLOWED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const ALLOWED_CUSTOMER_TYPES = new Set(['customer', 'wholesale', 'retail', 'mixed']);
 const IMPORT_DUPLICATE_CHECK_BATCH_SIZE = 900;
+const PREVIEW_TOKEN_VERSION = 'import-preview-v1';
 
 const productFieldAliases = {
   stockcode: 'stockCode',
@@ -186,11 +188,11 @@ function decodeFile(filePayload) {
     throw makeImportError('IMPORT_FILE_EMPTY', 'Import file is empty');
   }
 
-  return { fileName, buffer };
+  return { fileName, buffer, contentHash: createHash('sha256').update(buffer).digest('hex') };
 }
 
 function parseRows(filePayload) {
-  const { fileName, buffer } = decodeFile(filePayload);
+  const { fileName, buffer, contentHash } = decodeFile(filePayload);
   const lowerName = fileName.toLowerCase();
 
   if (lowerName.endsWith('.csv')) {
@@ -200,7 +202,7 @@ function parseRows(filePayload) {
       skip_empty_lines: true,
       trim: true,
     });
-    return { fileName, rows };
+    return { fileName, rows, contentHash };
   }
 
   if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
@@ -215,7 +217,7 @@ function parseRows(filePayload) {
       defval: '',
       raw: false,
     });
-    return { fileName, rows };
+    return { fileName, rows, contentHash };
   }
 
   throw makeImportError('IMPORT_FILE_TYPE_UNSUPPORTED', 'Only CSV, XLS and XLSX files are supported');
@@ -566,35 +568,125 @@ function summarizePreview(entityType, fileName, rows) {
   };
 }
 
+function makePreviewToken({ entityType, fileName, contentHash, totalRows, validRowCount, invalidRowCount, duplicateRowCount }) {
+  return createHash('sha256')
+    .update([
+      PREVIEW_TOKEN_VERSION,
+      entityType,
+      fileName,
+      contentHash,
+      totalRows,
+      validRowCount,
+      invalidRowCount,
+      duplicateRowCount,
+    ].join('|'))
+    .digest('hex');
+}
+
+function attachPreviewControl(preview, contentHash) {
+  return {
+    ...preview,
+    previewRequiredForApply: true,
+    previewToken: makePreviewToken({ ...preview, contentHash }),
+  };
+}
+
+function assertPreviewToken(preview, filePayload) {
+  const suppliedToken = trimText(filePayload?.previewToken);
+
+  if (!suppliedToken) {
+    throw makeImportError('IMPORT_PREVIEW_REQUIRED', 'Preview token is required before import apply', 409);
+  }
+
+  if (suppliedToken !== preview.previewToken) {
+    throw makeImportError('IMPORT_PREVIEW_STALE', 'Preview token does not match the import file; run preview again', 409);
+  }
+}
+
+function addProductWarnings(row) {
+  if (row.errors.length > 0) return row;
+
+  if (row.data.salePrice === 0) row.warnings.push('salePrice is zero');
+  if (row.data.purchasePrice === 0) row.warnings.push('purchasePrice is zero');
+  if (row.data.stockQuantity === 0) row.warnings.push('stockQuantity is zero');
+  if (!row.data.brand) row.warnings.push('brand is empty');
+  if (!row.data.category) row.warnings.push('category is empty');
+
+  return row;
+}
+
+function addCustomerWarnings(row) {
+  if (row.errors.length > 0) return row;
+
+  if (row.data.phone === '000' || row.data.phone === '0000') row.warnings.push('phone looks temporary');
+  if (!row.data.city) row.warnings.push('city is empty');
+  if (!row.data.country) row.warnings.push('country is empty');
+  if (row.data.balance !== 0) row.warnings.push('opening balance will be imported');
+
+  return row;
+}
+
+function addSupplierWarnings(row) {
+  if (row.errors.length > 0) return row;
+
+  if (!row.data.phone) row.warnings.push('phone is empty');
+  if (!row.data.city) row.warnings.push('city is empty');
+  if (!row.data.country) row.warnings.push('country is empty');
+  if (row.data.balance !== 0) row.warnings.push('opening balance will be imported');
+
+  return row;
+}
+
+async function readEntityCount(request, entityType) {
+  const tableByEntity = {
+    products: 'dbo.products',
+    customers: 'dbo.customers',
+    suppliers: 'dbo.suppliers',
+  };
+  const tableName = tableByEntity[entityType];
+
+  if (!tableName) {
+    throw makeImportError('IMPORT_ENTITY_INVALID', 'Import entity type is invalid');
+  }
+
+  const result = await request.query(`
+    SELECT COUNT_BIG(1) AS total
+    FROM ${tableName}
+    WHERE is_deleted = 0;
+  `);
+
+  return Number(result.recordset?.[0]?.total || 0);
+}
+
 export async function previewProductImport(filePayload) {
-  const { fileName, rows: rawRows } = parseRows(filePayload);
-  const rows = rawRows.map((row, index) => buildProductRow(row, index + 2));
+  const { fileName, rows: rawRows, contentHash } = parseRows(filePayload);
+  const rows = rawRows.map((row, index) => addProductWarnings(buildProductRow(row, index + 2)));
 
   markFileDuplicates(rows, 'stockCode', 'stockCode');
   markFileDuplicates(rows, 'barcode', 'barcode');
   await markDbProductDuplicates(rows);
 
-  return summarizePreview('products', fileName, rows);
+  return attachPreviewControl(summarizePreview('products', fileName, rows), contentHash);
 }
 
 export async function previewCustomerImport(filePayload) {
-  const { fileName, rows: rawRows } = parseRows(filePayload);
-  const rows = rawRows.map((row, index) => buildCustomerRow(row, index + 2));
+  const { fileName, rows: rawRows, contentHash } = parseRows(filePayload);
+  const rows = rawRows.map((row, index) => addCustomerWarnings(buildCustomerRow(row, index + 2)));
 
   markFileDuplicates(rows, 'customerCode', 'customerCode');
   await markDbCustomerDuplicates(rows);
 
-  return summarizePreview('customers', fileName, rows);
+  return attachPreviewControl(summarizePreview('customers', fileName, rows), contentHash);
 }
 
 export async function previewSupplierImport(filePayload) {
-  const { fileName, rows: rawRows } = parseRows(filePayload);
-  const rows = rawRows.map((row, index) => buildSupplierRow(row, index + 2));
+  const { fileName, rows: rawRows, contentHash } = parseRows(filePayload);
+  const rows = rawRows.map((row, index) => addSupplierWarnings(buildSupplierRow(row, index + 2)));
 
   markFileDuplicates(rows, 'supplierCode', 'supplierCode');
   await markDbSupplierDuplicates(rows);
 
-  return summarizePreview('suppliers', fileName, rows);
+  return attachPreviewControl(summarizePreview('suppliers', fileName, rows), contentHash);
 }
 
 function getCommitRows(preview, { validOnly = false } = {}) {
@@ -627,6 +719,7 @@ export async function commitProductImport(filePayload, actor = null) {
   assertMelisaWriteEnabled();
 
   const preview = await previewProductImport(filePayload);
+  assertPreviewToken(preview, filePayload);
   const validOnly = Boolean(filePayload?.validOnly);
   assertPreviewClean(preview, { validOnly });
   const commitRows = getCommitRows(preview, { validOnly });
@@ -638,6 +731,7 @@ export async function commitProductImport(filePayload, actor = null) {
   await transaction.begin();
 
   try {
+    const beforeCount = await readEntityCount(new sqlDriver.Request(transaction), 'products');
     const insertedIds = [];
 
     for (const row of commitRows) {
@@ -718,6 +812,8 @@ export async function commitProductImport(filePayload, actor = null) {
         `);
     }
 
+    const afterCount = await readEntityCount(new sqlDriver.Request(transaction), 'products');
+
     await writeAuditLog(new sqlDriver.Request(transaction), {
       action: 'import_products',
       entityType: 'import',
@@ -729,6 +825,8 @@ export async function commitProductImport(filePayload, actor = null) {
         skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
         skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
         warningCount: preview.warnings.length,
+        beforeCount,
+        afterCount,
       },
       actor,
     });
@@ -739,6 +837,8 @@ export async function commitProductImport(filePayload, actor = null) {
       entityType: 'products',
       insertedCount: insertedIds.length,
       insertedIds,
+      beforeCount,
+      afterCount,
       skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
       skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
       preview,
@@ -753,6 +853,7 @@ export async function commitCustomerImport(filePayload, actor = null) {
   assertMelisaWriteEnabled();
 
   const preview = await previewCustomerImport(filePayload);
+  assertPreviewToken(preview, filePayload);
   const validOnly = Boolean(filePayload?.validOnly);
   assertPreviewClean(preview, { validOnly });
   const commitRows = getCommitRows(preview, { validOnly });
@@ -764,6 +865,7 @@ export async function commitCustomerImport(filePayload, actor = null) {
   await transaction.begin();
 
   try {
+    const beforeCount = await readEntityCount(new sqlDriver.Request(transaction), 'customers');
     const insertedIds = [];
 
     for (const row of commitRows) {
@@ -815,6 +917,8 @@ export async function commitCustomerImport(filePayload, actor = null) {
       insertedIds.push(Number(insertResult.recordset?.[0]?.customerId));
     }
 
+    const afterCount = await readEntityCount(new sqlDriver.Request(transaction), 'customers');
+
     await writeAuditLog(new sqlDriver.Request(transaction), {
       action: 'import_customers',
       entityType: 'import',
@@ -825,6 +929,9 @@ export async function commitCustomerImport(filePayload, actor = null) {
         insertedIds,
         skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
         skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
+        warningCount: preview.warnings.length,
+        beforeCount,
+        afterCount,
       },
       actor,
     });
@@ -835,6 +942,8 @@ export async function commitCustomerImport(filePayload, actor = null) {
       entityType: 'customers',
       insertedCount: insertedIds.length,
       insertedIds,
+      beforeCount,
+      afterCount,
       skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
       skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
       preview,
@@ -849,6 +958,7 @@ export async function commitSupplierImport(filePayload, actor = null) {
   assertMelisaWriteEnabled();
 
   const preview = await previewSupplierImport(filePayload);
+  assertPreviewToken(preview, filePayload);
   const validOnly = Boolean(filePayload?.validOnly);
   assertPreviewClean(preview, { validOnly });
   const commitRows = getCommitRows(preview, { validOnly });
@@ -860,6 +970,7 @@ export async function commitSupplierImport(filePayload, actor = null) {
   await transaction.begin();
 
   try {
+    const beforeCount = await readEntityCount(new sqlDriver.Request(transaction), 'suppliers');
     const insertedIds = [];
 
     for (const row of commitRows) {
@@ -904,6 +1015,8 @@ export async function commitSupplierImport(filePayload, actor = null) {
       insertedIds.push(Number(insertResult.recordset?.[0]?.supplierId));
     }
 
+    const afterCount = await readEntityCount(new sqlDriver.Request(transaction), 'suppliers');
+
     await writeAuditLog(new sqlDriver.Request(transaction), {
       action: 'import_suppliers',
       entityType: 'import',
@@ -914,6 +1027,9 @@ export async function commitSupplierImport(filePayload, actor = null) {
         insertedIds,
         skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
         skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
+        warningCount: preview.warnings.length,
+        beforeCount,
+        afterCount,
       },
       actor,
     });
@@ -924,6 +1040,8 @@ export async function commitSupplierImport(filePayload, actor = null) {
       entityType: 'suppliers',
       insertedCount: insertedIds.length,
       insertedIds,
+      beforeCount,
+      afterCount,
       skippedInvalidCount: validOnly ? preview.invalidRowCount : 0,
       skippedDuplicateCount: validOnly ? preview.duplicateRowCount : 0,
       preview,

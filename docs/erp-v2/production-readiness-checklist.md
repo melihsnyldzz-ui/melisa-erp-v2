@@ -89,11 +89,13 @@ Bu checklist Melisa ERP v2'nin production'a yaklasirken gecmesi gereken teknik k
 
 ## Import
 
-- [ ] Import preview zorunlu.
+- [ ] Import apply matching `previewToken` olmadan reddediliyor.
 - [ ] Validation fail olursa DB'ye yazma yok.
 - [ ] Import body size limit tanimli.
 - [ ] Dosya tipi ve kolon validation net.
 - [ ] Duplicate detection calisiyor.
+- [ ] Suspicious-row warnings operator tarafindan apply oncesi inceleniyor.
+- [ ] Apply sonucu before/after count ve audit snapshot iceriyor.
 - [ ] Import commit transaction icinde.
 - [ ] Import audit log yaziyor.
 - [ ] `xlsx` paket advisory riski kabul/mitigate edildi.

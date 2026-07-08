@@ -67,6 +67,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 005 sales/purchase commercial truth documented in `docs/erp-v2/sales-purchase-sprint-005-report.md`.
 - Sprint 006 finance collections/payments documented in `docs/erp-v2/finance-sprint-006-report.md`.
 - Sprint 007 backup/restore/reset safety documented in `docs/erp-v2/backup-restore-reset-sprint-007-report.md`.
+- Sprint 008 import and cleanup control documented in `docs/erp-v2/import-cleanup-sprint-008-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -83,7 +84,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
 | Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase |
 | Finance | Improved | Collections/payments have controlled API smoke evidence for selected cari guards, customer/supplier movement impact, finance account balance impact, finance account movements and audit expectations; operational finance vs official accounting boundary is documented |
-| Import | Partial | Preview/apply exists, but reconciliation, rollback guidance and result reporting need hardening |
+| Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
 | Terminal app | Partial | Field app exists, but offline queue, idempotency, sync admin and device runbook need validation |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
 | Catalog/WhatsApp | Partial/Risky | Flows exist, but external sending must remain approval-gated and should move toward CRM boundary later |
@@ -94,7 +95,7 @@ These areas exist but should not be treated as finished business capability yet:
 
 - Single full ERP smoke path: login -> stock -> purchase -> sales -> finance -> reports.
 - Production-ready backup/restore verification.
-- Import reconciliation and rollback reporting.
+- Import reconciliation against finance/accounting truth.
 - Product media coverage and safe bulk image workflow.
 - Terminal failed sync administration.
 - Audit browser and audit coverage map.
@@ -135,32 +136,33 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 007 is completed when backup/restore/reset safety is documented, the backup/reset script guard review is recorded, backup artifact creation is approval-gated, and no backup, reset, restore, migration or production action was run without approval.
+Sprint 008 is completed when import apply is preview-gated, duplicate and suspicious-row reporting is visible for product/customer/supplier imports, apply result expectations include before/after counts and audit, cleanup apply approval points are documented, and no import apply, cleanup apply, reset, restore, migration or production action was run without approval.
 
-Sprint 007 does not prove that a production restore has succeeded. It creates the operator discipline and verification plan required before restore testing.
+Sprint 008 does not prove that a live business import is safe for every source file. It creates the operator discipline and technical guardrails required before controlled import batches.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 008.
+Complete Sprint 009.
 ```
 
-Sprint 008 should focus on Import And Cleanup Control.
+Sprint 009 should focus on Operational Health And Monitoring.
 
 Business reason:
 
 - ERP Core transaction loops now have controlled evidence through Sprint 005 and Sprint 006.
 - Sprint 007 defined backup/restore/reset discipline without running risky operations.
-- Import and cleanup can damage live stock/cari data unless preview/apply/report, approval and rollback rules are tightened next.
+- Sprint 008 tightened import preview/apply/report and cleanup approval rules without running risky writes.
+- Operators now need health, failed sync, import/finalize failure and audit visibility in one place.
 
-Expected Sprint 008 outputs:
+Expected Sprint 009 outputs:
 
-- Import preview/apply/report review.
-- Cleanup endpoint safety review.
-- Approval points for write cleanup/import actions.
-- Audit and before/after result expectations.
+- API and SQL health visibility review.
+- Failed terminal sync visibility review.
+- Import/finalize failure visibility review.
+- Monitoring remains read-only by default.
 - Current status and production readiness updates if behavior changes.
 
 ## Do Not Start Yet
