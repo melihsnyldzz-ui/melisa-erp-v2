@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Await Explicit Backup Restore Execution Approval.
+Plan P1 Production Host Network Checklist.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1282,6 +1282,11 @@ verification run packet. See
 `docs/erp-v2/approved-backup-restore-verification-run.md` and
 `docs/erp-v2/approved-backup-restore-verification-run-sprint-039-report.md`.
 
-The next step is waiting for exact explicit backup/restore execution approval,
-or continuing non-destructive production readiness hardening if execution is not
-approved.
+Sprint 040 was completed on 2026-07-09 with the remaining production readiness
+hardening queue. See
+`docs/erp-v2/production-readiness-remaining-hardening.md` and
+`docs/erp-v2/production-readiness-remaining-hardening-sprint-040-report.md`.
+
+The next P1 item should create the production host and network checklist without
+deploying, changing firewall/DNS, touching secrets, or running production
+actions.

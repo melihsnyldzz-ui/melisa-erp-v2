@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Await Explicit Backup Restore Execution Approval.'),
+  currentStatus.includes('Plan P1 Production Host Network Checklist.'),
 );
 
 addCheck(

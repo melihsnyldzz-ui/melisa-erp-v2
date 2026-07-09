@@ -77,7 +77,7 @@ addCheck(
 
 addCheck(
   'current status points to approved backup restore verification run',
-  currentStatus.includes('Await Explicit Backup Restore Execution Approval.'),
+  currentStatus.includes('Plan P1 Production Host Network Checklist.'),
 );
 
 addCheck(

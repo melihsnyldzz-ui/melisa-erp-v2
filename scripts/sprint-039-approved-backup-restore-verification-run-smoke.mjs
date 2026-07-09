@@ -112,7 +112,7 @@ addCheck(
 
 addCheck(
   'current status waits for explicit execution approval',
-  currentStatus.includes('Await Explicit Backup Restore Execution Approval.'),
+  currentStatus.includes('Plan P1 Production Host Network Checklist.'),
 );
 
 addCheck(
