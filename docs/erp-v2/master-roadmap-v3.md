@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Settings And Definitions Business Review.
+Plan P1 Final Testing Runbook And Operator Readiness.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1220,6 +1220,10 @@ Sprint 025 was completed on 2026-07-09 with terminal failed-sync and
 device-readiness validation labels. See
 `docs/erp-v2/terminal-device-sync-validation-sprint-025-report.md`.
 
-The next P1 item should review Settings and Definitions screens so business
-configuration, permissions, stock, finance, terminal and integration boundaries
-are clear before final human testing.
+Sprint 026 was completed on 2026-07-09 with settings, definitions and
+currency-rate business boundary labels. See
+`docs/erp-v2/settings-definitions-business-review-sprint-026-report.md`.
+
+The next P1 item should create a practical final-testing runbook and operator
+readiness flow so ERP can move from stabilization sprints into guided human
+testing.

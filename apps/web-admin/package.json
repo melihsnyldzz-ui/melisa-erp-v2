@@ -17,6 +17,7 @@
     "smoke:invoice-boundary": "node ../../scripts/web-admin-invoice-boundary-smoke.mjs",
     "smoke:crm-whatsapp-boundary": "node ../../scripts/web-admin-crm-whatsapp-boundary-smoke.mjs",
     "smoke:terminal-boundary": "node ../../scripts/web-admin-terminal-boundary-smoke.mjs",
+    "smoke:settings-definitions-boundary": "node ../../scripts/web-admin-settings-definitions-boundary-smoke.mjs",
     "smoke:reporting": "node ../../scripts/sprint-014-reporting-decision-support-smoke.mjs",
     "smoke:ai-readiness": "node ../../scripts/sprint-015-ai-automation-readiness-smoke.mjs",
     "smoke:erp-core-path": "node ../../scripts/sprint-016-erp-core-smoke-path-smoke.mjs",

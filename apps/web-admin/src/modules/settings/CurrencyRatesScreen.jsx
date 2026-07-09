@@ -105,6 +105,9 @@ export function CurrencyRatesScreen() {
       {isLoading && <div className="list-state">Kur bilgileri SQL'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
+      <div className="list-state">
+        Final test notu: Kaydet USD/EUR kurunu API'ye yazar ve yeni satis/alis fislerinin kur snapshot davranisini etkiler. Eski kesinlesmis fisleri toplu olarak yeniden hesaplamaz.
+      </div>
 
       <section className="erp-panel currency-rate-panel">
         <div className="panel-title">

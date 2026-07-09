@@ -75,6 +75,9 @@ export function DefinitionsScreen() {
       {isLoading && <div className="list-state">Tanımlar API'den okunuyor...</div>}
       {message && <div className="list-state list-state-success">{message}</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      <div className="list-state">
+        Final test notu: Kaydet stok birimi, cari tipi, odeme/tahsilat yontemi ve para birimi tanimlarini API'ye yazar. Bu ekran import veya migration calistirmaz; mevcut fisleri toplu olarak duzeltmez.
+      </div>
       <section className="split-grid">
         {DEFINITION_FIELDS.map(([key, label]) => (
           <section className="erp-panel" key={key}>

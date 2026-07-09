@@ -85,6 +85,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 023 invoice fixture and mock boundary cleanup documented in `docs/erp-v2/invoice-fixture-boundary-sprint-023-report.md`.
 - Sprint 024 CRM and WhatsApp final-testing labels documented in `docs/erp-v2/crm-whatsapp-boundary-labels-sprint-024-report.md`.
 - Sprint 025 terminal failed-sync and device validation documented in `docs/erp-v2/terminal-device-sync-validation-sprint-025-report.md`.
+- Sprint 026 settings and definitions business review documented in `docs/erp-v2/settings-definitions-business-review-sprint-026-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -103,6 +104,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Finance | Improved | Collections/payments have controlled API smoke evidence for selected cari guards, customer/supplier movement impact, finance account balance impact, finance account movements and audit expectations; operational finance vs official accounting boundary is documented |
 | Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
 | Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, and Sprint 025 clarifies web-admin terminal visibility is read-only, Send can write through the API, Delete removes only local queue state, and failed queue/API/cache blockers mean a device is not field-ready |
+| Settings/Definitions | Improved | Sprint 026 clarifies that system settings, definitions and currency rates can change business behavior through API writes, while imports, migrations, finalized receipt recalculation and maintenance apply actions remain explicit boundaries |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
 | Catalog/WhatsApp | Improved | Sprint 012 keeps public catalog fields safe, removes prices from share text, keeps automatic WhatsApp sending approval-gated, Sprint 013 assigns outreach ownership to CRM, and Sprint 024 labels visible ERP screens as manual preparation/review only |
 | CRM boundary | Planned | Sprint 013 defines CRM-owned outreach, follow-up, campaign, communication-history, catalog follow-up and pipeline workflows without implementation |
@@ -156,31 +158,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 025 is completed when terminal admin and terminal app screens clearly explain terminal read-only visibility, failed-sync review boundaries, local queue deletion, API-backed send behavior, and device-readiness blockers.
+Sprint 026 is completed when settings, definitions and currency-rate screens clearly explain which actions write through the API, which actions affect business rules, and which maintenance/import/migration/recalculation actions remain out of scope.
 
-Sprint 025 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal send/delete execution, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
+Sprint 026 does not execute settings save, cleanup, archive, restore, currency-rate save, SQL migrations, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal send/delete execution, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Settings And Definitions Business Review.
+Plan P1 Final Testing Runbook And Operator Readiness.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 025 makes terminal failed-sync and device-readiness boundaries explicit before operator training.
-- The next risk is settings and definitions: business-critical definitions should be reviewed so wrong defaults or unclear setup screens do not affect final human testing.
+- Sprint 026 makes settings, definitions and currency-rate business effects explicit before final testing.
+- The next risk is operational readiness: users need a clear final-testing runbook that says which flows to test, in what order, and which actions require explicit approval.
 
 Expected next P1 outputs:
 
-- Inventory Settings and Definitions screens.
-- Identify settings that change business behavior, permissions, finance, stock, terminal or integration behavior.
-- Label unsafe or incomplete setup areas before final testing.
-- Add focused smoke coverage for settings/definitions final-testing boundaries.
+- Create a practical final-testing runbook for ERP operators.
+- Define the first end-to-end test scenario order for stock, cari, sales, purchase, finance, reporting and terminal.
+- Separate safe read-only checks from write checks that need explicit approval.
+- Add a smoke check that keeps the runbook linked from current status.
 
 ## Do Not Start Yet
 

@@ -389,6 +389,9 @@ export function SystemSettingsScreen() {
       {isLoading && <div className="list-state">Ayarlar API'den okunuyor...</div>}
       {message && <div className="list-state list-state-success">{message}</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      <div className="list-state">
+        Final test notu: Kaydet firma, belge seri, KDV ve donem kilidi ayarlarini API'ye yazar. Temizlik, arsivleme ve geri alma butonlari test/demo verisini etkileyebilir; onizleme ve onay metni olmadan calistirilmaz.
+      </div>
 
       <section className="dashboard-kpi-grid">
         <article className={apiConfig.demoMode ? 'dashboard-kpi danger' : 'dashboard-kpi good'}>
@@ -442,6 +445,9 @@ export function SystemSettingsScreen() {
 
       <section className="erp-panel accounting-lock-panel">
         <div className="panel-title"><strong>Muhasebe Donem Kilidi</strong><span>Kapali doneme ticari hareket yazilmaz</span></div>
+        <div className="list-state">
+          Is kurali etkisi: Bu ayar satis, alis, iptal, tahsilat, odeme ve stok sayim islemlerinin kayit kabulunu degistirir.
+        </div>
         <div className="filter-grid">
           <label>
             Kilit durumu
@@ -466,7 +472,6 @@ export function SystemSettingsScreen() {
           Kilit aktifken bu tarih ve öncesine ait satış, alış, iptal, tahsilat, ödeme ve stok sayım düzeltmesi kaydedilmez.
         </div>
       </section>
-
       <section className="erp-panel test-tree-cleanup-panel">
         <div className="panel-title">
           <strong>Test İşlem Ağacı Arşivi</strong>
