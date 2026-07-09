@@ -103,6 +103,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 041 production host network checklist documented in `docs/erp-v2/production-host-network-checklist-sprint-041-report.md` and `docs/erp-v2/production-host-network-checklist.md`.
 - Sprint 042 production env ownership checklist documented in `docs/erp-v2/production-env-ownership-checklist-sprint-042-report.md` and `docs/erp-v2/production-env-ownership-checklist.md`.
 - Sprint 043 final closure decision documented in `docs/erp-v2/final-closure-decision-sprint-043-report.md` and `docs/erp-v2/final-closure-decision.md`.
+- Production acceptance session documented in `docs/erp-v2/production-acceptance-session.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -182,17 +183,17 @@ Sprint 043 is completed when the final closure decision exists and separates com
 
 Sprint 043 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, DNS/firewall/reverse-proxy changes, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, secret generation, secret rotation, secret printing, or new business-rule changes.
 
-ERP Core is treated as functionally complete for final operator testing and internal use decisions. Production go-live remains blocked by explicit production acceptance items only.
+ERP Core is treated as functionally complete for final operator testing and internal use decisions. The `Run ERP Production Acceptance Session.` action has been completed and recorded. Production acceptance session decision is `READY_FOR_INTERNAL_USE_ONLY`. Production go-live remains blocked by explicit production acceptance items only.
 
 ## Recommended Next Action
 
 Recommended next action:
 
 ```text
-Run ERP Production Acceptance Session.
+Use ERP internally with controlled operators and record real findings only when they appear.
 ```
 
-The next action should be a practical go/no-go acceptance session, not another open-ended checklist sprint chain.
+The next action should be real controlled use, not another open-ended checklist sprint chain.
 
 Business reason:
 

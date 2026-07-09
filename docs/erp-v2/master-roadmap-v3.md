@@ -1304,7 +1304,11 @@ production blockers are separated from non-blocking hardening. See
 The next action should be:
 
 ```text
-Run ERP Production Acceptance Session.
+Use ERP internally with controlled operators and record real findings only when they appear.
 ```
 
-This is a go/no-go session, not another open-ended sprint chain.
+The production acceptance session is recorded in
+`docs/erp-v2/production-acceptance-session.md` with decision
+`READY_FOR_INTERNAL_USE_ONLY`. This completes the previous
+`Run ERP Production Acceptance Session.` action. Full production go-live still
+requires exact approval for the named production gate action.
