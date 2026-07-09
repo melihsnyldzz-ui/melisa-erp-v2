@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 P0/P1 Findings Fix Pass.
+Plan P1 Final Human Acceptance Walkthrough.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1241,5 +1241,8 @@ Sprint 030 was completed on 2026-07-09 with approved ERP Core write evidence
 for purchase, sales, finance, cancellation and reversal behavior. See
 `docs/erp-v2/approved-erp-core-write-test-sprint-030-report.md`.
 
-The next P1 item should run a P0/P1 findings fix pass before wider final
-testing.
+Sprint 031 was completed on 2026-07-09 with a P0/P1 findings fix-pass review.
+No evidence-backed P0/P1 findings were recorded in the formal final-testing
+log. See `docs/erp-v2/p0-p1-findings-fix-pass-sprint-031-report.md`.
+
+The next P1 item should run the final human acceptance walkthrough.

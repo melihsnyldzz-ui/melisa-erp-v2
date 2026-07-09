@@ -76,8 +76,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to the P0/P1 findings fix pass',
-  currentStatus.includes('Plan P1 P0/P1 Findings Fix Pass.'),
+  'current status points to final human acceptance walkthrough',
+  currentStatus.includes('Plan P1 Final Human Acceptance Walkthrough.'),
 );
 
 addCheck(
