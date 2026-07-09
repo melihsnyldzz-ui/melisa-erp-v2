@@ -14,6 +14,7 @@
     "smoke:empty-state": "node ../../scripts/web-admin-empty-state-smoke.mjs",
     "smoke:operational-health": "node ../../scripts/web-admin-operational-health-smoke.mjs",
     "smoke:layout": "node ../../scripts/web-admin-layout-smoke.mjs",
+    "smoke:invoice-boundary": "node ../../scripts/web-admin-invoice-boundary-smoke.mjs",
     "smoke:reporting": "node ../../scripts/sprint-014-reporting-decision-support-smoke.mjs",
     "smoke:ai-readiness": "node ../../scripts/sprint-015-ai-automation-readiness-smoke.mjs",
     "smoke:erp-core-path": "node ../../scripts/sprint-016-erp-core-smoke-path-smoke.mjs",

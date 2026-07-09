@@ -4,11 +4,6 @@ import { SalesInvoiceItemsTable } from './SalesInvoiceItemsTable.jsx';
 import { SalesInvoiceToolbar } from './SalesInvoiceToolbar.jsx';
 import { SalesInvoiceTotals } from './SalesInvoiceTotals.jsx';
 import {
-  invoiceDiscountRate,
-  salesInvoiceHeader,
-  salesInvoiceItems,
-} from './salesInvoiceMockData.js';
-import {
   cancelSalesDraft,
   createSalesDraft,
   fetchSalesInvoice,
@@ -23,7 +18,6 @@ import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtil
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 const emptySalesInvoice = {
-  ...salesInvoiceHeader,
   invoiceNo: 'Taslak',
   date: todayIsoDate(),
   customerId: '',
@@ -151,7 +145,7 @@ function resolveImageUrl(imageUrl) {
 
 function formatDate(value) {
   if (!value) {
-    return salesInvoiceHeader.date;
+    return todayIsoDate();
   }
 
   return String(value).slice(0, 10);
@@ -293,11 +287,11 @@ function mergeProductOptions(currentProducts, nextProducts) {
 
 export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChange, onOpenScreen }) {
   const [draftId, setDraftId] = useState(salesDraftId ?? null);
-  const [invoice, setInvoice] = useState(salesDraftId ? salesInvoiceHeader : emptySalesInvoice);
-  const [items, setItems] = useState(salesDraftId ? salesInvoiceItems : []);
-  const [discountRate, setDiscountRate] = useState(salesDraftId ? invoiceDiscountRate : 0);
-  const [status, setStatus] = useState(salesInvoiceHeader.status);
-  const [selectedItemId, setSelectedItemId] = useState(salesDraftId ? salesInvoiceItems[0].id : null);
+  const [invoice, setInvoice] = useState(emptySalesInvoice);
+  const [items, setItems] = useState([]);
+  const [discountRate, setDiscountRate] = useState(0);
+  const [status, setStatus] = useState('DRAFT');
+  const [selectedItemId, setSelectedItemId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Taslak fiş henüz stok veya cari hareket oluşturmaz.');
   const [draftCustomerOptions, setDraftCustomerOptions] = useState([]);
   const [draftProductOptions, setDraftProductOptions] = useState([]);

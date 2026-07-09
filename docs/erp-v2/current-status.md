@@ -82,6 +82,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 020 audit browser and coverage documented in `docs/erp-v2/audit-browser-coverage-sprint-020-report.md`.
 - Sprint 021 whole ERP screen completion audit documented in `docs/erp-v2/whole-erp-screen-completion-audit-sprint-021-report.md`.
 - Sprint 022 final ERP smoke test pack documented in `docs/erp-v2/final-erp-smoke-pack-sprint-022-report.md`.
+- Sprint 023 invoice fixture and mock boundary cleanup documented in `docs/erp-v2/invoice-fixture-boundary-sprint-023-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -96,7 +97,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Audit | Improved | Dedicated Audit Log screen and read-only audit coverage map exist; remaining gap is proving every critical code path is fail-closed when audit writing fails |
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
 | Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
-| Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase |
+| Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase; invoice screens no longer load old mock fixture rows as live defaults |
 | Finance | Improved | Collections/payments have controlled API smoke evidence for selected cari guards, customer/supplier movement impact, finance account balance impact, finance account movements and audit expectations; operational finance vs official accounting boundary is documented |
 | Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
 | Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, but offline queue runbook and device failure operations still need validation |
@@ -107,7 +108,7 @@ These areas exist but should not be treated as finished business capability yet:
 | AI/Automation | Planned safely | Sprint 015 defines read-only AI analysis, prohibited autonomous actions, exact approval gates, traceability, human decision ownership and future automation candidates without implementation |
 | Media/image workflow | Improved | Sprint 011 adds a dry-run coverage/matching report and review-only manifest; apply remains approval-gated |
 | Screen completion | Improved | Sprint 021 verifies all visible menu screens map to registered Workspace routes and classifies remaining P1/P2 screen gaps |
-| Final smoke pack | Improved | Sprint 022 adds one repeatable final ERP smoke command covering static checks, build, warning-only live API read smoke, and approval-gated write smoke |
+| Final smoke pack | Improved | Sprint 022 adds one repeatable final ERP smoke command covering static checks, build, warning-only live API read smoke, approval-gated write smoke, and Sprint 023 invoice-boundary smoke |
 
 ## Missing Or Weak Areas
 
@@ -153,31 +154,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 022 is completed when one repeatable final ERP smoke command runs the main ERP Core static/build checks, reports live API read-only availability as warning-only, and keeps controlled write smoke skipped unless explicitly approved.
+Sprint 023 is completed when sales and purchase invoice screens no longer import old mock/default invoice files, start from empty live-safe state, and the final ERP smoke pack includes invoice-boundary coverage.
 
-Sprint 022 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
+Sprint 023 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Invoice Fixture And Mock Boundary Cleanup.
+Plan P1 CRM And WhatsApp Final Testing Labels.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 022 provides one repeatable final ERP smoke command.
-- The next risk is operator trust: mock/demo/fixture/default invoice labels should not be confused with live ERP business behavior during final human testing.
+- Sprint 023 removes old invoice fixture defaults from live sales and purchase invoice screens.
+- The next risk is operator clarity: CRM and WhatsApp screens include planned/boundary-controlled behavior that should be clearly labeled before final human testing.
 
 Expected next P1 outputs:
 
-- Inventory invoice-related mock, demo, fixture, fallback, and default labels.
-- Remove or clearly label non-live invoice data paths.
-- Keep true empty states honest when API data is absent.
-- Add focused smoke coverage proving operators cannot mistake sample labels for live transactions.
+- Inventory CRM, sales pipeline, catalog, and WhatsApp-related labels.
+- Mark planned or moved-out workflows clearly.
+- Confirm no automatic WhatsApp sending is presented as active without approval.
+- Add focused smoke coverage for final-testing labels.
 
 ## Do Not Start Yet
 

@@ -4,12 +4,6 @@ import { PurchaseInvoiceItemsTable } from './PurchaseInvoiceItemsTable.jsx';
 import { PurchaseInvoiceToolbar } from './PurchaseInvoiceToolbar.jsx';
 import { PurchaseInvoiceTotals } from './PurchaseInvoiceTotals.jsx';
 import {
-  invoiceDiscountRate,
-  purchaseInvoiceHeader,
-  purchaseInvoiceItems,
-  supplierGeneralDiscountRate,
-} from './purchaseInvoiceMockData.js';
-import {
   cancelPurchaseDraft,
   createPurchaseDraft,
   fetchPurchaseInvoice,
@@ -24,7 +18,7 @@ import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtil
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 const emptyPurchaseInvoice = {
-  ...purchaseInvoiceHeader,
+  date: todayIsoDate(),
   invoiceNo: 'Alış Taslağı',
   supplierId: '',
   supplier: '',
@@ -37,6 +31,10 @@ const emptyPurchaseInvoice = {
   description: '',
   status: 'DRAFT',
 };
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function formatExchangeRate(currency, value) {
   return `${currency || 'TRY'} ${Number(value || 1).toFixed(4)}`;
@@ -94,7 +92,7 @@ function formatMoney(amount, currency) {
 
 function formatDate(value) {
   if (!value) {
-    return purchaseInvoiceHeader.date;
+    return todayIsoDate();
   }
 
   return String(value).slice(0, 10);
@@ -137,12 +135,12 @@ function mapDraftItems(items = []) {
 
 export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDirtyChange }) {
   const [draftId, setDraftId] = useState(purchaseDraftId ?? null);
-  const [invoice, setInvoice] = useState(purchaseDraftId ? purchaseInvoiceHeader : emptyPurchaseInvoice);
-  const [items, setItems] = useState(purchaseDraftId ? purchaseInvoiceItems : []);
-  const [invoiceRate, setInvoiceRate] = useState(purchaseDraftId ? invoiceDiscountRate : 0);
-  const [supplierRate, setSupplierRate] = useState(purchaseDraftId ? supplierGeneralDiscountRate : 0);
+  const [invoice, setInvoice] = useState(emptyPurchaseInvoice);
+  const [items, setItems] = useState([]);
+  const [invoiceRate, setInvoiceRate] = useState(0);
+  const [supplierRate, setSupplierRate] = useState(0);
   const [status, setStatus] = useState('DRAFT');
-  const [selectedItemId, setSelectedItemId] = useState(purchaseDraftId ? purchaseInvoiceItems[0].id : null);
+  const [selectedItemId, setSelectedItemId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Taslak alış fişi stok artırmaz ve cari hareket oluşturmaz.');
   const [supplierQuery, setSupplierQuery] = useState('');
   const [supplierOptions, setSupplierOptions] = useState([]);
