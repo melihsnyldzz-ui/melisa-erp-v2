@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Production Readiness Gate.'),
+  currentStatus.includes('Plan P1 Production Deployment Runbook And Env Checklist.'),
 );
 
 addCheck(

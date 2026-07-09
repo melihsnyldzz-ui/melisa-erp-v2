@@ -75,8 +75,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to the production readiness gate',
-  currentStatus.includes('Plan P1 Production Readiness Gate.'),
+  'current status points to the production deployment runbook and env checklist',
+  currentStatus.includes('Plan P1 Production Deployment Runbook And Env Checklist.'),
 );
 
 addCheck(

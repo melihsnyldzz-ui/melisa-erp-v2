@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Production Readiness Gate.
+Plan P1 Production Deployment Runbook And Env Checklist.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1254,4 +1254,10 @@ Sprint 033 was completed on 2026-07-09 with Melih's final human acceptance
 decision recorded as pass with warnings. See
 `docs/erp-v2/human-acceptance-decision-sprint-033-report.md`.
 
-The next P1 item should run the production readiness gate.
+Sprint 034 was completed on 2026-07-09 with a production readiness gate review.
+ERP Core is accepted with warnings, but production readiness is blocked until
+host, env, backup/restore, migration and deploy gates are closed. See
+`docs/erp-v2/production-readiness-gate-sprint-034-report.md`.
+
+The next P1 item should prepare the production deployment runbook and env
+checklist without exposing secrets or executing production actions.

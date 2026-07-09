@@ -93,6 +93,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 031 P0/P1 findings fix pass documented in `docs/erp-v2/p0-p1-findings-fix-pass-sprint-031-report.md`.
 - Sprint 032 final human acceptance walkthrough package documented in `docs/erp-v2/final-human-acceptance-walkthrough-sprint-032-report.md` and `docs/erp-v2/final-human-acceptance-log.md`.
 - Sprint 033 human acceptance decision documented in `docs/erp-v2/human-acceptance-decision-sprint-033-report.md`.
+- Sprint 034 production readiness gate documented in `docs/erp-v2/production-readiness-gate-sprint-034-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -168,19 +169,19 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 033 is completed when Melih's human acceptance decision is recorded, open P0/P1 findings remain clear, and ERP Core acceptance is separated from production readiness.
+Sprint 034 is completed when production readiness is reviewed, production blockers are listed, and risky production actions remain approval-gated.
 
-Sprint 033 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, or new business-rule changes.
+Sprint 034 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, or new business-rule changes.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Production Readiness Gate.
+Plan P1 Production Deployment Runbook And Env Checklist.
 ```
 
-The next P1 item should focus on production readiness.
+The next P1 item should focus on the production deployment runbook and environment checklist.
 
 Business reason:
 
@@ -188,14 +189,14 @@ Business reason:
 - Sprint 031 confirms there are no recorded evidence-backed P0/P1 findings waiting in the formal final-testing log.
 - Sprint 032 prepares the human acceptance checklist and preflight evidence without claiming operator acceptance.
 - Sprint 033 records Melih's human acceptance decision as pass with warnings.
-- The next risk is operational readiness, not ERP Core feature completion.
+- Sprint 034 confirms ERP Core is accepted but production is not ready until host, env, backup/restore, migration and deploy gates are closed.
 
 Expected next P1 outputs:
 
-- Review `docs/erp-v2/production-readiness-checklist.md`.
-- Identify production blockers vs accepted warnings.
-- Keep backup/restore, migration, deploy, reset, and external sending approval-gated.
-- Produce a short production-readiness action list.
+- Production deployment runbook draft.
+- Production env variable name checklist with no secret values.
+- Rollback and backup/restore operator checklist.
+- Clear list of actions requiring separate explicit approval.
 
 ## Do Not Start Yet
 
