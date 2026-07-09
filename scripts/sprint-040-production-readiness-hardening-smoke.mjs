@@ -60,7 +60,7 @@ addCheck(
 
 addCheck(
   'hardening document recommends next safe sprint',
-  hardening.includes('Plan P1 Production Env Ownership Checklist.'),
+  hardening.includes('Plan P1 Migration Rehearsal Checklist.'),
 );
 
 addCheck(
@@ -88,7 +88,7 @@ addCheck(
 
 addCheck(
   'current status points to host network checklist',
-  currentStatus.includes('Plan P1 Production Env Ownership Checklist.'),
+  currentStatus.includes('Plan P1 Migration Rehearsal Checklist.'),
 );
 
 addCheck(

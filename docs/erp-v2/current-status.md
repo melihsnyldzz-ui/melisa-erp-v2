@@ -101,6 +101,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 039 approved backup restore verification run packet documented in `docs/erp-v2/approved-backup-restore-verification-run-sprint-039-report.md` and `docs/erp-v2/approved-backup-restore-verification-run.md`.
 - Sprint 040 production readiness remaining hardening documented in `docs/erp-v2/production-readiness-remaining-hardening-sprint-040-report.md` and `docs/erp-v2/production-readiness-remaining-hardening.md`.
 - Sprint 041 production host network checklist documented in `docs/erp-v2/production-host-network-checklist-sprint-041-report.md` and `docs/erp-v2/production-host-network-checklist.md`.
+- Sprint 042 production env ownership checklist documented in `docs/erp-v2/production-env-ownership-checklist-sprint-042-report.md` and `docs/erp-v2/production-env-ownership-checklist.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -176,16 +177,16 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 041 is completed when the production host/network checklist exists, host/network/HTTPS/CORS/access-policy decisions are listed for human confirmation, and no deployment or network action has been executed.
+Sprint 042 is completed when the production env ownership checklist exists, env ownership/storage/rotation rules are listed for human confirmation, and no secret value has been read, printed, changed or committed.
 
-Sprint 041 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, DNS/firewall/reverse-proxy changes, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, or new business-rule changes.
+Sprint 042 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, DNS/firewall/reverse-proxy changes, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, secret generation, secret rotation, secret printing, or new business-rule changes.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Production Env Ownership Checklist.
+Plan P1 Migration Rehearsal Checklist.
 ```
 
 The next P1 item should focus on the backup/restore evidence log shell.
@@ -204,13 +205,14 @@ Business reason:
 - Sprint 039 prepares the approved backup/restore verification run packet without executing backup, restore, reset or migration actions.
 - Sprint 040 defines the remaining non-destructive production readiness hardening queue while backup/restore execution approval is pending.
 - Sprint 041 creates the production host/network checklist without executing deployment, DNS, firewall, reverse-proxy, secret or production actions.
+- Sprint 042 creates the production env ownership checklist without reading, printing, changing or committing secret values.
 
 Expected next P1 outputs:
 
-- Production environment variable names and ownership.
-- Storage/rotation policy for secrets without exposing values.
-- Production env readiness checklist.
-- No secret values read, printed, changed or committed.
+- Staging-only migration rehearsal checklist.
+- Migration list and pre/post checks.
+- Backup-before-migration requirement.
+- No migration execution or production SQL changes.
 
 ## Do Not Start Yet
 

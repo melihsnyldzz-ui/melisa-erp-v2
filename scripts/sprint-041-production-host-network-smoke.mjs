@@ -100,7 +100,7 @@ addCheck(
 
 addCheck(
   'current status points to env ownership checklist',
-  currentStatus.includes('Plan P1 Production Env Ownership Checklist.'),
+  currentStatus.includes('Plan P1 Migration Rehearsal Checklist.'),
 );
 
 addCheck(

@@ -76,7 +76,7 @@ addCheck(
 
 addCheck(
   'current status points to approved backup restore verification run',
-  currentStatus.includes('Plan P1 Production Env Ownership Checklist.'),
+  currentStatus.includes('Plan P1 Migration Rehearsal Checklist.'),
 );
 
 addCheck(

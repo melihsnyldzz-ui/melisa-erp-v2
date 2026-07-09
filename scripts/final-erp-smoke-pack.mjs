@@ -145,6 +145,7 @@ function runStaticAndBuildSmoke() {
     ['approved backup restore verification run smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:backup-restore-approved-run']],
     ['production readiness hardening smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:production-hardening']],
     ['production host network smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:production-host-network']],
+    ['production env ownership smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:production-env-ownership']],
     ['web-admin production build', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'build']],
   ];
 

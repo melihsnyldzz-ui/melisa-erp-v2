@@ -117,7 +117,7 @@ addCheck(
     'Sprint 019 controlled ERP core write smoke execution documented',
     'Sprint 020 audit browser and coverage documented',
     'Sprint 021 whole ERP screen completion audit documented',
-    'Plan P1 Production Env Ownership Checklist.',
+    'Plan P1 Migration Rehearsal Checklist.',
   ]),
 );
 

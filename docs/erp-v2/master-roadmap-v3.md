@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Production Env Ownership Checklist.
+Plan P1 Migration Rehearsal Checklist.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1291,5 +1291,9 @@ Sprint 041 was completed on 2026-07-09 with the production host/network
 checklist. See `docs/erp-v2/production-host-network-checklist.md` and
 `docs/erp-v2/production-host-network-checklist-sprint-041-report.md`.
 
-The next P1 item should create the production environment ownership checklist
-without reading, printing, changing, or committing secret values.
+Sprint 042 was completed on 2026-07-09 with the production env ownership
+checklist. See `docs/erp-v2/production-env-ownership-checklist.md` and
+`docs/erp-v2/production-env-ownership-checklist-sprint-042-report.md`.
+
+The next P1 item should create the staging-only migration rehearsal checklist
+without running migrations or touching production SQL.
