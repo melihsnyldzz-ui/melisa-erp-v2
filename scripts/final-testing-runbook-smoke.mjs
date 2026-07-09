@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Production Deployment Runbook And Env Checklist.'),
+  currentStatus.includes('Plan P1 Backup Restore Verification Plan.'),
 );
 
 addCheck(

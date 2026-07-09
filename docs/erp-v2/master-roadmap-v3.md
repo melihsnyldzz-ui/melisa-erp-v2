@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Production Deployment Runbook And Env Checklist.
+Plan P1 Backup Restore Verification Plan.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1259,5 +1259,11 @@ ERP Core is accepted with warnings, but production readiness is blocked until
 host, env, backup/restore, migration and deploy gates are closed. See
 `docs/erp-v2/production-readiness-gate-sprint-034-report.md`.
 
-The next P1 item should prepare the production deployment runbook and env
-checklist without exposing secrets or executing production actions.
+Sprint 035 was completed on 2026-07-09 with the production deployment runbook
+and secret-safe env checklist. See
+`docs/erp-v2/production-deployment-runbook.md`,
+`docs/erp-v2/production-env-checklist.md`, and
+`docs/erp-v2/production-deployment-runbook-sprint-035-report.md`.
+
+The next P1 item should prepare the backup/restore verification plan before
+any real backup, restore, migration, or production deploy action.

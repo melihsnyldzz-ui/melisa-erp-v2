@@ -94,6 +94,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 032 final human acceptance walkthrough package documented in `docs/erp-v2/final-human-acceptance-walkthrough-sprint-032-report.md` and `docs/erp-v2/final-human-acceptance-log.md`.
 - Sprint 033 human acceptance decision documented in `docs/erp-v2/human-acceptance-decision-sprint-033-report.md`.
 - Sprint 034 production readiness gate documented in `docs/erp-v2/production-readiness-gate-sprint-034-report.md`.
+- Sprint 035 production deployment runbook and env checklist documented in `docs/erp-v2/production-deployment-runbook-sprint-035-report.md`, `docs/erp-v2/production-deployment-runbook.md`, and `docs/erp-v2/production-env-checklist.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -169,19 +170,19 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 034 is completed when production readiness is reviewed, production blockers are listed, and risky production actions remain approval-gated.
+Sprint 035 is completed when the production deployment runbook and secret-safe env checklist exist, and risky production actions remain approval-gated.
 
-Sprint 034 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, or new business-rule changes.
+Sprint 035 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, or new business-rule changes.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Production Deployment Runbook And Env Checklist.
+Plan P1 Backup Restore Verification Plan.
 ```
 
-The next P1 item should focus on the production deployment runbook and environment checklist.
+The next P1 item should focus on backup/restore verification planning.
 
 Business reason:
 
@@ -190,13 +191,14 @@ Business reason:
 - Sprint 032 prepares the human acceptance checklist and preflight evidence without claiming operator acceptance.
 - Sprint 033 records Melih's human acceptance decision as pass with warnings.
 - Sprint 034 confirms ERP Core is accepted but production is not ready until host, env, backup/restore, migration and deploy gates are closed.
+- Sprint 035 creates a production deployment runbook and secret-safe env checklist without executing production actions.
 
 Expected next P1 outputs:
 
-- Production deployment runbook draft.
-- Production env variable name checklist with no secret values.
-- Rollback and backup/restore operator checklist.
-- Clear list of actions requiring separate explicit approval.
+- Backup/restore verification plan with target, evidence format and stop conditions.
+- Restore test checklist for staging.
+- Clear approval text for any real backup/restore action.
+- No backup or restore execution unless separately approved.
 
 ## Do Not Start Yet
 

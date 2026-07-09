@@ -18,6 +18,8 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [QA Stabilization Report](qa-stabilization-report.md)
 - [Backup / Restore Plan](backup-restore-plan.md)
 - [Production Readiness Checklist](production-readiness-checklist.md)
+- [Production Deployment Runbook](production-deployment-runbook.md)
+- [Production Environment Checklist](production-env-checklist.md)
 - [Final Testing Runbook](final-testing-runbook.md)
 - [Final Testing Findings Log](final-testing-findings-log.md)
 - [Guided Final Test Execution Log](guided-final-test-execution-log.md)
@@ -27,6 +29,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Final Human Acceptance Walkthrough Sprint 032 Report](final-human-acceptance-walkthrough-sprint-032-report.md)
 - [Human Acceptance Decision Sprint 033 Report](human-acceptance-decision-sprint-033-report.md)
 - [Production Readiness Gate Sprint 034 Report](production-readiness-gate-sprint-034-report.md)
+- [Production Deployment Runbook Sprint 035 Report](production-deployment-runbook-sprint-035-report.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
 

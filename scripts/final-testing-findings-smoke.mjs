@@ -76,8 +76,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to the production deployment runbook and env checklist',
-  currentStatus.includes('Plan P1 Production Deployment Runbook And Env Checklist.'),
+  'current status points to the backup restore verification plan',
+  currentStatus.includes('Plan P1 Backup Restore Verification Plan.'),
 );
 
 addCheck(
