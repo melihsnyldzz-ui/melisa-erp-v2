@@ -29,6 +29,7 @@
     "smoke:erp-core-write": "node ../../scripts/sprint-019-erp-core-write-smoke.mjs",
     "smoke:approved-erp-core-write": "node ../../scripts/sprint-030-approved-erp-core-write-smoke.mjs",
     "smoke:backup-restore-evidence": "node ../../scripts/sprint-037-backup-restore-evidence-log-smoke.mjs",
+    "smoke:backup-restore-preflight": "node ../../scripts/sprint-038-backup-restore-dry-run-preflight-smoke.mjs",
     "smoke:final-erp": "node ../../scripts/final-erp-smoke-pack.mjs"
   },
   "dependencies": {

@@ -90,8 +90,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to the dry-run preflight',
-  currentStatus.includes('Plan P1 Backup Restore Dry-Run Preflight.'),
+  'current status points to approved backup restore verification run',
+  currentStatus.includes('Plan P1 Approved Backup Restore Verification Run.'),
 );
 
 addCheck(
