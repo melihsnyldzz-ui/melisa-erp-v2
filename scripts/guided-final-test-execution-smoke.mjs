@@ -75,8 +75,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to the backup restore verification plan',
-  currentStatus.includes('Plan P1 Backup Restore Verification Plan.'),
+  'current status points to the backup restore evidence log',
+  currentStatus.includes('Plan P1 Backup Restore Evidence Log.'),
 );
 
 addCheck(
