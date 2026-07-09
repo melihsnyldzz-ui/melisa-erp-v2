@@ -115,6 +115,7 @@ export const sidebarGroups = [
     title: 'Güvenlik',
     items: [
       { label: 'Yetki ve Denetim', screenId: 'auth-overview' },
+      { label: 'Audit Log', screenId: 'audit-log' },
     ],
   },
 ];
@@ -372,6 +373,12 @@ export const screenRegistry = {
     label: 'Yetki ve Denetim',
     module: 'Güvenlik',
     type: 'ayar',
+  },
+  'audit-log': {
+    id: 'audit-log',
+    label: 'Audit Log',
+    module: 'Guvenlik',
+    type: 'rapor',
   },
 };
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authRoutes } from './authRoutes.js';
 import { authAdminRoutes } from './authAdminRoutes.js';
+import { auditRoutes } from './auditRoutes.js';
 import { catalogRoutes } from './catalogRoutes.js';
 import { customerRoutes } from './customerRoutes.js';
 import { currencyRateRoutes } from './currencyRateRoutes.js';
@@ -23,6 +24,7 @@ export const apiRoutes = Router();
 apiRoutes.use(systemRoutes);
 apiRoutes.use(authRoutes);
 apiRoutes.use(authAdminRoutes);
+apiRoutes.use(auditRoutes);
 apiRoutes.use(catalogRoutes);
 apiRoutes.use(dashboardRoutes);
 apiRoutes.use(financeRoutes);

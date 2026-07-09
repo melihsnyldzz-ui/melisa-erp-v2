@@ -25,6 +25,7 @@ import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { SalesPipelineListScreen } from '../../modules/sales/SalesPipelineListScreen.jsx';
 import { SalesPipelineScreen } from '../../modules/sales/SalesPipelineScreen.jsx';
 import { AuthAdminScreen } from '../../modules/settings/AuthAdminScreen.jsx';
+import { AuditLogScreen } from '../../modules/settings/AuditLogScreen.jsx';
 import { CurrencyRatesScreen } from '../../modules/settings/CurrencyRatesScreen.jsx';
 import { DefinitionsScreen } from '../../modules/settings/DefinitionsScreen.jsx';
 import { SystemSettingsScreen } from '../../modules/settings/SystemSettingsScreen.jsx';
@@ -348,6 +349,11 @@ const workspaceRouteRegistry = {
     permissionKeys: ['audit.view'],
     unauthorizedMessage: 'Audit görüntüleme yetkiniz yok.',
     render: ({ permissions }) => <AuthAdminScreen permissions={permissions} />,
+  },
+  'audit-log': {
+    permissionKeys: ['audit.view'],
+    unauthorizedMessage: 'Audit log görüntüleme yetkiniz yok.',
+    render: () => <AuditLogScreen />,
   },
 };
 

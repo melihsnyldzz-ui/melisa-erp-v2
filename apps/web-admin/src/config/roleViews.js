@@ -14,6 +14,7 @@ export const roleViews = [
     screenIds: [
       'dashboard',
       'operational-health',
+      'audit-log',
       'reports-overview',
       'export-center',
       'finance-overview',
@@ -40,6 +41,7 @@ export const roleViews = [
     screenIds: [
       'dashboard',
       'operational-health',
+      'audit-log',
       'customer-list',
       'supplier-list',
       'supplier-card',

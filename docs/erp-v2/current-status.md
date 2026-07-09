@@ -79,6 +79,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 017 ERP core read-only smoke execution documented in `docs/erp-v2/erp-core-read-only-smoke-sprint-017-report.md`.
 - Sprint 018 controlled ERP core write smoke approval plan documented in `docs/erp-v2/erp-core-write-smoke-approval-plan-sprint-018-report.md`.
 - Sprint 019 controlled ERP core write smoke execution documented in `docs/erp-v2/erp-core-write-smoke-sprint-019-report.md`.
+- Sprint 020 audit browser and coverage documented in `docs/erp-v2/audit-browser-coverage-sprint-020-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -90,7 +91,7 @@ These areas exist but should not be treated as finished business capability yet:
 |---|---|---|
 | Authentication/session | Improved | Real login exists, open-admin bypass is absent, stale browser tokens are cleared on 401; Electron/local dev can use documented passwordless admin login without refresh-token DB writes |
 | Permissions | Partial | Some supplier and finance/import boundaries need review and possible cleanup |
-| Audit | Improved | Audit service exists and recent events are visible from Operational Health; full audit browser and coverage map remain incomplete |
+| Audit | Improved | Dedicated Audit Log screen and read-only audit coverage map exist; remaining gap is proving every critical code path is fail-closed when audit writing fails |
 | Product/Stock | Improved | Product list can request 500 rows, supplier is included in product search, stock suggestions use real product options, Turkish search normalization is verified |
 | Customer/Supplier ledgers | Improved | Customer/supplier list, movement and statement read-only smokes pass; supplier permissions are separated from customer permissions; list limits support 500 rows |
 | Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase |
@@ -106,7 +107,7 @@ These areas exist but should not be treated as finished business capability yet:
 
 ## Missing Or Weak Areas
 
-- Audit browser and audit coverage map.
+- Audit fail-closed verification for all critical write paths.
 - Production-ready backup/restore verification.
 - Import reconciliation against finance/accounting truth.
 - Product media reviewed apply execution after dry-run coverage reports.
@@ -148,32 +149,33 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 019 is completed when the approved local controlled write smoke creates only `QA-S019-*` records, verifies purchase -> sales -> finance effects, avoids direct SQL and destructive operations, records safe evidence, and leaves final QA product stock, customer balance, supplier balance, and QA finance account balance at zero for the successful run.
+Sprint 020 is completed when audit logs have a dedicated read-only browser, critical audit coverage is visible through an API-backed coverage map, `audit.view` protects the screen/endpoints, and web-admin build plus audit API smoke pass.
 
-Sprint 019 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes outside the approved QA records, import apply, terminal writes, or official accounting actions.
+Sprint 020 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, or official accounting actions.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P0 Audit Browser And Audit Coverage.
+Plan P0 Whole ERP Screen Completion Audit.
 ```
 
-The next P0 item should focus on audit browser and audit coverage.
+The next P0 item should focus on a whole ERP screen completion audit.
 
 Business reason:
 
-- Sprint 019 now provides controlled local write evidence for the ERP Core purchase -> sales -> finance path.
-- The next risk is traceability: operators must be able to see which critical writes are audited and where those audit records can be reviewed.
+- Sprint 019 provides controlled local write evidence for the ERP Core purchase -> sales -> finance path.
+- Sprint 020 makes audit events and coverage visible.
+- The next risk is screen-level completion: operators must not face broken, duplicate, mock/demo, or unfinished screens during final testing.
 
 Expected next P0 outputs:
 
-- Audit browser screen review or implementation plan.
-- Critical write coverage map.
-- Audit event filters for sales, purchase, finance, stock count, import, settings and auth changes.
-- Read-only audit smoke checks.
-- Documentation update for what is audited and what is not.
+- Every menu screen opened and classified.
+- Broken/weak screens listed as P0/P1.
+- Mock/demo leftovers identified.
+- Final testing blocker list produced.
+- No code changes unless separately approved after audit findings.
 
 ## Do Not Start Yet
 

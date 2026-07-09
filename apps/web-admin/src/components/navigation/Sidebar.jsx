@@ -91,6 +91,7 @@ const itemDisplayLabels = {
   'settings-overview': 'Sistem Ayarlari',
   'currency-rates': 'Doviz Kurlari',
   'auth-overview': 'Yetki ve Denetim',
+  'audit-log': 'Audit Log',
 };
 
 const groupIcons = {
@@ -152,6 +153,7 @@ const itemIcons = {
   'settings-overview': Settings,
   'currency-rates': Settings,
   'auth-overview': FileCog,
+  'audit-log': FileSpreadsheet,
 };
 
 export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, onOpenScreen }) {
