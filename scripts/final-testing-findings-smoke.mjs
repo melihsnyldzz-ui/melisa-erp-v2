@@ -77,7 +77,7 @@ addCheck(
 
 addCheck(
   'current status points to guided final test execution',
-  currentStatus.includes('Plan P1 Guided Final Test Execution.'),
+  currentStatus.includes('Plan P1 Approved ERP Core Write Test.'),
 );
 
 addCheck(

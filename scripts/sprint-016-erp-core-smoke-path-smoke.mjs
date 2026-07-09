@@ -72,7 +72,7 @@ addCheck(
     'Sprint 018 controlled ERP core write smoke approval plan documented',
     'Sprint 019 controlled ERP core write smoke execution documented',
     'Sprint 021 whole ERP screen completion audit documented',
-    'Plan P1 Guided Final Test Execution.',
+    'Plan P1 Approved ERP Core Write Test.',
   ]),
 );
 

@@ -134,6 +134,7 @@ function runStaticAndBuildSmoke() {
     ['web-admin settings definitions boundary smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:settings-definitions-boundary']],
     ['final testing runbook smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:final-testing-runbook']],
     ['final testing findings smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:final-testing-findings']],
+    ['guided final test execution smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:guided-final-test']],
     ['reporting decision support smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:reporting']],
     ['ai automation readiness smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:ai-readiness']],
     ['erp core path static smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:erp-core-path']],

@@ -20,6 +20,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Production Readiness Checklist](production-readiness-checklist.md)
 - [Final Testing Runbook](final-testing-runbook.md)
 - [Final Testing Findings Log](final-testing-findings-log.md)
+- [Guided Final Test Execution Log](guided-final-test-execution-log.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
 

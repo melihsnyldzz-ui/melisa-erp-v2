@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Guided Final Test Execution.
+Plan P1 Approved ERP Core Write Test.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1233,5 +1233,9 @@ findings log and fix-pass rules. See
 `docs/erp-v2/final-testing-findings-log.md` and
 `docs/erp-v2/post-test-findings-fix-pass-sprint-028-report.md`.
 
-The next P1 item should execute the guided final-testing runbook, record real
-findings, and decide whether approved write checks are ready.
+Sprint 029 was completed on 2026-07-09 with guided final-test execution
+evidence. See `docs/erp-v2/guided-final-test-execution-log.md` and
+`docs/erp-v2/guided-final-test-execution-sprint-029-report.md`.
+
+The next P1 item should run approved ERP Core write tests for purchase, sales,
+finance, cancellation and reversal behavior in the agreed target environment.

@@ -88,6 +88,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 026 settings and definitions business review documented in `docs/erp-v2/settings-definitions-business-review-sprint-026-report.md`.
 - Sprint 027 final testing runbook and operator readiness documented in `docs/erp-v2/final-testing-runbook-sprint-027-report.md` and `docs/erp-v2/final-testing-runbook.md`.
 - Sprint 028 post-test findings fix pass preparation documented in `docs/erp-v2/post-test-findings-fix-pass-sprint-028-report.md` and `docs/erp-v2/final-testing-findings-log.md`.
+- Sprint 029 guided final test execution documented in `docs/erp-v2/guided-final-test-execution-sprint-029-report.md` and `docs/erp-v2/guided-final-test-execution-log.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -117,6 +118,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Final smoke pack | Improved | Sprint 022 adds one repeatable final ERP smoke command covering static checks, build, warning-only live API read smoke, approval-gated write smoke, and Sprint 023 invoice-boundary smoke |
 | Final testing readiness | Improved | Sprint 027 adds a practical operator runbook for safe read-only checks, approval-gated writes, stop conditions, evidence capture and final testing done criteria |
 | Final testing findings | Improved | Sprint 028 adds an evidence-based findings log and fix-pass rules; no human final-testing findings are recorded yet |
+| Guided final testing | Improved | Sprint 029 records the AI-assisted automated readiness pass, keeps human operator acceptance separate, and confirms no write checks were executed |
 
 ## Missing Or Weak Areas
 
@@ -162,31 +164,32 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 028 is completed when final-testing findings have a controlled log, priority rules, required evidence format, fix-pass rules, and smoke coverage.
+Sprint 029 is completed when the safe automated portion of guided final testing is recorded, no human findings are invented, write checks remain skipped without approval, and final smoke evidence is captured.
 
-Sprint 028 does not execute live DB writes, controlled write smoke, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, direct SQL, official accounting actions, permission/auth changes, or fake final-testing findings.
+Sprint 029 does not execute live DB writes, controlled write smoke, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, direct SQL, official accounting actions, permission/auth changes, or human operator acceptance claims.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Guided Final Test Execution.
+Plan P1 Approved ERP Core Write Test.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 028 provides a controlled place to record and prioritize final-testing findings.
-- The next risk is that ERP still needs the first guided final human test pass to produce real evidence and decide whether any P0/P1 fixes remain.
+- Sprint 029 records the automated/readiness part of final testing with no failed static/build smoke checks.
+- The next risk is proving approved ERP Core write behavior end-to-end: purchase, sales, finance, cancellation and reversal.
 
 Expected next P1 outputs:
 
-- Execute or guide the read-only portions of `docs/erp-v2/final-testing-runbook.md`.
-- Record real findings in `docs/erp-v2/final-testing-findings-log.md`.
-- Run final smoke and capture pass/warning/skip evidence.
-- Decide whether approved write checks are ready to run.
+- Run controlled write tests only with explicit approval and known target environment.
+- Verify purchase finalize increases stock and supplier ledger.
+- Verify sales finalize reduces stock and customer ledger.
+- Verify cancellation reverses expected stock/ledger effects.
+- Record any real findings in `docs/erp-v2/final-testing-findings-log.md`.
 
 ## Do Not Start Yet
 
