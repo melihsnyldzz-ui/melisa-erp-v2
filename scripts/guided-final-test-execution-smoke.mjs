@@ -75,8 +75,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to the backup restore evidence log',
-  currentStatus.includes('Plan P1 Backup Restore Evidence Log.'),
+  'current status points to the backup restore dry-run preflight',
+  currentStatus.includes('Plan P1 Backup Restore Dry-Run Preflight.'),
 );
 
 addCheck(

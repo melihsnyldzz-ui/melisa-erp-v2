@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Backup Restore Evidence Log.
+Plan P1 Backup Restore Dry-Run Preflight.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1269,5 +1269,10 @@ Sprint 036 was completed on 2026-07-09 with the backup/restore verification
 plan. See `docs/erp-v2/backup-restore-verification-plan.md` and
 `docs/erp-v2/backup-restore-verification-plan-sprint-036-report.md`.
 
-The next P1 item should create the backup/restore evidence log shell before any
-real backup, restore, migration, or production deploy action.
+Sprint 037 was completed on 2026-07-09 with the backup/restore evidence log
+shell. See `docs/erp-v2/backup-restore-evidence-log.md` and
+`docs/erp-v2/backup-restore-evidence-log-sprint-037-report.md`.
+
+The next P1 item should dry-run the backup/restore preflight checklist and
+confirm command shapes, target names and evidence fields before any real backup,
+restore, migration, or production deploy action.

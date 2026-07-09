@@ -140,6 +140,7 @@ function runStaticAndBuildSmoke() {
     ['erp core path static smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:erp-core-path']],
     ['erp core read-only static smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:erp-core-read-only']],
     ['erp core write approval plan smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:erp-core-write-plan']],
+    ['backup restore evidence log smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:backup-restore-evidence']],
     ['web-admin production build', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'build']],
   ];
 

@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Backup Restore Evidence Log.'),
+  currentStatus.includes('Plan P1 Backup Restore Dry-Run Preflight.'),
 );
 
 addCheck(
