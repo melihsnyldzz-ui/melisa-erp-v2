@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Final Human Acceptance Walkthrough.
+Plan P1 Record Human Acceptance Decision.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1245,4 +1245,9 @@ Sprint 031 was completed on 2026-07-09 with a P0/P1 findings fix-pass review.
 No evidence-backed P0/P1 findings were recorded in the formal final-testing
 log. See `docs/erp-v2/p0-p1-findings-fix-pass-sprint-031-report.md`.
 
-The next P1 item should run the final human acceptance walkthrough.
+Sprint 032 was completed on 2026-07-09 with the final human acceptance
+walkthrough package and preflight evidence. See
+`docs/erp-v2/final-human-acceptance-log.md` and
+`docs/erp-v2/final-human-acceptance-walkthrough-sprint-032-report.md`.
+
+The next P1 item should record Melih/operator's human acceptance decision.

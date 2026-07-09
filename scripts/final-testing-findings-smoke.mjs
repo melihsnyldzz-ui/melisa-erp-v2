@@ -76,8 +76,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to final human acceptance walkthrough',
-  currentStatus.includes('Plan P1 Final Human Acceptance Walkthrough.'),
+  'current status points to recording the human acceptance decision',
+  currentStatus.includes('Plan P1 Record Human Acceptance Decision.'),
 );
 
 addCheck(

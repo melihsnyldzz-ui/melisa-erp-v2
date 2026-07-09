@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Final Human Acceptance Walkthrough.'),
+  currentStatus.includes('Plan P1 Record Human Acceptance Decision.'),
 );
 
 addCheck(
