@@ -81,6 +81,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 019 controlled ERP core write smoke execution documented in `docs/erp-v2/erp-core-write-smoke-sprint-019-report.md`.
 - Sprint 020 audit browser and coverage documented in `docs/erp-v2/audit-browser-coverage-sprint-020-report.md`.
 - Sprint 021 whole ERP screen completion audit documented in `docs/erp-v2/whole-erp-screen-completion-audit-sprint-021-report.md`.
+- Sprint 022 final ERP smoke test pack documented in `docs/erp-v2/final-erp-smoke-pack-sprint-022-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -106,6 +107,7 @@ These areas exist but should not be treated as finished business capability yet:
 | AI/Automation | Planned safely | Sprint 015 defines read-only AI analysis, prohibited autonomous actions, exact approval gates, traceability, human decision ownership and future automation candidates without implementation |
 | Media/image workflow | Improved | Sprint 011 adds a dry-run coverage/matching report and review-only manifest; apply remains approval-gated |
 | Screen completion | Improved | Sprint 021 verifies all visible menu screens map to registered Workspace routes and classifies remaining P1/P2 screen gaps |
+| Final smoke pack | Improved | Sprint 022 adds one repeatable final ERP smoke command covering static checks, build, warning-only live API read smoke, and approval-gated write smoke |
 
 ## Missing Or Weak Areas
 
@@ -151,35 +153,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 021 is completed when all visible web-admin menu screens resolve to registered Workspace routes, navigation/list/layout/build checks pass, and remaining screen-level gaps are classified before final testing.
+Sprint 022 is completed when one repeatable final ERP smoke command runs the main ERP Core static/build checks, reports live API read-only availability as warning-only, and keeps controlled write smoke skipped unless explicitly approved.
 
-Sprint 021 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, or official accounting actions.
+Sprint 022 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P0 Final ERP Smoke Test Pack.
+Plan P1 Invoice Fixture And Mock Boundary Cleanup.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 019 provides controlled local write evidence for the ERP Core purchase -> sales -> finance path.
-- Sprint 020 makes audit events and coverage visible.
-- Sprint 021 verifies screen registry/workspace coverage and classifies screen-level gaps.
-- The next risk is repeatability: final testing needs one clear pass/fail smoke pack instead of scattered manual checks.
+- Sprint 022 provides one repeatable final ERP smoke command.
+- The next risk is operator trust: mock/demo/fixture/default invoice labels should not be confused with live ERP business behavior during final human testing.
 
-Expected next P0 outputs:
+Expected next P1 outputs:
 
-- One final smoke command or small smoke suite.
-- API health/auth/read-only checks.
-- Web-admin navigation/list/layout checks.
-- Audit coverage checks.
-- Optional controlled QA write smoke only when approved.
-- Final pass/fail report format for Melih.
+- Inventory invoice-related mock, demo, fixture, fallback, and default labels.
+- Remove or clearly label non-live invoice data paths.
+- Keep true empty states honest when API data is absent.
+- Add focused smoke coverage proving operators cannot mistake sample labels for live transactions.
 
 ## Do Not Start Yet
 

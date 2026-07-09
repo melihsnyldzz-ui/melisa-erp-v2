@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P0 Final ERP Smoke Test Pack.
+Plan P1 Invoice Fixture And Mock Boundary Cleanup.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1207,5 +1207,9 @@ and audit coverage map. See `docs/erp-v2/audit-browser-coverage-sprint-020-repor
 Sprint 021 was completed on 2026-07-09 with a whole ERP screen completion
 audit. See `docs/erp-v2/whole-erp-screen-completion-audit-sprint-021-report.md`.
 
-The next P0 item should create a final ERP smoke test pack so final testing has
-one repeatable pass/fail procedure instead of scattered manual checks.
+Sprint 022 was completed on 2026-07-09 with a final ERP smoke test pack. See
+`docs/erp-v2/final-erp-smoke-pack-sprint-022-report.md`.
+
+The next P1 item should clean up invoice fixture/mock boundaries so final human
+testing cannot confuse sample, fallback, or default labels with live ERP
+business behavior.

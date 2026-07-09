@@ -93,12 +93,12 @@ addCheck(
 );
 
 addCheck(
-  'current status marks Sprint 015 complete and recommends Sprint 016',
+  'current status marks Sprint 015 complete and has progressed beyond Sprint 016',
   includesAll(currentStatusSource, [
     'Sprint 015 AI and automation readiness documented',
-    'Sprint 015 is completed',
-    'Complete Sprint 016.',
-    'Full ERP Core Smoke Path',
+    'Sprint 016 full ERP core smoke path documented',
+    'Sprint 021 whole ERP screen completion audit documented',
+    'Plan P1 Invoice Fixture And Mock Boundary Cleanup.',
   ]),
 );
 
@@ -137,4 +137,3 @@ console.log(`SUMMARY: ${checks.length - failed.length}/${checks.length} PASS`);
 if (failed.length > 0) {
   process.exitCode = 1;
 }
-
