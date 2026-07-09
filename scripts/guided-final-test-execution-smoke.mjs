@@ -75,8 +75,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to recording the human acceptance decision',
-  currentStatus.includes('Plan P1 Record Human Acceptance Decision.'),
+  'current status points to the production readiness gate',
+  currentStatus.includes('Plan P1 Production Readiness Gate.'),
 );
 
 addCheck(

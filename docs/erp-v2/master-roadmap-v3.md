@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Record Human Acceptance Decision.
+Plan P1 Production Readiness Gate.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1250,4 +1250,8 @@ walkthrough package and preflight evidence. See
 `docs/erp-v2/final-human-acceptance-log.md` and
 `docs/erp-v2/final-human-acceptance-walkthrough-sprint-032-report.md`.
 
-The next P1 item should record Melih/operator's human acceptance decision.
+Sprint 033 was completed on 2026-07-09 with Melih's final human acceptance
+decision recorded as pass with warnings. See
+`docs/erp-v2/human-acceptance-decision-sprint-033-report.md`.
+
+The next P1 item should run the production readiness gate.

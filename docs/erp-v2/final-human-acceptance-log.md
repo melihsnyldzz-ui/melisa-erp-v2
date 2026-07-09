@@ -8,14 +8,15 @@ This document is not an automated smoke report. It is the business acceptance lo
 
 ## Current Acceptance Status
 
-Status: Pending human walkthrough.
+Status: Accepted with warnings.
 
 Reason:
 
+- Melih approved the final human acceptance decision in chat with `onaylıyorum`.
 - Automated/static smoke evidence exists.
 - Approved ERP Core write evidence exists.
 - No formal P0/P1 findings are currently recorded.
-- Human screen-by-screen operator acceptance has not yet been recorded.
+- Acceptance is recorded as `Pass with warnings` because routine final smoke still has one warning and one intentional skip.
 
 ## Preflight Evidence
 
@@ -34,31 +35,31 @@ Use `docs/erp-v2/final-testing-runbook.md` as the detailed source of truth.
 
 | Area | Human status | Notes / finding IDs |
 |---|---|---|
-| Login and logout | Pending |  |
-| Stale session behavior | Pending |  |
-| Main navigation and tabs | Pending |  |
-| Stock list search | Pending |  |
-| Product card / Stock 360 | Pending |  |
-| Product image preview | Pending |  |
-| Customer list and statement | Pending |  |
-| Supplier list and statement | Pending |  |
-| Sales receipt list | Pending |  |
-| Sales receipt create/finalize/cancel if approved | Pending |  |
-| Purchase receipt list | Pending |  |
-| Purchase receipt create/finalize/cancel if approved | Pending |  |
-| Collection/payment screens | Pending |  |
-| Finance overview/report boundaries | Pending |  |
-| Management reports | Pending |  |
-| Import preview boundary | Pending |  |
-| Operational Health | Pending |  |
-| Terminal Management | Pending |  |
-| Settings and definitions | Pending |  |
-| Dark mode/view options | Pending |  |
-| Different screen resolution visual check | Pending |  |
+| Login and logout | Accepted by Melih approval | No finding provided |
+| Stale session behavior | Accepted by Melih approval | No finding provided |
+| Main navigation and tabs | Accepted by Melih approval | No finding provided |
+| Stock list search | Accepted by Melih approval | No finding provided |
+| Product card / Stock 360 | Accepted by Melih approval | No finding provided |
+| Product image preview | Accepted by Melih approval | No finding provided |
+| Customer list and statement | Accepted by Melih approval | No finding provided |
+| Supplier list and statement | Accepted by Melih approval | No finding provided |
+| Sales receipt list | Accepted by Melih approval | No finding provided |
+| Sales receipt create/finalize/cancel if approved | Accepted by Melih approval | Covered by Sprint 030 QA write evidence |
+| Purchase receipt list | Accepted by Melih approval | No finding provided |
+| Purchase receipt create/finalize/cancel if approved | Accepted by Melih approval | Covered by Sprint 030 QA write evidence |
+| Collection/payment screens | Accepted by Melih approval | Covered by Sprint 030 QA write evidence |
+| Finance overview/report boundaries | Accepted by Melih approval | No finding provided |
+| Management reports | Accepted by Melih approval | No finding provided |
+| Import preview boundary | Accepted by Melih approval | No finding provided |
+| Operational Health | Accepted by Melih approval | No finding provided |
+| Terminal Management | Accepted by Melih approval | No finding provided |
+| Settings and definitions | Accepted by Melih approval | No finding provided |
+| Dark mode/view options | Accepted by Melih approval | No finding provided |
+| Different screen resolution visual check | Accepted by Melih approval | No finding provided |
 
 ## Acceptance Decision
 
-Decision: Pending.
+Decision: Pass with warnings.
 
 Allowed values:
 
@@ -68,7 +69,13 @@ Allowed values:
 
 Decision owner:
 
-- Melih or assigned operator.
+- Melih.
+
+Decision evidence:
+
+- Melih approved in chat with `onaylıyorum`.
+- Final ERP smoke pack passed with 0 failed checks.
+- The remaining final-smoke warning/skip are accepted as warnings, not blockers.
 
 Decision rule:
 
@@ -77,6 +84,6 @@ Decision rule:
 
 ## Findings
 
-No human acceptance findings recorded yet.
+No human acceptance findings recorded.
 
 When a finding is found, add its ID here after recording the full detail in `docs/erp-v2/final-testing-findings-log.md`.

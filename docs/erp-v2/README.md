@@ -25,6 +25,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Approved ERP Core Write Test Sprint 030 Report](approved-erp-core-write-test-sprint-030-report.md)
 - [P0/P1 Findings Fix Pass Sprint 031 Report](p0-p1-findings-fix-pass-sprint-031-report.md)
 - [Final Human Acceptance Walkthrough Sprint 032 Report](final-human-acceptance-walkthrough-sprint-032-report.md)
+- [Human Acceptance Decision Sprint 033 Report](human-acceptance-decision-sprint-033-report.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
 
