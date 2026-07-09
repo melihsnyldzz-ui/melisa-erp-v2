@@ -18,6 +18,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [QA Stabilization Report](qa-stabilization-report.md)
 - [Backup / Restore Plan](backup-restore-plan.md)
 - [Production Readiness Checklist](production-readiness-checklist.md)
+- [Final Testing Runbook](final-testing-runbook.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
 

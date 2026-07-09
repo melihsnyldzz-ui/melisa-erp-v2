@@ -86,6 +86,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 024 CRM and WhatsApp final-testing labels documented in `docs/erp-v2/crm-whatsapp-boundary-labels-sprint-024-report.md`.
 - Sprint 025 terminal failed-sync and device validation documented in `docs/erp-v2/terminal-device-sync-validation-sprint-025-report.md`.
 - Sprint 026 settings and definitions business review documented in `docs/erp-v2/settings-definitions-business-review-sprint-026-report.md`.
+- Sprint 027 final testing runbook and operator readiness documented in `docs/erp-v2/final-testing-runbook-sprint-027-report.md` and `docs/erp-v2/final-testing-runbook.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -113,6 +114,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Media/image workflow | Improved | Sprint 011 adds a dry-run coverage/matching report and review-only manifest; apply remains approval-gated |
 | Screen completion | Improved | Sprint 021 verifies all visible menu screens map to registered Workspace routes and classifies remaining P1/P2 screen gaps |
 | Final smoke pack | Improved | Sprint 022 adds one repeatable final ERP smoke command covering static checks, build, warning-only live API read smoke, approval-gated write smoke, and Sprint 023 invoice-boundary smoke |
+| Final testing readiness | Improved | Sprint 027 adds a practical operator runbook for safe read-only checks, approval-gated writes, stop conditions, evidence capture and final testing done criteria |
 
 ## Missing Or Weak Areas
 
@@ -122,7 +124,7 @@ These areas exist but should not be treated as finished business capability yet:
 - Product media reviewed apply execution after dry-run coverage reports.
 - Terminal failed sync administration beyond read-only visibility remains approval-gated; operator-facing boundary labels are in place.
 - Full production deployment/runbook.
-- Current local runbook for API, web-admin, terminal and Electron together.
+- Current local runbook for API, web-admin, terminal and Electron together remains incomplete, but Sprint 027 adds a final human testing runbook for ERP operator flow.
 - Full CRM/Mission Control/Media Library boundaries in menus and implementation.
 
 ## Known Risk Areas
@@ -158,31 +160,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 026 is completed when settings, definitions and currency-rate screens clearly explain which actions write through the API, which actions affect business rules, and which maintenance/import/migration/recalculation actions remain out of scope.
+Sprint 027 is completed when final human testing has a practical operator runbook that separates safe read-only checks from approval-gated writes, defines stop conditions, and records evidence expectations.
 
-Sprint 026 does not execute settings save, cleanup, archive, restore, currency-rate save, SQL migrations, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal send/delete execution, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
+Sprint 027 does not execute live DB writes, controlled write smoke, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, direct SQL, official accounting actions, or permission/auth changes.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Final Testing Runbook And Operator Readiness.
+Plan P1 Post-Test Findings Fix Pass.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 026 makes settings, definitions and currency-rate business effects explicit before final testing.
-- The next risk is operational readiness: users need a clear final-testing runbook that says which flows to test, in what order, and which actions require explicit approval.
+- Sprint 027 gives operators a clear final-testing runbook and stop criteria.
+- The next risk is handling real findings from the first guided human test without mixing unrelated changes.
 
 Expected next P1 outputs:
 
-- Create a practical final-testing runbook for ERP operators.
-- Define the first end-to-end test scenario order for stock, cari, sales, purchase, finance, reporting and terminal.
-- Separate safe read-only checks from write checks that need explicit approval.
-- Add a smoke check that keeps the runbook linked from current status.
+- Run or review the first guided final-testing pass.
+- Convert findings into small P0/P1 fixes.
+- Keep fixes scoped to evidence from the runbook.
+- Update the runbook if the operator flow changes.
 
 ## Do Not Start Yet
 

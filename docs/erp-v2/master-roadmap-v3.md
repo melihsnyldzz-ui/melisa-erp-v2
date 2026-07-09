@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Final Testing Runbook And Operator Readiness.
+Plan P1 Post-Test Findings Fix Pass.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1224,6 +1224,9 @@ Sprint 026 was completed on 2026-07-09 with settings, definitions and
 currency-rate business boundary labels. See
 `docs/erp-v2/settings-definitions-business-review-sprint-026-report.md`.
 
-The next P1 item should create a practical final-testing runbook and operator
-readiness flow so ERP can move from stabilization sprints into guided human
-testing.
+Sprint 027 was completed on 2026-07-09 with a practical final-testing runbook
+and operator readiness flow. See `docs/erp-v2/final-testing-runbook.md` and
+`docs/erp-v2/final-testing-runbook-sprint-027-report.md`.
+
+The next P1 item should use the first guided final-testing pass to fix concrete
+operator findings without mixing unrelated redesign or future automation work.
