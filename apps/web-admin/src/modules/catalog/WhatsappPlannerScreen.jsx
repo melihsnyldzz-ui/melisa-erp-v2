@@ -100,6 +100,9 @@ export function WhatsappPlannerScreen({ onOpenScreen }) {
 
       {isLoading && <div className="list-state">WhatsApp plani API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      <div className="list-state">
+        Final test notu: Bu ekran WhatsApp mesaji gondermez. Otomatik gonderim, kampanya akis takibi ve musteri iletisim gecmisi gelecekte CRM tarafina tasinacak islerdir.
+      </div>
 
       <section className="dashboard-kpi-grid">
         <article className="dashboard-kpi info">

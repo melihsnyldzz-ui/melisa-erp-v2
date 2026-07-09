@@ -72,7 +72,7 @@ addCheck(
     'Sprint 018 controlled ERP core write smoke approval plan documented',
     'Sprint 019 controlled ERP core write smoke execution documented',
     'Sprint 021 whole ERP screen completion audit documented',
-    'Plan P1 Invoice Fixture And Mock Boundary Cleanup.',
+    'Plan P1 Terminal Failed Sync And Device Validation.',
   ]),
 );
 

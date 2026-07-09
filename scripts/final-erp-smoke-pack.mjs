@@ -129,6 +129,7 @@ function runStaticAndBuildSmoke() {
     ['web-admin operational health smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:operational-health']],
     ['web-admin layout smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:layout']],
     ['web-admin invoice boundary smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:invoice-boundary']],
+    ['web-admin crm whatsapp boundary smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:crm-whatsapp-boundary']],
     ['reporting decision support smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:reporting']],
     ['ai automation readiness smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:ai-readiness']],
     ['erp core path static smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:erp-core-path']],

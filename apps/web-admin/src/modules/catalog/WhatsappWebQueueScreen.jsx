@@ -221,6 +221,9 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
       {isLoading && <div className="list-state">Katalog kuyruğu okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {message && <div className="list-state list-state-success">{message}</div>}
+      <div className="list-state">
+        Final test notu: Bu ekran sadece WhatsApp Web'i acmaya, metin/gorsel hazirlamaya ve operatorun manuel isaretleme yapmasina yarar. Otomatik toplu gonderim aktif degildir.
+      </div>
 
       <section className="whatsapp-queue-steps">
         <article><strong>1</strong><span>Katalog seç</span></article>
@@ -258,10 +261,10 @@ export function WhatsappWebQueueScreen({ catalogId: initialCatalogId, customerNa
             WhatsApp Web Aç
           </button>
           <div className={`whatsapp-provider-status ${providerStatus?.sendEnabled ? 'ready' : 'missing'}`}>
-            <strong>{providerStatus?.sendEnabled ? 'Onaylı gönderim açık' : 'Otomatik gönderim kapalı'}</strong>
+            <strong>{providerStatus?.sendEnabled ? 'Provider onayli; yine manuel kontrol gerekir' : 'Otomatik gönderim kapalı'}</strong>
             <small>
               {providerStatus?.sendEnabled
-                ? `${providerStatus.provider || 'provider'} / ${providerStatus.instance || '-'}`
+                ? `${providerStatus.provider || 'provider'} / ${providerStatus.instance || '-'} / ERP bu ekrandan otomatik toplu gonderim baslatmaz`
                 : 'Mesaj gönderimi Melih onayı olmadan yapılmaz; bu ekran yalnızca hazırlık ve manuel inceleme kuyruğudur.'}
             </small>
           </div>

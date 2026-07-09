@@ -266,7 +266,7 @@ export function CatalogListScreen({ onOpenScreen }) {
             Görselli Gönderim Kuyruğu
           </button>
           <button type="button" onClick={copyCatalogText} disabled={items.length === 0}>Metni Kopyala</button>
-          <button type="button" onClick={openWhatsappShare} disabled={items.length === 0}>Metinle WhatsApp Aç</button>
+          <button type="button" onClick={openWhatsappShare} disabled={items.length === 0}>Manuel WhatsApp Aç</button>
           <button type="button" onClick={exportCatalogItems} disabled={items.length === 0}>Excel</button>
           <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Katalog')}>Yazdır/PDF</button>
           <button type="button" onClick={() => loadOverview()}>Yenile</button>
@@ -276,6 +276,9 @@ export function CatalogListScreen({ onOpenScreen }) {
       {isLoading && <div className="list-state">Katalog verisi API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
+      <div className="list-state">
+        Final test notu: Bu ekran yalnizca katalog taslagi ve manuel paylasim metni hazirlar. Otomatik WhatsApp gonderimi, kampanya takibi ve CRM takip akisi bu ERP ekraninda aktif degildir.
+      </div>
 
       <section className="catalog-flow-strip">
         <article className="catalog-flow-card">
@@ -479,6 +482,7 @@ export function CatalogListScreen({ onOpenScreen }) {
               <strong>Paylaşım</strong>
               <span>{selectedCatalog ? `${selectedCatalog.catalogNo} / ${items.length} ürün` : 'Katalog seç'}</span>
             </div>
+            <div className="list-state">Fiyat ve stok teyidi satis ekibindedir; bu kutu dis servise mesaj gondermez.</div>
             {items.length === 0 && <div className="list-state">Paylaşım için katalog seçin veya taslak oluşturun.</div>}
             {items.length > 0 && (
               <>
@@ -498,7 +502,7 @@ export function CatalogListScreen({ onOpenScreen }) {
                 <textarea className="catalog-share-textarea" readOnly value={catalogShareText} />
                 <div className="catalog-side-actions">
                   <button type="button" onClick={copyCatalogText}>Metni Kopyala</button>
-                  <button type="button" onClick={openWhatsappShare}>Metinle WhatsApp Aç</button>
+                  <button type="button" onClick={openWhatsappShare}>Manuel WhatsApp Aç</button>
                 </div>
               </>
             )}

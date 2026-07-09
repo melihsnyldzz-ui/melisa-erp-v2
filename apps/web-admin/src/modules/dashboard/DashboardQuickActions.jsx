@@ -24,8 +24,8 @@ const dashboardQuickActions = [
   { key: 'customer-statement', label: 'Cari Ekstre', detail: 'Müşteri', screenId: 'customer-statement', permissionKeys: ['customer.view'], icon: UserRoundSearch, tone: 'info' },
   { key: 'supplier-statement', label: 'Tedarikçi Ekstre', detail: '360', screenId: 'supplier-statement', permissionKeys: ['customer.view'], icon: Truck, tone: 'warn' },
   { key: 'collections', label: 'Tahsilat/Ödeme', detail: 'Kasa', screenId: 'collections-overview', permissionKeys: ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'], icon: BanknoteArrowDown, tone: 'good' },
-  { key: 'catalog', label: 'Katalog', detail: 'Ürün seç', screenId: 'catalog-list', permissionKeys: ['product.view'], icon: Send, tone: 'info' },
-  { key: 'whatsapp', label: 'WhatsApp Kuyruk', detail: 'Gönderim', screenId: 'whatsapp-web-queue', permissionKeys: ['product.view'], icon: MessageCircle, tone: 'good' },
+  { key: 'catalog', label: 'Katalog', detail: 'Manuel hazirlik', screenId: 'catalog-list', permissionKeys: ['product.view'], icon: Send, tone: 'info' },
+  { key: 'whatsapp', label: 'WhatsApp Kuyruk', detail: 'Manuel inceleme', screenId: 'whatsapp-web-queue', permissionKeys: ['product.view'], icon: MessageCircle, tone: 'info' },
   { key: 'global-focus', label: 'Hızlı Bul', detail: 'Menüde ara', screenId: 'stock-list', permissionKeys: ['product.view'], icon: Search, tone: 'neutral' },
 ];
 

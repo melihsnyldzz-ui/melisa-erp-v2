@@ -26,7 +26,7 @@ const roleInsights = {
   satis: [
     { tone: 'good', title: 'Satış ekranı hazır', detail: 'Teklif ve sipariş ekranını aç', screenId: 'sales-offers' },
     { tone: 'info', title: 'Cari fiyat kontrolü', detail: 'Cari ve fiyat kontrolünü yap', screenId: 'customer-list' },
-    { tone: 'info', title: 'WhatsApp paylaşım hazır', detail: 'Katalog gönderim listesini gör', screenId: 'whatsapp-planner' },
+    { tone: 'info', title: 'WhatsApp hazirlik listesi', detail: 'Manuel kopyalama listesini gor', screenId: 'whatsapp-planner' },
   ],
 };
 

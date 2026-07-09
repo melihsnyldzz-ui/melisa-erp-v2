@@ -83,6 +83,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 021 whole ERP screen completion audit documented in `docs/erp-v2/whole-erp-screen-completion-audit-sprint-021-report.md`.
 - Sprint 022 final ERP smoke test pack documented in `docs/erp-v2/final-erp-smoke-pack-sprint-022-report.md`.
 - Sprint 023 invoice fixture and mock boundary cleanup documented in `docs/erp-v2/invoice-fixture-boundary-sprint-023-report.md`.
+- Sprint 024 CRM and WhatsApp final-testing labels documented in `docs/erp-v2/crm-whatsapp-boundary-labels-sprint-024-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -102,7 +103,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
 | Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, but offline queue runbook and device failure operations still need validation |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
-| Catalog/WhatsApp | Improved | Sprint 012 keeps public catalog fields safe, removes prices from share text, keeps automatic WhatsApp sending approval-gated, and Sprint 013 assigns outreach ownership to CRM |
+| Catalog/WhatsApp | Improved | Sprint 012 keeps public catalog fields safe, removes prices from share text, keeps automatic WhatsApp sending approval-gated, Sprint 013 assigns outreach ownership to CRM, and Sprint 024 labels visible ERP screens as manual preparation/review only |
 | CRM boundary | Planned | Sprint 013 defines CRM-owned outreach, follow-up, campaign, communication-history, catalog follow-up and pipeline workflows without implementation |
 | Reporting | Improved | Sprint 014 adds visible report assumptions, data-quality review notes, row-limit metadata, approval boundaries, export inclusion and reporting smoke coverage |
 | AI/Automation | Planned safely | Sprint 015 defines read-only AI analysis, prohibited autonomous actions, exact approval gates, traceability, human decision ownership and future automation candidates without implementation |
@@ -154,31 +155,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 023 is completed when sales and purchase invoice screens no longer import old mock/default invoice files, start from empty live-safe state, and the final ERP smoke pack includes invoice-boundary coverage.
+Sprint 024 is completed when catalog, WhatsApp planner, WhatsApp queue, dashboard quick actions, and smart insights clearly label CRM/WhatsApp workflows as manual preparation/review or future CRM ownership, with no active automatic sending implied.
 
-Sprint 023 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
+Sprint 024 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 CRM And WhatsApp Final Testing Labels.
+Plan P1 Terminal Failed Sync And Device Validation.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 023 removes old invoice fixture defaults from live sales and purchase invoice screens.
-- The next risk is operator clarity: CRM and WhatsApp screens include planned/boundary-controlled behavior that should be clearly labeled before final human testing.
+- Sprint 024 makes CRM/WhatsApp-adjacent screens manual-preparation and future-CRM boundaries explicit.
+- The next risk is terminal readiness: failed sync, offline device, and device status behavior should be validated before operator training and final human testing.
 
 Expected next P1 outputs:
 
-- Inventory CRM, sales pipeline, catalog, and WhatsApp-related labels.
-- Mark planned or moved-out workflows clearly.
-- Confirm no automatic WhatsApp sending is presented as active without approval.
-- Add focused smoke coverage for final-testing labels.
+- Inventory terminal admin and terminal app sync/device states.
+- Verify failed-sync and offline-device labels are operator-readable.
+- Confirm terminal admin visibility stays read-only unless explicitly approved.
+- Add focused smoke coverage for terminal final-testing labels.
 
 ## Do Not Start Yet
 
