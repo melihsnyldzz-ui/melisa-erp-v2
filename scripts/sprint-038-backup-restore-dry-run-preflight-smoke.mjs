@@ -100,7 +100,7 @@ addCheck(
 
 addCheck(
   'current status points to approved verification run',
-  currentStatus.includes('Plan P1 Approved Backup Restore Verification Run.'),
+  currentStatus.includes('Await Explicit Backup Restore Execution Approval.'),
 );
 
 addCheck(

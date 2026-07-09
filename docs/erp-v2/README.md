@@ -20,6 +20,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Backup Restore Verification Plan](backup-restore-verification-plan.md)
 - [Backup Restore Evidence Log](backup-restore-evidence-log.md)
 - [Backup Restore Dry-Run Preflight](backup-restore-dry-run-preflight.md)
+- [Approved Backup Restore Verification Run](approved-backup-restore-verification-run.md)
 - [Production Readiness Checklist](production-readiness-checklist.md)
 - [Production Deployment Runbook](production-deployment-runbook.md)
 - [Production Environment Checklist](production-env-checklist.md)
@@ -36,6 +37,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Backup Restore Verification Plan Sprint 036 Report](backup-restore-verification-plan-sprint-036-report.md)
 - [Backup Restore Evidence Log Sprint 037 Report](backup-restore-evidence-log-sprint-037-report.md)
 - [Backup Restore Dry-Run Preflight Sprint 038 Report](backup-restore-dry-run-preflight-sprint-038-report.md)
+- [Approved Backup Restore Verification Run Sprint 039 Report](approved-backup-restore-verification-run-sprint-039-report.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
 

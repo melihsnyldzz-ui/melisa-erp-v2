@@ -98,6 +98,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 036 backup restore verification plan documented in `docs/erp-v2/backup-restore-verification-plan-sprint-036-report.md` and `docs/erp-v2/backup-restore-verification-plan.md`.
 - Sprint 037 backup restore evidence log documented in `docs/erp-v2/backup-restore-evidence-log-sprint-037-report.md` and `docs/erp-v2/backup-restore-evidence-log.md`.
 - Sprint 038 backup restore dry-run preflight documented in `docs/erp-v2/backup-restore-dry-run-preflight-sprint-038-report.md` and `docs/erp-v2/backup-restore-dry-run-preflight.md`.
+- Sprint 039 approved backup restore verification run packet documented in `docs/erp-v2/approved-backup-restore-verification-run-sprint-039-report.md` and `docs/erp-v2/approved-backup-restore-verification-run.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -173,16 +174,16 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 038 is completed when the backup/restore dry-run preflight exists, command shapes and target names are reviewed, required human inputs are listed, and no real backup/restore action has been executed without separate explicit approval.
+Sprint 039 is completed when the approved backup/restore verification run packet exists, exact execution approval wording is defined, allowed actions are separated from prohibited actions, and no real backup/restore action has been executed without separate explicit approval.
 
-Sprint 038 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, or new business-rule changes.
+Sprint 039 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, or new business-rule changes.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Approved Backup Restore Verification Run.
+Await Explicit Backup Restore Execution Approval.
 ```
 
 The next P1 item should focus on the backup/restore evidence log shell.
@@ -198,14 +199,13 @@ Business reason:
 - Sprint 036 creates a backup/restore verification plan without executing backup, restore, reset or migration actions.
 - Sprint 037 creates a backup/restore evidence log shell without executing backup, restore, reset or migration actions.
 - Sprint 038 reviews backup/restore dry-run command shapes and target names without executing backup, restore, reset or migration actions.
+- Sprint 039 prepares the approved backup/restore verification run packet without executing backup, restore, reset or migration actions.
 
 Expected next P1 outputs:
 
-- Exact explicit approval for the real backup/restore verification run.
-- SQL backup creation evidence.
-- `RESTORE VERIFYONLY` evidence.
-- Staging/test restore evidence.
-- Read-only restore smoke evidence.
+- Exact explicit approval using the Sprint 039 wording, if Melih wants to execute the real run.
+- If approval is provided: SQL backup creation, `RESTORE VERIFYONLY`, restore-test DB and read-only smoke evidence.
+- If approval is not provided: continue remaining non-destructive production readiness hardening.
 - No production restore, reset, migration or deploy unless separately approved.
 
 ## Do Not Start Yet

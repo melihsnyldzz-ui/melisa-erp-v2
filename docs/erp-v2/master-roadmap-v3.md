@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Approved Backup Restore Verification Run.
+Await Explicit Backup Restore Execution Approval.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1277,5 +1277,11 @@ Sprint 038 was completed on 2026-07-09 with the backup/restore dry-run
 preflight. See `docs/erp-v2/backup-restore-dry-run-preflight.md` and
 `docs/erp-v2/backup-restore-dry-run-preflight-sprint-038-report.md`.
 
-The next P1 item should run the approved backup/restore verification only after
-Melih gives exact explicit approval for the allowed target and actions.
+Sprint 039 was completed on 2026-07-09 with the approved backup/restore
+verification run packet. See
+`docs/erp-v2/approved-backup-restore-verification-run.md` and
+`docs/erp-v2/approved-backup-restore-verification-run-sprint-039-report.md`.
+
+The next step is waiting for exact explicit backup/restore execution approval,
+or continuing non-destructive production readiness hardening if execution is not
+approved.

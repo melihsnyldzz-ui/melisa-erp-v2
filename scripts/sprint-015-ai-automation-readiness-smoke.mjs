@@ -98,7 +98,7 @@ addCheck(
     'Sprint 015 AI and automation readiness documented',
     'Sprint 016 full ERP core smoke path documented',
     'Sprint 021 whole ERP screen completion audit documented',
-    'Plan P1 Approved Backup Restore Verification Run.',
+    'Await Explicit Backup Restore Execution Approval.',
   ]),
 );
 
