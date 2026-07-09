@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Approved ERP Core Write Test.'),
+  currentStatus.includes('Plan P1 P0/P1 Findings Fix Pass.'),
 );
 
 addCheck(

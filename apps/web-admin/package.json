@@ -27,6 +27,7 @@
     "smoke:erp-core-read-only": "node ../../scripts/sprint-017-erp-core-read-only-smoke.mjs",
     "smoke:erp-core-write-plan": "node ../../scripts/sprint-018-erp-core-write-smoke-approval-plan-smoke.mjs",
     "smoke:erp-core-write": "node ../../scripts/sprint-019-erp-core-write-smoke.mjs",
+    "smoke:approved-erp-core-write": "node ../../scripts/sprint-030-approved-erp-core-write-smoke.mjs",
     "smoke:final-erp": "node ../../scripts/final-erp-smoke-pack.mjs"
   },
   "dependencies": {

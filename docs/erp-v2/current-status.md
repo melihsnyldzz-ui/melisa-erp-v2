@@ -89,6 +89,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 027 final testing runbook and operator readiness documented in `docs/erp-v2/final-testing-runbook-sprint-027-report.md` and `docs/erp-v2/final-testing-runbook.md`.
 - Sprint 028 post-test findings fix pass preparation documented in `docs/erp-v2/post-test-findings-fix-pass-sprint-028-report.md` and `docs/erp-v2/final-testing-findings-log.md`.
 - Sprint 029 guided final test execution documented in `docs/erp-v2/guided-final-test-execution-sprint-029-report.md` and `docs/erp-v2/guided-final-test-execution-log.md`.
+- Sprint 030 approved ERP Core write test documented in `docs/erp-v2/approved-erp-core-write-test-sprint-030-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -164,32 +165,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 029 is completed when the safe automated portion of guided final testing is recorded, no human findings are invented, write checks remain skipped without approval, and final smoke evidence is captured.
+Sprint 030 is completed when approved local QA write evidence proves ERP Core purchase, sales, cancellation, reversal, collection and payment behavior through the API.
 
-Sprint 029 does not execute live DB writes, controlled write smoke, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, direct SQL, official accounting actions, permission/auth changes, or human operator acceptance claims.
+Sprint 030 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, or human operator acceptance claims.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Approved ERP Core Write Test.
+Plan P1 P0/P1 Findings Fix Pass.
 ```
 
-The next P0 item should focus on a final ERP smoke test pack.
+The next P1 item should focus on evidence-backed P0/P1 finding fixes before wider final testing.
 
 Business reason:
 
-- Sprint 029 records the automated/readiness part of final testing with no failed static/build smoke checks.
-- The next risk is proving approved ERP Core write behavior end-to-end: purchase, sales, finance, cancellation and reversal.
+- Sprint 030 proves approved ERP Core write behavior end-to-end for purchase, sales, finance, cancellation and reversal in the local QA path.
+- The next risk is not new functionality; it is fixing only real P0/P1 issues found during final testing.
 
 Expected next P1 outputs:
 
-- Run controlled write tests only with explicit approval and known target environment.
-- Verify purchase finalize increases stock and supplier ledger.
-- Verify sales finalize reduces stock and customer ledger.
-- Verify cancellation reverses expected stock/ledger effects.
-- Record any real findings in `docs/erp-v2/final-testing-findings-log.md`.
+- Review `docs/erp-v2/final-testing-findings-log.md`.
+- Convert only evidence-backed P0/P1 findings into small fixes.
+- Keep P2/P3 items out of the finish path.
+- Update the findings log and smoke evidence after fixes.
 
 ## Do Not Start Yet
 

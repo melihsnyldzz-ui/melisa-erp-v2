@@ -117,7 +117,7 @@ addCheck(
     'Sprint 019 controlled ERP core write smoke execution documented',
     'Sprint 020 audit browser and coverage documented',
     'Sprint 021 whole ERP screen completion audit documented',
-    'Plan P1 Approved ERP Core Write Test.',
+    'Plan P1 P0/P1 Findings Fix Pass.',
   ]),
 );
 

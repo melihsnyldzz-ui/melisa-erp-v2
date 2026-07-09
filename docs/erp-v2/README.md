@@ -21,6 +21,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Final Testing Runbook](final-testing-runbook.md)
 - [Final Testing Findings Log](final-testing-findings-log.md)
 - [Guided Final Test Execution Log](guided-final-test-execution-log.md)
+- [Approved ERP Core Write Test Sprint 030 Report](approved-erp-core-write-test-sprint-030-report.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
 

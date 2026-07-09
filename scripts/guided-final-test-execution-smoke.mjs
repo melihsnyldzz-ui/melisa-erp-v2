@@ -75,8 +75,8 @@ addCheck(
 );
 
 addCheck(
-  'current status points to approved core write test',
-  currentStatus.includes('Plan P1 Approved ERP Core Write Test.'),
+  'current status points to the P0/P1 findings fix pass',
+  currentStatus.includes('Plan P1 P0/P1 Findings Fix Pass.'),
 );
 
 addCheck(
