@@ -87,6 +87,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 025 terminal failed-sync and device validation documented in `docs/erp-v2/terminal-device-sync-validation-sprint-025-report.md`.
 - Sprint 026 settings and definitions business review documented in `docs/erp-v2/settings-definitions-business-review-sprint-026-report.md`.
 - Sprint 027 final testing runbook and operator readiness documented in `docs/erp-v2/final-testing-runbook-sprint-027-report.md` and `docs/erp-v2/final-testing-runbook.md`.
+- Sprint 028 post-test findings fix pass preparation documented in `docs/erp-v2/post-test-findings-fix-pass-sprint-028-report.md` and `docs/erp-v2/final-testing-findings-log.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -115,6 +116,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Screen completion | Improved | Sprint 021 verifies all visible menu screens map to registered Workspace routes and classifies remaining P1/P2 screen gaps |
 | Final smoke pack | Improved | Sprint 022 adds one repeatable final ERP smoke command covering static checks, build, warning-only live API read smoke, approval-gated write smoke, and Sprint 023 invoice-boundary smoke |
 | Final testing readiness | Improved | Sprint 027 adds a practical operator runbook for safe read-only checks, approval-gated writes, stop conditions, evidence capture and final testing done criteria |
+| Final testing findings | Improved | Sprint 028 adds an evidence-based findings log and fix-pass rules; no human final-testing findings are recorded yet |
 
 ## Missing Or Weak Areas
 
@@ -160,31 +162,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 027 is completed when final human testing has a practical operator runbook that separates safe read-only checks from approval-gated writes, defines stop conditions, and records evidence expectations.
+Sprint 028 is completed when final-testing findings have a controlled log, priority rules, required evidence format, fix-pass rules, and smoke coverage.
 
-Sprint 027 does not execute live DB writes, controlled write smoke, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, direct SQL, official accounting actions, or permission/auth changes.
+Sprint 028 does not execute live DB writes, controlled write smoke, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, public publishing, WhatsApp or external message sending, direct SQL, official accounting actions, permission/auth changes, or fake final-testing findings.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Post-Test Findings Fix Pass.
+Plan P1 Guided Final Test Execution.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 027 gives operators a clear final-testing runbook and stop criteria.
-- The next risk is handling real findings from the first guided human test without mixing unrelated changes.
+- Sprint 028 provides a controlled place to record and prioritize final-testing findings.
+- The next risk is that ERP still needs the first guided final human test pass to produce real evidence and decide whether any P0/P1 fixes remain.
 
 Expected next P1 outputs:
 
-- Run or review the first guided final-testing pass.
-- Convert findings into small P0/P1 fixes.
-- Keep fixes scoped to evidence from the runbook.
-- Update the runbook if the operator flow changes.
+- Execute or guide the read-only portions of `docs/erp-v2/final-testing-runbook.md`.
+- Record real findings in `docs/erp-v2/final-testing-findings-log.md`.
+- Run final smoke and capture pass/warning/skip evidence.
+- Decide whether approved write checks are ready to run.
 
 ## Do Not Start Yet
 

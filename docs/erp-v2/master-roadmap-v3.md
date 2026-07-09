@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Post-Test Findings Fix Pass.
+Plan P1 Guided Final Test Execution.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1228,5 +1228,10 @@ Sprint 027 was completed on 2026-07-09 with a practical final-testing runbook
 and operator readiness flow. See `docs/erp-v2/final-testing-runbook.md` and
 `docs/erp-v2/final-testing-runbook-sprint-027-report.md`.
 
-The next P1 item should use the first guided final-testing pass to fix concrete
-operator findings without mixing unrelated redesign or future automation work.
+Sprint 028 was completed on 2026-07-09 with an evidence-based final-testing
+findings log and fix-pass rules. See
+`docs/erp-v2/final-testing-findings-log.md` and
+`docs/erp-v2/post-test-findings-fix-pass-sprint-028-report.md`.
+
+The next P1 item should execute the guided final-testing runbook, record real
+findings, and decide whether approved write checks are ready.

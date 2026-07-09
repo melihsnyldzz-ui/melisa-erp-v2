@@ -149,6 +149,7 @@ For each final testing pass, record:
 - Smoke result summary.
 - Screens tested.
 - Issues found.
+- Finding IDs from `docs/erp-v2/final-testing-findings-log.md`.
 - Screenshots if useful, without exposing secrets.
 - Decision: pass, pass with warnings, or fail.
 
@@ -162,3 +163,13 @@ ERP can move to final acceptance only when:
 - Business-rule boundaries are visible on risky screens.
 - Known skips/warnings are documented.
 - Open P0/P1 blockers are either fixed or explicitly accepted by Melih.
+
+## 9. Finding Fix Pass
+
+After each guided final-testing pass:
+
+1. Record every concrete issue in `docs/erp-v2/final-testing-findings-log.md`.
+2. Fix P0 findings before P1 findings.
+3. Keep each fix small and tied to a finding ID.
+4. Do not mix future redesign, CRM, AI, Mission Control, or automation work into ERP Core fixes.
+5. Re-run the relevant smoke/build check and record the retest result.

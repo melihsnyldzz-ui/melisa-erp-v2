@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Post-Test Findings Fix Pass.'),
+  currentStatus.includes('Plan P1 Guided Final Test Execution.'),
 );
 
 addCheck(
