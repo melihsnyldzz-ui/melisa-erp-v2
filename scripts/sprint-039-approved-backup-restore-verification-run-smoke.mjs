@@ -111,8 +111,8 @@ addCheck(
 );
 
 addCheck(
-  'current status waits for explicit execution approval',
-  currentStatus.includes('Plan P1 Migration Rehearsal Checklist.'),
+  'current status points to the production acceptance session',
+  currentStatus.includes('Run ERP Production Acceptance Session.'),
 );
 
 addCheck(

@@ -1295,5 +1295,16 @@ Sprint 042 was completed on 2026-07-09 with the production env ownership
 checklist. See `docs/erp-v2/production-env-ownership-checklist.md` and
 `docs/erp-v2/production-env-ownership-checklist-sprint-042-report.md`.
 
-The next P1 item should create the staging-only migration rehearsal checklist
-without running migrations or touching production SQL.
+Sprint 043 was completed on 2026-07-09 with the ERP final closure decision.
+ERP Core is closed for final operator testing and internal use decisions; true
+production blockers are separated from non-blocking hardening. See
+`docs/erp-v2/final-closure-decision.md` and
+`docs/erp-v2/final-closure-decision-sprint-043-report.md`.
+
+The next action should be:
+
+```text
+Run ERP Production Acceptance Session.
+```
+
+This is a go/no-go session, not another open-ended sprint chain.

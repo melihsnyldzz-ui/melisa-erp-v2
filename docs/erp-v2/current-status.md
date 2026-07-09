@@ -102,6 +102,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 040 production readiness remaining hardening documented in `docs/erp-v2/production-readiness-remaining-hardening-sprint-040-report.md` and `docs/erp-v2/production-readiness-remaining-hardening.md`.
 - Sprint 041 production host network checklist documented in `docs/erp-v2/production-host-network-checklist-sprint-041-report.md` and `docs/erp-v2/production-host-network-checklist.md`.
 - Sprint 042 production env ownership checklist documented in `docs/erp-v2/production-env-ownership-checklist-sprint-042-report.md` and `docs/erp-v2/production-env-ownership-checklist.md`.
+- Sprint 043 final closure decision documented in `docs/erp-v2/final-closure-decision-sprint-043-report.md` and `docs/erp-v2/final-closure-decision.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -177,19 +178,21 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 042 is completed when the production env ownership checklist exists, env ownership/storage/rotation rules are listed for human confirmation, and no secret value has been read, printed, changed or committed.
+Sprint 043 is completed when the final closure decision exists and separates completed ERP Core work from true production blockers and non-blocking follow-up items.
 
-Sprint 042 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, DNS/firewall/reverse-proxy changes, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, secret generation, secret rotation, secret printing, or new business-rule changes.
+Sprint 043 does not execute real business record repair, direct SQL repair, import apply, terminal send, backup/restore/reset execution, cleanup, archive, migrations, production deploys, DNS/firewall/reverse-proxy changes, public publishing, WhatsApp or external message sending, official accounting actions, permission/auth changes, production env value changes, secret generation, secret rotation, secret printing, or new business-rule changes.
 
-## Recommended Next Sprint
+ERP Core is treated as functionally complete for final operator testing and internal use decisions. Production go-live remains blocked by explicit production acceptance items only.
 
-Recommended next sprint:
+## Recommended Next Action
+
+Recommended next action:
 
 ```text
-Plan P1 Migration Rehearsal Checklist.
+Run ERP Production Acceptance Session.
 ```
 
-The next P1 item should focus on the backup/restore evidence log shell.
+The next action should be a practical go/no-go acceptance session, not another open-ended checklist sprint chain.
 
 Business reason:
 
@@ -206,13 +209,17 @@ Business reason:
 - Sprint 040 defines the remaining non-destructive production readiness hardening queue while backup/restore execution approval is pending.
 - Sprint 041 creates the production host/network checklist without executing deployment, DNS, firewall, reverse-proxy, secret or production actions.
 - Sprint 042 creates the production env ownership checklist without reading, printing, changing or committing secret values.
+- Sprint 043 closes the long stabilization sprint chain by classifying ERP Core as final-testing complete, production blockers as explicit acceptance work, and non-blocking items as post-acceptance hardening.
 
-Expected next P1 outputs:
+Expected production acceptance outputs:
 
-- Staging-only migration rehearsal checklist.
-- Migration list and pre/post checks.
-- Backup-before-migration requirement.
-- No migration execution or production SQL changes.
+- Production host/access confirmation.
+- Production env ownership and storage confirmation without exposing values.
+- Backup/restore verification result, only after exact approval.
+- Staging or restore-test migration rehearsal result.
+- SQL least-privilege and permission sign-off.
+- Final ERP smoke pack result.
+- Human operator walkthrough result.
 
 ## Do Not Start Yet
 

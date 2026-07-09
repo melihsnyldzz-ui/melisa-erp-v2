@@ -146,6 +146,7 @@ function runStaticAndBuildSmoke() {
     ['production readiness hardening smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:production-hardening']],
     ['production host network smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:production-host-network']],
     ['production env ownership smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:production-env-ownership']],
+    ['final closure decision smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:final-closure']],
     ['web-admin production build', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'build']],
   ];
 
