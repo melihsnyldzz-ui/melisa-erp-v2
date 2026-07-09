@@ -377,7 +377,7 @@ export const screenRegistry = {
   'audit-log': {
     id: 'audit-log',
     label: 'Audit Log',
-    module: 'Guvenlik',
+    module: 'GÃ¼venlik',
     type: 'rapor',
   },
 };

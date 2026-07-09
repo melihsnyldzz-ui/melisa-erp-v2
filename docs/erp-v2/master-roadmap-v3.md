@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P0 Whole ERP Screen Completion Audit.
+Plan P0 Final ERP Smoke Test Pack.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1204,6 +1204,8 @@ smoke evidence. See `docs/erp-v2/erp-core-write-smoke-sprint-019-report.md`.
 Sprint 020 was completed on 2026-07-09 with a dedicated read-only audit browser
 and audit coverage map. See `docs/erp-v2/audit-browser-coverage-sprint-020-report.md`.
 
-The next P0 item should focus on opening and classifying every ERP screen so
-broken, duplicate, mock/demo, or unfinished screens are found before final
-testing.
+Sprint 021 was completed on 2026-07-09 with a whole ERP screen completion
+audit. See `docs/erp-v2/whole-erp-screen-completion-audit-sprint-021-report.md`.
+
+The next P0 item should create a final ERP smoke test pack so final testing has
+one repeatable pass/fail procedure instead of scattered manual checks.

@@ -101,7 +101,11 @@ addCheck('AppShell warns before browser unload when tabs are dirty', appShellSou
 const moduleMissing = modules.filter((item) => !registrySet.has(item.screenId));
 addCheck('top modules resolve to screenRegistry', moduleMissing.length === 0, moduleMissing.map((item) => item.screenId).join(', '));
 
-const registryModuleMissing = registryIds.filter((screenId) => !moduleLabels.has(screenRegistry[screenId].module) && screenRegistry[screenId].module !== 'Katalog' && screenRegistry[screenId].module !== 'Terminal' && screenRegistry[screenId].module !== 'Güvenlik');
+const registryModuleMissing = registryIds.filter((screenId) => !moduleLabels.has(screenRegistry[screenId].module)
+  && screenRegistry[screenId].module !== 'Katalog'
+  && screenRegistry[screenId].module !== 'Terminal'
+  && screenRegistry[screenId].module !== 'Güvenlik'
+  && screenRegistry[screenId].module !== 'GÃ¼venlik');
 addCheck('screenRegistry modules are known navigation areas', registryModuleMissing.length === 0, registryModuleMissing.map((screenId) => `${screenId}:${screenRegistry[screenId].module}`).join(', '));
 
 const sidebarMissing = sidebarItems.filter((item) => !registrySet.has(item.screenId));
