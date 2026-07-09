@@ -165,6 +165,9 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
               ? syncState.online ? 'Bekleyen fisler gonderime hazir.' : 'API offline, fisler kuyrukta bekliyor.'
               : 'Bekleyen fis yok.'}
         </Text>
+        <Text style={styles.heroNote}>
+          Final test notu: Gonder butonu fisi API'ye yollar ve ERP'ye yazabilir. Sil butonu yalnizca bu cihazdaki lokal kuyruk kaydini kaldirir.
+        </Text>
       </View>
 
       <View style={styles.summaryRow}>
@@ -206,6 +209,9 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {failedSales.length ? (
+        <Text style={styles.error}>Hatali fisleri silmeden once musteri, urun, miktar ve hata metnini kontrol edin.</Text>
+      ) : null}
 
       <TerminalButton label="Yenile" onPress={refreshLocalState} variant="secondary" />
       <TerminalButton label="Raporlar" onPress={navigation.openReports} variant="secondary" />
@@ -248,6 +254,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
+  },
+  heroNote: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
   },
   summaryRow: {
     flexDirection: 'row',

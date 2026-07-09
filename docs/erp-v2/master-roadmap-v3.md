@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Terminal Failed Sync And Device Validation.
+Plan P1 Settings And Definitions Business Review.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1216,5 +1216,10 @@ cleanup. See `docs/erp-v2/invoice-fixture-boundary-sprint-023-report.md`.
 Sprint 024 was completed on 2026-07-09 with CRM and WhatsApp final-testing
 labels. See `docs/erp-v2/crm-whatsapp-boundary-labels-sprint-024-report.md`.
 
-The next P1 item should validate terminal failed-sync and device-state labels so
-operators can understand terminal health before final human testing.
+Sprint 025 was completed on 2026-07-09 with terminal failed-sync and
+device-readiness validation labels. See
+`docs/erp-v2/terminal-device-sync-validation-sprint-025-report.md`.
+
+The next P1 item should review Settings and Definitions screens so business
+configuration, permissions, stock, finance, terminal and integration boundaries
+are clear before final human testing.

@@ -191,6 +191,7 @@ export function SettingsScreen({ navigation, onRefresh }) {
           <InfoTile label="Cari cache" value={String(cache.customerCount || 0)} tone={cache.customerCount > 0 ? 'success' : 'warning'} />
           <InfoTile label="Hata" value={String(queue.saleFailedCount || queue.failedCount || 0)} tone={hasBlockingQueue ? 'danger' : 'success'} />
         </View>
+        <Text style={styles.help}>Final test notu: API offline, cache bos veya hatali kuyruk varsa cihaz sahaya hazir kabul edilmez.</Text>
       </View>
 
       <View style={styles.panel}>

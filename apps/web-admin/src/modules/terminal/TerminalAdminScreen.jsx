@@ -164,6 +164,9 @@ export function TerminalAdminScreen() {
 
       {isLoading && <div className="list-state">Terminal verisi API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      <div className="list-state">
+        Final test notu: Bu web-admin ekrani terminal cihazlarini ve sync kuyrugunu okur; cihaz kapatma, kuyruk silme, tekrar gonderme veya DB duzeltme islemi baslatmaz.
+      </div>
 
       <section className="dashboard-kpi-grid">
         <Kpi label="Cihaz" value={summary.deviceCount || 0} detail={`${summary.activeDeviceCount || 0} aktif`} tone="info" />
@@ -236,6 +239,9 @@ export function TerminalAdminScreen() {
         <div className="panel-title">
           <strong>Offline Queue / Sync Logları</strong>
           <span>{data.queue.length} sat?r / Gösterilen: {visibleQueue.length}</span>
+        </div>
+        <div className="list-state">
+          Failed kayitlar operator icin inceleme sinyalidir; dogrudan SQL silme veya kuyruk temizleme bu ekrandan yapilmaz.
         </div>
         <form className="filter-grid" onSubmit={applyFilters}>
           <label>

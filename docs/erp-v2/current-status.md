@@ -84,6 +84,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 022 final ERP smoke test pack documented in `docs/erp-v2/final-erp-smoke-pack-sprint-022-report.md`.
 - Sprint 023 invoice fixture and mock boundary cleanup documented in `docs/erp-v2/invoice-fixture-boundary-sprint-023-report.md`.
 - Sprint 024 CRM and WhatsApp final-testing labels documented in `docs/erp-v2/crm-whatsapp-boundary-labels-sprint-024-report.md`.
+- Sprint 025 terminal failed-sync and device validation documented in `docs/erp-v2/terminal-device-sync-validation-sprint-025-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -101,7 +102,7 @@ These areas exist but should not be treated as finished business capability yet:
 | Sales/Purchase commercial truth | Improved | Controlled API smoke verifies draft-no-effect, finalize-effect, cancel-reversal and duplicate action guards for sales and purchase; invoice screens no longer load old mock fixture rows as live defaults |
 | Finance | Improved | Collections/payments have controlled API smoke evidence for selected cari guards, customer/supplier movement impact, finance account balance impact, finance account movements and audit expectations; operational finance vs official accounting boundary is documented |
 | Import | Improved | Apply now requires a matching preview token; product/customer/supplier preview reports duplicates and suspicious-row warnings; apply returns before/after counts and audit expectations |
-| Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, but offline queue runbook and device failure operations still need validation |
+| Terminal app | Improved | Field app exists; Operational Health and Terminal Management expose pending/failed sync counts, and Sprint 025 clarifies web-admin terminal visibility is read-only, Send can write through the API, Delete removes only local queue state, and failed queue/API/cache blockers mean a device is not field-ready |
 | Electron desktop | Partial | Shell exists, but packaging, update, shortcut and multi-PC runbook are not complete |
 | Catalog/WhatsApp | Improved | Sprint 012 keeps public catalog fields safe, removes prices from share text, keeps automatic WhatsApp sending approval-gated, Sprint 013 assigns outreach ownership to CRM, and Sprint 024 labels visible ERP screens as manual preparation/review only |
 | CRM boundary | Planned | Sprint 013 defines CRM-owned outreach, follow-up, campaign, communication-history, catalog follow-up and pipeline workflows without implementation |
@@ -117,7 +118,7 @@ These areas exist but should not be treated as finished business capability yet:
 - Production-ready backup/restore verification.
 - Import reconciliation against finance/accounting truth.
 - Product media reviewed apply execution after dry-run coverage reports.
-- Terminal failed sync administration beyond read-only visibility.
+- Terminal failed sync administration beyond read-only visibility remains approval-gated; operator-facing boundary labels are in place.
 - Full production deployment/runbook.
 - Current local runbook for API, web-admin, terminal and Electron together.
 - Full CRM/Mission Control/Media Library boundaries in menus and implementation.
@@ -155,31 +156,31 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 024 is completed when catalog, WhatsApp planner, WhatsApp queue, dashboard quick actions, and smart insights clearly label CRM/WhatsApp workflows as manual preparation/review or future CRM ownership, with no active automatic sending implied.
+Sprint 025 is completed when terminal admin and terminal app screens clearly explain terminal read-only visibility, failed-sync review boundaries, local queue deletion, API-backed send behavior, and device-readiness blockers.
 
-Sprint 024 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal writes, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
+Sprint 025 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, import apply, terminal send/delete execution, direct SQL, official accounting actions, or controlled write smoke without the `FINAL_ERP_WRITE_SMOKE_APPROVED=true` gate.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Plan P1 Terminal Failed Sync And Device Validation.
+Plan P1 Settings And Definitions Business Review.
 ```
 
 The next P0 item should focus on a final ERP smoke test pack.
 
 Business reason:
 
-- Sprint 024 makes CRM/WhatsApp-adjacent screens manual-preparation and future-CRM boundaries explicit.
-- The next risk is terminal readiness: failed sync, offline device, and device status behavior should be validated before operator training and final human testing.
+- Sprint 025 makes terminal failed-sync and device-readiness boundaries explicit before operator training.
+- The next risk is settings and definitions: business-critical definitions should be reviewed so wrong defaults or unclear setup screens do not affect final human testing.
 
 Expected next P1 outputs:
 
-- Inventory terminal admin and terminal app sync/device states.
-- Verify failed-sync and offline-device labels are operator-readable.
-- Confirm terminal admin visibility stays read-only unless explicitly approved.
-- Add focused smoke coverage for terminal final-testing labels.
+- Inventory Settings and Definitions screens.
+- Identify settings that change business behavior, permissions, finance, stock, terminal or integration behavior.
+- Label unsafe or incomplete setup areas before final testing.
+- Add focused smoke coverage for settings/definitions final-testing boundaries.
 
 ## Do Not Start Yet
 
