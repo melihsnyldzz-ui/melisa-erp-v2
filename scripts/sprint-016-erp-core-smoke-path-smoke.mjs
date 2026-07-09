@@ -70,7 +70,8 @@ addCheck(
     'Sprint 016 full ERP core smoke path documented',
     'Sprint 017 ERP core read-only smoke execution documented',
     'Sprint 018 controlled ERP core write smoke approval plan documented',
-    'controlled write-smoke approval plan exists for purchase, sales and finance',
+    'Sprint 019 controlled ERP core write smoke execution documented',
+    'Plan P0 Audit Browser And Audit Coverage',
   ]),
 );
 

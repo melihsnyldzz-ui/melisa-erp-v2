@@ -1195,9 +1195,11 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Complete Sprint 019 only after exact Melih approval.
+Plan P0 Audit Browser And Audit Coverage.
 ```
 
-Sprint 019 should execute the controlled ERP Core write smoke only after Melih
-explicitly approves the target environment, QA records, allowed write actions,
-evidence scope, and reversal strategy for that exact run.
+Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
+smoke evidence. See `docs/erp-v2/erp-core-write-smoke-sprint-019-report.md`.
+
+The next P0 item should focus on audit browser and audit coverage so critical
+ERP writes are easy to review and the audit coverage map is explicit.

@@ -78,6 +78,7 @@ These areas have a working foundation and can be treated as implemented baseline
 - Sprint 016 full ERP core smoke path documented in `docs/erp-v2/erp-core-smoke-path-sprint-016-report.md`.
 - Sprint 017 ERP core read-only smoke execution documented in `docs/erp-v2/erp-core-read-only-smoke-sprint-017-report.md`.
 - Sprint 018 controlled ERP core write smoke approval plan documented in `docs/erp-v2/erp-core-write-smoke-approval-plan-sprint-018-report.md`.
+- Sprint 019 controlled ERP core write smoke execution documented in `docs/erp-v2/erp-core-write-smoke-sprint-019-report.md`.
 - AI entrypoint and local AI rules added in commit `86ae86f`.
 - ERP Master Roadmap v3 added in commit `aa9d120`.
 
@@ -105,12 +106,11 @@ These areas exist but should not be treated as finished business capability yet:
 
 ## Missing Or Weak Areas
 
-- Controlled write execution evidence for the full ERP smoke path: purchase -> sales -> finance.
+- Audit browser and audit coverage map.
 - Production-ready backup/restore verification.
 - Import reconciliation against finance/accounting truth.
 - Product media reviewed apply execution after dry-run coverage reports.
 - Terminal failed sync administration beyond read-only visibility.
-- Audit browser and audit coverage map.
 - Full production deployment/runbook.
 - Current local runbook for API, web-admin, terminal and Electron together.
 - Full CRM/Mission Control/Media Library boundaries in menus and implementation.
@@ -148,35 +148,32 @@ Any AI or human reviewer must understand that GitHub can show application code a
 
 ## Current Sprint Baseline
 
-Sprint 018 is completed when a controlled write-smoke approval plan exists for purchase, sales and finance, exact target-environment requirements are defined, QA record strategy is documented, before/after evidence rules avoid private business data, reversal expectations are explicit, and a clear stop gate exists before any DB write is executed.
+Sprint 019 is completed when the approved local controlled write smoke creates only `QA-S019-*` records, verifies purchase -> sales -> finance effects, avoids direct SQL and destructive operations, records safe evidence, and leaves final QA product stock, customer balance, supplier balance, and QA finance account balance at zero for the successful run.
 
-Sprint 018 does not execute live DB writes, controlled purchase/sales/finance write smokes, SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes, price/stock/finance/customer/supplier changes, import apply, or official accounting actions.
+Sprint 019 does not execute SQL migrations, cleanup, backup/restore/reset execution, production deploys, public publishing, WhatsApp or external message sending, permission/auth changes outside the approved QA records, import apply, terminal writes, or official accounting actions.
 
 ## Recommended Next Sprint
 
 Recommended next sprint:
 
 ```text
-Complete Sprint 019 only after exact Melih approval.
+Plan P0 Audit Browser And Audit Coverage.
 ```
 
-Sprint 019 should focus on Controlled ERP Core Write Smoke Execution.
+The next P0 item should focus on audit browser and audit coverage.
 
 Business reason:
 
-- Sprint 016 defined the connected ERP Core smoke path and approval boundaries.
-- Sprint 017 collected safe read-only evidence without executing commercial writes.
-- Sprint 018 prepared the approval plan for controlled commercial write checks without executing them.
-- The remaining gap is execution evidence, but that execution is blocked until Melih names the exact target environment, QA records, allowed actions, evidence scope and reversal strategy.
+- Sprint 019 now provides controlled local write evidence for the ERP Core purchase -> sales -> finance path.
+- The next risk is traceability: operators must be able to see which critical writes are audited and where those audit records can be reviewed.
 
-Expected Sprint 019 outputs, only after exact approval:
+Expected next P0 outputs:
 
-- Controlled purchase write-smoke evidence.
-- Controlled sales write-smoke evidence.
-- Controlled finance write-smoke evidence.
-- Before/after evidence using QA records only.
-- Reversal or retained-QA evidence according to the approved plan.
-- Immediate stop and report if any non-QA record, private data, permission, audit or reversal risk appears.
+- Audit browser screen review or implementation plan.
+- Critical write coverage map.
+- Audit event filters for sales, purchase, finance, stock count, import, settings and auth changes.
+- Read-only audit smoke checks.
+- Documentation update for what is audited and what is not.
 
 ## Do Not Start Yet
 

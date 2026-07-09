@@ -206,9 +206,9 @@ addCheck(
   includesAll(sources.currentStatus, [
     'Sprint 017 ERP core read-only smoke execution documented',
     'Sprint 018 controlled ERP core write smoke approval plan documented',
-    'Sprint 018 is completed',
-    'Complete Sprint 019 only after exact Melih approval',
-    'Sprint 018 prepared the approval plan for controlled commercial write checks without executing them',
+    'Sprint 019 controlled ERP core write smoke execution documented',
+    'Sprint 019 is completed',
+    'Plan P0 Audit Browser And Audit Coverage',
   ]),
 );
 

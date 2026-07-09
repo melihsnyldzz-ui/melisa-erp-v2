@@ -111,12 +111,12 @@ addCheck(
 );
 
 addCheck(
-  'current status marks Sprint 018 complete and recommends approval-gated Sprint 019',
+  'current status preserves Sprint 018 plan and records Sprint 019 execution',
   includesAll(sources.currentStatus, [
     'Sprint 018 controlled ERP core write smoke approval plan documented',
-    'Sprint 018 is completed',
-    'Complete Sprint 019 only after exact Melih approval',
-    'Controlled ERP Core Write Smoke Execution',
+    'Sprint 019 controlled ERP core write smoke execution documented',
+    'Sprint 019 is completed',
+    'Plan P0 Audit Browser And Audit Coverage',
   ]),
 );
 
@@ -145,4 +145,3 @@ console.log(`SUMMARY: ${checks.length - failed.length}/${checks.length} PASS`);
 if (failed.length > 0) {
   process.exitCode = 1;
 }
-
