@@ -94,7 +94,7 @@ addCheck(
 
 addCheck(
   'current status points to the next practical readiness sprint',
-  currentStatus.includes('Plan P1 Production Host Network Checklist.'),
+  currentStatus.includes('Plan P1 Production Env Ownership Checklist.'),
 );
 
 addCheck(

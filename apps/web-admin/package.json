@@ -32,6 +32,7 @@
     "smoke:backup-restore-preflight": "node ../../scripts/sprint-038-backup-restore-dry-run-preflight-smoke.mjs",
     "smoke:backup-restore-approved-run": "node ../../scripts/sprint-039-approved-backup-restore-verification-run-smoke.mjs",
     "smoke:production-hardening": "node ../../scripts/sprint-040-production-readiness-hardening-smoke.mjs",
+    "smoke:production-host-network": "node ../../scripts/sprint-041-production-host-network-smoke.mjs",
     "smoke:final-erp": "node ../../scripts/final-erp-smoke-pack.mjs"
   },
   "dependencies": {

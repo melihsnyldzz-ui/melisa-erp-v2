@@ -1195,7 +1195,7 @@ Only after these are stable should the project expand into operational command c
 After this roadmap is approved and committed, the next operational command should be:
 
 ```text
-Plan P1 Production Host Network Checklist.
+Plan P1 Production Env Ownership Checklist.
 ```
 
 Sprint 019 was completed on 2026-07-09 with approved local `QA-S019-*` write
@@ -1287,6 +1287,9 @@ hardening queue. See
 `docs/erp-v2/production-readiness-remaining-hardening.md` and
 `docs/erp-v2/production-readiness-remaining-hardening-sprint-040-report.md`.
 
-The next P1 item should create the production host and network checklist without
-deploying, changing firewall/DNS, touching secrets, or running production
-actions.
+Sprint 041 was completed on 2026-07-09 with the production host/network
+checklist. See `docs/erp-v2/production-host-network-checklist.md` and
+`docs/erp-v2/production-host-network-checklist-sprint-041-report.md`.
+
+The next P1 item should create the production environment ownership checklist
+without reading, printing, changing, or committing secret values.

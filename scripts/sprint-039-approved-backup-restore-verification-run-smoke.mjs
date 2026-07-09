@@ -112,7 +112,7 @@ addCheck(
 
 addCheck(
   'current status waits for explicit execution approval',
-  currentStatus.includes('Plan P1 Production Host Network Checklist.'),
+  currentStatus.includes('Plan P1 Production Env Ownership Checklist.'),
 );
 
 addCheck(
