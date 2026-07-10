@@ -29,6 +29,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Production Env Ownership Checklist](production-env-ownership-checklist.md)
 - [Final Closure Decision](final-closure-decision.md)
 - [Production Acceptance Session](production-acceptance-session.md)
+- [Muhasebe Kabul Test Akisi](accounting-acceptance-test-flow.md)
 - [Final Testing Runbook](final-testing-runbook.md)
 - [Final Testing Findings Log](final-testing-findings-log.md)
 - [Guided Final Test Execution Log](guided-final-test-execution-log.md)
