@@ -251,13 +251,76 @@ function normalizeInboxResponse(inbox) {
   if (!inbox?.conversations?.length) return mockConversations;
 
   return inbox.conversations.map((conversation, index) => ({
-    ...mockConversations[index % mockConversations.length],
-    ...conversation,
-    id: conversation.id || `api-${index}`,
-    name: conversation.contactName || conversation.name || mockConversations[index % mockConversations.length].name,
-    phone: conversation.phone || mockConversations[index % mockConversations.length].phone,
-    messages: conversation.messages?.length ? conversation.messages : mockConversations[index % mockConversations.length].messages,
+    ...normalizeApiConversation(conversation, index),
   }));
+}
+
+function fallbackMessageText(message) {
+  if (message?.text) return message.text;
+  if (message?.type === 'file') return message.fileName || '[Belge]';
+  return '[Mesaj]';
+}
+
+function getConversationInitials(name, phone) {
+  const words = String(name || '')
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  if (words.length === 1 && !/^\d+$/.test(words[0])) return words[0].slice(0, 2).toUpperCase();
+  return String(phone || '--').slice(-2).padStart(2, '-');
+}
+
+function normalizeApiMessage(message, index) {
+  const text = fallbackMessageText(message);
+
+  return {
+    id: message.id || `api-message-${index}`,
+    direction: message.direction || 'in',
+    type: message.type || 'text',
+    text,
+    time: message.time || '',
+    status: message.status || '',
+    fileName: message.fileName,
+    fileMeta: message.fileMeta,
+  };
+}
+
+function normalizeApiConversation(conversation, index) {
+  const fallback = mockConversations[index % mockConversations.length];
+  const messages = conversation.messages?.length
+    ? conversation.messages.map(normalizeApiMessage)
+    : [];
+  const latestMessage = [...messages].reverse().find((message) => message.text) || messages[messages.length - 1];
+  const name = conversation.contactName || conversation.name || conversation.phone || fallback.name;
+  const phone = conversation.phone || fallback.phone;
+
+  return {
+    ...fallback,
+    id: conversation.id || `api-${index}`,
+    name,
+    phone,
+    country: 'WhatsApp',
+    flag: 'WA',
+    preview: latestMessage?.text || '[Mesaj]',
+    time: latestMessage?.time || '',
+    unread: Number(conversation.unread || 0),
+    status: conversation.status === 'open' ? 'Açık' : conversation.status || fallback.status,
+    stage: 'Yeni',
+    owner: 'Atanmadi',
+    language: 'Bilinmiyor',
+    source: conversation.provider || 'WhatsApp',
+    createdAt: conversation.lastMessageAt
+      ? new Date(conversation.lastMessageAt).toLocaleString('tr-TR')
+      : fallback.createdAt,
+    avatar: getConversationInitials(name, phone),
+    tags: conversation.tags || [],
+    notes: `${conversation.instanceKey || 'melisa-test'} üzerinden alınan gerçek WhatsApp konuşması.`,
+    products: [],
+    orders: [],
+    messages,
+  };
 }
 
 function getFlagLabel(code) {
