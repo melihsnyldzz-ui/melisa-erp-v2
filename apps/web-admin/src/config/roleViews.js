@@ -32,6 +32,7 @@ export const roleViews = [
       'bulk-purchase-entry',
       'sales-invoice-list',
       'purchase-invoice-list',
+      'whatsapp-crm-inbox',
     ],
   },
   {
@@ -96,6 +97,7 @@ export const roleViews = [
       'catalog-list',
       'whatsapp-planner',
       'whatsapp-web-queue',
+      'whatsapp-crm-inbox',
       'customer-list',
       'collections-overview',
       'cash-customers',

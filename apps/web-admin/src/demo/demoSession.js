@@ -22,6 +22,8 @@ export const demoPermissions = [
   'purchase.finalize',
   'purchase.cancel',
   'import.run',
+  'crm.view',
+  'crm.manage',
 ];
 
 export const demoUser = {

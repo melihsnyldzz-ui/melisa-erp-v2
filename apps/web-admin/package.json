@@ -16,6 +16,7 @@
     "smoke:layout": "node ../../scripts/web-admin-layout-smoke.mjs",
     "smoke:invoice-boundary": "node ../../scripts/web-admin-invoice-boundary-smoke.mjs",
     "smoke:crm-whatsapp-boundary": "node ../../scripts/web-admin-crm-whatsapp-boundary-smoke.mjs",
+    "smoke:whatsapp-crm": "node ../../scripts/whatsapp-crm-sprint-001-smoke.mjs",
     "smoke:terminal-boundary": "node ../../scripts/web-admin-terminal-boundary-smoke.mjs",
     "smoke:settings-definitions-boundary": "node ../../scripts/web-admin-settings-definitions-boundary-smoke.mjs",
     "smoke:final-testing-runbook": "node ../../scripts/final-testing-runbook-smoke.mjs",

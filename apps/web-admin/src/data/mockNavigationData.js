@@ -6,6 +6,7 @@ export const modules = [
   { label: 'Alış', screenId: 'purchase-invoice-list' },
   { label: 'Finans', screenId: 'finance-overview' },
   { label: 'Raporlar', screenId: 'reports-overview' },
+  { label: 'WhatsApp CRM', screenId: 'whatsapp-crm-inbox' },
   { label: 'Tanımlar', screenId: 'definitions-overview' },
   { label: 'Ayarlar', screenId: 'settings-overview' },
 ];
@@ -82,6 +83,12 @@ export const sidebarGroups = [
       { label: 'Katalog Listesi', screenId: 'catalog-list' },
       { label: 'WhatsApp Paylaşım', screenId: 'whatsapp-planner' },
       { label: 'WhatsApp Web Kuyruğu', screenId: 'whatsapp-web-queue' },
+    ],
+  },
+  {
+    title: 'WhatsApp CRM',
+    items: [
+      { label: 'Gelen Kutusu', screenId: 'whatsapp-crm-inbox' },
     ],
   },
   {
@@ -325,6 +332,12 @@ export const screenRegistry = {
     label: 'WhatsApp Web Kuyruğu',
     module: 'Katalog',
     type: 'kuyruk',
+  },
+  'whatsapp-crm-inbox': {
+    id: 'whatsapp-crm-inbox',
+    label: 'WhatsApp CRM Gelen Kutusu',
+    module: 'WhatsApp CRM',
+    type: 'gelen-kutusu',
   },
   'terminal-overview': {
     id: 'terminal-overview',

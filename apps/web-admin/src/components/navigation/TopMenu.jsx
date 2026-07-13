@@ -6,6 +6,7 @@ import {
   FileText,
   Home,
   LogOut,
+  MessageCircle,
   Package,
   PanelTop,
   ReceiptText,
@@ -28,6 +29,7 @@ const moduleIcons = {
   Finans: Building2,
   Raporlar: BarChart3,
   Tanımlar: Tags,
+  'WhatsApp CRM': MessageCircle,
   Ayarlar: Settings,
 };
 

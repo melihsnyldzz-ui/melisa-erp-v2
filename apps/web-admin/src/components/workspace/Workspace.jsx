@@ -39,6 +39,7 @@ import { SupplierListScreen } from '../../modules/supplier/SupplierListScreen.js
 import { SupplierMovementsScreen } from '../../modules/supplier/SupplierMovementsScreen.jsx';
 import { SupplierStatementScreen } from '../../modules/supplier/SupplierStatementScreen.jsx';
 import { TerminalAdminScreen } from '../../modules/terminal/TerminalAdminScreen.jsx';
+import { WhatsappCrmInboxScreen } from '../../modules/whatsapp-crm/WhatsappCrmInboxScreen.jsx';
 import { WhatsappPlannerScreen } from '../../modules/catalog/WhatsappPlannerScreen.jsx';
 import { WhatsappWebQueueScreen } from '../../modules/catalog/WhatsappWebQueueScreen.jsx';
 
@@ -309,6 +310,11 @@ const workspaceRouteRegistry = {
         onOpenScreen={onOpenScreen}
       />
     ),
+  },
+  'whatsapp-crm-inbox': {
+    permissionKeys: ['crm.view'],
+    unauthorizedMessage: 'WhatsApp CRM gelen kutusu goruntuleme yetkiniz yok.',
+    render: () => <WhatsappCrmInboxScreen />,
   },
   'import-foundation': {
     permissionKeys: ['import.run'],

@@ -51,6 +51,8 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [Final Closure Decision Sprint 043 Report](final-closure-decision-sprint-043-report.md)
 - [Reporting Runbook](reporting-runbook.md)
 - [AI And Automation Readiness](ai-automation-readiness.md)
+- [WhatsApp CRM Architecture](whatsapp-crm-architecture.md)
+- [WhatsApp CRM Sprint 001 Report](whatsapp-crm-sprint-001-report.md)
 
 ## Tasarım Standardı
 

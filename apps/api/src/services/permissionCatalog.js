@@ -24,6 +24,8 @@ export const GRANULAR_PERMISSIONS = [
   'dashboard.view',
   'import.run',
   'settings.manage',
+  'crm.view',
+  'crm.manage',
 ];
 
 const FULL_ACCESS_ROLE_CODES = new Set(['admin', 'owner_manager', 'owner_partner']);
