@@ -35,6 +35,30 @@ test('keeps normal conversation text unchanged', () => {
   assert.equal(event.phone, '905551112233');
 });
 
+test('does not treat Evolution sender field as contact phone for inbound LID messages', () => {
+  const event = provider.normalizeWebhook({
+    instance: 'melisa-test',
+    event: 'messages.upsert',
+    sender: '905387217733@s.whatsapp.net',
+    data: {
+      key: {
+        id: 'lid-inbound-1',
+        remoteJid: '222530946265208@lid',
+        fromMe: false,
+      },
+      pushName: 'Beyza',
+      message: {
+        conversation: 'merhaba',
+      },
+      messageType: 'conversation',
+    },
+  });
+
+  assert.equal(event.remoteJid, '222530946265208@lid');
+  assert.equal(event.phone, '222530946265208');
+  assert.equal(event.text, 'merhaba');
+});
+
 test('uses media captions before fallback previews', () => {
   const event = normalize({
     key: {

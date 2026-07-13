@@ -212,6 +212,55 @@ export async function persistOutboundMessage({ conversationId, providerResult })
   } : null;
 }
 
+export async function updateConversationContactPhone({ conversationId, phone }) {
+  const result = await transaction(async (client) => {
+    const conversationResult = await client.query(`
+      SELECT
+        conversation.id AS conversation_id,
+        contact.id AS contact_id,
+        contact.provider
+      FROM crm_conversations conversation
+      JOIN crm_contacts contact ON contact.id = conversation.contact_id
+      WHERE conversation.id = $1
+      FOR UPDATE OF contact
+    `, [conversationId]);
+
+    const conversation = conversationResult.rows[0];
+    if (!conversation) return null;
+
+    const duplicateResult = await client.query(`
+      SELECT id
+      FROM crm_contacts
+      WHERE provider = $1
+        AND phone = $2
+        AND id <> $3
+      LIMIT 1
+    `, [conversation.provider, phone, conversation.contact_id]);
+
+    if (duplicateResult.rows[0]) {
+      const error = new Error('Bu telefon numarasi baska CRM kisisiyle eslesmis.');
+      error.code = 'WHATSAPP_CRM_CONTACT_PHONE_CONFLICT';
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const updateResult = await client.query(`
+      UPDATE crm_contacts
+      SET phone = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, display_name, phone
+    `, [phone, conversation.contact_id]);
+
+    return updateResult.rows[0];
+  });
+
+  return result ? {
+    id: result.id,
+    contactName: result.display_name,
+    phone: result.phone,
+  } : null;
+}
+
 export async function listInboxOverview({ limit = 100 } = {}) {
   if (!isPostgresConfigured()) {
     return {

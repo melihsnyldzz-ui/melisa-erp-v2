@@ -71,6 +71,10 @@ export async function sendWhatsappCrmMessage(payload) {
   return crmRequest('POST', '/crm/messages/send', { body: payload });
 }
 
+export async function updateWhatsappCrmContactPhone(conversationId, phone) {
+  return crmRequest('PUT', `/crm/conversations/${conversationId}/contact-phone`, { body: { phone } });
+}
+
 export const whatsappCrmConfig = {
   baseUrl: WHATSAPP_CRM_API_BASE_URL,
 };

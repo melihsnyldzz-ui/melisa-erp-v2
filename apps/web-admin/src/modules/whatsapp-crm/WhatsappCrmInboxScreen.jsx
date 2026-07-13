@@ -27,6 +27,7 @@ import {
   getWhatsappCrmHealth,
   getWhatsappCrmInbox,
   sendWhatsappCrmMessage,
+  updateWhatsappCrmContactPhone,
   whatsappCrmConfig,
 } from '../../services/whatsappCrmApi.js';
 
@@ -47,6 +48,7 @@ const CRM_COPY = {
   testSendNotice: 'WhatsApp Business API test hatti uzerinden bagli. Gercek gonderim sadece izinli numaralarda acik.',
   sendDisabledNotice: 'Gonderim kapali. WHATSAPP_SEND_ENABLED=true olmadan mesaj cikmaz.',
   unsupportedGroupNotice: 'Bu sohbet grup kimligiyle geldi. Grup gonderimi icin ayri destek gerekiyor.',
+  lidPhoneNotice: 'Bu sohbet LID kimligiyle geldi. CRM gonderimi icin gercek telefon eslestirmesi gerekiyor.',
   mobileBack: 'Gelen kutusuna don',
 };
 
@@ -273,12 +275,25 @@ function normalizePhoneDigits(value = '') {
   return digits;
 }
 
+function hasExplicitWhatsappPhone(value = '') {
+  const raw = String(value || '').trim();
+  const phone = normalizePhoneDigits(raw);
+
+  return phone.length >= 10
+    && phone.length <= 15
+    && (raw.startsWith('+') || raw.startsWith('00') || phone.startsWith('90'));
+}
+
 function getSendDisabledReason(conversation) {
   const remoteJid = String(conversation?.remoteJid || '').toLowerCase();
   const phone = normalizePhoneDigits(conversation?.phone);
 
   if (remoteJid.endsWith('@g.us')) {
     return CRM_COPY.unsupportedGroupNotice;
+  }
+
+  if (remoteJid.endsWith('@lid') && !hasExplicitWhatsappPhone(conversation?.phone)) {
+    return CRM_COPY.lidPhoneNotice;
   }
 
   if (!remoteJid.endsWith('@lid') && phone.length > 15) {
@@ -491,6 +506,8 @@ function ChatPanel({
   isSending,
   onBackToList,
   onSendMessage,
+  onUpdatePhone,
+  phoneUpdateState,
   sendDisabledReason,
   sendEnabled,
   sendError,
@@ -498,14 +515,22 @@ function ChatPanel({
   testNumberOnly,
 }) {
   const [messageText, setMessageText] = useState('');
+  const [phoneText, setPhoneText] = useState('');
   const trimmedMessage = messageText.trim();
   const canSend = sendEnabled && !sendDisabledReason;
+  const needsPhone = sendDisabledReason === CRM_COPY.lidPhoneNotice;
 
   async function submitMessage(event) {
     event.preventDefault();
     if (!trimmedMessage || !canSend || isSending) return;
     await onSendMessage(trimmedMessage);
     setMessageText('');
+  }
+
+  async function submitPhone(event) {
+    event.preventDefault();
+    await onUpdatePhone(phoneText);
+    setPhoneText('');
   }
 
   return (
@@ -528,6 +553,28 @@ function ChatPanel({
           <MessageBubble key={message.id} message={message} />
         ))}
       </div>
+
+      {needsPhone && (
+        <form className="wcrm-phone-match" onSubmit={submitPhone}>
+          <Phone size={16} />
+          <input
+            aria-label="Gercek WhatsApp telefonu"
+            disabled={phoneUpdateState.isSaving}
+            onChange={(event) => setPhoneText(event.target.value)}
+            placeholder="905xxxxxxxxx"
+            type="tel"
+            value={phoneText}
+          />
+          <button disabled={phoneUpdateState.isSaving || normalizePhoneDigits(phoneText).length < 10} type="submit">
+            Eslestir
+          </button>
+          {(phoneUpdateState.error || phoneUpdateState.result) && (
+            <span className={phoneUpdateState.error ? 'error' : ''}>
+              {phoneUpdateState.error || phoneUpdateState.result}
+            </span>
+          )}
+        </form>
+      )}
 
       <form className="wcrm-composer" onSubmit={submitMessage}>
         <div className="wcrm-composer-row">
@@ -702,6 +749,11 @@ export function WhatsappCrmInboxScreen() {
     error: '',
     result: '',
   });
+  const [phoneUpdateState, setPhoneUpdateState] = useState({
+    isSaving: false,
+    error: '',
+    result: '',
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -759,6 +811,39 @@ export function WhatsappCrmInboxScreen() {
     setActiveConversationId(conversationId);
     setMobileView('chat');
     setSendState({ isSending: false, error: '', result: '' });
+    setPhoneUpdateState({ isSaving: false, error: '', result: '' });
+  }
+
+  async function handleUpdatePhone(phone) {
+    const conversation = state.conversations.find((item) => item.id === activeConversationId) || activeConversation;
+    const normalizedPhone = normalizePhoneDigits(phone);
+
+    if (normalizedPhone.length < 10) {
+      setPhoneUpdateState({ isSaving: false, error: 'Telefon numarasi gecersiz.', result: '' });
+      return;
+    }
+
+    setPhoneUpdateState({ isSaving: true, error: '', result: '' });
+
+    try {
+      const response = await updateWhatsappCrmContactPhone(conversation.id, normalizedPhone);
+      const nextPhone = response.data?.contact?.phone || normalizedPhone;
+
+      setState((current) => ({
+        ...current,
+        conversations: current.conversations.map((item) => (item.id === conversation.id
+          ? { ...item, phone: nextPhone, avatar: getConversationInitials(item.name, nextPhone) }
+          : item)),
+      }));
+      setPhoneUpdateState({ isSaving: false, error: '', result: 'Telefon eslesti.' });
+      setSendState({ isSending: false, error: '', result: '' });
+    } catch (error) {
+      setPhoneUpdateState({
+        isSaving: false,
+        error: `${error.message || 'Telefon eslestirilemedi.'} (${error.code || 'WHATSAPP_CRM_PHONE_UPDATE_ERROR'})`,
+        result: '',
+      });
+    }
   }
 
   async function handleSendMessage(text) {
@@ -859,6 +944,8 @@ export function WhatsappCrmInboxScreen() {
             isSending={sendState.isSending}
             onBackToList={() => setMobileView('list')}
             onSendMessage={handleSendMessage}
+            onUpdatePhone={handleUpdatePhone}
+            phoneUpdateState={phoneUpdateState}
             sendDisabledReason={sendDisabledReason}
             sendEnabled={sendEnabled}
             sendError={sendState.error}
