@@ -30,11 +30,7 @@ function getUnsupportedTargetReason({ phone, remoteJid }) {
     return 'Bu sohbet grup kimligiyle geldi; grup gonderimi icin ayri destek gerekiyor.';
   }
 
-  if (jid.endsWith('@lid')) {
-    return 'Bu sohbet WhatsApp LID kimligiyle geldi; gonderim icin gercek telefon eslesmesi gerekiyor.';
-  }
-
-  if (phone.length > 15) {
+  if (!jid.endsWith('@lid') && phone.length > 15) {
     return 'WhatsApp hedefi gercek telefon numarasi gibi gorunmuyor.';
   }
 
@@ -111,7 +107,7 @@ export async function sendCrmTextMessage(payload = {}) {
   assertSendConfiguration(phone);
 
   const provider = getWhatsAppProvider();
-  const providerResult = await provider.sendMessage({ phone, text });
+  const providerResult = await provider.sendMessage({ phone, remoteJid, text });
   const persistedMessage = await persistOutboundMessage({ conversationId, providerResult });
 
   return {

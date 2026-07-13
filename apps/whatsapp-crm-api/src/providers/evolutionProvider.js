@@ -46,6 +46,13 @@ function normalizeSendPhone(value = '') {
   return digits;
 }
 
+function normalizeSendTarget({ phone, remoteJid } = {}) {
+  const jid = String(remoteJid || '').trim();
+
+  if (/@lid$/i.test(jid)) return jid;
+  return normalizeSendPhone(phone);
+}
+
 async function readResponsePayload(response) {
   try {
     return await response.json();
@@ -174,11 +181,11 @@ export class EvolutionProvider extends WhatsAppProvider {
     };
   }
 
-  async sendMessage({ phone, text } = {}) {
-    const number = normalizeSendPhone(phone);
+  async sendMessage({ phone, remoteJid, text } = {}) {
+    const number = normalizeSendTarget({ phone, remoteJid });
     const messageText = String(text || '').trim();
 
-    if (number.length < 10) {
+    if (!/@lid$/i.test(number) && number.length < 10) {
       const error = new Error('WhatsApp telefon numarasi gecersiz');
       error.code = 'WHATSAPP_CRM_PHONE_INVALID';
       error.statusCode = 400;

@@ -82,35 +82,34 @@ test('fails closed when test mode has no allowed numbers', async () => {
   }
 });
 
-test('fails closed for WhatsApp LID targets before calling Evolution', async () => {
+test('allows WhatsApp LID targets through Evolution remoteJid', async () => {
   const config = captureSendConfig();
   const originalFetch = globalThis.fetch;
-  let fetchCalled = false;
+  const calls = [];
 
   env.whatsapp.sendEnabled = true;
   env.whatsapp.testNumberOnly = false;
   env.evolution.apiUrl = 'http://evolution.local';
   env.evolution.apiKey = 'test-key';
   env.evolution.instance = 'melisa-test';
-  globalThis.fetch = async () => {
-    fetchCalled = true;
-    throw new Error('fetch should not be called');
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return {
+      ok: true,
+      json: async () => ({ key: { id: 'lid-message-1' } }),
+    };
   };
 
   try {
-    await assert.rejects(
-      () => sendCrmTextMessage({
-        phone: '51453859229862',
-        remoteJid: '51453859229862@lid',
-        text: 'Merhaba',
-      }),
-      (error) => {
-        assert.equal(error.code, 'WHATSAPP_CRM_SEND_TARGET_UNSUPPORTED');
-        assert.equal(error.statusCode, 400);
-        return true;
-      },
-    );
-    assert.equal(fetchCalled, false);
+    const result = await sendCrmTextMessage({
+      phone: '51453859229862',
+      remoteJid: '51453859229862@lid',
+      text: 'Merhaba',
+    });
+
+    assert.equal(result.providerMessageId, 'lid-message-1');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].body.number, '51453859229862@lid');
   } finally {
     globalThis.fetch = originalFetch;
     restoreSendConfig(config);

@@ -46,7 +46,7 @@ const CRM_COPY = {
   safetyNotice: 'WhatsApp Business API hatti uzerinden gercek gonderim acik.',
   testSendNotice: 'WhatsApp Business API test hatti uzerinden bagli. Gercek gonderim sadece izinli numaralarda acik.',
   sendDisabledNotice: 'Gonderim kapali. WHATSAPP_SEND_ENABLED=true olmadan mesaj cikmaz.',
-  unsupportedTargetNotice: 'Bu sohbet LID/grup kimligiyle geldi. CRM gonderimi icin gercek telefon eslesmesi gerekiyor.',
+  unsupportedGroupNotice: 'Bu sohbet grup kimligiyle geldi. Grup gonderimi icin ayri destek gerekiyor.',
   mobileBack: 'Gelen kutusuna don',
 };
 
@@ -277,11 +277,11 @@ function getSendDisabledReason(conversation) {
   const remoteJid = String(conversation?.remoteJid || '').toLowerCase();
   const phone = normalizePhoneDigits(conversation?.phone);
 
-  if (remoteJid.endsWith('@g.us') || remoteJid.endsWith('@lid')) {
-    return CRM_COPY.unsupportedTargetNotice;
+  if (remoteJid.endsWith('@g.us')) {
+    return CRM_COPY.unsupportedGroupNotice;
   }
 
-  if (phone.length > 15) {
+  if (!remoteJid.endsWith('@lid') && phone.length > 15) {
     return 'Bu sohbetin telefon bilgisi WhatsApp gonderimi icin uygun degil.';
   }
 
