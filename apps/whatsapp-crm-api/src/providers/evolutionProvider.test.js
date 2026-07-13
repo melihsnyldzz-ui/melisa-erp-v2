@@ -170,6 +170,7 @@ test('sends text messages through Evolution sendText endpoint', async () => {
     assert.equal(calls[0].headers.apikey, 'test-key');
     assert.deepEqual(calls[0].body, {
       number: '905551112233',
+      text: 'Merhaba',
       textMessage: {
         text: 'Merhaba',
       },

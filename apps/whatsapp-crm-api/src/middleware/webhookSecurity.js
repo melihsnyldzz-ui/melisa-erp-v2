@@ -18,6 +18,7 @@ export function requireWebhookSecret(req, res, next) {
   const provided = req.get('x-melisa-webhook-secret')
     || req.get('x-evolution-webhook-secret')
     || req.get('apikey')
+    || req.body?.apikey
     || '';
 
   if (!safeEqual(provided, env.whatsapp.webhookSecret)) {

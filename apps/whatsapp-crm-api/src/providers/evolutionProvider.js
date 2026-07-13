@@ -205,6 +205,7 @@ export class EvolutionProvider extends WhatsAppProvider {
         },
         body: JSON.stringify({
           number,
+          text: messageText,
           textMessage: {
             text: messageText,
           },

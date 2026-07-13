@@ -18,7 +18,20 @@ export function errorHandler(err, req, res, next) {
     path: req.originalUrl,
     statusCode,
     code,
+    providerStatus: err.meta?.status,
+    providerPayload: err.meta?.payload,
   });
+
+  const meta = {
+    requestId: req.requestId,
+  };
+
+  if (err.meta?.payload && env.nodeEnv !== 'production') {
+    meta.provider = {
+      status: err.meta.status,
+      message: err.meta.payload?.message || err.meta.payload?.error || err.meta.payload?.response?.message,
+    };
+  }
 
   return res.status(statusCode).json({
     success: false,
@@ -26,8 +39,6 @@ export function errorHandler(err, req, res, next) {
       code,
       message,
     },
-    meta: {
-      requestId: req.requestId,
-    },
+    meta,
   });
 }
