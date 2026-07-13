@@ -1,4 +1,5 @@
 import { getWhatsAppProvider } from '../providers/index.js';
+import { persistWebhookEvent } from '../repositories/crmRepository.js';
 import { markEventOnce } from '../services/idempotencyStore.js';
 import { created, ok } from '../utils/response.js';
 
@@ -19,14 +20,29 @@ export async function postEvolutionWebhook(req, res, next) {
       });
     }
 
+    const persistence = await persistWebhookEvent(normalizedEvent);
+
+    if (persistence.duplicate) {
+      return ok(res, {
+        accepted: true,
+        duplicate: true,
+        eventId: normalizedEvent.eventId,
+      }, {
+        source: 'whatsapp-crm-webhook',
+        idempotent: true,
+        persistence: 'postgres-duplicate',
+      });
+    }
+
     return created(res, {
       accepted: true,
       duplicate: false,
       event: normalizedEvent,
+      persistence,
     }, {
       source: 'whatsapp-crm-webhook',
       idempotent: true,
-      persistence: 'pending-postgres-implementation',
+      persistence: 'postgres',
     });
   } catch (error) {
     return next(error);

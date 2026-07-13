@@ -29,8 +29,10 @@ const requiredFiles = [
   'apps/whatsapp-crm-api/src/providers/whatsappProvider.js',
   'apps/whatsapp-crm-api/src/providers/evolutionProvider.js',
   'apps/whatsapp-crm-api/src/routes/webhookRoutes.js',
+  'apps/whatsapp-crm-api/src/services/db.js',
   'apps/whatsapp-crm-api/src/services/idempotencyStore.js',
   'apps/whatsapp-crm-api/infra/postgres/001_initial_schema.sql',
+  'apps/whatsapp-crm-api/src/repositories/crmRepository.js',
   'apps/web-admin/src/modules/whatsapp-crm/WhatsappCrmInboxScreen.jsx',
   'apps/web-admin/src/services/whatsappCrmApi.js',
   'docker-compose.whatsapp-crm.yml',
@@ -61,8 +63,22 @@ const webhookRoutesSource = read('apps/whatsapp-crm-api/src/routes/webhookRoutes
 addCheck('Evolution webhook route exists', webhookRoutesSource.includes('/evolution'));
 addCheck('Evolution webhook route has security middleware', webhookRoutesSource.includes('requireWebhookSecret'));
 
+const webhookControllerSource = read('apps/whatsapp-crm-api/src/controllers/webhookController.js');
+addCheck('webhook persists normalized event', webhookControllerSource.includes('persistWebhookEvent'));
+addCheck('webhook reports postgres persistence', webhookControllerSource.includes("persistence: 'postgres'"));
+
 const idempotencySource = read('apps/whatsapp-crm-api/src/services/idempotencyStore.js');
 addCheck('idempotency store exposes markEventOnce', idempotencySource.includes('markEventOnce'));
+
+const dbSource = read('apps/whatsapp-crm-api/src/services/db.js');
+addCheck('PostgreSQL service uses pg Pool', dbSource.includes('new pg.Pool'));
+addCheck('PostgreSQL service fails closed when not configured', dbSource.includes('WHATSAPP_CRM_POSTGRES_NOT_CONFIGURED'));
+
+const repositorySource = read('apps/whatsapp-crm-api/src/repositories/crmRepository.js');
+addCheck('repository persists webhook events', repositorySource.includes('persistWebhookEvent'));
+addCheck('repository upserts contacts', repositorySource.includes('upsertContact'));
+addCheck('repository upserts conversations', repositorySource.includes('upsertConversation'));
+addCheck('repository lists inbox overview', repositorySource.includes('listInboxOverview'));
 
 const providerInterfaceSource = read('apps/whatsapp-crm-api/src/providers/whatsappProvider.js');
 addCheck('provider interface defines normalizeWebhook', providerInterfaceSource.includes('normalizeWebhook'));
@@ -76,6 +92,10 @@ const schemaSource = read('apps/whatsapp-crm-api/infra/postgres/001_initial_sche
 for (const table of ['crm_instances', 'crm_contacts', 'crm_conversations', 'crm_messages', 'crm_attachments', 'crm_events']) {
   addCheck(`schema contains ${table}`, schemaSource.includes(table));
 }
+addCheck('schema has unique conversation per instance/contact', schemaSource.includes('idx_crm_conversations_instance_contact'));
+
+const inboxControllerSource = read('apps/whatsapp-crm-api/src/controllers/inboxController.js');
+addCheck('inbox controller is async read model', inboxControllerSource.includes('await getInboxOverview'));
 
 const permissionCatalogSource = read('apps/api/src/services/permissionCatalog.js');
 addCheck('ERP permission catalog has crm.view', permissionCatalogSource.includes('crm.view'));

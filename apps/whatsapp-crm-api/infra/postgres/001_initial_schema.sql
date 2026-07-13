@@ -77,5 +77,8 @@ CREATE TABLE IF NOT EXISTS crm_events (
 
 CREATE INDEX IF NOT EXISTS idx_crm_contacts_phone ON crm_contacts(phone);
 CREATE INDEX IF NOT EXISTS idx_crm_conversations_status ON crm_conversations(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_crm_conversations_instance_contact
+  ON crm_conversations(instance_id, contact_id)
+  WHERE contact_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_crm_messages_conversation ON crm_messages(conversation_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_crm_events_created ON crm_events(created_at DESC);

@@ -1,9 +1,16 @@
 import { getInboxOverview } from '../services/inboxService.js';
 import { ok } from '../utils/response.js';
 
-export function getInboxController(req, res) {
-  return ok(res, getInboxOverview(), {
-    source: 'whatsapp-crm-inbox-skeleton',
-    readOnly: true,
-  });
+export async function getInboxController(req, res, next) {
+  try {
+    const limit = req.query?.limit;
+    const overview = await getInboxOverview({ limit });
+
+    return ok(res, overview, {
+      source: overview.summary?.source || 'whatsapp-crm-inbox',
+      readOnly: true,
+    });
+  } catch (error) {
+    return next(error);
+  }
 }

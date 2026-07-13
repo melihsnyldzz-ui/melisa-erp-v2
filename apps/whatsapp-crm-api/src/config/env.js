@@ -43,6 +43,9 @@ export const env = {
   },
   postgres: {
     url: process.env.WHATSAPP_CRM_POSTGRES_URL || '',
+    poolMax: numberEnv('WHATSAPP_CRM_POSTGRES_POOL_MAX', 8),
+    idleTimeoutMs: numberEnv('WHATSAPP_CRM_POSTGRES_IDLE_TIMEOUT_MS', 30000),
+    connectionTimeoutMs: numberEnv('WHATSAPP_CRM_POSTGRES_CONNECTION_TIMEOUT_MS', 5000),
   },
   redis: {
     url: process.env.WHATSAPP_CRM_REDIS_URL || '',

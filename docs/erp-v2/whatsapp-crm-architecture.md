@@ -119,10 +119,12 @@ npm.cmd --prefix apps\whatsapp-crm-api run dev
 
 Start web-admin separately as usual.
 
-## Sprint 001 Limitations
+## Current Limitations
 
-- Webhook events are normalized but not persisted yet.
-- Inbox returns an empty read-only skeleton.
+- Webhook events can be persisted to PostgreSQL when `WHATSAPP_CRM_POSTGRES_URL` is configured.
+- Inbox can read conversations/messages from PostgreSQL, but the UI still falls back to mock presentation data when no persisted conversations exist.
 - Redis is prepared but not yet used for the idempotency store.
 - Sending is intentionally not implemented.
+- Evolution pairing with a real test number has not been executed.
+- Attachments/media are modeled but not downloaded or stored yet.
 - Role permission assignment in live databases may require an admin/permission update after deployment.
