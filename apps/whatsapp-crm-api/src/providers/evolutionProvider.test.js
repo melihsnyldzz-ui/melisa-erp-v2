@@ -181,6 +181,164 @@ test('sends text messages through Evolution sendText endpoint', async () => {
   }
 });
 
+test('resolves LID chats to a unique phone contact before sending', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConfig = {
+    apiUrl: env.evolution.apiUrl,
+    apiKey: env.evolution.apiKey,
+    instance: env.evolution.instance,
+    timeoutMs: env.evolution.timeoutMs,
+  };
+  const calls = [];
+
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  env.evolution.timeoutMs = 1000;
+  globalThis.fetch = async (url, options) => {
+    calls.push({
+      url,
+      headers: options.headers,
+      body: JSON.parse(options.body),
+    });
+
+    if (url.endsWith('/chat/findContacts/melisa-test')) {
+      return {
+        ok: true,
+        json: async () => ({
+          value: [
+            { remoteJid: '51453859229862@lid', pushName: 'Ali Riza Senyildiz' },
+            { remoteJid: '905367776306@s.whatsapp.net', pushName: 'ALI RIZA SENYILDIZ' },
+          ],
+        }),
+      };
+    }
+
+    return {
+      ok: true,
+      json: async () => ({ key: { id: 'evo-message-lid-1' } }),
+    };
+  };
+
+  try {
+    const result = await provider.sendMessage({
+      phone: '51453859229862',
+      remoteJid: '51453859229862@lid',
+      contactName: 'Ali Rıza ŞENYILDIZ',
+      text: 'Merhaba',
+    });
+
+    assert.equal(result.phone, '905367776306@s.whatsapp.net');
+    assert.equal(result.providerMessageId, 'evo-message-lid-1');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].url, 'http://evolution.local/chat/findContacts/melisa-test');
+    assert.equal(calls[1].url, 'http://evolution.local/message/sendText/melisa-test');
+    assert.equal(calls[1].body.number, '905367776306@s.whatsapp.net');
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.assign(env.evolution, originalConfig);
+  }
+});
+
+test('uses explicit CRM phone before LID contact resolver', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConfig = {
+    apiUrl: env.evolution.apiUrl,
+    apiKey: env.evolution.apiKey,
+    instance: env.evolution.instance,
+    timeoutMs: env.evolution.timeoutMs,
+  };
+  const calls = [];
+
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  env.evolution.timeoutMs = 1000;
+  globalThis.fetch = async (url, options) => {
+    calls.push({
+      url,
+      body: JSON.parse(options.body),
+    });
+
+    return {
+      ok: true,
+      json: async () => ({ key: { id: 'explicit-phone-1' } }),
+    };
+  };
+
+  try {
+    const result = await provider.sendMessage({
+      phone: '5394412927',
+      remoteJid: '51453859229862@lid',
+      contactName: 'Ali Rıza ŞENYILDIZ',
+      text: 'Merhaba',
+    });
+
+    assert.equal(result.phone, '905394412927');
+    assert.equal(result.providerMessageId, 'explicit-phone-1');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'http://evolution.local/message/sendText/melisa-test');
+    assert.equal(calls[0].body.number, '905394412927');
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.assign(env.evolution, originalConfig);
+  }
+});
+
+test('does not auto-resolve LID chats on partial name matches', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConfig = {
+    apiUrl: env.evolution.apiUrl,
+    apiKey: env.evolution.apiKey,
+    instance: env.evolution.instance,
+    timeoutMs: env.evolution.timeoutMs,
+  };
+  const calls = [];
+
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  env.evolution.timeoutMs = 1000;
+  globalThis.fetch = async (url, options) => {
+    calls.push({
+      url,
+      body: JSON.parse(options.body),
+    });
+
+    if (url.endsWith('/chat/findContacts/melisa-test')) {
+      return {
+        ok: true,
+        json: async () => ({
+          value: [
+            { remoteJid: '905367776306@s.whatsapp.net', pushName: 'ALI RIZA ABI SIRKET' },
+          ],
+        }),
+      };
+    }
+
+    return {
+      ok: true,
+      json: async () => ({ key: { id: 'partial-name-1' } }),
+    };
+  };
+
+  try {
+    const result = await provider.sendMessage({
+      phone: '51453859229862',
+      remoteJid: '51453859229862@lid',
+      contactName: 'Ali Rıza ŞENYILDIZ',
+      text: 'Merhaba',
+    });
+
+    assert.equal(result.phone, '51453859229862@lid');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].body.number, '51453859229862@lid');
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.assign(env.evolution, originalConfig);
+  }
+});
+
 test('reports Evolution send failures without hiding provider errors', async () => {
   const originalFetch = globalThis.fetch;
   const originalConfig = {

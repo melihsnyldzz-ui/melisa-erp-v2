@@ -84,6 +84,7 @@ export function getSendStatus() {
 export async function sendCrmTextMessage(payload = {}) {
   const phone = normalizePhone(payload.phone);
   const remoteJid = trimText(payload.remoteJid);
+  const contactName = trimText(payload.contactName);
   const text = trimText(payload.text);
   const conversationId = trimText(payload.conversationId);
 
@@ -107,7 +108,7 @@ export async function sendCrmTextMessage(payload = {}) {
   assertSendConfiguration(phone);
 
   const provider = getWhatsAppProvider();
-  const providerResult = await provider.sendMessage({ phone, remoteJid, text });
+  const providerResult = await provider.sendMessage({ phone, remoteJid, contactName, text });
   const persistedMessage = await persistOutboundMessage({ conversationId, providerResult });
 
   return {

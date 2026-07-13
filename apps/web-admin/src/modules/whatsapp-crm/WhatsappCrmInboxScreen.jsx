@@ -777,6 +777,7 @@ export function WhatsappCrmInboxScreen() {
         conversationId: conversation.id,
         phone: conversation.phone,
         remoteJid: conversation.remoteJid,
+        contactName: conversation.name,
         text,
       });
       const sentMessage = response.data?.message || {

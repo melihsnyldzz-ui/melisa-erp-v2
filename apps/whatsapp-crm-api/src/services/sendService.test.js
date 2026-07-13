@@ -94,6 +94,13 @@ test('allows WhatsApp LID targets through Evolution remoteJid', async () => {
   env.evolution.instance = 'melisa-test';
   globalThis.fetch = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
+    if (url.endsWith('/chat/findContacts/melisa-test')) {
+      return {
+        ok: true,
+        json: async () => ({ value: [] }),
+      };
+    }
+
     return {
       ok: true,
       json: async () => ({ key: { id: 'lid-message-1' } }),

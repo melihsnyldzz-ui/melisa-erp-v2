@@ -46,11 +46,40 @@ function normalizeSendPhone(value = '') {
   return digits;
 }
 
+function isExplicitPhoneTarget(value = '') {
+  const raw = String(value || '').trim();
+  const normalized = normalizeSendPhone(raw);
+
+  if (normalized.length < 10 || normalized.length > 15) return false;
+  return raw.startsWith('+') || raw.startsWith('00') || normalized.startsWith('90');
+}
+
 function normalizeSendTarget({ phone, remoteJid } = {}) {
   const jid = String(remoteJid || '').trim();
+  const normalizedPhone = normalizeSendPhone(phone);
 
+  if (/@lid$/i.test(jid) && isExplicitPhoneTarget(phone)) return normalizedPhone;
   if (/@lid$/i.test(jid)) return jid;
-  return normalizeSendPhone(phone);
+  return normalizedPhone;
+}
+
+function normalizeName(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/İ/g, 'i')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isStrongNameMatch(sourceName = '', candidateName = '') {
+  const normalizedSource = normalizeName(sourceName);
+  const normalizedCandidate = normalizeName(candidateName);
+
+  return Boolean(normalizedSource) && normalizedSource === normalizedCandidate;
 }
 
 async function readResponsePayload(response) {
@@ -153,6 +182,44 @@ export class EvolutionProvider extends WhatsAppProvider {
     super('evolution');
   }
 
+  async findLidSendTarget({ remoteJid, contactName } = {}) {
+    const jid = String(remoteJid || '').trim();
+    if (!/@lid$/i.test(jid) || !String(contactName || '').trim()) return null;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), env.evolution.timeoutMs);
+    const instance = encodeURIComponent(env.evolution.instance);
+
+    try {
+      const response = await fetch(`${env.evolution.apiUrl}/chat/findContacts/${instance}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: env.evolution.apiKey,
+        },
+        body: JSON.stringify({
+          where: {},
+          limit: 5000,
+        }),
+        signal: controller.signal,
+      });
+      const payload = await readResponsePayload(response);
+      if (!response.ok) return null;
+
+      const contacts = Array.isArray(payload) ? payload : payload?.value;
+      if (!Array.isArray(contacts)) return null;
+
+      const candidates = contacts.filter((contact) => (
+        /@s\.whatsapp\.net$/i.test(String(contact.remoteJid || ''))
+        && isStrongNameMatch(contactName, contact.pushName)
+      ));
+
+      return candidates.length === 1 ? candidates[0].remoteJid : null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   normalizeWebhook(payload = {}, headers = {}) {
     const message = getMessage(payload) || {};
     const eventType = payload.event || payload.type || payload.data?.event || 'unknown';
@@ -181,11 +248,15 @@ export class EvolutionProvider extends WhatsAppProvider {
     };
   }
 
-  async sendMessage({ phone, remoteJid, text } = {}) {
+  async sendMessage({ phone, remoteJid, contactName, text } = {}) {
     const number = normalizeSendTarget({ phone, remoteJid });
+    const resolvedTarget = /@lid$/i.test(number)
+      ? await this.findLidSendTarget({ remoteJid, contactName })
+      : null;
+    const sendTarget = resolvedTarget || number;
     const messageText = String(text || '').trim();
 
-    if (!/@lid$/i.test(number) && number.length < 10) {
+    if (!/@lid$/i.test(sendTarget) && sendTarget.length < 10) {
       const error = new Error('WhatsApp telefon numarasi gecersiz');
       error.code = 'WHATSAPP_CRM_PHONE_INVALID';
       error.statusCode = 400;
@@ -211,7 +282,7 @@ export class EvolutionProvider extends WhatsAppProvider {
           apikey: env.evolution.apiKey,
         },
         body: JSON.stringify({
-          number,
+          number: sendTarget,
           text: messageText,
           textMessage: {
             text: messageText,
@@ -232,7 +303,7 @@ export class EvolutionProvider extends WhatsAppProvider {
       return {
         provider: this.providerName,
         instanceKey: env.evolution.instance,
-        phone: number,
+        phone: sendTarget,
         text: messageText,
         providerMessageId: payload?.key?.id || payload?.message?.key?.id || payload?.id || null,
         providerResponse: payload,
