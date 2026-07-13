@@ -15,13 +15,22 @@ export function requireWebhookSecret(req, res, next) {
     return next(error);
   }
 
-  const provided = req.get('x-melisa-webhook-secret')
-    || req.get('x-evolution-webhook-secret')
-    || req.get('apikey')
-    || req.body?.apikey
-    || '';
+  const allowedSecrets = [
+    env.whatsapp.webhookSecret,
+    env.evolution.apiKey,
+  ].filter(Boolean);
+  const providedSecrets = [
+    req.get('x-melisa-webhook-secret'),
+    req.get('x-evolution-webhook-secret'),
+    req.get('apikey'),
+    req.body?.apikey,
+  ].filter(Boolean);
 
-  if (!safeEqual(provided, env.whatsapp.webhookSecret)) {
+  const accepted = providedSecrets.some((provided) => (
+    allowedSecrets.some((secret) => safeEqual(provided, secret))
+  ));
+
+  if (!accepted) {
     const error = new Error('Webhook secret is invalid');
     error.code = 'WHATSAPP_CRM_WEBHOOK_FORBIDDEN';
     error.statusCode = 403;
