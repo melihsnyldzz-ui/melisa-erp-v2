@@ -54,6 +54,7 @@ Bu klasör Melisa ERP v2 için ana karar, UI/UX, veri, frontend, backend, termin
 - [WhatsApp CRM Architecture](whatsapp-crm-architecture.md)
 - [WhatsApp CRM Sprint 001 Report](whatsapp-crm-sprint-001-report.md)
 - [WhatsApp CRM Sprint 002 Report](whatsapp-crm-sprint-002-report.md)
+- [WhatsApp CRM Sprint 003 Report](whatsapp-crm-sprint-003-report.md)
 
 ## Tasarım Standardı
 
