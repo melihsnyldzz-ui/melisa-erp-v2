@@ -249,6 +249,18 @@ export async function listInboxOverview({ limit = 100 } = {}) {
         contact.tags,
         instance.provider,
         instance.instance_key,
+        (
+          SELECT COALESCE(
+            message.raw_payload #>> '{data,key,remoteJid}',
+            message.raw_payload #>> '{data,message,key,remoteJid}',
+            message.raw_payload #>> '{key,remoteJid}',
+            message.raw_payload #>> '{remoteJid}'
+          )
+          FROM crm_messages message
+          WHERE message.conversation_id = conversation.id
+          ORDER BY message.received_at DESC
+          LIMIT 1
+        ) AS remote_jid,
         COALESCE((
           SELECT json_agg(message_row ORDER BY message_row.received_at)
           FROM (
@@ -285,6 +297,7 @@ export async function listInboxOverview({ limit = 100 } = {}) {
       tags: row.tags || [],
       provider: row.provider,
       instanceKey: row.instance_key,
+      remoteJid: row.remote_jid,
       unread: row.unread_count,
       lastMessageAt: row.last_message_at,
       messages: row.messages || [],

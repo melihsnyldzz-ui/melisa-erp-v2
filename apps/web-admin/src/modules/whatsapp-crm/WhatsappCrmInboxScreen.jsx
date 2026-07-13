@@ -46,6 +46,7 @@ const CRM_COPY = {
   safetyNotice: 'WhatsApp Business API hatti uzerinden gercek gonderim acik.',
   testSendNotice: 'WhatsApp Business API test hatti uzerinden bagli. Gercek gonderim sadece izinli numaralarda acik.',
   sendDisabledNotice: 'Gonderim kapali. WHATSAPP_SEND_ENABLED=true olmadan mesaj cikmaz.',
+  unsupportedTargetNotice: 'Bu sohbet LID/grup kimligiyle geldi. CRM gonderimi icin gercek telefon eslesmesi gerekiyor.',
   mobileBack: 'Gelen kutusuna don',
 };
 
@@ -262,6 +263,31 @@ function normalizeInboxResponse(inbox) {
   }));
 }
 
+function normalizePhoneDigits(value = '') {
+  const digits = String(value || '').replace(/[^\d]/g, '');
+
+  if (digits.startsWith('00')) return digits.slice(2);
+  if (digits.startsWith('90')) return digits;
+  if (digits.startsWith('0') && digits.length === 11) return `90${digits.slice(1)}`;
+  if (digits.length === 10 && digits.startsWith('5')) return `90${digits}`;
+  return digits;
+}
+
+function getSendDisabledReason(conversation) {
+  const remoteJid = String(conversation?.remoteJid || '').toLowerCase();
+  const phone = normalizePhoneDigits(conversation?.phone);
+
+  if (remoteJid.endsWith('@g.us') || remoteJid.endsWith('@lid')) {
+    return CRM_COPY.unsupportedTargetNotice;
+  }
+
+  if (phone.length > 15) {
+    return 'Bu sohbetin telefon bilgisi WhatsApp gonderimi icin uygun degil.';
+  }
+
+  return '';
+}
+
 function fallbackMessageText(message) {
   if (message?.text) return message.text;
   if (message?.type === 'file') return message.fileName || '[Belge]';
@@ -302,12 +328,14 @@ function normalizeApiConversation(conversation, index) {
   const latestMessage = [...messages].reverse().find((message) => message.text) || messages[messages.length - 1];
   const name = conversation.contactName || conversation.name || conversation.phone || fallback.name;
   const phone = conversation.phone || fallback.phone;
+  const remoteJid = conversation.remoteJid || '';
 
   return {
     ...fallback,
     id: conversation.id || `api-${index}`,
     name,
     phone,
+    remoteJid,
     country: 'WhatsApp',
     flag: 'WA',
     preview: latestMessage?.text || '[Mesaj]',
@@ -463,6 +491,7 @@ function ChatPanel({
   isSending,
   onBackToList,
   onSendMessage,
+  sendDisabledReason,
   sendEnabled,
   sendError,
   sendResult,
@@ -470,10 +499,11 @@ function ChatPanel({
 }) {
   const [messageText, setMessageText] = useState('');
   const trimmedMessage = messageText.trim();
+  const canSend = sendEnabled && !sendDisabledReason;
 
   async function submitMessage(event) {
     event.preventDefault();
-    if (!trimmedMessage || !sendEnabled || isSending) return;
+    if (!trimmedMessage || !canSend || isSending) return;
     await onSendMessage(trimmedMessage);
     setMessageText('');
   }
@@ -484,7 +514,9 @@ function ChatPanel({
 
       <div className="wcrm-chat-notice">
         <Clock3 size={15} />
-        {sendEnabled
+        {sendDisabledReason
+          ? sendDisabledReason
+          : sendEnabled
           ? (testNumberOnly ? CRM_COPY.testSendNotice : CRM_COPY.safetyNotice)
           : CRM_COPY.sendDisabledNotice}
       </div>
@@ -504,16 +536,16 @@ function ChatPanel({
           <button aria-label="Hazir cevaplar" className="wcrm-icon-button" type="button"><Zap size={17} /></button>
           <input
             aria-label="Mesaj"
-            disabled={!sendEnabled || isSending}
+            disabled={!canSend || isSending}
             onChange={(event) => setMessageText(event.target.value)}
-            placeholder={CRM_COPY.messagePlaceholder}
+            placeholder={sendDisabledReason || CRM_COPY.messagePlaceholder}
             type="text"
             value={messageText}
           />
           <button
-            aria-label={sendEnabled ? 'WhatsApp mesajini gonder' : 'Gonderim kapali'}
+            aria-label={canSend ? 'WhatsApp mesajini gonder' : 'Gonderim kapali'}
             className="wcrm-send-button"
-            disabled={!sendEnabled || !trimmedMessage || isSending}
+            disabled={!canSend || !trimmedMessage || isSending}
             type="submit"
           >
             <Send size={18} />
@@ -721,14 +753,22 @@ export function WhatsappCrmInboxScreen() {
     || state.conversations[0]
     || mockConversations[0];
   const sendEnabled = Boolean(state.health?.sendEnabled);
+  const sendDisabledReason = sendEnabled ? getSendDisabledReason(activeConversation) : '';
 
   function handleSelectConversation(conversationId) {
     setActiveConversationId(conversationId);
     setMobileView('chat');
+    setSendState({ isSending: false, error: '', result: '' });
   }
 
   async function handleSendMessage(text) {
     const conversation = state.conversations.find((item) => item.id === activeConversationId) || activeConversation;
+    const disabledReason = sendEnabled ? getSendDisabledReason(conversation) : CRM_COPY.sendDisabledNotice;
+
+    if (disabledReason) {
+      setSendState({ isSending: false, error: disabledReason, result: '' });
+      return;
+    }
 
     setSendState({ isSending: true, error: '', result: '' });
 
@@ -736,6 +776,7 @@ export function WhatsappCrmInboxScreen() {
       const response = await sendWhatsappCrmMessage({
         conversationId: conversation.id,
         phone: conversation.phone,
+        remoteJid: conversation.remoteJid,
         text,
       });
       const sentMessage = response.data?.message || {
@@ -817,6 +858,7 @@ export function WhatsappCrmInboxScreen() {
             isSending={sendState.isSending}
             onBackToList={() => setMobileView('list')}
             onSendMessage={handleSendMessage}
+            sendDisabledReason={sendDisabledReason}
             sendEnabled={sendEnabled}
             sendError={sendState.error}
             sendResult={sendState.result}

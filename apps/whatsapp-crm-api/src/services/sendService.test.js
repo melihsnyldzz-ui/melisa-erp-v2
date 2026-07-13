@@ -81,3 +81,73 @@ test('fails closed when test mode has no allowed numbers', async () => {
     restoreSendConfig(config);
   }
 });
+
+test('fails closed for WhatsApp LID targets before calling Evolution', async () => {
+  const config = captureSendConfig();
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+
+  env.whatsapp.sendEnabled = true;
+  env.whatsapp.testNumberOnly = false;
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    throw new Error('fetch should not be called');
+  };
+
+  try {
+    await assert.rejects(
+      () => sendCrmTextMessage({
+        phone: '51453859229862',
+        remoteJid: '51453859229862@lid',
+        text: 'Merhaba',
+      }),
+      (error) => {
+        assert.equal(error.code, 'WHATSAPP_CRM_SEND_TARGET_UNSUPPORTED');
+        assert.equal(error.statusCode, 400);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreSendConfig(config);
+  }
+});
+
+test('fails closed for group targets before calling Evolution', async () => {
+  const config = captureSendConfig();
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+
+  env.whatsapp.sendEnabled = true;
+  env.whatsapp.testNumberOnly = false;
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    throw new Error('fetch should not be called');
+  };
+
+  try {
+    await assert.rejects(
+      () => sendCrmTextMessage({
+        phone: '120363405099928676',
+        remoteJid: '120363405099928676@g.us',
+        text: 'Merhaba',
+      }),
+      (error) => {
+        assert.equal(error.code, 'WHATSAPP_CRM_SEND_TARGET_UNSUPPORTED');
+        assert.equal(error.statusCode, 400);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreSendConfig(config);
+  }
+});

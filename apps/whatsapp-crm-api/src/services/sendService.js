@@ -23,6 +23,24 @@ function normalizePhone(value = '') {
   return digits;
 }
 
+function getUnsupportedTargetReason({ phone, remoteJid }) {
+  const jid = trimText(remoteJid).toLowerCase();
+
+  if (jid.endsWith('@g.us')) {
+    return 'Bu sohbet grup kimligiyle geldi; grup gonderimi icin ayri destek gerekiyor.';
+  }
+
+  if (jid.endsWith('@lid')) {
+    return 'Bu sohbet WhatsApp LID kimligiyle geldi; gonderim icin gercek telefon eslesmesi gerekiyor.';
+  }
+
+  if (phone.length > 15) {
+    return 'WhatsApp hedefi gercek telefon numarasi gibi gorunmuyor.';
+  }
+
+  return '';
+}
+
 function assertSendConfiguration(phone) {
   if (!env.whatsapp.sendEnabled) {
     throw sendError(
@@ -69,11 +87,17 @@ export function getSendStatus() {
 
 export async function sendCrmTextMessage(payload = {}) {
   const phone = normalizePhone(payload.phone);
+  const remoteJid = trimText(payload.remoteJid);
   const text = trimText(payload.text);
   const conversationId = trimText(payload.conversationId);
 
   if (phone.length < 10) {
     throw sendError('WHATSAPP_CRM_PHONE_INVALID', 'WhatsApp telefon numarasi gecersiz');
+  }
+
+  const unsupportedReason = getUnsupportedTargetReason({ phone, remoteJid });
+  if (unsupportedReason) {
+    throw sendError('WHATSAPP_CRM_SEND_TARGET_UNSUPPORTED', unsupportedReason);
   }
 
   if (!text) {
