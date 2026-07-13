@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { env } from '../config/env.js';
 import { EvolutionProvider } from './evolutionProvider.js';
 
 const provider = new EvolutionProvider();
@@ -127,4 +128,89 @@ test('falls back to message type when body is not expanded', () => {
   });
 
   assert.equal(event.text, '[Belge]');
+});
+
+test('sends text messages through Evolution sendText endpoint', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConfig = {
+    apiUrl: env.evolution.apiUrl,
+    apiKey: env.evolution.apiKey,
+    instance: env.evolution.instance,
+    timeoutMs: env.evolution.timeoutMs,
+  };
+  const calls = [];
+
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  env.evolution.timeoutMs = 1000;
+  globalThis.fetch = async (url, options) => {
+    calls.push({
+      url,
+      headers: options.headers,
+      body: JSON.parse(options.body),
+    });
+
+    return {
+      ok: true,
+      json: async () => ({ key: { id: 'evo-message-1' } }),
+    };
+  };
+
+  try {
+    const result = await provider.sendMessage({
+      phone: '0555 111 22 33',
+      text: 'Merhaba',
+    });
+
+    assert.equal(result.phone, '905551112233');
+    assert.equal(result.providerMessageId, 'evo-message-1');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'http://evolution.local/message/sendText/melisa-test');
+    assert.equal(calls[0].headers.apikey, 'test-key');
+    assert.deepEqual(calls[0].body, {
+      number: '905551112233',
+      textMessage: {
+        text: 'Merhaba',
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.assign(env.evolution, originalConfig);
+  }
+});
+
+test('reports Evolution send failures without hiding provider errors', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConfig = {
+    apiUrl: env.evolution.apiUrl,
+    apiKey: env.evolution.apiKey,
+    instance: env.evolution.instance,
+    timeoutMs: env.evolution.timeoutMs,
+  };
+
+  env.evolution.apiUrl = 'http://evolution.local';
+  env.evolution.apiKey = 'test-key';
+  env.evolution.instance = 'melisa-test';
+  env.evolution.timeoutMs = 1000;
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 500,
+    json: async () => ({ message: 'boom' }),
+  });
+
+  try {
+    await assert.rejects(
+      () => provider.sendMessage({ phone: '905551112233', text: 'Merhaba' }),
+      (error) => {
+        assert.equal(error.code, 'WHATSAPP_CRM_SEND_FAILED');
+        assert.equal(error.statusCode, 502);
+        assert.match(error.message, /boom/);
+        return true;
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.assign(env.evolution, originalConfig);
+  }
 });

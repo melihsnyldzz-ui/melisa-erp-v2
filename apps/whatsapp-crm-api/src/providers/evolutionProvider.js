@@ -36,6 +36,24 @@ function normalizePhone(remoteJid = '') {
     .replace(/[^\d+]/g, '');
 }
 
+function normalizeSendPhone(value = '') {
+  const digits = String(value || '').replace(/[^\d]/g, '');
+
+  if (digits.startsWith('00')) return digits.slice(2);
+  if (digits.startsWith('90')) return digits;
+  if (digits.startsWith('0') && digits.length === 11) return `90${digits.slice(1)}`;
+  if (digits.length === 10 && digits.startsWith('5')) return `90${digits}`;
+  return digits;
+}
+
+async function readResponsePayload(response) {
+  try {
+    return await response.json();
+  } catch {
+    return { raw: await response.text().catch(() => '') };
+  }
+}
+
 function unwrapMessageBody(body = {}) {
   const nestedMessage = body.ephemeralMessage?.message
     || body.viewOnceMessage?.message
@@ -154,5 +172,66 @@ export class EvolutionProvider extends WhatsAppProvider {
       rawPayload: payload,
       receivedAt: new Date().toISOString(),
     };
+  }
+
+  async sendMessage({ phone, text } = {}) {
+    const number = normalizeSendPhone(phone);
+    const messageText = String(text || '').trim();
+
+    if (number.length < 10) {
+      const error = new Error('WhatsApp telefon numarasi gecersiz');
+      error.code = 'WHATSAPP_CRM_PHONE_INVALID';
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!messageText) {
+      const error = new Error('Gonderilecek mesaj bos olamaz');
+      error.code = 'WHATSAPP_CRM_MESSAGE_REQUIRED';
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), env.evolution.timeoutMs);
+    const instance = encodeURIComponent(env.evolution.instance);
+
+    try {
+      const response = await fetch(`${env.evolution.apiUrl}/message/sendText/${instance}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: env.evolution.apiKey,
+        },
+        body: JSON.stringify({
+          number,
+          textMessage: {
+            text: messageText,
+          },
+        }),
+        signal: controller.signal,
+      });
+      const payload = await readResponsePayload(response);
+
+      if (!response.ok) {
+        const error = new Error(payload?.message || payload?.error || 'WhatsApp mesaj gonderimi basarisiz oldu');
+        error.code = 'WHATSAPP_CRM_SEND_FAILED';
+        error.statusCode = 502;
+        error.meta = { status: response.status, payload };
+        throw error;
+      }
+
+      return {
+        provider: this.providerName,
+        instanceKey: env.evolution.instance,
+        phone: number,
+        text: messageText,
+        providerMessageId: payload?.key?.id || payload?.message?.key?.id || payload?.id || null,
+        providerResponse: payload,
+        sentAt: new Date().toISOString(),
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 }

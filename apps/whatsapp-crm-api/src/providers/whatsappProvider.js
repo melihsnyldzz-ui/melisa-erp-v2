@@ -8,7 +8,7 @@ export class WhatsAppProvider {
   }
 
   async sendMessage() {
-    const error = new Error('Outbound WhatsApp sending is not implemented in Sprint 001');
+    const error = new Error('Outbound WhatsApp sending is not implemented by this provider');
     error.code = 'WHATSAPP_CRM_SEND_NOT_IMPLEMENTED';
     error.statusCode = 501;
     throw error;

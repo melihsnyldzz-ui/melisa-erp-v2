@@ -23,7 +23,12 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { getWhatsappCrmHealth, getWhatsappCrmInbox, whatsappCrmConfig } from '../../services/whatsappCrmApi.js';
+import {
+  getWhatsappCrmHealth,
+  getWhatsappCrmInbox,
+  sendWhatsappCrmMessage,
+  whatsappCrmConfig,
+} from '../../services/whatsappCrmApi.js';
 
 const CRM_COPY = {
   title: 'WhatsApp CRM',
@@ -38,7 +43,9 @@ const CRM_COPY = {
   loading: 'WhatsApp CRM hazirlaniyor...',
   errorTitle: 'CRM API simdilik ulasilamadi',
   errorDetail: 'Backend baglantisi gelene kadar ekran mock veriyle calisir.',
-  safetyNotice: 'WhatsApp Business API test hatti uzerinden baglanacak. Gercek gonderim kapali.',
+  safetyNotice: 'WhatsApp Business API hatti uzerinden gercek gonderim acik.',
+  testSendNotice: 'WhatsApp Business API test hatti uzerinden bagli. Gercek gonderim sadece izinli numaralarda acik.',
+  sendDisabledNotice: 'Gonderim kapali. WHATSAPP_SEND_ENABLED=true olmadan mesaj cikmaz.',
   mobileBack: 'Gelen kutusuna don',
 };
 
@@ -451,14 +458,35 @@ function MessageBubble({ message }) {
   );
 }
 
-function ChatPanel({ activeConversation, onBackToList }) {
+function ChatPanel({
+  activeConversation,
+  isSending,
+  onBackToList,
+  onSendMessage,
+  sendEnabled,
+  sendError,
+  sendResult,
+  testNumberOnly,
+}) {
+  const [messageText, setMessageText] = useState('');
+  const trimmedMessage = messageText.trim();
+
+  async function submitMessage(event) {
+    event.preventDefault();
+    if (!trimmedMessage || !sendEnabled || isSending) return;
+    await onSendMessage(trimmedMessage);
+    setMessageText('');
+  }
+
   return (
     <section className="wcrm-chat-panel" aria-label="Aktif sohbet">
       <ChatHeader activeConversation={activeConversation} onBackToList={onBackToList} />
 
       <div className="wcrm-chat-notice">
         <Clock3 size={15} />
-        {CRM_COPY.safetyNotice}
+        {sendEnabled
+          ? (testNumberOnly ? CRM_COPY.testSendNotice : CRM_COPY.safetyNotice)
+          : CRM_COPY.sendDisabledNotice}
       </div>
 
       <div className="wcrm-date-pill">Bugun</div>
@@ -469,21 +497,40 @@ function ChatPanel({ activeConversation, onBackToList }) {
         ))}
       </div>
 
-      <footer className="wcrm-composer">
+      <form className="wcrm-composer" onSubmit={submitMessage}>
         <div className="wcrm-composer-row">
           <button aria-label="Emoji" className="wcrm-icon-button" type="button"><Smile size={17} /></button>
           <button aria-label="Dosya ekle" className="wcrm-icon-button" type="button"><Paperclip size={17} /></button>
           <button aria-label="Hazir cevaplar" className="wcrm-icon-button" type="button"><Zap size={17} /></button>
-          <input aria-label="Mesaj" disabled placeholder={CRM_COPY.messagePlaceholder} type="text" />
-          <button aria-label="Gonderim Sprint 001'de kapali" className="wcrm-send-button" disabled type="button"><Send size={18} /></button>
+          <input
+            aria-label="Mesaj"
+            disabled={!sendEnabled || isSending}
+            onChange={(event) => setMessageText(event.target.value)}
+            placeholder={CRM_COPY.messagePlaceholder}
+            type="text"
+            value={messageText}
+          />
+          <button
+            aria-label={sendEnabled ? 'WhatsApp mesajini gonder' : 'Gonderim kapali'}
+            className="wcrm-send-button"
+            disabled={!sendEnabled || !trimmedMessage || isSending}
+            type="submit"
+          >
+            <Send size={18} />
+          </button>
         </div>
+        {(sendError || sendResult) && (
+          <div className={sendError ? 'wcrm-send-result error' : 'wcrm-send-result'}>
+            {sendError || sendResult}
+          </div>
+        )}
         <div className="wcrm-quick-actions">
           {quickActions.map((action) => (
             <button key={action} type="button">{action}</button>
           ))}
           <button aria-label="Daha fazla hizli islem" type="button"><MoreVertical size={15} /></button>
         </div>
-      </footer>
+      </form>
     </section>
   );
 }
@@ -618,6 +665,11 @@ export function WhatsappCrmInboxScreen() {
   const [activeConversationId, setActiveConversationId] = useState(mockConversations[0].id);
   const [filterId, setFilterId] = useState('all');
   const [mobileView, setMobileView] = useState('list');
+  const [sendState, setSendState] = useState({
+    isSending: false,
+    error: '',
+    result: '',
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -668,10 +720,52 @@ export function WhatsappCrmInboxScreen() {
   const activeConversation = state.conversations.find((conversation) => conversation.id === activeConversationId)
     || state.conversations[0]
     || mockConversations[0];
+  const sendEnabled = Boolean(state.health?.sendEnabled);
 
   function handleSelectConversation(conversationId) {
     setActiveConversationId(conversationId);
     setMobileView('chat');
+  }
+
+  async function handleSendMessage(text) {
+    const conversation = state.conversations.find((item) => item.id === activeConversationId) || activeConversation;
+
+    setSendState({ isSending: true, error: '', result: '' });
+
+    try {
+      const response = await sendWhatsappCrmMessage({
+        conversationId: conversation.id,
+        phone: conversation.phone,
+        text,
+      });
+      const sentMessage = response.data?.message || {
+        id: `local-${Date.now()}`,
+        direction: 'out',
+        type: 'text',
+        text,
+        time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        status: 'sent',
+      };
+
+      setState((current) => ({
+        ...current,
+        conversations: current.conversations.map((item) => (item.id === conversation.id
+          ? {
+              ...item,
+              messages: [...item.messages, sentMessage],
+              preview: sentMessage.text,
+              time: sentMessage.time,
+            }
+          : item)),
+      }));
+      setSendState({ isSending: false, error: '', result: 'Mesaj gonderildi.' });
+    } catch (error) {
+      setSendState({
+        isSending: false,
+        error: `${error.message || 'Mesaj gonderilemedi.'} (${error.code || 'WHATSAPP_CRM_SEND_ERROR'})`,
+        result: '',
+      });
+    }
   }
 
   return (
@@ -718,7 +812,16 @@ export function WhatsappCrmInboxScreen() {
             onFilterChange={setFilterId}
             onSelect={handleSelectConversation}
           />
-          <ChatPanel activeConversation={activeConversation} onBackToList={() => setMobileView('list')} />
+          <ChatPanel
+            activeConversation={activeConversation}
+            isSending={sendState.isSending}
+            onBackToList={() => setMobileView('list')}
+            onSendMessage={handleSendMessage}
+            sendEnabled={sendEnabled}
+            sendError={sendState.error}
+            sendResult={sendState.result}
+            testNumberOnly={Boolean(state.health?.testNumberOnly)}
+          />
           <CustomerPanel activeConversation={activeConversation} />
           <ConnectionPanel healthStatus={state.health?.status} />
         </div>

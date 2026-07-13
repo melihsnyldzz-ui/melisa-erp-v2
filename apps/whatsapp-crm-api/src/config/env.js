@@ -62,6 +62,7 @@ export const env = {
     apiKey: process.env.EVOLUTION_API_KEY || '',
     instance: process.env.EVOLUTION_INSTANCE || 'melisa-test',
     webhookPublicUrl: process.env.EVOLUTION_WEBHOOK_PUBLIC_URL || 'http://localhost:4200/webhooks/evolution',
+    timeoutMs: numberEnv('EVOLUTION_TIMEOUT_MS', 20000),
   },
 };
 
@@ -76,8 +77,8 @@ export function getStartupWarnings() {
     warnings.push('WHATSAPP_CRM_WEBHOOK_SECRET is not configured; webhook endpoint will fail closed.');
   }
 
-  if (env.whatsapp.sendEnabled) {
-    warnings.push('WHATSAPP_SEND_ENABLED=true requires explicit test-number approval before any send endpoint is added.');
+  if (env.whatsapp.sendEnabled && env.whatsapp.testNumberOnly && env.whatsapp.allowedTestNumbers.length < 1) {
+    warnings.push('WHATSAPP_SEND_ENABLED=true but WHATSAPP_ALLOWED_TEST_NUMBERS is empty; send endpoint will fail closed.');
   }
 
   if (env.nodeEnv === 'production' && env.cors.origins.some((origin) => origin.includes('localhost'))) {

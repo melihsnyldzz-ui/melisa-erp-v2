@@ -153,6 +153,65 @@ export async function persistWebhookEvent(event) {
   });
 }
 
+export async function persistOutboundMessage({ conversationId, providerResult }) {
+  if (!conversationId) return null;
+
+  const result = await transaction(async (client) => {
+    const messageResult = await client.query(`
+      INSERT INTO crm_messages (
+        conversation_id,
+        provider,
+        provider_message_id,
+        direction,
+        message_type,
+        body,
+        status,
+        raw_payload,
+        received_at
+      )
+      VALUES ($1, $2, $3, 'outbound', 'text', $4, 'sent', $5::jsonb, $6)
+      ON CONFLICT (provider, provider_message_id)
+      DO UPDATE SET
+        conversation_id = EXCLUDED.conversation_id,
+        body = EXCLUDED.body,
+        status = EXCLUDED.status,
+        raw_payload = EXCLUDED.raw_payload
+      RETURNING id, received_at
+    `, [
+      conversationId,
+      providerResult.provider,
+      toNullable(providerResult.providerMessageId),
+      providerResult.text,
+      JSON.stringify(providerResult.providerResponse || {}),
+      providerResult.sentAt,
+    ]);
+
+    await client.query(`
+      UPDATE crm_conversations
+      SET
+        last_message_at = GREATEST(COALESCE(last_message_at, $2), $2),
+        updated_at = NOW()
+      WHERE id = $1
+    `, [conversationId, providerResult.sentAt]);
+
+    return messageResult.rows[0] || null;
+  });
+
+  return result ? {
+    id: result.id,
+    direction: 'out',
+    type: 'text',
+    text: providerResult.text,
+    time: new Date(result.received_at).toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Istanbul',
+    }),
+    status: 'sent',
+    received_at: result.received_at,
+  } : null;
+}
+
 export async function listInboxOverview({ limit = 100 } = {}) {
   if (!isPostgresConfigured()) {
     return {

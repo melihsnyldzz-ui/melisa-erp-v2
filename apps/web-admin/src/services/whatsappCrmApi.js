@@ -67,6 +67,10 @@ export async function getWhatsappCrmInbox() {
   return crmRequest('GET', '/crm/inbox');
 }
 
+export async function sendWhatsappCrmMessage(payload) {
+  return crmRequest('POST', '/crm/messages/send', { body: payload });
+}
+
 export const whatsappCrmConfig = {
   baseUrl: WHATSAPP_CRM_API_BASE_URL,
 };
