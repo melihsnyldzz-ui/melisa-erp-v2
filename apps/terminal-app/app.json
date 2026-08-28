@@ -2,10 +2,17 @@
   "expo": {
     "name": "Melisa Terminal v2",
     "slug": "melisa-terminal-v2",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "portrait",
+    "icon": "./src/assets/branding/melisa-baby-icon.png",
+    "splash": {
+      "image": "./src/assets/branding/melisa-baby-splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
     "userInterfaceStyle": "light",
-    "jsEngine": "jsc",
+    "jsEngine": "hermes",
+    "newArchEnabled": false,
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -13,7 +20,15 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.melisaerp.terminalv2"
+      "package": "com.melisaerp.terminalv2",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/branding/melisa-baby-icon-foreground.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -30,12 +45,19 @@
           "photosPermission": "Stok kartına görsel yüklemek için fotoğraf seçimine izin verin.",
           "cameraPermission": "Stok kartına görsel yüklemek için kameraya izin verin."
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-asset"
     ],
     "extra": {
       "apiBaseUrl": "http://localhost:4100",
+      "whatsappCrmApiBaseUrl": "http://localhost:4200",
       "deviceName": "Depo Terminal",
-      "terminalCode": "TERM-V2-001"
-    }
+      "terminalCode": "TERM-V2-001",
+      "eas": {
+        "projectId": "bc8f34d3-86e9-49d7-8bee-7143111e5db7"
+      }
+    },
+    "owner": "semihsenyildiz"
   }
 }

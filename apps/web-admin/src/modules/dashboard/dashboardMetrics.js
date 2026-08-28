@@ -52,17 +52,32 @@ export function buildPatronKpis(summary = emptyDashboardSummary) {
   const operations = summary.operations || {};
   const melisa = summary.melisa || {};
   const masterCounts = summary.masterCounts || {};
+  const salesTry = Number(patron.todaySalesTry || 0);
+  const grossProfitTry = Number(patron.todayGrossProfitTry || 0);
+  const profitRate = melisa.todayProfitRate ?? (salesTry > 0 ? (grossProfitTry / salesTry) * 100 : 0);
+  const openAccountCustomerCount = melisa.openAccountCustomerCount
+    ?? summary.accounting?.customerBalanceCount
+    ?? 0;
+  const top20ReceivablesTry = melisa.top20ReceivablesTry
+    ?? (summary.receivables || []).slice(0, 20).reduce(
+      (total, row) => total + Number(row.balanceTry || 0),
+      0,
+    );
+  const top20ReceivableShare = melisa.top20ReceivableShare
+    ?? (Number(patron.customerReceivablesTry || 0) > 0
+      ? (top20ReceivablesTry / Number(patron.customerReceivablesTry)) * 100
+      : 0);
 
   return [
     { label: 'Toplam müşteri', value: formatNumber(masterCounts.totalCustomers), detail: 'Cari kart sayısı', tone: 'info', screenId: 'customer-list' },
     { label: 'Toplam ürün', value: formatNumber(masterCounts.totalProducts), detail: 'Aktif barkodlu ürünler', tone: 'info', screenId: 'stock-list' },
     { label: 'Günlük satış', value: formatMoney(patron.todaySalesTry), detail: `${formatNumber(patron.finalizedSalesToday)} kesinleşen fiş`, tone: 'good', screenId: 'sales-invoice-list' },
-    { label: 'Günlük kâr', value: formatMoney(patron.todayGrossProfitTry), detail: `${formatNumber(melisa.todayProfitRate || 0)}% brüt oran`, tone: Number(patron.todayGrossProfitTry || 0) >= 0 ? 'good' : 'danger', screenId: 'sales-invoice-list' },
-    { label: 'Açık hesap toplam', value: formatMoney(patron.customerReceivablesTry), detail: `${formatNumber(melisa.openAccountCustomerCount || 0)} müşteri`, tone: 'warn', screenId: 'customer-list' },
+    { label: 'Günlük kâr', value: formatMoney(patron.todayGrossProfitTry), detail: `${formatNumber(profitRate)}% brüt oran`, tone: Number(patron.todayGrossProfitTry || 0) >= 0 ? 'good' : 'danger', screenId: 'sales-invoice-list' },
+    { label: 'Açık hesap toplam', value: formatMoney(patron.customerReceivablesTry), detail: `${formatNumber(openAccountCustomerCount)} müşteri`, tone: 'warn', screenId: 'customer-list' },
     { label: 'Romanya açık hesap', value: formatMoney(melisa.romaniaReceivablesTry), detail: `${formatNumber(melisa.romaniaSalesShare || 0)}% satış payı`, tone: 'warn', screenId: 'customer-list' },
     { label: 'Eksi stok uyarısı', value: formatNumber(patron.negativeStockCount), detail: 'Stok sıfırın altında', tone: Number(patron.negativeStockCount || 0) > 0 ? 'danger' : 'good', screenId: 'stock-list' },
     { label: 'WhatsApp dönüşleri', value: formatNumber(operations.whatsappRepliesToday), detail: `${formatNumber(operations.whatsappOrdersToday)} sipariş adayı`, tone: 'info', screenId: 'catalog-list' },
-    { label: 'İlk 20 alacak', value: formatMoney(melisa.top20ReceivablesTry), detail: `${formatNumber(melisa.top20ReceivableShare || 0)}% yoğunluk`, tone: 'danger', screenId: 'customer-list' },
+    { label: 'İlk 20 alacak', value: formatMoney(top20ReceivablesTry), detail: `${formatNumber(top20ReceivableShare)}% yoğunluk`, tone: 'danger', screenId: 'customer-list' },
     { label: 'Stokta fazla', value: formatNumber(melisa.overstockProductCount), detail: 'Paylaşım/kampanya adayı', tone: 'info', screenId: 'stock-list' },
   ];
 }

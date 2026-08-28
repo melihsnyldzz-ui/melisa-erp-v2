@@ -44,6 +44,7 @@ function toSupplierMovementDto(row) {
     currency: row.currency_code,
     amount: Number(row.amount || 0),
     balanceEffect: Number(row.balance_effect || 0),
+    runningBalance: Number(row.running_balance || 0),
     status: row.invoice_status || 'kayit',
     createdAt: row.created_at,
   };
@@ -253,6 +254,25 @@ export async function getSuppliersList(query) {
   };
 }
 
+function toSupplierStockSummary(rows = []) {
+  const byCurrency = rows.map((row) => ({
+    currency: row.currency_code || 'TRY',
+    productCount: Number(row.product_count || 0),
+    soldQuantity: Number(row.sold_quantity || 0),
+    remainingQuantity: Number(row.remaining_quantity || 0),
+    remainingValue: Number(row.remaining_value_currency || 0),
+    remainingValueTry: Number(row.remaining_value_try || 0),
+  }));
+
+  return {
+    productCount: byCurrency.reduce((sum, row) => sum + row.productCount, 0),
+    soldQuantity: byCurrency.reduce((sum, row) => sum + row.soldQuantity, 0),
+    remainingQuantity: byCurrency.reduce((sum, row) => sum + row.remainingQuantity, 0),
+    remainingValueTry: byCurrency.reduce((sum, row) => sum + row.remainingValueTry, 0),
+    byCurrency,
+  };
+}
+
 export async function getSupplierDetail(supplierId) {
   const id = Number(supplierId);
 
@@ -300,6 +320,16 @@ export async function getSupplierDetail(supplierId) {
   const movementsResult = await pool.request()
     .input('movementSupplierId', sql.BigInt, id)
     .query(`
+      WITH movement_balances AS (
+        SELECT
+          sm.*,
+          SUM(sm.balance_effect) OVER (
+            ORDER BY sm.document_date DESC, sm.id DESC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+          ) AS newer_balance_effect
+        FROM dbo.supplier_movements sm
+        WHERE sm.supplier_id = @movementSupplierId
+      )
       SELECT TOP (80)
         sm.id,
         sm.purchase_invoice_id,
@@ -308,12 +338,13 @@ export async function getSupplierDetail(supplierId) {
         sm.amount,
         sm.currency_code,
         sm.balance_effect,
+        s.balance - COALESCE(sm.newer_balance_effect, 0) AS running_balance,
         sm.document_date,
         sm.created_at,
         pi.status AS invoice_status
-      FROM dbo.supplier_movements sm
+      FROM movement_balances sm
+      INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
       LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.purchase_invoice_id
-      WHERE sm.supplier_id = @movementSupplierId
       ORDER BY sm.document_date DESC, sm.created_at DESC, sm.id DESC;
     `);
 
@@ -351,10 +382,73 @@ export async function getSupplierDetail(supplierId) {
       ORDER BY pi.document_date DESC, pii.id DESC;
     `);
 
+  const stockSummaryResult = await pool.request()
+    .input('stockSummarySupplierId', sql.BigInt, id)
+    .query(`
+      WITH supplier_products AS (
+        SELECT
+          p.id,
+          p.currency_code,
+          p.current_stock_qty,
+          p.average_cost_try
+        FROM dbo.products p
+        WHERE p.supplier_id = @stockSummarySupplierId
+          AND p.is_deleted = 0
+      ),
+      finalized_sales AS (
+        SELECT
+          sii.product_id,
+          SUM(sii.quantity) AS sold_quantity
+        FROM dbo.sales_invoice_items sii
+        INNER JOIN dbo.sales_invoices si ON si.id = sii.sales_invoice_id
+        INNER JOIN supplier_products sp ON sp.id = sii.product_id
+        WHERE si.status = N'finalized'
+        GROUP BY sii.product_id
+      ),
+      native_average_cost AS (
+        SELECT
+          sp.id,
+          CASE
+            WHEN COALESCE(SUM(sm.quantity_net), 0) > 0 THEN
+              SUM(sm.amount_try / NULLIF(COALESCE(pi.exchange_rate_snapshot, 1), 0)) / SUM(sm.quantity_net)
+            ELSE 0
+          END AS average_cost_currency
+        FROM supplier_products sp
+        LEFT JOIN dbo.stock_movements sm
+          ON sm.product_id = sp.id
+         AND sm.source_type = N'purchase_invoice'
+        LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.source_id
+        GROUP BY sp.id
+      )
+      SELECT
+        sp.currency_code,
+        COUNT_BIG(1) AS product_count,
+        COALESCE(SUM(fs.sold_quantity), 0) AS sold_quantity,
+        COALESCE(SUM(CASE WHEN sp.current_stock_qty > 0 THEN sp.current_stock_qty ELSE 0 END), 0) AS remaining_quantity,
+        COALESCE(SUM(
+          CASE WHEN sp.current_stock_qty > 0
+            THEN sp.current_stock_qty * nac.average_cost_currency
+            ELSE 0
+          END
+        ), 0) AS remaining_value_currency,
+        COALESCE(SUM(
+          CASE WHEN sp.current_stock_qty > 0
+            THEN sp.current_stock_qty * sp.average_cost_try
+            ELSE 0
+          END
+        ), 0) AS remaining_value_try
+      FROM supplier_products sp
+      LEFT JOIN finalized_sales fs ON fs.product_id = sp.id
+      LEFT JOIN native_average_cost nac ON nac.id = sp.id
+      GROUP BY sp.currency_code
+      ORDER BY CASE sp.currency_code WHEN N'TRY' THEN 1 WHEN N'USD' THEN 2 WHEN N'EUR' THEN 3 ELSE 4 END;
+    `);
+
   return {
     ...toSupplierDto(supplier),
     movements: (movementsResult.recordset || []).map(toSupplierMovementDto),
     productTrace: (productTraceResult.recordset || []).map(toSupplierProductTraceDto),
+    stockSummary: toSupplierStockSummary(stockSummaryResult.recordset || []),
   };
 }
 

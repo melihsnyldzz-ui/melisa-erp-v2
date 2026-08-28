@@ -1,4 +1,5 @@
 import { createSupplier, getSupplierDetail, getSuppliersList, updateSupplier } from '../services/supplierService.js';
+import { getVegaSuppliersListFromWorker } from '../services/vegaSupplierClientService.js';
 import { created, fail, ok } from '../utils/response.js';
 
 export async function getSuppliers(req, res) {
@@ -7,6 +8,15 @@ export async function getSuppliers(req, res) {
     return ok(res, data, meta);
   } catch (error) {
     return fail(res, error.statusCode || 503, 'SQL_SELECT_FAILED', 'Suppliers query failed');
+  }
+}
+
+export async function getVegaSuppliers(req, res) {
+  try {
+    const { data, meta } = await getVegaSuppliersListFromWorker(req.query);
+    return ok(res, data, meta);
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'VEGA_SUPPLIER_LIST_FAILED', 'Vega tedarikçi listesi okunamadı');
   }
 }
 

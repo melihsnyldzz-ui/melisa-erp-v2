@@ -1,13 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAudioPlayer } from 'expo-audio';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { getActiveApiBaseUrl, terminalConfig } from '../config/env';
 import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/currencyRateService';
 import { getProductDetail, lookupProductByBarcode, searchProductsOfflineFirst } from '../services/productService';
 import { enqueueTerminalSale, markQueueFailed, markQueueSynced, updateQueueEventPayload } from '../services/queueService';
-import { buildTerminalSalePayload, searchTerminalCustomers, sendTerminalWhatsappShare, submitTerminalSale } from '../services/terminalSalesService';
+import { buildTerminalSalePayload, printTerminalSaleReceipt, searchTerminalCustomers, sendTerminalWhatsappShare, submitTerminalSale } from '../services/terminalSalesService';
+import { clearWorkingSaleDraft, getWorkingSaleDraft, saveWorkingSaleDraft } from '../services/workingSaleDraftService';
 import { colors, terminalStyles } from '../styles/theme';
 
 function normalizeCustomer(row) {
@@ -64,6 +67,19 @@ function cashCurrency(code) {
   return code.replace('PESIN-', '');
 }
 
+function formatDraftSavedAt(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return date.toLocaleTimeString('tr-TR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
 async function readRecentCustomers() {
   const raw = await AsyncStorage.getItem(recentCustomersKey);
   if (!raw) return [];
@@ -104,7 +120,8 @@ function SaleResultPanel({ result, onOpenSync }) {
         <Text style={styles.saleResultPill}>{result.itemQuantity} adet</Text>
       </View>
       {result.clientEventId ? <Text style={styles.saleResultId}>{result.clientEventId}</Text> : null}
-      {result.status === 'offline' || result.status === 'failed' ? (
+      {result.documentNumber ? <Text style={styles.saleResultId}>Fis: {result.documentNumber}</Text> : null}
+      {result.status === 'offline' || result.status === 'failed' || result.status === 'auth' ? (
         <View style={styles.saleResultAction}>
           <TerminalButton label="Sync Merkezine Git" onPress={onOpenSync} variant="secondary" />
         </View>
@@ -184,15 +201,23 @@ function RateInfoPanel({ customer, rateSet, onRefresh, loading }) {
 }
 
 export function NewSaleScreen({ session, syncState, navigation, onRefresh, draftToEdit, onDraftLoaded }) {
+  const failedScanPlayer = useAudioPlayer(require('../assets/sounds/barcode-failed.wav'));
   const barcodeRef = useRef(null);
-  const barcodeAutoTimerRef = useRef(null);
-  const lastAutoLookupBarcodeRef = useRef('');
+  const productQueryRef = useRef(null);
+  const saleScrollRef = useRef(null);
+  const productEntryOffsetRef = useRef(0);
+  const quantityControlOffsetRef = useRef(0);
+  const barcodeLookupInFlightRef = useRef(false);
+  const barcodeSettleTimerRef = useRef(null);
+  const workingDraftReadyRef = useRef(false);
+  const autoSaveRevisionRef = useRef(0);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [recentCustomers, setRecentCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [barcode, setBarcode] = useState('');
+  const [entryMode, setEntryMode] = useState('barcode');
   const [quantity, setQuantity] = useState('1');
   const [productQuery, setProductQuery] = useState('');
   const [productResults, setProductResults] = useState([]);
@@ -201,8 +226,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const [lastScannedProduct, setLastScannedProduct] = useState(null);
   const [lastScannedQuantity, setLastScannedQuantity] = useState(0);
   const [recentScans, setRecentScans] = useState([]);
-  const [testMode, setTestMode] = useState(false);
-  const [testNote, setTestNote] = useState('');
   const [currencyRates, setCurrencyRates] = useState(null);
   const [rateMessage, setRateMessage] = useState('');
   const [reviewMode, setReviewMode] = useState(false);
@@ -213,10 +236,55 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const [loading, setLoading] = useState(false);
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [whatsappActionsOpen, setWhatsappActionsOpen] = useState(false);
+  const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
+  const [expandedImageUrl, setExpandedImageUrl] = useState('');
+  const [recoveryDraft, setRecoveryDraft] = useState(null);
+  const [recoveryDraftOpen, setRecoveryDraftOpen] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle');
+  const [autoSavedAt, setAutoSavedAt] = useState('');
+
+  function keepQuantityVisible() {
+    // Android's numeric keyboard can cover the lower half of this compact screen.
+    setTimeout(() => {
+      saleScrollRef.current?.scrollTo({
+        y: Math.max(0, quantityControlOffsetRef.current - 88),
+        animated: true,
+      });
+    }, 180);
+  }
+
+  function openStockCodeSearch() {
+    setEntryMode('stockCode');
+    setTimeout(() => {
+      productQueryRef.current?.focus();
+    }, 0);
+  }
+
+  function openBarcodeEntry() {
+    setEntryMode('barcode');
+    setTimeout(() => barcodeRef.current?.focus(), 0);
+  }
+
+  function scheduleBarcodeLookup(value) {
+    if (barcodeSettleTimerRef.current) {
+      clearTimeout(barcodeSettleTimerRef.current);
+    }
+
+    const trimmedValue = String(value || '').trim();
+    if (trimmedValue.length < 4) return;
+
+    barcodeSettleTimerRef.current = setTimeout(() => {
+      lookupBarcodeProduct(trimmedValue);
+    }, 300);
+  }
 
   const total = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0) * Number(line.unitPrice || 0)
   ), 0), [lines]);
+
+  // Keep the newest scan near the controls while preserving the saved line order.
+  const displayLines = useMemo(() => [...lines].reverse(), [lines]);
   const itemQuantity = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0)
   ), 0), [lines]);
@@ -338,27 +406,29 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function buildSalePayloadSnapshot() {
-    const trimmedTestNote = testNote.trim();
-    const saleNote = testMode
-      ? `SAHA TEST FISI - ${trimmedTestNote || 'Terminal saha testi'}`
-      : 'Terminal hizli satis';
-
     return buildTerminalSalePayload({
       customer: selectedCustomer,
       lines,
       terminalCode: terminalConfig.terminalCode,
-      note: saleNote,
-      testMode,
+      note: 'Terminal hizli satis',
+      testMode: false,
       exchangeRate: selectedExchangeRate,
     });
   }
 
-  function vibrate(pattern) {
-    try {
-      Vibration.vibrate(pattern);
-    } catch {
-      // Vibration is optional on web/desktop previews.
-    }
+  function isAuthenticationError(error) {
+    return error?.status === 401
+      || error?.code === 'AUTH_TOKEN_EXPIRED'
+      || error?.code === 'AUTH_TOKEN_INVALID';
+  }
+
+  function vibrate() {
+    // Veronica is configured for silent scanning feedback.
+  }
+
+  function playFailedScanTone() {
+    failedScanPlayer.seekTo(0).catch(() => {});
+    failedScanPlayer.play();
   }
 
   function rememberScan(product, parsedQuantity) {
@@ -387,40 +457,83 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }, []);
 
   useEffect(() => () => {
-    if (barcodeAutoTimerRef.current) {
-      clearTimeout(barcodeAutoTimerRef.current);
+    if (barcodeSettleTimerRef.current) {
+      clearTimeout(barcodeSettleTimerRef.current);
     }
   }, []);
 
   useEffect(() => {
-    const trimmedBarcode = barcode.trim();
-
-    if (barcodeAutoTimerRef.current) {
-      clearTimeout(barcodeAutoTimerRef.current);
-    }
-
-    if (
-      !selectedCustomer
-      || reviewMode
-      || loading
-      || lastScannedProduct
-      || trimmedBarcode.length < 4
-      || trimmedBarcode === lastAutoLookupBarcodeRef.current
-    ) {
+    const query = productQuery.trim();
+    if (!selectedCustomer || query.length < 2 || reviewMode) {
+      if (!query) {
+        setProductResults([]);
+      }
       return undefined;
     }
 
-    barcodeAutoTimerRef.current = setTimeout(() => {
-      lastAutoLookupBarcodeRef.current = trimmedBarcode;
-      lookupBarcodeProduct(trimmedBarcode);
-    }, 120);
+    const timer = setTimeout(() => {
+      searchProduct(query);
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [productQuery, selectedCustomer, reviewMode]);
+
+  useEffect(() => {
+    if (entryMode !== 'stockCode' || productQuery.trim().length < 2) return;
+
+    const timer = setTimeout(() => {
+      saleScrollRef.current?.scrollTo({
+        y: Math.max(0, productEntryOffsetRef.current - 88),
+        animated: true,
+      });
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [entryMode, productQuery]);
+
+  useEffect(() => {
+    if (entryMode !== 'stockCode' || productResults.length === 0) return;
+
+    // Keep manual matches above the Android keyboard instead of beneath it.
+    const timer = setTimeout(() => {
+      saleScrollRef.current?.scrollTo({
+        y: Math.max(0, productEntryOffsetRef.current - 88),
+        animated: true,
+      });
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [entryMode, productResults.length]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadWorkingDraft() {
+      if (draftToEdit?.payload) return;
+
+      const savedDraft = await getWorkingSaleDraft();
+      if (!active) return;
+
+      if (savedDraft) {
+        setRecoveryDraft(savedDraft);
+        setRecoveryDraftOpen(true);
+        setAutoSavedAt(savedDraft.savedAt || '');
+        return;
+      }
+
+      workingDraftReadyRef.current = true;
+    }
+
+    loadWorkingDraft().catch(() => {
+      if (!active) return;
+      workingDraftReadyRef.current = true;
+      setAutoSaveStatus('error');
+    });
 
     return () => {
-      if (barcodeAutoTimerRef.current) {
-        clearTimeout(barcodeAutoTimerRef.current);
-      }
+      active = false;
     };
-  }, [barcode, selectedCustomer, reviewMode, loading, lastScannedProduct, quantity]);
+  }, []);
 
   useEffect(() => {
     if (!draftToEdit?.payload) return;
@@ -454,8 +567,46 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setReviewMode(true);
     setMessage('Bekleyen fis duzenleme icin acildi');
     setError('');
+    setRecoveryDraft(null);
+    setRecoveryDraftOpen(false);
+    workingDraftReadyRef.current = true;
     onDraftLoaded?.();
   }, [draftToEdit]);
+
+  useEffect(() => {
+    if (!workingDraftReadyRef.current) return undefined;
+
+    const revision = autoSaveRevisionRef.current + 1;
+    autoSaveRevisionRef.current = revision;
+
+    if (!selectedCustomer || lines.length === 0) {
+      clearWorkingSaleDraft().catch(() => {
+        if (autoSaveRevisionRef.current === revision) {
+          setAutoSaveStatus('error');
+        }
+      });
+      setAutoSaveStatus('idle');
+      setAutoSavedAt('');
+      return undefined;
+    }
+
+    setAutoSaveStatus('saving');
+    saveWorkingSaleDraft({
+      customer: selectedCustomer,
+      lines,
+      editingEventId,
+    }).then((savedDraft) => {
+      if (autoSaveRevisionRef.current !== revision) return;
+      setAutoSaveStatus('saved');
+      setAutoSavedAt(savedDraft?.savedAt || new Date().toISOString());
+    }).catch(() => {
+      if (autoSaveRevisionRef.current === revision) {
+        setAutoSaveStatus('error');
+      }
+    });
+
+    return undefined;
+  }, [editingEventId, lines, selectedCustomer]);
 
   async function refreshRates(showMessage = true) {
     if (showMessage) {
@@ -558,6 +709,17 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       return;
     }
 
+    if (barcodeLookupInFlightRef.current) {
+      return null;
+    }
+
+    barcodeLookupInFlightRef.current = true;
+    if (barcodeSettleTimerRef.current) {
+      clearTimeout(barcodeSettleTimerRef.current);
+    }
+
+    // Clear the scanner field immediately so a bad scan never blocks the next scan.
+    setBarcode('');
     setError('');
     setProductAlternatives([]);
     setLoading(true);
@@ -575,8 +737,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 
       setLastScannedProduct(product);
       setLastScannedQuantity(parsedQuantity);
-      setBarcode('');
-      lastAutoLookupBarcodeRef.current = '';
       rememberScan(product, parsedQuantity);
       setMessage(`${product.productName} bulundu. Bilgileri kontrol edip Satira Ekle'ye basin.`);
       setSaleResult(null);
@@ -585,11 +745,15 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     } catch (lookupError) {
       setError(lookupError.message || 'Barkod okunamadi');
       setProductAlternatives(Array.isArray(lookupError.alternatives) ? lookupError.alternatives : []);
+      playFailedScanTone();
       vibrate([0, 80, 60, 80]);
       return null;
     } finally {
+      barcodeLookupInFlightRef.current = false;
       setLoading(false);
-      setTimeout(() => barcodeRef.current?.focus(), 120);
+      // The scanner keeps sending keystrokes to the focused field; reopening it
+      // after a scan can make Android show the soft keyboard.
+      Keyboard.dismiss();
     }
   }
 
@@ -616,11 +780,12 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setQuantity('1');
     setMessage(`${lastScannedProduct.productName} satira eklendi`);
     setSaleResult(null);
+    Keyboard.dismiss();
     setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
-  async function searchProduct() {
-    const q = productQuery.trim();
+  async function searchProduct(queryValue = productQuery) {
+    const q = String(queryValue || '').trim();
     if (!selectedCustomer) {
       setError('Once cari secin');
       return;
@@ -646,7 +811,17 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       const normalizedQuery = q.toLocaleLowerCase('tr-TR');
       const products = (response.products || response.data || response.items || [])
         .map(normalizeProduct)
-        .filter((product) => String(product.stockCode || '').toLocaleLowerCase('tr-TR').includes(normalizedQuery));
+        .filter((product) => String(product.stockCode || '').toLocaleLowerCase('tr-TR').includes(normalizedQuery))
+        .sort((left, right) => {
+          const leftCode = String(left.stockCode || '').toLocaleLowerCase('tr-TR');
+          const rightCode = String(right.stockCode || '').toLocaleLowerCase('tr-TR');
+          const leftRank = leftCode === normalizedQuery ? 0 : leftCode.startsWith(normalizedQuery) ? 1 : 2;
+          const rightRank = rightCode === normalizedQuery ? 0 : rightCode.startsWith(normalizedQuery) ? 1 : 2;
+
+          if (leftRank !== rightRank) return leftRank - rightRank;
+          if (leftCode.length !== rightCode.length) return leftCode.length - rightCode.length;
+          return leftCode.localeCompare(rightCode, 'tr');
+        });
       setProductResults(products);
       if (products.length === 1) {
         setMessage(`1 urun bulundu (${response.source === 'cache' ? 'offline stok' : 'API'}), satira eklemek icin dokunun`);
@@ -714,24 +889,16 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function selectSearchedProduct(product) {
-    const parsedQuantity = Number(quantity || 1);
-    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
-      setError('Miktar zorunlu');
-      return;
-    }
-
-    addProductLine(product, parsedQuantity);
-    rememberScan(product, parsedQuantity);
+    setLastScannedProduct(product);
+    setLastScannedQuantity(Number(quantity || 1));
     setProductQuery('');
     setProductResults([]);
-    setQuantity('1');
     setError('');
-    setMessage(`${product.productName} satira eklendi`);
+    setMessage(`${product.productName} secildi. Satira Ekle ile fise ekleyin.`);
     setSaleResult(null);
-    setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
-  async function finishSale() {
+  async function finishSale({ printAfterSubmit = false } = {}) {
     if (!selectedCustomer || lines.length === 0) {
       setError('Cari ve en az bir satir gerekli');
       return;
@@ -757,6 +924,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       await updateQueueEventPayload(editingEventId, basePayload);
     }
     const activeClientEventId = queuedEvent.clientEventId;
+    await clearWorkingSaleDraft().catch(() => {});
 
     try {
       const response = await submitTerminalSale({
@@ -766,44 +934,76 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           clientEventId: activeClientEventId,
         },
       });
-      const duplicate = Boolean(response?.data?.duplicate || response?.duplicate);
-      await markQueueSynced(activeClientEventId, response?.data || response);
-      setMessage(duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi');
+      const responseData = response?.data || response;
+      const duplicate = Boolean(responseData?.duplicate);
+      await markQueueSynced(activeClientEventId, responseData);
+
+      let printSucceeded = false;
+      let printFailureMessage = '';
+      if (printAfterSubmit) {
+        try {
+          const printResponse = await printTerminalSaleReceipt({
+            token: session.accessToken,
+            invoiceId: responseData?.invoiceId,
+          });
+          const printData = printResponse?.data || printResponse;
+          printSucceeded = Boolean(printData?.ok);
+        } catch (printError) {
+          printFailureMessage = printError.message || 'ERP bilgisayarindaki yaziciya ulasilamadi';
+        }
+      }
+
+      const submitMessage = duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi';
+      const printMessage = printAfterSubmit
+        ? printSucceeded
+          ? ' ERP bilgisayarindaki yaziciya gonderildi.'
+          : ` Fis kaydedildi ancak yazdirilamadi: ${printFailureMessage}`
+        : '';
+
+      setMessage(printSucceeded ? 'Fis gonderildi ve yazdirildi' : submitMessage);
+      if (printFailureMessage) {
+        setError(`Fis kaydedildi, fakat cikti alinamadi. ${printFailureMessage}`);
+      }
       setSaleResult({
         ...resultSnapshot,
         status: duplicate ? 'duplicate' : 'synced',
-        title: duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi',
+        title: printSucceeded
+          ? 'Fis gonderildi ve yazdirildi'
+          : duplicate
+            ? 'Daha once gonderilmis'
+            : 'Fis gonderildi',
         message: duplicate
-          ? 'Backend bu fisi daha once almis. Yeni ikinci fis olusturulmadi.'
-          : testMode
-            ? 'Test fisi backend API tarafina gonderildi. ERP tarafinda test notuyla ayirt edin.'
-            : 'Fis backend API tarafina basariyla gonderildi.',
+          ? `Backend bu fisi daha once almis. Yeni ikinci fis olusturulmadi.${printMessage}`
+          : `Fis backend API tarafina basariyla gonderildi.${printMessage}`,
         clientEventId: activeClientEventId,
+        documentNumber: responseData?.documentNumber || '',
       });
       setLines([]);
       setBarcode('');
       setQuantity('1');
-      setTestMode(false);
-      setTestNote('');
       setReviewMode(false);
       setEditingEventId('');
       await onRefresh();
     } catch (submitError) {
       await markQueueFailed(activeClientEventId, submitError);
-      setMessage('Baglanti yok, fis gonderilemeyenlere alindi');
-      setError(submitError.message || 'Online gonderim basarisiz');
+      const authenticationError = isAuthenticationError(submitError);
+      const resultTitle = authenticationError ? 'Oturum yenilenmeli' : 'Gonderilemeyenlere alindi';
+      const resultMessage = authenticationError
+        ? 'API baglantisi acik, ancak oturum suresi dolmus. Yeniden giris yaptiktan sonra fisi Sync Merkezi ekranindan gonderebilirsiniz.'
+        : submitError.message || 'API baglantisi yok veya istek basarisiz. Fis local queue icinde bekliyor.';
+
+      setMessage(authenticationError ? 'Oturum suresi doldu, fis gonderilemeyenlere alindi' : 'Baglanti yok, fis gonderilemeyenlere alindi');
+      setError(authenticationError ? 'Oturum suresi doldu. Yeniden giris yapin.' : submitError.message || 'Online gonderim basarisiz');
       setSaleResult({
         ...resultSnapshot,
-        status: 'offline',
-        title: 'Gonderilemeyenlere alindi',
-        message: submitError.message || 'API baglantisi yok veya istek basarisiz. Fis local queue icinde bekliyor.',
+        status: authenticationError ? 'auth' : 'offline',
+        title: resultTitle,
+        message: resultMessage,
         clientEventId: activeClientEventId,
       });
       setLines([]);
       setBarcode('');
       setQuantity('1');
-      setTestMode(false);
-      setTestNote('');
       setReviewMode(false);
       setEditingEventId('');
       await onRefresh();
@@ -842,7 +1042,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setReviewMode(true);
   }
 
-  async function saveDraftToQueue() {
+  async function saveDraftToQueue({ goHomeAfterSave = false } = {}) {
     if (!selectedCustomer || lines.length === 0) {
       setError('Kaydedilecek taslak fis yok');
       return;
@@ -861,6 +1061,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       if (editingEventId) {
         await updateQueueEventPayload(editingEventId, payload);
       }
+      await clearWorkingSaleDraft().catch(() => {});
       setSaleResult({
         status: 'offline',
         title: 'Fis taslak kaydedildi',
@@ -874,24 +1075,19 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       setLines([]);
       setBarcode('');
       setQuantity('1');
-      setTestMode(false);
-      setTestNote('');
       setReviewMode(false);
       setEditingEventId('');
       await onRefresh();
       if (wasEditing) {
         navigation.openSyncStatus?.();
+      } else if (goHomeAfterSave) {
+        navigation.goHome();
       }
     } catch (saveError) {
       setError(saveError.message || 'Fis taslak kaydedilemedi');
     } finally {
       setLoading(false);
     }
-  }
-
-  function printDraft() {
-    setMessage('Fis cikti onizlemesi Raporlar ekraninda hazirlanir. Fisi kaydedip/gonderip Raporlar > fis detayi acin.');
-    setError('');
   }
 
   function buildWhatsappSharePayload(mode) {
@@ -984,8 +1180,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setLastScannedProduct(null);
     setLastScannedQuantity(0);
     setRecentScans([]);
-    setTestMode(false);
-    setTestNote('');
     setReviewMode(false);
     setEditingEventId('');
     setWhatsappActionsOpen(false);
@@ -995,8 +1189,154 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setTimeout(() => barcodeRef.current?.focus(), 120);
   }
 
+  function requestLeaveSale() {
+    if (!lines.length) {
+      navigation.goHome();
+      return;
+    }
+
+    setExitConfirmationOpen(true);
+  }
+
+  function recoverWorkingDraft() {
+    if (!recoveryDraft) return;
+
+    setSelectedCustomer(recoveryDraft.customer);
+    setCustomerQuery(recoveryDraft.customer.customerCode || recoveryDraft.customer.customerName || '');
+    setLines(recoveryDraft.lines || []);
+    setEditingEventId(recoveryDraft.editingEventId || '');
+    setReviewMode(false);
+    setRecoveryDraftOpen(false);
+    setRecoveryDraft(null);
+    setAutoSaveStatus('saved');
+    setAutoSavedAt(recoveryDraft.savedAt || '');
+    setMessage('Yarim kalan fis geri yuklendi');
+    setError('');
+    workingDraftReadyRef.current = true;
+  }
+
+  function requestDiscardSaleAndLeave() {
+    setExitConfirmationOpen(false);
+    setDiscardConfirmationOpen(true);
+  }
+
+  async function discardWorkingDraft() {
+    try {
+      await clearWorkingSaleDraft();
+      setRecoveryDraftOpen(false);
+      setRecoveryDraft(null);
+      setAutoSaveStatus('idle');
+      setAutoSavedAt('');
+      workingDraftReadyRef.current = true;
+    } catch (draftError) {
+      setError(draftError.message || 'Yarim kalan fis silinemedi');
+    }
+  }
+
+  async function discardSaleAndLeave() {
+    setExitConfirmationOpen(false);
+    setDiscardConfirmationOpen(false);
+    await clearWorkingSaleDraft().catch(() => {});
+    setLines([]);
+    setBarcode('');
+    setQuantity('1');
+    setProductQuery('');
+    setProductAlternatives([]);
+    setProductResults([]);
+    setLastScannedProduct(null);
+    setLastScannedQuantity(0);
+    setRecentScans([]);
+    setReviewMode(false);
+    setEditingEventId('');
+    setWhatsappActionsOpen(false);
+    setMessage('');
+    setError('');
+    setSaleResult(null);
+    navigation.goHome();
+  }
+
+  async function saveSaleAndLeave() {
+    setExitConfirmationOpen(false);
+    setDiscardConfirmationOpen(false);
+    await saveDraftToQueue({ goHomeAfterSave: true });
+  }
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (expandedImageUrl) {
+        setExpandedImageUrl('');
+        return true;
+      }
+
+      if (discardConfirmationOpen) {
+        setDiscardConfirmationOpen(false);
+        setExitConfirmationOpen(true);
+        return true;
+      }
+
+      if (exitConfirmationOpen) {
+        setExitConfirmationOpen(false);
+        return true;
+      }
+
+      if (lines.length) {
+        setExitConfirmationOpen(true);
+      } else {
+        navigation.goHome();
+      }
+
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [discardConfirmationOpen, expandedImageUrl, exitConfirmationOpen, lines.length, navigation]);
+
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoidingView}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <Modal
+      visible={Boolean(expandedImageUrl)}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setExpandedImageUrl('')}
+    >
+      <Pressable style={styles.imagePreviewBackdrop} onPress={() => setExpandedImageUrl('')}>
+        {expandedImageUrl ? (
+          <Image source={{ uri: expandedImageUrl }} style={styles.imagePreview} resizeMode="contain" />
+        ) : null}
+      </Pressable>
+    </Modal>
+    <Modal
+      visible={recoveryDraftOpen}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {}}
+    >
+      <View style={styles.customerModalBackdrop}>
+        <View style={styles.customerModal}>
+          <Text style={styles.customerModalTitle}>Yarim kalan fis bulundu</Text>
+          <Text style={styles.customerModalMeta}>
+            {recoveryDraft?.customer?.customerName || 'Cari'} / {recoveryDraft?.lines?.length || 0} satir
+          </Text>
+          <Text style={styles.customerModalMeta}>
+            Son otomatik kayit: {formatDraftSavedAt(recoveryDraft?.savedAt) || '-'}
+          </Text>
+          <Text style={styles.customerModalMeta}>
+            Uygulama kapanmis olsa bile bu liste telefonda korunmustur.
+          </Text>
+          <View style={styles.customerModalActions}>
+            <TerminalButton label="Fise Devam Et" onPress={recoverWorkingDraft} />
+            <TerminalButton label="Taslagi Sil ve Yeni Basla" onPress={discardWorkingDraft} variant="danger" />
+          </View>
+        </View>
+      </View>
+    </Modal>
+    <KeyboardSafeScrollView
+      ref={saleScrollRef}
+      contentContainerStyle={styles.content}
+    >
       {!syncState?.online ? (
         <View style={styles.offlineSalePanel}>
           <Text style={styles.offlineSaleTitle}>Offline satis modu</Text>
@@ -1018,22 +1358,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 
         <View style={[styles.panel, selectedCustomer && styles.compactCustomerPanel]}>
         {!selectedCustomer ? (
-          <View style={styles.saleStepHeader}>
-            <View>
-              <Text style={styles.stepLabel}>Adim 1</Text>
-              <Text style={styles.title}>Cari Sec</Text>
-              <Text style={styles.meta}>{terminalConfig.terminalCode} / {terminalConfig.deviceName}</Text>
-            </View>
-            <Text style={[styles.stepBadge, styles.stepBadgeActive]}>Cari</Text>
-          </View>
-        ) : null}
-
-        {!selectedCustomer ? (
           <>
-            <View style={styles.customerIntroPanel}>
-              <Text style={styles.customerIntroTitle}>Satis hangi cariye yazilacak?</Text>
-              <Text style={styles.customerIntroText}>Pesin satis icin para birimini secin veya gercek cariyi arayin.</Text>
-            </View>
             <Text style={styles.label}>Pesin cariler</Text>
             <View style={styles.cashRow}>
               {cashCustomerCodes.map((code) => (
@@ -1054,7 +1379,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
             </View>
             <View style={styles.searchPanel}>
               <Text style={styles.label}>Cari ara</Text>
-              <TextInput
+              <KeyboardSafeTextInput
                   value={customerQuery}
                   onChangeText={setCustomerQuery}
                   onSubmitEditing={searchCustomer}
@@ -1118,7 +1443,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
                 </Pressable>
               </View>
 
-              <TextInput
+              <KeyboardSafeTextInput
                 value={customerQuery}
                 onChangeText={setCustomerQuery}
                 onSubmitEditing={searchCustomer}
@@ -1163,6 +1488,63 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
             </View>
           </View>
         </Modal>
+
+        <Modal
+          visible={exitConfirmationOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setExitConfirmationOpen(false)}
+        >
+          <View style={styles.customerModalBackdrop}>
+            <View style={styles.customerModal}>
+              <Text style={styles.customerModalTitle}>Fişte ürün var</Text>
+              <Text style={styles.customerModalMeta}>
+                Çıkmadan önce fişi taslak olarak kaydedin veya iptal edin.
+              </Text>
+              <View style={styles.customerModalActions}>
+                <TerminalButton label="Fişi Kaydet ve Çık" onPress={saveSaleAndLeave} disabled={loading} />
+                <TerminalButton label="Kaydetmeden Çık" onPress={requestDiscardSaleAndLeave} disabled={loading} variant="danger" />
+                <TerminalButton label="Vazgeç" onPress={() => setExitConfirmationOpen(false)} disabled={loading} variant="secondary" />
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={discardConfirmationOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setDiscardConfirmationOpen(false);
+            setExitConfirmationOpen(true);
+          }}
+        >
+          <View style={styles.customerModalBackdrop}>
+            <View style={styles.customerModal}>
+              <Text style={styles.customerModalTitle}>Kaydetmeden çıkmak istediğinize emin misiniz?</Text>
+              <Text style={styles.customerModalMeta}>
+                Bu fiş kaydedilmeyecek ve ekrandaki ürün listesi silinecek.
+              </Text>
+              <View style={styles.customerModalActions}>
+                <TerminalButton
+                  label="Hayır, Fişe Dön"
+                  onPress={() => {
+                    setDiscardConfirmationOpen(false);
+                    setExitConfirmationOpen(false);
+                  }}
+                  disabled={loading}
+                  variant="success"
+                />
+                <TerminalButton
+                  label="Evet, Kaydetmeden Çık"
+                  onPress={discardSaleAndLeave}
+                  disabled={loading}
+                  variant="danger"
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
 
       {!selectedCustomer ? (
@@ -1176,91 +1558,126 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
               Cari secildikten sonra barkod okutma ve fis satirlari ekrani acilir.
             </Text>
           </View>
-          <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+          <TerminalButton label="Ana ekran" onPress={requestLeaveSale} variant="secondary" />
         </>
       ) : (
         <>
       {!reviewMode ? (
         <>
-      <View style={styles.panel}>
+      <View
+        style={styles.panel}
+        onLayout={(event) => {
+          productEntryOffsetRef.current = event.nativeEvent.layout.y;
+        }}
+      >
         <View style={styles.barcodeHeader}>
           <View>
-            <Text style={styles.title}>Barkod</Text>
-            <Text style={styles.meta}>{selectedCustomer ? 'Cari secili, okutmaya veya aramaya hazir' : 'Once cari secin'}</Text>
+            <Text style={styles.title}>Urun Girisi</Text>
+            <View style={styles.entryModeControl}>
+              <Pressable
+                onPress={openBarcodeEntry}
+                style={[styles.entryModeButton, entryMode === 'barcode' && styles.entryModeButtonActive]}
+              >
+                <Text style={[styles.entryModeText, entryMode === 'barcode' && styles.entryModeTextActive]}>Barkod</Text>
+              </Pressable>
+              <Pressable
+                onPress={openStockCodeSearch}
+                style={[styles.entryModeButton, entryMode === 'stockCode' && styles.entryModeButtonActive]}
+              >
+                <Text style={[styles.entryModeText, entryMode === 'stockCode' && styles.entryModeTextActive]}>Stok kodu</Text>
+              </Pressable>
+            </View>
           </View>
           <Text style={styles.quantityBadge}>{itemQuantity} adet</Text>
         </View>
-        <TextInput
-          ref={barcodeRef}
-          value={barcode}
-          onChangeText={(value) => {
-            setBarcode(value);
-            lastAutoLookupBarcodeRef.current = '';
-            setLastScannedProduct(null);
-            setProductAlternatives([]);
-          }}
-          onSubmitEditing={() => lookupBarcodeProduct()}
-          style={styles.barcodeInput}
-          placeholder="Barkod okut"
-          showSoftInputOnFocus={false}
-          caretHidden={false}
-          blurOnSubmit={false}
-          keyboardType="number-pad"
-          returnKeyType="done"
-        />
+        {entryMode === 'barcode' ? (
+          <KeyboardSafeTextInput
+            ref={barcodeRef}
+            value={barcode}
+            onChangeText={(value) => {
+              const normalizedValue = String(value || '').replace(/[\r\n]/g, '');
+              setBarcode(normalizedValue);
+              setLastScannedProduct(null);
+              setProductAlternatives([]);
+              scheduleBarcodeLookup(normalizedValue);
+            }}
+            onSubmitEditing={() => lookupBarcodeProduct()}
+            onFocus={() => setEntryMode('barcode')}
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Enter') {
+                lookupBarcodeProduct();
+              }
+            }}
+            style={styles.barcodeInput}
+            placeholder="Barkod okut"
+            showSoftInputOnFocus={false}
+            caretHidden={false}
+            blurOnSubmit={false}
+            keyboardType="number-pad"
+            returnKeyType="done"
+          />
+        ) : (
+          <KeyboardSafeTextInput
+            ref={productQueryRef}
+            value={productQuery}
+            onChangeText={setProductQuery}
+            onSubmitEditing={searchProduct}
+            onFocus={() => setEntryMode('stockCode')}
+            style={styles.barcodeInput}
+            placeholder="Stok kodu yazin"
+            autoCapitalize="none"
+            keyboardType="number-pad"
+            returnKeyType="search"
+          />
+        )}
+        {entryMode === 'stockCode' && productResults.length ? (
+          <View style={styles.productAlternativePanel}>
+            {productResults.map((product) => {
+              const saleProduct = convertProductForSale(product);
+              return (
+                <Pressable
+                  key={`${product.id}-${product.stockCode}`}
+                  onPress={() => selectSearchedProduct(product)}
+                  style={styles.productAlternativeRow}
+                >
+                  <View style={styles.productResultTextBlock}>
+                    <Text style={styles.productResultTitle} numberOfLines={1}>
+                      {product.stockCode} / {product.productName}
+                    </Text>
+                    <Text style={styles.productResultMeta} numberOfLines={1}>
+                      Stok {product.stockQuantity}
+                    </Text>
+                  </View>
+                  <Text style={styles.productPriceBadge}>{formatMoney(saleProduct.salePrice, saleProduct.currency)}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
         <LastProductPanel product={convertProductForSale(lastScannedProduct)} quantity={quantity || lastScannedQuantity} />
         <Text style={styles.label}>Miktar</Text>
-        <View style={styles.quantityControl}>
+        <View
+          style={styles.quantityControl}
+          onLayout={(event) => {
+            quantityControlOffsetRef.current = event.nativeEvent.layout.y;
+          }}
+        >
           <Pressable onPress={() => adjustInputQuantity(-1)} style={styles.quantityButton}>
             <Text style={styles.quantityButtonText}>-</Text>
           </Pressable>
-          <TextInput
+          <KeyboardSafeTextInput
             value={quantity}
             onChangeText={setQuantity}
+            onFocus={keepQuantityVisible}
             style={styles.quantityInput}
             keyboardType="decimal-pad"
+            selectTextOnFocus
           />
           <Pressable onPress={() => adjustInputQuantity(1)} style={styles.quantityButton}>
             <Text style={styles.quantityButtonText}>+</Text>
           </Pressable>
         </View>
         <TerminalButton label={lastScannedProduct ? 'Satira Ekle' : 'Urunu Getir'} onPress={lastScannedProduct ? addBarcodeLine : lookupBarcodeProduct} disabled={loading} />
-        <View style={styles.quickSearchPanel}>
-          <Text style={styles.label}>Stok kodu ile ara</Text>
-          <TextInput
-            value={productQuery}
-            onChangeText={setProductQuery}
-            onSubmitEditing={searchProduct}
-            style={styles.productSearchInput}
-            placeholder="Stok kodu"
-            autoCapitalize="none"
-          />
-          <TerminalButton label="Urun Ara" onPress={searchProduct} disabled={loading} variant="secondary" />
-          {productResults.length ? (
-            <View style={styles.productAlternativePanel}>
-              {productResults.map((product) => {
-                const saleProduct = convertProductForSale(product);
-                return (
-                  <Pressable
-                    key={`${product.id}-${product.stockCode}`}
-                    onPress={() => selectSearchedProduct(product)}
-                    style={styles.productAlternativeRow}
-                  >
-                    <View style={styles.productResultTextBlock}>
-                      <Text style={styles.productResultTitle} numberOfLines={1}>
-                        {product.stockCode} / {product.productName}
-                      </Text>
-                      <Text style={styles.productResultMeta} numberOfLines={1}>
-                        {product.matchedBarcode || product.barcodeMasked || '-'} / Stok {product.stockQuantity}
-                      </Text>
-                    </View>
-                    <Text style={styles.productPriceBadge}>{formatMoney(saleProduct.salePrice, saleProduct.currency)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-        </View>
         {productAlternatives.length ? (
           <View style={styles.productAlternativePanel}>
             <Text style={styles.warning}>Tam barkod bulunamadi. Benzer urunlerden secin.</Text>
@@ -1295,41 +1712,43 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         ) : null}
         {lines.length === 0 ? (
           <Text style={styles.empty}>Henuz satir yok.</Text>
-        ) : lines.map((line) => {
+        ) : displayLines.map((line) => {
           const lineImageUrl = resolveImageUrl(line.product?.imageUrl, apiBaseUrl);
 
           return (
             <View key={line.product.id} style={styles.lineRow}>
               <View style={styles.lineMain}>
-                {lineImageUrl ? (
-                  <Image source={{ uri: lineImageUrl }} style={styles.lineImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.lineImageEmpty}>
-                    <Text style={styles.lineImageEmptyText}>Resim yok</Text>
-                  </View>
-                )}
                 <View style={styles.lineText}>
                   <Text style={styles.lineCode}>{line.product.stockCode}</Text>
-                  <Text style={styles.lineName}>{line.product.productName}</Text>
+                  <Text style={styles.lineName} numberOfLines={2}>{line.product.productName}</Text>
+                </View>
+                <View style={styles.lineActions}>
+                  <Text style={styles.lineAmount}>
+                    {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
+                  </Text>
+                  <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
+                  <View style={styles.lineButtons}>
+                    <Pressable onPress={() => adjustLineQuantity(line.product.id, -1)} style={styles.smallLineButton}>
+                      <Text style={styles.smallLineButtonText}>-</Text>
+                    </Pressable>
+                    <Pressable onPress={() => adjustLineQuantity(line.product.id, 1)} style={styles.smallLineButton}>
+                      <Text style={styles.smallLineButtonText}>+</Text>
+                    </Pressable>
+                    <Pressable onPress={() => removeLine(line.product.id)} style={[styles.smallLineButton, styles.smallLineButtonDanger]}>
+                      <Text style={[styles.smallLineButtonText, styles.smallLineButtonTextDanger]}>Sil</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
-              <View style={styles.lineActions}>
-                <Text style={styles.lineAmount}>
-                  {line.quantity} x {formatMoney(line.unitPrice, line.product.currency)}
-                </Text>
-                <Text style={styles.lineTotal}>{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), line.product.currency)}</Text>
-                <View style={styles.lineButtons}>
-                  <Pressable onPress={() => adjustLineQuantity(line.product.id, -1)} style={styles.smallLineButton}>
-                    <Text style={styles.smallLineButtonText}>-</Text>
-                  </Pressable>
-                  <Pressable onPress={() => adjustLineQuantity(line.product.id, 1)} style={styles.smallLineButton}>
-                    <Text style={styles.smallLineButtonText}>+</Text>
-                  </Pressable>
-                  <Pressable onPress={() => removeLine(line.product.id)} style={[styles.smallLineButton, styles.smallLineButtonDanger]}>
-                    <Text style={[styles.smallLineButtonText, styles.smallLineButtonTextDanger]}>Sil</Text>
-                  </Pressable>
+              {lineImageUrl ? (
+                <Pressable onPress={() => setExpandedImageUrl(lineImageUrl)}>
+                  <Image source={{ uri: lineImageUrl }} style={styles.lineImage} resizeMode="cover" />
+                </Pressable>
+              ) : (
+                <View style={styles.lineImageEmpty}>
+                  <Text style={styles.lineImageEmptyText}>Resim yok</Text>
                 </View>
-              </View>
+              )}
             </View>
           );
         })}
@@ -1346,34 +1765,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         {selectedCustomer ? <InfoRow label="Fis para birimi" value={selectedCustomer.currency || 'TRY'} /> : null}
       </View>
 
-      <View style={[styles.testModePanel, testMode && styles.testModePanelActive]}>
-        <View style={styles.testModeHeader}>
-          <View style={styles.testModeText}>
-            <Text style={styles.testModeTitle}>Saha test fisi</Text>
-            <Text style={styles.testModeMeta}>
-              Test modu aciksa fis notuna SAHA TEST FISI yazilir. Gercek satisla karismamasi icin sadece deneme kayitlarinda acin.
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setTestMode((current) => !current)}
-            style={[styles.testSwitch, testMode && styles.testSwitchActive]}
-          >
-            <Text style={[styles.testSwitchText, testMode && styles.testSwitchTextActive]}>
-              {testMode ? 'ACIK' : 'KAPALI'}
-            </Text>
-          </Pressable>
-        </View>
-        {testMode ? (
-          <TextInput
-            value={testNote}
-            onChangeText={setTestNote}
-            style={styles.testNoteInput}
-            placeholder="Test aciklamasi"
-            placeholderTextColor={colors.muted}
-          />
-        ) : null}
-      </View>
-
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {rateMessage ? <Text style={styles.message}>{rateMessage}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -1388,8 +1779,14 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         <Text style={styles.submitMeta}>
           {selectedCustomer ? selectedCustomer.customerName : 'Cari secilmedi'} / {lines.length} satir
         </Text>
-        {testMode ? (
-          <Text style={styles.testSubmitWarning}>SAHA TEST FISI olarak gonderilecek.</Text>
+        {lines.length ? (
+          <Text style={styles.submitMeta}>
+            Otomatik taslak: {autoSaveStatus === 'saving'
+              ? 'kaydediliyor'
+              : autoSaveStatus === 'error'
+                ? 'kayit hatasi'
+                : `kaydedildi${formatDraftSavedAt(autoSavedAt) ? ` / ${formatDraftSavedAt(autoSavedAt)}` : ''}`}
+          </Text>
         ) : null}
         <TerminalButton
           label="Fis Taslagini Kontrol Et"
@@ -1397,7 +1794,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           disabled={loading || lines.length === 0 || !selectedCustomer}
         />
       </View>
-      <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+      <TerminalButton label="Ana ekran" onPress={requestLeaveSale} variant="secondary" />
         </>
       ) : (
         <>
@@ -1456,7 +1853,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
             </View>
 
             <View style={styles.reviewLines}>
-              {lines.map((line) => (
+              {displayLines.map((line) => (
                 <View key={`review-line-${line.product.id}`} style={styles.reviewLineRow}>
                   <View style={styles.lineText}>
                     <Text style={styles.lineName}>{line.product.productName}</Text>
@@ -1467,7 +1864,6 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
               ))}
             </View>
 
-            {testMode ? <Text style={styles.testSubmitWarning}>Bu fis SAHA TEST FISI olarak isaretli.</Text> : null}
           </View>
 
           {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -1510,19 +1906,39 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
             ) : null}
             <TerminalButton label={editingEventId ? 'Guncelle ve Gonder' : 'Fisi Gonder'} onPress={finishSale} disabled={loading} />
             <TerminalButton label={editingEventId ? 'Degisiklikleri Kaydet' : 'Fisi Kaydet'} onPress={saveDraftToQueue} disabled={loading} variant="secondary" />
-            <TerminalButton label="Fisi Yazdir" onPress={printDraft} disabled={loading} variant="secondary" />
+            <TerminalButton
+              label="Fisi Yazdir"
+              onPress={() => finishSale({ printAfterSubmit: true })}
+              disabled={loading}
+              variant="secondary"
+            />
             <TerminalButton label="Duzenle" onPress={() => setReviewMode(false)} disabled={loading} variant="secondary" />
           </View>
-          <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
+          <TerminalButton label="Ana ekran" onPress={requestLeaveSale} variant="secondary" />
         </>
       )}
         </>
       )}
-    </ScrollView>
+    </KeyboardSafeScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  imagePreviewBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    padding: 18,
+  },
+  imagePreview: {
+    width: '100%',
+    height: '84%',
+  },
   content: {
     padding: 12,
     paddingBottom: 104,
@@ -1760,6 +2176,33 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     paddingHorizontal: 10,
+  },
+  entryModeControl: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    marginTop: 4,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  entryModeButton: {
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    paddingHorizontal: 9,
+  },
+  entryModeButtonActive: {
+    backgroundColor: colors.accent,
+  },
+  entryModeText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  entryModeTextActive: {
+    color: colors.headerText,
   },
   quantityControl: {
     flexDirection: 'row',
@@ -2175,35 +2618,37 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lineRow: {
-    minHeight: 92,
+    minHeight: 132,
     borderColor: colors.borderDark,
     borderWidth: 1,
     borderLeftColor: colors.accent,
     borderLeftWidth: 5,
     borderRadius: 8,
     backgroundColor: colors.white,
-    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 9,
     marginBottom: 8,
     ...terminalStyles.rowShadow,
   },
   lineMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'space-between',
   },
   lineImage: {
-    width: 58,
-    height: 58,
+    width: 158,
+    height: 112,
     borderRadius: 8,
     borderColor: colors.border,
     borderWidth: 1,
     backgroundColor: colors.panel,
   },
   lineImageEmpty: {
-    width: 58,
-    height: 58,
+    width: 158,
+    height: 112,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
@@ -2482,77 +2927,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 3,
   },
-  testModePanel: {
-    backgroundColor: colors.white,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  testModePanelActive: {
-    backgroundColor: colors.warningSoft,
-    borderColor: colors.warning,
-  },
-  testModeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  testModeText: {
-    flex: 1,
-  },
-  testModeTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  testModeMeta: {
-    marginTop: 4,
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 17,
-  },
-  testSwitch: {
-    minWidth: 76,
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderColor: colors.borderDark,
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: colors.panel,
-    paddingHorizontal: 10,
-  },
-  testSwitchActive: {
-    borderColor: colors.warning,
-    backgroundColor: colors.warning,
-  },
-  testSwitchText: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  testSwitchTextActive: {
-    color: colors.headerText,
-  },
-  testNoteInput: {
-    minHeight: 48,
-    borderColor: colors.borderDark,
-    borderWidth: 1,
-    borderRadius: 7,
-    backgroundColor: colors.input,
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '800',
-    paddingHorizontal: 10,
-  },
-  testSubmitWarning: {
-    color: colors.warning,
-    fontSize: 13,
-    fontWeight: '900',
-  },
   saleResultPanel: {
     borderWidth: 1,
     borderRadius: 8,
@@ -2634,24 +3008,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: '#07110d',
-  },
-  quickSearchPanel: {
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    marginTop: 4,
-    paddingTop: 10,
-    gap: 8,
-  },
-  productSearchInput: {
-    minHeight: 52,
-    borderColor: colors.borderDark,
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: colors.input,
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
-    paddingHorizontal: 12,
   },
   productAlternativeRow: {
     minHeight: 46,

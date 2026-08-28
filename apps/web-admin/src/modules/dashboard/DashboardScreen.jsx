@@ -29,7 +29,7 @@ import {
   periodLabels,
 } from './dashboardMetrics.js';
 
-export function DashboardScreen({ onOpenScreen, permissions = [] }) {
+export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = 'yonetici' }) {
   const [activeView, setActiveView] = useState('patron');
   const [dashboardLayout, setDashboardLayout] = useState(loadDashboardLayout);
   const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false);
@@ -72,7 +72,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [] }) {
             { key: 'note', label: 'Not' },
           ]}
           rows={countryPerformance}
-          subtitle="Romanya %50 / Balkan ağırlık"
+          subtitle={countryPerformance.length > 0 ? 'Ülke performansı ve alacak dağılımı' : 'Ülke verisi henüz oluşmadı'}
           title="Ülke Bazlı Satış / Alacak"
         />
       ),
@@ -341,7 +341,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [] }) {
           onUpdateWidget={updateDashboardWidget}
         />
       )}
-      <DashboardQuickActions onOpenScreen={onOpenScreen} permissions={permissions} />
+      <DashboardQuickActions onOpenScreen={onOpenScreen} permissions={permissions} roleViewId={roleViewId} />
       <DashboardKpiGrid kpis={kpis} onOpenScreen={onOpenScreen} />
       <section
         className={`dashboard-main-grid${isLayoutEditorOpen ? ' dashboard-free-desk dashboard-free-desk-editing' : ''}`}

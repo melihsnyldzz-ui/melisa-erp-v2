@@ -170,6 +170,7 @@ function mapSupplierMovement(row) {
     amount: Number(row.amount || 0),
     currency: row.currency_code,
     balanceEffect: Number(row.balance_effect || 0),
+    runningBalance: Number(row.running_balance || 0),
     documentDate: formatSqlDate(row.document_date),
     createdAt: row.created_at,
   };
@@ -573,7 +574,17 @@ export async function getSupplierMovementsList(query = {}) {
     .input('supplierId', sql.BigInt, supplierId > 0 ? supplierId : null)
     .input('offset', sql.Int, options.offset)
     .query(`
-      WITH filtered AS (
+      WITH movement_balances AS (
+        SELECT
+          sm.*,
+          SUM(sm.balance_effect) OVER (
+            PARTITION BY sm.supplier_id
+            ORDER BY sm.document_date DESC, sm.id DESC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+          ) AS newer_balance_effect
+        FROM dbo.supplier_movements sm
+      ),
+      filtered AS (
         SELECT
           sm.id,
           sm.supplier_id,
@@ -586,9 +597,10 @@ export async function getSupplierMovementsList(query = {}) {
           sm.amount,
           sm.currency_code,
           sm.balance_effect,
+          s.balance - COALESCE(sm.newer_balance_effect, 0) AS running_balance,
           sm.document_date,
           sm.created_at
-        FROM dbo.supplier_movements sm
+        FROM movement_balances sm
         INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
         LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.purchase_invoice_id
         ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}

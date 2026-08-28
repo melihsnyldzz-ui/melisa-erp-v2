@@ -5,6 +5,7 @@ import {
   submitTerminalSale,
 } from '../services/terminalService.js';
 import { sendTerminalWhatsappShare } from '../services/catalogService.js';
+import { printTerminalSaleReceipt } from '../services/terminalReceiptPrintService.js';
 import { created, fail, ok } from '../utils/response.js';
 
 function terminalError(res, error, fallbackCode) {
@@ -68,5 +69,17 @@ export async function postTerminalWhatsappShare(req, res) {
     return ok(res, data, { source: 'terminal-whatsapp-provider' });
   } catch (error) {
     return terminalError(res, error, 'TERMINAL_WHATSAPP_SHARE_FAILED');
+  }
+}
+
+export async function postTerminalSalePrint(req, res) {
+  try {
+    const data = await printTerminalSaleReceipt(req.params.invoiceId, req.user);
+    return ok(res, data, {
+      source: 'terminal-receipt-windows-printer',
+      externalEffect: true,
+    });
+  } catch (error) {
+    return terminalError(res, error, 'TERMINAL_RECEIPT_PRINT_FAILED');
   }
 }

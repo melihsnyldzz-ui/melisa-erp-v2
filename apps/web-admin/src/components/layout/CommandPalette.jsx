@@ -1,6 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Search } from 'lucide-react';
+import {
+  ArrowRight,
+  Boxes,
+  ClipboardList,
+  Contact,
+  Monitor,
+  ReceiptText,
+  Search,
+  Truck,
+} from 'lucide-react';
 import { screenRegistry, sidebarGroups } from '../../data/mockNavigationData.js';
+import { searchErpRecords } from '../../services/quickSearchApi.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
 
 const pinnedCommands = [
@@ -9,6 +19,15 @@ const pinnedCommands = [
   { label: 'Cari Listesi', screenId: 'customer-list', hint: 'Müşteri ve tedarikçi kartları' },
   { label: 'Rapor Merkezi', screenId: 'reports-overview', hint: 'Yönetim ve operasyon raporları' },
 ];
+
+const resultIcons = {
+  screen: Monitor,
+  product: Boxes,
+  customer: Contact,
+  supplier: Truck,
+  'sales-invoice': ReceiptText,
+  'purchase-invoice': ClipboardList,
+};
 
 function normalize(value) {
   return normalizeSearchText(value);
@@ -19,6 +38,9 @@ function buildCommandList() {
     group.items.map((item) => {
       const screen = screenRegistry[item.screenId];
       return {
+        id: `screen-${item.screenId}`,
+        kind: 'screen',
+        typeLabel: 'Ekran',
         label: item.label,
         screenId: item.screenId,
         group: group.title,
@@ -29,6 +51,9 @@ function buildCommandList() {
   ));
 
   const registryCommands = Object.values(screenRegistry).map((screen) => ({
+    id: `screen-${screen.id}`,
+    kind: 'screen',
+    typeLabel: 'Ekran',
     label: screen.label,
     screenId: screen.id,
     group: screen.type,
@@ -36,14 +61,23 @@ function buildCommandList() {
     hint: `${screen.module} / ${screen.type}`,
   }));
 
-  const mergedCommands = [...pinnedCommands, ...sidebarCommands, ...registryCommands];
+  const mergedCommands = [
+    ...pinnedCommands.map((command) => ({
+      ...command,
+      id: `screen-${command.screenId}`,
+      kind: 'screen',
+      typeLabel: 'Ekran',
+      module: screenRegistry[command.screenId]?.module || 'ERP',
+      group: 'Hızlı işlem',
+    })),
+    ...sidebarCommands,
+    ...registryCommands,
+  ];
   const seen = new Set();
 
   return mergedCommands.filter((command) => {
     const key = `${command.label}-${command.screenId}`;
-    if (seen.has(key)) {
-      return false;
-    }
+    if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
@@ -52,43 +86,68 @@ function buildCommandList() {
 export function CommandPalette({ isOpen, onClose, onOpenScreen }) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [recordResults, setRecordResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [failedSourceCount, setFailedSourceCount] = useState(0);
   const inputRef = useRef(null);
+  const searchSequenceRef = useRef(0);
   const commands = useMemo(buildCommandList, []);
-  const results = useMemo(() => {
+  const screenResults = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
-    if (!normalizedQuery) {
-      return commands.slice(0, 12);
-    }
+    if (!normalizedQuery) return commands.slice(0, 12);
 
     return commands.filter((command) => (
       normalize(`${command.label} ${command.module} ${command.group} ${command.hint}`).includes(normalizedQuery)
-    )).slice(0, 18);
+    )).slice(0, 6);
   }, [commands, query]);
+  const results = useMemo(
+    () => [...screenResults, ...recordResults].slice(0, 26),
+    [recordResults, screenResults],
+  );
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) return;
 
     setQuery('');
     setActiveIndex(0);
-    window.setTimeout(() => inputRef.current.focus(), 0);
+    setRecordResults([]);
+    setFailedSourceCount(0);
+    window.setTimeout(() => inputRef.current?.focus(), 0);
   }, [isOpen]);
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [query]);
+  }, [query, recordResults]);
 
-  if (!isOpen) {
-    return null;
-  }
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+    const sequence = searchSequenceRef.current + 1;
+    searchSequenceRef.current = sequence;
 
-  function openCommand(command) {
-    if (!command) {
-      return;
+    if (!isOpen || trimmedQuery.length < 2) {
+      setRecordResults([]);
+      setFailedSourceCount(0);
+      setIsSearching(false);
+      return undefined;
     }
 
-    onOpenScreen(command.screenId);
+    setIsSearching(true);
+    const timer = window.setTimeout(async () => {
+      const response = await searchErpRecords(trimmedQuery);
+      if (searchSequenceRef.current !== sequence) return;
+      setRecordResults(response.results);
+      setFailedSourceCount(response.failedSources.length);
+      setIsSearching(false);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [isOpen, query]);
+
+  if (!isOpen) return null;
+
+  function openCommand(command) {
+    if (!command) return;
+    onOpenScreen(command.screenId, command.payload || {});
     onClose();
   }
 
@@ -120,7 +179,7 @@ export function CommandPalette({ isOpen, onClose, onOpenScreen }) {
   return (
     <div className="command-palette-backdrop" onMouseDown={onClose} role="presentation">
       <section
-        aria-label="Komut paleti"
+        aria-label="Hızlı bul"
         className="command-palette"
         onKeyDown={handleKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
@@ -128,34 +187,51 @@ export function CommandPalette({ isOpen, onClose, onOpenScreen }) {
         <div className="command-search-row">
           <Search size={18} />
           <input
-            aria-label="Ekran veya işlem ara"
+            aria-label="Ekran veya kayıt ara"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ekran, fiş, rapor veya müşteri ara"
+            placeholder="Ürün, barkod, cari, tedarikçi, fiş veya ekran ara"
             ref={inputRef}
             value={query}
           />
           <kbd>Esc</kbd>
         </div>
         <div className="command-results" role="listbox">
-          {results.length === 0 && (
+          {query.trim().length === 1 && (
+            <div className="command-search-note">Kayıt aramak için en az 2 karakter yazın.</div>
+          )}
+          {isSearching && (
+            <div className="command-search-note" role="status">Kayıtlar aranıyor...</div>
+          )}
+          {!isSearching && query.trim().length >= 2 && results.length === 0 && (
             <div className="command-empty">Sonuç bulunamadı</div>
           )}
-          {results.map((command, index) => (
-            <button
-              aria-selected={index === activeIndex}
-              className={index === activeIndex ? 'command-result active' : 'command-result'}
-              key={`${command.label}-${command.screenId}`}
-              onClick={() => openCommand(command)}
-              role="option"
-              type="button"
-            >
-              <span>
-                <strong>{command.label}</strong>
-                <small>{command.module} · {command.hint}</small>
-              </span>
-              <ArrowRight size={15} />
-            </button>
-          ))}
+          {failedSourceCount > 0 && (
+            <div className="command-search-warning" role="status">
+              Bazı kayıt kaynaklarına ulaşılamadı; bulunan sonuçlar gösteriliyor.
+            </div>
+          )}
+          {results.map((command, index) => {
+            const ResultIcon = resultIcons[command.kind] || Search;
+            return (
+              <button
+                aria-selected={index === activeIndex}
+                className={index === activeIndex ? 'command-result active' : 'command-result'}
+                key={`${command.id || command.screenId}-${command.label}`}
+                onClick={() => openCommand(command)}
+                role="option"
+                type="button"
+              >
+                <span className={`command-result-icon ${command.kind || 'screen'}`} aria-hidden="true">
+                  <ResultIcon size={16} />
+                </span>
+                <span className="command-result-copy">
+                  <strong>{command.label}</strong>
+                  <small>{command.typeLabel || command.module} · {command.hint}</small>
+                </span>
+                <ArrowRight size={15} />
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>

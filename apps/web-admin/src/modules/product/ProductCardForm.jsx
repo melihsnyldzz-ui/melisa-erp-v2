@@ -1,27 +1,95 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { SuggestedTextInput } from '../../components/forms/SuggestedTextInput.jsx';
+import { formatCardOpenedAt } from './productCardUtils.js';
 
-export function ProductCardForm({ product, form, mode, suggestions, isEditing = true, onChange }) {
+function IdentityFeedback({ state, label, onOpenDuplicate }) {
+  if (!state || state.status === 'idle') {
+    return null;
+  }
+
+  if (state.status === 'checking') {
+    return <small className="product-identity-feedback checking">{label} kontrol ediliyor...</small>;
+  }
+
+  if (state.status === 'error') {
+    return <small className="product-identity-feedback error">Kontrol yapılamadı; kaydederken tekrar denetlenecek.</small>;
+  }
+
+  if (state.status === 'available') {
+    return <small className="product-identity-feedback available">{label} kullanılabilir.</small>;
+  }
+
+  const duplicate = state.duplicateProduct || {};
+
+  return (
+    <small className="product-identity-feedback duplicate">
+      <span>Bu {label.toLocaleLowerCase('tr-TR')} zaten mevcut: {duplicate.stockCode} / {duplicate.productName}</span>
+      <button type="button" onClick={() => onOpenDuplicate?.(duplicate)}>Kartı aç</button>
+    </small>
+  );
+}
+
+export function ProductCardForm({
+  product,
+  form,
+  mode,
+  suggestions,
+  identityAvailability,
+  isEditing = true,
+  onChange,
+  onOpenDuplicate,
+}) {
+  const [isOpen, setIsOpen] = useState(true);
   const barcodePlaceholder = mode === 'update' && form.existingBarcodeMasked
     ? `Mevcut: ${form.existingBarcodeMasked} / değiştirmek için yeni barkod girin`
     : 'Ana barkod';
 
+  useEffect(() => {
+    setIsOpen(true);
+  }, [isEditing, mode, product.id]);
+
   return (
-    <section className="erp-panel product-form-panel">
-      <div className="panel-title">
-        <strong>Temel Ürün Bilgileri</strong>
-        <span>{mode === 'create' ? 'Yeni kayıt / API write' : isEditing ? 'Düzenleme açık / API update' : 'İzleme modu / düzenlemek için üstten Düzenle'}</span>
-      </div>
+    <details
+      className="erp-panel product-form-panel product-form-details"
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span><strong>Temel Ürün Bilgileri</strong><small>{mode === 'create' ? 'Yeni kayıt' : isEditing ? 'Düzenleme açık' : 'Görüntülemek için açın'}</small></span>
+        <ChevronDown aria-hidden="true" size={18} />
+      </summary>
       <div className="product-form-grid product-form-grid-modern">
         <div className="product-form-section identity-section">
           <h3>Kimlik</h3>
-          <label>
+          <label className={identityAvailability.stockCode?.status === 'duplicate' ? 'identity-field has-duplicate' : 'identity-field'}>
             <span>Stok kodu</span>
-            <input disabled={!isEditing} value={form.stockCode} onChange={(event) => onChange('stockCode', event.target.value)} />
+            <input
+              aria-invalid={identityAvailability.stockCode?.status === 'duplicate'}
+              disabled={!isEditing}
+              value={form.stockCode}
+              onChange={(event) => onChange('stockCode', event.target.value)}
+            />
+            <IdentityFeedback
+              label="Stok kodu"
+              state={identityAvailability.stockCode}
+              onOpenDuplicate={onOpenDuplicate}
+            />
           </label>
-          <label>
+          <label className={identityAvailability.barcode?.status === 'duplicate' ? 'identity-field has-duplicate' : 'identity-field'}>
             <span>Ana barkod</span>
-            <input disabled={!isEditing} value={form.barcode} placeholder={barcodePlaceholder} onChange={(event) => onChange('barcode', event.target.value)} />
+            <input
+              aria-invalid={identityAvailability.barcode?.status === 'duplicate'}
+              disabled={!isEditing}
+              value={form.barcode}
+              placeholder={barcodePlaceholder}
+              onChange={(event) => onChange('barcode', event.target.value)}
+            />
+            <IdentityFeedback
+              label="Barkod"
+              state={identityAvailability.barcode}
+              onOpenDuplicate={onOpenDuplicate}
+            />
           </label>
           <label className="wide-field">
             <span>Ürün adı</span>
@@ -105,17 +173,17 @@ export function ProductCardForm({ product, form, mode, suggestions, isEditing = 
             <span>Aktif/Pasif</span>
             <input readOnly value={product.status} />
           </label>
+          <div className="card-opened-at-field" aria-label="Kart açılış tarihi">
+            <span>Kart açılış tarihi</span>
+            <time dateTime={form.cardOpenedAt || undefined}>{formatCardOpenedAt(form.cardOpenedAt, 'Kayıt sırasında otomatik oluşur')}</time>
+            <small>Sistem tarafından kaydedilir; değiştirilemez.</small>
+          </div>
           <div className="product-form-mini-card">
             <strong>{mode === 'create' ? 'Yeni kayıt' : isEditing ? 'Düzenleme açık' : 'İzleme modu'}</strong>
             <span>{isEditing ? 'Alanlar düzenlenebilir.' : 'Yanlışlıkla değişiklik olmaması için alanlar kilitli.'}</span>
           </div>
         </div>
       </div>
-      <div className={product.hasMovements ? 'currency-rule locked' : 'currency-rule'}>
-        <strong>Para birimi kuralı</strong>
-        <span>{product.currencyRule}</span>
-        <small>Güncelleme modunda barkod tam değeri API'den gelir; değiştirmek için yeni barkod girilir.</small>
-      </div>
-    </section>
+    </details>
   );
 }

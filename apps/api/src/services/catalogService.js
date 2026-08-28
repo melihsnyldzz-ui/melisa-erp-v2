@@ -8,6 +8,8 @@ import { env } from '../config/env.js';
 import { writeAuditLog } from './auditService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { getVegaProductsListFromWorker } from './vegaProductClientService.js';
+import { getActiveVegaProductImageSourceIds, getVegaProductImageMap } from './vegaProductImageService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -139,6 +141,27 @@ function toPublicCatalogProductDto(row) {
     stockSignal: stockQuantity > 0 ? 'in_stock' : 'ask_sales',
     imageUrl: buildPublicUrl(resolvePublicProductImagePath(row)),
     isPassive: false,
+  };
+}
+
+function toPublicVegaCatalogProductDto(row, imagePath = '') {
+  const stockQuantity = Number(row.stockQuantity || 0);
+  const specialCode4 = trimText(row.specialCode4 || row.specialCodes?.KOD4 || row.category);
+
+  return {
+    id: `vega-${Number(row.sourceId)}`,
+    stockCode: trimText(row.stockCode),
+    productName: trimText(row.productName),
+    // KOD1 is the source of truth for the public brand label.
+    brand: trimText(row.specialCodes?.KOD1 || row.brand),
+    // KOD4 is deliberately preserved for the website taxonomy mapper.
+    category: specialCode4,
+    erpSpecialCode4: specialCode4,
+    cardOpenedAt: row.cardOpenedAt || null,
+    inStock: stockQuantity > 0 && !row.isPassive,
+    stockSignal: stockQuantity > 0 && !row.isPassive ? 'in_stock' : 'ask_sales',
+    imageUrl: buildPublicUrl(imagePath),
+    isPassive: Boolean(row.isPassive),
   };
 }
 
@@ -598,6 +621,56 @@ export async function getCatalogOverview(query = {}) {
 }
 
 export async function getPublicCatalogProducts(query = {}) {
+  try {
+    const imageOnly = String(query.imageOnly ?? 'true').toLowerCase() !== 'false';
+    const imageSourceIds = imageOnly ? await getActiveVegaProductImageSourceIds() : [];
+
+    // A public B2B catalog must not leak empty image slots. The source IDs come
+    // from the ERP's active primary-image registry, never from price data.
+    if (imageOnly && imageSourceIds.length === 0) {
+      return {
+        products: [],
+        meta: {
+          source: 'vega-public-catalog',
+          imageOnly: true,
+          imageCount: 0,
+          publicFieldsOnly: true,
+          pricesIncluded: false,
+          barcodesIncluded: false,
+        },
+      };
+    }
+
+    const result = await getVegaProductsListFromWorker({
+      ...query,
+      activeOnly: true,
+      imageStatus: imageOnly ? 'with-image' : 'all',
+      includeSourceIds: imageOnly ? imageSourceIds : query.includeSourceIds,
+    });
+    const rows = result.data || [];
+    const imageMap = await getVegaProductImageMap(rows.map((product) => product.sourceId));
+
+    return {
+      products: rows.map((product) =>
+        toPublicVegaCatalogProductDto(
+          product,
+          imageMap.get(Number(product.sourceId)) || '',
+        ),
+      ),
+      meta: {
+        ...(result.meta || {}),
+        source: 'vega-public-catalog',
+        imageOnly,
+        imageCount: imageOnly ? imageSourceIds.length : undefined,
+        publicFieldsOnly: true,
+        pricesIncluded: false,
+        barcodesIncluded: false,
+      },
+    };
+  } catch {
+    // Keep the existing public catalog as a compatibility fallback while Vega is unavailable.
+  }
+
   const pool = await getSqlPool();
   const search = trimText(query.search);
   const brand = trimText(query.brand);

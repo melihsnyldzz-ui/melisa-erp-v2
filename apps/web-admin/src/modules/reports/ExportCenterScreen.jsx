@@ -17,11 +17,38 @@ function monthStartDate() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+async function fetchAllPages(fetchPage, params, { pageSize = 500, maxRows = 20000 } = {}) {
+  const rows = [];
+  let page = 1;
+  let lastMeta = {};
+
+  while (rows.length < maxRows) {
+    const response = await fetchPage({ ...params, page, limit: pageSize });
+    const pageRows = response.data || [];
+    lastMeta = response.meta || {};
+    rows.push(...pageRows);
+
+    const total = Number(lastMeta.total);
+    if (pageRows.length < pageSize || (Number.isFinite(total) && rows.length >= total)) break;
+    page += 1;
+  }
+
+  return {
+    data: rows.slice(0, maxRows),
+    meta: {
+      ...lastMeta,
+      total: Number(lastMeta.total ?? rows.length),
+      loaded: Math.min(rows.length, maxRows),
+      truncated: rows.length >= maxRows && Number(lastMeta.total || 0) > maxRows,
+    },
+  };
+}
+
 const exportDefinitions = {
   products: {
     title: 'Stok Listesi',
     filename: 'stok-listesi',
-    fetcher: ({ search }) => fetchProducts({ search, limit: 500, activeOnly: false }),
+    fetcher: ({ search }) => fetchAllPages(fetchProducts, { search, activeOnly: false }),
     columns: [
       { label: 'Stok Kodu', key: 'stockCode' },
       { label: 'Barkod', value: (row) => row.matchedBarcode || row.barcodeMasked || '' },
@@ -37,7 +64,7 @@ const exportDefinitions = {
   customers: {
     title: 'Müşteri Cari Listesi',
     filename: 'musteri-cari-listesi',
-    fetcher: ({ search }) => fetchCustomers({ search, limit: 500, activeOnly: false }),
+    fetcher: ({ search }) => fetchAllPages(fetchCustomers, { search, activeOnly: false }),
     columns: [
       { label: 'Cari Kod', key: 'customerCode' },
       { label: 'Ad / Unvan', value: (row) => row.customerName || row.name || '' },
@@ -52,7 +79,7 @@ const exportDefinitions = {
   suppliers: {
     title: 'Tedarikçi Cari Listesi',
     filename: 'tedarik?i-cari-listesi',
-    fetcher: ({ search }) => fetchSuppliers({ search, limit: 500, activeOnly: false }),
+    fetcher: ({ search }) => fetchAllPages(fetchSuppliers, { search, activeOnly: false }),
     columns: [
       { label: 'Cari Kod', key: 'supplierCode' },
       { label: 'Ad / Unvan', value: (row) => row.supplierName || row.name || '' },
@@ -67,7 +94,7 @@ const exportDefinitions = {
   sales: {
     title: 'Satış Fişleri',
     filename: 'satis-fisleri',
-    fetcher: ({ search, status, dateFrom, dateTo }) => fetchSalesDrafts({ search, status, dateFrom, dateTo, limit: 500 }),
+    fetcher: ({ search, status, dateFrom, dateTo }) => fetchAllPages(fetchSalesDrafts, { search, status, dateFrom, dateTo }),
     columns: [
       { label: 'Fiş No', key: 'invoiceNo' },
       { label: 'Müşteri', key: 'customerName' },
@@ -82,7 +109,7 @@ const exportDefinitions = {
   offers: {
     title: 'Teklifler',
     filename: 'teklifler',
-    fetcher: ({ search, status, dateFrom, dateTo }) => fetchSalesOffers({ search, status, dateFrom, dateTo, limit: 500 }),
+    fetcher: ({ search, status, dateFrom, dateTo }) => fetchAllPages(fetchSalesOffers, { search, status, dateFrom, dateTo }),
     columns: [
       { label: 'Belge No', key: 'documentNo' },
       { label: 'Tarih', key: 'documentDate' },
@@ -97,7 +124,7 @@ const exportDefinitions = {
   orders: {
     title: 'Siparişler',
     filename: 'sipari?ler',
-    fetcher: ({ search, status, dateFrom, dateTo }) => fetchSalesOrders({ search, status, dateFrom, dateTo, limit: 500 }),
+    fetcher: ({ search, status, dateFrom, dateTo }) => fetchAllPages(fetchSalesOrders, { search, status, dateFrom, dateTo }),
     columns: [
       { label: 'Belge No', key: 'documentNo' },
       { label: 'Tarih', key: 'documentDate' },
@@ -112,7 +139,7 @@ const exportDefinitions = {
   purchases: {
     title: 'Alış Fişleri',
     filename: 'alis-fisleri',
-    fetcher: ({ search, status }) => fetchPurchaseDrafts({ search, status, limit: 500 }),
+    fetcher: ({ search, status }) => fetchAllPages(fetchPurchaseDrafts, { search, status }),
     columns: [
       { label: 'Fiş No', key: 'invoiceNo' },
       { label: 'Tedarikçi', key: 'supplierName' },
@@ -127,7 +154,7 @@ const exportDefinitions = {
   stockMovements: {
     title: 'Stok Hareketleri',
     filename: 'stok-hareketleri',
-    fetcher: ({ search, dateFrom, dateTo }) => fetchStockMovements({ search, dateFrom, dateTo, limit: 500 }),
+    fetcher: ({ search, dateFrom, dateTo }) => fetchAllPages(fetchStockMovements, { search, dateFrom, dateTo }),
     columns: [
       { label: 'Tarih', key: 'documentDate' },
       { label: 'Kaynak', key: 'sourceType' },
@@ -144,7 +171,7 @@ const exportDefinitions = {
   stockValuation: {
     title: 'Stok Değerleme',
     filename: 'stok-degerleme',
-    fetcher: ({ search }) => fetchStockValuation({ search, limit: 500 }),
+    fetcher: ({ search }) => fetchAllPages(fetchStockValuation, { search }),
     columns: [
       { label: 'Stok Kodu', key: 'stockCode' },
       { label: 'Barkod', key: 'barcode' },
@@ -246,7 +273,7 @@ export function ExportCenterScreen() {
           <strong>Çıktı Merkezi</strong>
           <span>CSV, Excel ve PDF olarak kaydedilebilir yazdırma çıktıları</span>
         </div>
-        <form className="filter-grid" onSubmit={loadRows}>
+        <form className="filter-grid export-filter-form" onSubmit={loadRows}>
           <label>
             Rapor
             <select value={reportId} onChange={(event) => { setReportId(event.target.value); setRows([]); }}>
@@ -255,6 +282,9 @@ export function ExportCenterScreen() {
               ))}
             </select>
           </label>
+          <details className="export-advanced-filters">
+            <summary>Arama ve tarih filtreleri</summary>
+            <div>
           <label>
             Arama
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Kod, ad, barkod, cari..." />
@@ -276,6 +306,8 @@ export function ExportCenterScreen() {
             Bitiş
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </label>
+            </div>
+          </details>
           <button type="submit" className="primary" disabled={isLoading}>{isLoading ? 'Okunuyor...' : 'Veriyi Getir'}</button>
         </form>
       </section>
@@ -309,6 +341,7 @@ export function ExportCenterScreen() {
           <button type="button" onClick={printReport} disabled={!rows.length}>Yazdır / PDF</button>
         </div>
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+        {meta?.truncated && <div className="list-state list-state-error">Rapor {meta.loaded} satır güvenlik sınırında durduruldu. Daha dar filtre kullanın.</div>}
         {!errorMessage && rows.length === 0 && <div className="list-state">Rapor verisi bekleniyor.</div>}
         {rows.length > 0 && (
           <div className="table-shell">

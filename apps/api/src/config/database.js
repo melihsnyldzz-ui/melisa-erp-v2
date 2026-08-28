@@ -84,7 +84,8 @@ export async function getSqlPool() {
 
   if (!poolPromise) {
     const sql = getSqlDriver();
-    poolPromise = sql.connect(getSqlConfig()).catch((error) => {
+    const pool = new sql.ConnectionPool(getSqlConfig());
+    poolPromise = pool.connect().catch((error) => {
       poolPromise = undefined;
       throw error;
     });

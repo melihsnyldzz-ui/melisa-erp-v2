@@ -10,7 +10,7 @@ import {
   finalizeSalesDraft,
   updateSalesDraft,
 } from '../../services/invoiceDraftApi.js';
-import { fetchCustomers } from '../../services/customerApi.js';
+import { ensureCashCustomerDefinitions, fetchCustomers } from '../../services/customerApi.js';
 import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { apiConfig } from '../../config/apiConfig.js';
@@ -29,6 +29,10 @@ const emptySalesInvoice = {
   exchangeRateValue: 1,
   description: '',
   status: 'Taslak',
+  terminalCode: '',
+  terminalName: '',
+  employeeCode: '',
+  employeeName: '',
 };
 
 function todayIsoDate() {
@@ -166,6 +170,10 @@ function mapDraftToInvoice(draft) {
     exchangeRateValue: Number(draft.exchangeRate || 1),
     description: draft.description || '',
     status: status === 'DRAFT' ? 'Taslak' : status,
+    terminalCode: draft.terminalCode || '',
+    terminalName: draft.terminalName || '',
+    employeeCode: draft.employeeCode || '',
+    employeeName: draft.employeeName || '',
   };
 }
 
@@ -308,6 +316,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   const [isSaving, setIsSaving] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(
     () => calculateTotals(items, discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
@@ -315,7 +324,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
-  const isReadonly = isFinalized || isCancelled;
+  const isReadonly = isCancelled || (isFinalized && !isCorrectionMode);
   const canSaveDraft = draftId ? permissions.includes('sales.edit') : permissions.includes('sales.create');
   const canFinalize = permissions.includes('sales.finalize');
   const canCancel = permissions.includes('sales.cancel');
@@ -497,6 +506,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           setItems(nextItems);
           setDiscountRate(Number(response.data.discountRate || 0));
           setStatus(nextInvoice.status);
+          setIsCorrectionMode(false);
           setSelectedItemId(nextItems[0]?.id ?? null);
           setIsDirty(false);
           setStatusMessage(`Taslak fiş DB'den açıldı (#${response.data.id}); ticari etki yok.`);
@@ -552,7 +562,12 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     setItems([]);
     setDiscountRate(0);
     setStatus('Taslak');
+    setIsCorrectionMode(false);
     setSelectedItemId(null);
+    setCustomerQuery('');
+    setProductQuery('');
+    setProductToAddId('');
+    setQuickQuantity(1);
     setErrorMessage('');
     setIsDirty(false);
     setStatusMessage('Yeni taslak hazirlandi; kaydedilene kadar ticari etki yok.');
@@ -612,6 +627,11 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   function updateInvoiceField(field, value) {
+    if (isFinalized && field === 'invoiceCurrency') {
+      setStatusMessage('Kesinleşmiş fişte cari ve para birimi değiştirilemez.');
+      return;
+    }
+
     if (field === 'invoiceCurrency') {
       const nextCurrency = String(value || 'TRY').toUpperCase();
       const nextRate = centralRateForCurrency(nextCurrency);
@@ -657,6 +677,11 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   function selectCustomer(customerId) {
+    if (isFinalized) {
+      setStatusMessage('Kesinleşmiş fişte cari değiştirilemez.');
+      return;
+    }
+
     const customer = draftCustomerOptions.find((item) => String(item.id) === String(customerId));
 
     if (!customer) {
@@ -690,16 +715,29 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     markDirty('Cari se?ildi; fis para birimi icin tanıml kur alindi.');
   }
 
-  function selectCashCustomer(shortcut) {
-    const customer = draftCustomerOptions.find((item) => (
+  async function selectCashCustomer(shortcut) {
+    let customer = draftCustomerOptions.find((item) => (
       String(item.code || '').toUpperCase() === shortcut.code
     ));
 
     if (!customer) {
-      setErrorMessage(`${shortcut.label} carisi bulunamadi. Cari listesi yenilenince otomatik olusturulur.`);
+      try {
+        const response = await ensureCashCustomerDefinitions();
+        const ensuredCustomers = (response.data || []).map(mapCustomerOption);
+        setDraftCustomerOptions((current) => mergeCustomerOptions(current, ensuredCustomers));
+        customer = ensuredCustomers.find((item) => String(item.code || '').toUpperCase() === shortcut.code);
+      } catch (error) {
+        setErrorMessage(`${shortcut.label} carisi hazırlanamadı: ${error.message || 'API_ERROR'}`);
+        return;
+      }
+    }
+
+    if (!customer) {
+      setErrorMessage(`${shortcut.label} carisi hazırlanamadı.`);
       return;
     }
 
+    setErrorMessage('');
     selectCustomer(customer.id);
     setStatusMessage(`${shortcut.label} secildi; kesinlesince otomatik tahsilat KASA-${shortcut.currency} hesabina yazilir.`);
   }
@@ -725,7 +763,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
   function resolveProductToAdd() {
     const selectedProduct = productLookupOptions.find((item) => String(item.productId) === String(productToAddId));
-    return selectedProduct || resolveProductFromQuery(productLookupOptions, productQuery);
+    return selectedProduct || (productQuery.trim() ? resolveProductFromQuery(productLookupOptions, productQuery) : null);
   }
 
   function addDraftItem() {
@@ -863,11 +901,6 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
-    if (isFinalized) {
-      setStatusMessage('Kesinleşmiş satış fişi doğrudan değiştirilemez; iptal edip yeni fiş girin.');
-      return;
-    }
-
     if (!canSaveDraft) {
       setErrorMessage(draftId ? 'Bu islem icin sales.edit yetkisi gerekli.' : 'Bu islem icin sales.create yetkisi gerekli.');
       return;
@@ -898,6 +931,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     setErrorMessage('');
 
     try {
+      const wasFinalizedCorrection = isFinalized;
       const payload = buildDraftPayload();
       const response = draftId
          ? await updateSalesDraft(draftId, payload)
@@ -912,13 +946,23 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(response.message || `Taslak fiş DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi oluşmadı.`);
+      setIsCorrectionMode(false);
+      setStatusMessage(wasFinalizedCorrection
+        ? `Kesin satış fişi düzeltildi (#${response.data.id}); stok, cari ve hareket kayıtları fark kadar güncellendi.`
+        : response.message || `Taslak fiş DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi oluşmadı.`);
     } catch (error) {
       setErrorMessage(`${error.message || 'Taslak kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Taslak kaydı başarısız; API/DB kontrol edilmeli.');
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function editFinalizedInvoice() {
+    if (!isFinalized || !canSaveDraft) return;
+    setErrorMessage('');
+    setIsCorrectionMode(true);
+    setStatusMessage('Düzeltme açık. Cari ve para birimi korunur; satır, miktar, fiyat, tarih ve açıklama değiştirilebilir.');
   }
 
   useEffect(() => {
@@ -962,6 +1006,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       setItems(nextItems);
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
+      setIsCorrectionMode(false);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
       setStatusMessage(`Satış fişi kesinleşti (#${response.data.id}); stok ve cari hareketleri oluştu.`);
@@ -1013,6 +1058,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       setItems(nextItems);
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
+      setIsCorrectionMode(false);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
       setStatusMessage(`Satış fişi iptal edildi (#${response.data.id}); stok ve cari ters hareketleri oluştu.`);
@@ -1078,7 +1124,9 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         canSaveDraft={canSaveDraft}
         canFinalize={canFinalize}
         canCancel={canCancel}
+        isCorrectionMode={isCorrectionMode}
         onNewDraft={createNewDraft}
+        onEditFinalized={editFinalizedInvoice}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
         onCancel={cancelInvoice}
@@ -1092,41 +1140,44 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         {currencyRateError && <div className="list-state list-state-error">{currencyRateError}</div>}
         {isSaving && <div className="list-state">Taslak fiş API'ye kaydediliyor...</div>}
         {isFinalized && (
-          <div className="list-state list-state-success">FINALIZED fiş kapalı; stok ve cari izi oluştu. Değişiklik için iptal edip yeni fiş girin.</div>
+          <div className="list-state list-state-success">{isCorrectionMode ? 'Kesin fiş düzeltmeye açık; kaydettiğinizde farklar doğrudan uygulanır.' : 'FINALIZED fiş kesinleşmiş; Düzenle ile kontrollü değişiklik yapabilirsiniz.'}</div>
         )}
         {isCancelled && (
           <div className="list-state list-state-success">CANCELLED fiş kapalı; yeni işlem için yeni taslak kullanın.</div>
         )}
-        <section className="sales-flow-steps" aria-label="Satış fişi adımları">
+        {!isReadonly && <section className="sales-flow-steps" aria-label="Satış fişi adımları">
           {flowSteps.map((step, index) => (
             <span className={step.done ? 'done' : ''} key={step.key}>
               <b>{index + 1}</b>{step.label}
             </span>
           ))}
-        </section>
-        <section className="erp-panel sales-draft-controls sales-quick-add-panel">
+        </section>}
+        {!isReadonly && <section className="erp-panel sales-draft-controls sales-quick-add-panel">
           <div className="panel-title">
-            <strong>Hızlı Satır</strong>
-            <span>Cari seç, barkod/ürün yaz, Enter ile satır ekle</span>
+            <strong>Satış Girişi</strong>
+            <span>Cari seç, ürünü okut veya ara, adedi gir</span>
           </div>
-          <div className="cash-customer-shortcuts" aria-label="Pesin cari kisa yollari">
-            {cashCustomerShortcuts.map((shortcut) => (
-              <button
-                key={shortcut.code}
-                type="button"
-                disabled={isReadonly}
-                onClick={() => selectCashCustomer(shortcut)}
-              >
-                <strong>{shortcut.label}</strong>
-                <span>{shortcut.code}</span>
-              </button>
-            ))}
+          <div className="cash-customer-direct">
+            <span className="cash-customer-direct-label">Peşin satış</span>
+            <div className="cash-customer-shortcuts" aria-label="Peşin cari kısa yolları">
+              {cashCustomerShortcuts.map((shortcut) => (
+                <button
+                  className={invoice.customerCurrency === shortcut.currency && String(selectedCustomer?.code || '').toUpperCase() === shortcut.code ? 'active' : ''}
+                  key={shortcut.code}
+                  type="button"
+                  disabled={isFinalized}
+                  onClick={() => selectCashCustomer(shortcut)}
+                >
+                  <strong>{shortcut.label}</strong><span>{shortcut.currency}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="sales-quick-add-grid">
             <label>
               <span>Cari</span>
               <input
-                disabled={isReadonly}
+                disabled={isReadonly || isFinalized}
                 list="sales-customer-suggestions"
                 placeholder="Cari adı yaz"
                 value={customerQuery || invoice.customer}
@@ -1175,17 +1226,6 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
                 </div>
               )}
             </label>
-            <label>
-              <span>Seçim</span>
-              <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)}>
-                <option value="">Ürün seçin</option>
-                {filteredProducts.map((product) => (
-                  <option key={product.productId} value={product.productId}>
-                    {product.stockCode} / {product.productName} / {formatProductPrice(product)}
-                  </option>
-                ))}
-              </select>
-            </label>
             <label className="quick-qty-field">
               <span>Adet</span>
               <input
@@ -1199,38 +1239,16 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
             </label>
             <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satır Ekle</button>
           </div>
-          <div className="quick-decision-strip">
-            <div className={`quick-decision-card ${selectedCustomer ? 'is-ready' : ''}`}>
-              <span>Cari</span>
-              <strong>{selectedCustomer ? selectedCustomer.name : 'Cari seçilmedi'}</strong>
-              <small>
-                {selectedCustomer
-                  ? `${selectedCustomer.code || '-'} / ${selectedCustomer.currency} / ${formatMoney(selectedCustomer.balance, selectedCustomer.currency)}`
-                  : 'Satır eklemek için önce cari seçin'}
-              </small>
-            </div>
-            <div className={`quick-decision-card ${selectedQuickProduct ? 'is-ready' : ''}`}>
-              {selectedQuickProduct?.imageUrl ? (
-                <img className="quick-decision-image" alt={selectedQuickProduct.productName || selectedQuickProduct.stockCode || 'Urun'} src={selectedQuickProduct.imageUrl} />
-              ) : null}
-              <span>Ürün</span>
-              <strong>{selectedQuickProduct ? selectedQuickProduct.productName : 'Ürün seçilmedi'}</strong>
-              <small>
-                {selectedQuickProduct
-                  ? `${selectedQuickProduct.stockCode} / ${selectedQuickProduct.stockState} / ${formatProductPrice(selectedQuickProduct)}`
-                  : 'Barkod, stok kodu veya ürün adı yazın'}
-              </small>
-            </div>
-            <div className="quick-decision-card quick-decision-price">
-              <span>Fiş</span>
-              <strong>{invoice.invoiceCurrency || 'TRY'} kur {invoice.exchangeRateValue || 1}</strong>
-              <small>Enter veya Satır Ekle ile taslağa alınır.</small>
-            </div>
+          <div className="sales-entry-context" aria-live="polite">
+            <span className={selectedCustomer ? 'is-ready' : ''}><b>Cari:</b> {selectedCustomer?.name || 'Seçilmedi'}</span>
+            <span className={selectedQuickProduct ? 'is-ready' : ''}><b>Ürün:</b> {selectedQuickProduct ? `${selectedQuickProduct.stockCode} / ${selectedQuickProduct.productName}` : 'Seçilmedi'}</span>
+            <span><b>Fiş:</b> {invoice.invoiceCurrency || 'TRY'} / Kur {invoice.exchangeRateValue || 1}</span>
           </div>
-        </section>
+        </section>}
         <SalesInvoiceHeader
           discountRate={discountRate}
           invoice={invoice}
+          isIdentityLocked={isFinalized}
           isReadonly={isReadonly}
           status={status}
           onChange={updateInvoiceField}

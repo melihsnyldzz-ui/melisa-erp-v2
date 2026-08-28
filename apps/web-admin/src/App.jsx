@@ -8,6 +8,7 @@ import {
   logout as logoutRequest,
 } from './services/authApi.js';
 import { apiConfig } from './config/apiConfig.js';
+import { clearWhatsappCrmUnlockToken } from './services/whatsappCrmApi.js';
 
 export function App() {
   const [user, setUser] = useState(null);
@@ -46,6 +47,7 @@ export function App() {
 
   useEffect(() => {
     function expireSession() {
+      clearWhatsappCrmUnlockToken();
       setUser(null);
       setAuthError('Oturum süresi doldu, tekrar giriş yapın.');
     }
@@ -55,6 +57,7 @@ export function App() {
   }, []);
 
   async function handleLogin(username, password) {
+    clearWhatsappCrmUnlockToken();
     setIsLoggingIn(true);
     setAuthError('');
 
@@ -69,6 +72,7 @@ export function App() {
   }
 
   async function handleLocalPasswordlessLogin() {
+    clearWhatsappCrmUnlockToken();
     setIsLoggingIn(true);
     setAuthError('');
 
@@ -83,8 +87,12 @@ export function App() {
   }
 
   async function handleLogout() {
-    await logoutRequest();
-    setUser(null);
+    try {
+      await logoutRequest();
+    } finally {
+      clearWhatsappCrmUnlockToken();
+      setUser(null);
+    }
   }
 
   if (isBooting) {

@@ -39,6 +39,7 @@ export function LoginScreen({
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Giriş kontrol ediliyor' : 'Giriş yap'}
         </button>
+        <small className="login-session-note">Bu cihazda girişiniz hatırlanır. Çıkış yapmadığınız sürece yeniden şifre istenmez.</small>
         {localPasswordlessEnabled && (
           <button type="button" disabled={isLoading} onClick={onLocalPasswordlessLogin}>
             Admin olarak sifresiz gir

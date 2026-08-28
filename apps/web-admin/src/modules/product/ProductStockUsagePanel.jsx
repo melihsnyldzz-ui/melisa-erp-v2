@@ -87,36 +87,28 @@ function filterMovements(movements, filter) {
   return movements;
 }
 
-function unitPriceLabel(row) {
-  if (row.unitPrice === null || row.unitPrice === undefined) return '-';
-  return formatMoney(row.unitPrice, row.currency || 'TRY');
-}
-
-function unitCostLabel(row) {
-  return formatMoney(row.unitCostTry, 'TRY');
-}
-
-export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, onOpenParty }) {
+export function ProductStockUsagePanel({ defaultOpen = false, isLoading, movements, onOpenMovement, onOpenParty }) {
   const [filter, setFilter] = useState('all');
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const visibleMovements = useMemo(() => filterMovements(movements, filter), [movements, filter]);
   const summary = summarizeMovements(movements);
 
   return (
-    <section className="erp-panel product-stock-usage-panel">
-      <div className="panel-title">
-        <strong>Stok Fiş Kullanımı</strong>
-        <span>Alış, satış, cari, adet ve fiyat izi</span>
-      </div>
+    <details
+      className="erp-panel product-stock-usage-panel product-usage-details"
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      open={isOpen}
+    >
+      <summary>
+        <span><strong>Stok Hareketleri</strong><small>Alış, satış, cari ve stok etkisini hızlıca inceleyin</small></span>
+        <b>{movements.length} hareket</b>
+      </summary>
 
       {!isLoading && movements.length > 0 ? (
         <>
           <div className="product-usage-summary">
-            <span><b>Alış fişi</b>{summary.purchaseCount}</span>
-            <span><b>Satış fişi</b>{summary.salesCount}</span>
             <span className="usage-in-total"><b>Giriş</b>+{summary.inQuantity}</span>
             <span className="usage-out-total"><b>Çıkış</b>-{summary.outQuantity}</span>
-            <span><b>Alış TRY</b>{formatMoney(summary.purchaseValueTry, 'TRY')}</span>
-            <span><b>Satış TRY</b>{formatMoney(summary.salesValueTry, 'TRY')}</span>
             <span><b>Son giriş</b>{summary.lastInDate || '-'}</span>
             <span><b>Son çıkış</b>{summary.lastOutDate || '-'}</span>
           </div>
@@ -147,10 +139,7 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
                 <th>Fiş No</th>
                 <th>Müşteri / Tedarikçi</th>
                 <th>Adet</th>
-                <th>Birim Fiyat</th>
-                <th>Maliyet TRY</th>
                 <th>TRY Tutar</th>
-                <th>Stok Etkisi</th>
                 <th>Git</th>
               </tr>
             </thead>
@@ -190,10 +179,7 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
                     ) : partyLabel(row)}
                   </td>
                   <td className={Number(row.quantityOut || 0) > 0 ? 'out-cell' : 'in-cell'}>{quantityLabel(row)}</td>
-                  <td className="money-cell usage-price-cell">{unitPriceLabel(row)}</td>
-                  <td className="money-cell usage-cost-cell">{unitCostLabel(row)}</td>
                   <td className="money-cell">{formatMoney(row.amountTry, 'TRY')}</td>
-                  <td>{Number(row.quantityNet || 0)}</td>
                   <td>
                     <div className="row-action-group compact-actions">
                       <button
@@ -228,6 +214,6 @@ export function ProductStockUsagePanel({ isLoading, movements, onOpenMovement, o
           </table>
         </div>
       ) : null}
-    </section>
+    </details>
   );
 }

@@ -16,6 +16,7 @@ export function TerminalButton({ label, onPress, variant = 'primary', disabled =
       <Text style={[
         styles.text,
         variant === 'primary' && styles.primaryText,
+        variant === 'success' && styles.successText,
         variant === 'secondary' && styles.secondaryText,
         variant === 'danger' && styles.dangerText,
         disabled && styles.disabledText,
@@ -41,6 +42,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderColor: colors.accentDark,
   },
+  success: {
+    backgroundColor: '#15803d',
+    borderColor: '#166534',
+  },
   secondary: {
     backgroundColor: colors.panel,
     borderColor: colors.border,
@@ -62,6 +67,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   primaryText: {
+    color: colors.headerText,
+  },
+  successText: {
     color: colors.headerText,
   },
   secondaryText: {

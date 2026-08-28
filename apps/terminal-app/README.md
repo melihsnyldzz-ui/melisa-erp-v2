@@ -2,6 +2,8 @@
 
 Android saha terminali icin Expo tabanli uygulamadir. Amac sade terminal UX, login, barkod okutma, urun/cari cache, offline queue, terminal satis submit ve manuel sync akisini Mini ERP backend ile calistirmaktir.
 
+Yazi girisi olan ekranlar ortak klavye-guvenli kaydirma davranisini kullanir. Android `adjustResize` ile pencereyi kucultur; odaktaki alan klavyenin arkasinda kalirsa uygulama alani otomatik olarak klavyenin ustune kaydirir ve yazilan deger gorunur kalir.
+
 ## Komutlar
 
 ```powershell
@@ -51,7 +53,11 @@ QR adresi `exp://192.168.x.x:8081` gibi LAN IP ile gelmelidir. Telefon baglanmaz
 npm run start:tunnel
 ```
 
-Uygulama icinde Ayarlar ekranindan API adresi `http://PC_IP:4100` olarak kaydedilebilir. `/api` yazilsa bile uygulama cift `/api/api` yapmaz.
+Giris ekranindaki `Sunucu / API adresi` alanindan adres giris yapmadan once degistirilebilir,
+kaydedilebilir ve test edilebilir. Protokol yazilmazsa uygulama `http://` ekler; emulator icin
+`10.0.2.2:4100`, fiziksel telefon icin `PC_IP:4100` kullanilabilir. Kaydedilen adres sonraki
+acilislarda korunur. Ayarlar ekranindan da ayni adres yonetilebilir. `/api` yazilsa bile uygulama
+cift `/api/api` yapmaz.
 
 Local gelistirme modunda sifresiz test icin login ekranindaki `Local Acik Admin` butonu `open-admin` token'i ile giris yapar. Bu sadece backend tarafinda local open-admin kabul edildiginde calisir.
 
@@ -60,6 +66,27 @@ Web preview icin:
 ```powershell
 npm run web
 ```
+
+## Android Studio
+
+Yerel Android projesi `apps/terminal-app/android` klasorundedir. Android Studio'da
+bu klasoru acin. Ekranlar ve is akislari `apps/terminal-app/src`, Android'e ozel
+Gradle, manifest ve cihaz ayarlari ise `apps/terminal-app/android` altinda duzenlenir.
+
+Komut satirindan debug APK olusturmak icin:
+
+```powershell
+cd apps/terminal-app/android
+.\gradlew.bat :app:assembleDebug
+```
+
+APK `app/build/outputs/apk/debug/app-debug.apk` konumuna yazilir. Bu proje Windows'ta
+uzun dosya yollarinda Expo native derlemesinin takilmamasi icin CMake gecici derleme
+onbellegini kisa sistem temp yolunda tutar.
+
+Uygulama simgesi ve acilis ekrani Melisa Baby marka dosyalarini kullanir. Expo kaynaklari
+`src/assets/branding` altindadir; native Android ikon ve splash kaynaklari `android/app/src/main/res`
+altinda tutulur. Marka gorseli degistirilirse iki kaynak grubu birlikte guncellenmelidir.
 
 ## Kontrol
 
@@ -70,6 +97,24 @@ npm run check:all
 ```
 
 Bu komut Expo doctor, terminal API smoke, kilitli submit kontrolu ve web export kontrolunu calistirir. Kilitli submit kontrolu gercek satis yazmaz.
+
+## ERP Bilgisayarindan Fis Yazdirma
+
+Yeni Satis ekranindaki `Fisi Yazdir` islemi once satisi API'de kesinlestirir, sonra kesinlesen
+fis kimligini ERP bilgisayarina gonderir. Yazdirma telefonda degil, API'nin calistigi Windows
+bilgisayarda gerceklesir. Yazici adi ayarlanmamissa Windows varsayilan yazicisi kullanilir.
+
+API ortami:
+
+```text
+TERMINAL_RECEIPT_PRINT_ENABLED=true
+TERMINAL_RECEIPT_PRINT_MODE=windows
+TERMINAL_RECEIPT_PRINTER_NAME=
+```
+
+Yazdirma basarisiz olsa bile kesinlesen satis geri alinmaz; terminal ekrani fisin kaydedildigini
+ve yalnizca cikti adiminin basarisiz oldugunu ayri olarak bildirir. Sadece kesinlesmis satis
+fisleri yazdirilir ve istek/tamamlanma kayitlari audit log'a yazilir.
 
 ## Kapsam
 

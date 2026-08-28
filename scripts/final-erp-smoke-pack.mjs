@@ -128,6 +128,8 @@ function runStaticAndBuildSmoke() {
     ['web-admin empty state smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:empty-state']],
     ['web-admin operational health smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:operational-health']],
     ['web-admin layout smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:layout']],
+    ['web-admin UX regression smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:ux-regression']],
+    ['product bulk update smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:product-bulk-update']],
     ['web-admin invoice boundary smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:invoice-boundary']],
     ['web-admin crm whatsapp boundary smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:crm-whatsapp-boundary']],
     ['web-admin terminal boundary smoke', npmCommand, ['--prefix', 'apps/web-admin', 'run', 'smoke:terminal-boundary']],

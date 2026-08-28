@@ -35,7 +35,7 @@ export function CurrencyRatesScreen() {
         EUR: nextRates.EUR?.defined ? Number(nextRates.EUR.rateToTry) : '',
       });
     } catch (error) {
-      setErrorMessage(`${error.message || 'Kur bilgisi okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Kur bilgisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +47,7 @@ export function CurrencyRatesScreen() {
 
   async function saveRates() {
     if (!canSaveRates) {
-      setErrorMessage('USD ve EUR kuru 0’dan buyuk olmali. Bos kur kaydedilemez.');
+      setErrorMessage('USD ve EUR kuru 0’dan büyük olmalı. Boş kur kaydedilemez.');
       setSuccessMessage('');
       return;
     }
@@ -71,7 +71,7 @@ export function CurrencyRatesScreen() {
         USD: nextRates.USD?.defined ? Number(nextRates.USD.rateToTry) : '',
         EUR: nextRates.EUR?.defined ? Number(nextRates.EUR.rateToTry) : '',
       });
-      setSuccessMessage('Döviz kurlar kaydedildi. Yeni sat fişleri bu tanıml kuru kullanır.');
+      setSuccessMessage('Döviz kurları kaydedildi. Yeni satış ve alış fişleri bu tanımlı kuru kullanır.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Kur kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
@@ -88,11 +88,11 @@ export function CurrencyRatesScreen() {
   }
 
   return (
-    <main className="work-area currency-rates-screen">
+    <main className="work-area currency-rates-screen report-definition-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
-          <strong>Döviz Kurlar</strong>
-          <span>Merkezi USD/EUR kur tanım. Filer son tanıml kuru snapshot olarak alr.</span>
+          <strong>Döviz Kurları</strong>
+          <span>Yeni fişlerde kullanılacak merkezi USD ve EUR kuru</span>
         </div>
         <div className="invoice-list-actions">
           <button type="button" onClick={() => loadRates(date)} disabled={isLoading}>Yenile</button>
@@ -105,14 +105,18 @@ export function CurrencyRatesScreen() {
       {isLoading && <div className="list-state">Kur bilgileri SQL'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
-      <div className="list-state">
-        Final test notu: Kaydet USD/EUR kurunu API'ye yazar ve yeni satis/alis fislerinin kur snapshot davranisini etkiler. Eski kesinlesmis fisleri toplu olarak yeniden hesaplamaz.
-      </div>
 
-      <section className="erp-panel currency-rate-panel">
+      <details className="definition-boundary-note">
+        <summary>Kaydetme etkisi</summary>
+        <div className="list-state">
+          Kaydet, USD ve EUR kurunu API'ye yazar ve yeni satış/alış fişlerinin kur snapshot davranışını etkiler. Eski kesinleşmiş fişleri toplu olarak yeniden hesaplamaz.
+        </div>
+      </details>
+
+      <section className="erp-panel currency-rate-panel currency-rate-editor">
         <div className="panel-title">
-          <strong>Gnlk Kur Tanm</strong>
-          <span>TRY sabit 1.0000, USD/EUR manuel tanimlanir</span>
+          <strong>Günlük Kur Tanımı</strong>
+          <span>TRY sabit 1.0000, USD ve EUR manuel tanımlanır</span>
         </div>
         <div className="currency-rate-grid">
           <label>
@@ -141,17 +145,20 @@ export function CurrencyRatesScreen() {
         </div>
       </section>
 
-      <section className="erp-panel currency-rate-panel">
-        <div className="panel-title">
-          <strong>Aktif Kur Snapshot</strong>
-          <span>Sistemde tanimli son kur kullanilir</span>
-        </div>
+      <details className="erp-panel currency-rate-panel currency-snapshot-details">
+        <summary>
+          <span>
+            <strong>Aktif Kur Snapshot</strong>
+            <small>Sistemde tanımlı son kur ve teknik kaynak bilgisi</small>
+          </span>
+          <b>3 para birimi</b>
+        </summary>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Para birimi</th>
-                <th>TRY karsiligi</th>
+                <th>TRY karşılığı</th>
                 <th>Kur tarihi</th>
                 <th>Kaynak</th>
                 <th>Durum</th>
@@ -163,9 +170,9 @@ export function CurrencyRatesScreen() {
                   <td className="code-cell">{currency}</td>
                   <td>
                     {currency === 'TRY'
-                       ? '1.0000'
+                      ? '1.0000'
                       : currentRates[currency]?.defined
-                         ? Number(currentRates[currency].rateToTry).toFixed(4)
+                        ? Number(currentRates[currency].rateToTry).toFixed(4)
                         : '-'}
                   </td>
                   <td>{currentRates[currency]?.rateDate || date}</td>
@@ -176,7 +183,7 @@ export function CurrencyRatesScreen() {
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
       <section className="screen-summary">
         <span>USD: {rates.USD === '' ? 'Tanım yok' : Number(rates.USD).toFixed(4)}</span>

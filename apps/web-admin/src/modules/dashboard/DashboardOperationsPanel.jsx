@@ -1,12 +1,20 @@
 import React from 'react';
 
 export function DashboardOperationsPanel({ columns, rows, title, subtitle }) {
+  const isEmpty = rows.length === 0;
+
   return (
-    <section className="erp-panel dashboard-table-panel dashboard-operations-panel">
+    <section className={`erp-panel dashboard-table-panel dashboard-operations-panel ${isEmpty ? 'is-empty' : ''}`}>
       <div className="panel-title">
         <strong>{title}</strong>
         <span>{subtitle}</span>
       </div>
+      {isEmpty ? (
+        <div className="dashboard-compact-empty">
+          <span aria-hidden="true">—</span>
+          <p>Bu dönem için gösterilecek kayıt oluşmadı.</p>
+        </div>
+      ) : (
       <div className="table-wrap dashboard-table-wrap">
         <table>
           <thead>
@@ -28,8 +36,8 @@ export function DashboardOperationsPanel({ columns, rows, title, subtitle }) {
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <div className="list-state dashboard-empty-state">Bu bölüm için kayıt bulunamadı.</div>}
       </div>
+      )}
     </section>
   );
 }

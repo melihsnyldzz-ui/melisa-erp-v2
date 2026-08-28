@@ -13,25 +13,13 @@ import {
   ReceiptText,
   Search,
   Settings,
-  Star,
   Tags,
   Terminal,
   Users,
   WalletCards,
 } from 'lucide-react';
-import { sidebarGroups } from '../../data/mockNavigationData.js';
+import { getNavigationSection, sidebarGroups } from '../../data/mockNavigationData.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
-
-const favoriteScreens = [
-  'dashboard',
-  'sales-invoice',
-  'sales-invoice-list',
-  'stock-list',
-  'customer-list',
-  'supplier-list',
-  'cash-customers',
-  'import-foundation',
-];
 
 const groupDisplayLabels = {
   operasyon: 'Operasyon',
@@ -57,6 +45,7 @@ const itemDisplayLabels = {
   'operational-health': 'Operasyon Sagligi',
   'stock-list': 'Stok Listesi',
   'product-card': 'Urun Karti',
+  'bulk-product-create': 'Toplu Stok Karti',
   'price-list': 'Fiyat Listesi',
   'stock-movements': 'Stok Hareketleri',
   'stock-valuation': 'Stok Degerleme',
@@ -64,6 +53,7 @@ const itemDisplayLabels = {
   'customer-list': 'Musteri Cari Listesi',
   'customer-card': 'Musteri Cari Karti',
   'customer-movements': 'Musteri Cari Hareketleri',
+  'vega-koli-movements': 'Vega Cari Hareketleri',
   'customer-statement': 'Musteri Ekstre',
   'supplier-list': 'Tedarikci Cari Listesi',
   'supplier-card': 'Tedarikci Cari Karti',
@@ -71,6 +61,8 @@ const itemDisplayLabels = {
   'supplier-statement': 'Tedarikci Ekstre',
   'sales-invoice': 'Yeni Satis Fisi',
   'sales-invoice-list': 'Satis Fisleri',
+  'proforma-invoice': 'Proforma Hazirlama',
+  'fedex-micro-export-demo': 'Mikro Ihracat / FedEx Demo',
   'sales-offers': 'Teklifler',
   'sales-orders': 'Siparisler',
   'purchase-invoice': 'Yeni Alis Fisi',
@@ -79,6 +71,7 @@ const itemDisplayLabels = {
   'finance-overview': 'Finans Ozeti',
   'collections-overview': 'Tahsilatlar',
   'cash-customers': 'Pesin Cariler',
+  'cash-register': 'Gunluk Kasa',
   'cash-bank-ledger': 'Kasa/Banka Defteri',
   'accounting-journal': 'Muhasebe Defteri',
   'accounting-control': 'Muhasebe Kontrol',
@@ -89,8 +82,12 @@ const itemDisplayLabels = {
   'terminal-overview': 'Terminal Ekranlari',
   'import-foundation': 'Excel / CSV Aktarim',
   'reports-overview': 'Rapor Merkezi',
+  'vega-sales-comparison': 'Yillik Satis Karsilastirmasi',
+  'vega-sales-performance': 'Satis Performansi',
+  'vega-product-profitability': 'Urun Karliligi',
   'export-center': 'Cikti Merkezi',
   'definitions-overview': 'Tanim Listeleri',
+  'personnel-definitions': 'Personel Tanimlari',
   'settings-overview': 'Sistem Ayarlari',
   'currency-rates': 'Doviz Kurlari',
   'auth-overview': 'Yetki ve Denetim',
@@ -121,6 +118,7 @@ const itemIcons = {
   'operational-health': BarChart3,
   'stock-list': Package,
   'product-card': FileText,
+  'bulk-product-create': Package,
   'price-list': Tags,
   'stock-movements': FileSpreadsheet,
   'stock-valuation': BarChart3,
@@ -128,6 +126,7 @@ const itemIcons = {
   'customer-list': Users,
   'customer-card': FileText,
   'customer-movements': FileSpreadsheet,
+  'vega-koli-movements': FileSpreadsheet,
   'customer-statement': FileSpreadsheet,
   'supplier-list': Users,
   'supplier-card': FileText,
@@ -135,6 +134,8 @@ const itemIcons = {
   'supplier-statement': FileSpreadsheet,
   'sales-invoice': ReceiptText,
   'sales-invoice-list': ReceiptText,
+  'proforma-invoice': FileText,
+  'fedex-micro-export-demo': Package,
   'sales-offers': FileText,
   'sales-orders': ClipboardList,
   'purchase-invoice': ClipboardList,
@@ -143,6 +144,7 @@ const itemIcons = {
   'finance-overview': WalletCards,
   'collections-overview': WalletCards,
   'cash-customers': WalletCards,
+  'cash-register': WalletCards,
   'cash-bank-ledger': WalletCards,
   'accounting-journal': FileSpreadsheet,
   'accounting-control': FileCog,
@@ -153,8 +155,12 @@ const itemIcons = {
   'terminal-overview': Terminal,
   'import-foundation': Database,
   'reports-overview': BarChart3,
+  'vega-sales-comparison': BarChart3,
+  'vega-sales-performance': BarChart3,
+  'vega-product-profitability': BarChart3,
   'export-center': FileSpreadsheet,
   'definitions-overview': FolderKanban,
+  'personnel-definitions': Users,
   'settings-overview': Settings,
   'currency-rates': Settings,
   'auth-overview': FileCog,
@@ -172,14 +178,16 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
       }))
       .filter((group) => group.items.length > 0)
     : sidebarGroups), [roleScreenIds]);
-  const favoriteItems = useMemo(() => (
-    favoriteScreens
-      .map((screenId) => visibleGroups.flatMap((group) => group.items).find((item) => item.screenId === screenId))
-      .filter(Boolean)
-  ), [visibleGroups]);
+  const activeSection = useMemo(() => getNavigationSection(activeScreenId), [activeScreenId]);
+  const contextualGroups = useMemo(() => visibleGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => activeSection.screenIds.includes(item.screenId)),
+    }))
+    .filter((group) => group.items.length > 0), [activeSection, visibleGroups]);
   const normalizedSearch = normalizeSearch(searchTerm);
   const filteredGroups = useMemo(() => {
-    if (!normalizedSearch) return visibleGroups;
+    if (!normalizedSearch) return contextualGroups;
 
     return visibleGroups
       .map((group) => ({
@@ -190,7 +198,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
         )),
       }))
       .filter((group) => group.items.length > 0);
-  }, [normalizedSearch, visibleGroups]);
+  }, [contextualGroups, normalizedSearch, visibleGroups]);
   const activeGroupTitle = useMemo(() => (
     visibleGroups.find((group) => group.items.some((item) => item.screenId === activeScreenId))?.title
   ), [activeScreenId, visibleGroups]);
@@ -199,7 +207,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
     <aside className="sidebar sidebar-flat">
       <div className="sidebar-header">
         <strong>Modul Paneli</strong>
-        <span>{activeTab.module} / {activeTab.type}</span>
+        <span>{activeSection.label} / {activeTab.type}</span>
         <label className="sidebar-search">
           <Search size={14} />
           <input
@@ -210,21 +218,6 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
         </label>
       </div>
       <div className="sidebar-flat-body">
-        {!normalizedSearch && (
-          <section className="side-group favorites">
-            <h3><Star size={13} /> Sik Kullanilanlar</h3>
-            <div className="side-group-items">
-              {favoriteItems.map((item) => (
-                <SidebarItem
-                  isActive={activeScreenId === item.screenId}
-                  item={item}
-                  key={`favorite-${item.screenId}`}
-                  onOpenScreen={onOpenScreen}
-                />
-              ))}
-            </div>
-          </section>
-        )}
         {filteredGroups.map((group) => (
           <SidebarGroup
             activeGroupTitle={activeGroupTitle}

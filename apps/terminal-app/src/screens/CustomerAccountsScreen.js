@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { searchTerminalCustomers } from '../services/terminalSalesService';
 import { colors } from '../styles/theme';
@@ -139,7 +140,7 @@ export function CustomerAccountsScreen({ navigation, session }) {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardSafeScrollView contentContainerStyle={styles.content}>
       <View style={styles.searchPanel}>
         <View style={styles.searchHeader}>
           <View>
@@ -149,7 +150,7 @@ export function CustomerAccountsScreen({ navigation, session }) {
           <Text style={styles.countBadge}>{customers.length} cari</Text>
         </View>
 
-        <TextInput
+        <KeyboardSafeTextInput
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => loadCustomers(query)}
@@ -253,7 +254,7 @@ export function CustomerAccountsScreen({ navigation, session }) {
       </View>
 
       <TerminalButton label="Ana Ekran" variant="secondary" onPress={navigation.goHome} />
-    </ScrollView>
+    </KeyboardSafeScrollView>
   );
 }
 

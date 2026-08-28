@@ -1,4 +1,11 @@
-import { localPasswordlessAdminLogin, login, logout, refreshAccessToken } from '../services/authService.js';
+import {
+  listTerminalLoginUsers,
+  localPasswordlessAdminLogin,
+  login,
+  logout,
+  refreshAccessToken,
+  terminalLogin,
+} from '../services/authService.js';
 import { fail, ok } from '../utils/response.js';
 
 function authFail(res, error, fallbackCode) {
@@ -18,6 +25,24 @@ export async function postLogin(req, res) {
     });
   } catch (error) {
     return authFail(res, error, 'AUTH_LOGIN_FAILED');
+  }
+}
+
+export async function getTerminalLoginUsers(req, res) {
+  try {
+    const data = await listTerminalLoginUsers(req.query.terminalCode);
+    return ok(res, data, { source: 'sql-terminal-auth' });
+  } catch (error) {
+    return authFail(res, error, 'AUTH_TERMINAL_USERS_FAILED');
+  }
+}
+
+export async function postTerminalLogin(req, res) {
+  try {
+    const data = await terminalLogin(req.body, req.get('user-agent') || '');
+    return ok(res, data, { source: 'sql-terminal-auth' });
+  } catch (error) {
+    return authFail(res, error, 'AUTH_TERMINAL_LOGIN_FAILED');
   }
 }
 

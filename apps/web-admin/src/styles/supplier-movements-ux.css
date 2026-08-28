@@ -1,0 +1,585 @@
+.supplier-movements-workspace {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.supplier-movement-header {
+  display: grid;
+  gap: 12px;
+}
+
+.supplier-ledger-screen.supplier-movements-workspace > .erp-panel.supplier-movement-header:first-child {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.supplier-movement-title-row,
+.supplier-movement-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.supplier-movement-title-row > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.supplier-movement-title-row strong {
+  color: #142033;
+  font-size: 15px;
+}
+
+.supplier-movement-title-row span,
+.supplier-movement-table-panel .panel-title span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.supplier-movement-actions,
+.supplier-movement-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.supplier-movement-actions button,
+.supplier-movement-search-row > button,
+.supplier-movement-tabs button,
+.supplier-movement-advanced button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+}
+
+.supplier-movement-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 260px;
+  max-width: 680px;
+  flex: 1 1 520px;
+  padding: 0 10px;
+  border: 1px solid #9fc9c4;
+  background: #fff;
+}
+
+.supplier-movement-search:focus-within {
+  border-color: #087f75;
+  box-shadow: 0 0 0 2px rgba(8, 127, 117, 0.12);
+}
+
+.supplier-movement-search svg {
+  flex: 0 0 auto;
+  color: #64748b;
+}
+
+.supplier-movement-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.supplier-movement-tabs button.pressed {
+  border-color: #087f75;
+  background: #eaf8f5;
+  color: #075f58;
+}
+
+.supplier-movement-tabs button.pressed.purchase {
+  border-color: #2f6fe4;
+  background: #eef4ff;
+  color: #174da9;
+}
+
+.supplier-movement-tabs button.pressed.payment {
+  border-color: #15965a;
+  background: #eaf9f0;
+  color: #087040;
+}
+
+.supplier-movement-advanced {
+  display: grid;
+  grid-template-columns: minmax(160px, 210px) minmax(160px, 210px) minmax(170px, 220px) minmax(210px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding-top: 10px;
+  border-top: 1px solid #dbe4ef;
+}
+
+.supplier-movement-advanced label:not(.supplier-movement-check) {
+  display: grid;
+  gap: 4px;
+  color: #53627a;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.supplier-movement-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.supplier-movement-check input {
+  width: 15px;
+  height: 15px;
+}
+
+.supplier-movement-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.supplier-movement-summary article {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid #cfd9e6;
+  border-left: 3px solid #2f6fe4;
+  background: #fff;
+}
+
+.supplier-movement-summary article:nth-child(2) {
+  border-left-color: #15965a;
+}
+
+.supplier-movement-summary article:nth-child(3) {
+  border-left-color: #d97706;
+}
+
+.supplier-movement-summary article:nth-child(4) {
+  border-left-color: #64748b;
+}
+
+.supplier-movement-summary span {
+  color: #5f6f85;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.supplier-movement-summary strong {
+  overflow-wrap: anywhere;
+  color: #10233d;
+  font-size: 17px;
+}
+
+.supplier-movement-summary small {
+  color: #748196;
+  font-size: 10px;
+}
+
+.supplier-movement-table-panel {
+  min-height: 320px;
+}
+
+.supplier-movement-table-shell {
+  max-height: calc(100vh - 350px);
+  min-height: 260px;
+  overflow: auto;
+}
+
+.supplier-movement-table {
+  min-width: 1120px;
+}
+
+.supplier-movement-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Vega supplier statement: keep controls compact and give the viewport to the ledger. */
+.vega-supplier-ledger-screen {
+  grid-template-rows: auto auto minmax(300px, 1fr);
+  gap: 8px;
+}
+
+.supplier-ledger-screen.supplier-movements-workspace.vega-supplier-ledger-screen > .erp-panel.vega-supplier-movement-header:first-child {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.vega-supplier-movement-header {
+  gap: 9px;
+  padding: 10px 12px;
+}
+
+.vega-supplier-movement-tabs {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.vega-supplier-movement-tabs button {
+  flex: 0 0 auto;
+}
+
+.vega-supplier-filter-line {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(150px, 190px) minmax(150px, 190px) auto;
+  gap: 8px;
+  align-items: end;
+  padding-top: 9px;
+  border-top: 1px solid #dbe4ef;
+}
+
+.vega-supplier-filter-line .supplier-movement-search {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.vega-supplier-filter-line .supplier-movement-search:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.vega-supplier-field-label,
+.vega-supplier-date-field > span {
+  color: #53627a;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.vega-supplier-filter-line .supplier-movement-search input,
+.vega-supplier-date-field input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #9fc9c4;
+  background: #fff;
+  color: #142033;
+}
+
+.vega-supplier-filter-line .supplier-movement-search input:focus,
+.vega-supplier-date-field input:focus {
+  border-color: #087f75;
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(8, 127, 117, 0.12);
+}
+
+.vega-supplier-date-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vega-supplier-clear {
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.vega-supplier-movement-table-panel {
+  min-height: 300px !important;
+  overflow: hidden !important;
+}
+
+.vega-supplier-movement-table-shell {
+  height: clamp(300px, calc(100dvh - 395px), 680px) !important;
+  min-height: 300px !important;
+  max-height: calc(100dvh - 395px) !important;
+  margin: 0 !important;
+  width: 100% !important;
+  overflow: auto !important;
+}
+
+.vega-supplier-movement-table {
+  min-width: 980px;
+}
+
+.vega-supplier-movement-table th:nth-child(1) { width: 105px; }
+.vega-supplier-movement-table th:nth-child(2) { width: 115px; }
+.vega-supplier-movement-table th:nth-child(3) { width: 180px; }
+.vega-supplier-movement-table th:nth-child(4),
+.vega-supplier-movement-table th:nth-child(5),
+.vega-supplier-movement-table th:nth-child(6) { width: 170px; }
+.vega-supplier-movement-table th:nth-child(7) { width: 80px; }
+.vega-supplier-movement-table th:nth-child(8) { width: 75px; }
+
+.supplier-movement-table th:nth-child(1) { width: 100px; }
+.supplier-movement-table th:nth-child(2) { width: 220px; }
+.supplier-movement-table th:nth-child(3) { width: 165px; }
+.supplier-movement-table th:nth-child(4) { width: 130px; }
+.supplier-movement-table th:nth-child(5),
+.supplier-movement-table th:nth-child(6),
+.supplier-movement-table th:nth-child(7) { width: 145px; text-align: right; }
+.supplier-movement-table th:nth-child(8) { width: 90px; }
+.supplier-movement-table th:nth-child(9) { width: 72px; }
+
+.supplier-name-link {
+  display: grid;
+  gap: 2px;
+  max-width: 100%;
+  text-align: left;
+}
+
+.supplier-name-link b,
+.supplier-name-link small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplier-name-link small {
+  color: #6b7a90;
+  font-size: 9px;
+}
+
+.supplier-movement-kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 23px;
+  padding: 2px 7px;
+  border: 1px solid #a9c3eb;
+  background: #eef4ff;
+  color: #174da9;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.supplier-movement-kind.payment {
+  border-color: #9dd8b5;
+  background: #eaf9f0;
+  color: #087040;
+}
+
+.supplier-movement-kind.cancelled {
+  border-color: #efb1ad;
+  background: #fff0ef;
+  color: #b42318;
+}
+
+.supplier-purchase-amount,
+.supplier-payment-amount,
+.supplier-balance-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.supplier-purchase-amount { color: #174da9; }
+.supplier-payment-amount { color: #087040; }
+.supplier-balance-amount { color: #9a4d00; }
+
+.supplier-open-movement {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Supplier cards open on invoice/payment history; product lines stay secondary. */
+.supplier-card-screen {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+.supplier-card-screen > .supplier-360-panel { order: 2; }
+.supplier-card-screen > .supplier-movements-panel { order: 3; }
+.supplier-card-screen > .supplier-card-layout { order: 4; }
+.supplier-card-screen > .supplier-product-trace-panel { order: 5; }
+.supplier-card-screen > .screen-summary { order: 6; }
+
+.supplier-card-screen .supplier-movements-panel {
+  min-height: 260px;
+  border-top: 3px solid #0f766e;
+}
+
+.supplier-card-screen .supplier-movements-panel .table-wrap {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.supplier-card-screen .supplier-movements-panel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.supplier-card-screen .supplier-movements-panel th:first-child,
+.supplier-card-screen .supplier-movements-panel td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 145px;
+  border-right: 2px solid #9fb0c3;
+}
+
+.supplier-card-screen .supplier-movements-panel thead th:first-child {
+  z-index: 3;
+}
+
+.supplier-card-screen .supplier-running-balance {
+  color: #9a4d00;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.supplier-card-screen .supplier-movements-panel .purchase-row td {
+  background: #f2f6ff;
+}
+
+.supplier-card-screen .supplier-movements-panel .payment-row td {
+  background: #edf9f1;
+}
+
+.supplier-card-screen .supplier-movements-panel .purchase-row:hover td {
+  background: #e6eeff;
+}
+
+.supplier-card-screen .supplier-movements-panel .payment-row:hover td {
+  background: #dff4e7;
+}
+
+.supplier-product-trace-details {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.supplier-product-trace-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.supplier-product-trace-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.supplier-product-trace-details > summary > span {
+  display: grid;
+  gap: 2px;
+}
+
+.supplier-product-trace-details > summary small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.supplier-product-trace-details > summary::after {
+  content: '+';
+  color: #475569;
+  font-size: 20px;
+}
+
+.supplier-product-trace-details[open] > summary::after {
+  content: '-';
+}
+
+.supplier-product-trace-content {
+  border-top: 1px solid #d5dde7;
+}
+
+@media (max-width: 1280px) {
+  .supplier-movement-title-row,
+  .supplier-movement-search-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .supplier-movement-search {
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .supplier-movement-tabs {
+    flex: 1 1 auto;
+  }
+
+  .supplier-movement-tabs button {
+    flex: 1 1 0;
+  }
+
+  .supplier-movement-advanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .supplier-movement-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vega-supplier-filter-line {
+    grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(145px, 180px)) auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .supplier-movement-actions,
+  .supplier-movement-tabs {
+    width: 100%;
+  }
+
+  .supplier-movement-actions button {
+    flex: 1 1 0;
+  }
+
+  .supplier-movement-advanced,
+  .supplier-movement-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .vega-supplier-filter-line {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .vega-supplier-filter-line .supplier-movement-search {
+    grid-column: 1 / -1;
+  }
+
+  .vega-supplier-clear {
+    grid-column: 1 / -1;
+  }
+}
+.supplier-card-screen .entity-360-card.value-card {
+  border-color: #9fd7ce;
+  background: #edf9f7;
+}
+
+.supplier-card-screen .entity-360-card.value-card strong {
+  color: #0f766e;
+}
+
+.supplier-summary-list .supplier-stock-value-row {
+  align-items: flex-start;
+  border-color: #9fd7ce;
+  background: #edf9f7;
+}
+
+.supplier-summary-list .supplier-stock-value-row dd {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  color: #0f766e;
+}

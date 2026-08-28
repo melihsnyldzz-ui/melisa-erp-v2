@@ -134,38 +134,42 @@ export function ProductImagePanel({ product, images = [], canEdit = false, disab
         <strong>Urun Gorseli</strong>
         <span>Katalog ve stok karti ana gorseli</span>
       </div>
-      {imageSrc ? (
-        <div className="product-image-preview">
-          <img alt={product.productName || product.stockCode || 'Urun gorseli'} src={imageSrc} />
-        </div>
-      ) : (
-        <div className="product-image-placeholder">
-          <div>
-            <strong>Gorsel yok</strong>
-            <span>{product.stockCode}</span>
+      <div className="product-image-compact-body">
+        {imageSrc ? (
+          <div className="product-image-preview">
+            <img alt={product.productName || product.stockCode || 'Urun gorseli'} src={imageSrc} />
           </div>
+        ) : (
+          <div className="product-image-placeholder">
+            <div>
+              <strong>Gorsel yok</strong>
+              <span>{product.stockCode}</span>
+            </div>
+          </div>
+        )}
+        <div className="product-image-controls">
+          <form className="product-image-form" onSubmit={saveImage}>
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              disabled={disabled || !canEdit}
+              type="file"
+              onChange={selectFile}
+            />
+            <input
+              disabled={disabled || !canEdit}
+              value={imageUrl}
+              onChange={(event) => setImageUrl(event.target.value)}
+              placeholder="Alternatif: Gorsel URL veya dosya yolu"
+            />
+            <button disabled={disabled || !canEdit || (!imageUrl.trim() && !selectedFile)} type="submit">
+              {selectedFile ? 'Dosyayi Yukle' : 'Gorsel Kaydet'}
+            </button>
+          </form>
+          {selectedFile ? <p>Secilen dosya: {selectedFile.name}</p> : null}
+          {localError ? <p className="form-error">{localError}</p> : null}
+          <p className="product-image-note">{primaryImage.filePath || product.imageNote}</p>
         </div>
-      )}
-      <form className="product-image-form" onSubmit={saveImage}>
-        <input
-          accept="image/jpeg,image/png,image/webp"
-          disabled={disabled || !canEdit}
-          type="file"
-          onChange={selectFile}
-        />
-        <input
-          disabled={disabled || !canEdit}
-          value={imageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
-          placeholder="Alternatif: Gorsel URL veya dosya yolu"
-        />
-        <button disabled={disabled || !canEdit || (!imageUrl.trim() && !selectedFile)} type="submit">
-          {selectedFile ? 'Dosyayi Yukle' : 'Gorsel Kaydet'}
-        </button>
-      </form>
-      {selectedFile ? <p>Secilen dosya: {selectedFile.name}</p> : null}
-      {localError ? <p className="form-error">{localError}</p> : null}
-      <p>{primaryImage.filePath || product.imageNote}</p>
+      </div>
     </section>
   );
 }

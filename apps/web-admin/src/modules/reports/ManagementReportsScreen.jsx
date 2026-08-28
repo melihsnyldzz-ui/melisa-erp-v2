@@ -41,11 +41,14 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 
 function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.' }) {
   return (
-    <section className="erp-panel dashboard-table-panel">
-      <div className="panel-title">
-        <strong>{title}</strong>
-        <span>{subtitle}</span>
-      </div>
+    <details className="erp-panel dashboard-table-panel report-table-details">
+      <summary>
+        <span>
+          <strong>{title}</strong>
+          <small>{subtitle}</small>
+        </span>
+        <b>{rows.length} satir</b>
+      </summary>
       <div className="table-wrap dashboard-table-wrap">
         <table>
           <thead>
@@ -73,7 +76,7 @@ function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.' 
           </tbody>
         </table>
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -83,17 +86,20 @@ function NotesPanel({ title, notes }) {
   if (visibleNotes.length === 0) return null;
 
   return (
-    <section className="erp-panel report-notes-panel">
-      <div className="panel-title">
-        <strong>{title}</strong>
-        <span>Read-only reporting boundary</span>
-      </div>
+    <details className="erp-panel report-notes-panel report-note-details">
+      <summary>
+        <span>
+          <strong>{title}</strong>
+          <small>Read-only reporting boundary</small>
+        </span>
+        <b>{visibleNotes.length}</b>
+      </summary>
       <ul>
         {visibleNotes.map((note) => (
           <li key={note}>{note}</li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
@@ -396,20 +402,33 @@ export function ManagementReportsScreen() {
           <span>Günlük satış, alış, stok, cari, tedarikçi ve dönemsel muhasebe görünümü</span>
         </div>
         <div className="dashboard-toolbar-actions">
+          <details className="report-export-menu">
+            <summary aria-label="Rapor cikti secenekleri" title="Rapor cikti secenekleri">...</summary>
+            <div>
           <button type="button" onClick={exportManagementReport}>Excel</button>
           <button type="button" onClick={printManagementReport}>Yazdır</button>
-          <button type="button" onClick={() => loadReport(periodFilters)}>Yenile</button>
+            </div>
+          </details>
+          <button type="button" className="primary" onClick={() => loadReport(periodFilters)}>Yenile</button>
         </div>
       </section>
 
       {isLoading && <div className="list-state">Ynetim raporlar API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
-      <section className="dashboard-main-grid">
+      <details className="erp-panel report-boundary-details">
+        <summary>
+          <span>
+            <strong>Rapor notlari ve veri sinirlari</strong>
+            <small>Karar vermeden once incelenmesi gereken teknik notlar</small>
+          </span>
+        </summary>
+        <section className="dashboard-main-grid">
         <NotesPanel title="Report Assumptions" notes={report.assumptions} />
         <NotesPanel title="Data Quality Checks" notes={report.dataQuality?.reviewRequired} />
         <NotesPanel title="Approval Boundaries" notes={report.dataQuality?.approvalBoundaries} />
-      </section>
+        </section>
+      </details>
 
       <section className="dashboard-kpi-grid">
         {kpis.map((kpi) => (
@@ -441,12 +460,12 @@ export function ManagementReportsScreen() {
         ))}
       </section>
 
-      <section className="dashboard-main-grid">
+      <section className="dashboard-main-grid report-detail-grid">
         <NotesPanel title="Period Assumptions" notes={periodicReport.assumptions} />
         <NotesPanel title="Period Data Quality" notes={periodicReport.dataQuality?.reviewRequired} />
       </section>
 
-      <section className="dashboard-main-grid">
+      <section className="dashboard-main-grid report-detail-grid">
         <TablePanel
           columns={[
             { key: 'type', label: 'Rapor' },
@@ -486,7 +505,7 @@ export function ManagementReportsScreen() {
         />
       </section>
 
-      <section className="dashboard-main-grid">
+      <section className="dashboard-main-grid report-detail-grid">
         <TablePanel
           columns={[
             { key: 'metric', label: 'Metrik' },

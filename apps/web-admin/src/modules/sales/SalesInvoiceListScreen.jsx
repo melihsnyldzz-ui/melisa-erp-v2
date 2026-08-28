@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchSalesDrafts, fetchSalesInvoice } from '../../services/invoiceDraftApi.js';
+import { fetchVegaCustomers } from '../../services/customerApi.js';
 import { exportRowsToExcel, printBusinessDocument, printRowsReport } from '../../utils/exportUtils.js';
+import { InvoiceListAdvancedFilters } from '../shared/InvoiceListAdvancedFilters.jsx';
 
 function todayIsoDate() {
   const now = new Date();
@@ -9,6 +11,23 @@ function todayIsoDate() {
     String(now.getMonth() + 1).padStart(2, '0'),
     String(now.getDate()).padStart(2, '0'),
   ].join('-');
+}
+
+function lastCalendarDaysRange(dayCount = 7) {
+  const today = new Date();
+  const from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  from.setDate(from.getDate() - Math.max(dayCount - 1, 0));
+
+  const toIsoDate = (value) => [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, '0'),
+    String(value.getDate()).padStart(2, '0'),
+  ].join('-');
+
+  return {
+    dateFrom: toIsoDate(from),
+    dateTo: toIsoDate(today),
+  };
 }
 
 function formatMoney(amount, currency = 'TRY') {
@@ -71,11 +90,19 @@ const salesInvoiceColumns = [
   { label: 'Fiş No', key: 'documentNo', width: 120, required: true },
   { label: 'Tarih', key: 'date', width: 150 },
   { label: 'Cari', key: 'customerName', width: 220, required: true },
+  { label: 'Personel', key: 'employeeName', width: 160 },
+  { label: 'Terminal', key: 'terminalCode', width: 110 },
   { label: 'PB', key: 'currency', width: 78 },
   { label: 'Toplam', key: 'totalAmount', width: 130, required: true },
   { label: 'Durum', key: 'status', width: 110 },
   { label: 'Satır', key: 'itemCount', width: 78 },
   { label: 'İşlem', key: 'action', width: 90, required: true },
+];
+
+const cashCustomerShortcuts = [
+  { code: '2-PEŞİN TL', label: 'Peşin TL', currency: 'TRY' },
+  { code: '1-PEŞİN $', label: 'Peşin USD', currency: 'USD' },
+  { code: '3-PEŞİN €', label: 'Peşin EUR', currency: 'EUR' },
 ];
 
 const salesColumnStorageKey = 'melisa.salesInvoiceList.visibleColumns.v1';
@@ -100,6 +127,11 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
+  const [currencyFilter, setCurrencyFilter] = useState('ALL');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [employee, setEmployee] = useState('');
+  const [terminal, setTerminal] = useState('');
   const [rows, setRows] = useState([]);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
@@ -107,6 +139,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [cashShortcutError, setCashShortcutError] = useState('');
+  const [cashShortcutLoading, setCashShortcutLoading] = useState('');
   const [detailErrorMessage, setDetailErrorMessage] = useState('');
   const [previewWidth, setPreviewWidth] = useState(480);
   const [showCategoryReport, setShowCategoryReport] = useState(false);
@@ -114,6 +148,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleSalesColumns);
   const resizeStateRef = useRef(null);
+  const cashCustomersRef = useRef(null);
 
   const selectedRow = useMemo(
     () => rows.find((row) => row.id === selectedRowId) ?? null,
@@ -224,6 +259,11 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
         status: statusFilter,
         dateFrom,
         dateTo,
+        currency: currencyFilter,
+        amountMin,
+        amountMax,
+        employee,
+        terminal,
       });
 
       setRows(response.data);
@@ -257,6 +297,11 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           status: statusFilter,
           dateFrom,
           dateTo,
+          currency: currencyFilter,
+          amountMin,
+          amountMax,
+          employee,
+          terminal,
         });
 
         if (isMounted) {
@@ -285,7 +330,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [customer, dateFrom, dateTo, search, statusFilter]);
+  }, [amountMax, amountMin, currencyFilter, customer, dateFrom, dateTo, employee, search, statusFilter, terminal]);
 
   useEffect(() => {
     let isMounted = true;
@@ -346,6 +391,48 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
     setStatusFilter('ALL');
     setDateFrom('');
     setDateTo('');
+    setCurrencyFilter('ALL');
+    setAmountMin('');
+    setAmountMax('');
+    setEmployee('');
+    setTerminal('');
+  }
+
+  async function openCashCustomerStockExits(shortcut) {
+    setCashShortcutLoading(shortcut.code);
+    setCashShortcutError('');
+
+    try {
+      if (!cashCustomersRef.current) {
+        const response = await fetchVegaCustomers({ page: 1, limit: 500 });
+        cashCustomersRef.current = response.data || [];
+      }
+
+      const customerCard = cashCustomersRef.current.find((item) => (
+        item.customerCode === shortcut.code && item.currency === shortcut.currency && !item.isPassive
+      ));
+
+      if (!customerCard) {
+        throw new Error(`${shortcut.label} Vega cari kartı bulunamadı.`);
+      }
+
+      const range = lastCalendarDaysRange(7);
+      onOpenScreen('vega-koli-movements', {
+        customerSourceId: customerCard.sourceId,
+        customerCode: customerCard.customerCode,
+        customerName: customerCard.customerName,
+        customerCurrency: customerCard.currency,
+        initialDateFrom: range.dateFrom,
+        initialDateTo: range.dateTo,
+        initialMovementType: 'stock_exit',
+        tabLabel: `${shortcut.label} · Son 7 Gün`,
+      });
+    } catch (error) {
+      cashCustomersRef.current = null;
+      setCashShortcutError(error.message || `${shortcut.label} stok çıkış fişleri açılamadı.`);
+    } finally {
+      setCashShortcutLoading('');
+    }
   }
 
   function toggleColumn(columnKey) {
@@ -370,6 +457,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       columns: [
         { label: 'Fiş No', key: 'invoiceNo' },
         { label: 'Müşteri', key: 'customerName' },
+        { label: 'Personel', key: 'employeeName' },
+        { label: 'Terminal', key: 'terminalCode' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Toplam', key: 'totalAmount' },
         { label: 'Durum', key: 'status' },
@@ -388,6 +477,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       columns: [
         { label: 'Fiş No', key: 'invoiceNo' },
         { label: 'Müşteri', key: 'customerName' },
+        { label: 'Personel', key: 'employeeName' },
+        { label: 'Terminal', key: 'terminalCode' },
         { label: 'Para Birimi', key: 'currency' },
         { label: 'Toplam', key: 'totalAmount' },
         { label: 'Durum', key: 'status' },
@@ -439,6 +530,22 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           <span>Fiş listesi, seçili fiş önizleme, sync durumu ve hızlı işlemler</span>
         </div>
         <div className="invoice-list-actions">
+          <div className="cash-sale-toolbar-buttons" aria-label="Peşin satış fişleri">
+            {cashCustomerShortcuts.map((shortcut) => {
+              const isOpening = cashShortcutLoading === shortcut.code;
+              return (
+                <button
+                  className={isOpening ? 'cash-sale-toolbar-button active' : 'cash-sale-toolbar-button'}
+                  disabled={Boolean(cashShortcutLoading)}
+                  key={shortcut.code}
+                  type="button"
+                  onClick={() => openCashCustomerStockExits(shortcut)}
+                >
+                  {isOpening ? 'Açılıyor…' : shortcut.label}
+                </button>
+              );
+            })}
+          </div>
           <button type="button" onClick={() => onOpenScreen('sales-invoice')}>Yeni Satış Fişi</button>
           <button type="button" onClick={() => openInvoice()} disabled={!selectedRow}>Seçili Fişi Aç</button>
           <button type="button" onClick={exportSalesRows}>Excel</button>
@@ -447,6 +554,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}>Kolonlar</button>
         </div>
       </section>
+
+      {cashShortcutError && <div className="list-state list-state-error">{cashShortcutError}</div>}
 
       <section className="invoice-list-filters sales-receipt-filters">
         <label>
@@ -457,26 +566,27 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           <span>Cari</span>
           <input value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="Müşteri adı veya kodu" />
         </label>
-        <label>
-          <span>Durum</span>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="ALL">Tümü</option>
-            <option value="DRAFT">Taslak</option>
-            <option value="FINALIZED">Kesinleşen</option>
-            <option value="CANCELLED">İptal</option>
-            <option value="ARCHIVED_TEST">Test Arşivi</option>
-          </select>
-        </label>
-        <label>
-          <span>Başlangıç</span>
-          <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-        </label>
-        <label>
-          <span>Bitiş</span>
-          <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-        </label>
         <button type="button" className="filter-reset-button" onClick={resetFilters}>Temizle</button>
       </section>
+
+      <InvoiceListAdvancedFilters
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+        dateFrom={dateFrom}
+        onDateFromChange={setDateFrom}
+        dateTo={dateTo}
+        onDateToChange={setDateTo}
+        currency={currencyFilter}
+        onCurrencyChange={setCurrencyFilter}
+        amountMin={amountMin}
+        onAmountMinChange={setAmountMin}
+        amountMax={amountMax}
+        onAmountMaxChange={setAmountMax}
+        employee={employee}
+        onEmployeeChange={setEmployee}
+        terminal={terminal}
+        onTerminalChange={setTerminal}
+      />
 
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">
@@ -510,7 +620,10 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
         </section>
       )}
 
-      <section className="sales-receipt-layout" style={{ '--sales-preview-width': `${previewWidth}px` }}>
+      <section
+        className={`sales-receipt-layout ${!isLoading && !errorMessage && rows.length === 0 ? 'is-empty' : ''}`}
+        style={{ '--sales-preview-width': `${previewWidth}px` }}
+      >
         <section className="erp-panel invoice-list-panel sales-receipt-list-panel">
           <div className="panel-title">
             <strong>Fiş Listesi</strong>
@@ -526,7 +639,15 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
             </div>
           )}
           {!isLoading && !errorMessage && rows.length === 0 && (
-            <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
+            <div className="invoice-list-empty-state">
+              <span className="invoice-list-empty-icon" aria-hidden="true">+</span>
+              <strong>Bu filtrelerde satış fişi yok</strong>
+              <p>Tarih aralığını genişletebilir veya yeni bir satış fişi oluşturabilirsiniz.</p>
+              <div className="invoice-list-empty-actions">
+                <button type="button" className="primary" onClick={() => onOpenScreen('sales-invoice')}>Yeni Satış Fişi</button>
+                <button type="button" onClick={resetFilters}>Tüm Fişleri Göster</button>
+              </div>
+            </div>
           )}
           {!isLoading && !errorMessage && rows.length > 0 && (
             <div className="table-wrap invoice-table-wrap sales-receipt-table-wrap">
@@ -536,6 +657,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
                     <th>Fiş No</th>
                     <th>Tarih</th>
                     <th>Cari</th>
+                    <th>Personel</th>
+                    <th>Terminal</th>
                     <th>PB</th>
                     <th>Toplam</th>
                     <th>Durum</th>
@@ -554,6 +677,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
                       <td className="code-cell">{documentNo(row)}</td>
                       <td>{formatDate(row.documentDate || row.createdAt)}</td>
                       <td>{row.customerName || '-'}</td>
+                      <td>{row.employeeName || '-'}</td>
+                      <td>{row.terminalCode || '-'}</td>
                       <td><span className="status-pill info">{row.documentCurrency || row.currency || 'TRY'}</span></td>
                       <td className="money-cell">{formatMoney(row.originalTotal ?? row.totalAmount, row.documentCurrency || row.currency || 'TRY')}</td>
                       <td><span className={`status-pill ${statusClass(row.status)}`}>{statusLabel(row.status)}</span></td>
@@ -612,7 +737,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
                 <div><dt>Para birimi</dt><dd>{selectedCurrency}</dd></div>
                 <div><dt>Ara toplam</dt><dd>{formatMoney(selectedSubtotal, selectedCurrency)}</dd></div>
                 <div><dt>KDV</dt><dd>{formatMoney(selectedVat, selectedCurrency)}</dd></div>
-                <div><dt>Sync</dt><dd>{selectedDetail?.sourceTerminal || selectedDetail?.terminalId || 'Web admin'}</dd></div>
+                <div><dt>Personel</dt><dd>{selectedDetail?.employeeName || selectedRow.employeeName || '-'}</dd></div>
+                <div><dt>Terminal</dt><dd>{selectedDetail?.terminalCode || selectedRow.terminalCode || 'Web admin'}</dd></div>
               </dl>
 
               {isDetailLoading && <div className="list-state">Fiş satırları yükleniyor...</div>}

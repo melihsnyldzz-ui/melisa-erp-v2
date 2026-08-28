@@ -3,6 +3,7 @@ dist
 build
 .env
 .env.local
+*.env.local
 .DS_Store
 logs
 .codex-logs
@@ -19,3 +20,13 @@ temp
 .expo
 android/build
 ios/build
+# Local Android/Expo build artifacts; source and assets remain versioned.
+apps/terminal-app/*.apk
+apps/terminal-app/.expo-keyboard-check*/
+apps/terminal-app/tmp/
+apps/terminal-app/expo-*.png
+apps/terminal-app/android/app/build/
+# Runtime/build reports are regenerated locally and are not source records.
+.runtime/
+apps/desktop/dist/
+output/

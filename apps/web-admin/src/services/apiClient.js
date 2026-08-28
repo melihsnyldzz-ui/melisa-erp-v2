@@ -2,6 +2,9 @@ import { API_BASE_URL, apiConfig } from '../config/apiConfig.js';
 
 const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
 const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
+const LOCAL_PASSWORDLESS_SESSION_KEY = 'melisaErpLocalPasswordlessSession';
+
+let sessionRenewalPromise = null;
 
 export function getStoredAccessToken() {
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -11,19 +14,26 @@ export function getStoredRefreshToken() {
   return window.localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
-export function storeAuthTokens({ accessToken, refreshToken }) {
+export function storeAuthTokens({ accessToken, refreshToken, localPasswordlessSession = false }) {
   if (accessToken) {
     window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   }
 
   if (refreshToken) {
     window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    window.localStorage.removeItem(LOCAL_PASSWORDLESS_SESSION_KEY);
+  }
+
+  if (localPasswordlessSession) {
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+    window.localStorage.setItem(LOCAL_PASSWORDLESS_SESSION_KEY, 'true');
   }
 }
 
 export function clearAuthTokens() {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  window.localStorage.removeItem(LOCAL_PASSWORDLESS_SESSION_KEY);
 }
 
 function buildUrl(path, params = {}) {
@@ -38,7 +48,54 @@ function buildUrl(path, params = {}) {
   return url;
 }
 
-async function request(method, path, { params = {}, body } = {}) {
+async function requestNewSession(path, body) {
+  const response = await fetch(buildUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json();
+
+  if (!response.ok || payload.success === false) {
+    return false;
+  }
+
+  storeAuthTokens(payload.data || {});
+  return Boolean(payload.data?.accessToken);
+}
+
+export async function renewStoredSession() {
+  if (sessionRenewalPromise) {
+    return sessionRenewalPromise;
+  }
+
+  sessionRenewalPromise = (async () => {
+    try {
+      const refreshToken = getStoredRefreshToken();
+      if (refreshToken) {
+        return await requestNewSession('/api/auth/refresh', { refreshToken });
+      }
+
+      const isLocalPasswordlessSession = (
+        window.localStorage.getItem(LOCAL_PASSWORDLESS_SESSION_KEY) === 'true'
+        || Boolean(getStoredAccessToken())
+      );
+      if (isLocalPasswordlessSession && apiConfig.localPasswordlessLogin) {
+        return await requestNewSession('/api/auth/local-passwordless-admin', {});
+      }
+
+      return false;
+    } catch {
+      return false;
+    } finally {
+      sessionRenewalPromise = null;
+    }
+  })();
+
+  return sessionRenewalPromise;
+}
+
+async function request(method, path, { params = {}, body, retryAuth = true } = {}) {
   if (apiConfig.demoMode) {
     const demoError = new Error(`Demo mode icin servis mock response tanimli de?il: ${method} ${path}`);
     demoError.code = 'DEMO_ROUTE_MISSING';
@@ -64,6 +121,13 @@ async function request(method, path, { params = {}, body } = {}) {
     const networkError = new Error('API sunucusuna ulasilamadi.');
     networkError.code = 'NETWORK_ERROR';
     throw networkError;
+  }
+
+  if (response.status === 401 && retryAuth && !path.startsWith('/api/auth/')) {
+    const renewed = await renewStoredSession();
+    if (renewed) {
+      return request(method, path, { params, body, retryAuth: false });
+    }
   }
 
   let payload;
@@ -106,4 +170,46 @@ export async function put(path, body = {}) {
 
 export async function patch(path, body = {}) {
   return request('PATCH', path, { body });
+}
+
+export async function remove(path, body) {
+  return request('DELETE', path, { body });
+}
+
+export async function download(path, filename, { retryAuth = true } = {}) {
+  const headers = {};
+  const accessToken = getStoredAccessToken();
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  let response;
+  try {
+    response = await fetch(buildUrl(path), { headers });
+  } catch {
+    const error = new Error('API sunucusuna ulasilamadi.');
+    error.code = 'NETWORK_ERROR';
+    throw error;
+  }
+
+  if (response.status === 401 && retryAuth) {
+    const renewed = await renewStoredSession();
+    if (renewed) return download(path, filename, { retryAuth: false });
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const error = new Error(payload?.error?.message || 'Dosya indirilemedi.');
+    error.code = payload?.error?.code || 'DOWNLOAD_FAILED';
+    error.status = response.status;
+    throw error;
+  }
+
+  const blob = await response.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(objectUrl);
 }

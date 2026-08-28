@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
@@ -8,6 +9,30 @@ function makeServiceError(code, message, statusCode = 400) {
   error.code = code;
   error.statusCode = statusCode;
   return error;
+}
+
+function normalizeUsername(value) {
+  const username = typeof value === 'string' ? value.trim() : '';
+  if (!/^[a-zA-Z0-9._-]{3,80}$/.test(username)) {
+    throw makeServiceError('AUTH_ADMIN_USERNAME_INVALID', 'Username must be 3-80 characters and use letters, numbers, dot, dash or underscore');
+  }
+  return username;
+}
+
+function normalizeDisplayName(value) {
+  const displayName = typeof value === 'string' ? value.trim().slice(0, 150) : '';
+  if (!displayName) {
+    throw makeServiceError('AUTH_ADMIN_DISPLAY_NAME_REQUIRED', 'Display name is required');
+  }
+  return displayName;
+}
+
+function normalizePassword(value) {
+  const password = typeof value === 'string' ? value : '';
+  if (password.length < 8 || password.length > 128) {
+    throw makeServiceError('AUTH_ADMIN_PASSWORD_INVALID', 'Password must be between 8 and 128 characters');
+  }
+  return password;
 }
 
 function toUserDto(row) {
@@ -140,6 +165,128 @@ export async function getAuthAdminOverview() {
   };
 }
 
+export async function createAuthAdminUser(payload = {}, actor = null) {
+  assertMelisaWriteEnabled();
+  const username = normalizeUsername(payload.username);
+  const displayName = normalizeDisplayName(payload.displayName);
+  const password = normalizePassword(payload.password);
+  const roleId = Number(payload.roleId);
+  if (!Number.isInteger(roleId) || roleId < 1) {
+    throw makeServiceError('AUTH_ADMIN_ROLE_REQUIRED', 'An active role must be selected');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const sqlDriver = getSqlDriver();
+  const pool = await getSqlPool();
+  const transaction = new sqlDriver.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    const roleResult = await new sqlDriver.Request(transaction)
+      .input('roleId', sql.BigInt, roleId)
+      .query('SELECT TOP (1) id, code, name FROM dbo.roles WHERE id = @roleId AND is_active = 1;');
+    const role = roleResult.recordset?.[0];
+    if (!role) {
+      throw makeServiceError('AUTH_ADMIN_ROLE_NOT_FOUND', 'Active role not found', 404);
+    }
+
+    const insertResult = await new sqlDriver.Request(transaction)
+      .input('username', sql.NVarChar(80), username)
+      .input('passwordHash', sql.NVarChar(255), passwordHash)
+      .input('displayName', sql.NVarChar(150), displayName)
+      .input('roleId', sql.BigInt, roleId)
+      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.users (
+          username, password_hash, display_name, role_id, is_active, created_by, updated_by
+        )
+        OUTPUT INSERTED.id
+        VALUES (
+          @username, @passwordHash, @displayName, @roleId, 1, @actorId, @actorId
+        );
+      `);
+    const userId = Number(insertResult.recordset[0].id);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'user_created',
+      entityType: 'user',
+      entityId: userId,
+      afterSnapshot: {
+        username,
+        displayName,
+        roleId,
+        roleCode: role.code,
+        isActive: true,
+        passwordConfigured: true,
+      },
+      actor,
+    });
+
+    await transaction.commit();
+    return getAuthAdminOverview();
+  } catch (error) {
+    await transaction.rollback();
+    if (error.number === 2601 || error.number === 2627) {
+      throw makeServiceError('AUTH_ADMIN_USERNAME_DUPLICATE', 'Username already exists', 409);
+    }
+    throw error;
+  }
+}
+
+export async function resetAuthAdminUserPassword(userId, payload = {}, actor = null) {
+  assertMelisaWriteEnabled();
+  const id = Number(userId);
+  if (!Number.isInteger(id) || id < 1) {
+    throw makeServiceError('AUTH_ADMIN_USER_ID_INVALID', 'User id is invalid');
+  }
+  const passwordHash = await bcrypt.hash(normalizePassword(payload.password), 12);
+  const sqlDriver = getSqlDriver();
+  const pool = await getSqlPool();
+  const transaction = new sqlDriver.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    const beforeResult = await new sqlDriver.Request(transaction)
+      .input('userId', sql.BigInt, id)
+      .query('SELECT TOP (1) id, username, display_name, is_active FROM dbo.users WHERE id = @userId;');
+    const user = beforeResult.recordset?.[0];
+    if (!user) {
+      throw makeServiceError('AUTH_ADMIN_USER_NOT_FOUND', 'User not found', 404);
+    }
+
+    await new sqlDriver.Request(transaction)
+      .input('userId', sql.BigInt, id)
+      .input('passwordHash', sql.NVarChar(255), passwordHash)
+      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        UPDATE dbo.users
+        SET password_hash = @passwordHash,
+            updated_at = SYSUTCDATETIME(),
+            updated_by = @actorId
+        WHERE id = @userId;
+
+        UPDATE dbo.auth_refresh_tokens
+        SET revoked_at = SYSUTCDATETIME()
+        WHERE user_id = @userId AND revoked_at IS NULL;
+      `);
+
+    await writeAuditLog(new sqlDriver.Request(transaction), {
+      action: 'user_password_reset',
+      entityType: 'user',
+      entityId: id,
+      beforeSnapshot: { username: user.username, passwordConfigured: true },
+      afterSnapshot: { username: user.username, passwordConfigured: true, sessionsRevoked: true },
+      actor,
+    });
+
+    await transaction.commit();
+    return getAuthAdminOverview();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 export async function updateUserAccess(userId, payload = {}, actor = null) {
   assertMelisaWriteEnabled();
 
@@ -151,6 +298,8 @@ export async function updateUserAccess(userId, payload = {}, actor = null) {
   const roleId = payload.roleId ? Number(payload.roleId) : null;
   const hasActive = payload.isActive !== undefined;
   const isActive = Boolean(payload.isActive);
+  const username = payload.username !== undefined ? normalizeUsername(payload.username) : null;
+  const displayName = payload.displayName !== undefined ? normalizeDisplayName(payload.displayName) : null;
   const sqlDriver = getSqlDriver();
   const pool = await getSqlPool();
   const transaction = new sqlDriver.Transaction(pool);
@@ -182,12 +331,16 @@ export async function updateUserAccess(userId, payload = {}, actor = null) {
 
     await new sqlDriver.Request(transaction)
       .input('id', sql.BigInt, id)
+      .input('username', sql.NVarChar(80), username || beforeRow.username)
+      .input('displayName', sql.NVarChar(150), displayName || beforeRow.display_name)
       .input('roleId', sql.BigInt, roleId || beforeRow.role_id)
       .input('isActive', sql.Bit, hasActive ? isActive : Boolean(beforeRow.is_active))
       .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
         UPDATE dbo.users
-        SET role_id = @roleId,
+        SET username = @username,
+            display_name = @displayName,
+            role_id = @roleId,
             is_active = @isActive,
             updated_at = SYSUTCDATETIME(),
             updated_by = @actorId
@@ -216,6 +369,9 @@ export async function updateUserAccess(userId, payload = {}, actor = null) {
     return getAuthAdminOverview();
   } catch (error) {
     await transaction.rollback();
+    if (error.number === 2601 || error.number === 2627) {
+      throw makeServiceError('AUTH_ADMIN_USERNAME_DUPLICATE', 'Username already exists', 409);
+    }
     throw error;
   }
 }

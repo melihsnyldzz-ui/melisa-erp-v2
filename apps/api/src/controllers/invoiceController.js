@@ -63,10 +63,11 @@ export async function postSalesDraft(req, res) {
 export async function putSalesDraft(req, res) {
   try {
     const data = await updateSalesDraft(req.params.id, req.body, req.user);
+    const finalizedCorrection = String(data.status || '').toUpperCase() === 'FINALIZED';
     return ok(res, data, {
       source: 'sql-write',
-      audit: 'sales_invoice_draft_updated',
-      commercialEffect: false,
+      audit: finalizedCorrection ? 'sales_invoice_finalized_corrected' : 'sales_invoice_draft_updated',
+      commercialEffect: finalizedCorrection,
     });
   } catch (error) {
     return writeError(res, error, 'SALES_DRAFT_WRITE_FAILED');
@@ -129,10 +130,11 @@ export async function postPurchaseDraft(req, res) {
 export async function putPurchaseDraft(req, res) {
   try {
     const data = await updatePurchaseDraft(req.params.id, req.body, req.user);
+    const finalizedCorrection = String(data.status || '').toUpperCase() === 'FINALIZED';
     return ok(res, data, {
       source: 'sql-write',
-      audit: 'purchase_invoice_draft_updated',
-      commercialEffect: false,
+      audit: finalizedCorrection ? 'purchase_invoice_finalized_corrected' : 'purchase_invoice_draft_updated',
+      commercialEffect: finalizedCorrection,
     });
   } catch (error) {
     return writeError(res, error, 'PURCHASE_DRAFT_WRITE_FAILED');

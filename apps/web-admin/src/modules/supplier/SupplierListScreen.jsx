@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchSuppliers } from '../../services/supplierApi.js';
+import { Columns3, Download, Ellipsis, Printer, RefreshCcw, RotateCcw, Search, Truck } from 'lucide-react';
+import { fetchVegaSuppliers } from '../../services/supplierApi.js';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
 
@@ -14,6 +16,7 @@ function formatMoney(amount, currency) {
 function toSupplierRow(supplier) {
   return {
     id: supplier.id,
+    sourceId: supplier.sourceId,
     code: supplier.supplierCode,
     name: supplier.supplierName,
     phone: supplier.phoneMasked || '-',
@@ -42,11 +45,11 @@ const supplierListColumns = [
   { label: 'Durum', key: 'status', width: 90 },
 ];
 
-const supplierColumnStorageKey = 'melisa.supplierList.visibleColumns.v1';
+const supplierColumnStorageKey = 'melisa.supplierList.visibleColumns.v2';
 const numericSupplierSortKeys = new Set(['balance', 'purchaseDiscountRate', 'purchaseCount']);
 const defaultVisibleSupplierColumns = supplierListColumns.reduce((next, column) => ({
   ...next,
-  [column.key]: true,
+  [column.key]: ['code', 'name', 'phone', 'city', 'balance', 'purchaseCount', 'status'].includes(column.key),
 }), {});
 
 function readVisibleSupplierColumns() {
@@ -64,7 +67,7 @@ function renderSupplierCell(row, columnKey) {
   }
 
   if (columnKey === 'balance') {
-    return <td className="money-cell customer-payable">{formatMoney(row.balance, row.currency)}</td>;
+    return <td className="money-cell customer-payable">{formatMoney(Math.abs(row.balance), row.currency)} {row.balance < 0 ? '(B)' : row.balance > 0 ? '(A)' : ''}</td>;
   }
 
   if (columnKey === 'purchaseDiscountRate') {
@@ -72,7 +75,11 @@ function renderSupplierCell(row, columnKey) {
   }
 
   if (columnKey === 'status') {
-    return <td className={row.status === 'Aktif' ? 'status-active' : 'status-passive'}>{row.status}</td>;
+    return (
+      <td>
+        <span className={`entity-status-pill ${row.status === 'Aktif' ? 'active' : 'passive'}`}>{row.status}</span>
+      </td>
+    );
   }
 
   return <td>{row[columnKey] ?? '-'}</td>;
@@ -90,6 +97,7 @@ export function SupplierListScreen({ onOpenScreen }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleSupplierColumns);
+  const debouncedSearch = useDebouncedValue(filters.search);
 
   const tableColumns = useMemo(() => (
     supplierListColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
@@ -111,11 +119,10 @@ export function SupplierListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchSuppliers({
+        const response = await fetchVegaSuppliers({
           page: 1,
           limit: 500,
-          search: filters.search,
-          activeOnly: filters.status === 'active',
+          search: debouncedSearch,
         });
         const nextRows = (response.data || []).map(toSupplierRow);
 
@@ -123,7 +130,7 @@ export function SupplierListScreen({ onOpenScreen }) {
           setRows(nextRows);
           setListMeta(response.meta || null);
           setSelectedRowId((current) => (
-            nextRows.some((row) => row.id === current) ? current : nextRows[0]?.id ?? null
+            nextRows.some((row) => row.id === current) ? current : null
           ));
         }
       } catch (error) {
@@ -145,7 +152,7 @@ export function SupplierListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [filters.search, filters.status, refreshKey]);
+  }, [debouncedSearch, filters.status, refreshKey]);
 
   const filteredRows = useMemo(() => rows
     .filter((row) => {
@@ -175,8 +182,14 @@ export function SupplierListScreen({ onOpenScreen }) {
         || first.code.localeCompare(second.code, 'tr', { sensitivity: 'base' })
       ) * direction;
     }), [filters, rows, sortConfig]);
+
+  useEffect(() => {
+    if (filteredRows.length > 0 && !filteredRows.some((row) => row.id === selectedRowId)) {
+      setSelectedRowId(filteredRows[0].id);
+    }
+  }, [filteredRows, selectedRowId]);
+
   const selectedRow = filteredRows.find((row) => row.id === selectedRowId) || null;
-  const totalBalance = filteredRows.reduce((sum, row) => sum + Number(row.balance || 0), 0);
   const totalFromApi = Number(listMeta?.total || rows.length || 0);
   const missingApiRows = Math.max(totalFromApi - rows.length, 0);
   const currencySummary = useMemo(() => filteredRows.reduce((summary, row) => {
@@ -185,6 +198,10 @@ export function SupplierListScreen({ onOpenScreen }) {
       ...summary,
       [currency]: (summary[currency] || 0) + 1,
     };
+  }, {}), [filteredRows]);
+  const balanceSummary = useMemo(() => filteredRows.reduce((summary, row) => {
+    const currency = row.currency || 'TRY';
+    return { ...summary, [currency]: Number(summary[currency] || 0) + Number(row.balance || 0) };
   }, {}), [filteredRows]);
 
   function updateFilter(field, value) {
@@ -209,13 +226,19 @@ export function SupplierListScreen({ onOpenScreen }) {
   }
 
   function openSupplier(row = selectedRow) {
-    if (!row?.id) {
-      setSelectionWarning('Tedarikçi kartı açmak için listeden bir tedarikçi seçin.');
+    if (!row?.sourceId) {
+      setSelectionWarning('Hareketleri açmak için listeden bir tedarikçi seçin.');
       return;
     }
 
     setSelectionWarning('');
-    onOpenScreen('supplier-card', { supplierId: row.id, supplierCode: row.code });
+    onOpenScreen('vega-supplier-movements', {
+      supplierSourceId: row.sourceId,
+      supplierCode: row.code,
+      supplierName: row.name,
+      supplierCurrency: row.currency,
+      tabLabel: `${row.code} Hareketleri`,
+    });
   }
 
   function toggleColumn(columnKey) {
@@ -244,23 +267,37 @@ export function SupplierListScreen({ onOpenScreen }) {
     <main className="work-area supplier-list-screen">
       <section className="customer-list-toolbar">
         <div className="customer-title-block">
-          <strong>Tedarikçi Kartları</strong>
-          <span>Alış fişleri, bakiye ve tedarikçi iskonto takibi</span>
+          <strong>Vega Tedarikçi Carileri</strong>
+          <span>F0103 · 2026 canlı bakiye, alış fişleri ve ödeme hareketleri · salt okunur</span>
         </div>
         <div className="customer-toolbar-actions">
-          <button type="button" onClick={() => openSupplier()} disabled={!selectedRow}>Tedarikçi Kartı Aç</button>
-          <button type="button" onClick={() => onOpenScreen('supplier-card')}>Yeni Tedarikçi</button>
-          <button type="button" onClick={() => setRefreshKey((current) => current + 1)}>Yenile</button>
-          <button type="button" onClick={exportSuppliers}>CSV</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikçi Listesi')}>Yazdır</button>
-          <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}>Kolonlar</button>
+          <button type="button" className="primary-action" onClick={() => openSupplier()} disabled={!selectedRow}><Truck aria-hidden="true" size={16} /> Hareketleri Aç</button>
+          <button type="button" onClick={() => setRefreshKey((current) => current + 1)}><RefreshCcw aria-hidden="true" size={16} /> Yenile</button>
+          <details className="entity-list-tools">
+            <summary aria-label="Diğer liste işlemleri" title="Diğer işlemler"><Ellipsis aria-hidden="true" size={18} /></summary>
+            <div className="entity-list-tools-menu">
+              <button type="button" onClick={exportSuppliers}><Download aria-hidden="true" size={16} /> CSV</button>
+              <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikçi Listesi')}><Printer aria-hidden="true" size={16} /> Yazdır</button>
+              <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}><Columns3 aria-hidden="true" size={16} /> Kolonlar</button>
+            </div>
+          </details>
         </div>
       </section>
 
-      <section className="erp-panel customer-filter-panel supplier-filter-panel">
-        <label>
-          <span>Arama</span>
-          <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Kod / ad / telefon / şehir" />
+      <section className="erp-panel entity-list-filter-panel customer-filter-panel supplier-filter-panel">
+        <label className="entity-list-search-field">
+          <span>Hızlı arama</span>
+          <div className="entity-list-search-input">
+            <Search aria-hidden="true" size={16} />
+            <input
+              aria-label="Tedarikçi ara"
+              autoComplete="off"
+              type="search"
+              value={filters.search}
+              onChange={(event) => updateFilter('search', event.target.value)}
+              placeholder="Kod, unvan, telefon, şehir veya ülke"
+            />
+          </div>
         </label>
         <label>
           <span>Para birimi</span>
@@ -278,29 +315,18 @@ export function SupplierListScreen({ onOpenScreen }) {
             <option value="all">Tüm kayıtlar</option>
           </select>
         </label>
+        <button className="entity-list-reset-button" type="button" onClick={() => setFilters({ search: '', currency: 'all', status: 'active' })} title="Filtreleri temizle">
+          <RotateCcw aria-hidden="true" size={16} />
+          <span>Temizle</span>
+        </button>
       </section>
 
-      <section className="supplier-list-kpis" aria-label="Tedarikci liste ozeti">
-        <div>
-          <span>Toplam kart</span>
-          <strong>{totalFromApi}</strong>
-          <small>API kaydi</small>
-        </div>
-        <div>
-          <span>Gosterilen</span>
-          <strong>{filteredRows.length}</strong>
-          <small>{missingApiRows > 0 ? `${missingApiRows} kayit icin filtreyi daralt` : 'Tum cagrilan kayitlar'}</small>
-        </div>
-        <div>
-          <span>Para birimi</span>
-          <strong>{Object.entries(currencySummary).map(([currency, count]) => `${currency} ${count}`).join(' / ') || '-'}</strong>
-          <small>Secili filtreye gore</small>
-        </div>
-        <div>
-          <span>Toplam bakiye</span>
-          <strong>{formatMoney(totalBalance, selectedRow?.currency || 'TRY')}</strong>
-          <small>{filters.currency === 'all' ? 'Karma PB toplamidir' : filters.currency}</small>
-        </div>
+      <section className="screen-summary entity-list-summary" aria-label="Tedarikçi liste özeti">
+        <span>Toplam: <b>{totalFromApi}</b></span>
+        <span>Gösterilen: <b>{filteredRows.length}</b></span>
+        <span>PB: <b>{Object.entries(currencySummary).map(([currency, count]) => `${currency} ${count}`).join(' / ') || '-'}</b></span>
+        <span>Bakiye: <b>{Object.entries(balanceSummary).map(([currency, amount]) => `${formatMoney(Math.abs(amount), currency)} ${amount < 0 ? '(B)' : amount > 0 ? '(A)' : ''}`).join(' / ') || '-'}</b></span>
+        {missingApiRows > 0 && <span className="entity-list-summary-warning">{missingApiRows} kayıt için aramayı daraltın</span>}
       </section>
 
       {isColumnPanelOpen && (
@@ -340,7 +366,7 @@ export function SupplierListScreen({ onOpenScreen }) {
           <strong>Tedarikçi Tablosu</strong>
           <span>Seçili: {selectedRow?.code ?? 'yok'} / Satır: {filteredRows.length}</span>
         </div>
-        {isLoading && <div className="list-state">API'den tedarikçi kayıtları yükleniyor...</div>}
+        {isLoading && <div className="list-state">Tedarikçiler Vega F0103'ten okunuyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Tedarikçi kaydı bulunamadı.</div>}
         {!isLoading && !errorMessage && selectionWarning && <div className="list-state list-state-error">{selectionWarning}</div>}
@@ -377,11 +403,6 @@ export function SupplierListScreen({ onOpenScreen }) {
         )}
       </section>
 
-      <section className="screen-summary customer-summary">
-        <span>Tedarikçi: {filteredRows.length}</span>
-        <span>Bakiye: {formatMoney(totalBalance, selectedRow?.currency || 'TRY')}</span>
-        <span>Kaynak: API / SQL</span>
-      </section>
     </main>
   );
 }

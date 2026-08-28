@@ -94,3 +94,15 @@ export async function fetchManagementReporting() {
 export async function fetchPeriodicAccounting(params = {}) {
   return get('/api/dashboard/periodic-accounting', params);
 }
+
+export async function fetchVegaSalesComparison() {
+  return get('/api/dashboard/vega-sales-comparison');
+}
+
+export async function fetchVegaSalesPerformance() {
+  return get('/api/dashboard/vega-sales-performance');
+}
+
+export async function fetchVegaProductProfitability(params = {}) {
+  return get('/api/dashboard/vega-product-profitability', params);
+}

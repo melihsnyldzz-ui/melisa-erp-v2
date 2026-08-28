@@ -1,0 +1,479 @@
+{"kind":"deck","id":"pr/8yi4z5","name":"Deck"}
+{"kind":"layout","layoutId":"69a3ef70-50c5-43f9-812d-28d1015d7c5b","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"0583db25-c6b3-4c78-be94-5e13f41bb896","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/iqnrd4","slide":1,"title":"MELİSA BABY  /  YÖNETİM DOSYASI","textShapes":13}
+{"kind":"textbox","id":"sh/wretsz29","slide":1,"text":"MELİSA BABY  /  YÖNETİM DOSYASI","textPreview":"MELİSA BABY  /  YÖNETİM DOSYASI","textChars":31,"textLines":1,"bbox":[54,36,500,28]}
+{"kind":"textbox","id":"sh/vq5cju1o","slide":1,"text":"ERP v2","textPreview":"ERP v2","textChars":6,"textLines":1,"bbox":[54,145,470,110]}
+{"kind":"textbox","id":"sh/apwbqpk3","slide":1,"text":"Proje hafızası, şirket verisi\nve 10 milyon USD yol haritası","textPreview":"Proje hafızası, şirket verisi | ve 10 milyon USD yol haritası","textChars":59,"textLines":2,"bbox":[54,282,610,120]}
+{"kind":"shape","id":"sh/5w7up4jq","slide":1,"bbox":[760,95,430,470]}
+{"kind":"textbox","id":"sh/kvedwz25","slide":1,"text":"Mayıs → Ağustos\n2026","textPreview":"Mayıs → Ağustos | 2026","textChars":20,"textLines":2,"bbox":[805,142,340,120]}
+{"kind":"textbox","id":"sh/ju5cnu1k","slide":1,"text":"244","textPreview":"244","textChars":3,"textLines":1,"bbox":[805,298,100,40]}
+{"kind":"textbox","id":"sh/itwvupkf","slide":1,"text":"commit","textPreview":"commit","textChars":6,"textLines":1,"bbox":[920,304,220,28]}
+{"kind":"textbox","id":"sh/tk7utoj2","slide":1,"text":"43","textPreview":"43","textChars":2,"textLines":1,"bbox":[805,360,100,40]}
+{"kind":"textbox","id":"sh/sjyd0j2h","slide":1,"text":"ERP Core sprint","textPreview":"ERP Core sprint","textChars":15,"textLines":1,"bbox":[920,366,220,28]}
+{"kind":"textbox","id":"sh/2d4jex4b","slide":1,"text":"8 + 8","textPreview":"8 + 8","textChars":5,"textLines":1,"bbox":[805,422,100,40]}
+{"kind":"textbox","id":"sh/3ed0n2lw","slide":1,"text":"UX / CRM sprint","textPreview":"UX / CRM sprint","textChars":15,"textLines":1,"bbox":[920,428,220,28]}
+{"kind":"textbox","id":"sh/ofm1g7mh","slide":1,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[805,484,100,40]}
+{"kind":"textbox","id":"sh/pgfipc32","slide":1,"text":"canlı servis yüzeyi","textPreview":"canlı servis yüzeyi","textChars":19,"textLines":1,"bbox":[920,490,220,28]}
+{"kind":"textbox","id":"sh/qhojih47","slide":1,"text":"19 Ağustos 2026  •  Şirket içi ve kontrollü AI değerlendirmesi","textPreview":"19 Ağustos 2026  •  Şirket içi ve kontrollü AI değerlendirmesi","textChars":62,"textLines":1,"bbox":[54,630,800,26]}
+{"kind":"notes","id":"nt/iqnrd4","slide":1,"text":"Sunum, ayrıntılı ana raporun yönetici özetidir. Sayısal durumlar tarih ve doğruluk etiketiyle okunmalıdır."}
+{"kind":"slide","id":"sl/qbbrvp","slide":2,"title":"YÖNETICI ÖZETI","textShapes":18}
+{"kind":"textbox","id":"sh/9knmlsja","slide":2,"text":"YÖNETICI ÖZETI","textPreview":"YÖNETICI ÖZETI","textChars":14,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/mhw3ad0j","slide":2,"text":"Bir stok programından işletim sistemine","textPreview":"Bir stok programından işletim sistemine","textChars":39,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/7i54ji14","slide":2,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/w7elgnil","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"textbox","id":"sh/h87mpsj6","slide":2,"text":"Melisa ERP; operasyon, mobil saha, dış veri ve WhatsApp satışını aynı iş gerçeğinde birleştirdi.","textPreview":"Melisa ERP; operasyon, mobil saha, dış veri ve WhatsApp satışını aynı iş gerçeğinde birleştirdi.","textChars":96,"textLines":1,"bbox":[54,182,1130,56]}
+{"kind":"shape","id":"sh/u5w3ex0v","slide":2,"bbox":[54,272,270,154]}
+{"kind":"shape","id":"sh/v654ni10","slide":2,"bbox":[54,272,8,154]}
+{"kind":"textbox","id":"sh/4by5k7ix","slide":2,"text":"ERP CORE","textPreview":"ERP CORE","textChars":8,"textLines":1,"bbox":[78,292,228,22]}
+{"kind":"textbox","id":"sh/5c7mtcji","slide":2,"text":"Kabul edildi","textPreview":"Kabul edildi","textChars":12,"textLines":1,"bbox":[78,321,228,54]}
+{"kind":"textbox","id":"sh/hwjqtgfi","slide":2,"text":"Uyarılar ve üretim kapıları açık","textPreview":"Uyarılar ve üretim kapıları açık","textChars":32,"textLines":1,"bbox":[78,384,228,28]}
+{"kind":"shape","id":"sh/wva90bed","slide":2,"bbox":[348,272,270,154]}
+{"kind":"shape","id":"sh/vu18r6xs","slide":2,"bbox":[348,272,8,154]}
+{"kind":"textbox","id":"sh/utsry1w7","slide":2,"text":"CANLI SERVIS","textPreview":"CANLI SERVIS","textChars":12,"textLines":1,"bbox":[372,292,228,22]}
+{"kind":"textbox","id":"sh/503qxgfu","slide":2,"text":"5 yüzey","textPreview":"5 yüzey","textChars":7,"textLines":1,"bbox":[372,321,228,54]}
+{"kind":"textbox","id":"sh/4za94be9","slide":2,"text":"Web, API, CRM, Chatwoot, Evolution","textPreview":"Web, API, CRM, Chatwoot, Evolution","textChars":34,"textLines":1,"bbox":[372,384,228,28]}
+{"kind":"shape","id":"sh/jy18v6xo","slide":2,"bbox":[642,272,270,154]}
+{"kind":"shape","id":"sh/ixsr21w3","slide":2,"bbox":[642,272,8,154]}
+{"kind":"textbox","id":"sh/l4zqlwfq","slide":2,"text":"BAZ CIRO","textPreview":"BAZ CIRO","textChars":8,"textLines":1,"bbox":[666,292,228,22]}
+{"kind":"textbox","id":"sh/k3qpsre5","slide":2,"text":"$3,86m","textPreview":"$3,86m","textChars":6,"textLines":1,"bbox":[666,321,228,54]}
+{"kind":"textbox","id":"sh/cjuhobqx","slide":2,"text":"2026 yıllık USD eşdeğeri tahmin","textPreview":"2026 yıllık USD eşdeğeri tahmin","textChars":31,"textLines":1,"bbox":[666,384,228,28]}
+{"kind":"shape","id":"sh/xknixgri","slide":2,"bbox":[936,272,270,154]}
+{"kind":"shape","id":"sh/axczml87","slide":2,"bbox":[936,272,8,154]}
+{"kind":"textbox","id":"sh/bil0vq9c","slide":2,"text":"ANA RISK","textPreview":"ANA RISK","textChars":8,"textLines":1,"bbox":[960,292,228,22]}
+{"kind":"textbox","id":"sh/knehsvq9","slide":2,"text":"Dirty tree","textPreview":"Dirty tree","textChars":10,"textLines":1,"bbox":[960,321,228,54]}
+{"kind":"textbox","id":"sh/loni10ru","slide":2,"text":"Temmuz sonrası tek release değil","textPreview":"Temmuz sonrası tek release değil","textChars":32,"textLines":1,"bbox":[960,384,228,28]}
+{"kind":"shape","id":"sh/ylwzql83","slide":2,"bbox":[54,458,1152,148]}
+{"kind":"textbox","id":"sh/zm50zq9o","slide":2,"text":"Sonraki doğru adım","textPreview":"Sonraki doğru adım","textChars":18,"textLines":1,"bbox":[80,482,300,30]}
+{"kind":"textbox","id":"sh/8ry1wvq5","slide":2,"text":"Yeni özellik eklemekten önce temiz sürüm, gerçek yedek/geri dönüş, stok-muhasebe mutabakatı ve saha testi.","textPreview":"Yeni özellik eklemekten önce temiz sürüm, gerçek yedek/geri dönüş, stok-muhasebe mutabakatı ve saha testi.","textChars":106,"textLines":1,"bbox":[80,526,1080,52]}
+{"kind":"notes","id":"nt/qbbrvp","slide":2,"text":"ERP Core final test için kabul edilmiştir; üretime hazır sertifikası değildir.\n\n[Sources]\ndocs/erp-v2/final-closure-decision.md\n19 Ağustos 2026 yerel sağlık kontrolleri"}
+{"kind":"slide","id":"sl/a8ehl6","slide":3,"title":"PROJE KRONOLOJISI","textShapes":20}
+{"kind":"textbox","id":"sh/8v2tovil","slide":3,"text":"PROJE KRONOLOJISI","textPreview":"PROJE KRONOLOJISI","textChars":17,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/7utsvqh0","slide":3,"text":"Dört ayda dört dönüşüm","textPreview":"Dört ayda dört dönüşüm","textChars":22,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/mtkbml0f","slide":3,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/lsbatgzu","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/kr29kvip","slide":3,"bbox":[105,326,1025,0.01]}
+{"kind":"shape","id":"sh/zq9srqh4","slide":3,"bbox":[86,302,48,48]}
+{"kind":"textbox","id":"sh/yp0ril0j","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[86,311.6,48,26.4]}
+{"kind":"textbox","id":"sh/5ova5kze","slide":3,"text":"MAYIS","textPreview":"MAYIS","textChars":5,"textLines":1,"bbox":[76,228,190,26]}
+{"kind":"textbox","id":"sh/4nmtwfit","slide":3,"text":"Temel ERP","textPreview":"Temel ERP","textChars":9,"textLines":1,"bbox":[76,374,235,38]}
+{"kind":"textbox","id":"sh/y1kfm9sb","slide":3,"text":"Stok, cari, satış, alış, finans\nAPI + SQL + taslak/kesin","textPreview":"Stok, cari, satış, alış, finans | API + SQL + taslak/kesin","textChars":56,"textLines":2,"bbox":[76,428,235,92]}
+{"kind":"shape","id":"sh/z2tgfetw","slide":3,"bbox":[385,302,48,48]}
+{"kind":"textbox","id":"sh/k32xojah","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[385,311.6,48,26.4]}
+{"kind":"textbox","id":"sh/l4byhobm","slide":3,"text":"HAZİRAN","textPreview":"HAZİRAN","textChars":7,"textLines":1,"bbox":[375,228,190,26]}
+{"kind":"textbox","id":"sh/ax0fi9sz","slide":3,"text":"Operasyonel güven","textPreview":"Operasyonel güven","textChars":17,"textLines":1,"bbox":[375,374,235,38]}
+{"kind":"textbox","id":"sh/by9gretk","slide":3,"text":"Yetki, audit, import, finans\nyedek sınırları ve sağlık","textPreview":"Yetki, audit, import, finans | yedek sınırları ve sağlık","textChars":54,"textLines":2,"bbox":[375,428,235,92]}
+{"kind":"shape","id":"sh/cz2xkja5","slide":3,"bbox":[684,302,48,48]}
+{"kind":"textbox","id":"sh/x0bydobq","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[684,311.6,48,26.4]}
+{"kind":"textbox","id":"sh/ut4zutsj","slide":3,"text":"TEMMUZ","textPreview":"TEMMUZ","textChars":6,"textLines":1,"bbox":[674,228,190,26]}
+{"kind":"textbox","id":"sh/vudgnyt4","slide":3,"text":"Test + kabul","textPreview":"Test + kabul","textChars":12,"textLines":1,"bbox":[674,374,235,38]}
+{"kind":"textbox","id":"sh/re5cfq9g","slide":3,"text":"43 sprint, terminal, CRM sınırı\ninsan kabulü: uyarılarla","textPreview":"43 sprint, terminal, CRM sınırı | insan kabulü: uyarılarla","textChars":56,"textLines":2,"bbox":[674,428,235,92]}
+{"kind":"shape","id":"sh/qdwvml8v","slide":3,"bbox":[983,302,48,48]}
+{"kind":"textbox","id":"sh/dg7uh0rm","slide":3,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[983,311.6,48,26.4]}
+{"kind":"textbox","id":"sh/sfydovq1","slide":3,"text":"AĞUSTOS","textPreview":"AĞUSTOS","textChars":7,"textLines":1,"bbox":[973,228,190,26]}
+{"kind":"textbox","id":"sh/fipcja9c","slide":3,"text":"Canlı veri + büyüme","textPreview":"Canlı veri + büyüme","textChars":19,"textLines":1,"bbox":[973,374,235,38]}
+{"kind":"textbox","id":"sh/ehgvq58r","slide":3,"text":"Vega salt okunur, UX/CRM\nOCR, rapor ve $10m planı","textPreview":"Vega salt okunur, UX/CRM | OCR, rapor ve $10m planı","textChars":49,"textLines":2,"bbox":[973,428,235,92]}
+{"kind":"shape","id":"sh/147elkri","slide":3,"bbox":[54,568,1152,70]}
+{"kind":"textbox","id":"sh/03ydsfqx","slide":3,"text":"Kazanım: ekran geliştirmeden veri bütünlüğü, saha, CRM ve karar desteğine geçiş.","textPreview":"Kazanım: ekran geliştirmeden veri bütünlüğü, saha, CRM ve karar desteğine geçiş.","textChars":80,"textLines":1,"bbox":[78,589,1090,30]}
+{"kind":"notes","id":"nt/a8ehl6","slide":3,"text":"Kronoloji Git geçmişi, sprint raporları ve Ağustos entegrasyon çalışmaları üzerinden özetlenmiştir."}
+{"kind":"slide","id":"sl/gz5sn0","slide":4,"title":"SISTEM MIMARISI","textShapes":22}
+{"kind":"textbox","id":"sh/bixwv6lo","slide":4,"text":"SISTEM MIMARISI","textPreview":"SISTEM MIMARISI","textChars":15,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/cj6x4b29","slide":4,"text":"Tek merkez, kontrollü dış bağlantılar","textPreview":"Tek merkez, kontrollü dış bağlantılar","textChars":37,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/dkfexgju","slide":4,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/ylof6lkf","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/zmxwzq10","slide":4,"bbox":[50,190,260,392]}
+{"kind":"textbox","id":"sh/0n6x8b25","slide":4,"text":"KULLANICI\nYÜZEYLERİ","textPreview":"KULLANICI | YÜZEYLERİ","textChars":19,"textLines":2,"bbox":[80,214,200,52]}
+{"kind":"shape","id":"sh/loze1gjq","slide":4,"bbox":[75,288,210,48]}
+{"kind":"textbox","id":"sh/mp8falkb","slide":4,"text":"Web ERP","textPreview":"Web ERP","textChars":7,"textLines":1,"bbox":[90,299,140,22]}
+{"kind":"textbox","id":"sh/nqhw3q1w","slide":4,"text":":5173","textPreview":":5173","textChars":5,"textLines":1,"bbox":[228,301,44,20]}
+{"kind":"shape","id":"sh/769cvql0","slide":4,"bbox":[75,352,210,48]}
+{"kind":"textbox","id":"sh/650bmlkf","slide":4,"text":"Android Terminal","textPreview":"Android Terminal","textChars":16,"textLines":1,"bbox":[90,363,140,22]}
+{"kind":"textbox","id":"sh/t8buh03q","slide":4,"text":"Expo / APK","textPreview":"Expo / APK","textChars":10,"textLines":1,"bbox":[228,365,44,20]}
+{"kind":"shape","id":"sh/87itov2l","slide":4,"bbox":[75,416,210,48]}
+{"kind":"textbox","id":"sh/z29cr6lo","slide":4,"text":"Windows Masaüstü","textPreview":"Windows Masaüstü","textChars":16,"textLines":1,"bbox":[90,427,140,22]}
+{"kind":"textbox","id":"sh/y10bilk3","slide":4,"text":"Electron","textPreview":"Electron","textChars":8,"textLines":1,"bbox":[228,429,44,20]}
+{"kind":"shape","id":"sh/l4rutg3u","slide":4,"bbox":[75,480,210,48]}
+{"kind":"textbox","id":"sh/k3itkb29","slide":4,"text":"WhatsApp CRM","textPreview":"WhatsApp CRM","textChars":12,"textLines":1,"bbox":[90,491,140,22]}
+{"kind":"textbox","id":"sh/3ytcnal8","slide":4,"text":":3100","textPreview":":3100","textChars":5,"textLines":1,"bbox":[228,493,44,20]}
+{"kind":"shape","id":"sh/ixkvu5kn","slide":4,"bbox":[404,224,350,130]}
+{"kind":"textbox","id":"sh/etofm94v","slide":4,"text":"ERP API  :4100","textPreview":"ERP API  :4100","textChars":14,"textLines":1,"bbox":[432,247,290,30]}
+{"kind":"textbox","id":"sh/fuxwve5g","slide":4,"text":"İş kuralları • audit • yetki","textPreview":"İş kuralları • audit • yetki","textChars":28,"textLines":1,"bbox":[432,295,290,24]}
+{"kind":"shape","id":"sh/0v6xojm1","slide":4,"bbox":[404,414,350,130]}
+{"kind":"textbox","id":"sh/1wfexon6","slide":4,"text":"CRM API  :4200","textPreview":"CRM API  :4200","textChars":14,"textLines":1,"bbox":[432,437,290,30]}
+{"kind":"textbox","id":"sh/2xofq94r","slide":4,"text":"Atama • görev • teklif","textPreview":"Atama • görev • teklif","textChars":22,"textLines":1,"bbox":[432,485,290,24]}
+{"kind":"shape","id":"sh/nyxwze5c","slide":4,"bbox":[310,289,94,96]}
+{"kind":"shape","id":"sh/ozqxsjmx","slide":4,"bbox":[310,420,94,59]}
+{"kind":"shape","id":"sh/p0zy1oni","slide":4,"bbox":[850,188,370,116]}
+{"kind":"textbox","id":"sh/i14vep4n","slide":4,"text":"MELISA_ERP_V2","textPreview":"MELISA_ERP_V2","textChars":13,"textLines":1,"bbox":[880,216,310,28]}
+{"kind":"textbox","id":"sh/32dwnu58","slide":4,"text":"Operasyonel SQL Server","textPreview":"Operasyonel SQL Server","textChars":22,"textLines":1,"bbox":[880,259,310,22]}
+{"kind":"shape","id":"sh/lwjits7q","slide":4,"bbox":[850,328,370,116]}
+{"kind":"textbox","id":"sh/kvahkn65","slide":4,"text":"VEGA 2026","textPreview":"VEGA 2026","textChars":9,"textLines":1,"bbox":[880,356,310,28]}
+{"kind":"textbox","id":"sh/zu10ripk","slide":4,"text":"F0102/F0103 • SELECT-only","textPreview":"F0102/F0103 • SELECT-only","textChars":25,"textLines":1,"bbox":[880,399,310,22]}
+{"kind":"shape","id":"sh/ytszidoz","slide":4,"bbox":[850,468,370,116]}
+{"kind":"textbox","id":"sh/9k3ixc7m","slide":4,"text":"CHATWOOT + EVOLUTION","textPreview":"CHATWOOT + EVOLUTION","textChars":20,"textLines":1,"bbox":[880,496,310,28]}
+{"kind":"textbox","id":"sh/8juho761","slide":4,"text":"Gelen kutusu ve WhatsApp","textPreview":"Gelen kutusu ve WhatsApp","textChars":24,"textLines":1,"bbox":[880,539,310,22]}
+{"kind":"shape","id":"sh/7il0v2pw","slide":4,"bbox":[754,246,96,43]}
+{"kind":"shape","id":"sh/mhszmxob","slide":4,"bbox":[754,289,96,97]}
+{"kind":"shape","id":"sh/pozyl87i","slide":4,"bbox":[754,479,96,47]}
+{"kind":"notes","id":"nt/gz5sn0","slide":4,"text":"Vega sadece salt okunur kullanılmalıdır. Ürün fotoğrafları ve operasyonel yazmalar Melisa ERP tarafında kalır."}
+{"kind":"slide","id":"sl/br8n2q","slide":5,"title":"BAŞARILAR","textShapes":16}
+{"kind":"textbox","id":"sh/ry1ozy5s","slide":5,"text":"BAŞARILAR","textPreview":"BAŞARILAR","textChars":9,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/czap8jmd","slide":5,"text":"ERP Core: geniş kapsam, kontrollü etki","textPreview":"ERP Core: geniş kapsam, kontrollü etki","textChars":38,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/d0j61ony","slide":5,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/e1s7at43","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/z2lo3y5o","slide":5,"bbox":[54,190,546,176]}
+{"kind":"shape","id":"sh/03upc3m9","slide":5,"bbox":[76,215,54,54]}
+{"kind":"textbox","id":"sh/1o3658nu","slide":5,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[76,225.8,54,29.7]}
+{"kind":"textbox","id":"sh/mpc7ed4f","slide":5,"text":"Ticari omurga","textPreview":"Ticari omurga","textChars":13,"textLines":1,"bbox":[150,216,410,34]}
+{"kind":"textbox","id":"sh/nql87i50","slide":5,"text":"Stok • cari • satış • alış • finans","textPreview":"Stok • cari • satış • alış • finans","textChars":35,"textLines":1,"bbox":[150,268,410,42]}
+{"kind":"shape","id":"sh/zetwfipw","slide":5,"bbox":[630,190,546,176]}
+{"kind":"shape","id":"sh/yd0v6x8b","slide":5,"bbox":[652,215,54,54]}
+{"kind":"textbox","id":"sh/lgbehs72","slide":5,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[652,225.8,54,29.7]}
+{"kind":"textbox","id":"sh/kf2d8nqh","slide":5,"text":"Belge gerçeği","textPreview":"Belge gerçeği","textChars":13,"textLines":1,"bbox":[726,216,410,34]}
+{"kind":"textbox","id":"sh/ba9cbip0","slide":5,"text":"Taslak • kesin • iptal • ters kayıt","textPreview":"Taslak • kesin • iptal • ters kayıt","textChars":35,"textLines":1,"bbox":[726,268,410,42]}
+{"kind":"shape","id":"sh/a90v2d8f","slide":5,"bbox":[54,395,546,176]}
+{"kind":"shape","id":"sh/xcreds7q","slide":5,"bbox":[76,420,54,54]}
+{"kind":"textbox","id":"sh/cbid4nq5","slide":5,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[76,430.8,54,29.7]}
+{"kind":"textbox","id":"sh/v6dwn2p4","slide":5,"text":"Kontrol katmanı","textPreview":"Kontrol katmanı","textChars":15,"textLines":1,"bbox":[150,421,410,34]}
+{"kind":"textbox","id":"sh/u5kveh8j","slide":5,"text":"Yetki • audit • import önizleme","textPreview":"Yetki • audit • import önizleme","textChars":31,"textLines":1,"bbox":[150,473,410,42]}
+{"kind":"shape","id":"sh/61ozm1sr","slide":5,"bbox":[630,395,546,176]}
+{"kind":"shape","id":"sh/r2xgf69c","slide":5,"bbox":[652,420,54,54]}
+{"kind":"textbox","id":"sh/s36hobax","slide":5,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[652,430.8,54,29.7]}
+{"kind":"textbox","id":"sh/t4fyhgri","slide":5,"text":"Karar desteği","textPreview":"Karar desteği","textChars":13,"textLines":1,"bbox":[726,421,410,34]}
+{"kind":"textbox","id":"sh/e58zqlsn","slide":5,"text":"Rapor • dashboard • döviz görüntüsü","textPreview":"Rapor • dashboard • döviz görüntüsü","textChars":35,"textLines":1,"bbox":[726,473,410,42]}
+{"kind":"shape","id":"sh/f6hgjq98","slide":5,"bbox":[54,618,1122,48]}
+{"kind":"textbox","id":"sh/g7qhsvat","slide":5,"text":"Kabul kararı ≠ üretim kapılarının kapanması","textPreview":"Kabul kararı ≠ üretim kapılarının kapanması","textChars":43,"textLines":1,"bbox":[76,630,1080,24]}
+{"kind":"notes","id":"nt/br8n2q","slide":5,"text":"ERP Core kapsamı 43 sprintlik stabilizasyon zinciriyle doğrulandı. Üretim readiness ayrı bir kapıdır.\n\n[Sources]\ndocs/erp-v2/current-status.md\ndocs/erp-v2/final-closure-decision.md"}
+{"kind":"slide","id":"sl/68dx2g","slide":6,"title":"OPERASYON","textShapes":20}
+{"kind":"textbox","id":"sh/1cv2x07e","slide":6,"text":"OPERASYON","textPreview":"OPERASYON","textChars":9,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/e94jml8n","slide":6,"text":"Stoktan tahsilata görev odaklı akış","textPreview":"Stoktan tahsilata görev odaklı akış","textChars":35,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/fadkvqp8","slide":6,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/oz6lsfq5","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/p0f2107a","slide":6,"bbox":[149,190,70,70]}
+{"kind":"textbox","id":"sh/2xo3q58z","slide":6,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[149,204,70,38.5]}
+{"kind":"textbox","id":"sh/3yxkzapk","slide":6,"text":"Ürün / Stok","textPreview":"Ürün / Stok","textChars":11,"textLines":1,"bbox":[54,282,260,42]}
+{"kind":"textbox","id":"sh/4321gbql","slide":6,"text":"Anlık mükerrer uyarı\nToplu kart + OCR\nKart açılış tarihi","textPreview":"Anlık mükerrer uyarı | Toplu kart + OCR | Kart açılış tarihi","textChars":56,"textLines":3,"bbox":[54,344,260,116]}
+{"kind":"textbox","id":"sh/54b2pg76","slide":6,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[318,205,42,42]}
+{"kind":"shape","id":"sh/h8nupg3u","slide":6,"bbox":[438,190,70,70]}
+{"kind":"textbox","id":"sh/g7edgbm9","slide":6,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[438,204,70,38.5]}
+{"kind":"textbox","id":"sh/f65cn6lo","slide":6,"text":"Müşteri / Tedarikçi","textPreview":"Müşteri / Tedarikçi","textChars":19,"textLines":1,"bbox":[343,282,260,42]}
+{"kind":"textbox","id":"sh/u5wvel43","slide":6,"text":"Vega canlı cari\nHareket + belge popup\nMüşteri/tedarikçi ayrımı","textPreview":"Vega canlı cari | Hareket + belge popup | Müşteri/tedarikçi ayrımı","textChars":62,"textLines":3,"bbox":[343,344,260,116]}
+{"kind":"textbox","id":"sh/pc7ut03q","slide":6,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[607,205,42,42]}
+{"kind":"shape","id":"sh/4bydkvm5","slide":6,"bbox":[727,190,70,70]}
+{"kind":"textbox","id":"sh/3apcrql0","slide":6,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[727,204,70,38.5]}
+{"kind":"textbox","id":"sh/29wvil4f","slide":6,"text":"Satış / Alış","textPreview":"Satış / Alış","textChars":12,"textLines":1,"bbox":[632,282,260,42]}
+{"kind":"textbox","id":"sh/d07ex032","slide":6,"text":"Detaylı arama\nPeşin TL/USD/EUR\nBaşlık + satır","textPreview":"Detaylı arama | Peşin TL/USD/EUR | Başlık + satır","textChars":45,"textLines":3,"bbox":[632,344,260,116]}
+{"kind":"textbox","id":"sh/czydov2h","slide":6,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[896,205,42,42]}
+{"kind":"shape","id":"sh/wvq5g3ep","slide":6,"bbox":[1016,190,70,70]}
+{"kind":"textbox","id":"sh/xwz698fa","slide":6,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[1016,204,70,38.5]}
+{"kind":"textbox","id":"sh/at8netwz","slide":6,"text":"Finans / Rapor","textPreview":"Finans / Rapor","textChars":14,"textLines":1,"bbox":[921,282,260,42]}
+{"kind":"textbox","id":"sh/buho7yx4","slide":6,"text":"Tahsilat/ödeme\nÇoklu döviz\nPerformans raporu","textPreview":"Tahsilat/ödeme | Çoklu döviz | Performans raporu","textChars":44,"textLines":3,"bbox":[921,344,260,116]}
+{"kind":"shape","id":"sh/kjapkne1","slide":6,"bbox":[54,510,1120,116]}
+{"kind":"textbox","id":"sh/5kj6dsfm","slide":6,"text":"Vega etkilenmez","textPreview":"Vega etkilenmez","textChars":15,"textLines":1,"bbox":[78,533,220,28]}
+{"kind":"textbox","id":"sh/yh8nidwv","slide":6,"text":"Stok kartı, cari ve belgeler canlı okunur; fotoğraf ve işlem yazmaları Melisa ERP’de kalır.","textPreview":"Stok kartı, cari ve belgeler canlı okunur; fotoğraf ve işlem yazmaları Melisa ERP’de kalır.","textChars":91,"textLines":1,"bbox":[308,529,830,58]}
+{"kind":"notes","id":"nt/68dx2g","slide":6,"text":"Ürün, müşteri, tedarikçi, satış/alış ve finans modülleri ana raporda ayrıntılıdır."}
+{"kind":"slide","id":"sl/1ycndb","slide":7,"title":"TERMINAL + MASAÜSTÜ","textShapes":23}
+{"kind":"textbox","id":"sh/dgnq9gre","slide":7,"text":"TERMINAL + MASAÜSTÜ","textPreview":"TERMINAL + MASAÜSTÜ","textChars":19,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/qdc7elsn","slide":7,"text":"Saha uygulaması iş sürekliliğini taşıyor","textPreview":"Saha uygulaması iş sürekliliğini taşıyor","textChars":40,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/bel87q98","slide":7,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/0jepkvap","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/lknqd0ra","slide":7,"bbox":[54,190,390,430]}
+{"kind":"textbox","id":"sh/yhw7ilsj","slide":7,"text":"ANDROID\nEL TERMİNALİ","textPreview":"ANDROID | EL TERMİNALİ","textChars":20,"textLines":2,"bbox":[90,224,320,74]}
+{"kind":"shape","id":"sh/zi58bq94","slide":7,"bbox":[90,326,22,22]}
+{"kind":"textbox","id":"sh/gnap8bal","slide":7,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[90,330.4,22,12.1]}
+{"kind":"textbox","id":"sh/1oj61wr6","slide":7,"text":"Personel + şifre girişi","textPreview":"Personel + şifre girişi","textChars":23,"textLines":1,"bbox":[126,324,270,24]}
+{"kind":"shape","id":"sh/p0bmx0zq","slide":7,"bbox":[90,369,22,22]}
+{"kind":"textbox","id":"sh/oz2lovi5","slide":7,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[90,373.4,22,12.1]}
+{"kind":"textbox","id":"sh/nyt4vqhk","slide":7,"text":"Değiştirilebilir API/IP","textPreview":"Değiştirilebilir API/IP","textChars":23,"textLines":1,"bbox":[126,367,270,24]}
+{"kind":"shape","id":"sh/2xk3ml0z","slide":7,"bbox":[90,412,22,22]}
+{"kind":"textbox","id":"sh/xovm10zm","slide":7,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[90,416.4,22,12.1]}
+{"kind":"textbox","id":"sh/cnm5svi1","slide":7,"text":"Klavye güvenli ekran","textPreview":"Klavye güvenli ekran","textChars":20,"textLines":1,"bbox":[126,410,270,24]}
+{"kind":"shape","id":"sh/bmd4zqhg","slide":7,"bbox":[90,455,22,22]}
+{"kind":"textbox","id":"sh/a1knq50b","slide":7,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[90,459.4,22,12.1]}
+{"kind":"textbox","id":"sh/lsvm5kzy","slide":7,"text":"Otomatik taslak kurtarma","textPreview":"Otomatik taslak kurtarma","textChars":24,"textLines":1,"bbox":[126,453,270,24]}
+{"kind":"shape","id":"sh/krm5wfid","slide":7,"bbox":[90,498,22,22]}
+{"kind":"textbox","id":"sh/4vup8j69","slide":7,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[90,502.4,22,12.1]}
+{"kind":"textbox","id":"sh/5w361o7u","slide":7,"text":"Offline kuyruk / senkron","textPreview":"Offline kuyruk / senkron","textChars":24,"textLines":1,"bbox":[126,496,270,24]}
+{"kind":"shape","id":"sh/itc769oj","slide":7,"bbox":[90,541,22,22]}
+{"kind":"textbox","id":"sh/julozep4","slide":7,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[90,545.4,22,12.1]}
+{"kind":"textbox","id":"sh/szepc36l","slide":7,"text":"ERP-PC yazdırma","textPreview":"ERP-PC yazdırma","textChars":15,"textLines":1,"bbox":[126,539,270,24]}
+{"kind":"shape","id":"sh/t0n65876","slide":7,"bbox":[494,190,326,430]}
+{"kind":"textbox","id":"sh/6xc7atof","slide":7,"text":"WINDOWS","textPreview":"WINDOWS","textChars":7,"textLines":1,"bbox":[528,224,250,32]}
+{"kind":"textbox","id":"sh/ry5o3yp0","slide":7,"text":"Electron masaüstü","textPreview":"Electron masaüstü","textChars":17,"textLines":1,"bbox":[528,268,250,28]}
+{"kind":"textbox","id":"sh/83a50z6h","slide":7,"text":"• Installer / EXE\n• Değiştirilebilir sunucu IP\n• DB ve sırlar pakete gömülmez\n• Logo, ikon ve splash","textPreview":"• Installer / EXE | • Değiştirilebilir sunucu IP | • DB ve sırlar pakete gömülmez | • Logo, ikon ve splash","textChars":100,"textLines":4,"bbox":[528,328,248,150]}
+{"kind":"shape","id":"sh/94j6t47m","slide":7,"bbox":[870,190,336,430]}
+{"kind":"textbox","id":"sh/but0v6dg","slide":7,"text":"SUNUCU","textPreview":"SUNUCU","textChars":6,"textLines":1,"bbox":[904,224,250,32]}
+{"kind":"textbox","id":"sh/at0jm1cv","slide":7,"text":"Yerel supervisor","textPreview":"Yerel supervisor","textChars":16,"textLines":1,"bbox":[904,268,250,28]}
+{"kind":"textbox","id":"sh/xwbixwvm","slide":7,"text":"• Gizli Windows başlangıcı\n• Periyodik sağlık kontrolü\n• LocalAppData logları\n• API ve yardımcı servis izlemi","textPreview":"• Gizli Windows başlangıcı | • Periyodik sağlık kontrolü | • LocalAppData logları | • API ve yardımcı servis izlemi","textChars":109,"textLines":4,"bbox":[904,328,250,150]}
+{"kind":"shape","id":"sh/cv21obu1","slide":7,"bbox":[494,526,712,70]}
+{"kind":"textbox","id":"sh/n690rmdk","slide":7,"text":"Saha hazır olmak için geçerli oturum + gerçek cihaz smoke zorunlu.","textPreview":"Saha hazır olmak için geçerli oturum + gerçek cihaz smoke zorunlu.","textChars":66,"textLines":1,"bbox":[520,548,660,28]}
+{"kind":"notes","id":"nt/1ycndb","slide":7,"text":"Terminalde hata kuyruğu veya geçersiz oturum varsa cihaz field-ready sayılmaz.\n\n[Sources]\ndocs/erp-v2/terminal-device-sync-validation-sprint-025-report.md"}
+{"kind":"slide","id":"sl/xujg14","slide":8,"title":"CRM","textShapes":28}
+{"kind":"textbox","id":"sh/do7a9one","slide":8,"text":"CRM","textPreview":"CRM","textChars":3,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/qlgret4n","slide":8,"text":"WhatsApp konuşmasını satış sürecine çevir","textPreview":"WhatsApp konuşmasını satış sürecine çevir","textChars":41,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/rmps7y58","slide":8,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/0rit43m5","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/1srad8na","slide":8,"bbox":[55,190,155,74]}
+{"kind":"textbox","id":"sh/epgb2t4z","slide":8,"text":"Mesaj","textPreview":"Mesaj","textChars":5,"textLines":1,"bbox":[65,213,135,28]}
+{"kind":"textbox","id":"sh/fq9sby5k","slide":8,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[211,206,34,34]}
+{"kind":"shape","id":"sh/gve98j6l","slide":8,"bbox":[245,190,155,74]}
+{"kind":"textbox","id":"sh/hwna14n6","slide":8,"text":"Ülke","textPreview":"Ülke","textChars":4,"textLines":1,"bbox":[255,213,135,28]}
+{"kind":"textbox","id":"sh/l8b2t4rq","slide":8,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[401,206,34,34]}
+{"kind":"shape","id":"sh/k7210zq5","slide":8,"bbox":[435,190,155,74]}
+{"kind":"textbox","id":"sh/z6tkru9k","slide":8,"text":"Atama","textPreview":"Atama","textChars":5,"textLines":1,"bbox":[445,213,135,28]}
+{"kind":"textbox","id":"sh/y50jyp8z","slide":8,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[591,206,34,34]}
+{"kind":"shape","id":"sh/9cb2x4rm","slide":8,"bbox":[625,190,155,74]}
+{"kind":"textbox","id":"sh/8b214zq1","slide":8,"text":"Katalog","textPreview":"Katalog","textChars":7,"textLines":1,"bbox":[635,213,135,28]}
+{"kind":"textbox","id":"sh/7atkvu9g","slide":8,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[781,206,34,34]}
+{"kind":"shape","id":"sh/m9kj298v","slide":8,"bbox":[815,190,155,74]}
+{"kind":"textbox","id":"sh/h0v21ori","slide":8,"text":"Teklif","textPreview":"Teklif","textChars":6,"textLines":1,"bbox":[825,213,135,28]}
+{"kind":"textbox","id":"sh/wzml8jqd","slide":8,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[971,206,34,34]}
+{"kind":"shape","id":"sh/gvedkr2l","slide":8,"bbox":[1005,190,155,74]}
+{"kind":"textbox","id":"sh/1wnutw36","slide":8,"text":"Sipariş","textPreview":"Sipariş","textChars":7,"textLines":1,"bbox":[1015,213,135,28]}
+{"kind":"shape","id":"sh/etcvihkf","slide":8,"bbox":[54,316,264,154]}
+{"kind":"shape","id":"sh/fulcrml0","slide":8,"bbox":[54,316,8,154]}
+{"kind":"textbox","id":"sh/ojedor2h","slide":8,"text":"SAĞLAYICI","textPreview":"SAĞLAYICI","textChars":9,"textLines":1,"bbox":[78,336,222,22]}
+{"kind":"textbox","id":"sh/pknexwj2","slide":8,"text":"Evolution","textPreview":"Evolution","textChars":9,"textLines":1,"bbox":[78,365,222,54]}
+{"kind":"textbox","id":"sh/2hwvmhkr","slide":8,"text":"Canlı bağlantı","textPreview":"Canlı bağlantı","textChars":14,"textLines":1,"bbox":[78,428,222,28]}
+{"kind":"shape","id":"sh/3i5wvmlc","slide":8,"bbox":[340,316,264,154]}
+{"kind":"shape","id":"sh/4nadc72d","slide":8,"bbox":[340,316,8,154]}
+{"kind":"textbox","id":"sh/5o3ulc3y","slide":8,"text":"GELEN KUTUSU","textPreview":"GELEN KUTUSU","textChars":12,"textLines":1,"bbox":[364,336,222,22]}
+{"kind":"textbox","id":"sh/7i9gralg","slide":8,"text":"Chatwoot","textPreview":"Chatwoot","textChars":8,"textLines":1,"bbox":[364,365,222,54]}
+{"kind":"textbox","id":"sh/mh0fi54v","slide":8,"text":"Özel CRM görünümü","textPreview":"Özel CRM görünümü","textChars":17,"textLines":1,"bbox":[364,428,222,28]}
+{"kind":"shape","id":"sh/9krytk3m","slide":8,"bbox":[626,316,264,154]}
+{"kind":"shape","id":"sh/8jixkfm1","slide":8,"bbox":[626,316,8,154]}
+{"kind":"textbox","id":"sh/ze9gnq5k","slide":8,"text":"PERSONEL EŞLEME","textPreview":"PERSONEL EŞLEME","textChars":15,"textLines":1,"bbox":[650,336,222,22]}
+{"kind":"textbox","id":"sh/ydgfel4z","slide":8,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[650,365,222,54]}
+{"kind":"textbox","id":"sh/lgryp0na","slide":8,"text":"Atama ve görev","textPreview":"Atama ve görev","textChars":14,"textLines":1,"bbox":[650,428,222,28]}
+{"kind":"shape","id":"sh/kfixgvmp","slide":8,"bbox":[912,316,264,154]}
+{"kind":"shape","id":"sh/bqpgjq58","slide":8,"bbox":[912,316,8,154]}
+{"kind":"textbox","id":"sh/apgfal4n","slide":8,"text":"GÖNDERIM","textPreview":"GÖNDERIM","textChars":8,"textLines":1,"bbox":[936,336,222,22]}
+{"kind":"textbox","id":"sh/qx0ju907","slide":8,"text":"Açık","textPreview":"Açık","textChars":4,"textLines":1,"bbox":[936,365,222,54]}
+{"kind":"textbox","id":"sh/ry9kne1s","slide":8,"text":"Canlı onaylı","textPreview":"Canlı onaylı","textChars":12,"textLines":1,"bbox":[936,428,222,28]}
+{"kind":"shape","id":"sh/szi1wjid","slide":8,"bbox":[54,510,1122,112]}
+{"kind":"textbox","id":"sh/dkb2pojy","slide":8,"text":"Güvenlik sınırı","textPreview":"Güvenlik sınırı","textChars":15,"textLines":1,"bbox":[78,532,230,26]}
+{"kind":"textbox","id":"sh/it0jq90b","slide":8,"text":"Doğrulanmamış LID/grup numarasını uydurma • CRM lead’i hemen muhasebe carisine çevirme • kişisel ve şirket hattını karıştırma","textPreview":"Doğrulanmamış LID/grup numarasını uydurma • CRM lead’i hemen muhasebe carisine çevirme • kişisel ve şirket hattını karıştırma","textChars":125,"textLines":1,"bbox":[310,528,830,58]}
+{"kind":"notes","id":"nt/xujg14","slide":8,"text":"19 Ağustos 2026 sağlık kontrolünde gönderim açık ve liveSendApproved=true. İdempotency hâlâ memory backend.\n\n[Sources]\nCRM /api/health 19 Ağustos 2026\ndocs/erp-v2/whatsapp-crm-operational-hardening.md"}
+{"kind":"slide","id":"sl/959a2l","slide":9,"title":"KALITE","textShapes":19}
+{"kind":"textbox","id":"sh/83i14jyp","slide":9,"text":"KALITE","textPreview":"KALITE","textChars":6,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/729kbex4","slide":9,"text":"Test kapsamı güçlü; üretim kanıtı ayrı","textPreview":"Test kapsamı güçlü; üretim kanıtı ayrı","textChars":38,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/610j29gj","slide":9,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/h8r2hof6","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/g7i18jyl","slide":9,"bbox":[54,190,250,154]}
+{"kind":"shape","id":"sh/f69kfex0","slide":9,"bbox":[54,190,8,154]}
+{"kind":"textbox","id":"sh/u50j6tgf","slide":9,"text":"ERP CORE","textPreview":"ERP CORE","textChars":8,"textLines":1,"bbox":[78,210,208,22]}
+{"kind":"textbox","id":"sh/xc7i54f2","slide":9,"text":"43 sprint","textPreview":"43 sprint","textChars":9,"textLines":1,"bbox":[78,239,208,54]}
+{"kind":"textbox","id":"sh/wby1wzyh","slide":9,"text":"Stabilizasyon zinciri","textPreview":"Stabilizasyon zinciri","textChars":21,"textLines":1,"bbox":[78,302,208,28]}
+{"kind":"shape","id":"sh/6tkrm9s3","slide":9,"bbox":[322,190,250,154]}
+{"kind":"shape","id":"sh/rut8veto","slide":9,"bbox":[322,190,8,154]}
+{"kind":"textbox","id":"sh/sv29oja9","slide":9,"text":"UX","textPreview":"UX","textChars":2,"textLines":1,"bbox":[346,210,208,22]}
+{"kind":"textbox","id":"sh/twbaxobe","slide":9,"text":"105 / 105","textPreview":"105 / 105","textChars":9,"textLines":1,"bbox":[346,239,208,54]}
+{"kind":"textbox","id":"sh/ex4rqtsz","slide":9,"text":"7/7 paket","textPreview":"7/7 paket","textChars":9,"textLines":1,"bbox":[346,302,208,28]}
+{"kind":"shape","id":"sh/fydszytk","slide":9,"bbox":[590,190,250,154]}
+{"kind":"shape","id":"sh/gzm9sja5","slide":9,"bbox":[590,190,8,154]}
+{"kind":"textbox","id":"sh/1kva1obq","slide":9,"text":"FINAL SMOKE","textPreview":"FINAL SMOKE","textChars":11,"textLines":1,"bbox":[614,210,208,22]}
+{"kind":"textbox","id":"sh/2l4rutsb","slide":9,"text":"32 / 0","textPreview":"32 / 0","textChars":6,"textLines":1,"bbox":[614,239,208,54]}
+{"kind":"textbox","id":"sh/3mds3ytw","slide":9,"text":"başarılı / hatalı","textPreview":"başarılı / hatalı","textChars":17,"textLines":1,"bbox":[614,302,208,28]}
+{"kind":"shape","id":"sh/zqx8rypo","slide":9,"bbox":[858,190,318,154]}
+{"kind":"shape","id":"sh/yporit8j","slide":9,"bbox":[858,190,8,154]}
+{"kind":"textbox","id":"sh/lsfqt87u","slide":9,"text":"RESPONSIVE","textPreview":"RESPONSIVE","textChars":10,"textLines":1,"bbox":[882,210,276,22]}
+{"kind":"textbox","id":"sh/0r69k3q9","slide":9,"text":"16 görünüm","textPreview":"16 görünüm","textChars":10,"textLines":1,"bbox":[882,239,276,54]}
+{"kind":"textbox","id":"sh/bmd8nyps","slide":9,"text":"4 ana çözünürlük","textPreview":"4 ana çözünürlük","textChars":16,"textLines":1,"bbox":[882,302,276,28]}
+{"kind":"shape","id":"sh/ql47et87","slide":9,"bbox":[54,386,550,210]}
+{"kind":"textbox","id":"sh/dofqpo7y","slide":9,"text":"KANITLANAN","textPreview":"KANITLANAN","textChars":10,"textLines":1,"bbox":[82,410,200,26]}
+{"kind":"textbox","id":"sh/cnmpg3qd","slide":9,"text":"• Rota ve ekran kapsamı\n• Kontrollü QA yazma akışı\n• Taşma ve responsive regresyon\n• CRM/ayar sınırları","textPreview":"• Rota ve ekran kapsamı | • Kontrollü QA yazma akışı | • Taşma ve responsive regresyon | • CRM/ayar sınırları","textChars":103,"textLines":4,"bbox":[82,454,470,116]}
+{"kind":"shape","id":"sh/3yd8jepw","slide":9,"bbox":[626,386,550,210]}
+{"kind":"textbox","id":"sh/2x47a98b","slide":9,"text":"KANITLANMAYAN","textPreview":"KANITLANMAYAN","textChars":13,"textLines":1,"bbox":[654,410,220,26]}
+{"kind":"textbox","id":"sh/s3i5kf6t","slide":9,"text":"• Gerçek üretim yedek dönüşü\n• Tam saha personel kabulü\n• Host / HTTPS / env kapanışı\n• Temiz release etiketi","textPreview":"• Gerçek üretim yedek dönüşü | • Tam saha personel kabulü | • Host / HTTPS / env kapanışı | • Temiz release etiketi","textChars":109,"textLines":4,"bbox":[654,454,470,116]}
+{"kind":"notes","id":"nt/959a2l","slide":9,"text":"İnsan kabulü 'accepted with warnings' olarak kaydedildi; granüler saha bulguları sınırlıdır.\n\n[Sources]\ndocs/erp-v2/final-human-acceptance-log.md\ndocs/erp-v2/erp-ux-sprint-008-final-regression-report.md"}
+{"kind":"slide","id":"sl/ig4rk1","slide":10,"title":"ŞIRKET VERISI • 18 AĞUSTOS 2026","textShapes":15}
+{"kind":"textbox","id":"sh/o76dsfyx","slide":10,"text":"ŞIRKET VERISI • 18 AĞUSTOS 2026","textPreview":"ŞIRKET VERISI • 18 AĞUSTOS 2026","textChars":31,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/36xwjahs","slide":10,"text":"2026: Euro büyüyor, USD ve TRY geriliyor","textPreview":"2026: Euro büyüyor, USD ve TRY geriliyor","textChars":40,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/25ovq5g7","slide":10,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/14feh0zm","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/g36dofy1","slide":10,"bbox":[54,178,336,154]}
+{"kind":"shape","id":"sh/fidcfahg","slide":10,"bbox":[54,178,8,154]}
+{"kind":"textbox","id":"sh/eh4vm5gv","slide":10,"text":"USD YTD","textPreview":"USD YTD","textChars":7,"textLines":1,"bbox":[78,198,294,22]}
+{"kind":"textbox","id":"sh/tgvud0za","slide":10,"text":"$1,766m","textPreview":"$1,766m","textChars":7,"textLines":1,"bbox":[78,227,294,54]}
+{"kind":"textbox","id":"sh/sfmdkvy5","slide":10,"text":"881 belge • 58 müşteri • -%5,6","textPreview":"881 belge • 58 müşteri • -%5,6","textChars":30,"textLines":1,"bbox":[78,290,294,28]}
+{"kind":"shape","id":"sh/qlg3qt0n","slide":10,"bbox":[402,178,336,154]}
+{"kind":"shape","id":"sh/rmp4zy18","slide":10,"bbox":[402,178,8,154]}
+{"kind":"textbox","id":"sh/cny5s3it","slide":10,"text":"EUR YTD","textPreview":"EUR YTD","textChars":7,"textLines":1,"bbox":[426,198,294,22]}
+{"kind":"textbox","id":"sh/do7m18ze","slide":10,"text":"€461k","textPreview":"€461k","textChars":5,"textLines":1,"bbox":[426,227,294,54]}
+{"kind":"textbox","id":"sh/2xw3mt0r","slide":10,"text":"412 belge • 16 müşteri • +%14,5","textPreview":"412 belge • 16 müşteri • +%14,5","textChars":31,"textLines":1,"bbox":[426,290,294,28]}
+{"kind":"shape","id":"sh/3y54ve1c","slide":10,"bbox":[750,178,336,154]}
+{"kind":"shape","id":"sh/4zylojih","slide":10,"bbox":[750,178,8,154]}
+{"kind":"textbox","id":"sh/pk7mxoj2","slide":10,"text":"TRY YTD","textPreview":"TRY YTD","textChars":7,"textLines":1,"bbox":[774,198,294,22]}
+{"kind":"textbox","id":"sh/utw3i90f","slide":10,"text":"₺2,600m","textPreview":"₺2,600m","textChars":7,"textLines":1,"bbox":[774,227,294,54]}
+{"kind":"textbox","id":"sh/fu54re10","slide":10,"text":"138 belge • 8 müşteri • -%20,6","textPreview":"138 belge • 8 müşteri • -%20,6","textChars":30,"textLines":1,"bbox":[774,290,294,28]}
+{"kind":"shape","id":"sh/yxsjq5g7","slide":10,"bbox":[790,374,386,250]}
+{"kind":"textbox","id":"sh/l0321kzy","slide":10,"text":"2026 BAZ\nPROJEKSİYONU","textPreview":"2026 BAZ | PROJEKSİYONU","textChars":21,"textLines":2,"bbox":[824,400,320,62]}
+{"kind":"textbox","id":"sh/kza1sfyd","slide":10,"text":"$3,856m","textPreview":"$3,856m","textChars":7,"textLines":1,"bbox":[824,476,320,58]}
+{"kind":"textbox","id":"sh/72lk3uh4","slide":10,"text":"USD eşdeğeri\n2025 mevsimselliği","textPreview":"USD eşdeğeri | 2025 mevsimselliği","textChars":31,"textLines":2,"bbox":[824,544,320,50]}
+{"kind":"chart","id":"ch/na1gz294","slide":10,"name":"","chartType":"bar","bbox":[54,374,700,250]}
+{"kind":"notes","id":"nt/ig4rk1","slide":10,"text":"2026 YTD rakamları 18 Ağustos tarihli salt okunur Vega görüntüsüdür. 2026 tam yıl baz projeksiyondur.\n\n[Sources]\nVega 2026 salt okunur analiz, 18 Ağustos 2026\nhttps://www.tcmb.gov.tr/kurlar/kurlar_tr.html"}
+{"kind":"slide","id":"sl/mt0u4j","slide":11,"title":"STOK SAĞLIĞI","textShapes":19}
+{"kind":"textbox","id":"sh/ulk3ix4j","slide":11,"text":"STOK SAĞLIĞI","textPreview":"STOK SAĞLIĞI","textChars":12,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/hobmdsnu","slide":11,"text":"Stok büyümenin önündeki ilk operasyon kapısı","textPreview":"Stok büyümenin önündeki ilk operasyon kapısı","textChars":44,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/gn2lknmp","slide":11,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/3qt4f250","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/ipk3mx4f","slide":11,"bbox":[54,206,185.87,82]}
+{"kind":"textbox","id":"sh/5cvmhc36","slide":11,"text":"16.6%","textPreview":"16.6%","textChars":5,"textLines":1,"bbox":[54,230,185.87,28]}
+{"kind":"shape","id":"sh/4r2lo7ml","slide":11,"bbox":[239.87,206,900.63,82]}
+{"kind":"textbox","id":"sh/ju9k3i5w","slide":11,"text":"80.3%","textPreview":"80.3%","textChars":5,"textLines":1,"bbox":[239.87,230,900.63,28]}
+{"kind":"shape","id":"sh/ytg3ad4b","slide":11,"bbox":[1140.5,206,35.5,82]}
+{"kind":"shape","id":"sh/obixkr61","slide":11,"bbox":[54,330,264,154]}
+{"kind":"shape","id":"sh/pcrytwnm","slide":11,"bbox":[54,330,8,154]}
+{"kind":"textbox","id":"sh/290fihov","slide":11,"text":"POZITIF","textPreview":"POZITIF","textChars":7,"textLines":1,"bbox":[78,350,222,22]}
+{"kind":"textbox","id":"sh/3a9wrm5g","slide":11,"text":"1.843","textPreview":"1.843","textChars":5,"textLines":1,"bbox":[78,379,222,54]}
+{"kind":"textbox","id":"sh/cf2xormx","slide":11,"text":"yaklaşık $811k maliyet","textPreview":"yaklaşık $811k maliyet","textChars":22,"textLines":1,"bbox":[78,442,222,28]}
+{"kind":"shape","id":"sh/dgbyxwni","slide":11,"bbox":[340,330,264,154]}
+{"kind":"shape","id":"sh/qd0fmh4r","slide":11,"bbox":[340,330,8,154]}
+{"kind":"textbox","id":"sh/betgvm5c","slide":11,"text":"SIFIR","textPreview":"SIFIR","textChars":5,"textLines":1,"bbox":[364,350,222,22]}
+{"kind":"textbox","id":"sh/sjyxc76t","slide":11,"text":"8.930","textPreview":"8.930","textChars":5,"textLines":1,"bbox":[364,379,222,54]}
+{"kind":"textbox","id":"sh/tk7elsne","slide":11,"text":"aktif kartların %80,3'ü","textPreview":"aktif kartların %80,3'ü","textChars":23,"textLines":1,"bbox":[364,442,222,28]}
+{"kind":"shape","id":"sh/9ofmt4bq","slide":11,"bbox":[626,330,264,154]}
+{"kind":"shape","id":"sh/8n6l0zu5","slide":11,"bbox":[626,330,8,154]}
+{"kind":"textbox","id":"sh/n2x4rut0","slide":11,"text":"NEGATIF","textPreview":"NEGATIF","textChars":7,"textLines":1,"bbox":[650,350,222,22]}
+{"kind":"textbox","id":"sh/m1o3ypcf","slide":11,"text":"352","textPreview":"352","textChars":3,"textLines":1,"bbox":[650,379,222,54]}
+{"kind":"textbox","id":"sh/xszmx4b2","slide":11,"text":"işlem kök nedeni gerekli","textPreview":"işlem kök nedeni gerekli","textChars":24,"textLines":1,"bbox":[650,442,222,28]}
+{"kind":"shape","id":"sh/wrql4zuh","slide":11,"bbox":[912,330,264,154]}
+{"kind":"shape","id":"sh/vqh4vutw","slide":11,"bbox":[912,330,8,154]}
+{"kind":"textbox","id":"sh/apo329cb","slide":11,"text":"HAREKETSIZ","textPreview":"HAREKETSIZ","textChars":10,"textLines":1,"bbox":[936,350,222,22]}
+{"kind":"textbox","id":"sh/5wzm1oby","slide":11,"text":"$165k","textPreview":"$165k","textChars":5,"textLines":1,"bbox":[936,379,222,54]}
+{"kind":"textbox","id":"sh/kvq58jud","slide":11,"text":"pozitif değerin %20,3'ü","textPreview":"pozitif değerin %20,3'ü","textChars":23,"textLines":1,"bbox":[936,442,222,28]}
+{"kind":"shape","id":"sh/21kj2lsv","slide":11,"bbox":[54,528,1122,94]}
+{"kind":"textbox","id":"sh/32t0vq9g","slide":11,"text":"Öncelik","textPreview":"Öncelik","textChars":7,"textLines":1,"bbox":[78,552,120,26]}
+{"kind":"textbox","id":"sh/o3214ba1","slide":11,"text":"Negatifi sıfırla → sıfır kartı arşivle → hareketsizi nakde çevir → 3.000+ güçlü pozitif ürün.","textPreview":"Negatifi sıfırla → sıfır kartı arşivle → hareketsizi nakde çevir → 3.000+ güçlü pozitif ürün.","textChars":93,"textLines":1,"bbox":[210,546,930,40]}
+{"kind":"notes","id":"nt/mt0u4j","slide":11,"text":"Stok sayıları 18 Ağustos 2026 tarihli Vega anlık görüntüsüdür."}
+{"kind":"slide","id":"sl/fsycfi","slide":12,"title":"MÜŞTERI RISKI","textShapes":12}
+{"kind":"textbox","id":"sh/8zytwvy9","slide":12,"text":"MÜŞTERI RISKI","textPreview":"MÜŞTERI RISKI","textChars":13,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/7ypsnqho","slide":12,"text":"Ciro kadar tahsilat kalitesi de büyütür","textPreview":"Ciro kadar tahsilat kalitesi de büyütür","textChars":39,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/mxwbulg3","slide":12,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/h47at0zq","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/w3yt0vy5","slide":12,"bbox":[54,190,536,196]}
+{"kind":"textbox","id":"sh/v2psrqhk","slide":12,"text":"NUTSİ","textPreview":"NUTSİ","textChars":5,"textLines":1,"bbox":[84,218,220,32]}
+{"kind":"textbox","id":"sh/u1gby5gf","slide":12,"text":"$141.674","textPreview":"$141.674","textChars":8,"textLines":1,"bbox":[84,270,220,48]}
+{"kind":"textbox","id":"sh/5sraxkz2","slide":12,"text":"yaklaşık 146 gün DSO","textPreview":"yaklaşık 146 gün DSO","textChars":20,"textLines":1,"bbox":[306,279,240,30]}
+{"kind":"shape","id":"sh/4rit4fyh","slide":12,"bbox":[618,190,536,196]}
+{"kind":"textbox","id":"sh/y90rqhgb","slide":12,"text":"YASMİN","textPreview":"YASMİN","textChars":6,"textLines":1,"bbox":[648,218,220,32]}
+{"kind":"textbox","id":"sh/ja98jmhw","slide":12,"text":"₺217.490","textPreview":"₺217.490","textChars":8,"textLines":1,"bbox":[648,270,220,48]}
+{"kind":"textbox","id":"sh/kb29sry1","slide":12,"text":"yaklaşık 100 gün DSO","textPreview":"yaklaşık 100 gün DSO","textChars":20,"textLines":1,"bbox":[870,279,240,30]}
+{"kind":"shape","id":"sh/lcbqlwzm","slide":12,"bbox":[54,426,1100,178]}
+{"kind":"textbox","id":"sh/6dkruhg7","slide":12,"text":"Müşteri skoru","textPreview":"Müşteri skoru","textChars":13,"textLines":1,"bbox":[82,452,250,30]}
+{"kind":"textbox","id":"sh/7etsnmhs","slide":12,"text":"Ciro + katkı marjı + açık bakiye + DSO + iade/iskonto + personel emeği","textPreview":"Ciro + katkı marjı + açık bakiye + DSO + iade/iskonto + personel emeği","textChars":70,"textLines":1,"bbox":[82,500,1020,40]}
+{"kind":"textbox","id":"sh/8f29wryd","slide":12,"text":"Yaklaşık 82 aktif müşteri • ortalama ≈ $47k eşdeğer hacim","textPreview":"Yaklaşık 82 aktif müşteri • ortalama ≈ $47k eşdeğer hacim","textChars":57,"textLines":1,"bbox":[82,560,800,24]}
+{"kind":"notes","id":"nt/fsycfi","slide":12,"text":"Örnek müşteri bakiyeleri ve DSO rakamları tarihli analizdir; güncel karar öncesi yenilenmelidir."}
+{"kind":"slide","id":"sl/6rpzkk","slide":13,"title":"BÜYÜME SENARYOLARI","textShapes":10}
+{"kind":"textbox","id":"sh/2dwb65sb","slide":13,"text":"BÜYÜME SENARYOLARI","textPreview":"BÜYÜME SENARYOLARI","textChars":18,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/pgnu10rm","slide":13,"text":"Talep yaratmak yetmez; kapasite birlikte büyümeli","textPreview":"Talep yaratmak yetmez; kapasite birlikte büyümeli","textChars":49,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/4fet8va1","slide":13,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/fqlcvq9k","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/hsnux0rq","slide":13,"bbox":[852,178,324,124]}
+{"kind":"textbox","id":"sh/gret4va5","slide":13,"text":"Temkinli","textPreview":"Temkinli","textChars":8,"textLines":1,"bbox":[880,198,180,24]}
+{"kind":"textbox","id":"sh/zmpc7u9o","slide":13,"text":"+%20","textPreview":"+%20","textChars":4,"textLines":1,"bbox":[880,232,180,42]}
+{"kind":"shape","id":"sh/ylgbepsj","slide":13,"bbox":[852,324,324,124]}
+{"kind":"textbox","id":"sh/0nq1czmd","slide":13,"text":"Merkezi","textPreview":"Merkezi","textChars":7,"textLines":1,"bbox":[880,344,180,24]}
+{"kind":"textbox","id":"sh/18j254ny","slide":13,"text":"+%42","textPreview":"+%42","textChars":4,"textLines":1,"bbox":[880,378,180,42]}
+{"kind":"shape","id":"sh/el8ja947","slide":13,"bbox":[852,470,324,124]}
+{"kind":"textbox","id":"sh/zmh03u5s","slide":13,"text":"Güçlü","textPreview":"Güçlü","textChars":5,"textLines":1,"bbox":[880,490,180,24]}
+{"kind":"textbox","id":"sh/cjq18zmh","slide":13,"text":"+%70","textPreview":"+%70","textChars":4,"textLines":1,"bbox":[880,524,180,42]}
+{"kind":"textbox","id":"sh/dkzi14n2","slide":13,"text":"Garanti değil: stok, satış kadrosu, lojistik ve çalışma sermayesine bağlıdır.","textPreview":"Garanti değil: stok, satış kadrosu, lojistik ve çalışma sermayesine bağlıdır.","textChars":77,"textLines":1,"bbox":[54,620,1100,24]}
+{"kind":"chart","id":"ch/el0ra5kf","slide":13,"name":"","chartType":"line","bbox":[54,178,760,414]}
+{"kind":"notes","id":"nt/6rpzkk","slide":13,"text":"Senaryolar yönetim varsayımlarıdır; piyasa ve şirket kapasitesiyle stres test edilmelidir.\n\n[Sources]\nhttps://icticaret.ticaret.gov.tr/haberler/turkiyede-e-ticaretin-gorunumu-raporu-2025in-ingilizce-versiyonu-yayimlandi\nhttps://datareportal.com/reports/digital-2026-turkey\nhttps://about.fb.com/news/2025/04/ways-to-manage-your-businesses-chats-on-whatsapp/"}
+{"kind":"slide","id":"sl/fncq9b","slide":14,"title":"BÜYÜME ROTASI","textShapes":13}
+{"kind":"textbox","id":"sh/n69wv25k","slide":14,"text":"BÜYÜME ROTASI","textPreview":"BÜYÜME ROTASI","textChars":13,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/o7ido765","slide":14,"text":"10 milyon USD mümkün; 4 yıllık disiplin ister","textPreview":"10 milyon USD mümkün; 4 yıllık disiplin ister","textChars":45,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/98bexcnq","slide":14,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/a9kvqhob","slide":14,"text":"14","textPreview":"14","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/wb2ds761","slide":14,"bbox":[790,182,386,390]}
+{"kind":"textbox","id":"sh/xcbe1cnm","slide":14,"text":"GELİR KÖPRÜSÜ","textPreview":"GELİR KÖPRÜSÜ","textChars":13,"textLines":1,"bbox":[820,208,320,28]}
+{"kind":"textbox","id":"sh/qdgvedor","slide":14,"text":"Mevcut müşteri","textPreview":"Mevcut müşteri","textChars":14,"textLines":1,"bbox":[820,264,230,26]}
+{"kind":"textbox","id":"sh/repcni5c","slide":14,"text":"$4,60m","textPreview":"$4,60m","textChars":6,"textLines":1,"bbox":[1050,264,90,26]}
+{"kind":"shape","id":"sh/japwvyxc","slide":14,"bbox":[820,298,320,0.01]}
+{"kind":"textbox","id":"sh/y9gv2twr","slide":14,"text":"70 yeni perakendeci","textPreview":"70 yeni perakendeci","textChars":19,"textLines":1,"bbox":[820,328,230,26]}
+{"kind":"textbox","id":"sh/lcrex8fi","slide":14,"text":"$2,45m","textPreview":"$2,45m","textChars":6,"textLines":1,"bbox":[1050,328,90,26]}
+{"kind":"shape","id":"sh/kbyd43ex","slide":14,"bbox":[820,362,320,0.01]}
+{"kind":"textbox","id":"sh/b6pcrex0","slide":14,"text":"8 distribütör","textPreview":"8 distribütör","textChars":13,"textLines":1,"bbox":[820,392,230,26]}
+{"kind":"textbox","id":"sh/a5gvy9wv","slide":14,"text":"$2,00m","textPreview":"$2,00m","textChars":6,"textLines":1,"bbox":[1050,392,90,26]}
+{"kind":"shape","id":"sh/x87utof6","slide":14,"bbox":[820,426,320,0.01]}
+{"kind":"textbox","id":"sh/w7yd0jel","slide":14,"text":"Private label / geri kazanım","textPreview":"Private label / geri kazanım","textChars":28,"textLines":1,"bbox":[820,456,230,26]}
+{"kind":"textbox","id":"sh/n25cnex4","slide":14,"text":"$0,95m","textPreview":"$0,95m","textChars":6,"textLines":1,"bbox":[1050,456,90,26]}
+{"kind":"shape","id":"sh/mhwvu9wj","slide":14,"bbox":[820,490,320,0.01]}
+{"kind":"textbox","id":"sh/qdcv690b","slide":14,"text":"4 yılda gerekli CAGR  •  %26,9","textPreview":"4 yılda gerekli CAGR  •  %26,9","textChars":30,"textLines":1,"bbox":[54,610,700,28]}
+{"kind":"chart","id":"ch/7u5kv214","slide":14,"name":"","chartType":"line","bbox":[54,182,690,390]}
+{"kind":"notes","id":"nt/fncq9b","slide":14,"text":"10m köprüsü planlama modelidir. Gelir kalemleri, marj ve çalışma sermayesiyle birlikte doğrulanmalıdır."}
+{"kind":"slide","id":"sl/xv3yik","slide":15,"title":"KRITIK AÇIKLAR VE 30 GÜN","textShapes":32}
+{"kind":"textbox","id":"sh/sj6pg725","slide":15,"text":"KRITIK AÇIKLAR VE 30 GÜN","textPreview":"KRITIK AÇIKLAR VE 30 GÜN","textChars":24,"textLines":1,"bbox":[54,34,500,24]}
+{"kind":"textbox","id":"sh/rixon21k","slide":15,"text":"Önce güvence, sonra ölçek","textPreview":"Önce güvence, sonra ölçek","textChars":25,"textLines":1,"bbox":[54,72,1110,72]}
+{"kind":"shape","id":"sh/6ho7exkz","slide":15,"bbox":[54,154,1172,0.01]}
+{"kind":"textbox","id":"sh/5gf6lsje","slide":15,"text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1182,34,44,22]}
+{"kind":"shape","id":"sh/4f6pcn2t","slide":15,"bbox":[54,184,534,420]}
+{"kind":"textbox","id":"sh/jexoji1o","slide":15,"text":"ÜRETİM KAPILARI","textPreview":"ÜRETİM KAPILARI","textChars":15,"textLines":1,"bbox":[82,210,300,28]}
+{"kind":"shape","id":"sh/id47axk3","slide":15,"bbox":[84,264,24,24]}
+{"kind":"textbox","id":"sh/pczqxwjy","slide":15,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[84,268.8,24,13.2]}
+{"kind":"textbox","id":"sh/obqpor2d","slide":15,"text":"Yedek + ayrı DB geri dönüş kanıtı","textPreview":"Yedek + ayrı DB geri dönüş kanıtı","textChars":33,"textLines":1,"bbox":[122,262,420,28]}
+{"kind":"shape","id":"sh/690329sr","slide":15,"bbox":[84,314,24,24]}
+{"kind":"textbox","id":"sh/ra94bu9c","slide":15,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[84,318.8,24,13.2]}
+{"kind":"textbox","id":"sh/sbil4zax","slide":15,"text":"Migration rehearsal","textPreview":"Migration rehearsal","textChars":19,"textLines":1,"bbox":[122,312,420,28]}
+{"kind":"shape","id":"sh/tcrmd4r2","slide":15,"bbox":[84,364,24,24]}
+{"kind":"textbox","id":"sh/i5g3ypsf","slide":15,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[84,368.8,24,13.2]}
+{"kind":"textbox","id":"sh/j6p47u90","slide":15,"text":"SQL least-privilege / sertifika","textPreview":"SQL least-privilege / sertifika","textChars":31,"textLines":1,"bbox":[122,362,420,28]}
+{"kind":"shape","id":"sh/k7il0zal","slide":15,"bbox":[84,414,24,24]}
+{"kind":"textbox","id":"sh/58rm94r6","slide":15,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[84,418.8,24,13.2]}
+{"kind":"textbox","id":"sh/21k3at8z","slide":15,"text":"Kullanıcı-rol-env sahipliği","textPreview":"Kullanıcı-rol-env sahipliği","textChars":27,"textLines":1,"bbox":[122,412,420,28]}
+{"kind":"shape","id":"sh/32t4je9k","slide":15,"bbox":[84,464,24,24]}
+{"kind":"textbox","id":"sh/zml0bqpw","slide":15,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[84,468.8,24,13.2]}
+{"kind":"textbox","id":"sh/ylcj2l8b","slide":15,"text":"Host • HTTPS • firewall","textPreview":"Host • HTTPS • firewall","textChars":23,"textLines":1,"bbox":[122,462,420,28]}
+{"kind":"shape","id":"sh/l8nidg72","slide":15,"bbox":[84,514,24,24]}
+{"kind":"textbox","id":"sh/0nu14bqh","slide":15,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[84,518.8,24,13.2]}
+{"kind":"textbox","id":"sh/na50fqps","slide":15,"text":"Temiz release branch/tag","textPreview":"Temiz release branch/tag","textChars":24,"textLines":1,"bbox":[122,512,420,28]}
+{"kind":"shape","id":"sh/m9wj6l87","slide":15,"bbox":[616,184,560,420]}
+{"kind":"textbox","id":"sh/9cnih07y","slide":15,"text":"İLK 30 GÜN","textPreview":"İLK 30 GÜN","textChars":10,"textLines":1,"bbox":[644,210,300,28]}
+{"kind":"shape","id":"sh/8be18vqd","slide":15,"bbox":[646,260,24,24]}
+{"kind":"textbox","id":"sh/ve50jap4","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,264.8,24,13.2]}
+{"kind":"textbox","id":"sh/adwja58j","slide":15,"text":"Dirty tree değişiklik envanteri","textPreview":"Dirty tree değişiklik envanteri","textChars":31,"textLines":1,"bbox":[684,258,440,26]}
+{"kind":"shape","id":"sh/sjyh0fmh","slide":15,"bbox":[646,304,24,24]}
+{"kind":"textbox","id":"sh/tk7it0n2","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,308.8,24,13.2]}
+{"kind":"textbox","id":"sh/6hgzy54r","slide":15,"text":"Gerçek backup/restore provası","textPreview":"Gerçek backup/restore provası","textChars":29,"textLines":1,"bbox":[684,302,440,26]}
+{"kind":"shape","id":"sh/7ip07a5w","slide":15,"bbox":[646,348,24,24]}
+{"kind":"textbox","id":"sh/kfyhwvml","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,352.8,24,13.2]}
+{"kind":"textbox","id":"sh/5g7i50n6","slide":15,"text":"Stok-cari-belge mutabakatı","textPreview":"Stok-cari-belge mutabakatı","textChars":26,"textLines":1,"bbox":[684,346,440,26]}
+{"kind":"shape","id":"sh/idwzul4f","slide":15,"bbox":[646,392,24,24]}
+{"kind":"textbox","id":"sh/je503q50","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,396.8,24,13.2]}
+{"kind":"textbox","id":"sh/wbehsvm9","slide":15,"text":"Negatif stok kök nedenleri","textPreview":"Negatif stok kök nedenleri","textChars":26,"textLines":1,"bbox":[684,390,440,26]}
+{"kind":"shape","id":"sh/xcni1gnu","slide":15,"bbox":[646,436,24,24]}
+{"kind":"textbox","id":"sh/lg3etw3m","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,440.8,24,13.2]}
+{"kind":"textbox","id":"sh/0vux0r21","slide":15,"text":"CRM durable idempotency","textPreview":"CRM durable idempotency","textChars":23,"textLines":1,"bbox":[684,434,440,26]}
+{"kind":"shape","id":"sh/zu1wrmlw","slide":15,"bbox":[646,480,24,24]}
+{"kind":"textbox","id":"sh/ytsfyhkb","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,484.8,24,13.2]}
+{"kind":"textbox","id":"sh/9k3exw3y","slide":15,"text":"Şirket hattı/personel smoke","textPreview":"Şirket hattı/personel smoke","textChars":27,"textLines":1,"bbox":[684,478,440,26]}
+{"kind":"shape","id":"sh/8jux4r2d","slide":15,"bbox":[646,524,24,24]}
+{"kind":"textbox","id":"sh/nilwvmls","slide":15,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[646,528.8,24,13.2]}
+{"kind":"textbox","id":"sh/mhcf2hk7","slide":15,"text":"Muhasebe ve operasyon sağlığını ayır","textPreview":"Muhasebe ve operasyon sağlığını ayır","textChars":36,"textLines":1,"bbox":[684,522,440,26]}
+{"kind":"textbox","id":"sh/pojels3e","slide":15,"text":"Bu kapılar kapanmadan yeni özellik sayısı başarı ölçüsü değildir.","textPreview":"Bu kapılar kapanmadan yeni özellik sayısı başarı ölçüsü değildir.","textChars":65,"textLines":1,"bbox":[54,628,1120,24]}
+{"kind":"notes","id":"nt/xv3yik","slide":15,"text":"Çalışma ağacında çok sayıda commit edilmemiş değişiklik vardır. Raporda bulunan güncel yeteneklerin bir bölümü henüz release-baselined değildir."}
+{"kind":"slide","id":"sl/aik5v8","slide":16,"title":"SONRAKİ YAPAY ZEKÂYA SOR","textShapes":15}
+{"kind":"textbox","id":"sh/ad83y5w7","slide":16,"text":"SONRAKİ YAPAY ZEKÂYA SOR","textPreview":"SONRAKİ YAPAY ZEKÂYA SOR","textChars":24,"textLines":1,"bbox":[54,42,500,26]}
+{"kind":"textbox","id":"sh/xgj29kvy","slide":16,"text":"Bu sistemi nasıl\ndaha güvenilir ve\nkârlı ölçekleriz?","textPreview":"Bu sistemi nasıl | daha güvenilir ve | kârlı ölçekleriz?","textChars":52,"textLines":3,"bbox":[54,105,550,210]}
+{"kind":"shape","id":"sh/wfal0fed","slide":16,"bbox":[675,100,230,114]}
+{"kind":"textbox","id":"sh/ji14bado","slide":16,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[693,116,38,22]}
+{"kind":"textbox","id":"sh/yhs325w3","slide":16,"text":"En güçlü 10 kazanım?","textPreview":"En güçlü 10 kazanım?","textChars":20,"textLines":1,"bbox":[693,148,194,48]}
+{"kind":"shape","id":"sh/lkjmdkvu","slide":16,"bbox":[935,100,230,114]}
+{"kind":"textbox","id":"sh/kjal4fe9","slide":16,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[953,116,38,22]}
+{"kind":"textbox","id":"sh/zmxkzqdk","slide":16,"text":"Üretimi engelleyen 10 risk?","textPreview":"Üretimi engelleyen 10 risk?","textChars":27,"textLines":1,"bbox":[953,148,194,48]}
+{"kind":"shape","id":"sh/elo3qlwz","slide":16,"bbox":[675,248,230,114]}
+{"kind":"textbox","id":"sh/of29sj2h","slide":16,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[693,264,38,22]}
+{"kind":"textbox","id":"sh/pgba1oj2","slide":16,"text":"Neyi sadeleştirelim?","textPreview":"Neyi sadeleştirelim?","textChars":20,"textLines":1,"bbox":[693,296,194,48]}
+{"kind":"shape","id":"sh/2dkrqtkr","slide":16,"bbox":[935,248,230,114]}
+{"kind":"textbox","id":"sh/netsze1w","slide":16,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[953,264,38,22]}
+{"kind":"textbox","id":"sh/cjm9w32t","slide":16,"text":"30 / 90 / 365 gün planı?","textPreview":"30 / 90 / 365 gün planı?","textChars":24,"textLines":1,"bbox":[953,296,194,48]}
+{"kind":"shape","id":"sh/xkva58je","slide":16,"bbox":[675,396,230,114]}
+{"kind":"textbox","id":"sh/ahkrutkn","slide":16,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[693,412,38,22]}
+{"kind":"textbox","id":"sh/bids3y18","slide":16,"text":"10m hedefinin zayıf varsayımları?","textPreview":"10m hedefinin zayıf varsayımları?","textChars":33,"textLines":1,"bbox":[693,444,194,48]}
+{"kind":"shape","id":"sh/sni9kz29","slide":16,"bbox":[935,396,230,114]}
+{"kind":"textbox","id":"sh/dorat43u","slide":16,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[953,412,38,22]}
+{"kind":"textbox","id":"sh/t4jqx0vy","slide":16,"text":"Her önerinin KPI / etki / eforu?","textPreview":"Her önerinin KPI / etki / eforu?","textChars":32,"textLines":1,"bbox":[953,444,194,48]}
+{"kind":"shape","id":"sh/sjapovud","slide":16,"bbox":[54,560,1120,88]}
+{"kind":"textbox","id":"sh/7i18vqds","slide":16,"text":"Kural: Canlı doğrulandı • Kodda var • Tarihli veri • Plan/hedef ayrımını bozma.","textPreview":"Kural: Canlı doğrulandı • Kodda var • Tarihli veri • Plan/hedef ayrımını bozma.","textChars":79,"textLines":1,"bbox":[82,586,1060,32]}
+{"kind":"notes","id":"nt/aik5v8","slide":16,"text":"Ayrıntılı değerlendirme talimatı master raporun 15. bölümündedir."}

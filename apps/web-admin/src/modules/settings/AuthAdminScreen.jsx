@@ -1,5 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchAuthAdminOverview, updateAuthAdminUser } from '../../services/authAdminApi.js';
+import {
+  createAuthAdminUser,
+  fetchAuthAdminOverview,
+  resetAuthAdminUserPassword,
+  updateAuthAdminUser,
+} from '../../services/authAdminApi.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
 
@@ -131,6 +136,9 @@ export function AuthAdminScreen({ permissions = [] }) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [createForm, setCreateForm] = useState({ username: '', displayName: '', password: '', roleId: '' });
+  const [newPassword, setNewPassword] = useState('');
   const canManageUsers = permissions.includes('settings.manage');
 
   const selectedUser = useMemo(
@@ -193,6 +201,10 @@ export function AuthAdminScreen({ permissions = [] }) {
       setData(nextData);
       setSelectedUserId((current) => nextData.users.some((user) => user.id === current) ? current : nextData.users[0]?.id ?? null);
       setSelectedRoleCode((current) => current || nextData.roles[0]?.code || '');
+      setCreateForm((current) => ({
+        ...current,
+        roleId: current.roleId || String(nextData.roles.find((role) => role.code === 'terminal_user')?.id || nextData.roles[0]?.id || ''),
+      }));
     } catch (error) {
       setData({ users: [], roles: [], permissions: [], auditLogs: [] });
       setErrorMessage(`${error.message || 'Yetki verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
@@ -221,13 +233,68 @@ export function AuthAdminScreen({ permissions = [] }) {
     setErrorMessage('');
     try {
       const response = await updateAuthAdminUser(selectedUser.id, {
+        username: selectedUser.username,
+        displayName: selectedUser.displayName,
         roleId: selectedUser.roleId,
         isActive: selectedUser.isActive,
       });
       setData(response.data);
-      setMessage('Kullanıcı erişimi güncellendi.');
+      setMessage('Kullanıcı adı ve erişimi güncellendi.');
     } catch (error) {
       setErrorMessage(`${error.message || 'Kullanıcı güncellenemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function createUser() {
+    if (!canManageUsers) {
+      setErrorMessage('Kullanıcı oluşturmak için settings.manage yetkisi gerekir.');
+      return;
+    }
+    if (!createForm.username.trim() || !createForm.displayName.trim() || !createForm.password || !createForm.roleId) {
+      setErrorMessage('Kullanıcı adı, görünen ad, şifre ve rol zorunludur.');
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage('');
+    setErrorMessage('');
+    try {
+      const response = await createAuthAdminUser({
+        username: createForm.username.trim(),
+        displayName: createForm.displayName.trim(),
+        password: createForm.password,
+        roleId: Number(createForm.roleId),
+      });
+      setData(response.data);
+      const created = response.data.users.find((user) => user.username === createForm.username.trim());
+      setSelectedUserId(created?.id || null);
+      setCreateForm((current) => ({ ...current, username: '', displayName: '', password: '' }));
+      setShowCreateUser(false);
+      setMessage('Yeni ERP kullanıcısı oluşturuldu. Terminal kullanımı için Personel Tanımları ekranında personele bağlayın.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Kullanıcı oluşturulamadı.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function resetSelectedUserPassword() {
+    if (!selectedUser || !newPassword) {
+      setErrorMessage('Kullanıcıyı seçin ve en az 8 karakterli yeni şifreyi yazın.');
+      return;
+    }
+    setIsSaving(true);
+    setMessage('');
+    setErrorMessage('');
+    try {
+      const response = await resetAuthAdminUserPassword(selectedUser.id, newPassword);
+      setData(response.data);
+      setNewPassword('');
+      setMessage('Kullanıcı şifresi değiştirildi; eski açık oturumları kapatıldı.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Şifre değiştirilemedi.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsSaving(false);
     }
@@ -309,6 +376,7 @@ export function AuthAdminScreen({ permissions = [] }) {
           <span>Kullanıcı, rol, izin matrisi ve son audit kayıtları</span>
         </div>
         <div className="dashboard-toolbar-actions">
+          <button type="button" onClick={() => setShowCreateUser((current) => !current)} disabled={!canManageUsers}>Yeni Kullanıcı</button>
           <button type="button" onClick={exportUsers}>CSV</button>
           <button type="button" onClick={exportUsersExcel}>Excel</button>
           <button type="button" onClick={printUsers}>Yazdır/PDF</button>
@@ -326,6 +394,27 @@ export function AuthAdminScreen({ permissions = [] }) {
         <article className="dashboard-kpi info"><span>Rol sayısı</span><strong>{data.roles.length}</strong><small>Sistem ve operasyon rolleri</small></article>
         <article className={canManageUsers ? 'dashboard-kpi good' : 'dashboard-kpi warn'}><span>Kullanıcı yönetimi</span><strong>{canManageUsers ? 'Açık' : 'Kilitli'}</strong><small>settings.manage gerekli</small></article>
       </section>
+
+      {showCreateUser && (
+        <section className="erp-panel">
+          <div className="panel-title">
+            <strong>Yeni ERP Kullanıcısı</strong>
+            <span>Terminal için önerilen rol: Terminal Kullanıcısı</span>
+          </div>
+          <div className="filter-grid auth-admin-user-form">
+            <label>Kullanıcı adı<input autoComplete="off" value={createForm.username} onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))} /></label>
+            <label>Ad soyad<input value={createForm.displayName} onChange={(event) => setCreateForm((current) => ({ ...current, displayName: event.target.value }))} /></label>
+            <label>İlk şifre<input type="password" autoComplete="new-password" value={createForm.password} onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))} /></label>
+            <label>
+              Rol
+              <select value={createForm.roleId} onChange={(event) => setCreateForm((current) => ({ ...current, roleId: event.target.value }))}>
+                {data.roles.filter((role) => role.isActive).map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+              </select>
+            </label>
+            <button type="button" className="primary-button" onClick={createUser} disabled={isSaving || !canManageUsers}>{isSaving ? 'Kaydediliyor' : 'Kullanıcıyı Oluştur'}</button>
+          </div>
+        </section>
+      )}
 
       <section className="erp-panel critical-locks-panel">
         <div className="panel-title">
@@ -384,11 +473,11 @@ export function AuthAdminScreen({ permissions = [] }) {
             <div className="filter-grid auth-admin-user-form">
               <label>
                 Kullanıcı
-                <input value={selectedUser.username} disabled />
+                <input value={selectedUser.username} onChange={(event) => updateSelectedUser('username', event.target.value)} />
               </label>
               <label>
                 Ad
-                <input value={selectedUser.displayName} disabled />
+                <input value={selectedUser.displayName} onChange={(event) => updateSelectedUser('displayName', event.target.value)} />
               </label>
               <label>
                 Rol
@@ -405,6 +494,13 @@ export function AuthAdminScreen({ permissions = [] }) {
                   <option value="0">Pasif</option>
                 </select>
               </label>
+              <label>
+                Yeni şifre
+                <input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="En az 8 karakter" />
+              </label>
+              <button type="button" onClick={resetSelectedUserPassword} disabled={isSaving || !canManageUsers || !newPassword}>
+                Şifreyi Değiştir
+              </button>
               {!canManageUsers && <div className="list-state">Bu ekranda izleme açık; kullanıcı rol/aktiflik değiştirmek için settings.manage gerekir.</div>}
               <button type="button" className="primary-button" onClick={saveUserAccess} disabled={isSaving || !canManageUsers}>
                 {isSaving ? 'Kaydediliyor' : 'Kullanıcı Yetkisini Kaydet'}

@@ -1,8 +1,8 @@
-import { get } from './apiClient.js';
+import { get, post, remove } from './apiClient.js';
 import { apiConfig } from '../config/apiConfig.js';
 import { demoProductsResponse } from '../demo/demoProducts.js';
 
-export async function fetchProducts({ page = 1, limit = 100, search = '', barcode = '', supplierId = '', activeOnly = true } = {}) {
+export async function fetchProducts({ page = 1, limit = 100, search = '', barcode = '', supplierId = '', activeOnly = true, cardOpenedFrom = '', cardOpenedTo = '' } = {}) {
   if (apiConfig.demoMode) {
     return demoProductsResponse({ page, limit, search, activeOnly });
   }
@@ -14,5 +14,28 @@ export async function fetchProducts({ page = 1, limit = 100, search = '', barcod
     barcode,
     supplierId,
     activeOnly,
+    cardOpenedFrom,
+    cardOpenedTo,
   });
+}
+
+export async function fetchVegaProducts({ page = 1, limit = 100, search = '', barcode = '', activeOnly = true, cardOpenedFrom = '', cardOpenedTo = '', imageStatus = 'all' } = {}) {
+  return get('/api/vega/products', {
+    page,
+    limit,
+    search,
+    barcode,
+    activeOnly,
+    cardOpenedFrom,
+    cardOpenedTo,
+    imageStatus,
+  });
+}
+
+export async function saveVegaProductImage(sourceId, payload) {
+  return post(`/api/vega/products/${sourceId}/image`, payload);
+}
+
+export async function removeVegaProductImage(sourceId) {
+  return remove(`/api/vega/products/${sourceId}/image`);
 }

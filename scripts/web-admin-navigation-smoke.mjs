@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { modules, screenRegistry, sidebarGroups } from '../apps/web-admin/src/data/mockNavigationData.js';
+import {
+  modules,
+  navigationSections,
+  screenRegistry,
+  sidebarGroups,
+} from '../apps/web-admin/src/data/mockNavigationData.js';
 import { roleViews } from '../apps/web-admin/src/config/roleViews.js';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -44,15 +49,6 @@ function extractWorkspaceRouteIds() {
   }
 
   return routeIds;
-}
-
-function extractArrayValues(source, declarationName) {
-  const pattern = new RegExp(`const\\s+${declarationName}\\s*=\\s*\\[([\\s\\S]*?)\\];`);
-  const match = source.match(pattern);
-
-  if (!match) return null;
-
-  return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]);
 }
 
 function extractObjectKeys(source, declarationName) {
@@ -111,9 +107,13 @@ addCheck('screenRegistry modules are known navigation areas', registryModuleMiss
 const sidebarMissing = sidebarItems.filter((item) => !registrySet.has(item.screenId));
 addCheck('sidebar items resolve to screenRegistry', sidebarMissing.length === 0, sidebarMissing.map((item) => `${item.group}/${item.label}:${item.screenId}`).join(', '));
 
-const favoriteScreens = extractArrayValues(sidebarSource, 'favoriteScreens') || [];
-const missingFavoriteScreens = favoriteScreens.filter((screenId) => !sidebarScreenIds.has(screenId));
-addCheck('sidebar favorites exist in sidebar items', missingFavoriteScreens.length === 0, missingFavoriteScreens.join(', '));
+const sectionScreenIds = navigationSections.flatMap((section) => section.screenIds);
+const missingSectionScreens = sectionScreenIds.filter((screenId) => !registrySet.has(screenId));
+const unmappedSidebarScreens = [...sidebarScreenIds].filter((screenId) => !sectionScreenIds.includes(screenId));
+addCheck('navigation sections resolve to screenRegistry', missingSectionScreens.length === 0, missingSectionScreens.join(', '));
+addCheck('sidebar screens belong to a navigation section', unmappedSidebarScreens.length === 0, unmappedSidebarScreens.join(', '));
+addCheck('sidebar uses contextual module groups', sidebarSource.includes('contextualGroups'));
+addCheck('sidebar has no duplicate favorites block', !sidebarSource.includes('favoriteScreens'));
 
 const itemDisplayLabelKeys = extractObjectKeys(sidebarSource, 'itemDisplayLabels') || [];
 const missingItemDisplayLabels = [...sidebarScreenIds].filter((screenId) => !itemDisplayLabelKeys.includes(screenId));

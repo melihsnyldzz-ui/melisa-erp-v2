@@ -3,6 +3,7 @@ import { displayMovementLabel, formatMoney } from './supplierStatementUtils.js';
 
 export function SupplierStatement360Card({
   supplier360,
+  isFiltered,
   filters,
   suggestions,
   onUpdateFilter,
@@ -17,8 +18,8 @@ export function SupplierStatement360Card({
         <div className="supplier-ekstre-360-head">
           <div>
             <span>Tedarikci</span>
-            <strong>{supplier360.primarySupplier?.supplierName || supplier360.primarySupplier?.supplierCode || 'Genel Ekstre'}</strong>
-            <small>{supplier360.primarySupplier?.supplierCode || `${supplier360.supplierCount || 0} tedarikci`}</small>
+            <strong>{isFiltered ? (supplier360.primarySupplier?.supplierName || supplier360.primarySupplier?.supplierCode || 'Tedarikci bulunamadi') : 'Tum tedarikciler'}</strong>
+            <small>{isFiltered ? (supplier360.primarySupplier?.supplierCode || 'Filtreli ekstre') : `${supplier360.supplierCount || 0} tedarikci`}</small>
           </div>
           <b>{supplier360.currency}</b>
         </div>
@@ -39,7 +40,7 @@ export function SupplierStatement360Card({
         <div className="supplier-ekstre-360-actions">
           <button type="button" onClick={onExport}>Excel</button>
           <button type="button" onClick={onPrint}>Yazdir / PDF</button>
-          <button type="button" onClick={() => supplier360.primarySupplier && onOpenSupplier(supplier360.primarySupplier)}>Tedarikci</button>
+          <button type="button" disabled={!isFiltered || !supplier360.primarySupplier} onClick={() => supplier360.primarySupplier && onOpenSupplier(supplier360.primarySupplier)}>Tedarikci</button>
           <button type="button" onClick={() => supplier360.latestRow && onOpenMovement(supplier360.latestRow)}>Son Fis</button>
         </div>
       </div>

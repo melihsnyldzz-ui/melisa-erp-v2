@@ -22,7 +22,11 @@ function renderCell(row, columnKey) {
   }
 
   if (columnKey === 'status') {
-    return <td className={row.status === 'Aktif' ? 'status-active' : 'status-passive'}>{row.status}</td>;
+    return (
+      <td>
+        <span className={`entity-status-pill ${row.status === 'Aktif' ? 'active' : 'passive'}`}>{row.status}</span>
+      </td>
+    );
   }
 
   return <td>{row[columnKey] ?? '-'}</td>;

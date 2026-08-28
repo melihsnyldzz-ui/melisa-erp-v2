@@ -6,6 +6,25 @@ import './styles/dashboard.css';
 import './styles/tables.css';
 import './styles/erp-skin.css';
 import './styles/erp-modern.css';
+import './styles/sales-invoice-ux.css';
+import './styles/vega-sales-list.css';
+import './styles/fedex-micro-export-demo.css';
+import './styles/proforma-invoice.css';
+import './styles/purchase-invoice-ux.css';
+import './styles/invoice-visual-hierarchy.css';
+import './styles/finance-entry-ux.css';
+import './styles/entity-list-card-ux.css';
+import './styles/stock-product-ux.css';
+import './styles/bulk-product-update.css';
+import './styles/bulk-product-create.css';
+import './styles/report-definition-ux.css';
+import './styles/supplier-movements-ux.css';
+import './styles/responsive-layout-hardening.css';
+import './styles/workspace-visual-hierarchy.css';
+import './styles/cash-register.css';
+import './styles/personnel-definitions.css';
+import './styles/visual-refresh-phase1.css';
+import './styles/product-profitability.css';
 import { App } from './App.jsx';
 
 class RootErrorBoundary extends React.Component {

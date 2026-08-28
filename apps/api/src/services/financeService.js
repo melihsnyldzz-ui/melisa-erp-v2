@@ -236,6 +236,33 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
     return mapFinanceAccount(account);
   }
 
+  if (accountType === 'cash') {
+    const openDrawerResult = await new sqlDriver.Request(transaction)
+      .input('openDrawerAccountCurrency', sqlDriver.NVarChar(3), currency)
+      .query(`
+        IF OBJECT_ID(N'dbo.cash_sessions', N'U') IS NOT NULL
+           AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
+        BEGIN
+          SELECT TOP (1) fa.*
+          FROM dbo.cash_sessions cs
+          INNER JOIN dbo.cash_drawer_accounts cda
+            ON cda.drawer_id = cs.drawer_id
+           AND cda.currency_code = @openDrawerAccountCurrency
+          INNER JOIN dbo.finance_accounts fa ON fa.id = cda.finance_account_id
+          WHERE cs.session_status = N'open'
+            AND fa.is_active = 1
+          ORDER BY cs.opened_at DESC;
+        END
+        ELSE
+        BEGIN
+          SELECT TOP (0) * FROM dbo.finance_accounts;
+        END;
+      `);
+    if (openDrawerResult.recordset?.[0]) {
+      return mapFinanceAccount(openDrawerResult.recordset[0]);
+    }
+  }
+
   return getOrCreateDefaultFinanceAccount(new sqlDriver.Request(transaction), sqlDriver, { accountType, currency });
 }
 

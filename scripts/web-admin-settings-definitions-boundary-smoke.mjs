@@ -35,16 +35,16 @@ addCheck(
 
 addCheck(
   'definitions screen labels write scope and non-import boundary',
-  definitionsScreen.includes('stok birimi, cari tipi, odeme/tahsilat yontemi ve para birimi tanimlarini API') &&
-    definitionsScreen.includes('import veya migration calistirmaz') &&
-    definitionsScreen.includes('mevcut fisleri toplu olarak duzeltmez'),
+  definitionsScreen.includes('stok birimi, cari tipi, ödeme/tahsilat yöntemi ve para birimi tanımlarını API') &&
+    definitionsScreen.includes('import veya migration çalıştırmaz') &&
+    definitionsScreen.includes('mevcut fişleri toplu olarak düzeltmez'),
 );
 
 addCheck(
   'currency rates screen labels invoice snapshot impact',
-  currencyRatesScreen.includes('USD/EUR kurunu API') &&
-    currencyRatesScreen.includes('yeni satis/alis fislerinin kur snapshot davranisini etkiler') &&
-    currencyRatesScreen.includes('Eski kesinlesmis fisleri toplu olarak yeniden hesaplamaz'),
+  currencyRatesScreen.includes('USD ve EUR kurunu API') &&
+    currencyRatesScreen.includes('yeni satış/alış fişlerinin kur snapshot davranışını etkiler') &&
+    currencyRatesScreen.includes('Eski kesinleşmiş fişleri toplu olarak yeniden hesaplamaz'),
 );
 
 addCheck(

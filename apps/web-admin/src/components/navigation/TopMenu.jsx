@@ -14,16 +14,18 @@ import {
   Settings,
   SlidersHorizontal,
   Tags,
+  Truck,
   Users,
 } from 'lucide-react';
-import { modules } from '../../data/mockNavigationData.js';
+import { modules, navigationSections } from '../../data/mockNavigationData.js';
 import { getViewOptionItems } from '../../config/viewOptions.js';
 import { roleViews } from '../../config/roleViews.js';
 
 const moduleIcons = {
   'Ana Sayfa': Home,
   Stok: Package,
-  Cari: Users,
+  Müşteriler: Users,
+  Tedarikçiler: Truck,
   Satış: ReceiptText,
   Alış: ClipboardList,
   Finans: Building2,
@@ -37,6 +39,7 @@ export function TopMenu({
   activeModule,
   activeTab,
   roleViewId,
+  roleScreenIds,
   user,
   viewOptions,
   onLogout,
@@ -53,6 +56,14 @@ export function TopMenu({
   const viewMenuRef = useRef(null);
   const viewButtonRef = useRef(null);
   const viewOptionItems = useMemo(() => getViewOptionItems(activeTab), [activeTab]);
+  const visibleModules = useMemo(() => modules.filter((module) => {
+    if (!roleScreenIds) {
+      return true;
+    }
+
+    const section = navigationSections.find((item) => item.label === module.label);
+    return section?.screenIds.some((screenId) => roleScreenIds.has(screenId));
+  }), [roleScreenIds]);
 
   function updateViewMenuPosition() {
     if (!viewButtonRef.current) {
@@ -115,7 +126,7 @@ export function TopMenu({
         <span>Melisa Bebe Tekstil</span>
       </div>
       <nav className="module-menu" aria-label="Ana modüller">
-        {modules.map((module) => (
+        {visibleModules.map((module) => (
           <ModuleButton
             isActive={module.label === activeModule}
             key={module.label}
@@ -143,8 +154,9 @@ export function TopMenu({
           Detaylı ERP
         </button>
         <select
-          aria-label="Rol görünümü"
+          aria-label="Çalışma görünümü"
           className="role-view-select"
+          title="Menü ve hızlı işlemler için çalışma görünümü"
           onChange={(event) => onUpdateRoleView(event.target.value)}
           value={roleViewId}
         >
@@ -216,9 +228,11 @@ function ModuleButton({ module, isActive, onOpenScreen }) {
 
   return (
     <button
+      aria-label={module.label}
       className={isActive ? 'module active' : 'module'}
       key={module.label}
       onClick={() => onOpenScreen(module.screenId)}
+      title={module.label}
       type="button"
     >
       <span className="module-icon"><Icon size={15} strokeWidth={2.2} /></span>

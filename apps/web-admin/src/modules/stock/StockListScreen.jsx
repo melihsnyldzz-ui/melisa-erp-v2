@@ -3,9 +3,11 @@ import { StockListFilters } from './StockListFilters.jsx';
 import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
 import { StockProduct360Panel } from './StockProduct360Panel.jsx';
+import { BulkProductUpdateDialog } from './BulkProductUpdateDialog.jsx';
+import { VegaProductImageDialog } from './VegaProductImageDialog.jsx';
 import { summarizeMovements } from './stock360Utils.js';
 import { stockFilterDefaults } from './stockMockData.js';
-import { fetchProducts } from '../../services/productApi.js';
+import { fetchVegaProducts, removeVegaProductImage, saveVegaProductImage } from '../../services/productApi.js';
 import { fetchProductDetail, fetchProductOptions, fetchProductStockMovements } from '../../services/productDetailApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
@@ -72,6 +74,19 @@ function formatMoney(amount, currency = 'TRY') {
   }).format(Number(amount || 0));
 }
 
+function formatCardOpenedAt(value) {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
 function resolveImageUrl(imageUrl) {
   if (!imageUrl) return '';
   if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl;
@@ -83,6 +98,7 @@ function toStockRow(product) {
 
   return {
     id: product.id,
+    sourceId: product.sourceId || Number(String(product.id || '').replace(/^vega-/, '')) || null,
     imageUrl: resolveImageUrl(product.imageUrl),
     stockCode: product.stockCode,
     barcode,
@@ -91,14 +107,24 @@ function toStockRow(product) {
     name: product.productName || product.name || '-',
     brand: product.brand || '-',
     category: product.category || '-',
+    specialCode4: product.specialCode4 || product.specialCodes?.KOD4 || product.category || '-',
+    specialCodes: product.specialCodes || {},
+    gtipCode: product.customs?.code || '-',
+    gtipStatus: product.customs?.status || '',
+    gtipConfidence: product.customs?.confidence || '',
+    gtipMaterialBasis: product.customs?.materialBasis || '',
+    gtipNote: product.customs?.note || '',
+    gtipSourceDocumentNo: product.customs?.sourceDocumentNo || '',
     currency: product.currency || 'TRY',
     salesPrice: formatMoney(product.salePrice ?? product.salesPrice, product.currency || 'TRY'),
-    purchasePrice: formatMoney(product.purchasePrice, product.currency || 'TRY'),
+    purchasePrice: formatMoney(product.purchasePrice, product.purchaseCurrency || product.currency || 'TRY'),
     currentStock: Number(product.stockQuantity ?? product.currentStock ?? 0),
     supplierId: product.supplierId || null,
     supplierCode: product.supplierCode || '',
     supplier: product.supplierName || product.supplier || '-',
     status: product.isPassive ? 'Pasif' : 'Aktif',
+    cardOpenedAt: product.cardOpenedAt || '',
+    cardOpenedDate: formatCardOpenedAt(product.cardOpenedAt),
   };
 }
 
@@ -113,6 +139,12 @@ function applyStockFilters(row, filters) {
     (filters.stockState === 'out-of-stock' && row.currentStock === 0) ||
     (filters.stockState === 'negative' && row.currentStock < 0);
   const matchesCurrency = filters.currency === 'all' || row.currency === filters.currency;
+  const matchesImageStatus = filters.imageStatus === 'all'
+    || (filters.imageStatus === 'with-image' && Boolean(row.imageUrl))
+    || (filters.imageStatus === 'without-image' && !row.imageUrl);
+  const cardOpenedDay = String(row.cardOpenedAt || '').slice(0, 10);
+  const matchesCardOpenedFrom = !filters.cardOpenedFrom || (cardOpenedDay && cardOpenedDay >= filters.cardOpenedFrom);
+  const matchesCardOpenedTo = !filters.cardOpenedTo || (cardOpenedDay && cardOpenedDay <= filters.cardOpenedTo);
   const matchesQuickSearch = !filters.quickSearch || [
     row.stockCode,
     row.barcode,
@@ -121,6 +153,8 @@ function applyStockFilters(row, filters) {
     row.name,
     row.brand,
     row.category,
+    row.specialCode4,
+    row.gtipCode,
     row.supplier,
     row.currency,
   ].some((value) => matchesText(value, filters.quickSearch));
@@ -129,6 +163,9 @@ function applyStockFilters(row, filters) {
     matchesStatus &&
     matchesStockState &&
     matchesCurrency &&
+    matchesImageStatus &&
+    matchesCardOpenedFrom &&
+    matchesCardOpenedTo &&
     matchesQuickSearch &&
     matchesText(row.stockCode, filters.stockCode) &&
     matchesBarcode(row, filters.barcode) &&
@@ -146,19 +183,22 @@ const stockExportColumns = [
   { label: 'Ürün Adı', key: 'name', width: 230, required: true },
   { label: 'Marka', key: 'brand', width: 130 },
   { label: 'Kategori', key: 'category', width: 130 },
+  { label: '4-ÖK (KOD4)', key: 'specialCode4', width: 130 },
+  { label: 'GTİP', key: 'gtipCode', width: 150 },
   { label: 'Para Birimi', key: 'currency', width: 90 },
   { label: 'Satış Fiyatı', key: 'salesPrice', width: 120 },
   { label: 'Alış Fiyatı', key: 'purchasePrice', width: 120 },
   { label: 'Stok', key: 'currentStock', width: 90, required: true },
   { label: 'Tedarikçi', key: 'supplier', width: 160 },
+  { label: 'Kart Açılış Tarihi', key: 'cardOpenedDate', width: 130 },
   { label: 'Durum', key: 'status', width: 92 },
 ];
 
-const stockColumnStorageKey = 'melisa.stockList.visibleColumns.v1';
+const stockColumnStorageKey = 'melisa.stockList.visibleColumns.v2';
 const stockListPageLimit = 500;
 const defaultVisibleStockColumns = stockExportColumns.reduce((next, column) => ({
   ...next,
-  [column.key]: true,
+  [column.key]: ['imageUrl', 'stockCode', 'barcode', 'name', 'brand', 'specialCode4', 'gtipCode', 'salesPrice', 'currentStock', 'cardOpenedDate', 'status'].includes(column.key),
 }), {});
 
 function readVisibleStockColumns() {
@@ -170,10 +210,15 @@ function readVisibleStockColumns() {
   }
 }
 
-export function StockListScreen({ onOpenScreen }) {
-  const [filters, setFilters] = useState(stockFilterDefaults);
+export function StockListScreen({ onOpenScreen, permissions = [], initialStockCode = '', initialSourceId = '' }) {
+  const vegaStockFilterDefaults = useMemo(() => ({ ...stockFilterDefaults, status: 'all' }), []);
+  const [filters, setFilters] = useState(() => ({
+    ...vegaStockFilterDefaults,
+    stockCode: initialStockCode || '',
+  }));
   const [rows, setRows] = useState([]);
   const [selectedRowId, setSelectedRowId] = useState(null);
+  const [selectedRowIds, setSelectedRowIds] = useState(() => new Set());
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [stockMovements, setStockMovements] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -183,15 +228,25 @@ export function StockListScreen({ onOpenScreen }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [detailErrorMessage, setDetailErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [isVegaImageOpen, setIsVegaImageOpen] = useState(false);
+  const [isVegaImageSaving, setIsVegaImageSaving] = useState(false);
+  const [vegaImageError, setVegaImageError] = useState('');
   const [resolvedSupplierId, setResolvedSupplierId] = useState('');
   const [isResolvingSupplier, setIsResolvingSupplier] = useState(false);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
+  const [isProduct360Open, setIsProduct360Open] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleStockColumns);
   const [optionSuggestions, setOptionSuggestions] = useState({
     brands: [],
     categories: [],
     suppliers: [],
+    supplierOptions: [],
   });
+  const isLiveVega = meta?.source === 'vega-live-read-only';
+  const canBulkEdit = permissions.includes('product.edit') && !isLiveVega;
+  const canManageVegaImage = permissions.includes('product.edit') && isLiveVega;
 
   const search = useMemo(() => buildSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
@@ -201,6 +256,7 @@ export function StockListScreen({ onOpenScreen }) {
   const hasClientSideFilters = filters.status === 'passive'
     || filters.stockState !== 'all'
     || filters.currency !== 'all'
+    || filters.imageStatus !== 'all'
     || Boolean(filters.stockCode || filters.name || filters.brand || filters.category || filters.supplier);
 
   useEffect(() => {
@@ -223,6 +279,7 @@ export function StockListScreen({ onOpenScreen }) {
             brands: response.data?.brands || [],
             categories: response.data?.categories || [],
             suppliers: response.data?.suppliers || [],
+            supplierOptions: response.data?.supplierOptions || [],
           });
         }
       } catch {
@@ -231,6 +288,7 @@ export function StockListScreen({ onOpenScreen }) {
             brands: [],
             categories: [],
             suppliers: [],
+            supplierOptions: [],
           });
         }
       }
@@ -247,6 +305,11 @@ export function StockListScreen({ onOpenScreen }) {
     let isMounted = true;
 
     async function resolveSupplier() {
+      if (isLiveVega) {
+        setResolvedSupplierId('');
+        setIsResolvingSupplier(false);
+        return;
+      }
       const supplierFilter = filters.supplier.trim();
       if (!supplierFilter) {
         setResolvedSupplierId('');
@@ -288,20 +351,21 @@ export function StockListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [filters.supplier]);
+  }, [filters.supplier, isLiveVega]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadProducts() {
-      if (filters.supplier.trim() && isResolvingSupplier) {
+      if (!isLiveVega && filters.supplier.trim() && isResolvingSupplier) {
         return;
       }
 
-      if (filters.supplier.trim() && !resolvedSupplierId) {
+      if (!isLiveVega && filters.supplier.trim() && !resolvedSupplierId) {
         setRows([]);
         setMeta(null);
         setSelectedRowId(null);
+        setSelectedRowIds(new Set());
         setIsLoading(false);
         return;
       }
@@ -310,28 +374,38 @@ export function StockListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchProducts({
+        const response = await fetchVegaProducts({
           page: 1,
           limit: stockListPageLimit,
           search,
           barcode: filters.barcode,
-          supplierId: resolvedSupplierId,
           activeOnly,
+          cardOpenedFrom: filters.cardOpenedFrom,
+          cardOpenedTo: filters.cardOpenedTo,
+          imageStatus: filters.imageStatus,
         });
         const nextRows = response.data.map(toStockRow);
 
         if (isMounted) {
           setRows(nextRows);
           setMeta(response.meta);
-          setSelectedRowId((currentId) => (
-            nextRows.some((row) => row.id === currentId) ? currentId : nextRows[0]?.id ?? null
-          ));
+          setSelectedRowId((currentId) => {
+            const linkedRow = nextRows.find((row) => (
+              initialSourceId && String(row.sourceId) === String(initialSourceId)
+            )) || nextRows.find((row) => (
+              initialStockCode && normalizeSearchText(row.stockCode) === normalizeSearchText(initialStockCode)
+            ));
+            return linkedRow?.id
+              ?? (nextRows.some((row) => row.id === currentId) ? currentId : nextRows[0]?.id ?? null);
+          });
+          setSelectedRowIds((currentIds) => new Set([...currentIds].filter((id) => nextRows.some((row) => row.id === id))));
         }
       } catch (error) {
         if (isMounted) {
           setRows([]);
           setMeta(null);
           setSelectedRowId(null);
+          setSelectedRowIds(new Set());
           setErrorMessage(error.message || 'Stok listesi API bağlantısı başarısız.');
         }
       } finally {
@@ -346,7 +420,7 @@ export function StockListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, filters.barcode, filters.supplier, isResolvingSupplier, reloadKey, resolvedSupplierId, search]);
+  }, [activeOnly, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, isLiveVega, reloadKey, search]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => applyStockFilters(row, filters)),
@@ -361,13 +435,14 @@ export function StockListScreen({ onOpenScreen }) {
     brands: buildUniqueOptions(optionSuggestions.brands, rows.map((row) => row.brand)),
     categories: buildUniqueOptions(optionSuggestions.categories, rows.map((row) => row.category)),
     suppliers: buildUniqueOptions(optionSuggestions.suppliers, rows.map((row) => row.supplier)),
+    supplierOptions: optionSuggestions.supplierOptions,
   }), [optionSuggestions, rows]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadSelectedDetail() {
-      if (!selectedRowId) {
+      if (!selectedRowId || isLiveVega) {
         setSelectedDetail(null);
         setStockMovements([]);
         setDetailErrorMessage('');
@@ -405,7 +480,7 @@ export function StockListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [selectedRowId]);
+  }, [isLiveVega, selectedRowId]);
 
   function togglePassive() {
     setFilters((currentFilters) => ({
@@ -415,12 +490,19 @@ export function StockListScreen({ onOpenScreen }) {
   }
 
   function resetFilters() {
-    setFilters(stockFilterDefaults);
+    setFilters(vegaStockFilterDefaults);
     setSelectedRowId(rows[0]?.id ?? null);
+    setSelectedRowIds(new Set());
     setSelectionWarning('');
+    setBulkMessage('');
   }
 
   function openSelectedProduct() {
+    if (isLiveVega) {
+      setSelectionWarning('');
+      setIsProduct360Open(true);
+      return;
+    }
     const productId = selectedRow?.id;
 
     if (!productId) {
@@ -440,14 +522,91 @@ export function StockListScreen({ onOpenScreen }) {
     });
   }
 
+  function openVegaProductImage() {
+    if (!selectedRow?.sourceId || !canManageVegaImage) return;
+    setVegaImageError('');
+    setIsVegaImageOpen(true);
+  }
+
+  async function saveSelectedVegaImage(payload) {
+    if (!selectedRow?.sourceId) return;
+    setIsVegaImageSaving(true);
+    setVegaImageError('');
+    try {
+      await saveVegaProductImage(selectedRow.sourceId, payload);
+      setIsVegaImageOpen(false);
+      setBulkMessage(`${selectedRow.stockCode} görseli kaydedildi.`);
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setVegaImageError(`${error.message || 'Görsel kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsVegaImageSaving(false);
+    }
+  }
+
+  async function removeSelectedVegaImage() {
+    if (!selectedRow?.sourceId) return;
+    setIsVegaImageSaving(true);
+    setVegaImageError('');
+    try {
+      await removeVegaProductImage(selectedRow.sourceId);
+      setIsVegaImageOpen(false);
+      setBulkMessage(`${selectedRow.stockCode} görseli kaldırıldı.`);
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setVegaImageError(`${error.message || 'Görsel kaldırılamadı.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsVegaImageSaving(false);
+    }
+  }
+
   function selectRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
   }
 
+  function toggleBulkRow(rowId, checked) {
+    setSelectedRowIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      if (checked) nextIds.add(rowId);
+      else nextIds.delete(rowId);
+      return nextIds;
+    });
+    setBulkMessage('');
+  }
+
+  function toggleAllVisibleRows(checked) {
+    setSelectedRowIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      filteredRows.forEach((row) => {
+        if (checked) nextIds.add(row.id);
+        else nextIds.delete(row.id);
+      });
+      return nextIds;
+    });
+    setBulkMessage('');
+  }
+
+  function openBulkUpdate() {
+    if (!canBulkEdit || selectedRowIds.size === 0) return;
+    setBulkMessage('');
+    setIsBulkUpdateOpen(true);
+  }
+
+  function handleBulkUpdateApplied(result) {
+    setIsBulkUpdateOpen(false);
+    setSelectedRowIds(new Set());
+    setBulkMessage(`${result.changedCount} ürün başarıyla güncellendi.`);
+    setReloadKey((current) => current + 1);
+  }
+
   function openProductRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
+    if (isLiveVega) {
+      setIsProduct360Open(true);
+      return;
+    }
     const row = rows.find((item) => item.id === rowId);
     onOpenScreen('product-card', { productId: rowId, stockCode: row.stockCode });
   }
@@ -482,6 +641,7 @@ export function StockListScreen({ onOpenScreen }) {
   function refreshProducts() {
     setReloadKey((current) => current + 1);
     setSelectionWarning('');
+    setBulkMessage('');
   }
 
   function toggleColumn(columnKey) {
@@ -531,13 +691,21 @@ export function StockListScreen({ onOpenScreen }) {
         showPassive={filters.status === 'all'}
         onOpenNewProduct={openNewProduct}
         onOpenProductCard={openSelectedProduct}
+        onOpenProductImage={openVegaProductImage}
+        onOpenBulkUpdate={openBulkUpdate}
         onTogglePassive={togglePassive}
         onExportCsv={exportStockRowsCsv}
         onExportExcel={exportStockRowsExcel}
         onPrint={printStockRows}
         onRefresh={refreshProducts}
         onToggleColumns={() => setIsColumnPanelOpen((current) => !current)}
+        onToggleProduct360={() => setIsProduct360Open((current) => !current)}
         isColumnPanelOpen={isColumnPanelOpen}
+        isProduct360Open={isProduct360Open}
+        bulkSelectionCount={selectedRowIds.size}
+        canBulkEdit={canBulkEdit}
+        canManageImage={canManageVegaImage}
+        isReadOnly={isLiveVega}
       />
       <StockListFilters
         filters={filters}
@@ -577,10 +745,10 @@ export function StockListScreen({ onOpenScreen }) {
           <button type="button" onClick={resetColumns}>Tümünü Göster</button>
         </section>
       )}
-      <section className="stock-360-layout">
+      <section className={isProduct360Open ? 'stock-360-layout product-360-open' : 'stock-360-layout product-360-closed'}>
         <section className="erp-panel stock-list-panel stock-list-main-panel">
           <div className="panel-title stock-panel-title">
-            <strong>Ürün Stok Tablosu</strong>
+            <strong>{isLiveVega ? 'Vega Canlı Stok Tablosu' : 'Ürün Stok Tablosu'}</strong>
             <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Gösterilen: {filteredRows.length} / API toplam: {meta?.total ?? rows.length}</span>
           </div>
           {!isLoading && !errorMessage && hasClientSideFilters && Number(meta?.total || 0) > rows.length && (
@@ -600,29 +768,37 @@ export function StockListScreen({ onOpenScreen }) {
           {!isLoading && !errorMessage && selectionWarning && (
             <div className="list-state list-state-error">{selectionWarning}</div>
           )}
+          {!isLoading && !errorMessage && bulkMessage && (
+            <div className="list-state list-state-success">{bulkMessage}</div>
+          )}
           {!isLoading && !errorMessage && filteredRows.length > 0 && (
             <StockListTable
               columns={stockTableColumns}
               rows={filteredRows}
               selectedRowId={selectedRow?.id}
+              selectedRowIds={selectedRowIds}
               onOpenRow={openProductRow}
               onSelectRow={selectRow}
+              onToggleRow={toggleBulkRow}
+              onToggleAll={toggleAllVisibleRows}
             />
           )}
         </section>
 
-        <StockProduct360Panel
+        {isProduct360Open && <StockProduct360Panel
           selectedRow={selectedRow}
           selectedDetail={selectedDetail}
           movementSummary={movementSummary}
           stockMovements={stockMovements}
           isDetailLoading={isDetailLoading}
           detailErrorMessage={detailErrorMessage}
+          onClose={() => setIsProduct360Open(false)}
           onOpenMovement={openMovement}
           onOpenSelectedProduct={openSelectedProduct}
           onOpenScreen={onOpenScreen}
           onOpenMovementParty={openMovementParty}
-        />
+          isReadOnly={isLiveVega}
+        />}
       </section>
       <section className="screen-summary stock-summary">
         <span>Toplam ürün: {meta?.total ?? rows.length}</span>
@@ -630,8 +806,29 @@ export function StockListScreen({ onOpenScreen }) {
         <span>Pasif: {passiveCount}</span>
         <span>Eksi stok: {negativeCount}</span>
         <span>Liste kaydı: {filteredRows.length}</span>
-        <span>Kaynak: API</span>
+        <span>Kaynak: {isLiveVega ? 'Vega Canlı (salt okunur)' : 'API'}</span>
+        <span>Toplu seçim: {selectedRowIds.size}</span>
       </section>
+      {isBulkUpdateOpen && (
+        <BulkProductUpdateDialog
+          productIds={[...selectedRowIds]}
+          suggestions={suggestionOptions}
+          onApplied={handleBulkUpdateApplied}
+          onClose={() => setIsBulkUpdateOpen(false)}
+        />
+      )}
+      {isVegaImageOpen && selectedRow && (
+        <VegaProductImageDialog
+          product={selectedRow}
+          isSaving={isVegaImageSaving}
+          errorMessage={vegaImageError}
+          onSave={saveSelectedVegaImage}
+          onRemove={removeSelectedVegaImage}
+          onClose={() => {
+            if (!isVegaImageSaving) setIsVegaImageOpen(false);
+          }}
+        />
+      )}
     </main>
   );
 }

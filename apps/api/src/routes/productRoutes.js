@@ -1,13 +1,21 @@
 import { Router } from 'express';
 import {
   getProduct,
+  getProductBulkCreatePreview,
+  getProductBulkUpdatePreview,
+  getProductIdentityCheck,
   getProductOptions,
   getProducts,
+  getVegaProducts,
   patchProductBarcodePassive,
   patchProductPassive,
   postProduct,
+  postProductBulkCreateApply,
+  postProductBulkUpdateApply,
   postProductBarcode,
   postProductImage,
+  postVegaProductImage,
+  deleteVegaProductImage,
   putProduct,
 } from '../controllers/productController.js';
 import { requireAuth, requirePermission } from '../middleware/authMiddleware.js';
@@ -15,7 +23,15 @@ import { requireAuth, requirePermission } from '../middleware/authMiddleware.js'
 export const productRoutes = Router();
 
 productRoutes.get('/products', requireAuth, requirePermission('product.view'), getProducts);
+productRoutes.get('/vega/products', requireAuth, requirePermission('product.view'), getVegaProducts);
+productRoutes.post('/vega/products/:sourceId/image', requireAuth, requirePermission('product.edit'), postVegaProductImage);
+productRoutes.delete('/vega/products/:sourceId/image', requireAuth, requirePermission('product.edit'), deleteVegaProductImage);
 productRoutes.get('/products/options', requireAuth, requirePermission('product.view'), getProductOptions);
+productRoutes.get('/products/identity-check', requireAuth, requirePermission('product.view'), getProductIdentityCheck);
+productRoutes.post('/products/bulk-create/preview', requireAuth, requirePermission('product.edit'), getProductBulkCreatePreview);
+productRoutes.post('/products/bulk-create/apply', requireAuth, requirePermission('product.edit'), postProductBulkCreateApply);
+productRoutes.post('/products/bulk-update/preview', requireAuth, requirePermission('product.edit'), getProductBulkUpdatePreview);
+productRoutes.post('/products/bulk-update/apply', requireAuth, requirePermission('product.edit'), postProductBulkUpdateApply);
 productRoutes.post('/products', requireAuth, requirePermission('product.edit'), postProduct);
 productRoutes.post('/products/:id/barcodes', requireAuth, requirePermission('product.edit'), postProductBarcode);
 productRoutes.patch('/products/:id/barcodes/:barcodeId/passive', requireAuth, requirePermission('product.edit'), patchProductBarcodePassive);

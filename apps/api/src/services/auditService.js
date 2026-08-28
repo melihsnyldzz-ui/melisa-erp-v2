@@ -5,28 +5,33 @@ const COVERAGE_RULES = [
   {
     key: 'sales',
     label: 'Satis fisleri',
-    actions: ['sales_invoice_draft_created', 'sales_invoice_finalized', 'sales_invoice_cancelled'],
+    actions: ['sales_invoice_draft_created', 'sales_invoice_finalized', 'sales_invoice_finalized_corrected', 'sales_invoice_cancelled'],
     risk: 'high',
     description: 'Satis taslak, kesinlestirme ve iptal akislari.',
   },
   {
     key: 'purchase',
     label: 'Alis fisleri',
-    actions: ['purchase_invoice_draft_created', 'purchase_invoice_finalized', 'purchase_invoice_cancelled'],
+    actions: ['purchase_invoice_draft_created', 'purchase_invoice_finalized', 'purchase_invoice_finalized_corrected', 'purchase_invoice_cancelled'],
     risk: 'high',
     description: 'Alis taslak, kesinlestirme ve iptal akislari.',
   },
   {
     key: 'finance',
     label: 'Tahsilat ve odeme',
-    actions: ['customer_collection_created', 'supplier_payment_created', 'finance_account_created', 'finance_account_updated'],
+    actions: [
+      'customer_collection_created', 'supplier_payment_created',
+      'finance_account_created', 'finance_account_updated',
+      'cash_session_opened', 'cash_session_closed',
+      'cash_expense_created', 'cash_transfer_created',
+    ],
     risk: 'critical',
     description: 'Cari bakiye ve kasa/banka etkisi olan finans hareketleri.',
   },
   {
     key: 'stock',
     label: 'Stok ve urun',
-    actions: ['product_created', 'product_updated', 'product_passive_changed', 'stock_count_adjustment_applied'],
+    actions: ['product_created', 'products_bulk_created', 'product_updated', 'products_bulk_updated', 'product_passive_changed', 'stock_count_adjustment_applied'],
     risk: 'critical',
     description: 'Urun karti, aktif/pasif ve stok sayim duzeltmeleri.',
   },
@@ -61,9 +66,9 @@ const COVERAGE_RULES = [
   {
     key: 'terminal',
     label: 'Terminal',
-    actions: ['terminal_sales_submitted'],
+    actions: ['terminal_sales_submitted', 'terminal_receipt_print_requested', 'terminal_receipt_print_completed'],
     risk: 'high',
-    description: 'Terminal satis submit ve sync izleri.',
+    description: 'Terminal satis submit, sync ve ERP bilgisayari yazici izleri.',
   },
 ];
 

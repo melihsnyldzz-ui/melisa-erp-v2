@@ -1,0 +1,37 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+  }
+}
+
+// Windows Ninja/CMake cannot safely create Expo C++ objects under this repository's long path.
+// Keep sources in place and move only the generated native build cache to the short temp path.
+subprojects { subproject ->
+  subproject.plugins.withId("com.android.library") {
+    if (subproject.name == "expo-modules-core") {
+      subproject.android.externalNativeBuild.cmake.buildStagingDirectory = new File(
+        System.getProperty("java.io.tmpdir"),
+        "melisa-terminal-cxx/expo-modules-core"
+      )
+    }
+  }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"

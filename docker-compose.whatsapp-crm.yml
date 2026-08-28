@@ -34,7 +34,7 @@ services:
       retries: 5
 
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.2.3
     container_name: melisa-whatsapp-crm-evolution
     restart: unless-stopped
     depends_on:

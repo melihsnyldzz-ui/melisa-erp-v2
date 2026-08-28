@@ -21,6 +21,12 @@ function listEnv(name, fallback = []) {
     .filter(Boolean);
 }
 
+function booleanEnv(name, fallback = false) {
+  const value = process.env[name];
+  if (value == null || value === '') return fallback;
+  return String(value).toLowerCase() === 'true';
+}
+
 export const env = {
   port: Number(process.env.API_PORT || process.env.PORT || 4100),
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -57,7 +63,23 @@ export const env = {
     readOnly: String(process.env.SQL_READ_ONLY || 'true').toLowerCase() !== 'false',
   },
   vega: {
-    enabled: false,
+    enabled: Boolean(
+      process.env.VEGA_SQL_SERVER
+        && process.env.VEGA_SQL_DATABASE
+        && process.env.VEGA_SQL_USER
+        && process.env.VEGA_SQL_PASSWORD,
+    ),
+    server: process.env.VEGA_SQL_SERVER || '',
+    localAddress: process.env.VEGA_SQL_LOCAL_ADDRESS || '',
+    port: process.env.VEGA_SQL_PORT ? Number(process.env.VEGA_SQL_PORT) : 1433,
+    database: process.env.VEGA_SQL_DATABASE || '',
+    user: process.env.VEGA_SQL_USER || '',
+    password: process.env.VEGA_SQL_PASSWORD || '',
+    companyCode: process.env.VEGA_COMPANY_CODE || 'F0102',
+    periodCode: process.env.VEGA_PERIOD_CODE || 'D0007',
+    year: Number(process.env.VEGA_YEAR || 2026),
+    encrypt: String(process.env.VEGA_SQL_ENCRYPT || 'false').toLowerCase() === 'true',
+    trustServerCertificate: String(process.env.VEGA_SQL_TRUST_SERVER_CERTIFICATE || 'true').toLowerCase() === 'true',
   },
   auth: {
     jwtSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || '',
@@ -76,6 +98,23 @@ export const env = {
     publicApiUrl: process.env.WHATSAPP_PUBLIC_API_URL || process.env.PUBLIC_API_URL || 'http://localhost:4100',
     timeoutMs: numberEnv('WHATSAPP_TIMEOUT_MS', 20000),
     sendDelayMs: numberEnv('WHATSAPP_SEND_DELAY_MS', 1200),
+  },
+  nakliyat: {
+    enabled: booleanEnv('NAKLIYAT_ENABLED', (process.env.NODE_ENV || 'development') !== 'production'),
+    baseUrl: process.env.NAKLIYAT_API_BASE_URL || 'http://127.0.0.1:44555',
+    serviceEmail: process.env.NAKLIYAT_SERVICE_EMAIL || '',
+    servicePassword: process.env.NAKLIYAT_SERVICE_PASSWORD || '',
+    timeoutMs: numberEnv('NAKLIYAT_TIMEOUT_MS', 20000),
+    allowProductionRates: booleanEnv('NAKLIYAT_ALLOW_PRODUCTION_RATES', false),
+    allowDraftCreate: booleanEnv('NAKLIYAT_ALLOW_DRAFT_CREATE', false),
+    allowCustomerQuoteCreate: booleanEnv('NAKLIYAT_ALLOW_CUSTOMER_QUOTE_CREATE', false),
+    allowFinalize: booleanEnv('NAKLIYAT_ALLOW_FINALIZE', false),
+  },
+  receiptPrinting: {
+    enabled: String(process.env.TERMINAL_RECEIPT_PRINT_ENABLED || 'true').toLowerCase() !== 'false',
+    mode: process.env.TERMINAL_RECEIPT_PRINT_MODE || (process.platform === 'win32' ? 'windows' : 'disabled'),
+    printerName: process.env.TERMINAL_RECEIPT_PRINTER_NAME || '',
+    timeoutMs: numberEnv('TERMINAL_RECEIPT_PRINT_TIMEOUT_MS', 20000),
   },
 };
 
@@ -110,6 +149,11 @@ export function getStartupWarnings() {
 
   if (!env.auth.refreshSecret) {
     warnings.push('JWT refresh secret is not configured; refresh endpoints will fail closed');
+  }
+
+
+  if (env.nakliyat.enabled && (!env.nakliyat.serviceEmail || !env.nakliyat.servicePassword)) {
+    warnings.push('Nakliyat read-only health is enabled, but service credentials are missing; quote operations will fail closed');
   }
 
   return warnings;

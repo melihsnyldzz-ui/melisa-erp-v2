@@ -1,4 +1,5 @@
 export const customerFilterDefaults = {
+  search: '',
   code: '',
   name: '',
   phone: '',

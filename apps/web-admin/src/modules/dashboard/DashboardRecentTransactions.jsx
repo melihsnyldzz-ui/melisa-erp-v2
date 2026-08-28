@@ -1,5 +1,23 @@
 import React from 'react';
 
+function statusLabel(status) {
+  const labels = {
+    DRAFT: 'Taslak',
+    FINALIZED: 'Kesinleşti',
+    CANCELLED: 'İptal',
+    ARCHIVED_TEST: 'Test Arşivi',
+  };
+
+  return labels[status] || status || '-';
+}
+
+function statusTone(status) {
+  if (status === 'FINALIZED') return 'success';
+  if (status === 'CANCELLED') return 'danger';
+  if (status === 'ARCHIVED_TEST') return 'passive';
+  return 'warning';
+}
+
 export function DashboardRecentTransactions({ rows }) {
   return (
     <section className="erp-panel dashboard-table-panel">
@@ -27,7 +45,7 @@ export function DashboardRecentTransactions({ rows }) {
                 <td>{row.account}</td>
                 <td>{row.type}</td>
                 <td className="money-cell">{row.amount}</td>
-                <td>{row.status}</td>
+                <td><span className={`status-pill ${statusTone(row.status)}`}>{statusLabel(row.status)}</span></td>
               </tr>
             ))}
           </tbody>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { createCatalogDraft, loadCatalogWorkspace, sendCatalogToCustomer } from '../services/catalogService';
 import { colors, terminalStyles } from '../styles/theme';
@@ -226,7 +227,7 @@ export function CatalogSendScreen({ navigation, session }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardSafeScrollView contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Katalog Gönder</Text>
         <Text style={styles.heroText}>Ürünleri filtrele, cariyi seç, gönderimi ofis bilgisayarındaki WhatsApp hattından başlat.</Text>
@@ -234,7 +235,7 @@ export function CatalogSendScreen({ navigation, session }) {
 
       <View style={styles.panel}>
         <Text style={styles.sectionTitle}>1. Ürünleri filtrele</Text>
-        <TextInput
+        <KeyboardSafeTextInput
           value={filters.productSearch}
           onChangeText={(value) => updateFilter('productSearch', value)}
           placeholder="Stok kodu, ürün adı, barkod, marka"
@@ -244,21 +245,21 @@ export function CatalogSendScreen({ navigation, session }) {
           onSubmitEditing={() => refresh()}
         />
         <View style={styles.optionGrid}>
-          <TextInput
+          <KeyboardSafeTextInput
             value={filters.brand}
             onChangeText={(value) => updateFilter('brand', value)}
             placeholder="Marka"
             placeholderTextColor={colors.muted}
             style={styles.smallInput}
           />
-          <TextInput
+          <KeyboardSafeTextInput
             value={filters.category}
             onChangeText={(value) => updateFilter('category', value)}
             placeholder="Kategori"
             placeholderTextColor={colors.muted}
             style={styles.smallInput}
           />
-          <TextInput
+          <KeyboardSafeTextInput
             value={filters.currency}
             onChangeText={(value) => updateFilter('currency', value.toUpperCase())}
             placeholder="TRY/USD/EUR"
@@ -368,7 +369,7 @@ export function CatalogSendScreen({ navigation, session }) {
 
       <View style={styles.panel}>
         <Text style={styles.sectionTitle}>3. Cari seç</Text>
-        <TextInput
+        <KeyboardSafeTextInput
           value={customerSearch}
           onChangeText={setCustomerSearch}
           placeholder="Cari adı, kodu, telefon veya şehir"
@@ -416,7 +417,7 @@ export function CatalogSendScreen({ navigation, session }) {
       ) : null}
 
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
-    </ScrollView>
+    </KeyboardSafeScrollView>
   );
 }
 

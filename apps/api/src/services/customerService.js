@@ -117,6 +117,7 @@ export function isCashCustomerCode(customerCode) {
 }
 
 export async function ensureCashCustomers(poolArg = null) {
+  assertMelisaWriteEnabled();
   const pool = poolArg || await getSqlPool();
 
   for (const customer of CASH_CUSTOMER_DEFINITIONS) {
@@ -176,6 +177,30 @@ export async function ensureCashCustomers(poolArg = null) {
         END;
       `);
   }
+}
+
+export async function ensureAndListCashCustomers() {
+  const pool = await getSqlPool();
+  await ensureCashCustomers(pool);
+  const result = await pool.request().query(`
+    SELECT
+      id,
+      customer_code,
+      name AS customer_name,
+      phone AS phone_raw,
+      city,
+      country,
+      currency_code,
+      customer_type,
+      balance,
+      is_active
+    FROM dbo.customers
+    WHERE customer_code IN (N'PESIN-TL', N'PESIN-USD', N'PESIN-EUR')
+      AND is_deleted = 0
+    ORDER BY CASE customer_code WHEN N'PESIN-TL' THEN 1 WHEN N'PESIN-USD' THEN 2 ELSE 3 END;
+  `);
+
+  return (result.recordset || []).map(toCustomerDto);
 }
 
 function validateCustomerPayload(payload, { requirePhone }) {

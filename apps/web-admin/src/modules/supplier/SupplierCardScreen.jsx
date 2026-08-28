@@ -16,6 +16,13 @@ const emptySupplierForm = {
   lastPurchaseDate: '',
   movements: [],
   productTrace: [],
+  stockSummary: {
+    productCount: 0,
+    soldQuantity: 0,
+    remainingQuantity: 0,
+    remainingValueTry: 0,
+    byCurrency: [],
+  },
   isPassive: false,
 };
 
@@ -75,6 +82,20 @@ function movementLabel(type) {
   return labels[type] || type || '-';
 }
 
+function buildSupplierMovementRows(movements = [], currentBalance = 0) {
+  let fallbackBalance = Number(currentBalance || 0);
+
+  return movements.map((movement) => {
+    const hasRunningBalance = movement.runningBalance !== null
+      && movement.runningBalance !== undefined
+      && Number.isFinite(Number(movement.runningBalance));
+    const runningBalance = hasRunningBalance ? Number(movement.runningBalance) : fallbackBalance;
+
+    fallbackBalance = runningBalance - Number(movement.balanceEffect || 0);
+    return { ...movement, runningBalance };
+  });
+}
+
 function mapDetailToForm(detail) {
   return {
     supplierCode: detail.supplierCode || '',
@@ -89,6 +110,7 @@ function mapDetailToForm(detail) {
     lastPurchaseDate: detail.lastPurchaseDate || '',
     movements: detail.movements || [],
     productTrace: detail.productTrace || [],
+    stockSummary: detail.stockSummary || emptySupplierForm.stockSummary,
     isPassive: Boolean(detail.isPassive),
   };
 }
@@ -183,9 +205,21 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
       paymentTotal: paymentMovements.reduce((sum, row) => sum + Number(row.amount || 0), 0),
       productQuantity: form.productTrace.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
       productAmountTry: form.productTrace.reduce((sum, row) => sum + Number(row.lineTotalTry || 0), 0),
+      mainSupplierProductCount: Number(form.stockSummary?.productCount || 0),
+      soldQuantity: Number(form.stockSummary?.soldQuantity || 0),
+      remainingQuantity: Number(form.stockSummary?.remainingQuantity || 0),
+      remainingValueTry: Number(form.stockSummary?.remainingValueTry || 0),
+      remainingValues: form.stockSummary?.byCurrency || [],
     };
-  }, [form.movements, form.purchaseCount, form.productTrace]);
+  }, [form.movements, form.purchaseCount, form.productTrace, form.stockSummary]);
+  const primaryRemainingValue = summary.remainingValues.find((row) => row.currency === form.currency)
+    || summary.remainingValues[0]
+    || { currency: form.currency || 'TRY', remainingValue: 0 };
   const balanceRows = useMemo(() => buildSupplierBalanceRows(form), [form]);
+  const movementRows = useMemo(
+    () => buildSupplierMovementRows(form.movements, form.balance),
+    [form.balance, form.movements],
+  );
   const recentMovements = useMemo(() => (form.movements || []).slice(0, 5), [form.movements]);
   const recentProductTrace = useMemo(() => (form.productTrace || []).slice(0, 5), [form.productTrace]);
 
@@ -327,22 +361,24 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                 <small>{formatMoney(summary.paymentTotal, form.currency)}</small>
               </div>
               <div className="entity-360-card stock-card">
-                <span>Alınan adet</span>
-                <strong>{summary.productQuantity}</strong>
-                <small>{form.productTrace.length} ürün satırı</small>
+                <span>Satılan adet</span>
+                <strong>{summary.soldQuantity}</strong>
+                <small>Ana tedarikçi ürünleri</small>
               </div>
               <div className="entity-360-card price-card">
-                <span>Net maliyet TRY</span>
-                <strong>{formatMoney(summary.productAmountTry, 'TRY')}</strong>
-                <small>Alış satırları toplamı</small>
+                <span>Kalan adet</span>
+                <strong>{summary.remainingQuantity}</strong>
+                <small>{summary.mainSupplierProductCount} ürün kartı</small>
               </div>
-              <div className="entity-360-card cancel-card">
-                <span>İptal izi</span>
-                <strong>{summary.cancelCount}</strong>
-                <small>Hareketlerde ayrı izlenir</small>
+              <div className="entity-360-card value-card">
+                <span>Kalan mal değeri</span>
+                <strong>{formatMoney(primaryRemainingValue.remainingValue, primaryRemainingValue.currency)}</strong>
+                <small>Ortalama net alış maliyetiyle</small>
               </div>
             </div>
-            <div className="entity-360-trace-grid">
+            <details className="entity-360-details">
+              <summary>Son hareketler ve ürünler</summary>
+              <div className="entity-360-trace-grid">
               <section className="entity-360-mini-list">
                 <div className="entity-360-mini-title">
                   <strong>Son Alış / Ödeme</strong>
@@ -379,14 +415,14 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                   </button>
                 ))}
               </section>
-            </div>
+              </div>
+            </details>
           </section>
           <section className="supplier-card-layout">
-            <section className="erp-panel customer-form-panel supplier-form-panel">
-              <div className="panel-title">
-                <strong>Tedarikçi Bilgileri</strong>
-                <span>Alış fişleri ve ödemeler bu alış carisini besler</span>
-              </div>
+            <details className="erp-panel customer-form-panel supplier-form-panel entity-card-form-details" open={mode === 'create' || canEditForm ? true : undefined}>
+              <summary>
+                <span><strong>Tedarikçi Bilgileri</strong><small>{mode === 'create' ? 'Yeni kayıt' : canEditForm ? 'Düzenleme açık' : 'Görüntülemek için açın'}</small></span>
+              </summary>
               <div className="customer-form-grid">
                 <label>
                   <span>Tedarikçi kodu</span>
@@ -425,7 +461,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                   <input readOnly value={form.isPassive ? 'Pasif' : 'Aktif'} />
                 </label>
               </div>
-            </section>
+            </details>
 
             <aside className="erp-panel supplier-summary-panel">
               <div className="panel-title">
@@ -474,6 +510,28 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                   <dd className="in-cell">{summary.productQuantity}</dd>
                 </div>
                 <div>
+                  <dt>Ana tedarikçi ürünü</dt>
+                  <dd>{summary.mainSupplierProductCount}</dd>
+                </div>
+                <div>
+                  <dt>Satılan adet</dt>
+                  <dd className="out-cell">{summary.soldQuantity}</dd>
+                </div>
+                <div>
+                  <dt>Kalan adet</dt>
+                  <dd className="in-cell">{summary.remainingQuantity}</dd>
+                </div>
+                <div className="supplier-stock-value-row">
+                  <dt>Kalan mal değeri</dt>
+                  <dd>
+                    {summary.remainingValues.length === 0
+                      ? formatMoney(0, form.currency)
+                      : summary.remainingValues.map((row) => (
+                        <span key={row.currency}>{formatMoney(row.remainingValue, row.currency)}</span>
+                      ))}
+                  </dd>
+                </div>
+                <div>
                   <dt>Net maliyet TRY</dt>
                   <dd>{formatMoney(summary.productAmountTry, 'TRY')}</dd>
                 </div>
@@ -486,13 +544,14 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
               <strong>Alış / Ödeme Hareketleri</strong>
               <span>Alış fişleri kesinleşince tedarikçi kartını besler</span>
             </div>
-            {form.movements.length === 0 ? (
+            {movementRows.length === 0 ? (
               <div className="list-state">Bu tedarikçi için hareket yok.</div>
             ) : (
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
+                      <th>Kalan borç</th>
                       <th>Tarih</th>
                       <th>Tip</th>
                       <th>Belge no</th>
@@ -503,16 +562,25 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                     </tr>
                   </thead>
                   <tbody>
-                    {form.movements.map((row) => {
+                    {movementRows.map((row) => {
                       const targetRow = { ...row, supplierId: activeSupplierId, supplierCode: form.supplierCode, supplierName: form.supplierName };
                       const canOpen = Boolean(resolveLedgerTarget(targetRow));
 
                       return (
                         <tr
                           key={row.id}
-                          className={`${canOpen ? 'clickable-row' : ''} ${row.type === 'purchase_invoice_cancel' ? 'cancel-row' : ''}`}
+                          className={`${canOpen ? 'clickable-row' : ''} ${
+                            row.type === 'payment'
+                              ? 'payment-row'
+                              : row.type === 'purchase_invoice'
+                                ? 'purchase-row'
+                                : 'cancel-row'
+                          }`}
                           onClick={() => canOpen && openPurchaseInvoice(row)}
                         >
+                          <td className="money-cell supplier-running-balance">
+                            {formatMoney(row.runningBalance, row.currency)}
+                          </td>
                           <td>{row.date || '-'}</td>
                           <td>{movementLabel(row.type)}</td>
                           <td>

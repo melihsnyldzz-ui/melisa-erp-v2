@@ -1,4 +1,5 @@
-import { apiRequest } from './apiClient';
+import { apiRequest, clearApiAccessToken, setApiAccessToken } from './apiClient';
+import { terminalConfig } from '../config/env';
 import { getStoredValue, removeStoredValue, setStoredValue } from './sessionStorage';
 
 const storageKeys = {
@@ -8,30 +9,57 @@ const storageKeys = {
 };
 
 export const OPEN_ADMIN_TOKEN = 'open-admin';
+const LOCAL_PASSWORDLESS_REFRESH_TOKEN = 'local-passwordless-admin';
 
-function createOpenAdminSession() {
-  return {
-    accessToken: OPEN_ADMIN_TOKEN,
-    refreshToken: 'open-admin-local',
-    user: {
-      id: 0,
-      username: 'open-admin',
-      displayName: 'Acik Admin',
-      role: 'ADMIN',
-      permissions: ['terminal.use', 'product.view', 'customer.view', 'sales.create'],
-    },
+function isJwtExpired(accessToken) {
+  if (!accessToken || accessToken === OPEN_ADMIN_TOKEN) return true;
+
+  try {
+    const [, payloadPart] = String(accessToken).split('.');
+    if (!payloadPart) return false;
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const json = JSON.parse(globalThis.atob(normalized));
+    if (!json.exp) return false;
+    return Number(json.exp) * 1000 <= Date.now() + 30000;
+  } catch {
+    return false;
+  }
+}
+
+export async function renewStoredSession() {
+  const refreshToken = await getStoredValue(storageKeys.refreshToken);
+
+  if (!refreshToken || refreshToken === LOCAL_PASSWORDLESS_REFRESH_TOKEN) {
+    await clearSession();
+    throw new Error('Terminal oturumu yeniden acilmalidir');
+  }
+
+  const response = await apiRequest('/auth/refresh', {
+    method: 'POST',
+    body: { refreshToken },
+  });
+  const session = {
+    accessToken: response.data.accessToken,
+    refreshToken,
+    user: response.data.user,
   };
+  await persistSession(session);
+  return session;
 }
 
 export async function persistSession(session) {
+  setApiAccessToken(session.accessToken);
   await Promise.all([
     setStoredValue(storageKeys.accessToken, session.accessToken),
-    setStoredValue(storageKeys.refreshToken, session.refreshToken),
+    session.refreshToken
+      ? setStoredValue(storageKeys.refreshToken, session.refreshToken)
+      : removeStoredValue(storageKeys.refreshToken),
     setStoredValue(storageKeys.user, JSON.stringify(session.user || {})),
   ]);
 }
 
 export async function clearSession() {
+  clearApiAccessToken();
   await Promise.all([
     removeStoredValue(storageKeys.accessToken),
     removeStoredValue(storageKeys.refreshToken),
@@ -46,8 +74,22 @@ export async function getStoredSession() {
     getStoredValue(storageKeys.user),
   ]);
 
-  if (!accessToken || !refreshToken) {
+  if (!accessToken) {
     return null;
+  }
+
+  if (accessToken === OPEN_ADMIN_TOKEN || refreshToken === LOCAL_PASSWORDLESS_REFRESH_TOKEN) {
+    await clearSession();
+    return null;
+  }
+
+  if (isJwtExpired(accessToken)) {
+    try {
+      return await renewStoredSession();
+    } catch {
+      await clearSession();
+      return null;
+    }
   }
 
   try {
@@ -64,18 +106,18 @@ export async function getStoredSession() {
 
 export async function login({ username, password }) {
   const normalizedUsername = String(username || '').trim();
-
-  if (!password && (!normalizedUsername || normalizedUsername === 'admin' || normalizedUsername === 'open-admin')) {
-    const openSession = createOpenAdminSession();
-    await persistSession(openSession);
-    return openSession;
+  if (!normalizedUsername || !password) {
+    const error = new Error('Kullanici ve sifre zorunludur');
+    error.code = 'AUTH_CREDENTIALS_REQUIRED';
+    throw error;
   }
 
-  const response = await apiRequest('/auth/login', {
+  const response = await apiRequest('/auth/terminal-login', {
     method: 'POST',
     body: {
       username: normalizedUsername,
       password,
+      terminalCode: terminalConfig.terminalCode,
     },
   });
 
@@ -89,8 +131,17 @@ export async function login({ username, password }) {
   return session;
 }
 
+export async function listTerminalUsers() {
+  const terminalCode = encodeURIComponent(terminalConfig.terminalCode);
+  const response = await apiRequest(`/auth/terminal-users?terminalCode=${terminalCode}`);
+  return {
+    device: response.data.device,
+    users: Array.isArray(response.data.users) ? response.data.users : [],
+  };
+}
+
 export async function logout(refreshToken) {
-  if (!refreshToken) {
+  if (!refreshToken || refreshToken === LOCAL_PASSWORDLESS_REFRESH_TOKEN) {
     return;
   }
 

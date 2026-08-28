@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TopMenu } from '../navigation/TopMenu.jsx';
 import { Sidebar } from '../navigation/Sidebar.jsx';
 import { TabBar } from '../workspace/TabBar.jsx';
@@ -6,7 +6,7 @@ import { Workspace } from '../workspace/Workspace.jsx';
 import { StatusBar } from './StatusBar.jsx';
 import { CommandPalette } from './CommandPalette.jsx';
 import { SmartInsightsPanel } from './SmartInsightsPanel.jsx';
-import { initialTabs, screenRegistry } from '../../data/mockNavigationData.js';
+import { getNavigationSection, initialTabs, screenRegistry } from '../../data/mockNavigationData.js';
 import {
   defaultViewOptions,
   detailedViewPreset,
@@ -83,6 +83,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   const [viewOptions, setViewOptions] = useState(readStoredViewOptions);
   const [roleViewId, setRoleViewId] = useState(readStoredRoleView);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const deepLinkHandledRef = useRef(false);
 
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? tabs[0],
@@ -90,10 +91,15 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   );
 
   const roleScreenIds = useMemo(() => getRoleScreenIds(roleViewId), [roleViewId]);
+  const activeNavigationSection = useMemo(
+    () => getNavigationSection(activeTab.screenId ?? activeTab.id),
+    [activeTab],
+  );
 
   function createTab(screen, payload = {}) {
     const recordId = payload.productId
       ?? payload.customerId
+      ?? payload.customerSourceId
       ?? payload.supplierId
       ?? payload.salesDraftId
       ?? payload.purchaseDraftId
@@ -144,6 +150,19 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     });
     setActiveTabId(nextTab.id);
   }
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current) return;
+    deepLinkHandledRef.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('screen') !== 'stock-list') return;
+
+    openScreen('stock-list', {
+      stockCode: params.get('stockCode') || '',
+      sourceId: params.get('sourceId') || '',
+    });
+  }, []);
 
   function closeTab(tabId) {
     const closingTab = tabs.find((tab) => tab.id === tabId);
@@ -222,9 +241,16 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   }, []);
 
   const updateRoleView = useCallback((nextRoleViewId) => {
+    const nextRoleScreenIds = getRoleScreenIds(nextRoleViewId);
+    const activeScreenId = activeTab.screenId ?? activeTab.id;
+
     setRoleViewId(nextRoleViewId);
     window.localStorage.setItem(roleViewStorageKey, nextRoleViewId);
-  }, []);
+
+    if (nextRoleScreenIds && !nextRoleScreenIds.has(activeScreenId)) {
+      setActiveTabId('dashboard');
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -260,9 +286,10 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
         </div>
       )}
       <TopMenu
-        activeModule={activeTab.module}
+        activeModule={activeNavigationSection.label}
         activeTab={activeTab}
         roleViewId={roleViewId}
+        roleScreenIds={roleScreenIds}
         user={user}
         viewOptions={viewOptions}
         onLogout={onLogout}
@@ -290,6 +317,8 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
               onDirtyChange={updateActiveTabDirty}
               onOpenScreen={openScreen}
               permissions={permissions}
+              roleViewId={roleViewId}
+              user={user}
             />
           </ScreenErrorBoundary>
         </section>

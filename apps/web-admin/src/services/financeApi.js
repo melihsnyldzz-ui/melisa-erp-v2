@@ -55,3 +55,23 @@ export async function createCustomerCollection(payload) {
 export async function createSupplierPayment(payload) {
   return post('/api/finance/payments', payload);
 }
+
+export async function fetchCashRegister(params = {}) {
+  return get('/api/finance/cash-register', params);
+}
+
+export async function openCashRegister(payload) {
+  return post('/api/finance/cash-register/open', payload);
+}
+
+export async function createCashExpense(payload) {
+  return post('/api/finance/cash-register/expenses', payload);
+}
+
+export async function createCashTransfer(payload) {
+  return post('/api/finance/cash-register/transfers', payload);
+}
+
+export async function closeCashRegister(payload) {
+  return post('/api/finance/cash-register/close', payload);
+}

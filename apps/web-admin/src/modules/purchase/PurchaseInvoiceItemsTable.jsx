@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat('tr-TR', {
@@ -20,6 +21,7 @@ export function PurchaseInvoiceItemsTable({
   onSelectItem,
   onUpdateItem,
 }) {
+  const [showCostDetails, setShowCostDetails] = useState(false);
   const afterLineDiscounts = items.reduce((sum, item) => {
     const gross = Number(item.quantity || 0) * Number(item.purchasePrice || 0);
     return sum + (gross - gross * (Number(item.lineDiscountRate || 0) / 100));
@@ -29,36 +31,47 @@ export function PurchaseInvoiceItemsTable({
   const supplierDiscountTotal = afterInvoiceDiscount * (Number(supplierRate || 0) / 100);
   const rate = Number(exchangeRate || 1);
 
-  function netLineCostTry(lineTotal) {
+  function lineCostBreakdown(lineTotal, quantity) {
     const share = afterLineDiscounts > 0 ? lineTotal / afterLineDiscounts : 0;
     const invoiceShare = invoiceDiscountTotal * share;
     const afterInvoiceShare = lineTotal - invoiceShare;
     const supplierShare = supplierDiscountTotal * (afterInvoiceDiscount > 0 ? afterInvoiceShare / afterInvoiceDiscount : share);
-    return (afterInvoiceShare - supplierShare) * rate;
+    const documentDiscountShare = invoiceShare + supplierShare;
+    const netLineTotal = afterInvoiceShare - supplierShare;
+
+    return {
+      documentDiscountShare,
+      netLineTotal,
+      netUnitPrice: Number(quantity || 0) > 0 ? netLineTotal / Number(quantity) : 0,
+      netLineCostTry: netLineTotal * rate,
+    };
   }
 
   return (
     <section className="erp-panel purchase-items-panel">
       <div className="panel-title">
-        <strong>Ürün Satırları</strong>
-        <span>Satır bazlı iskonto / {invoiceCurrency} belge maliyeti / stok giriş etkisi</span>
+        <strong>Ürünler</strong>
+        <span>{items.length} satır / {invoiceCurrency}</span>
+        <button className="invoice-table-detail-toggle" type="button" onClick={() => setShowCostDetails((current) => !current)}>
+          {showCostDetails ? 'Maliyetleri Gizle' : 'Maliyet Detayı'}
+        </button>
       </div>
       <div className="table-wrap purchase-items-wrap">
-        <table className="purchase-items-table">
+        <table className={showCostDetails ? 'purchase-items-table show-cost-details' : 'purchase-items-table'}>
           <thead>
             <tr>
               <th>Stok kodu</th>
-              <th>Barkod</th>
               <th>Ürün adı</th>
+              <th>Barkod</th>
               <th>Miktar</th>
-              <th>Para birimi</th>
-              <th>Alış fiyatı</th>
+              <th>Liste alış</th>
               <th>Satır iskonto %</th>
-              <th>Satır toplamı</th>
-              <th>Net maliyet TRY</th>
-              <th>Birim maliyet TRY</th>
+              <th title="Fiş geneli ve tedarikçi iskontosunun bu satıra düşen payı">Fiş isk. payı</th>
+              <th>Net alış</th>
+              <th>Net satır</th>
+              {showCostDetails && <th>Net maliyet TRY</th>}
+              {showCostDetails && <th>Birim maliyet TRY</th>}
               <th>Stok etkisi</th>
-              <th>Not</th>
               {!isReadonly && <th>İşlem</th>}
             </tr>
           </thead>
@@ -66,8 +79,8 @@ export function PurchaseInvoiceItemsTable({
             {items.map((item) => {
               const gross = item.quantity * item.purchasePrice;
               const lineTotal = gross - gross * (item.lineDiscountRate / 100);
-              const lineCostTry = netLineCostTry(lineTotal);
-              const unitCostTry = Number(item.quantity || 0) > 0 ? lineCostTry / Number(item.quantity || 0) : 0;
+              const cost = lineCostBreakdown(lineTotal, item.quantity);
+              const unitCostTry = Number(item.quantity || 0) > 0 ? cost.netLineCostTry / Number(item.quantity || 0) : 0;
 
               return (
                 <tr
@@ -76,11 +89,10 @@ export function PurchaseInvoiceItemsTable({
                   onClick={() => onSelectItem(item.id)}
                 >
                   <td className="code-cell">{item.stockCode}</td>
-                  <td>{item.barcode}</td>
                   <td className="invoice-product-cell">
                     <strong>{item.productName}</strong>
-                    <small>{item.stockCode} / {item.barcode}</small>
                   </td>
+                  <td className="invoice-barcode-cell">{item.barcode || '-'}</td>
                   <td className="money-cell invoice-quantity-cell in-cell">
                     {isReadonly ? item.quantity : (
                       <input
@@ -91,7 +103,6 @@ export function PurchaseInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td><span className="currency-pill">{item.currency}</span></td>
                   <td className="money-cell invoice-price-cell">
                     {isReadonly ? formatMoney(item.purchasePrice, item.currency) : (
                       <input
@@ -114,14 +125,15 @@ export function PurchaseInvoiceItemsTable({
                       />
                     )}
                   </td>
-                  <td className="money-cell invoice-total-cell">{formatMoney(lineTotal, item.currency)}</td>
-                  <td className="money-cell purchase-cost-try">{formatMoney(lineCostTry, 'TRY')}</td>
-                  <td className="money-cell purchase-cost-try">{formatMoney(unitCostTry, 'TRY')}</td>
+                  <td className="money-cell invoice-discount-cell">{formatMoney(cost.documentDiscountShare, item.currency)}</td>
+                  <td className="money-cell purchase-net-unit-price">{formatMoney(cost.netUnitPrice, item.currency)}</td>
+                  <td className="money-cell invoice-total-cell">{formatMoney(cost.netLineTotal, item.currency)}</td>
+                  {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(cost.netLineCostTry, 'TRY')}</td>}
+                  {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(unitCostTry, 'TRY')}</td>}
                   <td><span className="purchase-stock-in">{item.stockEffect}</span></td>
-                  <td>{item.note}</td>
                   {!isReadonly && (
                     <td>
-                      <button type="button" onClick={() => onDeleteItem(item.id)}>Sil</button>
+                      <button className="invoice-row-icon-button" aria-label="Satırı sil" title="Satırı sil" type="button" onClick={() => onDeleteItem(item.id)}><Trash2 size={14} /></button>
                     </td>
                   )}
                 </tr>

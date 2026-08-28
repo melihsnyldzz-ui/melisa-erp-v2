@@ -49,7 +49,6 @@ const SALES_TEST_DOCUMENT_PATTERN = `(
   OR si.document_no LIKE N'DBG%'
   OR si.document_no LIKE N'ERP_%'
   OR si.document_no LIKE N'S-TST-%'
-  OR si.document_no LIKE N'SDR-%'
   OR si.document_no LIKE N'SF-FIN-TEST-%'
   OR si.document_no LIKE N'SF-FIELD-%'
   OR si.document_no LIKE N'E2E-SA-%'

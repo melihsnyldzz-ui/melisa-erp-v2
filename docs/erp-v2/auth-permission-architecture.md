@@ -214,6 +214,7 @@ Web-admin kullanıcı adı/şifre ile giriş yapar. Başarılı giriş sonrası 
 Kurallar:
 
 - Session kullanıcı, rol ve yetki özetini taşır.
+- Yerel sunucu kurulumunda başarılı parola girişinden sonra refresh token bu cihazda saklanır ve oturum 365 güne kadar sessizce yenilenir; kullanıcı `Çıkış` yaptığında refresh token sunucuda iptal edilir ve cihazdaki tokenlar temizlenir.
 - Yetki değişirse kullanıcının session'ı yenilenmeli veya yeniden doğrulanmalıdır.
 - Pasif kullanıcı yeni token alamaz.
 - Kritik işlemde ayrıca tekrar şifre/PIN istenmez; mevcut session ve yetki kontrolü kullanılır.
@@ -253,6 +254,16 @@ Kurallar:
 - Refresh token kullanımı audit veya security log seviyesinde izlenebilir.
 
 ### Cihaz bazlı terminal login
+
+Uygulanan terminal başlangıç akışı:
+
+1. Yetkili yönetici ERP'de kullanıcı adı, görünen ad, rol ve ilk şifre ile kullanıcıyı oluşturur.
+2. Kullanıcı Personel Tanımları ekranında aktif personele bağlanır ve terminal satışı açılır.
+3. Kayıtlı ve aktif terminal cihazı uygun kullanıcıların güvenli listesini alır.
+4. Operatör kullanıcıyı seçip şifresini girer; backend hem kullanıcı şifresini hem terminal uygunluğunu doğrular.
+5. Şifre değişikliğinde kullanıcının mevcut refresh tokenları iptal edilir.
+
+Terminal istemcisinde şifresiz admin girişi yoktur. Kullanıcı listesi parola, parola hash'i veya token içermez.
 
 Terminal login iki parçalıdır:
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { fetchCustomerMovements } from '../../services/movementApi.js';
 import { exportRowsToCsv, printRowsReport } from '../../utils/exportUtils.js';
 import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { splitLedgerCancellationRows } from '../shared/ledgerCancellationUtils.js';
 
 const movementFilterOptions = [
   { value: '', label: 'Tüm normal hareketler' },
@@ -115,8 +116,12 @@ export function CustomerMovementsScreen({ onOpenScreen }) {
     };
   }, [query]);
 
-  const cancelledRows = useMemo(() => rows.filter(isCancelledMovement), [rows]);
-  const regularRows = useMemo(() => rows.filter((row) => !isCancelledMovement(row)), [rows]);
+  const splitRows = useMemo(
+    () => splitLedgerCancellationRows(rows, 'sales_invoice_cancel'),
+    [rows],
+  );
+  const cancelledRows = splitRows.cancelledRows;
+  const regularRows = splitRows.regularRows;
   const visibleRegularRows = useMemo(
     () => filterRegularRows(regularRows, filters.movementType),
     [filters.movementType, regularRows],

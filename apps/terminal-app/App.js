@@ -14,6 +14,7 @@ import { ReceiptCollectScreen } from './src/screens/ReceiptCollectScreen';
 import { ReportsScreen } from './src/screens/ReportsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SyncStatusScreen } from './src/screens/SyncStatusScreen';
+import { WhatsAppCrmScreen } from './src/screens/WhatsAppCrmScreen';
 import { pingApi } from './src/services/apiClient';
 import { clearSession, getStoredSession, login, logout } from './src/services/authService';
 import { getCacheSummary } from './src/services/cacheService';
@@ -165,6 +166,7 @@ export default function App() {
     openReports: () => navigateTo('reports'),
     openSettings: () => navigateTo('settings'),
     openSyncStatus: () => navigateTo('syncStatus'),
+    openWhatsappCrm: () => navigateTo('whatsappCrm'),
   }), [goBack, navigateTo]);
 
   if (booting) {
@@ -181,6 +183,7 @@ export default function App() {
     return (
       <LoginScreen
         onLogin={handleLogin}
+        onApiBaseUrlChange={refreshSyncState}
         syncState={syncState}
       />
     );
@@ -190,9 +193,9 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" backgroundColor={colors.header} />
       <TerminalShell
-        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'catalogSend' ? 'Katalog Gönder' : activeScreen === 'customerAccounts' ? 'Musteri Carileri' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'reports' ? 'Raporlar' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : activeScreen === 'receiptCollect' ? 'Fis Toplama' : 'Urun Bilgisi'}
+        title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'catalogSend' ? 'Katalog Gonder' : activeScreen === 'customerAccounts' ? 'Musteri Carileri' : activeScreen === 'whatsappCrm' ? 'WhatsApp CRM' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'reports' ? 'Raporlar' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : activeScreen === 'receiptCollect' ? 'Fis Toplama' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
-        hideScreenHeader={activeScreen === 'newSale'}
+        hideScreenHeader
         session={session}
         syncState={syncState}
       >
@@ -243,6 +246,13 @@ export default function App() {
 
         {activeScreen === 'customerAccounts' && (
           <CustomerAccountsScreen
+            navigation={navigation}
+            session={session}
+          />
+        )}
+
+        {activeScreen === 'whatsappCrm' && (
+          <WhatsAppCrmScreen
             navigation={navigation}
             session={session}
           />

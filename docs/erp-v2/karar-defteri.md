@@ -205,6 +205,15 @@ Tedarikçi kartında tutulacak bilgiler:
 - genel iskonto oranı,
 - tedarikçi notu.
 
+## 6.5 Kesinleşmiş Fiş Düzeltme
+
+- Yetkili kullanıcı kesinleşmiş alış ve satış fişini `Düzenle` komutuyla açabilir.
+- Düzeltme yeni iptal veya ters hareket oluşturmaz; mevcut stok, cari ve finans etkileri eski-yeni farkı kadar doğrudan güncellenir.
+- Fişin müşteri/tedarikçi tarafı ve para birimi kesinleştikten sonra değiştirilemez.
+- Ürün, miktar, fiyat, iskonto, tarih, fiş numarası ve açıklama düzeltilebilir.
+- Her düzeltmede önceki ve sonraki fiş görüntüsü audit kaydına yazılır.
+- Kapalı muhasebe dönemindeki fişler düzenlenemez.
+
 ---
 
 # 7. Stok Kararları
@@ -682,4 +691,85 @@ Her özellik önce:
 # 20. Son Karar
 
 Melisa ERP v2, Vega/Wolvox gibi klasik yoğun ERP hissi veren, web tabanlı, ileride Electron’a taşınabilecek, terminali sade ama güçlü, katalog ve tedarikçi performansı destekli, çoklu dövizli ticari takip ERP’si olarak tasarlanacaktır.
+
+---
+
+# 21. Alış İskontosu ve Stok Maliyeti Kuralı
+
+- Tedarikçi kartındaki alış iskontosu, yeni alış fişine önerilen **fiş sonu tedarikçi iskontosu** olarak gelir.
+- Bu oran satır iskontosuna otomatik kopyalanmaz. Satır iskontosu yalnızca ürüne veya ilgili satıra özel ayrı bir indirim varsa kullanılır.
+- Satır iskontosu, fiş geneli iskontosu ve tedarikçi iskontosu ardışık uygulanır; oranlar doğrudan toplanmaz.
+- Fiş geneli ve tedarikçi iskontoları, satırların satır iskontosu sonrası tutarları oranında ürünlere dağıtılır.
+- Net birim alış maliyeti, ürünün dağıtılmış net satır tutarının miktara bölünmesiyle hesaplanır.
+- Dövizli alışlarda stok maliyeti, fişin kur snapshot değeriyle TRY'ye çevrilen net maliyettir.
+- Tedarikçi borcu fişin net genel toplamı üzerinden oluşur.
+- Ürün kartındaki liste alış fiyatı korunur; son net alış maliyeti ve ağırlıklı ortalama stok maliyeti ayrı gösterilir.
+- Dövizle alınan ürünlerde ağırlıklı ortalama stok maliyetinin ana gösterimi ürünün döviz cinsindedir; TRY yalnızca raporlama karşılığı olarak ikincil gösterilir.
+- Döviz ortalaması bugünkü kurdan çevrilmez; alış fişlerinin işlem anındaki kur snapshot ve net satır tutarlarından hesaplanır.
+- Yuvarlama farkları fiş genel toplamıyla satırların toplamı eşleşecek biçimde kontrol edilir.
+
+---
+
+# 22. Çoklu Döviz Günlük Kasa Kuralı
+
+- Fiziksel kasa çekmecesi TRY, USD ve EUR için ayrı ayrı açılır, sayılır ve kapatılır; para birimleri günlük kasa içinde birbirine çevrilmez.
+- Ana kasa ile günlük çekmece ayrı finans hesaplarıdır. Sabah çekmeceye eklenen ve akşam ana kasaya teslim edilen para çift taraflı iç transferdir; gelir veya gider sayılmaz.
+- Açık kasa oturumu varken nakit müşteri tahsilatları ve nakit satışlar çekmeceye giriş, nakit tedarikçi ödemeleri çekmeceden çıkış oluşturur.
+- Banka, kart ve diğer ödeme yöntemleri fiziksel çekmece bakiyesini etkilemez.
+- Masraflar kategori, para birimi, tutar ve açıklama ile kaydedilir; çekmece bakiyesinden düşer.
+- Sabah ve akşam fiziksel sayım farkları açıklamasız kaydedilemez ve audit kaydı oluşturur.
+- İlk sürümde aynı anda yalnızca bir günlük kasa oturumu açık olabilir.
+- Veri modeli ve işletim akışı [Çoklu Döviz Günlük Kasa](multi-currency-daily-cash.md) belgesinde tanımlıdır.
+
+---
+
+# 23. Ana Tedarikçi Stok Performansı Kuralı
+
+- Tedarikçi kartındaki ürün portföyü, ürün kartında **ana tedarikçi** olarak seçilen tedarikçiye göre belirlenir.
+- Satılan adet yalnızca kesinleşmiş satışların ürün miktarlarından hesaplanır.
+- Kalan adet, ana tedarikçiye bağlı ürünlerin pozitif güncel stoklarının toplamıdır.
+- Kalan mal değeri, her ürünün kalan adedi ile geçmiş kesinleşmiş alışlardan hesaplanan ağırlıklı ortalama net alış maliyetinin çarpımıdır.
+- Kalan mal değeri ürünün kendi para biriminde gösterilir; farklı para birimleri birbirine eklenmez.
+- İptal edilmiş alış ve satış kayıtları performans hesabına dahil edilmez.
+
+---
+
+# 24. Personel, Terminal ve Satış Sahipliği Kuralı
+
+- Personel kaydı ile ERP kullanıcı hesabı farklı kavramlardır. Kullanıcı hesabı giriş ve yetki içindir; personel kaydı ticari işlemin sahibini gösterir.
+- Terminal satışı yapacak personel tek bir aktif ERP kullanıcı hesabına bağlanmalıdır. Personel formunda kullanıcı adı ve ilk şifre girildiğinde bu hesap aynı işlemde otomatik oluşturulur.
+- Aktif terminal cihazı belirli bir personele atanmaz. Terminal giriş ekranında aktif giriş hesabına bağlı bütün aktif personeller listelenir; ayrıca terminal seçimi veya ataması yapılmaz.
+- Personel kendi kullanıcı adını seçip şifresini doğruladıktan sonra terminali başlatır.
+- Terminal satışı oluşturulurken cihaz kimliği ile giriş yapan personelin kimliği satış fişine snapshot olarak yazılır. Daha sonraki kullanıcı veya personel değişiklikleri eski fişin sahibini değiştirmez.
+- Pasif veya giriş hesabı olmayan personel terminal listesinde görünmez. Personel ekranından oluşturulan her yeni aktif kayıtta terminal giriş hesabı aynı işlemde zorunlu olarak oluşturulur.
+- Web-admin üzerinden manuel oluşturulan satış fişlerinde personel zorunlu değildir; zorunluluk terminal satış akışı içindir.
+- Geçmiş satışlara tahmin yoluyla personel atanmaz. Kanıtlanamayan eski kayıtlar personelsiz kalır.
+- Personel oluşturma, güncelleme ve şifre değiştirme audit kaydı üretir.
+
+---
+
+# 25. Personel Görev ve Kısıtlama Kuralı
+
+- Personelin görev/pozisyon bilgisi personel kartında tutulur; bu alan ticari raporlama ve sorumluluk tanımı içindir.
+- ERP ekranlarına erişim, personelin bağlı kullanıcı hesabındaki mevcut ERP rolü ve permission sistemiyle yönetilir. Ayrı ve çelişen ikinci bir web yetki sistemi kurulmaz.
+- Kullanıcı hesabı olmayan eski veya dışarıdan alınmış personel ERP web arayüzüne ve terminale giriş yapamaz; yeni personel formu bu nedenle giriş hesabını personelle birlikte oluşturur.
+- Terminal operasyon kısıtları personel bazında ayrıca tutulur ve API tarafında zorunlu olarak uygulanır.
+- İlk çalışan kısıt seti: terminalden satış yapabilme, satış fiyatını değiştirebilme ve azami satış indirimi oranıdır.
+- Fiyat değiştirme yetkisi olmayan personel ürünün kayıtlı satış fiyatından farklı fiyatla terminal satışı oluşturamaz.
+- Fiyat değiştirme yetkisi olan personelin yaptığı indirim, personel kartındaki azami oranı aşamaz.
+- Personel görevi, ERP rolü veya terminal kısıtları değiştiğinde audit izi korunur; geçmiş fişlerin personel sahipliği değiştirilmez.
+
+---
+
+# 26. Mikro İhracat Demo Kuralı
+
+- FedEx mikro ihracat hazırlığı ilk aşamada yalnızca ERP içi, dış etkisiz bir demo akışı olarak çalışır.
+- Demo ekranı FedEx'e, ETGB sistemine veya başka bir dış servise veri göndermez; ücret, takip numarası, etiket ya da kurye kaydı oluşturmaz.
+- Vega ve Melisa ERP SQL kaynaklarına yazmaz; demo ilerlemesi yalnızca tarayıcıda yerel olarak saklanabilir.
+- Operasyon fişi resmî e-arşiv/e-fatura olarak gösterilmez. Resmî belge eksikliği son onay kapısında açıkça görünür.
+- Koli ölçüsü/ağırlığı, ürün içeriği, menşe, GTİP, alıcı VAT/EORI, teslim şekli ve FedEx canlı fiyatı insan doğrulaması olmadan kesin kabul edilmez.
+- Gerçek entegrasyon ayrı bir onaylı sprint, güvenli secret yönetimi, yetki, audit, idempotency, test ortamı ve işlem anı insan onayı gerektirir.
+- Mikro ihracat GTİP taslağında aksi açıkça belirtilmedikçe ürün malzemesi pamuk kabul edilir; `velsoft`, `polar`, `polyester`, `sentetik` veya eşdeğer açık işaret bulunan ürünler sentetik içerik grubuna alınır. Etiket veya teknik belge bilgisi her zaman varsayımdan üstündür.
+- Proforma hazırlanırken yerel GTİP kaydı olmayan ürünlere ürün adı ve açık malzeme işaretlerinden otomatik **taslak** kod üretilebilir. Kayıtlı/doğrulanmış kod ezilmez; otomatik kod güven seviyesi ve kural dayanağıyla görünür ve sevk öncesi insan doğrulaması zorunludur.
+- Otomatik GTİP taslağı Vega'ya veya Melisa ERP ticari tablolarına kendiliğinden yazılmaz. Kalıcı ürün sınıflandırması ayrı onaylı, audit izli doğrulama akışıdır.
 

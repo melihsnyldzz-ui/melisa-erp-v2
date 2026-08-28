@@ -119,6 +119,14 @@ function getGroupSender(message = {}, payload = {}) {
     || '';
 }
 
+function getContactDisplayName(message = {}, payload = {}) {
+  return message.pushName
+    || payload.data?.pushName
+    || payload.pushName
+    || payload.data?.message?.pushName
+    || '';
+}
+
 function withGroupSender(text, message = {}, payload = {}) {
   const remoteJid = getRemoteJid(message, payload);
 
@@ -177,6 +185,54 @@ function getText(message = {}, payload = {}) {
   return withGroupSender(text, message, payload);
 }
 
+function getMessageType(message = {}) {
+  const body = unwrapMessageBody(message.message || message);
+
+  if (body.imageMessage || message.messageType === 'imageMessage' || message.type === 'imageMessage') return 'image';
+  if (body.videoMessage || message.messageType === 'videoMessage' || message.type === 'videoMessage') return 'video';
+  if (body.audioMessage || message.messageType === 'audioMessage' || message.type === 'audioMessage') return 'audio';
+  if (body.stickerMessage || message.messageType === 'stickerMessage' || message.type === 'stickerMessage') return 'sticker';
+  if (body.documentMessage || message.messageType === 'documentMessage' || message.type === 'documentMessage') return 'file';
+  return 'text';
+}
+
+function normalizeBase64Media(value = '', mimeType = 'image/jpeg') {
+  let raw = '';
+
+  if (Array.isArray(value)) {
+    raw = Buffer.from(value).toString('base64');
+  } else if (value && typeof value === 'object') {
+    raw = Buffer.from(Object.values(value).map((item) => Number(item) || 0)).toString('base64');
+  } else {
+    raw = String(value || '').trim();
+  }
+
+  if (!raw) return '';
+  if (raw.startsWith('data:')) return raw;
+  return `data:${mimeType || 'image/jpeg'};base64,${raw}`;
+}
+
+function getMediaInfo(message = {}) {
+  const body = unwrapMessageBody(message.message || message);
+  const image = body.imageMessage || {};
+  const video = body.videoMessage || {};
+  const audio = body.audioMessage || {};
+  const document = body.documentMessage || {};
+  const sticker = body.stickerMessage || {};
+  const media = image.url ? image : video.url ? video : document.url ? document : audio.url ? audio : sticker.url ? sticker : image;
+  const mimeType = media.mimetype || image.mimetype || video.mimetype || document.mimetype || audio.mimetype || sticker.mimetype || '';
+  const thumbnail = image.jpegThumbnail || video.jpegThumbnail || document.jpegThumbnail || sticker.jpegThumbnail || '';
+
+  return {
+    mediaUrl: media.url || '',
+    thumbnailUrl: normalizeBase64Media(thumbnail, mimeType || 'image/jpeg'),
+    mimeType,
+    fileName: document.fileName || media.fileName || '',
+    fileSize: media.fileLength || media.fileSize || null,
+    caption: image.caption || video.caption || document.caption || '',
+  };
+}
+
 export class EvolutionProvider extends WhatsAppProvider {
   constructor() {
     super('evolution');
@@ -232,6 +288,7 @@ export class EvolutionProvider extends WhatsAppProvider {
       || `${env.evolution.instance}:${eventType}:${messageId || hashPayload(payload)}`;
 
     const text = getText(message, payload);
+    const media = getMediaInfo(message);
 
     return {
       provider: this.providerName,
@@ -241,20 +298,25 @@ export class EvolutionProvider extends WhatsAppProvider {
       messageId,
       remoteJid,
       phone: normalizePhone(remoteJid),
+      contactName: getContactDisplayName(message, payload),
       direction: message.key?.fromMe ? 'outbound' : 'inbound',
+      messageType: getMessageType(message),
+      media,
       text,
       rawPayload: payload,
       receivedAt: new Date().toISOString(),
     };
   }
 
-  async sendMessage({ phone, remoteJid, contactName, text } = {}) {
+  async sendMessage({ phone, remoteJid, contactName, text, media, instanceKey } = {}) {
     const number = normalizeSendTarget({ phone, remoteJid });
     const resolvedTarget = /@lid$/i.test(number)
       ? await this.findLidSendTarget({ remoteJid, contactName })
       : null;
     const sendTarget = resolvedTarget || number;
     const messageText = String(text || '').trim();
+    const mediaPayload = media && typeof media === 'object' ? media : null;
+    const hasMedia = Boolean(mediaPayload?.dataUrl);
 
     if (!/@lid$/i.test(sendTarget) && sendTarget.length < 10) {
       const error = new Error('WhatsApp telefon numarasi gecersiz');
@@ -263,7 +325,7 @@ export class EvolutionProvider extends WhatsAppProvider {
       throw error;
     }
 
-    if (!messageText) {
+    if (!messageText && !hasMedia) {
       const error = new Error('Gonderilecek mesaj bos olamaz');
       error.code = 'WHATSAPP_CRM_MESSAGE_REQUIRED';
       error.statusCode = 400;
@@ -272,22 +334,34 @@ export class EvolutionProvider extends WhatsAppProvider {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), env.evolution.timeoutMs);
-    const instance = encodeURIComponent(env.evolution.instance);
+    const selectedInstance = String(instanceKey || env.evolution.instance).trim();
+    const instance = encodeURIComponent(selectedInstance);
 
     try {
-      const response = await fetch(`${env.evolution.apiUrl}/message/sendText/${instance}`, {
+      const endpoint = hasMedia ? 'sendMedia' : 'sendText';
+      const outboundMediaType = mediaPayload?.mediaType || (String(mediaPayload?.mimeType || '').startsWith('image/') ? 'image' : 'document');
+      const body = hasMedia ? {
+        number: sendTarget,
+        mediatype: outboundMediaType,
+        mimetype: mediaPayload.mimeType || (outboundMediaType === 'image' ? 'image/jpeg' : 'application/pdf'),
+        media: String(mediaPayload.dataUrl).replace(/^data:[^;]+;base64,/, ''),
+        fileName: mediaPayload.fileName || (outboundMediaType === 'image' ? 'image.jpg' : 'document.pdf'),
+        caption: messageText,
+      } : {
+        number: sendTarget,
+        text: messageText,
+        textMessage: {
+          text: messageText,
+        },
+      };
+
+      const response = await fetch(`${env.evolution.apiUrl}/message/${endpoint}/${instance}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           apikey: env.evolution.apiKey,
         },
-        body: JSON.stringify({
-          number: sendTarget,
-          text: messageText,
-          textMessage: {
-            text: messageText,
-          },
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       const payload = await readResponsePayload(response);
@@ -302,12 +376,72 @@ export class EvolutionProvider extends WhatsAppProvider {
 
       return {
         provider: this.providerName,
-        instanceKey: env.evolution.instance,
+        instanceKey: selectedInstance,
         phone: sendTarget,
         text: messageText,
+        messageType: hasMedia ? (outboundMediaType === 'image' ? 'image' : 'file') : 'text',
+        media: hasMedia ? {
+          mediaUrl: mediaPayload.dataUrl,
+          mimeType: mediaPayload.mimeType || (outboundMediaType === 'image' ? 'image/jpeg' : 'application/pdf'),
+          fileName: mediaPayload.fileName || (outboundMediaType === 'image' ? 'image.jpg' : 'document.pdf'),
+        } : null,
         providerMessageId: payload?.key?.id || payload?.message?.key?.id || payload?.id || null,
         providerResponse: payload,
         sentAt: new Date().toISOString(),
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async getMessageMedia({ rawPayload = {}, instanceKey = env.evolution.instance } = {}) {
+    const messagePayload = rawPayload.data?.message || rawPayload.message || {};
+    const keyPayload = rawPayload.data?.key || messagePayload.key || rawPayload.key || {};
+    const instance = encodeURIComponent(instanceKey || env.evolution.instance);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), env.evolution.timeoutMs);
+
+    try {
+      const response = await fetch(`${env.evolution.apiUrl}/chat/getBase64FromMediaMessage/${instance}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: env.evolution.apiKey,
+        },
+        body: JSON.stringify({
+          message: {
+            key: keyPayload,
+            message: messagePayload,
+          },
+        }),
+        signal: controller.signal,
+      });
+      const payload = await readResponsePayload(response);
+
+      if (!response.ok) {
+        const error = new Error(payload?.message || payload?.error || 'WhatsApp medya dosyasi alinamadi');
+        error.code = 'WHATSAPP_CRM_MEDIA_FETCH_FAILED';
+        error.statusCode = 502;
+        error.meta = { status: response.status };
+        throw error;
+      }
+
+      const base64 = String(payload?.base64 || payload?.data || payload?.media || '').replace(/^data:[^;]+;base64,/, '');
+      const mimeType = payload?.mimetype || payload?.mimeType || 'application/octet-stream';
+
+      if (!base64) {
+        const error = new Error('WhatsApp medya cevabi bos geldi');
+        error.code = 'WHATSAPP_CRM_MEDIA_EMPTY';
+        error.statusCode = 502;
+        throw error;
+      }
+
+      return {
+        mediaType: payload?.mediaType || '',
+        mimeType,
+        fileName: payload?.fileName || '',
+        fileSize: payload?.size || null,
+        dataUrl: `data:${mimeType};base64,${base64}`,
       };
     } finally {
       clearTimeout(timeout);

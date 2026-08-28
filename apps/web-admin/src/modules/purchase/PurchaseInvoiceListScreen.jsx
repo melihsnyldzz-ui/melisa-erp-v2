@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPurchaseDrafts, fetchPurchaseInvoice } from '../../services/invoiceDraftApi.js';
 import { exportRowsToExcel, printBusinessDocument, printRowsReport } from '../../utils/exportUtils.js';
+import { InvoiceListAdvancedFilters } from '../shared/InvoiceListAdvancedFilters.jsx';
 
 function formatMoney(amount, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -75,6 +76,11 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
   const [search, setSearch] = useState('');
   const [supplier, setSupplier] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [currencyFilter, setCurrencyFilter] = useState('ALL');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
   const [rows, setRows] = useState([]);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
@@ -165,6 +171,11 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
         search,
         supplier,
         status: statusFilter,
+        dateFrom,
+        dateTo,
+        currency: currencyFilter,
+        amountMin,
+        amountMax,
       });
 
       setRows(response.data);
@@ -196,6 +207,11 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           search,
           supplier,
           status: statusFilter,
+          dateFrom,
+          dateTo,
+          currency: currencyFilter,
+          amountMin,
+          amountMax,
         });
 
         if (isMounted) {
@@ -224,7 +240,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [search, statusFilter, supplier]);
+  }, [amountMax, amountMin, currencyFilter, dateFrom, dateTo, search, statusFilter, supplier]);
 
   useEffect(() => {
     let isMounted = true;
@@ -278,6 +294,11 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     setSearch('');
     setSupplier('');
     setStatusFilter('ALL');
+    setDateFrom('');
+    setDateTo('');
+    setCurrencyFilter('ALL');
+    setAmountMin('');
+    setAmountMax('');
   }
 
   function toggleColumn(columnKey) {
@@ -390,18 +411,23 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           <span>Tedarikçi</span>
           <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder="Tedarikçi adı veya kodu" />
         </label>
-        <label>
-          <span>Durum</span>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="ALL">Tümü</option>
-            <option value="DRAFT">Taslak</option>
-            <option value="FINALIZED">Kesinleşmiş</option>
-            <option value="CANCELLED">İptal</option>
-            <option value="ARCHIVED_TEST">Test Arşivi</option>
-          </select>
-        </label>
         <button type="button" className="filter-reset-button" onClick={resetFilters}>Temizle</button>
       </section>
+
+      <InvoiceListAdvancedFilters
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+        dateFrom={dateFrom}
+        onDateFromChange={setDateFrom}
+        dateTo={dateTo}
+        onDateToChange={setDateTo}
+        currency={currencyFilter}
+        onCurrencyChange={setCurrencyFilter}
+        amountMin={amountMin}
+        onAmountMinChange={setAmountMin}
+        amountMax={amountMax}
+        onAmountMaxChange={setAmountMax}
+      />
 
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">
@@ -435,7 +461,10 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
         </section>
       )}
 
-      <section className="sales-receipt-layout purchase-receipt-layout" style={{ '--sales-preview-width': `${previewWidth}px` }}>
+      <section
+        className={`sales-receipt-layout purchase-receipt-layout ${!isLoading && !errorMessage && rows.length === 0 ? 'is-empty' : ''}`}
+        style={{ '--sales-preview-width': `${previewWidth}px` }}
+      >
         <section className="erp-panel invoice-list-panel sales-receipt-list-panel purchase-receipt-list-panel">
           <div className="panel-title">
             <strong>Fiş Listesi</strong>
@@ -451,7 +480,15 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
             </div>
           )}
           {!isLoading && !errorMessage && rows.length === 0 && (
-            <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
+            <div className="invoice-list-empty-state">
+              <span className="invoice-list-empty-icon" aria-hidden="true">+</span>
+              <strong>Bu filtrelerde alış fişi yok</strong>
+              <p>Filtreleri temizleyebilir veya yeni bir alış fişi oluşturabilirsiniz.</p>
+              <div className="invoice-list-empty-actions">
+                <button type="button" className="primary" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Alış Fişi</button>
+                <button type="button" onClick={resetFilters}>Filtreleri Temizle</button>
+              </div>
+            </div>
           )}
           {!isLoading && !errorMessage && rows.length > 0 && (
             <div className="table-wrap invoice-table-wrap sales-receipt-table-wrap purchase-receipt-table-wrap">

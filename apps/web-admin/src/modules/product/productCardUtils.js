@@ -14,6 +14,8 @@ export const emptyProductForm = {
   hasMovements: false,
   stockQuantity: 0,
   averageCostTry: 0,
+  averageCostCurrency: 0,
+  cardOpenedAt: '',
   lastPurchaseDate: '',
   lastSaleDate: '',
   barcodes: [],
@@ -26,6 +28,17 @@ export function formatMoney(amount, currency = 'TRY') {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
+}
+
+export function formatCardOpenedAt(value, emptyLabel = 'Henüz kaydedilmedi') {
+  if (!value) return emptyLabel;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Tarih okunamadı';
+  return new Intl.DateTimeFormat('tr-TR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Europe/Istanbul',
+  }).format(date);
 }
 
 export function mapDetailToForm(detail) {
@@ -47,6 +60,8 @@ export function mapDetailToForm(detail) {
     hasMovements: Boolean(detail.lastPurchaseDate || detail.lastSaleDate),
     stockQuantity: detail.stockQuantity || 0,
     averageCostTry: detail.averageCostTry || 0,
+    averageCostCurrency: detail.averageCostCurrency || 0,
+    cardOpenedAt: detail.cardOpenedAt || '',
     lastPurchaseDate: detail.lastPurchaseDate || '',
     lastSaleDate: detail.lastSaleDate || '',
     barcodes: detail.barcodes || [],
@@ -69,10 +84,7 @@ export function buildProductView(form, detailId = null) {
     supplier: form.supplierName || '-',
     status: form.isPassive ? 'Pasif' : 'Aktif',
     hasMovements: Boolean(form.hasMovements),
-    currencyRule: form.hasMovements
-      ? 'Hareket görmüş ürün: para birimi kilitli. Admin özel işlem ve audit gerekir.'
-      : 'Hareket görmemiş ürün: para birimi değiştirilebilir.',
-    imageNote: 'Görsel URL veya dosya yolu kaydedilebilir. Binary dosya yükleme sonraki faz.',
+    imageNote: 'JPG, PNG veya WEBP · en fazla 3 MB · filigran otomatik eklenir.',
   };
 }
 
@@ -87,6 +99,9 @@ export function mapStockSummary(form) {
 }
 
 export function buildProduct360(form, stockMovements) {
+  const latestPurchase = stockMovements.find((row) => (
+    row.sourceType === 'purchase_invoice' && Number(row.quantityIn || 0) > 0
+  ));
   const summary = stockMovements.reduce((total, row) => {
     const quantityIn = Number(row.quantityIn || 0);
     const quantityOut = Number(row.quantityOut || 0);
@@ -111,12 +126,30 @@ export function buildProduct360(form, stockMovements) {
     lastInDate: '',
   });
 
+  const averageCostTry = Number(form.averageCostTry || 0);
+  const normalizedCurrency = form.currency || 'TRY';
+  const averageCostCurrency = normalizedCurrency === 'TRY'
+    ? averageCostTry
+    : Number(form.averageCostCurrency || 0);
+  const salePrice = Number(form.salePrice || 0);
+  const unitProfit = salePrice > 0 && averageCostCurrency > 0
+    ? salePrice - averageCostCurrency
+    : null;
+  const grossProfitRate = unitProfit !== null && salePrice > 0
+    ? (unitProfit / salePrice) * 100
+    : null;
+
   return {
     ...summary,
     currentStock: Number(form.stockQuantity || 0),
-    averageCostTry: Number(form.averageCostTry || 0),
-    salePrice: Number(form.salePrice || 0),
+    averageCostTry,
+    averageCostCurrency,
+    averageCostCurrencyCode: normalizedCurrency,
+    salePrice,
     purchasePrice: Number(form.purchasePrice || 0),
+    unitProfit,
+    grossProfitRate,
+    lastNetPurchaseCostTry: Number(latestPurchase?.unitCostTry || 0),
     supplier: form.supplierName || '-',
   };
 }

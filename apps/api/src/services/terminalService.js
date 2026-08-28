@@ -127,6 +127,93 @@ async function getActiveCustomer(customerId) {
   return customer;
 }
 
+async function getTerminalOperatorContext(terminalCode, actorUserId) {
+  const userId = Number(actorUserId);
+  if (!Number.isInteger(userId) || userId < 1) {
+    throw serviceError('TERMINAL_OPERATOR_REQUIRED', 'Authenticated terminal personnel is required', 401);
+  }
+  const pool = await getSqlPool();
+  const schemaResult = await pool.request().query(`
+    SELECT
+      CASE
+      WHEN OBJECT_ID(N'dbo.employees', N'U') IS NOT NULL
+       AND COL_LENGTH(N'dbo.employees', N'user_id') IS NOT NULL
+       AND COL_LENGTH(N'dbo.sales_invoices', N'employee_id') IS NOT NULL
+      THEN 1 ELSE 0
+      END AS is_ready,
+      CASE
+        WHEN COL_LENGTH(N'dbo.employees', N'can_terminal_sale') IS NOT NULL
+         AND COL_LENGTH(N'dbo.employees', N'can_change_sale_price') IS NOT NULL
+         AND COL_LENGTH(N'dbo.employees', N'max_sale_discount_percent') IS NOT NULL
+        THEN 1 ELSE 0
+      END AS restrictions_ready;
+  `);
+  if (!schemaResult.recordset?.[0]?.is_ready) {
+    throw serviceError(
+      'PERSONNEL_SCHEMA_MISSING',
+      'Personnel schema is not installed. Apply migration 0013_personnel_terminal_sales.sql.',
+      503,
+    );
+  }
+  const restrictionsReady = Boolean(schemaResult.recordset?.[0]?.restrictions_ready);
+  const restrictionColumns = restrictionsReady
+    ? `e.can_terminal_sale,
+       e.can_change_sale_price,
+       e.max_sale_discount_percent`
+    : `CAST(1 AS BIT) AS can_terminal_sale,
+       CAST(0 AS BIT) AS can_change_sale_price,
+       CAST(0 AS DECIMAL(5,2)) AS max_sale_discount_percent`;
+
+  const result = await pool.request()
+    .input('terminalCode', sql.NVarChar(80), terminalCode)
+    .input('operatorUserId', sql.BigInt, userId)
+    .query(`
+      SELECT TOP (1)
+        d.id AS terminal_device_id,
+        d.device_code,
+        d.device_name,
+        d.is_active AS device_is_active,
+        e.id AS employee_id,
+        e.employee_code,
+        e.full_name AS employee_name,
+        e.is_active AS employee_is_active,
+        ${restrictionColumns}
+      FROM dbo.terminal_devices d
+      LEFT JOIN dbo.employees e ON e.user_id = @operatorUserId
+      WHERE d.device_code = @terminalCode;
+    `);
+
+  const terminal = result.recordset?.[0];
+  if (!terminal || !terminal.device_is_active) {
+    throw serviceError('TERMINAL_DEVICE_NOT_ACTIVE', 'Active terminal device not found', 409);
+  }
+  if (!terminal.employee_id || !terminal.employee_is_active) {
+    throw serviceError(
+      'TERMINAL_EMPLOYEE_NOT_ASSIGNED',
+      'The logged in user must be linked to an active terminal personnel record',
+      409,
+    );
+  }
+  if (!terminal.can_terminal_sale) {
+    throw serviceError(
+      'TERMINAL_EMPLOYEE_SALE_RESTRICTED',
+      'This employee is not allowed to create terminal sales',
+      403,
+    );
+  }
+
+  return {
+    terminalDeviceId: Number(terminal.terminal_device_id),
+    terminalCode: terminal.device_code,
+    terminalName: terminal.device_name,
+    employeeId: Number(terminal.employee_id),
+    employeeCode: terminal.employee_code,
+    employeeName: terminal.employee_name,
+    canChangeSalePrice: Boolean(terminal.can_change_sale_price),
+    maxSaleDiscountPercent: Number(terminal.max_sale_discount_percent || 0),
+  };
+}
+
 async function getActiveProducts(items) {
   const ids = [...new Set(items.map((item) => item.productId))];
   if (ids.some((id) => !Number.isInteger(id) || id < 1)) {
@@ -180,6 +267,93 @@ async function getActiveProducts(items) {
   return productsById;
 }
 
+async function getTerminalCurrencyRateMap() {
+  const pool = await getSqlPool();
+  const result = await pool.request().query(`
+    WITH latest_rates AS (
+      SELECT
+        currency_code,
+        rate_to_try,
+        ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS row_number
+      FROM dbo.currency_rates
+      WHERE currency_code IN (N'USD', N'EUR')
+    )
+    SELECT currency_code, rate_to_try
+    FROM latest_rates
+    WHERE row_number = 1;
+  `);
+
+  return new Map([
+    ['TRY', 1],
+    ...(result.recordset || []).map((row) => [String(row.currency_code || '').toUpperCase(), Number(row.rate_to_try || 0)]),
+  ]);
+}
+
+export function calculateTerminalReferencePrice({
+  listPrice,
+  sourceCurrency,
+  targetCurrency,
+  documentCurrency,
+  documentExchangeRate,
+  currencyRateMap,
+}) {
+  const source = trimText(sourceCurrency).toUpperCase() || 'TRY';
+  const target = trimText(targetCurrency).toUpperCase() || trimText(documentCurrency).toUpperCase() || source;
+  const document = trimText(documentCurrency).toUpperCase() || target;
+  const resolveRate = (currency) => {
+    if (currency === 'TRY') return 1;
+    if (currency === document && Number(documentExchangeRate) > 0) return Number(documentExchangeRate);
+    return Number(currencyRateMap?.get(currency) || 0);
+  };
+  const sourceRate = resolveRate(source);
+  const targetRate = resolveRate(target);
+
+  if (sourceRate <= 0 || targetRate <= 0) {
+    throw serviceError(
+      'TERMINAL_CURRENCY_RATE_REQUIRED',
+      `Currency rate is required for ${sourceRate <= 0 ? source : target}`,
+      409,
+    );
+  }
+
+  return Number(listPrice || 0) * sourceRate / targetRate;
+}
+
+function assertTerminalSalePricing(items, productsById, terminal, pricingContext) {
+  for (const item of items) {
+    const product = productsById.get(item.productId);
+    const listPrice = calculateTerminalReferencePrice({
+      listPrice: product?.salePrice,
+      sourceCurrency: product?.currency,
+      targetCurrency: item.currency,
+      ...pricingContext,
+    });
+    const enteredPrice = Number(item.unitPrice || 0);
+    const changed = Math.abs(enteredPrice - listPrice) > 0.005;
+
+    if (!changed) continue;
+
+    if (!terminal.canChangeSalePrice) {
+      throw serviceError(
+        'TERMINAL_EMPLOYEE_PRICE_CHANGE_RESTRICTED',
+        `Bu personel ${product?.stockCode || item.productId} ürününün satış fiyatını değiştiremez`,
+        403,
+      );
+    }
+
+    const discountPercent = listPrice > 0 && enteredPrice < listPrice
+      ? ((listPrice - enteredPrice) / listPrice) * 100
+      : 0;
+    if (discountPercent - terminal.maxSaleDiscountPercent > 0.0001) {
+      throw serviceError(
+        'TERMINAL_EMPLOYEE_DISCOUNT_LIMIT_EXCEEDED',
+        `Bu personel için izin verilen azami indirim %${terminal.maxSaleDiscountPercent}`,
+        403,
+      );
+    }
+  }
+}
+
 async function writeTerminalSubmitAudit(invoice, payload, actor) {
   const pool = await getSqlPool();
   await writeAuditLog(pool.request(), {
@@ -190,6 +364,9 @@ async function writeTerminalSubmitAudit(invoice, payload, actor) {
     afterSnapshot: {
       clientEventId: payload.clientEventId,
       terminalCode: payload.terminalCode,
+      terminalDeviceId: invoice.terminalDeviceId,
+      employeeId: invoice.employeeId,
+      employeeName: invoice.employeeName,
       invoiceId: invoice.id,
       documentNumber: invoice.documentNo || invoice.documentNumber,
       status: invoice.status,
@@ -216,6 +393,16 @@ function toSubmitResponse(invoice, { duplicate = false } = {}) {
       amount: Number(invoice.grandTotal || 0),
       currency: invoice.documentCurrency,
     },
+    terminal: invoice.terminalDeviceId ? {
+      id: Number(invoice.terminalDeviceId),
+      code: invoice.terminalCode || '',
+      name: invoice.terminalName || '',
+    } : null,
+    employee: invoice.employeeId ? {
+      id: Number(invoice.employeeId),
+      code: invoice.employeeCode || '',
+      name: invoice.employeeName || '',
+    } : null,
   };
 }
 
@@ -237,14 +424,23 @@ export async function submitTerminalSale(payload = {}, actor = null) {
   }
 
   const customer = await getActiveCustomer(normalized.customerId);
+  const terminal = await getTerminalOperatorContext(normalized.terminalCode, actor?.id);
   const productsById = await getActiveProducts(normalized.items);
   const documentCurrency = normalized.documentCurrency || customer.currency || 'TRY';
+  const currencyRateMap = await getTerminalCurrencyRateMap();
+  assertTerminalSalePricing(normalized.items, productsById, terminal, {
+    documentCurrency,
+    documentExchangeRate: normalized.exchangeRate,
+    currencyRateMap,
+  });
   const description = buildDescription(normalized);
 
   const draftPayload = {
     documentNo: normalized.documentNumber,
     documentDate: new Date().toISOString().slice(0, 10),
     customerId: normalized.customerId,
+    terminalDeviceId: terminal.terminalDeviceId,
+    employeeId: terminal.employeeId,
     customerCurrency: customer.currency || documentCurrency,
     documentCurrency,
     exchangeRate: normalized.exchangeRate,

@@ -133,7 +133,7 @@ addCheck('dark mode class is mapped on shell', shellSource.includes("'dark-mode-
 addCheck('dark mode theme layer exists', modernSource.includes('.dark-mode-shell') && modernSource.includes('color-scheme: dark'));
 addCheck('view options menu escapes top action scroller', block(modernSource, '.view-options-menu').includes('position: fixed'));
 addCheck('supplier list requests enough cards', supplierListSource.includes('limit: 500') && supplierServiceSource.includes('maxLimit: 500'));
-addCheck('supplier list has stable KPI and table layout', supplierListSource.includes('supplier-list-kpis') && modernSource.includes('.supplier-table'));
+addCheck('supplier list has compact summary and stable table layout', supplierListSource.includes('entity-list-summary') && modernSource.includes('.supplier-table'));
 addCheck('supplier list has sortable table headers', supplierListSource.includes('sortRows(column.key)') && supplierListSource.includes('numericSupplierSortKeys'));
 addCheck('customer list can expand to 500 rows', customerListSource.includes('defaultCustomerListPageLimit = 500') && customerFiltersSource.includes('<option value={500}>500</option>') && customerServiceSource.includes('maxLimit: 500'));
 addCheck('turkish search normalization is shared by key lists', searchTextSource.includes('normalizeSearchText') && searchTextSource.includes('replace(/[I\\u0130\\u0131]/g') && searchTextSource.includes('replace(/\\u0131/g') && customerListSource.includes('searchTextIncludes') && supplierListSource.includes('normalizeSearchText') && stockListSource.includes('searchTextIncludes'));

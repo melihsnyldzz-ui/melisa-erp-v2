@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Check, ClipboardList, Save, Trash2 } from 'lucide-react';
 import { createPurchaseDraft, finalizePurchaseDraft } from '../../services/invoiceDraftApi.js';
 import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -77,7 +79,7 @@ function groupRowsBySupplier(rows) {
     };
 
     current.rows.push(row);
-    current.total += Number(row.lineTotal || 0);
+    current.total += Number(row.netLineTotal || 0);
     current.totalTry += Number(row.lineTotalTry || 0);
     grouped.set(key, current);
   });
@@ -96,7 +98,7 @@ function makeDraftPayload(group, documentDate) {
     exchangeRate: group.exchangeRate || 1,
     description: `Toplu alis girisi - ${group.rows.length} satir`,
     invoiceDiscountRate: 0,
-    supplierDiscountRate: 0,
+    supplierDiscountRate: group.supplierDiscountRate,
     items: group.rows.map((row) => ({
       productId: row.productId,
       stockCode: row.stockCode,
@@ -211,15 +213,19 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
           isPassive: Boolean(product.isPassive),
         }));
 
-        setSuppliers(nextSuppliers);
-        setProducts(nextProducts);
-        setSupplierId((current) => (current && nextSuppliers.some((item) => String(item.id) === String(current)) ? current : String(nextSuppliers[0]?.id ?? '')));
-        setProductId('');
+        setSuppliers((currentSuppliers) => {
+          const merged = new Map(currentSuppliers.map((supplier) => [String(supplier.id), supplier]));
+          nextSuppliers.forEach((supplier) => merged.set(String(supplier.id), supplier));
+          return Array.from(merged.values());
+        });
+        setProducts((currentProducts) => {
+          const merged = new Map(currentProducts.map((product) => [String(product.productId), product]));
+          nextProducts.forEach((product) => merged.set(String(product.productId), product));
+          return Array.from(merged.values());
+        });
         setErrorMessage('');
       } catch (error) {
         if (isMounted) {
-          setSuppliers([]);
-          setProducts([]);
           setErrorMessage(`${error.message || 'Lookup verisi okunamadi.'} (${error.code || 'API_ERROR'})`);
         }
       } finally {
@@ -244,7 +250,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     setProductId((current) => (
       current && supplierProducts.some((item) => String(item.productId) === String(current))
         ? current
-        : String(supplierProducts[0]?.productId ?? '')
+        : ''
     ));
   }, [selectedSupplier, supplierProducts]);
 
@@ -258,7 +264,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     const targetCurrency = selectedSupplier?.currency || selectedProduct.currency || 'TRY';
     const convertedPrice = convertAmount(selectedProduct.purchasePrice, selectedProduct.currency, targetCurrency, currencyRates);
     setPurchasePrice(convertedPrice === null ? selectedProduct.purchasePrice : convertedPrice);
-    setLineDiscountRate(Number(selectedSupplier?.purchaseDiscountRate ?? selectedProduct.lineDiscountRate ?? 0));
+    setLineDiscountRate(Number(selectedProduct.lineDiscountRate || 0));
   }, [currencyRates, selectedProduct, selectedSupplier]);
 
   function addRow() {
@@ -296,7 +302,10 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
 
     const gross = Number(quantity) * Number(purchasePrice);
     const lineTotal = gross - gross * (Number(lineDiscountRate || 0) / 100);
-    const lineTotalTry = lineTotal * Number(supplierRate || 1);
+    const supplierDiscountRate = Number(selectedSupplier.purchaseDiscountRate || 0);
+    const supplierDiscountShare = lineTotal * (supplierDiscountRate / 100);
+    const netLineTotal = lineTotal - supplierDiscountShare;
+    const lineTotalTry = netLineTotal * Number(supplierRate || 1);
     const nextId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     setRows((current) => [
@@ -307,7 +316,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
         supplierCode: selectedSupplier.supplierCode || selectedSupplier.code || String(selectedSupplier.id),
         supplierName: selectedSupplier.supplierName || selectedSupplier.name,
         supplierCurrency,
-        supplierDiscountRate: Number(selectedSupplier.purchaseDiscountRate || 0),
+        supplierDiscountRate,
         exchangeRate: Number(supplierRate || 1),
         productId: selectedProduct.productId,
         stockCode: selectedProduct.stockCode,
@@ -317,12 +326,41 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
         purchasePrice: Number(purchasePrice),
         lineDiscountRate: Number(lineDiscountRate || 0),
         lineTotal,
+        supplierDiscountShare,
+        netLineTotal,
         lineTotalTry,
       },
     ]);
     setErrorMessage('');
     setResults([]);
     setStatusMessage('Satir eklendi. Kayitta tedarikciye gore ayri alis taslaklari olusacak.');
+  }
+
+  function updateBulkSupplierQuery(value) {
+    setSupplierQuery(value);
+    const query = normalizeSearchText(value);
+    const match = query && suppliers.find((supplier) => (
+      [supplier.supplierCode, supplier.supplierName, supplierLabel(supplier)]
+        .some((candidate) => normalizeSearchText(candidate) === query)
+    ));
+
+    if (match) {
+      setSupplierId(String(match.id));
+      setSupplierQuery(match.supplierName || match.name || '');
+      setProducts([]);
+      setProductQuery('');
+      setProductId('');
+    }
+  }
+
+  function updateBulkProductQuery(value) {
+    setProductQuery(value);
+    const query = normalizeSearchText(value);
+    const match = query && supplierProducts.find((product) => (
+      [product.stockCode, product.barcode, product.productName, productLabel(product)]
+        .some((candidate) => normalizeSearchText(candidate) === query)
+    ));
+    setProductId(match ? String(match.productId) : '');
   }
 
   function handleEntryKeyDown(event) {
@@ -412,14 +450,14 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
           <span>Tek ekrandan cok tedarikcili satir gir, sistem resmi fisleri tedarikciye gore ayirsin.</span>
         </div>
         <div className="purchase-toolbar-actions">
-          <button type="button" onClick={() => setRows([])} disabled={isSaving || rows.length === 0}>Sepeti Temizle</button>
+          <button type="button" onClick={() => setRows([])} disabled={isSaving || rows.length === 0}><Trash2 size={15} />Sepeti Temizle</button>
           <button type="button" onClick={() => createGroupedDrafts()} disabled={isSaving || rows.length === 0 || !canCreate}>
-            {isSaving ? 'Kaydediliyor' : 'Taslaklari Olustur'}
+            <Save size={15} />{isSaving ? 'Kaydediliyor' : 'Taslakları Oluştur'}
           </button>
           <button type="button" className="primary" onClick={() => createGroupedDrafts({ finalize: true })} disabled={isSaving || rows.length === 0 || !canCreate || !canFinalize}>
-            Olustur ve Kesinlestir
+            <Check size={15} />Oluştur ve Kesinleştir
           </button>
-          <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}>Alis Fisleri</button>
+          <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}><ClipboardList size={15} />Alış Fişleri</button>
         </div>
       </section>
 
@@ -429,8 +467,8 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
       <section className="bulk-purchase-layout">
         <section className="erp-panel bulk-purchase-entry-panel">
           <div className="panel-title">
-            <strong>Satir Ekle</strong>
-            <span>Her satir kendi tedarikcisiyle kaydedilir</span>
+            <strong>Alış Satırı Ekle</strong>
+            <span>Her satır kendi tedarikçisiyle kaydedilir</span>
           </div>
           <div className="bulk-purchase-entry-grid" onKeyDown={handleEntryKeyDown}>
             <label>
@@ -438,67 +476,45 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
               <input type="date" value={documentDate} onChange={(event) => setDocumentDate(event.target.value)} />
             </label>
             <label>
-              <span>Tedarikci ara</span>
-              <input value={supplierQuery} onChange={(event) => setSupplierQuery(event.target.value)} placeholder="Ad / telefon / sehir" />
-            </label>
-            <label>
-              <span>Tedarikci sec</span>
-              <select value={supplierId} onChange={(event) => setSupplierId(event.target.value)}>
+              <span>Tedarikçi</span>
+              <input list="bulk-purchase-supplier-suggestions" value={supplierQuery} onChange={(event) => updateBulkSupplierQuery(event.target.value)} placeholder="Kod / ad / telefon / şehir" />
+              <datalist id="bulk-purchase-supplier-suggestions">
                 {suppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>{supplierLabel(supplier)} / Isk %{Number(supplier.purchaseDiscountRate || 0)}</option>
+                  <option key={supplier.id} value={supplier.supplierName || supplier.name} label={`${supplier.supplierCode || supplier.code || supplier.id} / İsk %${Number(supplier.purchaseDiscountRate || 0)}`} />
                 ))}
-              </select>
+              </datalist>
             </label>
             <label>
-              <span>Urun ara</span>
-              <input value={productQuery} onChange={(event) => setProductQuery(event.target.value)} placeholder="Barkod / stok kodu / urun adi" />
-            </label>
-            <label>
-              <span>Urun sec</span>
-              <select value={productId} onChange={(event) => setProductId(event.target.value)}>
+              <span>Ürün / barkod</span>
+              <input list="bulk-purchase-product-suggestions" value={productQuery} onChange={(event) => updateBulkProductQuery(event.target.value)} placeholder="Barkod / stok kodu / ürün adı" />
+              <datalist id="bulk-purchase-product-suggestions">
                 {supplierProducts.length === 0 && (
-                  <option value="">Bu tedarikciye bagli urun yok</option>
+                  <option value="">Bu tedarikçiye bağlı ürün yok</option>
                 )}
                 {supplierProducts.map((product) => (
-                  <option key={product.productId} value={product.productId}>{productLabel(product)} / {formatMoney(product.purchasePrice, product.currency)}</option>
+                  <option key={product.productId} value={productLabel(product)} label={formatMoney(product.purchasePrice, product.currency)} />
                 ))}
-              </select>
+              </datalist>
             </label>
             <label>
               <span>Miktar</span>
               <input min="0.001" step="0.001" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
             </label>
             <label>
-              <span>Alis fiyat</span>
+              <span>Alış fiyatı</span>
               <input min="0.01" step="0.01" type="number" value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)} />
             </label>
             <label>
-              <span>Satir isk %</span>
+              <span>Satır isk %</span>
               <input min="0" max="100" step="0.01" type="number" value={lineDiscountRate} onChange={(event) => setLineDiscountRate(event.target.value)} />
             </label>
-            <button type="button" onClick={addRow} disabled={isLoadingLookup || isSaving}>Satir Ekle</button>
+            <button type="button" onClick={addRow} disabled={isLoadingLookup || isSaving}>Satır Ekle</button>
           </div>
-          <div className="purchase-supplier-snapshot bulk-purchase-snapshot">
-            <span><b>Tedarikci</b>{selectedSupplier ? supplierLabel(selectedSupplier) : '-'}</span>
-            <span><b>PB</b>{selectedSupplier?.currency || '-'}</span>
-            <span><b>Bakiye</b>{selectedSupplier ? formatMoney(selectedSupplier.balance, selectedSupplier.currency) : '-'}</span>
-            <span><b>Kur</b>{selectedSupplier ? `${selectedSupplier.currency} ${Number(exchangeRateFor(currencyRates, selectedSupplier.currency) || 0).toFixed(4)}` : '-'}</span>
-          </div>
-          <div className={`bulk-purchase-product-preview ${selectedProduct ? 'is-ready' : ''}`}>
-            {selectedProduct?.imageUrl ? (
-              <img alt={selectedProduct.productName || selectedProduct.stockCode || 'Urun'} src={selectedProduct.imageUrl} />
-            ) : (
-              <span className="bulk-purchase-product-preview-empty">Gorsel yok</span>
-            )}
-            <div>
-              <span>Secili urun</span>
-              <strong>{selectedProduct ? selectedProduct.productName : 'Urun secilmedi'}</strong>
-              <small>
-                {selectedProduct
-                  ? `${selectedProduct.stockCode} / ${selectedProduct.barcode} / ${formatMoney(selectedProduct.purchasePrice, selectedProduct.currency)}`
-                  : 'Tedarikciye bagli urun secin'}
-              </small>
-            </div>
+          <div className="bulk-purchase-entry-context" aria-live="polite">
+            <span className={selectedSupplier ? 'is-ready' : ''}><b>Tedarikçi:</b> {selectedSupplier ? supplierLabel(selectedSupplier) : 'Seçilmedi'}</span>
+            <span className={selectedProduct ? 'is-ready' : ''}><b>Ürün:</b> {selectedProduct ? productLabel(selectedProduct) : 'Seçilmedi'}</span>
+            <span><b>PB / Kur:</b> {selectedSupplier ? `${selectedSupplier.currency} / ${Number(exchangeRateFor(currencyRates, selectedSupplier.currency) || 0).toFixed(4)}` : '-'}</span>
+            <span><b>Bakiye:</b> {selectedSupplier ? formatMoney(selectedSupplier.balance, selectedSupplier.currency) : '-'}</span>
           </div>
         </section>
 
@@ -548,32 +564,28 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
               <thead>
                 <tr>
                   <th>Tedarikci</th>
-                  <th>Stok kodu</th>
-                  <th>Barkod</th>
-                  <th>Urun</th>
+                  <th>Ürün</th>
                   <th>Miktar</th>
-                  <th>PB</th>
-                  <th>Alis fiyat</th>
-                  <th>Isk %</th>
-                  <th>Toplam</th>
-                  <th>TRY</th>
-                  <th>Islem</th>
+                  <th>Liste alış</th>
+                  <th>Satır isk %</th>
+                  <th>Fiş isk %</th>
+                  <th>Net satır</th>
+                  <th>Net TRY</th>
+                  <th>İşlem</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id}>
                     <td><b>{row.supplierCode}</b><br /><small>{row.supplierName}</small></td>
-                    <td className="code-cell">{row.stockCode}</td>
-                    <td>{row.barcode}</td>
-                    <td>{row.productName}</td>
+                    <td className="invoice-product-cell"><strong>{row.productName}</strong><small>{row.stockCode} / {row.barcode} / {row.supplierCurrency}</small></td>
                     <td className="in-cell">+{row.quantity}</td>
-                    <td>{row.supplierCurrency}</td>
                     <td className="money-cell">{formatMoney(row.purchasePrice, row.supplierCurrency)}</td>
                     <td>%{row.lineDiscountRate}</td>
-                    <td className="money-cell">{formatMoney(row.lineTotal, row.supplierCurrency)}</td>
+                    <td>%{row.supplierDiscountRate}</td>
+                    <td className="money-cell">{formatMoney(row.netLineTotal, row.supplierCurrency)}</td>
                     <td className="money-cell purchase-cost-try">{formatMoney(row.lineTotalTry, 'TRY')}</td>
-                    <td><button type="button" onClick={() => deleteRow(row.id)}>Sil</button></td>
+                    <td><button className="invoice-row-icon-button" aria-label="Satırı sil" title="Satırı sil" type="button" onClick={() => deleteRow(row.id)}><Trash2 size={14} /></button></td>
                   </tr>
                 ))}
               </tbody>

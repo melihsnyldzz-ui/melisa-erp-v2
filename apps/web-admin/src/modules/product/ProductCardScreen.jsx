@@ -5,18 +5,17 @@ import { ProductCardHeader } from './ProductCardHeader.jsx';
 import { Product360Panel } from './Product360Panel.jsx';
 import { ProductImagePanel } from './ProductImagePanel.jsx';
 import { ProductStockUsagePanel } from './ProductStockUsagePanel.jsx';
-import { ProductStockSummary } from './ProductStockSummary.jsx';
 import {
   buildProduct360,
   buildProductView,
   emptyProductForm,
   mapBarcodes,
   mapDetailToForm,
-  mapStockSummary,
   validateProductForm,
 } from './productCardUtils.js';
 import {
   addProductBarcode,
+  checkProductIdentityAvailability,
   changeProductPassive,
   changeProductBarcodePassive,
   createProduct,
@@ -35,6 +34,10 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   const [isPassiveSaving, setIsPassiveSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [duplicateProductSuggestion, setDuplicateProductSuggestion] = useState(null);
+  const [identityAvailability, setIdentityAvailability] = useState({
+    stockCode: { status: 'idle', duplicateProduct: null },
+    barcode: { status: 'idle', duplicateProduct: null },
+  });
   const [successMessage, setSuccessMessage] = useState('');
   const [stockMovements, setStockMovements] = useState([]);
   const [isMovementsLoading, setIsMovementsLoading] = useState(false);
@@ -42,9 +45,14 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
     brands: [],
     categories: [],
     suppliers: [],
+    supplierCurrencies: {},
   });
   const [isEditing, setIsEditing] = useState(!productId);
   const [isDirty, setIsDirty] = useState(false);
+  const mode = activeProductId ? 'update' : 'create';
+  const canEditForm = mode === 'create' || isEditing;
+  const canSave = permissions.includes('product.edit');
+  const canTogglePassive = permissions.includes('product.passive');
 
   useEffect(() => {
     setActiveProductId(productId || null);
@@ -101,6 +109,82 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
+    if (!canEditForm) {
+      setIdentityAvailability({
+        stockCode: { status: 'idle', duplicateProduct: null },
+        barcode: { status: 'idle', duplicateProduct: null },
+      });
+      return undefined;
+    }
+
+    const stockCode = form.stockCode.trim();
+    const barcode = form.barcode.trim();
+
+    if (!stockCode && !barcode) {
+      setIdentityAvailability({
+        stockCode: { status: 'idle', duplicateProduct: null },
+        barcode: { status: 'idle', duplicateProduct: null },
+      });
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setIdentityAvailability({
+      stockCode: stockCode
+        ? { status: 'checking', duplicateProduct: null }
+        : { status: 'idle', duplicateProduct: null },
+      barcode: barcode
+        ? { status: 'checking', duplicateProduct: null }
+        : { status: 'idle', duplicateProduct: null },
+    });
+
+    const timerId = window.setTimeout(async () => {
+      try {
+        const response = await checkProductIdentityAvailability({
+          stockCode,
+          barcode,
+          excludeProductId: activeProductId || undefined,
+        });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setIdentityAvailability({
+          stockCode: stockCode
+            ? {
+              status: response.data?.stockCode?.available ? 'available' : 'duplicate',
+              duplicateProduct: response.data?.stockCode?.duplicateProduct || null,
+            }
+            : { status: 'idle', duplicateProduct: null },
+          barcode: barcode
+            ? {
+              status: response.data?.barcode?.available ? 'available' : 'duplicate',
+              duplicateProduct: response.data?.barcode?.duplicateProduct || null,
+            }
+            : { status: 'idle', duplicateProduct: null },
+        });
+      } catch {
+        if (isCurrent) {
+          setIdentityAvailability({
+            stockCode: stockCode
+              ? { status: 'error', duplicateProduct: null }
+              : { status: 'idle', duplicateProduct: null },
+            barcode: barcode
+              ? { status: 'error', duplicateProduct: null }
+              : { status: 'idle', duplicateProduct: null },
+          });
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timerId);
+    };
+  }, [activeProductId, canEditForm, form.barcode, form.stockCode]);
+
+  useEffect(() => {
     let isMounted = true;
 
     async function loadOptions() {
@@ -112,6 +196,7 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
             brands: response.data?.brands || [],
             categories: response.data?.categories || [],
             suppliers: response.data?.suppliers || [],
+            supplierCurrencies: response.data?.supplierCurrencies || {},
           });
         }
       } catch {
@@ -120,6 +205,7 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
             brands: [],
             categories: [],
             suppliers: [],
+            supplierCurrencies: {},
           });
         }
       }
@@ -167,12 +253,7 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
     };
   }, [activeProductId]);
 
-  const mode = activeProductId ? 'update' : 'create';
-  const canEditForm = mode === 'create' || isEditing;
-  const canSave = permissions.includes('product.edit');
-  const canTogglePassive = permissions.includes('product.passive');
   const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
-  const stockSummary = useMemo(() => mapStockSummary(form), [form]);
   const product360 = useMemo(() => buildProduct360(form, stockMovements), [form, stockMovements]);
   const barcodes = useMemo(() => mapBarcodes(form), [form]);
   const images = useMemo(() => form.images || [], [form.images]);
@@ -189,12 +270,16 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
       return;
     }
 
+    const supplierCurrency = mode === 'create' && field === 'supplierName'
+      ? optionSuggestions.supplierCurrencies[value]
+      : '';
     setForm((current) => ({
       ...current,
       [field]: value,
+      ...(supplierCurrency ? { currency: supplierCurrency } : {}),
     }));
     setIsDirty(true);
-    setSuccessMessage('');
+    setSuccessMessage(supplierCurrency ? `Tedarikçi para birimi uygulandı: ${supplierCurrency}` : '');
     setDuplicateProductSuggestion(null);
   }
 
@@ -230,6 +315,26 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
       onOpenScreen('product-card', {
         productId: duplicateProductId,
         stockCode: duplicateProductSuggestion.stockCode,
+      });
+    }
+  }
+
+  function openIdentityDuplicate(duplicateProduct) {
+    setDuplicateProductSuggestion(duplicateProduct);
+    const duplicateProductId = Number(duplicateProduct?.productId || duplicateProduct?.id || 0);
+
+    if (!duplicateProductId) {
+      return;
+    }
+
+    setActiveProductId(duplicateProductId);
+    setErrorMessage('');
+    setSuccessMessage(`Kullanılan stok kartı açılıyor: ${duplicateProduct.stockCode || duplicateProductId}`);
+
+    if (onOpenScreen) {
+      onOpenScreen('product-card', {
+        productId: duplicateProductId,
+        stockCode: duplicateProduct.stockCode,
       });
     }
   }
@@ -293,6 +398,19 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
   }
 
   async function saveProduct() {
+    const identityDuplicate = identityAvailability.stockCode?.status === 'duplicate'
+      ? identityAvailability.stockCode.duplicateProduct
+      : identityAvailability.barcode?.status === 'duplicate'
+        ? identityAvailability.barcode.duplicateProduct
+        : null;
+
+    if (identityDuplicate) {
+      setDuplicateProductSuggestion(identityDuplicate);
+      setErrorMessage(`Stok kodu veya barkod başka bir kartta kullanılıyor: ${identityDuplicate.stockCode} / ${identityDuplicate.productName}.`);
+      setSuccessMessage('');
+      return;
+    }
+
     const missing = validateProductForm(form, mode);
 
     if (!canSave) {
@@ -466,6 +584,7 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
         <>
           <ProductCardHeader
             product={productView}
+            cardOpenedAt={form.cardOpenedAt}
             mode={mode}
             isSaving={isSaving}
             isPassiveSaving={isPassiveSaving}
@@ -493,20 +612,16 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
               PASİF kayıt: yeni fişlerde seçilemez, geçmiş rapor ve hareketlerde görünmeye devam eder.
             </div>
           )}
-          <Product360Panel
-            activeProductId={activeProductId}
-            form={form}
-            product360={product360}
-            onOpenScreen={onOpenScreen}
-          />
-          <section className="product-card-layout">
+          <section className="product-card-layout product-card-details-layout">
             <ProductCardForm
               product={productView}
               form={form}
               mode={mode}
               suggestions={productSuggestions}
+              identityAvailability={identityAvailability}
               isEditing={canEditForm}
               onChange={updateField}
+              onOpenDuplicate={openIdentityDuplicate}
             />
             <aside className="product-side-panels">
               <ProductImagePanel
@@ -516,22 +631,29 @@ export function ProductCardScreen({ productId, permissions = [], onDirtyChange, 
                 disabled={isSaving || !activeProductId}
                 onSaveImage={saveImage}
               />
-              <ProductStockSummary summary={stockSummary} />
             </aside>
-            <ProductBarcodePanel
-              barcodes={barcodes}
-              canEdit={canSave && canEditForm}
-              disabled={isSaving || !activeProductId}
-              onAddBarcode={addBarcode}
-              onToggleBarcode={toggleBarcode}
-            />
-            <ProductStockUsagePanel
-              isLoading={isMovementsLoading}
-              movements={stockMovements}
-              onOpenMovement={openStockMovement}
-              onOpenParty={openUsageParty}
-            />
           </section>
+          <Product360Panel
+            activeProductId={activeProductId}
+            form={form}
+            product360={product360}
+            onOpenScreen={onOpenScreen}
+          />
+          <ProductStockUsagePanel
+            defaultOpen={false}
+            isLoading={isMovementsLoading}
+            key={activeProductId || 'new-product'}
+            movements={stockMovements}
+            onOpenMovement={openStockMovement}
+            onOpenParty={openUsageParty}
+          />
+          <ProductBarcodePanel
+            barcodes={barcodes}
+            canEdit={canSave && canEditForm}
+            disabled={isSaving || !activeProductId}
+            onAddBarcode={addBarcode}
+            onToggleBarcode={toggleBarcode}
+          />
           <section className="screen-summary product-card-summary">
             <span>Ürün: {productView.stockCode}</span>
             <span>Durum: {productView.status}</span>

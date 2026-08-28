@@ -180,6 +180,9 @@ export const stockFilterDefaults = {
   currency: 'all',
   status: 'all',
   stockState: 'all',
+  imageStatus: 'all',
+  cardOpenedFrom: '',
+  cardOpenedTo: '',
 };
 
 export const stockFilterOptions = {

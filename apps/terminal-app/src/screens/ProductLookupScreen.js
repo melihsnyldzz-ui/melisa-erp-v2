@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { InfoRow } from '../components/InfoRow';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { getActiveApiBaseUrl } from '../config/env';
 import { createCatalogDraft, sendCatalogToCustomer } from '../services/catalogService';
@@ -386,7 +387,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardSafeScrollView contentContainerStyle={styles.content}>
       <View style={styles.panel}>
         <View style={styles.searchHeader}>
           <Text style={styles.title}>Ürün Ara</Text>
@@ -419,7 +420,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
         </View>
 
         <View style={styles.searchRow}>
-          <TextInput
+          <KeyboardSafeTextInput
             value={query}
             onChangeText={setQuery}
             placeholder={searchMode === 'barcode' ? 'Barkod okut' : 'Stok kodu yaz'}
@@ -556,7 +557,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
                 {`✨ *${selectedProduct.stockCode}* ✨\n🧸 ${selectedProduct.productName}\n💰 *Fiyat:* ${formatMoney(selectedProduct.salePrice, selectedProduct.currency)}`}
               </Text>
             </View>
-            <TextInput
+            <KeyboardSafeTextInput
               value={customerQuery}
               onChangeText={setCustomerQuery}
               placeholder="Cari adı, kodu veya telefon"
@@ -624,7 +625,7 @@ export function ProductLookupScreen({ lastLookup, navigation, session }) {
 
       <TerminalButton label="Yeni barkod okut" onPress={navigation.openBarcode} />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
-    </ScrollView>
+    </KeyboardSafeScrollView>
   );
 }
 

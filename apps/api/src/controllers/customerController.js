@@ -1,10 +1,12 @@
 import {
   changeCustomerPassive,
   createCustomer,
+  ensureAndListCashCustomers,
   getCustomerDetail,
   getCustomersList,
   updateCustomer,
 } from '../services/customerService.js';
+import { getVegaCustomersListFromWorker } from '../services/vegaCustomerClientService.js';
 import { created, fail, ok } from '../utils/response.js';
 
 function writeError(res, error) {
@@ -22,6 +24,27 @@ export async function getCustomers(req, res) {
     return ok(res, data, meta);
   } catch (error) {
     return fail(res, error.statusCode || 503, 'SQL_SELECT_FAILED', 'Customers query failed');
+  }
+}
+
+export async function getVegaCustomers(req, res) {
+  try {
+    const { data, meta } = await getVegaCustomersListFromWorker(req.query);
+    return ok(res, data, meta);
+  } catch (error) {
+    return fail(res, error.statusCode || 503, error.code || 'VEGA_CUSTOMER_LIST_FAILED', 'Vega customer list could not be read');
+  }
+}
+
+export async function postCashCustomersEnsure(req, res) {
+  try {
+    const data = await ensureAndListCashCustomers();
+    return ok(res, data, {
+      source: 'sql-write',
+      operation: 'cash-customer-ensure',
+    });
+  } catch (error) {
+    return writeError(res, error);
   }
 }
 

@@ -7,6 +7,8 @@ import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
 import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
 
+const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
+
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
   error.code = code;
@@ -16,6 +18,18 @@ function makeServiceError(code, message, statusCode = 400) {
 
 function trimText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+async function hasPersonnelSalesSchema(request) {
+  const result = await request.query(`
+    SELECT CASE
+      WHEN OBJECT_ID(N'dbo.employees', N'U') IS NOT NULL
+       AND COL_LENGTH(N'dbo.terminal_devices', N'assigned_employee_id') IS NOT NULL
+       AND COL_LENGTH(N'dbo.sales_invoices', N'employee_id') IS NOT NULL
+      THEN 1 ELSE 0
+    END AS is_ready;
+  `);
+  return Boolean(result.recordset?.[0]?.is_ready);
 }
 
 function numberValue(value, fieldName, { min = 0, allowZero = true } = {}) {
@@ -66,7 +80,28 @@ function parseDraftListQuery(query = {}) {
   const partySearch = trimText(query.customer || query.supplier || query.party);
   const dateFrom = trimText(query.dateFrom);
   const dateTo = trimText(query.dateTo);
+  const currency = trimText(query.currency).toUpperCase();
+  const amountMinText = trimText(query.amountMin);
+  const amountMaxText = trimText(query.amountMax);
+  const amountMin = amountMinText === '' ? null : Number(amountMinText);
+  const amountMax = amountMaxText === '' ? null : Number(amountMaxText);
   const allowedStatuses = new Set(['DRAFT', 'FINALIZED', 'CANCELLED', 'ARCHIVED_TEST']);
+
+  if (currency && currency !== 'ALL' && !VALID_CURRENCIES.has(currency)) {
+    throw makeServiceError('INVOICE_LIST_CURRENCY_INVALID', 'Currency filter must be TRY, USD or EUR');
+  }
+  if (amountMin !== null && (!Number.isFinite(amountMin) || amountMin < 0)) {
+    throw makeServiceError('INVOICE_LIST_AMOUNT_MIN_INVALID', 'Minimum amount must be zero or greater');
+  }
+  if (amountMax !== null && (!Number.isFinite(amountMax) || amountMax < 0)) {
+    throw makeServiceError('INVOICE_LIST_AMOUNT_MAX_INVALID', 'Maximum amount must be zero or greater');
+  }
+  if (amountMin !== null && amountMax !== null && amountMin > amountMax) {
+    throw makeServiceError('INVOICE_LIST_AMOUNT_RANGE_INVALID', 'Minimum amount cannot exceed maximum amount');
+  }
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    throw makeServiceError('INVOICE_LIST_DATE_RANGE_INVALID', 'Start date cannot be after end date');
+  }
 
   return {
     ...options,
@@ -74,6 +109,11 @@ function parseDraftListQuery(query = {}) {
     partySearch,
     dateFrom: dateFrom || null,
     dateTo: dateTo || null,
+    currency: currency === 'ALL' ? null : currency || null,
+    amountMin,
+    amountMax,
+    employeeSearch: trimText(query.employee),
+    terminalSearch: trimText(query.terminal),
   };
 }
 
@@ -82,6 +122,9 @@ function toSalesListDto(row) {
     id: row.id,
     invoiceNo: row.invoice_no,
     customerName: row.customer_name || '-',
+    terminalCode: row.terminal_code || '',
+    employeeId: row.employee_id ? Number(row.employee_id) : null,
+    employeeName: row.employee_name || '',
     currency: row.currency_code,
     totalAmount: Number(row.total_amount || 0),
     status: String(row.status || '').toUpperCase(),
@@ -367,6 +410,8 @@ function normalizeSalesPayload(payload = {}) {
     documentNo: trimText(payload.documentNo) || createDocumentNo('SDR'),
     documentDate: normalizeDate(payload.documentDate),
     customerId: Number(payload.customerId),
+    terminalDeviceId: payload.terminalDeviceId ? Number(payload.terminalDeviceId) : null,
+    employeeId: payload.employeeId ? Number(payload.employeeId) : null,
     customerCurrency: normalizeCurrency(payload.customerCurrency),
     documentCurrency: normalizeCurrency(payload.documentCurrency),
     exchangeRate: numberValue(payload.exchangeRate ?? 1, 'exchangeRate', { min: 0, allowZero: false }),
@@ -486,6 +531,24 @@ function normalizePurchaseItem(item, index) {
 }
 
 async function getSalesSnapshot(request, id) {
+  const personnelReady = await hasPersonnelSalesSchema(request);
+  const ownershipColumns = personnelReady
+    ? `si.terminal_device_id AS terminalDeviceId,
+        td.device_code AS terminalCode,
+        td.device_name AS terminalName,
+        si.employee_id AS employeeId,
+        e.employee_code AS employeeCode,
+        e.full_name AS employeeName,`
+    : `CAST(NULL AS BIGINT) AS terminalDeviceId,
+        CAST(NULL AS NVARCHAR(80)) AS terminalCode,
+        CAST(NULL AS NVARCHAR(150)) AS terminalName,
+        CAST(NULL AS BIGINT) AS employeeId,
+        CAST(NULL AS NVARCHAR(50)) AS employeeCode,
+        CAST(NULL AS NVARCHAR(150)) AS employeeName,`;
+  const ownershipJoins = personnelReady
+    ? `LEFT JOIN dbo.terminal_devices td ON td.id = si.terminal_device_id
+       LEFT JOIN dbo.employees e ON e.id = si.employee_id`
+    : '';
   const header = await request
     .input('salesSnapshotId', sql.BigInt, id)
     .query(`
@@ -496,6 +559,7 @@ async function getSalesSnapshot(request, id) {
         si.customer_id AS customerId,
         c.customer_code AS customerCode,
         c.name AS customerName,
+        ${ownershipColumns}
         CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
         si.customer_currency AS customerCurrency,
         si.document_currency AS documentCurrency,
@@ -510,6 +574,7 @@ async function getSalesSnapshot(request, id) {
         si.updated_at AS updatedAt
       FROM dbo.sales_invoices si
       LEFT JOIN dbo.customers c ON c.id = si.customer_id
+      ${ownershipJoins}
       WHERE si.id = @salesSnapshotId;
     `);
 
@@ -616,6 +681,24 @@ async function getPurchaseSnapshot(request, id) {
 }
 
 async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}) {
+  const personnelReady = await hasPersonnelSalesSchema(request);
+  const ownershipColumns = personnelReady
+    ? `si.terminal_device_id AS terminalDeviceId,
+        td.device_code AS terminalCode,
+        td.device_name AS terminalName,
+        si.employee_id AS employeeId,
+        e.employee_code AS employeeCode,
+        e.full_name AS employeeName,`
+    : `CAST(NULL AS BIGINT) AS terminalDeviceId,
+        CAST(NULL AS NVARCHAR(80)) AS terminalCode,
+        CAST(NULL AS NVARCHAR(150)) AS terminalName,
+        CAST(NULL AS BIGINT) AS employeeId,
+        CAST(NULL AS NVARCHAR(50)) AS employeeCode,
+        CAST(NULL AS NVARCHAR(150)) AS employeeName,`;
+  const ownershipJoins = personnelReady
+    ? `LEFT JOIN dbo.terminal_devices td ON td.id = si.terminal_device_id
+       LEFT JOIN dbo.employees e ON e.id = si.employee_id`
+    : '';
   const invoiceTable = lockHeader ? 'dbo.sales_invoices si WITH (UPDLOCK, HOLDLOCK)' : 'dbo.sales_invoices si';
   const header = await request
     .input('finalizeSnapshotId', sql.BigInt, id)
@@ -625,7 +708,9 @@ async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}
         si.document_no AS documentNo,
         si.document_date AS documentDate,
         si.customer_id AS customerId,
+        c.customer_code AS customerCode,
         c.name AS customerName,
+        ${ownershipColumns}
         c.is_active AS customerIsActive,
         CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
         si.customer_currency AS customerCurrency,
@@ -642,6 +727,7 @@ async function getSalesFinalizeSnapshot(request, id, { lockHeader = false } = {}
         si.updated_at AS updatedAt
       FROM ${invoiceTable}
       LEFT JOIN dbo.customers c ON c.id = si.customer_id
+      ${ownershipJoins}
       WHERE si.id = @finalizeSnapshotId;
     `);
 
@@ -807,6 +893,12 @@ async function updateSalesItems(sqlDriver, transaction, invoiceId, items) {
       await insertSalesItem(sqlDriver, transaction, invoiceId, item);
     }
   }
+
+  for (const obsoleteRow of existingRows.slice(items.length)) {
+    await new sqlDriver.Request(transaction)
+      .input('obsoleteSalesItemId', sql.BigInt, obsoleteRow.id)
+      .query('DELETE FROM dbo.sales_invoice_items WHERE id = @obsoleteSalesItemId;');
+  }
 }
 
 async function insertSalesItem(sqlDriver, transaction, invoiceId, item) {
@@ -906,6 +998,12 @@ async function updatePurchaseItems(sqlDriver, transaction, invoiceId, items) {
       await insertPurchaseItem(sqlDriver, transaction, invoiceId, item);
     }
   }
+
+  for (const obsoleteRow of existingRows.slice(items.length)) {
+    await new sqlDriver.Request(transaction)
+      .input('obsoletePurchaseItemId', sql.BigInt, obsoleteRow.id)
+      .query('DELETE FROM dbo.purchase_invoice_items WHERE id = @obsoletePurchaseItemId;');
+  }
 }
 
 async function insertPurchaseItem(sqlDriver, transaction, invoiceId, item) {
@@ -955,6 +1053,280 @@ async function insertPurchaseItem(sqlDriver, transaction, invoiceId, item) {
         @note
       );
     `);
+}
+
+function quantityByProduct(items = []) {
+  const quantities = new Map();
+  for (const item of items) {
+    const productId = Number(item.productId);
+    quantities.set(productId, safeNumber(quantities.get(productId)) + safeNumber(item.quantity));
+  }
+  return quantities;
+}
+
+async function applyFinalizedStockDifference(sqlDriver, transaction, beforeItems, afterItems, direction) {
+  const before = quantityByProduct(beforeItems);
+  const after = quantityByProduct(afterItems);
+  const productIds = new Set([...before.keys(), ...after.keys()]);
+
+  for (const productId of productIds) {
+    const oldQuantity = safeNumber(before.get(productId));
+    const newQuantity = safeNumber(after.get(productId));
+    const stockDifference = direction === 'sale'
+      ? oldQuantity - newQuantity
+      : newQuantity - oldQuantity;
+
+    if (stockDifference === 0) continue;
+
+    await new sqlDriver.Request(transaction)
+      .input('correctionStockProductId', sql.BigInt, productId)
+      .input('correctionStockDifference', sql.Decimal(18, 3), stockDifference)
+      .query(`
+        UPDATE dbo.products
+        SET
+          current_stock_qty = current_stock_qty + @correctionStockDifference,
+          updated_at = SYSUTCDATETIME()
+        WHERE id = @correctionStockProductId;
+      `);
+  }
+
+  return productIds;
+}
+
+async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, beforeSnapshot, draft, actor) {
+  if (Number(beforeSnapshot.customerId) !== Number(draft.customerId)
+    || normalizeCurrency(beforeSnapshot.customerCurrency) !== draft.customerCurrency
+    || normalizeCurrency(beforeSnapshot.documentCurrency) !== draft.documentCurrency) {
+    throw makeServiceError(
+      'SALES_FINALIZED_IDENTITY_LOCKED',
+      'Kesinlesmis satis fisinde cari ve para birimi degistirilemez',
+      409,
+    );
+  }
+
+  await applyFinalizedStockDifference(sqlDriver, transaction, beforeSnapshot.items, draft.items, 'sale');
+  await new sqlDriver.Request(transaction)
+    .input('salesCorrectionInvoiceId', sql.BigInt, invoiceId)
+    .query(`
+      DELETE FROM dbo.stock_movements
+      WHERE source_type = N'sales_invoice'
+        AND source_id = @salesCorrectionInvoiceId
+        AND movement_type = N'out';
+    `);
+
+  const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+  const currencyRateMap = await readCurrencyRateMap(new sqlDriver.Request(transaction));
+  let estimatedProfitTry = 0;
+
+  for (const item of afterSnapshot.items) {
+    const amountTry = safeNumber(item.lineTotal) * safeNumber(draft.exchangeRate, 1);
+    const averageCostTry = resolveSalesUnitCostTry(item, draft.documentCurrency, draft.exchangeRate, currencyRateMap);
+    const profit = calculateSalesProfitSnapshot({
+      salesAmountTry: amountTry,
+      averageCostTry,
+      quantity: safeNumber(item.quantity),
+    });
+    estimatedProfitTry += profit.grossProfitTry;
+
+    await new sqlDriver.Request(transaction)
+      .input('salesCorrectionItemId', sql.BigInt, item.id)
+      .input('salesCorrectionAverageCost', sql.Decimal(18, 4), averageCostTry)
+      .input('salesCorrectionProfit', sql.Decimal(18, 4), profit.grossProfitTry)
+      .input('salesCorrectionProfitRate', sql.Decimal(18, 6), profit.grossProfitRate)
+      .query(`
+        UPDATE dbo.sales_invoice_items
+        SET
+          average_cost_try_snapshot = @salesCorrectionAverageCost,
+          gross_profit_try = @salesCorrectionProfit,
+          gross_profit_rate = @salesCorrectionProfitRate
+        WHERE id = @salesCorrectionItemId;
+      `);
+
+    await new sqlDriver.Request(transaction)
+      .input('salesCorrectionProductId', sql.BigInt, item.productId)
+      .input('salesCorrectionSourceId', sql.BigInt, invoiceId)
+      .input('salesCorrectionQuantity', sql.Decimal(18, 3), item.quantity)
+      .input('salesCorrectionUnitCost', sql.Decimal(18, 4), averageCostTry)
+      .input('salesCorrectionUnitPrice', sql.Decimal(18, 4), item.unitPrice)
+      .input('salesCorrectionCurrency', sql.NVarChar(3), item.currency)
+      .input('salesCorrectionAmountTry', sql.Decimal(18, 4), amountTry)
+      .input('salesCorrectionDate', sql.Date, draft.documentDate)
+      .input('salesCorrectionCustomerId', sql.BigInt, draft.customerId)
+      .input('salesCorrectionCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.stock_movements (
+          product_id, movement_type, source_type, source_id, quantity_in, quantity_out,
+          quantity_net, unit_cost_try, average_cost_try_after, document_date, customer_id,
+          created_at, created_by, unit_price, currency_code, amount_try
+        ) VALUES (
+          @salesCorrectionProductId, N'out', N'sales_invoice', @salesCorrectionSourceId, 0,
+          @salesCorrectionQuantity, -@salesCorrectionQuantity, @salesCorrectionUnitCost,
+          @salesCorrectionUnitCost, @salesCorrectionDate, @salesCorrectionCustomerId,
+          SYSUTCDATETIME(), @salesCorrectionCreatedBy, @salesCorrectionUnitPrice,
+          @salesCorrectionCurrency, @salesCorrectionAmountTry
+        );
+      `);
+  }
+
+  const balanceDifference = safeNumber(draft.grandTotal) - safeNumber(beforeSnapshot.grandTotal);
+  await new sqlDriver.Request(transaction)
+    .input('salesCorrectionCustomerId', sql.BigInt, draft.customerId)
+    .input('salesCorrectionBalanceDifference', sql.Decimal(18, 4), balanceDifference)
+    .input('salesCorrectionInvoiceId', sql.BigInt, invoiceId)
+    .input('salesCorrectionAmount', sql.Decimal(18, 4), draft.grandTotal)
+    .input('salesCorrectionCurrency', sql.NVarChar(3), draft.documentCurrency)
+    .input('salesCorrectionDate', sql.Date, draft.documentDate)
+    .query(`
+      UPDATE dbo.customers
+      SET balance = balance + @salesCorrectionBalanceDifference, updated_at = SYSUTCDATETIME()
+      WHERE id = @salesCorrectionCustomerId;
+
+      UPDATE dbo.customer_movements
+      SET
+        amount = @salesCorrectionAmount,
+        currency_code = @salesCorrectionCurrency,
+        balance_effect = @salesCorrectionAmount,
+        document_date = @salesCorrectionDate
+      WHERE sales_invoice_id = @salesCorrectionInvoiceId
+        AND movement_type = N'sales_invoice';
+    `);
+
+  if (isCashCustomerCode(beforeSnapshot.customerCode)) {
+    await new sqlDriver.Request(transaction)
+      .input('cashCorrectionInvoiceId', sql.BigInt, invoiceId)
+      .input('cashCorrectionCustomerId', sql.BigInt, draft.customerId)
+      .input('cashCorrectionAmount', sql.Decimal(18, 4), draft.grandTotal)
+      .input('cashCorrectionBalanceDifference', sql.Decimal(18, 4), balanceDifference)
+      .input('cashCorrectionCurrency', sql.NVarChar(3), draft.documentCurrency)
+      .input('cashCorrectionDate', sql.Date, draft.documentDate)
+      .query(`
+        DECLARE @cashMovementId BIGINT;
+        DECLARE @cashAccountId BIGINT;
+
+        SELECT TOP (1) @cashMovementId = id
+        FROM dbo.customer_movements
+        WHERE sales_invoice_id = @cashCorrectionInvoiceId AND movement_type = N'collection';
+
+        SELECT TOP (1) @cashAccountId = account_id
+        FROM dbo.finance_account_movements
+        WHERE source_type = N'collection' AND party_type = N'customer' AND party_movement_id = @cashMovementId;
+
+        UPDATE dbo.customer_movements
+        SET
+          amount = @cashCorrectionAmount,
+          currency_code = @cashCorrectionCurrency,
+          balance_effect = -@cashCorrectionAmount,
+          document_date = @cashCorrectionDate
+        WHERE id = @cashMovementId;
+
+        UPDATE dbo.customers
+        SET balance = balance - @cashCorrectionBalanceDifference, updated_at = SYSUTCDATETIME()
+        WHERE id = @cashCorrectionCustomerId;
+
+        UPDATE dbo.finance_account_movements
+        SET amount = @cashCorrectionAmount, currency_code = @cashCorrectionCurrency, document_date = @cashCorrectionDate
+        WHERE source_type = N'collection' AND party_type = N'customer' AND party_movement_id = @cashMovementId;
+
+        UPDATE dbo.finance_accounts
+        SET current_balance = current_balance + @cashCorrectionBalanceDifference, updated_at = SYSUTCDATETIME()
+        WHERE id = @cashAccountId;
+      `);
+  }
+
+  await new sqlDriver.Request(transaction)
+    .input('salesCorrectionProfitInvoiceId', sql.BigInt, invoiceId)
+    .input('salesCorrectionEstimatedProfit', sql.Decimal(18, 4), estimatedProfitTry)
+    .query(`
+      UPDATE dbo.sales_invoices
+      SET estimated_profit_try = @salesCorrectionEstimatedProfit
+      WHERE id = @salesCorrectionProfitInvoiceId;
+    `);
+}
+
+async function replaceFinalizedPurchaseEffects(sqlDriver, transaction, invoiceId, beforeSnapshot, draft, supplierId, actor) {
+  if (Number(beforeSnapshot.supplierId) !== Number(supplierId)
+    || normalizeCurrency(beforeSnapshot.supplierCurrency) !== draft.supplierCurrency
+    || normalizeCurrency(beforeSnapshot.documentCurrency) !== draft.documentCurrency) {
+    throw makeServiceError(
+      'PURCHASE_FINALIZED_IDENTITY_LOCKED',
+      'Kesinlesmis alis fisinde tedarikci ve para birimi degistirilemez',
+      409,
+    );
+  }
+
+  const affectedProductIds = await applyFinalizedStockDifference(
+    sqlDriver,
+    transaction,
+    beforeSnapshot.items,
+    draft.items,
+    'purchase',
+  );
+
+  await new sqlDriver.Request(transaction)
+    .input('purchaseCorrectionInvoiceId', sql.BigInt, invoiceId)
+    .query(`
+      DELETE FROM dbo.stock_movements
+      WHERE source_type = N'purchase_invoice'
+        AND source_id = @purchaseCorrectionInvoiceId
+        AND movement_type = N'in';
+    `);
+
+  const afterSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
+  for (const item of afterSnapshot.items) {
+    const amountTry = purchaseLineCostTry(item, draft.exchangeRate);
+    const unitCostTry = safeNumber(item.quantity) > 0 ? amountTry / safeNumber(item.quantity) : 0;
+    await new sqlDriver.Request(transaction)
+      .input('purchaseCorrectionProductId', sql.BigInt, item.productId)
+      .input('purchaseCorrectionSourceId', sql.BigInt, invoiceId)
+      .input('purchaseCorrectionQuantity', sql.Decimal(18, 3), item.quantity)
+      .input('purchaseCorrectionUnitCost', sql.Decimal(18, 4), unitCostTry)
+      .input('purchaseCorrectionUnitPrice', sql.Decimal(18, 4), item.purchasePrice)
+      .input('purchaseCorrectionCurrency', sql.NVarChar(3), item.currency)
+      .input('purchaseCorrectionAmountTry', sql.Decimal(18, 4), amountTry)
+      .input('purchaseCorrectionDate', sql.Date, draft.documentDate)
+      .input('purchaseCorrectionSupplierId', sql.BigInt, supplierId)
+      .input('purchaseCorrectionCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
+      .query(`
+        INSERT INTO dbo.stock_movements (
+          product_id, movement_type, source_type, source_id, quantity_in, quantity_out,
+          quantity_net, unit_cost_try, average_cost_try_after, document_date, supplier_id,
+          created_at, created_by, unit_price, currency_code, amount_try
+        ) VALUES (
+          @purchaseCorrectionProductId, N'in', N'purchase_invoice', @purchaseCorrectionSourceId,
+          @purchaseCorrectionQuantity, 0, @purchaseCorrectionQuantity, @purchaseCorrectionUnitCost,
+          @purchaseCorrectionUnitCost, @purchaseCorrectionDate, @purchaseCorrectionSupplierId,
+          SYSUTCDATETIME(), @purchaseCorrectionCreatedBy, @purchaseCorrectionUnitPrice,
+          @purchaseCorrectionCurrency, @purchaseCorrectionAmountTry
+        );
+      `);
+  }
+
+  const balanceDifference = safeNumber(draft.grandTotal) - safeNumber(beforeSnapshot.grandTotal);
+  await new sqlDriver.Request(transaction)
+    .input('purchaseCorrectionSupplierId', sql.BigInt, supplierId)
+    .input('purchaseCorrectionBalanceDifference', sql.Decimal(18, 4), balanceDifference)
+    .input('purchaseCorrectionInvoiceId', sql.BigInt, invoiceId)
+    .input('purchaseCorrectionAmount', sql.Decimal(18, 4), draft.grandTotal)
+    .input('purchaseCorrectionCurrency', sql.NVarChar(3), draft.documentCurrency)
+    .input('purchaseCorrectionDate', sql.Date, draft.documentDate)
+    .query(`
+      UPDATE dbo.suppliers
+      SET balance = balance + @purchaseCorrectionBalanceDifference, updated_at = SYSUTCDATETIME()
+      WHERE id = @purchaseCorrectionSupplierId;
+
+      UPDATE dbo.supplier_movements
+      SET
+        amount = @purchaseCorrectionAmount,
+        currency_code = @purchaseCorrectionCurrency,
+        balance_effect = @purchaseCorrectionAmount,
+        document_date = @purchaseCorrectionDate
+      WHERE purchase_invoice_id = @purchaseCorrectionInvoiceId
+        AND movement_type = N'purchase_invoice';
+    `);
+
+  for (const productId of affectedProductIds) {
+    await recalculateProductAverageCostTry(sqlDriver, transaction, productId, actor);
+  }
 }
 
 async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items) {
@@ -1071,12 +1443,39 @@ export async function getSalesDraftsList(query) {
   }
 
   const pool = await getSqlPool();
+  const personnelReady = await hasPersonnelSalesSchema(pool.request());
+  const ownershipColumns = personnelReady
+    ? `td.device_code AS terminal_code,
+        si.employee_id,
+        e.full_name AS employee_name,`
+    : `CAST(NULL AS NVARCHAR(80)) AS terminal_code,
+        CAST(NULL AS BIGINT) AS employee_id,
+        CAST(NULL AS NVARCHAR(150)) AS employee_name,`;
+  const ownershipJoins = personnelReady
+    ? `LEFT JOIN dbo.terminal_devices td ON td.id = si.terminal_device_id
+       LEFT JOIN dbo.employees e ON e.id = si.employee_id`
+    : '';
+  const ownershipFilters = personnelReady
+    ? `AND (
+         @employeeSearch IS NULL
+         OR ${sqlNormalizedLike('e.full_name', '@employeeSearch')}
+       )
+       AND (
+         @terminalSearch IS NULL
+         OR ${sqlNormalizedLike('td.device_code', '@terminalSearch')}
+       )`
+    : 'AND @employeeSearch IS NULL AND @terminalSearch IS NULL';
   const request = pool.request()
     .input('search', sql.NVarChar(160), toSearchPattern(options.search))
     .input('customerSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
     .input('dateFrom', sql.Date, options.dateFrom)
     .input('dateTo', sql.Date, options.dateTo)
+    .input('currency', sql.NVarChar(3), options.currency)
+    .input('amountMin', sql.Decimal(18, 4), options.amountMin)
+    .input('amountMax', sql.Decimal(18, 4), options.amountMax)
+    .input('employeeSearch', sql.NVarChar(160), toSearchPattern(options.employeeSearch))
+    .input('terminalSearch', sql.NVarChar(160), toSearchPattern(options.terminalSearch))
     .input('offset', sql.Int, options.offset);
 
   const result = await request.query(`
@@ -1085,6 +1484,7 @@ export async function getSalesDraftsList(query) {
         si.id,
         si.document_no AS invoice_no,
         c.name AS customer_name,
+        ${ownershipColumns}
         si.document_currency AS currency_code,
         si.grand_total AS total_amount,
         CASE WHEN COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%' THEN N'archived_test' ELSE si.status END AS status,
@@ -1094,6 +1494,7 @@ export async function getSalesDraftsList(query) {
         item_counts.item_count
       FROM dbo.sales_invoices si
       LEFT JOIN dbo.customers c ON c.id = si.customer_id
+      ${ownershipJoins}
       OUTER APPLY (
         SELECT COUNT_BIG(1) AS item_count
         FROM dbo.sales_invoice_items sii
@@ -1107,15 +1508,31 @@ export async function getSalesDraftsList(query) {
         )
         AND (@dateFrom IS NULL OR si.document_date >= @dateFrom)
         AND (@dateTo IS NULL OR si.document_date <= @dateTo)
+        AND (@currency IS NULL OR si.document_currency = @currency)
+        AND (@amountMin IS NULL OR si.grand_total >= @amountMin)
+        AND (@amountMax IS NULL OR si.grand_total <= @amountMax)
         AND (
           @search IS NULL
           OR ${sqlNormalizedLike('si.document_no')}
           OR ${sqlNormalizedLike('c.name')}
+          OR ${sqlNormalizedLike('c.customer_code')}
+          OR EXISTS (
+            SELECT 1
+            FROM dbo.sales_invoice_items search_item
+            WHERE search_item.sales_invoice_id = si.id
+              AND (
+                ${sqlNormalizedLike('search_item.stock_code_snapshot')}
+                OR ${sqlNormalizedLike('search_item.barcode_snapshot')}
+                OR ${sqlNormalizedLike('search_item.product_name_snapshot')}
+              )
+          )
         )
         AND (
           @customerSearch IS NULL
           OR ${sqlNormalizedLike('c.name', '@customerSearch')}
+          OR ${sqlNormalizedLike('c.customer_code', '@customerSearch')}
         )
+        ${ownershipFilters}
     ),
     numbered_sales AS (
       SELECT
@@ -1145,6 +1562,11 @@ export async function getSalesDraftsList(query) {
         customer: options.partySearch || null,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
+        currency: options.currency,
+        amountMin: options.amountMin,
+        amountMax: options.amountMax,
+        employee: options.employeeSearch || null,
+        terminal: options.terminalSearch || null,
       },
     }),
   };
@@ -1161,12 +1583,15 @@ export async function createSalesDraft(payload, actor = null) {
   await transaction.begin();
 
   try {
+    const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
 
     const insert = await new sqlDriver.Request(transaction)
       .input('documentNo', sql.NVarChar(30), draft.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
       .input('customerId', sql.BigInt, draft.customerId)
+      .input('terminalDeviceId', sql.BigInt, draft.terminalDeviceId)
+      .input('employeeId', sql.BigInt, draft.employeeId)
       .input('customerCurrency', sql.NVarChar(3), draft.customerCurrency)
       .input('documentCurrency', sql.NVarChar(3), draft.documentCurrency)
       .input('exchangeRate', sql.Decimal(18, 8), draft.exchangeRate)
@@ -1182,6 +1607,7 @@ export async function createSalesDraft(payload, actor = null) {
           document_no,
           document_date,
           customer_id,
+          ${personnelReady ? 'terminal_device_id, employee_id,' : ''}
           status,
           customer_currency,
           document_currency,
@@ -1201,6 +1627,7 @@ export async function createSalesDraft(payload, actor = null) {
           @documentNo,
           @documentDate,
           @customerId,
+          ${personnelReady ? '@terminalDeviceId, @employeeId,' : ''}
           N'draft',
           @customerCurrency,
           @documentCurrency,
@@ -1259,7 +1686,11 @@ export async function updateSalesDraft(id, payload, actor = null) {
   await transaction.begin();
 
   try {
-    const beforeSnapshot = await getSalesSnapshot(new sqlDriver.Request(transaction), invoiceId);
+    const beforeSnapshot = await getSalesFinalizeSnapshot(
+      new sqlDriver.Request(transaction),
+      invoiceId,
+      { lockHeader: true },
+    );
 
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_DRAFT_NOT_FOUND', 'Sales draft not found', 404);
@@ -1310,6 +1741,10 @@ export async function updateSalesDraft(id, payload, actor = null) {
       `);
 
     await updateSalesItems(sqlDriver, transaction, invoiceId, draft.items);
+
+    if (beforeSnapshot.status === 'FINALIZED') {
+      await replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, beforeSnapshot, draft, actor);
+    }
 
     const afterSnapshot = await getSalesSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
@@ -1918,6 +2353,9 @@ export async function getPurchaseDraftsList(query) {
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
     .input('dateFrom', sql.Date, options.dateFrom)
     .input('dateTo', sql.Date, options.dateTo)
+    .input('currency', sql.NVarChar(3), options.currency)
+    .input('amountMin', sql.Decimal(18, 4), options.amountMin)
+    .input('amountMax', sql.Decimal(18, 4), options.amountMax)
     .input('offset', sql.Int, options.offset);
 
   const result = await request.query(`
@@ -1948,14 +2386,29 @@ export async function getPurchaseDraftsList(query) {
         )
         AND (@dateFrom IS NULL OR pi.document_date >= @dateFrom)
         AND (@dateTo IS NULL OR pi.document_date <= @dateTo)
+        AND (@currency IS NULL OR pi.document_currency = @currency)
+        AND (@amountMin IS NULL OR pi.grand_total >= @amountMin)
+        AND (@amountMax IS NULL OR pi.grand_total <= @amountMax)
         AND (
           @search IS NULL
           OR ${sqlNormalizedLike('pi.document_no')}
           OR ${sqlNormalizedLike('s.name')}
+          OR ${sqlNormalizedLike('s.supplier_code')}
+          OR EXISTS (
+            SELECT 1
+            FROM dbo.purchase_invoice_items search_item
+            WHERE search_item.purchase_invoice_id = pi.id
+              AND (
+                ${sqlNormalizedLike('search_item.stock_code_snapshot')}
+                OR ${sqlNormalizedLike('search_item.barcode_snapshot')}
+                OR ${sqlNormalizedLike('search_item.product_name_snapshot')}
+              )
+          )
         )
         AND (
           @supplierSearch IS NULL
           OR ${sqlNormalizedLike('s.name', '@supplierSearch')}
+          OR ${sqlNormalizedLike('s.supplier_code', '@supplierSearch')}
         )
     ),
     numbered_purchase AS (
@@ -1986,6 +2439,9 @@ export async function getPurchaseDraftsList(query) {
         supplier: options.partySearch || null,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
+        currency: options.currency,
+        amountMin: options.amountMin,
+        amountMax: options.amountMax,
       },
     }),
   };
@@ -2108,14 +2564,18 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
   await transaction.begin();
 
   try {
-    const beforeSnapshot = await getPurchaseSnapshot(new sqlDriver.Request(transaction), invoiceId);
+    const beforeSnapshot = await getPurchaseFinalizeSnapshot(
+      new sqlDriver.Request(transaction),
+      invoiceId,
+      { lockHeader: true },
+    );
 
     if (!beforeSnapshot) {
       throw makeServiceError('PURCHASE_DRAFT_NOT_FOUND', 'Purchase draft not found', 404);
     }
 
-    if (beforeSnapshot.status !== 'DRAFT') {
-      throw makeServiceError('PURCHASE_DRAFT_STATUS_INVALID', 'Only DRAFT purchase invoices can be updated', 409);
+    if (!['DRAFT', 'FINALIZED'].includes(beforeSnapshot.status)) {
+      throw makeServiceError('PURCHASE_DRAFT_STATUS_INVALID', 'Only DRAFT or FINALIZED purchase invoices can be corrected', 409);
     }
 
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Alış fişi düzeltme');
@@ -2162,15 +2622,27 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
           updated_by = NULL,
           updated_at = SYSUTCDATETIME()
         WHERE id = @invoiceId
-          AND status = N'draft';
+          AND status IN (N'draft', N'finalized');
       `);
 
     await updatePurchaseItems(sqlDriver, transaction, invoiceId, draft.items);
 
+    if (beforeSnapshot.status === 'FINALIZED') {
+      await replaceFinalizedPurchaseEffects(
+        sqlDriver,
+        transaction,
+        invoiceId,
+        beforeSnapshot,
+        draft,
+        supplierId,
+        actor,
+      );
+    }
+
     const afterSnapshot = await getPurchaseSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
-      action: 'purchase_invoice_draft_updated',
+      action: beforeSnapshot.status === 'FINALIZED' ? 'purchase_invoice_finalized_corrected' : 'purchase_invoice_draft_updated',
       entityType: 'purchase_invoice',
       entityId: invoiceId,
       beforeSnapshot,

@@ -19,14 +19,35 @@ export async function fetchProductOptions() {
     return {
       data: {
         brands: [],
+        brandCurrencies: {},
+        brandDefaults: {},
         categories: [],
         suppliers: [],
+        supplierCurrencies: {},
       },
       meta: { source: 'demo-empty' },
     };
   }
 
   return get('/api/products/options');
+}
+
+export async function checkProductIdentityAvailability({ stockCode, barcode, excludeProductId }) {
+  if (apiConfig.demoMode) {
+    return {
+      data: {
+        stockCode: { value: stockCode || '', available: true, duplicateProduct: null },
+        barcode: { value: barcode || '', available: true, duplicateProduct: null },
+      },
+      meta: { source: 'demo-empty' },
+    };
+  }
+
+  return get('/api/products/identity-check', {
+    stockCode,
+    barcode,
+    excludeProductId,
+  });
 }
 
 export async function fetchProductStockMovements(id) {
@@ -50,6 +71,22 @@ export async function updateProduct(id, payload) {
   }
 
   return put(`/api/products/${id}`, payload);
+}
+
+export async function previewProductBulkUpdate(payload) {
+  return post('/api/products/bulk-update/preview', payload);
+}
+
+export async function applyProductBulkUpdate(payload) {
+  return post('/api/products/bulk-update/apply', payload);
+}
+
+export async function previewProductBulkCreate(payload) {
+  return post('/api/products/bulk-create/preview', payload);
+}
+
+export async function applyProductBulkCreate(payload) {
+  return post('/api/products/bulk-create/apply', payload);
 }
 
 export async function changeProductPassive(id, isPassive) {

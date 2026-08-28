@@ -3,6 +3,7 @@ import { fetchSupplierStatement } from '../../services/movementApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, printLedgerStatement } from '../../utils/exportUtils.js';
 import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { splitLedgerCancellationRows } from '../shared/ledgerCancellationUtils.js';
 import { SupplierStatement360Card } from './SupplierStatement360Card.jsx';
 import { SupplierStatementFilters } from './SupplierStatementFilters.jsx';
 import { SupplierCancelledStatementTable, SupplierStatementRowsTable, SupplierStatementSummaryStrip } from './SupplierStatementTables.jsx';
@@ -10,7 +11,6 @@ import {
   buildSupplier360,
   displayMovementLabel,
   formatMoney,
-  isCancelledMovement,
   normalizeSupplierSearch,
   summarizeRows,
   toSupplierSuggestion,
@@ -100,8 +100,12 @@ export function SupplierStatementScreen({ onOpenScreen }) {
   }, [query]);
 
   const rows = statement.rows || [];
-  const regularRows = useMemo(() => rows.filter((row) => !isCancelledMovement(row)), [rows]);
-  const cancelledRows = useMemo(() => rows.filter(isCancelledMovement), [rows]);
+  const splitRows = useMemo(
+    () => splitLedgerCancellationRows(rows, 'purchase_invoice_cancel'),
+    [rows],
+  );
+  const regularRows = splitRows.regularRows;
+  const cancelledRows = splitRows.cancelledRows;
   const totals = useMemo(() => summarizeRows(regularRows), [regularRows]);
   const cancelledTotals = useMemo(() => summarizeRows(cancelledRows), [cancelledRows]);
   const supplier360 = useMemo(
@@ -183,6 +187,7 @@ export function SupplierStatementScreen({ onOpenScreen }) {
         </div>
         <SupplierStatement360Card
           supplier360={supplier360}
+          isFiltered={Boolean(normalizedSearch)}
           filters={filters}
           suggestions={mergedSupplierSuggestions}
           onUpdateFilter={updateFilter}

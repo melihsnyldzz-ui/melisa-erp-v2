@@ -40,6 +40,15 @@ function movementLabel(type) {
   return labels[type] || type || '-';
 }
 
+function movementTone(type) {
+  if (type === 'collection') return 'collection';
+  if (type === 'payment') return 'payment';
+  if (String(type || '').includes('cancel')) return 'cancelled';
+  if (type === 'sales_invoice') return 'sales';
+  if (type === 'purchase_invoice') return 'purchase';
+  return 'neutral';
+}
+
 function partyLabel(type) {
   return type === 'supplier' ? 'Tedarikçi' : 'Müşteri';
 }
@@ -228,7 +237,7 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
       {isLoading && <div className="list-state">Finans verisi API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
-      <section className="dashboard-kpi-grid">
+      <section className="dashboard-kpi-grid finance-primary-grid">
         <Kpi label="Müşteri alacak" value={formatSummaryCurrencies(summary, 'customerReceivables', summary.customerReceivables)} detail="Satışlardan doğan açık müşteri borcu" tone="warn" />
         <Kpi label="Tedarikçi borç" value={formatSummaryCurrencies(summary, 'supplierPayables', summary.supplierPayables)} detail="Alışlardan doğan açık tedarikçi borcu" tone="warn" />
         <Kpi label="Bugün tahsilat" value={formatSummaryCurrencies(summary, 'todayCollections', summary.todayCollections)} detail={`${summary.collectionCount || 0} toplam tahsilat kaydı`} tone="good" />
@@ -293,7 +302,7 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
           <span>{rows.length} satır / satış, alış, tahsilat ve ödeme defteri</span>
         </div>
         {movementTotals.cancelled > 0 && (
-          <div className="list-state list-state-passive">
+          <div className="list-state list-state-passive finance-cancel-notice">
             İptal edilen {movementTotals.cancelled} hareket listede ayrı iz olarak duruyor; cari geçmişinden silinmedi.
           </div>
         )}
@@ -333,8 +342,8 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
                           {row.documentNo || '-'}
                         </button>
                       </td>
-                      <td>{movementLabel(row.movementType)}</td>
-                      <td>{formatMoney(row.amount, row.currency)}</td>
+                      <td><span className={`finance-movement-pill ${movementTone(row.movementType)}`}>{movementLabel(row.movementType)}</span></td>
+                      <td className="finance-amount-cell">{formatMoney(row.amount, row.currency)}</td>
                       <td className={effect >= 0 ? 'ledger-debit' : 'ledger-credit'}>{formatMoney(effect, row.currency)}</td>
                       <td>{effectLabel(row)}</td>
                       <td><span className="status-pill">{row.currency}</span></td>

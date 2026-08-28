@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { InfoRow } from '../components/InfoRow';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { pingApi } from '../services/apiClient';
 import { getCacheSummary } from '../services/cacheService';
@@ -253,7 +254,7 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardSafeScrollView contentContainerStyle={styles.content}>
       <View style={styles.panelDark}>
         <Text style={styles.heroLabel}>Saha test durumu</Text>
         <Text style={styles.heroTitle}>{completedCount}/{testItems.length} adim</Text>
@@ -303,7 +304,7 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
 
       <View style={styles.notePanel}>
         <Text style={styles.actionTitle}>Saha notu</Text>
-        <TextInput
+        <KeyboardSafeTextInput
           value={note}
           onChangeText={setNote}
           placeholder="Orn: Offline satis denendi, API geri gelince 1 fis gonderildi."
@@ -375,7 +376,7 @@ export function FieldTestScreen({ navigation, session, syncState, onRefresh }) {
       ) : null}
 
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} />
-    </ScrollView>
+    </KeyboardSafeScrollView>
   );
 }
 

@@ -12,6 +12,7 @@ const server = app.listen(env.port, () => {
     erpApiBaseUrl: env.erpApi.baseUrl,
     sendEnabled: env.whatsapp.sendEnabled,
     testNumberOnly: env.whatsapp.testNumberOnly,
+    liveSendApproved: env.whatsapp.liveSendApproved,
   });
 
   for (const warning of getStartupWarnings()) {

@@ -202,6 +202,13 @@ export async function findExactCachedProductByBarcode(query) {
     return exactProduct;
   }
 
+  // Version 2 caches index every barcode. Scanning all chunks on a miss delays
+  // the next scan noticeably on field terminals with thousands of products.
+  const index = await readProductCacheIndex();
+  if (Array.isArray(index?.chunkKeys) && index.chunkKeys.length) {
+    return null;
+  }
+
   const matches = await findInProductChunks((product) => productBarcodeEquals(product, normalized), 1);
   return matches[0] || null;
 }

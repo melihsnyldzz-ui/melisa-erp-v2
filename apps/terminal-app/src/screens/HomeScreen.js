@@ -1,6 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
-import { terminalConfig } from '../config/env';
 import { colors } from '../styles/theme';
 
 function HomeIcon({ type, tone = 'neutral' }) {
@@ -110,6 +110,18 @@ function HomeIcon({ type, tone = 'neutral' }) {
     );
   }
 
+  if (type === 'whatsapp') {
+    return (
+      <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
+        <View style={styles.chatBubble}>
+          <View style={styles.chatLineLong} />
+          <View style={styles.chatLineShort} />
+        </View>
+        <View style={styles.chatTail} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.iconCanvas, styles[`iconCanvas_${tone}`]]}>
       <View style={styles.gearOuter}>
@@ -121,13 +133,14 @@ function HomeIcon({ type, tone = 'neutral' }) {
   );
 }
 
-function ActionTile({ icon, title, subtitle, meta, tone = 'neutral', onPress, wide = false }) {
+function ActionTile({ icon, title, subtitle, meta, tone = 'neutral', onPress, wide = false, compact = false }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.actionTile,
         wide && styles.actionTileWide,
+        compact && styles.actionTileCompact,
         styles[`actionTile_${tone}`],
         pressed && styles.pressed,
       ]}
@@ -150,11 +163,11 @@ function HomeSummary({ pending, failed, sent, products, customers }) {
         <Text style={[styles.todayValue, pending ? styles.todayValueDanger : styles.todayValueSuccess]}>{pending}</Text>
       </View>
       <View style={styles.todayItem}>
-        <Text style={styles.todayLabel}>Hatali</Text>
+        <Text style={styles.todayLabel}>Hatalı</Text>
         <Text style={[styles.todayValue, failed ? styles.todayValueDanger : styles.todayValueSuccess]}>{failed}</Text>
       </View>
       <View style={styles.todayItem}>
-        <Text style={styles.todayLabel}>Giden fis</Text>
+        <Text style={styles.todayLabel}>Giden fiş</Text>
         <Text style={styles.todayValue}>{sent}</Text>
       </View>
       <View style={styles.todayItem}>
@@ -165,124 +178,92 @@ function HomeSummary({ pending, failed, sent, products, customers }) {
   );
 }
 
-export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh }) {
+export function HomeScreen({ syncState, navigation, onLogout, onRefresh }) {
+  const [otherMenuVisible, setOtherMenuVisible] = useState(false);
   const pending = Number(syncState.salePendingCount || syncState.pendingCount || 0);
   const failed = Number(syncState.saleFailedCount || syncState.failedCount || 0);
   const products = Number(syncState.productCount || 0);
   const customers = Number(syncState.customerCount || 0);
   const sent = Number(syncState.syncedCount || 0);
+  const openOtherScreen = (openScreen) => {
+    setOtherMenuVisible(false);
+    openScreen();
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.actionStack}>
-        <View style={styles.quickHeader}>
-          <View>
-            <Text style={styles.quickTitle}>Operasyon</Text>
-            <Text style={styles.quickMeta}>{terminalConfig.deviceName} / {session.user?.username || 'open-admin'}</Text>
-          </View>
-          <Text style={[styles.readyBadge, syncState.online ? styles.readyBadgeOnline : styles.readyBadgeOffline]}>
-            {syncState.online ? 'Online' : 'Offline'}
-          </Text>
-        </View>
+    <>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.actionStack}>
         <HomeSummary pending={pending} failed={failed} sent={sent} products={products} customers={customers} />
         <ActionTile
           icon="sale"
-          title="Yeni Satis"
-          subtitle="Cari sec, barkod okut, fisi hazirla"
-          meta={syncState.online ? 'Hazir' : 'Offline'}
+          title="Yeni Satış"
+          subtitle="Cari seç, barkod okut, fişi hazırla"
+          meta={syncState.online ? 'Hazır' : 'Offline'}
           tone="primary"
           onPress={navigation.openNewSale}
           wide
         />
-        <View style={styles.actionGrid}>
-          <ActionTile
-            icon="barcode"
-            title="Barkod Okut"
-            subtitle="Stok ve fiyat kontrol"
-            meta="Kontrol"
-            tone="neutral"
-            onPress={navigation.openBarcode}
-          />
+          <View style={styles.actionGrid}>
           <ActionTile
             icon="queue"
             title="Bekleyenler"
-            subtitle={pending || failed ? 'Gonderim bekliyor' : 'Kuyruk bos'}
+            subtitle={pending || failed ? 'Gönderim bekliyor' : 'Kuyruk boş'}
             meta={pending || failed ? `${pending} bekleyen` : 'Temiz'}
             tone={pending || failed ? 'danger' : 'success'}
             onPress={navigation.openSyncStatus}
           />
           <ActionTile
             icon="data"
-            title="Veri Guncelle"
-            subtitle="Urun ve cari cache"
+            title="Veri Güncelle"
+            subtitle="Ürün ve cari verileri"
             meta={`${products}/${customers}`}
             tone={products && customers ? 'success' : 'warning'}
             onPress={navigation.openDataUpdate}
           />
           <ActionTile
             icon="field"
-            title="Fis Toplama"
-            subtitle="Kesinlesen fisler"
-            meta={`${sent} fis`}
+            title="Fiş Toplama"
+            subtitle="Kesinleşen fişler"
+            meta={`${sent} fiş`}
             tone="neutral"
             onPress={navigation.openReceiptCollect}
           />
           <ActionTile
-            icon="search"
-            title="Urun Bilgisi"
-            subtitle="Stok ve fiyat"
-            meta="Arama"
-            tone="neutral"
-            onPress={navigation.openProductLookup}
-          />
-          <ActionTile
-            icon="customer"
-            title="Musteri Carileri"
-            subtitle="Telefon, bakiye, para birimi"
-            meta={`${customers} cari`}
-            tone={customers ? 'success' : 'warning'}
-            onPress={navigation.openCustomerAccounts}
-          />
-          <ActionTile
-            icon="catalog"
-            title="Katalog Gönder"
-            subtitle="Filtrele, cari sec, WhatsApp"
-            meta="Yeni"
-            tone="success"
-            onPress={navigation.openCatalogSend}
-          />
-          <ActionTile
             icon="reports"
             title="Raporlar"
-            subtitle="Giden fisler"
+            subtitle="Giden fişler"
             meta={`${sent} sonuc`}
             tone={sent ? 'success' : 'neutral'}
             onPress={navigation.openReports}
           />
+          </View>
           <ActionTile
             icon="settings"
-            title="Ayarlar"
-            subtitle="API ve cihaz"
-            meta="Kurulum"
+            title="Diğer İşlemler"
+            subtitle="Barkod, ürün, cari, katalog, CRM ve ayarlar"
+            meta="6 araç"
             tone="neutral"
-            onPress={navigation.openSettings}
+            onPress={() => setOtherMenuVisible(true)}
+            wide
+            compact
           />
         </View>
-      </View>
 
-      <View style={styles.cachePanel}>
+        <View style={styles.cachePanel}>
         <View>
           <Text style={styles.cacheTitle}>Local veri</Text>
-          <Text style={styles.cacheMeta}>{products} urun / {customers} cari</Text>
+          <Text style={styles.cacheMeta}>{products} ürün / {customers} cari</Text>
         </View>
         <Text style={[styles.cacheBadge, products && customers ? styles.cacheBadgeReady : styles.cacheBadgeWarning]}>
-          {products && customers ? 'Hazir' : 'Eksik'}
+          {products && customers ? 'Hazır' : 'Eksik'}
         </Text>
-      </View>
+        </View>
 
-      <View style={styles.cleanDock}>
+        <View style={styles.cleanDock}>
         <Pressable onPress={navigation.openNewSale} style={styles.dockItem}>
           <Text style={styles.dockIcon}>S</Text>
-          <Text style={styles.dockText}>Satis</Text>
+          <Text style={styles.dockText}>Satış</Text>
         </Pressable>
         <Pressable onPress={navigation.openSyncStatus} style={styles.dockItem}>
           <Text style={styles.dockIcon}>B</Text>
@@ -292,21 +273,21 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <Text style={styles.dockIcon}>T</Text>
           <Text style={styles.dockText}>Toplama</Text>
         </Pressable>
+        <Pressable onPress={navigation.openDataUpdate} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>V</Text>
+          <Text style={styles.dockText}>Güncelle</Text>
+        </Pressable>
         <Pressable onPress={navigation.openReports} style={styles.dockItem}>
           <Text style={styles.dockIcon}>R</Text>
           <Text style={styles.dockText}>Rapor</Text>
         </Pressable>
-        <Pressable onPress={navigation.openCatalogSend} style={styles.dockItem}>
-          <Text style={styles.dockIcon}>K</Text>
-          <Text style={styles.dockText}>Katalog</Text>
+        <Pressable onPress={() => setOtherMenuVisible(true)} style={styles.dockItem}>
+          <Text style={styles.dockIcon}>D</Text>
+          <Text style={styles.dockText}>Diğer</Text>
         </Pressable>
-        <Pressable onPress={navigation.openCustomerAccounts} style={styles.dockItem}>
-          <Text style={styles.dockIcon}>C</Text>
-          <Text style={styles.dockText}>Cari</Text>
-        </Pressable>
-      </View>
+        </View>
 
-      <View style={styles.bottomDock}>
+        <View style={styles.bottomDock}>
         <Pressable onPress={navigation.openNewSale} style={styles.dockItem}>
           <Text style={styles.dockIcon}>▤</Text>
           <Text style={styles.dockText}>Satis</Text>
@@ -327,21 +308,53 @@ export function HomeScreen({ session, syncState, navigation, onLogout, onRefresh
           <Text style={styles.dockIcon}>⚙</Text>
           <Text style={styles.dockText}>Ayar</Text>
         </Pressable>
-      </View>
+        </View>
 
-      <View style={styles.secondaryGrid}>
+        <View style={styles.secondaryGrid}>
         <TerminalButton label="Durumu yenile" onPress={onRefresh} variant="secondary" />
-      </View>
+        </View>
 
-      {failed ? (
+        {failed ? (
         <View style={[styles.notice, styles.noticeDanger]}>
           <Text style={[styles.noticeTitle, styles.noticeTitleDanger]}>Mudahale gerekli</Text>
           <Text style={styles.noticeText}>Hatali kayit var. Sync Merkezi ekranindan gercek hata mesajini gorup tekrar gonderin.</Text>
         </View>
-      ) : null}
+        ) : null}
 
-      <TerminalButton label="Cikis" onPress={onLogout} variant="danger" />
-    </ScrollView>
+        <TerminalButton label="Cikis" onPress={onLogout} variant="danger" />
+      </ScrollView>
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={otherMenuVisible}
+        onRequestClose={() => setOtherMenuVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable style={styles.modalDismissArea} onPress={() => setOtherMenuVisible(false)} />
+          <View style={styles.otherMenuPanel}>
+            <View style={styles.otherMenuHandle} />
+            <View style={styles.otherMenuHeader}>
+              <View>
+                <Text style={styles.otherMenuTitle}>Diğer İşlemler</Text>
+                <Text style={styles.otherMenuSubtitle}>Daha az kullanılan araçlar tek noktada</Text>
+              </View>
+              <Pressable onPress={() => setOtherMenuVisible(false)} style={styles.otherMenuClose}>
+                <Text style={styles.otherMenuCloseText}>Kapat</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.otherMenuGrid}>
+              <ActionTile icon="barcode" title="Barkod Okut" subtitle="Stok ve fiyat kontrol" meta="Kontrol" onPress={() => openOtherScreen(navigation.openBarcode)} />
+              <ActionTile icon="search" title="Ürün Bilgisi" subtitle="Stok ve fiyat" meta="Arama" onPress={() => openOtherScreen(navigation.openProductLookup)} />
+              <ActionTile icon="customer" title="Müşteri Carileri" subtitle="Telefon, bakiye, para birimi" meta={`${customers} cari`} tone={customers ? 'success' : 'warning'} onPress={() => openOtherScreen(navigation.openCustomerAccounts)} />
+              <ActionTile icon="catalog" title="Katalog Gönder" subtitle="Filtrele, cari seç, WhatsApp" meta="Yeni" tone="success" onPress={() => openOtherScreen(navigation.openCatalogSend)} />
+              <ActionTile icon="whatsapp" title="WhatsApp CRM" subtitle="Merkezi gelen kutusu" meta="Sohbet" tone="success" onPress={() => openOtherScreen(navigation.openWhatsappCrm)} />
+              <ActionTile icon="settings" title="Ayarlar" subtitle="API ve cihaz" meta="Kurulum" onPress={() => openOtherScreen(navigation.openSettings)} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -350,49 +363,6 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingBottom: 104,
     gap: 10,
-  },
-  quickHeader: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    backgroundColor: colors.white,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-  },
-  quickTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  quickMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 3,
-  },
-  readyBadge: {
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderRadius: 7,
-    fontSize: 12,
-    fontWeight: '900',
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
-  readyBadgeOnline: {
-    borderColor: colors.success,
-    backgroundColor: colors.successSoft,
-    color: colors.success,
-  },
-  readyBadgeOffline: {
-    borderColor: colors.danger,
-    backgroundColor: colors.dangerSoft,
-    color: colors.danger,
   },
   actionStack: {
     gap: 8,
@@ -454,6 +424,9 @@ const styles = StyleSheet.create({
   actionTileWide: {
     width: '100%',
     minHeight: 118,
+  },
+  actionTileCompact: {
+    minHeight: 96,
   },
   actionTile_primary: {
     backgroundColor: colors.accent,
@@ -790,6 +763,40 @@ const styles = StyleSheet.create({
     right: 6,
     top: 20,
   },
+  chatBubble: {
+    width: 34,
+    height: 27,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.success,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    gap: 4,
+  },
+  chatTail: {
+    width: 12,
+    height: 12,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.success,
+    backgroundColor: colors.white,
+    position: 'absolute',
+    left: 13,
+    bottom: 7,
+    transform: [{ rotate: '-35deg' }],
+  },
+  chatLineLong: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
+  chatLineShort: {
+    width: 14,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.success,
+  },
   actionText: {
     gap: 3,
   },
@@ -870,6 +877,71 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 10,
     fontWeight: '900',
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15, 23, 42, 0.56)',
+  },
+  modalDismissArea: {
+    flex: 1,
+  },
+  otherMenuPanel: {
+    maxHeight: '82%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderColor: colors.border,
+    borderWidth: 1,
+    backgroundColor: colors.panel,
+    paddingHorizontal: 12,
+    paddingBottom: 18,
+  },
+  otherMenuHandle: {
+    width: 44,
+    height: 5,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 10,
+    borderRadius: 4,
+    backgroundColor: colors.borderDark,
+  },
+  otherMenuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 12,
+  },
+  otherMenuTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  otherMenuSubtitle: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  otherMenuClose: {
+    borderRadius: 8,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  otherMenuCloseText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  otherMenuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 8,
+    paddingBottom: 6,
   },
   cachePanel: {
     minHeight: 58,

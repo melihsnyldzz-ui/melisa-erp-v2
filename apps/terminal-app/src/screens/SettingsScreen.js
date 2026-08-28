@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { getActiveApiBaseUrl, getRuntimeSettings, resetRuntimeSettings, saveRuntimeSettings, terminalConfig } from '../config/env';
 import { pingApi } from '../services/apiClient';
@@ -175,7 +176,7 @@ export function SettingsScreen({ navigation, onRefresh }) {
   const readyLabel = ready ? 'Sahaya hazir' : health.online ? 'Kontrol gerekli' : 'API kapali';
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardSafeScrollView contentContainerStyle={styles.content}>
       <View style={[styles.readyPanel, styles[`readyPanel_${readyTone}`], terminalStyles.shadow]}>
         <View style={styles.readyHeader}>
           <View>
@@ -199,7 +200,7 @@ export function SettingsScreen({ navigation, onRefresh }) {
         <Text style={styles.meta}>Telefon ayni Wi-Fi agindaysa PC IP adresini kullanin.</Text>
 
         <Text style={styles.label}>API adresi</Text>
-        <TextInput
+        <KeyboardSafeTextInput
           value={apiBaseUrl}
           onChangeText={setApiBaseUrl}
           style={styles.input}
@@ -241,7 +242,7 @@ export function SettingsScreen({ navigation, onRefresh }) {
       <TerminalButton label="Durumu Yenile" onPress={() => refreshDiagnostics()} disabled={loading} variant="secondary" />
       <TerminalButton label="Varsayilana Don" onPress={reset} disabled={loading} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
-    </ScrollView>
+    </KeyboardSafeScrollView>
   );
 }
 

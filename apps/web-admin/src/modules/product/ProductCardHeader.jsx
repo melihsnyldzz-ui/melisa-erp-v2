@@ -1,7 +1,9 @@
 import React from 'react';
+import { formatCardOpenedAt } from './productCardUtils.js';
 
 export function ProductCardHeader({
   product,
+  cardOpenedAt,
   mode,
   isSaving,
   isPassiveSaving,
@@ -20,6 +22,9 @@ export function ProductCardHeader({
       <div className="product-title-block">
         <strong>Ürün Kartı</strong>
         <span>{product.stockCode} / {product.name}</span>
+        <small className={`product-card-opened-at ${cardOpenedAt ? '' : 'is-pending'}`}>
+          Kart açılışı: <time dateTime={cardOpenedAt || undefined}>{formatCardOpenedAt(cardOpenedAt)}</time>
+        </small>
       </div>
       <div className="product-card-toolbar">
         {mode === 'update' && (

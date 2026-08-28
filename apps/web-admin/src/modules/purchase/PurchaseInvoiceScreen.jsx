@@ -155,6 +155,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [isSaving, setIsSaving] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const totals = useMemo(
     () => calculateTotals(items, invoiceRate, supplierRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
@@ -162,7 +163,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
-  const isReadonly = isFinalized || isCancelled;
+  const isReadonly = isCancelled || (isFinalized && !isCorrectionMode);
   const canSaveDraft = draftId ? permissions.includes('purchase.edit') : permissions.includes('purchase.create');
   const canFinalize = permissions.includes('purchase.finalize');
   const canCancel = permissions.includes('purchase.cancel');
@@ -173,6 +174,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         product.barcode,
         product.matchedBarcode,
         product.productName,
+        `${product.stockCode} / ${product.productName}`,
       ].some((value) => searchTextIncludes(value, productQuery));
 
       const matchesSupplier = invoice.supplierId
@@ -281,20 +283,19 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           isPassive: Boolean(product.isPassive),
         }));
 
-        setSupplierOptions(nextSuppliers);
-        setPurchaseProductOptions(nextProducts);
-        setProductToAddId((currentId) => {
-          if (currentId && nextProducts.some((product) => String(product.productId) === String(currentId))) {
-            return currentId;
-          }
-
-          return String(nextProducts.find((product) => !product.isPassive)?.productId ?? '');
+        setSupplierOptions((currentOptions) => {
+          const merged = new Map(currentOptions.map((supplier) => [String(supplier.id), supplier]));
+          nextSuppliers.forEach((supplier) => merged.set(String(supplier.id), supplier));
+          return Array.from(merged.values());
+        });
+        setPurchaseProductOptions((currentOptions) => {
+          const merged = new Map(currentOptions.map((product) => [String(product.productId), product]));
+          nextProducts.forEach((product) => merged.set(String(product.productId), product));
+          return Array.from(merged.values());
         });
         setErrorMessage('');
       } catch (error) {
         if (isMounted) {
-          setSupplierOptions([]);
-          setPurchaseProductOptions([]);
           setProductToAddId('');
           setErrorMessage(`${error.message || 'Al lookup verisi okunamad.'} (${error.code || 'API_ERROR'})`);
           setStatusMessage('Tedarikçi/ürün lookup API hatası; gerçek modda mock fallback yapılmadı.');
@@ -336,6 +337,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
           setSupplierRate(Number(response.data.supplierDiscountRate || 0));
           setStatus(nextInvoice.status);
+          setIsCorrectionMode(false);
           setSelectedItemId(nextItems[0]?.id ?? null);
           setIsDirty(false);
           setStatusMessage(`Al tasla DB'den ald (#${response.data.id}); ticari etki yok.`);
@@ -393,9 +395,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setInvoiceRate(0);
     setSupplierRate(0);
     setStatus('DRAFT');
+    setIsCorrectionMode(false);
     setSelectedItemId(null);
     setSupplierQuery('');
     setProductQuery('');
+    setProductToAddId('');
     setErrorMessage('');
     setIsDirty(false);
     setStatusMessage('Yeni alış taslagi hazirlandi; kaydedilene kadar ticari etki yok.');
@@ -445,6 +449,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   }
 
   function updateInvoiceCurrency(currency) {
+    if (isFinalized) {
+      setStatusMessage('Kesinleşmiş fişte tedarikçi ve para birimi değiştirilemez.');
+      return;
+    }
+
     const nextCurrency = String(currency || 'TRY').toUpperCase();
     const nextRate = centralRateForCurrency(nextCurrency);
     if (nextRate === null) {
@@ -506,6 +515,11 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   }
 
   function selectSupplier(supplierId) {
+    if (isFinalized) {
+      setStatusMessage('Kesinleşmiş fişte tedarikçi değiştirilemez.');
+      return;
+    }
+
     const supplier = supplierOptions.find((item) => String(item.id) === String(supplierId));
 
     if (!supplier) {
@@ -516,6 +530,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     const nextSupplierRate = Number(supplier.purchaseDiscountRate || 0);
     const nextRate = centralRateForCurrency(supplier.currency);
     setSupplierRate(nextSupplierRate);
+    setSupplierQuery(supplier.supplierName);
     setProductQuery('');
     setPurchaseProductOptions([]);
     setProductToAddId('');
@@ -618,6 +633,29 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
   }
 
+  function updateSupplierQuery(value) {
+    setSupplierQuery(value);
+    const query = normalizeSearchText(value);
+    const match = query && supplierOptions.find((supplier) => (
+      [supplier.supplierCode, supplier.supplierName, `${supplier.supplierCode || supplier.id} / ${supplier.supplierName}`]
+        .some((candidate) => normalizeSearchText(candidate) === query)
+    ));
+
+    if (match) {
+      selectSupplier(match.id);
+    }
+  }
+
+  function updateProductQuery(value) {
+    setProductQuery(value);
+    const query = normalizeSearchText(value);
+    const match = query && filteredProducts.find((product) => (
+      [product.stockCode, product.barcode, product.matchedBarcode, product.productName, `${product.stockCode} / ${product.productName}`]
+        .some((candidate) => normalizeSearchText(candidate) === query)
+    ));
+    setProductToAddId(match ? String(match.productId) : '');
+  }
+
   function updateDraftItem(itemId, field, value) {
     if ((field === 'quantity' || field === 'purchasePrice') && value <= 0) {
       setErrorMessage(field === 'quantity' ? 'Miktar 0 veya negatif olamaz.' : 'Al fiyat 0 veya negatif olamaz.');
@@ -651,8 +689,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   }
 
   async function saveDraft() {
-    if (isReadonly) {
-      setStatusMessage('Kesinleşmiş alış fişi güncellenemez; iptal/düzeltme akışı ayrı sprintte ele alınacak.');
+    if (isCancelled) {
+      setStatusMessage('İptal edilmiş alış fişi güncellenemez; yeni taslak kullanın.');
       return;
     }
 
@@ -691,6 +729,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setErrorMessage('');
 
     try {
+      const wasFinalizedCorrection = isFinalized;
       const payload = buildDraftPayload();
       const response = draftId
          ? await updatePurchaseDraft(draftId, payload)
@@ -706,13 +745,23 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
-      setStatusMessage(response.message || `Alış taslağı DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi oluşmadı.`);
+      setIsCorrectionMode(false);
+      setStatusMessage(wasFinalizedCorrection
+        ? `Kesin alış fişi düzeltildi (#${response.data.id}); stok, tedarikçi bakiyesi ve maliyet kayıtları fark kadar güncellendi.`
+        : response.message || `Alış taslağı DB'ye kaydedildi (#${response.data.id}); stok, cari ve average cost etkisi oluşmadı.`);
     } catch (error) {
       setErrorMessage(`${error.message || 'Alış taslağı kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
       setStatusMessage('Alış taslak kaydı başarısız; API/DB kontrol edilmeli.');
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function editFinalizedInvoice() {
+    if (!isFinalized || !canSaveDraft) return;
+    setErrorMessage('');
+    setIsCorrectionMode(true);
+    setStatusMessage('Düzeltme açık. Tedarikçi ve para birimi korunur; satır, miktar, fiyat, iskonto, tarih ve açıklama değiştirilebilir.');
   }
 
   async function finalizeInvoice() {
@@ -745,6 +794,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus(nextInvoice.status);
+      setIsCorrectionMode(false);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
       setStatusMessage(`Alış fişi kesinleşti (#${response.data.id}); stok ve tedarikçi hareketleri oluştu.`);
@@ -797,6 +847,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus(nextInvoice.status);
+      setIsCorrectionMode(false);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
       setStatusMessage(`Alış fişi iptal edildi (#${response.data.id}); stok ve tedarikçi ters hareketleri oluştu. Average cost rollback yapılmadı.`);
@@ -863,7 +914,9 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         canSaveDraft={canSaveDraft}
         canFinalize={canFinalize}
         canCancel={canCancel}
+        isCorrectionMode={isCorrectionMode}
         onNewDraft={createNewDraft}
+        onEditFinalized={editFinalizedInvoice}
         onSaveDraft={saveDraft}
         onFinalize={finalizeInvoice}
         onCancel={cancelInvoice}
@@ -876,109 +929,61 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {currencyRateError && <div className="list-state list-state-error">{currencyRateError}</div>}
         {isSaving && <div className="list-state">Alış taslağı API'ye kaydediliyor...</div>}
-        {isReadonly && (
-          <div className="list-state list-state-success">{status} alış fişi kesinleşmiş; değişiklik için iptal veya yeni taslak kullanın.</div>
+        {isFinalized && (
+          <div className="list-state list-state-success">{isCorrectionMode ? 'Kesin fiş düzeltmeye açık; kaydettiğinizde farklar doğrudan uygulanır.' : 'FINALIZED alış fişi kesinleşmiş; Düzenle ile kontrollü değişiklik yapabilirsiniz.'}</div>
         )}
-        <section className="erp-panel purchase-draft-controls">
+        {isCancelled && (
+          <div className="list-state list-state-success">CANCELLED alış fişi kapalı; yeni işlem için yeni taslak kullanın.</div>
+        )}
+        {!isReadonly && <section className="erp-panel purchase-draft-controls">
           <div className="panel-title">
-            <strong>Hızlı Alış Satırı</strong>
-            <span>Tedarikçi seç, barkod/stok kodu yaz, satır ekle</span>
+            <strong>Alış Girişi</strong>
+            <span>Tedarikçiyi seç, ürünü okut veya ara</span>
           </div>
           <div className="purchase-draft-control-grid">
             <label>
-              <span>Tedarikçi ara</span>
+              <span>Tedarikçi</span>
               <input
-                disabled={isReadonly}
+                disabled={isFinalized}
+                list="purchase-supplier-suggestions"
                 placeholder="Ad / telefon / şehir / ülke"
                 value={supplierQuery}
-                onChange={(event) => setSupplierQuery(event.target.value)}
+                onChange={(event) => updateSupplierQuery(event.target.value)}
               />
-            </label>
-            <label>
-              <span>Tedarikçi seç</span>
-              <select value={invoice.supplierId || ''} disabled={isReadonly} onChange={(event) => selectSupplier(event.target.value)} onKeyDown={addDraftItemFromKeyboard}>
-                <option value="">Tedarikçi seçin</option>
+              <datalist id="purchase-supplier-suggestions">
                 {supplierOptions.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierCode} / {supplier.supplierName} / İsk %{Number(supplier.purchaseDiscountRate || 0)}
-                  </option>
+                  <option key={supplier.id} value={supplier.supplierName} label={supplier.supplierCode || String(supplier.id)} />
                 ))}
-              </select>
+              </datalist>
             </label>
             <label>
-              <span>Ürün ara</span>
+              <span>Ürün / barkod</span>
               <input
-                disabled={isReadonly}
+                list="purchase-product-suggestions"
                 placeholder="Barkod / stok kodu / ürün adı"
                 value={productQuery}
-                onChange={(event) => {
-                  setProductQuery(event.target.value);
-                  const query = normalizeSearchText(event.target.value);
-                  const match = filteredProducts.find((product) => (
-                    !product.isPassive &&
-                    [product.stockCode, product.barcode, product.matchedBarcode, product.productName].some((value) => (
-                      normalizeSearchText(value).includes(query)
-                    ))
-                  ));
-                  setProductToAddId(query && match ? String(match.productId) : '');
-                }}
+                onChange={(event) => updateProductQuery(event.target.value)}
                 onKeyDown={addDraftItemFromKeyboard}
               />
-            </label>
-            <label>
-              <span>Ürün seç</span>
-              <select value={productToAddId} disabled={isReadonly} onChange={(event) => setProductToAddId(event.target.value)} onKeyDown={addDraftItemFromKeyboard}>
-                <option value="">Ürün seçin</option>
+              <datalist id="purchase-product-suggestions">
                 {filteredProducts.map((product) => (
-                  <option key={product.productId} value={product.productId}>
-                    {product.stockCode} / {product.productName} / Satır isk %{Number(product.lineDiscountRate || 0)}
-                  </option>
+                  <option key={product.productId} value={`${product.stockCode} / ${product.productName}`} label={formatMoney(product.purchasePrice, product.currency)} />
                 ))}
-              </select>
+              </datalist>
             </label>
-            <button type="button" disabled={isReadonly} onClick={addDraftItem}>Satır Ekle</button>
+            <button type="button" onClick={addDraftItem}>Satır Ekle</button>
           </div>
-          <div className="quick-decision-strip purchase-decision-strip">
-            <div className={`quick-decision-card ${selectedSupplier ? 'is-ready' : ''}`}>
-              <span>Tedarikçi</span>
-              <strong>{selectedSupplier ? selectedSupplier.supplierName : 'Tedarikçi seçilmedi'}</strong>
-              <small>
-                {selectedSupplier
-                  ? `${selectedSupplier.supplierCode || '-'} / ${selectedSupplier.currency} / ${formatMoney(selectedSupplier.balance, selectedSupplier.currency)}`
-                  : 'Alış satırı için önce tedarikçi seçin'}
-              </small>
-            </div>
-            <div className={`quick-decision-card ${selectedPurchaseProduct ? 'is-ready' : ''}`}>
-              {selectedPurchaseProduct?.imageUrl ? (
-                <img className="quick-decision-image" alt={selectedPurchaseProduct.productName || selectedPurchaseProduct.stockCode || 'Urun'} src={selectedPurchaseProduct.imageUrl} />
-              ) : null}
-              <span>Ürün</span>
-              <strong>{selectedPurchaseProduct ? selectedPurchaseProduct.productName : 'Ürün seçilmedi'}</strong>
-              <small>
-                {selectedPurchaseProduct
-                  ? `${selectedPurchaseProduct.stockCode} / ${formatMoney(selectedPurchaseProduct.purchasePrice, selectedPurchaseProduct.currency)} / isk %${Number(selectedPurchaseProduct.lineDiscountRate || 0)}`
-                  : 'Barkod, stok kodu veya ürün adı yazın'}
-              </small>
-            </div>
-            <div className="quick-decision-card quick-decision-price">
-              <span>Alış</span>
-              <strong>İsk %{Number(supplierRate || 0)} / {invoice.invoiceCurrency || 'TRY'}</strong>
-              <small>Enter veya Satır Ekle ile taslağa alınır.</small>
-            </div>
+          <div className="purchase-entry-context" aria-live="polite">
+            <span className={selectedSupplier ? 'is-ready' : ''}><b>Tedarikçi:</b> {selectedSupplier?.supplierName || 'Seçilmedi'}</span>
+            <span className={selectedPurchaseProduct ? 'is-ready' : ''}><b>Ürün:</b> {selectedPurchaseProduct ? `${selectedPurchaseProduct.stockCode} / ${selectedPurchaseProduct.productName}` : 'Seçilmedi'}</span>
+            <span><b>İskonto:</b> %{Number(supplierRate || 0)}</span>
+            <span><b>Fiş:</b> {invoice.invoiceCurrency || 'TRY'} / {invoice.exchangeRate}</span>
           </div>
-          {selectedSupplier && (
-            <div className="purchase-supplier-snapshot">
-              <span><b>Tedarikçi</b>{selectedSupplier.supplierCode} / {selectedSupplier.supplierName}</span>
-              <span><b>Para birimi</b>{selectedSupplier.currency}</span>
-              <span><b>Bakiye</b>{formatMoney(selectedSupplier.balance, selectedSupplier.currency)}</span>
-              <span><b>Alış iskontosu</b>%{Number(selectedSupplier.purchaseDiscountRate || 0)}</span>
-              <span><b>Fiş kuru</b>{invoice.exchangeRate}</span>
-            </div>
-          )}
-        </section>
+        </section>}
         <PurchaseInvoiceHeader
           invoice={invoice}
           invoiceRate={invoiceRate}
+          isIdentityLocked={isFinalized}
           isReadonly={isReadonly}
           status={status}
           supplierRate={supplierRate}

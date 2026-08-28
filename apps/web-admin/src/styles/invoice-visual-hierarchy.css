@@ -1,0 +1,218 @@
+/* Shared visual hierarchy for sales and purchase documents. */
+.sales-invoice-screen,
+.purchase-invoice-screen {
+  --invoice-accent: #2563eb;
+  --invoice-accent-soft: #eff6ff;
+  --invoice-workspace: #edf1f5;
+  --invoice-panel-border: #c7d0dc;
+  --invoice-divider: #d5dde7;
+  --invoice-title-bg: #e7edf4;
+  --invoice-table-head: #dce5ef;
+  --invoice-row-alt: #f4f7fa;
+  --invoice-row-hover: #e8f1f7;
+  --invoice-total-bg: #edf7f4;
+  padding: 8px;
+  background: var(--invoice-workspace);
+}
+
+.purchase-invoice-screen {
+  --invoice-accent: #059669;
+  --invoice-accent-soft: #ecfdf5;
+}
+
+.sales-invoice-screen .sales-invoice-layout,
+.purchase-invoice-screen .purchase-invoice-layout {
+  gap: 7px;
+}
+
+.sales-invoice-screen .sales-invoice-toolbar,
+.purchase-invoice-screen .purchase-invoice-toolbar,
+.sales-invoice-screen .sales-flow-steps,
+.sales-invoice-screen .sales-quick-add-panel,
+.sales-invoice-screen .sales-invoice-header,
+.sales-invoice-screen .sales-items-panel,
+.sales-invoice-screen .sales-totals-panel,
+.purchase-invoice-screen .purchase-draft-controls,
+.purchase-invoice-screen .purchase-invoice-header,
+.purchase-invoice-screen .purchase-items-panel,
+.purchase-invoice-screen .purchase-totals-panel {
+  border-color: var(--invoice-panel-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.sales-invoice-screen .sales-quick-add-panel,
+.purchase-invoice-screen .purchase-draft-controls {
+  border-left: 3px solid var(--invoice-accent);
+}
+
+/* Keep the product search results above the invoice header and line table. */
+.sales-invoice-screen .sales-quick-add-panel {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+  contain: none;
+}
+
+.sales-invoice-screen .sales-product-suggestion-list {
+  z-index: 1000;
+}
+
+.sales-invoice-screen .sales-invoice-header,
+.sales-invoice-screen .sales-empty-state,
+.sales-invoice-screen .sales-items-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.sales-invoice-screen .sales-invoice-header,
+.purchase-invoice-screen .purchase-invoice-header {
+  background: #f8fafc;
+}
+
+.sales-invoice-screen .sales-items-panel,
+.purchase-invoice-screen .purchase-items-panel {
+  border-top: 3px solid var(--invoice-accent);
+}
+
+.sales-invoice-screen .panel-title,
+.purchase-invoice-screen .panel-title {
+  border-bottom-color: var(--invoice-divider);
+  background: var(--invoice-title-bg);
+  color: #172033;
+}
+
+.sales-invoice-screen .panel-title strong,
+.purchase-invoice-screen .panel-title strong {
+  color: #172033;
+}
+
+.sales-invoice-screen .sales-header-primary > div,
+.sales-invoice-screen .sales-header-primary > label,
+.purchase-invoice-screen .purchase-header-primary > div,
+.purchase-invoice-screen .purchase-header-primary > label {
+  border-left-color: var(--invoice-divider);
+}
+
+.sales-invoice-screen .sales-entry-context span,
+.purchase-invoice-screen .purchase-entry-context span {
+  border-color: var(--invoice-panel-border);
+  background: #f1f5f9;
+}
+
+.sales-invoice-screen .sales-entry-context span.is-ready,
+.purchase-invoice-screen .purchase-entry-context span.is-ready {
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+}
+
+.sales-invoice-screen .sales-items-table thead th,
+.purchase-invoice-screen .purchase-items-table thead th {
+  border-color: #bfcbd8;
+  background: var(--invoice-table-head);
+  color: #27364b;
+}
+
+.sales-invoice-screen .sales-items-table tbody td,
+.purchase-invoice-screen .purchase-items-table tbody td {
+  border-color: var(--invoice-divider);
+  background: #ffffff;
+}
+
+.sales-invoice-screen .sales-items-table tbody tr:nth-child(even) td,
+.purchase-invoice-screen .purchase-items-table tbody tr:nth-child(even) td {
+  background: var(--invoice-row-alt);
+}
+
+.sales-invoice-screen .sales-items-table tbody tr:hover td,
+.purchase-invoice-screen .purchase-items-table tbody tr:hover td {
+  background: var(--invoice-row-hover);
+}
+
+.sales-invoice-screen .sales-items-table tbody tr:focus-within td,
+.purchase-invoice-screen .purchase-items-table tbody tr:focus-within td {
+  box-shadow: inset 3px 0 0 var(--invoice-accent);
+}
+
+.sales-invoice-screen .sales-items-table input,
+.purchase-invoice-screen .purchase-items-table input {
+  border-color: #b9c5d3;
+  background: #ffffff;
+}
+
+.sales-invoice-screen .sales-items-table input:focus,
+.purchase-invoice-screen .purchase-items-table input:focus {
+  border-color: var(--invoice-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--invoice-accent) 18%, transparent);
+}
+
+.sales-invoice-screen .sales-totals-panel,
+.purchase-invoice-screen .purchase-totals-panel {
+  border-top: 3px solid #0f9f78;
+  background: var(--invoice-total-bg);
+  box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.sales-invoice-screen .sales-totals-panel .panel-title,
+.purchase-invoice-screen .purchase-totals-panel .panel-title {
+  background: var(--invoice-total-bg);
+}
+
+.sales-invoice-screen .list-state-success,
+.purchase-invoice-screen .list-state-success {
+  border-color: #86efac;
+  background: #eaf8ef;
+}
+
+.sales-invoice-screen .list-state-error,
+.purchase-invoice-screen .list-state-error {
+  border-color: #fca5a5;
+  background: #fff1f2;
+}
+
+.dark-mode-shell .sales-invoice-screen,
+.dark-mode-shell .purchase-invoice-screen {
+  --invoice-workspace: #111827;
+  --invoice-panel-border: #475569;
+  --invoice-divider: #3b4758;
+  --invoice-title-bg: #263244;
+  --invoice-table-head: #2b394c;
+  --invoice-row-alt: #1c2737;
+  --invoice-row-hover: #24364a;
+  --invoice-total-bg: #12372f;
+}
+
+.dark-mode-shell .sales-invoice-screen .sales-invoice-header,
+.dark-mode-shell .purchase-invoice-screen .purchase-invoice-header,
+.dark-mode-shell .sales-invoice-screen .sales-items-table tbody td,
+.dark-mode-shell .purchase-invoice-screen .purchase-items-table tbody td,
+.dark-mode-shell .sales-invoice-screen .sales-items-table input,
+.dark-mode-shell .purchase-invoice-screen .purchase-items-table input {
+  background: #182334;
+  color: #e5edf7;
+}
+
+.dark-mode-shell .sales-invoice-screen .panel-title,
+.dark-mode-shell .purchase-invoice-screen .panel-title,
+.dark-mode-shell .sales-invoice-screen .panel-title strong,
+.dark-mode-shell .purchase-invoice-screen .panel-title strong,
+.dark-mode-shell .sales-invoice-screen .sales-items-table thead th,
+.dark-mode-shell .purchase-invoice-screen .purchase-items-table thead th {
+  color: #e5edf7;
+}
+
+.dark-mode-shell .sales-invoice-screen .sales-items-table tbody tr:nth-child(even) td,
+.dark-mode-shell .purchase-invoice-screen .purchase-items-table tbody tr:nth-child(even) td {
+  background: var(--invoice-row-alt);
+}
+
+.dark-mode-shell .sales-invoice-screen .sales-items-table tbody tr:hover td,
+.dark-mode-shell .purchase-invoice-screen .purchase-items-table tbody tr:hover td {
+  background: var(--invoice-row-hover);
+}
+
+@media (max-width: 760px) {
+  .sales-invoice-screen,
+  .purchase-invoice-screen {
+    padding: 5px;
+  }
+}

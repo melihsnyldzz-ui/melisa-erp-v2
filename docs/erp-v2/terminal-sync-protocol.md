@@ -1,5 +1,27 @@
 # Melisa ERP v2 Terminal Sync Protocol
 
+Terminal satış fiyatı yetki kontrolü, ürün kartındaki liste fiyatını sunucudaki günlük kurlarla fiş para birimine çevirerek yapılır. Döviz dönüşümü indirim sayılmaz; yalnızca çevrilmiş referans fiyatın altındaki gerçek fiyat düşüşü personelin azami indirim sınırına tabi olur.
+
+## Kullanıcı seçimi ve şifreli başlangıç
+
+- Terminal kullanıcısı ERP içindeki **Yetki ve Denetim** ekranından oluşturulur; kullanıcı adı, görünen ad, ilk şifre ve rol zorunludur.
+- Personel **Personel Tanımları** ekranında kullanıcı adı ve ilk şifreyle birlikte kaydedilir; `Terminal Kullanıcısı` rolündeki giriş hesabı aynı işlemde otomatik oluşturulur.
+- Aktif terminal cihazı açıldığında, aktif giriş hesabına bağlı bütün aktif personelleri listeler. Ayrı terminal cihazı seçimi veya personel-terminal ataması yapılmaz. Personel listeden kendi adını seçer; yalnızca seçimden sonra şifre alanı açılır ve **Programa Gir** düğmesiyle oturum başlatılır.
+- Sunucu/API adresi günlük giriş alanlarından ayrılmış, açılır **Ayarlar** panelinde tutulur. Bağlantı ayarı kaydedilip test edildikten sonra panel kapanır ve personel girişi önde kalır.
+- Satış sahibi cihaz için önceden seçilmiş bir sorumlu değil, terminalde şifresiyle giriş yapan personeldir.
+- Terminal uygulaması şifresiz yerel admin oturumu oluşturmaz. Önceki şifresiz terminal oturumları bulunduğunda temizlenir ve tekrar giriş istenir.
+- ERP yöneticisi kullanıcının şifresini değiştirdiğinde mevcut refresh oturumları iptal edilir. Yeni giriş yalnızca yeni şifreyle yapılabilir.
+- Kullanıcı listesi sadece aktif ve kayıtlı bir `terminalCode` için döner; parola, hash veya başka gizli bilgi istemciye gönderilmez.
+
+## ERP PC Receipt Printing
+
+- `POST /api/terminal/sales/:invoiceId/print` accepts only an authenticated sales user.
+- The API reloads the invoice from SQL and refuses non-finalized invoices.
+- The client cannot submit a printer name or raw print content.
+- The Windows computer running the ERP API uses its configured or default printer.
+- `terminal_receipt_print_requested` and `terminal_receipt_print_completed` provide the audit trail.
+- A print failure never rolls back or duplicates an already finalized sale.
+
 ## Amaç
 
 Bu doküman Melisa ERP v2 Android terminal sistemi için offline çalışma ve sync protokolünü tanımlar. Terminal uygulaması karmaşık ERP paneli olmayacak; ürün/müşteri arama, satış fişi oluşturma, stok sayım, offline queue ve sync işlemlerini sade ve güvenilir şekilde yapacaktır.
@@ -62,6 +84,28 @@ Queue kaydı en az şu bilgileri taşımalıdır:
 - `next_retry_at`
 - `last_error_code`
 - `last_error_message`
+
+### Açık fişten çıkış
+
+Terminalde seçili cari ve en az bir ürün satırı varken kullanıcı ana ekrana veya Android geri tuşuna basarsa uygulama fişi sessizce kapatmaz. Kullanıcı üç seçenek görür:
+
+- Fişi taslak olarak kaydedip çıkmak.
+- Fişi iptal edip çıkmak.
+- Çıkıştan vazgeçip fişe dönmek.
+
+Taslak kaydetme mevcut local queue akışını kullanır; fişi göndermez ve ticari etki oluşturmaz. İptal edilen ekrandaki taslak queue'ya yazılmaz.
+
+Kaydetmeden çıkma geri dönüşü olmayan bir işlem olduğu için iki aşamalı onay kullanır. İlk çıkış penceresindeki kırmızı kaydetmeden çık seçeneğinden sonra ikinci bir emin misiniz penceresi açılır; kullanıcı yeşil düğmeyle fişe dönebilir veya kırmızı düğmeyle silme işlemini kesinleştirebilir.
+
+### Açık fiş otomatik kurtarma
+
+Terminal, seçili cari ve en az bir ürün satırı bulunan açık fişi her değişiklikte cihazdaki ayrı çalışma taslağına kaydeder. Bu çalışma taslağı pending sync queue değildir ve kullanıcı onayı olmadan API'ye gönderilmez.
+
+- Uygulama çöker, işletim sistemi tarafından kapatılır veya cihazın şarjı biterse son tamamlanan yerel kayıt korunur.
+- Yeni satış ekranı yeniden açıldığında kullanıcıya yarım kalan fişe devam etme veya taslağı silip yeni fiş açma seçeneği sunulur.
+- Çalışma taslağı cari, ürün satırları, miktar/fiyat snapshot'ları, varsa düzenlenen queue event kimliği ve son kayıt zamanını taşır.
+- Fiş local queue'ya güvenli biçimde kaydedildiğinde, gönderim kuyruğuna alındığında veya kullanıcı açıkça iptal ettiğinde çalışma taslağı temizlenir.
+- Otomatik kurtarma ticari belge oluşturmaz; ERP yazma sınırı yine `Fişi Gönder` veya Sync Merkezi gönderim işlemidir.
 
 ### Sync lifecycle
 

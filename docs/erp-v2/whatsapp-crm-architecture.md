@@ -38,6 +38,16 @@ New ERP permissions:
 
 Sprint 001 only requires `crm.view` for the read-only inbox skeleton.
 
+### CRM access
+
+- ERP username/password authentication and `crm.view` permission are the interactive CRM access gates.
+- Active personnel accounts using the `terminal_user` role receive `crm.view` and `crm.manage` defaults so they can open, reply to and operate assigned conversations from the terminal.
+- These CRM defaults do not grant finance, stock, settings or audit permissions.
+- The former second CRM password is disabled by default with `WHATSAPP_CRM_SECONDARY_LOCK_ENABLED=false`.
+- Inbox, message, media, assignment, note, tag, task, product-interest and quote routes still require a valid ERP bearer token and CRM permission.
+- The optional secondary lock can be restored with `WHATSAPP_CRM_SECONDARY_LOCK_ENABLED=true` and a configured scrypt password hash.
+- Health and provider webhook routes remain outside the interactive CRM authorization flow.
+
 ## Provider Interface
 
 The provider interface is defined in `apps/whatsapp-crm-api/src/providers/whatsappProvider.js`.

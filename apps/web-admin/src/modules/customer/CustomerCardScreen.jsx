@@ -579,7 +579,9 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
                 <small>Ayrıca takip edilir</small>
               </div>
             </div>
-            <div className="entity-360-trace-grid">
+            <details className="entity-360-details">
+              <summary>Son hareketler ve ürünler</summary>
+              <div className="entity-360-trace-grid">
               <section className="entity-360-mini-list">
                 <div className="entity-360-mini-title">
                   <strong>Son Cari Hareketler</strong>
@@ -616,7 +618,8 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
                   </button>
                 ))}
               </section>
-            </div>
+              </div>
+            </details>
           </section>
           <section className="customer-card-layout customer-card-modern-layout">
             <CustomerCardForm

@@ -97,6 +97,21 @@ export async function submitTerminalSale({ token, payload }) {
   });
 }
 
+export async function printTerminalSaleReceipt({ token, invoiceId }) {
+  const normalizedInvoiceId = Number(invoiceId);
+  if (!Number.isInteger(normalizedInvoiceId) || normalizedInvoiceId < 1) {
+    const error = new Error('Yazdirilacak fis numarasi bulunamadi');
+    error.code = 'TERMINAL_RECEIPT_INVOICE_REQUIRED';
+    throw error;
+  }
+
+  return apiRequest(`/terminal/sales/${encodeURIComponent(normalizedInvoiceId)}/print`, {
+    method: 'POST',
+    token,
+    timeoutMs: 30000,
+  });
+}
+
 export async function sendTerminalWhatsappShare({ token, payload }) {
   return apiRequest('/terminal/whatsapp-share', {
     method: 'POST',

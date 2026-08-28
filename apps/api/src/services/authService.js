@@ -217,6 +217,90 @@ export async function login({ username, password }, userAgent = '') {
   };
 }
 
+async function getTerminalLoginContext(terminalCode) {
+  const normalizedTerminalCode = trimText(terminalCode);
+  if (!normalizedTerminalCode) {
+    throw makeAuthError('TERMINAL_CODE_REQUIRED', 'Terminal code is required', 400);
+  }
+
+  const pool = await getSqlPool();
+  const schemaResult = await pool.request().query(`
+    SELECT CASE
+      WHEN OBJECT_ID(N'dbo.employees', N'U') IS NOT NULL
+       AND COL_LENGTH(N'dbo.employees', N'user_id') IS NOT NULL
+      THEN 1 ELSE 0
+    END AS is_ready;
+  `);
+
+  if (!schemaResult.recordset?.[0]?.is_ready) {
+    throw makeAuthError('TERMINAL_PERSONNEL_SCHEMA_MISSING', 'Terminal personnel schema is not installed', 503);
+  }
+
+  const deviceResult = await pool.request()
+    .input('terminalCode', sql.NVarChar(80), normalizedTerminalCode)
+    .query(`
+      SELECT TOP (1) id, device_code, device_name, is_active
+      FROM dbo.terminal_devices
+      WHERE device_code = @terminalCode;
+    `);
+  const device = deviceResult.recordset?.[0];
+
+  if (!device || !device.is_active) {
+    throw makeAuthError('TERMINAL_DEVICE_NOT_ACTIVE', 'Terminal device is inactive or not registered', 403);
+  }
+
+  const usersResult = await pool.request().query(`
+    SELECT DISTINCT
+      u.id,
+      u.username,
+      u.display_name,
+      e.full_name AS employee_name,
+      r.code AS role_code,
+      r.name AS role_name
+    FROM dbo.users u
+    INNER JOIN dbo.roles r ON r.id = u.role_id AND r.is_active = 1
+    INNER JOIN dbo.employees e ON e.user_id = u.id
+    WHERE u.is_active = 1
+      AND e.is_active = 1
+    ORDER BY u.display_name ASC, u.username ASC;
+  `);
+
+  return {
+    device: {
+      code: device.device_code,
+      name: device.device_name,
+    },
+    users: usersResult.recordset.map((row) => ({
+      id: Number(row.id),
+      username: row.username,
+      displayName: row.employee_name || row.display_name,
+    })),
+  };
+}
+
+export async function listTerminalLoginUsers(terminalCode) {
+  return getTerminalLoginContext(terminalCode);
+}
+
+export async function terminalLogin({ username, password, terminalCode }, userAgent = '') {
+  const context = await getTerminalLoginContext(terminalCode);
+  const normalizedUsername = trimText(username);
+  const normalizedUsernameKey = normalizedUsername.toLocaleLowerCase('tr-TR');
+  const allowed = context.users.some(
+    (user) => String(user.username || '').toLocaleLowerCase('tr-TR') === normalizedUsernameKey,
+  );
+
+  if (!allowed) {
+    throw makeAuthError('TERMINAL_USER_NOT_ALLOWED', 'User is not enabled for terminal login', 403);
+  }
+
+  const session = await login({ username: normalizedUsername, password }, userAgent);
+  return {
+    ...session,
+    terminal: context.device,
+  };
+}
+
 export async function localPasswordlessAdminLogin() {
   assertAuthSecretsConfigured();
 

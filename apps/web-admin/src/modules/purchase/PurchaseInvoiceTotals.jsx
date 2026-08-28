@@ -15,18 +15,22 @@ export function PurchaseInvoiceTotals({ totals }) {
   return (
     <section className={isOpen ? 'erp-panel purchase-totals-panel open' : 'erp-panel purchase-totals-panel'}>
       <div className="panel-title">
-        <strong>Toplamlar</strong>
-        <span className="mini-total-value">{formatMoney(totals.grandTotal, currency)}</span>
+        <strong className="invoice-total-count">{totals.lineCount} satır · {totals.totalQuantity} adet</strong>
+        <div className="purchase-total-glance">
+          <span><small>Ara toplam</small><b>{formatMoney(totals.subtotal, currency)}</b></span>
+          <span><small>İskonto</small><b>{formatMoney(totals.totalDiscount, currency)}</b></span>
+          <span className="invoice-grand-total"><small>Genel toplam</small><strong>{formatMoney(totals.grandTotal, currency)}</strong></span>
+        </div>
         <button
           aria-expanded={isOpen}
           className="mini-total-toggle"
           onClick={() => setIsOpen((current) => !current)}
           type="button"
         >
-          {isOpen ? 'Kapat' : 'Detay'}
+          {isOpen ? 'Detayı Kapat' : 'Toplam Detayı'}
         </button>
       </div>
-      <dl>
+      {isOpen && <dl>
         <div>
           <dt>Ara toplam</dt>
           <dd>{formatMoney(totals.subtotal, currency)}</dd>
@@ -71,8 +75,8 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dt>Stok maliyet etkisi</dt>
           <dd>{formatMoney(totals.stockCostEffect, 'TRY')}</dd>
         </div>
-      </dl>
-      <p>Average cost TRY notu: kesinleşen alış satırları ağırlıklı ortalama maliyet hesaplamasını tetikler.</p>
+      </dl>}
+      {isOpen && <p>Kesinleşen alış satırları ağırlıklı ortalama maliyet hesaplamasını tetikler.</p>}
     </section>
   );
 }

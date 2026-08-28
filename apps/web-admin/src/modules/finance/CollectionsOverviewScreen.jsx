@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Download, Printer, RefreshCw } from 'lucide-react';
 import { fetchCustomers } from '../../services/customerApi.js';
 import { createCustomerCollection, createSupplierPayment, fetchFinanceAccounts, fetchFinanceMovements } from '../../services/financeApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, printCurrentScreen, printFinanceReceipt } from '../../utils/exportUtils.js';
 import { openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
 import { CollectionsEntryForm, CollectionsEffectPanel } from './CollectionsEntryForm.jsx';
 import { CollectionsHistoryTable } from './CollectionsHistoryTable.jsx';
 import { CollectionsReceiptPanel } from './CollectionsReceiptPanel.jsx';
@@ -41,6 +43,7 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [partyQuery, setPartyQuery] = useState('');
 
   async function loadData() {
     setIsLoading(true);
@@ -101,24 +104,6 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
   ));
   const hasValidAmount = Number.isFinite(amount) && amount > 0;
   const canSubmit = Boolean(selectedPartyId) && hasValidAmount && !isSaving && !isLoading;
-  const recentSummary = useMemo(() => movements.reduce((summary, row) => {
-    const rowAmount = Number(row.amount || 0);
-    if (row.movementType === 'collection') {
-      summary.collectionCount += 1;
-      summary.collectionTotal += rowAmount;
-    }
-    if (row.movementType === 'payment') {
-      summary.paymentCount += 1;
-      summary.paymentTotal += rowAmount;
-    }
-    return summary;
-  }, {
-    collectionCount: 0,
-    collectionTotal: 0,
-    paymentCount: 0,
-    paymentTotal: 0,
-  }), [movements]);
-
   useEffect(() => {
     if (mode === 'collection' && selectedCustomer?.currency) {
       setForm((current) => ({ ...current, currency: selectedCustomer.currency }));
@@ -127,6 +112,12 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
       setForm((current) => ({ ...current, currency: selectedSupplier.currency }));
     }
   }, [mode, selectedCustomer, selectedSupplier]);
+
+  useEffect(() => {
+    if (currentParty && !partyQuery) {
+      setPartyQuery(`${partyCode(currentParty, mode)} / ${partyName(currentParty, mode)}`);
+    }
+  }, [currentParty, mode, partyQuery]);
 
   useEffect(() => {
     if (!form.accountId) return;
@@ -142,8 +133,22 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
     setMessage('');
   }
 
+  function updatePartyQuery(value) {
+    setPartyQuery(value);
+    const query = normalizeSearchText(value);
+    const match = query && partyOptions.find((party) => {
+      const code = partyCode(party, mode);
+      const name = partyName(party, mode);
+      return [code, name, `${code} / ${name}`]
+        .some((candidate) => normalizeSearchText(candidate) === query);
+    });
+
+    updateField(mode === 'collection' ? 'customerId' : 'supplierId', match ? String(match.id) : '');
+  }
+
   function switchMode(nextMode) {
     setMode(nextMode);
+    setPartyQuery('');
     setForm((current) => ({
       ...current,
       customerId: '',
@@ -318,42 +323,18 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
     <main className="work-area collections-overview-screen">
       <section className="erp-panel collections-hero-panel">
         <div className="collections-hero-copy">
-          <span className="eyebrow">Finans işlem masası</span>
           <strong>Tahsilat / Ödeme Girişi</strong>
-          <small>Gerçek müşteri ve tedarikçi cari hareket defterine yazar.</small>
+          <small>Cari seç, tutarı gir, bakiye etkisini kontrol ederek kaydet.</small>
         </div>
         <div className="collections-mode-switch">
           <button className={mode === 'collection' ? 'pressed' : ''} type="button" onClick={() => switchMode('collection')}>Müşteri Tahsilatı</button>
           <button className={mode === 'payment' ? 'pressed' : ''} type="button" onClick={() => switchMode('payment')}>Tedarikçi Ödemesi</button>
         </div>
         <div className="collections-hero-actions">
-          <button type="button" onClick={exportMovementRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tahsilat Ödeme')}>Yazdır</button>
-          <button type="button" onClick={loadData}>Yenile</button>
+          <button type="button" onClick={exportMovementRows}><Download size={15} />Excel</button>
+          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tahsilat Ödeme')}><Printer size={15} />Yazdır</button>
+          <button type="button" onClick={loadData}><RefreshCw size={15} />Yenile</button>
         </div>
-      </section>
-
-      <section className="collections-stat-grid" aria-label="Tahsilat ödeme özeti">
-        <article className="collections-stat-card in">
-          <span>Listede tahsilat</span>
-          <strong>{formatMoney(recentSummary.collectionTotal, form.currency)}</strong>
-          <small>{recentSummary.collectionCount} hareket</small>
-        </article>
-        <article className="collections-stat-card out">
-          <span>Listede ödeme</span>
-          <strong>{formatMoney(recentSummary.paymentTotal, form.currency)}</strong>
-          <small>{recentSummary.paymentCount} hareket</small>
-        </article>
-        <article className="collections-stat-card">
-          <span>Seçili cari</span>
-          <strong>{currentParty ? partyCode(currentParty, mode) : '-'}</strong>
-          <small>{currentParty ? partyName(currentParty, mode) : 'Cari seçilmedi'}</small>
-        </article>
-        <article className="collections-stat-card focus">
-          <span>Kayıt durumu</span>
-          <strong>{canSubmit ? 'Hazır' : 'Bekliyor'}</strong>
-          <small>{canSubmit ? 'Kaydedilebilir' : 'Cari ve tutar gerekli'}</small>
-        </article>
       </section>
 
       {isLoading && <div className="list-state">Finans verileri yükleniyor...</div>}
@@ -365,7 +346,7 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
           mode={mode}
           form={form}
           partyOptions={partyOptions}
-          selectedPartyId={selectedPartyId}
+          partyQuery={partyQuery}
           currentParty={currentParty}
           currentBalance={currentBalance}
           partyCurrency={partyCurrency}
@@ -373,6 +354,7 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
           canSubmit={canSubmit}
           isSaving={isSaving}
           onUpdateField={updateField}
+          onPartyQueryChange={updatePartyQuery}
           onSubmit={submitFinanceMovement}
         />
 

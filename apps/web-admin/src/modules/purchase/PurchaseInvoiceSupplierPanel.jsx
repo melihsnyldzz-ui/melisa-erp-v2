@@ -21,7 +21,7 @@ export function PurchaseInvoiceSupplierPanel({ invoice, permissions }) {
           <dd>{invoice.supplierBalanceLabel || '-'}</dd>
         </div>
         <div>
-          <dt>Genel iskonto</dt>
+          <dt>Fiş sonu iskonto</dt>
           <dd>%{invoice.supplierDiscountRate ?? 0}</dd>
         </div>
         <div>

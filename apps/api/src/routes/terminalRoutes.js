@@ -3,26 +3,33 @@ import {
   getTerminalCustomersSearch,
   getTerminalProductBarcode,
   getTerminalProductsSearch,
+  postTerminalSalePrint,
   postTerminalSaleSubmit,
   postTerminalWhatsappShare,
 } from '../controllers/terminalController.js';
-import { requireAuth, requirePermission } from '../middleware/authMiddleware.js';
+import { requireAnyPermission, requireAuth } from '../middleware/authMiddleware.js';
 
 export const terminalRoutes = Router();
 
-terminalRoutes.get('/terminal/products/search', requireAuth, requirePermission('product.view'), getTerminalProductsSearch);
-terminalRoutes.get('/terminal/products/barcode/:barcode', requireAuth, requirePermission('product.view'), getTerminalProductBarcode);
-terminalRoutes.get('/terminal/customers/search', requireAuth, requirePermission('customer.view'), getTerminalCustomersSearch);
+terminalRoutes.get('/terminal/products/search', requireAuth, requireAnyPermission(['terminal.sync.run', 'product.view']), getTerminalProductsSearch);
+terminalRoutes.get('/terminal/products/barcode/:barcode', requireAuth, requireAnyPermission(['terminal.sync.run', 'product.view']), getTerminalProductBarcode);
+terminalRoutes.get('/terminal/customers/search', requireAuth, requireAnyPermission(['terminal.sync.run', 'customer.view']), getTerminalCustomersSearch);
 terminalRoutes.post(
   '/terminal/sales/submit',
   requireAuth,
-  requirePermission('sales.create'),
-  requirePermission('sales.finalize'),
+  requireAnyPermission(['terminal.sales.create', 'sales.create']),
+  requireAnyPermission(['terminal.sales.create', 'sales.finalize']),
   postTerminalSaleSubmit,
+);
+terminalRoutes.post(
+  '/terminal/sales/:invoiceId/print',
+  requireAuth,
+  requireAnyPermission(['terminal.sales.create', 'sales.view']),
+  postTerminalSalePrint,
 );
 terminalRoutes.post(
   '/terminal/whatsapp-share',
   requireAuth,
-  requirePermission('customer.view'),
+  requireAnyPermission(['terminal.sales.create', 'customer.view']),
   postTerminalWhatsappShare,
 );

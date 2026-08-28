@@ -15,6 +15,10 @@ export async function fetchSuppliers({ page = 1, limit = 100, search = '', activ
   });
 }
 
+export async function fetchVegaSuppliers({ page = 1, limit = 100, search = '' } = {}) {
+  return get('/api/vega/suppliers', { page, limit, search });
+}
+
 export async function fetchSupplier(id) {
   if (apiConfig.demoMode) {
     return demoSupplierDetailResponse(id);

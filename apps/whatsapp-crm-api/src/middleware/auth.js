@@ -8,6 +8,18 @@ function authError(code, message, statusCode = 401) {
   return error;
 }
 
+function normalizeJwtError(error) {
+  if (error?.name === 'TokenExpiredError') {
+    return authError('AUTH_TOKEN_EXPIRED', 'Oturum suresi doldu. Lutfen tekrar giris yapin.', 401);
+  }
+
+  if (error?.name === 'JsonWebTokenError' || error?.name === 'NotBeforeError') {
+    return authError('AUTH_TOKEN_INVALID', 'Oturum dogrulanamadi. Lutfen tekrar giris yapin.', 401);
+  }
+
+  return error;
+}
+
 async function fetchErpUser(accessToken) {
   const response = await fetch(`${env.erpApi.baseUrl}/api/auth/me`, {
     headers: {
@@ -46,11 +58,17 @@ export async function requireCrmAuth(req, res, next) {
       throw authError('WHATSAPP_CRM_AUTH_SECRET_MISSING', 'CRM auth secret is not configured', 503);
     }
 
-    jwt.verify(token, env.auth.jwtSecret);
+    try {
+      jwt.verify(token, env.auth.jwtSecret);
+    } catch (error) {
+      throw normalizeJwtError(error);
+    }
+
+    req.erpAccessToken = token;
     req.user = await fetchErpUser(token);
     return next();
   } catch (error) {
-    return next(error);
+    return next(normalizeJwtError(error));
   }
 }
 

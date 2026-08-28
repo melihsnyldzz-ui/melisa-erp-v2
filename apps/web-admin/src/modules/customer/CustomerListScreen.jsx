@@ -3,7 +3,8 @@ import { CustomerListFilters } from './CustomerListFilters.jsx';
 import { CustomerListTable } from './CustomerListTable.jsx';
 import { CustomerListToolbar } from './CustomerListToolbar.jsx';
 import { customerFilterDefaults } from './customerMockData.js';
-import { fetchCustomers } from '../../services/customerApi.js';
+import { fetchVegaCustomers } from '../../services/customerApi.js';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { searchTextIncludes } from '../../utils/searchText.js';
 
@@ -11,14 +12,15 @@ function matchesText(value, filter) {
   return searchTextIncludes(value, filter);
 }
 
-function buildSearch(filters) {
+function buildServerSearch(filters) {
   return [
+    filters.search,
     filters.code,
     filters.name,
     filters.phone,
     filters.city,
     filters.country,
-  ].filter(Boolean).join(' ');
+  ].map((value) => String(value || '').trim()).find(Boolean) || '';
 }
 
 function mapCustomerType(type) {
@@ -33,8 +35,13 @@ function mapCustomerType(type) {
 }
 
 function toCustomerRow(customer) {
+  const lastTransactionDate = customer.lastTransactionDate
+    ? new Intl.DateTimeFormat('tr-TR').format(new Date(customer.lastTransactionDate))
+    : '-';
+
   return {
     id: customer.id,
+    sourceId: customer.sourceId,
     code: customer.customerCode,
     name: customer.customerName,
     phone: customer.phoneMasked || '-',
@@ -43,12 +50,16 @@ function toCustomerRow(customer) {
     currency: customer.currency,
     type: mapCustomerType(customer.customerType),
     balance: customer.balance,
-    lastTransactionDate: '-',
+    lastTransactionDate,
+    legalTitle: customer.legalTitle || '',
+    specialCodes: customer.specialCodes || {},
     status: customer.isPassive ? 'Pasif' : 'Aktif',
   };
 }
 
 function applyCustomerFilters(row, filters) {
+  const quickSearch = [row.code, row.name, row.phone, row.city, row.country].join(' ');
+  const matchesQuickSearch = matchesText(quickSearch, filters.search);
   const matchesCurrency = filters.currency === 'all' || row.currency === filters.currency;
   const matchesType = filters.type === 'all' || row.type === filters.type || row.type === mapCustomerType(filters.type);
   const matchesStatus =
@@ -62,6 +73,7 @@ function applyCustomerFilters(row, filters) {
     (filters.balanceState === 'zero' && row.balance === 0);
 
   return (
+    matchesQuickSearch &&
     matchesCurrency &&
     matchesType &&
     matchesStatus &&
@@ -87,11 +99,11 @@ const customerListColumns = [
   { label: 'Durum', key: 'status', width: 90 },
 ];
 
-const customerColumnStorageKey = 'melisa.customerList.visibleColumns.v1';
+const customerColumnStorageKey = 'melisa.customerList.visibleColumns.v2';
 const defaultCustomerListPageLimit = 500;
 const defaultVisibleCustomerColumns = customerListColumns.reduce((next, column) => ({
   ...next,
-  [column.key]: true,
+  [column.key]: ['code', 'name', 'phone', 'city', 'balance', 'status'].includes(column.key),
 }), {});
 
 function readVisibleCustomerColumns() {
@@ -116,8 +128,10 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleCustomerColumns);
+  const isLiveVega = true;
 
-  const search = useMemo(() => buildSearch(filters), [filters]);
+  const serverSearch = useMemo(() => buildServerSearch(filters), [filters]);
+  const debouncedServerSearch = useDebouncedValue(serverSearch);
   const activeOnly = filters.status === 'active';
   const tableColumns = useMemo(() => (
     customerListColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
@@ -126,7 +140,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     || filters.currency !== 'all'
     || filters.type !== 'all'
     || filters.balanceState !== 'all'
-    || Boolean(filters.code || filters.name || filters.phone || filters.city || filters.country);
+    || Boolean(filters.search || filters.code || filters.name || filters.phone || filters.city || filters.country);
 
   useEffect(() => {
     try {
@@ -144,11 +158,10 @@ export function CustomerListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchCustomers({
+        const response = await fetchVegaCustomers({
           page: 1,
           limit: pageLimit,
-          search,
-          activeOnly,
+          search: debouncedServerSearch,
         });
         const nextRows = response.data.map(toCustomerRow);
 
@@ -156,7 +169,7 @@ export function CustomerListScreen({ onOpenScreen }) {
           setRows(nextRows);
           setMeta(response.meta);
           setSelectedRowId((currentId) => (
-            nextRows.some((row) => row.id === currentId) ? currentId : nextRows[0]?.id ?? null
+            nextRows.some((row) => row.id === currentId) ? currentId : null
           ));
         }
       } catch (error) {
@@ -178,7 +191,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, pageLimit, refreshKey, search]);
+  }, [activeOnly, debouncedServerSearch, pageLimit, refreshKey]);
 
   const filteredRows = useMemo(() => {
     const nextRows = rows.filter((row) => applyCustomerFilters(row, filters));
@@ -195,6 +208,13 @@ export function CustomerListScreen({ onOpenScreen }) {
       return String(firstValue ?? '').localeCompare(String(secondValue ?? ''), 'tr') * direction;
     });
   }, [filters, rows, sortConfig]);
+
+  useEffect(() => {
+    if (filteredRows.length > 0 && !filteredRows.some((row) => row.id === selectedRowId)) {
+      setSelectedRowId(filteredRows[0].id);
+    }
+  }, [filteredRows, selectedRowId]);
+
   const selectedRow = filteredRows.find((row) => row.id === selectedRowId) ?? null;
   const activeCount = rows.filter((row) => row.status === 'Aktif').length;
   const passiveCount = rows.length - activeCount;
@@ -215,6 +235,21 @@ export function CustomerListScreen({ onOpenScreen }) {
   }
 
   function openSelectedCustomer() {
+    if (isLiveVega) {
+      if (!selectedRow?.sourceId) {
+        setSelectionWarning('Hareketleri açmak için listeden bir cari seçin.');
+        return;
+      }
+      setSelectionWarning('');
+      onOpenScreen('vega-koli-movements', {
+        customerSourceId: selectedRow.sourceId,
+        customerCode: selectedRow.code,
+        customerName: selectedRow.name,
+        customerCurrency: selectedRow.currency,
+        tabLabel: `${selectedRow.code} Hareketleri`,
+      });
+      return;
+    }
     const customerId = selectedRow?.id;
 
     if (!customerId) {
@@ -227,6 +262,7 @@ export function CustomerListScreen({ onOpenScreen }) {
   }
 
   function openNewCustomer() {
+    if (isLiveVega) return;
     setSelectionWarning('');
     onOpenScreen('customer-card', { mode: 'create', tabLabel: 'Yeni Cari' });
   }
@@ -239,6 +275,18 @@ export function CustomerListScreen({ onOpenScreen }) {
   function openCustomerRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
+    if (isLiveVega) {
+      const row = rows.find((item) => item.id === rowId);
+      if (!row?.sourceId) return;
+      onOpenScreen('vega-koli-movements', {
+        customerSourceId: row.sourceId,
+        customerCode: row.code,
+        customerName: row.name,
+        customerCurrency: row.currency,
+        tabLabel: `${row.code} Hareketleri`,
+      });
+      return;
+    }
     const row = rows.find((item) => item.id === rowId);
     onOpenScreen('customer-card', { customerId: rowId, customerCode: row?.code });
   }
@@ -295,6 +343,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         onRefresh={() => setRefreshKey((current) => current + 1)}
         onToggleColumns={() => setIsColumnPanelOpen((current) => !current)}
         isColumnPanelOpen={isColumnPanelOpen}
+        isReadOnly={isLiveVega}
       />
       <CustomerListFilters
         filters={filters}
@@ -302,6 +351,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         onChange={setFilters}
         onPageLimitChange={setPageLimit}
         onReset={resetFilters}
+        isStatusLocked={isLiveVega}
       />
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">
@@ -336,7 +386,7 @@ export function CustomerListScreen({ onOpenScreen }) {
       )}
       <section className="erp-panel customer-list-panel">
         <div className="panel-title customer-panel-title">
-          <strong>Cari Hesap Tablosu</strong>
+          <strong>{isLiveVega ? 'Vega Canlı Cari Hesap Tablosu' : 'Cari Hesap Tablosu'}</strong>
           <span>Seçili: {selectedRow?.code ?? 'yok'} / Gösterilen: {filteredRows.length} / API toplam: {meta?.total ?? rows.length}</span>
         </div>
         {!isLoading && !errorMessage && hasClientSideFilters && Number(meta?.total || 0) > rows.length && (
@@ -375,7 +425,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         <span>Borçlu: {receivableCount}</span>
         <span>Alacaklı: {payableCount}</span>
         <span>Liste kaydı: {filteredRows.length} / {pageLimit}</span>
-        <span>Kaynak: API</span>
+        <span>Kaynak: {isLiveVega ? 'Vega Canlı (salt okunur)' : 'API'}</span>
       </section>
     </main>
   );

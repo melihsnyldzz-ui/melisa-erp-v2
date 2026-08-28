@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import { getPendingQueue } from '../services/queueService';
 import { colors, terminalStyles } from '../styles/theme';
@@ -313,7 +314,7 @@ export function ReceiptCollectScreen({ navigation, onRefresh }) {
     const allPicked = selectedItems.length > 0 && pickedCount >= selectedItems.length;
 
     return (
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardSafeScrollView contentContainerStyle={styles.content}>
         <View style={[styles.detailPanel, allPicked && styles.detailPanelDone]}>
           <View style={styles.detailHeader}>
             <View style={styles.receiptTitleBlock}>
@@ -334,7 +335,7 @@ export function ReceiptCollectScreen({ navigation, onRefresh }) {
 
         <View style={styles.scanPanel}>
           <Text style={styles.scanTitle}>Barkod / Stok Kodu</Text>
-          <TextInput
+          <KeyboardSafeTextInput
             ref={barcodeRef}
             value={barcode}
             onChangeText={setBarcode}
@@ -356,7 +357,7 @@ export function ReceiptCollectScreen({ navigation, onRefresh }) {
 
         <View style={styles.itemSearchPanel}>
           <Text style={styles.itemSearchLabel}>Barkod okumazsa fis icinde ara</Text>
-          <TextInput
+          <KeyboardSafeTextInput
             value={itemQuery}
             onChangeText={setItemQuery}
             style={styles.itemSearchInput}
@@ -395,12 +396,12 @@ export function ReceiptCollectScreen({ navigation, onRefresh }) {
             <Text style={styles.footerButtonText}>Ana Ekran</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardSafeScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <KeyboardSafeScrollView contentContainerStyle={styles.content}>
       <View style={styles.heroPanel}>
         <Text style={styles.heroTitle}>Fis Toplama</Text>
         <Text style={styles.heroText}>Kesinlesen fisleri secin, urunleri okutun, toplanan satirlari isaretleyin.</Text>
@@ -429,7 +430,7 @@ export function ReceiptCollectScreen({ navigation, onRefresh }) {
 
       <TerminalButton label="Yenile" onPress={refreshScreen} variant="secondary" />
       <TerminalButton label="Ana ekran" onPress={navigation.goHome} variant="secondary" />
-    </ScrollView>
+    </KeyboardSafeScrollView>
   );
 }
 

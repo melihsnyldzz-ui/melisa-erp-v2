@@ -12,6 +12,11 @@ const steps = [
     args: ['expo-doctor'],
   },
   {
+    label: 'Working draft recovery smoke',
+    command: 'node',
+    args: ['scripts/check-terminal-working-draft.mjs'],
+  },
+  {
     label: 'Terminal API smoke',
     command: 'node',
     args: ['scripts/check-terminal-api.mjs'],

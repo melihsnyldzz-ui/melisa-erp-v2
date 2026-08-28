@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { fetchCustomerStatement } from '../../services/movementApi.js';
 import { exportRowsToCsv, printLedgerStatement } from '../../utils/exportUtils.js';
 import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
+import { splitLedgerCancellationRows } from '../shared/ledgerCancellationUtils.js';
 
 function formatMoney(value, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -100,8 +101,12 @@ export function CustomerStatementScreen({ onOpenScreen }) {
   }, [query]);
 
   const rows = statement.rows || [];
-  const cancelledRows = useMemo(() => rows.filter(isCancelledMovement), [rows]);
-  const regularRows = useMemo(() => rows.filter((row) => !isCancelledMovement(row)), [rows]);
+  const splitRows = useMemo(
+    () => splitLedgerCancellationRows(rows, 'sales_invoice_cancel'),
+    [rows],
+  );
+  const cancelledRows = splitRows.cancelledRows;
+  const regularRows = splitRows.regularRows;
   const totals = useMemo(() => summarizeRows(regularRows), [regularRows]);
   const cancelledTotals = useMemo(() => summarizeRows(cancelledRows), [cancelledRows]);
 

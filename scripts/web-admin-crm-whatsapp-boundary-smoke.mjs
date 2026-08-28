@@ -52,7 +52,7 @@ addCheck(
 
 addCheck(
   'dashboard quick actions do not imply automatic WhatsApp sending',
-  quickActions.includes('Manuel hazirlik') &&
+  quickActions.includes('Manuel hazırlık') &&
     quickActions.includes('Manuel inceleme') &&
     !quickActions.includes("detail: 'Gönderim'") &&
     !quickActions.includes("detail: 'Gonderim'"),

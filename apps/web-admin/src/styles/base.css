@@ -90,6 +90,13 @@ button {
   color: #9b1b1b;
 }
 
+.login-session-note {
+  color: #5b6b82;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .unauthorized-panel {
   max-width: 520px;
 }

@@ -4,13 +4,63 @@
   "private": true,
   "type": "module",
   "description": "Melisa ERP v2 Electron desktop shell",
+  "author": "Melisa Baby",
   "main": "src/main.mjs",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check src/main.mjs && node --check src/preload.cjs"
+    "check": "node --check src/main.mjs && node --check src/preload.cjs && node --check scripts/prepare-package.mjs && node --check scripts/check-package.mjs",
+    "build:web": "npm.cmd --prefix ../web-admin run build -- --base=./",
+    "stage": "node scripts/prepare-package.mjs",
+    "pack:win": "npm run check && npm run build:web && npm run stage && electron-builder --win nsis --dir",
+    "dist:win": "npm run check && npm run build:web && npm run stage && electron-builder --win nsis",
+    "check:package": "node scripts/check-package.mjs"
   },
   "devDependencies": {
-    "electron": "39.8.10"
+    "electron": "39.8.10",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.melisababy.erp.desktop",
+    "productName": "Melisa ERP",
+    "artifactName": "Melisa-ERP-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist/windows",
+      "buildResources": "dist/stage/resources"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/stage/web-admin",
+        "to": "web-admin"
+      },
+      {
+        "from": "dist/stage/resources/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "dist/stage/resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Melisa ERP",
+      "runAfterFinish": true
+    }
   }
 }

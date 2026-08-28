@@ -29,12 +29,18 @@ export const GRANULAR_PERMISSIONS = [
 ];
 
 const FULL_ACCESS_ROLE_CODES = new Set(['admin', 'owner_manager', 'owner_partner']);
+const CRM_PERSONNEL_ROLE_CODES = new Set(['terminal_user']);
 
 export function applyRolePermissionDefaults(permissions = [], roleCode = '') {
   const expanded = new Set(permissions);
 
   if (FULL_ACCESS_ROLE_CODES.has(String(roleCode || '').toLowerCase())) {
     GRANULAR_PERMISSIONS.forEach((permission) => expanded.add(permission));
+  }
+
+  if (CRM_PERSONNEL_ROLE_CODES.has(String(roleCode || '').toLowerCase())) {
+    expanded.add('crm.view');
+    expanded.add('crm.manage');
   }
 
   return Array.from(expanded).sort();

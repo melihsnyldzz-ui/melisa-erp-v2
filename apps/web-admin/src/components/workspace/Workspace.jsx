@@ -4,23 +4,30 @@ import { CatalogListScreen } from '../../modules/catalog/CatalogListScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
 import { CustomerMovementsScreen } from '../../modules/customer/CustomerMovementsScreen.jsx';
+import { VegaCustomerMovementsScreen } from '../../modules/customer/VegaKoliMovementsScreen.jsx';
 import { CustomerStatementScreen } from '../../modules/customer/CustomerStatementScreen.jsx';
 import { DashboardScreen } from '../../modules/dashboard/DashboardScreen.jsx';
 import { OperationalHealthScreen } from '../../modules/operations/OperationalHealthScreen.jsx';
 import { AccountingJournalScreen } from '../../modules/finance/AccountingJournalScreen.jsx';
 import { AccountingControlScreen } from '../../modules/finance/AccountingControlScreen.jsx';
 import { CashBankLedgerScreen } from '../../modules/finance/CashBankLedgerScreen.jsx';
+import { CashRegisterScreen } from '../../modules/finance/CashRegisterScreen.jsx';
 import { CashCustomerTrackingScreen } from '../../modules/finance/CashCustomerTrackingScreen.jsx';
 import { CollectionsOverviewScreen } from '../../modules/finance/CollectionsOverviewScreen.jsx';
 import { FinanceOverviewScreen } from '../../modules/finance/FinanceOverviewScreen.jsx';
 import { ImportScreen } from '../../modules/import/ImportScreen.jsx';
 import { ExportCenterScreen } from '../../modules/reports/ExportCenterScreen.jsx';
 import { ManagementReportsScreen } from '../../modules/reports/ManagementReportsScreen.jsx';
+import { VegaSalesComparisonScreen } from '../../modules/reports/VegaSalesComparisonScreen.jsx';
+import { VegaSalesPerformanceScreen } from '../../modules/reports/VegaSalesPerformanceScreen.jsx';
+import { VegaProductProfitabilityScreen } from '../../modules/reports/VegaProductProfitabilityScreen.jsx';
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
 import { BulkPurchaseEntryScreen } from '../../modules/purchase/BulkPurchaseEntryScreen.jsx';
-import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
+import { VegaPurchaseInvoiceListScreen } from '../../modules/purchase/VegaPurchaseInvoiceListScreen.jsx';
 import { PurchaseInvoiceScreen } from '../../modules/purchase/PurchaseInvoiceScreen.jsx';
-import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
+import { VegaSalesInvoiceListScreen } from '../../modules/sales/VegaSalesInvoiceListScreen.jsx';
+import { FedexMicroExportDemoScreen } from '../../modules/sales/FedexMicroExportDemoScreen.jsx';
+import { ProformaInvoiceScreen } from '../../modules/sales/ProformaInvoiceScreen.jsx';
 import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
 import { SalesPipelineListScreen } from '../../modules/sales/SalesPipelineListScreen.jsx';
 import { SalesPipelineScreen } from '../../modules/sales/SalesPipelineScreen.jsx';
@@ -28,8 +35,10 @@ import { AuthAdminScreen } from '../../modules/settings/AuthAdminScreen.jsx';
 import { AuditLogScreen } from '../../modules/settings/AuditLogScreen.jsx';
 import { CurrencyRatesScreen } from '../../modules/settings/CurrencyRatesScreen.jsx';
 import { DefinitionsScreen } from '../../modules/settings/DefinitionsScreen.jsx';
+import { PersonnelDefinitionsScreen } from '../../modules/settings/PersonnelDefinitionsScreen.jsx';
 import { SystemSettingsScreen } from '../../modules/settings/SystemSettingsScreen.jsx';
 import { PriceListScreen } from '../../modules/stock/PriceListScreen.jsx';
+import { BulkProductCreateScreen } from '../../modules/stock/BulkProductCreateScreen.jsx';
 import { StockCountScreen } from '../../modules/stock/StockCountScreen.jsx';
 import { StockListScreen } from '../../modules/stock/StockListScreen.jsx';
 import { StockMovementsScreen } from '../../modules/stock/StockMovementsScreen.jsx';
@@ -37,9 +46,10 @@ import { StockValuationScreen } from '../../modules/stock/StockValuationScreen.j
 import { SupplierCardScreen } from '../../modules/supplier/SupplierCardScreen.jsx';
 import { SupplierListScreen } from '../../modules/supplier/SupplierListScreen.jsx';
 import { SupplierMovementsScreen } from '../../modules/supplier/SupplierMovementsScreen.jsx';
+import { VegaSupplierMovementsScreen } from '../../modules/supplier/VegaSupplierMovementsScreen.jsx';
 import { SupplierStatementScreen } from '../../modules/supplier/SupplierStatementScreen.jsx';
 import { TerminalAdminScreen } from '../../modules/terminal/TerminalAdminScreen.jsx';
-import { WhatsappCrmInboxScreen } from '../../modules/whatsapp-crm/WhatsappCrmInboxScreen.jsx';
+import { WhatsappCrmWorkspace } from '../../modules/whatsapp-crm/WhatsappCrmWorkspace.jsx';
 import { WhatsappPlannerScreen } from '../../modules/catalog/WhatsappPlannerScreen.jsx';
 import { WhatsappWebQueueScreen } from '../../modules/catalog/WhatsappWebQueueScreen.jsx';
 
@@ -77,7 +87,9 @@ const workspaceRouteRegistry = {
   dashboard: {
     permissionKeys: ['dashboard.view'],
     unauthorizedMessage: 'Dashboard görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen, permissions }) => <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} />,
+    render: ({ onOpenScreen, permissions, roleViewId }) => (
+      <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} roleViewId={roleViewId} />
+    ),
   },
   'operational-health': {
     permissionKeys: ['audit.view'],
@@ -87,7 +99,14 @@ const workspaceRouteRegistry = {
   'stock-list': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Stok görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <StockListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen, permissions }) => (
+      <StockListScreen
+        onOpenScreen={onOpenScreen}
+        permissions={permissions}
+        initialStockCode={activeTab.payload?.stockCode}
+        initialSourceId={activeTab.payload?.sourceId}
+      />
+    ),
   },
   'product-card': {
     permissionKeys: ['product.view'],
@@ -116,6 +135,13 @@ const workspaceRouteRegistry = {
     unauthorizedMessage: 'Stok sayımı uygulama yetkiniz yok.',
     render: ({ onDirtyChange, onOpenScreen }) => <StockCountScreen onDirtyChange={onDirtyChange} onOpenScreen={onOpenScreen} />,
   },
+  'bulk-product-create': {
+    permissionKeys: ['product.edit'],
+    unauthorizedMessage: 'Toplu stok kartı hazırlama yetkiniz yok.',
+    render: ({ onDirtyChange, onOpenScreen }) => (
+      <BulkProductCreateScreen onDirtyChange={onDirtyChange} onOpenScreen={onOpenScreen} />
+    ),
+  },
   'price-list': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Fiyat listesi görüntüleme yetkiniz yok.',
@@ -142,6 +168,21 @@ const workspaceRouteRegistry = {
     permissionKeys: ['customer.view'],
     unauthorizedMessage: 'Cari hareketleri görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <CustomerMovementsScreen onOpenScreen={onOpenScreen} />,
+  },
+  'vega-koli-movements': {
+    permissionKeys: ['customer.view'],
+    unauthorizedMessage: 'Vega cari hareketlerini görüntüleme yetkiniz yok.',
+    render: ({ activeTab }) => (
+      <VegaCustomerMovementsScreen
+        customerSourceId={activeTab.payload?.customerSourceId}
+        customerCode={activeTab.payload?.customerCode}
+        customerName={activeTab.payload?.customerName}
+        customerCurrency={activeTab.payload?.customerCurrency}
+        initialDateFrom={activeTab.payload?.initialDateFrom}
+        initialDateTo={activeTab.payload?.initialDateTo}
+        initialMovementType={activeTab.payload?.initialMovementType}
+      />
+    ),
   },
   'customer-statement': {
     permissionKeys: ['customer.view'],
@@ -170,6 +211,18 @@ const workspaceRouteRegistry = {
     unauthorizedMessage: 'Tedarikçi cari hareketleri görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <SupplierMovementsScreen onOpenScreen={onOpenScreen} />,
   },
+  'vega-supplier-movements': {
+    permissionKeys: ['supplier.view'],
+    unauthorizedMessage: 'Vega tedarikçi hareketlerini görüntüleme yetkiniz yok.',
+    render: ({ activeTab }) => (
+      <VegaSupplierMovementsScreen
+        supplierSourceId={activeTab.payload?.supplierSourceId}
+        supplierCode={activeTab.payload?.supplierCode}
+        supplierName={activeTab.payload?.supplierName}
+        supplierCurrency={activeTab.payload?.supplierCurrency}
+      />
+    ),
+  },
   'supplier-statement': {
     permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi ekstresi görüntüleme yetkiniz yok.',
@@ -190,7 +243,19 @@ const workspaceRouteRegistry = {
   'sales-invoice-list': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Satış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
+  },
+  'fedex-micro-export-demo': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Mikro ihracat demo ekranını görüntüleme yetkiniz yok.',
+    render: () => <FedexMicroExportDemoScreen />,
+  },
+  'proforma-invoice': {
+    permissionKeys: ['sales.view'],
+    unauthorizedMessage: 'Proforma hazırlama ekranını görüntüleme yetkiniz yok.',
+    render: ({ activeTab, onDirtyChange }) => (
+      <ProformaInvoiceScreen initialPayload={activeTab.payload} onDirtyChange={onDirtyChange} />
+    ),
   },
   'sales-offers': {
     permissionKeys: ['sales.view'],
@@ -251,7 +316,7 @@ const workspaceRouteRegistry = {
   'purchase-invoice-list': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Alış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
   },
   'finance-overview': {
     permissionKeys: ['dashboard.view', 'finance.view'],
@@ -278,6 +343,11 @@ const workspaceRouteRegistry = {
     permissionKeys: ['dashboard.view', 'finance.view', 'customer.view'],
     unauthorizedMessage: 'Kasa/banka defteri görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <CashBankLedgerScreen onOpenScreen={onOpenScreen} />,
+  },
+  'cash-register': {
+    permissionKeys: ['finance.view', 'finance.collection', 'finance.payment'],
+    unauthorizedMessage: 'Günlük kasa oturumu için finans yetkiniz yok.',
+    render: ({ onDirtyChange }) => <CashRegisterScreen onDirtyChange={onDirtyChange} />,
   },
   'accounting-journal': {
     permissionKeys: ['dashboard.view', 'finance.view'],
@@ -314,7 +384,7 @@ const workspaceRouteRegistry = {
   'whatsapp-crm-inbox': {
     permissionKeys: ['crm.view'],
     unauthorizedMessage: 'WhatsApp CRM gelen kutusu goruntuleme yetkiniz yok.',
-    render: () => <WhatsappCrmInboxScreen />,
+    render: ({ user }) => <WhatsappCrmWorkspace user={user} />,
   },
   'import-foundation': {
     permissionKeys: ['import.run'],
@@ -325,6 +395,21 @@ const workspaceRouteRegistry = {
     permissionKeys: ['dashboard.view'],
     unauthorizedMessage: 'Rapor görüntüleme yetkiniz yok.',
     render: () => <ManagementReportsScreen />,
+  },
+  'vega-sales-comparison': {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Satış karşılaştırma raporunu görüntüleme yetkiniz yok.',
+    render: () => <VegaSalesComparisonScreen />,
+  },
+  'vega-sales-performance': {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Satış performansı raporunu görüntüleme yetkiniz yok.',
+    render: () => <VegaSalesPerformanceScreen />,
+  },
+  'vega-product-profitability': {
+    permissionKeys: ['dashboard.view'],
+    unauthorizedMessage: 'Ürün kârlılığı raporunu görüntüleme yetkiniz yok.',
+    render: () => <VegaProductProfitabilityScreen />,
   },
   'export-center': {
     permissionKeys: ['dashboard.view'],
@@ -346,6 +431,11 @@ const workspaceRouteRegistry = {
     unauthorizedMessage: 'Tanım listeleri yönetimi yetkiniz yok.',
     render: () => <DefinitionsScreen />,
   },
+  'personnel-definitions': {
+    permissionKeys: ['settings.manage'],
+    unauthorizedMessage: 'Personel tanimlari yonetimi yetkiniz yok.',
+    render: () => <PersonnelDefinitionsScreen />,
+  },
   'terminal-overview': {
     permissionKeys: ['dashboard.view'],
     unauthorizedMessage: 'Terminal yönetimi görüntüleme yetkiniz yok.',
@@ -363,7 +453,7 @@ const workspaceRouteRegistry = {
   },
 };
 
-export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [] }) {
+export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [], roleViewId = 'yonetici', user = null }) {
   const screenId = activeTab.screenId ?? activeTab.id;
   const route = workspaceRouteRegistry[screenId];
 
@@ -372,7 +462,7 @@ export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions 
       return <UnauthorizedScreen message={route.unauthorizedMessage} />;
     }
 
-    return route.render({ activeTab, onDirtyChange, onOpenScreen, permissions });
+    return route.render({ activeTab, onDirtyChange, onOpenScreen, permissions, roleViewId, user });
   }
 
   return <UnmappedScreen screen={activeTab} />;

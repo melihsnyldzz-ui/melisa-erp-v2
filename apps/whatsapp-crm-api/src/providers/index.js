@@ -1,9 +1,14 @@
 import { env } from '../config/env.js';
 import { EvolutionProvider } from './evolutionProvider.js';
+import { ChatwootProvider } from './chatwootProvider.js';
 
 export function getWhatsAppProvider() {
   if (env.whatsapp.provider === 'evolution') {
     return new EvolutionProvider();
+  }
+
+  if (env.whatsapp.provider === 'chatwoot') {
+    return new ChatwootProvider();
   }
 
   const error = new Error(`Unsupported WhatsApp provider: ${env.whatsapp.provider}`);

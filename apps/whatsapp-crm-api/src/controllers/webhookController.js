@@ -1,6 +1,7 @@
 import { getWhatsAppProvider } from '../providers/index.js';
 import { persistWebhookEvent } from '../repositories/crmRepository.js';
 import { markEventOnce } from '../services/idempotencyStore.js';
+import { handleAutoReply } from '../services/autoReplyService.js';
 import { created, ok } from '../utils/response.js';
 
 export async function postEvolutionWebhook(req, res, next) {
@@ -33,6 +34,15 @@ export async function postEvolutionWebhook(req, res, next) {
         persistence: 'postgres-duplicate',
       });
     }
+
+    setImmediate(() => {
+      handleAutoReply(normalizedEvent, { conversationId: persistence.conversationId })
+        .catch((error) => console.error('[whatsapp-auto-reply] failed', {
+          code: error.code || 'WHATSAPP_AUTO_REPLY_FAILED',
+          message: error.message,
+          eventId: normalizedEvent.eventId,
+        }));
+    });
 
     return created(res, {
       accepted: true,
