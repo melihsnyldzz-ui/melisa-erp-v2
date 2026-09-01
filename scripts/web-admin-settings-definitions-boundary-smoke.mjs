@@ -9,11 +9,14 @@ function read(relativePath) {
 }
 
 const systemSettingsScreen = read('apps/web-admin/src/modules/settings/SystemSettingsScreen.jsx');
+const accountingControlScreen = read('apps/web-admin/src/modules/finance/AccountingControlScreen.jsx');
 const definitionsScreen = read('apps/web-admin/src/modules/settings/DefinitionsScreen.jsx');
 const currencyRatesScreen = read('apps/web-admin/src/modules/settings/CurrencyRatesScreen.jsx');
 const settingsApi = read('apps/web-admin/src/services/settingsApi.js');
 const currencyRateApi = read('apps/web-admin/src/services/currencyRateApi.js');
 const workspace = read('apps/web-admin/src/components/workspace/Workspace.jsx');
+const systemSettingsStyles = read('apps/web-admin/src/styles/system-settings-ux.css');
+const main = read('apps/web-admin/src/main.jsx');
 
 const checks = [];
 
@@ -23,14 +26,23 @@ function addCheck(name, ok) {
 
 addCheck(
   'system settings labels API write and maintenance approval boundaries',
-  systemSettingsScreen.includes('Kaydet firma, belge seri, KDV ve donem kilidi ayarlarini API') &&
-    systemSettingsScreen.includes('onizleme ve onay metni olmadan calistirilmaz'),
+  systemSettingsScreen.includes('Kaydet düğmesi firma, belge serisi, KDV ve dönem kilidi ayarlarını API') &&
+    systemSettingsScreen.includes('önizleme ve onay metni olmadan çalıştırılmaz'),
 );
 
 addCheck(
   'period lock labels business-rule impact',
-  systemSettingsScreen.includes('Is kurali etkisi') &&
-    systemSettingsScreen.includes('satis, alis, iptal, tahsilat, odeme ve stok sayim islemlerinin kayit kabulunu degistirir'),
+  systemSettingsScreen.includes('İş kuralı etkisi') &&
+    systemSettingsScreen.includes('satış, alış, iptal, tahsilat, ödeme ve stok sayım işlemlerinin kayıt kabulünü değiştirir'),
+);
+
+addCheck(
+  'critical accounting and maintenance actions use valid Turkish text',
+  accountingControlScreen.includes('Düzeltilecek taslak belge numarası kalmadı.') &&
+    accountingControlScreen.includes('Belge Numarasını Düzelt') &&
+    systemSettingsScreen.includes('Muhasebe Dönem Kilidi') &&
+    systemSettingsScreen.includes('Test Fiş Arşivi') &&
+    ![accountingControlScreen, systemSettingsScreen].some((source) => /D\?zelt|Fi\?|Ar\?iv|sat\?r/.test(source)),
 );
 
 addCheck(
@@ -66,6 +78,27 @@ addCheck(
   workspace.includes("'settings-overview':") &&
     workspace.includes("'definitions-overview':") &&
     workspace.includes("permissionKeys: ['settings.manage']"),
+);
+
+addCheck(
+  'system settings uses a dedicated long-form layout boundary',
+  systemSettingsScreen.includes('dashboard-screen system-settings-screen') &&
+    main.includes("import './styles/system-settings-ux.css';") &&
+    systemSettingsStyles.includes('.system-settings-screen > *') &&
+    systemSettingsStyles.includes('flex: 0 0 auto;'),
+);
+
+addCheck(
+  'system settings form and maintenance controls have responsive grids',
+  systemSettingsStyles.includes('grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));') &&
+    systemSettingsStyles.includes('grid-template-columns: repeat(2, minmax(0, 1fr));') &&
+    systemSettingsStyles.includes('.system-settings-screen .cleanup-apply-grid') &&
+    systemSettingsStyles.includes('@media (max-width: 960px)') &&
+    systemSettingsStyles.includes('.system-settings-screen > .list-state') &&
+    systemSettingsStyles.includes('.system-settings-screen .accounting-lock-panel > .list-state') &&
+    systemSettingsStyles.includes('min-height: 0;') &&
+    systemSettingsStyles.includes('.system-settings-screen .filter-grid input') &&
+    systemSettingsStyles.includes('width: 100%;'),
 );
 
 const failed = checks.filter((check) => !check.ok);

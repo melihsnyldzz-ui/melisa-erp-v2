@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchProducts } from '../../services/productApi.js';
 import { applyStockCountAdjustment } from '../../services/movementApi.js';
+import {
+  canApplyStockCount,
+  isValidCountedQuantity,
+  isValidStockCountReason,
+} from './stockCountSafety.js';
 
 function formatNumber(value) {
   return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 3 }).format(Number(value || 0));
@@ -28,6 +33,7 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
   const [note, setNote] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isCountConfirmed, setIsCountConfirmed] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [lastResult, setLastResult] = useState(null);
@@ -40,6 +46,13 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
     countedQuantity !== String(Number(selectedProduct?.stockQuantity || 0))
     || note.trim() !== ''
   );
+  const isApplyEnabled = canApplyStockCount({
+    selectedProduct,
+    countedQuantity,
+    note,
+    isCountConfirmed,
+    isApplying,
+  });
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -69,6 +82,7 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
     setSelectedProduct(product);
     setCountedQuantity(String(Number(product.stockQuantity || 0)));
     setNote('');
+    setIsCountConfirmed(false);
     setMessage('');
     setErrorMessage('');
     setLastResult(null);
@@ -80,6 +94,18 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
       setErrorMessage('Önce stok kartı seçin.');
       return;
     }
+    if (!isValidCountedQuantity(countedQuantity)) {
+      setErrorMessage('Sayılan stok sıfır veya daha büyük geçerli bir sayı olmalıdır.');
+      return;
+    }
+    if (!isValidStockCountReason(note)) {
+      setErrorMessage('Stok düzeltme nedeni zorunludur.');
+      return;
+    }
+    if (!isCountConfirmed) {
+      setErrorMessage('Stok bakiyesi değişikliğini uygulamadan önce kontrol onayını işaretleyin.');
+      return;
+    }
 
     setIsApplying(true);
     setErrorMessage('');
@@ -88,6 +114,7 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
     try {
       const response = await applyStockCountAdjustment({
         productId: selectedProduct.id,
+        expectedCurrentQuantity: selectedProduct.stockQuantity,
         countedQuantity,
         note,
       });
@@ -97,8 +124,12 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
       setSelectedProduct((current) => current ? { ...current, stockQuantity: result.countedQuantity } : current);
       setCountedQuantity(String(Number(result.countedQuantity || 0)));
       setNote('');
+      setIsCountConfirmed(false);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Stok sayımı uygulanamadı.'} (${error.code || 'API_ERROR'})`);
+      setIsCountConfirmed(false);
+      setErrorMessage(error.code === 'STOCK_COUNT_STALE'
+        ? 'Stok siz sayım yaparken değişti. Ürünü yeniden arayıp güncel miktarı kontrol edin. (STOCK_COUNT_STALE)'
+        : `${error.message || 'Stok sayımı uygulanamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsApplying(false);
     }
@@ -210,7 +241,10 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
                     min="0"
                     step="0.001"
                     value={countedQuantity}
-                    onChange={(event) => setCountedQuantity(event.target.value)}
+                    onChange={(event) => {
+                      setCountedQuantity(event.target.value);
+                      setIsCountConfirmed(false);
+                    }}
                     required
                   />
                 </label>
@@ -218,14 +252,31 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
                   Not
                   <input
                     value={note}
-                    onChange={(event) => setNote(event.target.value)}
+                    onChange={(event) => {
+                      setNote(event.target.value);
+                      setIsCountConfirmed(false);
+                    }}
                     placeholder="Raf sayımı, depo farkı, sayım tutanağı..."
+                    required
                   />
                 </label>
               </div>
+              <div className="stock-count-commit-warning" role="note">
+                <strong>Gerçek stok değişikliği</strong>
+                <span>Bu işlem stok bakiyesini ve hareket defterini değiştirir. Sayım nedeni zorunludur; ürün ile sayılan miktarı son kez kontrol edin.</span>
+              </div>
+              <label className="stock-count-confirmation">
+                <input
+                  type="checkbox"
+                  checked={isCountConfirmed}
+                  disabled={!isValidCountedQuantity(countedQuantity) || !isValidStockCountReason(note) || isApplying}
+                  onChange={(event) => setIsCountConfirmed(event.target.checked)}
+                />
+                <span>Sayılan miktarı, farkı, seçilen ürünü ve düzeltme nedenini kontrol ettim.</span>
+              </label>
               <div className="button-row">
-                <button type="submit" className="primary" disabled={isApplying}>
-                  {isApplying ? 'Uygulanıyor...' : 'Sayımı Uygula'}
+                <button type="submit" className="primary" disabled={!isApplyEnabled}>
+                  {isApplying ? 'Uygulanıyor...' : 'Onayla ve Sayımı Uygula'}
                 </button>
                 <button type="button" onClick={() => onOpenScreen?.('product-card', { productId: selectedProduct.id })}>
                   Stok Kartına Git

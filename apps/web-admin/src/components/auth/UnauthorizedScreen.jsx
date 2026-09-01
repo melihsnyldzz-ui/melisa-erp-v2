@@ -5,10 +5,10 @@ export function UnauthorizedScreen({ message }) {
     <main className="work-area">
       <section className="erp-panel unauthorized-panel">
         <div className="panel-title">
-          <strong>Yetkisiz İşlem</strong>
-          <span>Rol/yetki kontrolu</span>
+          <strong>Erişim Yetkisi Gerekli</strong>
+          <span>Rol ve yetki kontrolü</span>
         </div>
-        <div className="unauthorized-body">{message || 'Bu islem icin yetkiniz yok.'}</div>
+        <div className="unauthorized-body">{message || 'Bu ekranı görüntülemek için yetkiniz yok.'}</div>
       </section>
     </main>
   );

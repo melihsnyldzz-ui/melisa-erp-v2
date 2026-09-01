@@ -26,7 +26,7 @@ const checks = [
   ['bulk update SQL does not change stock price barcode or currency', !applySection.includes('current_stock_qty =') && !applySection.includes('sales_price =') && !applySection.includes('purchase_price =') && !applySection.includes('currency_code =') && !applySection.includes('product_barcodes')],
   ['stock table supports row and visible-list selection', table.includes('selectedRowIds.has(row.id)') && table.includes('onToggleAll')],
   ['stock screen gates bulk edit by permission', stockList.includes("permissions.includes('product.edit')") && stockList.includes('canBulkEdit={canBulkEdit}')],
-  ['workspace passes permissions to stock list', workspace.includes('<StockListScreen onOpenScreen={onOpenScreen} permissions={permissions}')],
+  ['workspace passes permissions to stock list', /<StockListScreen[\s\S]*?permissions=\{permissions\}[\s\S]*?\/>/.test(workspace)],
   ['dialog supports category brand supplier and name text operations', dialog.includes('Kategori değiştir') && dialog.includes('Marka değiştir') && dialog.includes('Ana tedarikçi değiştir') && dialog.includes('Metin bul ve değiştir')],
   ['preview explains protected fields', dialog.includes('Stok miktarı, barkod, fiyat ve para birimi bu işlemde korunur.')],
 ];

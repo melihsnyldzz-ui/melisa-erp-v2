@@ -3,6 +3,7 @@ import {
   fetchVegaPurchaseInvoices,
   fetchVegaSupplierPurchaseDocument,
 } from '../../services/movementApi.js';
+import { apiConfig } from '../../config/apiConfig.js';
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function localIsoDate(value = new Date()) {
@@ -62,6 +63,7 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
     () => rows.find((row) => row.id === selectedRowId) || null,
     [rows, selectedRowId],
   );
+  const isSyntheticDemo = apiConfig.demoMode || meta?.source === 'synthetic-demo-read-only';
 
   useEffect(() => {
     let mounted = true;
@@ -151,8 +153,8 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
 
   function exportRows() {
     exportRowsToExcel({
-      filename: 'vega-alis-fisleri',
-      title: 'Vega Alış Fişleri',
+      filename: isSyntheticDemo ? 'sentetik-demo-alis-fisleri' : 'vega-alis-fisleri',
+      title: isSyntheticDemo ? 'Sentetik Demo Alış Fişleri' : 'Vega Alış Fişleri',
       rows,
       columns: [
         { label: 'Tarih', value: (row) => formatDate(row.documentDate) },
@@ -169,7 +171,7 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
 
   function printRows() {
     printRowsReport({
-      title: 'Melisa ERP - Vega Alış Fişleri',
+      title: isSyntheticDemo ? 'Melisa ERP - Sentetik Demo Alış Fişleri' : 'Melisa ERP - Vega Alış Fişleri',
       subtitle: `${dateFrom || '-'} / ${dateTo || '-'} · ${currency === 'ALL' ? 'Tüm para birimleri' : currency} · ${rows.length} fiş`,
       rows,
       columns: [
@@ -187,7 +189,7 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
   return (
     <main className="work-area vega-sales-list-screen vega-purchase-list-screen">
       <section className="vega-sales-toolbar">
-        <div><strong>Alış Fişleri</strong><span>Vega 2026 alış faturaları · tüm tedarikçiler · canlı ve salt okunur</span></div>
+        <div><strong>Alış Fişleri</strong><span>{isSyntheticDemo ? 'Yerel sentetik örnekler · şirket verisi değildir · salt okunur' : 'Vega 2026 alış faturaları · tüm tedarikçiler · canlı ve salt okunur'}</span></div>
         <div className="vega-sales-toolbar-actions">
           <button type="button" onClick={() => onOpenScreen('bulk-purchase-entry')}>Toplu Alış</button>
           <button type="button" className="primary" onClick={() => onOpenScreen('purchase-invoice')}>+ Yeni Alış Fişi</button>
@@ -216,13 +218,19 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
         <button type="button" onClick={resetFilters}>Filtreleri Temizle</button>
       </section>
 
+      {isSyntheticDemo && (
+        <div className="list-state list-state-info">
+          <strong>SENTETİK DEMO</strong> — Bu alış örnekleri gerçek tedarikçi veya şirket kaydı değildir ve kaydedilmez.
+        </div>
+      )}
+
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {meta && Number(meta.total || 0) > rows.length && <div className="list-state list-state-info">İlk {rows.length} fiş gösteriliyor. Daha kesin sonuç için tarih veya arama filtresini daraltın.</div>}
 
       <section className={`vega-sales-content ${!isLoading && !rows.length ? 'empty' : ''}`}>
         <section className="erp-panel vega-sales-table-panel">
-          <div className="panel-title"><strong>Fiş Listesi</strong><span>{isLoading ? 'Vega okunuyor…' : `${meta?.total ?? rows.length} fiş · yeniden eskiye`}</span></div>
-          {isLoading && <div className="list-state">Tüm alış fişleri Vega’dan okunuyor...</div>}
+          <div className="panel-title"><strong>Fiş Listesi</strong><span>{isLoading ? (isSyntheticDemo ? 'Sentetik örnekler hazırlanıyor…' : 'Vega okunuyor…') : `${meta?.total ?? rows.length} fiş · yeniden eskiye`}</span></div>
+          {isLoading && <div className="list-state">{isSyntheticDemo ? 'Yerel sentetik alış fişleri hazırlanıyor...' : 'Tüm alış fişleri Vega’dan okunuyor...'}</div>}
           {!isLoading && !errorMessage && rows.length === 0 && <div className="invoice-list-empty-state"><span className="invoice-list-empty-icon">⌕</span><strong>Bu tarihlerde alış fişi bulunamadı</strong><p>Tarih aralığını değiştirin veya Tüm Alışlar düğmesine basın.</p></div>}
           {!isLoading && rows.length > 0 && (
             <div className="table-shell vega-sales-table-shell">
@@ -252,7 +260,7 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
                 <div><span>Tedarikçi</span><strong>{selectedRow.supplierName}</strong><small>{selectedRow.supplierCode}</small></div>
                 <div><span>Toplam</span><strong>{formatMoney(selectedRow.totalAmount, selectedRow.currency)}</strong><small>{selectedRow.currency} · Kur {formatNumber(selectedRow.exchangeRate)}</small></div>
               </header>
-              {isDetailLoading && <div className="list-state">Fiş satırları Vega’dan okunuyor...</div>}
+              {isDetailLoading && <div className="list-state">{isSyntheticDemo ? 'Sentetik fiş satırları hazırlanıyor...' : 'Fiş satırları Vega’dan okunuyor...'}</div>}
               {detailError && <div className="list-state list-state-error">{detailError}</div>}
               {selectedDetail && <>
                 <div className="vega-sales-preview-summary"><span><strong>{selectedDetail.lineCount}</strong> ürün satırı</span><span><strong>{formatNumber(selectedDetail.totalQuantity)}</strong> adet</span><span><strong>{formatMoney(selectedDetail.totalAmount, selectedDetail.currency)}</strong> fiş toplamı</span></div>
@@ -263,7 +271,7 @@ export function VegaPurchaseInvoiceListScreen({ onOpenScreen }) {
         )}
       </section>
 
-      <footer className="vega-sales-status"><span>Kaynak: Vega F0103 / D0007</span><span>{dateFrom || '-'} — {dateTo || '-'}</span><span>{currency === 'ALL' ? 'Tüm para birimleri' : currency}</span><strong>{meta?.total ?? rows.length} fiş</strong></footer>
+      <footer className="vega-sales-status"><span>Kaynak: {isSyntheticDemo ? 'Yerel sentetik örnek — şirket verisi değildir' : 'Vega F0103 / D0007'}</span><span>{dateFrom || '-'} — {dateTo || '-'}</span><span>{currency === 'ALL' ? 'Tüm para birimleri' : currency}</span><strong>{meta?.total ?? rows.length} fiş</strong></footer>
     </main>
   );
 }

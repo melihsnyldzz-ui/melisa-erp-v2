@@ -1,4 +1,5 @@
 import React from 'react';
+import { screenTypeLabel } from '../../utils/screenLabels.js';
 
 export function MockScreen({ screen }) {
   return (
@@ -6,17 +7,17 @@ export function MockScreen({ screen }) {
       <section className="screen-header">
         <div>
           <strong>{screen.label}</strong>
-          <span>{screen.module} / {screen.type}</span>
+          <span>{screen.module} / {screenTypeLabel(screen.type)}</span>
         </div>
       </section>
 
       <section className="erp-panel screen-table-panel">
         <div className="panel-title">
-          <strong>Hazirlaniyor</strong>
-          <span>Bu ekran henuz gercek API ekranina baglanmadi</span>
+          <strong>Hazırlanıyor</strong>
+          <span>Bu ekran henüz gerçek API ekranına bağlanmadı.</span>
         </div>
         <div className="list-state list-state-passive">
-          Bu modül kullanıma açık değil. Çalışan ekranlar: dashboard, stok listesi, ürün kartı, cari listesi, cari kart, satış fişleri, satış fişi, alış fişleri, alış fişi, import, rapor merkezi ve döviz kurları.
+          Bu modül henüz kullanıma açık değil. Çalışan ekranlar: ana sayfa, stok listesi, ürün kartı, cari listesi, cari kart, satış fişleri, satış fişi, alış fişleri, alış fişi, veri aktarımı, rapor merkezi ve döviz kurları.
         </div>
       </section>
     </main>

@@ -38,14 +38,29 @@ const syncTerminalSaleEventBody = extractExportedFunction(queueService, 'syncTer
 
 addCheck(
   'web-admin terminal overview is labeled read-only',
-  terminalAdminScreen.includes('terminal cihazlarini ve sync kuyrugunu okur') &&
-    terminalAdminScreen.includes('cihaz kapatma, kuyruk silme, tekrar gonderme veya DB duzeltme islemi baslatmaz'),
+  terminalAdminScreen.includes('Salt okunur ekran: Terminal cihazlarını ve eşitleme kuyruğunu gösterir') &&
+    terminalAdminScreen.includes('cihaz kapatma, kuyruk silme, yeniden gönderme veya veritabanı düzeltme işlemi yapmaz'),
 );
 
 addCheck(
   'web-admin failed sync rows are review signals',
-  terminalAdminScreen.includes('Failed kayitlar operator icin inceleme sinyalidir') &&
-    terminalAdminScreen.includes('dogrudan SQL silme veya kuyruk temizleme bu ekrandan yapilmaz'),
+  terminalAdminScreen.includes('Başarısız kayıtlar operatörün incelemesi içindir') &&
+    terminalAdminScreen.includes('bu ekrandan doğrudan SQL silme veya kuyruk temizleme işlemi yapılmaz'),
+);
+
+addCheck(
+  'web-admin terminal language is clear Turkish',
+  terminalAdminScreen.includes("online: 'Çevrimiçi'") &&
+    terminalAdminScreen.includes("offline: 'Çevrimdışı'") &&
+    terminalAdminScreen.includes('Çevrimdışı Kuyruk / Eşitleme Kayıtları') &&
+    terminalAdminScreen.includes('Eşitleme kaydı bulunamadı.') &&
+    ![
+      'G?nderilen',
+      'sat?r',
+      'Terminal queue pending',
+      'Failed sync kaydı',
+      'Sync kaydi bulunamadi',
+    ].some((text) => terminalAdminScreen.includes(text)),
 );
 
 addCheck(

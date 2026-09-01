@@ -90,7 +90,7 @@ export const demoDashboardSummary = {
     topReceivableFocus: [
       { id: 'tr-1', customer: 'İlk 10 müşteri', share: '%52', risk: 'B/C', note: 'Alacağın yarısı burada' },
       { id: 'tr-2', customer: 'İlk 20 müşteri', share: '%75', risk: 'B', note: 'Günlük takip' },
-      { id: 'tr-3', customer: 'Romanya ilk 8', share: '%41', risk: 'B', note: 'Satış durmaz, tahsilat takip' },
+      { id: 'tr-3', customer: 'Romanya ilk 8', share: '%41', risk: 'B', note: 'Yeni satış öncesi tahsilat durumu kontrol edilmeli' },
     ],
     countryOpportunities: [
       { id: 'co-1', country: 'Romanya', category: '2-6 yaş takım', reason: 'WhatsApp dönüşü yüksek' },
@@ -102,11 +102,11 @@ export const demoDashboardSummary = {
 };
 
 export const demoDashboardAlerts = [
-  { id: 'alert-1', severity: 'danger', type: 'Tahsilat', subject: 'İlk 10 müşteri alacağın %52si', value: '$360K', owner: 'Patron' },
-  { id: 'alert-2', severity: 'warn', type: 'Romanya', subject: 'Açık hesap 11.2M TRY', value: '%50', owner: 'Satış' },
+  { id: 'alert-1', severity: 'danger', type: 'Tahsilat', subject: "İlk 10 müşteri alacağın %52'sini oluşturuyor", value: '$360K', owner: 'Patron' },
+  { id: 'alert-2', severity: 'warn', type: 'Romanya', subject: 'Açık hesap 11,2 milyon TRY', value: '%50', owner: 'Satış' },
   { id: 'alert-3', severity: 'info', type: 'WhatsApp', subject: 'Romanya VIP paylaşım bekliyor', value: 31, owner: 'Melih' },
   { id: 'alert-4', severity: 'danger', type: 'Stok', subject: 'Pamuk Battaniye eksiye düştü', value: 7, owner: 'Depo' },
-  { id: 'alert-5', severity: 'warn', type: 'Müşteri', subject: 'Sofia Mini Wear C risk', value: '$61K', owner: 'Muhasebe' },
+  { id: 'alert-5', severity: 'warn', type: 'Müşteri', subject: 'Sofia Mini Wear: C risk düzeyi', value: '$61K', owner: 'Muhasebe' },
 ];
 
 export function demoDashboardSummaryResponse() {

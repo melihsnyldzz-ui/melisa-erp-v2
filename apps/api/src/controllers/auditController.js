@@ -1,4 +1,4 @@
-import { getAuditCoverage, listAuditLogs } from '../services/auditService.js';
+import { getAuditCoverage, listAuditLogs, listAuditMetadataEvents, listVegaProductMetadata } from '../services/auditService.js';
 import { fail, ok } from '../utils/response.js';
 
 function auditFail(res, error, fallbackCode) {
@@ -28,5 +28,23 @@ export async function getAuditCoverageReport(req, res) {
     });
   } catch (error) {
     return auditFail(res, error, 'AUDIT_COVERAGE_FAILED');
+  }
+}
+
+export async function getAuditMetadataEvents(req, res) {
+  try {
+    const { data, meta } = await listAuditMetadataEvents(req.query);
+    return ok(res, data, meta);
+  } catch (error) {
+    return auditFail(res, error, 'AUDIT_METADATA_EVENTS_FAILED');
+  }
+}
+
+export async function getVegaProductMetadata(req, res) {
+  try {
+    const { data, meta } = await listVegaProductMetadata(req.query);
+    return ok(res, data, meta);
+  } catch (error) {
+    return auditFail(res, error, 'VEGA_PRODUCT_METADATA_FAILED');
   }
 }

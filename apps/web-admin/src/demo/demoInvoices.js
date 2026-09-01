@@ -1,11 +1,11 @@
 const salesDraftItems = [
-  { id: 1, productId: 101, stockCode: 'STK-100245', barcode: '8690001002451', productName: 'Bebek Zibin Takimi 5 Parca', quantity: 18, currency: 'TRY', unitPrice: 285, stockStatus: 'Yeterli', note: 'Demo koli sevk', averageCostTry: 164, grossProfitTry: null, grossProfitRate: null },
-  { id: 2, productId: 102, stockCode: 'STK-100318', barcode: '8690001003182', productName: 'Kiz Bebek Elbise Seti', quantity: 12, currency: 'TRY', unitPrice: 420, stockStatus: 'Dusuk stok', note: 'Demo renk karisik', averageCostTry: 248, grossProfitTry: null, grossProfitRate: null },
+  { id: 1, productId: 101, stockCode: 'STK-100245', barcode: '8690001002451', productName: 'Bebek Zıbın Takımı 5 Parça', quantity: 18, currency: 'TRY', unitPrice: 285, stockStatus: 'Yeterli', note: 'Demo koli sevki', averageCostTry: 164, grossProfitTry: null, grossProfitRate: null },
+  { id: 2, productId: 102, stockCode: 'STK-100318', barcode: '8690001003182', productName: 'Kız Bebek Elbise Seti', quantity: 12, currency: 'TRY', unitPrice: 420, stockStatus: 'Düşük stok', note: 'Demo renkleri karışık', averageCostTry: 248, grossProfitTry: null, grossProfitRate: null },
 ];
 
 const purchaseDraftItems = [
-  { id: 1, productId: 101, stockCode: 'STK-100245', barcode: '8690001002451', productName: 'Bebek Zibin Takimi 5 Parca', quantity: 60, currency: 'TRY', purchasePrice: 162, lineDiscountRate: 4, stockEffect: '+60 demo', note: 'Demo alim' },
-  { id: 2, productId: 103, stockCode: 'STK-100509', barcode: '8690001005094', productName: 'Pamuk Battaniye', quantity: 24, currency: 'TRY', purchasePrice: 368, lineDiscountRate: 5, stockEffect: '+24 demo', note: 'Demo average cost yok' },
+  { id: 1, productId: 101, stockCode: 'STK-100245', barcode: '8690001002451', productName: 'Bebek Zıbın Takımı 5 Parça', quantity: 60, currency: 'TRY', purchasePrice: 162, lineDiscountRate: 4, stockEffect: '+60 demo', note: 'Demo alış kaydı' },
+  { id: 2, productId: 103, stockCode: 'STK-100509', barcode: '8690001005094', productName: 'Pamuk Battaniye', quantity: 24, currency: 'TRY', purchasePrice: 368, lineDiscountRate: 5, stockEffect: '+24 demo', note: 'Demo ortalama maliyet bilgisi yok' },
 ];
 
 const salesDraft = {
@@ -19,7 +19,7 @@ const salesDraft = {
   documentCurrency: 'TRY',
   currency: 'TRY',
   exchangeRate: 1,
-  description: 'Demo satış fişi. Demo işlem kaydedilmedi.',
+  description: 'Sentetik demo satış fişi; şirket verisi değildir ve kaydedilmez.',
   discountRate: 7,
   status: 'DRAFT',
   totalAmount: 9420,
@@ -35,12 +35,12 @@ const purchaseDraft = {
   invoiceNo: 'AF-DEMO-0401',
   documentDate: '2026-05-31',
   supplierId: 501,
-  supplierName: 'Kardelen Bebe Uretim',
+  supplierName: 'Kardelen Bebe Üretim',
   supplierCurrency: 'TRY',
   documentCurrency: 'TRY',
   currency: 'TRY',
   exchangeRate: 1,
-  description: 'Demo alış fişi. Demo işlem kaydedilmedi.',
+  description: 'Sentetik demo alış fişi; şirket verisi değildir ve kaydedilmez.',
   invoiceDiscountRate: 3,
   supplierDiscountRate: 2,
   status: 'DRAFT',
@@ -73,7 +73,7 @@ export function demoSalesInvoiceResponse(id = salesDraft.id) {
 export function demoSalesDraftWriteResponse(payload = {}, id = salesDraft.id) {
   return {
     success: true,
-    message: 'Demo islem kaydedilmedi.',
+    message: 'Demo işlemi kaydedilmedi; gerçek satış, stok veya cari kaydı değiştirilmedi.',
     data: withSalesTotals({
       ...salesDraft,
       ...payload,
@@ -97,7 +97,7 @@ export function demoPurchaseInvoiceResponse(id = purchaseDraft.id) {
 export function demoPurchaseDraftWriteResponse(payload = {}, id = purchaseDraft.id) {
   return {
     success: true,
-    message: 'Demo islem kaydedilmedi.',
+    message: 'Demo işlemi kaydedilmedi; gerçek alış, stok veya tedarikçi kaydı değiştirilmedi.',
     data: withPurchaseTotals({
       ...purchaseDraft,
       ...payload,

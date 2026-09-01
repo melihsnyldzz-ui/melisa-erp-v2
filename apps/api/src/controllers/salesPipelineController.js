@@ -18,9 +18,11 @@ function pipelineError(res, error, fallbackCode) {
   );
 }
 
-function kindFromRequest(req) {
-  const routePath = `${req.baseUrl || ''}${req.path || ''}${req.originalUrl || ''}`;
-  return routePath.includes('sales-orders') ? 'order' : 'offer';
+export function kindFromRequest(req = {}) {
+  const routePath = `${req.baseUrl || ''}${req.path || ''}`.toLowerCase();
+  if (routePath.includes('/sales-orders')) return 'order';
+  if (routePath.includes('/sales-offers')) return 'offer';
+  return '';
 }
 
 export async function listSalesPipelineDocuments(req, res) {

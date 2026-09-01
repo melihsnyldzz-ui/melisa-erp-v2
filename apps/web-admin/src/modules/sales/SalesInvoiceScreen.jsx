@@ -465,7 +465,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
             if (productQuery.trim()) {
               return current;
             }
-            return String(options[0]?.productId ?? '');
+            return '';
           });
         }
       } catch (error) {
@@ -797,7 +797,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
     const convertedUnitPrice = convertCurrencyAmount(product.unitPrice, product.currency, invoice.invoiceCurrency);
     if (convertedUnitPrice === null) {
-      setErrorMessage(`${product.currency} fiyatlı ürün ${invoice.invoiceCurrency} fişine ççevrilemedi. Döviz Kurları ekranından kur tanımını kontrol edin.`);
+      setErrorMessage(`${product.currency} fiyatlı ürün ${invoice.invoiceCurrency} fişine çevrilemedi. Döviz Kurları ekranından kur tanımını kontrol edin.`);
       return;
     }
 

@@ -16,8 +16,8 @@ function formatMoney(value) {
 
 function statusLabel(status) {
   const labels = {
-    online: 'Online',
-    offline: 'Offline',
+    online: 'Çevrimiçi',
+    offline: 'Çevrimdışı',
     unknown: 'Bilinmiyor',
     pending: 'Bekleyen',
     processing: 'İşleniyor',
@@ -48,10 +48,10 @@ const queueColumns = [
   { label: 'Cihaz', key: 'deviceCode' },
   { label: 'Cihaz Adı', key: 'deviceName' },
   { label: 'Kullanıcı', key: 'username' },
-  { label: 'Event', key: 'eventType' },
-  { label: 'Client Request', key: 'clientRequestId' },
+  { label: 'İşlem Türü', key: 'eventType' },
+  { label: 'İstemci İstek No', key: 'clientRequestId' },
   { label: 'Durum', value: (row) => statusLabel(row.status) },
-  { label: 'Retry', key: 'retryCount' },
+  { label: 'Tekrar Deneme', key: 'retryCount' },
   { label: 'Hata', key: 'lastError' },
   { label: 'Alınma', value: (row) => formatDate(row.receivedAt) },
   { label: 'İşlenme', value: (row) => formatDate(row.processedAt) },
@@ -94,7 +94,7 @@ export function TerminalAdminScreen() {
       ));
     } catch (error) {
       setData({ summary: {}, devices: [], queue: [] });
-      setErrorMessage(`${error.message || 'Terminal verisi okunamad.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Terminal verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +130,7 @@ export function TerminalAdminScreen() {
   function exportQueueExcel() {
     exportRowsToExcel({
       filename: 'terminal-sync-kuyrugu',
-      title: 'Terminal Sync Kuyruğu',
+      title: 'Terminal Eşitleme Kuyruğu',
       rows: visibleQueue,
       columns: queueColumns,
     });
@@ -152,7 +152,7 @@ export function TerminalAdminScreen() {
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Terminal Yönetimi</strong>
-          <span>Android cihazlar, offline queue, sync logları ve hatalı gönderimler</span>
+          <span>Android cihazlar, çevrimdışı kuyruk, eşitleme kayıtları ve hatalı gönderimler</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={exportQueueCsv} disabled={!visibleQueue.length}>CSV</button>
@@ -162,19 +162,19 @@ export function TerminalAdminScreen() {
         </div>
       </section>
 
-      {isLoading && <div className="list-state">Terminal verisi API'den okunuyor...</div>}
+      {isLoading && <div className="list-state">Terminal verisi sunucudan okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       <div className="list-state">
-        Final test notu: Bu web-admin ekrani terminal cihazlarini ve sync kuyrugunu okur; cihaz kapatma, kuyruk silme, tekrar gonderme veya DB duzeltme islemi baslatmaz.
+        Salt okunur ekran: Terminal cihazlarını ve eşitleme kuyruğunu gösterir; cihaz kapatma, kuyruk silme, yeniden gönderme veya veritabanı düzeltme işlemi yapmaz.
       </div>
 
       <section className="dashboard-kpi-grid">
         <Kpi label="Cihaz" value={summary.deviceCount || 0} detail={`${summary.activeDeviceCount || 0} aktif`} tone="info" />
-        <Kpi label="Offline" value={summary.offlineDeviceCount || 0} detail="Offline işaretli cihaz" tone={summary.offlineDeviceCount ? 'warn' : 'good'} />
-        <Kpi label="Bekleyen" value={summary.pendingSyncCount || 0} detail="Terminal queue pending" tone={summary.pendingSyncCount ? 'warn' : 'good'} />
-        <Kpi label="Hatalı" value={summary.failedSyncCount || 0} detail="Failed sync kaydı" tone={summary.failedSyncCount ? 'danger' : 'good'} />
-        <Kpi label="G?nderilen" value={summary.syncedSyncCount || 0} detail="Başarılı sync" tone="good" />
-        <Kpi label="Son işlem" value={formatDate(summary.lastQueueAt)} detail="Queue'a gelen son kayıt" tone="info" />
+        <Kpi label="Çevrimdışı" value={summary.offlineDeviceCount || 0} detail="Çevrimdışı işaretli cihaz" tone={summary.offlineDeviceCount ? 'warn' : 'good'} />
+        <Kpi label="Bekleyen" value={summary.pendingSyncCount || 0} detail="Kuyrukta bekleyen kayıt" tone={summary.pendingSyncCount ? 'warn' : 'good'} />
+        <Kpi label="Hatalı" value={summary.failedSyncCount || 0} detail="Başarısız eşitleme kaydı" tone={summary.failedSyncCount ? 'danger' : 'good'} />
+        <Kpi label="Gönderilen" value={summary.syncedSyncCount || 0} detail="Başarılı eşitleme" tone="good" />
+        <Kpi label="Son işlem" value={formatDate(summary.lastQueueAt)} detail="Kuyruğa gelen son kayıt" tone="info" />
       </section>
 
       <section className="split-grid">
@@ -225,7 +225,7 @@ export function TerminalAdminScreen() {
               <label>Cihaz Adı<input value={selectedDevice.deviceName} disabled /></label>
               <label>Kullanıcı<input value={selectedDevice.assignedUser} disabled /></label>
               <label>Aktif<input value={selectedDevice.isActive ? 'Evet' : 'Hayır'} disabled /></label>
-              <label>Son Sync<input value={formatDate(selectedDevice.lastSyncAt)} disabled /></label>
+              <label>Son Eşitleme<input value={formatDate(selectedDevice.lastSyncAt)} disabled /></label>
               <label>Son Görülme<input value={formatDate(selectedDevice.lastSeenAt)} disabled /></label>
               <label>Bekleyen<input value={selectedDevice.pendingCount} disabled /></label>
               <label>Hatalı<input value={selectedDevice.failedCount} disabled /></label>
@@ -237,16 +237,16 @@ export function TerminalAdminScreen() {
 
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Offline Queue / Sync Logları</strong>
-          <span>{data.queue.length} sat?r / Gösterilen: {visibleQueue.length}</span>
+          <strong>Çevrimdışı Kuyruk / Eşitleme Kayıtları</strong>
+          <span>{data.queue.length} satır / Gösterilen: {visibleQueue.length}</span>
         </div>
         <div className="list-state">
-          Failed kayitlar operator icin inceleme sinyalidir; dogrudan SQL silme veya kuyruk temizleme bu ekrandan yapilmaz.
+          Başarısız kayıtlar operatörün incelemesi içindir; bu ekrandan doğrudan SQL silme veya kuyruk temizleme işlemi yapılmaz.
         </div>
         <form className="filter-grid" onSubmit={applyFilters}>
           <label>
             Arama
-            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Cihaz, kullanıcı, event, request id" />
+            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Cihaz, kullanıcı, işlem türü veya istek numarası" />
           </label>
           <label>
             Durum
@@ -285,9 +285,9 @@ export function TerminalAdminScreen() {
                 <th>Tarih</th>
                 <th>Cihaz</th>
                 <th>Kullanıcı</th>
-                <th>Event</th>
+                <th>İşlem Türü</th>
                 <th>Durum</th>
-                <th>Retry</th>
+                <th>Tekrar</th>
                 <th>Hata</th>
                 <th>Hedef</th>
               </tr>
@@ -306,7 +306,7 @@ export function TerminalAdminScreen() {
                 </tr>
               ))}
               {!isLoading && visibleQueue.length === 0 && (
-                <tr><td colSpan="8">Sync kaydi bulunamadi.</td></tr>
+                <tr><td colSpan="8">Eşitleme kaydı bulunamadı.</td></tr>
               )}
             </tbody>
           </table>

@@ -670,6 +670,18 @@ Transaction içinde birlikte ele alınacak parçalar:
 - Terminal endpointleri cihaz + kullanıcı bağlamı ile doğrulanmalıdır.
 - Kritik işlemler için ayrıca işlem yetkisi aranmalıdır.
 
+### Audit metadata event feed
+
+`GET /api/audit/events/metadata?after=<cursor>&limit=<bounded>` yalnızca
+`audit.view` yetkisiyle erişilebilir, salt-okunur entegrasyon feed'idir. Her
+kayıt yalnız audit cursor'ı, işlem etiketi, opak entity referansı, kaba değişen
+alan grupları ve zamanı içerir. `before_json` / `after_json` snapshot'ları,
+actor, reason, ürün/tedarikçi adı, fiyat, miktar ve diğer değerler bu endpoint
+üzerinden asla döndürülmez. Cursor append-only'dir; tüketiciler yeni kayıtları
+`after` ile alır. `products_bulk_updated` için tek audit kaydı, sadece güvenle
+eşleştirilebilen ürün satırları için opak ürün referanslarına ayrıştırılır;
+ürün değerleri yine dönmez. Bu endpoint ERP'de hiçbir veri değiştirmez.
+
 ## Vega Entegrasyon Notları
 
 Vega veri entegrasyonu için ayrı import/adapter katmanı düşünülmelidir. Bu katman:

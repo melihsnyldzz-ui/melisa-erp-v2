@@ -96,7 +96,7 @@ function makeDraftPayload(group, documentDate) {
     supplierCurrency: group.supplierCurrency,
     documentCurrency: group.supplierCurrency,
     exchangeRate: group.exchangeRate || 1,
-    description: `Toplu alis girisi - ${group.rows.length} satir`,
+    description: `Toplu alış girişi - ${group.rows.length} satır`,
     invoiceDiscountRate: 0,
     supplierDiscountRate: group.supplierDiscountRate,
     items: group.rows.map((row) => ({
@@ -109,7 +109,7 @@ function makeDraftPayload(group, documentDate) {
       purchasePrice: row.purchasePrice,
       lineDiscountRate: row.lineDiscountRate,
       stockEffect: `+${row.quantity} taslak`,
-      note: `Toplu alis / ${row.supplierCode}`,
+      note: `Toplu alış / ${row.supplierCode}`,
     })),
   };
 }
@@ -128,7 +128,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
   const [rows, setRows] = useState([]);
   const [currencyRates, setCurrencyRates] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [statusMessage, setStatusMessage] = useState('Farkli tedarikcilerden satir ekleyin; sistem kayitta tedarikciye gore ayri alis fisleri olusturur.');
+  const [statusMessage, setStatusMessage] = useState('Farklı tedarikçilerden satır ekleyin; sistem kayıtta tedarikçiye göre ayrı alış fişleri oluşturur.');
   const [isLoadingLookup, setIsLoadingLookup] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [results, setResults] = useState([]);
@@ -269,34 +269,34 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
 
   function addRow() {
     if (!selectedSupplier) {
-      setErrorMessage('Satir eklemek icin tedarikci secin.');
+      setErrorMessage('Satır eklemek için tedarikçi seçin.');
       return;
     }
 
     if (!selectedProduct) {
-      setErrorMessage('Bu tedarikciye bagli urun bulunamadi veya urun secilmedi.');
+      setErrorMessage('Bu tedarikçiye bağlı ürün bulunamadı veya ürün seçilmedi.');
       return;
     }
 
     if (String(selectedProduct.supplierId || '') !== String(selectedSupplier.id)) {
-      setErrorMessage('Secilen urun bu tedarikciye bagli degil. Once dogru tedarikciyi secin.');
+      setErrorMessage('Seçilen ürün bu tedarikçiye bağlı değil. Önce doğru tedarikçiyi seçin.');
       return;
     }
 
     if (Number(quantity) <= 0 || Number(purchasePrice) <= 0) {
-      setErrorMessage('Miktar ve alis fiyati 0 veya negatif olamaz.');
+      setErrorMessage('Miktar ve alış fiyatı 0 veya negatif olamaz.');
       return;
     }
 
     if (Number(lineDiscountRate) < 0 || Number(lineDiscountRate) > 100) {
-      setErrorMessage('Satir iskonto orani 0-100 arasinda olmali.');
+      setErrorMessage('Satır iskonto oranı 0-100 arasında olmalı.');
       return;
     }
 
     const supplierCurrency = selectedSupplier.currency || 'TRY';
     const supplierRate = exchangeRateFor(currencyRates, supplierCurrency);
     if (supplierRate === null) {
-      setErrorMessage(`${supplierCurrency} kuru tanimli degil. Doviz Kurlari ekranindan kur girin.`);
+      setErrorMessage(`${supplierCurrency} kuru tanımlı değil. Döviz Kurları ekranından kur girin.`);
       return;
     }
 
@@ -333,7 +333,7 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     ]);
     setErrorMessage('');
     setResults([]);
-    setStatusMessage('Satir eklendi. Kayitta tedarikciye gore ayri alis taslaklari olusacak.');
+    setStatusMessage('Satır eklendi. Kayıtta tedarikçiye göre ayrı alış taslakları oluşacak.');
   }
 
   function updateBulkSupplierQuery(value) {
@@ -384,17 +384,17 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
 
   async function createGroupedDrafts({ finalize = false } = {}) {
     if (!canCreate) {
-      setErrorMessage('Bu islem icin purchase.create yetkisi gerekli.');
+      setErrorMessage('Bu işlem için purchase.create yetkisi gerekli.');
       return;
     }
 
     if (finalize && !canFinalize) {
-      setErrorMessage('Kesinlestirme icin purchase.finalize yetkisi gerekli.');
+      setErrorMessage('Kesinleştirme için purchase.finalize yetkisi gerekli.');
       return;
     }
 
     if (rows.length === 0) {
-      setErrorMessage('Once en az bir alis satiri ekleyin.');
+      setErrorMessage('Önce en az bir alış satırı ekleyin.');
       return;
     }
 
@@ -422,18 +422,18 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
           draftId: savedData.id,
           documentNo: savedData.documentNo,
           status: savedData.status,
-          message: finalize ? 'Kesinlesti' : 'Taslak olustu',
+          message: finalize ? 'Kesinleşti' : 'Taslak oluştu',
         });
       }
 
       setResults(nextResults);
       setRows([]);
-      setStatusMessage(`${nextResults.length} tedarikci icin ${nextResults.length} alis fisi ${finalize ? 'olusturuldu ve kesinlesti' : 'taslak olarak olusturuldu'}.`);
+      setStatusMessage(`${nextResults.length} tedarikçi için ${nextResults.length} alış fişi ${finalize ? 'oluşturuldu ve kesinleşti' : 'taslak olarak oluşturuldu'}.`);
     } catch (error) {
       nextResults.push({
         ok: false,
-        supplierName: 'Islem durdu',
-        message: `${error.message || 'Alis fisleri olusturulamadi.'} (${error.code || 'API_ERROR'})`,
+        supplierName: 'İşlem durdu',
+        message: `${error.message || 'Alış fişleri oluşturulamadı.'} (${error.code || 'API_ERROR'})`,
       });
       setResults(nextResults);
       setErrorMessage(nextResults[nextResults.length - 1].message);
@@ -446,8 +446,8 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
     <main className="work-area bulk-purchase-screen">
       <section className="purchase-invoice-toolbar">
         <div className="purchase-toolbar-title">
-          <strong>Toplu Alis Girisi</strong>
-          <span>Tek ekrandan cok tedarikcili satir gir, sistem resmi fisleri tedarikciye gore ayirsin.</span>
+          <strong>Toplu Alış Girişi</strong>
+          <span>Tek ekrandan çok tedarikçili satır girin; sistem resmi fişleri tedarikçiye göre ayırsın.</span>
         </div>
         <div className="purchase-toolbar-actions">
           <button type="button" onClick={() => setRows([])} disabled={isSaving || rows.length === 0}><Trash2 size={15} />Sepeti Temizle</button>
@@ -520,31 +520,31 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
 
         <aside className="erp-panel bulk-purchase-summary-panel">
           <div className="panel-title">
-            <strong>Olusacak Fis Ozeti</strong>
-            <span>Tedarikci bazli resmi fisler</span>
+            <strong>Oluşacak Fiş Özeti</strong>
+            <span>Tedarikçi bazlı resmi fişler</span>
           </div>
           <div className="entity-360-grid bulk-purchase-summary-grid">
             <div className="entity-360-card">
-              <span>Tedarikci</span>
+              <span>Tedarikçi</span>
               <strong>{groupedRows.length}</strong>
-              <small>Olusacak fis sayisi</small>
+              <small>Oluşacak fiş sayısı</small>
             </div>
             <div className="entity-360-card stock-card">
-              <span>Satir</span>
+              <span>Satır</span>
               <strong>{rows.length}</strong>
               <small>{totals.quantity} adet</small>
             </div>
             <div className="entity-360-card price-card">
-              <span>TRY karsilik</span>
+              <span>TRY karşılığı</span>
               <strong>{formatMoney(totals.totalTry, 'TRY')}</strong>
-              <small>Kur snapshot ile</small>
+              <small>Kur kaydıyla</small>
             </div>
           </div>
           <div className="bulk-purchase-group-list">
-            {groupedRows.length === 0 ? <span>Sepet bos.</span> : groupedRows.map((group) => (
+            {groupedRows.length === 0 ? <span>Sepet boş.</span> : groupedRows.map((group) => (
               <button key={group.supplierId} type="button" onClick={() => setSupplierId(String(group.supplierId))}>
                 <b>{group.supplierCode}</b>
-                <span>{group.rows.length} satir / {formatMoney(group.total, group.supplierCurrency)}</span>
+                <span>{group.rows.length} satır / {formatMoney(group.total, group.supplierCurrency)}</span>
               </button>
             ))}
           </div>
@@ -553,17 +553,17 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
 
       <section className="erp-panel bulk-purchase-lines-panel">
         <div className="panel-title">
-          <strong>Toplu Alis Satirlari</strong>
-          <span>Farkli tedarikci satirlari burada birlikte gorunur; kayitta ayrilir.</span>
+          <strong>Toplu Alış Satırları</strong>
+          <span>Farklı tedarikçi satırları burada birlikte görünür; kayıtta ayrılır.</span>
         </div>
         {rows.length === 0 ? (
-          <div className="list-state">Henuz satir yok. Tedarikci ve urun secip satir ekleyin.</div>
+          <div className="list-state">Henüz satır yok. Tedarikçi ve ürün seçip satır ekleyin.</div>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Tedarikci</th>
+                  <th>Tedarikçi</th>
                   <th>Ürün</th>
                   <th>Miktar</th>
                   <th>Liste alış</th>
@@ -597,8 +597,8 @@ export function BulkPurchaseEntryScreen({ permissions = [], onDirtyChange, onOpe
       {results.length > 0 && (
         <section className="erp-panel bulk-purchase-results-panel">
           <div className="panel-title">
-            <strong>Olusan Fisler</strong>
-            <span>Her satir tedarikci bazli resmi alis fisine donustu</span>
+            <strong>Oluşan Fişler</strong>
+            <span>Her satır tedarikçi bazlı resmi alış fişine dönüştü</span>
           </div>
           <div className="bulk-purchase-result-list">
             {results.map((result, index) => (

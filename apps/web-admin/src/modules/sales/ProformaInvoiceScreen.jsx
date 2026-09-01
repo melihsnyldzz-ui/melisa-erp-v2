@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, FileDown, FileText, RefreshCcw, Save, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { fetchVegaCustomers } from '../../services/customerApi.js';
 import {
@@ -6,6 +6,12 @@ import {
   fetchVegaSalesStockExits,
 } from '../../services/movementApi.js';
 import { printProformaInvoice } from '../../utils/proformaPrint.js';
+import {
+  buildVersionedProformaDraft,
+  canGenerateProformaPdf,
+  restoreVersionedProformaDraft,
+  validateProformaForPdf,
+} from './proformaSafety.js';
 
 const sellerDefaults = {
   name: 'Melisa Bebe Tekstil San. ve Tic. Ltd. Şti.',
@@ -68,8 +74,9 @@ function formatNumber(value) {
   return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 2 }).format(Number(value || 0));
 }
 
-function proformaStorageKey(sourceId) {
-  return `melisa.proformaDraft.vega.${sourceId}`;
+function proformaStorageKey(sourceId, draftOwnerId) {
+  const ownerKey = String(draftOwnerId || 'unassigned').replace(/[^a-z0-9_-]/gi, '_').slice(0, 80);
+  return `melisa.proformaDraft.v2.${ownerKey}.vega.${sourceId}`;
 }
 
 function sourceFingerprint(receipt, detail, customer) {
@@ -94,11 +101,20 @@ function sourceFingerprint(receipt, detail, customer) {
       id: String(line.id || ''),
       stockSourceId: Number(line.stockSourceId || 0),
       stockCode: String(line.stockCode || '').trim(),
+      productName: String(line.productName || '').trim(),
+      barcode: String(line.barcode || '').trim(),
       quantity: Number(line.quantity || 0),
+      unitName: String(line.unitName || '').trim(),
       unitPrice: Number(line.unitPrice || 0),
       lineTotal: Number(line.lineTotal || 0),
       gtipCode: String(line.gtipCode || '').trim(),
       gtipStatus: String(line.gtipStatus || '').trim(),
+      gtipConfidence: String(line.gtipConfidence || '').trim(),
+      gtipSource: String(line.gtipSource || '').trim(),
+      gtipRuleId: String(line.gtipRuleId || '').trim(),
+      gtipMaterialBasis: String(line.gtipMaterialBasis || '').trim(),
+      gtipNote: String(line.gtipNote || '').trim(),
+      gtipRequiresReview: line.gtipRequiresReview !== false,
     })),
   });
 }
@@ -176,7 +192,10 @@ function gtipStatusText(line) {
   return 'Kayıtlı taslak';
 }
 
-export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
+export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange, draftOwnerId = 'unassigned' }) {
+  const searchRequestSequence = useRef(0);
+  const loadRequestSequence = useRef(0);
+  const stableDraftOwnerId = String(draftOwnerId || 'unassigned');
   const initialRange = useMemo(monthRange, []);
   const [search, setSearch] = useState(initialPayload?.documentNo || '');
   const [dateFrom, setDateFrom] = useState(initialPayload?.documentDate?.slice?.(0, 10) || initialRange.dateFrom);
@@ -196,6 +215,8 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [isPdfConfirmed, setIsPdfConfirmed] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const includedLines = useMemo(() => lines.filter((line) => line.included), [lines]);
   const totals = useMemo(() => {
@@ -215,6 +236,18 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
       gtipNeedsReview: includedLines.filter((line) => line.gtipStatus !== 'verified').length,
     };
   }, [includedLines, shipment.freightAmount]);
+  const pdfValidation = useMemo(() => validateProformaForPdf({
+    header,
+    buyer,
+    shipment,
+    lines,
+    sourceCurrency: detail?.currency || selectedReceipt?.currency || '',
+  }), [buyer, detail?.currency, header, lines, selectedReceipt?.currency, shipment]);
+  const canSavePdf = canGenerateProformaPdf({
+    validation: pdfValidation,
+    isConfirmed: isPdfConfirmed,
+    hasDetail: Boolean(detail),
+  });
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -222,32 +255,39 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
   }, [isDirty, onDirtyChange]);
 
   async function searchReceipts() {
+    const requestSequence = ++searchRequestSequence.current;
     setIsSearching(true);
     setErrorMessage('');
     setMessage('');
     try {
       const response = await fetchVegaSalesStockExits({ page: 1, limit: 100, search, dateFrom, dateTo, currency: 'ALL' });
+      if (requestSequence !== searchRequestSequence.current) return;
       setReceipts(response.data || []);
       if (!(response.data || []).length) setMessage('Bu kriterlerde satış fişi bulunamadı.');
     } catch (error) {
+      if (requestSequence !== searchRequestSequence.current) return;
       setReceipts([]);
       setErrorMessage(error.message || 'Satış fişleri okunamadı.');
     } finally {
-      setIsSearching(false);
+      if (requestSequence === searchRequestSequence.current) setIsSearching(false);
     }
   }
 
   async function loadReceipt(receipt) {
     if (!receipt?.sourceId || !receipt?.customerSourceId) return;
+    const requestSequence = ++loadRequestSequence.current;
     setSelectedReceipt(receipt);
     setIsLoadingDocument(true);
     setErrorMessage('');
     setMessage('');
+    setPendingAction(null);
+    setIsPdfConfirmed(false);
     try {
       const [detailResponse, customerResponse] = await Promise.all([
         fetchVegaCustomerStockExitDocument(receipt.customerSourceId, receipt.sourceId),
         fetchVegaCustomers({ page: 1, limit: 50, search: receipt.customerCode || receipt.customerName || '' }),
       ]);
+      if (requestSequence !== loadRequestSequence.current) return;
       const nextDetail = detailResponse.data;
       const customer = (customerResponse.data || []).find((item) => Number(item.sourceId) === Number(receipt.customerSourceId))
         || (customerResponse.data || []).find((item) => item.customerCode === receipt.customerCode)
@@ -257,37 +297,45 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
       const nextShipment = defaultShipment(customer);
       const nextLines = mapLines(nextDetail);
       const nextSourceFingerprint = sourceFingerprint(receipt, nextDetail, customer);
-      let savedDraft = null;
+      const draftDefaults = {
+        header: nextHeader,
+        buyer: nextBuyer,
+        shipment: nextShipment,
+        lines: nextLines,
+      };
+      let storedDraft = null;
       try {
-        savedDraft = JSON.parse(window.localStorage.getItem(proformaStorageKey(receipt.sourceId)) || 'null');
+        storedDraft = JSON.parse(window.localStorage.getItem(proformaStorageKey(receipt.sourceId, stableDraftOwnerId)) || 'null');
       } catch {
-        savedDraft = null;
+        storedDraft = null;
       }
-      const savedDraftIsCurrent = Boolean(
-        savedDraft?.sourceFingerprint
-        && savedDraft.sourceFingerprint === nextSourceFingerprint,
-      );
+      const restoredDraft = restoreVersionedProformaDraft(storedDraft, {
+        sourceFingerprint: nextSourceFingerprint,
+        draftOwnerId: stableDraftOwnerId,
+        defaults: draftDefaults,
+      });
       setDetail(nextDetail);
       setLoadedSourceFingerprint(nextSourceFingerprint);
-      setHeader(savedDraftIsCurrent ? savedDraft.header : nextHeader);
-      setSeller(mergeSeller(savedDraftIsCurrent ? savedDraft.seller : null));
-      setBuyer(savedDraftIsCurrent ? savedDraft.buyer : nextBuyer);
-      setShipment(savedDraftIsCurrent && savedDraft.shipment ? { ...nextShipment, ...savedDraft.shipment } : nextShipment);
-      setBank(mergeBank(savedDraftIsCurrent ? savedDraft.bank : null));
-      setLines(savedDraftIsCurrent && savedDraft.lines?.length ? savedDraft.lines : nextLines);
+      setHeader(restoredDraft?.header || nextHeader);
+      setSeller(mergeSeller(null));
+      setBuyer(restoredDraft?.buyer || nextBuyer);
+      setShipment(restoredDraft?.shipment || nextShipment);
+      setBank(mergeBank(null));
+      setLines(restoredDraft?.lines || nextLines);
       setIsDirty(false);
-      setMessage(savedDraftIsCurrent
+      setMessage(restoredDraft
         ? 'Bu fişin güncel kaynak verisiyle eşleşen proforma taslağı açıldı.'
-        : savedDraft
-          ? 'Kaynak fiş değiştiği için eski taslak kullanılmadı; güncel Vega bilgileri yüklendi.'
+        : storedDraft
+          ? 'Eski veya geçersiz taslak kullanılmadı; güncel Vega bilgileri yüklendi.'
           : 'Fiş proformaya aktarıldı. Teslim, ödeme ve GTİP bilgilerini kontrol edin.');
     } catch (error) {
+      if (requestSequence !== loadRequestSequence.current) return;
       setDetail(null);
       setLoadedSourceFingerprint('');
       setLines([]);
       setErrorMessage(error.message || 'Fiş içeriği proformaya aktarılamadı.');
     } finally {
-      setIsLoadingDocument(false);
+      if (requestSequence === loadRequestSequence.current) setIsLoadingDocument(false);
     }
   }
 
@@ -303,6 +351,8 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
     setter((current) => ({ ...current, [field]: value }));
     setIsDirty(true);
     setMessage('');
+    setErrorMessage('');
+    setIsPdfConfirmed(false);
   }
 
   function updateLine(lineId, field, value) {
@@ -324,6 +374,8 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
     )));
     setIsDirty(true);
     setMessage('');
+    setErrorMessage('');
+    setIsPdfConfirmed(false);
   }
 
   function saveDraft() {
@@ -331,41 +383,77 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
       setErrorMessage('Önce bir satış fişi seçin.');
       return;
     }
-    const payload = {
+    const payload = buildVersionedProformaDraft({
+      sourceFingerprint: loadedSourceFingerprint,
+      draftOwnerId: stableDraftOwnerId,
       header,
-      seller,
       buyer,
       shipment,
-      bank,
       lines,
-      sourceFingerprint: loadedSourceFingerprint,
-      savedAt: new Date().toISOString(),
-    };
-    window.localStorage.setItem(proformaStorageKey(selectedReceipt.sourceId), JSON.stringify(payload));
-    setIsDirty(false);
-    setErrorMessage('');
-    setMessage('Proforma taslağı bu cihazda kaydedildi. Vega verisine yazılmadı.');
+    });
+    if (!payload) {
+      setErrorMessage('Taslak kaynağı doğrulanamadı; fişi yeniden yükleyin.');
+      return;
+    }
+    try {
+      window.localStorage.setItem(proformaStorageKey(selectedReceipt.sourceId, stableDraftOwnerId), JSON.stringify(payload));
+      setIsDirty(false);
+      setErrorMessage('');
+      setMessage('Proforma taslağı bu kullanıcı için bu cihazda kaydedildi. Vega verisine yazılmadı.');
+    } catch {
+      setErrorMessage('Taslak bu cihazda kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');
+    }
   }
 
-  function resetDraft() {
+  function performResetDraft() {
     if (!selectedReceipt) return;
-    window.localStorage.removeItem(proformaStorageKey(selectedReceipt.sourceId));
+    try {
+      window.localStorage.removeItem(proformaStorageKey(selectedReceipt.sourceId, stableDraftOwnerId));
+    } catch {
+      setErrorMessage('Yerel taslak temizlenemedi. Tarayıcı depolama alanını kontrol edin.');
+      return;
+    }
     loadReceipt(selectedReceipt);
   }
 
-  function savePdfDocument() {
-    if (!detail || !includedLines.length) {
-      setErrorMessage('PDF hazırlamak için fiş seçin ve en az bir ürün satırı bırakın.');
+  function requestResetDraft() {
+    if (!selectedReceipt) return;
+    if (isDirty) {
+      setPendingAction({ type: 'reset' });
       return;
     }
-    if (!header.proformaNo || !buyer.name) {
-      setErrorMessage('Proforma numarası ve alıcı unvanı zorunludur.');
+    performResetDraft();
+  }
+
+  function requestLoadReceipt(receipt) {
+    if (isDirty) {
+      setPendingAction({ type: 'load', receipt });
+      return;
+    }
+    loadReceipt(receipt);
+  }
+
+  function confirmPendingAction() {
+    const action = pendingAction;
+    setPendingAction(null);
+    if (action?.type === 'reset') performResetDraft();
+    if (action?.type === 'load' && action.receipt) loadReceipt(action.receipt);
+  }
+
+  function savePdfDocument() {
+    if (!pdfValidation.isValid) {
+      setErrorMessage(pdfValidation.errors[0]?.message || 'PDF öncesi zorunlu alanları kontrol edin.');
+      return;
+    }
+    if (!isPdfConfirmed) {
+      setErrorMessage('PDF hazırlamadan önce ticari bilgileri kontrol ettiğinizi onaylayın.');
       return;
     }
     setErrorMessage('');
     try {
       printProformaInvoice({ header, seller, buyer, shipment, bank, lines });
       setMessage('PDF kaydetme penceresi açıldı. Hedef bölümünden “PDF olarak kaydet” seçeneğini seçin.');
+      setIsPdfConfirmed(false);
     } catch (error) {
       setErrorMessage(error.message || 'PDF kaydetme penceresi açılamadı.');
     }
@@ -379,11 +467,24 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
           <div><strong>Proforma Hazırlama</strong><small>Vega satış fişinden düzenlenebilir proforma ve PDF çıktısı</small></div>
         </div>
         <div className="proforma-toolbar-actions">
-          <button type="button" onClick={resetDraft} disabled={!selectedReceipt}><RefreshCcw size={15} /> Fişten Yenile</button>
+          <button type="button" onClick={requestResetDraft} disabled={!selectedReceipt}><RefreshCcw size={15} /> Fişten Yenile</button>
           <button type="button" onClick={saveDraft} disabled={!detail}><Save size={15} /> Taslağı Kaydet</button>
-          <button type="button" className="primary" onClick={savePdfDocument} disabled={!detail}><FileDown size={15} /> PDF Kaydet</button>
+          <button type="button" className="primary" onClick={savePdfDocument} disabled={!canSavePdf}><FileDown size={15} /> PDF Kaydet</button>
         </div>
       </section>
+
+      {pendingAction && (
+        <section className="proforma-decision-panel" role="alert">
+          <div>
+            <strong>Kaydedilmemiş değişiklikler var</strong>
+            <span>{pendingAction.type === 'reset' ? 'Fişten yenilerseniz mevcut yerel değişiklikler silinir.' : 'Başka fişe geçerseniz mevcut yerel değişiklikler kaybolur.'}</span>
+          </div>
+          <div className="button-row">
+            <button type="button" onClick={() => setPendingAction(null)}>Değişiklikleri koru</button>
+            <button type="button" className="danger" onClick={confirmPendingAction}>Kaydetmeden devam et</button>
+          </div>
+        </section>
+      )}
 
       <section className="proforma-source-panel">
         <div className="proforma-section-heading"><div><strong>1. Kaynak satış fişini seçin</strong><span>Fiş ve satırlar Vega’dan salt okunur alınır.</span></div><span className="proforma-readonly-pill"><ShieldCheck size={14} /> Vega salt okunur</span></div>
@@ -393,7 +494,7 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
           <label><span>Bitiş</span><input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} /></label>
           <button type="button" className="primary" onClick={searchReceipts} disabled={isSearching}><Search size={15} /> {isSearching ? 'Aranıyor…' : 'Fişleri Getir'}</button>
         </div>
-        {receipts.length > 0 && <div className="proforma-receipt-list table-shell"><table className="erp-table"><thead><tr><th>Tarih</th><th>Fiş No</th><th>Cari</th><th>PB</th><th>Toplam</th><th></th></tr></thead><tbody>{receipts.map((receipt) => <tr className={selectedReceipt?.sourceId === receipt.sourceId ? 'selected' : ''} key={receipt.id}><td>{formatDate(receipt.documentDate)}</td><td className="code-cell">{receipt.documentNo}</td><td>{receipt.customerName}</td><td>{receipt.currency}</td><td className="money-cell">{formatMoney(receipt.totalAmount, receipt.currency)}</td><td><button type="button" onClick={() => loadReceipt(receipt)}>Proformaya Al</button></td></tr>)}</tbody></table></div>}
+        {receipts.length > 0 && <div className="proforma-receipt-list table-shell"><table className="erp-table"><thead><tr><th>Tarih</th><th>Fiş No</th><th>Cari</th><th>PB</th><th>Toplam</th><th></th></tr></thead><tbody>{receipts.map((receipt) => <tr className={selectedReceipt?.sourceId === receipt.sourceId ? 'selected' : ''} key={receipt.id}><td>{formatDate(receipt.documentDate)}</td><td className="code-cell">{receipt.documentNo}</td><td>{receipt.customerName}</td><td>{receipt.currency}</td><td className="money-cell">{formatMoney(receipt.totalAmount, receipt.currency)}</td><td><button type="button" onClick={() => requestLoadReceipt(receipt)}>Proformaya Al</button></td></tr>)}</tbody></table></div>}
       </section>
 
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
@@ -413,7 +514,7 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
             <div className="panel-title"><strong>2. Belge bilgileri</strong><span>Proforma kimliği ve geçerlilik</span></div>
             <div className="proforma-form-grid two">
               <label><span>Proforma no *</span><input value={header.proformaNo} onChange={(event) => updateSection(setHeader, 'proformaNo', event.target.value)} /></label>
-              <label><span>Para birimi</span><select value={header.currency} onChange={(event) => updateSection(setHeader, 'currency', event.target.value)}><option>USD</option><option>EUR</option><option>TRY</option></select></label>
+              <label><span>Para birimi</span><input value={header.currency} readOnly /><small className="proforma-field-note">Kaynak fişten gelir; bu ekranda kur dönüşümü yapılmaz.</small></label>
               <label><span>Düzenleme tarihi</span><input type="date" value={header.issueDate} onChange={(event) => updateSection(setHeader, 'issueDate', event.target.value)} /></label>
               <label><span>Geçerlilik tarihi</span><input type="date" value={header.validUntil} min={header.issueDate || undefined} onChange={(event) => updateSection(setHeader, 'validUntil', event.target.value)} /></label>
             </div>
@@ -467,10 +568,31 @@ export function ProformaInvoiceScreen({ initialPayload = {}, onDirtyChange }) {
           <div className="table-shell"><table className="erp-table proforma-lines-table"><thead><tr><th>Dahil</th><th>Stok Kodu</th><th>Ürün açıklaması</th><th>GTİP</th><th>Miktar</th><th>Birim</th><th>Birim fiyat</th><th>Tutar</th></tr></thead><tbody>{lines.map((line) => <tr className={!line.included ? 'excluded' : ''} key={line.id}><td><input aria-label={`${line.stockCode} satırını dahil et`} type="checkbox" checked={line.included} onChange={(event) => updateLine(line.id, 'included', event.target.checked)} /></td><td className="code-cell">{line.stockCode}</td><td><input value={line.description} onChange={(event) => updateLine(line.id, 'description', event.target.value)} /></td><td><input className={!line.gtipCode ? 'field-warning' : ''} value={line.gtipCode} onChange={(event) => updateLine(line.id, 'gtipCode', event.target.value.replace(/\D/g, '').slice(0, 12))} placeholder="12 haneli GTİP" /><small title={[line.gtipMaterialBasis, line.gtipNote].filter(Boolean).join(' · ')}>{gtipStatusText(line)}</small></td><td><input min="0" step="0.01" type="number" value={line.quantity} onChange={(event) => updateLine(line.id, 'quantity', event.target.value)} /></td><td>{line.unitName}</td><td><input min="0" step="0.01" type="number" value={line.unitPrice} onChange={(event) => updateLine(line.id, 'unitPrice', event.target.value)} /></td><td className="money-cell">{formatMoney(Number(line.quantity || 0) * Number(line.unitPrice || 0), header.currency)}</td></tr>)}</tbody><tfoot><tr><th colSpan="4">Proforma toplamı (mal + nakliye)</th><th>{formatNumber(totals.quantity)}</th><th></th><th></th><th>{formatMoney(totals.grandTotal, header.currency)}</th></tr></tfoot></table></div>
         </section>
 
+        <section className="proforma-pdf-confirmation">
+          <div>
+            <strong>7. PDF öncesi son kontrol</strong>
+            <span>Bu çıktı ticari bir taslaktır; kaynak para birimi değiştirilmez ve eksik ticari bilgiler uyarı olarak görünür.</span>
+          </div>
+          {pdfValidation.errors.length > 0 && <ul className="proforma-validation-errors">{pdfValidation.errors.map((item) => <li key={`${item.code}-${item.field || ''}`}>{item.message}</li>)}</ul>}
+          {pdfValidation.warnings.length > 0 && <ul className="proforma-validation-warnings">{pdfValidation.warnings.map((item) => <li key={`${item.code}-${item.field || ''}`}>{item.message}</li>)}</ul>}
+          <label>
+            <input
+              type="checkbox"
+              checked={isPdfConfirmed}
+              disabled={!pdfValidation.isValid}
+              onChange={(event) => {
+                setIsPdfConfirmed(event.target.checked);
+                setErrorMessage('');
+              }}
+            />
+            Proforma numarası, alıcı, tarihler, miktarlar, fiyatlar ve ticari uyarıları kontrol ettim.
+          </label>
+        </section>
+
         <section className="proforma-bottom-bar">
           <div><strong>{header.proformaNo}</strong><span>{isDirty ? 'Kaydedilmemiş değişiklik var' : 'Taslak güncel'}</span></div>
           <button type="button" onClick={saveDraft}><Save size={15} /> Taslağı Kaydet</button>
-          <button type="button" className="primary" onClick={savePdfDocument}><FileDown size={15} /> Proformayı PDF Kaydet</button>
+          <button type="button" className="primary" onClick={savePdfDocument} disabled={!canSavePdf}><FileDown size={15} /> Proformayı PDF Kaydet</button>
         </section>
       </>}
     </main>

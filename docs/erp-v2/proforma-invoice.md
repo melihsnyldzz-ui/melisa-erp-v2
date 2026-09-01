@@ -22,7 +22,8 @@
 3. Proforma numarası, geçerlilik tarihi, teslim şekli, ödeme koşulu, koli ve ağırlıkları girin.
 4. Ürün açıklamalarını, miktarları, fiyatları ve otomatik/kayıtlı GTİP kodlarını kontrol edin. İstenmeyen satırların `Dahil` seçimini kaldırın.
 5. `Taslağı Kaydet` ile bu cihazda saklayın.
-6. `PDF Kaydet` ile yazdırma ekranını açın ve hedef olarak `PDF olarak kaydet` seçeneğini kullanın.
+6. PDF öncesi kontrolde proforma numarası, alıcı, tarihler, miktarlar, fiyatlar ve ticari uyarıları doğruladığınızı işaretleyin.
+7. `PDF Kaydet` ile yazdırma ekranını açın ve hedef olarak `PDF olarak kaydet` seçeneğini kullanın.
 
 ## Kontroller
 
@@ -46,7 +47,7 @@
 
 ## Yetki
 
-Ekran ve canlı fiş okumaları `sales.view` yetkisini kullanır. Proforma hazırlamak Vega veya Melisa ERP ticari tablolarına yazma yetkisi vermez.
+Ekran ve canlı fiş okumaları `sales.view` ile `customer.view` yetkilerini birlikte gerektirir. Proforma hazırlamak Vega veya Melisa ERP ticari tablolarına yazma yetkisi vermez.
 
 ## Otomatik GTİP taslak kuralları
 

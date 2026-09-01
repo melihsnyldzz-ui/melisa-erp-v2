@@ -29,10 +29,10 @@ export const demoPermissions = [
 export const demoUser = {
   id: 'demo-admin',
   username: 'demo-admin',
-  displayName: 'Demo Admin',
+  displayName: 'Demo Yöneticisi',
   role: {
     id: 'demo-admin-role',
-    name: 'Demo Admin',
+    name: 'Demo Yöneticisi',
   },
   permissions: demoPermissions,
 };

@@ -33,7 +33,7 @@ const demoCustomers = [
     customerName: 'Tbilisi Kids Market',
     phoneMasked: '+995 *** *** 525',
     city: 'Tbilisi',
-    country: 'Gurcistan',
+    country: 'Gürcistan',
     currency: 'USD',
     customerType: 'wholesale',
     balance: 98000,
@@ -46,7 +46,7 @@ const demoCustomers = [
     customerName: 'Dormant Balkan Buyer',
     phoneMasked: '+381 *** *** 119',
     city: 'Belgrade',
-    country: 'Sirbistan',
+    country: 'Sırbistan',
     currency: 'USD',
     customerType: 'wholesale',
     balance: 0,
@@ -83,7 +83,7 @@ export function demoCustomerDetailResponse(id) {
 export function demoCustomerWriteResponse(payload = {}, id = 901) {
   return {
     success: true,
-    message: 'Demo islem kaydedilmedi.',
+    message: 'Demo işlemi kaydedilmedi; gerçek müşteri veya cari kaydı değiştirilmedi.',
     data: {
       ...demoCustomers[0],
       ...payload,
@@ -100,7 +100,7 @@ export function demoCustomerPassiveResponse(id, isPassive) {
   const customer = demoCustomers.find((item) => String(item.id) === String(id)) || demoCustomers[0];
   return {
     success: true,
-    message: 'Demo islem kaydedilmedi.',
+    message: 'Demo işlemi kaydedilmedi; gerçek müşteri veya cari kaydı değiştirilmedi.',
     data: { ...customer, isPassive },
   };
 }

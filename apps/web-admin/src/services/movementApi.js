@@ -1,4 +1,11 @@
 import { get, post } from './apiClient.js';
+import { apiConfig } from '../config/apiConfig.js';
+import {
+  demoVegaPurchaseDocumentResponse,
+  demoVegaPurchaseInvoicesResponse,
+  demoVegaSalesDocumentResponse,
+  demoVegaSalesStockExitsResponse,
+} from '../demo/demoVegaReadOnly.js';
 
 export async function fetchStockMovements(params = {}) {
   return get('/api/stock-movements', params);
@@ -21,14 +28,26 @@ export async function fetchVegaCustomerMovements(customerSourceId, params = {}) 
 }
 
 export async function fetchVegaCustomerStockExitDocument(customerSourceId, movementSourceId) {
+  if (apiConfig.demoMode) {
+    return demoVegaSalesDocumentResponse(customerSourceId, movementSourceId);
+  }
+
   return get(`/api/vega/customers/${customerSourceId}/movements/${movementSourceId}/stock-exit`);
 }
 
 export async function fetchVegaSalesStockExits(params = {}) {
+  if (apiConfig.demoMode) {
+    return demoVegaSalesStockExitsResponse(params);
+  }
+
   return get('/api/vega/sales/stock-exits', params);
 }
 
 export async function fetchVegaPurchaseInvoices(params = {}) {
+  if (apiConfig.demoMode) {
+    return demoVegaPurchaseInvoicesResponse(params);
+  }
+
   return get('/api/vega/purchases/invoices', params);
 }
 
@@ -37,6 +56,10 @@ export async function fetchVegaSupplierMovements(supplierSourceId, params = {}) 
 }
 
 export async function fetchVegaSupplierPurchaseDocument(supplierSourceId, movementSourceId) {
+  if (apiConfig.demoMode) {
+    return demoVegaPurchaseDocumentResponse(supplierSourceId, movementSourceId);
+  }
+
   return get(`/api/vega/suppliers/${supplierSourceId}/movements/${movementSourceId}/purchase-invoice`);
 }
 

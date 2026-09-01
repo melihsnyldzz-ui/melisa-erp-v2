@@ -1,4 +1,5 @@
 import { API_BASE_URL, apiConfig } from '../config/apiConfig.js';
+import { shouldRetryWithRenewedSession } from './authRetryPolicy.js';
 
 const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
 const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
@@ -69,17 +70,14 @@ export async function renewStoredSession() {
     return sessionRenewalPromise;
   }
 
-  sessionRenewalPromise = (async () => {
+  const renewalPromise = (async () => {
     try {
       const refreshToken = getStoredRefreshToken();
       if (refreshToken) {
         return await requestNewSession('/api/auth/refresh', { refreshToken });
       }
 
-      const isLocalPasswordlessSession = (
-        window.localStorage.getItem(LOCAL_PASSWORDLESS_SESSION_KEY) === 'true'
-        || Boolean(getStoredAccessToken())
-      );
+      const isLocalPasswordlessSession = window.localStorage.getItem(LOCAL_PASSWORDLESS_SESSION_KEY) === 'true';
       if (isLocalPasswordlessSession && apiConfig.localPasswordlessLogin) {
         return await requestNewSession('/api/auth/local-passwordless-admin', {});
       }
@@ -87,18 +85,24 @@ export async function renewStoredSession() {
       return false;
     } catch {
       return false;
-    } finally {
-      sessionRenewalPromise = null;
     }
   })();
+  sessionRenewalPromise = renewalPromise;
 
-  return sessionRenewalPromise;
+  try {
+    return await renewalPromise;
+  } finally {
+    if (sessionRenewalPromise === renewalPromise) {
+      sessionRenewalPromise = null;
+    }
+  }
 }
 
 async function request(method, path, { params = {}, body, retryAuth = true } = {}) {
   if (apiConfig.demoMode) {
-    const demoError = new Error(`Demo mode icin servis mock response tanimli de?il: ${method} ${path}`);
+    const demoError = new Error('Bu ekranın örnek demo verisi henüz hazırlanmadı.');
     demoError.code = 'DEMO_ROUTE_MISSING';
+    demoError.meta = { method, path };
     throw demoError;
   }
 
@@ -118,12 +122,12 @@ async function request(method, path, { params = {}, body, retryAuth = true } = {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
-    const networkError = new Error('API sunucusuna ulasilamadi.');
+    const networkError = new Error('API sunucusuna ulaşılamadı.');
     networkError.code = 'NETWORK_ERROR';
     throw networkError;
   }
 
-  if (response.status === 401 && retryAuth && !path.startsWith('/api/auth/')) {
+  if (response.status === 401 && shouldRetryWithRenewedSession({ path, retryAuth })) {
     const renewed = await renewStoredSession();
     if (renewed) {
       return request(method, path, { params, body, retryAuth: false });
@@ -134,13 +138,13 @@ async function request(method, path, { params = {}, body, retryAuth = true } = {
   try {
     payload = await response.json();
   } catch (error) {
-    const parseError = new Error('API response okunamadi.');
+    const parseError = new Error('API yanıtı okunamadı.');
     parseError.code = 'API_PARSE_ERROR';
     throw parseError;
   }
 
   if (!response.ok || payload.success === false) {
-    const apiError = new Error(payload.error.message || 'API istegi basarisiz oldu.');
+    const apiError = new Error(payload.error.message || 'API isteği başarısız oldu.');
     apiError.code = payload.error.code || 'API_ERROR';
     apiError.status = response.status;
     apiError.meta = payload.meta || {};
@@ -185,7 +189,7 @@ export async function download(path, filename, { retryAuth = true } = {}) {
   try {
     response = await fetch(buildUrl(path), { headers });
   } catch {
-    const error = new Error('API sunucusuna ulasilamadi.');
+    const error = new Error('API sunucusuna ulaşılamadı.');
     error.code = 'NETWORK_ERROR';
     throw error;
   }

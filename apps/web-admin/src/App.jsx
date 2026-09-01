@@ -80,7 +80,7 @@ export function App() {
       const response = await localPasswordlessAdminLogin();
       setUser(response.data.user);
     } catch (error) {
-      setAuthError(`${error.message || 'Sifresiz local giris basarisiz.'} (${error.code || 'AUTH_ERROR'})`);
+      setAuthError(`${error.message || 'Şifresiz yerel giriş başarısız.'} (${error.code || 'AUTH_ERROR'})`);
     } finally {
       setIsLoggingIn(false);
     }
@@ -96,7 +96,7 @@ export function App() {
   }
 
   if (isBooting) {
-    return <div className="login-shell"><div className="login-panel">Session kontrol ediliyor...</div></div>;
+    return <div className="login-shell"><div className="login-panel">Oturum kontrol ediliyor...</div></div>;
   }
 
   if (!user) {

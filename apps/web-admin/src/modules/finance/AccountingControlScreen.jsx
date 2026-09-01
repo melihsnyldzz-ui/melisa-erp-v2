@@ -50,11 +50,11 @@ export function AccountingControlScreen({ onOpenScreen }) {
       const response = await applyDocumentNumberFix();
       const fixedCount = response.data.fixedCount || 0;
       setMaintenanceMessage(fixedCount > 0
-         ? `${fixedCount} kesin fiş belge numarası düzeltildi.`
-        : 'D?zeltilecek Taslak belge no kalmadi.');
+        ? `${fixedCount} kesin fiş belge numarası düzeltildi.`
+        : 'Düzeltilecek taslak belge numarası kalmadı.');
       await loadControl();
     } catch (error) {
-      setErrorMessage(`${error.message || 'Belge no düzeltme çalışmadı.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Belge numarası düzeltme çalışmadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsFixingDocumentNo(false);
     }
@@ -88,12 +88,12 @@ export function AccountingControlScreen({ onOpenScreen }) {
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Muhasebe Kontrol Paneli</strong>
-          <span>Borç/alacak, kasa/banka, belge no ve hesap standardı son kontrol ekranı</span>
+          <span>Borç/alacak, kasa/banka, belge numarası ve hesap standardı son kontrol ekranı</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={loadControl}>Yenile</button>
           <button type="button" onClick={fixDocumentNumbers} disabled={isFixingDocumentNo}>
-            {isFixingDocumentNo ? 'D?zeltiliyor...' : 'Belge No D?zelt'}
+            {isFixingDocumentNo ? 'Düzeltiliyor...' : 'Belge Numarasını Düzelt'}
           </button>
           <button type="button" onClick={() => onOpenScreen?.('accounting-journal')}>Muhasebe Defteri</button>
           <button type="button" onClick={() => onOpenScreen?.('cash-bank-ledger')}>Kasa/Banka</button>

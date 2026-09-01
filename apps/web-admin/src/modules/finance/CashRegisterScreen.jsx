@@ -18,23 +18,21 @@ import {
   fetchCashRegister,
   openCashRegister,
 } from '../../services/financeApi.js';
+import { businessDateInIstanbul } from './cashRegisterDate.js';
+import { resolveCashRegisterCapabilities } from './cashRegisterPermissions.js';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 
 const MOVEMENT_FILTERS = [
   { id: 'all', label: 'Tümü', icon: ListFilter },
-  { id: 'income', label: 'Gelirler', icon: TrendingUp },
-  { id: 'expense', label: 'Giderler', icon: TrendingDown },
+  { id: 'income', label: 'Girişler', icon: TrendingUp },
+  { id: 'expense', label: 'Çıkışlar', icon: TrendingDown },
   { id: 'transfer', label: 'Transferler', icon: ArrowLeftRight },
 ];
 
 function movementGroup(row) {
   if (row.sourceType === 'cash_transfer') return 'transfer';
   return row.direction === 'in' ? 'income' : 'expense';
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function formatMoney(value, currency) {
@@ -74,8 +72,8 @@ function CurrencyPicker({ value, onChange }) {
   );
 }
 
-export function CashRegisterScreen({ onDirtyChange }) {
-  const [businessDate, setBusinessDate] = useState(today());
+export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
+  const [businessDate, setBusinessDate] = useState(businessDateInIstanbul);
   const [overview, setOverview] = useState({ drawers: [], categories: [], session: null, currencies: [], movements: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -89,6 +87,12 @@ export function CashRegisterScreen({ onDirtyChange }) {
   const [closingNote, setClosingNote] = useState('');
   const [activeAction, setActiveAction] = useState('expense');
   const [movementFilter, setMovementFilter] = useState('all');
+  const {
+    canOpenOrClose,
+    canRecordExpenseOrTransfer,
+    isReadOnly,
+  } = resolveCashRegisterCapabilities(permissions);
+  const selectedAction = canRecordExpenseOrTransfer ? activeAction : canOpenOrClose ? 'close' : null;
 
   async function load(nextDate = businessDate) {
     setIsLoading(true);
@@ -99,7 +103,7 @@ export function CashRegisterScreen({ onDirtyChange }) {
     } catch (error) {
       setOverview({ drawers: [], categories: [], session: null, currencies: [], movements: [] });
       setErrorMessage(error.code === 'CASH_REGISTER_SCHEMA_MISSING'
-        ? 'Günlük kasa şeması henüz kurulmamış. 0012_multi_currency_cash_sessions.sql migration dosyası uygulanmalı.'
+        ? 'Günlük kasa altyapısı henüz hazır değil. Sistem yöneticiniz kurulum adımını tamamlamalı.'
         : `${error.message || 'Günlük kasa okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
@@ -128,7 +132,9 @@ export function CashRegisterScreen({ onDirtyChange }) {
 
   useEffect(() => {
     onDirtyChange?.(Boolean(
-      openingNote || closingNote || expense.amount || expense.description || transfer.amount
+      openingNote.trim() || closingNote.trim()
+      || expense.amount || expense.categoryId || expense.description.trim() || expense.documentNo.trim() || expense.currency !== 'TRY'
+      || transfer.amount || transfer.description.trim() || transfer.currency !== 'TRY' || transfer.direction !== 'main_to_drawer'
       || Object.values(openCounts).some((row) => row.physicalOpening || row.openingTransfer)
       || Object.values(closeCounts).some((row) => row.physicalClosing || row.carryForward),
     ));
@@ -157,6 +163,10 @@ export function CashRegisterScreen({ onDirtyChange }) {
 
   async function submitOpen(event) {
     event.preventDefault();
+    if (!canOpenOrClose) {
+      setErrorMessage('Kasayı açma yetkiniz yok. Bu ekran yalnız görüntüleme amacıyla kullanılabilir.');
+      return;
+    }
     const succeeded = await runAction(() => openCashRegister({
       drawerId: drawer?.id,
       businessDate,
@@ -174,6 +184,10 @@ export function CashRegisterScreen({ onDirtyChange }) {
 
   async function submitExpense(event) {
     event.preventDefault();
+    if (!canRecordExpenseOrTransfer) {
+      setErrorMessage('Masraf kaydetmek için ödeme işlemi yetkisi gerekir.');
+      return;
+    }
     const succeeded = await runAction(() => createCashExpense({
       sessionId: overview.session.id,
       categoryId: Number(expense.categoryId),
@@ -187,6 +201,10 @@ export function CashRegisterScreen({ onDirtyChange }) {
 
   async function submitTransfer(event) {
     event.preventDefault();
+    if (!canRecordExpenseOrTransfer) {
+      setErrorMessage('Para transferi kaydetmek için ödeme işlemi yetkisi gerekir.');
+      return;
+    }
     const succeeded = await runAction(() => createCashTransfer({
       sessionId: overview.session.id,
       ...transfer,
@@ -197,6 +215,10 @@ export function CashRegisterScreen({ onDirtyChange }) {
 
   async function submitClose(event) {
     event.preventDefault();
+    if (!canOpenOrClose) {
+      setErrorMessage('Kasayı kapatma yetkiniz yok. Bu ekran yalnız görüntüleme amacıyla kullanılabilir.');
+      return;
+    }
     const succeeded = await runAction(() => closeCashRegister({
       sessionId: overview.session.id,
       closingNote,
@@ -225,16 +247,36 @@ export function CashRegisterScreen({ onDirtyChange }) {
           </label>
           <button type="button" disabled={isLoading} onClick={() => load(businessDate)}><RefreshCw size={15} />Yenile</button>
           <span className={`cash-session-status ${isOpen ? 'open' : isClosed ? 'closed' : ''}`}>
-            {isOpen ? 'Kasa Açık' : isClosed ? 'Kasa Kapalı' : 'Oturum Yok'}
+            {isOpen ? 'Kasa Açık' : isClosed ? 'Kasa Kapalı' : 'Kasa Açılmadı'}
           </span>
         </div>
       </section>
 
-      {message && <div className="list-state list-state-success">{message}</div>}
-      {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      {message && <div className="list-state list-state-success" role="status">{message}</div>}
+      {errorMessage && <div className="list-state list-state-error" role="alert">{errorMessage}</div>}
       {isLoading && <div className="list-state">Günlük kasa verisi yükleniyor...</div>}
 
-      {!isLoading && !errorMessage && !overview.session && (
+      {isReadOnly && (
+        <section className="cash-access-note read-only" role="status">
+          <LockKeyhole size={18} aria-hidden="true" />
+          <div>
+            <strong>Yalnız görüntüleme</strong>
+            <span>Kasa hareketlerini inceleyebilirsiniz. Kasa açma, kapatma, masraf ve transfer işlemleri yetkiniz olmadığı için gösterilmez.</span>
+          </div>
+        </section>
+      )}
+
+      {!isReadOnly && canOpenOrClose && !canRecordExpenseOrTransfer && (
+        <section className="cash-access-note limited" role="status">
+          <LockKeyhole size={18} aria-hidden="true" />
+          <div>
+            <strong>Sınırlı işlem yetkisi</strong>
+            <span>Kasayı açıp kapatabilirsiniz. Masraf ve para transferi işlemleri için ödeme yetkisi gerekir.</span>
+          </div>
+        </section>
+      )}
+
+      {!isLoading && !errorMessage && !overview.session && canOpenOrClose && (
         <>
           <form className="erp-panel cash-opening-panel" onSubmit={submitOpen}>
             <div className="panel-title">
@@ -274,6 +316,16 @@ export function CashRegisterScreen({ onDirtyChange }) {
         </>
       )}
 
+      {!isLoading && !errorMessage && !overview.session && !canOpenOrClose && (
+        <section className="erp-panel cash-readonly-empty" role="status">
+          <div className="panel-title">
+            <strong>Bu tarihte kasa oturumu yok</strong>
+            <span>Kasa açma yetkiniz olmadığı için işlem formu gösterilmiyor</span>
+          </div>
+          <p>Başka bir tarih seçip mevcut kasa kayıtlarını inceleyebilir veya yetkili kullanıcıdan kasayı açmasını isteyebilirsiniz.</p>
+        </section>
+      )}
+
       {!isLoading && overview.session && (
         <>
           <section className="cash-currency-summary" aria-label="Para birimi kasa özeti">
@@ -295,19 +347,18 @@ export function CashRegisterScreen({ onDirtyChange }) {
             })}
           </section>
 
-          <section className={`cash-register-workspace ${isOpen ? '' : 'closed'}`}>
+          <section className={`cash-register-workspace ${isOpen && canOpenOrClose ? '' : 'closed'}`}>
             <section className="erp-panel cash-movements-panel">
               <div className="panel-title">
                 <strong>Günlük Nakit Hareketleri</strong>
                 <span>Nakit tahsilat giriş; nakit ödeme ve masraf çıkış oluşturur</span>
               </div>
-              <div className="cash-movement-tabs" role="tablist" aria-label="Kasa hareket grupları">
+              <div className="cash-movement-tabs" role="group" aria-label="Kasa hareket filtresi">
                 {MOVEMENT_FILTERS.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     type="button"
-                    role="tab"
-                    aria-selected={movementFilter === id}
+                    aria-pressed={movementFilter === id}
                     className={movementFilter === id ? `active ${id}` : id}
                     onClick={() => setMovementFilter(id)}
                   >
@@ -324,7 +375,7 @@ export function CashRegisterScreen({ onDirtyChange }) {
               ) : (
                 <div className="table-wrap">
                   <table>
-                    <thead><tr><th>Saat</th><th>PB</th><th>İşlem</th><th>Kategori / Açıklama</th><th>Belge</th><th>Giriş</th><th>Çıkış</th><th>Kümülatif Kalan</th></tr></thead>
+                    <thead><tr><th>Saat</th><th>Para Birimi</th><th>İşlem</th><th>Kategori / Açıklama</th><th>Belge</th><th>Giriş</th><th>Çıkış</th><th>Son Bakiye</th></tr></thead>
                     <tbody>{filteredMovements.map((row) => (
                       <tr key={row.id} className={row.direction === 'in' ? 'cash-in-row' : 'cash-out-row'}>
                         <td>{row.createdAt ? new Date(row.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
@@ -342,19 +393,19 @@ export function CashRegisterScreen({ onDirtyChange }) {
               )}
             </section>
 
-            {isOpen && (
+            {isOpen && canOpenOrClose && (
               <aside className="erp-panel cash-action-panel">
                 <div className="panel-title">
                   <strong>Kasa İşlemi</strong>
                   <span>Bir işlem türü seçin</span>
                 </div>
-                <div className="cash-action-tabs" role="tablist" aria-label="Kasa işlem türleri">
-                  <button type="button" role="tab" aria-selected={activeAction === 'expense'} className={`expense-tab ${activeAction === 'expense' ? 'active' : ''}`} onClick={() => setActiveAction('expense')}><Save size={17} /><span>Masraf Ekle</span></button>
-                  <button type="button" role="tab" aria-selected={activeAction === 'transfer'} className={`transfer-tab ${activeAction === 'transfer' ? 'active' : ''}`} onClick={() => setActiveAction('transfer')}><ArrowLeftRight size={17} /><span>Para Transferi</span></button>
-                  <button type="button" role="tab" aria-selected={activeAction === 'close'} className={`close-tab ${activeAction === 'close' ? 'active' : ''}`} onClick={() => setActiveAction('close')}><LockKeyhole size={17} /><span>Kasayı Kapat</span></button>
+                <div className="cash-action-tabs" role="group" aria-label="Kasa işlem türleri">
+                  {canRecordExpenseOrTransfer && <button type="button" aria-pressed={selectedAction === 'expense'} className={`expense-tab ${selectedAction === 'expense' ? 'active' : ''}`} onClick={() => setActiveAction('expense')}><Save size={17} /><span>Masraf Ekle</span></button>}
+                  {canRecordExpenseOrTransfer && <button type="button" aria-pressed={selectedAction === 'transfer'} className={`transfer-tab ${selectedAction === 'transfer' ? 'active' : ''}`} onClick={() => setActiveAction('transfer')}><ArrowLeftRight size={17} /><span>Para Transferi</span></button>}
+                  <button type="button" aria-pressed={selectedAction === 'close'} className={`close-tab ${selectedAction === 'close' ? 'active' : ''}`} onClick={() => setActiveAction('close')}><LockKeyhole size={17} /><span>Kasayı Kapat</span></button>
                 </div>
 
-                {activeAction === 'expense' && (
+                {selectedAction === 'expense' && canRecordExpenseOrTransfer && (
                   <form className="cash-action-form" onSubmit={submitExpense}>
                     <div className="cash-action-intro"><strong>Masraf Ekle</strong><span>Nakit masraf seçilen para biriminden düşer.</span></div>
                     <div className="cash-form-grid">
@@ -368,7 +419,7 @@ export function CashRegisterScreen({ onDirtyChange }) {
                   </form>
                 )}
 
-                {activeAction === 'transfer' && (
+                {selectedAction === 'transfer' && canRecordExpenseOrTransfer && (
                   <form className="cash-action-form" onSubmit={submitTransfer}>
                     <div className="cash-action-intro"><strong>Para Transferi</strong><span>Ana kasa ile günlük çekmece arasında para taşıyın.</span></div>
                     <div className="cash-form-grid">
@@ -381,7 +432,7 @@ export function CashRegisterScreen({ onDirtyChange }) {
                   </form>
                 )}
 
-                {activeAction === 'close' && (
+                {selectedAction === 'close' && (
                   <form className="cash-action-form cash-close-form" onSubmit={submitClose}>
                     <div className="cash-action-intro warning"><strong>Akşam Sayımı</strong><span>Her para birimini sayın; kasada kalacak tutarı ayrıca yazın.</span></div>
                     <div className="cash-close-currencies">

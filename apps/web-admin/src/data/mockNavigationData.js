@@ -132,7 +132,7 @@ export const sidebarGroups = [
     title: 'Güvenlik',
     items: [
       { label: 'Yetki ve Denetim', screenId: 'auth-overview' },
-      { label: 'Audit Log', screenId: 'audit-log' },
+      { label: 'Denetim Günlüğü', screenId: 'audit-log' },
     ],
   },
 ];
@@ -511,8 +511,8 @@ export const screenRegistry = {
   },
   'audit-log': {
     id: 'audit-log',
-    label: 'Audit Log',
-    module: 'GÃ¼venlik',
+    label: 'Denetim Günlüğü',
+    module: 'Güvenlik',
     type: 'rapor',
   },
 };

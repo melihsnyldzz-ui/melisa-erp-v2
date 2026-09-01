@@ -5,14 +5,14 @@ const demoProducts = [
     id: 101,
     stockCode: 'STK-100245',
     barcodeMasked: '8690001002451',
-    productName: 'Bebek Zibin Takimi 5 Parca',
+    productName: 'Bebek Zıbın Takımı 5 Parça',
     brand: 'Melisa Baby',
-    category: 'Yenidogan',
+    category: 'Yenidoğan',
     currency: 'TRY',
     salePrice: 285,
     purchasePrice: 164,
     stockQuantity: 420,
-    supplierName: 'Kardelen Bebe Uretim',
+    supplierName: 'Kardelen Bebe Üretim',
     isPassive: false,
     averageCostTry: 164,
     lastPurchaseDate: '2026-05-29',
@@ -22,7 +22,7 @@ const demoProducts = [
     id: 102,
     stockCode: 'STK-100318',
     barcodeMasked: '8690001003182',
-    productName: 'Kiz Bebek Elbise Seti',
+    productName: 'Kız Bebek Elbise Seti',
     brand: 'Little Star',
     category: 'Elbise',
     currency: 'TRY',
@@ -100,7 +100,7 @@ export function demoProductDetailResponse(id) {
 export function demoProductWriteResponse(payload = {}, id = 901) {
   return {
     success: true,
-    message: 'Demo islem kaydedilmedi.',
+    message: 'Demo işlemi kaydedilmedi; gerçek ürün, fiyat veya stok kaydı değiştirilmedi.',
     data: {
       ...demoProducts[0],
       ...payload,
@@ -115,7 +115,7 @@ export function demoProductPassiveResponse(id, isPassive) {
   const product = demoProducts.find((item) => String(item.id) === String(id)) || demoProducts[0];
   return {
     success: true,
-    message: 'Demo islem kaydedilmedi.',
+    message: 'Demo işlemi kaydedilmedi; gerçek ürün, fiyat veya stok kaydı değiştirilmedi.',
     data: { ...product, isPassive },
   };
 }

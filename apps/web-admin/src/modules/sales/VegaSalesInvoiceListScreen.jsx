@@ -3,6 +3,7 @@ import {
   fetchVegaCustomerStockExitDocument,
   fetchVegaSalesStockExits,
 } from '../../services/movementApi.js';
+import { apiConfig } from '../../config/apiConfig.js';
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function localIsoDate(value = new Date()) {
@@ -63,6 +64,7 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
     () => rows.find((row) => row.id === selectedRowId) || null,
     [rows, selectedRowId],
   );
+  const isSyntheticDemo = apiConfig.demoMode || meta?.source === 'synthetic-demo-read-only';
 
   useEffect(() => {
     let mounted = true;
@@ -153,8 +155,8 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
 
   function exportRows() {
     exportRowsToExcel({
-      filename: 'vega-satis-fisleri',
-      title: 'Vega Satış Fişleri',
+      filename: isSyntheticDemo ? 'sentetik-demo-satis-fisleri' : 'vega-satis-fisleri',
+      title: isSyntheticDemo ? 'Sentetik Demo Satış Fişleri' : 'Vega Satış Fişleri',
       rows,
       columns: [
         { label: 'Tarih', value: (row) => formatDate(row.documentDate) },
@@ -171,7 +173,7 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
 
   function printRows() {
     printRowsReport({
-      title: 'Melisa ERP - Vega Satış Fişleri',
+      title: isSyntheticDemo ? 'Melisa ERP - Sentetik Demo Satış Fişleri' : 'Melisa ERP - Vega Satış Fişleri',
       subtitle: `${dateFrom || '-'} / ${dateTo || '-'} · ${cashCustomerCode || 'Tüm cariler'} · ${rows.length} fiş`,
       rows,
       columns: [
@@ -189,7 +191,7 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
   return (
     <main className="work-area vega-sales-list-screen">
       <section className="vega-sales-toolbar">
-        <div><strong>Satış Fişleri</strong><span>Vega 2026 stok çıkışları · tüm müşteriler · canlı ve salt okunur</span></div>
+        <div><strong>Satış Fişleri</strong><span>{isSyntheticDemo ? 'Yerel sentetik örnekler · şirket verisi değildir · salt okunur' : 'Vega 2026 stok çıkışları · tüm müşteriler · canlı ve salt okunur'}</span></div>
         <div className="vega-sales-toolbar-actions">
           <button type="button" className="primary" onClick={() => onOpenScreen('sales-invoice')}>+ Yeni Satış Fişi</button>
           <button
@@ -235,13 +237,19 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
         <button type="button" onClick={resetFilters}>Filtreleri Temizle</button>
       </section>
 
+      {isSyntheticDemo && (
+        <div className="list-state list-state-info">
+          <strong>SENTETİK DEMO</strong> — Bu satış örnekleri gerçek müşteri veya şirket kaydı değildir ve kaydedilmez.
+        </div>
+      )}
+
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       {meta && Number(meta.total || 0) > rows.length && <div className="list-state list-state-info">İlk {rows.length} fiş gösteriliyor. Daha kesin sonuç için tarih veya arama filtresini daraltın.</div>}
 
       <section className={`vega-sales-content ${!isLoading && !rows.length ? 'empty' : ''}`}>
         <section className="erp-panel vega-sales-table-panel">
-          <div className="panel-title"><strong>Fiş Listesi</strong><span>{isLoading ? 'Vega okunuyor…' : `${meta?.total ?? rows.length} fiş · yeniden eskiye`}</span></div>
-          {isLoading && <div className="list-state">Tüm satış fişleri Vega’dan okunuyor...</div>}
+          <div className="panel-title"><strong>Fiş Listesi</strong><span>{isLoading ? (isSyntheticDemo ? 'Sentetik örnekler hazırlanıyor…' : 'Vega okunuyor…') : `${meta?.total ?? rows.length} fiş · yeniden eskiye`}</span></div>
+          {isLoading && <div className="list-state">{isSyntheticDemo ? 'Yerel sentetik satış fişleri hazırlanıyor...' : 'Tüm satış fişleri Vega’dan okunuyor...'}</div>}
           {!isLoading && !errorMessage && rows.length === 0 && <div className="invoice-list-empty-state"><span className="invoice-list-empty-icon">⌕</span><strong>Bu tarihlerde satış fişi bulunamadı</strong><p>Tarih aralığını değiştirin veya Tüm Satışlar düğmesine basın.</p></div>}
           {!isLoading && rows.length > 0 && (
             <div className="table-shell vega-sales-table-shell">
@@ -271,7 +279,7 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
                 <div><span>Cari</span><strong>{selectedRow.customerName}</strong><small>{selectedRow.customerCode}</small></div>
                 <div><span>Toplam</span><strong>{formatMoney(selectedRow.totalAmount, selectedRow.currency)}</strong><small>{selectedRow.currency} · Kur {formatNumber(selectedRow.exchangeRate)}</small></div>
               </header>
-              {isDetailLoading && <div className="list-state">Fiş satırları Vega’dan okunuyor...</div>}
+              {isDetailLoading && <div className="list-state">{isSyntheticDemo ? 'Sentetik fiş satırları hazırlanıyor...' : 'Fiş satırları Vega’dan okunuyor...'}</div>}
               {detailError && <div className="list-state list-state-error">{detailError}</div>}
               {selectedDetail && <>
                 <div className="vega-sales-preview-summary"><span><strong>{selectedDetail.lineCount}</strong> ürün satırı</span><span><strong>{formatNumber(selectedDetail.totalQuantity)}</strong> adet</span><span><strong>{formatMoney(selectedDetail.totalAmount, selectedDetail.currency)}</strong> fiş toplamı</span></div>
@@ -282,7 +290,7 @@ export function VegaSalesInvoiceListScreen({ onOpenScreen }) {
         )}
       </section>
 
-      <footer className="vega-sales-status"><span>Kaynak: Vega F0102 / D0007</span><span>{dateFrom || '-'} — {dateTo || '-'}</span><span>{cashCustomerCode || 'Tüm cariler'}</span><strong>{meta?.total ?? rows.length} fiş</strong></footer>
+      <footer className="vega-sales-status"><span>Kaynak: {isSyntheticDemo ? 'Yerel sentetik örnek — şirket verisi değildir' : 'Vega F0102 / D0007'}</span><span>{dateFrom || '-'} — {dateTo || '-'}</span><span>{cashCustomerCode || 'Tüm cariler'}</span><strong>{meta?.total ?? rows.length} fiş</strong></footer>
     </main>
   );
 }

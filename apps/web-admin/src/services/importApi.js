@@ -13,7 +13,7 @@ function arrayBufferToBase64(buffer) {
 
 async function buildImportPayload(file, options = {}) {
   if (!file) {
-    const error = new Error('Aktarim dosyasi se?ilmedi.');
+    const error = new Error('Aktarım dosyası seçilmedi.');
     error.code = 'IMPORT_FILE_REQUIRED';
     throw error;
   }

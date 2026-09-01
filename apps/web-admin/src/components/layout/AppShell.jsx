@@ -15,6 +15,7 @@ import {
   viewOptionsStorageKey,
 } from '../../config/viewOptions.js';
 import { getRoleScreenIds, readStoredRoleView, roleViewStorageKey } from '../../config/roleViews.js';
+import { buildScreenDeepLink, readScreenDeepLink } from '../../utils/screenDeepLink.js';
 
 function getShellClassName(isDemoMode, viewOptions) {
   const rowDensity = viewOptions.rowDensity || (viewOptions.compactRows ? 'compact' : 'comfortable');
@@ -84,6 +85,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   const [roleViewId, setRoleViewId] = useState(readStoredRoleView);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const deepLinkHandledRef = useRef(false);
+  const pendingDeepLinkScreenRef = useRef('');
 
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? tabs[0],
@@ -99,6 +101,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   function createTab(screen, payload = {}) {
     const recordId = payload.productId
       ?? payload.customerId
+      ?? payload.sourceId
       ?? payload.customerSourceId
       ?? payload.supplierId
       ?? payload.salesDraftId
@@ -155,14 +158,31 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     if (deepLinkHandledRef.current) return;
     deepLinkHandledRef.current = true;
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('screen') !== 'stock-list') return;
+    const deepLink = readScreenDeepLink(window.location.search, screenRegistry, roleScreenIds);
+    if (!deepLink) return;
 
-    openScreen('stock-list', {
-      stockCode: params.get('stockCode') || '',
-      sourceId: params.get('sourceId') || '',
-    });
+    pendingDeepLinkScreenRef.current = deepLink.screenId;
+    openScreen(deepLink.screenId, deepLink.payload);
   }, []);
+
+  useEffect(() => {
+    if (!deepLinkHandledRef.current) return;
+
+    const activeScreenId = activeTab.screenId ?? activeTab.id;
+    if (pendingDeepLinkScreenRef.current && pendingDeepLinkScreenRef.current !== activeScreenId) {
+      return;
+    }
+
+    pendingDeepLinkScreenRef.current = '';
+    const nextSearch = buildScreenDeepLink(window.location.search, activeScreenId);
+    if (nextSearch === window.location.search) return;
+
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${nextSearch}${window.location.hash}`,
+    );
+  }, [activeTab]);
 
   function closeTab(tabId) {
     const closingTab = tabs.find((tab) => tab.id === tabId);
@@ -210,10 +230,6 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       return didChange ? nextTabs : currentTabs;
     });
   }, []);
-
-  const updateActiveTabDirty = useCallback((isDirty) => {
-    updateTabDirty(activeTab.id, isDirty);
-  }, [activeTab.id, updateTabDirty]);
 
   const updateViewOption = useCallback((key, value) => {
     setViewOptions((currentOptions) => {
@@ -282,7 +298,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     <div className={getShellClassName(isDemoMode, viewOptions)}>
       {isDemoMode && (
         <div className="demo-mode-banner">
-          DEMO MODE: API/SQL kapalı, işlemler kaydedilmez
+          DEMO MODU: Gerçek veri bağlantıları kapalı; işlemler kaydedilmez
         </div>
       )}
       <TopMenu
@@ -311,16 +327,20 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
         />
         <section className="content-shell">
           <TabBar tabs={tabs} activeTabId={activeTab.id} onActivateTab={setActiveTabId} onCloseTab={closeTab} />
-          <ScreenErrorBoundary label={activeTab.label} screenId={activeTab.id}>
-            <Workspace
-              activeTab={activeTab}
-              onDirtyChange={updateActiveTabDirty}
-              onOpenScreen={openScreen}
-              permissions={permissions}
-              roleViewId={roleViewId}
-              user={user}
-            />
-          </ScreenErrorBoundary>
+          {tabs.map((tab) => (
+            <React.Activity key={tab.id} mode={tab.id === activeTab.id ? 'visible' : 'hidden'}>
+              <ScreenErrorBoundary label={tab.label} screenId={tab.id}>
+                <Workspace
+                  activeTab={tab}
+                  onDirtyChange={(isDirty) => updateTabDirty(tab.id, isDirty)}
+                  onOpenScreen={openScreen}
+                  permissions={permissions}
+                  roleViewId={roleViewId}
+                  user={user}
+                />
+              </ScreenErrorBoundary>
+            </React.Activity>
+          ))}
         </section>
         <SmartInsightsPanel
           activeTab={activeTab}

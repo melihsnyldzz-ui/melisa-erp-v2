@@ -112,6 +112,8 @@ Bu özellik `infra/sql/migrations/0016_vega_product_customs.sql` geçişini gere
 - [ERP UX Sprint 007 - Rapor ve Tanim Ekranlari Sadelestirme](erp-ux-sprint-007-report-definition-simplification-report.md)
 - [ERP UX Sprint 008 - Final Responsive ve Gorsel Regresyon](erp-ux-sprint-008-final-regression-report.md)
 - [Çoklu Döviz Günlük Kasa](multi-currency-daily-cash.md)
+- [Günlük Sabit Fiyat ve Güvenli Teklif](daily-fixed-price-safe-quote.md)
+- [Onaylı Ürün Kimliği ve Günlük Fiyat/Stok Snapshotı](product-identity-daily-snapshot.md)
 - [Toplu Stok Kartı Oluşturma](bulk-product-create.md)
 - [FedEx Mikro İhracat Demo Akışı](fedex-micro-export-demo.md)
 

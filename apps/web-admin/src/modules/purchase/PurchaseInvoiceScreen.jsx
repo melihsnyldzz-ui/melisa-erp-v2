@@ -297,8 +297,8 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       } catch (error) {
         if (isMounted) {
           setProductToAddId('');
-          setErrorMessage(`${error.message || 'Al lookup verisi okunamad.'} (${error.code || 'API_ERROR'})`);
-          setStatusMessage('Tedarikçi/ürün lookup API hatası; gerçek modda mock fallback yapılmadı.');
+          setErrorMessage(`${error.message || 'Alış için tedarikçi ve ürün bilgileri okunamadı.'} (${error.code || 'API_ERROR'})`);
+          setStatusMessage('Tedarikçi ve ürün bilgileri alınamadı; canlı veriye ulaşılamadı.');
         }
       } finally {
         if (isMounted) {
@@ -340,12 +340,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           setIsCorrectionMode(false);
           setSelectedItemId(nextItems[0]?.id ?? null);
           setIsDirty(false);
-          setStatusMessage(`Al tasla DB'den ald (#${response.data.id}); ticari etki yok.`);
+          setStatusMessage(`Alış taslağı veritabanından alındı (#${response.data.id}); henüz ticari etki yok.`);
         }
       } catch (error) {
         if (isMounted) {
-          setErrorMessage(`${error.message || 'Al tasla okunamad.'} (${error.code || 'API_ERROR'})`);
-          setStatusMessage('Al taslak okuma baarsz; API/DB kontrol edilmeli.');
+          setErrorMessage(`${error.message || 'Alış taslağı okunamadı.'} (${error.code || 'API_ERROR'})`);
+          setStatusMessage('Alış taslağı okunamadı; API ve veritabanı bağlantısını kontrol edin.');
         }
       } finally {
         if (isMounted) {
@@ -402,7 +402,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setProductToAddId('');
     setErrorMessage('');
     setIsDirty(false);
-    setStatusMessage('Yeni alış taslagi hazirlandi; kaydedilene kadar ticari etki yok.');
+    setStatusMessage('Yeni alış taslağı hazırlandı; kaydedilene kadar ticari etki yok.');
   }
 
   function markDirty(message) {
@@ -418,7 +418,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
     const nextRate = rateValueForCurrency(currencyRates, nextCurrency);
     if (nextRate === null) {
-      setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanıml değil. Ayarlar > Döviz Kurlar ekranından kur girin.`);
+      setCurrencyRateError(`${nextCurrency} kuru bu fiş tarihi için tanımlı değil. Ayarlar > Döviz Kurları ekranından kur girin.`);
       return null;
     }
 
@@ -445,7 +445,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       ...current,
       [field]: value,
     }));
-    markDirty('Al tasla de?i?ti; stok ve tedariki cari hareketi olumad.');
+    markDirty('Alış taslağı değişti; stok ve tedarikçi cari hareketi oluşmadı.');
   }
 
   function updateInvoiceCurrency(currency) {
@@ -463,7 +463,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
         exchangeRate: `${nextCurrency} tanımsız`,
         exchangeRateValue: '',
       }));
-      markDirty('Fi para birimi de?i?ti ancak kur tanıml değil; kayt için kur girilmeli.');
+      markDirty('Fiş para birimi değişti ancak kur tanımlı değil; kayıt için kur girilmeli.');
       return;
     }
 
@@ -477,7 +477,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     });
 
     if (convertedItems.some((item) => item === null)) {
-      setErrorMessage(`${nextCurrency} için al satırlar çevrilemedi. Döviz Kurlar ekranından kur tanımını kontrol edin.`);
+      setErrorMessage(`${nextCurrency} için alış satırları çevrilemedi. Döviz Kurları ekranından kur tanımını kontrol edin.`);
       return;
     }
 
@@ -488,23 +488,23 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       exchangeRateValue: nextRate,
     }));
     setItems(convertedItems);
-    markDirty('Fi para birimi de?i?ti; kur snapshot merkezi kurdan alnd.');
+    markDirty('Fiş para birimi değişti; kur bilgisi merkezi döviz kurundan alındı.');
   }
 
   function updateInvoiceRate(value) {
     if (value < 0 || value > 100) {
-      setErrorMessage('Fi geneli iskonto oran 0-100 arasnda olmal.');
+      setErrorMessage('Fiş geneli iskonto oranı 0-100 arasında olmalı.');
       return;
     }
 
     setErrorMessage('');
     setInvoiceRate(value);
-    markDirty('Fi geneli iskonto de?i?ti; taslak henz ticari etki oluturmaz.');
+    markDirty('Fiş geneli iskonto değişti; taslak henüz ticari etki oluşturmaz.');
   }
 
   function updateSupplierRate(value) {
     if (value < 0 || value > 100) {
-      setErrorMessage('Tedariki iskonto oran 0-100 arasnda olmal.');
+      setErrorMessage('Tedarikçi iskonto oranı 0-100 arasında olmalı.');
       return;
     }
 
@@ -542,12 +542,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       supplierBalanceLabel: formatMoney(supplier.balance, supplier.currency),
       supplierDiscountRate: nextSupplierRate,
       invoiceCurrency: supplier.currency,
-      exchangeRate: nextRate === null ? `${supplier.currency} tanımsz` : formatExchangeRate(supplier.currency, nextRate),
+      exchangeRate: nextRate === null ? `${supplier.currency} tanımsız` : formatExchangeRate(supplier.currency, nextRate),
       exchangeRateValue: nextRate === null ? '' : nextRate,
     }));
     markDirty(nextSupplierRate > 0
-       ? `Tedariki se?ildi; al iskontosu %${nextSupplierRate} nerildi.`
-      : 'Tedariki se?ildi; al tasla henz stok veya cari hareket oluturmaz.');
+      ? `Tedarikçi seçildi; alış iskontosu %${nextSupplierRate} önerildi.`
+      : 'Tedarikçi seçildi; alış taslağı henüz stok veya cari hareket oluşturmaz.');
   }
 
   function addDraftItem() {
@@ -566,7 +566,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     const product = purchaseProductOptions.find((item) => String(item.productId) === String(productToAddId));
 
     if (!product || isReadonly) {
-      setErrorMessage('Seçilen ürün bulunamadı veya fiş readonly.');
+      setErrorMessage('Seçilen ürün bulunamadı veya fiş salt okunur durumda.');
       return;
     }
 
@@ -576,20 +576,20 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
 
     if (String(product.supplierId || '') !== String(invoice.supplierId)) {
-      setErrorMessage('SeÃ§ilen Ã¼rÃ¼n bu tedarikÃ§iye baÄŸlÄ± deÄŸil. Ã–nce doÄŸru tedarikÃ§iyi seÃ§in.');
-      setStatusMessage('AlÄ±ÅŸ fiÅŸinde yalnÄ±zca seÃ§ili tedarikÃ§iye baÄŸlÄ± Ã¼rÃ¼nler eklenebilir.');
+      setErrorMessage('Seçilen ürün bu tedarikçiye bağlı değil. Önce doğru tedarikçiyi seçin.');
+      setStatusMessage('Alış fişinde yalnızca seçili tedarikçiye bağlı ürünler eklenebilir.');
       return;
     }
 
     if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
-      setErrorMessage(`${invoice.invoiceCurrency} kuru tanıml değil. Ayarlar > Döviz Kurlar ekranından kur girin.`);
-      setStatusMessage('Kur tanım olmadan dvizli al satır eklenemez.');
+      setErrorMessage(`${invoice.invoiceCurrency} kuru tanımlı değil. Ayarlar > Döviz Kurları ekranından kur girin.`);
+      setStatusMessage('Kur tanımı olmadan dövizli alış satırı eklenemez.');
       return;
     }
 
     const convertedPurchasePrice = convertCurrencyAmount(product.purchasePrice, product.currency, invoice.invoiceCurrency);
     if (convertedPurchasePrice === null) {
-      setErrorMessage(`${product.currency} fiyatlı ürün ${invoice.invoiceCurrency} alış fişine ççevrilemedi. Döviz Kurları ekranından kur tanımını kontrol edin.`);
+      setErrorMessage(`${product.currency} fiyatlı ürün ${invoice.invoiceCurrency} alış fişine çevrilemedi. Döviz Kurları ekranından kur tanımını kontrol edin.`);
       return;
     }
 
@@ -619,7 +619,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           purchasePrice: convertedPurchasePrice,
           lineDiscountRate: product.lineDiscountRate,
           stockEffect: '+1 taslak',
-          note: 'Al taslak satır',
+          note: 'Alış taslak satırı',
         },
       ];
     });
@@ -658,12 +658,12 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
   function updateDraftItem(itemId, field, value) {
     if ((field === 'quantity' || field === 'purchasePrice') && value <= 0) {
-      setErrorMessage(field === 'quantity' ? 'Miktar 0 veya negatif olamaz.' : 'Al fiyat 0 veya negatif olamaz.');
+      setErrorMessage(field === 'quantity' ? 'Miktar 0 veya negatif olamaz.' : 'Alış fiyatı 0 veya negatif olamaz.');
       return;
     }
 
     if (field === 'lineDiscountRate' && (value < 0 || value > 100)) {
-      setErrorMessage('Satr iskonto oran 0-100 arasnda olmal.');
+      setErrorMessage('Satır iskonto oranı 0-100 arasında olmalı.');
       return;
     }
 
@@ -695,7 +695,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     }
 
     if (!canSaveDraft) {
-      setErrorMessage(draftId ? 'Bu islem icin purchase.edit yetkisi gerekli.' : 'Bu islem icin purchase.create yetkisi gerekli.');
+      setErrorMessage(draftId ? 'Bu işlem için purchase.edit yetkisi gerekli.' : 'Bu işlem için purchase.create yetkisi gerekli.');
       return;
     }
 

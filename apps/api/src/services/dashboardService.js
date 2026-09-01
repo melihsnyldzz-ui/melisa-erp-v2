@@ -779,18 +779,18 @@ export async function getManagementReportingData() {
   return {
     generatedAt: new Date().toISOString(),
     assumptions: [
-      'Management reports are operational ERP decision support, not official accounting output.',
-      'Sales and purchase totals include finalized documents only; cancelled and draft documents are shown separately where relevant.',
-      'Customer and supplier balances come from ERP cards and movement effects; imported opening balances still require business reconciliation.',
-      'Foreign-currency TRY conversions use the latest available currency rate when a card balance is summarized in TRY.',
-      'Top product, customer, supplier, and warning sections are capped to keep the report reviewable and avoid uncontrolled heavy queries.',
+      'Yönetim raporları operasyonel ERP karar desteğidir; resmî muhasebe çıktısı değildir.',
+      'Satış ve alış toplamları yalnız kesinleşmiş belgeleri içerir; iptal ve taslak belgeler ilgili yerlerde ayrı gösterilir.',
+      'Müşteri ve tedarikçi bakiyeleri ERP kartları ile hareket etkilerinden gelir; içe aktarılan açılış bakiyeleri ayrıca ticari mutabakat gerektirir.',
+      'Yabancı para bakiyelerinin TRY karşılığında mevcut en güncel kur kullanılır.',
+      'Raporun hızlı ve denetlenebilir kalması için ürün, müşteri, tedarikçi ve uyarı listeleri belirli sayıda kayıtla sınırlandırılır.',
     ],
     dataQuality: {
-      source: 'SQL Server read-only SELECT aggregates',
+      source: 'SQL Server salt okunur SELECT özetleri',
       reviewRequired: [
-        'High customer or supplier balances should be checked against statements before collection, payment, or purchasing decisions.',
-        'Negative stock and average-cost based stock value require operator review before using the numbers for purchasing decisions.',
-        'Supplier performance is directional until product-level supplier attribution, purchase history, and sales margin are reviewed together.',
+        'Tahsilat, ödeme veya satın alma kararından önce yüksek müşteri ve tedarikçi bakiyeleri ekstrelerle karşılaştırılmalıdır.',
+        'Satın alma kararında kullanmadan önce eksi stoklar ve ortalama maliyete dayalı stok değeri işletme tarafından kontrol edilmelidir.',
+        'Tedarikçi performansı; ürün eşlemesi, alış geçmişi ve satış kârlılığı birlikte incelenene kadar yön gösteren bir veridir.',
       ],
       rowLimits: {
         topProducts: 10,
@@ -799,8 +799,8 @@ export async function getManagementReportingData() {
         criticalWarnings: 20,
       },
       approvalBoundaries: [
-        'No report endpoint should run DB writes, migrations, cleanup, reset, backup, restore, deployment, or external messaging.',
-        'Official accounting, tax, and payment decisions require human review outside this operational report.',
+        'Bu raporun API uçları veritabanına yazma, şema güncelleme, temizlik, sıfırlama, yedekleme, geri yükleme, yayınlama veya dış mesaj gönderme işlemi çalıştırmaz.',
+        'Resmî muhasebe, vergi ve ödeme kararları bu operasyonel rapor dışında insan kontrolü gerektirir.',
       ],
     },
     dailySales: toDailySalesSummary(dailySales.recordset?.[0] || {}),
@@ -967,15 +967,15 @@ export async function getPeriodicAccountingData(query = {}) {
     dateFrom,
     dateTo,
     assumptions: [
-      'Periodic accounting is an operational summary for ERP review, not an official accounting ledger.',
-      'Period filters apply to finalized invoices and recorded collection/payment movements in the selected date range.',
-      'Customer and supplier balance sections show current card balances by currency, not a historical period-close snapshot.',
+      'Dönemsel muhasebe görünümü ERP kontrolü için operasyonel bir özettir; resmî muhasebe defteri değildir.',
+      'Dönem filtreleri, seçilen tarih aralığındaki kesinleşmiş faturalar ile kaydedilmiş tahsilat ve ödeme hareketlerine uygulanır.',
+      'Müşteri ve tedarikçi bakiye bölümleri dönem sonu tarihsel görüntüyü değil, para birimi bazında güncel kart bakiyelerini gösterir.',
     ],
     dataQuality: {
-      source: 'SQL Server read-only SELECT aggregates',
+      source: 'SQL Server salt okunur SELECT özetleri',
       reviewRequired: [
-        'Compare balance summaries with customer and supplier statements before decisions.',
-        'Use visible date filters for review; do not treat an unfiltered report as a full audit.',
+        'Karar vermeden önce bakiye özetleri müşteri ve tedarikçi ekstreleriyle karşılaştırılmalıdır.',
+        'Kontrolde görünür tarih filtreleri kullanılmalıdır; filtresiz rapor tam denetim olarak kabul edilmemelidir.',
       ],
       rowLimits: {
         dailyCash: 40,

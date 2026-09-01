@@ -1,0 +1,80 @@
+/* Management reports are a long, scrollable decision screen rather than a fixed dashboard canvas. */
+.management-reports-screen > * {
+  flex: 0 0 auto;
+}
+
+.management-reports-screen > .periodic-report-panel {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.management-reports-screen .periodic-report-panel > .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+}
+
+.management-reports-screen .periodic-report-panel > .filter-grid label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.management-reports-screen .periodic-report-panel > .filter-grid input {
+  width: 100%;
+  min-height: 36px;
+}
+
+.management-reports-screen .periodic-report-panel > .filter-grid button {
+  min-height: 36px;
+}
+
+.work-area.dashboard-screen.management-reports-screen .report-boundary-details > .dashboard-main-grid.report-boundary-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  grid-auto-rows: auto !important;
+  gap: 10px;
+  align-items: start;
+}
+
+.management-reports-screen .report-boundary-grid > .report-notes-panel {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.work-area.dashboard-screen.management-reports-screen > .dashboard-main-grid.report-detail-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)) !important;
+  grid-auto-rows: auto !important;
+  gap: 10px;
+  align-items: start;
+}
+
+.work-area.dashboard-screen.management-reports-screen > .dashboard-main-grid.report-detail-grid > .erp-panel {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.management-reports-screen .report-table-details > summary,
+.management-reports-screen .report-note-details > summary {
+  min-height: 50px;
+}
+
+@media (max-width: 760px) {
+  .management-reports-screen .periodic-report-panel > .filter-grid,
+  .work-area.dashboard-screen.management-reports-screen .report-boundary-details > .dashboard-main-grid.report-boundary-grid,
+  .work-area.dashboard-screen.management-reports-screen > .dashboard-main-grid.report-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

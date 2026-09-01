@@ -11,7 +11,7 @@ const roleInsights = {
   patron: [
     { tone: 'info', title: 'Brüt kâr raporu hazır', detail: 'Son 7 gün raporunu aç', screenId: 'reports-overview' },
     { tone: 'info', title: 'Cari riskleri izle', detail: 'Tahsilat önceliklerini gözden geçir', screenId: 'customer-list' },
-    { tone: 'good', title: 'Terminal özeti hazır', detail: 'Kanal özetini kontrol et', screenId: 'finance-overview' },
+    { tone: 'good', title: 'Finans özeti hazır', detail: 'Kanal özetini kontrol et', screenId: 'finance-overview' },
   ],
   muhasebe: [
     { tone: 'info', title: 'Ekstre ekranı hazır', detail: 'Cari ekstreleri sıraya al', screenId: 'customer-statement' },
@@ -26,7 +26,7 @@ const roleInsights = {
   satis: [
     { tone: 'good', title: 'Satış ekranı hazır', detail: 'Teklif ve sipariş ekranını aç', screenId: 'sales-offers' },
     { tone: 'info', title: 'Cari fiyat kontrolü', detail: 'Cari ve fiyat kontrolünü yap', screenId: 'customer-list' },
-    { tone: 'info', title: 'WhatsApp hazirlik listesi', detail: 'Manuel kopyalama listesini gor', screenId: 'whatsapp-planner' },
+    { tone: 'info', title: 'WhatsApp hazırlık listesi', detail: 'Manuel kopyalama listesini gör', screenId: 'whatsapp-planner' },
   ],
 };
 
@@ -56,7 +56,7 @@ export function SmartInsightsPanel({ activeTab, isCollapsed = false, roleViewId,
           {isCollapsed ? <PanelRightOpen size={15} /> : <PanelRightClose size={15} />}
         </button>
       </div>
-      <p className="smart-panel-context">{activeContext} açıkken öne çıkan kısa yollar</p>
+      <p className="smart-panel-context">{activeContext} açıkken öne çıkan kısayollar</p>
       <div className="smart-insight-list">
         {insights.map((insight) => {
           const Icon = toneIcons[insight.tone] || BarChart3;
@@ -78,7 +78,7 @@ export function SmartInsightsPanel({ activeTab, isCollapsed = false, roleViewId,
         })}
       </div>
       <div className="smart-panel-note">
-        Bu panel sadece ekran açar; kayıt, finalize veya canlı DB yazımı yapmaz.
+        Bu panel yalnızca ekran açar; kayıt kesinleştirme veya canlı veritabanı yazımı yapmaz.
       </div>
     </aside>
   );

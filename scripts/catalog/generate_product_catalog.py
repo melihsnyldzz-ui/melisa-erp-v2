@@ -67,6 +67,10 @@ def fit_text(text: str, font: str, size: float, max_width: float, max_lines: int
     return lines
 
 
+def display_product_name(item: dict) -> str:
+    return str(item.get('customerFacingName') or item.get('productName') or '')
+
+
 def rounded_box(c: canvas.Canvas, x: float, y: float, w: float, h: float, fill, stroke=LINE, radius=12) -> None:
     c.setFillColor(fill)
     c.setStrokeColor(stroke)
@@ -232,7 +236,7 @@ def draw_product_card(c: canvas.Canvas, item: dict, image_root: Path, x: float, 
     name_y = y + h - image_h - 23
     c.setFillColor(DARK)
     c.setFont('CatalogBold', 9.1)
-    for line_index, line in enumerate(fit_text(item['productName'], 'CatalogBold', 9.1, text_w, 2)):
+    for line_index, line in enumerate(fit_text(display_product_name(item), 'CatalogBold', 9.1, text_w, 2)):
         c.drawString(text_x, name_y - line_index * 11, line)
 
     detail_y = y + 42

@@ -72,7 +72,7 @@ const criticalLocks = [
     keys: [{ key: 'finance.payment' }, { key: 'payments.manage', flag: 'canCreate' }, { key: 'purchase.draft.write', flag: 'canUpdate' }],
   },
   {
-    label: 'Excel/CSV import',
+    label: 'Excel/CSV aktarımı',
     detail: 'Toplu ürün, cari ve tedarikçi aktarımı yapar.',
     keys: [{ key: 'import.run' }],
   },
@@ -88,14 +88,14 @@ const userColumns = [
   { label: 'Ad', key: 'displayName' },
   { label: 'Rol', key: 'roleName' },
   { label: 'Aktif', value: (row) => boolLabel(row.isActive) },
-  { label: 'Son Login', value: (row) => formatDate(row.lastLoginAt) },
+  { label: 'Son Giriş', value: (row) => formatDate(row.lastLoginAt) },
 ];
 
 const auditColumns = [
   { label: 'Tarih', value: (row) => formatDate(row.createdAt) },
   { label: 'Kullanıcı', key: 'actorName' },
-  { label: 'Aksiyon', key: 'action' },
-  { label: 'Varlık', value: (row) => `${row.entityType || '-'} #${row.entityId || '-'}` },
+  { label: 'İşlem', key: 'action' },
+  { label: 'Kayıt', value: (row) => `${row.entityType || '-'} #${row.entityId || '-'}` },
   { label: 'Kaynak', key: 'source' },
   { label: 'Sebep', key: 'reason' },
 ];
@@ -224,7 +224,7 @@ export function AuthAdminScreen({ permissions = [] }) {
     }
 
     if (!canManageUsers) {
-      setErrorMessage('Kullanıcı yetkisi güncellemek için settings.manage yetkisi gerekir.');
+      setErrorMessage('Kullanıcı yetkisini güncellemek için sistem ayarlarını yönetme yetkisi gerekir.');
       return;
     }
 
@@ -249,7 +249,7 @@ export function AuthAdminScreen({ permissions = [] }) {
 
   async function createUser() {
     if (!canManageUsers) {
-      setErrorMessage('Kullanıcı oluşturmak için settings.manage yetkisi gerekir.');
+      setErrorMessage('Kullanıcı oluşturmak için sistem ayarlarını yönetme yetkisi gerekir.');
       return;
     }
     if (!createForm.username.trim() || !createForm.displayName.trim() || !createForm.password || !createForm.roleId) {
@@ -323,8 +323,8 @@ export function AuthAdminScreen({ permissions = [] }) {
 
   function exportAuditExcel() {
     exportRowsToExcel({
-      filename: 'audit-log',
-      title: 'Audit Log',
+      filename: 'denetim-gunlugu',
+      title: 'Denetim Günlüğü',
       rows: visibleAuditLogs,
       columns: auditColumns,
     });
@@ -332,7 +332,7 @@ export function AuthAdminScreen({ permissions = [] }) {
 
   function printAudit() {
     printRowsReport({
-      title: 'Melisa ERP - Audit Log',
+      title: 'Melisa ERP - Denetim Günlüğü',
       subtitle: `${visibleAuditLogs.length} kayıt / filtreli denetim`,
       rows: visibleAuditLogs,
       columns: auditColumns,
@@ -373,7 +373,7 @@ export function AuthAdminScreen({ permissions = [] }) {
       <section className="dashboard-toolbar auth-admin-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Yetki ve Denetim</strong>
-          <span>Kullanıcı, rol, izin matrisi ve son audit kayıtları</span>
+          <span>Kullanıcı, rol, izin matrisi ve son denetim kayıtları</span>
         </div>
         <div className="dashboard-toolbar-actions">
           <button type="button" onClick={() => setShowCreateUser((current) => !current)} disabled={!canManageUsers}>Yeni Kullanıcı</button>
@@ -384,15 +384,15 @@ export function AuthAdminScreen({ permissions = [] }) {
         </div>
       </section>
 
-      {isLoading && <div className="list-state">Yetki verisi API'den okunuyor...</div>}
+      {isLoading && <div className="list-state">Yetki verisi sunucudan okunuyor...</div>}
       {message && <div className="list-state list-state-success">{message}</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid auth-admin-kpis">
-        <article className="dashboard-kpi good"><span>Aktif kullanıcı</span><strong>{activeUsers}</strong><small>Login olabilen hesap</small></article>
+        <article className="dashboard-kpi good"><span>Aktif kullanıcı</span><strong>{activeUsers}</strong><small>Giriş yapabilen hesap</small></article>
         <article className="dashboard-kpi warn"><span>Pasif kullanıcı</span><strong>{inactiveUsers}</strong><small>Giriş kapalı hesap</small></article>
         <article className="dashboard-kpi info"><span>Rol sayısı</span><strong>{data.roles.length}</strong><small>Sistem ve operasyon rolleri</small></article>
-        <article className={canManageUsers ? 'dashboard-kpi good' : 'dashboard-kpi warn'}><span>Kullanıcı yönetimi</span><strong>{canManageUsers ? 'Açık' : 'Kilitli'}</strong><small>settings.manage gerekli</small></article>
+        <article className={canManageUsers ? 'dashboard-kpi good' : 'dashboard-kpi warn'}><span>Kullanıcı yönetimi</span><strong>{canManageUsers ? 'Açık' : 'Kilitli'}</strong><small>Sistem ayarlarını yönetme yetkisi gerekli</small></article>
       </section>
 
       {showCreateUser && (
@@ -446,7 +446,7 @@ export function AuthAdminScreen({ permissions = [] }) {
                   <th>Ad</th>
                   <th>Rol</th>
                   <th>Durum</th>
-                  <th>Son Login</th>
+                  <th>Son Giriş</th>
                 </tr>
               </thead>
               <tbody>
@@ -501,7 +501,7 @@ export function AuthAdminScreen({ permissions = [] }) {
               <button type="button" onClick={resetSelectedUserPassword} disabled={isSaving || !canManageUsers || !newPassword}>
                 Şifreyi Değiştir
               </button>
-              {!canManageUsers && <div className="list-state">Bu ekranda izleme açık; kullanıcı rol/aktiflik değiştirmek için settings.manage gerekir.</div>}
+              {!canManageUsers && <div className="list-state">Bu ekranda izleme açıktır; kullanıcı rolünü veya aktiflik durumunu değiştirmek için sistem ayarlarını yönetme yetkisi gerekir.</div>}
               <button type="button" className="primary-button" onClick={saveUserAccess} disabled={isSaving || !canManageUsers}>
                 {isSaving ? 'Kaydediliyor' : 'Kullanıcı Yetkisini Kaydet'}
               </button>
@@ -514,7 +514,7 @@ export function AuthAdminScreen({ permissions = [] }) {
         <section className="erp-panel">
           <div className="panel-title">
             <strong>Roller</strong>
-            <span>Rol bazlı kullanıcı sayısı</span>
+            <span>Rollere göre kullanıcı sayısı</span>
           </div>
           <div className="table-shell">
             <table className="erp-table auth-admin-role-table">
@@ -542,7 +542,7 @@ export function AuthAdminScreen({ permissions = [] }) {
 
         <section className="erp-panel">
           <div className="panel-title">
-            <strong>İzin Matrisi</strong>
+            <strong>Rol Yetkileri</strong>
             <span>{selectedRoleCode || 'Tüm roller'} / {visiblePermissions.length} satır</span>
           </div>
           <div className="toolbar-row auth-admin-inline-actions">
@@ -575,17 +575,17 @@ export function AuthAdminScreen({ permissions = [] }) {
       <section className="erp-panel auth-admin-audit-panel">
         <div className="panel-title">
           <strong>Son Denetim Kayıtları</strong>
-          <span>Audit log / {visibleAuditLogs.length} filtreli kayıt / toplam {data.auditLogs.length}</span>
+          <span>Denetim günlüğü / {visibleAuditLogs.length} filtreli kayıt / toplam {data.auditLogs.length}</span>
         </div>
         <div className="filter-grid auth-admin-audit-filter-grid">
           <label>
-            Audit ara
-            <input value={auditFilters.search} onChange={(event) => updateAuditFilter('search', event.target.value)} placeholder="Kullanıcı, aksiyon, varlık, sebep" />
+            Denetim kaydı ara
+            <input value={auditFilters.search} onChange={(event) => updateAuditFilter('search', event.target.value)} placeholder="Kullanıcı, işlem, kayıt veya sebep" />
           </label>
           <label>
-            Aksiyon
+            İşlem
             <select value={auditFilters.action} onChange={(event) => updateAuditFilter('action', event.target.value)}>
-              <option value="">Tüm aksiyonlar</option>
+              <option value="">Tüm işlemler</option>
               {auditActionOptions.map((action) => <option key={action} value={action}>{action}</option>)}
             </select>
           </label>
@@ -598,8 +598,8 @@ export function AuthAdminScreen({ permissions = [] }) {
           </label>
           <div className="auth-admin-audit-actions">
             <button type="button" onClick={clearAuditFilters}>Temizle</button>
-            <button type="button" onClick={exportAuditExcel}>Audit Excel</button>
-            <button type="button" onClick={printAudit}>Audit Yazdır/PDF</button>
+            <button type="button" onClick={exportAuditExcel}>Excel'e Aktar</button>
+            <button type="button" onClick={printAudit}>Yazdır/PDF</button>
           </div>
         </div>
         <div className="table-shell auth-admin-audit-table-shell">
@@ -608,8 +608,8 @@ export function AuthAdminScreen({ permissions = [] }) {
               <tr>
                 <th>Tarih</th>
                 <th>Kullanıcı</th>
-                <th>Aksiyon</th>
-                <th>Varlık</th>
+                <th>İşlem</th>
+                <th>Kayıt</th>
                 <th>Kaynak</th>
               </tr>
             </thead>
@@ -625,7 +625,7 @@ export function AuthAdminScreen({ permissions = [] }) {
               ))}
               {visibleAuditLogs.length === 0 && (
                 <tr>
-                  <td colSpan="5">Filtreye uygun audit kaydı yok.</td>
+                  <td colSpan="5">Filtreye uygun denetim kaydı yok.</td>
                 </tr>
               )}
             </tbody>

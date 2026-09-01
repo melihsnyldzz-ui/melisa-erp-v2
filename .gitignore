@@ -30,3 +30,4 @@ apps/terminal-app/android/app/build/
 .runtime/
 apps/desktop/dist/
 output/
+__pycache__/

@@ -58,7 +58,7 @@ function financeMovementRows(preview) {
 
 function maintenanceReportRows({ cleanupPreview, treePreview, restorePreview }) {
   const cleanup = cleanupRows(cleanupPreview).map((row) => ({
-    section: 'Kart Temizligi',
+    section: 'Kart Temizliği',
     type: row.groupLabel,
     code: row.code,
     name: row.name,
@@ -67,7 +67,7 @@ function maintenanceReportRows({ cleanupPreview, treePreview, restorePreview }) 
     reason: row.reason,
   }));
   const tree = treeRows(treePreview).map((row) => ({
-    section: 'Test Fi? Ar?ivi',
+    section: 'Test Fiş Arşivi',
     type: row.groupLabel,
     code: row.documentNo,
     name: row.partyName,
@@ -76,7 +76,7 @@ function maintenanceReportRows({ cleanupPreview, treePreview, restorePreview }) 
     reason: row.reason,
   }));
   const restore = treeRows(restorePreview).map((row) => ({
-    section: 'Ar?iv Geri Alma',
+    section: 'Arşiv Geri Alma',
     type: row.groupLabel,
     code: row.documentNo,
     name: row.partyName,
@@ -271,7 +271,7 @@ export function SystemSettingsScreen() {
         ...SERIES_FIELDS.map(([key]) => ({ group: 'documentSeries', key, value: form.documentSeries[key] || '', valueType: 'string' })),
         { group: 'tax', key: 'defaultVatRate', value: Number(form.tax.defaultVatRate || 0), valueType: 'number' },
         { group: 'tax', key: 'vatRates', value: vatRatesText.split(',').map((item) => Number(item.trim())).filter((item) => Number.isFinite(item)), valueType: 'json' },
-        { group: 'accounting', key: 'periodLockEnabled', value: Boolean(form.accounting.periodLockEnabled), valueType: 'boolean', description: 'Kapali donem eski tarihli ticari hareket girişini durdurur' },
+        { group: 'accounting', key: 'periodLockEnabled', value: Boolean(form.accounting.periodLockEnabled), valueType: 'boolean', description: 'Kapalı dönem, eski tarihli ticari hareket girişini durdurur' },
         { group: 'accounting', key: 'periodLockedThroughDate', value: form.accounting.periodLockedThroughDate || '', valueType: 'string', description: 'Bu tarih ve oncesi muhasebe donemi kapali kabul edilir' },
       ];
       const response = await updateSettings({ settings: payload });
@@ -344,12 +344,12 @@ export function SystemSettingsScreen() {
       title: 'Demo Test Temizlik Raporu',
       rows: maintenanceRows,
       columns: [
-        { label: 'Bolum', key: 'section' },
+        { label: 'Bölüm', key: 'section' },
         { label: 'Tip', key: 'type' },
         { label: 'Kod / Belge', key: 'code' },
         { label: 'Ad / Cari', key: 'name' },
         { label: 'Durum', key: 'status' },
-        { label: 'Bag / Hareket', key: 'count' },
+        { label: 'Bağ / Hareket', key: 'count' },
         { label: 'Sebep', key: 'reason' },
       ],
     });
@@ -358,10 +358,10 @@ export function SystemSettingsScreen() {
   function printMaintenanceReport() {
     printRowsReport({
       title: 'Melisa ERP - Demo/Test Temizlik Raporu',
-      subtitle: `${maintenanceRows.length} sat?r / ${apiConfig.demoMode ? 'DEMO MOD' : 'CANLI SQL'}`,
+      subtitle: `${maintenanceRows.length} satır / ${apiConfig.demoMode ? 'DEMO MOD' : 'CANLI SQL'}`,
       rows: maintenanceRows,
       columns: [
-        { label: 'Bolum', key: 'section' },
+        { label: 'Bölüm', key: 'section' },
         { label: 'Tip', key: 'type' },
         { label: 'Kod / Belge', key: 'code' },
         { label: 'Ad / Cari', key: 'name' },
@@ -372,15 +372,15 @@ export function SystemSettingsScreen() {
   }
 
   return (
-    <main className="work-area dashboard-screen">
+    <main className="work-area dashboard-screen system-settings-screen">
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Sistem Ayarları</strong>
           <span>Firma, belge seri, vergi/KDV ve güvenli bakım işlemleri</span>
         </div>
         <div className="dashboard-toolbar-actions">
-          <button type="button" onClick={exportMaintenanceReport} disabled={maintenanceRows.length === 0}>Bakim Excel</button>
-          <button type="button" onClick={printMaintenanceReport} disabled={maintenanceRows.length === 0}>Bakim PDF</button>
+          <button type="button" onClick={exportMaintenanceReport} disabled={maintenanceRows.length === 0}>Bakım Excel</button>
+          <button type="button" onClick={printMaintenanceReport} disabled={maintenanceRows.length === 0}>Bakım PDF</button>
           <button type="button" onClick={saveSettings} disabled={isSaving}>{isSaving ? 'Kaydediliyor' : 'Kaydet'}</button>
           <button type="button" onClick={() => { loadSettings(); refreshMaintenance(); }}>Yenile</button>
         </div>
@@ -390,7 +390,7 @@ export function SystemSettingsScreen() {
       {message && <div className="list-state list-state-success">{message}</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
       <div className="list-state">
-        Final test notu: Kaydet firma, belge seri, KDV ve donem kilidi ayarlarini API'ye yazar. Temizlik, arsivleme ve geri alma butonlari test/demo verisini etkileyebilir; onizleme ve onay metni olmadan calistirilmaz.
+        Final test notu: Kaydet düğmesi firma, belge serisi, KDV ve dönem kilidi ayarlarını API'ye yazar. Temizlik, arşivleme ve geri alma düğmeleri test/demo verisini etkileyebilir; önizleme ve onay metni olmadan çalıştırılmaz.
       </div>
 
       <section className="dashboard-kpi-grid">
@@ -402,17 +402,17 @@ export function SystemSettingsScreen() {
         <article className={(cleanupPreview?.totals?.safe || 0) > 0 ? 'dashboard-kpi warn' : 'dashboard-kpi good'}>
           <span>Temizlenebilir kart</span>
           <strong>{cleanupPreview?.totals?.safe || 0}</strong>
-          <small>Hareketsiz demo/test kartlari</small>
+          <small>Hareketsiz demo/test kartları</small>
         </article>
         <article className={(treePreview?.totals?.totalInvoices || 0) > 0 ? 'dashboard-kpi warn' : 'dashboard-kpi good'}>
-          <span>Test fis adayi</span>
+          <span>Test fişi adayı</span>
           <strong>{treePreview?.totals?.totalInvoices || 0}</strong>
-          <small>Normal rapordan ar?ivlenebilir</small>
+          <small>Normal rapordan arşivlenebilir</small>
         </article>
         <article className={(restorePreview?.totals?.totalInvoices || 0) > 0 ? 'dashboard-kpi info' : 'dashboard-kpi good'}>
-          <span>Ar?ivde test fis</span>
+          <span>Arşivdeki test fişi</span>
           <strong>{restorePreview?.totals?.totalInvoices || 0}</strong>
-          <small>Gerekirse geri alinabilir</small>
+          <small>Gerekirse geri alınabilir</small>
         </article>
       </section>
 
@@ -444,9 +444,9 @@ export function SystemSettingsScreen() {
       </section>
 
       <section className="erp-panel accounting-lock-panel">
-        <div className="panel-title"><strong>Muhasebe Donem Kilidi</strong><span>Kapali doneme ticari hareket yazilmaz</span></div>
+        <div className="panel-title"><strong>Muhasebe Dönem Kilidi</strong><span>Kapalı döneme ticari hareket yazılmaz</span></div>
         <div className="list-state">
-          Is kurali etkisi: Bu ayar satis, alis, iptal, tahsilat, odeme ve stok sayim islemlerinin kayit kabulunu degistirir.
+          İş kuralı etkisi: Bu ayar satış, alış, iptal, tahsilat, ödeme ve stok sayım işlemlerinin kayıt kabulünü değiştirir.
         </div>
         <div className="filter-grid">
           <label>
@@ -456,11 +456,11 @@ export function SystemSettingsScreen() {
               onChange={(event) => updateField('accounting', 'periodLockEnabled', event.target.value === 'true')}
             >
               <option value="false">Açık - eski tarihe kayıt serbest</option>
-              <option value="true">Kilitli - eski donem kapali</option>
+              <option value="true">Kilitli - eski dönem kapalı</option>
             </select>
           </label>
           <label>
-            Kapali donem bitis tarihi
+            Kapalı dönem bitiş tarihi
             <input
               type="date"
               value={form.accounting.periodLockedThroughDate || ''}

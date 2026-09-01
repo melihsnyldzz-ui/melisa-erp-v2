@@ -19,79 +19,80 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { getNavigationSection, sidebarGroups } from '../../data/mockNavigationData.js';
+import { screenTypeLabel } from '../../utils/screenLabels.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
 
 const groupDisplayLabels = {
   operasyon: 'Operasyon',
   dashboard: 'Ana Sayfa',
-  'musteri carileri': 'Musteri Carileri',
-  'tedarikci carileri': 'Tedarikci Carileri',
-  'stok yonetimi': 'Stok Yonetimi',
+  'musteri carileri': 'Müşteri Carileri',
+  'tedarikci carileri': 'Tedarikçi Carileri',
+  'stok yonetimi': 'Stok Yönetimi',
   'cari hesaplar': 'Cari Hesaplar',
-  'satis yonetimi': 'Satis Yonetimi',
-  'alis yonetimi': 'Alis Yonetimi',
-  'finans yonetimi': 'Finans Yonetimi',
-  'satis kanallari': 'Satis Kanallari',
+  'satis yonetimi': 'Satış Yönetimi',
+  'alis yonetimi': 'Alış Yönetimi',
+  'finans yonetimi': 'Finans Yönetimi',
+  'satis kanallari': 'Satış Kanalları',
   'whatsapp crm': 'WhatsApp CRM',
   'depo / terminal': 'Depo / Terminal',
   raporlar: 'Raporlar',
-  tanimlar: 'Tanimlar',
+  tanimlar: 'Tanımlar',
   ayarlar: 'Ayarlar',
-  guvenlik: 'Guvenlik',
+  guvenlik: 'Güvenlik',
 };
 
 const itemDisplayLabels = {
-  dashboard: 'Operasyon Masasi',
-  'operational-health': 'Operasyon Sagligi',
+  dashboard: 'Operasyon Masası',
+  'operational-health': 'Operasyon Sağlığı',
   'stock-list': 'Stok Listesi',
-  'product-card': 'Urun Karti',
-  'bulk-product-create': 'Toplu Stok Karti',
+  'product-card': 'Ürün Kartı',
+  'bulk-product-create': 'Toplu Stok Kartı',
   'price-list': 'Fiyat Listesi',
   'stock-movements': 'Stok Hareketleri',
-  'stock-valuation': 'Stok Degerleme',
-  'stock-count': 'Stok Sayim',
-  'customer-list': 'Musteri Cari Listesi',
-  'customer-card': 'Musteri Cari Karti',
-  'customer-movements': 'Musteri Cari Hareketleri',
+  'stock-valuation': 'Stok Değerleme',
+  'stock-count': 'Stok Sayım',
+  'customer-list': 'Müşteri Cari Listesi',
+  'customer-card': 'Müşteri Cari Kartı',
+  'customer-movements': 'Müşteri Cari Hareketleri',
   'vega-koli-movements': 'Vega Cari Hareketleri',
-  'customer-statement': 'Musteri Ekstre',
-  'supplier-list': 'Tedarikci Cari Listesi',
-  'supplier-card': 'Tedarikci Cari Karti',
-  'supplier-movements': 'Tedarikci Cari Hareketleri',
-  'supplier-statement': 'Tedarikci Ekstre',
-  'sales-invoice': 'Yeni Satis Fisi',
-  'sales-invoice-list': 'Satis Fisleri',
-  'proforma-invoice': 'Proforma Hazirlama',
-  'fedex-micro-export-demo': 'Mikro Ihracat / FedEx Demo',
+  'customer-statement': 'Müşteri Ekstre',
+  'supplier-list': 'Tedarikçi Cari Listesi',
+  'supplier-card': 'Tedarikçi Cari Kartı',
+  'supplier-movements': 'Tedarikçi Cari Hareketleri',
+  'supplier-statement': 'Tedarikçi Ekstre',
+  'sales-invoice': 'Yeni Satış Fişi',
+  'sales-invoice-list': 'Satış Fişleri',
+  'proforma-invoice': 'Proforma Hazırlama',
+  'fedex-micro-export-demo': 'Mikro İhracat / FedEx Demo',
   'sales-offers': 'Teklifler',
-  'sales-orders': 'Siparisler',
-  'purchase-invoice': 'Yeni Alis Fisi',
-  'purchase-invoice-list': 'Alis Fisleri',
-  'bulk-purchase-entry': 'Toplu Alis Girisi',
-  'finance-overview': 'Finans Ozeti',
+  'sales-orders': 'Siparişler',
+  'purchase-invoice': 'Yeni Alış Fişi',
+  'purchase-invoice-list': 'Alış Fişleri',
+  'bulk-purchase-entry': 'Toplu Alış Girişi',
+  'finance-overview': 'Finans Özeti',
   'collections-overview': 'Tahsilatlar',
-  'cash-customers': 'Pesin Cariler',
-  'cash-register': 'Gunluk Kasa',
+  'cash-customers': 'Peşin Cariler',
+  'cash-register': 'Günlük Kasa',
   'cash-bank-ledger': 'Kasa/Banka Defteri',
   'accounting-journal': 'Muhasebe Defteri',
   'accounting-control': 'Muhasebe Kontrol',
   'catalog-list': 'Katalog Listesi',
-  'whatsapp-planner': 'WhatsApp Paylasim',
-  'whatsapp-web-queue': 'WhatsApp Web Kuyrugu',
+  'whatsapp-planner': 'WhatsApp Paylaşım',
+  'whatsapp-web-queue': 'WhatsApp Web Kuyruğu',
   'whatsapp-crm-inbox': 'WhatsApp CRM Gelen Kutusu',
-  'terminal-overview': 'Terminal Ekranlari',
-  'import-foundation': 'Excel / CSV Aktarim',
+  'terminal-overview': 'Terminal Ekranları',
+  'import-foundation': 'Excel / CSV Aktarım',
   'reports-overview': 'Rapor Merkezi',
-  'vega-sales-comparison': 'Yillik Satis Karsilastirmasi',
-  'vega-sales-performance': 'Satis Performansi',
-  'vega-product-profitability': 'Urun Karliligi',
-  'export-center': 'Cikti Merkezi',
-  'definitions-overview': 'Tanim Listeleri',
-  'personnel-definitions': 'Personel Tanimlari',
-  'settings-overview': 'Sistem Ayarlari',
-  'currency-rates': 'Doviz Kurlari',
+  'vega-sales-comparison': 'Yıllık Satış Karşılaştırması',
+  'vega-sales-performance': 'Satış Performansı',
+  'vega-product-profitability': 'Ürün Kârlılığı',
+  'export-center': 'Çıktı Merkezi',
+  'definitions-overview': 'Tanım Listeleri',
+  'personnel-definitions': 'Personel Tanımları',
+  'settings-overview': 'Sistem Ayarları',
+  'currency-rates': 'Döviz Kurları',
   'auth-overview': 'Yetki ve Denetim',
-  'audit-log': 'Audit Log',
+  'audit-log': 'Denetim Günlüğü',
 };
 
 const groupIcons = {
@@ -206,12 +207,12 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   return (
     <aside className="sidebar sidebar-flat">
       <div className="sidebar-header">
-        <strong>Modul Paneli</strong>
-        <span>{activeSection.label} / {activeTab.type}</span>
+        <strong>Modül Paneli</strong>
+        <span>{activeSection.label} / {screenTypeLabel(activeTab.type)}</span>
         <label className="sidebar-search">
           <Search size={14} />
           <input
-            placeholder="Menude ara"
+            placeholder="Menüde ara"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -228,12 +229,12 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
           />
         ))}
         {filteredGroups.length === 0 && (
-          <div className="sidebar-empty">Menude eslesen ekran yok.</div>
+          <div className="sidebar-empty">Menüde eşleşen ekran yok.</div>
         )}
         <section className="side-group compact connection-details">
           <h3>Durum</h3>
-          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> API: {isDemoMode ? 'demo mode' : 'aktif'}</p>
-          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> SQL: {isDemoMode ? 'baglanti yok' : 'MELISA_ERP_V2'}</p>
+          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> Uygulama: {isDemoMode ? 'demo modu' : 'hazır'}</p>
+          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> Veritabanı: {isDemoMode ? 'bağlantı yok' : 'hazır'}</p>
           <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
         </section>
       </div>
@@ -296,7 +297,7 @@ function SidebarItem({ item, isActive, groupTitle, onOpenScreen }) {
       <Icon size={14} strokeWidth={2.1} />
       <span>{label}</span>
       {groupTitle ? <em>{getGroupLabel(groupTitle)}</em> : null}
-      {isComingSoon && <small>Hazir</small>}
+      {isComingSoon && <small>Hazır</small>}
     </button>
   );
 }

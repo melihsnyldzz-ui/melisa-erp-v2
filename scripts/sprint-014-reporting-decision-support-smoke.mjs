@@ -73,14 +73,14 @@ addCheck(
   'management report service exposes assumptions and data quality',
   managementBody.includes('assumptions:') &&
     managementBody.includes('dataQuality:') &&
-    managementBody.includes('official accounting') &&
+    managementBody.includes('resmî muhasebe çıktısı değildir') &&
     managementBody.includes('rowLimits'),
 );
 addCheck(
   'periodic report service exposes assumptions and data quality',
   periodicBody.includes('assumptions:') &&
     periodicBody.includes('dataQuality:') &&
-    periodicBody.includes('not an official accounting ledger') &&
+    periodicBody.includes('resmî muhasebe defteri değildir') &&
     periodicBody.includes('rowLimits'),
 );
 addCheck(
@@ -93,21 +93,21 @@ addCheck(
 );
 addCheck(
   'management UI shows report assumption panels',
-  managementScreenSource.includes('Report Assumptions') &&
-    managementScreenSource.includes('Data Quality Checks') &&
-    managementScreenSource.includes('Approval Boundaries') &&
-    managementScreenSource.includes('Period Assumptions'),
+  managementScreenSource.includes('Rapor Varsayımları') &&
+    managementScreenSource.includes('Veri Kalitesi Kontrolleri') &&
+    managementScreenSource.includes('Onay Sınırları') &&
+    managementScreenSource.includes('Dönem Varsayımları'),
 );
 addCheck(
   'management export includes assumptions and review boundaries',
   managementScreenSource.includes('reportAssumptionRows') &&
     managementScreenSource.includes('...reportAssumptionRows') &&
-    managementScreenSource.includes('Management assumption') &&
-    managementScreenSource.includes('Period data quality'),
+    managementScreenSource.includes('Yönetim varsayımı') &&
+    managementScreenSource.includes('Dönem veri kalitesi'),
 );
 addCheck(
   'management UI labels report as non-official accounting',
-  managementScreenSource.includes('resmi muhasebe raporu degildir'),
+  managementScreenSource.includes('Resmî muhasebe raporu değildir'),
 );
 addCheck(
   'web-admin package exposes Sprint 014 smoke',

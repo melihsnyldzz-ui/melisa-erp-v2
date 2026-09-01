@@ -38,7 +38,7 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
         type="button"
       >
         <i className={`status-led ${isDemoMode ? 'offline' : 'online'}`} />
-        {isDemoMode ? 'Demo çalışma' : 'Bağlantı aktif'}
+        {isDemoMode ? 'Demo modu' : 'Bağlantı açık'}
       </button>
       <span>{activeTab.label}</span>
       <span>{openTabCount} sekme</span>
@@ -50,10 +50,10 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
           <div><b>Dönem</b><span>2026</span></div>
           <div><b>Kullanıcı</b><span>{user.username || '-'}</span></div>
           <div><b>Rol</b><span>{user.role.name || '-'}</span></div>
-          <div><b>API</b><span>{isDemoMode ? 'kapalı / demo' : 'aktif'}</span></div>
-          <div><b>SQL</b><span>{isDemoMode ? 'kapalı / demo' : 'MELISA_ERP_V2'}</span></div>
+          <div><b>Uygulama</b><span>{isDemoMode ? 'kapalı / demo' : 'hazır'}</span></div>
+          <div><b>Veritabanı</b><span>{isDemoMode ? 'bağlantı yok / demo' : 'hazır'}</span></div>
           <div><b>Seçili ekran</b><span>{activeTab.label}</span></div>
-          <div><b>Oturum</b><span>Session aktif</span></div>
+          <div><b>Oturum</b><span>Açık</span></div>
         </div>
       )}
     </footer>

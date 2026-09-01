@@ -20,14 +20,14 @@ export function LoginScreen({
       <form className="login-panel" onSubmit={submitLogin}>
         <div className="login-title">
           <strong>Melisa ERP v2</strong>
-          <span>Web-admin guvenli giris</span>
+          <span>Güvenli yönetim girişi</span>
         </div>
         <label>
           Kullanıcı adı
           <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
         </label>
         <label>
-          Sifre
+          Şifre
           <input
             type="password"
             value={password}
@@ -42,7 +42,7 @@ export function LoginScreen({
         <small className="login-session-note">Bu cihazda girişiniz hatırlanır. Çıkış yapmadığınız sürece yeniden şifre istenmez.</small>
         {localPasswordlessEnabled && (
           <button type="button" disabled={isLoading} onClick={onLocalPasswordlessLogin}>
-            Admin olarak sifresiz gir
+            Yerel yönetici olarak şifresiz gir
           </button>
         )}
       </form>

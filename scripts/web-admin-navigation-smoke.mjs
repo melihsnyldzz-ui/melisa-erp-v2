@@ -8,12 +8,15 @@ import {
   sidebarGroups,
 } from '../apps/web-admin/src/data/mockNavigationData.js';
 import { roleViews } from '../apps/web-admin/src/config/roleViews.js';
+import { getViewOptionItems } from '../apps/web-admin/src/config/viewOptions.js';
+import { screenTypeLabel } from '../apps/web-admin/src/utils/screenLabels.js';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
 const workspacePath = resolve(repoRoot, 'apps/web-admin/src/components/workspace/Workspace.jsx');
 const appShellPath = resolve(repoRoot, 'apps/web-admin/src/components/layout/AppShell.jsx');
 const sidebarPath = resolve(repoRoot, 'apps/web-admin/src/components/navigation/Sidebar.jsx');
+const navigationPath = resolve(repoRoot, 'apps/web-admin/src/data/mockNavigationData.js');
 
 const checks = [];
 
@@ -84,6 +87,7 @@ const registrySet = new Set(registryIds);
 const routeIds = extractWorkspaceRouteIds();
 const appShellSource = readFileSync(appShellPath, 'utf8');
 const sidebarSource = readFileSync(sidebarPath, 'utf8');
+const navigationSource = readFileSync(navigationPath, 'utf8');
 const sidebarItems = screenIdsFromItems(sidebarGroups);
 const sidebarScreenIds = new Set(sidebarItems.map((item) => item.screenId));
 const sidebarGroupTitles = new Set(sidebarGroups.map((group) => group.title));
@@ -92,6 +96,8 @@ const moduleLabels = new Set(modules.map((item) => item.label));
 addCheck('screenRegistry ids match object keys', registryIds.every((id) => screenRegistry[id]?.id === id));
 addCheck('screenRegistry has no default dirty true', registryIds.every((id) => screenRegistry[id]?.dirty !== true));
 addCheck('AppShell scopes dirty updates by tab id', appShellSource.includes('function updateTabDirty') || appShellSource.includes('const updateTabDirty'));
+addCheck('AppShell preserves each open tab state while inactive', appShellSource.includes('tabs.map((tab) =>') && appShellSource.includes('<React.Activity') && appShellSource.includes("mode={tab.id === activeTab.id ? 'visible' : 'hidden'}"));
+addCheck('each preserved tab reports dirty state to its own tab id', appShellSource.includes('activeTab={tab}') && appShellSource.includes('updateTabDirty(tab.id, isDirty)'));
 addCheck('AppShell warns before browser unload when tabs are dirty', appShellSource.includes('beforeunload') && appShellSource.includes('hasDirtyTabs'));
 
 const moduleMissing = modules.filter((item) => !registrySet.has(item.screenId));
@@ -100,8 +106,7 @@ addCheck('top modules resolve to screenRegistry', moduleMissing.length === 0, mo
 const registryModuleMissing = registryIds.filter((screenId) => !moduleLabels.has(screenRegistry[screenId].module)
   && screenRegistry[screenId].module !== 'Katalog'
   && screenRegistry[screenId].module !== 'Terminal'
-  && screenRegistry[screenId].module !== 'Güvenlik'
-  && screenRegistry[screenId].module !== 'GÃ¼venlik');
+  && screenRegistry[screenId].module !== 'Güvenlik');
 addCheck('screenRegistry modules are known navigation areas', registryModuleMissing.length === 0, registryModuleMissing.map((screenId) => `${screenId}:${screenRegistry[screenId].module}`).join(', '));
 
 const sidebarMissing = sidebarItems.filter((item) => !registrySet.has(item.screenId));
@@ -114,6 +119,15 @@ addCheck('navigation sections resolve to screenRegistry', missingSectionScreens.
 addCheck('sidebar screens belong to a navigation section', unmappedSidebarScreens.length === 0, unmappedSidebarScreens.join(', '));
 addCheck('sidebar uses contextual module groups', sidebarSource.includes('contextualGroups'));
 addCheck('sidebar has no duplicate favorites block', !sidebarSource.includes('favoriteScreens'));
+addCheck('sidebar visible labels use valid Turkish text', ['Musteri', 'Tedarikci', 'Satis', 'Alis', 'Urun', 'Modul', 'Menude', 'baglanti yok', 'Hazir'].every((fragment) => !sidebarSource.includes(fragment)) && sidebarSource.includes('Modül Paneli') && sidebarSource.includes('Menüde ara'));
+addCheck('navigation security module has no mojibake', navigationSource.includes("module: 'Güvenlik'") && !navigationSource.includes('GÃ'));
+addCheck('technical screen types have Turkish display labels', screenTypeLabel('fis') === 'fiş'
+  && screenTypeLabel('ozet') === 'özet'
+  && screenTypeLabel('islem') === 'işlem'
+  && screenTypeLabel('import') === 'aktarım');
+addCheck('sidebar renders screen type through display formatter', sidebarSource.includes('screenTypeLabel(activeTab.type)'));
+addCheck('screen type ids still preserve contextual view behavior', getViewOptionItems({ type: 'fis' }).some((item) => item.label === 'Fiş yardımcı alanları')
+  && getViewOptionItems({ type: 'ozet' }).some((item) => item.label === 'Rapor özeti'));
 
 const itemDisplayLabelKeys = extractObjectKeys(sidebarSource, 'itemDisplayLabels') || [];
 const missingItemDisplayLabels = [...sidebarScreenIds].filter((screenId) => !itemDisplayLabelKeys.includes(screenId));

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { screenRegistry, sidebarGroups } from '../../data/mockNavigationData.js';
 import { searchErpRecords } from '../../services/quickSearchApi.js';
+import { screenTypeLabel } from '../../utils/screenLabels.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
 
 const pinnedCommands = [
@@ -56,9 +57,9 @@ function buildCommandList() {
     typeLabel: 'Ekran',
     label: screen.label,
     screenId: screen.id,
-    group: screen.type,
+    group: screenTypeLabel(screen.type),
     module: screen.module,
-    hint: `${screen.module} / ${screen.type}`,
+    hint: `${screen.module} / ${screenTypeLabel(screen.type)}`,
   }));
 
   const mergedCommands = [

@@ -14,21 +14,21 @@ const tabs = [
     id: 'products',
     label: 'Ürün Aktarımı',
     shortLabel: 'Ürünler',
-    description: 'Zorunlu: stockCode, barcode, productName, currency, salePrice, purchasePrice. currency: TRY / USD / EUR.',
+    description: 'Zorunlu sütunlar: stok kodu (stockCode), barkod (barcode), ürün adı (productName), para birimi (currency), satış fiyatı (salePrice) ve alış fiyatı (purchasePrice). Para birimi: TRY / USD / EUR.',
     audit: 'import_products',
   },
   {
     id: 'customers',
     label: 'Müşteri Cari Aktarımı',
     shortLabel: 'Müşteri Carileri',
-    description: 'Zorunlu: customerCode, customerName, phone, currency, customerType. customerType: customer / wholesale / retail / mixed.',
+    description: 'Zorunlu sütunlar: müşteri kodu (customerCode), müşteri adı (customerName), telefon (phone), para birimi (currency) ve müşteri türü (customerType).',
     audit: 'import_customers',
   },
   {
     id: 'suppliers',
     label: 'Tedarikçi Cari Aktarımı',
     shortLabel: 'Tedarikçi Carileri',
-    description: 'Zorunlu: supplierCode, supplierName, currency. purchaseDiscountRate alış fişinde önerilecek iskonto oranıdır.',
+    description: 'Zorunlu sütunlar: tedarikçi kodu (supplierCode), tedarikçi adı (supplierName) ve para birimi (currency). Alış iskontosu (purchaseDiscountRate), alış fişinde önerilecek orandır.',
     audit: 'import_suppliers',
   },
 ];
@@ -37,7 +37,7 @@ const csvTemplates = {
   products: {
     fileName: 'melisa-urun-import-sablon.csv',
     excelFileName: 'melisa-urun-import-sablon.xlsx',
-    sheetName: 'Ürün Import',
+    sheetName: 'Ürün Aktarımı',
     rows: [
       ['stockCode', 'barcode', 'productName', 'brand', 'category', 'currency', 'salePrice', 'purchasePrice', 'stockQuantity'],
       ['STK-ORNEK-001', '8690000000012', 'Pamuk Bebek Battaniye', 'Melisa Bebe', 'Battaniye', 'TRY', '350', '210', '25'],
@@ -48,7 +48,7 @@ const csvTemplates = {
   customers: {
     fileName: 'melisa-musteri-cari-import-sablon.csv',
     excelFileName: 'melisa-musteri-cari-import-sablon.xlsx',
-    sheetName: 'Müşteri Cari Import',
+    sheetName: 'Müşteri Cari Aktarımı',
     rows: [
       ['customerCode', 'customerName', 'phone', 'city', 'country', 'currency', 'customerType', 'balance'],
       ['MC-ORNEK-001', 'Semih Bebe', '05320000000', 'İstanbul', 'TR', 'TRY', 'customer', '0'],
@@ -58,7 +58,7 @@ const csvTemplates = {
   suppliers: {
     fileName: 'melisa-tedarikci-cari-import-sablon.csv',
     excelFileName: 'melisa-tedarikci-cari-import-sablon.xlsx',
-    sheetName: 'Tedarikci Cari Import',
+    sheetName: 'Tedarikçi Cari Aktarımı',
     rows: [
       ['supplierCode', 'supplierName', 'phone', 'city', 'country', 'currency', 'purchaseDiscountRate', 'balance'],
       ['TC-ORNEK-001', 'Kardelen Bebe Üretim', '02120000000', 'İstanbul', 'TR', 'TRY', '0', '0'],
@@ -171,7 +171,7 @@ function downloadPreviewValidRows(preview, activeEntity) {
   }));
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Gecerli Satirlar');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Geçerli Satırlar');
   const workbookArray = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([workbookArray], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -182,7 +182,7 @@ function downloadPreviewValidRows(preview, activeEntity) {
 
 function formatStatus(status) {
   if (status === 'valid') return 'Geçerli';
-  if (status === 'duplicate') return 'Duplicate';
+  if (status === 'duplicate') return 'Mükerrer';
   return 'Hatalı';
 }
 
@@ -272,7 +272,7 @@ function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWi
   const columns = getImportColumns(activeEntity).filter((column) => visibleColumns[column.key] !== false);
 
   if (!preview) {
-    return <div className="list-state">Dosya seçilip preview alındığında validasyon satırları burada görünür.</div>;
+    return <div className="list-state">Dosya seçilip önizleme yapıldığında doğrulama sonuçları burada görünür.</div>;
   }
 
   if (rows.length === 0) {
@@ -311,7 +311,7 @@ function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWi
                       onClick={() => onOpenDuplicateProduct?.(row.duplicateProduct)}
                       type="button"
                     >
-                      Stok kartini ac: {row.duplicateProduct.stockCode}
+                      Stok kartını aç: {row.duplicateProduct.stockCode}
                     </button>
                   ) : null}
                 </td>
@@ -383,13 +383,13 @@ export function ImportScreen({ onOpenScreen }) {
   const validTotal = Number(preview?.validRowCount || 0);
   const invalidTotal = Number(preview?.invalidRowCount || 0) + Number(preview?.duplicateRowCount || 0);
   const skippedCommitTotal = commitValidOnly ? invalidTotal : 0;
-  let commitPlanText = 'Preview alındığında commit planı burada görünür.';
+  let commitPlanText = 'Önizleme yapıldığında aktarım planı burada görünür.';
   if (preview && commitValidOnly) {
-    commitPlanText = `${validTotal} geçerli satır DB'ye yazılacak, ${skippedCommitTotal} hatalı/duplicate satır atlanacak.`;
+    commitPlanText = `${validTotal} geçerli satır veritabanına yazılacak, ${skippedCommitTotal} hatalı veya mükerrer satır atlanacak.`;
   } else if (preview && invalidTotal > 0) {
-    commitPlanText = `${invalidTotal} hatalı/duplicate satır var; tam commit kapalı.`;
+    commitPlanText = `${invalidTotal} hatalı veya mükerrer satır var; tüm satırları aktarma kapalı.`;
   } else if (preview) {
-    commitPlanText = `${validTotal} satırın tamamı DB'ye yazılabilir.`;
+    commitPlanText = `${validTotal} satırın tamamı veritabanına yazılabilir.`;
   }
   const canCommit = preview
     && validTotal > 0
@@ -420,9 +420,9 @@ export function ImportScreen({ onOpenScreen }) {
       setPreview(response.data);
       setPreviewToken(response.data.previewToken || '');
       setRowStatusFilter(response.data.duplicateRowCount > 0 ? 'duplicate' : response.data.invalidRowCount > 0 ? 'invalid' : 'all');
-      setMessage('Preview tamamlandı. DB yazımı yapılmadı.');
+      setMessage('Önizleme tamamlandı. Veritabanına kayıt yapılmadı.');
     } catch (error) {
-      setErrorMessage(`${error.message || 'Preview başarısız.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Önizleme başarısız.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -439,9 +439,9 @@ export function ImportScreen({ onOpenScreen }) {
       setPreviewToken(response.data.preview?.previewToken || '');
       setRowStatusFilter('all');
       const skipped = Number(response.data.skippedInvalidCount || 0) + Number(response.data.skippedDuplicateCount || 0);
-      setMessage(`${response.data.insertedCount} kayıt aktarıldı. ${skipped ? `${skipped} hatalı/duplicate satır atlandı.` : 'Audit log yazıldı.'}`);
+      setMessage(`${response.data.insertedCount} kayıt aktarıldı. ${skipped ? `${skipped} hatalı veya mükerrer satır atlandı.` : 'Denetim kaydı oluşturuldu.'}`);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Commit başarısız.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Aktarım başarısız.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -464,7 +464,7 @@ export function ImportScreen({ onOpenScreen }) {
       <section className="import-toolbar">
         <div className="import-title-block">
           <strong>Excel / CSV Aktarım Merkezi</strong>
-          <span>Preview, validasyon, duplicate kontrol ve audit destekli aktarım</span>
+          <span>Önizleme, doğrulama, mükerrer kontrolü ve denetim kaydı destekli aktarım</span>
         </div>
         <div className="import-actions">
           {tabs.map((tab) => (
@@ -478,10 +478,10 @@ export function ImportScreen({ onOpenScreen }) {
             </button>
           ))}
           <button disabled={isLoading || !selectedFile} onClick={handlePreview} type="button">
-            Preview
+            Önizle
           </button>
           <button className="primary" disabled={isLoading || !canCommit} onClick={handleCommit} type="button">
-            {commitValidOnly ? 'Geçerli Satırları Ekle' : 'Tamamını Commit Et'}
+            {commitValidOnly ? 'Geçerli Satırları Ekle' : 'Tüm Satırları Aktar'}
           </button>
           <button onClick={() => downloadCsvTemplate(activeEntity)} type="button">
             Örnek CSV İndir
@@ -493,7 +493,7 @@ export function ImportScreen({ onOpenScreen }) {
             Hata Raporu CSV
           </button>
           <button disabled={!validTotal} onClick={() => downloadPreviewValidRows(preview, activeEntity)} type="button">
-            Gecerli Excel
+            Geçerli Satırları İndir
           </button>
         </div>
       </section>
@@ -565,11 +565,11 @@ export function ImportScreen({ onOpenScreen }) {
         <SummaryBox label="Toplam satır" value={preview?.totalRows ?? '-'} />
         <SummaryBox label="Geçerli" value={preview?.validRowCount ?? '-'} tone="good" />
         <SummaryBox label="Hatalı" value={preview?.invalidRowCount ?? '-'} tone="danger" />
-        <SummaryBox label="Duplicate" value={preview?.duplicateRowCount ?? '-'} tone="warn" />
+        <SummaryBox label="Mükerrer" value={preview?.duplicateRowCount ?? '-'} tone="warn" />
         <div className={`import-commit-plan-inline ${canCommit ? 'commit-ready' : 'commit-waiting'}`}>
-          <span>Commit plani</span>
+          <span>Aktarım planı</span>
           <strong>{commitPlanText}</strong>
-          <small>{selectedFile?.name || 'Dosya se?ilmedi'}</small>
+          <small>{selectedFile?.name || 'Dosya seçilmedi'}</small>
         </div>
         <SummaryBox label="Uyarı" value={preview?.warnings?.length ?? '-'} tone="info" />
       </section>
@@ -580,8 +580,8 @@ export function ImportScreen({ onOpenScreen }) {
 
       <section className="erp-panel import-validation-panel">
         <div className="panel-title">
-          <strong>Validasyon Grid</strong>
-          <span>{commitValidOnly ? 'Hatalı/duplicate satırlar atlanır, sadece geçerli satırlar yazılır.' : 'Hata varsa commit DB’ye yazmaz.'}</span>
+          <strong>Doğrulama Sonuçları</strong>
+          <span>{commitValidOnly ? 'Hatalı veya mükerrer satırlar atlanır; yalnızca geçerli satırlar yazılır.' : 'Hata varsa veritabanına kayıt yapılmaz.'}</span>
         </div>
         <div className="import-row-status-filter">
           <button className={rowStatusFilter === 'all' ? 'pressed' : ''} onClick={() => setRowStatusFilter('all')} type="button">
@@ -594,7 +594,7 @@ export function ImportScreen({ onOpenScreen }) {
             Hatalı {preview?.invalidRowCount ?? 0}
           </button>
           <button className={rowStatusFilter === 'duplicate' ? 'pressed warn' : 'warn'} onClick={() => setRowStatusFilter('duplicate')} type="button">
-            Duplicate {preview?.duplicateRowCount ?? 0}
+            Mükerrer {preview?.duplicateRowCount ?? 0}
           </button>
         </div>
         <ImportValidationTable
@@ -608,10 +608,10 @@ export function ImportScreen({ onOpenScreen }) {
       </section>
 
       <section className="screen-summary import-summary">
-        <span>Hedef DB: MELISA_ERP_V2</span>
-        <span>Ürün / müşteri / tedarikçi ayrı import</span>
-        <span>Apply icin preview token zorunlu</span>
-        <span>Audit: {activeTab.audit}</span>
+        <span>Hedef veritabanı: MELISA_ERP_V2</span>
+        <span>Ürün, müşteri ve tedarikçi ayrı aktarılır</span>
+        <span>Aktarım için önce önizleme zorunludur</span>
+        <span>Denetim işlem kodu: {activeTab.audit}</span>
       </section>
     </main>
   );

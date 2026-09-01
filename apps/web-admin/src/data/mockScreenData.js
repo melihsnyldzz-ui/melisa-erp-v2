@@ -1,3 +1,12 @@
+// Eski arayüz tasarım örnekleridir; canlı çalışma alanına bağlı değildir.
+export const mockScreenMetadata = Object.freeze({
+  synthetic: true,
+  readOnly: true,
+  writePerformed: false,
+  liveApplicationUsage: false,
+  notice: 'SENTETİK ÖRNEK — şirket verisi değildir; canlı uygulamada kullanılmaz.',
+});
+
 export const mockScreenContent = {
   'stock-list': {
     title: 'Stok Listesi',
@@ -12,7 +21,7 @@ export const mockScreenContent = {
       ['STK-NEW-044', '8690001044044', 'Yeni Sezon Tulum', 'Ana Depo', '540', '86', '454', 'Yeni sezon'],
       ['STK-OLD-044', '8690001044990', 'Outlet Tulum Seri', 'Outlet', '710', '0', '710', 'Eritilecek'],
     ],
-    summary: ['Toplam kart: 4.820', 'Barkod eşleşmeyen: 11', 'Son terminal sync: 14:20'],
+    summary: ['Toplam kart: 4.820', 'Barkod eşleşmeyen: 11', 'Son terminal senkronizasyonu: 14.20'],
   },
   'product-card': {
     title: 'Ürün Kartı',
@@ -39,7 +48,7 @@ export const mockScreenContent = {
     subtitle: 'Müşteri, tedarikçi, açık hesap, risk ve ülke görünümü',
     actions: ['Yenile', 'Cari kartı aç', 'Risk listesi', 'XLSX'],
     filters: ['Cari kod / unvan', 'Ülke', 'Tip', 'Risk', 'Vade', 'Bakiye'],
-    insights: ['İlk 20 cari toplam alacağın %75ini taşıyor', '7 cari vade dışına çıktı'],
+    insights: ["İlk 20 cari toplam alacağın %75'ini taşıyor", '7 cari vade dışına çıktı'],
     columns: ['Cari Kod', 'Unvan', 'Ülke', 'Tip', 'Bakiye', 'Risk', 'Son temas'],
     rows: [
       ['C-001', 'Bucharest Baby SRL', 'Romanya', 'Müşteri', '$164K', 'B', 'Bugün'],
@@ -50,15 +59,15 @@ export const mockScreenContent = {
   },
   'sales-invoice': {
     title: 'Satış Fişi',
-    subtitle: 'Taslak satış, stok kontrolü, kâr ön izlemesi ve e-belge hazırlığı',
-    actions: ['Kaydet', 'Satır ekle', 'Stok kontrol', 'e-Belge ön izleme'],
+    subtitle: 'Sentetik satış taslağı, stok kontrolü ve kâr ön izlemesi',
+    actions: ['Kaydet', 'Satır ekle', 'Stok kontrolü', 'Belge ön izlemesi'],
     fields: [
       ['Belge No', 'SF-TASLAK-0301'],
       ['Cari', 'Bucharest Baby SRL'],
       ['Depo', 'Ana Depo'],
       ['Para Birimi', 'TRY'],
       ['Kanal', 'WhatsApp Toptan'],
-      ['e-Belge', 'e-Arşiv taslak'],
+      ['Belge durumu', 'Sentetik taslak'],
     ],
     insights: ['Pamuk Battaniye satırı eksi stoka düşebilir', 'Brüt kâr ön izlemesi: %24,8'],
     columns: ['Barkod', 'Kod', 'Ürün', 'Miktar', 'Fiyat', 'İsk.', 'Kâr', 'Tutar'],
@@ -121,7 +130,7 @@ export const mockScreenContent = {
     subtitle: 'Satış, alış, terminal, sayım ve transfer kaynaklı hareketler',
     actions: ['Yenile', 'Kaynak filtrele', 'Fişe git', 'XLSX'],
     filters: ['Tarih', 'Depo', 'Kod', 'Kaynak', 'Kullanıcı'],
-    insights: ['Terminalden gelen 3 hareket merkez onayı bekliyor', 'Eksi stok hareketleri satış finalize öncesi kontrol edilmeli'],
+    insights: ['Terminalden gelen 3 hareket merkez onayı bekliyor', 'Eksi stok hareketleri satış kesinleştirilmeden önce kontrol edilmeli'],
     columns: ['Tarih', 'Kod', 'Ürün', 'Giriş', 'Çıkış', 'Depo', 'Kaynak'],
     rows: [
       ['01.06.2026', 'STK-100245', 'Zıbın Takımı', '0', '60', 'Ana Depo', 'Satış fişi'],
@@ -135,7 +144,7 @@ export const mockScreenContent = {
     subtitle: 'Satış, tahsilat, iade ve açık hesap hareketleri',
     actions: ['Yenile', 'Ekstre aç', 'Tahsilat planla', 'XLSX'],
     filters: ['Cari', 'Ülke', 'Döviz', 'Tarih', 'Hareket tipi'],
-    insights: ['Romanya açık hesap toplamın %50si', 'Tahsilat planı olmayan 5 riskli cari var'],
+    insights: ["Romanya açık hesap toplamın %50'sini oluşturuyor", 'Tahsilat planı olmayan 5 riskli cari var'],
     columns: ['Tarih', 'Cari', 'Ülke', 'Tip', 'Borç', 'Alacak', 'Bakiye'],
     rows: [
       ['01.06.2026', 'Bucharest Baby SRL', 'Romanya', 'Satış', '$12.450', '$0', '$164.000'],
@@ -231,16 +240,16 @@ export const mockScreenContent = {
   },
   'terminal-overview': {
     title: 'Terminal Ekranları',
-    subtitle: 'Depo el terminali, sayım, toplama ve offline sync',
-    actions: ['Yenile', 'Sync kuyruğu', 'Cihaz listesi', 'XLSX'],
-    filters: ['Depo', 'Kullanıcı', 'Durum', 'İşlem', 'Son sync'],
-    insights: ['1 offline kayıt bekliyor', 'TERM-02 son senkronu 13:55te yaptı'],
-    columns: ['Terminal', 'Kullanıcı', 'İşlem', 'Satır', 'Durum', 'Son Sync'],
+    subtitle: 'Depo el terminali, sayım, toplama ve çevrimdışı senkronizasyon',
+    actions: ['Yenile', 'Senkronizasyon kuyruğu', 'Cihaz listesi', 'XLSX'],
+    filters: ['Depo', 'Kullanıcı', 'Durum', 'İşlem', 'Son senkronizasyon'],
+    insights: ['1 çevrimdışı kayıt bekliyor', "TERM-02 son senkronizasyonu 13.55'te yaptı"],
+    columns: ['Terminal', 'Kullanıcı', 'İşlem', 'Satır', 'Durum', 'Son Senkronizasyon'],
     rows: [
       ['TERM-01', 'Depo 1', 'Sayım', '284', 'Hazır', '01.06.2026 14:20'],
       ['TERM-02', 'Depo 2', 'Toplama', '92', 'Bekliyor', '01.06.2026 13:55'],
     ],
-    summary: ['Aktif terminal: 2', 'Bekleyen sync: 1', 'Hata: 0'],
+    summary: ['Aktif terminal: 2', 'Bekleyen senkronizasyon: 1', 'Hata: 0'],
   },
   'reports-overview': {
     title: 'Rapor Merkezi',
@@ -254,7 +263,7 @@ export const mockScreenContent = {
       ['Ülke Satış Raporu', 'Balkanlar', '01.06.2026', '8 ülke', 'Hazır'],
       ['Açık Hesap Raporu', 'Tüm cariler', '01.06.2026', '250 cari', 'Hazır'],
     ],
-    summary: ['Hazır rapor: 12', 'Planlı: 4', 'Export: PDF/XLSX'],
+    summary: ['Hazır rapor: 12', 'Planlı: 4', 'Dışa aktarma: PDF/XLSX'],
   },
   'definitions-overview': {
     title: 'Tanım Listeleri',
@@ -272,30 +281,30 @@ export const mockScreenContent = {
   },
   'settings-overview': {
     title: 'Sistem Ayarları',
-    subtitle: 'Görünüm, entegrasyon, bağlantı ve kullanıcı tercihleri',
+    subtitle: 'Görünüm, bağlantı ve kullanıcı tercihleri',
     actions: ['Kaydet', 'Test et', 'Sıfırla', 'Denetim'],
     filters: ['Alan', 'Durum', 'Kapsam', 'Kullanıcı'],
-    insights: ['Görünüm tercihleri kullanıcı bazında tarayıcıda saklanır', 'Canlı SQL ayarları env dosyası üzerinden yönetilir'],
+    insights: ['Görünüm tercihleri kullanıcı bazında tarayıcıda saklanır', 'Canlı veritabanı ayarları sunucu yapılandırması üzerinden yönetilir'],
     columns: ['Ayar', 'Değer', 'Kapsam', 'Durum', 'Not'],
     rows: [
-      ['Görünüm modu', 'Sade / detaylı', 'Kullanıcı', 'Aktif', 'localStorage'],
-      ['API bağlantısı', 'http://localhost:4100', 'Frontend', 'Kontrol edilir', 'Health endpoint'],
-      ['Demo modu', 'Env kontrollü', 'Frontend', 'Aktif/Pasif', 'Canlı yazma yapmaz'],
+      ['Görünüm modu', 'Sade / ayrıntılı', 'Kullanıcı', 'Aktif', 'localStorage'],
+      ['Uygulama bağlantısı', 'http://localhost:4100', 'Web arayüzü', 'Kontrol edilir', 'Bağlantı sağlık kontrolü'],
+      ['Demo modu', 'Uygulama ayarıyla yönetilir', 'Web arayüzü', 'Açık/Kapalı', 'Gerçek kayıt oluşturmaz'],
     ],
-    summary: ['Görünüm: kullanıcı tercihi', 'API health: kontrol edilir', 'Se?ret değerleri gösterilmez'],
+    summary: ['Görünüm: kullanıcı tercihi', 'Bağlantı durumu: kontrol edilir', 'Gizli değerler gösterilmez'],
   },
   'auth-overview': {
     title: 'Yetki ve Denetim',
     subtitle: 'Rol, izin, oturum ve işlem izi görünümü',
-    actions: ['Rol aç', 'İzinleri gör', 'Audit filtrele', 'XLSX'],
+    actions: ['Rol aç', 'İzinleri gör', 'Denetim kayıtlarını filtrele', 'XLSX'],
     filters: ['Kullanıcı', 'Rol', 'Modül', 'İşlem', 'Tarih'],
-    insights: ['Finalize/cancel izinleri rol bazında ayrıldı', 'Denetim izi kritik fiş işlemlerinde saklanır'],
+    insights: ['Kesinleştirme ve iptal izinleri rol bazında ayrıldı', 'Denetim izi kritik fiş işlemlerinde saklanır'],
     columns: ['Kullanıcı', 'Rol', 'İzin', 'Modül', 'Durum'],
     rows: [
       ['demo-admin', 'Demo Admin', 'sales.finalize', 'Satış', 'Aktif'],
       ['demo-admin', 'Demo Admin', 'purchase.cancel', 'Alış', 'Aktif'],
       ['demo-admin', 'Demo Admin', 'audit.view', 'Güvenlik', 'Aktif'],
     ],
-    summary: ['Rol izinleri granular', 'Audit görünümü aktif', 'Canlı secret gösterilmez'],
+    summary: ['Rol izinleri ayrıntılıdır', 'Denetim görünümü aktif', 'Canlı gizli bilgi gösterilmez'],
   },
 };

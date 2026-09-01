@@ -60,8 +60,8 @@ addCheck(
 
 addCheck(
   'smart insights use manual WhatsApp copy language',
-  smartInsights.includes('WhatsApp hazirlik listesi') &&
-    smartInsights.includes('Manuel kopyalama listesini gor'),
+  smartInsights.includes('WhatsApp hazırlık listesi') &&
+    smartInsights.includes('Manuel kopyalama listesini gör'),
 );
 
 const failed = checks.filter((check) => !check.ok);

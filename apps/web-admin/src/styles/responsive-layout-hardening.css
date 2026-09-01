@@ -24,6 +24,10 @@
   max-width: 100%;
 }
 
+.audit-log-screen > .auth-admin-audit-panel {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 1280px) {
   .top-menu {
     grid-template-columns: minmax(146px, 170px) minmax(260px, 1fr) minmax(410px, 440px) !important;
@@ -97,5 +101,22 @@
 
   .brand-block span {
     display: none;
+  }
+}
+
+/* The full ERP shell leaves less room than the browser viewport suggests. */
+@media (min-width: 1181px) and (max-width: 1620px) {
+  .personnel-definitions-screen .personnel-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .personnel-definitions-screen .personnel-card-list {
+    max-height: 370px;
+  }
+}
+
+@media (min-width: 1281px) and (max-width: 1500px) {
+  .audit-log-screen .auth-admin-audit-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }

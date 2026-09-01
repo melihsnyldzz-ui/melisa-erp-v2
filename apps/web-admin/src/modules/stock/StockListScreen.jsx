@@ -10,7 +10,7 @@ import { stockFilterDefaults } from './stockMockData.js';
 import { fetchVegaProducts, removeVegaProductImage, saveVegaProductImage } from '../../services/productApi.js';
 import { fetchProductDetail, fetchProductOptions, fetchProductStockMovements } from '../../services/productDetailApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
-import { API_BASE_URL } from '../../config/apiConfig.js';
+import { API_BASE_URL, apiConfig } from '../../config/apiConfig.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
@@ -226,6 +226,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [detailErrorMessage, setDetailErrorMessage] = useState('');
   const [selectionWarning, setSelectionWarning] = useState('');
   const [bulkMessage, setBulkMessage] = useState('');
@@ -244,8 +245,10 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     suppliers: [],
     supplierOptions: [],
   });
+  const isSyntheticDemo = apiConfig.demoMode || meta?.source === 'synthetic-demo-read-only';
   const isLiveVega = meta?.source === 'vega-live-read-only';
-  const canBulkEdit = permissions.includes('product.edit') && !isLiveVega;
+  const isReadOnlySource = isLiveVega || isSyntheticDemo;
+  const canBulkEdit = permissions.includes('product.edit') && !isReadOnlySource;
   const canManageVegaImage = permissions.includes('product.edit') && isLiveVega;
 
   const search = useMemo(() => buildSearch(filters), [filters]);
@@ -305,7 +308,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     let isMounted = true;
 
     async function resolveSupplier() {
-      if (isLiveVega) {
+      if (isReadOnlySource) {
         setResolvedSupplierId('');
         setIsResolvingSupplier(false);
         return;
@@ -351,27 +354,30 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     return () => {
       isMounted = false;
     };
-  }, [filters.supplier, isLiveVega]);
+  }, [filters.supplier, isReadOnlySource]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadProducts() {
-      if (!isLiveVega && filters.supplier.trim() && isResolvingSupplier) {
+      if (!isReadOnlySource && filters.supplier.trim() && isResolvingSupplier) {
         return;
       }
 
-      if (!isLiveVega && filters.supplier.trim() && !resolvedSupplierId) {
+      if (!isReadOnlySource && filters.supplier.trim() && !resolvedSupplierId) {
         setRows([]);
         setMeta(null);
         setSelectedRowId(null);
         setSelectedRowIds(new Set());
+        setErrorMessage('');
+        setErrorCode('');
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
       setErrorMessage('');
+      setErrorCode('');
 
       try {
         const response = await fetchVegaProducts({
@@ -407,6 +413,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
           setSelectedRowId(null);
           setSelectedRowIds(new Set());
           setErrorMessage(error.message || 'Stok listesi API bağlantısı başarısız.');
+          setErrorCode(error.code || 'UNKNOWN_ERROR');
         }
       } finally {
         if (isMounted) {
@@ -420,7 +427,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, isLiveVega, reloadKey, search]);
+  }, [activeOnly, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, isReadOnlySource, reloadKey, search]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => applyStockFilters(row, filters)),
@@ -442,7 +449,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     let isMounted = true;
 
     async function loadSelectedDetail() {
-      if (!selectedRowId || isLiveVega) {
+      if (!selectedRowId || isReadOnlySource) {
         setSelectedDetail(null);
         setStockMovements([]);
         setDetailErrorMessage('');
@@ -480,7 +487,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     return () => {
       isMounted = false;
     };
-  }, [isLiveVega, selectedRowId]);
+  }, [isReadOnlySource, selectedRowId]);
 
   function togglePassive() {
     setFilters((currentFilters) => ({
@@ -498,7 +505,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   }
 
   function openSelectedProduct() {
-    if (isLiveVega) {
+    if (isReadOnlySource) {
       setSelectionWarning('');
       setIsProduct360Open(true);
       return;
@@ -603,7 +610,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   function openProductRow(rowId) {
     setSelectedRowId(rowId);
     setSelectionWarning('');
-    if (isLiveVega) {
+    if (isReadOnlySource) {
       setIsProduct360Open(true);
       return;
     }
@@ -705,7 +712,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         bulkSelectionCount={selectedRowIds.size}
         canBulkEdit={canBulkEdit}
         canManageImage={canManageVegaImage}
-        isReadOnly={isLiveVega}
+        isReadOnly={isReadOnlySource}
       />
       <StockListFilters
         filters={filters}
@@ -714,6 +721,11 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         onRefresh={refreshProducts}
         onReset={resetFilters}
       />
+      {isSyntheticDemo && (
+        <div className="list-state list-state-info">
+          <strong>SENTETİK DEMO</strong> — Bu örnekler şirket verisi değildir, yalnız ekran provası içindir ve kaydedilmez.
+        </div>
+      )}
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">
           <div>
@@ -748,7 +760,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
       <section className={isProduct360Open ? 'stock-360-layout product-360-open' : 'stock-360-layout product-360-closed'}>
         <section className="erp-panel stock-list-panel stock-list-main-panel">
           <div className="panel-title stock-panel-title">
-            <strong>{isLiveVega ? 'Vega Canlı Stok Tablosu' : 'Ürün Stok Tablosu'}</strong>
+            <strong>{isSyntheticDemo ? 'Sentetik Demo Stok Tablosu' : (isLiveVega ? 'Vega Canlı Stok Tablosu' : 'Ürün Stok Tablosu')}</strong>
             <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Gösterilen: {filteredRows.length} / API toplam: {meta?.total ?? rows.length}</span>
           </div>
           {!isLoading && !errorMessage && hasClientSideFilters && Number(meta?.total || 0) > rows.length && (
@@ -756,10 +768,13 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
               Bazı kolon filtreleri bu ekranda API'den gelen ilk {rows.length} kayıt üzerinde daraltılır. Daha kesin sonuç için üst arama alanına stok kodu, barkod, ürün adı veya tedarikçi yazın.
             </div>
           )}
-          {isLoading && <div className="list-state">API'den stok kayıtları yükleniyor...</div>}
+          {isLoading && <div className="list-state">{isSyntheticDemo ? 'Yerel sentetik stok örnekleri hazırlanıyor...' : "API'den stok kayıtları yükleniyor..."}</div>}
           {!isLoading && errorMessage && (
             <div className="list-state list-state-error">
-              {errorMessage} API bağlantısı kontrol edilmeli; canlı veri okunamadı.
+              {errorMessage}{' '}
+              {errorCode === 'DEMO_ROUTE_MISSING'
+                ? 'Bu yalnızca demo veri eksikliğidir; hiçbir şirket kaydı değiştirilmedi.'
+                : 'API bağlantısını kontrol edin; canlı veri okunamadı.'}
             </div>
           )}
           {!isLoading && !errorMessage && filteredRows.length === 0 && (
@@ -797,7 +812,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
           onOpenSelectedProduct={openSelectedProduct}
           onOpenScreen={onOpenScreen}
           onOpenMovementParty={openMovementParty}
-          isReadOnly={isLiveVega}
+          isReadOnly={isReadOnlySource}
         />}
       </section>
       <section className="screen-summary stock-summary">
@@ -806,7 +821,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         <span>Pasif: {passiveCount}</span>
         <span>Eksi stok: {negativeCount}</span>
         <span>Liste kaydı: {filteredRows.length}</span>
-        <span>Kaynak: {isLiveVega ? 'Vega Canlı (salt okunur)' : 'API'}</span>
+        <span>Kaynak: {isSyntheticDemo ? 'Yerel sentetik örnek — şirket verisi değildir' : (isLiveVega ? 'Vega Canlı (salt okunur)' : 'API')}</span>
         <span>Toplu seçim: {selectedRowIds.size}</span>
       </section>
       {isBulkUpdateOpen && (

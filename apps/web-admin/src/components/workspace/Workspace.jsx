@@ -59,10 +59,10 @@ function UnmappedScreen({ screen }) {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Ekran bağlı değil</strong>
-          <span>{screen?.label || screen?.screenId || screen?.id || 'Bilinmeyen ekran'}</span>
+          <span>{screen?.label || 'Bilinmeyen ekran'}</span>
         </div>
         <div className="list-state list-state-error">
-          Bu ekran gerçek API ekranına bağlanmamış. Menüye eklenmeden önce Workspace route kontrolü yapılmalı.
+          Bu ekran henüz gerçek veri kaynağına bağlanmamış. Kullanıma açılmadan önce çalışma alanı bağlantısı tamamlanmalıdır.
         </div>
       </section>
     </main>
@@ -86,14 +86,14 @@ function hasRoutePermission(permissions, route) {
 const workspaceRouteRegistry = {
   dashboard: {
     permissionKeys: ['dashboard.view'],
-    unauthorizedMessage: 'Dashboard görüntüleme yetkiniz yok.',
+    unauthorizedMessage: 'Ana sayfayı görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen, permissions, roleViewId }) => (
       <DashboardScreen onOpenScreen={onOpenScreen} permissions={permissions} roleViewId={roleViewId} />
     ),
   },
   'operational-health': {
     permissionKeys: ['audit.view'],
-    unauthorizedMessage: 'Operasyon sagligi goruntuleme yetkiniz yok.',
+    unauthorizedMessage: 'Operasyon sağlığını görüntüleme yetkiniz yok.',
     render: () => <OperationalHealthScreen />,
   },
   'stock-list': {
@@ -131,8 +131,9 @@ const workspaceRouteRegistry = {
     render: ({ onOpenScreen }) => <StockValuationScreen onOpenScreen={onOpenScreen} />,
   },
   'stock-count': {
-    permissionKeys: ['product.edit'],
-    unauthorizedMessage: 'Stok sayımı uygulama yetkiniz yok.',
+    permissionKeys: ['product.view', 'product.edit'],
+    permissionMode: 'all',
+    unauthorizedMessage: 'Stok sayımı için ürün görüntüleme ve stok düzenleme yetkileri birlikte gereklidir.',
     render: ({ onDirtyChange, onOpenScreen }) => <StockCountScreen onDirtyChange={onDirtyChange} onOpenScreen={onOpenScreen} />,
   },
   'bulk-product-create': {
@@ -251,16 +252,23 @@ const workspaceRouteRegistry = {
     render: () => <FedexMicroExportDemoScreen />,
   },
   'proforma-invoice': {
-    permissionKeys: ['sales.view'],
-    unauthorizedMessage: 'Proforma hazırlama ekranını görüntüleme yetkiniz yok.',
-    render: ({ activeTab, onDirtyChange }) => (
-      <ProformaInvoiceScreen initialPayload={activeTab.payload} onDirtyChange={onDirtyChange} />
+    permissionKeys: ['sales.view', 'customer.view'],
+    permissionMode: 'all',
+    unauthorizedMessage: 'Proforma hazırlamak için satış fişi ve müşteri bilgisi görüntüleme yetkileri birlikte gereklidir.',
+    render: ({ activeTab, onDirtyChange, user }) => (
+      <ProformaInvoiceScreen
+        initialPayload={activeTab.payload}
+        onDirtyChange={onDirtyChange}
+        draftOwnerId={user?.id || user?.username || 'unassigned'}
+      />
     ),
   },
   'sales-offers': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Teklif görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SalesPipelineListScreen type="offer" onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen, permissions }) => (
+      <SalesPipelineListScreen type="offer" onOpenScreen={onOpenScreen} permissions={permissions} />
+    ),
   },
   'sales-offer': {
     permissionKeys: ['sales.view'],
@@ -277,7 +285,9 @@ const workspaceRouteRegistry = {
   'sales-orders': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Sipariş görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SalesPipelineListScreen type="order" onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen, permissions }) => (
+      <SalesPipelineListScreen type="order" onOpenScreen={onOpenScreen} permissions={permissions} />
+    ),
   },
   'sales-order': {
     permissionKeys: ['sales.view'],
@@ -304,7 +314,7 @@ const workspaceRouteRegistry = {
   },
   'bulk-purchase-entry': {
     permissionKeys: ['purchase.view'],
-    unauthorizedMessage: 'Toplu alis girisi goruntuleme yetkiniz yok.',
+    unauthorizedMessage: 'Toplu alış girişini görüntüleme yetkiniz yok.',
     render: ({ onDirtyChange, onOpenScreen, permissions }) => (
       <BulkPurchaseEntryScreen
         permissions={permissions}
@@ -336,7 +346,7 @@ const workspaceRouteRegistry = {
   },
   'cash-customers': {
     permissionKeys: ['finance.view', 'customer.view', 'sales.view'],
-    unauthorizedMessage: 'Pesin cari takibi goruntuleme yetkiniz yok.',
+    unauthorizedMessage: 'Peşin cari takibini görüntüleme yetkiniz yok.',
     render: ({ onOpenScreen }) => <CashCustomerTrackingScreen onOpenScreen={onOpenScreen} />,
   },
   'cash-bank-ledger': {
@@ -347,7 +357,9 @@ const workspaceRouteRegistry = {
   'cash-register': {
     permissionKeys: ['finance.view', 'finance.collection', 'finance.payment'],
     unauthorizedMessage: 'Günlük kasa oturumu için finans yetkiniz yok.',
-    render: ({ onDirtyChange }) => <CashRegisterScreen onDirtyChange={onDirtyChange} />,
+    render: ({ onDirtyChange, permissions }) => (
+      <CashRegisterScreen onDirtyChange={onDirtyChange} permissions={permissions} />
+    ),
   },
   'accounting-journal': {
     permissionKeys: ['dashboard.view', 'finance.view'],
@@ -383,12 +395,12 @@ const workspaceRouteRegistry = {
   },
   'whatsapp-crm-inbox': {
     permissionKeys: ['crm.view'],
-    unauthorizedMessage: 'WhatsApp CRM gelen kutusu goruntuleme yetkiniz yok.',
+    unauthorizedMessage: 'WhatsApp CRM gelen kutusunu görüntüleme yetkiniz yok.',
     render: ({ user }) => <WhatsappCrmWorkspace user={user} />,
   },
   'import-foundation': {
     permissionKeys: ['import.run'],
-    unauthorizedMessage: 'Import calıştirma yetkiniz yok.',
+    unauthorizedMessage: 'Veri aktarımını çalıştırma yetkiniz yok.',
     render: ({ onOpenScreen }) => <ImportScreen onOpenScreen={onOpenScreen} />,
   },
   'reports-overview': {
@@ -418,7 +430,7 @@ const workspaceRouteRegistry = {
   },
   'currency-rates': {
     permissionKeys: ['settings.manage'],
-    unauthorizedMessage: 'Döviz kuru ynetimi yetkiniz yok.',
+    unauthorizedMessage: 'Döviz kuru yönetimi yetkiniz yok.',
     render: () => <CurrencyRatesScreen />,
   },
   'settings-overview': {
@@ -433,7 +445,7 @@ const workspaceRouteRegistry = {
   },
   'personnel-definitions': {
     permissionKeys: ['settings.manage'],
-    unauthorizedMessage: 'Personel tanimlari yonetimi yetkiniz yok.',
+    unauthorizedMessage: 'Personel tanımları yönetimi yetkiniz yok.',
     render: () => <PersonnelDefinitionsScreen />,
   },
   'terminal-overview': {
@@ -443,12 +455,12 @@ const workspaceRouteRegistry = {
   },
   'auth-overview': {
     permissionKeys: ['audit.view'],
-    unauthorizedMessage: 'Audit görüntüleme yetkiniz yok.',
+    unauthorizedMessage: 'Yetki ve denetim ekranını görüntüleme yetkiniz yok.',
     render: ({ permissions }) => <AuthAdminScreen permissions={permissions} />,
   },
   'audit-log': {
     permissionKeys: ['audit.view'],
-    unauthorizedMessage: 'Audit log görüntüleme yetkiniz yok.',
+    unauthorizedMessage: 'Denetim günlüğünü görüntüleme yetkiniz yok.',
     render: () => <AuditLogScreen />,
   },
 };

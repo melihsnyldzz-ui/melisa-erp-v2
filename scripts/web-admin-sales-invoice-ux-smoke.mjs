@@ -34,6 +34,8 @@ const checks = [
   ['selected customer and product use one compact context row', screen.includes('sales-entry-context')],
   ['new invoice clears prior quick-entry context', screen.includes("setCustomerQuery('')") && screen.includes("setProductQuery('')") && screen.includes("setProductToAddId('')") && screen.includes('setQuickQuantity(1)')],
   ['empty product query never selects the first product', screen.includes("productQuery.trim() ? resolveProductFromQuery(productLookupOptions, productQuery) : null")],
+  ['empty product query stays unselected after API options load', !screen.includes("return String(options[0]?.productId ?? '');")],
+  ['currency conversion error text is valid Turkish', !screen.includes('ççevrilemedi') && screen.includes('fişine çevrilemedi')],
   ['invoice secondary fields are collapsible', header.includes('sales-invoice-details') && header.includes('Fiş ayarları ve açıklama')],
   ['toolbar actions support controlled finalized correction', toolbar.includes('onEditFinalized') && toolbar.includes('isCorrectionMode') && toolbar.includes('Değişiklikleri Kaydet')],
   ['finalized correction keeps customer and currency locked', screen.includes('disabled={isReadonly || isFinalized}') && screen.includes('isIdentityLocked={isFinalized}')],
@@ -49,6 +51,9 @@ const checks = [
   ['sales invoice uses layered workspace and zebra row hierarchy', main.includes("import './styles/invoice-visual-hierarchy.css';") && hierarchyStyles.includes('--invoice-workspace') && hierarchyStyles.includes('nth-child(even)')],
   ['product search suggestions stay above invoice panels', hierarchyStyles.includes('.sales-invoice-screen .sales-quick-add-panel') && hierarchyStyles.includes('z-index: 20') && hierarchyStyles.includes('contain: none') && hierarchyStyles.includes('.sales-invoice-screen .sales-product-suggestion-list') && hierarchyStyles.includes('z-index: 1000')],
   ['compact invoice layout has responsive breakpoints', styles.includes('@media (max-width: 1200px)') && styles.includes('@media (max-width: 760px)')],
+  ['1366 invoice header reserves enough room for the date field', styles.includes('72px minmax(150px, 1fr) 175px minmax(150px, 1fr) 110px 120px')],
+  ['wide invoice header reserves enough room for the date field', styles.includes('72px minmax(250px, 1fr) 175px minmax(300px, 1.5fr) 150px 170px')],
+  ['compact invoice toolbar keeps actions on one line when space permits', styles.includes('.sales-invoice-screen .sales-toolbar-actions') && styles.includes('gap: 5px;') && styles.includes('padding: 0;')],
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

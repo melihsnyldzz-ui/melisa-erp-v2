@@ -26,7 +26,7 @@ movementRoutes.get('/customer-movements', requireAuth, requirePermission('custom
 movementRoutes.get('/vega/sales/stock-exits', requireAuth, requirePermission('sales.view'), getVegaSalesStockExits);
 movementRoutes.get('/vega/purchases/invoices', requireAuth, requirePermission('purchase.view'), getVegaPurchaseInvoices);
 movementRoutes.get('/vega/customers/:customerSourceId/movements', requireAuth, requirePermission('customer.view'), getVegaCustomerLedger);
-movementRoutes.get('/vega/customers/:customerSourceId/movements/:movementSourceId/stock-exit', requireAuth, requirePermission('customer.view'), getVegaCustomerStockExitDocument);
+movementRoutes.get('/vega/customers/:customerSourceId/movements/:movementSourceId/stock-exit', requireAuth, requirePermission('sales.view'), requirePermission('customer.view'), getVegaCustomerStockExitDocument);
 movementRoutes.get('/vega/suppliers/:supplierSourceId/movements', requireAuth, requirePermission('supplier.view'), getVegaSupplierLedger);
 movementRoutes.get('/vega/suppliers/:supplierSourceId/purchase-intelligence', requireAuth, requirePermission('supplier.view'), getVegaSupplierPurchaseIntelligence);
 movementRoutes.get('/vega/suppliers/:supplierSourceId/movements/:movementSourceId/purchase-invoice', requireAuth, requirePermission('supplier.view'), getVegaSupplierPurchaseDocument);

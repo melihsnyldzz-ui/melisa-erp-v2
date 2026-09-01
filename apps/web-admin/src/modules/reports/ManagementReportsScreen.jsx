@@ -47,7 +47,7 @@ function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.' 
           <strong>{title}</strong>
           <small>{subtitle}</small>
         </span>
-        <b>{rows.length} satir</b>
+        <b>{rows.length} satır</b>
       </summary>
       <div className="table-wrap dashboard-table-wrap">
         <table>
@@ -90,7 +90,7 @@ function NotesPanel({ title, notes }) {
       <summary>
         <span>
           <strong>{title}</strong>
-          <small>Read-only reporting boundary</small>
+          <small>Salt okunur raporlama sınırı</small>
         </span>
         <b>{visibleNotes.length}</b>
       </summary>
@@ -122,7 +122,7 @@ export function ManagementReportsScreen() {
       setReport(managementResponse.data);
       setPeriodicReport(periodicResponse.data);
     } catch (error) {
-      setErrorMessage(`${error.message || 'Y?netim raporu okunamadi.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(`${error.message || 'Yönetim raporu okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
       setIsLoading(false);
     }
@@ -149,10 +149,10 @@ export function ManagementReportsScreen() {
     return [
       { label: 'Bugün satış', value: formatMoney(widgets.todaySalesTry), detail: `${formatNumber(sales.salesCount)} fiş`, tone: 'good' },
       { label: 'Bugün alış', value: formatMoney(widgets.todayPurchasesTry), detail: `${formatNumber(purchases.purchaseCount)} fiş`, tone: 'info' },
-      { label: 'Stok değeri', value: formatMoney(widgets.totalStockValueTry), detail: 'Kart stoğu x ortalama maliyet', tone: 'info' },
-      { label: 'Müşteri bakiye', value: formatMoney(widgets.customerBalanceTry), detail: 'Cari kart toplam bakiye', tone: 'warn' },
-      { label: 'Tedarikçi bakiye', value: formatMoney(widgets.supplierBalanceTry), detail: 'Tedarikçi kart toplam bakiye', tone: 'warn' },
-      { label: 'Kritik uyar', value: formatNumber((report.criticalWarnings || []).length), detail: `${formatNumber(widgets.negativeStockCount)} eksi stok`, tone: Number(widgets.negativeStockCount || 0) > 0 ? 'danger' : 'good' },
+      { label: 'Stok değeri', value: formatMoney(widgets.totalStockValueTry), detail: 'Kart stoğu × ortalama maliyet', tone: 'info' },
+      { label: 'Müşteri bakiyesi', value: formatMoney(widgets.customerBalanceTry), detail: 'Cari kart toplam bakiyesi', tone: 'warn' },
+      { label: 'Tedarikçi bakiyesi', value: formatMoney(widgets.supplierBalanceTry), detail: 'Tedarikçi kart toplam bakiyesi', tone: 'warn' },
+      { label: 'Kritik uyarı', value: formatNumber((report.criticalWarnings || []).length), detail: `${formatNumber(widgets.negativeStockCount)} eksi stok`, tone: Number(widgets.negativeStockCount || 0) > 0 ? 'danger' : 'good' },
     ];
   }, [report]);
 
@@ -162,8 +162,8 @@ export function ManagementReportsScreen() {
       { label: 'Dönem satış', value: formatMoney(widgets.salesTry), detail: `${periodicReport.dateFrom || '-'} / ${periodicReport.dateTo || '-'}`, tone: 'good' },
       { label: 'Dönem alış', value: formatMoney(widgets.purchasesTry), detail: 'Kesinleşen alış toplamı', tone: 'info' },
       { label: 'Tahsilat', value: formatMoney(widgets.collections), detail: 'Müşteri tahsilatları', tone: 'good' },
-      { label: 'Ödeme', value: formatMoney(widgets.payments), detail: 'Tedarikçi Ödemeleri', tone: 'danger' },
-      { label: 'Net kasa', value: formatMoney(widgets.netCash), detail: 'Tahsilat eksi Ödeme', tone: Number(widgets.netCash || 0) >= 0 ? 'good' : 'danger' },
+      { label: 'Ödeme', value: formatMoney(widgets.payments), detail: 'Tedarikçi ödemeleri', tone: 'danger' },
+      { label: 'Net kasa', value: formatMoney(widgets.netCash), detail: 'Tahsilat eksi ödeme', tone: Number(widgets.netCash || 0) >= 0 ? 'good' : 'danger' },
       { label: 'Kasa/banka TRY', value: formatMoney(widgets.cashBankTry), detail: 'Aktif hesap bakiyesi', tone: 'info' },
     ];
   }, [periodicReport]);
@@ -286,34 +286,34 @@ export function ManagementReportsScreen() {
 
   const reportAssumptionRows = [
     ...((report.assumptions || []).map((note) => ({
-      section: 'Management assumption',
-      metric: 'Report boundary',
+      section: 'Yönetim varsayımı',
+      metric: 'Rapor sınırı',
       value: note,
-      detail: report.dataQuality?.source || 'Read-only aggregate',
+      detail: report.dataQuality?.source || 'Salt okunur özet',
     }))),
     ...((report.dataQuality?.reviewRequired || []).map((note) => ({
-      section: 'Data quality',
-      metric: 'Review required',
+      section: 'Veri kalitesi',
+      metric: 'İnsan kontrolü gerekli',
       value: note,
-      detail: 'Human review before decision',
+      detail: 'Karardan önce insan kontrolü',
     }))),
     ...((report.dataQuality?.approvalBoundaries || []).map((note) => ({
-      section: 'Approval boundary',
-      metric: 'Not allowed in report',
+      section: 'Onay sınırı',
+      metric: 'Raporun yapamayacağı işlem',
       value: note,
-      detail: 'Melih approval required for risky steps',
+      detail: 'Riskli adımlar için şirket yetkilisinin onayı gerekir',
     }))),
     ...((periodicReport.assumptions || []).map((note) => ({
-      section: 'Period assumption',
-      metric: 'Report boundary',
+      section: 'Dönem varsayımı',
+      metric: 'Rapor sınırı',
       value: note,
-      detail: periodicReport.dataQuality?.source || 'Read-only aggregate',
+      detail: periodicReport.dataQuality?.source || 'Salt okunur özet',
     }))),
     ...((periodicReport.dataQuality?.reviewRequired || []).map((note) => ({
-      section: 'Period data quality',
-      metric: 'Review required',
+      section: 'Dönem veri kalitesi',
+      metric: 'İnsan kontrolü gerekli',
       value: note,
-      detail: 'Visible date filters required',
+      detail: 'Görünür tarih filtreleri gerekli',
     }))),
   ];
 
@@ -378,7 +378,7 @@ export function ManagementReportsScreen() {
 
   function exportManagementReport() {
     exportRowsToExcel({
-      filename: `y?netim-raporu-${periodFilters.dateFrom}-${periodFilters.dateTo}`,
+      filename: `yonetim-raporu-${periodFilters.dateFrom}-${periodFilters.dateTo}`,
       title: 'Yönetim Raporu',
       rows: reportExportRows,
       columns: reportExportColumns,
@@ -403,7 +403,7 @@ export function ManagementReportsScreen() {
         </div>
         <div className="dashboard-toolbar-actions">
           <details className="report-export-menu">
-            <summary aria-label="Rapor cikti secenekleri" title="Rapor cikti secenekleri">...</summary>
+            <summary aria-label="Rapor çıktı seçenekleri" title="Rapor çıktı seçenekleri">...</summary>
             <div>
           <button type="button" onClick={exportManagementReport}>Excel</button>
           <button type="button" onClick={printManagementReport}>Yazdır</button>
@@ -413,20 +413,20 @@ export function ManagementReportsScreen() {
         </div>
       </section>
 
-      {isLoading && <div className="list-state">Ynetim raporlar API'den okunuyor...</div>}
+      {isLoading && <div className="list-state">Yönetim raporları API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <details className="erp-panel report-boundary-details">
         <summary>
           <span>
-            <strong>Rapor notlari ve veri sinirlari</strong>
-            <small>Karar vermeden once incelenmesi gereken teknik notlar</small>
+            <strong>Rapor notları ve veri sınırları</strong>
+            <small>Karar vermeden önce incelenmesi gereken açıklamalar</small>
           </span>
         </summary>
-        <section className="dashboard-main-grid">
-        <NotesPanel title="Report Assumptions" notes={report.assumptions} />
-        <NotesPanel title="Data Quality Checks" notes={report.dataQuality?.reviewRequired} />
-        <NotesPanel title="Approval Boundaries" notes={report.dataQuality?.approvalBoundaries} />
+        <section className="dashboard-main-grid report-boundary-grid">
+        <NotesPanel title="Rapor Varsayımları" notes={report.assumptions} />
+        <NotesPanel title="Veri Kalitesi Kontrolleri" notes={report.dataQuality?.reviewRequired} />
+        <NotesPanel title="Onay Sınırları" notes={report.dataQuality?.approvalBoundaries} />
         </section>
       </details>
 
@@ -461,27 +461,27 @@ export function ManagementReportsScreen() {
       </section>
 
       <section className="dashboard-main-grid report-detail-grid">
-        <NotesPanel title="Period Assumptions" notes={periodicReport.assumptions} />
-        <NotesPanel title="Period Data Quality" notes={periodicReport.dataQuality?.reviewRequired} />
+        <NotesPanel title="Dönem Varsayımları" notes={periodicReport.assumptions} />
+        <NotesPanel title="Dönem Veri Kalitesi" notes={periodicReport.dataQuality?.reviewRequired} />
       </section>
 
       <section className="dashboard-main-grid report-detail-grid">
         <TablePanel
           columns={[
             { key: 'type', label: 'Rapor' },
-            { key: 'currency', label: 'PB' },
+            { key: 'currency', label: 'Para Birimi' },
             { key: 'count', label: 'Adet', align: 'right' },
             { key: 'amount', label: 'Orijinal Tutar', align: 'right' },
             { key: 'amountTry', label: 'TRY Karşılığı', align: 'right' },
           ]}
           rows={currencyRows}
           subtitle="Satış, alış ve finans neti para birimi bazında"
-          title="Para Birimi Bazl Dönem Özeti"
+          title="Para Birimi Bazlı Dönem Özeti"
         />
         <TablePanel
           columns={[
             { key: 'date', label: 'Tarih' },
-            { key: 'currency', label: 'PB' },
+            { key: 'currency', label: 'Para Birimi' },
             { key: 'collections', label: 'Tahsilat', align: 'right' },
             { key: 'payments', label: 'Ödeme', align: 'right' },
             { key: 'net', label: 'Net', align: 'right' },
@@ -493,7 +493,7 @@ export function ManagementReportsScreen() {
         <TablePanel
           columns={[
             { key: 'type', label: 'Cari Türü' },
-            { key: 'currency', label: 'PB' },
+            { key: 'currency', label: 'Para Birimi' },
             { key: 'count', label: 'Cari Sayısı', align: 'right' },
             { key: 'debit', label: 'Borç', align: 'right' },
             { key: 'credit', label: 'Alacak', align: 'right' },
@@ -501,7 +501,7 @@ export function ManagementReportsScreen() {
           ]}
           rows={balanceRows}
           subtitle="Müşteri ve tedarikçi kartlarının anlık bakiyesi"
-          title="Cari Bor / Alacak Raporu"
+          title="Cari Borç / Alacak Raporu"
         />
       </section>
 
@@ -575,10 +575,10 @@ export function ManagementReportsScreen() {
       </section>
 
       <section className="screen-summary dashboard-summary">
-        <span>Kaynak: Yonetim raporu / read-only SQL SELECT</span>
-        <span>Uretim zamani: {formatDate(report.generatedAt)}</span>
+        <span>Kaynak: Yönetim raporu / salt okunur şirket verisi</span>
+        <span>Üretim zamanı: {formatDate(report.generatedAt)}</span>
         <span>Yetki: dashboard.view</span>
-        <span>Sinir: resmi muhasebe raporu degildir</span>
+        <span>Sınır: Resmî muhasebe raporu değildir</span>
       </section>
     </main>
   );

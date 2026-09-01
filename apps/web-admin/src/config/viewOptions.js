@@ -55,27 +55,27 @@ export const detailedViewPreset = {
 };
 
 const globalViewOptions = [
-  { key: 'darkMode', label: 'Siyah mod', description: 'Koyu arka plan ve dusuk parlaklik' },
-  { key: 'simpleMode', label: 'Sade mod', description: 'Daha az kalabalik, daha genis calışma alani' },
-  { key: 'focusMode', label: 'Odak modu', description: 'Menu ve yardimci panelleri gecici gizle' },
+  { key: 'darkMode', label: 'Koyu mod', description: 'Koyu arka plan ve düşük parlaklık' },
+  { key: 'simpleMode', label: 'Sade mod', description: 'Daha az kalabalık ve daha geniş çalışma alanı' },
+  { key: 'focusMode', label: 'Odak modu', description: 'Menüyü ve yardımcı panelleri geçici olarak gizle' },
   { key: 'showSidebar', label: 'Sol modül paneli', description: 'Ekran listesini göster/gizle' },
   { key: 'showSmartPanel', label: 'Akıllı özet paneli', description: 'Bugün önemli kısayollarını göster/gizle' },
-  { key: 'smartPanelCollapsed', label: 'Ozet panelini daralt', description: 'Sag paneli ince bir kisayol seridine cevir' },
+  { key: 'smartPanelCollapsed', label: 'Özet panelini daralt', description: 'Sağ paneli ince bir kısayol şeridine çevir' },
   { key: 'showTabs', label: 'Sekmeler', description: 'Açık pencereleri göster/gizle' },
-  { key: 'showStatusBar', label: 'Alt durum cubugu', description: 'Firma, oturum ve durum bilgileri' },
+  { key: 'showStatusBar', label: 'Alt durum çubuğu', description: 'Firma, oturum ve durum bilgileri' },
 ];
 
 const contextualViewOptions = {
   dashboard: [
-    { key: 'showKpis', label: 'KPI kartlari', description: 'Dashboard ozet kartlari' },
-    { key: 'showSummaries', label: 'Alt ozetler', description: 'Ekran sonundaki bilgi satırlari' },
+    { key: 'showKpis', label: 'Özet bilgi kartları', description: 'Ana sayfa özet kartları' },
+    { key: 'showSummaries', label: 'Alt özetler', description: 'Ekran sonundaki bilgi satırları' },
   ],
   liste: [
-    { key: 'showFilters', label: 'Filtre paneli', description: 'Liste arama ve filtre alanlari' },
+    { key: 'showFilters', label: 'Filtre paneli', description: 'Liste arama ve filtre alanları' },
     { key: 'showSummaries', label: 'Liste özeti', description: 'Seçim ve kayıt bilgileri' },
   ],
   ozet: [
-    { key: 'showKpis', label: 'KPI kartlari', description: 'Rapor ozet kartlari' },
+    { key: 'showKpis', label: 'Özet bilgi kartları', description: 'Rapor özet kartları' },
     { key: 'showSummaries', label: 'Rapor özeti', description: 'Kaynak ve yetki bilgileri' },
   ],
   fis: [
@@ -88,9 +88,9 @@ const contextualViewOptions = {
 };
 
 const helperOptions = [
-  { key: 'showToolbarSubtitles', label: 'Baslik aciklamalari', description: 'Toolbar alt metinlerini göster/gizle' },
-  { key: 'showConnectionDetails', label: 'Bağlantı detayları', description: 'API/SQL durum bloklarını göster/gizle' },
-  { key: 'compactRows', label: 'Kompakt tablo satırlari', description: 'Listelerde daha fazla satır goster' },
+  { key: 'showToolbarSubtitles', label: 'Başlık açıklamaları', description: 'Üst araç çubuğu açıklamalarını göster/gizle' },
+  { key: 'showConnectionDetails', label: 'Bağlantı ayrıntıları', description: 'Uygulama ve veritabanı bağlantı durumlarını göster/gizle' },
+  { key: 'compactRows', label: 'Sık tablo satırları', description: 'Listelerde daha fazla satır göster' },
   {
     key: 'rowDensity',
     label: 'Tablo yoğunluğu',

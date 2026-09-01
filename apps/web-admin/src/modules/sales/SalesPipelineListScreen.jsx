@@ -1,6 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchSalesOffers, fetchSalesOrders } from '../../services/salesPipelineApi.js';
-import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
+import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import {
+  canCreateSalesPipelineDocument,
+  requestOpenNewSalesPipelineDocument,
+} from './salesPipelineListPermissions.js';
+import { getSalesPipelineListOutputState } from './salesPipelineListSafety.js';
 
 const STATUS_LABELS = {
   DRAFT: 'Taslak',
@@ -32,8 +37,21 @@ function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('tr-TR') : '-';
 }
 
-export function SalesPipelineListScreen({ type, onOpenScreen }) {
+const LIST_OUTPUT_COLUMNS = [
+  { label: 'Belge No', key: 'documentNo' },
+  { label: 'Tarih', value: (row) => formatDate(row.documentDate) },
+  { label: 'Cari', key: 'customerName' },
+  { label: 'Durum', value: (row) => STATUS_LABELS[row.status] || row.status },
+  { label: 'PB', key: 'documentCurrency' },
+  { label: 'Toplam', key: 'grandTotal' },
+  { label: 'TRY', key: 'amountTry' },
+  { label: 'Satır', key: 'itemCount' },
+];
+
+export function SalesPipelineListScreen({ type, onOpenScreen, permissions = [] }) {
+  const loadRequestSequence = useRef(0);
   const isOffer = type === 'offer';
+  const canCreate = canCreateSalesPipelineDocument(permissions);
   const today = useMemo(() => todayIsoDate(), []);
   const [filters, setFilters] = useState({
     search: '',
@@ -49,66 +67,57 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
   const [meta, setMeta] = useState(null);
 
   const selectedRow = rows.find((row) => row.id === selectedId) || rows[0] || null;
-  const hasPartialList = Number(meta?.total || 0) > rows.length;
+  const {
+    canUseOutput: canExportCompleteList,
+    hasPartialList,
+    hasValidTotal,
+  } = getSalesPipelineListOutputState({ rows, meta, isLoading, errorMessage });
+  const hasUnverifiedListScope = rows.length > 0 && !hasValidTotal;
+  const outputDisabledTitle = hasPartialList
+    ? 'Filtreleri daraltın; eksik liste tam çıktı gibi gösterilmez.'
+    : hasUnverifiedListScope
+      ? 'Toplam satır bilgisi doğrulanamadığı için çıktı kapalı.'
+      : 'Yükleme tamamlanınca görüntülenen tam liste kullanılabilir.';
 
   async function loadRows() {
+    const requestSequence = ++loadRequestSequence.current;
     setIsLoading(true);
     setErrorMessage('');
     try {
       const loader = isOffer ? fetchSalesOffers : fetchSalesOrders;
       const response = await loader({ page: 1, limit: 100, ...filters });
-      setRows(response.data || []);
+      if (requestSequence !== loadRequestSequence.current) return;
+      const nextRows = Array.isArray(response.data) ? response.data : [];
+      setRows(nextRows);
       setMeta(response.meta || null);
       setSelectedId((current) => (
-        (response.data || []).some((row) => row.id === current) ? current : response.data?.[0]?.id ?? null
+        nextRows.some((row) => row.id === current) ? current : nextRows[0]?.id ?? null
       ));
     } catch (error) {
+      if (requestSequence !== loadRequestSequence.current) return;
       setRows([]);
       setMeta(null);
       setSelectedId(null);
       setErrorMessage(error.message || 'Liste API bağlantısı başarısız.');
     } finally {
-      setIsLoading(false);
+      if (requestSequence === loadRequestSequence.current) setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function guardedLoad() {
-      setIsLoading(true);
-      setErrorMessage('');
-      try {
-        const loader = isOffer ? fetchSalesOffers : fetchSalesOrders;
-        const response = await loader({ page: 1, limit: 100, ...filters });
-        if (isMounted) {
-          setRows(response.data || []);
-          setMeta(response.meta || null);
-          setSelectedId((current) => (
-            (response.data || []).some((row) => row.id === current) ? current : response.data?.[0]?.id ?? null
-          ));
-        }
-      } catch (error) {
-        if (isMounted) {
-          setRows([]);
-          setMeta(null);
-          setSelectedId(null);
-          setErrorMessage(error.message || 'Liste API bağlantısı başarısız.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    guardedLoad();
+    loadRows();
     return () => {
-      isMounted = false;
+      loadRequestSequence.current += 1;
     };
+    // The request sequence is the dependency-safe stale-response guard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, isOffer]);
 
   function updateFilter(key, value) {
+    loadRequestSequence.current += 1;
+    setIsLoading(true);
+    setErrorMessage('');
+    setMeta(null);
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
@@ -117,43 +126,105 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
       setErrorMessage('Açacak kayıt seçin.');
       return;
     }
+    if (typeof onOpenScreen !== 'function') {
+      setErrorMessage('Belge ekranı şu anda açılamıyor.');
+      return;
+    }
     onOpenScreen(isOffer ? 'sales-offer' : 'sales-order', {
       [isOffer ? 'offerId' : 'orderId']: row.id,
       documentNo: row.documentNo,
     });
   }
 
+  function openNewDocument() {
+    const result = requestOpenNewSalesPipelineDocument({ type, permissions, onOpenScreen });
+    if (result.opened) {
+      setErrorMessage('');
+      return;
+    }
+
+    if (result.code === 'SALES_CREATE_PERMISSION_REQUIRED') {
+      setErrorMessage(`Bu liste salt okunur. Yeni ${isOffer ? 'teklif' : 'sipariş'} açmak için satış oluşturma yetkisi gerekir.`);
+      return;
+    }
+
+    setErrorMessage(`Yeni ${isOffer ? 'teklif' : 'sipariş'} ekranı şu anda açılamıyor.`);
+  }
+
   function exportRows() {
-    exportRowsToCsv({
+    if (!canExportCompleteList) return;
+    exportRowsToExcel({
       filename: isOffer ? 'teklifler' : 'siparisler',
+      title: `Melisa ERP - ${isOffer ? 'Teklifler' : 'Siparişler'}`,
       rows,
-      columns: [
-        { label: 'Belge No', key: 'documentNo' },
-        { label: 'Tarih', value: (row) => formatDate(row.documentDate) },
-        { label: 'Cari', key: 'customerName' },
-        { label: 'Durum', value: (row) => STATUS_LABELS[row.status] || row.status },
-        { label: 'PB', key: 'documentCurrency' },
-        { label: 'Toplam', key: 'grandTotal' },
-        { label: 'TRY', key: 'amountTry' },
-        { label: 'Satır', key: 'itemCount' },
-      ],
+      columns: LIST_OUTPUT_COLUMNS,
     });
   }
 
+  function printRows() {
+    if (!canExportCompleteList) return;
+    printRowsReport({
+      title: `Melisa ERP - ${isOffer ? 'Teklifler' : 'Siparişler'}`,
+      subtitle: `Satır sayısı: ${rows.length}`,
+      rows,
+      columns: LIST_OUTPUT_COLUMNS,
+    });
+  }
+
+  function handleRowKeyDown(event, row) {
+    if (event.key === ' ') {
+      event.preventDefault();
+      setSelectedId(row.id);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setSelectedId(row.id);
+      openDocument(row);
+    }
+  }
+
   return (
-    <main className="work-area invoice-list-screen">
+    <main className="work-area invoice-list-screen sales-pipeline-list-screen">
       <section className="invoice-list-toolbar">
         <div className="invoice-list-title">
           <strong>{isOffer ? 'Teklifler' : 'Siparişler'}</strong>
           <span>Gerçek API listesi / Satır: {meta?.total ?? rows.length}</span>
         </div>
         <div className="invoice-list-actions">
-          <button type="button" onClick={() => onOpenScreen(isOffer ? 'sales-offer' : 'sales-order')}>Yeni</button>
-          <button type="button" onClick={() => openDocument()}>Aç</button>
-          <button type="button" onClick={exportRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen(`Melisa ERP - ${isOffer ? 'Teklifler' : 'Siparişler'}`)}>Yazdır</button>
-          <button type="button" onClick={loadRows}>Yenile</button>
+          <button
+            type="button"
+            onClick={openNewDocument}
+            disabled={!canCreate}
+            title={canCreate ? `Yeni ${isOffer ? 'teklif' : 'sipariş'} kartı aç` : `Yeni ${isOffer ? 'teklif' : 'sipariş'} açmak için satış oluşturma yetkisi gerekir.`}
+          >
+            Yeni
+          </button>
+          <button type="button" onClick={() => openDocument()} disabled={!selectedRow || isLoading}>Aç</button>
+          <button
+            type="button"
+            onClick={exportRows}
+            disabled={!canExportCompleteList}
+            title={canExportCompleteList ? 'Görüntülenen tam listeyi Excel dosyasına aktar.' : outputDisabledTitle}
+          >
+            Excel
+          </button>
+          <button
+            type="button"
+            onClick={printRows}
+            disabled={!canExportCompleteList}
+            title={canExportCompleteList ? 'Görüntülenen tam listeyi yazdır.' : outputDisabledTitle}
+          >
+            Yazdır
+          </button>
+          <button type="button" onClick={loadRows} disabled={isLoading}>Yenile</button>
         </div>
+        {!canCreate && (
+          <div className="sales-pipeline-readonly-note list-state-info" role="status">
+            Bu {isOffer ? 'teklif' : 'sipariş'} listesi salt okunur. Kayıtları görüntüleyebilir ve süzebilirsiniz; yeni belge açmak için satış oluşturma yetkisi gerekir.
+          </div>
+        )}
       </section>
 
       <section className="invoice-list-filters">
@@ -185,24 +256,30 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
         </label>
       </section>
 
-      <section className="erp-panel invoice-list-panel">
+      <section className="erp-panel invoice-list-panel sales-pipeline-list-panel">
         <div className="panel-title">
           <strong>{isOffer ? 'Teklif Listesi' : 'Sipariş Listesi'}</strong>
           <span>Seçili: {selectedRow?.documentNo ?? 'yok'}</span>
         </div>
-        {isLoading && <div className="list-state">API'den liste yükleniyor...</div>}
-        {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>}
-        {!isLoading && !errorMessage && hasPartialList && (
-          <div className="list-state list-state-info">
-            Liste API'den gelen ilk {rows.length} belgeyi gösteriyor. Daha kesin sonuç için belge no, cari, durum veya tarih filtresiyle aramayı daraltın.
-          </div>
-        )}
-        {!isLoading && !errorMessage && rows.length === 0 && (
-          <div className="list-state">Kayıt bulunamadı; filtreleri temizleyip tekrar deneyin.</div>
-        )}
-        {!isLoading && !errorMessage && rows.length > 0 && (
-          <div className="table-wrap invoice-table-wrap">
-            <table className="invoice-list-table">
+        <div className="sales-pipeline-list-body" aria-live="polite">
+          {isLoading && <div className="list-state">API'den liste yükleniyor...</div>}
+          {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage} Demo fallback kullanılmadı.</div>}
+          {!isLoading && !errorMessage && hasPartialList && (
+            <div className="list-state list-state-info">
+              Liste API'den gelen ilk {rows.length} belgeyi gösteriyor. Daha kesin sonuç ve eksiksiz Excel için belge no, cari, durum veya tarih filtresiyle aramayı daraltın.
+            </div>
+          )}
+          {!isLoading && !errorMessage && hasUnverifiedListScope && (
+            <div className="list-state list-state-info">
+              Listenin toplam satır bilgisi doğrulanamadı. Kayıtlar görüntülenebilir; eksik çıktı riskini önlemek için Excel ve Yazdır kapalıdır.
+            </div>
+          )}
+          {!isLoading && !errorMessage && rows.length === 0 && (
+            <div className="list-state">Kayıt bulunamadı; filtreleri temizleyip tekrar deneyin.</div>
+          )}
+          {!isLoading && !errorMessage && rows.length > 0 && (
+            <div className="table-wrap invoice-table-wrap">
+              <table className="invoice-list-table">
               <thead>
                 <tr>
                   <th>Belge no</th>
@@ -220,8 +297,12 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
                   <tr
                     key={row.id}
                     className={row.id === selectedRow?.id ? 'selected-row' : ''}
+                    tabIndex={0}
+                    aria-selected={row.id === selectedRow?.id}
                     onClick={() => setSelectedId(row.id)}
                     onDoubleClick={() => openDocument(row)}
+                    onKeyDown={(event) => handleRowKeyDown(event, row)}
+                    title="Satırı seçmek için Boşluk, belgeyi açmak için Enter tuşunu kullanın."
                   >
                     <td>{row.documentNo}</td>
                     <td>{formatDate(row.documentDate)}</td>
@@ -234,9 +315,10 @@ export function SalesPipelineListScreen({ type, onOpenScreen }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        )}
+              </table>
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );

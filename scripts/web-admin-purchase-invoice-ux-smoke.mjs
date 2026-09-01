@@ -18,6 +18,8 @@ const styles = read('apps/web-admin/src/styles/purchase-invoice-ux.css');
 const salesStyles = read('apps/web-admin/src/styles/sales-invoice-ux.css');
 const hierarchyStyles = read('apps/web-admin/src/styles/invoice-visual-hierarchy.css');
 const main = read('apps/web-admin/src/main.jsx');
+const brokenPurchaseText = ['Ã', 'Ä', 'Å', '�', 'de?i?ti', 'Al tasla', 'Fi para', 'Satr ', 'tanımsz', 'ççevrilemedi'];
+const brokenBulkText = ['Toplu Alis', 'Tedarikci', 'tedarikci', 'Satir', 'alis fisi', 'Olusacak', 'Henuz', 'donustu'];
 
 const checks = [
   ['normal purchase entry is hidden for closed invoices', screen.includes('!isReadonly && <section className="erp-panel purchase-draft-controls">')],
@@ -45,6 +47,8 @@ const checks = [
   ['bulk purchase uses combined supplier and product fields', bulk.includes('bulk-purchase-supplier-suggestions') && bulk.includes('bulk-purchase-product-suggestions')],
   ['bulk purchase never auto-selects the first supplier or product', !bulk.includes('nextSuppliers[0]') && !bulk.includes('supplierProducts[0]')],
   ['bulk purchase has a compact context row', bulk.includes('bulk-purchase-entry-context')],
+  ['purchase messages contain valid Turkish text', brokenPurchaseText.every((fragment) => !screen.includes(fragment)) && screen.includes('Alış taslağı değişti') && screen.includes('Seçilen ürün bu tedarikçiye bağlı değil')],
+  ['bulk purchase guidance contains valid Turkish text', brokenBulkText.every((fragment) => !bulk.includes(fragment)) && bulk.includes('Toplu Alış Girişi') && bulk.includes('Oluşacak Fiş Özeti')],
   ['bulk purchase table removes duplicate barcode and currency columns', !bulk.includes('<th>Barkod</th>') && !bulk.includes('<th>PB</th>')],
   ['simple mode preserves core invoice entry', styles.includes('.simple-mode-shell .purchase-invoice-screen .purchase-draft-controls') && salesStyles.includes('.simple-mode-shell .sales-invoice-screen .sales-draft-controls')],
   ['purchase UX styles load after existing ERP styles', main.includes("import './styles/purchase-invoice-ux.css';")],

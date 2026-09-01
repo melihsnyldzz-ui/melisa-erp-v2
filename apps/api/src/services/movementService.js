@@ -86,6 +86,10 @@ function makeMovementError(code, message, statusCode = 400, meta = {}) {
 }
 
 function parseCountQuantity(value, fieldName) {
+  if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+    throw makeMovementError('STOCK_COUNT_VALIDATION_FAILED', `${fieldName} must be a non-negative number`);
+  }
+
   const number = Number(value);
 
   if (!Number.isFinite(number) || number < 0) {
@@ -652,12 +656,16 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
   assertMelisaWriteEnabled();
 
   const productId = Number(payload.productId || 0);
+  const expectedCurrentQuantity = parseCountQuantity(payload.expectedCurrentQuantity, 'expectedCurrentQuantity');
   const countedQuantity = parseCountQuantity(payload.countedQuantity, 'countedQuantity');
   const note = trimText(payload.note, 500);
   const documentDate = normalizeDate(payload.documentDate) || todaySqlDate();
 
   if (!Number.isInteger(productId) || productId <= 0) {
     throw makeMovementError('STOCK_COUNT_PRODUCT_REQUIRED', 'productId is required');
+  }
+  if (!note) {
+    throw makeMovementError('STOCK_COUNT_REASON_REQUIRED', 'Stock count adjustment reason is required');
   }
 
   const sqlDriver = getSqlDriver();
@@ -690,7 +698,15 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       throw makeMovementError('STOCK_COUNT_PRODUCT_NOT_FOUND', 'Product not found', 404);
     }
 
-    const currentQuantity = Number(product.current_stock_qty || 0);
+    const currentQuantity = Math.round(Number(product.current_stock_qty || 0) * 1000) / 1000;
+    if (currentQuantity !== expectedCurrentQuantity) {
+      throw makeMovementError(
+        'STOCK_COUNT_STALE',
+        'Stock quantity changed after the count screen was opened',
+        409,
+        { expectedCurrentQuantity, currentQuantity },
+      );
+    }
     const difference = Math.round((countedQuantity - currentQuantity) * 1000) / 1000;
     const averageCostTry = Number(product.average_cost_try || 0);
 

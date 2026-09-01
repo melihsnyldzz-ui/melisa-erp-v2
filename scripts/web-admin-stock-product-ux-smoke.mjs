@@ -17,6 +17,7 @@ const productService = read('apps/api/src/services/productService.js');
 const productForm = read('apps/web-admin/src/modules/product/ProductCardForm.jsx');
 const productHeader = read('apps/web-admin/src/modules/product/ProductCardHeader.jsx');
 const productApi = read('apps/web-admin/src/services/productDetailApi.js');
+const apiClient = read('apps/web-admin/src/services/apiClient.js');
 const productRoutes = read('apps/api/src/routes/productRoutes.js');
 const productController = read('apps/api/src/controllers/productController.js');
 const auditService = read('apps/api/src/services/auditService.js');
@@ -36,7 +37,9 @@ const checks = [
   ['secondary stock filters are collapsible', filters.includes('stock-filter-details') && filters.includes('Ayrıntılı filtreler')],
   ['brand category and supplier suggestions remain available', filters.includes('suggestions.brands') && filters.includes('suggestions.categories') && filters.includes('suggestions.suppliers')],
   ['stock toolbar keeps create open and refresh actions', toolbar.includes('Yeni Ürün') && toolbar.includes('Ürün Kartı') && toolbar.includes('Yenile')],
-  ['live Vega stock opens a read-only card summary without replacing the table', toolbar.includes("isReadOnly ? 'Kart Özeti' : 'Ürün Kartı'") && stockList.includes('setIsProduct360Open(true)') && !stockList.includes('Vega canlı stok kartı ayrıntısı bir sonraki adımda açılacak') && stock360.includes('isReadOnly = false') && stock360.includes("Vega'dan canlı okunan kart özeti")],
+  ['live Vega stock opens a read-only card summary without replacing the table', toolbar.includes("isReadOnly ? 'Kart Özeti' : 'Ürün Kartı'") && stockList.includes('setIsProduct360Open(true)') && !stockList.includes('Vega canlı stok kartı ayrıntısı bir sonraki adımda açılacak') && stock360.includes('isReadOnly = false') && stock360.includes('Vega salt okunur.')],
+  ['missing demo data uses a user-facing message without exposing the route', apiClient.includes('Bu ekranın örnek demo verisi henüz hazırlanmadı.') && apiClient.includes("demoError.meta = { method, path };") && !apiClient.includes('servis mock response')],
+  ['stock list distinguishes demo data gaps from a real API outage', stockList.includes("errorCode === 'DEMO_ROUTE_MISSING'") && stockList.includes('Bu yalnızca demo veri eksikliğidir; hiçbir şirket kaydı değiştirilmedi.') && stockList.includes('API bağlantısını kontrol edin; canlı veri okunamadı.')],
   ['secondary stock commands use overflow menu', toolbar.includes('stock-list-tools-menu') && toolbar.includes('Yazdır/PDF') && toolbar.includes('Kolonlar')],
   ['stock default columns include immutable card opening date', stockList.includes("'cardOpenedDate', 'status'") && stockList.includes("label: 'Kart Açılış Tarihi'") && productService.includes('cardOpenedAt: row.created_at')],
   ['stock card opening date range reaches the database query', filters.includes('type="date"') && filters.includes('cardOpenedFrom') && filters.includes('cardOpenedTo') && stockList.includes('cardOpenedFrom: filters.cardOpenedFrom') && productService.includes('@cardOpenedFrom IS NULL OR p.created_at >= @cardOpenedFrom') && productService.includes('p.created_at < DATEADD(day, 1, @cardOpenedTo)')],
