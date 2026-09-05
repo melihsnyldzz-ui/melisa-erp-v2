@@ -1,5 +1,12 @@
 import crypto from 'node:crypto';
-import { env } from '../config/env.js';
+
+function enabled() {
+  return String(process.env.EXTERNAL_READ_ONLY_ENABLED || 'false').toLowerCase() === 'true';
+}
+
+function configuredKey() {
+  return process.env.EXTERNAL_READ_ONLY_API_KEY || '';
+}
 
 function secureEqual(left, right) {
   const a = Buffer.from(String(left || ''), 'utf8');
@@ -9,15 +16,16 @@ function secureEqual(left, right) {
 }
 
 export function requireExternalReadOnly(req, res, next) {
-  if (!env.externalReadOnly.enabled) {
+  if (!enabled()) {
     return res.status(503).json({
       success: false,
       error: { code: 'EXTERNAL_READ_ONLY_DISABLED', message: 'External read-only gateway is disabled' },
     });
   }
 
+  const key = configuredKey();
   const provided = req.get('x-melisa-read-key');
-  if (!provided || !secureEqual(provided, env.externalReadOnly.apiKey)) {
+  if (!key || !provided || !secureEqual(provided, key)) {
     return res.status(401).json({
       success: false,
       error: { code: 'EXTERNAL_READ_ONLY_UNAUTHORIZED', message: 'Invalid read-only gateway key' },
