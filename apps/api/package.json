@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "start:external-readonly": "node src/externalReadOnlyServer.js",
     "db:backup-reset:preview": "node scripts/backup-reset-melisa-db.mjs",
     "db:backup": "node scripts/backup-reset-melisa-db.mjs --backup",
     "db:backup-reset": "node scripts/backup-reset-melisa-db.mjs --backup-reset",
