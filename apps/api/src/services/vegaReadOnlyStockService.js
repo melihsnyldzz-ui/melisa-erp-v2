@@ -1,4 +1,4 @@
-import { getVegaSqlPool } from '../config/vegaDatabase.js';
+import { getBionicVegaSqlPool as getVegaSqlPool, verifyBionicVegaPermissions } from '../config/bionicVegaDatabase.js';
 
 const STOCK_TABLE = 'F0102TBLSTOKLAR';
 const STOCK_SCHEMA = 'dbo';
@@ -47,14 +47,15 @@ async function buildProjection(pool) {
   const mapping = {
     sourceId: firstExisting(columns, ['IND', 'ID']),
     stockCode: 'STOKKODU',
-    productName: firstExisting(columns, ['STOKADI', 'STOKAD', 'ADI', 'ACIKLAMA', 'STOKACIKLAMA']),
+    productName: firstExisting(columns, ['MALINCINSI', 'STOKADI', 'STOKAD', 'ADI', 'ACIKLAMA', 'STOKACIKLAMA']),
     barcode: firstExisting(columns, ['BARKOD', 'BARKODU', 'BARCODE']),
     unit: firstExisting(columns, ['BIRIM', 'BIRIMI']),
     currency: firstExisting(columns, ['DOVIZ', 'DOVIZCINSI', 'PARABIRIMI']),
     salePrice: firstExisting(columns, ['SATISFIYATI', 'SATISFIYAT1', 'FIYAT1', 'SATIS1']),
     purchasePrice: firstExisting(columns, ['ALISFIYATI', 'ALISFIYAT1', 'ALIS1']),
     groupCode: firstExisting(columns, ['GRUPKODU', 'GRUPKOD', 'KOD1']),
-    brand: firstExisting(columns, ['MARKA', 'MARKASI']),
+    brand: firstExisting(columns, ['KOD1', 'MARKA', 'MARKASI']),
+    category: firstExisting(columns, ['KOD4']),
   };
 
   const select = Object.entries(mapping)
@@ -66,9 +67,11 @@ async function buildProjection(pool) {
 
 export async function getVegaReadOnlyHealth() {
   const pool = await getVegaSqlPool();
+  const permissions = await verifyBionicVegaPermissions(pool);
   const databaseResult = await pool.request().query('SELECT DB_NAME() AS databaseName');
   const projection = await buildProjection(pool);
   return {
+    ...permissions,
     databaseName: databaseResult.recordset?.[0]?.databaseName || null,
     source: `${STOCK_SCHEMA}.${STOCK_TABLE}`,
     readOnly: true,
@@ -82,7 +85,7 @@ export async function countVegaStockCodes() {
   const projection = await buildProjection(pool);
   const result = await pool.request().query(`
     SELECT
-      COUNT_BIG(*) AS rowCount,
+      COUNT_BIG(*) AS [rowCount],
       COUNT(DISTINCT NULLIF(LTRIM(RTRIM(${quoteIdentifier(projection.mapping.stockCode)})), '')) AS stockCodeCount
     FROM ${quoteIdentifier(STOCK_SCHEMA)}.${quoteIdentifier(STOCK_TABLE)};
   `);
@@ -98,7 +101,7 @@ export async function countVegaStockCodes() {
 export async function listVegaStockCodes({ search, limit } = {}) {
   const pool = await getVegaSqlPool();
   const projection = await buildProjection(pool);
-  const safeLimit = Math.min(MAX_LIST_ROWS, Math.max(1, Number(limit) || 50));
+  const safeLimit = Math.min(MAX_LIST_ROWS, Math.max(1, Math.trunc(Number(limit) || 50)));
   const request = pool.request();
   request.input('search', search ? `%${String(search).trim()}%` : null);
   const nameColumn = projection.mapping.productName ? quoteIdentifier(projection.mapping.productName) : null;

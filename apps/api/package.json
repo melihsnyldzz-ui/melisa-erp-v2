@@ -10,6 +10,7 @@
     "start": "node src/server.js",
     "start:external-readonly": "node src/externalReadOnlyServer.js",
     "start:mcp-readonly": "node src/mcpReadOnlyServer.js",
+    "test:mcp-commercial": "node --test src/mcp/commercial/commercial.test.js src/mcp/commercial/commercial.sql.test.js",
     "db:backup-reset:preview": "node scripts/backup-reset-melisa-db.mjs",
     "db:backup": "node scripts/backup-reset-melisa-db.mjs --backup",
     "db:backup-reset": "node scripts/backup-reset-melisa-db.mjs --backup-reset",
