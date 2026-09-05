@@ -1,5 +1,5 @@
 import { sql, quote } from './sourcePools.js';
-import { decimalTypes, integerTypes, dateTypes, exactKeys, fail } from './policy.js';
+import { decimalTypes, integerTypes, dateTypes, exactKeys, fail, contextNames } from './policy.js';
 import { fingerprint, openCursor } from './cursor.js';
 
 export function pageLimit(value = 50) {
@@ -138,9 +138,10 @@ export function compileQuery(dataset, args) {
   const binding = fingerprint({ type: 'rows', dataset: dataset.id, schema: dataset.schemaVersion, fields: fields.map(f => f.name), filters: args.filters || [], personal: args.includePersonalData === true });
   if (args.cursor !== undefined) terms.push(keyset(dataset, dataset.primaryKey, openCursor(args.cursor, binding), parameters));
   const requested = fields.map(f => f.name);
-  const selected = [...new Set([...requested, ...dataset.primaryKey])].map(n => field(dataset, n));
+  const contextFields=contextNames.filter(n=>dataset.fields.some(f=>f.name===n&&!f.personal));
+  const selected = [...new Set([...requested, ...dataset.primaryKey,...contextFields])].map(n => field(dataset, n));
   const statement = `SELECT TOP (${limit + 1}) ${selected.map(f => outputExpression(f) + ' AS ' + quote(f.name)).join(',')} FROM ${dataset.from}${terms.length ? ' WHERE ' + terms.join(' AND ') : ''} ORDER BY ${dataset.primaryKey.map(quote).join(',')} OPTION (MAXDOP 1)`;
-  return { statement, parameters, binding, limit, requested, keys: dataset.primaryKey };
+  return { statement, parameters, binding, limit, requested, keys: dataset.primaryKey,contextFields };
 }
 
 export function compileAggregate(dataset, args) {

@@ -28,6 +28,12 @@ test('contains escapes wildcard characters and remains parameterized',()=>{
   const q=compileQuery(d,{dataset:d.id,filters:[{field:'name',op:'contains',value:'50%_[a~'}]});
   assert.equal(q.parameters[0].value,'%50~%~_~[a~~%');assert.match(q.statement,/ESCAPE '~'/);
 });
+test('unit and currency context is read even when omitted from selected fields',()=>{
+  const q=compileQuery(d,{dataset:d.id,fields:['id','amount']});
+  assert.ok(q.contextFields.includes('currency'));assert.ok(q.contextFields.includes('unit'));
+  assert.match(q.statement,/AS \[currency\]/);assert.match(q.statement,/AS \[unit\]/);
+  assert.deepEqual(q.requested,['id','amount']);
+});
 test('page is capped, not total access; keyset cursor is query-bound and tamper-resistant',()=>{
   error(()=>compileQuery(d,{dataset:d.id,limit:51}),'INVALID_PAGE_LIMIT');
   const first=compileQuery(d,{dataset:d.id,limit:50});const cursor=sealCursor(first.binding,['9007199254740993']);

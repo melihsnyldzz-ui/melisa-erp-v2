@@ -26,7 +26,8 @@ async function executePage(d, compiled) {
   const hasMore = rows.length > compiled.limit;
   const nextCursor = hasMore ? sealCursor(compiled.binding, compiled.keys.map(k => page.at(-1)[k])) : null;
   const items = page.map(row => Object.fromEntries(compiled.requested.map(k => [k,row[k] ?? null])));
-  return bounded({ ...envelope(d), items, pageSize: items.length, hasMore, nextCursor });
+  const rowContexts=compiled.contextFields?page.map(row=>({key:Object.fromEntries(compiled.keys.map(k=>[k,row[k]])),unitsAndCurrencies:Object.fromEntries(compiled.contextFields.map(k=>[k,row[k]??null]))})):undefined;
+  return bounded({ ...envelope(d), items, ...(rowContexts?{rowContexts}:{}),pageSize: items.length, hasMore, nextCursor });
 }
 
 export async function queryDataset(args) {
@@ -102,7 +103,7 @@ export async function getDocument(args) {
   const filters=[{field:'EVRAKNO',op:'eq',value:args.key.IND}];
   const lines=await queryDataset({dataset:line.id,fields:args.lineFields,filters,limit:args.limit,cursor:args.cursor});
   const count=await aggregateDataset({dataset:line.id,filters,metrics:[{op:'count',as:'line_count'}]});
-  return bounded({...envelope(head),record:header.record,lines:lines.items,lineDataset:line.id,totalLines:count.items[0].line_count,
+  return bounded({...envelope(head),record:header.record,headerContext:header.rowContexts?.[0],lines:lines.items,lineContexts:lines.rowContexts,lineDataset:line.id,totalLines:count.items[0].line_count,
     hasMore:lines.hasMore,nextCursor:lines.nextCursor,relation:{headerKey:'IND',lineForeignKey:'EVRAKNO',evidence:head.template==='TBLALFATBASLIK'?'vegaSupplierLedgerService.js':'Vendor invoice descriptions + live F0104 D0007 full line/header integrity check'},
     warnings:[...header.warnings,'Header and lines are separate live SELECT reads; concurrent edits can change them. Recorded totals, returns and cancellation flags are not a calculated invoice audit.']});
 }

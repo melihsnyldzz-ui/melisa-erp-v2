@@ -76,7 +76,11 @@ alanlar üzerinden sayım ve gruplama yapılabilir.
 
 Serbest SQL, ifade, fonksiyon, JOIN veya sıralama ifadesi kabul edilmez.
 SQL adları yalnız sunucunun metadata kataloğundan seçilir; filtre değerleri
-tür denetiminden sonra parametre olarak bağlanır. Para/ondalık/büyük tamsayı
+tür denetiminden sonra parametre olarak bağlanır.
+Kayıt sonuçlarında seçilmemiş birim/döviz alanları da aynı SELECT ile okunup
+`rowContexts` içinde kaynak anahtarıyla döner. Belge sonuçlarında başlık ve satır
+bağlamları ayrıdır; bulunmayan birim/döviz değeri tahmin edilmez.
+Para/ondalık/büyük tamsayı
 sonuçları hassasiyeti korumak için metindir. `sum/min/max` yalnız alanda
 belirtilmişse açıktır; gerekli döviz/birim grubu yoksa reddedilir. Eksik değeri
 olan bir tutar grubunun toplamı kesin sıfıra dönüştürülmez, `null` döner.

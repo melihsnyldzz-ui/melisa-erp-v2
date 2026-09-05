@@ -25,6 +25,7 @@ export const decimalTypes = new Set(['decimal','numeric','money','smallmoney','f
 export const integerTypes = new Set(['bigint','int','smallint','tinyint']);
 export const dateTypes = new Set(['date','datetime','datetime2','smalldatetime','datetimeoffset','time']);
 export const defaultNames=['IND','id','STOKKODU','stock_code','MALINCINSI','name','FIRMAKODU','supplier_code','FIRMANO','STOKNO','product_id','TARIH','created_at','BELGENO','EVRAKNO','PARABIRIMI','currency_code','STATUS','is_active','DELETED','is_deleted','IADE','IPTAL','BIRIM','unit'];
+export const contextNames=['PARABIRIMI','APB','DAPB','SPARABIRIMI','PB1','PB2','PB3','PB4','PB5','PB6','BIRIM','BIRIMEX','BIRIMADI','ANABIRIM','unit','currency_code','currency','source_unit','source_unit_id','erp_currency','recorded_currency'];
 
 const meanings={
  IND:'Source row identity; only unique within the named object and scope.',id:'Local ERP row identity.',
