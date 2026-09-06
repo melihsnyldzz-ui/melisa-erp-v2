@@ -1,0 +1,41 @@
+name: ERP Truth CI
+
+on:
+  pull_request:
+    branches: [codex/erp-working-state-20260828]
+
+permissions:
+  contents: read
+
+jobs:
+  api-tests:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+      - run: node --experimental-test-module-mocks --test
+
+  web-admin-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web-admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: apps/web-admin/package-lock.json
+      - run: npm ci
+      - run: npm run build

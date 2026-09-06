@@ -2,6 +2,7 @@ import sql from 'mssql';
 import { env } from '../config/env.js';
 import { getVegaSqlPool } from '../config/vegaDatabase.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
+import { explicitInventoryQuantity, explicitSaleCurrency } from './explicitSaleCurrency.mjs';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -59,9 +60,10 @@ function normalizeStockCodes(values) {
     .slice(0, 100);
 }
 
-function toVegaProductDto(row) {
-  const currency = normalizeCurrency(row.sale_currency, normalizeCurrency(row.purchase_currency));
-  const purchaseCurrency = normalizeCurrency(row.purchase_currency, currency);
+export function toVegaProductDto(row) {
+  // Preserve the existing internal cost fallback independently of sale truth.
+  const internalCurrency = normalizeCurrency(row.sale_currency, normalizeCurrency(row.purchase_currency));
+  const purchaseCurrency = normalizeCurrency(row.purchase_currency, internalCurrency);
   const purchasePriceLocal = Number(row.purchase_price_local || 0);
   const purchasePriceForeign = Number(row.purchase_price_foreign || 0);
 
@@ -81,7 +83,7 @@ function toVegaProductDto(row) {
     supplierCode: '',
     supplierName: '',
     unitName: row.unit_name || '',
-    currency,
+    ...explicitSaleCurrency(row.sale_currency),
     salePrice: Number(row.sale_price || 0),
     purchaseCurrency,
     purchasePrice: purchaseCurrency !== 'TRY' && purchasePriceForeign > 0
@@ -91,8 +93,8 @@ function toVegaProductDto(row) {
     purchasePriceForeign,
     purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
     averageCostTry: 0,
-    stockQuantity: Number(row.stock_quantity || 0),
-    reservedQuantity: Number(row.reserved_quantity || 0),
+    stockQuantity: explicitInventoryQuantity(row.stock_quantity),
+    reservedQuantity: explicitInventoryQuantity(row.reserved_quantity),
     imageUrl: null,
     isPassive: !row.is_active,
     cardOpenedAt: row.card_opened_at || null,
@@ -193,7 +195,7 @@ export async function getVegaProductsList(query) {
           CASE
             WHEN ISNULL(period_stock.movement_count, 0) > 0
               THEN ISNULL(period_stock.stock_quantity, 0)
-            ELSE ISNULL(s.KALAN, 0)
+            ELSE s.KALAN
           END AS stock_quantity,
           s.REZERV AS reserved_quantity,
           s.ALISFIYATI AS purchase_price_local,
