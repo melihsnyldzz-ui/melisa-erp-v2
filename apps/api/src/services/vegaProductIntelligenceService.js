@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { getVegaSqlPool } from '../config/vegaDatabase.js';
 import { getVegaProductImageMap } from './vegaProductImageService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
+import { explicitInventoryQuantity, explicitSaleCurrency } from './explicitSaleCurrency.mjs';
 
 const DEFAULT_WINDOW_DAYS = 90;
 const DEFAULT_LIMIT = 20;
@@ -67,17 +68,9 @@ export function normalizeProductIntelligenceQuery(query = {}, now = new Date()) 
   };
 }
 
-function normalizeCurrency(value) {
-  const currency = String(value || '').trim().toLocaleUpperCase('tr-TR');
-  if (['$', 'US$', 'USD'].includes(currency)) return 'USD';
-  if (['€', 'EUR'].includes(currency)) return 'EUR';
-  if (['₺', 'TL', 'TRY'].includes(currency)) return 'TRY';
-  return currency || 'TRY';
-}
-
 export function toProductIntelligenceDto(row, imageUrl = null) {
-  const stockQuantity = Number(row.stock_quantity || 0);
-  const reservedQuantity = Number(row.reserved_quantity || 0);
+  const stockQuantity = explicitInventoryQuantity(row.stock_quantity);
+  const reservedQuantity = explicitInventoryQuantity(row.reserved_quantity);
   return {
     sourceId: Number(row.source_id),
     stockCode: String(row.stock_code || '').trim(),
@@ -90,9 +83,10 @@ export function toProductIntelligenceDto(row, imageUrl = null) {
     lastSoldAt: row.last_sold_at || null,
     stockQuantity,
     reservedQuantity,
-    availableQuantity: Math.max(0, stockQuantity - reservedQuantity),
+    availableQuantity: stockQuantity == null || reservedQuantity == null
+      ? null : stockQuantity - reservedQuantity,
     salePrice: Number(row.sale_price || 0),
-    currency: normalizeCurrency(row.sale_currency),
+    ...explicitSaleCurrency(row.sale_currency),
     imageAvailable: Boolean(imageUrl),
     imageUrl,
   };
@@ -159,8 +153,8 @@ export async function getVegaProductIntelligence(query = {}) {
         unit.BIRIMADI AS unit_name,
         unit.SATISFIYATI1 AS sale_price,
         unit.PB1 AS sale_currency,
-        ISNULL(period_stock.stock_quantity, ISNULL(product.KALAN, 0)) AS stock_quantity,
-        ISNULL(product.REZERV, 0) AS reserved_quantity,
+        ISNULL(period_stock.stock_quantity, product.KALAN) AS stock_quantity,
+        product.REZERV AS reserved_quantity,
         sales.gross_outbound_quantity,
         sales.sales_document_count,
         sales.last_sold_at
