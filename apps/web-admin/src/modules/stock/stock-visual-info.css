@@ -1,0 +1,10 @@
+.stock-visual-info { margin: 12px 0; padding: 12px; border: 1px solid #d6deea; border-radius: 6px; background: #f8fafc; }
+.stock-visual-info h3 { margin: 0 0 8px; font-size: 14px; }
+.stock-visual-info p { margin: 6px 0; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.stock-visual-info .stock-360-facts { margin: 8px 0; }
+.stock-visual-info dd strong, .stock-visual-info dd small { display: block; overflow-wrap: anywhere; }
+.stock-visual-info dd small { margin-top: 3px; font-size: 11px; }
+.stock-visual-info .visual-field-usable { color: #156744; }
+.stock-visual-info .visual-field-pending { color: #805719; }
+.stock-visual-info summary { cursor: pointer; font-size: 12px; }
+.stock-visual-info .stock-visual-note { color: #596577; font-size: 11px; }

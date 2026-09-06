@@ -1,6 +1,8 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { formatDate, formatMoney, movementLabel, movementParty, quantityEffect } from './stock360Utils.js';
+import { ProductVisualInfoPanel } from '../product/ProductVisualInfoPanel.jsx';
+import './stock-visual-info.css';
 
 export function StockProduct360Panel({
   selectedRow,
@@ -73,6 +75,8 @@ export function StockProduct360Panel({
               {selectedRow.gtipSourceDocumentNo && <span>Kaynak fiş: {selectedRow.gtipSourceDocumentNo}</span>}
             </div>
           )}
+
+          {isReadOnly && selectedRow.sourceId && <ProductVisualInfoPanel sourceId={selectedRow.sourceId} imageUrl={selectedRow.imageUrl} />}
 
           {!isReadOnly && <div className="stock-360-movement-summary">
             <span><b>Alış fişi</b>{movementSummary.purchaseCount}</span>

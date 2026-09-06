@@ -75,3 +75,34 @@ the existing authorized credentials. Do not enable a new SQL identity, migrate
 schemas or restart the live ERP merely to make fixture tests pass. Deployment,
 the active notifier environment, shared-key readability and receiver recovery
 must be verified separately; source tests alone do not prove LIVE_READY.
+
+## Visual information in the Vega product card
+
+The selected Vega product's Ürün 360 card has a separate `Görsel bilgiler`
+section. `GET /api/vega/products/:sourceId/visual-profile` requires the existing
+ERP authentication and `product.view` permission. It reads the approved local
+image mapping and hashes its bytes, then reads the existing Product Brain
+profile through backend-only HMAC `POST /internal/profile`. This internal POST
+is a read operation: no inference, queue mutation, ERP write or human approval
+is performed. The key is never sent to the browser.
+
+Only visible colors, patterns, details, sleeves and style are projected.
+`IMAGE_AI/AUTO_DERIVED` values with score at least 0.95 and `HUMAN/VERIFIED`
+values are usable when both the profile image and field evidence match the
+current image hash. The score is not a calibrated accuracy rate. Unknown and
+rejected values do not become usable facts; pending review and stale human
+corrections remain visibly distinct. Category, gender, age, material composition,
+size, unit, prices and stock are excluded from this projection.
+
+Storage remains the existing Product Brain derived SQLite profile store. This
+does not create ERP-native SQL visual fields or repurpose product/customs/system
+settings columns. No schema migration is required for the read projection.
+The native local-product card is not linked by coincident numeric ID: this first
+slice applies only to the existing Vega source identity in Ürün 360.
+
+The visual read is separate from the normal product list and never makes base
+ERP listing depend on Product Brain availability. The card shows unavailable,
+no-image, pending and stale states and supports manual refresh. Reading details
+does not trigger analysis or alter an existing human correction. The internal
+profile endpoint and ERP card source still require an independently permitted
+deployment; source/build verification is not a claim that this UI is live.
