@@ -155,3 +155,15 @@ hashes or files on disk do not attest what a long-running server imported. The
 response contract version identifies this reader's loaded contract; it is not a
 Git commit attestation. Runtime acceptance is BLOCKED while source deployment
 is prohibited; tests/build do not turn that status into PASS.
+
+## 2026-09-06 kaynak ve canlı kabul ayrımı
+
+ERP test edilen kaynak: `05e3312b118324e3ebbb2f935b38e09a74be98d8`; 95/95 API test ve web build PASS. AI süreç içi kabul kaynağı: `cc5b6a7115ba8c54aed1bded91f10c9c3f2b35d8`; 18 senaryo 16 PASS, 0 FAIL, 2 BLOCKED. Sonraki belge commit’leri bu uygulama/test sürümünü değiştirmez.
+
+4323 release `bbd1578cb117aac7`, yüklenmiş tam commit UNKNOWN. 4324 Product Brain yüklenmiş commit UNKNOWN; mevcut profil/iş prompt’u visible-attributes-v1. ERP 4100 uygulama sürümü v0.1.0; yüklenmiş commit UNKNOWN. Ayrı canlı checkout HEAD 85cb20261c4f32113daf0534a7017ce417d5bfcc ve değişiklik içeriyor. Yeni ERP kaynak commit’i canlı servis sürümü sayılmaz.
+
+2026-09-06 16:39 Türkiye saati: yeni hareket endpoint’i HTTP404. F0102/D0007/2026 kaynağında 2026-01-01–2026-09-05 tam kapsamlı gerçek SQL hareket kabulü NOT_RUN; NO_SALES_DISCOVERY BLOCKED. VISUAL_FILTER kullanılabilir renk olmadığı için BLOCKED. Yeni görsel ürün kartı da bu PR kaynağında; canlı etkinleşmiş sayılmıyor.
+
+TAMAMLANAN: salt-okunur API/AI adaptörü, kapsam testleri ve derleme. BAŞARISIZ: bu ERP kaynak paketinde test hatası yok. KANIT BEKLEYEN: gerçek kapsamlı hareket kanıtı ve ürün kartının canlı kabulü. İZİN NEDENİYLE ENGELLİ: izin verilen sürüm etkinleştirmesi ve yeni4323 panel kabulü. Önceki blocked by policy yeniden başlatması tekrar/alternatif yolla yürütülmedi. Ticari yazma ve WhatsApp gönderimi kapalı.
+
+Ayrıntılı temizlenmiş kabul kaydı: [AI Product Brain yerel doğrulama raporu](https://github.com/melihsnyldzz-ui/melisa-ai/blob/feature/product-brain-v1/docs/PRODUCT_BRAIN_LOCAL_VERIFICATION.md). Ham konuşmalar ve ürün/model/ağ ayrıntıları yalnız özel yerel dosyalardadır.
