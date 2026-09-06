@@ -106,3 +106,52 @@ no-image, pending and stale states and supports manual refresh. Reading details
 does not trigger analysis or alter an existing human correction. The internal
 profile endpoint and ERP card source still require an independently permitted
 deployment; source/build verification is not a claim that this UI is live.
+
+## Explicit product sales-movement absence evidence
+
+`GET /api/vega/ai/product-sales-evidence` requires the existing ERP session and
+`sales.view`. Required query fields are one exact `sourceId` and explicit
+`dateFrom` / `dateTo` calendar dates. Unknown query fields are rejected. This
+first contract is pinned to Vega `F0102`, period `D0007`, year 2026 and rejects
+configuration mismatches, invalid dates, other years and future dates. Dates
+are inclusive and applied to source `TARIH` without timezone conversion.
+
+The read aggregates all matching rows from `F0102D0007TBLSTOKHAREKETLERI` for
+the exact stock-card `IND`; it has no ranking, TOP, pagination, search, category,
+image or customer filter. A known stock card with no movements still returns
+one aggregate row with zero counts. An absent card returns 404; SQL failure,
+malformed aggregate or source mismatch never becomes a successful empty result.
+Only identity, active state, movement counts and gross outbound quantity are
+returned. Customer identities, documents, prices, costs and financial amounts
+are not included.
+
+`NO_SALES_IN_WINDOW` / `noSalesInWindow: true` means no recorded movement with
+`IZAHAT = 33` exists in that explicit source/date scope for an active product,
+and there are no undated movements or uncategorized potential exits that could
+undermine the observation. Positive `CIKAN` in code 33 yields
+`HAS_SALES_MOVEMENT` / `false`. Code-33 rows with zero, negative or missing exit
+quantity, undated records, and unclassified potential exits prevent an absence
+claim and yield `INDETERMINATE` / `null`. Inactive products remain `INACTIVE`.
+Absence from Product Intelligence's bounded ranking is never this evidence.
+
+Metadata names the company/period, tables, date boundaries, exact source ID,
+`retrievedAt`, `ALL_MATCHING_ROWS_IN_SOURCE_QUERY`, no pagination/row cap and
+contract version `vega-product-sales-evidence/v1`. Query completeness is not
+independent certification of source ingestion, SQL visibility or finalized
+commercial documents. This is gross stock-sale movement evidence, not net
+sales, lifetime history, a customer sale or profitability. A current-day result
+is only an observation as of `retrievedAt`; use a completed date window when a
+complete calendar day is required.
+
+This additive reader changes no commercial rules, schema, SQL records, ranking
+behavior or UI. Fixture verification covers identity/date bounds, zero rows,
+positive movement, ambiguous/missing evidence, source mismatch, auth, failure
+sanitization and field projection. No real commercial data belongs in fixtures.
+Rollback is removal of the new route/reader while retaining the original ranking.
+
+The new route is an isolated source change until an independently permitted
+deployment and authenticated read verify its actual response. Git HEAD, source
+hashes or files on disk do not attest what a long-running server imported. The
+response contract version identifies this reader's loaded contract; it is not a
+Git commit attestation. Runtime acceptance is BLOCKED while source deployment
+is prohibited; tests/build do not turn that status into PASS.
