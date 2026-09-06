@@ -3,6 +3,7 @@ import path from 'node:path';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { notifyProductBrain } from './productBrainNotifier.mjs';
 
 const allowedImageMimeTypes = {
   'image/jpeg': 'jpg',
@@ -188,6 +189,7 @@ export async function saveVegaProductImage(sourceIdValue, payload, actor = null,
       actor,
     });
     await transaction.commit();
+    notifyProductBrain(sourceId);
     return { id: imageId, ...product, filePath, imageUrl: filePath };
   } catch (error) {
     await transaction.rollback();
@@ -224,6 +226,7 @@ export async function removeVegaProductImage(sourceIdValue, actor = null) {
       actor,
     });
     await transaction.commit();
+    notifyProductBrain(sourceId);
     return { sourceId, removed: result.rowsAffected?.[0] || 0 };
   } catch (error) {
     await transaction.rollback();
