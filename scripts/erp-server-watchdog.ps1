@@ -120,6 +120,18 @@ function Start-NodeServiceIfDown {
     [hashtable]$Environment = @{}
   )
 
+  if ($Name -eq 'erp-api') {
+    $leasePath = Join-Path $RuntimeRoot 'api-restart-lease.json'
+    if (Test-Path -LiteralPath $leasePath) {
+      try {
+        $lease = Get-Content -LiteralPath $leasePath -Raw | ConvertFrom-Json
+        if ([long]$lease.expiresAt -gt [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() -and (Get-Process -Id $lease.ownerPid -ErrorAction SilentlyContinue)) {
+          Write-ServerLog 'SKIP erp-api: guarded restart owns the short-lived lease.'
+          return
+        }
+      } catch { Write-ServerLog 'WARN Invalid API restart lease ignored.' }
+    }
+  }
   if (Test-HttpOk -Url $HealthUrl) {
     Write-ServerLog "OK $Name"
     return
