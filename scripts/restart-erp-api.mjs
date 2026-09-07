@@ -42,7 +42,7 @@ try {
   waitDown:()=>waitFor(async()=>!(await portOpen()),20000),
   start:()=>control('Start',{Record:registry}),
   ready:async started=>{await waitFor(fresh);const s=await control('Inspect');if(s.pid!==started.pid)throw Error('RUNTIME_START_OWNER_MISMATCH');await unchanged();},
-  verify:async()=>{try{const r=await run(process.execPath,[path.join(ai,'scripts/verify-step5-erp.mjs')],{cwd:ai,windowsHide:true,timeout:150000,maxBuffer:64000});await record(path.join(attempt,'reads.json'),JSON.parse(r.stdout.trim()));}catch{throw Error('ERP_EXISTING_READ_REGRESSION');}},
+  verify:async()=>{try{const r=await run(process.execPath,[path.join(ai,'scripts/verify-step5-erp.mjs')],{cwd:ai,windowsHide:true,timeout:150000,maxBuffer:64000});await record(path.join(attempt,'reads.json'),JSON.parse(r.stdout.trim()));}catch(e){let detail;try{detail=JSON.parse(String(e.stdout).trim());}catch{detail={status:'FAIL',code:'ERP_VERIFIER_EXECUTION_FAILED'};}await record(path.join(attempt,'reads.json'),detail);throw Error(/^[A-Z_]+$/.test(detail.code)?detail.code:'ERP_VERIFICATION_FAILED');}},
   commit:async started=>{await register(startedRecord,started.pid);await record(path.join(privateRoot,'state.json'),{featureCommit:feature,launcherCommit:(await run('git',['rev-parse','HEAD'],{cwd:root})).stdout.trim(),pid:started.pid,cwd:api,workingOverlay:status,attempt,rollbackUsed:false});},
   stopStarted:async started=>{try{await register(startedRecord,started.pid);}catch(e){if(await portOpen())throw e;return;}await control('Stop',{Record:startedRecord});},
   restore:async()=>{await unchanged();if(!(await readFile(index)).equals(originalIndex))throw Error('RUNTIME_SOURCE_CHANGED');await writeFile(index,oldIndex);},
@@ -53,4 +53,3 @@ try {
  if(!result.deployed)process.exitCode=2;
 } catch(e){console.log(JSON.stringify({deployed:false,error:/^[A-Z_]+$/.test(e.message)?e.message:'ERP_RESTART_FAILED',attempt}));process.exitCode=2;}
 finally{if(held)await rm(lease,{force:true});}
-
