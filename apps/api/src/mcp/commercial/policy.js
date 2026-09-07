@@ -18,7 +18,7 @@ export const melisaFamilies = {
 export const melisaTemplateFamily = new Map(Object.entries(melisaFamilies).flatMap(([family,names])=>names.map(name=>[name,family])));
 export const secretName = /password|passwd|parola|sifre|şifre|secret|tokens?(?:_|$)|^token|credential|session_token|api.?key|private.?key|connection|conn.?str|auth|refresh|salt|hash|anahtar|tarimkey|ebirlik|pin(?:_|$)|cvv|cvc|card.?number|kredikart|kartno|intmusteri|inthesap|intsube|intbanka/i;
 export const excludedObject = /USER|KULLANICI|YETKI|CONFIG|AYAR|PARAMETRE|SCRIPT|QUERY|PERSONEL|PERSONNEL|EMPLOYEE|AUTH|AUDIT|SYNC|(?:^|TBL|_)LOG|SESSION_TOKEN/i;
-export const opaqueField = /(^|_)(metadata|payload|old_values|new_values|snapshot|notes|note|description|config|json)(_|$)|ISTIHBARAT|ALTNOT|ACIKLAMA|PESIN|KEFIL|TCKIMLIK|VERGINO|VNO|RESIM|FILEPATH|storage_key|passive_reason|RESPONSEMESSAGE/i;
+export const opaqueField = /(^|_)(metadata|payload|old_values|new_values|snapshot|notes|note|description|config|json|file_path|image_url)(_|$)|ISTIHBARAT|ALTNOT|ACIKLAMA|PESIN|KEFIL|TCKIMLIK|VERGINO|VNO|RESIM|FILEPATH|storage_key|passive_reason|RESPONSEMESSAGE/i;
 export const personalField = /TELEFON|GSM|EMAIL|MAIL|FAX|FAKS|YETKILI|ADRES|^phone$|^email$|^address$|^contact_name$|^IBAN$|^HESAPNO$|^TEL$/i;
 export const scalarTypes = new Set(['bigint','int','smallint','tinyint','bit','decimal','numeric','money','smallmoney','float','real','nvarchar','varchar','nchar','char','date','datetime','datetime2','smalldatetime','datetimeoffset','time','uniqueidentifier']);
 export const decimalTypes = new Set(['decimal','numeric','money','smallmoney','float','real']);

@@ -6,10 +6,11 @@ export function createAudit(directory) {
   if (!directory || !path.isAbsolute(directory)) throw fail('AUDIT_DIRECTORY_REQUIRED');
   fs.mkdirSync(directory,{recursive:true});
   const file=path.join(directory,'commercial-mcp.jsonl');
-  return function audit({requestId,tool,event,code,durationMs,rowCount}) {
+  return function audit({requestId,tool,event,role,code,durationMs,rowCount}) {
     // No arguments, SQL, filter values, credentials, account names, rows or
     // result bodies are logged. Rotation bounds local disk consumption.
     const record={at:new Date().toISOString(),requestId,tool,event,
+      ...(['administrator','customer'].includes(role)?{role}:{}),
       ...(code?{code}:{}),...(Number.isFinite(durationMs)?{durationMs}:{}),...(Number.isInteger(rowCount)?{rowCount}:{})};
     try {
       if(fs.existsSync(file)&&fs.statSync(file).size>5*1024*1024){

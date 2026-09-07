@@ -1,6 +1,8 @@
 param(
   [Parameter(Mandatory=$true)][string]$SecretDirectory,
-  [ValidateRange(1,65535)][int]$McpPort=4113
+  [ValidateRange(1,65535)][int]$McpPort=4113,
+  [string]$MediaRoot,
+  [ValidatePattern('^F[0-9]{4}$')][string]$MediaCompany
 )
 $ErrorActionPreference='Stop'
 try {
@@ -24,6 +26,22 @@ try {
   $env:MCP_READ_ONLY_HOST='127.0.0.1'
   $env:MCP_READ_ONLY_PORT=[string]$McpPort
   $env:MCP_READ_ONLY_MAX_ROWS='50'
+  if($MediaRoot){
+    $env:MCP_READ_ONLY_MEDIA_ROOT=(Resolve-Path -LiteralPath $MediaRoot).Path
+    if(-not $MediaCompany){throw 'Explicit media company binding is required'}
+    $env:MCP_READ_ONLY_MEDIA_COMPANY=$MediaCompany
+  }
+  # Customer access stays disabled unless a separate credential is supplied.
+  $customerSecret=Join-Path $localSecrets 'mcp-customer.env'
+  if(Test-Path -LiteralPath $customerSecret){
+    foreach($line in [IO.File]::ReadAllLines($customerSecret)){
+      if($line -cmatch '^MCP_READ_ONLY_CUSTOMER_TOKEN=(.*)$'){
+        $value=$Matches[1]
+        if($value.StartsWith('"')){$value=$value|ConvertFrom-Json}
+        $env:MCP_READ_ONLY_CUSTOMER_TOKEN=$value
+      }
+    }
+  }
   $env:MCP_READ_ONLY_AUDIT_DIR=Join-Path $localSecrets 'commercial-audit'
   $env:SQL_READ_ONLY='true'
   $env:NODE_ENV='production'

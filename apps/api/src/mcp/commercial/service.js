@@ -3,6 +3,7 @@ import { compileQuery, compileAggregate, field, pageLimit } from './compiler.js'
 import { readQuery } from './sourcePools.js';
 import { fingerprint, sealCursor, openCursor } from './cursor.js';
 import { exactKeys, plainObject, fail, warnings } from './policy.js';
+import { assertAdministrator } from './access.js';
 
 export function bounded(value) {
   if (Buffer.byteLength(JSON.stringify(value), 'utf8') > 192000) throw fail('OUTPUT_LIMIT_USE_FEWER_FIELDS_OR_SMALLER_PAGE');
@@ -20,6 +21,7 @@ function envelope(d) {
 }
 
 async function executePage(d, compiled) {
+  assertAdministrator();
   const rows = await readQuery(d.source, d.objects, compiled.statement, compiled.parameters);
   const page = rows.slice(0, compiled.limit);
   if (page.some(row => Object.values(row).some(v => typeof v === 'string' && v.length > 4000))) throw fail('FIELD_OUTPUT_TOO_LARGE_SELECT_FEWER_FIELDS');
@@ -42,6 +44,7 @@ export async function aggregateDataset(args) {
 }
 
 export async function listDatasets(args = {}) {
+  assertAdministrator();
   exactKeys(args,['source','family','company','period','status','search','limit','cursor']);
   for (const k of ['source','family','company','period','status','search']) if (args[k] !== undefined && (typeof args[k] !== 'string' || args[k].length > 120)) throw fail('INVALID_CATALOG_FILTER');
   const c = await catalog(), limit = pageLimit(args.limit);
@@ -57,6 +60,8 @@ export async function listDatasets(args = {}) {
   }
   const page = rows.slice(0,limit),hasMore=rows.length>limit;
   return bounded({ readAt:new Date().toISOString(), catalogReadAt:c.readAt, source:args.source||'configured sources, separately identified',
+    database:args.source?c.sources.find(s=>s.source===args.source)?.database??null:null,
+    scope:'Catalog metadata, not business totals. Each dataset retains its own source/company/period; null top-level scope does not combine sources.',
     company:args.company||null,period:args.period||null,unitsAndCurrencies:'Dataset-specific; not combined.',
     sources:c.sources.map(s=>({source:s.source,database:s.database,status:s.status||'available',code:s.code,objectsVisible:s.objectsVisible,securityObjectsExcluded:s.excludedObjects,
       rowQueryable:s.datasets.filter(d=>d.readable&&!d.rowReadBlocked).length,aggregateQueryable:s.datasets.filter(d=>d.readable).length,
@@ -67,6 +72,7 @@ export async function listDatasets(args = {}) {
 }
 
 export async function describeDataset(args) {
+  assertAdministrator();
   exactKeys(args,['dataset','limit','cursor']);
   const d=await dataset(args.dataset),limit=pageLimit(args.limit);
   const binding=fingerprint({type:'fields',id:d.id,schema:d.schemaVersion});

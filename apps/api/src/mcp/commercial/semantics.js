@@ -41,25 +41,29 @@ export function applySemantics(datasets) {
       const units = map.get(d.company + 'TBLBIRIMLEREX');
       if (!stock?.readable || !units?.readable || !['IND','STOKKODU','MALINCINSI','KALAN','ANABIRIM','STATUS','DELETED'].every(n=>stock.fields.some(v=>v.name===n))) continue;
       const fields = [f('source_id','int','Stock-card IND.',{nullable:false}), f('stock_code','nvarchar','Source stock code.'), f('product_name','nvarchar','Source product name.'),
-        f('source_unit','nvarchar','Main unit name resolved as in vegaProductService.'),
+        f('source_unit','nvarchar','Recorded movement unit name, only when one unit belongs to this stock; otherwise unavailable.'),
+        f('source_unit_id','int','Recorded BIRIMEX when all movements have one non-null unit. No inferred conversion.'),
         f('erp_quantity','decimal','ERP quantity: all period GIREN minus CIKAN; card KALAN only when no period movement exists.'),
         f('quantity_basis','nvarchar','period_movements or stock_card_fallback; fallback is not proof of historical closing stock.'),
         f('active_status','int','Raw STATUS. ERP active convention is STATUS=1 and DELETED=0.'), f('deleted','bit','Raw source deletion marker.')];
-      const query = `SELECT s.IND AS source_id,s.STOKKODU AS stock_code,s.MALINCINSI AS product_name,u.BIRIMADI AS source_unit,
-        CASE WHEN m.movement_count>0 THEN m.quantity ELSE s.KALAN END AS erp_quantity,
-        CASE WHEN m.movement_count>0 THEN N'period_movements' ELSE N'stock_card_fallback' END AS quantity_basis,
+      const query = `SELECT s.IND AS source_id,s.STOKKODU AS stock_code,s.MALINCINSI AS product_name,u.BIRIMADI AS source_unit,u.IND AS source_unit_id,
+        CASE WHEN m.movement_count>0 THEN CASE WHEN u.IND IS NOT NULL THEN m.quantity END ELSE s.KALAN END AS erp_quantity,
+        CASE WHEN m.movement_count>0 THEN CASE WHEN m.quantity IS NULL OR u.IND IS NULL THEN N'incomplete_or_mixed_units' ELSE N'period_movements' END ELSE N'stock_card_fallback' END AS quantity_basis,
         s.STATUS AS active_status,s.DELETED AS deleted
-        FROM ${stock.from} s OUTER APPLY (SELECT COUNT_BIG(*) AS movement_count,SUM(ISNULL(h.GIREN,0)-ISNULL(h.CIKAN,0)) AS quantity FROM ${d.from} h WHERE h.STOKNO=s.IND) m
-        OUTER APPLY (SELECT TOP (1) b.BIRIMADI FROM ${units.from} b WHERE b.STOKNO=s.IND ORDER BY CASE WHEN ISNULL(b.VARSAYILAN,0)=1 THEN 0 ELSE 1 END,CASE WHEN ISNULL(b.ANABIRIM,0)=1 THEN 0 ELSE 1 END,b.IND) u`;
+        FROM ${stock.from} s OUTER APPLY (SELECT COUNT_BIG(*) AS movement_count,
+          CASE WHEN COUNT_BIG(h.GIREN)=COUNT_BIG(*) AND COUNT_BIG(h.CIKAN)=COUNT_BIG(*) THEN SUM(h.GIREN-h.CIKAN) END AS quantity,
+          CASE WHEN COUNT_BIG(h.BIRIMEX)=COUNT_BIG(*) AND COUNT(DISTINCT h.BIRIMEX)=1 THEN MIN(h.BIRIMEX) END AS unit_id
+          FROM ${d.from} h WHERE h.STOKNO=s.IND) m
+        LEFT JOIN ${units.from} u ON u.IND=m.unit_id AND u.STOKNO=s.IND`;
       added.push(virtual(d,'erp_stock_quantity',fields,query,[...stock.objects,...units.objects,...d.objects],
         'ERP stock quantity formula in one explicit company and period. Raw movements remain separately queryable.',
         ['apps/api/src/services/vegaProductService.js: period movement sum and card fallback'],
-        ['Historical stock-card fallback is not a historical closing balance. Movement units have not been independently reconciled; do not sum different products.']));
+        ['Historical stock-card fallback is not a historical closing balance and its unit is not inferred. Missing quantities or mixed/unresolved units yield null. Do not sum different products.']));
       const outgoing=map.get(d.company+d.period+'TBLSTKCIKBASLIK');
       const incoming=map.get(d.company+d.period+'TBLSTKGIRBASLIK');
       if(d.company==='F0102'&&outgoing?.readable&&incoming?.readable){
         const linked=`COALESCE(o.IND,i.IND) IS NOT NULL AND COALESCE(o.FIRMANO,i.FIRMANO)=m.FIRMANO AND LTRIM(RTRIM(COALESCE(o.BELGENO,i.BELGENO)))=LTRIM(RTRIM(m.EVRAKNO))`;
-        const sale=`LTRIM(RTRIM(m.IZAHAT))=N'33' AND ISNULL(m.IADE,0)=0 AND ISNULL(m.CIKAN,0)>0 AND ISNULL(m.TUTAR,0)>0`;
+        const sale=`LTRIM(RTRIM(m.IZAHAT))=N'33' AND m.IADE=0 AND m.CIKAN>0 AND m.TUTAR>0`;
         const returned=`LTRIM(RTRIM(m.IZAHAT))=N'34' AND ISNULL(m.IADE,0)=1 AND ISNULL(m.GIREN,0)>0 AND ISNULL(m.TUTAR,0)>0`;
         const complete=`(${linked}) AND COALESCE(o.IPTAL,i.IPTAL)=0`;
         const postedFields=[f('source_id','int','Source stock movement IND.',{nullable:false}),f('stock_id','int','Source STOKNO.'),f('source_unit_id','int','Source BIRIMEX; no inferred package/series conversion.'),
@@ -83,7 +87,7 @@ export function applySemantics(datasets) {
           WHERE LTRIM(RTRIM(m.IZAHAT)) IN (N'33',N'34')`;
         added.push(virtual(d,'erp_posted_sales_basis',postedFields,postedQuery,[...d.objects,...outgoing.objects,...incoming.objects],
           'ERP sales/return posting basis with verified same-period header identity and explicit cancellation completeness. Other exits, transfers and opening balances are not classified as sales.',
-          ['vegaProductProfitabilityService.js: salesUnionSql','Live F0102 D0007: 31,556 posting/header links, zero missing/conflicting headers; return posting matches recorded credit.'],
+          ['vegaProductProfitabilityService.js: salesUnionSql; header identity and cancellation checked on each source row.'],
           ['This is the ERP stock-posting sales basis, not all invoice families or recognized statutory revenue. Unknown header/cancellation state yields null monetary totals. No cost or profit is computed.']));
       }
     }
@@ -96,15 +100,15 @@ export function applySemantics(datasets) {
         f('currency','nvarchar','USD/EUR/TRY aliases normalized; unsupported source currency stays unavailable.'),
         numeric('debit_original','BORC / KUR in recorded transaction currency. Null/zero rate is unavailable.',['currency']),
         numeric('credit_original','ALACAK / KUR in recorded transaction currency. Null/zero rate is unavailable.',['currency']),
-        numeric('balance_effect','(ISNULL(BORC,0)-ISNULL(ALACAK,0))/NULLIF(KUR,0), ERP balance convention.',['currency']),
+        numeric('balance_effect','(BORC-ALACAK)/positive KUR; null debit/credit/currency/rate remains unknown.',['currency']),
         f('rate_valid','bit','Whether recorded rate is nonzero; negative source rates are retained and must be investigated.'),
         f('movement_code','nvarchar','Raw IZAHAT; 33 is stock exit, not an independently verified sale.'), f('is_return','bit','Raw source IADE flag.'),
         f('document_no','nvarchar','Recorded document number; not a unique document identity.'),f('due_date','datetime','Source ODEMETARIHI.'),
         f('card_currency_matches','bit','Whether normalized card and movement currencies match.')];
       const query = `SELECT h.IND AS source_id,h.FIRMANO AS account_id,c.FIRMAKODU AS account_code,c.FIRMAADI AS account_name,h.TARIH AS transaction_date,
-        ${currency} AS currency,CAST(h.BORC/NULLIF(h.KUR,0) AS decimal(38,8)) AS debit_original,CAST(h.ALACAK/NULLIF(h.KUR,0) AS decimal(38,8)) AS credit_original,
-        CAST((ISNULL(h.BORC,0)-ISNULL(h.ALACAK,0))/NULLIF(h.KUR,0) AS decimal(38,8)) AS balance_effect,
-        CONVERT(bit,CASE WHEN h.KUR IS NOT NULL AND h.KUR<>0 THEN 1 ELSE 0 END) AS rate_valid,
+        ${currency} AS currency,CAST(CASE WHEN h.KUR>0 AND ${currency} IS NOT NULL THEN h.BORC/NULLIF(h.KUR,0) END AS decimal(38,8)) AS debit_original,CAST(CASE WHEN h.KUR>0 AND ${currency} IS NOT NULL THEN h.ALACAK/NULLIF(h.KUR,0) END AS decimal(38,8)) AS credit_original,
+        CAST(CASE WHEN h.KUR>0 AND ${currency} IS NOT NULL THEN (h.BORC-h.ALACAK)/NULLIF(h.KUR,0) END AS decimal(38,8)) AS balance_effect,
+        CONVERT(bit,CASE WHEN h.KUR>0 THEN 1 ELSE 0 END) AS rate_valid,
         h.IZAHAT AS movement_code,h.IADE AS is_return,h.EVRAKNO AS document_no,h.ODEMETARIHI AS due_date,
         CONVERT(bit,CASE WHEN ${currency}=${cardCurrency} THEN 1 ELSE 0 END) AS card_currency_matches
         FROM ${d.from} h LEFT JOIN ${account.from} c ON c.IND=h.FIRMANO

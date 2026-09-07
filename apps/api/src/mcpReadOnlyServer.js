@@ -1,8 +1,14 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 import { rateLimit } from 'express-rate-limit';
-import { commercialTools } from './mcp/commercial/tools.js';
+import { commercialTools, domainTools } from './mcp/commercial/tools.js';
 import { commercialHandlers, bounded } from './mcp/commercial/service.js';
+import { domainHandlers } from './mcp/commercial/domain.js';
+import { getSalesReport, getInventoryReport } from './mcp/commercial/reports.js';
+import { getProductImage } from './mcp/commercial/images.js';
+import { configuredContext } from './mcp/commercial/scope.js';
+import { authenticate, allowedTool, requestAccess } from './mcp/commercial/access.js';
 import { createAudit } from './mcp/commercial/audit.js';
 import {
   countVegaStockCodes,
@@ -11,17 +17,19 @@ import {
   listVegaStockCodes,
 } from './services/vegaReadOnlyStockService.js';
 
+export function createMcpApp(options = {}) {
 const app = express();
 app.disable('x-powered-by');
 app.set('query parser', 'simple');
 
 const host = process.env.MCP_READ_ONLY_HOST || '127.0.0.1';
-const port = Math.max(1, Number(process.env.MCP_READ_ONLY_PORT || 4113));
-const optionalToken = String(process.env.MCP_READ_ONLY_TOKEN || '');
+const port = Number(process.env.MCP_READ_ONLY_PORT || 4113);
+const optionalToken = String(options.adminToken ?? process.env.MCP_READ_ONLY_TOKEN ?? '');
+const customerToken = String(options.customerToken ?? process.env.MCP_READ_ONLY_CUSTOMER_TOKEN ?? '');
 const maxRows = Math.min(50, Math.max(1, Number(process.env.MCP_READ_ONLY_MAX_ROWS || 50)));
-const audit = createAudit(process.env.MCP_READ_ONLY_AUDIT_DIR);
+const audit = options.audit || createAudit(process.env.MCP_READ_ONLY_AUDIT_DIR);
 let activeCalls = 0;
-if (host !== '127.0.0.1' || !Number.isInteger(port) || port > 65535 || !optionalToken) {
+if (host !== '127.0.0.1' || !Number.isInteger(port) || port < 1 || port > 65535 || !Number.isInteger(maxRows) || optionalToken.length < 32 || (customerToken && (customerToken.length < 32 || customerToken===optionalToken))) {
   throw new Error('MCP requires loopback binding, a valid port, and a configured local token');
 }
 app.use((req, res, next) => {
@@ -38,20 +46,12 @@ app.use(requireOptionalToken);
 app.use(rateLimit({ windowMs: 60000, limit: 180, standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'request_limit' } }));
 app.use(express.json({ limit: '64kb' }));
 
-function secureEqual(left, right) {
-  const a = Buffer.from(String(left || ''), 'utf8');
-  const b = Buffer.from(String(right || ''), 'utf8');
-  if (a.length === 0 || a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
-
 function requireOptionalToken(req, res, next) {
-  if (!optionalToken) return next();
-  const authorization = String(req.get('authorization') || '');
-  const provided = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : '';
-  if (!secureEqual(provided, optionalToken)) {
+  const role = authenticate(req.get('authorization'), optionalToken, customerToken);
+  if (!role) {
     return res.status(401).json({ error: 'unauthorized' });
   }
+  req.mcpRole = role;
   return next();
 }
 
@@ -105,11 +105,13 @@ const tools = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
 ];
-tools.push(...commercialTools);
+tools.push(...commercialTools,...domainTools);
+const handlers = {...commercialHandlers,...domainHandlers,get_sales_report:getSalesReport,get_inventory_report:getInventoryReport,get_product_image:getProductImage,...options.handlers};
 
 async function callTool(name, args = {}) {
+  if (!tools.some(t=>t.name===name)) throw Object.assign(new Error(),{code:'UNKNOWN_TOOL'});
   if (!args || typeof args !== 'object' || Array.isArray(args)) throw Object.assign(new Error(), { code: 'INVALID_ARGUMENTS' });
-  if (Object.hasOwn(commercialHandlers,name)) return commercialHandlers[name](args);
+  if (Object.hasOwn(handlers,name)) return handlers[name](args);
   const allowed = name === 'search_products' ? ['query', 'limit'] : name === 'get_product' ? ['stockCode'] : [];
   if (Object.keys(args).some((key) => !allowed.includes(key))) throw Object.assign(new Error(), { code: 'INVALID_ARGUMENTS' });
   if (name === 'search_products' && ((args.query !== undefined && (typeof args.query !== 'string' || args.query.length > 120)) || (args.limit !== undefined && (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > maxRows)))) throw Object.assign(new Error(), { code: 'INVALID_ARGUMENTS' });
@@ -135,6 +137,7 @@ async function callTool(name, args = {}) {
 }
 
 app.get('/health', requireOptionalToken, async (_req, res) => {
+  if (_req.mcpRole !== 'administrator') return res.status(403).json({error:'ACCESS_DENIED'});
   try {
     res.json({ ok: true, service: 'melisa-erp-readonly-mcp', data: await getVegaReadOnlyHealth() });
   } catch (error) {
@@ -168,7 +171,7 @@ app.post('/mcp', requireOptionalToken, async (req, res) => {
       return res.json(jsonRpcResult(id, {
         protocolVersion: requestedVersion,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'melisa-erp-readonly', version: '1.1.0' },
+        serverInfo: { name: 'melisa-erp-readonly', version: '1.2.0' },
         instructions: 'Read-only Melisa ERP/Vega commercial data. Discover datasets and describe fields before querying. Preserve source/company/period, currencies, units, return/cancellation flags and warnings. Follow page cursors for complete access; use database aggregates for totals. Raw stock exits are not automatically sales. Unknown fields and inaccessible objects are not absent or zero. Never request SQL, credentials or write operations.',
       }));
     }
@@ -178,7 +181,7 @@ app.post('/mcp', requireOptionalToken, async (req, res) => {
     }
 
     if (message.method === 'ping') return res.json(jsonRpcResult(id, {}));
-    if (message.method === 'tools/list') return res.json(jsonRpcResult(id, { tools }));
+    if (message.method === 'tools/list') return res.json(jsonRpcResult(id, { tools:tools.filter(t=>allowedTool(req.mcpRole,t.name)) }));
 
     if (message.method === 'tools/call') {
       const name = String(message.params?.name || '');
@@ -188,21 +191,26 @@ app.post('/mcp', requireOptionalToken, async (req, res) => {
       const started = Date.now();
       let acquired = false;
       try {
+        if (!allowedTool(req.mcpRole,name)) throw Object.assign(new Error(),{code:'ACCESS_DENIED'});
         if (activeCalls >= 2) throw Object.assign(new Error(), { code: 'QUERY_CONCURRENCY_LIMIT' });
         activeCalls++; acquired = true;
-        audit({requestId,tool:auditTool,event:'started'});
-        const data = bounded(await callTool(name, args));
-        const structuredContent = Array.isArray(data) ? { items: data } : data;
+        audit({requestId,tool:auditTool,event:'started',role:req.mcpRole});
+        const data = await requestAccess.run({role:req.mcpRole,deadlineAt:Date.now()+90000},()=>callTool(name,args));
+        const {mcpImage,...body}=Array.isArray(data)?{items:data}:data;
+        const structuredContent = bounded({ ...configuredContext(), ...body });
+        if(mcpImage && (name!=='get_product_image' || mcpImage.data.length>4194304))throw Object.assign(new Error(),{code:'IMAGE_SIZE_NOT_ALLOWED'});
         const text = JSON.stringify(structuredContent, null, 2);
-        audit({requestId,tool:auditTool,event:'completed',durationMs:Date.now()-started,rowCount:data?.items?.length});
+        audit({requestId,tool:auditTool,event:'completed',role:req.mcpRole,durationMs:Date.now()-started,rowCount:data?.items?.length});
         return res.json(jsonRpcResult(id, {
-          content: [{ type: 'text', text }],
+          content: [{ type: 'text', text },...(mcpImage?[mcpImage]:[])],
           structuredContent,
           isError: false,
         }));
       } catch (error) {
-        try { audit({requestId,tool:auditTool,event:'failed',code:error?.code||'TOOL_FAILED',durationMs:Date.now()-started}); } catch {}
-        const publicError = { code: error?.code || 'TOOL_FAILED', message: error?.code === 'STOCK_CODE_NOT_FOUND' ? 'Stock code was not found' : 'Read-only tool failed' };
+        try { audit({requestId,tool:auditTool,event:'failed',role:req.mcpRole,code:error?.code||'TOOL_FAILED',durationMs:Date.now()-started}); } catch {}
+        const code=/^[A-Z][A-Z0-9_]{1,100}$/.test(error?.code||'')?error.code:'TOOL_FAILED';
+        const category=/PERMISSION|ACCESS_DENIED/.test(code)?'permission_missing':/NOT_FOUND/.test(code)?'data_not_found':/UNSUPPORTED|NOT_SUPPORTED|MAPPING_REQUIRED|BINDING_REQUIRED/.test(code)?'unsupported_or_unverified':'request_or_source_error';
+        const publicError = { ...configuredContext(), code,category, ...(error.failureScope?{failureScope:error.failureScope}:{}), message: code === 'STOCK_CODE_NOT_FOUND' ? 'Stock code was not found' : 'Read-only tool failed',scope:'No successful data result; configured context only. The failing source, when known, is identified separately in failureScope.' };
         return res.json(jsonRpcResult(id, {
           content: [{ type: 'text', text: JSON.stringify(publicError) }],
           structuredContent: publicError,
@@ -226,9 +234,16 @@ app.use((error, _req, res, _next) => {
   res.status(status).json({ error: 'invalid_mcp_request' });
 });
 
+return app;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+const host=process.env.MCP_READ_ONLY_HOST||'127.0.0.1';
+const port=Number(process.env.MCP_READ_ONLY_PORT||4113);
+const app=createMcpApp();
 const server = app.listen(port, host, () => {
   console.log(`[melisa-erp-readonly-mcp] listening on http://${host}:${port}/mcp`);
-  console.log(`[melisa-erp-readonly-mcp] tools=${tools.map((tool) => tool.name).join(',')}; token=${optionalToken ? 'configured' : 'not-configured'}; read-only=true`);
+  console.log('[melisa-erp-readonly-mcp] read-only=true; administrator authentication required; customer access separately scoped');
 });
 
 function shutdown(signal) {
@@ -239,3 +254,4 @@ function shutdown(signal) {
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+}

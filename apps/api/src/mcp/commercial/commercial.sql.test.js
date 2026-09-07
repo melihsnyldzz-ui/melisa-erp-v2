@@ -43,3 +43,22 @@ test('SQL engine: return signs, cancellation and missing headers fail closed; tr
       assert.equal((await readQuery('vega',[],scoped.statement,scoped.parameters))[0].net,'80.00000000');
     } finally {await closeBionicVegaSqlPool();}
   });
+
+test('SQL engine: missing quantities, mixed units and absent fallback values stay null',
+  {skip:process.env.MCP_READ_ONLY_SQL_TESTS!=='true'},async()=>{
+    const company='F0102',period='D0007';
+    const make=(template,from,fields=[],periodScoped=true)=>({source:'vega',company,period:periodScoped?period:null,year:2026,id:'test.'+template,objectName:company+(periodScoped?period:'')+template,template,readable:true,from,objects:[],fields:fields.map(name=>({name,dataType:'int'}))});
+    const stock=make('TBLSTOKLAR',`(SELECT IND,N'Synthetic' AS STOKKODU,N'Synthetic' AS MALINCINSI,KALAN,1 AS ANABIRIM,1 AS STATUS,CAST(0 AS bit) AS DELETED FROM (VALUES (1,CAST(99 AS decimal(28,8))),(2,99),(3,99),(4,NULL),(5,7)) s(IND,KALAN))`,['IND','STOKKODU','MALINCINSI','KALAN','ANABIRIM','STATUS','DELETED'],false);
+    const units=make('TBLBIRIMLEREX',`(SELECT IND,STOKNO,N'recorded-unit' AS BIRIMADI FROM (VALUES (101,1),(102,2),(103,3),(104,3)) u(IND,STOKNO))`,[],false);
+    const movement=make('TBLSTOKHAREKETLERI',`(SELECT * FROM (VALUES (1,CAST(10 AS decimal(28,8)),CAST(2 AS decimal(28,8)),101),(2,NULL,2,102),(3,10,2,103),(3,0,1,104)) m(STOKNO,GIREN,CIKAN,BIRIMEX))`);
+    const d=applySemantics([stock,units,movement]).find(v=>v.template==='erp_stock_quantity');
+    const q=compileQuery(d,{dataset:d.id,fields:['source_id','erp_quantity','source_unit','source_unit_id','quantity_basis']});
+    try{
+      const rows=await readQuery('vega',[],q.statement,q.parameters);
+      assert.equal(rows[0].erp_quantity,'8.00000000');
+      assert.equal(rows[1].erp_quantity,null);assert.equal(rows[1].quantity_basis,'incomplete_or_mixed_units');
+      assert.equal(rows[2].erp_quantity,null);assert.equal(rows[2].source_unit_id,null);
+      assert.equal(rows[3].erp_quantity,null);assert.equal(rows[3].quantity_basis,'stock_card_fallback');
+      assert.equal(rows[4].erp_quantity,'7.00000000');assert.equal(rows[4].source_unit,null);
+    }finally{await closeBionicVegaSqlPool();}
+  });

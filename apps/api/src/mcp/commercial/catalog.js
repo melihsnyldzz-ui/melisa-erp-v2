@@ -2,12 +2,17 @@ import crypto from 'node:crypto';
 import {sourcePool,sourceProof,quote,sql} from './sourcePools.js';
 import {templateFamily,melisaTemplateFamily,excludedObject,secretName,fieldPolicy,defaultNames,fail,warnings} from './policy.js';
 import {applySemantics} from './semantics.js';
+import {requestAccess} from './access.js';
 let cached;let pending;
 const authorizedCompanies=new Set(['F0102','F0103','F0104']);
 const objectQuery=`SELECT TOP (10001) o.object_id AS objectId,s.name AS schemaName,o.name AS objectName,o.type_desc AS objectType,
  HAS_PERMS_BY_NAME(QUOTENAME(s.name)+'.'+QUOTENAME(o.name),'OBJECT','SELECT') AS canSelect
  FROM sys.objects o JOIN sys.schemas s ON s.schema_id=o.schema_id WHERE o.is_ms_shipped=0 AND o.type IN ('U','V') ORDER BY s.name,o.name`;
-async function metadata(pool,text){const r=pool.request();r.timeout=15000;return(await r.query(text)).recordset;}
+async function metadata(pool,text){
+ const remaining=(requestAccess.getStore()?.deadlineAt??(Date.now()+15000))-Date.now();
+ if(remaining<1)throw fail('QUERY_TIMEOUT');
+ const r=pool.request();r.timeout=Math.min(15000,remaining);return(await r.query(text)).recordset;
+}
 function datasetObject(source,object,definitions,periods){
  const match=object.objectName.match(/^(F\d{4})(D\d{4})?(.+)$/);
  const company=match?.[1]||null,period=match?.[2]||null,template=match?.[3]||object.objectName;

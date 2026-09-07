@@ -2,6 +2,7 @@ import sql from 'mssql/tedious.js';
 import { getBionicVegaSqlPool,verifyBionicVegaPermissions } from '../../config/bionicVegaDatabase.js';
 import { getBionicSqlPool,verifyBionicPermissions } from '../../config/bionicDatabase.js';
 import { fail } from './policy.js';
+import { requestAccess } from './access.js';
 export {sql};
 const sources={vega:{get:getBionicVegaSqlPool,verify:verifyBionicVegaPermissions,database:'VEGA2026'},melisa:{get:getBionicSqlPool,verify:verifyBionicPermissions,database:'MELISA_ERP_V2'}};
 const verified=new Map();
@@ -27,8 +28,13 @@ export async function assertObjectRead(pool,object){
 export async function readQuery(source,objects,statement,parameters=[]){
  if(!/^\s*SELECT\b/i.test(statement))throw fail('INTERNAL_QUERY_NOT_SELECT');
  const pool=await sourcePool(source);
- for(const object of objects)await assertObjectRead(pool,object);
- const request=pool.request();request.timeout=12000;
+ for(const object of new Map(objects.map(o=>[o.schemaName+'.'+o.objectName,o])).values()) {
+   if((requestAccess.getStore()?.deadlineAt??Infinity)<Date.now()+5000)throw fail('QUERY_TIMEOUT');
+   await assertObjectRead(pool,object);
+ }
+ const remaining=(requestAccess.getStore()?.deadlineAt??(Date.now()+12000))-Date.now();
+ if(remaining<1)throw fail('QUERY_TIMEOUT');
+ const request=pool.request();request.timeout=Math.min(12000,remaining);
  for(const {name,type,value} of parameters)request.input(name,type,value);
  try{return(await request.query(statement)).recordset;}catch(error){
    if(error.code==='ETIMEOUT')throw fail('QUERY_TIMEOUT');
