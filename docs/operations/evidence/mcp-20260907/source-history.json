@@ -1,0 +1,1084 @@
+{
+  "readAt": "2026-09-07T11:15:15.366Z",
+  "sources": [
+    {
+      "source": "vega",
+      "database": "VEGA2026",
+      "objectsVisible": 8956,
+      "proof": {
+        "databaseName": "VEGA2026",
+        "source": "vega",
+        "connectionPool": "bionic-vega-dedicated",
+        "readOnly": true,
+        "readOnlyAccountVerified": true,
+        "companyCode": "F0102",
+        "periodCode": "D0007",
+        "permissions": {
+          "select": {
+            "F0102TBLSTOKLAR": "allowed",
+            "F0102TBLBIRIMLEREX": "allowed",
+            "F0102D0007TBLSTOKHAREKETLERI": "allowed"
+          },
+          "insert": "denied",
+          "update": "denied",
+          "delete": "denied",
+          "alter": "denied",
+          "createTable": "denied",
+          "execute": "denied"
+        }
+      },
+      "status": "available",
+      "companies": [
+        {
+          "company": "F0102",
+          "name": "MELİSA BEBE",
+          "evidence": "dbo.TBLFIRMA"
+        },
+        {
+          "company": "F0103",
+          "name": "MELİSA MUHASEBE",
+          "evidence": "dbo.TBLFIRMA"
+        },
+        {
+          "company": "F0104",
+          "name": "FATURA",
+          "evidence": "dbo.TBLFIRMA"
+        }
+      ],
+      "periods": [
+        {
+          "company": "F0102",
+          "period": "D0001",
+          "year": 2020,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0002",
+          "year": 2021,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0003",
+          "year": 2022,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0004",
+          "year": 2023,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0005",
+          "year": 2024,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0006",
+          "year": 2025,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0007",
+          "year": 2026,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0102",
+          "period": "D0008",
+          "year": 2027,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0001",
+          "year": 2020,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0002",
+          "year": 2021,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0003",
+          "year": 2022,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0004",
+          "year": 2023,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0005",
+          "year": 2024,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0006",
+          "year": 2025,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0103",
+          "period": "D0007",
+          "year": 2026,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0001",
+          "year": 2020,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0002",
+          "year": 2021,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0003",
+          "year": 2022,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0004",
+          "year": 2023,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0005",
+          "year": 2024,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0006",
+          "year": 2025,
+          "evidence": "dbo.TBLDONEM"
+        },
+        {
+          "company": "F0104",
+          "period": "D0007",
+          "year": 2026,
+          "evidence": "dbo.TBLDONEM"
+        }
+      ]
+    },
+    {
+      "source": "melisa",
+      "database": "MELISA_ERP_V2",
+      "objectsVisible": 4,
+      "proof": {
+        "databaseName": "MELISA_ERP_V2",
+        "connectionPool": "bionic-dedicated",
+        "readOnly": true,
+        "readOnlyAccountVerified": true,
+        "permissions": {
+          "select": {
+            "products": "allowed",
+            "product_barcodes": "allowed",
+            "product_images": "allowed",
+            "suppliers": "allowed"
+          },
+          "insert": "denied",
+          "update": "denied",
+          "delete": "denied",
+          "createTable": "denied",
+          "alter": "denied",
+          "execute": "denied"
+        }
+      },
+      "status": "available",
+      "companies": [],
+      "periods": []
+    }
+  ],
+  "history": [
+    {
+      "dataset": "vega.dbo.F0102D0001TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "14",
+      "earliest": "2020-01-15T00:00:00",
+      "latest": "2020-10-27T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0001TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "4081",
+      "earliest": "2019-12-31T00:00:00",
+      "latest": "2021-09-15T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0001TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "1",
+      "earliest": "2019-12-31T00:00:00",
+      "latest": "2019-12-31T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0001TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "60557",
+      "earliest": "2019-12-31T00:00:00",
+      "latest": "2021-08-09T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0002TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "18",
+      "earliest": "2021-01-15T00:00:00",
+      "latest": "2021-12-22T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0002TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "4863",
+      "earliest": "2020-01-15T00:00:00",
+      "latest": "2022-10-11T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0002TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "12",
+      "earliest": "2021-02-08T00:00:00",
+      "latest": "2021-09-21T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0002TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "76539",
+      "earliest": "2021-01-01T00:00:00",
+      "latest": "2022-09-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0003TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "18",
+      "earliest": "2022-01-15T00:00:00",
+      "latest": "2022-12-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0003TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "4578",
+      "earliest": "2010-01-01T00:00:00",
+      "latest": "2023-12-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0003TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "15",
+      "earliest": "2022-02-15T00:00:00",
+      "latest": "2022-10-31T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0003TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "57267",
+      "earliest": "2010-01-01T00:00:00",
+      "latest": "2023-09-26T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0004TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "22",
+      "earliest": "2023-01-20T00:00:00",
+      "latest": "2023-10-20T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0004TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "4289",
+      "earliest": "2022-01-03T00:00:00",
+      "latest": "2024-04-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0004TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "7",
+      "earliest": "2022-12-28T00:00:00",
+      "latest": "2023-10-06T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0004TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "68809",
+      "earliest": "2022-01-03T00:00:00",
+      "latest": "2024-04-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0005TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "21",
+      "earliest": "2022-01-17T00:00:00",
+      "latest": "2024-11-08T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0005TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "4153",
+      "earliest": "2023-12-29T00:00:00",
+      "latest": "2025-09-16T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0005TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "12",
+      "earliest": "2024-02-22T00:00:00",
+      "latest": "2024-11-13T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0005TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "64054",
+      "earliest": "2023-12-29T00:00:00",
+      "latest": "2025-06-13T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0006TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "10",
+      "earliest": "2025-01-10T00:00:00",
+      "latest": "2025-10-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0006TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "4125",
+      "earliest": "2024-12-24T00:00:00",
+      "latest": "2025-12-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0006TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "4",
+      "earliest": "2025-04-07T00:00:00",
+      "latest": "2025-05-26T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0006TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "74819",
+      "earliest": "2024-12-24T00:00:00",
+      "latest": "2025-12-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0007TBLALFATBASLIK",
+      "company": "F0102",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "2",
+      "earliest": "2026-01-24T00:00:00",
+      "latest": "2026-06-03T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0007TBLCARIHAREKETLERI",
+      "company": "F0102",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "2492",
+      "earliest": "2026-01-01T00:00:00",
+      "latest": "2026-09-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0007TBLSATFATBASLIK",
+      "company": "F0102",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "1",
+      "earliest": "2026-08-05T00:00:00",
+      "latest": "2026-08-05T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0102D0007TBLSTOKHAREKETLERI",
+      "company": "F0102",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "41134",
+      "earliest": "2026-01-01T00:00:00",
+      "latest": "2026-09-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0001TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "1791",
+      "earliest": "2002-11-03T00:00:00",
+      "latest": "2021-11-23T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0001TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "3626",
+      "earliest": "2002-11-03T00:00:00",
+      "latest": "2021-03-09T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0001TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0001TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "8541",
+      "earliest": "2002-11-03T00:00:00",
+      "latest": "2020-12-28T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0002TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "2079",
+      "earliest": "2021-01-01T00:00:00",
+      "latest": "2022-09-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0002TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "4169",
+      "earliest": "2020-01-14T00:00:00",
+      "latest": "2022-09-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0002TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0002TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "9147",
+      "earliest": "2021-01-01T00:00:00",
+      "latest": "2022-09-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0003TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "1677",
+      "earliest": "2020-02-23T00:00:00",
+      "latest": "2023-12-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0003TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "3483",
+      "earliest": "2020-01-01T00:00:00",
+      "latest": "2023-12-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0003TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "2",
+      "earliest": "2022-02-10T00:00:00",
+      "latest": "2022-02-10T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0003TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "7333",
+      "earliest": "2020-04-16T00:00:00",
+      "latest": "2023-12-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0004TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "1657",
+      "earliest": "2022-01-13T00:00:00",
+      "latest": "2024-04-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0004TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "3308",
+      "earliest": "2022-01-13T00:00:00",
+      "latest": "2024-01-09T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0004TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "6",
+      "earliest": "2023-03-23T00:00:00",
+      "latest": "2023-03-23T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0004TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "8764",
+      "earliest": "2022-01-13T00:00:00",
+      "latest": "2024-01-09T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0005TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "1646",
+      "earliest": "2020-01-25T00:00:00",
+      "latest": "2025-07-10T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0005TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "3408",
+      "earliest": "2020-01-25T00:00:00",
+      "latest": "2025-06-13T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0005TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0005TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "9306",
+      "earliest": "2020-01-25T00:00:00",
+      "latest": "2025-06-13T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0006TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "1754",
+      "earliest": "2002-08-21T00:00:00",
+      "latest": "2026-07-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0006TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "3424",
+      "earliest": "2002-08-21T00:00:00",
+      "latest": "2026-07-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0006TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0006TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "10356",
+      "earliest": "2002-08-21T00:00:00",
+      "latest": "2025-12-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0007TBLALFATBASLIK",
+      "company": "F0103",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "966",
+      "earliest": "2026-01-05T00:00:00",
+      "latest": "2026-09-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0007TBLCARIHAREKETLERI",
+      "company": "F0103",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "2256",
+      "earliest": "2024-04-27T00:00:00",
+      "latest": "2026-09-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0007TBLSATFATBASLIK",
+      "company": "F0103",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "11",
+      "earliest": "2026-03-03T00:00:00",
+      "latest": "2026-09-03T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0103D0007TBLSTOKHAREKETLERI",
+      "company": "F0103",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "6858",
+      "earliest": "2026-01-01T00:00:00",
+      "latest": "2026-09-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0001TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "14",
+      "earliest": "2020-01-16T00:00:00",
+      "latest": "2020-05-14T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0001TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "133",
+      "earliest": "2019-12-31T00:00:00",
+      "latest": "2020-12-31T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0001TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "57",
+      "earliest": "2019-12-31T00:00:00",
+      "latest": "2020-12-15T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0001TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0001",
+      "registeredYear": 2020,
+      "records": "1595",
+      "earliest": "2019-12-31T00:00:00",
+      "latest": "2020-12-15T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0002TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0002TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "141",
+      "earliest": "2021-01-01T00:00:00",
+      "latest": "2022-01-22T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0002TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "59",
+      "earliest": "2021-01-15T00:00:00",
+      "latest": "2021-11-26T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0002TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0002",
+      "registeredYear": 2021,
+      "records": "1772",
+      "earliest": "2021-01-01T00:00:00",
+      "latest": "2021-11-26T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0003TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "1",
+      "earliest": "2022-08-09T00:00:00",
+      "latest": "2022-08-09T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0003TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "103",
+      "earliest": "2022-01-01T00:00:00",
+      "latest": "2022-12-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0003TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "43",
+      "earliest": "2022-01-14T00:00:00",
+      "latest": "2022-11-21T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0003TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0003",
+      "registeredYear": 2022,
+      "records": "1205",
+      "earliest": "2022-01-01T00:00:00",
+      "latest": "2022-11-21T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0004TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0004TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "94",
+      "earliest": "2023-01-01T00:00:00",
+      "latest": "2024-01-01T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0004TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "36",
+      "earliest": "2023-01-13T00:00:00",
+      "latest": "2023-11-30T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0004TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0004",
+      "registeredYear": 2023,
+      "records": "989",
+      "earliest": "2023-01-01T00:00:00",
+      "latest": "2024-01-01T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0005TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "1",
+      "earliest": "2024-07-15T00:00:00",
+      "latest": "2024-07-15T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0005TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "97",
+      "earliest": "2024-01-01T00:00:00",
+      "latest": "2024-12-29T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0005TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "28",
+      "earliest": "2024-01-12T00:00:00",
+      "latest": "2024-11-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0005TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0005",
+      "registeredYear": 2024,
+      "records": "964",
+      "earliest": "2024-01-01T00:00:00",
+      "latest": "2024-11-07T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0006TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "0",
+      "earliest": null,
+      "latest": null,
+      "status": "OBSERVED_EMPTY"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0006TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "74",
+      "earliest": "2025-01-01T00:00:00",
+      "latest": "2025-12-19T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0006TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "24",
+      "earliest": "2025-01-10T00:00:00",
+      "latest": "2025-12-12T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0006TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0006",
+      "registeredYear": 2025,
+      "records": "790",
+      "earliest": "2025-01-01T00:00:00",
+      "latest": "2025-12-12T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0007TBLALFATBASLIK",
+      "company": "F0104",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "3",
+      "earliest": "2026-05-14T00:00:00",
+      "latest": "2026-06-24T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0007TBLCARIHAREKETLERI",
+      "company": "F0104",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "65",
+      "earliest": "2026-01-01T00:00:00",
+      "latest": "2026-09-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0007TBLSATFATBASLIK",
+      "company": "F0104",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "25",
+      "earliest": "2026-02-05T00:00:00",
+      "latest": "2026-09-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    },
+    {
+      "dataset": "vega.dbo.F0104D0007TBLSTOKHAREKETLERI",
+      "company": "F0104",
+      "period": "D0007",
+      "registeredYear": 2026,
+      "records": "679",
+      "earliest": "2026-01-01T00:00:00",
+      "latest": "2026-09-02T00:00:00",
+      "status": "OBSERVED_DATA"
+    }
+  ],
+  "missingPermissionOrSchema": [
+    "melisa.dbo.cash_adjustments",
+    "melisa.dbo.cash_drawer_accounts",
+    "melisa.dbo.cash_drawers",
+    "melisa.dbo.cash_expenses",
+    "melisa.dbo.cash_session_counts",
+    "melisa.dbo.cash_sessions",
+    "melisa.dbo.cash_transfers",
+    "melisa.dbo.catalog_items",
+    "melisa.dbo.catalogs",
+    "melisa.dbo.currency_rates",
+    "melisa.dbo.customer_movements",
+    "melisa.dbo.customers",
+    "melisa.dbo.expense_categories",
+    "melisa.dbo.finance_account_movements",
+    "melisa.dbo.finance_accounts",
+    "melisa.dbo.purchase_invoice_items",
+    "melisa.dbo.purchase_invoices",
+    "melisa.dbo.sales_invoice_items",
+    "melisa.dbo.sales_invoices",
+    "melisa.dbo.sales_offer_items",
+    "melisa.dbo.sales_offers",
+    "melisa.dbo.sales_order_items",
+    "melisa.dbo.sales_orders",
+    "melisa.dbo.stock_movements",
+    "melisa.dbo.supplier_movements",
+    "melisa.dbo.vega_product_customs",
+    "melisa.dbo.vega_product_images"
+  ],
+  "warning": "Metadata invisibility is not proof of absent data. No customer rows or financial amounts are exported."
+}

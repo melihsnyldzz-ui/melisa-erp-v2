@@ -1,5 +1,11 @@
 # Commercial read-only MCP
 
+Current review package (not deployed): [7 September 2026 coverage, evidence,
+permission gaps and release steps](commercial-mcp-review-20260907.md).
+The original deployment notes below describe the earlier 10-tool baseline.
+For the 25-tool review version, follow the new report's null/unit rules,
+administrator/customer boundary and explicit publication approval requirements.
+
 Approved scope: extend the existing four MCP tools with a dataset catalogue,
 typed query/aggregation, record and document reads for configured Vega and Melisa
 sources. No Melisa AI changes, database writes, migrations, permission changes,

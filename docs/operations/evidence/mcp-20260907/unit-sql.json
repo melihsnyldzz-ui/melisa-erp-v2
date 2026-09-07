@@ -1,0 +1,10 @@
+{
+  "recordedAt": "2026-09-07T11:29:26.7307755Z",
+  "testCommand": "npm run test:mcp-commercial with MCP_READ_ONLY_SQL_TESTS=true and dedicated read-only settings",
+  "tests": 21,
+  "passed": 21,
+  "failed": 0,
+  "skipped": 0,
+  "scope": "Local/HTTP tests and SQL-engine SELECT over synthetic VALUES only; not commercial live feature acceptance",
+  "implementationCommit": "4838db9be8ea15810b3cf771513cdc58ab1c2d67"
+}

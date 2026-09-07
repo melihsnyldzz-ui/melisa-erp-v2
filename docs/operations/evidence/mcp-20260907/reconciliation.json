@@ -1,0 +1,28 @@
+{
+  "at": "2026-09-07T11:34:24.459Z",
+  "source": "VEGA2026",
+  "company": "F0102",
+  "period": "D0007",
+  "range": {
+    "dateFrom": "2026-01-01",
+    "dateTo": "2026-09-08"
+  },
+  "evidence": [
+    {
+      "label": "Stock quantities agree with independent raw sums for complete units",
+      "status": "PASS_LIVE_RECONCILIATION"
+    },
+    {
+      "label": "Ledger balances agree with independent per-currency source formula",
+      "status": "PASS_LIVE_RECONCILIATION"
+    },
+    {
+      "label": "Posted header identity checked over all current-period 33/34 movements",
+      "status": "PASS_LIVE_RECONCILIATION"
+    },
+    {
+      "label": "Country grouping reconciles source posting count, preserving incomplete groups",
+      "status": "PASS_LIVE_RECONCILIATION"
+    }
+  ]
+}

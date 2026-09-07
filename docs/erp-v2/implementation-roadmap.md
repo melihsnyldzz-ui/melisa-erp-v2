@@ -1,5 +1,13 @@
 # Melisa ERP v2 Implementation Roadmap
 
+## 2026-09-07 — Kontrollü ticari MCP inceleme paketi
+
+Mevcut read-only MCP'nin ticari alan, rapor, kaynak/kapsam ve görsel erişimi
+genişletmesi ayrı inceleme dalında hazırlanmıştır. [Kapsam, test kanıtları,
+eksik yetkiler ve onay sonrası yayın adımları](../operations/commercial-mcp-review-20260907.md)
+esas alınır. Canlı merge/yayın/yetki değişikliği yapılmamıştır; bu paket mevcut
+ERP ticari kayıtlarını veya terminal akışını değiştirmez.
+
 ## Amaç
 
 Bu doküman Melisa ERP v2 için kodlamaya geçmeden önce uygulanabilir geliştirme yol haritasını tanımlar. Roadmap; karar defteri, UI blueprint, veri mimarisi, frontend/backend mimarisi, terminal sync protokolü ve auth/yetki dokümanlarıyla uyumlu ilerlemelidir.

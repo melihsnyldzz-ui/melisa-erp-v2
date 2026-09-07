@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-07T11:09:16.971Z",
+  "status": "PASS_COMPONENT_WITH_REAL_MEDIA",
+  "productMappingLiveAcceptance": "BLOCKED_SEPARATE_SQL_PERMISSION_CHECK_REQUIRED",
+  "httpStatus": 200,
+  "mime": "image/jpeg",
+  "bytes": 211749,
+  "decodedWidth": 1198,
+  "decodedHeight": 1600,
+  "byteHashMatches": true,
+  "pathExposed": false
+}
