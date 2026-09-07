@@ -28,6 +28,27 @@ function booleanEnv(name, fallback = false) {
 }
 
 export const env = {
+  bionicSql: {
+    server: process.env.BIONIC_SQL_SERVER || '',
+    port: numberEnv('BIONIC_SQL_PORT', 1433),
+    database: process.env.BIONIC_SQL_DATABASE || '',
+    user: process.env.BIONIC_SQL_USER || '',
+    password: process.env.BIONIC_SQL_PASSWORD || '',
+    encrypt: booleanEnv('BIONIC_SQL_ENCRYPT', false),
+    trustServerCertificate: booleanEnv('BIONIC_SQL_TRUST_SERVER_CERTIFICATE', true),
+  },
+  bionicVegaSql: {
+    server: process.env.BIONIC_VEGA_SQL_SERVER || '',
+    localAddress: process.env.BIONIC_VEGA_SQL_LOCAL_ADDRESS || '',
+    port: numberEnv('BIONIC_VEGA_SQL_PORT', 1433),
+    database: process.env.BIONIC_VEGA_SQL_DATABASE || '',
+    user: process.env.BIONIC_VEGA_SQL_USER || '',
+    password: process.env.BIONIC_VEGA_SQL_PASSWORD || '',
+    encrypt: booleanEnv('BIONIC_VEGA_SQL_ENCRYPT', false),
+    trustServerCertificate: booleanEnv('BIONIC_VEGA_SQL_TRUST_SERVER_CERTIFICATE', true),
+    companyCode: process.env.BIONIC_VEGA_COMPANY_CODE || '',
+    periodCode: process.env.BIONIC_VEGA_PERIOD_CODE || '',
+  },
   port: Number(process.env.API_PORT || process.env.PORT || 4100),
   nodeEnv: process.env.NODE_ENV || 'development',
   apiVersion: process.env.API_VERSION || 'v0.1.0',

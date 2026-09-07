@@ -1,0 +1,79 @@
+{
+  "at": "2026-09-07T11:56:45.379Z",
+  "phase": "preflight",
+  "url": "http://127.0.0.1:4115/mcp",
+  "authentication": "existing protected administrator credential",
+  "checks": [
+    {
+      "name": "Exact administrator tools/list",
+      "status": "PASS"
+    },
+    {
+      "name": "No credential and invalid credential rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "Four legacy calls retain working source contract",
+      "status": "PASS"
+    }
+  ],
+  "toolCount": 25,
+  "toolNames": [
+    "get_stock_count",
+    "search_products",
+    "get_product",
+    "erp_readonly_health",
+    "list_datasets",
+    "describe_dataset",
+    "query_dataset",
+    "aggregate_dataset",
+    "get_record",
+    "get_document",
+    "get_commercial_inventory",
+    "get_stock_quantities",
+    "get_product_units",
+    "get_product_variants",
+    "get_stock_movements",
+    "get_product_prices",
+    "get_product_costs",
+    "list_accounts",
+    "get_account_ledger",
+    "get_account_balance",
+    "list_commercial_documents",
+    "get_sales_report",
+    "get_inventory_report",
+    "search_catalog",
+    "get_product_image"
+  ],
+  "source": {
+    "database": "VEGA2026",
+    "company": "F0102",
+    "period": "D0007"
+  },
+  "effectiveWritePermissions": {
+    "select": {
+      "F0102TBLSTOKLAR": "allowed",
+      "F0102TBLBIRIMLEREX": "allowed",
+      "F0102D0007TBLSTOKHAREKETLERI": "allowed"
+    },
+    "insert": "denied",
+    "update": "denied",
+    "delete": "denied",
+    "alter": "denied",
+    "createTable": "denied",
+    "execute": "denied"
+  },
+  "actualChatGPTTunnel": {
+    "alias": "melisa-erp-mcp",
+    "running": true,
+    "healthy": true,
+    "ready": true,
+    "pid": 28412,
+    "target": "http://127.0.0.1:4113/mcp",
+    "controlPlanePoll": {
+      "reason": "no live admin UI system snapshot",
+      "state": "unknown"
+    }
+  },
+  "status": "PASS"
+}
