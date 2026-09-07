@@ -4,6 +4,28 @@ Mevcut Melisa ERP MCP, 25 kontrollü okuma aracı sunacak şekilde genişletildi
 Bu paket **inceleme sürümüdür; canlıya alınmadı**. Görsel eşleme erişimi ve
 doğrulanmış işlem maliyeti eksikleri nedeniyle tam canlı kabul tamamlanmış sayılmaz.
 
+### Yayın öncesi ek kontrol
+
+PR #10 için verilen kontrollü yayın onayı sonrası tarih sorguları ve 90 günlük
+satışsızlık yorumu ayrıca incelendi. Türetilmiş veri kümelerinin tarih alanlarında
+`min`/`max` izni eksikti; yalnız tarih min/max işlemleri açıldı. Eksik tarih varsa
+sonuç null kalır. Son **doğrulanmış** satış tarihi için `erp_posted_sales_basis`
+üzerinde tek `stock_id`, `event_kind=erp_sale` ve `net_sales_basis_try IS NOT NULL`
+filtresiyle `MAX(transaction_date)` kullanılır. Bu tarih yalnız seçilen dönemindir;
+null sonucu "hiç satılmadı" anlamına gelmez.
+
+Stok raporları ürünün ilk/son kayıtlı hareket tarihini ve tarihsiz hareket sayısını
+da döndürür. Pencere öncesine uzanmayan ürün geçmişi `INSUFFICIENT_PRODUCT_HISTORY`
+olarak işaretlenir. Pencere öncesi kayıt görülmesi bile arşiv/aktarım geçmişinin
+tamlığını kanıtlamaz: `completeHistoryVerified=false` ve
+`confirmedDaysWithoutSales=null` korunur. "90 gündür kesin satılmamış" yerine
+belirtilen kaynak aralığında satış gözlenmeyen adaylar sunulur.
+
+Yayın kapısının güncel kanıtları `evidence/mcp-20260907-predeploy/` altındadır;
+aşağıdaki ilk inceleme kanıtlarının tarihsel sayıları değiştirilmez. Yayın yalnız
+MCP sürecini kapsar; veritabanı izinleri, diğer servisler ve müşteri anahtarları
+bu onayla değiştirilmez.
+
 ## Korunan çalışma ve doğrulanan bağlantı
 
 - Asıl checkout: `erp-terminal-readiness`, `85cb202`. Başlangıç ve sonuç Git
