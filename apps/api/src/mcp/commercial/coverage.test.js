@@ -10,6 +10,7 @@ import { readMappedImage } from './images.js';
 import { fieldPolicy } from './policy.js';
 import { getBionicVegaTables } from '../../config/bionicVegaDatabase.js';
 import { env } from '../../config/env.js';
+import { inventoryHistoryAssessment } from './reports.js';
 
 const admin='synthetic-administrator-key-01234567890123456789';
 const customer='synthetic-customer-key-0123456789012345678901234';
@@ -33,6 +34,18 @@ test('principal tokens are distinct and callers cannot choose administrator role
 test('report dates are explicit, calendar-valid, exclusive and bounded',()=>{
   assert.deepEqual(dateRange({dateFrom:'2026-01-01',dateTo:'2027-01-01'}),{dateFrom:'2026-01-01',dateTo:'2027-01-01',endExclusive:true});
   for(const dates of [{},{dateFrom:'2026-02-30',dateTo:'2026-03-03'},{dateFrom:'2026-03-03',dateTo:'2026-03-03'},{dateFrom:'2024-01-01',dateTo:'2026-01-01'}])assert.throws(()=>dateRange(dates),e=>e.code==='EXPLICIT_DATE_RANGE_REQUIRED_MAX_366_DAYS');
+});
+
+test('no-sales candidates never turn missing or recent history into confirmed unsold days',()=>{
+  for(const row of [{first_recorded_movement:null,undated_movement_rows:null},{first_recorded_movement:'2026-07-01',undated_movement_rows:'0'},{first_recorded_movement:'2026-01-01',undated_movement_rows:'1'}]){
+    const assessment=inventoryHistoryAssessment(row,'2026-06-09');
+    assert.equal(assessment.status,'INSUFFICIENT_PRODUCT_HISTORY');
+    assert.equal(assessment.confirmedDaysWithoutSales,null);
+    assert.equal(assessment.completeHistoryVerified,false);
+  }
+  const older=inventoryHistoryAssessment({first_recorded_movement:'2026-01-01',undated_movement_rows:'0'},'2026-06-09');
+  assert.equal(older.status,'OBSERVED_RECORDS_PRECEDE_WINDOW');
+  assert.equal(older.completeHistoryVerified,false);assert.equal(older.confirmedDaysWithoutSales,null);
 });
 test('raw file paths cannot escape through generic dataset queries',()=>{
   for(const name of ['file_path','storage_key','image_url','FILEPATH'])assert.equal(fieldPolicy({name,dataType:'nvarchar'},{source:'melisa',family:'stock'}),null);

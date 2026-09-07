@@ -8,7 +8,7 @@ export function currencyExpression(column) {
 
 function f(name, dataType, meaning, options = {}) {
   return { name, dataType, nullable: true, precision: 38, scale: 8, personal: false,
-    meaning, meaningStatus: 'erp-mapped', aggregate: [], ...options };
+    meaning, meaningStatus: 'erp-mapped', aggregate: ['date','datetime','datetime2','smalldatetime','datetimeoffset'].includes(dataType) ? ['min','max'] : [], ...options };
 }
 const numeric = (name, meaning, requiredGroups) => f(name, 'decimal', meaning, { aggregate: ['sum', 'min', 'max'], requiredGroups });
 

@@ -41,6 +41,11 @@ test('SQL engine: return signs, cancellation and missing headers fail closed; tr
       assert.equal((await readQuery('vega',[],incomplete.statement,incomplete.parameters))[0].net,null);
       const scoped=compileAggregate(d,{...args,filters:[{field:'cancellation_state',op:'eq',value:'not_cancelled'}]});
       assert.equal((await readQuery('vega',[],scoped.statement,scoped.parameters))[0].net,'80.00000000');
+      const lastSale=compileAggregate(d,{dataset:d.id,filters:[{field:'event_kind',op:'eq',value:'erp_sale'},{field:'net_sales_basis_try',op:'is_null',value:false}],metrics:[{op:'max',field:'transaction_date',as:'last_sale'}]});
+      assert.equal((await readQuery('vega',[],lastSale.statement,lastSale.parameters))[0].last_sale,'2026-09-01T00:00:00');
+      const unknownDate={...d,from:`(SELECT CAST(NULL AS datetime) AS transaction_date UNION ALL SELECT CAST('2026-09-01' AS datetime)) AS [verified_source]`};
+      const incompleteDate=compileAggregate(unknownDate,{dataset:d.id,metrics:[{op:'max',field:'transaction_date',as:'last_sale'}]});
+      assert.equal((await readQuery('vega',[],incompleteDate.statement,incompleteDate.parameters))[0].last_sale,null);
     } finally {await closeBionicVegaSqlPool();}
   });
 

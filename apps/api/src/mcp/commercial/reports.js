@@ -63,6 +63,16 @@ export async function getSalesReport(args) {
     warning:'Any incomplete source row makes the overall ranking partial, even if this page contains only complete groups. Empty pages do not imply zero source history.'}};
 }
 
+export function inventoryHistoryAssessment(row, dateFrom) {
+  const startsBeforeWindow = typeof row.first_recorded_movement === 'string' && row.first_recorded_movement.slice(0,10) <= dateFrom;
+  return {
+    status: startsBeforeWindow && String(row.undated_movement_rows) === '0' ? 'OBSERVED_RECORDS_PRECEDE_WINDOW' : 'INSUFFICIENT_PRODUCT_HISTORY',
+    completeHistoryVerified: false,
+    confirmedDaysWithoutSales: null,
+    meaning: 'Observed source dates do not prove complete archive/import history. No unconditional 90-days-unsold or never-sold claim is established.',
+  };
+}
+
 export async function getInventoryReport(args) {
   assertAdministrator();
   exactKeys(args,['company','period','dateFrom','dateTo','kind','limit','cursor']);
@@ -79,6 +89,8 @@ export async function getInventoryReport(args) {
     SUM(CASE WHEN p.net_sales_basis_try IS NULL THEN 1 ELSE 0 END) AS incomplete_rows,
     SUM(CASE WHEN p.event_kind=N'erp_sale' AND p.net_sales_basis_try IS NOT NULL THEN 1 ELSE 0 END) AS sales_rows
     FROM ${posted.from.replace(/ AS \[verified_source\]$/, '')} p WHERE p.transaction_date>=@from AND p.transaction_date<@to GROUP BY p.stock_id`;
+  const history=`SELECT STOKNO,MIN(TARIH) AS first_recorded_movement,MAX(TARIH) AS last_recorded_movement,
+    COUNT_BIG(*)-COUNT_BIG(TARIH) AS undated_movement_rows FROM ${movements.from} GROUP BY STOKNO`;
   // Absence is established by a successful complete anti-join in this exact
   // window, not by treating an unknown scalar from a source row as zero.
   const conditions={
@@ -88,18 +100,23 @@ export async function getInventoryReport(args) {
   };
   const inner=`SELECT q.source_id,q.stock_code,q.source_unit,q.source_unit_id,q.erp_quantity,q.quantity_basis,
     w.quantity_delta,w.unit_id AS delta_unit_id,w.movement_rows,s.KRITIKSEVIYE AS recorded_threshold,
-    a.sales_rows,a.incomplete_rows,
+    a.sales_rows,a.incomplete_rows,h.first_recorded_movement,h.last_recorded_movement,h.undated_movement_rows,
     ROW_NUMBER() OVER (ORDER BY q.source_id) AS row_no
     FROM ${quantity.from.replace(/ AS \[verified_source\]$/, '')} q JOIN ${stock.from} s ON s.IND=q.source_id
     LEFT JOIN (${window}) w ON w.STOKNO=q.source_id LEFT JOIN (${sales}) a ON a.stock_id=q.source_id
+    LEFT JOIN (${history}) h ON h.STOKNO=q.source_id
     WHERE s.STATUS=1 AND s.DELETED=0 AND s.IPTAL=0 AND ${conditions[args.kind]}`;
   const statement=`SELECT TOP (${page.limit+1}) CONVERT(int,row_no) AS row_no,source_id,stock_code,source_unit,source_unit_id,
     CONVERT(varchar(100),erp_quantity) AS current_quantity,quantity_basis,CONVERT(varchar(100),quantity_delta) AS window_quantity_delta,
     delta_unit_id,CONVERT(varchar(100),movement_rows) AS window_movement_rows,
-    CONVERT(varchar(100),recorded_threshold) AS recorded_threshold,sales_rows,incomplete_rows
+    CONVERT(varchar(100),recorded_threshold) AS recorded_threshold,sales_rows,incomplete_rows,
+    CONVERT(varchar(30),first_recorded_movement,126) AS first_recorded_movement,
+    CONVERT(varchar(30),last_recorded_movement,126) AS last_recorded_movement,
+    CONVERT(varchar(100),undated_movement_rows) AS undated_movement_rows
     FROM (${inner}) ranked WHERE row_no>@after ORDER BY row_no OPTION (MAXDOP 1)`;
   const result=await finish(scope,page,[...quantity.objects,...posted.objects,...stock.objects],statement,
     args.kind==='no_sales'?'Dead-stock candidates: positive current recorded stock with no verified sales and no ambiguous 33/34 postings in the requested window. Not lifetime dead stock; new receipts and unavailable earlier history require review.':args.kind==='decreasing'?'Negative net movement in the requested window, retaining one recorded stock unit; not a future stock forecast.':'Below recorded stock-card threshold; not the one-series business threshold, because a package/series conversion is not established.');
-  return {...result,historyCompleteness:'Only the requested period/date window was examined; no assertion of complete lifetime history.',
+  return {...result,items:result.items.map(row=>({...row,historyAssessment:inventoryHistoryAssessment(row,page.range.dateFrom)})),
+    historyCompleteness:'Archive/import completeness is not proven. Per-product observed dates and undated-row counts are exposed; insufficient history is not evidence of no sales for 90 days.',
     excludedScope:'Inactive/deleted/cancelled cards are excluded. Conditions requiring unknown quantities, mixed units or an unverified threshold unit cannot produce a candidate; this is not an exhaustive stock-risk list.'};
 }
