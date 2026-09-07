@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import sql from 'mssql/tedious.js';
-import { createProductSalesEvidenceService, normalizeSalesEvidenceQuery, PRODUCT_SALES_EVIDENCE_SQL } from './vegaProductSalesEvidenceService.js';
+import { createProductSalesEvidenceService, createSalesEvidenceRequest, normalizeSalesEvidenceQuery, PRODUCT_SALES_EVIDENCE_SQL } from './vegaProductSalesEvidenceService.js';
+import nativeSql from 'mssql/msnodesqlv8.js';
 import { createProductSalesEvidenceController } from '../controllers/productSalesEvidenceController.js';
 import { productSalesEvidenceRoutes } from '../routes/productSalesEvidenceRoutes.js';
 
@@ -17,13 +18,22 @@ function fixture(rows = [zero()], options = {}) {
     calls.push(text); if (options.failure) throw new Error('PRIVATE_DRIVER_DETAIL'); return { recordset: rows };
   } };
   const service = createProductSalesEvidenceService({ config: { ...config, ...options.config },
-    getPool: async () => ({ request: () => request }), now: () => new Date('2026-09-07T00:00:00Z') });
+    getPool: async () => ({ request: () => { throw new Error('GLOBAL_DRIVER_MUST_NOT_BE_USED'); } }), requestFactory: () => request, now: () => new Date('2026-09-07T00:00:00Z') });
   return { service, calls, parameters };
 }
 async function http(service, query = input) {
   const res = { statusCode: 200, status(value) { this.statusCode = value; return this; }, json(body) { this.body = body; return this; } };
   await createProductSalesEvidenceController(service)({ query }, res); return res;
 }
+
+test('Vega request remains tedious when the full ERP also loads the native SQL driver', () => {
+  const pool = new sql.ConnectionPool({ server: '127.0.0.1', database: 'UNIT_ONLY' });
+  const request = createSalesEvidenceRequest(pool);
+  assert.ok(request instanceof sql.Request);
+  assert.equal(request instanceof nativeSql.Request, false);
+  assert.equal(request.parent, pool);
+  // No connection/query: this tests driver selection, not production data.
+});
 
 test('dated sales return 200 SALES_FOUND with counts and dates, not customer or commercial data', async () => {
   const r = fixture([{ ...zero(), movementRowCount: '4', salesCodeRowCount: '3', grossOutboundRowCount: '2',

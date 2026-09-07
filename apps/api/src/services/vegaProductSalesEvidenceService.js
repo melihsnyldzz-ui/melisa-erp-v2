@@ -71,7 +71,10 @@ function datedEvidence(value, scope) {
 
 // Dependencies are replaceable for isolated unit tests; production always uses
 // the existing Vega read-only pool and fixed company/period configuration.
-export function createProductSalesEvidenceService({ getPool = getVegaSqlPool, config = env.vega, now = () => new Date() } = {}) {
+// pool.request() follows node-mssql's mutable global driver. The ERP also loads
+// msnodesqlv8 for its local database, so always pin requests to the Vega driver.
+export const createSalesEvidenceRequest = pool => new sql.Request(pool);
+export function createProductSalesEvidenceService({ getPool = getVegaSqlPool, requestFactory = createSalesEvidenceRequest, config = env.vega, now = () => new Date() } = {}) {
   return async function getEvidence(query) {
     const input = normalizeSalesEvidenceQuery(query);
     if (!config.enabled || config.database !== 'VEGA2026' || config.companyCode !== 'F0102' ||
@@ -79,7 +82,7 @@ export function createProductSalesEvidenceService({ getPool = getVegaSqlPool, co
     let result;
     try {
       const pool = await getPool();
-      result = await pool.request().input('sourceId', sql.Int, Number(input.sourceId))
+      result = await requestFactory(pool).input('sourceId', sql.Int, Number(input.sourceId))
         .input('dateFrom', sql.Date, new Date(`${input.dateFrom}T00:00:00Z`))
         .input('dateTo', sql.Date, new Date(`${input.dateTo}T00:00:00Z`))
         .query(PRODUCT_SALES_EVIDENCE_SQL);
