@@ -31,6 +31,7 @@ import './styles/stock-count.css';
 import './styles/sales-pipeline-list.css';
 import './styles/visual-refresh-phase2.css';
 import './styles/visual-refresh-phase3.css';
+import './styles/dashboard-efficiency.css';
 import { App } from './App.jsx';
 
 class RootErrorBoundary extends React.Component {
