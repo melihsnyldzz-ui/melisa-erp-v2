@@ -14,4 +14,4 @@ This is a client milestone. Server durable idempotency, shared SQL transaction/c
 
 Historical terminal-sync-protocol.md describes automatic sync as a proposed phase. This package does not activate automatic sending; existing explicit queue controls remain authoritative. No schema migration, deployment or merge is included.
 
-Follow-up: the server implementation and network-denied verification are now recorded in [terminal-server-transaction-safety-20260908.md](terminal-server-transaction-safety-20260908.md). Real SQL acceptance remains pending there; this document preserves the original client milestone boundary.
+Follow-up: server implementation and subsequent bounded real SQL acceptance are recorded in [terminal-server-transaction-safety-20260908.md](terminal-server-transaction-safety-20260908.md). The current APK's native regression is now verified in [TERMINAL_EMULATOR.md](../../../scripts/quality/TERMINAL_EMULATOR.md), including manual-review persistence, offline draft recovery and Save and Exit. This document preserves the original client milestone boundary; full ERP commercial UI and physical scanner/printing acceptance remain open.

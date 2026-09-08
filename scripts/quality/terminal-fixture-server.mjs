@@ -16,6 +16,7 @@ const customers = [{id:7001, customerCode:'TEST-CARI', customerName:'TEST EMULAT
 const list = data => ({success:true,data,meta:{source:'SYNTHETIC_UI_FIXTURE',page:1,totalPages:1,total:data.length,limit:100}});
 const ok = data => ({success:true,data,meta:{source:'SYNTHETIC_UI_FIXTURE'}});
 let offline = false;
+const unverifiedSubmit = process.argv.includes('--unverified-submit');
 const server = http.createServer(async (req,res) => {
   const url = new URL(req.url,'http://127.0.0.1:4719');
   fs.appendFileSync(path.join(output,'requests.jsonl'),JSON.stringify({at:new Date().toISOString(),method:req.method,path:url.pathname,query:Object.fromEntries(url.searchParams)})+'\n');
@@ -31,6 +32,10 @@ const server = http.createServer(async (req,res) => {
     return reply(200,ok({accessToken:'fixture-session-not-a-real-token',refreshToken:'fixture-refresh-not-a-real-token',user}));
   }
   if(req.method==='POST' && url.pathname==='/api/auth/logout') return reply(200,ok({loggedOut:true}));
+  // Error-only rehearsal: no invoice, stock movement, database or upstream call.
+  if(unverifiedSubmit && req.method==='POST' && url.pathname==='/api/terminal/sales/submit') {
+    return reply(503,{success:false,error:{code:'TERMINAL_SALE_OUTCOME_UNVERIFIED',message:'TEST sonucu belirsiz; ERP kaydini kontrol edin'}});
+  }
   if(req.method==='GET' && url.pathname==='/api/terminal/products/search') {
     const q=(url.searchParams.get('q')||'').toLocaleLowerCase('tr-TR');
     return reply(200,list(products.filter(p=>`${p.stockCode} ${p.productName} ${p.barcode}`.toLocaleLowerCase('tr-TR').includes(q))));
