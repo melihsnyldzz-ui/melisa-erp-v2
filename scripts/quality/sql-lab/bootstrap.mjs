@@ -18,7 +18,7 @@ try {
   const migrations=[];
   try {
     const directory=new URL('infra/sql/migrations/',root);
-    for(const file of fs.readdirSync(directory).filter(f=>/^00(0[1-9]|1[0-4])_.*\.sql$/.test(f)).sort()) {
+    for(const file of fs.readdirSync(directory).filter(f=>/^00(0[1-9]|1[0-4]|18)_.*\.sql$/.test(f)).sort()) {
       stage=file;
       const source=fs.readFileSync(new URL(file,directory),'utf8');
       assert.doesNotMatch(source,/whatsapp|chatwoot|evolution|OPENROWSET|OPENDATASOURCE|xp_cmdshell/i);

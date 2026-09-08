@@ -13,3 +13,14 @@ From the repository root, initial setup is `scripts/quality/sql-lab/start.ps1`, 
 The initial container used two dedicated networks because Docker did not publish the loopback port for an internal-only network. The corrected start script uses a dedicated bridge with inter-container communication disabled. No existing application network or data volume is attached. Restart policy is `no`; no Windows startup registration is created. Stop only the named lab container after testing, preserving its volume and credentials for later commercial UI acceptance.
 
 Microsoft setup reference: [SQL Server Linux container quickstart](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-ver17). The tested image is pinned by digest in start.ps1 rather than relying on future changes to the latest tag.
+# Web kabulü ek akışı
+
+Mevcut laboratuvarı yeniden oluşturmayın. Önce yalnız `commerce-sql-20260908` konteynerinin etiketini, kendi volume'unu ve 127.0.0.1:51433 bağını doğrulayın; durmuşsa bu konteyneri başlatın ve `probe.mjs` ile kimlik doğrulayın.
+
+- `prepare-web.mjs`: yalnız bir kez ayrı şifreli TEST-web hesabı oluşturur. Mevcut kayıt varsa durur; şifreyi yazdırmaz.
+- `accept-product-schema.mjs`: yalnız laboratuvarda 0018'i transaction içinde iki kez uygular ve mevcut değerleri, bağlantıları, foreign key engelini kontrol eder.
+- `serve-web-api.mjs`: gerçek createApp'i dış eylem engelleri ve SQL kimlik kontrolüyle 127.0.0.1:54100 üzerinde başlatır. `--probe-products` yalnız ürün sorgularını kontrol eder ve çıkar.
+- Web-admin'i `VITE_API_BASE_URL=http://127.0.0.1:54100`, demo ve passwordless false, 127.0.0.1:54173 strict port ile başlatın. Kalıcı .env oluşturmayın. Tarayıcı oturumunu ve bu iki süreci test sonunda kapatın.
+- `inspect-web.mjs purchase-draft|purchase-final|sale-draft|sale-final|finance-final`: belge senaryosunun ilgili aşamasında SQL değerlerini doğrular; sonraki aşamadan eski aşama kontrolü çalıştırmayın. `snapshot` yalnız okur, aşama kabulü değildir.
+
+Tam UI adımları, beklenen rakamlar ve açık işler: `docs/erp-v2/commerce-web-sql-acceptance-20260908.md`. Her yeni ticari test yalnız bu ayrı SQL sunucusuna yazabilir. Test adı filtrelerinin raporlardan dışlanması genel rapor kabulü sayılmaz.
