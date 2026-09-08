@@ -3,6 +3,8 @@
 // present. Payload details must be narrowed by consumers before use.
 interface Error {
   code?: string;
+  originalCode?: string;
+  transactionOutcome?: 'unverified';
   statusCode?: number;
   status?: number;
   details?: unknown;

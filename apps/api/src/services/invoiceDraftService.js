@@ -5,15 +5,78 @@ import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } fro
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
-import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
+import { resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
+import { assertFinanceAccountSchema } from './financeSchemaGuard.js';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
+const salesFinalizationPreparationPromises = new WeakMap();
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
   error.code = code;
   error.statusCode = statusCode;
   return error;
+}
+
+export function markSalesTransactionOutcomeUnverified(error) {
+  error.originalCode ||= error.code || 'SALES_TRANSACTION_FAILED';
+  error.transactionOutcome = 'unverified';
+  error.code = 'SALES_INVOICE_OUTCOME_UNVERIFIED';
+  error.statusCode = 503;
+  error.message = 'Sales invoice outcome could not be verified; check the invoice list and audit log before retrying';
+}
+
+async function commitOwnedTransaction(transaction, ownsTransaction) {
+  if (!ownsTransaction) return;
+  try {
+    await transaction.commit();
+  } catch (error) {
+    markSalesTransactionOutcomeUnverified(error);
+    throw error;
+  }
+}
+
+async function rollbackOwnedTransaction(transaction, ownsTransaction, error) {
+  if (!ownsTransaction) return;
+  try {
+    await transaction.rollback();
+  } catch {
+    markSalesTransactionOutcomeUnverified(error);
+  }
+}
+
+export async function prepareSalesInvoiceFinalization(transactionContext, dependencies = {}) {
+  const { pool, sqlDriver, transaction } = transactionContext || {};
+  if (!pool || !sqlDriver || !transaction) {
+    throw makeServiceError(
+      'SALES_TRANSACTION_CONTEXT_REQUIRED',
+      'Sales finalization preparation requires an active transaction context',
+      500,
+    );
+  }
+
+  const existingPreparation = salesFinalizationPreparationPromises.get(transactionContext);
+  if (existingPreparation) {
+    await existingPreparation;
+    return;
+  }
+
+  const ensureCashCustomersFn = dependencies.ensureCashCustomersFn || ensureCashCustomers;
+  const assertFinanceAccountSchemaFn = dependencies.assertFinanceAccountSchemaFn || assertFinanceAccountSchema;
+  const preparation = (async () => {
+    await ensureCashCustomersFn(pool, { sqlDriver, transaction });
+    await assertFinanceAccountSchemaFn(new sqlDriver.Request(transaction));
+  })();
+  salesFinalizationPreparationPromises.set(transactionContext, preparation);
+
+  try {
+    await preparation;
+  } catch (error) {
+    if (salesFinalizationPreparationPromises.get(transactionContext) === preparation) {
+      salesFinalizationPreparationPromises.delete(transactionContext);
+    }
+    throw error;
+  }
 }
 
 function trimText(value) {
@@ -1406,15 +1469,18 @@ async function ensureSupplier(sqlDriver, transaction, payload) {
   return Number(insert.recordset?.[0]?.supplierId);
 }
 
-export async function getSalesDraft(id) {
+export async function getSalesDraft(id, transactionContext = null) {
   const invoiceId = Number(id);
 
   if (!Number.isInteger(invoiceId) || invoiceId < 1) {
     throw makeServiceError('SALES_DRAFT_ID_INVALID', 'Sales draft id is invalid');
   }
 
-  const pool = await getSqlPool();
-  const snapshot = await getSalesSnapshot(pool.request(), invoiceId);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const request = transactionContext?.transaction
+    ? new transactionContext.sqlDriver.Request(transactionContext.transaction)
+    : pool.request();
+  const snapshot = await getSalesSnapshot(request, invoiceId);
 
   if (!snapshot) {
     throw makeServiceError('SALES_DRAFT_NOT_FOUND', 'Sales draft not found', 404);
@@ -1572,15 +1638,16 @@ export async function getSalesDraftsList(query) {
   };
 }
 
-export async function createSalesDraft(payload, actor = null) {
+export async function createSalesDraft(payload, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const draft = normalizeSalesPayload(payload);
-  const pool = await getSqlPool();
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const ownsTransaction = !transactionContext?.transaction;
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (ownsTransaction) await transaction.begin();
 
   try {
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
@@ -1660,11 +1727,11 @@ export async function createSalesDraft(payload, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    await commitOwnedTransaction(transaction, ownsTransaction);
 
-    return getSalesDraft(invoiceId);
+    return ownsTransaction ? getSalesDraft(invoiceId) : afterSnapshot;
   } catch (error) {
-    await transaction.rollback();
+    await rollbackOwnedTransaction(transaction, ownsTransaction, error);
     throw error;
   }
 }
@@ -1766,7 +1833,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
   }
 }
 
-export async function finalizeSalesInvoice(id, actor = null) {
+export async function finalizeSalesInvoice(id, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -1775,15 +1842,16 @@ export async function finalizeSalesInvoice(id, actor = null) {
     throw makeServiceError('SALES_FINALIZE_ID_INVALID', 'Sales invoice id is invalid');
   }
 
-  const pool = await getSqlPool();
-  await ensureCashCustomers(pool);
-  await ensureFinanceAccountTables(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const ownsTransaction = !transactionContext?.transaction;
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
+  const activeTransactionContext = transactionContext || { pool, sqlDriver, transaction };
 
-  await transaction.begin();
+  if (ownsTransaction) await transaction.begin();
 
   try {
+    await prepareSalesInvoiceFinalization(activeTransactionContext);
     const beforeSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
 
     if (!beforeSnapshot) {
@@ -2103,11 +2171,11 @@ export async function finalizeSalesInvoice(id, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    await commitOwnedTransaction(transaction, ownsTransaction);
 
     return toFinalizeResult(afterSnapshot, warnings);
   } catch (error) {
-    await transaction.rollback();
+    await rollbackOwnedTransaction(transaction, ownsTransaction, error);
     throw error;
   }
 }

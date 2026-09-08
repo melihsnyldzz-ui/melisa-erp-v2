@@ -1,11 +1,14 @@
 import sqlDefault from 'mssql';
-import sqlTrusted from 'mssql/msnodesqlv8.js';
 import { env } from './env.js';
+
+const selectedSqlDriver = env.sql.trustedConnection
+  ? (await import('./safeTrustedSqlDriver.js')).safeTrustedSqlDriver
+  : sqlDefault;
 
 let poolPromise;
 
 export function getSqlDriver() {
-  return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
+  return selectedSqlDriver;
 }
 
 export function getSqlConfig() {

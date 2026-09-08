@@ -4,6 +4,7 @@ import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
+import { assertFinanceAccountSchema } from './financeSchemaGuard.js';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const PAYMENT_METHODS = new Set(['cash', 'bank', 'card', 'other']);
@@ -117,57 +118,6 @@ function mapFinanceAccount(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
-}
-
-export async function ensureFinanceAccountTables(pool) {
-  await pool.request().query(`
-    IF OBJECT_ID(N'dbo.finance_accounts', N'U') IS NULL
-    BEGIN
-      CREATE TABLE dbo.finance_accounts (
-        id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_finance_accounts PRIMARY KEY,
-        account_code NVARCHAR(40) NOT NULL CONSTRAINT UQ_finance_accounts_code UNIQUE,
-        account_name NVARCHAR(160) NOT NULL,
-        account_type NVARCHAR(20) NOT NULL,
-        currency_code NVARCHAR(3) NOT NULL,
-        opening_balance DECIMAL(18,4) NOT NULL CONSTRAINT DF_finance_accounts_opening DEFAULT (0),
-        current_balance DECIMAL(18,4) NOT NULL CONSTRAINT DF_finance_accounts_current DEFAULT (0),
-        is_active BIT NOT NULL CONSTRAINT DF_finance_accounts_active DEFAULT (1),
-        created_at DATETIME2 NOT NULL CONSTRAINT DF_finance_accounts_created DEFAULT SYSUTCDATETIME(),
-        updated_at DATETIME2 NULL
-      );
-    END;
-
-    IF OBJECT_ID(N'dbo.finance_account_movements', N'U') IS NULL
-    BEGIN
-      CREATE TABLE dbo.finance_account_movements (
-        id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_finance_account_movements PRIMARY KEY,
-        account_id BIGINT NOT NULL,
-        source_type NVARCHAR(30) NOT NULL,
-        party_type NVARCHAR(20) NOT NULL,
-        party_movement_id BIGINT NOT NULL,
-        direction NVARCHAR(10) NOT NULL,
-        amount DECIMAL(18,4) NOT NULL,
-        currency_code NVARCHAR(3) NOT NULL,
-        payment_method NVARCHAR(20) NOT NULL,
-        document_no NVARCHAR(60) NULL,
-        document_date DATE NOT NULL,
-        description NVARCHAR(500) NULL,
-        created_by BIGINT NULL,
-        created_at DATETIME2 NOT NULL CONSTRAINT DF_finance_account_movements_created DEFAULT SYSUTCDATETIME(),
-        CONSTRAINT FK_finance_account_movements_account FOREIGN KEY (account_id) REFERENCES dbo.finance_accounts(id),
-        CONSTRAINT UQ_finance_account_source UNIQUE (source_type, party_type, party_movement_id)
-      );
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.finance_accounts)
-    BEGIN
-      INSERT INTO dbo.finance_accounts (account_code, account_name, account_type, currency_code)
-      VALUES
-        (N'KASA-TRY', N'TRY Ana Kasa', N'cash', N'TRY'),
-        (N'BANKA-TRY', N'TRY Banka Hesabi', N'bank', N'TRY'),
-        (N'POS-TRY', N'TRY POS / Kart Hesabi', N'card', N'TRY');
-    END;
-  `);
 }
 
 async function getOrCreateDefaultFinanceAccount(request, sqlDriver, { accountType, currency }) {
@@ -484,7 +434,7 @@ function buildJournalLines(row) {
 
 export async function getFinanceSummary() {
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request().query(`
     SELECT
       COALESCE((
@@ -779,7 +729,7 @@ export async function getFinanceSummary() {
 
 export async function getFinanceAccounts(query = {}) {
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const includePassive = ['1', 'true', true].includes(query.includePassive);
   const result = await pool.request()
     .input('includePassiveAccounts', sql.Bit, includePassive ? 1 : 0)
@@ -810,7 +760,7 @@ export async function createFinanceAccount(payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request()
     .input('newFinanceAccountCode', sql.NVarChar(40), code)
     .input('newFinanceAccountName', sql.NVarChar(160), name)
@@ -864,7 +814,7 @@ export async function updateFinanceAccount(accountId, payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request()
     .input('updateFinanceAccountId', sql.BigInt, id)
     .input('updateFinanceAccountName', sql.NVarChar(160), name || null)
@@ -928,7 +878,7 @@ function mapFinanceAccountCleanupRow(row) {
 
 export async function getFinanceAccountCleanupPreview() {
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request().query(`
     SELECT
       fa.*,
@@ -1002,7 +952,7 @@ export async function applyFinanceAccountCleanup(actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const request = pool.request();
   candidateIds.forEach((id, index) => {
     request.input(`cleanupFinanceAccountId${index}`, sql.BigInt, id);
@@ -1047,7 +997,7 @@ export async function applyFinanceAccountCleanup(actor) {
 export async function applyFinanceAccountStandardization(actor) {
   assertMelisaWriteEnabled();
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
@@ -1162,7 +1112,7 @@ export async function getFinanceMovements(query = {}) {
   const dateTo = normalizeOptionalDate(query.dateTo);
   const limit = Math.min(Math.max(Number(query.limit || 100), 1), 200);
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
 
   if (partyType && !['customer', 'supplier'].includes(partyType)) {
     throw makeServiceError('FINANCE_PARTY_TYPE_INVALID', 'partyType must be customer or supplier');
@@ -1547,7 +1497,7 @@ export async function getAccountingControlDashboard() {
     getFinanceAccountCleanupPreview(),
   ]);
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const issueResult = await pool.request().query(`
     WITH issue_rows AS (
       SELECT
@@ -1725,19 +1675,13 @@ export async function createCustomerCollection(payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Tahsilat kaydı');
-
-    const account = await resolveFinanceAccount(transaction, sqlDriver, {
-      accountId: payload.accountId,
-      paymentMethod,
-      currency,
-    });
 
     const request = new sqlDriver.Request(transaction);
     const customerResult = await request
@@ -1752,6 +1696,12 @@ export async function createCustomerCollection(payload, actor) {
     if (!customer) {
       throw makeServiceError('FINANCE_CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
+
+    const account = await resolveFinanceAccount(transaction, sqlDriver, {
+      accountId: payload.accountId,
+      paymentMethod,
+      currency,
+    });
 
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementCustomerId', sqlDriver.BigInt, customerId)
@@ -1849,19 +1799,13 @@ export async function createSupplierPayment(payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Ödeme kaydı');
-
-    const account = await resolveFinanceAccount(transaction, sqlDriver, {
-      accountId: payload.accountId,
-      paymentMethod,
-      currency,
-    });
 
     const supplierResult = await new sqlDriver.Request(transaction)
       .input('supplierId', sqlDriver.BigInt, supplierId)
@@ -1875,6 +1819,12 @@ export async function createSupplierPayment(payload, actor) {
     if (!supplier) {
       throw makeServiceError('FINANCE_SUPPLIER_NOT_FOUND', 'Supplier not found', 404);
     }
+
+    const account = await resolveFinanceAccount(transaction, sqlDriver, {
+      accountId: payload.accountId,
+      paymentMethod,
+      currency,
+    });
 
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementSupplierId', sqlDriver.BigInt, supplierId)

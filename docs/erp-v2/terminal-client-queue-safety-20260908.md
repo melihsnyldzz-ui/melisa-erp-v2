@@ -13,3 +13,5 @@ Validation uses network/process-denied test children with in-memory storage and 
 This is a client milestone. Server durable idempotency, shared SQL transaction/commit behavior, exact replay provenance and isolated commercial acceptance remain pending. No real sale, stock/finance write, printer action or messaging operation was performed. The earlier emulator acceptance applies to commit 5bac711; this subsequent client-safety build still needs its own native regression check after server integration.
 
 Historical terminal-sync-protocol.md describes automatic sync as a proposed phase. This package does not activate automatic sending; existing explicit queue controls remain authoritative. No schema migration, deployment or merge is included.
+
+Follow-up: the server implementation and network-denied verification are now recorded in [terminal-server-transaction-safety-20260908.md](terminal-server-transaction-safety-20260908.md). Real SQL acceptance remains pending there; this document preserves the original client milestone boundary.

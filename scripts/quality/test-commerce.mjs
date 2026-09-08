@@ -9,11 +9,16 @@ const files = [
   'vegaProductImageMatchPolicy.test.js', 'vegaProductImageService.test.js',
   'vegaProductIntelligenceService.test.js', 'vegaProductProfitabilityService.test.js',
   'vegaProductSalesEvidenceService.test.js', 'vegaSupplierPurchaseIntelligenceService.test.js',
+  'financeSchemaGuard.test.js', 'invoiceDraftService.transactionContext.test.js',
+  'terminalSaleIdempotency.test.js', 'terminalSaleSubmissionTransaction.test.js',
+  'terminalService.lockOrder.test.js',
 ].map(name => `apps/api/src/services/${name}`);
+files.push('apps/api/src/config/safeTrustedSqlDriver.test.js');
+files.push('scripts/quality/terminal-server-transaction.test.mjs');
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
   /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|USERPROFILE|LOCALAPPDATA|APPDATA|PROGRAMFILES|PROGRAMFILES\(X86\)|SYSTEMDRIVE)$/i.test(key)));
 env.NODE_ENV = 'test';
 env.NODE_OPTIONS = `--require=${JSON.stringify(path.join(root, 'scripts/quality/network-deny.cjs'))}`;
-const result = spawnSync(process.execPath, ['--test', ...files], { cwd: root, env, stdio: 'inherit', windowsHide: true });
+const result = spawnSync(process.execPath, ['--experimental-vm-modules', '--test', ...files], { cwd: root, env, stdio: 'inherit', windowsHide: true });
 if (result.error) throw result.error;
 process.exitCode = result.status ?? 1;
