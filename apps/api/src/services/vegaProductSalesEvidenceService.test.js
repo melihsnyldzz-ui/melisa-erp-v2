@@ -12,6 +12,7 @@ const config = { enabled: true, database: 'VEGA2026', companyCode: 'F0102', peri
 const zero = () => ({ source_database: 'VEGA2026', source_id: 42, active: true, movementRowCount: '0',
   salesCodeRowCount: '0', grossOutboundRowCount: '0', grossOutboundQuantity: 0,
   undatedMovementRowCount: '0', unclassifiedOutboundRowCount: '0', firstSoldAt: null, lastSoldAt: null });
+/** @param {Array<Record<string, unknown>>} [rows] */
 function fixture(rows = [zero()], options = {}) {
   const calls = [], parameters = [];
   const request = { input(...args) { parameters.push(args); return this; }, async query(text) {
@@ -21,6 +22,9 @@ function fixture(rows = [zero()], options = {}) {
     getPool: async () => ({ request: () => { throw new Error('GLOBAL_DRIVER_MUST_NOT_BE_USED'); } }), requestFactory: () => request, now: () => new Date('2026-09-07T00:00:00Z') });
   return { service, calls, parameters };
 }
+/** @param {ReturnType<typeof createProductSalesEvidenceService>} service
+ * @param {Record<string, unknown>} [query]
+ */
 async function http(service, query = input) {
   const res = { statusCode: 200, status(value) { this.statusCode = value; return this; }, json(body) { this.body = body; return this; } };
   await createProductSalesEvidenceController(service)({ query }, res); return res;
@@ -120,7 +124,8 @@ test('route is GET-only and denies missing authentication and sales permission',
   const route=productSalesEvidenceRoutes.stack.find(layer=>layer.route)?.route;
   assert.equal(route.path,'/vega/ai/product-sales-evidence');assert.deepEqual(route.methods,{get:true});
   assert.equal(route.stack.length,3);
-  let denied;await route.stack[0].handle({get:()=>''},{},e=>{denied=e;});assert.equal(denied.statusCode,401);
+  /** @type {Error | undefined} */
+  let denied;await route.stack[0].handle({get:()=>''},{},e=>{denied=e;});assert.ok(denied);assert.equal(denied.statusCode,401);
   route.stack[1].handle({user:{permissions:[]}},{},e=>{denied=e;});assert.equal(denied.statusCode,403);
   let allowed=false;route.stack[1].handle({user:{permissions:['sales.view']}},{},()=>{allowed=true;});assert.equal(allowed,true);
 });

@@ -22,6 +22,8 @@ function hasActiveImage(existingImages, sourceId) {
  *
  * This is deliberately only a narrowing policy. Callers must still require a
  * single candidate before automatically writing an image.
+ * @param {Array<Record<string, unknown>>} candidates
+ * @param {{existingImages?: Map<number, unknown> | Set<number> | Record<number, unknown>, receivedAt?: string | Date | null, windowHours?: number}} [options]
  */
 export function findRecentWaitingCards(
   candidates,

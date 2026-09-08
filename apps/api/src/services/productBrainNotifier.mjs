@@ -10,7 +10,7 @@ const deferredMessage = 'PRODUCT_BRAIN_HINT_DEFERRED_TO_RECONCILIATION';
 export function createProductBrainNotifier({
   environment = process.env,
   readKeyFile = readFile,
-  send = (...args) => fetch(...args),
+  send = (input, init) => fetch(input, init),
   warn = (message) => console.warn(message),
   now = Date.now,
   eventId = randomUUID,

@@ -89,11 +89,15 @@ export function createNakliyatShippingClient(config = env.nakliyat, fetchImpl = 
     if (!config[gate]) throw shippingError(code, message, 403);
   }
 
+  /** @param {string} path
+   * @param {{method?: string, body?: unknown, authenticated?: boolean, retryAuth?: boolean, headers?: Record<string, string>}} [options]
+   */
   async function request(path, { method = 'GET', body, authenticated = false, retryAuth = true, headers = {} } = {}) {
     assertEnabled();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), config.timeoutMs || 20000);
     try {
+      /** @type {Record<string, string>} */
       const requestHeaders = { Accept: 'application/json', ...headers };
       if (body !== undefined) requestHeaders['Content-Type'] = 'application/json';
       if (authenticated) requestHeaders.Authorization = `Bearer ${await getAccessToken()}`;

@@ -1,0 +1,13 @@
+const net = require('node:net');
+const tls = require('node:tls');
+const dgram = require('node:dgram');
+const child = require('node:child_process');
+const { syncBuiltinESMExports } = require('node:module');
+const deny = () => { throw new Error('COMMERCE_TEST_NETWORK_OR_PROCESS_DENIED'); };
+net.Socket.prototype.connect = deny;
+net.Server.prototype.listen = deny;
+tls.connect = deny;
+dgram.Socket.prototype.send = deny;
+globalThis.fetch = deny;
+for (const name of ['exec', 'execSync', 'execFile', 'execFileSync', 'spawn', 'spawnSync', 'fork']) child[name] = deny;
+syncBuiltinESMExports();

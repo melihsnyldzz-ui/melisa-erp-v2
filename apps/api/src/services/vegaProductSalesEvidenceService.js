@@ -6,6 +6,7 @@ export const SALES_EVIDENCE_CONTRACT = 'vega-product-sales-evidence/v1';
 const MOVEMENT_SOURCE = 'F0102D0007TBLSTOKHAREKETLERI';
 const error = (code, statusCode = 400) => Object.assign(new Error(code), { code, statusCode });
 
+/** @param {Record<string, unknown>} [query] */
 export function normalizeSalesEvidenceQuery(query = {}) {
   if (!query || typeof query !== 'object' || Array.isArray(query) ||
       Object.keys(query).some(key => !['sourceId', 'dateFrom', 'dateTo'].includes(key))) {
@@ -14,6 +15,9 @@ export function normalizeSalesEvidenceQuery(query = {}) {
   const { sourceId, dateFrom, dateTo } = query;
   if (typeof sourceId !== 'string' || !/^[1-9][0-9]{0,9}$/.test(sourceId) || Number(sourceId) > 2147483647) {
     throw error('VEGA_SALES_EVIDENCE_SOURCE_ID_INVALID');
+  }
+  if (typeof dateFrom !== 'string' || typeof dateTo !== 'string') {
+    throw error('VEGA_SALES_EVIDENCE_DATE_INVALID');
   }
   for (const date of [dateFrom, dateTo]) {
     if (typeof date !== 'string' || !/^2026-\d{2}-\d{2}$/.test(date) ||
@@ -96,7 +100,8 @@ export function createProductSalesEvidenceService({ getPool = getVegaSqlPool, re
     const [row] = result.recordset;
     if (result.recordset.length !== 1 || row.source_database !== 'VEGA2026' || String(row.source_id) !== input.sourceId ||
         ![true, false, 0, 1].includes(row.active)) throw error('VEGA_SALES_EVIDENCE_RESULT_INVALID', 502);
-    const metrics = {};
+    // The loop below validates and fills every metric before publishing it.
+    const metrics = /** @type {Record<'movementRowCount' | 'salesCodeRowCount' | 'grossOutboundRowCount' | 'grossOutboundQuantity' | 'undatedMovementRowCount' | 'unclassifiedOutboundRowCount', number>} */ ({});
     for (const key of metricKeys) {
       const raw = row[key];
       // Tedious returns SQL bigint as decimal strings; never coerce null/empty

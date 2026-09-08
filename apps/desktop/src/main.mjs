@@ -235,6 +235,7 @@ async function ensureLocalStack() {
 }
 
 function createMenu(mainWindow) {
+  /** @type {import('electron').MenuItemConstructorOptions[]} */
   const template = [
     {
       label: 'Melisa ERP',
@@ -253,10 +254,10 @@ function createMenu(mainWindow) {
         { label: 'Uzaklas', role: 'zoomOut' },
         { label: 'Normal Boyut', role: 'resetZoom' },
         ...(!app.isPackaged
-          ? [
+          ? /** @type {import('electron').MenuItemConstructorOptions[]} */ ([
               { type: 'separator' },
               { label: 'Gelistirici Araclari', accelerator: 'Ctrl+Shift+I', role: 'toggleDevTools' },
-            ]
+            ])
           : []),
       ],
     },
