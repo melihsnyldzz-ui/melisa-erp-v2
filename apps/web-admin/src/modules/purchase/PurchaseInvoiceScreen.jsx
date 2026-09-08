@@ -27,7 +27,7 @@ const emptyPurchaseInvoice = {
   supplierDiscountRate: 0,
   invoiceCurrency: 'TRY',
   exchangeRate: 'TRY 1.0000',
-  exchangeRateValue: 1,
+  exchangeRateValue: /** @type {number | string} */ (1),
   description: '',
   status: 'DRAFT',
 };
@@ -50,7 +50,7 @@ function roundCurrency(value) {
   return Math.round(Number(value || 0) * 10000) / 10000;
 }
 
-function calculateTotals(items, invoiceRate, supplierRate, exchangeRate = 1, currency = 'TRY') {
+function calculateTotals(items, invoiceRate, supplierRate, exchangeRate = /** @type {number | string} */ (1), currency = 'TRY') {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.purchasePrice, 0);
   const lineDiscountTotal = items.reduce((total, item) => {
     const gross = item.quantity * item.purchasePrice;

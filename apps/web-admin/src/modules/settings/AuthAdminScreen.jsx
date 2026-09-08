@@ -625,7 +625,7 @@ export function AuthAdminScreen({ permissions = [] }) {
               ))}
               {visibleAuditLogs.length === 0 && (
                 <tr>
-                  <td colSpan="5">Filtreye uygun denetim kaydı yok.</td>
+                  <td colSpan={5}>Filtreye uygun denetim kaydı yok.</td>
                 </tr>
               )}
             </tbody>

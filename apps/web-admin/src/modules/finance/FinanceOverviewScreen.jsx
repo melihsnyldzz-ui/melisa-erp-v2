@@ -73,7 +73,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 }
 
 export function FinanceOverviewScreen({ onOpenScreen }) {
-  const [summary, setSummary] = useState({});
+  const [summary, setSummary] = useState(/** @type {import('../../services/reportContracts').FinanceSummary} */ ({}));
   const [rows, setRows] = useState([]);
   const [filters, setFilters] = useState({
     search: '',

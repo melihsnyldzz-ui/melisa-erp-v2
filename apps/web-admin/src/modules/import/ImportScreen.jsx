@@ -327,7 +327,7 @@ function ImportValidationTable({ preview, activeEntity, visibleColumns, columnWi
   );
 }
 
-function SummaryBox({ label, value, tone }) {
+function SummaryBox({ label, value, tone = '' }) {
   return (
     <div className={`import-summary-box ${tone || ''}`}>
       <span>{label}</span>

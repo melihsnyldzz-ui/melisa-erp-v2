@@ -14,7 +14,7 @@ export function PurchaseInvoiceItemsTable({
   items,
   invoiceRate = 0,
   supplierRate = 0,
-  exchangeRate = 1,
+  exchangeRate = /** @type {number | string} */ (1),
   invoiceCurrency = 'TRY',
   selectedItemId,
   onDeleteItem,

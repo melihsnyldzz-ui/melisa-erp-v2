@@ -93,6 +93,7 @@ async function writeProductCacheValues(products = []) {
   const previousIndex = await readProductCacheIndex();
   await removeProductCacheChunks(previousIndex);
 
+  /** @type {Array<[string, string]>} */
   const chunkEntries = [];
   const lookupShards = {};
   const normalizedProducts = products.map(normalizeProductForCache);
@@ -115,7 +116,7 @@ async function writeProductCacheValues(products = []) {
     await AsyncStorage.multiSet(chunkEntries);
   }
 
-  const lookupEntries = Object.entries(lookupShards).map(([key, value]) => [key, JSON.stringify(value)]);
+  const lookupEntries = Object.entries(lookupShards).map(([key, value]) => /** @type {[string, string]} */ ([key, JSON.stringify(value)]));
   if (lookupEntries.length) {
     await AsyncStorage.multiSet(lookupEntries);
   }

@@ -87,7 +87,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(/** @type {number | string} */ (1));
   const [isLoading, setIsLoading] = useState(Boolean(documentId));
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -506,7 +506,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
             </thead>
             <tbody>
               {form.items.length === 0 && (
-                <tr><td colSpan="8">Satır bekleniyor.</td></tr>
+                <tr><td colSpan={8}>Satır bekleniyor.</td></tr>
               )}
               {form.items.map((item, index) => (
                 <tr key={`${item.productId}-${index}`}>

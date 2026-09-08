@@ -51,7 +51,7 @@ function resolveMaterialRule(productName) {
     : { material: 'Pamuk içerik', materialRule: 'Aksi belirtilmediği için varsayılan pamuk kuralı' };
 }
 
-export const fedexMicroExportItems = [
+export const fedexMicroExportItems = (/** @type {Array<[string, string, number, number, string, string]>} */ ([
   ['2004 MELİSA', '5 Lİ SET', 80, 832.00, '6111.20.90.00.00', 'Orta'],
   ['8051 MELİSA', 'BATTANİYE', 5, 29.00, '6301.30.10.00.00', 'Düşük'],
   ['8052 MELİSA', 'BATTANİYE', 5, 29.00, '6301.30.10.00.00', 'Düşük'],
@@ -72,7 +72,7 @@ export const fedexMicroExportItems = [
   ['261141 BOM-BİBO', 'PREMATÜRE TULUM', 15, 46.50, '6111.20.90.00.00', 'Orta'],
   ['7104 NEHAD', 'VELSOFT TULUM', 60, 396.00, '6111.30.90.00.00', 'Yüksek'],
   ['7090 NEHAD', 'VELSOFT TULUM', 40, 250.00, '6111.30.90.00.00', 'Yüksek'],
-].map(([stockCode, productName, quantity, lineTotal, gtip, confidence], index) => ({
+])).map(([stockCode, productName, quantity, lineTotal, gtip, confidence], index) => ({
   id: index + 1,
   stockCode,
   productName,

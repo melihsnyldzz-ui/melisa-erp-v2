@@ -83,7 +83,7 @@ export function buildPatronKpis(summary = emptyDashboardSummary) {
 }
 
 export function buildAccountingKpis(summary = emptyDashboardSummary) {
-  const accounting = summary.accounting || {};
+  const accounting = /** @type {{todayCollectionsTry?: number, todayPaymentsTry?: number, customerBalanceCount?: number, supplierBalanceCount?: number, recentSalesInvoices?: unknown[], recentPurchaseInvoices?: unknown[]}} */ (summary.accounting || {});
   const patron = summary.patron || {};
   const operations = summary.operations || {};
   const masterCounts = summary.masterCounts || {};
@@ -95,8 +95,8 @@ export function buildAccountingKpis(summary = emptyDashboardSummary) {
     { label: 'Günlük ödeme', value: formatMoney(accounting.todayPaymentsTry), detail: 'Ödeme modülü', tone: 'info', screenId: 'collections-overview' },
     { label: 'Borçlu cari sayısı', value: formatNumber(accounting.customerBalanceCount), detail: `${formatMoney(patron.customerReceivablesTry)} toplam`, tone: 'warn', screenId: 'customer-list' },
     { label: 'Tedarikçi bakiye', value: formatNumber(accounting.supplierBalanceCount), detail: `${formatMoney(patron.supplierPayablesTry)} toplam`, tone: 'warn', screenId: 'supplier-list' },
-    { label: 'Son satış fişleri', value: formatNumber(accounting.recentSalesInvoices.length), detail: `${formatNumber(operations.salesDraftCount)} taslak açık`, tone: 'info', screenId: 'sales-invoice-list' },
-    { label: 'Son alış fişleri', value: formatNumber(accounting.recentPurchaseInvoices.length), detail: `${formatNumber(operations.purchaseDraftCount)} taslak açık`, tone: 'info', screenId: 'purchase-invoice-list' },
+    { label: 'Son satış fişleri', value: formatNumber((accounting.recentSalesInvoices || []).length), detail: `${formatNumber(operations.salesDraftCount)} taslak açık`, tone: 'info', screenId: 'sales-invoice-list' },
+    { label: 'Son alış fişleri', value: formatNumber((accounting.recentPurchaseInvoices || []).length), detail: `${formatNumber(operations.purchaseDraftCount)} taslak açık`, tone: 'info', screenId: 'purchase-invoice-list' },
     { label: 'Bugünkü toplam satış', value: formatMoney(patron.todaySalesTry), detail: 'Kesinleşen satış', tone: 'good', screenId: 'sales-invoice-list' },
     { label: 'Brüt kâr snapshot', value: formatMoney(patron.todayGrossProfitTry), detail: 'Satış satırı maliyet izi', tone: 'good', screenId: 'sales-invoice-list' },
   ];

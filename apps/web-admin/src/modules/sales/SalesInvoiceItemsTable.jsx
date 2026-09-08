@@ -18,7 +18,7 @@ function formatPercent(value) {
 }
 
 export function SalesInvoiceItemsTable({
-  exchangeRate = 1,
+  exchangeRate = /** @type {number | string} */ (1),
   invoiceCurrency = 'TRY',
   items,
   onAdjustQuantity,

@@ -41,6 +41,7 @@ function detailRow(label, value) {
   return `<div class="detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || '-')}</strong></div>`;
 }
 
+/** @param {import('../modules/sales/proformaTypes').PrintPayload} input */
 export function buildProformaInvoiceHtml({
   header = {},
   seller = {},

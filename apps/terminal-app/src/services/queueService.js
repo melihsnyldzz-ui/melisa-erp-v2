@@ -140,6 +140,7 @@ export async function markQueueSynced(clientEventId, serverResponse = null) {
   });
 }
 
+/** @param {string} clientEventId @param {import('./terminalContracts').SessionOptions} options */
 export async function syncTerminalSaleEvent(clientEventId, { token } = {}) {
   const queue = await readQueue();
   const event = queue.find((entry) => entry.clientEventId === clientEventId);
@@ -190,6 +191,7 @@ export async function syncTerminalSaleEvent(clientEventId, { token } = {}) {
   }
 }
 
+/** @param {import('./terminalContracts').SessionOptions} options */
 export async function syncPendingTerminalSales({ token } = {}) {
   const queue = await readQueue();
   const saleEvents = queue.filter((event) => (

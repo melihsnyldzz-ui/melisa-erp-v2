@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient';
 
+/** @param {import('./terminalContracts').SearchOptions} options */
 export async function searchTerminalProducts({ q = '', token, limit = 30 } = {}) {
   return apiRequest(`/terminal/products/search?q=${encodeURIComponent(q)}&limit=${encodeURIComponent(limit)}`, {
     token,
@@ -12,16 +13,19 @@ export async function getTerminalProductByBarcode({ barcode, token }) {
   });
 }
 
+/** @param {import('./terminalContracts').SearchOptions} options */
 export async function searchTerminalCustomers({ q = '', token, limit = 30 } = {}) {
   return apiRequest(`/terminal/customers/search?q=${encodeURIComponent(q)}&limit=${encodeURIComponent(limit)}`, {
     token,
   });
 }
 
+/** @param {import('./terminalContracts').SearchOptions} options */
 export async function downloadTerminalProducts({ token, limit = 100 } = {}) {
   return searchTerminalProducts({ q: '', token, limit });
 }
 
+/** @param {import('./terminalContracts').SearchOptions} options */
 export async function downloadTerminalCustomers({ token, limit = 100 } = {}) {
   return searchTerminalCustomers({ q: '', token, limit });
 }
@@ -35,6 +39,7 @@ function extractRows(response) {
   return [];
 }
 
+/** @param {Function} fetchPage @param {import('./terminalContracts').DownloadOptions} options */
 async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500, onProgress } = {}) {
   const allRows = [];
   let page = 1;
@@ -74,6 +79,7 @@ async function downloadAllPages(fetchPage, { pageSize = 100, maxPages = 500, onP
   };
 }
 
+/** @param {import('./terminalContracts').DownloadOptions} options */
 export async function downloadAllTerminalProducts({ token, pageSize = 100, onProgress } = {}) {
   return downloadAllPages(
     ({ page, limit }) => apiRequest(`/terminal/products/search?q=&limit=${encodeURIComponent(limit)}&page=${encodeURIComponent(page)}`, { token }),
@@ -81,6 +87,7 @@ export async function downloadAllTerminalProducts({ token, pageSize = 100, onPro
   );
 }
 
+/** @param {import('./terminalContracts').DownloadOptions} options */
 export async function downloadAllTerminalCustomers({ token, pageSize = 100, onProgress } = {}) {
   return downloadAllPages(
     ({ page, limit }) => apiRequest(`/terminal/customers/search?q=&limit=${encodeURIComponent(limit)}&page=${encodeURIComponent(page)}`, { token }),

@@ -289,10 +289,10 @@ export function printBusinessDocument({
   partyLabel = 'Cari',
   partyName = '-',
   currency = 'TRY',
-  exchangeRate = 1,
+  exchangeRate = /** @type {number | string} */ (1),
   description = '',
   items = [],
-  totals = {},
+  totals = /** @type {{currency?: string} & Partial<Record<'discountAmount' | 'discountTotal' | 'totalDiscount' | 'tryEquivalent' | 'amountTry' | 'totalTry' | 'grandTotal' | 'totalAmount' | 'originalTotal' | 'subtotal', number | string>>} */ ({}),
   extraInfo = [],
   companyInfo = {},
 }) {
@@ -552,7 +552,7 @@ function buildStatementTotals(totals = []) {
 export function printLedgerStatement({
   title = 'Cari Ekstre',
   partyLabel = 'Cari',
-  filters = {},
+  filters = /** @type {{search?: string, dateFrom?: string, dateTo?: string}} */ ({}),
   rows = [],
   cancelledRows = [],
   totals = [],

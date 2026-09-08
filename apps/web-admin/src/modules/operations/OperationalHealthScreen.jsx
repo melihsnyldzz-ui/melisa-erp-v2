@@ -46,7 +46,7 @@ function ReadOnlyNotice() {
 
 export function OperationalHealthScreen() {
   const [data, setData] = useState(null);
-  const [meta, setMeta] = useState({});
+  const [meta, setMeta] = useState(/** @type {{source?: string, readOnly?: boolean}} */ ({}));
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -182,7 +182,7 @@ export function OperationalHealthScreen() {
                 </tr>
               ))}
               {!isLoading && auditEvents.length === 0 && (
-                <tr><td colSpan="3">Son 24 saatte audit olayi bulunamadi.</td></tr>
+                <tr><td colSpan={3}>Son 24 saatte audit olayi bulunamadi.</td></tr>
               )}
             </tbody>
           </table>

@@ -282,7 +282,7 @@ function SidebarGroup({ group, activeGroupTitle, activeScreenId, onOpenScreen })
   );
 }
 
-function SidebarItem({ item, isActive, groupTitle, onOpenScreen }) {
+function SidebarItem({ item, isActive, groupTitle = '', onOpenScreen }) {
   const Icon = itemIcons[item.screenId] || FileText;
   const isComingSoon = Boolean(item.comingSoon);
   const label = getItemLabel(item);

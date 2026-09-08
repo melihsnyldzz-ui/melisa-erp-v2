@@ -104,8 +104,8 @@ function NotesPanel({ title, notes }) {
 }
 
 export function ManagementReportsScreen() {
-  const [report, setReport] = useState({});
-  const [periodicReport, setPeriodicReport] = useState({});
+  const [report, setReport] = useState(/** @type {import('../../services/reportContracts').ManagementReport} */ ({}));
+  const [periodicReport, setPeriodicReport] = useState(/** @type {import('../../services/reportContracts').PeriodicReport} */ ({}));
   const [periodFilters, setPeriodFilters] = useState({ dateFrom: monthStart(), dateTo: today() });
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');

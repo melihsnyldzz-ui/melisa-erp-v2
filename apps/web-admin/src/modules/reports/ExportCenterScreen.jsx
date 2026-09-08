@@ -250,7 +250,7 @@ export function ExportCenterScreen() {
   }
 
   function exportCsv() {
-    exportRowsToCsv({ filename: definition.filename, title: definition.title, rows, columns: definition.columns });
+    exportRowsToCsv({ filename: definition.filename, rows, columns: definition.columns });
   }
 
   function exportExcel() {

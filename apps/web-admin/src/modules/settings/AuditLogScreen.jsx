@@ -100,9 +100,9 @@ const initialFilters = {
 export function AuditLogScreen() {
   const [filters, setFilters] = useState(initialFilters);
   const [logs, setLogs] = useState([]);
-  const [meta, setMeta] = useState({});
+  const [meta, setMeta] = useState(/** @type {{limit?: number, source?: string}} */ ({}));
   const [coverage, setCoverage] = useState([]);
-  const [coverageSummary, setCoverageSummary] = useState({});
+  const [coverageSummary, setCoverageSummary] = useState(/** @type {Partial<Record<'coveredAreas' | 'totalAreas' | 'partialAreas' | 'missingAreas', number>>} */ ({}));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -296,7 +296,7 @@ export function AuditLogScreen() {
                 </tr>
               ))}
               {!coverage.length && !isLoading && (
-                <tr><td colSpan="5">Kapsam bilgisi bulunamadı.</td></tr>
+                <tr><td colSpan={5}>Kapsam bilgisi bulunamadı.</td></tr>
               )}
             </tbody>
           </table>
@@ -334,7 +334,7 @@ export function AuditLogScreen() {
                 </tr>
               ))}
               {!logs.length && !isLoading && (
-                <tr><td colSpan="7">Filtreye uygun denetim kaydı yok.</td></tr>
+                <tr><td colSpan={7}>Filtreye uygun denetim kaydı yok.</td></tr>
               )}
             </tbody>
           </table>

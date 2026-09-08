@@ -201,7 +201,6 @@ export default function App() {
       >
         {activeScreen === 'home' && (
           <HomeScreen
-            session={session}
             syncState={syncState}
             navigation={navigation}
             onLogout={handleLogout}

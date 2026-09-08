@@ -353,7 +353,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
     }
 
     if (activeDetailTab === 'movements' || activeDetailTab === 'statement') {
-      return <CustomerTransactionsPanel transactions={transactions} onOpenTransaction={openTransaction} compact />;
+      return <CustomerTransactionsPanel transactions={transactions} onOpenTransaction={openTransaction} />;
     }
 
     return (

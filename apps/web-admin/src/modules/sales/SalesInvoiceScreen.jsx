@@ -26,7 +26,7 @@ const emptySalesInvoice = {
   customerBalanceLabel: '-',
   invoiceCurrency: 'TRY',
   exchangeRate: 'TRY 1.0000',
-  exchangeRateValue: 1,
+  exchangeRateValue: /** @type {number | string} */ (1),
   description: '',
   status: 'Taslak',
   terminalCode: '',
@@ -52,7 +52,7 @@ function applyDiscount(amount, discountRate) {
   return Number(amount || 0) * (1 - (rate / 100));
 }
 
-function calculateTotals(items, discountRate, exchangeRate = 1, currency = 'TRY') {
+function calculateTotals(items, discountRate, exchangeRate = /** @type {number | string} */ (1), currency = 'TRY') {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
   const totalCost = items.reduce((total, item) => total + item.quantity * item.averageCostTry, 0);
   const lineCount = items.length;

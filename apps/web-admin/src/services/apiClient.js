@@ -98,6 +98,11 @@ export async function renewStoredSession() {
   }
 }
 
+/**
+ * @param {string} method
+ * @param {string} path
+ * @param {{params?: Record<string, unknown>, body?: unknown, retryAuth?: boolean}} options
+ */
 async function request(method, path, { params = {}, body, retryAuth = true } = {}) {
   if (apiConfig.demoMode) {
     const demoError = new Error('Bu ekranın örnek demo verisi henüz hazırlanmadı.');
@@ -109,6 +114,7 @@ async function request(method, path, { params = {}, body, retryAuth = true } = {
   let response;
 
   try {
+    /** @type {Record<string, string>} */
     const headers = body ? { 'Content-Type': 'application/json' } : {};
     const accessToken = getStoredAccessToken();
 
@@ -181,6 +187,7 @@ export async function remove(path, body) {
 }
 
 export async function download(path, filename, { retryAuth = true } = {}) {
+  /** @type {Record<string, string>} */
   const headers = {};
   const accessToken = getStoredAccessToken();
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;

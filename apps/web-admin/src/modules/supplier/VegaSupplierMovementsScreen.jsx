@@ -298,7 +298,7 @@ export function VegaSupplierMovementsScreen({ supplierSourceId, supplierCode, su
                   </tr>
                 ))}
               </tbody>
-              <tfoot><tr className="koli-ledger-end-row"><td colSpan="8">Liste sonu · {visibleRows.length} hareketin tamamı gösterildi</td></tr></tfoot>
+              <tfoot><tr className="koli-ledger-end-row"><td colSpan={8}>Liste sonu · {visibleRows.length} hareketin tamamı gösterildi</td></tr></tfoot>
             </table>
           </div>
         )}

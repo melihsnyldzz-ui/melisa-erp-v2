@@ -718,7 +718,6 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         filters={filters}
         suggestions={suggestionOptions}
         onChange={setFilters}
-        onRefresh={refreshProducts}
         onReset={resetFilters}
       />
       {isSyntheticDemo && (

@@ -64,7 +64,7 @@ export function CustomerTransactionsPanel({ transactions = [], onOpenTransaction
           <tbody>
             {transactions.length === 0 && (
               <tr>
-                <td colSpan="6">Cari hareket bulunamadı.</td>
+                <td colSpan={6}>Cari hareket bulunamadı.</td>
               </tr>
             )}
             {transactions.map((transaction) => {

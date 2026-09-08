@@ -2,6 +2,7 @@ export const PROFORMA_DRAFT_SCHEMA_VERSION = 1;
 
 const ALLOWED_CURRENCIES = new Set(['USD', 'EUR', 'TRY']);
 
+/** @type {Array<keyof import('./proformaTypes').Header>} */
 const HEADER_FIELDS = [
   'proformaNo',
   'sourceDocumentNo',
@@ -10,6 +11,7 @@ const HEADER_FIELDS = [
   'currency',
 ];
 
+/** @type {Array<keyof import('./proformaTypes').Buyer>} */
 const BUYER_FIELDS = [
   'name',
   'customerCode',
@@ -21,6 +23,7 @@ const BUYER_FIELDS = [
   'taxNumber',
 ];
 
+/** @type {Array<keyof import('./proformaTypes').ShipmentText>} */
 const SHIPMENT_TEXT_FIELDS = [
   'incoterm',
   'paymentTerms',
@@ -33,6 +36,7 @@ const SHIPMENT_TEXT_FIELDS = [
   'notes',
 ];
 
+/** @type {Array<keyof import('./proformaTypes').LineText>} */
 const LINE_TEXT_FIELDS = [
   'id',
   'stockCode',
@@ -68,6 +72,7 @@ const WARNING_MESSAGES = {
   GTIP_MISSING: 'Dahil edilen ürünlerde eksik GTİP kodu var; sevk öncesinde insan teyidi gerekir.',
 };
 
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isRecord(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -93,13 +98,20 @@ function normalizeCurrency(value) {
   return ALLOWED_CURRENCIES.has(currency) ? currency : '';
 }
 
+/**
+ * @template {string} K
+ * @param {unknown} value
+ * @param {K[]} fields
+ * @param {unknown} defaults
+ * @returns {Record<K, string>}
+ */
 function copyTextFields(value, fields, defaults = {}) {
   const source = isRecord(value) ? value : {};
   const fallback = isRecord(defaults) ? defaults : {};
-  return Object.fromEntries(fields.map((field) => [
+  return /** @type {Record<K, string>} */ (Object.fromEntries(fields.map((field) => [
     field,
     safeText(source[field], safeText(fallback[field])),
-  ]));
+  ])));
 }
 
 function lineKey(line, index) {
@@ -110,7 +122,13 @@ function lineKey(line, index) {
 function normalizeDraftLine(line, defaults = {}, index = 0) {
   const source = isRecord(line) ? line : {};
   const fallback = isRecord(defaults) ? defaults : {};
-  const normalized = copyTextFields(source, LINE_TEXT_FIELDS, fallback);
+  const normalized = {
+    ...copyTextFields(source, LINE_TEXT_FIELDS, fallback),
+    included: true,
+    gtipRequiresReview: true,
+    quantity: 0,
+    unitPrice: 0,
+  };
   const quantity = strictNumber(source.quantity);
   const fallbackQuantity = strictNumber(fallback.quantity);
   const unitPrice = strictNumber(source.unitPrice);
@@ -136,6 +154,7 @@ function normalizeDraftLine(line, defaults = {}, index = 0) {
   return normalized;
 }
 
+/** @param {unknown} lines @param {unknown} defaults */
 function normalizeDraftLines(lines, defaults = []) {
   const sourceLines = Array.isArray(lines) ? lines : [];
   const fallbackLines = Array.isArray(defaults) ? defaults : [];
@@ -158,6 +177,7 @@ function normalizeDraftLines(lines, defaults = []) {
   ));
 }
 
+/** @param {import('./proformaTypes').DraftInput} input @param {import('./proformaTypes').DraftInput} defaults */
 function normalizeDraftSections({ header, buyer, shipment, lines }, defaults = {}) {
   const defaultHeader = isRecord(defaults.header) ? defaults.header : {};
   const normalizedHeader = copyTextFields(header, HEADER_FIELDS, defaultHeader);
@@ -165,11 +185,11 @@ function normalizeDraftSections({ header, buyer, shipment, lines }, defaults = {
   const draftCurrency = normalizeCurrency(normalizedHeader.currency);
   normalizedHeader.currency = sourceCurrency || draftCurrency;
 
-  const normalizedShipment = copyTextFields(
+  const normalizedShipment = { ...copyTextFields(
     shipment,
     SHIPMENT_TEXT_FIELDS,
     isRecord(defaults.shipment) ? defaults.shipment : {},
-  );
+  ), freightAmount: 0 };
   const freightAmount = strictNumber(shipment?.freightAmount);
   const fallbackFreight = strictNumber(defaults.shipment?.freightAmount);
   normalizedShipment.freightAmount = freightAmount !== null && freightAmount >= 0
@@ -184,6 +204,7 @@ function normalizeDraftSections({ header, buyer, shipment, lines }, defaults = {
   };
 }
 
+/** @param {string} code @param {string} message @param {Partial<import('./proformaTypes').ValidationIssue>} extra @returns {import('./proformaTypes').ValidationIssue} */
 function issue(code, message, extra = {}) {
   return { code, message, ...extra };
 }
@@ -218,6 +239,7 @@ export function isValidProformaDateRange(issueDate, validUntil) {
     && validUntil >= issueDate;
 }
 
+/** @param {import('./proformaTypes').DraftIdentityInput} input */
 export function buildVersionedProformaDraft({
   sourceFingerprint,
   draftOwnerId,
@@ -238,6 +260,7 @@ export function buildVersionedProformaDraft({
   };
 }
 
+/** @param {unknown} value @param {{sourceFingerprint?: unknown, draftOwnerId?: unknown, defaults?: import('./proformaTypes').DraftInput}} options */
 export function restoreVersionedProformaDraft(value, {
   sourceFingerprint,
   draftOwnerId,
@@ -256,9 +279,10 @@ export function restoreVersionedProformaDraft(value, {
   const storedCurrency = normalizeCurrency(value.header.currency);
   if (!defaultCurrency || storedCurrency !== defaultCurrency) return null;
 
-  return normalizeDraftSections(value, defaults);
+  return normalizeDraftSections({ header: value.header, buyer: value.buyer, shipment: value.shipment, lines: value.lines }, defaults);
 }
 
+/** @param {import('./proformaTypes').DraftInput & {sourceCurrency?: string}} input */
 export function validateProformaForPdf({
   header = {},
   buyer = {},
@@ -341,6 +365,7 @@ export function validateProformaForPdf({
   };
 }
 
+/** @param {{validation?: {isValid: boolean}, isConfirmed?: boolean, hasDetail?: boolean}} input */
 export function canGenerateProformaPdf({ validation, isConfirmed, hasDetail } = {}) {
   return Boolean(hasDetail && isConfirmed && validation?.isValid);
 }

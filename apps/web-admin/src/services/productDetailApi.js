@@ -32,7 +32,7 @@ export async function fetchProductOptions() {
   return get('/api/products/options');
 }
 
-export async function checkProductIdentityAvailability({ stockCode, barcode, excludeProductId }) {
+export async function checkProductIdentityAvailability({ stockCode, barcode, excludeProductId = undefined }) {
   if (apiConfig.demoMode) {
     return {
       data: {

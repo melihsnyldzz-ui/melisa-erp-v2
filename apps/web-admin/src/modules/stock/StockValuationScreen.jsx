@@ -31,7 +31,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 export function StockValuationScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState({ search: '', lowStockOnly: false, valuedOnly: false });
   const [rows, setRows] = useState([]);
-  const [summary, setSummary] = useState({});
+  const [summary, setSummary] = useState(/** @type {import('../../services/reportContracts').StockValuationSummary} */ ({}));
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');

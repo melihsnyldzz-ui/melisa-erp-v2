@@ -4,7 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const excluded = /whatsapp|chatwoot|evolution/i;
+// CatalogSendScreen and its dedicated service are messaging paths despite their names.
+const excluded = /whatsapp|chatwoot|evolution|terminal-app[\\/]src[\\/](?:screens[\\/]CatalogSendScreen|services[\\/]catalogService)\.js$/i;
 let failed = false;
 const apps = ['api', 'web-admin', 'terminal-app', 'desktop'];
 const requestedApp = process.argv[2];
@@ -13,6 +14,7 @@ for (const app of requestedApp ? [requestedApp] : apps) {
   const appRoot = path.join(root, 'apps', app);
   const files = ts.sys.readDirectory(path.join(appRoot, 'src'), ['.js', '.mjs', '.cjs', '.jsx', '.d.ts'], undefined, ['**/*'])
     .filter(file => !excluded.test(file));
+  if (app === 'terminal-app') files.push(path.join(appRoot, 'App.js'));
   files.push(path.join(root, 'types/commerce-errors.d.ts'));
   const program = ts.createProgram(files, {
     allowJs: true, checkJs: true, noEmit: true, skipLibCheck: true,

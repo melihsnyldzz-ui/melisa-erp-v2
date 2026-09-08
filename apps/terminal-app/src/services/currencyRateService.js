@@ -79,6 +79,7 @@ export async function getCachedCurrencyRates() {
   return readCachedRates() || fallbackRates();
 }
 
+/** @param {import('./terminalContracts').SessionOptions} options */
 export async function fetchCurrencyRates({ token } = {}) {
   try {
     const response = await apiRequest('/currency-rates', { token, timeoutMs: 8000 });

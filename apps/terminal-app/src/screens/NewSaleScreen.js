@@ -422,7 +422,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       || error?.code === 'AUTH_TOKEN_INVALID';
   }
 
-  function vibrate() {
+  /** @param {number | number[]} [_pattern] */
+  function vibrate(_pattern) {
     // Veronica is configured for silent scanning feedback.
   }
 
@@ -598,7 +599,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     }).then((savedDraft) => {
       if (autoSaveRevisionRef.current !== revision) return;
       setAutoSaveStatus('saved');
-      setAutoSavedAt(savedDraft?.savedAt || new Date().toISOString());
+      setAutoSavedAt((savedDraft && savedDraft.savedAt) || new Date().toISOString());
     }).catch(() => {
       if (autoSaveRevisionRef.current === revision) {
         setAutoSaveStatus('error');
@@ -1632,7 +1633,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
             ref={productQueryRef}
             value={productQuery}
             onChangeText={setProductQuery}
-            onSubmitEditing={searchProduct}
+            onSubmitEditing={() => searchProduct()}
             onFocus={() => setEntryMode('stockCode')}
             style={styles.barcodeInput}
             placeholder="Stok kodu yazin"
