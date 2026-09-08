@@ -51,7 +51,7 @@ function hasSourceTarget(row) {
   return Boolean(resolveLedgerTarget(row));
 }
 
-export function StockMovementsScreen({ onOpenScreen }) {
+export function StockMovementsScreen({ onOpenScreen, productId, stockCode }) {
   const [filters, setFilters] = useState({
     search: '',
     movementType: '',
@@ -68,7 +68,8 @@ export function StockMovementsScreen({ onOpenScreen }) {
     page: 1,
     limit: 150,
     ...filters,
-  }), [filters]);
+    productId,
+  }), [filters, productId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -195,7 +196,7 @@ export function StockMovementsScreen({ onOpenScreen }) {
     <main className="work-area stock-movements-screen">
       <section className="erp-panel">
         <div className="panel-title">
-          <strong>Stok Hareketleri</strong>
+          <strong>Stok Hareketleri{productId ? `: ${stockCode || productId}` : ''}</strong>
           <span>Alış girişleri, satış çıkışları, stok düzeltmeleri / Satır: {meta?.total ?? rows.length}</span>
         </div>
         <div className="movement-quick-filters">

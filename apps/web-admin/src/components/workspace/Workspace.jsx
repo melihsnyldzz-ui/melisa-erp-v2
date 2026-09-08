@@ -123,7 +123,14 @@ const workspaceRouteRegistry = {
   'stock-movements': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Stok hareketleri görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <StockMovementsScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => (
+      <StockMovementsScreen
+        key={activeTab.payload?.productId || 'all-products'}
+        productId={activeTab.payload?.productId}
+        stockCode={activeTab.payload?.stockCode}
+        onOpenScreen={onOpenScreen}
+      />
+    ),
   },
   'stock-valuation': {
     permissionKeys: ['product.view'],
