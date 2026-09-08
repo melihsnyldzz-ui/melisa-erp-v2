@@ -1,15 +1,22 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { getSqlPool, closeSqlPool } from '../src/config/database.js';
 import { getVegaProductImageMap, saveVegaProductImage } from '../src/services/vegaProductImageService.js';
 import { getVegaProductMatchIndexFromWorker } from '../src/services/vegaProductMatchClientService.js';
+import {
+  findRecentWaitingCards,
+  normalizeImageStockCode,
+  rankReviewCandidates,
+  RECENT_WAITING_CARD_DEFAULT_HOURS,
+} from '../src/services/vegaProductImageMatchPolicy.js';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const imageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.bmp']);
 const genericBrandWords = new Set(['BABY', 'BEBE', 'KIDS', 'TEKSTIL', 'TEXTILE', 'FASHION']);
+const matchRuleVersion = 2;
 
 function argumentValue(name, fallback = '') {
   const index = process.argv.indexOf(name);
@@ -27,9 +34,7 @@ function normalizeText(value) {
 }
 
 function normalizeCode(value) {
-  const normalized = normalizeText(value).replace(/\s+/g, '');
-  if (/^\d+$/.test(normalized)) return String(Number(normalized));
-  return normalized;
+  return normalizeImageStockCode(normalizeText(value));
 }
 
 function brandTokens(value) {
@@ -79,7 +84,9 @@ function parseImageIdentity(filePath, sourceRoot) {
   const parts = relative.split(path.sep);
   const stem = path.basename(filePath, path.extname(filePath)).replace(/\s+\(\d+\)$/i, '');
   const separatorIndex = stem.lastIndexOf(' - ');
-  const supplier = parts.length > 1 ? parts[0] : (separatorIndex > 0 ? stem.slice(0, separatorIndex) : '');
+  const rawSupplier = parts.length > 1 ? parts[0] : (separatorIndex > 0 ? stem.slice(0, separatorIndex) : '');
+  const supplierKey = normalizeText(rawSupplier).replace(/\s+/g, '');
+  const supplier = ['KODDANERP', 'BULUNAMAYAN', 'UNKNOWN'].includes(supplierKey) ? '' : rawSupplier;
   const rawCode = separatorIndex > 0 ? stem.slice(separatorIndex + 3) : stem;
   const codeMatch = rawCode.match(/\b[0-9A-Z][0-9A-Z._/-]*\b/i);
   return { supplier, code: normalizeCode(codeMatch?.[0] || '') };
@@ -141,6 +148,10 @@ function csvCell(value) {
 const sourceRoot = path.resolve(argumentValue('--source'));
 const reportRoot = path.resolve(argumentValue('--reports', path.join(sourceRoot, '_ERP_RAPORLARI')));
 const apply = process.argv.includes('--apply');
+const requestedWaitingHours = Number(argumentValue('--recent-card-hours', RECENT_WAITING_CARD_DEFAULT_HOURS));
+const recentCardHours = Number.isFinite(requestedWaitingHours) && requestedWaitingHours > 0
+  ? requestedWaitingHours
+  : RECENT_WAITING_CARD_DEFAULT_HOURS;
 if (!argumentValue('--source')) throw new Error('--source klasörü zorunludur');
 
 const products = await getVegaProductMatchIndexFromWorker();
@@ -168,6 +179,7 @@ const existingImages = await getExistingImageMap(products.map((product) => produ
 const rows = [];
 for (const filePath of files) {
   const identity = parseImageIdentity(filePath, sourceRoot);
+  const imageReceivedAt = (await stat(filePath)).mtime;
   const codeCandidates = byCode.get(identity.code) || [];
   let manualSourceId = null;
   try {
@@ -178,6 +190,14 @@ for (const filePath of files) {
     ? codeCandidates.find((product) => Number(product.sourceId) === manualSourceId)
     : null;
   const brandCandidates = codeCandidates.filter((product) => supplierMatches(identity.supplier, product));
+  const waitingPool = identity.supplier
+    ? brandCandidates
+    : codeCandidates;
+  const recentWaitingCandidates = findRecentWaitingCards(waitingPool, {
+    existingImages,
+    receivedAt: imageReceivedAt,
+    windowHours: recentCardHours,
+  });
   const fuzzyCandidates = codeCandidates
     .map((product) => ({ product, score: brandSimilarity(identity.supplier, product) }))
     .sort((left, right) => right.score - left.score);
@@ -200,6 +220,10 @@ for (const filePath of files) {
     exact = codeCandidates[0];
     confidence = 95;
     matchSource = 'unique_active_code';
+  } else if (recentWaitingCandidates.length === 1) {
+    exact = recentWaitingCandidates[0].product;
+    confidence = 92;
+    matchSource = 'recent_waiting_card';
   } else if (fuzzyWinner) {
     exact = fuzzyWinner.product;
     confidence = Math.max(90, Math.round(fuzzyWinner.score * 100));
@@ -219,7 +243,9 @@ for (const filePath of files) {
     reason = matchSource === 'manual_approval'
       ? 'Kullanıcı panelden ERP stok kartını onayladı'
       : matchSource === 'unique_active_code'
-      ? 'Model kodu tek aktif Vega stok kartına çıktı; marka ERP kartından doğrulandı'
+      ? 'Model kodu tek aktif Vega stok kartına çıktı; tekil kod otomatik aktarımı açık'
+      : matchSource === 'recent_waiting_card'
+        ? `Model kodu son ${recentCardHours} saatte açılmış tek görselsiz Vega kartına çıktı`
       : matchSource === 'fuzzy_brand'
         ? 'Model kodu ve benzer marka yazımı güçlü eşleşti'
         : 'Model kodu ve marka tek aktif Vega stok kartıyla eşleşti';
@@ -233,13 +259,21 @@ for (const filePath of files) {
     status,
     reason,
     candidateCount: codeCandidates.length,
+    waitingCandidateCount: recentWaitingCandidates.length,
     confidence,
     matchSource,
-    candidates: codeCandidates.slice(0, 5).map((product) => ({
+    ruleVersion: matchRuleVersion,
+    imageReceivedAt: imageReceivedAt.toISOString(),
+    candidates: rankReviewCandidates(codeCandidates, recentWaitingCandidates)
+      .map(({ product, waiting }) => ({
       sourceId: product.sourceId,
       stockCode: product.stockCode,
       brand: product.brand,
       productName: product.productName,
+      cardOpenedAt: product.cardOpenedAt || null,
+      hasImage: existingImages.has(product.sourceId),
+      recentWaiting: Boolean(waiting),
+      waitingAgeHours: waiting?.waitingAgeHours ?? null,
       similarity: Math.round(brandSimilarity(identity.supplier, product) * 100),
     })),
     sourceId: exact?.sourceId || null,
@@ -256,6 +290,7 @@ for (const filePath of files) {
     row.applied = true;
     row.status = 'applied';
     row.imageUrl = saved.imageUrl;
+    existingImages.set(exact.sourceId, saved.imageUrl);
   }
   rows.push(row);
   process.stdout.write(`IMPORT_ITEM|${rows.length}|${files.length}|${path.basename(filePath)}|${row.status}|${row.stockCode || '-'}\n`);

@@ -904,6 +904,17 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       return;
     }
 
+    const readOnlyVegaLine = lines.find((line) => (
+      line.product?.source === 'vega'
+      || line.product?.saleWritable === false
+      || String(line.product?.id || '').startsWith('vega-')
+    ));
+    if (readOnlyVegaLine) {
+      setError('Vega ile paralel kullanimda yeni terminalden satis kaydi kapali. Satisi mevcut Vega terminalinden tamamlayin.');
+      setMessage('Urun ve stok bilgisi canli Vega verisinden salt-okunur gosteriliyor.');
+      return;
+    }
+
     setError('');
     setMessage('');
     setSaleResult(null);

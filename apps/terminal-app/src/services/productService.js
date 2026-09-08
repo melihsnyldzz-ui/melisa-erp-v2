@@ -13,6 +13,9 @@ function normalizeProduct(row) {
 
   return {
     id: row.id,
+    source: row.source || '',
+    sourceId: row.sourceId || null,
+    saleWritable: row.saleWritable !== false,
     stockCode: row.stockCode,
     barcodeMasked: row.barcodeMasked || row.barcode || row.matchedBarcode,
     matchedBarcode: row.matchedBarcode || row.barcode || row.barcodeMasked,
@@ -111,7 +114,7 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
   try {
     const response = await apiRequest(`/terminal/products/barcode/${encodeURIComponent(trimmedBarcode)}`, {
       token,
-      timeoutMs: 1000,
+      timeoutMs: 5000,
     });
 
     const products = [normalizeProduct(response.data)];
