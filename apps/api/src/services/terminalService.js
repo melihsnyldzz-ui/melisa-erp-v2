@@ -10,6 +10,7 @@ import {
   insertTerminalSaleLedger,
   markTerminalSaleLedgerSynced,
   normalizeTerminalClientEventId,
+  normalizeTerminalSaleResultSnapshot,
   readTerminalSaleLedger,
 } from './terminalSaleIdempotency.js';
 import { runTerminalSaleSubmissionTransaction } from './terminalSaleSubmissionTransaction.js';
@@ -383,7 +384,7 @@ async function writeTerminalSubmitAudit(
 }
 
 function toSubmitResponse(invoice, { duplicate = false } = {}) {
-  return {
+  const result = normalizeTerminalSaleResultSnapshot({
     ok: true,
     duplicate,
     invoiceId: invoice.id,
@@ -409,7 +410,8 @@ function toSubmitResponse(invoice, { duplicate = false } = {}) {
       code: invoice.employeeCode || '',
       name: invoice.employeeName || '',
     } : null,
-  };
+  });
+  return { ...result, duplicate };
 }
 
 export async function submitTerminalSale(payload = {}, actor = null) {

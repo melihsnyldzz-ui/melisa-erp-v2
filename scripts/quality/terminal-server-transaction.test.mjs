@@ -86,9 +86,13 @@ async function harness(options = {}) {
     './invoiceDraftService.js': {
       prepareSalesInvoiceFinalization: async c => { assertContext(c); check('prepare'); },
       createSalesDraft: async (draft, a, c) => { assertContext(c); assert.equal(a, actor); check('create');
-        c.transaction.data.invoice = { ...draft, id: 21, status: 'DRAFT', grandTotal: 30, terminalCode: 'TEST-DEVICE', terminalName: 'Test', employeeCode: 'TEST-EMP', employeeName: 'Test' };
+        c.transaction.data.invoice = { ...draft, id: options.sqlStringIds ? '21' : 21, status: 'DRAFT', grandTotal: 30, terminalCode: 'TEST-DEVICE', terminalName: 'Test', employeeCode: 'TEST-EMP', employeeName: 'Test' };
+        if (options.sqlStringIds) {
+          c.transaction.data.invoice.customerId = String(draft.customerId);
+          c.transaction.data.invoice.items = draft.items.map(item => ({ ...item, productId: String(item.productId) }));
+        }
         return c.transaction.data.invoice; },
-      finalizeSalesInvoice: async (id, a, c) => { assertContext(c); assert.equal(a, actor); assert.equal(id, 21); check('finalize'); c.transaction.data.invoice.status = 'FINALIZED'; return c.transaction.data.invoice; },
+      finalizeSalesInvoice: async (id, a, c) => { assertContext(c); assert.equal(a, actor); assert.equal(Number(id), 21); check('finalize'); c.transaction.data.invoice.status = 'FINALIZED'; return c.transaction.data.invoice; },
       getSalesDraft: async (id, c) => { assertContext(c); assert.equal(id, 21); check('replay-invoice'); return c.transaction.data.invoice; },
     },
   };
@@ -172,4 +176,14 @@ test('simultaneous actual submissions with the same identity create one invoice'
   assert.equal(h.calls.filter(c => c === 'create').length, 1);
   assert.equal(h.calls.filter(c => c === 'finalize').length, 1);
   assert.equal(h.calls.filter(c => c === 'audit').length, 1);
+});
+
+test('SQL bigint strings produce exactly the same DTO types on first response and replay', async () => {
+  const h = await harness({ sqlStringIds: true });
+  const first = await h.submit(payload(), actor);
+  const replay = await h.submit(payload(), actor);
+  assert.equal(typeof first.invoiceId, 'number');
+  assert.equal(typeof first.customerEffect.customerId, 'number');
+  assert.equal(typeof first.stockEffects[0].productId, 'number');
+  assert.deepEqual(structuredClone(first), { ...structuredClone(replay), duplicate: false });
 });
