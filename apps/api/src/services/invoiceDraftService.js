@@ -123,20 +123,6 @@ function normalizeCancelReason(value, code = 'SALES_CANCEL_REASON_REQUIRED') {
   return reason.slice(0, 500);
 }
 
-function createDocumentNo(prefix) {
-  const now = new Date();
-  const stamp = [
-    String(now.getUTCFullYear()).slice(-2),
-    String(now.getUTCMonth() + 1).padStart(2, '0'),
-    String(now.getUTCDate()).padStart(2, '0'),
-    String(now.getUTCHours()).padStart(2, '0'),
-    String(now.getUTCMinutes()).padStart(2, '0'),
-    String(now.getUTCSeconds()).padStart(2, '0'),
-  ].join('');
-
-  return `${prefix}-${stamp}`;
-}
-
 function parseDraftListQuery(query = {}) {
   const options = parseListQuery(query);
   const status = trimText(query.status || 'DRAFT').toUpperCase();
@@ -470,7 +456,7 @@ function normalizeSalesPayload(payload = {}) {
   }
 
   return {
-    documentNo: trimText(payload.documentNo) || createDocumentNo('SDR'),
+    documentNo: trimText(payload.documentNo),
     documentDate: normalizeDate(payload.documentDate),
     customerId: Number(payload.customerId),
     terminalDeviceId: payload.terminalDeviceId ? Number(payload.terminalDeviceId) : null,
@@ -538,7 +524,7 @@ function normalizePurchasePayload(payload = {}) {
   }
 
   return {
-    documentNo: trimText(payload.documentNo) || createDocumentNo('PDR'),
+    documentNo: trimText(payload.documentNo),
     documentDate: normalizeDate(payload.documentDate),
     supplierId: payload.supplierId ? Number(payload.supplierId) : null,
     supplierName: trimText(payload.supplierName),
@@ -1713,6 +1699,12 @@ export async function createSalesDraft(payload, actor = null, transactionContext
 
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
 
+    if (!draft.documentNo) {
+      await new sqlDriver.Request(transaction)
+        .input('invoiceId', sql.BigInt, invoiceId)
+        .query(`UPDATE dbo.sales_invoices SET document_no = CONCAT(N'SDR-', CONVERT(NVARCHAR(20), id)) WHERE id = @invoiceId;`);
+    }
+
     for (const item of draft.items) {
       await insertSalesItem(sqlDriver, transaction, invoiceId, item);
     }
@@ -1772,7 +1764,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
 
     await new sqlDriver.Request(transaction)
       .input('invoiceId', sql.BigInt, invoiceId)
-      .input('documentNo', sql.NVarChar(30), draft.documentNo)
+      .input('documentNo', sql.NVarChar(30), draft.documentNo || beforeSnapshot.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
       .input('customerId', sql.BigInt, draft.customerId)
       .input('customerCurrency', sql.NVarChar(3), draft.customerCurrency)
@@ -2592,6 +2584,12 @@ export async function createPurchaseDraft(payload, actor = null) {
 
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
 
+    if (!draft.documentNo) {
+      await new sqlDriver.Request(transaction)
+        .input('invoiceId', sql.BigInt, invoiceId)
+        .query(`UPDATE dbo.purchase_invoices SET document_no = CONCAT(N'PDR-', CONVERT(NVARCHAR(20), id)) WHERE id = @invoiceId;`);
+    }
+
     for (const item of draft.items) {
       await insertPurchaseItem(sqlDriver, transaction, invoiceId, item);
     }
@@ -2654,7 +2652,7 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
     await new sqlDriver.Request(transaction)
       .input('invoiceId', sql.BigInt, invoiceId)
-      .input('documentNo', sql.NVarChar(30), draft.documentNo)
+      .input('documentNo', sql.NVarChar(30), draft.documentNo || beforeSnapshot.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
       .input('supplierId', sql.BigInt, supplierId)
       .input('supplierCurrency', sql.NVarChar(3), draft.supplierCurrency)

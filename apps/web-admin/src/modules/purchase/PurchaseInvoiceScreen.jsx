@@ -19,7 +19,7 @@ import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.
 
 const emptyPurchaseInvoice = {
   date: todayIsoDate(),
-  invoiceNo: 'Alış Taslağı',
+  invoiceNo: '',
   supplierId: '',
   supplier: '',
   supplierCurrency: '-',

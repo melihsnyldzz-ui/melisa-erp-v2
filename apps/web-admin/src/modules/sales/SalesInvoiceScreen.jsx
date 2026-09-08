@@ -18,7 +18,7 @@ import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtil
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 const emptySalesInvoice = {
-  invoiceNo: 'Taslak',
+  invoiceNo: '',
   date: todayIsoDate(),
   customerId: '',
   customer: '',

@@ -29,7 +29,7 @@ export function PurchaseInvoiceHeader({
         <span className={`invoice-status-pill purchase-header-status status-${String(status || '').toLowerCase()}`}>{statusText}</span>
         <label>
           <span>Fiş no</span>
-          <input value={invoice.invoiceNo} readOnly={isReadonly} onChange={(event) => updateField('invoiceNo', event.target.value)} />
+          <input value={invoice.invoiceNo} placeholder="Kaydedince otomatik" readOnly={isReadonly} onChange={(event) => updateField('invoiceNo', event.target.value)} />
         </label>
         <label>
           <span>Tarih</span>

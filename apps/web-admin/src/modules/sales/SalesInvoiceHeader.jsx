@@ -16,7 +16,7 @@ export function SalesInvoiceHeader({ invoice, status, discountRate = 0, onChange
     <section className="erp-panel sales-invoice-header">
       <div className="sales-header-primary">
         <span className={`invoice-status-pill sales-header-status status-${String(status || '').toLowerCase()}`}>{statusText}</span>
-        <label><span>Fiş no</span><input value={invoice.invoiceNo} readOnly={isReadonly} onChange={(event) => updateField('invoiceNo', event.target.value)} /></label>
+        <label><span>Fiş no</span><input value={invoice.invoiceNo} placeholder="Kaydedince otomatik" readOnly={isReadonly} onChange={(event) => updateField('invoiceNo', event.target.value)} /></label>
         <label><span>Tarih</span><input type="date" value={invoice.date} readOnly={isReadonly} onChange={(event) => updateField('date', event.target.value)} /></label>
         <div><span>Cari</span><strong>{invoice.customer || '-'}</strong></div>
         <div><span>Para birimi</span><strong>{invoice.invoiceCurrency}</strong></div>

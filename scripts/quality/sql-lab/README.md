@@ -24,3 +24,7 @@ Mevcut laboratuvarı yeniden oluşturmayın. Önce yalnız `commerce-sql-2026090
 - `inspect-web.mjs purchase-draft|purchase-final|sale-draft|sale-final|finance-final`: belge senaryosunun ilgili aşamasında SQL değerlerini doğrular; sonraki aşamadan eski aşama kontrolü çalıştırmayın. `snapshot` yalnız okur, aşama kabulü değildir.
 
 Tam UI adımları, beklenen rakamlar ve açık işler: `docs/erp-v2/commerce-web-sql-acceptance-20260908.md`. Her yeni ticari test yalnız bu ayrı SQL sunucusuna yazabilir. Test adı filtrelerinin raporlardan dışlanması genel rapor kabulü sayılmaz.
+
+## Fiş numarası ve eşzamanlı kayıt
+
+`accept-invoice-indexes.mjs` yalnız laboratuvarda 0019 snapshot indekslerini iki kez uygulayıp satırların korunmasını doğrular. `accept-document-numbers.mjs` gerçek servislerle her çalışmada 10 yapay taslak oluşturur; eşzamanlı numara ayrımı, boş/elle numara düzenleme, transaction rollback ve stok/bakiye değişmemesini kontrol eder. Genel test runner'ına dahil değildir. Ayrıntılar: `docs/erp-v2/document-number-acceptance-20260908.md`. Güncel yeni-lab bootstrap kapsamı 0001–0014, 0018 ve 0019'dur; mevcut laboratuvarda bootstrap yeniden çalıştırılmaz.
