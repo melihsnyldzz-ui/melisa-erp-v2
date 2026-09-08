@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, StatusBar, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { TerminalShell } from './src/components/TerminalShell';
+import { TerminalButton } from './src/components/TerminalButton';
 import { BarcodeScreen } from './src/screens/BarcodeScreen';
 import { CatalogSendScreen } from './src/screens/CatalogSendScreen';
 import { DataUpdateScreen } from './src/screens/DataUpdateScreen';
@@ -54,6 +55,7 @@ function TerminalApp() {
   const [lastLookup, setLastLookup] = useState(null);
   const [saleDraftToEdit, setSaleDraftToEdit] = useState(null);
   const [syncState, setSyncState] = useState(initialSyncState);
+  const [queueError, setQueueError] = useState('');
 
   const navigateTo = useCallback((nextScreen, options = {}) => {
     setScreenHistory((currentHistory) => {
@@ -84,20 +86,27 @@ function TerminalApp() {
   }, [activeScreen, screenHistory, session]);
 
   useEffect(() => {
+    if (activeScreen === 'newSale') return undefined;
     if (!BackHandler?.addEventListener) {
       return undefined;
     }
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', goBack);
     return () => subscription.remove();
-  }, [goBack]);
+  }, [activeScreen, goBack]);
 
   const refreshSyncState = useCallback(async () => {
     const [apiResult, queueSummary, cacheSummary] = await Promise.all([
       pingApi(),
-      getQueueSummary(),
+      getQueueSummary().catch((error) => ({ error: error.message || 'Cihaz kuyrugu okunamadi' })),
       getCacheSummary(),
     ]);
+
+    if ('error' in queueSummary) {
+      setQueueError(queueSummary.error);
+      return;
+    }
+    setQueueError('');
 
     setSyncState({
       online: apiResult.online,
@@ -194,6 +203,17 @@ function TerminalApp() {
           syncState={syncState}
         />
       </>
+    );
+  }
+
+  if (queueError) {
+    return (
+      <SafeAreaView style={styles.app}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <Text style={{ color: colors.danger, padding: 16 }}>{queueError}</Text>
+        <Text style={{ color: colors.text, padding: 16 }}>Mevcut cihaz kayitlari korunuyor. ERP yoneticisi kuyrugu inceleyene kadar satis islemleri kapali.</Text>
+        <TerminalButton label="Tekrar kontrol et" onPress={refreshSyncState} />
+      </SafeAreaView>
     );
   }
 

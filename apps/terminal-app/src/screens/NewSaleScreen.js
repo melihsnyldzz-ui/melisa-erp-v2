@@ -8,8 +8,8 @@ import { TerminalButton } from '../components/TerminalButton';
 import { getActiveApiBaseUrl, terminalConfig } from '../config/env';
 import { fetchCurrencyRates, getRateRow, getRateToTry } from '../services/currencyRateService';
 import { getProductDetail, lookupProductByBarcode, searchProductsOfflineFirst } from '../services/productService';
-import { enqueueTerminalSale, markQueueFailed, markQueueSynced, updateQueueEventPayload } from '../services/queueService';
-import { buildTerminalSalePayload, printTerminalSaleReceipt, searchTerminalCustomers, sendTerminalWhatsappShare, submitTerminalSale } from '../services/terminalSalesService';
+import { createTerminalSaleClientEventId, isTerminalSaleManualReviewErrorCode, persistTerminalSaleEvent, syncTerminalSaleEvent } from '../services/queueService';
+import { buildTerminalSalePayload, printTerminalSaleReceipt, searchTerminalCustomers, sendTerminalWhatsappShare } from '../services/terminalSalesService';
 import { clearWorkingSaleDraft, getWorkingSaleDraft, saveWorkingSaleDraft } from '../services/workingSaleDraftService';
 import { colors, terminalStyles } from '../styles/theme';
 
@@ -211,6 +211,9 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const barcodeSettleTimerRef = useRef(null);
   const workingDraftReadyRef = useRef(false);
   const autoSaveRevisionRef = useRef(0);
+  const saleQueueActionInFlightRef = useRef(false);
+  const activeSaleEventIdRef = useRef('');
+  const saleQueuePersistenceUncertainRef = useRef(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
@@ -901,12 +904,46 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setSaleResult(null);
   }
 
+  async function persistCurrentSaleToQueue(payload) {
+    const clientEventId = editingEventId
+      || activeSaleEventIdRef.current
+      || createTerminalSaleClientEventId();
+    activeSaleEventIdRef.current = clientEventId;
+
+    try {
+      await saveWorkingSaleDraft({
+        customer: selectedCustomer,
+        lines,
+        editingEventId: clientEventId,
+      });
+    } catch (storageError) {
+      setEditingEventId(clientEventId);
+      throw storageError;
+    }
+
+    try {
+      const queuedEvent = await persistTerminalSaleEvent(clientEventId, payload);
+      saleQueuePersistenceUncertainRef.current = false;
+      return queuedEvent;
+    } catch (storageError) {
+      const knownQueueState = [
+        'QUEUE_EVENT_ALREADY_SYNCED',
+        'QUEUE_EVENT_BUSY',
+        'QUEUE_EVENT_TYPE_INVALID',
+        'TERMINAL_SALE_MANUAL_REVIEW_REQUIRED',
+      ].includes(storageError.code);
+      saleQueuePersistenceUncertainRef.current = !knownQueueState;
+      storageError.queuePersistenceUncertain = !knownQueueState;
+      setEditingEventId(clientEventId);
+      throw storageError;
+    }
+  }
+
   async function finishSale({ printAfterSubmit = false } = {}) {
     if (!selectedCustomer || lines.length === 0) {
       setError('Cari ve en az bir satir gerekli');
       return;
     }
-
     const readOnlyVegaLine = lines.find((line) => (
       line.product?.source === 'vega'
       || line.product?.saleWritable === false
@@ -918,110 +955,147 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       return;
     }
 
+    if (saleQueueActionInFlightRef.current) return;
+    saleQueueActionInFlightRef.current = true;
+
     setError('');
     setMessage('');
     setSaleResult(null);
     setLoading(true);
 
-    const resultSnapshot = {
-      customerName: selectedCustomer.customerName,
-      lineCount: lines.length,
-      itemQuantity,
-    };
-
-    const basePayload = buildSalePayloadSnapshot();
-
-    const queuedEvent = editingEventId
-      ? { clientEventId: editingEventId }
-      : await enqueueTerminalSale(basePayload);
-    if (editingEventId) {
-      await updateQueueEventPayload(editingEventId, basePayload);
-    }
-    const activeClientEventId = queuedEvent.clientEventId;
-    await clearWorkingSaleDraft().catch(() => {});
+    let activeClientEventId = editingEventId || '';
 
     try {
-      const response = await submitTerminalSale({
-        token: session.accessToken,
-        payload: {
-          ...basePayload,
-          clientEventId: activeClientEventId,
-        },
-      });
-      const responseData = response?.data || response;
-      const duplicate = Boolean(responseData?.duplicate);
-      await markQueueSynced(activeClientEventId, responseData);
+      let resultSnapshot;
+      let basePayload;
+      try {
+        resultSnapshot = {
+          customerName: selectedCustomer.customerName,
+          lineCount: lines.length,
+          itemQuantity,
+        };
+        basePayload = buildSalePayloadSnapshot();
+      } catch (preparationError) {
+        setMessage('Fis gonderime hazirlanamadi');
+        setError(preparationError.message || 'Fis bilgileri dogrulanamadi; ekrandaki fis korundu');
+        return;
+      }
 
-      let printSucceeded = false;
-      let printFailureMessage = '';
-      if (printAfterSubmit) {
-        try {
-          const printResponse = await printTerminalSaleReceipt({
-            token: session.accessToken,
-            invoiceId: responseData?.invoiceId,
-          });
-          const printData = printResponse?.data || printResponse;
-          printSucceeded = Boolean(printData?.ok);
-        } catch (printError) {
-          printFailureMessage = printError.message || 'ERP bilgisayarindaki yaziciya ulasilamadi';
+      let queuedEvent;
+      try {
+        queuedEvent = await persistCurrentSaleToQueue(basePayload);
+      } catch (storageError) {
+        setMessage('Fis cihazda guvenle kaydedilemedi');
+        setError(storageError.queuePersistenceUncertain
+          ? 'Cihaz kuyrugu yazma sonucu dogrulanamadi. Fis ekranda ve ayni event kimligiyle korundu; yeniden deneyin veya ERP yoneticisine basvurun.'
+          : storageError.message || 'Cihaz kuyruguna yazma basarisiz; fis ekranda ve calisma taslaginda korundu');
+        return;
+      }
+
+      activeClientEventId = queuedEvent.clientEventId;
+      let draftCleanupFailed = false;
+      try {
+        await clearWorkingSaleDraft();
+      } catch {
+        draftCleanupFailed = true;
+      }
+
+      try {
+        const syncResult = await syncTerminalSaleEvent(activeClientEventId, {
+          token: session.accessToken,
+        });
+        const responseData = syncResult.response;
+        const duplicate = syncResult.duplicate;
+
+        let printSucceeded = false;
+        let printFailureMessage = '';
+        if (printAfterSubmit) {
+          try {
+            const printResponse = await printTerminalSaleReceipt({
+              token: session.accessToken,
+              invoiceId: responseData?.invoiceId,
+            });
+            const printData = printResponse?.data || printResponse;
+            printSucceeded = Boolean(printData?.ok);
+          } catch (printError) {
+            printFailureMessage = printError.message || 'ERP bilgisayarindaki yaziciya ulasilamadi';
+          }
         }
-      }
 
-      const submitMessage = duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi';
-      const printMessage = printAfterSubmit
-        ? printSucceeded
-          ? ' ERP bilgisayarindaki yaziciya gonderildi.'
-          : ` Fis kaydedildi ancak yazdirilamadi: ${printFailureMessage}`
-        : '';
+        const submitMessage = duplicate ? 'Daha once gonderilmis' : 'Fis gonderildi';
+        const printMessage = printAfterSubmit
+          ? printSucceeded
+            ? ' ERP bilgisayarindaki yaziciya gonderildi.'
+            : ` Fis kaydedildi ancak yazdirilamadi: ${printFailureMessage}`
+          : '';
 
-      setMessage(printSucceeded ? 'Fis gonderildi ve yazdirildi' : submitMessage);
-      if (printFailureMessage) {
-        setError(`Fis kaydedildi, fakat cikti alinamadi. ${printFailureMessage}`);
+        setMessage(printSucceeded ? 'Fis gonderildi ve yazdirildi' : submitMessage);
+        if (printFailureMessage) {
+          setError(`Fis kaydedildi, fakat cikti alinamadi. ${printFailureMessage}`);
+        } else if (draftCleanupFailed) {
+          setError('Fis gonderildi; cihazdaki eski calisma taslagi temizlenemedi ancak ayni event kimligine bagli kaldı.');
+        }
+        setSaleResult({
+          ...resultSnapshot,
+          status: duplicate ? 'duplicate' : 'synced',
+          title: printSucceeded
+            ? 'Fis gonderildi ve yazdirildi'
+            : duplicate
+              ? 'Daha once gonderilmis'
+              : 'Fis gonderildi',
+          message: duplicate
+            ? `Backend bu fisi daha once almis. Yeni ikinci fis olusturulmadi.${printMessage}`
+            : `Fis backend API tarafina basariyla gonderildi.${printMessage}`,
+          clientEventId: activeClientEventId,
+          documentNumber: responseData?.documentNumber || '',
+        });
+      } catch (submitError) {
+        const authenticationError = isAuthenticationError(submitError);
+        const manualReviewError = isTerminalSaleManualReviewErrorCode(submitError.code);
+        const resultTitle = manualReviewError
+          ? 'ERP incelemesi gerekli'
+          : authenticationError
+            ? 'Oturum yenilenmeli'
+            : 'Gonderim tamamlanmadi';
+        const resultMessage = manualReviewError
+          ? 'Bu fisin sunucu sonucu guvenle dogrulanamadi. Fisi duzenlemeyin, yeniden gondermeyin veya silmeyin; ERP yoneticisi satis ve denetim kayitlarini kontrol etsin.'
+          : authenticationError
+            ? 'API baglantisi acik, ancak oturum suresi dolmus. Yeniden giris yaptiktan sonra fisi Sync Merkezi ekranindan gonderebilirsiniz.'
+            : `Fis cihaz kuyrugunda korundu. Sunucu islemi tamamlanmadi: ${submitError.message || 'Bilinmeyen hata'}`;
+
+        setMessage(manualReviewError
+          ? 'Fis kilitlendi; ERP yoneticisi incelemeli'
+          : authenticationError
+            ? 'Oturum suresi doldu, fis cihaz kuyrugunda bekliyor'
+            : 'Fis cihaz kuyrugunda bekliyor');
+        setError(manualReviewError
+          ? submitError.message || 'Sunucu sonucu dogrulanamadi'
+          : authenticationError
+            ? 'Oturum suresi doldu. Yeniden giris yapin.'
+            : submitError.message || 'Sunucu islemi tamamlanmadi');
+        setSaleResult({
+          ...resultSnapshot,
+          status: manualReviewError ? 'manual_review' : authenticationError ? 'auth' : 'failed',
+          title: resultTitle,
+          message: resultMessage,
+          clientEventId: activeClientEventId,
+        });
       }
-      setSaleResult({
-        ...resultSnapshot,
-        status: duplicate ? 'duplicate' : 'synced',
-        title: printSucceeded
-          ? 'Fis gonderildi ve yazdirildi'
-          : duplicate
-            ? 'Daha once gonderilmis'
-            : 'Fis gonderildi',
-        message: duplicate
-          ? `Backend bu fisi daha once almis. Yeni ikinci fis olusturulmadi.${printMessage}`
-          : `Fis backend API tarafina basariyla gonderildi.${printMessage}`,
-        clientEventId: activeClientEventId,
-        documentNumber: responseData?.documentNumber || '',
-      });
       setLines([]);
       setBarcode('');
       setQuantity('1');
       setReviewMode(false);
       setEditingEventId('');
-      await onRefresh();
-    } catch (submitError) {
-      await markQueueFailed(activeClientEventId, submitError);
-      const authenticationError = isAuthenticationError(submitError);
-      const resultTitle = authenticationError ? 'Oturum yenilenmeli' : 'Gonderilemeyenlere alindi';
-      const resultMessage = authenticationError
-        ? 'API baglantisi acik, ancak oturum suresi dolmus. Yeniden giris yaptiktan sonra fisi Sync Merkezi ekranindan gonderebilirsiniz.'
-        : submitError.message || 'API baglantisi yok veya istek basarisiz. Fis local queue icinde bekliyor.';
+      activeSaleEventIdRef.current = '';
+      saleQueuePersistenceUncertainRef.current = false;
 
-      setMessage(authenticationError ? 'Oturum suresi doldu, fis gonderilemeyenlere alindi' : 'Baglanti yok, fis gonderilemeyenlere alindi');
-      setError(authenticationError ? 'Oturum suresi doldu. Yeniden giris yapin.' : submitError.message || 'Online gonderim basarisiz');
-      setSaleResult({
-        ...resultSnapshot,
-        status: authenticationError ? 'auth' : 'offline',
-        title: resultTitle,
-        message: resultMessage,
-        clientEventId: activeClientEventId,
-      });
-      setLines([]);
-      setBarcode('');
-      setQuantity('1');
-      setReviewMode(false);
-      setEditingEventId('');
-      await onRefresh();
+      try {
+        await onRefresh();
+      } catch (refreshError) {
+        setError((current) => current || `Fis sonucu korundu; ekran yenilenemedi: ${refreshError.message || 'Yenileme hatasi'}`);
+      }
     } finally {
+      saleQueueActionInFlightRef.current = false;
       setLoading(false);
     }
   }
@@ -1061,6 +1135,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       setError('Kaydedilecek taslak fis yok');
       return;
     }
+    if (saleQueueActionInFlightRef.current) return;
+    saleQueueActionInFlightRef.current = true;
 
     setLoading(true);
     setError('');
@@ -1069,17 +1145,19 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     try {
       const wasEditing = Boolean(editingEventId);
       const payload = buildSalePayloadSnapshot();
-      const queuedEvent = editingEventId
-        ? { clientEventId: editingEventId }
-        : await enqueueTerminalSale(payload);
-      if (editingEventId) {
-        await updateQueueEventPayload(editingEventId, payload);
+      const queuedEvent = await persistCurrentSaleToQueue(payload);
+      let draftCleanupFailed = false;
+      try {
+        await clearWorkingSaleDraft();
+      } catch {
+        draftCleanupFailed = true;
       }
-      await clearWorkingSaleDraft().catch(() => {});
       setSaleResult({
         status: 'offline',
         title: 'Fis taslak kaydedildi',
-        message: 'Fis local kuyruga taslak olarak alindi. Sync Merkezi ekranindan gonderilebilir.',
+        message: draftCleanupFailed
+          ? 'Fis kuyruga kaydedildi. Eski calisma taslagi temizlenemedi ancak ayni event kimligine bagli kaldi.'
+          : 'Fis local kuyruga taslak olarak alindi. Sync Merkezi ekranindan gonderilebilir.',
         customerName: selectedCustomer.customerName,
         lineCount: lines.length,
         itemQuantity,
@@ -1091,15 +1169,23 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       setQuantity('1');
       setReviewMode(false);
       setEditingEventId('');
-      await onRefresh();
+      activeSaleEventIdRef.current = '';
+      saleQueuePersistenceUncertainRef.current = false;
+      try {
+        await onRefresh();
+      } catch (refreshError) {
+        setError(`Fis kuyrukta korundu; ekran yenilenemedi: ${refreshError.message || 'Yenileme hatasi'}`);
+      }
       if (wasEditing) {
         navigation.openSyncStatus?.();
       } else if (goHomeAfterSave) {
         navigation.goHome();
       }
     } catch (saveError) {
-      setError(saveError.message || 'Fis taslak kaydedilemedi');
+      setMessage('Fis cihazda guvenle kaydedilemedi');
+      setError(saveError.message || 'Fis taslak kaydedilemedi; ekrandaki fis korunuyor');
     } finally {
+      saleQueueActionInFlightRef.current = false;
       setLoading(false);
     }
   }
@@ -1186,6 +1272,11 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function clearSale() {
+    if (saleQueueActionInFlightRef.current) return;
+    if (saleQueuePersistenceUncertainRef.current) {
+      setError('Kuyruk yazma sonucu dogrulanamadi; ayni event kimligiyle yeniden denemeden veya ERP incelemeden fis temizlenemez.');
+      return;
+    }
     setLines([]);
     setBarcode('');
     setQuantity('1');
@@ -1196,6 +1287,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setRecentScans([]);
     setReviewMode(false);
     setEditingEventId('');
+    activeSaleEventIdRef.current = '';
     setWhatsappActionsOpen(false);
     setMessage('Fis temizlendi');
     setError('');
@@ -1204,6 +1296,14 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function requestLeaveSale() {
+    if (saleQueueActionInFlightRef.current) return;
+    if (saleQueuePersistenceUncertainRef.current) {
+      setExitConfirmationOpen(false);
+      setDiscardConfirmationOpen(false);
+      setError('Kuyruk yazma sonucu dogrulanamadi; fis guvenle uzlastirilmadan atilip cikilamaz.');
+      return;
+    }
+
     if (!lines.length) {
       navigation.goHome();
       return;
@@ -1219,6 +1319,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setCustomerQuery(recoveryDraft.customer.customerCode || recoveryDraft.customer.customerName || '');
     setLines(recoveryDraft.lines || []);
     setEditingEventId(recoveryDraft.editingEventId || '');
+    activeSaleEventIdRef.current = recoveryDraft.editingEventId || '';
+    saleQueuePersistenceUncertainRef.current = false;
     setReviewMode(false);
     setRecoveryDraftOpen(false);
     setRecoveryDraft(null);
@@ -1230,6 +1332,12 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   function requestDiscardSaleAndLeave() {
+    if (saleQueueActionInFlightRef.current) return;
+    if (saleQueuePersistenceUncertainRef.current) {
+      setExitConfirmationOpen(false);
+      setError('Kuyruk yazma sonucu dogrulanamadi; fis guvenle uzlastirilmadan atilip cikilamaz.');
+      return;
+    }
     setExitConfirmationOpen(false);
     setDiscardConfirmationOpen(true);
   }
@@ -1248,6 +1356,13 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   }
 
   async function discardSaleAndLeave() {
+    if (saleQueueActionInFlightRef.current) return;
+    if (saleQueuePersistenceUncertainRef.current) {
+      setExitConfirmationOpen(false);
+      setDiscardConfirmationOpen(false);
+      setError('Kuyruk yazma sonucu dogrulanamadi; fis guvenle uzlastirilmadan atilip cikilamaz.');
+      return;
+    }
     setExitConfirmationOpen(false);
     setDiscardConfirmationOpen(false);
     await clearWorkingSaleDraft().catch(() => {});
@@ -1262,6 +1377,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     setRecentScans([]);
     setReviewMode(false);
     setEditingEventId('');
+    activeSaleEventIdRef.current = '';
     setWhatsappActionsOpen(false);
     setMessage('');
     setError('');
@@ -1277,8 +1393,16 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (saleQueueActionInFlightRef.current) return true;
       if (expandedImageUrl) {
         setExpandedImageUrl('');
+        return true;
+      }
+
+      if (saleQueuePersistenceUncertainRef.current) {
+        setExitConfirmationOpen(false);
+        setDiscardConfirmationOpen(false);
+        setError('Kuyruk yazma sonucu dogrulanamadi; fis guvenle uzlastirilmadan atilip cikilamaz.');
         return true;
       }
 
@@ -1349,6 +1473,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     </Modal>
     <KeyboardSafeScrollView
       ref={saleScrollRef}
+      pointerEvents={loading ? 'none' : 'auto'}
       contentContainerStyle={styles.content}
     >
       {!syncState?.online ? (

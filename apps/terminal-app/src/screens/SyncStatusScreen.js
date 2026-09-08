@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalButton } from '../components/TerminalButton';
-import { getPendingQueue, removeQueueEvent, syncTerminalSaleEvent } from '../services/queueService';
+import {
+  getPendingQueue,
+  removeQueueEvent,
+  requiresTerminalSaleManualReview,
+  syncTerminalSaleEvent,
+} from '../services/queueService';
 import { colors, terminalStyles } from '../styles/theme';
 
 function statusLabel(status) {
@@ -49,6 +54,7 @@ function QueueCard({ event, syncingEventId, onSync, onEdit, onDelete }) {
   const payload = event.payload || {};
   const isFailed = event.status === 'failed';
   const isSynced = event.status === 'synced';
+  const requiresManualReview = requiresTerminalSaleManualReview(event);
   const currency = saleCurrency(payload);
 
   return (
@@ -68,6 +74,11 @@ function QueueCard({ event, syncingEventId, onSync, onEdit, onDelete }) {
       </Text>
 
       {event.lastErrorMessage ? <Text style={styles.errorText}>{event.lastErrorMessage}</Text> : null}
+      {requiresManualReview ? (
+        <Text style={styles.errorText}>
+          Bu fisin sunucu sonucu guvenle dogrulanamadi. Duzenlemeyin, yeniden gondermeyin veya silmeyin; ERP yoneticisi kaydi kontrol etsin.
+        </Text>
+      ) : null}
 
       <View style={styles.linePreview}>
         {(payload.items || []).slice(0, 3).map((item, index) => (
@@ -83,7 +94,7 @@ function QueueCard({ event, syncingEventId, onSync, onEdit, onDelete }) {
         ) : null}
       </View>
 
-      {event.status !== 'synced' ? (
+      {event.status !== 'synced' && !requiresManualReview ? (
         <View style={styles.cardActions}>
           <TerminalButton label="Fisi Duzenle" onPress={() => onEdit(event)} variant="secondary" disabled={Boolean(syncingEventId)} />
           <TerminalButton
@@ -108,6 +119,10 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
   const salesQueue = useMemo(() => queue.filter((event) => event.eventType === 'terminal_sale'), [queue]);
   const openSales = useMemo(() => salesQueue.filter((event) => event.status !== 'synced'), [salesQueue]);
   const failedSales = useMemo(() => salesQueue.filter((event) => event.status === 'failed'), [salesQueue]);
+  const manualReviewSales = useMemo(
+    () => salesQueue.filter(requiresTerminalSaleManualReview),
+    [salesQueue],
+  );
   const syncedSales = useMemo(() => salesQueue.filter((event) => event.status === 'synced'), [salesQueue]);
   const visibleQueue = filter === 'sent' ? syncedSales : filter === 'failed' ? failedSales : openSales;
 
@@ -159,8 +174,10 @@ export function SyncStatusScreen({ session, syncState, navigation, onRefresh }) 
       <View style={[styles.heroPanel, failedSales.length ? styles.heroDanger : openSales.length ? styles.heroWarning : styles.heroSuccess]}>
         <Text style={styles.heroTitle}>Bekleyen Fisler</Text>
         <Text style={styles.heroText}>
-          {failedSales.length
-            ? 'Hatali fis var. Duzenleyip tekrar gonderebilirsiniz.'
+          {manualReviewSales.length
+            ? `${manualReviewSales.length} fisin sunucu sonucu guvenle dogrulanamadi; ERP yoneticisi incelemelidir.`
+            : failedSales.length
+              ? 'Hatali fis var. Hatayi kontrol edip guvenliyse tekrar deneyebilirsiniz.'
             : openSales.length
               ? syncState.online ? 'Bekleyen fisler gonderime hazir.' : 'API offline, fisler kuyrukta bekliyor.'
               : 'Bekleyen fis yok.'}
