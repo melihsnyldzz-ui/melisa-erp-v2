@@ -107,7 +107,7 @@ export function SalesInvoiceItemsTable({
                   {showProfitColumns && showFinancialDetails && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatPercent(item.grossProfitRate || 0)}</td>}
                   <td>
                     <span className={item.stockState === 'Eksiye duser' ? 'sales-stock-pill risk' : 'sales-stock-pill'}>
-                      {item.stockState}
+                      {showProfitColumns && /^Stok:/.test(item.stockState) ? item.stockState.replace(/^Stok:/, 'Fiş kaydındaki stok:') : item.stockState}
                     </span>
                   </td>
                   {!isReadonly && (

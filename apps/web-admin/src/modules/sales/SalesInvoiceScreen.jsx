@@ -509,7 +509,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           setIsCorrectionMode(false);
           setSelectedItemId(nextItems[0]?.id ?? null);
           setIsDirty(false);
-          setStatusMessage(`Taslak fiş DB'den açıldı (#${response.data.id}); ticari etki yok.`);
+          setStatusMessage(`Satış fişi veritabanından açıldı (#${response.data.id}).`);
         }
       } catch (error) {
         if (isMounted) {
@@ -1280,13 +1280,13 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       </section>
       <section className="screen-summary sales-invoice-summary">
         <span>Fiş: {invoice.invoiceNo}</span>
-        <span>Draft ID: {draftId || 'yok'}</span>
-        <span>{draftId ? 'Kaydedilmiş taslak' : 'Kaydedilmemiş taslak'}</span>
+        <span>Fiş ID: {draftId || 'yok'}</span>
+        <span>{isCancelled ? 'İptal edilmiş fiş' : isFinalized ? 'Kesinleşmiş fiş' : draftId ? 'Kaydedilmiş taslak' : 'Kaydedilmemiş taslak'}</span>
         <span>{isDirty ? 'Değişti' : 'Temiz'}</span>
         <span>Durum: {status}</span>
         <span>Satır: {items.length}</span>
         <span>Adet: {totals.totalQuantity}</span>
-        <span>Kaynak: API draft</span>
+        <span>Kaynak: Melisa ERP</span>
       </section>
     </main>
   );

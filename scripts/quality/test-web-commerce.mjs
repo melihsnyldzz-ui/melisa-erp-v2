@@ -13,6 +13,7 @@ const checks = [
   ['scripts/stock-count-safety-smoke.mjs'],
   ['--test', 'scripts/quality/dashboard-loading.test.mjs'],
   ['--test', 'scripts/quality/api-error-response.test.mjs'],
+  ['--test', 'scripts/quality/invoice-status-render.test.mjs'],
 ];
 let failed = false;
 for (const args of checks) {

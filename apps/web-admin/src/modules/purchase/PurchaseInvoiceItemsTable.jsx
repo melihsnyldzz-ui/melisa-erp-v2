@@ -10,6 +10,7 @@ function formatMoney(amount, currency) {
 }
 
 export function PurchaseInvoiceItemsTable({
+  status = 'DRAFT',
   isReadonly = false,
   items,
   invoiceRate = 0,
@@ -130,7 +131,7 @@ export function PurchaseInvoiceItemsTable({
                   <td className="money-cell invoice-total-cell">{formatMoney(cost.netLineTotal, item.currency)}</td>
                   {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(cost.netLineCostTry, 'TRY')}</td>}
                   {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(unitCostTry, 'TRY')}</td>}
-                  <td><span className="purchase-stock-in">{item.stockEffect}</span></td>
+                  <td><span className="purchase-stock-in">{status === 'CANCELLED' ? 'İptal ile geri alındı' : status === 'FINALIZED' ? `+${item.quantity} kesinleşti` : `+${item.quantity} taslak`}</span></td>
                   {!isReadonly && (
                     <td>
                       <button className="invoice-row-icon-button" aria-label="Satırı sil" title="Satırı sil" type="button" onClick={() => onDeleteItem(item.id)}><Trash2 size={14} /></button>
