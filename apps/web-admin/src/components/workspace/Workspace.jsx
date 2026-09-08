@@ -1,4 +1,7 @@
 import React from 'react';
+import { CommercialSourceScreen } from '../../modules/shared/CommercialSourceScreen.jsx';
+import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
+import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { UnauthorizedScreen } from '../auth/UnauthorizedScreen.jsx';
 import { CatalogListScreen } from '../../modules/catalog/CatalogListScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
@@ -158,7 +161,11 @@ const workspaceRouteRegistry = {
   'customer-list': {
     permissionKeys: ['customer.view'],
     unauthorizedMessage: 'Cari görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CustomerListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => (
+      <CommercialSourceScreen key="customer-list" label="Cari veri kaynağı">
+        {(source) => <CustomerListScreen dataSource={source} onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'customer-card': {
     permissionKeys: ['customer.view'],
@@ -200,7 +207,11 @@ const workspaceRouteRegistry = {
   'supplier-list': {
     permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SupplierListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => (
+      <CommercialSourceScreen key="supplier-list" label="Tedarikçi veri kaynağı">
+        {(source) => <SupplierListScreen dataSource={source} onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'supplier-card': {
     permissionKeys: ['supplier.view'],
@@ -251,7 +262,13 @@ const workspaceRouteRegistry = {
   'sales-invoice-list': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Satış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => (
+      <CommercialSourceScreen key="sales-invoice-list" label="Satış listesi veri kaynağı">
+        {(source) => source === 'vega'
+          ? <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />
+          : <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'fedex-micro-export-demo': {
     permissionKeys: ['sales.view'],
@@ -333,7 +350,13 @@ const workspaceRouteRegistry = {
   'purchase-invoice-list': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Alış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => (
+      <CommercialSourceScreen key="purchase-invoice-list" label="Alış listesi veri kaynağı">
+        {(source) => source === 'vega'
+          ? <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />
+          : <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'finance-overview': {
     permissionKeys: ['dashboard.view', 'finance.view'],

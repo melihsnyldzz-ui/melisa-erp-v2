@@ -530,7 +530,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           <span>Fiş listesi, seçili fiş önizleme, sync durumu ve hızlı işlemler</span>
         </div>
         <div className="invoice-list-actions">
-          <div className="cash-sale-toolbar-buttons" aria-label="Peşin satış fişleri">
+          <div className="cash-sale-toolbar-buttons" aria-label="Vega peşin cari hareketleri — salt okunur">
+            <span>Vega hareketleri:</span>
             {cashCustomerShortcuts.map((shortcut) => {
               const isOpening = cashShortcutLoading === shortcut.code;
               return (
