@@ -149,11 +149,11 @@ async function request(method, path, { params = {}, body, retryAuth = true } = {
     throw parseError;
   }
 
-  if (!response.ok || payload.success === false) {
-    const apiError = new Error(payload.error.message || 'API isteği başarısız oldu.');
-    apiError.code = payload.error.code || 'API_ERROR';
+  if (!response.ok || payload?.success === false) {
+    const apiError = new Error(payload?.error?.message || 'API isteği başarısız oldu.');
+    apiError.code = payload?.error?.code || 'API_ERROR';
     apiError.status = response.status;
-    apiError.meta = payload.meta || {};
+    apiError.meta = payload?.meta || {};
 
     if (response.status === 401) {
       clearAuthTokens();
@@ -161,6 +161,12 @@ async function request(method, path, { params = {}, body, retryAuth = true } = {
     }
 
     throw apiError;
+  }
+
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    const parseError = new Error('API yanıtı beklenen nesne biçiminde değil.');
+    parseError.code = 'API_PARSE_ERROR';
+    throw parseError;
   }
 
   return payload;

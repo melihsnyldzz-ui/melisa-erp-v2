@@ -12,6 +12,7 @@ const checks = [
   ['scripts/web-admin-sales-pipeline-list-safety-smoke.mjs'],
   ['scripts/stock-count-safety-smoke.mjs'],
   ['--test', 'scripts/quality/dashboard-loading.test.mjs'],
+  ['--test', 'scripts/quality/api-error-response.test.mjs'],
 ];
 let failed = false;
 for (const args of checks) {
