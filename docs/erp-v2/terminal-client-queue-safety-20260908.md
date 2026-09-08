@@ -1,0 +1,15 @@
+# Terminal client queue safety — 2026-09-08
+
+The isolated commerce candidate now preserves unreadable queue storage, serializes queue writes, and serializes sends/edits/deletes for each client event. Duplicate local identities are corruption, not separate send candidates. Manual-review outcomes cannot be edited, deleted, or sent again from the queue UI. A success envelope without a positive integer invoice identity is retained for review instead of being marked sent.
+
+The first sale submission and later retries now use the same queue service. The sale screen records one stable event identity in its working draft before queue persistence. Rapid Save/Submit taps are serialized. Storage failure retains the current lines and event identity; uncertain persistence prevents discard. The screen also prevents editing/exit while a queue action is in flight. Refresh and old-draft cleanup failures cannot turn a successful submission into a second sale. The existing read-only Vega sales prohibition remains in place.
+
+If the persisted queue cannot be read, the app presents an explicit blocked-sales screen and preserves the stored value. It does not show zero pending items as a substitute for unknown queue state.
+
+Source: reviewed functions from the preserved f639 security worktree, plus duplicate-identity detection, invalid success-response handling and explicit queue-error UI. The candidate's Android safe-area, login layout, Enter and barcode-error fixes remain. Messaging handlers are unchanged and were not executed.
+
+Validation uses network/process-denied test children with in-memory storage and submit doubles. The original 11 queue tests failed against the previous candidate and passed after integration. The expanded suite covers 15 queue cases, including parallel persistence of 25 identities, plus six runtime tests of the actual sale handlers. These are VM tests, not a rendered-screen or real SQL acceptance claim. Currency 5/5 and existing login/receipt checks pass. Eight remaining draft static checks pass; the old source-string cleanup-order check was replaced by actual handler behavior assertions. Terminal checkJs and root lint pass; Android release build is recorded in the Development OS audit.
+
+This is a client milestone. Server durable idempotency, shared SQL transaction/commit behavior, exact replay provenance and isolated commercial acceptance remain pending. No real sale, stock/finance write, printer action or messaging operation was performed. The earlier emulator acceptance applies to commit 5bac711; this subsequent client-safety build still needs its own native regression check after server integration.
+
+Historical terminal-sync-protocol.md describes automatic sync as a proposed phase. This package does not activate automatic sending; existing explicit queue controls remain authoritative. No schema migration, deployment or merge is included.
