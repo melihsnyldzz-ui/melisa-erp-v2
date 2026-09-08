@@ -722,6 +722,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
     // Clear the scanner field immediately so a bad scan never blocks the next scan.
     setBarcode('');
     setError('');
+    setMessage('');
+    setLastScannedProduct(null);
     setProductAlternatives([]);
     setLoading(true);
     try {
@@ -1690,6 +1692,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
           </Pressable>
         </View>
         <TerminalButton label={lastScannedProduct ? 'Satira Ekle' : 'Urunu Getir'} onPress={lastScannedProduct ? addBarcodeLine : lookupBarcodeProduct} disabled={loading} />
+        {message ? <Text style={styles.message}>{message}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
         {productAlternatives.length ? (
           <View style={styles.productAlternativePanel}>
             <Text style={styles.warning}>Tam barkod bulunamadi. Benzer urunlerden secin.</Text>
@@ -1777,9 +1781,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         {selectedCustomer ? <InfoRow label="Fis para birimi" value={selectedCustomer.currency || 'TRY'} /> : null}
       </View>
 
-      {message ? <Text style={styles.message}>{message}</Text> : null}
       {rateMessage ? <Text style={styles.message}>{rateMessage}</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator color={colors.accentDark} /> : null}
 
       <SaleResultPanel result={saleResult} onOpenSync={navigation.openSyncStatus} />

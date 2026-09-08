@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
 import {
@@ -342,10 +342,10 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 16 },
   card: { width: '100%', maxWidth: 560, alignSelf: 'center', backgroundColor: colors.white, borderColor: colors.border, borderWidth: 1, borderRadius: 18, padding: 20, boxShadow: '0 10px 24px rgba(15, 23, 42, 0.12)', elevation: 6 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brandRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandMark: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.accent },
   brandMarkText: { color: colors.headerText, fontSize: 22, fontWeight: '900' },
-  brandText: { flex: 1 },
+  brandText: { flex: 1, minWidth: 0 },
   title: { color: colors.text, fontSize: 22, fontWeight: '900' },
   subtitle: { marginTop: 3, color: colors.muted, fontSize: 12, fontWeight: '700' },
   settingsButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, borderColor: colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.panel },

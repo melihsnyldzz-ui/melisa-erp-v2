@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, BackHandler, SafeAreaView, StatusBar, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, BackHandler, StatusBar, StyleSheet, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { TerminalShell } from './src/components/TerminalShell';
 import { BarcodeScreen } from './src/screens/BarcodeScreen';
 import { CatalogSendScreen } from './src/screens/CatalogSendScreen';
@@ -42,6 +43,10 @@ const initialSyncState = {
 };
 
 export default function App() {
+  return <SafeAreaProvider><TerminalApp /></SafeAreaProvider>;
+}
+
+function TerminalApp() {
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState(null);
   const [activeScreen, setActiveScreen] = useState('home');
@@ -181,17 +186,20 @@ export default function App() {
 
   if (!session) {
     return (
-      <LoginScreen
-        onLogin={handleLogin}
-        onApiBaseUrlChange={refreshSyncState}
-        syncState={syncState}
-      />
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <LoginScreen
+          onLogin={handleLogin}
+          onApiBaseUrlChange={refreshSyncState}
+          syncState={syncState}
+        />
+      </>
     );
   }
 
   return (
     <SafeAreaView style={styles.app}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.header} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <TerminalShell
         title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'catalogSend' ? 'Katalog Gonder' : activeScreen === 'customerAccounts' ? 'Musteri Carileri' : activeScreen === 'whatsappCrm' ? 'WhatsApp CRM' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'reports' ? 'Raporlar' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : activeScreen === 'receiptCollect' ? 'Fis Toplama' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
