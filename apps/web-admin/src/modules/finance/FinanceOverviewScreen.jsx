@@ -4,6 +4,8 @@ import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
+  if (value === null || value === undefined) return 'Hesaplanamadı';
+  if (currency === 'UNKNOWN') return `${value} (para birimi belirsiz)`;
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -236,8 +238,17 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
 
       {isLoading && <div className="list-state">Finans verisi API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      {summary.conversion?.status === 'MISSING_RATES' && (
+        <div className="list-state list-state-error" role="alert">
+          {summary.conversion.missingCurrencies.join(', ')} kuru eksik veya geçersiz. İlgili TL toplamları hesaplanamadı; tutarlar kendi para birimlerinde gösteriliyor.
+        </div>
+      )}
+      {summary.conversion?.asOfDate && (
+        <div className="list-state">TL karşılıklarında {summary.conversion.asOfDate} ve öncesindeki son kayıtlı kurlar kullanılır.</div>
+      )}
 
       <section className="dashboard-kpi-grid finance-primary-grid">
+        <Kpi label="Kasa / banka" value={formatSummaryCurrencies(summary, 'financeBalances', summary.financeTryBalance)} detail={`TL karşılığı: ${formatMoney(summary.financeTryBalance)}`} tone="info" />
         <Kpi label="Müşteri alacak" value={formatSummaryCurrencies(summary, 'customerReceivables', summary.customerReceivables)} detail="Satışlardan doğan açık müşteri borcu" tone="warn" />
         <Kpi label="Tedarikçi borç" value={formatSummaryCurrencies(summary, 'supplierPayables', summary.supplierPayables)} detail="Alışlardan doğan açık tedarikçi borcu" tone="warn" />
         <Kpi label="Bugün tahsilat" value={formatSummaryCurrencies(summary, 'todayCollections', summary.todayCollections)} detail={`${summary.collectionCount || 0} toplam tahsilat kaydı`} tone="good" />

@@ -5,6 +5,7 @@ import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertFinanceAccountSchema } from './financeSchemaGuard.js';
+import { buildFinanceSummary } from './financeSummaryRates.js';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const PAYMENT_METHODS = new Set(['cash', 'bank', 'card', 'other']);
@@ -438,133 +439,6 @@ export async function getFinanceSummary() {
   const result = await pool.request().query(`
     SELECT
       COALESCE((
-        SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.customers c
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = c.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE c.is_deleted = 0 AND c.balance > 0
-          AND c.customer_code NOT LIKE N'QA-%'
-          AND c.customer_code NOT LIKE N'CUS-QA-%'
-          AND c.customer_code NOT LIKE N'AKIS-%'
-          AND c.customer_code NOT LIKE N'E2E-%'
-          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
-          AND c.customer_code NOT LIKE N'TEST%'
-          AND c.customer_code NOT LIKE N'IMP-%'
-          AND c.name NOT LIKE N'E2E %'
-          AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS customer_receivables,
-      COALESCE((
-        SELECT SUM(ABS(c.balance) * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.customers c
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = c.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE c.is_deleted = 0 AND c.balance < 0
-          AND c.customer_code NOT LIKE N'QA-%'
-          AND c.customer_code NOT LIKE N'CUS-QA-%'
-          AND c.customer_code NOT LIKE N'AKIS-%'
-          AND c.customer_code NOT LIKE N'E2E-%'
-          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
-          AND c.customer_code NOT LIKE N'TEST%'
-          AND c.customer_code NOT LIKE N'IMP-%'
-          AND c.name NOT LIKE N'E2E %'
-          AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS customer_advances,
-      COALESCE((
-        SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.suppliers s
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = s.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE s.is_deleted = 0 AND s.balance > 0
-          AND s.supplier_code NOT LIKE N'QA-%'
-          AND s.supplier_code NOT LIKE N'SUP-QA-%'
-          AND s.supplier_code NOT LIKE N'AKIS-%'
-          AND s.supplier_code NOT LIKE N'E2E-%'
-          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
-          AND s.supplier_code NOT LIKE N'TEST%'
-          AND s.supplier_code NOT LIKE N'DRAFT-%'
-          AND s.supplier_code NOT LIKE N'IMP-%'
-          AND s.name NOT LIKE N'E2E %'
-          AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS supplier_payables,
-      COALESCE((
-        SELECT SUM(ABS(s.balance) * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.suppliers s
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = s.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE s.is_deleted = 0 AND s.balance < 0
-          AND s.supplier_code NOT LIKE N'QA-%'
-          AND s.supplier_code NOT LIKE N'SUP-QA-%'
-          AND s.supplier_code NOT LIKE N'AKIS-%'
-          AND s.supplier_code NOT LIKE N'E2E-%'
-          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
-          AND s.supplier_code NOT LIKE N'TEST%'
-          AND s.supplier_code NOT LIKE N'DRAFT-%'
-          AND s.supplier_code NOT LIKE N'IMP-%'
-          AND s.name NOT LIKE N'E2E %'
-          AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS supplier_advances,
-      COALESCE((
-        SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.customer_movements cm
-        INNER JOIN dbo.customers c ON c.id = cm.customer_id
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = cm.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE cm.movement_type = N'collection'
-          AND cm.document_date = CONVERT(date, SYSUTCDATETIME())
-          AND c.customer_code NOT LIKE N'QA-%'
-          AND c.customer_code NOT LIKE N'CUS-QA-%'
-          AND c.customer_code NOT LIKE N'AKIS-%'
-          AND c.customer_code NOT LIKE N'E2E-%'
-          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
-          AND c.customer_code NOT LIKE N'TEST%'
-          AND c.customer_code NOT LIKE N'IMP-%'
-          AND c.name NOT LIKE N'E2E %'
-          AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS today_collections,
-      COALESCE((
-        SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.supplier_movements sm
-        INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = sm.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE sm.movement_type = N'payment'
-          AND sm.document_date = CONVERT(date, SYSUTCDATETIME())
-          AND s.supplier_code NOT LIKE N'QA-%'
-          AND s.supplier_code NOT LIKE N'SUP-QA-%'
-          AND s.supplier_code NOT LIKE N'AKIS-%'
-          AND s.supplier_code NOT LIKE N'E2E-%'
-          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
-          AND s.supplier_code NOT LIKE N'TEST%'
-          AND s.supplier_code NOT LIKE N'DRAFT-%'
-          AND s.supplier_code NOT LIKE N'IMP-%'
-          AND s.name NOT LIKE N'E2E %'
-          AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS today_payments,
-      COALESCE((
         SELECT COUNT_BIG(1)
         FROM dbo.customer_movements cm
         INNER JOIN dbo.customers c ON c.id = cm.customer_id
@@ -594,18 +468,7 @@ export async function getFinanceSummary() {
           AND s.supplier_code NOT LIKE N'IMP-%'
           AND s.name NOT LIKE N'E2E %'
           AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS payment_count,
-      COALESCE((
-        SELECT SUM(fa.current_balance * CASE WHEN fa.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.finance_accounts fa
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = fa.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE fa.is_active = 1
-      ), 0) AS finance_try_balance;
+      ), 0) AS payment_count;
   `);
   const breakdownResult = await pool.request().query(`
     SELECT N'customerReceivables' AS metric, currency_code, SUM(balance) AS amount
@@ -703,28 +566,24 @@ export async function getFinanceSummary() {
     FROM dbo.finance_accounts
     WHERE is_active = 1
     GROUP BY currency_code;
+
+    SELECT currency_code, rate_to_try, rate_date
+    FROM (
+      SELECT currency_code, rate_to_try, rate_date,
+        ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS rate_rank
+      FROM dbo.currency_rates
+      WHERE rate_date <= CONVERT(date, SYSUTCDATETIME())
+    ) rates
+    WHERE rate_rank = 1;
+    SELECT CONVERT(varchar(10), SYSUTCDATETIME(), 23) AS as_of_date;
   `);
 
-  const row = result.recordset?.[0] || {};
-  const currencySummary = (breakdownResult.recordset || []).reduce((summary, item) => {
-    const metric = item.metric;
-    const currency = item.currency_code || 'TRY';
-    summary[metric] = summary[metric] || {};
-    summary[metric][currency] = Number(item.amount || 0);
-    return summary;
-  }, {});
-  return {
-    customerReceivables: Number(row.customer_receivables || 0),
-    customerAdvances: Number(row.customer_advances || 0),
-    supplierPayables: Number(row.supplier_payables || 0),
-    supplierAdvances: Number(row.supplier_advances || 0),
-    todayCollections: Number(row.today_collections || 0),
-    todayPayments: Number(row.today_payments || 0),
-    collectionCount: Number(row.collection_count || 0),
-    paymentCount: Number(row.payment_count || 0),
-    financeTryBalance: Number(row.finance_try_balance || 0),
-    currencySummary,
-  };
+  return buildFinanceSummary(
+    breakdownResult.recordsets[0],
+    breakdownResult.recordsets[1],
+    breakdownResult.recordsets[2][0].as_of_date,
+    result.recordset?.[0] || {},
+  );
 }
 
 export async function getFinanceAccounts(query = {}) {
@@ -1596,9 +1455,21 @@ export async function getAccountingControlDashboard() {
 
   const dangerCount = issues.filter((issue) => issue.severity === 'danger').length;
   const warningCount = issues.filter((issue) => issue.severity === 'warning').length
+    + financeSummary.conversion.missingCurrencies.length
     + Number(accountPreview.summary.activeDuplicateCount || 0)
     + Number(accountPreview.summary.standardizationCandidateCount || 0);
   const checks = [
+    makeControlCheck({
+      id: 'finance_exchange_rates',
+      title: 'Finans Özeti Döviz Kurları',
+      status: financeSummary.conversion.status === 'COMPLETE' ? 'OK' : 'WARN',
+      severity: financeSummary.conversion.status === 'COMPLETE' ? 'success' : 'warning',
+      metric: financeSummary.conversion.status === 'COMPLETE' ? 'Kurlar mevcut' : financeSummary.conversion.missingCurrencies.join(', '),
+      message: financeSummary.conversion.status === 'COMPLETE'
+        ? `${financeSummary.conversion.asOfDate} ve öncesindeki son kayıtlı kurlar kullanıldı.`
+        : 'Eksik veya geçersiz kur nedeniyle ilgili TL toplamları hesaplanamadı. Döviz tutarları korunuyor.',
+      actionScreen: 'finance-overview',
+    }),
     makeControlCheck({
       id: 'journal_balance',
       title: 'Borç / Alacak Dengesi',
