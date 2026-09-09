@@ -333,6 +333,20 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
       />
       {isLoading && <div className="list-state">Dashboard KPI verileri API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      {summaryData?.conversion && <details className="list-state dashboard-currency-note">
+        <summary>Melisa ERP · {summaryData.conversion.asOfDate} · Bakiye dövizleri
+          {summaryData.conversion.status === 'MISSING_RATES' && <> — Kur eksik: {summaryData.conversion.missingCurrencies.join(', ')}; etkilenen toplamlar ve yoğunluk hesaplanamadı.</>}
+        </summary>
+        {(summaryData.conversion.balancesByCurrency || []).map((row, index) => <div key={index}>
+          {row.party === 'customer' ? 'Müşteri alacağı' : 'Tedarikçi borcu'}: {row.balance} {row.currency} / TRY: {row.balanceTry ?? 'Hesaplanamadı'} · Kur {row.rateToTry ?? 'Eksik'} / {row.currency === 'TRY' ? 'Sabit' : row.rateDate || '-'}
+        </div>)}
+      </details>}
+      {summaryData?.financeCurrencySummary?.length > 0 && <details className="list-state dashboard-currency-note">
+        <summary>Bugünkü tahsilat / ödeme dövizleri
+          {summaryData.financeConversion?.missingSnapshotCurrencies?.length > 0 && <> — İşlem kuru kaydı yok: {summaryData.financeConversion.missingSnapshotCurrencies.join(', ')}; tarihsel TRY toplamı hesaplanamadı.</>}
+        </summary>
+        {summaryData.financeCurrencySummary.map(row => <div key={row.currency}>{row.currency}: Tahsilat {row.collections} / Ödeme {row.payments}</div>)}
+      </details>}
       {isLayoutEditorOpen && (
         <DashboardLayoutEditor
           layout={dashboardLayout}

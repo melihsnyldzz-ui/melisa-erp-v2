@@ -49,13 +49,13 @@ function toTopProduct(row) {
 }
 
 function toReceivable(row) {
-  const balanceTry = numberValue(row.balance_try ?? row.balance);
+  const balanceTry = nullableReportAmount(row.balance_try);
   return {
     customerId: row.id,
     customerName: row.name,
-    balanceTry,
+    ...reportBalanceFields(row),
     lastMove: row.last_move,
-    risk: balanceTry >= 100000 ? 'Yuksek' : 'Orta',
+    risk: balanceTry === null ? 'Kur eksik' : balanceTry >= 100000 ? 'Yuksek' : 'Orta',
   };
 }
 
@@ -65,7 +65,8 @@ function toSupplierPerformance(row) {
     supplierName: row.name,
     openPurchases: numberValue(row.open_purchases),
     finalizedPurchases: numberValue(row.finalized_purchases),
-    debtTry: numberValue(row.balance_try ?? row.balance),
+    ...reportBalanceFields(row),
+    debtTry: nullableReportAmount(row.balance_try),
     lastPurchaseAt: row.last_purchase_at,
   };
 }
@@ -177,7 +178,7 @@ function toDailyCashRow(row) {
   };
 }
 
-async function fetchSummaryRows(pool) {
+async function fetchSummaryRows(pool, asOfDate) {
   const [
     salesToday,
     purchaseToday,
@@ -192,104 +193,84 @@ async function fetchSummaryRows(pool) {
     receivables,
     suppliers,
   ] = await Promise.all([
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT
         COALESCE((
           SELECT SUM(amount_try)
           FROM dbo.sales_invoices
           WHERE status = N'finalized'
-            AND document_date = CONVERT(date, SYSUTCDATETIME())
+            AND document_date = @reportAsOf
         ), 0) AS today_sales_try,
         COALESCE((
           SELECT SUM(sii.gross_profit_try)
           FROM dbo.sales_invoice_items sii
           INNER JOIN dbo.sales_invoices si ON si.id = sii.sales_invoice_id
           WHERE si.status = N'finalized'
-            AND si.document_date = CONVERT(date, SYSUTCDATETIME())
+            AND si.document_date = @reportAsOf
         ), 0) AS today_gross_profit_try,
         COALESCE((
           SELECT COUNT_BIG(1)
           FROM dbo.sales_invoices
           WHERE status = N'finalized'
-            AND document_date = CONVERT(date, SYSUTCDATETIME())
+            AND document_date = @reportAsOf
         ), 0) AS finalized_sales_today;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT
         COUNT_BIG(1) AS finalized_purchases_today,
         COALESCE(SUM(amount_try), 0) AS today_purchases_try
       FROM dbo.purchase_invoices
       WHERE status = N'finalized'
-        AND document_date = CONVERT(date, SYSUTCDATETIME());
+        AND document_date = @reportAsOf;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT
         COALESCE(SUM(current_stock_qty * average_cost_try), 0) AS total_stock_value_try,
         COALESCE(SUM(CASE WHEN current_stock_qty < 0 THEN 1 ELSE 0 END), 0) AS negative_stock_count
       FROM dbo.products
       WHERE is_deleted = 0;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT
-        COALESCE((
-          SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.customers c
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = c.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE c.is_deleted = 0 AND c.balance > 0
-        ), 0) AS customer_receivables_try,
-        COALESCE((SELECT COUNT_BIG(1) FROM dbo.customers WHERE is_deleted = 0 AND balance > 0), 0) AS customer_balance_count,
-        COALESCE((
-          SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.suppliers s
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = s.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE s.is_deleted = 0 AND s.balance > 0
-        ), 0) AS supplier_payables_try,
-        COALESCE((SELECT COUNT_BIG(1) FROM dbo.suppliers WHERE is_deleted = 0 AND balance > 0), 0) AS supplier_balance_count;
+        (SELECT CASE WHEN COUNT_BIG(*)=COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try),0) END FROM report_customers WHERE balance>0) AS customer_receivables_try,
+        (SELECT COUNT_BIG(*) FROM report_customers WHERE balance>0) AS customer_balance_count,
+        (SELECT CASE WHEN COUNT_BIG(*)=COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try),0) END FROM report_suppliers WHERE balance>0) AS supplier_payables_try,
+        (SELECT COUNT_BIG(*) FROM report_suppliers WHERE balance>0) AS supplier_balance_count,
+        CASE WHEN EXISTS (SELECT 1 FROM report_customers WHERE balance>0 AND balance_try IS NULL) THEN NULL
+          ELSE (SELECT COALESCE(SUM(balance_try),0) FROM (SELECT TOP (20) balance_try FROM report_customers WHERE balance>0 ORDER BY balance_try DESC,id DESC) top_twenty) END AS top_twenty_receivables_try;
+      ${reportBalanceCtes}
+      SELECT N'customer' AS party,currency_code,SUM(balance) AS balance,
+        CASE WHEN COUNT_BIG(*)=COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try),0) END AS balance_try,
+        SUM(CASE WHEN balance_try IS NULL THEN 1 ELSE 0 END) AS missing_count,
+        MAX(rate_to_try) AS rate_to_try,MAX(rate_date) AS rate_date
+      FROM report_customers WHERE balance>0 GROUP BY currency_code
+      UNION ALL
+      SELECT N'supplier',currency_code,SUM(balance),
+        CASE WHEN COUNT_BIG(*)=COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try),0) END,
+        SUM(CASE WHEN balance_try IS NULL THEN 1 ELSE 0 END),MAX(rate_to_try),MAX(rate_date)
+      FROM report_suppliers WHERE balance>0 GROUP BY currency_code;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.sales_invoices WHERE status = N'draft'), 0) AS sales_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.terminal_sync_queue WHERE status IN (N'pending', N'failed')), 0) AS sync_warning_count;
     `),
-    pool.request().query(`
-      SELECT
-        COALESCE((
-          SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.customer_movements cm
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = cm.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE cm.movement_type = N'collection'
-            AND cm.document_date = CONVERT(date, SYSUTCDATETIME())
-        ), 0) AS today_collections_try,
-        COALESCE((
-          SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.supplier_movements sm
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = sm.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE sm.movement_type = N'payment'
-            AND sm.document_date = CONVERT(date, SYSUTCDATETIME())
-        ), 0) AS today_payments_try;
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      WITH daily_finance AS (
+        SELECT currency_code,amount,N'collection' AS movement_type FROM dbo.customer_movements WHERE movement_type=N'collection' AND document_date=@reportAsOf
+        UNION ALL
+        SELECT currency_code,amount,N'payment' FROM dbo.supplier_movements WHERE movement_type=N'payment' AND document_date=@reportAsOf
+      )
+      SELECT currency_code,
+        SUM(CASE WHEN movement_type=N'collection' THEN amount ELSE 0 END) AS collections,
+        SUM(CASE WHEN movement_type=N'payment' THEN amount ELSE 0 END) AS payments,
+        SUM(CASE WHEN movement_type=N'collection' THEN ABS(amount) ELSE 0 END) AS collection_activity,
+        SUM(CASE WHEN movement_type=N'payment' THEN ABS(amount) ELSE 0 END) AS payment_activity
+      FROM daily_finance GROUP BY currency_code;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.customers WHERE is_deleted = 0), 0) AS total_customers,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.products WHERE is_deleted = 0), 0) AS total_products,
@@ -302,7 +283,7 @@ async function fetchSummaryRows(pool) {
             AND pb.is_active = 1
         ), 0) AS active_barcoded_products;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT TOP (10)
         si.id,
         si.document_no,
@@ -323,7 +304,7 @@ async function fetchSummaryRows(pool) {
       ) item_counts
       ORDER BY si.created_at DESC, si.id DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT TOP (10)
         pi.id,
         pi.document_no,
@@ -344,7 +325,7 @@ async function fetchSummaryRows(pool) {
       ) item_counts
       ORDER BY pi.created_at DESC, pi.id DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
       SELECT TOP (10)
         sii.product_id,
         sii.stock_code_snapshot AS stock_code,
@@ -359,20 +340,15 @@ async function fetchSummaryRows(pool) {
       GROUP BY sii.product_id, sii.stock_code_snapshot, sii.product_name_snapshot
       ORDER BY quantity DESC, sales_try DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         c.id,
         c.name,
         c.balance,
-        c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
+        c.balance_try, c.currency_code, c.rate_to_try, c.rate_date,
         last_move.last_move
-      FROM dbo.customers c
-      OUTER APPLY (
-        SELECT TOP (1) rate_to_try
-        FROM dbo.currency_rates cr
-        WHERE cr.currency_code = c.currency_code
-        ORDER BY cr.rate_date DESC, cr.id DESC
-      ) rate
+      FROM report_customers c
       OUTER APPLY (
         SELECT MAX(cm.document_date) AS last_move
         FROM dbo.customer_movements cm
@@ -380,24 +356,19 @@ async function fetchSummaryRows(pool) {
       ) last_move
       WHERE c.is_deleted = 0
         AND c.balance > 0
-      ORDER BY c.balance DESC, c.id DESC;
+      ORDER BY CASE WHEN c.balance_try IS NULL THEN 0 ELSE 1 END, c.balance_try DESC, c.id DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         s.id,
         s.name,
         s.balance,
-        s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
+        s.balance_try, s.currency_code, s.rate_to_try, s.rate_date,
         COALESCE(open_counts.open_purchases, 0) AS open_purchases,
         COALESCE(final_counts.finalized_purchases, 0) AS finalized_purchases,
         last_purchase.last_purchase_at
-      FROM dbo.suppliers s
-      OUTER APPLY (
-        SELECT TOP (1) rate_to_try
-        FROM dbo.currency_rates cr
-        WHERE cr.currency_code = s.currency_code
-        ORDER BY cr.rate_date DESC, cr.id DESC
-      ) rate
+      FROM report_suppliers s
       OUTER APPLY (
         SELECT COUNT_BIG(1) AS open_purchases
         FROM dbo.purchase_invoices pi
@@ -416,7 +387,7 @@ async function fetchSummaryRows(pool) {
         WHERE pi.supplier_id = s.id
       ) last_purchase
       WHERE s.is_deleted = 0
-      ORDER BY s.balance DESC, s.id DESC;
+      ORDER BY CASE WHEN s.balance_try IS NULL THEN 0 ELSE 1 END, s.balance_try DESC, s.id DESC;
     `),
   ]);
 
@@ -425,7 +396,8 @@ async function fetchSummaryRows(pool) {
     purchaseToday: purchaseToday.recordset[0] || {},
     stockValue: stockValue.recordset[0] || {},
     balances: balances.recordset[0] || {},
-    dailyFinance: dailyFinance.recordset[0] || {},
+    dailyFinance: historicalFinanceSummary(dailyFinance.recordset || []),
+    conversion: reportConversion(balances.recordsets[1] || [], asOfDate),
     masterCounts: masterCounts.recordset[0] || {},
     draftCounts: draftCounts.recordset[0] || {},
     recentSales: recentSales.recordset || [],
@@ -438,22 +410,35 @@ async function fetchSummaryRows(pool) {
 
 export async function getDashboardSummaryData() {
   const pool = await getSqlPool();
-  const rows = await fetchSummaryRows(pool);
+  const asOfDate = todayDate();
+  const rows = await fetchSummaryRows(pool, asOfDate);
+  const top20 = nullableReportAmount(rows.balances.top_twenty_receivables_try);
+  const receivablesTry = nullableReportAmount(rows.balances.customer_receivables_try);
 
   return {
+    generatedAt: new Date().toISOString(),
+    period: 'today',
+    conversion: rows.conversion,
+    financeConversion: { ratePolicy: 'TRANSACTION_SNAPSHOT_ONLY', missingSnapshotCurrencies: rows.dailyFinance.missingSnapshotCurrencies },
+    financeCurrencySummary: rows.dailyFinance.currencySummary,
+    melisa: {
+      top20ReceivablesTry: top20,
+      top20ReceivableShare: top20 === null || receivablesTry === null ? null : receivablesTry > 0 ? (top20 / receivablesTry) * 100 : 0,
+      top20ReceivableCount: Math.min(20, numberValue(rows.balances.customer_balance_count)),
+    },
     patron: {
       todaySalesTry: numberValue(rows.salesToday.today_sales_try),
       todayGrossProfitTry: numberValue(rows.salesToday.today_gross_profit_try),
       totalStockValueTry: numberValue(rows.stockValue.total_stock_value_try),
-      customerReceivablesTry: numberValue(rows.balances.customer_receivables_try),
-      supplierPayablesTry: numberValue(rows.balances.supplier_payables_try),
+      customerReceivablesTry: receivablesTry,
+      supplierPayablesTry: nullableReportAmount(rows.balances.supplier_payables_try),
       negativeStockCount: numberValue(rows.stockValue.negative_stock_count),
       finalizedSalesToday: numberValue(rows.salesToday.finalized_sales_today),
       finalizedPurchasesToday: numberValue(rows.purchaseToday.finalized_purchases_today),
     },
     accounting: {
-      todayCollectionsTry: numberValue(rows.dailyFinance.today_collections_try),
-      todayPaymentsTry: numberValue(rows.dailyFinance.today_payments_try),
+      todayCollectionsTry: rows.dailyFinance.collections,
+      todayPaymentsTry: rows.dailyFinance.payments,
       customerBalanceCount: numberValue(rows.balances.customer_balance_count),
       supplierBalanceCount: numberValue(rows.balances.supplier_balance_count),
       recentSalesInvoices: rows.recentSales.map(toRecentSalesInvoice),
@@ -478,6 +463,7 @@ export async function getDashboardSummaryData() {
 
 export async function getDashboardAlertsData() {
   const pool = await getSqlPool();
+  const asOfDate = todayDate();
   const [negativeStock, highReceivables, highPayables, draftCounts, syncWarnings] = await Promise.all([
     pool.request().query(`
       SELECT TOP (10)
@@ -489,25 +475,27 @@ export async function getDashboardAlertsData() {
         AND current_stock_qty < 0
       ORDER BY current_stock_qty ASC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         customer_code,
         name,
-        balance
-      FROM dbo.customers
+        balance, balance_try, currency_code
+      FROM report_customers
       WHERE is_deleted = 0
-        AND balance >= 100000
-      ORDER BY balance DESC;
+        AND (balance_try >= 100000 OR (balance > 0 AND balance_try IS NULL))
+      ORDER BY CASE WHEN balance_try IS NULL THEN 0 ELSE 1 END, balance_try DESC, id DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         supplier_code,
         name,
-        balance
-      FROM dbo.suppliers
+        balance, balance_try, currency_code
+      FROM report_suppliers
       WHERE is_deleted = 0
-        AND balance >= 100000
-      ORDER BY balance DESC;
+        AND (balance_try >= 100000 OR (balance > 0 AND balance_try IS NULL))
+      ORDER BY CASE WHEN balance_try IS NULL THEN 0 ELSE 1 END, balance_try DESC, id DESC;
     `),
     pool.request().query(`
       SELECT
@@ -536,9 +524,10 @@ export async function getDashboardAlertsData() {
 
   for (const row of highReceivables.recordset || []) {
     alerts.push({
-      type: 'Bakiye yuksek musteri',
+      type: row.balance_try === null ? 'Müşteri kuru eksik' : 'Bakiye yuksek musteri',
       subject: `${row.name} / ${row.customer_code}`,
-      value: numberValue(row.balance),
+      value: row.balance_try === null ? numberValue(row.balance) : numberValue(row.balance_try),
+      currency: row.balance_try === null ? row.currency_code : 'TRY',
       owner: 'Cari',
       severity: 'warn',
     });
@@ -546,9 +535,10 @@ export async function getDashboardAlertsData() {
 
   for (const row of highPayables.recordset || []) {
     alerts.push({
-      type: 'Tedarikci borcu',
+      type: row.balance_try === null ? 'Tedarikçi kuru eksik' : 'Tedarikci borcu',
       subject: `${row.name} / ${row.supplier_code}`,
-      value: numberValue(row.balance),
+      value: row.balance_try === null ? numberValue(row.balance) : numberValue(row.balance_try),
+      currency: row.balance_try === null ? row.currency_code : 'TRY',
       owner: 'Alis',
       severity: 'warn',
     });

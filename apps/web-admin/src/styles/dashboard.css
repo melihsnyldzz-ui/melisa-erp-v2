@@ -5,6 +5,25 @@
   margin-bottom: 8px;
 }
 
+.work-area.dashboard-screen > details.dashboard-currency-note {
+  display: block;
+  flex: 0 0 auto;
+  text-align: left;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.work-area.dashboard-screen .dashboard-receivables-panel td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+.work-area.dashboard-screen .dashboard-kpi strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .kpi,
 .erp-panel {
   border: 1px solid #b8c2d0;
