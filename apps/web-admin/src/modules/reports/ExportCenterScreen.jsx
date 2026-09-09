@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { fetchProducts } from '../../services/productApi.js';
 import { fetchCustomers } from '../../services/customerApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
@@ -9,7 +9,8 @@ import { fetchTerminalAdminOverview } from '../../services/terminalAdminApi.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function monthStartDate() {
@@ -17,32 +18,7 @@ function monthStartDate() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-async function fetchAllPages(fetchPage, params, { pageSize = 500, maxRows = 20000 } = {}) {
-  const rows = [];
-  let page = 1;
-  let lastMeta = {};
-
-  while (rows.length < maxRows) {
-    const response = await fetchPage({ ...params, page, limit: pageSize });
-    const pageRows = response.data || [];
-    lastMeta = response.meta || {};
-    rows.push(...pageRows);
-
-    const total = Number(lastMeta.total);
-    if (pageRows.length < pageSize || (Number.isFinite(total) && rows.length >= total)) break;
-    page += 1;
-  }
-
-  return {
-    data: rows.slice(0, maxRows),
-    meta: {
-      ...lastMeta,
-      total: Number(lastMeta.total ?? rows.length),
-      loaded: Math.min(rows.length, maxRows),
-      truncated: rows.length >= maxRows && Number(lastMeta.total || 0) > maxRows,
-    },
-  };
-}
+import { fetchAllExportPages as fetchAllPages } from './reportExportPages.js';
 
 const exportDefinitions = {
   products: {
@@ -78,7 +54,7 @@ const exportDefinitions = {
   },
   suppliers: {
     title: 'Tedarikçi Cari Listesi',
-    filename: 'tedarik?i-cari-listesi',
+    filename: 'tedarikci-cari-listesi',
     fetcher: ({ search }) => fetchAllPages(fetchSuppliers, { search, activeOnly: false }),
     columns: [
       { label: 'Cari Kod', key: 'supplierCode' },
@@ -123,7 +99,7 @@ const exportDefinitions = {
   },
   orders: {
     title: 'Siparişler',
-    filename: 'sipari?ler',
+    filename: 'siparisler',
     fetcher: ({ search, status, dateFrom, dateTo }) => fetchAllPages(fetchSalesOrders, { search, status, dateFrom, dateTo }),
     columns: [
       { label: 'Belge No', key: 'documentNo' },
@@ -139,7 +115,7 @@ const exportDefinitions = {
   purchases: {
     title: 'Alış Fişleri',
     filename: 'alis-fisleri',
-    fetcher: ({ search, status }) => fetchAllPages(fetchPurchaseDrafts, { search, status }),
+    fetcher: ({ search, status, dateFrom, dateTo }) => fetchAllPages(fetchPurchaseDrafts, { search, status, dateFrom, dateTo }),
     columns: [
       { label: 'Fiş No', key: 'invoiceNo' },
       { label: 'Tedarikçi', key: 'supplierName' },
@@ -228,39 +204,57 @@ export function ExportCenterScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const requestVersion = useRef(0);
   const definition = exportDefinitions[reportId];
+  const usesDates = ['sales', 'purchases', 'offers', 'orders', 'stockMovements', 'terminalSync'].includes(reportId);
+  const usesStatus = ['sales', 'purchases', 'offers', 'orders'].includes(reportId);
+  const statuses = reportId === 'offers' ? [['draft','Taslak'],['sent','Gönderilen'],['accepted','Kabul edilen'],['cancelled','İptal']]
+    : reportId === 'orders' ? [['draft','Taslak'],['confirmed','Onaylanan'],['fulfilled','Karşılanan'],['cancelled','İptal']]
+    : [['DRAFT','Taslak'],['FINALIZED','Kesinleşen'],['CANCELLED','İptal']];
+  function invalidate() {
+    requestVersion.current += 1;
+    setRows([]); setMeta(null); setErrorMessage(''); setIsLoading(false);
+  }
+  const canExport = rows.length > 0 && !isLoading && !meta?.truncated;
   const previewRows = useMemo(() => rows.slice(0, 20), [rows]);
 
   async function loadRows(event) {
     event.preventDefault();
+    const version = ++requestVersion.current;
+    setRows([]); setMeta(null);
     setIsLoading(true);
     setErrorMessage('');
 
     try {
       const response = await definition.fetcher({ search, status, dateFrom, dateTo });
+      if (version !== requestVersion.current) return;
       setRows(response.data || []);
       setMeta(response.meta || null);
     } catch (error) {
+      if (version !== requestVersion.current) return;
       setRows([]);
       setMeta(null);
       setErrorMessage(`${error.message || 'Çıktı verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
   }
 
   function exportCsv() {
+    if (!canExport) return;
     exportRowsToCsv({ filename: definition.filename, rows, columns: definition.columns });
   }
 
   function exportExcel() {
+    if (!canExport) return;
     exportRowsToExcel({ filename: definition.filename, title: definition.title, rows, columns: definition.columns });
   }
 
   function printReport() {
+    if (!canExport) return;
     printRowsReport({
       title: definition.title,
-      subtitle: `${dateFrom || '-'} / ${dateTo || '-'} - ${rows.length} satır`,
+      subtitle: usesDates ? `${dateFrom || '-'} / ${dateTo || '-'} - ${rows.length} satır` : `${rows.length} satır`,
       rows,
       columns: definition.columns,
     });
@@ -276,7 +270,7 @@ export function ExportCenterScreen() {
         <form className="filter-grid export-filter-form" onSubmit={loadRows}>
           <label>
             Rapor
-            <select value={reportId} onChange={(event) => { setReportId(event.target.value); setRows([]); }}>
+            <select value={reportId} onChange={(event) => { invalidate(); setReportId(event.target.value); setStatus('ALL'); }}>
               {reportOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.label}</option>
               ))}
@@ -287,24 +281,22 @@ export function ExportCenterScreen() {
             <div>
           <label>
             Arama
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Kod, ad, barkod, cari..." />
+            <input value={search} onChange={(event) => { invalidate(); setSearch(event.target.value); }} placeholder="Kod, ad, barkod, cari..." />
           </label>
-          <label>
+          <label hidden={!usesStatus}>
             Durum
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <select value={status} onChange={(event) => { invalidate(); setStatus(event.target.value); }}>
               <option value="ALL">Tümü</option>
-              <option value="DRAFT">Taslak</option>
-              <option value="FINALIZED">Kesinleşen</option>
-              <option value="CANCELLED">İptal</option>
+              {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
-          <label>
+          <label hidden={!usesDates}>
             Başlangıç
-            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <input type="date" value={dateFrom} onChange={(event) => { invalidate(); setDateFrom(event.target.value); }} />
           </label>
-          <label>
+          <label hidden={!usesDates}>
             Bitiş
-            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            <input type="date" value={dateTo} onChange={(event) => { invalidate(); setDateTo(event.target.value); }} />
           </label>
             </div>
           </details>
@@ -316,7 +308,7 @@ export function ExportCenterScreen() {
         <article className="summary-card">
           <span>Rapor</span>
           <strong>{definition.title}</strong>
-          <small>Kaynak: canlı API</small>
+          <small>{meta ? `Kaynak: ${meta.source || 'API'}` : 'Veri henüz yüklenmedi'}</small>
         </article>
         <article className="summary-card">
           <span>Satır</span>
@@ -336,9 +328,9 @@ export function ExportCenterScreen() {
           <span>İlk 20 satır gösterilir, çıktı tüm yüklenen satırdan alınır</span>
         </div>
         <div className="toolbar-row export-center-actions">
-          <button type="button" onClick={exportCsv} disabled={!rows.length}>CSV İndir</button>
-          <button type="button" onClick={exportExcel} disabled={!rows.length}>Excel İndir</button>
-          <button type="button" onClick={printReport} disabled={!rows.length}>Yazdır / PDF</button>
+          <button type="button" onClick={exportCsv} disabled={!canExport}>CSV İndir</button>
+          <button type="button" onClick={exportExcel} disabled={!canExport}>Excel İndir</button>
+          <button type="button" onClick={printReport} disabled={!canExport}>Yazdır / PDF</button>
         </div>
         {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {meta?.truncated && <div className="list-state list-state-error">Rapor {meta.loaded} satır güvenlik sınırında durduruldu. Daha dar filtre kullanın.</div>}
