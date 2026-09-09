@@ -387,7 +387,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen, productId, supplierId 
   }
 
   return (
-    <main className="work-area invoice-list-screen sales-receipt-workspace purchase-receipt-workspace">
+    <main className="work-area invoice-list-screen sales-receipt-workspace purchase-receipt-workspace commerce-invoice-list">
       <section className="invoice-list-toolbar sales-receipt-toolbar purchase-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Alış Fişleri</strong>

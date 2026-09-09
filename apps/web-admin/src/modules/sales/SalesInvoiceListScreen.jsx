@@ -525,7 +525,7 @@ export function SalesInvoiceListScreen({ onOpenScreen, productId, customerId }) 
   }
 
   return (
-    <main className="work-area invoice-list-screen sales-receipt-workspace">
+    <main className="work-area invoice-list-screen sales-receipt-workspace commerce-invoice-list">
       <section className="invoice-list-toolbar sales-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Satış Fişleri</strong>
