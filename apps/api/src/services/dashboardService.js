@@ -1,5 +1,6 @@
 import sql from 'mssql';
 import { getSqlPool } from '../config/database.js';
+import { reportBalanceCtes, nullableReportAmount, sumReportAmounts, reportBalanceFields, reportConversion, historicalFinanceSummary } from './reportMoney.js';
 
 function numberValue(value) {
   const number = Number(value);
@@ -105,7 +106,7 @@ function toCustomerAnalysis(row) {
     customerCode: row.customer_code,
     customerName: row.customer_name,
     totalSalesTry: numberValue(row.total_sales_try),
-    balanceTry: numberValue(row.balance_try),
+    ...reportBalanceFields(row),
     lastSaleDate: row.last_sale_date,
   };
 }
@@ -116,7 +117,7 @@ function toSupplierAnalysis(row) {
     supplierCode: row.supplier_code,
     supplierName: row.supplier_name,
     totalPurchasesTry: numberValue(row.total_purchases_try),
-    balanceTry: numberValue(row.balance_try),
+    ...reportBalanceFields(row),
     lastPurchaseDate: row.last_purchase_date,
   };
 }
@@ -125,7 +126,8 @@ function toCriticalWarning(row) {
   return {
     type: row.warning_type,
     subject: row.subject,
-    value: numberValue(row.warning_value),
+    value: nullableReportAmount(row.warning_value),
+    currency: row.currency_code || null,
     severity: row.severity,
   };
 }
@@ -151,7 +153,7 @@ function toCurrencyTotal(row) {
     currency: row.currency_code || row.document_currency || 'TRY',
     count: numberValue(row.row_count),
     amount: numberValue(row.amount),
-    amountTry: numberValue(row.amount_try),
+    amountTry: nullableReportAmount(row.amount_try),
   };
 }
 
@@ -605,6 +607,7 @@ export async function getDashboardAlertsData() {
 
 export async function getManagementReportingData() {
   const pool = await getSqlPool();
+  const asOfDate = todayDate();
   const [
     dailySales,
     dailyPurchases,
@@ -613,8 +616,10 @@ export async function getManagementReportingData() {
     supplierAnalysis,
     widgets,
     criticalWarnings,
+    balanceCurrencies,
   ] = await Promise.all([
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT
         COALESCE(SUM(CASE WHEN status = N'finalized' THEN 1 ELSE 0 END), 0) AS sales_count,
         COALESCE(SUM(CASE WHEN status = N'finalized' THEN amount_try ELSE 0 END), 0) AS sales_amount_try,
@@ -623,23 +628,25 @@ export async function getManagementReportingData() {
           FROM dbo.sales_invoice_items sii
           INNER JOIN dbo.sales_invoices si2 ON si2.id = sii.sales_invoice_id
           WHERE si2.status = N'finalized'
-            AND si2.document_date = CONVERT(date, SYSUTCDATETIME())
+            AND si2.document_date = @reportAsOf
         ), 0) AS gross_profit_try,
         COALESCE(SUM(CASE WHEN status = N'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_sales_count,
         COALESCE(SUM(CASE WHEN status = N'cancelled' THEN amount_try ELSE 0 END), 0) AS cancelled_sales_amount_try
       FROM dbo.sales_invoices
-      WHERE document_date = CONVERT(date, SYSUTCDATETIME());
+      WHERE document_date = @reportAsOf;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT
         COALESCE(SUM(CASE WHEN status = N'finalized' THEN 1 ELSE 0 END), 0) AS purchase_count,
         COALESCE(SUM(CASE WHEN status = N'finalized' THEN amount_try ELSE 0 END), 0) AS purchase_amount_try,
         COALESCE(SUM(CASE WHEN status = N'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_purchase_count,
         COALESCE(SUM(CASE WHEN status = N'cancelled' THEN amount_try ELSE 0 END), 0) AS cancelled_purchase_amount_try
       FROM dbo.purchase_invoices
-      WHERE document_date = CONVERT(date, SYSUTCDATETIME());
+      WHERE document_date = @reportAsOf;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         sii.product_id,
         sii.stock_code_snapshot AS stock_code,
@@ -653,15 +660,16 @@ export async function getManagementReportingData() {
       GROUP BY sii.product_id, sii.stock_code_snapshot, sii.product_name_snapshot
       ORDER BY quantity DESC, revenue_try DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         c.id AS customer_id,
         c.customer_code,
         c.name AS customer_name,
         COALESCE(sales_totals.total_sales_try, 0) AS total_sales_try,
-        c.balance AS balance_try,
+        c.balance, c.currency_code, c.balance_try, c.rate_to_try, c.rate_date,
         sales_totals.last_sale_date
-      FROM dbo.customers c
+      FROM report_customers c
       OUTER APPLY (
         SELECT
           SUM(si.amount_try) AS total_sales_try,
@@ -671,23 +679,18 @@ export async function getManagementReportingData() {
           AND si.status = N'finalized'
       ) sales_totals
       WHERE c.is_deleted = 0
-      ORDER BY COALESCE(sales_totals.total_sales_try, 0) DESC, ABS(c.balance) DESC, c.id DESC;
+      ORDER BY COALESCE(sales_totals.total_sales_try, 0) DESC, ABS(c.balance_try) DESC, c.id DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (10)
         s.id AS supplier_id,
         s.supplier_code,
         s.name AS supplier_name,
         COALESCE(purchase_totals.total_purchases_try, 0) AS total_purchases_try,
-        s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
+        s.balance, s.currency_code, s.balance_try, s.rate_to_try, s.rate_date,
         purchase_totals.last_purchase_date
-      FROM dbo.suppliers s
-      OUTER APPLY (
-        SELECT TOP (1) rate_to_try
-        FROM dbo.currency_rates cr
-        WHERE cr.currency_code = s.currency_code
-        ORDER BY cr.rate_date DESC, cr.id DESC
-      ) rate
+      FROM report_suppliers s
       OUTER APPLY (
         SELECT
           SUM(pi.amount_try) AS total_purchases_try,
@@ -697,50 +700,34 @@ export async function getManagementReportingData() {
           AND pi.status = N'finalized'
       ) purchase_totals
       WHERE s.is_deleted = 0
-      ORDER BY COALESCE(purchase_totals.total_purchases_try, 0) DESC, ABS(s.balance) DESC, s.id DESC;
+      ORDER BY COALESCE(purchase_totals.total_purchases_try, 0) DESC, ABS(s.balance_try) DESC, s.id DESC;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT
-        COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_sales_try,
-        COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_purchases_try,
+        COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date = @reportAsOf), 0) AS today_sales_try,
+        COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date = @reportAsOf), 0) AS today_purchases_try,
         COALESCE((SELECT SUM(current_stock_qty * average_cost_try) FROM dbo.products WHERE is_deleted = 0), 0) AS total_stock_value_try,
-        COALESCE((
-          SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.customers c
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = c.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE c.is_deleted = 0
-        ), 0) AS customer_balance_try,
-        COALESCE((
-          SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.suppliers s
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = s.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE s.is_deleted = 0
-        ), 0) AS supplier_balance_try,
+        (SELECT CASE WHEN COUNT_BIG(*) = COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try), 0) END FROM report_customers) AS customer_balance_try,
+        (SELECT CASE WHEN COUNT_BIG(*) = COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try), 0) END FROM report_suppliers) AS supplier_balance_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.products WHERE is_deleted = 0 AND current_stock_qty < 0), 0) AS negative_stock_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.sales_invoices WHERE status = N'draft'), 0) AS sales_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT TOP (20)
         warning_type,
         subject,
         warning_value,
+        currency_code,
         severity
       FROM (
         SELECT
           N'negative_stock' AS warning_type,
           CONCAT(p.stock_code, N' / ', p.name) AS subject,
           CAST(p.current_stock_qty AS DECIMAL(18, 4)) AS warning_value,
+          CAST(NULL AS NVARCHAR(3)) AS currency_code,
           N'danger' AS severity
         FROM dbo.products p
         WHERE p.is_deleted = 0
@@ -751,26 +738,41 @@ export async function getManagementReportingData() {
         SELECT
           N'customer_balance' AS warning_type,
           CONCAT(c.customer_code, N' / ', c.name) AS subject,
-          CAST(c.balance AS DECIMAL(18, 4)) AS warning_value,
+          CAST(c.balance_try AS DECIMAL(18, 4)) AS warning_value,
+          N'TRY' AS currency_code,
           N'warn' AS severity
-        FROM dbo.customers c
+        FROM report_customers c
         WHERE c.is_deleted = 0
-          AND c.balance >= 100000
+          AND c.balance_try >= 100000
 
         UNION ALL
 
         SELECT
           N'supplier_balance' AS warning_type,
           CONCAT(s.supplier_code, N' / ', s.name) AS subject,
-          CAST(s.balance AS DECIMAL(18, 4)) AS warning_value,
+          CAST(s.balance_try AS DECIMAL(18, 4)) AS warning_value,
+          N'TRY' AS currency_code,
           N'warn' AS severity
-        FROM dbo.suppliers s
+        FROM report_suppliers s
         WHERE s.is_deleted = 0
-          AND s.balance >= 100000
+          AND s.balance_try >= 100000
       ) warnings
       ORDER BY
         CASE severity WHEN N'danger' THEN 1 WHEN N'warn' THEN 2 ELSE 3 END,
         ABS(warning_value) DESC;
+    `),
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
+      SELECT N'customer' AS party, currency_code, SUM(balance) AS balance,
+        CASE WHEN COUNT_BIG(*) = COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try), 0) END AS balance_try,
+        SUM(CASE WHEN balance_try IS NULL THEN 1 ELSE 0 END) AS missing_count,
+        MAX(rate_to_try) AS rate_to_try, MAX(rate_date) AS rate_date
+      FROM report_customers GROUP BY currency_code
+      UNION ALL
+      SELECT N'supplier', currency_code, SUM(balance),
+        CASE WHEN COUNT_BIG(*) = COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try), 0) END,
+        SUM(CASE WHEN balance_try IS NULL THEN 1 ELSE 0 END), MAX(rate_to_try), MAX(rate_date)
+      FROM report_suppliers GROUP BY currency_code;
     `),
   ]);
 
@@ -778,11 +780,12 @@ export async function getManagementReportingData() {
 
   return {
     generatedAt: new Date().toISOString(),
+    conversion: reportConversion(balanceCurrencies.recordset || [], asOfDate),
     assumptions: [
       'Yönetim raporları operasyonel ERP karar desteğidir; resmî muhasebe çıktısı değildir.',
       'Satış ve alış toplamları yalnız kesinleşmiş belgeleri içerir; iptal ve taslak belgeler ilgili yerlerde ayrı gösterilir.',
       'Müşteri ve tedarikçi bakiyeleri ERP kartları ile hareket etkilerinden gelir; içe aktarılan açılış bakiyeleri ayrıca ticari mutabakat gerektirir.',
-      'Yabancı para bakiyelerinin TRY karşılığında mevcut en güncel kur kullanılır.',
+      'Güncel kart bakiyeleri rapor gününe kadar kaydedilmiş son kurla TRY değerlenir; eksik/geçersiz kurda toplam hesaplanamaz. Fişlerin tarihsel TRY tutarları değişmez.',
       'Raporun hızlı ve denetlenebilir kalması için ürün, müşteri, tedarikçi ve uyarı listeleri belirli sayıda kayıtla sınırlandırılır.',
     ],
     dataQuality: {
@@ -812,8 +815,8 @@ export async function getManagementReportingData() {
       todaySalesTry: numberValue(widgetRow.today_sales_try),
       todayPurchasesTry: numberValue(widgetRow.today_purchases_try),
       totalStockValueTry: numberValue(widgetRow.total_stock_value_try),
-      customerBalanceTry: numberValue(widgetRow.customer_balance_try),
-      supplierBalanceTry: numberValue(widgetRow.supplier_balance_try),
+      customerBalanceTry: nullableReportAmount(widgetRow.customer_balance_try),
+      supplierBalanceTry: nullableReportAmount(widgetRow.supplier_balance_try),
       negativeStockCount: numberValue(widgetRow.negative_stock_count),
       salesDraftCount: numberValue(widgetRow.sales_draft_count),
       purchaseDraftCount: numberValue(widgetRow.purchase_draft_count),
@@ -826,6 +829,7 @@ export async function getPeriodicAccountingData(query = {}) {
   const dateFrom = normalizeReportDate(query.dateFrom, monthStartDate());
   const dateTo = normalizeReportDate(query.dateTo, todayDate());
   const pool = await getSqlPool();
+  const asOfDate = todayDate();
 
   const [
     salesByCurrency,
@@ -889,7 +893,11 @@ export async function getPeriodicAccountingData(query = {}) {
           currency_code,
           COUNT_BIG(1) AS row_count,
           COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) AS amount,
-          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) AS amount_try
+          CASE WHEN currency_code = N'TRY' OR SUM(ABS(amount)) = 0 THEN COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) END AS amount_try,
+          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE 0 END), 0) AS collections,
+          COALESCE(SUM(CASE WHEN movement_type = N'payment' THEN amount ELSE 0 END), 0) AS payments,
+          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN ABS(amount) ELSE 0 END), 0) AS collection_activity,
+          COALESCE(SUM(CASE WHEN movement_type = N'payment' THEN ABS(amount) ELSE 0 END), 0) AS payment_activity
         FROM finance_rows
         GROUP BY currency_code
         ORDER BY currency_code;
@@ -921,26 +929,30 @@ export async function getPeriodicAccountingData(query = {}) {
         GROUP BY document_date, currency_code
         ORDER BY document_date DESC, currency_code ASC;
       `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT
         currency_code,
         COUNT_BIG(1) AS party_count,
         COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) AS debit,
         COALESCE(SUM(CASE WHEN balance < 0 THEN ABS(balance) ELSE 0 END), 0) AS credit,
-        COALESCE(SUM(balance), 0) AS balance
-      FROM dbo.customers
+        COALESCE(SUM(balance), 0) AS balance,
+        CASE WHEN COUNT_BIG(*) = COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try), 0) END AS balance_try
+      FROM report_customers
       WHERE is_deleted = 0
       GROUP BY currency_code
       ORDER BY currency_code;
     `),
-    pool.request().query(`
+    pool.request().input('reportAsOf', sql.Date, asOfDate).query(`
+      ${reportBalanceCtes}
       SELECT
         currency_code,
         COUNT_BIG(1) AS party_count,
         COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) AS debit,
         COALESCE(SUM(CASE WHEN balance < 0 THEN ABS(balance) ELSE 0 END), 0) AS credit,
-        COALESCE(SUM(balance), 0) AS balance
-      FROM dbo.suppliers
+        COALESCE(SUM(balance), 0) AS balance,
+        CASE WHEN COUNT_BIG(*) = COUNT_BIG(balance_try) THEN COALESCE(SUM(balance_try), 0) END AS balance_try
+      FROM report_suppliers
       WHERE is_deleted = 0
       GROUP BY currency_code
       ORDER BY currency_code;
@@ -952,23 +964,24 @@ export async function getPeriodicAccountingData(query = {}) {
         SELECT
           COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS sales_try,
           COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS purchases_try,
-          COALESCE((SELECT SUM(amount) FROM dbo.customer_movements WHERE movement_type = N'collection' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS collections,
-          COALESCE((SELECT SUM(amount) FROM dbo.supplier_movements WHERE movement_type = N'payment' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS payments,
-          COALESCE((SELECT SUM(current_balance) FROM dbo.finance_accounts WHERE is_active = 1 AND currency_code = N'TRY'), 0) AS cash_bank_try,
-          COALESCE((SELECT SUM(balance) FROM dbo.customers WHERE is_deleted = 0), 0) AS customer_balance,
-          COALESCE((SELECT SUM(balance) FROM dbo.suppliers WHERE is_deleted = 0), 0) AS supplier_balance;
+          COALESCE((SELECT SUM(current_balance) FROM dbo.finance_accounts WHERE is_active = 1 AND currency_code = N'TRY'), 0) AS cash_bank_try;
       `),
   ]);
 
   const widgetRow = widgets.recordset?.[0] || {};
+  const finance = historicalFinanceSummary(financeByCurrency.recordset || []);
 
   return {
     generatedAt: new Date().toISOString(),
+    financeConversion: { ratePolicy: 'TRANSACTION_SNAPSHOT_ONLY', missingSnapshotCurrencies: finance.missingSnapshotCurrencies },
+    financeCurrencySummary: finance.currencySummary,
+    balanceAsOfDate: asOfDate,
     dateFrom,
     dateTo,
     assumptions: [
       'Dönemsel muhasebe görünümü ERP kontrolü için operasyonel bir özettir; resmî muhasebe defteri değildir.',
       'Dönem filtreleri, seçilen tarih aralığındaki kesinleşmiş faturalar ile kaydedilmiş tahsilat ve ödeme hareketlerine uygulanır.',
+      'Dövizli tahsilat/ödemelerin işlem anı kur kaydı yoktur; tarihsel TRY karşılığı hesaplanamaz. Orijinal döviz tutarları ayrı tutulur.',
       'Müşteri ve tedarikçi bakiye bölümleri dönem sonu tarihsel görüntüyü değil, para birimi bazında güncel kart bakiyelerini gösterir.',
     ],
     dataQuality: {
@@ -986,12 +999,12 @@ export async function getPeriodicAccountingData(query = {}) {
     widgets: {
       salesTry: numberValue(widgetRow.sales_try),
       purchasesTry: numberValue(widgetRow.purchases_try),
-      collections: numberValue(widgetRow.collections),
-      payments: numberValue(widgetRow.payments),
-      netCash: numberValue(widgetRow.collections) - numberValue(widgetRow.payments),
+      collections: finance.collections,
+      payments: finance.payments,
+      netCash: finance.netCash,
       cashBankTry: numberValue(widgetRow.cash_bank_try),
-      customerBalance: numberValue(widgetRow.customer_balance),
-      supplierBalance: numberValue(widgetRow.supplier_balance),
+      customerBalance: sumReportAmounts((customerBalances.recordset || []).map(row => row.balance_try)),
+      supplierBalance: sumReportAmounts((supplierBalances.recordset || []).map(row => row.balance_try)),
     },
     salesByCurrency: (salesByCurrency.recordset || []).map(toCurrencyTotal),
     purchasesByCurrency: (purchasesByCurrency.recordset || []).map(toCurrencyTotal),

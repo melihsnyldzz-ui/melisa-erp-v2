@@ -20,6 +20,7 @@ files.push('scripts/quality/stock-count-permission.test.mjs');
 files.push('scripts/quality/cash-period-lock.test.mjs');
 files.push('scripts/quality/finance-summary-rates.test.mjs');
 files.push('scripts/quality/stock-valuation-rates.test.mjs');
+files.push('scripts/quality/report-money.test.mjs');
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
   /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|USERPROFILE|LOCALAPPDATA|APPDATA|PROGRAMFILES|PROGRAMFILES\(X86\)|SYSTEMDRIVE)$/i.test(key)));
 env.NODE_ENV = 'test';

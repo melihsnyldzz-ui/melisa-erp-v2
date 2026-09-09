@@ -3,6 +3,8 @@ import { fetchManagementReporting, fetchPeriodicAccounting } from '../../service
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 
 function formatMoney(amount, currency = 'TRY') {
+  if (amount === null || amount === undefined || !Number.isFinite(Number(amount))) return 'Hesaplanamadı';
+  if (!/^[A-Z]{3}$/.test(currency)) return `${formatNumber(amount)} ${currency}`;
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -39,9 +41,9 @@ function Kpi({ label, value, detail, tone = 'info' }) {
   );
 }
 
-function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.' }) {
+function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.', className = '' }) {
   return (
-    <details className="erp-panel dashboard-table-panel report-table-details">
+    <details className={`erp-panel dashboard-table-panel report-table-details ${className}`}>
       <summary>
         <span>
           <strong>{title}</strong>
@@ -161,9 +163,9 @@ export function ManagementReportsScreen() {
     return [
       { label: 'Dönem satış', value: formatMoney(widgets.salesTry), detail: `${periodicReport.dateFrom || '-'} / ${periodicReport.dateTo || '-'}`, tone: 'good' },
       { label: 'Dönem alış', value: formatMoney(widgets.purchasesTry), detail: 'Kesinleşen alış toplamı', tone: 'info' },
-      { label: 'Tahsilat', value: formatMoney(widgets.collections), detail: 'Müşteri tahsilatları', tone: 'good' },
-      { label: 'Ödeme', value: formatMoney(widgets.payments), detail: 'Tedarikçi ödemeleri', tone: 'danger' },
-      { label: 'Net kasa', value: formatMoney(widgets.netCash), detail: 'Tahsilat eksi ödeme', tone: Number(widgets.netCash || 0) >= 0 ? 'good' : 'danger' },
+      { label: 'Tahsilat', value: formatMoney(widgets.collections), detail: 'Tarihsel TRY / dövizler aşağıda', tone: 'good' },
+      { label: 'Ödeme', value: formatMoney(widgets.payments), detail: 'Tarihsel TRY / dövizler aşağıda', tone: 'danger' },
+      { label: 'Net kasa', value: formatMoney(widgets.netCash), detail: 'Tahsilat eksi ödeme', tone: widgets.netCash == null ? 'warn' : widgets.netCash >= 0 ? 'good' : 'danger' },
       { label: 'Kasa/banka TRY', value: formatMoney(widgets.cashBankTry), detail: 'Aktif hesap bakiyesi', tone: 'info' },
     ];
   }, [periodicReport]);
@@ -264,7 +266,8 @@ export function ManagementReportsScreen() {
     id: row.customerId,
     customer: `${row.customerCode} / ${row.customerName}`,
     sales: formatMoney(row.totalSalesTry),
-    balance: formatMoney(row.balanceTry),
+    balance: `${row.currency || '?'} ${formatMoney(row.balance, row.currency)} / TRY: ${formatMoney(row.balanceTry)}`,
+    rate: row.currency === 'TRY' ? '1' : `${row.rateToTry ?? (row.balance === 0 ? 'Gerekmiyor' : 'Eksik')} / ${formatDate(row.rateDate)}`,
     lastSale: formatDate(row.lastSaleDate),
   }));
 
@@ -272,7 +275,8 @@ export function ManagementReportsScreen() {
     id: row.supplierId,
     supplier: `${row.supplierCode} / ${row.supplierName}`,
     purchases: formatMoney(row.totalPurchasesTry),
-    balance: formatMoney(row.balanceTry),
+    balance: `${row.currency || '?'} ${formatMoney(row.balance, row.currency)} / TRY: ${formatMoney(row.balanceTry)}`,
+    rate: row.currency === 'TRY' ? '1' : `${row.rateToTry ?? (row.balance === 0 ? 'Gerekmiyor' : 'Eksik')} / ${formatDate(row.rateDate)}`,
     lastPurchase: formatDate(row.lastPurchaseDate),
   }));
 
@@ -280,7 +284,7 @@ export function ManagementReportsScreen() {
     id: `${row.type}-${index}`,
     type: row.type,
     subject: row.subject,
-    value: formatNumber(row.value),
+    value: row.currency ? formatMoney(row.value, row.currency) : formatNumber(row.value),
     severity: row.severity,
   }));
 
@@ -331,6 +335,7 @@ export function ManagementReportsScreen() {
       value: row.value,
       detail: row.detail,
     })),
+    ...((periodicReport.financeCurrencySummary || []).map(row => ({ section: 'Dönem Tahsilat / Ödeme', metric: row.currency, value: formatMoney(row.collections, row.currency), detail: `Ödeme ${formatMoney(row.payments, row.currency)}` }))),
     ...currencyRows.map((row) => ({
       section: 'Para Birimi Özeti',
       metric: `${row.type} ${row.currency}`,
@@ -353,13 +358,13 @@ export function ManagementReportsScreen() {
       section: 'Müşteri Analizi',
       metric: row.customer,
       value: row.sales,
-      detail: `Bakiye ${row.balance} / son satış ${row.lastSale}`,
+      detail: `Bakiye ${row.balance} / kur ${row.rate} / son satış ${row.lastSale}`,
     })),
     ...supplierRows.map((row) => ({
       section: 'Tedarikçi Analizi',
       metric: row.supplier,
       value: row.purchases,
-      detail: `Bakiye ${row.balance} / son alış ${row.lastPurchase}`,
+      detail: `Bakiye ${row.balance} / kur ${row.rate} / son alış ${row.lastPurchase}`,
     })),
     ...warningRows.map((row) => ({
       section: 'Kritik Uyarı',
@@ -378,7 +383,7 @@ export function ManagementReportsScreen() {
 
   function exportManagementReport() {
     exportRowsToExcel({
-      filename: `yonetim-raporu-${periodFilters.dateFrom}-${periodFilters.dateTo}`,
+      filename: `yonetim-raporu-${periodicReport.dateFrom}-${periodicReport.dateTo}`,
       title: 'Yönetim Raporu',
       rows: reportExportRows,
       columns: reportExportColumns,
@@ -388,7 +393,7 @@ export function ManagementReportsScreen() {
   function printManagementReport() {
     printRowsReport({
       title: 'Melisa ERP - Yönetim Raporu',
-      subtitle: `${periodFilters.dateFrom} - ${periodFilters.dateTo} / ${reportExportRows.length} satır`,
+      subtitle: `${periodicReport.dateFrom} - ${periodicReport.dateTo} / ${reportExportRows.length} satır`,
       rows: reportExportRows,
       columns: reportExportColumns,
     });
@@ -405,8 +410,8 @@ export function ManagementReportsScreen() {
           <details className="report-export-menu">
             <summary aria-label="Rapor çıktı seçenekleri" title="Rapor çıktı seçenekleri">...</summary>
             <div>
-          <button type="button" onClick={exportManagementReport}>Excel</button>
-          <button type="button" onClick={printManagementReport}>Yazdır</button>
+          <button type="button" disabled={isLoading || Boolean(errorMessage)} onClick={exportManagementReport}>Excel</button>
+          <button type="button" disabled={isLoading || Boolean(errorMessage)} onClick={printManagementReport}>Yazdır</button>
             </div>
           </details>
           <button type="button" className="primary" onClick={() => loadReport(periodFilters)}>Yenile</button>
@@ -416,6 +421,15 @@ export function ManagementReportsScreen() {
       {isLoading && <div className="list-state">Yönetim raporları API'den okunuyor...</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
+      {report.conversion && <div className="list-state report-currency-note" role="status">
+        Kaynak: Melisa ERP · Güncel bakiye değerleme tarihi: {report.conversion.asOfDate}.
+        {report.conversion.status === 'MISSING_RATES' && <> Eksik/geçersiz kur: {report.conversion.missingCurrencies?.join(', ')}. Etkilenen toplam ve yüksek bakiye değerlendirmesi hesaplanamadı.</>}
+        <details><summary>Bakiye dövizleri ve kullanılan kurlar</summary>
+          {(report.conversion.balancesByCurrency || []).map((row, index) => <div key={index}>
+            {row.party === 'customer' ? 'Müşteri' : 'Tedarikçi'} ({row.currency}): {formatMoney(row.balance, row.currency)} → {formatMoney(row.balanceTry)} · Kur: {row.rateToTry ?? (row.balance === 0 ? 'Gerekmiyor' : 'Eksik')} / {row.currency === 'TRY' ? 'TRY' : formatDate(row.rateDate)}
+          </div>)}
+        </details>
+      </div>}
       <details className="erp-panel report-boundary-details">
         <summary>
           <span>
@@ -436,6 +450,9 @@ export function ManagementReportsScreen() {
         ))}
       </section>
 
+      {Boolean(periodicReport.financeConversion?.missingSnapshotCurrencies?.length) && <div className="list-state" role="status">
+        Dönem tahsilat/ödemelerinde işlem anı kur kaydı yok: {periodicReport.financeConversion.missingSnapshotCurrencies.join(', ')}. Tarihsel TRY toplamı hesaplanamadı; orijinal tutarlar korundu.
+      </div>}
       <section className="erp-panel periodic-report-panel">
         <div className="panel-title">
           <strong>Dönemsel Muhasebe Raporları</strong>
@@ -460,6 +477,9 @@ export function ManagementReportsScreen() {
         ))}
       </section>
 
+      <TablePanel title="Dönem Tahsilat / Ödeme Dövizleri" subtitle="Tüm dönem; farklı dövizler birbirine eklenmez"
+        columns={[{ key: 'currency', label: 'Döviz' }, { key: 'collections', label: 'Tahsilat' }, { key: 'payments', label: 'Ödeme' }]}
+        rows={(periodicReport.financeCurrencySummary || []).map(row => ({ currency: row.currency, collections: formatMoney(row.collections, row.currency), payments: formatMoney(row.payments, row.currency) }))} />
       <section className="dashboard-main-grid report-detail-grid">
         <NotesPanel title="Dönem Varsayımları" notes={periodicReport.assumptions} />
         <NotesPanel title="Dönem Veri Kalitesi" notes={periodicReport.dataQuality?.reviewRequired} />
@@ -543,10 +563,12 @@ export function ManagementReportsScreen() {
           columns={[
             { key: 'customer', label: 'Cari' },
             { key: 'sales', label: 'Toplam satış', align: 'right' },
-            { key: 'balance', label: 'Bakiye', align: 'right' },
+            { key: 'balance', label: 'Bakiye / TRY', align: 'right' },
+            { key: 'rate', label: 'Kur / Tarih' },
             { key: 'lastSale', label: 'Son satış' },
           ]}
           rows={customerRows}
+          className="report-party-analysis"
           subtitle="Kesinleşen satış ve kart bakiyesi"
           title="Müşteri Analizi"
         />
@@ -554,10 +576,12 @@ export function ManagementReportsScreen() {
           columns={[
             { key: 'supplier', label: 'Tedarikçi' },
             { key: 'purchases', label: 'Toplam alış', align: 'right' },
-            { key: 'balance', label: 'Bakiye', align: 'right' },
+            { key: 'balance', label: 'Bakiye / TRY', align: 'right' },
+            { key: 'rate', label: 'Kur / Tarih' },
             { key: 'lastPurchase', label: 'Son alış' },
           ]}
           rows={supplierRows}
+          className="report-party-analysis"
           subtitle="Kesinleşen alış ve tedarikçi bakiyesi"
           title="Tedarikçi Analizi"
         />
