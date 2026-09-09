@@ -1,4 +1,6 @@
-﻿function safeFilePart(value) {
+import { utils as spreadsheetUtils, write as writeSpreadsheet } from 'xlsx';
+
+function safeFilePart(value) {
   return String(value || 'rapor')
     .toLowerCase()
     .replace(/[^a-z0-9-_]+/gi, '-')
@@ -19,7 +21,8 @@ function downloadBlob(blob, filename) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Allow the browser download to acquire the object before releasing it.
+  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function printHtmlDocument(html, title = 'Melisa ERP') {
@@ -41,9 +44,9 @@ function printHtmlDocument(html, title = 'Melisa ERP') {
       return;
     }
 
+    printWindow.addEventListener('afterprint', () => iframe.remove(), { once: true });
     printWindow.focus();
     printWindow.print();
-    window.setTimeout(() => iframe.remove(), 1000);
   };
 
   iframe.srcdoc = html;
@@ -102,35 +105,27 @@ function columnValue(column, row) {
   return typeof column.value === 'function' ? column.value(row) : row[column.key];
 }
 
-export function exportRowsToExcel({ filename, title = 'Melisa ERP Raporu', columns, rows }) {
-  const tableRows = rows.map((row) => `
-    <tr>
-      ${columns.map((column) => `<td>${htmlEscape(columnValue(column, row))}</td>`).join('')}
-    </tr>
-  `).join('');
-  const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
-          caption { text-align: left; font-size: 16px; font-weight: 800; padding: 8px 0; }
-          th { background: #f2f4f7; color: #101828; border: 1px solid #98a2b3; padding: 6px; }
-          td { border: 1px solid #d0d5dd; padding: 6px; mso-number-format: "\\@"; }
-        </style>
-      </head>
-      <body>
-        <table>
-          <caption>${htmlEscape(title)}</caption>
-          <thead>
-            <tr>${columns.map((column) => `<th>${htmlEscape(column.label)}</th>`).join('')}</tr>
-          </thead>
-          <tbody>${tableRows || `<tr><td colspan="${columns.length}">Kayıt yok.</td></tr>`}</tbody>
-        </table>
-      </body>
-    </html>`;
+export function createRowsWorkbook({ title = 'Melisa ERP Raporu', columns, rows }) {
+  const values = [columns.map(column => column.label), ...rows.map(row => columns.map(column => {
+    const value = columnValue(column, row);
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value === 'string' || typeof value === 'boolean' || value instanceof Date) return value;
+    return String(value);
+  }))];
+  const sheet = spreadsheetUtils.aoa_to_sheet(values, { cellDates: true });
+  sheet['!cols'] = columns.map(column => ({ wch: Math.max(16, Math.min(45, String(column.label).length + 4)) }));
+  if (columns.length) sheet['!autofilter'] = { ref: spreadsheetUtils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: columns.length - 1 } }) };
+  const workbook = spreadsheetUtils.book_new();
+  workbook.Props = { Title: title, Author: 'Melisa ERP' };
+  spreadsheetUtils.book_append_sheet(workbook, sheet, 'Rapor');
+  return workbook;
+}
 
-  downloadBlob(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' }), `${safeFilePart(filename)}.xls`);
+export function exportRowsToExcel(options) {
+  const workbook = createRowsWorkbook(options);
+  const bytes = writeSpreadsheet(workbook, { type: 'array', bookType: 'xlsx', compression: true });
+  downloadBlob(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${safeFilePart(options.filename)}.xlsx`);
 }
 
 export function printRowsReport({ title = 'Melisa ERP Raporu', subtitle = '', columns, rows }) {
@@ -168,7 +163,7 @@ export function printRowsReport({ title = 'Melisa ERP Raporu', subtitle = '', co
           </div>
           <div class="title">
             <strong>${htmlEscape(title)}</strong>
-            <span>${htmlEscape(subtitle || new Date().toLocaleString('tr-TR'))}</span>
+            <span>${htmlEscape(subtitle || new Date().toLocaleString('tr-TR'))} · ${rows.length} satır</span>
           </div>
         </section>
         <table>
@@ -181,13 +176,7 @@ export function printRowsReport({ title = 'Melisa ERP Raporu', subtitle = '', co
             `).join('') : `<tr><td colspan="${columns.length}">Kayıt yok.</td></tr>`}
           </tbody>
         </table>
-        <section class="footer">Satır sayısı: ${rows.length}</section>
-        <script>
-          window.onload = function () {
-            window.focus();
-            window.print();
-          };
-        </script>
+
       </body>
     </html>`;
 
@@ -405,12 +394,6 @@ export function printBusinessDocument({
           <div class="signature">Onay / Teslim Alan</div>
         </section>
         <section class="print-note">Melisa ERP belge çıktısı / ${new Date().toLocaleString('tr-TR')}</section>
-        <script>
-          window.onload = function () {
-            window.focus();
-            window.print();
-          };
-        </script>
       </body>
     </html>`;
 
@@ -502,12 +485,6 @@ export function printFinanceReceipt(receipt = {}) {
             Bu belge Melisa ERP finans hareketlerinden üretilmiştir. Eski kayıtlarda ödeme şekli DB'de saklanmadığında '-' görünebilir.
           </section>
         </main>
-        <script>
-          window.onload = function () {
-            window.focus();
-            window.print();
-          };
-        </script>
       </body>
     </html>`;
 
@@ -666,12 +643,6 @@ export function printLedgerStatement({
           <div class="signature">Hazırlayan</div>
           <div class="signature">Onaylayan</div>
         </section>
-        <script>
-          window.onload = function () {
-            window.focus();
-            window.print();
-          };
-        </script>
       </body>
     </html>`;
 

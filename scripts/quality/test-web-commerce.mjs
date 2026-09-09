@@ -16,6 +16,7 @@ const checks = [
   ['--test', 'scripts/quality/api-error-response.test.mjs'],
   ['--test', 'scripts/quality/invoice-status-render.test.mjs'],
   ['--test', 'scripts/quality/daily-navigation.test.mjs'],
+  ['--test', 'scripts/quality/report-output.test.mjs'],
 ];
 let failed = false;
 for (const args of checks) {
