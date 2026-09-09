@@ -18,6 +18,7 @@ const checks = [
   ['--test', 'scripts/quality/daily-navigation.test.mjs'],
   ['--test', 'scripts/quality/report-output.test.mjs'],
   ['--test', 'scripts/quality/report-export-pages.test.mjs'],
+  ['--test', 'scripts/quality/catalog-pdf.test.mjs'],
 ];
 let failed = false;
 for (const args of checks) {

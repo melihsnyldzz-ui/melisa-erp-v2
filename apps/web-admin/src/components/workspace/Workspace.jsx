@@ -4,7 +4,7 @@ import { invoiceListScope } from '../../modules/shared/invoiceListScope.js';
 import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
 import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { UnauthorizedScreen } from '../auth/UnauthorizedScreen.jsx';
-import { CatalogListScreen } from '../../modules/catalog/CatalogListScreen.jsx';
+import { CatalogPdfScreen } from '../../modules/catalog/CatalogPdfScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
 import { CustomerMovementsScreen } from '../../modules/customer/CustomerMovementsScreen.jsx';
@@ -407,7 +407,7 @@ const workspaceRouteRegistry = {
   'catalog-list': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Katalog görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CatalogListScreen onOpenScreen={onOpenScreen} />,
+    render: () => <CatalogPdfScreen />,
   },
   'whatsapp-planner': {
     permissionKeys: ['customer.view'],
