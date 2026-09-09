@@ -27,4 +27,6 @@ Tam UI adımları, beklenen rakamlar ve açık işler: `docs/erp-v2/commerce-web
 
 ## Fiş numarası ve eşzamanlı kayıt
 
+`accept-invoice-scope.mjs` mevcut laboratuvarda yalnız okuma yapar: satış/alış listesi kesin ürün/cari kimlik filtrelerini bağımsız SQL sorgusuyla karşılaştırır ve ticari durumun değişmediğini kontrol eder. Ortamda SQL_READ_ONLY=true kullanır; ayrı sunucu/sentinel/ağ kontrolleri zorunludur. Genel runner'a dahil değildir. Ayrıntı: `docs/erp-v2/invoice-list-scope-20260909.md`.
+
 `accept-invoice-indexes.mjs` yalnız laboratuvarda 0019 snapshot indekslerini iki kez uygulayıp satırların korunmasını doğrular. `accept-document-numbers.mjs` gerçek servislerle her çalışmada 10 yapay taslak oluşturur; eşzamanlı numara ayrımı, boş/elle numara düzenleme, transaction rollback ve stok/bakiye değişmemesini kontrol eder. Genel test runner'ına dahil değildir. Ayrıntılar: `docs/erp-v2/document-number-acceptance-20260908.md`. Güncel yeni-lab bootstrap kapsamı 0001–0014, 0018 ve 0019'dur; mevcut laboratuvarda bootstrap yeniden çalıştırılmaz.
