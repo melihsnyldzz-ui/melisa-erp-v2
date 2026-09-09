@@ -2,6 +2,7 @@ import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { assertAccountingPeriodOpen } from './periodLockService.js';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 
@@ -491,6 +492,7 @@ export async function openCashSession(payload, actor) {
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
   try {
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), businessDate, 'Kasa açılışı');
     const accounts = await getDrawerAccounts(new sqlDriver.Request(transaction), drawerId);
     if (CURRENCIES.some((currency) => !accounts.has(currency))) {
       throw makeServiceError('CASH_REGISTER_DRAWER_ACCOUNTS_MISSING', 'Drawer must have TRY, USD and EUR accounts', 409);
@@ -615,6 +617,7 @@ export async function createCashExpense(payload, actor) {
     const row = session.recordset?.[0];
     if (!row) throw makeServiceError('CASH_REGISTER_OPEN_SESSION_REQUIRED', 'Open cash session is required', 409);
 
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), row.business_date, 'Kasa masrafı');
     const expenseInsert = await new sqlDriver.Request(transaction)
       .input('insertExpenseSessionId', sqlDriver.BigInt, sessionId)
       .input('insertExpenseCategoryId', sqlDriver.BigInt, categoryId)
@@ -692,6 +695,7 @@ export async function createCashTransfer(payload, actor) {
       `);
     const row = session.recordset?.[0];
     if (!row) throw makeServiceError('CASH_REGISTER_OPEN_SESSION_REQUIRED', 'Open cash session is required', 409);
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), row.business_date, 'Kasa transferi');
     const transferId = await createTransfer(transaction, sqlDriver, {
       sessionId,
       drawerAccountId: Number(row.finance_account_id),
@@ -747,6 +751,7 @@ export async function closeCashSession(payload, actor) {
       `);
     const session = sessionResult.recordset?.[0];
     if (!session) throw makeServiceError('CASH_REGISTER_OPEN_SESSION_REQUIRED', 'Open cash session is required', 409);
+    await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), session.business_date, 'Kasa kapanışı');
     const accounts = await getDrawerAccounts(new sqlDriver.Request(transaction), Number(session.drawer_id));
     const expectedAmounts = await getSessionExpectedAmounts(new sqlDriver.Request(transaction), sessionId);
     const differences = entries.map((entry) => ({

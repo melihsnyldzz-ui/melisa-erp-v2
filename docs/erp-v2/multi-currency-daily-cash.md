@@ -32,6 +32,7 @@ The Daily Cash screen controls the physical drawer separately for TRY, USD and E
 - `cash_sessions` and `cash_session_counts` own daily physical counts.
 - `cash_expenses`, `cash_transfers` and `cash_adjustments` own operational source records.
 - Every write is protected by the existing SQL write guard, permission middleware and audit log.
+- Opening, expenses, transfers and closing also check the accounting period lock inside the write transaction, using the session business date.
 
 ## Installation
 

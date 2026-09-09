@@ -334,13 +334,15 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
               const difference = row.difference;
               return (
                 <article key={currency}>
-                  <header><strong>{currency}</strong><span>{formatMoney(row.expected, currency)}</span></header>
+                  <header><strong>{currency} · {isClosed ? 'Devreden' : 'Beklenen'}</strong><span>{formatMoney(isClosed ? row.carryForward : row.expected, currency)}</span></header>
                   <dl>
                     <div><dt>Açılış</dt><dd>{formatMoney(row.physicalOpening, currency)}</dd></div>
                     <div className="in"><dt>Giriş</dt><dd>+{formatMoney(row.incoming, currency)}</dd></div>
                     <div className="out"><dt>Çıkış</dt><dd>-{formatMoney(row.outgoing, currency)}</dd></div>
+                    {isClosed && <div><dt>Kapanışta beklenen</dt><dd>{formatMoney(row.expected, currency)}</dd></div>}
                     <div><dt>Fiziki</dt><dd>{row.physicalClosing === null || row.physicalClosing === undefined ? '-' : formatMoney(row.physicalClosing, currency)}</dd></div>
                     <div className={difference === 0 ? 'balanced' : 'difference'}><dt>Fark</dt><dd>{difference === null || difference === undefined ? '-' : formatMoney(difference, currency)}</dd></div>
+                    {isClosed && <div><dt>Ana kasaya teslim</dt><dd>{formatMoney(row.transferredToMain, currency)}</dd></div>}
                   </dl>
                 </article>
               );
