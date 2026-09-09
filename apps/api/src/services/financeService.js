@@ -167,6 +167,28 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
   const currency = payload.currency;
 
   if (Number.isInteger(accountId) && accountId > 0) {
+    // Lock the session before the account, matching cash closing's lock order.
+    // An explicit account must not bypass the physical drawer lifecycle.
+    const drawerResult = await new sqlDriver.Request(transaction)
+      .input('explicitDrawerAccountId', sqlDriver.BigInt, accountId)
+      .query(`
+        IF OBJECT_ID(N'dbo.cash_sessions', N'U') IS NOT NULL
+           AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
+        BEGIN
+          SELECT cda.drawer_id, cs.id AS session_id
+          FROM dbo.cash_drawer_accounts cda
+          LEFT JOIN dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
+            ON cs.drawer_id = cda.drawer_id AND cs.session_status = N'open'
+          WHERE cda.finance_account_id = @explicitDrawerAccountId;
+        END;
+      `);
+    const drawer = drawerResult.recordset?.[0];
+    if (drawer && accountType !== 'cash') {
+      throw makeServiceError('FINANCE_DRAWER_CASH_METHOD_REQUIRED', 'Only cash payments can use a physical drawer');
+    }
+    if (drawer && !drawer.session_id) {
+      throw makeServiceError('CASH_REGISTER_OPEN_SESSION_REQUIRED', 'Open cash session is required', 409);
+    }
     const result = await new sqlDriver.Request(transaction)
       .input('financeAccountId', sqlDriver.BigInt, accountId)
       .query(`
@@ -195,7 +217,7 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
            AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
         BEGIN
           SELECT TOP (1) fa.*
-          FROM dbo.cash_sessions cs
+          FROM dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
           INNER JOIN dbo.cash_drawer_accounts cda
             ON cda.drawer_id = cs.drawer_id
            AND cda.currency_code = @openDrawerAccountCurrency

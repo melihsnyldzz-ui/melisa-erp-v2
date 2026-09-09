@@ -493,21 +493,21 @@ export async function openCashSession(payload, actor) {
   await transaction.begin();
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), businessDate, 'Kasa açılışı');
-    const accounts = await getDrawerAccounts(new sqlDriver.Request(transaction), drawerId);
-    if (CURRENCIES.some((currency) => !accounts.has(currency))) {
-      throw makeServiceError('CASH_REGISTER_DRAWER_ACCOUNTS_MISSING', 'Drawer must have TRY, USD and EUR accounts', 409);
-    }
     const existing = await new sqlDriver.Request(transaction)
       .input('openDrawerId', sqlDriver.BigInt, drawerId)
       .input('openBusinessDate', sqlDriver.Date, businessDate)
       .query(`
         SELECT TOP (1) id, drawer_id, business_date, session_status
-        FROM dbo.cash_sessions
+        FROM dbo.cash_sessions WITH (UPDLOCK, HOLDLOCK)
         WHERE (drawer_id = @openDrawerId AND business_date = @openBusinessDate)
            OR session_status = N'open';
       `);
     if (existing.recordset?.[0]) {
       throw makeServiceError('CASH_REGISTER_SESSION_EXISTS', 'Another cash session is already open or this date was previously used', 409);
+    }
+    const accounts = await getDrawerAccounts(new sqlDriver.Request(transaction), drawerId);
+    if (CURRENCIES.some((currency) => !accounts.has(currency))) {
+      throw makeServiceError('CASH_REGISTER_DRAWER_ACCOUNTS_MISSING', 'Drawer must have TRY, USD and EUR accounts', 409);
     }
     const sessionInsert = await new sqlDriver.Request(transaction)
       .input('sessionDrawerId', sqlDriver.BigInt, drawerId)
