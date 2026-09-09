@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchStockValuation } from '../../services/movementApi.js';
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import '../../styles/stock-valuation.css';
 
 function formatNumber(value) {
   return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 2 }).format(Number(value || 0));
 }
 
 function formatMoney(value, currency = 'TRY') {
+  if (value === null || value === undefined) return 'Hesaplanamadı';
+  if (currency === 'UNKNOWN') return `${formatNumber(value)} (para birimi bilinmiyor)`;
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -15,6 +18,7 @@ function formatMoney(value, currency = 'TRY') {
 }
 
 function formatPercent(value) {
+  if (value === null || value === undefined) return 'Hesaplanamadı';
   return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 1 }).format(Number(value || 0) * 100)}%`;
 }
 
@@ -30,6 +34,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 
 export function StockValuationScreen({ onOpenScreen }) {
   const [filters, setFilters] = useState({ search: '', lowStockOnly: false, valuedOnly: false });
+  const [page, setPage] = useState(1);
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState(/** @type {import('../../services/reportContracts').StockValuationSummary} */ ({}));
   const [meta, setMeta] = useState(null);
@@ -37,12 +42,12 @@ export function StockValuationScreen({ onOpenScreen }) {
   const [errorMessage, setErrorMessage] = useState('');
 
   const query = useMemo(() => ({
-    page: 1,
+    page,
     limit: 100,
     search: filters.search,
     lowStockOnly: filters.lowStockOnly,
     valuedOnly: filters.valuedOnly,
-  }), [filters]);
+  }), [filters, page]);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,10 +85,12 @@ export function StockValuationScreen({ onOpenScreen }) {
   }, [query]);
 
   function updateFilter(key, value) {
+    setPage(1);
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
   function resetFilters() {
+    setPage(1);
     setFilters({ search: '', lowStockOnly: false, valuedOnly: false });
   }
 
@@ -102,14 +109,16 @@ export function StockValuationScreen({ onOpenScreen }) {
       { label: 'Ortalama Maliyet TRY', key: 'averageCostTry' },
       { label: 'Stok Değeri TRY', key: 'stockValueTry' },
       { label: 'Satış Fiyatı', key: 'salePrice' },
-      { label: 'Potansiyel Satış TRY', key: 'potentialSaleValueTry' },
-      { label: 'Potansiyel Kar TRY', key: 'potentialGrossProfitTry' },
-      { label: 'Kar Oranı', key: 'profitMargin' },
+      { label: 'Potansiyel Satış TRY', value: (row) => row.potentialSaleValueTry ?? 'Hesaplanamadı' },
+      { label: 'Potansiyel Kar TRY', value: (row) => row.potentialGrossProfitTry ?? 'Hesaplanamadı' },
+      { label: 'Kar Oranı', value: (row) => row.profitMargin ?? 'Hesaplanamadı' },
+      { label: 'Kur', value: (row) => row.saleRateToTry ?? 'Eksik/geçersiz' },
+      { label: 'Kur Tarihi', key: 'saleRateDate' },
       { label: 'Düşük Stok', value: (row) => (row.lowStock ? 'Evet' : 'Hayır') },
     ];
     exportRowsToExcel({
       filename: 'stok-degerleme',
-      title: 'Stok Değerleme',
+      title: `Stok Değerleme — Sayfa ${page} / ${meta?.totalPages || 1}`,
       rows,
       columns,
     });
@@ -118,7 +127,7 @@ export function StockValuationScreen({ onOpenScreen }) {
   function printRows() {
     printRowsReport({
       title: 'Melisa ERP - Stok Değerleme',
-      subtitle: `${meta?.total ?? rows.length} ürün / toplam stok değeri ${formatMoney(summary.totalStockValueTry, 'TRY')}`,
+      subtitle: `Sayfa ${page} / ${meta?.totalPages || 1}; bu sayfada ${rows.length} ürün. Tüm filtre sonucu: ${meta?.total ?? rows.length} ürün / kayıtlı stok değeri ${formatMoney(summary.totalStockValueTry, 'TRY')}`,
       rows,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
@@ -129,34 +138,47 @@ export function StockValuationScreen({ onOpenScreen }) {
         { label: 'Ort. Maliyet TRY', key: 'averageCostTry' },
         { label: 'Stok Değeri TRY', key: 'stockValueTry' },
         { label: 'Satış Fiyatı', key: 'salePrice' },
-        { label: 'Pot. Kar TRY', key: 'potentialGrossProfitTry' },
+        { label: 'Pot. Kar TRY', value: (row) => row.potentialGrossProfitTry ?? 'Hesaplanamadı' },
+        { label: 'Kur', value: (row) => row.saleRateToTry ?? 'Eksik/geçersiz' },
         { label: 'Düşük Stok', value: (row) => (row.lowStock ? 'Evet' : 'Hayır') },
       ],
     });
   }
 
   return (
-    <main className="work-area dashboard-screen">
+    <main className="work-area dashboard-screen stock-valuation-screen">
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Stok Değerleme</strong>
-          <span>Ortalama maliyet, stok değeri, potansiyel satış ve brüt kâr</span>
+          <span>Melisa kayıtları · kayıtlı ortalama maliyet ve güncel satış fiyatıyla tahmini değer</span>
         </div>
         <div className="dashboard-toolbar-actions">
-          <button type="button" onClick={exportRows}>Excel</button>
-          <button type="button" onClick={printRows}>Yazdır</button>
+          <button type="button" onClick={exportRows} disabled={isLoading || !!errorMessage || !rows.length}>Bu sayfa Excel</button>
+          <button type="button" onClick={printRows} disabled={isLoading || !!errorMessage || !rows.length}>Bu sayfayı yazdır</button>
           <button type="button" onClick={resetFilters}>Temizle</button>
         </div>
       </section>
 
       <section className="dashboard-kpi-grid">
-        <Kpi label="Toplam stok değeri" value={formatMoney(summary.totalStockValueTry, 'TRY')} detail="averageCostTry bazlı" tone="good" />
+        <Kpi label="Toplam stok değeri" value={formatMoney(summary.totalStockValueTry, 'TRY')} detail="Kayıtlı ortalama maliyet bazlı; tüm filtre sonucu" tone="good" />
         <Kpi label="Potansiyel satış" value={formatMoney(summary.totalPotentialSaleValueTry, 'TRY')} detail="satış fiyatı bazlı" tone="info" />
         <Kpi label="Potansiyel brüt kâr" value={formatMoney(summary.totalPotentialGrossProfitTry, 'TRY')} detail="satış - maliyet" tone="good" />
         <Kpi label="Toplam adet" value={formatNumber(summary.totalStockQuantity)} detail={`${summary.totalProductCount || 0} ürün`} tone="info" />
         <Kpi label="Düşük stok" value={formatNumber(summary.lowStockCount)} detail="5 adet ve altı" tone="warn" />
         <Kpi label="Eksi stok" value={formatNumber(summary.negativeStockCount)} detail="kontrol gerektirir" tone="danger" />
       </section>
+
+      {!isLoading && !errorMessage && summary.conversion && (
+        <section className="erp-panel stock-valuation-conversion">
+          {summary.conversion.status === 'MISSING_RATES' && (
+            <div role="alert" className="list-state list-state-error">
+              {summary.conversion.missingCurrencies.join(', ')} kuru eksik veya geçersiz.
+              {' '}{summary.conversion.missingRateProductCount} ürünün satış değeri ve kârı hesaplanamadı; genel satış/kâr toplamı gösterilemiyor.
+            </div>
+          )}
+          <div className="list-state">Kaynak: Melisa ürün kayıtları. Rapor tarihi: {summary.conversion.asOfDate}. Bu tarihe kadar kaydedilmiş son kur kullanılır; kayıtlı TRY maliyeti yeniden çevrilmez.</div>
+        </section>
+      )}
 
       <section className="erp-panel">
         <div className="panel-title">
@@ -194,7 +216,9 @@ export function StockValuationScreen({ onOpenScreen }) {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Ürün Bazlı Değerleme</strong>
-          <span>Satıra tıklayınca ürün kartı açılır</span>
+          <strong>Sayfa {page} / {meta?.totalPages || 1}</strong>
+          <button type="button" disabled={isLoading || page <= 1} onClick={() => setPage(current => current - 1)}>Önceki sayfa</button>
+          <button type="button" disabled={isLoading || !meta?.hasNextPage} onClick={() => setPage(current => current + 1)}>Sonraki sayfa</button>
         </div>
         {isLoading && <div className="list-state">Stok değerleme yükleniyor...</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
@@ -212,6 +236,7 @@ export function StockValuationScreen({ onOpenScreen }) {
                   <th>Ort. Maliyet TRY</th>
                   <th>Stok Değeri</th>
                   <th>Satış Fiyatı</th>
+                  <th>Kur / tarih</th>
                   <th>Pot. Kâr</th>
                   <th>Kâr %</th>
                 </tr>
@@ -227,7 +252,8 @@ export function StockValuationScreen({ onOpenScreen }) {
                     <td>{formatMoney(row.averageCostTry, 'TRY')}</td>
                     <td>{formatMoney(row.stockValueTry, 'TRY')}</td>
                     <td>{formatMoney(row.salePrice, row.currency || 'TRY')}</td>
-                    <td className={row.potentialGrossProfitTry >= 0 ? 'ledger-debit' : 'ledger-credit'}>{formatMoney(row.potentialGrossProfitTry, 'TRY')}</td>
+                    <td>{row.saleRateToTry === null ? 'Eksik/geçersiz' : formatNumber(row.saleRateToTry)}{row.saleRateDate ? ` / ${row.saleRateDate}` : ''}</td>
+                    <td className={row.potentialGrossProfitTry === null ? '' : row.potentialGrossProfitTry >= 0 ? 'ledger-debit' : 'ledger-credit'}>{formatMoney(row.potentialGrossProfitTry, 'TRY')}</td>
                     <td>{formatPercent(row.profitMargin)}</td>
                   </tr>
                 ))}
