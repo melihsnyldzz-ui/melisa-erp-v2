@@ -62,6 +62,11 @@ export function expandPermissions(permissionRows = []) {
     const canUpdate = Boolean(row.can_update);
     const canApprove = Boolean(row.can_approve);
 
+    // Stock adjustment is an explicit critical grant, never inferred from product editing or role defaults.
+    if (key === 'stock.adjust') {
+      addWhen(expanded, canUpdate || canApprove, key);
+      return;
+    }
     expanded.add(key);
 
     if (key === 'sales.draft.write') {

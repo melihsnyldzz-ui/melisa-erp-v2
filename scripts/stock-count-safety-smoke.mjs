@@ -73,11 +73,12 @@ const checks = [
   ['apply gate rejects a missing reason', !canApplyStockCount({ ...enabledInput, note: '' })],
   ['apply gate rejects an unconfirmed count', !canApplyStockCount({ ...enabledInput, isCountConfirmed: false })],
   ['apply gate stays closed while a request is running', !canApplyStockCount({ ...enabledInput, isApplying: true })],
-  ['workspace requires product view and edit together', routeBlock.includes("permissionKeys: ['product.view', 'product.edit']") && routeBlock.includes("permissionMode: 'all'")],
+  ['workspace requires product view and explicit stock adjustment together', routeBlock.includes("permissionKeys: ['product.view', 'stock.adjust']") && routeBlock.includes("permissionMode: 'all'")],
   ['workspace permission matrix rejects no permissions', !routeAllows([])],
   ['workspace permission matrix rejects view-only access', !routeAllows(['product.view'])],
   ['workspace permission matrix rejects edit-only access', !routeAllows(['product.edit'])],
-  ['workspace permission matrix accepts view and edit together', routeAllows(['product.view', 'product.edit'])],
+  ['workspace permission matrix rejects product view and edit without stock adjustment', !routeAllows(['product.view', 'product.edit'])],
+  ['workspace permission matrix accepts view and explicit stock adjustment', routeAllows(['product.view', 'stock.adjust'])],
   ['workspace all-mode is fail-closed for every required permission', workspace.includes("route.permissionKeys.every((permissionKey) => permissions.includes(permissionKey))")],
   ['screen keeps a second submit-time quantity guard', stockScreen.includes('if (!isValidCountedQuantity(countedQuantity))')],
   ['screen keeps a second submit-time reason guard', stockScreen.includes('if (!isValidStockCountReason(note))')],
@@ -91,11 +92,12 @@ const checks = [
   ['wide result table is contained by its local horizontal scroller', stockStyles.includes('.stock-count-screen .table-shell') && stockStyles.includes('overflow-x: auto;') && stockStyles.includes('min-width: 760px;')],
   ['stock summaries render as scoped visual cards', stockStyles.includes('.stock-count-screen .summary-card {') && stockStyles.includes('grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));')],
   ['web client keeps the stock adjustment behind an explicit POST helper', movementApi.includes("post('/api/stock-count/adjust', payload)")],
-  ['backend route authenticates and requires the current edit permission', movementRoutes.includes("post('/stock-count/adjust', requireAuth, requirePermission('product.edit'), postStockCountAdjustment)")],
+  ['backend route authenticates and requires product view and stock adjustment', movementRoutes.includes("post('/stock-count/adjust', requireAuth, requirePermission('product.view'), requirePermission('stock.adjust'), postStockCountAdjustment)")],
   ['backend rejects missing reason and stale stock snapshots', serviceBlock.includes('STOCK_COUNT_REASON_REQUIRED') && serviceBlock.includes('STOCK_COUNT_STALE') && serviceBlock.includes('expectedCurrentQuantity') && serviceBlock.includes('409')],
   ['backend locks the product before comparing the reviewed snapshot', inOrder(serviceBlock, ['WITH (UPDLOCK, ROWLOCK)', 'currentQuantity !== expectedCurrentQuantity', 'UPDATE dbo.products'])],
   ['write guard and accounting lock precede stock mutation', inOrder(serviceBlock, ['assertMelisaWriteEnabled()', 'await transaction.begin()', 'assertAccountingPeriodOpen', 'UPDATE dbo.products'])],
   ['stock, movement, audit, and commit stay in one transaction', inOrder(serviceBlock, ['UPDATE dbo.products', 'INSERT INTO dbo.stock_movements', 'writeAuditLog(new sqlDriver.Request(transaction)', 'await transaction.commit()'])],
+  ['count movement uses the stock_count source supported by the schema', serviceBlock.includes("N'stock_count'") && !serviceBlock.includes("N'adjustment'")],
   ['failure path rolls the transaction back', serviceBlock.includes('await transaction.rollback();')],
   ['audit snapshot includes quantity, difference, movement, and reason', inOrder(serviceBlock, ['stockQuantity: countedQuantity', 'difference', 'movementId', 'note'])],
   ['architecture still identifies stock adjustment as a separate critical permission', permissionArchitecture.includes('`stock.adjust`')],
@@ -104,12 +106,6 @@ const checks = [
 const failed = checks.filter(([, passed]) => !passed);
 for (const [name, passed] of checks) {
   console.log(`${passed ? 'PASS' : 'FAIL'} - Stock count safety / ${name}`);
-}
-
-const stockAdjustPermissionGap = permissionArchitecture.includes('`stock.adjust`')
-  && !movementRoutes.includes("requirePermission('stock.adjust')");
-if (stockAdjustPermissionGap) {
-  console.log('RISK - P12-STOCK-ADJUST-PERMISSION: architecture defines stock.adjust, but the live route still uses product.edit; owner permission policy is required before changing it.');
 }
 
 console.log(`SUMMARY: ${checks.length - failed.length}/${checks.length} PASS`);

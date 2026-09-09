@@ -142,9 +142,9 @@ const workspaceRouteRegistry = {
     render: ({ onOpenScreen }) => <StockValuationScreen onOpenScreen={onOpenScreen} />,
   },
   'stock-count': {
-    permissionKeys: ['product.view', 'product.edit'],
+    permissionKeys: ['product.view', 'stock.adjust'],
     permissionMode: 'all',
-    unauthorizedMessage: 'Stok sayımı için ürün görüntüleme ve stok düzenleme yetkileri birlikte gereklidir.',
+    unauthorizedMessage: 'Stok sayımı için ürün görüntüleme ve ayrı stok sayım düzeltme yetkisi gereklidir.',
     render: ({ onDirtyChange, onOpenScreen }) => <StockCountScreen onDirtyChange={onDirtyChange} onOpenScreen={onOpenScreen} />,
   },
   'bulk-product-create': {

@@ -653,6 +653,10 @@ export async function getSupplierStatement(query = {}) {
 }
 
 export async function applyStockCountAdjustment(payload = {}, actor = null) {
+  if (!Array.isArray(actor?.permissions)
+    || !['product.view', 'stock.adjust'].every((permission) => actor.permissions.includes(permission))) {
+    throw makeMovementError('AUTH_PERMISSION_DENIED', 'Stock count requires product.view and stock.adjust', 403);
+  }
   assertMelisaWriteEnabled();
 
   const productId = Number(payload.productId || 0);
@@ -773,7 +777,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
         VALUES (
           @movementProductId,
           @movementType,
-          N'adjustment',
+          N'stock_count',
           NULL,
           @movementQuantityIn,
           @movementQuantityOut,
