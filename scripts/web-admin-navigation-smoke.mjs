@@ -120,7 +120,7 @@ addCheck('sidebar screens belong to a navigation section', unmappedSidebarScreen
 addCheck('sidebar uses contextual module groups', sidebarSource.includes('contextualGroups'));
 addCheck('sidebar has no duplicate favorites block', !sidebarSource.includes('favoriteScreens'));
 addCheck('sidebar visible labels use valid Turkish text', ['Musteri', 'Tedarikci', 'Satis', 'Alis', 'Urun', 'Modul', 'Menude', 'baglanti yok', 'Hazir'].every((fragment) => !sidebarSource.includes(fragment)) && sidebarSource.includes('Modül Paneli') && sidebarSource.includes('Menüde ara'));
-addCheck('navigation security module has no mojibake', navigationSource.includes("module: 'Güvenlik'") && !navigationSource.includes('GÃ'));
+addCheck('navigation security labels use valid Turkish', screenRegistry['auth-overview'].label === 'Yetki ve Denetim' && !navigationSource.includes('GÃ'));
 addCheck('technical screen types have Turkish display labels', screenTypeLabel('fis') === 'fiş'
   && screenTypeLabel('ozet') === 'özet'
   && screenTypeLabel('islem') === 'işlem'

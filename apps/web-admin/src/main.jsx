@@ -29,6 +29,7 @@ import './styles/system-settings-ux.css';
 import './styles/management-reports-ux.css';
 import './styles/stock-count.css';
 import './styles/sales-pipeline-list.css';
+import './styles/commerce-navigation.css';
 import { App } from './App.jsx';
 
 class RootErrorBoundary extends React.Component {
