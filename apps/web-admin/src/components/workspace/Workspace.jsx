@@ -1,5 +1,6 @@
 import React from 'react';
 import { CommercialSourceScreen } from '../../modules/shared/CommercialSourceScreen.jsx';
+import { invoiceListScope } from '../../modules/shared/invoiceListScope.js';
 import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
 import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { UnauthorizedScreen } from '../auth/UnauthorizedScreen.jsx';
@@ -262,11 +263,12 @@ const workspaceRouteRegistry = {
   'sales-invoice-list': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Satış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => (
-      <CommercialSourceScreen key="sales-invoice-list" label="Satış listesi veri kaynağı">
+    render: ({ activeTab, onOpenScreen }) => (
+      <CommercialSourceScreen key={activeTab.id} label="Satış listesi veri kaynağı"
+        scope={invoiceListScope('sales-invoice-list', activeTab.payload)} onOpenGeneral={() => onOpenScreen('sales-invoice-list')}>
         {(source) => source === 'vega'
           ? <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />
-          : <SalesInvoiceListScreen onOpenScreen={onOpenScreen} />}
+          : <SalesInvoiceListScreen productId={activeTab.payload?.productId} customerId={activeTab.payload?.customerId} onOpenScreen={onOpenScreen} />}
       </CommercialSourceScreen>
     ),
   },
@@ -350,11 +352,12 @@ const workspaceRouteRegistry = {
   'purchase-invoice-list': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Alış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => (
-      <CommercialSourceScreen key="purchase-invoice-list" label="Alış listesi veri kaynağı">
+    render: ({ activeTab, onOpenScreen }) => (
+      <CommercialSourceScreen key={activeTab.id} label="Alış listesi veri kaynağı"
+        scope={invoiceListScope('purchase-invoice-list', activeTab.payload)} onOpenGeneral={() => onOpenScreen('purchase-invoice-list')}>
         {(source) => source === 'vega'
           ? <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />
-          : <PurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />}
+          : <PurchaseInvoiceListScreen productId={activeTab.payload?.productId} supplierId={activeTab.payload?.supplierId} onOpenScreen={onOpenScreen} />}
       </CommercialSourceScreen>
     ),
   },

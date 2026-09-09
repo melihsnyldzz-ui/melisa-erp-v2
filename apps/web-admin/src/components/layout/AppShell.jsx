@@ -16,6 +16,7 @@ import {
 } from '../../config/viewOptions.js';
 import { getRoleScreenIds, readStoredRoleView, roleViewStorageKey } from '../../config/roleViews.js';
 import { buildScreenDeepLink, readScreenDeepLink } from '../../utils/screenDeepLink.js';
+import { invoiceListScope } from '../../modules/shared/invoiceListScope.js';
 
 function getShellClassName(isDemoMode, viewOptions) {
   const rowDensity = viewOptions.rowDensity || (viewOptions.compactRows ? 'compact' : 'comfortable');
@@ -99,6 +100,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   );
 
   function createTab(screen, payload = {}) {
+    const invoiceScope = invoiceListScope(screen.id, payload);
     const recordId = payload.productId
       ?? payload.customerId
       ?? payload.sourceId
@@ -127,7 +129,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
 
     return {
       ...screen,
-      id: `${screen.id}:${recordId}`,
+      id: `${screen.id}:${invoiceScope?.key || recordId}`,
       screenId: screen.id,
       label: `${screen.label}: ${recordLabel}`,
       payload,

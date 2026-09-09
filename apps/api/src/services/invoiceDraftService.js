@@ -123,6 +123,17 @@ function normalizeCancelReason(value, code = 'SALES_CANCEL_REASON_REQUIRED') {
   return reason.slice(0, 500);
 }
 
+function invoiceListId(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if ((typeof value !== 'string' && typeof value !== 'number')
+    || (typeof value === 'number' && !Number.isSafeInteger(value))
+    || !/^[1-9]\d{0,18}$/.test(String(value))
+    || BigInt(value) > 9223372036854775807n) {
+    throw makeServiceError('INVOICE_LIST_ID_INVALID', 'Invoice scope ID must be a positive SQL BIGINT');
+  }
+  return String(value);
+}
+
 function parseDraftListQuery(query = {}) {
   const options = parseListQuery(query);
   const status = trimText(query.status || 'DRAFT').toUpperCase();
@@ -154,6 +165,9 @@ function parseDraftListQuery(query = {}) {
 
   return {
     ...options,
+    productId: invoiceListId(query.productId),
+    customerId: invoiceListId(query.customerId),
+    supplierId: invoiceListId(query.supplierId),
     status: status === 'ALL' || status === '' ? 'all' : allowedStatuses.has(status) ? status.toLowerCase() : 'unsupported',
     partySearch,
     dateFrom: dateFrom || null,
@@ -1489,6 +1503,8 @@ export async function getSalesDraftsList(query) {
           search: options.search || null,
           status: 'DRAFT',
           customer: options.partySearch || null,
+        productId: options.productId,
+        customerId: options.customerId,
         },
       }),
     };
@@ -1518,6 +1534,8 @@ export async function getSalesDraftsList(query) {
        )`
     : 'AND @employeeSearch IS NULL AND @terminalSearch IS NULL';
   const request = pool.request()
+    .input('productId', sql.BigInt, options.productId)
+    .input('customerId', sql.BigInt, options.customerId)
     .input('search', sql.NVarChar(160), toSearchPattern(options.search))
     .input('customerSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
@@ -1558,6 +1576,11 @@ export async function getSalesDraftsList(query) {
           OR (@status = N'archived_test' AND COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%')
           OR (@status IS NOT NULL AND @status <> N'archived_test' AND si.status = @status AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
+        AND (@customerId IS NULL OR si.customer_id = @customerId)
+        AND (@productId IS NULL OR EXISTS (
+          SELECT 1 FROM dbo.sales_invoice_items scoped_item
+          WHERE scoped_item.sales_invoice_id = si.id AND scoped_item.product_id = @productId
+        ))
         AND (@dateFrom IS NULL OR si.document_date >= @dateFrom)
         AND (@dateTo IS NULL OR si.document_date <= @dateTo)
         AND (@currency IS NULL OR si.document_currency = @currency)
@@ -1612,6 +1635,8 @@ export async function getSalesDraftsList(query) {
         search: options.search || null,
         status: options.status,
         customer: options.partySearch || null,
+        productId: options.productId,
+        customerId: options.customerId,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
         currency: options.currency,
@@ -2401,6 +2426,8 @@ export async function getPurchaseDraftsList(query) {
           search: options.search || null,
           status: 'DRAFT',
           supplier: options.partySearch || null,
+        productId: options.productId,
+        supplierId: options.supplierId,
         },
       }),
     };
@@ -2408,6 +2435,8 @@ export async function getPurchaseDraftsList(query) {
 
   const pool = await getSqlPool();
   const request = pool.request()
+    .input('productId', sql.BigInt, options.productId)
+    .input('supplierId', sql.BigInt, options.supplierId)
     .input('search', sql.NVarChar(160), toSearchPattern(options.search))
     .input('supplierSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
@@ -2444,6 +2473,11 @@ export async function getPurchaseDraftsList(query) {
           OR (@status = N'archived_test' AND COALESCE(pi.description, N'') LIKE N'%TEST_ARCHIVED%')
           OR (@status IS NOT NULL AND @status <> N'archived_test' AND pi.status = @status AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
+        AND (@supplierId IS NULL OR pi.supplier_id = @supplierId)
+        AND (@productId IS NULL OR EXISTS (
+          SELECT 1 FROM dbo.purchase_invoice_items scoped_item
+          WHERE scoped_item.purchase_invoice_id = pi.id AND scoped_item.product_id = @productId
+        ))
         AND (@dateFrom IS NULL OR pi.document_date >= @dateFrom)
         AND (@dateTo IS NULL OR pi.document_date <= @dateTo)
         AND (@currency IS NULL OR pi.document_currency = @currency)
@@ -2497,6 +2531,8 @@ export async function getPurchaseDraftsList(query) {
         search: options.search || null,
         status: options.status,
         supplier: options.partySearch || null,
+        productId: options.productId,
+        supplierId: options.supplierId,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
         currency: options.currency,

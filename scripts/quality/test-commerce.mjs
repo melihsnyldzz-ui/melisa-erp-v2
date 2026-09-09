@@ -15,6 +15,7 @@ const files = [
 ].map(name => `apps/api/src/services/${name}`);
 files.push('apps/api/src/config/safeTrustedSqlDriver.test.js');
 files.push('scripts/quality/terminal-server-transaction.test.mjs');
+files.push('scripts/quality/invoice-list-scope.test.mjs');
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
   /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|USERPROFILE|LOCALAPPDATA|APPDATA|PROGRAMFILES|PROGRAMFILES\(X86\)|SYSTEMDRIVE)$/i.test(key)));
 env.NODE_ENV = 'test';
