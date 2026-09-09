@@ -176,7 +176,9 @@ export async function ensureCashCustomers(poolArg = null, transactionContext = n
             is_active = 1,
             is_deleted = 0,
             updated_at = SYSUTCDATETIME()
-          WHERE customer_code = @cashCustomerCode;
+          WHERE customer_code = @cashCustomerCode
+            AND (ISNULL(name, N'') <> @cashCustomerName OR ISNULL(currency_code, N'') <> @cashCustomerCurrency
+              OR ISNULL(customer_type, N'') <> N'retail' OR ISNULL(is_active, 0) <> 1 OR ISNULL(is_deleted, 1) <> 0);
         END;
       `);
   }

@@ -1167,6 +1167,48 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
     );
   }
 
+  const beforeDocumentDay = beforeSnapshot.documentDate instanceof Date
+    ? beforeSnapshot.documentDate.toISOString().slice(0, 10)
+    : String(beforeSnapshot.documentDate).slice(0, 10);
+  const cashFinancialChange = isCashCustomerCode(beforeSnapshot.customerCode)
+    && (safeNumber(draft.grandTotal) !== safeNumber(beforeSnapshot.grandTotal)
+      || beforeDocumentDay !== draft.documentDate.slice(0, 10));
+  if (cashFinancialChange) {
+    const collection = await new sqlDriver.Request(transaction)
+      .input('correctionCashInvoiceId', sqlDriver.BigInt, invoiceId)
+      .query(`
+        SELECT fam.account_id, fam.created_at
+        FROM dbo.customer_movements cm
+        INNER JOIN dbo.finance_account_movements fam
+          ON fam.party_movement_id = cm.id AND fam.party_type = N'customer'
+          AND fam.source_type = N'collection'
+        WHERE cm.sales_invoice_id = @correctionCashInvoiceId AND cm.movement_type = N'collection';
+      `);
+    if (collection.recordset?.length !== 1) {
+      throw makeServiceError('SALES_CORRECTION_CASH_COLLECTION_MISSING', 'Peşin fişin tahsilat bağlantısı doğrulanamadı', 409);
+    }
+    const movement = collection.recordset[0];
+    const cashSession = await new sqlDriver.Request(transaction)
+      .input('correctionCashAccountId', sqlDriver.BigInt, movement.account_id)
+      .input('correctionCashCreatedAt', sqlDriver.DateTime2, movement.created_at)
+      .query(`
+        IF OBJECT_ID(N'dbo.cash_sessions', N'U') IS NOT NULL
+           AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
+        BEGIN
+          SELECT cs.session_status
+          FROM dbo.cash_drawer_accounts cda
+          INNER JOIN dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
+            ON cs.drawer_id = cda.drawer_id
+            AND cs.opened_at <= @correctionCashCreatedAt
+            AND (cs.closed_at IS NULL OR cs.closed_at >= @correctionCashCreatedAt)
+          WHERE cda.finance_account_id = @correctionCashAccountId;
+        END;
+      `);
+    if (cashSession.recordset?.some(row => row.session_status === 'closed')) {
+      throw makeServiceError('SALES_CORRECTION_CASH_SESSION_CLOSED', 'Tahsilatı kapanmış kasaya ait fişin tutarı veya tarihi değiştirilemez', 409);
+    }
+  }
+
   await applyFinalizedStockDifference(sqlDriver, transaction, beforeSnapshot.items, draft.items, 'sale');
   await new sqlDriver.Request(transaction)
     .input('salesCorrectionInvoiceId', sql.BigInt, invoiceId)
@@ -1254,7 +1296,7 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
         AND movement_type = N'sales_invoice';
     `);
 
-  if (isCashCustomerCode(beforeSnapshot.customerCode)) {
+  if (cashFinancialChange) {
     await new sqlDriver.Request(transaction)
       .input('cashCorrectionInvoiceId', sql.BigInt, invoiceId)
       .input('cashCorrectionCustomerId', sql.BigInt, draft.customerId)
