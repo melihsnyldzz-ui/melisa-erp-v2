@@ -607,7 +607,7 @@ export async function createCashExpense(payload, actor) {
       .query(`
         SELECT TOP (1)
           cs.id, cs.business_date, cda.finance_account_id, ec.category_name
-        FROM dbo.cash_sessions cs
+        FROM dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
         INNER JOIN dbo.cash_drawer_accounts cda
           ON cda.drawer_id = cs.drawer_id AND cda.currency_code = @expenseCurrency
         INNER JOIN dbo.expense_categories ec
@@ -688,7 +688,7 @@ export async function createCashTransfer(payload, actor) {
       .input('manualTransferCurrency', sqlDriver.NVarChar(3), currency)
       .query(`
         SELECT TOP (1) cs.business_date, cda.finance_account_id
-        FROM dbo.cash_sessions cs
+        FROM dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
         INNER JOIN dbo.cash_drawer_accounts cda
           ON cda.drawer_id = cs.drawer_id AND cda.currency_code = @manualTransferCurrency
         WHERE cs.id = @manualTransferSessionId AND cs.session_status = N'open';
