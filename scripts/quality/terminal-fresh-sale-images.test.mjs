@@ -25,3 +25,19 @@ test('fresh reads are bounded to four simultaneous requests and empty barcode do
  await readFreshSaleImages(ids,async()=>{calls++;active++;peak=Math.max(peak,active);await new Promise(resolve=>setTimeout(resolve,1));active--;return {data:row};},base);
  assert.equal(calls,11);assert.equal(peak,4);
 });
+
+test('slow batch reports photos progressively but excludes expired approvals at completion',async()=>{
+ let time=0;const pending=[],published=[];
+ const rows=Array.from({length:5},(_,i)=>({...row,id:`vega-${i}`,sourceId:i+1,matchedBarcode:String(i)}));
+ const task=readFreshSaleImages(rows.map(saleImageIdentity),()=>new Promise(resolve=>pending.push(resolve)),base,()=>true,
+  {now:()=>time,onImage:(id,uri,expiresAt)=>published.push({id,uri,expiresAt})});
+ assert.equal(pending.length,4);
+ time=1000;pending[0]({data:rows[0]});await Promise.resolve();
+ assert.equal(published.length,1);assert.equal(published[0].expiresAt,30000);assert.equal(pending.length,5);
+ time=30000;
+ for(let i=1;i<5;i++)pending[i]({data:rows[i]});
+ const result=await task;
+ assert.equal(result['vega-0'],undefined);
+ assert.deepEqual(Object.keys(result),['vega-4']);
+ assert.equal(published.length,2);assert.equal(published[1].expiresAt,31000);
+});
