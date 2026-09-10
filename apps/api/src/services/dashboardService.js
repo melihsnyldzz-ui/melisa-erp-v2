@@ -1,4 +1,5 @@
 import sql from 'mssql';
+import { reportPeriod } from './reportPeriod.js';
 import { getSqlPool } from '../config/database.js';
 import { reportBalanceCtes, nullableReportAmount, sumReportAmounts, reportBalanceFields, reportConversion, historicalFinanceSummary } from './reportMoney.js';
 
@@ -131,13 +132,6 @@ function toCriticalWarning(row) {
     currency: row.currency_code || null,
     severity: row.severity,
   };
-}
-
-function normalizeReportDate(value, fallback) {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10))) {
-    return value.slice(0, 10);
-  }
-  return fallback;
 }
 
 function monthStartDate() {
@@ -816,8 +810,7 @@ export async function getManagementReportingData() {
 }
 
 export async function getPeriodicAccountingData(query = {}) {
-  const dateFrom = normalizeReportDate(query.dateFrom, monthStartDate());
-  const dateTo = normalizeReportDate(query.dateTo, todayDate());
+  const { dateFrom, dateTo } = reportPeriod(query, { dateFrom: monthStartDate(), dateTo: todayDate() });
   const pool = await getSqlPool();
   const asOfDate = todayDate();
 
@@ -909,7 +902,7 @@ export async function getPeriodicAccountingData(query = {}) {
             AND document_date >= @periodCashFrom
             AND document_date <= @periodCashTo
         )
-        SELECT TOP (40)
+        SELECT
           document_date,
           currency_code,
           COALESCE(SUM(collection_amount), 0) AS collections,
@@ -981,7 +974,7 @@ export async function getPeriodicAccountingData(query = {}) {
         'Kontrolde görünür tarih filtreleri kullanılmalıdır; filtresiz rapor tam denetim olarak kabul edilmemelidir.',
       ],
       rowLimits: {
-        dailyCash: 40,
+        dailyCash: 'all day/currency groups in selected period',
         customerBalances: 'grouped by currency',
         supplierBalances: 'grouped by currency',
       },
