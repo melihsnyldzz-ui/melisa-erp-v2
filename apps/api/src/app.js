@@ -7,6 +7,7 @@ import { notFoundHandler } from './middleware/notFound.js';
 import { requestContext } from './middleware/requestContext.js';
 import { apiRateLimit, corsOptions, securityHeaders } from './middleware/security.js';
 import { env } from './config/env.js';
+import { createVerifiedProductImageHandler } from './services/productImageIdentity.mjs';
 
 export function createApp() {
   const app = express();
@@ -17,6 +18,7 @@ export function createApp() {
   app.use(requestContext);
   app.use(apiRateLimit());
   app.use(express.json({ limit: env.requestBodyLimit }));
+  app.use('/uploads/verified-products', createVerifiedProductImageHandler());
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   app.use('/api', apiRoutes);

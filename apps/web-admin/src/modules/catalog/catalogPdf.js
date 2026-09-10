@@ -14,7 +14,7 @@ export function catalogImageUrl(value, apiBase) {
     const url = new URL(text(value), apiBase);
     const path = decodeURIComponent(url.pathname);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash
-      || !/^\/uploads\/(vega-products|products)\/[^/\\]+$/u.test(path) || path.includes('..')) return '';
+      || !/^\/uploads\/(vega-products|products|verified-products)\/[^/\\]+$/u.test(path) || path.includes('..')) return '';
     return new URL(url.pathname, apiBase).href;
   } catch { return ''; }
 }
@@ -28,13 +28,15 @@ export function toCatalogProduct(row, apiBase) {
   const currency = text(row.currency).toUpperCase();
   const price = number(row.salePrice ?? row.salesPrice);
   const verifiedImage = row.imageIdentityStatus === 'VERIFIED' && /^[a-f0-9]{64}$/.test(text(row.imageIdentityHash));
+  const imageUrl = catalogImageUrl(row.imageUrl, apiBase);
+  const boundImage = verifiedImage && imageUrl && new URL(imageUrl).pathname.startsWith(`/uploads/verified-products/${row.imageIdentityHash}--`);
   return {
     id: String(sourceId), code: text(row.stockCode), name: text(row.productName),
     brand: text(row.brand), category: text(row.specialCodes?.KOD4 || row.category),
-    image: verifiedImage ? catalogImageUrl(row.imageUrl, apiBase) : '',
+    image: boundImage ? imageUrl : '',
     imageRevision: text(row.imageIdentityHash),
     imageNotice: row.imageIdentityStatus === 'NO_IMAGE' ? 'Görsel bulunmuyor'
-      : verifiedImage ? 'Görsel yüklenemedi' : 'Fotoğraf doğrulanmadı',
+      : boundImage ? 'Görsel yüklenemedi' : 'Fotoğraf doğrulanmadı',
     price: price !== null && price > 0 && /^[A-Z]{3}$/.test(currency) && row.currencyTrustState === 'TRUSTED' && row.currencySource === 'ERP_SALE_UNIT' ? price : null,
     currency: /^[A-Z]{3}$/.test(currency) ? currency : '',
     stock: number(row.stockQuantity),

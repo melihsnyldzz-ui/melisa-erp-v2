@@ -55,7 +55,7 @@ export function createImageIdentityReader({ environment = process.env, readKeyFi
 }
 
 // Fixed local upload root, no arbitrary HTTP/file reads, bounded bytes and symlink containment.
-export async function hashLocalProductImage(reference, uploadRoot = path.join(process.cwd(), 'uploads', 'vega-products')) {
+export async function readLocalProductImage(reference, uploadRoot = path.join(process.cwd(), 'uploads', 'vega-products')) {
   if (typeof reference !== 'string' || !/^\/uploads\/vega-products\/[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp)$/i.test(reference)) throw new Error('IMAGE_PATH_INVALID');
   const root = await realpath(uploadRoot), file = await realpath(path.join(root, path.basename(reference)));
   if (path.dirname(file).toLowerCase() !== root.toLowerCase()) throw new Error('IMAGE_PATH_INVALID');
@@ -68,8 +68,40 @@ export async function hashLocalProductImage(reference, uploadRoot = path.join(pr
       if (!bytesRead) break; size += bytesRead;
     }
     if (!size || size === buffer.length) throw new Error('IMAGE_SIZE_INVALID');
-    return createHash('sha256').update(buffer.subarray(0, size)).digest('hex');
+    const bytes = buffer.subarray(0, size);
+    return { bytes, hash: createHash('sha256').update(bytes).digest('hex') };
   } finally { await handle.close(); }
+}
+
+export async function hashLocalProductImage(reference, uploadRoot = path.join(process.cwd(), 'uploads', 'vega-products')) {
+  return (await readLocalProductImage(reference, uploadRoot)).hash;
+}
+
+export function verifiedProductImageUrl(reference, hash) {
+  if (!/^[a-f0-9]{64}$/.test(hash) || !/^\/uploads\/vega-products\/[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp)$/i.test(reference)) throw new Error('IMAGE_REFERENCE_INVALID');
+  return `/uploads/verified-products/${hash}--${path.basename(reference)}`;
+}
+
+// Respond from exactly the buffer that was hashed: never check then sendFile again.
+export function createVerifiedProductImageHandler({ readImage = readLocalProductImage } = {}) {
+  return async (req, res) => {
+    res.setHeader('cache-control', 'no-store');
+    res.setHeader('x-content-type-options', 'nosniff');
+    if (!['GET', 'HEAD'].includes(req.method)) { res.statusCode = 405; res.end(); return; }
+    const match = req.url.match(/^\/([a-f0-9]{64})--([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp))$/i);
+    if (!match) { res.statusCode = 404; res.end(); return; }
+    try {
+      const { bytes, hash } = await readImage(`/uploads/vega-products/${match[2]}`);
+      if (hash !== match[1]) { res.statusCode = 409; res.end(); return; }
+      const mime = bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 ? 'image/jpeg'
+        : bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ? 'image/png'
+          : bytes.length >= 12 && bytes.toString('ascii',0,4) === 'RIFF' && bytes.toString('ascii',8,12) === 'WEBP' ? 'image/webp' : null;
+      if (!mime) { res.statusCode = 415; res.end(); return; }
+      res.setHeader('content-type', mime);
+      res.setHeader('content-length', bytes.length);
+      res.statusCode = 200; res.end(req.method === 'HEAD' ? undefined : bytes);
+    } catch { res.statusCode = 404; res.end(); }
+  };
 }
 
 const readIdentities = createImageIdentityReader();
@@ -97,7 +129,7 @@ export async function getPresentableProductImages(products, imageMap, {
         }
       }
     }
-    result.set(Number(id), { imageUrl: status === 'VERIFIED' ? imageUrl : null, imageIdentityStatus: status,
+    result.set(Number(id), { imageUrl: status === 'VERIFIED' ? verifiedProductImageUrl(imageUrl, review.imageHash) : null, imageIdentityStatus: status,
       imageIdentityHash: status === 'VERIFIED' ? review.imageHash : null });
   }
   return result;

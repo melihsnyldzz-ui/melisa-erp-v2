@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CATALOG_LAYOUTS, catalogPages, buildCatalogHtml, catalogImageUrl, toCatalogProduct, catalogPrice, refreshCatalogSelection } from '../../apps/web-admin/src/modules/catalog/catalogPdf.js';
-const raw={imageIdentityHash:'a'.repeat(64),imageIdentityStatus:'VERIFIED',sourceId:12,stockCode:'Ş-12',productName:'İğne & Örgü',brand:'Marka',salePrice:12.5,currency:'USD',currencyTrustState:'TRUSTED',currencySource:'ERP_SALE_UNIT',stockQuantity:-2,imageUrl:'http://host.docker.internal:4100/uploads/vega-products/12.jpg',purchasePrice:99,customer:'private'};
+const raw={imageIdentityHash:'a'.repeat(64),imageIdentityStatus:'VERIFIED',sourceId:12,stockCode:'Ş-12',productName:'İğne & Örgü',brand:'Marka',salePrice:12.5,currency:'USD',currencyTrustState:'TRUSTED',currencySource:'ERP_SALE_UNIT',stockQuantity:-2,imageUrl:'http://host.docker.internal:4100/uploads/verified-products/'+ 'a'.repeat(64)+'--12.jpg',purchasePrice:99,customer:'private'};
 const product=toCatalogProduct(raw,'http://127.0.0.1:4100');
 
 test('catalog excludes blocked, unavailable and legacy images even when raw URLs remain',()=>{
@@ -49,7 +49,7 @@ test('refresh rejects missing, duplicate, different, passive and non-live record
 
 test('photo revision changes invalidate equal URLs and missing proof never displays a photo',()=>{
   const changed=toCatalogProduct({...raw,imageIdentityHash:'b'.repeat(64)},'http://127.0.0.1:4100');
-  assert.equal(changed.image,product.image);assert.notEqual(JSON.stringify(changed),JSON.stringify(product));
+  assert.equal(changed.image,'');assert.notEqual(JSON.stringify(changed),JSON.stringify(product));
   const missing=toCatalogProduct({...raw,imageIdentityHash:undefined},'http://localhost');assert.equal(missing.image,'');assert.equal(missing.imageNotice,'Fotoğraf doğrulanmadı');
   const absent=toCatalogProduct({...raw,imageIdentityStatus:'NO_IMAGE'},'http://localhost');assert.equal(absent.imageNotice,'Görsel bulunmuyor');
 });
