@@ -97,7 +97,8 @@ export async function getPresentableProductImages(products, imageMap, {
         }
       }
     }
-    result.set(Number(id), { imageUrl: status === 'VERIFIED' ? imageUrl : null, imageIdentityStatus: status });
+    result.set(Number(id), { imageUrl: status === 'VERIFIED' ? imageUrl : null, imageIdentityStatus: status,
+      imageIdentityHash: status === 'VERIFIED' ? review.imageHash : null });
   }
   return result;
 }

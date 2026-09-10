@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchVegaProducts } from '../../services/productApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
-import { buildCatalogHtml, CATALOG_LAYOUTS, catalogPages, catalogPrice, prepareCatalogFrame, toCatalogProduct } from './catalogPdf.js';
+import { buildCatalogHtml, CATALOG_LAYOUTS, catalogPages, catalogPrice, prepareCatalogFrame, toCatalogProduct, refreshCatalogSelection } from './catalogPdf.js';
 import './catalogPdf.css';
 
 export function CatalogPdfScreen() {
@@ -22,8 +22,11 @@ export function CatalogPdfScreen() {
   const [previewReady, setPreviewReady] = useState(false);
   const [imageFailures, setImageFailures] = useState(0);
   const [notice, setNotice] = useState('');
+  const [checking, setChecking] = useState(false);
+  const checkingRef = useRef(false);
   const frame = useRef(null);
   const previewVersion = useRef(0);
+  useEffect(() => () => { previewVersion.current += 1; }, []);
 
   useEffect(() => {
     let current = true;
@@ -72,11 +75,34 @@ export function CatalogPdfScreen() {
       return next;
     });
   }
-  function openPreview() {
+  async function validateSelection() {
+    if (checkingRef.current) return false;
+    const version = previewVersion.current;
+    checkingRef.current = true;
+    setChecking(true);
+    try {
+      const fresh = await refreshCatalogSelection(selected, fetchVegaProducts, API_BASE_URL, () => version === previewVersion.current);
+      if (version !== previewVersion.current) return false;
+      if (JSON.stringify(fresh) !== JSON.stringify(selected)) {
+        setSelected(fresh);
+        setResult(current => ({ ...current, rows: current.rows.map(row => fresh.find(product => product.id === row.id) || row) }));
+        setError('Seçilen ürünlerin bilgileri veya fotoğraf onayı değişti. Liste güncellendi; kataloğu yeniden önizleyin.');
+        return false;
+      }
+      return true;
+    } catch (problem) {
+      if (version === previewVersion.current) { setPreview(''); setPreviewReady(false); setError(problem.message || 'Ürünler yeniden doğrulanamadı.'); }
+      return false;
+    } finally { checkingRef.current = false; setChecking(false); }
+  }
+  async function openPreview() {
+    if (checkingRef.current) return;
     setError('');
+    setPreview('');
     setPreviewReady(false);
     setImageFailures(0);
     previewVersion.current += 1;
+    if (!await validateSelection()) return;
     setPreview(buildCatalogHtml({ products: selected, title, subtitle, layoutId, order, cover, showPrices, showStock }));
   }
   async function loaded() {
@@ -88,8 +114,10 @@ export function CatalogPdfScreen() {
       setPreviewReady(true);
     } catch (problem) { if (version === previewVersion.current) setError(problem.message); }
   }
-  function print() {
-    if (!previewReady || !frame.current?.contentWindow) return;
+  async function print() {
+    if (!previewReady || !frame.current?.contentWindow || checkingRef.current) return;
+    setError('');
+    if (!await validateSelection() || !frame.current?.contentWindow) return;
     frame.current.contentWindow.focus();
     frame.current.contentWindow.print();
     setNotice('Açılan yazdırma penceresinde “PDF olarak kaydet” seçin. Kağıt: A4; kenar boşlukları: yok; üst ve alt bilgiler: kapalı.');
@@ -103,14 +131,14 @@ export function CatalogPdfScreen() {
         <h2><i>1</i> Ürünleri seç</h2>
         <form className="pdf-catalog-search" onSubmit={event => { event.preventDefault(); setQuery(current => ({ ...current, search, page: 1 })); }}>
           <input aria-label="Ürün ara" value={search} onChange={event => setSearch(event.target.value)} placeholder="Ürün kodu, adı veya marka" />
-          <select aria-label="Görsel filtresi" value={query.imageStatus} onChange={event => setQuery(current => ({ ...current, imageStatus: event.target.value, page: 1 }))}><option value="with-image">Görselli ürünler</option><option value="all">Tüm ürünler</option></select>
+          <select aria-label="Görsel filtresi" value={query.imageStatus} onChange={event => setQuery(current => ({ ...current, imageStatus: event.target.value, page: 1 }))}><option value="with-image">Fotoğraf kaydı olanlar</option><option value="all">Tüm ürünler</option></select>
           <button type="submit">Ara</button>
         </form>
         <div className="pdf-catalog-line"><small>{loading ? 'Ürünler okunuyor…' : `${result.total} ürün · bu sayfada ${result.rows.length}`}</small><button type="button" disabled={loading || !result.rows.length} onClick={() => setSelected(rows => [...rows, ...result.rows.filter(product => !rows.some(row => row.id === product.id))])}>Bu sayfayı seç</button></div>
         {!loading && !result.rows.length && !error && <p>Bu aramada ürün bulunamadı.</p>}
         <div className="pdf-catalog-products">{result.rows.map(product => <label className={`pdf-product ${selected.some(row => row.id === product.id) ? 'is-selected' : ''}`} key={product.id}>
           <input type="checkbox" aria-label={`${product.code} seç`} checked={selected.some(row => row.id === product.id)} onChange={() => toggle(product)} />
-          <div className="pdf-product-image">{product.image ? <img src={product.image} alt={product.code} loading="lazy" onLoad={event => event.currentTarget.nextElementSibling?.setAttribute('hidden', '')} onError={event => { event.currentTarget.style.display = 'none'; }} /> : null}<span>Görsel yok</span></div>
+          <div className="pdf-product-image">{product.image ? <img src={product.image} alt={product.code} loading="lazy" onLoad={event => event.currentTarget.nextElementSibling?.setAttribute('hidden', '')} onError={event => { event.currentTarget.style.display = 'none'; }} /> : null}<span>{product.imageNotice}</span></div>
           <small>{product.brand || 'Marka belirtilmemiş'}</small><strong>{product.code}</strong><span>{product.name}</span><b>{catalogPrice(product)}</b>
         </label>)}</div>
         <nav className="pdf-catalog-line" aria-label="Ürün sayfaları"><button type="button" disabled={loading || query.page <= 1} onClick={() => setQuery(current => ({ ...current, page: current.page - 1 }))}>Önceki</button><span>{query.page} / {result.pages}</span><button type="button" disabled={loading || query.page >= result.pages} onClick={() => setQuery(current => ({ ...current, page: current.page + 1 }))}>Sonraki</button></nav>
@@ -124,10 +152,10 @@ export function CatalogPdfScreen() {
         <div className="pdf-options"><label><input type="checkbox" checked={cover} onChange={event => setCover(event.target.checked)} /> Kapak sayfası</label><label><input type="checkbox" checked={showPrices} onChange={event => setShowPrices(event.target.checked)} /> Fiyatları göster</label><label><input type="checkbox" checked={showStock} onChange={event => setShowStock(event.target.checked)} /> Stok miktarını göster</label></div>
         <div className="pdf-catalog-line"><strong>Seçilenler ({selected.length})</strong><button type="button" disabled={!selected.length} onClick={() => setSelected([])}>Temizle</button></div>
         <div className="pdf-selected">{selected.length ? selected.map((product, index) => <div key={product.id}><span><strong>{product.code}</strong><small>{product.name}</small></span><button aria-label={`${product.code} yukarı`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button aria-label={`${product.code} aşağı`} disabled={index === selected.length - 1} onClick={() => move(index, 1)}>↓</button><button aria-label={`${product.code} çıkar`} onClick={() => toggle(product)}>×</button></div>) : <p>Soldaki ürünlere dokunarak başlayın. Seçiminiz sayfa ve arama değiştirirken korunur.</p>}</div>
-        <button type="button" className="pdf-primary" disabled={!selected.length} onClick={openPreview}>3 · Kataloğu önizle</button>
+        <button type="button" className="pdf-primary" disabled={!selected.length || checking} onClick={openPreview}>{checking ? 'Ürünler doğrulanıyor…' : '3 · Kataloğu önizle'}</button>
         <small>PDF hazırlamak için müşteri veya kayıtlı taslak gerekmez. Fiyatlar kendi para birimiyle gösterilir.</small>
       </aside>
     </div>
-    {preview && <section className="pdf-catalog-panel pdf-catalog-preview"><div className="pdf-catalog-line"><div><h2>PDF önizleme</h2><small>{selected.length} ürün · {pages.length + Number(cover)} sayfa · A4</small></div><button type="button" className="pdf-primary" disabled={!previewReady} onClick={print}>{previewReady ? 'PDF kaydet / Yazdır' : 'Görseller hazırlanıyor…'}</button></div>{imageFailures > 0 && <p role="status">{imageFailures} görsel yüklenemedi; bu ürünlerde “Görsel bulunmuyor” yazacak.</p>}{notice && <p role="status">{notice}</p>}<iframe ref={frame} title="Katalog PDF önizleme" srcDoc={preview} onLoad={loaded} /></section>}
+    {preview && <section className="pdf-catalog-panel pdf-catalog-preview"><div className="pdf-catalog-line"><div><h2>PDF önizleme</h2><small>{selected.length} ürün · {pages.length + Number(cover)} sayfa · A4</small></div><button type="button" className="pdf-primary" disabled={!previewReady || checking} onClick={print}>{checking ? 'Ürünler doğrulanıyor…' : previewReady ? 'PDF kaydet / Yazdır' : 'Görseller hazırlanıyor…'}</button></div>{imageFailures > 0 && <p role="status">{imageFailures} görsel yüklenemedi; bu ürünlerde “Görsel bulunmuyor” yazacak.</p>}{notice && <p role="status">{notice}</p>}<iframe ref={frame} title="Katalog PDF önizleme" srcDoc={preview} onLoad={loaded} /></section>}
   </main>;
 }

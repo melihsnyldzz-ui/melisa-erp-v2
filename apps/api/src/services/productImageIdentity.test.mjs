@@ -38,7 +38,7 @@ test('presentation requires current source AND bytes; never restores a raw fallb
   const images = new Map([[1, photo]]); let review = identity, currentHash = hash;
   const deps = { read: async () => new Map([['1', review]]), hashImage: async () => currentHash };
   const project = async () => (await getPresentableProductImages([row], images, deps)).get(1);
-  assert.deepEqual(await project(), { imageUrl: photo, imageIdentityStatus: 'VERIFIED' });
+  assert.deepEqual(await project(), { imageUrl: photo, imageIdentityStatus: 'VERIFIED', imageIdentityHash: hash });
   for (const status of ['CONFLICT', 'STALE', 'UNREVIEWED', 'INACTIVE', 'UNAVAILABLE']) {
     review = { ...identity, status }; assert.equal((await project()).imageUrl, null);
   }

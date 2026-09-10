@@ -20,7 +20,7 @@ export async function fetchProducts({ page = 1, limit = 100, search = '', barcod
   });
 }
 
-export async function fetchVegaProducts({ page = 1, limit = 100, search = '', barcode = '', activeOnly = true, cardOpenedFrom = '', cardOpenedTo = '', imageStatus = 'all', imageUsage = '' } = {}) {
+export async function fetchVegaProducts({ page = 1, limit = 100, search = '', barcode = '', activeOnly = true, cardOpenedFrom = '', cardOpenedTo = '', imageStatus = 'all', imageUsage = '', sourceId = '' } = {}) {
   if (apiConfig.demoMode) {
     return demoVegaProductsResponse({ page, limit, search, barcode, activeOnly, cardOpenedFrom, cardOpenedTo, imageStatus });
   }
@@ -35,6 +35,7 @@ export async function fetchVegaProducts({ page = 1, limit = 100, search = '', ba
     cardOpenedTo,
     imageStatus,
     imageUsage,
+    sourceId,
   });
 }
 
