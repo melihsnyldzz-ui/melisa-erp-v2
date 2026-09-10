@@ -1,0 +1,9 @@
+# Shipping ölçü kaynağı ve aktarım doğrulaması — 2026-09-10
+
+İncelenen toVegaProductDto, yerel ürün DTO ve PDF katalog projeksiyonunda sevkiyata hazır koli ağırlığı/en/boy/yükseklik sözleşmesi yok. Bu, Vega veritabanının bütün tablolarında ölçü bulunmadığı iddiası değildir. nakliyatShippingService çağıranın packages alanını aktarır; fiziksel tartım veya kayıt kaynağını doğrulamaz. FedexMicroExportDemoScreen demo packagePlan varsayımları gerçek koli kaynağı sayılmaz. Kullanıcıya mevcut tartım/ölçü kaydının nerede olduğu soruldu; yanıt bekleniyor. Ürün adedi, ürün stok miktarı veya fotoğrafından koli ölçüsü türetilmedi.
+
+Aktarımda gerçek hata: Number(true), Number([60]) ve Number('0x10') sayıya dönüşebiliyordu; Shipping'in sıkı kontrolünden önce geçerli sayı haline geldikleri için yanlış ölçü geçebiliyordu. ERP sınırında artık sayı veya ondalık metin kabul edilir, nesne/dizi/boolean/null ve geçersiz ölçü reddedilir. Maksimum 1000 kg ve her kenar 300 cm sınırı Shipping sözleşmesiyle eşitlendi. Farklı iki kolinin ölçüleri ayrı ayrı korunur. Bu doğrulama elle girilen değeri fiziksel olarak doğrulanmış yapmaz.
+
+160 ticari test PASS; yeni iki senaryo 9 hatalı koli biçimini ve null isteği, ağ/auth çağrısı olmadan reddeder; ondalık metin ve farklı iki koli değerlerinin aynen iletildiğini doğrular. Tüm test-commerce ağ engeli altında çalışır. API 152 kök kaynak tür kontrolü 0 hata, değişen üç dosya lint PASS, servis syntax PASS; web build PASS (mevcut bundle uyarısı). API JavaScript kaynaklıdır, ayrı build scripti yoktur. İlk tür kontrolündeki object daraltma hatası Record<string,unknown> sınırı ve doğrulanmış diziyle giderildi; tekrar PASS.
+
+Kaynak koruma66depo/2182dosya/6öncedenonaylıistisna/0izinsizfark. Canlı API/Vega/SQL yazma, gerçek Shipping veya taşıyıcı çağrısı, mesajlaşma yürütmesi, push/PR/merge/deploy yok. Kanıt temp/shipping-input-{tests,types,lint,web-build}.log ve Development OS raporu. Gerçek ölçü kaynağı ve genel hedef kabulü açık.
