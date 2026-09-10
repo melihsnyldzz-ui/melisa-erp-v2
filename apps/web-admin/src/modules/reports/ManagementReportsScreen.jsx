@@ -323,6 +323,12 @@ export function ManagementReportsScreen() {
 
   const reportExportRows = [
     ...reportAssumptionRows,
+    ...((periodicReport.dailyCash || []).map((row) => ({
+      section: 'Günlük Kasa',
+      metric: `${formatDate(row.date)} / ${row.currency}`,
+      value: row.net ?? 'Hesaplanamadı',
+      detail: `Tahsilat ${row.collections ?? 'Hesaplanamadı'} ${row.currency} / Ödeme ${row.payments ?? 'Hesaplanamadı'} ${row.currency}`,
+    }))),
     ...kpis.map((row) => ({
       section: 'Anlık KPI',
       metric: row.label,

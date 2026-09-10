@@ -17,6 +17,7 @@ const checks = [
   ['--test', 'scripts/quality/invoice-status-render.test.mjs'],
   ['--test', 'scripts/quality/daily-navigation.test.mjs'],
   ['--test', 'scripts/quality/report-output.test.mjs'],
+  ['--test', 'scripts/quality/management-report-export.test.mjs'],
   ['--test', 'scripts/quality/report-export-pages.test.mjs'],
   ['--test', 'scripts/quality/catalog-pdf.test.mjs'],
 ];
