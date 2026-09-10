@@ -66,3 +66,24 @@ test('photo revision changes invalidate equal URLs and missing proof never displ
   const missing=toCatalogProduct({...raw,imageIdentityHash:undefined},'http://localhost');assert.equal(missing.image,'');assert.equal(missing.imageNotice,'Fotoğraf doğrulanmadı');
   const absent=toCatalogProduct({...raw,imageIdentityStatus:'NO_IMAGE'},'http://localhost');assert.equal(absent.imageNotice,'Görsel bulunmuyor');
 });
+
+test('grouped catalogs start sections on fresh pages without dropping selections',()=>{
+ const rows=Array.from({length:17},(_,i)=>({...product,id:String(i),code:`SKU-${i}`,brand:i%2?'B':'A',category:i%3?'Takım':'Zıbın'}));
+ for(const grouping of ['brand','category']) for(const layout of CATALOG_LAYOUTS){
+  const pages=catalogPages(rows,layout.id,'selection',grouping);
+  assert.equal(pages.flat().length,17);
+  assert.equal(new Set(pages.flat().map(p=>p.id)).size,17);
+  assert.ok(pages.every(page=>page.every(p=>p[grouping]===page[0][grouping])&&page.length<=layout.count));
+  const html=buildCatalogHtml({products:rows,layoutId:layout.id,grouping,cover:true});
+  assert.equal((html.match(/data-product-id=/g)||[]).length,17);
+  assert.equal((html.match(/<section class="page/g)||[]).length,pages.length+1);
+ }
+ assert.equal(rows[0].id,'0');
+ assert.throws(()=>catalogPages(rows,'grid','selection','bad'));
+});
+test('section captions escape markup and unlabelled products retain their own section',()=>{
+ const rows=[{...product,id:'1',brand:'<b>X</b>'},{...product,id:'2',brand:''}];
+ const html=buildCatalogHtml({products:rows,grouping:'brand'});
+ assert.ok(html.includes('&lt;b&gt;X&lt;/b&gt;'));assert.ok(html.includes('Marka belirtilmemiş'));
+ assert.equal(catalogPages(rows,'grid','selection','brand').length,2);
+});

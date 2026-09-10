@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchVegaProducts } from '../../services/productApi.js';
 import { API_BASE_URL } from '../../config/apiConfig.js';
-import { buildCatalogHtml, CATALOG_LAYOUTS, catalogPages, catalogPrice, prepareCatalogFrame, toCatalogProduct, refreshCatalogSelection } from './catalogPdf.js';
+import { buildCatalogHtml, CATALOG_LAYOUTS, catalogPages, catalogSection, catalogPrice, prepareCatalogFrame, toCatalogProduct, refreshCatalogSelection } from './catalogPdf.js';
 import './catalogPdf.css';
 
 export function CatalogPdfScreen() {
@@ -15,6 +15,7 @@ export function CatalogPdfScreen() {
   const [subtitle, setSubtitle] = useState('');
   const [layoutId, setLayoutId] = useState('grid');
   const [order, setOrder] = useState('selection');
+  const [grouping, setGrouping] = useState('none');
   const [cover, setCover] = useState(false);
   const [showPrices, setShowPrices] = useState(false);
   const [showImages, setShowImages] = useState(true);
@@ -47,13 +48,13 @@ export function CatalogPdfScreen() {
     return () => { current = false; };
   }, [query]);
 
-  const pages = useMemo(() => catalogPages(selected, layoutId, order), [selected, layoutId, order]);
+  const pages = useMemo(() => catalogPages(selected, layoutId, order, grouping), [selected, layoutId, order, grouping]);
   useEffect(() => {
     previewVersion.current += 1;
     setPreview('');
     setPreviewReady(false);
     setNotice('');
-  }, [selected, title, subtitle, layoutId, order, cover, showPrices, showStock, showImages]);
+  }, [selected, title, subtitle, layoutId, order, grouping, cover, showPrices, showStock, showImages]);
 
   useEffect(() => {
     if (!preview || !frame.current) return undefined;
@@ -104,7 +105,7 @@ export function CatalogPdfScreen() {
     setImageFailures(0);
     previewVersion.current += 1;
     if (!await validateSelection()) return;
-    setPreview(buildCatalogHtml({ products: selected, title, subtitle, layoutId, order, cover, showPrices, showStock, showImages }));
+    setPreview(buildCatalogHtml({ products: selected, title, subtitle, layoutId, order, grouping, cover, showPrices, showStock, showImages }));
   }
   async function loaded() {
     const version = previewVersion.current;
@@ -148,12 +149,14 @@ export function CatalogPdfScreen() {
         <h2><i>2</i> Kataloğunu düzenle</h2>
         <label>Katalog adı<input maxLength={80} value={title} onChange={event => setTitle(event.target.value)} /></label>
         <label>Alt başlık<input maxLength={100} value={subtitle} onChange={event => setSubtitle(event.target.value)} placeholder="Örn. Sonbahar koleksiyonu" /></label>
-        <fieldset><legend>Sayfa düzeni</legend><div className="pdf-layout-options">{CATALOG_LAYOUTS.map(layout => <label className={layoutId === layout.id ? 'active' : ''} key={layout.id}><input type="radio" name="catalog-layout" value={layout.id} checked={layoutId === layout.id} onChange={() => setLayoutId(layout.id)} /><strong>{layout.name}</strong><small>{layout.description}</small></label>)}</div></fieldset>
+        <fieldset><legend>Sayfa düzeni</legend><div className="pdf-layout-options">{CATALOG_LAYOUTS.map(layout => <label className={layoutId === layout.id ? 'active' : ''} key={layout.id}><input type="radio" name="catalog-layout" value={layout.id} checked={layoutId === layout.id} onChange={() => setLayoutId(layout.id)} /><strong>{layout.name}</strong><span aria-hidden="true" className={`pdf-layout-thumbnail ${layout.id === 'list' ? 'is-list' : ''}`} style={{ gridTemplateColumns: `repeat(${layout.columns}, 1fr)` }}>{Array.from({ length: layout.count }, (_, index) => <i key={index} />)}</span><small>{layout.description}</small></label>)}</div></fieldset>
         <label>Sıralama<select value={order} onChange={event => setOrder(event.target.value)}><option value="selection">Seçim sırası</option><option value="code">Ürün kodu</option><option value="brand">Marka ve ürün kodu</option></select></label>
+        <label>Bölümlere ayır<select value={grouping} onChange={event => setGrouping(event.target.value)}><option value="none">Tek bölüm</option><option value="brand">Her marka yeni sayfada</option><option value="category">Her kategori yeni sayfada</option></select></label>
         <div className="pdf-options"><label><input type="checkbox" checked={cover} onChange={event => setCover(event.target.checked)} /> Kapak sayfası</label><label><input type="checkbox" checked={showPrices} onChange={event => setShowPrices(event.target.checked)} /> ERP fiyat satırını göster</label><label><input type="checkbox" checked={showImages} onChange={event => setShowImages(event.target.checked)} /> Ürün fotoğraflarını göster</label><label><input type="checkbox" checked={showStock} onChange={event => setShowStock(event.target.checked)} /> Stok miktarını göster</label></div>
         {showImages && !showPrices && <p className="list-state" role="note">ERP fiyat satırı gizli. Fotoğraflara basılmış fiyatlar görünmeye devam eder. Fiyat içermeyen fotoğraflar kullanın veya ürün fotoğraflarını gizleyin.</p>}
         <div className="pdf-catalog-line"><strong>Seçilenler ({selected.length})</strong><button type="button" disabled={!selected.length} onClick={() => setSelected([])}>Temizle</button></div>
         <div className="pdf-selected">{selected.length ? selected.map((product, index) => <div key={product.id}><span><strong>{product.code}</strong><small>{product.name}</small></span><button aria-label={`${product.code} yukarı`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button aria-label={`${product.code} aşağı`} disabled={index === selected.length - 1} onClick={() => move(index, 1)}>↓</button><button aria-label={`${product.code} çıkar`} onClick={() => toggle(product)}>×</button></div>) : <p>Soldaki ürünlere dokunarak başlayın. Seçiminiz sayfa ve arama değiştirirken korunur.</p>}</div>
+        {selected.length > 0 && <details className="pdf-page-plan"><summary>Sayfa planı · {pages.length + Number(cover)} sayfa</summary><ol>{cover && <li>Kapak</li>}{pages.map((page, index) => <li key={index}><strong>{catalogSection(page[0], grouping) || 'Ürünler'}</strong><span>{page.map(product => product.code).join(' · ')}</span></li>)}</ol></details>}
         <button type="button" className="pdf-primary" disabled={!selected.length || checking} onClick={openPreview}>{checking ? 'Ürünler doğrulanıyor…' : '3 · Kataloğu önizle'}</button>
         <small>PDF hazırlamak için müşteri veya kayıtlı taslak gerekmez. Fiyatlar kendi para birimiyle gösterilir.</small>
       </aside>

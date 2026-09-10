@@ -2,7 +2,9 @@ export const CATALOG_LAYOUTS = [
   { id: 'showcase', name: 'Vitrin', description: 'Tek ürün · büyük görsel', count: 1, columns: 1 },
   { id: 'duo', name: 'İkili', description: 'Sayfada 2 ürün', count: 2, columns: 1 },
   { id: 'grid', name: 'Klasik', description: 'Sayfada 4 ürün', count: 4, columns: 2 },
+  { id: 'six', name: 'Koleksiyon', description: 'Sayfada 6 ürün', count: 6, columns: 2 },
   { id: 'compact', name: 'Kompakt', description: 'Sayfada 9 ürün', count: 9, columns: 3 },
+  { id: 'list', name: 'Ürün listesi', description: '8 satır · küçük görsel', count: 8, columns: 1 },
 ];
 
 const text = value => String(value ?? '').trim();
@@ -68,18 +70,30 @@ export function catalogPrice(product) {
     : `${new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(product.price)} ${product.currency}`;
 }
 
-export function catalogPages(products, layoutId, order = 'selection') {
+export function catalogPages(products, layoutId, order = 'selection', grouping = 'none') {
   const layout = CATALOG_LAYOUTS.find(item => item.id === layoutId);
   if (!layout) throw new Error('Katalog düzeni geçersiz.');
+  if (!['none', 'brand', 'category'].includes(grouping)) throw new Error('Katalog bölümlemesi geçersiz.');
   if (new Set(products.map(product => product.id)).size !== products.length) throw new Error('Aynı ürün katalogda birden fazla kez bulunuyor.');
   const rows = [...products];
   if (order === 'code') rows.sort((a, b) => a.code.localeCompare(b.code, 'tr', { numeric: true }));
   if (order === 'brand') rows.sort((a, b) => a.brand.localeCompare(b.brand, 'tr') || a.code.localeCompare(b.code, 'tr', { numeric: true }));
-  return Array.from({ length: Math.ceil(rows.length / layout.count) }, (_, index) => rows.slice(index * layout.count, (index + 1) * layout.count));
+  const groups = new Map();
+  for (const row of rows) {
+    const key = catalogSection(row, grouping);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  return [...groups.values()].flatMap(group => Array.from({ length: Math.ceil(group.length / layout.count) }, (_, index) => group.slice(index * layout.count, (index + 1) * layout.count)));
 }
 
-export function buildCatalogHtml({ products, layoutId = 'grid', order = 'selection', title = 'Melisa Bebe Katalog', subtitle = '', showPrices = false, showStock = false, showImages = true, cover = false }) {
-  const pages = catalogPages(products, layoutId, order);
+export function catalogSection(product, grouping) {
+  return grouping === 'brand' ? text(product.brand) || 'Marka belirtilmemiş'
+    : grouping === 'category' ? text(product.category) || 'Kategori belirtilmemiş' : '';
+}
+
+export function buildCatalogHtml({ products, layoutId = 'grid', order = 'selection', grouping = 'none', title = 'Melisa Bebe Katalog', subtitle = '', showPrices = false, showStock = false, showImages = true, cover = false }) {
+  const pages = catalogPages(products, layoutId, order, grouping);
   if (!pages.length) throw new Error('PDF için en az bir ürün seçin.');
   const layout = CATALOG_LAYOUTS.find(item => item.id === layoutId);
   const total = pages.length + (cover ? 1 : 0);
@@ -93,8 +107,9 @@ export function buildCatalogHtml({ products, layoutId = 'grid', order = 'selecti
   .grid{display:grid;grid-template-columns:repeat(${layout.columns},minmax(0,1fr));grid-template-rows:repeat(${layout.count / layout.columns},minmax(0,1fr));gap:5mm;flex:1;min-height:0;padding:6mm 0}
   article{min-height:0;min-width:0;border:1px solid #e0dcd5;border-radius:2mm;padding:3mm;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid}.photo{flex:1;min-height:0;background:#f6f5f3;display:flex;align-items:center;justify-content:center;position:relative}.photo img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.photo span{font-size:8pt;color:#777}.details{flex:none;padding-top:2mm}.code{font-weight:bold;font-size:${layout.count === 9 ? 9 : 12}pt;overflow-wrap:anywhere;line-height:1.1}.name{font-size:${layout.count === 9 ? 8 : 10}pt;margin:1mm 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2;overflow-wrap:anywhere}.brand{font-size:8pt;color:#796352;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.price{font-size:10pt;font-weight:bold;margin-top:2mm}.stock{font-size:8pt;margin-top:1mm}
   footer{height:8mm;flex:none;border-top:1px solid #ccc;display:flex;justify-content:space-between;align-items:end;font-size:8pt;color:#666}.cover{background:#eee9e2;justify-content:space-between}.wordmark{font-size:16pt;letter-spacing:4px}.cover h1{font-size:36pt;overflow-wrap:anywhere}.cover p{font-size:12pt;white-space:pre-wrap;overflow-wrap:anywhere}.cover footer{width:100%}
+  ${layoutId === 'list' ? 'article{flex-direction:row;gap:4mm;padding:2mm}.photo{flex:0 0 24mm}.details{flex:1;min-width:0;padding:0;display:flex;flex-direction:column;justify-content:center}.code{font-size:10pt}.name{font-size:9pt}.brand{font-size:7pt}.price{font-size:9pt;margin-top:1mm}.stock{font-size:7pt;margin-top:0}.grid{gap:2mm}' : ''}
   @media screen{body{zoom:var(--preview-scale,1)}}@media print{body{background:white}.page{margin:0}}
-  </style></head><body>${coverHtml}${pages.map((page, index) => `<section class="page"><header><div><h1>${escape(heading)}</h1><small>${escape(subtitle)}</small></div><b>MELİSA BEBE</b></header><div class="grid">${page.map(product => `<article data-product-id="${escape(product.id)}"><div class="photo"><span>${escape(showImages ? product.imageNotice || 'Görsel bulunmuyor' : 'Fotoğraf gizlendi')}</span>${showImages && product.image ? `<img src="${escape(product.image)}" alt="${escape(product.code)}">` : ''}</div><div class="details"><div class="brand">${escape(product.brand)}</div><div class="code">${escape(product.code)}</div><div class="name">${escape(product.name)}</div>${showPrices ? `<div class="price">${escape(catalogPrice(product))}</div>` : ''}${showStock ? `<div class="stock">Stok: ${product.stock === null ? 'Teyit edilecek' : escape(product.stock)}</div>` : ''}</div></article>`).join('')}</div>${footer(index + 1 + (cover ? 1 : 0))}</section>`).join('')}</body></html>`;
+  </style></head><body>${coverHtml}${pages.map((page, index) => `<section class="page"><header><div><h1>${escape(heading)}</h1><small>${escape([catalogSection(page[0], grouping), subtitle].filter(Boolean).join(' · '))}</small></div><b>MELİSA BEBE</b></header><div class="grid">${page.map(product => `<article data-product-id="${escape(product.id)}"><div class="photo"><span>${escape(showImages ? product.imageNotice || 'Görsel bulunmuyor' : 'Fotoğraf gizlendi')}</span>${showImages && product.image ? `<img src="${escape(product.image)}" alt="${escape(product.code)}">` : ''}</div><div class="details"><div class="brand">${escape(product.brand)}</div><div class="code">${escape(product.code)}</div><div class="name">${escape(product.name)}</div>${showPrices ? `<div class="price">${escape(catalogPrice(product))}</div>` : ''}${showStock ? `<div class="stock">Stok: ${product.stock === null ? 'Teyit edilecek' : escape(product.stock)}</div>` : ''}</div></article>`).join('')}</div>${footer(index + 1 + (cover ? 1 : 0))}</section>`).join('')}</body></html>`;
 }
 
 // Use the very same document for preview and printing, after every image settles.
