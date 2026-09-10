@@ -1,4 +1,4 @@
-import { resolveReviewedProductImage as resolveImageUrl } from '../services/reviewedProductImage';
+import { useFreshSaleImages } from '../components/useFreshSaleImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -281,6 +281,8 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
 
   // Keep the newest scan near the controls while preserving the saved line order.
   const displayLines = useMemo(() => [...lines].reverse(), [lines]);
+  const freshSaleImages = useFreshSaleImages(lines, session?.accessToken, apiBaseUrl);
+  const visibleExpandedImage = Object.values(freshSaleImages).includes(expandedImageUrl) ? expandedImageUrl : '';
   const itemQuantity = useMemo(() => lines.reduce((sum, line) => (
     sum + Number(line.quantity || 0)
   ), 0), [lines]);
@@ -1428,14 +1430,14 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
     <Modal
-      visible={Boolean(expandedImageUrl)}
+      visible={Boolean(visibleExpandedImage)}
       transparent
       animationType="fade"
       onRequestClose={() => setExpandedImageUrl('')}
     >
       <Pressable style={styles.imagePreviewBackdrop} onPress={() => setExpandedImageUrl('')}>
-        {expandedImageUrl ? (
-          <Image source={{ uri: expandedImageUrl }} style={styles.imagePreview} resizeMode="contain" />
+        {visibleExpandedImage ? (
+          <Image source={{ uri: visibleExpandedImage }} style={styles.imagePreview} resizeMode="contain" />
         ) : null}
       </Pressable>
     </Modal>
@@ -1847,7 +1849,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
         {lines.length === 0 ? (
           <Text style={styles.empty}>Henuz satir yok.</Text>
         ) : displayLines.map((line) => {
-          const lineImageUrl = resolveImageUrl(line.product?.imageUrl, apiBaseUrl);
+          const lineImageUrl = freshSaleImages[String(line.product?.id)] || '';
 
           return (
             <View key={line.product.id} style={styles.lineRow}>
