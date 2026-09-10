@@ -9,6 +9,7 @@ env.NODE_ENV = 'test';
 env.NODE_OPTIONS = `--require=${JSON.stringify(path.join(root, 'scripts/quality/network-deny.cjs'))}`;
 // Pure/static checks and VM-isolated queue behavior; all network/process access denied.
 const checks = [
+  ['scripts/quality/terminal-reviewed-image.test.mjs', root, ['--test']],
   ['scripts/terminal-currency-pricing-smoke.mjs', root],
   ['scripts/terminal-user-login-smoke.mjs', root],
   ['scripts/terminal-receipt-printing-smoke.mjs', root],

@@ -1,3 +1,4 @@
+import { resolveReviewedProductImage as resolveImageUrl } from '../services/reviewedProductImage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -50,14 +51,6 @@ function normalizeProduct(row) {
   };
 }
 
-function resolveImageUrl(imageUrl, apiBaseUrl) {
-  const value = String(imageUrl || '').trim().replace(/\\/g, '/');
-  const base = String(apiBaseUrl || '').replace(/\/+$/, '');
-  if (!value || !base) return '';
-  if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith('/')) return `${base}${value}`;
-  return `${base}/${value}`;
-}
 
 
 const cashCustomerCodes = ['PESIN-TL', 'PESIN-USD', 'PESIN-EUR'];

@@ -1,0 +1,9 @@
+# Terminal görsel yolu koruması — 2026-09-10
+
+ProductLookupScreen ve NewSaleScreen ekranlarındaki URL çözücü ortak display-only resolveReviewedProductImage işlevine bağlandı. Yalnız /uploads/verified-products/SHA256--filename yolu render edilir; ham cache/detail/primaryimage URL'leri görüntüye geri dönemez. Dosya/content/data URI, kullanıcıbilgisi/query/hash ve hatalıhash yolu reddedilir. Docker/LAN hostname yalnız yapılandırılmış API origin'ine yeniden bağlanır. Satış payloadları, paylaşım/gönderim işlevleri, cache verisi veya ticari kurallar değiştirilmedi.
+
+2yeni saf test ve mevcut terminal-commerce pack PASS (15queue,6sale-safety test ve statik fiyat/login/receipt/draft kontrolleri).35terminal kaynak kökü typecheck0; scoped ESLint0. Android assembleRelease offline/no-daemon başarı:1m49s,293task(48executed). Gradle deprecatedfeature uyarıları ve Node typeless test uyarısı mevcut; globalmodule/Gradle ayarı değiştirilmedi.
+
+Yeni APK61184490byte, SHA256 d654e84c851d9f8368e0a6b117211ed5692211f1fe03367e536f494e8d4e07d6. Derlenmiş Hermes bundle içinde verified-products işareti doğrulandı. Önceki APK testkopyasında prior-release.apk olarak korundu. Yeni APK kurulmadı, emülatör/gerçekcihaz testi bu tur yapılmadı. KalıcıAndroid/Windowsayarları değişmedi. Koruma66repo/2182file/6onaylıistisna/0fark.
+
+Açık: yeni APK ile gerçek görüntüleme/bozukfotoğraf/üründeğişimi kabulü. Daha önce doğrulanmış hash URL'si olan cache kaydında sonradan geri alınan operatör onayının tazeliği ayrıca ele alınmalı; bu koruma güncel onayı yeniden sorgulamıyor. ProductLookup görüntüstate'inin ürün değişimindeki kısa gecikmesi de native kabulde kontrol edilmeli. Genel hedefIN_PROGRESS; productiondeploy/mesaj/gerçekişyazma0.
