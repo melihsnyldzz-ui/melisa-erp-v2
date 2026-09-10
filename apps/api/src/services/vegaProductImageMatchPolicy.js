@@ -1,5 +1,21 @@
 const HOUR_MS = 60 * 60 * 1000;
 
+/** Select from precomputed candidates; explicit supplier evidence must not be
+ * discarded merely because a numeric code has one active match. */
+export function selectImageImportMatch({ supplier, codeCandidates, brandCandidates,
+  manualCandidate, recentWaitingCandidates, fuzzyWinner }) {
+  if (manualCandidate) return { exact: manualCandidate, confidence: 100, matchSource: 'manual_approval' };
+  if (brandCandidates.length === 1) return { exact: brandCandidates[0], confidence: 100, matchSource: 'code_and_brand' };
+  if (!String(supplier || '').trim() && codeCandidates.length === 1) {
+    return { exact: codeCandidates[0], confidence: 95, matchSource: 'unique_active_code' };
+  }
+  if (recentWaitingCandidates.length === 1) {
+    return { exact: recentWaitingCandidates[0].product, confidence: 92, matchSource: 'recent_waiting_card' };
+  }
+  if (fuzzyWinner) return { exact: fuzzyWinner.product, confidence: Math.max(90, Math.round(fuzzyWinner.score * 100)), matchSource: 'fuzzy_brand' };
+  return { exact: null, confidence: 0, matchSource: 'unresolved' };
+}
+
 export function normalizeImageStockCode(value) {
   return String(value || '').replace(/\s+/g, '');
 }

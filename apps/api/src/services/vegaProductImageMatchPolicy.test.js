@@ -4,9 +4,34 @@ import {
   findRecentWaitingCards,
   normalizeImageStockCode,
   rankReviewCandidates,
+  selectImageImportMatch,
 } from './vegaProductImageMatchPolicy.js';
 
 const receivedAt = '2026-09-03T11:21:42.000Z';
+
+const leylek = { sourceId: 159414, stockCode: '4711 LEYLEK', brand: 'LEYLEK' };
+const mymio = { sourceId: 2, stockCode: '4711 MY MIO', brand: 'MY MIO' };
+const match = (overrides = {}) => selectImageImportMatch({
+  supplier: 'MY MIO', codeCandidates: [leylek], brandCandidates: [],
+  manualCandidate: null, recentWaitingCandidates: [], fuzzyWinner: null, ...overrides,
+});
+
+test('MY MIO 4711 cannot auto-bind to the only active LEYLEK 4711 card', () => {
+  assert.deepEqual(match(), { exact: null, confidence: 0, matchSource: 'unresolved' });
+});
+
+test('brand and code still select the correct card among duplicate model numbers', () => {
+  assert.equal(match({ codeCandidates: [leylek, mymio], brandCandidates: [mymio] }).exact, mymio);
+});
+
+test('supplier-less unique code remains supported but duplicate codes require review', () => {
+  assert.equal(match({ supplier: '' }).exact, leylek);
+  assert.equal(match({ supplier: '', codeCandidates: [leylek, mymio] }).exact, null);
+});
+
+test('explicit manual choice remains distinct from an automatic identity match', () => {
+  assert.equal(match({ manualCandidate: leylek }).matchSource, 'manual_approval');
+});
 
 test('810 selects the single recent image-less EMINS card', () => {
   const candidates = [

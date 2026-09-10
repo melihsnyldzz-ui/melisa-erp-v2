@@ -10,13 +10,14 @@ import {
   findRecentWaitingCards,
   normalizeImageStockCode,
   rankReviewCandidates,
+  selectImageImportMatch,
   RECENT_WAITING_CARD_DEFAULT_HOURS,
 } from '../src/services/vegaProductImageMatchPolicy.js';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const imageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.bmp']);
 const genericBrandWords = new Set(['BABY', 'BEBE', 'KIDS', 'TEKSTIL', 'TEXTILE', 'FASHION']);
-const matchRuleVersion = 2;
+const matchRuleVersion = 3;
 
 function argumentValue(name, fallback = '') {
   const index = process.argv.indexOf(name);
@@ -205,30 +206,10 @@ for (const filePath of files) {
     && fuzzyCandidates[0].score - (fuzzyCandidates[1]?.score || 0) >= 0.12
     ? fuzzyCandidates[0]
     : null;
-  let exact = null;
-  let confidence = 0;
-  let matchSource = 'unresolved';
-  if (manualCandidate) {
-    exact = manualCandidate;
-    confidence = 100;
-    matchSource = 'manual_approval';
-  } else if (brandCandidates.length === 1) {
-    exact = brandCandidates[0];
-    confidence = 100;
-    matchSource = 'code_and_brand';
-  } else if (codeCandidates.length === 1) {
-    exact = codeCandidates[0];
-    confidence = 95;
-    matchSource = 'unique_active_code';
-  } else if (recentWaitingCandidates.length === 1) {
-    exact = recentWaitingCandidates[0].product;
-    confidence = 92;
-    matchSource = 'recent_waiting_card';
-  } else if (fuzzyWinner) {
-    exact = fuzzyWinner.product;
-    confidence = Math.max(90, Math.round(fuzzyWinner.score * 100));
-    matchSource = 'fuzzy_brand';
-  }
+  const { exact, confidence, matchSource } = selectImageImportMatch({
+    supplier: identity.supplier, codeCandidates, brandCandidates,
+    manualCandidate, recentWaitingCandidates, fuzzyWinner,
+  });
   let status = 'review_required';
   let reason = 'Kod ve marka birlikte tek stok kartına bağlanamadı';
   if (!identity.code) reason = 'Fotoğraftan/model adından stok kodu çıkarılamadı';
