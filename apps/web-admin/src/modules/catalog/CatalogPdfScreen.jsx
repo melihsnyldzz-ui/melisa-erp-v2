@@ -17,6 +17,7 @@ export function CatalogPdfScreen() {
   const [order, setOrder] = useState('selection');
   const [cover, setCover] = useState(false);
   const [showPrices, setShowPrices] = useState(false);
+  const [showImages, setShowImages] = useState(true);
   const [showStock, setShowStock] = useState(false);
   const [preview, setPreview] = useState('');
   const [previewReady, setPreviewReady] = useState(false);
@@ -52,7 +53,7 @@ export function CatalogPdfScreen() {
     setPreview('');
     setPreviewReady(false);
     setNotice('');
-  }, [selected, title, subtitle, layoutId, order, cover, showPrices, showStock]);
+  }, [selected, title, subtitle, layoutId, order, cover, showPrices, showStock, showImages]);
 
   useEffect(() => {
     if (!preview || !frame.current) return undefined;
@@ -103,7 +104,7 @@ export function CatalogPdfScreen() {
     setImageFailures(0);
     previewVersion.current += 1;
     if (!await validateSelection()) return;
-    setPreview(buildCatalogHtml({ products: selected, title, subtitle, layoutId, order, cover, showPrices, showStock }));
+    setPreview(buildCatalogHtml({ products: selected, title, subtitle, layoutId, order, cover, showPrices, showStock, showImages }));
   }
   async function loaded() {
     const version = previewVersion.current;
@@ -149,7 +150,8 @@ export function CatalogPdfScreen() {
         <label>Alt başlık<input maxLength={100} value={subtitle} onChange={event => setSubtitle(event.target.value)} placeholder="Örn. Sonbahar koleksiyonu" /></label>
         <fieldset><legend>Sayfa düzeni</legend><div className="pdf-layout-options">{CATALOG_LAYOUTS.map(layout => <label className={layoutId === layout.id ? 'active' : ''} key={layout.id}><input type="radio" name="catalog-layout" value={layout.id} checked={layoutId === layout.id} onChange={() => setLayoutId(layout.id)} /><strong>{layout.name}</strong><small>{layout.description}</small></label>)}</div></fieldset>
         <label>Sıralama<select value={order} onChange={event => setOrder(event.target.value)}><option value="selection">Seçim sırası</option><option value="code">Ürün kodu</option><option value="brand">Marka ve ürün kodu</option></select></label>
-        <div className="pdf-options"><label><input type="checkbox" checked={cover} onChange={event => setCover(event.target.checked)} /> Kapak sayfası</label><label><input type="checkbox" checked={showPrices} onChange={event => setShowPrices(event.target.checked)} /> Fiyatları göster</label><label><input type="checkbox" checked={showStock} onChange={event => setShowStock(event.target.checked)} /> Stok miktarını göster</label></div>
+        <div className="pdf-options"><label><input type="checkbox" checked={cover} onChange={event => setCover(event.target.checked)} /> Kapak sayfası</label><label><input type="checkbox" checked={showPrices} onChange={event => setShowPrices(event.target.checked)} /> ERP fiyat satırını göster</label><label><input type="checkbox" checked={showImages} onChange={event => setShowImages(event.target.checked)} /> Ürün fotoğraflarını göster</label><label><input type="checkbox" checked={showStock} onChange={event => setShowStock(event.target.checked)} /> Stok miktarını göster</label></div>
+        {showImages && !showPrices && <p className="list-state" role="note">ERP fiyat satırı gizli. Fotoğraflara basılmış fiyatlar görünmeye devam eder. Fiyat içermeyen fotoğraflar kullanın veya ürün fotoğraflarını gizleyin.</p>}
         <div className="pdf-catalog-line"><strong>Seçilenler ({selected.length})</strong><button type="button" disabled={!selected.length} onClick={() => setSelected([])}>Temizle</button></div>
         <div className="pdf-selected">{selected.length ? selected.map((product, index) => <div key={product.id}><span><strong>{product.code}</strong><small>{product.name}</small></span><button aria-label={`${product.code} yukarı`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button aria-label={`${product.code} aşağı`} disabled={index === selected.length - 1} onClick={() => move(index, 1)}>↓</button><button aria-label={`${product.code} çıkar`} onClick={() => toggle(product)}>×</button></div>) : <p>Soldaki ürünlere dokunarak başlayın. Seçiminiz sayfa ve arama değiştirirken korunur.</p>}</div>
         <button type="button" className="pdf-primary" disabled={!selected.length || checking} onClick={openPreview}>{checking ? 'Ürünler doğrulanıyor…' : '3 · Kataloğu önizle'}</button>

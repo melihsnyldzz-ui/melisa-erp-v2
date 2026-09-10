@@ -21,6 +21,19 @@ test('sorting never mutates selection and duplicates fail',()=>{const rows=[{...
 test('HTML injection escaped; prices absent by default and no totals across currencies',()=>{const html=buildCatalogHtml({products:[{...product,code:'<script>alert(1)</script>'}],title:'<img src=x>',subtitle:'" onload="bad'});assert.ok(!html.includes('<script>'));assert.ok(!html.includes('12,50'));assert.ok(html.includes('&lt;script&gt;'));const priced=buildCatalogHtml({products:[product],showPrices:true,showStock:true});assert.ok(priced.includes('12,50 USD'));assert.ok(priced.includes('Stok: -2'));});
 test('empty selection cannot produce an empty PDF',()=>assert.throws(()=>buildCatalogHtml({products:[]})));
 
+test('photo visibility is independent from ERP price rows and excluded photos leave no URL in output',()=>{
+  for(const layout of CATALOG_LAYOUTS){
+    for(const showPrices of [true,false]){
+      const html=buildCatalogHtml({products:[product],layoutId:layout.id,showImages:false,showPrices});
+      assert.ok(!html.includes('<img '));assert.ok(!html.includes(product.image));
+      assert.ok(html.includes('Fotoğraf gizlendi'));assert.ok(html.includes(product.code));
+      assert.equal(html.includes('12,50 USD'),showPrices);
+    }
+    const normal=buildCatalogHtml({products:[product],layoutId:layout.id});
+    assert.ok(normal.includes('<img '));assert.ok(!normal.includes('12,50 USD'));
+  }
+});
+
 test('refresh preserves selection order and reads every exact live identity with bounded concurrency',async()=>{
   const rows=Array.from({length:9},(_,i)=>({...raw,sourceId:i+1,stockCode:`SKU-${i+1}`}));
   const selected=rows.map(row=>toCatalogProduct(row,'http://localhost'));
