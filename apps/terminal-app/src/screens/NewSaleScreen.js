@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useScannerResumeFocus } from '../components/useScannerResumeFocus';
 import { InfoRow } from '../components/InfoRow';
 import { KeyboardSafeScrollView, KeyboardSafeTextInput } from '../components/KeyboardSafeScrollView';
 import { TerminalButton } from '../components/TerminalButton';
@@ -214,6 +215,7 @@ export function NewSaleScreen({ session, syncState, navigation, onRefresh, draft
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [barcode, setBarcode] = useState('');
   const [entryMode, setEntryMode] = useState('barcode');
+  useScannerResumeFocus(barcodeRef, entryMode === 'barcode');
   const [quantity, setQuantity] = useState('1');
   const [productQuery, setProductQuery] = useState('');
   const [productResults, setProductResults] = useState([]);
