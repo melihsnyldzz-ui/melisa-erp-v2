@@ -5,8 +5,8 @@ import { buildAccountingKpis } from '../../apps/web-admin/src/modules/dashboard/
 test('accounting cards render while the summary or recent invoice arrays are absent', () => {
   for (const summary of [{}, { accounting: {} }, { accounting: null }]) {
     const cards = buildAccountingKpis(summary);
-    assert.equal(cards.find(card => card.screenId === 'sales-invoice-list' && card.label === 'Son satış fişleri').value, '0');
-    assert.equal(cards.find(card => card.screenId === 'purchase-invoice-list').value, '0');
+    assert.equal(cards.find(card => card.screenId === 'sales-invoice-list' && card.label === 'Son satış fişleri').value, 'Veri yok');
+    assert.equal(cards.find(card => card.screenId === 'purchase-invoice-list').value, 'Veri yok');
   }
 });
 test('accounting cards retain actual invoice counts and collection values', () => {
@@ -15,3 +15,4 @@ test('accounting cards retain actual invoice counts and collection values', () =
   assert.equal(cards.find(card => card.label === 'Son alış fişleri').value, '1');
   assert.match(cards.find(card => card.label === 'Günlük tahsilat').value, /1\.234/);
 });
+

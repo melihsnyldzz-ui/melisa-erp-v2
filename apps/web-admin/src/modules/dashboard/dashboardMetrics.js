@@ -21,7 +21,7 @@ export const emptyDashboardSummary = {
 
 function formatMoney(amount) {
   if (amount === undefined) return 'Veri yok';
-  if (amount === null || !Number.isFinite(Number(amount))) return 'Hesaplanamadı';
+  if (!isKnownNumber(amount)) return 'Hesaplanamadı';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: 'TRY',
@@ -30,7 +30,20 @@ function formatMoney(amount) {
 }
 
 function formatKnownNumber(value) {
-  return value === undefined ? 'Veri yok' : value === null || !Number.isFinite(Number(value)) ? 'Hesaplanamadı' : formatNumber(value);
+  return value === undefined ? 'Veri yok' : !isKnownNumber(value) ? 'Hesaplanamadı' : formatNumber(value);
+}
+
+function isKnownNumber(value) {
+  return (typeof value === 'number' || (typeof value === 'string' && value.trim() !== ''))
+    && Number.isFinite(Number(value));
+}
+
+function numberDetail(value, suffix) {
+  return isKnownNumber(value) ? `${formatKnownNumber(value)}${suffix}` : formatKnownNumber(value);
+}
+
+function listCount(value) {
+  return Array.isArray(value) ? value.length : value === undefined ? undefined : null;
 }
 
 function formatNumber(value) {
@@ -58,23 +71,25 @@ export function buildPatronKpis(summary = emptyDashboardSummary) {
   const operations = summary.operations || {};
   const melisa = summary.melisa || {};
   const masterCounts = summary.masterCounts || {};
-  const salesTry = Number(patron.todaySalesTry || 0);
-  const grossProfitTry = Number(patron.todayGrossProfitTry || 0);
-  const profitRate = melisa.todayProfitRate ?? (salesTry > 0 ? (grossProfitTry / salesTry) * 100 : 0);
-  const openAccountCustomerCount = melisa.openAccountCustomerCount
-    ?? summary.accounting?.customerBalanceCount
-    ?? 0;
+  const salesTry = patron.todaySalesTry;
+  const grossProfitTry = patron.todayGrossProfitTry;
+  const profitRate = melisa.todayProfitRate !== undefined ? melisa.todayProfitRate
+    : isKnownNumber(salesTry) && isKnownNumber(grossProfitTry) && Number(salesTry) > 0
+      ? (Number(grossProfitTry) / Number(salesTry)) * 100
+      : salesTry === undefined || grossProfitTry === undefined ? undefined : null;
+  const openAccountCustomerCount = melisa.openAccountCustomerCount !== undefined
+    ? melisa.openAccountCustomerCount : summary.accounting?.customerBalanceCount;
   const top20ReceivablesTry = melisa.top20ReceivablesTry;
   const top20ReceivableShare = melisa.top20ReceivableShare;
 
   return [
-    { label: 'Toplam müşteri', value: formatNumber(masterCounts.totalCustomers), detail: 'Cari kart sayısı', tone: 'info', screenId: 'customer-list' },
-    { label: 'Toplam ürün', value: formatNumber(masterCounts.totalProducts), detail: 'Aktif barkodlu ürünler', tone: 'info', screenId: 'stock-list' },
-    { label: 'Günlük satış', value: formatMoney(patron.todaySalesTry), detail: `${formatNumber(patron.finalizedSalesToday)} kesinleşen fiş`, tone: 'good', screenId: 'sales-invoice-list' },
-    { label: 'Günlük kâr', value: formatMoney(patron.todayGrossProfitTry), detail: `${formatNumber(profitRate)}% brüt oran`, tone: Number(patron.todayGrossProfitTry || 0) >= 0 ? 'good' : 'danger', screenId: 'sales-invoice-list' },
-    { label: 'Açık hesap toplam', value: formatMoney(patron.customerReceivablesTry), detail: `${formatNumber(openAccountCustomerCount)} müşteri`, tone: 'warn', screenId: 'customer-list' },
+    { label: 'Toplam müşteri', value: formatKnownNumber(masterCounts.totalCustomers), detail: 'Cari kart sayısı', tone: 'info', screenId: 'customer-list' },
+    { label: 'Toplam ürün', value: formatKnownNumber(masterCounts.totalProducts), detail: 'Aktif barkodlu ürünler', tone: 'info', screenId: 'stock-list' },
+    { label: 'Günlük satış', value: formatMoney(patron.todaySalesTry), detail: numberDetail(patron.finalizedSalesToday, ' kesinleşen fiş'), tone: 'good', screenId: 'sales-invoice-list' },
+    { label: 'Günlük kâr', value: formatMoney(patron.todayGrossProfitTry), detail: numberDetail(profitRate, '% brüt oran'), tone: !isKnownNumber(grossProfitTry) ? 'info' : Number(grossProfitTry) >= 0 ? 'good' : 'danger', screenId: 'sales-invoice-list' },
+    { label: 'Açık hesap toplam', value: formatMoney(patron.customerReceivablesTry), detail: numberDetail(openAccountCustomerCount, ' müşteri'), tone: 'warn', screenId: 'customer-list' },
     { label: 'Romanya açık hesap', value: formatMoney(melisa.romaniaReceivablesTry), detail: melisa.romaniaSalesShare == null ? 'Ülke kırılımı sağlanmıyor' : `${formatNumber(melisa.romaniaSalesShare)}% satış payı`, tone: 'warn', screenId: 'customer-list' },
-    { label: 'Eksi stok uyarısı', value: formatNumber(patron.negativeStockCount), detail: 'Stok sıfırın altında', tone: Number(patron.negativeStockCount || 0) > 0 ? 'danger' : 'good', screenId: 'stock-list' },
+    { label: 'Eksi stok uyarısı', value: formatKnownNumber(patron.negativeStockCount), detail: 'Stok sıfırın altında', tone: !isKnownNumber(patron.negativeStockCount) ? 'info' : Number(patron.negativeStockCount) > 0 ? 'danger' : 'good', screenId: 'stock-list' },
     { label: 'WhatsApp dönüşleri', value: formatNumber(operations.whatsappRepliesToday), detail: `${formatNumber(operations.whatsappOrdersToday)} sipariş adayı`, tone: 'info', screenId: 'catalog-list' },
     { label: 'İlk 20 alacak', value: formatMoney(top20ReceivablesTry), detail: top20ReceivableShare == null ? 'Yoğunluk hesaplanamadı' : `${formatNumber(top20ReceivableShare)}% yoğunluk`, tone: 'danger', screenId: 'customer-list' },
     { label: 'Stokta fazla', value: formatKnownNumber(melisa.overstockProductCount), detail: 'Paylaşım/kampanya adayı', tone: 'info', screenId: 'stock-list' },
@@ -88,14 +103,14 @@ export function buildAccountingKpis(summary = emptyDashboardSummary) {
   const masterCounts = summary.masterCounts || {};
 
   return [
-    { label: 'Toplam müşteri', value: formatNumber(masterCounts.totalCustomers), detail: 'Cari kart sayısı', tone: 'info', screenId: 'customer-list' },
-    { label: 'Toplam ürün', value: formatNumber(masterCounts.totalProducts), detail: 'Aktif barkodlu ürünler', tone: 'info', screenId: 'stock-list' },
+    { label: 'Toplam müşteri', value: formatKnownNumber(masterCounts.totalCustomers), detail: 'Cari kart sayısı', tone: 'info', screenId: 'customer-list' },
+    { label: 'Toplam ürün', value: formatKnownNumber(masterCounts.totalProducts), detail: 'Aktif barkodlu ürünler', tone: 'info', screenId: 'stock-list' },
     { label: 'Günlük tahsilat', value: formatMoney(accounting.todayCollectionsTry), detail: 'İşlem TRY tutarı / dövizler ayrı', tone: 'info', screenId: 'collections-overview' },
     { label: 'Günlük ödeme', value: formatMoney(accounting.todayPaymentsTry), detail: 'İşlem TRY tutarı / dövizler ayrı', tone: 'info', screenId: 'collections-overview' },
-    { label: 'Borçlu cari sayısı', value: formatNumber(accounting.customerBalanceCount), detail: `${formatMoney(patron.customerReceivablesTry)} toplam`, tone: 'warn', screenId: 'customer-list' },
-    { label: 'Tedarikçi bakiye', value: formatNumber(accounting.supplierBalanceCount), detail: `${formatMoney(patron.supplierPayablesTry)} toplam`, tone: 'warn', screenId: 'supplier-list' },
-    { label: 'Son satış fişleri', value: formatNumber((accounting.recentSalesInvoices || []).length), detail: `${formatNumber(operations.salesDraftCount)} taslak açık`, tone: 'info', screenId: 'sales-invoice-list' },
-    { label: 'Son alış fişleri', value: formatNumber((accounting.recentPurchaseInvoices || []).length), detail: `${formatNumber(operations.purchaseDraftCount)} taslak açık`, tone: 'info', screenId: 'purchase-invoice-list' },
+    { label: 'Borçlu cari sayısı', value: formatKnownNumber(accounting.customerBalanceCount), detail: `${formatMoney(patron.customerReceivablesTry)} toplam`, tone: 'warn', screenId: 'customer-list' },
+    { label: 'Tedarikçi bakiye', value: formatKnownNumber(accounting.supplierBalanceCount), detail: `${formatMoney(patron.supplierPayablesTry)} toplam`, tone: 'warn', screenId: 'supplier-list' },
+    { label: 'Son satış fişleri', value: formatKnownNumber(listCount(accounting.recentSalesInvoices)), detail: numberDetail(operations.salesDraftCount, ' taslak açık'), tone: 'info', screenId: 'sales-invoice-list' },
+    { label: 'Son alış fişleri', value: formatKnownNumber(listCount(accounting.recentPurchaseInvoices)), detail: numberDetail(operations.purchaseDraftCount, ' taslak açık'), tone: 'info', screenId: 'purchase-invoice-list' },
     { label: 'Bugünkü toplam satış', value: formatMoney(patron.todaySalesTry), detail: 'Kesinleşen satış', tone: 'good', screenId: 'sales-invoice-list' },
     { label: 'Brüt kâr snapshot', value: formatMoney(patron.todayGrossProfitTry), detail: 'Satış satırı maliyet izi', tone: 'good', screenId: 'sales-invoice-list' },
   ];

@@ -2,6 +2,36 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPatronKpis, buildAccountingKpis, mapReceivables, mapAlerts } from '../../apps/web-admin/src/modules/dashboard/dashboardMetrics.js';
 const card=(rows,label)=>rows.find(row=>row.label===label);
+test('missing commercial counts and supporting details do not imply zero or healthy stock',()=>{
+  const rows=buildPatronKpis({});
+  for(const label of ['Toplam müşteri','Toplam ürün','Eksi stok uyarısı']) assert.equal(card(rows,label).value,'Veri yok');
+  for(const label of ['Günlük satış','Günlük kâr','Açık hesap toplam']) assert.equal(card(rows,label).detail,'Veri yok');
+  assert.equal(card(rows,'Eksi stok uyarısı').tone,'info');
+  assert.equal(card(rows,'Günlük kâr').tone,'info');
+  const accounting=buildAccountingKpis({});
+  for(const label of ['Borçlu cari sayısı','Tedarikçi bakiye','Son satış fişleri','Son alış fişleri']) assert.equal(card(accounting,label).value,'Veri yok');
+});
+test('explicit null and malformed metrics stay unavailable instead of falling back to another count',()=>{
+  for(const value of [null,'', '  ',true,[],{},'invalid',Infinity]) {
+    const rows=buildPatronKpis({masterCounts:{totalCustomers:value},patron:{todaySalesTry:value,negativeStockCount:value},melisa:{openAccountCustomerCount:value,todayProfitRate:value},accounting:{customerBalanceCount:42}});
+    assert.equal(card(rows,'Toplam müşteri').value,'Hesaplanamadı');
+    assert.equal(card(rows,'Günlük satış').value,'Hesaplanamadı');
+    assert.equal(card(rows,'Günlük kâr').detail,'Hesaplanamadı');
+    assert.equal(card(rows,'Açık hesap toplam').detail,'Hesaplanamadı');
+    assert.equal(card(rows,'Eksi stok uyarısı').tone,'info');
+  }
+});
+test('known zero counts and positive-sales zero profit remain valid; undefined margin is not zero',()=>{
+  const rows=buildPatronKpis({masterCounts:{totalCustomers:0,totalProducts:'0'},patron:{todaySalesTry:100,todayGrossProfitTry:0,finalizedSalesToday:0,negativeStockCount:0},accounting:{customerBalanceCount:0}});
+  assert.equal(card(rows,'Toplam müşteri').value,'0');
+  assert.equal(card(rows,'Toplam ürün').value,'0');
+  assert.equal(card(rows,'Günlük kâr').detail,'0% brüt oran');
+  assert.equal(card(rows,'Günlük satış').detail,'0 kesinleşen fiş');
+  assert.equal(card(rows,'Açık hesap toplam').detail,'0 müşteri');
+  assert.equal(card(rows,'Eksi stok uyarısı').tone,'good');
+  assert.equal(card(buildPatronKpis({patron:{todaySalesTry:0,todayGrossProfitTry:0}}),'Günlük kâr').detail,'Hesaplanamadı');
+  assert.equal(card(buildAccountingKpis({accounting:{recentSalesInvoices:[]}}),'Son satış fişleri').value,'0');
+});
 test('missing balance and concentration stay unknown despite ten known displayed rows',()=>{
   const rows=buildPatronKpis({patron:{customerReceivablesTry:null},melisa:{top20ReceivablesTry:null,top20ReceivableShare:null},receivables:Array(10).fill({balanceTry:100})});
   assert.equal(card(rows,'Açık hesap toplam').value,'Hesaplanamadı');
