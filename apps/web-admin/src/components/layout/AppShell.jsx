@@ -297,7 +297,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   }, [hasDirtyTabs]);
 
   return (
-    <div className={getShellClassName(isDemoMode, viewOptions)}>
+    <div className={getShellClassName(isDemoMode, viewOptions)} data-active-screen={activeTab.screenId ?? activeTab.id}>
       {isDemoMode && (
         <div className="demo-mode-banner">
           DEMO MODU: Gerçek veri bağlantıları kapalı; işlemler kaydedilmez
