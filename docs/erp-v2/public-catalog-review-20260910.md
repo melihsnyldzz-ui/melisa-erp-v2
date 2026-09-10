@@ -1,0 +1,9 @@
+# Public katalog fotoğraf politikası — 2026-09-10
+
+ERP public katalog yalnız güncel VERIFIED ve hash-bağlı görseli imageOnly=true listesine alır. Ham dosya kaydı onay değildir. imageOnly=false kayıtları tutar fakat onaysız fotoğraf boş döner. Public DTO özel alanları taşımaz. Vega hata verdiğinde eski SQL katalog fallback'i artık çalışmaz;503 PUBLIC_CATALOG_UNAVAILABLE döner. Eski SQL okuyucu kodu ayrı getLegacyPublicCatalogProducts adıyla korunur; HTTP route'a yeni bağlantısı yok. Mesajlaşma işlevleri değiştirilmedi.
+
+Sayfalama değişikliği: meta.total kaynak satır toplamıdır; paginationBasis=SOURCE_ROWS, scannedCount o sayfada taranan satır sayısı, imagePolicy=VERIFIED_IDENTITY_ONLY. imageCount yalnız dönen sayfadaki görsel sayısıdır (imageCountScope=PAGE). Tamamen gizlenen sayfa boş products ve pozitif scannedCount dönebilir; sonraki kaynak sayfası taranmalıdır. Boş registry total0/scannedCount0 döner.
+
+174 commerce testi PASS;157 API kaynak kökü sıfır tip tanısı; scoped lint ve web build PASS. Yeni3 test: filtre/count, tüm sayfa saklanması, gerçek public okuyucu fonksiyon gövdesinin source-error503 ve legacy-fallback'e geçmemesi. İlk test typecheck unknown tanısı object matcher ile düzeltildi; test/type yeniden geçti. Gerçek DB veya model çağrısı yok. Koruma66/2182/6/0.
+
+Önemli açık: Site adayının src/catalog.js toplamı hâlâ products.length ile karşılaştırıyor; boş filtreli sayfada durur. server/catalogGateway.js de yeni metadata ve verified-products yolunu henüz taşımıyor. Bu yüzden iki aday şu anda uçtan uca uyumlu DEĞİL ve yayınlanamaz. Sonraki güvenli iş site okuyucu/gateway/testlerini bu kontrata uyarlamak. Kaynak toplamı ve görünür toplam karıştırılmayacak. Canlı/merge/push/deploy yok, hedefIN_PROGRESS.

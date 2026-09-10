@@ -7,6 +7,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const files = [
   'productImageIdentity.test.mjs',
   'verifiedProductImage.test.mjs',
+  'publicCatalogImagePolicy.test.mjs',
   'auditMetadataEvents.test.js', 'productCustomsClassifier.test.js',
   'vegaProductImageMatchPolicy.test.js', 'vegaProductImageService.test.js',
   'vegaProductIntelligenceService.test.js', 'vegaProductProfitabilityService.test.js',

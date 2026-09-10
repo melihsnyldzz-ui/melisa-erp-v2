@@ -10,6 +10,8 @@ import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { getVegaProductsListFromWorker } from './vegaProductClientService.js';
 import { getActiveVegaProductImageSourceIds, getVegaProductImageMap } from './vegaProductImageService.js';
+import { getPresentableProductImages } from './productImageIdentity.mjs';
+import { projectReviewedPublicCatalog } from './publicCatalogImagePolicy.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -625,20 +627,9 @@ export async function getPublicCatalogProducts(query = {}) {
     const imageOnly = String(query.imageOnly ?? 'true').toLowerCase() !== 'false';
     const imageSourceIds = imageOnly ? await getActiveVegaProductImageSourceIds() : [];
 
-    // A public B2B catalog must not leak empty image slots. The source IDs come
-    // from the ERP's active primary-image registry, never from price data.
+    // Registration bounds the source scan; publication still requires identity review.
     if (imageOnly && imageSourceIds.length === 0) {
-      return {
-        products: [],
-        meta: {
-          source: 'vega-public-catalog',
-          imageOnly: true,
-          imageCount: 0,
-          publicFieldsOnly: true,
-          pricesIncluded: false,
-          barcodesIncluded: false,
-        },
-      };
+      return projectReviewedPublicCatalog([], { total: 0, page: Number(query.page) || 1 }, new Map(), toPublicVegaCatalogProductDto, true);
     }
 
     const result = await getVegaProductsListFromWorker({
@@ -649,28 +640,15 @@ export async function getPublicCatalogProducts(query = {}) {
     });
     const rows = result.data || [];
     const imageMap = await getVegaProductImageMap(rows.map((product) => product.sourceId));
-
-    return {
-      products: rows.map((product) =>
-        toPublicVegaCatalogProductDto(
-          product,
-          imageMap.get(Number(product.sourceId)) || '',
-        ),
-      ),
-      meta: {
-        ...(result.meta || {}),
-        source: 'vega-public-catalog',
-        imageOnly,
-        imageCount: imageOnly ? imageSourceIds.length : undefined,
-        publicFieldsOnly: true,
-        pricesIncluded: false,
-        barcodesIncluded: false,
-      },
-    };
+    const presentation = await getPresentableProductImages(rows, imageMap);
+    return projectReviewedPublicCatalog(rows, result.meta || {}, presentation, toPublicVegaCatalogProductDto, imageOnly);
   } catch {
-    // Keep the existing public catalog as a compatibility fallback while Vega is unavailable.
+    throw makeServiceError('PUBLIC_CATALOG_UNAVAILABLE', 'Public catalog source could not be verified', 503);
   }
+}
 
+// Retained for explicit legacy maintenance; never an automatic public fallback.
+export async function getLegacyPublicCatalogProducts(query = {}) {
   const pool = await getSqlPool();
   const search = trimText(query.search);
   const brand = trimText(query.brand);
