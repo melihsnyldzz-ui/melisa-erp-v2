@@ -7,6 +7,7 @@
     "lint": "eslint apps/api/src apps/web-admin/src apps/terminal-app/src apps/terminal-app/App.js apps/desktop/src",
     "typecheck": "node scripts/quality/typecheck.mjs",
     "test:commerce": "node scripts/quality/test-commerce.mjs",
+    "test:external-stock-http": "node --experimental-vm-modules --test scripts/quality/external-stock-http.test.mjs",
     "test:web-commerce": "node scripts/quality/test-web-commerce.mjs",
     "test:terminal-commerce": "node scripts/quality/test-terminal-commerce.mjs"
   },
