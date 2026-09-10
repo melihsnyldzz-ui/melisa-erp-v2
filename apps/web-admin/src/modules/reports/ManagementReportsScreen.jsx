@@ -8,7 +8,7 @@ function formatMoney(amount, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 4,
   }).format(Number(amount || 0));
 }
 
