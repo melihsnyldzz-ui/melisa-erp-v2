@@ -5,6 +5,7 @@ import path from 'node:path';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 // Explicit reviewed list: no message, transport, live SQL, or write-smoke suites.
 const files = [
+  'productImageIdentity.test.mjs',
   'auditMetadataEvents.test.js', 'productCustomsClassifier.test.js',
   'vegaProductImageMatchPolicy.test.js', 'vegaProductImageService.test.js',
   'vegaProductIntelligenceService.test.js', 'vegaProductProfitabilityService.test.js',

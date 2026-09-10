@@ -82,6 +82,7 @@ async function harness(options = {}) {
     './customerService.js': { getCustomersList: () => { throw new Error('Unrelated customer read'); } },
     './vegaProductClientService.js': { getVegaProductsListFromWorker: () => { throw new Error('Vega access forbidden in submit'); } },
     './vegaProductImageService.js': { getVegaProductImageMap: () => { throw new Error('Vega access forbidden in submit'); } },
+    './productImageIdentity.mjs': { getPresentableProductImages: () => { throw new Error('Image review access forbidden in submit'); } },
     './auditService.js': { writeAuditLog: async (request, record) => { assert.ok(request instanceof Request); check('audit'); assert.equal(record.afterSnapshot.terminalSyncLedgerId, 11); } },
     './invoiceDraftService.js': {
       prepareSalesInvoiceFinalization: async c => { assertContext(c); check('prepare'); },

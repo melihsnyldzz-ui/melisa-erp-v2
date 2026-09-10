@@ -22,6 +22,7 @@ import { createSalesDraft, finalizeSalesInvoice, getSalesDraft, prepareSalesInvo
 import { getCustomersList } from './customerService.js';
 import { getVegaProductsListFromWorker } from './vegaProductClientService.js';
 import { getVegaProductImageMap } from './vegaProductImageService.js';
+import { getPresentableProductImages } from './productImageIdentity.mjs';
 
 
 
@@ -550,11 +551,12 @@ export async function searchTerminalProducts(query = {}) {
   });
   const sourceIds = result.data.map((product) => Number(product.sourceId));
   const imageMap = await getVegaProductImageMap(sourceIds);
+  const presentable = await getPresentableProductImages(result.data, imageMap);
 
   return {
     data: result.data.map((product) => ({
       ...product,
-      imageUrl: imageMap.get(Number(product.sourceId)) || product.imageUrl || null,
+      ...presentable.get(Number(product.sourceId)),
       saleWritable: false,
     })),
     meta: {
@@ -595,9 +597,10 @@ export async function getTerminalProductByBarcode(barcode) {
   }
 
   const imageMap = await getVegaProductImageMap([Number(product.sourceId)]);
+  const presentable = await getPresentableProductImages([product], imageMap);
   return {
     ...product,
-    imageUrl: imageMap.get(Number(product.sourceId)) || product.imageUrl || null,
+    ...presentable.get(Number(product.sourceId)),
     saleWritable: false,
   };
 }

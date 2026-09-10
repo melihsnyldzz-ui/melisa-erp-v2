@@ -1,0 +1,11 @@
+# ERP fotoğraf kimliği tüketimi — 2026-09-10
+
+PDF katalog imageUsage=catalog ile yetkili Vega GET yolunu kullanır. Bu projeksiyon ve terminal arama/barkod yanıtları yalnız VERIFIED, aynı SKU/ad/marka/kategori/aktiflik/URL ve güncel dosya SHA-256 eşleşmesinde görsel sunar. CONFLICT, STALE, UNREVIEWED, INACTIVE, UNAVAILABLE durumlarında imageUrl null olur; eski worker fallback geri getirilmez. Ham varsayılan ürün API görüntüsü analiz kaynağı için korunur, Product Brain geri çağrı döngüsü yaratılmaz. Fiyat/stok ürün alanları değiştirilmez.
+
+PB_IMAGE_IDENTITY_ENABLED=true ve mevcut PB_EVENT_KEY_PATH gerekir; ayarsız/kapalı serviste fotoğraflar gösterilmez. Ürün listeleme devam eder. Yalnız loopback4324 signed POST, 1500ms HTTP süresi, 1MiB yanıt, 500 benzersiz kimlik sınırı. Yerel görsel okuması sabit uploads/vega-products kökünde 3MiB sınırıyla yapılır. Gerçek ayar veya derived DB değiştirilmedi; canlı devreye alınmadı.
+
+168 commerce test, 12 PDF test, web-commerce pack PASS. API154 ve web187 kaynak kökü typecheck sıfır tanı; scoped ESLint ve Vite build PASS. Mevcut lucide/bundle uyarıları sürüyor. İlk test bağımlılık izin listesi hatası düzeltildi; satış submit testinde yeni okuyucu çağrısı yasak kalır. 6 yerel gerçek HTTP isteğiyle Product Brain server → ERP reader → PDF HTML zinciri sentetik veri ve hash ile doğrulandı; UNREVIEWED/CONFLICT/STALE/offline fotoğraf içermez, VERIFIED içerir. Port adaptörü kullanıldı, gerçek model/ERP/veri yazması yok. Sunucu kapatıldı. Kaynak koruma66/2182/6/0.
+
+Açık: public katalog/site henüz bu filtreyi tüketmez. PDF seçimi ile yazdırma arasında tazelik yeniden kontrolü ve güncel browser/cihaz kabulü yapılmalı. Görsel URL'sinin kontrol sonrası yerinde değiştirilmesi için immutable/proxy teslim stratejisi açık. Önceki PDF örnekleri bu yeni politikanın kabul kanıtı değildir. Fotoğrafı olmayan ile inceleme nedeniyle saklanan kaydın UI açıklaması iyileştirilmeli. Bu iş uçtan uca tamamlandı sayılmaz; genel hedef IN_PROGRESS.
+
+Kanıt: Development OS audit/commerce-no-messaging-20260908/image-consumer-integration/http-acceptance.json. Yenilenen index8831/27874; mevcut28parsepartial başka dosyalarda; değişen kaynaklar doğrudan incelendi.

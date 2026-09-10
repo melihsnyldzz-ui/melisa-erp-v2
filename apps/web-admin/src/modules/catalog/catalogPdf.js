@@ -30,7 +30,7 @@ export function toCatalogProduct(row, apiBase) {
   return {
     id: String(sourceId), code: text(row.stockCode), name: text(row.productName),
     brand: text(row.brand), category: text(row.specialCodes?.KOD4 || row.category),
-    image: catalogImageUrl(row.imageUrl, apiBase),
+    image: row.imageIdentityStatus === 'VERIFIED' ? catalogImageUrl(row.imageUrl, apiBase) : '',
     price: price !== null && price > 0 && /^[A-Z]{3}$/.test(currency) && row.currencyTrustState === 'TRUSTED' && row.currencySource === 'ERP_SALE_UNIT' ? price : null,
     currency: /^[A-Z]{3}$/.test(currency) ? currency : '',
     stock: number(row.stockQuantity),

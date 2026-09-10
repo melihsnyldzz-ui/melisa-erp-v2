@@ -30,7 +30,7 @@ export function CatalogPdfScreen() {
     setLoading(true);
     setError('');
     setResult({ rows: [], total: 0, pages: 1 });
-    fetchVegaProducts({ ...query, limit: 48, activeOnly: true }).then(response => {
+    fetchVegaProducts({ ...query, limit: 48, activeOnly: true, imageUsage: 'catalog' }).then(response => {
       if (!current) return;
       const rows = response.data.map(row => toCatalogProduct(row, API_BASE_URL));
       if (new Set(rows.map(row => row.id)).size !== rows.length) throw new Error('Ürün sayfasında tekrar eden kayıt var. Yeniden deneyin.');

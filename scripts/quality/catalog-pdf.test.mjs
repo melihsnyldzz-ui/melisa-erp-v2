@@ -1,8 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CATALOG_LAYOUTS, catalogPages, buildCatalogHtml, catalogImageUrl, toCatalogProduct, catalogPrice } from '../../apps/web-admin/src/modules/catalog/catalogPdf.js';
-const raw={sourceId:12,stockCode:'Ş-12',productName:'İğne & Örgü',brand:'Marka',salePrice:12.5,currency:'USD',currencyTrustState:'TRUSTED',currencySource:'ERP_SALE_UNIT',stockQuantity:-2,imageUrl:'http://host.docker.internal:4100/uploads/vega-products/12.jpg',purchasePrice:99,customer:'private'};
+const raw={imageIdentityStatus:'VERIFIED',sourceId:12,stockCode:'Ş-12',productName:'İğne & Örgü',brand:'Marka',salePrice:12.5,currency:'USD',currencyTrustState:'TRUSTED',currencySource:'ERP_SALE_UNIT',stockQuantity:-2,imageUrl:'http://host.docker.internal:4100/uploads/vega-products/12.jpg',purchasePrice:99,customer:'private'};
 const product=toCatalogProduct(raw,'http://127.0.0.1:4100');
+
+test('catalog excludes blocked, unavailable and legacy images even when raw URLs remain',()=>{
+  for(const imageIdentityStatus of ['CONFLICT','STALE','UNREVIEWED','UNAVAILABLE',undefined]) {
+    const projected=toCatalogProduct({...raw,imageIdentityStatus},'http://127.0.0.1:4100');
+    assert.equal(projected.image,'');
+    assert.ok(!buildCatalogHtml({products:[projected]}).includes('<img '));
+    assert.equal(projected.price,12.5);
+  }
+});
 test('projects only catalog fields and retains trusted price, currency and negative stock',()=>{assert.equal(product.price,12.5);assert.equal(product.currency,'USD');assert.equal(product.stock,-2);assert.equal(product.purchasePrice,undefined);assert.equal(product.customer,undefined);assert.match(product.image,/127.0.0.1/);});
 test('unknown, zero and untrusted prices are never silently TRY or zero',()=>{for(const patch of [{salePrice:null},{salePrice:''},{salePrice:0},{currency:''},{currencyTrustState:'UNTRUSTED'},{currencySource:'DEFAULT'}]){const p=toCatalogProduct({...raw,...patch},'http://127.0.0.1:4100');assert.equal(p.price,null);assert.equal(catalogPrice(p),'Fiyat teyit edilecek');}});
 test('identity gaps fail closed',()=>{assert.throws(()=>toCatalogProduct({...raw,sourceId:null},'http://localhost'));assert.throws(()=>toCatalogProduct({...raw,productName:''},'http://localhost'));});
