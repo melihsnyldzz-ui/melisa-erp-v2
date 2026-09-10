@@ -5,6 +5,7 @@ import path from 'node:path';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 // Explicit reviewed list: no message, transport, live SQL, or write-smoke suites.
 const files = [
+  'externalReadOnlyStockService.test.js',
   'productImageIdentity.test.mjs',
   'verifiedProductImage.test.mjs',
   'publicCatalogImagePolicy.test.mjs',
