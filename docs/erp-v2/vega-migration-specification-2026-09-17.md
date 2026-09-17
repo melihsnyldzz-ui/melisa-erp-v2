@@ -130,7 +130,15 @@ Yedek öncesi hedef iş tablolarının plan snapshot'ıyla aynı olduğu doğrul
 Restore yapılmadı. Terminal fişleri `10059`, `10060`, `10061` ve kuyruk kayıtları
 koruma manifestinde bulunuyor; hiçbir iş verisi yazılmadı.
 
-## Tamamlanmamış zorunlu işler
+## 17.09.2026 ek kesin kural: 2026 cari açılışı
+
+01.01.2026 müşteri/tedarikçi bakiyesinde Vega'nın açık devir kaydı esas alınır.
+2020–2025 geçmişi değiştirilmez; fark her cari ve döviz için kaynak açılışa bağlı
+`Vega 2026 Devir Düzeltmesi` hareketiyle tamamlanır. Dövizler çevrilmez, devir
+ikinci kez sayılmaz. Açılış kaydı yokluğu sıfır kabul edilmez.
+TEST uygulaması ve kapsamı: [2026 açılış patch raporu](vega-2026-opening-patch-2026-09-17.md).
+
+## İlk şartname arşivi sırasında tamamlanmamış zorunlu işler
 
 1. Tek müşteri/tedarikçi altında bağımsız döviz hesaplarını destekleyen native
    şema ve servisler; mevcut kartta tek `currency_code` ve `balance` bulunuyor.
