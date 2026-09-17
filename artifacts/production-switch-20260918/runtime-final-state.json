@@ -1,0 +1,74 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T22:09:48.6514580Z",
+  "tasks": [
+    {
+      "name": "Melisa-Production-20260918-Runtime",
+      "state": "Running",
+      "enabled": true,
+      "user": "Xaser",
+      "logonType": "Interactive",
+      "action": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"C:\\do-wt\\melisa-production-20260918\\start-production.ps1\" -Watch"
+    },
+    {
+      "name": "Melisa-Production-Candidate-NightlyBackup",
+      "state": "Ready",
+      "enabled": true,
+      "user": "Xaser",
+      "logonType": "Interactive",
+      "action": "C:\\Program Files\\nodejs\\node.exe \"C:\\do-wt\\melisa-production-20260918\\apps\\api\\backup-production-candidate.mjs\""
+    },
+    {
+      "name": "Melisa-Pilot-20260913-Runtime",
+      "state": "Disabled",
+      "enabled": false,
+      "user": "Xaser",
+      "logonType": "Interactive",
+      "action": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"C:\\do-wt\\melisa-pilot-20260913\\scripts\\pilot\\start-pilot.ps1\" -Watch -WebRoot \"C:\\do-wt\\melisa-pilot-20260913\\apps\\web-admin\\dist-operation-links-candidate-20260916\" -NativeConfig \"C:\\Users\\Xaser\\AppData\\Local\\MelisaERPServer\\native-terminal-private\\native-config.json\""
+    },
+    {
+      "name": "Melisa Vega Terminal API",
+      "state": "Disabled",
+      "enabled": false,
+      "user": "Xaser",
+      "logonType": "Interactive",
+      "action": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -File \"C:\\do-wt\\terminal-release-20260912\\scripts\\start-terminal-host.ps1\" -ConfigPath \"C:\\Users\\Xaser\\Documents\\Codex\\2026-05-20\\melisa-mini-erp-temiz-repoyu-bu\\melisa-erp-v2\\apps\\api\\.env.local\" -ProfilePath \"C:\\do-wt\\terminal-release-20260912\\output\\terminal-runtime-private\\armada-profile.json\""
+    },
+    {
+      "name": "MelisaERP-V2-NightlyVerifiedBackup",
+      "state": "Ready",
+      "enabled": true,
+      "user": "Xaser",
+      "logonType": "S4U",
+      "action": "C:\\Program Files\\nodejs\\node.exe \"C:\\do-wt\\erp-final-closeout-20260911\\scripts\\backup-erp-production.mjs\" --execute --confirm=MELISA_ERP_V2_BACKUP_AL"
+    }
+  ],
+  "erp": {
+    "ok": true,
+    "databaseName": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+    "loginName": "melisa_production_runtime_20260918",
+    "sysadmin": 0,
+    "databaseControl": 0,
+    "canInsertSales": 1,
+    "canAlterSales": 0
+  },
+  "terminal": {
+    "ok": true,
+    "databaseName": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+    "loginName": "melisa_production_runtime_20260918",
+    "sysadmin": 0,
+    "databaseControl": 0,
+    "canInsertSales": 1,
+    "canAlterSales": 0
+  },
+  "web": {
+    "statusCode": 200
+  },
+  "oldLiveUnchanged": {
+    "salesInvoices": true,
+    "terminalEvents": true,
+    "audits": true,
+    "stockMovements": true,
+    "customerMovements": true
+  }
+}

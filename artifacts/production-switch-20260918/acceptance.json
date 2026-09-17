@@ -1,0 +1,134 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T22:15:07.644Z",
+  "candidate": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+  "schemaParity": {
+    "differences": 0,
+    "status": "PASS"
+  },
+  "stock": {
+    "compared": 16492,
+    "unknown": 13,
+    "rawDifferences": 131,
+    "approvedCorrectionDifferences": 131,
+    "unexplainedDifferences": 0,
+    "status": "PASS"
+  },
+  "stockAudit3": {
+    "included": true,
+    "rows": 131,
+    "products": 131,
+    "quantity": 12464,
+    "financeAmount": 0,
+    "audits": 131,
+    "replayNewEffects": 0,
+    "sourceWrites": {
+      "live": 0,
+      "acceptedTest": 0
+    }
+  },
+  "partyCurrency": {
+    "accountsCompared": 1044,
+    "nonzeroDifferences": 0,
+    "status": "PASS"
+  },
+  "duplicate": {
+    "sales_docs": 0,
+    "purchase_docs": 0,
+    "customer_effects": 0,
+    "supplier_effects": 0,
+    "stock_effects": 0,
+    "finance_effects": 0,
+    "terminal_events": 0,
+    "httpSecondEffects": 0,
+    "httpStatus": 409,
+    "httpCode": "ALREADY_FINALIZED",
+    "status": "PASS"
+  },
+  "terminal": {
+    "acceptedEvents": 8,
+    "candidateEvents": 11,
+    "acceptedHash": "7ea26845ef8fa412a0d80fbf41a36f3899b469179d133ed34cf4416c06e7f1f1",
+    "preservedHash": "7ea26845ef8fa412a0d80fbf41a36f3899b469179d133ed34cf4416c06e7f1f1",
+    "preserved": true,
+    "smokeEventId": "1e802899-f0c6-4fd0-97d4-6fa7691032d6",
+    "smokeStatus": "cancelled"
+  },
+  "roleLogins": [
+    {
+      "label": "Personel",
+      "username": "c1.personel",
+      "status": 200,
+      "authenticated": true,
+      "role": "terminal_user"
+    },
+    {
+      "label": "Müdür",
+      "username": "c1.mudur",
+      "status": 200,
+      "authenticated": true,
+      "role": "owner_manager"
+    },
+    {
+      "label": "Patron",
+      "username": "c1.patron",
+      "status": 200,
+      "authenticated": true,
+      "role": "admin"
+    }
+  ],
+  "terminalLogin": {
+    "username": "ahmet",
+    "status": 200,
+    "authenticated": true,
+    "terminalCode": "TERM-V2-001"
+  },
+  "httpSmoke": {
+    "status": "PASS",
+    "invoiceId": 34463,
+    "documentNo": "MN-1e802899f0c64fd097d46fa769",
+    "total": 0.22,
+    "currency": "USD",
+    "finalize": 200,
+    "duplicate": 409,
+    "cancel": 200,
+    "reversal": true
+  },
+  "runtime": {
+    "status": "PASS",
+    "identity": {
+      "ok": true,
+      "runId": "PRODUCTION-SWITCH-20260918-01",
+      "releaseId": "melisa-production-20260918",
+      "databaseName": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+      "serverName": "Semih\\MELISADEV",
+      "loginName": "melisa_production_runtime_20260918",
+      "databaseUser": "melisa_app_production",
+      "sysadmin": 0,
+      "databaseControl": 0,
+      "canInsertSales": 1,
+      "canAlterSales": 0,
+      "mode": "native",
+      "port": 4116
+    }
+  },
+  "credentialAlignmentAuditCount": 4,
+  "activeTransientSessions": 2,
+  "rollback": {
+    "status": "PASS",
+    "sizeBytes": 6667341824,
+    "metadataSha256": "74c4f4fc089aae10cd1c3f8930a29a78b964f2fde8ee3be0d0bab66212acfa0d",
+    "restoreVerifyOnly": "PASS"
+  },
+  "sourceIntegrity": {
+    "status": "PASS",
+    "live_invoice": 1,
+    "live_event": 1,
+    "test_invoice": 0,
+    "test_event": 0,
+    "candidate_invoice": 1,
+    "candidate_event": 1
+  },
+  "goLiveBlockers": [],
+  "productionPromotion": "PASS"
+}

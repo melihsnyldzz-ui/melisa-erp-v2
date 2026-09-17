@@ -1,0 +1,46 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T22:09:21.435Z",
+  "mode": "READ_ONLY_DELTA_CLASSIFICATION",
+  "snapshotCutoff": "2026-09-16T11:31:20.000",
+  "live2AcceptedAt": "2026-09-17T19:52:47.984",
+  "current": {
+    "new_sales": "0",
+    "new_terminal": "0",
+    "new_audits": "0",
+    "latest_sale": "2026-09-17T11:00:03.000Z",
+    "latest_terminal": "2026-09-17T11:00:03.000Z",
+    "latest_audit": "2026-09-17T11:00:15.000Z"
+  },
+  "classifications": {
+    "historicalBeforeAcceptedSnapshot": {
+      "salesInvoices": 21,
+      "terminalEvents": 19,
+      "economicTreatment": "Effects already represented by accepted snapshot; document relations intentionally excluded by LIVE2 decision."
+    },
+    "mappedMergeAudits": {
+      "sourceRows": 6,
+      "candidateRows": 6,
+      "documentNo": "MN-161137ab5dd7473395198aa822"
+    },
+    "candidateCredentialAuthority": {
+      "sourcePasswordDifferences": 1,
+      "usernames": [
+        "ahmet"
+      ],
+      "basis": "LIVE3 candidate interactive login PASS; role and active state unchanged."
+    },
+    "newSinceLive2Acceptance": {
+      "salesInvoices": 0,
+      "terminalEvents": 0,
+      "audits": 0
+    }
+  },
+  "sourceWrites": {
+    "live": 0,
+    "candidate": 0,
+    "vega": 0
+  },
+  "blockers": [],
+  "status": "PASS"
+}

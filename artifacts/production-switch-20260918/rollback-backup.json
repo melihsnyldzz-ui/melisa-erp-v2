@@ -1,0 +1,12 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "createdAt": "2026-09-17T21:42:01.692Z",
+  "server": "Semih\\MELISADEV",
+  "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+  "file": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Backup\\PRODUCTION-SWITCH-20260918-01-MELISA_ERP_PROD_CANDIDATE_20260917_01-PRE-SWITCH-COPY_ONLY.bak",
+  "sizeBytes": 6667341824,
+  "metadataSha256": "74c4f4fc089aae10cd1c3f8930a29a78b964f2fde8ee3be0d0bab66212acfa0d",
+  "checksum": true,
+  "restoreVerifyOnly": "PASS",
+  "backupType": "Database"
+}

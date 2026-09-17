@@ -1,0 +1,138 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T21:54:31.763Z",
+  "endpoint": "http://192.168.1.46:4114",
+  "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+  "roleChecks": [
+    {
+      "label": "Personel",
+      "username": "c1.personel",
+      "loginStatus": 200,
+      "meStatus": 200,
+      "authenticated": true,
+      "role": "terminal_user",
+      "permissionCount": 6
+    },
+    {
+      "label": "Müdür",
+      "username": "c1.mudur",
+      "loginStatus": 200,
+      "meStatus": 200,
+      "authenticated": true,
+      "role": "owner_manager",
+      "permissionCount": 41
+    },
+    {
+      "label": "Patron",
+      "username": "c1.patron",
+      "loginStatus": 200,
+      "meStatus": 200,
+      "authenticated": true,
+      "role": "admin",
+      "permissionCount": 35
+    }
+  ],
+  "endpointChecks": [
+    {
+      "name": "sales",
+      "path": "/api/sales-invoices?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 0,
+      "errorCode": null
+    },
+    {
+      "name": "purchase",
+      "path": "/api/purchase-invoices?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 0,
+      "errorCode": null
+    },
+    {
+      "name": "customers",
+      "path": "/api/customers?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 100,
+      "errorCode": null
+    },
+    {
+      "name": "products",
+      "path": "/api/products?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 100,
+      "errorCode": null
+    },
+    {
+      "name": "collectionsPaymentsAccounts",
+      "path": "/api/finance/accounts?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 19,
+      "errorCode": null
+    },
+    {
+      "name": "collectionsPaymentsMovements",
+      "path": "/api/finance/movements?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 100,
+      "errorCode": null
+    },
+    {
+      "name": "financeSummary",
+      "path": "/api/finance/summary",
+      "status": 200,
+      "ok": true,
+      "returnedRows": null,
+      "errorCode": null
+    },
+    {
+      "name": "audit",
+      "path": "/api/audit/logs?page=1&pageSize=5",
+      "status": 200,
+      "ok": true,
+      "returnedRows": 100,
+      "errorCode": null
+    },
+    {
+      "name": "auditCoverage",
+      "path": "/api/audit/coverage",
+      "status": 200,
+      "ok": true,
+      "returnedRows": null,
+      "errorCode": null
+    },
+    {
+      "name": "permissions",
+      "path": "/api/auth-admin/overview",
+      "status": 200,
+      "ok": true,
+      "returnedRows": null,
+      "errorCode": null
+    },
+    {
+      "name": "sqlHealth",
+      "path": "/api/sql/health",
+      "status": 200,
+      "ok": true,
+      "returnedRows": null,
+      "errorCode": null
+    },
+    {
+      "name": "monitoring",
+      "path": "/api/monitoring/summary",
+      "status": 200,
+      "ok": true,
+      "returnedRows": null,
+      "errorCode": null
+    }
+  ],
+  "webRuntime": {
+    "url": "http://192.168.1.46:5188",
+    "expectedBackend": "http://192.168.1.46:4114"
+  },
+  "status": "PASS"
+}

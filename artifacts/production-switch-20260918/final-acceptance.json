@@ -1,0 +1,377 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T22:15:07.644Z",
+  "candidate": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+  "schemaParity": {
+    "differences": 0,
+    "status": "PASS"
+  },
+  "stock": {
+    "compared": 16492,
+    "unknown": 13,
+    "rawDifferences": 131,
+    "approvedCorrectionDifferences": 131,
+    "unexplainedDifferences": 0,
+    "status": "PASS"
+  },
+  "stockAudit3": {
+    "included": true,
+    "rows": 131,
+    "products": 131,
+    "quantity": 12464,
+    "financeAmount": 0,
+    "audits": 131,
+    "replayNewEffects": 0,
+    "sourceWrites": {
+      "live": 0,
+      "acceptedTest": 0
+    }
+  },
+  "partyCurrency": {
+    "accountsCompared": 1044,
+    "nonzeroDifferences": 0,
+    "status": "PASS"
+  },
+  "duplicate": {
+    "sales_docs": 0,
+    "purchase_docs": 0,
+    "customer_effects": 0,
+    "supplier_effects": 0,
+    "stock_effects": 0,
+    "finance_effects": 0,
+    "terminal_events": 0,
+    "httpSecondEffects": 0,
+    "httpStatus": 409,
+    "httpCode": "ALREADY_FINALIZED",
+    "status": "PASS"
+  },
+  "terminal": {
+    "acceptedEvents": 8,
+    "candidateEvents": 11,
+    "acceptedHash": "7ea26845ef8fa412a0d80fbf41a36f3899b469179d133ed34cf4416c06e7f1f1",
+    "preservedHash": "7ea26845ef8fa412a0d80fbf41a36f3899b469179d133ed34cf4416c06e7f1f1",
+    "preserved": true,
+    "smokeEventId": "1e802899-f0c6-4fd0-97d4-6fa7691032d6",
+    "smokeStatus": "cancelled"
+  },
+  "roleLogins": [
+    {
+      "label": "Personel",
+      "username": "c1.personel",
+      "status": 200,
+      "authenticated": true,
+      "role": "terminal_user"
+    },
+    {
+      "label": "Müdür",
+      "username": "c1.mudur",
+      "status": 200,
+      "authenticated": true,
+      "role": "owner_manager"
+    },
+    {
+      "label": "Patron",
+      "username": "c1.patron",
+      "status": 200,
+      "authenticated": true,
+      "role": "admin"
+    }
+  ],
+  "terminalLogin": {
+    "username": "ahmet",
+    "status": 200,
+    "authenticated": true,
+    "terminalCode": "TERM-V2-001"
+  },
+  "httpSmoke": {
+    "status": "PASS",
+    "invoiceId": 34463,
+    "documentNo": "MN-1e802899f0c64fd097d46fa769",
+    "total": 0.22,
+    "currency": "USD",
+    "finalize": 200,
+    "duplicate": 409,
+    "cancel": 200,
+    "reversal": true
+  },
+  "runtime": {
+    "status": "PASS",
+    "identity": {
+      "ok": true,
+      "runId": "PRODUCTION-SWITCH-20260918-01",
+      "releaseId": "melisa-production-20260918",
+      "databaseName": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+      "serverName": "Semih\\MELISADEV",
+      "loginName": "melisa_production_runtime_20260918",
+      "databaseUser": "melisa_app_production",
+      "sysadmin": 0,
+      "databaseControl": 0,
+      "canInsertSales": 1,
+      "canAlterSales": 0,
+      "mode": "native",
+      "port": 4116
+    }
+  },
+  "credentialAlignmentAuditCount": 4,
+  "activeTransientSessions": 2,
+  "rollback": {
+    "status": "PASS",
+    "sizeBytes": 6667341824,
+    "metadataSha256": "74c4f4fc089aae10cd1c3f8930a29a78b964f2fde8ee3be0d0bab66212acfa0d",
+    "restoreVerifyOnly": "PASS"
+  },
+  "sourceIntegrity": {
+    "status": "PASS",
+    "live_invoice": 1,
+    "live_event": 1,
+    "test_invoice": 0,
+    "test_event": 0,
+    "candidate_invoice": 1,
+    "candidate_event": 1
+  },
+  "goLiveBlockers": [],
+  "productionPromotion": "PASS",
+  "erpApiSmoke": {
+    "runId": "PRODUCTION-SWITCH-20260918-01",
+    "generatedAt": "2026-09-17T21:54:31.763Z",
+    "endpoint": "http://192.168.1.46:4114",
+    "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+    "roleChecks": [
+      {
+        "label": "Personel",
+        "username": "c1.personel",
+        "loginStatus": 200,
+        "meStatus": 200,
+        "authenticated": true,
+        "role": "terminal_user",
+        "permissionCount": 6
+      },
+      {
+        "label": "Müdür",
+        "username": "c1.mudur",
+        "loginStatus": 200,
+        "meStatus": 200,
+        "authenticated": true,
+        "role": "owner_manager",
+        "permissionCount": 41
+      },
+      {
+        "label": "Patron",
+        "username": "c1.patron",
+        "loginStatus": 200,
+        "meStatus": 200,
+        "authenticated": true,
+        "role": "admin",
+        "permissionCount": 35
+      }
+    ],
+    "endpointChecks": [
+      {
+        "name": "sales",
+        "path": "/api/sales-invoices?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 0,
+        "errorCode": null
+      },
+      {
+        "name": "purchase",
+        "path": "/api/purchase-invoices?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 0,
+        "errorCode": null
+      },
+      {
+        "name": "customers",
+        "path": "/api/customers?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 100,
+        "errorCode": null
+      },
+      {
+        "name": "products",
+        "path": "/api/products?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 100,
+        "errorCode": null
+      },
+      {
+        "name": "collectionsPaymentsAccounts",
+        "path": "/api/finance/accounts?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 19,
+        "errorCode": null
+      },
+      {
+        "name": "collectionsPaymentsMovements",
+        "path": "/api/finance/movements?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 100,
+        "errorCode": null
+      },
+      {
+        "name": "financeSummary",
+        "path": "/api/finance/summary",
+        "status": 200,
+        "ok": true,
+        "returnedRows": null,
+        "errorCode": null
+      },
+      {
+        "name": "audit",
+        "path": "/api/audit/logs?page=1&pageSize=5",
+        "status": 200,
+        "ok": true,
+        "returnedRows": 100,
+        "errorCode": null
+      },
+      {
+        "name": "auditCoverage",
+        "path": "/api/audit/coverage",
+        "status": 200,
+        "ok": true,
+        "returnedRows": null,
+        "errorCode": null
+      },
+      {
+        "name": "permissions",
+        "path": "/api/auth-admin/overview",
+        "status": 200,
+        "ok": true,
+        "returnedRows": null,
+        "errorCode": null
+      },
+      {
+        "name": "sqlHealth",
+        "path": "/api/sql/health",
+        "status": 200,
+        "ok": true,
+        "returnedRows": null,
+        "errorCode": null
+      },
+      {
+        "name": "monitoring",
+        "path": "/api/monitoring/summary",
+        "status": 200,
+        "ok": true,
+        "returnedRows": null,
+        "errorCode": null
+      }
+    ],
+    "webRuntime": {
+      "url": "http://192.168.1.46:5188",
+      "expectedBackend": "http://192.168.1.46:4114"
+    },
+    "status": "PASS"
+  },
+  "stockAudit4": {
+    "status": "PASS",
+    "runId": "STOCK-AUDIT-4-UNIT-20260918-01",
+    "stockCode": "8031 MURAT BABY",
+    "unit": "ADET",
+    "economicEffects": {
+      "stock": 0,
+      "party": 0,
+      "finance": 0,
+      "newMovements": 0
+    }
+  },
+  "physicalTerminal": {
+    "device": "Zebra TC21",
+    "package": "com.melisaerp.nativeterminal",
+    "version": "1.0.0-candidate.18-t2",
+    "endpoint": "http://192.168.1.46:4116",
+    "login": "PASS",
+    "customerSelection": "PASS",
+    "productSearch3008": "PASS"
+  },
+  "postSwitchBackup": {
+    "createdAt": "2026-09-17T22:08:14.029Z",
+    "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+    "file": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Backup\\MELISA-PRODUCTION-20260917T220758Z.bak",
+    "sizeBytes": 6668128256,
+    "checksum": true,
+    "restoreVerifyOnly": "PASS",
+    "metadataSha256": "27adbdf6a35604a6c64213bdbe4fb0f28a5c308a87c222a8b4ddac24c1be8580"
+  },
+  "runtimeFinalState": {
+    "runId": "PRODUCTION-SWITCH-20260918-01",
+    "generatedAt": "2026-09-17T22:09:48.6514580Z",
+    "tasks": [
+      {
+        "name": "Melisa-Production-20260918-Runtime",
+        "state": "Running",
+        "enabled": true,
+        "user": "Xaser",
+        "logonType": "Interactive",
+        "action": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"C:\\do-wt\\melisa-production-20260918\\start-production.ps1\" -Watch"
+      },
+      {
+        "name": "Melisa-Production-Candidate-NightlyBackup",
+        "state": "Ready",
+        "enabled": true,
+        "user": "Xaser",
+        "logonType": "Interactive",
+        "action": "C:\\Program Files\\nodejs\\node.exe \"C:\\do-wt\\melisa-production-20260918\\apps\\api\\backup-production-candidate.mjs\""
+      },
+      {
+        "name": "Melisa-Pilot-20260913-Runtime",
+        "state": "Disabled",
+        "enabled": false,
+        "user": "Xaser",
+        "logonType": "Interactive",
+        "action": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"C:\\do-wt\\melisa-pilot-20260913\\scripts\\pilot\\start-pilot.ps1\" -Watch -WebRoot \"C:\\do-wt\\melisa-pilot-20260913\\apps\\web-admin\\dist-operation-links-candidate-20260916\" -NativeConfig \"C:\\Users\\Xaser\\AppData\\Local\\MelisaERPServer\\native-terminal-private\\native-config.json\""
+      },
+      {
+        "name": "Melisa Vega Terminal API",
+        "state": "Disabled",
+        "enabled": false,
+        "user": "Xaser",
+        "logonType": "Interactive",
+        "action": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -File \"C:\\do-wt\\terminal-release-20260912\\scripts\\start-terminal-host.ps1\" -ConfigPath \"C:\\Users\\Xaser\\Documents\\Codex\\2026-05-20\\melisa-mini-erp-temiz-repoyu-bu\\melisa-erp-v2\\apps\\api\\.env.local\" -ProfilePath \"C:\\do-wt\\terminal-release-20260912\\output\\terminal-runtime-private\\armada-profile.json\""
+      },
+      {
+        "name": "MelisaERP-V2-NightlyVerifiedBackup",
+        "state": "Ready",
+        "enabled": true,
+        "user": "Xaser",
+        "logonType": "S4U",
+        "action": "C:\\Program Files\\nodejs\\node.exe \"C:\\do-wt\\erp-final-closeout-20260911\\scripts\\backup-erp-production.mjs\" --execute --confirm=MELISA_ERP_V2_BACKUP_AL"
+      }
+    ],
+    "erp": {
+      "ok": true,
+      "databaseName": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+      "loginName": "melisa_production_runtime_20260918",
+      "sysadmin": 0,
+      "databaseControl": 0,
+      "canInsertSales": 1,
+      "canAlterSales": 0
+    },
+    "terminal": {
+      "ok": true,
+      "databaseName": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+      "loginName": "melisa_production_runtime_20260918",
+      "sysadmin": 0,
+      "databaseControl": 0,
+      "canInsertSales": 1,
+      "canAlterSales": 0
+    },
+    "web": {
+      "statusCode": 200
+    },
+    "oldLiveUnchanged": {
+      "salesInvoices": true,
+      "terminalEvents": true,
+      "audits": true,
+      "stockMovements": true,
+      "customerMovements": true
+    }
+  },
+  "productionSwitch": "PASS"
+}
