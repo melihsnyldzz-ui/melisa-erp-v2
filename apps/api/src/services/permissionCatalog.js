@@ -43,6 +43,17 @@ export function applyRolePermissionDefaults(permissions = [], roleCode = '') {
     expanded.add('crm.manage');
   }
 
+  // Owner/manager handles daily operations; patron/admin-only controls stay
+  // behind the admin role even when legacy database rows are over-permissive.
+  if (String(roleCode || '').toLowerCase() === 'owner_manager') {
+    [
+      'audit.view', 'settings.manage', 'import.run', 'stock.adjust',
+      'product.edit', 'product.passive', 'customer.edit', 'customer.passive',
+      'supplier.edit', 'sales.cancel', 'purchase.create', 'purchase.edit',
+      'purchase.finalize', 'purchase.cancel', 'finance.payment',
+    ].forEach((permission) => expanded.delete(permission));
+  }
+
   return Array.from(expanded).sort();
 }
 

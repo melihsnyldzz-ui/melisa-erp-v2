@@ -75,7 +75,9 @@ export async function getSqlPool() {
     throw error;
   }
 
-  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_V2') {
+  const testWriteEnabled = process.env.MELISA_TEST_WRITE_ENABLED === 'true';
+  const testWriteTarget = env.sql.database === 'MELISA_ERP_FULL_TEST_20260916' && testWriteEnabled;
+  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_V2' && !testWriteTarget) {
     const error = new Error('SQL write mode is only allowed for MELISA_ERP_V2');
     error.code = 'SQL_WRITE_TARGET_INVALID';
     error.statusCode = 403;
