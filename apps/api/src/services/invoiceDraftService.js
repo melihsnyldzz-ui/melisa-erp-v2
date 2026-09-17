@@ -190,21 +190,26 @@ function calculateWeightedAverageCostTry({
 }
 
 async function recalculateProductAverageCostTry(sqlDriver, transaction, productId, actor = null) {
-  const purchaseTotals = await new sqlDriver.Request(transaction)
-    .input('averageCostProductId', sql.BigInt, productId)
+  const latestPurchase = await new sqlDriver.Request(transaction)
+    .input('latestCostProductId', sql.BigInt, productId)
     .query(`
-      SELECT
-        COALESCE(SUM(quantity_net), 0) AS net_purchase_quantity,
-        COALESCE(SUM(amount_try), 0) AS net_purchase_amount_try
-      FROM dbo.stock_movements
-      WHERE product_id = @averageCostProductId
-        AND source_type = N'purchase_invoice';
+      SELECT TOP (1) pii.purchase_price AS purchasePrice,
+        pii.currency_code AS purchaseCurrency, pii.line_total_try AS lineTotalTry,
+        pii.quantity AS quantity, pi.id AS invoiceId, pii.id AS itemId
+      FROM dbo.purchase_invoice_items pii
+      INNER JOIN dbo.purchase_invoices pi ON pi.id = pii.purchase_invoice_id
+      WHERE pii.product_id = @latestCostProductId AND pi.status = N'finalized'
+        AND COALESCE(pi.description, N'') NOT LIKE N'%MIGRATION%'
+        AND COALESCE(pi.description, N'') NOT LIKE N'%DEVIR%'
+        AND COALESCE(pii.stock_effect_snapshot, N'') NOT LIKE N'%DEVIR%'
+        AND COALESCE(pii.stock_effect_snapshot, N'') NOT LIKE N'%KDV%'
+        AND COALESCE(pii.stock_effect_snapshot, N'') NOT LIKE N'%AMBAR%'
+        AND pii.quantity > 0
+      ORDER BY pi.document_date DESC, pi.id DESC, pii.id DESC;
     `);
-
-  const totalRow = purchaseTotals.recordset?.[0] || {};
-  const netPurchaseQuantity = safeNumber(totalRow.net_purchase_quantity);
-  const netPurchaseAmountTry = safeNumber(totalRow.net_purchase_amount_try);
-  const nextAverageCostTry = netPurchaseQuantity > 0 ? netPurchaseAmountTry / netPurchaseQuantity : 0;
+  const latest = latestPurchase.recordset?.[0] || null;
+  const quantity = safeNumber(latest?.quantity);
+  const nextAverageCostTry = latest && quantity > 0 ? safeNumber(latest.lineTotalTry) / quantity : 0;
 
   const beforeProduct = await new sqlDriver.Request(transaction)
     .input('averageCostBeforeProductId', sql.BigInt, productId)
@@ -219,10 +224,14 @@ async function recalculateProductAverageCostTry(sqlDriver, transaction, productI
   await new sqlDriver.Request(transaction)
     .input('averageCostUpdateProductId', sql.BigInt, productId)
     .input('averageCostUpdateValue', sql.Decimal(18, 4), nextAverageCostTry)
+    .input('latestPurchasePrice', sql.Decimal(18, 4), latest ? safeNumber(latest.purchasePrice) : null)
+    .input('latestPurchaseCurrency', sql.NVarChar(3), latest?.purchaseCurrency || null)
     .query(`
       UPDATE dbo.products
       SET
         average_cost_try = @averageCostUpdateValue,
+        purchase_price = @latestPurchasePrice,
+        currency_code = COALESCE(@latestPurchaseCurrency, currency_code),
         updated_at = SYSUTCDATETIME()
       WHERE id = @averageCostUpdateProductId;
     `);
@@ -236,9 +245,11 @@ async function recalculateProductAverageCostTry(sqlDriver, transaction, productI
     },
     afterSnapshot: {
       averageCostTry: nextAverageCostTry,
-      netPurchaseQuantity,
-      netPurchaseAmountTry,
-      policy: 'recalculate_from_purchase_stock_movements',
+      purchasePrice: latest ? safeNumber(latest.purchasePrice) : null,
+      purchaseCurrency: latest?.purchaseCurrency || null,
+      sourceInvoiceId: latest?.invoiceId || null,
+      sourceItemId: latest?.itemId || null,
+      policy: 'latest_real_finalized_purchase',
     },
     actor,
   });
@@ -2708,22 +2719,24 @@ export async function finalizePurchaseInvoice(id, actor = null) {
       const lineTotalTry = purchaseLineCostTry(item, beforeSnapshot.exchangeRate);
       const unitCostTry = quantity > 0 ? lineTotalTry / quantity : 0;
       const nextStock = currentStock + quantity;
-      const nextAverageCostTry = calculateWeightedAverageCostTry({
-        currentStock,
-        currentAverageCostTry,
-        purchaseQuantity: quantity,
-        purchaseAmountTry: lineTotalTry,
-      });
+      // Business rule: the product cost is the latest real finalized purchase,
+      // never a weighted average. Keep the invoice currency/price on the card
+      // and use the TRY line total only for the TRY valuation field.
+      const nextAverageCostTry = quantity > 0 ? lineTotalTry / quantity : 0;
 
       await new sqlDriver.Request(transaction)
         .input('purchaseProductIdForStockUpdate', sql.BigInt, item.productId)
         .input('purchaseQuantityForStockUpdate', sql.Decimal(18, 3), quantity)
         .input('purchaseAverageCostTryForUpdate', sql.Decimal(18, 4), nextAverageCostTry)
+        .input('purchaseLastPrice', sql.Decimal(18, 4), item.purchasePrice)
+        .input('purchaseLastCurrency', sql.NVarChar(3), item.currency)
         .query(`
           UPDATE dbo.products
           SET
             current_stock_qty = current_stock_qty + @purchaseQuantityForStockUpdate,
             average_cost_try = @purchaseAverageCostTryForUpdate,
+            purchase_price = @purchaseLastPrice,
+            currency_code = @purchaseLastCurrency,
             updated_at = SYSUTCDATETIME()
           WHERE id = @purchaseProductIdForStockUpdate;
         `);
