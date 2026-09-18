@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 function formatMoney(amount, currency) {
+  if (amount == null || !Number.isFinite(amount)) return '—';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -8,7 +9,7 @@ function formatMoney(amount, currency) {
   }).format(amount);
 }
 
-export function SalesInvoiceTotals({ totals }) {
+export function SalesInvoiceTotals({ totals, settlementPreview, accountCurrency }) {
   const [isOpen, setIsOpen] = useState(false);
   const currency = totals.currency || 'TRY';
 
@@ -20,6 +21,8 @@ export function SalesInvoiceTotals({ totals }) {
           <span><small>Ara toplam</small><b>{formatMoney(totals.subtotal, currency)}</b></span>
           <span><small>İskonto</small><b>{formatMoney(totals.discountAmount, currency)}</b></span>
           <span className="invoice-grand-total"><small>Genel toplam</small><strong>{formatMoney(totals.grandTotal, currency)}</strong></span>
+          <span><small>Cariye işlenecek · {accountCurrency || 'Cari seçin'}</small><strong>{settlementPreview?.valid
+            ? formatMoney(settlementPreview.settlement.accountAmount, settlementPreview.settlement.accountCurrency) : 'Cari / kur gerekli'}</strong></span>
         </div>
         <button
           aria-expanded={isOpen}
@@ -49,7 +52,7 @@ export function SalesInvoiceTotals({ totals }) {
         </div>
         <div>
           <dt>Kur</dt>
-          <dd>{currency} {Number(totals.exchangeRate || 1).toFixed(4)}</dd>
+          <dd>1 {currency} = {totals.exchangeRate == null ? '—' : Number(totals.exchangeRate).toFixed(8)} TRY</dd>
         </div>
         <div>
           <dt>TRY karşılık</dt>
