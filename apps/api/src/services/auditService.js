@@ -173,6 +173,19 @@ function normalizeText(value) {
   return String(value || '').trim();
 }
 
+export function normalizeAuditSearch(value) {
+  const text = normalizeText(value);
+  const numericId = /^\d+$/.test(text) && Number.isSafeInteger(Number(text))
+    ? Number(text)
+    : null;
+
+  return {
+    text,
+    pattern: text ? `%${text}%` : null,
+    numericId,
+  };
+}
+
 function addTextFilter({ clauses, request, name, value, column }) {
   const trimmed = normalizeText(value);
   if (!trimmed) return;
@@ -231,6 +244,7 @@ export async function listAuditLogs(query = {}) {
   const request = pool.request();
   const limit = normalizeLimit(query.limit);
   const clauses = ['1 = 1'];
+  let orderBy = 'a.created_at DESC, a.id DESC';
 
   request.input('limit', sql.Int, limit);
 
@@ -238,15 +252,46 @@ export async function listAuditLogs(query = {}) {
   addTextFilter({ clauses, request, name: 'entityType', value: query.entityType, column: 'a.entity_type' });
   addTextFilter({ clauses, request, name: 'source', value: query.source, column: 'a.source' });
 
-  const search = normalizeText(query.search);
-  if (search) {
-    request.input('search', sql.NVarChar(250), `%${search}%`);
+  const auditSearch = normalizeAuditSearch(query.search);
+  if (auditSearch.text) {
+    request
+      .input('search', sql.NVarChar(250), auditSearch.pattern)
+      .input('searchText', sql.NVarChar(250), auditSearch.text)
+      .input('searchId', sql.BigInt, auditSearch.numericId);
+    orderBy = `CASE
+      WHEN @searchId IS NOT NULL AND a.id = @searchId THEN 0
+      WHEN @searchId IS NOT NULL AND a.entity_id = @searchId THEN 1
+      WHEN u.username = @searchText THEN 2
+      WHEN a.action = @searchText THEN 3
+      ELSE 4
+    END, a.created_at DESC, a.id DESC`;
     clauses.push(`(
+      (@searchId IS NOT NULL AND (a.id = @searchId OR a.entity_id = @searchId)) OR
       a.action LIKE @search OR
       a.entity_type LIKE @search OR
       a.reason LIKE @search OR
       a.source LIKE @search OR
-      u.username LIKE @search
+      u.username LIKE @search OR
+      EXISTS (
+        SELECT 1
+        FROM dbo.sales_invoices search_sales
+        WHERE a.entity_type = N'sales_invoice'
+          AND search_sales.id = a.entity_id
+          AND (
+            search_sales.document_no LIKE @search
+            OR search_sales.description LIKE @search
+          )
+      ) OR
+      EXISTS (
+        SELECT 1
+        FROM dbo.purchase_invoices search_purchase
+        WHERE a.entity_type = N'purchase_invoice'
+          AND search_purchase.id = a.entity_id
+          AND (
+            search_purchase.document_no LIKE @search
+            OR search_purchase.description LIKE @search
+          )
+      )
     )`);
   }
 
@@ -278,7 +323,7 @@ export async function listAuditLogs(query = {}) {
     FROM dbo.audit_logs a
     LEFT JOIN dbo.users u ON u.id = a.actor_user_id
     WHERE ${clauses.join('\n      AND ')}
-    ORDER BY a.created_at DESC, a.id DESC;
+    ORDER BY ${orderBy};
   `);
 
   return {
@@ -287,7 +332,7 @@ export async function listAuditLogs(query = {}) {
       source: 'sql-audit-logs',
       limit,
       filters: {
-        search,
+        search: auditSearch.text,
         action: normalizeText(query.action),
         entityType: normalizeText(query.entityType),
         source: normalizeText(query.source),

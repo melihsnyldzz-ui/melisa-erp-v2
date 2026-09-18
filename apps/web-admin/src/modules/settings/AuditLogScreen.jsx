@@ -230,7 +230,7 @@ export function AuditLogScreen() {
         <div className="filter-grid auth-admin-audit-filter-grid">
           <label>
             Ara
-            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Kullanıcı, işlem, kayıt veya sebep" />
+            <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Audit ID, belge no, kayıt ID, kullanıcı, işlem veya açıklama" />
           </label>
           <label>
             İşlem
