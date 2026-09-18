@@ -12,6 +12,7 @@ function formatMoney(amount, currency) {
 export function SalesInvoiceTotals({ totals, settlementPreview, accountCurrency }) {
   const [isOpen, setIsOpen] = useState(false);
   const currency = totals.currency || 'TRY';
+  const detailsId = 'sales-invoice-total-details';
 
   return (
     <section className={isOpen ? 'erp-panel sales-totals-panel open' : 'erp-panel sales-totals-panel'}>
@@ -25,6 +26,7 @@ export function SalesInvoiceTotals({ totals, settlementPreview, accountCurrency 
             ? formatMoney(settlementPreview.settlement.accountAmount, settlementPreview.settlement.accountCurrency) : 'Cari / kur gerekli'}</strong></span>
         </div>
         <button
+          aria-controls={detailsId}
           aria-expanded={isOpen}
           className="mini-total-toggle"
           onClick={() => setIsOpen((current) => !current)}
@@ -33,7 +35,7 @@ export function SalesInvoiceTotals({ totals, settlementPreview, accountCurrency 
           {isOpen ? 'Detayı Kapat' : 'Toplam Detayı'}
         </button>
       </div>
-      {isOpen && <dl>
+      {isOpen && <dl aria-label="Satış toplam detayı" id={detailsId}>
         <div>
           <dt>Ara toplam</dt>
           <dd>{formatMoney(totals.subtotal, currency)}</dd>

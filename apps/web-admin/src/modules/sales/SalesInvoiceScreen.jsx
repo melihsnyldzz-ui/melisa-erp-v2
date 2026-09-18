@@ -20,6 +20,7 @@ import { exportRowsToExcel, printInvoiceReceipt } from '../../utils/exportUtils.
 import { normalizeSearchText } from '../../utils/searchText.js';
 import { fetchAllPages } from '../../utils/fetchAllPages.js';
 import { clearInvoiceCustomerSelection, customerMatchesQuery, customerSelectionLabel, resolveCustomerSelection } from '../../utils/customerSelection.js';
+import { mapPersistedSalesTotals } from './salesInvoiceTotals.js';
 
 const emptySalesInvoice = {
   invoiceNo: 'Taslak',
@@ -315,6 +316,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
   const [items, setItems] = useState([]);
   const [discountRate, setDiscountRate] = useState(0);
   const [status, setStatus] = useState('DRAFT');
+  const [persistedTotals, setPersistedTotals] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Taslak fiş henüz stok veya cari hareket oluşturmaz.');
   const [draftCustomerOptions, setDraftCustomerOptions] = useState([]);
@@ -335,17 +337,22 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
   const [isCancelling, setIsCancelling] = useState(false);
   const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const totals = useMemo(
+  const calculatedTotals = useMemo(
     () => calculateTotals(items, discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
     [discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency, items],
   );
   const isFinalized = status === 'FINALIZED';
+  const isCancelled = status === 'CANCELLED';
+  const isReadonly = isCancelled || (isFinalized && !isCorrectionMode);
+  const totals = useMemo(() => (
+    isReadonly && persistedTotals
+      ? { ...calculatedTotals, ...persistedTotals }
+      : calculatedTotals
+  ), [calculatedTotals, isReadonly, persistedTotals]);
   const settlementPreview = isFinalized && invoice.storedAccountSnapshotMissing
     ? { valid: false, settlement: null, error: 'Eski çapraz döviz fişinin kayıtlı cari kur/tutar bilgisi eksik.' }
     : currencyPreview({ amount: totals.grandTotal, currency: invoice.invoiceCurrency,
       accountCurrency: invoice.customerCurrency, exchangeRate: invoice.exchangeRateValue, accountExchangeRate: invoice.accountExchangeRateValue });
-  const isCancelled = status === 'CANCELLED';
-  const isReadonly = isCancelled || (isFinalized && !isCorrectionMode);
   const canSaveDraft = draftId ? permissions.includes('sales.edit') : permissions.includes('sales.create');
   const canFinalize = permissions.includes('sales.finalize');
   const canCancel = permissions.includes('sales.cancel');
@@ -520,6 +527,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
           setInvoice(nextInvoice);
           setCustomerQuery('');
           setItems(nextItems);
+          setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
           setDiscountRate(Number(response.data.discountRate || 0));
           setStatus(nextInvoice.status);
           setIsCorrectionMode(false);
@@ -557,7 +565,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
       accountExchangeRate: settlementPreview.settlement.accountRateToTry,
       description: invoice.description,
       discountRate,
-      estimatedProfitTry: totals.estimatedProfit,
+      estimatedProfitTry: calculatedTotals.estimatedProfit,
       items: items.map((item, index) => ({
         productId: item.productId || index + 1,
         stockCode: item.stockCode,
@@ -580,6 +588,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
     setDraftId(null);
     setInvoice({ ...emptySalesInvoice, date: todayIsoDate() });
     setItems([]);
+    setPersistedTotals(null);
     setDiscountRate(0);
     setStatus('Taslak');
     setIsCorrectionMode(false);
@@ -1015,6 +1024,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
       setDraftId(response.data.id);
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
@@ -1088,6 +1098,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
 
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setIsCorrectionMode(false);
@@ -1140,6 +1151,7 @@ export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permission
 
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setIsCorrectionMode(false);
