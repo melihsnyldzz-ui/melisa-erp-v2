@@ -14,6 +14,9 @@ test('uses the finalized invoice snapshot instead of recalculating TRY lines as 
     grandTotal: 1209.6,
     amountTry: 58665.6,
     stockCostEffectTry: 0,
+    accountCurrency: 'USD',
+    accountAmount: 1209.6,
+    accountExchangeRate: 48.5,
   }, [{ quantity: 216, currency: 'TRY', purchasePrice: 339.5 }]);
 
   assert.equal(216 * 339.5, 73332);
@@ -23,6 +26,9 @@ test('uses the finalized invoice snapshot instead of recalculating TRY lines as 
   assert.equal(totals.grandTotal, 1209.6);
   assert.equal(totals.tryEquivalent, 58665.6);
   assert.equal(totals.stockCostEffect, 0);
+  assert.equal(totals.accountCurrency, 'USD');
+  assert.equal(totals.accountAmount, 1209.6);
+  assert.equal(totals.accountExchangeRate, 48.5);
   assert.equal(totals.totalQuantity, 216);
 });
 
