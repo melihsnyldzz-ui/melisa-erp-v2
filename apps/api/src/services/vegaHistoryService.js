@@ -140,7 +140,8 @@ export function createVegaHistoryService({ getPool, sql } = {}) {
             FROM dbo.vega_history_account_links l
             WHERE l.company=@company AND l.entity_type=@entityType AND l.entity_id=@entityId
               AND EXISTS(SELECT 1 FROM dbo.vega_history_records r WHERE r.source_database=N'VEGA2026'
-                AND r.company=l.company AND r.period=N'D0007' AND r.kind=N'account' AND r.source_id=l.party_source_id);`);
+                AND r.company=l.company AND r.period=N'D0007' AND r.kind=N'account'
+                AND r.source_id COLLATE Latin1_General_100_BIN2=l.party_source_id COLLATE Latin1_General_100_BIN2);`);
         if (!Array.isArray(response.recordset) || response.recordset.length > 1) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv cari bağlantısı tekil değil.', 503);
         const row = response.recordset[0];
         if (row && (row.company !== options.company || row.entity_type !== options.entityType || Number(row.entity_id) !== options.entityId || typeof row.party_source_id !== 'string' || !row.party_source_id.trim() || !/^[a-f0-9]{64}$/.test(row.evidence_hash))) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv cari bağlantısı doğrulanamadı.', 503);

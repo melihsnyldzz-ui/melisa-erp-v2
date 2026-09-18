@@ -113,6 +113,16 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
   const canEditForm = mode === 'create' || isEditing;
   const canSave = permissions.includes('supplier.edit');
 
+  function openStatement() {
+    if (!activeSupplierId) return;
+    onOpenScreen?.('supplier-statement', {
+      supplierId: activeSupplierId,
+      supplierCode: form.supplierCode,
+      accountCurrency: form.currency,
+      tabLabel: `${form.supplierName || form.supplierCode || 'Tedarikçi'} Ekstre`,
+    });
+  }
+
   useEffect(() => {
     setActiveSupplierId(supplierId || null);
     setIsEditing(!supplierId);
@@ -293,6 +303,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                 {isSaving ? 'Kaydediliyor' : 'Kaydet'}
               </button>
               <button type="button" onClick={startNewSupplier}>Yeni</button>
+              <button type="button" onClick={openStatement} disabled={!activeSupplierId}>Ekstre</button>
               <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list', { supplierId: activeSupplierId, supplierCode: form.supplierCode })}>Alış Fişleri</button>
               <VegaHistoryAccountLink entityType="supplier" entityId={activeSupplierId} permissions={permissions} onOpenScreen={onOpenScreen} />
               <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : canEditForm ? 'Düzenleme açık' : 'İzleme'}</span>
@@ -309,6 +320,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                 <span>Alış fişi, ödeme, borç ve alınan ürün izi tek bakışta.</span>
               </div>
               <div className="entity-360-actions">
+                <button type="button" onClick={openStatement} disabled={!activeSupplierId}>Ekstre</button>
                 <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list', { supplierId: activeSupplierId, supplierCode: form.supplierCode })}>
                   Alış Fişleri
                 </button>

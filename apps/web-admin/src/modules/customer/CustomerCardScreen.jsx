@@ -216,6 +216,16 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
   const recentTransactions = useMemo(() => transactions.slice(0, 5), [transactions]);
   const recentProductTrace = useMemo(() => (form.productTrace || []).slice(0, 5), [form.productTrace]);
 
+  function openStatement() {
+    if (!activeCustomerId) return;
+    onOpenScreen?.('customer-statement', {
+      customerId: activeCustomerId,
+      customerCode: form.customerCode,
+      accountCurrency: form.currency,
+      tabLabel: `${form.customerName || form.customerCode || 'Cari'} Ekstre`,
+    });
+  }
+
   function renderDetailPanel() {
     if (activeDetailTab === 'products') {
       return (
@@ -462,7 +472,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
                 <VegaHistoryAccountLink entityType="customer" entityId={activeCustomerId} permissions={permissions} onOpenScreen={onOpenScreen} />
                 <button type="button" onClick={() => setActiveDetailTab('movements')}>Cari Hareketler</button>
                 <button type="button" onClick={() => setActiveDetailTab('products')}>Satılan Ürünler</button>
-                <button type="button" onClick={() => setActiveDetailTab('statement')}>Ekstre</button>
+                <button type="button" onClick={openStatement}>Ekstre</button>
               </div>
             </div>
             <div className="entity-360-grid">
@@ -580,7 +590,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
                   <button
                     key={action.label}
                     type="button"
-                    onClick={() => onOpenScreen?.(action.screenId, { mode: action.mode, customerId: activeCustomerId, customerCode: form.customerCode })}
+                    onClick={() => action.screenId === 'customer-statement' ? openStatement() : onOpenScreen?.(action.screenId, { mode: action.mode, customerId: activeCustomerId, customerCode: form.customerCode })}
                   >
                     <span>□</span>
                     {action.label}

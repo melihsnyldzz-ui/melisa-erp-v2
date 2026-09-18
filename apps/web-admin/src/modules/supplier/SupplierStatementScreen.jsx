@@ -20,8 +20,9 @@ import {
   toSupplierSuggestion,
 } from './supplierStatementUtils.js';
 
-export function SupplierStatementScreen({ onOpenScreen, initialSupplierId, initialSupplierCode }) {
+export function SupplierStatementScreen({ onOpenScreen, initialSupplierId, initialSupplierCode, initialAccountCurrency }) {
   const scopedPartyId = partyScopeId(initialSupplierId);
+  const scopedAccountCurrency = ['TRY', 'USD', 'EUR'].includes(initialAccountCurrency) ? initialAccountCurrency : '';
   const [filters, setFilters] = useState({
     search: '',
     dateFrom: '',
@@ -39,11 +40,12 @@ export function SupplierStatementScreen({ onOpenScreen, initialSupplierId, initi
 
   const query = useMemo(() => ({
     supplierId: scopedPartyId || undefined,
+    accountCurrency: scopedAccountCurrency || undefined,
     limit: 250,
     search: normalizedSearch,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
-  }), [scopedPartyId, filters.dateFrom, filters.dateTo, normalizedSearch]);
+  }), [scopedAccountCurrency, scopedPartyId, filters.dateFrom, filters.dateTo, normalizedSearch]);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,6 +86,7 @@ export function SupplierStatementScreen({ onOpenScreen, initialSupplierId, initi
       try {
         const response = await fetchSupplierStatement(query);
         assertPartyScope(response.data?.rows, 'supplier', scopedPartyId);
+        if (scopedAccountCurrency && (response.data?.rows || []).some((row) => ledgerAccountCurrency(row) !== scopedAccountCurrency)) throw new Error('Ekstre döviz hesabı seçilen kartla eşleşmiyor. Liste gösterilmedi.');
         if (isMounted) {
           setStatement(response.data || { rows: [], totals: [] });
         }
@@ -189,6 +192,7 @@ export function SupplierStatementScreen({ onOpenScreen, initialSupplierId, initi
   return (
     <main className="work-area supplier-ledger-screen">
       <PartyContextNotice entityType="supplier" partyId={scopedPartyId} partyCode={initialSupplierCode} screenId="supplier-statement" onOpenScreen={onOpenScreen} />
+      {scopedAccountCurrency && <div className="list-state">Döviz hesabı: {scopedAccountCurrency}</div>}
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Tedarikci Cari Ekstre</strong>

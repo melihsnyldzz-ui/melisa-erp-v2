@@ -209,7 +209,7 @@ const workspaceRouteRegistry = {
   'customer-statement': {
     permissionKeys: ['customer.view'],
     unauthorizedMessage: 'Cari ekstre görüntüleme yetkiniz yok.',
-    render: ({ activeTab, onOpenScreen }) => <CustomerStatementScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.customerId])} initialCustomerId={activeTab.payload?.customerId} initialCustomerCode={activeTab.payload?.customerCode} onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <CustomerStatementScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.customerId, activeTab.payload?.accountCurrency])} initialCustomerId={activeTab.payload?.customerId} initialCustomerCode={activeTab.payload?.customerCode} initialAccountCurrency={activeTab.payload?.accountCurrency} onOpenScreen={onOpenScreen} />,
   },
   'supplier-list': {
     permissionKeys: ['supplier.view'],
@@ -248,7 +248,7 @@ const workspaceRouteRegistry = {
   'supplier-statement': {
     permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi ekstresi görüntüleme yetkiniz yok.',
-    render: ({ activeTab, onOpenScreen }) => <SupplierStatementScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.supplierId])} initialSupplierId={activeTab.payload?.supplierId} initialSupplierCode={activeTab.payload?.supplierCode} onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <SupplierStatementScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.supplierId, activeTab.payload?.accountCurrency])} initialSupplierId={activeTab.payload?.supplierId} initialSupplierCode={activeTab.payload?.supplierCode} initialAccountCurrency={activeTab.payload?.accountCurrency} onOpenScreen={onOpenScreen} />,
   },
   'sales-invoice': {
     permissionKeys: ['sales.view'],

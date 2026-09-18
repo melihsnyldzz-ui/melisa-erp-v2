@@ -13,6 +13,13 @@ function normalizeDate(value) {
     : null;
 }
 
+function parseAccountCurrency(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const currency = String(value).trim().toUpperCase();
+  if (!['TRY', 'USD', 'EUR'].includes(currency)) throw makeMovementError('LEDGER_ACCOUNT_CURRENCY_INVALID', 'Cari döviz hesabı geçersiz.');
+  return currency;
+}
+
 function formatSqlDate(value) {
   if (!value) {
     return null;
@@ -500,13 +507,16 @@ export async function getCustomerMovementsList(query = {}) {
   const dateFrom = normalizeDate(query.dateFrom);
   const dateTo = normalizeDate(query.dateTo);
   const customerId = Number(query.customerId || 0);
+  const accountCurrency = parseAccountCurrency(query.accountCurrency);
   const pool = await getSqlPool();
   const currencyReady = await hasCurrencySnapshotSchema(pool.request(), 'customer');
   const returnReady = await hasMovementReturnSchema(pool.request(), 'customer');
+  const ledgerCurrency = currencyReady ? 'COALESCE(cm.account_currency, cm.currency_code)' : 'cm.currency_code';
   const filters = [
     `(si.id IS NULL OR COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')`,
     ...buildDateFilter('cm', dateFrom, dateTo),
     customerId > 0 ? 'cm.customer_id = @customerId' : '',
+    accountCurrency ? `${ledgerCurrency} = @accountCurrency` : '',
     options.search ? `(
       ${sqlNormalizedLike('c.customer_code')}
       OR ${sqlNormalizedLike('c.name')}
@@ -519,6 +529,7 @@ export async function getCustomerMovementsList(query = {}) {
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('customerId', sql.Int, customerId > 0 ? customerId : null)
+    .input('accountCurrency', sql.NVarChar(3), accountCurrency)
     .input('offset', sql.Int, options.offset)
     .query(`
       WITH filtered AS (
@@ -565,7 +576,7 @@ export async function getCustomerMovementsList(query = {}) {
       ...options,
       total,
       source: 'sql-customer-movements',
-      filters: { search: options.search || null, dateFrom, dateTo, customerId: customerId > 0 ? customerId : null },
+      filters: { search: options.search || null, dateFrom, dateTo, customerId: customerId > 0 ? customerId : null, accountCurrency },
     }),
   };
 }
@@ -589,6 +600,7 @@ export async function getSupplierMovementsList(query = {}) {
   const dateFrom = normalizeDate(query.dateFrom);
   const dateTo = normalizeDate(query.dateTo);
   const supplierId = Number(query.supplierId || 0);
+  const accountCurrency = parseAccountCurrency(query.accountCurrency);
   const pool = await getSqlPool();
   const currencyReady = await hasCurrencySnapshotSchema(pool.request(), 'supplier');
   const returnReady = await hasMovementReturnSchema(pool.request(), 'supplier');
@@ -598,6 +610,7 @@ export async function getSupplierMovementsList(query = {}) {
     `(pi.id IS NULL OR COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')`,
     ...buildDateFilter('sm', dateFrom, dateTo),
     supplierId > 0 ? 'sm.supplier_id = @supplierId' : '',
+    accountCurrency ? `${ledgerCurrency} = @accountCurrency` : '',
     options.search ? `(
       ${sqlNormalizedLike('s.supplier_code')}
       OR ${sqlNormalizedLike('s.name')}
@@ -610,6 +623,7 @@ export async function getSupplierMovementsList(query = {}) {
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('supplierId', sql.BigInt, supplierId > 0 ? supplierId : null)
+    .input('accountCurrency', sql.NVarChar(3), accountCurrency)
     .input('offset', sql.Int, options.offset)
     .query(`
       WITH movement_balances AS (
@@ -670,7 +684,7 @@ export async function getSupplierMovementsList(query = {}) {
       ...options,
       total,
       source: 'sql-supplier-movements',
-      filters: { search: options.search || null, dateFrom, dateTo, supplierId: supplierId > 0 ? supplierId : null },
+      filters: { search: options.search || null, dateFrom, dateTo, supplierId: supplierId > 0 ? supplierId : null, accountCurrency },
     }),
   };
 }
