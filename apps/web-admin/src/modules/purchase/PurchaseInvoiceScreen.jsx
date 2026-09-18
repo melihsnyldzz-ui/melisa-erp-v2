@@ -16,6 +16,7 @@ import { fetchProducts } from '../../services/productApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtils.js';
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
+import { mapPersistedPurchaseTotals } from './purchaseInvoiceTotals.js';
 
 const emptyPurchaseInvoice = {
   date: todayIsoDate(),
@@ -140,6 +141,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [invoiceRate, setInvoiceRate] = useState(0);
   const [supplierRate, setSupplierRate] = useState(0);
   const [status, setStatus] = useState('DRAFT');
+  const [persistedTotals, setPersistedTotals] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Taslak alış fişi stok artırmaz ve cari hareket oluşturmaz.');
   const [supplierQuery, setSupplierQuery] = useState('');
@@ -157,13 +159,14 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
   const [isCancelling, setIsCancelling] = useState(false);
   const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const totals = useMemo(
+  const calculatedTotals = useMemo(
     () => calculateTotals(items, invoiceRate, supplierRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
     [invoice.exchangeRateValue, invoice.invoiceCurrency, invoiceRate, items, supplierRate],
   );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
   const isReadonly = isCancelled || (isFinalized && !isCorrectionMode);
+  const totals = isReadonly && persistedTotals ? persistedTotals : calculatedTotals;
   const canSaveDraft = draftId ? permissions.includes('purchase.edit') : permissions.includes('purchase.create');
   const canFinalize = permissions.includes('purchase.finalize');
   const canCancel = permissions.includes('purchase.cancel');
@@ -334,6 +337,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           setDraftId(response.data.id);
           setInvoice(nextInvoice);
           setItems(nextItems);
+          setPersistedTotals(mapPersistedPurchaseTotals(response.data, nextItems));
           setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
           setSupplierRate(Number(response.data.supplierDiscountRate || 0));
           setStatus(nextInvoice.status);
@@ -392,6 +396,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
     setDraftId(null);
     setInvoice(emptyPurchaseInvoice);
     setItems([]);
+    setPersistedTotals(null);
     setInvoiceRate(0);
     setSupplierRate(0);
     setStatus('DRAFT');
@@ -740,6 +745,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       setDraftId(response.data.id);
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedPurchaseTotals(response.data, nextItems));
       setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus(nextInvoice.status);
@@ -791,6 +797,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedPurchaseTotals(response.data, nextItems));
       setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus(nextInvoice.status);
@@ -844,6 +851,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
 
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedPurchaseTotals(response.data, nextItems));
       setInvoiceRate(Number(response.data.invoiceDiscountRate || 0));
       setSupplierRate(Number(response.data.supplierDiscountRate || 0));
       setStatus(nextInvoice.status);
