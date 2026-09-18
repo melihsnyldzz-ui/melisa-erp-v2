@@ -1,3 +1,6 @@
+import { ledgerAccountCurrency, ledgerEffect } from '../shared/ledgerBalances.js';
+import { VegaHistoryAccountLink } from '../history/VegaHistoryAccountLink.jsx';
+import { currentCustomerBalance, customerMovementTotals, customerPaymentSummary } from './customerLedgerSummary.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import { CustomerBalanceSummary } from './CustomerBalanceSummary.jsx';
 import { CustomerCardForm } from './CustomerCardForm.jsx';
@@ -46,9 +49,9 @@ function mapDetailToForm(detail) {
     customerType: detail.customerType || 'customer',
     city: detail.city || '',
     country: detail.country || '',
-    note: 'Gercek API kaydi. Not alani sonraki fazda database alanina baglanacak.',
+    note: detail.note || '',
     isPassive: Boolean(detail.isPassive),
-    balance: detail.balance || 0,
+    balance: detail.balance ?? null,
     lastTransactionDate: detail.lastTransactionDate || '',
     movements: detail.movements || [],
     productTrace: detail.productTrace || [],
@@ -65,88 +68,16 @@ function buildCustomerView(form, detailId = null) {
     type: customerTypeLabels[form.customerType] || form.customerType || '-',
     city: form.city || '-',
     country: form.country || '-',
-    note: form.note || 'Not alani sonraki fazda database alanina baglanacak.',
+    note: form.note || 'Kayıtlı not yok.',
     status: form.isPassive ? 'Pasif' : 'Aktif',
     hasMovements: Boolean(form.lastTransactionDate),
     lastTransactionDate: form.lastTransactionDate || '-',
-    balance: Number(form.balance || 0),
-  };
-}
-
-function mapBalances(form) {
-  const summary = new Map(['TRY', 'USD', 'EUR'].map((currency) => [currency, {
-    currency,
-    debit: 0,
-    credit: 0,
-    balance: 0,
-  }]));
-
-  (form.movements || []).forEach((movement) => {
-    const currency = movement.currency || form.currency || 'TRY';
-    const effect = Number(movement.balanceEffect ?? movement.amount ?? 0);
-    const amount = Math.abs(Number(movement.amount || effect || 0));
-    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
-
-    if (effect > 0) {
-      row.debit += amount;
-    } else if (effect < 0) {
-      row.credit += amount;
-    }
-
-    row.balance += effect;
-    summary.set(currency, row);
-  });
-
-  if ((form.movements || []).length === 0) {
-    const currency = form.currency || 'TRY';
-    const balance = Number(form.balance || 0);
-    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
-
-    row.debit = balance > 0 ? balance : 0;
-    row.credit = balance < 0 ? Math.abs(balance) : 0;
-    row.balance = balance;
-    summary.set(currency, row);
-  }
-
-  return Array.from(summary.values());
-}
-
-function mapPaymentSummary(form) {
-  const movements = form.movements || [];
-  const lastCollection = movements.find((movement) => movement.type === 'collection');
-  const lastPayment = movements.find((movement) => movement.type === 'payment');
-  const openInvoiceCount = movements.filter((movement) => (
-    movement.type === 'sales_invoice' && !['finalized', 'cancelled'].includes(movement.status)
-  )).length;
-
-  return {
-    lastCollection: lastCollection?.date || form.lastTransactionDate || '-',
-    lastPayment: lastPayment?.date || '-',
-    openInvoiceCount,
-    riskLimit: 0,
+    balance: currentCustomerBalance(form.balance),
   };
 }
 
 function mapTransactions(form) {
-  if (form.movements.length > 0) {
-    return form.movements;
-  }
-
-  if (!form.lastTransactionDate) {
-    return [];
-  }
-
-  return [
-    {
-      id: 'last',
-      date: form.lastTransactionDate,
-      type: 'Son ticari hareket',
-      documentNo: '-',
-      currency: form.currency,
-      amount: Number(form.balance || 0),
-      status: 'API kaydi',
-    },
-  ];
+  return form.movements || [];
 }
 
 function validateCustomerForm(form, mode) {
@@ -176,7 +107,7 @@ function buildCustomer360(form, transactions, currentBalance) {
     profitTry: 0,
     cancelledCount: 0,
     movementCount: transactions.length,
-    currentBalance: Number(currentBalance || 0),
+    currentBalance: currentBalance == null ? null : Number(currentBalance),
     lastTransactionDate: form.lastTransactionDate || '-',
   });
 }
@@ -198,6 +129,7 @@ const quickActionItems = [
 ];
 
 function formatMoney(amount, currency) {
+  if (amount == null || !Number.isFinite(Number(amount)) || !['TRY', 'USD', 'EUR'].includes(currency)) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -249,7 +181,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
         }
       } catch (error) {
         if (isMounted) {
-          setForm(emptyCustomerForm);
+          setForm({ ...emptyCustomerForm, balance: null });
           setErrorMessage(error.message || 'Cari kart API bağlantısı başarısız.');
           setIsDirty(false);
         }
@@ -276,10 +208,10 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
   const canSave = permissions.includes('customer.edit');
   const canTogglePassive = permissions.includes('customer.passive');
   const customer = useMemo(() => buildCustomerView(form, activeCustomerId), [form, activeCustomerId]);
-  const balances = useMemo(() => mapBalances(form), [form]);
-  const paymentSummary = useMemo(() => mapPaymentSummary(form), [form]);
+  const balances = useMemo(() => customerMovementTotals(form), [form]);
+  const paymentSummary = useMemo(() => customerPaymentSummary(form), [form]);
   const transactions = useMemo(() => mapTransactions(form), [form]);
-  const currentBalance = balances.find((balance) => balance.currency === customer.currency)?.balance ?? customer.balance;
+  const currentBalance = customer.balance;
   const customer360 = useMemo(() => buildCustomer360(form, transactions, currentBalance), [form, transactions, currentBalance]);
   const recentTransactions = useMemo(() => transactions.slice(0, 5), [transactions]);
   const recentProductTrace = useMemo(() => (form.productTrace || []).slice(0, 5), [form.productTrace]);
@@ -310,18 +242,11 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
             </thead>
             <tbody>
               <tr>
-                <td>Satın alma</td>
+                <td>Cari iletişim</td>
                 <td>{customer.name}</td>
                 <td>{customer.phone}</td>
-                <td>info@melisabebe.demo</td>
-                <td>Evet</td>
-              </tr>
-              <tr>
-                <td>Muhasebe</td>
-                <td>Yetkili</td>
-                <td>{customer.phone}</td>
-                <td>muhasebe@melisabebe.demo</td>
-                <td>Hayır</td>
+                <td>Kayıtlı değil</td>
+                <td>—</td>
               </tr>
             </tbody>
           </table>
@@ -333,20 +258,20 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
       return (
         <div className="customer-extra-grid">
           <label>
-            <span>Ticari işlem grubu</span>
-            <input readOnly value={customer.country === 'Turkiye' ? 'YURTİÇİ SATIŞ' : 'İHRACAT / BALKAN'} />
+            <span>Cari tipi</span>
+            <input readOnly value={customer.type} />
           </label>
           <label>
             <span>Ödeme şekli</span>
-            <input readOnly value="HAVALE / AÇIK HESAP" />
+            <input readOnly value="Kayıtlı değil" />
           </label>
           <label>
             <span>Vade</span>
-            <input readOnly value="30 GÜN" />
+            <input readOnly value="Kayıtlı değil" />
           </label>
           <label>
-            <span>Risk notu</span>
-            <input readOnly value={currentBalance > 0 ? 'Tahsilat takibi gerekli' : 'Normal'} />
+            <span>Bakiye durumu</span>
+            <input readOnly value={currentBalance == null ? 'Bilinmiyor' : currentBalance > 0 ? 'Borç bakiyesi var' : currentBalance < 0 ? 'Alacak bakiyesi var' : 'Bakiye sıfır'} />
           </label>
         </div>
       );
@@ -371,20 +296,12 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
           </thead>
           <tbody>
             <tr>
-              <td>FATURA</td>
-              <td>{customer.name} ticari adresi</td>
+              <td>Cari kartı</td>
+              <td>Açık adres kayıtlı değil</td>
               <td>{customer.city}</td>
-              <td>Merkez</td>
-              <td>34164</td>
-              <td>Evet</td>
-            </tr>
-            <tr>
-              <td>TESLİMAT</td>
-              <td>Depo teslim / WhatsApp sevk adresi</td>
-              <td>{customer.city}</td>
-              <td>Merkez</td>
-              <td>34164</td>
-              <td>Hayır</td>
+              <td>Kayıtlı değil</td>
+              <td>Kayıtlı değil</td>
+              <td>—</td>
             </tr>
           </tbody>
         </table>
@@ -542,6 +459,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
                 <span>Cari hareket, satılan ürün, bakiye ve kârlılık özeti.</span>
               </div>
               <div className="entity-360-actions">
+                <VegaHistoryAccountLink entityType="customer" entityId={activeCustomerId} permissions={permissions} onOpenScreen={onOpenScreen} />
                 <button type="button" onClick={() => setActiveDetailTab('movements')}>Cari Hareketler</button>
                 <button type="button" onClick={() => setActiveDetailTab('products')}>Satılan Ürünler</button>
                 <button type="button" onClick={() => setActiveDetailTab('statement')}>Ekstre</button>
@@ -595,8 +513,8 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
                       <b>{transaction.documentNo || transaction.type || '-'}</b>
                       <small>{transaction.date || '-'} / {transaction.status || '-'}</small>
                     </span>
-                    <strong className={Number(transaction.balanceEffect ?? transaction.amount ?? 0) < 0 ? 'in' : 'out'}>
-                      {formatMoney(transaction.amount, transaction.currency || customer.currency)}
+                    <strong className={ledgerEffect(transaction) < 0 ? 'in' : 'out'}>
+                      {formatMoney(ledgerEffect(transaction), ledgerAccountCurrency(transaction))}
                     </strong>
                   </button>
                 ))}
