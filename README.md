@@ -2,6 +2,8 @@
 
 # Melisa ERP v2
 
+GitHub: [Çalışma düzeni](docs/development/GITHUB_WORKFLOW.md) · [Sürümler](docs/development/RELEASES.md) · [TEST → LIVE / geri dönüş](docs/development/DEPLOY_ROLLBACK.md). Her iş branch → commit → push → PR ile teslim edilir; kullanıcı kabulü olmadan main merge yapılmaz.
+
 Melisa ERP v2, Melisa Bebe için web tabanlı, desktop-first ve Vega/Wolvox hissinde tasarlanacak yeni ERP projesidir.
 
 ## Hedef
