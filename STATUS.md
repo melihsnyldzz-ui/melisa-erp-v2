@@ -9,19 +9,21 @@ Bu bölüm kaynak/CI hazırlığının güncel kaydıdır. Önceki uygulama/TEST
 | Kapsam | CI workflow, branch/main stratejisi, sürümleme, deploy/rollback, AGENTS ve PR şablonu |
 | Teknik sonuç | Yerel **PASS**; 544/544 offline test (API 185 + Sites 354 + web-admin 5), iki frontend build, API/CI syntax; tam HEAD geçmişi secret scan PASS |
 | Bağımsız inceleme | PASS; yalnız incelenmiş tekil yanlış pozitif secret fingerprint istisnaları |
-| GitHub CI | PR/push kontrolleri gönderim sonrası beklenecek; henüz PASS denmiyor |
+| GitHub CI | **PASS** — kaynak/CI teslim commit'i `3b3bfc716b83e9cfdcf3fa41251d3a7cfda8077b` için [PR kontrolü](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37153297442) ve [push kontrolü](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37153291238) başarılı; son PR head kontrolleri Checks sekmesinde ayrıca doğrulanır |
 | Gerçek kullanıcı kabulü | **BEKLİYOR** — bu PR/commit için kullanıcı kabulü kaydı yok; önceki uygulama kabulleri korunur |
 | Branch | `codex/erp-github-workflow-20261003` |
 | Taban commit | `2d22009ddc186e87c77f28d47c3c4adc2ba9e8cd` / `codex/erp-agents-on-canonical-20261003` |
-| Teslim commit / PR | PR açıldıktan sonra bu bölümün takip kaydına yazılır |
+| Teslim commit / PR | CI `0c0cc30`; belge `641ddfe`; metadata `92f2d65`; üretim build düzeltmesi `3b3bfc716b83e9cfdcf3fa41251d3a7cfda8077b`; [PR #19](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/19), hedef `codex/erp-agents-on-canonical-20261003`; takip kaydı yalnız bu STATUS sonucudur |
 | TEST commit / paket | Bu görevde deployment yapılmadı; mevcut runtime kimliği **Durum doğrulanmadı** |
 | LIVE commit / paket | Bu görevde deployment yapılmadı; mevcut runtime kimliği **Durum doğrulanmadı** |
 | Release / main | Tag/release/merge yapılmadı; ilk tag yalnız kabul edilmiş main'den |
-| Kalan iş | Son PR head CI sonucunu kaydet; kullanıcı PR'yi kabul etsin; main'e geçiş ve LIVE ayrıca ele alınır |
+| Kalan iş | Kullanıcı PR'yi kabul etsin; main'e geçiş ve LIVE ayrıca ele alınır. Son PR head ve kontrollerinin güncel sonucu PR'nin Checks sekmesindedir |
 
 [Çalışma düzeni](docs/development/GITHUB_WORKFLOW.md) · [Sürümleme](docs/development/RELEASES.md) · [Deploy/rollback](docs/development/DEPLOY_ROLLBACK.md).
 
 Mevcut bundle/use-client uyarıları sürer; Android APK, Windows desktop, gerçek SQL/ODBC, fiziksel terminal/print, legacy CRM ve gerçek kullanım kabulü bu CI kapsamında değil. Yerel build doğrulaması kanonik repo altında yok sayılan sentetik kaynak snapshot'ında yapıldı.
+
+İlk GitHub denemesinde mevcut `tmp/melisa-os-reference` Git referansının `.gitmodules` kaydı eksikti; test başlamadan checkout durdu. `92f2d65` yalnız eksik merkezi repo bağlantı metadata'sını ekler, mevcut `c0f2def25aa0ffac88d46d1d3e6638a542521397` pointer'ını korur; CI'de `submodules: false` ile referans başlatılmaz. Sonraki push/PR kontrolleri PASS. `3b3bfc7` CI build'ini production, testleri test modunda tutar; aynı offline güvenlik sınırlarıyla iki üretim build'i ve GitHub kontrolleri PASS.
 
 ## Kanonik geliştirme kökü — 3 Ekim 2026
 
