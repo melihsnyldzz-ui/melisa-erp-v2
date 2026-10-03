@@ -8,3 +8,5 @@
 - Kullanıcı PR/commit kabulü: **BEKLİYOR**. Bitiş planındaki eski uygulama kabulleri bu main PR'sinin kabulü değildir.
 - TEST/LIVE commit ve runtime sağlığı: **Durum doğrulanmadı**; runtime işlemi yapılmadı.
 - Sonraki tek iş: PR'nin tam head CI kontrolleri başarılı olduktan sonra kullanıcı altyapı PR'sini inceler ve main merge kararını verir. Eski PR #19 korunur.
+
+- Altyapı teslimi: [main hedefli PR #20](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/20); [tam güncel head/Checks](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/20/checks). İlk altyapı commit'i `039b56d21353613d5f5d7329e92638d58d440124` için [push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37154726148) iki check PASS. Bu status kaydı sonrası son head'in push/PR kontrolleri ayrıca yeşil olmalıdır; güncel head PR'den okunur. Merge/kullanıcı kabulü BEKLİYOR.
