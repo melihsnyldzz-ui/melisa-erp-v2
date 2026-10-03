@@ -1457,7 +1457,7 @@
     },
     {
       "path": "src/modules/sales/SalesInvoiceListScreen.jsx",
-      "sha256": "a1e65a9b506bef616cb866ea50dc639c68dbbb77286e3c6256533d3d54f2ae96",
+      "sha256": "ae620bc80928f6229f71713fbf715c5976c3b04bbb9c4c64c9f3d375ba8f4d72",
       "v70sha256": "a1e65a9b506bef616cb866ea50dc639c68dbbb77286e3c6256533d3d54f2ae96",
       "localSha256": "a1e65a9b506bef616cb866ea50dc639c68dbbb77286e3c6256533d3d54f2ae96"
     },
@@ -1511,7 +1511,7 @@
     },
     {
       "path": "src/modules/sales/VegaSalesInvoiceListScreen.jsx",
-      "sha256": "38a24f5fdb42c7d0051b36c9fe26732abb69cf6ce2bfa4ab590c9d718859f6a8",
+      "sha256": "3fc70cf64135d9d49ebab3184c978aeee0ae19adce3cb6e10dc6888dbe43401d",
       "v70sha256": "38a24f5fdb42c7d0051b36c9fe26732abb69cf6ce2bfa4ab590c9d718859f6a8",
       "localSha256": "38a24f5fdb42c7d0051b36c9fe26732abb69cf6ce2bfa4ab590c9d718859f6a8"
     },
@@ -2721,5 +2721,11 @@
       "v70sha256": "c76a90968a4afc9dd2a408a466054b50ea9ba439ab6b9463ecadb1a6c6dca65c",
       "localSha256": "196afc05b5f0933a7dd566fdf62484be37b4af8dd892284761f191e7b02cde40"
     }
+  ],
+  "privacyAdjustments": [
+    "src/workflow/accountSnapshot.json",
+    "src/workflow/dailySnapshot.json",
+    "src/modules/sales/SalesInvoiceListScreen.jsx",
+    "src/modules/sales/VegaSalesInvoiceListScreen.jsx"
   ]
 }

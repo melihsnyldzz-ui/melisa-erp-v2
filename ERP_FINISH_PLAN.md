@@ -4,6 +4,12 @@ Güncel yerel kaynak toplama: [3 Ekim kanonik baseline](docs/erp-v2/canonical-20
 
 Güncelleme: 3 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıdır**. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).
 
+## 3 Ekim SEMIH sonucu — bu bölüm güncel
+
+F02 teknik kaynak/runtime baseline tamamlandı; Android fiziksel kabul ayrı. F03 dosya farkları sınıflandı; değişen işlevlerin eski kabulü otomatik taşınmadı. F04 kesin paket ve salt okunur smoke tamamlandı. Kullanıcı son seçiminde **Sites yeşil arayüzünü** istedi; 5194 eski LIVE UI yerine onu sunar. F05 açık: Sites iş akışlarının gerçek TEST SQL/native ile uçtan uca uzlaştırılması. F06 LIVE geçişi yapılmadı.
+
+Paket commit: dc2fdfeece74f7fd89d9b22f36c89264c4cd0710. 354 Sites + 15 baseline testi, 26 smoke PASS. [Kanonik kaynak dalı](https://github.com/melihsnyldzz-ui/melisa-erp-v2/tree/codex/canonical-live-20261003). [Son teslim kaydı](docs/erp-v2/canonical-20261003/delivery.json). Aşağıdaki önceki host envanteri tarihsel devir kaydıdır.
+
 ## Çalışma ilkesi ve mevcut durum
 
 **Çalışanı koru; kanıtlı kabulü yeniden açma; dağınık kaynakları eşleştir; yalnız gerçek eksikleri düzelt.** Mevcut çalışan ERP işlevsel baseline'dır. GitHub'da en yeni tarihli dosya veya `main` etiketi, kendiliğinden çalışan sürüm anlamına gelmez.
