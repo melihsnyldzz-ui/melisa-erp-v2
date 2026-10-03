@@ -1,5 +1,7 @@
 # Melisa ERP durumu
 
+4 Ekim 2026 — Vega açılış migration TEST provası yürütülüyor. Kaynak/delta ve güvenli native plan doğrulandı; gerçek SQL uygulama ve bağımsız mutabakat sonucu henüz tamamlanmadı. [Migration planı](ERP_MIGRATION_PLAN.md). LIVE yazımı yok.
+
 3 Ekim 2026 — **Mal kabulden fatura → aynı faturadan alış iadesi, ayrılmış TEST kayıtlarıyla iş kabulüne hazır.**
 
 - Kanonik kaynak: `C:\Sirket\ERP\source\canonical-live-20261003`, dal `codex/canonical-live-20261003`.

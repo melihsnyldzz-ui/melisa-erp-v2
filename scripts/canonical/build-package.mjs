@@ -1,4 +1,5 @@
 import fs from 'node:fs';import path from 'node:path';import cp from 'node:child_process';import crypto from 'node:crypto';
+import { renderMigrationProof } from './migration-proof.mjs';
 const repo=path.resolve(import.meta.dirname,'../..');
 const destination=path.resolve(process.argv[2]||'');
 if(!process.argv[2]||fs.existsSync(destination))throw Error('NEW_ABSOLUTE_RELEASE_DESTINATION_REQUIRED');
@@ -7,7 +8,10 @@ const sourceCommit=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:repo}).toStri
 const packageId='CANONICAL-TEST-'+sourceCommit.slice(0,12);
 fs.mkdirSync(destination,{recursive:true});
 const archive=path.join(destination,'source.tar');
-cp.execFileSync('git',['archive','--format=tar','--output='+archive,sourceCommit,'apps/api','apps/web-admin','apps/sites-workflow','packages','scripts/canonical','docs/erp-v2/canonical-20261003'],{cwd:repo});
+const migrationFiles=cp.execFileSync('git',['ls-files','scripts/migration'],{cwd:repo}).toString().trim().split(/\r?\n/).filter(Boolean);
+if(migrationFiles.some(file=>!/^scripts\/migration\/[a-z0-9._/-]+\.(mjs|sql|md)$/i.test(file)||/(?:^|\/)(?:private|exports?|evidence)(?:\/|\.)/i.test(file)))throw Error('MIGRATION_SOURCE_ALLOWLIST_REJECTED');
+const migrationPaths=migrationFiles.length?['scripts/migration','ERP_MIGRATION_PLAN.md','STATUS.md']:[];
+cp.execFileSync('git',['archive','--format=tar','--output='+archive,sourceCommit,'apps/api','apps/web-admin','apps/sites-workflow','packages','scripts/canonical','docs/erp-v2/canonical-20261003',...migrationPaths],{cwd:repo});
 cp.execFileSync('tar',['-xf',archive,'-C',destination]);fs.unlinkSync(archive);
 function npm(args,cwd,env=process.env){cp.execFileSync(process.env.ComSpec||'cmd.exe',['/d','/c','npm.cmd',...args],{cwd,env,stdio:'inherit'});}
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/api');
@@ -26,6 +30,10 @@ for(const page of ['is-akisi-taslagi.html','ornek-akis.html','legacy-admin.html'
  const f=destination+'/apps/sites-workflow/dist/'+page;
  const label=page==='is-akisi-taslagi.html'?'TEST · SQL iş akışları · LIVE’dan ayrı':'TEST · Ayrı örnek ekran';
  fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">'+label+' · '+sourceCommit.slice(0,12)+'</div>'));
+}
+if(migrationFiles.length){
+ const summary=JSON.parse(fs.readFileSync(destination+'/docs/erp-v2/canonical-20261003/migration-public-summary.json','utf8'));
+ fs.writeFileSync(destination+'/apps/sites-workflow/dist/migration-proof.html',renderMigrationProof(summary,sourceCommit));
 }
 function walk(root,rel=''){return fs.readdirSync(path.join(root,rel),{withFileTypes:true}).flatMap(d=>d.isSymbolicLink()?(()=>{throw Error('RELEASE_SYMLINK_REJECTED');})():['node_modules','.canonical-runtime'].includes(d.name)?[]:d.isDirectory()?walk(root,path.posix.join(rel,d.name)):[path.posix.join(rel,d.name)]);}
 const files=walk(destination).map(file=>({path:file,sha256:sha(fs.readFileSync(destination+'/'+file))}));

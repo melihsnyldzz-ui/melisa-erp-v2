@@ -6,6 +6,7 @@ import { writeAuditLog } from './auditService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { nullableCost } from './productCostValue.js';
 
 function toProductDto(row) {
   return {
@@ -23,7 +24,7 @@ function toProductDto(row) {
     salePrice: Number(row.sale_price || 0),
     purchasePrice: Number(row.purchase_price || 0),
     purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
-    averageCostTry: Number(row.average_cost_try || 0),
+    averageCostTry: nullableCost(row.average_cost_try),
     stockQuantity: Number(row.stock_quantity || 0),
     imageUrl: row.image_file_path || null,
     isPassive: !row.is_active,
@@ -48,8 +49,8 @@ function toProductDetailDto(row) {
     stockQuantity: Number(row.stock_quantity || 0),
     supplierName: row.supplier_name || null,
     isPassive: !row.is_active,
-    averageCostTry: Number(row.average_cost_try || 0),
-    averageCostCurrency: Number(row.average_cost_currency || 0),
+    averageCostTry: nullableCost(row.average_cost_try),
+    averageCostCurrency: row.average_cost_try == null ? null : nullableCost(row.average_cost_currency),
     cardOpenedAt: row.card_opened_at || null,
     lastPurchaseDate: row.last_purchase_date || null,
     lastSaleDate: row.last_sale_date || null,
