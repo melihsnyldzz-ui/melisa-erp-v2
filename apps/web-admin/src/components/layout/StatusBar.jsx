@@ -5,22 +5,13 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
   const statusRef = useRef(null);
 
   useEffect(() => {
-    if (!isDetailOpen) {
-      return undefined;
-    }
-
+    if (!isDetailOpen) return undefined;
     function handlePointerDown(event) {
-      if (!statusRef.current.contains(event.target)) {
-        setIsDetailOpen(false);
-      }
+      if (!statusRef.current?.contains(event.target)) setIsDetailOpen(false);
     }
-
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setIsDetailOpen(false);
-      }
+      if (event.key === 'Escape') setIsDetailOpen(false);
     }
-
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -37,23 +28,19 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
         onClick={() => setIsDetailOpen((isOpen) => !isOpen)}
         type="button"
       >
-        <i className={`status-led ${isDemoMode ? 'offline' : 'online'}`} />
-        {isDemoMode ? 'Demo modu' : 'Bağlantı açık'}
+        {isDemoMode ? 'Demo modu' : 'Oturum bilgisi'}
       </button>
       <span>{activeTab.label}</span>
       <span>{openTabCount} sekme</span>
-      <span>{user.username || '-'}</span>
-      <strong>Detaylar</strong>
+      <span>{user?.username || '-'}</span>
       {isDetailOpen && (
-        <div className="status-detail-popover" role="dialog">
+        <div className="status-detail-popover" role="dialog" aria-label="Oturum ayrıntıları">
           <div><b>Firma</b><span>Melisa Bebe</span></div>
-          <div><b>Dönem</b><span>2026</span></div>
-          <div><b>Kullanıcı</b><span>{user.username || '-'}</span></div>
-          <div><b>Rol</b><span>{user.role.name || '-'}</span></div>
-          <div><b>Uygulama</b><span>{isDemoMode ? 'kapalı / demo' : 'hazır'}</span></div>
-          <div><b>Veritabanı</b><span>{isDemoMode ? 'bağlantı yok / demo' : 'hazır'}</span></div>
+          <div><b>Kullanıcı</b><span>{user?.username || '-'}</span></div>
+          <div><b>Rol</b><span>{user?.role?.name || '-'}</span></div>
+          <div><b>Mod</b><span>{isDemoMode ? 'Demo' : 'Standart'}</span></div>
+          <div><b>Veritabanı</b><span>Bu çubukta doğrulanmıyor</span></div>
           <div><b>Seçili ekran</b><span>{activeTab.label}</span></div>
-          <div><b>Oturum</b><span>Açık</span></div>
         </div>
       )}
     </footer>
