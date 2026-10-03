@@ -8,7 +8,7 @@
 - Güncel Vega delta gerçekten çıkarıldı: 71 yeni, 341 değişmiş ürün; 74 değişmiş cari. Bu delta TEST açılışına uygulanmadı; okuma atomik cutover kesimi değildir. T0/T1, yazıcı durdurma, yeni batch, delta mutabakatı ve rollback kapıları planda.
 - Açık kapılar: 54 ürün ve 122 cari native kabul dışında; 54 eski karantina kartının 22'si aktif/39'u stoklu olduğundan operasyon engeli ayrıca gerekir. Kabul edilen 9.751 üründe döviz uyumsuz scalar alış fiyatı korunur; mevcut fiyat ekranı typed kaynağı okumaz. Eksik maliyet/bakiye/barkod, gerçek kasa/banka sayımı ve güncel kesim kabulü açık. Tam günlük kullanım veya LIVE cutover kabulü verilmedi.
 - Gerçek normal API ürün stok/maliyet ve müşteri bakiye okumaları PASS; tedarikçi GET mevcut kullanıcı yetkisiyle 403, yetki genişletilmedi; tedarikçi mutabakatı SQL üzerinden kanıtlı. TEST maliyet gösterimi için NULL koruması eklendi; nihai ekran/paket kabulü kendi kanıt dosyasında tutulur.
-- Son paket `CANONICAL-VEGA-MIGRATION-TEST-20261004-05`, launcher `C:\Sirket\ERP\runtime\start-canonical-test.ps1`; tam source commit/hash release manifest'te. Kanıt kökü `C:\Sirket\ERP\evidence\VEGA-MIGRATION-TEST-20261004`; ham ticari veri yalnız erişimi sınırlı private bölümde. `sql-vega`, backend, reviewer ve release kullanıldı.
+- Son paket `CANONICAL-VEGA-MIGRATION-TEST-20261004-06`, launcher `C:\Sirket\ERP\runtime\start-canonical-test.ps1`; tam source commit/hash release manifest'te. Kanıt kökü `C:\Sirket\ERP\evidence\VEGA-MIGRATION-TEST-20261004`; ham ticari veri yalnız erişimi sınırlı private bölümde. `sql-vega`, backend, reviewer ve release kullanıldı.
 
 3 Ekim 2026 — **Mal kabulden fatura → aynı faturadan alış iadesi, ayrılmış TEST kayıtlarıyla iş kabulüne hazır.**
 

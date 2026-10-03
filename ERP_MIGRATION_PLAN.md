@@ -107,7 +107,7 @@ Korunan yerel kanıt kökü `C:\Sirket\ERP\evidence\VEGA-MIGRATION-TEST-20261004
 - `private/VEGA-OPENING-TEST-20261004-06/{commit-receipt,verification-receipt,replay-receipt}.json`
 - `private/independent-postapply-06.json`, `independent-barcode-06.json`, `independent-replay-06.json`, `independent-rollback-03.json`
 - `private/current-capture-01`, `private/delta-01/source-delta-summary.json`, `api-migration-proof.json`
-- Kanonik TEST launcher: `C:\Sirket\ERP\runtime\start-canonical-test.ps1`; nihai paket `CANONICAL-VEGA-MIGRATION-TEST-20261004-05`. Tam kaynak commit'i ve her dosyanın SHA-256 değeri paketin `release-manifest.json` dosyasındadır.
+- Kanonik TEST launcher: `C:\Sirket\ERP\runtime\start-canonical-test.ps1`; nihai paket `CANONICAL-VEGA-MIGRATION-TEST-20261004-06`. Tam kaynak commit'i ve her dosyanın SHA-256 değeri paketin `release-manifest.json` dosyasındadır.
 - [5194 salt okunur migration özeti](http://127.0.0.1:5194/migration-proof.html): eşlenen kontroller ve açık kapılar. Kaydedilmiş paket özeti güncel SQL sonucu gibi gösterilmez.
 
 `sql-vega`, backend, reviewer ve release rolleri kullanıldı. Çalışan eski ticari akışların kabulü yeniden açılmadı. LIVE servis sahipliği korundu; gerçek genel kullanım/LIVE geçişi için PARTIAL kapıları kapanmalıdır.
