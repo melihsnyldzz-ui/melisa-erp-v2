@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validatePlan,safeFailureCode} from './target-native-opening.mjs';
+import {validatePlan,safeFailureCode,nativeUpdateChunks} from './target-native-opening.mjs';
 import {hash} from './mapping-opening.mjs';
 import {RUN} from './target-opening-runtime.mjs';
 function approved(plans=[{table:'products',targetId:'001',sourceKey:'F0102/001',beforeHash:'a'.repeat(64),fields:{current_stock_qty:'-2.000',average_cost_try:null}}]){
@@ -23,4 +23,21 @@ test('ODBC diagnostic preserves the guard rule without printing raw SQL or busin
  assert.equal(safeFailureCode({message:'[Microsoft][SQL Server]MIGRATION_UPDATE_OUTSIDE_PLAN',originalError:{message:'ignored'}}),'MIGRATION_UPDATE_OUTSIDE_PLAN');
  assert.equal(safeFailureCode({message:'ODBC request failed',originalError:{message:'[SQL Server]NATIVE_PREIMAGE_CHANGED'}}),'NATIVE_PREIMAGE_CHANGED');
  assert.equal(safeFailureCode({message:'Sensitive row detail'}),'NATIVE_OPENING_FAILED');
+});
+test('bounded native updates cover every approved ID exactly once without numeric precision loss',()=>{
+ const rows=Array.from({length:1203},(_,i)=>({targetId:String(9007199254740993n+BigInt(i)),fields:{balance:String(i)}})).reverse();
+ const chunks=nativeUpdateChunks(rows);
+ assert.deepEqual(chunks.map(c=>c.length),[500,500,203]);
+ const ids=chunks.flat().map(r=>r.targetId);
+ assert.equal(new Set(ids).size,rows.length);
+ assert.deepEqual(new Set(ids),new Set(rows.map(r=>r.targetId)));
+ assert.equal(ids[0],'9007199254740993');
+ assert.equal(ids.at(-1),'9007199254742195');
+ assert.ok(chunks.flat().every(r=>rows.includes(r)));
+});
+test('batch boundaries cannot be enlarged or reuse a numeric target through another string',()=>{
+ assert.throws(()=>nativeUpdateChunks([{targetId:'1'}],501),/NATIVE_UPDATE_BATCH_BOUND_REQUIRED/);
+ assert.throws(()=>nativeUpdateChunks([{targetId:'1'},{targetId:'001'}]),/DUPLICATE_NATIVE_TARGET/);
+ assert.throws(()=>nativeUpdateChunks([{targetId:'1 OR 1=1'}]),/NATIVE_UPDATE_ID_REQUIRED/);
+ assert.deepEqual(nativeUpdateChunks([]),[]);
 });

@@ -25,6 +25,14 @@ export function validatePlan(plan) {
   const keys=new Set();for(const p of plan.plans){requireRule(mutable[p.table],'NATIVE_TABLE_NOT_ALLOWED');const k=`${p.table}/${p.targetId??p.sourceKey}`;requireRule(!keys.has(k),'DUPLICATE_NATIVE_TARGET');keys.add(k);if(p.targetId!==null)for(const c of Object.keys(p.fields))requireRule(mutable[p.table].includes(c),'UNPLANNED_NATIVE_COLUMN');}
   return true;
 }
+export function nativeUpdateChunks(rows, size=500) {
+  requireRule(Number.isInteger(size)&&size>0&&size<=500,'NATIVE_UPDATE_BATCH_BOUND_REQUIRED');
+  const ids=new Set();
+  for(const row of rows){requireRule(/^\d+$/.test(String(row.targetId)),'NATIVE_UPDATE_ID_REQUIRED');const id=BigInt(row.targetId).toString();requireRule(!ids.has(id),'DUPLICATE_NATIVE_TARGET');ids.add(id);}
+  const ordered=[...rows].sort((a,b)=>BigInt(a.targetId)<BigInt(b.targetId)?-1:1),chunks=[];
+  for(let i=0;i<ordered.length;i+=size)chunks.push(ordered.slice(i,i+size));
+  return chunks;
+}
 export async function applyNativeOpening(mode) {
   lastStage='source-and-plan-check';
   requireRule(['--apply-test','--verify','--replay-test'].includes(mode),'EXPLICIT_TEST_MODE_REQUIRED');
@@ -61,7 +69,11 @@ export async function applyNativeOpening(mode) {
       for(const table of [...new Set(updates.map(p=>p.table))]){
         lastStage='updates:'+table;
         const cols=mutable[table],metadata=meta.get(table),sets=cols.map(c=>{const type=sqlType(metadata.find(x=>x.name===c));return `p.${ident(c)}=CASE WHEN EXISTS(SELECT 1 FROM OPENJSON(j.after_json) z WHERE z.[key]=N'${c}') THEN CONVERT(${type},JSON_VALUE(j.after_json,N'$.${c}')) ELSE p.${ident(c)} END`;}).join(',');
-        await q(`IF EXISTS(SELECT 1 FROM #migration_updates j JOIN dbo.${table} p ON p.id=j.id WHERE j.table_name=N'${table}' AND j.old_hash<>CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT p.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)),2)) THROW 51071,'NATIVE_PREIMAGE_CHANGED',1;UPDATE p SET ${sets} FROM dbo.${table} p JOIN #migration_updates j ON j.id=p.id AND j.table_name=N'${table}';`);
+        const chunks=nativeUpdateChunks(updates.filter(p=>p.table===table));
+        for(let i=0;i<chunks.length;i++){
+          lastStage=`updates:${table}:batch-${i+1}-of-${chunks.length}`;
+          await req().input('ids',sql.NVarChar(sql.MAX),JSON.stringify(chunks[i].map(p=>p.targetId))).query(`DECLARE @batch TABLE(id bigint PRIMARY KEY);INSERT @batch SELECT id FROM OPENJSON(@ids) WITH(id bigint '$');IF EXISTS(SELECT 1 FROM @batch b JOIN #migration_updates j ON j.id=b.id AND j.table_name=N'${table}' JOIN dbo.${table} p ON p.id=j.id WHERE j.old_hash<>CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT p.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)),2)) THROW 51071,'NATIVE_PREIMAGE_CHANGED',1;UPDATE p SET ${sets} FROM @batch b JOIN dbo.${table} p ON p.id=b.id JOIN #migration_updates j ON j.id=p.id AND j.table_name=N'${table}';`);
+        }
       }
       for(const table of [...new Set(inserts.map(p=>p.table))]){
         lastStage='inserts:'+table;
