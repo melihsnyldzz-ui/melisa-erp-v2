@@ -73,6 +73,14 @@ credential güvenliği ve LIVE değişikliklerinin onay sınırları sürer.
   PARTIAL/BLOCKED/NOT_VERIFIED olarak ve sonraki somut adımla raporla. Kabulde
   yeni kod gerekiyorsa ilgili testleri yeniden çalıştır; ilgisiz tam baseline yok.
 
+### Tek kelimelik varsayılan — 3 Ekim 2026
+
+- Kullanıcı ana Codex konuşmasında yalnız `devam`, `başla` veya `sıradaki` yazarsa bunu **ERP bitiş planındaki sıradaki açık/kırmızı maddeyi tamamla; gereken subagent'ları kullan, TEST'te gereken teknik işlemleri yap ve gerçek kabul hazır olunca dön** talimatı olarak uygula. Uzun komutu yeniden yazmasını veya rutin iş için tekrar onay vermesini isteme.
+- Önce `ERP_FINISH_PLAN.md` ve `STATUS.md` dosyalarını oku. Plan iş sırası ve kabul ölçütlerinin source of truth'u, `STATUS.md` güncel durum ve kanıt kaydı olarak kalır; eski `ERP_STATUS.md` yeni durum kaynağı yapılmaz. Plan sırasını güncel açık durumla birlikte değerlendir; tamamlanmış/kabulü kayıtlı işi yeniden açmadan sıradaki tek açık/kırmızı maddeyi seç. Tarihsel durum satırlarını güncel eksik sayma.
+- Seçilen işi yukarıdaki çalışma düzeniyle tamamla: gereken explorer/backend/frontend/reviewer/sql-vega/release subagent'larını açık dosya sahipliğiyle görevlendir, sonuçları birleştir ve doğrulanmış TEST'te gerekli kod düzeltmesi, build, kurulum, restart, test, feature branch/commit/push işlemlerini yürüt. Verilmiş TEST yetkisi için yeni gate, bridge veya approval döngüsü oluşturma; eski genel onay metinleri bu kapsamda tekrar izin isteme gerekçesi değildir.
+- Çalışan baseline'ı yeniden ispatlama; yalnız değişen akış, somut regresyon veya eksik kabul için hedefli doğrulama yap. Gerçek kabul hazır olunca kullanılabilir sonucu ve kanıtını aynı plan/status'a kaydet. Personelin veya kullanıcının fiziksel kontrolü gerekiyorsa teknik hazırlığı tamamlayıp yalnız kalan somut kabul adımını iste; build/smoke/mock sonucunu gerçek kabul veya PASS yerine koyma.
+- Yukarıdaki runtime kimliği, TEST/LIVE, Vega/gerçek ticari kayıt, mesaj gönderimi ve credential sınırları sürer. Kısa komut main'e otomatik merge veya LIVE değişiklik yetkisi vermez; açık madde kalmadıysa tamamlanmış işi yeniden başlatmadan mevcut sonucu bildir.
+
 ### Semih PC'de kullanım
 
 Yerel checkout'u remote üzerinden doğrula, ilgili setup branch/PR'yi getir ve
@@ -82,9 +90,7 @@ güvenilir olarak seçmelidir; 3 Ekim kök standardizasyonu yalnız bu iki doğr
 Yeni oturumda `.codex/config.toml` ve agent keşfini kontrol et. Dosyaların GitHub'da
 bulunması Semih PC'de etkinleştiğini veya LIVE'ın hazır olduğunu kanıtlamaz.
 
-Kısa komut:
-
-> Planındaki sıradaki kırmızı maddeyi bitir. Gereken ajanları kullan, gerçek kabul hazır olunca dön.
+Kısa komut: **`devam`**, **`başla`** veya **`sıradaki`**. Ana ajan yukarıdaki varsayılanı otomatik uygular.
 
 ## Required Reading Order
 
