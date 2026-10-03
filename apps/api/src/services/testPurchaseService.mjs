@@ -4,6 +4,7 @@ import {withTestSalesMutation} from './testSalesScope.mjs';
 import {addGoodsBatch,acceptGoods,rejectGoods,addPurchase,invoiceableQuantity} from './sitesGoodsRules.mjs';
 import {createPurchaseDraft,finalizePurchaseInvoice,cancelPurchaseInvoice,getPurchaseDraft} from './invoiceDraftService.js';
 import {writeAuditLog} from './auditService.js';
+import {assertPurchaseReturnClear} from './testPurchaseReturnGuard.mjs';
 const fail=(code,message,statusCode=400)=>{throw Object.assign(new Error(message),{code,statusCode})};
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 const checkKeys=(v,keys)=>{if(Object.keys(v).some(k=>!keys.includes(k)))fail('TEST_PAYLOAD','Kapsam dışı alan gönderildi.')};
@@ -68,6 +69,7 @@ export async function createTestPurchase(input,actor){return atomic(actor,async(
 export async function cancelTestPurchase(id,input,actor){return atomic(actor,async(ctx,d)=>journal(ctx,actor,{...input,id:Number(id)},'purchase_cancel',async()=>{
  office(actor);checkKeys(input,['requestId','reason']);const p=d.invoices.find(p=>Number(p.id)===Number(id));if(!p)fail('TEST_INVOICE','TEST bağlantılı alış bulunamadı.',404);
  if(p.status==='cancelled')return {id:Number(id),alreadyApplied:true};
+ await assertPurchaseReturnClear(new ctx.sql.Request(ctx.tx),ctx.sql,Number(id));
  const context={pool:ctx.pool,sqlDriver:ctx.sql,transaction:ctx.tx,stockAlreadyReceived:true};await cancelPurchaseInvoice(id,input,actor,context);return {id:Number(id),goodsId:Number(p.goods_id),invoice:await getPurchaseDraft(id,context)};
 }));}
 export async function testPurchaseContext(actor){return atomic(actor,async(ctx,d)=>{
