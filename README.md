@@ -1,3 +1,5 @@
+> **MELISA ERP / SEMIH kanonik geliştirme kökü:** `C:\Sirket\ERP\melisa-erp-v2`. Önce [AGENTS.md](AGENTS.md), [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md) ve [STATUS.md](STATUS.md) oku. Aktif ajan dalı `codex/erp-agents-on-canonical-20261003`; kod tabanı `e82262b1d120f4c461a2456d67e34c115578d7ba`. Eski kaynaklar kanıt/arşivdir; çalışan runtime ayrı korunur.
+
 # Melisa ERP v2
 
 Melisa ERP v2, Melisa Bebe için web tabanlı, desktop-first ve Vega/Wolvox hissinde tasarlanacak yeni ERP projesidir.
