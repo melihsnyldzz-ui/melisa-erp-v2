@@ -6,11 +6,17 @@ Güncelleme: 3 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıd�
 
 ## 3 Ekim SEMIH sonucu — bu bölüm güncel
 
-F02 teknik baseline ve F03 dosya sınıflaması korunur. F04 kesin TEST paketi yenilendi. F05 yeşil Sites → kanonik API → gerçek TEST SQL entegrasyonu, **ayrılmış TEST kayıtları kapsamında teknik PASS**: 31 SQL etkisi, 8 gerçek ekran yazma kontrolü, 16 ekran, 32 son smoke; 354 Sites + 27 seçili kanonik test PASS. F06 LIVE geçişi yapılmadı. Fiziksel native kabulü bu entegrasyon çalışmasında yok.
+Kanonik kaynak `C:\Sirket\ERP\source\canonical-live-20261003`; origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`, aktif dal `codex/canonical-live-20261003`. Kullanıcının son talimatındaki bu kök uygulanır. F02 kaynak eşlemesi, F03 dosya sınıflaması ve önceki F05 teknik kabulleri korunur; çalışan satış/tahsilat/sayım yeniden ispatlanmadı.
 
-Paket commit: `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`; launcher `CANONICAL-SITES-SQL-TEST-20261003-02` paketini hedefler. İş kayıtları SQL’dedir; tarayıcıda örnek ticari sonuç tutulmaz. Önceki kabuller, LIVE ve kirli kaynaklar korunur. [Gerçek akış kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md) · [Son teslim](docs/erp-v2/canonical-20261003/delivery.json).
+Bulunan ilk gerçek eksik kapatıldı: **mal kabulden yeni alış faturası → aynı faturanın kendi satırından mal iadesi**. Önce iade ekranı farklı, sabit bir TEST faturası kullanıyordu. Yeni bağ kaynak fiyatı/kalabilecek miktarı gösterir; taslak etkisizdir, yetkili onay gerçek SQL stok/borç etkisi üretir. Aktif iadeli kaynak fatura iptal edilemez; iade ters kayıtla kapatıldıktan sonra iptal edilebilir. Alış kalan borcu onaylı iadeyi de düşer.
 
-**Kalan tek kabul işi:** personelin yeşil TEST ekranında normal günlük iş sırasını görerek kabul etmesi. Yazma kapsamı mevcut ayrılmış TEST kayıtlarıdır; tüm ticari kartlar, fiyat/kart düzenleme, ayrıntılı alış taslağı veya fiziksel native kullanım için genel PASS verilmez. Aşağıdaki eski host envanteri tarihsel devir kaydıdır.
+Fatura #25083 / satır #93181 → iade taslağı #31 → iade #223: 1 ADET ve 60 TRY borç ters etkisi; ters kayıtta ikisi de geri geldi. Kasa/banka hesapları ve hareketleri aynı. 10 API + 4 UI hedefli test, 14 gerçek tarayıcı kontrolü PASS. SQL'deki iki stok, iki tedarikçi ve iki audit kaydı korunur. İlk audit kapsam reddi bütünüyle rollback edildi; aynı taslaktan devam edildi. Toplam alış istek geçmişinin 30 kayıt engeli kaldırıldı; geçmiş boyutu iptal/ters kaydı kilitlemez. Yeni ticari kural, tablo veya kolon eklenmedi.
+
+Son TEST paketi `CANONICAL-LINKED-RETURN-TEST-20261003-05`; tam commit ve hash paketin `release-manifest.json` dosyasında. Launcher `C:\Sirket\ERP\runtime\start-canonical-test.ps1`, ekran `127.0.0.1:5194`, API 4144, native 4146 salt okunur. DB `MELISA_ERP_SIRKET_TEST_20260929_01`; LIVE erişimi/dış işlemler kapalı. [Yeni kabul](docs/erp-v2/canonical-20261003/linked-purchase-return-acceptance.md) · [Teslim](docs/erp-v2/canonical-20261003/delivery.json).
+
+**Sıradaki insan kabulü:** bu bağlı akışı günlük iş sırasıyla TEST ekranında görmek. Bu akış ayrılmış kayıtlarla iş kabulüne hazırdır. **Sıradaki gerçek kaynak eksiği:** çok satırlı mal kabul/ayrıntılı alış taslağı; fiyat kartı yazımı ve fiziksel native kabulü de açık. Önceki “kalan tek iş insan kabulü” ifadesi eski dar teslim kapsamına aitti; tüm ERP tamamlandı anlamına gelmez. LIVE geçişi yapılmadı.
+
+Aşağıdaki eski host envanteri ve F02 bekleme anlatısı tarihsel devir kaydıdır; güncel durum yukarıdaki bölüm ve STATUS'tur.
 
 ## Çalışma ilkesi ve mevcut durum
 

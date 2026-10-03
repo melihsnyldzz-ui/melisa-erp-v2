@@ -1,3 +1,9 @@
+# Güncel teslim — bağlı alış faturası / gerçek TEST iadesi
+
+[Yeni fatura→iade kabulü](linked-purchase-return-acceptance.md) güncel kapsamdır: mal kabulden oluşturulan kendi TEST faturası artık iade kaynağıdır. Paket `CANONICAL-LINKED-RETURN-TEST-20261003-05`; tam commit paketin manifestindedir. Personelin bu bağlı günlük akış için iş kabulü beklenir. [Teslim](delivery.json). Önceki teknik kabul tekrar çalıştırılmadı.
+
+---
+
 # Güncel teslim — yeşil Sites / gerçek TEST SQL
 
 [SQL iş akışı kabulü](sql-workflow-acceptance.md) güncel kapsam ve kanıttır. Kesin paket `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`. Ayrılmış TEST kayıtlarında gerçek stok/cari/kasa etkileri PASS; personel iş kabulü beklenir. [Teslim](delivery.json) · [Önceki salt okunur Sites teslimi](delivery-readonly-sites.json).
