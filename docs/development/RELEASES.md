@@ -24,6 +24,6 @@ CRM ve ERP ayrı repolarda aynı `v1.0.0` adını kullanabilir; birlikte yayınl
 
 Sonra ajan kabul edilmiş main commit'ine annotated tag açar ve GitHub release notuna kullanıcıya anlaşılır değişiklikler, PR'ler, CI/kabul kanıtı, bilinen eksikler ve rollback paketi yazar. Feature branch'e ilk release tag'i konmaz; otomatik release workflow'u yoktur.
 
-Tag kaynak sürümünü isimlendirir; o sürümün LIVE'da kurulu olduğunu kanıtlamaz. LIVE kimliği [STATUS.md](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/5a82c1db00f8f984bb760cca8896e25eebb6726e/STATUS.md) ve deployment kaydında ayrı tutulur. Eski sürüme kod geri dönüşü ticari kayıtları silmez veya eski DB yedeğini otomatik geri yüklemez.
+Tag kaynak sürümünü isimlendirir; o sürümün LIVE'da kurulu olduğunu kanıtlamaz. LIVE kimliği [STATUS.md](../../STATUS.md) ve deployment kaydında ayrı tutulur. Eski sürüme kod geri dönüşü ticari kayıtları silmez veya eski DB yedeğini otomatik geri yüklemez.
 
 İlgili belgeler: [Çalışma düzeni](GITHUB_WORKFLOW.md), [TEST → LIVE](DEPLOY_ROLLBACK.md).

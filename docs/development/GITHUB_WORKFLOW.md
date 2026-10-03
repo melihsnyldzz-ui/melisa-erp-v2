@@ -43,7 +43,7 @@ Branch protection/ruleset veya zorunlu check sunucu ayarı bu görevde değişti
 
 ## Her işin kısa kayıt alanları
 
-Kanonik durum dosyası [STATUS.md](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/5a82c1db00f8f984bb760cca8896e25eebb6726e/STATUS.md); ikinci bir ERP_STATUS oluşturulmaz.
+Kanonik durum dosyası [STATUS.md](../../STATUS.md); ikinci bir ERP_STATUS oluşturulmaz.
 
 | Alan | Yazılacak bilgi |
 | --- | --- |
