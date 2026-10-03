@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { formatDate, formatMoney, movementLabel, movementParty, quantityEffect } from './stock360Utils.js';
+import { formatDate, movementLabel, movementParty, quantityEffect } from './stock360Utils.js';
+import { formatCost } from '../product/productCardUtils.js';
 
 export function StockProduct360Panel({
   selectedRow,
@@ -48,7 +49,7 @@ export function StockProduct360Panel({
             <div><span>PB</span><strong>{selectedRow.currency}</strong></div>
             {isReadOnly
               ? <div><span>Stok</span><strong>{selectedRow.currentStock}</strong></div>
-              : <div><span>Ort. maliyet</span><strong>{formatMoney(selectedDetail?.averageCostTry, 'TRY')}</strong></div>}
+              : <div><span>Ort. maliyet</span><strong>{formatCost(selectedDetail?.averageCostTry, 'TRY')}</strong></div>}
           </div>
 
           <dl className="stock-360-facts">

@@ -1,6 +1,14 @@
 # Melisa ERP durumu
 
-4 Ekim 2026 — Vega açılış migration TEST provası yürütülüyor. Kaynak/delta ve güvenli native plan doğrulandı; gerçek SQL uygulama ve bağımsız mutabakat sonucu henüz tamamlanmadı. [Migration planı](ERP_MIGRATION_PLAN.md). LIVE yazımı yok.
+4 Ekim 2026 — **Vega açılış migration gerçek TEST provası tamamlandı. Eşlenen kapsam PASS; genel geçiş PARTIAL.** [Migration planı](ERP_MIGRATION_PLAN.md) · [5194 mutabakat özeti](http://127.0.0.1:5194/migration-proof.html).
+
+- Kaynak Vega; eski resmi geçmiş aktarılmadı. Donmuş 30 Eylül kesimi → yalnız `MELISA_ERP_SIRKET_TEST_20260929_01`; run `VEGA-OPENING-TEST-20261004-06` COMMITTED. LIVE/Vega yazımı yok.
+- 16.622 ürün, 371 müşteri + 401 tedarikçi, 785 döviz hesabı, 63.774 fiyat ve 8 güvenli yeni barkod uygulandı. Bağımsız kayıt bazlı stok/cari/fiyat/maliyet mutabakatı fark 0. 6.070 maliyet kanıtlı, 10.552 NULL/bilinmeyen; bilinmeyen maliyet sıfıra çevrilmedi.
+- 1.493 açılış hareketi, 184.045 immutable kaynak kanıtı. 27 eski geçmiş/finans/terminal tablosu ve 22 SQL guard korunur. Verify/replay ve aynı apply tekrarının güvenli reddi sonrası 37 tablonun tüm count/hash'i aynı; ek yazma 0. COPY_ONLY/CHECKSUM yedeği VERIFYONLY PASS; restore provası yapılmadı.
+- Güncel Vega delta gerçekten çıkarıldı: 71 yeni, 341 değişmiş ürün; 74 değişmiş cari. Bu delta TEST açılışına uygulanmadı; okuma atomik cutover kesimi değildir. T0/T1, yazıcı durdurma, yeni batch, delta mutabakatı ve rollback kapıları planda.
+- Açık kapılar: 54 ürün ve 122 cari native kabul dışında; 54 eski karantina kartının 22'si aktif/39'u stoklu olduğundan operasyon engeli ayrıca gerekir. Kabul edilen 9.751 üründe döviz uyumsuz scalar alış fiyatı korunur; mevcut fiyat ekranı typed kaynağı okumaz. Eksik maliyet/bakiye/barkod, gerçek kasa/banka sayımı ve güncel kesim kabulü açık. Tam günlük kullanım veya LIVE cutover kabulü verilmedi.
+- Gerçek normal API ürün stok/maliyet ve müşteri bakiye okumaları PASS; tedarikçi GET mevcut kullanıcı yetkisiyle 403, yetki genişletilmedi; tedarikçi mutabakatı SQL üzerinden kanıtlı. TEST maliyet gösterimi için NULL koruması eklendi; nihai ekran/paket kabulü kendi kanıt dosyasında tutulur.
+- Son paket `CANONICAL-VEGA-MIGRATION-TEST-20261004-05`, launcher `C:\Sirket\ERP\runtime\start-canonical-test.ps1`; tam source commit/hash release manifest'te. Kanıt kökü `C:\Sirket\ERP\evidence\VEGA-MIGRATION-TEST-20261004`; ham ticari veri yalnız erişimi sınırlı private bölümde. `sql-vega`, backend, reviewer ve release kullanıldı.
 
 3 Ekim 2026 — **Mal kabulden fatura → aynı faturadan alış iadesi, ayrılmış TEST kayıtlarıyla iş kabulüne hazır.**
 

@@ -16,6 +16,7 @@ export const emptyProductForm = {
   stockQuantity: 0,
   averageCostTry: 0,
   averageCostCurrency: 0,
+  costLoaded: false,
   cardOpenedAt: '',
   lastPurchaseDate: '',
   lastSaleDate: '',
@@ -31,6 +32,10 @@ export function formatMoney(amount, currency = 'TRY') {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(amount || 0));
+}
+
+export function formatCost(amount, currency = 'TRY') {
+  return amount == null ? 'Bilinmiyor' : formatMoney(amount, currency);
 }
 
 export function formatCardOpenedAt(value, emptyLabel = 'Henüz kaydedilmedi') {
@@ -63,8 +68,9 @@ export function mapDetailToForm(detail) {
     isPassive: Boolean(detail.isPassive),
     hasMovements: Boolean(detail.lastPurchaseDate || detail.lastSaleDate),
     stockQuantity: detail.stockQuantity || 0,
-    averageCostTry: detail.averageCostTry || 0,
-    averageCostCurrency: detail.averageCostCurrency || 0,
+    averageCostTry: detail.averageCostTry ?? null,
+    averageCostCurrency: detail.averageCostCurrency ?? null,
+    costLoaded: true,
     cardOpenedAt: detail.cardOpenedAt || '',
     lastPurchaseDate: detail.lastPurchaseDate || '',
     lastSaleDate: detail.lastSaleDate || '',
@@ -97,7 +103,7 @@ export function buildProductView(form, detailId = null) {
 export function mapStockSummary(form) {
   return {
     currentStock: Number(form.stockQuantity || 0),
-    averageCostTry: formatMoney(form.averageCostTry || form.purchasePrice || 0, 'TRY'),
+    averageCostTry: formatCost(form.costLoaded ? form.averageCostTry : form.averageCostTry || form.purchasePrice || 0, 'TRY'),
     lastPurchaseDate: form.lastPurchaseDate || '-',
     lastSaleDate: form.lastSaleDate || '-',
     negativeStockWarning: Number(form.stockQuantity || 0) < 0 ? 'Eksi stok uyarısı: satış/sync kontrol edilmeli.' : '',
@@ -132,11 +138,11 @@ export function buildProduct360(form, stockMovements) {
     lastInDate: '',
   });
 
-  const averageCostTry = Number(form.averageCostTry || 0);
+  const averageCostTry = form.averageCostTry == null ? null : Number(form.averageCostTry);
   const normalizedCurrency = form.currency || 'TRY';
   const averageCostCurrency = normalizedCurrency === 'TRY'
     ? averageCostTry
-    : Number(form.averageCostCurrency || 0);
+    : form.averageCostCurrency == null ? null : Number(form.averageCostCurrency);
   const salePrice = Number(form.salePrice || 0);
   const unitProfit = salePrice > 0 && averageCostCurrency > 0
     ? salePrice - averageCostCurrency
@@ -155,7 +161,7 @@ export function buildProduct360(form, stockMovements) {
     purchasePrice: Number(form.purchasePrice || 0),
     unitProfit,
     grossProfitRate,
-    lastNetPurchaseCostTry: Number(latestPurchase?.unitCostTry || 0),
+    lastNetPurchaseCostTry: latestPurchase?.unitCostTry == null ? null : Number(latestPurchase.unitCostTry),
     supplier: form.supplierName || '-',
   };
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatMoney } from './productCardUtils.js';
+import { formatCost, formatMoney } from './productCardUtils.js';
 
 function formatPercent(value) {
   return new Intl.NumberFormat('tr-TR', {
@@ -44,10 +44,10 @@ export function Product360Panel({ activeProductId, form, product360, onOpenScree
         <div className="entity-360-card">
           <span>Ort. stok maliyeti {product360.averageCostCurrencyCode}</span>
           <strong className="product-average-cost-values">
-            <b>{formatMoney(product360.averageCostCurrency, product360.averageCostCurrencyCode)}</b>
-            {product360.averageCostCurrencyCode !== 'TRY' && <b>{formatMoney(product360.averageCostTry, 'TRY')}</b>}
+            <b>{formatCost(product360.averageCostCurrency, product360.averageCostCurrencyCode)}</b>
+            {product360.averageCostCurrencyCode !== 'TRY' && <b>{formatCost(product360.averageCostTry, 'TRY')}</b>}
           </strong>
-          <small>Fiş kurlarıyla hesaplandı · Son net alış {formatMoney(product360.lastNetPurchaseCostTry, 'TRY')}</small>
+          <small>Fiş kurlarıyla hesaplandı · Son net alış {formatCost(product360.lastNetPurchaseCostTry, 'TRY')}</small>
         </div>
         <div className="entity-360-card price-card">
           <span>Satış fiyatı</span>

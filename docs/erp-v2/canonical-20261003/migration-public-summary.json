@@ -6,7 +6,7 @@
   "sourceAsOf": "2026-09-30",
   "freshLiveSource": false,
   "targetDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
-  "status": "PENDING",
+  "status": "PARTIAL",
   "rehearsalMode": "native-opening",
   "counts": {
     "supplierAccounts": 401,
@@ -16,46 +16,50 @@
   "checks": [
     {
       "domain": "stock",
-      "status": "PENDING",
-      "rows": 0,
+      "status": "PASS",
+      "rows": 16622,
       "differences": 0
     },
     {
       "domain": "customer",
-      "status": "PENDING",
-      "rows": 0,
+      "status": "PASS",
+      "rows": 379,
       "differences": 0
     },
     {
       "domain": "supplier",
-      "status": "PENDING",
-      "rows": 0,
+      "status": "PASS",
+      "rows": 406,
       "differences": 0
     },
     {
       "domain": "price",
-      "status": "PENDING",
-      "rows": 0,
+      "status": "PARTIAL",
+      "rows": 63774,
       "differences": 0
     },
     {
       "domain": "cost",
-      "status": "PENDING",
-      "rows": 0,
+      "status": "PARTIAL",
+      "rows": 16622,
       "differences": 0
     },
     {
       "domain": "opening",
-      "status": "PENDING",
-      "rows": 0,
+      "status": "PASS",
+      "rows": 1493,
       "differences": 0
     }
   ],
   "blockers": [
-    "UNKNOWN_COST",
+    "NEGATIVE_STOCK",
     "UNKNOWN_STOCK",
+    "UNKNOWN_COST",
+    "AMBIGUOUS_PRODUCT",
+    "AMBIGUOUS_PARTY",
     "BARCODE_CONFLICT",
     "CURRENCY_CONFLICT",
+    "SOURCE_DRIFT",
     "SOURCE_NOT_CURRENT",
     "CUTOVER_NOT_ACCEPTED"
   ]
