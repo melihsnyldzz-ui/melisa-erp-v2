@@ -18,6 +18,7 @@ apps/
   web-admin/
   api/
   terminal-app/
+  terminal-native/
 packages/
   ui/
   shared/
@@ -78,6 +79,10 @@ GET /api/sql/tables-preview
 ```
 
 `/api/products` ve `/api/customers` response alanlari barkod ve telefon gibi hassas degerleri maskeler. Liste limitleri en fazla `100` satirla sinirlidir ve sorgular parametreli SQL ile calisir.
+
+## Native Android Terminal
+
+Güncel yerel Kotlin/Compose terminal kaynağı: [apps/terminal-native](apps/terminal-native/README.md), sürüm **1.0.0-candidate.18-t2**. Yerel değişiklikler, test kaynakları ve Melisa görselleri korunmuştur. Backend entegrasyonu ve imzalama gereksinimleri modül README dosyasında açıklanır.
 
 ## Terminal App v2
 
