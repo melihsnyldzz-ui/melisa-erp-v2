@@ -83,6 +83,21 @@ IF EXISTS(SELECT 1 FROM inserted) AND NOT EXISTS(SELECT 1 FROM deleted)
  AND i.account_exchange_rate_snapshot=r.account_exchange_rate_snapshot
  AND ((i.movement_type=N''purchase_return'' AND p.status=N''finalized'' AND i.balance_effect=-r.account_amount)
  OR (i.movement_type=N''purchase_return_cancel'' AND i.balance_effect=r.account_amount)))) RETURN;
+'),
+(N'test_guard_audit_logs', N'
+/* CANONICAL_LINKED_PURCHASE_RETURN_20261003 */
+IF EXISTS(SELECT 1 FROM inserted) AND NOT EXISTS(SELECT 1 FROM deleted)
+ AND NOT EXISTS(SELECT 1 FROM inserted i WHERE i.actor_user_id IS NULL
+ OR i.actor_user_id NOT IN(1,16) OR i.entity_type IS NULL OR i.entity_type<>N''invoice_return''
+ OR NOT EXISTS(SELECT 1 FROM dbo.invoice_returns r
+ JOIN dbo.test_purchase_links l ON l.invoice_id=r.source_purchase_invoice_id
+ JOIN dbo.test_goods_receipts g ON g.id=l.goods_id
+ JOIN dbo.test_purchase_scope t ON t.id=1
+ JOIN dbo.purchase_invoices p ON p.id=l.invoice_id
+ WHERE r.id=i.entity_id AND r.kind=N''purchase'' AND r.supplier_id=t.supplier_id
+ AND g.state=N''accepted'' AND g.product_id=t.product_id AND g.supplier_id=t.supplier_id
+ AND p.supplier_id=t.supplier_id AND p.document_no LIKE N''TSTG-%''
+ AND r.status IN(N''finalized'',N''cancelled''))) RETURN;
 ');
 DECLARE @name sysname,@body nvarchar(max),@definition nvarchar(max),@anchor nvarchar(200);
 DECLARE guards CURSOR LOCAL FAST_FORWARD FOR SELECT name,body FROM @extensions;
@@ -91,6 +106,7 @@ FETCH NEXT FROM guards INTO @name,@body;
 WHILE @@FETCH_STATUS=0
 BEGIN
  SET @definition=OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+@name));
+ SET @definition=REPLACE(@definition,N'CREATE   TRIGGER',N'CREATE TRIGGER');
  SET @anchor=N'CREATE TRIGGER dbo.'+@name;
  IF @definition IS NULL OR (LEFT(@definition,LEN(@anchor))<>@anchor
  AND LEFT(@definition,LEN(@anchor)-1)<>N'ALTER TRIGGER dbo.'+@name)
@@ -108,4 +124,4 @@ CLOSE guards;
 DEALLOCATE guards;
 COMMIT;
 SELECT name,is_disabled FROM sys.triggers WHERE name IN(
- N'test_guard_daily_returns',N'test_guard_stock_movements',N'test_guard_supplier_movements');
+ N'test_guard_daily_returns',N'test_guard_stock_movements',N'test_guard_supplier_movements',N'test_guard_audit_logs');
