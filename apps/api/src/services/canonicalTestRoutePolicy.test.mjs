@@ -12,3 +12,10 @@ test('native and read-only runtime never allow business writes',()=>{
  }
  assert.equal(allowed('DELETE','/api/test-purchase/goods',ctx),false);
 });
+test('ordinary daily ERP and native listeners keep dedicated CRM drafts out of their write scope',()=>{
+ const draft='/api/test/crm/orders/drafts';
+ assert.equal(allowed('POST',draft,ctx),false);
+ for(const context of [{mode:'native',writes:true},{mode:'erp',writes:false}])assert.equal(allowed('POST',draft,context),false);
+ for(const path of [draft+'/1/finalize',draft+'/1/convert-to-sales-draft','/api/sales-orders','/api/sales-orders/1/convert-to-sales-draft'])assert.equal(allowed('POST',path,ctx),false);
+ for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,draft,ctx),false);
+});

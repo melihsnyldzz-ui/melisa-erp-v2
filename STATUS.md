@@ -1,5 +1,19 @@
 # Melisa ERP durumu
 
+## CRM sipariş taslağı — 4 Ekim 2026 gerçek TEST kabulü
+
+**PASS — yalnız ayrılmış TEST müşteri/ürün akışı.** Normal CRM'de kullanıcı mevcut ERP hesabıyla giriş yaptı; 41140 SÜPERMİNİ / BÜYÜK ÇİÇEKLER 2 Lİ TAKIM için **2 × 196 = 392 TRY** native draft kaydedildi ve ayrı GET ile ekranda yeniden okundu. Kullanıcı **“Evet, doğru görünüyor; kabul ediyorum”** dedi. Günlük ERP uygulamasının genel kabulü veya LIVE geçişi değildir.
+
+- Kaynak: `codex/crm-order-draft-20261004`, taban `5a82c1d`; uygulama `6ef3506`, sağlık DB DTO `4fb9eab`, audit düzeltmesi `a3fa8fc`. [PR #21](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/21), base `codex/erp-github-workflow-20261003`; main/merge/tag/LIVE deployment yok. CRM karşılığı `8af2134` / [PR #3](https://github.com/melihsnyldzz-ui/melisa-crm/pull/3).
+- Kurulu ayrı API paketi **CRM-ORDER-DRAFT-TEST-20261004-02**, source **4fb9eab26cb770a46a9e985ddd64e02b996f2d6f**, loopback62404. Audit SQL `a3fa8fc` ayrıca uygulandı. DB **MELISA_ERP_SIRKET_TEST_20260929_01**, mevcut scoped writer. Günlük ERP4144/native4146/web5194 paketi korunur; LIVE servisleri değiştirilmedi.
+- Sözleşme yalnız mevcut sentetik müşteri **593 / TEST-V70-20260929-C**, CRM55/7733. Doğrulanmış eşleme **vega-161466 → native301982**, exact source_record_key VEGA2026/F0102TBLSTOKLAR/161466, TRY196. Diğer ürünler henüz scope'a eklenmedi. Master ürün/müşteri kartları değiştirilmedi.
+- İlk gerçek create mevcut audit guard yüzünden rollback oldu; sipariş oluşmadı. Dar insert-only izin doğru DB, draft/request/UUID/hash/aktör/kapsam ve JSON false etkilerini doğrular; eski audit guard gövdesi ve UPDATE/DELETE sınırları korunur. Wrong-hash ve mixed audit INSERT gerçek transaction/rollback kontrollerinde **51070** ile engellendi. Bağımsız reviewer son kaynakta açık P1/P2 bulmadı.
+- Gerçek kayıt **id4 / CRM-9B4BFF310FD24137866D5854AF**, UUID **9b4bff31-0fd2-4137-866d-5854aff0a407**, draft / 392TRY. Aynı UUID create/read gerçek scoped SQL writer üzerinden tekrarlandı: tek sipariş ve tek audit; yeni kayıt oluşturmadı. Sonradan farklı UUID ile ikinci TEST taslağı id5 / 1 adet / 196TRY gözlendi; bu ayrı kayıt replay duplikasyonu sayılmadı.
+- Önce/sonra stok **96**, TEST müşteri bakiye **0**. Test başlangıcından sonra ilgili ürün/müşteri için stok/cari hareket **0/0**; finalize/satışa dönüştürme yok. Teknik testler ERP13/13 + CRM13/13, TEST frontend build; son API HEAD4fb9eab quality-build-test/secret-scan başarılı. Son belge/SQL HEAD kontrolü PR Checks'te ayrıca izlenir; CI tek başına gerçek kabul değildir.
+- Özel yerel kanıtlar `C:\Sirket\ERP\logs\crm-order-draft-20261004` ve `C:\Sirket\CRM\logs\acceptance-20261004\erp-draft-392-real-receipt.png`; Git'e veri/credential/log eklenmedi. [Sözleşme ve runbook](docs/erp-v2/crm-test-order-draft.md).
+
+Kalan: başka ürün/müşteri için exact kaynak eşlemeleri ayrı kapsam ister; ayrı62404 süreç için Windows açılış kurulumu/kabulü yok. Form close/reload recovery offline testli; gerçek browser reload sonrası yeniden giriş kabulü bu tur yapılmadı. Önceki ERP günlük iş/personel kabulleri aşağıda korunur.
+
 ## GitHub çalışma düzeni — 3 Ekim 2026
 
 Bu bölüm kaynak/CI hazırlığının güncel kaydıdır. Önceki uygulama/TEST kabul kayıtları aşağıda korunur; bu çalışma uygulama özelliklerinin genel kabulü değildir.
