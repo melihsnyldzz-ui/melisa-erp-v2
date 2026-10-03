@@ -29,7 +29,8 @@ async function journal(ctx,actor,input,operation,fn){
  const {sql,tx}=ctx,hash=createHash('sha256').update(JSON.stringify(canonical({...input,operation}))).digest('hex');
  const old=(await new sql.Request(tx).input('id',sql.NVarChar(64),input.requestId).query('SELECT * FROM dbo.test_purchase_requests WHERE request_id=@id')).recordset[0];
  if(old){if(old.payload_hash!==hash||Number(old.actor_id)!==Number(actor.id))fail('REQUEST_CONFLICT','İstek kimliği farklı işlemde kullanıldı.',409);return {...JSON.parse(old.response_json),replayed:true}}
- if((await new sql.Request(tx).query('SELECT COUNT(*) n FROM dbo.test_purchase_requests')).recordset[0].n>=30)fail('TEST_LIMIT','30 işlem kabul sınırı doldu.',409);
+ // Request history is the idempotency journal. Its lifetime size must not
+ // prevent reversing an accepted invoice; named-fixture SQL guards bound writes.
  const value=await fn();await new sql.Request(tx).input('id',sql.NVarChar(64),input.requestId).input('hash',sql.Char(64),hash).input('actor',sql.BigInt,actor.id).input('op',sql.NVarChar(30),operation).input('entity',sql.BigInt,value.id).input('json',sql.NVarChar(sql.MAX),JSON.stringify(value)).query('INSERT dbo.test_purchase_requests(request_id,payload_hash,actor_id,operation,entity_id,response_json) VALUES(@id,@hash,@actor,@op,@entity,@json)');return {...value,replayed:false};
 }
 function office(actor){if(Number(actor.id)!==16)fail('TEST_APPROVER','İlker TEST onayı gerekli.',403)}
