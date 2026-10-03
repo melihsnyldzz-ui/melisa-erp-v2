@@ -1,5 +1,16 @@
 # AI Agent Entry Point
 
+## GitHub geliştirme ve teslim kuralı — 3 Ekim 2026
+
+- Her geliştirme **branch → commit → push → PR** olarak teslim edilir. Aktif, doğrulanmış geliştirme tabanından devam et; main'e doğrudan yazma, force-push/rebase ile mevcut kayıtları kaybetme.
+- Önce [GitHub çalışma düzeni](docs/development/GITHUB_WORKFLOW.md), [sürümleme](docs/development/RELEASES.md) ve [TEST → LIVE / rollback](docs/development/DEPLOY_ROLLBACK.md) belgelerini oku. Kabul edilmemiş mevcut dalları otomatik birleştirme veya kapatma.
+- PR'nin tam head commit'i için gerekli CI kontrolleri yeşil olmalıdır. Teknik PASS ve gerçek kullanıcı kabulü ayrı alanlardır; build/unit/secret scan sonucu kullanıcı kabulü sayılmaz.
+- Kullanıcının tam PR/commit ve kapsam için kayıtlı kabulü olmadan main merge yok; auto-merge açma. Kabulden sonra değişen kod için etkilenen kontroller/kabul yenilenir.
+- İlk ve sonraki sürüm tagleri yalnız kullanıcı tarafından kabul edilmiş, CI kontrolleri geçmiş main commit'inden oluşturulur. Feature dalını tagleme; mevcut görevin kapsamı tag/release/deploy yetkisi değildir.
+- Her iş sonunda projenin kanonik STATUS dosyasına tarih, kapsam, teknik sonuç/kanıt, gerçek kullanıcı kabulü/kanıt, branch, commit, PR, TEST/LIVE commitleri ve kalan somut iş yaz. Bilinmeyen bilgiyi `Durum doğrulanmadı` olarak kaydet. Kendi hash'ini içeren commit üretmeye çalışma: teslim commit'ini izleyen status kaydı veya PR head bağlantısı kullan.
+- Son raporda branch/commit/PR, CI sonucu, güncellenen status ve kalan kullanıcı kabulünü açıkça belirt. `gh` işlemlerini ajan yürütür; kullanıcıdan komut öğrenmesi veya token paylaşması istenmez.
+- CI yalnız GitHub-hosted runner üzerinde offline/sentetik kontrollerdir. Self-hosted runner, LIVE/TEST bağlantısı, gerçek secret, provider/SQL smoke, migration, deployment, gerçek mesaj veya ticari veri testi ekleme.
+
 This repository is the Melisa ERP v2 application repository. It is AI-first, but it is also a live business system. Every AI agent must understand the safety rules before touching code, data, scripts, or documentation.
 
 These instructions apply to Codex, ChatGPT, Claude, and any future AI agent working in this repository.
@@ -132,4 +143,3 @@ Before making any change, read in this order:
 - Prefer local/lab/test data over production data.
 - If a task requires production access, stop and ask for explicit approval.
 - If uncertain whether an action is risky, treat it as risky.
-
