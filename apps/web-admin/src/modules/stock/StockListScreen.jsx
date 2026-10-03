@@ -7,7 +7,7 @@ import { BulkProductUpdateDialog } from './BulkProductUpdateDialog.jsx';
 import { VegaProductImageDialog } from './VegaProductImageDialog.jsx';
 import { summarizeMovements } from './stock360Utils.js';
 import { stockFilterDefaults } from './stockMockData.js';
-import { fetchVegaProducts, removeVegaProductImage, saveVegaProductImage } from '../../services/productApi.js';
+import { fetchProducts, fetchVegaProducts, removeVegaProductImage, saveVegaProductImage } from '../../services/productApi.js';
 import { fetchProductDetail, fetchProductOptions, fetchProductStockMovements } from '../../services/productDetailApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { API_BASE_URL, apiConfig } from '../../config/apiConfig.js';
@@ -211,6 +211,23 @@ function readVisibleStockColumns() {
 }
 
 export function StockListScreen({ onOpenScreen, permissions = [], initialStockCode = '', initialSourceId = '' }) {
+  const [dataSource, setDataSource] = useState('vega');
+  return (
+    <section>
+      <label className="erp-panel">
+        <span>Veri kaynağı </span>
+        <select aria-label="Stok veri kaynağı" value={dataSource} onChange={(event) => setDataSource(event.target.value)}>
+          <option value="vega">Vega — salt okunur</option>
+          <option value="melisa">Melisa ERP</option>
+        </select>
+      </label>
+      <StockListSourceView key={dataSource} dataSource={dataSource} onOpenScreen={onOpenScreen} permissions={permissions}
+        initialStockCode={initialStockCode} initialSourceId={dataSource === 'vega' ? initialSourceId : ''} />
+    </section>
+  );
+}
+
+function StockListSourceView({ dataSource, onOpenScreen, permissions, initialStockCode, initialSourceId }) {
   const vegaStockFilterDefaults = useMemo(() => ({ ...stockFilterDefaults, status: 'all' }), []);
   const [filters, setFilters] = useState(() => ({
     ...vegaStockFilterDefaults,
@@ -247,7 +264,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   });
   const isSyntheticDemo = apiConfig.demoMode || meta?.source === 'synthetic-demo-read-only';
   const isLiveVega = meta?.source === 'vega-live-read-only';
-  const isReadOnlySource = isLiveVega || isSyntheticDemo;
+  const isReadOnlySource = dataSource === 'vega' || isSyntheticDemo;
   const canBulkEdit = permissions.includes('product.edit') && !isReadOnlySource;
   const canManageVegaImage = permissions.includes('product.edit') && isLiveVega;
 
@@ -380,7 +397,8 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
       setErrorCode('');
 
       try {
-        const response = await fetchVegaProducts({
+        const fetchSourceProducts = dataSource === 'vega' ? fetchVegaProducts : fetchProducts;
+        const response = await fetchSourceProducts({
           page: 1,
           limit: stockListPageLimit,
           search,
@@ -389,6 +407,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
           cardOpenedFrom: filters.cardOpenedFrom,
           cardOpenedTo: filters.cardOpenedTo,
           imageStatus: filters.imageStatus,
+          supplierId: resolvedSupplierId,
         });
         const nextRows = response.data.map(toStockRow);
 
@@ -427,7 +446,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, isReadOnlySource, reloadKey, search]);
+  }, [activeOnly, dataSource, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, isReadOnlySource, isResolvingSupplier, resolvedSupplierId, reloadKey, search]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => applyStockFilters(row, filters)),
@@ -718,7 +737,6 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         filters={filters}
         suggestions={suggestionOptions}
         onChange={setFilters}
-        onRefresh={refreshProducts}
         onReset={resetFilters}
       />
       {isSyntheticDemo && (

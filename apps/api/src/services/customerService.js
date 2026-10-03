@@ -116,12 +116,15 @@ export function isCashCustomerCode(customerCode) {
   return Boolean(getCashCustomerCurrency(customerCode));
 }
 
-export async function ensureCashCustomers(poolArg = null) {
+export async function ensureCashCustomers(poolArg = null, transactionContext = null) {
   assertMelisaWriteEnabled();
   const pool = poolArg || await getSqlPool();
+  const createRequest = transactionContext?.transaction
+    ? () => new transactionContext.sqlDriver.Request(transactionContext.transaction)
+    : () => pool.request();
 
   for (const customer of CASH_CUSTOMER_DEFINITIONS) {
-    await pool.request()
+    await createRequest()
       .input('cashCustomerCode', sql.NVarChar(80), customer.code)
       .input('cashCustomerName', sql.NVarChar(250), customer.name)
       .input('cashCustomerCurrency', sql.NVarChar(3), customer.currency)
@@ -173,7 +176,9 @@ export async function ensureCashCustomers(poolArg = null) {
             is_active = 1,
             is_deleted = 0,
             updated_at = SYSUTCDATETIME()
-          WHERE customer_code = @cashCustomerCode;
+          WHERE customer_code = @cashCustomerCode
+            AND (ISNULL(name, N'') <> @cashCustomerName OR ISNULL(currency_code, N'') <> @cashCustomerCurrency
+              OR ISNULL(customer_type, N'') <> N'retail' OR ISNULL(is_active, 0) <> 1 OR ISNULL(is_deleted, 1) <> 0);
         END;
       `);
   }

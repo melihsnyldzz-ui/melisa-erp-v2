@@ -120,13 +120,13 @@ function readVisibleSalesColumns() {
   }
 }
 
-export function SalesInvoiceListScreen({ onOpenScreen }) {
+export function SalesInvoiceListScreen({ onOpenScreen, productId, customerId }) {
   const today = useMemo(() => todayIsoDate(), []);
   const [search, setSearch] = useState('');
   const [customer, setCustomer] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [dateFrom, setDateFrom] = useState(today);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState(productId || customerId ? '' : today);
+  const [dateTo, setDateTo] = useState(productId || customerId ? '' : today);
   const [currencyFilter, setCurrencyFilter] = useState('ALL');
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
@@ -252,6 +252,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
     try {
       const response = await fetchSalesDrafts({
+        productId, customerId,
         page: 1,
         limit: 100,
         search,
@@ -290,6 +291,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
       try {
         const response = await fetchSalesDrafts({
+          productId, customerId,
           page: 1,
           limit: 100,
           search,
@@ -330,7 +332,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [amountMax, amountMin, currencyFilter, customer, dateFrom, dateTo, employee, search, statusFilter, terminal]);
+  }, [amountMax, amountMin, currencyFilter, customer, dateFrom, dateTo, employee, search, statusFilter, terminal, productId, customerId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -523,14 +525,15 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
   }
 
   return (
-    <main className="work-area invoice-list-screen sales-receipt-workspace">
+    <main className="work-area invoice-list-screen sales-receipt-workspace commerce-invoice-list">
       <section className="invoice-list-toolbar sales-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Satış Fişleri</strong>
           <span>Fiş listesi, seçili fiş önizleme, sync durumu ve hızlı işlemler</span>
         </div>
         <div className="invoice-list-actions">
-          <div className="cash-sale-toolbar-buttons" aria-label="Peşin satış fişleri">
+          <div className="cash-sale-toolbar-buttons" aria-label="Vega peşin cari hareketleri — salt okunur">
+            <span>Vega hareketleri:</span>
             {cashCustomerShortcuts.map((shortcut) => {
               const isOpening = cashShortcutLoading === shortcut.code;
               return (

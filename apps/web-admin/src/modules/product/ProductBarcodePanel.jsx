@@ -87,7 +87,7 @@ export function ProductBarcodePanel({
           <tbody>
             {barcodes.length === 0 && (
               <tr>
-                <td colSpan="4">Bu ürüne bağlı barkod yok.</td>
+                <td colSpan={4}>Bu ürüne bağlı barkod yok.</td>
               </tr>
             )}
             {barcodes.map((item) => (

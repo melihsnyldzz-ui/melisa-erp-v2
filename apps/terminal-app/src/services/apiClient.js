@@ -19,6 +19,7 @@ function getErrorMessage(payload, fallback) {
   return payload?.error?.message || payload?.message || fallback;
 }
 
+/** @param {string} path @param {{method?: string, token?: string, body?: unknown, timeoutMs?: number, retryAuth?: boolean}} options */
 export async function apiRequest(path, {
   method = 'GET',
   token,

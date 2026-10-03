@@ -4,6 +4,8 @@ import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
+import { assertFinanceAccountSchema } from './financeSchemaGuard.js';
+import { buildFinanceSummary } from './financeSummaryRates.js';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const PAYMENT_METHODS = new Set(['cash', 'bank', 'card', 'other']);
@@ -119,57 +121,6 @@ function mapFinanceAccount(row) {
   };
 }
 
-export async function ensureFinanceAccountTables(pool) {
-  await pool.request().query(`
-    IF OBJECT_ID(N'dbo.finance_accounts', N'U') IS NULL
-    BEGIN
-      CREATE TABLE dbo.finance_accounts (
-        id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_finance_accounts PRIMARY KEY,
-        account_code NVARCHAR(40) NOT NULL CONSTRAINT UQ_finance_accounts_code UNIQUE,
-        account_name NVARCHAR(160) NOT NULL,
-        account_type NVARCHAR(20) NOT NULL,
-        currency_code NVARCHAR(3) NOT NULL,
-        opening_balance DECIMAL(18,4) NOT NULL CONSTRAINT DF_finance_accounts_opening DEFAULT (0),
-        current_balance DECIMAL(18,4) NOT NULL CONSTRAINT DF_finance_accounts_current DEFAULT (0),
-        is_active BIT NOT NULL CONSTRAINT DF_finance_accounts_active DEFAULT (1),
-        created_at DATETIME2 NOT NULL CONSTRAINT DF_finance_accounts_created DEFAULT SYSUTCDATETIME(),
-        updated_at DATETIME2 NULL
-      );
-    END;
-
-    IF OBJECT_ID(N'dbo.finance_account_movements', N'U') IS NULL
-    BEGIN
-      CREATE TABLE dbo.finance_account_movements (
-        id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_finance_account_movements PRIMARY KEY,
-        account_id BIGINT NOT NULL,
-        source_type NVARCHAR(30) NOT NULL,
-        party_type NVARCHAR(20) NOT NULL,
-        party_movement_id BIGINT NOT NULL,
-        direction NVARCHAR(10) NOT NULL,
-        amount DECIMAL(18,4) NOT NULL,
-        currency_code NVARCHAR(3) NOT NULL,
-        payment_method NVARCHAR(20) NOT NULL,
-        document_no NVARCHAR(60) NULL,
-        document_date DATE NOT NULL,
-        description NVARCHAR(500) NULL,
-        created_by BIGINT NULL,
-        created_at DATETIME2 NOT NULL CONSTRAINT DF_finance_account_movements_created DEFAULT SYSUTCDATETIME(),
-        CONSTRAINT FK_finance_account_movements_account FOREIGN KEY (account_id) REFERENCES dbo.finance_accounts(id),
-        CONSTRAINT UQ_finance_account_source UNIQUE (source_type, party_type, party_movement_id)
-      );
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.finance_accounts)
-    BEGIN
-      INSERT INTO dbo.finance_accounts (account_code, account_name, account_type, currency_code)
-      VALUES
-        (N'KASA-TRY', N'TRY Ana Kasa', N'cash', N'TRY'),
-        (N'BANKA-TRY', N'TRY Banka Hesabi', N'bank', N'TRY'),
-        (N'POS-TRY', N'TRY POS / Kart Hesabi', N'card', N'TRY');
-    END;
-  `);
-}
-
 async function getOrCreateDefaultFinanceAccount(request, sqlDriver, { accountType, currency }) {
   const code = standardFinanceAccountCode(accountType, currency);
   const nameMap = {
@@ -216,6 +167,28 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
   const currency = payload.currency;
 
   if (Number.isInteger(accountId) && accountId > 0) {
+    // Lock the session before the account, matching cash closing's lock order.
+    // An explicit account must not bypass the physical drawer lifecycle.
+    const drawerResult = await new sqlDriver.Request(transaction)
+      .input('explicitDrawerAccountId', sqlDriver.BigInt, accountId)
+      .query(`
+        IF OBJECT_ID(N'dbo.cash_sessions', N'U') IS NOT NULL
+           AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
+        BEGIN
+          SELECT cda.drawer_id, cs.id AS session_id
+          FROM dbo.cash_drawer_accounts cda
+          LEFT JOIN dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
+            ON cs.drawer_id = cda.drawer_id AND cs.session_status = N'open'
+          WHERE cda.finance_account_id = @explicitDrawerAccountId;
+        END;
+      `);
+    const drawer = drawerResult.recordset?.[0];
+    if (drawer && accountType !== 'cash') {
+      throw makeServiceError('FINANCE_DRAWER_CASH_METHOD_REQUIRED', 'Only cash payments can use a physical drawer');
+    }
+    if (drawer && !drawer.session_id) {
+      throw makeServiceError('CASH_REGISTER_OPEN_SESSION_REQUIRED', 'Open cash session is required', 409);
+    }
     const result = await new sqlDriver.Request(transaction)
       .input('financeAccountId', sqlDriver.BigInt, accountId)
       .query(`
@@ -244,7 +217,7 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
            AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
         BEGIN
           SELECT TOP (1) fa.*
-          FROM dbo.cash_sessions cs
+          FROM dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
           INNER JOIN dbo.cash_drawer_accounts cda
             ON cda.drawer_id = cs.drawer_id
            AND cda.currency_code = @openDrawerAccountCurrency
@@ -484,136 +457,9 @@ function buildJournalLines(row) {
 
 export async function getFinanceSummary() {
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request().query(`
     SELECT
-      COALESCE((
-        SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.customers c
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = c.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE c.is_deleted = 0 AND c.balance > 0
-          AND c.customer_code NOT LIKE N'QA-%'
-          AND c.customer_code NOT LIKE N'CUS-QA-%'
-          AND c.customer_code NOT LIKE N'AKIS-%'
-          AND c.customer_code NOT LIKE N'E2E-%'
-          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
-          AND c.customer_code NOT LIKE N'TEST%'
-          AND c.customer_code NOT LIKE N'IMP-%'
-          AND c.name NOT LIKE N'E2E %'
-          AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS customer_receivables,
-      COALESCE((
-        SELECT SUM(ABS(c.balance) * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.customers c
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = c.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE c.is_deleted = 0 AND c.balance < 0
-          AND c.customer_code NOT LIKE N'QA-%'
-          AND c.customer_code NOT LIKE N'CUS-QA-%'
-          AND c.customer_code NOT LIKE N'AKIS-%'
-          AND c.customer_code NOT LIKE N'E2E-%'
-          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
-          AND c.customer_code NOT LIKE N'TEST%'
-          AND c.customer_code NOT LIKE N'IMP-%'
-          AND c.name NOT LIKE N'E2E %'
-          AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS customer_advances,
-      COALESCE((
-        SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.suppliers s
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = s.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE s.is_deleted = 0 AND s.balance > 0
-          AND s.supplier_code NOT LIKE N'QA-%'
-          AND s.supplier_code NOT LIKE N'SUP-QA-%'
-          AND s.supplier_code NOT LIKE N'AKIS-%'
-          AND s.supplier_code NOT LIKE N'E2E-%'
-          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
-          AND s.supplier_code NOT LIKE N'TEST%'
-          AND s.supplier_code NOT LIKE N'DRAFT-%'
-          AND s.supplier_code NOT LIKE N'IMP-%'
-          AND s.name NOT LIKE N'E2E %'
-          AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS supplier_payables,
-      COALESCE((
-        SELECT SUM(ABS(s.balance) * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.suppliers s
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = s.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE s.is_deleted = 0 AND s.balance < 0
-          AND s.supplier_code NOT LIKE N'QA-%'
-          AND s.supplier_code NOT LIKE N'SUP-QA-%'
-          AND s.supplier_code NOT LIKE N'AKIS-%'
-          AND s.supplier_code NOT LIKE N'E2E-%'
-          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
-          AND s.supplier_code NOT LIKE N'TEST%'
-          AND s.supplier_code NOT LIKE N'DRAFT-%'
-          AND s.supplier_code NOT LIKE N'IMP-%'
-          AND s.name NOT LIKE N'E2E %'
-          AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS supplier_advances,
-      COALESCE((
-        SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.customer_movements cm
-        INNER JOIN dbo.customers c ON c.id = cm.customer_id
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = cm.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE cm.movement_type = N'collection'
-          AND cm.document_date = CONVERT(date, SYSUTCDATETIME())
-          AND c.customer_code NOT LIKE N'QA-%'
-          AND c.customer_code NOT LIKE N'CUS-QA-%'
-          AND c.customer_code NOT LIKE N'AKIS-%'
-          AND c.customer_code NOT LIKE N'E2E-%'
-          AND c.customer_code NOT LIKE N'CUS-FIELD-%'
-          AND c.customer_code NOT LIKE N'TEST%'
-          AND c.customer_code NOT LIKE N'IMP-%'
-          AND c.name NOT LIKE N'E2E %'
-          AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS today_collections,
-      COALESCE((
-        SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.supplier_movements sm
-        INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = sm.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE sm.movement_type = N'payment'
-          AND sm.document_date = CONVERT(date, SYSUTCDATETIME())
-          AND s.supplier_code NOT LIKE N'QA-%'
-          AND s.supplier_code NOT LIKE N'SUP-QA-%'
-          AND s.supplier_code NOT LIKE N'AKIS-%'
-          AND s.supplier_code NOT LIKE N'E2E-%'
-          AND s.supplier_code NOT LIKE N'SUP-FIELD-%'
-          AND s.supplier_code NOT LIKE N'TEST%'
-          AND s.supplier_code NOT LIKE N'DRAFT-%'
-          AND s.supplier_code NOT LIKE N'IMP-%'
-          AND s.name NOT LIKE N'E2E %'
-          AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS today_payments,
       COALESCE((
         SELECT COUNT_BIG(1)
         FROM dbo.customer_movements cm
@@ -644,18 +490,7 @@ export async function getFinanceSummary() {
           AND s.supplier_code NOT LIKE N'IMP-%'
           AND s.name NOT LIKE N'E2E %'
           AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS payment_count,
-      COALESCE((
-        SELECT SUM(fa.current_balance * CASE WHEN fa.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-        FROM dbo.finance_accounts fa
-        OUTER APPLY (
-          SELECT TOP (1) rate_to_try
-          FROM dbo.currency_rates cr
-          WHERE cr.currency_code = fa.currency_code
-          ORDER BY cr.rate_date DESC, cr.id DESC
-        ) r
-        WHERE fa.is_active = 1
-      ), 0) AS finance_try_balance;
+      ), 0) AS payment_count;
   `);
   const breakdownResult = await pool.request().query(`
     SELECT N'customerReceivables' AS metric, currency_code, SUM(balance) AS amount
@@ -753,33 +588,29 @@ export async function getFinanceSummary() {
     FROM dbo.finance_accounts
     WHERE is_active = 1
     GROUP BY currency_code;
+
+    SELECT currency_code, rate_to_try, rate_date
+    FROM (
+      SELECT currency_code, rate_to_try, rate_date,
+        ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS rate_rank
+      FROM dbo.currency_rates
+      WHERE rate_date <= CONVERT(date, SYSUTCDATETIME())
+    ) rates
+    WHERE rate_rank = 1;
+    SELECT CONVERT(varchar(10), SYSUTCDATETIME(), 23) AS as_of_date;
   `);
 
-  const row = result.recordset?.[0] || {};
-  const currencySummary = (breakdownResult.recordset || []).reduce((summary, item) => {
-    const metric = item.metric;
-    const currency = item.currency_code || 'TRY';
-    summary[metric] = summary[metric] || {};
-    summary[metric][currency] = Number(item.amount || 0);
-    return summary;
-  }, {});
-  return {
-    customerReceivables: Number(row.customer_receivables || 0),
-    customerAdvances: Number(row.customer_advances || 0),
-    supplierPayables: Number(row.supplier_payables || 0),
-    supplierAdvances: Number(row.supplier_advances || 0),
-    todayCollections: Number(row.today_collections || 0),
-    todayPayments: Number(row.today_payments || 0),
-    collectionCount: Number(row.collection_count || 0),
-    paymentCount: Number(row.payment_count || 0),
-    financeTryBalance: Number(row.finance_try_balance || 0),
-    currencySummary,
-  };
+  return buildFinanceSummary(
+    breakdownResult.recordsets[0],
+    breakdownResult.recordsets[1],
+    breakdownResult.recordsets[2][0].as_of_date,
+    result.recordset?.[0] || {},
+  );
 }
 
 export async function getFinanceAccounts(query = {}) {
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const includePassive = ['1', 'true', true].includes(query.includePassive);
   const result = await pool.request()
     .input('includePassiveAccounts', sql.Bit, includePassive ? 1 : 0)
@@ -810,7 +641,7 @@ export async function createFinanceAccount(payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request()
     .input('newFinanceAccountCode', sql.NVarChar(40), code)
     .input('newFinanceAccountName', sql.NVarChar(160), name)
@@ -864,7 +695,7 @@ export async function updateFinanceAccount(accountId, payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request()
     .input('updateFinanceAccountId', sql.BigInt, id)
     .input('updateFinanceAccountName', sql.NVarChar(160), name || null)
@@ -928,7 +759,7 @@ function mapFinanceAccountCleanupRow(row) {
 
 export async function getFinanceAccountCleanupPreview() {
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const result = await pool.request().query(`
     SELECT
       fa.*,
@@ -1002,7 +833,7 @@ export async function applyFinanceAccountCleanup(actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const request = pool.request();
   candidateIds.forEach((id, index) => {
     request.input(`cleanupFinanceAccountId${index}`, sql.BigInt, id);
@@ -1047,7 +878,7 @@ export async function applyFinanceAccountCleanup(actor) {
 export async function applyFinanceAccountStandardization(actor) {
   assertMelisaWriteEnabled();
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
@@ -1162,7 +993,7 @@ export async function getFinanceMovements(query = {}) {
   const dateTo = normalizeOptionalDate(query.dateTo);
   const limit = Math.min(Math.max(Number(query.limit || 100), 1), 200);
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
 
   if (partyType && !['customer', 'supplier'].includes(partyType)) {
     throw makeServiceError('FINANCE_PARTY_TYPE_INVALID', 'partyType must be customer or supplier');
@@ -1547,7 +1378,7 @@ export async function getAccountingControlDashboard() {
     getFinanceAccountCleanupPreview(),
   ]);
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const issueResult = await pool.request().query(`
     WITH issue_rows AS (
       SELECT
@@ -1646,9 +1477,21 @@ export async function getAccountingControlDashboard() {
 
   const dangerCount = issues.filter((issue) => issue.severity === 'danger').length;
   const warningCount = issues.filter((issue) => issue.severity === 'warning').length
+    + financeSummary.conversion.missingCurrencies.length
     + Number(accountPreview.summary.activeDuplicateCount || 0)
     + Number(accountPreview.summary.standardizationCandidateCount || 0);
   const checks = [
+    makeControlCheck({
+      id: 'finance_exchange_rates',
+      title: 'Finans Özeti Döviz Kurları',
+      status: financeSummary.conversion.status === 'COMPLETE' ? 'OK' : 'WARN',
+      severity: financeSummary.conversion.status === 'COMPLETE' ? 'success' : 'warning',
+      metric: financeSummary.conversion.status === 'COMPLETE' ? 'Kurlar mevcut' : financeSummary.conversion.missingCurrencies.join(', '),
+      message: financeSummary.conversion.status === 'COMPLETE'
+        ? `${financeSummary.conversion.asOfDate} ve öncesindeki son kayıtlı kurlar kullanıldı.`
+        : 'Eksik veya geçersiz kur nedeniyle ilgili TL toplamları hesaplanamadı. Döviz tutarları korunuyor.',
+      actionScreen: 'finance-overview',
+    }),
     makeControlCheck({
       id: 'journal_balance',
       title: 'Borç / Alacak Dengesi',
@@ -1725,19 +1568,13 @@ export async function createCustomerCollection(payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Tahsilat kaydı');
-
-    const account = await resolveFinanceAccount(transaction, sqlDriver, {
-      accountId: payload.accountId,
-      paymentMethod,
-      currency,
-    });
 
     const request = new sqlDriver.Request(transaction);
     const customerResult = await request
@@ -1752,6 +1589,12 @@ export async function createCustomerCollection(payload, actor) {
     if (!customer) {
       throw makeServiceError('FINANCE_CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
+
+    const account = await resolveFinanceAccount(transaction, sqlDriver, {
+      accountId: payload.accountId,
+      paymentMethod,
+      currency,
+    });
 
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementCustomerId', sqlDriver.BigInt, customerId)
@@ -1849,19 +1692,13 @@ export async function createSupplierPayment(payload, actor) {
   }
 
   const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  await assertFinanceAccountSchema(pool);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
   await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Ödeme kaydı');
-
-    const account = await resolveFinanceAccount(transaction, sqlDriver, {
-      accountId: payload.accountId,
-      paymentMethod,
-      currency,
-    });
 
     const supplierResult = await new sqlDriver.Request(transaction)
       .input('supplierId', sqlDriver.BigInt, supplierId)
@@ -1875,6 +1712,12 @@ export async function createSupplierPayment(payload, actor) {
     if (!supplier) {
       throw makeServiceError('FINANCE_SUPPLIER_NOT_FOUND', 'Supplier not found', 404);
     }
+
+    const account = await resolveFinanceAccount(transaction, sqlDriver, {
+      accountId: payload.accountId,
+      paymentMethod,
+      currency,
+    });
 
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementSupplierId', sqlDriver.BigInt, supplierId)

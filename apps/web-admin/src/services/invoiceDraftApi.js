@@ -11,7 +11,7 @@ import {
 
 export async function fetchSalesDrafts(params = {}) {
   if (apiConfig.demoMode) {
-    return demoSalesDraftsResponse(params);
+    return demoSalesDraftsResponse();
   }
 
   return get('/api/sales-invoices', params);
@@ -67,7 +67,7 @@ export async function cancelSalesDraft(id, reason) {
 
 export async function fetchPurchaseDrafts(params = {}) {
   if (apiConfig.demoMode) {
-    return demoPurchaseDraftsResponse(params);
+    return demoPurchaseDraftsResponse();
   }
 
   return get('/api/purchase-invoices', params);

@@ -2,6 +2,7 @@ export function canCreateSalesPipelineDocument(permissions = []) {
   return Array.isArray(permissions) && permissions.includes('sales.create');
 }
 
+/** @param {{type?: string, permissions?: string[], onOpenScreen?: (screenId: string) => void}} options */
 export function requestOpenNewSalesPipelineDocument({ type, permissions, onOpenScreen } = {}) {
   if (!canCreateSalesPipelineDocument(permissions)) {
     return { opened: false, code: 'SALES_CREATE_PERMISSION_REQUIRED' };

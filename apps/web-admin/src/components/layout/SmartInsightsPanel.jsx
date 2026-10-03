@@ -4,7 +4,7 @@ import { getRoleView } from '../../config/roleViews.js';
 
 const roleInsights = {
   yonetici: [
-    { tone: 'good', title: 'Stok kontrolü temiz', detail: 'Canlı stok değerleme raporunu aç', screenId: 'stock-valuation' },
+    { tone: 'info', title: 'Stok değerleme raporu', detail: 'Canlı stok değerleme raporunu aç', screenId: 'stock-valuation' },
     { tone: 'info', title: 'Tahsilat ekranı hazır', detail: 'Bugünün kasa/banka hareketlerini kontrol et', screenId: 'collections-overview' },
     { tone: 'info', title: 'Yönetim raporu hazır', detail: 'Kârlılık ve kanal performansını incele', screenId: 'reports-overview' },
   ],
@@ -19,7 +19,7 @@ const roleInsights = {
     { tone: 'info', title: 'Tahsilat takibi açık', detail: 'Bugünün hareket listesini gör', screenId: 'collections-overview' },
   ],
   depo: [
-    { tone: 'good', title: 'Eksi stok yok', detail: 'Stok hareketlerini kontrol et', screenId: 'stock-movements' },
+    { tone: 'info', title: 'Stok hareketleri', detail: 'Stok hareketlerini kontrol et', screenId: 'stock-movements' },
     { tone: 'info', title: 'Terminal kuyruğu hazır', detail: 'El terminali iş kuyruğunu aç', screenId: 'terminal-overview' },
     { tone: 'info', title: 'CSV şablonu hazır', detail: 'Aktarım ekranını incele', screenId: 'import-foundation' },
   ],

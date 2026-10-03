@@ -1,4 +1,5 @@
 import sql from 'mssql';
+import { mapStockValuation, mapStockValuationSummary } from './stockValuationMapping.js';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
@@ -321,35 +322,6 @@ export async function getStockMovementsList(query = {}) {
   };
 }
 
-function mapStockValuation(row) {
-  const stockQuantity = Number(row.stock_quantity || 0);
-  const averageCostTry = Number(row.average_cost_try || 0);
-  const salePrice = Number(row.sale_price || 0);
-  const saleRateToTry = Number(row.sale_rate_to_try || 1);
-  const stockValueTry = stockQuantity * averageCostTry;
-  const potentialSaleValueTry = stockQuantity * salePrice * saleRateToTry;
-  const potentialGrossProfitTry = potentialSaleValueTry - stockValueTry;
-
-  return {
-    productId: row.id,
-    stockCode: row.stock_code,
-    barcode: row.barcode || null,
-    productName: row.product_name,
-    brand: row.brand || '',
-    currency: row.currency_code || 'TRY',
-    stockQuantity,
-    averageCostTry,
-    salePrice,
-    saleRateToTry,
-    stockValueTry,
-    potentialSaleValueTry,
-    potentialGrossProfitTry,
-    profitMargin: potentialSaleValueTry > 0 ? potentialGrossProfitTry / potentialSaleValueTry : 0,
-    lowStock: stockQuantity <= 5,
-    negativeStock: stockQuantity < 0,
-  };
-}
-
 export async function getStockValuationReport(query = {}) {
   const options = parseListQuery(query);
   const lowStockOnly = String(query.lowStockOnly || 'false').toLowerCase() === 'true';
@@ -376,16 +348,19 @@ export async function getStockValuationReport(query = {}) {
   const result = await pool.request()
     .input('search', sql.NVarChar(120), toSearchPattern(options.search))
     .input('offset', sql.Int, options.offset)
+    .input('limit', sql.Int, options.limit)
     .query(`
+      DECLARE @as_of_date date = CONVERT(date, SYSUTCDATETIME());
       WITH latest_rates AS (
-        SELECT currency_code, rate_to_try
+        SELECT currency_code, rate_to_try, rate_date
         FROM (
           SELECT
             currency_code,
             rate_to_try,
+            rate_date,
             ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS row_number
           FROM dbo.currency_rates
-          WHERE currency_code IN (N'USD', N'EUR')
+          WHERE rate_date <= @as_of_date
         ) ranked_rates
         WHERE row_number = 1
       ),
@@ -402,8 +377,10 @@ export async function getStockValuationReport(query = {}) {
           COALESCE(p.sales_price, 0) AS sale_price,
           CASE
             WHEN p.currency_code = N'TRY' THEN 1
-            ELSE COALESCE(lr.rate_to_try, 1)
-          END AS sale_rate_to_try
+            WHEN lr.rate_to_try > 0 THEN lr.rate_to_try
+            ELSE NULL
+          END AS sale_rate_to_try,
+          CASE WHEN p.currency_code = N'TRY' THEN NULL ELSE CONVERT(varchar(10), lr.rate_date, 23) END AS sale_rate_date
         FROM dbo.products p
         LEFT JOIN latest_rates lr ON lr.currency_code = p.currency_code
         OUTER APPLY (
@@ -415,38 +392,37 @@ export async function getStockValuationReport(query = {}) {
         ) pb
         WHERE ${filters.join(' AND ')}
       ),
-      numbered AS (
-        SELECT
-          *,
-          ROW_NUMBER() OVER (ORDER BY stock_quantity DESC, id DESC) AS row_number,
-          COUNT_BIG(1) OVER () AS total_count,
-          SUM(stock_quantity) OVER () AS total_stock_quantity,
-          SUM(stock_quantity * average_cost_try) OVER () AS total_stock_value_try,
-          SUM(stock_quantity * sale_price * sale_rate_to_try) OVER () AS total_potential_sale_value_try,
-          SUM((stock_quantity * sale_price * sale_rate_to_try) - (stock_quantity * average_cost_try)) OVER () AS total_potential_gross_profit_try,
-          SUM(CASE WHEN stock_quantity <= 5 THEN 1 ELSE 0 END) OVER () AS low_stock_count,
-          SUM(CASE WHEN stock_quantity < 0 THEN 1 ELSE 0 END) OVER () AS negative_stock_count
+      valued AS (
+        SELECT *,
+          CASE WHEN stock_quantity * sale_price = 0 THEN 0
+            ELSE stock_quantity * sale_price * sale_rate_to_try END AS potential_sale_value_try,
+          CASE WHEN stock_quantity * sale_price <> 0 AND sale_rate_to_try IS NULL THEN 1 ELSE 0 END AS missing_rate
         FROM valuation
       )
-      SELECT TOP (${options.limit}) *
-      FROM numbered
-      WHERE row_number > @offset
-      ORDER BY row_number ASC;
+      SELECT * INTO #stock_valuation FROM valued;
+      SELECT * FROM #stock_valuation
+      ORDER BY stock_quantity DESC, id DESC
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
+      SELECT COUNT_BIG(1) AS total_count,
+        COALESCE(SUM(stock_quantity), 0) AS total_stock_quantity,
+        COALESCE(SUM(stock_quantity * average_cost_try), 0) AS total_stock_value_try,
+        CASE WHEN COALESCE(SUM(missing_rate), 0) > 0 THEN NULL
+          ELSE COALESCE(SUM(potential_sale_value_try), 0) END AS total_potential_sale_value_try,
+        CASE WHEN COALESCE(SUM(missing_rate), 0) > 0 THEN NULL
+          ELSE COALESCE(SUM(potential_sale_value_try - stock_quantity * average_cost_try), 0) END AS total_potential_gross_profit_try,
+        COALESCE(SUM(CASE WHEN stock_quantity <= 5 THEN 1 ELSE 0 END), 0) AS low_stock_count,
+        COALESCE(SUM(CASE WHEN stock_quantity < 0 THEN 1 ELSE 0 END), 0) AS negative_stock_count,
+        COALESCE(SUM(missing_rate), 0) AS missing_rate_count,
+        CONVERT(varchar(10), @as_of_date, 23) AS as_of_date
+      FROM #stock_valuation;
+      SELECT currency_code, sale_rate_to_try, sale_rate_date, SUM(missing_rate) AS missing_rate_count
+      FROM #stock_valuation GROUP BY currency_code, sale_rate_to_try, sale_rate_date ORDER BY currency_code;
+      DROP TABLE #stock_valuation;
     `);
 
-  const rows = result.recordset || [];
-  const total = rows.length > 0 ? Number(rows[0].total_count || 0) : 0;
-  const first = rows[0] || {};
-
-  const summary = {
-    totalProductCount: total,
-    totalStockQuantity: Number(first.total_stock_quantity || 0),
-    totalStockValueTry: Number(first.total_stock_value_try || 0),
-    totalPotentialSaleValueTry: Number(first.total_potential_sale_value_try || 0),
-    totalPotentialGrossProfitTry: Number(first.total_potential_gross_profit_try || 0),
-    lowStockCount: Number(first.low_stock_count || 0),
-    negativeStockCount: Number(first.negative_stock_count || 0),
-  };
+  const rows = result.recordsets[0] || [];
+  const summary = mapStockValuationSummary(result.recordsets[1][0], result.recordsets[2] || []);
+  const total = summary.totalProductCount;
   const listMeta = buildListMeta({
     ...options,
     total,
@@ -653,6 +629,10 @@ export async function getSupplierStatement(query = {}) {
 }
 
 export async function applyStockCountAdjustment(payload = {}, actor = null) {
+  if (!Array.isArray(actor?.permissions)
+    || !['product.view', 'stock.adjust'].every((permission) => actor.permissions.includes(permission))) {
+    throw makeMovementError('AUTH_PERMISSION_DENIED', 'Stock count requires product.view and stock.adjust', 403);
+  }
   assertMelisaWriteEnabled();
 
   const productId = Number(payload.productId || 0);
@@ -773,7 +753,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
         VALUES (
           @movementProductId,
           @movementType,
-          N'adjustment',
+          N'stock_count',
           NULL,
           @movementQuantityIn,
           @movementQuantityOut,

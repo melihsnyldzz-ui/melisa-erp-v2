@@ -26,8 +26,13 @@ function normalizeCurrency(value) {
   return currency;
 }
 
+/** @param {Record<string, unknown>} input */
 function normalizeQuoteInput(input = {}) {
-  const packageCount = Array.isArray(input.packages) ? input.packages.length : 0;
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw shippingError('NAKLIYAT_QUOTE_INVALID', 'Gönderi bilgileri geçerli bir nesne olmalıdır.', 400);
+  }
+  const parcelInputs = Array.isArray(input.packages) ? input.packages : [];
+  const packageCount = parcelInputs.length;
   const currency = normalizeCurrency(input.currency);
   if (!String(input.erpOrderId || '').trim()) {
     throw shippingError('NAKLIYAT_ERP_ORDER_REQUIRED', 'ERP sipariş/fiş referansı zorunludur.', 400);
@@ -40,15 +45,20 @@ function normalizeQuoteInput(input = {}) {
     throw shippingError('NAKLIYAT_PACKAGE_COUNT_INVALID', 'Koli sayısı 1 ile 20 arasında olmalıdır.', 400);
   }
 
-  const packages = input.packages.map((item, index) => {
+  const packages = parcelInputs.map((item, index) => {
+    const parcel = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+    const measurement = (value) => typeof value === 'number' || (typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value.trim())) ? Number(value) : Number.NaN;
     const values = {
-      weightKg: Number(item.weightKg),
-      lengthCm: Number(item.lengthCm),
-      widthCm: Number(item.widthCm),
-      heightCm: Number(item.heightCm),
+      weightKg: measurement(parcel.weightKg),
+      lengthCm: measurement(parcel.lengthCm),
+      widthCm: measurement(parcel.widthCm),
+      heightCm: measurement(parcel.heightCm),
     };
     if (Object.values(values).some((value) => !Number.isFinite(value) || value <= 0)) {
       throw shippingError('NAKLIYAT_PACKAGE_INVALID', `${index + 1}. koli ağırlık ve ölçüleri sıfırdan büyük olmalıdır.`, 400);
+    }
+    if (values.weightKg > 1000 || Math.max(values.lengthCm, values.widthCm, values.heightCm) > 300) {
+      throw shippingError('NAKLIYAT_PACKAGE_INVALID', `${index + 1}. koli için üst sınır 1000 kg ve her kenarda 300 cm'dir.`, 400);
     }
     return values;
   });
@@ -89,11 +99,15 @@ export function createNakliyatShippingClient(config = env.nakliyat, fetchImpl = 
     if (!config[gate]) throw shippingError(code, message, 403);
   }
 
+  /** @param {string} path
+   * @param {{method?: string, body?: unknown, authenticated?: boolean, retryAuth?: boolean, headers?: Record<string, string>}} [options]
+   */
   async function request(path, { method = 'GET', body, authenticated = false, retryAuth = true, headers = {} } = {}) {
     assertEnabled();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), config.timeoutMs || 20000);
     try {
+      /** @type {Record<string, string>} */
       const requestHeaders = { Accept: 'application/json', ...headers };
       if (body !== undefined) requestHeaders['Content-Type'] = 'application/json';
       if (authenticated) requestHeaders.Authorization = `Bearer ${await getAccessToken()}`;

@@ -1,11 +1,7 @@
 import { Router } from 'express';
 import { requireExternalReadOnly } from '../middleware/externalReadOnlyAuth.js';
-import {
-  getBionicSqlHealth,
-  getBionicStockByCode,
-  getBionicStockCodeCount,
-  listBionicStockCodes,
-} from '../services/bionicReadOnlySqlService.js';
+import { getBionicSqlHealth } from '../services/bionicReadOnlySqlService.js';
+import { externalStockReader, externalStockSource } from '../services/externalReadOnlyStockService.js';
 
 export const externalReadOnlyRoutes = Router();
 
@@ -81,8 +77,7 @@ externalReadOnlyRoutes.get('/openapi.json', (_req, res) => {
 externalReadOnlyRoutes.use(requireExternalReadOnly);
 
 function sourceOf(req) {
-  const value = String(req.query?.source || 'vega').trim().toLowerCase();
-  return value === 'melisa' ? 'melisa' : 'vega';
+  return externalStockSource(req.query?.source ?? 'vega');
 }
 
 externalReadOnlyRoutes.get('/health', async (_req, res, next) => {
@@ -97,7 +92,7 @@ externalReadOnlyRoutes.get('/health', async (_req, res, next) => {
 externalReadOnlyRoutes.get('/stock-codes/count', async (req, res, next) => {
   try {
     const source = sourceOf(req);
-    const data = await getBionicStockCodeCount({ source });
+    const data = await externalStockReader.count(source);
     res.json({ success: true, data, meta: { readOnly: true, source } });
   } catch (error) {
     next(error);
@@ -108,7 +103,7 @@ externalReadOnlyRoutes.get('/stock-codes', async (req, res, next) => {
   try {
     const source = sourceOf(req);
     const limit = Math.min(maxRows(), Math.max(1, Number(req.query.limit) || 50));
-    const data = await listBionicStockCodes({ search: req.query.search, limit, source });
+    const data = await externalStockReader.list(source, { search: req.query.search, limit });
     res.json({ success: true, data, meta: { readOnly: true, source, count: data.length } });
   } catch (error) {
     next(error);
@@ -118,7 +113,7 @@ externalReadOnlyRoutes.get('/stock-codes', async (req, res, next) => {
 externalReadOnlyRoutes.get('/stock-codes/:stockCode', async (req, res, next) => {
   try {
     const source = sourceOf(req);
-    const data = await getBionicStockByCode(req.params.stockCode, { source });
+    const data = await externalStockReader.byCode(source, req.params.stockCode);
     if (!data) {
       return res.status(404).json({ success: false, error: { code: 'STOCK_CODE_NOT_FOUND', message: 'Stock code was not found' } });
     }

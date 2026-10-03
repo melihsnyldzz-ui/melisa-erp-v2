@@ -11,7 +11,7 @@ function rateMap(rateData) {
 
 export function CurrencyRatesScreen() {
   const [date, setDate] = useState(todayIsoDate());
-  const [rates, setRates] = useState({ USD: '', EUR: '' });
+  const [rates, setRates] = useState(/** @type {{USD: number | string, EUR: number | string}} */ ({ USD: '', EUR: '' }));
   const [rateData, setRateData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

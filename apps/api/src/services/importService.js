@@ -223,6 +223,11 @@ function parseRows(filePayload) {
   throw makeImportError('IMPORT_FILE_TYPE_UNSUPPORTED', 'Only CSV, XLS and XLSX files are supported');
 }
 
+/**
+ * Normalized import fields start as text; numeric fields are converted by the
+ * entity validator before preview. This is not a validated commercial record.
+ * @returns {Record<string, string | number>}
+ */
 function normalizeRecord(row, aliases) {
   return Object.entries(row || {}).reduce((record, [key, value]) => {
     const canonicalKey = aliases[normalizeHeader(key)];
@@ -278,6 +283,7 @@ function buildProductRow(row, rowNumber) {
   };
 }
 
+/** @returns {string} */
 function normalizeCustomerType(value) {
   const normalized = trimText(value).toLowerCase();
   const map = {

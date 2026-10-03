@@ -319,7 +319,7 @@ function PartyCard({ title, tone, data }) {
 }
 
 function ProductsStep() {
-  return <section className="erp-panel fedex-product-panel"><PanelTitle icon={Boxes} title="Ürün ve GTİP Çalışma Listesi" detail="20 kart · kodlar taslak" /><div className="fedex-material-rule"><strong>Malzeme kuralı:</strong> Aksi belirtilmedikçe pamuk; velsoft, polar, polyester veya sentetik ibaresi bulunan ürünlerde sentetik içerik seçilir.</div><div className="fedex-inline-warning"><AlertTriangle size={15} /> Bu tablo gümrük beyanına otomatik gönderilemez. Düşük ve orta güvenli satırlar doğrulanmalıdır.</div><div className="table-shell"><table className="erp-table"><thead><tr><th>#</th><th>Stok Kodu</th><th>Ürün</th><th>Adet</th><th>Tutar</th><th>GTİP Taslağı</th><th>Malzeme</th><th>Kural / Dayanak</th><th>Güven</th></tr></thead><tbody>{fedexMicroExportItems.map((item) => <tr key={item.id}><td>{item.id}</td><td className="code-cell">{item.stockCode}</td><td>{item.productName}</td><td>{item.quantity}</td><td className="money-cell">{formatMoney(item.lineTotal)}</td><td className="code-cell">{item.gtip}</td><td>{item.material}</td><td>{item.materialRule}</td><td><span className={`fedex-confidence ${item.confidence.toLocaleLowerCase('tr-TR')}`}>{item.confidence}</span></td></tr>)}</tbody><tfoot><tr><th colSpan="3">Toplam</th><th>679</th><th>{formatMoney(3773.30)}</th><th colSpan="4">20 ürün kartı</th></tr></tfoot></table></div></section>;
+  return <section className="erp-panel fedex-product-panel"><PanelTitle icon={Boxes} title="Ürün ve GTİP Çalışma Listesi" detail="20 kart · kodlar taslak" /><div className="fedex-material-rule"><strong>Malzeme kuralı:</strong> Aksi belirtilmedikçe pamuk; velsoft, polar, polyester veya sentetik ibaresi bulunan ürünlerde sentetik içerik seçilir.</div><div className="fedex-inline-warning"><AlertTriangle size={15} /> Bu tablo gümrük beyanına otomatik gönderilemez. Düşük ve orta güvenli satırlar doğrulanmalıdır.</div><div className="table-shell"><table className="erp-table"><thead><tr><th>#</th><th>Stok Kodu</th><th>Ürün</th><th>Adet</th><th>Tutar</th><th>GTİP Taslağı</th><th>Malzeme</th><th>Kural / Dayanak</th><th>Güven</th></tr></thead><tbody>{fedexMicroExportItems.map((item) => <tr key={item.id}><td>{item.id}</td><td className="code-cell">{item.stockCode}</td><td>{item.productName}</td><td>{item.quantity}</td><td className="money-cell">{formatMoney(item.lineTotal)}</td><td className="code-cell">{item.gtip}</td><td>{item.material}</td><td>{item.materialRule}</td><td><span className={`fedex-confidence ${item.confidence.toLocaleLowerCase('tr-TR')}`}>{item.confidence}</span></td></tr>)}</tbody><tfoot><tr><th colSpan={3}>Toplam</th><th>679</th><th>{formatMoney(3773.30)}</th><th colSpan={4}>20 ürün kartı</th></tr></tfoot></table></div></section>;
 }
 
 function PackagesStep({ packagePlan, onChange, grossWeight, volumetricWeight, chargeableWeight }) {
@@ -332,6 +332,7 @@ function PackagesStep({ packagePlan, onChange, grossWeight, volumetricWeight, ch
 }
 
 function DocumentsStep({ onPrint }) {
+  /** @type {Array<[string, string, string, boolean]>} */
   const documents = [
     ['E-arşiv / e-fatura', 'Eksik', 'Resmî mali sistemden alınmalı', false],
     ['Commercial Invoice', 'Demo taslak', 'İngilizce ürün açıklamaları ve GTİP doğrulanacak', true],

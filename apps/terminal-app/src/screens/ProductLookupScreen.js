@@ -1,3 +1,4 @@
+import { resolveReviewedProductImage as resolveImageUrl } from '../services/reviewedProductImage';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -70,14 +71,7 @@ function sourceLabel(source) {
   return source || 'manual';
 }
 
-function resolveImageUrl(imageUrl, apiBaseUrl) {
-  const value = String(imageUrl || '').trim().replace(/\\/g, '/');
-  const base = String(apiBaseUrl || '').replace(/\/+$/, '');
-  if (!value || !base) return '';
-  if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith('/')) return `${base}${value}`;
-  return `${base}/${value}`;
-}
+
 
 function ProductFact({ label, value, tone = 'neutral' }) {
   return (

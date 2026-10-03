@@ -21,6 +21,7 @@ import {
 
 let rowSequence = 0;
 
+/** @param {Partial<Record<'id' | 'stockCode' | 'barcode' | 'productName' | 'brand' | 'category' | 'supplier' | 'currency' | 'purchasePrice' | 'salePrice' | 'openingStock', string>>} overrides */
 function createRow(overrides = {}) {
   rowSequence += 1;
   const safeOverrides = { ...overrides };

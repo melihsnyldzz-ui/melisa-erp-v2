@@ -1,0 +1,9 @@
+# PDF katalog güncellik kontrolü — 2026-09-10
+
+Önizleme ve yazdırma öncesi seçilen tüm ürünler exact sourceId ile yetkili Vega API'sinden yeniden okunur; dört eşzamanlı GET sınırı, seçim sırası ve tam kimlik kontrolü vardır. Eksik/çift/başka kimlik, pasif kayıt, demo kaynak veya bağlantı hatası eski PDF ile devam edemez. Seçim/ayar değişimindeki sürüm kontrolü bekleyen yanıtı geçersiz kılar. Değişen fiyat/stok/ürün/fotoğraf revizyonu seçilenleri ve görünür kartları yeniler, önizlemeyi kapatır; kullanıcı güncel önizlemeyi yeniden açar. Çift tıklama kilidi vardır.
+
+ERP fotoğraf projeksiyonu doğrulanan hash'i ekler. PDF hash kanıtı olmayan VERIFIED etiketini de kabul etmez. Aynı URL'de yeni onaylı fotoğraf revizyonu eski önizlemeye eşit sayılmaz. Görsel bulunmuyor ve Fotoğraf doğrulanmadı açıklamaları ekran/PDF'de ayrıdır. Görsel filtresi artık Fotoğraf kaydı olanlar der; dosya kaydı kullanım onayı sayılmaz.
+
+Kanıt:168 commerce testi,15 PDF testi, web-commerce regression PASS. API154/web187 kaynak typecheck sıfır tanı; scoped lint ve web build PASS. Mevcut bundle/lucide uyarıları sürüyor. Tarayıcıda sentetik iki ürünle önizleme açıldı;55→12TRY değişikliği yazdırma tıklamasında önizlemeyi kaldırdı ve kartları güncelledi. Tekrar önizleme sonrası503, hata gösterip önizlemeyi kaldırdı. Her iki açıklama görselde incelendi. Agent-browser oturumu ve sentetik54630sunucu kapatıldı; mevcut54473Vite sunucusu korundu. Bir eval komutu kabuk tırnak hatasıyla başarısız oldu; bu çıktı kabul kanıtı sayılmadı. Gerçek veri/mesaj/model işlemi yok. Kaynak koruma66/2182/6/0.
+
+Açık: public katalog/site filtresi, görsel kontrolünden teslimine kadar değişmez içerik garantisi, gerçek onaylı ürünlerle browser/PDF kaydet kabulü ve canlı yayın. Bu çalışma veri anlık görüntüsü kontrolüdür; kullanıcı yazdırma diyaloğunu açık tutarken gerçekleşen sonraki değişiklikler engellenmiş sayılmaz. Native print diyaloğu başarı yolu bu tur çalıştırılmadı. Genel hedef IN_PROGRESS.

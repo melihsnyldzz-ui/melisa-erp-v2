@@ -23,7 +23,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
 
 export function AccountingJournalScreen({ onOpenScreen }) {
   const [rows, setRows] = useState([]);
-  const [summary, setSummary] = useState({});
+  const [summary, setSummary] = useState(/** @type {import('../../services/reportContracts').JournalSummary} */ ({}));
   const [filters, setFilters] = useState({
     search: '',
     partyType: '',

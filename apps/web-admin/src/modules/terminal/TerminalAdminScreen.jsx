@@ -207,7 +207,7 @@ export function TerminalAdminScreen() {
                   </tr>
                 ))}
                 {!isLoading && data.devices.length === 0 && (
-                  <tr><td colSpan="6">Terminal cihaz kaydı yok.</td></tr>
+                  <tr><td colSpan={6}>Terminal cihaz kaydı yok.</td></tr>
                 )}
               </tbody>
             </table>
@@ -306,7 +306,7 @@ export function TerminalAdminScreen() {
                 </tr>
               ))}
               {!isLoading && visibleQueue.length === 0 && (
-                <tr><td colSpan="8">Eşitleme kaydı bulunamadı.</td></tr>
+                <tr><td colSpan={8}>Eşitleme kaydı bulunamadı.</td></tr>
               )}
             </tbody>
           </table>

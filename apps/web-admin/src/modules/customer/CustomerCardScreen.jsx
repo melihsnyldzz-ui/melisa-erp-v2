@@ -353,7 +353,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
     }
 
     if (activeDetailTab === 'movements' || activeDetailTab === 'statement') {
-      return <CustomerTransactionsPanel transactions={transactions} onOpenTransaction={openTransaction} compact />;
+      return <CustomerTransactionsPanel transactions={transactions} onOpenTransaction={openTransaction} />;
     }
 
     return (
@@ -544,6 +544,7 @@ export function CustomerCardScreen({ customerId, permissions = [], onDirtyChange
               <div className="entity-360-actions">
                 <button type="button" onClick={() => setActiveDetailTab('movements')}>Cari Hareketler</button>
                 <button type="button" onClick={() => setActiveDetailTab('products')}>Satılan Ürünler</button>
+                <button type="button" onClick={() => onOpenScreen?.('sales-invoice-list', { customerId: activeCustomerId, customerCode: form.customerCode })}>Satış Fişleri</button>
                 <button type="button" onClick={() => setActiveDetailTab('statement')}>Ekstre</button>
               </div>
             </div>

@@ -3,6 +3,32 @@
   flex: 0 0 auto;
 }
 
+.management-reports-screen .report-currency-note {
+  display: block;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.management-reports-screen .report-currency-note details {
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.management-reports-screen .dashboard-kpi strong {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.management-reports-screen .report-party-analysis[open] {
+  grid-column: 1 / -1;
+}
+
+.management-reports-screen .report-party-analysis td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
 .management-reports-screen > .periodic-report-panel {
   height: auto;
   min-height: 0;

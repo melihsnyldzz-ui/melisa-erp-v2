@@ -321,7 +321,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                 {isSaving ? 'Kaydediliyor' : 'Kaydet'}
               </button>
               <button type="button" onClick={startNewSupplier}>Yeni</button>
-              <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}>Alış Fişleri</button>
+              <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list', { supplierId: activeSupplierId, supplierCode: form.supplierCode })}>Alış Fişleri</button>
               <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : canEditForm ? 'Düzenleme açık' : 'İzleme'}</span>
             </div>
           </section>

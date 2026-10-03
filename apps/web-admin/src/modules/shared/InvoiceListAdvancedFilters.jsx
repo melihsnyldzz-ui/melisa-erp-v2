@@ -22,9 +22,9 @@ export function InvoiceListAdvancedFilters({
   amountMax,
   onAmountMaxChange,
   employee = '',
-  onEmployeeChange,
+  onEmployeeChange = undefined,
   terminal = '',
-  onTerminalChange,
+  onTerminalChange = undefined,
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const activeCount = [

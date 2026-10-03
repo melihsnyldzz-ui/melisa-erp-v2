@@ -255,7 +255,7 @@ export function VegaProductProfitabilityScreen() {
                         </tr>
                         {isExpanded && (
                           <tr className="profitability-detail-row">
-                            <td colSpan="9">
+                            <td colSpan={9}>
                               <div className="profitability-detail-grid">
                                 <span>Brüt satış <strong>{money(row.grossSalesTry)}</strong></span>
                                 <span>Satış iskontosu <strong>{money(row.salesDiscountTry)}</strong></span>
@@ -275,7 +275,7 @@ export function VegaProductProfitabilityScreen() {
                       </React.Fragment>
                     );
                   })}
-                  {!rows.length && <tr><td colSpan="9">Bu kriterlerde kayıt bulunamadı.</td></tr>}
+                  {!rows.length && <tr><td colSpan={9}>Bu kriterlerde kayıt bulunamadı.</td></tr>}
                 </tbody>
               </table>
             </div>

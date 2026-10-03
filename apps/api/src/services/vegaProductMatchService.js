@@ -7,7 +7,8 @@ export async function getVegaProductMatchIndex() {
       s.IND AS source_id,
       LTRIM(RTRIM(s.STOKKODU)) AS stock_code,
       LTRIM(RTRIM(s.MALINCINSI)) AS product_name,
-      LTRIM(RTRIM(ISNULL(s.KOD1, ''))) AS brand
+      LTRIM(RTRIM(ISNULL(s.KOD1, ''))) AS brand,
+      s.KARTINACILMATARIHI AS card_opened_at
     FROM dbo.F0102TBLSTOKLAR s
     WHERE ISNULL(s.DELETED, 0) = 0
       AND ISNULL(s.IPTAL, 0) = 0
@@ -20,5 +21,6 @@ export async function getVegaProductMatchIndex() {
     stockCode: String(row.stock_code || '').trim(),
     productName: String(row.product_name || '').trim(),
     brand: String(row.brand || '').trim(),
+    cardOpenedAt: row.card_opened_at || null,
   }));
 }

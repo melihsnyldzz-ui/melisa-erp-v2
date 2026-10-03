@@ -17,7 +17,7 @@ import {
   Truck,
   Users,
 } from 'lucide-react';
-import { modules, navigationSections } from '../../data/mockNavigationData.js';
+import { getVisibleModules } from '../../data/mockNavigationData.js';
 import { getViewOptionItems } from '../../config/viewOptions.js';
 import { roleViews } from '../../config/roleViews.js';
 
@@ -25,14 +25,17 @@ const moduleIcons = {
   'Ana Sayfa': Home,
   Stok: Package,
   Müşteriler: Users,
+  Cariler: Users,
   Tedarikçiler: Truck,
   Satış: ReceiptText,
   Alış: ClipboardList,
   Finans: Building2,
+  Kasa: Building2,
   Raporlar: BarChart3,
   Tanımlar: Tags,
   'WhatsApp CRM': MessageCircle,
   Ayarlar: Settings,
+  Yönetim: Settings,
 };
 
 export function TopMenu({
@@ -56,14 +59,7 @@ export function TopMenu({
   const viewMenuRef = useRef(null);
   const viewButtonRef = useRef(null);
   const viewOptionItems = useMemo(() => getViewOptionItems(activeTab), [activeTab]);
-  const visibleModules = useMemo(() => modules.filter((module) => {
-    if (!roleScreenIds) {
-      return true;
-    }
-
-    const section = navigationSections.find((item) => item.label === module.label);
-    return section?.screenIds.some((screenId) => roleScreenIds.has(screenId));
-  }), [roleScreenIds]);
+  const visibleModules = useMemo(() => getVisibleModules(roleScreenIds), [roleScreenIds]);
 
   function updateViewMenuPosition() {
     if (!viewButtonRef.current) {

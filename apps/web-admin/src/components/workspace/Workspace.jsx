@@ -1,6 +1,10 @@
 import React from 'react';
+import { CommercialSourceScreen } from '../../modules/shared/CommercialSourceScreen.jsx';
+import { invoiceListScope } from '../../modules/shared/invoiceListScope.js';
+import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
+import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { UnauthorizedScreen } from '../auth/UnauthorizedScreen.jsx';
-import { CatalogListScreen } from '../../modules/catalog/CatalogListScreen.jsx';
+import { CatalogPdfScreen } from '../../modules/catalog/CatalogPdfScreen.jsx';
 import { CustomerCardScreen } from '../../modules/customer/CustomerCardScreen.jsx';
 import { CustomerListScreen } from '../../modules/customer/CustomerListScreen.jsx';
 import { CustomerMovementsScreen } from '../../modules/customer/CustomerMovementsScreen.jsx';
@@ -123,7 +127,14 @@ const workspaceRouteRegistry = {
   'stock-movements': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Stok hareketleri görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <StockMovementsScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => (
+      <StockMovementsScreen
+        key={activeTab.payload?.productId || 'all-products'}
+        productId={activeTab.payload?.productId}
+        stockCode={activeTab.payload?.stockCode}
+        onOpenScreen={onOpenScreen}
+      />
+    ),
   },
   'stock-valuation': {
     permissionKeys: ['product.view'],
@@ -131,9 +142,9 @@ const workspaceRouteRegistry = {
     render: ({ onOpenScreen }) => <StockValuationScreen onOpenScreen={onOpenScreen} />,
   },
   'stock-count': {
-    permissionKeys: ['product.view', 'product.edit'],
+    permissionKeys: ['product.view', 'stock.adjust'],
     permissionMode: 'all',
-    unauthorizedMessage: 'Stok sayımı için ürün görüntüleme ve stok düzenleme yetkileri birlikte gereklidir.',
+    unauthorizedMessage: 'Stok sayımı için ürün görüntüleme ve ayrı stok sayım düzeltme yetkisi gereklidir.',
     render: ({ onDirtyChange, onOpenScreen }) => <StockCountScreen onDirtyChange={onDirtyChange} onOpenScreen={onOpenScreen} />,
   },
   'bulk-product-create': {
@@ -151,7 +162,11 @@ const workspaceRouteRegistry = {
   'customer-list': {
     permissionKeys: ['customer.view'],
     unauthorizedMessage: 'Cari görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CustomerListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => (
+      <CommercialSourceScreen key="customer-list" label="Cari veri kaynağı">
+        {(source) => <CustomerListScreen dataSource={source} onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'customer-card': {
     permissionKeys: ['customer.view'],
@@ -193,7 +208,11 @@ const workspaceRouteRegistry = {
   'supplier-list': {
     permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SupplierListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ onOpenScreen }) => (
+      <CommercialSourceScreen key="supplier-list" label="Tedarikçi veri kaynağı">
+        {(source) => <SupplierListScreen dataSource={source} onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'supplier-card': {
     permissionKeys: ['supplier.view'],
@@ -244,7 +263,14 @@ const workspaceRouteRegistry = {
   'sales-invoice-list': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Satış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => (
+      <CommercialSourceScreen key={activeTab.id} label="Satış listesi veri kaynağı"
+        scope={invoiceListScope('sales-invoice-list', activeTab.payload)} onOpenGeneral={() => onOpenScreen('sales-invoice-list')}>
+        {(source) => source === 'vega'
+          ? <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />
+          : <SalesInvoiceListScreen productId={activeTab.payload?.productId} customerId={activeTab.payload?.customerId} onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'fedex-micro-export-demo': {
     permissionKeys: ['sales.view'],
@@ -326,7 +352,14 @@ const workspaceRouteRegistry = {
   'purchase-invoice-list': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Alış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => (
+      <CommercialSourceScreen key={activeTab.id} label="Alış listesi veri kaynağı"
+        scope={invoiceListScope('purchase-invoice-list', activeTab.payload)} onOpenGeneral={() => onOpenScreen('purchase-invoice-list')}>
+        {(source) => source === 'vega'
+          ? <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />
+          : <PurchaseInvoiceListScreen productId={activeTab.payload?.productId} supplierId={activeTab.payload?.supplierId} onOpenScreen={onOpenScreen} />}
+      </CommercialSourceScreen>
+    ),
   },
   'finance-overview': {
     permissionKeys: ['dashboard.view', 'finance.view'],
@@ -374,7 +407,7 @@ const workspaceRouteRegistry = {
   'catalog-list': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Katalog görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CatalogListScreen onOpenScreen={onOpenScreen} />,
+    render: () => <CatalogPdfScreen />,
   },
   'whatsapp-planner': {
     permissionKeys: ['customer.view'],

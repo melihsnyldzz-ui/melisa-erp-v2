@@ -5,15 +5,78 @@ import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } fro
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
-import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
+import { resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
+import { assertFinanceAccountSchema } from './financeSchemaGuard.js';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
+const salesFinalizationPreparationPromises = new WeakMap();
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
   error.code = code;
   error.statusCode = statusCode;
   return error;
+}
+
+export function markSalesTransactionOutcomeUnverified(error) {
+  error.originalCode ||= error.code || 'SALES_TRANSACTION_FAILED';
+  error.transactionOutcome = 'unverified';
+  error.code = 'SALES_INVOICE_OUTCOME_UNVERIFIED';
+  error.statusCode = 503;
+  error.message = 'Sales invoice outcome could not be verified; check the invoice list and audit log before retrying';
+}
+
+async function commitOwnedTransaction(transaction, ownsTransaction) {
+  if (!ownsTransaction) return;
+  try {
+    await transaction.commit();
+  } catch (error) {
+    markSalesTransactionOutcomeUnverified(error);
+    throw error;
+  }
+}
+
+async function rollbackOwnedTransaction(transaction, ownsTransaction, error) {
+  if (!ownsTransaction) return;
+  try {
+    await transaction.rollback();
+  } catch {
+    markSalesTransactionOutcomeUnverified(error);
+  }
+}
+
+export async function prepareSalesInvoiceFinalization(transactionContext, dependencies = {}) {
+  const { pool, sqlDriver, transaction } = transactionContext || {};
+  if (!pool || !sqlDriver || !transaction) {
+    throw makeServiceError(
+      'SALES_TRANSACTION_CONTEXT_REQUIRED',
+      'Sales finalization preparation requires an active transaction context',
+      500,
+    );
+  }
+
+  const existingPreparation = salesFinalizationPreparationPromises.get(transactionContext);
+  if (existingPreparation) {
+    await existingPreparation;
+    return;
+  }
+
+  const ensureCashCustomersFn = dependencies.ensureCashCustomersFn || ensureCashCustomers;
+  const assertFinanceAccountSchemaFn = dependencies.assertFinanceAccountSchemaFn || assertFinanceAccountSchema;
+  const preparation = (async () => {
+    await ensureCashCustomersFn(pool, { sqlDriver, transaction });
+    await assertFinanceAccountSchemaFn(new sqlDriver.Request(transaction));
+  })();
+  salesFinalizationPreparationPromises.set(transactionContext, preparation);
+
+  try {
+    await preparation;
+  } catch (error) {
+    if (salesFinalizationPreparationPromises.get(transactionContext) === preparation) {
+      salesFinalizationPreparationPromises.delete(transactionContext);
+    }
+    throw error;
+  }
 }
 
 function trimText(value) {
@@ -60,18 +123,15 @@ function normalizeCancelReason(value, code = 'SALES_CANCEL_REASON_REQUIRED') {
   return reason.slice(0, 500);
 }
 
-function createDocumentNo(prefix) {
-  const now = new Date();
-  const stamp = [
-    String(now.getUTCFullYear()).slice(-2),
-    String(now.getUTCMonth() + 1).padStart(2, '0'),
-    String(now.getUTCDate()).padStart(2, '0'),
-    String(now.getUTCHours()).padStart(2, '0'),
-    String(now.getUTCMinutes()).padStart(2, '0'),
-    String(now.getUTCSeconds()).padStart(2, '0'),
-  ].join('');
-
-  return `${prefix}-${stamp}`;
+function invoiceListId(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if ((typeof value !== 'string' && typeof value !== 'number')
+    || (typeof value === 'number' && !Number.isSafeInteger(value))
+    || !/^[1-9]\d{0,18}$/.test(String(value))
+    || BigInt(value) > 9223372036854775807n) {
+    throw makeServiceError('INVOICE_LIST_ID_INVALID', 'Invoice scope ID must be a positive SQL BIGINT');
+  }
+  return String(value);
 }
 
 function parseDraftListQuery(query = {}) {
@@ -105,6 +165,9 @@ function parseDraftListQuery(query = {}) {
 
   return {
     ...options,
+    productId: invoiceListId(query.productId),
+    customerId: invoiceListId(query.customerId),
+    supplierId: invoiceListId(query.supplierId),
     status: status === 'ALL' || status === '' ? 'all' : allowedStatuses.has(status) ? status.toLowerCase() : 'unsupported',
     partySearch,
     dateFrom: dateFrom || null,
@@ -407,7 +470,7 @@ function normalizeSalesPayload(payload = {}) {
   }
 
   return {
-    documentNo: trimText(payload.documentNo) || createDocumentNo('SDR'),
+    documentNo: trimText(payload.documentNo),
     documentDate: normalizeDate(payload.documentDate),
     customerId: Number(payload.customerId),
     terminalDeviceId: payload.terminalDeviceId ? Number(payload.terminalDeviceId) : null,
@@ -475,7 +538,7 @@ function normalizePurchasePayload(payload = {}) {
   }
 
   return {
-    documentNo: trimText(payload.documentNo) || createDocumentNo('PDR'),
+    documentNo: trimText(payload.documentNo),
     documentDate: normalizeDate(payload.documentDate),
     supplierId: payload.supplierId ? Number(payload.supplierId) : null,
     supplierName: trimText(payload.supplierName),
@@ -1104,6 +1167,48 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
     );
   }
 
+  const beforeDocumentDay = beforeSnapshot.documentDate instanceof Date
+    ? beforeSnapshot.documentDate.toISOString().slice(0, 10)
+    : String(beforeSnapshot.documentDate).slice(0, 10);
+  const cashFinancialChange = isCashCustomerCode(beforeSnapshot.customerCode)
+    && (safeNumber(draft.grandTotal) !== safeNumber(beforeSnapshot.grandTotal)
+      || beforeDocumentDay !== draft.documentDate.slice(0, 10));
+  if (cashFinancialChange) {
+    const collection = await new sqlDriver.Request(transaction)
+      .input('correctionCashInvoiceId', sqlDriver.BigInt, invoiceId)
+      .query(`
+        SELECT fam.account_id, fam.created_at
+        FROM dbo.customer_movements cm
+        INNER JOIN dbo.finance_account_movements fam
+          ON fam.party_movement_id = cm.id AND fam.party_type = N'customer'
+          AND fam.source_type = N'collection'
+        WHERE cm.sales_invoice_id = @correctionCashInvoiceId AND cm.movement_type = N'collection';
+      `);
+    if (collection.recordset?.length !== 1) {
+      throw makeServiceError('SALES_CORRECTION_CASH_COLLECTION_MISSING', 'Peşin fişin tahsilat bağlantısı doğrulanamadı', 409);
+    }
+    const movement = collection.recordset[0];
+    const cashSession = await new sqlDriver.Request(transaction)
+      .input('correctionCashAccountId', sqlDriver.BigInt, movement.account_id)
+      .input('correctionCashCreatedAt', sqlDriver.DateTime2, movement.created_at)
+      .query(`
+        IF OBJECT_ID(N'dbo.cash_sessions', N'U') IS NOT NULL
+           AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
+        BEGIN
+          SELECT cs.session_status
+          FROM dbo.cash_drawer_accounts cda
+          INNER JOIN dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
+            ON cs.drawer_id = cda.drawer_id
+            AND cs.opened_at <= @correctionCashCreatedAt
+            AND (cs.closed_at IS NULL OR cs.closed_at >= @correctionCashCreatedAt)
+          WHERE cda.finance_account_id = @correctionCashAccountId;
+        END;
+      `);
+    if (cashSession.recordset?.some(row => row.session_status === 'closed')) {
+      throw makeServiceError('SALES_CORRECTION_CASH_SESSION_CLOSED', 'Tahsilatı kapanmış kasaya ait fişin tutarı veya tarihi değiştirilemez', 409);
+    }
+  }
+
   await applyFinalizedStockDifference(sqlDriver, transaction, beforeSnapshot.items, draft.items, 'sale');
   await new sqlDriver.Request(transaction)
     .input('salesCorrectionInvoiceId', sql.BigInt, invoiceId)
@@ -1191,7 +1296,7 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
         AND movement_type = N'sales_invoice';
     `);
 
-  if (isCashCustomerCode(beforeSnapshot.customerCode)) {
+  if (cashFinancialChange) {
     await new sqlDriver.Request(transaction)
       .input('cashCorrectionInvoiceId', sql.BigInt, invoiceId)
       .input('cashCorrectionCustomerId', sql.BigInt, draft.customerId)
@@ -1406,15 +1511,18 @@ async function ensureSupplier(sqlDriver, transaction, payload) {
   return Number(insert.recordset?.[0]?.supplierId);
 }
 
-export async function getSalesDraft(id) {
+export async function getSalesDraft(id, transactionContext = null) {
   const invoiceId = Number(id);
 
   if (!Number.isInteger(invoiceId) || invoiceId < 1) {
     throw makeServiceError('SALES_DRAFT_ID_INVALID', 'Sales draft id is invalid');
   }
 
-  const pool = await getSqlPool();
-  const snapshot = await getSalesSnapshot(pool.request(), invoiceId);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const request = transactionContext?.transaction
+    ? new transactionContext.sqlDriver.Request(transactionContext.transaction)
+    : pool.request();
+  const snapshot = await getSalesSnapshot(request, invoiceId);
 
   if (!snapshot) {
     throw makeServiceError('SALES_DRAFT_NOT_FOUND', 'Sales draft not found', 404);
@@ -1437,6 +1545,8 @@ export async function getSalesDraftsList(query) {
           search: options.search || null,
           status: 'DRAFT',
           customer: options.partySearch || null,
+        productId: options.productId,
+        customerId: options.customerId,
         },
       }),
     };
@@ -1466,6 +1576,8 @@ export async function getSalesDraftsList(query) {
        )`
     : 'AND @employeeSearch IS NULL AND @terminalSearch IS NULL';
   const request = pool.request()
+    .input('productId', sql.BigInt, options.productId)
+    .input('customerId', sql.BigInt, options.customerId)
     .input('search', sql.NVarChar(160), toSearchPattern(options.search))
     .input('customerSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
@@ -1506,6 +1618,11 @@ export async function getSalesDraftsList(query) {
           OR (@status = N'archived_test' AND COALESCE(si.description, N'') LIKE N'%TEST_ARCHIVED%')
           OR (@status IS NOT NULL AND @status <> N'archived_test' AND si.status = @status AND COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
+        AND (@customerId IS NULL OR si.customer_id = @customerId)
+        AND (@productId IS NULL OR EXISTS (
+          SELECT 1 FROM dbo.sales_invoice_items scoped_item
+          WHERE scoped_item.sales_invoice_id = si.id AND scoped_item.product_id = @productId
+        ))
         AND (@dateFrom IS NULL OR si.document_date >= @dateFrom)
         AND (@dateTo IS NULL OR si.document_date <= @dateTo)
         AND (@currency IS NULL OR si.document_currency = @currency)
@@ -1560,6 +1677,8 @@ export async function getSalesDraftsList(query) {
         search: options.search || null,
         status: options.status,
         customer: options.partySearch || null,
+        productId: options.productId,
+        customerId: options.customerId,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
         currency: options.currency,
@@ -1572,15 +1691,16 @@ export async function getSalesDraftsList(query) {
   };
 }
 
-export async function createSalesDraft(payload, actor = null) {
+export async function createSalesDraft(payload, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const draft = normalizeSalesPayload(payload);
-  const pool = await getSqlPool();
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const ownsTransaction = !transactionContext?.transaction;
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (ownsTransaction) await transaction.begin();
 
   try {
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
@@ -1646,6 +1766,12 @@ export async function createSalesDraft(payload, actor = null) {
 
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
 
+    if (!draft.documentNo) {
+      await new sqlDriver.Request(transaction)
+        .input('invoiceId', sql.BigInt, invoiceId)
+        .query(`UPDATE dbo.sales_invoices SET document_no = CONCAT(N'SDR-', CONVERT(NVARCHAR(20), id)) WHERE id = @invoiceId;`);
+    }
+
     for (const item of draft.items) {
       await insertSalesItem(sqlDriver, transaction, invoiceId, item);
     }
@@ -1660,11 +1786,11 @@ export async function createSalesDraft(payload, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    await commitOwnedTransaction(transaction, ownsTransaction);
 
-    return getSalesDraft(invoiceId);
+    return ownsTransaction ? getSalesDraft(invoiceId) : afterSnapshot;
   } catch (error) {
-    await transaction.rollback();
+    await rollbackOwnedTransaction(transaction, ownsTransaction, error);
     throw error;
   }
 }
@@ -1705,7 +1831,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
 
     await new sqlDriver.Request(transaction)
       .input('invoiceId', sql.BigInt, invoiceId)
-      .input('documentNo', sql.NVarChar(30), draft.documentNo)
+      .input('documentNo', sql.NVarChar(30), draft.documentNo || beforeSnapshot.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
       .input('customerId', sql.BigInt, draft.customerId)
       .input('customerCurrency', sql.NVarChar(3), draft.customerCurrency)
@@ -1766,7 +1892,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
   }
 }
 
-export async function finalizeSalesInvoice(id, actor = null) {
+export async function finalizeSalesInvoice(id, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -1775,15 +1901,16 @@ export async function finalizeSalesInvoice(id, actor = null) {
     throw makeServiceError('SALES_FINALIZE_ID_INVALID', 'Sales invoice id is invalid');
   }
 
-  const pool = await getSqlPool();
-  await ensureCashCustomers(pool);
-  await ensureFinanceAccountTables(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const ownsTransaction = !transactionContext?.transaction;
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
+  const activeTransactionContext = transactionContext || { pool, sqlDriver, transaction };
 
-  await transaction.begin();
+  if (ownsTransaction) await transaction.begin();
 
   try {
+    await prepareSalesInvoiceFinalization(activeTransactionContext);
     const beforeSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
 
     if (!beforeSnapshot) {
@@ -2103,11 +2230,11 @@ export async function finalizeSalesInvoice(id, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    await commitOwnedTransaction(transaction, ownsTransaction);
 
     return toFinalizeResult(afterSnapshot, warnings);
   } catch (error) {
-    await transaction.rollback();
+    await rollbackOwnedTransaction(transaction, ownsTransaction, error);
     throw error;
   }
 }
@@ -2341,6 +2468,8 @@ export async function getPurchaseDraftsList(query) {
           search: options.search || null,
           status: 'DRAFT',
           supplier: options.partySearch || null,
+        productId: options.productId,
+        supplierId: options.supplierId,
         },
       }),
     };
@@ -2348,6 +2477,8 @@ export async function getPurchaseDraftsList(query) {
 
   const pool = await getSqlPool();
   const request = pool.request()
+    .input('productId', sql.BigInt, options.productId)
+    .input('supplierId', sql.BigInt, options.supplierId)
     .input('search', sql.NVarChar(160), toSearchPattern(options.search))
     .input('supplierSearch', sql.NVarChar(160), toSearchPattern(options.partySearch))
     .input('status', sql.NVarChar(20), options.status === 'all' ? null : options.status)
@@ -2384,6 +2515,11 @@ export async function getPurchaseDraftsList(query) {
           OR (@status = N'archived_test' AND COALESCE(pi.description, N'') LIKE N'%TEST_ARCHIVED%')
           OR (@status IS NOT NULL AND @status <> N'archived_test' AND pi.status = @status AND COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')
         )
+        AND (@supplierId IS NULL OR pi.supplier_id = @supplierId)
+        AND (@productId IS NULL OR EXISTS (
+          SELECT 1 FROM dbo.purchase_invoice_items scoped_item
+          WHERE scoped_item.purchase_invoice_id = pi.id AND scoped_item.product_id = @productId
+        ))
         AND (@dateFrom IS NULL OR pi.document_date >= @dateFrom)
         AND (@dateTo IS NULL OR pi.document_date <= @dateTo)
         AND (@currency IS NULL OR pi.document_currency = @currency)
@@ -2437,6 +2573,8 @@ export async function getPurchaseDraftsList(query) {
         search: options.search || null,
         status: options.status,
         supplier: options.partySearch || null,
+        productId: options.productId,
+        supplierId: options.supplierId,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
         currency: options.currency,
@@ -2524,6 +2662,12 @@ export async function createPurchaseDraft(payload, actor = null) {
 
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
 
+    if (!draft.documentNo) {
+      await new sqlDriver.Request(transaction)
+        .input('invoiceId', sql.BigInt, invoiceId)
+        .query(`UPDATE dbo.purchase_invoices SET document_no = CONCAT(N'PDR-', CONVERT(NVARCHAR(20), id)) WHERE id = @invoiceId;`);
+    }
+
     for (const item of draft.items) {
       await insertPurchaseItem(sqlDriver, transaction, invoiceId, item);
     }
@@ -2586,7 +2730,7 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
     await new sqlDriver.Request(transaction)
       .input('invoiceId', sql.BigInt, invoiceId)
-      .input('documentNo', sql.NVarChar(30), draft.documentNo)
+      .input('documentNo', sql.NVarChar(30), draft.documentNo || beforeSnapshot.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
       .input('supplierId', sql.BigInt, supplierId)
       .input('supplierCurrency', sql.NVarChar(3), draft.supplierCurrency)

@@ -1,8 +1,10 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { notifyProductBrain } from './productBrainNotifier.mjs';
 
 const allowedImageMimeTypes = {
   'image/jpeg': 'jpg',
@@ -81,12 +83,34 @@ async function saveUploadedFile(sourceId, payload = {}) {
   await mkdir(uploadDir, { recursive: true });
   const originalName = safeFilePart(payload.fileName || `vega-product-${sourceId}`);
   const fileName = `vega-${sourceId}-${Date.now()}-${originalName}.${extension}`;
-  await writeFile(path.join(uploadDir, fileName), buffer);
+  const diskPath = path.join(uploadDir, fileName);
+  const temporaryPath = `${diskPath}.${process.pid}-${randomUUID()}.part`;
+  try {
+    await writeFile(temporaryPath, buffer, { flag: 'wx' });
+    await rename(temporaryPath, diskPath);
+  } catch (error) {
+    await unlink(temporaryPath).catch((cleanupError) => {
+      if (cleanupError?.code !== 'ENOENT') throw cleanupError;
+    });
+    throw error;
+  }
 
   return {
     filePath: `/uploads/vega-products/${fileName}`,
     storageKey: `vega-products/${fileName}`,
+    diskPath,
   };
+}
+
+export async function cleanupUploadedFileAfterFailure(uploaded) {
+  if (!uploaded?.diskPath) return false;
+  try {
+    await unlink(uploaded.diskPath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
 }
 
 export async function getVegaProductImageMap(sourceIds = []) {
@@ -150,11 +174,11 @@ export async function saveVegaProductImage(sourceIdValue, payload, actor = null,
     throw makeServiceError('VEGA_PRODUCT_IMAGE_PATH_REQUIRED', 'Görsel dosyası veya bağlantısı gerekli');
   }
 
-  const driver = getSqlDriver();
-  const transaction = new driver.Transaction(pool);
-  await transaction.begin();
-
+  let transaction = null;
   try {
+    const driver = getSqlDriver();
+    transaction = new driver.Transaction(pool);
+    await transaction.begin();
     await new driver.Request(transaction)
       .input('sourceId', driver.BigInt, sourceId)
       .input('actorId', driver.BigInt, actor?.id ? Number(actor.id) : null)
@@ -188,9 +212,21 @@ export async function saveVegaProductImage(sourceIdValue, payload, actor = null,
       actor,
     });
     await transaction.commit();
+    notifyProductBrain(sourceId);
     return { id: imageId, ...product, filePath, imageUrl: filePath };
   } catch (error) {
-    await transaction.rollback();
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        error.rollbackError = rollbackError;
+      }
+    }
+    try {
+      await cleanupUploadedFileAfterFailure(uploaded);
+    } catch (cleanupError) {
+      error.uploadCleanupError = cleanupError;
+    }
     throw error;
   }
 }
@@ -224,6 +260,7 @@ export async function removeVegaProductImage(sourceIdValue, actor = null) {
       actor,
     });
     await transaction.commit();
+    notifyProductBrain(sourceId);
     return { sourceId, removed: result.rowsAffected?.[0] || 0 };
   } catch (error) {
     await transaction.rollback();

@@ -1,0 +1,44 @@
+/* Reconcile the light upstream theme with the existing dashboard toolbar. */
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 0;
+  gap: 12px;
+  padding: 12px;
+  align-self: start;
+}
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-title strong { color: #17243a !important; }
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-title span,
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .auto-refresh-label { color: #526174 !important; }
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions { flex-wrap: wrap; gap: 6px; }
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions button,
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions select {
+  color: #203047 !important;
+  background: #fff !important;
+  border-color: #aeb8c8 !important;
+  min-height: 34px;
+}
+.erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions button.pressed {
+  background: #dce8f8 !important;
+  border-color: #1d4f8d !important;
+}
+
+@media (max-width: 700px) {
+  /* On the home screen the sidebar only repeats the active operation desk.
+     Other modules keep their navigation; top module buttons remain available. */
+  .erp-shell[data-active-screen="dashboard"] .main-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .erp-shell[data-active-screen="dashboard"] .sidebar { display: none !important; }
+  .erp-shell[data-active-screen="dashboard"] .content-shell { min-width: 0; width: 100%; }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar { flex-direction: column; align-items: stretch; }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-title,
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions { width: 100%; padding: 0; flex: 0 0 auto !important; }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions button,
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-toolbar-actions select { flex: 1 1 130px; max-width: 100%; }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-quick-actions { grid-template-columns: minmax(0, 1fr); }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-quick-actions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-main-grid:not(.dashboard-free-desk) { grid-template-columns: minmax(0, 1fr) !important; }
+  .erp-shell[data-active-screen="dashboard"] .dashboard-screen .dashboard-main-grid:not(.dashboard-free-desk) > * { grid-column: auto !important; min-width: 0; }
+}

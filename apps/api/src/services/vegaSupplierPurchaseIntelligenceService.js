@@ -259,7 +259,7 @@ function matchLineToProduct(line, productsById, productsByModel, brandContext) {
 }
 
 function compareLineRecency(left, right) {
-  const dateDifference = new Date(left.documentDate || 0) - new Date(right.documentDate || 0);
+  const dateDifference = new Date(left.documentDate || 0).getTime() - new Date(right.documentDate || 0).getTime();
   if (dateDifference !== 0) return dateDifference;
   return Number(left.lineSourceId || 0) - Number(right.lineSourceId || 0);
 }
@@ -354,7 +354,7 @@ export function buildSupplierPurchaseIntelligence({ supplier, lines, products, l
       discountSource: latest.price.discountSource,
     };
   }).sort((left, right) => (
-    new Date(right.lastPurchaseDate || 0) - new Date(left.lastPurchaseDate || 0)
+    new Date(right.lastPurchaseDate || 0).getTime() - new Date(left.lastPurchaseDate || 0).getTime()
       || right.totalQuantity - left.totalQuantity
   ));
 

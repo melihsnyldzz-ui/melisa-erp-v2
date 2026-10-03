@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, BackHandler, SafeAreaView, StatusBar, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, BackHandler, StatusBar, StyleSheet, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { TerminalShell } from './src/components/TerminalShell';
+import { TerminalButton } from './src/components/TerminalButton';
 import { BarcodeScreen } from './src/screens/BarcodeScreen';
 import { CatalogSendScreen } from './src/screens/CatalogSendScreen';
 import { DataUpdateScreen } from './src/screens/DataUpdateScreen';
@@ -42,6 +44,10 @@ const initialSyncState = {
 };
 
 export default function App() {
+  return <SafeAreaProvider><TerminalApp /></SafeAreaProvider>;
+}
+
+function TerminalApp() {
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState(null);
   const [activeScreen, setActiveScreen] = useState('home');
@@ -49,6 +55,7 @@ export default function App() {
   const [lastLookup, setLastLookup] = useState(null);
   const [saleDraftToEdit, setSaleDraftToEdit] = useState(null);
   const [syncState, setSyncState] = useState(initialSyncState);
+  const [queueError, setQueueError] = useState('');
 
   const navigateTo = useCallback((nextScreen, options = {}) => {
     setScreenHistory((currentHistory) => {
@@ -79,20 +86,27 @@ export default function App() {
   }, [activeScreen, screenHistory, session]);
 
   useEffect(() => {
+    if (activeScreen === 'newSale') return undefined;
     if (!BackHandler?.addEventListener) {
       return undefined;
     }
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', goBack);
     return () => subscription.remove();
-  }, [goBack]);
+  }, [activeScreen, goBack]);
 
   const refreshSyncState = useCallback(async () => {
     const [apiResult, queueSummary, cacheSummary] = await Promise.all([
       pingApi(),
-      getQueueSummary(),
+      getQueueSummary().catch((error) => ({ error: error.message || 'Cihaz kuyrugu okunamadi' })),
       getCacheSummary(),
     ]);
+
+    if ('error' in queueSummary) {
+      setQueueError(queueSummary.error);
+      return;
+    }
+    setQueueError('');
 
     setSyncState({
       online: apiResult.online,
@@ -181,17 +195,31 @@ export default function App() {
 
   if (!session) {
     return (
-      <LoginScreen
-        onLogin={handleLogin}
-        onApiBaseUrlChange={refreshSyncState}
-        syncState={syncState}
-      />
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <LoginScreen
+          onLogin={handleLogin}
+          onApiBaseUrlChange={refreshSyncState}
+          syncState={syncState}
+        />
+      </>
+    );
+  }
+
+  if (queueError) {
+    return (
+      <SafeAreaView style={styles.app}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <Text style={{ color: colors.danger, padding: 16 }}>{queueError}</Text>
+        <Text style={{ color: colors.text, padding: 16 }}>Mevcut cihaz kayitlari korunuyor. ERP yoneticisi kuyrugu inceleyene kadar satis islemleri kapali.</Text>
+        <TerminalButton label="Tekrar kontrol et" onPress={refreshSyncState} />
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.app}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.header} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <TerminalShell
         title={activeScreen === 'home' ? 'Islem Masasi' : activeScreen === 'newSale' ? 'Yeni Satis' : activeScreen === 'barcode' ? 'Barkod Okut' : activeScreen === 'catalogSend' ? 'Katalog Gonder' : activeScreen === 'customerAccounts' ? 'Musteri Carileri' : activeScreen === 'whatsappCrm' ? 'WhatsApp CRM' : activeScreen === 'syncStatus' ? 'Sync Merkezi' : activeScreen === 'reports' ? 'Raporlar' : activeScreen === 'settings' ? 'Ayarlar' : activeScreen === 'dataUpdate' ? 'Veri Guncelle' : activeScreen === 'fieldTest' ? 'Saha Testi' : activeScreen === 'receiptCollect' ? 'Fis Toplama' : 'Urun Bilgisi'}
         subtitle={activeScreen === 'home' ? 'Saha terminali ana islem ekrani' : 'Tek elle hizli kullanim'}
@@ -201,7 +229,6 @@ export default function App() {
       >
         {activeScreen === 'home' && (
           <HomeScreen
-            session={session}
             syncState={syncState}
             navigation={navigation}
             onLogout={handleLogout}

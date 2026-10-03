@@ -1,0 +1,83 @@
+/* Melisa sales/purchase lists only: panels determine their own height. */
+/* The fixed-height ERP shell owns scrolling; the document must not add a 720px floor. */
+body:has(.erp-shell) { min-height: 0; min-width: 0; }
+
+.work-area.commerce-invoice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  container-type: inline-size;
+}
+
+.commerce-invoice-list > * { flex: 0 0 auto; }
+
+.simple-mode-shell:not(.hide-filters) .commerce-invoice-list > .invoice-list-filters {
+  display: grid !important;
+}
+
+.hide-filters .commerce-invoice-list > .invoice-advanced-search { display: none; }
+
+.commerce-invoice-list > .invoice-list-filters {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) auto;
+}
+
+.commerce-invoice-list .invoice-list-filters label,
+.commerce-invoice-list .invoice-advanced-search-grid label { min-width: 0; }
+
+.commerce-invoice-list > .invoice-advanced-search { margin: 0; }
+
+.commerce-invoice-list > .sales-receipt-layout {
+  flex: 1 0 300px;
+  min-height: 300px;
+}
+
+.commerce-invoice-list .sales-receipt-list-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.commerce-invoice-list .sales-receipt-list-panel > :not(.sales-receipt-table-wrap) { flex: 0 0 auto; }
+
+.commerce-invoice-list .sales-receipt-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+
+.commerce-invoice-list .sales-receipt-preview-panel {
+  display: block;
+  overflow: auto;
+}
+
+.commerce-invoice-list .invoice-list-actions { flex-wrap: wrap; }
+.commerce-invoice-list .invoice-list-toolbar { flex-direction: row; }
+
+.commerce-invoice-list .sales-receipt-layout.is-empty .sales-receipt-list-panel { min-height: 240px; }
+
+@container (max-width: 1000px) {
+  .commerce-invoice-list > .sales-receipt-layout {
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+  .commerce-invoice-list .sales-receipt-resizer { display: none; }
+  .commerce-invoice-list .sales-receipt-list-panel { height: clamp(260px, 50vh, 440px); }
+  .commerce-invoice-list .sales-receipt-preview-panel { max-height: 420px; }
+}
+
+@container (max-width: 600px) {
+  .commerce-invoice-list > .invoice-list-filters { grid-template-columns: minmax(0, 1fr); }
+  .commerce-invoice-list .invoice-advanced-search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .commerce-invoice-list .invoice-advanced-search-grid input,
+  .commerce-invoice-list .invoice-advanced-search-grid select { min-width: 0; }
+  .commerce-invoice-list .invoice-list-toolbar { flex-wrap: wrap; }
+  .commerce-invoice-list .invoice-list-toolbar > div {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+  }
+  .commerce-invoice-list .invoice-advanced-search-toggle { flex-wrap: wrap; gap: 4px; padding-block: 6px; }
+}

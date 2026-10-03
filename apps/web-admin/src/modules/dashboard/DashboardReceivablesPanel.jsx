@@ -2,7 +2,7 @@ import React from 'react';
 
 export function DashboardReceivablesPanel({ rows }) {
   return (
-    <section className="erp-panel dashboard-table-panel">
+    <section className="erp-panel dashboard-table-panel dashboard-receivables-panel">
       <div className="panel-title">
         <strong>Cari Borç / Ekstre Özeti</strong>
         <span>Müşteri borçları ve risk</span>
@@ -19,7 +19,7 @@ export function DashboardReceivablesPanel({ rows }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.customer}>
+              <tr key={row.customerId ?? row.customer}>
                 <td>{row.customer}</td>
                 <td className="money-cell">{row.balance}</td>
                 <td>{row.lastMove}</td>

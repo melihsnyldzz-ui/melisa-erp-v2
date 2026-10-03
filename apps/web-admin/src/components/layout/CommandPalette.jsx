@@ -17,7 +17,8 @@ import { normalizeSearchText } from '../../utils/searchText.js';
 const pinnedCommands = [
   { label: 'Yeni Satış Fişi', screenId: 'sales-invoice', hint: 'Satış işlemi ekranını aç' },
   { label: 'Stok Listesi', screenId: 'stock-list', hint: 'Ürün ve depo durumunu gör' },
-  { label: 'Cari Listesi', screenId: 'customer-list', hint: 'Müşteri ve tedarikçi kartları' },
+  { label: 'Müşteri Cari Listesi', screenId: 'customer-list', hint: 'Müşteri kartlarını ve bakiyelerini gör' },
+  { label: 'Tedarikçi Cari Listesi', screenId: 'supplier-list', hint: 'Tedarikçi kartlarını ve bakiyelerini gör' },
   { label: 'Rapor Merkezi', screenId: 'reports-overview', hint: 'Yönetim ve operasyon raporları' },
 ];
 
@@ -77,7 +78,7 @@ function buildCommandList() {
   const seen = new Set();
 
   return mergedCommands.filter((command) => {
-    const key = `${command.label}-${command.screenId}`;
+    const key = command.screenId.startsWith('whatsapp-') ? `${command.label}-${command.screenId}` : command.screenId;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

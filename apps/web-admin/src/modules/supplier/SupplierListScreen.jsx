@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Columns3, Download, Ellipsis, Printer, RefreshCcw, RotateCcw, Search, Truck } from 'lucide-react';
-import { fetchVegaSuppliers } from '../../services/supplierApi.js';
+import { fetchSuppliers, fetchVegaSuppliers } from '../../services/supplierApi.js';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
@@ -85,7 +85,8 @@ function renderSupplierCell(row, columnKey) {
   return <td>{row[columnKey] ?? '-'}</td>;
 }
 
-export function SupplierListScreen({ onOpenScreen }) {
+export function SupplierListScreen({ onOpenScreen, dataSource = 'vega' }) {
+  const isLiveVega = dataSource === 'vega';
   const [filters, setFilters] = useState({ search: '', currency: 'all', status: 'active' });
   const [rows, setRows] = useState([]);
   const [listMeta, setListMeta] = useState(null);
@@ -119,10 +120,11 @@ export function SupplierListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchVegaSuppliers({
+        const response = await (isLiveVega ? fetchVegaSuppliers : fetchSuppliers)({
           page: 1,
           limit: 500,
           search: debouncedSearch,
+          activeOnly: filters.status === 'active',
         });
         const nextRows = (response.data || []).map(toSupplierRow);
 
@@ -152,7 +154,7 @@ export function SupplierListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [debouncedSearch, filters.status, refreshKey]);
+  }, [debouncedSearch, filters.status, refreshKey, isLiveVega]);
 
   const filteredRows = useMemo(() => rows
     .filter((row) => {
@@ -165,7 +167,10 @@ export function SupplierListScreen({ onOpenScreen }) {
         row.country,
       ].join(' ');
 
-      return currencyMatch && normalizeSearchText(text).includes(normalizeSearchText(filters.search));
+      const statusMatch = filters.status === 'all'
+        || (filters.status === 'active' && row.status === 'Aktif')
+        || (filters.status === 'passive' && row.status === 'Pasif');
+      return currencyMatch && statusMatch && normalizeSearchText(text).includes(normalizeSearchText(filters.search));
     })
     .sort((first, second) => {
       const direction = sortConfig.direction === 'asc' ? 1 : -1;
@@ -226,6 +231,12 @@ export function SupplierListScreen({ onOpenScreen }) {
   }
 
   function openSupplier(row = selectedRow) {
+    if (!isLiveVega) {
+      if (!row?.id) { setSelectionWarning('Kartı açmak için bir tedarikçi seçin.'); return; }
+      setSelectionWarning('');
+      onOpenScreen('supplier-card', { supplierId: row.id, supplierCode: row.code });
+      return;
+    }
     if (!row?.sourceId) {
       setSelectionWarning('Hareketleri açmak için listeden bir tedarikçi seçin.');
       return;
@@ -267,11 +278,11 @@ export function SupplierListScreen({ onOpenScreen }) {
     <main className="work-area supplier-list-screen">
       <section className="customer-list-toolbar">
         <div className="customer-title-block">
-          <strong>Vega Tedarikçi Carileri</strong>
-          <span>F0103 · 2026 canlı bakiye, alış fişleri ve ödeme hareketleri · salt okunur</span>
+          <strong>{isLiveVega ? 'Vega Tedarikçi Carileri' : 'Melisa Tedarikçileri'}</strong>
+          <span>{isLiveVega ? 'Vega bakiyeleri ve hareketleri · salt okunur' : 'Melisa ERP tedarikçi kartları ve bakiyeleri'}</span>
         </div>
         <div className="customer-toolbar-actions">
-          <button type="button" className="primary-action" onClick={() => openSupplier()} disabled={!selectedRow}><Truck aria-hidden="true" size={16} /> Hareketleri Aç</button>
+          <button type="button" className="primary-action" onClick={() => openSupplier()} disabled={!selectedRow}><Truck aria-hidden="true" size={16} /> {isLiveVega ? 'Hareketleri Aç' : 'Tedarikçi Kartı'}</button>
           <button type="button" onClick={() => setRefreshKey((current) => current + 1)}><RefreshCcw aria-hidden="true" size={16} /> Yenile</button>
           <details className="entity-list-tools">
             <summary aria-label="Diğer liste işlemleri" title="Diğer işlemler"><Ellipsis aria-hidden="true" size={18} /></summary>

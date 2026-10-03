@@ -307,7 +307,7 @@ export function VegaCustomerMovementsScreen({
               </tbody>
               <tfoot>
                 <tr className="koli-ledger-end-row">
-                  <td colSpan="8">Liste sonu · {visibleRows.length} hareketin tamamı gösterildi</td>
+                  <td colSpan={8}>Liste sonu · {visibleRows.length} hareketin tamamı gösterildi</td>
                 </tr>
               </tfoot>
             </table>

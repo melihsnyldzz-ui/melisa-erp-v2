@@ -1,0 +1,22 @@
+{
+  "name": "melisa-erp-quality",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint apps/api/src apps/web-admin/src apps/terminal-app/src apps/terminal-app/App.js apps/desktop/src",
+    "typecheck": "node scripts/quality/typecheck.mjs",
+    "test:commerce": "node scripts/quality/test-commerce.mjs",
+    "test:external-stock-http": "node --experimental-vm-modules --test scripts/quality/external-stock-http.test.mjs",
+    "test:web-commerce": "node scripts/quality/test-web-commerce.mjs",
+    "test:terminal-commerce": "node scripts/quality/test-terminal-commerce.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.18",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "typescript": "5.9.3"
+  }
+}

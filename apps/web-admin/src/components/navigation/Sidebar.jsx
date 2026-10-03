@@ -18,7 +18,7 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
-import { getNavigationSection, sidebarGroups } from '../../data/mockNavigationData.js';
+import { getNavigationSection, isDailyNavigation, sidebarGroups } from '../../data/mockNavigationData.js';
 import { screenTypeLabel } from '../../utils/screenLabels.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
 
@@ -70,7 +70,7 @@ const itemDisplayLabels = {
   'purchase-invoice-list': 'Alış Fişleri',
   'bulk-purchase-entry': 'Toplu Alış Girişi',
   'finance-overview': 'Finans Özeti',
-  'collections-overview': 'Tahsilatlar',
+  'collections-overview': 'Tahsilat ve ödeme',
   'cash-customers': 'Peşin Cariler',
   'cash-register': 'Günlük Kasa',
   'cash-bank-ledger': 'Kasa/Banka Defteri',
@@ -203,6 +203,12 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   const activeGroupTitle = useMemo(() => (
     visibleGroups.find((group) => group.items.some((item) => item.screenId === activeScreenId))?.title
   ), [activeScreenId, visibleGroups]);
+  const splitGroups = (daily) => filteredGroups.map((group) => ({
+    ...group, items: group.items.filter((item) => isDailyNavigation(item.screenId) === daily),
+  })).filter((group) => group.items.length);
+  const dailyGroups = splitGroups(true);
+  const secondaryGroups = splitGroups(false);
+  const showAll = Boolean(normalizedSearch) || dailyGroups.length === 0;
 
   return (
     <aside className="sidebar sidebar-flat">
@@ -219,7 +225,7 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
         </label>
       </div>
       <div className="sidebar-flat-body">
-        {filteredGroups.map((group) => (
+        {(showAll ? filteredGroups : dailyGroups).map((group) => (
           <SidebarGroup
             activeGroupTitle={activeGroupTitle}
             activeScreenId={activeScreenId}
@@ -228,6 +234,13 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
             onOpenScreen={onOpenScreen}
           />
         ))}
+        {!showAll && secondaryGroups.length > 0 && <SecondaryNavigation
+          key={activeScreenId}
+          groups={secondaryGroups}
+          activeScreenId={activeScreenId}
+          activeGroupTitle={activeGroupTitle}
+          onOpenScreen={onOpenScreen}
+        />}
         {filteredGroups.length === 0 && (
           <div className="sidebar-empty">Menüde eşleşen ekran yok.</div>
         )}
@@ -240,6 +253,17 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
       </div>
     </aside>
   );
+}
+
+function SecondaryNavigation({ groups, activeScreenId, activeGroupTitle, onOpenScreen }) {
+  const [expanded, setExpanded] = useState(() => groups.some((group) => group.items.some((item) => item.screenId === activeScreenId)));
+  const count = groups.reduce((total, group) => total + group.items.length, 0);
+  return <section className="secondary-navigation">
+    <button type="button" className="secondary-navigation-toggle" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>
+      <span>{expanded ? '▾' : '▸'} Diğer araçlar</span><small>{count}</small>
+    </button>
+    {expanded && groups.map((group) => <SidebarGroup key={group.title} group={group} activeScreenId={activeScreenId} activeGroupTitle={activeGroupTitle} onOpenScreen={onOpenScreen} />)}
+  </section>;
 }
 
 function normalizeSearch(value) {
@@ -282,7 +306,7 @@ function SidebarGroup({ group, activeGroupTitle, activeScreenId, onOpenScreen })
   );
 }
 
-function SidebarItem({ item, isActive, groupTitle, onOpenScreen }) {
+function SidebarItem({ item, isActive, groupTitle = '', onOpenScreen }) {
   const Icon = itemIcons[item.screenId] || FileText;
   const isComingSoon = Boolean(item.comingSoon);
   const label = getItemLabel(item);

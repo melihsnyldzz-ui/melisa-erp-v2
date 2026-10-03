@@ -72,7 +72,7 @@ function readVisiblePurchaseColumns() {
   }
 }
 
-export function PurchaseInvoiceListScreen({ onOpenScreen }) {
+export function PurchaseInvoiceListScreen({ onOpenScreen, productId, supplierId }) {
   const [search, setSearch] = useState('');
   const [supplier, setSupplier] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -166,6 +166,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
     try {
       const response = await fetchPurchaseDrafts({
+        productId, supplierId,
         page: 1,
         limit: 100,
         search,
@@ -202,6 +203,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
       try {
         const response = await fetchPurchaseDrafts({
+          productId, supplierId,
           page: 1,
           limit: 100,
           search,
@@ -240,7 +242,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [amountMax, amountMin, currencyFilter, dateFrom, dateTo, search, statusFilter, supplier]);
+  }, [amountMax, amountMin, currencyFilter, dateFrom, dateTo, search, statusFilter, supplier, productId, supplierId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -385,7 +387,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
   }
 
   return (
-    <main className="work-area invoice-list-screen sales-receipt-workspace purchase-receipt-workspace">
+    <main className="work-area invoice-list-screen sales-receipt-workspace purchase-receipt-workspace commerce-invoice-list">
       <section className="invoice-list-toolbar sales-receipt-toolbar purchase-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Alış Fişleri</strong>

@@ -50,7 +50,7 @@ function DataCard({ label, value, helper, tone = 'neutral' }) {
 }
 
 export function DataUpdateScreen({ session, navigation, onRefresh }) {
-  const [summary, setSummary] = useState({ productCount: 0, customerCount: 0 });
+  const [summary, setSummary] = useState(/** @type {Partial<Awaited<ReturnType<typeof getCacheSummary>>>} */ ({ productCount: 0, customerCount: 0 }));
   const [lastResult, setLastResult] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');

@@ -21,7 +21,7 @@ import {
 const keyboardGap = 18;
 const KeyboardScrollContext = createContext(null);
 
-export const KeyboardSafeTextInput = forwardRef(function KeyboardSafeTextInput({ onFocus, ...props }, forwardedRef) {
+export const KeyboardSafeTextInput = forwardRef(/** @param {import('react-native').TextInputProps} props @param {import('react').ForwardedRef<TextInput>} forwardedRef */ function KeyboardSafeTextInput({ onFocus, ...props }, forwardedRef) {
   const requestReveal = useContext(KeyboardScrollContext);
 
   return (
@@ -36,7 +36,7 @@ export const KeyboardSafeTextInput = forwardRef(function KeyboardSafeTextInput({
   );
 });
 
-export const KeyboardSafeScrollView = forwardRef(function KeyboardSafeScrollView({
+export const KeyboardSafeScrollView = forwardRef(/** @param {import('react-native').ScrollViewProps} props @param {import('react').ForwardedRef<ScrollView>} forwardedRef */ function KeyboardSafeScrollView({
   children,
   contentContainerStyle,
   keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag',
@@ -58,7 +58,7 @@ export const KeyboardSafeScrollView = forwardRef(function KeyboardSafeScrollView
   const revealFocusedInput = useCallback((delay = 80, inputHandle = focusedInputHandleRef.current) => {
     clearTimeout(revealTimerRef.current);
     revealTimerRef.current = setTimeout(() => {
-      const focusedInput = TextInput.State.currentlyFocusedInput?.();
+      const focusedInput = /** @type {TextInput | null} */ (TextInput.State.currentlyFocusedInput?.());
       const keyboardTop = keyboardTopRef.current;
       const scrollView = scrollRef.current;
       if (!scrollView || (!focusedInput && !inputHandle)) return;

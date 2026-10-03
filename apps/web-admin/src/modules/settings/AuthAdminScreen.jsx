@@ -57,6 +57,12 @@ const criticalLocks = [
     keys: [{ key: 'product.edit' }, { key: 'product.update', flag: 'canUpdate' }, { key: 'products.manage', flag: 'canUpdate' }],
   },
   {
+    label: 'Stok sayım düzeltme',
+    detail: 'Sayım farkını gerçek stok hareketine dönüştürür; ayrıca yetkilendirilir.',
+    requiresExplicitPermission: true,
+    keys: [{ key: 'stock.adjust', flag: 'canUpdate' }, { key: 'stock.adjust', flag: 'canApprove' }],
+  },
+  {
     label: 'Stok pasife alma',
     detail: 'Ürünün aktif satış/alış seçimini kapatır.',
     keys: [{ key: 'product.passive' }, { key: 'product.passive', flag: 'canUpdate' }],
@@ -118,7 +124,7 @@ function isPermissionEntryAllowed(permission, flag) {
 }
 
 function canRoleDoAction(roleCode, permissions, lock) {
-  if (fullAccessRoleCodes.has(String(roleCode || '').toLowerCase())) {
+  if (!lock.requiresExplicitPermission && fullAccessRoleCodes.has(String(roleCode || '').toLowerCase())) {
     return true;
   }
 
@@ -625,7 +631,7 @@ export function AuthAdminScreen({ permissions = [] }) {
               ))}
               {visibleAuditLogs.length === 0 && (
                 <tr>
-                  <td colSpan="5">Filtreye uygun denetim kaydı yok.</td>
+                  <td colSpan={5}>Filtreye uygun denetim kaydı yok.</td>
                 </tr>
               )}
             </tbody>

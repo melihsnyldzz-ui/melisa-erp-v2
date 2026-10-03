@@ -78,7 +78,7 @@ function CustomerRow({ customer, selected, onPress }) {
   );
 }
 
-function DetailLine({ label, value, tone }) {
+function DetailLine({ label, value, tone = undefined }) {
   return (
     <View style={styles.detailLine}>
       <Text style={styles.detailLabel}>{label}</Text>

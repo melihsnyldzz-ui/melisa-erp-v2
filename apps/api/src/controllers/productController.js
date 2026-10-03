@@ -22,6 +22,7 @@ import {
   saveVegaProductImage,
 } from '../services/vegaProductImageService.js';
 import { getVegaProductCustomsMap } from '../services/vegaProductCustomsService.js';
+import { getPresentableProductImages } from '../services/productImageIdentity.mjs';
 import { created, fail, ok } from '../utils/response.js';
 
 function writeError(res, error) {
@@ -74,9 +75,13 @@ export async function getVegaProducts(req, res) {
       getVegaProductImageMap(sourceIds),
       getVegaProductCustomsMap(sourceIds),
     ]);
+    // Raw default remains available to the authenticated source-analysis reader.
+    const presentation = req.query?.imageUsage === 'catalog'
+      ? await getPresentableProductImages(data, imageMap) : null;
     const products = data.map((product) => ({
       ...product,
       imageUrl: imageMap.get(Number(product.sourceId)) || null,
+      ...(presentation?.get(Number(product.sourceId)) || {}),
       customs: customsMap.get(Number(product.sourceId)) || null,
     }));
     return ok(res, products, {

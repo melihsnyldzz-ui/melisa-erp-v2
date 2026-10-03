@@ -43,11 +43,7 @@ const checks = [
     !service.includes('submitTerminalSale')
       && !service.includes('apiClient'),
   ],
-  [
-    'working draft is cleared after queue persistence',
-    screen.includes('await clearWorkingSaleDraft().catch(() => {});')
-      && screen.includes('await enqueueTerminalSale(basePayload)'),
-  ],
+  // Persistence/cleanup order is exercised by terminal-sale-screen-safety.test.mjs.
   [
     'operator sees automatic save status',
     screen.includes('Otomatik taslak:')

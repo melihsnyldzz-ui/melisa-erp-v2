@@ -114,7 +114,7 @@ export async function getBionicStockCodeCount() {
   };
 }
 
-export async function listBionicStockCodes({ search, limit } = {}) {
+export async function listBionicStockCodes({ search = '', limit = 100 } = {}) {
   const pool = await getSqlPool();
   const safeLimit = Math.min(env.bionicReadOnly.maxRows, Math.max(1, Number(limit) || 100));
   const request = pool.request();

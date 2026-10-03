@@ -1,15 +1,40 @@
 export const modules = [
-  { label: 'Ana Sayfa', screenId: 'dashboard' },
-  { label: 'Stok', screenId: 'stock-list' },
-  { label: 'Müşteriler', screenId: 'customer-list' },
-  { label: 'Tedarikçiler', screenId: 'supplier-list' },
-  { label: 'Satış', screenId: 'sales-invoice-list' },
-  { label: 'Alış', screenId: 'purchase-invoice-list' },
-  { label: 'Finans', screenId: 'finance-overview' },
-  { label: 'Raporlar', screenId: 'reports-overview' },
-  { label: 'WhatsApp CRM', screenId: 'whatsapp-crm-inbox' },
-  { label: 'Tanımlar', screenId: 'definitions-overview' },
-  { label: 'Ayarlar', screenId: 'settings-overview' },
+  {
+    "label": "Ana Sayfa",
+    "screenId": "dashboard"
+  },
+  {
+    "label": "Stok",
+    "screenId": "stock-list"
+  },
+  {
+    "label": "Cariler",
+    "screenId": "customer-list"
+  },
+  {
+    "label": "Satış",
+    "screenId": "sales-invoice-list"
+  },
+  {
+    "label": "Alış",
+    "screenId": "purchase-invoice-list"
+  },
+  {
+    "label": "Kasa",
+    "screenId": "cash-register"
+  },
+  {
+    "label": "Raporlar",
+    "screenId": "reports-overview"
+  },
+  {
+    "label": "WhatsApp CRM",
+    "screenId": "whatsapp-crm-inbox"
+  },
+  {
+    "label": "Yönetim",
+    "screenId": "settings-overview"
+  }
 ];
 
 export const sidebarGroups = [
@@ -74,13 +99,12 @@ export const sidebarGroups = [
     title: 'Finans Yönetimi',
     items: [
       { label: 'Finans Özeti', screenId: 'finance-overview' },
-      { label: 'Tahsilatlar', screenId: 'collections-overview' },
+      { label: 'Tahsilat ve ödeme', screenId: 'collections-overview' },
       { label: 'Peşin Cariler', screenId: 'cash-customers' },
       { label: 'Günlük Kasa', screenId: 'cash-register' },
       { label: 'Kasa/Banka Defteri', screenId: 'cash-bank-ledger' },
       { label: 'Muhasebe Defteri', screenId: 'accounting-journal' },
       { label: 'Muhasebe Kontrol', screenId: 'accounting-control' },
-      { label: 'Riskli Cariler', screenId: 'customer-list' },
     ],
   },
   {
@@ -138,50 +162,114 @@ export const sidebarGroups = [
 ];
 
 export const navigationSections = [
-  { label: 'Ana Sayfa', screenId: 'dashboard', screenIds: ['dashboard', 'operational-health'] },
   {
-    label: 'Stok',
-    screenId: 'stock-list',
-    screenIds: [
-      'stock-list', 'product-card', 'bulk-product-create', 'price-list', 'stock-movements', 'stock-valuation',
-      'stock-count', 'terminal-overview', 'import-foundation',
-    ],
+    "label": "Ana Sayfa",
+    "screenId": "dashboard",
+    "screenIds": [
+      "dashboard"
+    ]
   },
   {
-    label: 'Müşteriler',
-    screenId: 'customer-list',
-    screenIds: [
-      'customer-list', 'customer-card', 'customer-movements', 'vega-koli-movements', 'customer-statement',
-    ],
+    "label": "Stok",
+    "screenId": "stock-list",
+    "screenIds": [
+      "stock-list",
+      "product-card",
+      "bulk-product-create",
+      "price-list",
+      "stock-movements",
+      "stock-count"
+    ]
   },
   {
-    label: 'Tedarikçiler',
-    screenId: 'supplier-list',
-    screenIds: [
-      'supplier-list', 'supplier-card', 'supplier-movements', 'vega-supplier-movements', 'supplier-statement',
-    ],
+    "label": "Cariler",
+    "screenId": "customer-list",
+    "screenIds": [
+      "customer-list",
+      "customer-card",
+      "customer-movements",
+      "vega-koli-movements",
+      "customer-statement",
+      "supplier-list",
+      "supplier-card",
+      "supplier-movements",
+      "vega-supplier-movements",
+      "supplier-statement"
+    ]
   },
   {
-    label: 'Satış',
-    screenId: 'sales-invoice-list',
-    screenIds: [
-      'sales-invoice', 'sales-invoice-list', 'proforma-invoice', 'fedex-micro-export-demo', 'sales-offers', 'sales-offer',
-      'sales-orders', 'sales-order', 'catalog-list', 'whatsapp-planner', 'whatsapp-web-queue',
-    ],
+    "label": "Satış",
+    "screenId": "sales-invoice-list",
+    "screenIds": [
+      "sales-invoice",
+      "sales-invoice-list",
+      "proforma-invoice",
+      "sales-offers",
+      "sales-offer",
+      "sales-orders",
+      "sales-order",
+      "catalog-list",
+      "whatsapp-planner",
+      "whatsapp-web-queue"
+    ]
   },
-  { label: 'Alış', screenId: 'purchase-invoice-list', screenIds: ['bulk-purchase-entry', 'purchase-invoice', 'purchase-invoice-list'] },
   {
-    label: 'Finans',
-    screenId: 'finance-overview',
-    screenIds: [
-      'finance-overview', 'collections-overview', 'cash-customers', 'cash-register', 'cash-bank-ledger',
-      'accounting-journal', 'accounting-control',
-    ],
+    "label": "Alış",
+    "screenId": "purchase-invoice-list",
+    "screenIds": [
+      "bulk-purchase-entry",
+      "purchase-invoice",
+      "purchase-invoice-list"
+    ]
   },
-  { label: 'Raporlar', screenId: 'reports-overview', screenIds: ['reports-overview', 'vega-sales-comparison', 'vega-sales-performance', 'vega-product-profitability', 'export-center'] },
-  { label: 'WhatsApp CRM', screenId: 'whatsapp-crm-inbox', screenIds: ['whatsapp-crm-inbox'] },
-  { label: 'Tanımlar', screenId: 'definitions-overview', screenIds: ['definitions-overview', 'personnel-definitions'] },
-  { label: 'Ayarlar', screenId: 'settings-overview', screenIds: ['settings-overview', 'currency-rates', 'auth-overview', 'audit-log'] },
+  {
+    "label": "Kasa",
+    "screenId": "cash-register",
+    "screenIds": [
+      "finance-overview",
+      "collections-overview",
+      "cash-customers",
+      "cash-register",
+      "cash-bank-ledger",
+      "accounting-journal"
+    ]
+  },
+  {
+    "label": "Raporlar",
+    "screenId": "reports-overview",
+    "screenIds": [
+      "reports-overview",
+      "vega-sales-comparison",
+      "vega-sales-performance",
+      "vega-product-profitability",
+      "stock-valuation"
+    ]
+  },
+  {
+    "label": "WhatsApp CRM",
+    "screenId": "whatsapp-crm-inbox",
+    "screenIds": [
+      "whatsapp-crm-inbox"
+    ]
+  },
+  {
+    "label": "Yönetim",
+    "screenId": "settings-overview",
+    "screenIds": [
+      "settings-overview",
+      "currency-rates",
+      "auth-overview",
+      "audit-log",
+      "definitions-overview",
+      "personnel-definitions",
+      "operational-health",
+      "accounting-control",
+      "terminal-overview",
+      "import-foundation",
+      "export-center",
+      "fedex-micro-export-demo"
+    ]
+  }
 ];
 
 export function getNavigationSection(screenId) {
@@ -200,7 +288,7 @@ export const screenRegistry = {
   'operational-health': {
     id: 'operational-health',
     label: 'Operasyon Sağlığı',
-    module: 'Güvenlik',
+    module: 'Yönetim',
     type: 'izleme',
   },
   'stock-list': {
@@ -236,7 +324,7 @@ export const screenRegistry = {
   'stock-valuation': {
     id: 'stock-valuation',
     label: 'Stok Değerleme',
-    module: 'Stok',
+    module: 'Raporlar',
     type: 'rapor',
   },
   'stock-count': {
@@ -248,55 +336,55 @@ export const screenRegistry = {
   'customer-list': {
     id: 'customer-list',
     label: 'Müşteri Cari Listesi',
-    module: 'Müşteriler',
+    module: 'Cariler',
     type: 'liste',
   },
   'customer-card': {
     id: 'customer-card',
     label: 'Müşteri Cari Kartı',
-    module: 'Müşteriler',
+    module: 'Cariler',
     type: 'kart',
   },
   'customer-movements': {
     id: 'customer-movements',
     label: 'Müşteri Cari Hareketleri',
-    module: 'Müşteriler',
+    module: 'Cariler',
     type: 'hareket',
   },
   'customer-statement': {
     id: 'customer-statement',
     label: 'Müşteri Ekstre',
-    module: 'Müşteriler',
+    module: 'Cariler',
     type: 'ekstre',
   },
   'supplier-list': {
     id: 'supplier-list',
     label: 'Tedarikçi Cari Listesi',
-    module: 'Tedarikçiler',
+    module: 'Cariler',
     type: 'liste',
   },
   'supplier-card': {
     id: 'supplier-card',
     label: 'Tedarikçi Cari Kartı',
-    module: 'Tedarikçiler',
+    module: 'Cariler',
     type: 'kart',
   },
   'vega-koli-movements': {
     id: 'vega-koli-movements',
     label: 'Vega Cari Hareketleri',
-    module: 'Müşteriler',
+    module: 'Cariler',
     type: 'hareket',
   },
   'supplier-movements': {
     id: 'supplier-movements',
     label: 'Tedarikçi Cari Hareketleri',
-    module: 'Tedarikçiler',
+    module: 'Cariler',
     type: 'hareket',
   },
   'supplier-statement': {
     id: 'supplier-statement',
     label: 'Tedarikçi Ekstre',
-    module: 'Tedarikçiler',
+    module: 'Cariler',
     type: 'ekstre',
   },
   'sales-invoice': {
@@ -308,7 +396,7 @@ export const screenRegistry = {
   'vega-supplier-movements': {
     id: 'vega-supplier-movements',
     label: 'Vega Tedarikçi Hareketleri',
-    module: 'Tedarikçiler',
+    module: 'Cariler',
     type: 'hareket',
   },
   'sales-invoice-list': {
@@ -332,7 +420,7 @@ export const screenRegistry = {
   'fedex-micro-export-demo': {
     id: 'fedex-micro-export-demo',
     label: 'Mikro İhracat / FedEx Demo',
-    module: 'Satış',
+    module: 'Yönetim',
     type: 'operasyon',
   },
   'sales-orders': {
@@ -368,13 +456,13 @@ export const screenRegistry = {
   'finance-overview': {
     id: 'finance-overview',
     label: 'Finans Özeti',
-    module: 'Finans',
+    module: 'Kasa',
     type: 'ozet',
   },
   'collections-overview': {
     id: 'collections-overview',
-    label: 'Tahsilatlar',
-    module: 'Finans',
+    label: 'Tahsilat ve ödeme',
+    module: 'Kasa',
     type: 'liste',
   },
   'proforma-invoice': {
@@ -386,37 +474,37 @@ export const screenRegistry = {
   'cash-customers': {
     id: 'cash-customers',
     label: 'Peşin Cariler',
-    module: 'Finans',
+    module: 'Kasa',
     type: 'defter',
   },
   'cash-register': {
     id: 'cash-register',
     label: 'Günlük Kasa',
-    module: 'Finans',
+    module: 'Kasa',
     type: 'operasyon',
   },
   'cash-bank-ledger': {
     id: 'cash-bank-ledger',
     label: 'Kasa/Banka Defteri',
-    module: 'Finans',
+    module: 'Kasa',
     type: 'defter',
   },
   'accounting-journal': {
     id: 'accounting-journal',
     label: 'Muhasebe Defteri',
-    module: 'Finans',
+    module: 'Kasa',
     type: 'defter',
   },
   'accounting-control': {
     id: 'accounting-control',
     label: 'Muhasebe Kontrol',
-    module: 'Finans',
+    module: 'Yönetim',
     type: 'kontrol',
   },
   'catalog-list': {
     id: 'catalog-list',
     label: 'Katalog Listesi',
-    module: 'Katalog',
+    module: 'Satış',
     type: 'liste',
   },
   'whatsapp-planner': {
@@ -440,13 +528,13 @@ export const screenRegistry = {
   'terminal-overview': {
     id: 'terminal-overview',
     label: 'Terminal Ekranları',
-    module: 'Terminal',
+    module: 'Yönetim',
     type: 'ozet',
   },
   'import-foundation': {
     id: 'import-foundation',
     label: 'Excel / CSV Aktarım',
-    module: 'Terminal',
+    module: 'Yönetim',
     type: 'import',
   },
   'reports-overview': {
@@ -476,45 +564,65 @@ export const screenRegistry = {
   'export-center': {
     id: 'export-center',
     label: 'Çıktı Merkezi',
-    module: 'Raporlar',
+    module: 'Yönetim',
     type: 'rapor',
   },
   'definitions-overview': {
     id: 'definitions-overview',
     label: 'Tanım Listeleri',
-    module: 'Tanımlar',
+    module: 'Yönetim',
     type: 'liste',
   },
   'personnel-definitions': {
     id: 'personnel-definitions',
     label: 'Personel Tanımları',
-    module: 'Tanımlar',
+    module: 'Yönetim',
     type: 'liste',
   },
   'settings-overview': {
     id: 'settings-overview',
     label: 'Sistem Ayarları',
-    module: 'Ayarlar',
+    module: 'Yönetim',
     type: 'ayar',
   },
   'currency-rates': {
     id: 'currency-rates',
     label: 'Döviz Kurları',
-    module: 'Ayarlar',
+    module: 'Yönetim',
     type: 'ayar',
   },
   'auth-overview': {
     id: 'auth-overview',
     label: 'Yetki ve Denetim',
-    module: 'Güvenlik',
+    module: 'Yönetim',
     type: 'ayar',
   },
   'audit-log': {
     id: 'audit-log',
     label: 'Denetim Günlüğü',
-    module: 'Güvenlik',
+    module: 'Yönetim',
     type: 'rapor',
   },
 };
 
 export const initialTabs = [screenRegistry.dashboard];
+
+// Everyday entry points; all other commerce screens remain searchable.
+export const dailyScreenIds = new Set([
+  'dashboard', 'stock-list', 'customer-list', 'supplier-list',
+  'sales-invoice', 'sales-invoice-list', 'purchase-invoice', 'purchase-invoice-list',
+  'collections-overview', 'cash-register', 'cash-bank-ledger',
+]);
+
+export function isDailyNavigation(screenId) {
+  return dailyScreenIds.has(screenId) || screenId.startsWith('whatsapp-');
+}
+
+export function getVisibleModules(roleScreenIds) {
+  return modules.flatMap((module) => {
+    const section = navigationSections.find((entry) => entry.label === module.label);
+    const allowed = section.screenIds.filter((id) => !roleScreenIds || roleScreenIds.has(id));
+    if (!allowed.length) return [];
+    return [{ ...module, screenId: allowed.includes(module.screenId) ? module.screenId : allowed[0] }];
+  });
+}

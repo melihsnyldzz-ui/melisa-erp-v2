@@ -329,7 +329,7 @@ export function buildProductProfitability({
   dateFrom,
   dateTo,
   limit = 500,
-  purchaseAudit = {},
+  purchaseAudit = /** @type {Partial<Record<'lineCount' | 'eligibleLineCount' | 'matchedLineCount' | 'reviewLineCount' | 'unmatchedLineCount', number>>} */ ({}),
 }) {
   const normalizedProducts = products.map(normalizeProduct);
   const productMap = new Map(normalizedProducts.map((product) => [product.sourceId, product]));

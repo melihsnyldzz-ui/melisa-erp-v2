@@ -33,6 +33,7 @@ const CLEANUP_GROUPS = [
   ['suppliers', 'Tedarikçi Carileri'],
 ];
 
+/** @param {Array<{group: string, key: string, value: string | number | number[] | boolean}>} settings @param {string} group @param {string} key @param {string | number | number[] | boolean} fallback */
 function getValue(settings, group, key, fallback = '') {
   return settings.find((item) => item.group === group && item.key === key)?.value ?? fallback;
 }
@@ -605,7 +606,7 @@ export function SystemSettingsScreen() {
                     </tr>
                   ))}
                   {cleanupCandidates.length === 0 && (
-                    <tr><td colSpan="6">Demo/test adayı bulunamadı.</td></tr>
+                    <tr><td colSpan={6}>Demo/test adayı bulunamadı.</td></tr>
                   )}
                 </tbody>
               </table>

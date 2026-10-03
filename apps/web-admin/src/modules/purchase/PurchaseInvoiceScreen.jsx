@@ -19,7 +19,7 @@ import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.
 
 const emptyPurchaseInvoice = {
   date: todayIsoDate(),
-  invoiceNo: 'Alış Taslağı',
+  invoiceNo: '',
   supplierId: '',
   supplier: '',
   supplierCurrency: '-',
@@ -27,7 +27,7 @@ const emptyPurchaseInvoice = {
   supplierDiscountRate: 0,
   invoiceCurrency: 'TRY',
   exchangeRate: 'TRY 1.0000',
-  exchangeRateValue: 1,
+  exchangeRateValue: /** @type {number | string} */ (1),
   description: '',
   status: 'DRAFT',
 };
@@ -50,7 +50,7 @@ function roundCurrency(value) {
   return Math.round(Number(value || 0) * 10000) / 10000;
 }
 
-function calculateTotals(items, invoiceRate, supplierRate, exchangeRate = 1, currency = 'TRY') {
+function calculateTotals(items, invoiceRate, supplierRate, exchangeRate = /** @type {number | string} */ (1), currency = 'TRY') {
   const subtotal = items.reduce((total, item) => total + item.quantity * item.purchasePrice, 0);
   const lineDiscountTotal = items.reduce((total, item) => {
     const gross = item.quantity * item.purchasePrice;
@@ -257,7 +257,6 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
               page: 1,
               limit: 100,
               search: productQuery,
-              barcode: productQuery,
               supplierId: invoice.supplierId,
               activeOnly: true,
             })
@@ -340,7 +339,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           setIsCorrectionMode(false);
           setSelectedItemId(nextItems[0]?.id ?? null);
           setIsDirty(false);
-          setStatusMessage(`Alış taslağı veritabanından alındı (#${response.data.id}); henüz ticari etki yok.`);
+          setStatusMessage(`Alış fişi veritabanından açıldı (#${response.data.id}).`);
         }
       } catch (error) {
         if (isMounted) {
@@ -996,6 +995,7 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
           <div className="list-state purchase-empty-state">Alış taslak satırı yok. Üstten tedarikçi ve ürün seçip Satır Ekle ile başlayın.</div>
         )}
         <PurchaseInvoiceItemsTable
+          status={status}
           exchangeRate={invoice.exchangeRateValue}
           invoiceCurrency={invoice.invoiceCurrency}
           invoiceRate={invoiceRate}
@@ -1012,13 +1012,13 @@ export function PurchaseInvoiceScreen({ purchaseDraftId, permissions = [], onDir
       </section>
       <section className="screen-summary purchase-invoice-summary">
         <span>Fiş: {invoice.invoiceNo}</span>
-        <span>Draft ID: {draftId || 'yok'}</span>
-        <span>{draftId ? 'Kaydedilmiş taslak' : 'Kaydedilmemiş taslak'}</span>
+        <span>Fiş ID: {draftId || 'yok'}</span>
+        <span>{isCancelled ? 'İptal edilmiş fiş' : isFinalized ? 'Kesinleşmiş fiş' : draftId ? 'Kaydedilmiş taslak' : 'Kaydedilmemiş taslak'}</span>
         <span>{isDirty ? 'Değişti' : 'Temiz'}</span>
         <span>Durum: {status}</span>
         <span>Satır: {items.length}</span>
         <span>Adet: {totals.totalQuantity}</span>
-        <span>Kaynak: API draft</span>
+        <span>Kaynak: Melisa ERP</span>
       </section>
     </main>
   );

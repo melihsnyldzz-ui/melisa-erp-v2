@@ -1,11 +1,30 @@
+import {
+  acquireTerminalSaleIdempotencyLock,
+  assertNoLegacyTerminalSale,
+  assertTerminalSaleIdempotencySchema,
+  assertTerminalSaleLedgerReplay,
+  assertTerminalSaleReplayInvoice,
+  buildTerminalSaleDescription,
+  createTerminalSaleRequestFingerprint,
+  findLegacyTerminalSale,
+  insertTerminalSaleLedger,
+  markTerminalSaleLedgerSynced,
+  normalizeTerminalClientEventId,
+  normalizeTerminalSaleResultSnapshot,
+  readTerminalSaleLedger,
+} from './terminalSaleIdempotency.js';
+import { runTerminalSaleSubmissionTransaction } from './terminalSaleSubmissionTransaction.js';
 import sql from 'mssql';
-import { getSqlPool } from '../config/database.js';
+import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
-import { createSalesDraft, finalizeSalesInvoice, getSalesDraft } from './invoiceDraftService.js';
+import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { createSalesDraft, finalizeSalesInvoice, getSalesDraft, prepareSalesInvoiceFinalization } from './invoiceDraftService.js';
 import { getCustomersList } from './customerService.js';
-import { getProductsList } from './productService.js';
+import { getVegaProductsListFromWorker } from './vegaProductClientService.js';
+import { getVegaProductImageMap } from './vegaProductImageService.js';
+import { getPresentableProductImages } from './productImageIdentity.mjs';
 
-const IDEMPOTENCY_PREFIX = 'terminalClientEventId:';
+
 
 function serviceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -28,20 +47,12 @@ function numberValue(value, fieldName, { min = 0, allowZero = true } = {}) {
   return parsed;
 }
 
-function idempotencyMarker(clientEventId) {
-  return `${IDEMPOTENCY_PREFIX}${clientEventId}`;
-}
 
-function buildDescription({ note, terminalCode, clientEventId }) {
-  return [
-    trimText(note),
-    `terminalCode:${terminalCode}`,
-    idempotencyMarker(clientEventId),
-  ].filter(Boolean).join(' | ').slice(0, 500);
-}
+
+
 
 function normalizeSubmitPayload(payload = {}) {
-  const clientEventId = trimText(payload.clientEventId);
+  const clientEventId = normalizeTerminalClientEventId(payload.clientEventId);
   const terminalCode = trimText(payload.terminalCode);
   const items = Array.isArray(payload.items) ? payload.items : [];
 
@@ -59,6 +70,18 @@ function normalizeSubmitPayload(payload = {}) {
 
   if (items.length < 1) {
     throw serviceError('TERMINAL_ITEMS_REQUIRED', 'items cannot be empty');
+  }
+
+  const vegaItem = items.find((item) => (
+    trimText(item.productSource).toLowerCase() === 'vega'
+    || trimText(item.productId).toLowerCase().startsWith('vega-')
+  ));
+  if (vegaItem) {
+    throw serviceError(
+      'TERMINAL_VEGA_SALE_WRITE_DISABLED',
+      'Vega paralel kullanimdayken yeni terminalden satis kaydi kapali. Satisi mevcut Vega terminalinden tamamlayin.',
+      409,
+    );
   }
 
   return {
@@ -79,30 +102,11 @@ function normalizeSubmitPayload(payload = {}) {
   };
 }
 
-async function findExistingTerminalSale(clientEventId) {
-  const pool = await getSqlPool();
-  const marker = idempotencyMarker(clientEventId);
-  const result = await pool.request()
-    .input('marker', sql.NVarChar(160), `%${marker}%`)
-    .query(`
-      SELECT TOP (1)
-        si.id,
-        si.document_no AS documentNumber,
-        si.status,
-        si.grand_total AS grandTotal,
-        si.amount_try AS amountTry,
-        si.updated_at AS updatedAt
-      FROM dbo.sales_invoices si
-      WHERE si.description LIKE @marker
-      ORDER BY si.id DESC;
-    `);
 
-  return result.recordset?.[0] || null;
-}
 
-async function getActiveCustomer(customerId) {
-  const pool = await getSqlPool();
-  const result = await pool.request()
+async function getActiveCustomer(customerId, transactionContext = null) {
+  const request = await createDatabaseRequest(transactionContext);
+  const result = await request
     .input('customerId', sql.BigInt, customerId)
     .query(`
       SELECT TOP (1)
@@ -111,7 +115,7 @@ async function getActiveCustomer(customerId) {
         currency_code AS currency,
         is_active AS isActive,
         is_deleted AS isDeleted
-      FROM dbo.customers
+      FROM dbo.customers WITH (UPDLOCK, HOLDLOCK)
       WHERE id = @customerId;
     `);
 
@@ -127,13 +131,13 @@ async function getActiveCustomer(customerId) {
   return customer;
 }
 
-async function getTerminalOperatorContext(terminalCode, actorUserId) {
+async function getTerminalOperatorContext(terminalCode, actorUserId, transactionContext = null) {
   const userId = Number(actorUserId);
   if (!Number.isInteger(userId) || userId < 1) {
     throw serviceError('TERMINAL_OPERATOR_REQUIRED', 'Authenticated terminal personnel is required', 401);
   }
-  const pool = await getSqlPool();
-  const schemaResult = await pool.request().query(`
+  const schemaRequest = await createDatabaseRequest(transactionContext);
+  const schemaResult = await schemaRequest.query(`
     SELECT
       CASE
       WHEN OBJECT_ID(N'dbo.employees', N'U') IS NOT NULL
@@ -164,7 +168,8 @@ async function getTerminalOperatorContext(terminalCode, actorUserId) {
        CAST(0 AS BIT) AS can_change_sale_price,
        CAST(0 AS DECIMAL(5,2)) AS max_sale_discount_percent`;
 
-  const result = await pool.request()
+  const terminalRequest = await createDatabaseRequest(transactionContext);
+  const result = await terminalRequest
     .input('terminalCode', sql.NVarChar(80), terminalCode)
     .input('operatorUserId', sql.BigInt, userId)
     .query(`
@@ -178,8 +183,8 @@ async function getTerminalOperatorContext(terminalCode, actorUserId) {
         e.full_name AS employee_name,
         e.is_active AS employee_is_active,
         ${restrictionColumns}
-      FROM dbo.terminal_devices d
-      LEFT JOIN dbo.employees e ON e.user_id = @operatorUserId
+      FROM dbo.terminal_devices d WITH (UPDLOCK, HOLDLOCK)
+      LEFT JOIN dbo.employees e WITH (UPDLOCK, HOLDLOCK) ON e.user_id = @operatorUserId
       WHERE d.device_code = @terminalCode;
     `);
 
@@ -214,43 +219,39 @@ async function getTerminalOperatorContext(terminalCode, actorUserId) {
   };
 }
 
-async function getActiveProducts(items) {
-  const ids = [...new Set(items.map((item) => item.productId))];
-  if (ids.some((id) => !Number.isInteger(id) || id < 1)) {
-    throw serviceError('TERMINAL_PRODUCT_REQUIRED', 'productId is required');
+async function getActiveProducts(items, transactionContext = null) {
+  const ids = terminalProductLockIds(items);
+
+  const productsById = new Map();
+  for (const id of ids) {
+    const request = await createDatabaseRequest(transactionContext);
+    const result = await request
+      .input('lockedProductId', sql.BigInt, id)
+      .query(`
+        SELECT TOP (1)
+          p.id,
+          p.stock_code AS stockCode,
+          p.name AS productName,
+          p.currency_code AS currency,
+          p.sales_price AS salePrice,
+          p.average_cost_try AS averageCostTry,
+          p.current_stock_qty AS stockQuantity,
+          p.is_active AS isActive,
+          p.is_deleted AS isDeleted,
+          pb.barcode
+        FROM dbo.products p WITH (UPDLOCK, HOLDLOCK)
+        OUTER APPLY (
+          SELECT TOP (1) b.barcode
+          FROM dbo.product_barcodes b
+          WHERE b.product_id = p.id
+            AND b.is_active = 1
+          ORDER BY b.is_primary DESC, b.id ASC
+        ) pb
+        WHERE p.id = @lockedProductId;
+      `);
+    const product = result.recordset?.[0];
+    if (product) productsById.set(Number(product.id), product);
   }
-
-  const pool = await getSqlPool();
-  const request = pool.request();
-  const placeholders = ids.map((id, index) => {
-    request.input(`productId${index}`, sql.BigInt, id);
-    return `@productId${index}`;
-  });
-
-  const result = await request.query(`
-    SELECT
-      p.id,
-      p.stock_code AS stockCode,
-      p.name AS productName,
-      p.currency_code AS currency,
-      p.sales_price AS salePrice,
-      p.average_cost_try AS averageCostTry,
-      p.current_stock_qty AS stockQuantity,
-      p.is_active AS isActive,
-      p.is_deleted AS isDeleted,
-      pb.barcode
-    FROM dbo.products p
-    OUTER APPLY (
-      SELECT TOP (1) b.barcode
-      FROM dbo.product_barcodes b
-      WHERE b.product_id = p.id
-        AND b.is_active = 1
-      ORDER BY b.is_primary DESC, b.id ASC
-    ) pb
-    WHERE p.id IN (${placeholders.join(', ')});
-  `);
-
-  const productsById = new Map((result.recordset || []).map((product) => [Number(product.id), product]));
 
   for (const id of ids) {
     const product = productsById.get(id);
@@ -267,15 +268,15 @@ async function getActiveProducts(items) {
   return productsById;
 }
 
-async function getTerminalCurrencyRateMap() {
-  const pool = await getSqlPool();
-  const result = await pool.request().query(`
+async function getTerminalCurrencyRateMap(transactionContext = null) {
+  const request = await createDatabaseRequest(transactionContext);
+  const result = await request.query(`
     WITH latest_rates AS (
       SELECT
         currency_code,
         rate_to_try,
         ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS row_number
-      FROM dbo.currency_rates
+      FROM dbo.currency_rates WITH (UPDLOCK, HOLDLOCK)
       WHERE currency_code IN (N'USD', N'EUR')
     )
     SELECT currency_code, rate_to_try
@@ -354,15 +355,22 @@ function assertTerminalSalePricing(items, productsById, terminal, pricingContext
   }
 }
 
-async function writeTerminalSubmitAudit(invoice, payload, actor) {
-  const pool = await getSqlPool();
-  await writeAuditLog(pool.request(), {
+async function writeTerminalSubmitAudit(
+  invoice,
+  payload,
+  actor,
+  { transactionContext = null, requestFingerprint = '', ledgerId = null } = {},
+) {
+  const request = await createDatabaseRequest(transactionContext);
+  await writeAuditLog(request, {
     action: 'terminal_sales_submitted',
     entityType: 'sales_invoice',
     entityId: invoice.id,
     actor,
     afterSnapshot: {
       clientEventId: payload.clientEventId,
+      requestFingerprint,
+      terminalSyncLedgerId: ledgerId,
       terminalCode: payload.terminalCode,
       terminalDeviceId: invoice.terminalDeviceId,
       employeeId: invoice.employeeId,
@@ -377,7 +385,7 @@ async function writeTerminalSubmitAudit(invoice, payload, actor) {
 }
 
 function toSubmitResponse(invoice, { duplicate = false } = {}) {
-  return {
+  const result = normalizeTerminalSaleResultSnapshot({
     ok: true,
     duplicate,
     invoiceId: invoice.id,
@@ -403,85 +411,160 @@ function toSubmitResponse(invoice, { duplicate = false } = {}) {
       code: invoice.employeeCode || '',
       name: invoice.employeeName || '',
     } : null,
-  };
+  });
+  return { ...result, duplicate };
 }
 
 export async function submitTerminalSale(payload = {}, actor = null) {
   const normalized = normalizeSubmitPayload(payload);
-  const existing = await findExistingTerminalSale(normalized.clientEventId);
-
-  if (existing) {
-    if (String(existing.status).toLowerCase() === 'finalized') {
-      const invoice = await getSalesDraft(existing.id);
-      return toSubmitResponse(invoice, { duplicate: true });
-    }
-
-    throw serviceError(
-      'TERMINAL_SALE_DUPLICATE_INCOMPLETE',
-      'A terminal sale with this clientEventId already exists but is not finalized',
-      409,
-    );
-  }
-
-  const customer = await getActiveCustomer(normalized.customerId);
-  const terminal = await getTerminalOperatorContext(normalized.terminalCode, actor?.id);
-  const productsById = await getActiveProducts(normalized.items);
-  const documentCurrency = normalized.documentCurrency || customer.currency || 'TRY';
-  const currencyRateMap = await getTerminalCurrencyRateMap();
-  assertTerminalSalePricing(normalized.items, productsById, terminal, {
-    documentCurrency,
-    documentExchangeRate: normalized.exchangeRate,
-    currencyRateMap,
-  });
-  const description = buildDescription(normalized);
-
-  const draftPayload = {
-    documentNo: normalized.documentNumber,
-    documentDate: new Date().toISOString().slice(0, 10),
-    customerId: normalized.customerId,
-    terminalDeviceId: terminal.terminalDeviceId,
-    employeeId: terminal.employeeId,
-    customerCurrency: customer.currency || documentCurrency,
-    documentCurrency,
-    exchangeRate: normalized.exchangeRate,
-    description,
-    discountRate: 0,
-    items: normalized.items.map((item) => {
-      const product = productsById.get(item.productId);
+  assertMelisaWriteEnabled();
+  const actorUserId = Number(actor?.id);
+  const requestFingerprint = createTerminalSaleRequestFingerprint(normalized, actorUserId);
+  const pool = await getSqlPool();
+  const sqlDriver = getSqlDriver();
+  const transaction = new sqlDriver.Transaction(pool);
+  const transactionContext = { pool, sqlDriver, transaction };
+  const operations = {
+    assertSchema: () => assertTerminalSaleIdempotencySchema(new sqlDriver.Request(transaction)),
+    acquireLock: () => acquireTerminalSaleIdempotencyLock(
+      new sqlDriver.Request(transaction),
+      normalized.clientEventId,
+    ),
+    readLedger: () => readTerminalSaleLedger(
+      new sqlDriver.Request(transaction),
+      normalized.clientEventId,
+    ),
+    replay: async (ledger) => {
+      const replay = assertTerminalSaleLedgerReplay(ledger, {
+        requestFingerprint,
+        actorUserId,
+      });
+      const existingInvoice = await getSalesDraft(replay.invoiceId, transactionContext);
+      assertTerminalSaleReplayInvoice(existingInvoice, { ledger, requestFingerprint });
+      return { ...replay.resultSnapshot, duplicate: true };
+    },
+    assertNoLegacySale: async () => {
+      const legacySale = await findLegacyTerminalSale(
+        new sqlDriver.Request(transaction),
+        normalized.clientEventId,
+      );
+      assertNoLegacyTerminalSale(legacySale);
+    },
+    prepareNewSale: async () => {
+      await prepareSalesInvoiceFinalization(transactionContext);
+      const customer = await getActiveCustomer(normalized.customerId, transactionContext);
+      const terminal = await getTerminalOperatorContext(
+        normalized.terminalCode,
+        actorUserId,
+        transactionContext,
+      );
+      const productsById = await getActiveProducts(normalized.items, transactionContext);
+      const documentCurrency = normalized.documentCurrency || customer.currency || 'TRY';
+      const currencyRateMap = await getTerminalCurrencyRateMap(transactionContext);
+      assertTerminalSalePricing(normalized.items, productsById, terminal, {
+        documentCurrency,
+        documentExchangeRate: normalized.exchangeRate,
+        currencyRateMap,
+      });
+      const description = buildTerminalSaleDescription({
+        ...normalized,
+        requestFingerprint,
+      });
       return {
-        productId: item.productId,
-        stockCode: product.stockCode,
-        barcode: item.barcode || product.barcode || '',
-        productName: product.productName,
-        quantity: item.quantity,
-        currency: item.currency || documentCurrency,
-        unitPrice: item.unitPrice,
-        averageCostTry: Number(product.averageCostTry || 0),
-        stockStatus: `Terminal ${normalized.terminalCode}`,
-        note: `terminal barcode:${item.barcode || product.barcode || '-'}`,
+        terminal,
+        draftPayload: {
+          documentNo: normalized.documentNumber,
+          documentDate: new Date().toISOString().slice(0, 10),
+          customerId: normalized.customerId,
+          terminalDeviceId: terminal.terminalDeviceId,
+          employeeId: terminal.employeeId,
+          customerCurrency: customer.currency || documentCurrency,
+          documentCurrency,
+          exchangeRate: normalized.exchangeRate,
+          description,
+          discountRate: 0,
+          items: normalized.items.map((item) => {
+            const product = productsById.get(item.productId);
+            return {
+              productId: item.productId,
+              stockCode: product.stockCode,
+              barcode: item.barcode || product.barcode || '',
+              productName: product.productName,
+              quantity: item.quantity,
+              currency: item.currency || documentCurrency,
+              unitPrice: item.unitPrice,
+              averageCostTry: Number(product.averageCostTry || 0),
+              stockStatus: `Terminal ${normalized.terminalCode}`,
+              note: `terminal barcode:${item.barcode || product.barcode || '-'}`,
+            };
+          }),
+        },
       };
+    },
+    reserveLedger: (prepared) => insertTerminalSaleLedger(new sqlDriver.Request(transaction), {
+      clientEventId: normalized.clientEventId,
+      terminalDeviceId: prepared.terminal.terminalDeviceId,
+      actorUserId,
+      requestFingerprint,
     }),
+    createDraft: (prepared) => createSalesDraft(prepared.draftPayload, actor, transactionContext),
+    finalizeDraft: (draft) => finalizeSalesInvoice(draft.id, actor, transactionContext),
+    writeSubmitAudit: (finalized, _prepared, ledgerId) => writeTerminalSubmitAudit(
+      finalized,
+      normalized,
+      actor,
+      { transactionContext, requestFingerprint, ledgerId },
+    ),
+    completeLedger: (finalized, _prepared, ledgerId) => markTerminalSaleLedgerSynced(
+      new sqlDriver.Request(transaction),
+      {
+        ledgerId,
+        invoiceId: finalized.id,
+        requestFingerprint,
+        resultSnapshot: toSubmitResponse(finalized),
+      },
+    ),
+    toCreatedResult: (finalized) => toSubmitResponse(finalized),
   };
 
-  const draft = await createSalesDraft(draftPayload, actor);
-
   try {
-    const finalized = await finalizeSalesInvoice(draft.id, actor);
-    await writeTerminalSubmitAudit(finalized, normalized, actor);
-    return toSubmitResponse(finalized);
+    return await runTerminalSaleSubmissionTransaction({ transaction, operations });
   } catch (error) {
-    error.code = error.code || 'TERMINAL_SALE_FINALIZE_FAILED';
+    if (error.transactionOutcome === 'unverified') {
+      error.originalCode = error.code || 'TERMINAL_SALE_SUBMIT_FAILED';
+      error.code = 'TERMINAL_SALE_OUTCOME_UNVERIFIED';
+      error.statusCode = 503;
+      error.message = 'Terminal sale outcome could not be verified; check ERP sales and audit records before retrying the same event';
+    }
+    error.code = error.code || 'TERMINAL_SALE_SUBMIT_FAILED';
     throw error;
   }
 }
 
 export async function searchTerminalProducts(query = {}) {
-  return getProductsList({
+  const result = await getVegaProductsListFromWorker({
+    ...query,
     page: query.page || 1,
     limit: query.limit || 30,
     search: query.q || query.search || '',
-    activeOnly: 'true',
+    activeOnly: true,
   });
+  const sourceIds = result.data.map((product) => Number(product.sourceId));
+  const imageMap = await getVegaProductImageMap(sourceIds);
+  const presentable = await getPresentableProductImages(result.data, imageMap);
+
+  return {
+    data: result.data.map((product) => ({
+      ...product,
+      ...presentable.get(Number(product.sourceId)),
+      saleWritable: false,
+    })),
+    meta: {
+      ...result.meta,
+      source: 'terminal-vega-live-read-only',
+      saleWriteEnabled: false,
+    },
+  };
 }
 
 export async function searchTerminalCustomers(query = {}) {
@@ -500,57 +583,39 @@ export async function getTerminalProductByBarcode(barcode) {
     throw serviceError('TERMINAL_BARCODE_REQUIRED', 'Barcode is required');
   }
 
-  const pool = await getSqlPool();
-  const result = await pool.request()
-    .input('barcode', sql.NVarChar(120), normalizedBarcode)
-    .query(`
-      SELECT TOP (1)
-        p.id,
-        p.stock_code AS stockCode,
-        pb.barcode AS barcode,
-        p.name AS productName,
-        p.brand,
-        p.category,
-        p.currency_code AS currency,
-        p.sales_price AS salePrice,
-        p.current_stock_qty AS stockQuantity,
-        pi.file_path AS imageUrl,
-        p.is_active AS isActive
-      FROM dbo.product_barcodes pb
-      INNER JOIN dbo.products p ON p.id = pb.product_id
-      OUTER APPLY (
-        SELECT TOP (1) image.file_path
-        FROM dbo.product_images image
-        WHERE image.product_id = p.id
-          AND image.is_active = 1
-        ORDER BY image.is_primary DESC, image.sort_order ASC, image.id ASC
-      ) pi
-      WHERE pb.barcode = @barcode
-        AND pb.is_active = 1
-        AND p.is_deleted = 0
-      ORDER BY pb.is_primary DESC, pb.id ASC;
-    `);
-
-  const product = result.recordset?.[0];
+  const result = await getVegaProductsListFromWorker({
+    barcode: normalizedBarcode,
+    page: 1,
+    limit: 20,
+    activeOnly: true,
+  });
+  const product = result.data.find((item) => (
+    trimText(item.matchedBarcode || item.barcodeMasked).toLowerCase() === normalizedBarcode.toLowerCase()
+  ));
   if (!product) {
     throw serviceError('TERMINAL_PRODUCT_NOT_FOUND', 'Product barcode not found', 404);
   }
 
-  if (!product.isActive) {
-    throw serviceError('TERMINAL_PRODUCT_PASSIVE', 'Passive product cannot be sold', 409);
-  }
-
+  const imageMap = await getVegaProductImageMap([Number(product.sourceId)]);
+  const presentable = await getPresentableProductImages([product], imageMap);
   return {
-    id: product.id,
-    stockCode: product.stockCode,
-    barcode: product.barcode,
-    productName: product.productName,
-    brand: product.brand,
-    category: product.category,
-    currency: product.currency,
-    salePrice: Number(product.salePrice || 0),
-    stockQuantity: Number(product.stockQuantity || 0),
-    imageUrl: product.imageUrl || null,
-    isPassive: false,
+    ...product,
+    ...presentable.get(Number(product.sourceId)),
+    saleWritable: false,
   };
+}
+
+async function createDatabaseRequest(transactionContext = null) {
+  if (transactionContext?.transaction) {
+    return new transactionContext.sqlDriver.Request(transactionContext.transaction);
+  }
+  const pool = await getSqlPool();
+  return pool.request();
+}
+export function terminalProductLockIds(items) {
+  const ids = [...new Set(items.map((item) => item.productId))].sort((left, right) => left - right);
+  if (ids.some((id) => !Number.isInteger(id) || id < 1)) {
+    throw serviceError('TERMINAL_PRODUCT_REQUIRED', 'productId is required');
+  }
+  return ids;
 }

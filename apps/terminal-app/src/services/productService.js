@@ -13,6 +13,9 @@ function normalizeProduct(row) {
 
   return {
     id: row.id,
+    source: row.source || '',
+    sourceId: row.sourceId || null,
+    saleWritable: row.saleWritable !== false,
     stockCode: row.stockCode,
     barcodeMasked: row.barcodeMasked || row.barcode || row.matchedBarcode,
     matchedBarcode: row.matchedBarcode || row.barcode || row.barcodeMasked,
@@ -111,7 +114,7 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
   try {
     const response = await apiRequest(`/terminal/products/barcode/${encodeURIComponent(trimmedBarcode)}`, {
       token,
-      timeoutMs: 1000,
+      timeoutMs: 5000,
     });
 
     const products = [normalizeProduct(response.data)];
@@ -150,6 +153,7 @@ export async function lookupProductByBarcode({ barcode, token, preferCache = fal
   }
 }
 
+/** @param {import('./terminalContracts').SearchOptions & {preferCache?: boolean, stockCodeOnly?: boolean}} options */
 export async function searchProductsOfflineFirst({ q, token, limit = 10, preferCache = true, stockCodeOnly = false } = {}) {
   const query = String(q || '').trim();
   if (!query) {
@@ -192,6 +196,7 @@ export async function searchProductsOfflineFirst({ q, token, limit = 10, preferC
   }
 }
 
+/** @param {import('./terminalContracts').SessionOptions & {productId?: number | string}} options */
 export async function getProductDetail({ productId, token } = {}) {
   const id = Number(productId || 0);
   if (!Number.isInteger(id) || id < 1) {

@@ -32,8 +32,8 @@ export function DashboardToolbar({
         </button>
         <select value={period} onChange={(event) => onPeriodChange(event.target.value)}>
           <option value="today">Bugün</option>
-          <option value="week">Bu hafta</option>
-          <option value="month">Bu ay</option>
+          <option value="week" disabled>Bu hafta — Rapor Merkezi</option>
+          <option value="month" disabled>Bu ay — Rapor Merkezi</option>
         </select>
         <button
           type="button"

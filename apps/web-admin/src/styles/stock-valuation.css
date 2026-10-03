@@ -1,0 +1,31 @@
+.stock-valuation-screen .stock-valuation-conversion .list-state {
+  min-height: 0;
+  padding: 10px 14px;
+  text-align: left;
+  justify-content: flex-start;
+}
+.stock-valuation-screen .dashboard-toolbar-title span,
+.stock-valuation-screen .panel-title > span {
+  display: block;
+  white-space: normal;
+}
+.stock-valuation-screen .panel-title {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stock-valuation-screen .dashboard-kpi small {
+  white-space: normal;
+  overflow: visible;
+}
+.stock-valuation-screen .filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+}
+.stock-valuation-screen .filter-grid label { display: flex; gap: 8px; align-items: center; }
+.stock-valuation-screen .filter-grid input:not([type=checkbox]) { padding: 8px; max-width: 100%; }
+.stock-valuation-screen .erp-table { min-width: 1350px; }
+.stock-valuation-screen .erp-table th,
+.stock-valuation-screen .erp-table td { white-space: normal; overflow-wrap: anywhere; }

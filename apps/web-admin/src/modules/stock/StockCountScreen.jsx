@@ -122,6 +122,9 @@ export function StockCountScreen({ onDirtyChange, onOpenScreen }) {
       setLastResult(result);
       setMessage(result.message || 'Stok sayımı uygulandı.');
       setSelectedProduct((current) => current ? { ...current, stockQuantity: result.countedQuantity } : current);
+      setProducts((current) => current.map((product) => (
+        String(product.id) === String(result.productId) ? { ...product, stockQuantity: result.countedQuantity } : product
+      )));
       setCountedQuantity(String(Number(result.countedQuantity || 0)));
       setNote('');
       setIsCountConfirmed(false);

@@ -3,7 +3,7 @@ import { CustomerListFilters } from './CustomerListFilters.jsx';
 import { CustomerListTable } from './CustomerListTable.jsx';
 import { CustomerListToolbar } from './CustomerListToolbar.jsx';
 import { customerFilterDefaults } from './customerMockData.js';
-import { fetchVegaCustomers } from '../../services/customerApi.js';
+import { fetchCustomers, fetchVegaCustomers } from '../../services/customerApi.js';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { searchTextIncludes } from '../../utils/searchText.js';
@@ -115,7 +115,7 @@ function readVisibleCustomerColumns() {
   }
 }
 
-export function CustomerListScreen({ onOpenScreen }) {
+export function CustomerListScreen({ onOpenScreen, dataSource = 'vega' }) {
   const [filters, setFilters] = useState(customerFilterDefaults);
   const [pageLimit, setPageLimit] = useState(defaultCustomerListPageLimit);
   const [rows, setRows] = useState([]);
@@ -128,7 +128,7 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleCustomerColumns);
-  const isLiveVega = true;
+  const isLiveVega = dataSource === 'vega';
 
   const serverSearch = useMemo(() => buildServerSearch(filters), [filters]);
   const debouncedServerSearch = useDebouncedValue(serverSearch);
@@ -158,11 +158,13 @@ export function CustomerListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchVegaCustomers({
+        const params = {
           page: 1,
           limit: pageLimit,
           search: debouncedServerSearch,
-        });
+          activeOnly,
+        };
+        const response = await (isLiveVega ? fetchVegaCustomers : fetchCustomers)(params);
         const nextRows = response.data.map(toCustomerRow);
 
         if (isMounted) {
@@ -191,7 +193,7 @@ export function CustomerListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, debouncedServerSearch, pageLimit, refreshKey]);
+  }, [activeOnly, debouncedServerSearch, pageLimit, refreshKey, isLiveVega]);
 
   const filteredRows = useMemo(() => {
     const nextRows = rows.filter((row) => applyCustomerFilters(row, filters));
@@ -425,7 +427,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         <span>Borçlu: {receivableCount}</span>
         <span>Alacaklı: {payableCount}</span>
         <span>Liste kaydı: {filteredRows.length} / {pageLimit}</span>
-        <span>Kaynak: {isLiveVega ? 'Vega Canlı (salt okunur)' : 'API'}</span>
+        <span>Kaynak: {isLiveVega ? 'Vega Canlı (salt okunur)' : 'Melisa ERP'}</span>
       </section>
     </main>
   );

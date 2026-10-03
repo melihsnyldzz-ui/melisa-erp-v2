@@ -1,3 +1,4 @@
+/** @param {{rows?: unknown[], meta?: {total?: number | string}, isLoading?: boolean, errorMessage?: string}} options */
 export function getSalesPipelineListOutputState({
   rows,
   meta,

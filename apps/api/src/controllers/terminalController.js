@@ -33,7 +33,7 @@ export async function getTerminalProductsSearch(req, res) {
     const { data, meta } = await searchTerminalProducts(req.query);
     return ok(res, data, {
       ...meta,
-      source: 'terminal-product-search',
+      source: meta?.source || 'terminal-product-search',
     });
   } catch (error) {
     return terminalError(res, error, 'TERMINAL_PRODUCT_SEARCH_FAILED');
@@ -44,7 +44,8 @@ export async function getTerminalProductBarcode(req, res) {
   try {
     const data = await getTerminalProductByBarcode(req.params.barcode);
     return ok(res, data, {
-      source: 'terminal-product-barcode',
+      source: 'terminal-vega-live-read-only',
+      saleWriteEnabled: false,
     });
   } catch (error) {
     return terminalError(res, error, 'TERMINAL_PRODUCT_BARCODE_FAILED');
