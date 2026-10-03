@@ -10,7 +10,7 @@ const mode = process.argv[2];
 const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => /^(PATH|SYSTEMROOT|WINDIR|TEMP|TMP|HOME|USERPROFILE|LANG|LC_ALL)$/i.test(name)));
 env.NODE_OPTIONS = `--require="${guard.replaceAll('\\', '/')}"`;
 env.CI = 'true';
-env.NODE_ENV = 'test';
+env.NODE_ENV = mode === 'build' ? 'production' : 'test';
 function files(dir, match) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const name = path.join(dir, entry.name);

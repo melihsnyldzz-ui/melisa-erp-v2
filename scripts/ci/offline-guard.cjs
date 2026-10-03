@@ -19,7 +19,7 @@ const deny = () => { throw Object.assign(new Error('CI_OFFLINE_BOUNDARY: externa
 for (const name of Object.keys(process.env)) {
   if (/^(SQL_|VEGA_|JWT_|WHATSAPP_|WAAPI_|EVOLUTION_|CHATWOOT_|NAKLIYAT_|MELISA_|NATIVE_|TERMINAL_|VITE_)/i.test(name)) delete process.env[name];
 }
-Object.assign(process.env, { NODE_ENV: 'test', SQL_READ_ONLY: 'true', WHATSAPP_ENABLED: 'false', NAKLIYAT_ENABLED: 'false', TERMINAL_RECEIPT_PRINT_ENABLED: 'false' });
+Object.assign(process.env, { NODE_ENV: process.env.NODE_ENV === 'production' ? 'production' : 'test', SQL_READ_ONLY: 'true', WHATSAPP_ENABLED: 'false', NAKLIYAT_ENABLED: 'false', TERMINAL_RECEIPT_PRINT_ENABLED: 'false' });
 
 function safePath(value) {
   const filename = value instanceof URL ? fileURLToPath(value) : Buffer.isBuffer(value) ? value.toString() : value;
