@@ -14,7 +14,7 @@ const {testCrmOrderRoutes}=await import('./src/routes/testCrmOrderRoutes.mjs');
 const app=express();app.disable('x-powered-by');
 app.use(securityHeaders(),requestContext,apiRateLimit(),express.json({limit:'64kb'}));
 app.use((_req,res,next)=>{res.set('Cache-Control','no-store');res.set('X-Melisa-Environment','CANONICAL-TEST');next();});
-const health={ok:true,environment:'CANONICAL_TEST',purpose:'crm-order-draft-only',port:62404,...identity,sourceCommit:release.sourceCommit,packageId:release.packageId,sqlReadOnly:false,writeScope:'scoped-sales-order-draft-procedure-only',stockEffect:false,ledgerEffect:false,externalOperations:false,automaticJobs:false,networkPolicy};
+const health={ok:true,environment:'CANONICAL_TEST',purpose:'crm-order-draft-only',port:62404,...identity,database:identity.databaseName,sourceCommit:release.sourceCommit,packageId:release.packageId,sqlReadOnly:false,writeScope:'scoped-sales-order-draft-procedure-only',stockEffect:false,ledgerEffect:false,externalOperations:false,automaticJobs:false,networkPolicy};
 app.get('/test-health',(_req,res)=>res.json(health));
 app.use((req,res,next)=>{
   if(req.method==='POST'&&req.path==='/api/auth/login')return next();
