@@ -1,0 +1,11 @@
+import {Router} from 'express';
+import {requireAuth,requirePermission} from '../middleware/authMiddleware.js';
+import {testPurchaseContext,createTestGoods,decideTestGoods,createTestPurchase,cancelTestPurchase} from '../services/testPurchaseService.mjs';
+export const testPurchaseRoutes=Router();
+const handle=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)})}catch(e){next(e)}};
+testPurchaseRoutes.get('/test-purchase/context',requireAuth,requirePermission('goods.view'),handle(r=>testPurchaseContext(r.user)));
+testPurchaseRoutes.post('/test-purchase/goods',requireAuth,requirePermission('goods.create'),handle(r=>createTestGoods(r.body,r.user)));
+testPurchaseRoutes.post('/test-purchase/goods/:id/approve',requireAuth,requirePermission('goods.approve'),handle(r=>decideTestGoods(r.params.id,r.body,r.user,true)));
+testPurchaseRoutes.post('/test-purchase/goods/:id/reject',requireAuth,requirePermission('goods.reject'),handle(r=>decideTestGoods(r.params.id,r.body,r.user,false)));
+testPurchaseRoutes.post('/test-purchase/invoices',requireAuth,requirePermission('purchase.create'),requirePermission('purchase.finalize'),handle(r=>createTestPurchase(r.body,r.user)));
+testPurchaseRoutes.post('/test-purchase/invoices/:id/cancel',requireAuth,requirePermission('purchase.cancel'),handle(r=>cancelTestPurchase(r.params.id,r.body,r.user)));

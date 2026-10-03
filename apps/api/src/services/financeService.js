@@ -12,6 +12,8 @@ const PAYMENT_METHODS = new Set(['cash', 'bank', 'card', 'other']);
 const ACCOUNT_TYPES = new Set(['cash', 'bank', 'card', 'other']);
 const MOVEMENT_TYPES = new Set([
   'collection',
+  'collection_cancel',
+  'collection_refund',
   'payment',
   'sales_invoice',
   'sales_invoice_cancel',
@@ -273,7 +275,7 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
 }
 
 export async function writeFinanceAccountMovement(transaction, sqlDriver, payload) {
-  const direction = payload.sourceType === 'payment' ? 'out' : 'in';
+  const direction = ['payment', 'collection_cancel', 'collection_refund', 'supplier_refund_cancel'].includes(payload.sourceType) ? 'out' : 'in';
   const balanceEffect = direction === 'out' ? -payload.amount : payload.amount;
 
   await new sqlDriver.Request(transaction)
@@ -390,6 +392,8 @@ function accountingLabel(type) {
     purchase_invoice: 'Alış fişi',
     purchase_invoice_cancel: 'Alış iptal',
     collection: 'Tahsilat',
+    collection_cancel: 'Tahsilat iptali',
+    collection_refund: 'Müşteriye para iadesi',
     payment: 'Ödeme',
     sales_return: 'Müşteri iadesi',
     sales_return_cancel: 'Müşteri iadesi iptal',
@@ -413,7 +417,7 @@ function fallbackCounterAccount(row) {
   if (row.movementType === 'sales_invoice_cancel') return '610 Satış İadeleri / İptal';
   if (row.movementType === 'purchase_invoice') return '153 Ticari Mallar / Alış';
   if (row.movementType === 'purchase_invoice_cancel') return '153 Ticari Mallar İptal';
-  if (row.movementType === 'collection') return row.accountName ? `${row.accountCode || ''} ${row.accountName}`.trim() : '100/102 Kasa-Banka';
+  if (['collection', 'collection_cancel', 'collection_refund'].includes(row.movementType)) return row.accountName ? `${row.accountCode || ''} ${row.accountName}`.trim() : '100/102 Kasa-Banka';
   if (row.movementType === 'payment') return row.accountName ? `${row.accountCode || ''} ${row.accountName}`.trim() : '100/102 Kasa-Banka';
   return 'Muhasebe karşı hesabı';
 }
@@ -486,8 +490,8 @@ export function buildJournalLines(row) {
     ];
   }
 
-  if (row.movementType === 'collection') {
-    if (row.amountTry < 0) return [
+  if (['collection', 'collection_cancel', 'collection_refund'].includes(row.movementType)) {
+    if (row.amountTry < 0 || row.movementType !== 'collection') return [
       makeJournalLine(row, 1, partyAccount, amount, 0, 'Tahsilat ters kaydı'),
       makeJournalLine(row, 2, counterAccount, 0, amount, 'Kasa/banka tahsilat çıkışı'),
     ];
@@ -1209,7 +1213,7 @@ export async function getFinanceMovements(query = {}) {
     throw makeServiceError('FINANCE_PARTY_TYPE_REQUIRED', 'partyType is required for an identity filter');
   }
   if (movementId !== null && !(
-    (partyType === 'customer' && movementType === 'collection')
+    (partyType === 'customer' && ['collection', 'collection_cancel', 'collection_refund'].includes(movementType))
     || (partyType === 'supplier' && movementType === 'payment')
   )) {
     throw makeServiceError('FINANCE_MOVEMENT_SCOPE_INVALID', 'movementId requires customer/collection or supplier/payment');
@@ -1775,7 +1779,7 @@ export async function getAccountingControlDashboard() {
   };
 }
 
-export async function createCustomerCollection(payload, actor) {
+export async function createCustomerCollection(payload, actor, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const customerId = Number(payload.customerId);
@@ -1789,11 +1793,11 @@ export async function createCustomerCollection(payload, actor) {
     throw makeServiceError('FINANCE_CUSTOMER_INVALID', 'Customer is required');
   }
 
-  const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
-  await transaction.begin();
+  const pool = transactionContext?.pool || await getSqlPool();
+  if (!transactionContext) await ensureFinanceAccountTables(pool);
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
+  if (!transactionContext) await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Tahsilat kaydı');
@@ -1826,6 +1830,7 @@ export async function createCustomerCollection(payload, actor) {
 
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementCustomerId', sqlDriver.BigInt, customerId)
+      .input('linkedInvoiceId', sqlDriver.BigInt, transactionContext?.linkedInvoiceId || null)
       .input('movementType', sqlDriver.NVarChar(40), 'collection')
       .input('amount', sqlDriver.Decimal(18, 4), amount)
       .input('currency', sqlDriver.NVarChar(3), currency)
@@ -1833,6 +1838,7 @@ export async function createCustomerCollection(payload, actor) {
       .input('documentDate', sqlDriver.Date, documentDate)
       .input('createdBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @newCollectionIds TABLE(id bigint);
         INSERT INTO dbo.customer_movements (
           customer_id,
           sales_invoice_id,
@@ -1843,10 +1849,10 @@ export async function createCustomerCollection(payload, actor) {
           document_date,
           created_by
         )
-        OUTPUT inserted.*
+        OUTPUT inserted.id INTO @newCollectionIds
         VALUES (
           @movementCustomerId,
-          NULL,
+          @linkedInvoiceId,
           @movementType,
           @amount,
           @currency,
@@ -1859,6 +1865,7 @@ export async function createCustomerCollection(payload, actor) {
         SET balance = balance + @balanceEffect,
             updated_at = SYSUTCDATETIME()
         WHERE id = @movementCustomerId;
+        SELECT m.* FROM dbo.customer_movements m JOIN @newCollectionIds n ON n.id=m.id;
       `);
 
     const movement = movementResult.recordset?.[0];
@@ -1885,7 +1892,7 @@ export async function createCustomerCollection(payload, actor) {
       afterSnapshot: { customerId, amount, currency, ...settlement, paymentMethod, documentDate, description, accountId: account.id },
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
     return {
       id: Number(movement.id),
       customerId,
@@ -1907,12 +1914,12 @@ export async function createCustomerCollection(payload, actor) {
       message: 'Tahsilat kaydedildi',
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }
 
-export async function createSupplierPayment(payload, actor) {
+export async function createSupplierPayment(payload, actor, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const supplierId = Number(payload.supplierId);
@@ -1926,11 +1933,11 @@ export async function createSupplierPayment(payload, actor) {
     throw makeServiceError('FINANCE_SUPPLIER_INVALID', 'Supplier is required');
   }
 
-  const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
-  await transaction.begin();
+  const pool = transactionContext?.pool || await getSqlPool();
+  if (!transactionContext) await ensureFinanceAccountTables(pool);
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
+  if (!transactionContext) await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Ödeme kaydı');
@@ -1962,6 +1969,7 @@ export async function createSupplierPayment(payload, actor) {
 
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementSupplierId', sqlDriver.BigInt, supplierId)
+      .input('linkedPurchaseId', sqlDriver.BigInt, transactionContext?.linkedInvoiceId || null)
       .input('movementType', sqlDriver.NVarChar(40), 'payment')
       .input('amount', sqlDriver.Decimal(18, 4), amount)
       .input('currency', sqlDriver.NVarChar(3), currency)
@@ -1969,6 +1977,7 @@ export async function createSupplierPayment(payload, actor) {
       .input('documentDate', sqlDriver.Date, documentDate)
       .input('createdBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @newPaymentIds TABLE(id bigint);
         INSERT INTO dbo.supplier_movements (
           supplier_id,
           purchase_invoice_id,
@@ -1979,10 +1988,10 @@ export async function createSupplierPayment(payload, actor) {
           document_date,
           created_by
         )
-        OUTPUT inserted.*
+        OUTPUT inserted.id INTO @newPaymentIds
         VALUES (
           @movementSupplierId,
-          NULL,
+          @linkedPurchaseId,
           @movementType,
           @amount,
           @currency,
@@ -1995,6 +2004,7 @@ export async function createSupplierPayment(payload, actor) {
         SET balance = balance + @balanceEffect,
             updated_at = SYSUTCDATETIME()
         WHERE id = @movementSupplierId;
+        SELECT m.* FROM dbo.supplier_movements m JOIN @newPaymentIds n ON n.id=m.id;
       `);
 
     const movement = movementResult.recordset?.[0];
@@ -2021,7 +2031,7 @@ export async function createSupplierPayment(payload, actor) {
       afterSnapshot: { supplierId, amount, currency, ...settlement, paymentMethod, documentDate, description, accountId: account.id },
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
     return {
       id: Number(movement.id),
       supplierId,
@@ -2043,7 +2053,7 @@ export async function createSupplierPayment(payload, actor) {
       message: 'Ödeme kaydedildi',
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }

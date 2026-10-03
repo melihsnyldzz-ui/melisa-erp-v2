@@ -179,14 +179,14 @@ async function issueSession(user, userAgent, nativeTerminalCode = null) {
   const pool = await getSqlPool();
   const accessToken = signAccessToken(user, nativeTerminalCode);
 
-  if (env.sql.readOnly) {
+  if (env.sql.readOnly || process.env.MELISA_TEST_STATELESS_AUTH === 'true') {
     return {
       user,
       accessToken,
       refreshToken: null,
       tokenType: 'Bearer',
       expiresIn: env.auth.accessExpiresIn,
-      readOnlySession: true,
+      readOnlySession: env.sql.readOnly,
     };
   }
 

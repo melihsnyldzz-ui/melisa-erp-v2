@@ -703,7 +703,7 @@ export async function getSupplierStatement(query = {}) {
   };
 }
 
-export async function applyStockCountAdjustment(payload = {}, actor = null) {
+export async function applyStockCountAdjustment(payload = {}, actor = null, transactionContext = null) {
   if (!['product.view', 'stock.adjust'].every(permission => actor?.permissions?.includes(permission))) {
     throw makeMovementError('AUTH_PERMISSION_DENIED', 'Stock count requires product.view and stock.adjust', 403);
   }
@@ -722,11 +722,11 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
     throw makeMovementError('STOCK_COUNT_REASON_REQUIRED', 'Stock count adjustment reason is required');
   }
 
-  const sqlDriver = getSqlDriver();
-  const pool = await getSqlPool();
-  const transaction = new sqlDriver.Transaction(pool);
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const pool = transactionContext?.pool || await getSqlPool();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (!transactionContext) await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Stok sayım düzeltmesi');
@@ -765,7 +765,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
     const averageCostTry = Number(product.average_cost_try || 0);
 
     if (difference === 0) {
-      await transaction.commit();
+      if (!transactionContext) await transaction.commit();
       return {
         productId,
         stockCode: product.stock_code,
@@ -805,7 +805,10 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       .input('movementCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .input('movementCurrency', sqlDriver.NVarChar(3), product.currency_code || 'TRY')
       .input('movementAmountTry', sqlDriver.Decimal(18, 4), amountTry)
+      .input('countDocumentId', sqlDriver.BigInt, transactionContext?.countDocumentId || null)
+      .input('countWarehouse', sqlDriver.NVarChar(120), transactionContext?.countWarehouse || null)
       .query(`
+        DECLARE @countIds TABLE(id bigint);
         INSERT INTO dbo.stock_movements (
           product_id,
           movement_type,
@@ -821,14 +824,14 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
           created_by,
           unit_price,
           currency_code,
-          amount_try
+          amount_try, warehouse_name
         )
-        OUTPUT INSERTED.id
+        OUTPUT INSERTED.id INTO @countIds
         VALUES (
           @movementProductId,
           @movementType,
           N'stock_count',
-          NULL,
+          @countDocumentId,
           @movementQuantityIn,
           @movementQuantityOut,
           @movementQuantityNet,
@@ -839,8 +842,8 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
           @movementCreatedBy,
           0,
           @movementCurrency,
-          @movementAmountTry
-        );
+          @movementAmountTry, @countWarehouse
+        ); SELECT id FROM @countIds;
       `);
 
     const movementId = Number(movementResult.recordset?.[0]?.id || 0);
@@ -861,7 +864,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
 
     return {
       productId,
@@ -879,7 +882,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       message: difference > 0 ? 'Sayım fazlası stok giriş hareketi yazıldı.' : 'Sayım eksiği stok çıkış hareketi yazıldı.',
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }

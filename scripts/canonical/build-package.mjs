@@ -21,12 +21,13 @@ npm(['run','build','--','--outDir','dist-test'],destination+'/apps/web-admin',{.
 const index=destination+'/apps/web-admin/dist-test/index.html';
 fs.writeFileSync(index,fs.readFileSync(index,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">TEST · Salt okunur · '+sourceCommit.slice(0,12)+'</div>'));
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/sites-workflow');
-npm(['run','build'],destination+'/apps/sites-workflow',{...env,VITE_API_BASE_URL:'http://127.0.0.1:4144',VITE_VEGA_PRODUCTS_BASE_URL:'http://127.0.0.1:4144',VITE_TEST_READ_ONLY:'true'});
+npm(['run','build'],destination+'/apps/sites-workflow',{...env,VITE_API_BASE_URL:'http://127.0.0.1:4144',VITE_VEGA_PRODUCTS_BASE_URL:'http://127.0.0.1:4144',VITE_TEST_READ_ONLY:'false'});
 for(const page of ['is-akisi-taslagi.html','ornek-akis.html','legacy-admin.html']){
  const f=destination+'/apps/sites-workflow/dist/'+page;
- fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">TEST · Sites v70 örnek akış · Ticari kayıt yazılmaz · '+sourceCommit.slice(0,12)+'</div>'));
+ const label=page==='is-akisi-taslagi.html'?'TEST · SQL iş akışları · LIVE’dan ayrı':'TEST · Ayrı örnek ekran';
+ fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">'+label+' · '+sourceCommit.slice(0,12)+'</div>'));
 }
 function walk(root,rel=''){return fs.readdirSync(path.join(root,rel),{withFileTypes:true}).flatMap(d=>d.isSymbolicLink()?(()=>{throw Error('RELEASE_SYMLINK_REJECTED');})():['node_modules','.canonical-runtime'].includes(d.name)?[]:d.isDirectory()?walk(root,path.posix.join(rel,d.name)):[path.posix.join(rel,d.name)]);}
 const files=walk(destination).map(file=>({path:file,sha256:sha(fs.readFileSync(destination+'/'+file))}));
-fs.writeFileSync(destination+'/release-manifest.json',JSON.stringify({packageId,sourceCommit,node:process.version,builtAt:new Date().toISOString(),baselineReproduced:true,webUi:'sites-v70',webStorage:'demo-localStorage',sitesSourceCommit:'d559243a62080c8de5ce9ba1e2ba2d6231c098b9',apiPort:4144,nativePort:4146,webPort:5194,database:'MELISA_ERP_SIRKET_TEST_20260929_01',writes:false,files},null,2));
+fs.writeFileSync(destination+'/release-manifest.json',JSON.stringify({packageId,sourceCommit,node:process.version,builtAt:new Date().toISOString(),baselineReproduced:true,webUi:'sites-v70-sql',webStorage:'sql-business-records; browser-pending-requests-only',sitesSourceCommit:'d559243a62080c8de5ce9ba1e2ba2d6231c098b9',apiPort:4144,nativePort:4146,webPort:5194,database:'MELISA_ERP_SIRKET_TEST_20260929_01',writes:true,writeScope:'existing-named-test-records',nativeWrites:false,files},null,2));
 console.log(JSON.stringify({packageId,sourceCommit,files:files.length,destination}));

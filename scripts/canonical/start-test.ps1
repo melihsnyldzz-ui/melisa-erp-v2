@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $ReleaseRoot=(Resolve-Path -LiteralPath $ReleaseRoot).Path
 $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
 $manifest=Get-Content -LiteralPath (Join-Path $ReleaseRoot 'release-manifest.json') -Raw | ConvertFrom-Json
-if($manifest.writes -ne $false -or $manifest.database -ne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or -not $manifest.baselineReproduced){throw 'RELEASE_IDENTITY_REJECTED'}
+if($manifest.writes -ne $true -or $manifest.writeScope -ne 'existing-named-test-records' -or $manifest.database -ne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or -not $manifest.baselineReproduced){throw 'RELEASE_IDENTITY_REJECTED'}
 foreach($file in $manifest.files){
   $target=[IO.Path]::GetFullPath((Join-Path $ReleaseRoot $file.path))
   if(-not $target.StartsWith($ReleaseRoot+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'MANIFEST_PATH_REJECTED'}

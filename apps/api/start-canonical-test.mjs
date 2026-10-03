@@ -1,6 +1,7 @@
 import { configureCanonicalTest } from './canonical-test-env.mjs';
 const [mode, configPath] = process.argv.slice(2);
-const {identity,port,networkPolicy,release,pool}=await configureCanonicalTest(configPath,mode);
+const {identity,port,networkPolicy,release,pool,writes}=await configureCanonicalTest(configPath,mode);
+const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
 const {default:express}=await import('express');
 const {default:cors}=await import('cors');
 const {securityHeaders,corsOptions,apiRateLimit}=await import('./src/middleware/security.js');
@@ -9,14 +10,14 @@ const {errorHandler}=await import('./src/middleware/errorHandler.js');
 const app=express();app.disable('x-powered-by');
 app.use(securityHeaders(),cors(corsOptions()),requestContext,apiRateLimit(),express.json({limit:'2mb'}));
 app.use((_req,res,next)=>{res.set('X-Melisa-Environment','CANONICAL-TEST');res.set('Cache-Control','no-store');next();});
-const health={ok:true,environment:'CANONICAL_TEST',mode,port,...identity,sqlReadOnly:true,writes:false,externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId};
+const health={ok:true,environment:'CANONICAL_TEST',mode,port,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId};
 app.get('/test-health',(_req,res)=>res.json(health));
 app.get('/production-switch-health',(_req,res)=>res.json(health));
 app.get('/terminal-release-health',(_req,res)=>res.json({...health,automaticSubmit:false,dailyWebEnabled:true,invoiceExportEnabled:false}));
 app.get('/native-terminal-health',(_req,res)=>res.json({...health,writeEnabled:false,automaticSubmit:false}));
 app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'TEST_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!(req.method==='POST'&&/^\/api\/auth\/(?:login|terminal-login)$/.test(req.path)))return res.status(405).json({success:false,error:{code:'TEST_READ_ONLY'}});
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
   next();
 });
 if(mode==='erp'){
@@ -24,6 +25,12 @@ if(mode==='erp'){
   const {pilotTerminalRoutes}=await import('./src/routes/pilotTerminalRoutes.mjs');
   app.use('/api/terminal',pilotTerminalRoutes);
   app.use('/api',dailyWebScopeMiddleware(resolveDailyWebPolicy({dailyWebEnabled:true,automaticCardSyncEnabled:false,invoiceExportEnabled:false})));
+  if(writes){
+    for(const name of ['Sales','Finance','Daily','Refund','Payment','Purchase','Price']){
+      const routes=await import('./src/routes/test'+name+'Routes.mjs');
+      app.use('/api',routes['test'+name+'Routes']);
+    }
+  }
   const {createApp}=await import('./src/app.js');app.use(createApp());
 }else{
   app.locals.nativeTerminalV1=true;

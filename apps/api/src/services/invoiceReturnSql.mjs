@@ -9,7 +9,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
  const assertNotExported=dependencies.assertNotExported??(await import('./vegaInvoiceExportJournal.mjs')).assertInvoiceNotExported;
  const rowDto=row=>row?{id:Number(row.id),requestId:String(row.request_id).toLowerCase(),kind:row.kind,status:row.status,createdBy:Number(row.created_by),payloadHash:row.payload_hash,plan:JSON.parse(row.plan_json),createdAt:row.created_at}:null;
  return {async transaction(write,work){
-  const pool=await getPool(),transaction=new sql.Transaction(pool);await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  const pool=await getPool(),transaction=dependencies.transaction??new sql.Transaction(pool),owns=!dependencies.transaction;if(owns)await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   const request=()=>new sql.Request(transaction);
   try {
    const schema=await request().query(`SELECT CASE WHEN OBJECT_ID(N'dbo.invoice_returns',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.invoice_return_items',N'U') IS NOT NULL AND COL_LENGTH(N'dbo.customer_movements',N'invoice_return_id') IS NOT NULL AND COL_LENGTH(N'dbo.supplier_movements',N'invoice_return_id') IS NOT NULL AND COL_LENGTH(N'dbo.sales_invoices',N'account_amount') IS NOT NULL AND COL_LENGTH(N'dbo.purchase_invoices',N'account_amount') IS NOT NULL THEN 1 ELSE 0 END AS ready;`);
@@ -44,7 +44,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
     audit:entry=>audit(request(),entry),
     async insert(payload,plan,hash,actorId){
      const req=request().input('requestId',sql.UniqueIdentifier,payload.requestId).input('kind',sql.NVarChar(10),plan.kind).input('sourceSales',sql.BigInt,plan.kind==='sales'?plan.sourceInvoiceId:null).input('sourcePurchase',sql.BigInt,plan.kind==='purchase'?plan.sourceInvoiceId:null).input('customerId',sql.BigInt,plan.kind==='sales'?plan.partyId:null).input('supplierId',sql.BigInt,plan.kind==='purchase'?plan.partyId:null).input('date',sql.Date,plan.documentDate).input('currency',sql.NVarChar(3),plan.documentCurrency).input('rate',sql.Decimal(18,8),plan.exchangeRate).input('amount',sql.Decimal(18,4),plan.amount).input('accountCurrency',sql.NVarChar(3),plan.accountCurrency).input('accountRate',sql.Decimal(18,8),plan.accountExchangeRate).input('accountAmount',sql.Decimal(18,4),plan.accountAmount).input('amountTry',sql.Decimal(18,4),plan.amountTry).input('reason',sql.NVarChar(500),plan.reason).input('hash',sql.Char(64),hash).input('plan',sql.NVarChar(sql.MAX),JSON.stringify(plan)).input('actorId',sql.BigInt,actorId);
-     const result=await req.query(`INSERT dbo.invoice_returns(request_id,kind,source_sales_invoice_id,source_purchase_invoice_id,customer_id,supplier_id,status,document_date,document_currency,exchange_rate_snapshot,amount,account_currency,account_exchange_rate_snapshot,account_amount,amount_try,reason,payload_hash,plan_json,created_by) OUTPUT inserted.* VALUES(@requestId,@kind,@sourceSales,@sourcePurchase,@customerId,@supplierId,N'finalized',@date,@currency,@rate,@amount,@accountCurrency,@accountRate,@accountAmount,@amountTry,@reason,@hash,@plan,@actorId);`);
+     const result=await req.query(`DECLARE @newReturnIds TABLE(id bigint); INSERT dbo.invoice_returns(request_id,kind,source_sales_invoice_id,source_purchase_invoice_id,customer_id,supplier_id,status,document_date,document_currency,exchange_rate_snapshot,amount,account_currency,account_exchange_rate_snapshot,account_amount,amount_try,reason,payload_hash,plan_json,created_by) OUTPUT inserted.id INTO @newReturnIds VALUES(@requestId,@kind,@sourceSales,@sourcePurchase,@customerId,@supplierId,N'finalized',@date,@currency,@rate,@amount,@accountCurrency,@accountRate,@accountAmount,@amountTry,@reason,@hash,@plan,@actorId); SELECT r.* FROM dbo.invoice_returns r JOIN @newReturnIds n ON n.id=r.id;`);
      const saved=rowDto(result.recordset[0]);
      for(const item of plan.items)await request().input('returnId',sql.BigInt,saved.id).input('productId',sql.BigInt,item.productId).input('sourceSales',sql.BigInt,plan.kind==='sales'?item.sourceItemId:null).input('sourcePurchase',sql.BigInt,plan.kind==='purchase'?item.sourceItemId:null).input('qty',sql.Decimal(18,3),item.quantity).input('amount',sql.Decimal(18,4),item.amount).input('accountAmount',sql.Decimal(18,4),item.accountAmount).input('amountTry',sql.Decimal(18,4),item.amountTry).input('cost',sql.Decimal(18,4),item.unitCostTry).query(`INSERT dbo.invoice_return_items(invoice_return_id,product_id,source_sales_item_id,source_purchase_item_id,quantity,amount,account_amount,amount_try,unit_cost_try) VALUES(@returnId,@productId,@sourceSales,@sourcePurchase,@qty,@amount,@accountAmount,@amountTry,@cost);`);
      return saved;
@@ -61,7 +61,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
     },
     async markCancelled(id,reason,actorId){await request().input('id',sql.BigInt,id).input('reason',sql.NVarChar(500),reason).input('actor',sql.BigInt,actorId).query("UPDATE dbo.invoice_returns SET status=N'cancelled',cancelled_at=SYSUTCDATETIME(),cancelled_by=@actor,cancel_reason=@reason WHERE id=@id;");},
    };
-   const result=await work(tx);await transaction.commit();return result;
-  }catch(error){try{await transaction.rollback();}catch{}throw error;}
+   const result=await work(tx);if(owns)await transaction.commit();return result;
+  }catch(error){try{if(owns)await transaction.rollback();}catch{}throw error;}
  }};
 }

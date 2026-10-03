@@ -5,21 +5,22 @@ import { env } from './env.js';
 let poolPromise;
 
 // The isolated canonical TEST uses the same ODBC family as the LIVE baseline.
-// This does not grant writes: the TEST environment and SQL login are read-only.
-function isCanonicalReadOnlyTest() {
+// Only the verified TEST runtime can select these two isolated SQL identities.
+export function isCanonicalTest() {
   return process.env.MELISA_CANONICAL_TEST === 'true'
     && env.sql.database === 'MELISA_ERP_SIRKET_TEST_20260929_01'
-    && env.sql.user === 'melisa_sirket_test_20260929_01'
-    && env.sql.readOnly === true;
+    && ((env.sql.user === 'melisa_sirket_test_20260929_01' && env.sql.readOnly === true)
+      || (env.sql.user === 'melisa_sirket_sales_test_20260929_01' && env.sql.readOnly === false
+        && process.env.MELISA_TEST_SCOPED_SALES === 'true'));
 }
 
 export function getSqlDriver() {
-  if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalReadOnlyTest()) return sqlTrusted;
+  if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest()) return sqlTrusted;
   return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
 }
 
 export function getSqlConfig() {
-  if ((env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalReadOnlyTest()) && !env.sql.trustedConnection) {
+  if ((env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest()) && !env.sql.trustedConnection) {
     const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
     const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
     return {
@@ -98,7 +99,7 @@ export async function getSqlPool() {
     throw error;
   }
 
-  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01') {
+  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !isCanonicalTest()) {
     const error = new Error('SQL write mode is only allowed for the LIVE-3 production candidate');
     error.code = 'SQL_WRITE_TARGET_INVALID';
     error.statusCode = 403;

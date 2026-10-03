@@ -327,7 +327,10 @@ async function recalculateProductAverageCostTry(sqlDriver, transaction, productI
   return nextAverageCostTry;
 }
 
-function calculateSalesProfitSnapshot({ salesAmountTry, averageCostTry, quantity }) {
+export function calculateSalesProfitSnapshot({ salesAmountTry, averageCostTry, quantity }) {
+  if (averageCostTry == null || !Number.isFinite(Number(averageCostTry)) || Number(averageCostTry) <= 0) {
+    return { grossProfitTry: null, grossProfitRate: null };
+  }
   const costAmountTry = averageCostTry * quantity;
   const grossProfitTry = salesAmountTry - costAmountTry;
 
@@ -383,12 +386,8 @@ async function readCurrencyRateMap(request) {
   return new Map((result.recordset || []).map((row) => [row.currency_code, safeNumber(row.rate_to_try)]));
 }
 
-function resolveSalesUnitCostTry(item, documentCurrency, exchangeRate, currencyRateMap = new Map()) {
-  const productCurrency = normalizeCurrency(item.productCurrency || item.currency);
-  const lineCurrency = normalizeCurrency(documentCurrency || item.currency);
-  const purchasePrice = applyDiscount(item.productPurchasePrice, item.productPurchaseDiscountRate);
-  const rate = safeNumber(exchangeRate, 1);
-
+export function resolveSalesUnitCostTry(item, documentCurrency, exchangeRate, currencyRateMap = new Map()) {
+  // Card purchase price and a later rate do not prove the opening stock valuation.
   const productAverageCostTry = safeNumber(item.productAverageCostTry);
   if (productAverageCostTry > 0) {
     return productAverageCostTry;
@@ -399,23 +398,7 @@ function resolveSalesUnitCostTry(item, documentCurrency, exchangeRate, currencyR
     return itemAverageCostTry;
   }
 
-  if (productCurrency !== 'TRY' && purchasePrice > 0) {
-    const productRate = rateToTryForCurrency(
-      currencyRateMap,
-      productCurrency,
-      productCurrency === lineCurrency ? rate : 0,
-    );
-
-    if (productRate > 0) {
-      return purchasePrice * productRate;
-    }
-  }
-
-  if (productCurrency === 'TRY' && purchasePrice > 0) {
-    return purchasePrice;
-  }
-
-  return 0;
+  return null;
 }
 
 function invoiceDocumentRate(payload) {
@@ -460,7 +443,7 @@ export function normalizeSalesPayload(payload = {}) {
     discountTotal,
     grandTotal,
     amountTry: grandTotal * invoiceDocumentRate(payload),
-    estimatedProfitTry: Number(payload.estimatedProfitTry || 0),
+    estimatedProfitTry: null,
     items: items.map((item, index) => normalizeSalesItem(item, index)),
   };
 }
@@ -1165,6 +1148,7 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
   const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
   const currencyRateMap = await readCurrencyRateMap(new sqlDriver.Request(transaction));
   let estimatedProfitTry = 0;
+  let profitCostUnknown = false;
 
   for (const item of afterSnapshot.items) {
     const amountTry = safeNumber(item.lineTotal) * safeNumber(draft.exchangeRate, 1);
@@ -1174,7 +1158,8 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
       averageCostTry,
       quantity: safeNumber(item.quantity),
     });
-    estimatedProfitTry += profit.grossProfitTry;
+    if (profit.grossProfitTry == null) profitCostUnknown = true;
+    else estimatedProfitTry += profit.grossProfitTry;
 
     await new sqlDriver.Request(transaction)
       .input('salesCorrectionItemId', sql.BigInt, item.id)
@@ -1289,7 +1274,7 @@ async function replaceFinalizedSalesEffects(sqlDriver, transaction, invoiceId, b
 
   await new sqlDriver.Request(transaction)
     .input('salesCorrectionProfitInvoiceId', sql.BigInt, invoiceId)
-    .input('salesCorrectionEstimatedProfit', sql.Decimal(18, 4), estimatedProfitTry)
+    .input('salesCorrectionEstimatedProfit', sql.Decimal(18, 4), profitCostUnknown ? null : estimatedProfitTry)
     .query(`
       UPDATE dbo.sales_invoices
       SET estimated_profit_try = @salesCorrectionEstimatedProfit
@@ -1695,6 +1680,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       .input('amountTry', sql.Decimal(18, 4), draft.amountTry)
       .input('estimatedProfitTry', sql.Decimal(18, 4), draft.estimatedProfitTry)
       .query(`
+        DECLARE @createdSalesIds TABLE(invoiceId bigint);
         INSERT INTO dbo.sales_invoices (
           document_no,
           document_date,
@@ -1714,7 +1700,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           created_by,
           updated_by
         )
-        OUTPUT INSERTED.id AS invoiceId
+        OUTPUT INSERTED.id INTO @createdSalesIds(invoiceId)
         VALUES (
           @documentNo,
           @documentDate,
@@ -1734,6 +1720,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           NULL,
           NULL
         );
+        SELECT invoiceId FROM @createdSalesIds;
       `);
 
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
@@ -1879,6 +1866,11 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     throw makeServiceError('SALES_FINALIZE_ID_INVALID', 'Sales invoice id is invalid');
   }
 
+  const actorId = typeof actor?.id === 'number' ? actor.id : typeof actor?.id === 'string' && /^[1-9][0-9]*$/.test(actor.id) ? Number(actor.id) : NaN;
+  if (!Number.isSafeInteger(actorId) || actorId < 1) {
+    throw makeServiceError('SALES_FINALIZE_ACTOR_REQUIRED', 'Verified transaction actor is required', 403);
+  }
+
   const pool = transactionContext?.pool || await getSqlPool();
   const ownsTransaction = !transactionContext?.transaction;
   // The terminal caller validates schema before taking its locks. All sale
@@ -2010,6 +2002,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
         .input('movementAmountTry', sql.Decimal(18, 4), amountTry)
         .input('movementDocumentDate', sql.Date, beforeSnapshot.documentDate)
         .input('movementCustomerId', sql.BigInt, beforeSnapshot.customerId)
+        .input('movementCreatedBy', sql.BigInt, actorId)
         .query(`
           INSERT INTO dbo.stock_movements (
             product_id,
@@ -2042,7 +2035,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
             @movementDocumentDate,
             @movementCustomerId,
             SYSUTCDATETIME(),
-            NULL,
+            @movementCreatedBy,
             @movementUnitPrice,
             @movementCurrency,
             @movementAmountTry
@@ -2061,10 +2054,9 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
       actor,
     });
 
-    const estimatedProfitTry = profitSnapshots.reduce(
-      (total, snapshot) => total + safeNumber(snapshot.grossProfitTry),
-      0,
-    );
+    const estimatedProfitTry = profitSnapshots.some((snapshot) => snapshot.grossProfitTry == null)
+      ? null
+      : profitSnapshots.reduce((total, snapshot) => total + snapshot.grossProfitTry, 0);
 
     await new sqlDriver.Request(transaction)
       .input('customerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
@@ -2072,6 +2064,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
       .input('customerMovementAmount', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
       .input('customerMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
       .input('customerMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+      .input('customerMovementCreatedBy', sql.BigInt, actorId)
       .query(`
         INSERT INTO dbo.customer_movements (
           customer_id,
@@ -2093,7 +2086,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           @customerMovementAmount,
           @customerMovementDocumentDate,
           SYSUTCDATETIME(),
-          NULL
+          @customerMovementCreatedBy
         );
       `);
 
@@ -2298,7 +2291,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
     for (const item of beforeSnapshot.items) {
       const quantity = safeNumber(item.quantity);
       const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
-      const averageCostTrySnapshot = safeNumber(item.averageCostTry ?? item.productAverageCostTry);
+      const averageCostTrySnapshot = item.averageCostTry != null && Number.isFinite(Number(item.averageCostTry))
+        && Number(item.averageCostTry) >= 0 ? Number(item.averageCostTry) : null;
 
       reversedStockTotal += quantity;
 
@@ -2463,15 +2457,15 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
   }
 }
 
-export async function getPurchaseDraft(id) {
+export async function getPurchaseDraft(id, transactionContext = null) {
   const invoiceId = Number(id);
 
   if (!Number.isInteger(invoiceId) || invoiceId < 1) {
     throw makeServiceError('PURCHASE_DRAFT_ID_INVALID', 'Purchase draft id is invalid');
   }
 
-  const pool = await getSqlPool();
-  const snapshot = await getPurchaseSnapshot(pool.request(), invoiceId);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const snapshot = await getPurchaseSnapshot(transactionContext ? new transactionContext.sqlDriver.Request(transactionContext.transaction) : pool.request(), invoiceId);
 
   if (!snapshot) {
     throw makeServiceError('PURCHASE_DRAFT_NOT_FOUND', 'Purchase draft not found', 404);
@@ -2605,15 +2599,15 @@ export async function getPurchaseDraftsList(query) {
   };
 }
 
-export async function createPurchaseDraft(payload, actor = null) {
+export async function createPurchaseDraft(payload, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const draft = normalizePurchasePayload(payload);
-  const pool = await getSqlPool();
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (!transactionContext) await transaction.begin();
 
   try {
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Alış fişi taslak kaydı');
@@ -2640,6 +2634,7 @@ export async function createPurchaseDraft(payload, actor = null) {
       .input('amountTry', sql.Decimal(18, 4), draft.amountTry)
       .input('stockCostEffectTry', sql.Decimal(18, 4), draft.stockCostEffectTry)
       .query(`
+        DECLARE @newPurchaseIds TABLE(invoiceId bigint);
         INSERT INTO dbo.purchase_invoices (
           document_no,
           document_date,
@@ -2660,7 +2655,7 @@ export async function createPurchaseDraft(payload, actor = null) {
           created_by,
           updated_by
         )
-        OUTPUT INSERTED.id AS invoiceId
+        OUTPUT INSERTED.id INTO @newPurchaseIds
         VALUES (
           @documentNo,
           @documentDate,
@@ -2681,6 +2676,7 @@ export async function createPurchaseDraft(payload, actor = null) {
           NULL,
           NULL
         );
+        SELECT invoiceId FROM @newPurchaseIds;
       `);
 
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
@@ -2701,11 +2697,11 @@ export async function createPurchaseDraft(payload, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
 
-    return getPurchaseDraft(invoiceId);
+    return getPurchaseDraft(invoiceId, transactionContext);
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }
@@ -2833,7 +2829,27 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
   }
 }
 
-export async function finalizePurchaseInvoice(id, actor = null) {
+async function assertReceivedPurchaseContext(context, invoiceId) {
+  if (!context?.stockAlreadyReceived) return;
+  if(context.dailyGoodsId){
+    const r=await new context.sqlDriver.Request(context.transaction).input('goodsId',context.sqlDriver.BigInt,context.dailyGoodsId).input('invoiceId',context.sqlDriver.BigInt,invoiceId).query(`SELECT COUNT(*) n FROM dbo.test_daily_drafts g JOIN dbo.test_daily_scope s ON s.flow=g.flow JOIN dbo.purchase_invoices p ON p.id=@invoiceId AND p.supplier_id=s.supplier_id JOIN dbo.purchase_invoice_items i ON i.purchase_invoice_id=p.id AND i.product_id=s.product_id WHERE DB_NAME()=N'MELISA_ERP_SIRKET_TEST_20260929_01' AND g.id=@goodsId AND g.flow=N'purchase' AND g.kind=N'goods' AND g.state=N'approved' AND TRY_CONVERT(bigint,JSON_VALUE(g.payload_json,'$.invoiceId'))=p.id AND i.quantity=TRY_CONVERT(decimal(18,3),JSON_VALUE(g.payload_json,'$.invoicedQuantity')) AND i.quantity<=TRY_CONVERT(decimal(18,3),JSON_VALUE(g.payload_json,'$.quantity')) AND i.purchase_price=60 AND p.document_currency=N'TRY' AND JSON_VALUE(g.payload_json,'$.unit')=N'ADET' AND JSON_VALUE(g.payload_json,'$.warehouse')=N'TEST-DAILY-WH' AND EXISTS(SELECT 1 FROM dbo.stock_movements m WHERE m.product_id=s.product_id AND m.source_type=N'goods_receipt' AND m.source_id=g.id AND m.quantity_in=TRY_CONVERT(decimal(18,3),JSON_VALUE(g.payload_json,'$.quantity')))`);
+    if(Number(r.recordset?.[0]?.n)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Yeni TEST kabul bağlantısı doğrulanamadı.',409);return;
+  }
+
+  const result = await new context.sqlDriver.Request(context.transaction)
+    .input('receivedInvoiceId', context.sqlDriver.BigInt, invoiceId)
+    .query(`SELECT COUNT(*) n FROM dbo.test_purchase_links l
+      JOIN dbo.test_goods_receipts g ON g.id=l.goods_id
+      JOIN dbo.test_purchase_scope t ON t.product_id=g.product_id AND t.supplier_id=g.supplier_id AND t.warehouse_id=g.warehouse_id
+      JOIN dbo.purchase_invoices p ON p.id=l.invoice_id AND p.supplier_id=g.supplier_id
+      JOIN dbo.purchase_invoice_items i ON i.purchase_invoice_id=p.id AND i.product_id=g.product_id
+      WHERE DB_NAME()=N'MELISA_ERP_SIRKET_TEST_20260929_01' AND l.invoice_id=@receivedInvoiceId
+        AND g.state=N'accepted' AND i.quantity=l.quantity AND i.purchase_price=t.unit_cost
+        AND t.unit_cost=60 AND p.document_currency=N'TRY' AND g.unit_factor=1;`);
+  if (Number(result.recordset?.[0]?.n) !== 1) throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED', 'Stok atlanmadan önce tek ve doğrulanmış TEST kabul bağlantısı gerekli.', 409);
+}
+
+export async function finalizePurchaseInvoice(id, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -2842,11 +2858,11 @@ export async function finalizePurchaseInvoice(id, actor = null) {
     throw makeServiceError('PURCHASE_FINALIZE_ID_INVALID', 'Purchase invoice id is invalid');
   }
 
-  const pool = await getSqlPool();
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (!transactionContext) await transaction.begin();
 
   try {
     const beforeSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
@@ -2883,8 +2899,9 @@ export async function finalizePurchaseInvoice(id, actor = null) {
 
     const warnings = [];
     const accumulatePurchaseCost = createPurchaseCostAccumulator();
+    await assertReceivedPurchaseContext(transactionContext, invoiceId);
 
-    for (const item of beforeSnapshot.items) {
+    for (const item of (transactionContext?.stockAlreadyReceived ? [] : beforeSnapshot.items)) {
       const quantity = safeNumber(item.quantity);
       const lineTotalTry = purchaseLineCostTry(item, beforeSnapshot.exchangeRate);
       const unitCostTry = quantity > 0 ? lineTotalTry / quantity : 0;
@@ -3057,16 +3074,16 @@ export async function finalizePurchaseInvoice(id, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
 
     return toFinalizeResult(afterSnapshot, warnings);
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }
 
-export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
+export async function cancelPurchaseInvoice(id, payload = {}, actor = null, transactionContext = null) {
   assertMelisaWriteEnabled();
 
   const invoiceId = Number(id);
@@ -3080,11 +3097,11 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
     average_cost_cancel_policy: 'recalculate_from_purchase_stock_movements',
     reason: 'Purchase cancellation recalculates product average cost from net purchase stock movements for the affected product.',
   };
-  const pool = await getSqlPool();
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
+  const pool = transactionContext?.pool || await getSqlPool();
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (!transactionContext) await transaction.begin();
 
   try {
     const beforeSnapshot = await getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId, { lockHeader: true });
@@ -3110,8 +3127,9 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
 
     const warnings = [];
     let reversedStockTotal = 0;
+    await assertReceivedPurchaseContext(transactionContext, invoiceId);
 
-    for (const item of beforeSnapshot.items) {
+    for (const item of (transactionContext?.stockAlreadyReceived ? [] : beforeSnapshot.items)) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
       const nextStock = currentStock - quantity;
@@ -3300,11 +3318,11 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
 
     return toFinalizeResult(afterSnapshot, warnings);
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }
