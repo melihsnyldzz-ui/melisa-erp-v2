@@ -4,6 +4,77 @@ This repository is the Melisa ERP v2 application repository. It is AI-first, but
 
 These instructions apply to Codex, ChatGPT, Claude, and any future AI agent working in this repository.
 
+## CRM / ERP çalışma düzeni — 2026-10-03
+
+Bu bölüm kullanıcının 2026-10-03 tarihli çalışma yetkisini kaydeder. Aşağıdaki eski
+kurallar korunur; TEST geliştirme yetkisi, iş sıralaması ve aşağıda belirtilen
+salt okunur LIVE inceleme sınırı bakımından bu bölüm geçerlidir. İş kuralları,
+credential güvenliği ve LIVE değişikliklerinin onay sınırları sürer.
+
+- Bu proje **ERP**'dir. Kanonik remote: `melihsnyldzz-ui/melisa-erp-v2`.
+  CRM ayrı `melihsnyldzz-ui/melisa-crm` reposudur; ERP içindeki eski CRM klasörleri
+  yeni CRM çalışmasının hedefi değildir. Diğer projelerde değişiklik yapma.
+- Semih PC dahil her bilgisayarda önce `git remote -v`, repo kökü, branch ve
+  `git status --short` ile kimliği doğrula. HTTPS/SSH remote aynı kanonik repoya
+  çözülmelidir; fetch/push hedefleri farklıysa yazma. Yerel yol, port veya DB
+  kimliğini klasör adından, geçmiş rapordan ya da bilgisayar adından varsayma.
+- Proje klasörleri, eski çalışmalar ve kullanıcı değişiklikleri korunur. Projects
+  alanının ileride yalnız CRM ve ERP olacak şekilde sadeleştirilmesi bu görevin
+  silme, taşıma veya arşivleme yetkisi değildir.
+- Önce `ERP_FINISH_PLAN.md` ve `docs/erp-v2/current-status.md` oku. Bitiş sırası ve
+  açık işlerin source of truth'u `ERP_FINISH_PLAN.md`; status ve eski roadmap'ler
+  kaynak kanıttır. Ardından aşağıdaki gerekli merkezi/yerel okumaları yap.
+  Aynı görevde okunmuş ve değişmemiş belgeleri yeniden okumak gerekmez.
+- Çalışan baseline'ı yeniden ispatlayan sprint açma. Mevcut commit, ortam ve kabul
+  kapsamıyla uyumlu kanıtı kullan; sadece değişen akış, somut regresyon, hedef
+  değişimi veya eksik kabul için ilgili kontrolü çalıştır. Eski kanıt güncel LIVE
+  sağlığı değildir; işlem öncesi hedef kimliği kontrolü yine zorunludur.
+- Plandan **tek kırmızı madde** seç; ID, amaç, kabul kriteri, dosya sahipliği ve
+  TEST hedefini kaydet. Bağımsız inceleme/backend/frontend işleri alt ajanlara
+  böl. Aynı dosyaya eşzamanlı yazma yok; ortak sözleşmeyi önce ana ajan belirler,
+  bağımlı işler sırayla ilerler. Plan/status güncellemesi ve entegrasyon ana ajana
+  aittir. Alt ajan sonucu otomatik kabul sayılmaz.
+- Varsayılan **GPT-6.1 Sol / Medium** (`gpt-6.1-sol`). Zor reviewer/sql-vega
+  görevini açık `high` reasoning ile başlat; sıradan inceleme Medium kalır.
+  Bu iki rol effort'u dosyada sabitlemez, varsayılanı veya açık spawn effort'unu
+  devralır. Astra (`gpt-6-astra`) yalnız çok zor mimari belirsizlik için gerekçeli
+  ana ajan/default-agent seçimi; sıradan kodlama ya da SQL için otomatik fallback
+  değildir. Model yoksa sessizce başka model kullanma; sınırlamayı raporla.
+- `.codex/agents/explorer.toml` salt okunur keşif; `backend.toml` API;
+  `frontend.toml` web/terminal; `reviewer.toml` bağımsız salt okunur inceleme;
+  `sql-vega.toml` salt okunur SQL/Vega analizi; `release.toml` salt okunur
+  sürüm/rollback incelemesidir. Çalışanı yalnız atanmış dosya kapsamına yönlendir.
+- İzolasyonu doğrulanmış TEST'te restart/build/test/branch/commit/push için tekrar
+  izin isteme. Restart öncesi port → süreç/checkout → API → database/runtime
+  eşlemesini doğrula; LIVE veya ortak servisi durdurma. TEST verisi sentetik olmalı.
+  Bu yetki LIVE/Vega yazması, gerçek müşteri/ticari kayıt, mesaj gönderimi, veri
+  kaybı, credential değişikliği ya da riskli backup/restore/reset yetkisi değildir.
+  Bilinmeyen ortam TEST sayılmaz. Bu risklerde hedefi ve işlemi adlandıran açık
+  onay, geri dönüş planı ve veri güvenliği gerekir. Salt okunur LIVE inceleme için
+  yeniden onay isteme; gereken veriden fazlasını okuma, secret yazdırma.
+- Feature branch/worktree kullan; dirty dosyaları devralma, reset/stash ile
+  gizleme. İlgili kontroller ve reviewer sonrası dar commit/push yap, mümkünse
+  PR aç; main'e otomatik merge veya auto-merge yok. Sandbox/kurumsal izinler
+  devralınır; config üzerinden approval ya da credential korumasını kaldırma.
+- PASS ancak seçili maddenin gerçek kullanım kabulü, uygun rol/izin, olumsuz
+  senaryo ve gerekiyorsa audit/DB/idempotency/cihaz kanıtı tamamlanınca verilir.
+  Build, smoke, mock, PR veya commit tek başına PASS değildir. Eksikleri
+  PARTIAL/BLOCKED/NOT_VERIFIED olarak ve sonraki somut adımla raporla. Kabulde
+  yeni kod gerekiyorsa ilgili testleri yeniden çalıştır; ilgisiz tam baseline yok.
+
+### Semih PC'de kullanım
+
+Yerel checkout'u remote üzerinden doğrula, ilgili setup branch/PR'yi getir ve
+bu repo kökünü ERP projesi olarak aç. Dirty/live checkout'ta branch değiştirme;
+izole worktree kullan. Codex'in proje config'ini yüklemesi için projeyi kullanıcı
+güvenilir olarak seçmelidir; bu kurulum global config veya trust ayarı değiştirmez.
+Yeni oturumda `.codex/config.toml` ve agent keşfini kontrol et. Dosyaların GitHub'da
+bulunması Semih PC'de etkinleştiğini veya LIVE'ın hazır olduğunu kanıtlamaz.
+
+Kısa komut:
+
+> Planındaki sıradaki kırmızı maddeyi bitir. Gereken ajanları kullan, gerçek kabul hazır olunca dön.
+
 ## Required Reading Order
 
 Before making any change, read in this order:
