@@ -1,5 +1,14 @@
 # Melisa ERP — bitirme planı
 
+## Kanonik geliştirme kökü — 3 Ekim 2026
+
+- SEMIH: `C:\Sirket\ERP\melisa-erp-v2`; fetch/push origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`.
+- Güncel kaynak tabanı: `codex/canonical-live-20261003` / `e82262b1d120f4c461a2456d67e34c115578d7ba`, [PR #15](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/15). Yerel kaynak ve GitHub HEAD eşleşti.
+- Aktif ajan/kök düzenleme dalı: `codex/erp-agents-on-canonical-20261003`. Ajan dosyaları PR #17’den uyarlanır; güncel plan, STATUS ve kabul kanıtları PR #15 tabanından korunur. PR #17’nin eski main tabanı geliştirme tabanı yapılmaz.
+- Son kayıtlı teknik TEST paketi: `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`; kapsam [kesin teslim](docs/erp-v2/canonical-20261003/delivery.json) ve [SQL akış kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md). Bunlar önceki çalışmanın kanıtıdır; kök standardizasyonu yeni uygulama kabulü değildir. Personelin günlük iş kabulü hâlâ bekliyor.
+- PR #14 bitiş planı, PR #15 kanonik kaynak ve native PR #13 korunur; main’e merge yapılmadı. Eski kaynak/runtime/release ve dirty farklar aynen kalır.
+
+
 Güncel yerel kaynak toplama: [3 Ekim kanonik baseline](docs/erp-v2/canonical-20261003/README.md). Aşağıdaki ilk envanter, EVDEKIPC devir anının tarihsel kaydıdır; SEMIH kaynak eşlemesi bu bağlantıdaki kanıtla güncellenir.
 
 Güncelleme: 3 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıdır**. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).
@@ -12,7 +21,11 @@ Paket commit: `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`; launcher `CANONICAL-SI
 
 **Kalan tek kabul işi:** personelin yeşil TEST ekranında normal günlük iş sırasını görerek kabul etmesi. Yazma kapsamı mevcut ayrılmış TEST kayıtlarıdır; tüm ticari kartlar, fiyat/kart düzenleme, ayrıntılı alış taslağı veya fiziksel native kullanım için genel PASS verilmez. Aşağıdaki eski host envanteri tarihsel devir kaydıdır.
 
-## Çalışma ilkesi ve mevcut durum
+## Tarihsel EVDEKIPC devir kaydı — aşağıdaki envanter güncel değildir
+
+Bu bölümdeki SEMIH erişimi, kaynak eşlemesi ve TEST kurulumu bekleniyor ifadeleri ilk devir anına aittir. Güncel sonucu üstteki 3 Ekim SEMIH ve kanonik geliştirme bölümleri ile bağlantılı kabul belgeleri belirler.
+
+### Çalışma ilkesi ve mevcut durum
 
 **Çalışanı koru; kanıtlı kabulü yeniden açma; dağınık kaynakları eşleştir; yalnız gerçek eksikleri düzelt.** Mevcut çalışan ERP işlevsel baseline'dır. GitHub'da en yeni tarihli dosya veya `main` etiketi, kendiliğinden çalışan sürüm anlamına gelmez.
 

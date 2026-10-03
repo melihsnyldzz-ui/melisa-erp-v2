@@ -1,5 +1,16 @@
 # Melisa ERP durumu
 
+## Kanonik geliştirme kökü — 3 Ekim 2026
+
+- SEMIH: `C:\Sirket\ERP\melisa-erp-v2`; fetch/push origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`.
+- Güncel kaynak tabanı: `codex/canonical-live-20261003` / `e82262b1d120f4c461a2456d67e34c115578d7ba`, [PR #15](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/15). Yerel kaynak ve GitHub HEAD eşleşti.
+- Aktif ajan/kök düzenleme dalı: `codex/erp-agents-on-canonical-20261003`. Ajan dosyaları PR #17’den uyarlanır; güncel plan, STATUS ve kabul kanıtları PR #15 tabanından korunur. PR #17’nin eski main tabanı geliştirme tabanı yapılmaz.
+- Son kayıtlı teknik TEST paketi: `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`; kapsam [kesin teslim](docs/erp-v2/canonical-20261003/delivery.json) ve [SQL akış kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md). Bunlar önceki çalışmanın kanıtıdır; kök standardizasyonu yeni uygulama kabulü değildir. Personelin günlük iş kabulü hâlâ bekliyor.
+- PR #14 bitiş planı, PR #15 kanonik kaynak ve native PR #13 korunur; main’e merge yapılmadı. Eski kaynak/runtime/release ve dirty farklar aynen kalır.
+
+
+## Önceki teknik kabul kaydı — kök standardizasyonunda yeniden çalıştırılmadı
+
 3 Ekim 2026 — **Yeşil Sites → kanonik API → gerçek TEST SQL: ayrılmış TEST kayıtları için teknik kabul PASS.**
 
 - Paket kaynağı: `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`; dal: `codex/canonical-live-20261003`.
