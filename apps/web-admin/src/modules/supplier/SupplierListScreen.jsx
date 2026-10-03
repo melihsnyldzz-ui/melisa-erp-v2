@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Columns3, Download, Ellipsis, Printer, RefreshCcw, RotateCcw, Search, Truck } from 'lucide-react';
-import { fetchVegaSuppliers } from '../../services/supplierApi.js';
+import { fetchSuppliers, fetchVegaSuppliers } from '../../services/supplierApi.js';
+import { apiConfig } from '../../config/apiConfig.js';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
@@ -63,26 +64,30 @@ function readVisibleSupplierColumns() {
 
 function renderSupplierCell(row, columnKey) {
   if (columnKey === 'code') {
-    return <td className="code-cell">{row.code}</td>;
+    return <td className="code-cell" data-column="code" title={row.code}>{row.code}</td>;
+  }
+
+  if (columnKey === 'name') {
+    return <td className="entity-name-cell" data-column="name" title={row.name}><strong>{row.name || '-'}</strong></td>;
   }
 
   if (columnKey === 'balance') {
-    return <td className="money-cell customer-payable">{formatMoney(Math.abs(row.balance), row.currency)} {row.balance < 0 ? '(B)' : row.balance > 0 ? '(A)' : ''}</td>;
+    return <td className="money-cell customer-payable" data-column="balance"><span className="entity-balance-value">{formatMoney(Math.abs(row.balance), row.currency)} {row.balance < 0 ? '(B)' : row.balance > 0 ? '(A)' : ''}</span><small className="entity-balance-currency">{row.currency}</small></td>;
   }
 
   if (columnKey === 'purchaseDiscountRate') {
-    return <td>%{row.purchaseDiscountRate}</td>;
+    return <td data-column="purchaseDiscountRate">%{row.purchaseDiscountRate}</td>;
   }
 
   if (columnKey === 'status') {
     return (
-      <td>
+      <td data-column="status">
         <span className={`entity-status-pill ${row.status === 'Aktif' ? 'active' : 'passive'}`}>{row.status}</span>
       </td>
     );
   }
 
-  return <td>{row[columnKey] ?? '-'}</td>;
+  return <td data-column={columnKey} title={String(row[columnKey] ?? '-')}>{row[columnKey] ?? '-'}</td>;
 }
 
 export function SupplierListScreen({ onOpenScreen }) {
@@ -119,10 +124,11 @@ export function SupplierListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchVegaSuppliers({
+        const response = await (apiConfig.pilotMode ? fetchSuppliers : fetchVegaSuppliers)({
           page: 1,
           limit: 500,
           search: debouncedSearch,
+          activeOnly: filters.status === 'active',
         });
         const nextRows = (response.data || []).map(toSupplierRow);
 
@@ -226,6 +232,21 @@ export function SupplierListScreen({ onOpenScreen }) {
   }
 
   function openSupplier(row = selectedRow) {
+    if (apiConfig.pilotMode) {
+      if (!row?.id) {
+        setSelectionWarning('Kartı açmak için listeden bir tedarikçi seçin.');
+        return;
+      }
+
+      setSelectionWarning('');
+      onOpenScreen('supplier-card', {
+        supplierId: row.id,
+        supplierCode: row.code,
+        tabLabel: row.code,
+      });
+      return;
+    }
+
     if (!row?.sourceId) {
       setSelectionWarning('Hareketleri açmak için listeden bir tedarikçi seçin.');
       return;
@@ -267,15 +288,17 @@ export function SupplierListScreen({ onOpenScreen }) {
     <main className="work-area supplier-list-screen">
       <section className="customer-list-toolbar">
         <div className="customer-title-block">
-          <strong>Vega Tedarikçi Carileri</strong>
-          <span>F0103 · 2026 canlı bakiye, alış fişleri ve ödeme hareketleri · salt okunur</span>
+          <strong>{apiConfig.pilotMode ? 'Melisa Tedarikçi Carileri' : 'Vega Tedarikçi Carileri'}</strong>
+          <span>{apiConfig.pilotMode ? 'Melisa test ERP · cari bakiyeleri, alış fişleri ve ödeme hareketleri' : 'F0103 · 2026 canlı bakiye, alış fişleri ve ödeme hareketleri · salt okunur'}</span>
         </div>
         <div className="customer-toolbar-actions">
-          <button type="button" className="primary-action" onClick={() => openSupplier()} disabled={!selectedRow}><Truck aria-hidden="true" size={16} /> Hareketleri Aç</button>
+          <button type="button" className="primary-action" onClick={() => openSupplier()} disabled={!selectedRow}><Truck aria-hidden="true" size={16} /> {apiConfig.pilotMode ? 'Kartı Aç' : 'Hareketleri Aç'}</button>
           <button type="button" onClick={() => setRefreshKey((current) => current + 1)}><RefreshCcw aria-hidden="true" size={16} /> Yenile</button>
           <details className="entity-list-tools">
             <summary aria-label="Diğer liste işlemleri" title="Diğer işlemler"><Ellipsis aria-hidden="true" size={18} /></summary>
             <div className="entity-list-tools-menu">
+              {apiConfig.pilotMode && <button type="button" onClick={() => onOpenScreen('supplier-movements')}>Tüm Tedarikçi Hareketleri</button>}
+              {apiConfig.pilotMode && <button type="button" onClick={() => onOpenScreen('supplier-statement')}>Tüm Tedarikçi Ekstreleri</button>}
               <button type="button" onClick={exportSuppliers}><Download aria-hidden="true" size={16} /> CSV</button>
               <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikçi Listesi')}><Printer aria-hidden="true" size={16} /> Yazdır</button>
               <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}><Columns3 aria-hidden="true" size={16} /> Kolonlar</button>
@@ -324,8 +347,8 @@ export function SupplierListScreen({ onOpenScreen }) {
       <section className="screen-summary entity-list-summary" aria-label="Tedarikçi liste özeti">
         <span>Toplam: <b>{totalFromApi}</b></span>
         <span>Gösterilen: <b>{filteredRows.length}</b></span>
-        <span>PB: <b>{Object.entries(currencySummary).map(([currency, count]) => `${currency} ${count}`).join(' / ') || '-'}</b></span>
-        <span>Bakiye: <b>{Object.entries(balanceSummary).map(([currency, amount]) => `${formatMoney(Math.abs(amount), currency)} ${amount < 0 ? '(B)' : amount > 0 ? '(A)' : ''}`).join(' / ') || '-'}</b></span>
+        <span className="entity-currency-summary">Para birimi: {Object.entries(currencySummary).map(([currency, count]) => <b className="entity-currency-chip" key={currency}>{currency} {count}</b>)}{Object.keys(currencySummary).length === 0 ? '-' : null}</span>
+        <span className="entity-currency-summary">Bakiye: {Object.entries(balanceSummary).map(([currency, amount]) => <b className="entity-currency-chip" key={currency}>{currency} {formatMoney(Math.abs(amount), currency)} {amount < 0 ? '(B)' : amount > 0 ? '(A)' : ''}</b>)}{Object.keys(balanceSummary).length === 0 ? '-' : null}</span>
         {missingApiRows > 0 && <span className="entity-list-summary-warning">{missingApiRows} kayıt için aramayı daraltın</span>}
       </section>
 
@@ -366,17 +389,17 @@ export function SupplierListScreen({ onOpenScreen }) {
           <strong>Tedarikçi Tablosu</strong>
           <span>Seçili: {selectedRow?.code ?? 'yok'} / Satır: {filteredRows.length}</span>
         </div>
-        {isLoading && <div className="list-state">Tedarikçiler Vega F0103'ten okunuyor...</div>}
+        {isLoading && <div className="list-state">{apiConfig.pilotMode ? 'Tedarikçiler Melisa’dan okunuyor...' : "Tedarikçiler Vega F0103'ten okunuyor..."}</div>}
         {!isLoading && errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
         {!isLoading && !errorMessage && filteredRows.length === 0 && <div className="list-state">Tedarikçi kaydı bulunamadı.</div>}
         {!isLoading && !errorMessage && selectionWarning && <div className="list-state list-state-error">{selectionWarning}</div>}
         {!isLoading && !errorMessage && filteredRows.length > 0 && (
           <div className="table-wrap customer-table-wrap supplier-table-wrap">
-            <table className="customer-table supplier-table">
+            <table className="customer-table supplier-table" style={{ minWidth: tableColumns.reduce((width, column) => width + (column.key === 'balance' ? 180 : column.width || 100), 0) }}>
               <thead>
                 <tr>
                   {tableColumns.map((column) => (
-                    <th key={column.key} style={{ width: column.width }}>
+                    <th key={column.key} data-column={column.key} style={{ width: column.width }}>
                       <button className="table-sort-button" onClick={() => sortRows(column.key)} type="button">
                         {column.label}{sortMark(column.key)}
                       </button>

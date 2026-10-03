@@ -1,4 +1,7 @@
+import { ledgerAccountCurrency, ledgerEffect, summarizeLedgerPeriod } from '../shared/ledgerBalances.js';
+
 export function formatMoney(value, currency = 'TRY') {
+  if (value == null || !Number.isFinite(Number(value)) || !['TRY', 'USD', 'EUR'].includes(currency)) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: currency || 'TRY',
@@ -10,6 +13,8 @@ export function movementLabel(type) {
   const labels = {
     purchase_invoice: 'Alış fişi',
     purchase_invoice_cancel: 'Alış iptal',
+    purchase_return: 'Alış iadesi',
+    purchase_return_cancel: 'Alış iadesi iptal',
     payment: 'Ödeme',
   };
 
@@ -17,31 +22,16 @@ export function movementLabel(type) {
 }
 
 export function isCancelledMovement(row) {
-  return Boolean(row.isCancelled) || row.movementType === 'purchase_invoice_cancel' || row.invoiceStatus === 'cancelled';
+  return Boolean(row.isCancelled) || ['purchase_invoice_cancel', 'purchase_return_cancel'].includes(row.movementType) || row.invoiceStatus === 'cancelled';
 }
 
 export function displayMovementLabel(row) {
-  return isCancelledMovement(row) ? 'Alış iptal' : movementLabel(row.movementType);
+  if (isCancelledMovement(row)) return row.movementType?.startsWith('purchase_return') ? 'Alış iadesi iptal' : 'Alış iptal';
+  return movementLabel(row.movementType);
 }
 
 export function summarizeRows(rows) {
-  return Object.values(rows.reduce((summary, row) => {
-    const currency = row.currency || 'TRY';
-    const effect = Number(row.balanceEffect || row.amount || 0);
-
-    if (!summary[currency]) {
-      summary[currency] = { currency, debit: 0, credit: 0, balance: 0 };
-    }
-
-    if (effect < 0) {
-      summary[currency].debit += Math.abs(effect);
-    } else {
-      summary[currency].credit += effect;
-    }
-
-    summary[currency].balance += effect;
-    return summary;
-  }, {}));
+  return Object.values(summarizeLedgerPeriod(rows, { debitWhenPositive: false }));
 }
 
 function parseDocumentDate(value) {
@@ -60,23 +50,42 @@ function isWithinDays(row, days) {
   return date >= threshold;
 }
 
-function summarizePeriod(rows, days) {
-  return rows.reduce((summary, row) => {
-    if (!isWithinDays(row, days)) return summary;
+function summarizePeriod(rows, days = null) {
+  const summary = rows.reduce((summary, row) => {
+    if (days != null && !isWithinDays(row, days)) return summary;
 
-    const effect = Number(row.balanceEffect || row.amount || 0);
+    const effect = ledgerEffect(row);
     const amount = Math.abs(effect);
+    const currency = ledgerAccountCurrency(row);
+    summary.byCurrency[currency] ??= { currency, paymentTotal: 0, goodsTotal: 0, returnTotal: 0 };
 
-    if (row.movementType === 'payment' || effect < 0) {
+    if (effect == null || summary.byCurrency[currency].unknown) {
+      summary.byCurrency[currency] = { currency, paymentTotal: null, goodsTotal: null, returnTotal: null, unknown: true };
+      return summary;
+    }
+
+    if (row.movementType === 'payment') {
       summary.paymentCount += 1;
       summary.paymentTotal += amount;
-    } else {
+      summary.byCurrency[currency].paymentTotal += amount;
+    } else if (row.movementType === 'purchase_return') {
+      summary.returnCount += 1;
+      summary.returnTotal += amount;
+      summary.byCurrency[currency].returnTotal += amount;
+    } else if (row.movementType === 'purchase_invoice') {
       summary.goodsCount += 1;
       summary.goodsTotal += amount;
+      summary.byCurrency[currency].goodsTotal += amount;
     }
 
     return summary;
-  }, { paymentCount: 0, paymentTotal: 0, goodsCount: 0, goodsTotal: 0 });
+  }, { paymentCount: 0, paymentTotal: 0, goodsCount: 0, goodsTotal: 0, returnCount: 0, returnTotal: 0, byCurrency: {} });
+  const currencyTotals = Object.values(summary.byCurrency);
+  return { ...summary, currencyTotals,
+    paymentTotal: currencyTotals.length > 1 || currencyTotals.some(row => row.unknown) ? null : summary.paymentTotal,
+    goodsTotal: currencyTotals.length > 1 || currencyTotals.some(row => row.unknown) ? null : summary.goodsTotal,
+    returnTotal: currencyTotals.length > 1 || currencyTotals.some(row => row.unknown) ? null : summary.returnTotal,
+  };
 }
 
 function buildSupplierLabel(supplier) {
@@ -118,20 +127,12 @@ export function normalizeSupplierSearch(value, suggestions = []) {
 
 export function buildSupplier360(rows, regularRows, cancelledRows, totals) {
   const supplierMap = new Map();
-  let purchaseTotal = 0;
-  let paymentTotal = 0;
 
   regularRows.forEach((row) => {
     if (row.supplierId || row.supplierCode || row.supplierName) {
       supplierMap.set(row.supplierId || row.supplierCode || row.supplierName, row);
     }
 
-    const effect = Number(row.balanceEffect || row.amount || 0);
-    if (row.movementType === 'payment' || effect < 0) {
-      paymentTotal += Math.abs(effect);
-    } else {
-      purchaseTotal += Math.abs(effect);
-    }
   });
 
   const latestRow = [...regularRows]
@@ -149,6 +150,7 @@ export function buildSupplier360(rows, regularRows, cancelledRows, totals) {
     .slice(0, 40);
   const last30 = summarizePeriod(regularRows, 30);
   const last90 = summarizePeriod(regularRows, 90);
+  const allPeriod = summarizePeriod(regularRows);
 
   return {
     primarySupplier,
@@ -156,10 +158,15 @@ export function buildSupplier360(rows, regularRows, cancelledRows, totals) {
     supplierCount: supplierMap.size,
     movementCount: regularRows.length,
     cancelledCount: cancelledRows.length,
-    purchaseTotal,
-    paymentTotal,
-    balance: primaryTotal.balance,
-    currency: primaryTotal.currency || 'TRY',
+    purchaseTotal: allPeriod.goodsTotal,
+    paymentTotal: allPeriod.paymentTotal,
+    returnTotal: allPeriod.returnTotal,
+    balance: totals.length > 1 ? null : primaryTotal.balance,
+    currency: totals.length > 1 ? null : primaryTotal.currency || 'TRY',
+    currencyTotals: totals.map(total => {
+      const amounts = allPeriod.currencyTotals.find(row => row.currency === total.currency);
+      return { ...total, purchaseTotal: amounts?.goodsTotal ?? null, paymentTotal: amounts?.paymentTotal ?? null, returnTotal: amounts?.returnTotal ?? null };
+    }),
     latestRow,
     recentRows,
     last30,

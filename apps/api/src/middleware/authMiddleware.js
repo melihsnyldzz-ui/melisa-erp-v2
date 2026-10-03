@@ -18,6 +18,7 @@ export async function requireAuth(req, res, next) {
 
     const payload = verifyAccessToken(token);
     req.user = await getUserById(payload.sub);
+    req.authContext = Object.freeze({ nativeTerminalCode: typeof payload.nativeTerminalCode === 'string' ? payload.nativeTerminalCode : null });
     return next();
   } catch (error) {
     return next(error);

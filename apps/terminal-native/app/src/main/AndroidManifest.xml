@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="com.honeywell.decode.permission.DECODE" />
+    <queries>
+        <package android:name="com.symbol.datawedge" />
+        <package android:name="com.intermec.datacollectionservice" />
+    </queries>
+    <application android:name=".TerminalApplication" android:label="Melisa Native" android:icon="@mipmap/ic_native_terminal" android:roundIcon="@mipmap/ic_native_terminal"
+        android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules"
+        android:supportsRtl="true" android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:usesCleartextTraffic="true">
+        <receiver android:name=".scanner.HoneywellScanReceiver" android:exported="true"
+            android:permission="com.honeywell.decode.permission.DECODE" />
+        <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -65,6 +65,7 @@ export async function getCurrencyRates(query = {}) {
           ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY rate_date DESC, id DESC) AS row_number
         FROM dbo.currency_rates
         WHERE currency_code IN (N'USD', N'EUR')
+          AND rate_date <= @rateDate
       )
       SELECT
         currency_code,

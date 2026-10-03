@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchTerminalAdminOverview } from '../../services/terminalAdminApi.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import { TerminalCustomerRoutesPanel } from './TerminalCustomerRoutesPanel.jsx';
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString('tr-TR') : '-';
@@ -57,7 +58,10 @@ const queueColumns = [
   { label: 'İşlenme', value: (row) => formatDate(row.processedAt) },
 ];
 
-export function TerminalAdminScreen() {
+export function TerminalAdminScreen({ permissions = [], onDirtyChange }) {
+  const canViewOverview = permissions.includes('dashboard.view');
+  const canManageRoutes = permissions.includes('settings.manage');
+  const [section, setSection] = useState(canViewOverview ? 'overview' : 'routes');
   const [filters, setFilters] = useState({
     status: '',
     search: '',
@@ -101,8 +105,8 @@ export function TerminalAdminScreen() {
   }
 
   useEffect(() => {
-    loadTerminalData();
-  }, []);
+    if (canViewOverview) loadTerminalData();
+  }, [canViewOverview]);
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -149,6 +153,14 @@ export function TerminalAdminScreen() {
 
   return (
     <main className="work-area dashboard-screen terminal-admin-screen">
+      <nav className="terminal-admin-tabs" role="tablist" aria-label="Terminal yönetimi bölümleri">
+        {canViewOverview && <button type="button" role="tab" aria-selected={section === 'overview'} onClick={() => setSection('overview')}>Cihazlar ve Eşitleme</button>}
+        {canManageRoutes && <button type="button" role="tab" aria-selected={section === 'routes'} onClick={() => setSection('routes')}>Rotalar ve Cariler</button>}
+      </nav>
+      {canManageRoutes && <div hidden={section !== 'routes'}>
+        <TerminalCustomerRoutesPanel permissions={permissions} onDirtyChange={onDirtyChange} />
+      </div>}
+      <div hidden={section !== 'overview' || !canViewOverview}>
       <section className="dashboard-toolbar">
         <div className="dashboard-toolbar-title">
           <strong>Terminal Yönetimi</strong>
@@ -312,6 +324,7 @@ export function TerminalAdminScreen() {
           </table>
         </div>
       </section>
+      </div>
     </main>
   );
 }

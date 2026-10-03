@@ -1,14 +1,10 @@
 import { env } from '../config/env.js';
 
-const MELISA_ERP_V2_DATABASE = 'MELISA_ERP_V2';
-const TEST_DATABASE = 'MELISA_ERP_FULL_TEST_20260916';
+const MELISA_ERP_V2_DATABASE = 'MELISA_ERP_PROD_CANDIDATE_20260917_01';
 
 export function assertMelisaWriteEnabled() {
-  const testWriteEnabled = process.env.MELISA_TEST_WRITE_ENABLED === 'true';
-  const allowed = env.sql.database === MELISA_ERP_V2_DATABASE
-    || (env.sql.database === TEST_DATABASE && testWriteEnabled);
-  if (!allowed) {
-    const error = new Error('Write target must be MELISA_ERP_V2');
+  if (env.sql.database !== MELISA_ERP_V2_DATABASE) {
+    const error = new Error('Write target must be the LIVE-3 production candidate');
     error.code = 'SQL_WRITE_TARGET_INVALID';
     error.statusCode = 403;
     throw error;

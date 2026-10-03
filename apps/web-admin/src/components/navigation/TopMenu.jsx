@@ -1,45 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart3,
-  Building2,
-  ClipboardList,
   FileText,
-  Home,
   LogOut,
-  MessageCircle,
-  Package,
-  PanelTop,
-  ReceiptText,
   Search,
-  Settings,
   SlidersHorizontal,
-  Tags,
-  Truck,
-  Users,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
-import { modules, navigationSections } from '../../data/mockNavigationData.js';
 import { getViewOptionItems } from '../../config/viewOptions.js';
 import { roleViews } from '../../config/roleViews.js';
 
-const moduleIcons = {
-  'Ana Sayfa': Home,
-  Stok: Package,
-  Müşteriler: Users,
-  Tedarikçiler: Truck,
-  Satış: ReceiptText,
-  Alış: ClipboardList,
-  Finans: Building2,
-  Raporlar: BarChart3,
-  Tanımlar: Tags,
-  'WhatsApp CRM': MessageCircle,
-  Ayarlar: Settings,
-};
-
 export function TopMenu({
-  activeModule,
   activeTab,
   roleViewId,
-  roleScreenIds,
   user,
   viewOptions,
   onLogout,
@@ -56,14 +29,6 @@ export function TopMenu({
   const viewMenuRef = useRef(null);
   const viewButtonRef = useRef(null);
   const viewOptionItems = useMemo(() => getViewOptionItems(activeTab), [activeTab]);
-  const visibleModules = useMemo(() => modules.filter((module) => {
-    if (!roleScreenIds) {
-      return true;
-    }
-
-    const section = navigationSections.find((item) => item.label === module.label);
-    return section?.screenIds.some((screenId) => roleScreenIds.has(screenId));
-  }), [roleScreenIds]);
 
   function updateViewMenuPosition() {
     if (!viewButtonRef.current) {
@@ -120,23 +85,16 @@ export function TopMenu({
   }, [isViewMenuOpen]);
 
   return (
-    <header className="top-menu">
+    <header className="top-menu daily-navigation-header">
       <div className="brand-block">
         <strong>Melisa ERP v2</strong>
         <span>Melisa Bebe Tekstil</span>
       </div>
-      <nav className="module-menu" aria-label="Ana modüller">
-        {visibleModules.map((module) => (
-          <ModuleButton
-            isActive={module.label === activeModule}
-            key={module.label}
-            module={module}
-            onOpenScreen={onOpenScreen}
-          />
-        ))}
-      </nav>
       <div className="top-actions">
-        <button className="search-box" onClick={onOpenCommandPalette} type="button"><Search size={15} /> Ara <kbd>Ctrl K</kbd></button>
+        <button className="workspace-menu-toggle" aria-controls="workspace-navigation" aria-expanded={viewOptions.showSidebar} aria-label={viewOptions.showSidebar ? 'Ana menüyü daralt' : 'Ana menüyü aç'} onClick={() => onUpdateViewOption('showSidebar', !viewOptions.showSidebar)} type="button">
+          {viewOptions.showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+        </button>
+        <button className="search-box" onClick={onOpenCommandPalette} type="button"><Search size={16} /><span>Ürün, cari veya ekran ara…</span><kbd>Ctrl K</kbd></button>
         <button
           className={viewOptions.simpleMode ? 'view-preset-button active' : 'view-preset-button'}
           title="Ekranı sadeleştir"
@@ -216,27 +174,9 @@ export function TopMenu({
             </div>
           )}
         </div>
-        <button className="top-primary-action" type="button" onClick={() => onOpenScreen('sales-invoice')}><FileText size={15} /> Yeni Fiş</button>
+        <button className="top-primary-action" type="button" onClick={() => onOpenScreen('sales-invoice')}><FileText size={15} /> Yeni Satış Fişi</button>
         <button type="button" onClick={onLogout}><LogOut size={15} /> Çıkış</button>
       </div>
     </header>
-  );
-}
-
-function ModuleButton({ module, isActive, onOpenScreen }) {
-  const Icon = moduleIcons[module.label] || PanelTop;
-
-  return (
-    <button
-      aria-label={module.label}
-      className={isActive ? 'module active' : 'module'}
-      key={module.label}
-      onClick={() => onOpenScreen(module.screenId)}
-      title={module.label}
-      type="button"
-    >
-      <span className="module-icon"><Icon size={15} strokeWidth={2.2} /></span>
-      <span className="module-label">{module.label}</span>
-    </button>
   );
 }

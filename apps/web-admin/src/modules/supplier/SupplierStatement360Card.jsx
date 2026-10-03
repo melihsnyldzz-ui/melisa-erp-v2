@@ -1,5 +1,10 @@
 import React from 'react';
+import { ledgerAccountCurrency, ledgerEffect } from '../shared/ledgerBalances.js';
 import { displayMovementLabel, formatMoney } from './supplierStatementUtils.js';
+
+function currencyTotalsText(rows = [], key) {
+  return rows.length ? rows.map(row => `${formatMoney(row[key], row.currency)}`).join(' / ') : '—';
+}
 
 export function SupplierStatement360Card({
   supplier360,
@@ -21,7 +26,7 @@ export function SupplierStatement360Card({
             <strong>{isFiltered ? (supplier360.primarySupplier?.supplierName || supplier360.primarySupplier?.supplierCode || 'Tedarikci bulunamadi') : 'Tum tedarikciler'}</strong>
             <small>{isFiltered ? (supplier360.primarySupplier?.supplierCode || 'Filtreli ekstre') : `${supplier360.supplierCount || 0} tedarikci`}</small>
           </div>
-          <b>{supplier360.currency}</b>
+          <b>{supplier360.currency || 'Dövizler ayrı'}</b>
         </div>
         <label className="supplier-ekstre-search">
           <span>Cari / belge ara</span>
@@ -46,16 +51,20 @@ export function SupplierStatement360Card({
       </div>
       <div className="supplier-ekstre-360-facts">
         <div>
-          <span>Bakiye</span>
-          <strong>{formatMoney(supplier360.balance, supplier360.currency)}</strong>
+          <span>Normal hareket neti</span>
+          <strong>{currencyTotalsText(supplier360.currencyTotals, 'balance')}</strong>
         </div>
         <div>
           <span>Alis</span>
-          <strong>{formatMoney(supplier360.purchaseTotal, supplier360.currency)}</strong>
+          <strong>{currencyTotalsText(supplier360.currencyTotals, 'purchaseTotal')}</strong>
         </div>
         <div>
           <span>Odeme</span>
-          <strong>{formatMoney(supplier360.paymentTotal, supplier360.currency)}</strong>
+          <strong>{currencyTotalsText(supplier360.currencyTotals, 'paymentTotal')}</strong>
+        </div>
+        <div>
+          <span>Alış iadesi</span>
+          <strong>{currencyTotalsText(supplier360.currencyTotals, 'returnTotal')}</strong>
         </div>
         <div>
           <span>Son hareket</span>
@@ -65,28 +74,28 @@ export function SupplierStatement360Card({
       <div className="supplier-ekstre-360-counts">
         <span><b>Hareket</b>{supplier360.movementCount}</span>
         <span><b>Iptal</b>{supplier360.cancelledCount}</span>
-        <span className="in"><b>Alis</b>{formatMoney(supplier360.purchaseTotal, supplier360.currency)}</span>
-        <span className="out"><b>Odeme</b>{formatMoney(supplier360.paymentTotal, supplier360.currency)}</span>
+        <span className="in"><b>Alis</b>{currencyTotalsText(supplier360.currencyTotals, 'purchaseTotal')}</span>
+        <span className="out"><b>Odeme</b>{currencyTotalsText(supplier360.currencyTotals, 'paymentTotal')}</span>
       </div>
       <div className="supplier-ekstre-period-grid">
         <div>
           <span>Son 1 ay odeme</span>
           <strong>{supplier360.last30.paymentCount}</strong>
-          <small>{formatMoney(supplier360.last30.paymentTotal, supplier360.currency)}</small>
+          <small>{currencyTotalsText(supplier360.last30.currencyTotals, 'paymentTotal')}</small>
         </div>
         <div className="in">
           <span>Son 1 ay gelen mal</span>
           <strong>{supplier360.last30.goodsCount}</strong>
-          <small>{formatMoney(supplier360.last30.goodsTotal, supplier360.currency)}</small>
+          <small>{currencyTotalsText(supplier360.last30.currencyTotals, 'goodsTotal')}</small>
         </div>
         <div>
           <span>Son 3 ay odeme</span>
           <strong>{supplier360.last90.paymentCount}</strong>
-          <small>{formatMoney(supplier360.last90.paymentTotal, supplier360.currency)}</small>
+          <small>{currencyTotalsText(supplier360.last90.currencyTotals, 'paymentTotal')}</small>
         </div>
         <div className="out">
           <span>Son 3 ay odenen para</span>
-          <strong>{formatMoney(supplier360.last90.paymentTotal, supplier360.currency)}</strong>
+          <strong>{currencyTotalsText(supplier360.last90.currencyTotals, 'paymentTotal')}</strong>
           <small>{supplier360.last90.paymentCount} odeme hareketi</small>
         </div>
       </div>
@@ -94,14 +103,14 @@ export function SupplierStatement360Card({
         <strong>Son Fis Hareketleri</strong>
         {supplier360.recentRows.length === 0 && <span>Hareket yok.</span>}
         {supplier360.recentRows.map((row) => {
-          const effect = Number(row.balanceEffect || row.amount || 0);
+          const effect = ledgerEffect(row);
           return (
             <button type="button" key={`supplier-360-${row.id}`} onClick={() => onOpenMovement(row)}>
               <span>
                 <b>{displayMovementLabel(row)}</b>
                 <small>{row.documentNo || '-'} / {row.supplierName || row.supplierCode || '-'}</small>
               </span>
-              <strong className={effect < 0 ? 'out' : ''}>{effect < 0 ? '-' : '+'}{formatMoney(Math.abs(effect), row.currency)}</strong>
+              <strong className={effect < 0 ? 'out' : ''}>{effect == null ? '' : effect < 0 ? '-' : '+'}{formatMoney((effect == null ? null : Math.abs(effect)), ledgerAccountCurrency(row))}</strong>
             </button>
           );
         })}

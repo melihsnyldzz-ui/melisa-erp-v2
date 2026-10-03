@@ -64,6 +64,8 @@ export async function getVegaCustomersList(query) {
   const pool = await getVegaSqlPool();
   const result = await pool.request()
     .input('search', sql.NVarChar(120), toSearchPattern(options.search))
+    // A full customer code must survive Turkish letter normalization unchanged.
+    .input('exactCustomerCode', sql.NVarChar(120), options.search || null)
     .input('offset', sql.Int, options.offset)
     .query(`
       WITH live_customers AS (
@@ -95,7 +97,7 @@ export async function getVegaCustomersList(query) {
           ISNULL(c.DELETED, 0) = 0
           AND ISNULL(c.STATUS, 0) = 1
           AND LTRIM(RTRIM(ISNULL(c.PARABIRIMI, N''))) <> N'LL'
-          AND (@search IS NULL OR ${searchPredicates})
+          AND (@search IS NULL OR LTRIM(RTRIM(c.FIRMAKODU)) = @exactCustomerCode OR ${searchPredicates})
       ),
       movement_balances AS (
         SELECT

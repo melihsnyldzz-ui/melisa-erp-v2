@@ -31,3 +31,8 @@ apps/terminal-app/android/app/build/
 apps/desktop/dist/
 output/
 __pycache__/
+
+# Canonical reproducible build and private runtime outputs
+apps/web-admin/dist-*/
+.canonical-runtime/
+*.private.json

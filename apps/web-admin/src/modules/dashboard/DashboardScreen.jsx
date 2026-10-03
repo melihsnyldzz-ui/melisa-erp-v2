@@ -9,6 +9,7 @@ import { DashboardTopProducts } from './DashboardTopProducts.jsx';
 import { fetchDashboardAlerts, fetchDashboardSummary } from '../../services/dashboardApi.js';
 import { DashboardLayoutEditor, DashboardWidgetFrame } from './DashboardLayoutControls.jsx';
 import { DashboardQuickActions } from './DashboardQuickActions.jsx';
+import { readDashboardSnapshot } from './dashboardSnapshot.js';
 import {
   buildDefaultDashboardLayout,
   dashboardFreeLayout,
@@ -26,7 +27,6 @@ import {
   mapRecentTransactions,
   mapSupplierPerformance,
   mapTopProducts,
-  periodLabels,
 } from './dashboardMetrics.js';
 
 export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = 'yonetici' }) {
@@ -34,12 +34,13 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
   const [dashboardLayout, setDashboardLayout] = useState(loadDashboardLayout);
   const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false);
   const dashboardDeskRef = useRef(null);
-  const [period, setPeriod] = useState('today');
-  const [refreshCount, setRefreshCount] = useState(0);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const loadInFlightRef = useRef(false);
   const [summaryData, setSummaryData] = useState(null);
   const [alertsData, setAlertsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [alertsError, setAlertsError] = useState('');
   const kpis = useMemo(
     () => (activeView === 'patron'
       ? buildPatronKpis(summaryData || emptyDashboardSummary)
@@ -54,12 +55,12 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
   const criticalAlerts = useMemo(() => mapAlerts(alertsData), [alertsData]);
   const melisaRows = (summaryData || emptyDashboardSummary).melisaPanels || {};
   const summary = useMemo(
-    () => `${visibleTitle} / ${periodLabels[period]} / SQL yenileme ${refreshCount}`,
-    [period, refreshCount, visibleTitle],
+    () => `${visibleTitle} / Bugünkü işlemler / ${lastUpdatedAt ? `Son başarılı okuma: ${new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdatedAt)}` : 'Henüz veri okunmadı'}`,
+    [lastUpdatedAt, visibleTitle],
   );
   const widgetMap = useMemo(() => ({
     alerts: {
-      node: <DashboardAlertsPanel alerts={criticalAlerts} />,
+      node: <DashboardAlertsPanel alerts={criticalAlerts} errorMessage={alertsError} onOpenScreen={onOpenScreen} />,
     },
     country: {
       node: (
@@ -72,6 +73,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
             { key: 'note', label: 'Not' },
           ]}
           rows={countryPerformance}
+          isAvailable={Array.isArray(summaryData?.countryPerformance)}
           subtitle={countryPerformance.length > 0 ? 'Ülke performansı ve alacak dağılımı' : 'Ülke verisi henüz oluşmadı'}
           title="Ülke Bazlı Satış / Alacak"
         />
@@ -87,6 +89,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
             { key: 'owner', label: 'Takip' },
           ]}
           rows={melisaRows.whatsapp || []}
+          isAvailable={Array.isArray(melisaRows.whatsapp)}
           subtitle="Foto paylaşım / cevap / sipariş adayı"
           title="WhatsApp Grup Takibi"
         />
@@ -111,6 +114,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
             { key: 'action', label: 'Aksiyon' },
           ]}
           rows={melisaRows.collections || []}
+          isAvailable={Array.isArray(melisaRows.collections)}
           subtitle="Acil tahsilat / açık hesap"
           title="Tahsilat Bekleyenler"
         />
@@ -126,6 +130,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
             { key: 'country', label: 'Ülke' },
           ]}
           rows={melisaRows.productFocus || []}
+          isAvailable={Array.isArray(melisaRows.productFocus)}
           subtitle="Yeni gelen / çok satan / stokta fazla"
           title="Ürün Odak Listesi"
         />
@@ -141,6 +146,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
             { key: 'note', label: 'Not' },
           ]}
           rows={melisaRows.topReceivableFocus || []}
+          isAvailable={Array.isArray(melisaRows.topReceivableFocus)}
           subtitle="İlk 20 müşteri yoğunluğu"
           title="Alacak Yoğunluğu"
         />
@@ -155,12 +161,13 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
             { key: 'reason', label: 'Fırsat' },
           ]}
           rows={melisaRows.countryOpportunities || []}
+          isAvailable={Array.isArray(melisaRows.countryOpportunities)}
           subtitle="Bugün öne çıkarılacak pazarlar"
           title="Ülke Bazlı Fırsatlar"
         />
       ),
     },
-  }), [countryPerformance, criticalAlerts, melisaRows, receivables, recentTransactions, topProducts]);
+  }), [alertsError, countryPerformance, criticalAlerts, melisaRows, onOpenScreen, receivables, recentTransactions, summaryData, topProducts]);
   const visibleDashboardWidgets = useMemo(
     () => dashboardLayout.filter((widget) => widget.visible && widgetMap[widget.key]),
     [dashboardLayout, widgetMap],
@@ -293,21 +300,21 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
   }, []);
 
   const loadDashboard = useCallback(async () => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     setIsLoading(true);
-    setErrorMessage('');
-
     try {
-      const [summaryResponse, alertsResponse] = await Promise.all([
-        fetchDashboardSummary(),
-        fetchDashboardAlerts(),
-      ]);
-      setSummaryData(summaryResponse.data);
-      setAlertsData(alertsResponse.data);
-      setRefreshCount((count) => count + 1);
-    } catch (error) {
-      setErrorMessage(`${error.message || 'Dashboard KPI okunamadı.'} (${error.code || 'API_ERROR'})`);
+      const snapshot = await readDashboardSnapshot(fetchDashboardSummary, fetchDashboardAlerts);
+      if (snapshot.summary) {
+        setSummaryData(snapshot.summary);
+        setLastUpdatedAt(new Date());
+      }
+      if (snapshot.alerts) setAlertsData(snapshot.alerts);
+      setErrorMessage(snapshot.summaryError);
+      setAlertsError(snapshot.alertsError);
     } finally {
       setIsLoading(false);
+      loadInFlightRef.current = false;
     }
   }, []);
 
@@ -326,13 +333,12 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
         activeView={activeView}
         isLayoutEditorOpen={isLayoutEditorOpen}
         onLayoutEditorToggle={() => setIsLayoutEditorOpen((isOpen) => !isOpen)}
-        period={period}
-        onPeriodChange={setPeriod}
+        onOpenReports={permissions.includes('dashboard.view') ? () => onOpenScreen?.('reports-overview') : undefined}
         onRefresh={loadDashboard}
         onViewChange={setActiveView}
       />
-      {isLoading && <div className="list-state">Dashboard KPI verileri API'den okunuyor...</div>}
-      {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      {isLoading && <div className="list-state" role="status">{summaryData ? 'Günlük özet yenileniyor; son başarılı okuma gösteriliyor.' : 'Günlük özet okunuyor…'}</div>}
+      {errorMessage && <div className="list-state list-state-error" role="alert">{errorMessage} {summaryData ? 'Son başarılı okuma gösteriliyor; güncel olduğu doğrulanamadı.' : 'Veri okunamadığı için özet gösterilmiyor.'}</div>}
       {isLayoutEditorOpen && (
         <DashboardLayoutEditor
           layout={dashboardLayout}
@@ -342,6 +348,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
         />
       )}
       <DashboardQuickActions onOpenScreen={onOpenScreen} permissions={permissions} roleViewId={roleViewId} />
+      {summaryData && <>
       <DashboardKpiGrid kpis={kpis} onOpenScreen={onOpenScreen} />
       <section
         className={`dashboard-main-grid${isLayoutEditorOpen ? ' dashboard-free-desk dashboard-free-desk-editing' : ''}`}
@@ -372,6 +379,7 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
           </section>
         )}
       </section>
+      </>}
       <section className="screen-summary dashboard-summary inline-summary">
         <span>{summary}</span>
         <span>{visibleDashboardWidgets.length} bölüm açık</span>

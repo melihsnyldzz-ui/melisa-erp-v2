@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchManagementReporting, fetchPeriodicAccounting } from '../../services/dashboardApi.js';
 import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
+import { formatCardValuation } from '../dashboard/dashboardMetrics.js';
 
 function formatMoney(amount, currency = 'TRY') {
+  if (amount === null || amount === undefined || !Number.isFinite(Number(amount))) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -37,6 +39,29 @@ function Kpi({ label, value, detail, tone = 'info' }) {
       <small>{detail}</small>
     </article>
   );
+}
+
+function returnRows(reporting) {
+  return [['sales', 'Satış'], ['purchases', 'Alış']].map(([kind, label]) => {
+    const totals = reporting?.[kind];
+    return { label, gross: formatMoney(totals?.grossAmountTry),
+      returned: formatMoney(totals?.known ? totals.returnedAmountTry : null),
+      cancelled: formatMoney(totals?.known ? totals.returnCancelledAmountTry : null),
+      net: formatMoney(totals?.known ? totals.netAmountTry : null) };
+  });
+}
+
+export function ReturnTotalsPanel({ title, reporting }) {
+  return <section className="erp-panel dashboard-table-panel">
+    <div className="panel-title"><strong>{title}</strong><span>Brüt − iade + iade iptali = net (TRY)</span></div>
+    {!reporting?.known && <div className="list-state list-state-error">İade bilgisi doğrulanamadığı için net satış, alış ve brüt kâr bilinmiyor.</div>}
+    <div className="table-wrap"><table>
+      <thead><tr><th>İşlem</th><th>Brüt</th><th>İade</th><th>İade iptali</th><th>Net</th></tr></thead>
+      <tbody>{returnRows(reporting).map(row => <tr key={row.label}><td>{row.label}</td><td>{row.gross}</td><td>{row.returned}</td><td>{row.cancelled}</td><td>{row.net}</td></tr>)}</tbody>
+    </table></div>
+    <p>İade öncesi brüt kâr: {formatMoney(reporting?.sales?.grossProfitTry)} · İade kâr etkisi: {formatMoney(reporting?.known ? reporting.sales?.profitAdjustmentTry : null)} · İade sonrası brüt kâr: {formatMoney(reporting?.known ? reporting.sales?.netGrossProfitTry : null)}</p>
+    <p>İade ve iptali kendi işlem tarihinde sayılır. Fiş adetleri brüt belge adedidir. İadeler kasadan ödeme oluşturmaz.</p>
+  </section>;
 }
 
 function TablePanel({ title, subtitle, columns, rows, emptyText = 'Kayıt yok.' }) {
@@ -147,11 +172,11 @@ export function ManagementReportsScreen() {
     const purchases = report.dailyPurchases || {};
 
     return [
-      { label: 'Bugün satış', value: formatMoney(widgets.todaySalesTry), detail: `${formatNumber(sales.salesCount)} fiş`, tone: 'good' },
-      { label: 'Bugün alış', value: formatMoney(widgets.todayPurchasesTry), detail: `${formatNumber(purchases.purchaseCount)} fiş`, tone: 'info' },
+      { label: 'Bugün net satış', value: formatMoney(report.returnReporting?.known ? widgets.todaySalesTry : null), detail: `${formatNumber(sales.salesCount)} brüt fiş / iadeler dahil`, tone: 'good' },
+      { label: 'Bugün net alış', value: formatMoney(report.returnReporting?.known ? widgets.todayPurchasesTry : null), detail: `${formatNumber(purchases.purchaseCount)} brüt fiş / iadeler dahil`, tone: 'info' },
       { label: 'Stok değeri', value: formatMoney(widgets.totalStockValueTry), detail: 'Kart stoğu × ortalama maliyet', tone: 'info' },
-      { label: 'Müşteri bakiyesi', value: formatMoney(widgets.customerBalanceTry), detail: 'Cari kart toplam bakiyesi', tone: 'warn' },
-      { label: 'Tedarikçi bakiyesi', value: formatMoney(widgets.supplierBalanceTry), detail: 'Tedarikçi kart toplam bakiyesi', tone: 'warn' },
+      { label: 'Müşteri bakiyesi', value: formatMoney(widgets.customerBalanceTry), detail: `Güncel kart / değerleme ${formatDate(report.balanceValuationDate)}`, tone: 'warn' },
+      { label: 'Tedarikçi bakiyesi', value: formatMoney(widgets.supplierBalanceTry), detail: `Güncel kart / değerleme ${formatDate(report.balanceValuationDate)}`, tone: 'warn' },
       { label: 'Kritik uyarı', value: formatNumber((report.criticalWarnings || []).length), detail: `${formatNumber(widgets.negativeStockCount)} eksi stok`, tone: Number(widgets.negativeStockCount || 0) > 0 ? 'danger' : 'good' },
     ];
   }, [report]);
@@ -159,10 +184,10 @@ export function ManagementReportsScreen() {
   const periodicKpis = useMemo(() => {
     const widgets = periodicReport.widgets || {};
     return [
-      { label: 'Dönem satış', value: formatMoney(widgets.salesTry), detail: `${periodicReport.dateFrom || '-'} / ${periodicReport.dateTo || '-'}`, tone: 'good' },
-      { label: 'Dönem alış', value: formatMoney(widgets.purchasesTry), detail: 'Kesinleşen alış toplamı', tone: 'info' },
-      { label: 'Tahsilat', value: formatMoney(widgets.collections), detail: 'Müşteri tahsilatları', tone: 'good' },
-      { label: 'Ödeme', value: formatMoney(widgets.payments), detail: 'Tedarikçi ödemeleri', tone: 'danger' },
+      { label: 'Dönem net satış', value: formatMoney(periodicReport.returnReporting?.known ? widgets.salesTry : null), detail: `${periodicReport.dateFrom || '-'} / ${periodicReport.dateTo || '-'}`, tone: 'good' },
+      { label: 'Dönem net alış', value: formatMoney(periodicReport.returnReporting?.known ? widgets.purchasesTry : null), detail: 'İade ve iptaller dahil', tone: 'info' },
+      { label: 'Tahsilat TRY', value: formatMoney(widgets.collections), detail: 'Kaydedilmiş işlem karşılığı', tone: 'good' },
+      { label: 'Ödeme TRY', value: formatMoney(widgets.payments), detail: 'Kaydedilmiş işlem karşılığı', tone: 'danger' },
       { label: 'Net kasa', value: formatMoney(widgets.netCash), detail: 'Tahsilat eksi ödeme', tone: Number(widgets.netCash || 0) >= 0 ? 'good' : 'danger' },
       { label: 'Kasa/banka TRY', value: formatMoney(widgets.cashBankTry), detail: 'Aktif hesap bakiyesi', tone: 'info' },
     ];
@@ -172,10 +197,10 @@ export function ManagementReportsScreen() {
   const dailyPurchases = report.dailyPurchases || {};
 
   const salesRows = report ? [{
-    metric: 'Günlük satış',
+    metric: 'Günlük net satış',
     count: formatNumber(dailySales.salesCount),
-    amount: formatMoney(dailySales.salesAmountTry),
-    extra: formatMoney(dailySales.grossProfitTry),
+    amount: formatMoney(report.returnReporting?.known ? dailySales.salesAmountTry : null),
+    extra: formatMoney(report.returnReporting?.known ? dailySales.grossProfitTry : null),
   }, {
     metric: 'İptal satış',
     count: formatNumber(dailySales.cancelledSalesCount),
@@ -184,9 +209,9 @@ export function ManagementReportsScreen() {
   }] : [];
 
   const purchaseRows = report ? [{
-    metric: 'Günlük alış',
+    metric: 'Günlük net alış',
     count: formatNumber(dailyPurchases.purchaseCount),
-    amount: formatMoney(dailyPurchases.purchaseAmountTry),
+    amount: formatMoney(report.returnReporting?.known ? dailyPurchases.purchaseAmountTry : null),
     extra: '-',
   }, {
     metric: 'İptal alış',
@@ -198,19 +223,19 @@ export function ManagementReportsScreen() {
   const currencyRows = [
     ...((periodicReport.salesByCurrency || []).map((row) => ({
       id: `sales-${row.currency}`,
-      type: 'Satış',
+      type: 'Satış (net)',
       currency: row.currency,
       count: formatNumber(row.count),
-      amount: formatMoney(row.amount, row.currency),
-      amountTry: formatMoney(row.amountTry),
+      amount: formatMoney(row.returnReportingKnown ? row.amount : null, row.currency),
+      amountTry: formatMoney(row.returnReportingKnown ? row.amountTry : null),
     }))),
     ...((periodicReport.purchasesByCurrency || []).map((row) => ({
       id: `purchase-${row.currency}`,
-      type: 'Alış',
+      type: 'Alış (net)',
       currency: row.currency,
       count: formatNumber(row.count),
-      amount: formatMoney(row.amount, row.currency),
-      amountTry: formatMoney(row.amountTry),
+      amount: formatMoney(row.returnReportingKnown ? row.amount : null, row.currency),
+      amountTry: formatMoney(row.returnReportingKnown ? row.amountTry : null),
     }))),
     ...((periodicReport.financeByCurrency || []).map((row) => ({
       id: `finance-${row.currency}`,
@@ -264,7 +289,7 @@ export function ManagementReportsScreen() {
     id: row.customerId,
     customer: `${row.customerCode} / ${row.customerName}`,
     sales: formatMoney(row.totalSalesTry),
-    balance: formatMoney(row.balanceTry),
+    balance: formatCardValuation(row),
     lastSale: formatDate(row.lastSaleDate),
   }));
 
@@ -272,7 +297,7 @@ export function ManagementReportsScreen() {
     id: row.supplierId,
     supplier: `${row.supplierCode} / ${row.supplierName}`,
     purchases: formatMoney(row.totalPurchasesTry),
-    balance: formatMoney(row.balanceTry),
+    balance: formatCardValuation(row),
     lastPurchase: formatDate(row.lastPurchaseDate),
   }));
 
@@ -319,6 +344,12 @@ export function ManagementReportsScreen() {
 
   const reportExportRows = [
     ...reportAssumptionRows,
+    ...[['Günlük', report.returnReporting], ['Dönem', periodicReport.returnReporting]].flatMap(([period, reporting]) => [
+      ...returnRows(reporting).map(row => ({ section: `${period} brüt / iade / net`, metric: row.label, value: row.net,
+        detail: `Brüt ${row.gross} / İade ${row.returned} / İade iptali ${row.cancelled}` })),
+      { section: `${period} brüt kâr`, metric: 'İade sonrası brüt kâr', value: formatMoney(reporting?.known ? reporting.sales?.netGrossProfitTry : null),
+        detail: `İade öncesi ${formatMoney(reporting?.sales?.grossProfitTry)} / İade etkisi ${formatMoney(reporting?.known ? reporting.sales?.profitAdjustmentTry : null)}` },
+    ]),
     ...kpis.map((row) => ({
       section: 'Anlık KPI',
       metric: row.label,
@@ -344,19 +375,19 @@ export function ManagementReportsScreen() {
       detail: `${row.count} cari / borç ${row.debit} / alacak ${row.credit}`,
     })),
     ...topProductRows.map((row) => ({
-      section: 'En Çok Satan Ürün',
+      section: 'En Çok Satan Ürün (iade hariç)',
       metric: row.product,
       value: row.revenue,
       detail: `${row.quantity} adet / kâr ${row.profit}`,
     })),
     ...customerRows.map((row) => ({
-      section: 'Müşteri Analizi',
+      section: 'Müşteri Analizi (satış iade hariç)',
       metric: row.customer,
       value: row.sales,
       detail: `Bakiye ${row.balance} / son satış ${row.lastSale}`,
     })),
     ...supplierRows.map((row) => ({
-      section: 'Tedarikçi Analizi',
+      section: 'Tedarikçi Analizi (alış iade hariç)',
       metric: row.supplier,
       value: row.purchases,
       detail: `Bakiye ${row.balance} / son alış ${row.lastPurchase}`,
@@ -436,6 +467,8 @@ export function ManagementReportsScreen() {
         ))}
       </section>
 
+      <ReturnTotalsPanel title="Günlük brüt / iade / net" reporting={report.returnReporting} />
+
       <section className="erp-panel periodic-report-panel">
         <div className="panel-title">
           <strong>Dönemsel Muhasebe Raporları</strong>
@@ -459,6 +492,9 @@ export function ManagementReportsScreen() {
           <Kpi key={kpi.label} {...kpi} />
         ))}
       </section>
+
+      <ReturnTotalsPanel title="Dönem brüt / iade / net" reporting={periodicReport.returnReporting} />
+      {periodicReport.financeReporting?.known === false && <div className="list-state list-state-error">Bazı finans hareketlerinin kaydedilmiş TRY karşılığı eksik. Etkilenen tahsilat/ödeme ve net kasa toplamı bilinmiyor; döviz tutarları ayrı gösterilir.</div>}
 
       <section className="dashboard-main-grid report-detail-grid">
         <NotesPanel title="Dönem Varsayımları" notes={periodicReport.assumptions} />
@@ -536,7 +572,7 @@ export function ManagementReportsScreen() {
             { key: 'profit', label: 'Kâr', align: 'right' },
           ]}
           rows={topProductRows}
-          subtitle="Kesinleşen satış satırları"
+          subtitle="Kesinleşen satış satırları; iade hariç"
           title="En Çok Satan Ürünler"
         />
         <TablePanel
@@ -547,7 +583,7 @@ export function ManagementReportsScreen() {
             { key: 'lastSale', label: 'Son satış' },
           ]}
           rows={customerRows}
-          subtitle="Kesinleşen satış ve kart bakiyesi"
+          subtitle="Satış toplamı iade hariç; kart bakiyesi güncel"
           title="Müşteri Analizi"
         />
         <TablePanel
@@ -558,7 +594,7 @@ export function ManagementReportsScreen() {
             { key: 'lastPurchase', label: 'Son alış' },
           ]}
           rows={supplierRows}
-          subtitle="Kesinleşen alış ve tedarikçi bakiyesi"
+          subtitle="Alış toplamı iade hariç; kart bakiyesi güncel"
           title="Tedarikçi Analizi"
         />
         <TablePanel

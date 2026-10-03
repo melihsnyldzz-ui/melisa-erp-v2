@@ -1,14 +1,15 @@
-export const dashboardLayoutStorageKey = 'melisa.dashboard.layout.v1';
+export const dashboardLayoutStorageKey = 'melisa.dashboard.layout.v2';
+const legacyDashboardLayoutStorageKey = 'melisa.dashboard.layout.v1';
 
 export const dashboardWidgetDefaults = [
   { key: 'alerts', label: 'Kritik uyarılar', size: 'medium', visible: true },
-  { key: 'country', label: 'Ülke bazlı satış / alacak', size: 'medium', visible: true },
-  { key: 'whatsapp', label: 'WhatsApp grup takibi', size: 'small', visible: true },
+  { key: 'country', label: 'Ülke bazlı satış / alacak', size: 'medium', visible: false },
+  { key: 'whatsapp', label: 'WhatsApp grup takibi', size: 'small', visible: false },
   { key: 'recent', label: 'Son satışlar / alışlar', size: 'wide', visible: true },
   { key: 'topProducts', label: 'En çok satan ürünler', size: 'wide', visible: true },
   { key: 'receivables', label: 'Cari borç / ekstre özeti', size: 'medium', visible: true },
-  { key: 'collections', label: 'Tahsilat bekleyenler', size: 'medium', visible: true },
-  { key: 'productFocus', label: 'Ürün odak listesi', size: 'small', visible: true },
+  { key: 'collections', label: 'Tahsilat bekleyenler', size: 'medium', visible: false },
+  { key: 'productFocus', label: 'Ürün odak listesi', size: 'small', visible: false },
   { key: 'topReceivableFocus', label: 'Alacak yoğunluğu', size: 'small', visible: false },
   { key: 'countryOpportunities', label: 'Ülke bazlı fırsatlar', size: 'small', visible: false },
 ];
@@ -114,7 +115,20 @@ function normalizeDashboardLayout(savedLayout) {
 
 export function loadDashboardLayout() {
   try {
-    return normalizeDashboardLayout(JSON.parse(window.localStorage.getItem(dashboardLayoutStorageKey) || 'null'));
+    const current = window.localStorage.getItem(dashboardLayoutStorageKey);
+    if (current) return normalizeDashboardLayout(JSON.parse(current));
+
+    const legacy = JSON.parse(window.localStorage.getItem(legacyDashboardLayoutStorageKey) || 'null');
+    const oldDefault = buildDashboardGeometry(dashboardWidgetDefaults.map(widget => ({
+      ...widget,
+      visible: !['topReceivableFocus', 'countryOpportunities'].includes(widget.key),
+    })));
+    // Previous versions automatically saved the untouched default on first visit.
+    // Migrate that default; preserve every user-customized layout and its old key.
+    const wasOldDefault = Array.isArray(legacy) && legacy.length === oldDefault.length && oldDefault.every((widget, index) => (
+      ['key', 'visible', 'size', 'x', 'y', 'w', 'h'].every(key => legacy[index]?.[key] === widget[key])
+    ));
+    return wasOldDefault ? buildDefaultDashboardLayout() : normalizeDashboardLayout(legacy);
   } catch (_error) {
     return buildDefaultDashboardLayout();
   }

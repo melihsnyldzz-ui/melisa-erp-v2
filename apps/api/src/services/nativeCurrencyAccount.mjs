@@ -1,0 +1,72 @@
+import {getSqlDriver} from '../config/database.js';
+import {nativeError} from './nativeTerminalPolicy.mjs';
+import {writeAuditLog} from './auditService.js';
+
+// Runs inside the native sale's SERIALIZABLE transaction. Never guesses an
+// account, creates a currency account, or backfills an old commercial document.
+export async function postNativeCurrencyAccount(invoiceId,ctx,actor,{cancel=false}={}) {
+ if(!ctx?.transaction||!ctx.nativeTerminalV1)nativeError('NATIVE_ACCOUNT_TRANSACTION_REQUIRED','Cari hesabı için satış işlemi gerekli.',503);
+ const sql=getSqlDriver(),request=()=>new sql.Request(ctx.transaction);
+ const result=await request().input('invoice',sql.BigInt,invoiceId).input('cancel',sql.Bit,cancel).query(`
+  DECLARE @customer bigint,@party bigint,@currency nvarchar(10),@amount decimal(28,8),@linked bigint,@status nvarchar(30);
+  SELECT @customer=customer_id,@currency=document_currency,@amount=account_amount,@linked=party_currency_account_id,@status=status
+   FROM dbo.sales_invoices WITH(UPDLOCK,HOLDLOCK) WHERE id=@invoice AND document_currency=account_currency AND account_amount=grand_total;
+  IF @customer IS NULL OR @amount IS NULL OR @amount<=0 OR @status<>CASE WHEN @cancel=1 THEN N'cancelled' ELSE N'finalized' END
+   THROW 51101,'NATIVE_ACCOUNT_INVOICE_INVALID',1;
+  SELECT @party=party_entity_id FROM dbo.customers WITH(UPDLOCK,HOLDLOCK) WHERE id=@customer AND currency_code=@currency;
+  DECLARE @account bigint,@matches int;
+  SELECT @matches=COUNT(*),@account=MIN(id) FROM dbo.party_currency_accounts WITH(UPDLOCK,HOLDLOCK)
+   WHERE customer_id=@customer AND party_entity_id=@party AND currency_code=@currency AND current_balance IS NOT NULL;
+  IF @party IS NULL OR @matches<>1 THROW 51102,'NATIVE_CURRENCY_ACCOUNT_NOT_UNIQUE',1;
+  IF (@cancel=0 AND @linked IS NOT NULL) OR (@cancel=1 AND (@linked IS NULL OR @linked<>@account))
+   THROW 51103,'NATIVE_CURRENCY_ACCOUNT_CHANGED',1;
+  IF @cancel=1 AND NOT EXISTS(SELECT 1 FROM dbo.customer_movements WHERE sales_invoice_id=@invoice AND movement_type=N'sales_invoice'
+    AND party_currency_account_id=@account AND party_entity_id=@party AND balance_effect_exact=@amount AND affects_balance=1)
+   THROW 51104,'NATIVE_CURRENCY_ORIGINAL_EFFECT_MISSING',1;
+  DECLARE @type nvarchar(40)=CASE WHEN @cancel=1 THEN N'sales_invoice_cancel' ELSE N'sales_invoice' END;
+  DECLARE @effect decimal(28,8)=CASE WHEN @cancel=1 THEN -@amount ELSE @amount END;
+  IF (SELECT COUNT(*) FROM dbo.customer_movements WHERE sales_invoice_id=@invoice AND movement_type=@type)<>1
+   THROW 51105,'NATIVE_CURRENCY_MOVEMENT_INVALID',1;
+  UPDATE dbo.customer_movements SET party_entity_id=@party,party_currency_account_id=@account,balance_effect_exact=@effect,affects_balance=1
+   WHERE sales_invoice_id=@invoice AND movement_type=@type AND customer_id=@customer AND currency_code=@currency
+    AND account_currency=@currency AND account_amount=@amount AND balance_effect=@effect
+    AND party_currency_account_id IS NULL AND party_entity_id IS NULL;
+  IF @@ROWCOUNT<>1 THROW 51106,'NATIVE_CURRENCY_EFFECT_ALREADY_LINKED',1;
+  IF @cancel=0 BEGIN
+   UPDATE dbo.sales_invoices SET party_entity_id=@party,party_currency_account_id=@account WHERE id=@invoice AND party_currency_account_id IS NULL;
+   IF @@ROWCOUNT<>1 THROW 51107,'NATIVE_CURRENCY_INVOICE_ALREADY_LINKED',1;
+  END;
+  DECLARE @before decimal(28,8)=(SELECT current_balance FROM dbo.party_currency_accounts WHERE id=@account);
+  UPDATE dbo.party_currency_accounts SET current_balance=current_balance+@effect WHERE id=@account;
+  IF @@ROWCOUNT<>1 THROW 51108,'NATIVE_CURRENCY_BALANCE_FAILED',1;
+  SELECT @account AS accountId,@party AS partyId,@customer AS customerId,@currency AS currency,
+   CONVERT(varchar(60),@before) AS beforeBalance,CONVERT(varchar(60),@effect) AS effect,
+   CONVERT(varchar(60),current_balance) AS afterBalance FROM dbo.party_currency_accounts WHERE id=@account;
+ `).catch(error=>{
+  if(error.number>=51101&&error.number<=51108)nativeError(error.message?.match(/NATIVE_[A-Z_]+/)?.[0]||'NATIVE_CURRENCY_ACCOUNT_INVALID','Cari döviz hesabı doğrulanamadı; satış işlemi geri alındı.',409);
+  throw error;
+ });
+ const posting=result.recordset[0];
+ await writeAuditLog(request(),{action:cancel?'native_currency_account_reversed':'native_currency_account_posted',entityType:'sales_invoice',entityId:invoiceId,actor,
+  beforeSnapshot:{accountId:posting.accountId,balance:posting.beforeBalance},afterSnapshot:posting});
+ return posting;
+}
+
+export async function verifyNativeCurrencyAccount(invoiceId,request,{required=false,cancelled=false}={}) {
+ const sql=getSqlDriver();
+ const r=await request().input('accountInvoice',sql.BigInt,invoiceId).query(`
+  SELECT i.party_currency_account_id AS linkedAccount,i.party_entity_id AS linkedParty,i.customer_id,i.document_currency,i.account_amount,
+   a.id AS accountId,a.party_entity_id AS partyId,a.customer_id AS accountCustomer,a.currency_code AS accountCurrency
+  FROM dbo.sales_invoices i LEFT JOIN dbo.party_currency_accounts a ON a.id=i.party_currency_account_id WHERE i.id=@accountInvoice;
+  SELECT movement_type,party_currency_account_id AS accountId,party_entity_id AS partyId,balance_effect_exact AS effect,affects_balance AS affects,
+   currency_code,customer_id FROM dbo.customer_movements WHERE sales_invoice_id=@accountInvoice;
+ `);
+ const i=r.recordsets[0][0];
+ if(!required&&!i?.linkedAccount)return; // Existing pre-upgrade receipts remain readable.
+ const movements=r.recordsets[1];
+ const same=(a,b)=>a!=null&&b!=null&&String(a)===String(b);
+ const valid=i&&same(i.linkedAccount,i.accountId)&&same(i.linkedParty,i.partyId)&&same(i.customer_id,i.accountCustomer)&&i.document_currency===i.accountCurrency&&
+  movements.length===(cancelled?2:1)&&movements.every(m=>same(m.accountId,i.accountId)&&same(m.partyId,i.partyId)&&same(m.customer_id,i.customer_id)&&m.currency_code===i.accountCurrency&&m.affects===true&&
+   ['sales_invoice','sales_invoice_cancel'].includes(m.movement_type)&&Number(m.effect)===(m.movement_type==='sales_invoice'?1:-1)*Number(i.account_amount));
+ if(!valid)nativeError('NATIVE_CURRENCY_EFFECT_UNVERIFIED','Fişin cari döviz hesabı etkisi doğrulanamadı.',503);
+}

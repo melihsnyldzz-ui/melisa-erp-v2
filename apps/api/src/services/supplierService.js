@@ -3,6 +3,7 @@ import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { hasCurrencySnapshotSchema, hasMovementReturnSchema, movementCurrencyColumns, movementCurrencyDto, assertPartyCurrencyUnchanged } from './currencySettlementStore.mjs';
 
 function toSupplierDto(row) {
   return {
@@ -43,8 +44,8 @@ function toSupplierMovementDto(row) {
     purchaseInvoiceId: row.purchase_invoice_id || null,
     currency: row.currency_code,
     amount: Number(row.amount || 0),
-    balanceEffect: Number(row.balance_effect || 0),
-    runningBalance: Number(row.running_balance || 0),
+    ...movementCurrencyDto(row, row.current_currency),
+    runningBalance: row.running_balance == null ? null : Number(row.running_balance),
     status: row.invoice_status || 'kayit',
     createdAt: row.created_at,
   };
@@ -66,8 +67,8 @@ function toSupplierProductTraceDto(row) {
     purchasePrice: Number(row.purchase_price || 0),
     lineDiscountRate: Number(row.line_discount_rate || 0),
     lineTotal: Number(row.line_total || 0),
-    lineTotalTry: Number(row.line_total_try || 0),
-    netUnitCostTry: Number(row.quantity || 0) > 0 ? Number(row.line_total_try || 0) / Number(row.quantity || 0) : 0,
+    lineTotalTry: row.line_total_try == null ? null : Number(row.line_total_try),
+    netUnitCostTry: row.line_total_try == null || Number(row.quantity) <= 0 ? null : Number(row.line_total_try) / Number(row.quantity),
   };
 }
 
@@ -317,6 +318,9 @@ export async function getSupplierDetail(supplierId) {
     throw makeServiceError('SUPPLIER_NOT_FOUND', 'Supplier not found', 404);
   }
 
+  const currencyReady = await hasCurrencySnapshotSchema(pool.request(), 'supplier');
+  const returnReady = await hasMovementReturnSchema(pool.request(), 'supplier');
+  const mixedCurrency = currencyReady ? 'COALESCE(mixed.account_currency, mixed.currency_code)' : 'mixed.currency_code';
   const movementsResult = await pool.request()
     .input('movementSupplierId', sql.BigInt, id)
     .query(`
@@ -338,7 +342,10 @@ export async function getSupplierDetail(supplierId) {
         sm.amount,
         sm.currency_code,
         sm.balance_effect,
-        s.balance - COALESCE(sm.newer_balance_effect, 0) AS running_balance,
+        s.currency_code AS current_currency,
+        ${movementCurrencyColumns('sm', currencyReady, returnReady)},
+        CASE WHEN NOT EXISTS (SELECT 1 FROM dbo.supplier_movements mixed WHERE mixed.supplier_id=sm.supplier_id AND ${mixedCurrency}<>s.currency_code)
+          THEN s.balance - COALESCE(sm.newer_balance_effect, 0) ELSE NULL END AS running_balance,
         sm.document_date,
         sm.created_at,
         pi.status AS invoice_status
@@ -367,13 +374,8 @@ export async function getSupplierDetail(supplierId) {
         pii.line_discount_rate,
         pii.line_total,
         CASE
-          WHEN COALESCE(pii.line_total_try, 0) > 0
-            AND (
-              COALESCE(pi.exchange_rate_snapshot, 1) <= 1
-              OR COALESCE(pii.line_total_try, 0) > pii.line_total * 1.0001
-            )
-            THEN pii.line_total_try
-          ELSE pii.line_total * COALESCE(pi.exchange_rate_snapshot, 1)
+          WHEN pii.line_total_try IS NOT NULL THEN pii.line_total_try
+          ELSE pii.line_total * pi.exchange_rate_snapshot
         END AS line_total_try
       FROM dbo.purchase_invoice_items pii
       INNER JOIN dbo.purchase_invoices pi ON pi.id = pii.purchase_invoice_id
@@ -540,6 +542,7 @@ export async function updateSupplier(supplierId, payload, actor = null) {
       throw makeServiceError('SUPPLIER_NOT_FOUND', 'Supplier not found', 404);
     }
 
+    await assertPartyCurrencyUnchanged(new sqlDriver.Request(transaction), 'supplier', id, supplier.currency);
     await assertSupplierDuplicates(new sqlDriver.Request(transaction), supplier, id);
 
     await new sqlDriver.Request(transaction)

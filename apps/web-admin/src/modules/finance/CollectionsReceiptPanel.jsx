@@ -1,8 +1,10 @@
 import React from 'react';
 import { formatMoney, partyLabel } from './collectionsFormatters.js';
+import { financeAccountEffect } from '../../utils/currencyPreview.js';
 
 export function CollectionsReceiptPanel({ selectedReceipt, onPrint, onClose }) {
   if (!selectedReceipt) return null;
+  const effect = financeAccountEffect(selectedReceipt);
 
   return (
     <section className="erp-panel finance-receipt-panel">
@@ -41,8 +43,12 @@ export function CollectionsReceiptPanel({ selectedReceipt, onPrint, onClose }) {
         </div>
         <div>
           <span>Bakiye Etkisi</span>
-          <strong className="ledger-credit">{formatMoney(selectedReceipt.balanceEffect, selectedReceipt.currency)}</strong>
+          <strong className="ledger-credit">{effect ? formatMoney(effect.amount, effect.currency) : 'Doğrulanamadı'}</strong>
         </div>
+        {selectedReceipt.accountCurrency && selectedReceipt.accountCurrency !== selectedReceipt.currency && <>
+          <div><span>İşlem kuru</span><strong>1 {selectedReceipt.currency} = {selectedReceipt.exchangeRate ?? '—'} TRY</strong></div>
+          <div><span>Cari kuru</span><strong>1 {selectedReceipt.accountCurrency} = {selectedReceipt.accountExchangeRate ?? '—'} TRY</strong></div>
+        </>}
       </div>
       <div className="segmented-control">
         <button type="button" onClick={onPrint}>Makbuz Yazdır</button>

@@ -1,16 +1,20 @@
+import { VegaCardSyncDialog } from './VegaCardSyncDialog.jsx';
+import { VegaCardAutoSync } from './VegaCardAutoSync.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { StockListFilters } from './StockListFilters.jsx';
 import { StockListTable } from './StockListTable.jsx';
 import { StockListToolbar } from './StockListToolbar.jsx';
+import { StockListPagination } from './StockListPagination.jsx';
+import { buildStockSearch, readStockPage, stockPageRange } from './stockListPaging.js';
 import { StockProduct360Panel } from './StockProduct360Panel.jsx';
 import { BulkProductUpdateDialog } from './BulkProductUpdateDialog.jsx';
 import { VegaProductImageDialog } from './VegaProductImageDialog.jsx';
 import { summarizeMovements } from './stock360Utils.js';
 import { stockFilterDefaults } from './stockMockData.js';
-import { fetchVegaProducts, removeVegaProductImage, saveVegaProductImage } from '../../services/productApi.js';
+import { fetchProducts, fetchVegaProducts, removeVegaProductImage, saveVegaProductImage } from '../../services/productApi.js';
 import { fetchProductDetail, fetchProductOptions, fetchProductStockMovements } from '../../services/productDetailApi.js';
-import { fetchSuppliers } from '../../services/supplierApi.js';
 import { API_BASE_URL, apiConfig } from '../../config/apiConfig.js';
+import { get } from '../../services/apiClient.js';
 import { exportRowsToCsv, exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
@@ -52,18 +56,6 @@ function matchesBarcode(row, filter) {
   }
 
   return barcodeValues.some((value) => normalizeBarcode(value).includes(query));
-}
-
-function buildSearch(filters) {
-  return [
-    filters.quickSearch,
-    filters.stockCode,
-    filters.barcode,
-    filters.name,
-    filters.brand,
-    filters.category,
-    filters.supplier,
-  ].filter(Boolean).join(' ');
 }
 
 function formatMoney(amount, currency = 'TRY') {
@@ -172,33 +164,33 @@ function applyStockFilters(row, filters) {
     matchesText(row.name, filters.name) &&
     matchesText(row.brand, filters.brand) &&
     matchesText(row.category, filters.category) &&
-    matchesText(row.supplier, filters.supplier)
+    (matchesText(row.supplier, filters.supplier) || matchesText(row.supplierCode, filters.supplier))
   );
 }
 
 const stockExportColumns = [
   { label: 'Görsel', key: 'imageUrl', width: 64 },
   { label: 'Stok Kodu', key: 'stockCode', width: 120, required: true },
-  { label: 'Barkod', key: 'barcode', width: 140 },
-  { label: 'Ürün Adı', key: 'name', width: 230, required: true },
+  { label: 'Ürün Adı', key: 'name', width: 280, required: true },
   { label: 'Marka', key: 'brand', width: 130 },
+  { label: 'Satış Fiyatı', key: 'salesPrice', width: 120 },
+  { label: 'Para Birimi', key: 'currency', width: 90 },
+  { label: 'Stok', key: 'currentStock', width: 90, required: true },
+  { label: 'Durum', key: 'status', width: 92 },
+  { label: 'Barkod', key: 'barcode', width: 140 },
   { label: 'Kategori', key: 'category', width: 130 },
   { label: '4-ÖK (KOD4)', key: 'specialCode4', width: 130 },
   { label: 'GTİP', key: 'gtipCode', width: 150 },
-  { label: 'Para Birimi', key: 'currency', width: 90 },
-  { label: 'Satış Fiyatı', key: 'salesPrice', width: 120 },
   { label: 'Alış Fiyatı', key: 'purchasePrice', width: 120 },
-  { label: 'Stok', key: 'currentStock', width: 90, required: true },
   { label: 'Tedarikçi', key: 'supplier', width: 160 },
   { label: 'Kart Açılış Tarihi', key: 'cardOpenedDate', width: 130 },
-  { label: 'Durum', key: 'status', width: 92 },
 ];
 
 const stockColumnStorageKey = 'melisa.stockList.visibleColumns.v2';
 const stockListPageLimit = 500;
 const defaultVisibleStockColumns = stockExportColumns.reduce((next, column) => ({
   ...next,
-  [column.key]: ['imageUrl', 'stockCode', 'barcode', 'name', 'brand', 'specialCode4', 'gtipCode', 'salesPrice', 'currentStock', 'cardOpenedDate', 'status'].includes(column.key),
+  [column.key]: ['imageUrl', 'stockCode', 'name', 'brand', 'salesPrice', 'currency', 'currentStock', 'status'].includes(column.key),
 }), {});
 
 function readVisibleStockColumns() {
@@ -210,13 +202,15 @@ function readVisibleStockColumns() {
   }
 }
 
-export function StockListScreen({ onOpenScreen, permissions = [], initialStockCode = '', initialSourceId = '' }) {
+export function StockListScreen({ onOpenScreen, permissions = [], initialStockCode = '', initialSourceId = '', initialStockState = 'all' }) {
   const vegaStockFilterDefaults = useMemo(() => ({ ...stockFilterDefaults, status: 'all' }), []);
   const [filters, setFilters] = useState(() => ({
     ...vegaStockFilterDefaults,
     stockCode: initialStockCode || '',
+    stockState: ['all', 'in-stock', 'out-of-stock', 'negative'].includes(initialStockState) ? initialStockState : 'all',
   }));
   const [rows, setRows] = useState([]);
+  const [page, setPage] = useState(1);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedRowIds, setSelectedRowIds] = useState(() => new Set());
   const [selectedDetail, setSelectedDetail] = useState(null);
@@ -231,11 +225,22 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   const [selectionWarning, setSelectionWarning] = useState('');
   const [bulkMessage, setBulkMessage] = useState('');
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [isCardSyncOpen, setIsCardSyncOpen] = useState(false);
+  const [cardSyncAvailable, setCardSyncAvailable] = useState(false);
+  const canEditCards = permissions.includes('product.edit');
+  useEffect(() => {
+    let mounted = true;
+    setCardSyncAvailable(false);
+    if (apiConfig.pilotMode && canEditCards) {
+      get('/terminal-release-health').then(health => {
+        if (mounted) setCardSyncAvailable(health.ok === true && health.automaticCardSyncEnabled === true);
+      }).catch(() => { if (mounted) setCardSyncAvailable(false); });
+    }
+    return () => { mounted = false; };
+  }, [canEditCards]);
   const [isVegaImageOpen, setIsVegaImageOpen] = useState(false);
   const [isVegaImageSaving, setIsVegaImageSaving] = useState(false);
   const [vegaImageError, setVegaImageError] = useState('');
-  const [resolvedSupplierId, setResolvedSupplierId] = useState('');
-  const [isResolvingSupplier, setIsResolvingSupplier] = useState(false);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [isProduct360Open, setIsProduct360Open] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleStockColumns);
@@ -251,7 +256,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   const canBulkEdit = permissions.includes('product.edit') && !isReadOnlySource;
   const canManageVegaImage = permissions.includes('product.edit') && isLiveVega;
 
-  const search = useMemo(() => buildSearch(filters), [filters]);
+  const search = useMemo(() => buildStockSearch(filters), [filters]);
   const activeOnly = filters.status === 'active';
   const stockTableColumns = useMemo(() => (
     stockExportColumns.filter((column) => visibleColumns[column.key] !== false || column.required)
@@ -307,81 +312,14 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   useEffect(() => {
     let isMounted = true;
 
-    async function resolveSupplier() {
-      if (isReadOnlySource) {
-        setResolvedSupplierId('');
-        setIsResolvingSupplier(false);
-        return;
-      }
-      const supplierFilter = filters.supplier.trim();
-      if (!supplierFilter) {
-        setResolvedSupplierId('');
-        setIsResolvingSupplier(false);
-        return;
-      }
-
-      setIsResolvingSupplier(true);
-      try {
-        const response = await fetchSuppliers({
-          page: 1,
-          limit: 10,
-          search: supplierFilter,
-          activeOnly: true,
-        });
-        const normalizedFilter = normalizeSearchText(supplierFilter);
-        const match = (response.data || []).find((supplier) => (
-          normalizeSearchText(supplier.supplierCode) === normalizedFilter
-          || normalizeSearchText(supplier.supplierName) === normalizedFilter
-          || normalizeSearchText(`${supplier.supplierCode} / ${supplier.supplierName}`) === normalizedFilter
-        )) || response.data?.[0] || null;
-
-        if (isMounted) {
-          setResolvedSupplierId(match?.id ? String(match.id) : '');
-        }
-      } catch {
-        if (isMounted) {
-          setResolvedSupplierId('');
-        }
-      } finally {
-        if (isMounted) {
-          setIsResolvingSupplier(false);
-        }
-      }
-    }
-
-    resolveSupplier();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [filters.supplier, isReadOnlySource]);
-
-  useEffect(() => {
-    let isMounted = true;
-
     async function loadProducts() {
-      if (!isReadOnlySource && filters.supplier.trim() && isResolvingSupplier) {
-        return;
-      }
-
-      if (!isReadOnlySource && filters.supplier.trim() && !resolvedSupplierId) {
-        setRows([]);
-        setMeta(null);
-        setSelectedRowId(null);
-        setSelectedRowIds(new Set());
-        setErrorMessage('');
-        setErrorCode('');
-        setIsLoading(false);
-        return;
-      }
-
       setIsLoading(true);
       setErrorMessage('');
       setErrorCode('');
 
       try {
-        const response = await fetchVegaProducts({
-          page: 1,
+        const response = await readStockPage(apiConfig.pilotMode ? fetchProducts : fetchVegaProducts, {
+          page,
           limit: stockListPageLimit,
           search,
           barcode: filters.barcode,
@@ -390,6 +328,12 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
           cardOpenedTo: filters.cardOpenedTo,
           imageStatus: filters.imageStatus,
         });
+        if (!isMounted) return;
+        if (response.resetToFirst) {
+          setPage(1);
+          setSelectionWarning('Liste değişti; ilk sayfa yeniden yükleniyor.');
+          return;
+        }
         const nextRows = response.data.map(toStockRow);
 
         if (isMounted) {
@@ -427,7 +371,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     return () => {
       isMounted = false;
     };
-  }, [activeOnly, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, isReadOnlySource, reloadKey, search]);
+  }, [activeOnly, filters.barcode, filters.cardOpenedFrom, filters.cardOpenedTo, filters.imageStatus, initialSourceId, initialStockCode, page, reloadKey, search]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => applyStockFilters(row, filters)),
@@ -438,6 +382,8 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   const activeCount = rows.filter((row) => row.status === 'Aktif').length;
   const passiveCount = rows.length - activeCount;
   const negativeCount = rows.filter((row) => row.currentStock < 0).length;
+  const pageRange = stockPageRange(meta, rows.length);
+  const isPartialPage = Number(meta?.total || 0) > rows.length;
   const suggestionOptions = useMemo(() => ({
     brands: buildUniqueOptions(optionSuggestions.brands, rows.map((row) => row.brand)),
     categories: buildUniqueOptions(optionSuggestions.categories, rows.map((row) => row.category)),
@@ -490,14 +436,14 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   }, [isReadOnlySource, selectedRowId]);
 
   function togglePassive() {
-    setFilters((currentFilters) => ({
+    updateFilters((currentFilters) => ({
       ...currentFilters,
       status: currentFilters.status === 'all' ? 'active' : 'all',
     }));
   }
 
   function resetFilters() {
-    setFilters(vegaStockFilterDefaults);
+    updateFilters(vegaStockFilterDefaults);
     setSelectedRowId(rows[0]?.id ?? null);
     setSelectedRowIds(new Set());
     setSelectionWarning('');
@@ -651,6 +597,22 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
     setBulkMessage('');
   }
 
+  function updateFilters(nextFilters) {
+    setFilters(nextFilters);
+    setPage(1);
+    setSelectedRowIds(new Set());
+    setSelectionWarning('');
+  }
+
+  function changePage(nextPage) {
+    if (isLoading || !Number.isInteger(nextPage) || nextPage < 1 || nextPage > (meta?.totalPages || 1)) return;
+    setPage(nextPage);
+    setSelectedRowIds(new Set());
+    setSelectedRowId(null);
+    setSelectionWarning('');
+    setBulkMessage('');
+  }
+
   function toggleColumn(columnKey) {
     const column = stockExportColumns.find((item) => item.key === columnKey);
     if (column?.required) return;
@@ -667,7 +629,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
 
   function exportStockRowsCsv() {
     exportRowsToCsv({
-      filename: 'stok-listesi',
+      filename: `stok-listesi-sayfa-${page}`,
       rows: filteredRows,
       columns: stockTableColumns,
     });
@@ -675,8 +637,8 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
 
   function exportStockRowsExcel() {
     exportRowsToExcel({
-      filename: 'stok-listesi',
-      title: 'Stok Listesi',
+      filename: `stok-listesi-sayfa-${page}`,
+      title: `Stok Listesi — Sayfa ${page}, gösterilen ${filteredRows.length} satır`,
       rows: filteredRows,
       columns: stockTableColumns,
     });
@@ -685,16 +647,19 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   function printStockRows() {
     printRowsReport({
       title: 'Melisa ERP - Stok Listesi',
-      subtitle: `Satır: ${filteredRows.length} / Aktif: ${activeCount} / Pasif: ${passiveCount}`,
+      subtitle: `Sayfa: ${page} / Gösterilen: ${filteredRows.length} / Bu sayfada aktif: ${activeCount} / pasif: ${passiveCount}`,
       rows: filteredRows,
       columns: stockTableColumns,
     });
   }
 
   return (
-    <main className="work-area stock-list-screen stock-360-screen">
+    <main className="work-area stock-list-screen stock-360-screen" style={apiConfig.pilotMode && permissions.includes('product.edit') ? {gridTemplateRows:'auto auto auto minmax(0, 1fr) auto'} : undefined}>
+      {cardSyncAvailable && isCardSyncOpen && <VegaCardSyncDialog onClose={() => setIsCardSyncOpen(false)} onApplied={(result) => {setBulkMessage(`${result.counts.new} yeni kart eklendi; ${result.counts.updated} kart güncellendi.`);refreshProducts();}} />}
       <StockListToolbar
-        hasSelection={Boolean(selectedRow)}
+        onSyncVegaCards={cardSyncAvailable ? () => setIsCardSyncOpen(true) : undefined}
+        hasSelection={!isLoading && Boolean(selectedRow)}
+        canExport={!isLoading && !errorMessage && Boolean(meta) && filteredRows.length > 0}
         showPassive={filters.status === 'all'}
         onOpenNewProduct={openNewProduct}
         onOpenProductCard={openSelectedProduct}
@@ -714,10 +679,11 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         canManageImage={canManageVegaImage}
         isReadOnly={isReadOnlySource}
       />
+      {cardSyncAvailable && <VegaCardAutoSync onChanged={refreshProducts} />}
       <StockListFilters
         filters={filters}
         suggestions={suggestionOptions}
-        onChange={setFilters}
+        onChange={updateFilters}
         onRefresh={refreshProducts}
         onReset={resetFilters}
       />
@@ -754,18 +720,22 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
               );
             })}
           </div>
-          <button type="button" onClick={resetColumns}>Tümünü Göster</button>
+          <button type="button" onClick={resetColumns}>Sade Sütunlar</button>
         </section>
       )}
       <section className={isProduct360Open ? 'stock-360-layout product-360-open' : 'stock-360-layout product-360-closed'}>
         <section className="erp-panel stock-list-panel stock-list-main-panel">
           <div className="panel-title stock-panel-title">
             <strong>{isSyntheticDemo ? 'Sentetik Demo Stok Tablosu' : (isLiveVega ? 'Vega Canlı Stok Tablosu' : 'Ürün Stok Tablosu')}</strong>
-            <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Gösterilen: {filteredRows.length} / API toplam: {meta?.total ?? rows.length}</span>
+            <span>Seçili: {selectedRow?.stockCode ?? 'yok'} / Gösterilen: {isLoading ? '…' : filteredRows.length} / Arama toplamı: {isLoading || !meta ? '…' : meta.total}</span>
           </div>
-          {!isLoading && !errorMessage && hasClientSideFilters && Number(meta?.total || 0) > rows.length && (
+          {meta && <StockListPagination page={page} totalPages={meta.totalPages} isLoading={isLoading} onPageChange={changePage} />}
+          {!isLoading && !errorMessage && meta && (
             <div className="list-state list-state-info">
-              Bazı kolon filtreleri bu ekranda API'den gelen ilk {rows.length} kayıt üzerinde daraltılır. Daha kesin sonuç için üst arama alanına stok kodu, barkod, ürün adı veya tedarikçi yazın.
+              Aramayla eşleşen {meta.total} kaydın {pageRange.first}–{pageRange.last} aralığı yüklendi; {filteredRows.length} satır gösteriliyor.{' '}
+              {filters.stockState === 'negative' && <strong>Bu sayfadaki {rows.length} üründe {negativeCount} eksi stok var. {isPartialPage ? 'Diğer sayfalar bu sayıya dahil değil. ' : ''}</strong>}
+              {isPartialPage && hasClientSideFilters && 'Stok durumu ve kolon filtreleri yalnız bu sayfayı daraltır. Diğer eşleşmeler için sayfa değiştirin veya aramayı daraltın. '}
+              Dışa aktarma ve toplu seçim gösterilen satırlara uygulanır.
             </div>
           )}
           {isLoading && <div className="list-state">{isSyntheticDemo ? 'Yerel sentetik stok örnekleri hazırlanıyor...' : "API'den stok kayıtları yükleniyor..."}</div>}
@@ -778,7 +748,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
             </div>
           )}
           {!isLoading && !errorMessage && filteredRows.length === 0 && (
-            <div className="list-state">Kayıt bulunamadı veya seçilen filtreler boş.</div>
+            <div className="list-state">{isPartialPage ? 'Bu sayfada filtreye uygun ürün yok. Diğer sayfalarda eşleşme olabilir.' : 'Arama ve filtrelere uygun ürün bulunamadı.'}</div>
           )}
           {!isLoading && !errorMessage && selectionWarning && (
             <div className="list-state list-state-error">{selectionWarning}</div>
@@ -816,11 +786,11 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
         />}
       </section>
       <section className="screen-summary stock-summary">
-        <span>Toplam ürün: {meta?.total ?? rows.length}</span>
-        <span>Aktif: {activeCount}</span>
-        <span>Pasif: {passiveCount}</span>
-        <span>Eksi stok: {negativeCount}</span>
-        <span>Liste kaydı: {filteredRows.length}</span>
+        <span>Arama toplamı: {isLoading || !meta ? '…' : meta.total}</span>
+        <span>Bu sayfada aktif: {isLoading ? '…' : activeCount}</span>
+        <span>Bu sayfada pasif: {isLoading ? '…' : passiveCount}</span>
+        <span>Bu sayfada eksi stok: {isLoading ? '…' : negativeCount}</span>
+        <span>Gösterilen: {isLoading ? '…' : filteredRows.length}</span>
         <span>Kaynak: {isSyntheticDemo ? 'Yerel sentetik örnek — şirket verisi değildir' : (isLiveVega ? 'Vega Canlı (salt okunur)' : 'API')}</span>
         <span>Toplu seçim: {selectedRowIds.size}</span>
       </section>

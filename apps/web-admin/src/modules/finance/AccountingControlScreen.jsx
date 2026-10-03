@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { applyDocumentNumberFix, fetchAccountingControl } from '../../services/financeApi.js';
 
 function formatMoney(value, currency = 'TRY') {
+  if (value == null || !Number.isFinite(Number(value))) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -122,8 +123,8 @@ export function AccountingControlScreen({ onOpenScreen }) {
         </article>
         <article className={`dashboard-kpi ${summary.journalBalanced ? 'good' : 'danger'}`}>
           <span>Yevmiye Dengesi</span>
-          <strong>{summary.journalBalanced ? 'Dengeli' : 'Fark Var'}</strong>
-          <small>Fark: {formatMoney(summary.journalDifference || 0)}</small>
+          <strong>{summary.journalBalanced == null ? 'Bilinmiyor' : summary.journalBalanced ? 'Dengeli' : 'Fark Var'}</strong>
+          <small>Fark: {formatMoney(summary.journalDifference)}</small>
         </article>
       </section>
 

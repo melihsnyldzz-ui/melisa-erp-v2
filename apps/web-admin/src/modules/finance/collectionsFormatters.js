@@ -1,5 +1,7 @@
+import { businessDateInIstanbul } from './cashRegisterDate.js';
+
 export function today() {
-  return new Date().toISOString().slice(0, 10);
+  return businessDateInIstanbul();
 }
 
 export function formatMoney(value, currency = 'TRY') {

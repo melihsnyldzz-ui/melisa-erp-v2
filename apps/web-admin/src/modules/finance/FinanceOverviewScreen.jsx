@@ -4,6 +4,7 @@ import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
+  if (value == null || !Number.isFinite(Number(value))) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -21,10 +22,22 @@ function formatCurrencyTotals(totals, key) {
 
 function formatSummaryCurrencies(summary, key, fallbackValue) {
   const entries = Object.entries(summary.currencySummary?.[key] || {});
-  if (entries.length === 0) return formatMoney(fallbackValue);
-  return entries
-    .map(([currency, value]) => formatMoney(value, currency))
-    .join(' / ');
+  return <CurrencyAmounts entries={entries} fallback={formatMoney(fallbackValue)} />;
+}
+
+function CurrencyAmounts({ entries, fallback }) {
+  if (entries.length === 0) return <span>{fallback}</span>;
+  return entries.map(([currency, value]) => (
+    <span className="finance-currency-row" key={currency}>
+      <span className="finance-currency-code">{currency}</span>
+      <b>{formatMoney(value, currency)}</b>
+    </span>
+  ));
+}
+
+function currencyTotalValues(totals, key) {
+  const entries = Object.entries(totals || {}).map(([currency, value]) => [currency, Number(value?.[key] || 0)]);
+  return <CurrencyAmounts entries={entries} fallback={formatMoney(0)} />;
 }
 
 function movementLabel(type) {
@@ -66,7 +79,7 @@ function Kpi({ label, value, detail, tone = 'info' }) {
   return (
     <article className={`dashboard-kpi ${tone}`}>
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong className="finance-kpi-values">{value}</strong>
       <small>{detail}</small>
     </article>
   );
@@ -242,15 +255,13 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
         <Kpi label="Tedarikçi borç" value={formatSummaryCurrencies(summary, 'supplierPayables', summary.supplierPayables)} detail="Alışlardan doğan açık tedarikçi borcu" tone="warn" />
         <Kpi label="Bugün tahsilat" value={formatSummaryCurrencies(summary, 'todayCollections', summary.todayCollections)} detail={`${summary.collectionCount || 0} toplam tahsilat kaydı`} tone="good" />
         <Kpi label="Bugün ödeme" value={formatSummaryCurrencies(summary, 'todayPayments', summary.todayPayments)} detail={`${summary.paymentCount || 0} toplam ödeme kaydı`} tone="info" />
-        <Kpi label="Müşteri avans" value={formatSummaryCurrencies(summary, 'customerAdvances', summary.customerAdvances)} detail="Müşterinin alacaklı göründüğü bakiyeler" tone="info" />
-        <Kpi label="Tedarikçi avans" value={formatSummaryCurrencies(summary, 'supplierAdvances', summary.supplierAdvances)} detail="Tedarikçiye fazla ödeme bakiyeleri" tone="info" />
       </section>
 
-      <section className="erp-panel">
-        <div className="panel-title">
-          <strong>Finans Hareket Arama</strong>
-          <span>Cari kodu, unvan veya belge numarasıyla arayın</span>
-        </div>
+      <details className="erp-panel finance-search-panel">
+        <summary className="panel-title">
+          <strong>Hareketleri filtrele</strong>
+          <span>{Object.values(filters).filter(Boolean).length > 0 ? `${Object.values(filters).filter(Boolean).length} filtre alanı dolu` : 'Cari, işlem türü ve tarih aralığı'}</span>
+        </summary>
         <form className="filter-grid" onSubmit={applyFilters}>
           <label>
             Arama
@@ -287,14 +298,19 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
           <button className="primary" type="submit">Ara</button>
           <button type="button" onClick={clearFilters}>Temizle</button>
         </form>
-      </section>
+      </details>
 
-      <section className="dashboard-kpi-grid finance-mini-grid">
-        <Kpi label="Listede tahsilat" value={formatCurrencyTotals(movementTotals.byCurrency, 'collections')} detail="Müşteri borcunu düşüren girişler" tone="good" />
-        <Kpi label="Listede ödeme" value={formatCurrencyTotals(movementTotals.byCurrency, 'payments')} detail="Tedarikçi borcunu düşüren çıkışlar" tone="danger" />
-        <Kpi label="Borçlandıran etki" value={formatCurrencyTotals(movementTotals.byCurrency, 'positiveEffect')} detail="Satış/alış fişi gibi bakiye artıran izler" tone="warn" />
-        <Kpi label="Azaltan etki" value={formatCurrencyTotals(movementTotals.byCurrency, 'negativeEffect')} detail="Tahsilat/ödeme ve ters kayıt etkileri" tone="good" />
-      </section>
+      <details className="erp-panel finance-summary-details">
+        <summary className="panel-title"><strong>Avanslar ve liste toplamları</strong><span>Para birimine göre ayrı değerler</span></summary>
+        <section className="dashboard-kpi-grid finance-mini-grid">
+        <Kpi label="Müşteri avans" value={formatSummaryCurrencies(summary, 'customerAdvances', summary.customerAdvances)} detail="Müşterinin alacaklı göründüğü bakiyeler" tone="info" />
+        <Kpi label="Tedarikçi avans" value={formatSummaryCurrencies(summary, 'supplierAdvances', summary.supplierAdvances)} detail="Tedarikçiye fazla ödeme bakiyeleri" tone="info" />
+        <Kpi label="Listede tahsilat" value={currencyTotalValues(movementTotals.byCurrency, 'collections')} detail="Müşteri borcunu düşüren girişler" tone="good" />
+        <Kpi label="Listede ödeme" value={currencyTotalValues(movementTotals.byCurrency, 'payments')} detail="Tedarikçi borcunu düşüren çıkışlar" tone="danger" />
+        <Kpi label="Borçlandıran etki" value={currencyTotalValues(movementTotals.byCurrency, 'positiveEffect')} detail="Satış/alış fişi gibi bakiye artıran izler" tone="warn" />
+        <Kpi label="Azaltan etki" value={currencyTotalValues(movementTotals.byCurrency, 'negativeEffect')} detail="Tahsilat/ödeme ve ters kayıt etkileri" tone="good" />
+        </section>
+      </details>
 
       <section className="erp-panel">
         <div className="panel-title">
@@ -320,7 +336,7 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
                   <th>Tutar</th>
                   <th>Bakiye Etkisi</th>
                   <th>Etki Açıklaması</th>
-                  <th>PB</th>
+                  <th>Para birimi</th>
                   <th>Git</th>
                 </tr>
               </thead>
@@ -332,9 +348,10 @@ export function FinanceOverviewScreen({ onOpenScreen }) {
                     <tr className={`clickable-row ${isCancelled ? 'cancel-row' : ''}`} key={`${row.partyType}-${row.id}-${row.movementType}`} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
                       <td>{partyLabel(row.partyType)}</td>
-                      <td>
-                        <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); openParty(row); }}>
-                          {row.partyCode} / {row.partyName}
+                      <td className="finance-party-cell">
+                        <button type="button" className="document-link-button party" title={`${row.partyCode || '-'} / ${row.partyName || '-'}`} onClick={(event) => { event.stopPropagation(); openParty(row); }}>
+                          <strong>{row.partyName || row.partyCode || '-'}</strong>
+                          <small>{row.partyCode || '-'}</small>
                         </button>
                       </td>
                       <td>

@@ -3,6 +3,8 @@ import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { hasCurrencySnapshotSchema, hasMovementReturnSchema, movementCurrencyColumns, movementCurrencyDto, assertPartyCurrencyUnchanged } from './currencySettlementStore.mjs';
+import { pilotCashCustomerOnly, pilotCashSql } from './pilotCashPolicy.mjs';
 
 const ALLOWED_CUSTOMER_TYPES = new Set(['customer', 'wholesale', 'retail', 'mixed']);
 export const CASH_CUSTOMER_DEFINITIONS = [
@@ -18,6 +20,10 @@ const CASH_CUSTOMER_CODE_ALIASES = new Map([
   ['PESIN-DOLAR', 'USD'],
   ['PESIN-EUR', 'EUR'],
   ['PESIN-EURO', 'EUR'],
+  // Existing imported Vega cash cards used by the terminal. Preserve card IDs/names.
+  ['2-PEŞİN-TL', 'TRY'],
+  ['1-PEŞİN-$', 'USD'],
+  ['3-PEŞİN-€', 'EUR'],
 ]);
 
 function toCustomerDto(row) {
@@ -62,7 +68,7 @@ function toCustomerMovementDto(row) {
     salesInvoiceId: row.sales_invoice_id || null,
     currency: row.currency_code,
     amount: Number(row.amount || 0),
-    balanceEffect: Number(row.balance_effect || 0),
+    ...movementCurrencyDto(row, row.current_currency),
     status: row.invoice_status || 'kayit',
   };
 }
@@ -119,6 +125,15 @@ export function isCashCustomerCode(customerCode) {
 export async function ensureCashCustomers(poolArg = null) {
   assertMelisaWriteEnabled();
   const pool = poolArg || await getSqlPool();
+
+  if (process.env.MELISA_PILOT_RUNTIME === 'true') {
+    const existing = (await pool.request().query(`SELECT customer_code, currency_code FROM dbo.customers
+      WHERE customer_code IN (N'2-PEŞİN TL',N'1-PEŞİN $',N'3-PEŞİN €') AND is_active=1 AND is_deleted=0`)).recordset;
+    if (existing.length !== 3 || existing.some(row => getCashCustomerCurrency(row.customer_code) !== row.currency_code)) {
+      throw makeServiceError('PILOT_CASH_CUSTOMERS_INVALID', 'Pilot peşin carileri doğrulanamadı. Mevcut kartlar değiştirilmedi.', 409);
+    }
+    return;
+  }
 
   for (const customer of CASH_CUSTOMER_DEFINITIONS) {
     await pool.request()
@@ -195,7 +210,7 @@ export async function ensureAndListCashCustomers() {
       balance,
       is_active
     FROM dbo.customers
-    WHERE customer_code IN (N'PESIN-TL', N'PESIN-USD', N'PESIN-EUR')
+    WHERE customer_code IN (${process.env.MELISA_PILOT_RUNTIME === 'true' ? "N'2-PEŞİN TL',N'1-PEŞİN $',N'3-PEŞİN €'" : "N'PESIN-TL',N'PESIN-USD',N'PESIN-EUR'"})
       AND is_deleted = 0
     ORDER BY CASE customer_code WHEN N'PESIN-TL' THEN 1 WHEN N'PESIN-USD' THEN 2 ELSE 3 END;
   `);
@@ -311,6 +326,7 @@ export async function getCustomersList(query) {
       FROM dbo.customers c
       WHERE
         c.is_deleted = 0
+        ${pilotCashCustomerOnly() ? `AND c.customer_code IN (${pilotCashSql})` : ''}
         AND (@activeOnly = 0 OR c.is_active = 1)
         AND (
           @search IS NULL
@@ -406,6 +422,8 @@ export async function getCustomerDetail(customerId) {
     throw error;
   }
 
+  const currencyReady = await hasCurrencySnapshotSchema(pool.request(), 'customer');
+  const returnReady = await hasMovementReturnSchema(pool.request(), 'customer');
   const movementsResult = await pool.request()
     .input('movementCustomerId', sql.BigInt, id)
     .query(`
@@ -417,9 +435,12 @@ export async function getCustomerDetail(customerId) {
         cm.amount,
         cm.currency_code,
         cm.balance_effect,
+        c.currency_code AS current_currency,
+        ${movementCurrencyColumns('cm', currencyReady, returnReady)},
         si.document_no,
         si.status AS invoice_status
       FROM dbo.customer_movements cm
+      INNER JOIN dbo.customers c ON c.id=cm.customer_id
       LEFT JOIN dbo.sales_invoices si ON si.id = cm.sales_invoice_id
       WHERE cm.customer_id = @movementCustomerId
       ORDER BY cm.document_date DESC, cm.id DESC;
@@ -562,6 +583,7 @@ export async function updateCustomer(customerId, payload, actor = null) {
       throw makeServiceError('CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
 
+    await assertPartyCurrencyUnchanged(new sqlDriver.Request(transaction), 'customer', id, customer.currency);
     await assertCustomerDuplicates(new sqlDriver.Request(transaction), customer, id);
 
     await new sqlDriver.Request(transaction)

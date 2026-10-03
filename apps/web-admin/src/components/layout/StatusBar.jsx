@@ -37,8 +37,7 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
         onClick={() => setIsDetailOpen((isOpen) => !isOpen)}
         type="button"
       >
-        <i className={`status-led ${isDemoMode ? 'offline' : 'online'}`} />
-        {isDemoMode ? 'Demo modu' : 'Bağlantı açık'}
+        {isDemoMode ? 'Demo modu' : 'Oturum açık'}
       </button>
       <span>{activeTab.label}</span>
       <span>{openTabCount} sekme</span>
@@ -47,11 +46,10 @@ export function StatusBar({ activeTab, isDemoMode = false, openTabCount, user })
       {isDetailOpen && (
         <div className="status-detail-popover" role="dialog">
           <div><b>Firma</b><span>Melisa Bebe</span></div>
-          <div><b>Dönem</b><span>2026</span></div>
           <div><b>Kullanıcı</b><span>{user.username || '-'}</span></div>
           <div><b>Rol</b><span>{user.role.name || '-'}</span></div>
-          <div><b>Uygulama</b><span>{isDemoMode ? 'kapalı / demo' : 'hazır'}</span></div>
-          <div><b>Veritabanı</b><span>{isDemoMode ? 'bağlantı yok / demo' : 'hazır'}</span></div>
+          <div><b>Uygulama</b><span>{isDemoMode ? 'Sentetik demo' : 'Arayüz açık'}</span></div>
+          <div><b>Bağlantı durumu</b><span>{isDemoMode ? 'Gerçek veri bağlantısı yok' : 'İlgili ekran yenilendiğinde kontrol edilir'}</span></div>
           <div><b>Seçili ekran</b><span>{activeTab.label}</span></div>
           <div><b>Oturum</b><span>Açık</span></div>
         </div>

@@ -4,6 +4,7 @@ import { exportRowsToExcel, printRowsReport } from '../../utils/exportUtils.js';
 import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavigation.js';
 
 function formatMoney(value, currency = 'TRY') {
+  if (value == null || !Number.isFinite(Number(value))) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -47,7 +48,7 @@ export function AccountingJournalScreen({ onOpenScreen }) {
         dateTo: nextFilters.dateTo || undefined,
       });
       setRows(response.data.rows || []);
-      setSummary(response.data.summary || null);
+      setSummary(response.data.summary || {});
     } catch (error) {
       setRows([]);
       setSummary({});
@@ -64,8 +65,8 @@ export function AccountingJournalScreen({ onOpenScreen }) {
   const currencyTotals = useMemo(() => rows.reduce((total, row) => {
     const currency = row.currency || 'TRY';
     total[currency] = total[currency] || { debit: 0, credit: 0 };
-    total[currency].debit += Number(row.debit || 0);
-    total[currency].credit += Number(row.credit || 0);
+    total[currency].debit = total[currency].debit == null || row.debit == null ? null : total[currency].debit + Number(row.debit);
+    total[currency].credit = total[currency].credit == null || row.credit == null ? null : total[currency].credit + Number(row.credit);
     return total;
   }, {}), [rows]);
 
@@ -154,13 +155,14 @@ export function AccountingJournalScreen({ onOpenScreen }) {
       </section>
 
       {isLoading && <div className="list-state">Muhasebe defteri API'den okunuyor...</div>}
+      {summary.unknownLineCount > 0 && <div className="list-state list-state-error">{summary.unknownLineCount} satırın işlem kuru kaydı eksik; toplam ve denge hesaplanamıyor.</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid">
         <Kpi label="Borç toplamı" value={formatMoney(summary.debit)} detail={`${summary.lineCount || 0} yevmiye satırı`} tone="good" />
         <Kpi label="Alacak toplamı" value={formatMoney(summary.credit)} detail={`${summary.movementCount || 0} ticari hareket`} tone="danger" />
         <Kpi label="Denge farkı" value={formatMoney(summary.difference)} detail={summary.balanced ? 'Borç/alacak dengeli' : 'Kontrol gerekli'} tone={summary.balanced ? 'good' : 'warn'} />
-        <Kpi label="Kaynak" value="Canlı SQL" detail="Cari ve kasa/banka hareketlerinden türetilir" tone="info" />
+        <Kpi label="Kaynak" value="Canlı SQL" detail="İşlemde kayıtlı kurla TRY karşılığı" tone="info" />
       </section>
 
       <section className="erp-panel">
@@ -185,6 +187,10 @@ export function AccountingJournalScreen({ onOpenScreen }) {
               <option value="payment">Ödeme</option>
               <option value="sales_invoice_cancel">Satış iptal</option>
               <option value="purchase_invoice_cancel">Alış iptal</option>
+              <option value="sales_return">Müşteri iadesi</option>
+              <option value="sales_return_cancel">Müşteri iadesi iptal</option>
+              <option value="purchase_return">Tedarikçiye iade</option>
+              <option value="purchase_return_cancel">Tedarikçiye iade iptal</option>
             </select>
           </label>
           <label>Başlangıç<input type="date" value={filters.dateFrom} onChange={(event) => updateFilter('dateFrom', event.target.value)} /></label>
@@ -197,7 +203,7 @@ export function AccountingJournalScreen({ onOpenScreen }) {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Para Birimi Özeti</strong>
-          <span>Her para biriminde borç/alacak kontrolü</span>
+          <span>İşlem kuru kaydı olmayan eski döviz tutarları bilinmiyor olarak korunur</span>
         </div>
         <div className="currency-summary-grid">
           {Object.entries(currencyTotals).map(([currency, total]) => (
@@ -250,8 +256,8 @@ export function AccountingJournalScreen({ onOpenScreen }) {
                         {row.partyCode} / {row.partyName}
                       </button>
                     </td>
-                    <td className="ledger-debit">{row.debit ? formatMoney(row.debit, row.currency) : '-'}</td>
-                    <td className="ledger-credit">{row.credit ? formatMoney(row.credit, row.currency) : '-'}</td>
+                    <td className="ledger-debit">{row.debit === 0 ? '-' : formatMoney(row.debit, row.currency)}</td>
+                    <td className="ledger-credit">{row.credit === 0 ? '-' : formatMoney(row.credit, row.currency)}</td>
                     <td><span className="status-pill">{row.currency}</span></td>
                     <td>{row.note}</td>
                     <td><button type="button" className="mini-button" onClick={(event) => { event.stopPropagation(); openTarget(row); }}>{ledgerTargetActionLabel(row)}</button></td>

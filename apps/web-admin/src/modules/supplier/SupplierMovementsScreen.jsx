@@ -1,4 +1,9 @@
+import { partyScopeId, assertPartyScope } from '../../utils/operationNavigation.js';
+import { PartyContextNotice } from '../shared/PartyContextNotice.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
+import { fetchCompleteLedger } from '../../utils/fetchCompleteLedger.js';
+import { LedgerBalanceSummary } from '../shared/LedgerBalanceSummary.jsx';
+import { ledgerAccountCurrency, ledgerEffect, absoluteLedgerEffect } from '../shared/ledgerBalances.js';
 import {
   ExternalLink,
   FileDown,
@@ -15,6 +20,7 @@ import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavig
 import { normalizeSupplierSearch, toSupplierSuggestion } from './supplierStatementUtils.js';
 
 function formatMoney(value, currency = 'TRY') {
+  if (value == null || !Number.isFinite(Number(value)) || !['TRY', 'USD', 'EUR'].includes(currency)) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: currency || 'TRY',
@@ -31,6 +37,7 @@ function formatCurrencyTotals(totals = {}) {
 function isCancelledMovement(row) {
   return Boolean(row.isCancelled)
     || row.movementType === 'purchase_invoice_cancel'
+    || row.movementType === 'purchase_return_cancel'
     || row.invoiceStatus === 'cancelled';
 }
 
@@ -42,7 +49,12 @@ function isPurchaseMovement(row) {
   return row.movementType === 'purchase_invoice' && !isCancelledMovement(row);
 }
 
+function isReturnMovement(row) {
+  return row.movementType === 'purchase_return' && !isCancelledMovement(row);
+}
+
 function movementLabel(row) {
+  if (row.movementType?.startsWith('purchase_return')) return isCancelledMovement(row) ? 'Alış iadesi iptal' : 'Alış iadesi';
   if (isCancelledMovement(row)) return 'Alış iptali';
   if (isPaymentMovement(row)) return 'Ödeme';
   if (isPurchaseMovement(row)) return 'Alış faturası';
@@ -57,43 +69,44 @@ function statusLabel(row) {
 }
 
 function addCurrencyTotal(target, currency, amount) {
-  const key = currency || 'TRY';
+  const key = currency || 'Bilinmiyor';
+  if (amount == null || !Number.isFinite(Number(amount)) || (key in target && target[key] == null)) {
+    target[key] = null;
+    return;
+  }
   target[key] = Number(target[key] || 0) + Number(amount || 0);
 }
 
 function summarizeRows(rows) {
   const purchases = {};
   const payments = {};
-  const balances = {};
-  const latestSupplierBalances = new Map();
+  const returns = {};
   let purchaseCount = 0;
   let paymentCount = 0;
+  let returnCount = 0;
 
   rows.forEach((row) => {
-    const effect = Number(row.balanceEffect || row.amount || 0);
+    const effect = ledgerEffect(row);
     if (isPurchaseMovement(row)) {
       purchaseCount += 1;
-      addCurrencyTotal(purchases, row.currency, Math.abs(effect));
+      addCurrencyTotal(purchases, ledgerAccountCurrency(row), (effect == null ? null : Math.abs(effect)));
     }
     if (isPaymentMovement(row)) {
       paymentCount += 1;
-      addCurrencyTotal(payments, row.currency, Math.abs(effect));
+      addCurrencyTotal(payments, ledgerAccountCurrency(row), (effect == null ? null : Math.abs(effect)));
+    }
+    if (isReturnMovement(row)) {
+      returnCount += 1;
+      addCurrencyTotal(returns, ledgerAccountCurrency(row), absoluteLedgerEffect(row));
     }
 
-    const supplierKey = `${row.supplierId || row.supplierCode || row.supplierName}-${row.currency || 'TRY'}`;
-    if (!latestSupplierBalances.has(supplierKey)) {
-      latestSupplierBalances.set(supplierKey, row);
-    }
   });
 
-  latestSupplierBalances.forEach((row) => {
-    addCurrencyTotal(balances, row.currency, row.runningBalance);
-  });
-
-  return { purchases, payments, balances, purchaseCount, paymentCount };
+  return { purchases, payments, returns, purchaseCount, paymentCount, returnCount };
 }
 
-export function SupplierMovementsScreen({ onOpenScreen }) {
+export function SupplierMovementsScreen({ onOpenScreen, initialSupplierId, initialSupplierCode }) {
+  const scopedPartyId = partyScopeId(initialSupplierId);
   const [filters, setFilters] = useState({
     search: '',
     dateFrom: '',
@@ -116,12 +129,13 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
   );
 
   const query = useMemo(() => ({
+    supplierId: scopedPartyId || undefined,
     page: 1,
     limit: 500,
     search: normalizedSearch,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
-  }), [filters.dateFrom, filters.dateTo, normalizedSearch]);
+  }), [scopedPartyId, filters.dateFrom, filters.dateTo, normalizedSearch]);
 
   useEffect(() => {
     let isMounted = true;
@@ -154,7 +168,8 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchSupplierMovements(query);
+        const response = await fetchCompleteLedger(fetchSupplierMovements, query);
+        assertPartyScope(response.data, 'supplier', scopedPartyId);
         if (isMounted) {
           setRows(response.data || []);
           setMeta(response.meta || null);
@@ -179,6 +194,7 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
       if (!filters.showCancelled && isCancelledMovement(row)) return false;
       if (filters.movementType === 'purchase') return isPurchaseMovement(row);
       if (filters.movementType === 'payment') return isPaymentMovement(row);
+      if (filters.movementType === 'return') return isReturnMovement(row);
       return true;
     });
 
@@ -219,10 +235,14 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
     { label: 'Tedarikçi', key: 'supplierName' },
     { label: 'Belge No', key: 'documentNo' },
     { label: 'İşlem', value: movementLabel },
-    { label: 'Alış Faturası', value: (row) => isPurchaseMovement(row) ? Math.abs(Number(row.balanceEffect || 0)) : '' },
-    { label: 'Ödeme', value: (row) => isPaymentMovement(row) ? Math.abs(Number(row.balanceEffect || 0)) : '' },
-    { label: 'Kalan Borç', key: 'runningBalance' },
-    { label: 'Para Birimi', key: 'currency' },
+    { label: 'Belge Tutarı', key: 'amount' },
+    { label: 'Belge Dövizi', key: 'currency' },
+    { label: 'Alış Faturası', value: (row) => isPurchaseMovement(row) ? absoluteLedgerEffect(row) ?? 'Bilinmiyor' : '' },
+    { label: 'Ödeme', value: (row) => isPaymentMovement(row) ? absoluteLedgerEffect(row) ?? 'Bilinmiyor' : '' },
+    { label: 'Alış İadesi', value: (row) => isReturnMovement(row) ? absoluteLedgerEffect(row) ?? 'Bilinmiyor' : '' },
+    { label: 'Cari Etkisi', value: (row) => ledgerEffect(row) ?? 'Bilinmiyor' },
+    { label: 'Hareket Sonrası Bakiye', value: (row) => row.runningBalance ?? 'Bilinmiyor' },
+    { label: 'Cari Dövizi', value: ledgerAccountCurrency },
     { label: 'Durum', value: statusLabel },
   ];
 
@@ -238,7 +258,7 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
       columns: exportColumns.map((column) => ({
         ...column,
         value: column.value || (['runningBalance'].includes(column.key)
-          ? (row) => formatMoney(row[column.key], row.currency)
+          ? (row) => formatMoney(row[column.key], ledgerAccountCurrency(row))
           : undefined),
       })),
     });
@@ -246,6 +266,7 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
 
   return (
     <main className="work-area supplier-ledger-screen supplier-movements-workspace">
+      <PartyContextNotice entityType="supplier" partyId={scopedPartyId} partyCode={initialSupplierCode} screenId="supplier-movements" onOpenScreen={onOpenScreen} />
       <section className="erp-panel supplier-movement-header">
         <div className="supplier-movement-title-row">
           <div>
@@ -283,6 +304,7 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
             <button type="button" className={filters.movementType === 'all' ? 'pressed' : ''} onClick={() => updateFilter('movementType', 'all')}>Tümü</button>
             <button type="button" className={filters.movementType === 'purchase' ? 'pressed purchase' : ''} onClick={() => updateFilter('movementType', 'purchase')}>Alış Faturaları</button>
             <button type="button" className={filters.movementType === 'payment' ? 'pressed payment' : ''} onClick={() => updateFilter('movementType', 'payment')}>Ödemeler</button>
+            <button type="button" className={filters.movementType === 'return' ? 'pressed' : ''} onClick={() => updateFilter('movementType', 'return')}>Alış İadeleri</button>
           </div>
           <button type="button" className={showAdvancedFilters ? 'pressed' : ''} onClick={() => setShowAdvancedFilters((value) => !value)}>
             <SlidersHorizontal size={15} /> Filtreler
@@ -305,10 +327,12 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
         )}
       </section>
 
+      <LedgerBalanceSummary rows={rows} partyType="supplier" isLoading={isLoading} errorMessage={errorMessage} />
       <section className="supplier-movement-summary" aria-label="Tedarikçi hareket özeti">
         <article><span>Alış faturaları</span><strong>{formatCurrencyTotals(summary.purchases)}</strong><small>{summary.purchaseCount} kesin fatura</small></article>
         <article><span>Yapılan ödemeler</span><strong>{formatCurrencyTotals(summary.payments)}</strong><small>{summary.paymentCount} ödeme hareketi</small></article>
-        <article><span>Kalan borç</span><strong>{formatCurrencyTotals(summary.balances)}</strong><small>Son hareket sonrası güncel bakiye</small></article>
+        <article><span>Alış iadeleri</span><strong>{formatCurrencyTotals(summary.returns)}</strong><small>{summary.returnCount} iade hareketi</small></article>
+        <article><span>Kapsam</span><strong>{rows.length} hareket</strong><small>Seçilen tarih ve aramanın tüm hareketleri</small></article>
         <article><span>Listelenen hareket</span><strong>{visibleRows.length}</strong><small>API toplamı {meta?.total ?? rows.length}</small></article>
       </section>
 
@@ -329,16 +353,18 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
                   <th>Tedarikçi</th>
                   <th>Belge No</th>
                   <th>İşlem</th>
+                  <th>Belge Tutarı</th>
                   <th>Alış Faturası</th>
                   <th>Ödeme</th>
-                  <th>Kalan Borç</th>
+                  <th>Cari Etkisi</th>
+                  <th>Hareket Sonrası Bakiye</th>
                   <th>Durum</th>
                   <th aria-label="İşlem bağlantısı" />
                 </tr>
               </thead>
               <tbody>
                 {visibleRows.map((row) => {
-                  const effect = Number(row.balanceEffect || row.amount || 0);
+                  const effect = ledgerEffect(row);
                   return (
                     <tr className="clickable-row" key={row.id} onClick={() => openMovement(row)}>
                       <td>{row.documentDate || '-'}</td>
@@ -349,9 +375,11 @@ export function SupplierMovementsScreen({ onOpenScreen }) {
                       </td>
                       <td><button type="button" className="document-link-button" onClick={(event) => { event.stopPropagation(); openMovement(row); }}>{row.documentNo || '-'}</button></td>
                       <td><span className={`supplier-movement-kind ${isPaymentMovement(row) ? 'payment' : isCancelledMovement(row) ? 'cancelled' : 'purchase'}`}>{movementLabel(row)}</span></td>
-                      <td className="supplier-purchase-amount">{isPurchaseMovement(row) ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
-                      <td className="supplier-payment-amount">{isPaymentMovement(row) ? formatMoney(Math.abs(effect), row.currency) : '-'}</td>
-                      <td className="supplier-balance-amount">{formatMoney(row.runningBalance, row.currency)}</td>
+                      <td>{formatMoney(row.amount, row.currency)}</td>
+                      <td className="supplier-purchase-amount">{isPurchaseMovement(row) ? formatMoney((effect == null ? null : Math.abs(effect)), ledgerAccountCurrency(row)) : '-'}</td>
+                      <td className="supplier-payment-amount">{isPaymentMovement(row) ? formatMoney((effect == null ? null : Math.abs(effect)), ledgerAccountCurrency(row)) : '-'}</td>
+                      <td>{formatMoney(effect, ledgerAccountCurrency(row))}</td>
+                      <td className="supplier-balance-amount">{formatMoney(row.runningBalance, ledgerAccountCurrency(row))}</td>
                       <td><span className={`status-pill ${isCancelledMovement(row) ? 'danger' : isPaymentMovement(row) ? 'good' : ''}`}>{statusLabel(row)}</span></td>
                       <td><button type="button" className="mini-button supplier-open-movement" title={ledgerTargetActionLabel(row)} onClick={(event) => { event.stopPropagation(); openMovement(row); }}><ExternalLink size={14} /> Aç</button></td>
                     </tr>

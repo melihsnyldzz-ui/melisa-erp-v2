@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDownToLine,
   ArrowLeftRight,
@@ -87,6 +87,9 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
   const [closingNote, setClosingNote] = useState('');
   const [activeAction, setActiveAction] = useState('expense');
   const [movementFilter, setMovementFilter] = useState('all');
+  const [loadedDate, setLoadedDate] = useState('');
+  const loadSequence = useRef(0);
+  const actionPending = useRef(false);
   const {
     canOpenOrClose,
     canRecordExpenseOrTransfer,
@@ -95,24 +98,30 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
   const selectedAction = canRecordExpenseOrTransfer ? activeAction : canOpenOrClose ? 'close' : null;
 
   async function load(nextDate = businessDate) {
+    const sequence = ++loadSequence.current;
     setIsLoading(true);
+    setLoadedDate('');
     setErrorMessage('');
     try {
       const response = await fetchCashRegister({ businessDate: nextDate });
+      if (sequence !== loadSequence.current) return;
       setOverview(response.data || { drawers: [], categories: [], session: null, currencies: [], movements: [] });
+      setLoadedDate(nextDate);
     } catch (error) {
+      if (sequence !== loadSequence.current) return;
       setOverview({ drawers: [], categories: [], session: null, currencies: [], movements: [] });
       setErrorMessage(error.code === 'CASH_REGISTER_SCHEMA_MISSING'
         ? 'Günlük kasa altyapısı henüz hazır değil. Sistem yöneticiniz kurulum adımını tamamlamalı.'
         : `${error.message || 'Günlük kasa okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
-      setIsLoading(false);
+      if (sequence === loadSequence.current) setIsLoading(false);
     }
   }
 
   useEffect(() => {
     load();
-  }, []);
+    return () => { loadSequence.current += 1; };
+  }, [businessDate]);
 
   const isOpen = overview.session?.status === 'open';
   const isClosed = overview.session?.status === 'closed';
@@ -145,6 +154,12 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
   }
 
   async function runAction(action, successText) {
+    if (actionPending.current || isSaving) return false;
+    if (isLoading || loadedDate !== businessDate) {
+      setErrorMessage('Seçilen tarihin kasa bilgisi yüklenmeden işlem yapılamaz. Yenileyip tekrar deneyin.');
+      return false;
+    }
+    actionPending.current = true;
     setIsSaving(true);
     setMessage('');
     setErrorMessage('');
@@ -157,6 +172,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       setErrorMessage(`${error.message || 'İşlem tamamlanamadı.'} (${error.code || 'API_ERROR'})`);
       return false;
     } finally {
+      actionPending.current = false;
       setIsSaving(false);
     }
   }
@@ -243,9 +259,9 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
         <div className="dashboard-toolbar-actions">
           <label>
             <span>Tarih</span>
-            <input type="date" value={businessDate} onChange={(event) => setBusinessDate(event.target.value)} />
+            <input type="date" value={businessDate} disabled={isSaving} onChange={(event) => setBusinessDate(event.target.value)} />
           </label>
-          <button type="button" disabled={isLoading} onClick={() => load(businessDate)}><RefreshCw size={15} />Yenile</button>
+          <button type="button" disabled={isLoading || isSaving} onClick={() => load(businessDate)}><RefreshCw size={15} />Yenile</button>
           <span className={`cash-session-status ${isOpen ? 'open' : isClosed ? 'closed' : ''}`}>
             {isOpen ? 'Kasa Açık' : isClosed ? 'Kasa Kapalı' : 'Kasa Açılmadı'}
           </span>
@@ -276,7 +292,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
         </section>
       )}
 
-      {!isLoading && !errorMessage && !overview.session && canOpenOrClose && (
+      {!isLoading && loadedDate === businessDate && !overview.session && canOpenOrClose && (
         <>
           <form className="erp-panel cash-opening-panel" onSubmit={submitOpen}>
             <div className="panel-title">

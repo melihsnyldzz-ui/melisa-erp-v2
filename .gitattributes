@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Preserve captured runtime bytes across clone/archive on Windows.
+apps/api/src/** -text
+apps/api/production-env.mjs -text
+apps/api/start-production-*.mjs -text
+packages/** -text

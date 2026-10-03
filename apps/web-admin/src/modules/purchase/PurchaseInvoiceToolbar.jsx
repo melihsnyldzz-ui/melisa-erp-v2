@@ -31,7 +31,7 @@ export function PurchaseInvoiceToolbar({
         <span>{status}</span>
       </div>
       <div className="purchase-toolbar-actions">
-        <button type="button" onClick={onNewDraft}><FilePlus2 size={15} />Yeni Fiş</button>
+        <button type="button" onClick={onNewDraft} disabled={isSaving || isFinalizing || isCancelling}><FilePlus2 size={15} />Yeni Fiş</button>
         {isFinalized && !isCorrectionMode && (
           <button type="button" onClick={onEditFinalized} disabled={!onEditFinalized || !canSaveDraft} title={canSaveDraft ? 'Kesin alış fişini doğrudan düzelt' : 'purchase.edit yetkisi gerekli'}>
             <Pencil size={15} />Düzenle
@@ -43,7 +43,7 @@ export function PurchaseInvoiceToolbar({
           </button>
         )}
         {isDraft && (
-          <button type="button" className="primary" onClick={onFinalize} disabled={isReadonly || isFinalizing || isCancelling || !onFinalize || !canFinalize} title={canFinalize ? 'Fişi kesinleştir' : 'purchase.finalize yetkisi gerekli'}>
+          <button type="button" className="primary" onClick={onFinalize} disabled={isSaving || isReadonly || isFinalizing || isCancelling || !onFinalize || !canFinalize} title={canFinalize ? 'Fişi kesinleştir' : 'Kesinleştirme yetkisi, kayıtlı taslak ve seçili tedarikçi gerekli'}>
             <Check size={15} />{isFinalizing ? 'Kesinleştiriliyor' : 'Kesinleştir'}
           </button>
         )}

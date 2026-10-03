@@ -1,0 +1,1475 @@
+{
+  "allMatch": true,
+  "packages": [
+    {
+      "path": "node_modules/@azure-rest/core-client",
+      "live": "2.6.0",
+      "canonical": "2.6.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/abort-controller",
+      "live": "2.1.2",
+      "canonical": "2.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-auth",
+      "live": "1.10.1",
+      "canonical": "1.10.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-client",
+      "live": "1.10.1",
+      "canonical": "1.10.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-http-compat",
+      "live": "2.4.0",
+      "canonical": "2.4.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-lro",
+      "live": "2.7.2",
+      "canonical": "2.7.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-paging",
+      "live": "1.6.2",
+      "canonical": "1.6.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-rest-pipeline",
+      "live": "1.23.0",
+      "canonical": "1.23.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-tracing",
+      "live": "1.3.1",
+      "canonical": "1.3.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/core-util",
+      "live": "1.13.1",
+      "canonical": "1.13.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/identity",
+      "live": "4.13.1",
+      "canonical": "4.13.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/keyvault-common",
+      "live": "2.1.0",
+      "canonical": "2.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/keyvault-keys",
+      "live": "4.10.0",
+      "canonical": "4.10.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/logger",
+      "live": "1.3.0",
+      "canonical": "1.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/msal-browser",
+      "live": "5.11.0",
+      "canonical": "5.11.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/msal-common",
+      "live": "16.6.2",
+      "canonical": "16.6.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@azure/msal-node",
+      "live": "5.2.2",
+      "canonical": "5.2.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@emnapi/runtime",
+      "live": "1.11.1",
+      "canonical": "1.11.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@img/colour",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@img/sharp-wasm32",
+      "live": "0.35.1",
+      "canonical": "0.35.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@img/sharp-win32-x64",
+      "live": "0.35.1",
+      "canonical": "0.35.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@js-joda/core",
+      "live": "5.7.0",
+      "canonical": "5.7.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@noble/ciphers",
+      "live": "1.3.0",
+      "canonical": "1.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@noble/hashes",
+      "live": "1.8.0",
+      "canonical": "1.8.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@swc/helpers",
+      "live": "0.5.23",
+      "canonical": "0.5.23",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@tediousjs/connection-string",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@types/node",
+      "live": "25.9.1",
+      "canonical": "25.9.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@types/readable-stream",
+      "live": "4.0.23",
+      "canonical": "4.0.23",
+      "equal": true
+    },
+    {
+      "path": "node_modules/@typespec/ts-http-runtime",
+      "live": "0.3.5",
+      "canonical": "0.3.5",
+      "equal": true
+    },
+    {
+      "path": "node_modules/abort-controller",
+      "live": "3.0.0",
+      "canonical": "3.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/accepts",
+      "live": "1.3.8",
+      "canonical": "1.3.8",
+      "equal": true
+    },
+    {
+      "path": "node_modules/adler-32",
+      "live": "1.3.1",
+      "canonical": "1.3.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/agent-base",
+      "live": "7.1.4",
+      "canonical": "7.1.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/anymatch",
+      "live": "3.1.3",
+      "canonical": "3.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/array-flatten",
+      "live": "1.1.1",
+      "canonical": "1.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/balanced-match",
+      "live": "4.0.4",
+      "canonical": "4.0.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/base64-js",
+      "live": "1.5.1",
+      "canonical": "1.5.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/bcrypt",
+      "live": "6.0.0",
+      "canonical": "6.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/binary-extensions",
+      "live": "2.3.0",
+      "canonical": "2.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/bl",
+      "live": "6.1.6",
+      "canonical": "6.1.6",
+      "equal": true
+    },
+    {
+      "path": "node_modules/body-parser",
+      "live": "1.20.5",
+      "canonical": "1.20.5",
+      "equal": true
+    },
+    {
+      "path": "node_modules/brace-expansion",
+      "live": "5.0.6",
+      "canonical": "5.0.6",
+      "equal": true
+    },
+    {
+      "path": "node_modules/braces",
+      "live": "3.0.3",
+      "canonical": "3.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/brotli",
+      "live": "1.3.3",
+      "canonical": "1.3.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/browserify-zlib",
+      "live": "0.2.0",
+      "canonical": "0.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/buffer",
+      "live": "6.0.3",
+      "canonical": "6.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/buffer-equal-constant-time",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/bundle-name",
+      "live": "4.1.0",
+      "canonical": "4.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/bytes",
+      "live": "3.1.2",
+      "canonical": "3.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/call-bind-apply-helpers",
+      "live": "1.0.2",
+      "canonical": "1.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/call-bound",
+      "live": "1.0.4",
+      "canonical": "1.0.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/cfb",
+      "live": "1.2.2",
+      "canonical": "1.2.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/chokidar",
+      "live": "3.6.0",
+      "canonical": "3.6.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/chownr",
+      "live": "1.1.4",
+      "canonical": "1.1.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/clone",
+      "live": "2.1.2",
+      "canonical": "2.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/codepage",
+      "live": "1.15.0",
+      "canonical": "1.15.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/commander",
+      "live": "11.1.0",
+      "canonical": "11.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/content-disposition",
+      "live": "0.5.4",
+      "canonical": "0.5.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/content-type",
+      "live": "1.0.5",
+      "canonical": "1.0.5",
+      "equal": true
+    },
+    {
+      "path": "node_modules/cookie",
+      "live": "0.7.2",
+      "canonical": "0.7.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/cookie-signature",
+      "live": "1.0.7",
+      "canonical": "1.0.7",
+      "equal": true
+    },
+    {
+      "path": "node_modules/cors",
+      "live": "2.8.6",
+      "canonical": "2.8.6",
+      "equal": true
+    },
+    {
+      "path": "node_modules/crc-32",
+      "live": "1.2.2",
+      "canonical": "1.2.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/csv-parse",
+      "live": "6.2.1",
+      "canonical": "6.2.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/debug",
+      "live": "2.6.9",
+      "canonical": "2.6.9",
+      "equal": true
+    },
+    {
+      "path": "node_modules/decompress-response",
+      "live": "6.0.0",
+      "canonical": "6.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/deep-extend",
+      "live": "0.6.0",
+      "canonical": "0.6.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/default-browser",
+      "live": "5.5.0",
+      "canonical": "5.5.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/default-browser-id",
+      "live": "5.0.1",
+      "canonical": "5.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/define-lazy-prop",
+      "live": "3.0.0",
+      "canonical": "3.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/depd",
+      "live": "2.0.0",
+      "canonical": "2.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/destroy",
+      "live": "1.2.0",
+      "canonical": "1.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/detect-libc",
+      "live": "2.1.2",
+      "canonical": "2.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/dfa",
+      "live": "1.2.0",
+      "canonical": "1.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/dotenv",
+      "live": "16.6.1",
+      "canonical": "16.6.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/dunder-proto",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ecdsa-sig-formatter",
+      "live": "1.0.11",
+      "canonical": "1.0.11",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ee-first",
+      "live": "1.1.1",
+      "canonical": "1.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/encodeurl",
+      "live": "2.0.0",
+      "canonical": "2.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/end-of-stream",
+      "live": "1.4.5",
+      "canonical": "1.4.5",
+      "equal": true
+    },
+    {
+      "path": "node_modules/es-define-property",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/es-errors",
+      "live": "1.3.0",
+      "canonical": "1.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/es-object-atoms",
+      "live": "1.1.1",
+      "canonical": "1.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/escape-html",
+      "live": "1.0.3",
+      "canonical": "1.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/etag",
+      "live": "1.8.1",
+      "canonical": "1.8.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/event-target-shim",
+      "live": "5.0.1",
+      "canonical": "5.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/events",
+      "live": "3.3.0",
+      "canonical": "3.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/expand-template",
+      "live": "2.0.3",
+      "canonical": "2.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/express",
+      "live": "4.22.2",
+      "canonical": "4.22.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/express-rate-limit",
+      "live": "8.5.2",
+      "canonical": "8.5.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/fast-deep-equal",
+      "live": "3.1.3",
+      "canonical": "3.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/fill-range",
+      "live": "7.1.1",
+      "canonical": "7.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/finalhandler",
+      "live": "1.3.2",
+      "canonical": "1.3.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/fontkit",
+      "live": "2.0.4",
+      "canonical": "2.0.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/forwarded",
+      "live": "0.2.0",
+      "canonical": "0.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/frac",
+      "live": "1.1.2",
+      "canonical": "1.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/fresh",
+      "live": "0.5.2",
+      "canonical": "0.5.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/fs-constants",
+      "live": "1.0.0",
+      "canonical": "1.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/function-bind",
+      "live": "1.1.2",
+      "canonical": "1.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/get-intrinsic",
+      "live": "1.3.0",
+      "canonical": "1.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/get-proto",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/github-from-package",
+      "live": "0.0.0",
+      "canonical": "0.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/glob-parent",
+      "live": "5.1.2",
+      "canonical": "5.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/gopd",
+      "live": "1.2.0",
+      "canonical": "1.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/has-flag",
+      "live": "3.0.0",
+      "canonical": "3.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/has-symbols",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/hasown",
+      "live": "2.0.3",
+      "canonical": "2.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/helmet",
+      "live": "8.2.0",
+      "canonical": "8.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/http-errors",
+      "live": "2.0.1",
+      "canonical": "2.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/http-proxy-agent",
+      "live": "7.0.2",
+      "canonical": "7.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/http-proxy-agent/node_modules/debug",
+      "live": "4.4.3",
+      "canonical": "4.4.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/http-proxy-agent/node_modules/ms",
+      "live": "2.1.3",
+      "canonical": "2.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/https-proxy-agent",
+      "live": "7.0.6",
+      "canonical": "7.0.6",
+      "equal": true
+    },
+    {
+      "path": "node_modules/https-proxy-agent/node_modules/debug",
+      "live": "4.4.3",
+      "canonical": "4.4.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/https-proxy-agent/node_modules/ms",
+      "live": "2.1.3",
+      "canonical": "2.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/iconv-lite",
+      "live": "0.4.24",
+      "canonical": "0.4.24",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ieee754",
+      "live": "1.2.1",
+      "canonical": "1.2.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ignore-by-default",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/inherits",
+      "live": "2.0.4",
+      "canonical": "2.0.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ini",
+      "live": "1.3.8",
+      "canonical": "1.3.8",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ip-address",
+      "live": "10.2.0",
+      "canonical": "10.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ipaddr.js",
+      "live": "1.9.1",
+      "canonical": "1.9.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-binary-path",
+      "live": "2.1.0",
+      "canonical": "2.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-docker",
+      "live": "3.0.0",
+      "canonical": "3.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-extglob",
+      "live": "2.1.1",
+      "canonical": "2.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-glob",
+      "live": "4.0.3",
+      "canonical": "4.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-inside-container",
+      "live": "1.0.0",
+      "canonical": "1.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-number",
+      "live": "7.0.0",
+      "canonical": "7.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/is-wsl",
+      "live": "3.1.1",
+      "canonical": "3.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/js-md4",
+      "live": "0.3.2",
+      "canonical": "0.3.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/js-md5",
+      "live": "0.8.3",
+      "canonical": "0.8.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/jsonwebtoken",
+      "live": "9.0.3",
+      "canonical": "9.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/jsonwebtoken/node_modules/ms",
+      "live": "2.1.3",
+      "canonical": "2.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/jwa",
+      "live": "2.0.1",
+      "canonical": "2.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/jws",
+      "live": "4.0.1",
+      "canonical": "4.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/linebreak",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/linebreak/node_modules/base64-js",
+      "live": "0.0.8",
+      "canonical": "0.0.8",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.includes",
+      "live": "4.3.0",
+      "canonical": "4.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.isboolean",
+      "live": "3.0.3",
+      "canonical": "3.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.isinteger",
+      "live": "4.0.4",
+      "canonical": "4.0.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.isnumber",
+      "live": "3.0.3",
+      "canonical": "3.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.isplainobject",
+      "live": "4.0.6",
+      "canonical": "4.0.6",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.isstring",
+      "live": "4.0.1",
+      "canonical": "4.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/lodash.once",
+      "live": "4.1.1",
+      "canonical": "4.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/math-intrinsics",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/media-typer",
+      "live": "0.3.0",
+      "canonical": "0.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/merge-descriptors",
+      "live": "1.0.3",
+      "canonical": "1.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/methods",
+      "live": "1.1.2",
+      "canonical": "1.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mime",
+      "live": "1.6.0",
+      "canonical": "1.6.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mime-db",
+      "live": "1.52.0",
+      "canonical": "1.52.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mime-types",
+      "live": "2.1.35",
+      "canonical": "2.1.35",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mimic-response",
+      "live": "3.1.0",
+      "canonical": "3.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/minimatch",
+      "live": "10.2.5",
+      "canonical": "10.2.5",
+      "equal": true
+    },
+    {
+      "path": "node_modules/minimist",
+      "live": "1.2.8",
+      "canonical": "1.2.8",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mkdirp-classic",
+      "live": "0.5.3",
+      "canonical": "0.5.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ms",
+      "live": "2.0.0",
+      "canonical": "2.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/msnodesqlv8",
+      "live": "5.2.0",
+      "canonical": "5.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mssql",
+      "live": "12.5.4",
+      "canonical": "12.5.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mssql/node_modules/debug",
+      "live": "4.4.3",
+      "canonical": "4.4.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/mssql/node_modules/ms",
+      "live": "2.1.3",
+      "canonical": "2.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/napi-build-utils",
+      "live": "2.0.0",
+      "canonical": "2.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/native-duplexpair",
+      "live": "1.0.0",
+      "canonical": "1.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/negotiator",
+      "live": "0.6.3",
+      "canonical": "0.6.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/node-abi",
+      "live": "4.31.0",
+      "canonical": "4.31.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/node-addon-api",
+      "live": "8.7.0",
+      "canonical": "8.7.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/node-gyp-build",
+      "live": "4.8.4",
+      "canonical": "4.8.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/nodemon",
+      "live": "3.1.14",
+      "canonical": "3.1.14",
+      "equal": true
+    },
+    {
+      "path": "node_modules/nodemon/node_modules/debug",
+      "live": "4.4.3",
+      "canonical": "4.4.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/nodemon/node_modules/ms",
+      "live": "2.1.3",
+      "canonical": "2.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/normalize-path",
+      "live": "3.0.0",
+      "canonical": "3.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/object-assign",
+      "live": "4.1.1",
+      "canonical": "4.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/object-inspect",
+      "live": "1.13.4",
+      "canonical": "1.13.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/on-finished",
+      "live": "2.4.1",
+      "canonical": "2.4.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/once",
+      "live": "1.4.0",
+      "canonical": "1.4.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/open",
+      "live": "10.2.0",
+      "canonical": "10.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/pako",
+      "live": "1.0.11",
+      "canonical": "1.0.11",
+      "equal": true
+    },
+    {
+      "path": "node_modules/parseurl",
+      "live": "1.3.3",
+      "canonical": "1.3.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/path-to-regexp",
+      "live": "0.1.13",
+      "canonical": "0.1.13",
+      "equal": true
+    },
+    {
+      "path": "node_modules/pdfkit",
+      "live": "0.19.0",
+      "canonical": "0.19.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/picomatch",
+      "live": "2.3.2",
+      "canonical": "2.3.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/png-js",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/prebuild-install",
+      "live": "7.1.3",
+      "canonical": "7.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/prebuild-install/node_modules/node-abi",
+      "live": "3.92.0",
+      "canonical": "3.92.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/process",
+      "live": "0.11.10",
+      "canonical": "0.11.10",
+      "equal": true
+    },
+    {
+      "path": "node_modules/proxy-addr",
+      "live": "2.0.7",
+      "canonical": "2.0.7",
+      "equal": true
+    },
+    {
+      "path": "node_modules/pstree.remy",
+      "live": "1.1.8",
+      "canonical": "1.1.8",
+      "equal": true
+    },
+    {
+      "path": "node_modules/pump",
+      "live": "3.0.4",
+      "canonical": "3.0.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/qs",
+      "live": "6.15.2",
+      "canonical": "6.15.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/range-parser",
+      "live": "1.2.1",
+      "canonical": "1.2.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/raw-body",
+      "live": "2.5.3",
+      "canonical": "2.5.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/rc",
+      "live": "1.2.8",
+      "canonical": "1.2.8",
+      "equal": true
+    },
+    {
+      "path": "node_modules/readable-stream",
+      "live": "4.7.0",
+      "canonical": "4.7.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/readdirp",
+      "live": "3.6.0",
+      "canonical": "3.6.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/restructure",
+      "live": "3.0.2",
+      "canonical": "3.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/run-applescript",
+      "live": "7.1.0",
+      "canonical": "7.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/safe-buffer",
+      "live": "5.2.1",
+      "canonical": "5.2.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/safer-buffer",
+      "live": "2.1.2",
+      "canonical": "2.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/semver",
+      "live": "7.8.4",
+      "canonical": "7.8.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/send",
+      "live": "0.19.2",
+      "canonical": "0.19.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/send/node_modules/ms",
+      "live": "2.1.3",
+      "canonical": "2.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/serve-static",
+      "live": "1.16.3",
+      "canonical": "1.16.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/setprototypeof",
+      "live": "1.2.0",
+      "canonical": "1.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/sharp",
+      "live": "0.35.1",
+      "canonical": "0.35.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/side-channel",
+      "live": "1.1.0",
+      "canonical": "1.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/side-channel-list",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/side-channel-map",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/side-channel-weakmap",
+      "live": "1.0.2",
+      "canonical": "1.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/simple-concat",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/simple-get",
+      "live": "4.0.1",
+      "canonical": "4.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/simple-update-notifier",
+      "live": "2.0.0",
+      "canonical": "2.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/sprintf-js",
+      "live": "1.1.3",
+      "canonical": "1.1.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/ssf",
+      "live": "0.11.2",
+      "canonical": "0.11.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/statuses",
+      "live": "2.0.2",
+      "canonical": "2.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/string_decoder",
+      "live": "1.3.0",
+      "canonical": "1.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/strip-json-comments",
+      "live": "2.0.1",
+      "canonical": "2.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/supports-color",
+      "live": "5.5.0",
+      "canonical": "5.5.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tar-fs",
+      "live": "2.1.4",
+      "canonical": "2.1.4",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tar-stream",
+      "live": "2.2.0",
+      "canonical": "2.2.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tar-stream/node_modules/bl",
+      "live": "4.1.0",
+      "canonical": "4.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tar-stream/node_modules/buffer",
+      "live": "5.7.1",
+      "canonical": "5.7.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tar-stream/node_modules/readable-stream",
+      "live": "3.6.2",
+      "canonical": "3.6.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tarn",
+      "live": "3.0.2",
+      "canonical": "3.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tedious",
+      "live": "19.2.1",
+      "canonical": "19.2.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tedious/node_modules/iconv-lite",
+      "live": "0.7.2",
+      "canonical": "0.7.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tiny-inflate",
+      "live": "1.0.3",
+      "canonical": "1.0.3",
+      "equal": true
+    },
+    {
+      "path": "node_modules/to-regex-range",
+      "live": "5.0.1",
+      "canonical": "5.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/toidentifier",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/touch",
+      "live": "3.1.1",
+      "canonical": "3.1.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tslib",
+      "live": "2.8.1",
+      "canonical": "2.8.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/tunnel-agent",
+      "live": "0.6.0",
+      "canonical": "0.6.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/type-is",
+      "live": "1.6.18",
+      "canonical": "1.6.18",
+      "equal": true
+    },
+    {
+      "path": "node_modules/undefsafe",
+      "live": "2.0.5",
+      "canonical": "2.0.5",
+      "equal": true
+    },
+    {
+      "path": "node_modules/undici-types",
+      "live": "7.24.6",
+      "canonical": "7.24.6",
+      "equal": true
+    },
+    {
+      "path": "node_modules/unicode-properties",
+      "live": "1.4.1",
+      "canonical": "1.4.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/unicode-trie",
+      "live": "2.0.0",
+      "canonical": "2.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/unicode-trie/node_modules/pako",
+      "live": "0.2.9",
+      "canonical": "0.2.9",
+      "equal": true
+    },
+    {
+      "path": "node_modules/unpipe",
+      "live": "1.0.0",
+      "canonical": "1.0.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/util-deprecate",
+      "live": "1.0.2",
+      "canonical": "1.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/utils-merge",
+      "live": "1.0.1",
+      "canonical": "1.0.1",
+      "equal": true
+    },
+    {
+      "path": "node_modules/vary",
+      "live": "1.1.2",
+      "canonical": "1.1.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/wmf",
+      "live": "1.0.2",
+      "canonical": "1.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/word",
+      "live": "0.3.0",
+      "canonical": "0.3.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/wrappy",
+      "live": "1.0.2",
+      "canonical": "1.0.2",
+      "equal": true
+    },
+    {
+      "path": "node_modules/wsl-utils",
+      "live": "0.1.0",
+      "canonical": "0.1.0",
+      "equal": true
+    },
+    {
+      "path": "node_modules/xlsx",
+      "live": "0.18.5",
+      "canonical": "0.18.5",
+      "equal": true
+    }
+  ]
+}

@@ -185,6 +185,63 @@
 
 .stock-list-screen .stock-list-main-panel {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-list-screen .stock-list-main-panel > .panel-title,
+.stock-list-screen .stock-list-main-panel > .list-state {
+  flex: 0 0 auto;
+}
+
+.stock-list-screen .stock-list-main-panel > .list-state-info {
+  min-height: 0;
+  padding: 8px 12px;
+  justify-content: flex-start;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.stock-list-screen .stock-list-main-panel > .stock-table-wrap {
+  flex: 1 1 auto;
+  min-height: 100px;
+}
+
+.stock-list-screen .stock-pagination,
+.stock-list-screen .stock-pagination form,
+.stock-list-screen .stock-pagination label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stock-list-screen .stock-pagination {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--stock-ux-border);
+}
+
+.stock-list-screen .stock-pagination button,
+.stock-list-screen .stock-pagination input {
+  min-height: 32px;
+  border: 1px solid var(--stock-ux-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: #ffffff;
+  color: #243649;
+  font: inherit;
+}
+
+.stock-list-screen .stock-pagination button:disabled {
+  background: #f1f4f7;
+  color: #677583;
+  cursor: default;
+}
+
+.stock-list-screen .stock-pagination input {
+  width: 68px;
+  min-width: 0;
 }
 
 .stock-360-movement-details {

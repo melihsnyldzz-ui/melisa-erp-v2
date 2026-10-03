@@ -17,11 +17,11 @@ export function Product360Panel({ activeProductId, form, product360, onOpenScree
           <span>Ürünün alış, satış, stok ve cari izi tek bakışta.</span>
         </div>
         <div className="entity-360-actions">
-          <button type="button" onClick={() => onOpenScreen?.('stock-movements', { productId: activeProductId, stockCode: form.stockCode })}>
+          <button type="button" disabled={!Number.isSafeInteger(Number(activeProductId)) || Number(activeProductId) <= 0} onClick={() => onOpenScreen?.('stock-movements', { productId: activeProductId, stockCode: form.stockCode })}>
             Stok Hareketleri
           </button>
-          <button type="button" onClick={() => onOpenScreen?.('sales-invoice-list', { productId: activeProductId, stockCode: form.stockCode })}>
-            Satış Fişleri
+          <button type="button" disabled={!Number.isSafeInteger(Number(activeProductId)) || Number(activeProductId) <= 0} onClick={() => onOpenScreen?.('stock-movements', { productId: activeProductId, stockCode: form.stockCode, sourceType: 'sales_invoice' })}>
+            Satış Hareketleri
           </button>
         </div>
       </div>

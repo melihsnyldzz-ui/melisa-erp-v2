@@ -1,0 +1,374 @@
+{
+  "version": "1.0.0-candidate.18-t2",
+  "versionCode": 20,
+  "packageId": "com.melisaerp.nativeterminal",
+  "recoveryDate": "2026-09-29",
+  "sourceRunId": "T2-20260917-01",
+  "baseBranch": "codex/terminal-native-v1-20260914",
+  "baseHead": "0e14256f13f03d5cf7610a955da7b5ec0a2b52b3",
+  "baseIncludesUncommittedChanges": true,
+  "t2ChangedFiles": [
+    "app/build.gradle.kts",
+    "app/src/main/java/com/melisaerp/nativeterminal/PackingUi.kt",
+    "app/src/main/java/com/melisaerp/nativeterminal/TerminalViewModel.kt",
+    "app/src/main/java/com/melisaerp/nativeterminal/data/PackingCache.kt",
+    "app/src/main/java/com/melisaerp/nativeterminal/data/TerminalRepository.kt",
+    "app/src/main/java/com/melisaerp/nativeterminal/model/WorkflowModels.kt",
+    "app/src/test/java/com/melisaerp/nativeterminal/NavigationPickingTest.kt",
+    "app/src/test/java/com/melisaerp/nativeterminal/PackingCacheTest.kt"
+  ],
+  "verifiedSourceFiles": [
+    {
+      "path": ".gitignore",
+      "sha256": "581da3dff84f47b9dca5f2c947c470ba8a6f6243a5310031540f0997fd39e820",
+      "bytes": 70
+    },
+    {
+      "path": "app/build.gradle.kts",
+      "sha256": "1c6a369422da77707a91a159a2438a1ad806e38221b6aefd14211481fd01c7bd",
+      "bytes": 2955
+    },
+    {
+      "path": "app/proguard-rules.pro",
+      "sha256": "a6422c0bc8169ad2591d1c3da8bf1531f22db319fa13a7621895270b9d2228aa",
+      "bytes": 140
+    },
+    {
+      "path": "app/schemas/com.melisaerp.nativeterminal.data.LocalStore/1.json",
+      "sha256": "1f1943b1fdd01db21a8e9d7f881f3958be46a2ae1ce0a2875cb56f8d84c9ef13",
+      "bytes": 5904
+    },
+    {
+      "path": "app/schemas/com.melisaerp.nativeterminal.data.LocalStore/2.json",
+      "sha256": "70edaab63983bcda4634e7d5fb1b6343614748f6d0997393edd34ab3f99cac10",
+      "bytes": 6763
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/CategoryReportUiTest.kt",
+      "sha256": "2b2c5a14ec31ec4a11bf99c1dec0f923857df293094e3cb46cec8dac793e256e",
+      "bytes": 4908
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/DataWedgeProfileAcceptanceTest.java",
+      "sha256": "50e080a317019e109e0f9c82c47231ffd9492863efb652d18999700d6d080f4e",
+      "bytes": 5548
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/DeviceReadOnlyAcceptanceTest.kt",
+      "sha256": "c354d12e709c308737f86073fbac6a01850f02fed446d58e1996e3d1a85a2de1",
+      "bytes": 2857
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/NumericEntryUiTest.kt",
+      "sha256": "303b4d4a54f93a6eb4e67c20c9cb05fafda62f6bf0f4488d2070089db5491209",
+      "bytes": 5843
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/StorageAcceptanceTest.kt",
+      "sha256": "c15a220cc6c674de2801fde5f027d25b2ade779f19a7290db8219ffbfbd73788",
+      "bytes": 2793
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/UiOfflineAcceptanceTest.kt",
+      "sha256": "cc56a2e92a674ae4758631e6a3ac2d34afa3b8a4e835c0550b280e99a7e81dc1",
+      "bytes": 6441
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "sha256": "59c8f3cb85907f09104178231dd9a0c65c0a7a31c4d3619e20a88833051cb221",
+      "bytes": 1513
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/CategoryReportUi.kt",
+      "sha256": "eb5ce4e8d86df9d4ca432546676aa616d2a20e99319c80082d2e80c10011accd",
+      "bytes": 5595
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/CatalogSync.kt",
+      "sha256": "a0458c621cc7de2381a711e76ab64dc3ef3045b55fea4223e62fa0f6e28d1b76",
+      "bytes": 2188
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/CategoryReportCache.kt",
+      "sha256": "d5e207ac6c0fa6a4bb926a8cdb8b3ca1c67fa4f4db9a15f17f0169b4e80c39e6",
+      "bytes": 1053
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/ErpApi.kt",
+      "sha256": "08ca4ef27fb369be3290f30aee856ad35d696f9ae5f03c9bcbbab86cc69060da",
+      "bytes": 6118
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/LocalStore.kt",
+      "sha256": "73bd2ed3fcca016fb763e03edc46eb04cc0d6700d75d36039bd762eeb49bc59f",
+      "bytes": 8011
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/PackingAccess.kt",
+      "sha256": "865027852003ca2ed99ef06edb0b65476b0a8813d02424b3187449c6ddcff876",
+      "bytes": 591
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/PackingCache.kt",
+      "sha256": "3e04abd1b08c11bc9645772766e200bbc6dd434eb169475b1b3a184f50cc804b",
+      "bytes": 1184
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/data/TerminalRepository.kt",
+      "sha256": "76902ebd410630ffb555f33c9918c5a7e757404e8cf264322a4558010a59272c",
+      "bytes": 23674
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/MainActivity.kt",
+      "sha256": "1c9336e7885989231846220976c1f478bae8b77b841447f8ee8f940f16dbf650",
+      "bytes": 25180
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/model/CategoryReport.kt",
+      "sha256": "758096e23ea4e362dc69fe54f0f7a833561b37572ba0a0f4656ba5730c224887",
+      "bytes": 3071
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/model/CustomerScope.kt",
+      "sha256": "24bf0fe84744de1d0a54c3a194ce4f6fdad396ba40dd266521585bc0364908d1",
+      "bytes": 4142
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/model/Models.kt",
+      "sha256": "e76e7fc52a80177a5eaa6c18b254c24028ea885b8186fd593ace35fadd3799c1",
+      "bytes": 7725
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/model/ReceiptPdfShare.kt",
+      "sha256": "35e03c413d4ee58524d8850e1b64b3708935d60137fd2ecb970fdf0c92c2c302",
+      "bytes": 2757
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/model/WorkflowModels.kt",
+      "sha256": "425b61c42a6def7a1913693c5ac2666a527de55662b68f8362a3b7ed208db812",
+      "bytes": 7082
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/Navigation.kt",
+      "sha256": "efd3f31cb7538864f1d67bda0e2d92de36c1558016f0f2f97a379ffdf1beafdf",
+      "bytes": 515
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/NavigationUi.kt",
+      "sha256": "0119e0e947709b650c7e500e12aa9020c0e176dad0de5be7ea2aca816349a313",
+      "bytes": 19003
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/PackingUi.kt",
+      "sha256": "6edc5dd71e74cc3a765edfe23938f5691c088b9cef3d90e729337e3076526f19",
+      "bytes": 12917
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/ReceiptPdfShareScope.kt",
+      "sha256": "dcb07d15a9f07a5442e6eb09fff2757bc1bdc48e7ffd693971c74ca442a99dde",
+      "bytes": 741
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/ReceiptPdfShareUi.kt",
+      "sha256": "cc2b73ee48573e5419aa4c23f8da63e45c816512f1ad63f8b8db47b9ad108f88",
+      "bytes": 5660
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/ReceiptsUi.kt",
+      "sha256": "dc12bca9de9a378db070bcfb88e067b8a9464624644de71f51f4d80bdb9ce8e8",
+      "bytes": 21700
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/BarcodeScanner.kt",
+      "sha256": "040533f69e87f97dff35baa779c646a96a72a08fbe7a16c4cd569d15be48a8d7",
+      "bytes": 1160
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/DataWedge.kt",
+      "sha256": "5ea837cde5e62791fcb74c36cb18adf091f447339899c547819a5f5ab8526beb",
+      "bytes": 7899
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/ForegroundScanDelivery.kt",
+      "sha256": "e31b29084bd0d038b1a075bd4c279cfd712d471d6b8f348574deafcdce81ccc8",
+      "bytes": 1348
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/HoneywellScanner.kt",
+      "sha256": "56e681093ea44d2c9fba19f8e112ce335f8098d3fdb98d3e1900a2643b2a70c8",
+      "bytes": 6968
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/HoneywellScanReceiver.kt",
+      "sha256": "136c2531b29b3066ff5ecd71a7543a5669b94cb04fa48dc572ba038ce2f20344",
+      "bytes": 785
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/NewlandScanner.kt",
+      "sha256": "41896e65271541e73ba5ba3886757646911d259e42f685b53e222ab8b74837ed",
+      "bytes": 5109
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/ScannerContract.kt",
+      "sha256": "4f6d601ea81a97859dd91664e40b41cc212b9148b09e2dcc5bd8e1214efb9aed",
+      "bytes": 1071
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/TerminalApplication.kt",
+      "sha256": "77acef19b8f501fc7b679d2b4434e301f6dfee43494e5f3adbaad4c5dc01d66d",
+      "bytes": 247
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/TerminalViewModel.kt",
+      "sha256": "935711d3545ab8176d101fd586f5d7508e77174125b98f27c7a3520c3717ca08",
+      "bytes": 35531
+    },
+    {
+      "path": "app/src/main/res/drawable/melisa_wordmark.png",
+      "sha256": "81e27d4d5394eb147b573b86a0b6af4f7f97cb76216f2b4d37b5cc23395e77cb",
+      "bytes": 82146
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/melisa_icon_foreground.png",
+      "sha256": "93586db23972dbcfb9706c4f338b8fe7379be2d520644909470284750386fdf8",
+      "bytes": 75848
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_native_terminal.xml",
+      "sha256": "a04c7688852826a7207c19a20742182d58dc707be43ac50c9c8b78fa0d54660d",
+      "bytes": 222
+    },
+    {
+      "path": "app/src/main/res/mipmap-nodpi/ic_native_terminal.png",
+      "sha256": "ff8457f6b9187cfd4a39ce2b90461f300fedb01ac2bbbece297949f91f12e13a",
+      "bytes": 80199
+    },
+    {
+      "path": "app/src/main/res/xml/data_extraction_rules.xml",
+      "sha256": "e97b896cce46f4ba929fb5e4011f3cae0f896e8caf89d5d1143262784489314c",
+      "bytes": 632
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/CatalogSyncTest.kt",
+      "sha256": "3981b589d9e8155e27ad0a2d8f90695b15ba31fdb79e68e92ce3f6bebdffb1c2",
+      "bytes": 4985
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/CategoryReportCacheTest.kt",
+      "sha256": "e77621d402617c5573205b584c5004e0b95a497bf5ef578d9895e6e211002e06",
+      "bytes": 1940
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/CategoryReportTest.kt",
+      "sha256": "8f7b08f577deaa99e45e5830294d11a167638ad307de7136c09e7703aa267f05",
+      "bytes": 7582
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/CustomerScopeTest.kt",
+      "sha256": "03ac31ed4141b68207594688b5c00499f34405499102fa429acf76c73ae54c71",
+      "bytes": 8526
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/DraftTest.kt",
+      "sha256": "9042a8d6106fac43c5f9ccc560f0c6ec30bd41375e56a8e871349e3c253f63fd",
+      "bytes": 5231
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/EmptyDraftExitTest.kt",
+      "sha256": "a66d2dd467f2e3be6e03f3f1207a73da12649299068d7621d80d356e5074c61f",
+      "bytes": 1085
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/ErpApiTest.kt",
+      "sha256": "6a6ee6d905c06db926a1b849f2e78df0f859141ac40e716151f6ee4f6c89ac1f",
+      "bytes": 5835
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/ForegroundScanDeliveryTest.kt",
+      "sha256": "01102e62c54c872c3cbdc7b5db054f9f47473c727a6a7a74fd1181b99d79a7df",
+      "bytes": 2765
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/LocalReceiptDeletionTest.kt",
+      "sha256": "69569ed3fdc005b610a5f5ca64c9d5e9b0c0cd73202f6a31c70ed292fe1ea15f",
+      "bytes": 6666
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/NavigationPickingTest.kt",
+      "sha256": "3b31eeac69f4c51b341460d95b5e430b4ac76b12fdbb9839b3c2a37b55694c0c",
+      "bytes": 8814
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/NewlandScannerContractTest.kt",
+      "sha256": "e885a6fd7a280aa2cd84b6c14a35f4de4038e3fee3273d4baa0f77514f65c6ef",
+      "bytes": 3310
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/PackingAccessTest.kt",
+      "sha256": "f06941cc2baede1c6477604ab9a0158ebba55175a33d57a74facb93f05ad12e5",
+      "bytes": 2188
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/PackingCacheTest.kt",
+      "sha256": "adedddfda381123258397e0e1cc1a598dd9f2cd61d8496a293c108a75391e6e2",
+      "bytes": 3935
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/ReceiptPdfShareTest.kt",
+      "sha256": "ea8d250e946a4183f6d3a5ec8cdbbff831f34d432a7f9118e4005178c0a8cfe1",
+      "bytes": 5394
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/ReceiptWorkflowTest.kt",
+      "sha256": "8bb023f3bec79f83a4abceca1bb7d37d4d6f01b4fa01489f63bb2d48874a9950",
+      "bytes": 5211
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/ScannerContractTest.kt",
+      "sha256": "c1076575af05540c0487d30888e51e37155eefefa81b4b0fa2070d547f7ebaa6",
+      "bytes": 1655
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/SessionTest.kt",
+      "sha256": "13aec043fc66e190b467cf49dfc7ebf00f712a24f0477afee30d7ffcc972b69a",
+      "bytes": 1339
+    },
+    {
+      "path": "build.gradle.kts",
+      "sha256": "21d25027c1dc901c234e618ac09ecc986581bcbe6e4418dc74a232e3c2f75225",
+      "bytes": 364
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "sha256": "7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172",
+      "bytes": 43764
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "sha256": "7e0821d895908883350587c74476b717016ab416320c44dc82a10def916c6fb5",
+      "bytes": 253
+    },
+    {
+      "path": "gradle.properties",
+      "sha256": "0449021373b9161767f7104773e2b94acc428a12e10693f4449c739254ac0b01",
+      "bytes": 158
+    },
+    {
+      "path": "gradlew",
+      "sha256": "61b1354a79a94a7f7490196fcd25246be79eea33fdb2e4fe0d90c3435a81591f",
+      "bytes": 8995
+    },
+    {
+      "path": "gradlew.bat",
+      "sha256": "1d297e00bd21de3ace22b4d7f2de1f9dfa858883d66bbf7c1ccbecccec8f4f3b",
+      "bytes": 2937
+    },
+    {
+      "path": "settings.gradle.kts",
+      "sha256": "abcc9ca9952ee1979eeada6454d0998fd3b09595a7e6705754cfeeffa02045c1",
+      "bytes": 289
+    }
+  ],
+  "originalSignedApkSha256": "4a1be61a126e5704954dfd7e50542b956d91d6a141bbb832acee4213781b018e",
+  "apkIncluded": false
+}

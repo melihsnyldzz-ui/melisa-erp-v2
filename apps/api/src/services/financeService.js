@@ -4,6 +4,8 @@ import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
+import { parseOptionalQueryId } from './queryIdentityFilters.mjs';
+import { assertCurrencySnapshotSchema, hasCurrencySnapshotSchema, hasMovementReturnSchema, resolveCurrencySettlement, writeMovementCurrencySnapshot, movementCurrencyColumns, movementCurrencyDto } from './currencySettlementStore.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const PAYMENT_METHODS = new Set(['cash', 'bank', 'card', 'other']);
@@ -15,6 +17,10 @@ const MOVEMENT_TYPES = new Set([
   'sales_invoice_cancel',
   'purchase_invoice',
   'purchase_invoice_cancel',
+  'sales_return',
+  'purchase_return',
+  'sales_return_cancel',
+  'purchase_return_cancel',
 ]);
 
 function makeServiceError(code, message, statusCode = 400) {
@@ -244,7 +250,7 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
            AND OBJECT_ID(N'dbo.cash_drawer_accounts', N'U') IS NOT NULL
         BEGIN
           SELECT TOP (1) fa.*
-          FROM dbo.cash_sessions cs
+          FROM dbo.cash_sessions cs WITH (UPDLOCK, HOLDLOCK)
           INNER JOIN dbo.cash_drawer_accounts cda
             ON cda.drawer_id = cs.drawer_id
            AND cda.currency_code = @openDrawerAccountCurrency
@@ -370,7 +376,7 @@ function mapFinanceMovement(row) {
     description: row.description || null,
     amount: Number(row.amount || 0),
     currency: row.currency_code,
-    balanceEffect: Number(row.balance_effect || 0),
+    ...movementCurrencyDto(row, row.current_currency),
     documentDate: formatSqlDate(row.document_date),
     createdAt: row.created_at,
     createdBy: row.created_by,
@@ -385,6 +391,10 @@ function accountingLabel(type) {
     purchase_invoice_cancel: 'Alış iptal',
     collection: 'Tahsilat',
     payment: 'Ödeme',
+    sales_return: 'Müşteri iadesi',
+    sales_return_cancel: 'Müşteri iadesi iptal',
+    purchase_return: 'Tedarikçiye iade',
+    purchase_return_cancel: 'Tedarikçiye iade iptal',
   };
 
   return labels[type] || type || '-';
@@ -397,6 +407,8 @@ function partyAccountName(row) {
 }
 
 function fallbackCounterAccount(row) {
+  if (['sales_return', 'sales_return_cancel'].includes(row.movementType)) return '610 Satış İadeleri';
+  if (['purchase_return', 'purchase_return_cancel'].includes(row.movementType)) return '153 Ticari Mallar İade';
   if (row.movementType === 'sales_invoice') return '600 Yurtiçi Satışlar';
   if (row.movementType === 'sales_invoice_cancel') return '610 Satış İadeleri / İptal';
   if (row.movementType === 'purchase_invoice') return '153 Ticari Mallar / Alış';
@@ -420,10 +432,19 @@ function makeJournalLine(row, lineNo, accountName, debit, credit, note) {
     partyCode: row.partyCode,
     partyName: row.partyName,
     accountName,
-    debit: Number(debit || 0),
-    credit: Number(credit || 0),
-    currency: row.currency,
-    amount: Number(row.amount || 0),
+    debit: debit == null ? null : Number(debit),
+    credit: credit == null ? null : Number(credit),
+    currency: 'TRY',
+    documentAmount: row.amount,
+    documentCurrency: row.currency,
+    accountAmount: row.accountAmount,
+    accountCurrency: row.accountCurrency,
+    exchangeRate: row.exchangeRate,
+    accountExchangeRate: row.accountExchangeRate,
+    amount: row.amountTry == null ? null : Number(row.amountTry),
+    invoiceReturnId: row.invoiceReturnId,
+    salesInvoiceId: row.salesInvoiceId,
+    purchaseInvoiceId: row.purchaseInvoiceId,
     note,
     targetScreen: row.targetScreen,
     targetId: row.targetId,
@@ -432,33 +453,33 @@ function makeJournalLine(row, lineNo, accountName, debit, credit, note) {
   };
 }
 
-function buildJournalLines(row) {
-  const amount = Math.abs(Number(row.amount || row.balanceEffect || 0));
+export function buildJournalLines(row) {
+  const amount = row.amountTry == null ? null : Math.abs(Number(row.amountTry));
   const partyAccount = partyAccountName(row);
   const counterAccount = fallbackCounterAccount(row);
 
-  if (row.movementType === 'sales_invoice') {
+  if (['sales_invoice', 'sales_return_cancel'].includes(row.movementType)) {
     return [
       makeJournalLine(row, 1, partyAccount, amount, 0, 'Müşteri satıştan borçlandı'),
       makeJournalLine(row, 2, counterAccount, 0, amount, 'Satış geliri / fiş karşılığı'),
     ];
   }
 
-  if (row.movementType === 'sales_invoice_cancel') {
+  if (['sales_invoice_cancel', 'sales_return'].includes(row.movementType)) {
     return [
       makeJournalLine(row, 1, counterAccount, amount, 0, 'Satış iptal ters kayıt'),
       makeJournalLine(row, 2, partyAccount, 0, amount, 'Müşteri borcu iptal edildi'),
     ];
   }
 
-  if (row.movementType === 'purchase_invoice') {
+  if (['purchase_invoice', 'purchase_return_cancel'].includes(row.movementType)) {
     return [
       makeJournalLine(row, 1, counterAccount, amount, 0, 'Stok/alış girişi'),
       makeJournalLine(row, 2, partyAccount, 0, amount, 'Tedarikçi alacaklandı'),
     ];
   }
 
-  if (row.movementType === 'purchase_invoice_cancel') {
+  if (['purchase_invoice_cancel', 'purchase_return'].includes(row.movementType)) {
     return [
       makeJournalLine(row, 1, partyAccount, amount, 0, 'Tedarikçi borcu iptal edildi'),
       makeJournalLine(row, 2, counterAccount, 0, amount, 'Alış/stok iptal ters kayıt'),
@@ -466,6 +487,10 @@ function buildJournalLines(row) {
   }
 
   if (row.movementType === 'collection') {
+    if (row.amountTry < 0) return [
+      makeJournalLine(row, 1, partyAccount, amount, 0, 'Tahsilat ters kaydı'),
+      makeJournalLine(row, 2, counterAccount, 0, amount, 'Kasa/banka tahsilat çıkışı'),
+    ];
     return [
       makeJournalLine(row, 1, counterAccount, amount, 0, 'Kasa/banka tahsilat girişi'),
       makeJournalLine(row, 2, partyAccount, 0, amount, 'Müşteri borcu tahsil edildi'),
@@ -473,6 +498,10 @@ function buildJournalLines(row) {
   }
 
   if (row.movementType === 'payment') {
+    if (row.amountTry < 0) return [
+      makeJournalLine(row, 1, counterAccount, amount, 0, 'Kasa/banka ödeme ters girişi'),
+      makeJournalLine(row, 2, partyAccount, 0, amount, 'Ödeme ters kaydı'),
+    ];
     return [
       makeJournalLine(row, 1, partyAccount, amount, 0, 'Tedarikçiye ödeme ile borç azaldı'),
       makeJournalLine(row, 2, counterAccount, 0, amount, 'Kasa/banka ödeme çıkışı'),
@@ -485,15 +514,19 @@ function buildJournalLines(row) {
 export async function getFinanceSummary() {
   const pool = await getSqlPool();
   await ensureFinanceAccountTables(pool);
+  const customerSnapshotReady = await hasCurrencySnapshotSchema(pool.request(), 'customer');
+  const supplierSnapshotReady = await hasCurrencySnapshotSchema(pool.request(), 'supplier');
+  const collectionTry = customerSnapshotReady ? "COALESCE(cm.amount_try, CASE WHEN cm.currency_code=N'TRY' THEN cm.amount END)" : "CASE WHEN cm.currency_code=N'TRY' THEN cm.amount END";
+  const paymentTry = supplierSnapshotReady ? "COALESCE(sm.amount_try, CASE WHEN sm.currency_code=N'TRY' THEN sm.amount END)" : "CASE WHEN sm.currency_code=N'TRY' THEN sm.amount END";
   const result = await pool.request().query(`
     SELECT
-      COALESCE((
-        SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END) THEN NULL ELSE COALESCE(SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END),0) END
         FROM dbo.customers c
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = c.currency_code
+          WHERE cr.currency_code = c.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE c.is_deleted = 0 AND c.balance > 0
@@ -506,14 +539,14 @@ export async function getFinanceSummary() {
           AND c.customer_code NOT LIKE N'IMP-%'
           AND c.name NOT LIKE N'E2E %'
           AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS customer_receivables,
-      COALESCE((
-        SELECT SUM(ABS(c.balance) * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      ) AS customer_receivables,
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(ABS(c.balance) * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END) THEN NULL ELSE COALESCE(SUM(ABS(c.balance) * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END),0) END
         FROM dbo.customers c
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = c.currency_code
+          WHERE cr.currency_code = c.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE c.is_deleted = 0 AND c.balance < 0
@@ -526,14 +559,14 @@ export async function getFinanceSummary() {
           AND c.customer_code NOT LIKE N'IMP-%'
           AND c.name NOT LIKE N'E2E %'
           AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS customer_advances,
-      COALESCE((
-        SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      ) AS customer_advances,
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END) THEN NULL ELSE COALESCE(SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END),0) END
         FROM dbo.suppliers s
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = s.currency_code
+          WHERE cr.currency_code = s.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE s.is_deleted = 0 AND s.balance > 0
@@ -547,14 +580,14 @@ export async function getFinanceSummary() {
           AND s.supplier_code NOT LIKE N'IMP-%'
           AND s.name NOT LIKE N'E2E %'
           AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS supplier_payables,
-      COALESCE((
-        SELECT SUM(ABS(s.balance) * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      ) AS supplier_payables,
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(ABS(s.balance) * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END) THEN NULL ELSE COALESCE(SUM(ABS(s.balance) * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END),0) END
         FROM dbo.suppliers s
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = s.currency_code
+          WHERE cr.currency_code = s.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE s.is_deleted = 0 AND s.balance < 0
@@ -568,15 +601,15 @@ export async function getFinanceSummary() {
           AND s.supplier_code NOT LIKE N'IMP-%'
           AND s.name NOT LIKE N'E2E %'
           AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS supplier_advances,
-      COALESCE((
-        SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      ) AS supplier_advances,
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(${collectionTry}) THEN NULL ELSE COALESCE(SUM(${collectionTry}),0) END
         FROM dbo.customer_movements cm
         INNER JOIN dbo.customers c ON c.id = cm.customer_id
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = cm.currency_code
+          WHERE cr.currency_code = cm.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE cm.movement_type = N'collection'
@@ -590,15 +623,15 @@ export async function getFinanceSummary() {
           AND c.customer_code NOT LIKE N'IMP-%'
           AND c.name NOT LIKE N'E2E %'
           AND c.name NOT LIKE N'Saha Test%'
-      ), 0) AS today_collections,
-      COALESCE((
-        SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      ) AS today_collections,
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(${paymentTry}) THEN NULL ELSE COALESCE(SUM(${paymentTry}),0) END
         FROM dbo.supplier_movements sm
         INNER JOIN dbo.suppliers s ON s.id = sm.supplier_id
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = sm.currency_code
+          WHERE cr.currency_code = sm.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE sm.movement_type = N'payment'
@@ -613,7 +646,7 @@ export async function getFinanceSummary() {
           AND s.supplier_code NOT LIKE N'IMP-%'
           AND s.name NOT LIKE N'E2E %'
           AND s.name NOT LIKE N'Saha Test%'
-      ), 0) AS today_payments,
+      ) AS today_payments,
       COALESCE((
         SELECT COUNT_BIG(1)
         FROM dbo.customer_movements cm
@@ -645,17 +678,17 @@ export async function getFinanceSummary() {
           AND s.name NOT LIKE N'E2E %'
           AND s.name NOT LIKE N'Saha Test%'
       ), 0) AS payment_count,
-      COALESCE((
-        SELECT SUM(fa.current_balance * CASE WHEN fa.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
+      (
+        SELECT CASE WHEN COUNT_BIG(*) <> COUNT_BIG(fa.current_balance * CASE WHEN fa.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END) THEN NULL ELSE COALESCE(SUM(fa.current_balance * CASE WHEN fa.currency_code = N'TRY' THEN 1 ELSE r.rate_to_try END),0) END
         FROM dbo.finance_accounts fa
         OUTER APPLY (
           SELECT TOP (1) rate_to_try
           FROM dbo.currency_rates cr
-          WHERE cr.currency_code = fa.currency_code
+          WHERE cr.currency_code = fa.currency_code AND cr.rate_date <= CONVERT(date,DATEADD(hour,3,SYSUTCDATETIME()))
           ORDER BY cr.rate_date DESC, cr.id DESC
         ) r
         WHERE fa.is_active = 1
-      ), 0) AS finance_try_balance;
+      ) AS finance_try_balance;
   `);
   const breakdownResult = await pool.request().query(`
     SELECT N'customerReceivables' AS metric, currency_code, SUM(balance) AS amount
@@ -764,15 +797,15 @@ export async function getFinanceSummary() {
     return summary;
   }, {});
   return {
-    customerReceivables: Number(row.customer_receivables || 0),
-    customerAdvances: Number(row.customer_advances || 0),
-    supplierPayables: Number(row.supplier_payables || 0),
-    supplierAdvances: Number(row.supplier_advances || 0),
-    todayCollections: Number(row.today_collections || 0),
-    todayPayments: Number(row.today_payments || 0),
+    customerReceivables: row.customer_receivables == null ? null : Number(row.customer_receivables),
+    customerAdvances: row.customer_advances == null ? null : Number(row.customer_advances),
+    supplierPayables: row.supplier_payables == null ? null : Number(row.supplier_payables),
+    supplierAdvances: row.supplier_advances == null ? null : Number(row.supplier_advances),
+    todayCollections: row.today_collections == null ? null : Number(row.today_collections),
+    todayPayments: row.today_payments == null ? null : Number(row.today_payments),
     collectionCount: Number(row.collection_count || 0),
     paymentCount: Number(row.payment_count || 0),
-    financeTryBalance: Number(row.finance_try_balance || 0),
+    financeTryBalance: row.finance_try_balance == null ? null : Number(row.finance_try_balance),
     currencySummary,
   };
 }
@@ -1161,8 +1194,8 @@ export async function getFinanceMovements(query = {}) {
   const dateFrom = normalizeOptionalDate(query.dateFrom);
   const dateTo = normalizeOptionalDate(query.dateTo);
   const limit = Math.min(Math.max(Number(query.limit || 100), 1), 200);
-  const pool = await getSqlPool();
-  await ensureFinanceAccountTables(pool);
+  const movementId = parseOptionalQueryId(query.movementId, 'movementId', 'FINANCE_MOVEMENT_ID_INVALID');
+  const partyId = parseOptionalQueryId(query.partyId, 'partyId', 'FINANCE_PARTY_ID_INVALID');
 
   if (partyType && !['customer', 'supplier'].includes(partyType)) {
     throw makeServiceError('FINANCE_PARTY_TYPE_INVALID', 'partyType must be customer or supplier');
@@ -1170,6 +1203,16 @@ export async function getFinanceMovements(query = {}) {
 
   if (movementType && !MOVEMENT_TYPES.has(movementType)) {
     throw makeServiceError('FINANCE_MOVEMENT_TYPE_INVALID', 'movementType is invalid');
+  }
+
+  if ((movementId !== null || partyId !== null) && !partyType) {
+    throw makeServiceError('FINANCE_PARTY_TYPE_REQUIRED', 'partyType is required for an identity filter');
+  }
+  if (movementId !== null && !(
+    (partyType === 'customer' && movementType === 'collection')
+    || (partyType === 'supplier' && movementType === 'payment')
+  )) {
+    throw makeServiceError('FINANCE_MOVEMENT_SCOPE_INVALID', 'movementId requires customer/collection or supplier/payment');
   }
 
   if (accountType && !ACCOUNT_TYPES.has(accountType)) {
@@ -1183,6 +1226,12 @@ export async function getFinanceMovements(query = {}) {
   if (currency && !VALID_CURRENCIES.has(currency)) {
     throw makeServiceError('FINANCE_CURRENCY_INVALID', 'Currency must be TRY, USD or EUR');
   }
+  const pool = await getSqlPool();
+  await ensureFinanceAccountTables(pool);
+  const customerCurrencyReady = await hasCurrencySnapshotSchema(pool.request(), 'customer');
+  const customerReturnReady = await hasMovementReturnSchema(pool.request(), 'customer');
+  const supplierCurrencyReady = await hasCurrencySnapshotSchema(pool.request(), 'supplier');
+  const supplierReturnReady = await hasMovementReturnSchema(pool.request(), 'supplier');
   const financeSearchPredicates = [
     'party_code',
     'party_name',
@@ -1194,6 +1243,8 @@ export async function getFinanceMovements(query = {}) {
     .input('search', sql.NVarChar(120), toSearchPattern(search))
     .input('partyType', sql.NVarChar(20), partyType || null)
     .input('movementType', sql.NVarChar(40), movementType || null)
+    .input('movementId', sql.BigInt, movementId)
+    .input('partyId', sql.BigInt, partyId)
     .input('accountId', sql.BigInt, Number.isInteger(accountId) && accountId > 0 ? accountId : null)
     .input('accountType', sql.NVarChar(20), accountType || null)
     .input('paymentMethod', sql.NVarChar(20), paymentMethod || null)
@@ -1215,6 +1266,8 @@ export async function getFinanceMovements(query = {}) {
           cm.amount,
           cm.currency_code,
           cm.balance_effect,
+          c.currency_code AS current_currency,
+          ${movementCurrencyColumns('cm', customerCurrencyReady, customerReturnReady)},
           cm.document_date,
           cm.created_at,
           cm.created_by,
@@ -1229,7 +1282,7 @@ export async function getFinanceMovements(query = {}) {
         LEFT JOIN dbo.sales_invoices si ON si.id = cm.sales_invoice_id
         LEFT JOIN dbo.finance_account_movements fam ON fam.source_type = N'collection' AND fam.party_type = N'customer' AND fam.party_movement_id = cm.id
         LEFT JOIN dbo.finance_accounts fa ON fa.id = fam.account_id
-        WHERE cm.movement_type IN (N'collection', N'sales_invoice', N'sales_invoice_cancel')
+        WHERE cm.movement_type IN (N'collection', N'sales_invoice', N'sales_invoice_cancel', N'sales_return', N'sales_return_cancel')
           AND NOT (
             c.customer_code LIKE N'QA-%'
             OR c.customer_code LIKE N'CUS-QA-%'
@@ -1287,6 +1340,8 @@ export async function getFinanceMovements(query = {}) {
           sm.amount,
           sm.currency_code,
           sm.balance_effect,
+          s.currency_code AS current_currency,
+          ${movementCurrencyColumns('sm', supplierCurrencyReady, supplierReturnReady)},
           sm.document_date,
           sm.created_at,
           sm.created_by,
@@ -1301,7 +1356,7 @@ export async function getFinanceMovements(query = {}) {
         LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.purchase_invoice_id
         LEFT JOIN dbo.finance_account_movements fam ON fam.source_type = N'payment' AND fam.party_type = N'supplier' AND fam.party_movement_id = sm.id
         LEFT JOIN dbo.finance_accounts fa ON fa.id = fam.account_id
-        WHERE sm.movement_type IN (N'payment', N'purchase_invoice', N'purchase_invoice_cancel')
+        WHERE sm.movement_type IN (N'payment', N'purchase_invoice', N'purchase_invoice_cancel', N'purchase_return', N'purchase_return_cancel')
           AND NOT (
             s.supplier_code LIKE N'QA-%'
             OR s.supplier_code LIKE N'SUP-QA-%'
@@ -1343,11 +1398,13 @@ export async function getFinanceMovements(query = {}) {
             )
           )
       )
-      SELECT TOP (${limit}) *
+      SELECT ${query.complete === true ? '' : `TOP (${limit})`} *
       FROM finance_rows
       WHERE
         (@partyType IS NULL OR party_type = @partyType)
         AND (@movementType IS NULL OR movement_type = @movementType)
+        AND (@movementId IS NULL OR id = @movementId)
+        AND (@partyId IS NULL OR party_id = @partyId)
         AND (@accountId IS NULL OR account_id = @accountId)
         AND (@accountType IS NULL OR account_type = @accountType)
         AND (@paymentMethod IS NULL OR payment_method = @paymentMethod)
@@ -1367,9 +1424,11 @@ export async function getFinanceMovements(query = {}) {
 export async function getFinanceJournal(query = {}) {
   const movements = await getFinanceMovements({
     ...query,
+    complete: true,
     limit: Math.min(Math.max(Number(query.limit || 150), 1), 300),
   });
   const lines = movements.flatMap(buildJournalLines);
+  const unknownLineCount = lines.filter((line) => line.debit == null || line.credit == null).length;
   const summary = lines.reduce((total, line) => ({
     debit: total.debit + Number(line.debit || 0),
     credit: total.credit + Number(line.credit || 0),
@@ -1386,8 +1445,14 @@ export async function getFinanceJournal(query = {}) {
     rows: lines,
     summary: {
       ...summary,
-      difference: Number((summary.debit - summary.credit).toFixed(4)),
-      balanced: Math.abs(summary.debit - summary.credit) < 0.0001,
+      debit: unknownLineCount ? null : summary.debit,
+      credit: unknownLineCount ? null : summary.credit,
+      difference: unknownLineCount ? null : Number((summary.debit - summary.credit).toFixed(4)),
+      balanced: unknownLineCount ? null : Math.abs(summary.debit - summary.credit) < 0.0001,
+      unknownLineCount,
+      currency: 'TRY',
+      valuationBasis: 'transaction-snapshot',
+      complete: true,
     },
     filters: {
       search: trimText(query.search, 120) || null,
@@ -1654,8 +1719,8 @@ export async function getAccountingControlDashboard() {
       title: 'Borç / Alacak Dengesi',
       status: journal.summary.balanced ? 'OK' : 'RISK',
       severity: journal.summary.balanced ? 'success' : 'danger',
-      metric: journal.summary.balanced ? 'Dengeli' : `Fark ${journal.summary.difference}`,
-      message: journal.summary.balanced ? 'Yevmiye borç ve alacak toplamı dengeli.' : 'Yevmiye borç/alacak toplamında fark var.',
+      metric: journal.summary.balanced == null ? 'Bilinmiyor' : journal.summary.balanced ? 'Dengeli' : `Fark ${journal.summary.difference}`,
+      message: journal.summary.balanced == null ? 'İşlem kuru kaydı eksik eski döviz hareketleri var; muhasebe toplamı bilinmiyor.' : journal.summary.balanced ? 'Yevmiye borç ve alacak toplamı dengeli.' : 'Yevmiye borç/alacak toplamında fark var.',
       actionScreen: 'accounting-journal',
     }),
     makeControlCheck({
@@ -1753,12 +1818,18 @@ export async function createCustomerCollection(payload, actor) {
       throw makeServiceError('FINANCE_CUSTOMER_NOT_FOUND', 'Customer not found', 404);
     }
 
+    await assertCurrencySnapshotSchema(new sqlDriver.Request(transaction), 'customer');
+    const settlement = await resolveCurrencySettlement(new sqlDriver.Request(transaction), {
+      documentAmount: amount, documentCurrency: currency, accountCurrency: customer.currency_code,
+      documentRateToTry: payload.exchangeRate, accountRateToTry: payload.accountExchangeRate, documentDate,
+    });
+
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementCustomerId', sqlDriver.BigInt, customerId)
       .input('movementType', sqlDriver.NVarChar(40), 'collection')
       .input('amount', sqlDriver.Decimal(18, 4), amount)
       .input('currency', sqlDriver.NVarChar(3), currency)
-      .input('balanceEffect', sqlDriver.Decimal(18, 4), -amount)
+      .input('balanceEffect', sqlDriver.Decimal(18, 4), -settlement.accountAmount)
       .input('documentDate', sqlDriver.Date, documentDate)
       .input('createdBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
@@ -1791,6 +1862,7 @@ export async function createCustomerCollection(payload, actor) {
       `);
 
     const movement = movementResult.recordset?.[0];
+    await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction), 'customer', movement.id, settlement, -settlement.accountAmount);
     const updatedAccount = await writeFinanceAccountMovement(transaction, sqlDriver, {
       account,
       sourceType: 'collection',
@@ -1810,7 +1882,7 @@ export async function createCustomerCollection(payload, actor) {
       action: 'customer_collection_created',
       entityType: 'customer_movement',
       entityId: movement?.id,
-      afterSnapshot: { customerId, amount, currency, paymentMethod, documentDate, description, accountId: account.id },
+      afterSnapshot: { customerId, amount, currency, ...settlement, paymentMethod, documentDate, description, accountId: account.id },
     });
 
     await transaction.commit();
@@ -1821,7 +1893,13 @@ export async function createCustomerCollection(payload, actor) {
       customerName: customer.name,
       amount,
       currency,
-      balanceEffect: -amount,
+      accountCurrency: settlement.accountCurrency,
+      accountAmount: settlement.accountAmount,
+      exchangeRate: settlement.documentRateToTry,
+      accountExchangeRate: settlement.accountRateToTry,
+      amountTry: settlement.amountTry,
+      settlementKnown: true,
+      balanceEffect: -settlement.accountAmount,
       account: updatedAccount,
       documentDate,
       paymentMethod,
@@ -1876,12 +1954,18 @@ export async function createSupplierPayment(payload, actor) {
       throw makeServiceError('FINANCE_SUPPLIER_NOT_FOUND', 'Supplier not found', 404);
     }
 
+    await assertCurrencySnapshotSchema(new sqlDriver.Request(transaction), 'supplier');
+    const settlement = await resolveCurrencySettlement(new sqlDriver.Request(transaction), {
+      documentAmount: amount, documentCurrency: currency, accountCurrency: supplier.currency_code,
+      documentRateToTry: payload.exchangeRate, accountRateToTry: payload.accountExchangeRate, documentDate,
+    });
+
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementSupplierId', sqlDriver.BigInt, supplierId)
       .input('movementType', sqlDriver.NVarChar(40), 'payment')
       .input('amount', sqlDriver.Decimal(18, 4), amount)
       .input('currency', sqlDriver.NVarChar(3), currency)
-      .input('balanceEffect', sqlDriver.Decimal(18, 4), -amount)
+      .input('balanceEffect', sqlDriver.Decimal(18, 4), -settlement.accountAmount)
       .input('documentDate', sqlDriver.Date, documentDate)
       .input('createdBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
@@ -1914,6 +1998,7 @@ export async function createSupplierPayment(payload, actor) {
       `);
 
     const movement = movementResult.recordset?.[0];
+    await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction), 'supplier', movement.id, settlement, -settlement.accountAmount);
     const updatedAccount = await writeFinanceAccountMovement(transaction, sqlDriver, {
       account,
       sourceType: 'payment',
@@ -1933,7 +2018,7 @@ export async function createSupplierPayment(payload, actor) {
       action: 'supplier_payment_created',
       entityType: 'supplier_movement',
       entityId: movement?.id,
-      afterSnapshot: { supplierId, amount, currency, paymentMethod, documentDate, description, accountId: account.id },
+      afterSnapshot: { supplierId, amount, currency, ...settlement, paymentMethod, documentDate, description, accountId: account.id },
     });
 
     await transaction.commit();
@@ -1944,7 +2029,13 @@ export async function createSupplierPayment(payload, actor) {
       supplierName: supplier.name,
       amount,
       currency,
-      balanceEffect: -amount,
+      accountCurrency: settlement.accountCurrency,
+      accountAmount: settlement.accountAmount,
+      exchangeRate: settlement.documentRateToTry,
+      accountExchangeRate: settlement.accountRateToTry,
+      amountTry: settlement.amountTry,
+      settlementKnown: true,
+      balanceEffect: -settlement.accountAmount,
       account: updatedAccount,
       documentDate,
       paymentMethod,

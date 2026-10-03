@@ -1,5 +1,7 @@
 import sql from 'mssql';
 import { getSqlPool } from '../config/database.js';
+import { readReturnReporting, summarizeReturnAmounts, applyReturnCurrencyTotals } from './returnReporting.mjs';
+import { readFinanceReporting, nullableReportNumber, cardValuationDto, cardBalanceTrySql, cardBalanceTotalSql } from './financeReporting.mjs';
 
 function numberValue(value) {
   const number = Number(value);
@@ -48,13 +50,13 @@ function toTopProduct(row) {
 }
 
 function toReceivable(row) {
-  const balanceTry = numberValue(row.balance_try ?? row.balance);
+  const balanceTry = nullableReportNumber(row.balance_try);
   return {
     customerId: row.id,
     customerName: row.name,
-    balanceTry,
+    ...cardValuationDto(row),
     lastMove: row.last_move,
-    risk: balanceTry >= 100000 ? 'Yuksek' : 'Orta',
+    risk: balanceTry == null ? 'Bilinmiyor' : balanceTry >= 100000 ? 'Yuksek' : 'Orta',
   };
 }
 
@@ -64,7 +66,8 @@ function toSupplierPerformance(row) {
     supplierName: row.name,
     openPurchases: numberValue(row.open_purchases),
     finalizedPurchases: numberValue(row.finalized_purchases),
-    debtTry: numberValue(row.balance_try ?? row.balance),
+    ...cardValuationDto(row),
+    debtTry: nullableReportNumber(row.balance_try),
     lastPurchaseAt: row.last_purchase_at,
   };
 }
@@ -105,7 +108,7 @@ function toCustomerAnalysis(row) {
     customerCode: row.customer_code,
     customerName: row.customer_name,
     totalSalesTry: numberValue(row.total_sales_try),
-    balanceTry: numberValue(row.balance_try),
+    ...cardValuationDto(row),
     lastSaleDate: row.last_sale_date,
   };
 }
@@ -116,7 +119,7 @@ function toSupplierAnalysis(row) {
     supplierCode: row.supplier_code,
     supplierName: row.supplier_name,
     totalPurchasesTry: numberValue(row.total_purchases_try),
-    balanceTry: numberValue(row.balance_try),
+    ...cardValuationDto(row),
     lastPurchaseDate: row.last_purchase_date,
   };
 }
@@ -151,7 +154,7 @@ function toCurrencyTotal(row) {
     currency: row.currency_code || row.document_currency || 'TRY',
     count: numberValue(row.row_count),
     amount: numberValue(row.amount),
-    amountTry: numberValue(row.amount_try),
+    amountTry: nullableReportNumber(row.amount_try),
   };
 }
 
@@ -229,29 +232,9 @@ async function fetchSummaryRows(pool) {
     `),
     pool.request().query(`
       SELECT
-        COALESCE((
-          SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.customers c
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = c.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE c.is_deleted = 0 AND c.balance > 0
-        ), 0) AS customer_receivables_try,
+        ${cardBalanceTotalSql('customers', 'c', true)} AS customer_receivables_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.customers WHERE is_deleted = 0 AND balance > 0), 0) AS customer_balance_count,
-        COALESCE((
-          SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.suppliers s
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = s.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE s.is_deleted = 0 AND s.balance > 0
-        ), 0) AS supplier_payables_try,
+        ${cardBalanceTotalSql('suppliers', 's', true)} AS supplier_payables_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.suppliers WHERE is_deleted = 0 AND balance > 0), 0) AS supplier_balance_count;
     `),
     pool.request().query(`
@@ -260,33 +243,7 @@ async function fetchSummaryRows(pool) {
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.terminal_sync_queue WHERE status IN (N'pending', N'failed')), 0) AS sync_warning_count;
     `),
-    pool.request().query(`
-      SELECT
-        COALESCE((
-          SELECT SUM(cm.amount * CASE WHEN cm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.customer_movements cm
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = cm.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE cm.movement_type = N'collection'
-            AND cm.document_date = CONVERT(date, SYSUTCDATETIME())
-        ), 0) AS today_collections_try,
-        COALESCE((
-          SELECT SUM(sm.amount * CASE WHEN sm.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.supplier_movements sm
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = sm.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE sm.movement_type = N'payment'
-            AND sm.document_date = CONVERT(date, SYSUTCDATETIME())
-        ), 0) AS today_payments_try;
-    `),
+    readFinanceReporting(pool, sql, { dateFrom: todayDate(), dateTo: todayDate() }),
     pool.request().query(`
       SELECT
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.customers WHERE is_deleted = 0), 0) AS total_customers,
@@ -362,13 +319,14 @@ async function fetchSummaryRows(pool) {
         c.id,
         c.name,
         c.balance,
-        c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
+        ${cardBalanceTrySql('c')} AS balance_try,
+        c.currency_code, rate.rate_to_try AS valuation_rate, rate.rate_date AS valuation_rate_date,
         last_move.last_move
       FROM dbo.customers c
       OUTER APPLY (
-        SELECT TOP (1) rate_to_try
+        SELECT TOP (1) rate_to_try, rate_date
         FROM dbo.currency_rates cr
-        WHERE cr.currency_code = c.currency_code
+        WHERE cr.currency_code = c.currency_code AND cr.rate_date <= CONVERT(date, SYSUTCDATETIME())
         ORDER BY cr.rate_date DESC, cr.id DESC
       ) rate
       OUTER APPLY (
@@ -385,15 +343,16 @@ async function fetchSummaryRows(pool) {
         s.id,
         s.name,
         s.balance,
-        s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
+        ${cardBalanceTrySql('s')} AS balance_try,
+        s.currency_code, rate.rate_to_try AS valuation_rate, rate.rate_date AS valuation_rate_date,
         COALESCE(open_counts.open_purchases, 0) AS open_purchases,
         COALESCE(final_counts.finalized_purchases, 0) AS finalized_purchases,
         last_purchase.last_purchase_at
       FROM dbo.suppliers s
       OUTER APPLY (
-        SELECT TOP (1) rate_to_try
+        SELECT TOP (1) rate_to_try, rate_date
         FROM dbo.currency_rates cr
-        WHERE cr.currency_code = s.currency_code
+        WHERE cr.currency_code = s.currency_code AND cr.rate_date <= CONVERT(date, SYSUTCDATETIME())
         ORDER BY cr.rate_date DESC, cr.id DESC
       ) rate
       OUTER APPLY (
@@ -423,7 +382,7 @@ async function fetchSummaryRows(pool) {
     purchaseToday: purchaseToday.recordset[0] || {},
     stockValue: stockValue.recordset[0] || {},
     balances: balances.recordset[0] || {},
-    dailyFinance: dailyFinance.recordset[0] || {},
+    dailyFinance,
     masterCounts: masterCounts.recordset[0] || {},
     draftCounts: draftCounts.recordset[0] || {},
     recentSales: recentSales.recordset || [],
@@ -437,21 +396,27 @@ async function fetchSummaryRows(pool) {
 export async function getDashboardSummaryData() {
   const pool = await getSqlPool();
   const rows = await fetchSummaryRows(pool);
+  const returnEvents = await readReturnReporting(pool, sql, { dateFrom: todayDate(), dateTo: todayDate() });
+  const sales = summarizeReturnAmounts(returnEvents, 'sales', numberValue(rows.salesToday.today_sales_try), numberValue(rows.salesToday.today_gross_profit_try));
+  const purchases = summarizeReturnAmounts(returnEvents, 'purchase', numberValue(rows.purchaseToday.today_purchases_try));
 
   return {
+    returnReporting: { supported: returnEvents.supported, known: returnEvents.known, reason: returnEvents.reason, sales, purchases },
+    financeReporting: rows.dailyFinance,
+    balanceValuationDate: todayDate(),
     patron: {
-      todaySalesTry: numberValue(rows.salesToday.today_sales_try),
-      todayGrossProfitTry: numberValue(rows.salesToday.today_gross_profit_try),
+      todaySalesTry: sales.netAmountTry,
+      todayGrossProfitTry: sales.netGrossProfitTry,
       totalStockValueTry: numberValue(rows.stockValue.total_stock_value_try),
-      customerReceivablesTry: numberValue(rows.balances.customer_receivables_try),
-      supplierPayablesTry: numberValue(rows.balances.supplier_payables_try),
+      customerReceivablesTry: nullableReportNumber(rows.balances.customer_receivables_try),
+      supplierPayablesTry: nullableReportNumber(rows.balances.supplier_payables_try),
       negativeStockCount: numberValue(rows.stockValue.negative_stock_count),
       finalizedSalesToday: numberValue(rows.salesToday.finalized_sales_today),
       finalizedPurchasesToday: numberValue(rows.purchaseToday.finalized_purchases_today),
     },
     accounting: {
-      todayCollectionsTry: numberValue(rows.dailyFinance.today_collections_try),
-      todayPaymentsTry: numberValue(rows.dailyFinance.today_payments_try),
+      todayCollectionsTry: rows.dailyFinance.collectionsTry,
+      todayPaymentsTry: rows.dailyFinance.paymentsTry,
       customerBalanceCount: numberValue(rows.balances.customer_balance_count),
       supplierBalanceCount: numberValue(rows.balances.supplier_balance_count),
       recentSalesInvoices: rows.recentSales.map(toRecentSalesInvoice),
@@ -461,7 +426,7 @@ export async function getDashboardSummaryData() {
       salesDraftCount: numberValue(rows.draftCounts.sales_draft_count),
       purchaseDraftCount: numberValue(rows.draftCounts.purchase_draft_count),
       syncWarningCount: numberValue(rows.draftCounts.sync_warning_count),
-      todayPurchasesTry: numberValue(rows.purchaseToday.today_purchases_try),
+      todayPurchasesTry: purchases.netAmountTry,
     },
     masterCounts: {
       totalCustomers: numberValue(rows.masterCounts.total_customers),
@@ -659,9 +624,16 @@ export async function getManagementReportingData() {
         c.customer_code,
         c.name AS customer_name,
         COALESCE(sales_totals.total_sales_try, 0) AS total_sales_try,
-        c.balance AS balance_try,
+        c.balance, c.currency_code,
+        ${cardBalanceTrySql('c')} AS balance_try,
+        rate.rate_to_try AS valuation_rate, rate.rate_date AS valuation_rate_date,
         sales_totals.last_sale_date
       FROM dbo.customers c
+      OUTER APPLY (
+        SELECT TOP(1) rate_to_try,rate_date FROM dbo.currency_rates cr
+        WHERE cr.currency_code=c.currency_code AND cr.rate_date<=CONVERT(date,SYSUTCDATETIME())
+        ORDER BY cr.rate_date DESC,cr.id DESC
+      ) rate
       OUTER APPLY (
         SELECT
           SUM(si.amount_try) AS total_sales_try,
@@ -678,14 +650,16 @@ export async function getManagementReportingData() {
         s.id AS supplier_id,
         s.supplier_code,
         s.name AS supplier_name,
+        s.balance,
         COALESCE(purchase_totals.total_purchases_try, 0) AS total_purchases_try,
-        s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(rate.rate_to_try, 1) END AS balance_try,
+        ${cardBalanceTrySql('s')} AS balance_try,
+        s.currency_code, rate.rate_to_try AS valuation_rate, rate.rate_date AS valuation_rate_date,
         purchase_totals.last_purchase_date
       FROM dbo.suppliers s
       OUTER APPLY (
-        SELECT TOP (1) rate_to_try
+        SELECT TOP (1) rate_to_try, rate_date
         FROM dbo.currency_rates cr
-        WHERE cr.currency_code = s.currency_code
+        WHERE cr.currency_code = s.currency_code AND cr.rate_date <= CONVERT(date, SYSUTCDATETIME())
         ORDER BY cr.rate_date DESC, cr.id DESC
       ) rate
       OUTER APPLY (
@@ -704,28 +678,8 @@ export async function getManagementReportingData() {
         COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_sales_try,
         COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date = CONVERT(date, SYSUTCDATETIME())), 0) AS today_purchases_try,
         COALESCE((SELECT SUM(current_stock_qty * average_cost_try) FROM dbo.products WHERE is_deleted = 0), 0) AS total_stock_value_try,
-        COALESCE((
-          SELECT SUM(c.balance * CASE WHEN c.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.customers c
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = c.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE c.is_deleted = 0
-        ), 0) AS customer_balance_try,
-        COALESCE((
-          SELECT SUM(s.balance * CASE WHEN s.currency_code = N'TRY' THEN 1 ELSE COALESCE(r.rate_to_try, 1) END)
-          FROM dbo.suppliers s
-          OUTER APPLY (
-            SELECT TOP (1) rate_to_try
-            FROM dbo.currency_rates cr
-            WHERE cr.currency_code = s.currency_code
-            ORDER BY cr.rate_date DESC, cr.id DESC
-          ) r
-          WHERE s.is_deleted = 0
-        ), 0) AS supplier_balance_try,
+        ${cardBalanceTotalSql('customers', 'c')} AS customer_balance_try,
+        ${cardBalanceTotalSql('suppliers', 's')} AS supplier_balance_try,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.products WHERE is_deleted = 0 AND current_stock_qty < 0), 0) AS negative_stock_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.sales_invoices WHERE status = N'draft'), 0) AS sales_draft_count,
         COALESCE((SELECT COUNT_BIG(1) FROM dbo.purchase_invoices WHERE status = N'draft'), 0) AS purchase_draft_count;
@@ -775,14 +729,23 @@ export async function getManagementReportingData() {
   ]);
 
   const widgetRow = widgets.recordset?.[0] || {};
+  const returnEvents = await readReturnReporting(pool, sql, { dateFrom: todayDate(), dateTo: todayDate() });
+  const dailySalesSummary = toDailySalesSummary(dailySales.recordset?.[0] || {});
+  const dailyPurchaseSummary = toDailyPurchaseSummary(dailyPurchases.recordset?.[0] || {});
+  const sales = summarizeReturnAmounts(returnEvents, 'sales', dailySalesSummary.salesAmountTry, dailySalesSummary.grossProfitTry);
+  const purchases = summarizeReturnAmounts(returnEvents, 'purchase', dailyPurchaseSummary.purchaseAmountTry);
 
   return {
     generatedAt: new Date().toISOString(),
+    balanceValuationDate: todayDate(),
+    returnReporting: { supported: returnEvents.supported, known: returnEvents.known, reason: returnEvents.reason, sales, purchases },
     assumptions: [
       'Yönetim raporları operasyonel ERP karar desteğidir; resmî muhasebe çıktısı değildir.',
       'Satış ve alış toplamları yalnız kesinleşmiş belgeleri içerir; iptal ve taslak belgeler ilgili yerlerde ayrı gösterilir.',
+      'Net satış, alış ve brüt kâr; iade ve iade iptalinin kendi işlem tarihindeki etkisini içerir. İade bilgisi doğrulanamıyorsa net tutar bilinmiyor olarak gösterilir.',
+      'Ürün, müşteri ve tedarikçi sıralamalarındaki satış/alış toplamları iade hariçtir; net dönem toplamı olarak kullanılmamalıdır.',
       'Müşteri ve tedarikçi bakiyeleri ERP kartları ile hareket etkilerinden gelir; içe aktarılan açılış bakiyeleri ayrıca ticari mutabakat gerektirir.',
-      'Yabancı para bakiyelerinin TRY karşılığında mevcut en güncel kur kullanılır.',
+      'Güncel kart bakiyeleri, rapor üretim günü ve öncesinin son tanımlı kuru ile değerlenir. Kur eksik/geçersizse TRY karşılığı bilinmiyor kalır; bu bir dönem sonu değerlemesi değildir.',
       'Raporun hızlı ve denetlenebilir kalması için ürün, müşteri, tedarikçi ve uyarı listeleri belirli sayıda kayıtla sınırlandırılır.',
     ],
     dataQuality: {
@@ -803,17 +766,18 @@ export async function getManagementReportingData() {
         'Resmî muhasebe, vergi ve ödeme kararları bu operasyonel rapor dışında insan kontrolü gerektirir.',
       ],
     },
-    dailySales: toDailySalesSummary(dailySales.recordset?.[0] || {}),
-    dailyPurchases: toDailyPurchaseSummary(dailyPurchases.recordset?.[0] || {}),
+    dailySales: { ...dailySalesSummary, grossSalesAmountTry: sales.grossAmountTry, salesAmountTry: sales.netAmountTry, grossProfitBeforeReturnsTry: sales.grossProfitTry, grossProfitTry: sales.netGrossProfitTry },
+    dailyPurchases: { ...dailyPurchaseSummary, grossPurchaseAmountTry: purchases.grossAmountTry, purchaseAmountTry: purchases.netAmountTry },
     topProducts: (topProducts.recordset || []).map(toManagementTopProduct),
     customerAnalysis: (customerAnalysis.recordset || []).map(toCustomerAnalysis),
     supplierAnalysis: (supplierAnalysis.recordset || []).map(toSupplierAnalysis),
     widgets: {
-      todaySalesTry: numberValue(widgetRow.today_sales_try),
-      todayPurchasesTry: numberValue(widgetRow.today_purchases_try),
+      todaySalesTry: sales.netAmountTry,
+      todayPurchasesTry: purchases.netAmountTry,
+      todayGrossProfitTry: sales.netGrossProfitTry,
       totalStockValueTry: numberValue(widgetRow.total_stock_value_try),
-      customerBalanceTry: numberValue(widgetRow.customer_balance_try),
-      supplierBalanceTry: numberValue(widgetRow.supplier_balance_try),
+      customerBalanceTry: nullableReportNumber(widgetRow.customer_balance_try),
+      supplierBalanceTry: nullableReportNumber(widgetRow.supplier_balance_try),
       negativeStockCount: numberValue(widgetRow.negative_stock_count),
       salesDraftCount: numberValue(widgetRow.sales_draft_count),
       purchaseDraftCount: numberValue(widgetRow.purchase_draft_count),
@@ -868,32 +832,7 @@ export async function getPeriodicAccountingData(query = {}) {
         GROUP BY document_currency
         ORDER BY document_currency;
       `),
-    pool.request()
-      .input('periodFinanceFrom', sql.Date, dateFrom)
-      .input('periodFinanceTo', sql.Date, dateTo)
-      .query(`
-        WITH finance_rows AS (
-          SELECT currency_code, amount, N'collection' AS movement_type
-          FROM dbo.customer_movements
-          WHERE movement_type = N'collection'
-            AND document_date >= @periodFinanceFrom
-            AND document_date <= @periodFinanceTo
-          UNION ALL
-          SELECT currency_code, amount, N'payment' AS movement_type
-          FROM dbo.supplier_movements
-          WHERE movement_type = N'payment'
-            AND document_date >= @periodFinanceFrom
-            AND document_date <= @periodFinanceTo
-        )
-        SELECT
-          currency_code,
-          COUNT_BIG(1) AS row_count,
-          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) AS amount,
-          COALESCE(SUM(CASE WHEN movement_type = N'collection' THEN amount ELSE -amount END), 0) AS amount_try
-        FROM finance_rows
-        GROUP BY currency_code
-        ORDER BY currency_code;
-      `),
+    readFinanceReporting(pool, sql, { dateFrom, dateTo }),
     pool.request()
       .input('periodCashFrom', sql.Date, dateFrom)
       .input('periodCashTo', sql.Date, dateTo)
@@ -951,25 +890,32 @@ export async function getPeriodicAccountingData(query = {}) {
       .query(`
         SELECT
           COALESCE((SELECT SUM(amount_try) FROM dbo.sales_invoices WHERE status = N'finalized' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS sales_try,
+          COALESCE((SELECT SUM(sii.gross_profit_try) FROM dbo.sales_invoice_items sii INNER JOIN dbo.sales_invoices si ON si.id=sii.sales_invoice_id WHERE si.status=N'finalized' AND si.document_date>=@periodWidgetFrom AND si.document_date<=@periodWidgetTo), 0) AS gross_profit_try,
           COALESCE((SELECT SUM(amount_try) FROM dbo.purchase_invoices WHERE status = N'finalized' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS purchases_try,
-          COALESCE((SELECT SUM(amount) FROM dbo.customer_movements WHERE movement_type = N'collection' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS collections,
-          COALESCE((SELECT SUM(amount) FROM dbo.supplier_movements WHERE movement_type = N'payment' AND document_date >= @periodWidgetFrom AND document_date <= @periodWidgetTo), 0) AS payments,
           COALESCE((SELECT SUM(current_balance) FROM dbo.finance_accounts WHERE is_active = 1 AND currency_code = N'TRY'), 0) AS cash_bank_try,
-          COALESCE((SELECT SUM(balance) FROM dbo.customers WHERE is_deleted = 0), 0) AS customer_balance,
-          COALESCE((SELECT SUM(balance) FROM dbo.suppliers WHERE is_deleted = 0), 0) AS supplier_balance;
+          ${cardBalanceTotalSql('customers', 'c')} AS customer_balance,
+          ${cardBalanceTotalSql('suppliers', 's')} AS supplier_balance;
       `),
   ]);
 
   const widgetRow = widgets.recordset?.[0] || {};
+  const returnEvents = await readReturnReporting(pool, sql, { dateFrom, dateTo });
+  const sales = summarizeReturnAmounts(returnEvents, 'sales', numberValue(widgetRow.sales_try), numberValue(widgetRow.gross_profit_try));
+  const purchases = summarizeReturnAmounts(returnEvents, 'purchase', numberValue(widgetRow.purchases_try));
 
   return {
     generatedAt: new Date().toISOString(),
     dateFrom,
     dateTo,
+    financeReporting: { supported: financeByCurrency.supported, known: financeByCurrency.known, reason: financeByCurrency.reason, unknownCount: financeByCurrency.unknownCount },
+    balanceValuationDate: todayDate(),
+    returnReporting: { supported: returnEvents.supported, known: returnEvents.known, reason: returnEvents.reason, sales, purchases },
     assumptions: [
       'Dönemsel muhasebe görünümü ERP kontrolü için operasyonel bir özettir; resmî muhasebe defteri değildir.',
       'Dönem filtreleri, seçilen tarih aralığındaki kesinleşmiş faturalar ile kaydedilmiş tahsilat ve ödeme hareketlerine uygulanır.',
+      'Net satış, alış ve brüt kâr; iade ve iade iptalini kendi işlem tarihinde sayar. Önceki dönemin iadesi bu dönemde iptal edilirse yalnız ters etkisi bu döneme eklenir.',
       'Müşteri ve tedarikçi bakiye bölümleri dönem sonu tarihsel görüntüyü değil, para birimi bazında güncel kart bakiyelerini gösterir.',
+      'Tahsilat/ödeme TRY tutarı hareketin kaydedilmiş TRY karşılığıdır. Eski TRY hareketinin tutarı doğrudan kullanılır; yabancı hareketin kur karşılığı eksikse bilinmiyor kalır. Güncel kurla geçmiş hareket yeniden hesaplanmaz.',
     ],
     dataQuality: {
       source: 'SQL Server salt okunur SELECT özetleri',
@@ -984,18 +930,19 @@ export async function getPeriodicAccountingData(query = {}) {
       },
     },
     widgets: {
-      salesTry: numberValue(widgetRow.sales_try),
-      purchasesTry: numberValue(widgetRow.purchases_try),
-      collections: numberValue(widgetRow.collections),
-      payments: numberValue(widgetRow.payments),
-      netCash: numberValue(widgetRow.collections) - numberValue(widgetRow.payments),
+      salesTry: sales.netAmountTry,
+      purchasesTry: purchases.netAmountTry,
+      grossProfitTry: sales.netGrossProfitTry,
+      collections: financeByCurrency.collectionsTry,
+      payments: financeByCurrency.paymentsTry,
+      netCash: financeByCurrency.netCashTry,
       cashBankTry: numberValue(widgetRow.cash_bank_try),
-      customerBalance: numberValue(widgetRow.customer_balance),
-      supplierBalance: numberValue(widgetRow.supplier_balance),
+      customerBalance: nullableReportNumber(widgetRow.customer_balance),
+      supplierBalance: nullableReportNumber(widgetRow.supplier_balance),
     },
-    salesByCurrency: (salesByCurrency.recordset || []).map(toCurrencyTotal),
-    purchasesByCurrency: (purchasesByCurrency.recordset || []).map(toCurrencyTotal),
-    financeByCurrency: (financeByCurrency.recordset || []).map(toCurrencyTotal),
+    salesByCurrency: applyReturnCurrencyTotals((salesByCurrency.recordset || []).map(toCurrencyTotal), returnEvents, 'sales'),
+    purchasesByCurrency: applyReturnCurrencyTotals((purchasesByCurrency.recordset || []).map(toCurrencyTotal), returnEvents, 'purchase'),
+    financeByCurrency: financeByCurrency.byCurrency,
     dailyCash: (dailyCash.recordset || []).map(toDailyCashRow),
     customerBalances: (customerBalances.recordset || []).map(toBalanceTotal),
     supplierBalances: (supplierBalances.recordset || []).map(toBalanceTotal),

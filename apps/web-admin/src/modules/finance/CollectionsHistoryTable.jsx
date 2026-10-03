@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowUpRight, ReceiptText } from 'lucide-react';
 import { ledgerTargetActionLabel } from '../shared/ledgerNavigation.js';
 import { formatMoney, movementLabel, partyLabel } from './collectionsFormatters.js';
+import { financeAccountEffect } from '../../utils/currencyPreview.js';
 
 export function CollectionsHistoryTable({
   movements,
@@ -32,16 +33,16 @@ export function CollectionsHistoryTable({
             </thead>
             <tbody>
               {movements.map((row) => {
-                const effect = Number(row.balanceEffect || 0);
+                const effect = financeAccountEffect(row);
                 const isCancelled = String(row.movementType || '').includes('cancel');
                 return (
                   <tr className={`clickable-row ${isCancelled ? 'cancel-row' : ''}`} key={`${row.partyType}-${row.id}-${row.movementType}`} onClick={() => onOpenMovement(row)}>
                     <td>{row.documentDate || '-'}</td>
                     <td className="collections-party-cell">
-                      <button type="button" className="document-link-button party" onClick={(event) => { event.stopPropagation(); onOpenParty(row); }}>
-                        {row.partyCode} / {row.partyName}
+                      <button type="button" className="document-link-button party" title={`${row.partyCode || '-'} / ${row.partyName || '-'}`} onClick={(event) => { event.stopPropagation(); onOpenParty(row); }}>
+                        {row.partyName || row.partyCode || '-'}
                       </button>
-                      <small>{partyLabel(row.partyType)}</small>
+                      <small>{row.partyCode || '-'} · {partyLabel(row.partyType)}</small>
                     </td>
                     <td className="collections-movement-cell">
                       <strong>{movementLabel(row.movementType)}</strong>
@@ -50,7 +51,7 @@ export function CollectionsHistoryTable({
                       </button>
                     </td>
                     <td className="money-cell"><strong>{formatMoney(row.amount, row.currency)}</strong><small>{row.currency}</small></td>
-                    <td className={effect >= 0 ? 'ledger-debit' : 'ledger-credit'}>{formatMoney(effect, row.currency)}</td>
+                    <td className={effect?.amount >= 0 ? 'ledger-debit' : 'ledger-credit'}>{effect ? formatMoney(effect.amount, effect.currency) : 'Doğrulanamadı'}</td>
                     <td className="collections-row-actions">
                       {['collection', 'payment'].includes(row.movementType) ? (
                         <button type="button" className="invoice-row-icon-button" aria-label="Makbuzu aç" title="Makbuzu aç" onClick={(event) => { event.stopPropagation(); onSelectReceipt(row); }}><ReceiptText size={15} /></button>

@@ -4,6 +4,7 @@ import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js'
 import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
 
 function formatMoney(value, currency = 'TRY') {
+  if (value == null || value === '' || !Number.isFinite(Number(value)) || !['TRY', 'USD', 'EUR'].includes(currency)) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: currency || 'TRY',
@@ -72,14 +73,14 @@ export function PriceListScreen({ onOpenScreen }) {
 
   const totals = filteredRows.reduce((summary, row) => ({
     products: summary.products + 1,
-    saleValue: summary.saleValue + Number(row.salePrice || 0),
-    purchaseValue: summary.purchaseValue + Number(row.purchasePrice || 0),
+    salePriced: summary.salePriced + (Number(row.salePrice) > 0 ? 1 : 0),
+    purchasePriced: summary.purchasePriced + (Number(row.purchasePrice) > 0 ? 1 : 0),
     zeroSalePrice: summary.zeroSalePrice + (Number(row.salePrice || 0) <= 0 ? 1 : 0),
-  }), { products: 0, saleValue: 0, purchaseValue: 0, zeroSalePrice: 0 });
+  }), { products: 0, salePriced: 0, purchasePriced: 0, zeroSalePrice: 0 });
 
   function exportPriceRows() {
     exportRowsToCsv({
-      filename: 'fiyat-listesi',
+      filename: 'fiyat-listesi-gosterilen-satirlar',
       rows: filteredRows,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
@@ -103,8 +104,9 @@ export function PriceListScreen({ onOpenScreen }) {
           <span>Gerçek SQL stok kart fiyatları / satış ve alış fiyat kontrolü</span>
         </div>
         <div className="dashboard-toolbar-actions">
-          <button type="button" onClick={exportPriceRows}>Excel</button>
-          <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Fiyat Listesi')}>Yazdır</button>
+          <button type="button" onClick={() => onOpenScreen('stock-list')}>Tüm Ürünler</button>
+          <button type="button" disabled={isLoading || Boolean(errorMessage)} onClick={exportPriceRows}>Excel</button>
+          <button type="button" disabled={isLoading || Boolean(errorMessage)} onClick={() => printCurrentScreen('Melisa ERP - Fiyat Listesi (gösterilen satırlar)')}>Yazdır</button>
           <button type="button" onClick={loadRows}>Yenile</button>
         </div>
       </section>
@@ -113,10 +115,10 @@ export function PriceListScreen({ onOpenScreen }) {
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
 
       <section className="dashboard-kpi-grid">
-        <Kpi label="Ürün" value={totals.products} detail={`API toplam: ${meta?.total ?? rows.length}`} tone="info" />
-        <Kpi label="Satış toplamı" value={formatMoney(totals.saleValue)} detail="Liste satır toplamı" tone="good" />
-        <Kpi label="Alış toplamı" value={formatMoney(totals.purchaseValue)} detail="Liste satır toplamı" tone="warn" />
-        <Kpi label="Fiyatsız" value={totals.zeroSalePrice} detail="Satış fiyatı 0 olan" tone={totals.zeroSalePrice > 0 ? 'warn' : 'good'} />
+        <Kpi label="Gösterilen ürün" value={isLoading || errorMessage ? '—' : totals.products} detail={`Aramayla eşleşen: ${meta?.total ?? 'Bilinmiyor'}`} tone="info" />
+        <Kpi label="Satış fiyatı girilmiş" value={isLoading || errorMessage ? '—' : totals.salePriced} detail="Gösterilen ürünler içinde" tone="good" />
+        <Kpi label="Alış fiyatı girilmiş" value={isLoading || errorMessage ? '—' : totals.purchasePriced} detail="Gösterilen ürünler içinde" tone="info" />
+        <Kpi label="Satış fiyatı eksik" value={isLoading || errorMessage ? '—' : totals.zeroSalePrice} detail="Sıfır veya kayıtlı fiyatı olmayan" tone={totals.zeroSalePrice > 0 ? 'warn' : 'good'} />
       </section>
 
       <section className="erp-panel">
@@ -124,7 +126,7 @@ export function PriceListScreen({ onOpenScreen }) {
           <strong>Filtreler</strong>
           <span>Stok kodu, ürün, marka, kategori ve para birimi</span>
         </div>
-        <div className="filter-grid">
+        <div className="filter-grid" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'end', gap: 12, padding: 12 }}>
           <label>
             Arama
             <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Stok kodu / ürün / marka" />
@@ -147,6 +149,7 @@ export function PriceListScreen({ onOpenScreen }) {
       </section>
 
       <section className="erp-panel">
+        {!isLoading && !errorMessage && Number(meta?.total) > rows.length && <p className="list-state">Aramanın ilk {rows.length} ürünü yüklendi. Başka ürünler için aramayı daraltın veya Tüm Ürünler listesinin sayfalarını kullanın. Çıktı yalnızca gösterilen satırları kapsar.</p>}
         <div className="panel-title">
           <strong>Fiyat Satırları</strong>
           <span>{filteredRows.length} satır</span>

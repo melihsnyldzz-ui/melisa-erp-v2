@@ -1,7 +1,10 @@
+import { partyScopeId, assertPartyScope } from '../../utils/operationNavigation.js';
+import { PartyContextNotice } from '../shared/PartyContextNotice.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPurchaseDrafts, fetchPurchaseInvoice } from '../../services/invoiceDraftApi.js';
-import { exportRowsToExcel, printBusinessDocument, printRowsReport } from '../../utils/exportUtils.js';
+import { exportRowsToExcel, printInvoiceReceipt, printRowsReport } from '../../utils/exportUtils.js';
 import { InvoiceListAdvancedFilters } from '../shared/InvoiceListAdvancedFilters.jsx';
+import { InvoiceReturnDialog } from '../shared/InvoiceReturnDialog.jsx';
 
 function formatMoney(amount, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
@@ -72,7 +75,10 @@ function readVisiblePurchaseColumns() {
   }
 }
 
-export function PurchaseInvoiceListScreen({ onOpenScreen }) {
+export function PurchaseInvoiceListScreen({ onOpenScreen, permissions = [], userId, onDirtyChange, initialReturnId, initialSupplierId, initialSupplierCode }) {
+  const scopedPartyId = partyScopeId(initialSupplierId);
+  const [returnDialog,setReturnDialog]=useState(null);
+  useEffect(()=>{if(initialReturnId&&permissions.includes('purchase.view'))setReturnDialog({source:null,initialReturnId});},[initialReturnId,permissions]);
   const [search, setSearch] = useState('');
   const [supplier, setSupplier] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -90,6 +96,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [detailErrorMessage, setDetailErrorMessage] = useState('');
   const [previewWidth, setPreviewWidth] = useState(480);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisiblePurchaseColumns);
   const resizeStateRef = useRef(null);
@@ -166,6 +173,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
     try {
       const response = await fetchPurchaseDrafts({
+          supplierId: scopedPartyId || undefined,
         page: 1,
         limit: 100,
         search,
@@ -177,6 +185,8 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
         amountMin,
         amountMax,
       });
+
+      assertPartyScope(response.data, 'supplier', scopedPartyId);
 
       setRows(response.data);
       setMeta(response.meta);
@@ -202,6 +212,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
       try {
         const response = await fetchPurchaseDrafts({
+          supplierId: scopedPartyId || undefined,
           page: 1,
           limit: 100,
           search,
@@ -215,6 +226,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
         });
 
         if (isMounted) {
+          assertPartyScope(response.data, 'supplier', scopedPartyId);
           setRows(response.data);
           setMeta(response.meta);
           setSelectedRowId((currentId) => (
@@ -240,7 +252,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [amountMax, amountMin, currencyFilter, dateFrom, dateTo, search, statusFilter, supplier]);
+  }, [scopedPartyId, amountMax, amountMin, currencyFilter, dateFrom, dateTo, search, statusFilter, supplier]);
 
   useEffect(() => {
     let isMounted = true;
@@ -357,7 +369,12 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
       return;
     }
 
-    printBusinessDocument({
+    if (isDetailLoading || !selectedDetail || String(selectedDetail.id) !== String(selectedRow.id)) {
+      setErrorMessage('Yazdırmak için seçili fişin ayrıntılarının yüklenmesini bekleyin.');
+      return;
+    }
+
+    printInvoiceReceipt({
       title: 'Alış Fişi',
       documentNo: documentNo(selectedRow),
       status: statusLabel(selectedDetail?.status || selectedRow.status),
@@ -366,16 +383,18 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
       partyName: selectedDetail?.supplierName || selectedRow.supplierName || '-',
       currency: selectedCurrency,
       exchangeRate: selectedDetail?.exchangeRateToTry || selectedDetail?.exchangeRate || selectedRow.exchangeRateToTry || 1,
-      description: selectedDetail?.description || 'Alış fişi listesi önizlemesinden yazdırıldı.',
+      description: selectedDetail?.description || '',
       items: selectedItems,
       totals: {
         currency: selectedCurrency,
-        subtotal: selectedSubtotal,
-        discountAmount: selectedDetail?.discountAmount || selectedDetail?.totalDiscount || 0,
-        tryEquivalent: selectedDetail?.totalTry || selectedDetail?.amountTry || 0,
-        grandTotal: selectedTotal,
+        subtotal: selectedDetail?.subtotal,
+        discountAmount: selectedDetail?.discountTotal ?? selectedDetail?.discountAmount ?? selectedDetail?.totalDiscount,
+        taxTotal: selectedDetail?.taxTotal ?? selectedDetail?.vatAmount ?? selectedDetail?.taxAmount,
+        tryEquivalent: selectedDetail?.grandTotalTry ?? selectedDetail?.totalTry ?? selectedDetail?.amountTry,
+        grandTotal: selectedDetail?.grandTotal ?? selectedTotal,
       },
       extraInfo: [
+        { label: 'Personel', value: selectedDetail?.employeeName || selectedRow.employeeName || '—' },
         { label: 'Tedarikçi Kod', value: selectedDetail?.supplierCode || selectedRow.supplierCode || '-' },
         { label: 'Satır Sayısı', value: selectedItems.length || selectedRow.itemCount || 0 },
         { label: 'Toplam Adet', value: selectedQuantity || selectedRow.itemCount || 0 },
@@ -386,19 +405,29 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
   return (
     <main className="work-area invoice-list-screen sales-receipt-workspace purchase-receipt-workspace">
+      <PartyContextNotice entityType="supplier" partyId={scopedPartyId} partyCode={initialSupplierCode} screenId="purchase-invoice-list" onOpenScreen={onOpenScreen} />
       <section className="invoice-list-toolbar sales-receipt-toolbar purchase-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Alış Fişleri</strong>
           <span>Tedarikçi alışları, stok girişleri, maliyet ve borç etkisi</span>
         </div>
         <div className="invoice-list-actions">
-          <button type="button" onClick={() => onOpenScreen('bulk-purchase-entry')}>Toplu Alış Girişi</button>
-          <button type="button" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Alış Fişi</button>
+          <button type="button" onClick={() => onOpenScreen('purchase-invoice', scopedPartyId ? { supplierId: scopedPartyId, supplierCode: initialSupplierCode } : {})}>Yeni Alış Fişi</button>
           <button type="button" onClick={() => openDraft()} disabled={!selectedRow}>Seçili Fişi Aç</button>
+          <button type="button" aria-expanded={isPreviewOpen} aria-controls="purchase-invoice-preview" disabled={!selectedRow} onClick={() => setIsPreviewOpen((current) => !current)}>{isPreviewOpen ? 'Önizlemeyi Kapat' : 'Önizleme'}</button>
+          <button type="button" onClick={loadDrafts}>Yenile</button>
+          <details className="invoice-toolbar-more" onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
+            <summary>Diğer işlemler</summary>
+            <div className="invoice-toolbar-more-actions" onClick={(event) => { if (event.target.closest('button:not(:disabled)')) event.currentTarget.closest('details').open = false; }}>
+          <button type="button" onClick={() => onOpenScreen('bulk-purchase-entry')}>Toplu Alış Girişi</button>
+          {['dashboard.view', 'finance.view', 'supplier.view', 'purchase.view'].every(key => permissions.includes(key)) && <button type="button" onClick={() => onOpenScreen('vega-history', { company: 'F0103' })}>Vega 2026 Belgeleri</button>}
+          {permissions.includes('purchase.view') && <button type="button" onClick={()=>setReturnDialog({source:null})}>{permissions.includes('purchase.cancel')?'İadeler / Bağımsız İade':'İadeler'}</button>}
+          {permissions.includes('purchase.cancel') && <><button type="button" disabled={!selectedDetail || isDetailLoading || selectedRow?.status!=='FINALIZED' || String(selectedDetail.id)!==String(selectedRow?.id)} onClick={()=>setReturnDialog({source:selectedDetail})}>Seçili Fişten İade</button></>}
           <button type="button" onClick={exportPurchaseRows}>Excel</button>
           <button type="button" onClick={printPurchaseRows}>Yazdır/PDF</button>
-          <button type="button" onClick={loadDrafts}>Yenile</button>
           <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}>Kolonlar</button>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -407,14 +436,13 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           <span>Fiş No / Ürün / Barkod</span>
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fiş no, ürün adı, barkod veya stok kodu" />
         </label>
-        <label>
-          <span>Tedarikçi</span>
-          <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder="Tedarikçi adı veya kodu" />
-        </label>
         <button type="button" className="filter-reset-button" onClick={resetFilters}>Temizle</button>
       </section>
 
       <InvoiceListAdvancedFilters
+        party={supplier}
+        partyLabel="Tedarikçi"
+        onPartyChange={setSupplier}
         status={statusFilter}
         onStatusChange={setStatusFilter}
         dateFrom={dateFrom}
@@ -462,7 +490,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
       )}
 
       <section
-        className={`sales-receipt-layout purchase-receipt-layout ${!isLoading && !errorMessage && rows.length === 0 ? 'is-empty' : ''}`}
+        className={`sales-receipt-layout purchase-receipt-layout ${isPreviewOpen ? 'has-preview' : 'preview-closed'} ${!isLoading && !errorMessage && rows.length === 0 ? 'is-empty' : ''}`}
         style={{ '--sales-preview-width': `${previewWidth}px` }}
       >
         <section className="erp-panel invoice-list-panel sales-receipt-list-panel purchase-receipt-list-panel">
@@ -485,7 +513,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
               <strong>Bu filtrelerde alış fişi yok</strong>
               <p>Filtreleri temizleyebilir veya yeni bir alış fişi oluşturabilirsiniz.</p>
               <div className="invoice-list-empty-actions">
-                <button type="button" className="primary" onClick={() => onOpenScreen('purchase-invoice')}>Yeni Alış Fişi</button>
+                <button type="button" className="primary" onClick={() => onOpenScreen('purchase-invoice', scopedPartyId ? { supplierId: scopedPartyId, supplierCode: initialSupplierCode } : {})}>Yeni Alış Fişi</button>
                 <button type="button" onClick={resetFilters}>Filtreleri Temizle</button>
               </div>
             </div>
@@ -533,7 +561,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           )}
         </section>
 
-        <div
+        {isPreviewOpen && <div
           aria-label="Fiş önizleme panel genişliği"
           className="sales-receipt-resizer"
           onMouseDown={startPreviewResize}
@@ -541,12 +569,13 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
           title="Sürükle: önizleme panelini genişlet/daralt"
         >
           <span />
-        </div>
+        </div>}
 
-        <aside className="erp-panel sales-receipt-preview-panel purchase-receipt-preview-panel">
+        {isPreviewOpen && <aside id="purchase-invoice-preview" aria-label="Alış fişi önizlemesi" className="erp-panel sales-receipt-preview-panel purchase-receipt-preview-panel">
           <div className="panel-title">
             <strong>Alış Önizleme</strong>
             <span>{selectedRow ? documentNo(selectedRow) : 'Seçili fiş yok'}</span>
+            <button type="button" className="invoice-preview-close" onClick={() => setIsPreviewOpen(false)}>Kapat</button>
           </div>
 
           {!selectedRow && <div className="list-state">Detay görmek için listeden bir alış fişi seçin.</div>}
@@ -608,7 +637,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
 
               <div className="sales-receipt-preview-actions">
                 <button type="button" onClick={() => openDraft()}>Aç / Düzenle</button>
-                <button type="button" onClick={printSelectedPurchaseInvoice}>Yazdır</button>
+                <button type="button" onClick={printSelectedPurchaseInvoice} disabled={isDetailLoading || !selectedDetail || String(selectedDetail.id) !== String(selectedRow.id)}>Yazdır</button>
                 <button type="button" onClick={() => onOpenScreen?.('supplier-card', { supplierId: selectedDetail?.supplierId || selectedRow.supplierId, supplierCode: selectedDetail?.supplierCode || selectedRow.supplierCode })}>
                   Tedarikçi
                 </button>
@@ -623,7 +652,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
               </div>
             </>
           )}
-        </aside>
+        </aside>}
       </section>
 
       <section className="screen-summary invoice-list-summary">
@@ -632,6 +661,7 @@ export function PurchaseInvoiceListScreen({ onOpenScreen }) {
         <span>Durum: {statusFilter}</span>
         <span>Kaynak: API / canlı SQL</span>
       </section>
+      {returnDialog&&<InvoiceReturnDialog canManage={permissions.includes('purchase.cancel')} kind="purchase" source={returnDialog.source} initialReturnId={returnDialog.initialReturnId} userId={userId} onDirtyChange={onDirtyChange} onClose={()=>setReturnDialog(null)}/>}
     </main>
   );
 }

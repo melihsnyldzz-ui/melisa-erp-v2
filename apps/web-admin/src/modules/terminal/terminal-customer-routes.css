@@ -1,0 +1,22 @@
+.terminal-customer-routes { display: grid; gap: 12px; min-width: 0; }
+.terminal-admin-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.terminal-admin-tabs button[aria-selected="true"] { font-weight: 700; box-shadow: inset 0 -3px #315d91; }
+.terminal-routes-grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr); gap: 12px; }
+.terminal-route-editor { display: grid; gap: 10px; padding: 12px; }
+.terminal-route-editor label:not(.terminal-route-checkbox), .terminal-route-filters label { display: grid; gap: 4px; }
+.terminal-route-editor input:not([type="checkbox"]), .terminal-route-editor select, .terminal-route-filters input, .terminal-route-filters select, .terminal-route-customer-table select { min-height: 32px; padding: 5px 7px; max-width: 100%; }
+.terminal-route-checkbox { display: flex; align-items: center; gap: 8px; }
+.terminal-route-checkbox input { width: auto; }
+.terminal-route-options { display: grid; gap: 7px; max-height: 190px; overflow: auto; }
+.terminal-route-cash-list { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 12px; }
+.terminal-route-cash-panel p { margin: 0; padding: 0 12px 10px; }
+.terminal-route-filters { display: grid; grid-template-columns: minmax(240px, 2fr) minmax(200px, 1fr); gap: 12px; padding: 10px 12px; }
+.terminal-route-customer-table { max-height: 420px; overflow: auto; }
+.terminal-route-customer-table th { position: sticky; top: 0; z-index: 1; background: #edf1f5; }
+.terminal-route-customer-table select { width: 100%; min-width: 160px; }
+.terminal-route-changed { background: #fff5d9; }
+.terminal-route-review { border: 1px solid #c48614; background: #fff5d9; padding: 12px; }
+.terminal-route-review p { margin: 6px 0; }
+@media (max-width: 800px) {
+  .terminal-routes-grid, .terminal-route-filters { grid-template-columns: minmax(0, 1fr); }
+}

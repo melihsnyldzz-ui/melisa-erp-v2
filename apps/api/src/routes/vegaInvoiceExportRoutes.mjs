@@ -1,0 +1,10 @@
+import {Router} from 'express';
+import {requireAuth,requirePermission} from '../middleware/authMiddleware.js';
+import {ok} from '../utils/response.js';
+import {previewInvoiceExport,getInvoiceExportStatus,submitInvoiceExport} from '../services/vegaInvoiceExportService.mjs';
+export const vegaInvoiceExportRoutes=Router();
+const handle=fn=>async(req,res,next)=>{try{return ok(res,await fn(req));}catch(e){next(e);}};
+vegaInvoiceExportRoutes.use(requireAuth,requirePermission('sales.view'));
+vegaInvoiceExportRoutes.post('/preview',requirePermission('sales.finalize'),handle(req=>previewInvoiceExport(req.body.invoiceIds,req.user)));
+vegaInvoiceExportRoutes.post('/status',handle(req=>getInvoiceExportStatus(req.body.invoiceIds,req.user,req.body.reconcile===true)));
+vegaInvoiceExportRoutes.post('/submit',requirePermission('sales.finalize'),handle(req=>submitInvoiceExport(req.body.token,req.body.confirmed,req.user)));

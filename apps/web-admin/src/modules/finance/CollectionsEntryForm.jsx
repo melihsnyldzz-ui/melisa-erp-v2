@@ -13,6 +13,7 @@ export function CollectionsEntryForm({
   accountOptions,
   canSubmit,
   isSaving,
+  ratesReadonly,
   onUpdateField,
   onPartyQueryChange,
   onSubmit,
@@ -61,6 +62,21 @@ export function CollectionsEntryForm({
         <span><b>Mevcut bakiye:</b> {currentParty ? formatMoney(currentBalance, partyCurrency) : '-'}</span>
         <span><b>Yöntem:</b> {form.paymentMethod === 'cash' ? 'Nakit' : form.paymentMethod === 'bank' ? 'Banka' : form.paymentMethod === 'card' ? 'Kart' : 'Diğer'}</span>
       </div>
+      {currentParty && <div className="collections-detail-grid" style={{ padding: '12px 16px' }}>
+        <label>
+          <span>İşlem kuru · 1 {form.currency} = TRY</span>
+          <input type="number" min="0.00000001" step="0.00000001" value={form.exchangeRate}
+            readOnly={ratesReadonly || form.currency === 'TRY'} placeholder="Kur gerekli"
+            onChange={(event) => onUpdateField('exchangeRate', event.target.value)} />
+        </label>
+        <label>
+          <span>Cari kuru · 1 {partyCurrency} = TRY</span>
+          <input type="number" min="0.00000001" step="0.00000001" value={form.accountExchangeRate}
+            readOnly={ratesReadonly || partyCurrency === 'TRY' || partyCurrency === form.currency} placeholder="Kur gerekli"
+            onChange={(event) => onUpdateField('accountExchangeRate', event.target.value)} />
+        </label>
+        <small className="wide">Kurlar fiş tarihine göre alınır ve bu işlemde saklanır. Eksik döviz kurunu girin; TRY kuru 1’dir.</small>
+      </div>}
       <details className="collections-entry-details">
         <summary><ChevronDown size={15} />İşlem ayrıntıları <small>Tarih, para birimi, yöntem, kasa/banka ve açıklama</small></summary>
         <div className="collections-detail-grid">
@@ -112,6 +128,7 @@ export function CollectionsEffectPanel({
   currentBalance,
   nextBalance,
   amount,
+  accountAmount,
   hasValidAmount,
   partyCurrency,
   formCurrency,
@@ -127,10 +144,11 @@ export function CollectionsEffectPanel({
       <div className={canSubmit ? 'finance-effect-flow ready' : 'finance-effect-flow'}>
         <span><small>Mevcut</small><strong>{currentParty ? formatMoney(currentBalance, partyCurrency) : '-'}</strong></span>
         <ArrowRight size={18} />
-        <span><small>{mode === 'collection' ? 'Tahsilat' : 'Ödeme'}</small><strong>{hasValidAmount ? formatMoney(amount, formCurrency) : '-'}</strong></span>
+        <span><small>Cari azalması</small><strong>{hasValidAmount ? formatMoney(accountAmount, partyCurrency) : '-'}</strong></span>
         <ArrowRight size={18} />
         <span className="result"><small>İşlem sonrası</small><strong>{currentParty && hasValidAmount ? formatMoney(nextBalance, partyCurrency) : '-'}</strong></span>
       </div>
+      <p className="finance-effect-note">{mode === 'collection' ? 'Tahsil edilen' : 'Ödenen'}: {hasValidAmount ? formatMoney(amount, formCurrency) : '-'}</p>
       <p className="finance-effect-note">
         {currentParty && hasValidAmount ? (nextBalance < 0 ? 'Bu işlem caride avans oluşturur.' : 'Bu işlem cari bakiyesini azaltır.') : 'Önizleme için cari ve tutar seçin.'}
       </p>

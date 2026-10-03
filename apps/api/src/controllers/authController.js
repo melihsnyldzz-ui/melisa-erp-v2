@@ -39,7 +39,7 @@ export async function getTerminalLoginUsers(req, res) {
 
 export async function postTerminalLogin(req, res) {
   try {
-    const data = await terminalLogin(req.body, req.get('user-agent') || '');
+    const data = await terminalLogin(req.body, req.get('user-agent') || '', { nativeTerminal: req.app.locals.nativeTerminalV1 === true });
     return ok(res, data, { source: 'sql-terminal-auth' });
   } catch (error) {
     return authFail(res, error, 'AUTH_TERMINAL_LOGIN_FAILED');
@@ -70,7 +70,7 @@ export async function postLogout(req, res) {
 
 export async function postRefresh(req, res) {
   try {
-    const data = await refreshAccessToken(req.body?.refreshToken);
+    const data = await refreshAccessToken(req.body?.refreshToken, { nativeTerminal: req.app.locals.nativeTerminalV1 === true, terminalCode: req.body?.terminalCode });
     return ok(res, data, {
       source: 'sql-auth',
     });

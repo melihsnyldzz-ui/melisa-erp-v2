@@ -3,7 +3,8 @@ import { CustomerListFilters } from './CustomerListFilters.jsx';
 import { CustomerListTable } from './CustomerListTable.jsx';
 import { CustomerListToolbar } from './CustomerListToolbar.jsx';
 import { customerFilterDefaults } from './customerMockData.js';
-import { fetchVegaCustomers } from '../../services/customerApi.js';
+import { fetchCustomers, fetchVegaCustomers } from '../../services/customerApi.js';
+import { apiConfig } from '../../config/apiConfig.js';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { exportRowsToCsv, printCurrentScreen } from '../../utils/exportUtils.js';
 import { searchTextIncludes } from '../../utils/searchText.js';
@@ -128,7 +129,7 @@ export function CustomerListScreen({ onOpenScreen }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(readVisibleCustomerColumns);
-  const isLiveVega = true;
+  const isLiveVega = !apiConfig.pilotMode;
 
   const serverSearch = useMemo(() => buildServerSearch(filters), [filters]);
   const debouncedServerSearch = useDebouncedValue(serverSearch);
@@ -158,7 +159,7 @@ export function CustomerListScreen({ onOpenScreen }) {
       setErrorMessage('');
 
       try {
-        const response = await fetchVegaCustomers({
+        const response = await (apiConfig.pilotMode ? fetchCustomers : fetchVegaCustomers)({
           page: 1,
           limit: pageLimit,
           search: debouncedServerSearch,

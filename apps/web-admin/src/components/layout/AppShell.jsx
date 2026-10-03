@@ -16,12 +16,15 @@ import {
 } from '../../config/viewOptions.js';
 import { getRoleScreenIds, readStoredRoleView, roleViewStorageKey } from '../../config/roleViews.js';
 import { buildScreenDeepLink, readScreenDeepLink } from '../../utils/screenDeepLink.js';
+import { bindSavedInvoiceToTab, nextWorkspaceTabInstanceId, resolveInvoiceTabOpen } from '../../utils/workspaceInvoiceRecords.js';
+import { operationTabId, replacesOperationContext } from '../../utils/operationNavigation.js';
 
 function getShellClassName(isDemoMode, viewOptions) {
   const rowDensity = viewOptions.rowDensity || (viewOptions.compactRows ? 'compact' : 'comfortable');
 
   return [
     'erp-shell',
+    'calm-workspace-shell',
     isDemoMode ? 'demo-mode-shell' : '',
     viewOptions.darkMode ? 'dark-mode-shell' : '',
     viewOptions.simpleMode ? 'simple-mode-shell' : '',
@@ -99,6 +102,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   );
 
   function createTab(screen, payload = {}) {
+    const instanceId = nextWorkspaceTabInstanceId();
     const recordId = payload.productId
       ?? payload.customerId
       ?? payload.sourceId
@@ -107,7 +111,8 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       ?? payload.salesDraftId
       ?? payload.purchaseDraftId
       ?? payload.offerId
-      ?? payload.orderId;
+      ?? payload.orderId
+      ?? payload.purchasePreparationId;
     const recordLabel = payload.tabLabel
       ?? payload.stockCode
       ?? payload.customerCode
@@ -116,9 +121,11 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       ?? payload.documentNo
       ?? (recordId ? `#${recordId}` : '');
 
-    if (!recordId) {
+    const contextId = operationTabId(screen.id, payload);
+    if (!recordId && !contextId) {
       return {
         ...screen,
+        instanceId,
         screenId: screen.id,
         payload,
         dirty: false,
@@ -127,7 +134,8 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
 
     return {
       ...screen,
-      id: `${screen.id}:${recordId}`,
+      instanceId,
+      id: contextId || `${screen.id}:${recordId}`,
       screenId: screen.id,
       label: `${screen.label}: ${recordLabel}`,
       payload,
@@ -142,10 +150,20 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
       return;
     }
 
-    const nextTab = createTab(screen, payload);
+    const { tab: nextTab, existingTab } = resolveInvoiceTabOpen(tabs, createTab(screen, payload));
+    if (existingTab) {
+      setActiveTabId(existingTab.id);
+      return;
+    }
 
     setTabs((currentTabs) => {
-      if (currentTabs.some((tab) => tab.id === nextTab.id)) {
+      const current = currentTabs.find((tab) => tab.id === nextTab.id);
+      if (current) {
+        // Explicit list/history navigation replaces its context; opening the menu alone
+        // preserves the user's search and scroll position in the existing tab.
+        if (!current.dirty && replacesOperationContext(screenId, payload)) {
+          return currentTabs.map((tab) => tab.id === current.id ? { ...tab, payload: nextTab.payload, label: nextTab.label, contextRevision: (tab.contextRevision || 0) + 1 } : tab);
+        }
         return currentTabs;
       }
 
@@ -174,7 +192,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     }
 
     pendingDeepLinkScreenRef.current = '';
-    const nextSearch = buildScreenDeepLink(window.location.search, activeScreenId);
+    const nextSearch = buildScreenDeepLink(window.location.search, activeScreenId, activeTab.payload);
     if (nextSearch === window.location.search) return;
 
     window.history.replaceState(
@@ -229,6 +247,10 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
 
       return didChange ? nextTabs : currentTabs;
     });
+  }, []);
+
+  const updateTabRecord = useCallback((tabId, instanceId, record) => {
+    setTabs((currentTabs) => bindSavedInvoiceToTab(currentTabs, tabId, instanceId, record, screenRegistry));
   }, []);
 
   const updateViewOption = useCallback((key, value) => {
@@ -333,6 +355,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
                 <Workspace
                   activeTab={tab}
                   onDirtyChange={(isDirty) => updateTabDirty(tab.id, isDirty)}
+                  onRecordSaved={(record) => updateTabRecord(tab.id, tab.instanceId, record)}
                   onOpenScreen={openScreen}
                   permissions={permissions}
                   roleViewId={roleViewId}

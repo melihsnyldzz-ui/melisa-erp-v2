@@ -5,10 +5,24 @@ import { env } from './env.js';
 let poolPromise;
 
 export function getSqlDriver() {
+  if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01') return sqlTrusted;
   return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
 }
 
 export function getSqlConfig() {
+  if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !env.sql.trustedConnection) {
+    const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
+    const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
+    return {
+      connectionString: [
+        `Driver={${driver}}`, `Server=${server}`, `Database=${env.sql.database}`,
+        `UID=${env.sql.user}`, `PWD=${env.sql.password}`, 'Trusted_Connection=No',
+        env.sql.trustServerCertificate ? 'TrustServerCertificate=Yes' : 'TrustServerCertificate=No',
+        env.sql.encrypt ? 'Encrypt=Yes' : 'Encrypt=No',
+      ].join(';'),
+      connectionTimeout: 10000, requestTimeout: 10000,
+    };
+  }
   if (env.sql.trustedConnection) {
     const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
     const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
@@ -75,10 +89,8 @@ export async function getSqlPool() {
     throw error;
   }
 
-  const testWriteEnabled = process.env.MELISA_TEST_WRITE_ENABLED === 'true';
-  const testWriteTarget = env.sql.database === 'MELISA_ERP_FULL_TEST_20260916' && testWriteEnabled;
-  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_V2' && !testWriteTarget) {
-    const error = new Error('SQL write mode is only allowed for MELISA_ERP_V2');
+  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01') {
+    const error = new Error('SQL write mode is only allowed for the LIVE-3 production candidate');
     error.code = 'SQL_WRITE_TARGET_INVALID';
     error.statusCode = 403;
     throw error;

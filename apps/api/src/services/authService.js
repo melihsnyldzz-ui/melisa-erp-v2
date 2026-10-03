@@ -61,10 +61,11 @@ function toUserDto(row, permissions = []) {
   };
 }
 
-function signAccessToken(user) {
+function signAccessToken(user, nativeTerminalCode = null) {
   return jwt.sign(
     {
       sub: String(user.id),
+      ...(nativeTerminalCode ? { nativeTerminalCode } : {}),
       username: user.username,
       role: user.role.code,
     },
@@ -126,7 +127,7 @@ export async function getUserById(userId) {
   return toUserDto(row, permissions);
 }
 
-export async function login({ username, password }, userAgent = '') {
+export async function authenticateUserCredentials({ username, password }) {
   assertAuthSecretsConfigured();
 
   const normalizedUsername = trimText(username);
@@ -165,7 +166,18 @@ export async function login({ username, password }, userAgent = '') {
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
   const user = toUserDto(row, permissions);
-  const accessToken = signAccessToken(user);
+  return user;
+}
+
+// Native persistence is selected by the dedicated server, never by a client flag.
+const nativeSessionPrefix = 'melisa-native-v1:';
+export async function login(credentials, userAgent = '') {
+  return issueSession(await authenticateUserCredentials(credentials), userAgent);
+}
+
+async function issueSession(user, userAgent, nativeTerminalCode = null) {
+  const pool = await getSqlPool();
+  const accessToken = signAccessToken(user, nativeTerminalCode);
 
   if (env.sql.readOnly) {
     return {
@@ -182,13 +194,18 @@ export async function login({ username, password }, userAgent = '') {
 
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
-  const refreshExpiresAt = getRefreshExpiresAt();
+  // DATETIME2 is non-nullable. Its final day represents explicit-logout lifetime.
+  // Short access JWT lifetime and server-side refresh revocation remain unchanged.
+  const refreshExpiresAt = nativeTerminalCode ? new Date('9999-12-31T00:00:00.000Z') : getRefreshExpiresAt();
+  const storedAgent = nativeTerminalCode
+    ? nativeSessionPrefix + Buffer.from(nativeTerminalCode).toString('base64url')
+    : 'client:' + trimText(userAgent);
 
   await pool.request()
     .input('loginUserId', sql.BigInt, user.id)
     .input('refreshTokenHash', sql.NVarChar(255), refreshTokenHash)
     .input('refreshExpiresAt', sql.DateTime2, refreshExpiresAt)
-    .input('userAgent', sql.NVarChar(300), trimText(userAgent).slice(0, 300) || null)
+    .input('userAgent', sql.NVarChar(300), storedAgent.slice(0, 300))
     .query(`
       INSERT INTO dbo.auth_refresh_tokens (
         user_id,
@@ -282,7 +299,7 @@ export async function listTerminalLoginUsers(terminalCode) {
   return getTerminalLoginContext(terminalCode);
 }
 
-export async function terminalLogin({ username, password, terminalCode }, userAgent = '') {
+export async function terminalLogin({ username, password, terminalCode }, userAgent = '', { nativeTerminal = false } = {}) {
   const context = await getTerminalLoginContext(terminalCode);
   const normalizedUsername = trimText(username);
   const normalizedUsernameKey = normalizedUsername.toLocaleLowerCase('tr-TR');
@@ -294,7 +311,8 @@ export async function terminalLogin({ username, password, terminalCode }, userAg
     throw makeAuthError('TERMINAL_USER_NOT_ALLOWED', 'User is not enabled for terminal login', 403);
   }
 
-  const session = await login({ username: normalizedUsername, password }, userAgent);
+  const user = await authenticateUserCredentials({ username: normalizedUsername, password });
+  const session = await issueSession(user, userAgent, nativeTerminal ? context.device.code : null);
   return {
     ...session,
     terminal: context.device,
@@ -366,7 +384,7 @@ export async function logout(refreshToken) {
   };
 }
 
-export async function refreshAccessToken(refreshToken) {
+export async function refreshAccessToken(refreshToken, { nativeTerminal = false, terminalCode = '' } = {}) {
   assertMelisaWriteEnabled();
   assertAuthSecretsConfigured();
 
@@ -379,7 +397,7 @@ export async function refreshAccessToken(refreshToken) {
     .input('refreshTokenHashForRefresh', sql.NVarChar(255), hashRefreshToken(refreshToken))
     .query(`
       SELECT TOP (1)
-        user_id
+        user_id, user_agent
       FROM dbo.auth_refresh_tokens
       WHERE token_hash = @refreshTokenHashForRefresh
         AND revoked_at IS NULL
@@ -392,8 +410,25 @@ export async function refreshAccessToken(refreshToken) {
     throw makeAuthError('AUTH_REFRESH_INVALID', 'Refresh token is invalid or expired', 401);
   }
 
+  let nativeTerminalCode = null;
+  if (String(tokenRow.user_agent || '').startsWith(nativeSessionPrefix)) {
+    const boundCode = Buffer.from(tokenRow.user_agent.slice(nativeSessionPrefix.length), 'base64url').toString('utf8');
+    if (!nativeTerminal || trimText(terminalCode) !== boundCode) {
+      throw makeAuthError('AUTH_REFRESH_INVALID', 'Terminal session does not match this device', 401);
+    }
+    nativeTerminalCode = boundCode;
+    try {
+      const context = await getTerminalLoginContext(boundCode);
+      if (!context.users.some((user) => user.id === Number(tokenRow.user_id))) {
+        throw makeAuthError('AUTH_REFRESH_INVALID', 'Personnel is no longer enabled for terminal login', 401);
+      }
+    } catch (error) {
+      if (error.statusCode === 403) throw makeAuthError('AUTH_REFRESH_INVALID', 'Terminal session is no longer enabled', 401);
+      throw error;
+    }
+  }
   const user = await getUserById(tokenRow.user_id);
-  const accessToken = signAccessToken(user);
+  const accessToken = signAccessToken(user, nativeTerminalCode);
 
   return {
     user,
