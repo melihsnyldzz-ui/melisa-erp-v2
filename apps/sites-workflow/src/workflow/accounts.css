@@ -1,0 +1,15 @@
+.live-accounts { font-size: 16px; }
+.live-accounts td, .live-accounts th, .live-accounts .filter, .live-accounts .pill, .live-accounts .sub, .live-accounts .notice, .live-accounts .field { font-size: 14px; letter-spacing: normal; }
+.live-accounts .account-login { padding: 24px; max-width: 680px; }
+.live-accounts h2 { margin-top: 0; font-size: 18px; }
+.live-accounts .account-login p { line-height: 1.6; }
+.live-accounts .actions { margin: 18px 0; flex-wrap: wrap; }
+.live-accounts .account-status { padding: 12px 16px; color: #516157; font-size: 14px; }
+.live-accounts .account-empty { padding: 32px 16px; white-space: normal; }
+.live-accounts button:disabled { cursor: default; opacity: .5; }
+.live-accounts button:focus-visible, .live-accounts input:focus-visible, .live-accounts select:focus-visible { outline: 3px solid #e8b372; outline-offset: 2px; }
+.live-accounts .notice { margin: 12px; }
+.live-accounts .notice button { margin-left: 12px; }
+.live-accounts .filters { flex-wrap: wrap; }
+.live-accounts .search { flex: 1; min-width: 180px; }
+@media(max-width:650px) { .live-accounts .fields { grid-template-columns: 1fr; } .live-accounts .account-login { padding: 18px; } }

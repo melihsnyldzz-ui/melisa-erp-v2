@@ -1,0 +1,21 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import '../../public/workflow-settlement.js';
+import {initialOperations,acceptGoods,rejectGoods,addGoodsBatch,addCount,addPurchase,requestSupplierReturn,requestUninvoicedReturn,decideSupplierReturn,stockQuantity} from './demoOperationsModel.js';
+import {approveCountBatch,rejectCountBatch} from './countModel.js';
+import {approvalQueue,approvalHistory,canDecideApproval} from './approvalsModel.js';
+const api=globalThis.MelisaReceiptPreview;
+function setup(){const s=initialOperations([['M-100','Triko','6',24,10,'Aktif','Takım'],['M-142','Body','6',10,8,'Aktif','Body']]);acceptGoods(s,'MK-00418','İlker');
+ const p=addPurchase(s,{goodsId:'MK-00418',number:'A1',date:'2026-09-28',currency:'USD',quantity:10,priceCents:1000,vatCents:0},'İlker');
+ const goods=addGoodsBatch(s,{supplier:'Concept',note:'Onay denemesi',lines:[{code:'M-100',quantity:2},{code:'M-142',quantity:3}]},'Satış ekibi');
+ const count=addCount(s,{code:'M-142',physical:9,reason:'Eksik adet'},'Satış ekibi');
+ const invoiced=requestSupplierReturn(s,{purchaseId:p.id,index:0,quantity:1,reason:'Hatalı beden'},'Satış');const uninvoiced=requestUninvoicedReturn(s,{goodsId:'MK-00418',quantity:1,reason:'Faturasız iade'},'Satış');
+ const d=api.create('SF-A','Peşin Dolar',[{code:'M-100',qty:2,priceCents:1000}]),r=api.create('SF-B','Peşin Dolar',[{code:'M-100',qty:2,priceCents:1000}]);api.requestDiscount(d,400,'Özel indirim','Satış');const ret=api.requestReturn(r,0,1,'Beden iadesi','Satış');return {s,docs:[d,r],ids:{goods:goods[0].id,count:count.id,invoiced:invoiced.id,uninvoiced:uninvoiced.id,ret:ret.id}};
+}
+test('one queue groups deliveries and includes every pending decision with matching role visibility',()=>{const {s,docs}=setup(),rows=approvalQueue(s,docs);assert.equal(rows.length,6);assert.equal(rows.filter(r=>r.type==='Mal kabulü').length,1);assert.equal(rows.filter(r=>r.type==='Tedarikçi iadesi').length,2);assert.equal(rows.filter(r=>canDecideApproval(r.type,'Satış ekibi')).length,0);assert.equal(rows.filter(r=>canDecideApproval(r.type,'Angela')).length,1);assert.equal(rows.filter(r=>canDecideApproval(r.type,'İlker')).length,5);assert.equal(rows.filter(r=>canDecideApproval(r.type,'Semih')).length,6);assert.ok(rows.every(r=>r.target||r.receipt));});
+test('approve and reject permissions agree for all four roles across all approval types, with replay blocked',()=>{
+ for(const actor of ['Satış ekibi','Angela','İlker','Semih'])for(const approve of [true,false])for(const kind of ['goods','count','invoiced','uninvoiced','discount','return']){
+  const {s,docs,ids}=setup(),type=kind==='discount'?'İndirim':'Diğer',operation=()=>kind==='goods'?(approve?acceptGoods(s,ids.goods,actor):rejectGoods(s,ids.goods,'Hatalı teslimat',actor)):kind==='count'?(approve?approveCountBatch(s,ids.count,actor,docs):rejectCountBatch(s,ids.count,'Tekrar sayılmalı',actor)):kind==='discount'?api.decideDiscount(docs[0],approve,actor):kind==='return'?api.decideReturn(docs[1],ids.ret,approve,actor):decideSupplierReturn(s,ids[kind],approve,actor,docs);
+  const before=structuredClone({s,docs});if(!canDecideApproval(type,actor)){assert.throws(operation);assert.deepEqual({s,docs},before)}else{operation();assert.equal(approvalQueue(s,docs).length,5);const after=structuredClone({s,docs});assert.throws(operation);assert.deepEqual({s,docs},after);assert.ok(approvalHistory(s,docs).some(h=>h.actor===actor));}
+ }
+});
+test('rejected delivery never changes stock or invoices and grouped decision history survives reload',()=>{const {s,docs,ids}=setup(),before=stockQuantity(s,'M-100',docs);assert.throws(()=>rejectGoods(s,ids.goods,'','İlker'));rejectGoods(s,ids.goods,'Yanlış teslimat','İlker');assert.equal(stockQuantity(s,'M-100',docs),before);assert.throws(()=>addPurchase(s,{goodsId:ids.goods},'İlker'));api.decideDiscount(docs[0],false,'Angela');const restored=JSON.parse(JSON.stringify({s,docs})),history=approvalHistory(restored.s,restored.docs);assert.equal(history.filter(h=>h.type==='Mal kabulü reddedildi').length,1);assert.equal(history.find(h=>h.type==='Mal kabulü reddedildi').reason,'Yanlış teslimat');assert.equal(history.find(h=>h.type==='İndirim reddedildi').reason,'Özel indirim');});

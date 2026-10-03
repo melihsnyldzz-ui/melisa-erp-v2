@@ -1,0 +1,127 @@
+.sales-pipeline-list-screen {
+  container-type: inline-size;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.sales-pipeline-list-screen .invoice-list-toolbar {
+  align-content: start;
+}
+
+.sales-pipeline-readonly-note {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 8px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.sales-pipeline-list-panel {
+  min-height: 0;
+}
+
+.sales-pipeline-list-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sales-pipeline-list-body > .list-state {
+  flex: 0 0 auto;
+  min-height: 38px;
+}
+
+.sales-pipeline-list-body > .invoice-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sales-pipeline-list-screen .invoice-list-table tbody tr.selected-row td {
+  background: #e6f7f4 !important;
+  box-shadow: inset 0 1px 0 #a7ddd4, inset 0 -1px 0 #a7ddd4 !important;
+}
+
+.sales-pipeline-list-screen .invoice-list-table tbody tr.selected-row td:first-child {
+  box-shadow: inset 3px 0 0 #0f766e, inset 0 1px 0 #a7ddd4, inset 0 -1px 0 #a7ddd4 !important;
+  color: #0f5f58 !important;
+  font-weight: 900 !important;
+}
+
+.sales-pipeline-list-screen .invoice-list-table tbody tr:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+}
+
+.sales-pipeline-list-screen .status-pill.status-draft {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.sales-pipeline-list-screen .status-pill.status-sent,
+.sales-pipeline-list-screen .status-pill.status-confirmed {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sales-pipeline-list-screen .status-pill.status-accepted,
+.sales-pipeline-list-screen .status-pill.status-fulfilled {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.sales-pipeline-list-screen .status-pill.status-cancelled {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+@container (max-width: 900px) {
+  .sales-pipeline-list-screen .invoice-list-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .sales-pipeline-list-screen .invoice-list-title,
+  .sales-pipeline-list-screen .invoice-list-actions,
+  .sales-pipeline-list-screen .sales-pipeline-readonly-note {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sales-pipeline-list-screen .invoice-list-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .sales-pipeline-list-screen .invoice-list-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 560px) {
+  .sales-pipeline-list-screen .invoice-list-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dark-mode-shell .sales-pipeline-readonly-note {
+  border-color: #1e4f78;
+  background: #102a43;
+  color: #bfdbfe;
+}

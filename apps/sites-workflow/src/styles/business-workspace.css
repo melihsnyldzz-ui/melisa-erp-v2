@@ -1,0 +1,62 @@
+/* Shared tab controls keep record names readable and close actions independent. */
+.tab-bar .tab-item { display:flex; align-items:stretch; flex:0 0 auto; min-width:0; }
+.tab-bar .tab-close { border:0; background:transparent; color:#657184; padding:0 8px; font-size:20px; cursor:pointer; }
+.tab-bar .tab-close:hover { color:#263e91; background:#eef2fc; }
+.v17-readonly.v17-shell .tab-item { border-bottom:2px solid transparent; }
+.v17-readonly.v17-shell .tab-item.active { border-bottom-color:var(--v-accent); }
+.v17-readonly.v17-shell .tab-bar .tab.active { border-bottom:0!important; }
+.v17-readonly.v17-shell .tab-bar .tab { max-width:310px; }
+.v17-readonly.v17-shell .tab-bar .tab>span { overflow:hidden; text-overflow:ellipsis; }
+.v17-readonly.v17-shell .tab-bar .tab-close { min-width:30px; border-radius:5px; margin:6px 0; }
+
+/* Business screens use the available width; the approved home and terminal retain their layout. */
+.v17-readonly.v17-shell:not([data-screen="dashboard"]):not([data-screen="terminal-overview"]) .v17-content { max-width:none; padding:20px 24px; }
+.v17-readonly.v17-shell main.connected-operations { gap:12px; }
+.v17-readonly.v17-shell main.connected-operations .erp-panel { padding:14px 16px; }
+.v17-readonly.v17-shell main.connected-operations .erp-panel.ui-page-heading { padding:0 0 4px; }
+.v17-readonly.v17-shell main.connected-operations .ui-page-title p { margin-top:3px; }
+.v17-readonly.v17-shell main.connected-operations .op-section-title { margin-bottom:10px; }
+.v17-readonly.v17-shell main.connected-operations .op-section-title .op-actions { margin:0; }
+.v17-readonly.v17-shell main.connected-operations .business-filters { display:grid; grid-template-columns:minmax(200px,2fr) repeat(4,minmax(120px,1fr)) auto; align-items:end; gap:10px; padding:12px 0; border-top:1px solid #e8edf5; }
+.v17-readonly.v17-shell main.connected-operations .business-filters label { display:grid; gap:5px; font-size:.875rem; }
+.v17-readonly.v17-shell main.connected-operations .business-filters input,
+.v17-readonly.v17-shell main.connected-operations .business-filters select { width:100%; }
+.v17-readonly.v17-shell main.connected-operations .business-table { max-height:62vh; overflow:auto; border:1px solid #e4e9f2; border-radius:8px; scrollbar-gutter:stable; }
+.v17-readonly.v17-shell main.connected-operations .business-table th { position:sticky; top:0; z-index:1; padding:9px 11px; background:#f5f7fb; font-size:.875rem; color:#5a6880; }
+.v17-readonly.v17-shell main.connected-operations .business-table td { padding:7px 11px; font-size:.875rem; color:#35445b; }
+.v17-readonly.v17-shell main.connected-operations .business-table table { min-width:720px; }
+.v17-readonly.v17-shell main.connected-operations td.numeric,
+.v17-readonly.v17-shell main.connected-operations th.numeric { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.v17-readonly.v17-shell main.connected-operations .business-table tbody tr:nth-child(even):not(.selected):not(.ui-directory-row-selected) { background:#fbfcfe; }
+.v17-readonly.v17-shell main.connected-operations .business-table tbody tr:hover { background:#f0f4ff; }
+.v17-readonly.v17-shell main.connected-operations .business-table tr.selected { background:#edf2ff; }
+.v17-readonly.v17-shell main.connected-operations .business-pagination { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:12px; color:#617089; font-size:.875rem; }
+.v17-readonly.v17-shell main.connected-operations .business-pagination label { display:flex; align-items:center; gap:8px; margin-right:auto; }
+.v17-readonly.v17-shell main.connected-operations .business-pagination select { width:76px; height:34px; min-height:34px; padding:4px 8px; }
+.business-pagination>div { display:flex; align-items:center; gap:10px; }
+.business-status { display:inline-flex; padding:3px 8px; border-radius:5px; background:#f0f2f6; color:#5d6d84; font-size:.875rem; white-space:nowrap; }
+.business-status-approved { background:#edf8f2; color:#257153; }
+.business-status-draft { background:#fff5df; color:#89601c; }
+.business-status-cancelled,.business-status-reversed { background:#fceef0; color:#a24355; }
+.v17-readonly.v17-shell main.connected-operations .ui-directory-toolbar { margin-bottom:12px; }
+.v17-readonly.v17-shell main.connected-operations .ui-directory-name { color:#304666; }
+.v17-readonly.v17-shell main.connected-operations .ui-directory-secondary:empty { display:none; }
+.v17-readonly.v17-shell main.connected-operations .ui-card-editor,
+.v17-readonly.v17-shell main.connected-operations .op-detail,
+.v17-readonly.v17-shell main.connected-operations .ui-document-list { scroll-margin-top:18px; }
+.v17-readonly.v17-shell main.connected-operations .ui-card-editor>.op-section-title,
+.v17-readonly.v17-shell main.connected-operations .op-detail>.op-section-title { position:sticky; top:0; z-index:3; background:#fff; padding:10px 0; border-bottom:1px solid #e3e9f3; }
+.v17-readonly.v17-shell main.connected-operations .op-detail>.op-section-title { flex-wrap:wrap; }
+.v17-readonly.v17-shell main.connected-operations .op-detail>.op-section-title>button { margin-left:auto; }
+@media(max-width:1200px) {
+ .v17-readonly.v17-shell main.connected-operations .business-filters { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .v17-readonly.v17-shell main.connected-operations .business-search { grid-column:span 2; }
+}
+@media(max-width:760px) {
+ .v17-readonly.v17-shell:not([data-screen="dashboard"]):not([data-screen="terminal-overview"]) .v17-content { padding:16px 12px; }
+ .v17-readonly.v17-shell main.connected-operations .business-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .v17-readonly.v17-shell main.connected-operations .business-table { max-height:65vh; }
+ .v17-readonly.v17-shell main.connected-operations .business-pagination { gap:8px; }
+ .v17-readonly.v17-shell main.connected-operations .business-pagination>div { margin-left:auto; }
+ .v17-readonly.v17-shell main.connected-operations .op-detail>.op-section-title { position:static; }
+}

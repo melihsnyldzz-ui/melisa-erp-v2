@@ -1,0 +1,122 @@
+/* Cross-resolution guardrails for desktop and laptop ERP use. */
+.erp-shell,
+.top-menu,
+.main-layout,
+.content-shell,
+.work-area,
+.work-area > *,
+.erp-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-wrap,
+.table-shell,
+.invoice-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.work-area input,
+.work-area select,
+.work-area textarea {
+  max-width: 100%;
+}
+
+.audit-log-screen > .auth-admin-audit-panel {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1280px) {
+  .top-menu {
+    grid-template-columns: minmax(146px, 170px) minmax(260px, 1fr) minmax(410px, 440px) !important;
+  }
+
+  .top-actions {
+    grid-template-columns: minmax(58px, 1fr) minmax(78px, 90px) minmax(82px, 100px) minmax(82px, 100px) minmax(62px, 76px) !important;
+    overflow-x: hidden;
+  }
+
+  .top-actions > .view-preset-button,
+  .top-actions > .session-badge {
+    display: none !important;
+  }
+
+  .module-menu {
+    justify-content: flex-start;
+  }
+
+  .module-menu .module {
+    flex: 0 0 38px;
+    min-width: 38px;
+    width: 38px;
+    padding-inline: 0;
+  }
+
+  .module-menu .module-label {
+    display: none;
+  }
+
+  .work-area {
+    padding: 6px;
+  }
+
+  .bulk-purchase-screen .bulk-purchase-entry-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .top-menu {
+    grid-template-columns: minmax(132px, 150px) minmax(220px, 1fr) minmax(300px, 340px) !important;
+  }
+
+  .top-actions {
+    grid-template-columns: minmax(54px, 1fr) minmax(76px, 88px) minmax(76px, 92px) minmax(58px, 72px) !important;
+  }
+
+  .top-actions > .top-primary-action {
+    display: none !important;
+  }
+
+  .bulk-purchase-screen .bulk-purchase-entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bulk-purchase-screen .bulk-purchase-entry-grid > button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --erp-sidebar-width: 184px;
+    --erp-sidebar-compact-width: 184px;
+  }
+
+  .top-menu {
+    grid-template-columns: minmax(116px, 132px) minmax(180px, 1fr) minmax(270px, 300px) !important;
+  }
+
+  .brand-block span {
+    display: none;
+  }
+}
+
+/* The full ERP shell leaves less room than the browser viewport suggests. */
+@media (min-width: 1181px) and (max-width: 1620px) {
+  .personnel-definitions-screen .personnel-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .personnel-definitions-screen .personnel-card-list {
+    max-height: 370px;
+  }
+}
+
+@media (min-width: 1281px) and (max-width: 1500px) {
+  .audit-log-screen .auth-admin-audit-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

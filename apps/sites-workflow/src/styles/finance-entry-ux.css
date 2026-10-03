@@ -1,0 +1,323 @@
+.collections-overview-screen {
+  gap: 8px;
+}
+
+.collections-overview-screen .collections-hero-panel {
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top-width: 2px;
+}
+
+.collections-overview-screen .collections-hero-copy strong {
+  font-size: 16px;
+}
+
+.collections-overview-screen .collections-mode-switch,
+.collections-overview-screen .collections-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.collections-overview-screen .collections-hero-actions button,
+.collections-overview-screen .collections-side-actions button,
+.collections-overview-screen .collections-core-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.collections-overview-screen .finance-entry-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 0.42fr) !important;
+  gap: 8px !important;
+}
+
+.collections-overview-screen .collections-entry-card,
+.collections-overview-screen .finance-effect-panel {
+  padding: 10px;
+}
+
+.collections-core-form {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.6fr) minmax(190px, 0.7fr) minmax(160px, auto);
+  gap: 8px;
+  align-items: end;
+}
+
+.collections-core-form label,
+.collections-detail-grid label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: #344054;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.collections-core-form input,
+.collections-detail-grid input,
+.collections-detail-grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid #cfd8e5;
+  border-radius: 7px;
+  background: #fff;
+  color: #111827;
+  font-size: 13px;
+}
+
+.collections-core-form .amount-field input {
+  padding-right: 48px;
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #067647;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.collections-amount-control {
+  position: relative;
+}
+
+.collections-amount-control b {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  color: #067647;
+  font-size: 11px;
+  transform: translateY(-50%);
+}
+
+.collections-core-form button.primary {
+  min-height: 38px;
+}
+
+.collections-entry-context {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(150px, auto));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.collections-entry-context span {
+  min-width: 0;
+  padding: 7px 9px;
+  overflow: hidden;
+  border: 1px solid #d8e0ea;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collections-entry-context span.is-ready {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.collections-entry-details {
+  margin-top: 8px;
+  border-top: 1px solid #e4e7ec;
+}
+
+.collections-entry-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  color: #344054;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.collections-entry-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.collections-entry-details summary small {
+  margin-left: auto;
+  color: #98a2b3;
+  font-weight: 700;
+}
+
+.collections-entry-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.collections-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+
+.collections-detail-grid label.wide {
+  grid-column: span 2;
+}
+
+.collections-overview-screen .finance-effect-panel {
+  top: 64px;
+}
+
+.finance-effect-flow {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto minmax(100px, 1fr) auto minmax(120px, 1fr);
+  gap: 7px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #d8e0ea;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.finance-effect-flow.ready {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.finance-effect-flow > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.finance-effect-flow small {
+  color: #667085;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.finance-effect-flow strong {
+  overflow: hidden;
+  color: #344054;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finance-effect-flow .result strong {
+  color: #0f766e;
+}
+
+.finance-effect-flow > svg {
+  color: #98a2b3;
+}
+
+.finance-effect-note {
+  margin: 8px 0 0;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.collections-overview-screen .collections-side-actions {
+  margin-top: 8px;
+}
+
+.collections-overview-screen .collections-side-actions button {
+  min-height: 32px;
+}
+
+.collections-history-panel .erp-table {
+  min-width: 820px;
+}
+
+.collections-party-cell,
+.collections-movement-cell,
+.collections-history-panel .money-cell {
+  min-width: 0;
+}
+
+.collections-party-cell small,
+.collections-movement-cell strong,
+.collections-history-panel .money-cell small {
+  display: block;
+  margin-top: 2px;
+  color: #667085;
+  font-size: 10px;
+}
+
+.collections-party-cell .document-link-button {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collections-movement-cell .document-link-button {
+  margin-top: 2px;
+}
+
+.collections-row-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+@media (max-width: 1450px) {
+  .collections-overview-screen .collections-hero-panel {
+    grid-template-columns: minmax(220px, 1fr) auto;
+  }
+
+  .collections-overview-screen .collections-hero-actions {
+    grid-column: 1 / -1;
+  }
+
+  .collections-overview-screen .finance-entry-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .collections-overview-screen .finance-effect-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 980px) {
+  .collections-core-form,
+  .collections-entry-context {
+    grid-template-columns: 1fr;
+  }
+
+  .collections-detail-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .collections-overview-screen .collections-hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .collections-overview-screen .collections-mode-switch,
+  .collections-overview-screen .collections-hero-actions {
+    overflow-x: auto;
+  }
+
+  .collections-detail-grid,
+  .finance-effect-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .collections-detail-grid label.wide {
+    grid-column: auto;
+  }
+
+  .finance-effect-flow > svg {
+    display: none;
+  }
+
+  .collections-entry-details summary small {
+    display: none;
+  }
+}

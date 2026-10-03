@@ -1,0 +1,101 @@
+.supplier-purchase-intelligence-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.supplier-purchase-intelligence-title {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.supplier-purchase-intelligence-title > div {
+  display: grid;
+  gap: 3px;
+}
+
+.supplier-purchase-intelligence-title span {
+  color: var(--erp-text-muted, #667085);
+  font-size: 12px;
+}
+
+.supplier-purchase-intelligence-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.supplier-purchase-intelligence-summary article {
+  background: var(--erp-surface-soft, #f8fafc);
+  border: 1px solid var(--erp-border, #d9e0e8);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+}
+
+.supplier-purchase-intelligence-summary article > span,
+.supplier-purchase-intelligence-summary article > small,
+.supplier-purchase-intelligence-table td small {
+  color: var(--erp-text-muted, #667085);
+  display: block;
+  font-size: 11px;
+}
+
+.supplier-purchase-intelligence-summary article > strong {
+  font-size: 18px;
+}
+
+.supplier-purchase-intelligence-table-shell {
+  max-height: 430px;
+  overflow: auto;
+}
+
+.supplier-purchase-intelligence-table {
+  min-width: 1180px;
+}
+
+.supplier-purchase-intelligence-table th,
+.supplier-purchase-intelligence-table td {
+  white-space: nowrap;
+}
+
+.supplier-purchase-intelligence-table td:nth-child(2) {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.supplier-effective-discount {
+  color: #067647;
+  font-weight: 700;
+}
+
+.supplier-purchase-review-note {
+  background: #fffaeb;
+  border: 1px solid #fedf89;
+  border-radius: 8px;
+  color: #7a2e0e;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 10px 12px;
+}
+
+@media (max-width: 1100px) {
+  .supplier-purchase-intelligence-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .supplier-purchase-intelligence-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .supplier-purchase-intelligence-summary {
+    grid-template-columns: 1fr;
+  }
+}

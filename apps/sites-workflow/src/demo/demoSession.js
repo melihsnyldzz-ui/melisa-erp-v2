@@ -1,0 +1,68 @@
+export const demoPermissions = [
+  'audit.view',
+  'dashboard.view',
+  'product.view',
+  'product.edit',
+  'product.update',
+  'product.passive',
+  'customer.view',
+  'customer.edit',
+  'customer.update',
+  'customer.passive',
+  'supplier.view',
+  'supplier.edit',
+  'sales.view',
+  'sales.create',
+  'sales.edit',
+  'sales.draft.write',
+  'sales.finalize',
+  'sales.cancel',
+  'purchase.view',
+  'purchase.create',
+  'purchase.edit',
+  'purchase.draft.write',
+  'purchase.finalize',
+  'purchase.cancel',
+  'finance.view',
+  'finance.collection',
+  'finance.payment',
+  'stock.adjust',
+  'terminal.stock_count.create',
+  'settings.manage',
+  'import.run',
+  'crm.view',
+  'crm.manage',
+];
+
+export const demoUser = {
+  id: 'demo-admin',
+  username: 'demo-admin',
+  displayName: 'Demo Yöneticisi',
+  role: {
+    id: 'demo-admin-role',
+    name: 'Demo Yöneticisi',
+  },
+  permissions: demoPermissions,
+};
+
+export const demoTokens = {
+  accessToken: 'demo-access-token',
+  refreshToken: 'demo-refresh-token',
+};
+
+export function demoAuthResponse() {
+  return {
+    success: true,
+    data: {
+      ...demoTokens,
+      user: demoUser,
+    },
+  };
+}
+
+export function demoMeResponse() {
+  return {
+    success: true,
+    data: demoUser,
+  };
+}
