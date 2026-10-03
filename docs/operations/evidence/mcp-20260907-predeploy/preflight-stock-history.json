@@ -1,0 +1,53 @@
+{
+  "at": "2026-09-07T11:56:10.564Z",
+  "checks": [
+    {
+      "label": "Stock quantities and recorded units match raw movement/card/unit sources",
+      "status": "PASS_LIVE_SOURCE_COMPARISON",
+      "samples": 13,
+      "packagePieceConversionApplied": false,
+      "unknownUnits": 2
+    },
+    {
+      "label": "Last verified sale date matches independent source-header join",
+      "status": "PASS_LIVE_SOURCE_COMPARISON",
+      "samples": 13,
+      "scope": "Only verified noncancelled positive 33 postings in the configured period. Returns and ambiguous events are not a last sale.",
+      "passedWithDate": 7,
+      "liveEmptyOrUnknown": 6,
+      "emptyMeaning": "Six null dates are not a successful last-sale feature result or never-sold evidence."
+    },
+    {
+      "label": "90-day no-sales candidates contain no source sale or ambiguous posting in the requested window",
+      "status": "PASS_LIVE_SOURCE_COMPARISON",
+      "samples": 10,
+      "hasMore": true,
+      "insufficientProductHistory": 2,
+      "fullHistoricalCompleteness": "NOT_PROVEN",
+      "unconditional90DayUnsoldClaim": false
+    }
+  ],
+  "source": "VEGA2026",
+  "company": "F0102",
+  "period": "D0007",
+  "port": 4115,
+  "range": {
+    "dateFrom": "2026-06-09",
+    "dateTo": "2026-09-07",
+    "endExclusive": true,
+    "meaning": "90 completed source-server calendar days; current partial day excluded"
+  },
+  "sourceObservedHistory": {
+    "date_from": "2026-06-09",
+    "date_to": "2026-09-07",
+    "earliest": "2026-01-01T00:00:00",
+    "latest": "2026-09-07T00:00:00",
+    "rows": "41138",
+    "undated": "0"
+  },
+  "sampleSummary": {
+    "products": 13,
+    "noSalesCandidates": 10,
+    "unknownUnits": 2
+  }
+}

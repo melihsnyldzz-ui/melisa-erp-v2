@@ -1,0 +1,9 @@
+{
+  "at": "2026-09-07T11:59:20.0898528Z",
+  "implementationCommit": "f8ed073bb13bfc0650cca27a7676abcc01417d13",
+  "tests": 22,
+  "passed": 22,
+  "failed": 0,
+  "skipped": 0,
+  "scope": "Local HTTP tests and real SQL engine SELECT over literal VALUES. Commercial live comparisons are separate."
+}

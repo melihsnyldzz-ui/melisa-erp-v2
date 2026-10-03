@@ -1,0 +1,280 @@
+{
+  "readAt": "2026-09-07T11:56:47.635Z",
+  "source": {
+    "database": "VEGA2026",
+    "company": "F0102",
+    "period": "D0007",
+    "readOnlyAccountVerified": true
+  },
+  "dateRange": {
+    "dateFrom": "2026-01-01",
+    "dateTo": "2026-09-08",
+    "endExclusive": true
+  },
+  "checks": [
+    {
+      "label": "Legacy health",
+      "status": "PASS_LIVE_READ",
+      "rows": null,
+      "durationMs": 1904
+    },
+    {
+      "label": "Legacy count",
+      "status": "PASS_LIVE_READ",
+      "rows": null,
+      "durationMs": 123
+    },
+    {
+      "label": "Legacy search",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 68
+    },
+    {
+      "label": "Legacy exact product",
+      "status": "PASS_LIVE_READ",
+      "rows": null,
+      "durationMs": 43
+    },
+    {
+      "label": "Commercial scope inventory",
+      "status": "PASS_LIVE_READ",
+      "rows": null,
+      "durationMs": 5923
+    },
+    {
+      "label": "Movement source sample",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 13
+    },
+    {
+      "label": "Stock quantities page 1",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 35
+    },
+    {
+      "label": "Stock quantities page 2",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 35
+    },
+    {
+      "label": "Tampered cursor",
+      "status": "PASS_CONTROL",
+      "code": "INVALID_OR_EXPIRED_CURSOR",
+      "durationMs": 4
+    },
+    {
+      "label": "Units/barcodes",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 18
+    },
+    {
+      "label": "serial_numbers",
+      "status": "LIVE_EMPTY",
+      "rows": 0,
+      "durationMs": 18
+    },
+    {
+      "label": "series_1",
+      "status": "LIVE_EMPTY",
+      "rows": 0,
+      "durationMs": 19
+    },
+    {
+      "label": "series_2",
+      "status": "LIVE_EMPTY",
+      "rows": 0,
+      "durationMs": 33
+    },
+    {
+      "label": "Stock movement dates",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 21
+    },
+    {
+      "label": "Price and currency slots",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 18
+    },
+    {
+      "label": "Raw cost fields only",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 19
+    },
+    {
+      "label": "Verified profit",
+      "status": "UNSUPPORTED",
+      "code": "UNSUPPORTED_UNVERIFIED_COST_SNAPSHOT"
+    },
+    {
+      "label": "Accounts without contact fields",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 19
+    },
+    {
+      "label": "Account ledger/due dates",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 26
+    },
+    {
+      "label": "Currency balance effect",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 25
+    },
+    {
+      "label": "sale_stock_exit",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 16
+    },
+    {
+      "label": "purchase_stock_entry",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 13
+    },
+    {
+      "label": "sales_invoice",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 13
+    },
+    {
+      "label": "sales_invoice lines",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 25
+    },
+    {
+      "label": "purchase_invoice",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 10
+    },
+    {
+      "label": "purchase_invoice lines",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 33
+    },
+    {
+      "label": "Sales returns filter",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 11
+    },
+    {
+      "label": "product sales report",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 302
+    },
+    {
+      "label": "product report page 2",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 305
+    },
+    {
+      "label": "brand sales report",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 210
+    },
+    {
+      "label": "brand report page 2",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 208
+    },
+    {
+      "label": "customer sales report",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 176
+    },
+    {
+      "label": "customer report page 2",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 175
+    },
+    {
+      "label": "country sales report",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 187
+    },
+    {
+      "label": "country report page 2",
+      "status": "PASS_LIVE_READ",
+      "rows": 1,
+      "durationMs": 248
+    },
+    {
+      "label": "no_sales",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 453
+    },
+    {
+      "label": "decreasing",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 198
+    },
+    {
+      "label": "below_recorded_threshold",
+      "status": "LIVE_EMPTY",
+      "rows": 0,
+      "durationMs": 84
+    },
+    {
+      "label": "Customer-safe catalog",
+      "status": "PASS_LIVE_READ",
+      "rows": 2,
+      "durationMs": 33
+    },
+    {
+      "label": "Mapped live image delivery",
+      "status": "BLOCKED",
+      "code": "DATASET_READ_PERMISSION_MISSING"
+    },
+    {
+      "label": "Unknown company",
+      "status": "PASS_CONTROL",
+      "code": "COMPANY_NOT_ALLOWED",
+      "durationMs": 2
+    },
+    {
+      "label": "SQL argument refused",
+      "status": "PASS_CONTROL",
+      "code": "INVALID_ARGUMENTS",
+      "durationMs": 2
+    },
+    {
+      "label": "Dates required",
+      "status": "PASS_CONTROL",
+      "code": "EXPLICIT_DATE_RANGE_REQUIRED_MAX_366_DAYS",
+      "durationMs": 2
+    }
+  ],
+  "summary": {
+    "PASS_LIVE_READ": 33,
+    "PASS_CONTROL": 4,
+    "LIVE_EMPTY": 4,
+    "UNSUPPORTED": 1,
+    "BLOCKED": 1
+  },
+  "completeLiveAcceptance": false
+}
