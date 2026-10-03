@@ -6,6 +6,8 @@ These instructions apply to Codex, ChatGPT, Claude, and any future AI agent work
 
 ## Required Reading Order
 
+Start with `ERP_FINISH_PLAN.md` and `STATUS.md` for the current ERP completion scope, recorded user authorization, preserved acceptance, and next concrete work. Historical roadmap/checklist entries do not reopen accepted features or require repeated approval for already-authorized TEST work. Runtime identity must be established on the actual host; a newer GitHub branch is not proof of the running baseline.
+
 Before making any change, read in this order:
 
 1. The central Melisa OS knowledge base:
