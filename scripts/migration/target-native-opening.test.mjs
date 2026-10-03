@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validatePlan} from './target-native-opening.mjs';
+import {validatePlan,safeFailureCode} from './target-native-opening.mjs';
 import {hash} from './mapping-opening.mjs';
 import {RUN} from './target-opening-runtime.mjs';
 function approved(plans=[{table:'products',targetId:'001',sourceKey:'F0102/001',beforeHash:'a'.repeat(64),fields:{current_stock_qty:'-2.000',average_cost_try:null}}]){
@@ -18,4 +18,9 @@ test('rehashed plan cannot modify an identity, history or commercial document',(
 test('multiple source keys cannot update the same native entity twice',()=>assert.throws(()=>validatePlan(approved([{table:'customers',targetId:'7',sourceKey:'F0102/1',fields:{balance:'1'}},{table:'customers',targetId:'7',sourceKey:'F0102/2',fields:{balance:'2'}}])),/DUPLICATE_NATIVE_TARGET/));
 test('a different run cannot reuse a plan even with a matching payload hash',()=>{
  const p=approved();p.run='LIVE';delete p.planHash;p.planHash=hash(p);assert.throws(()=>validatePlan(p),/IMMUTABLE_PLAN_HASH_CHANGED/);
+});
+test('ODBC diagnostic preserves the guard rule without printing raw SQL or business data',()=>{
+ assert.equal(safeFailureCode({message:'[Microsoft][SQL Server]MIGRATION_UPDATE_OUTSIDE_PLAN',originalError:{message:'ignored'}}),'MIGRATION_UPDATE_OUTSIDE_PLAN');
+ assert.equal(safeFailureCode({message:'ODBC request failed',originalError:{message:'[SQL Server]NATIVE_PREIMAGE_CHANGED'}}),'NATIVE_PREIMAGE_CHANGED');
+ assert.equal(safeFailureCode({message:'Sensitive row detail'}),'NATIVE_OPENING_FAILED');
 });
