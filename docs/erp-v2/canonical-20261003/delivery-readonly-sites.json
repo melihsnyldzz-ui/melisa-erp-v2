@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "dc2fdfeece74f7fd89d9b22f36c89264c4cd0710",
+  "baselineCaptureCommit": "fdcaa59981640cd2fa57b637b3bac2002671ad7b",
+  "releaseRoot": "C:/Sirket/ERP/releases/CANONICAL-SITES-TEST-20261003-01",
+  "packageId": "CANONICAL-TEST-dc2fdfeece74",
+  "manifestSha256": "9750d187619fd60bfaf4db12d2dfd3d2cc94fa1479df55327661e9755f43eae2",
+  "webUi": "Sites v70 green workflow",
+  "webUrl": "http://127.0.0.1:5194/is-akisi-taslagi.html#home",
+  "testPorts": [
+    5194,
+    4144,
+    4146
+  ],
+  "apiSqlDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "webStorage": "demo-localStorage; not integrated commercial SQL",
+  "unitTests": {
+    "baseline": 15,
+    "sites": 354
+  },
+  "smokeChecks": 26,
+  "smokePass": true,
+  "browser": {
+    "greenWorkflowVisible": true,
+    "consoleErrors": 0
+  },
+  "liveUnchanged": true,
+  "dirtyTreeUnchanged": true
+}

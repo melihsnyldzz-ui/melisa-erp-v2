@@ -1,0 +1,301 @@
+{
+  "startedAt": "2026-10-03T18:29:26.745Z",
+  "checks": [
+    {
+      "name": "isolated-runtime-4144",
+      "status": "PASS",
+      "commit": "0a23cd3928e847bd5e7d3eb5f100e7f0cb01704d",
+      "writes": true
+    },
+    {
+      "name": "isolated-runtime-4146",
+      "status": "PASS",
+      "commit": "0a23cd3928e847bd5e7d3eb5f100e7f0cb01704d",
+      "writes": false
+    },
+    {
+      "name": "isolated-runtime-5194",
+      "status": "PASS",
+      "commit": "0a23cd3928e847bd5e7d3eb5f100e7f0cb01704d",
+      "writes": false
+    },
+    {
+      "name": "authentication-permissions-write-boundaries",
+      "status": "PASS"
+    },
+    {
+      "name": "sale-stock-customer-single-transaction-and-retry",
+      "status": "PASS",
+      "invoiceId": "34610",
+      "stockDelta": -1,
+      "customerDelta": 100
+    },
+    {
+      "name": "immutable-request-and-server-price",
+      "status": "PASS"
+    },
+    {
+      "name": "sale-cancel-restores-stock-debt-once",
+      "status": "PASS"
+    },
+    {
+      "name": "goods-draft-has-no-stock-effect",
+      "status": "PASS",
+      "goodsId": 4
+    },
+    {
+      "name": "physical-goods-approval-stock-once-no-debt",
+      "status": "PASS"
+    },
+    {
+      "name": "purchase-invoice-debt-cost-no-double-stock",
+      "status": "PASS",
+      "invoiceId": 25080,
+      "goodsId": 4
+    },
+    {
+      "name": "purchase-cancel-preserves-physical-goods",
+      "status": "PASS"
+    },
+    {
+      "name": "collection-TRY-snapshot-ledger-cash",
+      "status": "PASS",
+      "movementId": 47610,
+      "accountAmount": 1,
+      "rate": 1
+    },
+    {
+      "name": "collection-TRY-cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "collection-USD-snapshot-ledger-cash",
+      "status": "PASS",
+      "movementId": 47612,
+      "accountAmount": 47.8,
+      "rate": 47.8
+    },
+    {
+      "name": "collection-USD-cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "collection-EUR-snapshot-ledger-cash",
+      "status": "PASS",
+      "movementId": 47614,
+      "accountAmount": 55.7,
+      "rate": 55.7
+    },
+    {
+      "name": "collection-EUR-cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "fx-USD-USD-account-and-original-rate-reversal",
+      "status": "PASS",
+      "movementId": 47616,
+      "rateDates": [
+        {
+          "currency": "EUR",
+          "date": "2026-09-12T00:00:00.000Z",
+          "source": "vega-pilot-owner-delegated"
+        },
+        {
+          "currency": "USD",
+          "date": "2026-09-12T00:00:00.000Z",
+          "source": "vega-pilot-owner-delegated"
+        }
+      ]
+    },
+    {
+      "name": "fx-EUR-USD-account-and-original-rate-reversal",
+      "status": "PASS",
+      "movementId": 47618,
+      "rateDates": [
+        {
+          "currency": "EUR",
+          "date": "2026-09-12T00:00:00.000Z",
+          "source": "vega-pilot-owner-delegated"
+        },
+        {
+          "currency": "USD",
+          "date": "2026-09-12T00:00:00.000Z",
+          "source": "vega-pilot-owner-delegated"
+        }
+      ]
+    },
+    {
+      "name": "supplier-payment-TRY-ledger-cash-replay-cancel",
+      "status": "PASS",
+      "movementId": 47957
+    },
+    {
+      "name": "supplier-payment-USD-ledger-cash-replay-cancel",
+      "status": "PASS",
+      "movementId": 47959
+    },
+    {
+      "name": "supplier-payment-EUR-ledger-cash-replay-cancel",
+      "status": "PASS",
+      "movementId": 47961
+    },
+    {
+      "name": "supplier-refund-TRY-original-link-ledger-cash-cancel",
+      "status": "PASS",
+      "movementId": 47963
+    },
+    {
+      "name": "supplier-refund-USD-original-link-ledger-cash-cancel",
+      "status": "PASS",
+      "movementId": 47965
+    },
+    {
+      "name": "supplier-refund-EUR-original-link-ledger-cash-cancel",
+      "status": "PASS",
+      "movementId": 47967
+    },
+    {
+      "name": "sales-return-source-price-cost-stock-debt-cancel",
+      "status": "PASS",
+      "draftId": 28,
+      "returnId": 218
+    },
+    {
+      "name": "purchase-return-source-price-cost-stock-debt-cancel",
+      "status": "PASS",
+      "draftId": 29,
+      "returnId": 219
+    },
+    {
+      "name": "count-draft-permission-difference-retry-and-reversal",
+      "status": "PASS",
+      "draftId": 30
+    },
+    {
+      "name": "stale-count-blocked-after-intervening-history",
+      "status": "PASS"
+    },
+    {
+      "name": "price-cost-evidence-from-test-sql",
+      "status": "PASS",
+      "rows": 100,
+      "costStates": [
+        {
+          "state": "CARD_PROVISIONAL",
+          "count": 2209,
+          "positiveCount": 913
+        },
+        {
+          "state": "CONFLICT",
+          "count": 466,
+          "positiveCount": 155
+        },
+        {
+          "state": "EMPTY",
+          "count": 3689,
+          "positiveCount": 1600
+        },
+        {
+          "state": "INVOICE_VERIFIED",
+          "count": 5198,
+          "positiveCount": 1941
+        }
+      ]
+    },
+    {
+      "name": "all-ten-unrelated-table-fingerprints-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "unrelatedBefore": {
+    "products": {
+      "n": "52959",
+      "checksum": 833202211
+    },
+    "customers": {
+      "n": "437",
+      "checksum": -659366317
+    },
+    "suppliers": {
+      "n": "520",
+      "checksum": -254891062
+    },
+    "accounts": {
+      "n": "22",
+      "checksum": -426494674
+    },
+    "stock": {
+      "n": "514774",
+      "checksum": 624364827
+    },
+    "customerMovements": {
+      "n": "28972",
+      "checksum": 1762554647
+    },
+    "supplierMovements": {
+      "n": "23868",
+      "checksum": 1469203232
+    },
+    "financeMovements": {
+      "n": "16745",
+      "checksum": 1348411143
+    },
+    "sales": {
+      "n": "19219",
+      "checksum": -1559204970
+    },
+    "purchases": {
+      "n": "11221",
+      "checksum": -530446297
+    }
+  },
+  "saleRequest": "e6fd8255-f652-4c4d-a250-dd02c3c7ca59",
+  "saleId": "34610",
+  "goodsId": 4,
+  "purchaseId": 25080,
+  "unrelatedAfter": {
+    "products": {
+      "n": "52959",
+      "checksum": 833202211
+    },
+    "customers": {
+      "n": "437",
+      "checksum": -659366317
+    },
+    "suppliers": {
+      "n": "520",
+      "checksum": -254891062
+    },
+    "accounts": {
+      "n": "22",
+      "checksum": -426494674
+    },
+    "stock": {
+      "n": "514774",
+      "checksum": 624364827
+    },
+    "customerMovements": {
+      "n": "28972",
+      "checksum": 1762554647
+    },
+    "supplierMovements": {
+      "n": "23868",
+      "checksum": 1469203232
+    },
+    "financeMovements": {
+      "n": "16745",
+      "checksum": 1348411143
+    },
+    "sales": {
+      "n": "19219",
+      "checksum": -1559204970
+    },
+    "purchases": {
+      "n": "11221",
+      "checksum": -530446297
+    }
+  },
+  "finishedAt": "2026-10-03T18:29:39.323Z",
+  "status": "PASS",
+  "scope": "Real SQL writes via canonical services; existing named TEST records only; no LIVE writes"
+}

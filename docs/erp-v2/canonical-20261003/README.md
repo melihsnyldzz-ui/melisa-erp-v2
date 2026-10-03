@@ -1,3 +1,11 @@
+# Güncel teslim — yeşil Sites / gerçek TEST SQL
+
+[SQL iş akışı kabulü](sql-workflow-acceptance.md) güncel kapsam ve kanıttır. Kesin paket `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`. Ayrılmış TEST kayıtlarında gerçek stok/cari/kasa etkileri PASS; personel iş kabulü beklenir. [Teslim](delivery.json) · [Önceki salt okunur Sites teslimi](delivery-readonly-sites.json).
+
+---
+
+## Aşağıdaki kaynak toplama bölümü önceki baseline tesliminin tarihsel kaydıdır
+
 # Kanonik LIVE kaynağı — 3 Ekim 2026
 
 ## Kaynak ve yeniden üretim

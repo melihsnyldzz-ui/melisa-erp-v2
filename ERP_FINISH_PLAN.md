@@ -6,9 +6,11 @@ Güncelleme: 3 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıd�
 
 ## 3 Ekim SEMIH sonucu — bu bölüm güncel
 
-F02 teknik kaynak/runtime baseline tamamlandı; Android fiziksel kabul ayrı. F03 dosya farkları sınıflandı; değişen işlevlerin eski kabulü otomatik taşınmadı. F04 kesin paket ve salt okunur smoke tamamlandı. Kullanıcı son seçiminde **Sites yeşil arayüzünü** istedi; 5194 eski LIVE UI yerine onu sunar. F05 açık: Sites iş akışlarının gerçek TEST SQL/native ile uçtan uca uzlaştırılması. F06 LIVE geçişi yapılmadı.
+F02 teknik baseline ve F03 dosya sınıflaması korunur. F04 kesin TEST paketi yenilendi. F05 yeşil Sites → kanonik API → gerçek TEST SQL entegrasyonu, **ayrılmış TEST kayıtları kapsamında teknik PASS**: 31 SQL etkisi, 8 gerçek ekran yazma kontrolü, 16 ekran, 32 son smoke; 354 Sites + 27 seçili kanonik test PASS. F06 LIVE geçişi yapılmadı. Fiziksel native kabulü bu entegrasyon çalışmasında yok.
 
-Paket commit: dc2fdfeece74f7fd89d9b22f36c89264c4cd0710. 354 Sites + 15 baseline testi, 26 smoke PASS. [Kanonik kaynak dalı](https://github.com/melihsnyldzz-ui/melisa-erp-v2/tree/codex/canonical-live-20261003). [Son teslim kaydı](docs/erp-v2/canonical-20261003/delivery.json). Aşağıdaki önceki host envanteri tarihsel devir kaydıdır.
+Paket commit: `3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8`; launcher `CANONICAL-SITES-SQL-TEST-20261003-02` paketini hedefler. İş kayıtları SQL’dedir; tarayıcıda örnek ticari sonuç tutulmaz. Önceki kabuller, LIVE ve kirli kaynaklar korunur. [Gerçek akış kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md) · [Son teslim](docs/erp-v2/canonical-20261003/delivery.json).
+
+**Kalan tek kabul işi:** personelin yeşil TEST ekranında normal günlük iş sırasını görerek kabul etmesi. Yazma kapsamı mevcut ayrılmış TEST kayıtlarıdır; tüm ticari kartlar, fiyat/kart düzenleme, ayrıntılı alış taslağı veya fiziksel native kullanım için genel PASS verilmez. Aşağıdaki eski host envanteri tarihsel devir kaydıdır.
 
 ## Çalışma ilkesi ve mevcut durum
 

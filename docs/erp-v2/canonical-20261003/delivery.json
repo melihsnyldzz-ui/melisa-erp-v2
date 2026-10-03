@@ -1,10 +1,11 @@
 {
-  "sourceCommit": "dc2fdfeece74f7fd89d9b22f36c89264c4cd0710",
+  "sourceCommit": "3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8",
+  "flowCodeCommit": "0a23cd3928e847bd5e7d3eb5f100e7f0cb01704d",
   "baselineCaptureCommit": "fdcaa59981640cd2fa57b637b3bac2002671ad7b",
-  "releaseRoot": "C:/Sirket/ERP/releases/CANONICAL-SITES-TEST-20261003-01",
-  "packageId": "CANONICAL-TEST-dc2fdfeece74",
-  "manifestSha256": "9750d187619fd60bfaf4db12d2dfd3d2cc94fa1479df55327661e9755f43eae2",
-  "webUi": "Sites v70 green workflow",
+  "releaseRoot": "C:/Sirket/ERP/releases/CANONICAL-SITES-SQL-TEST-20261003-02",
+  "packageId": "CANONICAL-TEST-3eb36e70fddb",
+  "manifestSha256": "08ed6bbdbd618aa9de86200e2be4a8b594899aa5158265767dc073fc7611ec78",
+  "webUi": "Preserved green Sites v70 with authenticated canonical SQL workflows",
   "webUrl": "http://127.0.0.1:5194/is-akisi-taslagi.html#home",
   "testPorts": [
     5194,
@@ -12,17 +13,28 @@
     4146
   ],
   "apiSqlDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
-  "webStorage": "demo-localStorage; not integrated commercial SQL",
+  "webStorage": "sql-business-records; browser-pending-requests-only",
+  "erpWrites": true,
+  "nativeWrites": false,
+  "writeScope": "existing-named-test-records",
   "unitTests": {
-    "baseline": 15,
-    "sites": 354
+    "sites": 354,
+    "selectedCanonical": 27
   },
-  "smokeChecks": 26,
+  "actualSqlChecks": 31,
+  "browserWriteChecks": 8,
+  "browserScreens": 16,
+  "smokeChecks": 32,
   "smokePass": true,
-  "browser": {
-    "greenWorkflowVisible": true,
-    "consoleErrors": 0
-  },
   "liveUnchanged": true,
-  "dirtyTreeUnchanged": true
+  "dirtyTreeUnchanged": true,
+  "scopeStatus": "PASS for existing named TEST records; not unrestricted commercial or physical-device acceptance",
+  "remainingSingleAcceptance": "Personnel visual daily-workflow acceptance in the isolated TEST UI",
+  "knownLimits": [
+    "Existing named TEST product/customer/supplier/accounts only; normal card creation/editing and full multi-line purchase editor remain closed.",
+    "Price/cost evidence reads and stored cost/rate behavior validated; price-card writes not enabled.",
+    "USD/EUR calculations use stored rates, latest date 2026-09-12; no assertion these are current market rates.",
+    "Native 4146 remains read-only; physical Android scanner/printer acceptance outside this change."
+  ],
+  "observedAt": "2026-10-03T18:45:46.597Z"
 }
