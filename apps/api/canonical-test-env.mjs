@@ -16,7 +16,7 @@ export async function configureCanonicalTest(configPath, mode) {
     SQL_TRUSTED_CONNECTION:'false', SQL_READ_ONLY:'true', SQL_ENCRYPT:'false', SQL_TRUST_SERVER_CERTIFICATE:'true',
     JWT_ACCESS_SECRET:config.jwtAccessSecret, JWT_SECRET:config.jwtAccessSecret, JWT_REFRESH_SECRET:config.jwtRefreshSecret,
     JWT_ACCESS_EXPIRES_IN:'8h', NATIVE_TERMINAL_SIGNING_KEY:config.nativeSigningKey,
-    MELISA_LOCAL_PASSWORDLESS_LOGIN:'false', MELISA_PILOT_RUNTIME:'true', NATIVE_CUSTOMER_ROUTES_ENABLED:'false',
+    MELISA_LOCAL_PASSWORDLESS_LOGIN:'false', MELISA_PILOT_RUNTIME:'true', MELISA_CANONICAL_TEST:'true', NATIVE_CUSTOMER_ROUTES_ENABLED:'false',
     WHATSAPP_ENABLED:'false', NAKLIYAT_ENABLED:'false', SMTP_ENABLED:'false', EMAIL_ENABLED:'false', WORKERS_ENABLED:'false', SCHEDULER_ENABLED:'false',
     MELISA_INVOICE_EXPORT_ENABLED:'false', TERMINAL_RECEIPT_PRINT_ENABLED:'false', TERMINAL_RECEIPT_PRINT_MODE:'disabled', TERMINAL_RECEIPT_PRINTER_NAME:'',
     TERMINAL_CATALOG_CACHE_DIR:path.resolve('.canonical-runtime/catalog'), PILOT_CATALOG_DIR:path.resolve('.canonical-runtime/pilot'),
