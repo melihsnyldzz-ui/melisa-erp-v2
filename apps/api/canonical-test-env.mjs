@@ -17,6 +17,10 @@ export async function configureCanonicalTest(configPath, mode) {
     SQL_SERVER:config.server, SQL_PORT:'1433', SQL_DATABASE:expectedDatabase, SQL_USER:expectedLogin, SQL_PASSWORD:writes ? config.salesSqlPassword : config.sqlPassword,
     SQL_TRUSTED_CONNECTION:'false', SQL_READ_ONLY:String(!writes), SQL_ENCRYPT:'false', SQL_TRUST_SERVER_CERTIFICATE:'true',
     MELISA_TEST_SCOPED_SALES:String(writes), MELISA_TEST_STATELESS_AUTH:'true',
+    // Local sessions share one loopback address; each workflow refresh reads
+    // several protected endpoints. Keep a bounded TEST rate without applying
+    // the production fifteen-minute shared-IP budget to a local work session.
+    RATE_LIMIT_ENABLED:'true', RATE_LIMIT_WINDOW_MS:'60000', RATE_LIMIT_MAX:'1000',
     JWT_ACCESS_SECRET:config.jwtAccessSecret, JWT_SECRET:config.jwtAccessSecret, JWT_REFRESH_SECRET:config.jwtRefreshSecret,
     JWT_ACCESS_EXPIRES_IN:'8h', NATIVE_TERMINAL_SIGNING_KEY:config.nativeSigningKey,
     MELISA_LOCAL_PASSWORDLESS_LOGIN:'false', MELISA_PILOT_RUNTIME:'true', MELISA_CANONICAL_TEST:'true', NATIVE_CUSTOMER_ROUTES_ENABLED:'false',
