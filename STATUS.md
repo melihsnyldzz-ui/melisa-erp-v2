@@ -1,5 +1,18 @@
 # Melisa ERP durumu
 
+5 Ekim 2026 — **C06 salt okunur müşteri kartının dar gerçek TEST teknik kabulü hazır. Genel kart düzenleme ve personel kabulü PARTIAL. Paket23/source8933b01:441 müşteri,25 satırlı sayfa,28 karantina; gerçek kart155 TRY/USD kaynak+yerel exact8+güncel+defter mutabık, EUR doğrulanmadı. Kaynak30 Eylül; güncel Vega bağlantısı/delta değildir. Bilinmeyen tutar sıfır yapılmaz, dövizler toplanmaz.**
+
+- [Tek finish tree](ERP_FINISH_PLAN.md):49 iş, 🟢5 / 🟡19 / 🔴25; tamamlanan%10,2, kısmi%38,8. C06/B03 kısmi; genel düzenleme/personel kabulü eksik. **Sıradaki tek kaynak işi C07 gerçek tedarikçi kartı.**
+- [Müşteriler](http://127.0.0.1:5194/is-akisi-taslagi.html#customers) / [üç genişlik](http://127.0.0.1:5194/responsive-acceptance.html) / [beş personel denemesi ve kanıt](docs/erp-v2/canonical-20261004/customer-card-acceptance.md). İlker TEST actor16 customer.view var/customer.edit yok; izin değiştirilmedi. Arama,441 kart sayfalama,28 karantina,boş sonuç ve kart aç/kapat normal oturumda doğrulandı.
+- 18 gerçek API denemesi PASS: iki kanıtlı+bir doğrulanmamış hesap,UNKNOWN217,karantina,593eşlemesiz,ikinci sayfa,literal% arama,401/400/404. customer.view reddi/customer.edit-only ve geç yanıt/oturum yarışı offline gerçek middleware/UIcontroller testleridir; yetkisiz gerçek oturum403 veya hata ekranı kabulü iddia edilmez.
+- Owner okuyucu7FE6 hash; SERIALIZABLE,806kaynak ve176hold içerik mührü,42 tanım/37FIRST ve15+17guard korunur. Geçici public projeksiyonla25kart542/895ms. Dar mevcut EXEC; stage/holds SELECT0,ALTER0. Tek C06yordamının eski sürümleri geri dönüş kanıtında; ticari DML yok.27 ticari/finans tablo tüm count/maxId/digest aynı.
+- Kart1440/1024/390 iframe client=scroll1427/1011/377; yatay taşma0, mobil kapat/arama/boş sonuç ve44px işlem doğrulandı. Dış JPEG ölçekli; fiziksel telefon/terminal/personel kabulü değildir.
+- TEST paket23 CANONICAL-FINISH-CUSTOMER-CARD-TEST-20261005-23/source8933b01da60271d52851be66690262c78d25b949,1177manifest hash eşleşti. Aynı lockfile/bağımlılık bytehashleriyle yeni dizinlere hardlink; eski22tüm dosyaları aynı,cache paylaşımı yok,web-admin kaynakları değişmedi ve kabul edilmiş build tekrar kullanılabilir. YeniSites build PASS.5194/4144/4146→Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01. LIVE süreç sahipleri aynı; LIVE commit doğrulanmadı. Eski paketler/launcher yedeği korundu.
+- Dal codex/erp-finish-20261004; [Draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23). Uygulama8933b01 push37235624448/PR37235627439 dört hostedUbuntu CI job SUCCESS; nihai belge head PR tesliminde ayrıca kontrol edilir. Main merge/LIVE deploy/Vega yazması yok. Güncel checkout deployment değildir.
+- C03 ve migration kabulleri korunur.71yeni/341değişmiş ürün+74cari delta uygulanmadı;54ürün/122cari kararı,maliyet,T0/T1,idempotentdelta,son mutabakat,restore/committedrollback açık.
+
+## Önceki C03 kabulü
+
 4 Ekim 2026 — **C03 dövizli alışın dar gerçek TEST teknik provası tamamlandı. Genel alış ve personel kabulü PARTIAL.**
 
 - [Tek finish tree](ERP_FINISH_PLAN.md):49 iş, 🟢5 / 🟡17 / 🔴27; tamamlanan%10,2, kısmi%34,7. C03 🟡: teknik TEST provası insan veya genel ticari alış kabulü değildir. **Sıradaki tek kaynak işi C06 gerçek müşteri kartı.**

@@ -2,7 +2,9 @@
 
 4 Ekim 2026. Kullanıcının bu görevdeki talimatı geçerlidir: Vega kaynak sistemdir; aktif kartlar, stok, cari/döviz bakiyesi, fiyat ve kanıtlı maliyet ile gerekli açılış verileri taşınır. Eski resmi geçmiş, eski fatura/arşiv ve muhasebe belgeleri yeniden aktarılmaz. TEST provası yetkilidir; LIVE yazımı yetkili değildir.
 
-Güncel ERP operasyon dilimi C03: [dövizli alış teknik TEST kabulü](docs/erp-v2/canonical-20261004/purchase-fx-acceptance.md), paket21/source2751fac. RUN06 typed fiyat ve ayrı birim kanıtı yalnız iki sentetik fiyat kopyasıyla normal alış akışına bağlandı; yeni17 koruma eski15/42 tanım/37 FIRST ve migration mühürlerini değiştirmedi. Sentetik USD40/EUR45, güncel piyasa/Vega verisi değildir. 71 yeni/341 değişmiş ürün ve74 cari delta uygulanmadı;54 ürün/122 cari iş kararı, eksik maliyet, T0/T1, idempotent batch, son mutabakat ve committed rollback açık. Bu operasyon kabulü migration/cutover kabulünü genişletmez.
+Güncel ERP operasyon dilimi C06: [müşteri kartı teknik salt okunur TEST kabulü](docs/erp-v2/canonical-20261004/customer-card-acceptance.md),paket23/source8933b01.30Eylül müşteri açılışı normal ekranın ayrı döviz hesaplarına bağlandı; kaynak/güncel/defter exact8 mutabakatı veUNKNOWN/karantina görünümü mevcut mühürlerle doğrulanır.441native kartın tümü migration kabulü sayılmaz.27ticari tablo tam fark0; yeni delta/kart yazması yok. Genel düzenleme/personel kabulü açık.
+
+Korunan önceki ERP operasyon dilimi C03: [dövizli alış teknik TEST kabulü](docs/erp-v2/canonical-20261004/purchase-fx-acceptance.md), paket21/source2751fac. RUN06 typed fiyat ve ayrı birim kanıtı yalnız iki sentetik fiyat kopyasıyla normal alış akışına bağlandı; yeni17 koruma eski15/42 tanım/37 FIRST ve migration mühürlerini değiştirmedi. Sentetik USD40/EUR45, güncel piyasa/Vega verisi değildir. 71 yeni/341 değişmiş ürün ve74 cari delta uygulanmadı;54 ürün/122 cari iş kararı, eksik maliyet, T0/T1, idempotent batch, son mutabakat ve committed rollback açık. Bu operasyon kabulü migration/cutover kabulünü genişletmez.
 
 ## Kaynak, hedef ve veri kesimi
 
