@@ -2844,6 +2844,32 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
 async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.testBatchReceived){
+    const result=await new context.sqlDriver.Request(context.transaction).input('invoice',context.sqlDriver.BigInt,invoiceId).query(`
+      SELECT CASE WHEN DB_NAME() COLLATE Latin1_General_100_BIN2=N'MELISA_ERP_SIRKET_TEST_20260929_01' COLLATE Latin1_General_100_BIN2
+      AND CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)) COLLATE Latin1_General_100_BIN2=N'Semih\\MELISADEV' COLLATE Latin1_General_100_BIN2
+      AND EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts d JOIN dbo.purchase_invoices p ON p.id=d.invoice_id
+        JOIN dbo.test_goods_batches b ON b.id=d.batch_id WHERE d.invoice_id=@invoice AND d.state=N'linked' AND b.state=N'accepted'
+        AND p.supplier_id=b.supplier_id AND p.document_no=d.document_no AND p.document_currency=N'TRY'
+        AND p.subtotal=d.subtotal AND p.grand_total=d.grand_total AND p.discount_total=0)
+      AND (SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=@invoice) BETWEEN 1 AND 2
+      AND NOT EXISTS(SELECT 1 FROM dbo.purchase_invoice_items i WHERE i.purchase_invoice_id=@invoice AND NOT EXISTS(
+        SELECT 1 FROM dbo.test_purchase_batch_links l JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id
+        JOIN dbo.test_goods_batches b ON b.id=g.batch_id JOIN dbo.test_purchase_batch_scope s ON s.product_id=g.product_id
+        JOIN dbo.test_purchase_batch_drafts d ON d.invoice_id=l.invoice_id AND d.batch_id=b.id
+        JOIN dbo.test_purchase_batch_intent_lines intent ON intent.draft_id=d.id AND intent.receipt_line_id=g.id
+        WHERE l.invoice_id=@invoice AND l.invoice_item_id=i.id AND b.state=N'accepted' AND i.product_id=g.product_id
+        AND s.supplier_id=b.supplier_id AND s.warehouse_id=b.warehouse_id AND i.quantity=l.quantity AND i.quantity=intent.quantity
+        AND i.purchase_price=s.unit_cost AND i.purchase_price=intent.purchase_price AND i.line_discount_rate=0
+        AND i.line_total=intent.line_total AND i.currency_code=N'TRY' AND g.unit=N'ADET' AND g.unit_factor=1
+        AND l.quantity<=g.quantity AND EXISTS(SELECT 1 FROM dbo.stock_movements m WHERE m.source_type=N'goods_receipt_batch'
+          AND m.source_id=g.id AND m.product_id=g.product_id AND m.quantity_in=g.quantity AND m.quantity_out=0 AND m.quantity_net=g.quantity)
+        AND (SELECT COALESCE(SUM(x.quantity),0) FROM dbo.test_purchase_batch_links x JOIN dbo.purchase_invoices h ON h.id=x.invoice_id
+          WHERE x.receipt_line_id=g.id AND h.status<>N'cancelled')<=g.quantity))
+      AND (SELECT COUNT(*) FROM dbo.test_purchase_batch_links WHERE invoice_id=@invoice)=(SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=@invoice)
+      THEN 1 ELSE 0 END valid`);
+    if(Number(result.recordset?.[0]?.valid)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Sentetik çok satırlı kabul/fatura bağlantısı tam doğrulanamadı.',409);return;
+  }
   if(context.dailyGoodsId){
     const r=await new context.sqlDriver.Request(context.transaction).input('goodsId',context.sqlDriver.BigInt,context.dailyGoodsId).input('invoiceId',context.sqlDriver.BigInt,invoiceId).query(`SELECT COUNT(*) n FROM dbo.test_daily_drafts g JOIN dbo.test_daily_scope s ON s.flow=g.flow JOIN dbo.purchase_invoices p ON p.id=@invoiceId AND p.supplier_id=s.supplier_id JOIN dbo.purchase_invoice_items i ON i.purchase_invoice_id=p.id AND i.product_id=s.product_id WHERE DB_NAME()=N'MELISA_ERP_SIRKET_TEST_20260929_01' AND g.id=@goodsId AND g.flow=N'purchase' AND g.kind=N'goods' AND g.state=N'approved' AND TRY_CONVERT(bigint,JSON_VALUE(g.payload_json,'$.invoiceId'))=p.id AND i.quantity=TRY_CONVERT(decimal(18,3),JSON_VALUE(g.payload_json,'$.invoicedQuantity')) AND i.quantity<=TRY_CONVERT(decimal(18,3),JSON_VALUE(g.payload_json,'$.quantity')) AND i.purchase_price=60 AND p.document_currency=N'TRY' AND JSON_VALUE(g.payload_json,'$.unit')=N'ADET' AND JSON_VALUE(g.payload_json,'$.warehouse')=N'TEST-DAILY-WH' AND EXISTS(SELECT 1 FROM dbo.stock_movements m WHERE m.product_id=s.product_id AND m.source_type=N'goods_receipt' AND m.source_id=g.id AND m.quantity_in=TRY_CONVERT(decimal(18,3),JSON_VALUE(g.payload_json,'$.quantity')))`);
     if(Number(r.recordset?.[0]?.n)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Yeni TEST kabul bağlantısı doğrulanamadı.',409);return;

@@ -12,3 +12,9 @@ test('native and read-only runtime never allow business writes',()=>{
  }
  assert.equal(allowed('DELETE','/api/test-purchase/goods',ctx),false);
 });
+test('batch writes are narrow POST paths and fail closed in native/read-only mode',()=>{
+ for(const p of ['/api/test-purchase/batches','/api/test-purchase/batches/2/approve','/api/test-purchase/batches/2/reject','/api/test-purchase/invoice-drafts','/api/test-purchase/invoice-drafts/3/finalize','/api/test-purchase/invoice-drafts/3/cancel']){
+  assert.equal(allowed('POST',p,ctx),true,p);assert.equal(allowed('POST',p,{writes:false,mode:'erp'}),false);assert.equal(allowed('POST',p,{writes:true,mode:'native'}),false);assert.equal(allowed('DELETE',p,ctx),false);
+ }
+ for(const p of ['/api/test-purchase/batches/0/approve','/api/test-purchase/batches/2/finalize','/api/test-purchase/invoice-drafts/3','/api/test-purchase/invoice-drafts/3/finalize/extra'])assert.equal(allowed('POST',p,ctx),false,p);
+});

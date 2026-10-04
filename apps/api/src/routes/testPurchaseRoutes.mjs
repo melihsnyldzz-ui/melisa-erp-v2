@@ -1,7 +1,7 @@
 import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import {Router} from 'express';
 import {requireAuth,requirePermission} from '../middleware/authMiddleware.js';
-import {testPurchaseContext,createTestGoods,decideTestGoods,createTestPurchase,cancelTestPurchase} from '../services/testPurchaseService.mjs';
+import {testPurchaseContext,createTestGoods,decideTestGoods,createTestPurchase,cancelTestPurchase,createTestBatch,decideTestBatch,createTestBatchInvoiceDraft,getTestBatchInvoiceDraft,finalizeTestBatchInvoiceDraft,cancelTestBatchInvoiceDraft} from '../services/testPurchaseService.mjs';
 export const testPurchaseRoutes=Router();
 const handle=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)})}catch(e){next(e)}};
 testPurchaseRoutes.get('/test-purchase/context',requireAuth,requirePermission('goods.view'),handle(r=>testPurchaseContext(r.user)));
@@ -10,3 +10,10 @@ testPurchaseRoutes.post('/test-purchase/goods/:id/approve',requireAuth,requirePe
 testPurchaseRoutes.post('/test-purchase/goods/:id/reject',requireAuth,requirePermission('goods.reject'),handle(r=>decideTestGoods(r.params.id,r.body,r.user,false)));
 testPurchaseRoutes.post('/test-purchase/invoices',requireAuth,requirePermission('purchase.create'),requirePermission('purchase.finalize'),handle(r=>createTestPurchase(r.body,r.user)));
 testPurchaseRoutes.post('/test-purchase/invoices/:id/cancel',requireAuth,requirePermission('purchase.cancel'),handle(r=>cancelTestPurchase(r.params.id,r.body,r.user)));
+testPurchaseRoutes.post('/test-purchase/batches',requireAuth,requirePermission('goods.create'),operationQuarantineGate('goods'),handle(r=>createTestBatch(r.body,r.user)));
+testPurchaseRoutes.post('/test-purchase/batches/:id/approve',requireAuth,requirePermission('goods.approve'),handle(r=>decideTestBatch(r.params.id,r.body,r.user,true)));
+testPurchaseRoutes.post('/test-purchase/batches/:id/reject',requireAuth,requirePermission('goods.reject'),handle(r=>decideTestBatch(r.params.id,r.body,r.user,false)));
+testPurchaseRoutes.post('/test-purchase/invoice-drafts',requireAuth,requirePermission('purchase.create'),handle(r=>createTestBatchInvoiceDraft(r.body,r.user)));
+testPurchaseRoutes.get('/test-purchase/invoice-drafts/:id',requireAuth,requirePermission('purchase.view'),handle(r=>getTestBatchInvoiceDraft(r.params.id,r.user)));
+testPurchaseRoutes.post('/test-purchase/invoice-drafts/:id/finalize',requireAuth,requirePermission('purchase.finalize'),handle(r=>finalizeTestBatchInvoiceDraft(r.params.id,r.body,r.user)));
+testPurchaseRoutes.post('/test-purchase/invoice-drafts/:id/cancel',requireAuth,requirePermission('purchase.cancel'),handle(r=>cancelTestBatchInvoiceDraft(r.params.id,r.body,r.user)));
