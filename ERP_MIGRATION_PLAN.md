@@ -2,9 +2,11 @@
 
 4 Ekim 2026. Kullanıcının bu görevdeki talimatı geçerlidir: Vega kaynak sistemdir; aktif kartlar, stok, cari/döviz bakiyesi, fiyat ve kanıtlı maliyet ile gerekli açılış verileri taşınır. Eski resmi geçmiş, eski fatura/arşiv ve muhasebe belgeleri yeniden aktarılmaz. TEST provası yetkilidir; LIVE yazımı yetkili değildir.
 
+Güncel ERP operasyon dilimi C03: [dövizli alış teknik TEST kabulü](docs/erp-v2/canonical-20261004/purchase-fx-acceptance.md), paket21/source2751fac. RUN06 typed fiyat ve ayrı birim kanıtı yalnız iki sentetik fiyat kopyasıyla normal alış akışına bağlandı; yeni17 koruma eski15/42 tanım/37 FIRST ve migration mühürlerini değiştirmedi. Sentetik USD40/EUR45, güncel piyasa/Vega verisi değildir. 71 yeni/341 değişmiş ürün ve74 cari delta uygulanmadı;54 ürün/122 cari iş kararı, eksik maliyet, T0/T1, idempotent batch, son mutabakat ve committed rollback açık. Bu operasyon kabulü migration/cutover kabulünü genişletmez.
+
 ## Kaynak, hedef ve veri kesimi
 
-- Kanonik kaynak kod: `C:\Sirket\ERP\source\canonical-live-20261003`, `codex/canonical-live-20261003`.
+- Kanonik kaynak kod: `C:\Sirket\ERP\melisa-erp-v2`, origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`; aktif feature dalı `codex/erp-finish-20261004`, kabul edilmiş açılış tabanı `codex/canonical-live-20261003/e0c18e3`. Eski source checkout'u arşiv/kanıttır; deployment değildir.
 - Prova kaynağı: `Semih\MELISADEV / VEGA_CAPTURE_20260930_01`, fiziksel salt okunur. Yerel `VEGA2026` F0102/F0103 işletme dönemini içermediğinden kaynak seçilmedi; eski `VEGA2026_ANALIZ_READONLY` da güncel prova kaynağı değildir.
 - Yakalamanın işaret ettiği veri kesimi 30 Eylül 2026'dır. 4 Ekim export zamanı kaynak güncelliği anlamına gelmez. Güncel Vega `DESKTOP-KSRK0EQ / VEGA2026` bağlantısı da SELECT-only SQL rolüyle doğrulandı: sysadmin/CONTROL/INSERT/UPDATE/DELETE yetkisi yok; gerekli 29 tabloda SELECT var. Snapshot isolation OFF. Güncel okuma/delta gerçek geçiş anının atomik snapshot'ı değildir.
 - Hedef yalnız `Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01`. Web 5194, ERP API 4144, native API 4146 salt okunur. LIVE DB ve 5188/4114/4116 servislerine yazma/restart yok.
