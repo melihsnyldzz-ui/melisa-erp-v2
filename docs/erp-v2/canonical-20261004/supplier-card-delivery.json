@@ -132,5 +132,46 @@
     "independentReview": "PASS",
     "sameFilesSameLinesNewCommitStillRejected": 2,
     "realCredentialFound": false
+  },
+  "hostedCi": {
+    "headCommit": "6ce483fe89cc1c786f5b9433a6df0109b18793ae",
+    "requiredJobsPassed": 4,
+    "result": "PASS",
+    "runs": [
+      {
+        "run": 37242480985,
+        "jobs": [
+          {
+            "id": 111553780102,
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 111553780240,
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "run": 37242485368,
+        "jobs": [
+          {
+            "id": 111553792970,
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 111553793166,
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
   }
 }
