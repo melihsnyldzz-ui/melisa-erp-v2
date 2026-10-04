@@ -81,7 +81,7 @@ export function testPurchase({api,user,data,refresh,esc,paymentData,onPaymentDet
    const body=fxPreviewBody(choice.selection,selection,rates),result=await api('/api/test-purchase-fx/preview',{method:'POST',body});
    if(version!==previewVersion||!out.isConnected)return;
    out.innerHTML=renderPurchaseFxPreview(result,esc);if(result.writable!==true||result.copyQuoteId!==choice.copyQuoteId){prepared=null;submit.disabled=true;throw Error('Bu fiyat kopyası mal kabulüne aktarılamaz.');}
-   prepared={...body,previewHash:result.previewHash};submit.disabled=!has('goods.create');
+   prepared={...body,previewHash:result.previewHash};submit.disabled=!has('goods.create');return result;
   }});
   widget.update({product:{id:context.fixture.productId,accepted:true,name:context.fixture.name || 'Dövizli TEST ürün kopyası',stockCode:context.fixture.stockCode},quotes:context.sourceChoices.map(q=>({id:q.copyQuoteId,productId:context.fixture.productId,accepted:true,type:q.selection.type,unitKind:q.selection.unitSourceId===null?'CARD':'UNKNOWN',tier:q.selection.tier,currency:q.selection.currency,priceExact:q.selection.priceExact,sourceKind:'accepted-opening',sourceAsOf:q.sourceProof.sourceAsOf,source:'TEST ürünü için kabul edilmiş fiyat kopyası',sourceHash:q.sourceProof.sourceHash,copiedToTest:true})),rates,units:[],authoritativeOnly:true,quantityPolicy:{integer:true},date:context.fixture.date,fixedDate:true,quantity:'1',accountCurrency:'TRY',fixedAccountCurrency:true});widget.bind(host);
  }

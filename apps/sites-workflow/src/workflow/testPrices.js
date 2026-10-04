@@ -32,7 +32,7 @@ export function testPrices({api,esc}){
        const body=fxPreviewBody(openingPurchaseSelection(p.data,price,p.meta),selection,rates);
        const result=await api('/api/test-purchase-fx/preview',{method:'POST',body});
        if(current!==generation||detailCurrent!==detailGeneration||version!==previewGeneration||!out.isConnected)return;
-       out.innerHTML=renderPurchaseFxPreview(result,esc)+(result.writable===true?'<p><a class="btn primary" href="#purchases">Dövizli TEST alışını aç</a></p>':'');
+       out.innerHTML=renderPurchaseFxPreview(result,esc)+(result.writable===true?'<p><a class="btn primary" href="#purchases">Dövizli TEST alışını aç</a></p>':'');return result;
      }});
      widget.update({product:{id:p.data.productId,accepted:true,name:listed?.productName || 'Kabul edilmiş ürün',stockCode:listed?.stockCode},quotes:p.data.prices.filter(q=>q.type==='purchase'&&q.unitSourceId===null&&q.tier===0&&['USD','EUR'].includes(q.currency)).map(q=>({...q,accepted:true,unitKind:'CARD',sourceKind:'accepted-opening',sourceAsOf:p.meta.sourceAsOf,source:'Kabul edilmiş Vega açılış fiyatı',sourceHash:p.meta.sourceHash})),rates,units:[],authoritativeOnly:true,date:context.fixture.date,fixedDate:true,quantity:'1',quantityPolicy:{integer:true},accountCurrency:'TRY',fixedAccountCurrency:true});widget.bind(host);host.insertAdjacentHTML('afterbegin','<p>Bu salt okunur TEST önizlemesi USD ve EUR kart alış fiyatları içindir. Piyasa kuru kullanılmaz.</p>');
     }catch(e){if(current===generation&&detailCurrent===detailGeneration&&detail.isConnected){const errorTarget=detail.querySelector('#opening-purchase-selector') || detail;errorTarget.innerHTML=`<p class="test-error" role="alert">${esc(e.message)}</p>`;}}});

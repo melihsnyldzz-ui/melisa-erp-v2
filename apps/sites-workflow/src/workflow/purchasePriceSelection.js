@@ -19,7 +19,7 @@ export function renderPurchaseFxPreview(value,esc=escapeHtml){
  */
 export function createPurchasePriceSelection({ api, esc = escapeHtml, onSelection, onChange } = {}) {
   let state = { quotes: [], units: [], rates: [], quantity: '', date: '', accountCurrency: '', loading: false, error: '', disabled: false };
-  let pending = false, submissionError = '', revision = 0;
+  let pending = false, submissionError = '', revision = 0, authoritativeUnit = null;
   const e = value => esc(String(value ?? ''));
   const selected = (id, value) => String(id) === String(value) ? ' selected' : '';
   const option = (id, label, value, disabled = false) => `<option value="${e(id)}"${selected(id,value)}${disabled?' disabled':''}>${e(label)}</option>`;
@@ -42,7 +42,7 @@ export function createPurchasePriceSelection({ api, esc = escapeHtml, onSelectio
       ${!state.loading&&!quotes.length?'<p role="status">Bu ürün için seçilebilir kart alış fiyatı bulunamadı.</p>':''}
       <fieldset${locked?' disabled':''}><div class="pps-fields">
       <label>Alış fiyatı<select data-pps="quoteId">${choices(quotes,state.quoteId,q=>`${displayExact(q.priceExact)} ${q.currency} · ${q.sourceKind==='synthetic'?'Sentetik':'30 Eylül açılışı'}`,'Fiyat seçin')}</select></label>
-      <label>İşlem birimi<select data-pps="unitId"${state.authoritativeOnly?' disabled':''}>${choices(units,state.unitId,u=>`${u.label} · ${displayExact(u.factorExact)} stok birimi`,state.authoritativeOnly?'Bilinmiyor · önizlemede doğrulanacak':'Doğrulanmış birim seçin')}</select></label>
+      <label>İşlem birimi<select data-pps="unitId"${state.authoritativeOnly?' disabled':''}>${state.authoritativeOnly?`<option selected>${authoritativeUnit?'ADET × 1 · Doğrulandı':'Bilinmiyor · önizlemede doğrulanacak'}</option>`:choices(units,state.unitId,u=>`${u.label} · ${displayExact(u.factorExact)} stok birimi`,'Doğrulanmış birim seçin')}</select></label>
       <label>Miktar<input data-pps="quantity" type="text" inputmode="decimal" value="${e(state.quantity)}" placeholder="Miktar girin"></label>
       <label>İşlem tarihi<input data-pps="date" type="date" value="${e(state.date)}"${state.fixedDate?' readonly':''}></label>
       <label>Cari dövizi<select data-pps="accountCurrency"${state.fixedAccountCurrency?' disabled':''}><option value="">Cari dövizini seçin</option>${['TRY','USD','EUR'].map(c=>option(c,c,state.accountCurrency)).join('')}</select></label>
@@ -50,7 +50,7 @@ export function createPurchasePriceSelection({ api, esc = escapeHtml, onSelectio
       <label>Cari dövizi kuru<select data-pps="accountRateId">${choices(ratesFor(state.accountCurrency),state.accountRateId,rateLabel,'İşlem için kur seçin')}</select></label>
       </div><p class="pps-source">${e(source)}</p>
       <p class="pps-exact">Kaynak fiyat: <strong>${e(displayExact(projection?.priceExact))} ${e(quote?.currency)}</strong> · Fişe aktarılacak fiyat: <strong>${e(displayExact(projection?.priceNative))} ${e(quote?.currency)}</strong><br>Yuvarlama farkı: ${e(displayExact(projection?.roundingExact))} ${e(quote?.currency)}</p>
-      ${result.value?`<div class="pps-results" aria-live="polite"><div>İşlem tutarı<strong>${e(displayExact(result.value.documentAmountNative))} ${e(quote.currency)}</strong></div><div>Cari tutarı<strong>${e(displayExact(result.value.accountAmountNative))} ${e(state.accountCurrency)}</strong></div><div>TL karşılığı<strong>${e(displayExact(result.value.amountTryNative))} TRY</strong></div></div><p>Stok miktarı: ${e(displayExact(result.value.stockQuantityExact))} · Doğrulanmış dönüşüm: ${e(result.value.unit.source)}</p>`:`<p class="pps-hint" aria-live="polite">${e(state.authoritativeOnly&&inputRequest.value?'İşlem birimi ve tutar, önizlemede kaynak kaydından doğrulanacak.':inputRequest.error || result.error)}</p>`}
+      ${result.value?`<div class="pps-results" aria-live="polite"><div>İşlem tutarı<strong>${e(displayExact(result.value.documentAmountNative))} ${e(quote.currency)}</strong></div><div>Cari tutarı<strong>${e(displayExact(result.value.accountAmountNative))} ${e(state.accountCurrency)}</strong></div><div>TL karşılığı<strong>${e(displayExact(result.value.amountTryNative))} TRY</strong></div></div><p>Stok miktarı: ${e(displayExact(result.value.stockQuantityExact))} · Doğrulanmış dönüşüm: ${e(result.value.unit.source)}</p>`:`<p class="pps-hint" aria-live="polite">${e(authoritativeUnit?'İşlem birimi kaynak kaydından doğrulandı. Tutarlar aşağıdaki önizlemede gösterilir.':state.authoritativeOnly&&inputRequest.value?'İşlem birimi ve tutar, önizlemede kaynak kaydından doğrulanacak.':inputRequest.error || result.error)}</p>`}
       <button type="button" class="pps-action" data-pps-preview${!inputRequest.value||locked||!!state.error||typeof onSelection!=='function'?' disabled':''}>${pending?'Önizleme hazırlanıyor…':'Seçimi önizle'}</button></fieldset>
       <details><summary>Kaynak bilgileri</summary><p>${e(quote?.source || 'Bilinmiyor')} · ${e(quote?.sourceAsOf || 'Tarih bilinmiyor')}</p>${quote?.sourceHash?`<p>${e(quote.sourceHash)}</p>`:''}<p>Fiyat seçimi: kart alış fiyatı. Birim dönüşümü: doğrulanmış stok dönüşümü. Tutarlar fişin dört ondalıklı fiyatı üzerinden hesaplanır.</p></details>
     </section>`;
@@ -59,7 +59,7 @@ export function createPurchasePriceSelection({ api, esc = escapeHtml, onSelectio
     const paint = () => { container.innerHTML=render(); attach(); };
     function attach() {
       container.querySelectorAll('[data-pps]').forEach(input=>input.addEventListener('change',()=>{
-        const key=input.dataset.pps; state={...state,[key]:input.value}; revision++; submissionError='';
+        const key=input.dataset.pps; state={...state,[key]:input.value}; revision++; submissionError='';authoritativeUnit=null;
         if(key==='quoteId')state.documentRateId='';
         if(key==='accountCurrency')state.accountRateId='';
         if(key==='date'){state.documentRateId='';state.accountRateId='';}
@@ -68,13 +68,16 @@ export function createPurchasePriceSelection({ api, esc = escapeHtml, onSelectio
       }));
       container.querySelector('[data-pps-preview]')?.addEventListener('click',async()=>{
         const result=preview(),inputRequest=request(); if(!inputRequest.value||state.loading||state.disabled||state.error||pending)return;
-        const version=revision; pending=true;submissionError='';paint();
-        try { await onSelection?.(inputRequest.value,result.value); } catch(error) { if(version===revision)submissionError=error?.message || 'Önizleme hazırlanamadı.'; }
+        const version=revision; pending=true;submissionError='';authoritativeUnit=null;paint();
+        try {
+          const response=await onSelection?.(inputRequest.value,result.value),unit=response?.operationalUnit;
+          if(version===revision&&unit?.unit==='ADET'&&unit.factorExact8==='1.00000000'&&unit.source==='accepted-opening-unit-evidence'&&unit.sourceKey&&/^[a-f0-9]{64}$/i.test(unit.hash || ''))authoritativeUnit=unit;
+        } catch(error) { if(version===revision)submissionError=error?.message || 'Önizleme hazırlanamadı.'; }
         finally {pending=false;paint();}
       });
     }
     paint();return { update(data){update(data);paint();}, render:paint };
   }
-  function update(data) { state={...state,...data};revision++;submissionError='';return render(); }
+  function update(data) { state={...state,...data};revision++;submissionError='';authoritativeUnit=null;return render(); }
   return { render, bind, update, getSelection:()=>request().value ?? null };
 }

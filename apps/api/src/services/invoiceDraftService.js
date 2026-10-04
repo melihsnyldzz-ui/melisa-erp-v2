@@ -22,6 +22,15 @@ import { createPurchaseCostAccumulator } from './purchaseCostAccumulator.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 
+// Trigger row-count messages are not the guarded header UPDATE's row count.
+// The SQL batch returns one named count from OUTPUT ... INTO instead.
+export function purchaseStatusMutationSucceeded(result) {
+  const rows = result?.recordset;
+  if (!Array.isArray(rows) || rows.length !== 1) return false;
+  const count = rows[0]?.purchaseStatusRows;
+  return count === 1 || count === '1';
+}
+
 // Internal service context only; HTTP payloads never grant Native behavior.
 function isNativeInvoiceTransaction(context) {
   if (context?.nativeTerminalV1 !== true) return false;
@@ -3094,16 +3103,19 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
     const finalizeResult = await new sqlDriver.Request(transaction)
       .input('finalizePurchaseInvoiceId', sql.BigInt, invoiceId)
       .query(`
+        DECLARE @finalizedPurchaseRows TABLE (id bigint);
         UPDATE dbo.purchase_invoices
         SET
           status = N'finalized',
           finalized_at = SYSUTCDATETIME(),
           updated_at = SYSUTCDATETIME()
+        OUTPUT inserted.id INTO @finalizedPurchaseRows(id)
         WHERE id = @finalizePurchaseInvoiceId
           AND status = N'draft';
+        SELECT COUNT_BIG(*) AS purchaseStatusRows FROM @finalizedPurchaseRows;
       `);
 
-    if (Number(finalizeResult.rowsAffected?.[0] || 0) !== 1) {
+    if (!purchaseStatusMutationSucceeded(finalizeResult)) {
       throw makeServiceError('PURCHASE_FINALIZE_STATUS_CHANGED', 'Purchase invoice status changed during finalize', 409);
     }
 
@@ -3333,6 +3345,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null, tran
       .input('cancelPurchaseReason', sql.NVarChar(500), reason)
       .input('cancelPurchaseUpdatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @cancelledPurchaseRows TABLE (id bigint);
         UPDATE dbo.purchase_invoices
         SET
           status = N'cancelled',
@@ -3340,11 +3353,13 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null, tran
           cancel_reason = @cancelPurchaseReason,
           updated_at = SYSUTCDATETIME(),
           updated_by = @cancelPurchaseUpdatedBy
+        OUTPUT inserted.id INTO @cancelledPurchaseRows(id)
         WHERE id = @cancelPurchaseInvoiceId
           AND status = N'finalized';
+        SELECT COUNT_BIG(*) AS purchaseStatusRows FROM @cancelledPurchaseRows;
       `);
 
-    if (Number(cancelResult.rowsAffected?.[0] || 0) !== 1) {
+    if (!purchaseStatusMutationSucceeded(cancelResult)) {
       throw makeServiceError('PURCHASE_CANCEL_STATUS_INVALID', 'Purchase invoice status changed during cancel', 409);
     }
 
