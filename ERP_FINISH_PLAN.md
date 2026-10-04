@@ -2,9 +2,17 @@
 
 Güncel yerel kaynak toplama: [3 Ekim kanonik baseline](docs/erp-v2/canonical-20261003/README.md). Aşağıdaki ilk envanter, EVDEKIPC devir anının tarihsel kaydıdır; SEMIH kaynak eşlemesi bu bağlantıdaki kanıtla güncellenir.
 
-Güncelleme: 3 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıdır**. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).
+Güncelleme: 4 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıdır**. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).
 
-## 3 Ekim SEMIH sonucu — bu bölüm güncel
+## 4 Ekim güncel migration dilimi
+
+Vega → Melisa gerçek TEST açılışı ve bağımsız stok/cari/fiyat/maliyet mutabakatı tamamlandı; exact kapsam fark0, genel cutover PARTIAL. Kabul edilmiş fiyat okuyucusu önceki PASS kapsamıyla korunur. Sonraki gerçek açık olan operasyon karantinası kapandı: 176 kaynak/172 hedef/4 hedefsiz tedarikçi, immutable kimlik bağı ve API/SQL işlem engeli; 21 hedefli test, bağımsız37 tablo koruma ve gerçek normal kullanıcı negatif API/masaüstü/mobil provası PASS. Günlük [Aktarım karantinası](http://127.0.0.1:5194/is-akisi-taslagi.html#migration-quarantine) personelin kabulüne hazır; insan kabulü BEKLİYOR.
+
+Güncel kaynak codex/canonical-live-20261003; SQL/ticari kod45959295421c61b40bf49b1cc51bcb01dce784f4/paket15, nihai dokümantasyon TEST paketi CANONICAL-VEGA-MIGRATION-TEST-20261004-16. Zorunlu launcher C:\Sirket\ERP\runtime\start-canonical-test.ps1, web5194/API4144/native4146; yalnız ayrı TEST DB. LIVE/Vega yazımı yok. [Migration planı](ERP_MIGRATION_PLAN.md), [STATUS](STATUS.md), [PR15](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/15).
+
+Sıradaki migration kaynak eksiği güncel deltanın ayrı idempotent TEST batch'iyle prova edilmesidir; 71 yeni/341 değişmiş ürün ve74 cari henüz uygulanmadı. Typed fiyat yazımı, belirsiz kimlik/bakiye/maliyet iş kararı, fiziksel finans, atomik kesim ve geri dönüş kabulü açık. Önceki çok satırlı mal kabul ve fiziksel terminal işleri ayrıca açık ERP kapsamlarıdır; bu görev çalışan bağlı iade/satış akışlarını yeniden ispatlamadı.
+
+## 3 Ekim SEMIH sonucu — tamamlanan önceki dilim
 
 Kanonik kaynak `C:\Sirket\ERP\source\canonical-live-20261003`; origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`, aktif dal `codex/canonical-live-20261003`. Kullanıcının son talimatındaki bu kök uygulanır. F02 kaynak eşlemesi, F03 dosya sınıflaması ve önceki F05 teknik kabulleri korunur; çalışan satış/tahsilat/sayım yeniden ispatlanmadı.
 
