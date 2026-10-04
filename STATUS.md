@@ -1,5 +1,17 @@
 # Melisa ERP durumu
 
+5 Ekim 2026 — **C07 tedarikçi kartı kaynağı hazır; TEST kurulumu disk alanı bekliyor. C07 teknik kullanım kabulü tamamlanmadı.**
+
+- Source95bef876362374c00e8f3cbd0522efe1b791533f, dal codex/erp-finish-20261004, [Draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23). API296/Sites418/canonical49/syntax PASS; bağımsız backend/frontend/SQL çapraz review tamam. Exactsource push37239881954/PR37239884831 dört hostedUbuntuquality-build-test/secret-scan jobSUCCESS. Nihai belge head ayrıca doğrulanır.
+- Yeni normal tedarikçi arama/aktiflik/karantina/sayfa/kart ve ayrı döviz hesabı kaynağı hazırlanmıştır. OwnerD750 okuyucu actualrestrictedSQL'de530native/25sayfa,90nativehold; karantina699ms, detay172–440ms. Kaynak495supplier+503account/998stage mühürlü; bütün530 native kart migration kabulü değildir.10160 bir kanıtlı/bir doğrulanmamış,13045UNKNOWN/hold,10182hold,13373unmapped/hesapsız.
+- Kullanıcının “Görüntüleme ve düzenleme” yanıtı uygulanmıştır: mevcut tek üyeli İlker TESTrole16'ya yalnız supplier.view/edit,2insert/replay0; diğer134izin satırı aynı. FreshAPI actor16ikiizinTRUE; kullanıcı/credential/diğerrol değiştirilmedi. Contact kaynağı yalnız mevcut sentetik13373 telefon/şehir/ülke +updated metadata; gerçek ticari kartlar salt okunur kalır.
+- Contact sourceC786…31441: row_version CAS/ABA, aynıUUID+fullpayload replay, NULL/boş ve UTF16limit40/100/100, gerçek immutable before/after journal. Yeni metadata tablosu +iki guard +iki ownerproc ve2darEXEC/4journalDENY planlandı; **henüz SQLkurulumu uygulanmadı veya fixture düzenlenmedi**. Eski15+17guard/42tanım/37FIRST/C06 ve kaynak/hold mühürleri actualokuyucuda korunur. Yeni tablo schema compileprobesi rollback ile kapanmıştır.
+- **C: boş alan0; paket24 kurulamadı.** Çalışan TEST5194/4144/4146 hâlâ paket23/uygulama8933b01 → Semih\\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01. TEST/LIVE restart/deploy yapılmadı; eski sürümler ve yedekler korunur. npm indirilebilir_cache/_cacache5,2GB temizliği için tek kapsamlı soru bekliyor; yanıt olmadan silme yok.
+- Normal C07HTTP/UI kaydetme/yenileme/restore, gerçek yetkisiz oturum/negatifSQL, üç genişlik ve personel kabulü **NOT_VERIFIED**. Planlanan [beş adım](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md) kurulumdan sonra uygulanır; mevcut TEST'te C07 linki hazır kabul edilmez.
+- [Tek finish tree](ERP_FINISH_PLAN.md):49iş, 🟢5 / 🟡19 / 🔴25 aynı; C07 🔴. **Sıradaki tek iş: alan açılınca C07paketi ve gerçek kullanım kabulünü tamamlamak.** Main merge/LIVE/Vega yazması yok. Delta71/341/74 ve54ürün/122cari iş kararları ile genel finish hedefi açık.
+
+## Önceki C06 kabulü
+
 5 Ekim 2026 — **C06 salt okunur müşteri kartının dar gerçek TEST teknik kabulü hazır. Genel kart düzenleme ve personel kabulü PARTIAL. Paket23/source8933b01:441 müşteri,25 satırlı sayfa,28 karantina; gerçek kart155 TRY/USD kaynak+yerel exact8+güncel+defter mutabık, EUR doğrulanmadı. Kaynak30 Eylül; güncel Vega bağlantısı/delta değildir. Bilinmeyen tutar sıfır yapılmaz, dövizler toplanmaz.**
 
 - [Tek finish tree](ERP_FINISH_PLAN.md):49 iş, 🟢5 / 🟡19 / 🔴25; tamamlanan%10,2, kısmi%38,8. C06/B03 kısmi; genel düzenleme/personel kabulü eksik. **Sıradaki tek kaynak işi C07 gerçek tedarikçi kartı.**
