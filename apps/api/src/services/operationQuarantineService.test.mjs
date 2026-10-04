@@ -54,3 +54,10 @@ test('SQL hold and readiness tokens normalize safely only with dedicated server 
  assert.equal(normalizeOperationQuarantineError({number:51076,message:'MIGRATION_QUARANTINE_BINDING_DRIFT'}).statusCode,503);
  const other={number:51070,message:'MIGRATION_OPERATION_QUARANTINED'};assert.equal(normalizeOperationQuarantineError(other),other);
 });
+test('unknown source name remains NULL and never acquires the native card name',async()=>{
+ const row={entity:'supplier',source_key:'VEGA_CAPTURE_20260930_01/F0103/TBLCARI/7',native_id:null,source_code:'0007',source_name:null,native_code:null,native_name:null,status:'not-present',reasons_json:'["NATIVE_TARGET_NOT_PRESENT"]'};
+ const h=harness({response:{recordsets:[[header()],[row]]}});
+ assert.equal((await h.service.list({entity:'supplier'})).data[0].sourceName,null);
+ delete row.source_name;
+ await assert.rejects(()=>h.service.list({entity:'supplier'}),{code:'MIGRATION_QUARANTINE_DRIFT'});
+});

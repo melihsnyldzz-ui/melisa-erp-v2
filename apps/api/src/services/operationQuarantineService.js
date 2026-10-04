@@ -27,7 +27,7 @@ function rowDto(row,entity){
  let reasons;try{reasons=JSON.parse(row.reasons_json);}catch{throw invalid();}
  const id=nativeId(row.native_id,true);
  if(row.entity!==entity||typeof row.source_key!=='string'||!row.source_key.startsWith('VEGA_CAPTURE_20260930_01/')
- ||typeof row.source_code!=='string'||typeof row.source_name!=='string'||(id===null?row.status!=='not-present':row.status!=='blocked')
+ ||typeof row.source_code!=='string'||(row.source_name!==null&&typeof row.source_name!=='string')||(id===null?row.status!=='not-present':row.status!=='blocked')
  ||![null,'string'].includes(row.native_code==null?null:typeof row.native_code)||![null,'string'].includes(row.native_name==null?null:typeof row.native_name)
  ||!Array.isArray(reasons)||!reasons.length||reasons.some(v=>typeof v!=='string'||!/^[A-Z0-9_]+$/.test(v)))throw invalid();
  return {entityType:entity,sourceKey:row.source_key,nativeId:id,sourceCode:row.source_code,sourceName:row.source_name,
