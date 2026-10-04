@@ -1,4 +1,6 @@
 import {testMigrationQuarantine} from './testMigrationQuarantine.js';
+import {testCustomers} from './testCustomers.js';
+let customerUI=null;
 let quarantineUI=null;
 import {testPrices} from './testPrices.js';
 let priceUI=null;
@@ -56,6 +58,7 @@ function header(){
 const rows=()=>invoices.map(i=>`<tr><td><button class="link" data-detail="${i.id}">${esc(i.documentNo)}</button><br><small>Fiş #${i.id}</small></td><td>${esc(i.customerName)}</td><td>${money(i.grandTotal)}</td><td>${esc(i.status)}</td><td>${has('sales.cancel')&&i.status==='FINALIZED'?`<button class="btn small" data-cancel="${i.id}">İptal et</button>`:'—'}</td></tr>`).join('');
 function invoiceTable(){return `<div class="tablewrap"><table><thead><tr><th>Fiş</th><th>TEST müşteri</th><th>Tutar</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>${rows()||'<tr><td colspan="5">TEST veritabanında henüz fiş yok.</td></tr>'}</tbody></table></div>`}
 function render(){
+ customerUI?.dispose();customerUI=null;
  header();
  if(!user){
   view.innerHTML=`<section class="card test-login"><p class="eyebrow">MELİSA ERP · TEST</p><h1>TEST oturumunu aç</h1><p>Gerçek kullanıcı yetkisi sunucudan alınır. Örnek rol seçimi kullanılmaz.</p><form id="test-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required></label><label>Şifre<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" ${busy?'disabled':''}>Giriş yap</button></form><p role="alert" class="test-error">${esc(error)}</p><a href="/ornek-akis.html">Veritabanından ayrı örnek ekranı aç</a></section>`;
@@ -63,12 +66,12 @@ function render(){
   return;
  }
  let content='';
- if(!connected){content='<section class="card"><h2>TEST verileri doğrulanamadı</h2><p>Satış kapalı. Sonuç alınana kadar örnek kayıtlar gösterilmez.</p></section>'}
+ if(page()==='customers'){customerUI=testCustomers({api,esc,permissions:user.permissions});content=customerUI.html();}
+ else if(!connected){content='<section class="card"><h2>TEST verileri doğrulanamadı</h2><p>Satış kapalı. Sonuç alınana kadar örnek kayıtlar gösterilmez.</p></section>'}
  else if(page()==='home'){content=`<p class="eyebrow">MELİSA ERP · ORTAK TEST KAYITLARI</p><h1>Günlük operasyon</h1><p>Bu ekran ayrı TEST veritabanını okur; örnek localStorage kayıtlarını kullanmaz.</p><div class="stats"><div class="stat"><small>TEST ürün stoğu</small><strong id="test-stock">${product.stockQuantity} ADET</strong></div><div class="stat"><small>TEST cari borcu</small><strong id="test-balance">${money(customer.balance)}</strong></div><div class="stat"><small>Ortak TEST fişi</small><strong>${invoices.length}</strong></div></div><section class="card panel"><h2>Satış, stok ve cari</h2>${invoiceTable()}</section>`}
  else if(page()==='prices'){priceUI=has('product.view')&&has('purchase.view')?testPrices({api,esc}):null;content=priceUI?priceUI.html():'<h1>Fiyat & maliyet</h1><section class="card panel"><p>Bu rapor için ürün ve alış görüntüleme yetkisi gerekir.</p></section>'}
  else if(page()==='migration-quarantine'){quarantineUI=testMigrationQuarantine({api,esc,permissions:user.permissions});content=quarantineUI.html();}
  else if(page()==='stock'){content=`<h1>Ürün & stok</h1><section class="card panel"><p class="pill green">TEST veritabanı · yalnız izinli ürün</p><h2>${esc(product.productName)}</h2><p>${esc(product.stockCode)} · #${product.id}</p><div class="stats"><div class="stat"><small>Mevcut stok</small><strong>${product.stockQuantity} ADET</strong></div><div class="stat"><small>Birim fiyat</small><strong>${money(product.salePrice)}</strong></div></div></section>`}
- else if(page()==='customers'){content=`<h1>Müşteriler</h1><section class="card panel"><p class="pill green">TEST veritabanı · yalnız izinli cari</p><h2>${esc(customer.customerName)}</h2><p>${esc(customer.customerCode)} · #${customer.id}</p><h2>Güncel borç: ${money(customer.balance)}</h2><p>Satış ve iptal hareketleri ortak veritabanından okunur.</p>${invoiceTable()}</section>`}
  else if(page()==='receipts'){content=`<h1>Satış fişleri</h1><section class="card panel"><p>Gerçek oturum: ${esc(user.displayName)} · Kayıtlar tüm yetkili TEST oturumları için ortaktır.</p>${invoiceTable()}</section>`}
  else if(['return-purchase','return-sales','count-test','return-cancel','count-cancel'].includes(page())){const key=page()==='count-cancel'?'count-cancel':page()==='return-cancel'?'return-cancel':page()==='count-test'?'count':page().slice(7);const flow=key==='count-cancel'?'count':key==='return-cancel'?'purchase':key;dailyUI=dailyData[key]?testDaily({api,user,data:dailyData[key],flow,refresh:runRefresh,esc}):null;content=dailyUI?dailyUI.html():'<section class="card panel"><p>Bu işlem için görüntüleme yetkiniz yok.</p></section>'}
  else if(['finance','fx'].includes(page())){financeUI=testFinance({api,user,data:page()==='fx'?fxData:financeData,refresh:runRefresh,esc,mode:page()==='fx'?'fx':'standard'});content=financeUI.html()}
@@ -88,6 +91,7 @@ function render(){
  view.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>detail(b.dataset.detail));
  if(connected&&dailyUI&&['return-purchase','return-sales','count-test','return-cancel','count-cancel'].includes(page()))dailyUI.bind();
  if(connected&&page()==='prices')priceUI?.bind();
+ if(page()==='customers')customerUI?.bind();
  if(connected&&page()==='migration-quarantine')quarantineUI?.bind();
  if(connected&&['finance','fx'].includes(page()))financeUI.bind();
  if(connected&&purchaseData&&(page()==='goods'||page()==='purchases'))purchaseUI.bind();
@@ -98,6 +102,9 @@ async function refresh(){
  const version=++generation;
  try{
   const me=await api('/api/auth/me');
+  if(version!==generation)return;
+  user=me;
+  if(page()==='customers'){error='';return;}
   const ctx=await api('/api/test-sales/context');
   if(ctx.environment!=='ISOLATED_TEST'||ctx.database!=='MELISA_ERP_SIRKET_TEST_20260929_01')throw Error('TEST veritabanı kimliği uyuşmuyor.');
   const [p,c,list]=await Promise.all([api(`/api/products/${ctx.productId}`),api(`/api/customers/${ctx.customerId}`),api(`/api/sales-invoices?customerId=${ctx.customerId}&status=ALL&limit=100`)]);
@@ -132,7 +139,7 @@ async function submitCancel(id,reason){
  try{const r=await api(`/api/sales-invoices/${id}/cancel`,{method:'POST',body:{reason}});notice=r.replayed?'Fiş zaten iptal edilmiş; ikinci ters hareket oluşturulmadı.':`TEST fişi #${id} iptal edildi.`;const p=pending();if(p?.invoice?.id===r.invoice.id)remember({...p,invoice:r.invoice});await refresh()}catch(e){error=e.message}finally{busy=false;render()}
 }
 async function detail(id){try{const i=await api(`/api/sales-invoices/${id}`);notice=`Fiş #${i.id} · ${i.documentNo} · ${i.status} · ${money(i.grandTotal)} · ${i.items.length} satır`;render()}catch(e){error=e.message;render()}}
-window.addEventListener('hashchange',render);
+window.addEventListener('hashchange',()=>{if(user&&!connected&&page()!=='customers')runRefresh();else render();});
 document.querySelector('.top-right button').onclick=()=>location.hash='home';
 document.getElementById('mobileScreen').onchange=e=>location.hash=e.target.value;
 document.title='TEST · Melisa ERP v70 · Gerçek TEST bağlantısı';

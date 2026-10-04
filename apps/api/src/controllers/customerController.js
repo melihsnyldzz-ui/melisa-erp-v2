@@ -7,7 +7,29 @@ import {
   updateCustomer,
 } from '../services/customerService.js';
 import { getVegaCustomersListFromWorker } from '../services/vegaCustomerClientService.js';
+import {customerCardService} from '../services/customerCardService.mjs';
 import { created, fail, ok } from '../utils/response.js';
+
+function cardReadError(res, error) {
+  const known = typeof error?.code === 'string' && error.code.startsWith('CUSTOMER_CARD_');
+  return fail(res, known ? error.statusCode || 503 : 503,
+    known ? error.code : 'CUSTOMER_CARD_READ_FAILED',
+    known ? error.message : 'Müşteri kartı şu anda okunamıyor.');
+}
+
+export async function getCustomerCards(req, res) {
+  try {
+    const {data, meta} = await customerCardService.list(req.query);
+    return ok(res, data, meta);
+  } catch (error) { return cardReadError(res, error); }
+}
+
+export async function getCustomerCard(req, res) {
+  try {
+    const {data, meta} = await customerCardService.detail(req.params.id);
+    return ok(res, data, meta);
+  } catch (error) { return cardReadError(res, error); }
+}
 
 function writeError(res, error) {
   return fail(
