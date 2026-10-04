@@ -2844,6 +2844,13 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
 async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.testPurchaseFxReceived===true){
+    const proof=await new context.sqlDriver.Request(context.transaction)
+      .input('invoice_id',context.sqlDriver.BigInt,invoiceId)
+      .execute('dbo.usp_assert_test_purchase_fx_received');
+    if(Number(proof.recordset?.[0]?.valid)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Dövizli TEST kabulünün fiyat, kur ve tek stok hareketi bağı doğrulanamadı.',409);
+    return;
+  }
   if(context.testBatchReceived){
     const result=await new context.sqlDriver.Request(context.transaction).input('invoice',context.sqlDriver.BigInt,invoiceId).query(`
       SELECT CASE WHEN DB_NAME() COLLATE Latin1_General_100_BIN2=N'MELISA_ERP_SIRKET_TEST_20260929_01' COLLATE Latin1_General_100_BIN2

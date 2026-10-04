@@ -18,3 +18,9 @@ test('batch writes are narrow POST paths and fail closed in native/read-only mod
  }
  for(const p of ['/api/test-purchase/batches/0/approve','/api/test-purchase/batches/2/finalize','/api/test-purchase/invoice-drafts/3','/api/test-purchase/invoice-drafts/3/finalize/extra'])assert.equal(allowed('POST',p,ctx),false,p);
 });
+test('foreign purchase bridge admits only its guarded exact POST paths',()=>{
+ for(const p of ['/api/test-purchase-fx/preview','/api/test-purchase-fx/receipts','/api/test-purchase-fx/receipts/2/approve','/api/test-purchase-fx/receipts/2/reject','/api/test-purchase-fx/invoice-drafts','/api/test-purchase-fx/invoice-drafts/3/finalize','/api/test-purchase-fx/invoice-drafts/3/cancel']){
+  assert.equal(allowed('POST',p,ctx),true,p);assert.equal(allowed('POST',p,{writes:false,mode:'erp'}),false);assert.equal(allowed('POST',p,{writes:true,mode:'native'}),false);assert.equal(allowed('PUT',p,ctx),false);
+ }
+ for(const p of ['/api/test-purchase-fx/context','/api/test-purchase-fx/receipts/0/approve','/api/test-purchase-fx/invoice-drafts/3','/api/test-purchase-fx/invoice-drafts/3/finalize/extra','/api/test-purchase-fx/rates','/api/test-purchase-fx/price-write'])assert.equal(allowed('POST',p,ctx),false,p);
+});
