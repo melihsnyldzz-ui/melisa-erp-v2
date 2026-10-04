@@ -120,5 +120,17 @@
     "Human daily-use acceptance",
     "Physical terminal/phone",
     "Vega delta and cutover"
-  ]
+  ],
+  "secretScanFixtureReview": {
+    "version": "8.30.1",
+    "fullFetchedHistory": "PASS",
+    "exactHistoricalFingerprintsAdded": 2,
+    "historicalSyntheticFindings": 3,
+    "rulesDisabled": 0,
+    "pathsExcluded": 0,
+    "historyScopeChanged": false,
+    "independentReview": "PASS",
+    "sameFilesSameLinesNewCommitStillRejected": 2,
+    "realCredentialFound": false
+  }
 }
