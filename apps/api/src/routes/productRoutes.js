@@ -23,8 +23,8 @@ import {getOpeningProductPrices,getOpeningPriceProducts} from '../controllers/op
 
 export const productRoutes = Router();
 
-productRoutes.get('/migration-opening-prices', requireAuth, requirePermission('product.view'), getOpeningPriceProducts);
-productRoutes.get('/products/:id/opening-prices', requireAuth, requirePermission('product.view'), getOpeningProductPrices);
+productRoutes.get('/migration-opening-prices', requireAuth, requirePermission('product.view'), requirePermission('purchase.view'), getOpeningPriceProducts);
+productRoutes.get('/products/:id/opening-prices', requireAuth, requirePermission('product.view'), requirePermission('purchase.view'), getOpeningProductPrices);
 
 productRoutes.get('/products', requireAuth, requirePermission('product.view'), getProducts);
 productRoutes.get('/vega/products', requireAuth, requirePermission('product.view'), getVegaProducts);

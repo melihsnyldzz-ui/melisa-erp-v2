@@ -62,7 +62,7 @@ function render(){
  let content='';
  if(!connected){content='<section class="card"><h2>TEST verileri doğrulanamadı</h2><p>Satış kapalı. Sonuç alınana kadar örnek kayıtlar gösterilmez.</p></section>'}
  else if(page()==='home'){content=`<p class="eyebrow">MELİSA ERP · ORTAK TEST KAYITLARI</p><h1>Günlük operasyon</h1><p>Bu ekran ayrı TEST veritabanını okur; örnek localStorage kayıtlarını kullanmaz.</p><div class="stats"><div class="stat"><small>TEST ürün stoğu</small><strong id="test-stock">${product.stockQuantity} ADET</strong></div><div class="stat"><small>TEST cari borcu</small><strong id="test-balance">${money(customer.balance)}</strong></div><div class="stat"><small>Ortak TEST fişi</small><strong>${invoices.length}</strong></div></div><section class="card panel"><h2>Satış, stok ve cari</h2>${invoiceTable()}</section>`}
- else if(page()==='prices'){priceUI=testPrices({api,esc});content=priceUI.html()}
+ else if(page()==='prices'){priceUI=has('product.view')&&has('purchase.view')?testPrices({api,esc}):null;content=priceUI?priceUI.html():'<h1>Fiyat & maliyet</h1><section class="card panel"><p>Bu rapor için ürün ve alış görüntüleme yetkisi gerekir.</p></section>'}
  else if(page()==='stock'){content=`<h1>Ürün & stok</h1><section class="card panel"><p class="pill green">TEST veritabanı · yalnız izinli ürün</p><h2>${esc(product.productName)}</h2><p>${esc(product.stockCode)} · #${product.id}</p><div class="stats"><div class="stat"><small>Mevcut stok</small><strong>${product.stockQuantity} ADET</strong></div><div class="stat"><small>Birim fiyat</small><strong>${money(product.salePrice)}</strong></div></div></section>`}
  else if(page()==='customers'){content=`<h1>Müşteriler</h1><section class="card panel"><p class="pill green">TEST veritabanı · yalnız izinli cari</p><h2>${esc(customer.customerName)}</h2><p>${esc(customer.customerCode)} · #${customer.id}</p><h2>Güncel borç: ${money(customer.balance)}</h2><p>Satış ve iptal hareketleri ortak veritabanından okunur.</p>${invoiceTable()}</section>`}
  else if(page()==='receipts'){content=`<h1>Satış fişleri</h1><section class="card panel"><p>Gerçek oturum: ${esc(user.displayName)} · Kayıtlar tüm yetkili TEST oturumları için ortaktır.</p>${invoiceTable()}</section>`}
@@ -83,7 +83,7 @@ function render(){
  view.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>cancel(b.dataset.cancel));
  view.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>detail(b.dataset.detail));
  if(connected&&dailyUI&&['return-purchase','return-sales','count-test','return-cancel','count-cancel'].includes(page()))dailyUI.bind();
- if(connected&&page()==='prices')priceUI.bind();
+ if(connected&&page()==='prices')priceUI?.bind();
  if(connected&&['finance','fx'].includes(page()))financeUI.bind();
  if(connected&&purchaseData&&(page()==='goods'||page()==='purchases'))purchaseUI.bind();
  if(connected&&page()==='purchases'&&paymentData)paymentUI.bind();
