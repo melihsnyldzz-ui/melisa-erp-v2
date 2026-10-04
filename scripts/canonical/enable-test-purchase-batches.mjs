@@ -3,8 +3,49 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const quote=s=>"N'"+s.replaceAll("'","''")+"'";
+const maxQuote=s=>`CAST(${quote(s)} AS nvarchar(max))`;
 // Replace pseudo-table references, never substrings in is_deleted/deleted_at.
 export function filterLegacyPseudoTables(definition){return definition.replace(/\b(FROM|JOIN)\s+(inserted|deleted)\b/gi,(_,verb,table)=>verb+' #batch_legacy_'+table.toLowerCase());}
+// Offline DDL validation: SQL Server column CHECKs may reference only that column.
+// Split at balanced parentheses, ignoring quoted values, so nested types/functions
+// and comma-containing strings cannot hide a cross-column reference.
+function closingParen(text,start){
+ let depth=0,quoted=false;
+ for(let i=start;i<text.length;i++){
+  if(text[i]==="'"){if(quoted&&text[i+1]==="'"){i++;continue;}quoted=!quoted;continue;}
+  if(quoted)continue;
+  if(text[i]==='(')depth++;
+  if(text[i]===')'&&--depth===0)return i;
+ }
+ throw Error('UNBALANCED_SQL_DDL_PARENTHESES');
+}
+function splitColumns(body){
+ const entries=[];let start=0;
+ for(let i=0;i<body.length;i++){
+  if(body[i]==="'"){i++;while(i<body.length){if(body[i]==="'"){if(body[i+1]==="'"){i+=2;continue;}break;}i++;}continue;}
+  if(body[i]==='('){i=closingParen(body,i);continue;}
+  if(body[i]===','){entries.push(body.slice(start,i));start=i+1;}
+ }
+ entries.push(body.slice(start));return entries;
+}
+export function findInlineCrossColumnChecks(sql){
+ const violations=[];
+ for(const match of sql.matchAll(/CREATE\s+TABLE\s+(?:dbo\.)?(\w+)\s*\(/gi)){
+  const opening=match.index+match[0].length-1;
+  const entries=splitColumns(sql.slice(opening+1,closingParen(sql,opening)));
+  const columns=entries.map(entry=>({entry,name:entry.trim().match(/^(?:\[([^\]]+)\]|(\w+))/)?.slice(1).find(Boolean)})).filter(({name})=>name&&!/^(CONSTRAINT|CHECK|UNIQUE|PRIMARY|FOREIGN)$/i.test(name));
+  const names=new Set(columns.map(({name})=>name.toLowerCase()));
+  for(const {entry,name} of columns){
+   for(const check of entry.matchAll(/\bCHECK\s*\(/gi)){
+    const at=check.index+check[0].length-1;
+    const expression=entry.slice(at+1,closingParen(entry,at)).replace(/'(?:''|[^'])*'/g,'');
+    const references=[...expression.matchAll(/\[([^\]]+)\]|\b([A-Za-z_]\w*)\b/g)].map(token=>(token[1]||token[2]).toLowerCase()).filter(token=>names.has(token)&&token!==name.toLowerCase());
+    if(references.length)violations.push({table:match[1],column:name,references:[...new Set(references)]});
+   }
+  }
+ }
+ return violations;
+}
 export const TABLES=['test_purchase_batch_scope','test_goods_batches','test_goods_batch_lines','test_purchase_batch_drafts','test_purchase_batch_intent_lines','test_purchase_batch_links'];
 export const EXPECTED_GUARDS=Object.freeze({test_guard_products:'2ED4A073DBA8048763614E452ECFAD580BF52CB12B63184F2EB95887D7010C9D',test_guard_suppliers:'6FB2AE9534434693C49825B1EC7B15318FA40A567B042350DFF5F3F069E508A1',test_guard_stock_movements:'173000C24D3D6A44A928584F35D1E41B6661E01CA3E5C6F6E14A785C54C449B9',test_guard_purchase_invoices:'C93D7228853EFF97F417E1A1C7BC63001550572AAC0C6AEAD9DBFA3566CDC909',test_guard_purchase_invoice_items:'A0DCE53291E1AC6B3B9E31E1F43C451B907270641479D05300D84178F203775A',test_guard_supplier_movements:'328288D01F6AA3D96724617FC723849A7B884A04E095539F56D3FFA137BCE159',test_guard_audit_logs:'5BBE6D8812E763B73766E63FD6EACF0F3D57CA7B94C5036F29606811B1DCD080',test_guard_test_purchase_requests:'39FFC4C7F07F496A078AA81CD9D243CB3B51A7B050D6F5D1B12C18D47872D4B0'});
 export const identity="IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_SIRKET_TEST_20260929_01' OR CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)) COLLATE Latin1_General_100_BIN2<>N'Semih\\MELISADEV' THROW 51070,'WRONG_TEST_BATCH_TARGET',1;";
@@ -19,7 +60,7 @@ const trigger=(name,table,body)=>`CREATE TRIGGER dbo.${name} ON dbo.${table} WIT
 const immutable=name=>trigger('test_batch_guard_'+name,name,`IF EXISTS(SELECT 1 FROM inserted) OR EXISTS(SELECT 1 FROM deleted) ${fail}`);
 const allowedScope=(p,s,w)=>`EXISTS(SELECT 1 FROM dbo.test_purchase_batch_scope z JOIN dbo.products p ON p.id=z.product_id JOIN dbo.suppliers s ON s.id=z.supplier_id WHERE z.product_id=${p} AND z.supplier_id=${s} AND z.warehouse_id=${w} AND p.stock_code=z.stock_code AND p.unit=N'ADET' AND p.currency_code=N'TRY' AND p.supplier_id=z.supplier_id AND p.is_active=1 AND p.is_deleted=0 AND s.supplier_code=N'TEST-V70-GOODS-S' AND s.currency_code=N'TRY' AND s.is_active=1 AND s.is_deleted=0 AND NOT ${held('z.product_id','z.supplier_id')})`;
 const headerProof=a=>`EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts t JOIN dbo.test_goods_batches b ON b.id=t.batch_id WHERE t.document_no=${a}.document_no AND (t.invoice_id IS NULL OR t.invoice_id=${a}.id) AND t.actor_id=16 AND b.state=N'accepted' AND ${a}.supplier_id=b.supplier_id AND ${a}.document_date=t.document_date AND ${a}.document_currency=N'TRY' AND ${a}.supplier_currency=N'TRY' AND ${a}.exchange_rate_snapshot=1 AND ${a}.subtotal=t.subtotal AND ${a}.grand_total=t.grand_total AND ${a}.amount_try=t.grand_total AND ${a}.stock_cost_effect_try=t.grand_total AND ${a}.line_discount_total=0 AND ${a}.invoice_discount_rate=0 AND ${a}.supplier_discount_rate=0 AND ${a}.discount_total=0 AND ${a}.invoice_discount_type='rate' AND ${a}.invoice_discount_amount=0 AND (${a}.account_currency IS NULL OR ${a}.account_currency=N'TRY') AND (${a}.account_amount IS NULL OR ${a}.account_amount=t.grand_total) AND (${a}.account_exchange_rate_snapshot IS NULL OR ${a}.account_exchange_rate_snapshot=1) AND (${a}.created_by IS NULL OR ${a}.created_by=16) AND (${a}.updated_by IS NULL OR ${a}.updated_by=16) AND ${a}.is_migrated=0 AND ${a}.affects_inventory=1 AND ${a}.source_system IS NULL AND ${a}.inventory_cutover_id IS NULL AND ${a}.source_record_key IS NULL AND ${a}.migration_run_id IS NULL AND t.subtotal=(SELECT SUM(x.line_total) FROM dbo.test_purchase_batch_intent_lines x WHERE x.draft_id=t.id) AND (SELECT COUNT(*) FROM dbo.purchase_invoices x WHERE x.document_no=t.document_no AND x.supplier_id=b.supplier_id)=1 AND NOT ${held('-1','b.supplier_id')})`;
-const completeInvoice=id=>`EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts t WHERE t.invoice_id=${id} AND t.state=N'linked') AND (SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=${id}) BETWEEN 1 AND 2 AND (SELECT COUNT(*) FROM dbo.test_purchase_batch_links WHERE invoice_id=${id})=(SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=${id}) AND NOT EXISTS(SELECT 1 FROM dbo.purchase_invoice_items i WHERE i.purchase_invoice_id=${id} AND NOT EXISTS(SELECT 1 FROM dbo.test_purchase_batch_links l JOIN dbo.test_purchase_batch_drafts t ON t.invoice_id=l.invoice_id JOIN dbo.test_purchase_batch_intent_lines x ON x.draft_id=t.id AND x.receipt_line_id=l.receipt_line_id JOIN dbo.test_goods_batch_lines g ON g.id=x.receipt_line_id JOIN dbo.test_goods_batches b ON b.id=g.batch_id JOIN dbo.test_purchase_batch_scope s ON s.product_id=g.product_id WHERE l.invoice_id=${id} AND l.invoice_item_id=i.id AND i.product_id=g.product_id AND i.quantity=l.quantity AND i.quantity=x.quantity AND i.purchase_price=x.purchase_price AND i.purchase_price=s.unit_cost AND i.line_total=x.line_total AND i.line_total_try=x.line_total AND i.line_discount_rate=0 AND i.currency_code=N'TRY' AND b.state=N'accepted' AND b.id=t.batch_id AND ${allowedScope('g.product_id','b.supplier_id','b.warehouse_id')} AND EXISTS(SELECT 1 FROM dbo.stock_movements m WHERE m.source_type=N'goods_receipt_batch' AND m.source_id=g.id AND m.product_id=g.product_id AND m.quantity_net=g.quantity AND m.quantity_in=g.quantity AND m.quantity_out=0) AND (SELECT COALESCE(SUM(r.quantity),0) FROM dbo.test_purchase_batch_links r JOIN dbo.purchase_invoices p ON p.id=r.invoice_id WHERE r.receipt_line_id=g.id AND p.status<>N'cancelled')<=g.quantity))`;
+export const completeInvoice=id=>`EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts t WHERE t.invoice_id=${id} AND t.state=N'linked') AND (SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=${id}) BETWEEN 1 AND 2 AND (SELECT COUNT(*) FROM dbo.test_purchase_batch_links WHERE invoice_id=${id})=(SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=${id}) AND NOT EXISTS(SELECT 1 FROM dbo.purchase_invoice_items proof_item WHERE proof_item.purchase_invoice_id=${id} AND NOT EXISTS(SELECT 1 FROM dbo.test_purchase_batch_links l JOIN dbo.test_purchase_batch_drafts t ON t.invoice_id=l.invoice_id JOIN dbo.test_purchase_batch_intent_lines x ON x.draft_id=t.id AND x.receipt_line_id=l.receipt_line_id JOIN dbo.test_goods_batch_lines g ON g.id=x.receipt_line_id JOIN dbo.test_goods_batches b ON b.id=g.batch_id JOIN dbo.test_purchase_batch_scope s ON s.product_id=g.product_id WHERE l.invoice_id=${id} AND l.invoice_item_id=proof_item.id AND proof_item.product_id=g.product_id AND proof_item.quantity=l.quantity AND proof_item.quantity=x.quantity AND proof_item.purchase_price=x.purchase_price AND proof_item.purchase_price=s.unit_cost AND proof_item.line_total=x.line_total AND proof_item.line_total_try=x.line_total AND proof_item.line_discount_rate=0 AND proof_item.currency_code=N'TRY' AND b.state=N'accepted' AND b.id=t.batch_id AND ${allowedScope('g.product_id','b.supplier_id','b.warehouse_id')} AND EXISTS(SELECT 1 FROM dbo.stock_movements m WHERE m.source_type=N'goods_receipt_batch' AND m.source_id=g.id AND m.product_id=g.product_id AND m.quantity_net=g.quantity AND m.quantity_in=g.quantity AND m.quantity_out=0) AND (SELECT COALESCE(SUM(r.quantity),0) FROM dbo.test_purchase_batch_links r JOIN dbo.purchase_invoices p ON p.id=r.invoice_id WHERE r.receipt_line_id=g.id AND p.status<>N'cancelled')<=g.quantity))`;
 function wrapperSpecs(){
  const product=`(EXISTS(SELECT 1 FROM dbo.test_purchase_batch_scope s WHERE s.product_id=i.id AND i.stock_code=s.stock_code AND i.unit=s.unit AND i.currency_code=N'TRY' AND i.average_cost_try=s.unit_cost AND i.supplier_id=s.supplier_id AND i.is_active=1 AND i.is_deleted=0 AND NOT ${held('i.id','i.supplier_id')}) AND EXISTS(SELECT 1 FROM deleted d WHERE d.id=i.id AND i.current_stock_qty>d.current_stock_qty AND i.current_stock_qty-d.current_stock_qty=(SELECT SUM(l.quantity) FROM dbo.test_goods_batch_lines l JOIN dbo.test_goods_batches b ON b.id=l.batch_id WHERE l.product_id=i.id AND b.state=N'accepted' AND NOT EXISTS(SELECT 1 FROM dbo.stock_movements m WHERE m.source_type=N'goods_receipt_batch' AND m.source_id=l.id)) AND __UNCHANGED__))`;
  const seed=`(i.stock_code=N'TEST-FINISH-GOODS-P2' AND i.name=N'TEST FINISH ikinci mal kabul urunu' AND i.unit=N'ADET' AND i.currency_code=N'TRY' AND i.current_stock_qty=0 AND i.average_cost_try=80 AND i.purchase_price=80 AND i.sales_price=0 AND i.is_active=1 AND i.is_deleted=0 AND i.purchase_discount_rate=0 AND i.source_record_key IS NULL AND i.migration_run_id IS NULL AND i.supplier_id=(SELECT supplier_id FROM dbo.test_purchase_scope WHERE id=1) AND IS_SRVROLEMEMBER(N'sysadmin')=1 AND NOT EXISTS(SELECT 1 FROM deleted) AND NOT EXISTS(SELECT 1 FROM dbo.test_purchase_batch_scope) AND NOT ${held('i.id','i.supplier_id')})`;
@@ -45,6 +86,9 @@ export function buildSql(){
 -- One atomic TEST-only schema/fixture setup. Never writes Vega/LIVE. No historical row deletion.
 -- Preflight unknown baseline fails closed. Replay verifies definitions and performs no writes.
 SET NOCOUNT ON; SET XACT_ABORT ON;
+SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON; SET ANSI_WARNINGS ON;
+SET ANSI_PADDING ON; SET CONCAT_NULL_YIELDS_NULL ON; SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
 ${identity}
 IF COALESCE(IS_SRVROLEMEMBER(N'sysadmin'),0)<>1 THROW 51070,'TEST_BATCH_INSTALLER_ADMIN_REQUIRED',1;
 ${ready}
@@ -62,9 +106,9 @@ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES
 CREATE TABLE dbo.test_purchase_batch_scope(product_id bigint PRIMARY KEY REFERENCES dbo.products(id),stock_code nvarchar(50) NOT NULL UNIQUE,supplier_id bigint NOT NULL REFERENCES dbo.suppliers(id),warehouse_id int NOT NULL REFERENCES dbo.test_purchase_warehouses(id),unit nvarchar(20) NOT NULL CHECK(unit=N'ADET'),unit_factor decimal(18,4) NOT NULL CHECK(unit_factor=1),unit_cost decimal(18,4) NOT NULL CHECK(unit_cost IN(60,80)));
 CREATE TABLE dbo.test_goods_batches(id bigint IDENTITY PRIMARY KEY,supplier_id bigint NOT NULL REFERENCES dbo.suppliers(id),warehouse_id int NOT NULL REFERENCES dbo.test_purchase_warehouses(id),state nvarchar(20) NOT NULL CHECK(state IN(N'pending',N'accepted',N'rejected')),note nvarchar(500) NULL,created_by bigint NOT NULL CHECK(created_by IN(15,16)),decided_by bigint NULL,reason nvarchar(500) NULL,decided_at datetime2 NULL);
 CREATE TABLE dbo.test_goods_batch_lines(id bigint IDENTITY PRIMARY KEY,batch_id bigint NOT NULL REFERENCES dbo.test_goods_batches(id),client_line_id nvarchar(64) NOT NULL,product_id bigint NOT NULL REFERENCES dbo.test_purchase_batch_scope(product_id),quantity decimal(18,3) NOT NULL CHECK(quantity BETWEEN 1 AND 5 AND quantity=FLOOR(quantity)),unit nvarchar(20) NOT NULL CHECK(unit=N'ADET'),unit_factor decimal(18,4) NOT NULL CHECK(unit_factor=1),UNIQUE(batch_id,product_id),UNIQUE(batch_id,client_line_id));
-CREATE TABLE dbo.test_purchase_batch_drafts(id bigint IDENTITY PRIMARY KEY,batch_id bigint NOT NULL REFERENCES dbo.test_goods_batches(id),request_id nvarchar(64) NOT NULL UNIQUE,actor_id bigint NOT NULL CHECK(actor_id=16),document_no nvarchar(30) NOT NULL UNIQUE,document_date date NOT NULL,subtotal decimal(18,4) NOT NULL CHECK(subtotal>0 AND subtotal<=700),grand_total decimal(18,4) NOT NULL CHECK(grand_total=subtotal),currency nvarchar(3) NOT NULL CHECK(currency=N'TRY'),state nvarchar(20) NOT NULL CHECK(state IN(N'registered',N'linked',N'cancelled')),invoice_id bigint NULL REFERENCES dbo.purchase_invoices(id),payload_hash char(64) NOT NULL);
+CREATE TABLE dbo.test_purchase_batch_drafts(id bigint IDENTITY PRIMARY KEY,batch_id bigint NOT NULL REFERENCES dbo.test_goods_batches(id),request_id nvarchar(64) NOT NULL UNIQUE,actor_id bigint NOT NULL CHECK(actor_id=16),document_no nvarchar(30) NOT NULL UNIQUE,document_date date NOT NULL,subtotal decimal(18,4) NOT NULL CHECK(subtotal>0 AND subtotal<=700),grand_total decimal(18,4) NOT NULL,currency nvarchar(3) NOT NULL CHECK(currency=N'TRY'),state nvarchar(20) NOT NULL CHECK(state IN(N'registered',N'linked',N'cancelled')),invoice_id bigint NULL REFERENCES dbo.purchase_invoices(id),payload_hash char(64) NOT NULL,CONSTRAINT CK_test_batch_draft_total CHECK(grand_total=subtotal));
 CREATE UNIQUE INDEX UX_test_batch_draft_invoice ON dbo.test_purchase_batch_drafts(invoice_id) WHERE invoice_id IS NOT NULL;
-CREATE TABLE dbo.test_purchase_batch_intent_lines(draft_id bigint NOT NULL REFERENCES dbo.test_purchase_batch_drafts(id),receipt_line_id bigint NOT NULL REFERENCES dbo.test_goods_batch_lines(id),product_id bigint NOT NULL REFERENCES dbo.test_purchase_batch_scope(product_id),quantity decimal(18,3) NOT NULL CHECK(quantity BETWEEN 1 AND 5 AND quantity=FLOOR(quantity)),purchase_price decimal(18,4) NOT NULL CHECK(purchase_price IN(60,80)),line_discount_rate decimal(9,4) NOT NULL CHECK(line_discount_rate=0),line_total decimal(18,4) NOT NULL CHECK(line_total=quantity*purchase_price),PRIMARY KEY(draft_id,receipt_line_id),UNIQUE(draft_id,product_id));
+CREATE TABLE dbo.test_purchase_batch_intent_lines(draft_id bigint NOT NULL REFERENCES dbo.test_purchase_batch_drafts(id),receipt_line_id bigint NOT NULL REFERENCES dbo.test_goods_batch_lines(id),product_id bigint NOT NULL REFERENCES dbo.test_purchase_batch_scope(product_id),quantity decimal(18,3) NOT NULL CHECK(quantity BETWEEN 1 AND 5 AND quantity=FLOOR(quantity)),purchase_price decimal(18,4) NOT NULL CHECK(purchase_price IN(60,80)),line_discount_rate decimal(9,4) NOT NULL CHECK(line_discount_rate=0),line_total decimal(18,4) NOT NULL,PRIMARY KEY(draft_id,receipt_line_id),UNIQUE(draft_id,product_id),CONSTRAINT CK_test_batch_intent_line_total CHECK(line_total=quantity*purchase_price));
 CREATE TABLE dbo.test_purchase_batch_links(invoice_id bigint NOT NULL REFERENCES dbo.purchase_invoices(id),invoice_item_id bigint NOT NULL PRIMARY KEY REFERENCES dbo.purchase_invoice_items(id),receipt_line_id bigint NOT NULL REFERENCES dbo.test_goods_batch_lines(id),quantity decimal(18,3) NOT NULL CHECK(quantity BETWEEN 1 AND 5 AND quantity=FLOOR(quantity)),UNIQUE(invoice_id,receipt_line_id));
 CREATE TABLE dbo.test_purchase_batch_guard_manifest(name sysname PRIMARY KEY,before_hash varchar(64) NULL,before_definition nvarchar(max) NULL,after_hash varchar(64) NOT NULL);
 DECLARE @definition nvarchar(max),@prefix nvarchar(max),@unchanged nvarchar(max),@wrapped nvarchar(max);`];
@@ -73,8 +117,7 @@ DECLARE @definition nvarchar(max),@prefix nvarchar(max),@unchanged nvarchar(max)
   const candidate=a=>({products:`${a}.stock_code=N'TEST-FINISH-GOODS-P2'`,suppliers:'1=0',stock_movements:`${a}.source_type=N'goods_receipt_batch'`,purchase_invoice_items:`EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts t JOIN dbo.purchase_invoices p ON p.document_no=t.document_no WHERE p.id=${a}.purchase_invoice_id)`,purchase_invoices:`${a}.document_no COLLATE Latin1_General_100_BIN2 LIKE N'TSTB-%'`,supplier_movements:`EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts t WHERE t.invoice_id=${a}.purchase_invoice_id)`,audit_logs:`${a}.entity_type=N'test_goods_batch' OR (${a}.entity_type=N'purchase_invoice' AND EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts t JOIN dbo.purchase_invoices p ON p.document_no=t.document_no WHERE p.id=${a}.entity_id))`,test_purchase_requests:`${a}.operation IN(N'batch_create',N'batch_approve',N'batch_reject',N'draft_create',N'draft_finalize',N'draft_cancel')`}[table]);
   const prefix=`/* TEST_PURCHASE_BATCH_20261004: exact rows only; all other rows use preserved original body. */
 ${ready}
-SELECT TOP(0) * INTO #batch_exact_inserted FROM inserted;
-INSERT #batch_exact_inserted SELECT i.* FROM inserted i WHERE __PREDICATE__;
+SELECT i.* INTO #batch_exact_inserted FROM inserted i WHERE __PREDICATE__;
 IF EXISTS(SELECT 1 FROM inserted i WHERE (${candidate('i')}) AND NOT EXISTS(SELECT 1 FROM #batch_exact_inserted e WHERE e.${table==='test_purchase_requests'?'request_id':'id'}=i.${table==='test_purchase_requests'?'request_id':'id'})) ${fail}
 IF EXISTS(SELECT 1 FROM deleted d WHERE (${candidate('d')}) AND NOT (${deletedPredicate})) ${fail}
 SELECT i.* INTO #batch_legacy_inserted FROM inserted i WHERE NOT EXISTS(SELECT 1 FROM #batch_exact_inserted e WHERE e.${table==='test_purchase_requests'?'request_id':'id'}=i.${table==='test_purchase_requests'?'request_id':'id'});
@@ -84,7 +127,7 @@ IF NOT EXISTS(SELECT 1 FROM #batch_legacy_inserted) AND NOT EXISTS(SELECT 1 FROM
   parts.push(`-- Preserve ${name} verbatim in manifest; only inserted/deleted bindings are filtered.
 SET @definition=OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'));
 SELECT @unchanged=N'NOT EXISTS(SELECT '+STRING_AGG(CONVERT(nvarchar(max),N'i.'+QUOTENAME(name)),N',') WITHIN GROUP(ORDER BY column_id)+N' EXCEPT SELECT '+STRING_AGG(CONVERT(nvarchar(max),N'd.'+QUOTENAME(name)),N',') WITHIN GROUP(ORDER BY column_id)+N')' FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.${table}') AND name NOT IN(${[...new Set(['row_version','row_version_timestamp',...mutable])].map(quote).join(',')});
-SET @prefix=REPLACE(${quote(prefix)},N'__PREDICATE__',REPLACE(${quote(insertPredicate)},N'__UNCHANGED__',@unchanged));
+SET @prefix=REPLACE(${maxQuote(prefix)},N'__PREDICATE__',REPLACE(${maxQuote(insertPredicate)},N'__UNCHANGED__',@unchanged));
 SET @wrapped=REPLACE(REPLACE(REPLACE(REPLACE(@definition COLLATE Latin1_General_100_CI_AS,N'FROM inserted',N'FROM #batch_legacy_inserted'),N'JOIN inserted',N'JOIN #batch_legacy_inserted'),N'FROM deleted',N'FROM #batch_legacy_deleted'),N'JOIN deleted',N'JOIN #batch_legacy_deleted');
 IF LEFT(@wrapped,14)<>N'CREATE TRIGGER' OR CHARINDEX(N' AS BEGIN',@wrapped)=0 THROW 51070,'TEST_BATCH_UNKNOWN_GUARD_FORMAT',1;
 SET @wrapped=STUFF(@wrapped,1,6,N'ALTER'); SET @wrapped=STUFF(@wrapped,CHARINDEX(N' AS BEGIN',@wrapped)+9,0,CHAR(10)+@prefix+CHAR(10));
@@ -134,7 +177,10 @@ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK; THROW; END CATCH;
 -- in an owner-reviewed transaction. Never drop fixtures/schema with posted operations.
 -- Successful posted invoices/receipts require their application reversal; restore is not a rollback test.
 `);
- return parts.join('\n\n');
+ const sql=parts.join('\n\n');
+ const invalidChecks=findInlineCrossColumnChecks(sql);
+ if(invalidChecks.length)throw Error('CROSS_COLUMN_INLINE_CHECK: '+JSON.stringify(invalidChecks));
+ return sql;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  if(process.argv[2]!=='--write')throw Error('OFFLINE_SQL_SOURCE_WRITE_FLAG_REQUIRED');
