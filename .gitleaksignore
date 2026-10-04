@@ -1,0 +1,18 @@
+# Exact false positives independently reviewed on 2026-10-03; no broad exclusions.
+# Database identity metadata, no credential
+4a725d834af1f9f9b7b9a7449b50c6fa00366697:docs/erp-v2/canonical-20261003/delivery-readonly-sites.json:generic-api-key:14
+# Database identity metadata, no credential
+4dfd2736e26a7af9ab3549e09219b03ab8893571:docs/erp-v2/canonical-20261003/delivery.json:generic-api-key:14
+# Browser localStorage identifier
+dc2fdfeece74f7fd89d9b22f36c89264c4cd0710:apps/sites-workflow/public/workflow-settlement-ui.js:generic-api-key:2
+# Cost evidence template identifier
+dc2fdfeece74f7fd89d9b22f36c89264c4cd0710:apps/sites-workflow/src/workflow/testPrices.js:generic-api-key:13
+# Stock provenance source path
+6bc4877533b09673f1a732d921044ed1db18c998:apps/api/scripts/stock-audit-4-unit-closeout.mjs:generic-api-key:10
+# 40-hex Git commit metadata
+fdcaa59981640cd2fa57b637b3bac2002671ad7b:docs/erp-v2/canonical-20261003/sites-v70-verification.json:sourcegraph-access-token:3
+# Empty key plus adjacent local example causes cross-line match
+608de6b6c387da7ab7f0cbe7aa778f515140b3fa:apps/whatsapp-crm-api/.env.example:generic-api-key:20
+
+# Exact public TEST database identity metadata, independently reviewed 2026-10-04
+9a7410b31c669e7b0c80e33c6635b1b0726d4e5c:docs/erp-v2/canonical-20261003/delivery.json:generic-api-key:8
