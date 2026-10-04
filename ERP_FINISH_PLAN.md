@@ -1,5 +1,73 @@
 # Melisa ERP — bitirme planı
 
+## Güncel finish tree — 4 Ekim 2026
+
+**Toplam 49 iş: 🟢 5 tamam · 🟡 13 kısmi / kabul bekliyor · 🔴 31 açık. Genel ilerleme: %10,2 tamam; %26,5 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+
+Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
+
+🟢: kayıtlı kapsamın kabulü tamam; yeniden ispat işi açılmaz. 🟡: kaynak/teknik hazırlık var, belirtilen gerçek kullanım veya işletme kabulü eksik. 🔴: somut uygulama/kanıt/karar eksik. Bilinmeyen maliyet, bakiye, barkod veya kur sıfır/tahmin ile tamamlanmış sayılmaz. Belirsiz kartlar karantinada kalır.
+
+| ID | İş | Durum | Kanıt / kapanış ölçütü |
+| --- | --- | --- | --- |
+| P01 | Kanonik kaynak ve origin | 🟢 | SEMIH exact repo, temiz e0 tabanı ve fetch/push doğrulandı; eski kopyalar korunur. |
+| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST 5194/4144/4146 → paket16/e0 → Semih\\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE farklı DB ve süreçlerde. |
+| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Paket16 1.133 dosya SHA-256 eşleşti; yeni dilim kendi manifestiyle teslim edilir. |
+| A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | 16.622 eşlenen kart teknik mutabakatlı; normal günlük stok ekranı ve personel kabulü eksik. |
+| A02 | Satış/alış fiyatı, maliyet, döviz | 🟡 | 63.774 typed fiyat okuyucu hazır; NULL/gerçek 0 ayrımı korunur. Günlük operasyon seçimi/yazımı ve personel kabulü eksik. |
+| A03 | Gerçek ürün fotoğrafı | 🔴 | Doğru kaynak kimliğiyle gerçek görsel bağlantısı/eksik görsel gösterimi ve normal ekran kabulü. |
+| A04 | Gerçek müşteri ve dövizli bakiyeler | 🟡 | 371 müşteri/379 hesap açılışı eşlenmiş; normal kart ve defterde scope/UNKNOWN/karantina kabulü. |
+| A05 | Gerçek tedarikçi ve dövizli borçlar | 🟡 | 401 tedarikçi/406 hesap SQL mutabakatlı; mevcut supplier.view sınırıyla normal izinli kart/defter kabulü eksik. |
+| A06 | Kaynak güvenirliği ve karantina gösterimi | 🟡 | 176 kaynak/172 hedef/4 hedefsiz; API+SQL engeli ve negatif ekran provası hazır. İşletme kabulü bekliyor. |
+| B01 | Ana Sayfa günlük iş sırası | 🔴 | Gerçek veri, hızlı görevler, ayrı döviz toplamları; 1440/1024/390 kabulü. |
+| B02 | Stok arama/filtre ve detay | 🔴 | Yoğun tablo, net stok/birim/fiyat/görsel; üç genişlik ve boş/hata/yetki kabulü. |
+| B03 | Cariler bilgi hiyerarşisi | 🔴 | Müşteri ve tedarikçi ayrı; hesap dövizi/borç işareti doğru; üç genişlik. |
+| B04 | Satış günlük kullanım ekranı | 🔴 | Büyük net işlemler, gerçek müşteri/ürün satırları ve yetki; üç genişlik. |
+| B05 | Alış günlük kullanım ekranı | 🔴 | Çok satırlı mal kabul, alış taslağı ve onay ayrımı; üç genişlik. |
+| B06 | Finans günlük kullanım ekranı | 🔴 | Kasa/banka/tahsilat/ödeme ayrımı, doğru döviz ve büyük aksiyonlar; üç genişlik. |
+| B07 | Raporlar filtre ve kapsam | 🔴 | Gerçek kaynak, NULL maliyet/kâr kapsamı, ayrı döviz ve açıklamalı export; üç genişlik. |
+| B08 | Ayarlar günlük kullanım ekranı | 🔴 | Kullanıcı/izin/terminal/başlama/yedek durumlarını kanıtlı ve sade göster; üç genişlik. |
+| C01 | Çok satırlı mal kabul | 🔴 | **Aktif iş:** iki farklı sentetik TEST ürünü; pending etkisiz, bütün satırların onayı atomik/tek etkili; ret ve yanlış satır hareket oluşturmaz. |
+| C02 | Ayrıntılı alış taslağı | 🔴 | C01 ile bağlı dilim: kalıcı SQL taslağı etkisiz; satır miktarı rezervasyonu, ayrı finalize, kısmi faturalama; stok ikinci kez artmaz. |
+| C03 | Dövizli alış fiyatı operasyonu | 🔴 | Typed okuyucu kabulü korunur; işlemde doğru döviz/birim/kademe/kur snapshot seçimi, bilinmeyen kaynak ve yazım kabulü eksik. |
+| C04 | Gerçek satış ekranı kabulü | 🟡 | Önceki ayrılmış TEST satış/iptal kabulü korunur; günlük gerçek ekran/personel kabulü eksik. |
+| C05 | Açık hesap | 🟡 | Yetkili satışın tahsilatsız cari etkisi baseline'da; normal ekranın limit/vade/yetki kabulü eksik. |
+| C06 | Gerçek müşteri kartı | 🔴 | Normal kart, yetkili düzenleme, döviz hesabı ve belirsiz alan/karantina kabulü. |
+| C07 | Gerçek tedarikçi kartı | 🔴 | Normal kart, izinli düzenleme, borç/hesap bağlantısı; supplier.view olmadan erişim açılmaz. |
+| C08 | Kasa/banka günlük akışı | 🟡 | Ayrılmış TEST tahsilat/ödeme kabulleri korunur; fiziksel açılış/sayım ve personel kabulü ayrı. |
+| C09 | Fiyat yazma/düzenleme | 🔴 | Fiyat tuple/provenance, yetki, audit, stale kontrol ve gerçek TEST ekranı; eski mühür ezilmez. |
+| C10 | Sayım/iade/ters kayıt | 🟡 | Mevcut sayım ve aynı faturadan bağlı alış iadesi kabulü korunur; yeni çok satır kapsamı ve personel kabulü eksik. |
+| C11 | Kullanıcı/yetki | 🟡 | Mevcut API izinleri korunur; günlük rol matrisi ve eksik normal kullanıcı negatif kabulü kapanır. |
+| C12 | Fiziksel terminal | 🔴 | Gerçek cihaz/scanner/offline/sync; kaynak/API/DB/package kimlikli normal kullanım kabulü. |
+| C13 | Windows otomatik başlama | 🔴 | Mevcut görev/launcher sahibi, logon/reboot/uyku sınırı ve gerçek açılış kabulü; LIVE değişikliği ayrı yetki. |
+| C14 | Backup/restore | 🔴 | Ayrı sentetik restore hedefiyle prova, veri kaybetmeden geri dönüş ve operatör kabulü; VERIFYONLY restore değildir. |
+| C15 | Günlük raporlar | 🟡 | Mevcut rapor kaynakları korunur; normal ekranın dönem/döviz/maliyet kapsamı ve export kabulü eksik. |
+| D00 | Donmuş Vega açılış mutabakatı | 🟢 | RUN06 COMMITTED, eşlenen 16.622 ürün/772 cari/785 hesap/63.774 fiyat fark0, replay ek yazma0; yalnız bu kapsam. |
+| D01 | 54 ürün belirsizliği | 🔴 | İşletme kimlik/birim/barkod kararı ve kaynak kanıtı; operasyon engeli A06'da korunur. |
+| D02 | 122 cari belirsizliği | 🔴 | 28 müşteri/94 tedarikçi kimlik/döviz/bakiye kararı; tahmin/NULL→0 yok. |
+| D03 | Eksik maliyetler | 🟡 | 10.552 NULL açık gösterilir; yeni kanıt veya açıklamalı işletme kabulü gerekir. Liste alış fiyatı maliyet değildir. |
+| D04 | 71 yeni ürün delta | 🔴 | Gerçek kaynak salt okunur plan; yeni ID/alias/birim/barkod/fiyat/açılış zinciri, sentetik TEST prova. |
+| D05 | 341 değişmiş ürün delta | 🔴 | Kaynak kimliği ve before-image ile eşleme; korunmuş yerel stok/maliyet etkisi; atomik TEST prova. |
+| D06 | 74 değişmiş cari delta | 🔴 | Döviz hesaplarını ayrı ve exact etkileri korunarak eşle; güvenli kapsam belirsizliği açık kalsın. |
+| D07 | T0/T1 cutover planı | 🔴 | Sorumlu/zaman, bütün kaynak yazıcı ve gecikmiş terminal kesimi, tutarlı snapshot; LIVE uygulama ayrıca onaylı. |
+| D08 | İdempotent delta batch | 🔴 | Yeni immutable run/hash/plan, tam before-image, drift/red ve replay0; RUN06 writer tekrar kullanılmaz. |
+| D09 | Son mutabakat | 🔴 | Yeni kesim/delta kaynak→native kayıt bazında fark0; fiyat sürümü/karantina mirası ve eski geçmiş korunur. |
+| D10 | Committed rollback provası | 🔴 | Ayrı sentetik TEST etkisini geri al, sonraki hareketi ezme; yarıda transaction rollback'i yeterli değil. |
+| D11 | Vega READ ONLY arşiv planı | 🔴 | Tek yazıcı devir sırası ve geçmişe salt okunur erişim; gerçek Vega mod değişikliği bu yetkide yapılmaz. |
+| E01 | Modül bazında gerçek kabul | 🔴 | Her modüle normal TEST URL ve 3–5 deneme; rol/olumsuz durum/SQL etkisi ve kişi/tarih/kapsam kayıtlı. |
+| E02 | Personelin günlük akış kabulü | 🔴 | Mal kabulden gün sonuna kullanıcı günlük işini deneyip kabul eder; ajan teknik testi insan kabulü değildir. |
+| E03 | Görsel üç genişlik kabulü | 🔴 | 1440/1024/390 gerçek browser; etkilenen ekranlarda okunabilirlik, aksiyonlar, taşma/hata/boş durum. |
+| F01 | Tek finish tree ve otomatik sıra | 🟢 | Bu tablo güncel iş kaynağı; root sayım/status günceller. `devam` sıradaki bağımsız açık işi seçer. |
+| F02 | Branch/commit/PR/CI teslimi | 🟡 | e0 feature tabanı + seçilmiş portable ajan/CI dosyaları; gerekli iki check son tam head'de başarılı olacak. Merge/LIVE deploy yok. |
+
+### Aktif dilim, sahiplik ve kabul
+
+Seçili tek kaynak eksikliği C01; onun faturalama bağımlılığı C02 aynı günlük alış diliminde yürütülür. Backend `testPurchaseService.mjs`, `testPurchaseRoutes.mjs`, yeni batch model/test/TEST kurulum scripti ve `invoiceDraftService.js` içindeki received-context doğrulamasına sahip. Frontend yalnız `workflow/testPurchase.js`, `testPurchaseView.js`, yeni scoped CSS/model/test dosyalarına sahip. SQL-Vega salt okunur guard/scope incelemesi yapar; reviewer bağımsız kontrol eder. Root sözleşme, entegrasyon, paket/runtime, finish tree/STATUS ve Git teslimine sahip. Aynı dosyada paralel yazma yok.
+
+İlk kabul iki farklı sentetik ürün, satır başına 1–5 ADET, TRY ve açık KDV/iskonto0 kapsamındadır. Bu dar prova genel dövizli fiyat yazımı, tüm ticari kartlar veya fiziksel terminal kabulü sayılmaz. Legacy tek satır/bağlı iade korunur. Taslak/pending stok ve borç değiştirmez; fiziksel onay stok oluşturur; finalize yalnız borç oluşturur; replay ikinci etki üretmez; sahte/yetkisiz/karantina satır bütün işlemi durdurur.
+
+Yeni kod sonrasında uygun hedefli test/build, bağımsız review, normal browser ve SQL farkı kaydedilir. Personel kabulü olmadan ilgili yaprak 🟡 kalır. LIVE/Vega yazması, main merge, gerçek ticari kartlarda test yazması, credential değişikliği ve geri dönüşü zor işlem bu teknik yetkiye eklenmez.
+
 Güncel yerel kaynak toplama: [3 Ekim kanonik baseline](docs/erp-v2/canonical-20261003/README.md). Aşağıdaki ilk envanter, EVDEKIPC devir anının tarihsel kaydıdır; SEMIH kaynak eşlemesi bu bağlantıdaki kanıtla güncellenir.
 
 Güncelleme: 4 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıdır**. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).

@@ -1,5 +1,15 @@
 # Melisa ERP durumu
 
+4 Ekim 2026 — **ERP ana finish tree ve C01/C02 çok satırlı alış dilimi. Kaynak hazır; çalışan TEST kabulü henüz doğrulanmadı.**
+
+- Tek güncel finish tree: [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md); 49 yaprak, 🟢5 / 🟡13 / 🔴31, tamamlanan %10,2. İnsan kabulü bekleyen teknik sonuçlar tamamlanmış sayılmaz. Aktif tek kaynak işi C01; C02 aynı alışın kalıcı fatura bağımlılığıdır.
+- Kök/origin/feature/dirty başlangıcı, üç TEST ve üç LIVE portunun gerçek süreç sahipleri ve DB kimlikleri tespit edildi. TEST çalışan paket #16 / `e0c18e3`; exact 1133 dosya hash'i fark0. LIVE farklı release/DB; commit doğrulanmadı. LIVE/Vega yazması/restart ve main merge yok.
+- Kabul edilmiş migration/fiyat/karantina tabanından `codex/erp-finish-20261004` oluşturuldu. Başka uygulama branch'i otomatik birleştirilmedi. Kaynak `5daea45`; CI altyapısı `8099115`. [PR #23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23) draft, base `codex/canonical-live-20261003`. Son head ve CI burada PR bağlantısından izlenir; ilk altyapı commit'inde hosted quality-build-test/secret-scan PASS, yeni alış/SQL head kontrolleri bekliyor.
+- Backend/UI: iki farklı sentetik ürünün atomik kabulü ve native SQL kalıcı alış taslağı; TRY, 60/80 fiyat, 1–5 ADET, açık 0 KDV/iskonto. Pending/taslak yan etkisiz, approve stok bir kez, finalize yalnız borç, gerekçeli iptal ve replay. Eski tek satırlı fatura/iade korunur. Yeni çok satırlı iade/ödeme ve genel dövizli alış açık.
+- Bağımsız backend review'de mutasyon/replay fiyat yetkisi ve son100 kaynak kabul erişimi düzeltildi. API218/Sites373/web-admin5/migration37 offline test ve build PASS. SQL source kontrolleri7 PASS. Bunlar gerçek SQL/personel kabulü değildir.
+- TEST COPY_ONLY/CHECKSUM yedeği VERIFYONLY PASS; 14 eski ticari tablo count/tam satır digest'i yerel kanıtta. SQL kurulum ve gerçek ekran/SQL karşılaştırması bekliyor; çalışan eski TEST paketi korunuyor. Restore/reset yapılmadı.
+- [Mal kabulü](http://127.0.0.1:5194/is-akisi-taslagi.html#goods) / [Alış](http://127.0.0.1:5194/is-akisi-taslagi.html#purchases) için [beş personel kabul adımı ve kapsam](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md). Personel kabulü: henüz bulunamadı. Sıradaki tek iş: C01/C02'nin exact TEST SQL kurulumu ve normal ekran kabulünü tamamlamak.
+
 4 Ekim 2026 — **Aktarım karantinası gerçek TEST kullanım kabulüne hazır. Genel migration/cutover PARTIAL.** [TEST karantina ekranı](http://127.0.0.1:5194/is-akisi-taslagi.html#migration-quarantine) · [Migration planı](ERP_MIGRATION_PLAN.md).
 
 - 176 kaynak kayıt: 54 ürün, 28 müşteri, 94 tedarikçi. 172 exact hedef kartı ticari işlemden engelli; dört hedefsiz tedarikçi ID NULL. Dokuz ürün/üç müşteri kaynak adı NULL kalır ve bilinmiyor gösterilir. Kabul edilmiş kartlar ve TEST fixture kapsamı korunur.
