@@ -10,7 +10,7 @@ curl --fail --location --silent --show-error --retry 3 \
   --output "$scan_dir/$archive"
 printf '%s  %s\n' "$checksum" "$scan_dir/$archive" | sha256sum --check --status
 tar -xzf "$scan_dir/$archive" -C "$scan_dir" gitleaks
-# Full history reachable from the checkout HEAD, including PR merge ancestry.
+# Full fetched Git history, including all refs and PR merge ancestry.
 # No tokens, provider credentials, license key or upload of reports are needed.
 set +e
 "$scan_dir/gitleaks" git . --redact=100 --no-banner --log-level error \

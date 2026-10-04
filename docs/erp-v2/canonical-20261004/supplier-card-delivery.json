@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-05",
+  "selectedTask": "C07",
+  "technicalAcceptance": "PASS_SELECTED_TEST_SCOPE",
+  "moduleAcceptance": "PARTIAL",
+  "humanAcceptance": "NOT_FOUND",
+  "branch": "codex/erp-finish-20261004",
+  "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23",
+  "implementationCommit": "95bef876362374c00e8f3cbd0522efe1b791533f",
+  "runtimeCommit": "0907cddf9bd7db32da79c42dae22b33ffaa0e640",
+  "runtimePackage": "CANONICAL-FINISH-SUPPLIER-CARD-TEST-20261005-24",
+  "manifestFiles": 1199,
+  "testDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "testServer": "Semih\\MELISADEV",
+  "testPorts": [
+    5194,
+    4144,
+    4146
+  ],
+  "supplierCardCount": 530,
+  "quarantinedNativeSupplierCount": 90,
+  "sourceSupplierParties": 495,
+  "sourceSupplierAccounts": 503,
+  "sourceSupplierProjectionRecords": 998,
+  "sourceCutoff": "2026-09-30",
+  "freshLiveData": false,
+  "permissionChange": {
+    "isolatedRoleId": 16,
+    "addedKeys": [
+      "supplier.view",
+      "supplier.edit"
+    ],
+    "inserted": 2,
+    "replayed": 0,
+    "otherPermissionRowsUnchanged": 134
+  },
+  "contactScope": {
+    "syntheticSupplierId": 13373,
+    "actorId": 16,
+    "fields": [
+      "phone",
+      "city",
+      "country"
+    ],
+    "completedJournal": 2,
+    "reservedJournal": 0,
+    "originalContactsRestoredToNull": true,
+    "protectedColumnsUnchanged": 28,
+    "metadataRevisionReset": false
+  },
+  "runtimeAcceptance": {
+    "readApiCases": 20,
+    "contactNegativeAndReplayApiCases": 14,
+    "contactRollbackSqlCases": 9,
+    "normalBrowserSaveReloadReplayRestore": true,
+    "readonlyActor14EditorAbsent": true,
+    "sellerActor15SupplierAccessDenied": true,
+    "originalCommercialTablesCompared": 27,
+    "allOtherSupplierRowsUnchanged": true,
+    "protectedSyntheticFieldsUnchanged": true,
+    "financialEffects": 0,
+    "uiPageHorizontalOverflow": 0,
+    "widths": [
+      {
+        "iframe": 1440,
+        "client": 1427,
+        "scroll": 1427
+      },
+      {
+        "iframe": 1024,
+        "client": 1011,
+        "scroll": 1011
+      },
+      {
+        "iframe": 390,
+        "client": 377,
+        "scroll": 377
+      }
+    ],
+    "physicalDeviceAcceptance": "NOT_VERIFIED",
+    "errorUiConnectionInterruption": "NOT_VERIFIED"
+  },
+  "sql": {
+    "installerSha256": "C786AE3B6A49C5FC851986209520F5E28352E8C63CA1E6F5139324E0DCE31441",
+    "metadataInstalled": 5,
+    "metadataReplayWrites": 0,
+    "previousTriggerDefinitionsUnchanged": 42,
+    "firstTriggersUnchanged": 37,
+    "oldGuardManifestsUnchanged": 15,
+    "purchaseFxManifestsUnchanged": 17,
+    "sourceAndQuarantineSealsUnchanged": true,
+    "contactGuardScope": "contact-field UPDATE only; accepted monetary flows retained"
+  },
+  "localChecks": {
+    "apiTests": 296,
+    "sitesTests": 418,
+    "canonicalTests": 49,
+    "syntax": "PASS",
+    "independentCrossReview": "PASS"
+  },
+  "deployment": {
+    "oldPackagePreserved": true,
+    "liveProcessOwnersUnchanged": true,
+    "liveCommit": "NOT_VERIFIED",
+    "liveDeployment": false,
+    "mainMerge": false,
+    "rollbackRestoreRehearsal": "NOT_VERIFIED"
+  },
+  "evidenceDirectory": "C:\\Sirket\\ERP\\evidence\\ERP-FINISH-C07-20261005",
+  "finishTree": {
+    "total": 49,
+    "complete": 5,
+    "partial": 20,
+    "open": 24,
+    "next": "C09"
+  },
+  "remaining": [
+    "General real supplier editing",
+    "Human daily-use acceptance",
+    "Physical terminal/phone",
+    "Vega delta and cutover"
+  ],
+  "secretScanFixtureReview": {
+    "version": "8.30.1",
+    "fullFetchedHistory": "PASS",
+    "exactHistoricalFingerprintsAdded": 2,
+    "historicalSyntheticFindings": 3,
+    "rulesDisabled": 0,
+    "pathsExcluded": 0,
+    "historyScopeChanged": false,
+    "independentReview": "PASS",
+    "sameFilesSameLinesNewCommitStillRejected": 2,
+    "realCredentialFound": false
+  },
+  "hostedCi": {
+    "headCommit": "6ce483fe89cc1c786f5b9433a6df0109b18793ae",
+    "requiredJobsPassed": 4,
+    "result": "PASS",
+    "runs": [
+      {
+        "run": 37242480985,
+        "jobs": [
+          {
+            "id": 111553780102,
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 111553780240,
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "run": 37242485368,
+        "jobs": [
+          {
+            "id": 111553792970,
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 111553793166,
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  }
+}

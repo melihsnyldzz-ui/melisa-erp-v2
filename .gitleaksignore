@@ -16,7 +16,6 @@ fdcaa59981640cd2fa57b637b3bac2002671ad7b:docs/erp-v2/canonical-20261003/sites-v7
 
 # Exact public TEST database identity metadata, independently reviewed 2026-10-04
 9a7410b31c669e7b0c80e33c6635b1b0726d4e5c:docs/erp-v2/canonical-20261003/delivery.json:generic-api-key:8
-
 # Exact synthetic E02 fixtures independently reviewed 2026-10-05; no credential
 # Public stock provenance path in a negative test
 c9711d1f27168d2b04419e31d3886700c94a5e9a:apps/api/src/services/testCrmOrderService.test.mjs:generic-api-key:36
