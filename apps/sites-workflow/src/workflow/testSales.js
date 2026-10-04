@@ -40,7 +40,7 @@ async function api(path,{method='GET',body,envelope=false}={}){
 function role(){
  document.querySelector('.rolebox').innerHTML=`<label>GERÇEK TEST OTURUMU</label><strong class="test-user">${esc(user?.displayName||'Giriş bekleniyor')}</strong><small>${esc(user?.role?.name||'Yetki seçicisi yok')}</small>`;
  document.getElementById('avatar').textContent=(user?.displayName||'?')[0];
- document.querySelector('.sidefoot').innerHTML='<strong>TEST veritabanı</strong><br>Yalnız TEST-V70 kayıtları<br>Dış entegrasyonlar kapalı<br><a href="/ornek-akis.html">Ayrı örnek akışı aç ↗</a>';
+ document.querySelector('.sidefoot').innerHTML='<strong>TEST veritabanı</strong><br>LIVE’dan ayrı TEST<br>Yazma: ayrılmış deneme kayıtları<br>Dış entegrasyonlar kapalı<br><a href="/ornek-akis.html">Ayrı örnek akışı aç ↗</a>';
  const r=document.getElementById('mobileRole');r.disabled=true;r.innerHTML=`<option>${esc(user?.displayName||'Giriş gerekli')}</option>`;
 }
 function header(){
