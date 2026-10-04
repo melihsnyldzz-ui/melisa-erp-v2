@@ -1,3 +1,4 @@
+import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import {nativeCatalogVersion,nativeCatalogPage} from '../services/nativeCatalogSync.mjs';
 import {Router} from 'express';
 import {nativeWorkflows} from '../services/nativeTerminalWorkflows.mjs';
@@ -33,7 +34,7 @@ nativeTerminalRoutes.get('/catalog/version',handle(req=>nativeCatalogVersion(req
 nativeTerminalRoutes.get('/catalog/page',handle(req=>nativeCatalogPage(req.query,req.user)));
 nativeTerminalRoutes.get('/catalog',handle(req=>nativeSearch(req.query,req.user,{catalog:true})));
 nativeTerminalRoutes.post('/approval',approvals,handle(req=>nativeDiscountApproval(req.body,req.user)));
-nativeTerminalRoutes.post('/sales/submit',requireAnyPermission(['terminal.sales.create','sales.finalize']),handle(req=>nativeSubmitSale(req.body,req.user)));
+nativeTerminalRoutes.post('/sales/submit',requireAnyPermission(['terminal.sales.create','sales.finalize']),operationQuarantineGate('sales'),handle(req=>nativeSubmitSale(req.body,req.user)));
 nativeTerminalRoutes.post('/sales/status',handle(req=>nativeSaleStatus(req.body,req.user)));
 nativeTerminalRoutes.get('/sales/:invoiceId/category-report',handle(req=>nativeCategoryReports.receipt(req.params.invoiceId,req.query,req.user)));
 nativeTerminalRoutes.post('/sales/cancel',approvals,handle(req=>nativeCancelSale(req.body,req.user)));

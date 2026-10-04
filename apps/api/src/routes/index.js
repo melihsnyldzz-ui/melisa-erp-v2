@@ -26,8 +26,10 @@ import { systemRoutes } from './systemRoutes.js';
 import { terminalRoutes } from './terminalRoutes.js';
 import { terminalAdminRoutes } from './terminalAdminRoutes.js';
 import { terminalCustomerRoutesRoutes } from './terminalCustomerRoutesRoutes.mjs';
+import {operationQuarantineRoutes} from './operationQuarantineRoutes.mjs';
 
 export const apiRoutes = Router();
+apiRoutes.use(operationQuarantineRoutes);
 
 apiRoutes.use(systemRoutes);
 apiRoutes.use(authRoutes);

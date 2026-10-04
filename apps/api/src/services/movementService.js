@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
@@ -729,6 +730,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null, tran
   if (!transactionContext) await transaction.begin();
 
   try {
+    await assertOperationQuarantineAllowed([{entity:'product',nativeId:productId}],quarantineTransactionContext(sqlDriver,transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Stok sayım düzeltmesi');
 
     const productResult = await new sqlDriver.Request(transaction)

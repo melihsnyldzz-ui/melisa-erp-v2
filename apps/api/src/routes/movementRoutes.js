@@ -1,3 +1,4 @@
+import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import { Router } from 'express';
 import {
   getCustomerMovements,
@@ -21,7 +22,7 @@ export const movementRoutes = Router();
 
 movementRoutes.get('/stock-movements', requireAuth, requirePermission('product.view'), getStockMovements);
 movementRoutes.get('/stock-valuation', requireAuth, requirePermission('product.view'), getStockValuation);
-movementRoutes.post('/stock-count/adjust', requireAuth, requirePermission('product.view'), requirePermission('stock.adjust'), postStockCountAdjustment);
+movementRoutes.post('/stock-count/adjust', requireAuth, requirePermission('product.view'), requirePermission('stock.adjust'), operationQuarantineGate('stock'), postStockCountAdjustment);
 movementRoutes.get('/customer-movements', requireAuth, requirePermission('customer.view'), getCustomerMovements);
 movementRoutes.get('/vega/sales/stock-exits', requireAuth, requirePermission('sales.view'), getVegaSalesStockExits);
 movementRoutes.get('/vega/purchases/invoices', requireAuth, requirePermission('purchase.view'), getVegaPurchaseInvoices);

@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {reverseStockDocument} from './testStockReversalService.mjs';
 import {createHash} from 'node:crypto';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
@@ -19,6 +20,7 @@ const validDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')||!Number.isFinite(Date
 async function atomic(flow,actor,fn){return withTestSalesMutation(async()=>{const pool=await getSqlPool(),sqlDriver=getSqlDriver(),transaction=new sqlDriver.Transaction(pool);await transaction.begin();const ctx={pool,sqlDriver,transaction},req=()=>new sqlDriver.Request(transaction);try{
  await req().query("IF DB_NAME()<>N'MELISA_ERP_SIRKET_TEST_20260929_01' THROW 51070,'WRONG_DB',1;DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51071,'TEST_BUSY',1;");
  const scope=(await req().input('flow',sqlDriver.NVarChar(20),flow).query('SELECT s.*,p.stock_code,p.name product_name,p.unit,p.current_stock_qty,p.average_cost_try FROM dbo.test_daily_scope s LEFT JOIN dbo.products p ON p.id=s.product_id WHERE s.flow=@flow')).recordset[0];if(!scope)fail('TEST_SCOPE','TEST kapsamı bulunamadı.',403);ctx.scope=scope;ctx.req=req;ctx.actor=actor;
+ await assertOperationQuarantineAllowed(['product','customer','supplier'].filter(entity=>scope[entity+'_id']!=null).map(entity=>({entity,nativeId:scope[entity+'_id']})),quarantineTransactionContext(sqlDriver,transaction));
  const v=await fn(ctx);await transaction.commit();return v;
 }catch(e){if(flow.endsWith('-cancel'))console.error('REVERSAL_SQL_DIAGNOSTIC',JSON.stringify({number:e.number,message:e.message,procedure:e.procName}));try{await transaction.rollback()}catch{}if(e.number===51070||e.originalError?.info?.number===51070)fail('TEST_DATABASE_BOUNDARY','TEST SQL sınırı; işlem bütünüyle geri alındı.',409);throw e}});}
 async function journal(c,i,op,fn){if(!/^[a-zA-Z0-9-]{16,64}$/.test(i.requestId||''))fail('REQUEST_ID','Kalıcı istek kimliği gerekli.');const {sqlDriver:s,req,scope,actor}=c,digest=hash({...i,op,flow:scope.flow});const old=(await req().input('id',s.NVarChar(64),i.requestId).query('SELECT * FROM dbo.test_daily_requests WHERE request_id=@id')).recordset[0];if(old){if(old.payload_hash!==digest||Number(old.actor_id)!==Number(actor.id))fail('REQUEST_CONFLICT','İstek kimliği farklı içerikte kullanıldı.',409);return {...JSON.parse(old.response_json),replayed:true}}

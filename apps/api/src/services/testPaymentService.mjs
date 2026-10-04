@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {createHash} from 'node:crypto';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
 import {withTestSalesMutation} from './testSalesScope.mjs';
@@ -55,6 +56,7 @@ export async function cancelTestPayment(id,i,actor){return atomic(actor,async(ct
  const {sqlDriver:s,transaction:t}=ctx;
  const m=(await req().input('id',s.BigInt,Number(id)).query("SELECT m.*,f.account_id,f.payment_method FROM dbo.test_payment_requests j JOIN dbo.supplier_movements m ON m.id=j.movement_id JOIN dbo.finance_account_movements f ON f.party_movement_id=m.id AND f.party_type=N'supplier' AND f.source_type=N'payment' WHERE j.operation=N'payment' AND m.id=@id")).recordset[0];
  if(!m)fail('TEST_ORIGINAL','Asıl TEST ödemesi bulunamadı.',404);
+ await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:m.supplier_id}],quarantineTransactionContext(s,t));
  if((await req().input('id',s.BigInt,Number(id)).query('SELECT original_id FROM dbo.test_payment_requests WHERE original_id=@id')).recordset.length)fail('ALREADY_CANCELLED','Ödeme zaten iptal edildi.',409);
  try{cancelSupplierPayment({audit:[],supplierPayments:[{id:String(id)}]},String(id),i.reason,'İlker')}catch(e){fail('SITES_PAYMENT_RULE',e.message,409)}
  if(m.account_amount==null||m.amount_try==null||m.document_exchange_rate_snapshot==null||m.account_exchange_rate_snapshot==null)fail('SNAPSHOT_REQUIRED','Özgün kur kaydı olmadan ters hareket oluşturulamaz.',409);

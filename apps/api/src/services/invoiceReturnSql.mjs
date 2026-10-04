@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {returnError} from './invoiceReturnPolicy.mjs';
 import {settlementFromInvoice} from './currencySettlement.mjs';
 
@@ -43,6 +44,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
     assertPeriod:date=>period(request(),date,'İade işlemi'),
     audit:entry=>audit(request(),entry),
     async insert(payload,plan,hash,actorId){
+     await assertOperationQuarantineAllowed([{entity:plan.kind==='sales'?'customer':'supplier',nativeId:plan.partyId},...plan.items.map(i=>({entity:'product',nativeId:i.productId}))],quarantineTransactionContext(sql,transaction));
      const req=request().input('requestId',sql.UniqueIdentifier,payload.requestId).input('kind',sql.NVarChar(10),plan.kind).input('sourceSales',sql.BigInt,plan.kind==='sales'?plan.sourceInvoiceId:null).input('sourcePurchase',sql.BigInt,plan.kind==='purchase'?plan.sourceInvoiceId:null).input('customerId',sql.BigInt,plan.kind==='sales'?plan.partyId:null).input('supplierId',sql.BigInt,plan.kind==='purchase'?plan.partyId:null).input('date',sql.Date,plan.documentDate).input('currency',sql.NVarChar(3),plan.documentCurrency).input('rate',sql.Decimal(18,8),plan.exchangeRate).input('amount',sql.Decimal(18,4),plan.amount).input('accountCurrency',sql.NVarChar(3),plan.accountCurrency).input('accountRate',sql.Decimal(18,8),plan.accountExchangeRate).input('accountAmount',sql.Decimal(18,4),plan.accountAmount).input('amountTry',sql.Decimal(18,4),plan.amountTry).input('reason',sql.NVarChar(500),plan.reason).input('hash',sql.Char(64),hash).input('plan',sql.NVarChar(sql.MAX),JSON.stringify(plan)).input('actorId',sql.BigInt,actorId);
      const result=await req.query(`DECLARE @newReturnIds TABLE(id bigint); INSERT dbo.invoice_returns(request_id,kind,source_sales_invoice_id,source_purchase_invoice_id,customer_id,supplier_id,status,document_date,document_currency,exchange_rate_snapshot,amount,account_currency,account_exchange_rate_snapshot,account_amount,amount_try,reason,payload_hash,plan_json,created_by) OUTPUT inserted.id INTO @newReturnIds VALUES(@requestId,@kind,@sourceSales,@sourcePurchase,@customerId,@supplierId,N'finalized',@date,@currency,@rate,@amount,@accountCurrency,@accountRate,@accountAmount,@amountTry,@reason,@hash,@plan,@actorId); SELECT r.* FROM dbo.invoice_returns r JOIN @newReturnIds n ON n.id=r.id;`);
      const saved=rowDto(result.recordset[0]);
@@ -50,6 +52,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
      return saved;
     },
     async apply(saved,plan,sign,actorId){
+     await assertOperationQuarantineAllowed([{entity:plan.kind==='sales'?'customer':'supplier',nativeId:plan.partyId},...plan.items.map(i=>({entity:'product',nativeId:i.productId}))],quarantineTransactionContext(sql,transaction));
      const sales=plan.kind==='sales',direction=(sales?1:-1)*sign;
      for(const item of plan.items){
       await request().input('productId',sql.BigInt,item.productId).input('qty',sql.Decimal(18,3),item.stockAfter).input('average',sql.Decimal(18,4),item.averageCostAfter).query('UPDATE dbo.products SET current_stock_qty=@qty,average_cost_try=@average,updated_at=SYSUTCDATETIME() WHERE id=@productId;');

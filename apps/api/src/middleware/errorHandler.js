@@ -1,7 +1,9 @@
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import {normalizeOperationQuarantineError} from '../services/operationQuarantineError.mjs';
 
 export function errorHandler(err, req, res, next) {
+  err=normalizeOperationQuarantineError(err);
   if (res.headersSent) {
     return next(err);
   }

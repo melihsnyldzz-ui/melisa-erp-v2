@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
@@ -1800,6 +1801,7 @@ export async function createCustomerCollection(payload, actor, transactionContex
   if (!transactionContext) await transaction.begin();
 
   try {
+    await assertOperationQuarantineAllowed([{entity:'customer',nativeId:customerId}],quarantineTransactionContext(sqlDriver,transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Tahsilat kaydı');
 
     const account = await resolveFinanceAccount(transaction, sqlDriver, {
@@ -1940,6 +1942,7 @@ export async function createSupplierPayment(payload, actor, transactionContext =
   if (!transactionContext) await transaction.begin();
 
   try {
+    await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:supplierId}],quarantineTransactionContext(sqlDriver,transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Ödeme kaydı');
 
     const account = await resolveFinanceAccount(transaction, sqlDriver, {

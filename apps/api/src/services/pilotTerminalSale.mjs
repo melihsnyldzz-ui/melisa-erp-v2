@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {pilotProductScopeSql} from './pilotProductScope.mjs';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
 import {assertMelisaWriteEnabled} from './writeGuardService.js';
@@ -56,6 +57,7 @@ export async function submitPilotSale(payload,actor){
  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
  let commitStarted=false,committed=false;
  try {
+  await assertOperationQuarantineAllowed([{entity:'customer',nativeId:business.customerId},...business.items.map(i=>({entity:'product',nativeId:i.productId}))],quarantineTransactionContext(sql,transaction));
   const identityRow=(await new sql.Request(transaction).query("SELECT DB_NAME() AS db,OBJECT_ID(N'dbo.finance_account_movements',N'U') AS finance")).recordset[0];
   if(identityRow.db!=='MELISA_ERP_V2'||!identityRow.finance)pilotError('PILOT_DATABASE_GUARD','Pilot veritabanı veya finans şeması doğrulanamadı.',503);
   // SQL unique key + key-range lock serializes even different API processes.

@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {createHash} from 'node:crypto';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
 import {withTestSalesMutation} from './testSalesScope.mjs';
@@ -21,6 +22,7 @@ async function atomic(actor,fn,write=true){return withTestSalesMutation(async()=
  const pool=await getSqlPool(),sql=getSqlDriver(),tx=new sql.Transaction(pool);await tx.begin();const ctx={pool,sql,tx};
  try{await new sql.Request(tx).query("DECLARE @r int; EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000; IF @r<0 THROW 51071,'TEST_LOCK_TIMEOUT',1;");
   const loaded=await load(ctx);if(write&&![15,16].includes(Number(actor.id)))fail('TEST_ACTOR','TEST oturumu gerekli.',403);
+  if(write)await assertOperationQuarantineAllowed([{entity:'product',nativeId:loaded.s.product_id},{entity:'supplier',nativeId:loaded.s.supplier_id}],quarantineTransactionContext(sql,tx));
   const result=await fn(ctx,loaded);await tx.commit();return result;
  }catch(e){try{await tx.rollback()}catch{}if(e.number===51070)fail('TEST_DATABASE_BOUNDARY','TEST sınırı aşıldı; işlem geri alındı.',409);if(!e.statusCode&&!e.code){e.statusCode=409;e.code='SITES_WORKFLOW_RULE'}throw e}
 });}

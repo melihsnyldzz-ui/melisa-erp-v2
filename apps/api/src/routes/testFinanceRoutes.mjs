@@ -1,3 +1,4 @@
+import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import {Router} from 'express';
 import {requireAuth,requirePermission} from '../middleware/authMiddleware.js';
 import {collectTestCustomer,reverseTestCollection,testFinanceContext,previewTestCollection} from '../services/testFinanceService.mjs';
@@ -5,6 +6,6 @@ export const testFinanceRoutes=Router();
 const handle=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req),meta:{environment:'ISOLATED_TEST'}})}catch(e){next(e)}};
 testFinanceRoutes.get('/test-finance/context',requireAuth,requirePermission('customer.view'),handle(req=>testFinanceContext(req.user)));
 testFinanceRoutes.post('/test-finance/preview',requireAuth,requirePermission('finance.collection'),handle(req=>previewTestCollection(req.body,req.user)));
-testFinanceRoutes.post('/finance/collections',requireAuth,requirePermission('finance.collection'),handle(req=>collectTestCustomer(req.body,req.user)));
+testFinanceRoutes.post('/finance/collections',requireAuth,requirePermission('finance.collection'),operationQuarantineGate('collection'),handle(req=>collectTestCustomer(req.body,req.user)));
 testFinanceRoutes.post('/finance/collections/:id/cancel',requireAuth,requirePermission('finance.collection.cancel'),handle(req=>reverseTestCollection(req.params.id,req.body,req.user,'collection_cancel')));
 testFinanceRoutes.post('/finance/collections/:id/refund',requireAuth,requirePermission('finance.refund'),handle(req=>reverseTestCollection(req.params.id,req.body,req.user,'collection_refund')));

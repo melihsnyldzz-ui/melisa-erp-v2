@@ -1,3 +1,5 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
+import {invoiceQuarantineEntities} from './operationQuarantineGate.mjs';
 import {postNativeCurrencyAccount,verifyNativeCurrencyAccount} from './nativeCurrencyAccount.mjs';
 import {pilotProductScopeSql} from './pilotProductScope.mjs';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
@@ -84,6 +86,7 @@ export async function nativeSubmitSale(payload,actor){
   approvedBy=approval.approvedBy;
  }
  return transaction(async(ctx,request)=>{
+  await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',business),quarantineTransactionContext(ctx.sqlDriver,ctx.transaction));
   const sql=ctx.sqlDriver;
   const existing=(await request().input('key',sql.NVarChar(120),business.clientEventId).query('SELECT * FROM dbo.terminal_sync_queue WITH(UPDLOCK,HOLDLOCK) WHERE client_request_id=@key')).recordset[0];
   if(existing){assertRow(existing,actor,business.terminalCode,digest);nativeError('ALREADY_FINALIZED','Bu fiş daha önce kesinleştirildi. Sonucu Kontrol Et ile mevcut fişi açın.',409);}

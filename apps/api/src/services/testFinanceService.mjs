@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {createHash} from 'node:crypto';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
 import {withTestSalesMutation} from './testSalesScope.mjs';
@@ -18,6 +19,7 @@ async function atomic(actor,fn,write=true){
    await new sqlDriver.Request(transaction).query("DECLARE @r int; EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000; IF @r<0 THROW 51071,'TEST_LOCK_TIMEOUT',1;");
    const ctx={pool,sqlDriver,transaction},s=await scope(new sqlDriver.Request(transaction));
    if(write&&Number(actor?.id)!==Number(s.ilker_id))fail('TEST_FINANCE_ACTOR','Tahsilat yalnız yetkili İlker TEST oturumuna açıktır.',403);
+   if(write)await assertOperationQuarantineAllowed([{entity:'customer',nativeId:s.customer_id}],quarantineTransactionContext(sqlDriver,transaction));
    const value=await fn(ctx,s);await transaction.commit();return value;
   }catch(e){try{await transaction.rollback()}catch{}if(e.number===51070||e.originalError?.info?.number===51070)fail('TEST_DATABASE_BOUNDARY','İşlem TEST kayıt/tutar sınırını aştı; hiçbir hareket kaydedilmedi.',409);throw e}
  });

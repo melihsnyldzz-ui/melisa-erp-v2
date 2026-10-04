@@ -1,3 +1,5 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
+import {invoiceQuarantineEntities} from './operationQuarantineGate.mjs';
 import { assertInvoiceNotExported } from './vegaInvoiceExportJournal.mjs';
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
@@ -1657,6 +1659,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
   if (ownsTransaction) await transaction.begin();
 
   try {
+    await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',draft),quarantineTransactionContext(sqlDriver,transaction));
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
     await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
@@ -1775,6 +1778,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_DRAFT_NOT_FOUND', 'Sales draft not found', 404);
     }
+    await assertOperationQuarantineAllowed([...invoiceQuarantineEntities('sales',beforeSnapshot),...invoiceQuarantineEntities('sales',draft)],quarantineTransactionContext(sqlDriver,transaction));
 
     await assertWebInvoiceMutationSupported(new sqlDriver.Request(transaction), invoiceId);
     await assertInvoiceHasNoReturns(() => new sqlDriver.Request(transaction), 'sales', invoiceId, { mutation: 'correction' });
@@ -1890,6 +1894,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_FINALIZE_NOT_FOUND', 'Sales invoice not found', 404);
     }
+    await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
 
     if (beforeSnapshot.status !== 'DRAFT') {
       throw makeServiceError('SALES_FINALIZE_STATUS_INVALID', 'Only DRAFT sales invoices can be finalized', 409);
@@ -2249,6 +2254,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_CANCEL_NOT_FOUND', 'Sales invoice not found', 404);
     }
+    await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
+
     let nativeSale = false;
     if (nativeTransaction) {
       const nativeRows = (await new sqlDriver.Request(transaction).input('nativeApprovedInvoiceId', sql.BigInt, invoiceId).query(`
@@ -2610,10 +2617,13 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
   if (!transactionContext) await transaction.begin();
 
   try {
+    await assertOperationQuarantineAllowed(invoiceQuarantineEntities('purchase',draft),quarantineTransactionContext(sqlDriver,transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Alış fişi taslak kaydı');
 
     const supplierId = await ensureSupplier(sqlDriver, transaction, draft);
     draft.supplierId = supplierId;
+    await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:supplierId}],quarantineTransactionContext(sqlDriver,transaction));
+
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'purchase', draft);
     await assertDailyPurchaseSupplierCurrency(sqlDriver, transaction, supplierId, draft.documentCurrency, draft.supplierCurrency);
     await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items);
@@ -2732,6 +2742,7 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
     if (!beforeSnapshot) {
       throw makeServiceError('PURCHASE_DRAFT_NOT_FOUND', 'Purchase draft not found', 404);
     }
+    await assertOperationQuarantineAllowed([...invoiceQuarantineEntities('purchase',beforeSnapshot),...invoiceQuarantineEntities('purchase',draft)],quarantineTransactionContext(sqlDriver,transaction));
 
     await assertInvoiceHasNoReturns(() => new sqlDriver.Request(transaction), 'purchase', invoiceId, { mutation: 'correction' });
     await assertInvoiceNotExported(invoiceId);
@@ -2744,6 +2755,8 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
     const supplierId = await ensureSupplier(sqlDriver, transaction, draft);
     draft.supplierId = supplierId;
+    await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:supplierId}],quarantineTransactionContext(sqlDriver,transaction));
+
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'purchase', draft, beforeSnapshot);
     await assertDailyPurchaseSupplierCurrency(sqlDriver, transaction, supplierId, draft.documentCurrency, draft.supplierCurrency);
     await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items);
@@ -2870,6 +2883,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
     if (!beforeSnapshot) {
       throw makeServiceError('PURCHASE_FINALIZE_NOT_FOUND', 'Purchase invoice not found', 404);
     }
+    await assertOperationQuarantineAllowed(invoiceQuarantineEntities('purchase',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
 
     if (beforeSnapshot.status !== 'DRAFT') {
       throw makeServiceError('PURCHASE_FINALIZE_STATUS_INVALID', 'Only DRAFT purchase invoices can be finalized', 409);
@@ -3109,6 +3123,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null, tran
     if (!beforeSnapshot) {
       throw makeServiceError('PURCHASE_CANCEL_NOT_FOUND', 'Purchase invoice not found', 404);
     }
+    await assertOperationQuarantineAllowed(invoiceQuarantineEntities('purchase',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
 
     await assertInvoiceHasNoReturns(() => new sqlDriver.Request(transaction), 'purchase', invoiceId);
     await assertCurrencySnapshotSchema(new sqlDriver.Request(transaction), 'supplier');

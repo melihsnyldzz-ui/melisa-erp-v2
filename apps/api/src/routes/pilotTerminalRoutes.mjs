@@ -1,3 +1,4 @@
+import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import {Router} from 'express';
 import path from 'node:path';
 import {requireAuth,requireAnyPermission} from '../middleware/authMiddleware.js';
@@ -24,7 +25,7 @@ pilotTerminalRoutes.get('/sales/capabilities',requireAuth,handle(async(req,res)=
 pilotTerminalRoutes.post('/catalog-sync',...sync,handle(async(req,res)=>ok(res.status(202),catalog.start(req.body,req.user))));
 pilotTerminalRoutes.get('/catalog-sync/version',...sync,handle(async(req,res)=>ok(res,await catalog.version(req.query,req.user))));
 pilotTerminalRoutes.get('/catalog-sync/:jobId',...sync,handle(async(req,res)=>ok(res,catalog.page(req.params.jobId,req.query,req.user))));
-pilotTerminalRoutes.post('/sales/submit',...sale,handle(async(req,res)=>ok(res,await submitPilotSale(req.body,req.user),{source:'melisa-pilot-sql'})));
+pilotTerminalRoutes.post('/sales/submit',...sale,operationQuarantineGate('sales'),handle(async(req,res)=>ok(res,await submitPilotSale(req.body,req.user),{source:'melisa-pilot-sql'})));
 pilotTerminalRoutes.post('/sales/status',...sale,handle(async(req,res)=>ok(res,await pilotSaleStatus(req.body,req.user),{source:'melisa-pilot-sql',readOnly:true})));
 pilotTerminalRoutes.post('/sales/readiness',...sale,handle(async(req,res)=>ok(res,(await pilotContext(req.body.terminalCode,req.user)).capability)));
 pilotTerminalRoutes.post('/sales/:invoiceId/print',...sale,handle(async(req,res)=>{

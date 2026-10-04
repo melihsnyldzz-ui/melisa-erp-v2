@@ -1,3 +1,4 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {createHash} from 'node:crypto';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
 import {withTestSalesMutation} from './testSalesScope.mjs';
@@ -53,6 +54,7 @@ export async function cancelSupplierRefund(id,i,actor){validate(i,['requestId','
  return writeReturn(c,req,s,actor,{...i,originalId:Number(id),sourcePaymentId:Number(m.source_payment_id),supplierId:Number(m.supplier_id),purchaseInvoiceId:m.purchase_invoice_id,accountId:Number(m.account_id),accountType:m.payment_method,amount:Number(m.amount),currency:m.currency_code,settlement:{accountCurrency:m.account_currency,accountAmount:Number(m.account_amount),documentRateToTry:Number(m.document_exchange_rate_snapshot),accountRateToTry:Number(m.account_exchange_rate_snapshot),amountTry:Number(m.amount_try)}},true);
  }),'finance.payment.cancel');}
 async function writeReturn(c,req,s,actor,v,cancel){
+ await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:v.supplierId}],quarantineTransactionContext(s,c.transaction));
  const type=cancel?'supplier_refund_cancel':'supplier_refund',effect=(cancel?-1:1)*v.settlement.accountAmount,a=v.settlement;
  const account=await resolveFinanceAccount(c.transaction,s,{accountId:v.accountId,currency:v.currency,paymentMethod:v.accountType});
  const row=(await req().input('supplier',s.BigInt,v.supplierId).input('purchase',s.BigInt,v.purchaseInvoiceId||null).input('type',s.NVarChar(40),type).input('amount',s.Decimal(18,4),v.amount).input('currency',s.NVarChar(3),v.currency).input('effect',s.Decimal(18,4),effect).input('date',s.Date,v.documentDate).input('actor',s.BigInt,actor.id).input('ac',s.NVarChar(3),a.accountCurrency).input('aa',s.Decimal(18,4),a.accountAmount).input('dr',s.Decimal(18,8),a.documentRateToTry).input('ar',s.Decimal(18,8),a.accountRateToTry).input('try',s.Decimal(18,4),a.amountTry).query(`DECLARE @ids TABLE(id bigint);INSERT dbo.supplier_movements(supplier_id,purchase_invoice_id,movement_type,amount,currency_code,balance_effect,document_date,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try) OUTPUT inserted.id INTO @ids VALUES(@supplier,@purchase,@type,@amount,@currency,@effect,@date,@actor,@ac,@aa,@dr,@ar,@try);UPDATE dbo.suppliers SET balance=balance+@effect,updated_at=SYSUTCDATETIME() WHERE id=@supplier;SELECT id FROM @ids;`)).recordset[0];

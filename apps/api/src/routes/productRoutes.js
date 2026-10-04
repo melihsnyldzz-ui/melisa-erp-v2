@@ -1,3 +1,4 @@
+import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import { Router } from 'express';
 import {
   getProduct,
@@ -37,9 +38,9 @@ productRoutes.post('/products/bulk-create/apply', requireAuth, requirePermission
 productRoutes.post('/products/bulk-update/preview', requireAuth, requirePermission('product.edit'), getProductBulkUpdatePreview);
 productRoutes.post('/products/bulk-update/apply', requireAuth, requirePermission('product.edit'), postProductBulkUpdateApply);
 productRoutes.post('/products', requireAuth, requirePermission('product.edit'), postProduct);
-productRoutes.post('/products/:id/barcodes', requireAuth, requirePermission('product.edit'), postProductBarcode);
-productRoutes.patch('/products/:id/barcodes/:barcodeId/passive', requireAuth, requirePermission('product.edit'), patchProductBarcodePassive);
-productRoutes.post('/products/:id/images', requireAuth, requirePermission('product.edit'), postProductImage);
+productRoutes.post('/products/:id/barcodes', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), postProductBarcode);
+productRoutes.patch('/products/:id/barcodes/:barcodeId/passive', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), patchProductBarcodePassive);
+productRoutes.post('/products/:id/images', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), postProductImage);
 productRoutes.get('/products/:id', requireAuth, requirePermission('product.view'), getProduct);
-productRoutes.put('/products/:id', requireAuth, requirePermission('product.edit'), putProduct);
-productRoutes.patch('/products/:id/passive', requireAuth, requirePermission('product.passive'), patchProductPassive);
+productRoutes.put('/products/:id', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), putProduct);
+productRoutes.patch('/products/:id/passive', requireAuth, requirePermission('product.passive'), operationQuarantineGate('product'), patchProductPassive);
