@@ -1,5 +1,14 @@
 # Melisa ERP durumu
 
+5 Ekim 2026, 02:57 — **CRM E02 native paket açılış hatasının kaynak düzeltmesi hazır; yeni Windows paketinin gerçek açılışı ve iki satırlı CRM kabulü bekliyor.**
+
+- İki önceki geçişte yeni `CRM-ORDER-DRAFT-TEST-20261005-03/c563c48` paketi `msnodesqlv8/build/Release/sqlserver.node` eksikliğiyle açılamadı; mevcut dar native helper eski `20261004-02/4fb9eab` paketini geri açtı. 02:47 salt okunur kontrolde eski native62404, CRM C/aa85448, görev ve LIVE gateway çalışıyordu. Genel ERP müşteri eşlemesi halen açık.
+- Paketleyici npm lifecycle scriptlerini kapalı tutar; yalnız resmi kilitli msnodesqlv8@5.2.0/Node24/ABI137/win32-x64 archive ve binary hash'ini doğrulayarak tek regular dosyayı yeni staging'e ekler. Yerel eski cache ve binary farklıdır, kullanılmaz. Yeni manifest schema2 native provenance ve zorunlu binary hash taşır; eski schema1 doğrulaması korunur. DB-free import gerçek `mssql/msnodesqlv8.js` sürücüsünü kapsar; kabul edilmiş ODBC/DB sözleşmesi değişmedi.
+- Bu düzeltmenin25 farklı hedefli offline testi PASS; bağımsız reviewer P0/P1/P2=0, syntax/diff PASS. Önceki backend20/SQL15 ile farklı kapsam60; reviewer/yazar tekrarları ek sayılmaz. Resmi gerçek archive production decoder ile bellekte doğrulandı. Teknik sonuç Windows servis açılışı veya gerçek sipariş kabulü değildir.
+- Dal `codex/crm-order-opening-20261005`, [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24). Bu değişim öncesi ed10c71 exact CI başarılıydı; yeni teslim HEAD CI ve yeni -04 paket/import/health/normal CRM readback ayrıca kaydedilecek. Main merge/LIVE deploy/model çağrısı/WhatsApp gönderimi/SQL yazımı bu kaynak düzeltmesinde yok.
+
+## Önceki E02 SQL kabul kaydı — native/UI kabulünü içermez
+
 5 Ekim 2026 — **CRM E02 iki kesin ürün için typed açılış eşlemesi kuruldu; normal CRM'de iki satırlı taslak kabulü bekliyor. Genel müşteri eşlemesi açık.**
 
 - Kaynakc9711d1, paketleyici8f83cdd/c563c48 ve SQLd163ea2; [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24), dal codex/crm-order-opening-20261005. Mevcut CRM sözleşmesi ve eski UUID/readback korunur; yazma yalnız7733/konuşma55/sentetik müşteri593.

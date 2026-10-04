@@ -27,6 +27,20 @@ Yeni satırlar tek transaction'da yazılır ve ardından ERP'den geri okunur. So
 
 Native paket ayrı, committed/clean ERP kaynak HEAD'inden üretilir; manifest tüm payload/dependency dosyalarının hash'lerini ve Node kimliğini kapsar. Özel config repo dışında kalır. Günlük ERP paketleyicisi ve onun 4144/4146/5194 launcher'ı bu native servis için kullanılmaz.
 
+### Windows native SQL bağımlılığı
+
+İlk yeni paket gerçek açılışta `msnodesqlv8/build/Release/sqlserver.node` eksikliğiyle durdu. Kilitli `msnodesqlv8@5.2.0` npm arşivi bu binary'yi içermez; `npm ci --ignore-scripts` kurulumu onu üretmez. Yalnız varsayılan `mssql` importunun geçmesi ODBC sürücüsünün hazır olduğunu kanıtlamaz.
+
+Paket üretiminde npm lifecycle scriptleri kapalı kalır. Native artifact ayrı, yerel bir dosya girdisidir; builder ağa bağlanmaz veya eski paketten binary kopyalamaz. Bu Windows/Node24/ABI137/x64 hedefi için yalnız [resmi v5.2.0 release](https://github.com/TimelordUK/node-sqlserver-v8/releases/tag/v5.2.0) dosyası kullanılır:
+
+- `msnodesqlv8-v5.2.0-node-v137-win32-x64.tar.gz`, GitHub asset428095421,551409 byte.
+- Arşiv SHA256: `67c366ce167096e8267e12b49b791902ef81b63649dbb18ad0dbf9824ef857ac`.
+- Tek regular üye: `build/Release/sqlserver.node`,1338368 byte; binary SHA256: `eb33a36bda5bd1f996d7282ba04ef3428a9d7c40e069f497580f56b784619581`.
+- Kilitli npm sürümü/integrity, Node/ABI/platform/arch, resmi artifact ve payload binary hash'i birlikte bağlanır. Başka sürüm/cache veya archive üyesi kabul edilmez.
+- DB bağlantısı açmadan `mssql/msnodesqlv8.js` importu paket üretiminde kontrol edilir. Bu import gerçek SQL health veya CRM taslak kabulünün yerine geçmez.
+
+Asset adı tek başına provenance değildir: eski yerel cache ve çalışan eski binary resmi güncel asset ile farklıdır. Tarihsel paketler yerinde korunur; yeni paket yeni dizine üretilir. Resmi pin değişirse kaynak inceleme ve yeniden paket gerekir.
+
 Typed kapsam kurulumu eklemelidir: önceki prosedür tanımlarının gerçek hash'leri ve salt okunur gerçek eşleme kanıtı açık girdidir. Tahmini baseline kabul edilmez. Eski taslak/request satırları silinmez; önceki prosedür tanımı/hash'i geri dönüş için tutulur. Installer kendiliğinden SQL'e bağlanmaz veya migration çalıştırmaz. Kurulum yalnız doğrulanmış named TEST hedefinde, bağımsız inceleme ve teslim kontrollerinden sonra yürütülür.
 
 Somut before/after recovery yalnız context/create yordamlarını değiştirir. Önceki CREATE başlığı mevcut nesneye uygulanırken yalnız ALTER olarak normalize edilir; orijinal tanım/hash ve normalize recovery hash ayrı doğrulanır. Değişmeyen read yordamı yeniden çalıştırılmaz. Bilinmeyen tanım veya hash farkında geri dönüş durur; veri silme ve otomatik DB restore yoktur.
