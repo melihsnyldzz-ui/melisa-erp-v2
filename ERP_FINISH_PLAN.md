@@ -2,7 +2,7 @@
 
 ## Güncel finish tree — 4 Ekim 2026
 
-**Toplam 49 iş: 🟢 5 tamam · 🟡 13 kısmi / kabul bekliyor · 🔴 31 açık. Genel ilerleme: %10,2 tamam; %26,5 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam 49 iş: 🟢 5 tamam · 🟡 16 kısmi / kabul bekliyor · 🔴 28 açık. Genel ilerleme: %10,2 tamam; %32,7 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -11,8 +11,8 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | ID | İş | Durum | Kanıt / kapanış ölçütü |
 | --- | --- | --- | --- |
 | P01 | Kanonik kaynak ve origin | 🟢 | SEMIH exact repo, temiz e0 tabanı ve fetch/push doğrulandı; eski kopyalar korunur. |
-| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST 5194/4144/4146 → paket16/e0 → Semih\\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE farklı DB ve süreçlerde. |
-| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Paket16 1.133 dosya SHA-256 eşleşti; yeni dilim kendi manifestiyle teslim edilir. |
+| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST 5194/4144/4146 → paket18/4e6b606 → Semih\\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE farklı DB ve süreçlerde. |
+| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Paket18 1.143 dosya manifest eşleşti; eski paket16 ve launcher geri dönüş kaydı korunur. |
 | A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | 16.622 eşlenen kart teknik mutabakatlı; normal günlük stok ekranı ve personel kabulü eksik. |
 | A02 | Satış/alış fiyatı, maliyet, döviz | 🟡 | 63.774 typed fiyat okuyucu hazır; NULL/gerçek 0 ayrımı korunur. Günlük operasyon seçimi/yazımı ve personel kabulü eksik. |
 | A03 | Gerçek ürün fotoğrafı | 🔴 | Doğru kaynak kimliğiyle gerçek görsel bağlantısı/eksik görsel gösterimi ve normal ekran kabulü. |
@@ -23,13 +23,13 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | B02 | Stok arama/filtre ve detay | 🔴 | Yoğun tablo, net stok/birim/fiyat/görsel; üç genişlik ve boş/hata/yetki kabulü. |
 | B03 | Cariler bilgi hiyerarşisi | 🔴 | Müşteri ve tedarikçi ayrı; hesap dövizi/borç işareti doğru; üç genişlik. |
 | B04 | Satış günlük kullanım ekranı | 🔴 | Büyük net işlemler, gerçek müşteri/ürün satırları ve yetki; üç genişlik. |
-| B05 | Alış günlük kullanım ekranı | 🔴 | Çok satırlı mal kabul, alış taslağı ve onay ayrımı; üç genişlik. |
+| B05 | Alış günlük kullanım ekranı | 🟡 | İki ürünlü kabul ve kalıcı taslak ekranı, ayrı onay/iptal ve toplamlar masaüstünde çalışıyor. Tarayıcı ölçü ayarı uygulanmadı; 1440/1024/390 ve personel kabulü doğrulanmadı. |
 | B06 | Finans günlük kullanım ekranı | 🔴 | Kasa/banka/tahsilat/ödeme ayrımı, doğru döviz ve büyük aksiyonlar; üç genişlik. |
 | B07 | Raporlar filtre ve kapsam | 🔴 | Gerçek kaynak, NULL maliyet/kâr kapsamı, ayrı döviz ve açıklamalı export; üç genişlik. |
 | B08 | Ayarlar günlük kullanım ekranı | 🔴 | Kullanıcı/izin/terminal/başlama/yedek durumlarını kanıtlı ve sade göster; üç genişlik. |
-| C01 | Çok satırlı mal kabul | 🔴 | **Aktif iş:** iki farklı sentetik TEST ürünü; pending etkisiz, bütün satırların onayı atomik/tek etkili; ret ve yanlış satır hareket oluşturmaz. |
-| C02 | Ayrıntılı alış taslağı | 🔴 | C01 ile bağlı dilim: kalıcı SQL taslağı etkisiz; satır miktarı rezervasyonu, ayrı finalize, kısmi faturalama; stok ikinci kez artmaz. |
-| C03 | Dövizli alış fiyatı operasyonu | 🔴 | Typed okuyucu kabulü korunur; işlemde doğru döviz/birim/kademe/kur snapshot seçimi, bilinmeyen kaynak ve yazım kabulü eksik. |
+| C01 | Çok satırlı mal kabul | 🟡 | İki sentetik ürünlü normal TEST kabulü/ret/replay ve SQL etkisi doğrulandı: stok28/0→29/2; borç değişmedi. Genel kart kapsamı ve personel kabulü bekliyor. |
+| C02 | Ayrıntılı alış taslağı | 🟡 | Kalıcı native taslak, kısmi140/80 TRY, finalize/iptal, rezervasyon ve stok ikinci kez artmaması gerçek TEST'te doğrulandı. 220 TRY taslak hazır; genel alış/personel kabulü eksik. |
+| C03 | Dövizli alış fiyatı operasyonu | 🔴 | **Sıradaki tek kaynak işi:** typed okuyucudan doğru döviz/birim/kademe/kur snapshot seçimi; bilinmeyen kaynak ve yazım kabulü. Mevcut TRY fixture fiyatı gevşetilmez. |
 | C04 | Gerçek satış ekranı kabulü | 🟡 | Önceki ayrılmış TEST satış/iptal kabulü korunur; günlük gerçek ekran/personel kabulü eksik. |
 | C05 | Açık hesap | 🟡 | Yetkili satışın tahsilatsız cari etkisi baseline'da; normal ekranın limit/vade/yetki kabulü eksik. |
 | C06 | Gerçek müşteri kartı | 🔴 | Normal kart, yetkili düzenleme, döviz hesabı ve belirsiz alan/karantina kabulü. |
@@ -62,7 +62,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 
 ### Aktif dilim, sahiplik ve kabul
 
-Seçili tek kaynak eksikliği C01; onun faturalama bağımlılığı C02 aynı günlük alış diliminde yürütülür. Backend `testPurchaseService.mjs`, `testPurchaseRoutes.mjs`, yeni batch model/test/TEST kurulum scripti ve `invoiceDraftService.js` içindeki received-context doğrulamasına sahip. Frontend yalnız `workflow/testPurchase.js`, `testPurchaseView.js`, yeni scoped CSS/model/test dosyalarına sahip. SQL-Vega salt okunur guard/scope incelemesi yapar; reviewer bağımsız kontrol eder. Root sözleşme, entegrasyon, paket/runtime, finish tree/STATUS ve Git teslimine sahip. Aynı dosyada paralel yazma yok.
+İlk C01/C02 dilimi teknik olarak TEST'te teslim edildi; [kabul kaydı](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md) personelin beş denemesini içerir. SQL source `46e10ce`, uygulama paketi18 `4e6b606`; kaynak yalnız CI/SQL companion eklediğinden çalışan uygulama hash'i ayrı kaydedilir. Sıradaki kaynak işi C03'tür. Backend API/model/native received-context, frontend alış ekranı/CSS, SQL kaynak kurulum ve bağımsız inceleme ayrı dosya sahipliğiyle yürütüldü; root kurulum/runtime/Git/plan sahibidir. Aynı dosyada paralel yazma yok.
 
 İlk kabul iki farklı sentetik ürün, satır başına 1–5 ADET, TRY ve açık KDV/iskonto0 kapsamındadır. Bu dar prova genel dövizli fiyat yazımı, tüm ticari kartlar veya fiziksel terminal kabulü sayılmaz. Legacy tek satır/bağlı iade korunur. Taslak/pending stok ve borç değiştirmez; fiziksel onay stok oluşturur; finalize yalnız borç oluşturur; replay ikinci etki üretmez; sahte/yetkisiz/karantina satır bütün işlemi durdurur.
 
