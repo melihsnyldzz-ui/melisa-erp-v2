@@ -1,5 +1,14 @@
 # Melisa ERP durumu
 
+5 Ekim 2026 — **CRM E02 açılış ürünü/fiyatı eşleme kaynağı hazır; gerçek SQL kurulumu ve iki satırlı CRM kabulü henüz yapılmadı.** Bu izole çalışma günlük ERP C07 geliştirmesini değiştirmez.
+
+- Kaynak `c9711d1`: mevcut CRM taslak sözleşmesi accepted RUN06 typed satış fiyatı, kesin native ürün/fiyat kimliği, ADET×1 ve transaction içi karantina kontrolüne bağlandı. Eski UUID/readback korunur; scalar fallback yok. Gerçek yazma kapsamı yalnız7733/konuşma55/sentetik müşteri593.
+- Backend/sözleşme/route, offline SQL kurulum/geri dönüş ve native paketleyici toplam48 hedefli test PASS; bağımsız reviewer açık P0/P1/P2 bulgu0. Bu sonuç gerçek SQL derleme veya kullanıcı kabulü değildir.
+- İki ürünün mevcut named TEST açılış eşlemesi salt okunur doğrulandı. Private kurulum ve before/after recovery SQL repo dışında hazır; eski read yordamı byte olarak korunur. Recovery yalnız context/create yordamlarını, açık CREATE→ALTER başlık hash'iyle değiştirir; veri silmez veya DB restore yapmaz.
+- İzole dal `codex/crm-order-opening-20261005`, taban `23eca1e` / `codex/erp-finish-20261004`. GitHub PR/CI ve yeni62404 native paket kurulumu teslim sırasında ayrıca kaydedilir. Genel müşteri eşlemesi, fiziksel mobil ve kullanıcı kabulü açık kalır. [Sözleşme ve kabul ölçütü](docs/erp-v2/crm-order-opening-test.md).
+
+## Önceki C06 kabulü
+
 5 Ekim 2026 — **C06 salt okunur müşteri kartının dar gerçek TEST teknik kabulü hazır. Genel kart düzenleme ve personel kabulü PARTIAL. Paket23/source8933b01:441 müşteri,25 satırlı sayfa,28 karantina; gerçek kart155 TRY/USD kaynak+yerel exact8+güncel+defter mutabık, EUR doğrulanmadı. Kaynak30 Eylül; güncel Vega bağlantısı/delta değildir. Bilinmeyen tutar sıfır yapılmaz, dövizler toplanmaz.**
 
 - [Tek finish tree](ERP_FINISH_PLAN.md):49 iş, 🟢5 / 🟡19 / 🔴25; tamamlanan%10,2, kısmi%38,8. C06/B03 kısmi; genel düzenleme/personel kabulü eksik. **Sıradaki tek kaynak işi C07 gerçek tedarikçi kartı.**
