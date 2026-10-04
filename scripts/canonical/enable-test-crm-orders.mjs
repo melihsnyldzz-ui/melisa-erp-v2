@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {CRM_OPENING as O,normalizeCrmOpeningBaseline,normalizeCrmOpeningMapping} from './crmOrderOpeningMapping.mjs';
 const quote=s=>"N'"+s.replaceAll("'","''")+"'";
 const sha=s=>createHash('sha256').update(s,'utf16le').digest('hex');
+const storedSha=(name,sql)=>sha(name.startsWith('usp_test_crm_order_')?persistedCrmProcedureDefinition(sql,name):sql);
 const binary=(a,b)=>`CONVERT(varbinary(max),${a})=CONVERT(varbinary(max),${b})`;
 export const PRODUCT_HASH_FIELDS=['product_id','product_source_key','source_id','native_source_key','stock_code','product_name','currency_code','unit','main_unit_source_id','stage_payload_hash','stage_sql_hash'];
 export const PRICE_HASH_FIELDS=['price_id','product_id','product_source_key','price_source_key','source_unit_id','price_type','price_tier','currency_code','price_exact','is_main_unit','stage_payload_hash','stage_sql_hash','native_row_hash'];
@@ -125,6 +126,13 @@ export function normalizeCrmRecoveryDefinition(definition,name){
  if(!header||![`dbo.${name}`,`[dbo].[${name}]`,`dbo.[${name}]`,`[dbo].${name}`].some(x=>x.toLowerCase()===header[6].toLowerCase()))throw Error('CRM_TEST_RECOVERY_HEADER_UNSUPPORTED');
  return /^CREATE$/i.test(header[2])?definition.slice(0,header[1].length)+'ALTER'+definition.slice(header[1].length+6):definition;
 }
+// Confirmed on the named TEST SQL Server: an ALTER is executable SQL, while
+// OBJECT_DEFINITION stores the same procedure with its CREATE verb restored.
+// Nothing after that verb is normalized; whitespace and body remain exact.
+export function persistedCrmProcedureDefinition(definition,name){
+ normalizeCrmRecoveryDefinition(definition,name);
+ return definition.replace(/^(\s*)ALTER(?=\s+PROC(?:EDURE)?\s)/i,'$1CREATE');
+}
 export function buildTestCrmOrderRecoverySql({direction}={}){
  if(!['before','after'].includes(direction))throw Error('CRM_OPENING_RECOVERY_DIRECTION_REQUIRED');
  const procedures=buildCrmOpeningProcedures(),known=[['usp_test_crm_order_context',procedures.context],['usp_test_crm_order_create',procedures.create],...guards()];
@@ -137,7 +145,8 @@ IF @verb COLLATE Latin1_General_100_CI_AS=N'CREATE' AND LEFT(@tail,3) COLLATE La
 SET @kind=LEFT(@tail,CHARINDEX(N' ',@tail+N' ')-1); SET @tail=LTRIM(SUBSTRING(@tail,LEN(@kind)+1,2147483647)); SET @object=LEFT(@tail,CHARINDEX(N' ',@tail+N' ')-1);
 IF @verb COLLATE Latin1_General_100_CI_AS NOT IN(N'CREATE',N'ALTER') OR @kind COLLATE Latin1_General_100_CI_AS NOT IN(N'PROC',N'PROCEDURE') OR @object COLLATE Latin1_General_100_CI_AS NOT IN(N'dbo.usp_test_crm_order_${k}',N'[dbo].[usp_test_crm_order_${k}]',N'dbo.[usp_test_crm_order_${k}]',N'[dbo].usp_test_crm_order_${k}') THROW 51099,'CRM_TEST_RECOVERY_HEADER_UNSUPPORTED',1;
 SET @statement=CASE WHEN @verb COLLATE Latin1_General_100_CI_AS=N'CREATE' AND @compound=0 THEN STUFF(@original,@first,6,N'ALTER') ELSE @original END;
-INSERT @restore VALUES(N'usp_test_crm_order_${k}',@statement,LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',@statement),2)));`).join('\n');
+SET @stored_statement=CASE WHEN @compound=0 THEN STUFF(@statement,@first,5,N'CREATE') ELSE @statement END;
+INSERT @restore VALUES(N'usp_test_crm_order_${k}',@statement,LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',@statement),2)),LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',@stored_statement),2)));`).join('\n');
  return `-- Offline E02 definition-only recovery: ${direction}. Root executes only if needed.
 SET NOCOUNT ON; SET XACT_ABORT ON; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON; SET ANSI_WARNINGS ON; SET ANSI_PADDING ON; SET CONCAT_NULL_YIELDS_NULL ON; SET ARITHABORT ON; SET NUMERIC_ROUNDABORT OFF;
 ${target} IF COALESCE(IS_SRVROLEMEMBER('sysadmin'),0)<>1 THROW 51099,'CRM_TEST_INSTALL_OWNER_REQUIRED',1;
@@ -147,20 +156,21 @@ DECLARE @lock int; EXEC @lock=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALE
 ${CRM_OPENING_READY_SQL}
 IF OBJECT_ID(N'${definitions}',N'U') IS NULL OR (SELECT COUNT(*) FROM ${definitions} WITH(HOLDLOCK))<>7 OR EXISTS(SELECT 1 FROM ${definitions} WHERE name NOT IN(N'usp_test_crm_order_context',N'usp_test_crm_order_create',N'usp_test_crm_order_read',N'crm_opening_immutable_scope',N'crm_opening_immutable_manifest',N'crm_opening_immutable_definitions',N'crm_opening_append_lines')) THROW 51099,'CRM_TEST_RECOVERY_METADATA_INVALID',1;
 IF EXISTS(SELECT 1 FROM ${definitions} d WHERE OBJECT_ID(N'dbo.'+d.name) IS NULL OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name)) IS NULL OR (d.name LIKE N'usp[_]%' AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'IsProcedure')<>1) OR (d.name LIKE N'crm[_]%' AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'IsTrigger')<>1)) THROW 51099,'CRM_TEST_RECOVERY_METADATA_INVALID',1;
-${known.map(([name,sql])=>`IF NOT EXISTS(SELECT 1 FROM ${definitions} WHERE name=N'${name}' AND after_hash='${sha(sql)}') THROW 51099,'CRM_TEST_RECOVERY_METADATA_INVALID',1;`).join('\n')}
+${known.map(([name,sql])=>`IF NOT EXISTS(SELECT 1 FROM ${definitions} WHERE name=N'${name}' AND after_hash='${storedSha(name,sql)}') THROW 51099,'CRM_TEST_RECOVERY_METADATA_INVALID',1;`).join('\n')}
 IF EXISTS(SELECT 1 FROM ${definitions} d WHERE (d.name LIKE N'usp[_]%' AND (d.before_definition IS NULL OR d.before_hash IS NULL OR d.before_hash<>LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',d.before_definition),2)))) OR (d.name LIKE N'crm[_]%' AND (d.before_definition IS NOT NULL OR d.before_hash IS NOT NULL OR OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'ExecIsTriggerDisabled')<>0 OR d.after_hash<>LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name))),2))))) OR NOT EXISTS(SELECT 1 FROM ${definitions} WHERE name=N'usp_test_crm_order_read' AND before_hash=after_hash) THROW 51099,'CRM_TEST_RECOVERY_METADATA_INVALID',1;
 IF (SELECT COUNT(*) FROM ${manifest})<>1 OR NOT EXISTS(SELECT 1 FROM ${manifest} m WITH(HOLDLOCK) WHERE m.id=1 AND m.mapping_hash=LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',m.mapping_json),2)) AND m.scope_count=(SELECT COUNT(*) FROM ${scope}) AND m.scope_hash=${scopeSeal}) OR EXISTS(SELECT 1 FROM ${scope} s WITH(HOLDLOCK) WHERE s.row_hash<>${scopeHash}) THROW 51099,'CRM_TEST_RECOVERY_METADATA_INVALID',1;
 -- Preserve exact stored originals. Only bare CREATE's verb becomes ALTER in the
--- recovery statement; its separately calculated recovery_hash is explicit.
-DECLARE @restore TABLE(name sysname PRIMARY KEY,recovery_definition nvarchar(max),recovery_hash char(64));
-DECLARE @statement nvarchar(max),@original nvarchar(max),@scan nvarchar(max),@tail nvarchar(max),@first int,@verb nvarchar(20),@kind nvarchar(20),@object nvarchar(256),@compound bit;
+-- executable statement has its own hash. SQL Server persists the CREATE verb,
+-- so OBJECT_DEFINITION is compared against the separately calculated stored hash.
+DECLARE @restore TABLE(name sysname PRIMARY KEY,recovery_definition nvarchar(max),execution_hash char(64),recovery_hash char(64));
+DECLARE @statement nvarchar(max),@stored_statement nvarchar(max),@original nvarchar(max),@scan nvarchar(max),@tail nvarchar(max),@first int,@verb nvarchar(20),@kind nvarchar(20),@object nvarchar(256),@compound bit;
 ${prepare}
 ${direction==='before'?checkAfter:checkBefore}
 IF NOT EXISTS(SELECT 1 FROM ${definitions} d WHERE d.name=N'usp_test_crm_order_read' AND d.before_hash=LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name))),2))) THROW 51099,'CRM_TEST_RECOVERY_READ_MISMATCH',1;
 -- The unchanged read procedure stays byte-for-byte; no unnecessary ALTER.
 ${['context','create'].map(k=>direction==='after'?`SET @statement=${quote(procedures[k])}; EXEC sys.sp_executesql @statement;`:`SELECT @statement=recovery_definition FROM @restore WHERE name=N'usp_test_crm_order_${k}'; EXEC sys.sp_executesql @statement;`).join('\n')}
 ${direction==='before'?checkBefore:checkAfter}
-COMMIT; SELECT N'PASS_CRM_OPENING_RECOVERY_${direction.toUpperCase()}' result,CAST(0 AS bit) dataDeleted,CAST(0 AS bit) databaseRestored; SELECT name,recovery_hash headerNormalizedRecoveryHash FROM @restore;
+COMMIT; SELECT N'PASS_CRM_OPENING_RECOVERY_${direction.toUpperCase()}' result,CAST(0 AS bit) dataDeleted,CAST(0 AS bit) databaseRestored; SELECT name,execution_hash executableRecoveryHash,recovery_hash storedRecoveryHash FROM @restore;
 END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK; THROW; END CATCH;
 `;
 }
@@ -199,7 +209,7 @@ INSERT ${manifest} SELECT 1,@mapping_json,LOWER(CONVERT(char(64),HASHBYTES('SHA2
 INSERT ${definitions}(name,before_definition,before_hash,after_hash) SELECT name,OBJECT_DEFINITION(object_id),LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(object_id)),2)),LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(object_id)),2)) FROM sys.procedures WHERE schema_id=SCHEMA_ID(N'dbo') AND name IN(N'usp_test_crm_order_context',N'usp_test_crm_order_create',N'usp_test_crm_order_read');
 -- Scope is validated before any procedure replacement. No native-card DML.
 INSERT #E02Selected SELECT product_id FROM ${scope}; ${CRM_OPENING_BINDING_SQL}
-${objects.map(([name,sql])=>name.startsWith('usp_')?`UPDATE ${definitions} SET after_hash='${sha(sql)}' WHERE name=N'${name}';`:`INSERT ${definitions}(name,before_definition,before_hash,after_hash) VALUES(N'${name}',NULL,NULL,'${sha(sql)}');`).join('\n')}
+${objects.map(([name,sql])=>name.startsWith('usp_')?`UPDATE ${definitions} SET after_hash='${storedSha(name,sql)}' WHERE name=N'${name}';`:`INSERT ${definitions}(name,before_definition,before_hash,after_hash) VALUES(N'${name}',NULL,NULL,'${sha(sql)}');`).join('\n')}
 ${objects.map(([,sql])=>`EXEC sys.sp_executesql ${quote(sql)};`).join('\n')}
 -- The legacy read procedure is retained byte-for-byte. Existing UUID rows survive.
 ${[scope,manifest,definitions,'dbo.test_crm_order_opening_lines'].map(t=>`DENY SELECT,INSERT,UPDATE,DELETE ON OBJECT::${t} TO [melisa_sirket_sales_test_20260929_01];`).join('\n')}

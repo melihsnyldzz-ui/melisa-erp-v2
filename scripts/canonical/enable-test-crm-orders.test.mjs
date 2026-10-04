@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {CRM_OPENING as O,normalizeCrmOpeningBaseline,normalizeCrmOpeningMapping,projectCrmSalePrice} from './crmOrderOpeningMapping.mjs';
-import {buildTestCrmOrdersSql,buildCrmOpeningProcedures,buildTestCrmOrderRecoverySql,normalizeCrmRecoveryDefinition,CRM_OPENING_BINDING_SQL,PRODUCT_HASH_FIELDS,PRICE_HASH_FIELDS} from './enable-test-crm-orders.mjs';
+import {buildTestCrmOrdersSql,buildCrmOpeningProcedures,buildTestCrmOrderRecoverySql,normalizeCrmRecoveryDefinition,persistedCrmProcedureDefinition,CRM_OPENING_BINDING_SQL,PRODUCT_HASH_FIELDS,PRICE_HASH_FIELDS} from './enable-test-crm-orders.mjs';
 const baseline=()=>({schemaVersion:1,procedures:{context:'a'.repeat(64),create:'b'.repeat(64),read:'c'.repeat(64)}});
 const product=(source='1001',native='2001',price='3001')=>({sourceId:'vega-'+source,stockCode:'FIXTURE-'+source,productName:'OFFLINE TEST PRODUCT '+source,
  nativeProductId:native,nativeStockCode:'FIXTURE-'+source,nativeProductName:'OFFLINE TEST PRODUCT '+source,nativePriceId:price,
@@ -83,7 +83,11 @@ test('context emits native IDs and exact decimals as strings with typed human-re
  assert.match(context,/CONVERT\(varchar\(20\),s\.product_id\) nativeProductId/);assert.match(context,/CONVERT\(bit,1\) isMainUnit/);assert.match(context,/s\.price_tier tier/);assert.match(context,/WITH EXECUTE AS OWNER/);
 });
 test('generated definition hash is UTF16 SQL HASHBYTES compatible and unknown partial install fails',()=>{
- const sql=render(),objects=buildCrmOpeningProcedures();for(const definition of Object.values(objects))assert.ok(sql.includes(createHash('sha256').update(definition,'utf16le').digest('hex')));
+ const sql=render(),objects=buildCrmOpeningProcedures();for(const[name,definition]of Object.entries(objects)){
+  const stored=persistedCrmProcedureDefinition(definition,'usp_test_crm_order_'+name);
+  assert.ok(sql.includes(createHash('sha256').update(stored,'utf16le').digest('hex')));
+  assert.ok(!sql.includes(createHash('sha256').update(definition,'utf16le').digest('hex')));
+ }
  assert.match(sql,/CRM_TEST_UNKNOWN_PARTIAL_INSTALL/);assert.match(sql,/PASS_IDENTICAL_NOOP/);assert.match(sql,/CRM_TEST_EXISTING_INSTALL_MISMATCH/);
  assert.match(sql,/COUNT\(\*\) FROM dbo\.test_crm_order_opening_definitions\)<>7/);
  assert.doesNotMatch(sql,/LOWER\((?:DB_NAME|.*SERVERPROPERTY)/);
@@ -116,7 +120,8 @@ test('definition-only recovery is pinned, reversible and retains original hashes
  const before=buildTestCrmOrderRecoverySql({direction:'before'}),after=buildTestCrmOrderRecoverySql({direction:'after'});
  for(const sql of [before,after]){
   assert.match(sql,/MELISA-TEST-V70-SALES/);assert.match(sql,/SET TRANSACTION ISOLATION LEVEL SERIALIZABLE/);assert.match(sql,/COUNT\(\*\) FROM dbo.test_crm_order_opening_definitions WITH\(HOLDLOCK\)\)<>7/);
-  assert.match(sql,/HASHBYTES\('SHA2_256',d.before_definition\)/);assert.match(sql,/STUFF\(@original,@first,6,N'ALTER'\)/);assert.match(sql,/headerNormalizedRecoveryHash/);
+  assert.match(sql,/HASHBYTES\('SHA2_256',d.before_definition\)/);assert.match(sql,/STUFF\(@original,@first,6,N'ALTER'\)/);assert.match(sql,/executableRecoveryHash/);assert.match(sql,/storedRecoveryHash/);
+  assert.match(sql,/STUFF\(@statement,@first,5,N'CREATE'\)/);assert.match(sql,/HASHBYTES\('SHA2_256',@stored_statement\)/);
   assert.match(sql,/OBJECT_ID\(N'dbo.'\+d.name\) IS NULL OR OBJECT_DEFINITION\(OBJECT_ID\(N'dbo.'\+d.name\)\) IS NULL/);
   assert.doesNotMatch(sql,/DROP TABLE|DELETE FROM|DISABLE TRIGGER|GRANT |RESTORE DATABASE|UPDATE dbo.test_crm_order_opening_definitions/i);
   assert.match(sql,/CRM_TEST_RECOVERY_READ_MISMATCH/);assert.doesNotMatch(sql,/EXEC sys.sp_executesql N'[^']*usp_test_crm_order_read/);
@@ -124,5 +129,20 @@ test('definition-only recovery is pinned, reversible and retains original hashes
  assert.match(before,/SELECT @statement=recovery_definition FROM @restore/);assert.match(before,/CRM_TEST_RECOVERY_BEFORE_MISMATCH/);
  assert.match(after,/SET @statement=N'ALTER PROCEDURE dbo.usp_test_crm_order_context/);assert.match(after,/CRM_TEST_RECOVERY_AFTER_MISMATCH/);
  assert.equal((before.match(/EXEC sys.sp_executesql @statement/g)||[]).length,2);assert.equal((after.match(/EXEC sys.sp_executesql @statement/g)||[]).length,2);
+});
+test('actual TEST stored procedure headers use CREATE hashes, not executed ALTER hashes',()=>{
+ const expected={context:'27e2cf25da14cb1b6e7c651ed91df68d350d7bc4e9b47141fb5cc6bc2b5ec516',create:'d5fb0183ff84e3db8955bd25e6504bc1943955b9d342f6c51cd28091213d1c46'};
+ const procedures=buildCrmOpeningProcedures();
+ for(const[name,statement]of Object.entries(procedures)){
+  const persisted=persistedCrmProcedureDefinition(statement,'usp_test_crm_order_'+name);
+  assert.equal(persisted,statement.replace(/^ALTER PROCEDURE /,'CREATE PROCEDURE '));
+  assert.equal(createHash('sha256').update(persisted,'utf16le').digest('hex'),expected[name]);
+  for(const direction of ['before','after'])assert.ok(buildTestCrmOrderRecoverySql({direction}).includes(expected[name]));
+ }
+ const original='CREATE   PROCEDURE dbo.usp_test_crm_order_context @actor_id BIGINT AS SELECT 1;';
+ const executable=normalizeCrmRecoveryDefinition(original,'usp_test_crm_order_context');
+ assert.equal(persistedCrmProcedureDefinition(executable,'usp_test_crm_order_context'),original);
+ assert.notEqual(createHash('sha256').update(executable,'utf16le').digest('hex'),createHash('sha256').update(original,'utf16le').digest('hex'));
+ assert.throws(()=>persistedCrmProcedureDefinition('ALTER PROCEDURE dbo.other AS SELECT 1;','usp_test_crm_order_context'),/HEADER_UNSUPPORTED/);
 });
 import {fileURLToPath} from 'node:url';
