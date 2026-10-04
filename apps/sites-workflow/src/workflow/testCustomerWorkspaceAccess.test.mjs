@@ -38,6 +38,8 @@ test('normal customer page restores customer-only session despite unavailable sa
   const w=await workspace();await w.main.namespace.refresh();w.main.namespace.render();
   assert.deepEqual(w.calls,['http://127.0.0.1:4144/api/auth/me']);
   assert.match(w.element('view').innerHTML,/CUSTOMER_READ_WORKSPACE/);assert.equal(w.binds(),1);
+  assert.match(w.element('view').innerHTML,/Müşteri kartları · Salt okunur/);
+  assert.doesNotMatch(w.element('view').innerHTML,/Bağlantı doğrulanamadı/);
 });
 
 test('customer page retains permission-denied view without unrelated privileged requests',async()=>{
