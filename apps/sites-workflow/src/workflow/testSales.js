@@ -30,12 +30,12 @@ const page=()=>pages.some(x=>x[0]===location.hash.slice(1))?location.hash.slice(
 const pendingKey=()=>`melisa-test-sale-v1:${user?.id}`;
 function pending(){try{return JSON.parse(localStorage.getItem(pendingKey())||'null')}catch{return null}}
 function remember(value){localStorage.setItem(pendingKey(),JSON.stringify(value))}
-async function api(path,{method='GET',body}={}){
+async function api(path,{method='GET',body,envelope=false}={}){
  let response,payload;
  try{response=await fetch(BASE+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body?JSON.stringify(body):undefined,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)});payload=await response.json()}
  catch{throw Error('TEST bağlantısı kurulamadı. Örnek veriye geçilmedi. İşlem sonucu belirsizse aynı istek kimliğiyle tekrar doğrulayın.')}
  if(!response.ok||payload.success!==true)throw Error(payload.error?.message||`TEST isteği reddedildi (${response.status}).`);
- return payload.data;
+ return envelope?payload:payload.data;
 }
 function role(){
  document.querySelector('.rolebox').innerHTML=`<label>GERÇEK TEST OTURUMU</label><strong class="test-user">${esc(user?.displayName||'Giriş bekleniyor')}</strong><small>${esc(user?.role?.name||'Yetki seçicisi yok')}</small>`;
