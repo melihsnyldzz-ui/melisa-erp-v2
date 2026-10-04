@@ -47,6 +47,8 @@ jobs:
         run: node scripts/ci/run.mjs sites-workflow
       - name: Migration models with synthetic data only
         run: node scripts/ci/run.mjs migration
+      - name: Canonical SQL source checks without SQL access
+        run: node scripts/ci/run.mjs canonical
       - name: Build web admin and Sites workflow
         run: node scripts/ci/run.mjs build
 

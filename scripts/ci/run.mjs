@@ -26,6 +26,8 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'apps/api/src'), name => /\.(js|mjs)$/.test(name))) run(['--check', filename]);
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
+} else if (mode === 'canonical') {
+  run(['--test', path.join(root, 'scripts/canonical/enable-test-purchase-batches.test.mjs')]);
 } else if (['api', 'web-admin', 'sites-workflow', 'migration'].includes(mode)) {
   const testRoot = mode === 'migration' ? path.join(root, 'scripts/migration') : path.join(root, 'apps', mode, 'src');
   // The identity regression is a real SQL integration suite. CI deliberately
@@ -40,4 +42,4 @@ if (mode === 'quality') {
   for (const app of ['web-admin', 'sites-workflow']) run([path.join(root, 'apps', app, 'node_modules/vite/bin/vite.js'), 'build'], path.join(root, 'apps', app));
 } else if (mode === 'guard') {
   run([path.join(root, 'scripts/ci/guard.test.mjs')]);
-} else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|build');
+} else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build');
