@@ -1,6 +1,8 @@
 import {testMigrationQuarantine} from './testMigrationQuarantine.js';
 import {testCustomers} from './testCustomers.js';
 let customerUI=null;
+import {testSuppliers} from './testSuppliers.js';
+let supplierUI=null;
 let quarantineUI=null;
 import {testPrices} from './testPrices.js';
 let priceUI=null;
@@ -23,7 +25,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>Number(v||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' TRY';
 const tokenKey='melisaTestSalesAccessToken';
 let token=sessionStorage.getItem(tokenKey),user=null,scope=null,product=null,customer=null,invoices=[],busy=false,connected=false,error='',notice='',generation=0;
-const pages=[['home','⌂','İş sırası'],['stock','▦','Ürün & stok'],['customers','♙','Müşteriler'],['sales','▣','Satış terminali'],['receipts','≡','Satış fişleri']];
+const pages=[['home','⌂','İş sırası'],['stock','▦','Ürün & stok'],['customers','♙','Müşteriler'],['suppliers','▧','Tedarikçiler'],['sales','▣','Satış terminali'],['receipts','≡','Satış fişleri']];
 pages.push(['prices','₺','Fiyat & maliyet']);
 pages.push(['migration-quarantine','⚑','Aktarım karantinası']);
 pages.push(['finance','₺','Tahsilat'],['fx','€','Döviz tahsilatı']);
@@ -39,7 +41,7 @@ async function api(path,{method='GET',body,envelope=false}={}){
  let response,payload;
  try{response=await fetch(BASE+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body?JSON.stringify(body):undefined,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)});payload=await response.json()}
  catch{throw Error('TEST bağlantısı kurulamadı. Örnek veriye geçilmedi. İşlem sonucu belirsizse aynı istek kimliğiyle tekrar doğrulayın.')}
- if(!response.ok||payload.success!==true)throw Error(payload.error?.message||`TEST isteği reddedildi (${response.status}).`);
+ if(!response.ok||payload.success!==true)throw Object.assign(Error(payload.error?.message||`TEST isteği reddedildi (${response.status}).`),{code:payload.error?.code,status:response.status});
  return envelope?payload:payload.data;
 }
 function role(){
@@ -59,6 +61,7 @@ const rows=()=>invoices.map(i=>`<tr><td><button class="link" data-detail="${i.id
 function invoiceTable(){return `<div class="tablewrap"><table><thead><tr><th>Fiş</th><th>TEST müşteri</th><th>Tutar</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>${rows()||'<tr><td colspan="5">TEST veritabanında henüz fiş yok.</td></tr>'}</tbody></table></div>`}
 function render(){
  customerUI?.dispose();customerUI=null;
+ supplierUI?.dispose();supplierUI=null;
  header();
  if(!user){
   view.innerHTML=`<section class="card test-login"><p class="eyebrow">MELİSA ERP · TEST</p><h1>TEST oturumunu aç</h1><p>Gerçek kullanıcı yetkisi sunucudan alınır. Örnek rol seçimi kullanılmaz.</p><form id="test-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required></label><label>Şifre<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" ${busy?'disabled':''}>Giriş yap</button></form><p role="alert" class="test-error">${esc(error)}</p><a href="/ornek-akis.html">Veritabanından ayrı örnek ekranı aç</a></section>`;
@@ -67,6 +70,7 @@ function render(){
  }
  let content='';
  if(page()==='customers'){customerUI=testCustomers({api,esc,permissions:user.permissions});content=customerUI.html();}
+ else if(page()==='suppliers'){supplierUI=testSuppliers({api,esc,permissions:user.permissions,actorId:user.id});content=supplierUI.html();}
  else if(!connected){content='<section class="card"><h2>TEST verileri doğrulanamadı</h2><p>Satış kapalı. Sonuç alınana kadar örnek kayıtlar gösterilmez.</p></section>'}
  else if(page()==='home'){content=`<p class="eyebrow">MELİSA ERP · ORTAK TEST KAYITLARI</p><h1>Günlük operasyon</h1><p>Bu ekran ayrı TEST veritabanını okur; örnek localStorage kayıtlarını kullanmaz.</p><div class="stats"><div class="stat"><small>TEST ürün stoğu</small><strong id="test-stock">${product.stockQuantity} ADET</strong></div><div class="stat"><small>TEST cari borcu</small><strong id="test-balance">${money(customer.balance)}</strong></div><div class="stat"><small>Ortak TEST fişi</small><strong>${invoices.length}</strong></div></div><section class="card panel"><h2>Satış, stok ve cari</h2>${invoiceTable()}</section>`}
  else if(page()==='prices'){priceUI=has('product.view')&&has('purchase.view')?testPrices({api,esc}):null;content=priceUI?priceUI.html():'<h1>Fiyat & maliyet</h1><section class="card panel"><p>Bu rapor için ürün ve alış görüntüleme yetkisi gerekir.</p></section>'}
@@ -81,7 +85,7 @@ function render(){
  else if(page()==='sales'){
   const p=pending();content=`<h1>Satış terminali</h1><div class="test-sale-grid"><section class="card panel"><p class="pill green">VERİTABANINA YAZILAN TEST SATIŞI</p><h2>${esc(product.productName)}</h2><p>${esc(product.stockCode)} · Kullanılabilir stok: ${product.stockQuantity}</p><p>Fiyat sunucuda doğrulanır: ${money(scope.unitPrice)}</p><form id="test-sale"><label>TEST müşteri<select name="customerId"><option value="${scope.customerId}">${esc(customer.customerName)}</option></select></label><label>Adet<input name="quantity" type="number" min="1" max="5" step="1" value="${p?.body?.items?.[0]?.quantity||2}" ${p?'disabled':''}></label><button class="btn primary" ${busy||!has('sales.create')||!has('sales.finalize')||p?.invoice?'disabled':''}>TEST satışını tamamla</button></form><p class="test-note">Bu kabulde tek TEST ürün/cari, 1–5 adet ve aynı anda en fazla 5 açık fiş kullanılabilir. Tahsilat yalnız yetkili TEST oturumuna açıktır; kargo, e-posta ve WhatsApp kapalıdır.</p></section><section class="card panel"><h2>İşlem sonucu</h2>${p?`<p>İstek kimliği</p><code id="test-request-id">${esc(p.body.requestId)}</code>${p.invoice?`<h3 id="test-invoice-id">Fiş #${p.invoice.id}</h3><p>${esc(p.invoice.documentNo)} · ${esc(p.invoice.status)}</p><p>${money(p.invoice.grandTotal)}</p>`:'<p>Bu istek bekliyor. Hata veya bağlantı kopmasında aynı kimlikle doğrulayın.</p>'}<button id="test-replay" class="btn" ${busy?'disabled':''}>Aynı isteği tekrar doğrula</button>${p.invoice?'<button id="test-new" class="btn">Yeni TEST fişi</button>':''}`:'<p>Henüz satış isteği oluşturulmadı.</p>'}<p>Stok ve cari etkisi tek transaction içinde kaydedilir.</p></section></div>`;
  }
- const connectionLabel=page()==='customers'?'<b>TEST</b> · Müşteri kartları · Salt okunur':`<b>TEST SQL</b> · ${connected?'Bağlı':'Bağlantı doğrulanamadı'} · Dış gönderimler kapalı`;
+ const connectionLabel=page()==='customers'?'<b>TEST</b> · Müşteri kartları · Salt okunur':page()==='suppliers'?'<b>TEST</b> · Tedarikçi kartları · Salt okunur':`<b>TEST SQL</b> · ${connected?'Bağlı':'Bağlantı doğrulanamadı'} · Dış gönderimler kapalı`;
  view.innerHTML=`<section class="test-status card"><span>${connectionLabel}</span><div><button id="test-refresh" class="btn small" ${busy?'disabled':''}>Yenile</button><button id="test-logout" class="btn small">Oturumu kapat</button></div></section>${error?`<p class="test-error" role="alert">${esc(error)}</p>`:''}${notice?`<p class="test-success" role="status">${esc(notice)}</p>`:''}${content}`;
  document.getElementById('test-refresh').onclick=()=>runRefresh();
  document.getElementById('test-logout').onclick=()=>{generation++;token=null;sessionStorage.removeItem(tokenKey);user=null;connected=false;notice='';error='';render()};
@@ -93,6 +97,7 @@ function render(){
  if(connected&&dailyUI&&['return-purchase','return-sales','count-test','return-cancel','count-cancel'].includes(page()))dailyUI.bind();
  if(connected&&page()==='prices')priceUI?.bind();
  if(page()==='customers')customerUI?.bind();
+ if(page()==='suppliers')supplierUI?.bind();
  if(connected&&page()==='migration-quarantine')quarantineUI?.bind();
  if(connected&&['finance','fx'].includes(page()))financeUI.bind();
  if(connected&&purchaseData&&(page()==='goods'||page()==='purchases'))purchaseUI.bind();
@@ -105,7 +110,7 @@ async function refresh(){
   const me=await api('/api/auth/me');
   if(version!==generation)return;
   user=me;
-  if(page()==='customers'){error='';return;}
+  if(['customers','suppliers'].includes(page())){error='';return;}
   const ctx=await api('/api/test-sales/context');
   if(ctx.environment!=='ISOLATED_TEST'||ctx.database!=='MELISA_ERP_SIRKET_TEST_20260929_01')throw Error('TEST veritabanı kimliği uyuşmuyor.');
   const [p,c,list]=await Promise.all([api(`/api/products/${ctx.productId}`),api(`/api/customers/${ctx.customerId}`),api(`/api/sales-invoices?customerId=${ctx.customerId}&status=ALL&limit=100`)]);
@@ -140,7 +145,7 @@ async function submitCancel(id,reason){
  try{const r=await api(`/api/sales-invoices/${id}/cancel`,{method:'POST',body:{reason}});notice=r.replayed?'Fiş zaten iptal edilmiş; ikinci ters hareket oluşturulmadı.':`TEST fişi #${id} iptal edildi.`;const p=pending();if(p?.invoice?.id===r.invoice.id)remember({...p,invoice:r.invoice});await refresh()}catch(e){error=e.message}finally{busy=false;render()}
 }
 async function detail(id){try{const i=await api(`/api/sales-invoices/${id}`);notice=`Fiş #${i.id} · ${i.documentNo} · ${i.status} · ${money(i.grandTotal)} · ${i.items.length} satır`;render()}catch(e){error=e.message;render()}}
-window.addEventListener('hashchange',()=>{if(user&&!connected&&page()!=='customers')runRefresh();else render();});
+window.addEventListener('hashchange',()=>{if(user&&!connected&&!['customers','suppliers'].includes(page()))runRefresh();else render();});
 document.querySelector('.top-right button').onclick=()=>location.hash='home';
 document.getElementById('mobileScreen').onchange=e=>location.hash=e.target.value;
 document.title='TEST · Melisa ERP v70 · Gerçek TEST bağlantısı';

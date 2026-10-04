@@ -27,7 +27,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
-  run(['--test', path.join(root, 'scripts/canonical/enable-test-purchase-batches.test.mjs'), path.join(root, 'scripts/canonical/enable-test-purchase-batch-stock-source.test.mjs'), path.join(root, 'scripts/canonical/enable-test-purchase-fx.test.mjs'), path.join(root, 'scripts/canonical/enable-test-customer-cards.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/enable-test-purchase-batches.test.mjs'), path.join(root, 'scripts/canonical/enable-test-purchase-batch-stock-source.test.mjs'), path.join(root, 'scripts/canonical/enable-test-purchase-fx.test.mjs'), path.join(root, 'scripts/canonical/enable-test-customer-cards.test.mjs'), path.join(root, 'scripts/canonical/enable-test-supplier-cards.test.mjs'), path.join(root, 'scripts/canonical/enable-test-supplier-contact.test.mjs')]);
 } else if (['api', 'web-admin', 'sites-workflow', 'migration'].includes(mode)) {
   const testRoot = mode === 'migration' ? path.join(root, 'scripts/migration') : path.join(root, 'apps', mode, 'src');
   // The identity regression is a real SQL integration suite. CI deliberately

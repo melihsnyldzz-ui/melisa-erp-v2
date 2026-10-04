@@ -1,6 +1,44 @@
 import { createSupplier, getSupplierDetail, getSuppliersList, updateSupplier } from '../services/supplierService.js';
 import { getVegaSuppliersListFromWorker } from '../services/vegaSupplierClientService.js';
 import { created, fail, ok } from '../utils/response.js';
+import {supplierCardService} from '../services/supplierCardService.mjs';
+import {testSupplierContactService} from '../services/testSupplierContactService.mjs';
+
+function contactError(res, error) {
+  const known = typeof error?.code === 'string' && error.code.startsWith('TEST_SUPPLIER_CONTACT_');
+  return fail(res, known ? error.statusCode || 503 : 503,
+    known ? error.code : 'TEST_SUPPLIER_CONTACT_UNAVAILABLE',
+    known ? error.message : 'TEST iletişim düzenlemesi şu anda kullanılamıyor.');
+}
+export async function getTestSupplierContact(req, res) {
+  try { return ok(res, await testSupplierContactService.context(req.params.id, req.user), {readOnly: true, synthetic: true}); }
+  catch (error) { return contactError(res, error); }
+}
+export async function postTestSupplierContact(req, res) {
+  try { return ok(res, await testSupplierContactService.update(req.params.id, req.body, req.user), {synthetic: true}); }
+  catch (error) { return contactError(res, error); }
+}
+
+function cardReadError(res, error) {
+  const known = typeof error?.code === 'string' && error.code.startsWith('SUPPLIER_CARD_');
+  return fail(res, known ? error.statusCode || 503 : 503,
+    known ? error.code : 'SUPPLIER_CARD_READ_FAILED',
+    known ? error.message : 'Tedarikçi kartı şu anda okunamıyor.');
+}
+
+export async function getSupplierCards(req, res) {
+  try {
+    const {data, meta} = await supplierCardService.list(req.query);
+    return ok(res, data, meta);
+  } catch (error) { return cardReadError(res, error); }
+}
+
+export async function getSupplierCard(req, res) {
+  try {
+    const {data, meta} = await supplierCardService.detail(req.params.id);
+    return ok(res, data, meta);
+  } catch (error) { return cardReadError(res, error); }
+}
 
 export async function getSuppliers(req, res) {
   try {

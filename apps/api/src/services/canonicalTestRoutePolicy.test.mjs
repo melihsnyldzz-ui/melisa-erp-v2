@@ -1,6 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('supplier contact writes target only the proved synthetic card and keep general PUT closed',()=>{
+ const path='/api/test-supplier-cards/13373/contact';
+ assert.equal(allowed('POST',path,ctx),true);
+ for(const context of [{mode:'native',writes:true},{mode:'erp',writes:false}])assert.equal(allowed('POST',path,context),false);
+ for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ctx),false);
+ for(const candidate of ['/api/suppliers/13373','/api/test-supplier-cards/10160/contact','/api/test-supplier-cards/013373/contact','/api/test-supplier-cards/13373/contact/extra'])assert.equal(allowed('POST',candidate,ctx),false);
+ assert.equal(allowed('PUT','/api/suppliers/13373',ctx),false);
+});
 test('only authenticated guarded TEST contracts can reach a write',()=>{
  for(const p of ['/api/sales-invoices/test-complete','/api/sales-invoices/1/cancel','/api/finance/collections','/api/test-purchase/goods','/api/test-daily/count/approve','/api/test-daily/fx/collect'])assert.equal(allowed('POST',p,ctx),true,p);
  for(const p of ['/api/sales-invoices/draft','/api/sales-invoices/1/finalize','/api/products/1','/api/customers','/api/finance/accounts/cleanup','/api/test-daily/count/approve/extra','/api/test-daily/unregistered/approve','/api/native-terminal/sales','/api/stock-count/adjust'])assert.equal(allowed('POST',p,ctx),false,p);
