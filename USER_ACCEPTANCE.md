@@ -9,7 +9,7 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 | ID / iş | Kullanıcının gözle deneyeceği şey | Sonuç | Kişi / tarih / ortam-sürüm / kanıt |
 | --- | --- | --- | --- |
 | ERP-UA01 / ERP-D01 | TEST'i aç ve yenile; TEST ADMIN oturumu ve normal çalışma yüzü kullanılabilir olsun. | bekliyor | Kullanıcı/deneme tarihi: Durum doğrulanmadı. Mevcut teknik hazırlık: [TEST ADMIN kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md); insan sonucu bu satırda bekler. |
-| ERP-UA02 / ERP-D02 | Ürün & Stok'ta kod/barkodla ara, gerçek kartı aç; ad, stok, satış fiyatı ve para birimini kaynakla karşılaştır; eksik alan uydurulmuş görünmesin. | bekliyor | Durum doğrulanmadı |
+| ERP-UA02 / ERP-D02 | Normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) ekranını aç/yenile; kodla ara ve gerçek kartı aç; başında sıfır olan barkodla ara; stok/satış fiyatı/döviz/birim/kademeyi kaynakla karşılaştır; inceleme bekleyen kartın fiyat göstermediğini ve eksik fotoğraf alanını gör. | bekliyor | Teknik hazırlık 2026-10-05, paket38/source7db0685fbfeead5356c645c4bacd475bec5bdac2. Ajanın gerçek ekran/üç genişlik kontrolü STATUS'ta; insan kişi/tarih/sonuç Durum doğrulanmadı. [v1 kaynak sözleşmesi](docs/erp-v2/canonical-20261005/working-catalog-contract.md). |
 | ERP-UA03 / ERP-D03 | Salt okunur arşiv/eşleme planındaki doğru, belirsiz ve eksik ürün örneklerini incele; planın kabulünü belirt. | bekliyor | Durum doğrulanmadı |
 
 ## Önceki kapsamın kabul kayıtları

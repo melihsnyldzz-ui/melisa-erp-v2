@@ -1,5 +1,7 @@
 # ERP: GitHub çalışma düzeni
 
+5 Ekim karar merkezi: günlük sıra [DELIVERY_BOARD](../../DELIVERY_BOARD.md), onaylı karar [PROJECT_DECISIONS](../../PROJECT_DECISIONS.md), insan sonucu [USER_ACCEPTANCE](../../USER_ACCEPTANCE.md), teknik kanıt [STATUS](../../STATUS.md) ve tam kapsam [ERP_FINISH_PLAN](../../ERP_FINISH_PLAN.md) içinde tutulur. AGENTS güncel devam döngüsünü tanımlar; aşağıdaki 3 Ekim kaynak ilişkisi tarihsel kayıttır.
+
 3 Ekim 2026 kaynak/GitHub incelemesi. Bu belge uygulama kabulü veya deployment kaydı değildir.
 
 ## Kullanıcının göreceği düzen

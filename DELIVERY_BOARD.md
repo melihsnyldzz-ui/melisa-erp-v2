@@ -9,7 +9,7 @@
 | ID | Hedef | Kabul kriteri | Durum | Bağımlılık |
 | --- | --- | --- | --- | --- |
 | ERP-D01 | Yalnız TEST'te otomatik TEST ADMIN erişimini tamamla/kabul et. | Doğrulanmış TEST'te normal çalışma yüzü TEST ADMIN olarak açılır ve yenilenir; yalnız TEST sınırı hedefli kontrolde doğrulanır, kullanıcı ERP-UA01'i dener. | Teknik hazır / kullanıcı kabulü bekliyor; mevcut kanıt STATUS'ta | TEST kimliği ve mevcut görev yetkisi |
-| ERP-D02 | `ornek-akis.html` Ürün & Stok'u kullanılabilir gerçek katalog yap. | ERP-DEC-004 alanları kaynak kimliği/tarihiyle doğrulanır; eksik veri uydurulmaz; normal arama/barkod/detay kullanılabilir; ERP çalışma yüzü ve CRM için ERP-DEC-005 sözleşmesi kaydedilir; ERP-UA02 PASS. Mevcut A01/A02/B02 kanıtları kullanılır. | Onaylı; ERP-D01 bağımlılığı bekliyor | ERP-D01 kullanıcı kabulü; ERP-DEC-001/004/005 |
+| ERP-D02 | `ornek-akis.html` Ürün & Stok'u kullanılabilir gerçek katalog yap. | ERP-DEC-004 alanları kaynak kimliği/tarihiyle doğrulanır; eksik veri uydurulmaz; normal arama/barkod/detay kullanılabilir; ERP çalışma yüzü ve CRM için ERP-DEC-005 sözleşmesi kaydedilir; ERP-UA02 PASS. Mevcut A01/A02/B02 kanıtları kullanılır. | Teknik hazır / ERP-UA02 kullanıcı kabulü bekliyor; 5 Ekim doğrudan kullanıcı çalışma yüzü talimatıyla hazırlandı. ERP-UA01 ayrıca açık; teknik kanıt STATUS'ta. | ERP-D01 kullanıcı kabulü; ERP-DEC-001/004/005 |
 | ERP-D03 | Fotoğraf arşivini salt okunur keşfet, ürün eşleme planını çıkar. | Arşiv kaynakları ve ürün kimliği bağları raporlanır; belirsiz/eksik eşlemeler açık kalır; hiçbir fotoğraf/ürün kaydı değişmez; kullanıcı ERP-UA03 ile planı inceler. | Onaylı; ERP-D02 bağımlılığı bekliyor | ERP-D02 kabulü; ERP-DEC-004 |
 
 ## SONRA
