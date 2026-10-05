@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createCatalogProductReadStore} from './catalogProductReadStore.mjs';
 import {CATALOG_SQL_PROOF} from './catalogSqlProof.mjs';
 import {parseCatalogQuery} from './catalogModel.mjs';
-function fixture(){const state={commit:0,rollback:0,inputs:{},identity:{db:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV'},row:{...CATALOG_SQL_PROOF,actorId:'14',canView:true,canViewSalesPrices:false,total:0,page:1,limit:25,readAt:'2026-10-05T08:00:00.000Z',rowsJson:'[]',acceptedCount:16622,syntheticCount:0,quarantinedCount:54}};
+function fixture(){const state={commit:0,rollback:0,inputs:{},identity:{db:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV'},row:{...CATALOG_SQL_PROOF,actorId:'14',canView:true,canViewSalesPrices:false,total:0,page:1,limit:50,readAt:'2026-10-05T08:00:00.000Z',rowsJson:'[]',acceptedCount:16622,syntheticCount:0,quarantinedCount:54}};
  class Transaction{async begin(level){state.level=level;}async commit(){state.commit++;}async rollback(){state.rollback++;}}
  class Request{input(k,type,v){state.inputs[k]=v;return this;}async query(){return {recordset:[state.identity]};}async execute(proc){state.proc=proc;return {recordset:[state.row]};}}
  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},BigInt:'bigint',Int:'int',NVarChar:n=>n};return {state,store:createCatalogProductReadStore({getRuntime:async()=>({pool:{},sql})})};}

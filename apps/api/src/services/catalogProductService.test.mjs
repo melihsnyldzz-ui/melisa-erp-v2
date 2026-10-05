@@ -12,6 +12,12 @@ test('stock-only role can read catalog without purchase or sales permission; sou
  const r=response(),s=serviceFor(r),out=await s.list({},actor);assert.equal(out.meta.schemaVersion,'melisa-catalog.v1');assert.equal(out.meta.scopeCounts.syntheticTest,0);assert.equal(out.data[0].stockQuantityExact,null);assert.equal(out.data[0].unit.factorExact8,null);assert.equal(out.data[0].barcodes[0].value,'000012');assert.deepEqual(out.data[0].photo,card().photo);assert.deepEqual(out.data[0].salePrices,[]);assert.equal(Object.hasOwn(out.data[0],'financial'),false);assert.equal(Object.hasOwn(out.data[0],'imageUrl'),false);
  await assert.rejects(()=>s.list({}, {id:14,permissions:['sales.view']}),{statusCode:403});
 });
+test('catalog defaults to 50 without changing explicit limits or strict query validation',async()=>{
+ assert.equal(parseCatalogQuery().limit,50);assert.equal(parseCatalogQuery({}).limit,50);assert.equal(parseCatalogQuery({limit:undefined}).limit,50);
+ for(const limit of ['1','25','50'])assert.equal(parseCatalogQuery({limit}).limit,Number(limit));
+ for(const query of [null,[],['25'],'',{limit:'025'},{limit:'050'},{limit:'51'},{limit:'0'},{limit:50},{limit:null},{unknown:'x'},{search:['x']}])assert.throws(()=>parseCatalogQuery(query),{code:'CATALOG_QUERY_INVALID',statusCode:400});
+ const s=serviceFor(response());assert.equal((await s.list({},actor)).meta.limit,50);assert.equal((await s.list({limit:'25'},actor)).meta.limit,25);
+});
 test('DB current sales permission AND authenticated sales permission gate sales values independently',async()=>{
  const r=response(),s=serviceFor(r),sales={...actor,permissions:['product.view','sales.view']};r.canViewSalesPrices=true;r.rows[0].salePrices=[price(),price('USD',null)];
  assert.deepEqual((await s.list({},actor)).data[0].salePrices,[]);const out=await s.list({},sales);assert.equal(out.meta.canViewSalesPrices,true);assert.equal(out.data[0].salePrices[0].priceExact,'0.00000000');assert.equal(out.data[0].salePrices[1].priceExact,null);

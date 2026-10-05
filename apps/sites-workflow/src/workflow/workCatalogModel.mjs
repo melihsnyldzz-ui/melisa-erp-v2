@@ -6,7 +6,7 @@ const text=v=>v===null||typeof v==='string';
 const exact=v=>v===null||typeof v==='string'&&/^-?(?:0|[1-9]\d{0,19})\.\d{8}$/.test(v);
 export function catalogPath({search='',barcode='',stock='all',status='all',page=1}={}){
  if(typeof search!=='string'||search.length>120||typeof barcode!=='string'||barcode.length>160||!['all','positive','zero','negative'].includes(stock)||!['all','active','passive'].includes(status)||!Number.isInteger(page)||page<1||page>100000)fail();
- return '/api/catalog/products?'+new URLSearchParams({search,barcode,stock,status,page:String(page),limit:'25'});
+ return '/api/catalog/products?'+new URLSearchParams({search,barcode,stock,status,page:String(page),limit:'50'});
 }
 export function catalogProduct(r,{canViewSalesPrices=false}={}){
  if(!r||!id(r.id)||typeof r.stockCode!=='string'||!text(r.productName)||typeof r.isActive!=='boolean'||!exact(r.stockQuantityExact)||!r.unit||!text(r.unit.label)||!(r.unit.sourceId===null||id(r.unit.sourceId))||!exact(r.unit.factorExact8)||typeof r.unit.verified!=='boolean'||!Array.isArray(r.barcodes)||!r.hold||typeof r.hold.blocked!=='boolean'||!Array.isArray(r.hold.reasons)||r.hold.reasons.some(x=>typeof x!=='string'||!x)||!['accepted-opening','quarantined-source'].includes(r.provenance?.kind)||r.provenance.sourceAsOf!=='2026-09-30'||r.provenance.verified!==true||typeof r.provenance.sourceKey!=='string'||!Array.isArray(r.salePrices))fail();
@@ -25,7 +25,7 @@ export function catalogEnvelope(p,{salesPermission=false,detail=false}={}){
  const m=p?.meta;
  if(p?.success!==true||m?.schemaVersion!=='melisa-catalog.v1'||m.readOnly!==true||m.sourceAsOf!=='2026-09-30'||m.freshLive!==false||typeof m.readAt!=='string'||!Number.isFinite(Date.parse(m.readAt))||typeof m.canViewSalesPrices!=='boolean'||m.canViewSalesPrices&&!salesPermission||m.scopeCounts?.acceptedOpening!==16622||m.scopeCounts.quarantinedSource!==54||m.scopeCounts.syntheticTest!==0)fail();
  if(detail){catalogProduct(p.data,m);return p;}
- if(!Array.isArray(p.data)||!Number.isSafeInteger(m.total)||m.total<0||!Number.isInteger(m.page)||m.page<1||m.limit!==25||m.totalPages!==Math.ceil(m.total/25)||p.data.length!==Math.min(25,Math.max(0,m.total-(m.page-1)*25)))fail();
+ if(!Array.isArray(p.data)||!Number.isSafeInteger(m.total)||m.total<0||!Number.isInteger(m.page)||m.page<1||m.limit!==50||m.totalPages!==Math.ceil(m.total/50)||p.data.length!==Math.min(50,Math.max(0,m.total-(m.page-1)*50)))fail();
  p.data.forEach(r=>catalogProduct(r,m));if(new Set(p.data.map(r=>r.id)).size!==p.data.length)fail();return p;
 }
 export function catalogMainPrice(r){

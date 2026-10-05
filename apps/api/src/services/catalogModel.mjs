@@ -1,7 +1,7 @@
 import {parseStockProductId,parseStockProductQuery,stockProductDto,stockReadTimestamp} from './stockProductModel.mjs';
 export const catalogError=(code='CATALOG_UNAVAILABLE',message='Ürün kataloğu şu anda okunamıyor.',statusCode=503)=>Object.assign(new Error(message),{code,statusCode});
 export function parseCatalogId(value){try{return parseStockProductId(value);}catch{throw catalogError('CATALOG_ID_INVALID','Geçerli ürün kimliği gerekli.',400);}}
-export function parseCatalogQuery(value){try{return parseStockProductQuery(value);}catch{throw catalogError('CATALOG_QUERY_INVALID','Geçerli arama ve filtreler gerekli.',400);}}
+export function parseCatalogQuery(value={}){try{if(!value||typeof value!=='object'||Array.isArray(value))throw Error();return parseStockProductQuery({...value,limit:value.limit===undefined?'50':value.limit});}catch{throw catalogError('CATALOG_QUERY_INVALID','Geçerli arama ve filtreler gerekli.',400);}}
 const invalid=()=>{throw catalogError();};
 const nativeId=value=>{try{return parseStockProductId(value);}catch{return invalid();}};
 const priceExact=value=>{if(value===null)return null;if(typeof value!=='string'||!/^\-?(?:0|[1-9]\d{0,19})\.\d{8}$/.test(value))return invalid();return value;};
