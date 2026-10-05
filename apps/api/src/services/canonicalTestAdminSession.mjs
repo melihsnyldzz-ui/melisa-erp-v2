@@ -1,4 +1,5 @@
 import { applyRolePermissionDefaults } from './permissionCatalog.js';
+import {canonicalInboundAllowed,canonicalLanHost} from '../../canonical-test-listeners.mjs';
 
 const context = Symbol('verified canonical TEST admin');
 const database = 'MELISA_ERP_SIRKET_TEST_20260929_01';
@@ -7,22 +8,27 @@ const loopback = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ad
 
 // Installed only after configureCanonicalTest has checked the actual SQL identity.
 // No SQL role/user changes: actor 16 keeps all existing named-fixture guards.
-export function canonicalTestAdminContext({ identity, mode, port, writes, env }) {
+export function canonicalTestAdminContext({ identity, mode, port, writes, env, listenerPolicy }) {
   if (mode !== 'erp' || port !== 4144 || writes !== true || env.sql.database !== database
     || identity.databaseName !== database || identity.serverName.toLowerCase() !== 'semih\\melisadev'
     || identity.loginName !== 'melisa_sirket_sales_test_20260929_01'
     || identity.databaseUser !== identity.loginName || identity.sysadmin !== 0
     || identity.databaseControl !== 0 || identity.liveDatabaseAccess !== 0) fail();
   return (req, _res, next) => {
-    if (loopback(req.socket.remoteAddress)) req[context] = true;
+    if (loopback(req.socket.remoteAddress)) req[context] = 'loopback';
+    else if(listenerPolicy?.lanEnabled===true&&req.get('host')===`${canonicalLanHost}:4144`
+      &&canonicalInboundAllowed({remoteAddress:req.socket.remoteAddress,host:req.get('host')},{port,policy:listenerPolicy}))req[context]='lan';
     next();
   };
 }
 
 export function assertTestAdminRequest(req, { bootstrap = false } = {}) {
-  if (req[context] !== true) fail();
-  if (bootstrap && (!['127.0.0.1:4144', 'localhost:4144'].includes(req.get('host'))
-    || !['http://127.0.0.1:5194', 'http://localhost:5194'].includes(req.get('origin')))) fail();
+  if (!['loopback','lan'].includes(req[context])) fail();
+  if(bootstrap){
+    if(req[context]==='lan'){
+      if(req.get('host')!==`${canonicalLanHost}:4144`||req.get('origin')!==`http://${canonicalLanHost}:5194`)fail();
+    }else if(!['127.0.0.1:4144','localhost:4144'].includes(req.get('host'))||!['http://127.0.0.1:5194','http://localhost:5194'].includes(req.get('origin')))fail();
+  }
 }
 
 export function testAdminUser(user) {

@@ -33,7 +33,7 @@ if(mode==='erp' && writes){
   const {canonicalTestAdminContext}=await import('./src/services/canonicalTestAdminSession.mjs');
   const {createCanonicalTestAdminRoutes}=await import('./src/routes/canonicalTestAdminRoutes.mjs');
   const {env}=await import('./src/config/env.js');
-  app.use(canonicalTestAdminContext({identity,mode,port,writes,env}));
+  app.use(canonicalTestAdminContext({identity,mode,port,writes,env,listenerPolicy}));
   app.use('/api',createCanonicalTestAdminRoutes());
 }
 app.use((req,res,next)=>{
