@@ -86,6 +86,8 @@ function render(){
  purchaseUI?.dispose();purchaseUI=null;
  renderedHash=location.hash;
  header();
+ const mobileScreen=document.getElementById('mobileScreen');
+ if(Array.from(mobileScreen?.options??[]).some(option=>option.value===page()))mobileScreen.value=page();
  if(!user){
   if(openingAdmin){view.innerHTML='<section class="card test-login" role="status"><h1>TEST ADMIN açılıyor…</h1></section>';return;}
   view.innerHTML=`<section class="card test-login"><p class="eyebrow">MELİSA ERP · TEST</p><h1>TEST kullanıcısını değiştir</h1><p>İlker, Patron, Müdür veya Personel hesabınızla girerek kayıtlı gerçek yetkileri deneyebilirsiniz.</p><form id="test-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required></label><label>Şifre<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" ${busy?'disabled':''}>Giriş yap</button></form>${autoAdmin()||shouldAutoOpenTestAdmin({location,apiBase:BASE,mode:null})?'<button class="btn" id="test-admin-return">TEST ADMIN ile aç</button>':''}<p role="alert" class="test-error">${esc(error)}</p><a href="/ornek-akis.html">Veritabanından ayrı örnek ekranı aç</a></section>`;

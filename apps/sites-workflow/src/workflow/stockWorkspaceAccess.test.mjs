@@ -7,7 +7,7 @@ async function workspace({permissions=['product.view'], authPending=null}={}) {
   const calls=[], events={}, elements=new Map();
   let binds=0;
   const element=id=>{
-    if(!elements.has(id)) elements.set(id,{innerHTML:'',textContent:'',style:{},querySelectorAll:()=>[],addEventListener(){}});
+    if(!elements.has(id)) elements.set(id,{innerHTML:'',textContent:'',style:{},options:id==='mobileScreen'?['home','stock','sales'].map(value=>({value})):[],value:'home',querySelectorAll:()=>[],addEventListener(){}});
     return elements.get(id);
   };
   const location={hash:'#stock'};
@@ -41,6 +41,7 @@ test('normal stock page restores stock-only session despite unavailable sales an
   assert.match(w.element('view').innerHTML,/STOCK_READ_WORKSPACE/);assert.equal(w.binds(),1);
   assert.match(w.element('view').innerHTML,/Ürün kartları · Salt okunur/);
   assert.doesNotMatch(w.element('view').innerHTML,/Bağlantı doğrulanamadı/);
+  assert.equal(w.element('mobileScreen').value,'stock');
 });
 
 test('stock page retains permission-denied view without unrelated privileged requests',async()=>{
@@ -55,6 +56,7 @@ test('leaving stock-only startup requires normal sales initialization and never 
   assert.ok(w.calls.some(url=>url.endsWith('/api/test-sales/context')));
   assert.match(w.element('view').innerHTML,/TEST verileri doğrulanamadı/);
   assert.doesNotMatch(w.element('view').innerHTML,/STOCK_READ_WORKSPACE/);
+  assert.equal(w.element('mobileScreen').value,'sales');
 });
 
 test('logout while authentication is pending prevents stale stock session restoration',async()=>{
