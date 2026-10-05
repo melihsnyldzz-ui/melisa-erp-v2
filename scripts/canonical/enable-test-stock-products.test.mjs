@@ -1,0 +1,78 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createHash} from 'node:crypto';
+import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL} from './enable-test-stock-products.mjs';
+import {STOCK_PRODUCT_SQL_PROOF as artifactProof} from '../../apps/api/src/services/stockProductSqlProof.mjs';
+
+test('SQL and API pin artifacts match source without any SQL connection',()=>{
+ assert.equal(fs.readFileSync(new URL('./enable-test-stock-products.sql',import.meta.url),'utf8'),buildStockProductsSql());
+ assert.equal(fs.readFileSync(new URL('../../apps/api/src/services/stockProductSqlProof.mjs',import.meta.url),'utf8'),buildStockProductSqlProofModule());
+ assert.deepEqual(artifactProof,STOCK_PRODUCT_SQL_PROOF);
+ const digest=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
+ assert.equal(artifactProof.readerDefinitionHash,digest(STOCK_PRODUCT_PROC_SQL));
+ assert.notEqual(artifactProof.readerDefinitionHash,digest(STOCK_PRODUCT_PROC_SQL.replace("p.permission_key=N'product.view'", "p.permission_key=N'supplier.view'")));
+ for(const key of Object.keys(artifactProof))assert.match(STOCK_PRODUCT_PROC_SQL,new RegExp(`\\b${key}\\b`));
+});
+test('new owner procedure is read-only and preserves every old writer/reader/table definition',()=>{
+ const sql=buildStockProductsSql();
+ assert.doesNotMatch(sql,/ALTER\s+(?:TABLE|TRIGGER|PROCEDURE)|DISABLE\s+TRIGGER|SESSION_CONTEXT|DELETE\s+FROM|TRUNCATE|DROP\s+|INSERT\s+(?:dbo|erp_migration)\.|UPDATE\s+(?:dbo|erp_migration)\./i);
+ assert.doesNotMatch(sql,/CREATE TABLE (?:dbo|erp_migration)\.|CREATE TRIGGER /i);
+ assert.equal((sql.match(/GRANT EXECUTE ON OBJECT::dbo\.usp_read_stock_products TO/g)||[]).length,2);
+ assert.doesNotMatch(sql,/GRANT (?:SELECT|INSERT|UPDATE|DELETE|CONTROL)|GRANT.*SCHEMA::/i);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/WITH EXECUTE AS OWNER/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/transaction_isolation_level=4/);
+});
+test('stock permission is independent from finance and DB actual role controls optional fields',()=>{
+ assert.match(STOCK_PRODUCT_PROC_SQL,/u\.id=@actor_id AND u\.is_active=1 AND p\.permission_key=N'product.view' AND p\.can_view=1/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/DECLARE @financial bit=CASE WHEN EXISTS.*permission_key=N'purchase.view'/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CASE WHEN @financial=1 THEN j\.row_json ELSE JSON_MODIFY\(j\.row_json,'\$\.financial',NULL\) END/);
+ assert.doesNotMatch(STOCK_PRODUCT_PROC_SQL,/p\.(?:purchase_price|sales_price)/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CAST\(p\.average_cost_try AS decimal\(28,8\)\)/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/s\.kind=N'quarantined-source' THEN NULL/);
+});
+test('exact barcode remains a literal string and multiple matches stay a paginated list',()=>{
+ assert.match(STOCK_PRODUCT_PROC_SQL,/@barcode nvarchar\(160\)/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CONVERT\(varbinary\(max\),bc\.barcode\)=CONVERT\(varbinary\(max\),@barcode\)/);
+ assert.doesNotMatch(STOCK_PRODUCT_PROC_SQL,/TRY_CONVERT\([^,]+,@barcode\)|CAST\(@barcode|LTRIM\(@barcode|TRIM\(@barcode/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/@page_size>50/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/ORDER BY p\.stock_code,p\.id OFFSET CONVERT\(bigint,@page-1\)\*@page_size/);
+ for(const filter of ['positive','zero','negative','active','passive'])assert.ok(STOCK_PRODUCT_PROC_SQL.includes(`N'${filter}'`));
+ assert.match(STOCK_PRODUCT_PROC_SQL,/COALESCE\(N'\['\+\(SELECT STRING_AGG[\s\S]*\+N'\]',N'\[\]'\) rowsJson/);
+});
+test('unknown values remain NULL and source snapshot is distinguished from current native stock',()=>{
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CAST\(p\.current_stock_qty AS decimal\(28,8\)\)/);
+ assert.doesNotMatch(STOCK_PRODUCT_PROC_SQL,/COALESCE\(p\.(?:current_stock_qty|average_cost_try),0\)/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/\.mainUnitSourceId'\)\)>0 THEN CONVERT\(varchar\(20\),b\.main_unit_source_id\) ELSE NULL END sourceId/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/ELSE NULL END factorExact8/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CASE WHEN s\.kind<>N'synthetic-test' THEN N'2026-09-30' ELSE NULL END sourceAsOf/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CONVERT\(varchar\(23\),CAST\(SYSUTCDATETIME\(\) AS datetime2\(3\)\),126\)\+N'Z'/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES\) row_json/);
+});
+test('accepted scope, explicit fixtures and sealed hold cards have separate counts and provenance',()=>{
+ assert.match(STOCK_PRODUCT_READY_SQL,/product_count=16622 AND price_count=63774/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/entity=N'product' AND native_id IS NOT NULL\)<>54/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/p\.id IN\(301984,301985,301986\)/);
+ for(const kind of ['accepted-opening','synthetic-test','quarantined-source'])assert.ok(STOCK_PRODUCT_PROC_SQL.includes(`N'${kind}'`));
+ for(const count of ['acceptedCount','syntheticCount','quarantinedCount'])assert.ok(STOCK_PRODUCT_PROC_SQL.includes(count));
+ assert.match(STOCK_PRODUCT_READY_SQL,/source_rows=176 AND native_holds=172 AND not_present=4/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/h\.reasons_json,h\.binding_basis FOR JSON PATH/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/9AE41CA1AB25EE165019AD04DBD9A6FB4E5B7190F027E0A07A87FB03D698379E/);
+});
+test('source/native bindings and immutable C09 current versions fail closed without scalar price fallback',()=>{
+ assert.match(STOCK_PRODUCT_READY_SQL,/b\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/v\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/p\.source_record_key\) EXCEPT SELECT CONVERT/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash IS NULL OR r\.payload_json IS NULL/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash<>b\.stage_payload_hash/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/SELECT n\.\* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/pv\.id=c\.version_id AND pv\.price_id=c\.id/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/WHERE p\.id=301986 AND c\.product_id=p\.id/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/C09_NATIVE_PRICE_BINDING_DRIFT/);
+});
+test('NOOP requires exact installed body and two narrow grants instead of repairing drift',()=>{
+ const sql=buildStockProductsSql(),noop=sql.slice(sql.indexOf("IF OBJECT_ID(N'dbo.usp_read_stock_products') IS NOT NULL"),sql.indexOf('EXEC sys.sp_executesql'));
+ assert.match(noop,/STOCK_PRODUCT_DEFINITION_DRIFT/);assert.match(noop,/STOCK_PRODUCT_EXECUTE_DRIFT/);
+ assert.doesNotMatch(noop,/GRANT |DENY |ALTER /);
+ assert.match(STOCK_PRODUCT_ACCESS_SQL,/minor_id=0/);assert.match(STOCK_PRODUCT_ACCESS_SQL,/\)<>2/);
+});
