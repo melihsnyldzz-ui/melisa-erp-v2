@@ -24,8 +24,8 @@ export function workContextDto(raw,actor){
  if(customer.currency!=='TRY'||typeof customer.code!=='string'||typeof customer.name!=='string')throw workError();
  const products=raw.products.map(row=>{
   const id=workId(row.id),quoteId=workId(row.priceId);workScaled(row.stockQuantityExact3,3);workScaled(row.unitPriceExact8,8);workScaled(row.costExact4,4);
-  if(row.unit!=='ADET'||typeof row.stockCode!=='string'||typeof row.name!=='string'||nativeId(id)===301986)throw workError();
-  return {id,stockCode:row.stockCode,name:row.name,synthetic:true,writeEligible:true,stockQuantityExact3:row.stockQuantityExact3,unit:{label:'ADET',factorExact8:'1.00000000'},revision:workRevision(raw.revision),prices:[{quoteId,currency:'TRY',unitPriceExact8:row.unitPriceExact8,source:{kind:'synthetic-test'},revision:workRevision(raw.revision)}]};
+  if(row.unit!=='ADET'||typeof row.stockCode!=='string'||typeof row.name!=='string'||(row.barcode!==null&&typeof row.barcode!=='string')||nativeId(id)===301986)throw workError();
+  return {id,stockCode:row.stockCode,name:row.name,barcode:row.barcode,synthetic:true,writeEligible:true,stockQuantityExact3:row.stockQuantityExact3,unit:{label:'ADET',factorExact8:'1.00000000'},revision:workRevision(raw.revision),prices:[{quoteId,currency:'TRY',unitPriceExact8:row.unitPriceExact8,source:{kind:'synthetic-test'},revision:workRevision(raw.revision)}]};
  });
  if(new Set(products.map(row=>row.id)).size!==2)throw workError();
  const cap=capabilities(actor,raw),finance=actor.id==='16'&&actor.permissions.includes('finance.view')&&raw.permissions.includes('finance.view'),a=raw.account;

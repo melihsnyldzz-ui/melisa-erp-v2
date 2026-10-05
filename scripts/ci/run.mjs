@@ -44,4 +44,3 @@ if (mode === 'quality') {
 } else if (mode === 'guard') {
   run([path.join(root, 'scripts/ci/guard.test.mjs')]);
 } else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build');
-

@@ -6,3 +6,6 @@ apps/api/src/** -text
 apps/api/production-env.mjs -text
 apps/api/start-production-*.mjs -text
 packages/** -text
+# Generated SQL retains captured legacy trigger whitespace for independent hashes.
+scripts/canonical/enable-test-night-workflows.sql whitespace=-blank-at-eol
+scripts/canonical/upgrade-test-night-guard-visibility.sql whitespace=-blank-at-eol

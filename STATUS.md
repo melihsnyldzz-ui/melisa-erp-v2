@@ -1,3 +1,8 @@
+# ERP-NIGHT01 — 6 Ekim 2026 normal ekran ilk SQL provası
+
+TEST50/source908ce0cb6f361f6ae05d53e0abd1395d60cbbfbc üzerinde normal ekranda iki ürünlü150TRY satış, tam tahsilat, tahsilat iptali ve ardından satış iptali gerçek sentetik native kayıtlara işlendi. Belge NIGHT-cf1a716809c44e4a8df68855 /34617: başlangıç20+20stok/0borç/0kasa; tamamlanan satış19+19/150/0; tahsilat19+19/0/150; iki ters kayıt sonrası20+20/0/0. Tarihçe korunur;5journal/0açıkintent. İnsan kabulü PASS değildir.
+
+İlk tarayıcı provasında LAN HTTP UUID üretimi, kısmi tutar alanının yeniden çizimde kaybolması ve düşük yetkili caller'ın SQL metadata görünürlüğü kusurları bulundu. UUID güvenli getRandomValues fallback, değerlerin çizimden önce okunması ve mevcut tüm bütünlük kontrollerini owner-ready içinde koruyan dar9guard/hash düzeltmesiyle giderildi. SQL Validate/Apply ve9sentetik olumsuz kontrol PASS; native/karantina guards ve mevcut kullanıcı yetkileri korunur. Müşteri kartına kalıcı sentetik satış/tahsilat geçmişi ve literal başında sıfır barkod eklendi.530Sites+36hedefli test PASS. Son uygulama paketi51 ve gerçek LAN kısmi/tam/tekrar/yenileme/1440-1024-390 provası sıradadır; teknik tamam veya kullanıcı kabulü henüz iddia edilmez. [Kanıt](docs/evidence/erp/2026-10-06-night/README.md).
 # ERP-NIGHT01 — 6 Ekim 2026 kaynak ve kontrollü SQL hazırlığı
 
 Kullanıcının gece talimatı / ERP-DEC-013 kapsamında normal satış, müşteri tahsilatı ve kalıcı müşteri/ana sayfa bağlantısı hazırlandı. Yalnız iki ayrılmış sentetik ürün, bir müşteri ve bir TRY kasa ile sınırlı; gerçek katalog ve müşteri okuyucuları salt okunur. Gerçek ticari kullanıma açıldı veya insan kabulü PASS iddiası yok. Bu kayıt paket geçişinden önceki aşamadır: çalışan TEST49/sourcebb082df henüz değişmedi.
@@ -229,4 +234,3 @@ Aşağıdaki paket ve kapsamlar tarihsel kabul kayıtlarıdır; güncel çalış
 **Personelin sıradaki kabulü:** TEST alış ekranında aynı faturadan iade bağlantısının kendi günlük işine uygunluğunu görmesi. Bu bağlı akış hazırdır; tüm ERP'nin tamamlandığı iddia edilmez. Sonraki gerçek eksik çok satırlı kabul/ayrıntılı alış taslağıdır. Fiyat kartı yazımı, tüm ticari kartlar ve fiziksel native kabulü açık kalır; USD/EUR için 12 Eylül kayıtlı kurun güncel piyasa kuru olduğu varsayılmaz.
 
 [Bitirme planı](ERP_FINISH_PLAN.md) · [Yeni bağlı akış kabulü](docs/erp-v2/canonical-20261003/linked-purchase-return-acceptance.md) · [Önceki SQL kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md) · [Teslim kaydı](docs/erp-v2/canonical-20261003/delivery.json)
-

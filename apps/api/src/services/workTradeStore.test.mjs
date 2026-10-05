@@ -13,6 +13,10 @@ test('public context preserves known values and limits while private costs never
 test('private context rejects nullable stock/cost, corrupt scope and unsafe native IDs as source unavailable',()=>{
  for(const patch of [r=>r.products[0].costExact4=null,r=>r.products[0].stockQuantityExact3=null,r=>r.products[0].id='9007199254740993',r=>r.products[0].id='301986',r=>r.documentDate='2026-10-07',r=>r.products.push(r.products[0]),r=>r.permissions=null]){const r=raw();patch(r);assert.throws(()=>workContextDto(r,actor),{statusCode:503});}
 });
+test('verified barcode is nullable literal text preserving leading zeros and whitespace; numeric or missing evidence fails closed',()=>{
+ for(const barcode of ['0000061010001','0',' 0000061010001 ',null]){const r=raw();r.products[0].barcode=barcode;const dto=workContextDto(r,actor);assert.equal(dto.scope.products[0].barcode,barcode);assert.equal(JSON.stringify(dto).includes('costExact4'),false);}
+ for(const barcode of [0,61010001,undefined,[],{}]){const r=raw();r.products[0].barcode=barcode;assert.throws(()=>workContextDto(r,actor),{statusCode:503});}
+});
 function runtime({drift=false,wrongIdentity=false,journal=null,used=0,revokedFinance=false}={}){
  const events=[],queries=[];let completed=0;
  class Transaction{async begin(level){events.push(level);}async commit(){events.push('commit');}async rollback(){events.push('rollback');}}

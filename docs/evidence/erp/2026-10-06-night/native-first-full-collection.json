@@ -1,0 +1,73 @@
+{
+  "at": "2026-10-05T23:48:46.6376989Z",
+  "stage": "first-full-collection",
+  "syntheticOnly": true,
+  "products": [
+    {
+      "productId": 345504,
+      "stockCode": "TEST-NIGHT-20261006-P1",
+      "stockExact3": "19.000"
+    },
+    {
+      "productId": 345505,
+      "stockCode": "TEST-NIGHT-20261006-P2",
+      "stockExact3": "19.000"
+    }
+  ],
+  "balances": [
+    {
+      "customerId": 30598,
+      "customerDebtExact4": "0.0000",
+      "accountId": 20043,
+      "cashExact4": "150.0000"
+    }
+  ],
+  "invoices": [
+    {
+      "id": 34617,
+      "documentNo": "NIGHT-cf1a716809c44e4a8df68855",
+      "status": "finalized",
+      "totalExact4": "150.0000"
+    }
+  ],
+  "customerMovements": [
+    {
+      "id": 47745,
+      "invoiceId": 34617,
+      "type": "sales_invoice",
+      "amountExact4": "150.0000",
+      "debtEffectExact4": "150.0000"
+    },
+    {
+      "id": 47746,
+      "invoiceId": 34617,
+      "type": "collection",
+      "amountExact4": "150.0000",
+      "debtEffectExact4": "-150.0000"
+    }
+  ],
+  "cashMovements": [
+    {
+      "id": 44235,
+      "partyMovementId": 47746,
+      "type": "collection",
+      "direction": "in",
+      "amountExact4": "150.0000"
+    }
+  ],
+  "journal": [
+    {
+      "count": 3
+    }
+  ],
+  "intents": [
+    {
+      "count": 0
+    }
+  ],
+  "stockMovements": [
+    {
+      "count": 2
+    }
+  ]
+}

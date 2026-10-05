@@ -134,7 +134,7 @@ export function buildNightSql(exported){
  const list=specs(columns),wrapped=[];
  for(const [name,table,candidate,body] of list){
   const old=defs.find(o=>o.name===name);if(!old||old.is_disabled!==false||old.table_name!==table||sqlHash(old.definition)!==PREVIOUS_GUARDS[name]||old.object_sha!==PREVIOUS_GUARDS[name])throw Error('OLD_GUARD_PIN_MISMATCH_'+name);
-  const prefix=`/* ${NIGHT_RUN}: exact synthetic branch; every legacy body character is retained. */\n${identity}\n${preserved}\nIF EXISTS(SELECT 1 FROM inserted i WHERE ${candidate('i')}) OR EXISTS(SELECT 1 FROM deleted d WHERE ${candidate('d')}) BEGIN\nIF EXISTS(SELECT 1 FROM inserted i WHERE NOT(${candidate('i')})) OR EXISTS(SELECT 1 FROM deleted d WHERE NOT(${candidate('d')})) ${fail}\n${body}\nRETURN; END;`;
+  const prefix=`/* ${NIGHT_RUN}: exact synthetic branch; every legacy body character is retained. */\n${identity}\nIF EXISTS(SELECT 1 FROM inserted i WHERE ${candidate('i')}) OR EXISTS(SELECT 1 FROM deleted d WHERE ${candidate('d')}) BEGIN\nIF EXISTS(SELECT 1 FROM inserted i WHERE NOT(${candidate('i')})) OR EXISTS(SELECT 1 FROM deleted d WHERE NOT(${candidate('d')})) ${fail}\n${body}\nRETURN; END;`;
   wrapped.push({name,table,before:old.definition,beforeHash:old.object_sha,after:wrapGuard(old.definition,prefix)});
  }
  const objects=[readyDefinition(),contextDefinition(),effectsDefinition()];
