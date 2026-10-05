@@ -1,5 +1,7 @@
 # Gerçek sınıflandırma ve görselli katalog — teknik kabul
 
+**Güncel insan kabulü2026-10-05: ERP-UA04 PASS.** Kullanıcı mevcut Ürün & Stok ekranını kabul etti; ERP-D04 mevcut onaylı kapsamda tamam. [Açık kabul kaydı](../../../USER_ACCEPTANCE.md). Aşağıdaki bekliyor ifadesi kabulden önceki teknik teslimin tarihsel kaydıdır; 67belirsiz/karantina/CRM kapsamı bu PASS'e dahil değildir.
+
 5 Ekim 2026. ERP-D04 normal katalog kapsamının kullanıcı tarafından istenen düzeltmesi. **ERP-UA04 bekliyor**; bu kayıt insan PASS değildir. Önceki ERP-UA02 ve ERP-UA03 PASS kayıtları korunur. CRM, LIVE, main merge ve sonraki finish işleri kapsam dışında; bu teslim sonunda durulur.
 
 ## Ortam ve gerçek kaynak

@@ -1,6 +1,6 @@
 # Melisa ERP — bitirme planı
 
-5 Ekim2026 güncel kullanıcı kabulü: ERP-UA04 PASS ve ERP-D04 mevcut normal katalog kapsamında tamam; A03🟢. Yalnız B01 Ana Sayfa / Günlük İş Sırası başladı; yeni kullanıcı kabulü ayrı tutulur. Önceki bekleyen kayıtlar tarihsel olarak korunur.
+5 Ekim2026 güncel kullanıcı kabulü: ERP-UA04 PASS ve ERP-D04 mevcut normal katalog kapsamında tamam; A03🟢. B01 normal Ana Sayfa TEST47/source236d49b ile 🟡 teknik hazır; ERP-UA05 insan kabulü bekliyor. [Kanıt](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md). Yalnız bu tur tamamlandı ve duruldu; önceki bekleyen kayıtlar tarihsel olarak korunur.
 
 5 Ekim2026 güncel — ERP-D04 kullanıcı düzeltmesi: gerçek KOD1/KOD4, güvenli gösterim kodu, normal listede küçük fotoğraf/gerçek filtre/doğal sıralama TEST46/source7da6f2c ile teknik hazır. [Sınıflandırma kabul kanıtı](docs/erp-v2/canonical-20261005/catalog-classification-acceptance.md), güncel ortam ve süreler STATUS'ta. ERP-UA04 bekliyor; önceki ERP-UA02/03 PASS ve finish49/6🟢/22🟡/21🔴 korunur. Kullanıcı talimatıyla burada durulur; CRM/başka finish işi başlamaz.
 
@@ -16,7 +16,7 @@
 
 ## Güncel finish tree — 5 Ekim 2026
 
-**Toplam 49 iş: 🟢 7 tamam · 🟡 21 kısmi / kabul bekliyor · 🔴 21 açık. Genel ilerleme: %14,3 tamam; %42,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam 49 iş: 🟢 7 tamam · 🟡 22 kısmi / kabul bekliyor · 🔴 20 açık. Genel ilerleme: %14,3 tamam; %44,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -33,7 +33,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | A04 | Gerçek müşteri ve dövizli bakiyeler | 🟡 | C06 normal441kart/ayrı döviz,exact8 kaynak+güncel+defter bağı,UNKNOWN ve28 karantina gerçek salt okunur TEST kabulü hazır. Kaynak30 Eylül; delta/personel kabulü açık. |
 | A05 | Gerçek tedarikçi ve dövizli borçlar | 🟡 | Açılıştaki401/406 kabulü korunur. C07 normal530native kart/90nativehold, ayrı kanıtlı/doğrulanmamış/UNKNOWN hesap ve gerçek salt okunur TEST kabulü hazır. Tüm530 migration kabulü değildir; delta/personel kabulü açık. |
 | A06 | Kaynak güvenirliği ve karantina gösterimi | 🟡 | 176 kaynak/172 hedef/4 hedefsiz; API+SQL engeli ve negatif ekran provası hazır. İşletme kabulü bekliyor. |
-| B01 | Ana Sayfa günlük iş sırası | 🔴 | Gerçek veri, hızlı görevler, ayrı döviz toplamları; 1440/1024/390 kabulü. |
+| B01 | Ana Sayfa günlük iş sırası | 🟡 | TEST47/source236d49b dört gerçek özet/bugünkü işler/altı kısa yol; mevcut SQL rol hakları, ayrı döviz/NULL/boş gün. Gerçek324ms açılış, API medyan63ms, altı hedef/üç rol/1440/1024/390 teknik doğrulama. [Kanıt](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md); ERP-UA05 insan kabulü bekliyor. Kasa bakiyesi/vadeli bekleyen tahsilat-ödeme sonraki operasyon bağlantısı; sıfır/sahte görev yok. |
 | B02 | Stok arama/filtre ve detay | 🟢 | Kullanıcı2026-10-05 normal ornek-akis kataloğu ve performansı kabul etti; ERP-UA02 PASS/TEST paket40source df3de90. Gerçek arama/exactbarkod/kart/stok/satışfiyatı/default50 ve önceki1440/1024/390teknik kanıt korunur. Fotoğraf A03,veri/delta A01,genel fiyat A02 ayrı açık; eski LAB/hata/çoklubarkod kanıtları korunur. |
 | B03 | Cariler bilgi hiyerarşisi | 🟡 | Müşteri ve tedarikçi arama/aktiflik/karantina/sayfa ve ayrı dövizli kart; iki modül iframe1440/1024/390 taşmasız. Tedarikçi deneme iletişimi üç genişlikte kullanılabilir; genel cariler/personel kabulü açık. |
 | B04 | Satış günlük kullanım ekranı | 🔴 | Büyük net işlemler, gerçek müşteri/ürün satırları ve yetki; üç genişlik. |
