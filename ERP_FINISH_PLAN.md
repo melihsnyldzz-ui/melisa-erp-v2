@@ -1,10 +1,12 @@
 # Melisa ERP — bitirme planı
 
-5 Ekim 2026 ek kullanım kabulü — **TEST ADMIN:** [5194](http://127.0.0.1:5194) taze sekmede otomatik TEST ADMIN; İş sırası + 17 TEST menüsü erişimi ve gerçek kullanıcı girişine dönüş/yenileme gerçek ekranda doğrulandı. Mevcut rol tabloları, SQL fixture scope'u ve LIVE/Vega sınırları korunur. [Kabul/teslim kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md). Teknik hazır; gerçek kullanıcı kabulü bekliyor. Bu konfor işi genel ticari, rol/personel veya migration yapraklarını tamamlanmış saymaz; finish tree sayımı değişmez.
+5 Ekim 2026 güncel teslim — **B02+A01 stok:** paket34/sourcefab3e1d normal katalog/barkod/kart ve üç genişlik teknik hazır. [Kullanıcı adımları](docs/erp-v2/canonical-20261005/stock-products-acceptance.md). Personel kabulü bekliyor; sıradaki A03 ilk doğrulanmış gerçek fotoğraf. B02 kısmiye alındı, genel migration/ticari kabul tamam sayılmadı.
+
+5 Ekim 2026 önceki ek kullanım kabulü — **TEST ADMIN (paket32 tarihsel):** [5194](http://127.0.0.1:5194) taze sekmede otomatik TEST ADMIN; İş sırası + 17 TEST menüsü erişimi ve gerçek kullanıcı girişine dönüş/yenileme gerçek ekranda doğrulandı. Mevcut rol tabloları, SQL fixture scope'u ve LIVE/Vega sınırları korunur. [Kabul/teslim kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md). Teknik hazır; gerçek kullanıcı kabulü bekliyor. Bu konfor işi genel ticari, rol/personel veya migration yapraklarını tamamlanmış saymaz; finish tree sayımı değişmez.
 
 ## Güncel finish tree — 5 Ekim 2026
 
-**Toplam 49 iş: 🟢 5 tamam · 🟡 21 kısmi / kabul bekliyor · 🔴 23 açık. Genel ilerleme: %10,2 tamam; %42,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam 49 iş: 🟢 5 tamam · 🟡 22 kısmi / kabul bekliyor · 🔴 22 açık. Genel ilerleme: %10,2 tamam; %44,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -13,16 +15,16 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | ID | İş | Durum | Kanıt / kapanış ölçütü |
 | --- | --- | --- | --- |
 | P01 | Kanonik kaynak ve origin | 🟢 | SEMIH exact repo, temiz e0 tabanı ve fetch/push doğrulandı; eski kopyalar korunur. |
-| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST ADMIN kabulünde5194/4144/4146 → paket32/source327c47c → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE süreç sahipleri aynı. |
-| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | TEST ADMIN paket32 1.228 dosya manifest eşleşti; eski paketler ve before-test-admin-32 launcher geri dönüş kaydı korunur. |
-| A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | 16.622 eşlenen kart teknik mutabakatlı; normal günlük stok ekranı ve personel kabulü eksik. |
+| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | Stok kabulünde5194/4144/4146 → paket34/sourcefab3e1d → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE süreç sahipleri aynı. |
+| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Stok paket34 1.248 dosya manifest eşleşti; eski paketler ve before-stock-34 launcher geri dönüş kaydı korunur. |
+| A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | Normal16.622açılış+54hold+3sentetik ayrı; kod/ad/exactbarkod, nativeTESTstok ve86bilinmeyenbirim nullable. Teknik normal kart/ikirol kabulü hazır; personel/delta açık. |
 | A02 | Satış/alış fiyatı, maliyet, döviz | 🟡 | 63.774 typed fiyat okuyucu korunur; C03 exact8→native4, ayrı birim/iki kur kanıtı ve USD/EUR sentetik TEST kopyası kabulü hazır. Genel fiyat yazımı/personel kabulü açık; NULL/gerçek 0 ayrımı korunur. |
 | A03 | Gerçek ürün fotoğrafı | 🔴 | Doğru kaynak kimliğiyle gerçek görsel bağlantısı/eksik görsel gösterimi ve normal ekran kabulü. |
 | A04 | Gerçek müşteri ve dövizli bakiyeler | 🟡 | C06 normal441kart/ayrı döviz,exact8 kaynak+güncel+defter bağı,UNKNOWN ve28 karantina gerçek salt okunur TEST kabulü hazır. Kaynak30 Eylül; delta/personel kabulü açık. |
 | A05 | Gerçek tedarikçi ve dövizli borçlar | 🟡 | Açılıştaki401/406 kabulü korunur. C07 normal530native kart/90nativehold, ayrı kanıtlı/doğrulanmamış/UNKNOWN hesap ve gerçek salt okunur TEST kabulü hazır. Tüm530 migration kabulü değildir; delta/personel kabulü açık. |
 | A06 | Kaynak güvenirliği ve karantina gösterimi | 🟡 | 176 kaynak/172 hedef/4 hedefsiz; API+SQL engeli ve negatif ekran provası hazır. İşletme kabulü bekliyor. |
 | B01 | Ana Sayfa günlük iş sırası | 🔴 | Gerçek veri, hızlı görevler, ayrı döviz toplamları; 1440/1024/390 kabulü. |
-| B02 | Stok arama/filtre ve detay | 🔴 | Yoğun tablo, net stok/birim/fiyat/görsel; üç genişlik ve boş/hata/yetki kabulü. |
+| B02 | Stok arama/filtre ve detay | 🟡 | Normal arama/filtre/sayfa/kart/hold/boş/ikirol ve1440/1024/390 teknik kabulü hazır; finans yalnız yetkili detayda. Fotoğraf0/bilinmiyor, hata/çoklubarkod sentetik; personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261005/stock-products-acceptance.md). |
 | B03 | Cariler bilgi hiyerarşisi | 🟡 | Müşteri ve tedarikçi arama/aktiflik/karantina/sayfa ve ayrı dövizli kart; iki modül iframe1440/1024/390 taşmasız. Tedarikçi deneme iletişimi üç genişlikte kullanılabilir; genel cariler/personel kabulü açık. |
 | B04 | Satış günlük kullanım ekranı | 🔴 | Büyük net işlemler, gerçek müşteri/ürün satırları ve yetki; üç genişlik. |
 | B05 | Alış günlük kullanım ekranı | 🟡 | C01/C02 kabulü korunur. C03 gerçek kaynak seçim/kur, tam genişlik özet ve büyük mobil işlemler; alış taslağı/fiyat önizlemesi gerçek iframe1440/1024/390'da taşmasız. Genel alış ve personel kabulü açık. |
