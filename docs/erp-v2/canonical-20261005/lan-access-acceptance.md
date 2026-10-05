@@ -40,6 +40,8 @@ Görüntüler: `C:\Users\Xaser\Documents\Codex\2026-10-04\referenced-chatgpt-con
 
 ## Teslim ve kabul
 
+397541f51edb266baf050db7bda79997cff33897 tam head için hosted PR run37372173205 quality-build-test SUCCESS: tüm offline test/build aşamaları geçti. İzleyen belge tesliminin tam head required kontrol sonucu PR Checks'ten doğrulanır; tarihsel kuyruk bilgileri aşağıdadır ve güncel PASS yerine kullanılmaz. Çalışan uygulama source4b46a3f/paket48 değişmedi.
+
 Dal codex/erp-finish-20261004 / [draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23). Uygulama4b46 source push37370374306/PR37370378559, yeni head geldiğinde workflow concurrency tarafından iptal edildi; 360b9aa belge head'inde push secret-scan SUCCESS, diğer hosted kontroller runner kuyruğundaydı. Bu sırada yerel offline kalite ve 505 Sites testi PASS; hosted CI PASS iddiası yapılmaz. Son test/belge head'i için required CI ayrıca PR Checks'ten izlenir. Bekleyen runner için self-hosted/TESTSQL bağlantısı veya workflow değişikliği yapılmaz.
 
 ERP-UA06 gerçek başka cihaz/personel kabulü **bekliyor**. Ajan bu bilgisayardaki gerçek tarayıcıdan192.168 adresini doğruladı; başka fizikselLANistemcisinde denemiş gibi sunulmaz. Kullanıcı aynı ağdaki bilgisayardan URLyi açar, mevcut hesabıyla girer, AnaSayfa ve stok/8023fotoğrafını kontrol edip sonuç verir. ERP-UA05B01 ve diğer mevcut insan kabul durumları değişmedi. IPsabitleme açıkça ertelendi; başka finish işi başlatılmaz.
