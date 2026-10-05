@@ -35,6 +35,13 @@ test('journal binds full payload to fields and late completion cannot downgrade 
  priceJournal(sent);assert.throws(()=>priceJournal({...sent,fields:{...f,price:'2'}}));assert.throws(()=>priceJournal({...sent,request:{...r,unexpected:true}}));
  assert.equal(priceCompletionMatches({...sent,status:'saved'},sent,'stale'),false);assert.equal(priceCompletionMatches({...sent,request:{...r,requestId:'87654321-4321-4123-8123-123456789012'}},sent,'saved'),false);assert.equal(priceCompletionMatches(sent,sent,'saved'),true);
 });
+test('saved new tuple stays selected after it becomes an existing native price',async()=>{
+ const create=await controller(),d=dom();const ui=create({api:async(_p,o)=>o?{...context(),revision:'B'.repeat(64),prices:[row(o.body)],replayed:false}:context(),esc:s=>String(s).replaceAll('"','&quot;'),actorId:'16',permissions,storage:d.storage,uuid:()=>requestId});
+ ui.mount(d.host);await tick();d.handlers['[data-price-new]']();d.handlers['form:submit']({preventDefault(){}});await tick();
+ const select=d.host.innerHTML.match(/<select[^>]*name="tupleKey"[\s\S]*?<\/select>/)?.[0];
+ assert.match(select,/disabled/);assert.match(select,/selected[^>]*>Alış · Kart alış birimi · Kademe 0 · EUR/);
+ assert.equal((select.match(/<option /g)||[]).length,1);ui.dispose();
+});
 async function controller(){const source=(await readFile(new URL('./testProductPriceEditor.js',import.meta.url),'utf8')).replace("import './testProductPriceEditor.css';",'').replace("'./testProductPriceModel.mjs'",JSON.stringify(new URL('./testProductPriceModel.mjs',import.meta.url).href));return (await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))).createProductPriceEditor;}
 function dom(){const handlers={},f=fields(),elements={tupleKey:{value:f.tupleKey},price:{value:f.price},unknown:{checked:false},reason:{value:f.reason}},form={elements,addEventListener:(event,fn)=>handlers['form:'+event]=fn};const host={isConnected:true,innerHTML:'',textContent:'',querySelectorAll:()=>[],querySelector:s=>s==='[data-price-form]'?form:{addEventListener:(event,fn)=>handlers[s]=fn}};const data=new Map(),storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};return {handlers,host,elements,data,storage};}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
