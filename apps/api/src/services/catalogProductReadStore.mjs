@@ -25,7 +25,7 @@ export function createCatalogProductReadStore({getRuntime=defaultRuntime,classif
       const {pool,sql}=await getRuntime();tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
       const identity=(await new sql.Request(tx).query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server")).recordset?.[0];
       if(identity?.db!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity.server!=='Semih\\MELISADEV')throw catalogError();
-      const rows=(await new sql.Request(tx).input('actor_id',sql.BigInt,actorId).input('classification_validation',sql.Bit,true).input('classification_bindings',sql.NVarChar(sql.MAX),entriesJson).execute(CATALOG_READ_PROC)).recordset;
+      const rows=(await new sql.Request(tx,{requestTimeout:60000}).input('actor_id',sql.BigInt,actorId).input('classification_validation',sql.Bit,true).input('classification_bindings',sql.NVarChar(sql.MAX),entriesJson).execute(CATALOG_READ_PROC)).recordset;
       if(!Array.isArray(rows)||rows.length!==1||rows[0].actorId!==actorId||rows[0].canView!==true||rows[0].classificationValidated!==true||Object.entries(CATALOG_SQL_PROOF).some(([key,value])=>rows[0][key]!==value))throw catalogError();
       await tx.commit();return {validated:true};
     }catch{if(tx)try{await tx.rollback();}catch{}throw catalogError();}

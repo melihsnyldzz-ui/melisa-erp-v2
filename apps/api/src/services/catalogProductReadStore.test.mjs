@@ -5,7 +5,7 @@ import {CATALOG_SQL_PROOF} from './catalogSqlProof.mjs';
 import {parseCatalogQuery} from './catalogModel.mjs';
 function fixture(){const state={commit:0,rollback:0,inputs:{},identity:{db:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV'},row:{...CATALOG_SQL_PROOF,actorId:'14',canView:true,canViewSalesPrices:false,total:0,page:1,limit:50,readAt:'2026-10-05T08:00:00.000Z',rowsJson:'[]',filtersJson:'{"brands":[],"productTypes":[]}',acceptedCount:16622,syntheticCount:0,quarantinedCount:54}};
  class Transaction{async begin(level){state.level=level;}async commit(){state.commit++;}async rollback(){state.rollback++;}}
- class Request{input(k,type,v){state.inputs[k]=v;return this;}async query(){return {recordset:[state.identity]};}async execute(proc){state.proc=proc;return {recordset:[state.row]};}}
+ class Request{constructor(parent,overrides){this.overrides=overrides;(state.requests??=[]).push(this);}input(k,type,v){state.inputs[k]=v;return this;}async query(){return {recordset:[state.identity]};}async execute(proc){state.proc=proc;state.executeOverrides=this.overrides;return {recordset:[state.row]};}}
  const classificationStore={selection:()=>({candidatesJson:'[["12",1]]',filters:state.filters??{brands:[],productTypes:[]}}),assertRow:()=>{if(state.assertMismatch)throw Error('mismatch');}};
  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},BigInt:'bigint',Int:'int',Bit:'bit',NVarChar:n=>n};return {state,store:createCatalogProductReadStore({getRuntime:async()=>({pool:{},sql}),classificationStore})};}
 const input=()=>({actorId:'14',options:parseCatalogQuery({barcode:'000012'})});
@@ -21,4 +21,15 @@ test('literal classification, server-owned image bindings and global sort are bo
 test('one-time startup index validation has the same independent identity, actor, all SQL pins and serializable transaction',async()=>{
  const f=fixture();f.state.row.classificationValidated=true;assert.deepEqual(await f.store.validateCatalogClassification({actorId:'14',entriesJson:'[]'}),{validated:true});assert.equal(f.state.inputs.classification_validation,true);assert.equal(f.state.inputs.classification_bindings,'[]');assert.equal(f.state.level,4);assert.equal(f.state.commit,1);
  for(const change of [v=>v.state.identity.db='LIVE',v=>v.state.row.classificationValidated=false,v=>v.state.row.actorId='16',...Object.keys(CATALOG_SQL_PROOF).map(key=>v=>v.state.row[key]='bad')]){const bad=fixture();bad.state.row.classificationValidated=true;change(bad);await assert.rejects(()=>bad.store.validateCatalogClassification({actorId:'14',entriesJson:'[]'}),{statusCode:503});assert.equal(bad.state.commit,0);assert.equal(bad.state.rollback,1);}
+});
+test('only full startup classification execution has a 60-second budget; normal reads and identity keep pool defaults',async()=>{
+ const startup=fixture();startup.state.row.classificationValidated=true;
+ await startup.store.validateCatalogClassification({actorId:'14',entriesJson:'[]'});
+ assert.deepEqual(startup.state.executeOverrides,{requestTimeout:60000});
+ assert.equal(startup.state.requests[0].overrides,undefined);assert.equal(startup.state.requests.length,2);
+ const normal=fixture();await normal.store.readCatalogProducts(input());
+ assert.equal(normal.state.executeOverrides,undefined);assert.ok(normal.state.requests.every(request=>request.overrides===undefined));
+ const bad=fixture();bad.state.row.classificationValidated=false;
+ await assert.rejects(()=>bad.store.validateCatalogClassification({actorId:'14',entriesJson:'[]'}),{statusCode:503});
+ assert.deepEqual(bad.state.executeOverrides,{requestTimeout:60000});assert.equal(bad.state.commit,0);assert.equal(bad.state.rollback,1);
 });
