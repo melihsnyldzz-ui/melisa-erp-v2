@@ -1,0 +1,54 @@
+{
+  "at": "2026-10-05T23:29:43.2160206Z",
+  "result": "PASS",
+  "actualLowPrivilegeCases": [
+    {
+      "name": "fixture-stock-without-intent",
+      "error": 51106,
+      "pass": true
+    },
+    {
+      "name": "mixed-new-and-existing-synthetic-fixtures",
+      "error": 51106,
+      "pass": true
+    },
+    {
+      "name": "fixture-price-null",
+      "error": 229,
+      "pass": true
+    },
+    {
+      "name": "fixture-source-code-drift",
+      "error": 51106,
+      "pass": true
+    },
+    {
+      "name": "private-scope-read-denied",
+      "error": 229,
+      "pass": true
+    },
+    {
+      "name": "private-products-read-denied",
+      "error": 229,
+      "pass": true
+    },
+    {
+      "name": "scope-update-denied",
+      "error": 229,
+      "pass": true
+    },
+    {
+      "name": "journal-update-denied",
+      "error": 229,
+      "pass": true
+    },
+    {
+      "name": "wrong-actor-owner-context",
+      "error": 51106,
+      "pass": true
+    }
+  ],
+  "businessEffects": 0,
+  "commercialWriteAttempts": 0,
+  "mixedRows": "Only new night and previously allowed synthetic fixture"
+}

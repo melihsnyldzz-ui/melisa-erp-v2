@@ -1,3 +1,10 @@
+# ERP-NIGHT01 — 6 Ekim 2026 kaynak ve kontrollü SQL hazırlığı
+
+Kullanıcının gece talimatı / ERP-DEC-013 kapsamında normal satış, müşteri tahsilatı ve kalıcı müşteri/ana sayfa bağlantısı hazırlandı. Yalnız iki ayrılmış sentetik ürün, bir müşteri ve bir TRY kasa ile sınırlı; gerçek katalog ve müşteri okuyucuları salt okunur. Gerçek ticari kullanıma açıldı veya insan kabulü PASS iddiası yok. Bu kayıt paket geçişinden önceki aşamadır: çalışan TEST49/sourcebb082df henüz değişmedi.
+
+521 Sites testi, 27 API/kurulum testi, bağımsız kaynak incelemesi PASS. Kontrollü SQL Validate → rollback → Apply tamamlandı: eski operasyon alanları ve kullanıcı/yetkiler aynı; 37 ilk çalışan karantina guard'ı, 176 kaynak/172 hold, 16.622 ürün/63.774 fiyat mühürleri korunur. Eski trigger gövdeleri korunarak yalnız tam sentetik kapsam ve aynı transaction/intente bağlı dal eklendi. Yeni kurulum tablo/metadata korumaları tekrar etkinleşmeden fixture eklenmez. SQL binary/blob veya Vega/LIVE yazması yok. Rollback içerikleri korur; IDENTITY sayacı rollback'te ilerleyebilir, reseed yapılmadı. [SQL kanıtı ve gecenin baseline'ı](docs/evidence/erp/2026-10-06-night/README.md). Dokuz gerçek düşük yetkili olumsuz kontrol PASS; gerçek ticari kartta yazma denemesi sıfır. Runtime49 ile kabul edilmiş katalog ve mevcut alış okuyucuları 200.
+
+Sıradaki somut adım: kaynak commit'inden TEST50 build/geçişi; normal tarayıcıda iki ürünlü satış → kısmi/tam tahsilat → ters kayıt, tekrar/yenileme ve 1440/1024/390 prova. USER_ACCEPTANCE yeni kayıtları kullanıcı sonucu gelene kadar bekliyor kalır. Dal codex/erp-finish-20261004 / mevcut PR23; uygulama ve teslim commit'i son kanıtta ayrı kaydedilecek. CRM, ağ ayarları, LIVE ve main merge kapsam dışında.
 # ERP-LAN01 — 6 Ekim 2026 doğrudan ağ açılışı teknik hazır
 
 Kullanıcının yereldeki gibi girişsiz açılış talimatı ERP-DEC-012 ile kaydedildi. [Ağ Ana Sayfa](http://192.168.1.46:5194/ornek-akis.html#home), TEST49/sourcebb082dfc5b182070b1ebd09de239c7894b89982d: boş gerçek sekmede form/admin seçimi olmadan açılır; yenilemede aynı oturum auth/me200 ile korunur. Normal yüz temiz Yönetici etiketi ve mevcut tasarımda; stok/8023CONCEPT gerçek kart/fotoğraf/0ADET/15,78USD doğrulandı. Özellikle seçilmiş manuel hesap korunur. [Yeni kanıt](docs/erp-v2/canonical-20261005/lan-direct-opening-acceptance.md).
@@ -222,3 +229,4 @@ Aşağıdaki paket ve kapsamlar tarihsel kabul kayıtlarıdır; güncel çalış
 **Personelin sıradaki kabulü:** TEST alış ekranında aynı faturadan iade bağlantısının kendi günlük işine uygunluğunu görmesi. Bu bağlı akış hazırdır; tüm ERP'nin tamamlandığı iddia edilmez. Sonraki gerçek eksik çok satırlı kabul/ayrıntılı alış taslağıdır. Fiyat kartı yazımı, tüm ticari kartlar ve fiziksel native kabulü açık kalır; USD/EUR için 12 Eylül kayıtlı kurun güncel piyasa kuru olduğu varsayılmaz.
 
 [Bitirme planı](ERP_FINISH_PLAN.md) · [Yeni bağlı akış kabulü](docs/erp-v2/canonical-20261003/linked-purchase-return-acceptance.md) · [Önceki SQL kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md) · [Teslim kaydı](docs/erp-v2/canonical-20261003/delivery.json)
+

@@ -2,6 +2,7 @@ import {pilotProductScopeSql} from './pilotProductScope.mjs';
 import {getSqlDriver} from '../config/database.js';
 import {isDailyWebCustomerScope,assertDailyWebCustomer} from './dailyWebPolicy.mjs';
 import {hasNativeCustomerAccess} from './nativeCustomerRoutes.mjs';
+import {isWorkNightProduct} from './workNightScope.mjs';
 
 export const pilotCashCodes = Object.freeze({'1-PEŞİN $':'USD','3-PEŞİN €':'EUR','2-PEŞİN TL':'TRY'});
 export const pilotCashOnly = () => process.env.MELISA_PILOT_RUNTIME === 'true';
@@ -31,9 +32,11 @@ export async function assertPilotSaleProducts(requestFactory,items,{consume=fals
   quantities.set(Number(item.productId),(quantities.get(Number(item.productId))||0)+Number(item.quantity));
  }
  for(const [productId,quantity] of [...quantities].sort((a,b)=>a[0]-b[0])){
-  const p=(await requestFactory().input('pilotProductId',sql.BigInt,productId).query(`SELECT p.current_stock_qty,p.unit FROM dbo.products p WITH(UPDLOCK,HOLDLOCK)
-   WHERE p.id=@pilotProductId AND p.is_active=1 AND p.is_deleted=0 AND ${pilotProductScopeSql('p.id')}`)).recordset[0];
+  const request=requestFactory(),night=isWorkNightProduct(productId,request.parent);
+  const p=(await request.input('pilotProductId',sql.BigInt,productId).query(`SELECT p.current_stock_qty,p.unit FROM dbo.products p WITH(UPDLOCK,HOLDLOCK)
+   WHERE p.id=@pilotProductId AND p.is_active=1 AND p.is_deleted=0 AND ${night?'p.id=@pilotProductId':pilotProductScopeSql('p.id')}`)).recordset[0];
   if(!p||p.unit!=='ADET')reject('PILOT_PRODUCT_OUT_OF_SCOPE','Ürün doğrulanmış pilot satış kapsamında değil.');
+  if(night&&(p.current_stock_qty==null||!Number.isFinite(Number(p.current_stock_qty))))reject('PILOT_STOCK_UNKNOWN','Doğrulanmış stok miktarı gerekli.');
   if(consume&&!allowNegativeStock&&Number(p.current_stock_qty)+(previous.get(productId)||0)<quantity)reject('PILOT_STOCK_INSUFFICIENT','Melisa stoğu yetersiz; satış kesinleştirilmedi.');
  }
 }

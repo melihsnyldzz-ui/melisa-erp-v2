@@ -46,3 +46,6 @@ test('actual API projection passes frontend validation for restricted goods and 
  const restricted=homeSummaryDto(raw,meta);assert.equal(validateWorkHome(restricted),restricted);assert.equal(restricted.capabilities.goods,true);assert.equal(restricted.navigationReady.goods,false);assert.equal(restricted.tasks[0].ready,false);
  const all={...raw,capabilities:{home:true,...dto().capabilities},tasks:[{id:'count-cancel:12',kind:'count-cancel',state:'pending',date:null}],salesTotals:[total('USD','1234567890123456789012345678901234.5678',{knownCount:1})]};const active=homeSummaryDto(all,meta);assert.equal(validateWorkHome(active),active);assert.equal(active.tasks[0].target,'/is-akisi-taslagi.html#count-cancel');assert.equal(active.tasks[0].ready,true);
 });
+test('normal home sale, collection and customer shortcuts stay in the green working face',async()=>{
+ const create=await controller(),r=root(),screens=[],links=[];const ui=create({root:r,session:{home:async()=>dto()},navigate:s=>screens.push(s),openLink:s=>links.push(s)});ui.mount();await tick();for(const key of ['sales','collections','customers'])r.querySelectorAll('[data-home-shortcut]').find(b=>b.dataset.homeShortcut===key).onclick();assert.deepEqual(screens,['sales','collections','customers']);assert.deepEqual(links,[]);ui.dispose();
+});

@@ -3,6 +3,7 @@
 export function isCanonicalTestWriteAllowed(method,path,{writes=false,mode='native'}={}){
  if(method==='POST'&&/^\/api\/auth\/(?:login|terminal-login)$/.test(path))return true;
  if(!writes||mode!=='erp'||method!=='POST')return false;
+ if(/^\/api\/work-sales\/(?:preview|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)$/.test(path)||/^\/api\/work-collections(?:\/preview|\/[1-9]\d*\/cancel)?$/.test(path))return true;
  return /^\/api\/sales-invoices\/(?:test-complete|[1-9]\d*\/cancel)$/.test(path)
   || /^\/api\/finance\/collections(?:\/[1-9]\d*\/(?:cancel|refund))?$/.test(path)
   || path==='/api/test-finance/preview'

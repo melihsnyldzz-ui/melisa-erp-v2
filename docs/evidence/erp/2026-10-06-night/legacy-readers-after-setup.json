@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-05T23:24:35.108Z",
+  "businessWrites": 0,
+  "checks": [
+    {
+      "path": "/api/catalog/products?limit=50&page=1",
+      "status": 200,
+      "code": null
+    },
+    {
+      "path": "/api/products/301986/current-prices",
+      "status": 200,
+      "code": null
+    },
+    {
+      "path": "/api/test-purchase-fx/context",
+      "status": 200,
+      "code": null
+    },
+    {
+      "path": "/api/test-current-price-purchase/context",
+      "status": 200,
+      "code": null
+    },
+    {
+      "path": "/api/home/summary",
+      "status": 200,
+      "code": null
+    }
+  ]
+}

@@ -1,6 +1,13 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('normal work writes permit only exact lifecycle paths in ERP TEST',()=>{
+ for(const path of ['/api/work-sales/preview','/api/work-sales/drafts','/api/work-sales/drafts/1/finalize','/api/work-sales/drafts/1/cancel','/api/work-collections','/api/work-collections/preview','/api/work-collections/1/cancel']){
+  assert.equal(allowed('POST',path,ctx),true);assert.equal(allowed('POST',path,{mode:'native',writes:true}),false);assert.equal(allowed('POST',path,{mode:'erp',writes:false}),false);
+  for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ctx),false);
+ }
+ for(const path of ['/api/work-sales/customers','/api/work-sales/drafts/01/finalize','/api/work-sales/drafts/1/finalize/extra','/api/work-collections/1/refund','/api/work-collections/context','/api/work-sales/invoices'])assert.equal(allowed('POST',path,ctx),false);
+});
 test('native price writes stay on the one synthetic product and cannot escape to general cards',()=>{
  const path='/api/products/301986/current-prices';
  assert.equal(allowed('POST',path,ctx),true);

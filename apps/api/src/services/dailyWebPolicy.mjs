@@ -27,7 +27,8 @@ export function resolveDailyWebPolicy(config = {}) {
 }
 
 export function isDailyWebCorePath(path) {
-  return typeof path === 'string' && /^\/(?:customers|sales-invoices|purchase-invoices)(?:\/|$)/i.test(path);
+  return typeof path === 'string' && (/^\/(?:customers|sales-invoices|purchase-invoices)(?:\/|$)/i.test(path)
+    || /^\/work-sales\/(?:preview|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)$/.test(path));
 }
 
 export function dailyWebScopeMiddleware(policy) {
