@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_STORED_DEFINITION,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL,STOCK_PRODUCT_PREVIOUS_HASH} from './enable-test-stock-products.mjs';
+import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_STORED_DEFINITION,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_RUNTIME_READY_SQL,STOCK_PRODUCT_ALIAS_CACHE_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL,STOCK_PRODUCT_PREVIOUS_HASH} from './enable-test-stock-products.mjs';
 import {STOCK_PRODUCT_SQL_PROOF as artifactProof} from '../../apps/api/src/services/stockProductSqlProof.mjs';
 
 test('SQL and API pin artifacts match source without any SQL connection',()=>{
@@ -88,7 +88,7 @@ test('expensive row witnesses are page-scoped while global count, seal and enabl
 });
 test('controlled metadata upgrade accepts exactly the previous hash and preserves existing grants',()=>{
  const sql=buildStockProductsSql(),start=sql.indexOf("IF OBJECT_ID(N'dbo.usp_read_stock_products') IS NOT NULL"),end=sql.indexOf('\nEND;\nEXEC sys.sp_executesql',start),upgrade=sql.slice(start,end);
- assert.equal(STOCK_PRODUCT_PREVIOUS_HASH,'8C09D817DFB3C54802FCECC8DC5A18457D891CD887D1AB8BDAAA65E274BF08F3');
+ assert.equal(STOCK_PRODUCT_PREVIOUS_HASH,'2CD6AF13BA564D07CF35C98C64314BE1B92ACDFF62949A73781BF18048EA655C');
  assert.match(STOCK_PRODUCT_PROC_SQL,/^CREATE OR ALTER PROCEDURE dbo\.usp_read_stock_products/);
  const oldCheck=upgrade.indexOf(`@prior_definition_hash<>'${STOCK_PRODUCT_PREVIOUS_HASH}'`),mutation=upgrade.indexOf('EXEC sys.sp_executesql');
  assert.ok(oldCheck>0&&oldCheck<mutation);
@@ -114,4 +114,32 @@ test('list omits financial JSON and price witnesses; authorized detail retains f
  assert.match(STOCK_PRODUCT_BINDING_SQL,/IF @product_id IS NOT NULL AND @financial=1 AND EXISTS[\s\S]*v\.binding_hash<>/);
  assert.match(STOCK_PRODUCT_PROC_SQL,/JSON_QUERY\(CASE WHEN @product_id IS NOT NULL AND @financial=1 THEN\(SELECT/);
  assert.match(STOCK_PRODUCT_PROC_SQL,/@financial canViewFinance/);
+});
+test('runtime aliases have one base scan and indexed duplicate-preserving pair/product/source caches',()=>{
+ assert.equal((STOCK_PRODUCT_PROC_SQL.match(/FROM dbo\.product_source_aliases\b/g)||[]).length,1);
+ assert.doesNotMatch(STOCK_PRODUCT_RUNTIME_READY_SQL,/dbo\.product_source_aliases/);
+ assert.doesNotMatch(STOCK_PRODUCT_BINDING_SQL,/dbo\.product_source_aliases/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/dbo\.product_source_aliases/);
+ assert.match(STOCK_PRODUCT_ALIAS_CACHE_SQL,/COUNT_BIG\(\*\) FROM dbo\.product_source_aliases GROUP BY product_id,source_product_id/);
+ assert.equal((STOCK_PRODUCT_ALIAS_CACHE_SQL.match(/SUM\(pair_count\)/g)||[]).length,2);
+ assert.equal((STOCK_PRODUCT_ALIAS_CACHE_SQL.match(/CREATE UNIQUE CLUSTERED INDEX/g)||[]).length,3);
+ assert.ok(STOCK_PRODUCT_PROC_SQL.indexOf(STOCK_PRODUCT_ALIAS_CACHE_SQL)<STOCK_PRODUCT_PROC_SQL.indexOf(STOCK_PRODUCT_RUNTIME_READY_SQL));
+ for(const relation of ['#StockAliasPairs','#StockAliasProductCounts','#StockAliasSourceCounts'])assert.ok(STOCK_PRODUCT_RUNTIME_READY_SQL.includes(relation));
+ assert.match(STOCK_PRODUCT_PROC_SQL,/EXISTS\(SELECT 1 FROM #StockAliasPairs a WHERE a\.product_id=p\.id AND a\.source_product_id=TRY_CONVERT\(int,h\.source_id\)\)/);
+ // Replacing a parenthesized expression also removes its SQL token separator.
+ for(const text of [STOCK_PRODUCT_RUNTIME_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_PROC_SQL,buildStockProductsSql()])assert.doesNotMatch(text,/\b(?:OR|AND|WHERE)COALESCE\b/);
+ assert.match(STOCK_PRODUCT_RUNTIME_READY_SQL,/OR COALESCE\(\(SELECT a\.alias_count FROM #StockAliasProductCounts/);
+ assert.match(STOCK_PRODUCT_RUNTIME_READY_SQL,/AND COALESCE\(\(SELECT a\.alias_count FROM #StockAliasSourceCounts/);
+});
+test('pair totals preserve COUNT(*) ownership for duplicate, ambiguous, orphan, missing and NULL aliases',()=>{
+ const aliases=[{product:1,source:10},{product:1,source:10},{product:2,source:10},{product:2,source:11},{product:null,source:20},{product:3,source:null},{product:3,source:null}];
+ const pairs=new Map();for(const row of aliases){const key=JSON.stringify([row.product,row.source]);pairs.set(key,(pairs.get(key)||0)+1);}
+ const productCounts=new Map(),sourceCounts=new Map();for(const [key,count] of pairs){const [p,s]=JSON.parse(key);productCounts.set(p,(productCounts.get(p)||0)+count);sourceCounts.set(s,(sourceCounts.get(s)||0)+count);}
+ const sqlEqual=(a,b)=>a!==null&&b!==null&&a===b;
+ for(const product of [1,2,3,4,null])for(const source of [10,11,20,30,null]){
+  assert.equal(product===null?0:productCounts.get(product)||0,aliases.filter(a=>sqlEqual(a.product,product)).length);
+  assert.equal(source===null?0:sourceCounts.get(source)||0,aliases.filter(a=>sqlEqual(a.source,source)).length);
+  assert.equal(product===null||source===null?0:pairs.get(JSON.stringify([product,source]))||0,aliases.filter(a=>sqlEqual(a.product,product)&&sqlEqual(a.source,source)).length);
+ }
+ assert.equal(pairs.get('[1,10]'),2);assert.equal(sourceCounts.get(10),3);assert.equal(sourceCounts.get(20),1);assert.equal(productCounts.get(3),2);
 });
