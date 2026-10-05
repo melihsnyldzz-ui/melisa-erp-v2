@@ -1,10 +1,20 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import {canViewCurrentPrices,canEditCurrentPrices,canonicalPrice,currentPriceContext,currentPriceRequest,priceJournal,priceCompletionMatches,tupleKey,supportedPriceTuples} from './testProductPriceModel.mjs';
+import {productPriceContext} from '../../../api/src/services/testProductPriceModel.mjs';
 const tuple={type:'purchase',unitId:null,tier:0,currency:'EUR'},requestId='12345678-1234-4123-8123-123456789012';
 const context=()=>({product:{id:'301986',stockCode:'TEST-DAILY-PURCHASE',name:'Sentetik TEST ürünü',unit:'ADET',synthetic:true},revision:'A'.repeat(64),capabilities:{currencies:['TRY','EUR'],units:[{id:'9001',label:'ADET',factorExact8:'1.00000000',isMainUnit:true}],purchaseTier:0,saleTiers:[1,2],supportedTuples:[tuple,{type:'sale',unitId:'9001',tier:2,currency:'TRY'}],canEdit:true},prices:[],recentChanges:[]});
-const row=(request)=>({id:'1',versionId:'1',...request.tuple,priceExact:request.priceExact,revision:'B'.repeat(64),provenance:{source:'native-operational-price',actorId:'16',changedAt:'2026-10-05T08:00:00.000Z',reason:request.reason}});
+const row=(request)=>({id:'1',versionId:'1',...request.tuple,priceExact:request.priceExact,revision:'B'.repeat(64),provenance:{source:'synthetic-native-price-card',actorId:'16',changedAt:'2026-10-05T08:00:00.000Z',reason:request.reason}});
 const fields=()=>({tupleKey:tupleKey(tuple),price:'1,23456789',unknown:false,reason:'TEST fiyat denemesi',priceId:null});
 const permissions=['product.view','purchase.view','product.price.edit'];
+test('price editor accepts the SQL price-card provenance after API normalization',async()=>{
+ const sqlSource=await readFile(new URL('../../../../scripts/canonical/enable-test-product-prices.mjs',import.meta.url),'utf8');
+ const source=sqlSource.match(/N'([^']+)' source,CONVERT\(varchar\(20\),v.actor_id\)/)?.[1];
+ assert.equal(source,'synthetic-native-price-card');
+ const r={...row({tuple,priceExact:'1.12345678',reason:'TEST SQL provenance'}),provenance:{...row({tuple,priceExact:null,reason:'TEST SQL provenance'}).provenance,source}};
+ const response=productPriceContext({...context(),revision:r.revision,prices:[r],recentChanges:[r]},true);
+ assert.equal(currentPriceContext(response).prices[0].priceExact,'1.12345678');
+ assert.throws(()=>currentPriceContext({...response,prices:[{...r,provenance:{...r.provenance,source:'native-operational-price'}}]}));
+});
 test('view and special edit permission have independent actor and server boundaries',()=>{
  assert.equal(canViewCurrentPrices(['product.view','purchase.view']),true);assert.equal(canEditCurrentPrices('16',permissions),true);
  for(const [id,p] of [['14',permissions],['15',permissions],['16',['product.view','purchase.view','product.edit']],['16',['product.price.edit']]])assert.equal(canEditCurrentPrices(id,p),false);

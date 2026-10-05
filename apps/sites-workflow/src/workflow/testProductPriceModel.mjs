@@ -20,7 +20,7 @@ export function currentPriceContext(value){
  const tuples=supportedPriceTuples(c),seen=new Set();
  if(tuples.some(t=>!t||Object.keys(t).length!==4||!['type','unitId','tier','currency'].every(k=>Object.hasOwn(t,k))||!c.currencies.includes(t.currency)||!['purchase','sale'].includes(t.type)||(t.type==='purchase'&&(t.unitId!==null||t.tier!==c.purchaseTier))||(t.type==='sale'&&(!c.units.some(u=>u.id===t.unitId)||!c.saleTiers.includes(t.tier))))||new Set(tuples.map(tupleKey)).size!==tuples.length)fail();
  for(const row of [...value.prices,...value.recentChanges]){
-  if(typeof row.id!=='string'||!/^[1-9]\d*$/.test(row.id)||typeof row.versionId!=='string'||!/^[1-9]\d*$/.test(row.versionId)||!revision.test(row.revision||'')||!tuples.some(t=>tupleKey(t)===tupleKey(row))||!(row.priceExact===null||typeof row.priceExact==='string'&&canonicalPrice(row.priceExact)===row.priceExact)||row.provenance?.source!=='native-operational-price'||typeof row.provenance?.reason!=='string'||row.provenance?.actorId!=='16'||!Number.isFinite(Date.parse(row.provenance?.changedAt)))fail();
+  if(typeof row.id!=='string'||!/^[1-9]\d*$/.test(row.id)||typeof row.versionId!=='string'||!/^[1-9]\d*$/.test(row.versionId)||!revision.test(row.revision||'')||!tuples.some(t=>tupleKey(t)===tupleKey(row))||!(row.priceExact===null||typeof row.priceExact==='string'&&canonicalPrice(row.priceExact)===row.priceExact)||row.provenance?.source!=='synthetic-native-price-card'||typeof row.provenance?.reason!=='string'||row.provenance?.actorId!=='16'||!Number.isFinite(Date.parse(row.provenance?.changedAt)))fail();
  }
  for(const row of value.prices){if(seen.has(tupleKey(row)))fail();seen.add(tupleKey(row));}
  return value;
