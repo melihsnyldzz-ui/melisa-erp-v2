@@ -6,13 +6,17 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 
 ## Yeni/değişen kapsam
 
-5 Ekim performans teknik denemesi: ERP-UA02 için paket40/sourcedf3de90 ile 50 satırlı normal ekran, kod/ad/leading-zero barkod/sayfalama/kart/stok/satış fiyatı ajan tarafından doğrulandı; STATUS'ta gerçek süreler ve son ilk393ms/35sn boşta sonrası ölçümler ayrıdır;39paketilk1353ms ara ölçümü korunur. Bu kayıt insan sonucunu PASS yapmaz. Fotoğraf işi başlatılmadı.
+**2026-10-05 kullanıcı kabulü:** Bu sohbetin kullanıcısı “Kullanıcı normal `ornek-akis.html#stock` kataloğunu ve performansını kabul etti; ERP-UA02 sonucunu buna uygun şekilde kaydet.” talimatını verdi. ERP-UA02 **PASS**, kapsam normal gerçek katalog ve performans; denenen TEST paket40/source `df3de9054cbeb80419976cede6a26f12b1c16e94`, web5194/API4144. Kullanıcının kişi adı ve ayrı deneme saati bildirilmedi; kullanıcı kimliği bu sohbetin sahibidir. Fotoğraf bağlantısı, genel ticari/migration/cihaz kabulü veya ERP-UA01 bu PASS'e dahil değildir.
+
+**ERP-UA03 inceleme hazır:** [Fotoğraf eşleme planı](docs/erp-v2/canonical-20261005/photo-mapping-plan.md) ve [makine manifesti](docs/erp-v2/canonical-20261005/photo-mapping-plan.json). 3.897fotoğraf:3.830kesin/67belirsiz/0eşleşmeyen; ana görsel seçilmedi, orijinaller değişmedi, ürünlere yazılmadı. Kullanıcı planı görmeden ERP-D04/toplu bağlama başlatılmaz.
+
+Önceki performans teknik denemesi: ERP-UA02 için paket40/sourcedf3de90 ile 50 satırlı normal ekran, kod/ad/leading-zero barkod/sayfalama/kart/stok/satış fiyatı ajan tarafından doğrulandı; STATUS'ta ilk393ms/35sn boşta sonrası ve39paketilk1353ms ara ölçümü korunur. Bu teknik deneme kendi başına insan PASS değildi; izleyen açık kullanıcı kabulü yukarıda ayrıca kaydedildi. O performans turunda fotoğraf işi başlatılmamıştı.
 
 | ID / iş | Kullanıcının gözle deneyeceği şey | Sonuç | Kişi / tarih / ortam-sürüm / kanıt |
 | --- | --- | --- | --- |
 | ERP-UA01 / ERP-D01 | TEST'i aç ve yenile; TEST ADMIN oturumu ve normal çalışma yüzü kullanılabilir olsun. | bekliyor | Kullanıcı/deneme tarihi: Durum doğrulanmadı. Mevcut teknik hazırlık: [TEST ADMIN kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md); insan sonucu bu satırda bekler. |
-| ERP-UA02 / ERP-D02 | Normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) ekranını aç/yenile; kodla ara ve gerçek kartı aç; başında sıfır olan barkodla ara; stok/satış fiyatı/döviz/birim/kademeyi kaynakla karşılaştır; inceleme bekleyen kartın fiyat göstermediğini ve eksik fotoğraf alanını gör. | bekliyor | Güncel performans teknik hazırlığı 2026-10-05, paket40/sourcedf3de9054cbeb80419976cede6a26f12b1c16e94; önceki normal katalog paketi38/source7db0685 korunur. Ajanın gerçek ekran/üç genişlik kontrolü STATUS'ta; insan kişi/tarih/sonuç Durum doğrulanmadı. [v1 kaynak sözleşmesi](docs/erp-v2/canonical-20261005/working-catalog-contract.md). |
-| ERP-UA03 / ERP-D03 | Salt okunur arşiv/eşleme planındaki doğru, belirsiz ve eksik ürün örneklerini incele; planın kabulünü belirt. | bekliyor | Durum doğrulanmadı |
+| ERP-UA02 / ERP-D02 | Normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) gerçek katalog ve performansı. | PASS | Bu sohbetin kullanıcısının yukarıda alıntılanan açık kabulü;2026-10-05,TEST paket40/source df3de9054cbeb80419976cede6a26f12b1c16e94. Önceki teknik denemeler/38paketi ve performans kanıtı STATUS'ta korunur. İnsan adı/ayrı saat bildirilmedi. [v1 kaynak sözleşmesi](docs/erp-v2/canonical-20261005/working-catalog-contract.md). |
+| ERP-UA03 / ERP-D03 | [Plandaki](docs/erp-v2/canonical-20261005/photo-mapping-plan.md)10kesin ve10belirsiz örneği fotoğraf/kod/nativeID ile karşılaştır;0161/0205sıfırları,8023ayrıhash/filigran ve basılıfiyat sınırını,4620LEYLEKkarantina ve boşluk farklarını incele; planı kabul/red veya satır bazlı düzeltme belirt. | bekliyor | Teknik plan2026-10-05; kaynak fotoğraf Desktop arşivi + tam korumalı TEST paket40kataloğu;3.830kesin/67belirsiz/0eşleşmeyen. İnsan kişi/tarih/sonuç bekliyor. Fotoğraf/SQL/CRM/runtime değişmedi; ERP-D04 uygulanmadı. |
 
 ## Önceki kapsamın kabul kayıtları
 
