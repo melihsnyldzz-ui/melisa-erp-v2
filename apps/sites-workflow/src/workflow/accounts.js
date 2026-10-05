@@ -1,4 +1,4 @@
-import { createVegaProductClient } from '../services/vegaProductClient.js';
+import {createLazyVegaClient as createVegaProductClient} from '../services/lazyVegaClient.mjs';
 import { createVegaProductStorage } from '../services/vegaProductStorage.js';
 import { currency, display } from '../modules/vega/vegaReadModel.js';
 import { loadAccountPage, matchesAccount } from './accountModel.js';

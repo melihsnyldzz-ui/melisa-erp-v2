@@ -1,6 +1,6 @@
 import {exampleSettingsPanel,wireExampleSettings} from './settingsUI.js';
 import {completionTree} from './completion.js';
-import { createVegaProductClient } from '../services/vegaProductClient.js';
+import {createLazyVegaClient as createVegaProductClient} from '../services/lazyVegaClient.mjs';
 import { createVegaProductStorage } from '../services/vegaProductStorage.js';
 import { normalizePage, verifyDetail, quantity, currency, priceRows } from '../modules/vega/vegaReadModel.js';
 import { dayRange, istanbulDay, operationPage, readiness, readPaths, documentCard, documentSummary, completionSteps } from './liveDataModel.js';
