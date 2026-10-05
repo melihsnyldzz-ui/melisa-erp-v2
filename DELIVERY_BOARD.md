@@ -1,6 +1,6 @@
 # ERP teslim panosu
 
-2026-10-05 son kullanıcı talimatı: ERP-UA03 PASS, ERP-D03 tamam. Yalnız ERP-D04 TEST fotoğraf uygulaması yürütülür; 3.830 kesin aday merkezi medyaya kopyalanır, 67 belirsiz ve karantina dışarıda. Bu görevden sonra durulur; ERP-D05/CRM başlamaz.
+2026-10-05: ERP-UA03 PASS, ERP-D03 tamam. ERP-D04 teknik TEST teslimi hazır: 3.830 fotoğraf merkezi medyadan normal kartlarda, 67 belirsiz ve karantina kapsam dışında. ERP-UA04 yeni ekranın kullanıcı kabulünü bekliyor. Bu görev sonunda duruldu; ERP-D05/CRM başlamaz.
 
 ## Önceki plan hazırlığı kaydı
 
@@ -24,7 +24,7 @@
 
 | ID | Hedef | Kabul kriteri | Durum | Bağımlılık |
 | --- | --- | --- | --- | --- |
-| ERP-D04 | Onaylanan 3.830 fotoğrafı merkezi TEST medyaya kopyala ve normal karta bağla. | Her kayıtta taze exact kimlik/hold/hash; 67 belirsiz hariç; tek doğrulanmış aday kartta ana görsel; 50 liste hızları korunur ve gerçek örnekler doğrulanır. | Uygulanıyor — kullanıcı doğrudan ERP-D04 talimatını verdi; kaynak/medya ve yeni ekran kanıtı STATUS ile tamamlanacak. Başka işe geçilmez. | ERP-UA03 PASS; ERP-DEC-008; CRM/LIVE/main merge dışarıda |
+| ERP-D04 | Onaylanan 3.830 fotoğrafı merkezi TEST medyaya kopyala ve normal karta bağla. | Taze exact kimlik/hold/hash; 67 belirsiz hariç; tek doğrulanmış aday kartta ana görsel; 50'li liste hızları korunur ve gerçek örnekler doğrulanır. | Teknik hazır / kullanıcı kabulü bekliyor — 3.830 fotoğraf, 10+20 gerçek kart ve 4 belirsiz örnek doğrulandı. Kanıt STATUS ve ERP-UA04'te; bu görev sonunda duruldu. | ERP-UA03 PASS; ERP-DEC-008; CRM/LIVE/main merge dışarıda |
 | ERP-D05 | CRM katalog bağlantısı için ERP sözleşmesini teslim et. | CRM-D02 için onaylı API/sözleşme ve exact kaynak commit bağlantısı teslim edilir; kod/ürün/fiyat/para birimi/fotoğraf kimliği ile eksik/hata alanları belgelenir. CRM tüketimi CRM-D02 kapsamında ayrıca kabul edilir. | Onaylı sıra; bağımlılık bekliyor | ERP-D02/04; ERP-DEC-005 |
 | ERP-D06 | 7733 ürün/fiyat/fotoğraf gerçek kabulünü destekle. | CRM-D03 ile yalnız yeni/değişen sözleşme kapsamı telefonda kabul edilir; önceki PASS kayıtları yeniden açılmaz. | Onaylı sıra; bağımlılık bekliyor | ERP-D05; CRM-D03; tam alıcı için mevcut gönderim yetkisi |
 | ERP-D07 | Mevcut LIVE teslim haritasının kritik işlerine dön. | Mevcut finish ID'leri ve [ortak harita](MELISA_TESLIM_HARITASI_V1.md) referans alınır; sıradaki somut kritik dilim kullanıcı önceliğiyle ŞİMDİ'ye taşınır, eski kapsam silinmez. | Onaylı dönüş noktası | ERP-D06; ilgili kritik iş bağımlılıkları; yayın ayrıca yetkili |

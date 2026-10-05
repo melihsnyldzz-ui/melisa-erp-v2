@@ -1,6 +1,6 @@
 # Melisa ERP — bitirme planı
 
-5 Ekim2026 güncel kullanıcı kabulü ve ERP-D03: normal katalog/performans ERP-UA02 **PASS** (TEST paket40/source df3de9054cbeb80419976cede6a26f12b1c16e94). B02 bu normal katalog kapsamıyla tamamlandı; A01 veri/delta ve A02 alış/maliyet/genel fiyat işleri kısmi kalır. [Fotoğraf planı](docs/erp-v2/canonical-20261005/photo-mapping-plan.md) teknik hazır, ERP-UA03 bekliyor; A03 gerçek fotoğraf bağlantısı açık. Toplu bağlama/ERP-D04 veya başka iş bu tur başlamaz. Günlük sıra DELIVERY_BOARD'dadır.
+5 Ekim 2026 — ERP-UA02 normal katalog/performans PASS ve ERP-UA03 plan PASS korunur; ERP-D03 tamam. ERP-D04, 3.830 merkezi fotoğrafı TEST normal kartlarına bağladı; 67 belirsiz ve 4620 hold kapsam dışında. Teknik kabul hazır; yeni ekranın ERP-UA04 insan kabulü bekliyor, A03🟡. [Uygulama kanıtı](docs/erp-v2/canonical-20261005/photo-application-acceptance.md). Bu görev sonunda duruldu; CRM/başka iş başlamadı. Günlük sıra DELIVERY_BOARD'dadır.
 
 Önceki kayıt — ERP-UA02 kabulünden önceki 5 Ekim 2026 performans teslimi — **Yalnız ERP-D02/A01/A02/B02 çalışma kataloğu:** paket40/sourcedf3de90, tasarım değişmeden default50. Gerçek50liste medyan6786→393ms, barkod1050→195ms, kart792→197ms; servis hazırken ilk50istek393ms,35sn sonrası kart140ms/sayfa337ms. Paket39ilk1353ms ara ölçümü ayrıca korunur. Tüm global doğrulama/karantina/yetki ve veri aynı; [STATUS](STATUS.md). Finish49/5🟢/22🟡/22🔴 ve ERP-UA02 insan sonucu değişmez. Kullanıcı talimatıyla bu dilim bittiğinde başka finish-tree işi başlatılmaz; fotoğraf ayrı başlatma bekler.
 
@@ -12,7 +12,7 @@
 
 ## Güncel finish tree — 5 Ekim 2026
 
-**Toplam 49 iş: 🟢 6 tamam · 🟡 21 kısmi / kabul bekliyor · 🔴 22 açık. Genel ilerleme: %12,2 tamam; %42,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam 49 iş: 🟢 6 tamam · 🟡 22 kısmi / kabul bekliyor · 🔴 21 açık. Genel ilerleme: %12,2 tamam; %44,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -25,7 +25,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Stok paket34 1.248 dosya manifest eşleşti; eski paketler ve before-stock-34 launcher geri dönüş kaydı korunur. |
 | A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | ERP-D02 normal yüz16622açılış+54hold/sentetik0 kod/ad/exactbarkod/nativeERPstok ERP-UA02 PASS;86bilinmeyenbirim nullable. Eski LAB16679 kapsamı korunur. Genel veri/personel/delta kabulü açık. |
 | A02 | Satış/alış fiyatı, maliyet, döviz | 🟡 | ERP-D02 satış fiyatı/döviz normal yüz ve ortakv1 API ERP-UA02 PASS; alış/maliyet bu katalogda yok.63774typedfiyat/C03exact8→native4 veUSD/EURsentetik kabulü korunur. Genel fiyat yazımı/personel kabulü açık;NULL/gerçek0 ayrıdır. |
-| A03 | Gerçek ürün fotoğrafı | 🔴 | ERP-D03 salt okunur [plan](docs/erp-v2/canonical-20261005/photo-mapping-plan.md)/manifest teknik hazır:3897fotoğraf/3830kesin/67belirsiz,ERP-UA03bekliyor. Fotoğraf dosyaları/ürün kayıtları değişmedi; normal sözleşmede fotoğraf missing. Gerçek bağlama/ERP-D04 ve normal ekran fotoğraf kabulü açık. |
+| A03 | Gerçek ürün fotoğrafı | 🟡 | ERP-UA03 plan PASS / ERP-D03 tamam. ERP-D04 TEST paket42/source956fc32: merkezi medyadan 3.830 CONFIRMED fotoğraf, 67 belirsiz ve 4620 hold hariç. 10+20 gerçek kart, hash/hız/veri teknik PASS; [ERP-UA04](docs/erp-v2/canonical-20261005/photo-application-acceptance.md) insan kabulü bekliyor. CRM bağlanmadı, orijinaller korundu. |
 | A04 | Gerçek müşteri ve dövizli bakiyeler | 🟡 | C06 normal441kart/ayrı döviz,exact8 kaynak+güncel+defter bağı,UNKNOWN ve28 karantina gerçek salt okunur TEST kabulü hazır. Kaynak30 Eylül; delta/personel kabulü açık. |
 | A05 | Gerçek tedarikçi ve dövizli borçlar | 🟡 | Açılıştaki401/406 kabulü korunur. C07 normal530native kart/90nativehold, ayrı kanıtlı/doğrulanmamış/UNKNOWN hesap ve gerçek salt okunur TEST kabulü hazır. Tüm530 migration kabulü değildir; delta/personel kabulü açık. |
 | A06 | Kaynak güvenirliği ve karantina gösterimi | 🟡 | 176 kaynak/172 hedef/4 hedefsiz; API+SQL engeli ve negatif ekran provası hazır. İşletme kabulü bekliyor. |
