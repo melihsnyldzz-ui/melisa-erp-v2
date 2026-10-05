@@ -2,7 +2,7 @@
 
 ## Güncel finish tree — 5 Ekim 2026
 
-**Toplam 49 iş: 🟢 5 tamam · 🟡 20 kısmi / kabul bekliyor · 🔴 24 açık. Genel ilerleme: %10,2 tamam; %40,8 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam 49 iş: 🟢 5 tamam · 🟡 21 kısmi / kabul bekliyor · 🔴 23 açık. Genel ilerleme: %10,2 tamam; %42,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -11,8 +11,8 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | ID | İş | Durum | Kanıt / kapanış ölçütü |
 | --- | --- | --- | --- |
 | P01 | Kanonik kaynak ve origin | 🟢 | SEMIH exact repo, temiz e0 tabanı ve fetch/push doğrulandı; eski kopyalar korunur. |
-| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST5194/4144/4146 → paket24/source0907cdd → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE süreç sahipleri aynı. |
-| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Paket24 1.199 dosya manifest eşleşti; eski paketler ve before-24 launcher geri dönüş kaydı korunur. |
+| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST5194/4144/4146 → paket29/sourcef295561 → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE süreç sahipleri aynı. |
+| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Paket29 1.225 dosya manifest eşleşti; eski paketler ve before-29 launcher geri dönüş kaydı korunur. |
 | A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | 16.622 eşlenen kart teknik mutabakatlı; normal günlük stok ekranı ve personel kabulü eksik. |
 | A02 | Satış/alış fiyatı, maliyet, döviz | 🟡 | 63.774 typed fiyat okuyucu korunur; C03 exact8→native4, ayrı birim/iki kur kanıtı ve USD/EUR sentetik TEST kopyası kabulü hazır. Genel fiyat yazımı/personel kabulü açık; NULL/gerçek 0 ayrımı korunur. |
 | A03 | Gerçek ürün fotoğrafı | 🔴 | Doğru kaynak kimliğiyle gerçek görsel bağlantısı/eksik görsel gösterimi ve normal ekran kabulü. |
@@ -35,7 +35,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | C06 | Gerçek müşteri kartı | 🟡 | Normal salt okunur kart/18 gerçek API denemesi ve arama/sayfa/boş/karantina/üç genişlik kabulü hazır. customer.view sınırı ve bilinmeyen hesaplar korunur. Yetkili düzenleme ve personel kabulü açık; gerçek ticari kart yazması yok. [Kabul](docs/erp-v2/canonical-20261004/customer-card-acceptance.md). |
 | C07 | Gerçek tedarikçi kartı | 🟡 | Paket24/source0907cdd normal530kart/90hold; gerçekAPI20 okuma+14 negatif/replay, UI13373 iletişim kaydet/yenile/restore ve9 rollbackSQL PASS. İlker TEST16 iki onaylı izin; TEST14 görüntüler/editör yok, TEST15 erişim reddi. Diğer ticari tablolar/fixture protected28kolon aynı. Gerçek kart düzenleme/personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md). |
 | C08 | Kasa/banka günlük akışı | 🟡 | Ayrılmış TEST tahsilat/ödeme kabulleri korunur; fiziksel açılış/sayım ve personel kabulü ayrı. |
-| C09 | Fiyat yazma/düzenleme | 🔴 | Fiyat tuple/provenance, yetki, audit, stale kontrol ve gerçek TEST ekranı; eski mühür ezilmez. |
+| C09 | Fiyat yazma/düzenleme | 🟡 | Ayrılmış301986 native exact8 fiyat create/edit, onaylı TEST16 özel izin, immutable version/CAS/fullpayload replay; normal fiyat→kabul37→native25090→borç→iptal, eski belge fiyatı korunur. Genel ticari kartlar/terminal fiyat tüketimi/personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md). |
 | C10 | Sayım/iade/ters kayıt | 🟡 | Mevcut sayım ve aynı faturadan bağlı alış iadesi kabulü korunur; yeni çok satır kapsamı ve personel kabulü eksik. |
 | C11 | Kullanıcı/yetki | 🟡 | Mevcut API izinleri korunur; günlük rol matrisi ve eksik normal kullanıcı negatif kabulü kapanır. |
 | C12 | Fiziksel terminal | 🔴 | Gerçek cihaz/scanner/offline/sync; kaynak/API/DB/package kimlikli normal kullanım kabulü. |
@@ -56,11 +56,15 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | D11 | Vega READ ONLY arşiv planı | 🔴 | Tek yazıcı devir sırası ve geçmişe salt okunur erişim; gerçek Vega mod değişikliği bu yetkide yapılmaz. |
 | E01 | Modül bazında gerçek kabul | 🔴 | Her modüle normal TEST URL ve 3–5 deneme; rol/olumsuz durum/SQL etkisi ve kişi/tarih/kapsam kayıtlı. |
 | E02 | Personelin günlük akış kabulü | 🔴 | Mal kabulden gün sonuna kullanıcı günlük işini deneyip kabul eder; ajan teknik testi insan kabulü değildir. |
-| E03 | Görsel üç genişlik kabulü | 🔴 | C03 alış ve C06 müşteri kartı gerçek iframe1440/1024/390 teknik kabulü var. Diğer modüller, hata/boş/yetki ve bütün günlük akış/personel görsel kabulü açık. |
+| E03 | Görsel üç genişlik kabulü | 🔴 | C03 alış,C06 müşteri,C07 tedarikçi ve C09 fiyat formu/eski belge gerçek iframe1440/1024/390 teknik kabulü var. Diğer modüller, hata/boş/yetki ve bütün günlük akış/personel görsel kabulü açık. |
 | F01 | Tek finish tree ve otomatik sıra | 🟢 | Bu tablo güncel iş kaynağı; root sayım/status günceller. `devam` sıradaki bağımsız açık işi seçer. |
-| F02 | GitHub/CI teslim düzeni | 🟡 | Feature dal/PR23; source95bef87 ve paket0907 push+PR quality-build-test/secret-scan dört hosted job PASS. Nihai belge head ayrıca doğrulanır; genel ERP teslimi açık. Merge/LIVE deploy yok. |
+| F02 | GitHub/CI teslim düzeni | 🟡 | Feature dal/PR23; güncel sourcef295561/paket29 tamhead push+PR quality-build-test/secret-scan dört hosted job PASS. Nihai belge head ayrıca doğrulanır; genel ERP teslimi açık. Merge/LIVE deploy yok. |
 
 ### Aktif dilim, sahiplik ve kabul
+
+C09 dar teknik TEST kabulü hazır: paket29/sourcef295561; normal fiyat create/edit, actual SQL/API provenance ve immutable history/CAS, özel TEST16 izin; eski kur/fiyat snapshotıyla kabul37/native25090/finalize/iptal. Stok31/maliyet62,6994/borç60; eski C03 taslak25089 korunur. API34 ve12negativeSQL;28oldtables/136izin/455oldSQLobject fark0. Üç genişlikte fiyat formu ve eski belge taşmasız; büyük işlemler. Genel ticari kartlar/terminal tüketimi/personel kabulü açık, C09 🟡 ve toplam5/21/23. [Kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md). Backend/frontend/SQL ayrı dosya sahipliğiyle çalıştı; bağımsız salt okunur review yapıldı. Root entegrasyon, gerçek TEST kurulum/paket/kabul ve Git/CI/plan sahibidir.
+
+Aşağıdaki C07/C06/C03 paket ve sayımlar önceki dilimlerin tarihsel kanıtıdır; güncel runtime ve sayım yukarıdaki C09 kaydındadır.
 
 C07 seçili teknik TEST kapsamı tamam: paket24/source0907cdd, uygulama95bef87; normal530native kart/90nativehold ve ayrı döviz kanıtı, bilinmeyen/kayıtlı-doğrulanmamış/karantina ayrımı. Kullanıcının açık yanıtındaki TEST16 supplier.view/edit iki anahtarı eklendi;2insert/replay0 ve diğer134izin tam aynı. Gerçek kartlar salt okunur;13373 deneme iletişimi normal ekranda kaydet/replay/yenile/orijinalNULLrestore ile doğrulandı. Row_version CAS, UUID/fullpayload replay ve immutable before/after journal tam2completed/0reserved. API20okuma+14negatif/replay,9rollbackSQL,27eski tablo ve28protectedfixturekolon fark0;1440/1024/390 kart+form taşmasız. İki bağımsız çapraz kaynak/SQL incelemesi ve son gerçek SQL mühür/yetki kontrolü PASS. [Tedarikçi kabulü](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md).
 
@@ -71,9 +75,9 @@ C06 salt okunur müşteri kartının dar gerçek TEST teknik kabulü hazır. Gen
 
 C03 dar teknik TEST teslimi tamamlandı; [gerçek kabul kaydı](docs/erp-v2/canonical-20261004/purchase-fx-acceptance.md), paket21/source2751fac. Typed `purchase/CARD/0`, ayrı mühürlü ADET×1, exact8→açık HALF_UP native4 ve iki tarihli sentetik kur; gerçek kartlar salt okunur, yazma yalnız301986/13373 TEST kopyasıdır. Üç fiziksel kabul/+3 stok; EUR/USD finalize+iptal toplam borç etkisi0; ret etkisiz. Stok29/ortalama63,9242/borç60; fatura25089 49,50 TRY karşılıklı EUR taslağı personel denemesine hazır. 17 yeni guard/15 eski/42 tanım/37 FIRST+mühürler,24 önceki ticari/finans tablo tam digest'i korunur. Restore/committed rollback yapılmadı; genel alış ve insan kabulü eksik olduğundan C03 🟡 kalır.
 
-**Sıradaki tek kaynak işi C09 fiyat yazma/düzenlemedir.** Fiyat tuple/provenance, yetki, audit ve stale kontrolüyle normal TEST kabulü hazırlanır; eski typed kaynak mührü ezilmez. C06/C07 genel kart düzenleme ve personel kabulü açık kalır. Gerçek ticari kartlarda test yazması bu yetkide değildir. Backend/frontend/SQL ve bağımsız review ayrı dosyalarda; root entegrasyon/runtime/Git/plan sahibidir.
+**Sıradaki teslim işi ERP-1 / B02+A01 normal stok listesi, kesin barkod arama ve gerçek kart detayıdır.** Yeni salt okunur okuyucu kabul edilmiş kaynak kimliğini native stok/birim/barkod/karantina ile bağlar; bilinmeyen değer sıfır yapılmaz. Genel ticari yazma ve personel kabulü ayrı açık kalır. C09 dar teknik TEST kabulü hazır; [kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md).
 
-İlk C01/C02 diliminin [kabul kaydı](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md) personelin beş denemesini içerir. Tarihsel SQL source46e10ce/paket18 uygulaması4e6b606 kabulü korunur; güncel çalışan uygulama üstteki paket24'dir. Çalışan C01/C02/migration tekrar ispat işi açılmadı; C03 yalnız yeni etkilenen akış ve kaynaklarla kontrol edildi.
+İlk C01/C02 diliminin [kabul kaydı](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md) personelin beş denemesini içerir. Tarihsel SQL source46e10ce/paket18 uygulaması4e6b606 kabulü korunur; güncel çalışan uygulama STATUS üstündeki paket29/sourcef295561'dir. Çalışan C01/C02/migration tekrar ispat işi açılmadı; C03 yalnız yeni etkilenen akış ve kaynaklarla kontrol edildi.
 
 İlk kabul iki farklı sentetik ürün, satır başına 1–5 ADET, TRY ve açık KDV/iskonto0 kapsamındadır. Bu dar prova genel dövizli fiyat yazımı, tüm ticari kartlar veya fiziksel terminal kabulü sayılmaz. Legacy tek satır/bağlı iade korunur. Taslak/pending stok ve borç değiştirmez; fiziksel onay stok oluşturur; finalize yalnız borç oluşturur; replay ikinci etki üretmez; sahte/yetkisiz/karantina satır bütün işlemi durdurur.
 

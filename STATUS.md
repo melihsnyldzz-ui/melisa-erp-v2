@@ -1,5 +1,18 @@
 # Melisa ERP durumu
 
+5 Ekim 2026 — **C09 fiyat yazma/düzenleme ve yeni native alış tüketimi dar teknik TEST kabulüne hazır. Genel ticari kartlar, terminal fiyat tüketimi ve personel kabulü PARTIAL; C09 🟡.**
+
+- [Fiyat & maliyet](http://127.0.0.1:5194/is-akisi-taslagi.html#prices), [Alış faturaları](http://127.0.0.1:5194/is-akisi-taslagi.html#purchases), [beş personel adımı ve kanıt](docs/erp-v2/canonical-20261005/product-price-acceptance.md). Normal İlker TEST ekranında301986 USD exact8 fiyat create/edit ve ADET/kademe1/TRY satış fiyatı kaydedilir; EUR Bilinmiyor kalır. Yalnız kullanıcı onaylı TEST16 product.price.edit,1insert/replay0; product.edit yok, diğer136 izin aynı. TEST15 fiyat görüntüler/editör yok; TEST14 purchase.view olmadığı için bu finansal akışa erişemez.
+- Yeni fiyatla fiziksel kabul37:2ADET,1,12345678USD→native1,1235,belge2,2470USD/89,8800TRY. Stok29→31,maliyet63,9242→62,6994; native25090 taslak borç0, finalize60→149,88, gerekçeli iptal→60. Tek goods stock+2; invoice stock0, iki borç/ters hareket toplam0. Beş consumer request/audit; fiyat7completed/version ve0reserved. Eski C03 fatura25089draft korunur. Güncel fiyat1,34567890USD, eski25090snapshotversion1/1,12345678 değişmedi; satış2,34567890TRY yalnız kayıt kabulüdür, terminal tüketimi açık.
+- Gerçek API34 okuma/yazma/negatif denemesi ve12 rollback SQL vaka PASS; fullpayload UUID replay/stale, exact8/NULL/gerçek0, rol/başka kart/genericPUT/native sınırları doğrulandı. Fiyat/negatif/replay ek stok/borç0.28eski tablonun oldID count/tam satır digestleri ve136izin tam hash aynı; açıklanan301986/13373 fixture etkileri dışarıda. Bütün455eski SQL tanımı/guard/enabled/FIRST korunur; toplam489. RUN06/C03/C07 kaynak/hold mühürleri değişmedi.
+- SQL price15metadata/consumer16metadata/dar izin1 ve üç replay0; API9+3actual definition pin doğrulaması. Kurulum öncesi7,24GB COPY_ONLY/CHECKSUM/VERIFYONLY TEST yedeği ve dış transaction compile/getter rollback'i var; restore/committed uygulama rollback provası yok. İlk UI provenance ve kayıt sonrası tuple yanlış gösterimi gerçek ekran denemesinde düzeltilip aynı korunmuş UUID ile doğrulandı; yeni controller/SQL→API→UI regresyonları eklendi.
+- Çalışan TEST **paket29**, `CANONICAL-FINISH-PRODUCT-PRICE-TEST-20261005-29`, source/app `f29556173473205dd638d31c8e64e61e58b8904b`,1225manifest dosyası doğrulandı.5194/4144/4146 → `Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01`; native readonly, externalfalse, writer sysadmin/control/LIVE erişimi0. Yalnız üç doğrulanmış TEST süreci değişti; LIVE5188/4114/4116 sahipleri aynı, LIVE commit bu turda doğrulanmadı. Eski paketler/launcher yedekleri korunur. Source f295 tamhead dört hostedquality/secretjobSUCCESS; nihai belge head PR23'te ayrıca doğrulanır. Checkout HEAD ile çalışan paket ayrı tutulur.
+- Fiyat düzenleme ve eski alış belgesi1440/1024/390 gerçek iframe client=scroll1427/1011/377; yatay taşma0. Alışta ilk40px ölçülen düğmeler büyütüldü; nihai29pakette CSS44px/ölçüm43,992px, mobil forma kesin fiyat/bilinmiyor/gerekçe ve tarihli belge özeti sığıyor. Dış JPEG ölçeklidir; fiziksel cihaz/personel kabulü değildir. Hedefli model/API/UI/SQL kontrolleri ve bağımsız backend/SQL/UI/source incelemesi; son UI17test ve actual SQL→API→UI contract PASS.
+- [Finish tree](ERP_FINISH_PLAN.md):49iş, 🟢5 / 🟡21 / 🔴23; bu sayım LIVE hazırlık yüzdesi değildir. Güncel delta71/341/74 uygulanmadı; 54ürün/122cari, eksik maliyet,T0/T1,restore/rollback ve personel/cihaz kabulü açık. Salt okunur `ERP_CURRENT_STATE_20261005.md` karşılaştırma raporu değiştirilmedi. Main merge/LIVE deploy/Vega yazması/credential değişikliği yok.
+- **Sıradaki teslim engeli ERP-1 / B02+A01:** normal stok listesi, kesin barkod arama ve gerçek ürün detayı. [Salt okunur keşif ve dar kaynak planı](docs/erp-v2/canonical-20261005/stock-products-plan.md) hazır; bu sonraki dilimin uygulama/SQL kurulumu/kullanıcı kabulü henüz yapılmadı. Genel ürün yazması veya mevcut kabul edilmiş satış akışını yeniden ispatlama işi açılmaz.
+
+## Önceki C07 kabulü
+
 5 Ekim 2026 — **C07 gerçek tedarikçi kartı ve ayrılmış deneme iletişimi teknik TEST kabulü hazır. Genel düzenleme/personel kabulü PARTIAL; C07 🟡.**
 
 - [Tedarikçiler](http://127.0.0.1:5194/is-akisi-taslagi.html#suppliers), [üç genişlik](http://127.0.0.1:5194/responsive-acceptance.html), [beş personel denemesi ve kanıt](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md).530 native kart/90 native karantina,25satır/sayfa ve ayrı döviz; kaynak/güncel/defter exact8 kanıtı,UNKNOWN ve kayıtlı-doğrulanmamış tutar açık. Kaynak30Eylül; delta uygulanmadı, tüm530kart açılış kabulü değildir.
@@ -42,7 +55,7 @@
 
 ## Önceki kabul kayıtları
 
-Aşağıdaki paket ve kapsamlar tarihsel kabul kayıtlarıdır; güncel çalışan TEST paket24 en üstteki C07 kaydındadır.
+Aşağıdaki paket ve kapsamlar tarihsel kabul kayıtlarıdır; güncel çalışan TEST paket29/sourcef295561 en üstteki C09 kaydındadır.
 
 4 Ekim 2026 — **C01/C02 çok satırlı alışın dar sentetik TEST teknik kabulü tamamlandı. Genel alış ve personel kabulü PARTIAL.**
 
