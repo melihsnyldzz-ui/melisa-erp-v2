@@ -1,4 +1,4 @@
-import {stockExact,stockImageSource,stockRequestGate} from './stockProductsModel.mjs';
+import {stockExact,stockRequestGate} from './stockProductsModel.mjs';
 export {stockExact as catalogExact,stockRequestGate as catalogRequestGate};
 const fail=()=>{throw Error('Katalog bilgileri doğrulanamadı. Yeniden deneyin.');};
 const id=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v)&&BigInt(v)<=9223372036854775807n;
@@ -16,9 +16,7 @@ export function catalogProduct(r,{canViewSalesPrices=false}={}){
  if((!canViewSalesPrices||r.hold.blocked)&&r.salePrices.length)fail();
  for(const p of r.salePrices)if(!id(p.id)||p.type!=='sale'||!id(p.unitSourceId)||!Number.isInteger(p.tier)||p.tier<1||p.tier>6||!['TRY','USD','EUR'].includes(p.currency)||!exact(p.priceExact)||typeof p.isMainUnit!=='boolean'||!text(p.sourceKey))fail();
  if(new Set(r.salePrices.map(p=>p.id)).size!==r.salePrices.length||new Set(r.salePrices.map(p=>JSON.stringify([p.unitSourceId,p.tier,p.currency]))).size!==r.salePrices.length)fail();
- const photo=r.photo;
- // This contract prepares the image field; verified image delivery is a separate step.
- if(!photo||photo.status!=='missing'||photo.url!==null||photo.sourceKey!==null||photo.verified!==false)fail();
+ validateCatalogPhoto(r.photo,r);
  return r;
 }
 export function catalogEnvelope(p,{salesPermission=false,detail=false}={}){
@@ -33,4 +31,12 @@ export function catalogMainPrice(r){
  const candidates=r.salePrices.filter(p=>p.isMainUnit&&p.unitSourceId===r.unit.sourceId&&p.tier===1);
  return candidates.length===1&&candidates[0].priceExact!==null?candidates[0]:null;
 }
-export function catalogPhotoUrl(photo){return photo?.verified===true?stockImageSource(photo.url):null;}
+export function validateCatalogPhoto(photo,row){
+ if(!photo||typeof photo!=='object'||Array.isArray(photo))fail();
+ if(photo.status==='missing'){
+  if(Object.keys(photo).length!==4||photo.url!==null||photo.sourceKey!==null||photo.verified!==false)fail();return photo;
+ }
+ if(photo.status!=='available'||Object.keys(photo).length!==6||photo.verified!==true||typeof photo.sha256!=='string'||!/^[a-f0-9]{64}$/i.test(photo.sha256)||!row||!id(row.id)||row.hold?.blocked!==false||row.provenance?.kind!=='accepted-opening'||row.provenance.verified!==true||photo.sourceKey!==row.provenance.sourceKey||photo.url!==`/api/catalog/products/${row.id}/photo?variant=preview`||photo.thumbnailUrl!==`/api/catalog/products/${row.id}/photo?variant=thumbnail`)fail();
+ return photo;
+}
+export function catalogPhotoUrl(photo,row){if(photo?.status==='missing'){validateCatalogPhoto(photo,row);return null;}validateCatalogPhoto(photo,row);return photo.url;}

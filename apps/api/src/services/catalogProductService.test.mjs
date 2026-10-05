@@ -39,3 +39,12 @@ test('strict search/bigint bounds, page/detail not-found, duplicates and incompl
 test('output whitelist drops unrelated nested data; explicit purchase finance input rejects',()=>{
  const r=card();r.unit.secretCost='7';r.barcodes[0].purchaseCost='8';r.provenance.cost='9';r.photo.cost='10';r.salePrices=[{...price(),averageCostTryExact:'11'}];const out=catalogProductDto(r,{sqlSales:true,canViewSalesPrices:true});assert.equal(JSON.stringify(out).includes('Cost'),false);assert.equal(JSON.stringify(out).includes('"cost"'),false);r.purchasePrices=[];assert.throws(()=>catalogProductDto(r,{sqlSales:true}));
 });
+test('media always rereads guarded current detail; revoked role/changed hold/invalid SQL DTO cannot bypass',async()=>{
+ const r=response();let reads=0,bytes=0,overlays=0;
+ const mediaStore={photoFor(row){overlays++;return row.hold.blocked?row.photo:{status:'available'};},async readPhoto(row,variant){bytes++;assert.equal(row.id,'12');assert.equal(variant,'thumbnail');return {bytes:Buffer.from('jpeg'),mimeType:'image/jpeg'};}};
+ const s=createCatalogProductService({mediaStore,getStore:async()=>({readCatalogProducts:async({options})=>{reads++;return {...r,limit:options.limit};}})});
+ await s.photo('12',{variant:'thumbnail'},actor);assert.equal(reads,1);assert.equal(bytes,1);
+ await assert.rejects(()=>s.photo('12',{}, {id:14,permissions:[]}),{statusCode:403});assert.equal(reads,1);assert.equal(bytes,1);
+ await assert.rejects(()=>s.photo('12',{token:'bad'},actor),{statusCode:400});assert.equal(reads,1);
+ r.rows[0].financial={};await assert.rejects(()=>s.photo('12',{},actor),{statusCode:503});assert.equal(bytes,1);assert.equal(overlays,1);
+});

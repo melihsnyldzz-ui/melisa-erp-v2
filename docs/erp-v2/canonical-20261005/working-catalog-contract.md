@@ -8,7 +8,7 @@
 
 Kod, ad, barkod ve birim mevcut kimlik/provenance bağından gelir. Bilinmeyen stok/birim/fiyat NULL kalır; gerçek sıfırdan ayrılır. Fiyatlar birim + kademe + döviz kimliğini ve sekiz ondalıklı metni korur. Liste yalnız doğrulanmış ana birim/kademe 1 için tek fiyat varsa tutar gösterir; diğer durumlarda kayıtlı fiyatların sayısını ve kart ayrıntısını gösterir. Döviz dönüştürülmez, USD varsayılmaz. Karantina kartında fiyat gösterilmez.
 
-Fotoğraf alanı `photo:{status:'missing',url:null,sourceKey:null,verified:false}` olarak hazırlanmıştır. Kaynak arşivden eşleme/yazma yapılmamıştır. ERP-D03/04 kapsamındaki doğrulanmış görsel teslimi ayrıca bekler; görsel üstündeki katalog fiyatı ERP fiyatı sayılmaz.
+Fotoğraf yoksa `photo:{status:'missing',url:null,sourceKey:null,verified:false}` korunur. ERP-D04 kapsamında yalnız onaylı CONFIRMED arşiv eşlemeleri için doğrulanmış merkezi medya eklenir. Görsel üstündeki katalog fiyatı ERP fiyatı sayılmaz. Uygulamanın gerçek TEST sonucu [STATUS](../../../STATUS.md) içindedir; sözleşme uygulama kabulünün yerine geçmez.
 
 ## İç katalog sözleşmesi
 
@@ -25,6 +25,24 @@ Gerçek DB `product.view` ve HTTP ürün izni zorunludur. Satış fiyatı için 
 SQL okuması SERIALIZABLE işlemde tüm bağımsız procedure pinleri, kaynak/native/binding ve dönen fiyat tuple sahipliği doğrulandıktan sonra tamamlanır. Yeni `dbo.usp_read_work_catalog` ayrı okuyucudur; eski stok prosedürü/iş kayıtları değiştirilmez. Teknik/ekran kanıtı ve uygulama commit'i [STATUS](../../../STATUS.md), insan denemesi [ERP-UA02](../../../USER_ACCEPTANCE.md) kaydındadır.
 
 ## Performans doğrulaması — 5 Ekim 2026
+
+## ERP-D04 — doğrulanmış merkezi medya
+
+Kaynak plan `photo-mapping-plan.json`, kayıt SHA256 `5da967d2652aa0d6710ad206ac10b7a5898d5a8af7ff3f45e048669e15d22b6d`; kullanıcı ERP-UA03 ile kabul etti. Yalnız 3.830 CONFIRMED/tekil ürün, her kopyalama öncesi mevcut tam korumalı API kartındaki exact productId/stockCode/sourceKey/runId/accepted/hold:false ve kaynak dosya SHA256 tekrar doğrulanarak uygulanır. 67 AMBIGUOUS ve 4620 LEYLEK dışarıda kalır. Orijinaller salt okunur; fotoğraf üzerinden fiyat türetilmez.
+
+TEST merkezi kök `C:\Sirket\ERP\data\TEST-20260929-01\catalog-media`; sürüm paketleri ve Desktop'tan bağımsızdır. Content-addressed JPEG kopyaları `original/<SHA256>.jpg`, türevleri `thumbnail/<türevSHA>.jpg` ve `preview/<türevSHA>.jpg`; kaynak dosya adı, ürün/kaynak kimliği, doğrulama zamanı/durumu ve hashler `index.json` metadata dosyasındadır. SQL blob, SQL ticari kart değişikliği ve ikinci ticari ürün DB'si yoktur. Bu ERP medya kaynağı ileride ortak tüketim için hazırdır; CRM entegrasyonu bu teslimde yapılmaz.
+
+Kopyalama CLI'si `scripts/catalog/apply-confirmed-photo-plan.mjs --apply-approved-erp-d04 <absolutePlanPath> <privateExistingReaderAccessPath> <absoluteEvidenceDirectory>` açık yetkili bu plan içindir. Arşiv hash sapması kayıt reddidir; herhangi bir reddedilen kayıt varsa product index yayımlanmaz. Başarılı dosyalar silinmez ve tekrar doğrulanarak kullanılabilir. Tam uygulamada index tek atomik/exclusive yayımlama ile oluşturulur. Replay mevcut bütün metadata/bindings ve dosya hashlerini doğrular, aynı index'i değiştirmez. Bu CLI yeni genel medya import yetkisi vermez.
+
+Medya açıkken kartın photo alanı tam olarak `{status:'available',url:'/api/catalog/products/<id>/photo?variant=preview',thumbnailUrl:'/api/catalog/products/<id>/photo?variant=thumbnail',sourceKey,sha256,verified:true}`. `sha256` kaynak/original hashidir; kaynak kimliği güncel kartla aynıdır. Mevcut SQL DTO önce kendi tüm readiness/izin/karantina kontrollerinden geçer; fotoğraf metadata eşlemesi sonra yalnız exact güncel kimlik/accepted/hold:false ile eklenir. SQL okuyucusu ve pinleri değişmez. Sayfa yanıtı yalnız medya reference taşır, JPEG binary içermez.
+
+`GET /api/catalog/products/:id/photo?variant=preview|thumbnail|original` mevcut Bearer oturumu ve ürün izni ister; her istekte aynı tam korumalı detail okuyucusu güncel DB yetkisi/kimlik/karantinayı tekrar doğrular. Public uploads/static, token query string ve Desktop yolu yoktur. Sunulan JPEG hash'i her binary isteğinde kontrol edilir. Hatalar 400/401/403/404/503 ile kapanır; dış dosya yolu/SQL ayrıntısı açıklanmaz. `private, no-store`, JPEG MIME ve `nosniff` korunur.
+
+Başlangıçta yalnız doğrulanmış TEST ERP4144/writes bağlamında merkezi index, tüm 3.830 kayıt ve bütün original/thumbnail/preview bytes doğrulanır. İndeksin ham bytes SHA256 değeri ayrıca özel runtime config'in `catalogMediaIndexSha256` pinine eşit olmalıdır; index'in kendi beyanından beklenen hash üretilmez. Registry yalnız doğrulanmış, değişmez medya metadata map'ini saklar; güncel veri/rol/hold/SQL kanıtı cache değildir. Başka ürünün görsellerini hashleriyle beraber yer değiştiren indeks bu bağımsız pinle reddedilir. Medya yapılandırması yoksa eski missing davranışı sürer; native/LIVE'a açılmaz.
+
+Normal listenin beş sütunu ve 50'li sayfalaması değişmez; liste açılışında fotoğraf isteği yapılmaz. Kart açılınca yalnız 768px'e kadar önizleme, oturum closure'ındaki Bearer ile alınır ve yerel Blob URL üzerinden gösterilir. 128px thumbnail sonraki uygun tüketim için hazırdır; original listede veya mevcut kartta indirilmez. Kart kapatma/yeni seçim/sayfa/oturum dispose yüklemeyi iptal eder ve Blob URL'yi serbest bırakır. Eksik/başarısız fotoğraf temiz placeholder gösterir. Tek CONFIRMED aday ana kart görseli olabilir; çoklu aday varsa otomatik seçim bu sözleşmede yoktur.
+
+### Önceki katalog performans yöntemi
 
 İstekler arasında veri, yetki, stok veya bütünlük sonucu önbelleğe alınmaz. Bütün ilgili değişiklikleri kapsayan güvenilir bir invalidation sürümü olmadığı için başlangıçta doğrulanmış olmak sonraki isteğin kaynak/guard kanıtının yerine geçmez. Aynı SERIALIZABLE işlemde yinelenen birebir supplier readiness bloğu yalnız bir kez çalışır; tam 998 kaynak/176 hold/seal/37 FIRST ve eski guard kontrolleri korunur.
 

@@ -1,6 +1,10 @@
 import { configureCanonicalTest } from './canonical-test-env.mjs';
 const [mode, configPath] = process.argv.slice(2);
-const {identity,port,networkPolicy,release,pool,writes,env}=await configureCanonicalTest(configPath,mode);
+const {identity,port,networkPolicy,release,pool,writes,env,config}=await configureCanonicalTest(configPath,mode);
+if(mode==='erp' && writes){
+  const {configureCatalogMediaStore}=await import('./src/services/catalogMediaStore.mjs');
+  await configureCatalogMediaStore({root:config.catalogMediaRoot,indexSha256:config.catalogMediaIndexSha256,identity,mode,port,writes});
+}
 if(mode==='erp' && writes){
   try{const {warmCatalogPlan}=await import('./src/services/catalogPlanWarmup.mjs');await warmCatalogPlan({identity,port,mode,writes,env});}
   catch{try{await pool.close();}catch{}throw new Error('Ürün kataloğu başlangıçta doğrulanamadı.');}

@@ -38,3 +38,23 @@ test('late old 401 cannot clear a newer manual login or invoke expired callback'
  const s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'old'}):url.endsWith('/auth/login')?reply({user,accessToken:'new'}):new Promise(r=>resolveOld=r)});
  await s.start();const old=s.api('/api/catalog/products');await s.login({username:'ilker',password:'secret'});resolveOld(reply(null,401));await assert.rejects(()=>old);assert.equal(store.getItem(workingCatalogTokenKey),'new');assert.equal(expired,0);s.dispose();
 });
+const imageReply=(type='image/jpeg',size=5)=>({ok:true,status:200,headers:new Headers({'Content-Type':type}),blob:async()=>new Blob([new Uint8Array(size)],{type})});
+test('photo transport uses closure bearer and exact GET raster variants; no foreign paths or token queries',async()=>{
+ const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'photo-token'}):imageReply());await f.session.start();
+ const blob=await f.session.media('/api/catalog/products/12/photo?variant=preview');assert.equal(blob.type,'image/jpeg');const request=f.calls[1];assert.equal(request.options.method,'GET');assert.equal(request.options.credentials,'omit');assert.equal(request.options.redirect,'error');assert.equal(request.options.headers.Authorization,'Bearer photo-token');assert(!request.url.includes('photo-token'));
+ await f.session.media('/api/catalog/products/12/photo?variant=thumbnail');
+ for(const path of ['https://other/image','/api/catalog/products/12/photo?variant=original','/api/catalog/products/12/photo?variant=preview&token=x','/api/catalog/products/12/photo?variant=preview#fragment','/api/catalog/products/12/photo?variant=%70review','/api/catalog/products/../photo?variant=preview','/uploads/photo.jpg'])await assert.rejects(()=>f.session.media(path));
+ await assert.rejects(()=>f.session.media('/api/catalog/products/12/photo?variant=preview',{method:'POST'}));assert.equal(f.calls.length,3);f.session.dispose();
+});
+test('photo transport rejects executable, empty and oversized responses without exposing server internals',async()=>{
+ for(const response of [imageReply('image/svg+xml'),imageReply('text/html'),imageReply('image/jpeg',0),imageReply('image/jpeg',8*1024*1024+1)]){const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'x'}):response);await f.session.start();await assert.rejects(()=>f.session.media('/api/catalog/products/12/photo?variant=preview'),e=>!e.message.includes('SQL'));f.session.dispose();}
+});
+test('current media auth expiry clears session and invokes same login flow',async()=>{
+ let expired=0;const store=storage(),s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'x'}):reply(null,403)});await s.start();await assert.rejects(()=>s.media('/api/catalog/products/12/photo?variant=preview'),e=>e.status===403&&!e.message.includes('SQL'));assert.equal(store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);s.dispose();
+});
+test('external media abort and disposal reject late blobs without session expiry',async()=>{
+ for(const disposal of [false,true]){let resolve,expired=0;const s=createWorkingCatalogSession({location,apiBase,storage:storage(),onExpired:()=>expired++,fetchImpl:async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'x'}):new Promise(done=>resolve=done)});await s.start();const signal=new AbortController(),p=s.media('/api/catalog/products/12/photo?variant=preview',{signal:signal.signal});disposal?s.dispose():signal.abort();resolve(imageReply());await assert.rejects(()=>p);assert.equal(expired,0);s.dispose();}
+});
+test('late old media 401 cannot clear replacement login or invoke expiration',async()=>{
+ let finish,expired=0;const store=storage(),s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'old'}):url.endsWith('/auth/login')?reply({user,accessToken:'new'}):new Promise(resolve=>finish=resolve)});await s.start();const old=s.media('/api/catalog/products/12/photo?variant=preview');await s.login({username:'ilker',password:'secret'});finish(reply(null,401));await assert.rejects(()=>old);assert.equal(store.getItem(workingCatalogTokenKey),'new');assert.equal(expired,0);s.dispose();
+});
