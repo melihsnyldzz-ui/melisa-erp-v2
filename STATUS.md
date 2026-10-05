@@ -1,5 +1,16 @@
 # Melisa ERP durumu
 
+5 Ekim 2026, 10:56 — **CRM E02 native -04/b708f8e halen çalışıyor; CRM genel inbox yeni D/source0c60c55 paketine geçti. İki ürünlü ERP taslak kabulü kullanıcı girişi bekliyor.**
+
+- Native62404PID49220/creation, özel config ve scope aynı; gerçek CANONICAL_TEST/draft-only health doğrulandı. Native geçişinden sonra E02 eski request/proc/stok/cari/ürün/fiyat ölçümü10:02ile birebir eşit; yeni E02taslak yazılmadı. Kaynakb708f8e/manifest79e4701d… değişmedi; bu checkout'un sonraki HEAD'i yalnız durum belgesidir.
+- CRM D/source0c60c55/manifestbaf4bc59…10:49READY; ayrı yerel journal/worker iki kişide9gelen geçmiş mesajı2konuşmada ayrı ChatwootGETile doğruladı. Bu ERP veya yeni mesaj/normal UI kabulü değildir; WhatsAppsend/model/ERPwrite0. Native/LIVE aynı süreçte kaldı. Günlük ERP4144/4146/5194 bu CRM geçişinden önce10:40'ta ayrı CANONICAL-FINISH-PRODUCT-PRICE-TEST-20261005-25'e geçmiş olarak gözlendi; bu iş o servisleri veya canonicalC09source alanını değiştirmedi.
+- İlk somut E02 adımı: normal http://127.0.0.1:62400/ CRM/ERP TEST hesabına kullanıcı girişi;7733/konuşma55/sentetikmüşteri593,41140+41142,2+3adet/980TRY create→ayrıGET readback→aynıUUIDtekrar. Henüz bu taslak oluşturulmadı; önceki392TRY kabulü korunur. Genel müşteri/ürün eşleme açık.
+- [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24) mevcut codex/crm-order-opening-20261005 dalında; b708f8e source ve5390b01 önceki belge exactCI başarılı. Yeni belgeHEADCIayrı izlenir. Main/tag/LIVE yok. Özel kanıt C:\Sirket\CRM\logs\acceptance-20261005\i01-after-switch-20261005.json ve e02-after-switch-sql-20261005-1030.json; credential/ham mesajlar Git dışında.
+
+## Tarihsel durum — 5 Ekim 2026, 10:13; aşağıdaki kayıt güncel değildir
+
+# Melisa ERP durumu
+
 5 Ekim 2026, 10:13 — **CRM E02 yeni native Windows TEST paketi gerçek SQL ile açıldı; normal CRM iki ürünlü taslak/readback kabulü bekliyor.**
 
 - Çalışan62404 paketi `CRM-ORDER-DRAFT-TEST-20261005-04`, source `b708f8e0e6af17d473836a9d4b61c1f970c5bdb4`, manifest SHA256 `79e4701da0198a798bf39479afa5fed1af9464625258775ca16b79e3624461e0`,10290 dosya. Tam paket doğrulamasından sonra5Ekim10:05 dar native geçiş READY; gerçek `/test-health` doğru CANONICAL_TEST/veritabanı/scoped-sales-order-draft-procedure-only sözleşmesini gösterir. Native SQL sürücüsü açılış engeli bu pakette giderildi; health normal sipariş kabulü değildir.
