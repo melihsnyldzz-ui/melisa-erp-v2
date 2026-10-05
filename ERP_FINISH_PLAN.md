@@ -1,5 +1,7 @@
 # Melisa ERP — bitirme planı
 
+5 Ekim 2026 performans teslimi — **Yalnız ERP-D02/A01/A02/B02 çalışma kataloğu:** paket40/sourcedf3de90, tasarım değişmeden default50. Gerçek50liste medyan6786→393ms, barkod1050→195ms, kart792→197ms; servis hazırken ilk50istek393ms,35sn sonrası kart140ms/sayfa337ms. Paket39ilk1353ms ara ölçümü ayrıca korunur. Tüm global doğrulama/karantina/yetki ve veri aynı; [STATUS](STATUS.md). Finish49/5🟢/22🟡/22🔴 ve ERP-UA02 insan sonucu değişmez. Kullanıcı talimatıyla bu dilim bittiğinde başka finish-tree işi başlatılmaz; fotoğraf ayrı başlatma bekler.
+
 5 Ekim 2026 güncel teslim — **ERP-D02 çalışma kataloğu:** ornek-akis.html mevcut tasarımda gerçek ürün/barkod/stok/satış fiyatı/döviz ve eksik fotoğraf alanına bağlandı. Paket38/source7db0685 teknik hazır; [ERP-UA02](USER_ACCEPTANCE.md) insan kabulü bekliyor. Günlük sıra [DELIVERY_BOARD](DELIVERY_BOARD.md), teknik kanıt [STATUS](STATUS.md). Sayım49/5🟢/22🟡/22🔴 değişmez; gerçek fotoğraf/CRM entegrasyonu tamam sayılmaz.
 
 5 Ekim 2026 önceki LAB teslimi — **B02+A01 stok:** paket34/sourcefab3e1d normal katalog/barkod/kart ve üç genişlik teknik hazır. [Kullanıcı adımları](docs/erp-v2/canonical-20261005/stock-products-acceptance.md). Personel kabulü bekliyor; bu tarihsel kayıt yeni günlük sıra değildir. B02 kısmiye alındı, genel migration/ticari kabul tamam sayılmadı.
@@ -26,7 +28,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | A05 | Gerçek tedarikçi ve dövizli borçlar | 🟡 | Açılıştaki401/406 kabulü korunur. C07 normal530native kart/90nativehold, ayrı kanıtlı/doğrulanmamış/UNKNOWN hesap ve gerçek salt okunur TEST kabulü hazır. Tüm530 migration kabulü değildir; delta/personel kabulü açık. |
 | A06 | Kaynak güvenirliği ve karantina gösterimi | 🟡 | 176 kaynak/172 hedef/4 hedefsiz; API+SQL engeli ve negatif ekran provası hazır. İşletme kabulü bekliyor. |
 | B01 | Ana Sayfa günlük iş sırası | 🔴 | Gerçek veri, hızlı görevler, ayrı döviz toplamları; 1440/1024/390 kabulü. |
-| B02 | Stok arama/filtre ve detay | 🟡 | ERP-D02 ornek-akis gerçek arama/barkod/kart/satış fiyatı, fotoğraf eksikliği ve1440/1024/390 teknik hazır; ERP-UA02 insan kabulü açık. Eski [stok LAB kabulü](docs/erp-v2/canonical-20261005/stock-products-acceptance.md) korunur; hata/çoklubarkodun bir kısmı sentetiktir. |
+| B02 | Stok arama/filtre ve detay | 🟡 | ERP-D02 ornek-akis gerçek arama/barkod/kart/satış fiyatı; paket40 default50/hızlandırma, fotoğraf eksikliği ve önceki1440/1024/390 teknik hazır; ERP-UA02 insan kabulü açık. Eski [stok LAB kabulü](docs/erp-v2/canonical-20261005/stock-products-acceptance.md) korunur; hata/çoklubarkodun bir kısmı sentetiktir. |
 | B03 | Cariler bilgi hiyerarşisi | 🟡 | Müşteri ve tedarikçi arama/aktiflik/karantina/sayfa ve ayrı dövizli kart; iki modül iframe1440/1024/390 taşmasız. Tedarikçi deneme iletişimi üç genişlikte kullanılabilir; genel cariler/personel kabulü açık. |
 | B04 | Satış günlük kullanım ekranı | 🔴 | Büyük net işlemler, gerçek müşteri/ürün satırları ve yetki; üç genişlik. |
 | B05 | Alış günlük kullanım ekranı | 🟡 | C01/C02 kabulü korunur. C03 gerçek kaynak seçim/kur, tam genişlik özet ve büyük mobil işlemler; alış taslağı/fiyat önizlemesi gerçek iframe1440/1024/390'da taşmasız. Genel alış ve personel kabulü açık. |

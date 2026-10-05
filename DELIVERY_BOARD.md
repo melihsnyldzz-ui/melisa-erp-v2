@@ -1,5 +1,7 @@
 # ERP teslim panosu
 
+5 Ekim performans dilimi: ERP-D02 default50 katalog hızlandırması paket40/sourcedf3de90 teknik teslim edildi; ölçüm ve korunmuş veri kanıtı STATUS'ta. ERP-UA02 insan sonucu bekliyor. Kullanıcının açık talimatı gereği bu performans işi sonrası başka finish-tree işine geçilmez; fotoğraf işi kullanıcı tarafından ayrıca başlatılacak.
+
 **2026-10-05 kullanıcı önceliği.** Kalıcı kararlar [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md), tam kapsam [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md), teknik kanıt [STATUS.md](STATUS.md), insan sonuçları [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md). Bu pano mevcut finish tree'yi daraltmaz; günlük sıra burada tutulur. Bölüm içindeki satır sırası önceliktir. Bu başlangıç kaydı uygulama geliştirmesi/kabul yapmaz.
 
 `Onaylı` iş seçilebilir; bağımlılığı hazır değilse bekler. `Teknik hazır / kullanıcı kabulü bekliyor` tamam değildir; kullanıcı sonucu ilgili UA kaydına bağlanır. `Tamam` yalnız işin tüm kabul ölçütleri ve GitHub teslimi kanıtlıysa kullanılır. Yeni kapsam veya öncelik kullanıcı kararı ister; kabul edilmiş işi yeniden açma. `ŞİMDİ` içinde tamamlanmamış iş varken `SONRA` öne alınmaz. ŞİMDİ tamamen tamamlandığında onaylı SONRA sırasının ilk işi, bağımlılığı hazırsa aynı sırayla ŞİMDİ’ye taşınır; yeni kapsam veya sıra değişimi sayılmaz. Bağımlılık hazır değilse beklenir; CANLIDAN SONRA otomatik taşınmaz.
