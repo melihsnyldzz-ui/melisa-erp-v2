@@ -1,5 +1,7 @@
 # Melisa Teslim Haritası v1
 
+**5 Ekim yeni karar merkezi:** bu harita mevcut canlı teslim bağlamını ve eski kapsam/önerileri korur; günlük iş sırası [DELIVERY_BOARD.md](DELIVERY_BOARD.md), kalıcı ürün/iş kararları [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) içindedir. Aşağıdaki CRM-önce yönü güncel panoyu geçersiz kılmaz; finish kapsamından iş silinmez.
+
 **Amaç:** Yeni fikir ve yeni altyapı üretmek yerine eldeki CRM/ERP çalışmalarını işyerine teslim edilebilir sürümlere dönüştürmek. Öncelikli yön: **önce CRM, sonra Vega'dan Melisa ERP'ye geçiş**.
 
 **Belge tarihi ve veri kesimi:** 5 Ekim 2026. Durum tabanı, SEMIH bilgisayarında yaklaşık 02:16–02:30 arasında hazırlanıp kullanıcı tarafından paylaşılan iki mevcut durum raporudur. Bu belge yeni SQL, tarayıcı, telefon veya LIVE denetimi değildir.

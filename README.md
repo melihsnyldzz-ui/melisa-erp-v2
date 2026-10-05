@@ -1,5 +1,7 @@
 # Melisa ERP v2
 
+Karar merkezi: [kalıcı kararlar](PROJECT_DECISIONS.md) → [günlük teslim panosu](DELIVERY_BOARD.md) → [kullanıcı kabulü](USER_ACCEPTANCE.md). `devam` davranışı [AGENTS.md](AGENTS.md) başındadır; mevcut finish plan tam kapsam, status teknik kanıt kaydı olarak kalır.
+
 Melisa ERP v2, Melisa Bebe için web tabanlı, desktop-first ve Vega/Wolvox hissinde tasarlanacak yeni ERP projesidir.
 
 ## Hedef
