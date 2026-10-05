@@ -1,4 +1,10 @@
-# ERP-LAN01 — 5 Ekim2026 ağ erişimi teknik hazır
+# ERP-LAN01 — 6 Ekim 2026 doğrudan ağ açılışı teknik hazır
+
+Kullanıcının yereldeki gibi girişsiz açılış talimatı ERP-DEC-012 ile kaydedildi. [Ağ Ana Sayfa](http://192.168.1.46:5194/ornek-akis.html#home), TEST49/sourcebb082dfc5b182070b1ebd09de239c7894b89982d: boş gerçek sekmede form/admin seçimi olmadan açılır; yenilemede aynı oturum auth/me200 ile korunur. Normal yüz temiz Yönetici etiketi ve mevcut tasarımda; stok/8023CONCEPT gerçek kart/fotoğraf/0ADET/15,78USD doğrulandı. Özellikle seçilmiş manuel hesap korunur. [Yeni kanıt](docs/erp-v2/canonical-20261005/lan-direct-opening-acceptance.md).
+
+37 hedefli test, bağımsız inceleme, yerel offline506Sites testi ve paket build PASS;1301manifest/16977dependency doğrulandı. Gerçek TEST kimliği ve opt-in LAN gerçekpeer/Host/Origin sınırı; SQLactor16/namedguards değişmez. Native401, scope dışıPOST405, Vega403; yanlışHost/Origin reddedilir. Private config hash/IP/firewall/LIVEowners aynı, eski48 rollback korunur. Ticari/rol/schema yazması0. HOME22–38ms sıcak, katalog50 ilk1582/izleyen1477ms; sorgu değiştirilmedi, önceki733ms'e eşit hız iddiası yok. Sourcebb082df hosted iki quality-build-test SUCCESS; son belge head required CI PRChecks'ten doğrulanır. ERP-UA06 başka cihaz/insan kabulü bekler; kalıcı IP ertelendi, başka iş başlamadı.
+
+# Önceki ERP-LAN01 — 5 Ekim2026 manuel ağ erişimi
 
 GitHub doğrulaması: `397541f51edb266baf050db7bda79997cff33897` tam head için PR run37372173205 **quality-build-test SUCCESS**; offline sınır, API/web/Sites testleri, sentetik migration modelleri, canonical kaynak kontrolleri ve iki web build geçti. Son doküman head'inin required kontrolleri [PR23 Checks](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23/checks) üzerinden doğrulanır; çalışan paket source4b46a3f kalır. Kalıcı IP işi kullanıcı tarafından sonraya bırakıldı; kullanıcı başka cihazdan ERP-UA06 kabulünü henüz vermedi.
 
