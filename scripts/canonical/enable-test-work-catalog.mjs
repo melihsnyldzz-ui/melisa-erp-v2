@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_RUN,STOCK_PRODUCT_ALIAS_CACHE_SQL,STOCK_PRODUCT_RUNTIME_READY_SQL,STOCK_PRODUCT_BINDING_SQL} from './enable-test-stock-products.mjs';
 import {SUPPLIER_CARD_READY_SQL} from '../../apps/api/src/services/supplierCardReadStore.mjs';
 export const CATALOG_PROC='dbo.usp_read_work_catalog';
-export const CATALOG_PREVIOUS_HASH='AE8E9F4DCDE69463A949616B95CA593654E592C39180E8901D137012001E3C09';
+export const CATALOG_PREVIOUS_HASH='4C070222CB1CA34D605C328E6485B123174CE726288EB4DD66BC7D421A69ADB4';
 const digest=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
 const quote=s=>"N'"+s.replaceAll("'","''")+"'";
 const fail="THROW 51102,'WORK_CATALOG_BINDING_DRIFT',1;";
@@ -37,6 +37,7 @@ CREATE TABLE #CatalogAliasTargetSources(source_product_id int NOT NULL PRIMARY K
 INSERT #CatalogAliasTargetSources SELECT TRY_CONVERT(int,h.source_id) FROM erp_migration.operation_quarantine_holds h WHERE h.entity=N'product' AND TRY_CONVERT(int,h.source_id) IS NOT NULL
 UNION SELECT TRY_CONVERT(int,b.source_id) FROM #StockPage s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id WHERE TRY_CONVERT(int,b.source_id) IS NOT NULL;`;
 export const CATALOG_ALIAS_CACHE_SQL=STOCK_PRODUCT_ALIAS_CACHE_SQL.replace('FROM dbo.product_source_aliases GROUP BY product_id,source_product_id;',`FROM dbo.product_source_aliases a WHERE EXISTS(SELECT 1 FROM #CatalogAliasTargetProducts t WHERE t.product_id=a.product_id) OR EXISTS(SELECT 1 FROM #CatalogAliasTargetSources t WHERE t.source_product_id=a.source_product_id) GROUP BY product_id,source_product_id;`);
+export const CATALOG_MEDIA_ALIAS_CACHE_SQL=STOCK_PRODUCT_ALIAS_CACHE_SQL.replaceAll('StockAlias','CatalogMediaAlias').replace('FROM dbo.product_source_aliases GROUP BY product_id,source_product_id;',`FROM dbo.product_source_aliases a WHERE EXISTS(SELECT 1 FROM #CatalogMediaBindings m WHERE m.product_id=a.product_id) OR EXISTS(SELECT 1 FROM #CatalogMediaAliasTargetSources t WHERE t.source_product_id=a.source_product_id) GROUP BY product_id,source_product_id;`);
 const priceFields=['price_id','product_id','product_source_key','price_source_key','source_unit_id','price_type','price_tier','currency_code','price_exact','is_main_unit','stage_payload_hash','stage_sql_hash','native_row_hash'];
 const bindingHash=`CONVERT(char(64),HASHBYTES('SHA2_256',(SELECT ${priceFields.map(f=>`v.${f}`).join(',')} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)),2)`;
 // Copy every native price belonging to the returned products, including unbound
@@ -63,9 +64,103 @@ function replaceOnce(text,oldValue,newValue){
  if(!text.includes(oldValue)||text.indexOf(oldValue)!==text.lastIndexOf(oldValue))throw new Error('CATALOG_SOURCE_TEMPLATE_DRIFT');
  return text.replace(oldValue,newValue);
 }
+const whitespace=[9,10,11,12,13,32,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288,65279];
+const blankToNull=value=>`CASE WHEN DATALENGTH(${whitespace.reduce((v,n)=>`REPLACE(${v},NCHAR(${n}),N'')`,value)})=0 THEN NULL ELSE ${value} END`;
+const safePrefixLength=`CASE WHEN DATALENGTH(p.stock_code)>DATALENGTH(c.brand)+2 THEN(DATALENGTH(p.stock_code)-DATALENGTH(c.brand)-2)/2 ELSE 0 END`;
+export const CATALOG_CLASSIFICATION_SQL=`
+CREATE TABLE #CatalogClassification(id bigint NOT NULL PRIMARY KEY,brand nvarchar(250) NULL,product_type nvarchar(250) NULL,source_name nvarchar(500) NULL,verified bit NOT NULL,display_code nvarchar(250) NOT NULL,numeric_group int NULL,digit_length int NULL,numeric_value nvarchar(250) NULL,digit_suffix nvarchar(250) NULL,photo_available bit NOT NULL DEFAULT(0));
+IF EXISTS(SELECT 1 FROM #StockScope s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id
+ LEFT JOIN dbo.products p ON p.id=s.id LEFT JOIN erp_migration.records r ON r.run_id=N'${STOCK_PRODUCT_RUN}' AND r.entity=N'products' AND r.source_key=b.product_source_key
+ OUTER APPLY OPENJSON(r.payload_json) WITH(brand nvarchar(250) '$.brand',product_type nvarchar(250) '$.category',source_name nvarchar(500) '$.name') c
+ WHERE s.kind=N'accepted-opening' AND(p.id IS NULL OR r.source_key IS NULL OR r.payload_hash IS NULL OR r.payload_json IS NULL OR r.payload_hash<>b.stage_payload_hash OR CONVERT(char(64),HASHBYTES('SHA2_256',r.payload_json),2)<>b.stage_sql_hash
+ OR EXISTS(SELECT CONVERT(varbinary(max),p.stock_code),CONVERT(varbinary(max),p.name),CONVERT(varbinary(max),p.source_record_key),CONVERT(varbinary(max),p.brand),CONVERT(varbinary(max),p.category) EXCEPT SELECT CONVERT(varbinary(max),b.stock_code),CONVERT(varbinary(max),b.product_name),CONVERT(varbinary(max),b.native_source_key),CONVERT(varbinary(max),c.brand),CONVERT(varbinary(max),c.product_type)))) ${fail}
+INSERT #CatalogClassification(id,brand,product_type,source_name,verified,display_code)
+ SELECT s.id,CASE WHEN s.kind=N'accepted-opening' THEN ${blankToNull('c.brand')} END,CASE WHEN s.kind=N'accepted-opening' THEN ${blankToNull('c.product_type')} END,CASE WHEN s.kind=N'accepted-opening' THEN ${blankToNull('c.source_name')} END,CONVERT(bit,CASE WHEN s.kind=N'accepted-opening' THEN 1 ELSE 0 END),p.stock_code
+ FROM #StockScope s JOIN dbo.products p ON p.id=s.id LEFT JOIN erp_migration.accepted_price_products b ON b.product_id=s.id LEFT JOIN erp_migration.records r ON r.run_id=N'${STOCK_PRODUCT_RUN}' AND r.entity=N'products' AND r.source_key=b.product_source_key
+ OUTER APPLY OPENJSON(r.payload_json) WITH(brand nvarchar(250) '$.brand',product_type nvarchar(250) '$.category',source_name nvarchar(500) '$.name') c;
+UPDATE c SET display_code=LEFT(p.stock_code,${safePrefixLength})
+ FROM #CatalogClassification c JOIN dbo.products p ON p.id=c.id
+ WHERE c.verified=1 AND c.brand IS NOT NULL AND DATALENGTH(p.stock_code)>DATALENGTH(c.brand)+2
+ AND CONVERT(varbinary(max),RIGHT(p.stock_code,DATALENGTH(c.brand)/2+1))=CONVERT(varbinary(max),N' '+c.brand)
+ AND UNICODE(RIGHT(LEFT(p.stock_code,${safePrefixLength}),1)) NOT IN(${whitespace.join(',')});
+UPDATE c SET numeric_group=CASE WHEN d.digit_count>0 THEN 0 ELSE 1 END,digit_length=DATALENGTH(n.numeric_value)/2,numeric_value=n.numeric_value,digit_suffix=SUBSTRING(c.display_code,d.digit_count+1,250)
+ FROM #CatalogClassification c CROSS APPLY(SELECT PATINDEX(N'%[^0-9]%',c.display_code COLLATE Latin1_General_100_BIN2+N'X')-1 digit_count)d
+ CROSS APPLY(SELECT LEFT(c.display_code,d.digit_count) raw_digits)z
+ CROSS APPLY(SELECT CASE WHEN d.digit_count=0 THEN N'' WHEN PATINDEX(N'%[^0]%',z.raw_digits COLLATE Latin1_General_100_BIN2)=0 THEN N'0' ELSE SUBSTRING(z.raw_digits,PATINDEX(N'%[^0]%',z.raw_digits COLLATE Latin1_General_100_BIN2),250) END numeric_value)n;
+CREATE TABLE #CatalogMediaBindings(product_id bigint NOT NULL PRIMARY KEY,stock_code nvarchar(250) NOT NULL,source_key nvarchar(400) NOT NULL,run_id nvarchar(80) NOT NULL);
+IF @image<>N'all' BEGIN
+ IF ISJSON(@media_bindings)<>1 OR LEFT(@media_bindings,1)<>N'[' OR(SELECT COUNT(*) FROM OPENJSON(@media_bindings))>3830 THROW 51102,'WORK_CATALOG_MEDIA_BINDING_INVALID',1;
+ INSERT #CatalogMediaBindings SELECT product_id,stock_code,source_key,run_id FROM OPENJSON(@media_bindings) WITH(product_id bigint '$.productId',stock_code nvarchar(250) '$.stockCode',source_key nvarchar(400) '$.sourceKey',run_id nvarchar(80) '$.runId');
+ CREATE TABLE #CatalogMediaAliasTargetSources(source_product_id int NOT NULL PRIMARY KEY);
+ INSERT #CatalogMediaAliasTargetSources SELECT DISTINCT TRY_CONVERT(int,b.source_id) FROM #CatalogMediaBindings m JOIN erp_migration.accepted_price_products b ON b.product_id=m.product_id WHERE TRY_CONVERT(int,b.source_id) IS NOT NULL;
+ ${CATALOG_MEDIA_ALIAS_CACHE_SQL}
+ UPDATE c SET photo_available=1 FROM #CatalogClassification c JOIN #CatalogMediaBindings m ON m.product_id=c.id JOIN erp_migration.accepted_price_products b ON b.product_id=c.id JOIN dbo.products p ON p.id=c.id
+ JOIN #CatalogMediaAliasProductCounts pc ON pc.product_id=c.id JOIN #CatalogMediaAliasSourceCounts sc ON sc.source_product_id=TRY_CONVERT(int,b.source_id) JOIN #CatalogMediaAliasPairs ap ON ap.product_id=c.id AND ap.source_product_id=TRY_CONVERT(int,b.source_id)
+ WHERE c.verified=1 AND ${binary('m.stock_code','p.stock_code')} AND ${binary('m.stock_code','b.stock_code')} AND ${binary('m.source_key','b.product_source_key')} AND ${binary('m.run_id',`N'${STOCK_PRODUCT_RUN}'`)}
+ AND NOT EXISTS(SELECT 1 FROM erp_migration.operation_quarantine_holds h WHERE h.entity=N'product' AND(h.native_id=c.id OR h.source_id=b.source_id))
+ AND pc.alias_count=1 AND sc.alias_count=1 AND ap.pair_count=1;
+END;
+`;
+export const CATALOG_ORDER_SQL=`CASE WHEN @sort=N'stock-desc' AND p.current_stock_qty IS NULL THEN 1 ELSE 0 END ASC,CASE WHEN @sort=N'stock-desc' THEN p.current_stock_qty END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN c.numeric_group END ASC,CASE WHEN @sort=N'code-desc' THEN c.numeric_group END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN c.digit_length END ASC,CASE WHEN @sort=N'code-desc' THEN c.digit_length END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN CONVERT(varbinary(500),c.numeric_value) END ASC,CASE WHEN @sort=N'code-desc' THEN CONVERT(varbinary(500),c.numeric_value) END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN CONVERT(varbinary(500),c.digit_suffix) END ASC,CASE WHEN @sort=N'code-desc' THEN CONVERT(varbinary(500),c.digit_suffix) END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN CONVERT(varbinary(500),c.display_code) END ASC,CASE WHEN @sort=N'code-desc' THEN CONVERT(varbinary(500),c.display_code) END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN CONVERT(varbinary(500),p.stock_code) END ASC,CASE WHEN @sort=N'code-desc' THEN CONVERT(varbinary(500),p.stock_code) END DESC,
+ CASE WHEN @sort<>N'code-desc' THEN p.id END ASC,CASE WHEN @sort=N'code-desc' THEN p.id END DESC`;
+const classificationRows=`c.display_code displayCode,JSON_QUERY((SELECT c.brand brand,c.product_type productType,c.source_name sourceName,c.verified verified FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)) classification,`;
+const facets=`N'{"brands":[],"productTypes":[]}' filtersJson,`;
+const startupClass=CATALOG_CLASSIFICATION_SQL.slice(CATALOG_CLASSIFICATION_SQL.indexOf('IF EXISTS'),CATALOG_CLASSIFICATION_SQL.indexOf('UPDATE c SET display_code'));
+const mediaSql=CATALOG_CLASSIFICATION_SQL.slice(CATALOG_CLASSIFICATION_SQL.indexOf('CREATE TABLE #CatalogMediaBindings'));
+export const CATALOG_FAST_CLASSIFICATION_SQL=`
+CREATE TABLE #CatalogClassification(id bigint NOT NULL PRIMARY KEY,brand nvarchar(250) NULL,product_type nvarchar(250) NULL,source_name nvarchar(500) NULL,verified bit NOT NULL,display_code nvarchar(250) NOT NULL,numeric_group int NULL,digit_length int NULL,numeric_value nvarchar(250) NULL,digit_suffix nvarchar(250) NULL,photo_available bit NOT NULL DEFAULT(0),rank bigint NULL);
+IF @classification_validation=1 BEGIN
+${startupClass}
+END ELSE BEGIN
+ IF ISJSON(@candidate_bindings)<>1 OR LEFT(@candidate_bindings,1)<>N'[' OR(SELECT COUNT(*) FROM OPENJSON(@candidate_bindings))>16676 THROW 51102,'WORK_CATALOG_CANDIDATES_INVALID',1;
+ CREATE TABLE #CatalogCandidates(id bigint NOT NULL,rank bigint NOT NULL CHECK(rank BETWEEN 1 AND 16676));
+ INSERT #CatalogCandidates SELECT id,rank FROM OPENJSON(@candidate_bindings) WITH(id bigint '$[0]',rank bigint '$[1]');
+ CREATE UNIQUE CLUSTERED INDEX IX_CatalogCandidates_Id ON #CatalogCandidates(id);
+ CREATE UNIQUE NONCLUSTERED INDEX IX_CatalogCandidates_Rank ON #CatalogCandidates(rank);
+ IF EXISTS(SELECT id FROM #CatalogCandidates EXCEPT SELECT id FROM #StockScope) ${fail}
+ INSERT #CatalogClassification(id,verified,display_code,rank) SELECT s.id,CONVERT(bit,CASE WHEN s.kind=N'accepted-opening' THEN 1 ELSE 0 END),p.stock_code,x.rank FROM #CatalogCandidates x JOIN #StockScope s ON s.id=x.id JOIN dbo.products p ON p.id=s.id;
+END;
+${mediaSql}`;
+export const CATALOG_FAST_ORDER_SQL=`CASE WHEN @sort=N'stock-desc' AND p.current_stock_qty IS NULL THEN 1 ELSE 0 END ASC,CASE WHEN @sort=N'stock-desc' THEN p.current_stock_qty END DESC,CASE WHEN @sort<>N'code-desc' THEN c.rank END ASC,CASE WHEN @sort=N'code-desc' THEN c.rank END DESC,p.id ASC`;
+const selectedClassSql=`UPDATE c SET brand=${blankToNull('v.brand')},product_type=${blankToNull('v.product_type')},source_name=${blankToNull('v.source_name')}
+ FROM #CatalogClassification c JOIN #StockPage s ON s.id=c.id JOIN erp_migration.accepted_price_products b ON b.product_id=s.id JOIN erp_migration.records r ON r.run_id=N'${STOCK_PRODUCT_RUN}' AND r.entity=N'products' AND r.source_key=b.product_source_key
+ CROSS APPLY OPENJSON(r.payload_json) WITH(brand nvarchar(250) '$.brand',product_type nvarchar(250) '$.category',source_name nvarchar(500) '$.name') v;
+IF EXISTS(SELECT 1 FROM #StockPage s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id JOIN dbo.products p ON p.id=s.id JOIN erp_migration.records r ON r.run_id=N'${STOCK_PRODUCT_RUN}' AND r.entity=N'products' AND r.source_key=b.product_source_key CROSS APPLY OPENJSON(r.payload_json) WITH(brand nvarchar(250) '$.brand',product_type nvarchar(250) '$.category') v WHERE EXISTS(SELECT CONVERT(varbinary(max),p.brand),CONVERT(varbinary(max),p.category) EXCEPT SELECT CONVERT(varbinary(max),v.brand),CONVERT(varbinary(max),v.product_type))) ${fail}
+UPDATE c SET display_code=LEFT(p.stock_code,${safePrefixLength}) FROM #CatalogClassification c JOIN #StockPage s ON s.id=c.id JOIN dbo.products p ON p.id=c.id WHERE c.verified=1 AND c.brand IS NOT NULL AND DATALENGTH(p.stock_code)>DATALENGTH(c.brand)+2 AND ${binary('RIGHT(p.stock_code,DATALENGTH(c.brand)/2+1)',"N' '+c.brand")} AND UNICODE(RIGHT(LEFT(p.stock_code,${safePrefixLength}),1)) NOT IN(${whitespace.join(',')});`;
+const proofStart=STOCK_PRODUCT_PROC_SQL.indexOf("CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(@@PROCID))");
+const proofEnd=STOCK_PRODUCT_PROC_SQL.indexOf(",\n COALESCE(N'['",proofStart);
+if(proofStart<0||proofEnd<0)throw Error('CATALOG_PROOF_TEMPLATE_DRIFT');
+const metadataProof=STOCK_PRODUCT_PROC_SQL.slice(proofStart,proofEnd)+`,CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_read_stock_products'))),2) stockReaderDefinitionHash`;
+// Materialize only the selected immutable binding rows before their full JSON
+// hash. Startup selects all rows; ordinary page/detail requests select 50/1.
+// This prevents a startup-sized cached plan from hashing the entire catalog
+// before applying the page join, without changing any binding predicate.
+const pageBindingStart=STOCK_PRODUCT_BINDING_SQL.indexOf('IF EXISTS(SELECT 1 FROM #StockPage s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id WHERE b.binding_hash<>');
+if(pageBindingStart<0)throw Error('CATALOG_BINDING_TEMPLATE_DRIFT');
+export const CATALOG_PRODUCT_BINDING_SQL=STOCK_PRODUCT_BINDING_SQL.slice(0,pageBindingStart)+
+ 'SELECT b.* INTO #CatalogPageAcceptedBindings FROM #StockPage s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id;\n'+
+ STOCK_PRODUCT_BINDING_SQL.slice(pageBindingStart).replace('SELECT 1 FROM #StockPage s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id WHERE b.binding_hash<>','SELECT 1 FROM #CatalogPageAcceptedBindings b WHERE b.binding_hash<>');
+export const CATALOG_CLASSIFICATION_VALIDATE_SQL=`
+ IF ISJSON(@classification_bindings)<>1 OR LEFT(@classification_bindings,1)<>N'[' THROW 51102,'WORK_CATALOG_CLASSIFICATION_INDEX_INVALID',1;
+ CREATE TABLE #CatalogIndex(id bigint NOT NULL PRIMARY KEY,stock_code nvarchar(250) NOT NULL,source_key nvarchar(400) NOT NULL,kind nvarchar(30) NOT NULL,brand nvarchar(250) NULL,product_type nvarchar(250) NULL,source_name nvarchar(500) NULL,stage_payload_hash char(64) NULL,stage_sql_hash char(64) NULL);
+ INSERT #CatalogIndex SELECT id,stock_code,source_key,kind,brand,product_type,source_name,stage_payload_hash,stage_sql_hash FROM OPENJSON(@classification_bindings) WITH(id bigint '$.productId',stock_code nvarchar(250) '$.stockCode',source_key nvarchar(400) '$.sourceKey',kind nvarchar(30) '$.kind',brand nvarchar(250) '$.brand',product_type nvarchar(250) '$.productType',source_name nvarchar(500) '$.sourceName',stage_payload_hash char(64) '$.stagePayloadHash',stage_sql_hash char(64) '$.stageSqlHash');
+ IF(SELECT COUNT(*) FROM #CatalogIndex)<>16676 OR(SELECT COUNT(*) FROM #CatalogClassification)<>16676 ${fail}
+ IF EXISTS(SELECT 1 FROM #CatalogIndex i LEFT JOIN #CatalogClassification c ON c.id=i.id LEFT JOIN #StockScope s ON s.id=i.id LEFT JOIN erp_migration.accepted_price_products b ON b.product_id=i.id LEFT JOIN erp_migration.operation_quarantine_holds h ON h.entity=N'product' AND h.native_id=i.id WHERE c.id IS NULL OR NOT(${binary('i.stock_code','(SELECT p.stock_code FROM dbo.products p WHERE p.id=i.id)')}) OR NOT(${binary('i.kind','s.kind')}) OR EXISTS(SELECT CONVERT(varbinary(max),i.brand),CONVERT(varbinary(max),i.product_type),CONVERT(varbinary(max),i.source_name) EXCEPT SELECT CONVERT(varbinary(max),c.brand),CONVERT(varbinary(max),c.product_type),CONVERT(varbinary(max),c.source_name))
+ OR(s.kind=N'accepted-opening' AND(NOT(${binary('i.source_key','b.product_source_key')}) OR i.stage_payload_hash IS NULL OR i.stage_sql_hash IS NULL OR UPPER(i.stage_payload_hash)<>UPPER(b.stage_payload_hash) OR UPPER(i.stage_sql_hash)<>UPPER(b.stage_sql_hash)))
+ OR(s.kind=N'quarantined-source' AND(i.stage_payload_hash IS NOT NULL OR i.stage_sql_hash IS NOT NULL OR NOT(${binary('i.source_key',"N'VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/'+h.source_id")})))) ${fail}
+ IF EXISTS(SELECT 1 FROM erp_migration.accepted_price_products b JOIN #CatalogIndex i ON i.id=b.product_id WHERE COALESCE((SELECT a.alias_count FROM #StockAliasProductCounts a WHERE a.product_id=b.product_id),0)<>1 OR COALESCE((SELECT a.alias_count FROM #StockAliasSourceCounts a WHERE a.source_product_id=TRY_CONVERT(int,b.source_id)),0)<>1 OR COALESCE((SELECT a.pair_count FROM #StockAliasPairs a WHERE a.product_id=b.product_id AND a.source_product_id=TRY_CONVERT(int,b.source_id)),0)<>1) ${fail}
+ SELECT CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,CONVERT(bit,1) classificationValidated,${metadataProof};RETURN;
+`;
 function catalogBody(){
  let sql=replaceOnce(STOCK_PRODUCT_PROC_SQL,'CREATE OR ALTER PROCEDURE dbo.usp_read_stock_products',`CREATE OR ALTER PROCEDURE ${CATALOG_PROC}`);
  sql=replaceOnce(sql,'@page_size int=25','@page_size int=50');
+ sql=replaceOnce(sql,'@page_size int=50\n',"@page_size int=50,@brand nvarchar(250)=N'',@product_type nvarchar(250)=N'',@image nvarchar(12)=N'all',@sort nvarchar(12)=N'code-asc',@media_bindings nvarchar(max)=N'[]',@candidate_bindings nvarchar(max)=N'[]',@classification_validation bit=0,@classification_bindings nvarchar(max)=N'[]'\n");
  // PRICE_OPERATIONAL expands CONTACT_READY, which repeats this exact supplier
  // block. The first renamed stock-ready copy retains every check in this same
  // SERIALIZABLE read; remove only the second byte-for-byte source expansion.
@@ -73,8 +168,15 @@ function catalogBody(){
  const readyOnce=STOCK_PRODUCT_RUNTIME_READY_SQL.replace(SUPPLIER_CARD_READY_SQL,'');
  sql=replaceOnce(sql,STOCK_PRODUCT_ALIAS_CACHE_SQL,'');
  sql=replaceOnce(sql,readyOnce,'');
- sql=replaceOnce(sql,STOCK_PRODUCT_BINDING_SQL,`${CATALOG_ALIAS_TARGET_SQL}\n${CATALOG_ALIAS_CACHE_SQL}\n${readyOnce}\n${STOCK_PRODUCT_BINDING_SQL}`);
+ sql=replaceOnce(sql,STOCK_PRODUCT_BINDING_SQL,`${CATALOG_ALIAS_TARGET_SQL}\n${CATALOG_ALIAS_CACHE_SQL}\n${readyOnce}\n${CATALOG_PRODUCT_BINDING_SQL}\nIF @classification_validation=1 BEGIN\n${CATALOG_CLASSIFICATION_VALIDATE_SQL}\nEND;\n${selectedClassSql}`);
  sql=replaceOnce(sql," INSERT #StockScope SELECT p.id,N'synthetic-test' FROM dbo.products p WHERE p.id IN(301984,301985,301986);",'');
+ sql=replaceOnce(sql,' CREATE TABLE #StockMatches',` IF @brand IS NULL OR @product_type IS NULL OR @image IS NULL OR @image NOT IN(N'all',N'available',N'missing') OR @sort IS NULL OR @sort NOT IN(N'code-asc',N'code-desc',N'stock-desc') OR @media_bindings IS NULL OR @candidate_bindings IS NULL OR @classification_validation IS NULL THROW 51102,'WORK_CATALOG_QUERY_INVALID',1;\n${CATALOG_FAST_CLASSIFICATION_SQL}\n CREATE TABLE #StockMatches`);
+ sql=replaceOnce(sql,'FROM #StockScope s JOIN dbo.products p ON p.id=s.id WHERE','FROM #StockScope s JOIN dbo.products p ON p.id=s.id JOIN #CatalogClassification c ON c.id=s.id WHERE'+"(@image=N'all' OR(@image=N'available' AND c.photo_available=1) OR(@image=N'missing' AND c.photo_available=0)) AND");
+ sql=replaceOnce(sql,' CREATE TABLE #StockPage',` SELECT m.id,ROW_NUMBER() OVER(ORDER BY ${CATALOG_FAST_ORDER_SQL}) position INTO #CatalogOrder FROM #StockMatches m JOIN #CatalogClassification c ON c.id=m.id JOIN dbo.products p ON p.id=m.id;\n CREATE UNIQUE CLUSTERED INDEX IX_CatalogOrder ON #CatalogOrder(id);\n CREATE TABLE #StockPage`);
+ sql=replaceOnce(sql,'FROM #StockMatches m JOIN dbo.products p ON p.id=m.id ORDER BY p.stock_code,p.id','FROM #StockMatches m JOIN dbo.products p ON p.id=m.id JOIN #CatalogOrder o ON o.id=m.id ORDER BY o.position');
+ sql=replaceOnce(sql,' INSERT #StockPage SELECT',` IF @classification_validation=1 INSERT #StockPage SELECT id,kind FROM #StockScope;\n ELSE INSERT #StockPage SELECT`);
+ sql=replaceOnce(sql,'WITHIN GROUP(ORDER BY p.stock_code,p.id) FROM #StockPage s JOIN dbo.products p ON p.id=s.id','WITHIN GROUP(ORDER BY o.position) FROM #StockPage s JOIN dbo.products p ON p.id=s.id JOIN #CatalogOrder o ON o.id=s.id JOIN #CatalogClassification c ON c.id=s.id');
+ sql=replaceOnce(sql,'p.stock_code stockCode,p.name productName,',`p.stock_code stockCode,p.name productName,${classificationRows}`);
  // SQL equality pads NVARCHAR operands. Only zero bytes means no barcode filter;
  // spaces are literal barcode characters and must never broaden to all products.
  sql=replaceOnce(sql,"(@barcode=N'' OR EXISTS","(DATALENGTH(@barcode)=0 OR EXISTS");
@@ -96,7 +198,9 @@ function catalogBody(){
  sql=sql.slice(0,financialStart)+sql.slice(financialEnd+' financial\n'.length);
  // The preceding hold projection was followed by financial, so remove its comma.
  sql=replaceOnce(sql,'WITHOUT_ARRAY_WRAPPER)) hold,\n FOR JSON','WITHOUT_ARRAY_WRAPPER)) hold\n FOR JSON');
- sql=replaceOnce(sql,' SELECT CONVERT(varchar(20),@actor_id) actorId',` ${CATALOG_SALE_BINDING_SQL}\n SELECT CONVERT(varchar(20),@actor_id) actorId`);
+ const publicHeader=' SELECT CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,@sales canViewSalesPrices';
+ sql=replaceOnce(sql,publicHeader,` ${CATALOG_SALE_BINDING_SQL}\n${publicHeader}`);
+ sql=replaceOnce(sql,publicHeader,` SELECT ${facets}CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,@sales canViewSalesPrices`);
  // Independently pin the unchanged prerequisite reader before serving this companion.
  sql=replaceOnce(sql,' WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;',` WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;\n ${CATALOG_STOCK_PIN_SQL}\n ${CATALOG_INDEX_VERIFY_SQL}`);
  return sql.replace(/^[\t ]+$/gm,'');

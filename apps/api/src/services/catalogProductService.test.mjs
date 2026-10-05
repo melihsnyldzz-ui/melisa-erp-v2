@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catalogProductDto,parseCatalogQuery,parseCatalogId} from './catalogModel.mjs';
+import {catalogProductDto,parseCatalogQuery,parseCatalogId,catalogDisplayCode,compareCatalogCodes} from './catalogModel.mjs';
 import {createCatalogProductService} from './catalogProductService.mjs';
 const source='VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/12';
-const card=()=>({id:'12',stockCode:'0012',productName:'Ürün',isActive:true,stockQuantityExact:null,unit:{label:null,sourceId:null,factorExact8:null,verified:false},barcodes:[{id:'77',value:'000012',isPrimary:true,sourceKey:null}],imageUrl:null,provenance:{kind:'accepted-opening',sourceKey:source,runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30',verified:true},hold:{blocked:false,reasons:[]},salePrices:[],photo:{status:'missing',url:null,sourceKey:null,verified:false}});
+const card=()=>({id:'12',stockCode:'0012',displayCode:'0012',classification:{brand:null,productType:null,sourceName:'Ürün',verified:true},productName:'Ürün',isActive:true,stockQuantityExact:null,unit:{label:null,sourceId:null,factorExact8:null,verified:false},barcodes:[{id:'77',value:'000012',isPrimary:true,sourceKey:null}],imageUrl:null,provenance:{kind:'accepted-opening',sourceKey:source,runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30',verified:true},hold:{blocked:false,reasons:[]},salePrices:[],photo:{status:'missing',url:null,sourceKey:null,verified:false}});
 const price=(currency='TRY',priceExact='0.00000000')=>({id:currency==='TRY'?'81':'82',type:'sale',unitSourceId:'7',tier:1,currency,priceExact,isMainUnit:true,sourceKey:`${source}/PRICE/sale/7/1/${currency}`});
 const actor={id:14,permissions:['product.view']};
-const response=()=>({actorId:'14',canViewSalesPrices:false,total:1,page:1,limit:25,readAt:'2026-10-05T08:00:00.000Z',acceptedCount:16622,syntheticCount:0,quarantinedCount:54,rows:[card()]});
+const response=()=>({actorId:'14',canViewSalesPrices:false,total:1,page:1,limit:25,readAt:'2026-10-05T08:00:00.000Z',acceptedCount:16622,syntheticCount:0,quarantinedCount:54,filters:{brands:['MY MİO ','NAYINOM'],productTypes:['TAKIM','YELEK']},rows:[card()]});
 const serviceFor=r=>createCatalogProductService({getStore:async()=>({readCatalogProducts:async({options})=>({...r,limit:options.limit})})});
 test('stock-only role can read catalog without purchase or sales permission; source/counts/photo explicit',async()=>{
  const r=response(),s=serviceFor(r),out=await s.list({},actor);assert.equal(out.meta.schemaVersion,'melisa-catalog.v1');assert.equal(out.meta.scopeCounts.syntheticTest,0);assert.equal(out.data[0].stockQuantityExact,null);assert.equal(out.data[0].unit.factorExact8,null);assert.equal(out.data[0].barcodes[0].value,'000012');assert.deepEqual(out.data[0].photo,card().photo);assert.deepEqual(out.data[0].salePrices,[]);assert.equal(Object.hasOwn(out.data[0],'financial'),false);assert.equal(Object.hasOwn(out.data[0],'imageUrl'),false);
@@ -29,7 +29,7 @@ test('money floats, wrong tuple/source, purchase values and duplicate typedprice
  r.salePrices=[price(),price()];assert.throws(()=>catalogProductDto(r,{sqlSales:true}));r.salePrices=[];r.financial={averageCostTryExact:'1.00000000'};assert.throws(()=>catalogProductDto(r));
 });
 test('held card readonly prices empty; synthetic fixtures cannot enter real catalog',()=>{
- const r=card();r.provenance.kind='quarantined-source';r.hold={blocked:true,reasons:['IDENTITY_AMBIGUOUS']};assert.deepEqual(catalogProductDto(r).salePrices,[]);r.salePrices=[price()];assert.throws(()=>catalogProductDto(r,{sqlSales:true}));
+ const r=card();r.provenance.kind='quarantined-source';r.hold={blocked:true,reasons:['IDENTITY_AMBIGUOUS']};r.classification={brand:null,productType:null,sourceName:null,verified:false};assert.deepEqual(catalogProductDto(r).salePrices,[]);r.salePrices=[price()];assert.throws(()=>catalogProductDto(r,{sqlSales:true}));
  r.salePrices=[];r.id='301986';r.stockCode='TEST-DAILY-PURCHASE';r.provenance={kind:'synthetic-test',sourceKey:null,runId:null,sourceAsOf:null,verified:true};assert.throws(()=>catalogProductDto(r));
 });
 test('strict search/bigint bounds, page/detail not-found, duplicates and incomplete page reject',async()=>{
@@ -47,4 +47,21 @@ test('media always rereads guarded current detail; revoked role/changed hold/inv
  await assert.rejects(()=>s.photo('12',{}, {id:14,permissions:[]}),{statusCode:403});assert.equal(reads,1);assert.equal(bytes,1);
  await assert.rejects(()=>s.photo('12',{token:'bad'},actor),{statusCode:400});assert.equal(reads,1);
  r.rows[0].financial={};await assert.rejects(()=>s.photo('12',{},actor),{statusCode:503});assert.equal(bytes,1);assert.equal(overlays,1);
+});
+test('actual classification is nullable and literal; display never guesses a brand or strips a different dotted letter',()=>{
+ const examples=[['3344 CONCEPT','CONCEPT','3344'],['0161 MOLLY',null,'0161 MOLLY'],['0205 NAYİNOM','NAYINOM','0205 NAYİNOM'],['0007 MY MİO ','MY MİO ','0007'],['0007  BRAND','BRAND','0007  BRAND'],['8824 EKMEL','EKMEL BEBE','8824 EKMEL'],['X9  BRAND',' BRAND','X9']];
+ for(const [stock,brand,expected] of examples){assert.equal(catalogDisplayCode(stock,brand),expected);const r=card();r.stockCode=stock;r.displayCode=expected;r.classification.brand=brand;const out=catalogProductDto(r);assert.equal(out.displayCode,expected);assert.equal(out.classification.brand,brand);}
+ const r=card();r.stockCode='4620 LEYLEK';r.displayCode=r.stockCode;r.provenance.kind='quarantined-source';r.hold={blocked:true,reasons:['IDENTITY_AMBIGUOUS']};r.classification={brand:null,productType:null,sourceName:null,verified:false};assert.equal(catalogProductDto(r).classification.verified,false);r.classification.brand='TİASİS';assert.throws(()=>catalogProductDto(r));
+});
+test('numeric natural order preserves zeros, large digit runs, suffixes and text codes',()=>{
+ const codes=['ZX3','0205','100','0161','0007','ABC','10A','2','0002'];assert.deepEqual(codes.sort(compareCatalogCodes),['0002','2','0007','10A','100','0161','0205','ABC','ZX3']);
+ assert.ok(compareCatalogCodes('9'.repeat(40),'1'+'0'.repeat(40))<0);assert.ok(compareCatalogCodes('10A','10B')<0);
+ assert.deepEqual(['2','10','ABC','ZX3'].sort((a,b)=>-compareCatalogCodes(a,b)),['ZX3','ABC','10','2']);
+});
+test('whole-catalog exact filters and sort are forwarded; image IDs come only from server registry',async()=>{
+ const r=response();let input;const mediaStore={filterBindingsJson:()=> '[{"productId":"12","stockCode":"0012","sourceKey":"server","runId":"run"}]',photoFor:row=>({...row.photo,status:'available'})};
+ const s=createCatalogProductService({mediaStore,getStore:async()=>({readCatalogProducts:async value=>{input=value;return {...r,limit:value.options.limit};}})});
+ const result=await s.list({brand:'MY MİO ',productType:'YELEK',image:'available',sort:'code-desc'},actor);assert.equal(input.options.brand,'MY MİO ');assert.equal(input.options.productType,'YELEK');assert.equal(input.options.sort,'code-desc');assert.ok(input.mediaBindingsJson.includes('server'));assert.deepEqual(result.meta.filters,r.filters);
+ for(const query of [{brand:null},{brand:['x']},{brand:'x'.repeat(251)},{productType:'\u0000'},{image:'yes'},{sort:'price-desc'},{mediaBindingsJson:'[]'}])assert.throws(()=>parseCatalogQuery(query),{statusCode:400});
+ mediaStore.photoFor=row=>row.photo;await assert.rejects(()=>s.list({image:'available'},actor),{statusCode:503});
 });

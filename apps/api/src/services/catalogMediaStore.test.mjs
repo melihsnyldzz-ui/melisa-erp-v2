@@ -22,6 +22,7 @@ test('disabled registry leaves missing shape and denies bytes; query cannot cont
 });
 test('verified startup registry overlays exact current identity and reads hash-checked JPEG',async t=>{
  const f=await fixture(t);await f.store.configure(f.context);const photo=f.store.photoFor(row());assert.equal(photo.status,'available');assert.equal(photo.sha256,f.sha);assert.equal(photo.thumbnailUrl,'/api/catalog/products/12/photo?variant=thumbnail');assert.deepEqual((await f.store.readPhoto(row(),'preview')).bytes,f.bytes);
+ assert.deepEqual(JSON.parse(f.store.filterBindingsJson()),[{productId:'12',stockCode:'0012',sourceKey:source,runId:'VEGA-OPENING-TEST-20261004-06'}]);assert.equal(f.store.filterBindingsJson().includes('sha256'),false);
  for(const mutate of [r=>r.id='13',r=>r.stockCode='12',r=>r.provenance.sourceKey+='1',r=>r.provenance.runId='old',r=>r.provenance.kind='quarantined-source',r=>r.provenance.verified=false,r=>r.hold.blocked=true]){const r=row();mutate(r);assert.equal(f.store.photoFor(r).status,'missing');await assert.rejects(()=>f.store.readPhoto(r,'preview'),{statusCode:404});}
 });
 test('wrong startup scope clears old registry and fails closed before file publication',async t=>{

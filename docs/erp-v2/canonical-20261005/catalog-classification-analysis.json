@@ -1,0 +1,869 @@
+{
+  "schemaVersion": "melisa-classification-analysis.v1",
+  "sourceAsOf": "2026-09-30",
+  "freshLive": false,
+  "readAtUtc": "2026-10-05T15:09:23.7230292Z",
+  "evidenceSha256": "361f9f19e0b55f17bf024e8ff51a5bfb3307fce6b21dc696e46468ed578e8d99",
+  "count": 16676,
+  "accepted": 16622,
+  "held": 54,
+  "KOD1": {
+    "filled": 16615,
+    "blank": 61,
+    "null": 45,
+    "empty": 16,
+    "whitespaceOnly": 0,
+    "ordinalDistinct": 461,
+    "top": [
+      {
+        "value": "MURAT BABY",
+        "count": 1760
+      },
+      {
+        "value": "NECIXS",
+        "count": 1030
+      },
+      {
+        "value": "CONCEPT",
+        "count": 643
+      },
+      {
+        "value": "DONİNO",
+        "count": 434
+      },
+      {
+        "value": "LEYLEK",
+        "count": 431
+      },
+      {
+        "value": "GAYE BEBE",
+        "count": 426
+      },
+      {
+        "value": "NAYINOM",
+        "count": 378
+      },
+      {
+        "value": "MY MİO ",
+        "count": 345
+      },
+      {
+        "value": "PAKEL",
+        "count": 319
+      },
+      {
+        "value": "BEBESSİ",
+        "count": 307
+      },
+      {
+        "value": "BABY ROSE",
+        "count": 278
+      },
+      {
+        "value": "MİNİWORLD",
+        "count": 256
+      },
+      {
+        "value": "SÜPERMİNİ BABY",
+        "count": 256
+      },
+      {
+        "value": "NOY NOY",
+        "count": 233
+      },
+      {
+        "value": "HİPPIL ",
+        "count": 192
+      },
+      {
+        "value": "CAYZEN",
+        "count": 191
+      },
+      {
+        "value": "BEBEDEX'S",
+        "count": 190
+      },
+      {
+        "value": "MİRKON",
+        "count": 183
+      },
+      {
+        "value": "FLEXI",
+        "count": 164
+      },
+      {
+        "value": "MAİBELLA",
+        "count": 162
+      },
+      {
+        "value": "BEBİKAN",
+        "count": 160
+      },
+      {
+        "value": "LİLAX",
+        "count": 157
+      },
+      {
+        "value": "PAPULİN",
+        "count": 157
+      },
+      {
+        "value": "BEYAZ BEBEK",
+        "count": 148
+      },
+      {
+        "value": "FINDIK BABY",
+        "count": 145
+      },
+      {
+        "value": "BEBİTOF BABY",
+        "count": 144
+      },
+      {
+        "value": "BABYLİNE",
+        "count": 139
+      },
+      {
+        "value": "GÜVENİR",
+        "count": 136
+      },
+      {
+        "value": "BELLOJOY",
+        "count": 127
+      },
+      {
+        "value": "DEMİRDAĞ TEKSTİL",
+        "count": 122
+      }
+    ]
+  },
+  "KOD4": {
+    "filled": 15618,
+    "blank": 1058,
+    "null": 1048,
+    "empty": 10,
+    "whitespaceOnly": 0,
+    "ordinalDistinct": 49,
+    "top": [
+      {
+        "value": "TAKIM",
+        "count": 7877
+      },
+      {
+        "value": "TULUM",
+        "count": 2391
+      },
+      {
+        "value": "ELBİSE",
+        "count": 1594
+      },
+      {
+        "value": "BATTANİYE",
+        "count": 867
+      },
+      {
+        "value": "BADİ",
+        "count": 579
+      },
+      {
+        "value": "PATİK",
+        "count": 456
+      },
+      {
+        "value": "TAKIM SET",
+        "count": 419
+      },
+      {
+        "value": "HAVLU",
+        "count": 297
+      },
+      {
+        "value": "ÇORAP",
+        "count": 122
+      },
+      {
+        "value": "PANTOLON",
+        "count": 113
+      },
+      {
+        "value": "KUNDAK",
+        "count": 106
+      },
+      {
+        "value": "BORNOZ",
+        "count": 104
+      },
+      {
+        "value": "ŞAPKA",
+        "count": 104
+      },
+      {
+        "value": "TEKALT",
+        "count": 100
+      },
+      {
+        "value": "YELEK",
+        "count": 83
+      },
+      {
+        "value": "ÇANTA",
+        "count": 57
+      },
+      {
+        "value": "TEKÜST",
+        "count": 53
+      },
+      {
+        "value": "MONT",
+        "count": 44
+      },
+      {
+        "value": "KAZAK",
+        "count": 34
+      },
+      {
+        "value": "SAÇ BANDI",
+        "count": 30
+      },
+      {
+        "value": "TRİKO",
+        "count": 27
+      },
+      {
+        "value": "ALT AÇMA",
+        "count": 25
+      },
+      {
+        "value": "ÖNLÜK",
+        "count": 21
+      },
+      {
+        "value": "ŞORT",
+        "count": 18
+      },
+      {
+        "value": "HIRKA",
+        "count": 13
+      },
+      {
+        "value": "TAŞIMA SEPETİ",
+        "count": 12
+      },
+      {
+        "value": "ALIŞTIRMA KÜLOTU",
+        "count": 11
+      },
+      {
+        "value": "YAĞMURLUK",
+        "count": 9
+      },
+      {
+        "value": "MENDİL",
+        "count": 6
+      },
+      {
+        "value": "NEVRESİM TAKIMI",
+        "count": 6
+      },
+      {
+        "value": "UYKU SETİ",
+        "count": 6
+      },
+      {
+        "value": "ELDİVEN",
+        "count": 5
+      },
+      {
+        "value": "BANDANA",
+        "count": 4
+      },
+      {
+        "value": "PAPYON",
+        "count": 4
+      },
+      {
+        "value": "CEKET",
+        "count": 3
+      },
+      {
+        "value": "KANGRU",
+        "count": 2
+      },
+      {
+        "value": "KOT PANTOLON",
+        "count": 2
+      },
+      {
+        "value": "PANTOLON ASKISI",
+        "count": 2
+      },
+      {
+        "value": "YASTIK",
+        "count": 2
+      },
+      {
+        "value": "ATLET",
+        "count": 1
+      },
+      {
+        "value": "BOXER",
+        "count": 1
+      },
+      {
+        "value": "EMZİK TUTACAK",
+        "count": 1
+      },
+      {
+        "value": "EŞARP",
+        "count": 1
+      },
+      {
+        "value": "KEMER",
+        "count": 1
+      },
+      {
+        "value": "KOT ETEK",
+        "count": 1
+      },
+      {
+        "value": "KRAVAT",
+        "count": 1
+      },
+      {
+        "value": "TESTGRUP",
+        "count": 1
+      },
+      {
+        "value": "YORGAN",
+        "count": 1
+      },
+      {
+        "value": "İÇ ÇAMAŞIRI",
+        "count": 1
+      }
+    ]
+  },
+  "exactCategoryEqualsName": 2780,
+  "filledCategoryEqualsName": 2772,
+  "filledCategoryDifferentName": 12846,
+  "stageBrandMismatch": 0,
+  "stageCategoryMismatch": 0,
+  "sourceNativeStockMismatch": 1,
+  "sourceNativeNameMismatch": 20,
+  "safeDisplayCount": 10650,
+  "safeAcceptedDisplayCount": 10640,
+  "safeHeldDisplayCount": 10,
+  "leadingZeroSafeCount": 359,
+  "examples": [
+    {
+      "productId": "30226",
+      "sourceId": "69877",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/69877",
+      "kind": "accepted-opening",
+      "nativeStockCode": "3344 CONCEPT",
+      "nativeName": "TAKIM",
+      "nativeBrand": "CONCEPT",
+      "nativeCategory": "TAKIM",
+      "capturedStockCode": "3344 CONCEPT",
+      "capturedName": "TAKIM",
+      "capturedBrand": "CONCEPT",
+      "capturedCategory": "TAKIM",
+      "stageBrand": "CONCEPT",
+      "stageCategory": "TAKIM",
+      "stagePayloadHash": "85f968c53aef9837636cc48444c8858e435ffd65e01b5cb9606f41d5dd95ab6e",
+      "stageSqlHash": "29AFE82C40DDD3C4A804131E778F289685F1215FF259E75689950E7AF33D6292",
+      "displayCodeCandidate": "3344"
+    },
+    {
+      "productId": "34225",
+      "sourceId": "158455",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/158455",
+      "kind": "accepted-opening",
+      "nativeStockCode": "2532 AMANTE",
+      "nativeName": "FİYONKLU  KATLI ELBİSE",
+      "nativeBrand": "AMANTE",
+      "nativeCategory": "ELBİSE",
+      "capturedStockCode": "2532 AMANTE",
+      "capturedName": "FİYONKLU  KATLI ELBİSE",
+      "capturedBrand": "AMANTE",
+      "capturedCategory": "ELBİSE",
+      "stageBrand": "AMANTE",
+      "stageCategory": "ELBİSE",
+      "stagePayloadHash": "fe91becb10cef2732ec42e71ab31b9940663740060c59cecc4fd53e4d54376a3",
+      "stageSqlHash": "BFB5EC76AA3E390543629FDCA6C2FE31A0C6E7222EAC10D674A965194FDA3196",
+      "displayCodeCandidate": "2532"
+    },
+    {
+      "productId": "34765",
+      "sourceId": "159060",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/159060",
+      "kind": "accepted-opening",
+      "nativeStockCode": "0161 MOLLY",
+      "nativeName": "PENYE SİMLİ DÜZ KUNDAK",
+      "nativeBrand": null,
+      "nativeCategory": null,
+      "capturedStockCode": "0161 MOLLY",
+      "capturedName": "PENYE SİMLİ DÜZ KUNDAK",
+      "capturedBrand": null,
+      "capturedCategory": null,
+      "stageBrand": null,
+      "stageCategory": null,
+      "stagePayloadHash": "8a5c82309485831cf6ebce1752b4f28271614703aed15f8bed7cd7834107572d",
+      "stageSqlHash": "CE04D8F198309AFF674A9CC243AB03E79C6E73DA97D5E82B57ED0F73827FA973",
+      "displayCodeCandidate": null
+    },
+    {
+      "productId": "36724",
+      "sourceId": "161167",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/161167",
+      "kind": "accepted-opening",
+      "nativeStockCode": "8023 CONCEPT",
+      "nativeName": "TAKIM",
+      "nativeBrand": "CONCEPT",
+      "nativeCategory": "TAKIM",
+      "capturedStockCode": "8023 CONCEPT",
+      "capturedName": "TAKIM",
+      "capturedBrand": "CONCEPT",
+      "capturedCategory": "TAKIM",
+      "stageBrand": "CONCEPT",
+      "stageCategory": "TAKIM",
+      "stagePayloadHash": "c516853609b12c44f52c7f63cf92c707aadac19aea5a3b3a55a1d6f39f781075",
+      "stageSqlHash": "3EBD43F570B884190784CEAAB760D752C40BD0DD5AD52925E6E6948E8D319239",
+      "displayCodeCandidate": "8023"
+    },
+    {
+      "productId": "38919",
+      "sourceId": "142493",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/142493",
+      "kind": "accepted-opening",
+      "nativeStockCode": "0205 NAYİNOM",
+      "nativeName": "ÇİLEK DESEN YELEK",
+      "nativeBrand": "NAYINOM",
+      "nativeCategory": "YELEK",
+      "capturedStockCode": "0205 NAYİNOM",
+      "capturedName": "ÇİLEK DESEN YELEK",
+      "capturedBrand": "NAYINOM",
+      "capturedCategory": "YELEK",
+      "stageBrand": "NAYINOM",
+      "stageCategory": "YELEK",
+      "stagePayloadHash": "3e406d29aca93c1ee2f0ddc7870a9ec09680bb3ca8c347f69b5fd9db5a2a5a04",
+      "stageSqlHash": "938782EEE590D9505BF93049FE15F9EBD263DB90FE49EA3E3FEA9FC510FC02BD",
+      "displayCodeCandidate": null
+    },
+    {
+      "productId": "40451",
+      "sourceId": "148366",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/148366",
+      "kind": "quarantined-source",
+      "nativeStockCode": "4620 LEYLEK",
+      "nativeName": "EKRU KIZ HAVLU",
+      "nativeBrand": "LEYLEK",
+      "nativeCategory": "HAVLU",
+      "capturedStockCode": "14126 TİASİS",
+      "capturedName": "EKRU KIZ HAVLU",
+      "capturedBrand": "LEYLEK",
+      "capturedCategory": "HAVLU",
+      "stageBrand": "LEYLEK",
+      "stageCategory": "HAVLU",
+      "stagePayloadHash": "4cc8ebf2a6244e53610a271c88f575b38fb0d5332e3e3d837aa8d5f94dc9dd00",
+      "stageSqlHash": "E66EEE9BE2B3A999CD8424463261221406682670B0E23DA5EB6801414EF9C17A",
+      "displayCodeCandidate": "4620"
+    },
+    {
+      "productId": "41111",
+      "sourceId": "149588",
+      "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/149588",
+      "kind": "accepted-opening",
+      "nativeStockCode": "11361 ACABELLA ",
+      "nativeName": "BENAN TAKIM ",
+      "nativeBrand": "ACABELLA",
+      "nativeCategory": "TAKIM",
+      "capturedStockCode": "11361 ACABELLA ",
+      "capturedName": "BENAN TAKIM ",
+      "capturedBrand": "ACABELLA",
+      "capturedCategory": "TAKIM",
+      "stageBrand": "ACABELLA",
+      "stageCategory": "TAKIM",
+      "stagePayloadHash": "ff55901e34e6ca2653b0a713dce8898897dff942c49f5c2e1c3427cc82249c37",
+      "stageSqlHash": "FAB6B7B0E8044525E9FA59C6AB3866EFC1FFD43FD2A84C44E6B6BA67D019F938",
+      "displayCodeCandidate": null
+    }
+  ],
+  "unsafeExamples": [
+    {
+      "id": "29812",
+      "code": "10008 MURAT BABY  ",
+      "brand": "MURAT BABY",
+      "category": "TULUM"
+    },
+    {
+      "id": "29944",
+      "code": "10518 MURAT BABY ",
+      "brand": "MURAT BABY",
+      "category": "TULUM"
+    },
+    {
+      "id": "29962",
+      "code": "13410 MELİSA",
+      "brand": "MIZMIZ",
+      "category": "BATTANİYE"
+    },
+    {
+      "id": "29964",
+      "code": "4745 MELİSA",
+      "brand": "MIZMIZ",
+      "category": "BATTANİYE"
+    },
+    {
+      "id": "29967",
+      "code": "7781 MELİSA",
+      "brand": "MIZMIZ",
+      "category": "BATTANİYE"
+    },
+    {
+      "id": "29968",
+      "code": "7777 MELİSA",
+      "brand": "MIZMIZ",
+      "category": "BATTANİYE"
+    },
+    {
+      "id": "29969",
+      "code": "19103 AYLİN BEBE",
+      "brand": "AYLİN",
+      "category": "ÖNLÜK"
+    },
+    {
+      "id": "29972",
+      "code": "8824 EKMEL",
+      "brand": "EKMEL BEBE",
+      "category": "BORNOZ"
+    }
+  ],
+  "rigorousCounts": {
+    "sourceAsOf": "2026-09-30",
+    "freshLive": false,
+    "safeRule": "KOD1 full original literal is nonblank; native stockCode ends exact ASCII single separator space + full KOD1; prefix nonblank and ends with no Unicode whitespace; no trim/fold/number conversion; quarantined candidates are NOT verified",
+    "all": {
+      "total": 16676,
+      "brandFilled": 16615,
+      "brandBlank": 61,
+      "brandDistinct": 461,
+      "typeFilled": 15618,
+      "typeBlank": 1058,
+      "typeDistinct": 49,
+      "sourceNameFilled": 16662,
+      "sourceNameBlank": 14,
+      "bothTypeNameFilled": 15615,
+      "bothFilledEqual": 2772,
+      "bothFilledDifferent": 12843,
+      "typeFilledNameBlank": 3,
+      "bothBlankLiteralEqual": 8,
+      "bothNull": 7,
+      "bothEmpty": 1,
+      "allLiteralEqual": 2780,
+      "safeSingleSeparatorSuffix": 10650,
+      "leadingZeroSafePrefixes": 359
+    },
+    "verified": {
+      "total": 16622,
+      "brandFilled": 16572,
+      "brandBlank": 50,
+      "brandDistinct": 461,
+      "typeFilled": 15575,
+      "typeBlank": 1047,
+      "typeDistinct": 49,
+      "sourceNameFilled": 16622,
+      "sourceNameBlank": 0,
+      "bothTypeNameFilled": 15575,
+      "bothFilledEqual": 2768,
+      "bothFilledDifferent": 12807,
+      "typeFilledNameBlank": 0,
+      "bothBlankLiteralEqual": 0,
+      "bothNull": 0,
+      "bothEmpty": 0,
+      "allLiteralEqual": 2768,
+      "safeSingleSeparatorSuffix": 10640,
+      "leadingZeroSafePrefixes": 359
+    },
+    "quarantinedRaw": {
+      "total": 54,
+      "brandFilled": 43,
+      "brandBlank": 11,
+      "brandDistinct": 18,
+      "typeFilled": 43,
+      "typeBlank": 11,
+      "typeDistinct": 9,
+      "sourceNameFilled": 40,
+      "sourceNameBlank": 14,
+      "bothTypeNameFilled": 40,
+      "bothFilledEqual": 4,
+      "bothFilledDifferent": 36,
+      "typeFilledNameBlank": 3,
+      "bothBlankLiteralEqual": 8,
+      "bothNull": 7,
+      "bothEmpty": 1,
+      "allLiteralEqual": 12,
+      "safeSingleSeparatorSuffix": 10,
+      "leadingZeroSafePrefixes": 0
+    },
+    "maxLengths": {
+      "brand": 23,
+      "type": 16,
+      "sourceName": 53
+    },
+    "blankTypeNonblankNameExamples": [
+      {
+        "id": "32588",
+        "sourceId": "145538",
+        "stockCode": "1420 TİASİS",
+        "KOD1": null,
+        "KOD4": null,
+        "MALINCINSI": "TAKIM",
+        "displayCode": null
+      },
+      {
+        "id": "33109",
+        "sourceId": "148097",
+        "stockCode": "5110 CARAMİNİ ",
+        "KOD1": "BEBİKAN",
+        "KOD4": null,
+        "MALINCINSI": "TRİKO HATTUŞ ŞAPKA TULUM ",
+        "displayCode": null
+      },
+      {
+        "id": "33454",
+        "sourceId": "149043",
+        "stockCode": "ASAsASSA",
+        "KOD1": null,
+        "KOD4": null,
+        "MALINCINSI": "VELSOFT YELEK",
+        "displayCode": null
+      },
+      {
+        "id": "34465",
+        "sourceId": "158718",
+        "stockCode": "12616 FINDIK BABY",
+        "KOD1": null,
+        "KOD4": null,
+        "MALINCINSI": "KISA KOL BADİ",
+        "displayCode": null
+      },
+      {
+        "id": "34765",
+        "sourceId": "159060",
+        "stockCode": "0161 MOLLY",
+        "KOD1": null,
+        "KOD4": null,
+        "MALINCINSI": "PENYE SİMLİ DÜZ KUNDAK",
+        "displayCode": null
+      },
+      {
+        "id": "34768",
+        "sourceId": "159063",
+        "stockCode": "550 BABYLİNE",
+        "KOD1": "",
+        "KOD4": "",
+        "MALINCINSI": "TAÇLI BAŞAK NAK HAVLU",
+        "displayCode": null
+      }
+    ],
+    "holdClassificationContract": "ALL54 publicbrand/productType/sourceName null,verifiedfalse; rawsourcecounts onlyevidence",
+    "observedIdentityDrift": [
+      {
+        "id": "30469",
+        "kind": "quarantined-source",
+        "sourceId": "89688",
+        "nativeCode": "95079 BEBİTOF",
+        "sourceCode": "95079 BEBİTOF",
+        "nativeName": "PAPYONLU AYICIK BATTANİYE",
+        "sourceName": "BATTANİYE"
+      },
+      {
+        "id": "31928",
+        "kind": "quarantined-source",
+        "sourceId": "139520",
+        "nativeCode": "1411 TİASİS",
+        "sourceCode": "1411 TİASİS",
+        "nativeName": "ÇİÇEKLİ HAVLU",
+        "sourceName": "HAVLU"
+      },
+      {
+        "id": "32939",
+        "kind": "quarantined-source",
+        "sourceId": "147572",
+        "nativeCode": "7212 DEMİRDAĞ",
+        "sourceCode": "7212 DEMİRDAĞ",
+        "nativeName": "3-24 AY BASKILI RİBANA TEK ÜST",
+        "sourceName": "3-18 AY BASKILI RİBANA TEK ÜST"
+      },
+      {
+        "id": "34656",
+        "kind": "quarantined-source",
+        "sourceId": "158925",
+        "nativeCode": "253126 NECIXS",
+        "sourceCode": "253126 NECIXS",
+        "nativeName": "253126 NECIXS",
+        "sourceName": null
+      },
+      {
+        "id": "38465",
+        "kind": "quarantined-source",
+        "sourceId": "139522",
+        "nativeCode": "1414 TİASİS",
+        "sourceCode": "1414 TİASİS",
+        "nativeName": "BEJ HAVLU",
+        "sourceName": "HAVLU"
+      },
+      {
+        "id": "39157",
+        "kind": "quarantined-source",
+        "sourceId": "144865",
+        "nativeCode": "865785+698",
+        "sourceCode": "865785+698",
+        "nativeName": "865785+698",
+        "sourceName": ""
+      },
+      {
+        "id": "39159",
+        "kind": "quarantined-source",
+        "sourceId": "144870",
+        "nativeCode": "168HIUH",
+        "sourceCode": "168HIUH",
+        "nativeName": "168HIUH",
+        "sourceName": ""
+      },
+      {
+        "id": "40050",
+        "kind": "quarantined-source",
+        "sourceId": "147571",
+        "nativeCode": "7319 DEMİRDAĞ",
+        "sourceCode": "7319 DEMİRDAĞ",
+        "nativeName": "9 - 24 AY ŞARDONLU BASKILI TESK ÜT",
+        "sourceName": "12 - 24 AY ŞARDONLU BASKILI TESK ÜT"
+      },
+      {
+        "id": "40450",
+        "kind": "quarantined-source",
+        "sourceId": "148365",
+        "nativeCode": "1535 TİASİS",
+        "sourceCode": "1535 TİASİS",
+        "nativeName": "ÇİÇEK NAKIŞLI HAVLU",
+        "sourceName": "HAVLU"
+      },
+      {
+        "id": "40451",
+        "kind": "quarantined-source",
+        "sourceId": "148366",
+        "nativeCode": "4620 LEYLEK",
+        "sourceCode": "14126 TİASİS",
+        "nativeName": "EKRU KIZ HAVLU",
+        "sourceName": "EKRU KIZ HAVLU"
+      },
+      {
+        "id": "41297",
+        "kind": "quarantined-source",
+        "sourceId": "158044",
+        "nativeCode": "1026 TİTTO",
+        "sourceCode": "1026 TİTTO",
+        "nativeName": "1026 TİTTO",
+        "sourceName": null
+      },
+      {
+        "id": "41298",
+        "kind": "quarantined-source",
+        "sourceId": "158052",
+        "nativeCode": "97010 BEBİTOFF",
+        "sourceCode": "97010 BEBİTOFF",
+        "nativeName": "97010 BEBİTOFF",
+        "sourceName": null
+      },
+      {
+        "id": "41299",
+        "kind": "quarantined-source",
+        "sourceId": "158057",
+        "nativeCode": "4084 MİAMİNO",
+        "sourceCode": "4084 MİAMİNO",
+        "nativeName": "4084 MİAMİNO",
+        "sourceName": null
+      },
+      {
+        "id": "41300",
+        "kind": "quarantined-source",
+        "sourceId": "158069",
+        "nativeCode": "1835 MURATBABY",
+        "sourceCode": "1835 MURATBABY",
+        "nativeName": "1835 MURATBABY",
+        "sourceName": null
+      },
+      {
+        "id": "41301",
+        "kind": "quarantined-source",
+        "sourceId": "158071",
+        "nativeCode": "70302 BEBİTOF",
+        "sourceCode": "70302 BEBİTOF",
+        "nativeName": "70302 BEBİTOF",
+        "sourceName": null
+      },
+      {
+        "id": "41302",
+        "kind": "quarantined-source",
+        "sourceId": "158072",
+        "nativeCode": "70312 BEBİTOFF",
+        "sourceCode": "70312 BEBİTOFF",
+        "nativeName": "70312 BEBİTOFF",
+        "sourceName": null
+      },
+      {
+        "id": "41303",
+        "kind": "quarantined-source",
+        "sourceId": "158075",
+        "nativeCode": "50034 BEBİTOF",
+        "sourceCode": "50034 BEBİTOF",
+        "nativeName": "50034 BEBİTOF",
+        "sourceName": null
+      },
+      {
+        "id": "301351",
+        "kind": "quarantined-source",
+        "sourceId": "1724",
+        "nativeCode": "7411 FLEXİ",
+        "sourceCode": "7411 FLEXİ",
+        "nativeName": "7411 FLEXİ",
+        "sourceName": null
+      },
+      {
+        "id": "301851",
+        "kind": "quarantined-source",
+        "sourceId": "8812",
+        "nativeCode": "ZX6",
+        "sourceCode": "ZX6",
+        "nativeName": "ZX6",
+        "sourceName": ""
+      },
+      {
+        "id": "301860",
+        "kind": "quarantined-source",
+        "sourceId": "11926",
+        "nativeCode": "ZX3",
+        "sourceCode": "ZX3",
+        "nativeName": "ZX3",
+        "sourceName": ""
+      },
+      {
+        "id": "301862",
+        "kind": "quarantined-source",
+        "sourceId": "12210",
+        "nativeCode": "ZX4",
+        "sourceCode": "ZX4",
+        "nativeName": "ZX4",
+        "sourceName": ""
+      }
+    ]
+  },
+  "acceptedNestedSourceProof": {
+    "verifiedCount": 16622,
+    "topNestedMismatch": 0,
+    "nestedOver4000": 86,
+    "method": "OPENJSON nvarchar(max); no JSON_VALUE truncation"
+  }
+}

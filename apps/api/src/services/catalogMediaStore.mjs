@@ -46,10 +46,11 @@ export function createCatalogMediaStore({expectedRoot=ROOT,expectedCount=3830}={
      for(const variant of ['original','thumbnail','preview']){const f=e[variant];check(keys(f,['relativePath','sha256','bytes'])&&hash(f.sha256)&&Number.isSafeInteger(f.bytes)&&f.bytes>0&&f.bytes<=32*1024*1024&&f.relativePath===`${variant}/${f.sha256}.jpg`);await readVerified(root,f);}
      check(e.original.sha256===e.sourceSha256&&!sources.has(e.sourceKey));sources.add(e.sourceKey);entries.set(e.productId,e);
     }
-    registry={root,entries};
+    registry={root,entries,bindingsJson:JSON.stringify([...entries.values()].map(e=>({productId:e.productId,stockCode:e.stockCode,sourceKey:e.sourceKey,runId:e.runId})))};
    }catch{registry=null;throw unavailable();}
   },
   photoFor(row){const e=match(row);return e?{status:'available',url:`/api/catalog/products/${e.productId}/photo?variant=preview`,thumbnailUrl:`/api/catalog/products/${e.productId}/photo?variant=thumbnail`,sourceKey:e.sourceKey,sha256:e.original.sha256,verified:true}:row.photo;},
+  filterBindingsJson(){return registry?.bindingsJson??'[]';},
   async readPhoto(row,variant){const e=match(row);if(!e)throw absent();if(!['original','preview','thumbnail'].includes(variant))throw unavailable();try{return {bytes:await readVerified(registry.root,e[variant]),mimeType:'image/jpeg'};}catch{throw unavailable();}}
  };
 }

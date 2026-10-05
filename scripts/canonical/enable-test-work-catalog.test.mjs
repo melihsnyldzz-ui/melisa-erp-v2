@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {CATALOG_PROC_SQL,CATALOG_STORED_DEFINITION,CATALOG_SQL_PROOF,CATALOG_SALE_BINDING_SQL,CATALOG_NATIVE_PAGE_SQL,CATALOG_ACCESS_SQL,CATALOG_PREVIOUS_HASH,CATALOG_INDEX_SPECS,CATALOG_INDEX_INSTALL_SQL,CATALOG_INDEX_VERIFY_SQL,CATALOG_ALIAS_TARGET_SQL,CATALOG_ALIAS_CACHE_SQL,buildWorkCatalogSql,buildCatalogSqlProofModule} from './enable-test-work-catalog.mjs';
+import {CATALOG_PROC_SQL,CATALOG_STORED_DEFINITION,CATALOG_SQL_PROOF,CATALOG_SALE_BINDING_SQL,CATALOG_NATIVE_PAGE_SQL,CATALOG_ACCESS_SQL,CATALOG_PREVIOUS_HASH,CATALOG_INDEX_SPECS,CATALOG_INDEX_INSTALL_SQL,CATALOG_INDEX_VERIFY_SQL,CATALOG_ALIAS_TARGET_SQL,CATALOG_ALIAS_CACHE_SQL,CATALOG_CLASSIFICATION_SQL,CATALOG_ORDER_SQL,CATALOG_FAST_CLASSIFICATION_SQL,CATALOG_FAST_ORDER_SQL,CATALOG_CLASSIFICATION_VALIDATE_SQL,buildWorkCatalogSql,buildCatalogSqlProofModule} from './enable-test-work-catalog.mjs';
 import {CATALOG_SQL_PROOF as artifactProof} from '../../apps/api/src/services/catalogSqlProof.mjs';
-import {STOCK_PRODUCT_SQL_PROOF} from './enable-test-stock-products.mjs';
+import {STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_BINDING_SQL} from './enable-test-stock-products.mjs';
 import {SUPPLIER_CARD_READY_SQL} from '../../apps/api/src/services/supplierCardReadStore.mjs';
 test('offline SQL and independent expected-proof artifacts exactly match source',()=>{
  assert.equal(fs.readFileSync(new URL('./enable-test-work-catalog.sql',import.meta.url),'utf8'),buildWorkCatalogSql());
@@ -36,7 +36,7 @@ test('sale permission is actual-role gated separately from product visibility an
  assert.match(CATALOG_PROC_SQL,/permission_key=N'product.view' AND p.can_view=1/);
  assert.match(CATALOG_PROC_SQL,/@sales bit=CASE WHEN EXISTS[\s\S]*permission_key=N'sales.view' AND p.can_view=1/);
  assert.match(CATALOG_PROC_SQL,/@sales canViewSalesPrices/);
- const projection=CATALOG_PROC_SQL.slice(CATALOG_PROC_SQL.indexOf(' SELECT CONVERT(varchar(20),@actor_id) actorId'));
+ const projection=CATALOG_PROC_SQL.slice(CATALOG_PROC_SQL.indexOf(' SELECT N\'{"brands":[],"productTypes":[]}\' filtersJson'));
  assert.doesNotMatch(projection,/financial|average_cost|purchase|sales_price/);
  assert.match(projection,/WHERE @sales=1 AND s.kind=N'accepted-opening'/);
  assert.match(projection,/CONVERT\(varbinary\(max\),N'sale'\)/);
@@ -164,7 +164,7 @@ test('scoped alias cache keeps full two-direction counts including outside-page,
  assert.equal(count(cached,a=>eq(a.product,99)),2);assert.equal(count(cached,a=>eq(a.source,909)),2);
 });
 test('all readiness checks occur after page selection but before bindings and public output in the same serializable read',()=>{
- const page=CATALOG_PROC_SQL.indexOf('INSERT #StockPage'),cache=CATALOG_PROC_SQL.indexOf('CREATE TABLE #CatalogAliasTargetProducts'),ready=CATALOG_PROC_SQL.indexOf('STOCK_PRODUCT_STAGE_UNAVAILABLE'),binding=CATALOG_PROC_SQL.indexOf('b.binding_hash<>'),output=CATALOG_PROC_SQL.indexOf(' SELECT CONVERT(varchar(20),@actor_id) actorId');
+ const page=CATALOG_PROC_SQL.indexOf('INSERT #StockPage'),cache=CATALOG_PROC_SQL.indexOf('CREATE TABLE #CatalogAliasTargetProducts'),ready=CATALOG_PROC_SQL.indexOf('STOCK_PRODUCT_STAGE_UNAVAILABLE'),binding=CATALOG_PROC_SQL.indexOf('b.binding_hash<>'),output=CATALOG_PROC_SQL.indexOf(' SELECT N\'{"brands":[],"productTypes":[]}\' filtersJson');
  assert.ok(page<cache&&cache<ready&&ready<binding&&binding<output);
  assert.equal(CATALOG_PROC_SQL.split('INSERT #StockAliasPairs').length-1,1);
  assert.match(CATALOG_PROC_SQL,/transaction_isolation_level=4/);
@@ -177,4 +177,73 @@ test('duplicate supplier expansion is removed but the complete identical readine
  for(const guard of ['C09_PRICE_SCHEMA_DRIFT','C09_NATIVE_PRICE_BINDING_DRIFT','C09_PRICE_GUARD_DRIFT','STOCK_PRODUCT_QUARANTINE_BINDING_DRIFT'])assert.ok(CATALOG_PROC_SQL.includes(guard));
  assert.match(CATALOG_PROC_SQL,/@page_size int=50/);
  assert.match(CATALOG_PROC_SQL,/@page_size>50/);
+});
+test('verified source classification uses full outer stage payload and native identity before whole-scope filters',()=>{
+ assert.match(CATALOG_CLASSIFICATION_SQL,/OPENJSON\(r.payload_json\) WITH\(brand nvarchar\(250\) '\$.brand',product_type nvarchar\(250\) '\$.category',source_name nvarchar\(500\) '\$.name'\)/);
+ assert.doesNotMatch(CATALOG_CLASSIFICATION_SQL,/JSON_VALUE\(JSON_VALUE|source_payload_json|COALESCE\(c.brand/i);
+ for(const evidence of ['r.payload_hash<>b.stage_payload_hash','<>b.stage_sql_hash','p.stock_code','p.name','p.source_record_key','p.brand','p.category'])assert.ok(CATALOG_CLASSIFICATION_SQL.includes(evidence));
+ assert.ok(CATALOG_PROC_SQL.indexOf('INSERT #CatalogClassification')<CATALOG_PROC_SQL.indexOf('INSERT #StockMatches'));
+ assert.match(CATALOG_FAST_CLASSIFICATION_SQL,/IF @classification_validation=1 BEGIN/);
+ const normal=CATALOG_FAST_CLASSIFICATION_SQL.slice(CATALOG_FAST_CLASSIFICATION_SQL.indexOf('END ELSE BEGIN'),CATALOG_FAST_CLASSIFICATION_SQL.indexOf('CREATE TABLE #CatalogMediaBindings'));
+ assert.doesNotMatch(normal,/erp_migration.records|HASHBYTES|REPLACE\(|brand|category|p.name|p.source_record_key/);assert.match(normal,/OPENJSON\(@candidate_bindings\)/);assert.match(normal,/p.stock_code,x.rank/);
+ assert.ok(normal.includes("WITH(id bigint '$[0]',rank bigint '$[1]')"));
+ assert.match(normal,/id bigint NOT NULL,rank bigint NOT NULL CHECK\(rank BETWEEN 1 AND 16676\)/);
+ const load=normal.indexOf('INSERT #CatalogCandidates'),uniqueId=normal.indexOf('CREATE UNIQUE CLUSTERED INDEX IX_CatalogCandidates_Id'),uniqueRank=normal.indexOf('CREATE UNIQUE NONCLUSTERED INDEX IX_CatalogCandidates_Rank'),use=normal.indexOf('SELECT id FROM #CatalogCandidates EXCEPT');
+ assert.ok(load<uniqueId&&uniqueId<uniqueRank&&uniqueRank<use);
+ assert.match(CATALOG_CLASSIFICATION_VALIDATE_SQL,/UPPER\(i.stage_payload_hash\)<>UPPER\(b.stage_payload_hash\)/);assert.match(CATALOG_CLASSIFICATION_VALIDATE_SQL,/UPPER\(i.stage_sql_hash\)<>UPPER\(b.stage_sql_hash\)/);
+});
+test('startup classification returns only after full accepted binding witnesses with finance disabled',()=>{
+ const start=CATALOG_PROC_SQL.indexOf('IF @classification_validation=1 INSERT #StockPage SELECT id,kind FROM #StockScope;');
+ const binding=CATALOG_PROC_SQL.indexOf('b.binding_hash<>',start);
+ const result=CATALOG_PROC_SQL.indexOf('classificationValidated',binding);
+ assert.ok(start>=0&&binding>start&&result>binding);
+ const guarded=CATALOG_PROC_SQL.slice(start,result);
+ for(const witness of ['p.unit','p.currency_code','b.main_unit_source_id','b.price_count','b.binding_hash'])assert.ok(guarded.includes(witness));
+ assert.match(CATALOG_PROC_SQL,/DECLARE @financial bit=0/);
+ assert.equal(CATALOG_PROC_SQL.split('b.binding_hash<>').length-1,1);
+});
+test('full binding hash uses materialized selected rows without changing the immutable hash predicate',()=>{
+ const source=STOCK_PRODUCT_BINDING_SQL.slice(STOCK_PRODUCT_BINDING_SQL.indexOf('WHERE b.binding_hash<>'));
+ assert.ok(CATALOG_PROC_SQL.includes('SELECT b.* INTO #CatalogPageAcceptedBindings FROM #StockPage s JOIN erp_migration.accepted_price_products b ON b.product_id=s.id;'));
+ assert.ok(CATALOG_PROC_SQL.includes('SELECT 1 FROM #CatalogPageAcceptedBindings b '+source));
+ assert.ok(CATALOG_PROC_SQL.indexOf('INTO #CatalogPageAcceptedBindings')<CATALOG_PROC_SQL.indexOf('classificationValidated'));
+ assert.equal(CATALOG_PROC_SQL.split('INTO #CatalogPageAcceptedBindings').length-1,1);
+});
+test('candidate scope/ranks are exact; source identity is validated globally at startup and freshly on selected pages',()=>{
+ assert.ok(CATALOG_FAST_CLASSIFICATION_SQL.includes('SELECT id FROM #CatalogCandidates EXCEPT SELECT id FROM #StockScope'));
+ assert.doesNotMatch(CATALOG_FAST_CLASSIFICATION_SQL,/#CatalogCandidateNative/);
+ const normal=CATALOG_FAST_CLASSIFICATION_SQL.slice(CATALOG_FAST_CLASSIFICATION_SQL.indexOf('END ELSE BEGIN'),CATALOG_FAST_CLASSIFICATION_SQL.indexOf('CREATE TABLE #CatalogMediaBindings'));
+ assert.doesNotMatch(normal,/p.name|p.source_record_key|b.stock_code/);
+ for(const field of ['p.stock_code','p.name','p.source_record_key','p.brand','p.category'])assert.ok(CATALOG_FAST_CLASSIFICATION_SQL.slice(0,CATALOG_FAST_CLASSIFICATION_SQL.indexOf('END ELSE BEGIN')).includes(field));
+ for(const field of ['p.unit','p.currency_code','p.source_record_key','r.payload_hash<>b.stage_payload_hash','b.price_count','b.binding_hash'])assert.ok(CATALOG_PROC_SQL.includes(field));
+});
+test('safe display suffix lengths cannot be negative; natural sorting is overflow-safe before OFFSET and JSON order',()=>{
+ assert.match(CATALOG_CLASSIFICATION_SQL,/LEFT\(p.stock_code,CASE WHEN DATALENGTH\(p.stock_code\)>DATALENGTH\(c.brand\)\+2 THEN\(DATALENGTH\(p.stock_code\)-DATALENGTH\(c.brand\)-2\)\/2 ELSE 0 END\)/);
+ assert.doesNotMatch(CATALOG_CLASSIFICATION_SQL,/LEN\(p.stock_code\)|LEN\(c.brand\)|UNICODE\(LEFT\(c.brand/);
+ assert.match(CATALOG_CLASSIFICATION_SQL,/PATINDEX\(N'%\[\^0-9\]%'/);assert.match(CATALOG_ORDER_SQL,/c.digit_length/);assert.match(CATALOG_ORDER_SQL,/CONVERT\(varbinary\(500\),c.numeric_value\)/);assert.doesNotMatch(CATALOG_ORDER_SQL,/CONVERT\((?:bigint|decimal|float|int),c/);
+ assert.ok(CATALOG_PROC_SQL.indexOf('ROW_NUMBER() OVER(ORDER BY')<CATALOG_PROC_SQL.indexOf('INSERT #StockPage'));assert.match(CATALOG_PROC_SQL,/ORDER BY o.position OFFSET/);assert.match(CATALOG_PROC_SQL,/WITHIN GROUP\(ORDER BY o.position\)/);
+});
+test('descending code reverses the whole natural order including numeric/text group and stable original/id ties',()=>{
+ for(const key of ['c.numeric_group','c.digit_length','CONVERT(varbinary(500),c.numeric_value)','CONVERT(varbinary(500),c.digit_suffix)','CONVERT(varbinary(500),c.display_code)','CONVERT(varbinary(500),p.stock_code)','p.id']){
+  assert.ok(CATALOG_ORDER_SQL.includes(`CASE WHEN @sort<>N'code-desc' THEN ${key} END ASC`));assert.ok(CATALOG_ORDER_SQL.includes(`CASE WHEN @sort=N'code-desc' THEN ${key} END DESC`));
+ }
+ assert.match(CATALOG_FAST_ORDER_SQL,/@sort<>N'code-desc' THEN c.rank END ASC/);assert.match(CATALOG_FAST_ORDER_SQL,/@sort=N'code-desc' THEN c.rank END DESC/);assert.match(CATALOG_FAST_ORDER_SQL,/@sort=N'stock-desc' THEN p.current_stock_qty END DESC/);
+});
+test('image filter intersects current accepted identity, both alias directions and hold before counts/page',()=>{
+ const start=CATALOG_PROC_SQL.indexOf('UPDATE c SET photo_available=1'),page=CATALOG_PROC_SQL.indexOf('INSERT #StockPage');assert.ok(start<page);
+ for(const evidence of ['m.stock_code','p.stock_code','b.stock_code','m.source_key','b.product_source_key','m.run_id','h.native_id=c.id OR h.source_id=b.source_id','pc.alias_count=1','sc.alias_count=1','ap.pair_count=1'])assert.ok(CATALOG_CLASSIFICATION_SQL.includes(evidence));
+ assert.match(CATALOG_PROC_SQL,/@image=N'available' AND c.photo_available=1/);assert.match(CATALOG_PROC_SQL,/@image=N'missing' AND c.photo_available=0/);
+ assert.match(CATALOG_PROC_SQL,/SELECT COUNT\(\*\) FROM #StockMatches/);assert.ok(CATALOG_PROC_SQL.indexOf('INSERT #StockMatches')<page);
+});
+test('photo alias aggregation counts all duplicate/orphan/NULL rows in both directions, freshly before paging',()=>{
+ for(const part of ['COUNT_BIG(*)','SUM(pair_count)','m.product_id=a.product_id','t.source_product_id=a.source_product_id','GROUP BY product_id,source_product_id'])assert.ok(CATALOG_CLASSIFICATION_SQL.includes(part));
+ assert.doesNotMatch(CATALOG_CLASSIFICATION_SQL,/COUNT\(DISTINCT|WHERE a.product_id IS NOT NULL|WHERE a.source_product_id IS NOT NULL/);
+ assert.ok(CATALOG_PROC_SQL.indexOf('INSERT #CatalogMediaAliasPairs')<CATALOG_PROC_SQL.indexOf('UPDATE c SET photo_available=1'));
+ assert.ok(CATALOG_PROC_SQL.indexOf('UPDATE c SET photo_available=1')<CATALOG_PROC_SQL.indexOf('INSERT #StockMatches'));
+ const aliases=[{p:12,s:90},{p:12,s:null},{p:99,s:90},{p:null,s:91},{p:13,s:91},{p:13,s:91}];
+ const targets=new Set([12,13]),sources=new Set([90,91]);const scoped=aliases.filter(a=>targets.has(a.p)||sources.has(a.s));
+ for(const [p,s] of [[12,90],[13,91]]){
+  const counts=rows=>[rows.filter(a=>a.p===p).length,rows.filter(a=>a.s===s).length,rows.filter(a=>a.p===p&&a.s===s).length];
+  assert.deepEqual(counts(scoped),counts(aliases));assert.ok(counts(scoped).some(n=>n!==1));
+ }
 });
