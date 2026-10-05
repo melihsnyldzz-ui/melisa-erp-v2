@@ -1,3 +1,7 @@
+# B01 — 5 Ekim2026 aktif çalışma
+
+ERP-UA04 açık kullanıcı kabulü PASS; TEST46/source7da6f2c normal fotoğraflı/sınıflandırmalı katalog ve ERP-D04 bu kabul kapsamında tamam. Yalnız normal Ana Sayfa / İş Sırası hazırlanıyor; B01 yeni teknik/insan sonucu ayrıdır. Runtime46, aynı named TEST DB ve LIVE sahipleri salt okunur doğrulandı. Ticari/SQL/rol değişikliği bu görevde yok. Önceki teslim kayıtları aşağıda korunur.
+
 # Melisa ERP durumu
 
 2026-10-05 — **ERP-D04 gerçek KOD1/KOD4 sınıflandırması ve görselli liste teknik hazır; ERP-UA04 kullanıcı kabulü bekliyor.** Uygulamadan önce F0102 30 Eylül snapshot'ının tam16.676 kapsamı analiz edildi:16.622 kabul edilmiş +54hold; KOD1 16.615dolu/61boş/461marka, KOD4 15.618dolu/1.058boş/49tür. Kabul edilmiş10.640üründe exact KOD1 son eki güvenle ayrıldı; boş/uyumsuz kaynak ve hold'da tam STOKKODU korundu. MALINCINSI ayrıca gösteriliyor. [Analiz](docs/erp-v2/canonical-20261005/catalog-classification-analysis.md), [yeni teknik kabul](docs/erp-v2/canonical-20261005/catalog-classification-acceptance.md).

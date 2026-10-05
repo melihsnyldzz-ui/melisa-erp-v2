@@ -39,6 +39,18 @@ test('late old 401 cannot clear a newer manual login or invoke expired callback'
  await s.start();const old=s.api('/api/catalog/products');await s.login({username:'ilker',password:'secret'});resolveOld(reply(null,401));await assert.rejects(()=>old);assert.equal(store.getItem(workingCatalogTokenKey),'new');assert.equal(expired,0);s.dispose();
 });
 const imageReply=(type='image/jpeg',size=5)=>({ok:true,status:200,headers:new Headers({'Content-Type':type}),blob:async()=>new Blob([new Uint8Array(size)],{type})});
+test('daily home transport is exact authenticated GET and never expands catalogue paths',async()=>{
+ const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'home-token'}):reply({meta:{readOnly:true}}));
+ await assert.rejects(()=>f.session.home());await f.session.start();assert.deepEqual(await f.session.home(),{meta:{readOnly:true}});
+ assert.equal(f.calls[1].url,apiBase+'/api/home/summary');assert.equal(f.calls[1].options.method,'GET');assert.equal(f.calls[1].options.headers.Authorization,'Bearer home-token');assert.equal(f.calls[1].options.credentials,'omit');
+ for(const arg of ['/api/dashboard/summary',{method:'POST'},{signal:new AbortController().signal}])await assert.rejects(()=>f.session.home(arg));
+ await assert.rejects(()=>f.session.api('/api/home/summary'));assert.equal(f.calls.length,2);f.session.dispose();
+});
+test('home disposal rejects late data and auth expiry shares the existing login boundary',async()=>{
+ let resolve,expired=0;const s=createWorkingCatalogSession({location,apiBase,storage:storage(),onExpired:()=>expired++,fetchImpl:async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'x'}):new Promise(done=>resolve=done)});
+ await s.start();const pending=s.home();s.dispose();resolve(reply({meta:{readOnly:true}}));await assert.rejects(()=>pending);assert.equal(expired,0);
+ const live=createWorkingCatalogSession({location,apiBase,storage:storage(),onExpired:()=>expired++,fetchImpl:async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'x'}):reply(null,401)});await live.start();await assert.rejects(()=>live.home(),e=>e.status===401);assert.equal(expired,1);live.dispose();
+});
 test('photo transport uses closure bearer and exact GET raster variants; no foreign paths or token queries',async()=>{
  const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'photo-token'}):imageReply());await f.session.start();
  const blob=await f.session.media('/api/catalog/products/12/photo?variant=preview');assert.equal(blob.type,'image/jpeg');const request=f.calls[1];assert.equal(request.options.method,'GET');assert.equal(request.options.credentials,'omit');assert.equal(request.options.redirect,'error');assert.equal(request.options.headers.Authorization,'Bearer photo-token');assert(!request.url.includes('photo-token'));

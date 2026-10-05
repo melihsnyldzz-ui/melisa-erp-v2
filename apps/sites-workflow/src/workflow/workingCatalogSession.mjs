@@ -35,6 +35,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return accept(await request('/api/auth/test-admin',{method:'POST',body:{}}));
   },
   async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear();return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
+  async home(...args){
+   if(args.length||!token||!user)throw problem('Günlük işler okunamıyor.');
+   return (await request('/api/home/summary',{expire:true})).data;
+  },
   async api(path,{envelope=false,...extra}={}){
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/catalog\/products(?:\/[1-9]\d*)?(?:\?[^#]*)?$/.test(path)||!token||!user)throw problem('Katalog isteği kullanılamıyor.');
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;

@@ -39,6 +39,8 @@ app.use((req,res,next)=>{
   next();
 });
 if(mode==='erp'){
+  const {homeSummaryRoutes}=await import('./src/routes/homeSummaryRoutes.mjs');
+  app.use('/api',homeSummaryRoutes);
   const {stockProductRoutes}=await import('./src/routes/stockProductRoutes.mjs');
   app.use('/api',stockProductRoutes);
   const {catalogProductsRoutes}=await import('./src/routes/catalogRoutes.mjs');
