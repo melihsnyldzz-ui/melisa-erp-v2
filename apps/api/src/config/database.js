@@ -31,6 +31,8 @@ export function getSqlConfig() {
         env.sql.encrypt ? 'Encrypt=Yes' : 'Encrypt=No',
       ].join(';'),
       connectionTimeout: 10000, requestTimeout: 10000,
+      ...(isCanonicalTest() && env.port === 4144 && env.sql.readOnly === false
+        ? {pool: {max: 10, min: 1, idleTimeoutMillis: 30000}} : {}),
     };
   }
   if (env.sql.trustedConnection) {

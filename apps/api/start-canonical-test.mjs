@@ -1,6 +1,10 @@
 import { configureCanonicalTest } from './canonical-test-env.mjs';
 const [mode, configPath] = process.argv.slice(2);
-const {identity,port,networkPolicy,release,pool,writes}=await configureCanonicalTest(configPath,mode);
+const {identity,port,networkPolicy,release,pool,writes,env}=await configureCanonicalTest(configPath,mode);
+if(mode==='erp' && writes){
+  try{const {warmCatalogPlan}=await import('./src/services/catalogPlanWarmup.mjs');await warmCatalogPlan({identity,port,mode,writes,env});}
+  catch{try{await pool.close();}catch{}throw new Error('Ürün kataloğu başlangıçta doğrulanamadı.');}
+}
 const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
 const {default:express}=await import('express');
 const {default:cors}=await import('cors');
