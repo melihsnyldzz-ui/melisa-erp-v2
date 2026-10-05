@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL} from './enable-test-stock-products.mjs';
+import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL,STOCK_PRODUCT_PREVIOUS_HASH} from './enable-test-stock-products.mjs';
 import {STOCK_PRODUCT_SQL_PROOF as artifactProof} from '../../apps/api/src/services/stockProductSqlProof.mjs';
 
 test('SQL and API pin artifacts match source without any SQL connection',()=>{
@@ -16,7 +16,7 @@ test('SQL and API pin artifacts match source without any SQL connection',()=>{
 });
 test('new owner procedure is read-only and preserves every old writer/reader/table definition',()=>{
  const sql=buildStockProductsSql();
- assert.doesNotMatch(sql,/ALTER\s+(?:TABLE|TRIGGER|PROCEDURE)|DISABLE\s+TRIGGER|SESSION_CONTEXT|DELETE\s+FROM|TRUNCATE|DROP\s+|INSERT\s+(?:dbo|erp_migration)\.|UPDATE\s+(?:dbo|erp_migration)\./i);
+ assert.doesNotMatch(sql,/ALTER\s+(?:TABLE|TRIGGER)|ALTER\s+PROCEDURE\s+dbo\.(?!usp_read_stock_products\b)|DISABLE\s+TRIGGER|SESSION_CONTEXT|DELETE\s+FROM|TRUNCATE|DROP\s+|INSERT\s+(?:dbo|erp_migration)\.|UPDATE\s+(?:dbo|erp_migration)\./i);
  assert.doesNotMatch(sql,/CREATE TABLE (?:dbo|erp_migration)\.|CREATE TRIGGER /i);
  assert.equal((sql.match(/GRANT EXECUTE ON OBJECT::dbo\.usp_read_stock_products TO/g)||[]).length,2);
  assert.doesNotMatch(sql,/GRANT (?:SELECT|INSERT|UPDATE|DELETE|CONTROL)|GRANT.*SCHEMA::/i);
@@ -60,8 +60,8 @@ test('accepted scope, explicit fixtures and sealed hold cards have separate coun
  assert.match(STOCK_PRODUCT_READY_SQL,/9AE41CA1AB25EE165019AD04DBD9A6FB4E5B7190F027E0A07A87FB03D698379E/);
 });
 test('source/native bindings and immutable C09 current versions fail closed without scalar price fallback',()=>{
- assert.match(STOCK_PRODUCT_READY_SQL,/b\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
- assert.match(STOCK_PRODUCT_READY_SQL,/v\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/b\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/v\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
  assert.match(STOCK_PRODUCT_BINDING_SQL,/p\.source_record_key\) EXCEPT SELECT CONVERT/);
  assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash IS NULL OR r\.payload_json IS NULL/);
  assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash<>b\.stage_payload_hash/);
@@ -75,4 +75,25 @@ test('NOOP requires exact installed body and two narrow grants instead of repair
  assert.match(noop,/STOCK_PRODUCT_DEFINITION_DRIFT/);assert.match(noop,/STOCK_PRODUCT_EXECUTE_DRIFT/);
  assert.doesNotMatch(noop,/GRANT |DENY |ALTER /);
  assert.match(STOCK_PRODUCT_ACCESS_SQL,/minor_id=0/);assert.match(STOCK_PRODUCT_ACCESS_SQL,/\)<>2/);
+});
+test('expensive row witnesses are page-scoped while global count, seal and enabled immutable proofs remain',()=>{
+ assert.doesNotMatch(STOCK_PRODUCT_READY_SQL,/b\.binding_hash<>|v\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/COUNT\(\*\) FROM erp_migration\.accepted_price_products\)<>16622/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/COUNT\(\*\) FROM erp_migration\.accepted_price_values\)<>63774/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/bindings_hash='5842be926d493c8973566fd922ef840d9fe6f7cecd9d83f17f506be5aa3fbd72'/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/ExecIsTriggerDisabled/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/FROM #StockPage s JOIN erp_migration\.accepted_price_products b ON b\.product_id=s\.id WHERE b\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/FROM #StockPage s JOIN erp_migration\.accepted_price_values v ON v\.product_id=s\.id WHERE v\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash<>v\.stage_payload_hash/);
+});
+test('controlled metadata upgrade accepts exactly the previous hash and preserves existing grants',()=>{
+ const sql=buildStockProductsSql(),start=sql.indexOf("IF OBJECT_ID(N'dbo.usp_read_stock_products') IS NOT NULL"),end=sql.indexOf('\nEND;',start),upgrade=sql.slice(start,end);
+ assert.equal(STOCK_PRODUCT_PREVIOUS_HASH,'8C09D817DFB3C54802FCECC8DC5A18457D891CD887D1AB8BDAAA65E274BF08F3');
+ assert.match(STOCK_PRODUCT_PROC_SQL,/^CREATE OR ALTER PROCEDURE dbo\.usp_read_stock_products/);
+ const oldCheck=upgrade.indexOf(`@prior_definition_hash<>'${STOCK_PRODUCT_PREVIOUS_HASH}'`),mutation=upgrade.indexOf('EXEC sys.sp_executesql');
+ assert.ok(oldCheck>0&&oldCheck<mutation);
+ assert.ok(upgrade.indexOf('STOCK_PRODUCT_EXECUTE_DRIFT')<oldCheck);
+ assert.doesNotMatch(upgrade,/GRANT |DENY |DROP |UPDATE dbo\./);
+ assert.match(upgrade,/N'UPGRADED' result,1 writes/);
+ assert.match(upgrade,new RegExp(`@prior_definition_hash='${STOCK_PRODUCT_SQL_PROOF.readerDefinitionHash}' BEGIN COMMIT; SELECT N'NOOP' result,0 writes; RETURN; END`));
 });
