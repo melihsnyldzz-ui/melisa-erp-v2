@@ -7,6 +7,11 @@
 - İlk somut E02 adımı: normal http://127.0.0.1:62400/ CRM/ERP TEST hesabına kullanıcı girişi;7733/konuşma55/sentetikmüşteri593,41140+41142,2+3adet/980TRY create→ayrıGET readback→aynıUUIDtekrar. Henüz bu taslak oluşturulmadı; önceki392TRY kabulü korunur. Genel müşteri/ürün eşleme açık.
 - [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24) mevcut codex/crm-order-opening-20261005 dalında; b708f8e source ve5390b01 önceki belge exactCI başarılı. Yeni belgeHEADCIayrı izlenir. Main/tag/LIVE yok. Özel kanıt C:\Sirket\CRM\logs\acceptance-20261005\i01-after-switch-20261005.json ve e02-after-switch-sql-20261005-1030.json; credential/ham mesajlar Git dışında.
 
+
+## Güncel GitHub teslim notu — 5 Ekim 2026, 11:06
+
+PR24 base dalındaki paralel C09 test ekleri, E02 test ekleriyle `scripts/ci/run.mjs` tek canonical satırında çakışıyordu. Yalnız CI çağrısı ayrıldı: ortak altı test ilk çağrıda, E02 SQL/paket testleri ayrı ikinci çağrıda. C09 uygulama/SQL kodu bu dala birleştirilmedi; canonical dirty dosyalar ve çalışan paketler değiştirilmedi. Dar E02 iki dosya40/40 offline kontrol ve runner syntax PASS; bağımsız release/reviewer P0/P1/P2=0. Yerel geniş canonical koşumunun mevcut shared installer exact-source kontrolleri Windows CRLF/LF nedeniyle başarısız oldu; customer SQL89CRLF, generator0 ve normalize edildiğinde birebir eşit. Bu geniş koşum PASS olarak sunulmaz; kaynak/fixture/Git ayarı değiştirilmedi. Son commit sonrası merge-tree ve uzak exactHEAD CI ayrıca doğrulanır. Native çalışan sourceb708f8e, CRM çalışan source0c60c55 ve gerçek kullanıcı kabul sınırları aynıdır.
+
 ## Tarihsel durum — 5 Ekim 2026, 10:13; aşağıdaki kayıt güncel değildir
 
 # Melisa ERP durumu
