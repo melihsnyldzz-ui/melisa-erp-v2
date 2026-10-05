@@ -1,5 +1,52 @@
 # Melisa ERP durumu
 
+5 Ekim 2026, 10:56 — **CRM E02 native -04/b708f8e halen çalışıyor; CRM genel inbox yeni D/source0c60c55 paketine geçti. İki ürünlü ERP taslak kabulü kullanıcı girişi bekliyor.**
+
+- Native62404PID49220/creation, özel config ve scope aynı; gerçek CANONICAL_TEST/draft-only health doğrulandı. Native geçişinden sonra E02 eski request/proc/stok/cari/ürün/fiyat ölçümü10:02ile birebir eşit; yeni E02taslak yazılmadı. Kaynakb708f8e/manifest79e4701d… değişmedi; bu checkout'un sonraki HEAD'leri durum belgeleri ve CI dispatch düzenlemesidir; native uygulama source değişmedi.
+- CRM D/source0c60c55/manifestbaf4bc59…10:49READY; ayrı yerel journal/worker iki kişide9gelen geçmiş mesajı2konuşmada ayrı ChatwootGETile doğruladı. Bu ERP veya yeni mesaj/normal UI kabulü değildir; WhatsAppsend/model/ERPwrite0. Native/LIVE aynı süreçte kaldı. Günlük ERP4144/4146/5194 bu CRM geçişinden önce10:40'ta ayrı CANONICAL-FINISH-PRODUCT-PRICE-TEST-20261005-25'e geçmiş olarak gözlendi; bu iş o servisleri veya canonicalC09source alanını değiştirmedi.
+- İlk somut E02 adımı: normal http://127.0.0.1:62400/ CRM/ERP TEST hesabına kullanıcı girişi;7733/konuşma55/sentetikmüşteri593,41140+41142,2+3adet/980TRY create→ayrıGET readback→aynıUUIDtekrar. Henüz bu taslak oluşturulmadı; önceki392TRY kabulü korunur. Genel müşteri/ürün eşleme açık.
+- [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24) mevcut codex/crm-order-opening-20261005 dalında; b708f8e source ve5390b01 önceki belge exactCI başarılı. Yeni belgeHEADCIayrı izlenir. Main/tag/LIVE yok. Özel kanıt C:\Sirket\CRM\logs\acceptance-20261005\i01-after-switch-20261005.json ve e02-after-switch-sql-20261005-1030.json; credential/ham mesajlar Git dışında.
+
+
+## Güncel GitHub teslim notu — 5 Ekim 2026, 11:06
+
+PR24 base dalındaki paralel C09 test ekleri, E02 test ekleriyle `scripts/ci/run.mjs` tek canonical satırında çakışıyordu. Yalnız CI çağrısı ayrıldı: ortak altı test satırı ancestor biçiminde korunur; E02 SQL/paket testleri if/else zincirinin sonunda ayrı çağrıda çalışır. İlk bitişik ayırma merge-tree çakışmasını gidermediği için çağrı zincir sonuna taşındı. C09 uygulama/SQL kodu bu dala birleştirilmedi; canonical dirty dosyalar ve çalışan paketler değiştirilmedi. Dar E02 iki dosya40/40 offline kontrol ve runner syntax PASS; bağımsız release/reviewer P0/P1/P2=0. Yerel geniş canonical koşumunun mevcut shared installer exact-source kontrolleri Windows CRLF/LF nedeniyle başarısız oldu; customer SQL89CRLF, generator0 ve normalize edildiğinde birebir eşit. Bu geniş koşum PASS olarak sunulmaz; kaynak/fixture/Git ayarı değiştirilmedi. 5be13603f275c3939d75a30206533a0492953ff5 için merge-tree temiz; E02 ve C09 testlerinin dördü birleşmiş CI ağacında korunur, uygulama merge yapılmadı. Aynı head için PR CI37282143764 ve push CI37282138452 quality-build-test/secret-scan SUCCESS. Bu izleyen durum belgesi head CI PR24 Checks üzerinden ayrıca doğrulanır. Native çalışan sourceb708f8e, CRM çalışan source0c60c55 ve gerçek kullanıcı kabul sınırları aynıdır.
+
+## Tarihsel durum — 5 Ekim 2026, 10:13; aşağıdaki kayıt güncel değildir
+
+# Melisa ERP durumu
+
+5 Ekim 2026, 10:13 — **CRM E02 yeni native Windows TEST paketi gerçek SQL ile açıldı; normal CRM iki ürünlü taslak/readback kabulü bekliyor.**
+
+- Çalışan62404 paketi `CRM-ORDER-DRAFT-TEST-20261005-04`, source `b708f8e0e6af17d473836a9d4b61c1f970c5bdb4`, manifest SHA256 `79e4701da0198a798bf39479afa5fed1af9464625258775ca16b79e3624461e0`,10290 dosya. Tam paket doğrulamasından sonra5Ekim10:05 dar native geçiş READY; gerçek `/test-health` doğru CANONICAL_TEST/veritabanı/scoped-sales-order-draft-procedure-only sözleşmesini gösterir. Native SQL sürücüsü açılış engeli bu pakette giderildi; health normal sipariş kabulü değildir.
+- CRM C/aa85448 supervisor/UI/katalog/adapter aynı PID/creation; günlük ERP5194/4144/4146 ve LIVE4200 aynı. Özel native config ve eski -02 paketi korundu; DB restore/veri silme/mesaj/model çağrısı yok. Yeni nativePID49220 kontrol anına aittir; sonraki işlem için yeniden kimlik doğrulanır.
+- İki kesin accepted-opening ürün41140→301982 ve41142→301981, saleTier1 typed196TRY fiyatla hazırdır. Müşteri593 sentetik TEST ve tek izinli yazma kapsamıdır. Geçiş öncesi eski2request/2draft/2line/2audit ve üç darproc hash'i aynı. Normal UI2+3adet/980TRY yeni taslak, ayrı GET readback ve aynıUUIDtekrarda yeni kayıt oluşmaması henüz denenmedi: açık CRM oturumu sona erdi, kullanıcı giriş bekleniyor.
+- Dal `codex/crm-order-opening-20261005`, [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24); b708f8e exact [PR CI37245639799](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37245639799) ve [push CI37245636591](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37245636591) quality-build-test/secret-scan SUCCESS. Yeni belge HEAD'i ayrıca doğrulanır. Main/tag/LIVE değiştirilmedi; canonicalERP/C09 dirty alanına dokunulmadı.
+- Genel müşteri/ürün eşleme halen açık. CRM PR7/ERP PR25 teslim kuralları canonicalAGENTS/tek ortak haritadan okundu; yarım kalan gerçek CRM kabulünden sonra CRM-1 genel pasif gelen mesaj işi önceliklidir. Yeni native sağlık sonucu geniş ERP veya günlük işletme kabulü sayılmaz.
+- Özel kanıtlar repo dışında `C:\Sirket\CRM\logs\acceptance-20261005\e02-native-switch.json`, `e02-after-switch-20261005-1007.json`, `e02-before-ui-20261005-1002.json`, `e02-crm-login-20261005-1000.png`. Credential/runtimeconfig/hamticari veri Git'e taşınmaz.
+
+## Tarihsel durum — 5 Ekim 2026, 02:57; aşağıdaki kayıt güncel değildir
+
+# Melisa ERP durumu
+
+5 Ekim 2026, 02:57 — **CRM E02 native paket açılış hatasının kaynak düzeltmesi hazır; yeni Windows paketinin gerçek açılışı ve iki satırlı CRM kabulü bekliyor.**
+
+- İki önceki geçişte yeni `CRM-ORDER-DRAFT-TEST-20261005-03/c563c48` paketi `msnodesqlv8/build/Release/sqlserver.node` eksikliğiyle açılamadı; mevcut dar native helper eski `20261004-02/4fb9eab` paketini geri açtı. 02:47 salt okunur kontrolde eski native62404, CRM C/aa85448, görev ve LIVE gateway çalışıyordu. Genel ERP müşteri eşlemesi halen açık.
+- Paketleyici npm lifecycle scriptlerini kapalı tutar; yalnız resmi kilitli msnodesqlv8@5.2.0/Node24/ABI137/win32-x64 archive ve binary hash'ini doğrulayarak tek regular dosyayı yeni staging'e ekler. Yerel eski cache ve binary farklıdır, kullanılmaz. Yeni manifest schema2 native provenance ve zorunlu binary hash taşır; eski schema1 doğrulaması korunur. DB-free import gerçek `mssql/msnodesqlv8.js` sürücüsünü kapsar; kabul edilmiş ODBC/DB sözleşmesi değişmedi.
+- Bu düzeltmenin25 farklı hedefli offline testi PASS; bağımsız reviewer P0/P1/P2=0, syntax/diff PASS. Önceki backend20/SQL15 ile farklı kapsam60; reviewer/yazar tekrarları ek sayılmaz. Resmi gerçek archive production decoder ile bellekte doğrulandı. Teknik sonuç Windows servis açılışı veya gerçek sipariş kabulü değildir.
+- Dal `codex/crm-order-opening-20261005`, [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24). Bu değişim öncesi ed10c71 exact CI başarılıydı; yeni teslim HEAD CI ve yeni -04 paket/import/health/normal CRM readback ayrıca kaydedilecek. Main merge/LIVE deploy/model çağrısı/WhatsApp gönderimi/SQL yazımı bu kaynak düzeltmesinde yok.
+
+## Önceki E02 SQL kabul kaydı — native/UI kabulünü içermez
+
+5 Ekim 2026 — **CRM E02 iki kesin ürün için typed açılış eşlemesi kuruldu; normal CRM'de iki satırlı taslak kabulü bekliyor. Genel müşteri eşlemesi açık.**
+
+- Kaynakc9711d1, paketleyici8f83cdd/c563c48 ve SQLd163ea2; [PR24](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/24), dal codex/crm-order-opening-20261005. Mevcut CRM sözleşmesi ve eski UUID/readback korunur; yazma yalnız7733/konuşma55/sentetik müşteri593.
+- Backend20/SQL15/paket19 toplam54 hedefli offline kontrol PASS; bağımsız reviewer açık P0/P1/P2=0. Native paket CRM-ORDER-DRAFT-TEST-20261005-03/sourcec563c48,10289dosya/manifestee3daefe… doğrulandı; SQL araç düzeltmesinden sonra258paket kaynak blobu yeni teslimde aynı. UI/katalog/günlük ERP paketi bu işte değiştirilmedi.
+- Gerçek named TEST installer iki ürünle PASS; replay NOOP/0yazma. Somut before→after recovery PASS: eski üç yordam ve tüm ölçülen eski request/draft/product/price/customer/stok/cari hashleri before aşamasında birebir geri geldi; after yalnız context/create tanımları değişti. Read bytehashaynı; ticari veri silme/DBrestore0, yeni CRMtaslak0. İlk ALTER→CREATE stored-header hash hatası transactionrollback oldu; v2 bunu düzeltir.
+- Yeni62404 native geçişi ve normal CRM iki ürün/980TRY readback henüz kabul edilmedi; bu başlık teknik SQL kanıtını gerçek kullanıcı kabulüne dönüştürmez. [Sözleşme ve kabul ölçütü](docs/erp-v2/crm-order-opening-test.md). Genel müşteri eşleme/insan seçim önizlemesi sıradaki CRM kaynak işidir.
+
+## Paralel C07 mevcut kabul kaydı
+
 5 Ekim 2026 — **C07 gerçek tedarikçi kartı ve ayrılmış deneme iletişimi teknik TEST kabulü hazır. Genel düzenleme/personel kabulü PARTIAL; C07 🟡.**
 
 - [Tedarikçiler](http://127.0.0.1:5194/is-akisi-taslagi.html#suppliers), [üç genişlik](http://127.0.0.1:5194/responsive-acceptance.html), [beş personel denemesi ve kanıt](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md).530 native kart/90 native karantina,25satır/sayfa ve ayrı döviz; kaynak/güncel/defter exact8 kanıtı,UNKNOWN ve kayıtlı-doğrulanmamış tutar açık. Kaynak30Eylül; delta uygulanmadı, tüm530kart açılış kabulü değildir.
