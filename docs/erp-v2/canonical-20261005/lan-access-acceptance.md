@@ -25,6 +25,7 @@ Windows'ta kullanılan C:\Program Files\nodejs\node.exe için önceden kayıtlı
 ## Gerçek teknik kanıt
 
 - API+frontend32 hedefli offline test PASS; bağımsız incelemede blocker kalmadı. Erkenhealthreadiness yarışı test edilip düzeltildi.
+- Yerel offline Sites suite: 107 dosyada 505/505 PASS. Üç eski VM erişim testi, gerçek loopback konumunu ve manuel kullanıcı oturumunu açıkça tanımlayacak şekilde güncellendi; 12/12 ilgili test PASS ve bağımsız diff incelemesi temiz. Uygulama/güvenlik kontrolü değişmedi; bu test düzeltmesi çalışan paket48 kaynağından ayrı teslimdir. JavaScript kalite kontrolü de PASS.
 - Paket build PASS;1300manifestdosyası ve16977dependency eski/yeni hashleri doğrulandı. İlk hazırlık helper'ı önceki47 exactpathguard'ı yüzünden durdu; yalnız bu turun48 helper'ı düzeltildi, yeni48dizini üzerinden devam edildi. Eski paketler değiştirilmedi.
 - LANweb200 / APIidentity200. YetkisizHOME401; LANadminbootstrap401; localadmintoken→LANauth/me401; gerçeknormal İlker16 login200/CORSexactorigin.
 - HOMEüçokuma104/27/23ms; ilk50katalog733ms,50satır/16.622accepted/54hold; local/LANticariDTOlar birebir aynı. Bu süre aynı PC'den LANIP ile ölçüldü; başka cihazın ağ gecikmesini temsil etmez.
@@ -39,6 +40,6 @@ Görüntüler: `C:\Users\Xaser\Documents\Codex\2026-10-04\referenced-chatgpt-con
 
 ## Teslim ve kabul
 
-Dal codex/erp-finish-20261004 / [draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23). Uygulama4b46 source hosted push37370374306/PR37370378559, rapor yazılırken GitHub'da queued; CI PASS iddiası yapılmaz. Son belgehead için requiredCI ayrıca PRChecks'ten izlenir. Bekleyen runner için selfhosted/TESTSQL bağlantısı veya workflowdeğişikliği yapılmaz.
+Dal codex/erp-finish-20261004 / [draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23). Uygulama4b46 source push37370374306/PR37370378559, yeni head geldiğinde workflow concurrency tarafından iptal edildi; 360b9aa belge head'inde push secret-scan SUCCESS, diğer hosted kontroller runner kuyruğundaydı. Bu sırada yerel offline kalite ve 505 Sites testi PASS; hosted CI PASS iddiası yapılmaz. Son test/belge head'i için required CI ayrıca PR Checks'ten izlenir. Bekleyen runner için self-hosted/TESTSQL bağlantısı veya workflow değişikliği yapılmaz.
 
 ERP-UA06 gerçek başka cihaz/personel kabulü **bekliyor**. Ajan bu bilgisayardaki gerçek tarayıcıdan192.168 adresini doğruladı; başka fizikselLANistemcisinde denemiş gibi sunulmaz. Kullanıcı aynı ağdaki bilgisayardan URLyi açar, mevcut hesabıyla girer, AnaSayfa ve stok/8023fotoğrafını kontrol edip sonuç verir. ERP-UA05B01 ve diğer mevcut insan kabul durumları değişmedi. IPsabitleme açıkça ertelendi; başka finish işi başlatılmaz.

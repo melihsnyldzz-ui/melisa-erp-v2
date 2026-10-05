@@ -10,9 +10,9 @@ async function workspace({permissions=['customer.view'], authPending=null}={}) {
     if(!elements.has(id)) elements.set(id,{innerHTML:'',textContent:'',style:{},querySelectorAll:()=>[],addEventListener(){}});
     return elements.get(id);
   };
-  const location={hash:'#customers'};
+  const location={hash:'#customers',hostname:'127.0.0.1',protocol:'http:',port:'5194'};
   const context=vm.createContext({location,console,URLSearchParams,FormData,AbortSignal,Date,
-    sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},localStorage:{getItem:()=>null},
+    sessionStorage:{getItem:key=>key==='melisaTestSessionMode'?'manual':null,setItem(){},removeItem(){}},localStorage:{getItem:()=>null},
     window:{addEventListener:(name,handler)=>events[name]=handler},
     document:{getElementById:element,querySelector:element,title:''},
     fetch:async url=>{
