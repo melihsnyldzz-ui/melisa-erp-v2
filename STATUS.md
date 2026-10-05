@@ -1,5 +1,13 @@
 # Melisa ERP durumu
 
+5 Ekim 2026 — **TEST ADMIN otomatik açılış teknik olarak hazır; kullanıcı kabulü bekliyor.** [5194](http://127.0.0.1:5194) taze sekmede giriş formunu atlar. İş sırası + 17 TEST menüsü gerçek ekranda erişilebilir; `Kullanıcı değiştir` ile gerçek hesap girişine dönülür, manuel seçim yenilemede korunur. Mevcut kullanıcı/rol/izin/refresh tabloları aynı; yeni SQL/LIVE yetkisi ve ticari yazma yok.
+
+- TEST paket32/source `327c47ce42a872b1af956dc7e7f8306d5a4d1852`, 1228 dosya hash doğrulandı. Yalnız 5194/4144/4146 değişti; LIVE süreç sahipleri aynı, LIVE commit Durum doğrulanmadı. [Kapsam, negatif kontroller, eski paket ve kabul kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md).
+- GitHub: `codex/erp-finish-20261004`, [Draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23); auth son uygulama327c47c, izleyen ayrı stok source20fe2ba dört hosted CI işi SUCCESS. Nihai belge teslim commit'i PR head'inden izlenir; CI teslim sonunda ayrıca doğrulanır. Aynı daldaki diğer stok çalışması korunur; bu görev onu paketlemedi/SQL'e kurmadı. Main merge/LIVE deploy/Vega yazması yok.
+- Sıradaki iş: gerçek ürünleri ve fotoğraflarını stok ekranında göstermek için mevcut stok dilimi; ayrıca kullanıcının TEST ADMIN gezinme kabulü. Yeni görev başlatılmadı.
+
+## Önceki C09 kabulü
+
 5 Ekim 2026 — **C09 fiyat yazma/düzenleme ve yeni native alış tüketimi dar teknik TEST kabulüne hazır. Genel ticari kartlar, terminal fiyat tüketimi ve personel kabulü PARTIAL; C09 🟡.**
 
 - [Fiyat & maliyet](http://127.0.0.1:5194/is-akisi-taslagi.html#prices), [Alış faturaları](http://127.0.0.1:5194/is-akisi-taslagi.html#purchases), [beş personel adımı ve kanıt](docs/erp-v2/canonical-20261005/product-price-acceptance.md). Normal İlker TEST ekranında301986 USD exact8 fiyat create/edit ve ADET/kademe1/TRY satış fiyatı kaydedilir; EUR Bilinmiyor kalır. Yalnız kullanıcı onaylı TEST16 product.price.edit,1insert/replay0; product.edit yok, diğer136 izin aynı. TEST15 fiyat görüntüler/editör yok; TEST14 purchase.view olmadığı için bu finansal akışa erişemez.

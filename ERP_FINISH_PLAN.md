@@ -1,5 +1,7 @@
 # Melisa ERP — bitirme planı
 
+5 Ekim 2026 ek kullanım kabulü — **TEST ADMIN:** [5194](http://127.0.0.1:5194) taze sekmede otomatik TEST ADMIN; İş sırası + 17 TEST menüsü erişimi ve gerçek kullanıcı girişine dönüş/yenileme gerçek ekranda doğrulandı. Mevcut rol tabloları, SQL fixture scope'u ve LIVE/Vega sınırları korunur. [Kabul/teslim kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md). Teknik hazır; gerçek kullanıcı kabulü bekliyor. Bu konfor işi genel ticari, rol/personel veya migration yapraklarını tamamlanmış saymaz; finish tree sayımı değişmez.
+
 ## Güncel finish tree — 5 Ekim 2026
 
 **Toplam 49 iş: 🟢 5 tamam · 🟡 21 kısmi / kabul bekliyor · 🔴 23 açık. Genel ilerleme: %10,2 tamam; %42,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
@@ -11,8 +13,8 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | ID | İş | Durum | Kanıt / kapanış ölçütü |
 | --- | --- | --- | --- |
 | P01 | Kanonik kaynak ve origin | 🟢 | SEMIH exact repo, temiz e0 tabanı ve fetch/push doğrulandı; eski kopyalar korunur. |
-| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST5194/4144/4146 → paket29/sourcef295561 → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE süreç sahipleri aynı. |
-| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | Paket29 1.225 dosya manifest eşleşti; eski paketler ve before-29 launcher geri dönüş kaydı korunur. |
+| P02 | TEST/LIVE süreç ve DB ayrımı | 🟢 | TEST ADMIN kabulünde5194/4144/4146 → paket32/source327c47c → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; LIVE süreç sahipleri aynı. |
+| P03 | Tek TEST launcher ve paket/hash kaydı | 🟢 | TEST ADMIN paket32 1.228 dosya manifest eşleşti; eski paketler ve before-test-admin-32 launcher geri dönüş kaydı korunur. |
 | A01 | Stok kartı, kod/ad, barkod, stok, birim | 🟡 | 16.622 eşlenen kart teknik mutabakatlı; normal günlük stok ekranı ve personel kabulü eksik. |
 | A02 | Satış/alış fiyatı, maliyet, döviz | 🟡 | 63.774 typed fiyat okuyucu korunur; C03 exact8→native4, ayrı birim/iki kur kanıtı ve USD/EUR sentetik TEST kopyası kabulü hazır. Genel fiyat yazımı/personel kabulü açık; NULL/gerçek 0 ayrımı korunur. |
 | A03 | Gerçek ürün fotoğrafı | 🔴 | Doğru kaynak kimliğiyle gerçek görsel bağlantısı/eksik görsel gösterimi ve normal ekran kabulü. |
