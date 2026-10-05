@@ -1,5 +1,7 @@
 # Melisa ERP — bitirme planı
 
+Bu dosya **tam kapsam / finish tree** olarak kalır. Kalıcı kararlar [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md), günlük öncelik [DELIVERY_BOARD.md](DELIVERY_BOARD.md), gözle deneme ve insan sonucu [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) içindedir. Aşağıdaki eski dilim/sıra cümleleri günlük öncelik oluşturmaz; mevcut kapsam ve kanıtlar korunur.
+
 ## Güncel finish tree — 5 Ekim 2026
 
 **Toplam 49 iş: 🟢 5 tamam · 🟡 21 kısmi / kabul bekliyor · 🔴 23 açık. Genel ilerleme: %10,2 tamam; %42,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
@@ -57,7 +59,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | E01 | Modül bazında gerçek kabul | 🔴 | Her modüle normal TEST URL ve 3–5 deneme; rol/olumsuz durum/SQL etkisi ve kişi/tarih/kapsam kayıtlı. |
 | E02 | Personelin günlük akış kabulü | 🔴 | Mal kabulden gün sonuna kullanıcı günlük işini deneyip kabul eder; ajan teknik testi insan kabulü değildir. |
 | E03 | Görsel üç genişlik kabulü | 🔴 | C03 alış,C06 müşteri,C07 tedarikçi ve C09 fiyat formu/eski belge gerçek iframe1440/1024/390 teknik kabulü var. Diğer modüller, hata/boş/yetki ve bütün günlük akış/personel görsel kabulü açık. |
-| F01 | Tek finish tree ve otomatik sıra | 🟢 | Bu tablo güncel iş kaynağı; root sayım/status günceller. `devam` sıradaki bağımsız açık işi seçer. |
+| F01 | Tek finish tree ve otomatik sıra | 🟢 | Bu tablo tam kapsam ağacıdır; root sayım/status günceller. `devam` için günlük sıra [DELIVERY_BOARD.md](DELIVERY_BOARD.md). |
 | F02 | GitHub/CI teslim düzeni | 🟡 | Feature dal/PR23; güncel sourcef295561/paket29 tamhead push+PR quality-build-test/secret-scan dört hosted job PASS. Nihai belge head ayrıca doğrulanır; genel ERP teslimi açık. Merge/LIVE deploy yok. |
 
 ### Aktif dilim, sahiplik ve kabul
@@ -75,7 +77,7 @@ C06 salt okunur müşteri kartının dar gerçek TEST teknik kabulü hazır. Gen
 
 C03 dar teknik TEST teslimi tamamlandı; [gerçek kabul kaydı](docs/erp-v2/canonical-20261004/purchase-fx-acceptance.md), paket21/source2751fac. Typed `purchase/CARD/0`, ayrı mühürlü ADET×1, exact8→açık HALF_UP native4 ve iki tarihli sentetik kur; gerçek kartlar salt okunur, yazma yalnız301986/13373 TEST kopyasıdır. Üç fiziksel kabul/+3 stok; EUR/USD finalize+iptal toplam borç etkisi0; ret etkisiz. Stok29/ortalama63,9242/borç60; fatura25089 49,50 TRY karşılıklı EUR taslağı personel denemesine hazır. 17 yeni guard/15 eski/42 tanım/37 FIRST+mühürler,24 önceki ticari/finans tablo tam digest'i korunur. Restore/committed rollback yapılmadı; genel alış ve insan kabulü eksik olduğundan C03 🟡 kalır.
 
-**Sıradaki teslim işi ERP-1 / B02+A01 normal stok listesi, kesin barkod arama ve gerçek kart detayıdır.** Yeni salt okunur okuyucu kabul edilmiş kaynak kimliğini native stok/birim/barkod/karantina ile bağlar; bilinmeyen değer sıfır yapılmaz. Genel ticari yazma ve personel kabulü ayrı açık kalır. C09 dar teknik TEST kabulü hazır; [kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md).
+**Açık kapsam ERP-1 / B02+A01:** normal stok listesi, kesin barkod arama ve gerçek kart detayı; günlük öncelik [DELIVERY_BOARD.md](DELIVERY_BOARD.md). Yeni salt okunur okuyucu kabul edilmiş kaynak kimliğini native stok/birim/barkod/karantina ile bağlar; bilinmeyen değer sıfır yapılmaz. Genel ticari yazma ve personel kabulü ayrı açık kalır. C09 dar teknik TEST kabulü hazır; [kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md).
 
 İlk C01/C02 diliminin [kabul kaydı](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md) personelin beş denemesini içerir. Tarihsel SQL source46e10ce/paket18 uygulaması4e6b606 kabulü korunur; güncel çalışan uygulama STATUS üstündeki paket29/sourcef295561'dir. Çalışan C01/C02/migration tekrar ispat işi açılmadı; C03 yalnız yeni etkilenen akış ve kaynaklarla kontrol edildi.
 
@@ -85,7 +87,7 @@ Yeni kod sonrasında uygun hedefli test/build, bağımsız review, normal browse
 
 Güncel yerel kaynak toplama: [3 Ekim kanonik baseline](docs/erp-v2/canonical-20261003/README.md). Aşağıdaki ilk envanter, EVDEKIPC devir anının tarihsel kaydıdır; SEMIH kaynak eşlemesi bu bağlantıdaki kanıtla güncellenir.
 
-Güncelleme: 5 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel kaynağıdır**. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).
+Güncelleme: 5 Ekim 2026. Bu dosya ERP bitirme işinin **tek güncel tam kapsam ağacıdır**; günlük sıra [DELIVERY_BOARD.md](DELIVERY_BOARD.md) içindedir. Kısa görünüm: [STATUS.md](STATUS.md). Kaynak ve ortam kanıtları: [envanter](docs/erp-v2/inventory-20261003.md).
 
 ## 4 Ekim güncel migration dilimi
 

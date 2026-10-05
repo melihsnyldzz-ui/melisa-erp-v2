@@ -1,5 +1,12 @@
 # Melisa ERP durumu
 
+## 5 Ekim 2026 — yalnız proje yönetimi belge teslimi
+
+- Teknik kayıt rolü: bu dosya test/CI/ortam ve kanıtı tutar. Kararlar [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md), günlük sıra [DELIVERY_BOARD.md](DELIVERY_BOARD.md), insan sonucu [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md), tam kapsam [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md) içindedir.
+- Kaynak tabanı `20fe2ba563632c8dacd4980c822805859f272963`; belge dalı `docs/decision-center-20261005`, hedef `codex/erp-finish-20261004`. Teslim commit'i bu kaydı taşıyan PR'nin head'idir; CI aynı head için PR Checks'te doğrulanır. Önceki CI bu head için PASS sayılmaz.
+- Markdown kapsamı, yerel bağlantılar, karar ID/alanları, ŞİMDİ sayısı/bağımlılıkları, bekleyen kabul kayıtları ve korunmuş finish ID'leri kontrol edildi: PASS; bağımsız salt okunur inceleme sonrası bulunan iki yönlendirme çelişkisi düzeltildi. Uygulama kabulü bu görevde çalıştırılmadı; mevcut hosted offline CI ayrıca izlenir. Uygulama kodu, TEST/LIVE runtime, SQL/Vega, veri/provider ve mevcut kullanıcı kabulleri değiştirilmedi. Çalışan TEST/LIVE commit'i bu görevde **Durum doğrulanmadı**; aşağıdaki runtime kayıtları kendi kontrol anına aittir.
+- Yeni kullanıcı denemeleri başlangıçta `bekliyor`; teknik testlerden insan PASS üretilmedi. Bu belge işi geliştirmeyi yeniden başlatmaz, main merge/tag/deploy yapmaz.
+
 5 Ekim 2026 — **C09 fiyat yazma/düzenleme ve yeni native alış tüketimi dar teknik TEST kabulüne hazır. Genel ticari kartlar, terminal fiyat tüketimi ve personel kabulü PARTIAL; C09 🟡.**
 
 - [Fiyat & maliyet](http://127.0.0.1:5194/is-akisi-taslagi.html#prices), [Alış faturaları](http://127.0.0.1:5194/is-akisi-taslagi.html#purchases), [beş personel adımı ve kanıt](docs/erp-v2/canonical-20261005/product-price-acceptance.md). Normal İlker TEST ekranında301986 USD exact8 fiyat create/edit ve ADET/kademe1/TRY satış fiyatı kaydedilir; EUR Bilinmiyor kalır. Yalnız kullanıcı onaylı TEST16 product.price.edit,1insert/replay0; product.edit yok, diğer136 izin aynı. TEST15 fiyat görüntüler/editör yok; TEST14 purchase.view olmadığı için bu finansal akışa erişemez.
@@ -9,7 +16,7 @@
 - Çalışan TEST **paket29**, `CANONICAL-FINISH-PRODUCT-PRICE-TEST-20261005-29`, source/app `f29556173473205dd638d31c8e64e61e58b8904b`,1225manifest dosyası doğrulandı.5194/4144/4146 → `Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01`; native readonly, externalfalse, writer sysadmin/control/LIVE erişimi0. Yalnız üç doğrulanmış TEST süreci değişti; LIVE5188/4114/4116 sahipleri aynı, LIVE commit bu turda doğrulanmadı. Eski paketler/launcher yedekleri korunur. Source f295 tamhead dört hostedquality/secretjobSUCCESS; nihai belge head PR23'te ayrıca doğrulanır. Checkout HEAD ile çalışan paket ayrı tutulur.
 - Fiyat düzenleme ve eski alış belgesi1440/1024/390 gerçek iframe client=scroll1427/1011/377; yatay taşma0. Alışta ilk40px ölçülen düğmeler büyütüldü; nihai29pakette CSS44px/ölçüm43,992px, mobil forma kesin fiyat/bilinmiyor/gerekçe ve tarihli belge özeti sığıyor. Dış JPEG ölçeklidir; fiziksel cihaz/personel kabulü değildir. Hedefli model/API/UI/SQL kontrolleri ve bağımsız backend/SQL/UI/source incelemesi; son UI17test ve actual SQL→API→UI contract PASS.
 - [Finish tree](ERP_FINISH_PLAN.md):49iş, 🟢5 / 🟡21 / 🔴23; bu sayım LIVE hazırlık yüzdesi değildir. Güncel delta71/341/74 uygulanmadı; 54ürün/122cari, eksik maliyet,T0/T1,restore/rollback ve personel/cihaz kabulü açık. Salt okunur `ERP_CURRENT_STATE_20261005.md` karşılaştırma raporu değiştirilmedi. Main merge/LIVE deploy/Vega yazması/credential değişikliği yok.
-- **Sıradaki teslim engeli ERP-1 / B02+A01:** normal stok listesi, kesin barkod arama ve gerçek ürün detayı. [Salt okunur keşif ve dar kaynak planı](docs/erp-v2/canonical-20261005/stock-products-plan.md) hazır; bu sonraki dilimin uygulama/SQL kurulumu/kullanıcı kabulü henüz yapılmadı. Genel ürün yazması veya mevcut kabul edilmiş satış akışını yeniden ispatlama işi açılmaz.
+- **Önceki teknik kaydın açık kapsamı ERP-1 / B02+A01:** normal stok listesi, kesin barkod arama ve gerçek ürün detayı. [Salt okunur keşif ve dar kaynak planı](docs/erp-v2/canonical-20261005/stock-products-plan.md) hazır; bu sonraki dilimin uygulama/SQL kurulumu/kullanıcı kabulü henüz yapılmadı. Genel ürün yazması veya mevcut kabul edilmiş satış akışını yeniden ispatlama işi açılmaz.
 
 ## Önceki C07 kabulü
 

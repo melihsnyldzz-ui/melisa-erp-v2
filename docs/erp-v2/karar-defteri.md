@@ -1,5 +1,7 @@
 # MELİSA ERP v2 — KARAR DEFTERİ
 
+**5 Ekim 2026 kayıt yönü:** mevcut ayrıntılı iş kuralları bu belgede korunur. Yeni kalıcı kullanıcı/ChatGPT kararları [PROJECT_DECISIONS.md](../../PROJECT_DECISIONS.md) içinde tutulur; günlük sıra [DELIVERY_BOARD.md](../../DELIVERY_BOARD.md) içindedir. Karar metni iki yerde çoğaltılmaz; açık kullanıcı kararıyla supersede bağı kaydedilir.
+
 ## 0. Amaç
 
 Melisa ERP v2, Melisa Bebe’nin toptan bebek giyim operasyonunu yönetmek için geliştirilecek yeni nesil, masaüstü ERP hissi veren, web tabanlı ve ileride Electron ile Windows uygulamasına dönüştürülebilecek ERP sistemidir.
@@ -772,4 +774,3 @@ Melisa ERP v2, Vega/Wolvox gibi klasik yoğun ERP hissi veren, web tabanlı, ile
 - Mikro ihracat GTİP taslağında aksi açıkça belirtilmedikçe ürün malzemesi pamuk kabul edilir; `velsoft`, `polar`, `polyester`, `sentetik` veya eşdeğer açık işaret bulunan ürünler sentetik içerik grubuna alınır. Etiket veya teknik belge bilgisi her zaman varsayımdan üstündür.
 - Proforma hazırlanırken yerel GTİP kaydı olmayan ürünlere ürün adı ve açık malzeme işaretlerinden otomatik **taslak** kod üretilebilir. Kayıtlı/doğrulanmış kod ezilmez; otomatik kod güven seviyesi ve kural dayanağıyla görünür ve sevk öncesi insan doğrulaması zorunludur.
 - Otomatik GTİP taslağı Vega'ya veya Melisa ERP ticari tablolarına kendiliğinden yazılmaz. Kalıcı ürün sınıflandırması ayrı onaylı, audit izli doğrulama akışıdır.
-
