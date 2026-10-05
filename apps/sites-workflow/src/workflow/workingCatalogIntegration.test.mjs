@@ -8,7 +8,12 @@ test('working face does not carry package labels or synthetic stock handlers',()
  const builder=read('../../../../scripts/canonical/build-package.mjs');
  assert(!/for\(const page of \[[^\]]*ornek-akis/.test(builder));
  const demo=read('./demoOperations.js');
- assert.match(demo,/workflow-render',\(\)=>\{\s*if\(bridge.screen\(\)==='stock'\)return;/);
+ const guard=demo.match(/document.addEventListener\('workflow-render',\(\)=>\{([^]*?)bridge\.badges/);
+ assert(guard,'Demo handler entry is required');
+ const runGuard=new Function('bridge','localStorage',guard[1]+'return true;');
+ for(const screen of ['stock','home'])assert.equal(runGuard({screen:()=>screen},{getItem(){throw Error('Real screens must never read demo state');}}),undefined);
+ assert.equal(runGuard({screen:()=> 'goods'},{getItem:()=> 'live'}),undefined);
+ assert.equal(runGuard({screen:()=> 'goods'},{getItem:()=> 'demo'}),true);
  assert(!/for\(const name of \[[^\]]*stockPage/.test(demo));
 });
 test('shared catalog is mounted only in canonical ERP target',()=>{
