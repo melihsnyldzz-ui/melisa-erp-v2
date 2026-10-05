@@ -7,6 +7,8 @@ import { dayRange, istanbulDay, operationPage, readiness, readPaths, documentCar
 import './liveData.css';
 import dailySnapshot from './dailySnapshot.json';
 import accountSnapshot from './accountSnapshot.json';
+import {createWorkCatalog} from './workCatalog.js';
+import {createWorkingCatalogSession,workingCatalogUserLabel} from './workingCatalogSession.mjs';
 const savedAccounts=accountSnapshot.rows.map(r=>({sourceId:String(r.IND),accountCode:r.FIRMAKODU,name:r.FIRMAADI,currency:r.PARABIRIMI,groupCode:r.KOD1,readAt:r.readAt}));
 const savedAccountNames=Object.fromEntries(savedAccounts.map(r=>[r.sourceId,r.name]));
 
@@ -27,7 +29,7 @@ const stamp=v=>Number.isFinite(Date.parse(v))?new Date(v).toLocaleString('tr-TR'
 const storage=name=>{try{return window[name]}catch{return undefined}};
 const settings=storage('localStorage');
 let mode='demo';try{if(settings?.getItem('melisa-example-workflow-v2')!=='yes'){settings?.setItem('melisa-data-mode','demo');settings?.setItem('melisa-example-workflow-v2','yes')}mode=settings?.getItem('melisa-data-mode')==='live'?'live':'demo'}catch{}
-let user=null,day=istanbulDay(),followToday=true,dispose=()=>{},authBusy=false;
+let user=null,day=istanbulDay(),followToday=true,dispose=()=>{},authBusy=false,catalogAvatarBefore=null;
 const client=createVegaProductClient({allowLocalTest:import.meta.env.VITE_TEST_READ_ONLY==='true',baseUrl:import.meta.env.VITE_VEGA_PRODUCTS_BASE_URL||'https://vega-api.melisababy.com',allowAccounts:true,allowOperations:true,storage:createVegaProductStorage(storage('localStorage'),storage('sessionStorage')),onExpired:()=>{user=null;queueMicrotask(()=>workflow.render())}});
 const toolbar=document.createElement('section');toolbar.className='live-toolbar';toolbar.setAttribute('aria-label','Veri kaynağı');document.getElementById('view').before(toolbar);
 function switchMode(next){mode=next;try{settings?.setItem('melisa-data-mode',mode)}catch{} workflow.render()}
@@ -73,6 +75,31 @@ function wireLogin(root){
 const configs={home:['Günlük operasyon','Fişi açın veya soldaki menüden işinize geçin.','sale_stock_exit'],receipts:['Satış fişleri','Fiş numarası veya cari kayıt numarasıyla arayın; ayrıntısını açın.','sale_stock_exit'],goods:['Gelen mal','Personel sayar → İlker ürünleri kontrol eder → kabul tamamlanır.','purchase_stock_entry'],purchases:['Alış faturaları','Mal kabulüyle faturayı eşleştirin; tedarikçi borcu ve maliyeti kontrol edin.','purchase_invoice'],returns:['İadeler','Müşteri ve tedarikçi iadelerini ayrı inceleyin.','sale_stock_exit'],stock:['Ürün & stok','Ürünü seçerek stok, birim, barkod ve kayıtlı fiyatları açın.'],customers:['Müşteriler','Cari kartını seçerek gün içindeki borç ve alacak hareketlerini açın.'],collections:['Tahsilat','Cari hareketlerini inceleyin. Yeni tahsilat kaydı henüz bağlı değil.']};
 function mount(){
  dispose();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
+ toolbar.hidden=page==='stock';toolbar.style.display=page==='stock'?'none':'';
+ const mobileRole=document.getElementById('mobileRole');if(mobileRole)mobileRole.hidden=page==='stock';
+ const realLabel=document.getElementById('working-catalog-user');if(realLabel)realLabel.remove();
+ if(page==='stock'){
+  const avatar=document.getElementById('avatar');if(avatar){if(catalogAvatarBefore===null)catalogAvatarBefore=avatar.textContent;avatar.textContent='—';}
+  document.getElementById('role')?.closest('.rolebox')?.setAttribute('hidden','');
+  document.querySelectorAll('#nav .badge').forEach(x=>x.hidden=true);
+  const side=document.querySelector('aside .sidefoot');if(side)side.textContent='Melisa ERP';
+  document.body.classList.add('stock-workspace');
+  let active=true,catalogUI=null,session;
+  const alive=()=>active&&root.isConnected&&workflow.screen()==='stock';
+  const label=document.createElement('span');label.id='working-catalog-user';label.textContent='Oturum açılıyor…';document.querySelector('.top-right')?.append(label);
+  function showLogin(message=''){
+   if(!alive())return;catalogUI?.dispose();catalogUI=null;label.textContent='Oturum gerekli';const avatar=document.getElementById('avatar');if(avatar)avatar.textContent='—';
+   root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Ürün & stok</h1></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-catalog-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
+   root.querySelector('#working-catalog-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button');button.disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showCatalog(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
+  }
+  function showCatalog(current){if(!alive())return;if(!current){showLogin();return;}label.textContent=workingCatalogUserLabel(current);const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=label.textContent.slice(0,1);catalogUI=createWorkCatalog({api:session.api,permissions:current.permissions});root.innerHTML=catalogUI.html();catalogUI.mount(root);}
+  session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
+  dispose=()=>{active=false;catalogUI?.dispose();session.dispose();};
+  root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Ürün kataloğu açılıyor…</p></section>';
+  session.start().then(showCatalog).catch(error=>{if(alive())showLogin(error.message);});return;
+ }
+ document.querySelectorAll('#nav .badge').forEach(x=>x.hidden=false);
+ if(catalogAvatarBefore!==null){const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=catalogAvatarBefore;catalogAvatarBefore=null;}
  if(page==='settings'){root.innerHTML=`<div class="live-heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Ayarlar ve tamamlanma</h1><p>Bağlantı durumu ve günlük kullanıma geçişte kalan işler.</p></div></div>${modeSettings()}${mode==='live'?loginBox():exampleSettingsPanel()}<section class="card live-result"><h2>Çalışma kuralları</h2><p>Tek merkez · Satış ekibi terminalde fişi bitirir; İlker fişi ve tahsilatı görür.</p><p>Satış personeli kasayı kullanmaz. Tahsilatı İlker kaydeder. Gönderim ödeme veya vade kontrolünden sonra ayrı kaydedilir.</p><p>Bu kuralların gerçek kullanıcı yetkilerine uygulanması canlı kabul bekliyor.</p></section>${completionTree()}${roadmap()}`;wireLogin(root);if(mode==='demo')wireExampleSettings(root);root.querySelector('#live-mode').onchange=e=>switchMode(e.target.value);return}
  if(mode==='demo')return;
  document.body.classList.remove('stock-workspace');
@@ -132,6 +159,6 @@ function mount(){
  paint();load();
 }
 document.addEventListener('workflow-render',mount);
-window.addEventListener('storage',e=>{if(['melisaVegaProductsAccessToken','melisaVegaProductsRefreshToken'].includes(e.key)){user=null;dispose();workflow.render();restore()}});
+window.addEventListener('storage',e=>{if(workflow.screen()==='stock')return;if(['melisaVegaProductsAccessToken','melisaVegaProductsRefreshToken'].includes(e.key)){user=null;dispose();workflow.render();restore()}});
 async function restore(){if(!client.hasSession()||authBusy)return;authBusy=true;paintToolbar();try{const r=await client.get('/api/auth/me');if(!Array.isArray(r.data?.permissions))throw new Error('ERP yetkileri eksik.');user=r.data}catch{user=null}finally{authBusy=false;workflow.render()}}
-mount();if(mode==='live')restore();
+mount();if(mode==='live'&&workflow.screen()!=='stock')restore();

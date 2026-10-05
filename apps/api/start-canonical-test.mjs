@@ -30,6 +30,8 @@ app.use((req,res,next)=>{
 if(mode==='erp'){
   const {stockProductRoutes}=await import('./src/routes/stockProductRoutes.mjs');
   app.use('/api',stockProductRoutes);
+  const {catalogProductsRoutes}=await import('./src/routes/catalogRoutes.mjs');
+  app.use('/api',catalogProductsRoutes);
   const {resolveDailyWebPolicy,dailyWebScopeMiddleware}=await import('./src/services/dailyWebPolicy.mjs');
   const {pilotTerminalRoutes}=await import('./src/routes/pilotTerminalRoutes.mjs');
   app.use('/api/terminal',pilotTerminalRoutes);

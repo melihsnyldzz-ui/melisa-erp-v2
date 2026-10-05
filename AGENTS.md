@@ -1,32 +1,22 @@
 # AI Agent Entry Point
 
-## Teslim odaklı devam davranışı — 5 Ekim 2026
+## Karar merkezi ve `devam` — 5 Ekim 2026
 
-Bu bölüm iş seçimi, ilerleme ve raporlama bakımından aşağıdaki eski “sıradaki tek kırmızı madde” varsayılanını günceller. Mevcut iş kuralları, kabul kanıtları, rol/izin ve TEST/LIVE sınırları korunur. Amaç yeni süreç üretmek değil, mevcut ERP'yi işyerine teslim etmektir.
+Kullanıcı ve ChatGPT iş/ürün kararlarını sohbetten planlar; onaylanan kararlar GitHub'da [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) içinde kalıcılaşır. Codex bu kararları uygular. Bu bölüm eski harita/finish-plan/tek-kırmızı yönlendirmelerinin **günlük sıra ve okuma düzenini** günceller; mevcut kapsam, kabul kanıtları ve işlem sınırları korunur.
 
-**Durum: geliştirme duraklatılmıştır.** Bu talimatın GitHub'a yazılması, yerel projeye alınması veya belgede örnek “devam” sözcüğü bulunması geliştirmeyi başlatmaz. Son durdurma talimatı geçerlidir. Kullanıcının daha sonra ilgili proje sohbetine doğrudan yazdığı `devam / başla / sıradaki`, o projede mevcut yetkili TEST kapsamına dönme talimatıdır; main merge, yayın veya yeni gerçek alıcı yetkisi değildir. `Rapor / ne yaptın? / ne yapıyoruz?` soruları tek başına ürün geliştirmesini yeniden başlatmaz.
+Bu görev yalnız proje yönetimi belgeleridir; uygulama geliştirmesini veya duraklatılmış çalışmayı başlatmaz. Kullanıcının ilgili projeye daha sonra doğrudan yazdığı `devam / başla / sıradaki`, mevcut yetkili kapsamda aşağıdaki döngüyü başlatır. Belgedeki örnek komut veya rapor sorusu başlatma talimatı değildir.
 
-### Kaynak ve sıra
+1. Kanonik kök, fetch/push origin, aktif feature branch ve dirty durumu doğrula; kullanıcı işini koru. GitHub'daki ilgili doküman PR/commit'i ile okuduğun yerel sürümü eşleştir; eski checkout'u güncel plan sayma, dirty ağacı otomatik pull/merge etme.
+2. Sırayla [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) → [DELIVERY_BOARD.md](DELIVERY_BOARD.md) → [STATUS.md](STATUS.md) → [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md) oku. Ardından seçilen işin ilgili yerel/merkezi kuralları ve [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) kaydını oku. Aynı oturumda değişmeyen belgeleri tekrar okuma.
+3. Panonun `ŞİMDİ` bölümündeki sırayı öncelik say; bağımlılığı karşılanmış en üstteki **onaylı ve tamamlanmamış** işi seç. Bekleyen insan kabulünü kapanmış sayma. ŞİMDİ içinde tamamlanmamış fakat bağımlılığı hazır olmayan işler varsa somut bağımlılığı kaydet; SONRA ile sıralarını atlama. ŞİMDİ tamamen tamamlandığında zaten onaylı SONRA sırasının ilk işi bağımlılığı hazırsa ŞİMDİ’ye taşı; bu yeni kapsam/öncelik kararı değildir. CANLIDAN SONRA veya sıra değişimi ayrı kullanıcı kararı ister. Panoda az sayıda iş bulunsun; yeni iş/öncelik kullanıcı kararıyla eklenir.
+4. Kabul edilmiş işi yeniden yapma. Mevcut kapsam/commit kabulünü kullan; yalnız değişen akış, regresyon veya eksik kabul için hedefli kontrol yap. Kısa bildirimde seçilen iş ID'sini ve kullanıcıya görünen sonucu belirt. Bağımsız işleri açık dosya sahipliğiyle uygun ajanlara dağıt; aynı dosya veya serviste eşzamanlı değişiklik yapma.
+5. Seçilen işi gereken kod, hedefli test ve teknik kanıtla tamamla. Teknik sonuç/kanıt ve runtime-kaynak ayrımı yalnız `STATUS.md` içindedir; finish tree'nin ilgili yaprağını güncelle, günlük sıra üretme. Kullanıcının gözle denemesi gerekiyorsa `USER_ACCEPTANCE.md` içine iş ID'si, kısa deneme, ortam/sürüm, kişi/tarih ve `bekliyor / PASS / FAIL` sonucu ekle. Teknik test PASS, kullanıcı PASS değildir.
+6. İlgili değişiklikleri dar **branch → commit → push → PR** ile GitHub'a teslim et; uzak PR head ve aynı commit'in mevcut CI sonucunu doğrula. Kullanıcı kabulü beklemek kaynak teslimini durdurmaz. Pano durumunu teknik hazır/kullanıcı kabulü bekliyor/tamam olarak kanıta bağla; status'a karar veya roadmap kopyalama. Somut engelde kalan adımı yaz; onaylı hedef dışında kapsam ekleme.
+7. `PROJECT_DECISIONS.md` kararını Codex tek başına değiştiremez. Yeni açık kullanıcı kararı geldiğinde yeni ID ile önceki kararı **supersede** et, gerekçe/tarih/kaynak bağını koru; eski kararın metnini veya geçmişini silme. Çelişkiyi tahminle çözme.
 
-- Teslim önceliği: [ortak Melisa teslim haritası](MELISA_TESLIM_HARITASI_V1.md). Bu ERP dosyası ana kopyadır; CRM giriş dosyası bu haritaya yönlenir. İkinci teslim haritası oluşturma.
-- Ayrıntılı kapsam ve kabul: `ERP_FINISH_PLAN.md`; migration işi için ayrıca `ERP_MIGRATION_PLAN.md`. Güncel durum ve kaldığın yer: `STATUS.md`. Tarihsel durum satırlarını bugünkü eksik veya bugünkü runtime kanıtı sayma.
-- Ortak yön önce CRM, sonra ERP'dir. Bu yön, bağımsız ve yetkili ERP TEST işlerini yasaklamaz. Ortak API/DB/servis işlerini koordine et. İlk sürüm için önerilen kapsam daralmasını kullanıcı kararı olmadan uygulama; terminal, fiyat/finans veya migration şartlarını kendiliğinden silme/erteleme.
+Panodaki iş bir gelecek çalışma talimatıdır; kendi başına runtime/SQL/Vega/gerçek müşteri gönderimi yetkisi değildir. İlgili görev kapsamı ve mevcut TEST/LIVE, gerçek alıcı, credential sınırları sürer. `devam` main merge/tag/release/LIVE deploy yetkisi vermez. GitHub kaynak teslimi deployment değildir.
 
-### Kullanıcı “devam” dediğinde
-
-1. Mevcut kanonik proje, aktif geliştirme dalı ve yerel değişikliklerden devam et. Eski main uygulamasını güncel geliştirme üzerine geçirme; başkasının işini ezme. Harita, güncel plan ve STATUS'u oku; aynı oturumda değişmemiş belgeleri tekrar tekrar okuma.
-2. Önce yarım kalan anlamlı işi tamamla; sonra bağımlılıkları karşılanmış, canlı teslimi en çok engelleyen işi seç. Sarı bir veri doğruluğu, personel veya yetki kabulü kırmızı bir konfor özelliğinden önce gelebilir. Kullanıcının özel görev talimatı varsa onu esas al. Değişmeyen kabul edilmiş özellikleri baştan ispatlama.
-3. İlk bildirim kısa olsun: “Şimdi ... yapıyorum; tamamlanınca ... ekranında ... göreceksin.” Planı yeniden anlatmak veya uzun komut istemek teslim değildir.
-4. Bağımsız işleri mevcut ve gerçekten yüklenmiş ajanlara açık dosya sahipliğiyle dağıt. Aynı dosyada eşzamanlı yazma veya ortak serviste çakışan restart yapma. Salt okunur roller yazma yapmaz; yetkili uygulamayı ana ajan veya uygun rol yürütür. Çalışmayan ajanı/modeli kullanılmış gibi raporlama.
-5. Seçilen işi kod, hedefli kontrol, normal TEST ekranı ve GitHub teslimiyle tamamla. Gerçek kaynak, veri tarihi, sentetik TEST ve bilinmeyen alanları ayır; bilinmeyen değeri sıfır yapma. Günlük kullanımı engelleyen görsel sorunları düzelt; sırf süs veya yeni mimariyle teslimi geciktirme. Fiziksel cihaz/personel denenmediyse kabul edilmiş sayma.
-6. Sadece rapor veya commit üretildi diye durma. Oturum ve araç kapasitesi elverdiğince aynı onaylı teslim hedefindeki sonraki bağımsız işe ilerle. İnsan kararı gereken işi açık bırakıp bağımsız yetkili işi yapabilirsin. Gerçek engelde somut nedeni kaydet; aynı başarısız deneme veya onayı döngüye sokma, izin reddini aşma.
-7. Kullanıcı ayrıca istemeden ilgili kod, test, plan ve durum değişikliklerini dar commit ile kaydet, push et, mevcut ilgili PR'yi güncelle veya gerekiyorsa PR aç. Uzak commit/PR head ve aynı commit'in CI sonucunu doğrula. Kullanıcı kabulü beklemek kaynak teslimini durdurmaz; eksik işi veya kırmızı/bilinmeyen CI'yi yeşil gösterme. Yükleme başarısızsa “Yerelde hazır; GitHub teslimi eksik” ve nedenini yaz. Salt okunur görev veya açık commit/push yasağı istisnadır. Ham müşteri verisi, mesajlar, secret, .env, yedek ve özel runtime dosyalarını yükleme.
-8. Her anlamlı teslimde kısa Türkçe **KULLANICI RAPORU** ver: **NE DEĞİŞTİ?** (işletme açısından 2–5 kısa madde), **NEREDEN GÖREBİLİRİM?** (doğrulanmış TEST adresi ve normal ekran), **GERÇEK VERİ DURUMU**, **DURUM** (teknik hazır / kullanıcı kabulü bekliyor / bloke), **GITHUB** (branch, commit, PR, CI tek satır), **SIRADAKİ İŞ**. Çalışan paket commit'i ile kaynak HEAD'ini ayır. Tekrarlanan test sayıları veya ham teknik çıktı ana açıklama değildir.
-9. Kaldığın yeri STATUS'a kaydet. Oturum/araç limiti veya zorunlu fiziksel adımda tamamlananı ve sonraki tek somut adımı bildir. Çalışma yürümüyor veya zamanlanmış görev yokken arka planda devam ettiğini söyleme. Finish-tree sayımını canlı hazırlık yüzdesi yapma; süreleri ölçümden ayrı tahmin olarak sun.
-
-### Yerelde uygulanma sınırı
-
-Bu bölüm mevcut teslim haritası belge PR'sindedir; main veya Semih PC kendiliğinden güncellenmiş değildir. Yerel uyarlama istendiğinde yalnız ilgili talimat/harita farklarını mevcut aktif geliştirme dalına kullanıcı değişikliklerini koruyarak al; bütün uygulama dallarını körlemesine birleştirme. Bu projedeki oturumun talimatları okuduğunu bir kez doğrula; açık oturumun otomatik yenilendiğini varsayma. Bunun için yeni Work projesi, servis restartı veya yeni gate kurma. GitHub teslimi, main merge ve LIVE dağıtımı ayrı işlemlerdir; mevcut ayrı onay sınırları sürer.
+Dosyaların rolü ve karar kayıt yöntemi [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) içindedir. [Ortak teslim haritası](MELISA_TESLIM_HARITASI_V1.md) tam teslim bağlamıdır; günlük sırayı pano belirler. Bu belge PR'si main veya diğer açık oturumları kendiliğinden güncellemez.
 
 ## GitHub geliştirme ve teslim kuralı — 3 Ekim 2026
 
@@ -35,7 +25,7 @@ Bu bölüm mevcut teslim haritası belge PR'sindedir; main veya Semih PC kendili
 - PR'nin tam head commit'i için gerekli CI kontrolleri yeşil olmalıdır. Teknik PASS ve gerçek kullanıcı kabulü ayrı alanlardır; build/unit/secret scan sonucu kullanıcı kabulü sayılmaz.
 - Kullanıcının tam PR/commit ve kapsam için kayıtlı kabulü olmadan main merge yok; auto-merge açma. Kabulden sonra değişen kod için etkilenen kontroller/kabul yenilenir.
 - İlk ve sonraki sürüm tagleri yalnız kullanıcı tarafından kabul edilmiş, CI kontrolleri geçmiş main commit'inden oluşturulur. Feature dalını tagleme; mevcut görevin kapsamı tag/release/deploy yetkisi değildir.
-- Her iş sonunda projenin kanonik STATUS dosyasına tarih, kapsam, teknik sonuç/kanıt, gerçek kullanıcı kabulü/kanıt, branch, commit, PR, TEST/LIVE commitleri ve kalan somut iş yaz. Bilinmeyen bilgiyi `Durum doğrulanmadı` olarak kaydet. Kendi hash'ini içeren commit üretmeye çalışma: teslim commit'ini izleyen status kaydı veya PR head bağlantısı kullan.
+- Her iş sonunda projenin kanonik STATUS dosyasına tarih, kapsam, teknik sonuç/kanıt, USER_ACCEPTANCE kaydı bağlantısı, branch, commit, PR, TEST/LIVE commitleri ve kalan somut iş yaz. Bilinmeyen bilgiyi `Durum doğrulanmadı` olarak kaydet. Kendi hash'ini içeren commit üretmeye çalışma: teslim commit'ini izleyen status kaydı veya PR head bağlantısı kullan.
 - Son raporda branch/commit/PR, CI sonucu, güncellenen status ve kalan kullanıcı kabulünü açıkça belirt. `gh` işlemlerini ajan yürütür; kullanıcıdan komut öğrenmesi veya token paylaşması istenmez.
 - CI yalnız GitHub-hosted runner üzerinde offline/sentetik kontrollerdir. Self-hosted runner, LIVE/TEST bağlantısı, gerçek secret, provider/SQL smoke, migration, deployment, gerçek mesaj veya ticari veri testi ekleme.
 
@@ -71,15 +61,14 @@ credential güvenliği ve LIVE değişikliklerinin onay sınırları sürer.
 - Proje klasörleri, eski çalışmalar ve kullanıcı değişiklikleri korunur. Projects
   alanının ileride yalnız CRM ve ERP olacak şekilde sadeleştirilmesi bu görevin
   silme, taşıma veya arşivleme yetkisi değildir.
-- Önce `ERP_FINISH_PLAN.md` ve `STATUS.md` oku. Bitiş sırası ve
-  açık işlerin source of truth'u `ERP_FINISH_PLAN.md`; status ve eski roadmap'ler
-  kaynak kanıttır. Ardından aşağıdaki gerekli merkezi/yerel okumaları yap.
+- Önce yukarıdaki karar merkezi okuma sırasını izle. Günlük sıra `DELIVERY_BOARD.md`,
+  tam kapsam/kabul ağacı `ERP_FINISH_PLAN.md`, teknik kanıt `STATUS.md` içindedir. Ardından aşağıdaki gerekli merkezi/yerel okumaları yap.
   Aynı görevde okunmuş ve değişmemiş belgeleri yeniden okumak gerekmez.
 - Çalışan baseline'ı yeniden ispatlayan sprint açma. Mevcut commit, ortam ve kabul
   kapsamıyla uyumlu kanıtı kullan; sadece değişen akış, somut regresyon, hedef
   değişimi veya eksik kabul için ilgili kontrolü çalıştır. Eski kanıt güncel LIVE
   sağlığı değildir; işlem öncesi hedef kimliği kontrolü yine zorunludur.
-- Plandan **tek kırmızı madde** seç; ID, amaç, kabul kriteri, dosya sahipliği ve
+- Panodan **bağımlılığı hazır en öncelikli onaylı işi** seç; ID, amaç, kabul kriteri, dosya sahipliği ve
   TEST hedefini kaydet. Bağımsız inceleme/backend/frontend işleri alt ajanlara
   böl. Aynı dosyaya eşzamanlı yazma yok; ortak sözleşmeyi önce ana ajan belirler,
   bağımlı işler sırayla ilerler. Plan/status güncellemesi ve entegrasyon ana ajana
@@ -114,10 +103,10 @@ credential güvenliği ve LIVE değişikliklerinin onay sınırları sürer.
 
 ### Tek kelimelik varsayılan — 3 Ekim 2026
 
-- Kullanıcı ana Codex konuşmasında yalnız `devam`, `başla` veya `sıradaki` yazarsa bunu **ERP bitiş planındaki sıradaki açık/kırmızı maddeyi tamamla; gereken subagent'ları kullan, TEST'te gereken teknik işlemleri yap ve gerçek kabul hazır olunca dön** talimatı olarak uygula. Uzun komutu yeniden yazmasını veya rutin iş için tekrar onay vermesini isteme.
-- Önce `ERP_FINISH_PLAN.md` ve `STATUS.md` dosyalarını oku. Plan iş sırası ve kabul ölçütlerinin source of truth'u, `STATUS.md` güncel durum ve kanıt kaydı olarak kalır; eski `ERP_STATUS.md` yeni durum kaynağı yapılmaz. Plan sırasını güncel açık durumla birlikte değerlendir; tamamlanmış/kabulü kayıtlı işi yeniden açmadan sıradaki tek açık/kırmızı maddeyi seç. Tarihsel durum satırlarını güncel eksik sayma.
+- Kullanıcı ana Codex konuşmasında yalnız `devam`, `başla` veya `sıradaki` yazarsa bunu **ERP DELIVERY_BOARD ŞİMDİ listesindeki bağımlılığı hazır en öncelikli onaylı işi tamamla; gereken subagent'ları kullan, TEST'te gereken teknik işlemleri yap ve gerçek kabul hazır olunca dön** talimatı olarak uygula. Uzun komutu yeniden yazmasını veya rutin iş için tekrar onay vermesini isteme.
+- Karar merkezi okuma sırasını ve pano seçimini uygula; finish plan tam kapsam, `STATUS.md` teknik kanıttır. Eski `ERP_STATUS.md` yeni durum kaynağı yapılmaz.
 - Seçilen işi yukarıdaki çalışma düzeniyle tamamla: gereken explorer/backend/frontend/reviewer/sql-vega/release subagent'larını açık dosya sahipliğiyle görevlendir, sonuçları birleştir ve doğrulanmış TEST'te gerekli kod düzeltmesi, build, kurulum, restart, test, feature branch/commit/push işlemlerini yürüt. Verilmiş TEST yetkisi için yeni gate, bridge veya approval döngüsü oluşturma; eski genel onay metinleri bu kapsamda tekrar izin isteme gerekçesi değildir.
-- Çalışan baseline'ı yeniden ispatlama; yalnız değişen akış, somut regresyon veya eksik kabul için hedefli doğrulama yap. Gerçek kabul hazır olunca kullanılabilir sonucu ve kanıtını aynı plan/status'a kaydet. Personelin veya kullanıcının fiziksel kontrolü gerekiyorsa teknik hazırlığı tamamlayıp yalnız kalan somut kabul adımını iste; build/smoke/mock sonucunu gerçek kabul veya PASS yerine koyma.
+- Çalışan baseline'ı yeniden ispatlama; yalnız değişen akış, somut regresyon veya eksik kabul için hedefli doğrulama yap. Kullanıcı kabulünü `USER_ACCEPTANCE.md` içine, teknik kanıtını status ve ilgili finish yaprağına bağla. Personelin veya kullanıcının fiziksel kontrolü gerekiyorsa teknik hazırlığı tamamlayıp yalnız kalan somut kabul adımını iste; build/smoke/mock sonucunu gerçek kabul veya PASS yerine koyma.
 - Yukarıdaki runtime kimliği, TEST/LIVE, Vega/gerçek ticari kayıt, mesaj gönderimi ve credential sınırları sürer. Kısa komut main'e otomatik merge veya LIVE değişiklik yetkisi vermez; açık madde kalmadıysa tamamlanmış işi yeniden başlatmadan mevcut sonucu bildir.
 
 ### Semih PC'de kullanım

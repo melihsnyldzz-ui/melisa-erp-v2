@@ -26,7 +26,8 @@ const index=destination+'/apps/web-admin/dist-test/index.html';
 fs.writeFileSync(index,fs.readFileSync(index,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">TEST · Salt okunur · '+sourceCommit.slice(0,12)+'</div>'));
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/sites-workflow');
 npm(['run','build'],destination+'/apps/sites-workflow',{...env,VITE_API_BASE_URL:'http://127.0.0.1:4144',VITE_VEGA_PRODUCTS_BASE_URL:'http://127.0.0.1:4144',VITE_TEST_READ_ONLY:'false'});
-for(const page of ['is-akisi-taslagi.html','ornek-akis.html','legacy-admin.html']){
+// The normal working face carries product information, not package/debug labels.
+for(const page of ['is-akisi-taslagi.html','legacy-admin.html']){
  const f=destination+'/apps/sites-workflow/dist/'+page;
  const label=page==='is-akisi-taslagi.html'?'TEST · SQL iş akışları · LIVE’dan ayrı':'TEST · Ayrı örnek ekran';
  fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">'+label+' · '+sourceCommit.slice(0,12)+'</div>'));
