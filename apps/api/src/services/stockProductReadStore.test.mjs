@@ -14,3 +14,9 @@ test('identity, role, actor, each missing/drifted pin and malformed rows fail cl
  const changes=[f=>{f.state.identity.db='LIVE';},f=>{f.state.row.canView=false;},f=>{f.state.row.actorId='16';},f=>{f.state.row.rowsJson='{}';},f=>{f.state.row.quarantinedCount=0;},f=>{f.state.row.readAt='2026-02-30T08:00:00.000Z';},...Object.keys(STOCK_PRODUCT_SQL_PROOF).map(k=>f=>{f.state.row[k]='X';})];
  for(const change of changes){const f=fixture();change(f);await assert.rejects(()=>f.store.readStockProducts(input()),{code:'STOCK_PRODUCT_UNAVAILABLE'});assert.equal(f.state.commit,0);assert.equal(f.state.rollback,1);}
 });
+test('store decodes finance-authorized lists without financial but requires financial only for detail',async()=>{
+ const card={id:'301986',stockCode:'TEST-DAILY-PURCHASE',productName:'Deneme',isActive:true,stockQuantityExact:null,unit:{label:null,sourceId:null,factorExact8:null,verified:false},barcodes:[],imageUrl:null,provenance:{kind:'synthetic-test',sourceKey:null,runId:null,sourceAsOf:null,verified:true},hold:{blocked:false,reasons:[]}};
+ const list=fixture();Object.assign(list.state.row,{canViewFinance:true,total:1,rowsJson:JSON.stringify([card])});assert.equal((await list.store.readStockProducts(input())).rows.length,1);assert.equal(list.state.commit,1);
+ const detail=fixture();Object.assign(detail.state.row,{canViewFinance:true,total:1,limit:1,rowsJson:JSON.stringify([card])});await assert.rejects(()=>detail.store.readStockProducts({...input(),productId:'301986',options:{...input().options,limit:1}}),{code:'STOCK_PRODUCT_UNAVAILABLE'});assert.equal(detail.state.commit,0);
+ card.financial={averageCostTryExact:null,prices:[]};const unexpected=fixture();Object.assign(unexpected.state.row,{canViewFinance:true,total:1,rowsJson:JSON.stringify([card])});await assert.rejects(()=>unexpected.store.readStockProducts(input()),{code:'STOCK_PRODUCT_UNAVAILABLE'});assert.equal(unexpected.state.commit,0);
+});
