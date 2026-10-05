@@ -14,6 +14,21 @@ test('offline SQL and independent expected-proof artifacts exactly match source'
  assert.ok(CATALOG_STORED_DEFINITION.startsWith('CREATE   PROCEDURE dbo.usp_read_work_catalog'));
  for(const [key,value] of Object.entries(STOCK_PRODUCT_SQL_PROOF))assert.equal(CATALOG_SQL_PROOF[key==='readerDefinitionHash'?'stockReaderDefinitionHash':key],value);
 });
+test('CRLF packaged installer normalizes only definition line endings before both guarded install paths',()=>{
+ const source=buildWorkCatalogSql();
+ const packaged=source.replace(/\r?\n/g,'\r\n');
+ const literal=/DECLARE @catalog_definition nvarchar\(max\)=N'((?:[^']|'')*)';/.exec(packaged);
+ assert.ok(literal);const decoded=literal[1].replaceAll("''","'");
+ assert.ok(decoded.includes('\r\n'));const normalized=decoded.replaceAll('\r\n','\n');assert.equal(normalized,CATALOG_PROC_SQL);
+ const stored=normalized.replace(/^CREATE OR ALTER PROCEDURE /,'CREATE   PROCEDURE ');
+ assert.equal(createHash('sha256').update(stored,'utf16le').digest('hex').toUpperCase(),CATALOG_SQL_PROOF.readerDefinitionHash);
+ assert.ok(packaged.includes('SET @catalog_definition=REPLACE(@catalog_definition,NCHAR(13)+NCHAR(10),NCHAR(10));'));
+ assert.equal((packaged.match(/EXEC sys\.sp_executesql @catalog_definition;/g)||[]).length,2);
+ assert.ok(packaged.indexOf('SET @catalog_definition=REPLACE')<packaged.indexOf('EXEC sys.sp_executesql @catalog_definition;'));
+ assert.ok(packaged.includes(CATALOG_PREVIOUS_HASH));assert.ok(packaged.includes(CATALOG_ACCESS_SQL.replace(/\r?\n/g,'\r\n')));
+ assert.notEqual(createHash('sha256').update(stored.replace('WITH EXECUTE AS OWNER','WITH EXECUTE AS CALLER'),'utf16le').digest('hex').toUpperCase(),CATALOG_SQL_PROOF.readerDefinitionHash);
+ assert.equal((packaged.match(new RegExp("<>\\x27"+CATALOG_SQL_PROOF.readerDefinitionHash+"\\x27 THROW 51102,\\x27WORK_CATALOG_DEFINITION_DRIFT\\x27",'g'))||[]).length,2);
+});
 test('new owner reader writes no business rows and grants only its narrow two TEST executes',()=>{
  const sql=buildWorkCatalogSql();
  assert.doesNotMatch(sql,/ALTER\s+(?:TABLE|TRIGGER)|ALTER\s+PROCEDURE\s+dbo\.(?!usp_read_work_catalog\b)|DISABLE\s+TRIGGER|SESSION_CONTEXT|DELETE\s+FROM|TRUNCATE|DROP\s+|INSERT\s+(?:dbo|erp_migration)\.|UPDATE\s+(?:dbo|erp_migration)\./i);
