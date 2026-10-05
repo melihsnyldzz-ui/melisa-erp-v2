@@ -12,7 +12,7 @@ export function createStockProductService({getStore=()=>import('./stockProductRe
       ||result.acceptedCount!==16622||result.syntheticCount!==3||result.quarantinedCount!==54
       ||result.rows.length!==Math.min(options.limit,Math.max(0,result.total-(options.page-1)*options.limit)))throw stockProductError();
     const canViewFinance=result.canViewFinance&&user.permissions.includes('purchase.view');
-    const data=result.rows.map(row=>stockProductDto(row,{sqlFinance:result.canViewFinance,canViewFinance}));
+    const data=result.rows.map(row=>stockProductDto(row,{sqlFinance:result.canViewFinance,canViewFinance,financialExpected:productId!==null&&result.canViewFinance}));
     if(new Set(data.map(row=>row.id)).size!==data.length||productId!==null&&(result.total>1||data.some(row=>row.id!==productId)))throw stockProductError();
     return {data,meta:{total:result.total,page:options.page,limit:options.limit,totalPages:Math.ceil(result.total/options.limit),readOnly:true,sourceAsOf:'2026-09-30',freshLive:false,readAt:result.readAt,canViewFinance,scopeCounts:{acceptedOpening:result.acceptedCount,syntheticTest:result.syntheticCount,quarantinedSource:result.quarantinedCount}}};
   }

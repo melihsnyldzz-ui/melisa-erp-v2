@@ -18,7 +18,7 @@ export function createStockProductReadStore({getRuntime=defaultRuntime}={}){
       if(row.acceptedCount!==16622||row.syntheticCount!==3||row.quarantinedCount!==54)throw stockProductError();
       const rows=JSON.parse(row.rowsJson);if(!Array.isArray(rows))throw stockProductError();
       if(!Number.isSafeInteger(row.total)||row.total<0||row.page!==options.page||row.limit!==options.limit||rows.length!==Math.min(options.limit,Math.max(0,row.total-(options.page-1)*options.limit))||!stockReadTimestamp(row.readAt))throw stockProductError();
-      const ids=rows.map(value=>stockProductDto(value,{sqlFinance:row.canViewFinance,canViewFinance:row.canViewFinance}).id);
+      const ids=rows.map(value=>stockProductDto(value,{sqlFinance:row.canViewFinance,canViewFinance:row.canViewFinance,financialExpected:productId!==null&&row.canViewFinance}).id);
       if(new Set(ids).size!==ids.length||productId!==null&&(row.total>1||ids.some(id=>id!==productId)))throw stockProductError();
       const result={actorId:row.actorId,canViewFinance:row.canViewFinance,total:row.total,page:row.page,limit:row.limit,readAt:row.readAt,rows,acceptedCount:row.acceptedCount,syntheticCount:row.syntheticCount,quarantinedCount:row.quarantinedCount};
       await tx.commit();return result;

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL} from './enable-test-stock-products.mjs';
+import {buildStockProductsSql,buildStockProductSqlProofModule,STOCK_PRODUCT_PROC_SQL,STOCK_PRODUCT_STORED_DEFINITION,STOCK_PRODUCT_SQL_PROOF,STOCK_PRODUCT_READY_SQL,STOCK_PRODUCT_BINDING_SQL,STOCK_PRODUCT_ACCESS_SQL,STOCK_PRODUCT_PREVIOUS_HASH} from './enable-test-stock-products.mjs';
 import {STOCK_PRODUCT_SQL_PROOF as artifactProof} from '../../apps/api/src/services/stockProductSqlProof.mjs';
 
 test('SQL and API pin artifacts match source without any SQL connection',()=>{
@@ -10,13 +10,13 @@ test('SQL and API pin artifacts match source without any SQL connection',()=>{
  assert.equal(fs.readFileSync(new URL('../../apps/api/src/services/stockProductSqlProof.mjs',import.meta.url),'utf8'),buildStockProductSqlProofModule());
  assert.deepEqual(artifactProof,STOCK_PRODUCT_SQL_PROOF);
  const digest=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
- assert.equal(artifactProof.readerDefinitionHash,digest(STOCK_PRODUCT_PROC_SQL));
- assert.notEqual(artifactProof.readerDefinitionHash,digest(STOCK_PRODUCT_PROC_SQL.replace("p.permission_key=N'product.view'", "p.permission_key=N'supplier.view'")));
+ assert.equal(artifactProof.readerDefinitionHash,digest(STOCK_PRODUCT_STORED_DEFINITION));
+ assert.notEqual(artifactProof.readerDefinitionHash,digest(STOCK_PRODUCT_STORED_DEFINITION.replace("p.permission_key=N'product.view'", "p.permission_key=N'supplier.view'")));
  for(const key of Object.keys(artifactProof))assert.match(STOCK_PRODUCT_PROC_SQL,new RegExp(`\\b${key}\\b`));
 });
 test('new owner procedure is read-only and preserves every old writer/reader/table definition',()=>{
  const sql=buildStockProductsSql();
- assert.doesNotMatch(sql,/ALTER\s+(?:TABLE|TRIGGER|PROCEDURE)|DISABLE\s+TRIGGER|SESSION_CONTEXT|DELETE\s+FROM|TRUNCATE|DROP\s+|INSERT\s+(?:dbo|erp_migration)\.|UPDATE\s+(?:dbo|erp_migration)\./i);
+ assert.doesNotMatch(sql,/ALTER\s+(?:TABLE|TRIGGER)|ALTER\s+PROCEDURE\s+dbo\.(?!usp_read_stock_products\b)|DISABLE\s+TRIGGER|SESSION_CONTEXT|DELETE\s+FROM|TRUNCATE|DROP\s+|INSERT\s+(?:dbo|erp_migration)\.|UPDATE\s+(?:dbo|erp_migration)\./i);
  assert.doesNotMatch(sql,/CREATE TABLE (?:dbo|erp_migration)\.|CREATE TRIGGER /i);
  assert.equal((sql.match(/GRANT EXECUTE ON OBJECT::dbo\.usp_read_stock_products TO/g)||[]).length,2);
  assert.doesNotMatch(sql,/GRANT (?:SELECT|INSERT|UPDATE|DELETE|CONTROL)|GRANT.*SCHEMA::/i);
@@ -26,7 +26,7 @@ test('new owner procedure is read-only and preserves every old writer/reader/tab
 test('stock permission is independent from finance and DB actual role controls optional fields',()=>{
  assert.match(STOCK_PRODUCT_PROC_SQL,/u\.id=@actor_id AND u\.is_active=1 AND p\.permission_key=N'product.view' AND p\.can_view=1/);
  assert.match(STOCK_PRODUCT_PROC_SQL,/DECLARE @financial bit=CASE WHEN EXISTS.*permission_key=N'purchase.view'/);
- assert.match(STOCK_PRODUCT_PROC_SQL,/CASE WHEN @financial=1 THEN j\.row_json ELSE JSON_MODIFY\(j\.row_json,'\$\.financial',NULL\) END/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/CASE WHEN @product_id IS NOT NULL AND @financial=1 THEN j\.row_json ELSE JSON_MODIFY\(j\.row_json,'\$\.financial',NULL\) END/);
  assert.doesNotMatch(STOCK_PRODUCT_PROC_SQL,/p\.(?:purchase_price|sales_price)/);
  assert.match(STOCK_PRODUCT_PROC_SQL,/CAST\(p\.average_cost_try AS decimal\(28,8\)\)/);
  assert.match(STOCK_PRODUCT_PROC_SQL,/s\.kind=N'quarantined-source' THEN NULL/);
@@ -60,8 +60,8 @@ test('accepted scope, explicit fixtures and sealed hold cards have separate coun
  assert.match(STOCK_PRODUCT_READY_SQL,/9AE41CA1AB25EE165019AD04DBD9A6FB4E5B7190F027E0A07A87FB03D698379E/);
 });
 test('source/native bindings and immutable C09 current versions fail closed without scalar price fallback',()=>{
- assert.match(STOCK_PRODUCT_READY_SQL,/b\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
- assert.match(STOCK_PRODUCT_READY_SQL,/v\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/b\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/v\.binding_hash<>CONVERT\(char\(64\),HASHBYTES/);
  assert.match(STOCK_PRODUCT_BINDING_SQL,/p\.source_record_key\) EXCEPT SELECT CONVERT/);
  assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash IS NULL OR r\.payload_json IS NULL/);
  assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash<>b\.stage_payload_hash/);
@@ -75,4 +75,43 @@ test('NOOP requires exact installed body and two narrow grants instead of repair
  assert.match(noop,/STOCK_PRODUCT_DEFINITION_DRIFT/);assert.match(noop,/STOCK_PRODUCT_EXECUTE_DRIFT/);
  assert.doesNotMatch(noop,/GRANT |DENY |ALTER /);
  assert.match(STOCK_PRODUCT_ACCESS_SQL,/minor_id=0/);assert.match(STOCK_PRODUCT_ACCESS_SQL,/\)<>2/);
+});
+test('expensive row witnesses are page-scoped while global count, seal and enabled immutable proofs remain',()=>{
+ assert.doesNotMatch(STOCK_PRODUCT_READY_SQL,/b\.binding_hash<>|v\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/COUNT\(\*\) FROM erp_migration\.accepted_price_products\)<>16622/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/COUNT\(\*\) FROM erp_migration\.accepted_price_values\)<>63774/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/bindings_hash='5842be926d493c8973566fd922ef840d9fe6f7cecd9d83f17f506be5aa3fbd72'/);
+ assert.match(STOCK_PRODUCT_READY_SQL,/ExecIsTriggerDisabled/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/FROM #StockPage s JOIN erp_migration\.accepted_price_products b ON b\.product_id=s\.id WHERE b\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/FROM #StockPage s JOIN erp_migration\.accepted_price_values v ON v\.product_id=s\.id WHERE v\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/r\.payload_hash<>v\.stage_payload_hash/);
+});
+test('controlled metadata upgrade accepts exactly the previous hash and preserves existing grants',()=>{
+ const sql=buildStockProductsSql(),start=sql.indexOf("IF OBJECT_ID(N'dbo.usp_read_stock_products') IS NOT NULL"),end=sql.indexOf('\nEND;\nEXEC sys.sp_executesql',start),upgrade=sql.slice(start,end);
+ assert.equal(STOCK_PRODUCT_PREVIOUS_HASH,'8C09D817DFB3C54802FCECC8DC5A18457D891CD887D1AB8BDAAA65E274BF08F3');
+ assert.match(STOCK_PRODUCT_PROC_SQL,/^CREATE OR ALTER PROCEDURE dbo\.usp_read_stock_products/);
+ const oldCheck=upgrade.indexOf(`@prior_definition_hash<>'${STOCK_PRODUCT_PREVIOUS_HASH}'`),mutation=upgrade.indexOf('EXEC sys.sp_executesql');
+ assert.ok(oldCheck>0&&oldCheck<mutation);
+ assert.ok(upgrade.indexOf('STOCK_PRODUCT_EXECUTE_DRIFT')<oldCheck);
+ assert.doesNotMatch(upgrade,/GRANT |DENY |DROP |UPDATE dbo\./);
+ assert.match(upgrade,/N'UPGRADED' result,1 writes/);
+ assert.match(upgrade,new RegExp(`@prior_definition_hash='${STOCK_PRODUCT_SQL_PROOF.readerDefinitionHash}' BEGIN COMMIT; SELECT N'NOOP' result,0 writes; RETURN; END`));
+});
+test('independent pin uses the SQL Server stored header proven by the rolled-back compile',()=>{
+ assert.match(STOCK_PRODUCT_STORED_DEFINITION,/^CREATE {3}PROCEDURE dbo\.usp_read_stock_products/);
+ assert.equal(STOCK_PRODUCT_STORED_DEFINITION.slice('CREATE   PROCEDURE '.length),STOCK_PRODUCT_PROC_SQL.slice('CREATE OR ALTER PROCEDURE '.length));
+ assert.equal(STOCK_PRODUCT_PROC_SQL.length-STOCK_PRODUCT_STORED_DEFINITION.length,7);
+ assert.notEqual(STOCK_PRODUCT_SQL_PROOF.readerDefinitionHash,createHash('sha256').update(STOCK_PRODUCT_PROC_SQL,'utf16le').digest('hex').toUpperCase());
+});
+test('list omits financial JSON and price witnesses; authorized detail retains full price evidence',()=>{
+ const priceStart=STOCK_PRODUCT_BINDING_SQL.indexOf('IF @product_id IS NOT NULL AND @financial=1 BEGIN'),priceEnd=STOCK_PRODUCT_BINDING_SQL.indexOf('END;',priceStart);
+ const productBranch=STOCK_PRODUCT_BINDING_SQL.slice(0,priceStart),priceBranch=STOCK_PRODUCT_BINDING_SQL.slice(priceStart,priceEnd);
+ assert.match(productBranch,/r\.payload_hash<>b\.stage_payload_hash/);
+ assert.match(productBranch,/b\.price_count<>\(SELECT COUNT\(\*\) FROM erp_migration\.accepted_price_values/);
+ assert.doesNotMatch(productBranch,/LEFT JOIN dbo\.product_prices/);
+ assert.match(priceBranch,/SELECT n\.\* FOR JSON PATH/);
+ assert.match(priceBranch,/r\.payload_hash<>v\.stage_payload_hash/);
+ assert.match(STOCK_PRODUCT_BINDING_SQL,/IF @product_id IS NOT NULL AND @financial=1 AND EXISTS[\s\S]*v\.binding_hash<>/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/JSON_QUERY\(CASE WHEN @product_id IS NOT NULL AND @financial=1 THEN\(SELECT/);
+ assert.match(STOCK_PRODUCT_PROC_SQL,/@financial canViewFinance/);
 });

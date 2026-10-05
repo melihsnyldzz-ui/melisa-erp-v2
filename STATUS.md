@@ -3,9 +3,19 @@
 ## 5 Ekim 2026 — yalnız proje yönetimi belge teslimi
 
 - Teknik kayıt rolü: bu dosya test/CI/ortam ve kanıtı tutar. Kararlar [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md), günlük sıra [DELIVERY_BOARD.md](DELIVERY_BOARD.md), insan sonucu [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md), tam kapsam [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md) içindedir.
-- Kaynak tabanı `20fe2ba563632c8dacd4980c822805859f272963`; belge dalı `docs/decision-center-20261005`, hedef `codex/erp-finish-20261004`. Teslim commit'i bu kaydı taşıyan PR'nin head'idir; CI aynı head için PR Checks'te doğrulanır. Önceki CI bu head için PASS sayılmaz.
+- İlk belge tabanı `20fe2ba563632c8dacd4980c822805859f272963`; eşzamanlı kaynak güncellemesi `3fda5e5e0dcdcd288ad3a4deb9b1f6f69f81e506` ile doküman çakışmaları uzlaştırıldı; belge dalı `docs/decision-center-20261005`, hedef `codex/erp-finish-20261004`. Teslim commit'i bu kaydı taşıyan PR'nin head'idir; CI aynı head için PR Checks'te doğrulanır. Önceki CI bu head için PASS sayılmaz.
 - Markdown kapsamı, yerel bağlantılar, karar ID/alanları, ŞİMDİ sayısı/bağımlılıkları, bekleyen kabul kayıtları ve korunmuş finish ID'leri kontrol edildi: PASS; bağımsız salt okunur inceleme sonrası bulunan iki yönlendirme çelişkisi düzeltildi. Uygulama kabulü bu görevde çalıştırılmadı; mevcut hosted offline CI ayrıca izlenir. Uygulama kodu, TEST/LIVE runtime, SQL/Vega, veri/provider ve mevcut kullanıcı kabulleri değiştirilmedi. Çalışan TEST/LIVE commit'i bu görevde **Durum doğrulanmadı**; aşağıdaki runtime kayıtları kendi kontrol anına aittir.
 - Yeni kullanıcı denemeleri başlangıçta `bekliyor`; teknik testlerden insan PASS üretilmedi. Bu belge işi geliştirmeyi yeniden başlatmaz, main merge/tag/deploy yapmaz.
+
+- Belge teslimi: [PR26](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/26), ilk doküman commit `7f04e1ad290048ae74096708c8d5a329cf7ce5bc`; [push CI37287741460](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37287741460) quality-build-test/secret-scan SUCCESS. Kaynak uzlaştırması sonrası nihai head için [PR26 Checks](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/26/checks) ayrıca izlenir. Uzak tabandaki uygulama değişiklikleri diğer mevcut çalışmanın kaydıdır; bu PR'nin base→head farkı yalnız Markdown kalır.
+
+5 Ekim 2026 — **TEST ADMIN otomatik açılış teknik olarak hazır; kullanıcı kabulü bekliyor.** [5194](http://127.0.0.1:5194) taze sekmede giriş formunu atlar. İş sırası + 17 TEST menüsü gerçek ekranda erişilebilir; `Kullanıcı değiştir` ile gerçek hesap girişine dönülür, manuel seçim yenilemede korunur. Mevcut kullanıcı/rol/izin/refresh tabloları aynı; yeni SQL/LIVE yetkisi ve ticari yazma yok.
+
+- TEST paket32/source `327c47ce42a872b1af956dc7e7f8306d5a4d1852`, 1228 dosya hash doğrulandı. Yalnız 5194/4144/4146 değişti; LIVE süreç sahipleri aynı, LIVE commit Durum doğrulanmadı. [Kapsam, negatif kontroller, eski paket ve kabul kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md).
+- GitHub: `codex/erp-finish-20261004`, [Draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23); auth son uygulama327c47c, izleyen ayrı stok source20fe2ba dört hosted CI işi SUCCESS. Nihai belge teslim commit'i PR head'inden izlenir; CI teslim sonunda ayrıca doğrulanır. Aynı daldaki diğer stok çalışması korunur; bu görev onu paketlemedi/SQL'e kurmadı. Main merge/LIVE deploy/Vega yazması yok.
+- Önceki teknik kaydın açık kapsamı: gerçek ürünleri ve fotoğraflarını stok ekranında göstermek için mevcut stok dilimi; ayrıca kullanıcının TEST ADMIN gezinme kabulü. Yeni görev başlatılmadı.
+
+## Önceki C09 kabulü
 
 5 Ekim 2026 — **C09 fiyat yazma/düzenleme ve yeni native alış tüketimi dar teknik TEST kabulüne hazır. Genel ticari kartlar, terminal fiyat tüketimi ve personel kabulü PARTIAL; C09 🟡.**
 

@@ -21,12 +21,23 @@ test('DTO unknown, actual zero, negative and unit unknown survive distinctly',()
 });
 test('finance is DB permission gated and additionally suppressed after auth revocation',async()=>{
   const response=result();response.canViewFinance=true;response.rows[0].financial={averageCostTryExact:null,prices:[{id:'77',type:'purchase',unitSourceId:null,tier:0,currency:'USD',priceExact:'0.00000000',isMainUnit:false,sourceKey:`${response.rows[0].provenance.sourceKey}/PRICE/purchase/CARD/0/USD`}]};
-  const service=createStockProductService({getStore:async()=>({readStockProducts:async()=>response})});
-  assert.equal(Object.hasOwn((await service.list({},actor)).data[0],'financial'),false);
+  const service=createStockProductService({getStore:async()=>({readStockProducts:async({options})=>({...response,limit:options.limit})})});
+  assert.equal(Object.hasOwn((await service.detail('12',actor)).data,'financial'),false);
   const financialActor={...actor,permissions:['product.view','purchase.view']};
-  assert.equal((await service.list({},financialActor)).data[0].financial.averageCostTryExact,null);
-  const price=response.rows[0].financial.prices[0];price.sourceKey='C09/301986/purchase/CARD/0/USD';await assert.rejects(()=>service.list({},financialActor));price.sourceKey=`${response.rows[0].provenance.sourceKey}/PRICE/purchase/CARD/0/USD`;
-  response.canViewFinance=false;await assert.rejects(()=>service.list({},financialActor),{code:'STOCK_PRODUCT_UNAVAILABLE'});
+  assert.equal((await service.detail('12',financialActor)).data.financial.averageCostTryExact,null);
+  const price=response.rows[0].financial.prices[0];price.sourceKey='C09/301986/purchase/CARD/0/USD';await assert.rejects(()=>service.detail('12',financialActor));price.sourceKey=`${response.rows[0].provenance.sourceKey}/PRICE/purchase/CARD/0/USD`;
+  response.canViewFinance=false;await assert.rejects(()=>service.detail('12',financialActor),{code:'STOCK_PRODUCT_UNAVAILABLE'});
+});
+test('finance-authorized list omits finance while authorized detail requires it',async()=>{
+  const response=result();response.canViewFinance=true;
+  const service=createStockProductService({getStore:async()=>({readStockProducts:async({options})=>({...response,limit:options.limit})})});
+  const user={...actor,permissions:['product.view','purchase.view']};
+  const list=await service.list({},user);assert.equal(list.meta.canViewFinance,true);assert.equal(Object.hasOwn(list.data[0],'financial'),false);
+  await assert.rejects(()=>service.detail('12',user),{code:'STOCK_PRODUCT_UNAVAILABLE'});
+  response.rows[0].financial={averageCostTryExact:null,prices:[]};
+  await assert.rejects(()=>service.list({},user),{code:'STOCK_PRODUCT_UNAVAILABLE'});
+  assert.equal((await service.detail('12',user)).data.financial.averageCostTryExact,null);
+  response.canViewFinance=false;await assert.rejects(()=>service.list({},actor),{code:'STOCK_PRODUCT_UNAVAILABLE'});await assert.rejects(()=>service.detail('12',actor),{code:'STOCK_PRODUCT_UNAVAILABLE'});
 });
 test('authorization rejects before reading; actor drift, corrupt metadata and source cannot become empty success',async()=>{
   let calls=0;const response=result();const service=createStockProductService({getStore:async()=>({readStockProducts:async()=>{calls++;return response;}})});

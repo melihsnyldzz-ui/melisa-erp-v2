@@ -18,7 +18,7 @@ const text=(v,nullable=false)=>{if(nullable&&v===null)return null;if(typeof v!==
 const bool=v=>{if(typeof v!=='boolean')return fail();return v;};
 const exact=v=>{if(v===null)return null;if(typeof v!=='string'||!/^\-?(?:0|[1-9]\d{0,19})\.\d{8}$/.test(v))return fail();return v;};
 export const stockReadTimestamp=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value;
-export function stockProductDto(row,{sqlFinance=false,canViewFinance=false}={}){
+export function stockProductDto(row,{sqlFinance=false,canViewFinance=false,financialExpected=sqlFinance}={}){
   if(!row||typeof row!=='object'||!row.unit||!row.provenance||!row.hold||!Array.isArray(row.barcodes))return fail();
   const p=row.provenance,u=row.unit,h=row.hold;
   if(!['accepted-opening','synthetic-test','quarantined-source'].includes(p.kind)||p.verified!==true)return fail();
@@ -35,7 +35,8 @@ export function stockProductDto(row,{sqlFinance=false,canViewFinance=false}={}){
   if(barcodes.some(b=>!b.value.length||b.value.length>80)||new Set(barcodes.map(b=>b.id)).size!==barcodes.length)return fail();
   if(row.imageUrl!==null&&(typeof row.imageUrl!=='string'||/[\u0000-\u001f]/.test(row.imageUrl)||/^\s*(?:javascript|data|vbscript):/i.test(row.imageUrl)))return fail();
   const data={id:id(row.id),stockCode:text(row.stockCode),productName:text(row.productName,true),isActive:bool(row.isActive),stockQuantityExact:exact(row.stockQuantityExact),unit,barcodes,imageUrl:text(row.imageUrl,true),provenance:{kind:p.kind,sourceKey:p.sourceKey,runId:p.runId,sourceAsOf:p.sourceAsOf,verified:true},hold:{blocked:h.blocked,reasons:[...h.reasons]}};
-  if(sqlFinance&&(!Object.hasOwn(row,'financial')||row.financial===null))return fail();
+  if(financialExpected&&(!sqlFinance||!Object.hasOwn(row,'financial')||row.financial===null))return fail();
+  if(!financialExpected&&Object.hasOwn(row,'financial'))return fail();
   if(Object.hasOwn(row,'financial')&&row.financial!==null){
     if(!sqlFinance||!row.financial||!Array.isArray(row.financial.prices))return fail();
     const prices=row.financial.prices.map(v=>{
