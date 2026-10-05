@@ -1,3 +1,7 @@
+# ERP-LAN01 — 5 Ekim2026 ağ erişimi hazırlanıyor
+
+Kullanıcı mevcut ERP TEST yüzünü192.168 adresinden ağdaki personele açmayı istedi; ERP-DEC-011. MevcutEthernet192.168.1.46/24, gateway192.168.1.1, Privateağ; IPDHCP'den alınıyor. Kalıcı modem rezervasyonu doğrulanmadı; OSIP/LIVEağ ayarı değiştirilmez. Exactopt-in lanHost ile API4144/web5194 hem127 hem192.1681.46 dinleyecek; native4146 yalnız127. Ağda mevcut normal hesap gerekir; localhost otomatikTESTADMIN ayrı kalır. Kaynak inbound/Host/CORS explicit; outbound/SQL/roller aynı. Windowsnode için mevcut PrivateTCPallow bulundu; firewall kapatılmaz/yeni genişrule eklenmez. Çalışma TESTpaket48 ile doğrulanıp teslim edilir; runtime henüz47. B01 insan kabulü bekliyor, UA04PASS/D04tamam korunur.
+
 # B01 — 5 Ekim2026 teknik teslim / insan kabulü bekliyor
 
 ERP-UA04 açık kullanıcı kabulü PASS; ERP-D04 mevcut onaylı katalog kapsamında tamam. Yalnız normal [Ana Sayfa / İş Sırası](http://127.0.0.1:5194/ornek-akis.html#home) TEST47/source236d49b96dbd71b000670254b1699b742f6a9038 ile teknik hazır. Dört özet, bugünkü işler, altı büyük kısa yol, mevcut gerçek izinlere göre görünüm/sıra; TRY/USD/EUR ayrı, NULL/bilinmeyen değer uydurulmaz. Yeni [teknik kabul](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md)/[kanıt manifesti](docs/erp-v2/canonical-20261005/home-daily-work-evidence.json); [ERP-UA05](USER_ACCEPTANCE.md) insan sonucu **bekliyor**. Eski durumlar aşağıda tarihsel kayıttır.

@@ -1,6 +1,7 @@
 import { configureCanonicalTest } from './canonical-test-env.mjs';
+import {startCanonicalListeners,canonicalInboundMiddleware,canonicalReadiness} from './canonical-test-listeners.mjs';
 const [mode, configPath] = process.argv.slice(2);
-const {identity,port,networkPolicy,release,pool,writes,env,config}=await configureCanonicalTest(configPath,mode);
+const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy}=await configureCanonicalTest(configPath,mode);
 if(mode==='erp' && writes){
   const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');
   try{await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env});}
@@ -19,13 +20,15 @@ const {securityHeaders,corsOptions,apiRateLimit}=await import('./src/middleware/
 const {requestContext}=await import('./src/middleware/requestContext.js');
 const {errorHandler}=await import('./src/middleware/errorHandler.js');
 const app=express();app.disable('x-powered-by');
+app.use(canonicalInboundMiddleware({port,policy:listenerPolicy}));
 app.use(securityHeaders(),cors(corsOptions()),requestContext,apiRateLimit(),express.json({limit:'2mb'}));
 app.use((_req,res,next)=>{res.set('X-Melisa-Environment','CANONICAL-TEST');res.set('Cache-Control','no-store');next();});
-const health={ok:true,environment:'CANONICAL_TEST',mode,port,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId};
-app.get('/test-health',(_req,res)=>res.json(health));
-app.get('/production-switch-health',(_req,res)=>res.json(health));
-app.get('/terminal-release-health',(_req,res)=>res.json({...health,automaticSubmit:false,dailyWebEnabled:true,invoiceExportEnabled:false}));
-app.get('/native-terminal-health',(_req,res)=>res.json({...health,writeEnabled:false,automaticSubmit:false}));
+const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId};
+const readiness=canonicalReadiness();
+app.get('/test-health',(_req,res)=>readiness.send(res,health));
+app.get('/production-switch-health',(_req,res)=>readiness.send(res,health));
+app.get('/terminal-release-health',(_req,res)=>readiness.send(res,{...health,automaticSubmit:false,dailyWebEnabled:true,invoiceExportEnabled:false}));
+app.get('/native-terminal-health',(_req,res)=>readiness.send(res,{...health,writeEnabled:false,automaticSubmit:false}));
 if(mode==='erp' && writes){
   const {canonicalTestAdminContext}=await import('./src/services/canonicalTestAdminSession.mjs');
   const {createCanonicalTestAdminRoutes}=await import('./src/routes/canonicalTestAdminRoutes.mjs');
@@ -67,5 +70,9 @@ if(mode==='erp'){
   app.use('/api',authRoutes);app.use('/api/native-terminal',nativeTerminalRoutes);
 }
 app.use(errorHandler);
-const server=app.listen(port,'127.0.0.1',()=>console.log(JSON.stringify({event:'CANONICAL_TEST_READY',...health})));
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(async()=>{await pool.close();process.exit(0);}));
+let listeners;
+try{listeners=await startCanonicalListeners(app,{port,policy:listenerPolicy});}
+catch{try{await pool.close();}catch{}throw Error('TEST_LISTENER_START_FAILED');}
+readiness.markReady();
+console.log(JSON.stringify({event:'CANONICAL_TEST_READY',...health}));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,async()=>{await listeners.close();await pool.close();process.exit(0);});

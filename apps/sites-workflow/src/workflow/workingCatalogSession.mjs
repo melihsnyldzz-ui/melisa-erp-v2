@@ -1,4 +1,4 @@
-import {shouldAutoOpenTestAdmin,testSessionModeKey} from './testAdminSession.mjs';
+import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 export const workingCatalogTokenKey='melisaTestSalesAccessToken';
 const problem=(message='ERP bağlantısı kurulamadı. Yeniden deneyin.',status=503)=>Object.assign(new Error(message),{status});
 function validUser(user){
@@ -7,8 +7,9 @@ function validUser(user){
 }
 export function workingCatalogUserLabel(user){return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
 export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000}={}){
+ const resolvedApiBase=resolveTestApiBase({location,apiBase});
  let active=true,token=null,user=null,generation=0;const controllers=new Set();
- const target=()=>shouldAutoOpenTestAdmin({location,apiBase,mode:null});
+ const target=()=>isTestSessionTarget({location,apiBase});
  const stored=key=>{try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=()=>{generation++;controllers.forEach(c=>c.abort());token=null;user=null;try{storage?.removeItem(workingCatalogTokenKey);}catch{}};
@@ -16,7 +17,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-   const response=await fetchImpl(apiBase+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
+   const response=await fetchImpl(resolvedApiBase+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    if(!response.ok||payload?.success!==true){if(response.status===401||response.status===403){clear();if(expire&&active)onExpired();}throw problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);}
@@ -48,7 +49,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    const controller=new AbortController(),version=generation,requestToken=token,abort=()=>controller.abort();controllers.add(controller);signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,timeoutMs);
    const current=()=>active&&!controller.signal.aborted&&version===generation&&requestToken===token;
    try{
-    const response=await fetchImpl(apiBase+path,{method:'GET',credentials:'omit',redirect:'error',headers:{Accept:'image/jpeg, image/png, image/webp',Authorization:`Bearer ${requestToken}`},signal:controller.signal});
+    const response=await fetchImpl(resolvedApiBase+path,{method:'GET',credentials:'omit',redirect:'error',headers:{Accept:'image/jpeg, image/png, image/webp',Authorization:`Bearer ${requestToken}`},signal:controller.signal});
     if(!current())throw problem('İstek iptal edildi.');
     if(!response.ok){if(response.status===401||response.status===403){clear();if(active)onExpired();}throw problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Ürün fotoğrafını görüntüleme yetkiniz yok.':'Ürün fotoğrafı şu anda açılamıyor.',response.status);}
     const type=response.headers?.get('Content-Type')?.split(';')[0].trim().toLowerCase();

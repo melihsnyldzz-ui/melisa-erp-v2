@@ -21,6 +21,7 @@ GitHub'daki ilgili PR/commit bu kayıtların sürümünü gösterir. Yerel check
 
 | ID | Tarih | Karar | Gerekçe | Etkilediği alan | Durum |
 | --- | --- | --- | --- | --- | --- |
+| ERP-DEC-011 | 2026-10-05 | Kullanıcının “bu projeyi sabit192.168 diye ip ver ki ağdakilerde girsin” talimatıyla yalnız mevcut ERP TEST çalışma yüzüne LAN erişimi hazırlanır. Mevcut Ethernet192.168.1.46:5194 / API4144 exactopt-in; normal hesapla giriş, loopback TESTADMIN LAN'a açılmaz. Native4146 ve LIVE korunur. | Ağdaki personelin aynı çalışma yüzünü açması. IP şu an DHCP; kalıcı modem rezervasyonu ayrıca doğrulanır, işletim sistemi/LIVE ağ adresi izinsiz değiştirilmez. | ERP TEST LAN / erişim | Onaylı |
 | ERP-DEC-001 | 2026-10-05 | `apps/sites-workflow/ornek-akis.html` kullanıcıya dönük Melisa ERP çalışma yüzünün görsel/UX referansıdır. | İşletmenin kullanacağı yüz için ortak yönü sabitlemek. | ERP ekranları / UX | Onaylı |
 | ERP-DEC-002 | 2026-10-05 | `is-akisi-taslagi.html` ve ilgili TEST akışları geliştirme/test laboratuvarıdır; sentetik ve dar kabul burada yapılabilir. | Kontrollü denemeyi günlük çalışma yüzünden ayırmak. | ERP TEST | Onaylı |
 | ERP-DEC-003 | 2026-10-05 | TEST'te yeterince doğrulanan özellikler çalışma yüzüne terfi eder; teknik doğrulama ve kullanıcı kabulü ayrı kaydedilir. | Çalışma yüzüne güvenilir özellik teslim etmek. | TEST → çalışma yüzü | Onaylı |

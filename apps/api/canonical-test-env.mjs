@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { networkPolicy } from './canonical-test-network.mjs';
+import {canonicalListenerPolicy} from './canonical-test-listeners.mjs';
 
 export async function configureCanonicalTest(configPath, mode) {
   if (!path.isAbsolute(configPath || '') || !['erp','native'].includes(mode)) throw Error('TEST_ARGUMENT_REJECTED');
@@ -10,6 +11,7 @@ export async function configureCanonicalTest(configPath, mode) {
   const writes = mode === 'erp' && config.salesEnabled === true;
   const expectedLogin = writes ? 'melisa_sirket_sales_test_20260929_01' : readLogin;
   if (config.database !== expectedDatabase || config.sqlUser !== readLogin || (writes && config.salesSqlUser !== expectedLogin) || config.server !== '127.0.0.1' || config.sqlPort !== 1433 || config.host !== '127.0.0.1' || config.erpPort !== 4144 || config.nativePort !== 4146 || config.webPort !== 5194) throw Error('TEST_CONFIG_IDENTITY_REJECTED');
+  const listenerPolicy=canonicalListenerPolicy(config,{mode,writes});
   for (const key of Object.keys(process.env)) if (/^(SQL_|VEGA_|ARMADA_|WHATSAPP_|EVOLUTION_|CRM_|NAKLIYAT_|SMTP_|MAIL_|EMAIL_|JWT_|NATIVE_|TERMINAL_|PILOT_|MELISA_|SHIPPING_|SCHEDULE|WORKER_|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NODE_OPTIONS)/i.test(key)) delete process.env[key];
   const port = mode === 'erp' ? 4144 : 4146;
   Object.assign(process.env, {
@@ -27,7 +29,7 @@ export async function configureCanonicalTest(configPath, mode) {
     WHATSAPP_ENABLED:'false', NAKLIYAT_ENABLED:'false', SMTP_ENABLED:'false', EMAIL_ENABLED:'false', WORKERS_ENABLED:'false', SCHEDULER_ENABLED:'false',
     MELISA_INVOICE_EXPORT_ENABLED:'false', TERMINAL_RECEIPT_PRINT_ENABLED:'false', TERMINAL_RECEIPT_PRINT_MODE:'disabled', TERMINAL_RECEIPT_PRINTER_NAME:'',
     TERMINAL_CATALOG_CACHE_DIR:path.resolve('.canonical-runtime/catalog'), PILOT_CATALOG_DIR:path.resolve('.canonical-runtime/pilot'),
-    CORS_ORIGINS:'http://127.0.0.1:5194,http://localhost:5194',
+    CORS_ORIGINS:listenerPolicy.corsOrigins.join(','),
   });
   for (const file of ['.env','.env.local']) if(fs.existsSync(path.resolve(file))) throw Error('TEST_DOTENV_REJECTED');
   const { env } = await import('./src/config/env.js');
@@ -42,5 +44,5 @@ export async function configureCanonicalTest(configPath, mode) {
     if(Number(guards.n)!==8 || permissions.some(p=>['CONTROL','ALTER','TAKE OWNERSHIP'].includes(p.permission_name)))throw Error('TEST_WRITER_GUARDS_REJECTED');
   }
   const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
-  return {config,env,pool,identity,port,networkPolicy,release,writes};
+  return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy};
 }

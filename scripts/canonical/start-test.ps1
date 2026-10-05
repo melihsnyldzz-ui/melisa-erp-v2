@@ -16,7 +16,7 @@ $node=(Get-Command node.exe).Source
 $launches=@(
  @{Port=4144;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('erp',$ConfigPath);Name='erp'},
  @{Port=4146;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('native',$ConfigPath);Name='native'},
- @{Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@();Name='web'}
+ @{Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@($ConfigPath);Name='web'}
 )
 foreach($x in $launches){if(Get-NetTCPConnection -State Listen -LocalPort $x.Port -ErrorAction SilentlyContinue){throw "TEST_PORT_OCCUPIED: $($x.Port)"}}
 $started=@()
