@@ -14,6 +14,7 @@ import {testPayment} from './testPayment.js';
 let paymentData=null,paymentUI=null;
 import './testSales.css';
 import {normalizeTestInvoiceList} from './testSalesModel.js';
+import {shouldAutoOpenTestAdmin,testSessionModeKey} from './testAdminSession.mjs';
 import {testFinance} from './testFinance.js';
 import {testPurchase} from './testPurchase.js';
 let purchaseData=null,purchaseUI=null;
@@ -25,6 +26,19 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>Number(v||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' TRY';
 const tokenKey='melisaTestSalesAccessToken';
 let token=sessionStorage.getItem(tokenKey),user=null,scope=null,product=null,customer=null,invoices=[],busy=false,connected=false,error='',notice='',generation=0;
+let openingAdmin=false,sessionGeneration=0;
+const autoAdmin=()=>shouldAutoOpenTestAdmin({location,apiBase:BASE,mode:sessionStorage.getItem(testSessionModeKey)});
+function clearSession(){
+ generation++;sessionGeneration++;token=null;sessionStorage.removeItem(tokenKey);user=null;connected=false;notice='';error='';
+ scope=null;product=null;customer=null;invoices=[];purchaseData=null;financeData=null;fxData=null;refundData=null;paymentData=null;dailyData={};
+ busy=false;openingAdmin=false;
+}
+async function openTestAdmin(){
+ clearSession();sessionStorage.setItem(testSessionModeKey,'admin');openingAdmin=true;busy=true;render();
+ const version=sessionGeneration;
+ try{const r=await api('/api/auth/test-admin',{method:'POST',body:{}});if(version!==sessionGeneration)return;token=r.accessToken;sessionStorage.setItem(tokenKey,token);await refresh();}
+ catch(e){if(version===sessionGeneration)error=e.message;}finally{if(version===sessionGeneration){openingAdmin=false;busy=false;render();}}
+}
 let renderedHash=location.hash;
 function leavePriceEditor(action){if(priceUI?.requestClose(action)!==false)action();}
 function navigate(target){leavePriceEditor(()=>{location.hash=target;});}
@@ -70,8 +84,10 @@ function render(){
  renderedHash=location.hash;
  header();
  if(!user){
-  view.innerHTML=`<section class="card test-login"><p class="eyebrow">MELİSA ERP · TEST</p><h1>TEST oturumunu aç</h1><p>Gerçek kullanıcı yetkisi sunucudan alınır. Örnek rol seçimi kullanılmaz.</p><form id="test-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required></label><label>Şifre<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" ${busy?'disabled':''}>Giriş yap</button></form><p role="alert" class="test-error">${esc(error)}</p><a href="/ornek-akis.html">Veritabanından ayrı örnek ekranı aç</a></section>`;
-  document.getElementById('test-login').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);busy=true;error='';try{const r=await api('/api/auth/login',{method:'POST',body:{username:f.get('username'),password:f.get('password')}});token=r.accessToken;sessionStorage.setItem(tokenKey,token);await refresh()}catch(e){error=e.message}finally{busy=false;render()}};
+  if(openingAdmin){view.innerHTML='<section class="card test-login" role="status"><h1>TEST ADMIN açılıyor…</h1></section>';return;}
+  view.innerHTML=`<section class="card test-login"><p class="eyebrow">MELİSA ERP · TEST</p><h1>TEST kullanıcısını değiştir</h1><p>İlker, Patron, Müdür veya Personel hesabınızla girerek kayıtlı gerçek yetkileri deneyebilirsiniz.</p><form id="test-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required></label><label>Şifre<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" ${busy?'disabled':''}>Giriş yap</button></form>${autoAdmin()||shouldAutoOpenTestAdmin({location,apiBase:BASE,mode:null})?'<button class="btn" id="test-admin-return">TEST ADMIN ile aç</button>':''}<p role="alert" class="test-error">${esc(error)}</p><a href="/ornek-akis.html">Veritabanından ayrı örnek ekranı aç</a></section>`;
+  document.getElementById('test-admin-return')?.addEventListener('click',openTestAdmin);
+  document.getElementById('test-login').onsubmit=async e=>{e.preventDefault();if(busy)return;const f=new FormData(e.target),version=sessionGeneration;sessionStorage.setItem(testSessionModeKey,'manual');busy=true;error='';render();try{const r=await api('/api/auth/login',{method:'POST',body:{username:f.get('username'),password:f.get('password')}});if(version!==sessionGeneration)return;token=r.accessToken;sessionStorage.setItem(tokenKey,token);await refresh()}catch(e){if(version===sessionGeneration)error=e.message}finally{if(version===sessionGeneration){busy=false;render()}}};
   return;
  }
  let content='';
@@ -92,9 +108,10 @@ function render(){
   const p=pending();content=`<h1>Satış terminali</h1><div class="test-sale-grid"><section class="card panel"><p class="pill green">VERİTABANINA YAZILAN TEST SATIŞI</p><h2>${esc(product.productName)}</h2><p>${esc(product.stockCode)} · Kullanılabilir stok: ${product.stockQuantity}</p><p>Fiyat sunucuda doğrulanır: ${money(scope.unitPrice)}</p><form id="test-sale"><label>TEST müşteri<select name="customerId"><option value="${scope.customerId}">${esc(customer.customerName)}</option></select></label><label>Adet<input name="quantity" type="number" min="1" max="5" step="1" value="${p?.body?.items?.[0]?.quantity||2}" ${p?'disabled':''}></label><button class="btn primary" ${busy||!has('sales.create')||!has('sales.finalize')||p?.invoice?'disabled':''}>TEST satışını tamamla</button></form><p class="test-note">Bu kabulde tek TEST ürün/cari, 1–5 adet ve aynı anda en fazla 5 açık fiş kullanılabilir. Tahsilat yalnız yetkili TEST oturumuna açıktır; kargo, e-posta ve WhatsApp kapalıdır.</p></section><section class="card panel"><h2>İşlem sonucu</h2>${p?`<p>İstek kimliği</p><code id="test-request-id">${esc(p.body.requestId)}</code>${p.invoice?`<h3 id="test-invoice-id">Fiş #${p.invoice.id}</h3><p>${esc(p.invoice.documentNo)} · ${esc(p.invoice.status)}</p><p>${money(p.invoice.grandTotal)}</p>`:'<p>Bu istek bekliyor. Hata veya bağlantı kopmasında aynı kimlikle doğrulayın.</p>'}<button id="test-replay" class="btn" ${busy?'disabled':''}>Aynı isteği tekrar doğrula</button>${p.invoice?'<button id="test-new" class="btn">Yeni TEST fişi</button>':''}`:'<p>Henüz satış isteği oluşturulmadı.</p>'}<p>Stok ve cari etkisi tek transaction içinde kaydedilir.</p></section></div>`;
  }
  const connectionLabel=page()==='customers'?'<b>TEST</b> · Müşteri kartları · Salt okunur':page()==='suppliers'?'<b>TEST</b> · Tedarikçi kartları · Salt okunur':`<b>TEST SQL</b> · ${connected?'Bağlı':'Bağlantı doğrulanamadı'} · Dış gönderimler kapalı`;
- view.innerHTML=`<section class="test-status card"><span>${connectionLabel}</span><div><button id="test-refresh" class="btn small" ${busy?'disabled':''}>Yenile</button><button id="test-logout" class="btn small">Oturumu kapat</button></div></section>${error?`<p class="test-error" role="alert">${esc(error)}</p>`:''}${notice?`<p class="test-success" role="status">${esc(notice)}</p>`:''}${content}`;
+ view.innerHTML=`<section class="test-status card"><span>${connectionLabel}</span><div><button id="test-refresh" class="btn small" ${busy?'disabled':''}>Yenile</button>${user.testAdminSession?'':'<button id="test-admin-return" class="btn small">TEST ADMIN ile aç</button>'}<button id="test-logout" class="btn small">Kullanıcı değiştir</button></div></section>${error?`<p class="test-error" role="alert">${esc(error)}</p>`:''}${notice?`<p class="test-success" role="status">${esc(notice)}</p>`:''}${content}`;
  document.getElementById('test-refresh').onclick=()=>leavePriceEditor(runRefresh);
- document.getElementById('test-logout').onclick=()=>leavePriceEditor(()=>{generation++;token=null;sessionStorage.removeItem(tokenKey);user=null;connected=false;notice='';error='';render()});
+ document.getElementById('test-admin-return')?.addEventListener('click',()=>leavePriceEditor(openTestAdmin));
+ document.getElementById('test-logout').onclick=()=>leavePriceEditor(()=>{clearSession();sessionStorage.setItem(testSessionModeKey,'manual');render()});
  document.getElementById('test-sale')?.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.target);let p=pending();if(!p){p={body:{requestId:crypto.randomUUID(),customerId:scope.customerId,items:[{productId:scope.productId,quantity:Number(f.get('quantity'))}]}};}submit(p)});
  document.getElementById('test-replay')?.addEventListener('click',()=>submit(pending()));
  document.getElementById('test-new')?.addEventListener('click',()=>{localStorage.removeItem(pendingKey());notice='';render()});
@@ -124,17 +141,18 @@ async function refresh(){
   const fin=await api('/api/test-finance/context');
   const pur=me.permissions.includes('goods.view')?await api('/api/test-purchase/context'):null;
   if(version!==generation)return;
-  paymentData=me.permissions.includes('purchase.view')?await api('/api/test-payment/context'):null;
-  refundData=me.permissions.includes('purchase.view')?await api('/api/test-refund/context'):null;
-  fxData=await api('/api/test-daily/fx/context');
-  dailyData={};for(const f of ['purchase','sales','count','return-cancel','count-cancel']){
+  const pay=me.permissions.includes('purchase.view')?await api('/api/test-payment/context'):null;
+  const ref=me.permissions.includes('purchase.view')?await api('/api/test-refund/context'):null;
+  const fx=await api('/api/test-daily/fx/context');
+  const daily={};for(const f of ['purchase','sales','count','return-cancel','count-cancel']){
    const permission=f==='count'||f==='count-cancel'?'product.view':f==='sales'?'sales.view':'purchase.view';
-   if(me.permissions.includes(permission))dailyData[f]=await api('/api/test-daily/'+f);
+   if(me.permissions.includes(permission))daily[f]=await api('/api/test-daily/'+f);
   }
-  user=me;scope=ctx;product=p;customer=c;invoices=normalizeTestInvoiceList(list);financeData=fin;purchaseData=pur;connected=true;error='';
+  if(version!==generation)return;
+  user=me;scope=ctx;product=p;customer=c;invoices=normalizeTestInvoiceList(list);financeData=fin;purchaseData=pur;paymentData=pay;refundData=ref;fxData=fx;dailyData=daily;connected=true;error='';
  }catch(e){if(version===generation){connected=false;error=e.message}throw e}
 }
-async function runRefresh(){busy=true;render();try{await refresh()}catch{}finally{busy=false;render()}}
+async function runRefresh(){const version=sessionGeneration;busy=true;render();try{await refresh()}catch(e){if(version===sessionGeneration&&e.status===401){const retryAdmin=autoAdmin();clearSession();if(retryAdmin){await openTestAdmin();return;}error=e.message;busy=false;render();}}finally{if(version===sessionGeneration){busy=false;render()}}}
 async function submit(p){
  if(busy||!p||!connected)return;busy=true;error='';notice='';remember(p);render();
  try{const r=await api('/api/sales-invoices/test-complete',{method:'POST',body:p.body});remember({...p,invoice:r.invoice});notice=r.replayed?'Aynı istek doğrulandı; yeni fiş oluşturulmadı.':`TEST fişi #${r.invoice.id} tamamlandı; stok ve cari kaydı birlikte oluştu.`;await refresh()}
@@ -160,7 +178,7 @@ window.addEventListener('hashchange',()=>{
 document.querySelector('.top-right button').onclick=()=>navigate('home');
 document.getElementById('mobileScreen').onchange=e=>navigate(e.target.value);
 document.title='TEST · Melisa ERP v70 · Gerçek TEST bağlantısı';
-render();if(token)runRefresh();
+if(autoAdmin())openTestAdmin();else{render();if(token)runRefresh();}
 
 
 

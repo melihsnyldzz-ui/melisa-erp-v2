@@ -1,4 +1,5 @@
 import { getUserById, verifyAccessToken } from '../services/authService.js';
+import { resolveTestAdminUser } from '../services/canonicalTestAdminSession.mjs';
 
 function authError(code, message, statusCode = 401) {
   const error = new Error(message);
@@ -17,7 +18,7 @@ export async function requireAuth(req, res, next) {
     }
 
     const payload = verifyAccessToken(token);
-    req.user = await getUserById(payload.sub);
+    req.user = resolveTestAdminUser(req, payload, await getUserById(payload.sub));
     req.authContext = Object.freeze({ nativeTerminalCode: typeof payload.nativeTerminalCode === 'string' ? payload.nativeTerminalCode : null });
     return next();
   } catch (error) {

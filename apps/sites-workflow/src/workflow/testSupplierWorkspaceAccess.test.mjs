@@ -24,6 +24,7 @@ async function workspace({permissions=['supplier.view'], authPending=null}={}) {
   const source=readFileSync(new URL('./testSales.js',import.meta.url),'utf8');
   const main=new vm.SourceTextModule(source+'\nexport {refresh,render};',{context,initializeImportMeta:meta=>meta.env={VITE_API_BASE_URL:'http://127.0.0.1:4144'}});
   await main.link(specifier=>{
+    if(specifier==='./testAdminSession.mjs')return new vm.SourceTextModule(readFileSync(new URL(specifier,import.meta.url),'utf8'),{context});
     const exports=specifier.endsWith('.css')?[]:[...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g)].filter(m=>m[2]===specifier).flatMap(m=>m[1].split(',').map(x=>x.trim()));
     return new vm.SyntheticModule(exports,function(){for(const name of exports){
       const fn=name==='testSuppliers'?({permissions:p})=>({html:()=>p.includes('supplier.view')?'SUPPLIER_READ_WORKSPACE':'SUPPLIER_PERMISSION_DENIED',bind:()=>binds++,dispose(){}}):()=>{throw Error('Unrelated module invoked: '+name);};
@@ -62,5 +63,5 @@ test('logout while authentication is pending prevents stale supplier session res
   await w.main.namespace.refresh();w.main.namespace.render();
   const lateRefresh=w.main.namespace.refresh();
   w.element('test-logout').onclick();resolve();await lateRefresh;w.main.namespace.render();
-  assert.match(w.element('view').innerHTML,/TEST oturumunu aç/);
+  assert.match(w.element('view').innerHTML,/TEST kullanıcısını değiştir/);
 });

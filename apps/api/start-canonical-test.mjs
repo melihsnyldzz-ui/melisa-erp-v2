@@ -15,6 +15,13 @@ app.get('/test-health',(_req,res)=>res.json(health));
 app.get('/production-switch-health',(_req,res)=>res.json(health));
 app.get('/terminal-release-health',(_req,res)=>res.json({...health,automaticSubmit:false,dailyWebEnabled:true,invoiceExportEnabled:false}));
 app.get('/native-terminal-health',(_req,res)=>res.json({...health,writeEnabled:false,automaticSubmit:false}));
+if(mode==='erp' && writes){
+  const {canonicalTestAdminContext}=await import('./src/services/canonicalTestAdminSession.mjs');
+  const {createCanonicalTestAdminRoutes}=await import('./src/routes/canonicalTestAdminRoutes.mjs');
+  const {env}=await import('./src/config/env.js');
+  app.use(canonicalTestAdminContext({identity,mode,port,writes,env}));
+  app.use('/api',createCanonicalTestAdminRoutes());
+}
 app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'TEST_EXTERNAL_DISABLED'}});
   if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
