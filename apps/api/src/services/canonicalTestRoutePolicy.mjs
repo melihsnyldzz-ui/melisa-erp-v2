@@ -10,6 +10,8 @@ export function isCanonicalTestWriteAllowed(method,path,{writes=false,mode='nati
   || /^\/api\/test-purchase\/(?:batches(?:\/[1-9]\d*\/(?:approve|reject))?|invoice-drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)$/.test(path)
   || /^\/api\/test-purchase-fx\/(?:preview|receipts(?:\/[1-9]\d*\/(?:approve|reject))?|invoice-drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)$/.test(path)
   || path==='/api/test-supplier-cards/13373/contact'
+  || path==='/api/products/301986/current-prices'
+  || /^\/api\/test-current-price-purchase\/(?:preview|receipts(?:\/[1-9]\d*\/(?:approve|reject))?|invoice-drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)$/.test(path)
   || /^\/api\/test-refund\/(?:prepare|receive|[1-9]\d*\/cancel)$/.test(path)
   || /^\/api\/test-payment\/payments(?:\/[1-9]\d*\/cancel)?$/.test(path)
   || /^\/api\/test-daily\/(?:purchase|sales|fx|count|count-cancel|return-cancel)\/(?:prepare|draft|approve|reject|cancel|collect|preview|reverse|prepare-partial-goods|sale|purchase)$/.test(path);

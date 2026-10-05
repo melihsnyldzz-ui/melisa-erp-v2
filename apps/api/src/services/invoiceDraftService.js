@@ -19,6 +19,7 @@ import { settlementFromInvoice, recalculateInvoiceSettlement } from './currencyS
 import { assertCurrencySnapshotSchema, resolveCurrencySettlement, readInvoiceCurrencySnapshot, writeInvoiceCurrencySnapshot, writeMovementCurrencySnapshot } from './currencySettlementStore.mjs';
 import { assertInvoiceHasNoReturns } from './invoiceReturnGuard.mjs';
 import { createPurchaseCostAccumulator } from './purchaseCostAccumulator.mjs';
+import {CURRENT_PRICE_PURCHASE_SQL_PROOF} from './testProductPriceSqlProof.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 
@@ -2853,6 +2854,14 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
 async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.testC09Received===true){
+    const proof=await new context.sqlDriver.Request(context.transaction)
+      .input('invoice_id',context.sqlDriver.BigInt,invoiceId)
+      .execute('dbo.usp_assert_test_current_price_purchase_received');
+    if(proof.recordset?.length!==1||Object.entries(CURRENT_PRICE_PURCHASE_SQL_PROOF).some(([key,expected])=>proof.recordset[0][key]!==expected))throw makeServiceError('PURCHASE_RECEIPT_SQL_DRIFT','Kayıtlı TEST fiyat sürümünün SQL tanımları doğrulanamadı.',503);
+    if(Number(proof.recordset[0].valid)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Kayıtlı TEST fiyat sürümünün kabul, kur ve tek stok hareketi bağı doğrulanamadı.',409);
+    return;
+  }
   if(context.testPurchaseFxReceived===true){
     const proof=await new context.sqlDriver.Request(context.transaction)
       .input('invoice_id',context.sqlDriver.BigInt,invoiceId)

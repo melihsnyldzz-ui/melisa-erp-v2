@@ -26,7 +26,7 @@ if(mode==='erp'){
   app.use('/api/terminal',pilotTerminalRoutes);
   app.use('/api',dailyWebScopeMiddleware(resolveDailyWebPolicy({dailyWebEnabled:true,automaticCardSyncEnabled:false,invoiceExportEnabled:false})));
   if(writes){
-    for(const name of ['Sales','Finance','Daily','Refund','Payment','Purchase','Price','PurchaseFx']){
+    for(const name of ['Sales','Finance','Daily','Refund','Payment','Purchase','Price','PurchaseFx','ProductPrice','CurrentPricePurchase']){
       const routes=await import('./src/routes/test'+name+'Routes.mjs');
       app.use('/api',routes['test'+name+'Routes']);
     }

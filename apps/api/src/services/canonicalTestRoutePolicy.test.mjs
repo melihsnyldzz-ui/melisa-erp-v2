@@ -1,6 +1,22 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('native price writes stay on the one synthetic product and cannot escape to general cards',()=>{
+ const path='/api/products/301986/current-prices';
+ assert.equal(allowed('POST',path,ctx),true);
+ for(const other of ['/api/products/1/current-prices','/api/products/0301986/current-prices','/api/products/301986','/api/products/301986/current-prices/extra'])assert.equal(allowed('POST',other,ctx),false,other);
+ for(const mode of [{mode:'native',writes:true},{mode:'erp',writes:false}])assert.equal(allowed('POST',path,mode),false);
+ for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ctx),false);
+});
+test('current-price purchases retain native/read-only isolation and allow only their recorded lifecycle',()=>{
+ const prefix='/api/test-current-price-purchase/';
+ for(const suffix of ['preview','receipts','receipts/1/approve','receipts/1/reject','invoice-drafts','invoice-drafts/1/finalize','invoice-drafts/1/cancel']){
+  assert.equal(allowed('POST',prefix+suffix,ctx),true);
+  assert.equal(allowed('POST',prefix+suffix,{mode:'native',writes:true}),false);
+  assert.equal(allowed('POST',prefix+suffix,{mode:'erp',writes:false}),false);
+ }
+ for(const suffix of ['context','receipts/0/approve','receipts/1/finalize','invoice-drafts/1','invoice-drafts/1/cancel/extra','rates','cleanup'])assert.equal(allowed('POST',prefix+suffix,ctx),false);
+});
 test('supplier contact writes target only the proved synthetic card and keep general PUT closed',()=>{
  const path='/api/test-supplier-cards/13373/contact';
  assert.equal(allowed('POST',path,ctx),true);

@@ -25,6 +25,9 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>Number(v||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' TRY';
 const tokenKey='melisaTestSalesAccessToken';
 let token=sessionStorage.getItem(tokenKey),user=null,scope=null,product=null,customer=null,invoices=[],busy=false,connected=false,error='',notice='',generation=0;
+let renderedHash=location.hash;
+function leavePriceEditor(action){if(priceUI?.requestClose(action)!==false)action();}
+function navigate(target){leavePriceEditor(()=>{location.hash=target;});}
 const pages=[['home','⌂','İş sırası'],['stock','▦','Ürün & stok'],['customers','♙','Müşteriler'],['suppliers','▧','Tedarikçiler'],['sales','▣','Satış terminali'],['receipts','≡','Satış fişleri']];
 pages.push(['prices','₺','Fiyat & maliyet']);
 pages.push(['migration-quarantine','⚑','Aktarım karantinası']);
@@ -53,7 +56,7 @@ function role(){
 function header(){
  const name=pages.find(x=>x[0]===page())?.[2];document.getElementById('crumb').textContent=name;
  nav.innerHTML=pages.map(([id,icon,label])=>`<button data-page="${id}" class="${page()===id?'active':''}">${icon} <span>${label}</span></button>`).join('');
- nav.querySelectorAll('button').forEach(b=>b.onclick=()=>location.hash=b.dataset.page);
+ nav.querySelectorAll('button').forEach(b=>b.onclick=()=>navigate(b.dataset.page));
  document.getElementById('business-date').textContent=new Date().toLocaleDateString('tr-TR');
  role();
 }
@@ -62,6 +65,9 @@ function invoiceTable(){return `<div class="tablewrap"><table><thead><tr><th>Fi�
 function render(){
  customerUI?.dispose();customerUI=null;
  supplierUI?.dispose();supplierUI=null;
+ priceUI?.dispose();priceUI=null;
+ purchaseUI?.dispose();purchaseUI=null;
+ renderedHash=location.hash;
  header();
  if(!user){
   view.innerHTML=`<section class="card test-login"><p class="eyebrow">MELİSA ERP · TEST</p><h1>TEST oturumunu aç</h1><p>Gerçek kullanıcı yetkisi sunucudan alınır. Örnek rol seçimi kullanılmaz.</p><form id="test-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required></label><label>Şifre<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" ${busy?'disabled':''}>Giriş yap</button></form><p role="alert" class="test-error">${esc(error)}</p><a href="/ornek-akis.html">Veritabanından ayrı örnek ekranı aç</a></section>`;
@@ -73,7 +79,7 @@ function render(){
  else if(page()==='suppliers'){supplierUI=testSuppliers({api,esc,permissions:user.permissions,actorId:user.id});content=supplierUI.html();}
  else if(!connected){content='<section class="card"><h2>TEST verileri doğrulanamadı</h2><p>Satış kapalı. Sonuç alınana kadar örnek kayıtlar gösterilmez.</p></section>'}
  else if(page()==='home'){content=`<p class="eyebrow">MELİSA ERP · ORTAK TEST KAYITLARI</p><h1>Günlük operasyon</h1><p>Bu ekran ayrı TEST veritabanını okur; örnek localStorage kayıtlarını kullanmaz.</p><div class="stats"><div class="stat"><small>TEST ürün stoğu</small><strong id="test-stock">${product.stockQuantity} ADET</strong></div><div class="stat"><small>TEST cari borcu</small><strong id="test-balance">${money(customer.balance)}</strong></div><div class="stat"><small>Ortak TEST fişi</small><strong>${invoices.length}</strong></div></div><section class="card panel"><h2>Satış, stok ve cari</h2>${invoiceTable()}</section>`}
- else if(page()==='prices'){priceUI=has('product.view')&&has('purchase.view')?testPrices({api,esc}):null;content=priceUI?priceUI.html():'<h1>Fiyat & maliyet</h1><section class="card panel"><p>Bu rapor için ürün ve alış görüntüleme yetkisi gerekir.</p></section>'}
+ else if(page()==='prices'){priceUI=has('product.view')&&has('purchase.view')?testPrices({api,esc,permissions:user.permissions,actorId:user.id}):null;content=priceUI?priceUI.html():'<h1>Fiyat & maliyet</h1><section class="card panel"><p>Bu rapor için ürün ve alış görüntüleme yetkisi gerekir.</p></section>'}
  else if(page()==='migration-quarantine'){quarantineUI=testMigrationQuarantine({api,esc,permissions:user.permissions});content=quarantineUI.html();}
  else if(page()==='stock'){content=`<h1>Ürün & stok</h1><section class="card panel"><p class="pill green">TEST veritabanı · yalnız izinli ürün</p><h2>${esc(product.productName)}</h2><p>${esc(product.stockCode)} · #${product.id}</p><div class="stats"><div class="stat"><small>Mevcut stok</small><strong>${product.stockQuantity} ADET</strong></div><div class="stat"><small>Birim fiyat</small><strong>${money(product.salePrice)}</strong></div></div></section>`}
  else if(page()==='receipts'){content=`<h1>Satış fişleri</h1><section class="card panel"><p>Gerçek oturum: ${esc(user.displayName)} · Kayıtlar tüm yetkili TEST oturumları için ortaktır.</p>${invoiceTable()}</section>`}
@@ -87,8 +93,8 @@ function render(){
  }
  const connectionLabel=page()==='customers'?'<b>TEST</b> · Müşteri kartları · Salt okunur':page()==='suppliers'?'<b>TEST</b> · Tedarikçi kartları · Salt okunur':`<b>TEST SQL</b> · ${connected?'Bağlı':'Bağlantı doğrulanamadı'} · Dış gönderimler kapalı`;
  view.innerHTML=`<section class="test-status card"><span>${connectionLabel}</span><div><button id="test-refresh" class="btn small" ${busy?'disabled':''}>Yenile</button><button id="test-logout" class="btn small">Oturumu kapat</button></div></section>${error?`<p class="test-error" role="alert">${esc(error)}</p>`:''}${notice?`<p class="test-success" role="status">${esc(notice)}</p>`:''}${content}`;
- document.getElementById('test-refresh').onclick=()=>runRefresh();
- document.getElementById('test-logout').onclick=()=>{generation++;token=null;sessionStorage.removeItem(tokenKey);user=null;connected=false;notice='';error='';render()};
+ document.getElementById('test-refresh').onclick=()=>leavePriceEditor(runRefresh);
+ document.getElementById('test-logout').onclick=()=>leavePriceEditor(()=>{generation++;token=null;sessionStorage.removeItem(tokenKey);user=null;connected=false;notice='';error='';render()});
  document.getElementById('test-sale')?.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.target);let p=pending();if(!p){p={body:{requestId:crypto.randomUUID(),customerId:scope.customerId,items:[{productId:scope.productId,quantity:Number(f.get('quantity'))}]}};}submit(p)});
  document.getElementById('test-replay')?.addEventListener('click',()=>submit(pending()));
  document.getElementById('test-new')?.addEventListener('click',()=>{localStorage.removeItem(pendingKey());notice='';render()});
@@ -145,9 +151,14 @@ async function submitCancel(id,reason){
  try{const r=await api(`/api/sales-invoices/${id}/cancel`,{method:'POST',body:{reason}});notice=r.replayed?'Fiş zaten iptal edilmiş; ikinci ters hareket oluşturulmadı.':`TEST fişi #${id} iptal edildi.`;const p=pending();if(p?.invoice?.id===r.invoice.id)remember({...p,invoice:r.invoice});await refresh()}catch(e){error=e.message}finally{busy=false;render()}
 }
 async function detail(id){try{const i=await api(`/api/sales-invoices/${id}`);notice=`Fiş #${i.id} · ${i.documentNo} · ${i.status} · ${money(i.grandTotal)} · ${i.items.length} satır`;render()}catch(e){error=e.message;render()}}
-window.addEventListener('hashchange',()=>{if(user&&!connected&&!['customers','suppliers'].includes(page()))runRefresh();else render();});
-document.querySelector('.top-right button').onclick=()=>location.hash='home';
-document.getElementById('mobileScreen').onchange=e=>location.hash=e.target.value;
+window.addEventListener('hashchange',()=>{
+ const target=location.hash;
+ const continueNavigation=()=>{if(location.hash!==target){location.hash=target;return;}if(user&&!connected&&!['customers','suppliers'].includes(page()))runRefresh();else render();};
+ if(priceUI?.requestClose(continueNavigation)===false){history.replaceState(null,'',location.pathname+location.search+renderedHash);return;}
+ continueNavigation();
+});
+document.querySelector('.top-right button').onclick=()=>navigate('home');
+document.getElementById('mobileScreen').onchange=e=>navigate(e.target.value);
 document.title='TEST · Melisa ERP v70 · Gerçek TEST bağlantısı';
 render();if(token)runRefresh();
 
