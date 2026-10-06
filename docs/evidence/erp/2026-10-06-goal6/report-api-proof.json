@@ -1,0 +1,527 @@
+{
+  "at": "2026-10-06T20:22:35.829Z",
+  "sourceCommit": "4f918c51fd49c86953a69484714af41bec1cf794",
+  "packageId": "CANONICAL-TEST-4f918c51fd49",
+  "contexts": {
+    "seller": {
+      "kinds": [
+        "sales",
+        "purchases",
+        "stock-movements"
+      ],
+      "canViewCost": false,
+      "brands": 461,
+      "types": 49
+    },
+    "ilker": {
+      "kinds": [
+        "sales",
+        "collections",
+        "purchases",
+        "supplier-payments",
+        "stock-movements",
+        "customer-movements",
+        "supplier-movements"
+      ],
+      "canViewCost": true,
+      "brands": 461,
+      "types": 49
+    }
+  },
+  "reports": {
+    "sales": {
+      "rowCount": 2,
+      "currencyTotals": [
+        {
+          "currency": "TRY",
+          "amount": "400.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 2
+        }
+      ],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    },
+    "collections": {
+      "rowCount": 22,
+      "currencyTotals": [
+        {
+          "currency": "EUR",
+          "amount": "0.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 4
+        },
+        {
+          "currency": "TRY",
+          "amount": "300.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 14
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 4
+        }
+      ],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    },
+    "purchases": {
+      "rowCount": 1,
+      "currencyTotals": [
+        {
+          "currency": "TRY",
+          "amount": "300.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 1
+        }
+      ],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    },
+    "supplier-payments": {
+      "rowCount": 10,
+      "currencyTotals": [
+        {
+          "currency": "EUR",
+          "amount": "0.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 2
+        },
+        {
+          "currency": "TRY",
+          "amount": "0.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 6
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0000",
+          "debit": null,
+          "credit": null,
+          "recordCount": 2
+        }
+      ],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    },
+    "stock-movements": {
+      "rowCount": 43,
+      "currencyTotals": [],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    },
+    "customer-movements": {
+      "rowCount": 38,
+      "currencyTotals": [
+        {
+          "currency": "TRY",
+          "amount": "100.0000",
+          "debit": "1606.5000",
+          "credit": "1506.5000",
+          "recordCount": 34
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0000",
+          "debit": "2.1653",
+          "credit": "2.1653",
+          "recordCount": 4
+        }
+      ],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    },
+    "supplier-movements": {
+      "rowCount": 43,
+      "currencyTotals": [
+        {
+          "currency": "EUR",
+          "amount": "0.0000",
+          "debit": "2.0000",
+          "credit": "2.0000",
+          "recordCount": 4
+        },
+        {
+          "currency": "TRY",
+          "amount": "300.0000",
+          "debit": "1750.0080",
+          "credit": "1450.0080",
+          "recordCount": 35
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0000",
+          "debit": "2.0000",
+          "credit": "2.0000",
+          "recordCount": 4
+        }
+      ],
+      "scope": {
+        "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+        "timeZone": "Europe/Istanbul",
+        "fromDate": "2026-10-01",
+        "toDateInclusive": "2026-10-06",
+        "fromUtc": "2026-09-30T21:00:00.000Z",
+        "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+        "historyLimited": true,
+        "limitations": [
+          "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+          "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+        ]
+      }
+    }
+  },
+  "samples": {
+    "sales": {
+      "samplesMs": [
+        227,
+        200,
+        191
+      ],
+      "medianMs": 200
+    },
+    "collections": {
+      "samplesMs": [
+        190,
+        177,
+        199
+      ],
+      "medianMs": 190
+    },
+    "purchases": {
+      "samplesMs": [
+        210,
+        177,
+        186
+      ],
+      "medianMs": 186
+    },
+    "supplier-payments": {
+      "samplesMs": [
+        197,
+        180,
+        213
+      ],
+      "medianMs": 197
+    },
+    "stock-movements": {
+      "samplesMs": [
+        1673,
+        452,
+        391
+      ],
+      "medianMs": 452
+    },
+    "customer-movements": {
+      "samplesMs": [
+        203,
+        275,
+        226
+      ],
+      "medianMs": 226
+    },
+    "supplier-movements": {
+      "samplesMs": [
+        223,
+        235,
+        207
+      ],
+      "medianMs": 223
+    },
+    "reportsContext": {
+      "samplesMs": [
+        11,
+        9,
+        11
+      ],
+      "medianMs": 11
+    },
+    "today": {
+      "samplesMs": [
+        246,
+        229,
+        280
+      ],
+      "medianMs": 246
+    },
+    "last7": {
+      "samplesMs": [
+        247,
+        334,
+        219
+      ],
+      "medianMs": 247
+    },
+    "month": {
+      "samplesMs": [
+        233,
+        220,
+        242
+      ],
+      "medianMs": 233
+    },
+    "brand": {
+      "samplesMs": [
+        219,
+        208,
+        211
+      ],
+      "medianMs": 211
+    },
+    "type": {
+      "samplesMs": [
+        235,
+        259,
+        266
+      ],
+      "medianMs": 259
+    },
+    "product": {
+      "samplesMs": [
+        214,
+        242,
+        223
+      ],
+      "medianMs": 223
+    },
+    "salesExport": {
+      "samplesMs": [
+        231,
+        230,
+        221
+      ],
+      "medianMs": 230
+    },
+    "ledgerExport": {
+      "samplesMs": [
+        227,
+        205,
+        211
+      ],
+      "medianMs": 211
+    },
+    "settings": {
+      "samplesMs": [
+        34,
+        9,
+        10
+      ],
+      "medianMs": 10
+    },
+    "health": {
+      "samplesMs": [
+        1
+      ]
+    }
+  },
+  "checks": [
+    {
+      "case": "sales",
+      "status": "PASS"
+    },
+    {
+      "case": "collections",
+      "status": "PASS"
+    },
+    {
+      "case": "purchases",
+      "status": "PASS"
+    },
+    {
+      "case": "supplier-payments",
+      "status": "PASS"
+    },
+    {
+      "case": "stock-movements",
+      "status": "PASS"
+    },
+    {
+      "case": "customer-movements",
+      "status": "PASS"
+    },
+    {
+      "case": "supplier-movements",
+      "status": "PASS"
+    },
+    {
+      "case": "CSV activefilters totals scope",
+      "status": "PASS"
+    },
+    {
+      "case": "empty date",
+      "status": "PASS"
+    },
+    {
+      "case": "currency=GBP",
+      "status": "blocked400"
+    },
+    {
+      "case": "period=custom&from=2026-10-06&to=2026-10-05",
+      "status": "blocked400"
+    },
+    {
+      "case": "period=custom&from=2026-02-30&to=2026-03-01",
+      "status": "blocked400"
+    },
+    {
+      "case": "brand[]=CONCEPT",
+      "status": "blocked400"
+    },
+    {
+      "case": "limit=100000",
+      "status": "blocked400"
+    },
+    {
+      "case": "personnel finance/cost denied",
+      "status": "PASS"
+    }
+  ],
+  "settings": {
+    "environment": "TEST",
+    "package": {
+      "sourceCommit": "4f918c51fd49c86953a69484714af41bec1cf794",
+      "packageId": "CANONICAL-TEST-4f918c51fd49"
+    },
+    "currentUser": {
+      "id": 16,
+      "displayName": "İlker TEST · Ön muhasebe",
+      "roleCodes": [
+        "isolated_test_ilker"
+      ],
+      "permissionsSummary": [
+        "Satış görüntüleme",
+        "Alış görüntüleme",
+        "Ürün görüntüleme",
+        "Finans görüntüleme"
+      ]
+    },
+    "services": [
+      {
+        "id": "api",
+        "label": "ERP bağlantısı",
+        "status": "ready",
+        "checkedAt": "2026-10-06T20:22:35.822Z"
+      },
+      {
+        "id": "database",
+        "label": "Veri bağlantısı",
+        "status": "ready",
+        "checkedAt": "2026-10-06T20:22:35.822Z"
+      },
+      {
+        "id": "native",
+        "label": "İşlem servisi",
+        "status": "ready",
+        "checkedAt": "2026-10-06T20:22:35.822Z"
+      },
+      {
+        "id": "crm",
+        "label": "CRM bağlantısı",
+        "status": "ready",
+        "checkedAt": "2026-10-06T20:22:35.822Z"
+      }
+    ],
+    "terminal": {
+      "webReady": true,
+      "physicalAcceptance": "pending",
+      "lastAccessAt": null
+    },
+    "backup": {
+      "status": "success",
+      "lastSuccessAt": "2026-10-06T19:45:35.6851707Z",
+      "sizeBytes": 7283015680,
+      "checksumVerified": true
+    },
+    "restore": {
+      "status": "success",
+      "lastSuccessAt": "2026-10-06T19:45:53.5863028Z",
+      "sourceDatabaseMatched": true,
+      "criticalDataMatched": true
+    },
+    "autostart": {
+      "erp": {
+        "status": "technical_ready_acceptance_pending",
+        "lastCheckAt": "2026-10-06T20:22:32.0618136Z"
+      },
+      "crm": {
+        "status": "technical_ready_acceptance_pending",
+        "lastCheckAt": "2026-10-06T20:22:28.059Z"
+      }
+    }
+  }
+}

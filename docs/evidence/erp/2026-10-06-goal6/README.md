@@ -2,7 +2,7 @@
 
 Kullanıcı talimatı ERP-DEC-019 / CRM-DEC-006. İnsan kabulü bekler; LIVE/Vega/CRM provider/main/delta/Goal7 yok.
 
-ERP source `257ab50b7a0b3339b8f585f8a9904c9c850aa912`, TEST75 `CANONICAL-GOAL6-TEST-20261006-75`, manifest `16E0BA3E1D83397A59960CC62BD51BFA368F0B989DF173D548BC084CC8FF947A`.
+ERP son uygulama source `4f918c51fd49c86953a69484714af41bec1cf794`, TEST77 `CANONICAL-GOAL6-TEST-20261006-77`, manifest `A3AAE6CB40ED93ADBB63DAE472B33F91D8399BD225EED726E1C704D5E5744F01`.
 CRM source `77a2fa346b4c3653b77e33625e185c1259402af7`, immutable `crm-test-77a2fa346b4c3653b77e33625e185c1259402af7`, manifest `ccdaab18c33973ef5a7e95e28f696fb8ff0426c41c339faefc00bf9eb9929b31`.
 
 ## Veri ve rapor kapsamı
@@ -29,4 +29,28 @@ ERP önceki TEST74 source5972f847; CRM önceki4eadb51 paketi değiştirilmeden k
 
 ## Doğrulama
 
-467 API,609 workflow,8 startup/restore hedefli yerel test; syntax/build PASS. Exact uygulama kaynakları ERP/CRM GitHub CI SUCCESS. Gerçek paket ekran/process/hız sonuçları aşağıdaki nihai kanıtlarda kaydedilecektir.
+468 API,609 workflow ve hedefli startup/restore/network/UI testleri; syntax/build PASS. ERP son source CI37525098161/37525088953 SUCCESS; CRM source CI37522269385/37522269324/37522262766 SUCCESS. Son doküman commit'i uygulama source değildir; paketler yukarıdaki source'lara sabittir.
+
+[Son TEST77/API kanıtı](report-api-proof.json) 15 kontrol; [bağımsız SQL karşılaştırması](report-independent-comparison.json) yedi rapor count/döviz toplamları ve stok net miktarı PASS. Bağımsız SQL kaydı TEST75 sırasında salt okunur alındı; aynı veri ve byte-identical rapor SQL/modeli TEST77 API ile karşılaştırıldı. [Birim kapsamı](report-unit-scope.json): mevcut127 native satış satırı unit_name NULL fakat bağlı ürünlerin hepsi ADET; tüm48771 native stok hareketi bağlı ürün birimi ADET. İşlem anı birim snapshot'ı varmış gibi ileriye dönük garanti verilmez.
+
+## Gerçek başlatma/kurtarma ve negatifler
+
+[Son pin/health/owner/task kimlikleri](ops-final-runtime-77.json). ERP75'te [ikinci launcher](ops-second-launcher.json), [API/web recovery](ops-api-web-recovery.json), [yabancı portu koruma](ops-foreign-port.json); ERP76'da [native/CRM DOWN görünümü ve recovery](ops-native-crm-recovery.json). [Kaynak eşitliği](ops-source-equivalence.json) ilgili owner dosyalarının75/76/77 ve API/SQL/network dosyalarının76/77 byte eşitliğini gösterir. TEST77 yalnız son paket/health ve UI kabul dili doğrulamasıdır.
+
+Gerçek API recovery92,923sn bütünlük başlangıcını içerir; web18,757sn/native24,459sn/CRM13,456sn. 5/10/20/40/60 saniye sınırlı backoff, hızlı hatada devre kesme; scheduler ERP retry0/CRM retry3. Limited/Interactive/logon/IgnoreNew. LIVE ve ortak native62404 PID/creation değişmedi. CRM görevinin2147946720 sonucu ikinci başlatmanın already-running reddidir; görev/owner çalışıyor ve finalhealth READY.
+
+[Yanlış DB/source/manifest](ops-startup-config-negatives.json) başlatmadan reddedildi. [Geç Chatwoot provası](ops-chatwoot-late-rehearsal.json) ayrı kontrollü loopback HTTP fixture kullanır; gerçek Docker/Chatwoot kapanmadı. API/native/CRM gerçek kapanma provaları ayrı kanıtlıdır. Personel finance403/maliyet alanı yok; geçersiz döviz/tarih/array/limit400; NULL model testlerinde korunur; boş dönem0; döviz toplamları ayrı.
+
+CRM kontrolündeki gerçek ağ engeli yalnız sabit GET localhost62401/health için AsyncLocalStorage kapsamlı salt okunur helper ile giderildi. Genel62401/external/send engeli, exactTESTDB ve credentials sınırı korunur; yeni rol/izin verilmedi.
+
+## Ekran ve hız
+
+[Tarayıcı kontrolü](browser-verification.json): yedi tür, altı dönem, marka/tür/ürün gruplama, boş gelecek aralığı ve normal CSV başarı mesajı. Browser download event yakalanamadı; CSV içeriği/API filtre/toplam paritesi gerçek API yanıtıyla ayrı kanıtlıdır. İnsan dosya indirme kabulü bekler.
+
+[Raporlar1440](reports-1440.jpg),[1024](reports-1024.jpg),[390](reports-390.jpg); [Ayarlar1440](settings-1440.jpg),[1024](settings-1024.jpg),[390](settings-390.jpg). Kullanıcının zoom1,21'i değiştirilmedi; gerçek document CSS width1440/1024/390 ölçüldü, global yatay taşma yok; geniş tablonun kendi kaydırması var. Görünür ekran görüntüleri native tab screenshot ile alındı.
+
+HTTP üç örnek medyan: bugün246ms/7gün247ms/ay233ms/marka211ms/tür259ms/ürün223ms/müşteri226ms/CSV230ms/ledgerCSV211ms/Ayarlar10ms/health1ms. Stok hareketi ilk soğuk1673ms, sonraki452/391ms; soğuk maliyet gizlenmez. Tarayıcı tam sayfa rapor+veri532ms, Ayarlar273ms; tekrar menü geçişi cache kullanır ve ilk açılış ölçümü değildir. Backup87,351sn/restore17,823sn/connector1,031sn bu HTTP sürelerinden ayrıdır.
+
+## Kapanış
+
+ERP49/7🟢/29🟡/13🔴; B07/B08/C13/C14 kırmızıdan sarıya, C15 teknik tamam. CRM25/12🟢/13🟡/0🔴; O02 teknik tamam/sarı. ERP-UA19–22 veCRM-UA06 bekliyor; fiziksel logon/reboot/Zebra/insan PASS yapılmadı. Karar/pano/status/finish/UA güncellendi. Goal6 teknik tamamlandı; Goal7 başlamaz.

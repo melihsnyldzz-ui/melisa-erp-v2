@@ -1,3 +1,13 @@
+## 6 Ekim 2026 — Goal6 teknik teslimi / insan kabulü bekliyor
+
+ERP TEST77 uygulama source `4f918c51fd49c86953a69484714af41bec1cf794`; immutable paket `C:\Sirket\ERP\releases\CANONICAL-GOAL6-TEST-20261006-77`, manifest `A3AAE6CB40ED93ADBB63DAE472B33F91D8399BD225EED726E1C704D5E5744F01`. CRM uygulama77a2fa346b4c3653b77e33625e185c1259402af7/immutable77a2 paketi. Checkout/doküman HEAD, uygulama source ve runtime ayrı kimliklerdir; exact uygulama CI ve final belge PR checks GitHub tesliminde doğrulanır.
+
+Normal [Raporlar](http://127.0.0.1:5194/ornek-akis.html#reports) ve [Ayarlar](http://127.0.0.1:5194/ornek-akis.html#settings). Yedi raporun bağımsız SQL/API toplamları eşit; ayrı döviz, native provenance, Türkiye DATE, NULL maliyet ve mevcut rol sınırları korunur. Katalogdaki10.552 bilinmeyen maliyet işlem satırı sayısıyla karıştırılmaz. Önceki Vega tarihi DB'de bulunur ama bu native raporlara alınmadı. READ_ONLY yeni restore DB ve backup korunur; aktif TEST üzerine restore/SQL migration write yok.
+
+Gerçek owner/duplicate/foreign-port/API-web/native-CRM recovery provaları kaynak75/76 ile yapıldı;77 yalnız rapor kullanıcı etiketlerini düzeltir. Aynı launcher/API/network byte kimlikleri ve son77 runtime/pin/health kontrolü kanıtta ayrıdır. CRM sağlık erişimi yalnız sabit127.0.0.1:62401/health GET/no-redirect/1,5sn async socket scope; genel CRM port/yazma/gönderim sınırı açılmadı. LIVE ve shared62404 PID/creation aynı. Fiziksel logon/reboot, Zebra ve kullanıcı kabulü bekler.
+
+468 API/609 workflow,5 Windows startup+3 restore hedefli test, build/syntax/secret scan ve exact GitHub CI. İnsan ERP-UA19–22/CRM-UA06 bekler. Finish49/7🟢/29🟡/13🔴; CRM25/12🟢/13🟡/0🔴. [Ayrıntılı kanıt, süreler, ekranlar ve rollback](docs/evidence/erp/2026-10-06-goal6/README.md). Goal6 tamamlanınca durulur; Goal7 başlanmaz.
+
 # Goal5 — 6 Ekim 2026, personel terminali teknik tamamlandı / insan ve fiziksel cihaz kabulü bekliyor
 
 **Teknik sonuç:** Tek [personel terminalinde](http://127.0.0.1:5194/terminal.html) Mal Kabul, Satış, Müşterilerim/CRM, gerçek ürün/fiyat/fotoğraf, çeviri, native ERP taslak, Sayım ve İade zinciri gerçek ortak TEST servisleriyle tamamlandı. [Kanıt ve ölçümler](docs/evidence/erp/2026-10-06-goal5/README.md), [runtime](docs/evidence/erp/2026-10-06-goal5/runtime.json), [tarayıcı](docs/evidence/erp/2026-10-06-goal5/browser-completion.json), [fiziksel13 adım](docs/erp-v2/canonical-20261006/goal5-personnel-terminal.md). ERP-UA18/CRM-UA05 ve önceki insan kabulleri **bekliyor**; teknik sonuç insan PASS değildir. Goal5 sonunda durulur; Goal6/7 başlamaz.

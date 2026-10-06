@@ -1,6 +1,8 @@
 {
-  "sourceCommit": "257ab50b7a0b3339b8f585f8a9904c9c850aa912",
+  "sourceCommit": "4f918c51fd49c86953a69484714af41bec1cf794",
+  "independentSqlCapturedAt": "2026-10-06T19:57:44.8226347Z",
   "period": "2026-10-01..2026-10-06",
+  "sqlIndependent": true,
   "checks": [
     {
       "kind": "sales",
@@ -42,9 +44,8 @@
       "kind": "stock-movements",
       "result": "PASS",
       "rowCount": 43,
-      "currencyTotalsMatched": false
+      "quantityMatched": true,
+      "monetaryTotals": "not applicable"
     }
-  ],
-  "sqlIndependent": true,
-  "stockQuantityOnly": true
+  ]
 }
