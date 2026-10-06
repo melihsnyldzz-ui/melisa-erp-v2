@@ -1,6 +1,13 @@
 # ERP-FINOPS01 — kabul kanıtı çalışma kaydı
 
-2026-10-06, ERP-DEC-015 / Uzun Goal3. **Ödeme, kasa ve tedarikçi kartının bağlı ödeme/borç geçmişi teknik olarak TEST62/source `6a3c92c44c3546c9c89eac85c7673dc67eba3ac0` üzerinde hazır; insan ERP-UA13/14 kabulü bekliyor.** Dal `codex/erp-finish-20261004`, draft PR23. Sıradaki geliştirme bölümü kalıcı stok sayımıdır.
+## Kalıcı sayım normal yüz bağlantısı — TEST64
+
+- TEST63/source `5e647c912fb8cc7397cf0191308ee836bb6a908e` kalıcı iki ürünlü sayım model/API'sini içerir. TEST64/source `100a5286f943baee4f4699229e1bd101452d7dff` bunu normal `ornek-akis.html#count` canlı moduna bağlar. Sadece bu sayfa için tam allowlist `/api/test-daily/count` GET ve `draft|approve|reject|cancel` POST kullanılır; mevcut normal API oturumu ve rol kontrolleri yürür. Sayım görünümünde TEST istatistik bandı yoktur. Otomatik TEST ADMIN'e geçiş bu akışta kapalıdır.
+- Kullanıcı parola bilmediğini söyledi ve açık erişim tercihi olarak **yalnız yerel demo** seçti. Bu nedenle gerçek kullanıcı oturumu veya SQL sayım yazması yapılmadı. TEST64'te gerçek tarayıcıyla `http://127.0.0.1:5194/ornek-akis.html#count` açıldığında “ÖRNEK MOD — Bu kayıtlar TEST veritabanına yazılmaz” uyarısı ve yerel sayım/fark inceleme listesi görüldü; örnek ürün ve adetler localStorage demosudur. [Tarayıcı gözlem kaydı](count-screen.json). ERP-UA15 hâlâ bekliyor; bu UI gözlemi ortak TEST kabulü değildir.
+- TEST64 runtime source/package/DB/isolasyon, LIVE sahipleri ve geri dönüş kaydı: [runtime-switch-finops-64.json](C:/Sirket/ERP/evidence/ERP-FINOPS-20261006/runtime-switch-finops-64.json). API4144/native4146/web5194 yeni source `100a5286f943baee4f4699229e1bd101452d7dff`; database `MELISA_ERP_SIRKET_TEST_20260929_01`; sysadmin/control/LIVE=0, external=false, business writes=0; native loopback-only; önceki paket63 korundu.
+- Kaynak kontrolleri: `apps/sites-workflow` 575/575 test ve production build PASS; count model + route policy 14/14 PASS; PR23 exact head `100a5286f943baee4f4699229e1bd101452d7dff` CI/secret-scan SUCCESS. Kaynak checkout'unda `testDailyAdminAccess.test.mjs` `sqlserver.node` native binding'i bulunmadığından çalışmadı; TEST64 switch gerçek API/native sağlık ve TEST kimliğini doğruladı.
+
+2026-10-06, ERP-DEC-015 / Uzun Goal3. **Ödeme/kasa/tedarikçi zinciri TEST62, kalıcı sayım modeli TEST63 ve normal sayım ekranı bağlantısı TEST64/source `100a5286f943baee4f4699229e1bd101452d7dff` üzerinde teknik hazırdır.** Dal `codex/erp-finish-20261004`, draft PR23. ERP-UA13–17 insan kabulü bekler. Kullanıcı yalnız yerel demo yolunu seçti; gerçek SQL sayım kabulü yapılmadı. Sonraki geliştirme bölümü fiziksel alış iadesidir.
 
 ## Tedarikçi kartı: kabul/fatura/ödeme zinciri
 
@@ -36,7 +43,7 @@
 | 1 Tedarikçi ödeme | Kaynak kabul/fatura pozitif borç → kısmi ödeme → kalan → tam ödeme → ters kayıt; her aşamada SQL borç/kasa doğrulanır, stok değişmez. TRY/USD/EUR ayrı; fazla ödeme, yanlış döviz ve bilinmeyen kur uygulanmaz. | Teknik hazır TEST61; ERP-UA13 insan kabulü bekliyor |
 | 2 Finans/kasa | Müşteri tahsilat girişi ve tedarikçi ödeme çıkışı; tarih/party/döviz/tutar/yön/belge/aktif-ters durumu ve döviz ayrı toplamları. Doğrulanmamış ticari açılış/gerçek banka bağlantısı uydurulmaz. | Teknik hazır TEST61; ERP-UA14 insan kabulü bekliyor |
 | 3 Tedarikçi kartı | Aynı kaynak kabul→fatura→borç→ödeme/kalan/ters zinciri; fiziksel ve finansal olaylar ayrı, eski bilinmeyen bağ tahmin edilmez. | Teknik hazır TEST62; ERP-UA13 insan kabulü bekliyor |
-| 4 Stok sayımı | Personel kalıcı barkod/kod/miktar ve bilinmeyen kayıt; sistem/sayılan/fark. Tamamlama stok etkisiz; actual yetkili gerekçeli onay bir kez stok düzeltir; personel403. | Sıradaki geliştirme bölümü |
+| 4 Stok sayımı | Personel kalıcı barkod/kod/miktar ve bilinmeyen kayıt; sistem/sayılan/fark. Tamamlama stok etkisiz; actual yetkili gerekçeli onay bir kez stok düzeltir; personel403. | TEST63/64 model/API ve normal ekran bağlantısı teknik hazır; ERP-UA15 gerçek TEST hesabı kabulü bekliyor; kullanıcı yalnız yerel demo seçti |
 | 5 Fiziksel alış iadesi | Ayrı kaynak belge, özgün fiyat/maliyet/kur ve kalan miktar; stok azalır, borç ters etkisi; eski fatura korunur, fatura iptali fiziksel iade sayılmaz. | Sayım bağımlılığı bekleniyor |
 | 6 Ana Sayfa | Gerçek günlük tahsilat/ödeme, bekleyen kabul/sayım/iade işleri; izinli sınırlı okuyucular, temiz boş durum, ayrı döviz. | Önceki bölümler bekleniyor |
 | 7 Teslim | Gerçek üç genişlik, rol/negatif/native SQL/yanıt kaybı, önce-sonra hız, bağımsız inceleme, yeni immutable TEST paket/launcher, exact source/hash ve PR23 CI/secret scan, status/tree/UA. | Önceki bölümler bekleniyor |

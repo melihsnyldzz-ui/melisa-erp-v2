@@ -6,7 +6,7 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 
 ## Yeni/değişen kapsam
 
-**2026-10-06 ERP-FINOPS01 — ERP-UA13/14/15/16/17 bekliyor:** Ödeme ve kasa hareketleri TEST61/source `aff60757dcb8641001ca36ac9030ab572cae8808` üzerinde teknik denemeye hazır; yalnız test için ayrılmış kayıtlar kullanılır. [Kanıt ve TEST adresleri](docs/evidence/erp/2026-10-06-finops/README.md). Tedarikçi kartı, sayım/yetkili düzeltme, fiziksel alış iadesi ve Ana Sayfa henüz sıradadır. Ajanın teknik denemesi insan PASS değildir; eski kabul geçmişi korunur.
+**2026-10-06 ERP-FINOPS01 — ERP-UA13/14/15/16/17 bekliyor:** Ödeme/kasa TEST62; sayım akışı TEST64/source `100a5286f943baee4f4699229e1bd101452d7dff` teknik olarak hazır. Kullanıcı parola bilmediğini söyledi ve erişim tercihi olarak yalnız yerel demo yolunu seçti. `http://127.0.0.1:5194/ornek-akis.html#count` gerçek ekranda açıldı; görülen veri yerel sentetik örneklerdir ve TEST SQL'e yazılmaz. Bu deneme gerçek rol/SQL sayım kabulü değildir. [Ekran kanıtı](docs/evidence/erp/2026-10-06-finops/count-screen.json), [teknik kanıt](docs/evidence/erp/2026-10-06-finops/README.md). ERP-UA13/14/15/16/17 insan sonucu bekler; eski kabul geçmişi korunur.
 
 **2026-10-06 ERP-UA10/11/12 — bekliyor:** TEST58/source93365d0baf002e93010a2759bd45af2af11040e7; ajan gerçek normal ekran/SQL/role/üç genişlik kanıtı insan PASS değildir. [Kabul paketi](docs/evidence/erp/2026-10-06-inbound/README.md). Sabah Sayım#5 iki satır, #6 bulunamayan barkod kalıcı inceleme için hazır. Genel ticari kartlar salt okunur. Kişi/deneme saati/insan sonuç bildirilmedi.
 
