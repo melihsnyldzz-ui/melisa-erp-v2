@@ -12,15 +12,15 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const target=()=>isTestSessionTarget({location,apiBase});
  const stored=key=>{try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
- const clear=()=>{generation++;controllers.forEach(c=>c.abort());token=null;user=null;try{storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,keepForbiddenSession=false,inboundErrors=false}={}){
+ const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
+ async function request(path,{method='GET',body,expire=false,workErrors=false,keepForbiddenSession=false,inboundErrors=false,startupAuth=false}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
    const response=await fetchImpl(resolvedApiBase+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
-   if(!response.ok||payload?.success!==true){if(response.status===401||response.status===403&&!keepForbiddenSession){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
+   if(!response.ok||payload?.success!==true){if(!startupAuth&&(response.status===401||response.status===403&&!keepForbiddenSession)){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
    return payload;
   }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
  }
@@ -31,11 +31,11 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  return {
   async start(){
    if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');token=stored(workingCatalogTokenKey);
-   if(token){try{user=validUser((await request('/api/auth/me')).data);return user;}catch(error){clear();if(!active)throw error;}}
+   if(token){const version=generation,cachedToken=token;try{const payload=await request('/api/auth/me',{startupAuth:true});if(!active||version!==generation||token!==cachedToken||stored(workingCatalogTokenKey)!==cachedToken)throw problem('İstek iptal edildi.');user=validUser(payload.data);return user;}catch(error){if(!active||version!==generation||token!==cachedToken||stored(workingCatalogTokenKey)!==cachedToken)throw error;if(![401,403].includes(error?.status))throw problem('Oturum şu anda doğrulanamıyor. Yenileyerek tekrar deneyin.',error?.status??503);clear();}}
    if(!shouldAutoOpenTestAdmin({location,apiBase,mode:stored(testSessionModeKey)}))return null;
    return accept(await request('/api/auth/test-admin',{method:'POST',body:{}}));
   },
-  async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear();return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
+  async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
   async home(...args){
    if(args.length||!token||!user)throw problem('Günlük işler okunamıyor.');
    return (await request('/api/home/summary',{expire:true})).data;

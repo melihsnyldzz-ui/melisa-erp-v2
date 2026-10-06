@@ -1,0 +1,118 @@
+{
+  "at": "2026-10-06T08:06:12.677Z",
+  "sourceCommit": "e54a1d0f428a9ec15c75feb131b672a56be0b231",
+  "packageId": "CANONICAL-TEST-e54a1d0f428a",
+  "newPhysicalEffectsExpected": 0,
+  "roles": [
+    {
+      "role": "seller",
+      "actorId": "15",
+      "receivingStatus": 200,
+      "receivingMs": 259,
+      "redactionVerified": true,
+      "homeStatus": 200,
+      "purchase": 403,
+      "supplier": 403,
+      "fx": 403
+    },
+    {
+      "role": "ilker",
+      "actorId": "16",
+      "receivingStatus": 200,
+      "receivingMs": 207,
+      "redactionVerified": true,
+      "homeStatus": 200,
+      "purchase": 200,
+      "supplier": 200,
+      "fx": 200
+    },
+    {
+      "role": "readonly",
+      "actorId": "14",
+      "catalogStatus": 200,
+      "receivingStatus": 403
+    }
+  ],
+  "negativeControls": [
+    {
+      "control": "real-product",
+      "productId": "36724",
+      "status": 409
+    },
+    {
+      "control": "held-product",
+      "productId": "40451",
+      "status": 409
+    },
+    {
+      "control": "unknown-submit",
+      "countId": "3",
+      "status": 409,
+      "revisionUnchanged": true
+    },
+    {
+      "control": "native-readonly-write",
+      "status": 405
+    },
+    {
+      "control": "cross-actor-replay",
+      "operation": "approval-response-loss",
+      "actorId": "15",
+      "status": 403
+    },
+    {
+      "control": "cross-actor-replay",
+      "operation": "finalize-request",
+      "actorId": "15",
+      "status": 403
+    }
+  ],
+  "replays": [
+    {
+      "operation": "approval-response-loss",
+      "requestId": "0f0c4be8-f002-4510-96b1-f0d778cc8ca9",
+      "bodySha256": "3cbd374ad7c0737c79e32c3fa6126295889601c3b32c32e0fa8458a5d897282a",
+      "statuses": [
+        200,
+        200
+      ],
+      "replayed": [
+        true,
+        true
+      ],
+      "storedResponseStatus": [
+        "accepted",
+        "accepted"
+      ],
+      "ms": [
+        167,
+        62
+      ]
+    },
+    {
+      "operation": "finalize-request",
+      "requestId": "a7150b38-49ca-42ce-9d47-fa9cbde95594",
+      "bodySha256": "2b8dbb8a2f632a5786d963903293fc788eefcd084b56e4e3451f00b215e5b187",
+      "statuses": [
+        200,
+        200
+      ],
+      "replayed": [
+        true,
+        true
+      ],
+      "storedResponseStatus": [
+        "finalized",
+        "finalized"
+      ],
+      "ms": [
+        42,
+        79
+      ]
+    }
+  ],
+  "observationsUnchanged": true,
+  "beforeSha256": "f04d1bf4330f587c10ad2e590373b235d9bb02c741a002b8df711fcf95691c32",
+  "afterSha256": "f04d1bf4330f587c10ad2e590373b235d9bb02c741a002b8df711fcf95691c32",
+  "nativeBeforeAfterRequired": true
+}

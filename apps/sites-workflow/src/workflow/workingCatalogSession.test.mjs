@@ -17,6 +17,29 @@ test('existing token verifies auth/me and manual mode never auto-elevates',async
  const missing=fixture(async()=>{throw Error('must not call');});missing.store.setItem(testSessionModeKey,'manual');assert.equal(await missing.session.start(),null);assert.equal(missing.calls.length,0);
  const expired=fixture(async()=>reply(null,401));expired.store.setItem(workingCatalogTokenKey,'bad');expired.store.setItem(testSessionModeKey,'manual');assert.equal(await expired.session.start(),null);assert.equal(expired.calls.length,1);assert.equal(expired.store.getItem(workingCatalogTokenKey),null);
 });
+test('cached startup disposed before late 200 or 401 never erases a newer manual session across instances',async()=>{
+ for(const status of [200,401]){
+ const store=storage();store.setItem(workingCatalogTokenKey,'previous');store.setItem(testSessionModeKey,'manual');let finish,expired=0;
+ const old=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:()=>new Promise(resolve=>finish=resolve)});
+ const started=old.start();old.dispose();const next=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async url=>url.endsWith('/auth/login')?reply({user:{...user,id:15},accessToken:'replacement'}):reply({safe:true})});
+ await next.login({username:'seller',password:'fixture-secret'});finish(reply(user,status));await assert.rejects(started);assert.equal(store.getItem(workingCatalogTokenKey),'replacement');assert.equal(store.getItem(testSessionModeKey),'manual');assert.equal(expired,0);assert.deepEqual(await next.inbound('/api/work-receiving/context'),{safe:true});next.dispose();
+ }
+});
+test('late cached auth failure in still active older instance cannot clear a replacement login',async()=>{
+ const store=storage();store.setItem(workingCatalogTokenKey,'previous');store.setItem(testSessionModeKey,'manual');let finish;
+ const old=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:()=>new Promise(resolve=>finish=resolve)}),started=old.start();
+ const next=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async()=>reply({user:{...user,id:15},accessToken:'replacement'})});await next.login({username:'seller',password:'fixture-secret'});finish(reply(null,401));await assert.rejects(started);assert.equal(store.getItem(workingCatalogTokenKey),'replacement');await assert.rejects(()=>old.home());old.dispose();next.dispose();
+});
+test('active cached auth transient 503, network failure or timeout preserves token and manual choice without granting reads or bootstrap',async()=>{
+ for(const cause of ['503','network','timeout']){
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'cached');store.setItem(testSessionModeKey,'manual');let transient=true;
+ const session=createWorkingCatalogSession({location,apiBase,storage:store,timeoutMs:2,fetchImpl:async(url)=>{calls.push(url);if(transient){if(cause==='503')return reply(null,503);if(cause==='network')throw Error('private transport');await new Promise(resolve=>setTimeout(resolve,8));}return reply({...user,id:15});}});
+ await assert.rejects(()=>session.start(),e=>e.status===503&&/Yenileyerek/.test(e.message)&&!e.message.includes('private'));assert.equal(store.getItem(workingCatalogTokenKey),'cached');assert.equal(store.getItem(testSessionModeKey),'manual');await assert.rejects(()=>session.home());assert.ok(calls.every(url=>url.endsWith('/auth/me')));transient=false;assert.equal((await session.start()).id,15);assert.equal(calls.length,2);session.dispose();
+ }
+});
+test('current cached auth 401 and 403 still expire without allowing reads in manual mode',async()=>{
+ for(const status of [401,403]){const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'invalid');store.setItem(testSessionModeKey,'manual');const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async url=>{calls.push(url);return reply(null,status);}});assert.equal(await session.start(),null);assert.equal(store.getItem(workingCatalogTokenKey),null);assert.equal(store.getItem(testSessionModeKey),'manual');await assert.rejects(()=>session.inbound('/api/work-receiving/context'));assert.deepEqual(calls,[apiBase+'/api/auth/me']);session.dispose();}
+});
 test('remote, LIVE, wrong API target cannot bootstrap or login; no source fallback',async()=>{
  for(const settings of [{location:{...location,port:'5188'}},{location:{...location,hostname:'192.168.1.2'}},{apiBase:'http://127.0.0.1:4114'}]){let calls=0;const s=createWorkingCatalogSession({location,apiBase,storage:storage(),fetchImpl:async()=>{calls++;},...settings});await assert.rejects(()=>s.start());await assert.rejects(()=>s.login({username:'admin',password:'secret'}));assert.equal(calls,0);}
 });
