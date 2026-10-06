@@ -1,6 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('normal current-price FX purchase paths keep the existing TEST/native boundary',()=>{
+ for(const suffix of ['preview','receipts','receipts/12/approve','receipts/12/reject','drafts','drafts/12/finalize','drafts/12/cancel']){
+  const path='/api/work-purchases/fx/'+suffix;
+  assert.equal(allowed('POST',path,ctx),true,path);
+  for(const scope of [{mode:'native',writes:true},{mode:'erp',writes:false}])assert.equal(allowed('POST',path,scope),false);
+  for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ctx),false);
+ }
+ for(const suffix of ['context','drafts/12','receipts/01/approve','receipts/0/approve','drafts/12/finalize/extra','rates','prices'])assert.equal(allowed('POST','/api/work-purchases/fx/'+suffix,ctx),false,suffix);
+});
 test('inbound normal writes cannot reach native, supplier editing or malformed lifecycle IDs',()=>{
  for(const path of ['/api/work-receiving/count-drafts','/api/work-receiving/count-drafts/12/update','/api/work-receiving/count-drafts/12/submit','/api/work-receiving/count-drafts/12/cancel','/api/work-receiving/receipts/12/approve','/api/work-receiving/receipts/12/reject','/api/work-purchases/preview','/api/work-purchases/drafts','/api/work-purchases/drafts/12/finalize','/api/work-purchases/drafts/12/cancel']){
   assert.equal(allowed('POST',path,ctx),true,path);assert.equal(allowed('POST',path,{mode:'native',writes:true}),false);assert.equal(allowed('POST',path,{mode:'erp',writes:false}),false);

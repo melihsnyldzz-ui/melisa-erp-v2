@@ -75,6 +75,15 @@ test('inbound transport preserves the complete count replay and confines read/wr
  for(const [path,options] of [['/api/work-receiving/context',{method:'POST',body}],['/api/work-receiving/count-drafts/01/update',{method:'POST',body}],['/api/work-receiving/count-drafts/12/update?token=x',{method:'POST',body}],['/api/work-suppliers/context',{method:'POST',body}],['/api/work-receiving/count-drafts/12',{method:'DELETE',body}],['/api/test-purchase/batches',{method:'POST',body}],['/api/work-purchases/drafts/12/finalize/extra',{method:'POST',body}],['/api/work-receiving/context?token=x',{}]])await assert.rejects(()=>f.session.inbound(path,options));
  assert.equal(f.calls.length,count);f.session.dispose();await assert.rejects(()=>f.session.inbound('/api/work-receiving/context'));
 });
+test('normal FX transport confines the current-price lifecycle and preserves its full replay body',async()=>{
+ const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'fx-token'}):reply({safe:true}));await f.session.start();
+ const body={requestId:'00000000-0000-4000-8000-000000000001',currency:'USD',quantityExact:'1',priceRevision:'a'.repeat(64)};
+ for(const suffix of ['context','drafts/12'])await f.session.inbound('/api/work-purchases/fx/'+suffix);
+ for(const suffix of ['preview','receipts','receipts/12/approve','receipts/12/reject','drafts','drafts/12/finalize','drafts/12/cancel']){await f.session.inbound('/api/work-purchases/fx/'+suffix,{method:'POST',body});assert.deepEqual(JSON.parse(f.calls.at(-1).options.body),body);}
+ const count=f.calls.length;
+ for(const [suffix,method] of [['context','POST'],['rates','GET'],['prices','POST'],['receipts/01/approve','POST'],['drafts/12/finalize/extra','POST'],['context?token=x','GET'],['drafts/12','DELETE']])await assert.rejects(()=>f.session.inbound('/api/work-purchases/fx/'+suffix,{method,body}));
+ assert.equal(f.calls.length,count);f.session.dispose();
+});
 test('denied inbound finance keeps the personnel session while 401 still expires; supplier cards stay read-only',async()=>{
  let expired=0;const calls=[],store=storage();const s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/test-admin')?reply({user,accessToken:'personnel'}):url.endsWith('/work-purchases/context')?reply(null,403):reply({safe:true});}});
  await s.start();await assert.rejects(()=>s.inbound('/api/work-purchases/context'),e=>e.status===403);assert.equal(expired,0);assert.equal(store.getItem(workingCatalogTokenKey),'personnel');assert.deepEqual(await s.inbound('/api/work-receiving/home'),{safe:true});await s.suppliers('/api/supplier-cards?search=demo&page=1&limit=25',{envelope:true});await s.suppliers('/api/suppliers/13370/card');const count=calls.length;

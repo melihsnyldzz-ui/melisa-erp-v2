@@ -1,8 +1,8 @@
 import {Router} from 'express';
-import {requireAuth} from '../middleware/authMiddleware.js';
 import {workInboundService} from '../services/workInboundService.mjs';
-export function createWorkInboundRoutes({authenticate=requireAuth,service=workInboundService}={}){
- const r=Router(),handle=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)});}catch(e){next(e);}};r.use(authenticate);
+async function defaultAuthenticate(req,res,next){try{const {requireAuth}=await import('../middleware/authMiddleware.js');return requireAuth(req,res,next);}catch(error){next(error);}}
+export function createWorkInboundRoutes({authenticate=defaultAuthenticate,service=workInboundService}={}){
+ const r=Router(),handle=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)});}catch(e){next(e);}};r.use(['/work-receiving','/work-purchases','/work-suppliers'],authenticate);
  r.get('/work-receiving/context',handle(q=>service.context(q.user)));
  r.get('/work-receiving/home',handle(q=>service.home(q.user)));
  r.get('/work-receiving/count-drafts',handle(q=>service.list(q.user)));

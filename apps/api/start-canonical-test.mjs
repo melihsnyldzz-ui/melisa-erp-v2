@@ -48,6 +48,8 @@ if(mode==='erp'){
     app.use('/api',workSalesRoutes);app.use('/api',workCollectionRoutes);
     const {workInboundRoutes}=await import('./src/routes/workInboundRoutes.mjs');
     app.use('/api',workInboundRoutes);
+    const {workInboundFxRoutes}=await import('./src/routes/workInboundFxRoutes.mjs');
+    app.use('/api',workInboundFxRoutes);
   }
   const {homeSummaryRoutes}=await import('./src/routes/homeSummaryRoutes.mjs');
   app.use('/api',homeSummaryRoutes);
