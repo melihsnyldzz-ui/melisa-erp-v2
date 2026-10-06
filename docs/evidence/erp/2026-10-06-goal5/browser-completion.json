@@ -1,0 +1,201 @@
+{
+  "recordedAt": "2026-10-06T19:14:09.122Z",
+  "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+  "crmSource": "4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+  "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+  "environment": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "receipt": {
+    "id": 7,
+    "status": "SAVED",
+    "quantity": 1,
+    "doubleEnterOneLine": true,
+    "refreshSame": true,
+    "stockApproval": false
+  },
+  "sales": {
+    "customerId": 30598,
+    "barcode": "0000061010001",
+    "fixtureUnitPrice": "100 TRY",
+    "quantity": 1,
+    "doubleEnterOneLine": true,
+    "commercialFinalize": false
+  },
+  "catalog": {
+    "actualPhotos": [
+      {
+        "productId": 34765,
+        "stockCode": "0161 MOLLY",
+        "price": "9.66 USD",
+        "stock": "14 ADET",
+        "brand": null,
+        "type": null,
+        "decoded": true
+      },
+      {
+        "productId": 36724,
+        "stockCode": "8023 CONCEPT",
+        "price": "15.78 USD",
+        "stock": "0 ADET",
+        "decoded": true
+      }
+    ],
+    "noPhotoProductId": 30226,
+    "holdProductId": 40451,
+    "sourceSnapshot": "2026-09-30",
+    "literalNullSaleRowsAvailable": 0,
+    "literalNullRealProductUiCoverage": "not available; missing currency tuple and model protection tested"
+  },
+  "nativeDraft": {
+    "id": 9,
+    "uuid": "c0bd83c2-6515-4b4b-a074-5386b73c7639",
+    "customerId": 595,
+    "customerBasis": "controlled explicit TEST choice; exact7733 phone match absent",
+    "products": [
+      {
+        "productId": 34765,
+        "quantity": 1,
+        "price": "9.6600 USD"
+      },
+      {
+        "productId": 36724,
+        "quantity": 1,
+        "price": "15.7800 USD"
+      }
+    ],
+    "total": "25.4400 USD",
+    "exchangeRate": "1.00000000 controlled TEST",
+    "independentGet": true,
+    "refreshGetOnly": true,
+    "sameBodyReplaySameId": true,
+    "differentBodyStatus": 409,
+    "stockEffect": false,
+    "customerEffect": false,
+    "paymentEffect": false,
+    "reservationEffect": false
+  },
+  "count": {
+    "id": 43,
+    "systemQuantity": 3,
+    "physicalQuantity": 1,
+    "difference": -2,
+    "status": "pending",
+    "staffApprovalStatus": 403,
+    "stockApplied": false
+  },
+  "purchaseReturn": {
+    "id": 44,
+    "purchaseId": 25075,
+    "itemId": 93173,
+    "productId": 301986,
+    "quantity": 1,
+    "status": "pending",
+    "remainingQuantityBefore": 5,
+    "remainingQuantityAfter": 4,
+    "stockApplied": false,
+    "financeApplied": false
+  },
+  "assignment": {
+    "conversationId": 55,
+    "testAgentId": 3,
+    "restoredAgentId": 2,
+    "restoredAndReadBack": true
+  },
+  "conversationPreservation": {
+    "menuRoundtrip": "HOME→PRODUCTS→HOME→CUSTOMERS",
+    "sameConversationId": 55,
+    "sameComposer": true,
+    "freshPermissions": true
+  },
+  "outboundRecovery": {
+    "oldUuid": "47a84e4c-a8f3-40e2-bf54-c5eb82b731c5",
+    "initialStatus": 503,
+    "state": "REJECTED_BEFORE_TRANSPORT",
+    "providerMessageIdPresent": false,
+    "chatwootMessageIdPresent": false,
+    "incompleteBodyStatus": 409,
+    "matchingActorConversationBodyStatus": 200,
+    "readOnly": true,
+    "automaticResend": false
+  },
+  "pricePreflight": {
+    "erpFailureAtPresend": true,
+    "messagePosts": 0,
+    "composerAndPhotoPreserved": true,
+    "networkRulesRestored": true
+  },
+  "manualShare": {
+    "allowedRecipientSuffix": "7733",
+    "conversationId": 55,
+    "uuid": "d31dc923-7487-4d65-a62d-4f88fabd32d2",
+    "productId": 36724,
+    "erpPrice": "15.78 USD / ADET",
+    "freshErpGetBeforePost": true,
+    "providerResponse": 201,
+    "deliveryState": "CONFIRMED",
+    "providerMessageIdPresent": true,
+    "chatwootMessageIdPresent": true,
+    "independentConversationGetStatus": 200,
+    "chatwootMessageId": 12281,
+    "messageType": "image",
+    "sameCaptionAndPrice": true,
+    "providerAccepted": true,
+    "chatwootRecorded": true,
+    "delivered": false,
+    "read": false,
+    "photoViewerDecoded": {
+      "width": 960,
+      "height": 1220
+    },
+    "humanAcceptance": false
+  },
+  "logout": {
+    "at": "2026-10-06T19:12:42.878Z",
+    "parentLoginVisible": true,
+    "crmIframeCount": 1,
+    "priorConversationVisible": 0,
+    "otherActor": {
+      "id": 16,
+      "name": "İlker",
+      "salesContext": "Mevcut iptal edilmiş NIGHT fişi; önceki aktörün yeni sepeti değil"
+    },
+    "crmLoginRequiredForOtherActor": true,
+    "otherActorPriorConversationVisible": 0
+  },
+  "connectionFaults": {
+    "offlineWriteBlocked": true,
+    "exactOfflineMessage": "Bağlantı yok — bu işlem çevrimiçi tamamlanmalıdır.",
+    "aiFailurePreservesHistoryAndComposer": true,
+    "erpFailurePreservesCrmHistory": true,
+    "crmFailurePreservesErpCatalog": true,
+    "browserNetworkRulesRestored": true,
+    "servicesWereNotStopped": true
+  },
+  "touch": {
+    "homeWidths": [
+      360,
+      390,
+      1024,
+      1440
+    ],
+    "homeMinButtonPx": 46,
+    "homeNoHorizontalOverflow": true,
+    "crm390MinButtonPx": 44,
+    "crm390ScrollWidth": 390,
+    "catalogModalMinButtonPx": 43.995,
+    "physicalDeviceAcceptance": false
+  },
+  "humanAcceptance": {
+    "erp": "ERP-UA18 bekliyor",
+    "crm": "CRM-UA05 bekliyor"
+  },
+  "scope": {
+    "liveChanged": false,
+    "vegaWrite": false,
+    "rolesChanged": false,
+    "commercialSale": false,
+    "payment": false,
+    "otherRecipientSend": false,
+    "mainMerge": false,
+    "nextGoalStarted": false
+  }
+}

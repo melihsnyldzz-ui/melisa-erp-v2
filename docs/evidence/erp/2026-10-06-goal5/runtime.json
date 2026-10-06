@@ -1,0 +1,120 @@
+{
+  "recordedAt": "2026-10-06T19:16:00Z",
+  "environment": "TEST",
+  "database": {
+    "server": "Semih\\MELISADEV",
+    "name": "MELISA_ERP_SIRKET_TEST_20260929_01"
+  },
+  "erp": {
+    "sourceCommit": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+    "packageRoot": "C:\\Sirket\\ERP\\releases\\CANONICAL-PERSONNEL-TEST-20261006-74",
+    "manifestSha256": "4C9EBD16B29DB5CBC7E9D4A1C6D870F5384162ADD25E20FC95A79BCF34CE4507",
+    "readyAt": "2026-10-06T18:23:30.8302989Z",
+    "listeners": [
+      {
+        "port": 5194,
+        "pid": 68032,
+        "binding": "loopback +192.168.1.46"
+      },
+      {
+        "port": 4144,
+        "pid": 54888,
+        "binding": "loopback +192.168.1.46"
+      },
+      {
+        "port": 4146,
+        "pid": 55348,
+        "binding": "loopback only"
+      }
+    ],
+    "ciRuns": [
+      37510252792,
+      37510242456
+    ],
+    "sourceCi": "PASS",
+    "pr": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23",
+    "branch": "codex/erp-finish-20261004",
+    "prBase": "codex/canonical-live-20261003"
+  },
+  "crm": {
+    "sourceCommit": "4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+    "packageRoot": "C:\\Sirket\\CRM\\releases\\crm-test-4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+    "manifestSha256": "b88c2b5cdda0027974b8c78847af64c363744dc010f8660c94ee271176286bf6",
+    "readyAt": "2026-10-06T19:02:13.5530765Z",
+    "listeners": [
+      {
+        "port": 62400,
+        "pid": 76296,
+        "binding": "loopback +192.168.1.46"
+      },
+      {
+        "port": 62401,
+        "pid": 76296,
+        "binding": "loopback only"
+      },
+      {
+        "port": 62402,
+        "pid": 44252,
+        "binding": "loopback only"
+      },
+      {
+        "port": 62403,
+        "pid": 52600,
+        "binding": "loopback only"
+      }
+    ],
+    "ciRuns": [
+      37515554034,
+      37515554071,
+      37515546485
+    ],
+    "sourceCi": "PASS",
+    "pr": "https://github.com/melihsnyldzz-ui/melisa-crm/pull/3",
+    "branch": "codex/crm-agents-on-completion-20261003",
+    "prBase": "feature/crm-completion"
+  },
+  "sharedNative": {
+    "sourceCommit": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+    "packageRoot": "C:\\Sirket\\ERP\\releases\\CRM-ORDER-DRAFT-TEST-20261006-05",
+    "manifestSha256": "1d38e38b1ec67a8ca5c98883f19db9402632327fbe4645af972fb06647310bc3",
+    "port": 62404,
+    "pid": 44548,
+    "binding": "loopback only",
+    "unchanged": true
+  },
+  "live": {
+    "unchanged": true,
+    "listeners": [
+      {
+        "port": 5188,
+        "pid": 31820
+      },
+      {
+        "port": 4114,
+        "pid": 33624
+      },
+      {
+        "port": 4116,
+        "pid": 40828
+      },
+      {
+        "port": 4200,
+        "pid": 10712
+      }
+    ]
+  },
+  "rollback": {
+    "erpPrevious": "C:\\Sirket\\ERP\\releases\\CANONICAL-PERSONNEL-TEST-20261006-73",
+    "erpAcceptedOperationsSource": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+    "erpAcceptedOperationsPackage": "C:\\Sirket\\ERP\\releases\\CANONICAL-FINOPS-TEST-20261006-71",
+    "erpPreviousLauncher": "C:\\Sirket\\ERP\\evidence\\ERP-GOAL5-20261006\\start-canonical-test-before-goal5-74.ps1",
+    "crmPreviousSource": "9c62702417cceca2f17882721870e6a06b772a2b",
+    "crmAcceptedCatalogSource": "ad01203b65025408a30854cfed689653c56ef8fc",
+    "crmPreviousStartupConfig": "C:\\Sirket\\CRM\\runtime\\test-completion\\package-switches\\20261006T190120252Z-af0db6cfd3284071a0829e67f84e6e29\\previous-startup-config.json",
+    "previousPackagesPreserved": true,
+    "rollbackExecutedThisGoal": false
+  },
+  "sourceAndDocsHeadAreDistinct": true,
+  "mainMerge": false,
+  "humanAcceptance": "pending"
+}

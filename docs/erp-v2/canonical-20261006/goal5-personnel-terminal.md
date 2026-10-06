@@ -1,6 +1,6 @@
 # Goal5 — personel terminali teknik hazırlığı
 
-Tarih: 6 Ekim 2026. Kapsam: kullanıcının **MELISA — UZUN GOAL5** talimatı. Bu belge uygulama mimarisini ve kabul sınırlarını açıklar. Gerçek tarayıcı, performans, paket, GitHub ve son CI kanıtları ana ajan tarafından ayrıca eklenecektir. Fiziksel Zebra cihazı bağlı değildir; bu belge cihaz kabulü veya insan PASS kaydı değildir.
+Tarih: 6 Ekim 2026. Kapsam: kullanıcının **MELISA — UZUN GOAL5** talimatı. İnce personel terminali gerçek ortak TEST tarayıcı zinciriyle teknik hazırdır. [Son teknik kayıt](../../evidence/erp/2026-10-06-goal5/README.md) kaynak/paket, rol, native geri okuma, performans ve CI'ı ayırır. Fiziksel Zebra cihazı bağlı değildir; bu belge cihaz kabulü veya insan PASS kaydı değildir.
 
 ## İnce çalışan yüzü
 
@@ -94,20 +94,20 @@ Offline durumda açık kullanıcı metni: **Bağlantı yok — bu işlem çevrim
 
 ## Teknik kanıt ile insan kabulü ayrımı
 
-Kaynak düzeyindeki ilk sekiz terminal model testi; rota, pinned origin/iframe mesajı, ayrı oturum ad alanı/admin reddi, scanner leading zero/çift Enter, offline ve finance/approval facade sınırlarını kapsar. İlk sites-workflow build başarılıdır. Bunlar değişiklik yapılan kaynak için yerel teknik kontrollerdir; final commit CI'sı, paket veya gerçek ekran PASS değildir.
+Dokuz terminal modeli testi rota, pinned origin/iframe Referer, ayrı oturum/admine kapalı normal rol, scanner leading-zero/çift Enter, offline ve finance/approval facade sınırlarını kapsar. Yedi personel DTO testi sayım/iade kaynak kimliği korunurken maliyet ve finans alanlarının GET/taslak/replay yanıtından çıkmasını doğrular. CRM güncel atama/session/body-journal, konuşma sürekliliği ve belirsiz gönderim korumaları hedefli testlerde ve exact source CI'da ayrıca kontrol edilir. Test/CI insan kabulü değildir.
 
-Ana ajan bu bölüme gerçek TEST kimliği, 390/terminal benzeri/1024/1440 tarayıcı kanıtları, normal rol, pozitif/negatif/replay kanıtları, native readback, süreler, exact source commit, package manifest, PR ve CI'ı ekleyecektir. Bekleyen insan/cihaz kabulünün tek kaydı `USER_ACCEPTANCE.md` olarak kalır. C12 fiziksel terminal ve CRM M01 bu goalde otomatik yeşil yapılmaz.
+Gerçek TEST kimliği, 360/390/1024/1440 ölçümleri, normal rol, pozitif/negatif/replay, native readback ve süreler [teknik kanıtta](../../evidence/erp/2026-10-06-goal5/README.md) kayıtlıdır. Bekleyen insan/cihaz kabulünün tek kaydı `USER_ACCEPTANCE.md` olarak kalır. C12🟡 ve CRM M01🟡 otomatik yeşil yapılmaz.
 
-### Ana ajan tarafından tamamlanacak teslim kaydı
+### Teknik teslim kaydı
 
 | Alan | Durum |
 | --- | --- |
-| TEST URL / exact çalışan paket | Henüz bu belgeye eklenmedi; planlanan giriş5194/terminal.html. |
-| Tarayıcı uçtan uca tur / ekran görüntüleri | Henüz bu belgeye eklenmedi. |
-| Negatifler / native yazma-readback / replay | Henüz bu belgeye eklenmedi. |
-| On performans ölçümü | Henüz bu belgeye eklenmedi. |
-| ERP ve CRM exact commit / PR / CI | Henüz bu belgeye eklenmedi. |
-| Rollback noktası | Henüz bu belgeye eklenmedi; önceki paket kimliği ve ayrı config noktasıyla kaydedilmeli. |
+| TEST URL / exact çalışan paket | http://127.0.0.1:5194/terminal.html ; ERP TEST74/source5972f847. CRM final source4eadb51 ve değişmeyen native62404/source0940c49 aynı TEST DB zincirinde; exact manifest/READY ayrı [runtime kaydında](../../evidence/erp/2026-10-06-goal5/runtime.json). |
+| Tarayıcı uçtan uca tur / ekran görüntüleri | Altı aksiyon, ortak kayıtlar7/43/44, gerçek0161/8023 ürün/fiyat/fotoğraf, CRM55/çeviri/menü sürekliliği, native9/25,44USD; 360/390/1024/1440, [ekranlar](../../evidence/erp/2026-10-06-goal5/README.md). |
+| Negatifler / native yazma-readback / replay | Personel finans/onay403, CRM foreign753403/oturumsuz401, held4620, bilinmeyen barkod, eksik döviz fiyatı, fotoğraf yok, offline/AI/ERP/CRM kesintileri; native9 aynı UUID replay, farklı body409 ve sıfır ticari etki. LiteralNULL sale kaydı katalogda0 bulundu; gerçek NULL örneği uydurulmadı. |
+| On performans ölçümü | ERP HOME21/barkod343/kart172/sepet context37/sayım59ms; CRM final4ead fazı sohbet208/atanmış684/seçici759/kart409/nativeGET256ms; gerçek çeviri1957/nativecreate5914ms eski ebe8/ERP73 fazı olarak ayrı. Son source fazı [CRM JSON](../../evidence/erp/2026-10-06-goal5/crm-performance.json); HTTP/browser/cihaz ölçümleri karıştırılmaz. |
+| ERP ve CRM exact commit / PR / CI | ERP application5972f847 / PR23; CRM application4eadb51 / PR3. Exact source CI ve belge HEAD'i [runtime](../../evidence/erp/2026-10-06-goal5/runtime.json) ve STATUS'ta ayrı; main merge yok. |
+| Rollback noktası | Normal ERP önceki TEST71/source9ada67c ve eski launcher korunur; en yakın74→73 before launcher da repo dışında. CRM önceki95465/9c62702 paket/config switch geçmişi ve Goal5 öncesi ad01203 korunur; native62404 süreç/paket değişmez. Özel config/credentials GitHub'a konmaz. |
 | Fiziksel Zebra / gerçek personel kabulü | Bekliyor; bağlı fiziksel cihaz yok. |
 
 ## Fiziksel Zebra geldiğinde kısa kabul listesi

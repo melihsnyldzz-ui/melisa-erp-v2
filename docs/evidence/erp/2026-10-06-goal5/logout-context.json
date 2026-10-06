@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-06T19:12:42.878Z",
+  "parentLoginVisible": true,
+  "crmIframeCount": 1,
+  "priorConversationVisible": 0,
+  "otherActor": {
+    "id": 16,
+    "name": "İlker",
+    "salesContext": "Mevcut iptal edilmiş NIGHT fişi; önceki aktörün yeni sepeti değil"
+  },
+  "crmLoginRequiredForOtherActor": true,
+  "otherActorPriorConversationVisible": 0
+}

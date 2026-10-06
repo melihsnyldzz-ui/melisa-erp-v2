@@ -1,0 +1,1211 @@
+{
+  "historicalPhases": [
+    {
+      "recordedAt": "2026-10-06T18:16:28.6087883Z",
+      "checks": [
+        {
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "readOnly": true,
+          "medianMs": 15220.2,
+          "path": "/api/live/crm/inbox?limit=100&offset=0&view=bootstrap",
+          "count": 23,
+          "samplesMs": [
+            15220.2,
+            22233.8,
+            10912.4
+          ],
+          "check": "personnel assigned list"
+        },
+        {
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "readOnly": true,
+          "medianMs": 207.3,
+          "path": "/api/live/crm/conversations/55",
+          "count": 0,
+          "samplesMs": [
+            207.3,
+            172.2,
+            252.3
+          ],
+          "check": "own conversation 55 detail"
+        },
+        {
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "readOnly": true,
+          "medianMs": 793.4,
+          "path": "/api/live/crm/catalog/products?page=1&limit=50&hasImage=true&search=&brand=&category=&barcode=",
+          "count": 0,
+          "samplesMs": [
+            885,
+            793.4,
+            713
+          ],
+          "check": "CRM ERP catalog selector"
+        },
+        {
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "readOnly": true,
+          "medianMs": 269.2,
+          "path": "/api/live/crm/catalog/products/erp-36724",
+          "count": 0,
+          "samplesMs": [
+            348.2,
+            268.9,
+            269.2
+          ],
+          "check": "CRM ERP product card 36724"
+        },
+        {
+          "actorId": 15,
+          "samplesMs": [
+            139.4,
+            32.5,
+            21.7
+          ],
+          "readOnly": true,
+          "requestId": "0D85B6DC-440B-4CF9-9B43-26D128099050",
+          "path": "/api/live/crm/erp/v2/drafts/0D85B6DC-440B-4CF9-9B43-26D128099050",
+          "medianMs": 32.5,
+          "check": "existing native draft 8 readback",
+          "draftIds": [
+            null,
+            null,
+            null
+          ],
+          "statuses": [
+            404,
+            404,
+            404
+          ],
+          "classification": "Previous CRM actor scope returned404; excluded from successful speed comparison"
+        },
+        {
+          "readOnly": true,
+          "draftIds": [
+            9,
+            9,
+            9
+          ],
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "actorId": 15,
+          "requestId": "c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "crmAgentId": 3,
+          "samplesMs": [
+            990.1,
+            1169.7,
+            749.3
+          ],
+          "check": "Current-personnel native draft readback",
+          "medianMs": 990.1,
+          "effects": [
+            {
+              "itemCount": 2,
+              "stock": false,
+              "status": "draft",
+              "reservation": false,
+              "ledger": false
+            },
+            {
+              "itemCount": 2,
+              "stock": false,
+              "status": "draft",
+              "reservation": false,
+              "ledger": false
+            },
+            {
+              "itemCount": 2,
+              "stock": false,
+              "status": "draft",
+              "reservation": false,
+              "ledger": false
+            }
+          ]
+        }
+      ],
+      "runtime": {
+        "apiPort": 4144,
+        "testPersonnel": true,
+        "erpSource": "7583dbf9b81c71da694f4beb5e393c36c1b6c41b",
+        "webPort": 5194,
+        "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "nativeDraftPackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "actorAgentId": 3,
+        "nativeHealthStatus": 200,
+        "nativeDraftHealthStatus": 200,
+        "existingIlkerActorId": 16,
+        "existingSellerActorId": 15,
+        "nativeDraftDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "outboundScope": "905387217733 only; no send performed",
+        "actorId": "crm-personel-3",
+        "normalPersonnelCanSendChanged": false,
+        "nativeDraftSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "normalNativePort": 4146,
+        "crmSource": "ebe8e416d92ac2563ead08fa72b5952d82016a27",
+        "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmGatewayPort": 62401,
+        "actorRole": "personel",
+        "crmHealthStatus": 200,
+        "crmUiPort": 62400,
+        "nativeDraftPort": 62404,
+        "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "erpPackage": "CANONICAL-TEST-7583dbf9b81c"
+      },
+      "phase": "ERP73/CRMebe8 baseline and controlled replay"
+    },
+    {
+      "runtime": {
+        "webPort": 5194,
+        "testPersonnel": true,
+        "apiPort": 4144,
+        "crmUiPort": 62400,
+        "crmSource": "95465dfb02431c56850a1486979d8809d33029b5",
+        "nativeDraftPort": 62404,
+        "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmGatewayPort": 62401,
+        "actorId": "crm-personel-3",
+        "existingSellerActorId": 15,
+        "normalPersonnelCanSendChanged": false,
+        "normalNativePort": 4146,
+        "erpPackage": "CANONICAL-TEST-5972f847fe46",
+        "outboundScope": "905387217733 only; no message send performed",
+        "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+        "crmPackage": "crm-test-95465dfb02431c56850a1486979d8809d33029b5",
+        "actorAgentId": 3,
+        "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01"
+      },
+      "recordedAt": "2026-10-06T18:28:33.8466758Z",
+      "checks": [
+        {
+          "draftIds": [],
+          "check": "personnel assigned list",
+          "samplesMs": [
+            24271.3,
+            25708.6,
+            27321.6
+          ],
+          "effects": [],
+          "readOnly": true,
+          "path": "/api/live/crm/inbox?limit=100&offset=0&view=bootstrap",
+          "medianMs": 25708.6,
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "count": 23
+        },
+        {
+          "draftIds": [],
+          "check": "own conversation55 detail",
+          "samplesMs": [
+            1255.7,
+            1443.6,
+            1609.7
+          ],
+          "effects": [],
+          "readOnly": true,
+          "path": "/api/live/crm/conversations/55",
+          "medianMs": 1443.6,
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "count": 0
+        },
+        {
+          "draftIds": [],
+          "check": "CRM ERP catalog selector",
+          "samplesMs": [
+            1316.1,
+            1172.6,
+            1107.1
+          ],
+          "effects": [],
+          "readOnly": true,
+          "path": "/api/live/crm/catalog/products?page=1&limit=50&hasImage=true&search=&brand=&category=&barcode=",
+          "medianMs": 1172.6,
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "count": 0
+        },
+        {
+          "draftIds": [],
+          "check": "CRM ERP product card36724",
+          "samplesMs": [
+            675.2,
+            516,
+            614
+          ],
+          "effects": [],
+          "readOnly": true,
+          "path": "/api/live/crm/catalog/products/erp-36724",
+          "medianMs": 614,
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "count": 0
+        },
+        {
+          "draftIds": [
+            9,
+            9,
+            9
+          ],
+          "check": "current personnel native draft9 readback",
+          "samplesMs": [
+            1016.8,
+            1109.1,
+            537.7
+          ],
+          "effects": [
+            {
+              "reservation": false,
+              "stock": false,
+              "itemCount": 2,
+              "ledger": false,
+              "status": "draft"
+            },
+            {
+              "reservation": false,
+              "stock": false,
+              "itemCount": 2,
+              "ledger": false,
+              "status": "draft"
+            },
+            {
+              "reservation": false,
+              "stock": false,
+              "itemCount": 2,
+              "ledger": false,
+              "status": "draft"
+            }
+          ],
+          "readOnly": true,
+          "path": "/api/live/crm/erp/v2/drafts/c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "medianMs": 1016.8,
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "count": 0
+        }
+      ],
+      "phase": "FINAL ERP74/CRM95465"
+    },
+    {
+      "recordedAt": "2026-10-06T18:45:02.6141595Z",
+      "phase": "FINAL ERP74/CRM9c62702",
+      "runtime": {
+        "webPort": 5194,
+        "testPersonnel": true,
+        "apiPort": 4144,
+        "crmUiPort": 62400,
+        "crmSource": "9c62702417cceca2f17882721870e6a06b772a2b",
+        "nativeDraftPort": 62404,
+        "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmGatewayPort": 62401,
+        "actorId": "crm-personel-3",
+        "existingSellerActorId": 15,
+        "normalPersonnelCanSendChanged": false,
+        "normalNativePort": 4146,
+        "erpPackage": "CANONICAL-TEST-5972f847fe46",
+        "outboundScope": "905387217733 only; no message send performed",
+        "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+        "crmPackage": "crm-test-9c62702417cceca2f17882721870e6a06b772a2b",
+        "actorAgentId": 3,
+        "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmManifestSha256": "82abc2fdd15f8d0cb16e2f7afcd9c9d6590859ecb7bfcad9e608866daa9857f4"
+      },
+      "checks": [
+        {
+          "path": "/api/live/crm/inbox?limit=100&offset=0&view=bootstrap",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "samplesMs": [
+            650.2,
+            858.7,
+            568.7
+          ],
+          "check": "personnel assigned bootstrap list",
+          "readOnly": true,
+          "medianMs": 650.2,
+          "safeProjection": [
+            {
+              "contains55": true,
+              "count": 23,
+              "messageCount": 0,
+              "assignedOnly": true,
+              "messagesArrayRows": 0,
+              "assignedAgentIds": [
+                3
+              ],
+              "loadedHistoryRows": 0
+            },
+            {
+              "contains55": true,
+              "count": 23,
+              "messageCount": 0,
+              "assignedOnly": true,
+              "messagesArrayRows": 0,
+              "assignedAgentIds": [
+                3
+              ],
+              "loadedHistoryRows": 0
+            },
+            {
+              "contains55": true,
+              "count": 23,
+              "messageCount": 0,
+              "assignedOnly": true,
+              "messagesArrayRows": 0,
+              "assignedAgentIds": [
+                3
+              ],
+              "loadedHistoryRows": 0
+            }
+          ],
+          "metadataValidation": {
+            "readOnly": true,
+            "observedAfterTimedSamples": true,
+            "firstRowKeys": [
+              "id",
+              "sourceId",
+              "source",
+              "status",
+              "assignedUserId",
+              "assignedUserName",
+              "chatwootAgentId",
+              "teamName",
+              "stage",
+              "contactName",
+              "displayName",
+              "profilePictureUrl",
+              "phone",
+              "phoneIdentity",
+              "tags",
+              "provider",
+              "instanceKey",
+              "remoteJid",
+              "unread",
+              "lastMessageAt",
+              "capabilities",
+              "messagesLoaded",
+              "detailLoaded",
+              "preview",
+              "waitingForReply"
+            ],
+            "messageCount": 0,
+            "rowCount": 23,
+            "assignedAgentIds": [
+              3
+            ],
+            "loadedHistoryRows": 0
+          }
+        },
+        {
+          "path": "/api/live/crm/inbox?limit=100&offset=0&view=bootstrap",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "samplesMs": [
+            500.2,
+            569.1,
+            491.3
+          ],
+          "check": "default terminal metadata poll",
+          "readOnly": true,
+          "medianMs": 500.2,
+          "safeProjection": [
+            {
+              "contains55": true,
+              "count": 23,
+              "messageCount": 0,
+              "assignedOnly": true,
+              "messagesArrayRows": 0,
+              "assignedAgentIds": [
+                3
+              ],
+              "loadedHistoryRows": 0
+            },
+            {
+              "contains55": true,
+              "count": 23,
+              "messageCount": 0,
+              "assignedOnly": true,
+              "messagesArrayRows": 0,
+              "assignedAgentIds": [
+                3
+              ],
+              "loadedHistoryRows": 0
+            },
+            {
+              "contains55": true,
+              "count": 23,
+              "messageCount": 0,
+              "assignedOnly": true,
+              "messagesArrayRows": 0,
+              "assignedAgentIds": [
+                3
+              ],
+              "loadedHistoryRows": 0
+            }
+          ],
+          "metadataValidation": {
+            "readOnly": true,
+            "observedAfterTimedSamples": true,
+            "firstRowKeys": [
+              "id",
+              "sourceId",
+              "source",
+              "status",
+              "assignedUserId",
+              "assignedUserName",
+              "chatwootAgentId",
+              "teamName",
+              "stage",
+              "contactName",
+              "displayName",
+              "profilePictureUrl",
+              "phone",
+              "phoneIdentity",
+              "tags",
+              "provider",
+              "instanceKey",
+              "remoteJid",
+              "unread",
+              "lastMessageAt",
+              "capabilities",
+              "messagesLoaded",
+              "detailLoaded",
+              "preview",
+              "waitingForReply"
+            ],
+            "messageCount": 0,
+            "rowCount": 23,
+            "assignedAgentIds": [
+              3
+            ],
+            "loadedHistoryRows": 0
+          }
+        },
+        {
+          "path": "/api/live/crm/conversations/55",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "samplesMs": [
+            188.7,
+            163.4,
+            183.9
+          ],
+          "check": "own conversation55 detail",
+          "readOnly": true,
+          "medianMs": 183.9,
+          "safeProjection": [
+            {
+              "assign": false,
+              "send": true,
+              "conversationId": 55
+            },
+            {
+              "assign": false,
+              "send": true,
+              "conversationId": 55
+            },
+            {
+              "assign": false,
+              "send": true,
+              "conversationId": 55
+            }
+          ]
+        },
+        {
+          "path": "/api/live/crm/catalog/products?page=1&limit=50&hasImage=true&search=&brand=&category=&barcode=",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "samplesMs": [
+            724.5,
+            764.9,
+            1114.1
+          ],
+          "check": "CRM ERP catalog selector",
+          "readOnly": true,
+          "medianMs": 764.9,
+          "safeProjection": [
+            {
+              "keys": [
+                "Length",
+                "LongLength",
+                "Rank",
+                "SyncRoot",
+                "IsReadOnly",
+                "IsFixedSize",
+                "IsSynchronized",
+                "Count"
+              ],
+              "count": 50
+            },
+            {
+              "keys": [
+                "Length",
+                "LongLength",
+                "Rank",
+                "SyncRoot",
+                "IsReadOnly",
+                "IsFixedSize",
+                "IsSynchronized",
+                "Count"
+              ],
+              "count": 50
+            },
+            {
+              "keys": [
+                "Length",
+                "LongLength",
+                "Rank",
+                "SyncRoot",
+                "IsReadOnly",
+                "IsFixedSize",
+                "IsSynchronized",
+                "Count"
+              ],
+              "count": 50
+            }
+          ]
+        },
+        {
+          "path": "/api/live/crm/catalog/products/erp-36724",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "samplesMs": [
+            420.2,
+            331.5,
+            255.8
+          ],
+          "check": "CRM ERP product card36724",
+          "readOnly": true,
+          "medianMs": 331.5,
+          "safeProjection": [
+            {
+              "keys": [
+                "id",
+                "erpProductId",
+                "stockCode",
+                "safeCode",
+                "productName",
+                "barcode",
+                "barcodes",
+                "brand",
+                "category",
+                "unit",
+                "isActive",
+                "hold",
+                "status",
+                "salePrices",
+                "salePrice",
+                "priceExact",
+                "currency",
+                "priceSourceKey",
+                "priceStatus",
+                "priceBasis",
+                "priceBasisStatus",
+                "stockQuantityExact",
+                "stockQuantity",
+                "stockStatus",
+                "photo",
+                "photoPath",
+                "thumbnailPath",
+                "photoStatus",
+                "sourceUpdatedAt",
+                "pricedDocumentEligible",
+                "pricedDocumentBlockReason",
+                "revision"
+              ],
+              "count": 1
+            },
+            {
+              "keys": [
+                "id",
+                "erpProductId",
+                "stockCode",
+                "safeCode",
+                "productName",
+                "barcode",
+                "barcodes",
+                "brand",
+                "category",
+                "unit",
+                "isActive",
+                "hold",
+                "status",
+                "salePrices",
+                "salePrice",
+                "priceExact",
+                "currency",
+                "priceSourceKey",
+                "priceStatus",
+                "priceBasis",
+                "priceBasisStatus",
+                "stockQuantityExact",
+                "stockQuantity",
+                "stockStatus",
+                "photo",
+                "photoPath",
+                "thumbnailPath",
+                "photoStatus",
+                "sourceUpdatedAt",
+                "pricedDocumentEligible",
+                "pricedDocumentBlockReason",
+                "revision"
+              ],
+              "count": 1
+            },
+            {
+              "keys": [
+                "id",
+                "erpProductId",
+                "stockCode",
+                "safeCode",
+                "productName",
+                "barcode",
+                "barcodes",
+                "brand",
+                "category",
+                "unit",
+                "isActive",
+                "hold",
+                "status",
+                "salePrices",
+                "salePrice",
+                "priceExact",
+                "currency",
+                "priceSourceKey",
+                "priceStatus",
+                "priceBasis",
+                "priceBasisStatus",
+                "stockQuantityExact",
+                "stockQuantity",
+                "stockStatus",
+                "photo",
+                "photoPath",
+                "thumbnailPath",
+                "photoStatus",
+                "sourceUpdatedAt",
+                "pricedDocumentEligible",
+                "pricedDocumentBlockReason",
+                "revision"
+              ],
+              "count": 1
+            }
+          ]
+        },
+        {
+          "path": "/api/live/crm/erp/v2/drafts/c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "samplesMs": [
+            276.2,
+            241.0,
+            289.2
+          ],
+          "check": "current personnel native draft9 readback",
+          "readOnly": true,
+          "medianMs": 276.2,
+          "safeProjection": [
+            {
+              "keys": [
+                "request",
+                "id",
+                "documentNo",
+                "status",
+                "customerName",
+                "grandTotalExact4",
+                "amountTryExact4",
+                "items",
+                "erpPersisted",
+                "testOnly",
+                "stockEffect",
+                "ledgerEffect",
+                "collectionEffect",
+                "reservationEffect"
+              ],
+              "draftId": null,
+              "status": "draft",
+              "stockEffect": false,
+              "id": 9,
+              "reservationEffect": false,
+              "ledgerEffect": false
+            },
+            {
+              "keys": [
+                "request",
+                "id",
+                "documentNo",
+                "status",
+                "customerName",
+                "grandTotalExact4",
+                "amountTryExact4",
+                "items",
+                "erpPersisted",
+                "testOnly",
+                "stockEffect",
+                "ledgerEffect",
+                "collectionEffect",
+                "reservationEffect"
+              ],
+              "draftId": null,
+              "status": "draft",
+              "stockEffect": false,
+              "id": 9,
+              "reservationEffect": false,
+              "ledgerEffect": false
+            },
+            {
+              "keys": [
+                "request",
+                "id",
+                "documentNo",
+                "status",
+                "customerName",
+                "grandTotalExact4",
+                "amountTryExact4",
+                "items",
+                "erpPersisted",
+                "testOnly",
+                "stockEffect",
+                "ledgerEffect",
+                "collectionEffect",
+                "reservationEffect"
+              ],
+              "draftId": null,
+              "status": "draft",
+              "stockEffect": false,
+              "id": 9,
+              "reservationEffect": false,
+              "ledgerEffect": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "phase": "FINAL ERP74/CRM4eadb51",
+  "recordedAt": "2026-10-06T19:03:13.1985559Z",
+  "scope": "Three sequential real GET samples; median; only IDs/count/status/ms/effect flags; no translation model invocation",
+  "checks": [
+    {
+      "check": "personnel assigned bootstrap list",
+      "medianMs": 684.3,
+      "readOnly": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "safeProjection": [
+        {
+          "loadedHistoryRows": 0,
+          "count": 23,
+          "assignedOnly": true,
+          "contains55": true,
+          "assignedAgentIds": [
+            3
+          ],
+          "messageCount": 0
+        },
+        {
+          "loadedHistoryRows": 0,
+          "count": 23,
+          "assignedOnly": true,
+          "contains55": true,
+          "assignedAgentIds": [
+            3
+          ],
+          "messageCount": 0
+        },
+        {
+          "loadedHistoryRows": 0,
+          "count": 23,
+          "assignedOnly": true,
+          "contains55": true,
+          "assignedAgentIds": [
+            3
+          ],
+          "messageCount": 0
+        }
+      ],
+      "samplesMs": [
+        604.8,
+        684.3,
+        1179.8
+      ],
+      "path": "/api/live/crm/inbox?limit=100&offset=0&view=bootstrap"
+    },
+    {
+      "check": "default terminal metadata poll",
+      "medianMs": 462.6,
+      "readOnly": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "safeProjection": [
+        {
+          "loadedHistoryRows": 0,
+          "count": 23,
+          "assignedOnly": true,
+          "contains55": true,
+          "assignedAgentIds": [
+            3
+          ],
+          "messageCount": 0
+        },
+        {
+          "loadedHistoryRows": 0,
+          "count": 23,
+          "assignedOnly": true,
+          "contains55": true,
+          "assignedAgentIds": [
+            3
+          ],
+          "messageCount": 0
+        },
+        {
+          "loadedHistoryRows": 0,
+          "count": 23,
+          "assignedOnly": true,
+          "contains55": true,
+          "assignedAgentIds": [
+            3
+          ],
+          "messageCount": 0
+        }
+      ],
+      "samplesMs": [
+        499.0,
+        462.6,
+        459.3
+      ],
+      "path": "/api/live/crm/inbox?limit=100&offset=0&view=bootstrap"
+    },
+    {
+      "check": "own conversation55 detail",
+      "medianMs": 207.9,
+      "readOnly": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "safeProjection": [
+        {
+          "assign": false,
+          "conversationId": 55,
+          "send": true
+        },
+        {
+          "assign": false,
+          "conversationId": 55,
+          "send": true
+        },
+        {
+          "assign": false,
+          "conversationId": 55,
+          "send": true
+        }
+      ],
+      "samplesMs": [
+        196.1,
+        207.9,
+        222.7
+      ],
+      "path": "/api/live/crm/conversations/55"
+    },
+    {
+      "check": "CRM ERP catalog selector",
+      "medianMs": 758.5,
+      "readOnly": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "safeProjection": [
+        {
+          "count": 50
+        },
+        {
+          "count": 50
+        },
+        {
+          "count": 50
+        }
+      ],
+      "samplesMs": [
+        1089.9,
+        758.5,
+        744.2
+      ],
+      "path": "/api/live/crm/catalog/products?page=1&limit=50&hasImage=true&search=&brand=&category=&barcode="
+    },
+    {
+      "check": "CRM ERP product card36724",
+      "medianMs": 409.0,
+      "readOnly": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "safeProjection": [
+        {
+          "stockCode": "8023 CONCEPT",
+          "productId": 36724,
+          "photoStatus": "guarded-path"
+        },
+        {
+          "stockCode": "8023 CONCEPT",
+          "productId": 36724,
+          "photoStatus": "guarded-path"
+        },
+        {
+          "stockCode": "8023 CONCEPT",
+          "productId": 36724,
+          "photoStatus": "guarded-path"
+        }
+      ],
+      "samplesMs": [
+        646.0,
+        409.0,
+        330.0
+      ],
+      "path": "/api/live/crm/catalog/products/erp-36724"
+    },
+    {
+      "check": "current personnel native draft9 readback",
+      "medianMs": 255.8,
+      "readOnly": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "safeProjection": [
+        {
+          "stockEffect": false,
+          "status": "draft",
+          "id": 9,
+          "collectionEffect": false,
+          "reservationEffect": false,
+          "itemCount": 2,
+          "ledgerEffect": false
+        },
+        {
+          "stockEffect": false,
+          "status": "draft",
+          "id": 9,
+          "collectionEffect": false,
+          "reservationEffect": false,
+          "itemCount": 2,
+          "ledgerEffect": false
+        },
+        {
+          "stockEffect": false,
+          "status": "draft",
+          "id": 9,
+          "collectionEffect": false,
+          "reservationEffect": false,
+          "itemCount": 2,
+          "ledgerEffect": false
+        }
+      ],
+      "samplesMs": [
+        245.6,
+        255.8,
+        273.9
+      ],
+      "path": "/api/live/crm/erp/v2/drafts/c0bd83c2-6515-4b4b-a074-5386b73c7639"
+    },
+    {
+      "status": 200,
+      "check": "Provider readiness read-only before parent controlled send",
+      "ms": 5.0,
+      "readOnly": true,
+      "safeProjection": {
+        "keys": [
+          "provider",
+          "providerConnected",
+          "checkedAt",
+          "reason",
+          "sendReady",
+          "bridgeReady",
+          "status",
+          "appName",
+          "authMode",
+          "translationEnabled",
+          "sendEnabled",
+          "outboundIdempotency"
+        ],
+        "sendReady": true,
+        "translationEnabled": true,
+        "sendEnabled": true,
+        "providerConnected": true
+      },
+      "path": "/api/live/health"
+    }
+  ],
+  "runtime": {
+    "webPort": 5194,
+    "testPersonnel": true,
+    "apiPort": 4144,
+    "crmUiPort": 62400,
+    "crmSource": "4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+    "nativeDraftPort": 62404,
+    "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "crmGatewayPort": 62401,
+    "actorId": "crm-personel-3",
+    "existingSellerActorId": 15,
+    "normalPersonnelCanSendChanged": false,
+    "normalNativePort": 4146,
+    "erpPackage": "CANONICAL-TEST-5972f847fe46",
+    "outboundScope": "905387217733 only; no message send performed",
+    "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+    "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+    "crmPackage": "crm-test-4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+    "actorAgentId": 3,
+    "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+    "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "crmManifestSha256": "b88c2b5cdda0027974b8c78847af64c363744dc010f8660c94ee271176286bf6"
+  },
+  "providerPhases": [
+    {
+      "recordedAt": "2026-10-06T18:32:34.268Z",
+      "source": "95465dfb02431c56850a1486979d8809d33029b5",
+      "scope": "Independent read-only source diagnostic using existing protected TEST provider configuration in RAM; only GET plus exact conversations/filter read-only POST; no messages/assign/write",
+      "phases": [
+        {
+          "phase": "creation-order first page",
+          "ms": 493.9,
+          "ok": true,
+          "responseKeys": [
+            "data"
+          ],
+          "total": 774,
+          "rowCount": 25
+        },
+        {
+          "phase": "creation-order pages2-5 concurrent four",
+          "ms": 1592.8,
+          "ok": true,
+          "pageCount": 4,
+          "rowCounts": [
+            25,
+            25,
+            25,
+            25
+          ],
+          "totals": [
+            774,
+            774,
+            774,
+            774
+          ]
+        },
+        {
+          "phase": "own55 fresh metadata",
+          "ms": 58.3,
+          "ok": true,
+          "conversationId": 55,
+          "agentId": 3
+        },
+        {
+          "phase": "current-agent3 inbox1 filtered read-only POST",
+          "ms": 553.7,
+          "ok": true,
+          "responseKeys": [
+            "meta",
+            "payload"
+          ],
+          "metaKeys": [
+            "mine_count",
+            "unassigned_count",
+            "all_count"
+          ],
+          "total": 23,
+          "rowCount": 23,
+          "assigneeSet": [
+            3
+          ],
+          "inboxSet": [
+            1
+          ],
+          "contains55": true
+        },
+        {
+          "phase": "fresh metadata wave for filtered23",
+          "ms": 1104.1,
+          "ok": true,
+          "rowCount": 23,
+          "assigneeSet": [
+            3
+          ]
+        },
+        {
+          "phase": "WAAPI current readiness read",
+          "ms": 1109.5,
+          "ok": true,
+          "ready": true
+        }
+      ]
+    }
+  ]
+}
