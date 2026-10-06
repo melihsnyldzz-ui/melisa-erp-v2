@@ -1,6 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import {catalogExact,catalogPath,catalogEnvelope,catalogProduct,catalogMainPrice,catalogPhotoUrl} from './workCatalogModel.mjs';
 import {catalogProductDto,catalogReadResult} from '../../../api/src/services/catalogModel.mjs';
+test('sealed Goal7 mixed lineage renders; wrong count/date/run and revised quarantine fail closed',()=>{
+ const revised={...row(),provenance:{...row().provenance,sourceKey:'VEGA2026/F0102/TBLSTOKLAR/12',runId:'GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',sourceAsOf:'2026-10-07'}};
+ const updated=envelope([revised],{sourceAsOf:'2026-10-07',scopeCounts:{acceptedOpening:16671,quarantinedSource:54,syntheticTest:0}});
+ assert.equal(catalogEnvelope(updated).data[0],revised);
+ assert.equal(catalogEnvelope({...updated,data:revised},{detail:true}).data,revised);
+ assert.equal(catalogEnvelope({...updated,data:[row()]}).data[0].provenance.sourceAsOf,'2026-09-30');
+ for(const edit of [p=>p.meta.scopeCounts.acceptedOpening=16672,p=>p.meta.sourceAsOf='2026-10-08',p=>p.data[0].provenance.runId='GOAL7-00000000-0000-4000-8000-000000000000',p=>p.data[0].provenance.sourceKey='VEGA2026/F0102/TBLSTOKLAR/0',p=>p.data[0].provenance.kind='quarantined-source',p=>p.meta.scopeCounts.syntheticTest=1]){const p=structuredClone(updated);edit(p);assert.throws(()=>catalogEnvelope(p));}
+ assert.throws(()=>catalogEnvelope(envelope([revised])));
+});
 const row=(id='12')=>({id,stockCode:'00012',displayCode:'00012',classification:{brand:null,productType:null,sourceName:'Ürün',verified:true},productName:'Ürün',isActive:true,stockQuantityExact:'-0.00000001',unit:{label:'ADET',sourceId:'7',factorExact8:'1.00000000',verified:true},barcodes:[{id:'91',value:'000012',isPrimary:true,sourceKey:null}],provenance:{kind:'accepted-opening',sourceKey:'VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/12',runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30',verified:true},hold:{blocked:false,reasons:[]},salePrices:[],photo:{status:'missing',url:null,sourceKey:null,verified:false}});
 const price=(more={})=>({id:'77',type:'sale',unitSourceId:'7',tier:1,currency:'EUR',priceExact:'0.00000000',isMainUnit:true,sourceKey:null,...more});
 const envelope=(data=[row()],more={})=>({success:true,data,meta:{schemaVersion:'melisa-catalog.v1',readOnly:true,sourceAsOf:'2026-09-30',freshLive:false,readAt:'2026-10-05T08:00:00.000Z',canViewSalesPrices:false,scopeCounts:{acceptedOpening:16622,syntheticTest:0,quarantinedSource:54},filters:{brands:['CONCEPT','NAYINOM'],productTypes:['TAKIM','YELEK']},total:data.length,page:1,limit:50,totalPages:data.length?1:0,...more}});
