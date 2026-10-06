@@ -1,4 +1,4 @@
-import {projectPersonnelDailyContext} from './personnelDailyProjection.mjs';
+import {projectPersonnelDailyContext,projectPersonnelDailyResponse} from './personnelDailyProjection.mjs';
 import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {reverseStockDocument} from './testStockReversalService.mjs';
 import {createHash} from 'node:crypto';
@@ -104,7 +104,7 @@ export async function dailyDraft(flow,i,actor){return atomic(flow,actor,c=>journ
  }
  const pending=pendingDailyReturnQuantity(pendingDrafts,invoiceId,line.id);
  const payload={requestId:i.requestId,kind:flow,sourceInvoiceId:invoiceId,documentDate:date,reason:i.reason,items:[{productId,sourceItemId:Number(line.id),quantity:i.quantity}]};const svc=await returns(c);if(pending)await svc.preview({...payload,items:[{...payload.items[0],quantity:i.quantity+pending}]},actor);const preview=await svc.preview(payload,actor);return draft(c,'invoice-return',payload,preview);
-}));}
+})).then(result=>projectPersonnelDailyResponse(flow,actor,result));}
 export async function dailyDecide(flow,op,i,actor){return atomic(flow,actor,c=>journal(c,i,op,async()=>{office(c);const d=await readDraft(c,i.id),s=c.scope;if(op==='cancel'&&['count','uninvoiced'].includes(d.kind)){const result=await reverseStockDocument(c,d,i);if(!result.alreadyApplied)await mark(c,d.id,'cancelled',{...d.result,reversal:result.reversal},i.reason);return result;}
  if(op==='cancel'){if(d.state==='cancelled')return {id:d.id,alreadyApplied:true};if(d.state!=='approved')fail('STATE','Onaylı iade gerekli.',409);if(flow==='purchase'&&d.kind==='invoice-return')await assertPurchaseReturnPayload(c,d.payload,{allowCancelled:true});const result=await(await returns(c)).cancel(d.result.id,{kind:flow,reason:i.reason,documentDate:validDate(i.date)},actor);await mark(c,d.id,'cancelled',result,i.reason);return {id:d.id,result};}
  if(op==='reject'){if(typeof i.reason!=='string'||i.reason.trim().length<3)fail('REASON','Gerekçe gerekli.');if(d.state!=='pending')fail('STATE','Bekleyen taslak gerekli.',409);await mark(c,d.id,'rejected',{},i.reason);return {id:d.id,state:'rejected'};}
