@@ -7,6 +7,24 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 function fixture(fetchImpl){const store=storage(),calls=[];const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return fetchImpl(url,options);}});return {session,store,calls};}
+test('supplier payment transport rejects path escapes and preserves a denied personnel session',async()=>{
+ let expired=0;const store=storage(),calls=[];
+ const session=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/test-admin')?reply({user,accessToken:'scoped'}):url.endsWith('/work-supplier-payments/context')?reply(null,403):reply({readable:true});}});
+ await session.start();await assert.rejects(()=>session.supplierPayments('/api/work-supplier-payments/context'),e=>e.status===403);
+ assert.equal(expired,0);assert.equal(store.getItem(workingCatalogTokenKey),'scoped');
+ await session.inbound('/api/work-receiving/home');
+ await session.supplierPayments('/api/work-supplier-payments/payments/12/cancel',{method:'POST',body:{reason:'Yanlış işlem'}});
+ assert.equal(calls.at(-1).options.method,'POST');
+ const before=calls.length;
+ for(const [path,options] of [['/api/work-supplier-payments/context',{method:'POST',body:{}}],['/api/work-supplier-payments/payments/01/cancel',{method:'POST',body:{}}],['/api/work-supplier-payments/payments/12/cancel?other=1',{method:'POST',body:{}}],['/api/supplier-payments',{method:'POST',body:{}}],['https://other/api/work-supplier-payments/context',{}],['/api/work-supplier-payments/context',{method:'DELETE'}]])await assert.rejects(()=>session.supplierPayments(path,options));
+ assert.equal(calls.length,before);session.dispose();
+});
+test('payment failures expose only known user states, never raw server details',async()=>{
+ for(const code of ['WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_REQUEST_CONFLICT','RAW_SQL_INTERNAL']){
+  const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'payment-role'}):{ok:false,status:409,json:async()=>({success:false,error:{code,message:'RAW SQL INTERNAL'}})});
+  await f.session.start();await assert.rejects(()=>f.session.supplierPayments('/api/work-supplier-payments/preview',{method:'POST',body:{}}),e=>e.status===409&&!e.message.includes('SQL')&&e.code===(code==='RAW_SQL_INTERNAL'?undefined:code));f.session.dispose();
+ }
+});
 test('fresh exact target bootstrap shares LAB session token, validates user and allows catalog reads only',async()=>{
  const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'token'}):reply({rows:[]}));await f.session.start();assert.equal(f.store.getItem(workingCatalogTokenKey),'token');assert.equal(f.calls[0].options.method,'POST');assert.deepEqual(JSON.parse(f.calls[0].options.body),{});assert.equal(workingCatalogUserLabel(user),'Yönetici');
  const p=await f.session.api('/api/catalog/products?barcode=000012',{envelope:true});assert.equal(p.success,true);assert.equal(f.calls[1].options.method,'GET');assert.equal(f.calls[1].options.credentials,'omit');assert.equal(f.calls[1].options.redirect,'error');assert.equal(f.calls[1].options.headers.Authorization,'Bearer token');

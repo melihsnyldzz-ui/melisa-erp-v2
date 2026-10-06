@@ -50,6 +50,8 @@ if(mode==='erp'){
     app.use('/api',workInboundRoutes);
     const {workInboundFxRoutes}=await import('./src/routes/workInboundFxRoutes.mjs');
     app.use('/api',workInboundFxRoutes);
+    const {workSupplierPaymentRoutes}=await import('./src/routes/workSupplierPaymentRoutes.mjs');
+    app.use('/api',workSupplierPaymentRoutes);
   }
   const {homeSummaryRoutes}=await import('./src/routes/homeSummaryRoutes.mjs');
   app.use('/api',homeSummaryRoutes);

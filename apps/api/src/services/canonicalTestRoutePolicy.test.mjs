@@ -1,6 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('supplier payments expose only their exact normal lifecycle inside writable ERP TEST',()=>{
+ for(const suffix of ['preview','payments','payments/12/cancel']){
+  const path='/api/work-supplier-payments/'+suffix;
+  assert.equal(allowed('POST',path,ctx),true);
+  for(const scope of [{writes:true,mode:'native'},{writes:false,mode:'erp'}])assert.equal(allowed('POST',path,scope),false);
+  for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ctx),false);
+ }
+ for(const suffix of ['context','requests/00000000-0000-4000-8000-000000000001','payments/01/cancel','payments/0/cancel','payments/12/cancel/extra','accounts','suppliers'])assert.equal(allowed('POST','/api/work-supplier-payments/'+suffix,ctx),false);
+});
 test('normal current-price FX purchase paths keep the existing TEST/native boundary',()=>{
  for(const suffix of ['preview','receipts','receipts/12/approve','receipts/12/reject','drafts','drafts/12/finalize','drafts/12/cancel']){
   const path='/api/work-purchases/fx/'+suffix;

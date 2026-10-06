@@ -113,7 +113,7 @@ document.addEventListener('click',event=>{const button=event.target.closest('[da
 });
 window.addEventListener('storage',e=>{if(e.key===key){try{const next=JSON.parse(e.newValue);if(next?.version===1){state=next;ensureExampleProducts(state);ensureCustomers(state);sync();bridge.render()}}catch{}}});
 document.addEventListener('workflow-render',()=>{
- if(['stock','home','sales','receipts','customers','collections'].includes(bridge.screen()))return;
+ if(['stock','home','sales','receipts','customers','collections','supplier-payments'].includes(bridge.screen()))return;
  if(localStorage.getItem('melisa-data-mode')==='live')return;
  bridge.badges({goods:new Set(state.goods.filter(g=>g.state==='pending').map(g=>g.batchId||g.id)).size,purchases:state.goods.filter(g=>g.state==='accepted'&&invoiceableQuantity(state,g.id)>0).length,count:countGroups(state).filter(id=>countRows(state,id)[0].state==='pending').length,approvals:new Set(state.goods.filter(g=>g.state==='pending').map(g=>g.batchId||g.id)).size+countGroups(state).filter(id=>countRows(state,id)[0].state==='pending').length+(state.supplierReturns||[]).filter(r=>r.state==='pending').length+receipts().filter(r=>r.discount?.state==='pending').length+receipts().flatMap(r=>r.returns||[]).filter(r=>r.state==='pending').length});
  if(bridge.screen()==='approvals'){const type=document.getElementById('approval-type'),mine=document.getElementById('approval-mine');if(type)type.onchange=()=>{approvalType=type.value;bridge.render()};if(mine)mine.onchange=()=>{approvalMine=mine.checked;bridge.render()};}

@@ -4,6 +4,8 @@
 
 # Melisa ERP — bitirme planı
 
+6 Ekim2026 Goal3 güncel durum: ERP-FINOPS01 ilk bölüm tedarikçi ödemesi sürüyor. Ödeme/API/normal ekran ve dar TEST fixture SQL kaynağı hazırlanıp bağımsız incelendi; SQL dış-transaction kurulum provası PASS/ROLLBACK, kalıcı uygulama yok; TEST58 runtime değişmedi. Sonraki bölüm/iş ancak gerçek TEST ödeme akışı tam kabul edilince başlar. UA13 insan kabulü bekliyor. [Kanıt](docs/evidence/erp/2026-10-06-finops/README.md). Finish ağacı 49 madde / 7🟢 / 24🟡 / 18🔴; hiçbir madde tamam sayılmadı.
+
 5 Ekim2026 güncel kullanıcı kabulü: ERP-UA04 PASS ve ERP-D04 mevcut normal katalog kapsamında tamam; A03🟢. B01 normal Ana Sayfa TEST47/source236d49b ile 🟡 teknik hazır; ERP-UA05 insan kabulü bekliyor. [Kanıt](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md). Yalnız bu tur tamamlandı ve duruldu; önceki bekleyen kayıtlar tarihsel olarak korunur.
 
 5 Ekim2026 güncel — ERP-D04 kullanıcı düzeltmesi: gerçek KOD1/KOD4, güvenli gösterim kodu, normal listede küçük fotoğraf/gerçek filtre/doğal sıralama TEST46/source7da6f2c ile teknik hazır. [Sınıflandırma kabul kanıtı](docs/erp-v2/canonical-20261005/catalog-classification-acceptance.md), güncel ortam ve süreler STATUS'ta. ERP-UA04 bekliyor; önceki ERP-UA02/03 PASS ve finish49/6🟢/22🟡/21🔴 korunur. Kullanıcı talimatıyla burada durulur; CRM/başka finish işi başlamaz.
