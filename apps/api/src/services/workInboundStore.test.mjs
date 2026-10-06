@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createWorkInboundStore,workInboundSupplierMovement} from './workInboundStore.mjs';
 const proof={readyHash:'A'.repeat(64)},actor={id:'15',permissions:['goods.view','goods.create']};
 function fixture({drift=false,wrongTarget=false,wrongRole=false}={}){
@@ -23,4 +24,11 @@ test('orphan chain stays explicitly unknown; multi-receipt and contradictory lin
  const row={id:'71',invoiceId:'44',receiptId:null,invoiceNumber:null,invoiceStatus:null,linkCount:0,batchCount:0,invalidLinks:0,invoiceItemCount:0,type:'purchase_invoice',documentDate:null,currency:'TRY',amountExact4:'280.0000',balanceEffectExact4:'-280.0000',amountTryExact4:null};
  const unknown=workInboundSupplierMovement(row);assert.equal(unknown.receiptId,null);assert.equal(unknown.invoiceNumber,null);assert.equal(unknown.invoiceStatus,null);
  for(const patch of [{linkCount:2,batchCount:2},{linkCount:1,batchCount:1,invoiceItemCount:2,receiptId:'7',invoiceNumber:'TSTB-X',invoiceStatus:'finalized'},{linkCount:1,batchCount:1,receiptId:'7',invalidLinks:1},{linkCount:1,batchCount:0},{linkCount:1,batchCount:1,receiptId:'7'}])assert.throws(()=>workInboundSupplierMovement({...row,...patch}),{statusCode:503});
+});
+test('supplier history aggregation keeps header ownership outside SUM and rejects linked missing headers',()=>{
+ const source=fs.readFileSync(new URL('./workInboundStore.mjs',import.meta.url),'utf8');
+ const sum=source.match(/COALESCE\(SUM\(CASE WHEN ([\s\S]*?)END\),0\) invalidLinks/)[1];
+ assert.equal(/\bp\./.test(sum),false,'SQL Server 8124 forbids mixing outer p.id with local aggregate columns');
+ assert.ok(source.includes('CASE WHEN p.id IS NULL AND chain.linkCount>0 THEN chain.invalidLinks+1 ELSE chain.invalidLinks END invalidLinks'));
+ assert.throws(()=>workInboundSupplierMovement({id:'71',invoiceId:'44',receiptId:'7',invoiceNumber:null,invoiceStatus:null,linkCount:2,batchCount:1,invalidLinks:1,invoiceItemCount:2}),{statusCode:503});
 });
