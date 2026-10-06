@@ -35,7 +35,7 @@ EXEC dbo.work_trade_assert_ready; EXEC dbo.usp_work_supplier_payment_ready;
 DECLARE @fields_i nvarchar(max),@fields_d nvarchar(max),@prefix nvarchar(max),@definition nvarchar(max),@name sysname,@begin int;
 SELECT @fields_i=STRING_AGG(CONVERT(nvarchar(max),N'CONVERT(varbinary(max),i.'+QUOTENAME(name)+N')'),N',') WITHIN GROUP(ORDER BY column_id),
  @fields_d=STRING_AGG(CONVERT(nvarchar(max),N'CONVERT(varbinary(max),d.'+QUOTENAME(name)+N')'),N',') WITHIN GROUP(ORDER BY column_id)
-FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.products') AND name NOT IN(N'current_stock_qty',N'updated_at');
+FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.products') AND system_type_id<>189 AND name NOT IN(N'current_stock_qty',N'updated_at');
 DECLARE @prefixes TABLE(name sysname PRIMARY KEY,body nvarchar(max));
 INSERT @prefixes VALUES
 (N'test_guard_products',REPLACE(REPLACE(CAST(N'
