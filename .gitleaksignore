@@ -23,3 +23,6 @@ c9711d1f27168d2b04419e31d3886700c94a5e9a:scripts/canonical/build-crm-order-packa
 # Independently reviewed 2026-10-06: deterministic synthetic native price tuple, no credential.
 # SQL binding C09/301986/type/unit/tier/currency; exact historical fingerprint only.
 e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx-native-before.json:generic-api-key:90
+# Independently reviewed 2026-10-06: deterministic UUID uppercase/lowercase test,
+# never an authentication key. Exact historical fingerprint only.
+3a1f404426e18181cae9c33a4aa25e502db2a676:scripts/canonical/crm-order-v2-sql.test.mjs:generic-api-key:6
