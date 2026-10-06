@@ -20,3 +20,6 @@ fdcaa59981640cd2fa57b637b3bac2002671ad7b:docs/erp-v2/canonical-20261003/sites-v7
 c9711d1f27168d2b04419e31d3886700c94a5e9a:apps/api/src/services/testCrmOrderService.test.mjs:generic-api-key:36
 # Bare PEM-header rejection fixtures; no private-key body. Exact historical fingerprint only.
 c9711d1f27168d2b04419e31d3886700c94a5e9a:scripts/canonical/build-crm-order-package.test.mjs:private-key:29
+# Independently reviewed 2026-10-06: deterministic synthetic native price tuple, no credential.
+# SQL binding C09/301986/type/unit/tier/currency; exact historical fingerprint only.
+e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx-native-before.json:generic-api-key:90

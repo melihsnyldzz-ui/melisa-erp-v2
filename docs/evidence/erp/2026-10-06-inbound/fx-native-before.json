@@ -37,7 +37,7 @@
       "stockExact3": "31.000",
       "averageCostTryExact4": "62.6994",
       "supplierId": "13373",
-      "sourceRecordKey": null,
+      "sourceRecordReference": null,
       "migrationRunId": null
     }
   ],
@@ -61,7 +61,7 @@
       "priceExact8": "1.34567890",
       "nativePriceExact": "1.34567890",
       "rowVersion": "\u0000\u0000\u0000\u0000\u0001\u0001™Q",
-      "sourceRecordKey": "C09/301986/purchase/CARD/0/USD"
+      "sourceRecordReference": "C09/301986/purchase/CARD/0/USD"
     },
     {
       "priceId": "279226",
@@ -74,7 +74,7 @@
       "priceExact8": null,
       "nativePriceExact": null,
       "rowVersion": "\u0000\u0000\u0000\u0000\u0001\u0001\\*",
-      "sourceRecordKey": "C09/301986/purchase/CARD/0/EUR"
+      "sourceRecordReference": "C09/301986/purchase/CARD/0/EUR"
     },
     {
       "priceId": "279227",
@@ -87,7 +87,7 @@
       "priceExact8": "2.34567890",
       "nativePriceExact": "2.34567890",
       "rowVersion": "\u0000\u0000\u0000\u0000\u0001\u0001z\u0012",
-      "sourceRecordKey": "C09/301986/sale/98694/1/TRY"
+      "sourceRecordReference": "C09/301986/sale/98694/1/TRY"
     }
   ],
   "priceVersions": [
