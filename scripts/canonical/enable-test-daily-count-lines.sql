@@ -236,11 +236,11 @@ UPDATE p SET after_definition=STUFF(p.before_definition,CHARINDEX(N'AS BEGIN',p.
 FROM @plan p JOIN @prefixes x ON x.name=p.name;
 IF EXISTS(SELECT 1 FROM @plan WHERE name LIKE N'test[_]guard[_]%' AND (after_definition IS NULL OR CHARINDEX(N'AS BEGIN',before_definition)=0))
  THROW 51240,'DAILY_COUNT_UNKNOWN_HEADER',1;
--- Object definition text keeps CREATE/ALTER exactly as emitted; prepare/apply use the same ALTER text.
-UPDATE @plan SET after_definition=STUFF(after_definition,1,6,N'ALTER ') WHERE name LIKE N'test[_]guard[_]%';
+-- SQL Server persists ALTER modules with the CREATE keyword. Plan the stored
+-- original CREATE header, and transform only the executable DDL to ALTER below.
 UPDATE @plan SET after_hash=CONVERT(varchar(64),HASHBYTES('SHA2_256',after_definition),2) WHERE name LIKE N'test[_]guard[_]%';
 DECLARE @auditHash varchar(64)=(SELECT after_hash FROM @plan WHERE name=N'test_guard_audit_logs');
-UPDATE @plan SET after_definition=STUFF(REPLACE(before_definition,N'E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E',@auditHash),1,6,N'ALTER ') WHERE name=N'usp_work_supplier_payment_ready';
+UPDATE @plan SET after_definition=REPLACE(before_definition,N'E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E',@auditHash) WHERE name=N'usp_work_supplier_payment_ready';
 UPDATE @plan SET after_hash=CONVERT(varchar(64),HASHBYTES('SHA2_256',after_definition),2) WHERE name=N'usp_work_supplier_payment_ready';
 INSERT @plan(name,before_hash,before_definition,after_definition,after_hash) VALUES
 (N'fn_test_daily_count_fingerprint',NULL,NULL,CAST(N'CREATE FUNCTION dbo.fn_test_daily_count_fingerprint(@product_id bigint,@exclude_movement_id bigint)
@@ -278,7 +278,7 @@ BEGIN TRY
  EXEC sys.sp_executesql @functionDefinition;
  DECLARE dc_cursor CURSOR LOCAL FAST_FORWARD FOR SELECT name,after_definition FROM @plan WHERE name<>N'fn_test_daily_count_fingerprint' ORDER BY CASE WHEN name=N'usp_work_supplier_payment_ready' THEN 1 ELSE 0 END,name;
  OPEN dc_cursor; FETCH NEXT FROM dc_cursor INTO @name,@definition;
- WHILE @@FETCH_STATUS=0 BEGIN EXEC sys.sp_executesql @definition;FETCH NEXT FROM dc_cursor INTO @name,@definition; END;
+ WHILE @@FETCH_STATUS=0 BEGIN SET @definition=STUFF(@definition,1,6,N'ALTER');EXEC sys.sp_executesql @definition;FETCH NEXT FROM dc_cursor INTO @name,@definition; END;
  CLOSE dc_cursor; DEALLOCATE dc_cursor;
  IF EXISTS(SELECT 1 FROM @plan WHERE after_hash<>CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+name))),2))
  THROW 51240,'DAILY_COUNT_DEFINITION_HASH_MISMATCH',1;

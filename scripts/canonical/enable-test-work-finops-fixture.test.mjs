@@ -111,12 +111,13 @@ test('count guard upgrade pins the exact prior audit body and independently deri
  assert.ok(match,'Exact reviewed audit prefix must be recoverable without a running database');
  const prefix=match[1].replaceAll("''","'");
  const position=before.indexOf('AS BEGIN')+8;assert.ok(position>8);
- const audit=('ALTER '+before.slice(6,position)+'\n'+prefix+'\n'+before.slice(position));
- const ready=('ALTER '+readyDefinition().slice(6)).replace(OLD_GUARDS.test_guard_audit_logs,hash(audit));
+ const audit=(before.slice(0,position)+'\n'+prefix+'\n'+before.slice(position));
+ const ready=readyDefinition().replace(OLD_GUARDS.test_guard_audit_logs,hash(audit));
  assert.equal(currentProof.readyHash,hash(ready));
  assert.equal(currentProof.contextHash,generated.contextHash);assert.equal(currentProof.effectsHash,generated.effectsHash);
  for(const key of ['melisa_test_count_draft_id','melisa_test_count_actor_id','melisa_test_count_transaction_id'])assert.ok(prefix.includes(key));
  assert.ok(prefix.includes('CURRENT_TRANSACTION_ID()'));assert.ok(prefix.includes('DAILY_COUNT_EXACT_AUDIT_REQUIRED'));
+ assert.match(source,/SET @definition=STUFF\(@definition,1,6,N'ALTER'\);EXEC sys\.sp_executesql @definition/);
  assert.match(source,/UPDATE @prefixes SET body=REPLACE\(body,CHAR\(13\)\+CHAR\(10\),CHAR\(10\)\)/);
  const packed=source.replaceAll('\n','\r\n').match(/\(N'test_guard_audit_logs',CAST\(N'((?:''|[^'])*)' AS nvarchar\(max\)\)\)/)[1].replaceAll("''","'").replaceAll('\r\n','\n');
  assert.equal(packed,prefix);
