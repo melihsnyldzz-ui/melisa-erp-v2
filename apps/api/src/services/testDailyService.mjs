@@ -80,7 +80,7 @@ export async function dailyPrepare(flow,i,actor){return atomic(flow,actor,c=>jou
 export async function dailyDraft(flow,i,actor){return atomic(flow,actor,c=>journal(c,i,'draft',async()=>{if(!canDraftDailyFlow(actor,flow))fail('AUTH_PERMISSION_DENIED','Bu TEST taslağı için sunucu yetkisi gerekli.',403);const s=c.scope,date=validDate(i.date);
  if(flow==='count'&&Array.isArray(i.lines)){
   const products=await countProductScope(c),lines=normalizeDailyCountLines(i.lines,products),unknownScans=normalizeUnknownCountScans(i.unknownScans);if(!lines.length&&!unknownScans.length)fail('COUNT_LINES','Ürün okutun veya inceleme kaydını koruyun.');
-  for(const line of lines){const p=products.find(x=>x.id===line.productId);if(line.system!==p.stockQuantity||line.movementFingerprint!==p.movementFingerprint)fail('STOCK_COUNT_STALE','Sayım sırasında stok hareketi oldu. Ürünleri yenileyip yeniden sayın.',409);}
+  for(const line of lines){const p=products.find(x=>x.id===line.productId);if(line.system!==p.stockQuantity||line.fingerprint!==p.movementFingerprint)fail('STOCK_COUNT_STALE','Sayım sırasında stok hareketi oldu. Ürünleri yenileyip yeniden sayın.',409);}
   return draft(c,'count',{lines,unknownScans,date,unit:'ADET',warehouse:'TEST-DAILY-WH'});
  }
  if(!Number.isInteger(i.quantity)||i.quantity<0||i.quantity>30||typeof i.reason!=='string'||i.reason.trim().length<3)fail('INPUT','Tam adet ve gerekçe gerekli.');
