@@ -1,0 +1,10 @@
+[
+  {
+    "path": "scripts/canonical/start-owned-test.ps1",
+    "same": true
+  },
+  {
+    "path": "scripts/canonical/manage-owned-test-startup.ps1",
+    "same": true
+  }
+]

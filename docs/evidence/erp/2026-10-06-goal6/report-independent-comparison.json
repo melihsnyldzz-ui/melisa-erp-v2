@@ -1,0 +1,50 @@
+{
+  "sourceCommit": "257ab50b7a0b3339b8f585f8a9904c9c850aa912",
+  "period": "2026-10-01..2026-10-06",
+  "checks": [
+    {
+      "kind": "sales",
+      "result": "PASS",
+      "rowCount": 2,
+      "currencyTotalsMatched": true
+    },
+    {
+      "kind": "purchases",
+      "result": "PASS",
+      "rowCount": 1,
+      "currencyTotalsMatched": true
+    },
+    {
+      "kind": "collections",
+      "result": "PASS",
+      "rowCount": 22,
+      "currencyTotalsMatched": true
+    },
+    {
+      "kind": "supplier-payments",
+      "result": "PASS",
+      "rowCount": 10,
+      "currencyTotalsMatched": true
+    },
+    {
+      "kind": "customer-movements",
+      "result": "PASS",
+      "rowCount": 38,
+      "currencyTotalsMatched": true
+    },
+    {
+      "kind": "supplier-movements",
+      "result": "PASS",
+      "rowCount": 43,
+      "currencyTotalsMatched": true
+    },
+    {
+      "kind": "stock-movements",
+      "result": "PASS",
+      "rowCount": 43,
+      "currencyTotalsMatched": false
+    }
+  ],
+  "sqlIndependent": true,
+  "stockQuantityOnly": true
+}
