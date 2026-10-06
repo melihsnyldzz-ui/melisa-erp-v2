@@ -99,6 +99,9 @@ END;
  const header=' SELECT N\'{"brands":[],"productTypes":[]}\' filtersJson,';
  check(text.includes(header),'VERSION_TEMPLATE_HEADER_DRIFT');
  text=text.replace(header,`${header}${lit(c.runId)} sourceVersionRunId,${lit(c.sourceHash)} sourceVersionSourceHash,${lit(c.planHash)} sourceVersionPlanHash,${lit(c.bindingsHash)} sourceVersionBindingsHash,`);
+ const startupHeader=' SELECT CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,CONVERT(bit,1) classificationValidated,';
+ check(text.includes(startupHeader),'VERSION_TEMPLATE_STARTUP_HEADER_DRIFT');
+ text=text.replace(startupHeader,` SELECT ${lit(c.runId)} sourceVersionRunId,${lit(c.sourceHash)} sourceVersionSourceHash,${lit(c.planHash)} sourceVersionPlanHash,${lit(c.bindingsHash)} sourceVersionBindingsHash,CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,CONVERT(bit,1) classificationValidated,`);
  const stored=text.replace(/^CREATE OR ALTER PROCEDURE /,'CREATE   PROCEDURE ');
  return {procedure:SOURCE_CATALOG_PROC,sql:text,storedDefinition:stored,proof:{...CATALOG_SQL_PROOF,readerDefinitionHash:sourceVersionSqlHash(stored)},context:{...c,readerDefinitionHash:sourceVersionSqlHash(stored)}};
 }
