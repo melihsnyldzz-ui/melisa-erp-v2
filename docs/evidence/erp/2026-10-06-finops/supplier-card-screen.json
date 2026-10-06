@@ -1,0 +1,46 @@
+{
+  "result": "TECHNICAL_SCREEN_VERIFIED",
+  "acceptance": "ERP-UA13 remains pending human review",
+  "observedAt": "2026-10-06",
+  "url": "http://127.0.0.1:5194/ornek-akis.html#suppliers",
+  "sourceCommit": "6a3c92c44c3546c9c89eac85c7673dc67eba3ac0",
+  "package": "C:\\Sirket\\ERP\\releases\\CANONICAL-FINOPS-TEST-20261006-62",
+  "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "screenObservations": {
+    "physicalReceivingSupplier": {
+      "supplierId": 13370,
+      "screenPanel": "Tedarikçi hareketi",
+      "source": "Mal Kabul / alış hareketleri"
+    },
+    "paymentSupplier": {
+      "supplierId": 23381,
+      "displayName": "Deneme kaydı — Finans ödeme tedarikçisi",
+      "supplierCode": "TEST-V70-FINOPS-S",
+      "currency": "TRY",
+      "balance": "300 TRY",
+      "receipt": 39,
+      "invoiceNumber": "TDAY-FINOPS-20261006",
+      "invoiceStatus": "Kesinleşti",
+      "documentTotal": "300 TRY",
+      "accountAmount": "300 TRY",
+      "paid": "0",
+      "returned": "0",
+      "remainingDebt": "300 TRY",
+      "payments": [
+        {"number": "OD-48065", "amount": "-100 TRY", "status": "Geri alındı"},
+        {"number": "OD-48066", "amount": "-200 TRY", "status": "Geri alındı"},
+        {"number": "ODI-48067", "amount": "+200 TRY", "status": "Ters kayıt"},
+        {"number": "ODI-48068", "amount": "+100 TRY", "status": "Ters kayıt"}
+      ]
+    },
+    "separation": "Fiziksel kabul/fatura kartı ve finans ödeme geçmişi ayrı kimlikler ve bölümlerdir; no cross-link inferred.",
+    "humanReview": "Pending; agent/browser observation is not user PASS"
+  },
+  "safety": {
+    "businessWritesDuringScreenCheck": 0,
+    "liveAccess": 0,
+    "crmTouched": false,
+    "liveTouched": false,
+    "humanAcceptanceMarkedPass": false
+  }
+}

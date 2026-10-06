@@ -1,6 +1,13 @@
 # ERP-FINOPS01 — kabul kanıtı çalışma kaydı
 
-2026-10-06, ERP-DEC-015 / Uzun Goal3. **Ödeme ve kasa bölümleri teknik olarak TEST61/source `aff60757dcb8641001ca36ac9030ab572cae8808` üzerinde hazır; tüm Goal3 açık.** Dal `codex/erp-finish-20261004`, draft PR23. Kullanıcı denemesi ayrı bekler.
+2026-10-06, ERP-DEC-015 / Uzun Goal3. **Ödeme, kasa ve tedarikçi kartının bağlı ödeme/borç geçmişi teknik olarak TEST62/source `6a3c92c44c3546c9c89eac85c7673dc67eba3ac0` üzerinde hazır; insan ERP-UA13/14 kabulü bekliyor.** Dal `codex/erp-finish-20261004`, draft PR23. Sıradaki geliştirme bölümü kalıcı stok sayımıdır.
+
+## Tedarikçi kartı: kabul/fatura/ödeme zinciri
+
+- TEST62'nin [runtime geçiş kaydı](C:/Sirket/ERP/evidence/ERP-FINOPS-20261006/runtime-switch-finops-62.json) aynı TEST DB, API4144/web5194 LAN+loopback ve native4146 loopback-only kimliğini doğrular; LIVE port sahipleri/özel ayarlar değişmedi ve iş yazması yapılmadı.
+- Normal [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers) ekranında iki ayrı kaynağın karışmadığı doğrulandı: fiziksel mal kabul kartı supplier13370, finans denemesi supplier23381. İkincisinde receipt39 → invoice `TDAY-FINOPS-20261006` → belge/cari 300TRY → ödenen0/iade0/kalan300TRY; OD-48065/66 ödemeleri ve ODI-48067/68 ters kayıtları hesap, tarih ve aktif/ters durumu ile gösterilir. Kaynakta timestamp bulunmayan hareketlere saat eklenmedi.
+- Ekran kanıtı [supplier-card-screen.json](supplier-card-screen.json) tarayıcı AX gözlemindeki kullanıcıya görünen başlıkları ve değerleri, paket kaynağını ve normal URL'yi kaydeder. Ayrı fiziksel kabul/fatura bölümü eski kayıtlarda bilinmeyen kabul bağlarını tahmin etmeden göstermeyi sürdürür.
+- `sites-workflow` tam testleri 575/575; yeni tedarikçi zinciri hedefli testi 12/12; Vite uygulama build'i ve PR23 CI/secret scan başarılı. ERP-UA13 insan kabulü pending; bu ajan ekran denemesi kullanıcı PASS'i değildir.
 
 ## Güncel TEST ekranı: ödeme ve kasa hareketleri
 
@@ -28,8 +35,8 @@
 | --- | --- | --- |
 | 1 Tedarikçi ödeme | Kaynak kabul/fatura pozitif borç → kısmi ödeme → kalan → tam ödeme → ters kayıt; her aşamada SQL borç/kasa doğrulanır, stok değişmez. TRY/USD/EUR ayrı; fazla ödeme, yanlış döviz ve bilinmeyen kur uygulanmaz. | Teknik hazır TEST61; ERP-UA13 insan kabulü bekliyor |
 | 2 Finans/kasa | Müşteri tahsilat girişi ve tedarikçi ödeme çıkışı; tarih/party/döviz/tutar/yön/belge/aktif-ters durumu ve döviz ayrı toplamları. Doğrulanmamış ticari açılış/gerçek banka bağlantısı uydurulmaz. | Teknik hazır TEST61; ERP-UA14 insan kabulü bekliyor |
-| 3 Tedarikçi kartı | Aynı kaynak kabul→fatura→borç→ödeme/kalan/ters zinciri; fiziksel ve finansal olaylar ayrı, eski bilinmeyen bağ tahmin edilmez. | Finans bağımlılığı bekleniyor |
-| 4 Stok sayımı | Personel kalıcı barkod/kod/miktar ve bilinmeyen kayıt; sistem/sayılan/fark. Tamamlama stok etkisiz; actual yetkili gerekçeli onay bir kez stok düzeltir; personel403. | Önceki bölüm bekleniyor |
+| 3 Tedarikçi kartı | Aynı kaynak kabul→fatura→borç→ödeme/kalan/ters zinciri; fiziksel ve finansal olaylar ayrı, eski bilinmeyen bağ tahmin edilmez. | Teknik hazır TEST62; ERP-UA13 insan kabulü bekliyor |
+| 4 Stok sayımı | Personel kalıcı barkod/kod/miktar ve bilinmeyen kayıt; sistem/sayılan/fark. Tamamlama stok etkisiz; actual yetkili gerekçeli onay bir kez stok düzeltir; personel403. | Sıradaki geliştirme bölümü |
 | 5 Fiziksel alış iadesi | Ayrı kaynak belge, özgün fiyat/maliyet/kur ve kalan miktar; stok azalır, borç ters etkisi; eski fatura korunur, fatura iptali fiziksel iade sayılmaz. | Sayım bağımlılığı bekleniyor |
 | 6 Ana Sayfa | Gerçek günlük tahsilat/ödeme, bekleyen kabul/sayım/iade işleri; izinli sınırlı okuyucular, temiz boş durum, ayrı döviz. | Önceki bölümler bekleniyor |
 | 7 Teslim | Gerçek üç genişlik, rol/negatif/native SQL/yanıt kaybı, önce-sonra hız, bağımsız inceleme, yeni immutable TEST paket/launcher, exact source/hash ve PR23 CI/secret scan, status/tree/UA. | Önceki bölümler bekleniyor |
