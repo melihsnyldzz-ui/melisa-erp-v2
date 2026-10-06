@@ -1,5 +1,10 @@
 const fail=(code,message,statusCode=400)=>{throw Object.assign(new Error(message),{code,statusCode})};
 const exactKeys=(value,allowed)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(key=>allowed.includes(key));
+export function normalizeDailyCountApprovalReason(input){
+ const reason=typeof input==='string'?input.trim():'';
+ if(reason.length<3||reason.length>500)fail('COUNT_APPROVAL_REASON','Stok farkını uygulamak için onay gerekçesini yazın.');
+ return reason;
+}
 export function normalizeDailyCountLines(input,products){
  if(!Array.isArray(input)||input.length>2)fail('COUNT_LINES','Bir sayımda en fazla iki izinli deneme ürünü seçin.');
  const allowed=new Map(products.map(p=>[String(p.id),p])),seen=new Set();

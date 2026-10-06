@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeDailyCountLines,normalizeUnknownCountScans} from './testDailyCountModel.mjs';
+import {normalizeDailyCountLines,normalizeUnknownCountScans,normalizeDailyCountApprovalReason} from './testDailyCountModel.mjs';
 
 const products=[{id:'301985',stockCode:'TEST-V70-GOODS-P',stockQuantity:8},{id:'325503',stockCode:'TEST-FINISH-GOODS-P2',stockQuantity:3}];
 const line=(productId='301985',stockCode='TEST-V70-GOODS-P',physical=7,reason='Eksik raf',movementFingerprint='a'.repeat(64))=>({productId,stockCode,physical,system:8,reason,movementFingerprint});
+
+test('approver justification is bounded text and cannot be silently absent',()=>{
+ assert.equal(normalizeDailyCountApprovalReason('  Raf tekrar kontrol edildi  '),'Raf tekrar kontrol edildi');
+ for(const input of [undefined,null,15,'','  ','ok','x'.repeat(501)])assert.throws(()=>normalizeDailyCountApprovalReason(input),{code:'COUNT_APPROVAL_REASON'});
+});
 
 test('count batch accepts only unique exact allowlisted products and preserves zero and leading barcode text',()=>{
  assert.deepEqual(normalizeDailyCountLines([line(),line('325503','TEST-FINISH-GOODS-P2',0,'Ürün rafta yok')],products),[
