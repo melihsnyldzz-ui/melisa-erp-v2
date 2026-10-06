@@ -93,7 +93,7 @@ C03 dar teknik TEST teslimi tamamlandı; [gerçek kabul kaydı](docs/erp-v2/cano
 
 **ERP-1 / B02+A01 teknik teslimi tarihsel kapsamdır; günlük sıra DELIVERY_BOARD tarafından belirlenir.** Yeni salt okunur okuyucu kabul edilmiş kaynak kimliğini native stok/birim/barkod/karantina ile bağlar; bilinmeyen değer sıfır yapılmaz. Genel ticari yazma ve personel kabulü ayrı açık kalır. C09 dar teknik TEST kabulü hazır; [kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md).
 
-İlk C01/C02 diliminin [kabul kaydı](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md) personelin beş denemesini içerir. Tarihsel SQL source46e10ce/paket18 uygulaması4e6b606 kabulü korunur; güncel çalışan uygulama STATUS üstündeki paket29/sourcef295561'dir. Çalışan C01/C02/migration tekrar ispat işi açılmadı; C03 yalnız yeni etkilenen akış ve kaynaklarla kontrol edildi.
+İlk C01/C02 diliminin [kabul kaydı](docs/erp-v2/canonical-20261004/purchase-batch-acceptance.md) personelin beş denemesini içerir. Tarihsel SQL source46e10ce/paket18 uygulaması4e6b606 kabulü korunur; o C09 diliminin çalışan uygulaması paket29/sourcef295561 idi. Güncel çalışan uygulama STATUS üstündeki TEST53/source11f1734 kaydındadır. Çalışan C01/C02/migration tekrar ispat işi açılmadı; C03 yalnız yeni etkilenen akış ve kaynaklarla kontrol edildi.
 
 İlk kabul iki farklı sentetik ürün, satır başına 1–5 ADET, TRY ve açık KDV/iskonto0 kapsamındadır. Bu dar prova genel dövizli fiyat yazımı, tüm ticari kartlar veya fiziksel terminal kabulü sayılmaz. Legacy tek satır/bağlı iade korunur. Taslak/pending stok ve borç değiştirmez; fiziksel onay stok oluşturur; finalize yalnız borç oluşturur; replay ikinci etki üretmez; sahte/yetkisiz/karantina satır bütün işlemi durdurur.
 
