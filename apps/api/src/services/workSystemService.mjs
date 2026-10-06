@@ -10,7 +10,7 @@ export function configureWorkSystem(context){
 }
 const stamp=v=>typeof v==='string'&&Number.isFinite(Date.parse(v))?v:null;
 async function readStatus(file){try{const stat=await fs.lstat(file);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>256000)return null;return JSON.parse(await fs.readFile(file,'utf8'));}catch{return null;}}
-async function probe(url,check){try{const response=await fetch(url,{signal:AbortSignal.timeout(1500),redirect:'error',headers:{Accept:'application/json'}});const body=await response.json();return response.ok&&check(body);}catch{return false;}}
+async function probe(url,check){try{const response=url==='http://127.0.0.1:62401/health'?await (await import('../../canonical-test-network.mjs')).readCanonicalCrmHealth():await fetch(url,{signal:AbortSignal.timeout(1500),redirect:'error',headers:{Accept:'application/json'}});const body=await response.json();return response.ok&&check(body);}catch{return false;}}
 async function probeDatabase(){try{const db=await import('../config/database.js');if(!db.isCanonicalTest())return false;const row=(await (await db.getSqlPool()).request().query("SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName")).recordset?.[0];return row?.databaseName==='MELISA_ERP_SIRKET_TEST_20260929_01'&&row.serverName==='Semih\\MELISADEV';}catch{return false;}}
 export function startupProjection(record,{sourceCommit=null,now=Date.now()}={}){
  if(!record||record.version!==1||!['CANONICAL_TEST','TEST'].includes(record.environment)||!stamp(record.observedAt)||now-Date.parse(record.observedAt)>90000||Date.parse(record.observedAt)>now+5000||sourceCommit&&record.sourceCommit!==sourceCommit)return {status:'unknown',lastCheckAt:null};

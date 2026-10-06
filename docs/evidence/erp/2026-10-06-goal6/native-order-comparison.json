@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "melisa-goal6.native-order-restore-comparison.v1",
+  "beforeCapturedAt": "2026-10-06T19:40:54.7146290Z",
+  "comparedAt": "2026-10-06T19:48:51.8882551Z",
+  "before": [
+    {
+      "count": 6,
+      "sha256": "E02383D59F066CAA5962B108791CE396BF71A317601DFBE49E8374897EDD0020",
+      "table": "sales_orders"
+    },
+    {
+      "count": 10,
+      "sha256": "FBE064BB6320B20F84730326BE6B029A5F6CD3C210F9EDB0AA373B95CAB3493C",
+      "table": "sales_order_items"
+    }
+  ],
+  "after": [
+    {
+      "count": 6,
+      "table": "sales_orders",
+      "sha256": "E02383D59F066CAA5962B108791CE396BF71A317601DFBE49E8374897EDD0020"
+    },
+    {
+      "count": 10,
+      "table": "sales_order_items",
+      "sha256": "FBE064BB6320B20F84730326BE6B029A5F6CD3C210F9EDB0AA373B95CAB3493C"
+    }
+  ],
+  "restored": [
+    {
+      "count": 6,
+      "table": "sales_orders",
+      "sha256": "E02383D59F066CAA5962B108791CE396BF71A317601DFBE49E8374897EDD0020"
+    },
+    {
+      "count": 10,
+      "table": "sales_order_items",
+      "sha256": "FBE064BB6320B20F84730326BE6B029A5F6CD3C210F9EDB0AA373B95CAB3493C"
+    }
+  ],
+  "matches": true
+}

@@ -4,10 +4,12 @@ import net from 'node:net';
 import tls from 'node:tls';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 const blocked = () => { throw Object.assign(new Error('TEST_EXTERNAL_OPERATION_DISABLED'), { code: 'TEST_EXTERNAL_OPERATION_DISABLED' }); };
 const allowedHosts = new Set(['127.0.0.1', 'localhost', '::1']);
 const allowedPorts = new Set([1433, 4144, 4146, 5194]);
+const healthRead = new AsyncLocalStorage();
 function assertDestination(args) {
   const first = args[0];
   let host, port;
@@ -20,7 +22,8 @@ function assertDestination(args) {
   } else {
     port = Number(first); host = typeof args[1] === 'string' ? args[1] : 'localhost';
   }
-  if (!allowedHosts.has(String(host).replace(/^\[|\]$/g, '')) || !allowedPorts.has(port)) blocked();
+  const fixedHealthTransport = healthRead.getStore() === true && String(host) === '127.0.0.1' && port === 62401;
+  if (!fixedHealthTransport && (!allowedHosts.has(String(host).replace(/^\[|\]$/g, '')) || !allowedPorts.has(port))) blocked();
 }
 for (const [owner, keys] of [[http, ['request', 'get']], [https, ['request', 'get']], [net, ['connect', 'createConnection']], [tls, ['connect']]]) {
   for (const key of keys) { const original = owner[key]; owner[key] = function (...args) { assertDestination(args); return original.apply(this, args); }; }
@@ -31,6 +34,15 @@ globalThis.fetch = function (input, options) { assertDestination([typeof input =
 syncBuiltinESMExports();
 
 export const networkPolicy = Object.freeze({ hosts: [...allowedHosts], ports: [...allowedPorts], subprocesses: false, externalMessages: false });
+
+// A single fixed GET, with no caller URL/body/headers and no redirects. The
+// socket exception lives only in this async call; generic 62401 access stays shut.
+export function readCanonicalCrmHealth() {
+  if (process.env.MELISA_CANONICAL_TEST !== 'true' || process.env.SQL_DATABASE !== 'MELISA_ERP_SIRKET_TEST_20260929_01') blocked();
+  return healthRead.run(true, () => originalFetch('http://127.0.0.1:62401/health', {
+    method: 'GET', redirect: 'error', signal: AbortSignal.timeout(1500), headers: { Accept: 'application/json' },
+  }));
+}
 
 // Dedicated 62404 launcher only: verify the existing scoped TEST SQL identity
 // before allowing reads of the loopback CRM authentication/conversation API.

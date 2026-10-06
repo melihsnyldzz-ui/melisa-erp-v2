@@ -1,0 +1,27 @@
+{
+  "existingTargetAllowed": false,
+  "sourceFiles": [
+    {
+      "name": "MELISA_ERP_V2",
+      "type_desc": "ROWS",
+      "physical_name": "C:\\Sirket\\ERP\\data\\TEST-20260929-01\\sql\\MELISA_ERP_SIRKET_TEST_20260929_01.mdf",
+      "sizeBytes": 9940500480
+    },
+    {
+      "name": "MELISA_ERP_V2_log",
+      "type_desc": "LOG",
+      "physical_name": "C:\\Sirket\\ERP\\data\\TEST-20260929-01\\sql\\MELISA_ERP_SIRKET_TEST_20260929_01_log.ldf",
+      "sizeBytes": 5108662272
+    }
+  ],
+  "server": "Semih\\MELISADEV",
+  "restoreDatabase": "MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01",
+  "backupFile": "C:\\Sirket\\ERP\\backups\\ERP-GOAL6-20261006\\GOAL6_TEST_20261006_01.bak",
+  "logFile": "C:\\Sirket\\ERP\\data\\GOAL6-RESTORE-20261006-01\\MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01_log.ldf",
+  "dataFile": "C:\\Sirket\\ERP\\data\\GOAL6-RESTORE-20261006-01\\MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01.mdf",
+  "sourceDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "schemaVersion": "melisa-goal6.backup-preflight.v1",
+  "requiredConservativeBytes": 40835743744,
+  "availableBytes": 264278523904,
+  "overwriteAllowed": false
+}

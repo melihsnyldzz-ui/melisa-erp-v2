@@ -1,0 +1,22 @@
+{
+  "server": "Semih\\MELISADEV",
+  "sqlEdition": "Express Edition (64-bit)",
+  "startedAt": "2026-10-06T19:43:43.9643191Z",
+  "sqlBackupStart": "2026-10-06T22:43:43",
+  "lsnFinish": "332000012590400001",
+  "completedAt": "2026-10-06T19:45:35.6851707Z",
+  "sourceDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "file": "C:\\Sirket\\ERP\\backups\\ERP-GOAL6-20261006\\GOAL6_TEST_20261006_01.bak",
+  "checksum": true,
+  "backupSetGuid": "6de98c6e-19d2-491a-b2bd-10738aff2747",
+  "verifyMs": 9590,
+  "lsnStart": "332000012588000001",
+  "schemaVersion": "melisa-goal6.backup.v1",
+  "sqlBackupFinish": "2026-10-06T22:45:11",
+  "verifyOnlyPassed": true,
+  "compressed": false,
+  "sha256": "238D65006C7515CCEA30F79B1678AA65AFA6BB2A366EF4337F8CA6745C1EE47D",
+  "sizeBytes": 7283015680,
+  "copyOnly": true,
+  "backupMs": 87351
+}

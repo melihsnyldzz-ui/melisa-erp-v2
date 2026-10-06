@@ -1,0 +1,1416 @@
+{
+  "completedAt": "2026-10-06T19:50:24.7941595Z",
+  "schemaVersion": "melisa-goal6.sql-snapshot.v1",
+  "method": "SHA2_256 sorted row-JSON hashes; quiescent source proven by equal before/after digests",
+  "guards": [
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_audit",
+      "type": "TR",
+      "sha256": "FBD16D7B8476D7079F5432215332912AB3AC24C55D17794ED8CB5C8FE3FB6596",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_daily_receipts",
+      "type": "TR",
+      "sha256": "837726152A01192C719D030A2FF6E78170537F6325CC1474F10A901B251F2623",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_headers",
+      "type": "TR",
+      "sha256": "030382C696E622667B0752DC6BD96AB4DA6369478189FF5A7C7D946DED5D8F67",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_intents",
+      "type": "TR",
+      "sha256": "1E16AFBAE063DB8B76064E6F08C5D2F40663D0AB7898C88CC169752EC88B54CC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_items",
+      "type": "TR",
+      "sha256": "89946DEDB255DD4287B24CD4CF07DD35F96E7B23F344BA790FB6B2E57B0D77DA",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_products",
+      "type": "TR",
+      "sha256": "1CB8F021F6B6B56BCC4A7719E8461E99548DFBB3A7CC3A5A317EC75795EF9E1A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_requests",
+      "type": "TR",
+      "sha256": "E1451ADEB1F10CD2ED8F25D0A3D3872278717F1EBE6D796E883C02127A1AFAB8",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_stock",
+      "type": "TR",
+      "sha256": "46839407E80E203F0C0C4B68A6A2566E0DF807515A397E450076D014001A3973",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_supplier_balance",
+      "type": "TR",
+      "sha256": "81A36BD4AF24A4FF692B730B314D112776F339BE3CDB67E709D6E1B01B70638D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_guard_supplier_movements",
+      "type": "TR",
+      "sha256": "260F9098C77AF4C3849B957413BD691C590A0D13334F5439C38930EC45B6536A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_immutable_test_purchase_fx_guard_manifest",
+      "type": "TR",
+      "sha256": "F184BE4F10CC1232E0C446ED5418BF68BEBE296C9B6BAB8282ED043B1A7A2DC1",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_immutable_test_purchase_fx_rates",
+      "type": "TR",
+      "sha256": "6CFF4CB0BE40AB54AC9859A52074C94762E7C54B98079282F4B3FA200263A0F3",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_immutable_test_purchase_fx_scope",
+      "type": "TR",
+      "sha256": "84FAB09D798101332C18D924E1A59C20B09A6F2801F9CA0CFB6F59EC93A1DB6F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c03_immutable_test_purchase_fx_sources",
+      "type": "TR",
+      "sha256": "36C16A2C9091A920E16D414BC0B5CD422F79845AED367B2A466A91166978A9D8",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_audit",
+      "type": "TR",
+      "sha256": "BC918BFABBA634EE7DABA340196F6257715395A0CC58E865C3EF96255F6130E4",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_daily_receipts",
+      "type": "TR",
+      "sha256": "D19F5AA3BF6E3A3DBFC92E7DD5F9A6F439DE8BC241EEF53BA2283FDDE433E2BF",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_headers",
+      "type": "TR",
+      "sha256": "5174AA5C3229C497E6173158C7098A372FCDEF0B50694778CD587511383B21FD",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_items",
+      "type": "TR",
+      "sha256": "88E7156B2FDC9D546DA142F3786613451B58F97F7CD60F57C736BFCEC84C817A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_products",
+      "type": "TR",
+      "sha256": "0774CB0B8571AE7FEC9CA40908A234B0FA31E6B0D36CCE20E94A398C00EAA490",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_purchase_intents",
+      "type": "TR",
+      "sha256": "74F13A60B714C3EE65E86B3E130CFF6DCCA1054FAF8AB2B4065F21CA5A7D8D7B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_requests",
+      "type": "TR",
+      "sha256": "4CD4882602684AC348E8C31E9FBC9BA614A2D0E3F6A93172E19CB9B5198A8E0D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_stock",
+      "type": "TR",
+      "sha256": "F244B5162D5400686BC04486BB30D4BE8B557B41C1FE286B69C96901DC6C2513",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_supplier_balance",
+      "type": "TR",
+      "sha256": "25121BAD5EDA623463C5414106B19B1F98843D8A2B525A88B959FD353399109F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_current_price_supplier_movements",
+      "type": "TR",
+      "sha256": "F0A9D917FD13226A13A4351E09714DDAF3B2E7777CE24E2035E1B3CA11E215F9",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_native_product_prices",
+      "type": "TR",
+      "sha256": "4557F61641783D8FC08DDB56CCF53228455A21D8EBA3E1B5A2E5A03B71FAAE52",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_product_price_current",
+      "type": "TR",
+      "sha256": "F2DB9D9F5EDACF8CE96684E709ACC36D362476A15DDD4ED2FFA96F04FBA51326",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_product_price_requests",
+      "type": "TR",
+      "sha256": "3C9A21AE92CF23E9E71877DB08FF9E9F4FA04F6889856AE387ED7CDE8E2FC0EB",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_guard_product_price_versions",
+      "type": "TR",
+      "sha256": "754106E88E26876D5E39B2665DB9416393AE018F610020D566C1B5E3759B5266",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_immutable_test_current_price_purchase_manifest",
+      "type": "TR",
+      "sha256": "F12A5E55992A477052F40816E5B35B24F4440CAEE7FEEC89E3A88157F3EE0713",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_immutable_test_product_price_manifest",
+      "type": "TR",
+      "sha256": "5F28DFBBE063EFB8D1B94BB1E8EF8D80B80AD63DE3ABDC199155765743B89DD4",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_immutable_test_product_price_scope",
+      "type": "TR",
+      "sha256": "B15C888460A23B9BFDF25087518C47707F81679D85715D001D2F480C4A81E649",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "c09_immutable_test_product_price_units",
+      "type": "TR",
+      "sha256": "EF3250868470E47F1C312707A9EB8ACEEA5352EAFBEF95ACC5C7CAC215D43C8C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_opening_append_lines",
+      "type": "TR",
+      "sha256": "3CFD15C868466E6D8A9B36E8E510E6D66C2E67C971101B098C57A7278A921868",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_opening_immutable_definitions",
+      "type": "TR",
+      "sha256": "22284F91E298F89FE49A664AD2E74C2D7ECBFE6849BCD1799F0192639FBEF14C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_opening_immutable_manifest",
+      "type": "TR",
+      "sha256": "3D244818C3032948D9585EA2F7DB2A5C43DF9F5A2FDF723B79300BB7E1D531DC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_opening_immutable_scope",
+      "type": "TR",
+      "sha256": "0E6C1D92A01455D96C9250FC79CAE9BBEE246A3B962FF03594118566FAEC97E6",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_order_v2_definitions_immutable",
+      "type": "TR",
+      "sha256": "BB87C304A85134C85854A436CD7D0693012D9E0634B6F654746E14B13EEC810C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_order_v2_headers_guard",
+      "type": "TR",
+      "sha256": "3C19BDD71158BD6426A900E8A5146C1D0AB41A66E5D571338E962CD952944576",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_order_v2_items_guard",
+      "type": "TR",
+      "sha256": "8381B62DD78FB2FD1FD9B7E28BFFF668111EFF91AECE5B51ACC0A5CB0941BD4D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_order_v2_lines_immutable",
+      "type": "TR",
+      "sha256": "71D81463A778B53CD68025BF59232CB125383443B1C683445C6B77904B6E28F0",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "crm_order_v2_requests_immutable",
+      "type": "TR",
+      "sha256": "094E5CB58069FFBF6B2016709F7FA8C2086C8AE83B8E5427ABD120239658057A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "guard_product_cost_estimate_packets",
+      "type": "TR",
+      "sha256": "E53DC7E6448B24FE0A025D2D93624F17A6A8494079A15BED350FE9A86D36EDAA",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "guard_product_cost_estimates",
+      "type": "TR",
+      "sha256": "04BFC26E27BC72BB6C5BDB21083BA26C87419B61EDF8F053071C4C8539A07066",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "immutable_test_batch_stock_source_upgrade",
+      "type": "TR",
+      "sha256": "8C198110A3BC27A4D0C93DBB75AC3D08810F042A0C5AEF9C833EC761FAC5EA22",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_customer_movements",
+      "type": "TR",
+      "sha256": "07DD4D34F6CA0EAE97B446A2B6D1A50EFA2DF11D7FC4216AAF26B9E66B632C73",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_customers",
+      "type": "TR",
+      "sha256": "FDEA3477A198072F7E1407A16001748FA6CFBAAA112017A7C3720FF029E3990C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_finance_account_movements",
+      "type": "TR",
+      "sha256": "A915708D62255F5EDBE3AA091FEF88E47807BDB12DD7B294AF9119C721167BF4",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_invoice_return_items",
+      "type": "TR",
+      "sha256": "461A77F64F0952C531D7679FDF71A59E30581B2B193AFC58FA1D402B8E11C25A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_invoice_returns",
+      "type": "TR",
+      "sha256": "39010E0482D16E88F6EFD43C67301A014E563940D7D6D18536045F4B9706517F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_party_currency_accounts",
+      "type": "TR",
+      "sha256": "E7E1BE93263A78E382B42C4829B8E8B4142816A71EF4C4E5711DEB94755AF71B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_party_entities",
+      "type": "TR",
+      "sha256": "C12A0F9611100BFBAA45DA6D0176DD988F7F80F5106A637E4F37DC57B49E2ADD",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_party_source_links",
+      "type": "TR",
+      "sha256": "D0FCEB0F926958DAE973E3F2DA5C5068EFC2723B7973C000F0C48C8EEE62944A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_product_barcodes",
+      "type": "TR",
+      "sha256": "D0324B106E8DAD8F1EAD5E50C9BD48CA78D96E0439629F0E729E5EA36D6E67AC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_product_prices",
+      "type": "TR",
+      "sha256": "AE77B000B1EE6915DCB2563177F3B9F84700B4EAAF56C343000080140018108A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_product_source_aliases",
+      "type": "TR",
+      "sha256": "E8925CAD3E6964BB6B9E19AF111584D46459A8A2E4CCF7922DECF752FEBF26F2",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_products",
+      "type": "TR",
+      "sha256": "78859599CB544406DA8CC34E11CC991207D236E593EAC0ED1A931F7FB3E38B2A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_purchase_invoice_items",
+      "type": "TR",
+      "sha256": "4A23DC186B79347BE5C9ED9CA1581652EC900191146DC451008FD3BD89B473EA",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_purchase_invoices",
+      "type": "TR",
+      "sha256": "0EE87E169C3B94C830ABC2C8E10E5756BA8901F91413E7EAF9D7936DD314D0C7",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_sales_invoice_items",
+      "type": "TR",
+      "sha256": "122A2093ECFF735BC922C4BD3C579892524EC132595C9B7418FE46A331DEBCC2",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_sales_invoices",
+      "type": "TR",
+      "sha256": "FAD49DB34EEC308FDC47EB2310B9A187A164957E70937CAC3BAEB17BF142798B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_stock_movements",
+      "type": "TR",
+      "sha256": "C75612EE6A960A1BF220644C8DAB04E9F2506DBAE4C83801DAE53E64F7E33450",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_supplier_movements",
+      "type": "TR",
+      "sha256": "12C0AB462C138415A7DD4CB12AE63A529FAACB47C32595690EFCC097BC438D59",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_suppliers",
+      "type": "TR",
+      "sha256": "2B0F5018F18F8DE033D1F110B1229984CFF4F6C07EC0FF1C54C780C5AE6247BE",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_crm_order_product_scope",
+      "type": "TR",
+      "sha256": "EF925618F2B7ABA9000C0AAEF326877E6950ACEFE14356A3275ACD1BAF14822E",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_crm_order_request_lines",
+      "type": "TR",
+      "sha256": "6BE5F0685DD7D8C55D5D157300BFDBB9BF45DCEF1FB0C31B62418850C9B50D04",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_crm_order_requests",
+      "type": "TR",
+      "sha256": "15D1D9F016EBE9450E2D2785ED1015461A9384720A16F3EE4D80984F579D0C41",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_daily_drafts",
+      "type": "TR",
+      "sha256": "F43799950A4B398FEED915E96AD3A23CC3D9323F5CC5833C825101020F2CAE09",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_daily_requests",
+      "type": "TR",
+      "sha256": "B3ADFE844795C4FFF0420954BF427B0A9F9E5E6AA3A8A848C10EFF1C07D32560",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_daily_scope",
+      "type": "TR",
+      "sha256": "8BBFB9AD97CCB4EF5B0A2593FDEF5D92EE8440F523DC3FEF0356ABED62ED9390",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_finance_requests",
+      "type": "TR",
+      "sha256": "5B32FD5309697708AE9D643166B1CEF444A928DF853975B0B2150801A8F594B5",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_goods_receipts",
+      "type": "TR",
+      "sha256": "967C085EA832BBFCFB19A66BE377563C7A81AD655E348B2EBE057C927D51336A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_payment_invoices",
+      "type": "TR",
+      "sha256": "A886A5BCD33D1EBE77BEF223639C28141B40BA9381342772FC1947F7FEF87899",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_payment_requests",
+      "type": "TR",
+      "sha256": "F44B06BD86352BC41CE37C86E12D8B21458BE3AB36515DEC3B4B0AA7BB487D1F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_payment_suppliers",
+      "type": "TR",
+      "sha256": "9C1AEFBFF6E56F13D2FA178607B23738398DA29560B3690F99E0F7B659549293",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_purchase_links",
+      "type": "TR",
+      "sha256": "9B2C840ADEE002919FF9C11466A55A6C410F208FCD3B7753E870F8F9543EFFAB",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_purchase_scope",
+      "type": "TR",
+      "sha256": "A3ECA18D61E07B2061A3E86CE932E711A1C88B034DC63F23CC5287E8BE85748E",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_refund_requests",
+      "type": "TR",
+      "sha256": "C868945926DFBA28168E3DF5DD575800B2F089101715B890B5076921FF164245",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_refund_scope",
+      "type": "TR",
+      "sha256": "E38014239BF60B5F34484A4AA09C632C296DC7E92CFEF7B5BDB535FAD3A8613F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_sales_requests",
+      "type": "TR",
+      "sha256": "0F4177A876111AB49F15EE00C52312F5835FC200D4E1862602B1C7C3E841351C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_sales_scope",
+      "type": "TR",
+      "sha256": "5C562D07F02FA4A4ECC1E16177BDEBBC05EDB39BC2F54C0B7988852AA1D9F9BE",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "operation_quarantine_test_stock_reversals",
+      "type": "TR",
+      "sha256": "1428043A2EAE44A0D17F8438D1A17D77702A9EFAFCFB5AE8534A6491A0981C6C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_goods_batch_lines",
+      "type": "TR",
+      "sha256": "CB665011747B53F68A34A543EF96720CF1A63617B40CD98943C561AEF3F7CA92",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_goods_batches",
+      "type": "TR",
+      "sha256": "E1EA449A4AE132AD815D26272B425AAAE06F82720EAC974E60CF4C10872847B6",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_purchase_batch_drafts",
+      "type": "TR",
+      "sha256": "2FBC722C898A265C1EFCDD6ADB722A09CC1D42C34E7D3362AC3C54ADA1EBE698",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_purchase_batch_guard_manifest",
+      "type": "TR",
+      "sha256": "A20898DD4E5DA9C29FD108693CF7271AB62A7D7899744EB18E479BDDF726E1B0",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_purchase_batch_intent_lines",
+      "type": "TR",
+      "sha256": "6515C077E332761FD8C9B981541C3846AB38C43140F95582F5B850BEC6288064",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_purchase_batch_links",
+      "type": "TR",
+      "sha256": "3F34AE5EB874BF652B6167F2B0CB024E8B654C12A559D483072EB81453DB41E5",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_batch_guard_test_purchase_batch_scope",
+      "type": "TR",
+      "sha256": "C2CCEDC66DECC21D2684877C1C8E85262F53C6E8DB8CEF78CBB07FDB58BAEFD7",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_daily_count_lines_manifest_immutable",
+      "type": "TR",
+      "sha256": "410D32A7EEE919E42528696276AE7FA560E56E0CA70DB133D7BB55DB634A89A5",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_daily_fault_finance",
+      "type": "TR",
+      "sha256": "99222DA220620643E4793C3E28E8FEEBEFF4209BBA3C1EE624A68CB6986C6F7B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_daily_fault_stock",
+      "type": "TR",
+      "sha256": "F6E7FC8338F4E739F06BC2DECD9AC07CCD9445D05422155A2F3063352E1B2C1D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_audit_logs",
+      "type": "TR",
+      "sha256": "A35B37EC46DE1A91F8CF83B8B844F2E0E7D2D04263E4703AE5B72078760F584D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_customer_movements",
+      "type": "TR",
+      "sha256": "659C1C7B171BE196D187C54EB6B9BC7D5970E4BD7131C33D91197EE5212C32AC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_customers",
+      "type": "TR",
+      "sha256": "898759122A75148488200E50522996DCFDC64BD83658DEBD762C37325D902988",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_daily_returns",
+      "type": "TR",
+      "sha256": "EC16684C430DC5CEDF2997F8FBE2CA3F14E7664DFDA02A3C7F1270D3F839C096",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_finance_accounts",
+      "type": "TR",
+      "sha256": "FF9ACB5B97D6E972D56CE9F4D3588DA431863FEF8EC9C3050952C6DB97D56854",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_finance_movements",
+      "type": "TR",
+      "sha256": "E4AD1F48EBD22923ED849A36A1C118676679FBBB8C307CEB1B846FD070A027B5",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_finance_requests",
+      "type": "TR",
+      "sha256": "A2E2F1C0E1138C98571D3364AE604DEEA6A6F249FA9A3CA05E315F920A30D7CF",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_payment_requests",
+      "type": "TR",
+      "sha256": "5FF38BDAF454D65FA184E0D61A6965ED59D5D603A7914072D64F0FCB65BA4A6F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_products",
+      "type": "TR",
+      "sha256": "0461FCDC788FFC999177D5A5D40F2E5294E96631F4DE17436497400C76C2488D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_purchase_invoice_items",
+      "type": "TR",
+      "sha256": "58BAF43BD6BF9235FDED652692AB3EA8C7ABD846980FC4155D63D5E12661DDF3",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_purchase_invoices",
+      "type": "TR",
+      "sha256": "AF7FC59573D2112F4DD1F7730F78AD86FB119F74D5E2141818CFE54FB5F1D8FC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_refund_requests",
+      "type": "TR",
+      "sha256": "FC730FA2C5D94F33330B5E6E87FEBC266A946F4A0520670DE2A1247F3DDC18AF",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_sales_invoice_items",
+      "type": "TR",
+      "sha256": "86A96D9F01AD980C473ED687AF71C24C0DAFF8EC9B6FA85A61549DE2936650D0",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_sales_invoices",
+      "type": "TR",
+      "sha256": "D4A9E7095B196608A060E49DA8F96AB72F224D987C3E77FD385FF5F43105F897",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_stock_movements",
+      "type": "TR",
+      "sha256": "86A7BE76C0D2C2CD3F825546B61837266F67143879BF3C73027D500A049DFFFA",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_stock_reversals",
+      "type": "TR",
+      "sha256": "2A03ECE0920EBDE44019B1E80435EE7B980035F0BF968B50A7BCDA3387E6C6C2",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_supplier_movements",
+      "type": "TR",
+      "sha256": "2E9DEF9DD038511972F774271F44C20E8627FC53C1A4A754D99C0C80F7A04220",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_suppliers",
+      "type": "TR",
+      "sha256": "201398D0AD53D8FA50F99C78699C13ECFF875F9D5E6787777961A31788910314",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_test_goods_receipts",
+      "type": "TR",
+      "sha256": "ABA671E64D120FFDA4EF9C03235270E9B8B629334218C46613424DB1ADB8B045",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_test_purchase_links",
+      "type": "TR",
+      "sha256": "AD973017F6E86F9FF73F0D02EF80EF7564DC0F652A4477E12489DBDF55B2939D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_test_purchase_requests",
+      "type": "TR",
+      "sha256": "FEF624D00B624BD8A3FE2666FD21AD31BE041E9404E89DC8AA89754345C800A8",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_guard_test_sales_requests",
+      "type": "TR",
+      "sha256": "14FC696E98E3BCB8C562F50B95743130B5697F53263C5E56D9506F4A17AD8859",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_refund_fault_guard",
+      "type": "TR",
+      "sha256": "AEB14F291934BD8BCC8CC2BCF56B6539E4077774DB51051850BE0207F60B4412",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_supplier_contact_guard",
+      "type": "TR",
+      "sha256": "E7378FD47DA3DBEAC9B1D4DF97ECEDAF7B5E6340DA963F3E62D9D182D4E5BE1A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "test_supplier_contact_requests_guard",
+      "type": "TR",
+      "sha256": "B78FAA938A2115FA54D6A15129C00772C8DB9A005CC03F476285FFF1C4D80EE6",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_assert_test_current_price_purchase_received",
+      "type": "P ",
+      "sha256": "A042A928FF449C6B3AA1241CF1DB910524F53D145F77A553D8E62E84376E41BB",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_assert_test_purchase_fx_received",
+      "type": "P ",
+      "sha256": "7303F334B24609910EB787CFF190B787082B31523A37045D74AFDEA669ADBD85",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_check_operation_quarantine",
+      "type": "P ",
+      "sha256": "2C846F8C98E9241EA3D905D7998B4DCD42D363B7E73BB8C1E8B690E9FFAA942C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_get_accepted_opening_prices",
+      "type": "P ",
+      "sha256": "1C3BFC303F49A4F86D4502725D32283FD9D74B621DA0E6DDE8B7F23B236DE5C9",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_get_test_current_price_purchase_context",
+      "type": "P ",
+      "sha256": "AEE9DA2CDDC3EC96BE426C210FB78AE7078FD03544A4F315B3CA835AF1A06B3A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_get_test_product_prices",
+      "type": "P ",
+      "sha256": "E086690CB1F9FED0ADE717AFCDE3615FFAB4CD2C8125BBD2BC7594D1E51654B8",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_get_test_purchase_fx_context",
+      "type": "P ",
+      "sha256": "F6449E0382872414230426F14966096645A7DBA068E4B6A828FE43F6D6966359",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_get_test_purchase_fx_unit_evidence",
+      "type": "P ",
+      "sha256": "4E213DC982A5677BE2F53592FABA586D85AD9246CC73E1C58BB707FDFE1CC70B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_get_test_supplier_contact_context",
+      "type": "P ",
+      "sha256": "23DCDC583364C00449302CF9FA8C082E71F0316D6D969E8A787973441F7DD415",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_list_accepted_opening_products",
+      "type": "P ",
+      "sha256": "28AD97EC4FFF2C5ECC8573FB8D91E744CA32F95F4F8F12FD6A1FE79446E4BE8E",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_list_operation_quarantine",
+      "type": "P ",
+      "sha256": "AF0E015826725C01FA35B40369FA34DD0BBE082E382D181EC56894ABC220EF59",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_read_customer_cards",
+      "type": "P ",
+      "sha256": "7FE6BEE7728312D666FF3B68151CA60A08B84E4A6D5B33B36F300A48381E6C8E",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_read_stock_products",
+      "type": "P ",
+      "sha256": "B39AF5827F604777DAC4EC91F074038AC7A459810837DBF2AD1C163937EE3E09",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_read_supplier_cards",
+      "type": "P ",
+      "sha256": "D750DDCD6B3F4AEDBDC9A38C5347DED081961A6018505559D2F7D50014404C0B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_read_work_catalog",
+      "type": "P ",
+      "sha256": "647F16AD5713D96634096136A48FD970123CB0B75FAA50D4DB0EDDF2FEC0CFC9",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_set_test_product_price",
+      "type": "P ",
+      "sha256": "65B893C0DE2C93682DEB5FB73A8562BD61CD3518ED84D4B06A56D8375D6E291F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_test_crm_order_context",
+      "type": "P ",
+      "sha256": "27E2CF25DA14CB1B6E7C651ED91DF68D350D7BC4E9B47141FB5CC6BC2B5EC516",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_test_crm_order_create",
+      "type": "P ",
+      "sha256": "D5FB0183FF84E3DB8955BD25E6504BC1943955B9D342F6C51CD28091213D1C46",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_test_crm_order_read",
+      "type": "P ",
+      "sha256": "EB2C96405274F556C3E932FA05829F29B0449B5D9AF8CB3E142BE73E14CC96A4",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_test_crm_order_v2_create",
+      "type": "P ",
+      "sha256": "5DE1EBDCD1B23BFE9745D72A646193E6AA64CFC3A64E9EC25AF32E11A68D4A05",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_test_crm_order_v2_customers",
+      "type": "P ",
+      "sha256": "A0E529BB68D437328A68A437A20CCD93D2EF5DD456149C0C794483404677188F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_test_crm_order_v2_read",
+      "type": "P ",
+      "sha256": "15AE6644CEAA03CA42B3DB86FAC1BB4AC31C1D45524A4AF8079EE67044FC9E18",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_update_test_supplier_contact",
+      "type": "P ",
+      "sha256": "1DB0B962776AA132A52BE98DF2DDBD14A1EB3B2FE125C7D6F2B966BBDC82908E",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_work_inbound_ready",
+      "type": "P ",
+      "sha256": "5C64D6E80DB1B9EFB7422B45A9F592866F6018240E130990B36980E211427960",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_work_supplier_payment_context",
+      "type": "P ",
+      "sha256": "4C5DB1E8398401818BB6977E9AF3B05FD83D40F81658A78907015E7B8FC79C18",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_work_supplier_payment_effects",
+      "type": "P ",
+      "sha256": "75C919BAE177847F703ED51F293302DE553FA88B244BCF9A9DC7339FA0DEEAE8",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "usp_work_supplier_payment_ready",
+      "type": "P ",
+      "sha256": "A6FF41D0EFDA6518925EBCA5386612CE7000ABDA9753C9BDDBB3EAC9040C2D8D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_daily_scope_guard",
+      "type": "TR",
+      "sha256": "DF5FA2AAA65F2D14B9A9AC2BCCD25D0401947F83718740CA69F15AA5A4CD5883",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_finance_history_guard",
+      "type": "TR",
+      "sha256": "84AEA3C8A48D8CB72F0AF146FA21BCF6AACF20FA6DF7E8BD906134992FE53382",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_manifest_guard",
+      "type": "TR",
+      "sha256": "745C4BCCA1EA4552681735B2993388AF412052030A84A6C5E781052F11AA8F74",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_native_account_guard",
+      "type": "TR",
+      "sha256": "23F4B09AFFAC7A9D2884EF67A93C058565D278171DA39EC464195AD0CBDB3B11",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_native_invoice_guard",
+      "type": "TR",
+      "sha256": "96AF6A3BD40E416BF74AF781F49489F01597E7A0645E17A644EBAD07F5D4B94E",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_native_items_guard",
+      "type": "TR",
+      "sha256": "166131061C2D75F6AEA68471B5D0C02064ACA99ACBAFF647AAA2CB31B60D0B30",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_native_product_guard",
+      "type": "TR",
+      "sha256": "2B575CA73F9EE8AE57EA559DC964A707835FDCBFC7170C0A6398DF98FB581D9C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_native_stock_guard",
+      "type": "TR",
+      "sha256": "9E3BEF864755B031DC23602A96C4FDC7952EFD4CB0394980F20915FE7EBF6CC0",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_native_supplier_guard",
+      "type": "TR",
+      "sha256": "5B582F509D0F6A93D6A514C9C3382E4A714C358E9FA102E7CE76DA3D5EED26AE",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_receipts_guard",
+      "type": "TR",
+      "sha256": "8192EA6D5AF0941D70CF5748986DBFD0DC53479760D572A63E370EE3474E3805",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_scope_guard",
+      "type": "TR",
+      "sha256": "BD670598ACAB48EF00BB92B584B5C552967205B58262925A77AE4CD4A9DEBD42",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_finops_supplier_history_guard",
+      "type": "TR",
+      "sha256": "DBB1D6D7014DEC60439775EC4E242203B54CA796C33E7F8EDB1D92F3B86DA53B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_inbound_counts_guard",
+      "type": "TR",
+      "sha256": "45E6A6A1FA2FA26E7C5EFDEF8337CAE56BC09DDA314FDD0DC5EE3FECA160D779",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_inbound_manifest_guard",
+      "type": "TR",
+      "sha256": "AAD29F58FD668DAB717627E33A48F5FEC15484368826AA810406D2C1D3FB286D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_inbound_requests_guard",
+      "type": "TR",
+      "sha256": "9F007441C7F13BD53C52235658A85588311660219DE8543414032BED261F8C7C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_product_prices",
+      "type": "TR",
+      "sha256": "E5A51456582F7530AB9F5502BDDB960EEE12A066DC363EF46BCDA3A60C8FFF9A",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_collection_links",
+      "type": "TR",
+      "sha256": "E9EC9505E8E5F8A19F1D2826C7E941262CC89BBE0F14C31FC0855A2272DEE8F0",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_sales_links",
+      "type": "TR",
+      "sha256": "53893E38A0E45975897F9FCECAAFC95D98CBDB7A3D318C1CE7B6FF85A7190A5D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_guard_manifest",
+      "type": "TR",
+      "sha256": "43A3720FDFD2E840C725814D474BDA6D10BEA0F753B51AC49F3318A5608DC7CA",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_install_state",
+      "type": "TR",
+      "sha256": "63E5A3FF2396AD1CF63C45886E812E757AA49E5B0A9080188035AFFA135708CC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_intents",
+      "type": "TR",
+      "sha256": "2596D6E392E351C83598EC44DC7ECB078F33B499D867EC1CE15C055BFB363076",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_legacy_manifest",
+      "type": "TR",
+      "sha256": "06E2CDC550B4C7895E3D4803B12095726F0CF458D8EF694787E2592FA6D679D5",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_products",
+      "type": "TR",
+      "sha256": "337222622F1A1E5C4861C86CD3C6CA74E6A625BF8EADF3D44CAF6B59957E6CCA",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_requests",
+      "type": "TR",
+      "sha256": "B8076E0857942FC2E836AF83CB42B9B7E3A702464C597EF00D9558D998A3746B",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_night_guard_work_trade_scope",
+      "type": "TR",
+      "sha256": "9D4DC33DDD98032AFE619C48837B758B5F4EC2DE28E94DE9E934D515F0977BB9",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_payment_requests_guard",
+      "type": "TR",
+      "sha256": "143E038C7324E46E66E989FDF7873AD1E61C816FD30ADD1CB3B6A4A23A642A3F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_trade_assert_effects",
+      "type": "P ",
+      "sha256": "3913AAD04ED69B9CA978EE1B99C4735161014AACCA60577BEA7AA38E7B1EEA2F",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_trade_assert_ready",
+      "type": "P ",
+      "sha256": "71245635F3787A0DD3FC1982D2BA34DBF9713DB3925C0E26F3EF7FAADF8B13EF",
+      "disabled": 0
+    },
+    {
+      "schemaName": "dbo",
+      "name": "work_trade_get_context",
+      "type": "P ",
+      "sha256": "A1519BBBFD145CC8FC53DBBB7B1F5D3B97D1D34CC5B66A42CE6000985341D23D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "erp_migration",
+      "name": "immutable_accepted_price_manifest",
+      "type": "TR",
+      "sha256": "FEFA64E1BB8F916DF8B041E35FB1B3E0BCBAEAFC29D9F385DFE3BB1A126B1C0D",
+      "disabled": 0
+    },
+    {
+      "schemaName": "erp_migration",
+      "name": "immutable_accepted_price_products",
+      "type": "TR",
+      "sha256": "66B379D695C70B467B46CB81B42F952F208421F0D027F84480F77D8CF7422DF3",
+      "disabled": 0
+    },
+    {
+      "schemaName": "erp_migration",
+      "name": "immutable_accepted_price_values",
+      "type": "TR",
+      "sha256": "FF2BDA0E7429284C5D09BCC3B5A1FE18CF883314C06579488773789E17CB323C",
+      "disabled": 0
+    },
+    {
+      "schemaName": "erp_migration",
+      "name": "immutable_operation_quarantine_holds",
+      "type": "TR",
+      "sha256": "E9028DC050A59872CE2958CDDA54777D72077034DF866FD9AD3091CA4BE08BCC",
+      "disabled": 0
+    },
+    {
+      "schemaName": "erp_migration",
+      "name": "immutable_operation_quarantine_manifest",
+      "type": "TR",
+      "sha256": "79757013332664F5830478D84611D873810490870D5D11D5A3C4CC2EF8BE94E0",
+      "disabled": 0
+    }
+  ],
+  "database": "MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01",
+  "startedAt": "2026-10-06T19:48:09.1849197Z",
+  "tables": [
+    {
+      "sha256": "DB333CCD952104CE99812F28BF3F4356840AACD0DA5F3063C2B5C26718CF93DC",
+      "count": 52970,
+      "table": "dbo.products"
+    },
+    {
+      "sha256": "FDFDED20B9D4335A75C102CD9D8DF357E132707BC9F6AC4C3BBFC7D40BB6C9C0",
+      "count": 442,
+      "table": "dbo.customers"
+    },
+    {
+      "sha256": "81A570BBCE2F4331FBA7FA6707C873EE995DCA40FBC266E3E0F78D863772BAE4",
+      "count": 531,
+      "table": "dbo.suppliers"
+    },
+    {
+      "sha256": "FA916F9409F02CD574F23EDBD35DB9ED6C6D4F8E25697D4847A98C2A81FD2FB6",
+      "count": 279229,
+      "table": "dbo.product_prices"
+    },
+    {
+      "sha256": "FE486E26644522D37BAA837F060366DFF2C9D5FECFE0F652F505F624561B2B65",
+      "count": 54257,
+      "table": "dbo.product_barcodes"
+    },
+    {
+      "sha256": "0E8CE53072639091D6105D0176815F1F57AC6E916581B652946E3002D19BC7CC",
+      "count": 1045,
+      "table": "dbo.party_currency_accounts"
+    },
+    {
+      "sha256": "F5A646EC5395A59B3CF2888D4E430CAFCC41FD4982F7F49D592065F44471C07C",
+      "count": 19233,
+      "table": "dbo.sales_invoices"
+    },
+    {
+      "sha256": "B2BBE12D0069D54C3CEDB176891E2A99970A77A6BB1F099E56CBA4F169D9A393",
+      "count": 345563,
+      "table": "dbo.sales_invoice_items"
+    },
+    {
+      "sha256": "2826DF00F6EAF50BA1DF8DCF9FB5B1BB975603872E0CEBBAA9EA7D3DE75E12E9",
+      "count": 11244,
+      "table": "dbo.purchase_invoices"
+    },
+    {
+      "sha256": "AF6471E151C67965CBEBB209748F0815B2B898525C16E518A968B5295C5F28FF",
+      "count": 59543,
+      "table": "dbo.purchase_invoice_items"
+    },
+    {
+      "sha256": "C5E8BE5A3BE07CE1C4BB949596848E76FD5DEE6FDF4C9E88D99F0E037F9CF4D1",
+      "count": 29169,
+      "table": "dbo.customer_movements"
+    },
+    {
+      "sha256": "142BAFE3B12989DA4CB04F36130862D8FBDEEBE7867B491C44DF382BCA6AA2C8",
+      "count": 24028,
+      "table": "dbo.supplier_movements"
+    },
+    {
+      "sha256": "ABF53FE7D0FDD724E43401968B4A090B05430F543A4C286AC1CF9A33AF732B7B",
+      "count": 558985,
+      "table": "dbo.stock_movements"
+    },
+    {
+      "sha256": "58C8CC562F1BA8A0812C03F5623A1FF25DB9A11D35527BDD107BB77A8C4EA433",
+      "count": 16837,
+      "table": "dbo.finance_account_movements"
+    },
+    {
+      "sha256": "AF96E3E3535499B713A6A9324A42554570CA651CD0559DB843389410BFD506DC",
+      "count": 16,
+      "table": "dbo.roles"
+    },
+    {
+      "sha256": "0ABE1DE56944016D8D97F9623778029D9EE4B87B0D5F948AD8F040799BA722E1",
+      "count": 137,
+      "table": "dbo.permissions"
+    },
+    {
+      "sha256": "A2E81D6B854A8154E9E8733321F8E2D5A0784367A8947D400374E2094E85B933",
+      "count": 16,
+      "table": "dbo.users"
+    },
+    {
+      "sha256": "450EF7CBEC462CB29F58020E210D54E0967B8F466715C3FEC599976D69814781",
+      "count": 5,
+      "table": "dbo.work_inbound_counts"
+    },
+    {
+      "sha256": "3EB0AC5A84101F6F08FABD49A579F780FB9092CD84779CA69E42262B012B3296",
+      "count": 4,
+      "table": "dbo.work_sales_links"
+    },
+    {
+      "sha256": "3D5DBF9CC3B9FF0E0BB41D03D061B04799BE47B72E5145976820459376E0E62C",
+      "count": 8,
+      "table": "dbo.work_collection_links"
+    },
+    {
+      "sha256": "555298A6D79DA987D03056DE850E63558C2E8B8CEDA8D3455EAB85C6FF854655",
+      "count": 4,
+      "table": "dbo.work_supplier_payment_requests"
+    },
+    {
+      "sha256": "F9AA2A0D876B81F7011EAD2F9EAFFBA6E6AFE0B03340FEEF0B397B077DA493CB",
+      "count": 42,
+      "table": "dbo.test_daily_drafts"
+    },
+    {
+      "sha256": "9892014ED22E59EA4CD520EC8A43A6EE828F77F9281A019DE3E122A45AD040F7",
+      "count": 114,
+      "table": "dbo.test_daily_requests"
+    },
+    {
+      "sha256": "CCCCEAAFA0763A03E6472EA8996D51710E0DCF8FC21D0F26A71CA5D1E466EA61",
+      "count": 4,
+      "table": "dbo.crm_order_v2_requests"
+    },
+    {
+      "sha256": "CC3D2A576D6E8A0B7D0D25AA7CC3480E94B9D24901629BC0027F144478001E9E",
+      "count": 8,
+      "table": "dbo.crm_order_v2_lines"
+    },
+    {
+      "sha256": null,
+      "count": 0,
+      "table": "dbo.crm_order_v2_intents"
+    },
+    {
+      "sha256": "67ABD1DB56CE8AD8E4B28839D1006FE4346AAA6A7465B0EEB6589270041DAE8F",
+      "count": 1,
+      "table": "erp_migration.accepted_price_manifest"
+    },
+    {
+      "sha256": "54605B374C2D12DEFBD3143EEBDCAB999CC6F3BAB052C85B7972A3867A52FACE",
+      "count": 16622,
+      "table": "erp_migration.accepted_price_products"
+    },
+    {
+      "sha256": "DE27EF1F05996E5B6C8E6CF63CB1621A4DE680D98A759E9B53755E8E92D9D117",
+      "count": 63774,
+      "table": "erp_migration.accepted_price_values"
+    },
+    {
+      "sha256": "83D2E55C504C7DCD9D9E8E05CF4BE6D72A5FE16C0873274E80E7A9985E0D2814",
+      "count": 1,
+      "table": "erp_migration.operation_quarantine_manifest"
+    },
+    {
+      "sha256": "E47875115A4811B6FE3CBA1547E196A663C02211DD4B53E0747D74945F5E63B9",
+      "count": 176,
+      "table": "erp_migration.operation_quarantine_holds"
+    },
+    {
+      "sha256": "FFFA435CD540B2B37E3F544E04E8A4C3B7BA7EE13D741F327E4AB54700D6A408",
+      "count": 1,
+      "table": "erp_migration.runs"
+    },
+    {
+      "sha256": "6958F7B0D6858FA75FFC53E940D6A921988113AD2890B99C3F102EA94C457668",
+      "count": 184045,
+      "table": "erp_migration.records"
+    }
+  ],
+  "atomic": false
+}
