@@ -5,7 +5,7 @@ import {buildSql,readyDefinition,contextDefinition,effectsDefinition,WORK_SUPPLI
 import {findInlineCrossColumnChecks} from './enable-test-purchase-batches.mjs';
 import {WORK_SUPPLIER_PAYMENT_SQL_PROOF as generated} from '../../apps/api/src/services/workSupplierPaymentSqlProof.mjs';
 test('generated SQL and independent owner proof exactly equal reviewed definitions',()=>{
- assert.equal(fs.readFileSync(new URL('./enable-test-work-finops-fixture.sql',import.meta.url),'utf8'),buildSql());
+ assert.equal(fs.readFileSync(new URL('./enable-test-work-finops-fixture.sql',import.meta.url),'utf8').replaceAll('\r\n','\n'),buildSql());
  assert.deepEqual(generated,WORK_SUPPLIER_PAYMENT_SQL_PROOF);
  assert.equal(generated.readyHash,hash(readyDefinition()));assert.equal(generated.contextHash,hash(contextDefinition()));assert.equal(generated.effectsHash,hash(effectsDefinition()));
 });

@@ -17,7 +17,11 @@ export function createWorkSupplierPaymentStore({getRuntime=defaultRuntime}={}){
     await req().execute('dbo.usp_work_supplier_payment_ready');
     const row=(await req().input('actor_id',q.BigInt,actor.id).execute('dbo.usp_work_supplier_payment_context')).recordset?.[0];
     if(!r.proof||Object.keys(r.proof).length!==3||['readyHash','contextHash','effectsHash'].some(k=>typeof r.proof[k]!=='string'||row?.[k]!==r.proof[k])||typeof row.context_json!=='string')throw paymentError();
-    const raw=JSON.parse(row.context_json),context=supplierPaymentContext(raw,actor);if(!context.capabilities.canView)paymentFail('Bu işlem için yetkiniz bulunmuyor.',403,'WORK_PAYMENT_FORBIDDEN');
+    const raw=JSON.parse(row.context_json);
+    // SQL Server omits an empty nested FOR JSON PATH array as null. Only opening-debt
+    // suppliers may legitimately have no linked invoices; keep every other shape strict.
+    if(Array.isArray(raw.suppliers))raw.suppliers=raw.suppliers.map(s=>s?.debtKind==='opening'&&s.invoices===null?{...s,invoices:[]}:s);
+    const context=supplierPaymentContext(raw,actor);if(!context.capabilities.canView)paymentFail('Bu işlem için yetkiniz bulunmuyor.',403,'WORK_PAYMENT_FORBIDDEN');
     const nativeContext={pool:r.pool,sqlDriver:q,transaction:tx},c={context};
     c.ownsPayment=async id=>(await req().input('id',q.BigInt,id).input('actor',q.BigInt,actor.id).query("SELECT movement_id FROM dbo.work_supplier_payment_requests WHERE movement_id=@id AND actor_id=@actor AND operation=N'payment'")).recordset?.length===1;
     c.request=async requestId=>{const prior=(await req().input('id',q.UniqueIdentifier,requestId).input('actor',q.BigInt,actor.id).query('SELECT operation,response_json FROM dbo.work_supplier_payment_requests WHERE request_id=@id AND actor_id=@actor')).recordset?.[0];if(!prior)paymentFail('İşlem kaydı bulunamadı.',404,'WORK_PAYMENT_NOT_FOUND');return {requestId,operation:prior.operation,response:JSON.parse(prior.response_json)};};
