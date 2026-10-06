@@ -1,14 +1,25 @@
-# ERP-INBOUND01 — 6 Ekim2026 uygulama ve kabul provası sürüyor
+# ERP-INBOUND01 — 6 Ekim2026 teknik teslim / insan kabulü bekliyor
 
-TEST56/source94682c8 kuruldu, exact source hosted CI37432656453/37432647423 SUCCESS. Çekirdek fatura25091/TSTB-INBOUND-20261006-01: kabul#3 sonrası30/3ADET, finalize140TRY borç ile−100→40TRY; stok aynı. Gerçek tedarikçi hareketinde SQL8124 kaynak sorgu hatası yakalandı; dış fatura sahiplik kontrolü SUM dışına taşındı, aynı bilinmeyen/bozuk bağ koruması sürer. Düzeltilmiş salt okunur SQL30satır + strict DTO decode ve bağımsız review PASS; sonraki paket/runtime kanıtı bekliyor. LIVE/native sınırı/privateconfig/ağ değişmedi.
+Normal Mal Kabul → Alış/Fatura → tedarikçi hareketi → günlük işler, **TEST58 / application source 93365d0baf002e93010a2759bd45af2af11040e7** ile kontrollü sentetik kapsamda teknik hazır. [Ana Sayfa](http://192.168.1.46:5194/ornek-akis.html#home), [Mal Kabul](http://192.168.1.46:5194/ornek-akis.html#goods). [Tüm teknik kanıt ve ölçümler](docs/evidence/erp/2026-10-06-inbound/README.md); insan **ERP-UA10/11/12 bekliyor**, otomatik PASS yok. İzleyen docs/evidence HEAD çalışma paketinin kaynağı değildir; dal codex/erp-finish-20261004 / [draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23); exact son head CI [Checks](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23/checks) üzerinden teslimde doğrulanır.
 
-Çekirdek uygulama TEST55/sourceb2bbf5b üzerinde provada. Son auth/döviz kaynakları sonraki paket için hazır; personel/döviz gerçek provası bekliyor. İlk gerçek provada router mount giriş adresini kesiyordu; yalnız sahip olunan prefixlere dar auth kapsamı ve gerçek Express dispatch regresyonu düzeltildi. 59 hedefli son kaynak testi, quality/offline guard/canonical kontrolleri PASS; bağımsız FX review açık P0/P1 yok. Döviz paneli mevcut C09 current-price consumer kullanır: USD1.34567890 mevcut sürüm, EURnull, TRYquote yok; kayıtlı4Ekim kuru güncel kur olarak gösterilmez. Sayım#3 bilinmeyen0000098765432 barkodu yenilemede korundu, gönderim kapalı. Sayım#4→Kabul#3 iki satır; onay yanıtı kaybı ve aynıbody tekrarı29/2→30/3 stok yalnız bir kez, borç−100TRY değişmedi. Gerçek fatura provası sürüyor.
+Sayım#4→kabul#3: stok29/2→30/3 yalnız fiziksel onayda; yanıt kaybı/exact UUID/tam gövde/paralel replay ek etki0. Fatura25091/TSTB-INBOUND-20261006-01 finalize140TRY: tedarikçi−100→40TRY; stok30/3 aynı. Yenileme ve iptal borcu−100TRY'ye döndürür; stok30/3 korunur. Normal tedarikçi kartı kabul→fatura→+140/−140 borç zincirini okur; eski bağı bilinmeyen hareketlere kabul uydurmaz. SQL8124 ve prefixauth bugları gerçek provada düzeltildi.
 
-ERP-DEC-014 kapsamı: normal Mal Kabul → Alış/Fatura → tedarikçi hareketi → günlük işler. Başlangıç çalışan paket TEST53/source11f1734; yeni uygulama paketi henüz kurulmadı. Gece satış/tahsilat teslimi aşağıda tarihsel kaynak/kanıt olarak korunur. Güncel sentetik stok/kasa değerleri [yeni başlangıç fotoğrafında](docs/evidence/erp/2026-10-06-inbound/native-before.json); önceki gece son değerleri bugünkü başlangıç varsayımı değildir.
+Normal C09 USD1.34567890/version7→native1.3457USD, kayıtlı4Ekim USD40/TRY1→53.8280TRY. Kabul38 stok31→32, fatura25092 borç60→113.828→60 ters; stok32 kalır. EURfiyatNULL seçilemez/TRYpurchasequote yok; kur/fiyat tahmini yok. Currentprice3/immutableversion7/SQLpins ve önceki25090 snapshot aynı. Personel15 fiyat/maliyet/borç/alış yok; İlker16 mevcut yetkileri kullanır. Sayım#5 iki satır1/1 kullanıcı denemesine hazır;#6 personel0000098765432 kalıcı stok kartı gerekli. Gerçek katalog8023fotoğraf/birim/stok normal sayım ekranında salt okunur. Kapanan eski session'ın yeni tokenı silme yarışı dar fix27test+bağımsızreview ile giderildi; normal giriş/yenileme/navigasyon gerçek son pakette doğrulandı.
 
-Yeni kalıcı sayım metadata kurulumu: geri alınan Validate, Apply ve kurulum tekrarı PASS; tekrar `installed=0`. Mevcut guard/SQL izin/kullanıcı/rol hash'i değişmedi; yalnız yeni sayım ve immutable istek tablolarında dar service-account izinleri. Sınırlı TEST hesabında sysadmin0/control0/LIVE0 ve owner readiness doğrulandı. SQL kaynakSHA CF5928311B99A379D8C43132E96DFD6F0FF755B33BE433C980156E561FC03589. İlk geri alınan provadaki collation uyuşmazlığı iki taraflı BIN2 karşılaştırmayla düzeltildi. [Teknik kanıt](docs/evidence/erp/2026-10-06-inbound/README.md).
+Gerçek katalog16.622/3.830CONFIRMED/67belirsiz/karantina aynıdır; 30Eylül Vega snapshot+nativeTEST, güncel delta değildir. Genel gerçek kart write yok. Yeni metadata13exact izin dışında eski guard/rol/SQL izin hash aynı; sysadmin0/control0/LIVE0/externalfalse. Web5194/API4144 loopback+192.168.1.46, native4146 yalnızloopback; privateconfig/IP/firewall/LIVEowners değişmedi. Önceki paket/rollbacklar korundu. Gece bu tur başlangıcı17/18stok,100borç/300kasa son durumda birebir aynı.
 
-Normal yeni ekran kaynakları, tam gövde/aktör UUID tekrar güvenliği, sayım revision kontrolü ve personel fiyat/borç redaksiyonu hedefli offline testlerde geçiyor. Gerçek tarayıcı/native stok-borç kabulü sürüyor; teknik hazır veya insan PASS henüz verilmedi. İki mevcut C01 üründe barkod kaydı yok; NULL korunur, ürün koduyla sayım ve bulunamayan barkodda stok kartı gerekli incelemesi hazırlanır.
+Gerçek1440/1024/390 dört normal ekran12görünüm taşmasız; HOME ilk summary ardından sınırlı inboundliste okur. Kasa açılış/vade/ödeme bekleyen kaynakları bağlı değil. Hızlar aynıLAN/actor16/50satır/3örnek:
+
+| Ölçüm(ms medyan) | Önce53 | Son58 |
+| --- | ---: | ---: |
+| first50 | 628 | 653 |
+| next50 | 616 | 686 |
+| code | 707 | 593 |
+| barcode | 388 | 375 |
+| card | 213 | 213 |
+| home | 94 | 185 |
+
+Yeni ekran API medyanı: Mal Kabul176ms, Alış313ms, tedarikçi346ms, FX134ms. Paket sonrası ilk Mal Kabul isteği2027ms/FX861ms idi; sonraki örnekler145/176 ve120/134ms. Ana Sayfa gerçek kullanılabilir749ms/iş listesi995ms. Source93365d0 exact push37435923959 ve PR37435929646 dört hostedjob SUCCESS; izleyen belgehead ayrı Checks ile doğrulanır. Hedefli test/build/SQL ve bağımsız inceleme PASS; insan/fizikselcihaz/genel ticari kabulü değildir. Ödeme bonusu, yeni fatura allowlist'i hazır olmadığı için koruma genişletmeden ertelendi. Finish49/7🟢/24🟡/18🔴. **Bu dar hedef teslim edildi; başka finish işi başlamaz.**
 
 # ERP-NIGHT01 — 6 Ekim2026 önceki teknik teslim / insan kabulü bekliyor
 

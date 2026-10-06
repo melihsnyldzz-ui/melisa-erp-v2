@@ -17,6 +17,8 @@ Karar sohbetten sonra açık kullanıcı talimatıyla bu dosyaya kaydedilir, ilg
 
 GitHub'daki ilgili PR/commit bu kayıtların sürümünü gösterir. Yerel checkout, main, çalışan TEST/LIVE paketi ayrı kimliklerdir. Açık doküman PR'si main'e birleşmiş veya runtime'a uygulanmış sayılmaz. İş tekrar açılmadan önce aynı kapsamın mevcut kabul kaydına bakılır; başka dosyaya karar metni veya ikinci günlük pano kopyalanmaz.
 
+ERP-DEC-014 uygulama sonucu günlük [teslim panosunda](DELIVERY_BOARD.md), teknik kanıt [STATUS.md](STATUS.md), insan denemeleri ERP-UA10/11/12 [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) içinde tutulur. Karar onayı insan kabulüne çevrilmedi.
+
 ## Kalıcı kararlar
 
 | ID | Tarih | Karar | Gerekçe | Etkilediği alan | Durum |
