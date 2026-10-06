@@ -1,0 +1,3 @@
+export const dailyDraftCanReverse=row=>row?.state==='approved'&&(['invoice-return','uninvoiced'].includes(row.kind)||(row.kind==='count'&&!Array.isArray(row.payload?.lines)&&(row.result?.movementCreated===false||Number.isSafeInteger(Number(row.result?.movementId))&&Number(row.result?.movementId)>0)));
+export const dailyDraftKindLabel=kind=>({count:'Sayım', 'invoice-return':'Kaynak alış iadesi',uninvoiced:'Faturalanmamış mal iadesi'}[kind]||'İşlem');
+export const dailyDraftStateLabel=state=>({pending:'İnceleme bekliyor',approved:'Tamamlandı',rejected:'Reddedildi',cancelled:'Ters kayıtla geri alındı'}[state]||'İnceleme gerekli');

@@ -1,0 +1,21 @@
+{
+  "scope": "ERP-FINOPS01 purchase-only normal screen and Home routing",
+  "verification": "LOCAL_RENDER_ONLY_NOT_NATIVE_SQL_ACCEPTANCE",
+  "userAccessChoice": "local demo only; no admin or temporary personnel session",
+  "sourceParent": "491ac6cf1b8e0c5902378ed5b8914637505180b6",
+  "tests": {"sitesRegressionPassed": 585, "returnJournalAndViewPassed": 9, "apiCountAndReturnSourcePassed": 8},
+  "independentReview": {"lateReplayDeletingNewRequest": "fixed and tested", "lateReadOverwritingNewContext": "fixed and tested", "remainingCodeBlocker": false},
+  "browser": {
+    "url": "http://127.0.0.1:5270/",
+    "data": "synthetic browser-local renderer, no API session or database write",
+    "widths": [{"requested": 1440, "innerWidth": 1440, "documentWidth": 1440}, {"requested": 1024, "innerWidth": 1024, "documentWidth": 1024}, {"requested": 390, "innerWidth": 390, "documentWidth": 378}],
+    "minimumButtonHeightCssPx": 44,
+    "actions": ["source invoice and remaining quantity visible", "draft pending", "review approval", "reason-required reversal", "original history still visible"],
+    "screenshots": ["return-render-1440.jpg", "return-render-1024.jpg", "return-render-390.jpg", "return-render-reversal-390.jpg"]
+  },
+  "normalTransport": ["GET /api/test-daily/purchase", "POST /api/test-daily/purchase/draft", "POST /api/test-daily/purchase/approve", "POST /api/test-daily/purchase/reject", "POST /api/test-daily/purchase/cancel"],
+  "preserved": ["server-owned invoice/item identity", "pending return reservations", "same UUID/full body/actor replay", "existing permissions", "TEST-only boundary", "quarantine", "original invoice history", "separate cash settlement", "catalog APIs and media unchanged"],
+  "limitations": ["existing bounded TRY/single-line sources only; general TSTB multi-line/C09 FX returns remain outside scope", "approved multi-line stock count reversal is not supported and has no action", "legacy count-cancel scope is not mapped to the new normal count scope", "native SQL operation and normal-account acceptance not run in this screen pass", "current real catalog and Home performance could not be remeasured without an authorized normal session", "customer sales return bonus not opened"],
+  "businessWrites": 0,
+  "humanAcceptance": {"ERP-UA15": "pending", "ERP-UA16": "pending", "ERP-UA17": "pending"}
+}

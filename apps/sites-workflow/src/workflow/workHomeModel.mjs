@@ -28,7 +28,7 @@ export function orderedHomeShortcuts(capabilities,user){
 }
 export function orderedHomeTasks(tasks,user){return user?.role?.code==='admin'?[...tasks].sort((a,b)=>Number(b.kind==='approval')-Number(a.kind==='approval')||Number(b.state==='pending')-Number(a.state==='pending')):tasks;}
 
-export function homeNormalScreen(target){return {'/is-akisi-taslagi.html#goods':'goods','/is-akisi-taslagi.html#purchases':'purchases','/is-akisi-taslagi.html#suppliers':'suppliers','/is-akisi-taslagi.html#sales':'sales','/is-akisi-taslagi.html#receipts':'receipts','/is-akisi-taslagi.html#finance':'collections','/is-akisi-taslagi.html#customers':'customers'}[target]??null;}
+export function homeNormalScreen(target){return {'/is-akisi-taslagi.html#goods':'goods','/is-akisi-taslagi.html#purchases':'purchases','/is-akisi-taslagi.html#suppliers':'suppliers','/is-akisi-taslagi.html#sales':'sales','/is-akisi-taslagi.html#receipts':'receipts','/is-akisi-taslagi.html#finance':'collections','/is-akisi-taslagi.html#customers':'customers','/is-akisi-taslagi.html#count-test':'count','/is-akisi-taslagi.html#return-purchase':'returns'}[target]??null;}
 
 export function mergeInboundHome(data,inbound){
  const c=inbound?.capabilities;if(!c||!['canView','canViewPurchase','canViewSupplier'].every(k=>typeof c[k]==='boolean'))fail();
