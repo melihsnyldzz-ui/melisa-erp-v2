@@ -1,3 +1,11 @@
+## Goal7 —7 Ekim2026
+
+7 Ekim2026 **Goal7 / ERP-DEC-020 — Faz B teknik tamamlandı, insan kararı/kabulü bekliyor:** Güncel SELECT-onlyT0/privateMelihpaketi;563stockatom+49new/12master,241+16typedprice/62barcode gerçekTEST. Replay0/nativefark0/committedinverse yeni count/audit korunumu ve yeni backup kanıtlı. TEST83/sourcee2ffea6c;cari/FXwrite0. **49/9🟢/34🟡/6🔴**. UA19–23bekler. [Kanıt](docs/evidence/erp/2026-10-07-goal7/README.md). Goal7 sonunda DUR; gerçekcutover/Vega/LIVE/CRM/mainmerge yok.
+
+Uygulamasource e2ffea6c96430699a37e0227c28f76fc66e22851;C:/Sirket/ERP/releases/CANONICAL-GOAL7-TEST-20261007-83;manifest 92b2dcd249b27f004b8a6b1f4ddfdfb2f56e967108521d5518e1a055afe6363b.5194/4144/4146→Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01. İzleyen docsHEAD ayrı;exactCI GitHubtesliminde doğrulanır. Backup7.283.474.432byte/C94267CED54085DA3A4D9C935E9D4DDBBE982CCCA56DE589BCC288D42DA62B53,active restore yok.64cardnativefark0/3830photo/leadingzero/50page;hızlar kanıtta. Privatekararpaketi C:/Sirket/ERP/evidence/ERP-GOAL7-20261007/analysis-private/final-04/MELIH_KARAR_PAKETI_20261007.md.54ürün/122cari hâlâ işletmekararı ister.
+
+LIVElistener/PIDsaynı. CRMsourceaynı; mevcut recovery kendi supervisor çıkışından sonra PIDs yeniledi, bu ajan CRMdeğiştirmedi/restartkomutu vermedi. Tarihsel sonuçlar aşağıda. Goal7sonundadur; başka iş seçilmez.
+
 ## 6 Ekim 2026 — Goal6 teknik teslimi / insan kabulü bekliyor
 
 ERP TEST77 uygulama source `4f918c51fd49c86953a69484714af41bec1cf794`; immutable paket `C:\Sirket\ERP\releases\CANONICAL-GOAL6-TEST-20261006-77`, manifest `A3AAE6CB40ED93ADBB63DAE472B33F91D8399BD225EED726E1C704D5E5744F01`. CRM uygulama77a2fa346b4c3653b77e33625e185c1259402af7/immutable77a2 paketi. Checkout/doküman HEAD, uygulama source ve runtime ayrı kimliklerdir; exact uygulama CI ve final belge PR checks GitHub tesliminde doğrulanır.

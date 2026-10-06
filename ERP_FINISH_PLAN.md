@@ -1,3 +1,5 @@
+7 Ekim2026 **Goal7 / ERP-DEC-020 — Faz B teknik tamamlandı, insan kararı/kabulü bekliyor:** Güncel SELECT-onlyT0/privateMelihpaketi;563stockatom+49new/12master,241+16typedprice/62barcode gerçekTEST. Replay0/nativefark0/committedinverse yeni count/audit korunumu ve yeni backup kanıtlı. TEST83/sourcee2ffea6c;cari/FXwrite0. **49/9🟢/34🟡/6🔴**. UA19–23bekler. [Kanıt](docs/evidence/erp/2026-10-07-goal7/README.md). Goal7 sonunda DUR; gerçekcutover/Vega/LIVE/CRM/mainmerge yok.
+
 6 Ekim 2026 **Goal6 / ERP-DEC-019 — teknik tamamlandı, insan kabulü bekliyor:** Normal Raporlar yedi tür/altı dönem/KOD1-KOD4 kırılımı/ayrı döviz/50 satır/CSV ve salt okunur Ayarlar hazır. ERP TEST77 source4f918c51, CRM source77a2fa34; tek sahipli sınırlı self-heal ve gerçek süreç provaları, yeni gerçek TEST backup/ayrı READ_ONLY restore/35 kritik tablo/177 guard/bağımsız uygulama okuması kanıtlı. B07/B08/C13/C14 🔴→🟡; C15 teknik hazır/insan kabulü bekler. **49/7🟢/29🟡/13🔴**. ERP-UA19–22 bekler; önceki insan/fiziksel kabul sonuçları değiştirilmez. [Kanıt](docs/evidence/erp/2026-10-06-goal6/README.md). Goal6 sonunda durulur; Goal7/migration/LIVE/Vega/main/gerçek ticari işlem/mesaj başlamaz.
 
 Önceki 6 Ekim2026 **Goal5 kaydı / ERP-DEC-018:** Altı aksiyonlu ince personel terminali tarayıcıda teknik hazır; ERP TEST74/source5972f847 mevcut Goal3/Goal4 hizmetlerini kullanır. Kalıcı mal kabul sayımı7, personel sayımı43 ve onaysız iade taslağı; gerçek0161/8023 iki ürünlü25,44USD native taslak9, ayrı GET ve aynı UUID replay teknik kanıtları [Goal5 kaydında](docs/evidence/erp/2026-10-06-goal5/README.md) izlenir. Mevcut kullanıcı/rol/yetkiler korunur; süreç içi TEST personel oturumu kalıcı login/grant değildir. C12 yalnız tarayıcı teknik hazırlığı nedeniyle 🟡; fiziksel Zebra/scanner/Wi-Fi/uyku ve personel kabulü ERP-UA18 bekler. C11🟡 ve ERP-UA13–17 bekliyor kalır. O tarihte finish **49/7🟢/25🟡/17🔴**; Goal5 sonunda durma sınırı yalnız sonraki açık Goal6 kararıyla değişti. Güncel paket/GitHub/CI ayrıntısı [STATUS](STATUS.md) ve teknik kanıtta ayrı tutulur.
@@ -32,9 +34,9 @@
 
 5 Ekim 2026 önceki ek kullanım kabulü — **TEST ADMIN (paket32 tarihsel):** [5194](http://127.0.0.1:5194) taze sekmede otomatik TEST ADMIN; İş sırası + 17 TEST menüsü erişimi ve gerçek kullanıcı girişine dönüş/yenileme gerçek ekranda doğrulandı. Mevcut rol tabloları, SQL fixture scope'u ve LIVE/Vega sınırları korunur. [Kabul/teslim kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md). Teknik hazır; gerçek kullanıcı kabulü bekliyor. Bu konfor işi genel ticari, rol/personel veya migration yapraklarını tamamlanmış saymaz; finish tree sayımı değişmez.
 
-## Güncel finish tree — 6 Ekim 2026
+## Güncel finish tree —7 Ekim2026
 
-**Toplam 49 iş: 🟢 7 tamam · 🟡 29 kısmi / kabul bekliyor · 🔴 13 açık. Genel ilerleme: %14,3 tamam; %59,2 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam49 iş: 🟢9 tamam · 🟡34 kısmi / kabul bekliyor · 🔴6 açık. Genel ilerleme: %18,4 tamam; %69,4 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -77,15 +79,15 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | D00 | Donmuş Vega açılış mutabakatı | 🟢 | RUN06 COMMITTED, eşlenen 16.622 ürün/772 cari/785 hesap/63.774 fiyat fark0, replay ek yazma0; yalnız bu kapsam. |
 | D01 | 54 ürün belirsizliği | 🔴 | İşletme kimlik/birim/barkod kararı ve kaynak kanıtı; operasyon engeli A06'da korunur. |
 | D02 | 122 cari belirsizliği | 🔴 | 28 müşteri/94 tedarikçi kimlik/döviz/bakiye kararı; tahmin/NULL→0 yok. |
-| D03 | Eksik maliyetler | 🟡 | 10.552 NULL açık gösterilir; yeni kanıt veya açıklamalı işletme kabulü gerekir. Liste alış fiyatı maliyet değildir. |
-| D04 | 71 yeni ürün delta | 🔴 | Gerçek kaynak salt okunur plan; yeni ID/alias/birim/barkod/fiyat/açılış zinciri, sentetik TEST prova. |
-| D05 | 341 değişmiş ürün delta | 🔴 | Kaynak kimliği ve before-image ile eşleme; korunmuş yerel stok/maliyet etkisi; atomik TEST prova. |
-| D06 | 74 değişmiş cari delta | 🔴 | Döviz hesaplarını ayrı ve exact etkileri korunarak eşle; güvenli kapsam belirsizliği açık kalsın. |
-| D07 | T0/T1 cutover planı | 🔴 | Sorumlu/zaman, bütün kaynak yazıcı ve gecikmiş terminal kesimi, tutarlı snapshot; LIVE uygulama ayrıca onaylı. |
-| D08 | İdempotent delta batch | 🔴 | Yeni immutable run/hash/plan, tam before-image, drift/red ve replay0; RUN06 writer tekrar kullanılmaz. |
-| D09 | Son mutabakat | 🔴 | Yeni kesim/delta kaynak→native kayıt bazında fark0; fiyat sürümü/karantina mirası ve eski geçmiş korunur. |
-| D10 | Committed rollback provası | 🔴 | Ayrı sentetik TEST etkisini geri al, sonraki hareketi ezme; yarıda transaction rollback'i yeterli değil. |
-| D11 | Vega READ ONLY arşiv planı | 🔴 | Tek yazıcı devir sırası ve geçmişe salt okunur erişim; gerçek Vega mod değişikliği bu yetkide yapılmaz. |
+| D03 | Eksik maliyetler | 🟡 | GüncelT010650unknowncost;49new20known29NULL.40costpriorities, genel maliyet kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D04 | 86 yeni ürün delta (kapsam84) | 🟡 | 49safe yeni native zincir;33sarı2kırmızı yeni ve insan kabulü bekler. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D05 | 752 değişmiş ürün delta (kapsam748) | 🟡 | 563safequantityatom+12safe master/price;yerel history korunur, kalanatomlar/insan kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D06 | 85 değişmiş cari delta (29müşteri56tedarikçi) | 🔴 | Kaynak analiz/ayrıFXkarar hazır;BAKIYEanlamı belirsiz,financewrite0.İnsan kararı gerekir. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D07 | T0/T1 cutover planı | 🟡 | T0/writerterminalcutoff/tek writer prosedürü hazır;actualT1/işletme/LIVEkabulü yapılmadı. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D08 | İdempotent delta batch | 🟢 | Dar safe TESTscope immutable iki gerçekrun/replay0;farklıpayloadconflict. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D09 | Son mutabakat | 🟡 | Safe563stock/468effect nativeSELECTfark0,46table16guard aynı;T1/genelfinans/işletme kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D10 | Committed rollback provası | 🟢 | Committed−2/newnative−1/inverse+2;count/audithashkorunur,ayrıcleanup+1/historykalır.SentetikTESTscope. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D11 | Vega READ ONLY arşiv planı | 🟡 | Singlewriter/decommission/historicalSELECT prosedürü;actualVegapermission/işletmegeçişi açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | E01 | Modül bazında gerçek kabul | 🔴 | Her modüle normal TEST URL ve 3–5 deneme; rol/olumsuz durum/SQL etkisi ve kişi/tarih/kapsam kayıtlı. |
 | E02 | Personelin günlük akış kabulü | 🔴 | Mal kabulden gün sonuna kullanıcı günlük işini deneyip kabul eder; ajan teknik testi insan kabulü değildir. |
 | E03 | Görsel üç genişlik kabulü | 🔴 | Eski C03/C06/C07/C09 LAB kanıtları korunur. TEST58 normal Mal Kabul/Alış/Tedarikçi/HOME1440/1024/390 toplam12görünüm taşmasız; personel/yetkisiz/belirsiz durumları da kanıtlı. Tüm ERP modülleri/fiziksel cihaz/personel görsel kabulü hâlâ açık; ERP-UA10/11/12 bekler. [Sabah kanıtı](docs/evidence/erp/2026-10-06-inbound/README.md). |

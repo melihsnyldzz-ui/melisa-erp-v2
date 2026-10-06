@@ -1,3 +1,13 @@
+## Goal7 —güncel7 Ekim2026
+
+7 Ekim2026 **Goal7 / ERP-DEC-020 — Faz B teknik tamamlandı, insan kararı/kabulü bekliyor:** Güncel SELECT-onlyT0/privateMelihpaketi;563stockatom+49new/12master,241+16typedprice/62barcode gerçekTEST. Replay0/nativefark0/committedinverse yeni count/audit korunumu ve yeni backup kanıtlı. TEST83/sourcee2ffea6c;cari/FXwrite0. **49/9🟢/34🟡/6🔴**. UA19–23bekler. [Kanıt](docs/evidence/erp/2026-10-07-goal7/README.md). Goal7 sonunda DUR; gerçekcutover/Vega/LIVE/CRM/mainmerge yok.
+
+T0 a681b7f98003fa1c61dc57bda25f725536849efadc0d823f81c875c4909b53e4;00:40:52–00:41:05TRT/8projection/iki geçiş sabit,atomikT1 değil.86new/752changed/29customer56supplier;eski71/341/74 tarihsel. Kapsam16759+13quantityreview/6109known10650unknowncost.49new20known29NULL; tüm fiyat/cost güncel kabulü yok.
+
+Stockrun GOAL7-b8fd65a6-fc1f-44a7-ad84-12d6f6f314e1/plan059d736d75fa053e1422b7fdd1988db499d7593591d30dcbcc3db4d081e57c60;source-native GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d/plan38e77efd0f0d90dddb67501d7faf4b7b5c177d9217cb8240647b5fdc06547efe.563nativequantity/468nativeeffect,46protected16guard fark0. Native16671/64015version;eskiRUN06/C09korunur. CariFXwrite0;TRYUSDEURayrı,276diagnosticBAKIYEsemantiği kararı bekler.33sarı2kırmızı yeni ve değişmişkapsamın kalanatomları uygulanmadı.
+
+Committed−2/newnative−1/inverse+2:29stok, aynı count/audit; ayrıcleanup+1→30historykorunur. Replay0;source-nativeimmediatefullsealproof, postbusinessdrifttoleransı iddia edilmez. YeniTESTbackupVERIFYONLY,active restore yok. [T0/T1 ve arşiv/historical plan](docs/erp-v2/canonical-20261007/goal7-cutover-archive-plan.md) hazır;actualcutover/Vegapermissionchange yok.
+
 # Vega → Melisa ERP açılış migration planı
 
 4 Ekim 2026. Kullanıcının bu görevdeki talimatı geçerlidir: Vega kaynak sistemdir; aktif kartlar, stok, cari/döviz bakiyesi, fiyat ve kanıtlı maliyet ile gerekli açılış verileri taşınır. Eski resmi geçmiş, eski fatura/arşiv ve muhasebe belgeleri yeniden aktarılmaz. TEST provası yetkilidir; LIVE yazımı yetkili değildir.

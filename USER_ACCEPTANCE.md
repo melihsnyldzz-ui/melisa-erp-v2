@@ -1,3 +1,13 @@
+## ERP-UA23 / ERP-MIG07 —bekliyor,7 Ekim2026
+
+Teknik test insanPASS değildir. UA19–22 ve diğer kabuller aynı kalır; insan kişi/tarih/sonuç bildirilmedi. TEST83/sourcee2ffea6c96430699a37e0227c28f76fc66e22851, [Ürün & stok](http://127.0.0.1:5194/ornek-akis.html#stock),[kanıt](docs/evidence/erp/2026-10-07-goal7/README.md).
+
+1. PrivateMelihpaketindeki müşteri/tedarikçi/ürün/barkod/birim/özelkart/döviz/maliyet kararlarını incele.
+2. Yeni3157MİRKON ve yenilenmiş4220BEBESSİ kartında kod/ad/barkod/stock/sale dövizini gör; değişmeyen kartlar30Eylül kaynaklı kalır.
+3. 8023CONCEPTfotoğraf/0161MOLLYkod/01240465102508sıfır/50sayfa ve4620hold kontrolünü dene.
+4. Committedinverse sonrasında yeni nativecount/audit korunumu ve finansdelta uygulanmama gerekçesini incele.
+5. T0/T1 writer/terminalcutoff/READONLY için işletme sorumlusu ve gerçek geçiş günü kararını ayrıca ver. Bu goal gerçek geçişi başlatmaz.
+
 # ERP kullanıcı kabulü
 
 Kullanıcının **normal ekranda gözle denemesi** ve kendi sonucu burada tutulur. Teknik test, ajan tarayıcı provası veya CI PASS kullanıcı kabulü değildir; teknik kanıt [STATUS.md](STATUS.md) içindedir. Ayrıntılı kapsam [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md), sıra [DELIVERY_BOARD.md](DELIVERY_BOARD.md). Sonuçlar yalnız `bekliyor / PASS / FAIL`; kullanıcı veya kullanıcı kabulünü açıkça doğrulayan kaynak olmadan PASS yazılmaz.
