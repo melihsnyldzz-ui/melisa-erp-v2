@@ -1,6 +1,8 @@
 # ERP teslim panosu
 
-**2026-10-06 güncel öncelik — ERP-DEC-016:** Goal3 **teknik tamamlandı / insan kabulü bekliyor**, TEST71/source9ada67c. Mevcut normal15/16 ile native sayım39/ayrı telafi42, alış iadesi40/native224/ters kayıt, rol-replay-negatifler, güncel hız ve paket kanıtlı. ERP-UA13–17 bekliyor; kullanıcıya giriş yüklenmez, demo teknik kabul sayılmaz. GitHub kaynak/CI teslimi STATUS ve kanıtta. Bu hedef sonunda durulur; Goal4/CRM/bonus/başka finish işi başlamaz.
+**2026-10-06 güncel öncelik — ERP-DEC-017:** Kullanıcının Uzun Goal4 talimatı: ERP-D05 ortak HTTP katalog sözleşmesi → CRM-D02 → yalnız7733 yeni veri/fotoğraf/fiyat paylaşımı → iki ürünlü native TEST taslak ve bağımsız ERP readback. ERP-D06/CRM-D03/D04 teknik prova sürüyor; insan kabulü bekler. Goal3 kabulü tekrar edilmez; LIVE/Vega/delta/main merge/Goal5 yok.
+
+**Önceki öncelik — ERP-DEC-016:** Goal3 **teknik tamamlandı / insan kabulü bekliyor**, TEST71/source9ada67c. Mevcut normal15/16 ile native sayım39/ayrı telafi42, alış iadesi40/native224/ters kayıt, rol-replay-negatifler, güncel hız ve paket kanıtlı. ERP-UA13–17 bekliyor; kullanıcıya giriş yüklenmez, demo teknik kabul sayılmaz. GitHub kaynak/CI teslimi STATUS ve kanıtta. Bu hedef sonunda durulur; Goal4/CRM/bonus/başka finish işi başlamaz.
 
 **Önceki 2026-10-06 önceliği — ERP-DEC-015:** Ödeme/finans/tedarikçi kanıtları korunur. TEST65/source `cd1eab3` normal sayım, mevcut dar fiziksel alış iadesi ve Ana Sayfa yönlendirmelerini paketledi; regresyon/bağımsız review ve kaynak CI geçti. Kullanıcı yalnız yerel demo seçti; yeni ortak TEST sayım-iade native provası, güncel hız ölçümü ve ERP-UA13/14/15/16/17 insan kabulü bekliyor. Goal3 tümü tamam değildir. Genel çok satırlı/dövizli alış iadesi ve batch sayım iptali açılmadı; müşteri iadesi bonusuna veya başka finish işine geçilmez. Teknik ayrıntı STATUS'ta; CRM/LIVE/Vega/main merge yok.
 

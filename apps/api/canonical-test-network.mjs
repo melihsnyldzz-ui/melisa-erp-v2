@@ -31,3 +31,16 @@ globalThis.fetch = function (input, options) { assertDestination([typeof input =
 syncBuiltinESMExports();
 
 export const networkPolicy = Object.freeze({ hosts: [...allowedHosts], ports: [...allowedPorts], subprocesses: false, externalMessages: false });
+
+// Dedicated 62404 launcher only: verify the existing scoped TEST SQL identity
+// before allowing reads of the loopback CRM authentication/conversation API.
+export function enableCrmOrderTestGateway(identity) {
+  if (process.env.MELISA_CANONICAL_TEST !== 'true' || process.env.SQL_DATABASE !== 'MELISA_ERP_SIRKET_TEST_20260929_01'
+    || process.env.SQL_READ_ONLY !== 'false' || process.env.MELISA_TEST_SCOPED_SALES !== 'true'
+    || identity?.databaseName !== 'MELISA_ERP_SIRKET_TEST_20260929_01'
+    || identity.loginName !== 'melisa_sirket_sales_test_20260929_01' || identity.databaseUser !== identity.loginName
+    || String(identity.serverName).toLowerCase() !== 'semih\\melisadev' || identity.sysadmin !== 0
+    || identity.databaseControl !== 0 || identity.liveDatabaseAccess !== 0) blocked();
+  allowedPorts.add(62401);
+  return Object.freeze({...networkPolicy,ports:[...allowedPorts],purpose:'crm-order-draft-only'});
+}
