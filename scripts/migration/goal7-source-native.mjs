@@ -138,6 +138,12 @@ export function validateNativeGuards(actual,expected){
  check(digest(actual)===digest(expected),'SOURCE_NATIVE_GUARD_DRIFT');
  for(const t of NATIVE_TABLES){if(['products','stock_movements'].includes(t))check(actual.some(g=>g.table===t&&g.name==='test_guard_'+t&&!g.disabled),'SOURCE_NATIVE_TEST_GUARD_REQUIRED');const q=actual.filter(g=>g.table===t&&g.name==='operation_quarantine_'+t);check(q.length===1&&!q[0].disabled&&['i','u','d'].every(k=>q[0]['first_'+k]===1),'SOURCE_NATIVE_QUARANTINE_FIRST_REQUIRED');}
 }
+export function replayBindingProofSql(table,fields,runId){
+ check([version.SOURCE_VERSION_TABLES.products,version.SOURCE_VERSION_TABLES.prices].includes(table),'SOURCE_NATIVE_BINDING_TABLE');
+ // HASHBYTES contains a scalar FOR JSON subquery. SQL Server forbids it inside
+ // SUM's expression, so materialize each row hash in a derived relation first.
+ return `SELECT COUNT_BIG(*) n,COALESCE(SUM(CASE WHEN binding_hash<>actual_hash THEN 1 ELSE 0 END),0) bad FROM(SELECT x.binding_hash,${version.sourceVersionRowHash('x',fields)} actual_hash FROM ${table} x WHERE version_run_id=${literal(runId)}) binding_rows`;
+}
 export async function executeNative(planPath,mode){
  check(['--apply-test','--replay-test'].includes(mode),'SOURCE_NATIVE_EXPLICIT_MODE');const plan=validateNativePlan(read(planPath));
  const capture=validateCaptureSource(read(plan.sourceCaptureFile));check(digest(capture)===plan.sourceHash,'SOURCE_NATIVE_CAPTURE_DRIFT');
@@ -161,7 +167,7 @@ export async function executeNative(planPath,mode){
    if(prior.length){
     check(prior.length===1&&prior[0].source_hash===plan.sourceHash&&prior[0].plan_hash===plan.planHash&&prior[0].sealed===true&&prior[0].product_count===16671&&prior[0].price_count===64015,'SOURCE_NATIVE_RUN_PAYLOAD_CONFLICT');
     for(const table of Object.values(version.SOURCE_VERSION_TABLES)){const found=await q(`SELECT OBJECT_DEFINITION(object_id) definition,is_disabled FROM sys.triggers WHERE object_id=OBJECT_ID(${literal('erp_migration.immutable_'+table.split('.')[1])})`);check(found.length===1&&!found[0].is_disabled&&found[0].definition===version.sourceVersionImmutableSql(table),'SOURCE_NATIVE_VERSION_GUARD_DRIFT');}
-    for(const [table,fields,n] of [[version.SOURCE_VERSION_TABLES.products,version.SOURCE_VERSION_PRODUCT_FIELDS,16671],[version.SOURCE_VERSION_TABLES.prices,version.SOURCE_VERSION_PRICE_FIELDS,64015]]){const proof=(await q(`SELECT COUNT_BIG(*) n,SUM(CASE WHEN binding_hash<>${version.sourceVersionRowHash('x',fields)} THEN 1 ELSE 0 END) bad FROM ${table} x WHERE version_run_id=${literal(plan.runId)}`))[0];check(BigInt(proof.n)===BigInt(n)&&BigInt(proof.bad)===0n,'SOURCE_NATIVE_REPLAY_BINDING');}
+    for(const [table,fields,n] of [[version.SOURCE_VERSION_TABLES.products,version.SOURCE_VERSION_PRODUCT_FIELDS,16671],[version.SOURCE_VERSION_TABLES.prices,version.SOURCE_VERSION_PRICE_FIELDS,64015]]){const proof=(await q(replayBindingProofSql(table,fields,plan.runId)))[0];check(BigInt(proof.n)===BigInt(n)&&BigInt(proof.bad)===0n,'SOURCE_NATIVE_REPLAY_BINDING');}
     const mismatches=(await q(`SELECT COUNT_BIG(*) n FROM ${version.SOURCE_VERSION_TABLES.prices} v LEFT JOIN dbo.product_prices p ON p.id=v.price_id WHERE v.version_run_id=${literal(plan.runId)} AND (p.id IS NULL OR v.native_row_hash<>${rowHash('p')})`))[0];check(BigInt(mismatches.n)===0n,'SOURCE_NATIVE_REPLAY_PRICE_EFFECT');
     const lineage=(await q(`SELECT COUNT_BIG(*) n FROM ${version.SOURCE_VERSION_TABLES.products} WHERE version_run_id=${literal(plan.runId)} AND lineage_run_id=${literal(plan.runId)}`))[0];check(BigInt(lineage.n)===61n,'SOURCE_NATIVE_REPLAY_LINEAGE');
     const effectRows=await q(`SELECT source_key,payload_hash,payload_json FROM ${version.SOURCE_VERSION_TABLES.records} WHERE run_id=${literal(plan.runId)} AND entity=N'native_effects' ORDER BY source_key`),effects=[];

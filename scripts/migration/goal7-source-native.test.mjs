@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {sourceNativeMutations,nativeGuardBranch,temporaryNativeWrapper,restoreNativeGuard,insertRepresentationDiagnostic,nativeSqlType,validateNativeGuards,executeNative} from './goal7-source-native.mjs';
-import {sourcePriceDelta,sourceNativeCost} from './goal7-source-version.mjs';
+import {sourceNativeMutations,nativeGuardBranch,temporaryNativeWrapper,restoreNativeGuard,insertRepresentationDiagnostic,nativeSqlType,validateNativeGuards,executeNative,replayBindingProofSql} from './goal7-source-native.mjs';
+import {sourcePriceDelta,sourceNativeCost,SOURCE_VERSION_TABLES,SOURCE_VERSION_PRODUCT_FIELDS} from './goal7-source-version.mjs';
 import {sqlJsonHash} from './goal7-test-delta.mjs';
 const contract={runId:'GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',sourceHash:'a'.repeat(64),stockHandledSeparately:true,actorId:'16',documentDate:'2026-10-07'};
 const source=(patch={})=>({sourceKey:'VEGA2026/F0102/TBLSTOKLAR/10',sourceId:'10',stockCode:'EXPLICIT-TEST',name:'Fixture',brand:null,category:null,isActive:true,quantity:'2.00000000',unit:'ADET',unitStatus:'VERIFIED_ADET_FACTOR_1',unitFactor:'1.00000000',mainUnitSourceId:'100',prices:[{unitSourceId:'100',tier:1,currency:'USD',price:'10.12345678'}],purchasePrice:{currency:'USD',price:'8.12345678'},barcodes:[{barcode:'9911111111111'}],averageCostTry:null,...patch}); // Public source identity in synthetic fixture; gitleaks:allow
@@ -45,4 +45,8 @@ test('missing old test guards on aliases/barcodes/prices is legitimate; quaranti
 });
 test('execution is explicit and SQL schema rejects foreign column types',async()=>{
  await assert.rejects(executeNative('unused','--verify'),/EXPLICIT_MODE/);assert.throws(()=>nativeSqlType({name:'payload',type:'sql_variant'}),/COLUMN_TYPE/);
+});
+test('replay computes scalar JSON row hashes before aggregate validation',()=>{
+ const sql=replayBindingProofSql(SOURCE_VERSION_TABLES.products,SOURCE_VERSION_PRODUCT_FIELDS,contract.runId);
+ assert.match(sql,/SUM\(CASE WHEN binding_hash<>actual_hash/);assert.match(sql,/FROM\(SELECT x\.binding_hash,/);assert.match(sql,/FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES/);assert.doesNotMatch(sql,/SUM\(CASE WHEN binding_hash<>CONVERT/);assert.throws(()=>replayBindingProofSql('dbo.products',SOURCE_VERSION_PRODUCT_FIELDS,contract.runId),/BINDING_TABLE/);
 });
