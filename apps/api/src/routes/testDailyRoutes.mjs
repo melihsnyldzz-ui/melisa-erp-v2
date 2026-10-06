@@ -11,7 +11,7 @@ for(const f of ['purchase','sales','fx','count','count-cancel','return-cancel'])
  const read=kind==='fx'?'customer.view':kind==='count'?'product.view':kind+'.view',approve=kind==='fx'?'finance.collection':kind==='count'?'stock.adjust':kind+'.cancel';
  testDailyRoutes.get('/test-daily/'+f,requireAuth,requirePermission(read),handle(r=>dailyContext(f,r.user)));
  for(const op of ['prepare','draft','approve','reject','cancel'])testDailyRoutes.post(`/test-daily/${f}/${op}`,requireAuth,requirePermission(op==='draft'?read:approve),handle(r=>{
-  const allowed=op==='prepare'?['requestId','date']:op==='draft'?['requestId','quantity','date','reason','kind','unit','warehouse','goodsId','expectedStock','movementFingerprint','sourceInvoiceId','sourceItemId']:['requestId','id','reason','date','correctionType'];
+  const allowed=op==='prepare'?['requestId','date']:op==='draft'?['requestId','quantity','date','reason','kind','unit','warehouse','goodsId','expectedStock','movementFingerprint','sourceInvoiceId','sourceItemId','lines','unknownScans']:['requestId','id','reason','date','correctionType'];
   if(Object.keys(r.body).some(k=>!allowed.includes(k)))throw Object.assign(new Error('Kapsam dışı alan gönderildi.'),{code:'TEST_PAYLOAD',statusCode:400});
   return op==='prepare'?(f.endsWith('-cancel')?dailyReversalFixture(f,op,r.body,r.user):dailyPrepare(f,r.body,r.user)):op==='draft'?dailyDraft(f,r.body,r.user):dailyDecide(f,op,r.body,r.user);
  }));
