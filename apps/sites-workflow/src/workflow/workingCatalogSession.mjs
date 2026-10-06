@@ -40,6 +40,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(args.length||!token||!user)throw problem('Günlük işler okunamıyor.');
    return (await request('/api/home/summary',{expire:true})).data;
   },
+  async reports(path,...args){
+   if(args.length||typeof path!=='string'||!/^\/api\/work-reports(?:\/(?:context|export))?(?:\?[^#]*)?$/.test(path)||!token||!user)throw problem('Rapor bağlantısı kullanılamıyor.');
+   return (await request(path,{expire:true,keepForbiddenSession:true})).data;
+  },
+  async system(path,...args){
+   if(args.length||path!=='/api/work-system/summary'||!token||!user)throw problem('Sistem durumu okunamıyor.');
+   return (await request(path,{expire:true,keepForbiddenSession:true})).data;
+  },
   async api(path,{envelope=false,...extra}={}){
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/catalog\/products(?:\/[1-9]\d*)?(?:\?[^#]*)?$/.test(path)||!token||!user)throw problem('Katalog isteği kullanılamıyor.');
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;

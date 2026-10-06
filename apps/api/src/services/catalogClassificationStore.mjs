@@ -43,6 +43,9 @@ export function createCatalogClassificationStore({expectedRoot=ROOT,acceptedCoun
    if(productId!==null||options.brand||options.productType){const selected=registry.ordered.filter(e=>(productId===null||e.productId===productId)&&(!options.brand||e.kind==='accepted-opening'&&e.brand===options.brand)&&(!options.productType||e.kind==='accepted-opening'&&e.productType===options.productType));candidatesJson=JSON.stringify(selected.map(e=>[e.productId,e.rank]));}
    return {candidatesJson,filters:{brands:[...registry.facets.brands],productTypes:[...registry.facets.productTypes]}};
   },
+  reportBindings(){
+   check(registry!==null);return JSON.stringify(registry.ordered.filter(e=>e.kind==='accepted-opening').map(e=>({productId:e.productId,brand:e.brand,productType:e.productType})));
+  },
   assertRow(row){
    const e=registry?.entries.get(row.id);check(e&&row.stockCode===e.stockCode&&row.provenance.kind===e.kind&&row.provenance.sourceKey===e.sourceKey&&row.provenance.runId===RUN&&row.provenance.sourceAsOf==='2026-09-30'&&row.provenance.verified===true&&row.displayCode===e.displayCode&&row.classification.verified===(e.kind==='accepted-opening'&&!row.hold.blocked)&&row.classification.brand===e.brand&&row.classification.productType===e.productType&&row.classification.sourceName===e.sourceName);
   }

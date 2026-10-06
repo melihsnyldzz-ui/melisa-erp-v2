@@ -13,6 +13,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-startup-test:
+    name: windows-startup-test
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Windows owner and single-instance startup boundaries
+        run: node --test scripts/canonical/start-owned-test.test.mjs
   quality-build-test:
     name: quality-build-test
     runs-on: ubuntu-latest

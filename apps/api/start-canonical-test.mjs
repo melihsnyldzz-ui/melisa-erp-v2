@@ -42,6 +42,10 @@ app.use((req,res,next)=>{
   next();
 });
 if(mode==='erp'){
+  const {configureWorkSystem}=await import('./src/services/workSystemService.mjs');
+  configureWorkSystem({identity,release});
+  const {workSystemRoutes}=await import('./src/routes/workSystemRoutes.mjs');
+  app.use('/api',workSystemRoutes);
   if(writes){
     const {workSalesRoutes}=await import('./src/routes/workSalesRoutes.mjs');
     const {workCollectionRoutes}=await import('./src/routes/workCollectionRoutes.mjs');
@@ -53,6 +57,8 @@ if(mode==='erp'){
     const {workSupplierPaymentRoutes}=await import('./src/routes/workSupplierPaymentRoutes.mjs');
     app.use('/api',workSupplierPaymentRoutes);
   }
+  const {workReportsRoutes}=await import('./src/routes/workReportsRoutes.mjs');
+  app.use('/api',workReportsRoutes);
   const {homeSummaryRoutes}=await import('./src/routes/homeSummaryRoutes.mjs');
   app.use('/api',homeSummaryRoutes);
   const {stockProductRoutes}=await import('./src/routes/stockProductRoutes.mjs');

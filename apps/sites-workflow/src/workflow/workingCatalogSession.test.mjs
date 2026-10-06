@@ -7,6 +7,14 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 function fixture(fetchImpl){const store=storage(),calls=[];const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return fetchImpl(url,options);}});return {session,store,calls};}
+test('reports and system use exact authenticated GET; rejected finance reports do not revoke personnel identity',async()=>{
+ const {session,calls,store}=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'report-read'}):url.includes('/work-reports?')?reply(null,403):reply({readable:true}));
+ await session.start();assert.equal((await session.reports('/api/work-reports/context')).readable,true);assert.equal((await session.reports('/api/work-reports/export?kind=sales&period=today')).readable,true);assert.equal((await session.system('/api/work-system/summary')).readable,true);
+ await assert.rejects(()=>session.reports('/api/work-reports?kind=purchases'),e=>e.status===403);assert.equal(store.getItem(workingCatalogTokenKey),'report-read');
+ for(const path of ['/api/settings','https://other/api/work-reports','/api/work-reports/../settings','/api/work-reports/context#bad','/api/work-reports/apply'])await assert.rejects(()=>session.reports(path));
+ await assert.rejects(()=>session.reports('/api/work-reports/context',{method:'POST'}));await assert.rejects(()=>session.system('/api/work-system/summary?write=1'));
+ assert.ok(calls.slice(1).every(c=>c.options.method==='GET'&&c.options.body===undefined&&c.options.headers.Authorization==='Bearer report-read'));session.dispose();
+});
 test('supplier payment transport rejects path escapes and preserves a denied personnel session',async()=>{
  let expired=0;const store=storage(),calls=[];
  const session=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/test-admin')?reply({user,accessToken:'scoped'}):url.endsWith('/work-supplier-payments/context')?reply(null,403):reply({readable:true});}});
