@@ -1,6 +1,6 @@
 {
-  "at": "2026-10-06T00:15:48.625Z",
-  "sourceCommit": "5baa621e6f3bb17d170aa9169ebfc1c8887df87b",
+  "at": "2026-10-06T00:32:03.599Z",
+  "sourceCommit": "11f17341dc69002aed8c249878c468058afc8da5",
   "businessWrites": 0,
   "roles": [
     {
@@ -13,7 +13,9 @@
         "canCollect": false,
         "canCancelCollection": false
       },
-      "collectionStatus": 200
+      "collectionStatus": 200,
+      "accountCount": 0,
+      "financePreviewStatus": 403
     },
     {
       "role": "ilker",
@@ -25,7 +27,9 @@
         "canCollect": true,
         "canCancelCollection": true
       },
-      "collectionStatus": 200
+      "collectionStatus": 200,
+      "accountCount": null,
+      "financePreviewStatus": null
     }
   ]
 }

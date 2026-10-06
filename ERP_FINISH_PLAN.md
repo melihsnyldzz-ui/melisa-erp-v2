@@ -1,3 +1,5 @@
+6 Ekim2026 ERP-NIGHT01: normal Satış→müşteri Tahsilat→kalıcı müşteri/home dar teknik hazır. B04/B06 kırmızıdan kısmiye alındı; insan kabulü ERP-UA07/08/09 bekliyor. TEST53/source11f1734 ve [kanıt](docs/evidence/erp/2026-10-06-night/README.md). Bu gece tamamlandı ve duruldu.
+
 # Melisa ERP — bitirme planı
 
 5 Ekim2026 güncel kullanıcı kabulü: ERP-UA04 PASS ve ERP-D04 mevcut normal katalog kapsamında tamam; A03🟢. B01 normal Ana Sayfa TEST47/source236d49b ile 🟡 teknik hazır; ERP-UA05 insan kabulü bekliyor. [Kanıt](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md). Yalnız bu tur tamamlandı ve duruldu; önceki bekleyen kayıtlar tarihsel olarak korunur.
@@ -14,9 +16,9 @@
 
 5 Ekim 2026 önceki ek kullanım kabulü — **TEST ADMIN (paket32 tarihsel):** [5194](http://127.0.0.1:5194) taze sekmede otomatik TEST ADMIN; İş sırası + 17 TEST menüsü erişimi ve gerçek kullanıcı girişine dönüş/yenileme gerçek ekranda doğrulandı. Mevcut rol tabloları, SQL fixture scope'u ve LIVE/Vega sınırları korunur. [Kabul/teslim kaydı](docs/erp-v2/canonical-20261005/test-admin-acceptance.md). Teknik hazır; gerçek kullanıcı kabulü bekliyor. Bu konfor işi genel ticari, rol/personel veya migration yapraklarını tamamlanmış saymaz; finish tree sayımı değişmez.
 
-## Güncel finish tree — 5 Ekim 2026
+## Güncel finish tree — 6 Ekim 2026
 
-**Toplam 49 iş: 🟢 7 tamam · 🟡 22 kısmi / kabul bekliyor · 🔴 20 açık. Genel ilerleme: %14,3 tamam; %44,9 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam 49 iş: 🟢 7 tamam · 🟡 24 kısmi / kabul bekliyor · 🔴 18 açık. Genel ilerleme: %14,3 tamam; %49,0 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -33,22 +35,22 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | A04 | Gerçek müşteri ve dövizli bakiyeler | 🟡 | C06 normal441kart/ayrı döviz,exact8 kaynak+güncel+defter bağı,UNKNOWN ve28 karantina gerçek salt okunur TEST kabulü hazır. Kaynak30 Eylül; delta/personel kabulü açık. |
 | A05 | Gerçek tedarikçi ve dövizli borçlar | 🟡 | Açılıştaki401/406 kabulü korunur. C07 normal530native kart/90nativehold, ayrı kanıtlı/doğrulanmamış/UNKNOWN hesap ve gerçek salt okunur TEST kabulü hazır. Tüm530 migration kabulü değildir; delta/personel kabulü açık. |
 | A06 | Kaynak güvenirliği ve karantina gösterimi | 🟡 | 176 kaynak/172 hedef/4 hedefsiz; API+SQL engeli ve negatif ekran provası hazır. İşletme kabulü bekliyor. |
-| B01 | Ana Sayfa günlük iş sırası | 🟡 | TEST47/source236d49b dört gerçek özet/bugünkü işler/altı kısa yol; mevcut SQL rol hakları, ayrı döviz/NULL/boş gün. Gerçek324ms açılış, API medyan63ms, altı hedef/üç rol/1440/1024/390 teknik doğrulama. [Kanıt](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md); ERP-UA05 insan kabulü bekliyor. Kasa bakiyesi/vadeli bekleyen tahsilat-ödeme sonraki operasyon bağlantısı; sıfır/sahte görev yok. |
+| B01 | Ana Sayfa günlük iş sırası | 🟡 | TEST47/source236d49b dört gerçek özet/bugünkü işler/altı kısa yol; mevcut SQL rol hakları, ayrı döviz/NULL/boş gün. Gerçek324ms açılış, API medyan63ms, altı hedef/üç rol/1440/1024/390 teknik doğrulama. [Kanıt](docs/erp-v2/canonical-20261005/home-daily-work-acceptance.md); ERP-UA05 insan kabulü bekliyor. Kasa bakiyesi/vadeli bekleyen tahsilat-ödeme sonraki operasyon bağlantısı; sıfır/sahte görev yok. Gece53 normal satış/tahsilat/ters kayıtlar kalıcı günlük özete yansır; ERP-UA09 bekler. |
 | B02 | Stok arama/filtre ve detay | 🟢 | Kullanıcı2026-10-05 normal ornek-akis kataloğu ve performansı kabul etti; ERP-UA02 PASS/TEST paket40source df3de90. Gerçek arama/exactbarkod/kart/stok/satışfiyatı/default50 ve önceki1440/1024/390teknik kanıt korunur. Fotoğraf A03,veri/delta A01,genel fiyat A02 ayrı açık; eski LAB/hata/çoklubarkod kanıtları korunur. |
 | B03 | Cariler bilgi hiyerarşisi | 🟡 | Müşteri ve tedarikçi arama/aktiflik/karantina/sayfa ve ayrı dövizli kart; iki modül iframe1440/1024/390 taşmasız. Tedarikçi deneme iletişimi üç genişlikte kullanılabilir; genel cariler/personel kabulü açık. |
-| B04 | Satış günlük kullanım ekranı | 🔴 | Büyük net işlemler, gerçek müşteri/ürün satırları ve yetki; üç genişlik. |
+| B04 | Satış günlük kullanım ekranı | 🟡 | Normal yeşil Satış TEST53: gerçek readonly katalog/müşteri; iki sentetik ürün taslak/finalize, literal barkod/tam kod, yenileme/yanıt kaybı/replay/iptal ve1440/1024/390 teknik hazır. ERP-UA07 insan/genel ticari kabulü bekliyor; [gece kanıtı](docs/evidence/erp/2026-10-06-night/README.md). |
 | B05 | Alış günlük kullanım ekranı | 🟡 | C01/C02 kabulü korunur. C03 gerçek kaynak seçim/kur, tam genişlik özet ve büyük mobil işlemler; alış taslağı/fiyat önizlemesi gerçek iframe1440/1024/390'da taşmasız. Genel alış ve personel kabulü açık. |
-| B06 | Finans günlük kullanım ekranı | 🔴 | Kasa/banka/tahsilat/ödeme ayrımı, doğru döviz ve büyük aksiyonlar; üç genişlik. |
+| B06 | Finans günlük kullanım ekranı | 🟡 | Normal müşteri tahsilatı TEST53: kısmi/tam/ters kayıt, kalan borç/kalıcı SQL ve mevcut seller/İlker yetkileri teknik hazır. ERP-UA08 insan kabulü bekliyor. Yalnız sentetik TRY; banka/tedarikçi ödeme/genel kasa açılışı kapsam dışında. |
 | B07 | Raporlar filtre ve kapsam | 🔴 | Gerçek kaynak, NULL maliyet/kâr kapsamı, ayrı döviz ve açıklamalı export; üç genişlik. |
 | B08 | Ayarlar günlük kullanım ekranı | 🔴 | Kullanıcı/izin/terminal/başlama/yedek durumlarını kanıtlı ve sade göster; üç genişlik. |
 | C01 | Çok satırlı mal kabul | 🟡 | İki sentetik ürünlü normal TEST kabulü/ret/replay ve SQL etkisi doğrulandı: stok28/0→29/2; borç değişmedi. Genel kart kapsamı ve personel kabulü bekliyor. |
 | C02 | Ayrıntılı alış taslağı | 🟡 | Kalıcı native taslak, kısmi140/80 TRY, finalize/iptal, rezervasyon ve stok ikinci kez artmaması gerçek TEST'te doğrulandı. 220 TRY taslak hazır; genel alış/personel kabulü eksik. |
 | C03 | Dövizli alış fiyatı operasyonu | 🟡 | Gerçek typed kaynak+ayrı ADET×1, exact8/native4 ve iki tarihli sentetik kur; EUR normal ekran/USD API kabul→kalıcı taslak→borç→orijinal kurla iptal PASS. 12 olumsuz API/4 rollback SQL,5 replay ve24 eski tablo fark0. Genel ticari alış/personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261004/purchase-fx-acceptance.md). |
-| C04 | Gerçek satış ekranı kabulü | 🟡 | Önceki ayrılmış TEST satış/iptal kabulü korunur; günlük gerçek ekran/personel kabulü eksik. |
-| C05 | Açık hesap | 🟡 | Yetkili satışın tahsilatsız cari etkisi baseline'da; normal ekranın limit/vade/yetki kabulü eksik. |
+| C04 | Gerçek satış ekranı kabulü | 🟡 | Önceki kabul korunur; normal53 iki ürünlü satış/taslak/finalize/fiş/stock/debt ve UUID tekrar güvenliği teknik hazır. Yalnız ayrılmış sentetik kapsam; ERP-UA07 insan ve genel ticari kabulü açık. |
+| C05 | Açık hesap | 🟡 | Normal53 tahsilatsız satış150TRY borç oluşturur, kasa0;50kısmi sonrası100kalan, tam sonrası0 ve ters kayıtlar kalıcı doğrulandı. Genel ticari limit/vade/döviz/personel kabulü açık. |
 | C06 | Gerçek müşteri kartı | 🟡 | Normal salt okunur kart/18 gerçek API denemesi ve arama/sayfa/boş/karantina/üç genişlik kabulü hazır. customer.view sınırı ve bilinmeyen hesaplar korunur. Yetkili düzenleme ve personel kabulü açık; gerçek ticari kart yazması yok. [Kabul](docs/erp-v2/canonical-20261004/customer-card-acceptance.md). |
 | C07 | Gerçek tedarikçi kartı | 🟡 | Paket24/source0907cdd normal530kart/90hold; gerçekAPI20 okuma+14 negatif/replay, UI13373 iletişim kaydet/yenile/restore ve9 rollbackSQL PASS. İlker TEST16 iki onaylı izin; TEST14 görüntüler/editör yok, TEST15 erişim reddi. Diğer ticari tablolar/fixture protected28kolon aynı. Gerçek kart düzenleme/personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md). |
-| C08 | Kasa/banka günlük akışı | 🟡 | Ayrılmış TEST tahsilat/ödeme kabulleri korunur; fiziksel açılış/sayım ve personel kabulü ayrı. |
+| C08 | Kasa/banka günlük akışı | 🟡 | Normal53 müşteri kısmi/tam tahsilatı ve ters hareketleri mevcut yetkiyle aynı native transaction; stok değişmez, TRY ayrı. ERP-UA08 bekliyor; banka/tedarikçi ödeme/fiziksel kasa açılışı/sayım ayrı. |
 | C09 | Fiyat yazma/düzenleme | 🟡 | Ayrılmış301986 native exact8 fiyat create/edit, onaylı TEST16 özel izin, immutable version/CAS/fullpayload replay; normal fiyat→kabul37→native25090→borç→iptal, eski belge fiyatı korunur. Genel ticari kartlar/terminal fiyat tüketimi/personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md). |
 | C10 | Sayım/iade/ters kayıt | 🟡 | Mevcut sayım ve aynı faturadan bağlı alış iadesi kabulü korunur; yeni çok satır kapsamı ve personel kabulü eksik. |
 | C11 | Kullanıcı/yetki | 🟡 | Mevcut API izinleri korunur; günlük rol matrisi ve eksik normal kullanıcı negatif kabulü kapanır. |
@@ -74,11 +76,11 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | F01 | Tek finish tree ve otomatik sıra | 🟢 | Bu tablo güncel iş kaynağı; root sayım/status günceller. `devam` sıradaki bağımsız açık işi seçer. |
 | F02 | GitHub/CI teslim düzeni | 🟡 | Feature dal/PR23; güncel sourcef295561/paket29 tamhead push+PR quality-build-test/secret-scan dört hosted job PASS. Nihai belge head ayrıca doğrulanır; genel ERP teslimi açık. Merge/LIVE deploy yok. |
 
-### Aktif dilim, sahiplik ve kabul
+### Önceki C09 dilimi, sahiplik ve kabul — tarihsel kayıt
 
 C09 dar teknik TEST kabulü hazır: paket29/sourcef295561; normal fiyat create/edit, actual SQL/API provenance ve immutable history/CAS, özel TEST16 izin; eski kur/fiyat snapshotıyla kabul37/native25090/finalize/iptal. Stok31/maliyet62,6994/borç60; eski C03 taslak25089 korunur. API34 ve12negativeSQL;28oldtables/136izin/455oldSQLobject fark0. Üç genişlikte fiyat formu ve eski belge taşmasız; büyük işlemler. Genel ticari kartlar/terminal tüketimi/personel kabulü açık, C09 🟡 ve toplam5/21/23. [Kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md). Backend/frontend/SQL ayrı dosya sahipliğiyle çalıştı; bağımsız salt okunur review yapıldı. Root entegrasyon, gerçek TEST kurulum/paket/kabul ve Git/CI/plan sahibidir.
 
-Aşağıdaki C07/C06/C03 paket ve sayımlar önceki dilimlerin tarihsel kanıtıdır; güncel runtime ve sayım yukarıdaki C09 kaydındadır.
+Aşağıdaki C07/C06/C03 paket ve sayımlar önceki dilimlerin tarihsel kanıtıdır; bu eski runtime ve sayımlar ilgili C09 kaydına aittir; güncel gece runtime/sayım üstteki ERP-NIGHT01 ve STATUS kaydındadır.
 
 C07 seçili teknik TEST kapsamı tamam: paket24/source0907cdd, uygulama95bef87; normal530native kart/90nativehold ve ayrı döviz kanıtı, bilinmeyen/kayıtlı-doğrulanmamış/karantina ayrımı. Kullanıcının açık yanıtındaki TEST16 supplier.view/edit iki anahtarı eklendi;2insert/replay0 ve diğer134izin tam aynı. Gerçek kartlar salt okunur;13373 deneme iletişimi normal ekranda kaydet/replay/yenile/orijinalNULLrestore ile doğrulandı. Row_version CAS, UUID/fullpayload replay ve immutable before/after journal tam2completed/0reserved. API20okuma+14negatif/replay,9rollbackSQL,27eski tablo ve28protectedfixturekolon fark0;1440/1024/390 kart+form taşmasız. İki bağımsız çapraz kaynak/SQL incelemesi ve son gerçek SQL mühür/yetki kontrolü PASS. [Tedarikçi kabulü](docs/erp-v2/canonical-20261004/supplier-card-acceptance.md).
 

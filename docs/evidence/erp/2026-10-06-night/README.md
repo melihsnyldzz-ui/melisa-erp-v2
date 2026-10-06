@@ -1,31 +1,47 @@
-# ERP-NIGHT01 — 6 Ekim 2026 teknik prova kanıtları
+# ERP-NIGHT01 — 6 Ekim2026 normal satış ve tahsilat teknik teslimi
 
-SQL hazırlığı ve TEST50/51 gerçek normal ekran teknik provaları aşağıdadır. İnsan kabulü ayrı USER_ACCEPTANCE.md kaydıdır ve bekler.
+TEST53 / uygulama kaynak 11f17341dc69002aed8c249878c468058afc8da5; normal http://192.168.1.46:5194/ornek-akis.html. Gerçek ticari kartlar salt okunur; yalnız iki ayrılmış sentetik ürün, müşteri ve TRY kasa yazılabilir. Tarih 2026-10-06, en çok30 immutable işlem, miktar üst sınırı5 ve belge üst sınırı500TRY; diğer döviz/gerçek kartlar bu yazma kapsamına açılmadı.
 
-- `baseline.json`: gece başlangıcında TEST49, aynı LAN oturumu, 50 ürün, üç gerçek ölçüm; ilk sıcak/soğuk örnekler ayrı korunur.
-- `sql-validate.json`: gerçek SQL kurulumu transaction içinde, düşük yetkili context okuması, rollback; eski dokuz operasyon alanı fingerprint'i / kullanıcı-yetki / trigger-metadata geri döndü. IDENTITY sayaçları ilerleyebilir; ticari içerik geri döner, reseed yok.
-- `sql-apply.json`: aynı incelenmiş kaynağın kontrollü kurulumu; iki ürün, bir müşteri, bir TRY kasa ve iki satış fiyatı sentetik native kayıt. Satış/tahsilat hareketi bu aşamada sıfır.
-- `sql-negatives.json`: yalnız sentetik kayıtlarda dokuz gerçek düşük yetkili engelleme; ürün/fiyat/context/journal korumaları; gerçek ticari kart yazma denemesi sıfır.
-- `legacy-readers-after-setup.json`: eski TEST49 üzerinde kabul edilmiş katalog ve mevcut alış okuyucuları hâlâ açılır.
+İnsan kabulü ERP-UA07/08/09 bekliyor. Gerçek SQL’e sentetik prova yapılmıştır; bütün ticari ürün/müşteriler, USD/EUR yazmaları veya fiziksel terminal hazır iddiası yok. Başlangıç01:41:41İstanbul; en geç09:41:41. Hedef erken tamamlandı; bu kapsamda duruldu.
 
-SQL kaynağı `scripts/canonical/enable-test-night-workflows.sql`; offline builder önceki guard'ların bağımsız hash'lerini ve gövdelerini saklar. Hiçbir ticari/karantina guard'ı devre dışı bırakılmaz. İki immutable kurulum metadata guard'ı yalnız dış transaction içinde hash sürümü yükseltilirken, fixture yazılmadan önce yeniden etkinleştirilir. Yeni owner prosedürleri bağımsız ready/context/effect pinleri ve gerçek düşük yetkili kullanıcıyla okunur. Uygulama aynı SERIALIZABLE transaction + mevcut global applock üzerinden native satış/finans servislerini kullanır; yeni ticari ürün DB'si yok.
+## Sabah bırakılan kayıt
 
-Paket rollback: TEST49 korunur; launcher yalnız kimliği kanıtlanmış üç TEST sürecine geri alınabilir. Eski pakette yeni yazma route'u yok. Native ticari geçmişi/drop/restore yaparak silmek rollback yöntemi değildir. LIVE sahipleri/private config/ağ ayarları değişmez.
+Belge34619 / NIGHT-ed8f4617514e4b9d9a862db1: seller15 normal ekranda iki literal barkodla150TRY satışı tamamladı. İlker16 aynı normal yüzden50TRY tahsil etti; yenilemede100TRYkalan. İki stok19’ar, müşteri nativeborç100, ayrılmışkasa hareket neti50;15journal/0intent. [Son SQL](native-final-53.json), [İlker](ilker-partial.jpg), [fiş](receipt-final-53.jpg), [müşteri](customer-final-53.jpg), [Ana Sayfa](home-final-53.jpg). Kasa hareket neti genel kasa bakiyesi değildir; doğrulanmış genel açılış kaynağı yok.
 
-## İlk gerçek normal ekran provası / TEST50
+## İki ürün, kısmi/tam/ters kayıt ve yanıt kaybı
 
-`native-before-sale.json` → `native-draft-after-visibility.json` → `native-finalized.json` → `native-first-full-collection.json` → `native-first-full-cancelled.json` → `native-first-sale-cancelled.json`: sentetik belge34617 / NIGHT-cf1a716809c44e4a8df68855,150TRY. Taslak stok/borç/kasa değiştirmez; tamamlanma20→19ikiSKU, borç0→150,kasa0; tam tahsilat borç0/kasa150; tahsilat sonra satış ters kayıtları20/20/0/0.5kalıcı journal/0intent; geçmiş silinmez. `native-draft.json` ilk başarısız ve rollback olan denemeyi kaydeder, başarılı taslak kanıtı değildir.
+Belge34618 / NIGHT-4f8eb60e24334ae6901f3f40 normal LAN/source78e6: draft20/20-0borç-0kasa; finalize19/19-150-0. Sunucu200yanıtı CDP response aşamasında bekletildi; istemci timeout/yenileme aynıUUID/body ledger replay200 ile tek etkiyi doğruladı. UI kontrolü aynıPOST’u tekrar gönderir; server immutableledger’ı yeni native etkiden önce kontrol eder. GET-only veya ikinciPOSTyok iddiası yapılmaz. GeçiciFetch patterns boşaltıldı.
 
-`sql-visibility-validate.json` / `sql-visibility-apply.json`: caller SQL metadata görünürlüğünden doğan ilk satış reddi giderildi.37karantina/176kaynak/16622ürün/15-17-22pin kontrolleri aynı bağımsız pinli OWNER-ready içinde korunur; gereksiz caller kopyası kaldırılır.9nativeguard eski gövdeleri aynen korur, native guards hiçbir zaman disable olmaz. Sadece3immutable kurulum metadata guard'ı aynı outer transaction'da hash sürümü yükseltilirken geçici kapatılıp owner-ready çağrısından önce yeniden etkinleşir.3ownerpin değişmez, yeni grant/seed/ticari değişiklik yok. SQL negatifleri bu düzeltmeden sonra yeniden gerçek düşük yetkili kullanıcıyla geçti.
+50TRYçift tıklamada tek tahsilat→100borç/50kasa/journal8;100kalan→0borç/150kasa/journal9. Bağlı tahsilatta satışiptali409/etki0. Önce100ve50tahsilat tersleri, ardından satıştersi→20/20-0-0/journal12. Native-lan-*.json kalıcı önce/sonra kanıtları; geçmiş silinmez. [Yanıt kaybı](response-loss.jpg), [network](browser-network-51.json), [fullhome](home-full.json).
 
-`runtime-switch-50.json`: source908ce0cb6f36 TEST50 kurulumu; LIVE sahipleri/ağ/private config aynı, önceki49 ve launcher yedeği korunur. Son UI düzeltmeleri ayrı uygulama commit'i ve TEST51 ile doğrulanacak. Bu ara aşamadaki LAN UUID/kısmi tutar kusurları teknik tamam sayılmadı.530Sites/36hedefli test PASS; kullanıcı kabulü bekler.
+[Replay negatifleri](replay-negative.json): kaydedilmiş draft/finalize/collection/cancel aynıUUID/body replay200; aynıUUIDparalel tekrar tek etki; farklıamount409, realproduct PREVIEWONLY409, USDpreview409. [Önce](native-before-replay.json)/[sonra](native-after-replay.json) birebir sentetik native değerleri; gerçek ticari kartta yazma denemesi0. Son53 aktif tahsilat409 temiz kullanıcı mesajı ve SQL fark0; [engelleme](blocked-cancel-53.jpg).
 
-## TEST51 normal LAN teknik prova
+## Rol, kaynak ve görünüm
 
-İki gerçek literal deneme barkodu0000061010001/0000061010002 ile1+1satır150TRY kaydedildi. Belge34618/NIGHT-4f8eb60e24334ae6901f3f40. Yanıt sunucu200sonrasında bekletildi, ekran zaman aşımıyla sonucu belirsiz bıraktı; yenileme ve aynıUUID/aynıbody tekrarından sonra journal7ve19+19stok/150borç/0kasa değişmedi. Yeni işlem gibi farklıUUID yaratılmadı. GeçiciFetch müdahalesi boşpatterns ile kaldırıldı.
+[Rol matrisi](role-boundaries.json) mevcut seller15 create/finalize/cancel; financefalse/accountsboş/preview403. İlker16 collect/cancelcollectiontrue, salefalse. Roller/grants/auth tabloları değişmedi. Manuel seçim autoTESTADMIN’e yükselmez. Gerçek8023CONCEPT readonlyfoto/stok0ADET/barkod3617221176192/USD15,78 ve kaynakTRYkademeleri okundu; gerçekEkle yok. NULL→bilinmiyor,0→0, leadingzeros/fullSTOKKODU/currency-tier korunur; satışfiyatı fotoğraftan çıkarılmaz.30Eylül snapshot + güncel nativeTEST, güncelVega delta değil.
 
-50TRYkısmi tahsilat çift tıklamada tek etki(journal8/borç100/kasa50), yenilemede korundu.100TRYkalan tahsilat(journal9/borç0/kasa150); bağlı tahsilat varken satışiptali409/hiçbir değişiklik yok.100ve50tahsilatların tersleri(journal10-11), ardından satıştersi(journal12) sonunda stok20+20/borç0/kasa0. Bütün native kayıtlar korunur. native-lan-*.json gerçek salt okunur SQL before/after kanıtlarıdır.
+[1440/1024/390](responsive.json) satış/tahsilat/müşteri/home taşmasız DOM; son53readonlykart ek kontrolü [responsive](responsive-final-53.json). Yönetilen ekran görüntüsü görünür alanı kısmen kesebilir; gerçekCSSviewport ayrı ölçülmüştür, clip kullanılarak genişlik kabulü uydurulmadı. Fiziksel Zebra/başka cihaz/insan kabulü yok.
 
-Müşteri geçmişi kalıcı aynı iki belge ve tahsilatları okur. home-full.json günlük150TRYsatış,300TRYbrüttahsilat/150TRYtersi ayrı; genel kasa bakiyesi unavailable. role-boundaries.json gerçek seller15/ilker16 yetkilerini okur; seller tahsilatpreview403, hesapları boş. Ayrılmış TRY dışı tahsilat/currency açılmadı.1440/1024/390yataytaşma ölçümleri veJPEGkanıtları kaydedildi; yönetilen ekran görüntüsü görünür alanla sınırlı olabilir, gerçekCSSviewport ölçümü ayrıca tutulur.
+## Hız
 
-Son dar paket52: saleCancel bağlı tahsilat409için yalnızallowlisted WORK_COLLECTIONS_ACTIVE kodu temiz kullanıcı mesajına çevrildi. Diğerroute/status/rawsunucumesajları aynı.43hedefli test PASS; finalpaketgerçekekran kanıtı sırada.
+| Ölçüm (ms, 3 örnek medyanı) | Gece49 önce | Son53 sonra |
+| --- | ---: | ---: |
+| first50 | 755 | 663 |
+| next50 | 692 | 593 |
+| code | 679 | 636 |
+| barcode | 420 | 369 |
+| card | 188 | 196 |
+| home | 94 | 134 |
+
+Baseline49 ve son53 aynıLAN/actor16/page50/3örnek/sıra; ağır SQL/hash/build ile paralel ölçülmedi. [Ham önce](baseline.json), [ham sonra](after-53.json), [okuma açılışı](opening-53.json), [gerçek roller kayıt süresi](browser-real-roles-52.json). Seller taslak2115/finalize2616ms, İlker kısmi902ms; preview156/195ms. Önceki51partial858/full587ms. Bunlar gerçekHTTPişlem süreleri, kullanıcı ilkboya süresi değildir. Eski42best güncel sayı olarak sunulmadı.
+
+## Kontrollü SQL, paket ve geri dönüş
+
+[Validate](sql-validate.json) transaction kurulum+düşük yetkili okuma+rollback; orijinal operationalfingerprint/kullanıcı-permission/metadata geri döndü. IDENTITY sayaçları ilerleyebilir, reseed yok. [Apply](sql-apply.json) yalnız ikiSKU/müşteri/TRYhesap/fiyat fixture; yeni ticari DB/blob yok. [9negatif](sql-negatives.json), [eskiokuyucular](legacy-readers-after-setup.json). Native/karantina guards kapatılmaz. Kurulum metadata guard’ları outertransaction sürüm değişiminde geçici kapatılıp fixture/ownerready öncesi yeniden açılır.
+
+İlk50nativewrite503 caller SQLmetadata görünürlüğünden kaynaklandı; [visibilityValidate](sql-visibility-validate.json)/[Apply](sql-visibility-apply.json) yalnız tekrarlanan caller kopyasını kaldırdı. Aynı37FIRST/176kaynak/172hold/16622ürün/15-17-22bütünlük kontrolleri bağımsız3pinli OWNER-ready’de korunur. Dokuz legacyguard gövdesi korunur; grant/seed/gerçekbusinesswrite yok. İlk LAN UUID/getRandomValues ve blur/input yenidençizim kusurları gerçek provada bulunup giderildi. Kaynak53yalnız readonly alanları ekledi;24Trade+20Session hedefli ve bağımsızreview temiz, önceki530Sites/393APIoffline/SQL-store-suite6+8PASS.
+
+Son [TEST53switch](runtime-switch-53.json):source11f17341dc69002aed8c249878c468058afc8da5 / C:\Sirket\ERP\releases\CANONICAL-NIGHT-TEST-20261006-53;1384manifest/16977dependencies doğrulandı. API4144/web5194exactloopback+192.168.1.46, native4146loopback. NamedTESTDB/sysadmin0/control0/LIVE0/externalfalse; LIVEowners/privateconfig/OSağ değişmedi. Eski49–52ve launcherrollback yedekleri korunur. Paket geri alınabilir; SQLhistory drop/restore/silme veya ticari kaydı resetlemek rollback değildir.
+
+Uygulama11f1734 CI37393631906/37393627404 SUCCESS. Son belge teslimi ayrı PRhead; exactheadCI PRChecks’te ayrıca kontrol edilir. [DraftPR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23), branchcodex/erp-finish-20261004; main merge/tag/LIVE/CRM/Vega/delta/fotoğraf yok. Önceki50/51/52kanıtları tarihsel sürümlerini açıkça taşır; bugünkü53paketiyle karıştırılmaz.
+Son53 manuel İlker oturumu TEST restart sonrasında yeniden mevcut hesapla giriş istedi; manuel seçim otomatik TEST ADMIN'e yükselmedi. Yeniden giriş ve sonraki sayfa yenilemesinde İlker,150TRYfiş/50tahsil/100kalan korundu. Müşteri kartı listesindeki deneme açılış hesabı projection'u doğrulanmış kaynak bağı olmadığından Bilinmiyor kalır; üstteki100TRY bakiye ve hareket tarihçesi doğrudan native gece işlemlerinden okunur. Bu iki kaynak birleştirilip tahmin yapılmadı.

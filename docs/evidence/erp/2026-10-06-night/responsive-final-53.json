@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "11f17341dc69002aed8c249878c468058afc8da5",
+  "view": "readonly-sale-card",
+  "checks": [
+    {
+      "barcode": true,
+      "body": 1425,
+      "fullCode": true,
+      "scroll": 1425,
+      "stock": true,
+      "width": 1440
+    },
+    {
+      "barcode": true,
+      "body": 1009,
+      "fullCode": true,
+      "scroll": 1009,
+      "stock": true,
+      "width": 1024
+    },
+    {
+      "barcode": true,
+      "body": 375,
+      "fullCode": true,
+      "scroll": 375,
+      "stock": true,
+      "width": 390
+    }
+  ]
+}

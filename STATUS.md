@@ -1,3 +1,30 @@
+# ERP-NIGHT01 — 6 Ekim2026 teknik hazır / insan kabulü bekliyor
+
+TEST53 / uygulama kaynak 11f17341dc69002aed8c249878c468058afc8da5; normal http://192.168.1.46:5194/ornek-akis.html. Gerçek ticari kartlar salt okunur; yalnız iki ayrılmış sentetik ürün, müşteri ve TRY kasa yazılabilir. Tarih 2026-10-06, en çok30 immutable işlem, miktar üst sınırı5 ve belge üst sınırı500TRY; diğer döviz/gerçek kartlar bu yazma kapsamına açılmadı.
+
+Normal yeşil Satış ve Tahsilat, kalıcı müşteri geçmişi ve günlük Ana Sayfa sonuçları gerçek tarayıcı ve native SQL ile doğrulandı. Taslak ayrı, satış stok/borcu bir kez değiştirir ve otomatik tahsilat yapmaz. Literal sıfırlı barkod ve tam STOKKODU, kaynak birim/fiyat/döviz/thumbnail; gerçek katalog salt okunur. Bağlı tahsilatta satış iptali engellenir; önce tahsilat, ardından satış ters kaydı gerekir. SQL korumaları/owner pinleri/rol/karantina ve TEST→LIVE sınırı korunur.
+
+Belge34618/NIGHT-4f8eb60e24334ae6901f3f40: taslak20/20-0borç-0kasa; finalize19/19-150-0; kısmi50→100borç/50kasa; kalan100→0/150; tahsilat tersleri ve satıştersi20/20-0-0. Yanıt kaybında aynı UUID/fullbody ledger replay tek etki; çift tıklama/sameUUID paralel replay ve farklıbody409. Normal gerçek seller15 satış yaptı; İlker16 tahsilat yaptı; seller finance preview403, roller/izinler değişmedi. İnsan PASS değil.
+
+Sabah açık bırakılan belge34619/NIGHT-ed8f4617514e4b9d9a862db1:150TRY,50tahsil/100kalan, stok19+19, müşteri borcu100, ayrılmış kasa hareket neti50TRY;15journal/0intent. Genel ERP kasa açılış bakiyesi doğrulanmadığından Ana Sayfa kasa bakiyesi yerine bağlı değil gösterir. İki eski deneme iptal geçmişi korunur. Gerçek ürün/müşteri alanları30Eylül Vega snapshot + güncel native TEST; güncel Vega delta değildir.
+
+| Ölçüm (ms, 3 örnek medyanı) | Gece49 önce | Son53 sonra |
+| --- | ---: | ---: |
+| first50 | 755 | 663 |
+| next50 | 692 | 593 |
+| code | 679 | 636 |
+| barcode | 420 | 369 |
+| card | 188 | 196 |
+| home | 94 | 134 |
+
+Aynı LAN HTTP/actor16/50ürün/3örnek/sıra ve ağır paralel SQL olmadan ölçüldü; eski paket42 en iyi ölçümü güncel hız sayılmadı. Gerçek seller taslak2115ms/finalize2616ms, İlker kısmi kayıt902ms; preview156/195ms. Önceki51 normal kısmi/full kayıt858/587ms; güvenli yazma doğrulaması okumadan daha ağır. 1440/1024/390 gerçek DOM taşmasız; son53 kaynak kartı ayrıca kontrol edildi. Ajan fiziksel Zebra/başka bilgisayar/personel kabulü yapmadı.
+
+Kaynak11f1734 hosted CI37393631906/37393627404 SUCCESS;44hedefli son frontend/session, önceki530Sites/393API offline ve SQL/store36 PASS, bağımsız dar53review P0/P1 yok. Paket53:1384manifest/16977dependency doğrulandı; launcher53, API4144/web5194 exactloopback+192.168.1.46, native4146yalnızloopback; aynı named TESTDB, LIVE süreç sahipleri/privateconfig/ağ aynı. Eski49–52/launcher yedekleri korundu; kod rollback geçmişi silmez. Son belge teslimi ayrı PRhead olup exactCI PRChecks'ten doğrulanır; paket kaynak commit'i değişmez.
+
+[Kanıt/ekranlar](docs/evidence/erp/2026-10-06-night/README.md), [ERP-UA07/08/09 bekleyen kullanıcı kabulleri](USER_ACCEPTANCE.md). Dal codex/erp-finish-20261004 / [draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23). Finish49=7🟢/24🟡/18🔴. Bu gece hedefi tamamlandı; insan/genel ticari/döviz/cihaz kabulleri bekler. CRM/LIVE/main merge/delta/fotoğraf veya başka modül başlamadı.
+
+# Tarihsel önceki aşamalar
+
 # ERP-NIGHT01 — 6 Ekim 2026 normal ekran ilk SQL provası
 
 TEST50/source908ce0cb6f361f6ae05d53e0abd1395d60cbbfbc üzerinde normal ekranda iki ürünlü150TRY satış, tam tahsilat, tahsilat iptali ve ardından satış iptali gerçek sentetik native kayıtlara işlendi. Belge NIGHT-cf1a716809c44e4a8df68855 /34617: başlangıç20+20stok/0borç/0kasa; tamamlanan satış19+19/150/0; tahsilat19+19/0/150; iki ters kayıt sonrası20+20/0/0. Tarihçe korunur;5journal/0açıkintent. İnsan kabulü PASS değildir.
