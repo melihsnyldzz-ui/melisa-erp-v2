@@ -1,0 +1,362 @@
+{
+  "sourceCommit": "78e6cc94c01f7f46cf0844149c7e987889057b2f",
+  "measurements": [
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 216,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/preview",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 53,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/drafts",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 1788,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/drafts/34618/finalize",
+      "method": "POST",
+      "status": null,
+      "durationMs": null,
+      "failed": true
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 119,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices/34618",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 39,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices/34618",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 48,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/drafts/34618/finalize",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 143,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 113,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 52,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 205,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/preview",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 187,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 64,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 187,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 858,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 142,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 59,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 156,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 54,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 122,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 167,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/preview",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 145,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 85,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 173,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 587,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 131,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 68,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 119,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 58,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 134,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 65,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 807,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices/34618",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 108,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 189,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices/34618",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 51,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/drafts/34618/cancel",
+      "method": "POST",
+      "status": 409,
+      "durationMs": 147,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 183,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 70,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 150,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/47751/cancel",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 575,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 144,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 67,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 186,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/47750/cancel",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 629,
+      "failed": false
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 133,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 58,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 137,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 121,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 63,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/invoices/34618",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 125,
+      "failed": false
+    },
+    {
+      "path": "/api/work-sales/drafts/34618/cancel",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 1144,
+      "failed": false
+    }
+  ]
+}

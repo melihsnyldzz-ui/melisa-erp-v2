@@ -1,0 +1,78 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA BABY
+  - text: Operasyon sistemi
+  - generic: Günlük çalışma
+  - navigation:
+    - button "⌂ İş sırası":
+      - generic: ⌂
+      - text: İş sırası
+    - button "▦ Ürün & stok":
+      - generic: ▦
+      - text: Ürün & stok
+    - button "⇩ Gelen mal":
+      - generic: ⇩
+      - text: Gelen mal
+    - button "▤ Alış faturaları":
+      - generic: ▤
+      - text: Alış faturaları
+    - button "▣ Satış terminali":
+      - generic: ▣
+      - text: Satış terminali
+    - button "≡ Satış fişleri":
+      - generic: ≡
+      - text: Satış fişleri
+    - button "♙ Müşteriler":
+      - generic: ♙
+      - text: Müşteriler
+    - button "₺ Tahsilat":
+      - generic: ₺
+      - text: Tahsilat
+    - button "⌗ Sayım & düzeltme":
+      - generic: ⌗
+      - text: Sayım & düzeltme
+    - button "↩ İadeler":
+      - generic: ↩
+      - text: İadeler
+    - button "✓ Onaylar":
+      - generic: ✓
+      - text: Onaylar
+    - button "⚙ Ayarlar":
+      - generic: ⚙
+      - text: Ayarlar
+  - generic: Melisa ERP
+- main:
+  - generic: Melisa ERP / Satış terminali
+  - button "İş sırası"
+  - generic: 6 Ekim 2026 Salı
+  - generic: TR
+  - generic: "Y"
+  - generic: Yönetici
+  - generic: MELİSA ERP
+  - heading "Satış" [level=1]
+  - paragraph: Müşteriyi seçin, ürünleri ekleyin; taslak kaydını ve tamamlamayı ayrı yapın.
+  - button "Yenile"
+  - status: İşlem tamamlanamadı. Son işlemi doğrulayarak tekrar deneyin.
+  - text: Son işlemin sonucu kontrol edilmeli. Yeni işlemden önce aynı işlemi doğrulayın.
+  - button "Son işlemi doğrula"
+  - heading "NIGHT-4f8eb60e24334ae6901f3f40" [level=2]
+  - generic: Taslak
+  - paragraph:
+    - text: 2026-10-06 · Deneme kaydı — Gece müşterisi ·
+    - generic: Deneme kaydı
+  - text: TEST-NIGHT-20261006-P1 Deneme kaydı — Gece ürün 1
+  - generic: 1 ADET × 100 TRY
+  - generic: 100 TRY
+  - text: TEST-NIGHT-20261006-P2 Deneme kaydı — Gece ürün 2
+  - generic: 1 ADET × 50 TRY
+  - generic: 50 TRY
+  - generic: 150 TRY
+  - paragraph:
+    - text: "Tahsil edilen: 0 TRY"
+    - text: "Kalan: 0 TRY"
+    - text: "Müşteri bakiyesi: 0 TRY"
+  - paragraph: Taslak kaydı stok ve müşteri borcunu değiştirmez.
+  - button "Satışı tamamla"
+  - button "Fişi iptal et"
+  - button "Fişi yeniden oku"
+  - button "Yeni satış"

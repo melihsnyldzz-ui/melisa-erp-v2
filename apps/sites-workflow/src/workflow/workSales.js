@@ -4,7 +4,7 @@ import {catalogPath,catalogEnvelope} from './workCatalogModel.mjs';
 import {createCatalogThumbnailLoader,createCatalogPhotoLoader} from './workCatalogPhoto.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={draft:'Taslak',finalized:'Tamamlandı',cancelled:'İptal edildi'};
-const errorText=e=>e?.status===409?'Bilgiler değişti. Yenileyip fiyatı tekrar kontrol edin.':e?.status===403?'Bu işlemi yapma yetkiniz yok.':e?.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':'İşlem tamamlanamadı. Son işlemi doğrulayarak tekrar deneyin.';
+const errorText=e=>e?.status===409&&e?.code==='WORK_COLLECTIONS_ACTIVE'?'Önce bu satışın tahsilatlarını iptal edin.':e?.status===409?'Bilgiler değişti. Yenileyip fiyatı tekrar kontrol edin.':e?.status===403?'Bu işlemi yapma yetkiniz yok.':e?.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':'İşlem tamamlanamadı. Son işlemi doğrulayarak tekrar deneyin.';
 export function createWorkSales({root,session,user,navigate=()=>{},storage=globalThis.localStorage,uuid=tradeUuid,receiptOnly=false}={}){
  let active=false,version=0,context=null,items=[],preview=null,invoice=null,busy=false,note='',catalogRows=[],catalogVersion=0,searchText='',catalogSearched=false,selectedCustomer='',date='',currency='',pending=null;
  const journal=createTradeJournal({storage,key:`melisa-work-sale-v1:${globalThis.location?.host??'local'}:${user.id}`}),thumbs=createCatalogThumbnailLoader({media:session.media}),photo=createCatalogPhotoLoader({media:session.media});
