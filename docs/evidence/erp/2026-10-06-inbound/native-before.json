@@ -1,0 +1,386 @@
+{
+  "at": "2026-10-06T07:16:54.6304059Z",
+  "stage": "before",
+  "syntheticOnly": true,
+  "products": [
+    {
+      "productId": 301985,
+      "stockCode": "TEST-V70-GOODS-P",
+      "stockExact3": "29.000"
+    },
+    {
+      "productId": 325503,
+      "stockCode": "TEST-FINISH-GOODS-P2",
+      "stockExact3": "2.000"
+    }
+  ],
+  "supplier": [
+    {
+      "supplierId": 13370,
+      "currency": "TRY",
+      "supplierBalanceExact4": "-100.0000"
+    }
+  ],
+  "batches": [
+    {
+      "id": 1,
+      "state": "accepted",
+      "supplierId": 13370,
+      "note": "C01 iki ürünlü sentetik TEST kabulü"
+    },
+    {
+      "id": 2,
+      "state": "rejected",
+      "supplierId": 13370,
+      "note": "C01 ret stok etkisiz kabulü"
+    }
+  ],
+  "invoices": [
+    {
+      "id": 25070,
+      "documentNo": "TSTG-20260929-001",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "300.0000"
+    },
+    {
+      "id": 25071,
+      "documentNo": "TSTG-PART-001",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "60.0000"
+    },
+    {
+      "id": 25072,
+      "documentNo": "TSTG-PART-002",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "60.0000"
+    },
+    {
+      "id": 25073,
+      "documentNo": "TSTG-LINK-PROOF",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "60.0000"
+    },
+    {
+      "id": 25074,
+      "documentNo": "TSTG-PAY-300",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "300.0000"
+    },
+    {
+      "id": 25080,
+      "documentNo": "TSTG-84471401-d616-4",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "60.0000"
+    },
+    {
+      "id": 25081,
+      "documentNo": "TSTG-UI-00f5f59b-3fa",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "60.0000"
+    },
+    {
+      "id": 25082,
+      "documentNo": "TSTG-UI-37b6d1e8-4d9",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "60.0000"
+    },
+    {
+      "id": 25083,
+      "documentNo": "TSTG-LR-13f39770",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "120.0000"
+    },
+    {
+      "id": 25084,
+      "documentNo": "TSTB-FINISH-20261004-01",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "140.0000"
+    },
+    {
+      "id": 25085,
+      "documentNo": "TSTB-FINISH-20261004-02",
+      "status": "cancelled",
+      "currency": "TRY",
+      "totalExact4": "80.0000"
+    },
+    {
+      "id": 25086,
+      "documentNo": "TSTB-FINISH-20261004-03",
+      "status": "draft",
+      "currency": "TRY",
+      "totalExact4": "220.0000"
+    }
+  ],
+  "supplierMovements": [
+    {
+      "id": 47899,
+      "invoiceId": 25070,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "300.0000",
+      "debtEffectExact4": "300.0000"
+    },
+    {
+      "id": 47900,
+      "invoiceId": 25071,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47901,
+      "invoiceId": 25072,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47902,
+      "invoiceId": 25070,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "300.0000",
+      "debtEffectExact4": "-300.0000"
+    },
+    {
+      "id": 47903,
+      "invoiceId": 25071,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47904,
+      "invoiceId": 25072,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47905,
+      "invoiceId": 25073,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47906,
+      "invoiceId": 25073,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47909,
+      "invoiceId": 25074,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "300.0000",
+      "debtEffectExact4": "300.0000"
+    },
+    {
+      "id": 47910,
+      "invoiceId": 25074,
+      "type": "payment",
+      "currency": "TRY",
+      "amountExact4": "100.0000",
+      "debtEffectExact4": "-100.0000"
+    },
+    {
+      "id": 47911,
+      "invoiceId": 25074,
+      "type": "payment_cancel",
+      "currency": "TRY",
+      "amountExact4": "100.0000",
+      "debtEffectExact4": "100.0000"
+    },
+    {
+      "id": 47912,
+      "invoiceId": 25074,
+      "type": "payment",
+      "currency": "TRY",
+      "amountExact4": "100.0000",
+      "debtEffectExact4": "-100.0000"
+    },
+    {
+      "id": 47917,
+      "invoiceId": 25074,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "300.0000",
+      "debtEffectExact4": "-300.0000"
+    },
+    {
+      "id": 47919,
+      "invoiceId": null,
+      "type": "payment",
+      "currency": "TRY",
+      "amountExact4": "1.0000",
+      "debtEffectExact4": "-1.0000"
+    },
+    {
+      "id": 47920,
+      "invoiceId": null,
+      "type": "payment_cancel",
+      "currency": "TRY",
+      "amountExact4": "1.0000",
+      "debtEffectExact4": "1.0000"
+    },
+    {
+      "id": 47955,
+      "invoiceId": 25080,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47956,
+      "invoiceId": 25080,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47957,
+      "invoiceId": null,
+      "type": "payment",
+      "currency": "TRY",
+      "amountExact4": "1.0000",
+      "debtEffectExact4": "-1.0000"
+    },
+    {
+      "id": 47958,
+      "invoiceId": null,
+      "type": "payment_cancel",
+      "currency": "TRY",
+      "amountExact4": "1.0000",
+      "debtEffectExact4": "1.0000"
+    },
+    {
+      "id": 47971,
+      "invoiceId": 25081,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47972,
+      "invoiceId": 25081,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47973,
+      "invoiceId": 25082,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47974,
+      "invoiceId": 25082,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47975,
+      "invoiceId": 25083,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "120.0000",
+      "debtEffectExact4": "120.0000"
+    },
+    {
+      "id": 47979,
+      "invoiceId": null,
+      "type": "purchase_return",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "-60.0000"
+    },
+    {
+      "id": 47980,
+      "invoiceId": null,
+      "type": "purchase_return_cancel",
+      "currency": "TRY",
+      "amountExact4": "60.0000",
+      "debtEffectExact4": "60.0000"
+    },
+    {
+      "id": 47981,
+      "invoiceId": 25083,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "120.0000",
+      "debtEffectExact4": "-120.0000"
+    },
+    {
+      "id": 48050,
+      "invoiceId": 25084,
+      "type": "purchase_invoice",
+      "currency": "TRY",
+      "amountExact4": "140.0000",
+      "debtEffectExact4": "140.0000"
+    },
+    {
+      "id": 48051,
+      "invoiceId": 25084,
+      "type": "purchase_invoice_cancel",
+      "currency": "TRY",
+      "amountExact4": "140.0000",
+      "debtEffectExact4": "-140.0000"
+    }
+  ],
+  "stockMovements": [
+    {
+      "count": 7
+    }
+  ],
+  "journal": [
+    {
+      "count": 41
+    }
+  ],
+  "nightProducts": [
+    {
+      "productId": 345504,
+      "stockExact3": "17.000"
+    },
+    {
+      "productId": 345505,
+      "stockExact3": "18.000"
+    }
+  ],
+  "nightBalances": [
+    {
+      "customerId": 30598,
+      "customerDebtExact4": "100.0000",
+      "accountId": 20043,
+      "cashExact4": "300.0000"
+    }
+  ]
+}

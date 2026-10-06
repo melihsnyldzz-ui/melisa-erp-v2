@@ -1,0 +1,16 @@
+[
+  {
+    "case": "known_product_outside_scope",
+    "rejected": true,
+    "sqlError": 51210,
+    "rolledBack": true,
+    "stockWrites": 0
+  },
+  {
+    "case": "unknown_silently_marked_known",
+    "rejected": true,
+    "sqlError": 51210,
+    "rolledBack": true,
+    "stockWrites": 0
+  }
+]

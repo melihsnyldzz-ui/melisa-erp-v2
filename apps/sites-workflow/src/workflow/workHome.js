@@ -1,5 +1,5 @@
 import './workHome.css';
-import {validateWorkHome,homeShortcuts,homeAmount,homeCount,homeUnavailable,orderedHomeShortcuts,orderedHomeTasks,homeNormalScreen} from './workHomeModel.mjs';
+import {validateWorkHome,homeShortcuts,homeAmount,homeCount,homeUnavailable,orderedHomeShortcuts,orderedHomeTasks,homeNormalScreen,mergeInboundHome} from './workHomeModel.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const states={draft:'Taslak',pending:'Bekliyor',submitted:'Kontrol bekliyor',approved:'Onaylandı',accepted:'Kabul edildi',awaiting_invoice:'Fatura bekliyor'};
 export function createWorkHome({root,session,user,navigate=()=>{},openLink=()=>{}}={}){
@@ -23,6 +23,6 @@ export function createWorkHome({root,session,user,navigate=()=>{},openLink=()=>{
   root.querySelectorAll('[data-home-shortcut]').forEach(button=>button.onclick=()=>{const s=homeShortcuts.find(s=>s.id===button.dataset.homeShortcut);if(!s||!data?.capabilities[s.capability]||!data.navigationReady[s.capability])return;s.screen?navigate(s.screen):openLink(s.href);});
   root.querySelectorAll('[data-home-task]').forEach(button=>button.onclick=()=>{const task=active&&data&&tasks[Number(button.dataset.homeTask)];if(task?.ready){const screen=homeNormalScreen(task.target);screen?navigate(screen):openLink(task.target);}});
  }
- async function refresh(){if(!active||busy)return;const n=++generation;busy=true;data=null;paint();try{const next=validateWorkHome(await session.home());if(alive(n)){data=next;busy=false;paint();}}catch(error){if(alive(n)){busy=false;data=null;paint(error?.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':error?.status===403?'İş sırasını görüntüleme yetkiniz yok.':'İş sırası şu anda açılamıyor. Yenileyerek tekrar deneyin.');}}}
+ async function refresh(){if(!active||busy)return;const n=++generation;busy=true;data=null;paint();try{const next=validateWorkHome(await session.home());if(alive(n)){data=next;busy=false;paint();if(typeof session.inbound==="function"&&data.capabilities.goods){try{const incoming=await session.inbound("/api/work-receiving/home");if(alive(n)){data=mergeInboundHome(data,incoming);paint();}}catch{if(alive(n))paint();}}}}catch(error){if(alive(n)){busy=false;data=null;paint(error?.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':error?.status===403?'İş sırasını görüntüleme yetkiniz yok.':'İş sırası şu anda açılamıyor. Yenileyerek tekrar deneyin.');}}}
  return {mount(){if(active)return;active=true;refresh();},refresh,dispose(){active=false;generation++;data=null;busy=false;root=null;}};
 }

@@ -46,6 +46,8 @@ if(mode==='erp'){
     const {workSalesRoutes}=await import('./src/routes/workSalesRoutes.mjs');
     const {workCollectionRoutes}=await import('./src/routes/workCollectionRoutes.mjs');
     app.use('/api',workSalesRoutes);app.use('/api',workCollectionRoutes);
+    const {workInboundRoutes}=await import('./src/routes/workInboundRoutes.mjs');
+    app.use('/api',workInboundRoutes);
   }
   const {homeSummaryRoutes}=await import('./src/routes/homeSummaryRoutes.mjs');
   app.use('/api',homeSummaryRoutes);

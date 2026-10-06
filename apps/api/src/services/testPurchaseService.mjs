@@ -6,6 +6,8 @@ import {addGoodsBatch,acceptGoods,rejectGoods,addPurchase,invoiceableQuantity} f
 import {createPurchaseDraft,finalizePurchaseInvoice,cancelPurchaseInvoice,getPurchaseDraft,normalizePurchasePayload} from './invoiceDraftService.js';
 import {writeAuditLog} from './auditService.js';
 import {assertPurchaseReturnClear} from './testPurchaseReturnGuard.mjs';
+import {AsyncLocalStorage} from 'node:async_hooks';
+const adapterContext=new AsyncLocalStorage();
 import {normalizeTestBatch,normalizeTestInvoiceDraft,validateTestBatchDecision,strictFields,positiveId,validateRequestId,testPurchaseRequestHash,testPurchaseReplay,publicBatchContext,publicTestBatch,requiredTestBatch,testBatchPurchasePayload} from './testPurchaseBatchModel.mjs';
 const fail=(code,message,statusCode=400)=>{throw Object.assign(new Error(message),{code,statusCode})};
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
@@ -20,6 +22,8 @@ async function load(ctx){
  return {s,goods,invoices,state};
 }
 async function atomic(actor,fn,write=true,isBatch=false){return withTestSalesMutation(async()=>{
+ const inherited=adapterContext.getStore();
+ if(inherited){if(!inherited.active||String(actor.id)!==inherited.actorId||(write&&!inherited.write))fail('TEST_ADAPTER_CONTEXT','Aynı doğrulanmış işlem kapsamı gerekli.',403);return fn(inherited.ctx,inherited.loaded);}
  const pool=await getSqlPool(),sql=getSqlDriver(),tx=new sql.Transaction(pool);await tx.begin(isBatch?sql.ISOLATION_LEVEL.SERIALIZABLE:undefined);const ctx={pool,sql,tx};
  try{await new sql.Request(tx).query("DECLARE @r int; EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000; IF @r<0 THROW 51071,'TEST_LOCK_TIMEOUT',1;");
   const loaded=await load(ctx);if(write&&![15,16].includes(Number(actor.id)))fail('TEST_ACTOR','TEST oturumu gerekli.',403);
@@ -119,14 +123,19 @@ async function batchInvoiceDetail(ctx,id,providedLinks){
  if(!header||itemCount!==items.length||items.length!==selected.length||items.length<1||items.length>2||new Set(items.map(i=>Number(i.batch_id))).size!==1||header.document_currency!=='TRY'||Number(header.discount_total)!==0||items.some(i=>Number(i.line_discount_rate)!==0)||items.reduce((n,i)=>n+Number(i.line_total),0)!==Number(header.grand_total))fail('TEST_INVOICE_LINK','Fatura kabul satırları ve toplamları tam eşleşmiyor.',409);
  return {id:Number(header.id),batchId:Number(items[0].batch_id),status:header.status,number:header.document_no,date:header.document_date instanceof Date?header.document_date.toISOString().slice(0,10):String(header.document_date).slice(0,10),currency:header.document_currency,lines:items.map(i=>({id:Number(i.id),receiptLineId:Number(i.receipt_line_id),productId:Number(i.product_id),stockCode:i.stock_code,productName:i.product_name,quantity:Number(i.quantity),purchasePrice:Number(i.purchase_price),lineDiscountRate:Number(i.line_discount_rate),lineTotal:Number(i.line_total)})),totals:{subtotal:Number(header.subtotal),discountTotal:Number(header.discount_total),taxableTotal:Number(header.subtotal)-Number(header.discount_total),vatTotal:0,grandTotal:Number(header.grand_total)}};
 }
-export async function createTestBatch(input,actor){return batchAtomic(actor,async(ctx,d)=>journal(ctx,actor,input,'batch_create',async()=>{
+export async function createTestBatchInContext(ctx,d,input,actor){return journal(ctx,actor,input,'batch_create',async()=>{
  const c=await loadBatchContext(ctx,d);const v=normalizeTestBatch(input,c.products,{supplierId:Number(d.s.supplier_id),warehouseId:Number(d.s.warehouse_id)});
  await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:v.supplierId},...v.lines.map(l=>({entity:'product',nativeId:l.productId}))],quarantineTransactionContext(ctx.sql,ctx.tx));
  const id=Number((await new ctx.sql.Request(ctx.tx).input('s',ctx.sql.BigInt,v.supplierId).input('w',ctx.sql.BigInt,v.warehouseId).input('note',ctx.sql.NVarChar(500),v.note).input('actor',ctx.sql.BigInt,actor.id).query("DECLARE @new TABLE(id bigint); INSERT dbo.test_goods_batches(supplier_id,warehouse_id,state,note,created_by) OUTPUT INSERTED.id INTO @new VALUES(@s,@w,N'pending',@note,@actor); SELECT id FROM @new")).recordset[0].id);
  for(const line of v.lines)await new ctx.sql.Request(ctx.tx).input('batch',ctx.sql.BigInt,id).input('key',ctx.sql.NVarChar(64),line.clientLineId).input('p',ctx.sql.BigInt,line.productId).input('qty',ctx.sql.Decimal(18,3),line.quantity).query("INSERT dbo.test_goods_batch_lines(batch_id,client_line_id,product_id,quantity,unit,unit_factor) VALUES(@batch,@key,@p,@qty,N'ADET',1)");
  await writeAuditLog(new ctx.sql.Request(ctx.tx),{actor,action:'test_batch_counted',entityType:'test_goods_batch',entityId:id,afterSnapshot:{state:'pending',lines:v.lines}});
  return (await loadBatchContext(ctx,d)).batches.find(b=>b.id===id);
-})).then(result=>publicTestBatch(result,actor.permissions?.includes('purchase.view')===true));}
+});}
+export async function createTestBatch(input,actor){return batchAtomic(actor,(ctx,d)=>createTestBatchInContext(ctx,d,input,actor)).then(result=>publicTestBatch(result,actor.permissions?.includes('purchase.view')===true));}
+// Internal adapter shares the existing SERIALIZABLE transaction and global lock.
+// Never pass a context from HTTP or start another transaction from this callback.
+export async function withTestPurchaseBatchContext(actor,operation,{write=true}={}){return batchAtomic(actor,async(ctx,d)=>{const scope={ctx,loaded:d,actorId:String(actor.id),write,active:true};try{return await adapterContext.run(scope,()=>operation(ctx,d));}finally{scope.active=false;}},write);}
+export async function testBatchContextInContext(ctx,d,sourceBatchId=null){return loadBatchContext(ctx,d,true,sourceBatchId);}
 export async function decideTestBatch(id,input,actor,approve){id=positiveId(Number(id));return batchAtomic(actor,async(ctx,d)=>journal(ctx,actor,{...input,id},approve?'batch_approve':'batch_reject',async()=>{
  office(actor);validateTestBatchDecision(input,!approve);const {batch}=await requiredTestBatch(source=>loadBatchContext(ctx,d,true,source),id);
  await assertBatchEntities(ctx,batch);const state=approve?'accepted':'rejected';if(batch.state===state)return {...batch,alreadyApplied:true};if(batch.state!=='pending')fail('TEST_RECEIPT_STATE','Sonuçlanmış kabul yeniden değiştirilemez.',409);

@@ -1,0 +1,38 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createWorkInboundService} from './workInboundService.mjs';
+import {canonical,countDto,countInput,hash,inboundCapabilities} from './workInboundModel.mjs';
+const requestId='25826e43-f3f2-4ffc-9b10-5a9a412c7bcb',otherId='398cae93-ed0a-4b37-a76f-8cab77d971b2';
+const seller={id:'15',permissions:['goods.view','goods.create','purchase.view']},office={id:'16',testAdminSession:true,permissions:['sales.view','goods.view','goods.create','goods.approve','goods.reject','purchase.view','purchase.create','purchase.finalize','purchase.cancel','supplier.view']};
+const products=[{id:'301985',stockCode:'TEST-V70-GOODS-P',name:'Ürün 1',barcode:'00001',stockQuantityExact3:'29.000',purchasePriceExact8:'60.00000000'},{id:'325503',stockCode:'TEST-FINISH-GOODS-P2',name:'Ürün 2',barcode:null,stockQuantityExact3:'2.000',purchasePriceExact8:'80.00000000'}];
+const line=(productId='301985')=>({clientLineId:'line-1',productId,barcode:productId===null?'009999':null,stockCode:null,physicalQuantityExact3:'2.000',expectedQuantityExact3:null,issue:null,note:''});
+function fixture(){let current=null,version=0,native=0;const history=new Map(),transactions=[];const actual={permissions:office.permissions};const c={actual,products,supplier:{id:'13370',code:'TEST-V70-GOODS-S',name:'Tedarikçi',currency:'TRY',balanceExact4:'-100.0000'},warehouse:{id:'1',label:'Depo'},batches:async()=>({batches:[],invoiceDrafts:[]}),list:async()=>current?[structuredClone(current)]:[],draft:async()=>structuredClone(current),save:async(target,input,state,receiptId=null)=>{current=countDto({id:target??'1',created_by:15,state,version:++version,note:input.note,lines:input.lines,receipt_id:receiptId});return structuredClone(current);},createBatch:async input=>{native++;assert.equal(transactions.at(-1),'write');return{id:7,supplierId:13370,warehouseId:1,state:'pending',note:input.note,lines:input.lines.map((l,i)=>({id:i+1,...l,stockCode:products[i].stockCode,productName:products[i].name,receivedQuantity:0,invoiceableQuantity:0,purchasePrice:60}))};}};
+ c.home=async()=>({countDrafts:current?[{id:current.id,state:current.state}]:[],receipts:[],drafts:[]});
+ const store={read:async(actor,fn)=>{transactions.push('read');return fn(c);},mutate:async(actor,fn)=>{transactions.push('write');c.journal=async(operation,payload,execute)=>{const digest=hash({actor:actor.id,operation,payload}),prior=history.get(payload.requestId);if(prior){if(prior.digest!==digest)throw Object.assign(Error(),{statusCode:409});return{...structuredClone(prior.value),replayed:true};}const value=await execute();history.set(payload.requestId,{digest,value:structuredClone(value)});return value;};return fn(c);}};
+ return{service:createWorkInboundService({getStore:async()=>store}),c,history,transactions,native:()=>native};}
+test('count payload preserves literal unknown identity and rejects guesses, duplicate products and spoofed prices',()=>{
+ const value=countInput({requestId,note:'',lines:[line(null)]},products);assert.equal(value.lines[0].barcode,'009999');assert.equal(value.lines[0].productId,null);
+ for(const patch of [l=>l.expectedQuantityExact3='0.000',l=>l.physicalQuantityExact3='1.500',l=>l.barcode='00002',l=>l.purchasePrice=60,l=>l.productId='301986']){const l=line();patch(l);assert.throws(()=>countInput({requestId,note:'',lines:[l]},products));}
+ assert.throws(()=>countInput({requestId,note:'',lines:[line(),{...line(),clientLineId:'line-2'}]},products));
+});
+test('personnel receiving stays nonfinancial even when existing purchase.view is present',async()=>{
+ const f=fixture(),data=await f.service.context(seller);assert.equal(data.capabilities.canViewPurchase,false);const json=JSON.stringify(data);for(const secret of ['purchasePrice','balanceExact4','invoiceDrafts','grandTotal'])assert.equal(json.includes(secret),false);await assert.rejects(f.service.purchaseContext(seller),{statusCode:403});assert.equal(inboundCapabilities(office,{permissions:[]}).canApprove,false);
+ const financialRevoked=inboundCapabilities(office,{permissions:['sales.view','supplier.view']});assert.equal(financialRevoked.canViewPurchase,false);assert.equal(financialRevoked.canCreatePurchase,false);assert.equal(financialRevoked.canViewSupplier,false);
+});
+test('unknown row remains persistent needs_review and cannot reach native submit; cancel retains history',async()=>{
+ const f=fixture(),created=await f.service.create({requestId,note:'Barkod inceleme',lines:[line(null)]},seller);assert.equal(created.draft.state,'needs_review');assert.equal(created.draft.lines[0].barcode,'009999');
+ await assert.rejects(f.service.submit('1',{requestId:otherId,expectedRevision:created.draft.revision},seller),{statusCode:409});assert.equal(f.native(),0);
+ const cancelled=await f.service.cancel('1',{requestId:otherId,expectedRevision:created.draft.revision,reason:'Yanlış sayım satırı'},seller);assert.equal(cancelled.draft.state,'cancelled');assert.equal(f.history.get(requestId).value.draft.state,'needs_review');
+});
+test('count CAS rejects stale updates; full actor/body UUID replay precedes CAS and submit posts native batch once',async()=>{
+ const f=fixture(),created=await f.service.create({requestId,note:'',lines:[line()]},seller),body={requestId:otherId,expectedRevision:created.draft.revision};
+ await assert.rejects(f.service.update('1',{...body,expectedRevision:'a'.repeat(64),note:'',lines:[line()]},seller),{statusCode:409});
+ const result=await f.service.submit('1',body,seller);assert.equal(result.draft.state,'submitted');assert.equal(result.receipt.id,'7');assert.equal(f.native(),1);assert.equal((await f.service.submit('1',body,seller)).replayed,true);assert.equal(f.native(),1);
+ await assert.rejects(f.service.submit('1',{...body,expectedRevision:'b'.repeat(64)},seller),{statusCode:409});
+});
+test('office resolves unknown by explicit verified product while prior identity remains immutable',async()=>{
+ const f=fixture(),created=await f.service.create({requestId,note:'',lines:[line(null)]},seller);const updated=await f.service.update('1',{requestId:otherId,expectedRevision:created.draft.revision,note:'Kart bulundu',lines:[line()]},office);assert.equal(updated.draft.state,'draft');assert.equal(f.history.get(requestId).value.draft.lines[0].productId,null);assert.equal(updated.draft.lines[0].productId,'301985');
+});
+test('current permission revocation denies before replay; HOME carries no monetary values',async()=>{
+ const f=fixture(),body={requestId,note:'',lines:[line()]};await f.service.create(body,seller);f.c.actual.permissions=[];await assert.rejects(f.service.create(body,seller),{statusCode:403});f.c.actual.permissions=office.permissions;const home=await f.service.home(office);assert.equal(home.countDrafts.length,1);assert.equal(JSON.stringify(home).includes('60.00000000'),false);assert.equal(JSON.stringify(home).includes('balance'),false);
+});

@@ -1,4 +1,12 @@
-# ERP-NIGHT01 — 6 Ekim2026 teknik hazır / insan kabulü bekliyor
+# ERP-INBOUND01 — 6 Ekim2026 uygulama ve kabul provası sürüyor
+
+ERP-DEC-014 kapsamı: normal Mal Kabul → Alış/Fatura → tedarikçi hareketi → günlük işler. Başlangıç çalışan paket TEST53/source11f1734; yeni uygulama paketi henüz kurulmadı. Gece satış/tahsilat teslimi aşağıda tarihsel kaynak/kanıt olarak korunur. Güncel sentetik stok/kasa değerleri [yeni başlangıç fotoğrafında](docs/evidence/erp/2026-10-06-inbound/native-before.json); önceki gece son değerleri bugünkü başlangıç varsayımı değildir.
+
+Yeni kalıcı sayım metadata kurulumu: geri alınan Validate, Apply ve kurulum tekrarı PASS; tekrar `installed=0`. Mevcut guard/SQL izin/kullanıcı/rol hash'i değişmedi; yalnız yeni sayım ve immutable istek tablolarında dar service-account izinleri. Sınırlı TEST hesabında sysadmin0/control0/LIVE0 ve owner readiness doğrulandı. SQL kaynakSHA CF5928311B99A379D8C43132E96DFD6F0FF755B33BE433C980156E561FC03589. İlk geri alınan provadaki collation uyuşmazlığı iki taraflı BIN2 karşılaştırmayla düzeltildi. [Teknik kanıt](docs/evidence/erp/2026-10-06-inbound/README.md).
+
+Normal yeni ekran kaynakları, tam gövde/aktör UUID tekrar güvenliği, sayım revision kontrolü ve personel fiyat/borç redaksiyonu hedefli offline testlerde geçiyor. Gerçek tarayıcı/native stok-borç kabulü sürüyor; teknik hazır veya insan PASS henüz verilmedi. İki mevcut C01 üründe barkod kaydı yok; NULL korunur, ürün koduyla sayım ve bulunamayan barkodda stok kartı gerekli incelemesi hazırlanır.
+
+# ERP-NIGHT01 — 6 Ekim2026 önceki teknik teslim / insan kabulü bekliyor
 
 TEST53 / uygulama kaynak 11f17341dc69002aed8c249878c468058afc8da5; normal http://192.168.1.46:5194/ornek-akis.html. Gerçek ticari kartlar salt okunur; yalnız iki ayrılmış sentetik ürün, müşteri ve TRY kasa yazılabilir. Tarih 2026-10-06, en çok30 immutable işlem, miktar üst sınırı5 ve belge üst sınırı500TRY; diğer döviz/gerçek kartlar bu yazma kapsamına açılmadı.
 

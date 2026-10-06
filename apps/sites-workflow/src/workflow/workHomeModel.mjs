@@ -4,7 +4,7 @@ const number=v=>Number.isSafeInteger(v)&&v>=0;
 const day=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v));
 const exact=v=>v===null||typeof v==='string'&&/^-?(?:0|[1-9]\d{0,33})\.\d{4}$/.test(v);
 export const homeTargets=['goods','purchases','sales','receipts','finance','customers','suppliers','count-test','count-cancel','return-sales','return-purchase'].map(x=>'/is-akisi-taslagi.html#'+x);
-export const homeShortcuts=[{id:'goods',capability:'goods',label:'Mal Kabul',icon:'⇩',href:'/is-akisi-taslagi.html#goods'},{id:'sales',capability:'sales',label:'Satış',icon:'▣',screen:'sales'},{id:'collections',capability:'collection',label:'Tahsilat',icon:'₺',screen:'collections'},{id:'stock',capability:'product',label:'Ürün & Stok',icon:'▦',screen:'stock'},{id:'customers',capability:'customer',label:'Müşteriler',icon:'♙',screen:'customers'},{id:'suppliers',capability:'supplier',label:'Tedarikçiler',icon:'▧',href:'/is-akisi-taslagi.html#suppliers'}];
+export const homeShortcuts=[{id:'goods',capability:'goods',label:'Mal Kabul',icon:'⇩',screen:'goods'},{id:'sales',capability:'sales',label:'Satış',icon:'▣',screen:'sales'},{id:'collections',capability:'collection',label:'Tahsilat',icon:'₺',screen:'collections'},{id:'stock',capability:'product',label:'Ürün & Stok',icon:'▦',screen:'stock'},{id:'customers',capability:'customer',label:'Müşteriler',icon:'♙',screen:'customers'},{id:'suppliers',capability:'supplier',label:'Tedarikçiler',icon:'▧',screen:'suppliers'}];
 export function homeAmount(value){if(!exact(value))fail();if(value===null)return 'Bilinmiyor';const [whole,fraction]=value.split('.'),trimmed=fraction.replace(/0+$/,'');return whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(trimmed?','+trimmed:'');}
 export function homeCount(value){return value===null?'Bilinmiyor':number(value)?value.toLocaleString('tr-TR'):fail();}
 function totals(rows){if(!Array.isArray(rows)||rows.length>3||new Set(rows.map(r=>r.currency)).size!==rows.length)fail();for(const r of rows)if(!['TRY','USD','EUR'].includes(r.currency)||!exact(r.amountExact4)||!number(r.knownCount)||!number(r.unknownCount))fail();}
@@ -28,4 +28,16 @@ export function orderedHomeShortcuts(capabilities,user){
 }
 export function orderedHomeTasks(tasks,user){return user?.role?.code==='admin'?[...tasks].sort((a,b)=>Number(b.kind==='approval')-Number(a.kind==='approval')||Number(b.state==='pending')-Number(a.state==='pending')):tasks;}
 
-export function homeNormalScreen(target){return {'/is-akisi-taslagi.html#sales':'sales','/is-akisi-taslagi.html#receipts':'receipts','/is-akisi-taslagi.html#finance':'collections','/is-akisi-taslagi.html#customers':'customers'}[target]??null;}
+export function homeNormalScreen(target){return {'/is-akisi-taslagi.html#goods':'goods','/is-akisi-taslagi.html#purchases':'purchases','/is-akisi-taslagi.html#suppliers':'suppliers','/is-akisi-taslagi.html#sales':'sales','/is-akisi-taslagi.html#receipts':'receipts','/is-akisi-taslagi.html#finance':'collections','/is-akisi-taslagi.html#customers':'customers'}[target]??null;}
+
+export function mergeInboundHome(data,inbound){
+ const c=inbound?.capabilities;if(!c||!['canView','canViewPurchase','canViewSupplier'].every(k=>typeof c[k]==='boolean'))fail();
+ const definitions={countDrafts:['draft','needs_review','submitted','cancelled'],receipts:['pending','accepted','rejected'],drafts:['draft','finalized','cancelled']};
+ for(const [key,states] of Object.entries(definitions)){const rows=inbound[key];if(!Array.isArray(rows)||rows.length>500||new Set(rows.map(r=>r.id)).size!==rows.length||rows.some(r=>typeof r.id!=='string'||!/^[1-9]\d{0,15}$/.test(r.id)||!states.includes(r.state??r.status)))fail();}
+ if(!c.canView||!c.canViewPurchase&&inbound.drafts.length)fail();
+ const capabilities={...data.capabilities,purchase:data.capabilities.purchase&&c.canViewPurchase};
+ const navigationReady={...data.navigationReady,goods:data.capabilities.goods&&c.canView,purchase:capabilities.purchase,supplier:data.capabilities.supplier&&c.canViewSupplier};
+ const jobs=[...inbound.countDrafts.filter(r=>['draft','needs_review'].includes(r.state)).map(r=>({id:'inbound-count:'+r.id,kind:'goods',label:r.state==='needs_review'?'Stok kartı gerekli · Sayımı inceleyin':'Mal kabulü sayımına devam edin',state:'draft',date:null,target:'/is-akisi-taslagi.html#goods',ready:navigationReady.goods})),...inbound.receipts.filter(r=>r.state==='pending').map(r=>({id:'goods-batch:'+r.id,kind:'goods',label:'Mal kabulünü kontrol edin',state:'pending',date:null,target:'/is-akisi-taslagi.html#goods',ready:navigationReady.goods})),...inbound.drafts.filter(r=>r.status==='draft').map(r=>({id:'inbound-purchase:'+r.id,kind:'purchase-draft',label:'Alış faturasını tamamlayın',state:'draft',date:null,target:'/is-akisi-taslagi.html#purchases',ready:navigationReady.purchase}))];
+ const currentIds=new Set(jobs.map(r=>r.id));const other=data.tasks.filter(t=>!currentIds.has(t.id)).map(t=>['goods','purchase-draft'].includes(t.kind)?{...t,ready:false}:t);
+ return {...data,capabilities,navigationReady,tasks:[...jobs,...other].slice(0,5)};
+}

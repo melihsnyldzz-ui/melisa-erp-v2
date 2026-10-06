@@ -13,14 +13,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const stored=key=>{try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=()=>{generation++;controllers.forEach(c=>c.abort());token=null;user=null;try{storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,keepForbiddenSession=false,inboundErrors=false}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
    const response=await fetchImpl(resolvedApiBase+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
-   if(!response.ok||payload?.success!==true){if(response.status===401||response.status===403){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';throw error;}
+   if(!response.ok||payload?.success!==true){if(response.status===401||response.status===403&&!keepForbiddenSession){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
    return payload;
   }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
  }
@@ -53,6 +53,16 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    const write=/^\/api\/(?:work-sales\/(?:preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,workErrors:method==='POST'&&/^\/api\/work-sales\/drafts\/[1-9]\d*\/cancel$/.test(path)})).data;
+  },
+  async inbound(path,{method='GET',body,...extra}={}){
+   const read=/^\/api\/(?:work-receiving\/(?:context|home|count-drafts(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-purchases\/(?:context|drafts\/[1-9]\d*)|work-suppliers\/(?:context|history))$/;
+   const write=/^\/api\/(?:work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?))$/;
+   if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Mal kabulü bağlantısı kullanılamıyor.');
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true})).data;
+  },
+  async suppliers(path,{envelope=false,...extra}={}){
+   if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/(?:supplier-cards\?[^#]*|suppliers\/[1-9]\d*\/card)$/.test(path)||!token||!user)throw problem('Tedarikçi kartları okunamıyor.');
+   const payload=await request(path,{expire:true,keepForbiddenSession:true});return envelope?payload:payload.data;
   },
   async media(path,{signal,...extra}={}){
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/catalog\/products\/[1-9]\d*\/photo\?variant=(?:preview|thumbnail)$/.test(path)||!token||!user||!active||!target()||signal?.aborted)throw problem('Ürün fotoğrafı açılamıyor.');

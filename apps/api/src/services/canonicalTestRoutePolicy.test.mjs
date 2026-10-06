@@ -1,6 +1,13 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('inbound normal writes cannot reach native, supplier editing or malformed lifecycle IDs',()=>{
+ for(const path of ['/api/work-receiving/count-drafts','/api/work-receiving/count-drafts/12/update','/api/work-receiving/count-drafts/12/submit','/api/work-receiving/count-drafts/12/cancel','/api/work-receiving/receipts/12/approve','/api/work-receiving/receipts/12/reject','/api/work-purchases/preview','/api/work-purchases/drafts','/api/work-purchases/drafts/12/finalize','/api/work-purchases/drafts/12/cancel']){
+  assert.equal(allowed('POST',path,ctx),true,path);assert.equal(allowed('POST',path,{mode:'native',writes:true}),false);assert.equal(allowed('POST',path,{mode:'erp',writes:false}),false);
+  for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ctx),false);
+ }
+ for(const path of ['/api/work-receiving/count-drafts/01/submit','/api/work-receiving/count-drafts/12/submit/extra','/api/work-suppliers/context','/api/work-receiving/context','/api/work-purchases/drafts/0/finalize','/api/work-purchases/products/12'])assert.equal(allowed('POST',path,ctx),false,path);
+});
 test('normal work writes permit only exact lifecycle paths in ERP TEST',()=>{
  for(const path of ['/api/work-sales/preview','/api/work-sales/drafts','/api/work-sales/drafts/1/finalize','/api/work-sales/drafts/1/cancel','/api/work-collections','/api/work-collections/preview','/api/work-collections/1/cancel']){
   assert.equal(allowed('POST',path,ctx),true);assert.equal(allowed('POST',path,{mode:'native',writes:true}),false);assert.equal(allowed('POST',path,{mode:'erp',writes:false}),false);
