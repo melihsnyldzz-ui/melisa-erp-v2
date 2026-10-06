@@ -229,6 +229,9 @@ BEGIN
  RETURN;
 END;
 ' AS nvarchar(max)));
+-- Git/Windows line endings must not change generated definition hashes. Only new
+-- prefix/function text is normalized; the installed legacy definition remains exact.
+UPDATE @prefixes SET body=REPLACE(body,CHAR(13)+CHAR(10),CHAR(10));
 UPDATE p SET after_definition=STUFF(p.before_definition,CHARINDEX(N'AS BEGIN',p.before_definition)+8,0,CHAR(10)+x.body+CHAR(10))
 FROM @plan p JOIN @prefixes x ON x.name=p.name;
 IF EXISTS(SELECT 1 FROM @plan WHERE name LIKE N'test[_]guard[_]%' AND (after_definition IS NULL OR CHARINDEX(N'AS BEGIN',before_definition)=0))
@@ -255,6 +258,8 @@ AS BEGIN
  FROM dbo.stock_movements WHERE product_id=@product_id AND (@exclude_movement_id IS NULL OR id<>@exclude_movement_id);
  RETURN LOWER(CONVERT(varchar(64),HASHBYTES(''SHA2_256'',CONVERT(varbinary(max),CONVERT(varchar(max),@json COLLATE Latin1_General_100_CI_AS_SC_UTF8))),2));
 END;' AS nvarchar(max))),2));
+UPDATE @plan SET after_definition=REPLACE(after_definition,CHAR(13)+CHAR(10),CHAR(10)) WHERE name=N'fn_test_daily_count_fingerprint';
+UPDATE @plan SET after_hash=CONVERT(varchar(64),HASHBYTES('SHA2_256',after_definition),2) WHERE name=N'fn_test_daily_count_fingerprint';
 IF @Apply=0 BEGIN SELECT name,before_hash,after_hash,N'prepare-only-no-write' mode FROM @plan ORDER BY name; RETURN; END;
 
 BEGIN TRY

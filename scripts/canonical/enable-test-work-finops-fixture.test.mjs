@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {buildSql,readyDefinition,contextDefinition,effectsDefinition,WORK_SUPPLIER_PAYMENT_SQL_PROOF,GUARDS,PERMISSIONS,TABLE_SQL,SCHEMA_SQL,SEED_SQL,OLD_GUARDS,PROTECTED_TABLES,hash,storedDefinition} from './enable-test-work-finops-fixture.mjs';
 import {findInlineCrossColumnChecks} from './enable-test-purchase-batches.mjs';
-import {WORK_SUPPLIER_PAYMENT_SQL_PROOF as generated} from '../../apps/api/src/services/workSupplierPaymentSqlProof.mjs';
+import {WORK_SUPPLIER_PAYMENT_SQL_PROOF as currentProof} from '../../apps/api/src/services/workSupplierPaymentSqlProof.mjs';
+const generated=WORK_SUPPLIER_PAYMENT_SQL_PROOF; // Immutable original installation proof; count upgrade has its own independent check.
 test('generated SQL and independent owner proof exactly equal reviewed definitions',()=>{
  assert.equal(fs.readFileSync(new URL('./enable-test-work-finops-fixture.sql',import.meta.url),'utf8').replaceAll('\r\n','\n'),buildSql());
  assert.deepEqual(generated,WORK_SUPPLIER_PAYMENT_SQL_PROOF);
@@ -100,4 +101,23 @@ test('payment actor, context, permissions and immutable journal all reject an in
  assert.match(c,/j.ownership=N'work' AND m.movement_type=N'payment' AND cancel.movement_id IS NULL/);
  assert.match(readyDefinition(),/s.currency=N'TRY' OR NOT EXISTS\(SELECT 1 FROM dbo.test_payment_requests old/);
  assert.match(GUARDS.work_payment_requests_guard,/EXEC dbo.usp_work_supplier_payment_effects @request_id=@insertedRequest/);
+});
+
+test('count guard upgrade pins the exact prior audit body and independently derives the new finance ready proof',()=>{
+ const source=fs.readFileSync(new URL('./enable-test-daily-count-lines.sql',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ const before=fs.readFileSync(new URL('./daily-count-before-audit.sql',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ assert.equal(hash(before),OLD_GUARDS.test_guard_audit_logs);
+ const match=source.match(/\(N'test_guard_audit_logs',CAST\(N'((?:''|[^'])*)' AS nvarchar\(max\)\)\)/);
+ assert.ok(match,'Exact reviewed audit prefix must be recoverable without a running database');
+ const prefix=match[1].replaceAll("''","'");
+ const position=before.indexOf('AS BEGIN')+8;assert.ok(position>8);
+ const audit=('ALTER '+before.slice(6,position)+'\n'+prefix+'\n'+before.slice(position));
+ const ready=('ALTER '+readyDefinition().slice(6)).replace(OLD_GUARDS.test_guard_audit_logs,hash(audit));
+ assert.equal(currentProof.readyHash,hash(ready));
+ assert.equal(currentProof.contextHash,generated.contextHash);assert.equal(currentProof.effectsHash,generated.effectsHash);
+ for(const key of ['melisa_test_count_draft_id','melisa_test_count_actor_id','melisa_test_count_transaction_id'])assert.ok(prefix.includes(key));
+ assert.ok(prefix.includes('CURRENT_TRANSACTION_ID()'));assert.ok(prefix.includes('DAILY_COUNT_EXACT_AUDIT_REQUIRED'));
+ assert.match(source,/UPDATE @prefixes SET body=REPLACE\(body,CHAR\(13\)\+CHAR\(10\),CHAR\(10\)\)/);
+ const packed=source.replaceAll('\n','\r\n').match(/\(N'test_guard_audit_logs',CAST\(N'((?:''|[^'])*)' AS nvarchar\(max\)\)\)/)[1].replaceAll("''","'").replaceAll('\r\n','\n');
+ assert.equal(packed,prefix);
 });
