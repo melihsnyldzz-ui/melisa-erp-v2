@@ -19,6 +19,7 @@ const canon=v=>Array.isArray(v)?v.map(canon):v&&typeof v==='object'?Object.fromE
 const hash=v=>createHash('sha256').update(JSON.stringify(canon(v))).digest('hex');
 const validDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')||!Number.isFinite(Date.parse(d))||new Date(d).toISOString().slice(0,10)!==d)fail('DATE','Geçerli tarih gerekli.');return d};
 async function atomic(flow,actor,fn){return withTestSalesMutation(async()=>{const pool=await getSqlPool(),sqlDriver=getSqlDriver(),transaction=new sqlDriver.Transaction(pool);await transaction.begin();const ctx={pool,sqlDriver,transaction},req=()=>new sqlDriver.Request(transaction);try{
+ await req().query("EXEC sys.sp_set_session_context @key=N'melisa_test_count_draft_id',@value=NULL;EXEC sys.sp_set_session_context @key=N'melisa_test_count_actor_id',@value=NULL;EXEC sys.sp_set_session_context @key=N'melisa_test_count_transaction_id',@value=NULL;");
  await req().query("IF DB_NAME()<>N'MELISA_ERP_SIRKET_TEST_20260929_01' THROW 51070,'WRONG_DB',1;DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51071,'TEST_BUSY',1;");
  const scope=(await req().input('flow',sqlDriver.NVarChar(20),flow).query('SELECT s.*,p.stock_code,p.name product_name,p.unit,p.current_stock_qty,p.average_cost_try FROM dbo.test_daily_scope s LEFT JOIN dbo.products p ON p.id=s.product_id WHERE s.flow=@flow')).recordset[0];if(!scope)fail('TEST_SCOPE','TEST kapsamı bulunamadı.',403);ctx.scope=scope;ctx.req=req;ctx.actor=actor;
  await assertOperationQuarantineAllowed(['product','customer','supplier'].filter(entity=>scope[entity+'_id']!=null).map(entity=>({entity,nativeId:scope[entity+'_id']})),quarantineTransactionContext(sqlDriver,transaction));
@@ -112,10 +113,17 @@ export async function dailyDecide(flow,op,i,actor){return atomic(flow,actor,c=>j
   if(Array.isArray(d.payload.lines)){
    if(d.payload.unknownScans?.length)fail('COUNT_NEEDS_REVIEW','Bilinmeyen okutmalar incelemede. Ürün kartı olmadan sayım farkı uygulanamaz.',409);
    const products=await countProductScope(c),applied=[];
+   await c.req().input('countDraftId',c.sqlDriver.BigInt,d.id).input('countActorId',c.sqlDriver.BigInt,actor.id).query("DECLARE @countTransactionId bigint=CURRENT_TRANSACTION_ID();EXEC sys.sp_set_session_context @key=N'melisa_test_count_draft_id',@value=@countDraftId;EXEC sys.sp_set_session_context @key=N'melisa_test_count_actor_id',@value=@countActorId;EXEC sys.sp_set_session_context @key=N'melisa_test_count_transaction_id',@value=@countTransactionId;");
+   let countFailure;
+   try {
    for(const line of d.payload.lines){const current=products.find(p=>p.id===line.productId);if(!current||current.stockQuantity!==line.system||current.movementFingerprint!==line.fingerprint)fail('STOCK_COUNT_STALE',`${line.stockCode}: Sayım sonrasında stok hareketi var. Yeniden sayın.`,409);
     applied.push(await applyStockCountAdjustment({productId:Number(line.productId),expectedCurrentQuantity:line.system,countedQuantity:line.physical,note:line.reason||'Fark yok',documentDate:d.payload.date},actor,{...c,countDocumentId:d.id,countWarehouse:d.payload.warehouse}));
    }
    result={id:d.id,lines:applied,unknownScans:[],movementCreated:applied.some(x=>x.movementCreated)};
+   } catch (error) {countFailure=error;throw error;} finally {
+    // Transaction binding also prevents a stale pooled-session tag authorizing a later transaction.
+    try {await c.req().query("EXEC sys.sp_set_session_context @key=N'melisa_test_count_draft_id',@value=NULL;EXEC sys.sp_set_session_context @key=N'melisa_test_count_actor_id',@value=NULL;EXEC sys.sp_set_session_context @key=N'melisa_test_count_transaction_id',@value=NULL;");} catch (cleanupError) {if(!countFailure)throw cleanupError;}
+   }
   }else{
    if(hash(await fingerprint(c))!==hash(d.payload.fingerprint))fail('STOCK_COUNT_STALE','Sayım sonrasında hareket var; tekrar sayım açın.',409);
    result=await applyStockCountAdjustment({productId:Number(s.product_id),expectedCurrentQuantity:d.payload.system,countedQuantity:d.payload.physical,note:d.payload.reason,documentDate:d.payload.date},actor,{...c,countDocumentId:d.id,countWarehouse:d.payload.warehouse});
