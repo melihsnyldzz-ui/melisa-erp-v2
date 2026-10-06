@@ -102,8 +102,18 @@ END;
  const startupHeader=' SELECT CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,CONVERT(bit,1) classificationValidated,';
  check(text.includes(startupHeader),'VERSION_TEMPLATE_STARTUP_HEADER_DRIFT');
  text=text.replace(startupHeader,` SELECT ${lit(c.runId)} sourceVersionRunId,${lit(c.sourceHash)} sourceVersionSourceHash,${lit(c.planHash)} sourceVersionPlanHash,${lit(c.bindingsHash)} sourceVersionBindingsHash,CONVERT(varchar(20),@actor_id) actorId,CONVERT(bit,1) canView,CONVERT(bit,1) classificationValidated,`);
+ // Read the indexed immutable version directly. Copying all products into a
+ // temporary heap and sorting its index repeated startup work on every page.
+ // Seal/count/trigger pins and selected native/stage/alias checks remain intact.
+ const productView='(SELECT * FROM '+SOURCE_VERSION_TABLES.products+' WHERE version_run_id='+lit(c.runId)+')';
+ const copy='SELECT * INTO #Goal7Products FROM '+SOURCE_VERSION_TABLES.products+' WHERE version_run_id='+lit(c.runId)+';';
+ const index='CREATE UNIQUE CLUSTERED INDEX IX_Goal7Products ON #Goal7Products(product_id);';
+ check(text.includes(copy)&&text.includes(index),'VERSION_TEMPLATE_COPY_DRIFT');
+ text=text.replace(copy,'').replace(index,'')
+  .replaceAll('FROM #Goal7Products)','FROM '+productView+' Goal7ResolvedProducts)')
+  .replaceAll('#Goal7Products',productView);
  const stored=text.replace(/^CREATE OR ALTER PROCEDURE /,'CREATE   PROCEDURE ');
- return {procedure:SOURCE_CATALOG_PROC,sql:text,storedDefinition:stored,proof:{...CATALOG_SQL_PROOF,readerDefinitionHash:sourceVersionSqlHash(stored)},context:{...c,readerDefinitionHash:sourceVersionSqlHash(stored)}};
+ return {procedure:SOURCE_CATALOG_PROC,sql:text,readinessSql:versionReady,storedDefinition:stored,proof:{...CATALOG_SQL_PROOF,readerDefinitionHash:sourceVersionSqlHash(stored)},context:{...c,readerDefinitionHash:sourceVersionSqlHash(stored)}};
 }
 export function sourceCatalogAccessSql(){return ['melisa_sirket_test_20260929_01','melisa_sirket_sales_test_20260929_01'].map(p=>`IF DATABASE_PRINCIPAL_ID(N'${p}') IS NULL THROW 51107,'VERSION_EXISTING_PRINCIPAL_REQUIRED',1;`+[SOURCE_CATALOG_PROC,'dbo.usp_read_stock_products_goal7','dbo.usp_get_source_version_prices_goal7','dbo.usp_list_source_version_products_goal7'].map(proc=>`GRANT EXECUTE ON OBJECT::${proc} TO [${p}];`).join('')).join('\n');}
 const sourceView=(table,c)=>`(SELECT * FROM ${table} WHERE version_run_id=${lit(c.runId)})`;
@@ -112,7 +122,7 @@ function resolvedTemplate(text,c){return text.replaceAll('erp_migration.accepted
  .replaceAll("r.run_id=N'VEGA-OPENING-TEST-20261004-06' AND r.entity=N'products'",'r.run_id=b.lineage_run_id AND r.entity=N\'products\'')
  .replaceAll("r.run_id=N'VEGA-OPENING-TEST-20261004-06' AND r.entity=N'prices'",'r.run_id=v.lineage_run_id AND r.entity=N\'prices\'')
  .replaceAll('r.source_key=b.product_source_key','r.source_key=b.lineage_source_key').replaceAll('r.source_key=v.price_source_key','r.source_key=v.lineage_source_key');}
-function readySql(c){const sql=buildSourceCatalogReader(c).sql,start=sql.indexOf('/* GOAL7_VERSION_READY */'),end=sql.indexOf('/* GOAL7_VERSION_READY_END */',start);check(start>=0&&end>start,'VERSION_READY_TEMPLATE_DRIFT');return sql.slice(start,end)+'\n';}
+function readySql(c){const sql=buildSourceCatalogReader(c).readinessSql,start=sql.indexOf('/* GOAL7_VERSION_READY */'),end=sql.indexOf('/* GOAL7_VERSION_READY_END */',start);check(start>=0&&end>start,'VERSION_READY_TEMPLATE_DRIFT');return sql.slice(start,end)+'\n';}
 export function buildSourceStockReader(c){
  validateSourceCatalogContext(c);check(STOCK_PRODUCT_PROC_SQL.includes(STOCK_PRODUCT_RUNTIME_READY_SQL),'VERSION_STOCK_TEMPLATE_DRIFT');
  let text=resolvedTemplate(STOCK_PRODUCT_PROC_SQL.replace(STOCK_PRODUCT_RUNTIME_READY_SQL,'/* LEGACY_STOCK_READY */'),c).replace('dbo.usp_read_stock_products','dbo.usp_read_stock_products_goal7');
