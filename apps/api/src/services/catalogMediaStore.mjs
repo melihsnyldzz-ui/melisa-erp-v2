@@ -31,7 +31,11 @@ export function parseCatalogMediaVariant(query={}){
 }
 export function createCatalogMediaStore({expectedRoot=ROOT,expectedCount=3830}={}){
  let registry=null;
- function match(row){const entry=registry?.entries.get(row?.id);return entry&&row.stockCode===entry.stockCode&&row.provenance?.kind==='accepted-opening'&&row.provenance.verified===true&&row.provenance.sourceKey===entry.sourceKey&&row.provenance.runId===entry.runId&&row.provenance.sourceAsOf==='2026-09-30'&&row.hold?.blocked===false?entry:null;}
+ function match(row){const entry=registry?.entries.get(row?.id),p=row?.provenance;
+  const historical=p?.sourceKey===entry?.sourceKey&&p?.runId===entry?.runId&&p?.sourceAsOf==='2026-09-30';
+  const revised=p?.sourceAsOf==='2026-10-07'&&/^GOAL7-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(p?.runId??'')&&row.mediaProvenance?.sourceKey===entry?.sourceKey&&row.mediaProvenance?.runId===entry?.runId&&p.sourceKey.split('/').at(-1)===entry?.sourceKey.split('/').at(-1);
+  return entry&&row.stockCode===entry.stockCode&&p?.kind==='accepted-opening'&&p.verified===true&&(historical||revised)&&row.hold?.blocked===false?entry:null;
+ }
  return {
   async configure({root,indexSha256,identity,mode,port,writes}){
    registry=null;if(root===undefined||root===null)return;

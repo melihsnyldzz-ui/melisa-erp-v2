@@ -29,6 +29,15 @@ test('every fresh DTO must still match pinned source/classification; state is no
  const f=await fixture(t);await f.store.configure(f.context);const row={id:'12',stockCode:'0010 MY MİO ',displayCode:'0010',provenance:{kind:'accepted-opening',sourceKey:f.index.entries[0].sourceKey,runId:f.index.runId,sourceAsOf:'2026-09-30',verified:true},hold:{blocked:false},classification:{brand:'MY MİO ',productType:'TAKIM',sourceName:'TAKIM',verified:true}};f.store.assertRow(row);
  for(const mutate of [r=>r.stockCode='changed',r=>r.provenance.sourceKey+='0',r=>r.classification.brand='MY MİO',r=>r.hold.blocked=true,r=>r.displayCode='10']){const changed=structuredClone(row);mutate(changed);assert.throws(()=>f.store.assertRow(changed),{statusCode:503});}
 });
+test('opt-in version registry needs exact configured context, complete pinned index and independent SQL validation',async t=>{
+ const f=await fixture(t),version={runId:'GOAL7-00000000-0000-4000-8000-000000000001',sourceAsOf:'2026-10-07',sourceHash:'e'.repeat(64),planHash:'f'.repeat(64),bindingsHash:'a'.repeat(64),readerDefinitionHash:'b'.repeat(64),productCount:2,priceCount:3};
+ const versionRoot=f.root+'-goal7';await fs.mkdir(versionRoot);t.after(()=>fs.rm(versionRoot,{recursive:true,force:true}));
+ const index={...f.index,schemaVersion:'melisa-erp.catalog-classification.v2',runId:version.runId,sourceAsOf:version.sourceAsOf,sourceHash:version.sourceHash,entries:f.index.entries.map((e,i)=>({...e,lineageRunId:i===0?version.runId:f.index.runId,sourceAsOf:i===0?version.sourceAsOf:'2026-09-30'}))};
+ const raw=JSON.stringify(index);await fs.writeFile(path.join(versionRoot,'index.json'),raw);let checks=0;
+ const store=createCatalogClassificationStore({expectedRoot:f.root,acceptedCount:2,heldCount:1,getSourceVersion:async()=>version,getUser:async()=>f.state.user,validateIndex:async entries=>{checks++;assert.equal(Object.hasOwn(JSON.parse(entries)[0],'lineageRunId'),false);}});
+ const context={...f.context,root:versionRoot,indexSha256:digest(raw),sourceVersion:version};await store.configure(context);assert.equal(checks,1);assert.equal(JSON.parse(store.selection({options:parseCatalogQuery()}).candidatesJson).length,3);
+ await assert.rejects(()=>store.configure({...context,sourceVersion:{...version,bindingsHash:'c'.repeat(64)}}));assert.throws(()=>store.selection({options:parseCatalogQuery()}));
+});
 test('wrong pin, scope, revoked startup role, duplicate or mutable metadata and failed SQL proof cannot enable registry',async t=>{
  const f=await fixture(t);for(const override of [{indexSha256:'0'.repeat(64)},{port:4146},{writes:false},{root:os.tmpdir()}]){await assert.rejects(()=>f.store.configure({...f.context,...override}),{statusCode:503});assert.throws(()=>f.store.selection({options:parseCatalogQuery()}),{statusCode:503});}assert.equal(f.state.validations,0);
  f.state.user.permissions=[];await assert.rejects(()=>f.store.configure(f.context));f.state.user.permissions=['product.view','sales.view'];

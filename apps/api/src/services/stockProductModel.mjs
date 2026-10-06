@@ -18,14 +18,15 @@ const text=(v,nullable=false)=>{if(nullable&&v===null)return null;if(typeof v!==
 const bool=v=>{if(typeof v!=='boolean')return fail();return v;};
 const exact=v=>{if(v===null)return null;if(typeof v!=='string'||!/^\-?(?:0|[1-9]\d{0,19})\.\d{8}$/.test(v))return fail();return v;};
 export const stockReadTimestamp=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value;
-export function stockProductDto(row,{sqlFinance=false,canViewFinance=false,financialExpected=sqlFinance}={}){
+export function stockProductDto(row,{sqlFinance=false,canViewFinance=false,financialExpected=sqlFinance,sourceVersion=null}={}){
   if(!row||typeof row!=='object'||!row.unit||!row.provenance||!row.hold||!Array.isArray(row.barcodes))return fail();
   const p=row.provenance,u=row.unit,h=row.hold;
   if(!['accepted-opening','synthetic-test','quarantined-source'].includes(p.kind)||p.verified!==true)return fail();
   const syntheticCards={'301984':'TEST-V70-20260929-P','301985':'TEST-V70-GOODS-P','301986':'TEST-DAILY-PURCHASE'};
   if(p.kind==='synthetic-test'&&syntheticCards[row.id]!==row.stockCode)return fail();
-  if(p.kind==='synthetic-test'?(p.sourceAsOf!==null||p.runId!==null||p.sourceKey!==null)
-    :(p.sourceAsOf!=='2026-09-30'||p.runId!=='VEGA-OPENING-TEST-20261004-06'||typeof p.sourceKey!=='string'||!/^VEGA_CAPTURE_20260930_01\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey)))return fail();
+  const baseline=p.sourceAsOf==='2026-09-30'&&p.runId==='VEGA-OPENING-TEST-20261004-06'&&typeof p.sourceKey==='string'&&/^VEGA_CAPTURE_20260930_01\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey);
+  const versioned=sourceVersion&&p.kind==='accepted-opening'&&p.sourceAsOf===sourceVersion.sourceAsOf&&p.runId===sourceVersion.runId&&typeof p.sourceKey==='string'&&/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey);
+  if(p.kind==='synthetic-test'?(p.sourceAsOf!==null||p.runId!==null||p.sourceKey!==null):!baseline&&!versioned)return fail();
   const unit={label:text(u.label,true),sourceId:u.sourceId===null?null:id(u.sourceId),factorExact8:exact(u.factorExact8),verified:bool(u.verified)};
   if(unit.verified&&(unit.label===null||unit.factorExact8===null||BigInt(unit.factorExact8.replace('.',''))<=0n))return fail();
   if(!unit.verified&&unit.factorExact8!==null)return fail();

@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {createCatalogMediaStore,parseCatalogMediaVariant} from './catalogMediaStore.mjs';
 const source='VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/12';
 const row=()=>({id:'12',stockCode:'0012',provenance:{kind:'accepted-opening',verified:true,sourceKey:source,runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30'},hold:{blocked:false},photo:{status:'missing',url:null,sourceKey:null,verified:false}});
+test('v2 source lineage retains authentic old photo binding; wrongstock/source/hold and new products do not inherit photos',async t=>{const f=await fixture(t);await f.store.configure(f.context);const r=row();r.provenance.runId='GOAL7-00000000-0000-4000-8000-000000000001';r.provenance.sourceAsOf='2026-10-07';assert.equal(f.store.photoFor(r).status,'missing');r.mediaProvenance={sourceKey:source,runId:'VEGA-OPENING-TEST-20261004-06'};assert.equal(f.store.photoFor(r).status,'available');assert.deepEqual((await f.store.readPhoto(r,'preview')).bytes,f.bytes);for(const edit of [x=>x.stockCode='other',x=>x.id='13',x=>x.provenance.sourceKey+='0',x=>x.mediaProvenance.runId='other',x=>x.hold.blocked=true]){const bad=structuredClone(r);edit(bad);assert.equal(f.store.photoFor(bad).status,'missing');await assert.rejects(()=>f.store.readPhoto(bad,'preview'));}});
 async function fixture(t){
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'melisa-media-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
  const bytes=Buffer.from([255,216,255,224,1,2,255,217]),sha=createHash('sha256').update(bytes).digest('hex');

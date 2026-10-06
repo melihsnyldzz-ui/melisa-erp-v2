@@ -20,9 +20,9 @@ export function compareCatalogCodes(a,b){
 const invalid=()=>{throw catalogError();};
 const nativeId=value=>{try{return parseStockProductId(value);}catch{return invalid();}};
 const priceExact=value=>{if(value===null)return null;if(typeof value!=='string'||!/^\-?(?:0|[1-9]\d{0,19})\.\d{8}$/.test(value))return invalid();return value;};
-export function catalogProductDto(row,{sqlSales=false,canViewSalesPrices=false}={}){
+export function catalogProductDto(row,{sqlSales=false,canViewSalesPrices=false,sourceVersion=null}={}){
   if(!row||Object.hasOwn(row,'financial')||Object.hasOwn(row,'averageCostTryExact')||Object.hasOwn(row,'purchasePrice')||Object.hasOwn(row,'purchasePrices')||!Array.isArray(row.salePrices))return invalid();
-  let basic;try{basic=stockProductDto({...row,imageUrl:row.imageUrl??null},{financialExpected:false});}catch{return invalid();}
+  let basic;try{basic=stockProductDto({...row,imageUrl:row.imageUrl??null},{financialExpected:false,sourceVersion});}catch{return invalid();}
   if(basic.provenance.kind==='synthetic-test'||['301984','301985','301986'].includes(basic.id))return invalid();
   if(!row.photo||row.photo.status!=='missing'||row.photo.url!==null||row.photo.sourceKey!==null||row.photo.verified!==false)return invalid();
   const c=row.classification;
@@ -38,15 +38,19 @@ export function catalogProductDto(row,{sqlSales=false,canViewSalesPrices=false}=
   });
   if(new Set(salePrices.map(p=>p.id)).size!==salePrices.length||new Set(salePrices.map(p=>JSON.stringify([p.unitSourceId,p.tier,p.currency]))).size!==salePrices.length)return invalid();
   const {imageUrl,...data}=basic;
-  return {...data,displayCode:row.displayCode,classification:{brand:c.brand,productType:c.productType,sourceName:c.sourceName,verified:c.verified},salePrices:canViewSalesPrices?salePrices:[],photo:{status:'missing',url:null,sourceKey:null,verified:false}};
+  const mediaProvenance=sourceVersion&&row.provenance.mediaSourceKey!==null&&row.provenance.mediaRunId!==null?{sourceKey:row.provenance.mediaSourceKey,runId:row.provenance.mediaRunId}:null;
+  if(mediaProvenance&&(mediaProvenance.runId!=='VEGA-OPENING-TEST-20261004-06'||!/^VEGA_CAPTURE_20260930_01\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(mediaProvenance.sourceKey)))return invalid();
+  return {...data,...(mediaProvenance?{mediaProvenance}:{}),displayCode:row.displayCode,classification:{brand:c.brand,productType:c.productType,sourceName:c.sourceName,verified:c.verified},salePrices:canViewSalesPrices?salePrices:[],photo:{status:'missing',url:null,sourceKey:null,verified:false}};
 }
 export function catalogReadResult(result,{actorId,productId=null,options,canViewSalesPrices=false}){
+  const sourceVersion=result?.sourceVersion??null,acceptedCount=sourceVersion?.productCount??16622;
+  if(sourceVersion&&(!/^GOAL7-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(sourceVersion.runId??'')||sourceVersion.sourceAsOf!=='2026-10-07'||acceptedCount!==16671||['sourceHash','planHash','bindingsHash','readerDefinitionHash'].some(k=>typeof sourceVersion[k]!=='string'||!/^[a-f0-9]{64}$/i.test(sourceVersion[k]))))return invalid();
   if(!result||result.actorId!==actorId||typeof result.canViewSalesPrices!=='boolean'||!Array.isArray(result.rows)||!Number.isSafeInteger(result.total)||result.total<0||result.page!==options.page||result.limit!==options.limit||!stockReadTimestamp(result.readAt)
-    ||result.acceptedCount!==16622||result.syntheticCount!==0||result.quarantinedCount!==54||result.rows.length!==Math.min(options.limit,Math.max(0,result.total-(options.page-1)*options.limit)))return invalid();
+    ||result.acceptedCount!==acceptedCount||result.syntheticCount!==0||result.quarantinedCount!==54||result.rows.length!==Math.min(options.limit,Math.max(0,result.total-(options.page-1)*options.limit)))return invalid();
   const visible=result.canViewSalesPrices&&canViewSalesPrices;
-  const data=result.rows.map(row=>catalogProductDto(row,{sqlSales:result.canViewSalesPrices,canViewSalesPrices:visible}));
+  const data=result.rows.map(row=>catalogProductDto(row,{sqlSales:result.canViewSalesPrices,canViewSalesPrices:visible,sourceVersion}));
   const f=result.filters;
   if(!f||!Array.isArray(f.brands)||!Array.isArray(f.productTypes)||[f.brands,f.productTypes].some(values=>values.some(v=>typeof v!=='string'||!v.trim()||v.length>250)||new Set(values).size!==values.length))return invalid();
   if(new Set(data.map(p=>p.id)).size!==data.length||productId!==null&&(result.total>1||data.some(p=>p.id!==productId)))return invalid();
-  return {data,meta:{schemaVersion:'melisa-catalog.v1',readOnly:true,sourceAsOf:'2026-09-30',readAt:result.readAt,freshLive:false,total:result.total,page:options.page,limit:options.limit,totalPages:Math.ceil(result.total/options.limit),canViewSalesPrices:visible,filters:{brands:[...f.brands],productTypes:[...f.productTypes]},scopeCounts:{acceptedOpening:16622,quarantinedSource:54,syntheticTest:0}}};
+  return {data,meta:{schemaVersion:'melisa-catalog.v1',readOnly:true,sourceAsOf:sourceVersion?.sourceAsOf??'2026-09-30',readAt:result.readAt,freshLive:false,total:result.total,page:options.page,limit:options.limit,totalPages:Math.ceil(result.total/options.limit),canViewSalesPrices:visible,filters:{brands:[...f.brands],productTypes:[...f.productTypes]},scopeCounts:{acceptedOpening:acceptedCount,quarantinedSource:54,syntheticTest:0}}};
 }
