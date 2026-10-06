@@ -1,0 +1,77 @@
+{
+  "at": "2026-10-06T14:30:45.7766154Z",
+  "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+  "packageId": "CANONICAL-TEST-9ada67ca4494",
+  "releaseDirectory": "C:\\Sirket\\ERP\\releases\\CANONICAL-FINOPS-TEST-20261006-71",
+  "manifestFiles": 1532,
+  "manifestSha256": "D672E77CA9A46094C95705E2CE7BF5F095B8728AA46025BF69BB57E157876889",
+  "dependenciesVerified": 16977,
+  "api": {
+    "port": 4144,
+    "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "serverName": "Semih\\MELISADEV",
+    "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+    "packageId": "CANONICAL-TEST-9ada67ca4494",
+    "sysadmin": 0,
+    "databaseControl": 0,
+    "liveDatabaseAccess": 0,
+    "externalOperations": false,
+    "writes": true
+  },
+  "native": {
+    "port": 4146,
+    "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+    "packageId": "CANONICAL-TEST-9ada67ca4494",
+    "writes": false
+  },
+  "listeners": [
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 5194,
+      "OwningProcess": 67156
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 5194,
+      "OwningProcess": 67156
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 5188,
+      "OwningProcess": 31820
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 5188,
+      "OwningProcess": 31820
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 4146,
+      "OwningProcess": 61460
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 4144,
+      "OwningProcess": 49424
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 4144,
+      "OwningProcess": 49424
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 4116,
+      "OwningProcess": 40828
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 4114,
+      "OwningProcess": 33624
+    }
+  ],
+  "privateConfigUnchanged": true,
+  "liveOwnersUnchanged": true,
+  "humanAcceptance": "ERP-UA13–17 bekliyor"
+}

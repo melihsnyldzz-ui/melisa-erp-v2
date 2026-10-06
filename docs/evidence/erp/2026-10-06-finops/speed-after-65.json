@@ -1,0 +1,245 @@
+{
+  "at": "2026-10-06T13:28:45.752Z",
+  "sourceCommit": "cd1eab3960afae31ce64b223f61b96d784edfb6d",
+  "packageId": "CANONICAL-TEST-cd1eab3960af",
+  "releaseDirectory": "C:/Sirket/ERP/releases/CANONICAL-FINOPS-TEST-20261006-65",
+  "actor": 16,
+  "conditions": {
+    "transport": "LAN HTTP",
+    "pageSize": 50,
+    "samples": 3,
+    "sequence": [
+      "first50",
+      "next50",
+      "code",
+      "barcode",
+      "card",
+      "home",
+      "count",
+      "purchaseReturn",
+      "payment",
+      "finance"
+    ],
+    "cold": "First observed request; server/SQL caches were not cleared, true cold cache not asserted",
+    "timing": "HTTP response fully read and JSON parsed; excludes browser first paint",
+    "businessRequests": "GET only",
+    "auth": "One ordinary existing İlker login; no role/grant change",
+    "acceptedOpening": 16622,
+    "quarantine": 54
+  },
+  "routes": {
+    "first50": "/api/catalog/products?search=&barcode=&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=1&limit=50",
+    "next50": "/api/catalog/products?search=&barcode=&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=2&limit=50",
+    "code": "/api/catalog/products?search=8023&barcode=&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=1&limit=50",
+    "barcode": "/api/catalog/products?search=&barcode=3617221176192&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=1&limit=50",
+    "card": "/api/catalog/products/36724",
+    "home": "/api/home/summary",
+    "count": "/api/test-daily/count",
+    "purchaseReturn": "/api/test-daily/purchase",
+    "payment": "/api/work-supplier-payments/context",
+    "finance": [
+      "/api/work-sales/invoices",
+      [
+        "/api/work-sales/context",
+        "/api/work-supplier-payments/context"
+      ]
+    ]
+  },
+  "measurements": {
+    "first50": [
+      1691,
+      591,
+      627
+    ],
+    "next50": [
+      561,
+      496,
+      507
+    ],
+    "code": [
+      524,
+      511,
+      537
+    ],
+    "barcode": [
+      295,
+      327,
+      316
+    ],
+    "card": [
+      217,
+      169,
+      155
+    ],
+    "home": [
+      181,
+      98,
+      87
+    ],
+    "count": [
+      133,
+      52,
+      56
+    ],
+    "purchaseReturn": [
+      897,
+      366,
+      369
+    ],
+    "payment": [
+      933,
+      420,
+      439
+    ],
+    "finance": [
+      588,
+      430,
+      426
+    ]
+  },
+  "summary": {
+    "first50": {
+      "firstObservedMs": 1691,
+      "medianMs": 627,
+      "samplesMs": [
+        1691,
+        591,
+        627
+      ]
+    },
+    "next50": {
+      "firstObservedMs": 561,
+      "medianMs": 507,
+      "samplesMs": [
+        561,
+        496,
+        507
+      ]
+    },
+    "code": {
+      "firstObservedMs": 524,
+      "medianMs": 524,
+      "samplesMs": [
+        524,
+        511,
+        537
+      ]
+    },
+    "barcode": {
+      "firstObservedMs": 295,
+      "medianMs": 316,
+      "samplesMs": [
+        295,
+        327,
+        316
+      ]
+    },
+    "card": {
+      "firstObservedMs": 217,
+      "medianMs": 169,
+      "samplesMs": [
+        217,
+        169,
+        155
+      ]
+    },
+    "home": {
+      "firstObservedMs": 181,
+      "medianMs": 98,
+      "samplesMs": [
+        181,
+        98,
+        87
+      ]
+    },
+    "count": {
+      "firstObservedMs": 133,
+      "medianMs": 56,
+      "samplesMs": [
+        133,
+        52,
+        56
+      ]
+    },
+    "purchaseReturn": {
+      "firstObservedMs": 897,
+      "medianMs": 369,
+      "samplesMs": [
+        897,
+        366,
+        369
+      ]
+    },
+    "payment": {
+      "firstObservedMs": 933,
+      "medianMs": 439,
+      "samplesMs": [
+        933,
+        420,
+        439
+      ]
+    },
+    "finance": {
+      "firstObservedMs": 588,
+      "medianMs": 430,
+      "samplesMs": [
+        588,
+        430,
+        426
+      ]
+    }
+  },
+  "responseBytes": {
+    "first50": [
+      75285,
+      75285,
+      75285
+    ],
+    "next50": [
+      77685,
+      77685,
+      77685
+    ],
+    "code": [
+      11048,
+      11048,
+      11048
+    ],
+    "barcode": [
+      8262,
+      8262,
+      8262
+    ],
+    "card": [
+      8259,
+      8259,
+      8259
+    ],
+    "home": [
+      2018,
+      2018,
+      2018
+    ],
+    "count": [
+      9360,
+      9360,
+      9360
+    ],
+    "purchaseReturn": [
+      17647,
+      17647,
+      17647
+    ],
+    "payment": [
+      8912,
+      8912,
+      8912
+    ],
+    "finance": [
+      17452,
+      17452,
+      17452
+    ]
+  },
+  "businessWrites": 0
+}

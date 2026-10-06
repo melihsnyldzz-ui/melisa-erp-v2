@@ -1,6 +1,68 @@
-# ERP-FINOPS01 — kabul kanıtı çalışma kaydı
+# ERP-FINOPS01 — teknik tamamlandı / insan kabulü bekliyor
 
-## Güncel kısmi teslim — TEST65 / 6 Ekim2026
+## Güncel kapanış — TEST71, 6 Ekim2026
+
+ERP-DEC-016 ile kullanıcıya giriş yükü olmadan mevcut normal TEST aktörleri15/16 kullanıldı. **Goal3 zorunlu teknik maddeleri tamam; ERP-UA13–17 bekliyor.** Demo görsel kanıtı gerçek native sonucun yerine kullanılmadı. [Makine özeti](technical-completion-71.json), [runtime](runtime-71.json), [switch](runtime-switch-finops-71.json). İnsan kabulü ve finish49/7tamam/24kısmi/18açık değişmez; Goal4/CRM/bonus başlamadı.
+
+| Zorunlu madde | Native kanıt / sonuç |
+| --- | --- |
+| Personel sayımı ve yetkili gerekçe | [Sayım71](goal3-count71.json):39 aktör15 stok etkisiz taslak;16 ayrı gerekçe ile3→4, hareket917931/audit126135. Gerekçesiz400, personel403. |
+| Replay / refresh / çift istek / yanıt kaybı | Paralel iki200, ilk yanıt gövdesi atıldı; aynı UUID/body retry replayed, yeni UUID aynı onaylı taslak alreadyApplied, refresh approved. Counted/replayed hareket dizileri aynı, ikinci etki0. |
+| Başlangıca dönüş | Ayrı telafi42 hareket917932/audit126138 ve ayrı gerekçe4→3; ilk sayım silinmedi. Bilinmeyen41 reddedilip geçmişte kaldı. |
+| Fiziksel alış iadesi / finans | [İade66](goal3-return66.json):40/native224 kaynak25075/93173/301986, supplier13373; qty1 stok32→31, borç60→0TRY, kasa0. Tek stock ve tek supplier etkisi. |
+| İade ters / özgün alış | Gerekçeli ters31→32, borç0→60TRY, kasa0; özgün fatura/item digestleri ve kaynak hareket903120/supplier47921+47922 korundu. [TEST71 salt okunur recheck](goal3-extra-native71.json); yeni71 iade yazıldığı iddia edilmez. |
+| Roller / API negatifler |15 count/finance +12 return/finance negatif denemesi. Personel15 stock.adjust/purchase.cancel/finance.payment=false;16 mevcut true. Yeni rol, grant veya password yok; ordinary login kullanıldı, test-admin session kullanılmadı. |
+| Native SQL negatifler | [13 guard denemesi](goal3-count-guard-negatives67.json), her biri ROLLBACK: tag/aktör/transaction/draft/delta/ürün adı/stock actor/cost/duplicate/audit actor/note/duplicateaudit ve4620 karantina. Kalıcı saldırı etkisi0. |
+| Sınırlar | Genel products/suppliers/customers/product_prices/finance_accounts/users/roles/permissions digestleri aynı. API held scope403, gerçek hold gate blocked ve directSQL51076 ayrı kanıtlar; sahte HTTP409 ileri sürülmez. |
+| Ödeme / kasa | Önceki [native ödeme](payment-native-accepted.json) korunur:100+200TRY ve iki ters; borç300→200→0→300, kasa1000→900→700→1000, stok5 değişmez. Güncel normal ekran geçmişi ve TRY/USD/EUR ayrı hareket toplamları, gerçek banka/açılış değildir. |
+
+### Kaynak düzeltmesi ve güvenli SQL kurulumu
+
+Sayım parmak izi normalize edilmiş snapshot alanına bağlandı. Eski üç ticari guard gövdesi korunarak yalnız mevcut301985/325503 sentetik ürünlerin kalıcı sayım farkı için draft39 gibi kayıtlı pending body, aktör16/stock.adjust ve CURRENT_TRANSACTION_ID eşleşen dar izin eklendi. Üç session-context anahtarı işlem giriş/çıkışında temizlenir; farklı transaction izin devralamaz. SQL row_version otomatik alanı karşılaştırmadan çıkartılır, tüm ticari alanlar korunur. Yetkili ayrı3–500karakter onay gerekçesi zorunlu; draft.reason ve karar/audit metadata içinde saklanır, normal modal yenilemede gösterir.
+
+Kalıcı kurulum kanıtı [count-upgrade-applied68.json](count-upgrade-applied68.json): dosya adı eski helper etiketidir; gerçek apply zamanı14:11:33UTC, source7bb37a0, final rowversion fix dahil. SQL SHA256582F92D810BE3DB4978344F8C05A1B04185F4FAAF5BCC611FEBB76C7AC5144FC.3guard+ready/fingerprint hashleri API pinle eşleşir. Dört metadata guard yalnız atomik DDL içinde geçici kapatılıp commit öncesi eski durumuna gelir;37karantina/ticari guardlar devrede. Yalnız3manifest tablosunda7doğrulama hash satırı güncellenir;FXmanifest değişmez. Yeni gerçek rol/grant yok.
+
+Önceki adayın pin/CREATE-ALTER/line-ending ve rowversion hataları dış işlemde geri alındı; başarısız aday teknik kabul sayılmaz. [Tam kurulum dış rollback](count-upgrade-full-rollback69.json) önceki aday denemesidir, finalproducts hash diye kullanılmaz. [Geçerli native outer rollback](count-valid-native-rollback69.json) stok4/tek hareket→rollback3/0kalıcı etki kanıtladı. Son kurulum/hashiapplied dosyasındadır. API hazır prosedürü final hashA6FF41D0EFDA6518925EBCA5386612CE7000ABDA9753C9BDDBB3EAC9040C2D8D. İki bağımsız salt okunur reviewer kaynak/native sonuçlar için CLEAR verdi.
+
+**Rollback yalnız hazırlandı:** sağlıklı kaynak TEST66/source0383c5 + eski SQL tanımları/object grantleri/manifestler birlikte geri döndürülmelidir. TEST68 ara fail-closed aday sağlıklı rollback hedefi değildir. Repo dışı yedek `count-guards-before67.json` SHA2566CB393F8AA7B8CC00797B7AB3C5B5D8DFD06FC5BFE2D48C8CE71A0DD388303BC; `count-guards-rollback70.sql` SHA2569A647472285459EC8DE0066E6227BC586B29378AD5DED1C44CBA964C9717A415. Eski CREATE header/grant/7metadata satırı/141trigger durumu korunur; business history silinmez. Script uygulanmadı, bağımsız incelendi. Tam yedek/credential repo dışındadır.
+
+### Güncel hız
+
+LAN HTTP, aynı mevcut normal İlker16,50satır,3örnek; login ölçüm dışında. HTTP gövdesi okunup JSON parse bitene kadar; browserpaint veya soğuk SQL cache değildir. Finans normal ekranın invoiceGET ardından iki paralel contextGET toplamıdır. [TEST65 baseline](speed-after-65.json), [TEST71 raw](speed-after-71.json).
+
+| Ölçüm | TEST65 medyan ms | TEST71 medyan ms | TEST71 üç örnek ms |
+| --- | --- | --- | --- |
+| İlk50 | 627 | 617 | 719 / 617 / 590 |
+| Sonraki50 | 507 | 475 | 469 / 475 / 554 |
+| Kod | 524 | 544 | 453 / 544 / 589 |
+| Barkod | 316 | 283 | 269 / 287 / 283 |
+| Kart36724 | 169 | 168 | 157 / 197 / 168 |
+| HOME | 98 | 79 | 151 / 79 / 79 |
+| Sayım | 56 | 52 | 101 / 52 / 51 |
+| İade | 369 | 340 | 620 / 340 / 318 |
+| Ödeme | 439 | 426 | 509 / 413 / 426 |
+| Finans (üç GET) | 430 | 453 | 594 / 453 / 398 |
+
+İlk gözlenen first50 1691→719ms; server/SQL cache sıfırlanmadı. Kod/finans küçük örnek farkları dürüstçe korunur, birkaç saniyelik katalog regresyonu yok. Kart helper kopya hatası37024→originalbaseline36724 düzeltildi; yalnız3kart GET tekrarlandı; eski148/154/164ms değerleri comparison'a dahil edilmedi. Katalog16622/50/54hold metadata assert edildi;3830medya/67belirsiz kaynak kapsamı değişmedi,30Eylül snapshotı güncel Vega deltası değildir.
+
+### Gerçek normal ekran kanıtları
+
+- Sayım39 yetkili kayıtlı onay/gerekçe: [1440](count-native-71-1440.jpg), [1024](count-native-71-1024.jpg), [390](count-native-71-390.jpg). document scrollWidth1425/1009/375; geniş tablo kendi içinde kayar, sayfa yatay taşmaz. [Personel15](count-personnel-native-71.jpg): aynı geçmiş okunur, uygulama eylemi kapalı. Pending personel kontrolünün önceki gerçek [TEST66 görüntüsü](count-personnel-native-66.jpg) korunur.
+- [Güncel iade/ters kayıt](return-native-71.jpg), önceki gerçek TEST66 [1440](return-native-66-1440.jpg)/[1024](return-native-66-1024.jpg)/[390](return-native-66-390.jpg). Bunlar ordinary normal sessions; demo renderer değildir.
+- [Ödeme71](payment-native-71.jpg): supplier23381 borç300TRY/kasa1000TRY ve48065–68 özgün/ters geçmiş. [Finans71](finance-native-71.jpg): ayrı TRY/USD/EUR giriş/çıkış/net ve “kasa açılış bakiyesi değildir”. [HOME71](home-native-71.jpg): gerçek gün özeti/görevler ve bağlı olmayan bakiyeler.
+- URL'ler: [Sayım](http://127.0.0.1:5194/ornek-akis.html#count), [İade](http://127.0.0.1:5194/ornek-akis.html#returns), [Ödeme](http://127.0.0.1:5194/ornek-akis.html#supplier-payments), [Finans](http://127.0.0.1:5194/ornek-akis.html#collections), [HOME](http://127.0.0.1:5194/ornek-akis.html#home). Teknik tarayıcı provası LAN192.168.1.46 normal15/16 üzerinden; kullanıcının localhost demo tercihi ayrı yüzdür. İnsan PASS yok.
+
+### Paket / GitHub / durma noktası
+
+TEST71 source `9ada67ca44947d16226a4894cfcf52aeb6e1c923`, immutable release `CANONICAL-FINOPS-TEST-20261006-71`,1532manifest dosyası, SHA256 `D672E77CA9A46094C95705E2CE7BF5F095B8728AA46025BF69BB57E157876889`,16977dependency byte doğrulaması. API/native/web port4144/4146/5194 exact package; native readonly ve loopbackonly; DB ve LIVE izolasyonu [runtime](runtime-71.json). Önceki release/yedekler korundu.
+
+API439, Sites589, canonical125+media7 offline kontroller/build PASS; native iki bağımsız review CLEAR. Dal `codex/erp-finish-20261004`, [draft PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23); source9ada CI push37477836029/PR37477845178 quality-build-test ve secret-scan SUCCESS. İzleyen doküman/evidence head source paket değildir; exacthead CI [Checks](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23/checks) teslimde ayrıca doğrulanır. Main merge/LIVE/Vega/CRM yok. Genel FX/çok satırlı iade, batch sayım iptali ve insan/cihaz kabulü kapsamı açık kalır. Goal3 sonunda duruldu; Goal4 veya bonus başlamadı.
+
+## Tarihsel çalışma kayıtları — aşağıdaki eski eksikler güncel engel değildir
+
+### Önceki kabul kanıtı çalışma kaydı
+
+## Önceki kısmi teslim — TEST65 / 6 Ekim2026
 
 - Source `cd1eab3960afae31ce64b223f61b96d784edfb6d`; [runtime/manifest/izolasyon](runtime-65.json). TEST web5194/API4144 loopback ve192.168.1.46, native4146yalnızloopback; aynı namedTEST DB, sysadmin/control/LIVE0/externalfalse.1522manifest dosyası ve16977dependency byte doğrulandı. TEST64 ve geri dönüş launcher korundu; LIVE sahipleri/config/IP aynı; bu iade diliminde ticari yazma0.
 - Normal canlı veri `#returns` yalnız mevcut sunucu sahipli bağlı alış/satır/kalan miktardan fiziksel iade taslağı, yetkili onay/red ve gerekçeli ters kayıt yapar. Backend kapsamı/SQL guard genişlemedi; ayrılmış TRY/tek satır linked kaynaklar. Genel TSTB çok satırlı/C09 FX iade değildir. Özgün fiyat/kur snapshotları korunur; stok ortalama maliyeti özgün alış maliyeti diye etiketlenmez. Nakit geri ödeme kendiliğinden oluşmaz.

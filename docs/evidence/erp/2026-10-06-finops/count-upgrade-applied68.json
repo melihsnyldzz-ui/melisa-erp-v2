@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-06T14:11:33.6389308Z",
+  "sourceCommit": "7bb37a0e2606ad9538a60d9de00bc052899122b6",
+  "sqlSha256": "582F92D810BE3DB4978344F8C05A1B04185F4FAAF5BCC611FEBB76C7AC5144FC",
+  "backupSha256": "6CB393F8AA7B8CC00797B7AB3C5B5D8DFD06FC5BFE2D48C8CE71A0DD388303BC",
+  "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "serverName": "Semih\\MELISADEV",
+  "apply": true,
+  "definitions": [
+    {
+      "name": "fn_test_daily_count_fingerprint",
+      "before_hash": null,
+      "after_hash": "725ED64C890FA680D66CDF6206F689A5696239AA51EF1B2703A2900BBD8B230E",
+      "mode": "applied-existing-exact-test-scope"
+    },
+    {
+      "name": "test_guard_audit_logs",
+      "before_hash": "E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E",
+      "after_hash": "A35B37EC46DE1A91F8CF83B8B844F2E0E7D2D04263E4703AE5B72078760F584D",
+      "mode": "applied-existing-exact-test-scope"
+    },
+    {
+      "name": "test_guard_products",
+      "before_hash": "6962769EA4567178D107BE4B416ADF0ED716CCCFB194F0C2781A0F535AE770C9",
+      "after_hash": "0461FCDC788FFC999177D5A5D40F2E5294E96631F4DE17436497400C76C2488D",
+      "mode": "applied-existing-exact-test-scope"
+    },
+    {
+      "name": "test_guard_stock_movements",
+      "before_hash": "FCC05C512C27C40C028BE9912F6442EC3101D76F1A9A1148CEE4A5398EDACC63",
+      "after_hash": "86A7BE76C0D2C2CD3F825546B61837266F67143879BF3C73027D500A049DFFFA",
+      "mode": "applied-existing-exact-test-scope"
+    },
+    {
+      "name": "usp_work_supplier_payment_ready",
+      "before_hash": "2A09FF6DBF22AE46C55842B44BD51F6E4F350FEA9E145EEECE5975DB4301DCA3",
+      "after_hash": "A6FF41D0EFDA6518925EBCA5386612CE7000ABDA9753C9BDDBB3EAC9040C2D8D",
+      "mode": "applied-existing-exact-test-scope"
+    }
+  ],
+  "realRoleChanged": false,
+  "newGrant": false,
+  "liveTouched": false
+}

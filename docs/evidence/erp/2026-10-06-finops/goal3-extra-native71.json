@@ -1,0 +1,167 @@
+{
+  "at": "2026-10-06T14:23:35.6907721Z",
+  "readOnly": true,
+  "businessWrites": 0,
+  "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+  "returnEvidence": {
+    "sourceCommit": "0383c5ddb249c6d5edc244741d13e0f4113209ee",
+    "packageId": "CANONICAL-TEST-0383c5ddb249",
+    "proof": "goal3-return66.json",
+    "returnId": 224,
+    "humanAcceptance": "bekliyor"
+  },
+  "identity": [
+    {
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "serverName": "Semih\\MELISADEV"
+    }
+  ],
+  "countMovements": [
+    {
+      "id": 917931,
+      "draftId": 39,
+      "quantityNet": 1.000,
+      "actorId": 16
+    },
+    {
+      "id": 917932,
+      "draftId": 42,
+      "quantityNet": -1.000,
+      "actorId": 16
+    }
+  ],
+  "countAudit": [
+    {
+      "id": 126135,
+      "actorId": 16,
+      "action": "stock_count_adjustment_applied",
+      "productId": 325503,
+      "movementId": "917931",
+      "note": "Goal3 kontrollü gerçek TEST sayımı: bir adet fark",
+      "stockBefore": "3",
+      "stockAfter": "4"
+    },
+    {
+      "id": 126138,
+      "actorId": 16,
+      "action": "stock_count_adjustment_applied",
+      "productId": 325503,
+      "movementId": "917932",
+      "note": "Goal3 prova sonrası ayrı gerekçeli sayım ile başlangıç miktarına dönüş",
+      "stockBefore": "4",
+      "stockAfter": "3"
+    }
+  ],
+  "returnAudit": [
+    {
+      "id": 116127,
+      "actorId": 16,
+      "action": "purchase_return_finalized",
+      "returnId": 224,
+      "originalReason": "Goal3 kontrollü TEST fiziksel alış iadesi",
+      "cancelReason": null
+    },
+    {
+      "id": 116129,
+      "actorId": 16,
+      "action": "purchase_return_cancelled",
+      "returnId": 224,
+      "originalReason": "Goal3 kontrollü TEST fiziksel alış iadesi",
+      "cancelReason": "Goal3 kontrollü iade provası gerekçeli ters kayıt"
+    }
+  ],
+  "draftHistory": [
+    {
+      "id": 39,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"lines\":[{\"productId\":\"325503\",\"stockCode\":\"TEST-FINISH-GOODS-P2\",\"physical\":4,\"system\":3,\"reason\":\"Goal3 kontrollü gerçek TEST sayımı: bir adet fark\",\"fingerprint\":\"821fb8a1a8dc9ace863b1211977c3e47dc715d54936e21350118168ff0d717ea\"}],\"unknownScans\":[],\"date\":\"2026-10-06\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": "Goal3 sayım farkının gerekçeli yetkili onayı"
+    },
+    {
+      "id": 40,
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "cancelled",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"requestId\":\"91b14c40-ff0e-4299-91d3-d7cdfc9d8b3b\",\"kind\":\"purchase\",\"sourceInvoiceId\":25075,\"documentDate\":\"2026-10-06\",\"reason\":\"Goal3 kontrollü TEST fiziksel alış iadesi\",\"items\":[{\"productId\":301986,\"sourceItemId\":93173,\"quantity\":1}]}",
+      "reason": "Goal3 kontrollü iade provası gerekçeli ters kayıt"
+    },
+    {
+      "id": 42,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"lines\":[{\"productId\":\"325503\",\"stockCode\":\"TEST-FINISH-GOODS-P2\",\"physical\":3,\"system\":4,\"reason\":\"Goal3 prova sonrası ayrı gerekçeli sayım ile başlangıç miktarına dönüş\",\"fingerprint\":\"e0d1663209349ac29c8458281552c74846f3d8c75cfc6c4477a5ea5d76b26698\"}],\"unknownScans\":[],\"date\":\"2026-10-06\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": "Ayrı telafi sayımı yetkili onayı"
+    }
+  ],
+  "originalPurchaseStockMovements": [
+    {
+      "id": 903120,
+      "productId": 301986,
+      "sourceType": "purchase_invoice",
+      "sourceId": 25075,
+      "quantityNet": 5.000,
+      "unitCost": 60.0000,
+      "actorId": null,
+      "currency": "TRY",
+      "amountTry": 300.0000
+    }
+  ],
+  "originalPurchaseSupplierMovements": [
+    {
+      "id": 47921,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 300.0000,
+      "currency": "TRY",
+      "balanceEffect": 300.0000,
+      "actorId": null,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47922,
+      "returnId": null,
+      "type": "payment",
+      "amount": 300.0000,
+      "currency": "TRY",
+      "balanceEffect": -300.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    }
+  ],
+  "originalInvoiceDigest": [
+    {
+      "digest": "18C37D7925EDB80A250FD54D4F7B248F5E96ABE6CBF4A310DD0D4B233FB87081"
+    }
+  ],
+  "originalItemDigest": [
+    {
+      "digest": "B9F39CF9421F19DA86AF97698E280B82851ED25129E71136A08B517CAD3A387F"
+    }
+  ],
+  "originalHistoryPreserved": true,
+  "quarantine": {
+    "nativeId": "40451",
+    "stockCode": "4620 LEYLEK",
+    "procedure": "dbo.usp_check_operation_quarantine",
+    "blocked": true,
+    "sourceKey": "VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/148366",
+    "reasonCode": "EXACT_NATIVE_IDENTITY_NOT_PROVEN",
+    "sourceAsOf": "2026-09-30",
+    "sealHash": "69ff490f2938e34aa2f10399a5cf7b8042950667780779a15d708188c4b90de7",
+    "applicationPolicyCode": "MIGRATION_ENTITY_QUARANTINED",
+    "applicationPolicyStatus": 409,
+    "statusEvidence": "Native procedure reports blocked; application validator maps blocked rows to409. This is a read-only procedure proof, not an HTTP request."
+  },
+  "humanAcceptance": "ERP-UA13–17 bekliyor"
+}

@@ -1,0 +1,249 @@
+{
+  "at": "2026-10-06T14:22:50.839Z",
+  "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+  "packageId": "CANONICAL-TEST-9ada67ca4494",
+  "releaseDirectory": "C:/Sirket/ERP/releases/CANONICAL-FINOPS-TEST-20261006-71",
+  "actor": 16,
+  "conditions": {
+    "transport": "LAN HTTP",
+    "pageSize": 50,
+    "samples": 3,
+    "sequence": [
+      "first50",
+      "next50",
+      "code",
+      "barcode",
+      "card",
+      "home",
+      "count",
+      "purchaseReturn",
+      "payment",
+      "finance"
+    ],
+    "cold": "First observed request; server/SQL caches were not cleared, true cold cache not asserted",
+    "timing": "HTTP response fully read and JSON parsed; excludes browser first paint",
+    "businessRequests": "GET only",
+    "auth": "One ordinary existing İlker login; no role/grant change",
+    "acceptedOpening": 16622,
+    "quarantine": 54
+  },
+  "routes": {
+    "first50": "/api/catalog/products?search=&barcode=&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=1&limit=50",
+    "next50": "/api/catalog/products?search=&barcode=&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=2&limit=50",
+    "code": "/api/catalog/products?search=8023&barcode=&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=1&limit=50",
+    "barcode": "/api/catalog/products?search=&barcode=3617221176192&brand=&productType=&image=all&sort=code-asc&stock=all&status=all&page=1&limit=50",
+    "card": "/api/catalog/products/36724",
+    "home": "/api/home/summary",
+    "count": "/api/test-daily/count",
+    "purchaseReturn": "/api/test-daily/purchase",
+    "payment": "/api/work-supplier-payments/context",
+    "finance": [
+      "/api/work-sales/invoices",
+      [
+        "/api/work-sales/context",
+        "/api/work-supplier-payments/context"
+      ]
+    ]
+  },
+  "measurements": {
+    "first50": [
+      719,
+      617,
+      590
+    ],
+    "next50": [
+      469,
+      475,
+      554
+    ],
+    "code": [
+      453,
+      544,
+      589
+    ],
+    "barcode": [
+      269,
+      287,
+      283
+    ],
+    "card": [
+      157,
+      197,
+      168
+    ],
+    "home": [
+      151,
+      79,
+      79
+    ],
+    "count": [
+      101,
+      52,
+      51
+    ],
+    "purchaseReturn": [
+      620,
+      340,
+      318
+    ],
+    "payment": [
+      509,
+      413,
+      426
+    ],
+    "finance": [
+      594,
+      453,
+      398
+    ]
+  },
+  "summary": {
+    "first50": {
+      "firstObservedMs": 719,
+      "medianMs": 617,
+      "samplesMs": [
+        719,
+        617,
+        590
+      ]
+    },
+    "next50": {
+      "firstObservedMs": 469,
+      "medianMs": 475,
+      "samplesMs": [
+        469,
+        475,
+        554
+      ]
+    },
+    "code": {
+      "firstObservedMs": 453,
+      "medianMs": 544,
+      "samplesMs": [
+        453,
+        544,
+        589
+      ]
+    },
+    "barcode": {
+      "firstObservedMs": 269,
+      "medianMs": 283,
+      "samplesMs": [
+        269,
+        287,
+        283
+      ]
+    },
+    "card": {
+      "firstObservedMs": 157,
+      "medianMs": 168,
+      "samplesMs": [
+        157,
+        197,
+        168
+      ]
+    },
+    "home": {
+      "firstObservedMs": 151,
+      "medianMs": 79,
+      "samplesMs": [
+        151,
+        79,
+        79
+      ]
+    },
+    "count": {
+      "firstObservedMs": 101,
+      "medianMs": 52,
+      "samplesMs": [
+        101,
+        52,
+        51
+      ]
+    },
+    "purchaseReturn": {
+      "firstObservedMs": 620,
+      "medianMs": 340,
+      "samplesMs": [
+        620,
+        340,
+        318
+      ]
+    },
+    "payment": {
+      "firstObservedMs": 509,
+      "medianMs": 426,
+      "samplesMs": [
+        509,
+        413,
+        426
+      ]
+    },
+    "finance": {
+      "firstObservedMs": 594,
+      "medianMs": 453,
+      "samplesMs": [
+        594,
+        453,
+        398
+      ]
+    }
+  },
+  "responseBytes": {
+    "first50": [
+      75285,
+      75285,
+      75285
+    ],
+    "next50": [
+      77685,
+      77685,
+      77685
+    ],
+    "code": [
+      11048,
+      11048,
+      11048
+    ],
+    "barcode": [
+      8262,
+      8262,
+      8262
+    ],
+    "card": [
+      8259,
+      8259,
+      8259
+    ],
+    "home": [
+      2018,
+      2018,
+      2018
+    ],
+    "count": [
+      11904,
+      11904,
+      11904
+    ],
+    "purchaseReturn": [
+      20134,
+      20134,
+      20134
+    ],
+    "payment": [
+      8912,
+      8912,
+      8912
+    ],
+    "finance": [
+      17452,
+      17452,
+      17452
+    ]
+  },
+  "businessWrites": 0,
+  "cardCorrection": {
+    "at": "2026-10-06T14:28:00.398Z",
+    "note": "Benchmark copy typo corrected to original TEST65 baseline product36724; only three card GET measurements repeated. Superseded product37024 readings were148/154/164ms; not used for baseline comparison."
+  }
+}
