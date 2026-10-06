@@ -26,3 +26,7 @@ e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx
 # Independently reviewed 2026-10-06: deterministic UUID uppercase/lowercase test,
 # never an authentication key. Exact historical fingerprint only.
 3a1f404426e18181cae9c33a4aa25e502db2a676:scripts/canonical/crm-order-v2-sql.test.mjs:generic-api-key:6
+# Reviewed Goal7 public/invalid synthetic product source identity, no credential.
+# Exact historical fingerprints only; inline annotations cover later copies.
+7c269e7089366db9b9dfe394f2f73103ac3c0b74:apps/sites-workflow/src/workflow/workCatalog.test.mjs:generic-api-key:5
+7c269e7089366db9b9dfe394f2f73103ac3c0b74:apps/sites-workflow/src/workflow/workCatalog.test.mjs:generic-api-key:10
