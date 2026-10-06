@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {terminalActions,terminalRoute,terminalCrmUrl,terminalMessage,terminalStorage,terminalUser,createTerminalScanGate,createTerminalSessionFacade,terminalOfflineText} from './personnelTerminalModel.mjs';
+test('CRM iframe keeps the exact TEST terminal path Referer required by its navigation guard',()=>{
+ const html=readFileSync(new URL('../../terminal.html',import.meta.url),'utf8');
+ const iframe=html.match(/<iframe\b[^>]*id="terminal-crm-frame"[^>]*>/)?.[0];
+ assert.ok(iframe);assert.match(iframe,/referrerpolicy="no-referrer-when-downgrade"/);
+ assert.doesNotMatch(iframe,/referrerpolicy="(?:no-referrer|origin|same-origin)"/);
+ assert.doesNotMatch(iframe,/\bsrc="/); // src is produced only by the strict approved-host model.
+});
 test('terminal exposes only six daily routes; finance and injected hashes are excluded',()=>{
  assert.deepEqual(terminalActions.map(a=>a.id),['goods','sales','crm','products','count','returns']);
  for(const route of ['finance','supplier-payments','settings','admin','<script>'])assert.equal(terminalRoute(route),'home');
