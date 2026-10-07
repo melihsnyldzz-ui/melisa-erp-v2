@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildGoal8DayProfile,goal8StoredModuleDefinition,sqlHash} from './goal8-test-day-profile.mjs';
+import {buildGoal8DayProfile,goal8StoredModuleDefinition,goal8BarcodeTuplePredicate,sqlHash} from './goal8-test-day-profile.mjs';
 import {GOAL8_DAY_BEFORE_PINS} from './goal8-test-day-pins.mjs';
 import {GOAL8_DAY_SQL_PROFILE_META as installed} from '../../apps/api/src/services/goal8DaySqlProof.mjs';
 import {goal8DayEnabled,goal8SqlProfileInstalled,goal8DayRuntimeSeal,goal8DayPayload,assertGoal8Profile} from '../../apps/api/src/services/goal8DayProfile.mjs';
@@ -8,6 +8,7 @@ import {supplierPaymentContext} from '../../apps/api/src/services/workSupplierPa
 import {canonicalGoal8Policy} from '../../apps/api/canonical-test-env.mjs';
 import {workContextDto} from '../../apps/api/src/services/workTradeStore.mjs';
 const dayId=installed.dayId;
+test('Goal8 barcode tuple equality admits only both NULL or the same known barcode; aliases stay exact',()=>{for(const alias of ['p','w'])assert.equal(goal8BarcodeTuplePredicate(alias),`(i.barcode_snapshot=${alias}.barcode OR(i.barcode_snapshot IS NULL AND ${alias}.barcode IS NULL))`);for(const alias of ['','q','p; DROP','p.barcode'])assert.throws(()=>goal8BarcodeTuplePredicate(alias),/GOAL8_BARCODE_ALIAS_REQUIRED/);});
 const raw=()=>({documentDate:'2026-10-07',maxAmountExact4:'500.0000',maxPayments:30,actorId:'16',roleCode:'isolated_test_ilker',revision:'a'.repeat(64),permissions:['supplier.view','finance.view','finance.payment','finance.payment.cancel'],testProfile:{...installed,sealed:true,synthetic:true,productId:'325503',supplierId:'13370',customerId:'30598',accountId:'38',currency:'TRY'},suppliers:[{id:'13370',code:'TEST-V70-GOODS-S',name:'Sentetik tedarikçi',currency:'TRY',balanceExact4:'0.0000',debtKind:'invoice',snapshotVerified:true,invoices:[]}],accounts:[{id:'38',code:'TEST-NIGHT-20261006-K',name:'Sentetik kasa',type:'cash',currency:'TRY',openingBalanceExact4:'0.0000',balanceExact4:'0.0000',openingVerified:true}],rates:[],payments:[]});
 const actor={id:'16',permissions:['supplier.view','finance.view','finance.payment','finance.payment.cancel']};
 const fields=['MELISA_GOAL8_SYNTHETIC_DAY','MELISA_GOAL8_SQL_PROFILE_INSTALLED','MELISA_GOAL8_SYNTHETIC_DAY_SEAL'];
