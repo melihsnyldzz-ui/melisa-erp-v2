@@ -1,4 +1,5 @@
 import {supplierCardDto, supplierCardError, parseSupplierCardId, parseSupplierCardQuery} from './supplierCardModel.mjs';
+import {readPartyCurrencyComparison} from './partyCurrencyComparisonStore.mjs';
 
 export function createSupplierCardService({getStore = () => import('./supplierCardReadStore.mjs')} = {}) {
   return {
@@ -22,6 +23,7 @@ export function createSupplierCardService({getStore = () => import('./supplierCa
       if (row == null) throw supplierCardError('SUPPLIER_CARD_NOT_FOUND', 'Tedarikçi kartı bulunamadı.', 404);
       const data = supplierCardDto(row, {detail: true});
       if (data.id !== id) throw supplierCardError();
+      data.sourceComparison = readPartyCurrencyComparison({role: 'supplier', raw: row});
       return {data, meta: {readOnly: true, sourceAsOf: '2026-09-30', freshLive: false}};
     },
   };

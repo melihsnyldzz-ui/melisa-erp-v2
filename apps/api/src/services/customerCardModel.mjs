@@ -1,3 +1,4 @@
+import {currencyAccountBalanceFields} from './currencyAccountBalanceModel.mjs';
 import {maskPhone} from './queryHelpers.js';
 
 export const customerCardError = (code = 'CUSTOMER_CARD_DATA_INVALID', message = 'Müşteri kartı eşleşmesi doğrulanamadı.', statusCode = 503) => Object.assign(new Error(message), {code, statusCode});
@@ -59,6 +60,7 @@ function account(row, blocked, accepted) {
   if (blocked !== true && !currency(row.currency)) certainty = 'unknown';
   return {accountId: row.id == null ? null : parseCustomerCardId(row.id), currency: currency(row.currency),
     balanceExact: proven && blocked === false ? nativeBalanceExact : null, nativeBalanceExact, sourceOpeningBalanceExact,
+    ...currencyAccountBalanceFields({role:'customer',balanceExact:nativeBalanceExact,localDeltaExact:row.localDeltaExact,proven:proven && blocked === false}),
     confidence: certainty, sourceStatus: text(row.balanceStatus), reconciled: proven && blocked === false ? true : row.reconciliationStatus === 'reconciled' ? false : null,
     sourceAsOf: matched ? '2026-09-30' : null};
 }
@@ -89,7 +91,8 @@ export function customerCardDto(raw, {detail = false} = {}) {
   for (const row of raw.sourceAccounts) {
     if (row.matchedNativeAccountId != null && nativeIds.has(parseCustomerCardId(row.matchedNativeAccountId))) continue;
     accounts.push({accountId: null, currency: currency(row.currency), balanceExact: null, nativeBalanceExact: null,
-      sourceOpeningBalanceExact: customerCardExact(row.sourceOpeningBalanceExact), confidence: blocked === true ? 'quarantined' : 'unknown',
+      sourceOpeningBalanceExact: customerCardExact(row.sourceOpeningBalanceExact),
+      ...currencyAccountBalanceFields({role:'customer',balanceExact:null,localDeltaExact:null}), confidence: blocked === true ? 'quarantined' : 'unknown',
       sourceStatus: text(row.balanceStatus), reconciled: null, sourceAsOf: accepted ? '2026-09-30' : null});
   }
   const dto = {id, customerCode: customer.customerCode, customerName: customer.customerName, isPassive: !active,

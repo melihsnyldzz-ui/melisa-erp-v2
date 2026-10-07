@@ -39,7 +39,7 @@ test('NULL, native-only, conflicting source, ledger drift and ambiguous identity
     raw => {raw.linkage.sourceLinkCount = 2;},
     raw => {raw.linkage.status = 'ambiguous';}]) {
     const raw = fixture(); mutate(raw); const dto = supplierCardDto(raw);
-    assert.equal(dto.accounts[0].balanceExact, null);
+    assert.equal(dto.accounts[0].balanceExact, null);assert.equal(dto.accounts[0].debitCreditDirection,null);assert.equal(dto.accounts[0].amountExact,null);assert.equal(dto.accounts[0].localDeltaExact,null);
     assert.equal(dto.hasUnknownAccounts, true);
   }
   assert.equal(supplierCardExact(null), null);
@@ -91,4 +91,13 @@ test('both real read routes require auth and supplier.view; supplier.edit alone 
     }
     let error; route.stack[1].handle({user: {permissions: ['supplier.view']}}, {}, value => {error = value;}); assert.equal(error, undefined);
   }
+});
+
+test('supplier separate TRY/USD/EUR direction uses guarded native balances and never scalar fallback',()=>{
+ const raw=fixture(),native=raw.nativeAccounts[0],source=raw.sourceAccounts[0];raw.supplier.scalarBalanceExact='999999.00000000';
+ raw.nativeAccounts=['TRY','USD','EUR'].map((currency,i)=>({...native,id:String(7+i),currency,sourceAccountKey:'SYN/'+currency,nativeBalanceExact:['1.00000001','-2.00000002','0.00000000'][i],sourceOpeningBalanceExact:['1.00000001','-2.00000002','0.00000000'][i],localDeltaExact:'0.00000000',expectedNativeBalanceExact:['1.00000001','-2.00000002','0.00000000'][i],ledgerBalanceExact:['1.00000001','-2.00000002','0.00000000'][i]}));
+ raw.sourceAccounts=raw.nativeAccounts.map(n=>({...source,sourceKey:n.sourceAccountKey,matchedNativeAccountId:n.id,currency:n.currency,sourceOpeningBalanceExact:n.sourceOpeningBalanceExact}));
+ const dto=supplierCardDto(raw);assert.deepEqual(dto.accounts.map(a=>a.currency),['TRY','USD','EUR']);assert.deepEqual(dto.accounts.map(a=>a.debitCreditDirection),['A','B','ZERO']);assert.deepEqual(dto.accounts.map(a=>a.amountExact),['1.00000001','2.00000002','0.00000000']);assert.equal(dto.accounts[1].balanceExact,'-2.00000002');assert.equal(dto.accounts[1].nativeBalanceExact,'-2.00000002');
+ raw.provenance.quarantineVerified=false;const unknown=supplierCardDto(raw);for(const a of unknown.accounts){assert.equal(a.amountExact,null);assert.equal(a.debitCreditDirection,null);assert.equal(a.localDeltaExact,null);}
+ raw.provenance.quarantineVerified=true;raw.quarantineHolds=[{reasons:['SOURCE_UNKNOWN']}];for(const a of supplierCardDto(raw).accounts){assert.equal(a.amountExact,null);assert.equal(a.debitCreditDirection,null);assert.equal(a.localDeltaExact,null);}
 });

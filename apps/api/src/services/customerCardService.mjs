@@ -1,4 +1,5 @@
 import {customerCardDto, customerCardError, parseCustomerCardId, parseCustomerCardQuery} from './customerCardModel.mjs';
+import {readPartyCurrencyComparison} from './partyCurrencyComparisonStore.mjs';
 
 export function createCustomerCardService({getStore = () => import('./customerCardReadStore.mjs')} = {}) {
   return {
@@ -22,6 +23,7 @@ export function createCustomerCardService({getStore = () => import('./customerCa
       if (row == null) throw customerCardError('CUSTOMER_CARD_NOT_FOUND', 'Müşteri kartı bulunamadı.', 404);
       const data = customerCardDto(row, {detail: true});
       if (data.id !== id) throw customerCardError();
+      data.sourceComparison = readPartyCurrencyComparison({role: 'customer', raw: row});
       return {data, meta: {readOnly: true, sourceAsOf: '2026-09-30', freshLive: false}};
     },
   };

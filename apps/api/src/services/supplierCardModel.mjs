@@ -1,3 +1,4 @@
+import {currencyAccountBalanceFields} from './currencyAccountBalanceModel.mjs';
 import {maskPhone} from './queryHelpers.js';
 
 export const supplierCardError = (code = 'SUPPLIER_CARD_DATA_INVALID', message = 'Tedarikçi kartı eşleşmesi doğrulanamadı.', statusCode = 503) => Object.assign(new Error(message), {code, statusCode});
@@ -59,6 +60,7 @@ function account(row, blocked, accepted) {
   if (blocked !== true && !currency(row.currency)) certainty = 'unknown';
   return {accountId: row.id == null ? null : parseSupplierCardId(row.id), currency: currency(row.currency),
     balanceExact: proven && blocked === false ? nativeBalanceExact : null, nativeBalanceExact, sourceOpeningBalanceExact,
+    ...currencyAccountBalanceFields({role:'supplier',balanceExact:nativeBalanceExact,localDeltaExact:row.localDeltaExact,proven:proven && blocked === false}),
     confidence: certainty, sourceStatus: text(row.balanceStatus), reconciled: proven && blocked === false ? true : row.reconciliationStatus === 'reconciled' ? false : null,
     sourceAsOf: matched ? '2026-09-30' : null};
 }
@@ -90,7 +92,8 @@ export function supplierCardDto(raw, {detail = false} = {}) {
   for (const row of raw.sourceAccounts) {
     if (row.matchedNativeAccountId != null && nativeIds.has(parseSupplierCardId(row.matchedNativeAccountId))) continue;
     accounts.push({accountId: null, currency: currency(row.currency), balanceExact: null, nativeBalanceExact: null,
-      sourceOpeningBalanceExact: supplierCardExact(row.sourceOpeningBalanceExact), confidence: blocked === true ? 'quarantined' : 'unknown',
+      sourceOpeningBalanceExact: supplierCardExact(row.sourceOpeningBalanceExact),
+      ...currencyAccountBalanceFields({role:'supplier',balanceExact:null,localDeltaExact:null}), confidence: blocked === true ? 'quarantined' : 'unknown',
       sourceStatus: text(row.balanceStatus), reconciled: null, sourceAsOf: accepted ? '2026-09-30' : null});
   }
   const dto = {id, supplierCode: supplier.supplierCode, supplierName: supplier.supplierName, isPassive: !active,

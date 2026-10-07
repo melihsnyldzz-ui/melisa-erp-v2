@@ -4,6 +4,10 @@ const [mode, configPath] = process.argv.slice(2);
 const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy}=await configureCanonicalTest(configPath,mode);
 const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
 if(config.goal7SourceVersion)configureCatalogSourceVersion(config.goal7SourceVersion);
+if(mode==='erp'){
+ const {configurePartyCurrencyComparisonStore}=await import('./src/services/partyCurrencyComparisonStore.mjs');
+ await configurePartyCurrencyComparisonStore({root:config.partyCurrencyComparisonRoot,indexSha256:config.partyCurrencyComparisonIndexSha256,identity,mode,port});
+}
 if(mode==='erp' && writes){
   const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');
   try{await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:config.goal7SourceVersion??null});}
