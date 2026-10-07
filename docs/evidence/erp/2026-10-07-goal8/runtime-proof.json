@@ -1,24 +1,7 @@
 {
   "schemaVersion": "melisa-goal8-runtime-readonly.v1",
-  "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
   "mode": "READ_ONLY",
-  "releaseName": "CANONICAL-GOAL8-TEST-20261007-92",
   "liveChanges": false,
-  "at": "2026-10-07T19:36:43.9865305Z",
-  "allReleaseFileHashesVerified": true,
-  "startup": {
-    "taskName": "Melisa-ERP-TEST-Canonical",
-    "state": "Ready",
-    "logonType": "Interactive",
-    "ownerMatched": true,
-    "runLevel": "Limited",
-    "restart": false,
-    "taskRun": false,
-    "physicalLogonAccepted": false,
-    "actionMatched": true,
-    "executableMatched": true
-  },
-  "releaseManifestSha256": "8c551b2afc9efe4eeef2d56ed72c6e1664f958326f565387b35c32aeff88f8dc",
   "backup": {
     "newBackup": false,
     "freshVerifyOnly": false,
@@ -104,50 +87,8 @@
       "exists": true
     }
   ],
-  "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
   "realT1": false,
   "status": "VERIFIED",
-  "services": [
-    {
-      "port": 5194,
-      "databaseControl": null,
-      "sysadmin": null,
-      "environment": "CANONICAL_TEST",
-      "name": "web",
-      "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
-      "database": null,
-      "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
-      "healthOK": true,
-      "ownedProcessVerified": true,
-      "liveDatabaseAccess": null
-    },
-    {
-      "port": 4146,
-      "databaseControl": 0,
-      "sysadmin": 0,
-      "environment": "CANONICAL_TEST",
-      "name": "native",
-      "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
-      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
-      "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
-      "healthOK": true,
-      "ownedProcessVerified": true,
-      "liveDatabaseAccess": 0
-    },
-    {
-      "port": 4144,
-      "databaseControl": 0,
-      "sysadmin": 0,
-      "environment": "CANONICAL_TEST",
-      "name": "api",
-      "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
-      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
-      "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
-      "healthOK": true,
-      "ownedProcessVerified": true,
-      "liveDatabaseAccess": 0
-    }
-  ],
   "terminal": {
     "apiReadProbe": "VERIFIED",
     "nativeHealthPort": 4146,
@@ -159,6 +100,94 @@
     "productsMs": 2693,
     "salesSubmitted": 0,
     "physicalDeviceAccepted": false
+  },
+  "at": "2026-10-07T19:52:02.9455368Z",
+  "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+  "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+  "releaseName": "CANONICAL-GOAL8-TEST-20261007-94",
+  "releaseManifestSha256": "52973390f69b8eeb4937c16cff14ac461f0128d6ecfd3934f530f7a5c0aa365c",
+  "allReleaseFileHashesVerified": true,
+  "services": [
+    {
+      "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+      "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+      "environment": "CANONICAL_TEST",
+      "name": "web",
+      "databaseControl": null,
+      "sysadmin": null,
+      "sqlReadOnly": null,
+      "ownedProcessVerified": true,
+      "port": 5194,
+      "observedAt": "2026-10-07T19:51:59.5459279Z",
+      "database": null,
+      "healthOK": true,
+      "ownedRecordMatched": true,
+      "liveDatabaseAccess": null
+    },
+    {
+      "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+      "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+      "environment": "CANONICAL_TEST",
+      "name": "native",
+      "databaseControl": 0,
+      "sysadmin": 0,
+      "sqlReadOnly": true,
+      "ownedProcessVerified": true,
+      "port": 4146,
+      "observedAt": "2026-10-07T19:52:01.1839183Z",
+      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "healthOK": true,
+      "ownedRecordMatched": true,
+      "liveDatabaseAccess": 0
+    },
+    {
+      "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+      "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+      "environment": "CANONICAL_TEST",
+      "name": "api",
+      "databaseControl": 0,
+      "sysadmin": 0,
+      "sqlReadOnly": false,
+      "ownedProcessVerified": true,
+      "port": 4144,
+      "observedAt": "2026-10-07T19:52:02.9407670Z",
+      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "healthOK": true,
+      "ownedRecordMatched": true,
+      "liveDatabaseAccess": 0
+    }
+  ],
+  "startup": {
+    "runLevel": "Limited",
+    "restart": false,
+    "ownerMatched": true,
+    "physicalLogonAccepted": false,
+    "observedAt": "2026-10-07T19:52:02.9455368Z",
+    "actionMatched": true,
+    "taskName": "Melisa-ERP-TEST-Canonical",
+    "logonType": "Interactive",
+    "executableMatched": true,
+    "state": "Ready",
+    "existingOwnedRecordsMatched": true,
+    "taskRun": false
+  },
+  "sectionObservedAt": {
+    "crm": "2026-10-07T19:38:06.732Z",
+    "priorTerminalProductRead": "RETAINED_FROM_PREVIOUS_RECEIPT_NOT_REPROBED",
+    "runtime": "2026-10-07T19:52:02.9455368Z",
+    "startup": "2026-10-07T19:52:02.9455368Z",
+    "historicalBackupReceiptInventory": "2026-10-07T19:36:43.9865305Z",
+    "services": "2026-10-07T19:52:02.9455368Z"
+  },
+  "terminalHealthRefresh": {
+    "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+    "liveDatabaseAccess": 0,
+    "nativeReadOnly": true,
+    "port": 4146,
+    "observedAt": "2026-10-07T19:52:02.9455368Z",
+    "physicalDeviceAccepted": false,
+    "productsReprobed": false,
+    "salesSubmitted": 0
   },
   "directSqlStatements": 0
 }

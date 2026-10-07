@@ -54,3 +54,7 @@ ERP-DEC-014 uygulama sonucu günlük [teslim panosunda](DELIVERY_BOARD.md), tekn
 ERP-DEC-009'un kaynak sınıflandırma kuralları yürürlüktedir; yalnız kabul bekleme ve sonraki iş sırası ERP-DEC-010 tarafından supersede edilmiştir. Eski karar metni ve geçmişi korunur.
 
 Önceki ayrıntılı iş kuralları [karar defteri](docs/erp-v2/karar-defteri.md) içinde korunur; bu dosyada tekrar yazılmaz. Yeni kalıcı kararlar burada tutulur. Şirket kuralları [Melisa OS](https://github.com/melihsnyldzz-ui/melisa-os) içindedir. Bu iç ERP/CRM satış kataloğu kararı halka açık fiyat yayını kararı değildir.
+
+## ERP-DEC-026 uygulama kanıtı — 7 Ekim 2026
+
+Kayıtlı Goal8 kararı değiştirilmeden [teknik teslim](docs/evidence/erp/2026-10-07-goal8/README.md) tamamlandı. TEST94/sourcecee7d7a;49/9🟢/39🟡/1🔴. İnsan kabulü verilmedi, ERP-UA24 bekler. GerçekT1/LIVE/gerçek ticari kapsam veya sonraki goal yetkisi oluşmaz; teslimden sonra DUR.

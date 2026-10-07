@@ -1,3 +1,15 @@
+## Goal8 — teknik tamamlandı / insan kabulü bekliyor — 7 Ekim 2026
+
+ERP-DEC-026 kapsamı: son TEST94/source `cee7d7a85b4c797732cfcba8967855f2efbad55b`, 45normal ekran (15×1440/1024/390),13rol,7native rapor, dokuz aşamalı bağlı sentetik gün/replay0, final stok/fiyat/cari writer-reader/inverse/parent recovery native kanıtı ve güncel hız teslim edildi. **49toplam /9🟢 /39🟡 /1🔴**; D02/D06/E01/E02/E03🟡, D01 güvenli karantinada🔴/CANLIDAN SONRA. [Teknik kanıt ve kısa insan listesi](docs/evidence/erp/2026-10-07-goal8/README.md).
+
+İnsan PASS yok; USER_ACCEPTANCE/ERP-UA24 bekler. Gerçek ticari işlem seçici kapsamı, kullanılacak cari kanıtı, gerçekT1/FINAL API-browser-CRM aktivasyonu ve fiziksel/kurtarma kabulü LIVE öncesi açıktır. Vega/LIVE yazması, gerçekT1, müşteri gönderimi ve main merge yapılmadı. Goal7.3 drift normal; eski batch tekrar edilmedi. **Goal8 sonunda DUR; sıradaki tek iş kullanıcıyla15–20dk kabul turu.**
+
+Aşağıdaki kayıtlar tarihsel teslimlerdir; güncel runtime ile karıştırılmaz.
+
+Runtime: `C:\Sirket\ERP\releases\CANONICAL-GOAL8-TEST-20261007-94`, uygulama `CANONICAL-TEST-cee7d7a85b4c`; manifest `52973390F69B8EEB4937C16CFF14AC461F0128D6ECFD3934F530F7A5C0AA365C`,1468dosya. 5194/4144/4146 ve Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01; nativeREAD_ONLY/LIVEaccess0/sysadmin0. Startup görev/config/currentpackage salt okunur eşleşti; fiziksel reboot/logon yapılmadı. CRMsource77a2fa34/bridge0940c49 değişmedi.
+
+Hız: HOME23 /ilk50726 /barkod433 /müşteri514 /tedarikçi447 /satış39 /mal kabul252 /CRM150ms GETmedyan; [tümmedyanlar](docs/evidence/erp/2026-10-07-goal8/performance-proof.json).36hedefli son frontend testi ve exact uygulama CI iki run başarılı:37677100634/37677093326. Son belge HEAD için CI makbuzu [PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23) üzerinden ayrıca doğrulanır; belge HEAD runtime source değildir. USER_ACCEPTANCE değişmedi.
+
 ## Goal8 kaynak altyapısı — 7 Ekim 2026
 
 Onaylı ERP-DEC-026 kapsamında ortak sentetik günlük prova adaptörü, final stok/fiyat/cari collector/runtime/reader hazırlığı ve normal sayım/iade yönlendirmesi kaynakta hazır. İzole SQL delta mekanizması apply/replay0/inverse/yanıt kaybı ve altı döviz hesabı owner-reader kanıtı verdi; gerçek T1 alınmadı, ticari tabloların hashleri aynı. Son paket/native bağlı gün/tam okuyucu/görsel-hız teslimi henüz tamamlanmadı; finish renkleri ve insan kabulleri bu ara kaynak kaydında değişmez. Ham SQL/config ve kanıtlar repo dışındadır. [Goal8 kanıt klasörü](docs/evidence/erp/2026-10-07-goal8/), aynı feature dalı ve PR23.

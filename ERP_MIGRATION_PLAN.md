@@ -1,3 +1,13 @@
+## Goal8 — teknik tamamlandı / insan kabulü bekliyor — 7 Ekim 2026
+
+ERP-DEC-026 kapsamı: son TEST94/source `cee7d7a85b4c797732cfcba8967855f2efbad55b`, 45normal ekran (15×1440/1024/390),13rol,7native rapor, dokuz aşamalı bağlı sentetik gün/replay0, final stok/fiyat/cari writer-reader/inverse/parent recovery native kanıtı ve güncel hız teslim edildi. **49toplam /9🟢 /39🟡 /1🔴**; D02/D06/E01/E02/E03🟡, D01 güvenli karantinada🔴/CANLIDAN SONRA. [Teknik kanıt ve kısa insan listesi](docs/evidence/erp/2026-10-07-goal8/README.md).
+
+İnsan PASS yok; USER_ACCEPTANCE/ERP-UA24 bekler. Gerçek ticari işlem seçici kapsamı, kullanılacak cari kanıtı, gerçekT1/FINAL API-browser-CRM aktivasyonu ve fiziksel/kurtarma kabulü LIVE öncesi açıktır. Vega/LIVE yazması, gerçekT1, müşteri gönderimi ve main merge yapılmadı. Goal7.3 drift normal; eski batch tekrar edilmedi. **Goal8 sonunda DUR; sıradaki tek iş kullanıcıyla15–20dk kabul turu.**
+
+Aşağıdaki kayıtlar tarihsel teslimlerdir; güncel runtime ile karıştırılmaz.
+
+Final adapter teknik sınırı: ayrılmış sentetik native SQL prova, müşteri/tedarikçi altı döviz hesabı,16671ürün/63775typedfiyat normal SQL okuyucu forward/inverse; immutable NULL/hold/source-hash/CAS ve parent recovery korunur. Önceki committed fark ikinci kez uygulanmaz. Final collector gerçek kaynağa çalıştırılmadı; normal FINAL API/browser/CRM aktivasyonu, güncel kaynak kapsamı ve gerçek cutover onayı ayrı. Goal7.3teki16hesap delta yeniden çalıştırılmadı.
+
 ## Final cutover hazırlığı — 7 Ekim 2026 / ERP-DEC-025
 
 Goal7.3 **TEST cari delta mekanizması teknik olarak kanıtlandı** olarak korunur. Üç örneğin dar insan ekran kontrolü tamamlandı; sonraki Vega bakiye değişikliği normal kaynak driftidir. **ERP-UA24 bekliyor, PASS değil.** [Ortak stok/fiyat/cari final T0-T1 prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md) 10 kullanıcı adımı ve teknik kalan-fark/replay/inverse sözleşmesini içerir.

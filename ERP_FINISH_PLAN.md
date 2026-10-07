@@ -1,3 +1,11 @@
+## Goal8 — teknik tamamlandı / insan kabulü bekliyor — 7 Ekim 2026
+
+ERP-DEC-026 kapsamı: son TEST94/source `cee7d7a85b4c797732cfcba8967855f2efbad55b`, 45normal ekran (15×1440/1024/390),13rol,7native rapor, dokuz aşamalı bağlı sentetik gün/replay0, final stok/fiyat/cari writer-reader/inverse/parent recovery native kanıtı ve güncel hız teslim edildi. **49toplam /9🟢 /39🟡 /1🔴**; D02/D06/E01/E02/E03🟡, D01 güvenli karantinada🔴/CANLIDAN SONRA. [Teknik kanıt ve kısa insan listesi](docs/evidence/erp/2026-10-07-goal8/README.md).
+
+İnsan PASS yok; USER_ACCEPTANCE/ERP-UA24 bekler. Gerçek ticari işlem seçici kapsamı, kullanılacak cari kanıtı, gerçekT1/FINAL API-browser-CRM aktivasyonu ve fiziksel/kurtarma kabulü LIVE öncesi açıktır. Vega/LIVE yazması, gerçekT1, müşteri gönderimi ve main merge yapılmadı. Goal7.3 drift normal; eski batch tekrar edilmedi. **Goal8 sonunda DUR; sıradaki tek iş kullanıcıyla15–20dk kabul turu.**
+
+Aşağıdaki kayıtlar tarihsel teslimlerdir; güncel runtime ile karıştırılmaz.
+
 ## Final cutover hazırlığı — 7 Ekim 2026 / ERP-DEC-025
 
 Goal7.3 **TEST cari delta mekanizması teknik olarak kanıtlandı** olarak korunur. Üç örneğin dar insan ekran kontrolü tamamlandı; sonraki Vega bakiye değişikliği normal kaynak driftidir. **ERP-UA24 bekliyor, PASS değil.** [Ortak stok/fiyat/cari final T0-T1 prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md) 10 kullanıcı adımı ve teknik kalan-fark/replay/inverse sözleşmesini içerir.
@@ -52,7 +60,7 @@ Aşağıdaki kayıtlar önceki turların tarihsel kanıtlarıdır.
 
 ## Güncel finish tree —7 Ekim2026
 
-**Toplam49 iş: 🟢9 tamam · 🟡34 kısmi / kabul bekliyor · 🔴6 açık. Genel ilerleme: %18,4 tamam; %69,4 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
+**Toplam49 iş: 🟢9 tamam · 🟡39 kısmi / kabul bekliyor · 🔴1 açık. Genel ilerleme: %18,4 tamam; %79,6 kısmi.** Sayımlar yalnız aşağıdaki tekil yaprakları kapsar. Teknik hazırlık ve personel kabulü ayrı tutulur; kısmi işler tamam yüzdesine eklenmez. Aşağıdaki tarihsel F01–F06 satırları yeni açık iş veya ikinci finish tree değildir.
 
 Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → satış → tahsilat → gün sonu akışına ve Vega geçişine hazır ERP. Bu hedefin tümü henüz kabul edilmedi. Kaynak `C:\Sirket\ERP\melisa-erp-v2`, exact origin `https://github.com/melihsnyldzz-ui/melisa-erp-v2.git`. Çalışma dalı `codex/erp-finish-20261004`, uygulama tabanı `e0c18e3d36a48bc2caab33f8192655eb2fc5805d`; belge dalı veya eski main uygulama tabanı yapılmadı. Ayrı CRM kabulü PR #21'de korunur; o eski paralel dal güncel migration kodunun üstüne körlemesine alınmaz.
 
@@ -93,22 +101,22 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | C14 | Backup/restore | 🟡 | Gerçek COPY_ONLY/CHECKSUM backup7.283.015.680B/87,351sn, yeni ayrı READ_ONLY restore17,823sn;33+2 kritik tablo/177 guard count/hash eşit ve ayrı uygulama connector okuması PASS. TEST/LIVE overwrite/silme yok; operatör ERP-UA22 bekler. [Goal6 kanıtı](docs/evidence/erp/2026-10-06-goal6/README.md). |
 | C15 | Günlük raporlar | 🟡 | Goal6 normal yedi günlük/dönemsel native rapor, ayrı dövizler, NULL maliyet kapsamı, rol sınırı ve aktif filtre CSV/bağımsız SQL toplamları teknik tamamlandı. Güncel Vega/historical import/genel işletme ve ERP-UA19 insan kabulü bekler. [Goal6 kanıtı](docs/evidence/erp/2026-10-06-goal6/README.md). |
 | D00 | Donmuş Vega açılış mutabakatı | 🟢 | RUN06 COMMITTED, eşlenen 16.622 ürün/772 cari/785 hesap/63.774 fiyat fark0, replay ek yazma0; yalnız bu kapsam. |
-| D01 | 54 ürün belirsizliği | 🔴 | İşletme kimlik/birim/barkod kararı ve kaynak kanıtı; operasyon engeli A06'da korunur. |
-| D02 | 122 cari belirsizliği | 🔴 | Goal7.3/DEC024 onaylı16 tedarikçi hesabında15 fark+1no-op teknik uygulandı;122 cari kapsamındaki karantina korundu.4yeni kart/LL/ayrı kararlar hâlâ açık. İnsanERP-UA24bekler. [Kanıt](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). |
+| D01 | 54 ürün belirsizliği | 🔴 | 54kart güvenle karantinada; kaynak korunur, yeni işlemler/fiyat/medya kapsamı dışında. CANLIDAN SONRA; kullanılmadıkları varsayılmaz. Kullanılacak held kart için kaynak/işletme kararı ayrıca gerekir. [Goal8](docs/evidence/erp/2026-10-07-goal8/readiness-audit.md). |
+| D02 | 122 cari belirsizliği | 🟡 | Goal8 teknik sınıflandırma ve aktarım/4yeni kart planı hazır:200cari/209hesap,205kimlik/4hedefsiz; rol/döviz/B-A ayrı, LL/UNKNOWN hold. Finansal kapsam ve kullanıcı kararı açık; Goal7.3/UA24 korunur. [Kanıt](docs/evidence/erp/2026-10-07-goal8/readiness-audit.md). |
 | D03 | Eksik maliyetler | 🟡 | GüncelT010650unknowncost;49new20known29NULL.40costpriorities, genel maliyet kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D04 | 86 yeni ürün delta (kapsam84) | 🟡 | 49safe yeni native zincir;33sarı2kırmızı yeni ve insan kabulü bekler. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D05 | 752 değişmiş ürün delta (kapsam748) | 🟡 | 563safequantityatom+12safe master/price;yerel history korunur, kalanatomlar/insan kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
-| D06 | 85 değişmiş cari delta (29müşteri56tedarikçi) | 🔴 | Goal7.3/DEC024 yalnız16strict-ready tedarikçi hesabı:15fark uygulandı,1no-op aynı;SQL/API16/16,replay0.30hassasiyet/27explicitcarry/4newcard/2LL ve diğer kapsam açık. Genel delta veya insanERP-UA24tamam değildir. [Kanıt](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). |
-| D07 | T0/T1 cutover planı | 🟡 | ERP-DEC-025: tek stok/fiyat/cari [final prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md), son kabul sürümüne göre residual, 13 yeni offline test ve Goal7.3 replay/inverse hazırlık çekirdeği hazır. SQL çalıştırıcısı yok; final collector/writer/reader, gerçekT1/işletme/onay/LIVEkabulü bekler. Goal7.3 drift hata sayılmadı; UA24 PASS değil. |
+| D06 | 85 değişmiş cari delta (29müşteri56tedarikçi) | 🟡 | Gerçek T1 almadan final collector/sealedplan/customer-supplier TRY/USD/EUR B-A writer/replay0/mutabakat/inverse/parent recovery ve normal SQL reader sentetik native kanıtı hazır; yerel ve önceki committed fark korunur. Gerçek kaynak/FINAL runtime/onay açık. [Kanıt](docs/evidence/erp/2026-10-07-goal8/README.md). |
+| D07 | T0/T1 cutover planı | 🟡 | Ortak final stok/fiyat/cari10adım prosedürü ve native adapter/readback/recovery teknik hazır. GerçekT1, güncel yedek/kurtarma, normalFINALAPI/browser/CRM aktivasyonu ve işletme onayı bekler; otomatik kesim yok. [Kanıt](docs/evidence/erp/2026-10-07-goal8/README.md). |
 | D08 | İdempotent delta batch | 🟢 | Dar safe TESTscope immutable iki gerçekrun/replay0;farklıpayloadconflict. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D09 | Son mutabakat | 🟡 | Safe563stock/468effect nativeSELECTfark0,46table16guard aynı;T1/genelfinans/işletme kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D10 | Committed rollback provası | 🟢 | Committed−2/newnative−1/inverse+2;count/audithashkorunur,ayrıcleanup+1/historykalır.SentetikTESTscope. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D11 | Vega READ ONLY arşiv planı | 🟡 | Singlewriter/decommission/historicalSELECT prosedürü;actualVegapermission/işletmegeçişi açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
-| E01 | Modül bazında gerçek kabul | 🔴 | Her modüle normal TEST URL ve 3–5 deneme; rol/olumsuz durum/SQL etkisi ve kişi/tarih/kapsam kayıtlı. |
-| E02 | Personelin günlük akış kabulü | 🔴 | Mal kabulden gün sonuna kullanıcı günlük işini deneyip kabul eder; ajan teknik testi insan kabulü değildir. |
-| E03 | Görsel üç genişlik kabulü | 🔴 | Eski C03/C06/C07/C09 LAB kanıtları korunur. TEST58 normal Mal Kabul/Alış/Tedarikçi/HOME1440/1024/390 toplam12görünüm taşmasız; personel/yetkisiz/belirsiz durumları da kanıtlı. Tüm ERP modülleri/fiziksel cihaz/personel görsel kabulü hâlâ açık; ERP-UA10/11/12 bekler. [Sabah kanıtı](docs/evidence/erp/2026-10-06-inbound/README.md). |
+| E01 | Modül bazında gerçek kabul | 🟡 | Son TEST94/sourcecee:15normal ekran/13rol/7rapor, hedefli refresh/error/replay ve native okuma teknik tamam. Gerçek ticari kapsam ve15–20dk insan kabulü bekler; teknik test insanPASS değildir. [Kanıt](docs/evidence/erp/2026-10-07-goal8/README.md). |
+| E02 | Personelin günlük akış kabulü | 🟡 | Dokuz aşamalı bağlı native sentetik iş günü kabul→alış→satış→tahsilat→CRMtaslak→ödeme→sayım→iade→rapor; stok/finans/replay0 kanıtlı. Gerçek personel kabulü bekler. [Kanıt](docs/evidence/erp/2026-10-07-goal8/day-proof.json). |
+| E03 | Görsel üç genişlik kabulü | 🟡 | TEST94te15ekran×1440/1024/390=45teknik kontrol,390sayım modalı/offline-recovery ve yeşil tasarım korunumu hazır. Fiziksel Zebra/geniş insan kabulü bekler; redesign yok. [Kanıt](docs/evidence/erp/2026-10-07-goal8/ui-proof.json). |
 | F01 | Tek finish tree ve otomatik sıra | 🟢 | Bu tablo güncel iş kaynağı; root sayım/status günceller. `devam` sıradaki bağımsız açık işi seçer. |
-| F02 | GitHub/CI teslim düzeni | 🟡 | Feature codex/erp-finish-20261004/draft PR23. TEST58/source93365d0 exact push37435923959/PR37435929646 CI SUCCESS. Son belge head ayrı PRChecks ile doğrulanır; kaynak/GitHub/runtime ayrıdır. Genel ERP teslimi açık; merge/LIVE yok. [Sabah kanıtı](docs/evidence/erp/2026-10-06-inbound/README.md). |
+| F02 | GitHub/CI teslim düzeni | 🟡 | Feature codex/erp-finish-20261004/draft PR23. TEST94/sourcecee7d7a exact push37677100634/PR37677093326 CI SUCCESS. Son belge head ayrı PRChecks ile doğrulanır; kaynak/GitHub/runtime ayrıdır. Genel ERP teslimi açık; merge/LIVE yok. [Goal8](docs/evidence/erp/2026-10-07-goal8/README.md). |
 
 ### Önceki C09 dilimi, sahiplik ve kabul — tarihsel kayıt
 
