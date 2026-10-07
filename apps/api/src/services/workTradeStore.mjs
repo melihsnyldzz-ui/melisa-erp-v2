@@ -27,9 +27,11 @@ export function workContextDto(raw,actor,goal8Profile=false){
  if(customer.currency!=='TRY'||typeof customer.code!=='string'||typeof customer.name!=='string')throw workError();
  const products=raw.products.map(row=>{
   const id=workId(row.id),quoteId=workId(row.priceId);workScaled(row.stockQuantityExact3,3);workScaled(row.unitPriceExact8,8);workScaled(row.costExact4,4);
-  if(row.unit!=='ADET'||typeof row.stockCode!=='string'||typeof row.name!=='string'||(row.barcode!==null&&typeof row.barcode!=='string')||nativeId(id)===301986)throw workError();
+  // Goal8 fixture cards may have no primary barcode; FOR JSON omits SQL NULL.
+  const barcode=goal8Profile&&row.barcode===undefined?null:row.barcode;
+  if(row.unit!=='ADET'||typeof row.stockCode!=='string'||typeof row.name!=='string'||(barcode!==null&&typeof barcode!=='string')||nativeId(id)===301986)throw workError();
   if(goal8Profile&&(id!=='301985'&&id!=='325503'||row.costExact4!==(id==='325503'?'80.0000':'60.0000')||row.unitPriceExact8!==(id==='325503'?'120.00000000':'100.00000000')||row.stockCode!==(id==='325503'?'TEST-FINISH-GOODS-P2':'TEST-V70-GOODS-P')))throw workError();
-  return {id,stockCode:row.stockCode,name:row.name,barcode:row.barcode,synthetic:true,writeEligible:true,stockQuantityExact3:row.stockQuantityExact3,unit:{label:'ADET',factorExact8:'1.00000000'},revision:workRevision(raw.revision),prices:[{quoteId,currency:'TRY',unitPriceExact8:row.unitPriceExact8,source:goal8Profile?{kind:'synthetic-test',fixture:GOAL8_DAY_PROFILE.id,quotedPrice:true}:{kind:'synthetic-test'},revision:workRevision(raw.revision)}]};
+  return {id,stockCode:row.stockCode,name:row.name,barcode,synthetic:true,writeEligible:true,stockQuantityExact3:row.stockQuantityExact3,unit:{label:'ADET',factorExact8:'1.00000000'},revision:workRevision(raw.revision),prices:[{quoteId,currency:'TRY',unitPriceExact8:row.unitPriceExact8,source:goal8Profile?{kind:'synthetic-test',fixture:GOAL8_DAY_PROFILE.id,quotedPrice:true}:{kind:'synthetic-test'},revision:workRevision(raw.revision)}]};
  });
  if(new Set(products.map(row=>row.id)).size!==2)throw workError();
  const cap=capabilities(actor,raw),finance=actor.id==='16'&&actor.permissions.includes('finance.view')&&raw.permissions.includes('finance.view'),a=raw.account;
