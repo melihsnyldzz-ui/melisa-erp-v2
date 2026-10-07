@@ -1,3 +1,17 @@
+## Goal7.2 — 7 Ekim 2026, cari aktarımına hazır kapsam
+
+Başlangıç checkout/PR23 head35a70a14. Çalışan TEST84 uygulaması07101548d4af1f4a9344fe7cf7f19e64ffa26edb;web5194/API4144/native4146 ve Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01 fresh doğrulandı. Paket/restart/deploy0;LIVE/CRM listener sahipleri aynı. [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers)/[Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers) mevcut Goal7.1 yüzüdür;UI/rol değişikliği yok.
+
+200cari209hesap Goal7.1 kanıtı kullanıldı. Dört F0103 kimliğinin exact kod/sourceKey/UID/entity/account/belge hedefi gerçekten yok;ayrı4NEW_CARD_REQUIRED planı,create/link0. Güncel3806hareket/3806typediptalsizhead;86Jan1 103/104 exacthead. Kaynak10cari14changed/new ve1deleted satır değişti,4projection iki geçişte sabit;atomikT1 değil. Yalnız değişen cari netleri yenilendi. Native12table/2reader hash'leri Goal7.1'den beri aynı;84opening+local=account=ledger kanıtı kullanıldı. 84/77araştırma havuzunda57carry+dönem belgesi tamam,27explicitcarryeksik(14önceki dönem hareketli). GenelBAKIYE/defaultcurrencyfallback0,2025ekleme0,tinyamountsilme0.
+
+Tarihli bağımsız Vega raporu0:sourceVIEWDEFINITION/SERVERSTATE0;arşivDLL/FR3DOVIZBAKIYE/ROUNDYTL/direction/(-) parçaları bulundu ama activeversion/filtre/tutarçıktısı kanıtlanmadı. Eskiqqq tarih-kapsam onayı değil. LL2actual104Jan1head/rate0,95;önceki+5deneme açıklamasına atıf korundu,aynıgenelsoru tekrar yok;convert/zero/holdlift0. Orijinal27EylülLLkarar belgesi bu tur bulunmadı.
+
+Repo dışı209accountmatrix:0KANITI TAMAM/203KANIT EKSİK/2İŞLETME KARARI/4EŞLEŞME YOK. **Finans uygulanabilirliği tamam0;gerçek cari/finanswrite0**. Saf offlineplan/verify9sentetik test ve46migration testi PASS;determinism/replay/body/run/source/drift/oldopeningcorrection ayrımı. Gerçekreadyplan boş kapsam;sentetikPASSinsanPASSdeğil;SQLwriter yok. PrivateACLhamveri publicGit'e konmadı.
+
+[Rapor](docs/erp-v2/canonical-20261005/party-currency-transfer-readiness.md)/[anonim kanıt](docs/evidence/erp/2026-10-07-goal72/README.md);privateACCOUNT_TRANSFER_PLAN.md/account-transfer-plan.json/four-card-create-plan.json C:\Sirket\ERP\evidence\ERP-GOAL7.2-20261007\private içinde. Sonraki tek dış kanıt aynıVegaCariHesapListesiÖzet ekranındanF0102/F0103ayrı,tarihli2026/01Jan–07Oct,tür/aktiflik/zero/dövizfiltreleri kayıtlı export. Rapor geldikten sonra yalnız değişmiş hesapları yeniden yakala ve57hesabıönce mutabıklaştır;finansuygulamasıayrıonay. D02/D06açık,finish49/9🟢/34🟡/6🔴,ERP-UA24bekler;başkaişyok.
+
+Git:codex/erp-finish-20261004 → [PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23);bu kaydı içeren PRhead kaynak teslimidir,runtime07101548 değişmedi. ExactheadCIsonucuPRchecks/yerelteslimmakbuzunda doğrulanır;aşağıdaki Goal7.1CI yeniheadCIyerine kullanılmaz.
+
 ## Goal7.1 — 7 Ekim 2026, ayrı döviz gösterimi ve salt okunur karşılaştırma
 
 TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb;1434dosya/baselineReproducedtrue;C:/Sirket/ERP/releases/CANONICAL-GOAL71-TEST-20261007-84;manifest977add2668602776bdb2fd9385700df800b534d6a252f85aca5b1d2edb53c7a9.5194/4144/4146READY→Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01. Başlangıçta listener yoktu;pinli83geri açılıpactualreader/API/DB doğrulandı,sonraERP84'e geçti. Eski Vega servisleri normal kart okuyucusu değildir.

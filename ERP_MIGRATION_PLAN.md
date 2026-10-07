@@ -1,3 +1,9 @@
+## Goal7.2 — 7 Ekim 2026, hesap bazında uygulanabilirlik planı
+
+ERP-DEC-022/[rapor](docs/erp-v2/canonical-20261005/party-currency-transfer-readiness.md).4absent tedarikçi→ayrıNEW_CARD_REQUIRED;gerçekcreate/link0. 3806source hareket/3806exacttypediptalsizhead,86Jan1openinghead. 84nativeopening+localmutabık araştırma hesabı içinde57carry+dönem belgesi kanıtlı,27explicitcarryeksik(14prior2025). Kaynak10cari14changed/new1deleted;4projection two-passstable/non-atomic. Tarihli independentVegaFXreport0;arşivSQL/FR3aktifversion yerine geçmez.209privateaccountmatrix:0KANITI TAMAM/203KANIT EKSİK/2LLİŞLETME KARARI/4EŞLEŞME YOK.
+
+Salt okunur saf plan/verify+replay;SQLwriter yok. SourceDelta=newVerifiedSource-oldAcceptedSource;suppliernativeişaretayrı;expected=acceptedOpening+preservedLocal+mappedDelta. Yanlış eskiopening yorumu ayrıcorrectionplanıister. Sonraki ayrı onaylıTEST için kanıtlıaltkapsam+backup+source/hold/nativeguard+immutablebatch/replay0+independentmutabakat+laterlocalpreservinginverse önerilir;bu turbu işlemler yapılmadı. LLkaynak104açılışbelgeleri bulundu;eskiTLalternatif+5deneme açıklaması tekrar sorulmaz,LLconvert/zero0. D02/D06/UA24renkleri korunur;LIVE/Vega/CRM/mainmerge/cari/financewrite0. Dış rapor ve27hesabın carry kanıtı bekler;başka işe geçilmez.
+
 ## Goal7.1 — 7 Ekim 2026, cari gösterimi ve aktarım planı
 
 ERP-DEC-021: cari türü/rolü ve ayrı hesabın Döviz Bakiye tutarı+para birimi+B/A birlikte korunur. Genel Bakiye/hamBAKIYEekleme yok; varsayılan döviz diğer hesapları gizlemez. [200 cari karşılaştırması ve güvenli kalan aktarım planı](docs/erp-v2/canonical-20261005/party-currency-comparison-plan.md).

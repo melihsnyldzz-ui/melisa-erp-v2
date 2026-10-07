@@ -6,7 +6,7 @@
 2. Kartta 30 Eylül kabul edilmiş açılışı, kayıtlı yerel etkiyi ve güncel ERP hesabını ayrı incele; Genel Bakiye eklenmediğini kontrol et.
 3. Yakalama tarihli kaynak hareket neti ile açılış adayı/dönem ayrımını incele; bu tutarların ERP hesabına eklenmediğini değerlendir.
 4. Karantinalı kart, hareketi olmayan hesap, doğrulanmış sıfır ve küçük ters yön tutarını değerlendir; bilinmeyenin sıfır olmadığını gör.
-5. [Aktarım planını](docs/erp-v2/canonical-20261005/party-currency-comparison-plan.md) ve private LL2 soru grubunu incele. Bu kabul finans aktarımı veya hold kaldırma yetkisi değildir.
+5. [Aktarım planını](docs/erp-v2/canonical-20261005/party-currency-comparison-plan.md) ve [Goal7.2 hesap kanıtlarını](docs/erp-v2/canonical-20261005/party-currency-transfer-readiness.md) incele. LL'nin eski deneme açıklaması tekrar sorulmaz; kaynak belge kökeni ve kalan ayrı işlem kararı private plandadır. Bu kabul finans aktarımı veya hold kaldırma yetkisi değildir; ERP-UA24 hâlâ bekliyor.
 
 ## ERP-UA23 / ERP-MIG07 —bekliyor,7 Ekim2026
 

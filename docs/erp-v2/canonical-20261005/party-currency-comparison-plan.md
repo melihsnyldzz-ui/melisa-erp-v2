@@ -1,5 +1,7 @@
 # Goal7.1 — ayrı döviz karşılaştırması ve kalan aktarım planı
 
+**7 Ekim Goal7.2 devam kaydı:** Bu eski yakalama ve araştırma korunur. Dört eksik bağın hedefinin gerçekten bulunmadığı,ayrı yeni kart gereksinimi;57hesabın carry/dönem belge zinciri ve güncel10cari kaynak değişimi [yeni planda](party-currency-transfer-readiness.md) kayıtlıdır. Aşağıdaki eski LL genel soru listesi tekrar sorulmaz;önceki+5deneme açıklaması ve gerçek104açılışbelge kökeni yeni kayıtta ayrıldı. Tarihli bağımsız rapor olmadanfinance-ready0,holdlift0;ERP-UA24bekler.
+
 7 Ekim 2026; ERP-DEC-021 ve kullanıcının Goal7.1 talimatı. Bu teslim okuma, gösterim ve plandır; finans yazması, hold kaldırma veya insan kabulü değildir.
 
 ## Kaynak ve kapsam
