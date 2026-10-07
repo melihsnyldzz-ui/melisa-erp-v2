@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {supplierCardError,parseSupplierCardId} from './supplierCardModel.mjs';
+import {SUPPLIER_DELTA_READ_SQL,attachSupplierDeltas} from './supplierCurrencyDeltaRead.mjs';
 
 export const SUPPLIER_CARD_PROC='dbo.usp_read_supplier_cards';
 export const SUPPLIER_CARD_RUN='VEGA-OPENING-TEST-20261004-06';
@@ -93,8 +94,8 @@ export function assembleSupplierCardRaw(raw){
   n.matchStatus=source?'matched':'unmatched';n.sourceAccountKey=source?.sourceKey??null;n.sourceOpeningBalanceExact=source?.sourceOpeningBalanceExact??null;n.expectedNativeBalanceExact=null;
   n.reconciliationStatus='native-unverified';n.confidence='native-unverified';
   if(source?.balanceStatus==='SOURCE'){
-   const opening=units(source.sourceOpeningBalanceExact),delta=units(n.localDeltaExact),current=units(n.nativeBalanceExact),ledger=units(n.ledgerBalanceExact);
-   if([opening,delta,current,ledger].every(v=>v!==null)){const expected=opening+delta;n.expectedNativeBalanceExact=exact(expected);n.reconciliationStatus=current===expected&&current===ledger?'reconciled':'drift';n.confidence=n.reconciliationStatus==='reconciled'?'source-matched':'drift';}
+   const opening=units(source.sourceOpeningBalanceExact),delta=units(n.localDeltaExact),sourceDelta=n.sourceDeltaVerified===true?units(n.sourceDeltaExact):n.sourceDeltaExact===undefined?0n:null,current=units(n.nativeBalanceExact),ledger=units(n.ledgerBalanceExact);
+   if([opening,delta,sourceDelta,current,ledger].every(v=>v!==null)){const expected=opening+delta+sourceDelta;n.expectedNativeBalanceExact=exact(expected);n.reconciliationStatus=current===expected&&current===ledger?'reconciled':'drift';n.confidence=n.reconciliationStatus==='reconciled'?'source-matched':'drift';}
   }else if(source){n.reconciliationStatus='unknown';n.confidence='unknown';}
   if(holds.length){n.reconciliationStatus='quarantined';n.confidence='quarantined';}
  }
@@ -110,7 +111,10 @@ export function createSupplierCardReadStore({getRuntime=defaultRuntime}={}){
    const req=new sql.Request(tx);req.input('supplier_id',sql.BigInt,id??null).input('search',sql.NVarChar(120),search).input('page',sql.Int,page).input('page_size',sql.Int,limit).input('status',sql.NVarChar(12),status).input('quarantine',sql.NVarChar(12),quarantine);
    const result=await req.execute(SUPPLIER_CARD_PROC),row=result.recordset?.[0];
    if(!row||row.readerDefinitionHash!==SUPPLIER_CARD_PROC_HASH||!Number.isSafeInteger(row.total)||row.total<0)throw supplierCardError();
-   const parsed=JSON.parse(row.rowsJson??'[]');if(!Array.isArray(parsed))throw supplierCardError();const rows=parsed.map(assembleSupplierCardRaw);await tx.commit();return {rows,total:row.total};
+   const parsed=JSON.parse(row.rowsJson??'[]');if(!Array.isArray(parsed))throw supplierCardError();
+   const ids=parsed.flatMap(r=>r.nativeAccounts.map(a=>parseSupplierCardId(a.id)));
+   if(ids.length){const deltaReq=new sql.Request(tx).input('account_ids',sql.NVarChar(sql.MAX),JSON.stringify(ids));const proof=(await deltaReq.query(SUPPLIER_DELTA_READ_SQL)).recordset;attachSupplierDeltas(parsed,proof);}
+   const rows=parsed.map(assembleSupplierCardRaw);await tx.commit();return {rows,total:row.total};
   }catch(error){if(tx)try{await tx.rollback();}catch{}if(error?.statusCode===400)throw error;throw supplierCardError('SUPPLIER_CARD_UNAVAILABLE','Müşteri kartı okuma kanıtı şu anda kullanılamıyor.',503);}
  };
  return {listSupplierCardRows:options=>read(null,options),readSupplierCardRows:async id=>(await read(parseSupplierCardId(id),{limit:1})).rows[0]??null};

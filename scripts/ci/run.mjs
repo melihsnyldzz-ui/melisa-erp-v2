@@ -35,7 +35,7 @@ if (mode === 'quality') {
   // The identity regression is a real SQL integration suite. CI deliberately
   // runs only these reviewed synthetic migration models and never that suite.
   const tests = mode === 'migration'
-    ? ['accepted-opening-prices', 'mapping-opening', 'operation-quarantine', 'target-native-opening', 'party-currency-readonly-plan'].map(name => path.join(testRoot, `${name}.test.mjs`))
+    ? ['accepted-opening-prices', 'mapping-opening', 'operation-quarantine', 'target-native-opening', 'party-currency-readonly-plan', 'goal73-supplier-delta'].map(name => path.join(testRoot, `${name}.test.mjs`))
     : files(testRoot, name => /\.test\.(js|mjs)$/.test(name));
   if (!tests.length) throw new Error('CI refuses an empty test suite');
   console.log(`${mode}: ${tests.length} unit test files; offline guard active`);

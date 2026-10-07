@@ -1,0 +1,13 @@
+# Goal7.3 — onaylı 16 tedarikçi hesabının TEST aktarımı
+
+[PR23 / 6038754582](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6038754582), ERP-DEC-024. Önceki v04 planı read-only olarak değişmeden korunur; yeni execution manifest bu onaya ve parent `87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0` hashine bağlıdır. 14 TRY / 2 USD; 15 fark ve 1 no-op. Kaynak hesap/başlık, kimlik, native defter/açılış/yerel etki/hold tekrar doğrulanır. Araç tüm 16 hesabı tek transaction olarak uygular; herhangi bir onaylı hesap drift'i varsa hiçbirini yazmaz. Kapsam dışındaki kaynak değişiklikler bu hesapların hashine eklenmez.
+
+Yeni COPY_ONLY/CHECKSUM yedek SQL VERIFYONLY ile geçti; önceki Goal6 ayrı READ_ONLY restore kanıtının aynı sunucuda ONLINE/READ_ONLY olduğu doğrulandı. Aktif DB üzerine restore yok. Private before-image ve inverse plan repo dışında tutulur. Dar araç aynı UUID/body için kalıcı committed receipt okur; farklı body reddedilir. Parent plan/account unique kısıtı yeni UUID ile aynı onayın ikinci uygulanmasını engeller. Hesap + hareket + audit + immutable journal tek transaction'dadır. No-op hesap için hareket/audit oluşturulmaz.
+
+Formül: kabul edilen native açılış + korunan yerel etki + **negate(kanıtlı yeni kaynak neti − kabul edilmiş kaynak neti)**. Sekiz basamaklı hesap/defter tutarı korunur; yalnız ana dövizdeki mevcut dört basamaklı eski projection eşitliği gerekiyorsa güncellenir. Diğer dövizler birleştirilmez. Mevcut hareketler değiştirilmez. Gerçek ödeme/kasa/banka/fiş/stok etkisi yok.
+
+Normal tedarikçi okuyucusunun mevcut SQL prosedürü ve izinleri korunur. Aynı transaction içindeki sayfa kapsamlı SELECT, yeni immutable journalı gerçek hareket ve audit ile karşılaştırır. Aktarım farkı açılış ve yerel etkiden ayrı tutulur; kanıtı eksik veya defterle uyuşmayan bakiye doğrulanmış ilan edilmez. Mevcut dbo SELECT izni kullanılır; yeni GRANT, kullanıcı veya rol yok. Yeşil ekran tasarımı değişmez.
+
+Uygulama durumu henüz **HAZIRLIK**: 488 API / 53 offline migration / 30 hedefli test geçti; gerçek finansal etki henüz uygulanmadı. SQL temp-table inverse provasında 3 sentetik hesapta daha sonraki yerel etkiler korundu; gerçek carilere prova ödeme/sayım yazılmadı. Çalışan TEST84, uygulama değişikliğinden sonra yeni immutable TEST paketiyle doğrulanacak. İnsan ERP-UA24 bekliyor; D02/D06 genel migration açık kalır.
+
+Ham kaynak, tutar, before/delta/after, backup ve execution manifest `C:\Sirket\ERP\evidence\ERP-GOAL7.3-20261007\private` içinde ACL ile korunur. Public teslim yalnız anonim sayı/hash/yöntem/test kanıtıdır. Nihai SQL/API/UI/replay/CI kanıtı burada ve STATUS'ta güncellenecek.
