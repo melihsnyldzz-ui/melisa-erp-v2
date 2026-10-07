@@ -1,0 +1,190 @@
+{
+  "schemaVersion": "melisa-goal72-report-evidence.v1",
+  "status": "READONLY_RECONCILIATION_AND_APPROVABLE_SUBSET_DELIVERED",
+  "startedFromCommit": "10fbeb9da1eab19babe71aa28212b051bbbf7438",
+  "scope": {
+    "commentId": 6037300176,
+    "basis": "EXPLICIT_USER_CONFIRMATION",
+    "dateFrom": "2026-01-01",
+    "dateToExclusive": "2026-10-08",
+    "period": "D0007",
+    "activeFilter": "ALL",
+    "currencies": "ALL",
+    "zeroFilter": "INCLUDE",
+    "productionTime": null,
+    "metadataIndependentlyVerified": false,
+    "atomicT1": false
+  },
+  "source": {
+    "server": "DESKTOP-KSRK0EQ",
+    "database": "VEGA2026",
+    "capturedFrom": "2026-10-07T11:56:24.726Z",
+    "capturedThrough": "2026-10-07T11:56:25.221Z",
+    "sourceVersionHash": "8d0d72b5dd591e3a73f0c38dd504f556a675e9b89bc71cf9bdcea4ba1f6434eb",
+    "lateAccountRefresh": {
+      "key": "ANONYMIZED_CUSTOMER_ACCOUNT",
+      "capturedFrom": "2026-10-07T12:14:04.604Z",
+      "capturedThrough": "2026-10-07T12:14:04.834Z",
+      "onlyAffectedAccountRefreshed": true
+    }
+  },
+  "counts": {
+    "createdAt": "2026-10-07T12:16:21.588Z",
+    "scopeCommentId": 6037300176,
+    "scopeBasis": "EXPLICIT_USER_CONFIRMATION",
+    "reportProductionTimeKnown": false,
+    "reportMetadataIndependentlyProven": false,
+    "atomicT1": false,
+    "accounts": 57,
+    "sourceIdentityCurrencyDocumentMatches": 57,
+    "reportRows": {
+      "F0102": 441,
+      "F0103": 519
+    },
+    "reportCodedRows": {
+      "F0102": 440,
+      "F0103": 519
+    },
+    "reportOrphanRows": {
+      "F0102": [
+        195
+      ],
+      "F0103": []
+    },
+    "mutuallyExclusiveResults": {
+      "TIME_DIFFERENCE_REVIEW": 7,
+      "AMOUNT_OR_DIRECTION_DIFFERENCE": 1,
+      "REPORT_DISPLAY_MATCH": 46,
+      "UNMATCHED_OR_DISPLAY_UNKNOWN": 3
+    },
+    "allDisplayCompatible": 47,
+    "stableDisplayCompatible": 46,
+    "metadataOnlyChangesCleared": 3,
+    "financialChangesSinceGoal72": 5,
+    "olderVersionDifferencesExplained": 2,
+    "exactReportedValueMatches": 16,
+    "fullyProvenAccounts": 16,
+    "nonzeroDeltaAccounts": 15,
+    "zeroDeltaNoOpAccounts": 1,
+    "readyByRole": {
+      "customer": 0,
+      "supplier": 16
+    },
+    "readyByCurrency": {
+      "TRY": 14,
+      "USD": 2,
+      "EUR": 0
+    },
+    "remainingStableDisplayPrecision": 30,
+    "remainingLegacyCarryAccounts": 27,
+    "remainingNewCards": 4,
+    "remainingLLAccounts": 2,
+    "financialWrites": 0,
+    "holdsLifted": 0,
+    "financialWriteAuthorized": false,
+    "planHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0",
+    "sourceVersionHash": "8d0d72b5dd591e3a73f0c38dd504f556a675e9b89bc71cf9bdcea4ba1f6434eb",
+    "reports": [
+      {
+        "company": "F0102",
+        "size": 73216,
+        "sha256": "a36b39514e8d220db133ce334cd1dce531273ea0cecceaaeccca3d67aa4d0429"
+      },
+      {
+        "company": "F0103",
+        "size": 78848,
+        "sha256": "1f0eeaec1d808552448814698a254b2d2bcfcd15df35f0530c1d03c1b3bb8da1"
+      }
+    ],
+    "verification": {
+      "runId": "ERP-GOAL72-REPORT-20261007-01",
+      "planHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0",
+      "status": "READONLY_VERIFIED",
+      "proposedAccounts": 16,
+      "financialWrites": 0
+    },
+    "replay": {
+      "runId": "ERP-GOAL72-REPORT-20261007-01",
+      "planHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0",
+      "status": "SAME_PLAN_REPLAY",
+      "proposedAccounts": 16,
+      "financialWrites": 0
+    }
+  },
+  "runtime": {
+    "package": "CANONICAL-GOAL71-TEST-20261007-84",
+    "sourceCommit": "07101548d4af1f4a9344fe7cf7f19e64ffa26edb",
+    "web": 5194,
+    "api": 4144,
+    "native": 4146,
+    "server": "Semih\\MELISADEV",
+    "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "restarted": false,
+    "deployed": false
+  },
+  "validation": {
+    "createdAt": "2026-10-07T12:16:22.442Z",
+    "verification": {
+      "runId": "ERP-GOAL72-REPORT-20261007-01",
+      "planHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0",
+      "status": "READONLY_VERIFIED",
+      "proposedAccounts": 16,
+      "financialWrites": 0
+    },
+    "replay": {
+      "runId": "ERP-GOAL72-REPORT-20261007-01",
+      "planHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0",
+      "status": "SAME_PLAN_REPLAY",
+      "proposedAccounts": 16,
+      "financialWrites": 0
+    },
+    "rejected": [
+      "altered native witness",
+      "different source version",
+      "different run",
+      "rehash altered expected result"
+    ],
+    "sourceChecks": [
+      {
+        "company": "F0102",
+        "readyAccounts": 0,
+        "changedSinceComparison": []
+      },
+      {
+        "company": "F0103",
+        "readyAccounts": 16,
+        "changedSinceComparison": []
+      }
+    ],
+    "unitTests": 9,
+    "unitTestsPassed": 9,
+    "nativeFinanceTablesUnchanged": 12,
+    "nativeReaderDefinitionsUnchanged": 2,
+    "authorizationHoldScopesUnchanged": 5,
+    "sourceOriginalHashesUnchanged": true,
+    "financialWrites": 0,
+    "holdsLifted": 0,
+    "atomicT1": false
+  },
+  "evidence": {
+    "privateManifestSha256": "ff1bef56de5dbc5fd03b1fb6fbbaa81b1fbed57fbe5a049df4509a3b4c798c73",
+    "rawFinancialRowsPublished": false,
+    "privatePlanPayloadHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0"
+  },
+  "humanAcceptance": "ERP-UA24_PENDING",
+  "finishtree": {
+    "total": 49,
+    "complete": 9,
+    "partial": 34,
+    "open": 6
+  },
+  "boundaries": {
+    "financialWrites": 0,
+    "cardCreation": 0,
+    "holdLift": 0,
+    "liveWrites": 0,
+    "vegaWrites": 0,
+    "crmChanges": 0,
+    "mainMerge": false
+  }
+}

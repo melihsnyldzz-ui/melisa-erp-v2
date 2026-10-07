@@ -1,4 +1,16 @@
-## Goal7.2 — 7 Ekim 2026, cari aktarımına hazır kapsam
+## Goal7.2 rapor mutabakatı — 7 Ekim 2026
+
+Başlangıçhead10fbeb9da1eab19babe71aa28212b051bbbf7438 / codex/erp-finish-20261004 / PR23. [Kapsam teyidi](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6037300176),[mutabakat raporu](docs/erp-v2/canonical-20261005/party-currency-report-reconciliation.md),[anonim kanıt](docs/evidence/erp/2026-10-07-goal72-report/README.md). İki orijinal XLS hash/byte eş;scope kullanıcı beyanı,bağımsız dosya metadata/üretim saati/atomikT1 yok. Aynı kapsam sorusu tekrar yok.
+
+Mevcut57hesap:20müşteri37tedarikçi;exactkod tüm kaynak kartlarında tekil,3002hesap-hareketinin gerçektypediptalsizbelge bağı yeniden doğrulandı. 46sabit gösterim uyumu/7zaman-sürüm/1tutar farkı/3(-) anlamı eksik.47toplam gösterim uyumunun1i kaynak finans değişikliği nedeniyle zaman grubunda. Üç metadata hesabı güvenle tekrar gruba alındı;son kontrol sırasında bir başka müşteri hesabının finansal değişikliği ayrıca yakalandı ve yalnız o hesap yenilendi.İki eski sürüm farkını yeni belgeler açıklar. (-) ve tiny net sıfırlanmadı.
+
+16strict-ready hesabın kaynak neti/rapor sayısı ve yönü eş;hepsi tedarikçi,14TRY/2USD.15sıfırdışı native fark+1no-op;mevcut native,korunacaklocal,exactsourceDelta,expectedAfter private tabloda.30yalnız iki ondalıklı uyumlu hesapta active rounding kanıtı eksik olduğundan mevcut guard KANITI TAMAM vermez. Report display,exact ledger raporu değildir.
+
+Gerçek16plan verify/replay geçer;4source/run/body/native drift negatifi reddedilir;9hedefli modeltestPASS. Native12table/2reader/5yetki-holdscope önce-sonra ve öncekiGoal7.2kanıtla aynı;son57sourcefinansdrift0;originalhashaynı. Planhash87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0;private manifestff1bef56de5dbc5fd03b1fb6fbbaa81b1fbed57fbe5a049df4509a3b4c798c73. Ham rapor/finans/private manifest satırları Gitte yok.
+
+Fresh webtest-health okCANONICAL_TEST,source07101548d4af1f4a9344fe7cf7f19e64ffa26edb/5194. TEST84 package aynıdır;native SELECT Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01. Yeni paket/restart/deploy/UI/rol0;financewrite0/create0/holdlift0/LIVE-Vega-CRM-main0. ERP-UA24bekler;D02/D06🔴,49/9🟢/34🟡/6🔴. Bu tur karşılaştırma/aktarımı önermedir;uygulama ayrı açık onay ister. Exact kaynakteslim/CI makbuzu PR23head üzerinden tamamlanır;uygulama source bu docsHEAD ile karıştırılmaz.
+
+## Önceki Goal7.2 — rapor teyidinden önceki araştırma
 
 Başlangıç checkout/PR23 head35a70a14. Çalışan TEST84 uygulaması07101548d4af1f4a9344fe7cf7f19e64ffa26edb;web5194/API4144/native4146 ve Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01 fresh doğrulandı. Paket/restart/deploy0;LIVE/CRM listener sahipleri aynı. [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers)/[Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers) mevcut Goal7.1 yüzüdür;UI/rol değişikliği yok.
 

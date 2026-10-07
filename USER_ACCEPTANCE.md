@@ -1,3 +1,5 @@
+**Goal7.2 rapor mutabakatı — 7 Ekim 2026:** ERP-DEC-023 rapor şirket/dönem/filtre teyididir;ERP-UA24 veya diğer insan ekran kabulünün PASS sonucu değildir. [57hesap karşılaştırması](docs/erp-v2/canonical-20261005/party-currency-report-reconciliation.md) teknik teslim:16strict-ready öneri,gerçekwrite0. TEST84/source07101548 ve mevcut yeşil yüz değişmedi;ERP-UA24bekliyor korunur.
+
 ## ERP-UA24 / ERP-MIG07.1 — bekliyor, 7 Ekim 2026
 
 İnsan kişi/tarih/sonuç henüz bildirilmedi; teknik test insan PASS değildir. TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb. [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers), [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers). Diğer kabuller değişmez.

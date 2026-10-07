@@ -1,3 +1,5 @@
+> **Goal7.2 rapor mutabakatı — 7 Ekim 2026:** Bu sayfa rapor teyidinden önceki0ready araştırmasının tarihsel kaydıdır. [Güncel57hesap rapor mutabakatı](party-currency-report-reconciliation.md) iki hash-eş XLS ve kullanıcı kapsam teyidiyle tamamlandı:16strict-ready öneri(15fark+1no-op),30hassasiyet/7zaman-sürüm/1fark/3(-) kalan. Tarih/kapsam sorusu tekrar açılmaz;gerçekwrite0.
+
 # Goal7.2 — cari aktarımına hazır kapsam
 
 7 Ekim 2026. ERP-DEC-022; [PR23 görev kaydı](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6035708061). Goal7.1 araştırması yeniden başlatılmadı. Bu teslim salt okunur araştırma, hesap bazında plan ve offline doğrulamadır. **Finans uygulanabilirliği tamamen kanıtlanmış hesap: 0; gerçek yazma: 0.**

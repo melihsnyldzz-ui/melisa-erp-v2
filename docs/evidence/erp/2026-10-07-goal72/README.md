@@ -1,3 +1,5 @@
+> **Goal7.2 rapor mutabakatı — 7 Ekim 2026:** Önceki0ready makbuz değişmeden korunur. [Yeni rapor mutabakatı](../2026-10-07-goal72-report/README.md)16ready öneri verir;bu eski makbuz güncel aktarılabilirlik sayısı değildir.
+
 # Goal7.2 — salt okunur kanıt makbuzu
 
 Kaynak başlangıcı35a70a14; uygulama07101548 / TEST84. ERP-DEC-022 / ERP-MIG07.2. Yeni paket, restart, SQL install veya gerçek cari/finans işlemi yok.

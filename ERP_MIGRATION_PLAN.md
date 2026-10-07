@@ -1,4 +1,8 @@
-## Goal7.2 — 7 Ekim 2026, hesap bazında uygulanabilirlik planı
+## Goal7.2 rapor mutabakatı — 7 Ekim 2026
+
+ERP-DEC-023;[rapor](docs/erp-v2/canonical-20261005/party-currency-report-reconciliation.md). Hash-eş iki Vega export kapsamı kullanıcı teyitli;üretim saati/atomikT1yok.57hesap için46sabit gösterim/7zaman-sürüm/1tutar farkı/3(-).16strict-ready(14TRY2USD,hepsi tedarikçi):15delta+1no-op.30gösterim-hassasiyet ve önceki27carry/4newcard/2LL ayrıbekler. Nativeaçılış+korunacaklocal+mapdelta önerisi private;writer/create/holdlift0.9modeltest+real16verify/replay+4negatif geçer;12finance/2reader/5auth-holdhashaynı. D02/D06/UA24/finish renkleri korunur;TEST84aynı,başka işe geçilmez.
+
+## Önceki Goal7.2 — rapor teyidinden önceki araştırma
 
 ERP-DEC-022/[rapor](docs/erp-v2/canonical-20261005/party-currency-transfer-readiness.md).4absent tedarikçi→ayrıNEW_CARD_REQUIRED;gerçekcreate/link0. 3806source hareket/3806exacttypediptalsizhead,86Jan1openinghead. 84nativeopening+localmutabık araştırma hesabı içinde57carry+dönem belgesi kanıtlı,27explicitcarryeksik(14prior2025). Kaynak10cari14changed/new1deleted;4projection two-passstable/non-atomic. Tarihli independentVegaFXreport0;arşivSQL/FR3aktifversion yerine geçmez.209privateaccountmatrix:0KANITI TAMAM/203KANIT EKSİK/2LLİŞLETME KARARI/4EŞLEŞME YOK.
 
