@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {tokenCodec} from './nativeTerminalPolicy.mjs';
 import {OPENING_PRICE_RUN} from './openingPriceService.js';
-import {OPERATION_QUARANTINE_SEAL} from './operationQuarantineService.js';
+import {OPERATION_QUARANTINE_SEAL,OPERATION_QUARANTINE_V2_HASH as OPERATION_QUARANTINE_RESOLVER_V2_HASH} from './operationQuarantineService.js';
 
 const signer=tokenCodec(randomBytes(32).toString('hex'));
 const actor={id:3,username:'synthetic.operator',permissions:['terminal.sales.create']};
@@ -24,7 +24,7 @@ class Request {
  async execute(procedure){
   assert.equal(procedure,'dbo.usp_check_operation_quarantine');
   if(!quarantineReady)throw Error('Synthetic quarantine unavailable');
-  return {recordsets:[[{database_name:OPENING_PRICE_RUN.database,run_id:OPENING_PRICE_RUN.runId,run_status:'COMMITTED',source_hash:OPENING_PRICE_RUN.sourceHash,plan_hash:OPENING_PRICE_RUN.planHash,sealed:1,operation_gate:1,seal_hash:OPERATION_QUARANTINE_SEAL,source_as_of:'2026-09-30'}],JSON.parse(this.args.entities_json).map(row=>({entity:row.entity,native_id:row.nativeId,blocked:heldProduct&&row.entity==='product'&&row.nativeId==='20'?1:0,source_key:'SYNTHETIC/PRODUCT/20',reason_code:'SYNTHETIC_HOLD'}))]};
+  return {recordsets:[[{database_name:OPENING_PRICE_RUN.database,run_id:OPENING_PRICE_RUN.runId,run_status:'COMMITTED',source_hash:OPENING_PRICE_RUN.sourceHash,plan_hash:OPENING_PRICE_RUN.planHash,sealed:1,operation_gate:1,seal_hash:OPERATION_QUARANTINE_SEAL,source_as_of:'2026-09-30',resolver_version:2,resolver_hash:OPERATION_QUARANTINE_RESOLVER_V2_HASH,resolver_sealed:1}],JSON.parse(this.args.entities_json).map(row=>({entity:row.entity,native_id:row.nativeId,blocked:heldProduct&&row.entity==='product'&&row.nativeId==='20'?1:0,source_key:'SYNTHETIC/PRODUCT/20',reason_code:'SYNTHETIC_HOLD'}))]};
  }
  async query(query){
   const s=this.tx?.data||state,a=this.args;

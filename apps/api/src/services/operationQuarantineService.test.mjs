@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {OPENING_PRICE_RUN as run} from './openingPriceService.js';
-import {OPERATION_QUARANTINE_SEAL,createOperationQuarantineService,normalizeQuarantineEntities,parseQuarantineQuery} from './operationQuarantineService.js';
+import {OPERATION_QUARANTINE_SEAL,OPERATION_QUARANTINE_V2_HASH,createOperationQuarantineService,normalizeQuarantineEntities,parseQuarantineQuery} from './operationQuarantineService.js';
 import {operationQuarantineGate,invoiceQuarantineEntities} from './operationQuarantineGate.mjs';
 import {normalizeOperationQuarantineError} from './operationQuarantineError.mjs';
 const header=()=>({database_name:run.database,run_id:run.runId,run_status:'COMMITTED',source_hash:run.sourceHash,plan_hash:run.planHash,source_as_of:'2026-09-30',sealed:true,operation_gate:true,seal_hash:OPERATION_QUARANTINE_SEAL,total:1,page:1,page_size:50,native_held:90,not_present:4});
-function harness({response,mutate,isTest=true,canonicalRequested=false}={}){
+function harness({response,mutate,isTest=true,canonicalRequested=false,requiredResolverVersion=1}={}){
  const calls=[],sql={NVarChar:n=>'nvarchar'+n,Int:'int',MAX:-1};
  const request=()=>({input(k,_t,v){this[k]=v;return this;},async execute(proc){calls.push({proc,entities:this.entities_json&&JSON.parse(this.entities_json)});let r=response??{recordsets:[[header()],JSON.parse(this.entities_json).map(v=>({entity:v.entity,native_id:v.nativeId,blocked:false}))]};if(mutate)r=mutate(r);return r;}});
- const service=createOperationQuarantineService({getPool:async()=>({request}),sql,isTest:()=>isTest,canonicalRequested:()=>canonicalRequested});return {calls,service,request,sql};
+ const service=createOperationQuarantineService({getPool:async()=>({request}),sql,isTest:()=>isTest,requiredResolverVersion,canonicalRequested:()=>canonicalRequested});return {calls,service,request,sql};
 }
 test('negative hold set preserves every other ID including fixture IDs; exact native entity identity is deduplicated',async()=>{
  const h=harness();await h.service.assertAllowed([{entity:'product',nativeId:'15'},{entity:'product',nativeId:15},{entity:'supplier',nativeId:'15'}]);
@@ -21,6 +21,13 @@ test('same transaction request handles more than200 identities without changing 
  await h.service.assertAllowed(rows,{driver:h.sql,request:()=>{txRequests++;return h.request();}});
  assert.deepEqual(h.calls.map(v=>v.entities.length),[200,200,1]);assert.equal(txRequests,3);
  assert.deepEqual(h.calls.flatMap(v=>v.entities),rows);
+});
+test('activated immutable v2 cannot fall back to legacy metadata or an unverified pin proof',async()=>{
+ const input=[{entity:'supplier',nativeId:'900001'}];
+ await assert.rejects(harness({requiredResolverVersion:2}).service.assertAllowed(input),{code:'MIGRATION_QUARANTINE_DRIFT'});
+ for(const bad of[{resolver_version:2,resolver_hash:'0'.repeat(64),resolver_sealed:1},{resolver_version:1},{resolver_version:2,resolver_hash:OPERATION_QUARANTINE_V2_HASH,resolver_sealed:0}])await assert.rejects(harness({requiredResolverVersion:2,mutate:r=>{Object.assign(r.recordsets[0][0],bad);return r;}}).service.assertAllowed(input),{code:'MIGRATION_QUARANTINE_DRIFT'});
+ const blocked=harness({requiredResolverVersion:2,mutate:r=>{Object.assign(r.recordsets[0][0],{resolver_version:2,resolver_hash:OPERATION_QUARANTINE_V2_HASH,resolver_sealed:1});r.recordsets[1][0]={entity:'supplier',native_id:'900001',blocked:1,source_key:'anonymous-held-source',reason_code:'NATIVE_TARGET_NOT_PRESENT'};return r;}});
+ await assert.rejects(blocked.service.assertAllowed(input),{code:'MIGRATION_ENTITY_QUARANTINED',statusCode:409});
 });
 test('one held item fails whole mixed document before business handler and ignores source/barcode/document IDs',async()=>{
  let handler=0,checked;

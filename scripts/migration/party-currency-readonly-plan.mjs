@@ -1,12 +1,20 @@
 // Offline proposals only. This module has no database, filesystem or writer adapter.
 import {createHash} from 'node:crypto';
+import {DISPLAY_METHOD,verifyObservedDisplayProof} from './party-currency-evidence-resolution.mjs';
 export const STATUSES=Object.freeze(['KANITI TAMAM','KANIT EKSİK','İŞLETME KARARI','EŞLEŞME YOK']);
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 export const hash=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
 function exact(v){if(typeof v!=='string'||! /^-?\d{1,20}\.\d{8}$/.test(v))throw Error('EXACT_DECIMAL_REQUIRED');return BigInt(v.replace('.',''));}
 function decimal(v){const a=v<0n?-v:v;return (v<0n?'-':'')+a/100000000n+'.'+String(a%100000000n).padStart(8,'0');}
 export function direction(value){const n=exact(value);return n>0n?'B':n<0n?'A':'ZERO';}
-function reportMatches(report,value){
+function reportMatches(report,value,account){
+ if(report.comparisonBasis===DISPLAY_METHOD){
+  const proof=report.observedDisplayProof,key=[account.company,account.period,account.sourceId,account.role,account.currencyRaw].join('/');
+  return verifyObservedDisplayProof(proof,{accountKey:key,sourceVersionHash:account.sourceVersionHash,exactSourceNet:value})
+   &&report.sha256===proof.reportWitness.originalHash&&report.filterProofHash===proof.reportWitness.scopeHash
+   &&report.rowHash===proof.reportWitness.rowHash&&report.excelRow===proof.reportWitness.excelRow
+   &&report.amountExact===proof.reportWitness.signedValue&&report.direction===proof.reportWitness.direction;
+ }
  if(report.amountExact==null||value==null)return false;
  if(report.comparisonBasis!=='VERIFIED_DISPLAY_ROUNDING')return report.direction===direction(report.amountExact)&&exact(report.amountExact)===exact(value);
  // Rounding and direction must be proved for the active report, never inferred from an old template.
@@ -31,7 +39,7 @@ export function classify(account){
     report.dateFrom!==account.dateFrom||report.dateToExclusive!==account.dateToExclusive||report.currency!==account.currency||
     report.sourceId!==account.sourceId||report.cardType!==account.cardType||report.activeFilter!=='ALL'||report.zeroFilter!=='INCLUDE'||
     !report.capturedAt||!/^[a-f0-9]{64}$/.test(report.filterProofHash??''))missing.push('DATED_FILTERED_INDEPENDENT_VEGA_REPORT_MISSING');
- else if(!reportMatches(report,account.newSourceNet))missing.push('REPORT_EXACT_AMOUNT_OR_DIRECTION_NOT_RECONCILED');
+ else if(!reportMatches(report,account.newSourceNet,account))missing.push('REPORT_EXACT_AMOUNT_OR_DIRECTION_NOT_RECONCILED');
  if(account.oldSourceNet==null||account.newSourceNet==null)missing.push('NO_MOVEMENT_OR_UNKNOWN_IS_NOT_ZERO');
  return{status:missing.length?'KANIT EKSİK':'KANITI TAMAM',missing};
 }
