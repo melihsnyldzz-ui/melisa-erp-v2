@@ -1,6 +1,6 @@
 {
   "schemaVersion": "melisa-erp-migration-preparation.v1",
-  "at": "2026-10-07T23:05:57.951Z",
+  "at": "2026-10-07T23:08:02.686Z",
   "decision": "ERP-DEC-027",
   "boardItem": "ERP-MIGPREP01",
   "scope": {
@@ -153,11 +153,11 @@
     "authorized-card-readback-95": "72571a59529e77567c8a73c53c895ac148f425d6b2c337d56f1ea729367d0c70",
     "normal-ui-proof-95.json": "e27afa082354f23ee6ca846a0906516fcf86546890a824b93b7b2a69d2b8744c",
     "quarantine-additive-commit.json": "ba42ca97b521ec43eed4d5709c5eb33f9c3bf8f2e2e19a6a6a93f7f8d6d9f67c",
-    "account-matrix-current.json": "fdae14330b25d97f152ff8d171a7ca994cd9abe6e9e5cb19af6bd93f3841c7ea",
+    "account-matrix-current.json": "7a2670d56b731fc0e78007708c4b843f0915708400d43fe362c06e2b1f6ac5b2",
     "account-owner-triage-current.json": "a36b718cdefd4c6e77ad8927c9d8898d16d013b8127134ae4ae38f19cfa852c9",
     "MELIH_REVIEW.md": "a75b8d84339ed57781b645d9881e4babeb9312568ffacdf1dba08004037d3e0f",
     "finance-transfer-plan.json": "579f6916c47a53f9d3e916b37983f02cb4d906475a2e09b4f3621caa030763eb",
-    "finance-preparation-summary.json": "07143344653f3cf6e866fdb9bb3bb90f38ba6b20cf8d6fd4cc9465d2191dc84c",
+    "finance-preparation-summary.json": "df8f5fe1534bc47f9f749bfb40565c073966b4bed7722c2a14d61ea79d03ed4e",
     "payment-ui-known-gap.json": "63da16149e004b65d619a552cdf2294a362be4550d51a0f332bdc637e930e2fc"
   }
 }
