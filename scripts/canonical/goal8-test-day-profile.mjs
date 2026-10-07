@@ -4,6 +4,12 @@ import {createHash} from 'node:crypto';
 import {GOAL8_DAY_BEFORE_PINS} from './goal8-test-day-pins.mjs';
 export const GOAL8_PROFILE_ID='ERP-GOAL8-20261007';
 export const sqlHash=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
+// Native diagnostic on MELISADEV proved OBJECT_DEFINITION stores CREATE text
+// after ALTER. Hash stored text; the installer still executes ALTER statements.
+export function goal8StoredModuleDefinition(definition){
+ if(typeof definition!=='string'||! /^(?:CREATE|ALTER) (?:PROCEDURE|TRIGGER|VIEW)\b/.test(definition))throw Error('GOAL8_MODULE_HEADER_REQUIRED');
+ return definition.replace(/^ALTER /,'CREATE ');
+}
 const sha=s=>createHash('sha256').update(s).digest('hex').toUpperCase();
 const lit=s=>"N'"+s.replaceAll("'","''")+"'";
 const fail="THROW 51280,'GOAL8_EXACT_PROFILE_REQUIRED',1;";
@@ -103,15 +109,14 @@ function nativeDayPrefix(table,columns){
 }
 function countBranch(def){const at=def.indexOf('/* TEST_DAILY_COUNT_LINES_20261006:');const end=def.indexOf('\nEND;',at);if(at<0||end<0)throw Error('GOAL8_COUNT_PREFIX_MISSING');return `IF ${dayIntent} AND EXISTS(SELECT 1 FROM dbo.goal8_day_intents n WHERE n.session_id=@@SPID AND n.operation=N'daily_count') BEGIN\n`+def.slice(at,end+'\nEND;'.length).replaceAll("N'2026-10-06'","N'2026-10-07'").replace(/(?<!@)@[a-zA-Z]\w*/g,name=>'@g8'+name.slice(1))+'\nEND;';}
 function closure(modules,changes){
- const alter=s=>s.replace(/^CREATE (PROCEDURE|TRIGGER|VIEW)/,(_,type)=>'ALTER '+type);
- for(const [name,body] of changes)changes.set(name,alter(body));
+ for(const [name,body] of changes)changes.set(name,goal8StoredModuleDefinition(body));
  const direct=new Map([...modules].map(([name,row])=>[name,changes.get(name)??row.definition]));
  for(let round=0;round<20;round++){
   let moved=false;
   const pairs=[...changes].map(([name,after])=>[modules.get(name).definitionHash,sqlHash(after)]).filter(([a,b])=>a!==b);
   // Recompute from the unexpanded body: hashes from an intermediate round must
   // never hide a later change to the same dependency.
-  for(const [name,row] of modules){let definition=direct.get(name);for(const [before,after] of pairs)definition=definition.replaceAll(before,after);if(definition!==row.definition)definition=alter(definition);if(definition!==(changes.get(name)??row.definition)){changes.set(name,definition);moved=true;}}
+  for(const [name,row] of modules){let definition=direct.get(name);for(const [before,after] of pairs)definition=definition.replaceAll(before,after);if(definition!==row.definition)definition=goal8StoredModuleDefinition(definition);if(definition!==(changes.get(name)??row.definition)){changes.set(name,definition);moved=true;}}
   if(!moved)return;
  }
  throw Error('GOAL8_HASH_DEPENDENCY_CYCLE');
@@ -122,7 +127,7 @@ export function buildGoal8DayProfile(exported,{dayId}={}){
  const modules=new Map(exported.modules.filter(m=>m.schemaName==='dbo').map(m=>[m.name,m]));
  for(const [name,pin] of Object.entries(GOAL8_DAY_BEFORE_PINS)){const m=modules.get(name);if(!m||m.definitionHash!==pin||sqlHash(m.definition)!==pin||m.disabled===true)throw Error('GOAL8_BEFORE_PIN_MISMATCH_'+name);}
  for(const m of exported.modules)if(m.definitionHash!==sqlHash(m.definition))throw Error('GOAL8_EXPORT_BODY_HASH_MISMATCH');
- const compilerRevision=sha([schema,identity,fail,profileIntent,dayIntent,profileJson,batchView,currentReturnView,currentPaymentView,scopeDefinition,historyDefinition,paymentContextDefinition,beginDefinition,effectsDefinition,nativeDayPrefix,immutable,countBranch,closure,tradeCopy,installSql,buildGoal8DayProfile].map(String).join('\n'));
+ const compilerRevision=sha([schema,identity,fail,profileIntent,dayIntent,profileJson,batchView,currentReturnView,currentPaymentView,scopeDefinition,historyDefinition,paymentContextDefinition,beginDefinition,effectsDefinition,nativeDayPrefix,immutable,countBranch,closure,goal8StoredModuleDefinition,tradeCopy,installSql,buildGoal8DayProfile].map(String).join('\n'));
  const definitionHash=sha(JSON.stringify({version:1,compilerRevision,dayId,profile:GOAL8_PROFILE_ID,pins:GOAL8_DAY_BEFORE_PINS}));
  const additions=new Map(),changes=new Map();
  const add=definition=>{const match=/CREATE (?:PROCEDURE|VIEW|TRIGGER) dbo\.(\w+)/.exec(definition);if(!match||modules.has(match[1]))throw Error('GOAL8_PARTIAL_OR_UNKNOWN_INSTALL');additions.set(match[1],definition);};
