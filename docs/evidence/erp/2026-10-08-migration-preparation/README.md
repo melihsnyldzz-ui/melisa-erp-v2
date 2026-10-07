@@ -44,7 +44,7 @@ Tek yeni uygulama onayı yalnız private 38 hesap ve yukarıdaki plan hash'i iç
 
 ## Kanıt ve gizlilik
 
-Yerel private kök: `C:\Sirket\ERP\evidence\ERP-MIGPREP01-20261008\private`. `MELIH_REVIEW.md` tek onay tablosunu; `account-matrix-current.json` 209 hesaplık tek durum listesini; `finance-transfer-plan.json` exact aktarım planını; `account-evidence/` özgün XLS hashleri, kaynak/doküman/devir ve bağımsız SQL kanıtlarını içerir. Adlar, tutarlar, ham raporlar, credentials ve private manifest GitHub'a alınmaz.
+Yerel private kök: `C:\Sirket\ERP\evidence\ERP-MIGPREP01-20261008\private`. `MELIH_REVIEW.md` tek onay tablosunu; `account-matrix-current.json` 209 hesaplık tek durum listesini; `account-owner-triage-current.json` her hesap için tek somut eksik ve sorumlusunu; `finance-transfer-plan.json` exact aktarım planını; `account-evidence/` özgün XLS hashleri, kaynak/doküman/devir ve bağımsız SQL kanıtlarını içerir. Dört yeni kartın kimlik eksikliği mevcut committed/API kanıtıyla kapatıldı; önceki kimlik değerlendirmesi tarihsel alanda korunur. Finans devir/başlangıç ve bağımsız rapor kanıtı eksikliği, UNKNOWN/hold ve ayrı uygulama onayı sürer. Adlar, tutarlar, ham raporlar, credentials ve private manifest GitHub'a alınmaz.
 
 ## Çalışan paket, normal ekran ve GitHub teslimi
 
