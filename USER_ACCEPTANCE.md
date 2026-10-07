@@ -1,3 +1,13 @@
+## ERP-UA24 / ERP-MIG07.1 — bekliyor, 7 Ekim 2026
+
+İnsan kişi/tarih/sonuç henüz bildirilmedi; teknik test insan PASS değildir. TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb. [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers), [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers). Diğer kabuller değişmez.
+
+1. Müşteri ve tedarikçi listesinde tutar+döviz+B/A ve kimin borcu/alacağı olduğunu incele; farklı dövizlerin tek cari kartında ayrı kaldığını gör.
+2. Kartta 30 Eylül kabul edilmiş açılışı, kayıtlı yerel etkiyi ve güncel ERP hesabını ayrı incele; Genel Bakiye eklenmediğini kontrol et.
+3. Yakalama tarihli kaynak hareket neti ile açılış adayı/dönem ayrımını incele; bu tutarların ERP hesabına eklenmediğini değerlendir.
+4. Karantinalı kart, hareketi olmayan hesap, doğrulanmış sıfır ve küçük ters yön tutarını değerlendir; bilinmeyenin sıfır olmadığını gör.
+5. [Aktarım planını](docs/erp-v2/canonical-20261005/party-currency-comparison-plan.md) ve private LL2 soru grubunu incele. Bu kabul finans aktarımı veya hold kaldırma yetkisi değildir.
+
 ## ERP-UA23 / ERP-MIG07 —bekliyor,7 Ekim2026
 
 Teknik test insanPASS değildir. UA19–22 ve diğer kabuller aynı kalır; insan kişi/tarih/sonuç bildirilmedi. TEST83/sourcee2ffea6c96430699a37e0227c28f76fc66e22851, [Ürün & stok](http://127.0.0.1:5194/ornek-akis.html#stock),[kanıt](docs/evidence/erp/2026-10-07-goal7/README.md).

@@ -1,3 +1,15 @@
+## Goal7.1 — 7 Ekim 2026, ayrı döviz gösterimi ve salt okunur karşılaştırma
+
+TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb;1434dosya/baselineReproducedtrue;C:/Sirket/ERP/releases/CANONICAL-GOAL71-TEST-20261007-84;manifest977add2668602776bdb2fd9385700df800b534d6a252f85aca5b1d2edb53c7a9.5194/4144/4146READY→Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01. Başlangıçta listener yoktu;pinli83geri açılıpactualreader/API/DB doğrulandı,sonraERP84'e geçti. Eski Vega servisleri normal kart okuyucusu değildir.
+
+Tutar+döviz+B/A,rolkorunumu/unknown ve sourceOpening+local/nativeledgerguardlar korunur. Captured comparison başlangıçtaexactTEST/hashpin,inmemory/detailonly.200kaynak cari122hold+78dış değişen;196/196exactbağlı gerçekAPIcard/indexeşit,4bağeksik.209FXgrup124recordednet/83nomovement/LL2;3799satır192SQLgrup fark0.84frozen+local nativehesap/defter eşit;77güncelsource farkı finanswriteyapılmadanplanda. qqqtarih/filtre bilinmez;güncelqqqtutarmutabakatı0. [Aktarım planı](docs/erp-v2/canonical-20261005/party-currency-comparison-plan.md).
+
+12finanstablofullrowcount/hash,2eskiSQLreaderhash ve kullanıcıyetki/rol/holdhash önce/sonra aynı. Missingauth401/personel15supplierread403. LIVE/CRMlistenerPIDsaynı;financewrite0/holdlift0/VegaLIVECRMmainmerge0.484API/617workflowoffline,guard/syntax/build ve bağımsızreview PASS;sourceexactCI quality-build-test/windows-startup-test/secret-scan iki koşudaSUCCESS. İzleyen belgeHEAD runtime commit'inden ayrıdır;sonexactheadCI PR23teslimkaydıyla doğrulanır. [Teknik kanıt](docs/evidence/erp/2026-10-07-goal71/README.md).
+
+Süreler:196caridetaymedian169ms;3warmörnek first50/next50/kod/barkod/ürünkartı850/744/670/373/202ms,müşteri/tedarikçiliste316/440ms. Tekcoldcatalog1646ms ayrı;önceki777/723/568/367/233baseline ileaynısüre iddiasıyok. Normalyeşil yüz5gerçekkarttamultiFX/B-A/tiny/zero/noMovementilekontrol edildi;privateekranlar/evidencepaketi repo dışında.
+
+Privateplan C:/Sirket/ERP/evidence/ERP-GOAL7.1-20261007/sql-private/PRIVATE_TRANSFER_PLAN_20261007.md;exactscopeJSONaynıdizinde. Kalan4bağ/devir-dönembelgeleri/tarihliraporteknikaraştırma;tekkanıtlıişletmesorugrubuLL2. Finansuygulanabilirhesap0/84sayısaladay77fark;D02/D06açık/finish49-9🟢-34🟡-6🔴 değişmez. ERP-UA24 insanbekler,diğerUAaynı. Branchcodex/erp-finish-20261004/[PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23);Goal7.1 sonunda DUR.
+
 ## Goal7 —7 Ekim2026
 
 7 Ekim2026 **Goal7 / ERP-DEC-020 — Faz B teknik tamamlandı, insan kararı/kabulü bekliyor:** Güncel SELECT-onlyT0/privateMelihpaketi;563stockatom+49new/12master,241+16typedprice/62barcode gerçekTEST. Replay0/nativefark0/committedinverse yeni count/audit korunumu ve yeni backup kanıtlı. TEST83/sourcee2ffea6c;cari/FXwrite0. **49/9🟢/34🟡/6🔴**. UA19–23bekler. [Kanıt](docs/evidence/erp/2026-10-07-goal7/README.md). Goal7 sonunda DUR; gerçekcutover/Vega/LIVE/CRM/mainmerge yok.

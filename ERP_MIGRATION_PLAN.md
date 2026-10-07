@@ -1,3 +1,9 @@
+## Goal7.1 — 7 Ekim 2026, cari gösterimi ve aktarım planı
+
+ERP-DEC-021: cari türü/rolü ve ayrı hesabın Döviz Bakiye tutarı+para birimi+B/A birlikte korunur. Genel Bakiye/hamBAKIYEekleme yok; varsayılan döviz diğer hesapları gizlemez. [200 cari karşılaştırması ve güvenli kalan aktarım planı](docs/erp-v2/canonical-20261005/party-currency-comparison-plan.md).
+
+122hold+78dış değişmiş cari;196exactnativebağ/4eksik,209hamFXgrup/124kayıtlınet/83hareketsiz/LL2. 3799tekil hareket/192bağımsızSQLgrup fark0. 84açılış+yerel native hesap/defter mutabık;84sayısal aday/77sıfırdışı fark fakat finansuygulanabilirliği tamam0. 103/104 açılış adayı, dönem ve 30/31 ayrı;2025ekleme0. Tarihsiz qqq aynı tarih/kapsam tutar kabulü değildir. Finanswrite0/holdlift0;gerçekcutover/Vega/LIVE/CRM/mainmerge0. D02/D06açık,ERP-UA24bekler;finish49/9🟢/34🟡/6🔴 değişmez. Goal7.1 tesliminden sonra durulur.
+
 ## Goal7 —güncel7 Ekim2026
 
 7 Ekim2026 **Goal7 / ERP-DEC-020 — Faz B teknik tamamlandı, insan kararı/kabulü bekliyor:** Güncel SELECT-onlyT0/privateMelihpaketi;563stockatom+49new/12master,241+16typedprice/62barcode gerçekTEST. Replay0/nativefark0/committedinverse yeni count/audit korunumu ve yeni backup kanıtlı. TEST83/sourcee2ffea6c;cari/FXwrite0. **49/9🟢/34🟡/6🔴**. UA19–23bekler. [Kanıt](docs/evidence/erp/2026-10-07-goal7/README.md). Goal7 sonunda DUR; gerçekcutover/Vega/LIVE/CRM/mainmerge yok.
