@@ -1,0 +1,164 @@
+{
+  "schemaVersion": "melisa-goal8-runtime-readonly.v1",
+  "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
+  "mode": "READ_ONLY",
+  "releaseName": "CANONICAL-GOAL8-TEST-20261007-92",
+  "liveChanges": false,
+  "at": "2026-10-07T19:36:43.9865305Z",
+  "allReleaseFileHashesVerified": true,
+  "startup": {
+    "taskName": "Melisa-ERP-TEST-Canonical",
+    "state": "Ready",
+    "logonType": "Interactive",
+    "ownerMatched": true,
+    "runLevel": "Limited",
+    "restart": false,
+    "taskRun": false,
+    "physicalLogonAccepted": false,
+    "actionMatched": true,
+    "executableMatched": true
+  },
+  "releaseManifestSha256": "8c551b2afc9efe4eeef2d56ed72c6e1664f958326f565387b35c32aeff88f8dc",
+  "backup": {
+    "newBackup": false,
+    "freshVerifyOnly": false,
+    "newRestore": false,
+    "goal6": {
+      "copyOnly": true,
+      "sourceBeforeAfterEqual": true,
+      "readOnly": true,
+      "historical": true,
+      "verifyOnlyPassed": true,
+      "filePresent": true,
+      "checksum": true,
+      "sha256": "238D65006C7515CCEA30F79B1678AA65AFA6BB2A366EF4337F8CA6745C1EE47D",
+      "restoredMatchesSource": true,
+      "sizeBytes": 7283015680,
+      "restoreCompletedAt": "2026-10-06T19:45:53.5863028Z",
+      "restoreDatabase": "MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01",
+      "activeDatabaseOverwritten": false,
+      "restored": true,
+      "backupCompletedAt": "2026-10-06T19:45:35.6851707Z"
+    },
+    "notFreshCutoverRecoveryProof": true,
+    "goal73": {
+      "activeDatabaseRestore": false,
+      "filePresent": true,
+      "sizeBytes": 7748976640,
+      "verifyOnlyPassed": true,
+      "sha256": "949b835f062fc3d3d45f01e81de1bebde51dc3a624244e4b103c6d5e60232ca0",
+      "historical": true,
+      "completedAt": "2026-10-07T13:33:36.5680288Z",
+      "copyOnly": true,
+      "checksum": true
+    },
+    "backupFileHashRecomputed": false
+  },
+  "crm": {
+    "at": "2026-10-07T19:38:06.732Z",
+    "currentReadProbe": "VERIFIED",
+    "sourceCommit": "77a2fa346b4c3653b77e33625e185c1259402af7",
+    "packageId": "crm-test-77a2fa346b4c3653b77e33625e185c1259402af7",
+    "manifestSha256": "ccdaab18c33973ef5a7e95e28f696fb8ff0426c41c339faefc00bf9eb9929b31",
+    "healthStatus": 200,
+    "conversationGetStatus": 200,
+    "conversationSamplesMs": [
+      247,
+      150,
+      144
+    ],
+    "conversationMedianMs": 150,
+    "catalogProductGetStatus": 200,
+    "catalogProductMs": 289,
+    "authBootstrapOnly": true,
+    "messagesSent": 0,
+    "translationCalls": 0,
+    "draftsCreated": 0,
+    "assignmentsChanged": 0,
+    "rolesChanged": 0
+  },
+  "sourceProcedureFiles": [
+    {
+      "sha256": "ce0e044ecc0743b05154e45edadcd79eff01a1dabc2f229e12c54a8852623663",
+      "path": "scripts/canonical/manage-owned-test-startup.ps1",
+      "exists": true
+    },
+    {
+      "sha256": "677676be8739ca4a8d4a54bb4c8d02969f7291e602e74477e636d44b68d33565",
+      "path": "scripts/canonical/start-owned-test.ps1",
+      "exists": true
+    },
+    {
+      "sha256": "5b6eb67eded018bf379f05426e16fd63d439ef228b0bce57fb6e1b7fabcbdc45",
+      "path": "scripts/canonical/goal6-backup-restore.ps1",
+      "exists": true
+    },
+    {
+      "sha256": "9ede0750ae4bfec6580060b3451a1d13d9980a63251d28c56256767bbebab4f2",
+      "path": "scripts/canonical/goal6-restore-read.mjs",
+      "exists": true
+    },
+    {
+      "sha256": "b16e4f083d26db4d112e4a6fc4e07fb08cef4be9cc9a4a64bf5eebd3511fa885",
+      "path": "scripts/canonical/goal6-restore-contract.mjs",
+      "exists": true
+    }
+  ],
+  "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
+  "realT1": false,
+  "status": "VERIFIED",
+  "services": [
+    {
+      "port": 5194,
+      "databaseControl": null,
+      "sysadmin": null,
+      "environment": "CANONICAL_TEST",
+      "name": "web",
+      "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
+      "database": null,
+      "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
+      "healthOK": true,
+      "ownedProcessVerified": true,
+      "liveDatabaseAccess": null
+    },
+    {
+      "port": 4146,
+      "databaseControl": 0,
+      "sysadmin": 0,
+      "environment": "CANONICAL_TEST",
+      "name": "native",
+      "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
+      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
+      "healthOK": true,
+      "ownedProcessVerified": true,
+      "liveDatabaseAccess": 0
+    },
+    {
+      "port": 4144,
+      "databaseControl": 0,
+      "sysadmin": 0,
+      "environment": "CANONICAL_TEST",
+      "name": "api",
+      "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
+      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "packageId": "CANONICAL-TEST-a4a05b2b3cdb",
+      "healthOK": true,
+      "ownedProcessVerified": true,
+      "liveDatabaseAccess": 0
+    }
+  ],
+  "terminal": {
+    "apiReadProbe": "VERIFIED",
+    "nativeHealthPort": 4146,
+    "nativeHealthStatus": 200,
+    "nativeWriteEnabled": false,
+    "automaticSubmit": false,
+    "pilotProductReadPort": 4144,
+    "productsGetStatus": 200,
+    "productsMs": 2693,
+    "salesSubmitted": 0,
+    "physicalDeviceAccepted": false
+  },
+  "directSqlStatements": 0
+}
