@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {reportDate,reportAmount,reportQuery,validateReportPage,validateReportExport} from './workReportsModel.mjs';
-const scope=()=>({label:'Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri',timeZone:'Europe/Istanbul',fromDate:'2026-10-06',toDateInclusive:'2026-10-06',fromUtc:'2026-10-05T21:00:00Z',toUtcExclusive:'2026-10-06T21:00:00Z',historyLimited:true,limitations:['Önceki Vega satış geçmişi bu rapora dahil değildir.']});
+const scope=()=>({label:'Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP deneme hareketleri',timeZone:'Europe/Istanbul',fromDate:'2026-10-06',toDateInclusive:'2026-10-06',fromUtc:'2026-10-05T21:00:00Z',toUtcExclusive:'2026-10-06T21:00:00Z',historyLimited:true,limitations:['Önceki Vega satış geçmişi bu rapora dahil değildir.']});
 const filters=()=>({kind:'sales',period:'today',from:'',to:'',currency:'',brand:'',type:'',groupBy:'none'});
 const context=()=>({sourceScope:scope().label,capabilities:{canViewReports:true,canViewCost:false},brands:['CONCEPT'],types:['TAKIM'],kinds:['sales','collections','purchases','supplier-payments','stock-movements','customer-movements','supplier-movements'],currencies:['TRY','USD','EUR']});
 const page=()=>({filters:filters(),scope:scope(),rows:[],pagination:{offset:0,limit:50,total:0,hasMore:false},currencyTotals:[{currency:'USD',amount:null,debit:null,credit:null,recordCount:0}]});

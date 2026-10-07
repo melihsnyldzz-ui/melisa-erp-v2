@@ -1,5 +1,5 @@
 export const REPORT_KINDS=['sales','collections','purchases','supplier-payments','stock-movements','customer-movements','supplier-movements'];
-export const REPORT_SCOPE='Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri';
+export const REPORT_SCOPE='Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP deneme hareketleri';
 export const reportError=(statusCode=400,code='REPORT_FILTER_INVALID')=>Object.assign(new Error(statusCode===403?'Bu rapor için yetkiniz bulunmuyor.':statusCode===503?'Rapor bilgileri şu anda okunamıyor.':'Rapor filtrelerini kontrol edin.'),{statusCode,code});
 const date=v=>typeof v==='string'&&/^20\d{2}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
 const shift=(v,n)=>new Date(Date.parse(v+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);

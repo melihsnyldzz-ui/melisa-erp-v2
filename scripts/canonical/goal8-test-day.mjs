@@ -88,12 +88,13 @@ export function goal8DayRequestId(dayId,step){
 export function goal8NativeProofSql(refs,dayId,accountId){
  requireTrue(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(dayId??''),'GOAL8_DAY_ID_INVALID');id(accountId);
  const n=key=>refs[key]===undefined?'NULL':id(String(refs[key]));
+ const paymentAmount=refs.paymentAmountExact4??'80.0000';requireTrue(exact(paymentAmount,4)>0n&&exact(paymentAmount,4)<=800000n,'GOAL8_PAYMENT_AMOUNT_INVALID');
  return `SELECT
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.test_goods_batches b JOIN dbo.test_goods_batch_lines l ON l.batch_id=b.id WHERE b.id=${n('receiptId')} AND b.state=N'accepted' AND b.supplier_id=13370 AND b.decided_by=16 AND b.note=N'GOAL8:${dayId}' AND l.product_id=325503 AND l.quantity=2 AND l.unit=N'ADET' AND l.unit_factor=1) THEN 1 ELSE 0 END AS bit) receiptVerified,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.purchase_invoices p JOIN dbo.test_purchase_batch_links l ON l.invoice_id=p.id JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id JOIN dbo.purchase_invoice_items i ON i.id=l.invoice_item_id WHERE p.id=${n('purchaseInvoiceId')} AND p.status=N'finalized' AND p.supplier_id=13370 AND p.document_date=CONVERT(date,N'2026-10-07') AND p.document_no LIKE N'TSTB-G8-%' AND p.grand_total=160 AND p.account_amount=160 AND p.amount_try=160 AND p.document_currency=N'TRY' AND p.account_currency=N'TRY' AND p.exchange_rate_snapshot=1 AND p.account_exchange_rate_snapshot=1 AND g.batch_id=${n('receiptId')} AND i.product_id=325503 AND i.quantity=2 AND l.quantity=2 AND i.purchase_price=80) THEN 1 ELSE 0 END AS bit) purchaseVerified,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.sales_invoices s JOIN dbo.sales_invoice_items i ON i.sales_invoice_id=s.id WHERE s.id=${n('salesInvoiceId')} AND s.status=N'finalized' AND s.customer_id=30598 AND s.document_date=CONVERT(date,N'2026-10-07') AND s.grand_total=120 AND s.document_currency=N'TRY' AND s.account_currency=N'TRY' AND s.exchange_rate_snapshot=1 AND s.account_exchange_rate_snapshot=1 AND i.product_id=325503 AND i.quantity=1 AND i.unit_price=120 AND i.average_cost_try_snapshot=80) THEN 1 ELSE 0 END AS bit) saleVerified,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.customer_movements m JOIN dbo.finance_account_movements f ON f.party_type=N'customer' AND f.party_movement_id=m.id AND f.source_type=N'collection' WHERE m.id=${n('collectionId')} AND m.customer_id=30598 AND m.sales_invoice_id=${n('salesInvoiceId')} AND m.movement_type=N'collection' AND m.amount=120 AND m.balance_effect=-120 AND m.account_amount=120 AND m.amount_try=120 AND m.document_exchange_rate_snapshot=1 AND m.account_exchange_rate_snapshot=1 AND f.account_id=${accountId} AND f.direction=N'in' AND f.amount=120 AND f.currency_code=N'TRY') THEN 1 ELSE 0 END AS bit) collectionVerified,
- CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.supplier_movements m JOIN dbo.finance_account_movements f ON f.party_type=N'supplier' AND f.party_movement_id=m.id AND f.source_type=N'payment' WHERE m.id=${n('paymentId')} AND m.supplier_id=13370 AND m.purchase_invoice_id=${n('purchaseInvoiceId')} AND m.movement_type=N'payment' AND m.amount=80 AND m.balance_effect=-80 AND m.account_amount=80 AND m.amount_try=80 AND m.document_exchange_rate_snapshot=1 AND m.account_exchange_rate_snapshot=1 AND f.account_id=${accountId} AND f.direction=N'out' AND f.amount=80 AND f.currency_code=N'TRY') THEN 1 ELSE 0 END AS bit) paymentVerified,
+ CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.supplier_movements m JOIN dbo.finance_account_movements f ON f.party_type=N'supplier' AND f.party_movement_id=m.id AND f.source_type=N'payment' WHERE m.id=${n('paymentId')} AND m.supplier_id=13370 AND m.purchase_invoice_id=${n('purchaseInvoiceId')} AND m.movement_type=N'payment' AND m.amount=${paymentAmount} AND m.balance_effect=-${paymentAmount} AND m.account_amount=${paymentAmount} AND m.amount_try=${paymentAmount} AND m.document_exchange_rate_snapshot=1 AND m.account_exchange_rate_snapshot=1 AND f.account_id=${accountId} AND f.direction=N'out' AND f.amount=${paymentAmount} AND f.currency_code=N'TRY') THEN 1 ELSE 0 END AS bit) paymentVerified,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.test_daily_drafts d CROSS APPLY OPENJSON(d.payload_json,'$.lines') WITH(productId bigint,physical decimal(18,3),system decimal(18,3)) l WHERE d.id=${n('countDraftId')} AND d.flow=N'count' AND d.state=N'approved' AND d.decided_by=16 AND l.productId=325503 AND l.physical=l.system AND JSON_VALUE(d.result_json,'$.movementCreated')=N'false') THEN 1 ELSE 0 END AS bit) countVerified,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.invoice_returns r JOIN dbo.invoice_return_items i ON i.invoice_return_id=r.id JOIN dbo.stock_movements m ON m.source_type=N'invoice_return' AND m.source_id=r.id AND m.product_id=i.product_id JOIN dbo.supplier_movements s ON s.invoice_return_id=r.id WHERE r.id=${n('returnId')} AND r.source_purchase_invoice_id=${n('purchaseInvoiceId')} AND r.kind=N'purchase' AND r.status=N'finalized' AND r.supplier_id=13370 AND r.amount=80 AND r.account_amount=80 AND r.amount_try=80 AND i.product_id=325503 AND i.quantity=1 AND i.unit_cost_try=80 AND m.quantity_net=-1 AND m.unit_cost_try=80 AND s.supplier_id=13370 AND s.movement_type=N'purchase_return' AND s.balance_effect=-80) THEN 1 ELSE 0 END AS bit) returnVerified,
  (SELECT CONVERT(varchar(20),id) FROM dbo.customer_movements WHERE sales_invoice_id=${n('salesInvoiceId')} AND movement_type=N'sales_invoice') customerSaleMovementId,
@@ -127,6 +128,29 @@ export function goal8NativeProofSql(refs,dayId,accountId){
  )),2) effectHash;`;
 }
 
+const format4=n=>{const sign=n<0n?'-':'';n=n<0n?-n:n;return sign+String(n/10000n)+'.'+String(n%10000n).padStart(4,'0');};
+export function goal8DayPaymentPlan(baseline){
+ const netDebt=exact(baseline.supplierExact4,4)+1600000n,payment=netDebt<800000n?netDebt:800000n;
+ requireTrue(payment>0n,'GOAL8_POSITIVE_NET_DEBT_REQUIRED');
+ return {paymentAmountExact4:format4(payment),netDebtBeforePaymentExact4:format4(netDebt),supplierDeltaExact4:format4(800000n-payment),cashDeltaExact4:format4(1200000n-payment),invoiceOutstandingExact4:format4(800000n-payment)};
+}
+export const goal8CheckpointHash=checkpoint=>createHash('sha256').update(JSON.stringify(checkpoint)).digest('hex');
+export function verifyGoal8CollectCheckpoint(resume,seal,current,currentProof){
+ const c=resume?.checkpoint;
+ requireTrue(resume?.reviewed===true&&/^[a-f0-9]{64}$/.test(resume.reviewedCheckpointSha??'')&&resume.reviewedCheckpointSha===goal8CheckpointHash(c),'GOAL8_REVIEWED_CHECKPOINT_REQUIRED');
+ requireTrue(c?.seal?.profileId===seal.profileId&&c.seal.dayId===seal.dayId&&c.seal.definitionHash===seal.definitionHash&&/^[a-f0-9]{40}$/.test(c.seal.sourceCommit??'')&&c.seal.packageId==='CANONICAL-TEST-'+c.seal.sourceCommit.slice(0,12),'GOAL8_CHECKPOINT_SEAL_REJECTED');
+ requireTrue(Array.isArray(c.stages)&&c.stages.length===5&&same(c.stages.map(s=>s.stage),['baseline','receive','purchase','sale','collect']),'GOAL8_CHECKPOINT_PREFIX_REJECTED');
+ const baseline=c.stages[0];requireTrue(c.baseline&&goal8CheckpointHash(c.baseline)===goal8CheckpointHash(baseline),'GOAL8_CHECKPOINT_BASELINE_REJECTED');
+ const {references}=verifyGoal8StageRows(c.stages,false),last=c.stages[4],refs=c.refs;
+ for(const key of ['receiptId','receiptLineId','purchaseInvoiceId','purchaseItemId','salesInvoiceId','collectionId'])requireTrue(refs?.[key]===last[key]&&id(refs[key])===refs[key],'GOAL8_CHECKPOINT_REFS_REJECTED');
+ requireTrue(refs.receiptId===references.receiptId&&refs.purchaseInvoiceId===references.purchaseInvoiceId&&refs.salesInvoiceId===references.salesInvoiceId&&Object.keys(refs).every(k=>['receiptId','receiptLineId','purchaseInvoiceId','purchaseItemId','salesInvoiceId','collectionId'].includes(k)),'GOAL8_CHECKPOINT_FUTURE_REF_REJECTED');
+ for(const [index,step] of [[1,'receive-approve'],[2,'purchase-finalize'],[3,'sale-finalize'],[4,'collection']])requireTrue(c.stages[index].requestId===goal8DayRequestId(seal.dayId,step),'GOAL8_CHECKPOINT_REQUEST_REJECTED');
+ for(const key of Object.keys(baseline).filter(k=>!['stage','nativeProof','currency','synthetic','independentNativeReadback'].includes(k)))requireTrue(current[key]===last[key],'GOAL8_CHECKPOINT_CURRENT_SNAPSHOT_REJECTED');
+ requireTrue(/^[A-F0-9]{64}$/.test(currentProof?.effectHash??'')&&currentProof.effectHash===last.nativeProof?.effectHash&&['receiptVerified','purchaseVerified','saleVerified','collectionVerified'].every(k=>currentProof[k]===true)&&['paymentVerified','countVerified','returnVerified'].every(k=>currentProof[k]===false),'GOAL8_CHECKPOINT_NATIVE_PROOF_REJECTED');
+ for(const [index,key] of [[1,'receiptVerified'],[2,'purchaseVerified'],[3,'saleVerified'],[4,'collectionVerified']])requireTrue(c.stages[index].nativeProof?.[key]===true,'GOAL8_CHECKPOINT_ACCEPTED_PROOF_REQUIRED');
+ return {baseline:structuredClone(baseline),stages:structuredClone(c.stages),refs:structuredClone(refs),originalSeal:structuredClone(c.seal),reviewedCheckpointSha:resume.reviewedCheckpointSha};
+}
+
 function sealedContext(context,seal){const p=context?.meta?.testProfile;requireTrue(p?.id===seal.profileId&&p.dayId===seal.dayId&&p.definitionHash===seal.definitionHash&&p.sealed===true&&p.synthetic===true&&p.productId==='325503'&&p.supplierId==='13370'&&p.customerId==='30598'&&p.currency==='TRY','GOAL8_CONTEXT_SEAL_REJECTED');return p;}
 export async function auditGoal8SealedProfile({httpGet,sqlRead,seal}={}){
  requireTrue(typeof httpGet==='function'&&typeof sqlRead==='function','GOAL8_READ_ADAPTERS_REQUIRED');
@@ -147,22 +171,25 @@ export function verifyGoal8CrmDay(evidence){
 // No arbitrary endpoints/SQL, automatic fixture installation or implicit writes.
 // Every mutation is followed by normal GET + independent native SELECT + exact
 // full-body replay; stale revisions are intentionally reused only for replay.
-export async function runGoal8SyntheticDay({httpGet,httpPost,sqlRead,seal,runSyntheticDay=false,crmEvidence=null,onStage=async()=>{}}={}){
+export async function runGoal8SyntheticDay({httpGet,httpPost,sqlRead,seal,runSyntheticDay=false,crmEvidence=null,onStage=async()=>{},resumeAfterCollect=null}={}){
  if(!runSyntheticDay)return seal?auditGoal8SealedProfile({httpGet,sqlRead,seal}):auditGoal8TestDay({httpGet,sqlRead});
  requireTrue(typeof httpGet==='function'&&typeof httpPost==='function'&&typeof sqlRead==='function','GOAL8_DAY_ADAPTERS_REQUIRED');
  const get=async(path,actorId='16')=>data(await httpGet(path,{actorId}));
  const post=async(path,body,actorId='16')=>data(await httpPost(path,body,{actorId}));
  const health=await httpGet('/test-health'),identity=first(await sqlRead(GOAL8_DAY_IDENTITY_SQL));verifyGoal8SealedIdentity(identity,health,seal);
  for(const [actorId,role] of [['15','isolated_test_sales'],['16','isolated_test_ilker']]){const me=await get('/api/auth/me',actorId);requireTrue(String(me.id)===actorId&&me.role?.code===role,'GOAL8_HTTP_ACTOR_REJECTED');}
- const baseline=verifyGoal8Snapshot(first(await sqlRead(GOAL8_DAY_SNAPSHOT_SQL)));
+ const current=verifyGoal8Snapshot(first(await sqlRead(GOAL8_DAY_SNAPSHOT_SQL))),resumeRefs=resumeAfterCollect?.checkpoint?.refs;
+ const resumed=resumeAfterCollect?verifyGoal8CollectCheckpoint(resumeAfterCollect,seal,current,first(await sqlRead(goal8NativeProofSql(resumeRefs??{},seal.dayId,current.accountId)))):null;
+ const baseline=resumed?.baseline??current,paymentPlan=goal8DayPaymentPlan(baseline);
  requireTrue(exact(baseline.stockExact3,3)%1000n===0n&&exact(baseline.stockExact3,3)<=29000n,'GOAL8_RECEIVING_COUNT_CAPACITY');
  const office=await get('/api/work-sales/context'),profile=sealedContext(office,seal),paymentContext=await get('/api/work-supplier-payments/context');sealedContext(paymentContext,seal);
  requireTrue(profile.accountId===baseline.accountId&&office.scope?.synthetic===true&&office.scope.customer?.id==='30598'&&office.scope.products.some(p=>p.id==='325503'&&p.prices.some(q=>q.unitPriceExact8==='120.00000000'&&q.source?.quotedPrice===true&&q.source.fixture===seal.profileId))&&paymentContext.suppliers?.length===1&&paymentContext.suppliers[0].id==='13370'&&paymentContext.accounts?.length===1&&paymentContext.accounts[0].id===baseline.accountId,'GOAL8_CONNECTED_CONTEXT_REQUIRED');
- const refs={},stages=[],calls=[],request=step=>goal8DayRequestId(seal.dayId,step),snapshot=async()=>verifyGoal8Snapshot(first(await sqlRead(GOAL8_DAY_SNAPSHOT_SQL))),proof=async()=>first(await sqlRead(goal8NativeProofSql(refs,seal.dayId,baseline.accountId)));
+ const refs=resumed?.refs??{},stages=resumed?.stages??[],calls=[],request=step=>goal8DayRequestId(seal.dayId,step),snapshot=async()=>verifyGoal8Snapshot(first(await sqlRead(GOAL8_DAY_SNAPSHOT_SQL))),proof=async()=>first(await sqlRead(goal8NativeProofSql(refs,seal.dayId,baseline.accountId)));
  const nativeChecks={receive:['receiptVerified','GOAL8_RECEIPT_NATIVE_PROOF'],purchase:['purchaseVerified','GOAL8_PURCHASE_NATIVE_PROOF'],sale:['saleVerified','GOAL8_SALE_NATIVE_PROOF'],collect:['collectionVerified','GOAL8_COLLECTION_NATIVE_PROOF'],pay:['paymentVerified','GOAL8_PAYMENT_NATIVE_PROOF'],count:['countVerified','GOAL8_COUNT_NATIVE_PROOF'],return:['returnVerified','GOAL8_RETURN_NATIVE_PROOF']};
  const append=async(stage,values={})=>{const row=await snapshot(),native=await proof();requireTrue(/^[A-F0-9]{64}$/.test(native.effectHash??''),'GOAL8_EFFECT_FINGERPRINT_REQUIRED');const check=nativeChecks[stage];if(check)requireTrue(native[check[0]]===true,check[1]);const item={stage,...row,currency:'TRY',synthetic:true,independentNativeReadback:true,...values,nativeProof:native};stages.push(item);await onStage(structuredClone(item));return item;};
  const mutate=async(step,path,body,actorId='16')=>{const result=await post(path,body,actorId);calls.push({step,path,actorId,requestId:body.requestId});return result;};
  const replay=async(path,body,actorId='16')=>{const before=await proof(),result=await post(path,body,actorId),after=await proof();requireTrue(result.replayed===true&&before.effectHash===after.effectHash,'GOAL8_REPLAY_NATIVE_EFFECT');return {replayed:true,replayAdditionalEffects:0};};
+ if(!resumed){
  await append('baseline');
  const receiving=await get('/api/work-receiving/context','15'),product=receiving.scope?.products.find(p=>p.id==='325503');requireTrue(product?.writeEligible===true&&receiving.scope.supplier?.id==='13370','GOAL8_RECEIVING_SCOPE');
  const createCountBody={requestId:request('receive-count'),note:'GOAL8:'+seal.dayId,lines:[{clientLineId:'G8-P2',productId:'325503',barcode:product.barcode??null,stockCode:product.stockCode,physicalQuantityExact3:'2.000',expectedQuantityExact3:null,issue:null,note:''}]};
@@ -189,11 +216,17 @@ export async function runGoal8SyntheticDay({httpGet,httpPost,sqlRead,seal,runSyn
  const collected=await mutate('collection','/api/work-collections',collectionBody);refs.collectionId=id(collected.collection.id);
  const collectionRead=await get('/api/work-collections/context?invoiceId='+refs.salesInvoiceId);requireTrue(collectionRead.invoice.collections.receivedExact4==='120.0000'&&collectionRead.invoice.collections.outstandingExact4==='0.0000','GOAL8_COLLECTION_NORMAL_GET');
  await append('collect',{requestId:collectionBody.requestId,...refs,amountExact4:'120.0000',direction:'in',...await replay('/api/work-collections',collectionBody)});requireTrue(stages.at(-1).nativeProof.collectionVerified===true,'GOAL8_COLLECTION_NATIVE_PROOF');
+ }else{
+ const receiptRead=await get('/api/work-purchases/context'),purchaseRead=await get('/api/work-purchases/drafts/'+refs.purchaseInvoiceId),saleRead=await get('/api/work-sales/invoices/'+refs.salesInvoiceId),collectionRead=await get('/api/work-collections/context?invoiceId='+refs.salesInvoiceId);
+ requireTrue(receiptRead.receipts.some(r=>r.id===refs.receiptId&&r.state==='accepted')&&purchaseRead.status==='finalized'&&purchaseRead.receiptId===refs.receiptId&&purchaseRead.totals.grandTotalExact4==='160.0000'&&saleRead.status==='finalized'&&saleRead.customerId==='30598'&&saleRead.grandTotalExact4==='120.0000'&&collectionRead.invoice.collections.receivedExact4==='120.0000'&&collectionRead.invoice.collections.outstandingExact4==='0.0000','GOAL8_RESUME_NORMAL_GET_REJECTED');
+ }
  const paymentBefore=await get('/api/work-supplier-payments/context');sealedContext(paymentBefore,seal);const linked=paymentBefore.suppliers[0].invoices.find(i=>i.id===refs.purchaseInvoiceId);requireTrue(linked?.receiptId===refs.receiptId&&linked.receiptKind==='work-goal8-batch-receipt'&&linked.remainingExact4==='160.0000','GOAL8_PAYMENT_PURCHASE_RECEIPT_LINK');
- const paymentSelection={supplierId:'13370',invoiceId:refs.purchaseInvoiceId,accountId:baseline.accountId,currency:'TRY',amountExact4:'80.0000',documentDate:'2026-10-07',description:'GOAL8:'+seal.dayId},paymentPreview=await post('/api/work-supplier-payments/preview',paymentSelection),paymentBody={...paymentSelection,requestId:request('payment'),expectedRevision:paymentBefore.revision,previewHash:paymentPreview.previewHash};
+ const paymentNative=await snapshot();requireTrue(paymentBefore.suppliers[0].balanceExact4===paymentPlan.netDebtBeforePaymentExact4&&paymentNative.supplierExact4===paymentPlan.netDebtBeforePaymentExact4,'GOAL8_PAYMENT_NET_DEBT_MISMATCH');
+ refs.paymentAmountExact4=paymentPlan.paymentAmountExact4;
+ const paymentSelection={supplierId:'13370',invoiceId:refs.purchaseInvoiceId,accountId:baseline.accountId,currency:'TRY',amountExact4:paymentPlan.paymentAmountExact4,documentDate:'2026-10-07',description:'GOAL8:'+seal.dayId},paymentPreview=await post('/api/work-supplier-payments/preview',paymentSelection),paymentBody={...paymentSelection,requestId:request('payment'),expectedRevision:paymentBefore.revision,previewHash:paymentPreview.previewHash};
  const paid=await mutate('payment','/api/work-supplier-payments/payments',paymentBody);refs.paymentId=id(paid.payment.id);
  const paymentRead=await get('/api/work-supplier-payments/context');requireTrue(paymentRead.payments.some(p=>p.id===refs.paymentId&&p.accountId===baseline.accountId&&p.invoiceId===refs.purchaseInvoiceId&&p.receiptId===refs.receiptId),'GOAL8_PAYMENT_NORMAL_GET');
- await append('pay',{requestId:paymentBody.requestId,...refs,amountExact4:'80.0000',direction:'out',...await replay('/api/work-supplier-payments/payments',paymentBody)});requireTrue(stages.at(-1).nativeProof.paymentVerified===true,'GOAL8_PAYMENT_NATIVE_PROOF');
+ await append('pay',{requestId:paymentBody.requestId,...refs,amountExact4:paymentPlan.paymentAmountExact4,direction:'out',...await replay('/api/work-supplier-payments/payments',paymentBody)});requireTrue(stages.at(-1).nativeProof.paymentVerified===true,'GOAL8_PAYMENT_NATIVE_PROOF');
  const countContext=await get('/api/test-daily/count'),countProduct=countContext.countProducts.find(p=>p.id==='325503');requireTrue(countProduct&&Number.isSafeInteger(countProduct.stockQuantity),'GOAL8_COUNT_NATIVE_QUANTITY');
  const physicalBody={requestId:request('physical-count-draft'),date:'2026-10-07',unit:'ADET',warehouse:'TEST-DAILY-WH',unknownScans:[],lines:[{productId:'325503',stockCode:countProduct.stockCode,physical:countProduct.stockQuantity,system:countProduct.stockQuantity,reason:'Fark yok',movementFingerprint:countProduct.movementFingerprint}]};
  const physical=await mutate('physical-count-draft','/api/test-daily/count/draft',physicalBody);refs.countDraftId=id(String(physical.id));
@@ -205,14 +238,15 @@ export async function runGoal8SyntheticDay({httpGet,httpPost,sqlRead,seal,runSyn
  const returnApproveBody={requestId:request('return-approve'),id:Number(refs.returnDraftId)};const returned=await mutate('return-approve','/api/test-daily/purchase/approve',returnApproveBody);refs.returnId=id(String(returned.result.id));
  const returnRead=await get('/api/test-daily/purchase');requireTrue(returnRead.drafts.some(d=>String(d.id)===refs.returnDraftId&&d.state==='approved'),'GOAL8_RETURN_NORMAL_GET');
  await append('return',{requestId:returnApproveBody.requestId,...refs,quantityExact3:'1.000',amountExact4:'80.0000',...await replay('/api/test-daily/purchase/approve',returnApproveBody)});requireTrue(stages.at(-1).nativeProof.returnVerified===true,'GOAL8_RETURN_NATIVE_PROOF');
+ const finalPaymentRead=await get('/api/work-supplier-payments/context'),finalInvoice=finalPaymentRead.suppliers?.find(s=>s.id==='13370')?.invoices.find(i=>i.id===refs.purchaseInvoiceId);requireTrue(finalInvoice?.remainingExact4===paymentPlan.invoiceOutstandingExact4,'GOAL8_FINAL_INVOICE_OUTSTANDING_MISMATCH');
  const reports={},native=await proof();
  for(const kind of ['sales','purchases','collections','supplier-payments','stock-movements','customer-movements','supplier-movements']){const rows=[];let offset=0;for(let page=0;page<1000;page++){const r=await get('/api/work-reports?kind='+kind+'&period=custom&from=2026-10-07&to=2026-10-07&currency=TRY&limit=100&offset='+offset);requireTrue(Array.isArray(r.rows)&&r.filters?.from==='2026-10-07'&&r.filters.to==='2026-10-07','GOAL8_REPORT_SOURCE_INVALID');rows.push(...r.rows);if(!r.pagination.hasMore)break;offset+=100;requireTrue(page<999,'GOAL8_REPORT_PAGE_LIMIT');}reports[kind]=rows;}
  const reportRow=(kind,target,amount)=>requireTrue(reports[kind].filter(r=>String(r.id)===target&&r.currency==='TRY'&&r.amount===amount).length===1,'GOAL8_REPORT_NATIVE_LINK');
- reportRow('sales',refs.salesInvoiceId,'120.0000');reportRow('purchases',refs.purchaseInvoiceId,'160.0000');reportRow('collections',refs.collectionId,'120.0000');reportRow('supplier-payments',refs.paymentId,'80.0000');reportRow('customer-movements',id(native.customerSaleMovementId),'120.0000');reportRow('supplier-movements',id(native.supplierPurchaseMovementId),'160.0000');reportRow('supplier-movements',id(native.supplierReturnMovementId),'-80.0000');
+ reportRow('sales',refs.salesInvoiceId,'120.0000');reportRow('purchases',refs.purchaseInvoiceId,'160.0000');reportRow('collections',refs.collectionId,'120.0000');reportRow('supplier-payments',refs.paymentId,paymentPlan.paymentAmountExact4);reportRow('customer-movements',id(native.customerSaleMovementId),'120.0000');reportRow('supplier-movements',id(native.supplierPurchaseMovementId),'160.0000');reportRow('supplier-movements',id(native.supplierReturnMovementId),'-80.0000');
  const stockIds=typeof native.stockMovementIds==='string'?JSON.parse(native.stockMovementIds):native.stockMovementIds;requireTrue(Array.isArray(stockIds)&&stockIds.length===3&&stockIds.every(s=>reports['stock-movements'].filter(r=>r.id===s.id&&r.currency==='TRY').length===1),'GOAL8_REPORT_STOCK_LINK');
- await append('daily-report',{...refs,reportVerified:true,reportSalesInvoiceId:refs.salesInvoiceId,reportPurchaseInvoiceId:refs.purchaseInvoiceId,reportReceiptId:refs.receiptId,reportSalesExact4:'120.0000',reportPurchasesExact4:'160.0000',reportCollectionsExact4:'120.0000',reportPaymentsExact4:'80.0000',reportReturnsExact4:'80.0000'});
+ await append('daily-report',{...refs,reportVerified:true,reportSalesInvoiceId:refs.salesInvoiceId,reportPurchaseInvoiceId:refs.purchaseInvoiceId,reportReceiptId:refs.receiptId,reportSalesExact4:'120.0000',reportPurchasesExact4:'160.0000',reportCollectionsExact4:'120.0000',reportPaymentsExact4:paymentPlan.paymentAmountExact4,reportReturnsExact4:'80.0000',invoiceOutstandingExact4:finalInvoice.remainingExact4});
  const consistency=verifyGoal8LinkedDay(stages),crm=crmEvidence?verifyGoal8CrmDay(crmEvidence):null;
- return {schemaVersion:'melisa-goal8-connected-day.v1',runtime:{sourceCommit:health.sourceCommit,packageId:health.packageId},seal,mode:'synthetic-test-day',chainExecuted:true,nativeTechnicalPass:true,technicalPass:crm!==null,fullDayVerified:crm!==null,humanAccepted:false,crm,remaining:crm?[]:['CURRENT_CRM_DAY_LINK_REQUIRED'],refs,stages,calls,reports,consistency};
+ return {schemaVersion:'melisa-goal8-connected-day.v1',runtime:{sourceCommit:health.sourceCommit,packageId:health.packageId},seal,continuation:resumed?{from:'collect',originalSeal:resumed.originalSeal,continuationSeal:seal,reviewedCheckpointSha:resumed.reviewedCheckpointSha}:null,paymentPlan,mode:'synthetic-test-day',chainExecuted:true,nativeTechnicalPass:true,technicalPass:crm!==null,fullDayVerified:crm!==null,humanAccepted:false,crm,remaining:crm?[]:['CURRENT_CRM_DAY_LINK_REQUIRED'],refs,stages,calls,reports,consistency};
 }
 
 export function verifyGoal8Snapshot(row){
@@ -260,11 +294,11 @@ export async function auditGoal8TestDay({httpGet,sqlRead,runSyntheticDay=false}=
 
 // Independent observed-evidence validator for the intended day. It performs no writes.
 // Caller supplies native SQL/API evidence after every committed stage, not predictions.
-export function verifyGoal8LinkedDay(stages){
- const names=['baseline','receive','purchase','sale','collect','pay','count','return','daily-report'];
+function verifyGoal8StageRows(stages,complete=true){
+ const names=complete?['baseline','receive','purchase','sale','collect','pay','count','return','daily-report']:['baseline','receive','purchase','sale','collect'];
  requireTrue(Array.isArray(stages)&&stages.length===names.length&&same(stages.map(s=>s.stage),names),'GOAL8_STAGE_SEQUENCE');
- const baseline=stages[0],accountId=id(baseline.accountId),references={},requestIds=new Set();
- const deltas=[ [0,0,0,0],[2000,0,0,0],[2000,1600000,0,0],[1000,1600000,1200000,0],[1000,1600000,0,1200000],[1000,800000,0,400000],[1000,800000,0,400000],[0,0,0,400000],[0,0,0,400000] ];
+ const baseline=stages[0],accountId=id(baseline.accountId),references={},requestIds=new Set(),plan=goal8DayPaymentPlan(baseline),pay=exact(plan.paymentAmountExact4,4);
+ const deltas=[ [0n,0n,0n,0n],[2000n,0n,0n,0n],[2000n,1600000n,0n,0n],[1000n,1600000n,1200000n,0n],[1000n,1600000n,0n,1200000n],[1000n,1600000n-pay,0n,1200000n-pay],[1000n,1600000n-pay,0n,1200000n-pay],[0n,800000n-pay,0n,1200000n-pay],[0n,800000n-pay,0n,1200000n-pay] ];
  const keys=['stockExact3','supplierExact4','customerExact4','cashExact4'];
  stages.forEach((s,index)=>{
   requireTrue(s.productId==='325503'&&s.supplierId==='13370'&&s.customerId==='30598'&&s.accountId===accountId&&s.currency==='TRY'&&s.synthetic===true&&s.holdCount===0&&s.independentNativeReadback===true,'GOAL8_STAGE_SCOPE_OR_PROOF');
@@ -274,13 +308,15 @@ export function verifyGoal8LinkedDay(stages){
   if(s.stage==='purchase'){requireTrue(s.receiptId===references.receiptId,'GOAL8_RECEIPT_LINK');references.purchaseInvoiceId=id(s.purchaseInvoiceId);}
   if(s.stage==='sale')references.salesInvoiceId=id(s.salesInvoiceId);
   if(s.stage==='collect')requireTrue(s.salesInvoiceId===references.salesInvoiceId&&s.amountExact4==='120.0000'&&s.direction==='in','GOAL8_COLLECTION_LINK');
-  if(s.stage==='pay')requireTrue(s.purchaseInvoiceId===references.purchaseInvoiceId&&s.receiptId===references.receiptId&&s.amountExact4==='80.0000'&&s.direction==='out','GOAL8_PAYMENT_LINK');
+  if(s.stage==='pay')requireTrue(s.purchaseInvoiceId===references.purchaseInvoiceId&&s.receiptId===references.receiptId&&s.amountExact4===plan.paymentAmountExact4&&s.direction==='out','GOAL8_PAYMENT_LINK');
   if(s.stage==='return')requireTrue(s.purchaseInvoiceId===references.purchaseInvoiceId&&s.receiptId===references.receiptId&&s.quantityExact3==='1.000'&&s.amountExact4==='80.0000','GOAL8_RETURN_LINK');
  });
+ if(!complete)return {references,plan};
  const report=stages.at(-1);
- requireTrue(report.reportVerified===true&&report.reportSalesInvoiceId===references.salesInvoiceId&&report.reportPurchaseInvoiceId===references.purchaseInvoiceId&&report.reportReceiptId===references.receiptId&&report.reportSalesExact4==='120.0000'&&report.reportPurchasesExact4==='160.0000'&&report.reportCollectionsExact4==='120.0000'&&report.reportPaymentsExact4==='80.0000'&&report.reportReturnsExact4==='80.0000','GOAL8_DAILY_REPORT_LINK');
- return {status:'LINKED_EVIDENCE_CONSISTENT',consistencyVerified:true,stockDeltaExact3:'0.000',supplierDeltaExact4:'0.0000',customerDeltaExact4:'0.0000',cashDeltaExact4:'40.0000',references,humanAccepted:false,crmChainIncluded:false};
+ requireTrue(report.reportVerified===true&&report.reportSalesInvoiceId===references.salesInvoiceId&&report.reportPurchaseInvoiceId===references.purchaseInvoiceId&&report.reportReceiptId===references.receiptId&&report.reportSalesExact4==='120.0000'&&report.reportPurchasesExact4==='160.0000'&&report.reportCollectionsExact4==='120.0000'&&report.reportPaymentsExact4===plan.paymentAmountExact4&&report.reportReturnsExact4==='80.0000','GOAL8_DAILY_REPORT_LINK');
+ return {status:'LINKED_EVIDENCE_CONSISTENT',consistencyVerified:true,stockDeltaExact3:'0.000',supplierDeltaExact4:plan.supplierDeltaExact4,customerDeltaExact4:'0.0000',cashDeltaExact4:plan.cashDeltaExact4,paymentAmountExact4:plan.paymentAmountExact4,invoiceOutstandingExact4:plan.invoiceOutstandingExact4,finalSupplierBalanceExact4:stages.at(-1).supplierExact4,references,humanAccepted:false,crmChainIncluded:false};
 }
+export function verifyGoal8LinkedDay(stages){return verifyGoal8StageRows(stages);}
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  const args=process.argv.slice(2);

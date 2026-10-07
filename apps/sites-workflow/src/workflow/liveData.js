@@ -9,6 +9,7 @@ import dailySnapshot from './dailySnapshot.json';
 import accountSnapshot from './accountSnapshot.json';
 import {createWorkCatalog} from './workCatalog.js';
 import {createWorkHome} from './workHome.js';
+import {validateWorkHome} from './workHomeModel.mjs';
 import {createWorkSales} from './workSales.js';
 import {createWorkCollections} from './workCollections.js';
 import {createWorkCustomers} from './workCustomers.js';
@@ -86,10 +87,29 @@ function wireLogin(root){
  const health=root.querySelector('#live-health');if(health)health.onclick=async()=>{health.disabled=true;const status=root.querySelector('#live-health-status');status.textContent='Bağlantı sınanıyor…';try{const r=await client.get('/health');status.textContent=r.data?.erpAuthReachable===true&&r.data?.vegaMcpReachable===true?'ERP oturum servisi ve VEGA veri kaynağı yanıt verdi.':'Bağlantının bütün bileşenleri doğrulanamadı.'}catch(error){status.textContent=message(error)}finally{health.disabled=false}};
 }
 const configs={home:['Günlük operasyon','Fişi açın veya soldaki menüden işinize geçin.','sale_stock_exit'],receipts:['Satış fişleri','Fiş numarası veya cari kayıt numarasıyla arayın; ayrıntısını açın.','sale_stock_exit'],goods:['Gelen mal','Personel sayar → İlker ürünleri kontrol eder → kabul tamamlanır.','purchase_stock_entry'],purchases:['Alış faturaları','Mal kabulüyle faturayı eşleştirin; tedarikçi borcu ve maliyeti kontrol edin.','purchase_invoice'],returns:['İadeler','Müşteri ve tedarikçi iadelerini ayrı inceleyin.','sale_stock_exit'],stock:['Ürün & stok','Ürünü seçerek stok, birim, barkod ve kayıtlı fiyatları açın.'],customers:['Müşteriler','Cari kartını seçerek gün içindeki borç ve alacak hareketlerini açın.'],collections:['Tahsilat','Cari hareketlerini inceleyin. Yeni tahsilat kaydı henüz bağlı değil.']};
+export function nativeApprovalSummary(data){
+ const s=data?.sections?.approvals,c=data?.capabilities,n=data?.navigationReady;
+ if(!s||!c||!n||!['available','forbidden','unavailable'].includes(s.status))throw Error('Onay bilgileri okunamadı.');
+ const coverage=['goods','count','sales-return','purchase-return'];
+ if(s.status==='available'&&(c.approval!==true||!Number.isSafeInteger(s.pendingCount)||s.pendingCount<0||s.complete!==false||!Array.isArray(s.sourceCoverage)||s.sourceCoverage.length!==4||new Set(s.sourceCoverage).size!==4||coverage.some(k=>!s.sourceCoverage.includes(k))))throw Error('Onay bilgileri okunamadı.');
+ if(s.status!=='available'&&s.pendingCount!==null)throw Error('Onay bilgileri okunamadı.');
+ const links=[['goods','Mal kabulü','goods'],['count','Sayım','count'],['returns','İadeler','returns']].filter(([, ,k])=>c[k]===true&&n[k]===true).map(([screen,label])=>({screen,label}));
+ return {pendingCount:s.status==='available'?s.pendingCount:null,status:s.status,links};
+}
+function createNativeApprovals({root,session,navigate}){
+ let active=false,generation=0;
+ async function refresh(){const token=++generation;root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="status">Bekleyen işler açılıyor…</p></section>';try{
+  const view=nativeApprovalSummary(validateWorkHome(await session.home()));if(!active||!root.isConnected||token!==generation)return;
+  const text=view.pendingCount===null?(view.status==='forbidden'?'Onayları görüntüleme yetkiniz yok.':'Bekleyen işler şu anda okunamıyor.'):`${view.pendingCount.toLocaleString('tr-TR')} kayıt kontrol bekliyor.`;
+  root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Onaylar</h1><p class="sub">Bekleyen kayıtları kaynak bölümünde inceleyin.</p></div><button class="btn" data-approval-refresh>Yenile</button></div><section class="card panel" style="padding:20px"><p role="status">${esc(text)}</p><p>Bu özet, yetkiniz kapsamındaki mal kabulü, sayım ve iade kayıtlarını kapsar. İndirim kararları ve birleşik karar geçmişi bu özete dahil değildir.</p><div class="actions">${view.links.map(l=>`<button class="btn" data-approval-source="${l.screen}">${l.label}</button>`).join('')}</div><p class="sub">Kayıt ayrıntısını ve karar yetkisini ilgili bölümden kontrol edin.</p></section>`;
+  root.querySelector('[data-approval-refresh]').onclick=refresh;root.querySelectorAll('[data-approval-source]').forEach(b=>b.onclick=()=>navigate(b.dataset.approvalSource));
+ }catch{if(active&&root.isConnected&&token===generation){root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="alert">Bekleyen işler şu anda okunamıyor. Yenileyerek tekrar deneyin.</p><button class="btn" data-approval-refresh>Yenile</button></section>';root.querySelector('[data-approval-refresh]').onclick=refresh;}}}
+ return {mount(){active=true;refresh();},dispose(){active=false;generation++;}};
+}
 function mount(){
  dispose();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
  const countWorkspace=page==='count';
- const workspace=['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns';
+ const workspace=['stock','home','approvals','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns';
  toolbar.hidden=workspace;toolbar.style.display=workspace?'none':'';
  const mobileRole=document.getElementById('mobileRole');if(mobileRole)mobileRole.hidden=workspace;
  const realLabel=document.getElementById('working-catalog-user');if(realLabel)realLabel.remove();
@@ -131,21 +151,21 @@ function mount(){
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">İşlem bilgileri açılıyor…</p></section>';
   session.start().then(showTrade).catch(error=>{if(alive())showLogin(error.message);});return;
  }
- if(page==='home'){
+ if(page==='home'||page==='approvals'){
   document.getElementById('role')?.closest('.rolebox')?.setAttribute('hidden','');
   document.querySelectorAll('#nav .badge,#nav .nav-complete').forEach(x=>x.hidden=true);
   const side=document.querySelector('aside .sidefoot');if(side)side.textContent='Melisa ERP';
   const avatar=document.getElementById('avatar');if(avatar){if(catalogAvatarBefore===null)catalogAvatarBefore=avatar.textContent;avatar.textContent='—';}
-  let active=true,homeUI=null,session;const alive=()=>active&&root.isConnected&&workflow.screen()==='home';
+  let active=true,homeUI=null,session;const alive=()=>active&&root.isConnected&&workflow.screen()===page;
   const label=document.createElement('span');label.id='working-catalog-user';label.textContent='Oturum açılıyor…';document.querySelector('.top-right')?.append(label);
   function showLogin(message=''){
    if(!alive())return;homeUI?.dispose();homeUI=null;label.textContent='Oturum gerekli';if(avatar)avatar.textContent='—';
-   root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP · İŞ SIRASI</div><h1>Bugün sırada ne var?</h1><p class="sub">Günlük işlerinize ERP hesabınızla ulaşın.</p></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-home-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
+   root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>${page==='approvals'?'Onaylar':'Bugün sırada ne var?'}</h1><p class="sub">Günlük işlerinize ERP hesabınızla ulaşın.</p></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-home-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
    root.querySelector('#working-home-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;form.querySelector('button').disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showHome(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
   function showHome(current){
    if(!alive())return;if(!current){showLogin();return;}label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);
-   homeUI?.dispose();homeUI=createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
+   homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
   }
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;homeUI?.dispose();session.dispose();};

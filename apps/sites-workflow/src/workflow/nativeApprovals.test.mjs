@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const source=readFileSync(new URL('./liveData.js',import.meta.url),'utf8');
+// Evaluate the actual pure projection without browser bootstrap/CSS imports.
+const start=source.indexOf('export function nativeApprovalSummary('),end=source.indexOf('\nfunction createNativeApprovals(',start);
+const project=Function(source.slice(start,end).replace('export ','')+';return nativeApprovalSummary;')();
+const data=()=>({sections:{approvals:{status:'available',pendingCount:7,complete:false,sourceCoverage:['goods','count','sales-return','purchase-return']}},capabilities:{approval:true,goods:true,count:true,returns:true},navigationReady:{goods:true,count:true,returns:true}});
+test('native pending count keeps permission/readiness-filtered source navigation and partial coverage',()=>{const d=data();d.navigationReady.count=false;d.capabilities.returns=false;assert.deepEqual(project(d),{pendingCount:7,status:'available',links:[{screen:'goods',label:'Mal kabulü'}]});d.sections.approvals.pendingCount=0;assert.equal(project(d).pendingCount,0);});
+test('missing, unknown and forbidden data cannot become an empty approved queue',()=>{assert.throws(()=>project({}));const d=data();d.sections.approvals.pendingCount=null;assert.throws(()=>project(d));d.sections.approvals.status='forbidden';d.capabilities.approval=false;assert.equal(project(d).pendingCount,null);d.sections.approvals.pendingCount=0;assert.throws(()=>project(d));});
+test('unproven complete queue or missing source coverage is rejected',()=>{const d=data();d.sections.approvals.complete=true;assert.throws(()=>project(d));d.sections.approvals.complete=false;d.sections.approvals.sourceCoverage=['goods'];assert.throws(()=>project(d));});
+test('normal approvals use authenticated native home reads and cannot render local demo actions',()=>{const demo=readFileSync(new URL('./demoOperations.js',import.meta.url),'utf8');assert.match(source,/if\(page==='home'\|\|page==='approvals'\)/);assert.match(source,/nativeApprovalSummary\(validateWorkHome\(await session\.home\(\)\)\)/);assert.match(demo,/\['stock','home','approvals'.*includes\(bridge\.screen\(\)\)/);assert.doesNotMatch(demo,/window\.approvalsPage=approvalPage/);const ui=source.slice(end,source.indexOf('\nfunction mount()',end));assert.doesNotMatch(ui,/session\.(post|approve|decide)/);assert.match(ui,/İndirim kararları ve birleşik karar geçmişi bu özete dahil değildir/);});
