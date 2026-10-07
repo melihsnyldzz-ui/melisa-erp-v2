@@ -12,6 +12,8 @@ Repo dışı209accountmatrix:0KANITI TAMAM/203KANIT EKSİK/2İŞLETME KARARI/4E�
 
 Git:codex/erp-finish-20261004 → [PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23);bu kaydı içeren PRhead kaynak teslimidir,runtime07101548 değişmedi. ExactheadCIsonucuPRchecks/yerelteslimmakbuzunda doğrulanır;aşağıdaki Goal7.1CI yeniheadCIyerine kullanılmaz.
 
+Goal7.2 araştırma/plan teslim commit'i **82ff6bb20f914803f16b0151f0299991f293c727** (13dosya) origin/PR23head ile eşleşti. [PushCI37609388025](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37609388025) ve [PRCI37609392879](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37609392879) quality-build-test/windows-startup-test/secret-scanSUCCESS;VercelpreviewSUCCESS. Stagedgitleaks0leak. Fresh14changedsource row SQLdecimaleffect ile önceki bağımsızBigIntmodel14/14aynı. Private57_ACCOUNT_EVIDENCE.md devir/dönem belgesi tamam57hesabı ad/kod/yerel etki/fark adayıyla kullanıcı incelemesine ayırır;tam aktarım kanıtı0. Bu son makbuz yalnız doküman;çalışanTEST84source07101548 değişmedi. Makbuz commit'inin exactCI'si ayrıca PRhead/yerelteslimmakbuzunda kontrol edilir;başka iş veya gerçek writer başlatılmaz.
+
 ## Goal7.1 — 7 Ekim 2026, ayrı döviz gösterimi ve salt okunur karşılaştırma
 
 TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb;1434dosya/baselineReproducedtrue;C:/Sirket/ERP/releases/CANONICAL-GOAL71-TEST-20261007-84;manifest977add2668602776bdb2fd9385700df800b534d6a252f85aca5b1d2edb53c7a9.5194/4144/4146READY→Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01. Başlangıçta listener yoktu;pinli83geri açılıpactualreader/API/DB doğrulandı,sonraERP84'e geçti. Eski Vega servisleri normal kart okuyucusu değildir.
