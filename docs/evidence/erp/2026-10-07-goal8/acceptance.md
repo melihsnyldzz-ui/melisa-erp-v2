@@ -1,8 +1,8 @@
 # Goal8 — tek insan kabul turu
 
-Bu liste teknik hazırlık içindir; kullanıcı sonucu üretmez. USER_ACCEPTANCE.md ve ERP-UA24 bekleyen kayıtları değiştirilmedi. Başlangıç çalışan sürüm TEST86/source769031c; son paket kimliği teknik README'de ayrıca kaydedilir. Normal yeşil ekran, gerçek katalog/cari okuması ve ayrılmış deneme operasyonları farklı veri kapsamlarıdır. Deneme kayıtlarını gerçek ticari kayıt sanmayın.
+Bu liste teknik hazırlık içindir; kullanıcı sonucu üretmez. USER_ACCEPTANCE.md, ERP-UA24 ve diğer bekleyen insan kayıtları değiştirilmedi. Başlangıç kanıtı TEST86/source769031c'dir. Son durum: TEST89/source9c48f6c paket hazırlığı sürüyor; kullanılmamış profil CAS onarımı ve bağlı gün yürütmesi henüz bekliyor. Bu nedenle gün/UI PASS kaydı yoktur. Turun uygulanacağı kesin çalışan paket/source kimliği kök ajanın son runtime kanıtıyla ayrıca doldurulur. Normal yeşil ekran, gerçek katalog/cari okuması ve ayrılmış deneme operasyonları farklı veri kapsamlarıdır. Deneme kayıtlarını gerçek ticari kayıt sanmayın.
 
-Toplam 15–20 dakika; eski UA testlerini tek tek yeniden yapma gereği yok. Alış/satış/ödeme işlemleri yalnız ayrılmış deneme kartlarında yapılır. Gerçek müşteri, tedarikçi veya kaynak kartta işlem kaydedilmez.
+Toplam 15–20 dakika ve sekiz kontrol; eski UA testlerini tek tek yeniden yapma gereği yok. Teknik bağlı gün kanıtı tamamlandıktan sonra aynı fiş/kabul/ödeme zinciri ekranlardan geri okunur; yeni kayıt gerekiyorsa yalnız ayrılmış deneme kartlarında yapılır. Gerçek müşteri, tedarikçi veya kaynak kartta işlem kaydedilmez. Her satırın insan sonucu ayrı Bekliyor/Uygun/Sorun olarak kaydedilir; sorun varsa ekran ve gözlenen davranış yeterlidir.
 
 | Süre | Ekran | Neye bakılacak | Beklenen |
 | --- | --- | --- | --- |
@@ -15,7 +15,7 @@ Toplam 15–20 dakika; eski UA testlerini tek tek yeniden yapma gereği yok. Al�
 | 2 dk | [Raporlar](http://127.0.0.1:5194/ornek-akis.html#reports) → [Ayarlar](http://127.0.0.1:5194/ornek-akis.html#settings) | Bugünkü dövizli toplamlar ve hizmet durumu | Aynı kapsam ve ayrı döviz; hizmet/fiziksel başlangıç kabulü birbirine karışmaz. |
 | 2 dk | [CRM](http://127.0.0.1:62400/) / mevcut personel terminali | Atanmış konuşma, çeviri, ortak ürün/fotoğraf/fiyat ve mevcut taslak geri okuma | Yeni gerçek mesaj gönderilmez; ikinci ticari katalog oluşturulmaz; fiziksel Zebra ayrıca denenir. |
 
-Tam iş günü teknik zinciri ve cutover okuyucu engelleri kapanmadan bu kısa tur tek başına LIVE izni veya Goal8 tamam sonucu değildir. Kullanıcı açıkça verdiğinde sadece ilgili insan sonucu kaydedilir; teknik kontroller otomatik PASS yapmaz.
+Tam iş günü teknik zinciri henüz yürütülmedi. Final okuyucunun ayrılmış sentetik SQL forward/inverse kanıtı tamamdır; gerçek T1 ve normal FINAL API/browser etkinleşmesi ayrı bekler. Bu kısa tur tek başına LIVE izni veya Goal8 tamam sonucu değildir. Kullanıcı açıkça verdiğinde sadece ilgili insan sonucu kaydedilir; teknik kontroller otomatik PASS yapmaz.
 
 ## Fiziksel terminalin kalan tek listesi
 
