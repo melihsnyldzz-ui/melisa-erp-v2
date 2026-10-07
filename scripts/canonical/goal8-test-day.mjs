@@ -223,6 +223,7 @@ export async function runGoal8SyntheticDay({httpGet,httpPost,sqlRead,seal,runSyn
  const paymentBefore=await get('/api/work-supplier-payments/context');sealedContext(paymentBefore,seal);const linked=paymentBefore.suppliers[0].invoices.find(i=>i.id===refs.purchaseInvoiceId);requireTrue(linked?.receiptId===refs.receiptId&&linked.receiptKind==='work-goal8-batch-receipt'&&linked.remainingExact4==='160.0000','GOAL8_PAYMENT_PURCHASE_RECEIPT_LINK');
  const paymentNative=await snapshot();requireTrue(paymentBefore.suppliers[0].balanceExact4===paymentPlan.netDebtBeforePaymentExact4&&paymentNative.supplierExact4===paymentPlan.netDebtBeforePaymentExact4,'GOAL8_PAYMENT_NET_DEBT_MISMATCH');
  refs.paymentAmountExact4=paymentPlan.paymentAmountExact4;
+ requireTrue((await proof()).effectHash===stages.at(-1).nativeProof.effectHash,'GOAL8_PRE_PAYMENT_EFFECT_CHANGED');
  const paymentSelection={supplierId:'13370',invoiceId:refs.purchaseInvoiceId,accountId:baseline.accountId,currency:'TRY',amountExact4:paymentPlan.paymentAmountExact4,documentDate:'2026-10-07',description:'GOAL8:'+seal.dayId},paymentPreview=await post('/api/work-supplier-payments/preview',paymentSelection),paymentBody={...paymentSelection,requestId:request('payment'),expectedRevision:paymentBefore.revision,previewHash:paymentPreview.previewHash};
  const paid=await mutate('payment','/api/work-supplier-payments/payments',paymentBody);refs.paymentId=id(paid.payment.id);
  const paymentRead=await get('/api/work-supplier-payments/context');requireTrue(paymentRead.payments.some(p=>p.id===refs.paymentId&&p.accountId===baseline.accountId&&p.invoiceId===refs.purchaseInvoiceId&&p.receiptId===refs.receiptId),'GOAL8_PAYMENT_NORMAL_GET');
@@ -314,6 +315,7 @@ function verifyGoal8StageRows(stages,complete=true){
  if(!complete)return {references,plan};
  const report=stages.at(-1);
  requireTrue(report.reportVerified===true&&report.reportSalesInvoiceId===references.salesInvoiceId&&report.reportPurchaseInvoiceId===references.purchaseInvoiceId&&report.reportReceiptId===references.receiptId&&report.reportSalesExact4==='120.0000'&&report.reportPurchasesExact4==='160.0000'&&report.reportCollectionsExact4==='120.0000'&&report.reportPaymentsExact4===plan.paymentAmountExact4&&report.reportReturnsExact4==='80.0000','GOAL8_DAILY_REPORT_LINK');
+ if(report.invoiceOutstandingExact4!==undefined||pay!==800000n)requireTrue(report.invoiceOutstandingExact4===plan.invoiceOutstandingExact4,'GOAL8_DAILY_INVOICE_OUTSTANDING');
  return {status:'LINKED_EVIDENCE_CONSISTENT',consistencyVerified:true,stockDeltaExact3:'0.000',supplierDeltaExact4:plan.supplierDeltaExact4,customerDeltaExact4:'0.0000',cashDeltaExact4:plan.cashDeltaExact4,paymentAmountExact4:plan.paymentAmountExact4,invoiceOutstandingExact4:plan.invoiceOutstandingExact4,finalSupplierBalanceExact4:stages.at(-1).supplierExact4,references,humanAccepted:false,crmChainIncluded:false};
 }
 export function verifyGoal8LinkedDay(stages){return verifyGoal8StageRows(stages);}
