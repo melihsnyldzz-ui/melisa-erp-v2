@@ -1,5 +1,7 @@
 # Goal7 — T0/T1 ve Vega arşiv prosedürü
 
+**ERP-DEC-025 sonrası güncel ortak prosedür:** [Final stok/fiyat/cari T0/T1 cutover](final-cutover-procedure.md). Aşağıdaki Goal7 kaydı tarihsel dayanak olarak korunur. Önceden uygulanmış kaynak etkileri T1'de ikinci kez yazılmaz; güncel prosedür son kabul edilmiş sürüme göre kalan farkı ve yazmasız hazırlık/gerçek çalıştırıcı ayrımını kesinleştirir.
+
 7 Ekim 2026. Karar: ERP-DEC-020. **Bu belge uygulanacak prosedürdür; gerçek cutover veya Vega yetki değişikliği yapılmadı.** Güncel T0, SELECT-only ve projeksiyon başına iki geçişli okumadır. Ortak atomik snapshot değildir; açılış kabulü veya gerçek T1 yerine geçmez.
 
 ## Kesimden önce hazırlanacaklar

@@ -1,5 +1,7 @@
 # Goal7.3 — onaylı 16 tedarikçi hesabı TEST'e uygulandı
 
+**Son insan kontrolü / ERP-DEC-025:** Üç örnekte ayrı döviz, B/A ve uygulama mantığı kullanıcı tarafından uygun bulundu. Sonraki Vega hareketleriyle tutarlar değişmiştir; bu normal kaynak driftidir, Goal7.3 hatası değildir. **TEST cari delta mekanizması teknik olarak kanıtlandı; ERP-UA24 bekliyor, PASS değil.** Eski batch/kanıt aynen korunur; tekrar cari aktarımı yapılmadı. Sonraki öncelik yazmasız [final ortak T0/T1 hazırlığıdır](../canonical-20261007/final-cutover-procedure.md); gerçek T1 uygulaması ayrı kapsam/onay bekler.
+
 [PR23 onay6038754582](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6038754582), ERP-DEC-024 / ERP-MIG07.3. **Teknik tamamlandı; ERP-UA24 insan kabulü bekliyor.** Yalnız plandaki 16 F0103 tedarikçi hesabı: 14 TRY / 2 USD; 15 fark uygulandı, 1 hesap değişmeden doğrulandı. Müşteri hesaplarına veya diğer döviz hesaplarına yazılmadı.
 
 ## Önce / fark / sonra

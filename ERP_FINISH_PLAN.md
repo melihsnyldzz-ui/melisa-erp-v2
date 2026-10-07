@@ -1,3 +1,13 @@
+## Final cutover hazırlığı — 7 Ekim 2026 / ERP-DEC-025
+
+Goal7.3 **TEST cari delta mekanizması teknik olarak kanıtlandı** olarak korunur. Üç örneğin dar insan ekran kontrolü tamamlandı; sonraki Vega bakiye değişikliği normal kaynak driftidir. **ERP-UA24 bekliyor, PASS değil.** [Ortak stok/fiyat/cari final T0-T1 prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md) 10 kullanıcı adımı ve teknik kalan-fark/replay/inverse sözleşmesini içerir.
+
+Yeni saf `final-cutover-plan.mjs` mevcut Goal7.3 exact/replay/inverse yardımcılarını kullanır; önceki committed kaynak farkını tekrar uygulamaz, yerel Melisa etkisini korur, fiyatı kendi döviz/birim/kademe sürümüyle ele alır. **13 yeni sentetik offline test geçti.** SQL/dosya/ağ/CLI yazıcısı yok; `executeAllowed:false`, `financialWriteAuthorized:false`; yalnız kanonik TEST hedefi. Final T1 collector, gerçek journal bağlayıcısı, genel müşteri/tedarikçi writer/reader ve parent recovery henüz uygulanmadı; gerçek kesim/onay bekler. Bu kayıt final uygulama hazır veya insan kabulü tamam demek değildir.
+
+Bu tur yeni finans/cari/stok/fiyat yazması, kaynak capture, yedek/restore, paket/restart/deploy, Vega/LIVE/CRM veya main merge yapılmadı. Önceki Goal7/7.3 native kanıtları yeniden yapılmadı. Çalışan TEST86 uygulama kaydı source769031c olarak korundu; kaynak hazırlık commit'i yeni runtime değildir. Finish **49 toplam / 9🟢 / 34🟡 / 6🔴** değişmedi; D02/D06 açık, D07 kısmi. GitHub teslimi mevcut dal/PR23'te; final HEAD CI makbuzu ayrı doğrulanır. Bu hazırlık tesliminden sonra durulur.
+
+Aşağıdaki kayıtlar önceki turların tarihsel kanıtlarıdır.
+
 **7 Ekim 2026 — Goal7.3 / ERP-DEC-024: teknik tamamlandı, insan ERP-UA24 bekliyor.** Onaylı16 tedarikçi hesabı (14TRY/2USD):15 fark uygulandı,1 no-op aynı. Bağımsız SQL/API16/16;15 hareket/15audit/16journal/1committed run;37eski veri koruma kümesi ve5yetki-holdscope aynı. Committed replay0, farklı body reddi; yeni COPY_ONLY/CHECKSUM/VERIFYONLY yedek ve3sentetik inverse kanıtı. TEST86/source769031c;writer c9e0629;normal yeşil dört örnek doğrulandı. 488API/618ekran/55migration PASS, exact sourceCI3/3 SUCCESS. [Rapor](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). Finish49/9🟢/34🟡/6🔴 aynı;D02/D06genel açık. Bu dilimden sonra DUR;başka aktarım/CRM/LIVE/Vega/main yok.
 
 Önceki tur kayıtları:
@@ -89,7 +99,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | D04 | 86 yeni ürün delta (kapsam84) | 🟡 | 49safe yeni native zincir;33sarı2kırmızı yeni ve insan kabulü bekler. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D05 | 752 değişmiş ürün delta (kapsam748) | 🟡 | 563safequantityatom+12safe master/price;yerel history korunur, kalanatomlar/insan kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D06 | 85 değişmiş cari delta (29müşteri56tedarikçi) | 🔴 | Goal7.3/DEC024 yalnız16strict-ready tedarikçi hesabı:15fark uygulandı,1no-op aynı;SQL/API16/16,replay0.30hassasiyet/27explicitcarry/4newcard/2LL ve diğer kapsam açık. Genel delta veya insanERP-UA24tamam değildir. [Kanıt](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). |
-| D07 | T0/T1 cutover planı | 🟡 | T0/writerterminalcutoff/tek writer prosedürü hazır;actualT1/işletme/LIVEkabulü yapılmadı. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
+| D07 | T0/T1 cutover planı | 🟡 | ERP-DEC-025: tek stok/fiyat/cari [final prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md), son kabul sürümüne göre residual, 13 yeni offline test ve Goal7.3 replay/inverse hazırlık çekirdeği hazır. SQL çalıştırıcısı yok; final collector/writer/reader, gerçekT1/işletme/onay/LIVEkabulü bekler. Goal7.3 drift hata sayılmadı; UA24 PASS değil. |
 | D08 | İdempotent delta batch | 🟢 | Dar safe TESTscope immutable iki gerçekrun/replay0;farklıpayloadconflict. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D09 | Son mutabakat | 🟡 | Safe563stock/468effect nativeSELECTfark0,46table16guard aynı;T1/genelfinans/işletme kabulü açık. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |
 | D10 | Committed rollback provası | 🟢 | Committed−2/newnative−1/inverse+2;count/audithashkorunur,ayrıcleanup+1/historykalır.SentetikTESTscope. [Goal7](docs/evidence/erp/2026-10-07-goal7/README.md). |

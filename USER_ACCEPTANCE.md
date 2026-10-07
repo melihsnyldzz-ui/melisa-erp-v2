@@ -1,10 +1,20 @@
+## Goal7.3 dar insan ekran kontrolü — tamamlandı; ERP-UA24 bekliyor
+
+7 Ekim 2026 / kullanıcı açık sonucu / ERP-DEC-025. TEST86/source769031c üzerinde TRY hesabı, USD hesabı ve aynı tedarikçinin ayrı TRY/USD hesapları birlikte kontrol edildi. Kullanıcı döviz ayrımı, B/A yönü ve Goal7.3 uygulama mantığını doğru buldu; ekrandaki tutarların aktarım anına ait olduğunu, sonraki Vega işlemleriyle değiştiğini belirtti. Bu normal kaynak driftidir; Goal7.3 hatası veya tekrar migration gerekçesi değildir.
+
+Bu dar ekran incelemesi genel güncel Vega mutabakatı değildir. Eski native hareketlerin korunumu önceki SQL kanıtıdır; ekrandaki kaynak hareket özeti tek tek native geçmiş listesinin insan kabulü sayılmadı. **ERP-UA24 PASS yapılmadı.** Diğer insan kabul kayıtları değişmedi. Üç örneğin mevcut ekran kanıtları private Goal7.3 kanıt klasöründe korunur; gerçek cari adları/tutarları burada tekrar yayımlanmaz.
+
+[Final cutover hazırlığı](docs/erp-v2/canonical-20261007/final-cutover-procedure.md) kapsamında son T1, Vega yazımları durduktan sonra alınacak; TRY/USD/EUR ve B/A ayrı tutulacak, Melisa yerel hareketleri korunacak. Şimdi finans yazması ve yeni migration yok.
+
+Aşağıdaki önceki kabul hazırlığı kayıtları tarihsel kapsamdır.
+
 **Goal7.3 — teknik teslim / ERP-UA24 hâlâ bekliyor, 7 Ekim 2026:** ERP-DEC-024 yalnız onaylı16 hesabın TEST uygulamasını yetkilendirdi; insan ekran PASS sonucu değildir.15 fark/1 no-op,SQL/API16/16 ve4normal yeşil ekran teknik kanıtı tamam. [TEST Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers),[rapor](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). Kullanıcı TRY/USD/EUR hesaplarını ayrı, tutar+döviz+B/A yönüyle; açılış/yerel/kaynak farkını ayrı inceleyecek. Kapsam dışı ve no-op hesap korunmuştur. Önceki insan kabulleri ve ERP-UA24 bekliyor durumu değiştirilmedi.
 
 **Goal7.2 rapor mutabakatı — 7 Ekim 2026:** ERP-DEC-023 rapor şirket/dönem/filtre teyididir;ERP-UA24 veya diğer insan ekran kabulünün PASS sonucu değildir. [57hesap karşılaştırması](docs/erp-v2/canonical-20261005/party-currency-report-reconciliation.md) teknik teslim:16strict-ready öneri,gerçekwrite0. TEST84/source07101548 ve mevcut yeşil yüz değişmedi;ERP-UA24bekliyor korunur.
 
-## ERP-UA24 / ERP-MIG07.1 — bekliyor, 7 Ekim 2026
+## ERP-UA24 / ERP-MIG07.1 — önceki geniş kabul adımları, hâlâ bekliyor
 
-İnsan kişi/tarih/sonuç henüz bildirilmedi; teknik test insan PASS değildir. TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb. [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers), [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers). Diğer kabuller değişmez.
+Aşağıdaki adımlar TEST84/source07101548d4af1f4a9344fe7cf7f19e64ffa26edb ile hazırlanmış önceki geniş kabul kapsamıdır. Güncel TEST86 üzerindeki dar Goal7.3 kontrolünün kullanıcı sonucu üstte kayıtlıdır; tüm ERP-UA24 için PASS verilmedi. [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers), [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers). Diğer kabuller değişmez.
 
 1. Müşteri ve tedarikçi listesinde tutar+döviz+B/A ve kimin borcu/alacağı olduğunu incele; farklı dövizlerin tek cari kartında ayrı kaldığını gör.
 2. Kartta 30 Eylül kabul edilmiş açılışı, kayıtlı yerel etkiyi ve güncel ERP hesabını ayrı incele; Genel Bakiye eklenmediğini kontrol et.

@@ -1,3 +1,13 @@
+## Final cutover hazırlığı — 7 Ekim 2026 / ERP-DEC-025
+
+Goal7.3 **TEST cari delta mekanizması teknik olarak kanıtlandı** olarak korunur. Üç örneğin dar insan ekran kontrolü tamamlandı; sonraki Vega bakiye değişikliği normal kaynak driftidir. **ERP-UA24 bekliyor, PASS değil.** [Ortak stok/fiyat/cari final T0-T1 prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md) 10 kullanıcı adımı ve teknik kalan-fark/replay/inverse sözleşmesini içerir.
+
+Yeni saf `final-cutover-plan.mjs` mevcut Goal7.3 exact/replay/inverse yardımcılarını kullanır; önceki committed kaynak farkını tekrar uygulamaz, yerel Melisa etkisini korur, fiyatı kendi döviz/birim/kademe sürümüyle ele alır. **13 yeni sentetik offline test geçti.** SQL/dosya/ağ/CLI yazıcısı yok; `executeAllowed:false`, `financialWriteAuthorized:false`; yalnız kanonik TEST hedefi. Final T1 collector, gerçek journal bağlayıcısı, genel müşteri/tedarikçi writer/reader ve parent recovery henüz uygulanmadı; gerçek kesim/onay bekler. Bu kayıt final uygulama hazır veya insan kabulü tamam demek değildir.
+
+Bu tur yeni finans/cari/stok/fiyat yazması, kaynak capture, yedek/restore, paket/restart/deploy, Vega/LIVE/CRM veya main merge yapılmadı. Önceki Goal7/7.3 native kanıtları yeniden yapılmadı. Çalışan TEST86 uygulama kaydı source769031c olarak korundu; kaynak hazırlık commit'i yeni runtime değildir. Finish **49 toplam / 9🟢 / 34🟡 / 6🔴** değişmedi; D02/D06 açık, D07 kısmi. GitHub teslimi mevcut dal/PR23'te; final HEAD CI makbuzu ayrı doğrulanır. Bu hazırlık tesliminden sonra durulur.
+
+Aşağıdaki kayıtlar önceki turların tarihsel kanıtlarıdır.
+
 **7 Ekim 2026 — Goal7.3 / ERP-DEC-024: teknik tamamlandı, insan ERP-UA24 bekliyor.** Onaylı16 tedarikçi hesabı (14TRY/2USD):15 fark uygulandı,1 no-op aynı. Bağımsız SQL/API16/16;15 hareket/15audit/16journal/1committed run;37eski veri koruma kümesi ve5yetki-holdscope aynı. Committed replay0, farklı body reddi; yeni COPY_ONLY/CHECKSUM/VERIFYONLY yedek ve3sentetik inverse kanıtı. TEST86/source769031c;writer c9e0629;normal yeşil dört örnek doğrulandı. 488API/618ekran/55migration PASS, exact sourceCI3/3 SUCCESS. [Rapor](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). Finish49/9🟢/34🟡/6🔴 aynı;D02/D06genel açık. Bu dilimden sonra DUR;başka aktarım/CRM/LIVE/Vega/main yok.
 
 Parent Goal7.2v04 read-only manifest financialWriteAuthorized:false aynıdır; yeni approval-bound execution manifest ile yalnız15 fark işlendi. Gerçekcutover/T1/diğer cari aktarımı, hold kaldırma ve LIVE/Vega write yetkisi verilmedi.
