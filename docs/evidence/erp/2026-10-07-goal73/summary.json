@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "melisa-goal73-public-proof.v1",
+  "createdAt": "2026-10-07T14:24:07.035Z",
+  "status": "TECHNICALLY_COMPLETED_HUMAN_ACCEPTANCE_PENDING",
+  "approvalComment": "6038754582",
+  "parentPlanHash": "87d1afc526da80464e47249f69be5dc69ed78000645d13fdb94a1041828f19d0",
+  "parentSourceVersionHash": "8d0d72b5dd591e3a73f0c38dd504f556a675e9b89bc71cf9bdcea4ba1f6434eb",
+  "parentFinancialWriteAuthorized": false,
+  "executionManifestHash": "4de684f0ae29d4a2a770095403a937a181c42c4f1a3cc3ee64a7e0d4481418ad",
+  "runId": "GOAL73-0fa4ec2f-23fd-4424-bd9b-7979372247cf",
+  "scope": {
+    "supplierAccounts": 16,
+    "currencies": {
+      "TRY": 14,
+      "USD": 2
+    },
+    "changedAccounts": 15,
+    "noOpAccounts": 1,
+    "newPartyCards": 0,
+    "holdLifts": 0,
+    "newPermissions": 0,
+    "realPaymentCashStockEffects": 0
+  },
+  "native": {
+    "runs": 1,
+    "journalAccounts": 16,
+    "movements": 15,
+    "audits": 15,
+    "verifiedAccounts": 16,
+    "protectedScopes": 37,
+    "priorHistoryPreserved": true,
+    "originalGuardsRestored": true,
+    "localEffectsPreserved": true,
+    "precision": "decimal(28,8); existing main-currency projection decimal(18,4)"
+  },
+  "replay": {
+    "sameUuidBodyNewEffects": 0,
+    "responseRecoveredFromDurableStatus": true,
+    "differentBodyRejected": true
+  },
+  "backup": {
+    "copyOnly": true,
+    "checksum": true,
+    "verifyOnlyPassed": true,
+    "sha256": "949b835f062fc3d3d45f01e81de1bebde51dc3a624244e4b103c6d5e60232ca0",
+    "sizeBytes": 7748976640,
+    "newActiveDatabaseRestore": false,
+    "inverseSyntheticAccounts": 3,
+    "laterLocalEffectsPreserved": true,
+    "existingSeparateRestoreReadOnly": true
+  },
+  "source": {
+    "approvedAccountsRevalidated": 16,
+    "twoPassStable": true,
+    "atomicT1": false,
+    "otherAccountsApplied": 0,
+    "vegaWrites": 0
+  },
+  "api": {
+    "verifiedAccounts": 16,
+    "beforeDetailMedianMs": 119,
+    "afterDetailMedianMs": 106,
+    "afterDetailMs": [
+      243,
+      109,
+      107,
+      112,
+      111,
+      104,
+      113,
+      102,
+      120,
+      101,
+      105,
+      103,
+      103,
+      115,
+      97,
+      99
+    ],
+    "catalogFirst50SamplesMs": [
+      1331,
+      676,
+      814
+    ],
+    "catalogPerformanceConclusion": "Cold/warm samples only; catalogue implementation unchanged; no performance gain claimed"
+  },
+  "ui": {
+    "normalGreenFreshRead": true,
+    "verifiedCases": [
+      {
+        "case": "papulin",
+        "domSha256": "c7f54e81e6ecc1cacf6dc48ae49fa5d583e573f761a11b3801c3e5b98a00ed3f",
+        "screenshotSha256": "810aa6769aa7012e6fa5bfdedbfb0c943b175ad4128d06d862c531991c1de3bc"
+      },
+      {
+        "case": "usd",
+        "domSha256": "8d34b82dc0d212f4552259d8032b95a34bfd1f9472e1a8220c3f1702303071d9",
+        "screenshotSha256": "810aa6769aa7012e6fa5bfdedbfb0c943b175ad4128d06d862c531991c1de3bc"
+      },
+      {
+        "case": "credit",
+        "domSha256": "493684bfc3a89b1a847d3b6492305756c332097c0087dd7edf72ad6e792e26eb",
+        "screenshotSha256": "810aa6769aa7012e6fa5bfdedbfb0c943b175ad4128d06d862c531991c1de3bc"
+      },
+      {
+        "case": "noop",
+        "domSha256": "911da5cb2e032c63d7e5a4d6eb87870a178b6cc375ab16b9138684315cb9ae95",
+        "screenshotSha256": "f528f4fe0b7be7d6983ec403e43aa65f54a28ba820ad46b84a091424924eaff4"
+      }
+    ],
+    "oldComparisonCaptureRemainsHistorical": true
+  },
+  "package": {
+    "name": "CANONICAL-GOAL73-TEST-20261007-86",
+    "applicationSourceCommit": "769031cb88de8ab26720266c62ce0e63d62d0877",
+    "financialWriterSourceCommit": "c9e0629714db312602d24dae121387fd6decdad8",
+    "manifestSha256": "bee4640f2979b773bd8a5ab0bc64ee4b7ccf2607dc0221e78b69e155a5f7bd9d",
+    "webPort": 5194,
+    "apiPort": 4144,
+    "nativePort": 4146,
+    "financialApplyApplicationSourceCommit": "7a7c01fe5f5394999ca202c2142a8e16d7ccd6ab"
+  },
+  "tests": {
+    "api": 488,
+    "sites": 618,
+    "migration": 55,
+    "allPassed": true
+  },
+  "github": {
+    "branch": "codex/erp-finish-20261004",
+    "pr": 23,
+    "applicationCi": {
+      "push": 37635080643,
+      "pr": 37635088356,
+      "conclusion": "success",
+      "jobs": 3
+    },
+    "writerCi": {
+      "push": 37633368636,
+      "pr": 37633381145,
+      "conclusion": "success",
+      "jobs": 3
+    },
+    "finalDocumentationHead": "See current PR23 checks and external final-delivery receipt"
+  },
+  "humanAcceptance": {
+    "id": "ERP-UA24",
+    "status": "PENDING"
+  },
+  "finish": {
+    "total": 49,
+    "complete": 9,
+    "partial": 34,
+    "open": 6,
+    "migrationD02D06": "OPEN"
+  },
+  "boundaries": {
+    "liveTouched": false,
+    "crmTouched": false,
+    "vegaWrites": false,
+    "mainMerged": false,
+    "stopAfterGoal73": true
+  }
+}

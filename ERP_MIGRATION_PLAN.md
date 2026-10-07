@@ -1,3 +1,7 @@
+**7 Ekim 2026 — Goal7.3 / ERP-DEC-024: teknik tamamlandı, insan ERP-UA24 bekliyor.** Onaylı16 tedarikçi hesabı (14TRY/2USD):15 fark uygulandı,1 no-op aynı. Bağımsız SQL/API16/16;15 hareket/15audit/16journal/1committed run;37eski veri koruma kümesi ve5yetki-holdscope aynı. Committed replay0, farklı body reddi; yeni COPY_ONLY/CHECKSUM/VERIFYONLY yedek ve3sentetik inverse kanıtı. TEST86/source769031c;writer c9e0629;normal yeşil dört örnek doğrulandı. 488API/618ekran/55migration PASS, exact sourceCI3/3 SUCCESS. [Rapor](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). Finish49/9🟢/34🟡/6🔴 aynı;D02/D06genel açık. Bu dilimden sonra DUR;başka aktarım/CRM/LIVE/Vega/main yok.
+
+Parent Goal7.2v04 read-only manifest financialWriteAuthorized:false aynıdır; yeni approval-bound execution manifest ile yalnız15 fark işlendi. Gerçekcutover/T1/diğer cari aktarımı, hold kaldırma ve LIVE/Vega write yetkisi verilmedi.
+
 ## Goal7.2 rapor mutabakatı — 7 Ekim 2026
 
 ERP-DEC-023;[rapor](docs/erp-v2/canonical-20261005/party-currency-report-reconciliation.md). Hash-eş iki Vega export kapsamı kullanıcı teyitli;üretim saati/atomikT1yok.57hesap için46sabit gösterim/7zaman-sürüm/1tutar farkı/3(-).16strict-ready(14TRY2USD,hepsi tedarikçi):15delta+1no-op.30gösterim-hassasiyet ve önceki27carry/4newcard/2LL ayrıbekler. Nativeaçılış+korunacaklocal+mapdelta önerisi private;writer/create/holdlift0.9modeltest+real16verify/replay+4negatif geçer;12finance/2reader/5auth-holdhashaynı. D02/D06/UA24/finish renkleri korunur;TEST84aynı,başka işe geçilmez.

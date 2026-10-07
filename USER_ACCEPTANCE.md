@@ -1,3 +1,5 @@
+**Goal7.3 — teknik teslim / ERP-UA24 hâlâ bekliyor, 7 Ekim 2026:** ERP-DEC-024 yalnız onaylı16 hesabın TEST uygulamasını yetkilendirdi; insan ekran PASS sonucu değildir.15 fark/1 no-op,SQL/API16/16 ve4normal yeşil ekran teknik kanıtı tamam. [TEST Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers),[rapor](docs/erp-v2/canonical-20261005/goal73-supplier-delta.md). Kullanıcı TRY/USD/EUR hesaplarını ayrı, tutar+döviz+B/A yönüyle; açılış/yerel/kaynak farkını ayrı inceleyecek. Kapsam dışı ve no-op hesap korunmuştur. Önceki insan kabulleri ve ERP-UA24 bekliyor durumu değiştirilmedi.
+
 **Goal7.2 rapor mutabakatı — 7 Ekim 2026:** ERP-DEC-023 rapor şirket/dönem/filtre teyididir;ERP-UA24 veya diğer insan ekran kabulünün PASS sonucu değildir. [57hesap karşılaştırması](docs/erp-v2/canonical-20261005/party-currency-report-reconciliation.md) teknik teslim:16strict-ready öneri,gerçekwrite0. TEST84/source07101548 ve mevcut yeşil yüz değişmedi;ERP-UA24bekliyor korunur.
 
 ## ERP-UA24 / ERP-MIG07.1 — bekliyor, 7 Ekim 2026
