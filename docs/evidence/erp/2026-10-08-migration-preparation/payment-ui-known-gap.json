@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-07T22:58:47.553Z",
+  "package": "TEST95",
+  "sourceCommit": "0c63a58845d8663252f7dfeb0dcd2bd6a53c998c",
+  "apiStatus": [
+    200,
+    200,
+    200
+  ],
+  "frontendPaymentValidatorKnownGap": true,
+  "classification": "PREEXISTING_TEST94_CONTRACT_GAP",
+  "reason": "Frontend paymentRecord permits only work-finops-physical-receipt for nonnull receiptId; sealed Goal8 API emits work-goal8-batch-receipt.",
+  "packageHashes": {
+    "94": "021d60005298a25dadfc9d77eb12460a1e09c63ad0b2ec418987ee765c60181f",
+    "95": "021d60005298a25dadfc9d77eb12460a1e09c63ad0b2ec418987ee765c60181f"
+  },
+  "businessWrites": 0,
+  "humanAccepted": false
+}
