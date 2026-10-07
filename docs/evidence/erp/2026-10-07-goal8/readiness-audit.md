@@ -2,7 +2,7 @@
 
 7 Ekim 2026. Kaynak incelemesi ve mevcut Goal6/7/7.1/7.2/7.3 kanıtlarının kullanımıdır. Yeni SQL/finans/cari/stok/fiyat işlemi, Vega yakalaması, kart oluşturma, hold kaldırma, backup/restore, restart veya Git işlemi yapılmadı. Ham kimlik, ad ve tutar yayımlanmadı.
 
-Bu paragraftaki salt okunur sınır bu hazırlık denetimine aittir. Sonraki kök ajan yetkili provalarında ayrılmış sentetik SQL fixture işlemleri yapıldı: [tam FINAL okuyucu makbuzu](cutover-full-reader-proof.json) VERIFIED, ticari satırlar korunmuş, gerçek T1:false ve normal ERP runtime etkinleşmesi:false. Bu sonuç eski denetimi gerçek veri uygulamasına dönüştürmez. Güncel teslim hazırlığı TEST89/source9c48f6c; profil CAS onarımı ve bağlı gün henüz bekliyor. Son çalışan paket/source, gün/UI sonucu ve insan kabulü yalnız yeni kök kanıtıyla tamamlanır.
+Bu paragraftaki salt okunur sınır bu hazırlık denetimine aittir. Sonraki kök ajan yetkili provalarında ayrılmış sentetik SQL fixture işlemleri yapıldı: [tam FINAL okuyucu makbuzu](cutover-full-reader-proof.json) VERIFIED, ticari satırlar korunmuş, gerçek T1:false ve normal FINAL ERP runtime etkinleşmesi:false. Bu sonuç eski denetimi gerçek veri uygulamasına dönüştürmez. Güncel çalışan TEST92/source `a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45` doğrulandı. Kullanılmamış profil CAS onarımı40modül pini ve native/rol korunumu ile tamamlandı; `day-result.json` dokuz aşamalı bağlı sentetik günü doğruluyor. Son45ekran/hız kontrolü sürüyor; son UI PASS ve insan kabulü burada üretilmedi.
 
 ## D01: güvenli karantina ile ticari seçimi ayır
 
@@ -30,7 +30,7 @@ Fiziksel Zebra/scanner/Wi-Fi/uyku/logon/reboot ve gerçek personel kabulü hâl�
 
 Bu tur salt okunur startup config/task/manifest: TEST86 `CANONICAL-GOAL73-TEST-20261007-86`, source769031cb88de8ab26720266c62ce0e63d62d0877, manifestBEE4640F2979B773BD8A5AB0BC64EE4B7CCF2607DC0221E78B69E155A5F7BD9D; dosya hash/source eşleşir. `Melisa-ERP-TEST-Canonical` task mevcut, Hidden launcher `scripts/canonical/start-owned-test.ps1`, runtime config path mevcut; Limited/Interactive. Manifest write scope `existing-named-test-records`. Goal6 pinned launcher sınırlı recovery/ownership yapısı current config ile geçerlidir; servis yeniden başlatılmadı ve fiziksel reboot kanıtlanmadı.
 
-Bu TEST86 görev/config eşleşmesi inceleme anının tarihsel kanıtıdır; TEST89'u fiziksel logon/reboot ile başlatmış sayılmaz. Daha yeni paket hazırlığı veya aynı launcher'ın bulunması güncel startup insan kabulü yerine geçmez.
+Bu TEST86 görev/config eşleşmesi inceleme anının tarihsel kanıtıdır; TEST92'yi fiziksel logon/reboot ile başlatmış sayılmaz. TEST92 startup config/görevin son eşleşme kontrolü kök ajanın salt okunur kanıtını bekler. Aynı launcher'ın bulunması güncel startup insan kabulü yerine geçmez.
 
 Goal6 backup/restore kanıtı tarihsel olarak geçerli: ayrı ONLINE/READ_ONLY restore DB,35kritik tablo/177guard/ayrı uygulama okuması. Goal7.3 daha yeni COPY_ONLY/CHECKSUM/VERIFYONLY yedek makbuzu vardır. Bu iki kanıt TEST86'nın yeni snapshot'ını restore etmiş sayılmaz.
 
