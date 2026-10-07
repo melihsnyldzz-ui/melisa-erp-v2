@@ -1,0 +1,79 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {GOAL8_DAY_TARGET as target,GOAL8_DAY_IDENTITY_SQL,GOAL8_DAY_SNAPSHOT_SQL,runGoal8SyntheticDay,goal8NativeProofSql,goal8DayRequestId,verifyGoal8CrmDay} from './goal8-test-day.mjs';
+import {countInput} from '../../apps/api/src/services/workInboundModel.mjs';
+import {workDraftInput,workActionInput,workSelection} from '../../apps/api/src/services/workSalesModel.mjs';
+import {supplierPaymentInput} from '../../apps/api/src/services/workSupplierPaymentModel.mjs';
+import {normalizeDailyCountLines} from '../../apps/api/src/services/testDailyCountModel.mjs';
+import {GOAL8_DAY_SQL_PROFILE_META as compiled} from '../../apps/api/src/services/goal8DaySqlProof.mjs';
+const clone=structuredClone,H='a'.repeat(64),dayId='b5f7b5fd-5d45-472d-83c3-b95230e8ea8f';
+const seal={profileId:'ERP-GOAL8-20261007',dayId,definitionHash:compiled.definitionHash,sourceCommit:'c'.repeat(40),packageId:'CANONICAL-TEST-cccccccccccc'};
+const crm={conversationVerified:true,translationBaselineReused:true,catalogCompared:true,catalogPriceProvenanceVerified:true,customerId:'30598',orderCustomerId:'30598',orderDraftVerified:true,orderIndependentGet:true,orderStockEffect:false,orderFinanceEffect:false,messageSent:false,assignmentChanged:false,rolesChanged:false,orderProductId:'30740',orderId:'10',distinctAcceptedCatalogItem:true};
+function fixture(){
+ const identity={databaseName:target.database,serverName:target.server,loginName:target.login,databaseUser:target.login,sysadmin:0,control:0,liveAccess:0,fixedActors:2};
+ const health={ok:true,environment:'CANONICAL_TEST',mode:'erp',port:4144,databaseName:target.database,serverName:target.server,loginName:target.login,databaseUser:target.login,sysadmin:0,databaseControl:0,liveDatabaseAccess:0,sourceCommit:seal.sourceCommit,packageId:seal.packageId,sqlReadOnly:false,writes:true,externalOperations:false,automaticJobs:false};
+ const baseline={productId:'325503',productCode:'TEST-FINISH-GOODS-P2',supplierId:'13370',supplierCode:'TEST-V70-GOODS-S',customerId:'30598',customerCode:'TEST-NIGHT-20261006-C',accountId:'38',accountCode:'TEST-NIGHT-20261006-K',unit:'ADET',productCurrency:'TRY',supplierCurrency:'TRY',customerCurrency:'TRY',accountCurrency:'TRY',stockExact3:'5.000',costExact4:'80.0000',supplierExact4:'200.0000',customerExact4:'40.0000',cashExact4:'100.0000',syntheticProvenance:true,holdCount:0};
+ const profile={id:seal.profileId,dayId,definitionHash:seal.definitionHash,sealed:true,synthetic:true,productId:'325503',supplierId:'13370',customerId:'30598',accountId:'38',currency:'TRY'};
+ const product={id:'325503',stockCode:baseline.productCode,barcode:null,writeEligible:true};
+ const trade={meta:{testProfile:profile},revision:H,scope:{synthetic:true,customer:{id:'30598'},products:[{...product,prices:[{quoteId:'900000325503',unitPriceExact8:'120.00000000',source:{fixture:seal.profileId,quotedPrice:true}}]}]}};
+ const payments={meta:{testProfile:profile},revision:H,suppliers:[{id:'13370',invoices:[]}],accounts:[{id:'38'}],payments:[]};
+ const state={receive:false,purchase:false,sale:false,collect:false,pay:false,count:false,returned:false},calls=[],saved=new Map();
+ const snapshot=()=>({...baseline,stockExact3:(Number(baseline.stockExact3)+(state.receive?2:0)-(state.sale?1:0)-(state.returned?1:0)).toFixed(3),supplierExact4:(Number(baseline.supplierExact4)+(state.purchase?160:0)-(state.pay?80:0)-(state.returned?80:0)).toFixed(4),customerExact4:(40+(state.sale?120:0)-(state.collect?120:0)).toFixed(4),cashExact4:(100+(state.collect?120:0)-(state.pay?80:0)).toFixed(4)});
+ const proof=()=>({receiptVerified:state.receive,purchaseVerified:state.purchase,saleVerified:state.sale,collectionVerified:state.collect,paymentVerified:state.pay,countVerified:state.count,returnVerified:state.returned,customerSaleMovementId:'111',supplierPurchaseMovementId:'112',supplierReturnMovementId:'113',stockMovementIds:JSON.stringify(['121','122','123'].map(id=>({id}))),effectHash:Object.values(state).map(Number).join('').padEnd(64,'0')});
+ const reports={sales:[['91','120.0000']],purchases:[['81','160.0000']],collections:[['92','120.0000']],'supplier-payments':[['93','80.0000']],'customer-movements':[['111','120.0000']],'supplier-movements':[['112','160.0000'],['113','-80.0000']],'stock-movements':[['121','160.0000'],['122','-80.0000'],['123','-80.0000']]};
+ const wrapped=data=>({success:true,data:clone(data)});
+ const httpGet=async(path,options={})=>{calls.push({method:'GET',path,...options});
+  if(path==='/test-health')return clone(health);
+  if(path==='/api/auth/me')return wrapped({id:Number(options.actorId),role:{code:options.actorId==='15'?'isolated_test_sales':'isolated_test_ilker'}});
+  if(path==='/api/work-sales/context')return wrapped(trade);
+  if(path==='/api/work-supplier-payments/context')return wrapped({...payments,suppliers:[{id:'13370',invoices:state.purchase?[{id:'81',receiptId:'71',receiptKind:'work-goal8-batch-receipt',remainingExact4:'160.0000'}]:[]}],payments:state.pay?[{id:'93',accountId:'38',invoiceId:'81',receiptId:'71'}]:[]});
+  if(path==='/api/work-receiving/context')return wrapped({scope:{supplier:{id:'13370'},products:[product]}});
+  if(path==='/api/work-purchases/context')return wrapped({receipts:[{id:'71',state:'accepted'}]});
+  if(path==='/api/work-purchases/drafts/81')return wrapped({status:'finalized',receiptId:'71',totals:{grandTotalExact4:'160.0000'}});
+  if(path==='/api/work-suppliers/history')return wrapped({supplier:{id:'13370'}});
+  if(path==='/api/work-sales/invoices/91')return wrapped({status:'finalized',customerId:'30598',grandTotalExact4:'120.0000'});
+  if(path.startsWith('/api/work-collections/context?'))return wrapped({invoice:{collections:{receivedExact4:'120.0000',outstandingExact4:'0.0000'}}});
+  if(path==='/api/test-daily/count')return wrapped({countProducts:[{...product,stockQuantity:Number(snapshot().stockExact3),movementFingerprint:H}],drafts:state.count?[{id:101,state:'approved'}]:[]});
+  if(path==='/api/test-daily/purchase')return wrapped({availablePurchaseSources:[{id:81,items:[{id:82,product_id:325503,returnableQuantity:1}]}],drafts:state.returned?[{id:102,state:'approved'}]:[]});
+  if(path.startsWith('/api/work-reports?')){const kind=new URL('http://local'+path).searchParams.get('kind');return wrapped({rows:reports[kind].map(([id,amount])=>({id,amount,currency:'TRY'})),filters:{from:'2026-10-07',to:'2026-10-07'},pagination:{hasMore:false}});}
+  throw Error('unexpected GET '+path);
+ };
+ const httpPost=async(path,body,options={})=>{calls.push({method:'POST',path,body:clone(body),...options});const key=path+'|'+body.requestId;
+  if(body.requestId&&saved.has(key)){assert.deepEqual(body,saved.get(key).body);return wrapped({...saved.get(key).result,replayed:true});}
+  let result;
+  if(path==='/api/work-receiving/count-drafts'){countInput(body,[product]);assert.equal(options.actorId,'15');result={draft:{id:'61',revision:H}};}
+  else if(path.endsWith('/count-drafts/61/submit')){assert.equal(options.actorId,'15');result={receipt:{id:'71'}};}
+  else if(path.endsWith('/receipts/71/approve')){state.receive=true;result={receipt:{state:'accepted',lines:[{id:'72'}]}};}
+  else if(path==='/api/work-purchases/drafts'){assert.equal(body.receiptId,'71');assert.equal(body.lines[0].receiptLineId,'72');result={invoice:{id:'81',items:[{id:'82'}]}};}
+  else if(path.endsWith('/work-purchases/drafts/81/finalize')){state.purchase=true;result={};}
+  else if(path==='/api/work-sales/preview'){workSelection(body);result={previewHash:H};}
+  else if(path==='/api/work-sales/drafts'){workDraftInput(body);assert.equal(options.actorId,'15');result={invoice:{id:'91',revision:H}};}
+  else if(path.endsWith('/work-sales/drafts/91/finalize')){workActionInput(body);state.sale=true;result={};}
+  else if(path.endsWith('/preview'))result={revision:H,previewHash:H};
+  else if(path==='/api/work-collections'){state.collect=true;result={collection:{id:'92'}};}
+  else if(path==='/api/work-supplier-payments/payments'){supplierPaymentInput(body,true);state.pay=true;result={payment:{id:'93'}};}
+  else if(path==='/api/test-daily/count/draft'){normalizeDailyCountLines(body.lines,[{...product,stockQuantity:Number(snapshot().stockExact3),movementFingerprint:H}]);result={id:101};}
+  else if(path==='/api/test-daily/count/approve'){state.count=true;result={};}
+  else if(path==='/api/test-daily/purchase/draft')result={id:102};
+  else if(path==='/api/test-daily/purchase/approve'){state.returned=true;result={result:{id:103}};}
+  else throw Error('unexpected POST '+path);
+  if(body.requestId)saved.set(key,{body:clone(body),result:clone(result)});return wrapped({...result,replayed:false});
+ };
+ const sqlRead=async query=>{assert.doesNotMatch(query,/\b(?:INSERT|UPDATE|DELETE|EXEC|ALTER|DROP|CREATE|GRANT|TRUNCATE)\b/i);calls.push({method:'SELECT'});return {recordset:[clone(query===GOAL8_DAY_IDENTITY_SQL?identity:query===GOAL8_DAY_SNAPSHOT_SQL?snapshot():proof())]};};
+ return {health,identity,baseline,trade,payments,state,calls,httpGet,httpPost,sqlRead,seal:clone(seal)};
+}
+test('full injected native runner follows real model bodies and links every native stage without human acceptance',async()=>{
+ const f=fixture(),stages=[],r=await runGoal8SyntheticDay({...f,runSyntheticDay:true,crmEvidence:crm,onStage:async x=>stages.push(x.stage)});
+ assert.equal(r.technicalPass,true);assert.equal(r.humanAccepted,false);assert.equal(r.crm.messageSent,false);assert.equal(r.consistency.cashDeltaExact4,'40.0000');assert.equal(stages.length,9);
+ assert.equal(f.calls.filter(c=>c.method==='POST'&&c.path.endsWith('/approve')).length,6);
+});
+test('missing explicit run flag never calls a mutation adapter',async()=>{const f=fixture();const r=await runGoal8SyntheticDay(f);assert.equal(r.chainExecuted,false);assert.equal(f.calls.filter(c=>c.method==='POST').length,0);});
+test('native day without current CRM evidence remains partial',async()=>{const r=await runGoal8SyntheticDay({...fixture(),runSyntheticDay:true});assert.equal(r.nativeTechnicalPass,true);assert.equal(r.technicalPass,false);assert.deepEqual(r.remaining,['CURRENT_CRM_DAY_LINK_REQUIRED']);});
+for(const [key,value] of [['packageId',target.packageId],['writes',false],['externalOperations',true]])test('sealed runtime rejects '+key+' before mutation',async()=>{const f=fixture();f.health[key]=value;await assert.rejects(runGoal8SyntheticDay({...f,runSyntheticDay:true}),{code:'GOAL8_RUNTIME_TARGET_REJECTED'});assert.equal(f.calls.filter(c=>c.method==='POST').length,0);});
+test('synthetic quote cannot masquerade as catalog price',async()=>{const f=fixture();delete f.trade.scope.products[0].prices[0].source.quotedPrice;await assert.rejects(runGoal8SyntheticDay({...f,runSyntheticDay:true}),{code:'GOAL8_CONNECTED_CONTEXT_REQUIRED'});assert.equal(f.calls.filter(c=>c.method==='POST').length,0);});
+test('arbitrary future profile seal cannot relax current compiled body pin',async()=>{const f=fixture();f.seal.definitionHash='A'.repeat(64);await assert.rejects(runGoal8SyntheticDay({...f,runSyntheticDay:true}),{code:'GOAL8_COMPILED_PROFILE_SEAL_REQUIRED'});assert.equal(f.calls.filter(c=>c.method==='POST').length,0);});
+test('physical count maximum is checked before receiving',async()=>{const f=fixture();f.baseline.stockExact3='30.000';await assert.rejects(runGoal8SyntheticDay({...f,runSyntheticDay:true}),{code:'GOAL8_RECEIVING_COUNT_CAPACITY'});assert.equal(f.calls.filter(c=>c.method==='POST').length,0);});
+test('changed native effect during replay rejects the day',async()=>{const f=fixture(),original=f.httpPost;f.httpPost=async(...args)=>{const r=await original(...args);if(r.data.replayed)f.state.returned=true;return r;};await assert.rejects(runGoal8SyntheticDay({...f,runSyntheticDay:true}),{code:'GOAL8_REPLAY_NATIVE_EFFECT'});});
+test('independent SQL edge proof failure stops at receiving',async()=>{const f=fixture(),original=f.sqlRead;f.sqlRead=async query=>{const r=await original(query);if(query!==GOAL8_DAY_IDENTITY_SQL&&query!==GOAL8_DAY_SNAPSHOT_SQL)r.recordset[0].receiptVerified=false;return r;};await assert.rejects(runGoal8SyntheticDay({...f,runSyntheticDay:true}),{code:'GOAL8_RECEIPT_NATIVE_PROOF'});assert.equal(f.state.purchase,false);});
+test('CRM order product keeps its separate accepted catalog provenance',()=>{assert.throws(()=>verifyGoal8CrmDay({...crm,orderProductId:'325503'}),{code:'GOAL8_CRM_PRICE_PROVENANCE_CONFLICT'});assert.throws(()=>verifyGoal8CrmDay({...crm,orderStockEffect:true}),{code:'GOAL8_CRM_CHAIN_NOT_VERIFIED'});});
+test('request UUIDs are deterministic per step and malformed day cannot enter SELECT',()=>{assert.equal(goal8DayRequestId(dayId,'payment'),goal8DayRequestId(dayId,'payment'));assert.notEqual(goal8DayRequestId(dayId,'payment'),goal8DayRequestId(dayId,'collection'));assert.throws(()=>goal8NativeProofSql({},'-'.repeat(36),'38'),{code:'GOAL8_DAY_ID_INVALID'});});

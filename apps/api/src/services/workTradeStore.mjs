@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {workDate,workError,workFail,workHash,workId,workRevision,workScaled,workExact} from './workSalesModel.mjs';
 import {withWorkNightScope} from './workNightScope.mjs';
+import {assertGoal8Profile,goal8DayEnabled,goal8DayPayload,goal8SqlProfileInstalled,GOAL8_DAY_PROFILE} from './goal8DayProfile.mjs';
 const DB='MELISA_ERP_SIRKET_TEST_20260929_01',SERVER='Semih\\MELISADEV';
 const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
 export const workPayloadJson=(actor,operation,payload)=>JSON.stringify(stable({...payload,operation,actorId:actor.id}));
@@ -10,42 +11,47 @@ const signedExact=(value,places)=>{if(typeof value!=='string'||!new RegExp(`^-?(
 async function defaultRuntime(){
  const db=await import('../config/database.js');if(!db.isCanonicalTest())throw workError();
  const [invoice,finance,audit,test,period,proof]=await Promise.all([import('./invoiceDraftService.js'),import('./financeService.js'),import('./auditService.js'),import('./testSalesScope.mjs'),import('./periodLockService.js'),import('./workTradeSqlProof.mjs')]);
- return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),invoice,finance,audit,period,withMutation:test.withTestSalesMutation,proof:proof.WORK_TRADE_SQL_PROOF};
+ const goal8DayProfile=goal8DayEnabled();
+ return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),invoice,finance,audit,period,withMutation:test.withTestSalesMutation,goal8DayProfile,proof:goal8SqlProfileInstalled()?(await import('./goal8DaySqlProof.mjs')).GOAL8_DAY_SQL_PROOF.trade:proof.WORK_TRADE_SQL_PROOF};
 }
 function capabilities(actor,raw){
  if(!Array.isArray(raw.permissions))throw workError();const has=key=>actor.permissions.includes(key)&&raw.permissions.includes(key);
  const admin=actor.id==='16'&&actor.testAdminSession===true&&has('sales.view'),seller=actor.id==='15';
  return {canCreate:actor.permissions.includes('sales.create')&&(admin||seller&&has('sales.create')),canFinalize:actor.permissions.includes('sales.finalize')&&(admin||seller&&has('sales.finalize')),canCancel:actor.permissions.includes('sales.cancel')&&(admin||seller&&has('sales.cancel')),canCollect:actor.id==='16'&&has('finance.collection')&&has('customer.view'),canCancelCollection:actor.id==='16'&&has('finance.collection.cancel')&&has('customer.view')};
 }
-export function workContextDto(raw,actor){
+export function workContextDto(raw,actor,goal8Profile=false){
  try{
- if(!raw||raw.currency!=='TRY'||raw.documentDate!=='2026-10-06'||raw.maxQuantity!==5||raw.maxOperations!==30||raw.maxTotalExact4!=='500.0000'||!Array.isArray(raw.products)||raw.products.length!==2)throw workError();
+ assertGoal8Profile(raw,goal8Profile);
+ if(!raw||raw.currency!=='TRY'||raw.documentDate!==(goal8Profile?GOAL8_DAY_PROFILE.date:'2026-10-06')||raw.maxQuantity!==5||raw.maxOperations!==30||raw.maxTotalExact4!=='500.0000'||!Array.isArray(raw.products)||raw.products.length!==2)throw workError();
  const customer={id:workId(raw.customer?.id),code:raw.customer.code,name:raw.customer.name,currency:raw.customer.currency,synthetic:true,writeEligible:true,balanceExact4:signedExact(raw.customer.balanceExact4,4),revision:workRevision(raw.revision)};
  if(customer.currency!=='TRY'||typeof customer.code!=='string'||typeof customer.name!=='string')throw workError();
  const products=raw.products.map(row=>{
   const id=workId(row.id),quoteId=workId(row.priceId);workScaled(row.stockQuantityExact3,3);workScaled(row.unitPriceExact8,8);workScaled(row.costExact4,4);
   if(row.unit!=='ADET'||typeof row.stockCode!=='string'||typeof row.name!=='string'||(row.barcode!==null&&typeof row.barcode!=='string')||nativeId(id)===301986)throw workError();
-  return {id,stockCode:row.stockCode,name:row.name,barcode:row.barcode,synthetic:true,writeEligible:true,stockQuantityExact3:row.stockQuantityExact3,unit:{label:'ADET',factorExact8:'1.00000000'},revision:workRevision(raw.revision),prices:[{quoteId,currency:'TRY',unitPriceExact8:row.unitPriceExact8,source:{kind:'synthetic-test'},revision:workRevision(raw.revision)}]};
+  if(goal8Profile&&(id!=='301985'&&id!=='325503'||row.costExact4!==(id==='325503'?'80.0000':'60.0000')||row.unitPriceExact8!==(id==='325503'?'120.00000000':'100.00000000')||row.stockCode!==(id==='325503'?'TEST-FINISH-GOODS-P2':'TEST-V70-GOODS-P')))throw workError();
+  return {id,stockCode:row.stockCode,name:row.name,barcode:row.barcode,synthetic:true,writeEligible:true,stockQuantityExact3:row.stockQuantityExact3,unit:{label:'ADET',factorExact8:'1.00000000'},revision:workRevision(raw.revision),prices:[{quoteId,currency:'TRY',unitPriceExact8:row.unitPriceExact8,source:goal8Profile?{kind:'synthetic-test',fixture:GOAL8_DAY_PROFILE.id,quotedPrice:true}:{kind:'synthetic-test'},revision:workRevision(raw.revision)}]};
  });
  if(new Set(products.map(row=>row.id)).size!==2)throw workError();
  const cap=capabilities(actor,raw),finance=actor.id==='16'&&actor.permissions.includes('finance.view')&&raw.permissions.includes('finance.view'),a=raw.account;
  if(!a||a.currency!=='TRY'||!['cash','bank','pos'].includes(a.type))throw workError();
  const account={id:workId(a.id),code:a.code,name:a.name,type:a.type,currency:'TRY',balanceExact4:signedExact(a.balanceExact4,4),synthetic:true};
- return {meta:{schemaVersion:'melisa-work-trade.v1',date:raw.documentDate,timeZone:'Europe/Istanbul',source:'native-test'},revision:workRevision(raw.revision),capabilities:cap,scope:{synthetic:true,customer,products,accounts:finance?[account]:[]},supportedCurrencies:['TRY'],limits:{maxItems:2,maxQuantityPerLine:5,maxInvoiceAmountExact4:'500.0000',maxOpenInvoices:30,maxOperations:30}};
+ if(goal8Profile&&(customer.id!=='30598'||customer.code!=='TEST-NIGHT-20261006-C'||account.id!==raw.testProfile.accountId||account.code!=='TEST-NIGHT-20261006-K'||account.type!=='cash'))throw workError();
+ return {meta:{schemaVersion:'melisa-work-trade.v1',date:raw.documentDate,timeZone:'Europe/Istanbul',source:'native-test',...(goal8Profile?{testProfile:raw.testProfile}:{})},revision:workRevision(raw.revision),capabilities:cap,scope:{synthetic:true,customer,products,accounts:finance?[account]:[]},supportedCurrencies:['TRY'],limits:{maxItems:2,maxQuantityPerLine:5,maxInvoiceAmountExact4:'500.0000',maxOpenInvoices:30,maxOperations:30}};
  }catch{throw workError();}
 }
 export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
  async function transaction(actor,write,operation,payload,fn,readPermission='sales.view'){
-  const r=await getRuntime(),run=async()=>{
+  const r=await getRuntime(),goal8Profile=goal8DayEnabled(r),run=async()=>{
    const tx=new r.sql.Transaction(r.pool);await tx.begin(r.sql.ISOLATION_LEVEL.SERIALIZABLE);const req=()=>new r.sql.Request(tx),q=r.sql;
    try{
     if(write)await req().query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51100,'WORK_LOCK_TIMEOUT',1;");
     const identity=(await req().query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live")).recordset?.[0];
     if(identity?.db!==DB||identity.server!==SERVER||identity.login!=='melisa_sirket_sales_test_20260929_01'||identity.databaseUser!==identity.login||identity.sysadmin!==0||identity.control!==0||identity.live!==0)throw workError();
     await req().execute('dbo.work_trade_assert_ready');
-    const row=(await req().input('actor_id',q.Int,nativeId(actor.id)).execute('dbo.work_trade_get_context')).recordset?.[0];
+    const contextRequest=()=>{const request=req().input('actor_id',q.Int,nativeId(actor.id));return goal8Profile?request.input('goal8_profile',q.Bit,true):request;};
+    const row=(await contextRequest().execute('dbo.work_trade_get_context')).recordset?.[0];
     if(!r.proof||Object.keys(r.proof).length!==3||Object.entries(r.proof).some(([key,value])=>typeof value!=='string'||row?.[key]!==value)||typeof row?.context_json!=='string')throw workError();
-    const raw=JSON.parse(row.context_json),context=workContextDto(raw,actor),ctx={pool:r.pool,sqlDriver:q,transaction:tx};
+    const raw=JSON.parse(row.context_json),context=workContextDto(raw,actor,goal8Profile),ctx={pool:r.pool,sqlDriver:q,transaction:tx};
     if(!write&&(!actor.permissions.includes(readPermission)||!raw.permissions.includes(readPermission)))workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);
     const c={context};
     async function collection(id){
@@ -65,14 +71,14 @@ export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
      value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});value.revision=workHash(value);return value;
     }
     c.invoice=invoice;c.collection=collection;
-    c.list=async({page,limit})=>{const sets=(await req().input('offset',q.Int,(page-1)*limit).input('limit',q.Int,limit).query('SELECT COUNT_BIG(*) total FROM dbo.work_sales_links;SELECT CONVERT(varchar(20),invoice_id) id FROM dbo.work_sales_links ORDER BY invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;')).recordsets;const data=[];for(const row of sets[1])data.push(await invoice(row.id));return {data,meta:{total:Number(sets[0][0].total),page,limit}};};
+    c.list=async({page,limit})=>{const sets=(await req().input('offset',q.Int,(page-1)*limit).input('limit',q.Int,limit).input('profileDate',q.Date,raw.documentDate).query("SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate;SELECT CONVERT(varchar(20),invoice_id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate ORDER BY invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;")).recordsets;const data=[];for(const row of sets[1])data.push(await invoice(row.id));return {data,meta:{total:Number(sets[0][0].total),page,limit}};};
     c.request=async id=>{const old=(await req().input('id',q.UniqueIdentifier,id).input('actor',q.BigInt,actor.id).query('SELECT operation,response_json FROM dbo.work_trade_requests WHERE request_id=@id AND actor_id=@actor;')).recordset?.[0];if(!old)workFail('WORK_REQUEST_NOT_FOUND','İşlem kaydı bulunamadı.',404);return {requestId:id,operation:old.operation,response:JSON.parse(old.response_json)};};
-    const refresh=async()=>{const current=(await req().input('actor_id',q.Int,nativeId(actor.id)).execute('dbo.work_trade_get_context')).recordset?.[0];if(Object.entries(r.proof).some(([key,value])=>current?.[key]!==value))throw workError();const next=workContextDto(JSON.parse(current.context_json),actor);Object.assign(context,next);};
+    const refresh=async()=>{const current=(await contextRequest().execute('dbo.work_trade_get_context')).recordset?.[0];if(Object.entries(r.proof).some(([key,value])=>current?.[key]!==value))throw workError();const next=workContextDto(JSON.parse(current.context_json),actor,goal8Profile);Object.assign(context,next);};
     c.createDraft=async(preview,requestId)=>{
      const created=await r.invoice.createSalesDraft({documentNo:'NIGHT-'+requestId.replaceAll('-','').slice(0,24),documentDate:preview.selection.documentDate,customerId:nativeId(preview.selection.customerId),customerCurrency:'TRY',documentCurrency:'TRY',exchangeRate:1,accountExchangeRate:1,description:'Sentetik günlük satış',items:preview.items.map(item=>{const privateProduct=raw.products.find(p=>p.id===item.productId);return {productId:nativeId(item.productId),stockCode:item.stockCode,productName:item.name,barcode:privateProduct.barcode,quantity:nativeNumber(item.quantityExact3,3),unitPrice:nativeNumber(item.unitPriceExact4,4),currency:'TRY',averageCostTry:nativeNumber(privateProduct.costExact4,4)};})},actor,ctx);
      const id=String(created.id);nativeId(id);await req().input('id',q.BigInt,id).query('UPDATE dbo.work_trade_intents SET invoice_id=@id WHERE session_id=@@SPID;');
      await req().input('id',q.BigInt,id).input('actor',q.BigInt,actor.id).query('UPDATE dbo.sales_invoices SET created_by=@actor,updated_by=@actor WHERE id=@id;');
-     await req().input('id',q.BigInt,id).input('request',q.UniqueIdentifier,requestId).input('actor',q.BigInt,actor.id).input('preview',q.NVarChar(q.MAX),JSON.stringify(preview)).query('INSERT dbo.work_sales_links(invoice_id,request_id,actor_id,preview_json)VALUES(@id,@request,@actor,@preview);');return invoice(id);
+     await req().input('id',q.BigInt,id).input('request',q.UniqueIdentifier,requestId).input('actor',q.BigInt,actor.id).input('preview',q.NVarChar(q.MAX),JSON.stringify(goal8Profile?{...preview,testProfile:raw.testProfile}:preview)).query('INSERT dbo.work_sales_links(invoice_id,request_id,actor_id,preview_json)VALUES(@id,@request,@actor,@preview);');return invoice(id);
     };
     c.finalize=async id=>{await r.invoice.finalizeSalesInvoice(nativeId(id),actor,ctx);await refresh();return invoice(id);};
     c.cancel=async(id,reason)=>{const before=await invoice(id);if(before.status==='draft'){
@@ -98,11 +104,11 @@ export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
     if(write){
      const right={sale_draft:'canCreate',sale_finalize:'canFinalize',sale_cancel:'canCancel',collection_create:'canCollect',collection_cancel:'canCancelCollection'}[operation];
      if(!right||context.capabilities[right]!==true)workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);
-     const json=workPayloadJson(actor,operation,payload),hash=createHash('sha256').update(json,'utf16le').digest('hex').toUpperCase();
+     const json=workPayloadJson(actor,operation,goal8DayPayload(payload,goal8Profile,raw.testProfile)),hash=createHash('sha256').update(json,'utf16le').digest('hex').toUpperCase();
      const old=(await req().input('id',q.UniqueIdentifier,payload.requestId).query('SELECT actor_id,operation,payload_hash,payload_json,response_json FROM dbo.work_trade_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=@id;')).recordset?.[0];
      if(old){if(String(old.actor_id)!==actor.id||old.operation!==operation||old.payload_hash!==hash||old.payload_json!==json)workFail('WORK_REQUEST_CONFLICT','Bu işlem kimliği başka bir istekte kullanılmış.',409);value={...JSON.parse(old.response_json),replayed:true};}
      else{
-      const used=(await req().query('SELECT COUNT_BIG(*) n FROM dbo.work_trade_requests;')).recordset?.[0]?.n;
+      const countRequest=req();if(goal8Profile)countRequest.input('dayId',q.UniqueIdentifier,raw.testProfile.dayId);const used=(await countRequest.query(goal8Profile?"SELECT COUNT_BIG(*) n FROM dbo.work_trade_requests WHERE JSON_VALUE(payload_json,'$.testDayId')=LOWER(CONVERT(varchar(36),@dayId));":"SELECT COUNT_BIG(*) n FROM dbo.work_trade_requests WHERE JSON_VALUE(payload_json,'$.testProfile') IS NULL;")).recordset?.[0]?.n;
       if(used==null||!Number.isSafeInteger(Number(used))||Number(used)<0)throw workError();
       if(Number(used)>=raw.maxOperations)workFail('WORK_OPERATION_LIMIT','Deneme işlem sınırına ulaşıldı.',409);
       await req().input('id',q.UniqueIdentifier,payload.requestId).input('actor',q.BigInt,actor.id).input('operation',q.NVarChar(30),operation).input('payload',q.NVarChar(q.MAX),json).input('invoice',q.BigInt,['sale_finalize','sale_cancel'].includes(operation)?payload.id:operation==='collection_create'?payload.invoiceId:null).query('INSERT dbo.work_trade_intents(session_id,request_id,actor_id,operation,payload_json,invoice_id)VALUES(@@SPID,@id,@actor,@operation,@payload,@invoice);');

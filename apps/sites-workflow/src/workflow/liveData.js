@@ -88,8 +88,8 @@ function wireLogin(root){
 const configs={home:['Günlük operasyon','Fişi açın veya soldaki menüden işinize geçin.','sale_stock_exit'],receipts:['Satış fişleri','Fiş numarası veya cari kayıt numarasıyla arayın; ayrıntısını açın.','sale_stock_exit'],goods:['Gelen mal','Personel sayar → İlker ürünleri kontrol eder → kabul tamamlanır.','purchase_stock_entry'],purchases:['Alış faturaları','Mal kabulüyle faturayı eşleştirin; tedarikçi borcu ve maliyeti kontrol edin.','purchase_invoice'],returns:['İadeler','Müşteri ve tedarikçi iadelerini ayrı inceleyin.','sale_stock_exit'],stock:['Ürün & stok','Ürünü seçerek stok, birim, barkod ve kayıtlı fiyatları açın.'],customers:['Müşteriler','Cari kartını seçerek gün içindeki borç ve alacak hareketlerini açın.'],collections:['Tahsilat','Cari hareketlerini inceleyin. Yeni tahsilat kaydı henüz bağlı değil.']};
 function mount(){
  dispose();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
- const countWorkspace=page==='count'&&mode==='live';
- const workspace=['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns'&&mode==='live';
+ const countWorkspace=page==='count';
+ const workspace=['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns';
  toolbar.hidden=workspace;toolbar.style.display=workspace?'none':'';
  const mobileRole=document.getElementById('mobileRole');if(mobileRole)mobileRole.hidden=workspace;
  const realLabel=document.getElementById('working-catalog-user');if(realLabel)realLabel.remove();
@@ -111,7 +111,7 @@ function mount(){
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Bilgiler açılıyor…</p></section>';
   session.start().then(showManagement).catch(error=>{if(alive())showLogin(error.message);});return;
  }
- if(['sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments'].includes(page)||countWorkspace||page==='returns'&&mode==='live'){
+ if(['sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments'].includes(page)||countWorkspace||page==='returns'){
   document.getElementById('role')?.closest('.rolebox')?.setAttribute('hidden','');
   document.querySelectorAll('#nav .badge,#nav .nav-complete').forEach(x=>x.hidden=true);
   const side=document.querySelector('aside .sidefoot');if(side)side.textContent='Melisa ERP';

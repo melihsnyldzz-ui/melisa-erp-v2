@@ -15,6 +15,7 @@ import {writeAuditLog} from './auditService.js';
 import {normalizeDailyCountLines,normalizeUnknownCountScans,normalizeDailyCountApprovalReason} from './testDailyCountModel.mjs';
 import {requestUninvoicedReturn,decideSupplierReturn} from './sitesGoodsRules.mjs';
 import {resolveDailyReturnSource,pendingDailyReturnQuantity,purchaseSourcesFromRows} from './testDailyReturnSources.mjs';
+import {goal8DayEnabled,assertGoal8Profile,GOAL8_DAY_PROFILE_ID} from './goal8DayProfile.mjs';
 const fail=(code,message,statusCode=400)=>{throw Object.assign(new Error(message),{code,statusCode})};
 const canon=v=>Array.isArray(v)?v.map(canon):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])):v;
 const hash=v=>createHash('sha256').update(JSON.stringify(canon(v))).digest('hex');
@@ -23,12 +24,17 @@ async function atomic(flow,actor,fn){return withTestSalesMutation(async()=>{cons
  await req().query("EXEC sys.sp_set_session_context @key=N'melisa_test_count_draft_id',@value=NULL;EXEC sys.sp_set_session_context @key=N'melisa_test_count_actor_id',@value=NULL;EXEC sys.sp_set_session_context @key=N'melisa_test_count_transaction_id',@value=NULL;");
  await req().query("IF DB_NAME()<>N'MELISA_ERP_SIRKET_TEST_20260929_01' THROW 51070,'WRONG_DB',1;DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51071,'TEST_BUSY',1;");
  const scope=(await req().input('flow',sqlDriver.NVarChar(20),flow).query('SELECT s.*,p.stock_code,p.name product_name,p.unit,p.current_stock_qty,p.average_cost_try FROM dbo.test_daily_scope s LEFT JOIN dbo.products p ON p.id=s.product_id WHERE s.flow=@flow')).recordset[0];if(!scope)fail('TEST_SCOPE','TEST kapsamı bulunamadı.',403);ctx.scope=scope;ctx.req=req;ctx.actor=actor;
+ if(goal8DayEnabled()&&['purchase','count'].includes(flow)){const row=(await req().input('actor_id',sqlDriver.Int,Number(actor.id)).input('goal8_profile',sqlDriver.Bit,true).execute('dbo.work_trade_get_context')).recordset?.[0];if(typeof row?.context_json!=='string')fail('GOAL8_PROFILE_UNAVAILABLE','Günlük TEST profili doğrulanamadı.',503);const raw=JSON.parse(row.context_json);assertGoal8Profile(raw,true);ctx.goal8Profile=raw.testProfile;}
  await assertOperationQuarantineAllowed(['product','customer','supplier'].filter(entity=>scope[entity+'_id']!=null).map(entity=>({entity,nativeId:scope[entity+'_id']})),quarantineTransactionContext(sqlDriver,transaction));
  const v=await fn(ctx);await transaction.commit();return v;
 }catch(e){if(flow.endsWith('-cancel'))console.error('REVERSAL_SQL_DIAGNOSTIC',JSON.stringify({number:e.number,message:e.message,procedure:e.procName}));try{await transaction.rollback()}catch{}if(e.number===51070||e.originalError?.info?.number===51070)fail('TEST_DATABASE_BOUNDARY','TEST SQL sınırı; işlem bütünüyle geri alındı.',409);throw e}});}
 async function journal(c,i,op,fn){if(!/^[a-zA-Z0-9-]{16,64}$/.test(i.requestId||''))fail('REQUEST_ID','Kalıcı istek kimliği gerekli.');const {sqlDriver:s,req,scope,actor}=c,digest=hash({...i,op,flow:scope.flow});const old=(await req().input('id',s.NVarChar(64),i.requestId).query('SELECT * FROM dbo.test_daily_requests WHERE request_id=@id')).recordset[0];if(old){if(old.payload_hash!==digest||Number(old.actor_id)!==Number(actor.id))fail('REQUEST_CONFLICT','İstek kimliği farklı içerikte kullanıldı.',409);return {...JSON.parse(old.response_json),replayed:true}}
  if((await req().input('flow',s.NVarChar(20),scope.flow).query('SELECT COUNT(*) n FROM dbo.test_daily_requests WHERE flow=@flow')).recordset[0].n>=50)fail('TEST_LIMIT','Alt işin50 işlem sınırı doldu.',409);
- const v=await fn();await req().input('id',s.NVarChar(64),i.requestId).input('flow',s.NVarChar(20),scope.flow).input('op',s.NVarChar(40),op).input('hash',s.Char(64),digest).input('actor',s.BigInt,actor.id).input('json',s.NVarChar(s.MAX),JSON.stringify(v)).query('INSERT dbo.test_daily_requests(request_id,flow,operation,payload_hash,actor_id,response_json)VALUES(@id,@flow,@op,@hash,@actor,@json)');return {...v,replayed:false};}
+ const goal8Approval=c.goal8Profile&&op==='approve'&&['purchase','count'].includes(scope.flow);
+ if(goal8Approval)await req().input('goal8_request',s.UniqueIdentifier,i.requestId).input('goal8_actor',s.BigInt,actor.id).input('goal8_operation',s.NVarChar(30),'daily_'+scope.flow).input('goal8_payload',s.NVarChar(s.MAX),JSON.stringify({...i,testProfile:GOAL8_DAY_PROFILE_ID,testDayId:c.goal8Profile.dayId,actorId:String(actor.id),operation:'daily_'+scope.flow})).execute('dbo.usp_work_supplier_payment_ready');
+ const v=await fn();await req().input('id',s.NVarChar(64),i.requestId).input('flow',s.NVarChar(20),scope.flow).input('op',s.NVarChar(40),op).input('hash',s.Char(64),digest).input('actor',s.BigInt,actor.id).input('json',s.NVarChar(s.MAX),JSON.stringify(v)).query('INSERT dbo.test_daily_requests(request_id,flow,operation,payload_hash,actor_id,response_json)VALUES(@id,@flow,@op,@hash,@actor,@json)');
+ if(goal8Approval)await req().input('request_id',s.UniqueIdentifier,i.requestId).input('goal8_profile',s.Bit,true).input('goal8_daily',s.Bit,true).input('goal8_end',s.Bit,true).execute('dbo.usp_work_supplier_payment_effects');
+ return {...v,replayed:false};}
 const dailyAdminPermission={purchase:'purchase.finalize',sales:'sales.cancel',fx:'finance.collection',count:'stock.adjust','count-cancel':'stock.adjust','return-cancel':'purchase.cancel'};
 export const canOperateDailyFlow=(actor,flow)=>Number(actor?.id)===16||(
  Number(actor?.id)===1&&actor?.role?.code==='admin'&&actor?.permissions?.includes(dailyAdminPermission[flow])===true
@@ -41,7 +47,7 @@ async function mark(c,id,state,result,reason=null){await c.req().input('id',c.sq
 async function readDraft(c,id){const r=(await c.req().input('id',c.sqlDriver.BigInt,Number(id)).input('flow',c.sqlDriver.NVarChar(20),c.scope.flow).query('SELECT * FROM dbo.test_daily_drafts WHERE id=@id AND flow=@flow')).recordset[0];if(!r)fail('DRAFT_NOT_FOUND','Bu TEST alt işinin belgesi bulunamadı.',404);return {...r,id:Number(r.id),payload:JSON.parse(r.payload_json),plan:r.plan_json?JSON.parse(r.plan_json):null,result:r.result_json?JSON.parse(r.result_json):null};}
 async function returns(c){return createInvoiceReturnService({repository:await createInvoiceReturnSqlRepository({sql:c.sqlDriver,getPool:async()=>c.pool,transaction:c.transaction}),assertWriteEnabled:()=>{}})}
 async function purchaseReturnSources(c,drafts,includeCancelled=false){
- const rows=(await c.req().input('dailySource',c.sqlDriver.BigInt,c.scope.source_id).input('dailyProduct',c.sqlDriver.BigInt,c.scope.product_id).input('dailySupplier',c.sqlDriver.BigInt,c.scope.supplier_id).query(`
+ const rows=(await c.req().input('dailySource',c.sqlDriver.BigInt,c.scope.source_id).input('dailyProduct',c.sqlDriver.BigInt,c.scope.product_id).input('dailySupplier',c.sqlDriver.BigInt,c.scope.supplier_id).input('goal8Day',c.sqlDriver.NVarChar(36),c.goal8Profile?.dayId??null).query(`
  SELECT p.id,p.document_no,p.status,p.document_currency,p.grand_total,p.supplier_id,s.name supplier_name,s.balance supplier_balance,s.currency_code supplier_currency,
  i.id item_id,i.product_id,i.quantity,i.line_total,r.stock_code,r.name product_name,r.current_stock_qty,
  COALESCE((SELECT SUM(ri.quantity) FROM dbo.invoice_return_items ri JOIN dbo.invoice_returns h ON h.id=ri.invoice_return_id WHERE ri.source_purchase_item_id=i.id AND h.source_purchase_invoice_id=p.id AND h.status=N'finalized'),0) returned_quantity
@@ -50,6 +56,10 @@ async function purchaseReturnSources(c,drafts,includeCancelled=false){
  OR EXISTS(SELECT 1 FROM dbo.test_purchase_links l JOIN dbo.test_goods_receipts g ON g.id=l.goods_id JOIN dbo.test_purchase_scope t ON t.id=1
  WHERE l.invoice_id=p.id AND g.state=N'accepted' AND g.product_id=t.product_id AND g.supplier_id=t.supplier_id AND p.supplier_id=t.supplier_id AND i.product_id=t.product_id
  AND r.stock_code=N'TEST-V70-GOODS-P' AND s.supplier_code=N'TEST-V70-GOODS-S' AND r.unit=N'ADET' AND s.currency_code=N'TRY' AND p.document_currency=N'TRY' AND p.document_no LIKE N'TSTG-%')
+ OR (@goal8Day IS NOT NULL AND p.document_no LIKE N'TSTB-G8-%' AND p.document_date=CONVERT(date,N'2026-10-07') AND p.supplier_id=13370 AND p.document_currency=N'TRY' AND p.account_currency=N'TRY' AND p.exchange_rate_snapshot=1 AND p.account_exchange_rate_snapshot=1
+ AND i.product_id=325503 AND r.stock_code=N'TEST-FINISH-GOODS-P2' AND r.unit=N'ADET' AND r.source_record_key IS NULL AND r.migration_run_id IS NULL AND s.supplier_code=N'TEST-V70-GOODS-S'
+ AND EXISTS(SELECT 1 FROM dbo.test_purchase_batch_links l JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id JOIN dbo.test_goods_batches b ON b.id=g.batch_id JOIN dbo.test_purchase_batch_drafts d ON d.invoice_id=l.invoice_id AND d.batch_id=b.id
+ WHERE l.invoice_id=p.id AND l.invoice_item_id=i.id AND l.quantity=i.quantity AND g.product_id=i.product_id AND b.supplier_id=p.supplier_id AND b.state=N'accepted' AND b.note=N'GOAL8:'+@goal8Day AND b.decided_by=16 AND b.created_by IN(15,16) AND d.state=N'linked' AND g.unit=N'ADET' AND g.unit_factor=1 AND i.purchase_price=80 AND i.line_discount_rate=0))
  ORDER BY p.id DESC,i.id;`)).recordset;
  return purchaseSourcesFromRows(rows,drafts).filter(p=>includeCancelled||p.status==='finalized');
 }

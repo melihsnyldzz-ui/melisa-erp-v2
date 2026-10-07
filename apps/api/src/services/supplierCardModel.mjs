@@ -49,10 +49,11 @@ function account(row, blocked, accepted) {
   const local = scaled(row.localDeltaExact), current = scaled(nativeBalanceExact), opening = scaled(sourceOpeningBalanceExact);
   const expected = scaled(row.expectedNativeBalanceExact), ledger = scaled(row.ledgerBalanceExact);
   const sourceDelta = row.sourceDeltaVerified === true ? scaled(row.sourceDeltaExact) : row.sourceDeltaExact === undefined ? 0n : null;
+  const finalDelta = row.finalSourceDeltaVerified === true ? scaled(row.finalSourceDeltaExact) : row.finalSourceDeltaExact === undefined ? 0n : null;
   const matched = accepted && row.matchStatus === 'matched' && row.sourceAccountKey != null;
   const proven = matched && row.reconciliationStatus === 'reconciled' && currency(row.currency) != null
-    && [local, current, opening, sourceDelta, expected, ledger].every(value => value !== null)
-    && opening + local + sourceDelta === expected && expected === current && current === ledger;
+    && [local, current, opening, sourceDelta, finalDelta, expected, ledger].every(value => value !== null)
+    && opening + local + sourceDelta + finalDelta === expected && expected === current && current === ledger;
   let certainty = confidence.has(row.confidence) ? row.confidence : 'unknown';
   if (blocked === true) certainty = 'quarantined';
   else if (proven && blocked === false) certainty = 'source-matched';
@@ -61,6 +62,7 @@ function account(row, blocked, accepted) {
   if (blocked !== true && !currency(row.currency)) certainty = 'unknown';
   return {accountId: row.id == null ? null : parseSupplierCardId(row.id), currency: currency(row.currency),
     balanceExact: proven && blocked === false ? nativeBalanceExact : null, nativeBalanceExact, sourceOpeningBalanceExact,sourceDeltaExact:sourceDelta===null?null:row.sourceDeltaExact??'0.00000000',
+    ...(row.finalSourceDeltaExact === undefined ? {} : {finalSourceDeltaExact: finalDelta === null ? null : row.finalSourceDeltaExact}),
     ...currencyAccountBalanceFields({role:'supplier',balanceExact:nativeBalanceExact,localDeltaExact:row.localDeltaExact,proven:proven && blocked === false}),
     confidence: certainty, sourceStatus: text(row.balanceStatus), reconciled: proven && blocked === false ? true : row.reconciliationStatus === 'reconciled' ? false : null,
     sourceAsOf: matched ? '2026-09-30' : null};

@@ -1,6 +1,7 @@
 // Read only the native IDs accepted by the committed TEST opening rehearsal.
 // No staging scan, scalar-price fallback, or source-system connection is allowed.
 import {catalogSourceVersion} from './catalogProductReadStore.mjs';
+import {isFinalCatalogContext,validateFinalCatalogContext,finalCatalogLineage} from './finalCatalogContext.mjs';
 export const OPENING_PRICE_RUN = Object.freeze({
   database:'MELISA_ERP_SIRKET_TEST_20260929_01',
   runId:'VEGA-OPENING-TEST-20261004-06',
@@ -64,8 +65,8 @@ function detailResponse(result,requestedId,version=null){
   const row=header[0],meta=metadata(row,version),accepted=flag(row.accepted);if(accepted===null||id(row.product_id)!==requestedId)throw corrupt();
   const expected={productId:requestedId,productSourceKey:accepted?productKey(row.product_source_key,version):null,mainUnitSourceId:accepted?id(row.main_unit_source_id):null};
   const rows=result.recordsets?.[1];if(!Number.isInteger(row.price_count)||row.price_count<0||row.price_count>1000||!Array.isArray(rows)||rows.length!==row.price_count||(!accepted&&row.price_count!==0))throw corrupt();
-  if(version&&accepted&&![OPENING_PRICE_RUN.runId,version.runId].includes(row.product_lineage_run_id))throw corrupt();
-  const lineageMeta=version&&accepted&&row.product_lineage_run_id===OPENING_PRICE_RUN.runId?{...meta,runId:OPENING_PRICE_RUN.runId,sourceHash:OPENING_PRICE_RUN.sourceHash,planHash:OPENING_PRICE_RUN.planHash,sourceAsOf:'2026-09-30',source:'accepted-native-opening-prices'}:meta;
+  if(version&&accepted&&![OPENING_PRICE_RUN.runId,version.runId].includes(row.product_lineage_run_id)&&!(isFinalCatalogContext(version)&&version.ancestry.some(a=>a.runId===row.product_lineage_run_id)))throw corrupt();
+  const lineageMeta=version&&!isFinalCatalogContext(version)&&accepted&&row.product_lineage_run_id===OPENING_PRICE_RUN.runId?{...meta,runId:OPENING_PRICE_RUN.runId,sourceHash:OPENING_PRICE_RUN.sourceHash,planHash:OPENING_PRICE_RUN.planHash,sourceAsOf:'2026-09-30',source:'accepted-native-opening-prices'}:meta;
   return {data:{...expected,accepted,prices:accepted?prices(rows,expected,version):[]},meta:lineageMeta};
 }
 function listResponse(result,options,version=null){
@@ -100,8 +101,8 @@ export function createOpeningPriceService({getPool,sql,isTest,getSourceVersion=c
     throw error(safeCode,safeCode==='OPENING_PRICE_BINDING_DRIFT'?'Kabul edilmiş fiyat eşleşmesi doğrulanamadı.':'Kabul edilmiş açılış fiyatları henüz okunamıyor.');
   }}
   return {
-    async detail(value){const productId=parseId(value);return read(async({pool,driver})=>{const version=getSourceVersion();if(version&&!/^[a-f0-9]{64}$/i.test(version.openingDetailDefinitionHash??''))throw corrupt();return detailResponse(await pool.request().input('product_id',driver.BigInt,productId).execute(version?'dbo.usp_get_source_version_prices_goal7':procedures.detail),productId,version);});},
-    async list(query){const options=parseOpeningPriceListQuery(query);return read(async({pool,driver})=>{const version=getSourceVersion();if(version&&!/^[a-f0-9]{64}$/i.test(version.openingListDefinitionHash??''))throw corrupt();return listResponse(await pool.request().input('search',driver.NVarChar(120),options.search).input('positive_only',driver.Bit,options.positive).input('page',driver.Int,options.page).input('page_size',driver.Int,options.limit).execute(version?'dbo.usp_list_source_version_products_goal7':procedures.list),options,version);});},
+    async detail(value){const productId=parseId(value);return read(async({pool,driver})=>{const version=getSourceVersion();if(isFinalCatalogContext(version))validateFinalCatalogContext(version);if(version&&!/^[a-f0-9]{64}$/i.test(version.openingDetailDefinitionHash??''))throw corrupt();return detailResponse(await pool.request().input('product_id',driver.BigInt,productId).execute(isFinalCatalogContext(version)?version.procedures.detail:version?'dbo.usp_get_source_version_prices_goal7':procedures.detail),productId,version);});},
+    async list(query){const options=parseOpeningPriceListQuery(query);return read(async({pool,driver})=>{const version=getSourceVersion();if(isFinalCatalogContext(version))validateFinalCatalogContext(version);if(version&&!/^[a-f0-9]{64}$/i.test(version.openingListDefinitionHash??''))throw corrupt();return listResponse(await pool.request().input('search',driver.NVarChar(120),options.search).input('positive_only',driver.Bit,options.positive).input('page',driver.Int,options.page).input('page_size',driver.Int,options.limit).execute(isFinalCatalogContext(version)?version.procedures.list:version?'dbo.usp_list_source_version_products_goal7':procedures.list),options,version);});},
   };
 }
 export const openingPriceService=createOpeningPriceService();

@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {catalogError,parseCatalogId,catalogDisplayCode,compareCatalogCodes} from './catalogModel.mjs';
 import {canonicalTestAdminContext,testAdminClaims} from './canonicalTestAdminSession.mjs';
+import {isFinalCatalogContext,finalCatalogLineage,validateFinalCatalogContext} from './finalCatalogContext.mjs';
 const ROOT='C:/Sirket/ERP/data/TEST-20260929-01/catalog-classification';
 const SOURCE='36971dab7296dd171ee0084c185f833b47b96d6a47fe57c8486a2b81d78ef400';
 const RUN='VEGA-OPENING-TEST-20261004-06';
@@ -20,7 +21,7 @@ export function createCatalogClassificationStore({expectedRoot=ROOT,acceptedCoun
    registry=null;
    try{
     const {root,indexSha256}=context;canonicalTestAdminContext(context);const version=context.sourceVersion??null;
-    if(version){const configured=await getSourceVersion();check(configured&&['runId','sourceHash','planHash','bindingsHash','readerDefinitionHash','sourceAsOf','productCount','priceCount'].every(k=>version[k]===configured[k]));}
+    if(version){if(isFinalCatalogContext(version))validateFinalCatalogContext(version);const configured=await getSourceVersion();check(configured&&['runId','sourceHash','planHash','bindingsHash','readerDefinitionHash','sourceAsOf','productCount','priceCount'].every(k=>version[k]===configured[k]));}
     check(typeof root==='string'&&samePath(root,version?expectedRoot+'-goal7':expectedRoot)&&hex(indexSha256));
     const user=await getUser(testAdminClaims.sub);check(String(user?.id)===testAdminClaims.sub&&Array.isArray(user.permissions)&&user.permissions.includes('product.view')&&user.permissions.includes('sales.view'));
     const file=path.join(root,'index.json');for(let current=file;current!==path.parse(file).root;current=path.dirname(current))check(!(await fs.lstat(current)).isSymbolicLink());check(samePath(await fs.realpath(file),file));
@@ -30,7 +31,7 @@ export function createCatalogClassificationStore({expectedRoot=ROOT,acceptedCoun
     const entries=new Map(),sources=new Set();let accepted=0,held=0;
     for(const e of index.entries){
      check(exactKeys(e,['productId','stockCode','sourceKey','kind','brand','productType','sourceName','stagePayloadHash','stageSqlHash',...(version?['lineageRunId','sourceAsOf']:[])]));parseCatalogId(e.productId);check(!entries.has(e.productId)&&!['301984','301985','301986'].includes(e.productId)&&typeof e.stockCode==='string'&&e.stockCode.length>0&&e.stockCode.length<=250&&typeof e.sourceKey==='string'&&(version?/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/:/^VEGA_CAPTURE_20260930_01\/F0102\/TBLSTOKLAR\/[1-9]\d*$/).test(e.sourceKey)&&!sources.has(e.sourceKey));sources.add(e.sourceKey);
-     if(version)check(e.lineageRunId===RUN&&e.sourceAsOf==='2026-09-30'||e.kind==='accepted-opening'&&e.lineageRunId===version.runId&&e.sourceAsOf===version.sourceAsOf);
+    if(version)check(e.lineageRunId===RUN&&e.sourceAsOf==='2026-09-30'||e.kind==='accepted-opening'&&(e.lineageRunId===version.runId&&e.sourceAsOf===version.sourceAsOf||finalCatalogLineage(version,{runId:e.lineageRunId,sourceAsOf:e.sourceAsOf})));
      const v={...e,brand:text(e.brand,250),productType:text(e.productType,250),sourceName:text(e.sourceName,500)};
      if(e.kind==='accepted-opening'){accepted++;check(hex(e.stagePayloadHash)&&hex(e.stageSqlHash));v.stagePayloadHash=e.stagePayloadHash.toUpperCase();v.stageSqlHash=e.stageSqlHash.toUpperCase();}
      else{held++;check(e.kind==='quarantined-source'&&e.brand===null&&e.productType===null&&e.sourceName===null&&e.stagePayloadHash===null&&e.stageSqlHash===null);}

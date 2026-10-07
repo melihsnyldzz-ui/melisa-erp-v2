@@ -1,0 +1,48 @@
+{
+  "status": "SYNTHETIC_NATIVE_PARTY_READER_VERIFIED",
+  "fixtureOnly": true,
+  "actualT1": false,
+  "commercialWrites": 0,
+  "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+  "partyBindingsHash": "42c170aa726a38593a2340bf52ab9902d49c489b489889f6ff70bee2ac52bfef",
+  "readerDefinitionHash": "391D012A62BB23411BE5E7904E99C03770CBCC12827A212A95215E68BBDE431E",
+  "accounts": [
+    {
+      "accountId": "12",
+      "role": "customer",
+      "currency": "EUR",
+      "inverseNetDeltaExact": "0.00000000"
+    },
+    {
+      "accountId": "10",
+      "role": "customer",
+      "currency": "TRY",
+      "inverseNetDeltaExact": "0.00000000"
+    },
+    {
+      "accountId": "11",
+      "role": "customer",
+      "currency": "USD",
+      "inverseNetDeltaExact": "0.00000000"
+    },
+    {
+      "accountId": "15",
+      "role": "supplier",
+      "currency": "EUR",
+      "inverseNetDeltaExact": "0.00000000"
+    },
+    {
+      "accountId": "13",
+      "role": "supplier",
+      "currency": "TRY",
+      "inverseNetDeltaExact": "0.00000000"
+    },
+    {
+      "accountId": "14",
+      "role": "supplier",
+      "currency": "USD",
+      "inverseNetDeltaExact": "0.00000000"
+    }
+  ],
+  "normalRuntimeCardAcceptance": "NOT_PROVED_BY_FIXTURE"
+}

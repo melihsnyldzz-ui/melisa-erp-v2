@@ -1,0 +1,79 @@
+{
+  "at": "2026-10-07T17:30:00.735Z",
+  "dayId": "b5f7b5fd-5d45-472d-83c3-b95230e8ea8f",
+  "customerId": 30598,
+  "nativeDraftId": 10,
+  "catalogProduct": 30740,
+  "receivedProduct": 325503,
+  "quoteIsSeparate": true,
+  "priceBasis": "accepted-catalog-native-USD-tuple",
+  "fxBasis": "Goal5 verified synthetic draft-only 1.00000000; not Vega FX, no ledger effects",
+  "translation": {
+    "status": 200,
+    "source": "openai-translation",
+    "autoSend": false,
+    "textPresent": true
+  },
+  "replaySameId": true,
+  "independentReadback": true,
+  "nativeEffectsPreserved": true,
+  "messagesSent": 0,
+  "assignmentsChanged": 0,
+  "rolesChanged": 0,
+  "calls": [
+    {
+      "path": "/api/test-admin/session",
+      "status": 200,
+      "ms": 43,
+      "errorCode": null
+    },
+    {
+      "path": "/api/auth/login",
+      "status": 200,
+      "ms": 241,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/conversations/55",
+      "status": 200,
+      "ms": 751,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/erp/v2/customers",
+      "status": 200,
+      "ms": 743,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/catalog/products/erp-30740",
+      "status": 200,
+      "ms": 1042,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/conversations/55/translate",
+      "status": 200,
+      "ms": 3457,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/erp/v2/drafts",
+      "status": 200,
+      "ms": 775,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/erp/v2/drafts",
+      "status": 200,
+      "ms": 310,
+      "errorCode": null
+    },
+    {
+      "path": "/api/live/crm/erp/v2/drafts/8a812708-1b57-4530-8ed9-8498fcd99508",
+      "status": 200,
+      "ms": 105,
+      "errorCode": null
+    }
+  ]
+}

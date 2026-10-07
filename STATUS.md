@@ -1,3 +1,7 @@
+## Goal8 kaynak altyapısı — 7 Ekim 2026
+
+Onaylı ERP-DEC-026 kapsamında ortak sentetik günlük prova adaptörü, final stok/fiyat/cari collector/runtime/reader hazırlığı ve normal sayım/iade yönlendirmesi kaynakta hazır. İzole SQL delta mekanizması apply/replay0/inverse/yanıt kaybı ve altı döviz hesabı owner-reader kanıtı verdi; gerçek T1 alınmadı, ticari tabloların hashleri aynı. Son paket/native bağlı gün/tam okuyucu/görsel-hız teslimi henüz tamamlanmadı; finish renkleri ve insan kabulleri bu ara kaynak kaydında değişmez. Ham SQL/config ve kanıtlar repo dışındadır. [Goal8 kanıt klasörü](docs/evidence/erp/2026-10-07-goal8/), aynı feature dalı ve PR23.
+
 ## Final cutover hazırlığı — 7 Ekim 2026 / ERP-DEC-025
 
 Goal7.3 **TEST cari delta mekanizması teknik olarak kanıtlandı** olarak korunur. Üç örneğin dar insan ekran kontrolü tamamlandı; sonraki Vega bakiye değişikliği normal kaynak driftidir. **ERP-UA24 bekliyor, PASS değil.** [Ortak stok/fiyat/cari final T0-T1 prosedürü](docs/erp-v2/canonical-20261007/final-cutover-procedure.md) 10 kullanıcı adımı ve teknik kalan-fark/replay/inverse sözleşmesini içerir.

@@ -1,3 +1,4 @@
+import {finalCatalogLineage} from './finalCatalogContext.mjs';
 export const stockProductError=(code='STOCK_PRODUCT_UNAVAILABLE',message='Ürün okuma kanıtı şu anda doğrulanamıyor.',statusCode=503)=>Object.assign(new Error(message),{code,statusCode});
 export function parseStockProductId(value){
   if(typeof value!=='string'||!/^[1-9]\d*$/.test(value)||BigInt(value)>9223372036854775807n)throw stockProductError('STOCK_PRODUCT_ID_INVALID','Geçerli ürün kimliği gerekli.',400);
@@ -25,7 +26,7 @@ export function stockProductDto(row,{sqlFinance=false,canViewFinance=false,finan
   const syntheticCards={'301984':'TEST-V70-20260929-P','301985':'TEST-V70-GOODS-P','301986':'TEST-DAILY-PURCHASE'};
   if(p.kind==='synthetic-test'&&syntheticCards[row.id]!==row.stockCode)return fail();
   const baseline=p.sourceAsOf==='2026-09-30'&&p.runId==='VEGA-OPENING-TEST-20261004-06'&&typeof p.sourceKey==='string'&&/^VEGA_CAPTURE_20260930_01\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey);
-  const versioned=sourceVersion&&p.kind==='accepted-opening'&&p.sourceAsOf===sourceVersion.sourceAsOf&&p.runId===sourceVersion.runId&&typeof p.sourceKey==='string'&&/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey);
+  const versioned=sourceVersion&&p.kind==='accepted-opening'&&(p.sourceAsOf===sourceVersion.sourceAsOf&&p.runId===sourceVersion.runId||finalCatalogLineage(sourceVersion,p))&&typeof p.sourceKey==='string'&&/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey);
   if(p.kind==='synthetic-test'?(p.sourceAsOf!==null||p.runId!==null||p.sourceKey!==null):!baseline&&!versioned)return fail();
   const unit={label:text(u.label,true),sourceId:u.sourceId===null?null:id(u.sourceId),factorExact8:exact(u.factorExact8),verified:bool(u.verified)};
   if(unit.verified&&(unit.label===null||unit.factorExact8===null||BigInt(unit.factorExact8.replace('.',''))<=0n))return fail();
