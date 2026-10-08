@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
-import {validateWorkHome,homeAmount,homeCount,homeShortcuts,orderedHomeShortcuts,orderedHomeTasks,mergeInboundHome,homeNormalScreen} from './workHomeModel.mjs';
+import {validateWorkHome,homeWorkday,homeAmount,homeCount,homeShortcuts,orderedHomeShortcuts,orderedHomeTasks,mergeInboundHome,homeNormalScreen} from './workHomeModel.mjs';
 import {homeSummaryDto} from '../../../api/src/services/homeSummaryModel.mjs';
 const total=(currency,amountExact4='0.0000',more={})=>({currency,amountExact4,knownCount:amountExact4!==null&&amountExact4!=='0.0000'?1:0,unknownCount:0,...more});
 const dto=()=>({meta:{schemaVersion:'melisa-home.v1',date:'2026-10-05',timeZone:'Europe/Istanbul',readAt:'2026-10-05T09:00:00.000Z',source:'native-test',readOnly:true},capabilities:Object.fromEntries(['goods','purchase','sales','collection','product','customer','supplier','finance','payment','count','returns','approval'].map(k=>[k,true])),navigationReady:Object.fromEntries(['goods','purchase','sales','collection','product','customer','supplier','count','returns','approval'].map(k=>[k,true])),sections:{sales:{status:'available',count:0,cancelledCount:0,currencyTotals:[total('TRY'),total('USD','12.3400'),total('EUR',null,{unknownCount:1})]},goods:{status:'available',pendingCount:0},finance:{status:'available',collections:[total('USD','1.0000')],payments:[],reversals:[],cash:{status:'unavailable',currencyTotals:[]}},refunds:{status:'available',salesCount:0,purchaseCount:0,cancelledCount:0},counts:{status:'unavailable',pendingCount:null},approvals:{status:'available',pendingCount:0}},tasks:[{ready:true,id:'goods-12',kind:'goods',label:'Mal kabulünü kontrol edin',state:'pending',date:null,target:'/is-akisi-taslagi.html#goods'}]});
@@ -59,3 +59,25 @@ test('normal home sale, collection and customer shortcuts stay in the green work
  const create=await controller(),r=root(),screens=[],links=[];const ui=create({root:r,session:{home:async()=>dto()},navigate:s=>screens.push(s),openLink:s=>links.push(s)});ui.mount();await tick();for(const key of ['sales','collections','customers'])r.querySelectorAll('[data-home-shortcut]').find(b=>b.dataset.homeShortcut===key).onclick();assert.deepEqual(screens,['sales','collections','customers']);assert.deepEqual(links,[]);ui.dispose();
 });
 test('count and supplier-return tasks open their normal green screens without mapping unrelated legacy scopes',()=>{assert.equal(homeNormalScreen('/is-akisi-taslagi.html#count-test'),'count');assert.equal(homeNormalScreen('/is-akisi-taslagi.html#count-cancel'),null);assert.equal(homeNormalScreen('/is-akisi-taslagi.html#return-purchase'),'returns');assert.equal(homeNormalScreen('/is-akisi-taslagi.html#return-sales'),null);});
+
+function copyHome(){
+ const profile={schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:'ISOLATED_TEST_COPY',copyId:'00000000-0000-4000-8000-000000000001',sealHash:'a'.repeat(64),backupSHA:'b'.repeat(64),sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_STAGE04_COPY_TEST_20261008_01'},date:'2026-10-08',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:['301','302'].map(id=>({id,stockCode:'K-'+id,unit:'ADET',unitFactorExact8:'1.00000000',priceIds:[id],barcodes:[],sourceKey:['VEGA2026','F0102TBLSTOKLAR',id].join('/')})),customers:[{id:'501',partyId:'21',accountId:'22',currency:'TRY',sourceKey:['VEGA2026','F0102TBLCARI','23'].join('/')}],suppliers:[{id:'801',partyId:'31',accountId:'32',currency:'TRY',sourceKey:['VEGA2026','F0103TBLCARI','33'].join('/')}],financeAccounts:[{id:'99',currency:'TRY'}]};
+ const data=dto();Object.assign(data.meta,{date:profile.date,readAt:'2026-10-09T09:00:00.000Z',operationOrigin:profile.operationOrigin,copyId:profile.copyId,sealHash:profile.sealHash});
+ return {data,profile};
+}
+test('workday wording follows sealed operation date rather than read timestamp and preserves role/currency data',()=>{
+ const previous=globalThis.window,{data,profile}=copyHome();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5204'},__MELISA_OPERATION_COPY__:profile};
+ try{
+  const before=JSON.stringify(data),later=homeWorkday(data,new Date('2026-10-09T09:00:00Z'));
+  assert.equal(later.date,'2026-10-08');assert.equal(later.workdayText,'İş günü: 08.10.2026');assert.equal(later.prefix,'İş günündeki');assert.equal(later.tasksLabel,'İş gününün işleri');assert.doesNotMatch(later.subtitle,/Bugünkü/);
+  const same=homeWorkday(data,new Date('2026-10-08T09:00:00Z'));assert.equal(same.prefix,'Bugünkü');assert.equal(same.workdayText,'İş günü: 08.10.2026');
+  assert.equal(homeWorkday(data,new Date('2026-10-08T22:00:00Z')).prefix,'İş günündeki');assert.equal(JSON.stringify(data),before);
+  for(const change of [d=>d.meta.date='2026-10-09',d=>d.meta.sealHash='c'.repeat(64),d=>delete d.meta.copyId]){const invalid=structuredClone(data);change(invalid);assert.throws(()=>homeWorkday(invalid));}
+  globalThis.window.location.port='5194';assert.throws(()=>homeWorkday(data));assert.equal(homeWorkday(dto(),new Date('2026-10-09T09:00:00Z')).prefix,'Bugünkü');assert.equal(homeWorkday(dto()).workdayText,null);
+ }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+test('normal copy home identifies its operation day beside later read time without changing totals or navigation',async()=>{
+ const previous=globalThis.window,{data,profile}=copyHome();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5204'},__MELISA_OPERATION_COPY__:profile};
+ try{const create=await controller(),r=root(),screens=[],ui=create({root:r,session:{home:async()=>data},navigate:s=>screens.push(s)});ui.mount();await tick();assert.match(r.innerHTML,/İş günü: 08\.10\.2026 · Son okuma:/);assert.match(r.innerHTML,/12,34 USD/);assert.match(r.innerHTML,/Bilinmiyor EUR/);assert.equal((r.innerHTML.match(/class="card stat"/g)||[]).length,4);r.querySelectorAll('[data-home-shortcut]').find(b=>b.dataset.homeShortcut==='stock').onclick();assert.deepEqual(screens,['stock']);assert.doesNotMatch(r.innerHTML,/TEST|SQL|debug|fixture/);ui.dispose();}
+ finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});

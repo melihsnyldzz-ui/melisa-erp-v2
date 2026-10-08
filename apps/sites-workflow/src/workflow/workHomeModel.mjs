@@ -9,6 +9,12 @@ export const homeTargets=['goods','purchases','sales','receipts','finance','cust
 export const homeShortcuts=[{id:'goods',capability:'goods',label:'Mal Kabul',icon:'⇩',screen:'goods'},{id:'sales',capability:'sales',label:'Satış',icon:'▣',screen:'sales'},{id:'collections',capability:'collection',label:'Tahsilat',icon:'₺',screen:'collections'},{id:'stock',capability:'product',label:'Ürün & Stok',icon:'▦',screen:'stock'},{id:'customers',capability:'customer',label:'Müşteriler',icon:'♙',screen:'customers'},{id:'suppliers',capability:'supplier',label:'Tedarikçiler',icon:'▧',screen:'suppliers'}];
 export function homeAmount(value){if(!exact(value))fail();if(value===null)return 'Bilinmiyor';const [whole,fraction]=value.split('.'),trimmed=fraction.replace(/0+$/,'');return whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(trimmed?','+trimmed:'');}
 export function homeCount(value){return value===null?'Bilinmiyor':number(value)?value.toLocaleString('tr-TR'):fail();}
+export function homeWorkday(data,now=new Date()){
+ validateWorkHome(data);
+ const copy=operationCopyFromMeta(data.meta),today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul'}).format(now);
+ const dated=!!copy&&data.meta.date!==today;
+ return {date:data.meta.date,workdayText:copy?'İş günü: '+data.meta.date.split('-').reverse().join('.'):null,prefix:dated?'İş günündeki':'Bugünkü',tasksLabel:dated?'İş gününün işleri':'Bugünkü işler',subtitle:dated?'İş gününün işlerini görün; yapmak istediğiniz işlemi açın.':'Bugünkü işleri görün; yapmak istediğiniz işlemi açın.'};
+}
 function totals(rows){if(!Array.isArray(rows)||rows.length>3||new Set(rows.map(r=>r.currency)).size!==rows.length)fail();for(const r of rows)if(!['TRY','USD','EUR'].includes(r.currency)||!exact(r.amountExact4)||!number(r.knownCount)||!number(r.unknownCount))fail();}
 export function validateWorkHome(data){
  operationCopyFromMeta(data?.meta);
