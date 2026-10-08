@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "erp-last-net-purchase-delivery.v1",
+  "at": "2026-10-08T10:59:46.590Z",
+  "decision": "ERP-DEC-029",
+  "parentWork": "ERP-MIGUNIFIED01",
+  "instruction": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6057616427",
+  "sourceCommit": "cc4c4601ec0a006c2138385859e5167934829adf",
+  "branch": "codex/erp-finish-20261004",
+  "pr": 23,
+  "package": "TEST100",
+  "packageId": "CANONICAL-TEST-cc4c4601ec0a",
+  "packageFiles": 1497,
+  "baselineReproduced": true,
+  "manifestHash": "6ca90e096bc256b51833554859b88e73a4a40de05f698539f5cb75fdaeb0a056",
+  "parentManifestHash": "3417153ade5cc0d7622c17f5d2cbd58425073973ecd56588bba85a8d2a3a9508",
+  "sourceAsOf": "2026-10-08T10:39:21.010Z",
+  "oldImmutableRows": 16668,
+  "metadataRows": 16667,
+  "sourceCounts": {
+    "PURCHASE_DOCUMENT": 4338,
+    "COMMERCIAL_ENTRY": 0,
+    "CARD": 5076,
+    "UNKNOWN": 7253
+  },
+  "statusCounts": {
+    "CARD_ONLY": 5033,
+    "NET_REFERENCE": 4338,
+    "PURCHASE_UNKNOWN": 7252,
+    "PARTIAL_CARD": 43,
+    "PROTECTED_MANUAL": 1
+  },
+  "netReferenceFilled": 4338,
+  "netMissing": 12329,
+  "excluded": 1,
+  "excludedReason": "SOURCE_PRODUCT_BINDING_DRIFT",
+  "protectedOriginalCosts": 6090,
+  "protectedManual": 1,
+  "olderVerifiedWithNewerAmbiguity": 513,
+  "ambiguityWarningRows": 2318,
+  "financialWrites": 0,
+  "costWrites": 0,
+  "stockWrites": 0,
+  "salesPriceWrites": 0,
+  "replayMetadataWrites": 0,
+  "protectedGroupsDuringApply": 56,
+  "existingDataGroupsAfter": 55,
+  "existingSqlPermissionsEqual": true,
+  "newObjectPermissions": 30,
+  "oldSqlModulesEqual": 316,
+  "oldMetadataPermissionsEqual": 30,
+  "pendingFinanceFilesEqual": 18,
+  "backup": {
+    "copyOnly": true,
+    "checksum": true,
+    "verifyOnlyPassed": true,
+    "sizeBytes": 8704294912,
+    "sha256": "506c529926e85ea80131ea9990cb507c2ce6084aa3ad4dbdc5c732a382fec4f7",
+    "activeDatabaseRestore": false
+  },
+  "api": {
+    "examples": 8,
+    "negativeStatuses": [
+      401,
+      403,
+      400,
+      405,
+      404,
+      404,
+      503
+    ],
+    "catalogCostKeys": [],
+    "roleChanges": 0,
+    "normalScreenExamples": 6,
+    "originalFiveBeforeAfter": true,
+    "olderDocumentWarningVisible": true
+  },
+  "performance": {
+    "method": "3 sequential authenticated loopback GET samples, median ms including JSON read, not screen paint",
+    "before": {
+      "first50": 488,
+      "next50": 500,
+      "code": 431,
+      "barcode": 276,
+      "card": 131
+    },
+    "after": {
+      "first50": 519,
+      "next50": 520,
+      "code": 441,
+      "barcode": 271,
+      "card": 146,
+      "purchaseReference": 323
+    }
+  },
+  "targetedTests": 80,
+  "sourceCi": {
+    "prRun": 37765840300,
+    "pushRun": 37765833918,
+    "requiredJobsEach": 3,
+    "result": "SUCCESS"
+  },
+  "humanAcceptance": "ERP-UA24/ERP-UA25 bekliyor",
+  "migrationComplete": false,
+  "stopAfterThisExtension": true,
+  "evidenceHashes": {
+    "apply-receipt.json": "98db3c1930b45088edf663f3a6a2f4b5015ad55591fd4a14e38b75a1d6a05184",
+    "replay-receipt.json": "75ea029f71b8ef1df0b1e7b716ec48dd079a276dd1ab55774a645cd5f566a745",
+    "backup-receipt.json": "d96cf0bdeadc944de690656bd99b0e38e2802e44a244017b9357a3fad261a3f2",
+    "preservation-before.json": "7481f4354d283709850687a398562e6c645a1abe45f9aa4a29c44766788758a7",
+    "preservation-after.json": "e5f5cca78e6670fda3d5f3b6b55cc8ff78c6951525124be61f1f68eca810274d",
+    "native-negatives.json": "4f16effc3737080c2143c13bd7f618732c1b871c65d956a4ac491ba0036f9f32",
+    "permission-proof.json": "5ec0ba545d510da62bca44d329e0f4900a3623d8dac2321f092ce14f808a8680",
+    "api100-proof.json": "1bd3cdf1fa4aeb3c1c53116dd353d8c3efa5c451dd43843dbabc60c8a645f3bd",
+    "health100.json": "48348d0d01207ff9ce4cb8ac819fea81e923665d65e0025f7789d77af7a932f2",
+    "performance-before98.json": "55f115383c7a30ae8da8183d32fb077cb7ba53268219b3963e9abcaabf12811f",
+    "performance-after100.json": "ec1811025737c4344117db8426d94908caa844d77c325b673932c6c850b04814",
+    "before-api.json": "0b60cd14953b602aca7dc290a62d45e0c90e85a88878f6d86e3d0e3a5c214f19",
+    "ui100-proof.json": "a6aba09432b845a3350e6b7a0691cdd30a2ec3b71b65f44cd6189ea0f8e40e00"
+  }
+}

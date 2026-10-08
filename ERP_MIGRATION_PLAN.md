@@ -1,3 +1,9 @@
+## ERP-MIGUNIFIED01 eki — ERP-DEC-029 / 8 Ekim 2026
+
+TEST100/sourcecc4c4601ec0a: belge→kanıtlı giriş→kart öncelikli son net alış V2 metadata16.667 kayıtta uygulandı.4.338 belge net/0 giriş/5.076 kart/7.253 bilinmeyen-manuel,12.329 netNULL;1 kimlik drift dışarıda. Eski16.668 V1 ve6.090 native maliyet korunur. Native stok/satış fiyatı/cari-finans/hold/roller ve47 hesap onay paketi değişmedi. Yeni yedek, CAS/readback/replay0, normal opt-in kart ve exact source CI kanıtlı. [Teslim](docs/evidence/erp/2026-10-08-last-net-purchase/README.md).
+
+Bu dar metadata eki genel migration veya ortalama maliyet bitişi değildir; ERP-UA24/25 bekler. GerçekT1, Vega/LIVE/CRM/main merge veya yeni finans yazması yok. Ek tamamlandı; dur. Aşağıdaki önceki paket/prova kayıtları tarihseldir.
+
 ## Goal8 — teknik tamamlandı / insan kabulü bekliyor — 7 Ekim 2026
 
 ERP-DEC-026 kapsamı: son TEST94/source `cee7d7a85b4c797732cfcba8967855f2efbad55b`, 45normal ekran (15×1440/1024/390),13rol,7native rapor, dokuz aşamalı bağlı sentetik gün/replay0, final stok/fiyat/cari writer-reader/inverse/parent recovery native kanıtı ve güncel hız teslim edildi. **49toplam /9🟢 /39🟡 /1🔴**; D02/D06/E01/E02/E03🟡, D01 güvenli karantinada🔴/CANLIDAN SONRA. [Teknik kanıt ve kısa insan listesi](docs/evidence/erp/2026-10-07-goal8/README.md).
