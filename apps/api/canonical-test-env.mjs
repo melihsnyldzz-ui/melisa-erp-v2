@@ -22,6 +22,8 @@ export async function configureCanonicalTest(configPath, mode) {
   const expectedDatabase = 'MELISA_ERP_SIRKET_TEST_20260929_01';
   const readLogin = 'melisa_sirket_test_20260929_01';
   const writes = mode === 'erp' && config.salesEnabled === true;
+  if(config.productPurchaseReferenceVersion!==undefined&&![1,2].includes(config.productPurchaseReferenceVersion))throw Error('TEST_PURCHASE_REFERENCE_VERSION_REJECTED');
+  if(writes&&config.productPurchaseReferenceVersion===2&&(!/^[a-f0-9]{64}$/.test(config.productPurchaseReferenceManifestHash??'')||!/^[a-f0-9]{64}$/.test(config.productLastPurchaseReferenceManifestHash??'')))throw Error('TEST_LAST_PURCHASE_PIN_REQUIRED');
   const {goal8DayProfile,goal8SqlInstalled}=canonicalGoal8Policy(config,{mode,writes});
   const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
   const goal8Seal=config.goal8SyntheticDaySeal;
@@ -40,6 +42,8 @@ export async function configureCanonicalTest(configPath, mode) {
     MELISA_GOAL8_SQL_PROFILE_INSTALLED:String(goal8SqlInstalled),
     MELISA_GOAL8_SYNTHETIC_DAY_SEAL:goal8SqlInstalled?JSON.stringify(goal8Seal):'',
     MELISA_PRODUCT_PURCHASE_REFERENCE_MANIFEST_HASH:writes&&/^[a-f0-9]{64}$/.test(config.productPurchaseReferenceManifestHash??'')?config.productPurchaseReferenceManifestHash:'',
+    MELISA_PRODUCT_PURCHASE_REFERENCE_VERSION:writes?String(config.productPurchaseReferenceVersion??1):'1',
+    MELISA_PRODUCT_LAST_PURCHASE_REFERENCE_MANIFEST_HASH:writes&&config.productPurchaseReferenceVersion===2?config.productLastPurchaseReferenceManifestHash:'',
     // Local sessions share one loopback address; each workflow refresh reads
     // several protected endpoints. Keep a bounded TEST rate without applying
     // the production fifteen-minute shared-IP budget to a local work session.
