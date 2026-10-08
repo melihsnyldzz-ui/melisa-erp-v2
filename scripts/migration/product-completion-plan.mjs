@@ -11,6 +11,14 @@ export const barcodeComparisonKey=b=>b.trimEnd().toLocaleUpperCase('tr-TR');
 const exactQty=v=>decimal(v,3);
 const subtraction=(a,b)=>sumDecimals([a,decimal(b).startsWith('-')?decimal(b).slice(1):'-'+decimal(b)]);
 const masterMap={stockCode:'stock_code',name:'name',brand:'brand',category:'category',isActive:'is_active'};
+// New cards may carry a verified source discount, independently of an unknown
+// purchase price. No existing purchase metadata is updated by this planner.
+export function newCardPurchaseDiscount(source){
+ const value=source.purchasePrice?.discountRate;
+ let rate;try{rate=decimal(value,4);}catch(error){check(false,error.message==='DECIMAL_PRECISION_LOSS'?'PRODUCT_NEW_DISCOUNT_PRECISION_UNSUPPORTED':'PRODUCT_NEW_DISCOUNT_INVALID');}
+ if(rate!==null){const scaled=BigInt(rate.replace('.',''));check(scaled>=0n&&scaled<=1000000n,'PRODUCT_NEW_DISCOUNT_OUT_OF_RANGE');}
+ return rate;
+}
 export function productCompletionContext({runId,sourceAsOf,sourceHash,planHash,previousVersion,productCount,priceCount,bindingsHash=null}){
  check(/^PRODUCT-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(runId),'PRODUCT_RUN_UUID');
  check(/^20\d{2}-\d{2}-\d{2}$/.test(sourceAsOf)&&hex(sourceHash)&&hex(planHash)&&previousVersion?.context&&Number.isInteger(productCount)&&productCount>0&&Number.isInteger(priceCount)&&priceCount>=0,'PRODUCT_CONTEXT');
@@ -81,7 +89,7 @@ function makeGroup(p,e,input,publishedIds=null){
   if(!owners.length&&!barcodes.some(x=>barcodeComparisonKey(x.barcode)===barcodeComparisonKey(b.barcode)))barcodes.push(b);
  }
  let stock=null;try{check(p.quantity!==null&&decimal(p.quantity)!==null,'PRODUCT_SOURCE_QUANTITY_UNKNOWN');check(BigInt(decimal(p.quantity).replace('.',''))>=0n,'PRODUCT_NEGATIVE_SOURCE_QUANTITY_REQUIRES_DECISION');if(isNew){check(exactQty(p.quantity)!==null,'PRODUCT_NEW_QUANTITY_UNKNOWN');stock={sourceBefore:'0.00000000',sourceAfter:decimal(p.quantity),sourceDelta:decimal(p.quantity),localReal:'0.00000000',localSynthetic:'0.00000000',nativeBefore:'0.00000000',nativeAfter:decimal(p.quantity),ledgerRowsHash:digest([]),proof:null};}else{check(e.averageCostTryExact===null||typeof e.averageCostTryExact==='string','PRODUCT_NATIVE_COST_EXACT');stock=verifyProductStockProof(p,e);}}catch(error){if(isNew)throw error;exceptions.push({kind:'STOCK',reason:error.message});}
- if(isNew){Object.assign(fields,{unit:'ADET',currency_code:currency,purchase_price:null,average_cost_try:null,current_stock_qty:exactQty(stock.nativeAfter),is_deleted:false,passive_at:null,passive_reason:null,created_by:input.actorId,updated_at:null,updated_by:null,purchase_discount_rate:'0.0000',supplier_id:null,source_record_key:sourceNativeKey(p),migration_run_id:input.runId,source_payload_hash:digest(p),source_payload_json:JSON.stringify(p),source_document_key:null,original_document_date:null,source_notes:'Verified dated source product',source_sales_currency:currency,source_purchase_currency:null,migration_scope_status:'IN_SCOPE'});}
+ if(isNew){Object.assign(fields,{unit:'ADET',currency_code:currency,purchase_price:null,average_cost_try:null,current_stock_qty:exactQty(stock.nativeAfter),is_deleted:false,passive_at:null,passive_reason:null,created_by:input.actorId,updated_at:null,updated_by:null,purchase_discount_rate:newCardPurchaseDiscount(p),supplier_id:null,source_record_key:sourceNativeKey(p),migration_run_id:input.runId,source_payload_hash:digest(p),source_payload_json:JSON.stringify(p),source_document_key:null,original_document_date:null,source_notes:'Verified dated source product',source_sales_currency:currency,source_purchase_currency:null,migration_scope_status:'IN_SCOPE'});}
  else{if(stock&&stock.sourceDelta!=='0.00000000')fields.current_stock_qty=exactQty(stock.nativeAfter);if(Object.hasOwn(fields,'sales_price')&&decimal(fields.sales_price)===decimal(e.salesPriceExact))delete fields.sales_price;}
  return {sourceId:String(p.sourceId),sourceKey:p.sourceKey,sourceUid:p.sourceUid,sourcePayloadHash:digest(p),source:p,nativeId:e.nativeId,isNew,fields,prices,supersededSalePrices,barcodes,stock,exceptions,evidence:e};
 }
