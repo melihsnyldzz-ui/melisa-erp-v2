@@ -288,13 +288,14 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
 }
 
 export async function writeFinanceAccountMovement(transaction, sqlDriver, payload) {
-  let copy=null,copyOperation=null,copyParty=null;
+  let copy=null,copyOperation=null,copyParty=null,partyMovementId=payload.partyMovementId;
   if(isIsolatedOperationCopyRuntime()){
     copy=isolatedCopyTransactionContext(transaction);
     const supported={payment:{operation:'payment',role:'supplier'},payment_cancel:{operation:'payment_cancel',role:'supplier'},collection:{operation:'collection_create',role:'customer'},collection_cancel:{operation:'collection_cancel',role:'customer'}}[payload.sourceType];
     const amount=typeof payload.amount==='number'&&Number.isFinite(payload.amount)?payload.amount.toFixed(4):null;
+    partyMovementId=typeof payload.partyMovementId==='string'&&/^[1-9]\d*$/.test(payload.partyMovementId)?Number(payload.partyMovementId):payload.partyMovementId;
     copyParty=supported&&(supported.role==='customer'?copy.customers:copy.suppliers)[0];
-    if(copy!==getIsolatedOperationCopyConfig()||!supported||!copyParty||payload.partyType!==supported.role||!copy.financeAccounts.some(a=>a.id===String(payload.account?.id)&&a.currency==='TRY')||payload.account?.currency!=='TRY'||payload.account?.isActive!==true||payload.currency!=='TRY'||payload.documentDate!==copy.date||!copy.actors.some(a=>a.id===String(payload.actor?.id))||!Number.isSafeInteger(payload.partyMovementId)||payload.partyMovementId<1||amount===null||Number(amount)!==payload.amount||payload.amount<=0||payload.amount>500)throw makeServiceError('ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE','Kasa hareketinin işlem kapsamı doğrulanamadı.',409);
+    if(copy!==getIsolatedOperationCopyConfig()||!supported||!copyParty||payload.partyType!==supported.role||!copy.financeAccounts.some(a=>a.id===String(payload.account?.id)&&a.currency==='TRY')||payload.account?.currency!=='TRY'||payload.account?.isActive!==true||payload.currency!=='TRY'||payload.documentDate!==copy.date||!copy.actors.some(a=>a.id===String(payload.actor?.id))||!Number.isSafeInteger(partyMovementId)||partyMovementId<1||amount===null||Number(amount)!==payload.amount||payload.amount<=0||payload.amount>500)throw makeServiceError('ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE','Kasa hareketinin işlem kapsamı doğrulanamadı.',409);
     copyOperation=supported.operation;
   }
   const direction = ['payment', 'collection_cancel', 'collection_refund', 'supplier_refund_cancel'].includes(payload.sourceType) ? 'out' : 'in';
@@ -304,7 +305,7 @@ export async function writeFinanceAccountMovement(transaction, sqlDriver, payloa
     .input('accountMovementAccountId', sqlDriver.BigInt, payload.account.id)
     .input('accountMovementSourceType', sqlDriver.NVarChar(30), payload.sourceType)
     .input('accountMovementPartyType', sqlDriver.NVarChar(20), payload.partyType)
-    .input('accountMovementPartyMovementId', sqlDriver.BigInt, payload.partyMovementId)
+    .input('accountMovementPartyMovementId', sqlDriver.BigInt, partyMovementId)
     .input('accountMovementDirection', sqlDriver.NVarChar(10), direction)
     .input('accountMovementAmount', sqlDriver.Decimal(18, 4), payload.amount)
     .input('accountMovementCurrency', sqlDriver.NVarChar(3), payload.currency)

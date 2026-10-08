@@ -16,7 +16,7 @@ class Request{
   if('supplierId' in this.params)return{recordset:[{id:30,supplier_code:'Tedarikci',name:'Tedarikçi',currency_code:'TRY',balance:166600}]};
   if(/INSERT INTO dbo.(customer|supplier)_movements/.test(query)){
    const role='movementCustomerId' in this.params?'customer':'supplier';
-   return{recordset:[{id:90,[role+'_id']:this.params[role==='customer'?'movementCustomerId':'movementSupplierId'],created_by:this.params.createdBy,amount:this.params.amount,currency_code:'TRY',balance_effect:this.params.balanceEffect,document_date:this.params.documentDate,account_currency:wrongMovement?'USD':'TRY',account_amount:this.params.amount,amount_try:this.params.amount,document_exchange_rate_snapshot:1,account_exchange_rate_snapshot:1}]};
+   return{recordset:[{id:'90',[role+'_id']:this.params[role==='customer'?'movementCustomerId':'movementSupplierId'],created_by:this.params.createdBy,amount:this.params.amount,currency_code:'TRY',balance_effect:this.params.balanceEffect,document_date:this.params.documentDate,account_currency:wrongMovement?'USD':'TRY',account_amount:this.params.amount,amount_try:this.params.amount,document_exchange_rate_snapshot:1,account_exchange_rate_snapshot:1}]};
   }
   if(query.includes('INSERT INTO dbo.finance_account_movements'))return{recordset:[]};
   throw Error('Unexpected offline SQL');
@@ -73,6 +73,11 @@ test('copy cash INSERT explicitly affects balance and binds own party movement/c
     assert.match(insert.query,/OR EXISTS\(SELECT 1 FROM dbo.finance_account_movements/);
     assert.equal(insert.params.copyFinanceMovementCopyId,copy.copyId);assert.equal(insert.params.copyFinanceMovementOperation,operation);assert.equal(insert.params.accountBalanceEffect,effect);
     assert.equal(insert.params.accountMovementCreatedBy,16);assert.equal(insert.params.copyFinanceMovementPartyId,partyType==='customer'?'20':'30');
+   }
+   await writeFinanceAccountMovement(tx,driver,{...payload,partyMovementId:'90'});
+   assert.equal(calls.findLast(c=>c.query.includes('INSERT INTO dbo.finance_account_movements')).params.accountMovementPartyMovementId,90,'ODBC canonical bigint string normalizes losslessly');
+   for(const partyMovementId of ['090','9e1','90.0',' 90','+90','-90','0','9007199254740992',9007199254740992,90.5,null]){
+    const before=calls.length;await assert.rejects(writeFinanceAccountMovement(tx,driver,{...payload,partyMovementId}),{code:'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE'});assert.equal(calls.length,before);
    }
    for(const change of [{account:{...payload.account,id:41}},{account:{...payload.account,currency:'USD'}},{account:{...payload.account,isActive:false}},{actor:{id:'1'}},{partyType:'customer'},{documentDate:'2026-10-09'},{currency:'USD'},{sourceType:'supplier_refund_cancel'},{partyMovementId:0},{amount:501},{amount:1.00001}]){
     const before=calls.length;await assert.rejects(writeFinanceAccountMovement(tx,driver,{...payload,...change}),{code:'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE'});assert.equal(calls.length,before);
