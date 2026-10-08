@@ -4,8 +4,11 @@ import {decimal,requireRule as check} from './mapping-opening.mjs';
 import {SOURCE_VERSION_PRODUCT_FIELDS,SOURCE_VERSION_PRICE_FIELDS,sourceVersionBindingHash} from './goal7-source-version.mjs';
 import {validId,hex,sourceNativeKey,priceTuple,productCompletionContext} from './product-completion-plan.mjs';
 export function buildProductCompletionVersion({plan,appliedGroups,nativeBindings,effects,deferred=[]}){
- const products=new Map(plan.previousVersion.products.map(p=>[String(p.product_id),{...p,version_run_id:plan.runId}]));
- const prices=new Map(plan.previousVersion.prices.map(p=>[String(p.price_id),{...p,version_run_id:plan.runId}]));
+ // Full read-only captures carry a diagnostic hash outside the native schema.
+ // Keep it in the sealed ancestor evidence, never in a new SQL row projection.
+ const nativeProjection=({__row_hash,...row})=>({...row,version_run_id:plan.runId});
+ const products=new Map(plan.previousVersion.products.map(p=>[String(p.product_id),nativeProjection(p)]));
+ const prices=new Map(plan.previousVersion.prices.map(p=>[String(p.price_id),nativeProjection(p)]));
  const groupBy=(rows,key)=>{const map=new Map();for(const row of rows){const k=key(row);if(!map.has(k))map.set(k,[]);map.get(k).push(row);}return map;};
  const nativeProductsByKey=groupBy(nativeBindings.products,n=>n.source_record_key),nativePricesByTuple=groupBy(nativeBindings.prices,n=>String(n.product_id)+'/'+priceTuple(n)),priorRecords=new Map(plan.previousVersion.records.map(r=>[JSON.stringify([r.run_id,r.entity,r.source_key]),r])),priceCounts=new Map();for(const p of prices.values())priceCounts.set(String(p.product_id),(priceCounts.get(String(p.product_id))??0)+1);
  // Historical stage records remain owned by their original immutable run. Only
