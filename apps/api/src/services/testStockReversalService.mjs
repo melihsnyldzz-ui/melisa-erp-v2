@@ -3,6 +3,31 @@ import {copyAssert} from './isolatedOperationCopyContext.mjs';
 import {stockAfterReturn} from './invoiceReturnPolicy.mjs';
 import {assertAccountingPeriodOpen} from './periodLockService.js';
 const fail=(code,message,statusCode=409)=>{throw Object.assign(new Error(message),{code,statusCode})};
+export async function assertNoLaterIsolatedCopyCount(c,d,productId){
+ copyAssert(isolatedCopyTransactionContext(c.transaction)===c.copyContext,'ISOLATED_COPY_REVERSAL_TRANSACTION');
+ copyAssert(d.kind==='count'&&c.copyContext.products.some(p=>p.id===String(productId)),'ISOLATED_COPY_REVERSAL_PRODUCT',403);
+ const q=c.sqlDriver;
+ // Ownership comes from committed copy requests, not the old synthetic scope.
+ // The immutable approval response and native audit establish approval order.
+ const result=await c.req().input('copyCountCopyId',q.UniqueIdentifier,c.copyContext.copyId).input('copyCountOriginalId',q.BigInt,d.id).input('copyCountProductId',q.BigInt,productId).input('copyCountDate',q.Date,c.copyContext.date).query(`
+ DECLARE @ownedCounts TABLE(id bigint PRIMARY KEY,approvalAuditId bigint);
+ INSERT @ownedCounts(id,approvalAuditId)
+ SELECT doc.id,MAX(a.id) FROM dbo.test_daily_drafts doc
+ JOIN dbo.stage4_copy_requests approval ON approval.copy_id=@copyCountCopyId AND approval.operation=N'stock_count_approve'
+  AND TRY_CONVERT(bigint,JSON_VALUE(approval.payload_json,'$.id'))=doc.id AND TRY_CONVERT(bigint,JSON_VALUE(approval.response_json,'$.id'))=doc.id
+ JOIN dbo.audit_logs a ON a.entity_type=N'test_daily_draft' AND a.entity_id=doc.id AND a.action=N'test_daily_approved' AND a.actor_user_id=approval.actor_id
+ WHERE doc.kind=N'count' AND doc.state=N'approved' AND doc.flow=N'count' AND TRY_CONVERT(date,JSON_VALUE(doc.payload_json,'$.date'))=@copyCountDate
+  AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests created WHERE created.copy_id=@copyCountCopyId AND created.operation=N'stock_count_draft' AND TRY_CONVERT(bigint,JSON_VALUE(created.response_json,'$.id'))=doc.id)
+  AND EXISTS(SELECT 1 FROM OPENJSON(doc.payload_json,'$.lines') WITH(productId bigint '$.productId') line WHERE line.productId=@copyCountProductId)
+  AND EXISTS(SELECT 1 FROM OPENJSON(approval.response_json,'$.result.lines') WITH(productId bigint '$.productId') line WHERE line.productId=@copyCountProductId)
+ GROUP BY doc.id;
+ SELECT id FROM @ownedCounts WHERE id=@copyCountOriginalId;
+ SELECT TOP(1) nextCount.id FROM @ownedCounts nextCount JOIN @ownedCounts originalCount ON originalCount.id=@copyCountOriginalId WHERE nextCount.id<>originalCount.id AND nextCount.approvalAuditId>originalCount.approvalAuditId ORDER BY nextCount.approvalAuditId;
+ `);
+ copyAssert(result.recordsets?.[0]?.length===1&&String(result.recordsets[0][0].id)===String(d.id),'ISOLATED_COPY_COUNT_APPROVAL_PROOF');
+ const later=result.recordsets?.[1];copyAssert(Array.isArray(later)&&later.length<=1,'ISOLATED_COPY_COUNT_APPROVAL_PROOF');
+ if(later.length)fail('LATER_APPROVED_COUNT',`Bu düzeltmeden sonra #${later[0].id} sayımı onaylanmış. Önce bağlı sayımın düzeltme sırasını çözün; stok değiştirilmedi.`);
+}
 export async function reverseStockDocument(c,d,input){
  if(c.copyContext){copyAssert(isolatedCopyTransactionContext(c.transaction)===c.copyContext,'ISOLATED_COPY_REVERSAL_TRANSACTION');if(d.kind==='count'&&Array.isArray(d.payload.lines)){copyAssert(d.payload.lines.length===1&&d.result?.lines?.length===1,'ISOLATED_COPY_REVERSAL_SINGLE_LINE',409);const line=d.payload.lines[0];copyAssert(c.copyContext.products.some(p=>p.id===line.productId),'ISOLATED_COPY_REVERSAL_PRODUCT',403);c={...c,scope:{...c.scope,product_id:Number(line.productId)}};d={...d,payload:{...d.payload,physical:line.physical,system:line.system},result:d.result.lines[0]};}}
  const q=c.sqlDriver,s=c.scope,reason=String(input.reason||'').trim(),date=input.date;
@@ -16,8 +41,11 @@ export async function reverseStockDocument(c,d,input){
  if(d.state!=='approved')fail('REVERSAL_STATE','Yalnız onaylı belge iptal edilebilir.');
  await assertAccountingPeriodOpen(c.req(),date,'Stok belge iptali');
  const product=(await c.req().input('id',q.BigInt,s.product_id).query('SELECT id,current_stock_qty,average_cost_try FROM dbo.products WITH(UPDLOCK,HOLDLOCK) WHERE id=@id')).recordset[0];
+ if(c.copyContext&&d.kind==='count')await assertNoLaterIsolatedCopyCount(c,d,s.product_id);
+ else{
  const later=(await c.req().input('id',q.BigInt,d.id).input('p',q.BigInt,s.product_id).query(`SELECT TOP 1 nextDoc.id FROM dbo.test_daily_drafts nextDoc JOIN dbo.test_daily_scope nextScope ON nextScope.flow=nextDoc.flow JOIN dbo.audit_logs a ON a.entity_type=N'test_daily_draft' AND a.entity_id=nextDoc.id AND a.action=N'test_daily_approved' WHERE nextScope.product_id=@p AND nextDoc.kind=N'count' AND nextDoc.state=N'approved' AND nextDoc.id<>@id AND a.id>(SELECT MAX(id) FROM dbo.audit_logs WHERE entity_type=N'test_daily_draft' AND entity_id=@id AND action=N'test_daily_approved') ORDER BY a.id`)).recordset[0];
  if(later)fail('LATER_APPROVED_COUNT',`Bu düzeltmeden sonra #${later.id} sayımı onaylanmış. Önce bağlı sayımın düzeltme sırasını çözün; stok değiştirilmedi.`);
+ }
  const noMovement=d.kind==='count'&&d.result?.movementCreated===false;
  let original=null,delta=0,next={quantity:Number(product.current_stock_qty),averageCostTry:Number(product.average_cost_try)},movementId=null;
  if(!noMovement){
