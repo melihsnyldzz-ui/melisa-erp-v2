@@ -2,6 +2,7 @@ import {moneyDisplay} from './moneyDisplay.mjs';
 const decimal=/^-?\d{1,28}(?:\.\d{1,8})?$/;
 const valid=v=>typeof v==='string'&&decimal.test(v);
 const units=v=>{const [w,f='']=v.split('.');return BigInt(w.replace('-','')+f.padEnd(8,'0'))*(v.startsWith('-')?-1n:1n);};
+const exactUnits=n=>(n<0n?'-':'')+(n<0n?-n:n)/100000000n+'.'+((n<0n?-n:n)%100000000n).toString().padStart(8,'0');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function accountExact(value,options={}){return valid(value)?moneyDisplay(value,options):'Bilinmiyor';}
 export function accountPresentation(account,{role,blocked=false}={}){
@@ -12,8 +13,10 @@ export function accountPresentation(account,{role,blocked=false}={}){
  if(account.amountExact!==undefined&&(!valid(account.amountExact)||units(account.amountExact)!==(n<0n?-n:n)))return unknown;
  const label=n===0n?'Borç / alacak yok':role==='customer'?(n>0n?'Müşterinin borcu':'Müşterinin alacağı'):(n>0n?'Melisa’nın tedarikçiye borcu':'Melisa’nın tedarikçiden alacağı');
  const sourceDelta=account.sourceDeltaExact===undefined?'0.00000000':account.sourceDeltaExact;
- const effectsProven=valid(account.localDeltaExact)&&valid(account.sourceOpeningBalanceExact)&&valid(sourceDelta)&&units(account.sourceOpeningBalanceExact)+units(account.localDeltaExact)+units(sourceDelta)===n;
- return {...unknown,known:true,amount:accountExact(account.balanceExact,{absolute:true}),direction,label,opening:valid(account.sourceOpeningBalanceExact)?accountExact(account.sourceOpeningBalanceExact,{absolute:true})+' · '+(units(account.sourceOpeningBalanceExact)===0n?'0':(units(account.sourceOpeningBalanceExact)>0n)===(role==='customer')?'B':'A'):'Bilinmiyor',delta:effectsProven?accountExact(account.localDeltaExact):'Bilinmiyor',sourceDelta:effectsProven&&units(sourceDelta)!==0n?accountExact(sourceDelta):null};
+ const finalSourceDelta=account.finalSourceDeltaExact===undefined?'0.00000000':account.finalSourceDeltaExact;
+ const sourceUpdates=valid(sourceDelta)&&valid(finalSourceDelta)?units(sourceDelta)+units(finalSourceDelta):null;
+ const effectsProven=valid(account.localDeltaExact)&&valid(account.sourceOpeningBalanceExact)&&sourceUpdates!==null&&units(account.sourceOpeningBalanceExact)+units(account.localDeltaExact)+sourceUpdates===n;
+ return {...unknown,known:true,amount:accountExact(account.balanceExact,{absolute:true}),direction,label,opening:valid(account.sourceOpeningBalanceExact)?accountExact(account.sourceOpeningBalanceExact,{absolute:true})+' · '+(units(account.sourceOpeningBalanceExact)===0n?'0':(units(account.sourceOpeningBalanceExact)>0n)===(role==='customer')?'B':'A'):'Bilinmiyor',delta:effectsProven?accountExact(account.localDeltaExact):'Bilinmiyor',sourceDelta:effectsProven&&sourceUpdates!==0n?accountExact(exactUnits(sourceUpdates)):null};
 }
 export function currencyAccountsHtml(accounts,{role,blocked=false,detail=false}={}){
  if(!Array.isArray(accounts)||!accounts.length)return '<p>Döviz bakiyesi bilinmiyor.</p>';
