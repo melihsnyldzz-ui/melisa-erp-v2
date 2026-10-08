@@ -288,10 +288,19 @@ export async function resolveFinanceAccount(transaction, sqlDriver, payload) {
 }
 
 export async function writeFinanceAccountMovement(transaction, sqlDriver, payload) {
+  let copy=null,copyOperation=null,copyParty=null;
+  if(isIsolatedOperationCopyRuntime()){
+    copy=isolatedCopyTransactionContext(transaction);
+    const supported={payment:{operation:'payment',role:'supplier'},payment_cancel:{operation:'payment_cancel',role:'supplier'},collection:{operation:'collection_create',role:'customer'},collection_cancel:{operation:'collection_cancel',role:'customer'}}[payload.sourceType];
+    const amount=typeof payload.amount==='number'&&Number.isFinite(payload.amount)?payload.amount.toFixed(4):null;
+    copyParty=supported&&(supported.role==='customer'?copy.customers:copy.suppliers)[0];
+    if(copy!==getIsolatedOperationCopyConfig()||!supported||!copyParty||payload.partyType!==supported.role||!copy.financeAccounts.some(a=>a.id===String(payload.account?.id)&&a.currency==='TRY')||payload.account?.currency!=='TRY'||payload.account?.isActive!==true||payload.currency!=='TRY'||payload.documentDate!==copy.date||!copy.actors.some(a=>a.id===String(payload.actor?.id))||!Number.isSafeInteger(payload.partyMovementId)||payload.partyMovementId<1||amount===null||Number(amount)!==payload.amount||payload.amount<=0||payload.amount>500)throw makeServiceError('ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE','Kasa hareketinin işlem kapsamı doğrulanamadı.',409);
+    copyOperation=supported.operation;
+  }
   const direction = ['payment', 'collection_cancel', 'collection_refund', 'supplier_refund_cancel'].includes(payload.sourceType) ? 'out' : 'in';
   const balanceEffect = direction === 'out' ? -payload.amount : payload.amount;
 
-  await new sqlDriver.Request(transaction)
+  const movementRequest=new sqlDriver.Request(transaction)
     .input('accountMovementAccountId', sqlDriver.BigInt, payload.account.id)
     .input('accountMovementSourceType', sqlDriver.NVarChar(30), payload.sourceType)
     .input('accountMovementPartyType', sqlDriver.NVarChar(20), payload.partyType)
@@ -304,8 +313,15 @@ export async function writeFinanceAccountMovement(transaction, sqlDriver, payloa
     .input('accountMovementDocumentDate', sqlDriver.Date, payload.documentDate)
     .input('accountMovementDescription', sqlDriver.NVarChar(500), payload.description || null)
     .input('accountMovementCreatedBy', sqlDriver.BigInt, payload.actor?.id ? Number(payload.actor.id) : null)
-    .input('accountBalanceEffect', sqlDriver.Decimal(18, 4), balanceEffect)
-    .query(`
+    .input('accountBalanceEffect', sqlDriver.Decimal(18, 4), balanceEffect);
+  if(copy)movementRequest.input('copyFinanceMovementCopyId',sqlDriver.UniqueIdentifier,copy.copyId).input('copyFinanceMovementOperation',sqlDriver.NVarChar(40),copyOperation).input('copyFinanceMovementPartyId',sqlDriver.BigInt,copyParty.id);
+  await movementRequest.query(`
+      ${copy?`IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01' COLLATE Latin1_General_100_BIN2
+       OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyFinanceMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@accountMovementCreatedBy AND operation=@copyFinanceMovementOperation)
+       OR NOT EXISTS(SELECT 1 FROM dbo.finance_accounts WHERE id=@accountMovementAccountId AND currency_code=N'TRY' AND is_active=1)
+       OR NOT EXISTS(SELECT 1 FROM dbo.${payload.partyType}_movements WHERE id=@accountMovementPartyMovementId AND ${payload.partyType}_id=@copyFinanceMovementPartyId AND movement_type=@accountMovementSourceType AND created_by=@accountMovementCreatedBy AND document_date=@accountMovementDocumentDate AND currency_code=N'TRY' AND account_currency=N'TRY' AND amount=@accountMovementAmount AND account_amount=@accountMovementAmount AND amount_try=@accountMovementAmount AND document_exchange_rate_snapshot=1 AND account_exchange_rate_snapshot=1 AND created_at>=(SELECT created_at FROM dbo.stage4_copy_intents WHERE copy_id=@copyFinanceMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@accountMovementCreatedBy AND operation=@copyFinanceMovementOperation))
+       OR EXISTS(SELECT 1 FROM dbo.finance_account_movements WHERE source_type=@accountMovementSourceType AND party_type=@accountMovementPartyType AND party_movement_id=@accountMovementPartyMovementId)
+       THROW 51416,'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE',1;`:''}
       INSERT INTO dbo.finance_account_movements (
         account_id,
         source_type,
@@ -318,7 +334,7 @@ export async function writeFinanceAccountMovement(transaction, sqlDriver, payloa
         document_no,
         document_date,
         description,
-        created_by
+        created_by${copy?', affects_balance':''}
       )
       VALUES (
         @accountMovementAccountId,
@@ -332,7 +348,7 @@ export async function writeFinanceAccountMovement(transaction, sqlDriver, payloa
         @accountMovementDocumentNo,
         @accountMovementDocumentDate,
         @accountMovementDescription,
-        @accountMovementCreatedBy
+        @accountMovementCreatedBy${copy?', 1':''}
       );
 
       UPDATE dbo.finance_accounts
