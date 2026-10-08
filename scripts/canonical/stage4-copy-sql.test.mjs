@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COPY_DB,COPY_LOGIN,SOURCE_DB,moduleHash,stage4CopySchema,stage4ReadySQL,stage4BeginSQL,stage4EffectsSQL,stage4GuardBranch,stage4NativeGuardSQL,stage4RequestGuardSQL,immutableCopyTrigger,stage4ReadProcedure,COPY_MUTABLE_TABLES} from './stage4-copy-sql.mjs';
+import {COPY_DB,COPY_LOGIN,SOURCE_DB,moduleHash,stage4CopySchema,stage4ReadySQL,stage4BeginSQL,stage4EffectsSQL,stage4GuardBranch,stage4NativeGuardSQL,stage4RequestGuardSQL,immutableCopyTrigger,stage4ReadProcedure,stage4QuarantineProcedure,COPY_MUTABLE_TABLES} from './stage4-copy-sql.mjs';
 import {ISOLATED_COPY_OPERATION_PERMISSIONS} from '../../apps/api/src/services/isolatedOperationCopyStore.mjs';
 
 const module=(definition,name='legacy_guard_products',type_desc='SQL_TRIGGER')=>({schemaName:'dbo',name,type_desc,definition});
@@ -10,6 +10,22 @@ IF EXISTS(SELECT 1 FROM inserted WHERE source_payload_hash IS NULL) THROW 51001,
 IF EXISTS(SELECT 1 FROM deleted) THROW 51002,'OLD_DELETE_FORBIDDEN',1;
 END;`;
 const original=`CREATE TRIGGER dbo.legacy_guard_products ON dbo.products AFTER INSERT,UPDATE,DELETE AS BEGIN ${guardedBody}`;
+
+test('nested copied quarantine verifier preserves holds, 79-row receipts and exact old hash fallback',()=>{
+ const predicates="IF (SELECT COUNT(*) FROM erp_migration.operation_quarantine_resolver_v2)<>79 THROW 51076,'BAD_RESOLVER',1; IF EXISTS(SELECT 1 FROM erp_migration.operation_quarantine_holds WHERE native_id=123) THROW 51076,'HELD',1;";
+ const comparison="LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(p.object_name))),2))<>p.definition_hash";
+ const definition=`CREATE PROCEDURE dbo.usp_assert_operation_quarantine_v2 WITH EXECUTE AS OWNER AS BEGIN IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'${SOURCE_DB}' OR CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)) COLLATE Latin1_General_100_BIN2<>N'Semih\\MELISADEV' THROW 51075,'WRONG_TEST_TARGET',1; ${predicates} IF EXISTS(SELECT 1 FROM erp_migration.operation_quarantine_resolver_v2 p WHERE ${comparison}) THROW 51076,'DRIFT',1;END;`;
+ const out=stage4QuarantineProcedure(module(definition,'usp_assert_operation_quarantine_v2','SQL_STORED_PROCEDURE'));
+ assert.ok(out.definition.includes(predicates));assert.ok(out.definition.includes('WITH EXECUTE AS OWNER'));
+ assert.match(out.definition,/c.name=p.object_name AND LOWER\(c.before_hash\)=p.definition_hash/);
+ assert.match(out.definition,/,p.definition_hash\)\)/);assert.match(out.definition,/m.copy_id=n.copy_id AND m.sealed=1/);
+ assert.match(out.definition,/n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID\(\)/);
+ assert.ok(out.definition.includes(COPY_LOGIN)&&out.definition.includes(COPY_DB));
+ assert.doesNotMatch(out.definition,/\bRETURN\b|\b(?:UPDATE|DELETE|INSERT)\s+erp_migration\./i);
+ assert.throws(()=>stage4QuarantineProcedure(module(definition,'arbitrary_proc','SQL_STORED_PROCEDURE')));
+ assert.throws(()=>stage4QuarantineProcedure(module(definition.replace(comparison,'1=0'),'usp_assert_operation_quarantine_v2','SQL_STORED_PROCEDURE')));
+ assert.throws(()=>stage4QuarantineProcedure(module(definition.replace('Semih\\MELISADEV','another\\server'),'usp_assert_operation_quarantine_v2','SQL_STORED_PROCEDURE')));
+});
 const schema=(table,columns)=>columns.map(([columnName,typeName='nvarchar'])=>({schemaName:'dbo',tableName:table,columnName,typeName}));
 const metadata=[
  ...schema('products',[['id','bigint'],['stock_code'],['unit'],['source_record_key'],['average_cost_try','decimal'],['purchase_price','decimal'],['current_stock_qty','decimal'],['updated_at','datetime2'],['updated_by','bigint'],['row_version','timestamp']]),

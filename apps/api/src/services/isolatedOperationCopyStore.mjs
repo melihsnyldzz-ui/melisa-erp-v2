@@ -6,6 +6,13 @@ const domains=new Set(['trade','inbound','payment','daily']);
 const parse=value=>{copyAssert(typeof value==='string','ISOLATED_COPY_SQL_JSON');try{return JSON.parse(value);}catch{copyAssert(false,'ISOLATED_COPY_SQL_JSON');}};
 const safeId=id=>{const n=Number(id);copyAssert(Number.isSafeInteger(n)&&n>0,'ISOLATED_COPY_ID');return n;};
 const identitySQL="SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess";
+export const ISOLATED_COPY_FINITE_FK_SQL=`SELECT f.name constraintName,ps.name parentSchema,pt.name parentTable,pc.name parentColumn,rs.name referencedSchema,rt.name referencedTable,rc.name referencedColumn,fc.constraint_column_id ordinal,COUNT(*) OVER(PARTITION BY f.object_id) columnCount,f.is_disabled isDisabled,f.is_not_trusted isNotTrusted,f.delete_referential_action_desc deleteAction,f.update_referential_action_desc updateAction
+FROM sys.foreign_keys f JOIN sys.foreign_key_columns fc ON fc.constraint_object_id=f.object_id JOIN sys.tables pt ON pt.object_id=f.parent_object_id JOIN sys.schemas ps ON ps.schema_id=pt.schema_id JOIN sys.columns pc ON pc.object_id=pt.object_id AND pc.column_id=fc.parent_column_id JOIN sys.tables rt ON rt.object_id=f.referenced_object_id JOIN sys.schemas rs ON rs.schema_id=rt.schema_id JOIN sys.columns rc ON rc.object_id=rt.object_id AND rc.column_id=fc.referenced_column_id
+WHERE f.name IN(N'FK__test_good__produ__5654B625',N'FK__test_purc__produ__69678A99') ORDER BY f.name,fc.constraint_column_id;`;
+function assertFiniteCopyForeignKeys(rows){
+ const parents=new Map([['FK__test_good__produ__5654B625','test_goods_batch_lines'],['FK__test_purc__produ__69678A99','test_purchase_batch_intent_lines']]);
+ copyAssert(Array.isArray(rows)&&rows.length===2&&new Set(rows.map(row=>row.constraintName)).size===2&&rows.every(row=>parents.has(row.constraintName)&&row.parentSchema==='dbo'&&row.parentTable===parents.get(row.constraintName)&&row.parentColumn==='product_id'&&row.referencedSchema==='dbo'&&row.referencedTable==='products'&&row.referencedColumn==='id'&&row.ordinal===1&&row.columnCount===1&&row.isDisabled===false&&row.isNotTrusted===false&&row.deleteAction==='NO_ACTION'&&row.updateAction==='NO_ACTION'),'ISOLATED_COPY_FINITE_FK_UNVERIFIED');
+}
 export function isolatedCopyRequestBody(context,actor,operation,payload){
  assertIsolatedCopyContext(context);copyAssert(Object.hasOwn(ISOLATED_COPY_OPERATION_PERMISSIONS,operation)&&payload&&typeof payload==='object'&&!Array.isArray(payload),'ISOLATED_COPY_OPERATION',400);
  copyAssert(isolatedCopyUUID(payload.requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
@@ -34,6 +41,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    const identity=(await req().query(identitySQL)).recordset?.[0];assertIsolatedCopyIdentity(context,identity);
    if(write)await req().input('lockKey',q.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@lockKey,@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51401,'ISOLATED_COPY_BUSY',1;");
    await req().input('copy_id',q.UniqueIdentifier,context.copyId).execute(ISOLATED_COPY_PROCEDURES.ready);
+   assertFiniteCopyForeignKeys((await req().query(ISOLATED_COPY_FINITE_FK_SQL)).recordset);
    const row=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('actor_id',q.BigInt,safeId(actor?.id)).input('domain',q.NVarChar(20),domain).execute(ISOLATED_COPY_PROCEDURES.context)).recordset?.[0];
    const readProof=parse(row?.proof_json),actual=parse(row?.actor_json),normalContext=bindIsolatedCopyOperationDTO(context,parse(row?.context_json));
    assertIsolatedCopyReadProof(context,readProof);assertIsolatedCopyActor(context,actor,actual,permission);

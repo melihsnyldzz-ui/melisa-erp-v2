@@ -1,7 +1,7 @@
 import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
-let records;
-mock.module('../config/database.js',{namedExports:{getSqlDriver:()=>({BigInt:0}),getSqlPool:async()=>{throw Error('No new pool may be opened by a native adapter');},isCanonicalTest:()=>false,isIsolatedOperationCopyRuntime:()=>false,getIsolatedOperationCopyConfig:()=>null}});
+let records,copyRuntime=null;
+mock.module('../config/database.js',{namedExports:{getSqlDriver:()=>({BigInt:0}),getSqlPool:async()=>{throw Error('No new pool may be opened by a native adapter');},isCanonicalTest:()=>false,isIsolatedOperationCopyRuntime:()=>!!copyRuntime,getIsolatedOperationCopyConfig:()=>copyRuntime}});
 mock.module('./auditService.js',{namedExports:{writeAuditLog:async()=>{}}});
 const {verifyNativeCurrencyAccount,postNativeCurrencyAccount,postIsolatedCopyCurrencyMovement}=await import('./nativeCurrencyAccount.mjs');
 const request=()=>({input(){return this;},query:async()=>({recordsets:records})});
@@ -51,4 +51,25 @@ test('copy inbound native adapter avoids driver positional variables and preserv
   assert.equal(result.copyProducts[0].actual_supplier,123);assert.equal(result.s.supplier_id,'30');assert.equal(result.copyProducts[1].stock_code,'004 KİNDO');
  });
  assert.deepEqual(inputs,[['copyInboundProductA',34765],['copyInboundProductB',30003]]);
+});
+test('received copy purchase accepts only sealed supplier/products while preserving different master supplier and original strict behavior',async()=>{
+ const {assertPurchaseItemsBelongToSupplier}=await import('./invoiceDraftService.js');
+ const {fixtureContext,fixtureIdentity,fixtureProof}=await import('./isolatedOperationCopyContext.test.mjs');
+ const {validateIsolatedOperationCopyContext,isolatedCopyHash}=await import('./isolatedOperationCopyContext.mjs');
+ const {withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs');
+ const raw=fixtureContext();raw.suppliers[0].currency='TRY';const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);const copy=validateIsolatedOperationCopyContext(raw),tx={};
+ const card={id:34765,stock_code:'0161 MOLLY',supplier_id:123,is_active:true},sql={Request:class{constructor(t){assert.equal(t,tx);}input(){return this;}async query(){return{recordset:[{...card}]};}}};
+ const items=[{productId:34765}];
+ await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,items),{code:'PURCHASE_PRODUCT_SUPPLIER_MISMATCH'});
+ copyRuntime=copy;
+ try{
+  await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,items),{code:'ISOLATED_COPY_TRANSACTION_REQUIRED'});
+  await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:true},async()=>{
+   await assertPurchaseItemsBelongToSupplier(sql,tx,30,items);assert.equal(card.supplier_id,123);
+   await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,31,items),{code:'PURCHASE_PRODUCT_SUPPLIER_MISMATCH'});
+   await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,[{productId:34765},{productId:99}]),{code:'PURCHASE_PRODUCT_SUPPLIER_MISMATCH'});
+   card.stock_code='161';await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,items),{code:'PURCHASE_PRODUCT_SUPPLIER_MISMATCH'});card.stock_code='0161 MOLLY';
+   card.is_active=false;await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,items),{code:'PURCHASE_PRODUCT_INACTIVE'});
+  });
+ }finally{copyRuntime=null;}
 });

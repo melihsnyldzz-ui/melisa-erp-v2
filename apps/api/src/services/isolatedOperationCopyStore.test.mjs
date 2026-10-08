@@ -2,14 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
 import {validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
-import {createIsolatedOperationCopyStore} from './isolatedOperationCopyStore.mjs';
+import {createIsolatedOperationCopyStore,ISOLATED_COPY_FINITE_FK_SQL} from './isolatedOperationCopyStore.mjs';
 import {isIsolatedOperationCopyMutation} from './isolatedOperationCopyScope.mjs';
 const actor={id:'16',permissions:['sales.view','sales.create']},requestId='164c6f4e-aa6c-4758-bc14-677ba55c0fc4';
 function fixture(){
- const context=validateIsolatedOperationCopyContext(fixtureContext()),state={effects:0,journal:[],replayProofs:0,commits:0,rollbacks:0,invalidEffect:false,deny:false,wrongDB:false,proofMode:null,rawProof:null},normalContext={meta:{date:context.date,operationOrigin:context.operationOrigin,copyId:context.copyId,sealHash:context.sealHash},scope:{synthetic:false,operationOrigin:context.operationOrigin}};
+ const context=validateIsolatedOperationCopyContext(fixtureContext()),state={effects:0,journal:[],replayProofs:0,commits:0,rollbacks:0,invalidEffect:false,deny:false,wrongDB:false,proofMode:null,rawProof:null,fkMode:null,fkReads:0},normalContext={meta:{date:context.date,operationOrigin:context.operationOrigin,copyId:context.copyId,sealHash:context.sealHash},scope:{synthetic:false,operationOrigin:context.operationOrigin}};
  class Transaction{async begin(isolation){assert.equal(isolation,'SERIALIZABLE');this.before=structuredClone(state);}async commit(){state.commits++;}async rollback(){const counts={rollbacks:state.rollbacks+1};Object.assign(state,this.before,counts);}}
  class Request{constructor(parent){this.parent=parent;this.p={};}input(k,t,v){this.p[k]=v;return this;}async query(text){
   if(text.startsWith('SELECT DB_NAME'))return{recordset:[{...fixtureIdentity(context),...(state.wrongDB?{db:'MELISA_ERP_SIRKET_TEST_20260929_01'}:{})}]};
+  if(text===ISOLATED_COPY_FINITE_FK_SQL){
+   state.fkReads++;
+   const rows=[['FK__test_good__produ__5654B625','test_goods_batch_lines'],['FK__test_purc__produ__69678A99','test_purchase_batch_intent_lines']].map(([constraintName,parentTable])=>({constraintName,parentSchema:'dbo',parentTable,parentColumn:'product_id',referencedSchema:'dbo',referencedTable:'products',referencedColumn:'id',ordinal:1,columnCount:1,isDisabled:false,isNotTrusted:false,deleteAction:'NO_ACTION',updateAction:'NO_ACTION'}));
+   const changes={legacy:{referencedTable:'test_purchase_batch_scope'},disabled:{isDisabled:true},untrusted:{isNotTrusted:true},multiColumn:{columnCount:2},foreignParent:{parentTable:'sales_invoice_items'},foreignColumn:{parentColumn:'supplier_id'},foreignSchema:{referencedSchema:'archive'},wrongReference:{referencedColumn:'stock_code'},cascade:{deleteAction:'CASCADE'},cascadeUpdate:{updateAction:'CASCADE'}};
+   if(changes[state.fkMode])Object.assign(rows[0],changes[state.fkMode]);
+   if(state.fkMode==='missing')rows.pop();if(state.fkMode==='duplicate')rows[1]={...rows[0]};
+   return{recordset:rows};
+  }
   if(text.includes('sp_getapplock'))return{recordset:[]};
   if(text.startsWith('SELECT actor_id'))return{recordset:state.journal.filter(r=>r.copy_id===this.p.copy_id&&r.request_id===this.p.request_id)};
   if(text.startsWith('INSERT dbo.stage4_copy_requests')){assert.equal(this.p.effect_proof_json,state.rawProof,'immutable SQL proof bytes must be unchanged');state.journal.push({...this.p});return{recordset:[]};}if(text.startsWith('DROP TABLE IF EXISTS #ReportRows'))return{recordsets:[[{id:'51',currency:'TRY',amount:'92.00000000'}],[{total:1}],[{currency:'TRY',amount:'92.00000000',debit:null,credit:null,recordCount:1}],[{knownLineCount:1,unknownLineCount:0}]]};throw Error('Unexpected SQL');
@@ -52,5 +60,16 @@ test('malformed or foreign SQL proofs reject and roll back before any immutable 
  }
 });
 test('wrong database, revoked permission and client profile substitution cause no mutation',async()=>{for(const mode of ['wrongDB','deny','profile']){const f=fixture();if(mode!=='profile')f.state[mode]=true;await assert.rejects(f.store.mutate(actor,'sale_draft',{requestId,...(mode==='profile'?{copyId:'client'}:{})},c=>c.createDraft()));assert.equal(f.state.effects,0);assert.equal(f.state.journal.length,0);}});
+test('every copy domain transaction checks both trusted native-product FK witnesses before handlers',async()=>{
+ const f=fixture();await f.store.read(actor,c=>c.context);assert.equal(f.state.fkReads,1);
+ await f.store.mutate(actor,'sale_draft',{requestId},c=>c.createDraft());assert.equal(f.state.fkReads,2);
+ await f.store.mutate(actor,'sale_draft',{requestId},c=>c.createDraft());assert.equal(f.state.fkReads,3);assert.equal(f.state.effects,1);
+ for(const mode of ['legacy','disabled','untrusted','multiColumn','foreignParent','foreignColumn','foreignSchema','wrongReference','cascade','cascadeUpdate','missing','duplicate']){
+  const bad=fixture();bad.state.fkMode=mode;let handlerCalls=0;
+  await assert.rejects(bad.store.read(actor,()=>{handlerCalls++;}),{code:'ISOLATED_COPY_FINITE_FK_UNVERIFIED'});
+  await assert.rejects(bad.store.mutate(actor,'sale_draft',{requestId},c=>{handlerCalls++;return c.createDraft();}),{code:'ISOLATED_COPY_FINITE_FK_UNVERIFIED'});
+  assert.equal(handlerCalls,0);assert.equal(bad.state.effects,0);assert.equal(bad.state.journal.length,0);assert.equal(bad.state.commits,0);assert.equal(bad.state.rollbacks,2);
+ }
+});
 
 test('actual report entry point dispatches registered copy before the original database path',async()=>{const f=fixture();const {createWorkReportsReadStore}=await import('./workReportsReadStore.mjs');const {reportFilters}=await import('./workReportsModel.mjs');const store=createWorkReportsReadStore({getRuntime:async()=>f.runtime,classification:{reportBindings:()=>"[]"}});const result=await store.read(reportFilters({},new Date('2026-10-08T09:00:00Z')),{actor});assert.equal(result.total,1);assert.equal(result.copyMeta.copyId,f.runtime.copyContext.copyId);assert.equal(result.currencyTotals[0].amount,'92.00000000');assert.equal(f.state.effects,0);assert.equal(f.state.commits,1);await assert.rejects(store.read(reportFilters({},new Date('2026-10-08T09:00:00Z')),{actor:{...actor,permissions:[]}}));});

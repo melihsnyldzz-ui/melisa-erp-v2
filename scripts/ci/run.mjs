@@ -27,6 +27,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', ...['stage4-opening-separation', 'stage4-copy-sql', 'stage4-copy-context-sql', 'stage4-copy-recovery'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/product-completion-readers.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/crm-order-v2-sql.test.mjs'), path.join(root, 'scripts/canonical/build-crm-order-package.test.mjs'), path.join(root, 'apps/api/crm-order-network.test.mjs')]);
   run(['--test', path.join(root, 'scripts/catalog/apply-confirmed-photo-plan.test.mjs')]);

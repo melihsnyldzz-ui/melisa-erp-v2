@@ -180,3 +180,23 @@ export function stage4ReadProcedure(module,preservedGuardHash,guardChanges=[]){
  definition=definition.replace(opening,m=>m+`\nDECLARE @stage4_reader_copy uniqueidentifier;SELECT @stage4_reader_copy=copy_id FROM dbo.stage4_copy_manifest WHERE sealed=1;EXEC dbo.usp_stage4_copy_ready @stage4_reader_copy;\n`);
  return {name:'dbo.'+module.name,beforeHash:digest(original),afterHash:digest(definition.replace(/^ALTER\b/i,'CREATE')),definition,kind:'PRESERVED_COPY_READER'};
 }
+
+// The copied write triggers keep their complete quarantine predicates. Their
+// nested verifier must recognize only this copy and its exact same-TX intent.
+// Legacy resolver/compatibility receipts stay immutable; a matching name AND
+// before hash is required before substituting the copy's current definition.
+export function stage4QuarantineProcedure(module){
+ if(module?.schemaName!=='dbo'||module.type_desc!=='SQL_STORED_PROCEDURE'
+  ||!['usp_assert_operation_quarantine_v2','usp_check_operation_quarantine','usp_list_operation_quarantine'].includes(module.name)
+  ||typeof module.definition!=='string')fail('STAGE4_QUARANTINE_PROCEDURE_SCOPE');
+ const original=module.definition,guard=/DB_NAME\(\) COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_SIRKET_TEST_20260929_01'/g;
+ if([...original.matchAll(guard)].length!==1||!original.includes("N'Semih\\MELISADEV'"))fail('STAGE4_QUARANTINE_TARGET_SHAPE');
+ let definition=original.replace(/^CREATE(?:\s+OR\s+ALTER)?\s+PROCEDURE/i,'ALTER PROCEDURE')
+  .replace(guard,`(DB_NAME() COLLATE Latin1_General_100_BIN2<>N'${COPY_DB}' OR ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${COPY_LOGIN}' OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents n JOIN dbo.stage4_copy_manifest m ON m.copy_id=n.copy_id AND m.sealed=1 WHERE n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID()))`);
+ if(module.name==='usp_assert_operation_quarantine_v2'){
+  const comparison="LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(p.object_name))),2))<>p.definition_hash";
+  if(original.split(comparison).length!==2)fail('STAGE4_QUARANTINE_RESOLVER_SHAPE');
+  definition=definition.replace(comparison,"LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(p.object_name))),2))<>LOWER(COALESCE((SELECT c.after_hash FROM dbo.stage4_copy_module_manifest c WHERE c.name=p.object_name AND LOWER(c.before_hash)=p.definition_hash),p.definition_hash))");
+ }
+ return {name:'dbo.'+module.name,beforeHash:digest(original),afterHash:digest(definition.replace(/^ALTER\b/i,'CREATE')),definition,kind:'QUARANTINE_NESTED_COPY_VERIFIER'};
+}
