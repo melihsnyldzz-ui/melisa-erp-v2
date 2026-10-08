@@ -39,6 +39,7 @@ export async function configureCanonicalTest(configPath, mode) {
     MELISA_GOAL8_SYNTHETIC_DAY:String(goal8DayProfile),
     MELISA_GOAL8_SQL_PROFILE_INSTALLED:String(goal8SqlInstalled),
     MELISA_GOAL8_SYNTHETIC_DAY_SEAL:goal8SqlInstalled?JSON.stringify(goal8Seal):'',
+    MELISA_PRODUCT_PURCHASE_REFERENCE_MANIFEST_HASH:writes&&/^[a-f0-9]{64}$/.test(config.productPurchaseReferenceManifestHash??'')?config.productPurchaseReferenceManifestHash:'',
     // Local sessions share one loopback address; each workflow refresh reads
     // several protected endpoints. Keep a bounded TEST rate without applying
     // the production fifteen-minute shared-IP budget to a local work session.

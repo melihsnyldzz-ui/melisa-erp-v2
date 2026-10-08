@@ -1,3 +1,14 @@
+## ERP-UA25 / ERP-MIGUNIFIED01 — alış bilgisi, insan kabulü bekliyor
+
+8 Ekim2026 teknik TEST uygulaması: normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) kartında mevcut alış görüntüleme izniyle ayrı "Alış referansını görüntüle" düğmesi. İnsan sonucu **bekliyor**; ERP-UA24 ve önceki tüm sonuçlar korunur.
+
+1. 8023 CONCEPT ve0161 MOLLY kart alış tutarı/döviz/birimini incele; iskonto kayıtlı olsa da brüt/net doğrulanmadığı için referans hesaplanmadığını gör.
+2. 0205 NAYİNOM,3344 CONCEPT ve2401 BABY AURA üzerinde bilinmeyen tutarın sıfır olmadığını değerlendir.
+3. Kısmi kayıtta bilinen tutarın yanında "Döviz bilinmiyor" görünmesini, maliyetin muhasebe kârı olarak sunulmamasını incele.
+4. Normal50 ürünlü katalog/fotoğraf/satış fiyatını kullan; bu alış bilgisi için satış veya ticari işlem oluşturma.
+
+[Dar teknik rapor](docs/evidence/erp/2026-10-08-unified-migration/README.md); güncel paket/source STATUS teslim kaydında. Teknik testler insan PASS değildir.
+
 ## Goal7.3 dar insan ekran kontrolü — tamamlandı; ERP-UA24 bekliyor
 
 7 Ekim 2026 / kullanıcı açık sonucu / ERP-DEC-025. TEST86/source769031c üzerinde TRY hesabı, USD hesabı ve aynı tedarikçinin ayrı TRY/USD hesapları birlikte kontrol edildi. Kullanıcı döviz ayrımı, B/A yönü ve Goal7.3 uygulama mantığını doğru buldu; ekrandaki tutarların aktarım anına ait olduğunu, sonraki Vega işlemleriyle değiştiğini belirtti. Bu normal kaynak driftidir; Goal7.3 hatası veya tekrar migration gerekçesi değildir.

@@ -22,7 +22,9 @@ import {
 import { requireAuth, requirePermission } from '../middleware/authMiddleware.js';
 import {getOpeningProductPrices,getOpeningPriceProducts} from '../controllers/openingPriceController.js';
 
+import {registerProductPurchaseReferenceRoute} from '../controllers/productPurchaseReferenceController.js';
 export const productRoutes = Router();
+registerProductPurchaseReferenceRoute(productRoutes,{requireAuth,requirePermission});
 
 productRoutes.get('/migration-opening-prices', requireAuth, requirePermission('product.view'), requirePermission('purchase.view'), getOpeningPriceProducts);
 productRoutes.get('/products/:id/opening-prices', requireAuth, requirePermission('product.view'), requirePermission('purchase.view'), getOpeningProductPrices);
