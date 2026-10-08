@@ -1,4 +1,10 @@
-## ERP-UA24/25 — güncel cari ve iki ondalık gösterim hazırlığı, bekliyor
+## ERP-UA24/25 — onaylı 283 hesap TEST uygulaması, insan kabulü bekliyor
+
+8 Ekim2026 / ERP-DEC-031. Kullanıcı sabit283 hesaba TEST uygulama onayı verdi; bu onay geniş insan ekran PASS değildir.59 fark,224 finans no-op,0 ayrılan;159 hassasiyet/157 ana kart göstergesi teknik doğrulandı. Bağımsız SQL/API ve ajan normal ekran provası teknik kanıttır. **ERP-UA24 ve ERP-UA25 sonuçları bekliyor kalır.** Önceki16,770 dış kapsam veikiLL aktarılmadı. [Uygulama kanıtı](docs/evidence/erp/2026-10-08-current-party-application/README.md).
+
+İnsan kontrolü geldiğinde normal [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers) ve [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers) kartında ayrı TRY/USD/EUR, B/A yönü ve güncel ERP bakiye incelenir. Açılış, kaynak güncellemesi ve gerçek yerel hareket etkisi ayrı görülür; source capture sonrasındaki Vega hareketi bugünkü bakiye diye iddia edilmez. Bu kayıt yeni ödeme/tahsilat veya başka migration onayı değildir.
+
+## Tarihsel ERP-UA24/25 — cari ve iki ondalık gösterim hazırlığı
 
 8 Ekim2026 ERP-DEC-030. Kullanıcı yalnız yöntem kararını verdi; yeni283 hesabın tutar onayı veya geniş insan PASS vermedi. 299 hesap onaya hazır/16 önceki korunmuş/283 yeni bekler; LL2 dışarıda. Normal fiyat ve bakiye iki ondalık gösterilir; TRY/USD/EUR/B-A exact yönü ve kaynak hassasiyeti korunur. Yeni tutar/finans/DDL uygulaması0. Paket ve ajan ekran provası teknik kanıttır; ERP-UA24/25 sonuçları **bekliyor** kalır. [Kanıt](docs/evidence/erp/2026-10-08-current-party-completion/README.md). Önceki Goal7.3 dar insan kontrolü ve alış referansı teslimi tarihsel kapsamıyla aşağıda korunur.
 

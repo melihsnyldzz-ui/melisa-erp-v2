@@ -3,12 +3,35 @@ import {createHash} from 'node:crypto';
 import {FINAL_PARTY_READ_SQL} from './finalPartyDeltaRead.mjs';
 
 export const CURRENT_FINANCE_PARTY_PROC='dbo.usp_read_current_finance_deltas';
-const query=FINAL_PARTY_READ_SQL.replace("WHERE r.domain=N'account'", "WHERE p.cutover_id=@cutover_id AND p.party_hash=@party_hash AND p.plan_hash=@plan_hash AND r.domain=N'account'");
-export const CURRENT_FINANCE_PARTY_PROC_SQL=`CREATE PROCEDURE ${CURRENT_FINANCE_PARTY_PROC} @account_ids nvarchar(max),@cutover_id uniqueidentifier,@plan_hash char(64),@party_hash char(64),@packet_hash char(64) WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;
+// Materialize the receipt header and effects before any page/native join.
+// SQL otherwise reevaluates JSON_VALUE(receiptHash), located after the large
+// full-before/after payload, for every effect/account in its nested-loop plan.
+// The immutable receipt is still validated on every call in the same TX.
+export const CURRENT_FINANCE_PARTY_PROOF_QUERY_SQL=FINAL_PARTY_READ_SQL
+ .replace('p.plan_hash<>r.plan_hash','r.parent_plan_hash<>r.plan_hash')
+ .replace("JSON_VALUE(r.receipt_json,'$.receiptHash')",'r.parsed_receipt_hash')
+ .replace("JSON_VALUE(r.receipt_json,'$.planHash')",'r.parsed_plan_hash')
+ .replace("JSON_VALUE(r.receipt_json,'$.actorId')",'r.parsed_actor_id')
+ .replace('FROM erp_migration.final_cutover_children r JOIN erp_migration.final_cutover_parents p ON p.cutover_id=r.cutover_id\nCROSS APPLY OPENJSON(r.receipt_json,\'$.effects\') WITH(nativeId bigint,delta decimal(28,8),movementId bigint,auditId bigint) e',
+  'FROM #current_finance_receipts r JOIN #current_finance_effects e ON e.child_id=r.child_id')
+ .replace('JOIN OPENJSON(@account_ids) ids ON a.id=TRY_CONVERT(bigint,ids.value)','JOIN #current_finance_ids ids ON a.id=ids.account_id')
+ .replace("JSON_VALUE(r.receipt_json,'$.status')",'r.parsed_status');
+export const CURRENT_FINANCE_PARTY_PROC_SQL=`CREATE OR ALTER PROCEDURE ${CURRENT_FINANCE_PARTY_PROC} @account_ids nvarchar(max),@cutover_id uniqueidentifier,@plan_hash char(64),@party_hash char(64),@packet_hash char(64) WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;
  IF DB_NAME()<>N'MELISA_ERP_SIRKET_TEST_20260929_01' OR @@SERVERNAME<>N'Semih\\MELISADEV' OR @@TRANCOUNT=0 THROW 51831,'CURRENT_FINANCE_PARTY_TARGET_TRANSACTION',1;
  IF ISJSON(@account_ids)<>1 OR(SELECT COUNT(*) FROM OPENJSON(@account_ids))>1000 OR EXISTS(SELECT 1 FROM OPENJSON(@account_ids) WHERE TRY_CONVERT(bigint,value) IS NULL OR TRY_CONVERT(bigint,value)<1) THROW 51831,'CURRENT_FINANCE_PARTY_PAGE_SCOPE',1;
  IF NOT EXISTS(SELECT 1 FROM erp_migration.final_cutover_parents WHERE cutover_id=@cutover_id AND plan_hash=@plan_hash AND party_hash=@party_hash AND JSON_VALUE(plan_json,'$.schemaVersion')=N'melisa-current-finance-test-application.v1' AND JSON_VALUE(plan_json,'$.packetHash')=@packet_hash AND JSON_VALUE(plan_json,'$.actualT1')=N'false') OR COALESCE((SELECT TOP(1) state FROM erp_migration.final_cutover_events WHERE cutover_id=@cutover_id ORDER BY id DESC),N'')<>N'CURRENT_RECONCILED' THROW 51831,'CURRENT_FINANCE_PARTY_PARENT_NOT_RECONCILED',1;
- SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(@@PROCID)),2) readerDefinitionHash,(SELECT * FROM(${query}) proof FOR JSON PATH,INCLUDE_NULL_VALUES) rowsJson;END`;
+ SELECT TRY_CONVERT(bigint,value) account_id INTO #current_finance_ids FROM OPENJSON(@account_ids);
+ SELECT r.child_id,r.plan_hash,r.receipt_hash,r.domain,r.inverse,p.plan_hash parent_plan_hash,
+  meta.parsed_receipt_hash,meta.parsed_plan_hash,meta.parsed_actor_id,meta.parsed_status,meta.effects_json
+ INTO #current_finance_receipts
+ FROM erp_migration.final_cutover_children r JOIN erp_migration.final_cutover_parents p ON p.cutover_id=r.cutover_id
+ CROSS APPLY OPENJSON(r.receipt_json) WITH(parsed_receipt_hash nvarchar(max) '$.receiptHash',parsed_plan_hash nvarchar(max) '$.planHash',parsed_actor_id nvarchar(max) '$.actorId',parsed_status nvarchar(max) '$.status',effects_json nvarchar(max) '$.effects' AS JSON) meta
+ WHERE p.cutover_id=@cutover_id AND p.party_hash=@party_hash AND p.plan_hash=@plan_hash AND r.domain=N'account';
+ IF EXISTS(SELECT 1 FROM #current_finance_receipts WHERE parsed_receipt_hash IS NULL OR parsed_plan_hash IS NULL OR parsed_actor_id IS NULL OR parsed_status IS NULL OR effects_json IS NULL OR DATALENGTH(parsed_receipt_hash)>8000 OR DATALENGTH(parsed_plan_hash)>8000 OR DATALENGTH(parsed_actor_id)>8000 OR DATALENGTH(parsed_status)>8000) THROW 51831,'CURRENT_FINANCE_PARTY_RECEIPT_METADATA',1;
+ SELECT r.child_id,e.nativeId,e.delta,e.movementId,e.auditId INTO #current_finance_effects
+ FROM #current_finance_receipts r CROSS APPLY OPENJSON(r.effects_json) WITH(nativeId bigint,delta decimal(28,8),movementId bigint,auditId bigint) e;
+ CREATE INDEX IX_current_finance_effect_native ON #current_finance_effects(nativeId,child_id);
+ SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(@@PROCID)),2) readerDefinitionHash,(SELECT * FROM(${CURRENT_FINANCE_PARTY_PROOF_QUERY_SQL}) proof FOR JSON PATH,INCLUDE_NULL_VALUES) rowsJson;END`;
 export const CURRENT_FINANCE_PARTY_PROC_HASH=createHash('sha256').update(CURRENT_FINANCE_PARTY_PROC_SQL,'utf16le').digest('hex').toUpperCase();
 let configured=null;
 export function currentFinanceContext(context){

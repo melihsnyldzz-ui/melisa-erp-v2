@@ -1,6 +1,6 @@
 ## Güncel cari tamamlaması — 8 Ekim 2026 / ERP-DEC-030
 
-**49 toplam / 9 🟢 / 39 🟡 / 1 🔴** değişmedi. D02/D06 genel aktarım ve insan kabulü 🟡:299 hesap sayısal onaya hazır (138 müşteri/161 tedarikçi),16 önceki korunmuş,283 yeni=59 fark/224 defter no-op.159 hassasiyet ve157 ana kart gösterge eşitlemesi aynı hazırlanmış pakette; henüz executable değil.770 gerekçeli dışarıda;iki exact LL aktarılmaz. Yeni finans/DDL yazması0; ERP-UA24/25 bekler. [Kanıt](docs/evidence/erp/2026-10-08-current-party-completion/README.md). Eski alış referansı tamamlaması ve önceki kabul sonuçları korunur; bu hazırlıktan sonra DUR.
+**49 toplam / 9 🟢 / 39 🟡 / 1 🔴** değişmedi. ERP-DEC-031 dar283 hesap TEST uygulaması teknik teslimi:59 fark/224 defter no-op/0 ayrılan,159 kayıpsız hassasiyet/157 ana kart gösterge eşitlemesi; committed replay0, tam atomic rollback+yedek ve bağımsız SQL/API doğrulanmış. Önceki16/770 dış kapsam/ikiLL/yerel-sentetik ayrımı korunur. D02/D06 genel aktarım ve insan kabulü 🟡; ERP-UA24/25 bekler. [Uygulama kanıtı](docs/evidence/erp/2026-10-08-current-party-application/README.md). Önceki sayısal hazırlık ve alış referansı kanıtları tarihsel korunur. **Bu283 uygulaması sonunda DUR; yeni hesap/goal/finalT1/LIVE işi başlamaz.**
 
 ## Son net alış eki — 8 Ekim 2026 / ERP-DEC-029
 
