@@ -37,3 +37,10 @@ e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx
 # Exact historical fingerprints; later manifests use separate file/digest fields.
 0f9bedec7fe862a11dace7cb3ad37023cffe1393:docs/evidence/erp/2026-10-08-last-net-purchase/delivery-summary.json:generic-api-key:113
 0f9bedec7fe862a11dace7cb3ad37023cffe1393:docs/evidence/erp/2026-10-08-last-net-purchase/delivery-summary.json:generic-api-key:117
+# Reviewed 2026-10-08: deterministic synthetic F0102 product provenance paths,
+# not login/API credentials. Exact historical fingerprints only.
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:8
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:20
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:8
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:27
