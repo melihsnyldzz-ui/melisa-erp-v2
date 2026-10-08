@@ -6,6 +6,14 @@ const location={hostname:'127.0.0.1',protocol:'http:',port:'5194'},apiBase='http
 const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['product.view','sales.view']};
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
+
+test('isolated copy session routes only to4154 and refuses original/copy cross-pairs before network',async()=>{
+ const copyLocation={...location,port:'5204'},copyBase='http://127.0.0.1:4154',calls=[];
+ const session=createWorkingCatalogSession({location:copyLocation,apiBase:copyBase,storage:storage(),fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/test-admin')?reply({user,accessToken:'copy-token'}):reply({readable:true});}});
+ await session.start();await session.supplierPayments('/api/work-supplier-payments/context');
+ assert.deepEqual(calls.map(x=>x.url),[copyBase+'/api/auth/test-admin',copyBase+'/api/work-supplier-payments/context']);assert.equal(calls[1].options.method,'GET');session.dispose();
+ for(const pair of [{location:copyLocation,apiBase},{location,apiBase:copyBase}]){const blocked=createWorkingCatalogSession({...pair,storage:storage(),fetchImpl:async()=>{throw Error('Network forbidden');}});await assert.rejects(()=>blocked.start());blocked.dispose();}
+});
 test('private purchase reference reaches only its exact GET with all existing financial privileges',async()=>{
  const current={...user,permissions:['product.view','purchase.view','finance.view']},calls=[],store=storage();
  const s=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/test-admin')?reply({user:current,accessToken:'private-read'}):reply({cardAmountExact:'15.03000000'});}});

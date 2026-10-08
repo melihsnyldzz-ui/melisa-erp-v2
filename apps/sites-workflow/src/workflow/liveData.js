@@ -23,10 +23,13 @@ import {createWorkReports} from './workReports.js';
 import {createWorkSystemSettings} from './workSystemSettings.js';
 import {resolveTestApiBase,testSessionModeKey} from './testAdminSession.mjs';
 import {createWorkingCatalogSession,workingCatalogUserLabel} from './workingCatalogSession.mjs';
+import {mountCopyActorSelector,verifiedCopyPage} from './workCopyActorSelector.mjs';
 const savedAccounts=accountSnapshot.rows.map(r=>({sourceId:String(r.IND),accountCode:r.FIRMAKODU,name:r.FIRMAADI,currency:r.PARABIRIMI,groupCode:r.KOD1,readAt:r.readAt}));
 const savedAccountNames=Object.fromEntries(savedAccounts.map(r=>[r.sourceId,r.name]));
 
 const workflow=window.MelisaWorkflow;
+let disposeCopyActors=()=>{};
+function showCopyActors(session,current){disposeCopyActors();disposeCopyActors=mountCopyActorSelector({container:document.querySelector('.top-right'),session,user:current,beforeSwitch:()=>window.MelisaWorkingBeforeNavigate?.()!==false,onChanged:()=>workflow.render()});}
 function refreshBusinessDate(){
  const target=document.getElementById('business-date');
  if(target)target.textContent=new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',day:'numeric',month:'long',year:'numeric',weekday:'long'}).format(new Date());
@@ -107,7 +110,7 @@ function createNativeApprovals({root,session,navigate}){
  return {mount(){active=true;refresh();},dispose(){active=false;generation++;}};
 }
 function mount(){
- dispose();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
+ disposeCopyActors();dispose();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
  const countWorkspace=page==='count';
  const workspace=['stock','home','approvals','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns';
  toolbar.hidden=workspace;toolbar.style.display=workspace?'none':'';
@@ -125,7 +128,7 @@ function mount(){
    root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>${page==='reports'?'Raporlar':'Ayarlar / Sistem Durumu'}</h1></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-management-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
    root.querySelector('#working-management-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;form.querySelector('button').disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showManagement(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
-  function showManagement(current){if(!alive())return;if(!current){showLogin();return;}label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);screenUI?.dispose();screenUI=page==='reports'?createWorkReports({root,session}):createWorkSystemSettings({root,session});screenUI.mount();}
+  function showManagement(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);screenUI?.dispose();screenUI=page==='reports'?createWorkReports({root,session}):createWorkSystemSettings({root,session});screenUI.mount();}
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;screenUI?.dispose();session.dispose();};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Bilgiler açılıyor…</p></section>';
@@ -144,8 +147,8 @@ function mount(){
    root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>${heading}</h1></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-trade-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
    root.querySelector('#working-trade-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;form.querySelector('button').disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showTrade(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
-  function showTrade(current){if(!alive())return;if(!current){showLogin();return;}label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);const args={root,session,user:current,navigate:id=>workflow.go(id),storage:storage('localStorage'),apiBase:resolveTestApiBase({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL})};tradeUI=page==='supplier-payments'?createWorkSupplierPayments(args):page==='goods'?createWorkReceiving(args):page==='purchases'?createWorkPurchases(args):page==='suppliers'?createWorkSuppliers(args):page==='collections'?createWorkCollections(args):page==='customers'?createWorkCustomers(args):page==='count'?createWorkCount(args):page==='returns'?createWorkSupplierReturns(args):createWorkSales({...args,receiptOnly:page==='receipts'});window.MelisaWorkingBeforeNavigate=()=>tradeUI?.requestClose?.()!==false;tradeUI.mount();}
-  if(page==='count'||page==='returns')storage('sessionStorage')?.setItem(testSessionModeKey,'manual');
+  function showTrade(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);const args={root,session,user:current,navigate:id=>workflow.go(id),storage:storage('localStorage'),apiBase:resolveTestApiBase({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL})};tradeUI=page==='supplier-payments'?createWorkSupplierPayments(args):page==='goods'?createWorkReceiving(args):page==='purchases'?createWorkPurchases(args):page==='suppliers'?createWorkSuppliers(args):page==='collections'?createWorkCollections(args):page==='customers'?createWorkCustomers(args):page==='count'?createWorkCount(args):page==='returns'?createWorkSupplierReturns(args):createWorkSales({...args,receiptOnly:page==='receipts'});window.MelisaWorkingBeforeNavigate=()=>tradeUI?.requestClose?.()!==false;tradeUI.mount();}
+  if((page==='count'||page==='returns')&&!verifiedCopyPage())storage('sessionStorage')?.setItem(testSessionModeKey,'manual');
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;tradeUI?.dispose();session.dispose();window.MelisaWorkingBeforeNavigate=null;};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">İşlem bilgileri açılıyor…</p></section>';
@@ -164,7 +167,7 @@ function mount(){
    root.querySelector('#working-home-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;form.querySelector('button').disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showHome(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
   function showHome(current){
-   if(!alive())return;if(!current){showLogin();return;}label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);
+   if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);
    homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
   }
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
@@ -185,7 +188,7 @@ function mount(){
    root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Ürün & stok</h1></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-catalog-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
    root.querySelector('#working-catalog-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button');button.disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showCatalog(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
-  function showCatalog(current){if(!alive())return;if(!current){showLogin();return;}label.textContent=workingCatalogUserLabel(current);const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=label.textContent.slice(0,1);catalogUI=createWorkCatalog({api:session.api,media:session.media,permissions:current.permissions});root.innerHTML=catalogUI.html();catalogUI.mount(root);}
+  function showCatalog(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=label.textContent.slice(0,1);catalogUI=createWorkCatalog({api:session.api,media:session.media,permissions:current.permissions});root.innerHTML=catalogUI.html();catalogUI.mount(root);}
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;catalogUI?.dispose();session.dispose();};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Ürün kataloğu açılıyor…</p></section>';

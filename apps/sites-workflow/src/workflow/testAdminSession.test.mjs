@@ -17,6 +17,15 @@ test('LIVE, remote UI and non-TEST API never auto-open admin', () => {
     assert.equal(shouldAutoOpenTestAdmin({ ...context, location: { ...context.location, ...change } }), false);
   assert.equal(shouldAutoOpenTestAdmin({ ...context, apiBase: 'http://127.0.0.1:4114' }), false);
 });
+
+test('isolated operation copy accepts only exact loopback web5204 API4154 pair',()=>{
+ const copy={...context,location:{...context.location,port:'5204'},apiBase:'http://127.0.0.1:4154'};
+ assert.equal(resolveTestApiBase(copy),copy.apiBase);
+ assert.equal(resolveTestApiBase({...copy,location:{...copy.location,hostname:'localhost'}}),copy.apiBase);
+ for(const change of [{apiBase:context.apiBase},{apiBase:'http://192.168.1.46:4154'},{apiBase:copy.apiBase+'/'},{location:{...copy.location,hostname:'192.168.1.46'}},{location:{...copy.location,port:'5194'}},{location:{...copy.location,protocol:'https:'}}])assert.equal(resolveTestApiBase({...copy,...change}),null);
+ assert.equal(resolveTestApiBase({...context,apiBase:copy.apiBase}),null);
+ assert.equal(shouldAutoOpenTestAdmin({...copy,mode:'manual'}),false);
+});
 test('actual LAB admin action refuses unapproved LAN before clearing session or starting a request',async()=>{
  const source=await readFile(new URL('./testSales.js',import.meta.url),'utf8');const start=source.indexOf('async function openTestAdmin(){'),end=source.indexOf('let renderedHash=',start);assert.ok(start>=0&&end>start);
  const open=new Function('shouldAutoOpenTestAdmin','location','BASE','clearSession',source.slice(start,end)+';return openTestAdmin;')(shouldAutoOpenTestAdmin,{...context.location,hostname:'192.168.1.47'},'http://192.168.1.46:4144',()=>{throw Error('LAN must preserve normal session');});await open();

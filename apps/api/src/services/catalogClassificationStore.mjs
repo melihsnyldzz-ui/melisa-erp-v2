@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {catalogError,parseCatalogId,catalogDisplayCode,compareCatalogCodes} from './catalogModel.mjs';
 import {canonicalTestAdminContext,testAdminClaims} from './canonicalTestAdminSession.mjs';
 import {isBoundCatalogContext,boundCatalogLineage,validateBoundCatalogContext} from './currentProductCatalogContext.mjs';
+import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 const ROOT='C:/Sirket/ERP/data/TEST-20260929-01/catalog-classification';
 const SOURCE='36971dab7296dd171ee0084c185f833b47b96d6a47fe57c8486a2b81d78ef400';
 const RUN='VEGA-OPENING-TEST-20261004-06';
@@ -27,7 +28,8 @@ export function createCatalogClassificationStore({expectedRoot=ROOT,acceptedCoun
     const file=path.join(root,'index.json');for(let current=file;current!==path.parse(file).root;current=path.dirname(current))check(!(await fs.lstat(current)).isSymbolicLink());check(samePath(await fs.realpath(file),file));
     const raw=await fs.readFile(file);check(raw.length<=16*1024*1024&&createHash('sha256').update(raw).digest('hex')===indexSha256.toLowerCase());const index=JSON.parse(raw.toString('utf8').replace(/^\uFEFF/,''));
     const count=version?.productCount??acceptedCount;
-    check(exactKeys(index,['schemaVersion','server','database','runId','sourceAsOf','sourceHash','entries'])&&index.schemaVersion===(version?'melisa-erp.catalog-classification.v2':'melisa-erp.catalog-classification.v1')&&index.server===context.identity.serverName&&index.database===context.identity.databaseName&&index.runId===(version?.runId??RUN)&&index.sourceAsOf===(version?.sourceAsOf??'2026-09-30')&&index.sourceHash===(version?.sourceHash??SOURCE)&&Array.isArray(index.entries)&&index.entries.length===count+heldCount);
+    const indexDatabase=isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().sourceDatabase:context.identity.databaseName;
+    check(exactKeys(index,['schemaVersion','server','database','runId','sourceAsOf','sourceHash','entries'])&&index.schemaVersion===(version?'melisa-erp.catalog-classification.v2':'melisa-erp.catalog-classification.v1')&&index.server===context.identity.serverName&&index.database===indexDatabase&&index.runId===(version?.runId??RUN)&&index.sourceAsOf===(version?.sourceAsOf??'2026-09-30')&&index.sourceHash===(version?.sourceHash??SOURCE)&&Array.isArray(index.entries)&&index.entries.length===count+heldCount);
     const entries=new Map(),sources=new Set();let accepted=0,held=0;
     for(const e of index.entries){
      check(exactKeys(e,['productId','stockCode','sourceKey','kind','brand','productType','sourceName','stagePayloadHash','stageSqlHash',...(version?['lineageRunId','sourceAsOf']:[])]));parseCatalogId(e.productId);check(!entries.has(e.productId)&&!['301984','301985','301986'].includes(e.productId)&&typeof e.stockCode==='string'&&e.stockCode.length>0&&e.stockCode.length<=250&&typeof e.sourceKey==='string'&&(version?/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/:/^VEGA_CAPTURE_20260930_01\/F0102\/TBLSTOKLAR\/[1-9]\d*$/).test(e.sourceKey)&&!sources.has(e.sourceKey));sources.add(e.sourceKey);

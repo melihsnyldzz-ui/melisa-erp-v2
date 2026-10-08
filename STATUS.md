@@ -1,3 +1,9 @@
+## ERP-STAGE0401 — Aşama 4 başlangıcı — 8 Ekim 2026
+
+ERP-DEC-033. Temiz kanonik dal codex/erp-finish-20261004 / PR23 HEAD d3d81b8dd3353d1839e84eb3f08f770ea6dc0c8a doğrulandı. Çalışan TEST113 / source 63f0a017ec23e89ca9aab7e44acb051f4e86479a; web5194/API4144/native4146 sahipli süreç ve gerçek health → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; sysadmin0 / LIVEaccess0. Yeni private initial-runtime-proof.json mevcut.
+
+Önceki teslimler korunur; yeni ürün/cari aktarımı veya orijinal TEST veri yazması yapılmadı. Aynı günlük motorların ayrı ve mühürlü TEST kopyasına bağlanması, journal/profile/işlem kimlikleriyle tam etki sınıflandırması ve ödeme paneli kök nedeni inceleniyor. Yeni sonuç veya insan PASS henüz yok; aşama sonunda DUR.
+
 ## ERP-PRODUCTCOMPLETION01 — Aşama 3 TEST alt kapsamı teslimi — 8 Ekim 2026
 
 ERP-DEC-032 / ERP-PRODUCTCOMPLETION01: kesin ürün alt kapsamı TEST'e uygulandı. İnsan kabulü ERP-UA26 bekliyor; bu teslim sonunda DUR. [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-product-completion/README.md). Başlangıç temiz HEAD 8cbc5f952f1720b4609ba900700d60a7b0e4a606 / TEST107-source6c31585; kanonik origin, dal ve PR23 korundu. Güncel çalışan **TEST113 / source 63f0a017ec23e89ca9aab7e44acb051f4e86479a**, CANONICAL-TEST-63f0a017ec23: 1.516 manifest dosyası, baselineReproduced true. Web 5194 / API 4144 / native 4146 → Semih\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01; sağlık, kaynak ve paket doğrulandı. sysadmin 0 / LIVE access 0 / native READ_ONLY. Aktarım uygulama source'u 5ecddf4da931bf1089223d87c914c9612fe52b59; sonraki R2/R3 okuyucu düzeltmeleri yeni ticari batch değildir. Son belge teslim commit'i uygulama source'undan ayrıdır; PR23 head makbuzu esas alınır.

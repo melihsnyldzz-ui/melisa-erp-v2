@@ -2854,6 +2854,33 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
 
 async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.isolatedCopyReceived===true){
+    const {isolatedCopyTransactionContext}=await import('./isolatedOperationCopyScope.mjs');
+    const copy=isolatedCopyTransactionContext(context.transaction);
+    if(copy!==context.isolatedOperationCopy)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul işlem kapsamı doğrulanamadı.',409);
+    const ids=copy.products.map(p=>p.id),supplier=copy.suppliers.find(p=>p.currency==='TRY');
+    if(ids.length!==2||!supplier)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul işlem kapsamı doğrulanamadı.',409);
+    const proof=await new context.sqlDriver.Request(context.transaction).input('invoice',context.sqlDriver.BigInt,invoiceId).input('copy',context.sqlDriver.UniqueIdentifier,copy.copyId).input('supplier',context.sqlDriver.BigInt,supplier.id).input('p0',context.sqlDriver.BigInt,ids[0]).input('p1',context.sqlDriver.BigInt,ids[1]).query(`
+      SELECT CASE WHEN DB_NAME()=N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01'
+      AND EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copy AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID())
+      AND EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts d JOIN dbo.purchase_invoices p ON p.id=d.invoice_id JOIN dbo.test_goods_batches b ON b.id=d.batch_id
+       WHERE d.invoice_id=@invoice AND d.state=N'linked' AND b.state=N'accepted' AND b.note LIKE N'STAGE4:'+LOWER(CONVERT(varchar(36),@copy))+N'%'
+       AND p.supplier_id=@supplier AND b.supplier_id=@supplier AND p.document_no=d.document_no AND p.document_currency=N'TRY' AND p.account_currency=N'TRY'
+       AND p.subtotal=d.subtotal AND p.grand_total=d.grand_total AND p.discount_total=0 AND p.exchange_rate_snapshot=1 AND p.account_exchange_rate_snapshot=1)
+      AND (SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=@invoice) BETWEEN 1 AND 2
+      AND NOT EXISTS(SELECT 1 FROM dbo.purchase_invoice_items i WHERE i.purchase_invoice_id=@invoice AND NOT EXISTS(
+       SELECT 1 FROM dbo.test_purchase_batch_links l JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id JOIN dbo.test_goods_batches b ON b.id=g.batch_id
+       JOIN dbo.test_purchase_batch_drafts d ON d.invoice_id=l.invoice_id AND d.batch_id=b.id JOIN dbo.test_purchase_batch_intent_lines n ON n.draft_id=d.id AND n.receipt_line_id=g.id
+       WHERE l.invoice_id=@invoice AND l.invoice_item_id=i.id AND b.state=N'accepted' AND b.supplier_id=@supplier AND b.warehouse_id=1
+       AND g.product_id IN(@p0,@p1) AND i.product_id=g.product_id AND i.quantity=l.quantity AND i.quantity=n.quantity AND i.purchase_price=n.purchase_price
+       AND i.line_total=n.line_total AND i.line_discount_rate=0 AND i.currency_code=N'TRY' AND g.unit=N'ADET' AND g.unit_factor=1 AND l.quantity>0 AND l.quantity<=g.quantity
+       AND (SELECT COUNT(*) FROM dbo.stock_movements m WHERE m.source_type=N'goods_receipt_batch' AND m.source_id=g.id AND m.product_id=g.product_id
+        AND m.quantity_in=g.quantity AND m.quantity_out=0 AND m.quantity_net=g.quantity AND m.unit_cost_try=n.purchase_price)=1
+       AND (SELECT COALESCE(SUM(x.quantity),0) FROM dbo.test_purchase_batch_links x JOIN dbo.purchase_invoices h ON h.id=x.invoice_id WHERE x.receipt_line_id=g.id AND h.status<>N'cancelled')<=g.quantity))
+      AND (SELECT COUNT(*) FROM dbo.test_purchase_batch_links WHERE invoice_id=@invoice)=(SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=@invoice)
+      THEN 1 ELSE 0 END valid;`);
+    if(Number(proof.recordset?.[0]?.valid)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul, fatura ve tek stok etkisi tam doğrulanamadı.',409);return;
+  }
   if(context.testC09Received===true){
     const proof=await new context.sqlDriver.Request(context.transaction)
       .input('invoice_id',context.sqlDriver.BigInt,invoiceId)

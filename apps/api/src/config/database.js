@@ -1,6 +1,8 @@
 import sqlDefault from 'mssql';
 import sqlTrusted from 'mssql/msnodesqlv8.js';
 import { env } from './env.js';
+import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
+export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 
 let poolPromise;
 
@@ -15,12 +17,12 @@ export function isCanonicalTest() {
 }
 
 export function getSqlDriver() {
-  if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest()) return sqlTrusted;
+  if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest() || isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime()) return sqlTrusted;
   return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
 }
 
 export function getSqlConfig() {
-  if ((env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest()) && !env.sql.trustedConnection) {
+  if ((env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest() || isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime()) && !env.sql.trustedConnection) {
     const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
     const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
     return {
@@ -31,7 +33,7 @@ export function getSqlConfig() {
         env.sql.encrypt ? 'Encrypt=Yes' : 'Encrypt=No',
       ].join(';'),
       connectionTimeout: 10000, requestTimeout: 10000,
-      ...(isCanonicalTest() && env.port === 4144 && env.sql.readOnly === false
+      ...((isCanonicalTest() && env.port === 4144 && env.sql.readOnly === false || isIsolatedOperationCopyRuntime())
         ? {pool: {max: 10, min: 1, idleTimeoutMillis: 30000}} : {}),
     };
   }
@@ -101,7 +103,21 @@ export async function getSqlPool() {
     throw error;
   }
 
-  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !isCanonicalTest()) {
+  if (isIsolatedOperationCopyRuntime()) {
+    const copy = getIsolatedOperationCopyConfig();
+    if (env.sql.database !== copy.target.database || env.sql.server !== copy.target.server
+      || env.sql.user !== copy.target.login || env.sql.readOnly !== false
+      || env.sql.trustedConnection || env.port !== 4154) {
+      throw Object.assign(new Error('Isolated operation copy identity changed'), {code:'ISOLATED_COPY_RUNTIME_REJECTED',statusCode:403});
+    }
+  }
+  if(isIsolatedCopyReadonlyRuntime()){
+    const {runtime}=getIsolatedCopyReadonlyRuntime();
+    if(env.sql.database!==runtime.database||env.sql.server!==runtime.server||env.sql.user!==runtime.user
+      ||env.sql.readOnly!==true||env.sql.trustedConnection||env.port!==4156)
+      throw Object.assign(new Error('Isolated reader identity changed'),{code:'ISOLATED_COPY_READER_REJECTED',statusCode:403});
+  }
+  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !isCanonicalTest() && !isIsolatedOperationCopyRuntime()) {
     const error = new Error('SQL write mode is only allowed for the LIVE-3 production candidate');
     error.code = 'SQL_WRITE_TARGET_INVALID';
     error.statusCode = 403;

@@ -1,0 +1,16 @@
+import fs from 'node:fs';import path from 'node:path';import express from 'express';
+import {validateIsolatedOperationCopyContext,copyAssert} from './src/services/isolatedOperationCopyContext.mjs';
+const [configPath]=process.argv.slice(2);copyAssert(path.isAbsolute(configPath??''),'STAGE4_WEB_CONFIG');
+const config=JSON.parse(fs.readFileSync(configPath,'utf8')),c=validateIsolatedOperationCopyContext(config.copyContext);
+copyAssert(config.host==='127.0.0.1'&&config.webPort===5204&&config.erpPort===4154&&config.nativePort===4156,'STAGE4_WEB_PORTS');
+const root=path.resolve('../sites-workflow/dist-copy'),release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
+copyAssert(fs.existsSync(path.join(root,'ornek-akis.html'))&&!fs.lstatSync(root).isSymbolicLink(),'STAGE4_WEB_BUILD_REQUIRED');
+const publicScope={schemaVersion:c.schemaVersion,operationOrigin:c.operationOrigin,copyId:c.copyId,sealHash:c.sealHash,backupSHA:c.backupSHA,sourceDatabase:c.sourceDatabase,target:{server:c.target.server,database:c.target.database},date:c.date,actors:c.actors.map(({id,role})=>({id,role})),products:c.products.map(({id,sourceKey,stockCode,unit,unitFactorExact8,priceIds,barcodes})=>({id,sourceKey,stockCode,unit,unitFactorExact8,priceIds,barcodes})),customers:c.customers.map(({id,partyId,accountId,currency,sourceKey})=>({id,partyId,accountId,currency,sourceKey})),suppliers:c.suppliers.map(({id,partyId,accountId,currency,sourceKey})=>({id,partyId,accountId,currency,sourceKey})),financeAccounts:c.financeAccounts.map(({id,currency})=>({id,currency}))};
+const app=express();app.disable('x-powered-by');
+app.use((req,res,next)=>{if(!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||!['127.0.0.1:5204','localhost:5204'].includes(req.get('host')))return res.sendStatus(403);res.set('Cache-Control','no-store');res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http://127.0.0.1:4154; connect-src 'self' http://127.0.0.1:4154 http://127.0.0.1:4156; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");next();});
+app.get('/stage4-runtime.js',(_req,res)=>res.type('application/javascript').send('window.__MELISA_OPERATION_COPY__='+JSON.stringify(publicScope).replaceAll('<','\\u003c')+';'));
+app.get('/test-health',(_req,res)=>res.json({ok:true,environment:'ISOLATED_TEST_COPY',port:5204,databaseName:c.target.database,copyId:c.copyId,sourceCommit:release.sourceCommit,packageId:release.packageId,actualT1:false}));
+app.get(['/','/ornek-akis.html'],(_req,res)=>res.type('html').send(fs.readFileSync(path.join(root,'ornek-akis.html'),'utf8').replace('<head>','<head><script src="/stage4-runtime.js"></script>')));
+app.use(express.static(root));const server=await new Promise((resolve,reject)=>{const s=app.listen(5204,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
+console.log(JSON.stringify({event:'STAGE4_WEB_READY',port:5204,copyId:c.copyId,sourceCommit:release.sourceCommit,packageId:release.packageId}));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>process.exit(0)));

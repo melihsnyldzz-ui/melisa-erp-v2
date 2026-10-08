@@ -1,5 +1,6 @@
 import { applyRolePermissionDefaults } from './permissionCatalog.js';
 import {canonicalInboundAllowed,canonicalLanHost} from '../../canonical-test-listeners.mjs';
+import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 
 const context = Symbol('verified canonical TEST admin');
 const database = 'MELISA_ERP_SIRKET_TEST_20260929_01';
@@ -9,6 +10,17 @@ const loopback = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ad
 // Installed only after configureCanonicalTest has checked the actual SQL identity.
 // No SQL role/user changes: actor 16 keeps all existing named-fixture guards.
 export function canonicalTestAdminContext({ identity, mode, port, writes, env, listenerPolicy }) {
+  if(isIsolatedOperationCopyRuntime()) {
+    const copy=getIsolatedOperationCopyConfig();
+    if(mode!=='erp'||port!==4154||writes!==true||env.sql.database!==copy.target.database
+      ||identity.databaseName!==copy.target.database||identity.serverName!==copy.target.server
+      ||identity.loginName!==copy.target.login||identity.databaseUser!==copy.target.databaseUser
+      ||identity.sysadmin!==0||identity.databaseControl!==0||identity.liveDatabaseAccess!==0
+      ||identity.originalDatabaseAccess!==0)fail();
+    // This validates the catalog bootstrap only. It does not install or grant
+    // the original admin claims in a different database.
+    return (_req,_res,next)=>next();
+  }
   if (mode !== 'erp' || port !== 4144 || writes !== true || env.sql.database !== database
     || identity.databaseName !== database || identity.serverName.toLowerCase() !== 'semih\\melisadev'
     || identity.loginName !== 'melisa_sirket_sales_test_20260929_01'

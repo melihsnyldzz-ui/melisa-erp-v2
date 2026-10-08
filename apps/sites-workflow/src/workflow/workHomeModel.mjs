@@ -1,3 +1,4 @@
+import {operationCopyFromMeta} from './isolatedOperationCopyModel.mjs';
 export {moneyDisplay} from './moneyDisplay.mjs';
 const fail=()=>{throw Error('İş sırası şu anda okunamıyor. Yeniden deneyin.');};
 const statuses=['available','forbidden','unavailable'];
@@ -10,6 +11,7 @@ export function homeAmount(value){if(!exact(value))fail();if(value===null)return
 export function homeCount(value){return value===null?'Bilinmiyor':number(value)?value.toLocaleString('tr-TR'):fail();}
 function totals(rows){if(!Array.isArray(rows)||rows.length>3||new Set(rows.map(r=>r.currency)).size!==rows.length)fail();for(const r of rows)if(!['TRY','USD','EUR'].includes(r.currency)||!exact(r.amountExact4)||!number(r.knownCount)||!number(r.unknownCount))fail();}
 export function validateWorkHome(data){
+ operationCopyFromMeta(data?.meta);
  const m=data?.meta;if(m?.schemaVersion!=='melisa-home.v1'||!day(m.date)||m.timeZone!=='Europe/Istanbul'||m.readOnly!==true||typeof m.readAt!=='string'||!Number.isFinite(Date.parse(m.readAt))||m.source!=='native-test')fail();
  const rights=['goods','purchase','sales','collection','product','customer','supplier','finance','payment','count','returns','approval'];
  if(!data.capabilities||!rights.every(k=>typeof data.capabilities[k]==='boolean')||!data.navigationReady||!rights.filter(k=>!['finance','payment'].includes(k)).every(k=>typeof data.navigationReady[k]==='boolean'&&(!data.navigationReady[k]||data.capabilities[k])))fail();

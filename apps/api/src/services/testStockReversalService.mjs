@@ -1,7 +1,10 @@
+import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
+import {copyAssert} from './isolatedOperationCopyContext.mjs';
 import {stockAfterReturn} from './invoiceReturnPolicy.mjs';
 import {assertAccountingPeriodOpen} from './periodLockService.js';
 const fail=(code,message,statusCode=409)=>{throw Object.assign(new Error(message),{code,statusCode})};
 export async function reverseStockDocument(c,d,input){
+ if(c.copyContext){copyAssert(isolatedCopyTransactionContext(c.transaction)===c.copyContext,'ISOLATED_COPY_REVERSAL_TRANSACTION');if(d.kind==='count'&&Array.isArray(d.payload.lines)){copyAssert(d.payload.lines.length===1&&d.result?.lines?.length===1,'ISOLATED_COPY_REVERSAL_SINGLE_LINE',409);const line=d.payload.lines[0];copyAssert(c.copyContext.products.some(p=>p.id===line.productId),'ISOLATED_COPY_REVERSAL_PRODUCT',403);c={...c,scope:{...c.scope,product_id:Number(line.productId)}};d={...d,payload:{...d.payload,physical:line.physical,system:line.system},result:d.result.lines[0]};}}
  const q=c.sqlDriver,s=c.scope,reason=String(input.reason||'').trim(),date=input.date;
  if(!['count','uninvoiced'].includes(d.kind))fail('REVERSAL_KIND','Bu belge stok ters kaydı kapsamında değil.');
  if(!c.actor.permissions?.includes(d.kind==='count'?'stock.adjust':'purchase.cancel'))fail('AUTH_PERMISSION_DENIED','İptal için sunucu yetkisi gerekli.',403);
@@ -23,7 +26,7 @@ export async function reverseStockDocument(c,d,input){
   const expected=d.kind==='count'?Number(d.result.difference):-Number(d.payload.quantity);
   if(Number(original.quantity_net)!==expected||expected===0)fail('ORIGINAL_STOCK_MISMATCH','Belge ile özgün stok farkı uyuşmuyor.');
   delta=-Number(original.quantity_net);next=stockAfterReturn({quantity:Math.abs(delta),currentStock:Number(product.current_stock_qty),currentAverageCostTry:Number(product.average_cost_try),unitCostTry:Number(original.unit_cost_try),direction:Math.sign(delta)});
-  if(next.quantity<0||next.quantity>40)fail('TEST_STOCK_SCOPE','Ters kayıt tanımlı TEST stok aralığını aşıyor.');
+  if(next.quantity<0||(!c.copyContext&&next.quantity>40)||(c.copyContext&&(!Number.isSafeInteger(next.quantity)||Math.abs(delta)>5)))fail('TEST_STOCK_SCOPE','Ters kayıt tanımlı TEST stok aralığını aşıyor.');
  }
  let goodsId=null,remaining=null;
  if(d.kind==='uninvoiced'){

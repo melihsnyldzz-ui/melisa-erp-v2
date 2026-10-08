@@ -1,4 +1,5 @@
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
+import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 export const workingCatalogTokenKey='melisaTestSalesAccessToken';
 const problem=(message='ERP bağlantısı kurulamadı. Yeniden deneyin.',status=503)=>Object.assign(new Error(message),{status});
 function validUser(user){
@@ -6,9 +7,9 @@ function validUser(user){
  return user;
 }
 export function workingCatalogUserLabel(user){return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
-export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000}={}){
+export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__}={}){
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
- let active=true,token=null,user=null,generation=0;const controllers=new Set();
+ let active=true,token=null,user=null,generation=0,switching=false;const controllers=new Set();
  const target=()=>isTestSessionTarget({location,apiBase});
  const stored=key=>{try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
@@ -36,6 +37,19 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return accept(await request('/api/auth/test-admin',{method:'POST',body:{}}));
   },
   async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
+  async selectCopyActor(actorId){
+   const profile=validateOperationCopyBootstrap(copyProfile,location),selected=profile.actors.find(a=>a.id===actorId);
+   if(!active||!token||!user||switching||resolvedApiBase!=='http://127.0.0.1:4154'||!['15','16'].includes(actorId)||!selected||stored(workingCatalogTokenKey)!==token)throw problem('Kullanıcı geçişi yapılamıyor.');
+   if(String(user.id)===actorId&&user.role?.code===selected.role)return user;
+   switching=true;generation++;controllers.forEach(c=>c.abort());const previous=token,version=generation;
+   try{
+    const payload=await request('/api/auth/stage4-actor',{method:'POST',body:{actorId,copyId:profile.copyId,sealHash:profile.sealHash},startupAuth:true});
+    const next=validUser(payload?.data?.user);
+    if(!active||version!==generation||token!==previous||stored(workingCatalogTokenKey)!==previous||String(next.id)!==actorId||next.role?.code!==selected.role||payload.meta?.operationOrigin!==profile.operationOrigin||payload.meta?.copyId!==profile.copyId||payload.meta?.sealHash!==profile.sealHash)throw problem('Kullanıcı oturumu doğrulanamadı.');
+    const nextToken=payload.data.accessToken;if(typeof nextToken!=='string'||!nextToken.length)throw problem('Oturum doğrulanamadı.');
+    save(workingCatalogTokenKey,nextToken);token=nextToken;user=next;return user;
+   }finally{switching=false;}
+  },
   async home(...args){
    if(args.length||!token||!user)throw problem('Günlük işler okunamıyor.');
    return (await request('/api/home/summary',{expire:true})).data;

@@ -6,6 +6,11 @@ import {supplierPaymentContext,supplierPaymentPreview} from '../../../api/src/se
 const requestId='00000000-0000-4000-8000-000000000001',apiBase='http://192.168.1.46:4144';
 const actor={id:'16',permissions:['finance.view','supplier.view','finance.payment','finance.payment.cancel']};
 function raw(){return {actorId:'16',roleCode:'isolated_test_ilker',permissions:actor.permissions,documentDate:'2026-10-06',maxAmountExact4:'500.0000',maxPayments:30,suppliers:['TRY','USD','EUR'].map((currency,i)=>({id:String(101+i),code:'SUP-'+currency,name:'Tedarikçi '+currency,currency,balanceExact4:['140.0000','20.0000','30.0000'][i],debtKind:i?'opening':'invoice',snapshotVerified:true,invoices:i?[]:[{id:'139',receiptId:'105',number:'TSTB-PAY',status:'finalized',documentDate:'2026-10-06',receiptKind:'work-finops-physical-receipt',documentCurrency:'USD',documentAmountExact4:'3.5000',accountCurrency:'TRY',accountAmountExact4:'140.0000',paidExact4:'0.0000',returnedExact4:'0.0000',remainingExact4:'140.0000'}]})),accounts:['TRY','USD','EUR'].map((currency,i)=>({id:String(201+i),code:'ACC-'+currency,name:'Hesap '+currency,type:i?'bank':'cash',currency,openingVerified:true,openingBalanceExact4:'1000.0000',balanceExact4:'1000.0000'})),rates:['USD','EUR'].map((currency,i)=>({id:String(401+i),currency,rateToTryExact8:i?'45.00000000':'40.00000000',date:'2026-10-04'})),payments:[]};}
+
+test('unknown historical opening exception cannot be applied to original synthetic payment accounts',()=>{
+ const c=context();assert.equal(paymentContext(c),c);
+ for(const openingBalanceExact4 of ['1000.0000',null]){const invalid=structuredClone(c);Object.assign(invalid.accounts[0],{openingBalanceExact4,openingVerified:false,openingOrigin:'UNKNOWN',startingBalanceVerified:true,startingBalanceExact4:'1000.0000'});assert.throws(()=>paymentContext(invalid));}
+});
 const context=()=>supplierPaymentContext(raw(),actor);
 const selected=(amount='50.0000')=>({supplierId:'101',invoiceId:'139',accountId:'201',currency:'TRY',amountExact4:amount,documentDate:'2026-10-06',description:'Kısmi ödeme'});
 function record(s=selected()){return {id:'701',supplierId:s.supplierId,accountId:s.accountId,invoiceId:s.invoiceId,receiptId:s.invoiceId?'105':null,receiptKind:s.invoiceId?'work-finops-physical-receipt':null,invoiceNumber:s.invoiceId?'TSTB-PAY':null,ownership:'work',canCancel:true,kind:'payment',direction:'out',currency:s.currency,amountExact4:s.amountExact4,accountCurrency:s.currency,accountAmountExact4:s.amountExact4,amountTryExact4:s.currency==='TRY'?s.amountExact4:'400.0000',documentRateExact8:s.currency==='TRY'?'1.00000000':'40.00000000',accountRateExact8:s.currency==='TRY'?'1.00000000':'40.00000000',documentDate:s.documentDate,description:s.description,number:'OD-701',originalId:null,reversedById:null};}
@@ -28,3 +33,58 @@ test('lost response with missing request lookup retries exact full body once wit
 test('partial then full invoice payment and cancel show persisted native source history/debt/account effect on refresh',async()=>{const {createWorkSupplierPayments}=await controller(),d=dom(),store=storage();let c=context(),seq=0;const session={inbound:async()=>receiving(),supplierPayments:async(path,o)=>{if(!o)return c;if(path.endsWith('/preview'))return supplierPaymentPreview(o.body,c);const p=path.endsWith('/cancel')?{...c.payments.find(p=>p.id===path.split('/').at(-2)),id:String(703),kind:'payment_cancel',canCancel:false,direction:'in',originalId:path.split('/').at(-2),reversedById:null,description:o.body.reason}:record(o.body);if(!path.endsWith('/cancel'))p.id=String(701+seq++);const delta=BigInt(p.amountExact4.replace('.',''))*(p.kind==='payment'?-1n:1n),exact=v=>{const n=BigInt(v.replace('.',''))+delta;return `${n/10000n}.${String(n%10000n).padStart(4,'0')}`;};c=structuredClone(c);c.suppliers[0].balanceExact4=exact(c.suppliers[0].balanceExact4);c.accounts[0].balanceExact4=exact(c.accounts[0].balanceExact4);const invoice=c.suppliers[0].invoices[0];invoice.remainingExact4=exact(invoice.remainingExact4);if(p.kind==='payment_cancel'){const original=c.payments.find(x=>x.id===p.originalId);original.reversedById=p.id;original.canCancel=false;}c.payments.push(p);return {payment:p,requestId:o.body.requestId,replayed:false};}};const ui=createWorkSupplierPayments({root:d.root,session,user:{id:16},storage:store,apiBase,uuid:()=>`00000000-0000-4000-8000-${String(seq+1).padStart(12,'0')}`});ui.mount();await tick();d.node('[data-sp-supplier]').onchange({target:{value:'101'}});d.node('[data-sp-invoice]').onchange({target:{value:'139'}});async function pay(amount){for(const [selector,value] of [['[data-sp-account]','201'],['[data-sp-amount]',amount],['[data-sp-date]','2026-10-06'],['[data-sp-description]','Ödeme']]){const n=d.node(selector);n.value=value;n.oninput({target:n});}d.node('[data-sp-check]').onclick();await tick();d.node('[data-sp-save]').onclick();await tick();}await pay('50');assert.equal(c.suppliers[0].balanceExact4,'90.0000');assert.match(d.root.innerHTML,/Ödeme kaydedildi/);await pay('90');assert.equal(c.suppliers[0].balanceExact4,'0.0000');assert.equal(c.accounts[0].balanceExact4,'860.0000');const cancel=d.root.querySelectorAll('[data-sp-cancel]').find(n=>n.dataset.spCancel==='701');cancel.onclick();const form=d.node('[data-sp-cancel-form]').querySelector('form');form.onsubmit({preventDefault(){}});await tick();assert.equal(c.suppliers[0].balanceExact4,'50.0000');assert.equal(c.accounts[0].balanceExact4,'910.0000');assert.match(d.root.innerHTML,/Ödeme iptali \/ ters kayıt/);assert.match(d.root.innerHTML,/Mal kabul #105 → Fatura TSTB-PAY/);assert.match(d.root.innerHTML,/İptal edildi/);ui.refresh();await tick();assert.equal(c.payments.length,3);assert.match(d.root.innerHTML,/Ödeme iptali \/ ters kayıt/);ui.dispose();});
 
 test('earlier scoped payment history remains visible but only work-owned cancelable records expose a cancel action',async()=>{const {createWorkSupplierPayments}=await controller(),c=context(),d=dom(),previous={...record(),id:'801',ownership:'legacy',canCancel:false,number:'OD-801'},newPayment={...record(),id:'802',number:'OD-802'};c.payments=[previous,newPayment];assert.equal(paymentContext(c),c);assert.throws(()=>paymentRecord({...previous,canCancel:true}));const ui=createWorkSupplierPayments({root:d.root,session:{inbound:async()=>receiving(),supplierPayments:async()=>c},user:{id:16},storage:storage(),apiBase});ui.mount();await tick();d.node('[data-sp-supplier]').onchange({target:{value:'101'}});assert.match(d.root.innerHTML,/OD-801/);assert.match(d.root.innerHTML,/Önceki kayıt · Görüntüleme/);assert.doesNotMatch(d.root.innerHTML,/data-sp-cancel="801"/);assert.match(d.root.innerHTML,/data-sp-cancel="802"/);ui.dispose();});
+
+function goal8Context(){
+ const r=raw();r.documentDate='2026-10-07';r.rates=[];r.suppliers=[r.suppliers[0]];r.accounts=[r.accounts[0]];
+ Object.assign(r.suppliers[0],{id:'13370',code:'TEST-V70-GOODS-S'});
+ Object.assign(r.suppliers[0].invoices[0],{receiptKind:'work-goal8-batch-receipt',number:'TSTB-G8-FIXTURE',documentDate:r.documentDate,documentCurrency:'TRY',documentAmountExact4:'140.0000'});
+ Object.assign(r.accounts[0],{code:'TEST-NIGHT-20261006-K',openingBalanceExact4:'0.0000'});
+ r.testProfile={id:'ERP-GOAL8-20261007',sealed:true,synthetic:true,dayId:requestId,productId:'325503',supplierId:'13370',customerId:'30598',accountId:r.accounts[0].id,currency:'TRY',definitionHash:'A'.repeat(64)};
+ r.payments=[{...record(),supplierId:'13370',documentDate:r.documentDate,receiptKind:'work-goal8-batch-receipt',invoiceNumber:'TSTB-G8-FIXTURE'}];
+ return supplierPaymentContext(r,actor,true);
+}
+
+test('sealed Goal8 backend DTO preserves its exact receipt kind while legacy context remains unchanged',()=>{
+ const legacy=context(),before=JSON.stringify(legacy),c=goal8Context();
+ assert.equal(paymentContext(legacy),legacy);assert.equal(JSON.stringify(legacy),before);
+ assert.equal(paymentContext(c),c);assert.equal(paymentRecord(c.payments[0]),c.payments[0]);
+ for(const mutate of [x=>delete x.meta.testProfile,x=>x.meta.testProfile.id='OTHER',x=>x.meta.testProfile.sealed=false,x=>x.meta.testProfile.synthetic=false,x=>x.meta.testProfile.dayId='bad',x=>x.meta.testProfile.definitionHash='a'.repeat(64),x=>x.meta.testProfile.accountId='202',x=>x.meta.date='2026-10-08',x=>x.payments[0].receiptKind='work-finops-physical-receipt',x=>x.suppliers[0].invoices[0].receiptKind='unknown']){
+  const invalid=structuredClone(c);mutate(invalid);assert.throws(()=>paymentContext(invalid));
+ }
+ assert.throws(()=>paymentRecord({...c.payments[0],receiptKind:'unknown'}));
+ assert.throws(()=>paymentRecord({...c.payments[0],receiptId:null}));
+ assert.throws(()=>paymentRecord({...c.payments[0],ownership:'legacy',canCancel:true}));
+ assert.throws(()=>paymentRecord({...c.payments[0],amountExact4:'0.0000'}));
+ const mixed=structuredClone(legacy);mixed.payments=[c.payments[0]];assert.throws(()=>paymentContext(mixed));
+});
+
+test('supplier payment controller renders valid Goal8 history without writes and still hides denied personnel',async()=>{
+ const {createWorkSupplierPayments}=await controller(),c=goal8Context(),d=dom(),calls=[];
+ const ui=createWorkSupplierPayments({root:d.root,session:{inbound:async()=>receiving(),supplierPayments:async(path,options)=>{calls.push({path,options});assert.equal(options,undefined);return c;}},user:{id:16},storage:storage(),apiBase});
+ ui.mount();await tick();d.node('[data-sp-supplier]').onchange({target:{value:'13370'}});
+ assert.match(d.root.innerHTML,/OD-701/);assert.match(d.root.innerHTML,/TSTB-G8-FIXTURE/);assert.doesNotMatch(d.root.innerHTML,/Ödeme bilgileri doğrulanamadı/);
+ assert.equal(calls.length,1);ui.refresh();await tick();assert.match(d.root.innerHTML,/OD-701/);assert.equal(calls.length,2);ui.dispose();
+ const denied=dom();let reads=0;
+ const blocked=createWorkSupplierPayments({root:denied.root,session:{inbound:async()=>receiving(false),supplierPayments:async()=>{reads++;return c;}},user:{id:15},storage:storage(),apiBase});
+ blocked.mount();await tick();assert.equal(reads,0);assert.match(denied.root.innerHTML,/yetkiniz yok/);blocked.dispose();
+});
+
+test('normal supplier history renders the same Goal8 DTO and refresh remains read-only',async()=>{
+ let source=await readFile(new URL('./workSuppliers.js',import.meta.url),'utf8');
+ source=source.replace(/import '\.\/[^']+\.css';/g,'').replace(/from '(\.\/[^']+)'/g,(_,path)=>'from '+JSON.stringify(new URL(path,import.meta.url).href));
+ const {createWorkSuppliers}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64')),d=dom(),c=goal8Context(),calls=[];
+ const ui=createWorkSuppliers({root:d.root,session:{supplierPayments:async(path,options)=>{calls.push({path,options});assert.equal(options,undefined);return c;}},user:{id:16,permissions:['finance.view','supplier.view']}});
+ ui.mount();await tick();assert.match(d.root.innerHTML,/Ödeme ve borç geçmişi/);assert.match(d.root.innerHTML,/OD-701/);assert.match(d.root.innerHTML,/TSTB-G8-FIXTURE/);assert.doesNotMatch(d.root.innerHTML,/Ödeme geçmişi şu anda açılamıyor/);
+ ui.refresh();await tick();assert.equal(calls.length,2);assert.match(d.root.innerHTML,/OD-701/);ui.dispose();
+});
+
+test('supplier history with no invoice still opens and retains existing payment rows on refresh',async()=>{
+ let source=await readFile(new URL('./workSuppliers.js',import.meta.url),'utf8');
+ source=source.replace(/import '\.\/[^']+\.css';/g,'').replace(/from '(\.\/[^']+)'/g,(_,path)=>'from '+JSON.stringify(new URL(path,import.meta.url).href));
+ const {createWorkSuppliers}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64')),d=dom(),c=goal8Context(),calls=[];
+ c.suppliers[0].invoices=[];Object.assign(c.payments[0],{invoiceId:null,receiptId:null,receiptKind:null,invoiceNumber:null});
+ assert.equal(paymentContext(c),c);
+ const ui=createWorkSuppliers({root:d.root,session:{supplierPayments:async(path,options)=>{calls.push({path,options});assert.equal(options,undefined);return c;}},user:{id:16,permissions:['finance.view','supplier.view']}});
+ ui.mount();await tick();assert.match(d.root.innerHTML,/Henüz bağlı alış faturası yok/);assert.match(d.root.innerHTML,/OD-701/);assert.match(d.root.innerHTML,/Ödemeler ve ters kayıtlar/);assert.doesNotMatch(d.root.innerHTML,/Ödeme geçmişi şu anda açılamıyor|Alış faturası undefined/);
+ ui.refresh();await tick();assert.equal(calls.length,2);assert.match(d.root.innerHTML,/OD-701/);ui.dispose();
+});

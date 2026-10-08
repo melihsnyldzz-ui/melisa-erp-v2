@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {isolatedCopyOperationDTOContext,ISOLATED_COPY_ORIGIN} from './isolatedOperationCopyContext.mjs';
 export const workError=(code='WORK_UNAVAILABLE',message='İşlem şu anda doğrulanamıyor.',statusCode=503)=>Object.assign(new Error(message),{code,statusCode});
 export const workFail=(code,message,status=400)=>{throw workError(code,message,status);};
 export function workId(value){if(typeof value!=='string'||!/^[1-9]\d{0,18}$/.test(value)||BigInt(value)>9223372036854775807n)workFail('WORK_ID_INVALID','Kayıt bilgisi geçersiz.');return value;}
@@ -22,12 +23,13 @@ export function workSelection(input){
  return {customerId:workId(input.customerId),documentDate:workDate(input.documentDate),currency:'TRY',items};
 }
 export function workSalePreview(selection,context){
- const s=workSelection(selection),scope=context.scope;
+ const s=workSelection(selection),scope=context.scope,copy=isolatedCopyOperationDTOContext(context);
  if(s.documentDate!==context.meta?.date)workFail('WORK_DATE_SCOPE','Bu işlem için geçerli günün tarihi gerekli.',409);
- if(scope?.synthetic!==true||scope.customer?.id!==s.customerId||scope.customer.synthetic!==true||scope.customer.writeEligible!==true||scope.customer.currency!=='TRY')workFail('WORK_CUSTOMER_SCOPE','Bu müşteri için kayıt oluşturulamıyor.',403);
+ const scoped=value=>copy?value?.synthetic===false&&value.operationOrigin===ISOLATED_COPY_ORIGIN:value?.synthetic===true;
+ if(!scoped(scope)||scope.customer?.id!==s.customerId||!scoped(scope.customer)||scope.customer.writeEligible!==true||scope.customer.currency!=='TRY'||copy&&!copy.customers.some(p=>p.id===s.customerId&&p.currency==='TRY'))workFail('WORK_CUSTOMER_SCOPE','Bu müşteri için kayıt oluşturulamıyor.',403);
  const items=s.items.map(row=>{
   const p=scope.products.find(product=>product.id===row.productId),quote=p?.prices.find(price=>price.quoteId===row.quoteId&&price.currency==='TRY');
-  if(!p||p.synthetic!==true||p.writeEligible!==true||p.unit?.label!=='ADET'||p.unit.factorExact8!=='1.00000000'||!quote)workFail('WORK_PRODUCT_SCOPE','Seçilen ürün veya fiyat artık uygun değil.',409);
+  if(!p||!scoped(p)||p.writeEligible!==true||p.unit?.label!=='ADET'||p.unit.factorExact8!=='1.00000000'||!quote||copy&&!copy.products.some(v=>v.id===p.id&&v.stockCode===p.stockCode&&v.priceIds.includes(quote.quoteId)))workFail('WORK_PRODUCT_SCOPE','Seçilen ürün veya fiyat artık uygun değil.',409);
   const quantity=workScaled(row.quantityExact3,3),stock=workScaled(p.stockQuantityExact3,3),price8=workScaled(quote.unitPriceExact8,8);
   const price4=(price8+5000n)/10000n;
   if(price8<=0n||price4<=0n||stock<quantity)workFail('WORK_STOCK_OR_PRICE','Ürün fiyatı veya stok miktarı uygun değil.',409);

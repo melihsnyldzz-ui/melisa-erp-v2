@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {WORK_INBOUND_SQL_PROOF} from './workInboundSqlProof.mjs';
 import {goal8SqlProfileInstalled} from './goal8DayProfile.mjs';
 import {canonical,countDto,hash,id,inboundError,reject} from './workInboundModel.mjs';
-async function defaultRuntime(){const db=await import('../config/database.js');if(!db.isCanonicalTest())throw inboundError();return import('./testPurchaseService.mjs');}
+async function defaultRuntime(){const db=await import('../config/database.js');if(db.isIsolatedOperationCopyRuntime?.())return {isolatedCopy:true};if(!db.isCanonicalTest())throw inboundError();return import('./testPurchaseService.mjs');}
 export function workInboundSupplierMovement(row){
  if(['linkCount','batchCount','invalidLinks','invoiceItemCount'].some(key=>row[key]==null))throw inboundError();
  const links=Number(row.linkCount),batches=Number(row.batchCount),invalid=Number(row.invalidLinks),items=Number(row.invoiceItemCount);
@@ -13,7 +13,7 @@ export function workInboundSupplierMovement(row){
  return {id:id(row.id),invoiceId:row.invoiceId===null?null:id(row.invoiceId),receiptId,invoiceNumber:row.invoiceNumber,invoiceStatus:row.invoiceStatus,type:row.type,documentDate:row.documentDate,currency:row.currency,amountExact4:row.amountExact4,balanceEffectExact4:row.balanceEffectExact4,amountTryExact4:row.amountTryExact4};
 }
 export function createWorkInboundStore({getRuntime=defaultRuntime,proof=WORK_INBOUND_SQL_PROOF}={}){
- async function run(actor,write,fn){try{const runtime=await getRuntime();return await runtime.withTestPurchaseBatchContext(actor,async(ctx,d)=>{
+ async function run(actor,write,fn){try{const runtime=await getRuntime();if(runtime.isolatedCopy){const store=await(await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('inbound');return write?store.mutate(actor,fn):store.read(actor,fn);}return await runtime.withTestPurchaseBatchContext(actor,async(ctx,d)=>{
   const q=ctx.sql,req=()=>new q.Request(ctx.tx),identity=(await req().query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,IS_SRVROLEMEMBER('sysadmin') admin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live")).recordset?.[0];
   if(identity?.db!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity.server!=='Semih\\MELISADEV'||identity.login!=='melisa_sirket_sales_test_20260929_01'||identity.admin!==0||identity.control!==0||identity.live!==0)throw inboundError();
   const currentProof=goal8SqlProfileInstalled()?(await import('./goal8DaySqlProof.mjs')).GOAL8_DAY_SQL_PROOF.inbound:proof;
@@ -50,3 +50,35 @@ export function createWorkInboundStore({getRuntime=defaultRuntime,proof=WORK_INB
  return {read:(actor,fn)=>run(actor,false,fn),mutate:(actor,fn)=>run(actor,true,fn),getRuntime};
 }
 export const workInboundStore=createWorkInboundStore();
+
+export async function buildIsolatedCopyInboundDomain({runtime:r,copyContext,context,actor,actual,nativeContext,request:req,write,reloadContext}){
+ const q=r.sql,runtime=await import('./testPurchaseService.mjs');
+ const wrap=fn=>runtime.withIsolatedCopyPurchaseBatchContext(actor,{nativeContext,context},fn,{write});
+ const marker='STAGE4:'+copyContext.copyId+':';
+ const normalizeBatch=b=>({...b,note:b.note.startsWith(marker)?b.note.slice(marker.length):b.note});
+ const c={context,copyContext,actual,products:context.scope.products,supplier:context.scope.supplier,warehouse:context.scope.warehouse};
+ c.batches=async source=>{const d=await wrap((ctx,s)=>runtime.testBatchContextInContext(ctx,s,source==null?null:Number(source)));return{...d,batches:d.batches.filter(b=>b.note.startsWith(marker)).map(normalizeBatch),invoiceDrafts:d.invoiceDrafts.filter(p=>d.batches.some(b=>b.id===p.batchId&&b.note.startsWith(marker)))};};
+ c.createBatch=async input=>normalizeBatch(await wrap((ctx,s)=>runtime.createTestBatchInContext(ctx,s,{...input,note:marker+input.note},actor)));
+ c.decideBatch=(target,input,approve)=>c.journal(approve?'goods_accept':'goods_reject',{...input,id:String(target)},async()=>{const value=await wrap(()=>runtime.decideTestBatch(Number(target),input,actor,approve));await reloadContext();return normalizeBatch(value);});
+ c.createPurchase=input=>c.journal('purchase_draft',input,()=>wrap(()=>runtime.createTestBatchInvoiceDraft(input,actor)));
+ c.getPurchase=target=>wrap(()=>runtime.getTestBatchInvoiceDraft(Number(target),actor));
+ c.decidePurchase=(target,input,cancel)=>c.journal(cancel?'purchase_cancel':'purchase_finalize',{...input,id:String(target)},async()=>{const before=await c.getPurchase(target),value=await wrap(()=>(cancel?runtime.cancelTestBatchInvoiceDraft:runtime.finalizeTestBatchInvoiceDraft)(Number(target),input,actor)),type=cancel?'purchase_invoice_cancel':'purchase_invoice';if((cancel?before.status==='finalized':before.status==='draft')&&!value.replayed&&!value.alreadyApplied){const rows=(await req().input('id',q.BigInt,target).input('type',q.NVarChar(40),type).query('SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(60),CONVERT(decimal(28,8),balance_effect)) effect FROM dbo.supplier_movements WHERE purchase_invoice_id=@id AND movement_type=@type')).recordset;if(rows.length!==1)throw inboundError();await r.currency.postIsolatedCopyCurrencyMovement({role:'supplier',partyId:c.supplier.id,currency:'TRY',movementId:rows[0].id,effectExact8:rows[0].effect},nativeContext,actor);}await reloadContext();return value;});
+ const countScope="(EXISTS(SELECT 1 FROM dbo.stage4_copy_requests r WHERE r.copy_id=CONVERT(uniqueidentifier,N'"+copyContext.copyId+"') AND JSON_VALUE(r.response_json,'$.draft.id')=CONVERT(varchar(20),c.id)) OR EXISTS(SELECT 1 FROM dbo.stage4_copy_intents n WHERE n.copy_id=CONVERT(uniqueidentifier,N'"+copyContext.copyId+"') AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND c.created_at>=n.created_at))";
+  c.draft=async target=>{const row=(await req().input('id',q.BigInt,target).query(`SELECT c.* FROM dbo.work_inbound_counts c WITH(UPDLOCK,HOLDLOCK) WHERE c.id=@id AND ${countScope}`)).recordset?.[0];if(!row)reject('INBOUND_NOT_FOUND','Sayım kaydı bulunamadı.',404);if(String(actor.id)!=='16'&&String(row.created_by)!==String(actor.id))reject('INBOUND_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);return countDto(row);};
+  c.list=async()=>{const rows=(await req().input('actor',q.BigInt,actor.id).query(`SELECT TOP(100) c.* FROM dbo.work_inbound_counts c WHERE (c.created_by=@actor OR @actor=16) AND ${countScope} ORDER BY c.id DESC`)).recordset;return rows.map(countDto);};
+  c.home=async canViewPurchase=>{const d=await c.batches();return {countDrafts:await c.list(),receipts:d.batches.map(b=>({id:String(b.id),state:b.state})),drafts:canViewPurchase?d.invoiceDrafts.map(p=>({id:String(p.id),status:p.status})):[]};};
+  c.save=async(target,payload,state,receiptId=null)=>{
+   const request=req().input('actor',q.BigInt,actor.id).input('state',q.NVarChar(20),state).input('note',q.NVarChar(500),payload.note).input('lines',q.NVarChar(q.MAX),JSON.stringify(payload.lines)).input('receipt',q.BigInt,receiptId);
+   if(target){await request.input('id',q.BigInt,target).query("UPDATE dbo.work_inbound_counts SET state=@state,version=version+1,note=@note,lines_json=@lines,receipt_id=@receipt,updated_at=SYSUTCDATETIME() WHERE id=@id AND state IN(N'draft',N'needs_review');IF @@ROWCOUNT<>1 THROW 51210,'INBOUND_STALE',1;");return c.draft(target);}
+   const row=(await request.query('DECLARE @ids TABLE(id bigint);INSERT dbo.work_inbound_counts(created_by,state,version,note,lines_json,receipt_id)OUTPUT inserted.id INTO @ids VALUES(@actor,@state,1,@note,@lines,@receipt);SELECT CONVERT(varchar(20),id) id FROM @ids')).recordset?.[0];return c.draft(id(row?.id));
+  };
+  c.supplierHistory=async()=>{const rows=(await req().query(`SELECT TOP(50) CONVERT(varchar(20),m.id) id,CONVERT(varchar(20),m.purchase_invoice_id) invoiceId,m.movement_type type,CONVERT(char(10),m.document_date,23) documentDate,m.currency_code currency,CONVERT(varchar(40),CAST(m.amount AS decimal(18,4))) amountExact4,CONVERT(varchar(40),CAST(m.balance_effect AS decimal(18,4))) balanceEffectExact4,CONVERT(varchar(40),CAST(m.amount_try AS decimal(18,4))) amountTryExact4,
+ p.document_no invoiceNumber,p.status invoiceStatus,chain.linkCount,chain.batchCount,CASE WHEN p.id IS NULL AND chain.linkCount>0 THEN chain.invalidLinks+1 ELSE chain.invalidLinks END invalidLinks,(SELECT COUNT_BIG(*) FROM dbo.purchase_invoice_items allItems WHERE allItems.purchase_invoice_id=m.purchase_invoice_id) invoiceItemCount,CASE WHEN chain.batchCount=1 THEN CONVERT(varchar(20),chain.singleBatchId) ELSE NULL END receiptId
+ FROM dbo.supplier_movements m LEFT JOIN dbo.purchase_invoices p ON p.id=m.purchase_invoice_id AND p.supplier_id=m.supplier_id
+ OUTER APPLY(SELECT COUNT_BIG(*) linkCount,COUNT(DISTINCT g.batch_id) batchCount,MAX(g.batch_id) singleBatchId,
+ COALESCE(SUM(CASE WHEN i.id IS NULL OR g.id IS NULL OR b.id IS NULL OR b.supplier_id<>${c.supplier.id} OR i.product_id<>g.product_id OR i.quantity<>l.quantity OR l.quantity<=0 OR l.quantity>g.quantity THEN 1 ELSE 0 END),0) invalidLinks
+ FROM dbo.test_purchase_batch_links l LEFT JOIN dbo.purchase_invoice_items i ON i.id=l.invoice_item_id AND i.purchase_invoice_id=l.invoice_id LEFT JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id LEFT JOIN dbo.test_goods_batches b ON b.id=g.batch_id WHERE l.invoice_id=m.purchase_invoice_id) chain
+ WHERE m.supplier_id=${c.supplier.id} ORDER BY m.id DESC`)).recordset;return rows.map(workInboundSupplierMovement);};
+
+ return c;
+}

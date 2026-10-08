@@ -3,6 +3,7 @@ import {getSqlDriver} from '../config/database.js';
 import {isDailyWebCustomerScope,assertDailyWebCustomer} from './dailyWebPolicy.mjs';
 import {hasNativeCustomerAccess} from './nativeCustomerRoutes.mjs';
 import {isWorkNightProduct} from './workNightScope.mjs';
+import {isIsolatedCopyCustomer,isIsolatedCopyProduct} from './isolatedOperationCopyScope.mjs';
 
 export const pilotCashCodes = Object.freeze({'1-PEŞİN $':'USD','3-PEŞİN €':'EUR','2-PEŞİN TL':'TRY'});
 export const pilotCashOnly = () => process.env.MELISA_PILOT_RUNTIME === 'true';
@@ -14,6 +15,10 @@ export async function assertPilotCashCustomer(request,customerId,documentCurrenc
  if(!pilotCashOnly())return;
  const sql=getSqlDriver();
  const row=(await request.input('pilotCashId',sql.BigInt,customerId).query('SELECT customer_code,currency_code,is_active,is_deleted FROM dbo.customers WITH(UPDLOCK,HOLDLOCK) WHERE id=@pilotCashId')).recordset[0];
+ if(isIsolatedCopyCustomer(customerId,documentCurrency,request.parent)){
+  if(!row||!row.is_active||row.is_deleted||row.currency_code!==documentCurrency)reject('PILOT_CASH_CURRENCY_MISMATCH','Doğrulanmış cari veya para birimi değişmiş.');
+  return;
+ }
  if(hasNativeCustomerAccess(customerId,documentCurrency)){
   if(!row||!row.is_active||row.is_deleted||row.currency_code!==documentCurrency)reject('PILOT_CASH_CURRENCY_MISMATCH','Doğrulanmış native cari veya para birimi değişmiş.');
   return;
@@ -32,7 +37,7 @@ export async function assertPilotSaleProducts(requestFactory,items,{consume=fals
   quantities.set(Number(item.productId),(quantities.get(Number(item.productId))||0)+Number(item.quantity));
  }
  for(const [productId,quantity] of [...quantities].sort((a,b)=>a[0]-b[0])){
-  const request=requestFactory(),night=isWorkNightProduct(productId,request.parent);
+  const request=requestFactory(),night=isWorkNightProduct(productId,request.parent)||isIsolatedCopyProduct(productId,request.parent);
   const p=(await request.input('pilotProductId',sql.BigInt,productId).query(`SELECT p.current_stock_qty,p.unit FROM dbo.products p WITH(UPDLOCK,HOLDLOCK)
    WHERE p.id=@pilotProductId AND p.is_active=1 AND p.is_deleted=0 AND ${night?'p.id=@pilotProductId':pilotProductScopeSql('p.id')}`)).recordset[0];
   if(!p||p.unit!=='ADET')reject('PILOT_PRODUCT_OUT_OF_SCOPE','Ürün doğrulanmış pilot satış kapsamında değil.');
