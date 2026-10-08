@@ -1,5 +1,5 @@
 import {parseStockProductId,parseStockProductQuery,stockProductDto,stockReadTimestamp} from './stockProductModel.mjs';
-import {isFinalCatalogContext,validateFinalCatalogContext} from './finalCatalogContext.mjs';
+import {isBoundCatalogContext,isCurrentProductCatalogContext,validateBoundCatalogContext} from './currentProductCatalogContext.mjs';
 export const catalogError=(code='CATALOG_UNAVAILABLE',message='Ürün kataloğu şu anda okunamıyor.',statusCode=503)=>Object.assign(new Error(message),{code,statusCode});
 export function parseCatalogId(value){try{return parseStockProductId(value);}catch{throw catalogError('CATALOG_ID_INVALID','Geçerli ürün kimliği gerekli.',400);}}
 export function parseCatalogQuery(value={}){try{
@@ -45,7 +45,7 @@ export function catalogProductDto(row,{sqlSales=false,canViewSalesPrices=false,s
 }
 export function catalogReadResult(result,{actorId,productId=null,options,canViewSalesPrices=false}){
   const sourceVersion=result?.sourceVersion??null,acceptedCount=sourceVersion?.productCount??16622;
-  if(isFinalCatalogContext(sourceVersion)){try{validateFinalCatalogContext(sourceVersion);}catch{return invalid();}}
+  if(isBoundCatalogContext(sourceVersion)){try{validateBoundCatalogContext(sourceVersion);}catch{return invalid();}}
   else if(sourceVersion&&(!/^GOAL7-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(sourceVersion.runId??'')||sourceVersion.sourceAsOf!=='2026-10-07'||acceptedCount!==16671||['sourceHash','planHash','bindingsHash','readerDefinitionHash'].some(k=>typeof sourceVersion[k]!=='string'||!/^[a-f0-9]{64}$/i.test(sourceVersion[k]))))return invalid();
   if(!result||result.actorId!==actorId||typeof result.canViewSalesPrices!=='boolean'||!Array.isArray(result.rows)||!Number.isSafeInteger(result.total)||result.total<0||result.page!==options.page||result.limit!==options.limit||!stockReadTimestamp(result.readAt)
     ||result.acceptedCount!==acceptedCount||result.syntheticCount!==0||result.quarantinedCount!==54||result.rows.length!==Math.min(options.limit,Math.max(0,result.total-(options.page-1)*options.limit)))return invalid();
@@ -54,5 +54,5 @@ export function catalogReadResult(result,{actorId,productId=null,options,canView
   const f=result.filters;
   if(!f||!Array.isArray(f.brands)||!Array.isArray(f.productTypes)||[f.brands,f.productTypes].some(values=>values.some(v=>typeof v!=='string'||!v.trim()||v.length>250)||new Set(values).size!==values.length))return invalid();
   if(new Set(data.map(p=>p.id)).size!==data.length||productId!==null&&(result.total>1||data.some(p=>p.id!==productId)))return invalid();
-  return {data,meta:{schemaVersion:'melisa-catalog.v1',readOnly:true,sourceAsOf:sourceVersion?.sourceAsOf??'2026-09-30',...(isFinalCatalogContext(sourceVersion)?{finalVersion:sourceVersion}:{}),readAt:result.readAt,freshLive:false,total:result.total,page:options.page,limit:options.limit,totalPages:Math.ceil(result.total/options.limit),canViewSalesPrices:visible,filters:{brands:[...f.brands],productTypes:[...f.productTypes]},scopeCounts:{acceptedOpening:acceptedCount,quarantinedSource:54,syntheticTest:0}}};
+  return {data,meta:{schemaVersion:'melisa-catalog.v1',readOnly:true,sourceAsOf:sourceVersion?.sourceAsOf??'2026-09-30',...(isBoundCatalogContext(sourceVersion)?{[isCurrentProductCatalogContext(sourceVersion)?'currentVersion':'finalVersion']:sourceVersion}:{}),readAt:result.readAt,freshLive:false,total:result.total,page:options.page,limit:options.limit,totalPages:Math.ceil(result.total/options.limit),canViewSalesPrices:visible,filters:{brands:[...f.brands],productTypes:[...f.productTypes]},scopeCounts:{acceptedOpening:acceptedCount,quarantinedSource:54,syntheticTest:0}}};
 }

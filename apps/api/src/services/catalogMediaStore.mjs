@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {catalogError,parseCatalogId} from './catalogModel.mjs';
+import {catalogSourceVersion} from './catalogProductReadStore.mjs';
+import {isCurrentProductCatalogContext,validateCurrentProductCatalogContext,boundCatalogLineage} from './currentProductCatalogContext.mjs';
 const ROOT='C:/Sirket/ERP/data/TEST-20260929-01/catalog-media';
 const PLAN='5da967d2652aa0d6710ad206ac10b7a5898d5a8af7ff3f45e048669e15d22b6d';
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -29,12 +31,17 @@ export function parseCatalogMediaVariant(query={}){
  const variant=query.variant===undefined?'preview':query.variant;
  if(!['preview','thumbnail','original'].includes(variant))throw catalogError('CATALOG_MEDIA_QUERY_INVALID','Geçerli fotoğraf boyutu gerekli.',400);return variant;
 }
-export function createCatalogMediaStore({expectedRoot=ROOT,expectedCount=3830}={}){
+export function createCatalogMediaStore({expectedRoot=ROOT,expectedCount=3830,getSourceVersion=catalogSourceVersion}={}){
  let registry=null;
  function match(row){const entry=registry?.entries.get(row?.id),p=row?.provenance;
   const historical=p?.sourceKey===entry?.sourceKey&&p?.runId===entry?.runId&&p?.sourceAsOf==='2026-09-30';
   const revised=p?.sourceAsOf==='2026-10-07'&&/^GOAL7-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(p?.runId??'')&&row.mediaProvenance?.sourceKey===entry?.sourceKey&&row.mediaProvenance?.runId===entry?.runId&&p.sourceKey.split('/').at(-1)===entry?.sourceKey.split('/').at(-1);
-  return entry&&row.stockCode===entry.stockCode&&p?.kind==='accepted-opening'&&p.verified===true&&(historical||revised)&&row.hold?.blocked===false?entry:null;
+  const version=getSourceVersion();let current=false;
+  if(isCurrentProductCatalogContext(version))try{
+   validateCurrentProductCatalogContext(version);
+   current=boundCatalogLineage(version,{runId:p?.runId,sourceAsOf:p?.sourceAsOf})&&row.mediaProvenance?.sourceKey===entry?.sourceKey&&row.mediaProvenance?.runId===entry?.runId&&/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(p?.sourceKey??'')&&p.sourceKey.split('/').at(-1)===entry?.sourceKey.split('/').at(-1);
+  }catch{current=false;}
+  return entry&&(current||row.stockCode===entry.stockCode)&&p?.kind==='accepted-opening'&&p.verified===true&&(historical||revised||current)&&row.hold?.blocked===false?entry:null;
  }
  return {
   async configure({root,indexSha256,identity,mode,port,writes}){

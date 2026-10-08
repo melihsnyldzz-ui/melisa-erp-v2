@@ -17,6 +17,16 @@ async function fixture(t){
  const publish=()=>fs.writeFile(path.join(root,'index.json'),JSON.stringify(index));await publish();
  const store=createCatalogMediaStore({expectedRoot:root,expectedCount:1}),context={root,indexSha256:createHash('sha256').update(await fs.readFile(path.join(root,'index.json'))).digest('hex'),mode:'erp',port:4144,writes:true,identity:{serverName:index.server,databaseName:index.database,sysadmin:0,databaseControl:0,liveDatabaseAccess:0}};return {root,bytes,sha,entry,index,store,context,publish};
 }
+test('dated configured product publication retains approved media by physical identity after a source code revision',async t=>{
+ const f=await fixture(t),runId='PRODUCT-11111111-1111-4111-8111-111111111111',suffix=runId.replaceAll('-','_').toLowerCase();
+ let version={schemaVersion:'melisa-product-completion-catalog-context.v1',runId,sourceAsOf:'2026-10-08',productCount:16743,priceCount:64333,actualT1:false,evidenceKind:'DATED_TEST_PRODUCT_SCOPE',ancestry:[{runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30'},{runId:'GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',sourceAsOf:'2026-10-07'},{runId,sourceAsOf:'2026-10-08'}],procedures:{catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`}};
+ for(const k of ['sourceHash','planHash','bindingsHash','readerDefinitionHash','stockReaderDefinitionHash','openingDetailDefinitionHash','openingListDefinitionHash','snapshotHash'])version[k]='a'.repeat(64);
+ const store=createCatalogMediaStore({expectedRoot:f.root,expectedCount:1,getSourceVersion:()=>version});await store.configure(f.context);
+ const r={...row(),stockCode:'0012 REVISED',provenance:{...row().provenance,runId,sourceAsOf:version.sourceAsOf},mediaProvenance:{sourceKey:source,runId:'VEGA-OPENING-TEST-20261004-06'}};
+ assert.equal(store.photoFor(r).status,'available');assert.deepEqual((await store.readPhoto(r,'thumbnail')).bytes,f.bytes);
+ for(const change of [x=>x.id='13',x=>x.provenance.sourceKey+='0',x=>x.mediaProvenance.sourceKey+='0',x=>x.hold.blocked=true,x=>x.provenance.runId='PRODUCT-22222222-2222-4222-8222-222222222222']){const bad=structuredClone(r);change(bad);assert.equal(store.photoFor(bad).status,'missing');}
+ version={...version,actualT1:true};assert.equal(store.photoFor(r).status,'missing');
+});
 test('disabled registry leaves missing shape and denies bytes; query cannot contain tokens or paths',async()=>{
  const store=createCatalogMediaStore();assert.deepEqual(store.photoFor(row()),row().photo);await assert.rejects(()=>store.readPhoto(row(),'preview'),{statusCode:404});assert.equal(parseCatalogMediaVariant({}),'preview');
  for(const q of [null,[],{token:'secret'},{variant:'../original'},{variant:['preview']}])assert.throws(()=>parseCatalogMediaVariant(q),{statusCode:400});

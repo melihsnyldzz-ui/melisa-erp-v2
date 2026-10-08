@@ -1,3 +1,9 @@
+## ERP-PRODUCTCOMPLETION01 — ERP-DEC-032 / Aşama 3
+
+8 Ekim2026 açık ürün TEST kapsamı: mevcut kabul edilmiş F0102 fiziksel ürün kimliği ve Goal7 katkısından devam. Tarihli bulk kaynak görüntüsü; kart/birim/barkod, ürün-depo kaynak stok farkı ve ürün-kademe-döviz-birim satış fiyatı gerçekten uygulanır. Yeni motor/gerçekT1 değildir. Kaynak katkısı, gerçek yerel ve sealed deneme etkisi ayrı; NULL/negatif/temsil/barkod/manuel fiyat/hold istisnası ilgili alanı ayırır. Yeni ürünün bilinmeyen maliyeti NULL; cari/finans ve mevcut alış/maliyet yeniden yazılmaz.
+
+Güncel sayı ve uygulanabilir alt kapsam hazırlanıyor; eski86/752 yeni sonuç değildir. Yedek/before-image, transaction/journal, SQL/API/normal ekran, replay0/body conflict/rollback ve hız kanıtı ile teslim edilir. Önceki283 cari/16/LL/770dış kapsam, net alış/maliyet/medya/rol/karantina korunur. Bu dar kapsam sonunda DUR; Vega/LIVE/CRM/gerçekT1/main yok.
+
 ## ERP-CARICOMPLETION01 — ERP-DEC-031 / 8 Ekim 2026
 
 Kullanıcının sabitlediği 283 hesap yalnız TEST'te uygulandı: 59 fark, 224 ikinci finans hareketi olmadan doğrulama, 0 hata/drift ayrılması.159 kayıpsız hassasiyet ve157 ana kart gösterge eşitlemesi tamam; önceki16,770 dış kapsam veikiLL korunur. Güncel source/target kontrolü, gerçek yedek/atomic rollback, bağımsız SQL/API283/283, committed replay0 ve normal üç kart kanıtlı. Son TEST107/source6c31585; [teknik sonuç ve sınırlar](docs/evidence/erp/2026-10-08-current-party-application/README.md).

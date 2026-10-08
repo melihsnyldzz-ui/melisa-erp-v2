@@ -1,3 +1,7 @@
+## ERP-PRODUCTCOMPLETION01 — Aşama 3 ürün aktarımı
+
+ERP-DEC-032 kapsamında D04/D05 ve ilgili ürün/barkod/fiyat/stok mutabakatı güncel kaynakla tamamlanıyor. Goal7 uygulamaları korunur; eski86/752 tarihsel sayımdır. Kesin kayıtlar TEST'te gerçekten uygulanıp okunacak, istisnalar alan/kayıt bazında açıklanacak; sonuç henüz oluşmadı. Cari/maliyet/medya/rol/hold teslimleri korunur. İnsan kabulü bekler;49 toplam/9🟢/39🟡/1🔴 başlangıç sayısı değişmedi. Bu dar kapsam sonunda DUR.
+
 ## Güncel cari tamamlaması — 8 Ekim 2026 / ERP-DEC-030
 
 **49 toplam / 9 🟢 / 39 🟡 / 1 🔴** değişmedi. ERP-DEC-031 dar283 hesap TEST uygulaması teknik teslimi:59 fark/224 defter no-op/0 ayrılan,159 kayıpsız hassasiyet/157 ana kart gösterge eşitlemesi; committed replay0, tam atomic rollback+yedek ve bağımsız SQL/API doğrulanmış. Önceki16/770 dış kapsam/ikiLL/yerel-sentetik ayrımı korunur. D02/D06 genel aktarım ve insan kabulü 🟡; ERP-UA24/25 bekler. [Uygulama kanıtı](docs/evidence/erp/2026-10-08-current-party-application/README.md). Önceki sayısal hazırlık ve alış referansı kanıtları tarihsel korunur. **Bu283 uygulaması sonunda DUR; yeni hesap/goal/finalT1/LIVE işi başlamaz.**

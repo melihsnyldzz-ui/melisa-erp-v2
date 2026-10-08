@@ -1,3 +1,9 @@
+## ERP-PRODUCTCOMPLETION01 — Aşama 3 başlangıcı — 8 Ekim 2026
+
+ERP-DEC-032 / doğrudan kullanıcı ürün TEST uygulama talimatı. Kanonik kök/origin/dal/temiz checkout/PR23 head8cbc5f952f1720b4609ba900700d60a7b0e4a606 aynı. Gerçek güncel port-süreç-manifest-health eşlemesi17:28:41UTC:TEST107/source6c31585, web5194/API4144/native4146, Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01;sysadmin0/LIVEaccess0/nativeREAD_ONLY. Disk143,4GB boş. Yeni ACL korumalı ERP-PRODUCTCOMPLETION01-20261008/private/application/initial-runtime-proof.json kaydedildi. Önceki283 cari/59 hareket/16 eski, alış/maliyet/medya/rol/hold yeniden uygulanmaz.
+
+Mevcut Goal7 writer/unified mapping ile toplu kaynak/target incelemesi sürüyor. Yeni ürün/stok/fiyat sonucu henüz yok; eski86/752 bugünkü sayım değildir. Cari/finans/maliyet/ödeme işi açılmadı; ayrı deneme ödeme geçmişi paneli açık kalır. Bu dar teslim sonunda DUR; gerçekT1/Vega/LIVE/CRM/main yok. Teknik test insan PASS değildir.
+
 ## ERP-CARICOMPLETION01 — onaylı 283 hesap TEST uygulaması — 8 Ekim 2026
 
 ERP-DEC-031 / doğrudan kullanıcı sayısal onayı. Sabit paket değişmeden uygulandı: **59 fark (25 müşteri/34 tedarikçi), 224 defter no-op, 0 hata/drift nedeniyle ayrılan**. Kapsam138 müşteri+145 tedarikçi;159 gerekli hassasiyet ve157 ana kart gösterge eşitlemesi aynı transaction içinde, ikinci finans hareketi olmadan tamamlandı. 278 ana döviz göstergesi hesabıyla eşit;157 planlı gösterge düzeltmesi+8 normal delta sonucu=165 kart UPDATE, yeni kapsam değildir. Önceki16/770 dış kapsam/ikiLL aynen korunur. Bu teknik uygulama insan ERP-UA24/25 PASS değildir.
