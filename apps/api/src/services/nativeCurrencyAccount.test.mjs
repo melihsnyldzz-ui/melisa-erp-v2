@@ -1,7 +1,7 @@
 import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
 let records;
-mock.module('../config/database.js',{namedExports:{getSqlDriver:()=>({BigInt:0})}});
+mock.module('../config/database.js',{namedExports:{getSqlDriver:()=>({BigInt:0}),getSqlPool:async()=>{throw Error('No new pool may be opened by a native adapter');},isCanonicalTest:()=>false,isIsolatedOperationCopyRuntime:()=>false,getIsolatedOperationCopyConfig:()=>null}});
 mock.module('./auditService.js',{namedExports:{writeAuditLog:async()=>{}}});
 const {verifyNativeCurrencyAccount,postNativeCurrencyAccount,postIsolatedCopyCurrencyMovement}=await import('./nativeCurrencyAccount.mjs');
 const request=()=>({input(){return this;},query:async()=>({recordsets:records})});
@@ -35,4 +35,20 @@ test('copied currency completion binds exact8 account effect and never adds a se
  assert.match(calls[0].sql,/UPDATE dbo.party_currency_accounts SET current_balance=current_balance\+@effect/);
  assert.doesNotMatch(calls[0].sql,/UPDATE dbo.customers SET balance/);
  assert.match(calls[0].sql,/N'sales_invoice',N'sales_invoice_cancel',N'collection'/);
+});
+
+test('copy inbound native adapter avoids driver positional variables and preserves the original product supplier',async()=>{
+ const {withIsolatedCopyPurchaseBatchContext}=await import('./testPurchaseService.mjs');
+ const {fixtureContext,fixtureIdentity,fixtureProof}=await import('./isolatedOperationCopyContext.test.mjs');
+ const {validateIsolatedOperationCopyContext,isolatedCopyHash,bindIsolatedCopyOperationDTO}=await import('./isolatedOperationCopyContext.mjs');
+ const {withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs');
+ const raw=fixtureContext();raw.suppliers[0].currency='TRY';raw.products.push({...raw.products[0],id:'30003',sourceKey:'VEGA2026/F0102TBLSTOKLAR/14568',stockCode:'004 KİNDO',priceIds:['101'],barcodes:['0004']});const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);const copy=validateIsolatedOperationCopyContext(raw),origin={synthetic:false,operationOrigin:copy.operationOrigin};
+ const context=bindIsolatedCopyOperationDTO(copy,{meta:{date:copy.date,operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash},scope:{...origin,supplier:{...origin,id:'30',currency:'TRY',code:'BABY HOOD',name:'BABY HOOD',balanceExact4:'166600.0000'},warehouse:{id:'1',label:'Mevcut depo'},products:copy.products.map((p,i)=>({...origin,id:p.id,stockCode:p.stockCode,unit:{label:'ADET',factorExact8:'1.00000000'},writeEligible:true,purchasePriceExact8:i?'85.00000000':'75.00000000'}))}});
+ const transaction={},inputs=[];
+ class Request{constructor(tx){assert.equal(tx,transaction);}input(k,t,v){assert.doesNotMatch(k,/^p\d+$/,'driver reserves positional @p1/@p2');inputs.push([k,v]);return this;}async query(sql){assert.match(sql,/@copyInboundProductA,@copyInboundProductB/);return{recordset:copy.products.map((p,i)=>({id:p.id,stock_code:p.stockCode,name:'Ürün',unit:'ADET',current_stock_qty:i?21:153,average_cost_try:i?85:75,supplier_id:123}))};}}
+ await withIsolatedOperationCopyScope({context:copy,transaction,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),write:false},async()=>{
+  const result=await withIsolatedCopyPurchaseBatchContext({id:'16'},{context,nativeContext:{transaction,pool:{},sqlDriver:{Request,BigInt:0}}},async(ctx,d)=>d,{write:false});
+  assert.equal(result.copyProducts[0].actual_supplier,123);assert.equal(result.s.supplier_id,'30');assert.equal(result.copyProducts[1].stock_code,'004 KİNDO');
+ });
+ assert.deepEqual(inputs,[['copyInboundProductA',34765],['copyInboundProductB',30003]]);
 });

@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {homeCapabilities,homeCurrencyTotals,homeDate,homeSummaryDto} from './homeSummaryModel.mjs';
 import {createHomeSummaryService} from './homeSummaryService.mjs';
-import {createHomeSummaryReadStore,HOME_SUMMARY_SQL} from './homeSummaryReadStore.mjs';
+import {createHomeSummaryReadStore,HOME_SUMMARY_SQL,COPY_HOME_SUMMARY_SQL} from './homeSummaryReadStore.mjs';
+import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
+import {validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
 const rights=['goods.view','goods.approve','sales.view','sales.cancel','purchase.view','purchase.cancel','finance.view','finance.collection','finance.payment','customer.view','supplier.view','product.view','stock.adjust'];
 const counts={salesCount:'0',salesCancelledCount:'0',goodsPendingCount:'0',salesReturnCount:'0',purchaseReturnCount:'0',returnCancelledCount:'0',countPendingCount:'0',approvalPendingCount:'0'};
 const raw=(capabilities=homeCapabilities(rights,rights))=>({capabilities,counts:{...counts},salesTotals:[],collections:[],payments:[],reversals:[],tasks:[]});
@@ -55,4 +57,21 @@ test('source query uses finalized header snapshot and reversals separately, boun
  assert.match(HOME_SUMMARY_SQL,/DECLARE @HomeSales TABLE/);assert.match(HOME_SUMMARY_SQL,/SUM\(finalizedCount\)/);assert.match(HOME_SUMMARY_SQL,/FROM @HomeSales WHERE finalizedCount>0/);assert.match(HOME_SUMMARY_SQL,/TOP\(5\)/);assert.match(HOME_SUMMARY_SQL,/flow=N'count-cancel' THEN N'count-cancel'/);assert.match(HOME_SUMMARY_SQL,/Turkey Standard Time/);
  assert.doesNotMatch(HOME_SUMMARY_SQL,/sp_getapplock|SERIALIZABLE|UPDATE|DELETE|MERGE|INSERT\s+INTO|finance_accounts|current_balance|opening_balance/i);
  assert.doesNotMatch(HOME_SUMMARY_SQL,/N'sales-draft'|N'purchase-draft'/);
+});
+function copyRuntime({wrongDB=false,deny=false,badProof=false}={}){
+ const copy=validateIsolatedOperationCopyContext(fixtureContext()),calls=[],events=[];
+ class Transaction{async begin(level){events.push(level);}async commit(){events.push('commit');}async rollback(){events.push('rollback');}}
+ class Request{constructor(){this.inputs={};}input(k,t,v){this.inputs[k]=v;return this;}async query(q){calls.push({q,inputs:this.inputs});if(q.startsWith('SELECT DB_NAME'))return{recordset:[{...fixtureIdentity(copy),...(wrongDB?{db:copy.sourceDatabase}:{})}]};assert.equal(q,COPY_HOME_SUMMARY_SQL);return {recordsets:[[counts],[],[],[],[],[{id:'sales-draft:51',kind:'sales-draft',state:'draft',date:copy.date}]]};}async execute(name){calls.push({name,inputs:this.inputs});if(name.endsWith('_ready'))return {recordset:[]};assert(name.endsWith('_context'));assert.equal(this.inputs.domain,'daily');return {recordset:[{proof_json:JSON.stringify({...fixtureProof(copy),...(badProof?{sealHash:'wrong'}:{})}),actor_json:JSON.stringify({id:'16',role:'isolated_test_ilker',active:true,permissions:deny?[]:rights}),context_json:JSON.stringify({meta:{date:copy.date,copyId:copy.copyId,sealHash:copy.sealHash,operationOrigin:copy.operationOrigin},scope:{synthetic:false,operationOrigin:copy.operationOrigin}})}]};}}
+ const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:'serializable'},BigInt:'bigint',UniqueIdentifier:'uuid',Date:'date',NVarChar:n=>'nvarchar'+n,Bit:'bit'};
+ return {copy,calls,events,getRuntime:async()=>({copyContext:copy,pool:{},sql})};
+}
+test('copy HOME uses existing sealed gates once and bounded own journal summary on its sealed business day',async()=>{
+ const rt=copyRuntime(),store=createHomeSummaryReadStore(rt),service=createHomeSummaryService({store,clock:()=>new Date('2026-10-09T00:00:00Z')}),dto=await service.summary({id:'16',permissions:rights});
+ assert.equal(dto.meta.date,'2026-10-08');assert.equal(dto.meta.readAt,'2026-10-09T00:00:00.000Z');assert.equal(dto.meta.copyId,rt.copy.copyId);assert.equal(dto.meta.sealHash,rt.copy.sealHash);assert.equal(dto.sections.sales.count,0);assert.equal(dto.tasks[0].label,'Satış taslağı');assert.equal(rt.calls.filter(c=>c.q===COPY_HOME_SUMMARY_SQL).length,1);assert.equal(rt.calls.find(c=>c.q===COPY_HOME_SUMMARY_SQL).inputs.date,rt.copy.date);assert.deepEqual(rt.events,['serializable','commit']);
+});
+test('copy HOME rejects wrong identity, revoked actor permission and changed module proof before reading totals',async()=>{
+ for(const options of [{wrongDB:true},{deny:true},{badProof:true}]){const rt=copyRuntime(options);await assert.rejects(createHomeSummaryReadStore(rt).read({actorId:'16',sessionPermissions:rights,date:meta.date}));assert.equal(rt.calls.some(c=>c.q===COPY_HOME_SUMMARY_SQL),false);assert.equal(rt.events.at(-1),'rollback');}
+});
+test('copy HOME owners and amounts require exact copy journal/effect bindings and do not mix restored history',()=>{
+ assert.match(COPY_HOME_SUMMARY_SQL,/j.copy_id=@copy_id/g);assert.match(COPY_HOME_SUMMARY_SQL,/effect_json COLLATE Latin1_General_100_BIN2=\(SELECT m\.\* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES\)/);assert.match(COPY_HOME_SUMMARY_SQL,/GROUP BY h.document_currency/);assert.match(COPY_HOME_SUMMARY_SQL,/GROUP BY currency/);assert.match(COPY_HOME_SUMMARY_SQL,/TOP\(5\)/);assert.match(COPY_HOME_SUMMARY_SQL,/j.operation=N'count_create'/);assert.match(COPY_HOME_SUMMARY_SQL,/j.operation=N'purchase_draft'/);assert.doesNotMatch(COPY_HOME_SUMMARY_SQL,/UPDATE|DELETE|MERGE|INSERT dbo|CREATE TABLE dbo|finance_accounts|opening_balance|migration_run_id/i);
 });
