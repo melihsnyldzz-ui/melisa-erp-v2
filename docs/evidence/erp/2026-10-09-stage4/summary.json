@@ -1,0 +1,545 @@
+{
+  "schemaVersion": "melisa-stage4-public.v1",
+  "recordedAt": "2026-10-08T23:22:13.588Z",
+  "decisionId": "ERP-DEC-033",
+  "taskId": "ERP-STAGE0401",
+  "status": "APPLICATION_AND_TEST_REHEARSAL_DELIVERED_CI_ACCOUNT_BLOCKED_HUMAN_PENDING",
+  "humanAcceptance": {
+    "id": "ERP-UA27",
+    "result": "bekliyor"
+  },
+  "finish": {
+    "total": 49,
+    "complete": 9,
+    "partial": 39,
+    "open": 1
+  },
+  "baseline": {
+    "checkout": "d3d81b8dd3353d1839e84eb3f08f770ea6dc0c8a",
+    "package": "TEST113",
+    "source": "63f0a017ec23e89ca9aab7e44acb051f4e86479a"
+  },
+  "application": {
+    "package": "TEST125",
+    "packageId": "CANONICAL-TEST-edb3c8915ef0",
+    "sourceCommit": "edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d",
+    "manifestFiles": 1581,
+    "baselineReproduced": true,
+    "primaryPorts": [
+      5194,
+      4144,
+      4146
+    ],
+    "isolatedPorts": [
+      5204,
+      4154,
+      4156
+    ],
+    "isolatedLoopbackOnly": true,
+    "originalDatabaseReset": false,
+    "originalCommercialWrites": 0,
+    "sourceRemigration": false,
+    "externalOperations": false,
+    "actualT1": false,
+    "liveWrites": false,
+    "crmChanges": false,
+    "mainMerged": false
+  },
+  "inventory": {
+    "oldTypedSyntheticReferences": 160,
+    "oldReferenceMeaning": "Includes drafts and reversals; not 160 independent trades",
+    "oldSyntheticNativeLedgerRows": {
+      "stock": 75,
+      "customer": 36,
+      "supplier": 74,
+      "cash": 56,
+      "total": 241
+    },
+    "unknownDocumentDraftAnchors": {
+      "sale": 13,
+      "purchase": 5,
+      "order": 4,
+      "total": 22
+    },
+    "unknownEffectCandidates": {
+      "stock": 185,
+      "customer": 66,
+      "supplier": 21,
+      "cash": 38,
+      "unassignedFinanceEdges": 179
+    },
+    "noGrandTotalAcrossOverlappingScopes": true,
+    "newCopiedCommittedRequests": 17,
+    "newCopiedNativeEffects": {
+      "stock": 8,
+      "customer": 2,
+      "supplier": 6,
+      "cash": 4,
+      "total": 20
+    },
+    "newCopiedOrigin": "ISOLATED_TEST_COPY -> SYNTHETIC_LOCAL",
+    "documentsAndLedgersDeleted": false
+  },
+  "opening": {
+    "planHash": "a5ea21d83966c03d7a7e719f00e7790745bb78571a0eeb45e7194e20c772d884",
+    "materializedRows": 18096,
+    "materializedComponents": 89410,
+    "recordLevelExact8DifferenceCount": 0,
+    "readyStock": 16426,
+    "readyPartyCurrencyAccounts": 273,
+    "readyCash": 0,
+    "blockedStock": {
+      "unknown": 123,
+      "dimension": 202,
+      "sourceAuthority": 3
+    },
+    "blockedParty": {
+      "unknown": 478,
+      "sourceAuthority": 294
+    },
+    "separateUnsupportedNullPartyAccounts": 4,
+    "blockedCash": {
+      "unknown": 17,
+      "sourceAuthority": 22
+    },
+    "nativeBalanceOverwrite": false,
+    "finalT1WriterApplied": false,
+    "wholeOpeningLiveReady": false
+  },
+  "dailyFlow": {
+    "finiteSourceCopiedScope": {
+      "products": 2,
+      "customers": 1,
+      "suppliers": 1
+    },
+    "rolesChanged": false,
+    "nativeClosuresPassed": 5,
+    "nativeClosuresCompared": 5,
+    "paymentHistoryFixed": true,
+    "receivingPurchaseDebtPaymentSaleDebtCollectionCountReturnVerified": true,
+    "actualReturnProbePrecededCountProbe": true,
+    "workday": "2026-10-08",
+    "returnDate": "2026-10-09",
+    "reportPeriod": [
+      "2026-10-08",
+      "2026-10-09"
+    ],
+    "reportNativeRows": {
+      "sales": 1,
+      "collections": 1,
+      "purchases": 1,
+      "supplierPayments": 3,
+      "stock": 8,
+      "customer": 2,
+      "supplier": 6
+    },
+    "reportsIndependentlyVerified": 7,
+    "officialCashClose": false,
+    "bankConnected": false,
+    "replaySecondCommercialEffects": 0,
+    "apiNegatives": {
+      "passed": 9,
+      "total": 9,
+      "committedEffects": 0
+    },
+    "sqlCreatorGuardNegatives": {
+      "passed": 9,
+      "total": 9,
+      "committedEffects": 0
+    }
+  },
+  "preservation": {
+    "originalCriticalDataGroups": 29,
+    "originalDataDifferenceGroups": 0,
+    "originalSqlModules": 337,
+    "originalModuleDifferences": 0,
+    "originalNativeColumnDefinitions": 9048,
+    "originalColumnDifferences": 0,
+    "oldCopiedNativeEffects": 25,
+    "oldCopiedEffectGroups": 4,
+    "oldCopiedEffectsUnchanged": true,
+    "copiedModulePins": 381,
+    "copiedModuleMismatches": 0,
+    "readOnlyModuleVisibilityLimited": true,
+    "ownerPinProofSeparate": true,
+    "financialProductPriceCostPhotoHoldRoleDeliveriesPreserved": true,
+    "privateFieldsPreservedExceptSourceAndPackagePins": true
+  },
+  "recovery": {
+    "copyOnlyChecksumBackupVerified": true,
+    "actualNewIsolatedRestores": 2,
+    "criticalDataGroupsCompared": 29,
+    "sqlModulesCompared": 337,
+    "nativeColumnsCompared": true,
+    "wholeDatabaseEveryRowCompared": false,
+    "activeDatabaseOverwritten": false,
+    "committedDailyReversals": [
+      "supplier-payment",
+      "stock-count",
+      "purchase-return"
+    ],
+    "wholeProductBatchCommittedInverseTested": false,
+    "whole283PartyBatchCommittedInverseTested": false,
+    "old16InverseIsNarrowPriorProof": true
+  },
+  "performance": {
+    "measurement": "Three sequential authenticated HTTP GET+JSON; not browser first-paint/device latency",
+    "baselineAndPrimarySameRoutes": true,
+    "originalComparison": [
+      {
+        "name": "first50",
+        "beforeSamplesMs": [
+          1217,
+          589,
+          543
+        ],
+        "afterSamplesMs": [
+          951,
+          653,
+          582
+        ],
+        "beforeMedianMs": 589,
+        "afterMedianMs": 653
+      },
+      {
+        "name": "next50",
+        "beforeSamplesMs": [
+          613,
+          528,
+          557
+        ],
+        "afterSamplesMs": [
+          645,
+          546,
+          575
+        ],
+        "beforeMedianMs": 557,
+        "afterMedianMs": 575
+      },
+      {
+        "name": "code",
+        "beforeSamplesMs": [
+          624,
+          570,
+          520
+        ],
+        "afterSamplesMs": [
+          585,
+          531,
+          526
+        ],
+        "beforeMedianMs": 570,
+        "afterMedianMs": 531
+      },
+      {
+        "name": "card-and-prices",
+        "beforeSamplesMs": [
+          186,
+          170,
+          198
+        ],
+        "afterSamplesMs": [
+          199,
+          183,
+          193
+        ],
+        "beforeMedianMs": 186,
+        "afterMedianMs": 193
+      },
+      {
+        "name": "HOME",
+        "beforeSamplesMs": [
+          226,
+          22,
+          18
+        ],
+        "afterSamplesMs": [
+          139,
+          22,
+          21
+        ],
+        "beforeMedianMs": 22,
+        "afterMedianMs": 22
+      },
+      {
+        "name": "count",
+        "beforeSamplesMs": [
+          301,
+          173,
+          180
+        ],
+        "afterSamplesMs": [
+          413,
+          178,
+          171
+        ],
+        "beforeMedianMs": 180,
+        "afterMedianMs": 178
+      },
+      {
+        "name": "payment-finance",
+        "beforeSamplesMs": [
+          656,
+          526,
+          501
+        ],
+        "afterSamplesMs": [
+          693,
+          590,
+          903
+        ],
+        "beforeMedianMs": 526,
+        "afterMedianMs": 693
+      },
+      {
+        "name": "barcode",
+        "beforeSamplesMs": [
+          392,
+          348,
+          357
+        ],
+        "afterSamplesMs": [
+          439,
+          458,
+          410
+        ],
+        "beforeMedianMs": 357,
+        "afterMedianMs": 439
+      }
+    ],
+    "isolatedCopy": [
+      {
+        "name": "first50",
+        "samplesMs": [
+          1564,
+          774,
+          730
+        ],
+        "medianMs": 774
+      },
+      {
+        "name": "next50",
+        "samplesMs": [
+          672,
+          695,
+          636
+        ],
+        "medianMs": 672
+      },
+      {
+        "name": "code",
+        "samplesMs": [
+          696,
+          576,
+          605
+        ],
+        "medianMs": 605
+      },
+      {
+        "name": "barcode",
+        "samplesMs": [
+          416,
+          554,
+          615
+        ],
+        "medianMs": 554
+      },
+      {
+        "name": "card-and-prices",
+        "samplesMs": [
+          305,
+          229,
+          294
+        ],
+        "medianMs": 294
+      },
+      {
+        "name": "HOME",
+        "samplesMs": [
+          1710,
+          1675,
+          1689
+        ],
+        "medianMs": 1689
+      },
+      {
+        "name": "count",
+        "samplesMs": [
+          235,
+          102,
+          181
+        ],
+        "medianMs": 181
+      },
+      {
+        "name": "return",
+        "samplesMs": [
+          283,
+          107,
+          206
+        ],
+        "medianMs": 206
+      },
+      {
+        "name": "payment-finance",
+        "samplesMs": [
+          1033,
+          425,
+          401
+        ],
+        "medianMs": 425
+      },
+      {
+        "name": "day-report",
+        "samplesMs": [
+          450,
+          294,
+          322
+        ],
+        "medianMs": 322
+      }
+    ],
+    "stockReportNativeServiceSamplesMs": [
+      1053,
+      734
+    ],
+    "stockReportPreviousLoadErrorRetained": true,
+    "deadlock1205Proven": false,
+    "pageSize": 50
+  },
+  "localVerification": {
+    "offlineGuardRetained": true,
+    "unitSuites": [
+      {
+        "name": "api",
+        "passed": 566,
+        "failed": 0
+      },
+      {
+        "name": "web-admin",
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "name": "sites-workflow",
+        "passed": 689,
+        "failed": 0
+      },
+      {
+        "name": "migration",
+        "passed": 222,
+        "failed": 0
+      },
+      {
+        "name": "canonical-windows-compatible",
+        "passed": 319,
+        "failed": 0
+      },
+      {
+        "name": "recovery-windows-library",
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "name": "windows-startup",
+        "passed": 5,
+        "failed": 0
+      }
+    ],
+    "canonicalStrictWindowsRunnerExcludedFourPowerShellFixtures": true,
+    "powerShellLibraryAssertionsSeparatelyVerified": true,
+    "firstWindowsGuardAttemptFailedClosed": true,
+    "qualitySyntax": "PASS",
+    "packageBuild": "PASS",
+    "offlineUiBuilds": "PASS",
+    "gitleaksVersion": "8.30.1",
+    "sourceReachableHistoryUnapprovedFindings": 0,
+    "hostedCiEquivalentPassClaimed": false
+  },
+  "github": {
+    "branch": "codex/erp-finish-20261004",
+    "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23",
+    "applicationSource": "edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d",
+    "deliveryCommitReceipt": "PR head; separate from application package source",
+    "sourceRuns": [
+      37857193029,
+      37857198117
+    ],
+    "sourceCi": "FAILURE_NOT_STARTED_ACCOUNT_PAYMENT_OR_SPENDING_LIMIT",
+    "sourceCiStepsExecuted": 0,
+    "lastPriorGreenSource": "dd436ecee394cc3a950edb682cb7e41981473060",
+    "priorGreenIsNotFinalHeadPass": true,
+    "finalHeadCi": "Check exact PR head after documentation delivery; no historical SUCCESS substitution"
+  },
+  "evidenceFingerprints": [
+    {
+      "artifact": "recovery/restore-comparison.json",
+      "sha256": "1c7995b1307a02bf3792bdbd185a9570b6191dcc1b5e0e6699b573853dd18712"
+    },
+    {
+      "artifact": "discovery/opening-summary-v02.json",
+      "sha256": "d1d3d128c6f6b649c69e2648942c1820ed67245f5d143246dc421c69cf8e496a"
+    },
+    {
+      "artifact": "discovery/opening-independent-proof-v02.json",
+      "sha256": "01ddc9ae035c3d05046de396ff1cb68b8593582d304d4e0e3ac95dc1b48e91b0"
+    },
+    {
+      "artifact": "discovery/original-protected-after-final.json",
+      "sha256": "8d3faf1f5d1d6fe07d58962379369774411a8c5760a027e0358a240f4acf4ca5"
+    },
+    {
+      "artifact": "discovery/original-metadata-after-final.json",
+      "sha256": "82b3985fecf90587bd67672199077b107a4e97384df598adc2b298ddbb88ea32"
+    },
+    {
+      "artifact": "discovery/copy-readonly-independent-after-v02.json",
+      "sha256": "4d0f8a805ab25005bcf8b8902ee17cba9e73123852afee779ab22490dc3a8218"
+    },
+    {
+      "artifact": "discovery/copy-api-reports-independent-after.json",
+      "sha256": "dafa6dabf42d8d038d2e973ebc6ea81b08958dc40cc41d3db279494ab4f5b4e1"
+    },
+    {
+      "artifact": "discovery/copy-source-synthetic-exact8-summary.json",
+      "sha256": "7888451e8b5c6fe82e0253bd24a2429cd2d62d85cec70865219c9db26d99a58c"
+    },
+    {
+      "artifact": "application/negative-daily-api124.json",
+      "sha256": "5f2d869f0c3ae717024e9f2852ca0cd664b6f50936c66f0d2d748a5926777fad"
+    },
+    {
+      "artifact": "application/native-creator-guard-rollback-proof.json",
+      "sha256": "0910e2dc84197f1ee9ae9c5c31a23b0524389c1950a1daa144857434effd1d42"
+    },
+    {
+      "artifact": "application/copy-module-owner-proof-after.json",
+      "sha256": "68745f626b067725e84e3a44565b2bf571301d5aeb70457f63260da782df97d4"
+    },
+    {
+      "artifact": "application/dual-runtime-health125.json",
+      "sha256": "7ee86e9e0c722c1e40d7f78acb3d6bcba194221b08f790fa42a36f15a5b127e4"
+    },
+    {
+      "artifact": "application/performance-before113.json",
+      "sha256": "598af4ba026f52ce3e4ff8b10cc02232e0ad806269019cce7f5e1ab76d14996d"
+    },
+    {
+      "artifact": "application/performance-primary125.json",
+      "sha256": "cb7f06a0e6861b47e8652c5d268381139c215c1498a62aaaba641cf5c0d5e094"
+    },
+    {
+      "artifact": "application/performance-after125.json",
+      "sha256": "8993d5aae5b54156646015a1e7c7d50a32427de810b7b6cecfdc81975423041f"
+    },
+    {
+      "artifact": "application/home-workday125.jpg",
+      "sha256": "d7b8298c6d8a941f40e8d4d4c4b133eddcdb36611179447b4fca77ba69949fb3"
+    },
+    {
+      "artifact": "application/primary-payment-history125.jpg",
+      "sha256": "a51848f1c1d05387d5a444467b00224a075e7e49e55dc80a43959aa2cc1de7fa"
+    }
+  ],
+  "stopAfterThisStage": true
+}

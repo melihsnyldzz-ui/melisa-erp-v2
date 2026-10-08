@@ -67,3 +67,7 @@ ERP-DEC-009'un kaynak sınıflandırma kuralları yürürlüktedir; yalnız kabu
 ## ERP-DEC-026 uygulama kanıtı — 7 Ekim 2026
 
 Kayıtlı Goal8 kararı değiştirilmeden [teknik teslim](docs/evidence/erp/2026-10-07-goal8/README.md) tamamlandı. TEST94/sourcecee7d7a;49/9🟢/39🟡/1🔴. İnsan kabulü verilmedi, ERP-UA24 bekler. GerçekT1/LIVE/gerçek ticari kapsam veya sonraki goal yetkisi oluşmaz; teslimden sonra DUR.
+
+## ERP-DEC-033 uygulama kanıtı — 9 Ekim 2026
+
+Karar metni ve sınırları değişmedi. ERP-STAGE0401'in izole TEST uygulama/etki ayrımı/günlük zincir/ödeme geçmişi/restore kanıtı [Aşama 4 tesliminde](docs/evidence/erp/2026-10-09-stage4/README.md). ERP-UA27 insan sonucu bekliyor; CI hesap engeli STATUS'tadır. Bu bağlantı yeni LIVE/T1, rol veya işletme kararı değildir; teslim sonunda DUR.

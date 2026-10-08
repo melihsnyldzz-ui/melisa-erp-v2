@@ -1,3 +1,15 @@
+## ERP-UA27 — Aşama 4 günlük kopya ve deneme ayrımı — bekliyor
+
+ERP-STAGE0401 / ERP-DEC-033,9Ekim2026. Ortam TEST125/sourceedb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d; insan kişi/tarih/sonuç **bekliyor**. Teknik SQL/API/tarayıcı/ajan provası insan PASS değildir. Önceki ERP-UA24/25/26 bekliyor ve kabul edilmiş önceki sonuçlar korunur. [Teknik kanıt ve açılış engelleri](docs/evidence/erp/2026-10-09-stage4/README.md).
+
+1. [Normal ödeme geçmişi](http://127.0.0.1:5194/ornek-akis.html#supplier-payments) içindeki eski deneme geçmişini açıp tarih/döviz/tutar/ters kaydı oku; yenileme aynı geçmişi göstersin. Yeni ödeme oluşturma.
+2. [İzole günlük prova](http://127.0.0.1:5204/ornek-akis.html#reports) içinde8–9Ekim özel aralığını kullan; mevcut kabul/alış/satış/tahsilat/ödeme/sayım/iade geçmişi ve raporlarını oku. Bu kopya yalnız bu bilgisayardadır.
+3. Kopyada personelin taslak oluşturma ile yetkilinin gerekçeli fark/iade onayı ayrımını ve kaydedilmiş ters kayıtların geçmişi silmediğini incele. İşlem oluşturmak bu kabul hazırlığının parçası değildir.
+4. Ana Sayfa iş günü tarihini, TRY/USD/EUR ayrımını ve gerçek kasa açılışının henüz bağlı olmadığını oku; deneme kasa tutarını gerçek şirket açılışı sanma.
+5. UNKNOWN kayıt/etki ve temiz açılışın stok16.426/cari273 alt kapsamını değerlendir; bu kaynak/fiziksel mağaza tam mutabakatı veya LIVE geçişi değildir.
+
+Geniş insan kabulü, fiziksel cihaz, gerçek kasa/banka ve bilinmeyen işlem kökeni açık. Teknik teslimin CI hesap engeli STATUS'tadır. Kullanıcı açık sonuç vermedikçe PASS yok; bu aşama sonunda DUR.
+
 ## ERP-UA26 — Aşama 3 ürün/stok/barkod/satış fiyatı — bekliyor
 
 İş ERP-PRODUCTCOMPLETION01 / ERP-DEC-032; ortam TEST113 / source 63f0a017ec23e89ca9aab7e44acb051f4e86479a, kaynak 08.10.2026 20:28:57 TR. Kontrol eden kişi/tarih **bekliyor**; sonuç **bekliyor**. Bağımsız SQL, 384 API ve ajanın beş normal kart provası insan PASS değildir. Önceki ERP-UA02/03/04 PASS ve ERP-UA24/25 bekliyor sonuçları korunur. [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-product-completion/README.md).
