@@ -4,6 +4,8 @@
 
 İnsan kontrolü geldiğinde normal [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers) ve [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers) kartında ayrı TRY/USD/EUR, B/A yönü ve güncel ERP bakiye incelenir. Açılış, kaynak güncellemesi ve gerçek yerel hareket etkisi ayrı görülür; source capture sonrasındaki Vega hareketi bugünkü bakiye diye iddia edilmez. Bu kayıt yeni ödeme/tahsilat veya başka migration onayı değildir.
 
+Teknik ekran provası son TEST107/source6c31585 üzerinde üç kartla tamamlandı. Bu ajan kanıtı yeni insan kabulü oluşturmaz. Ayrı deneme ödeme geçmişi paneli açılamıyor; bu bölüm PASS sayılmadı. Kullanıcının kapsamlı ekran incelemesi **bekliyor**.
+
 ## Tarihsel ERP-UA24/25 — cari ve iki ondalık gösterim hazırlığı
 
 8 Ekim2026 ERP-DEC-030. Kullanıcı yalnız yöntem kararını verdi; yeni283 hesabın tutar onayı veya geniş insan PASS vermedi. 299 hesap onaya hazır/16 önceki korunmuş/283 yeni bekler; LL2 dışarıda. Normal fiyat ve bakiye iki ondalık gösterilir; TRY/USD/EUR/B-A exact yönü ve kaynak hassasiyeti korunur. Yeni tutar/finans/DDL uygulaması0. Paket ve ajan ekran provası teknik kanıttır; ERP-UA24/25 sonuçları **bekliyor** kalır. [Kanıt](docs/evidence/erp/2026-10-08-current-party-completion/README.md). Önceki Goal7.3 dar insan kontrolü ve alış referansı teslimi tarihsel kapsamıyla aşağıda korunur.

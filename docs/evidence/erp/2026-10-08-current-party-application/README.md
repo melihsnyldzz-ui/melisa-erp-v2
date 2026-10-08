@@ -44,6 +44,24 @@ TEST104'te bağımsız 283/283 API kontrolü geçti. TEST105 son denemesinde car
 
 TEST ekranları: [Müşteriler](http://127.0.0.1:5194/ornek-akis.html#customers), [Tedarikçiler](http://127.0.0.1:5194/ornek-akis.html#suppliers). İnsan PASS verilmedi.
 
+## Son okuyucu düzeltmesinin gerçek SQL sonucu
+
+SQL'in `CREATE OR ALTER` tanım başlığını yeniden yazması ilk metadata hash kontrolünü reddetti; o transaction geri alındı. Açık `ALTER` ile güncellenen tanım bu SQL sürümünde `CREATE` başlığıyla saklanır. Kod yalnız aynı tam gövdenin iki sabit CREATE/ALTER hash'ini kabul eder; başka metin, whitespace veya gövde değişikliği fail-closed kalır. Genel hash normalizasyonu veya bilinmeyen sürüm kabulü yok.
+
+Yeni dar SELECT okuyucunun tam metadata rollback provası **PASS**: 283/283 aynı exact etki,159ms; eski prosedür tanımı geri döndü. Gerçek okuyucu güncellemesi **PASS**:283/283,149ms. Her iki işlemde15 iş tablosunun önce/sonra count+hashleri ve prosedür ACL'i aynı, finans yazması0; CREATE/DROP/reGRANT veya yeni rol verilmedi. İlk ağır sorgu~9.998ms idi. Bu süre SQL kanıt okumasıdır, tarayıcı paint veya bütün ERP performans kabulü değildir.
+
+Son immutable paket **TEST107**, uygulama source `6c31585efa5bde23047a1776fb61c3ab0bbcd7f3`, `CANONICAL-TEST-6c31585efa5b`,1505 manifest dosyası/baselineReproducedtrue. Writer'ın gerçek finans uygulaması source967cba5 ile gerçekleşmişti;107 yalnız normal kart sunumu ve dar SELECT reader teslimidir. TEST101/104/105 ve kurulmadan korunmuş102/103/106 paketleri silinmedi. Exact uygulama source PR CI run37803123289 ve push37803112209 üçer job SUCCESS; son doküman HEAD ayrı doğrulanır.
+
+## Son normal API ve ekran sonucu
+
+TEST107 üzerinde bağımsız normal müşteri/tedarikçi API kontrolü **283/283 doğru, 0 hata**. Aynı 11 sıralı, 100 satırlık GET isteği TEST104'te 9.640–10.664 ms / ortalama 9.997 ms iken TEST107'de **290–640 ms / ortalama 476 ms** oldu. Müşteri 5 sayfa ortalama 469 ms, tedarikçi 6 sayfa ortalama 483 ms. Exact bakiye, hesap kimliği, döviz, B/A, reconciled kapanışı ve korunmuş yerel etki kontrolleri gevşetilmedi. Bu HTTP/SQL ölçümüdür; tarayıcı paint veya insan performans kabulü değildir.
+
+Normal yeşil çalışma yüzünde üç gerçek kart açıldı: bir USD müşteri, bir TRY tedarikçi ve bir USD tedarikçi. Beklenen iki ondalıklı bakiye ve B/A yönü, açılış/yerel etki/kaynak güncellemesinin ayrı sunumu doğrulandı. Tedarikçilerin kanıtı olmayan diğer döviz hesapları **Bilinmiyor** kaldı; dövizler toplanmadı. Üç DOM ve ekran görüntüsü private kanıtta korunur. Kullanıcının mevcut sekmeleri, oturumu ve taslakları korunmuş; yalnız ajan kontrol sekmesi kapatılmıştır. Ticari ekran işlemi oluşturulmadı.
+
+Önceki TEST101 gözleminde de açık olan ayrı deneme tedarikçi ödeme geçmişi paneli hâlâ açılamıyor. Bu panel bu teslimde PASS veya düzeltilmiş sayılmadı; dar 283 hesap uygulamasını yeni modül geliştirmesine genişletmedik. İnsan **ERP-UA24/25 bekliyor**.
+
+Anonim makine özeti: [delivery-summary.json](delivery-summary.json). Kaynak CI ve son doküman HEAD CI ayrı teslimlerdir; son HEAD makbuzu PR23'te doğrulanır.
+
 ## Private kanıt sınırı
 
 Ham cari adları, tutarlar, hesap anahtarları, kaynak dosyalar ve ekran görüntüleri yalnız ACL korumalı `C:\Sirket\ERP\evidence\ERP-CARICOMPLETION01-20261008\private` altında. GitHub yalnız anonim sonuç, uygulama/okuyucu kodu ve teknik testleri içerir. Yedek `C:\Sirket\ERP\backups\ERP-CARICOMPLETION01-20261008` altında tutulur. Orijinal onay paketi ve önceki runtime/paketler korunmuştur.

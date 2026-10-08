@@ -1,3 +1,9 @@
+## ERP-CARICOMPLETION01 — ERP-DEC-031 / 8 Ekim 2026
+
+Kullanıcının sabitlediği 283 hesap yalnız TEST'te uygulandı: 59 fark, 224 ikinci finans hareketi olmadan doğrulama, 0 hata/drift ayrılması.159 kayıpsız hassasiyet ve157 ana kart gösterge eşitlemesi tamam; önceki16,770 dış kapsam veikiLL korunur. Güncel source/target kontrolü, gerçek yedek/atomic rollback, bağımsız SQL/API283/283, committed replay0 ve normal üç kart kanıtlı. Son TEST107/source6c31585; [teknik sonuç ve sınırlar](docs/evidence/erp/2026-10-08-current-party-application/README.md).
+
+Bu onaylı TEST uygulaması gerçek T1/LIVE kesimi değildir. Commit sonrası bu batch'in inverse uygulaması çalıştırılmış sayılmaz; doğrulanmış yedek ve before-image geri dönüş kanıtları korunur. ERP-UA24/25 insan kabulü bekler. Bu dar teslim sonunda **DUR**; kalan hesap, yeni migration, Vega/LIVE/CRM/stok/satış fiyatı/main yok. Aşağıdaki onay hazırlığı ve önceki teslim kayıtları tarihsel kapsamlarıyla korunur.
+
 ## ERP-MIGUNIFIED01 eki — ERP-DEC-029 / 8 Ekim 2026
 
 TEST100/sourcecc4c4601ec0a: belge→kanıtlı giriş→kart öncelikli son net alış V2 metadata16.667 kayıtta uygulandı.4.338 belge net/0 giriş/5.076 kart/7.253 bilinmeyen-manuel,12.329 netNULL;1 kimlik drift dışarıda. Eski16.668 V1 ve6.090 native maliyet korunur. Native stok/satış fiyatı/cari-finans/hold/roller ve47 hesap onay paketi değişmedi. Yeni yedek, CAS/readback/replay0, normal opt-in kart ve exact source CI kanıtlı. [Teslim](docs/evidence/erp/2026-10-08-last-net-purchase/README.md).
