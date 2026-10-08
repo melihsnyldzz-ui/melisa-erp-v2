@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "erp-current-party-completion-delivery.v1",
+  "decision": "ERP-DEC-030",
+  "work": "ERP-CARICOMPLETION01",
+  "instruction": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6061357235",
+  "branch": "codex/erp-finish-20261004",
+  "pr": 23,
+  "sourceCapturedAt": "2026-10-08T14:01:17.583Z",
+  "source": {
+    "cards": 951,
+    "accounts": 967,
+    "numericReportBoundClosingWitnesses": 336,
+    "customerWitnesses": 153,
+    "supplierWitnesses": 183,
+    "originalReportMatches": 335,
+    "typedLaterPaymentWitnesses": 1,
+    "globalMethodVerified": false,
+    "reportGeneratedAtKnown": false
+  },
+  "sourceAccounts": 967,
+  "nativeExtraSourceAccounts": 102,
+  "totalScopeAccounts": 1069,
+  "readyCustomerAccounts": 138,
+  "readySupplierAccounts": 161,
+  "readyAccounts": 299,
+  "priorAppliedAccounts": 16,
+  "pendingNewAccounts": 283,
+  "pendingDifferenceAccounts": 59,
+  "pendingNoOpAccounts": 224,
+  "precisionUpgradeAccounts": 159,
+  "scalarMirrorRepairAccounts": 157,
+  "scalarMirrorWithLedgerNoOpAccounts": 106,
+  "prior16FutureT1DriftAccounts": 2,
+  "excludedLLAccounts": 2,
+  "blockedOrExcludedAccounts": 770,
+  "blockedPrimaryReasons": {
+    "CURRENT_CURRENCY_CLOSING_NOT_VERIFIED": 78,
+    "EXACT_NATIVE_ACCOUNT_IDENTITY_MISSING": 19,
+    "EXACT_TWO_LL_EXCLUDED": 2,
+    "EXISTING_HOLD_REMAINS": 123,
+    "LOCAL_REAL_SYNTHETIC_LINEAGE_UNPROVEN": 3,
+    "NATIVE_CURRENCY_NOT_CURRENT_VERIFIED_SOURCE_SCOPE": 102,
+    "NO_MOVEMENT_IS_NOT_VERIFIED_ZERO": 443
+  },
+  "financialWrites": 0,
+  "approval": "PENDING_AMOUNT_APPROVAL",
+  "executeAllowed": false,
+  "executableNow": false,
+  "newNativeBatchReplayPerformed": false,
+  "ddlExecuted": false,
+  "scalarMirrorExecuted": false,
+  "sourceWrites": 0,
+  "liveWrites": 0,
+  "crmWrites": 0,
+  "roleChanges": 0,
+  "holdChanges": 0,
+  "humanAcceptance": {
+    "ERP_UA24": "pending",
+    "ERP_UA25": "pending"
+  },
+  "tests": {
+    "offlineMigration": {
+      "passed": 184,
+      "failed": 0
+    },
+    "sites": {
+      "passed": 652,
+      "failed": 0
+    },
+    "sitesBuild": "passed"
+  },
+  "runtime": {
+    "beforePackage": "TEST100",
+    "beforeSource": "cc4c4601ec0a006c2138385859e5167934829adf",
+    "newPackage": "PENDING_BUILD_AND_SCREEN_VERIFICATION"
+  },
+  "files": [
+    {
+      "file": "current-finance-approval-packet.json",
+      "sha256": "1d6d565eb491d6af1ca27431712b86af22001b2e9acdd51a93809055fb2b385c"
+    },
+    {
+      "file": "current-finance-verification.json",
+      "sha256": "38a4ea47501544cf6a24637b218ffa02873d213d7419b2a61b0898d9cf74fba9"
+    },
+    {
+      "file": "scalar-precision-phase-plan.json",
+      "sha256": "3b502d8a7f9a67f1e1b8fffd521172c942e22d0f8563b6f914862a7369f4178f"
+    },
+    {
+      "file": "source/final-summary.json",
+      "sha256": "ecbe1f960a71febb065a5228c53f2601981a02a2e1f092cda60c0a188afc9538"
+    },
+    {
+      "file": "native/native-account-closure.json",
+      "sha256": "55acaadcc26e69168153666b0370e87f086dceeb2a8f12b16111ca12fd1d84a1"
+    },
+    {
+      "file": "native/goal73-prior-journal-preserved.json",
+      "sha256": "514eed8df396dad7171644793d6512f8cb541e1b1d73141f5c147b6acf806a62"
+    }
+  ],
+  "scalarProjection": {
+    "automaticColumns": [
+      "row_version"
+    ],
+    "fullRuntimeAfterimageHashPredicted": false,
+    "readbackAndJournalRequired": true
+  },
+  "independentReview": {
+    "status": "passed",
+    "scope": "nonexecuting preparation",
+    "rowversionProjectionRegression": "passed"
+  }
+}

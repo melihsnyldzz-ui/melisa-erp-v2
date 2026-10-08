@@ -1,3 +1,4 @@
+export {moneyDisplay} from './moneyDisplay.mjs';
 export const reportKinds=[['sales','Satışlar'],['collections','Tahsilatlar'],['purchases','Alışlar'],['supplier-payments','Tedarikçi ödemeleri'],['stock-movements','Stok hareketleri'],['customer-movements','Müşteri hareketleri'],['supplier-movements','Tedarikçi hareketleri']];
 export const reportPeriods=[['today','Bugün'],['yesterday','Dün'],['last7','Son 7 gün'],['month','Bu ay'],['previous-month','Önceki ay'],['custom','Özel tarih aralığı']];
 const fail=()=>{throw Error('Rapor bilgileri doğrulanamadı. Yenileyerek tekrar deneyin.');};

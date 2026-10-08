@@ -1,11 +1,11 @@
 import './workHome.css';
-import {validateWorkHome,homeShortcuts,homeAmount,homeCount,homeUnavailable,orderedHomeShortcuts,orderedHomeTasks,homeNormalScreen,mergeInboundHome} from './workHomeModel.mjs';
+import {moneyDisplay,validateWorkHome,homeShortcuts,homeAmount,homeCount,homeUnavailable,orderedHomeShortcuts,orderedHomeTasks,homeNormalScreen,mergeInboundHome} from './workHomeModel.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const states={draft:'Taslak',pending:'Bekliyor',submitted:'Kontrol bekliyor',approved:'Onaylandı',accepted:'Kabul edildi',awaiting_invoice:'Fatura bekliyor'};
 export function createWorkHome({root,session,user,navigate=()=>{},openLink=()=>{}}={}){
  let active=false,generation=0,data=null,busy=false;
  const alive=n=>active&&root?.isConnected&&n===generation;
- function currencies(rows){return rows.length&&rows.some(r=>r.knownCount+r.unknownCount>0)?rows.map(r=>`<span class="home-currency">${esc(homeAmount(r.amountExact4))} ${esc(r.currency)}</span>${r.unknownCount?`<small>${homeCount(r.unknownCount)} kaydın tutarı bilinmiyor</small>`:''}`).join(''):'<span class="home-currency">Henüz veri yok</span>';}
+ function currencies(rows){return rows.length&&rows.some(r=>r.knownCount+r.unknownCount>0)?rows.map(r=>`<span class="home-currency">${esc(moneyDisplay(r.amountExact4))} ${esc(r.currency)}</span>${r.unknownCount?`<small>${homeCount(r.unknownCount)} kaydın tutarı bilinmiyor</small>`:''}`).join(''):'<span class="home-currency">Henüz veri yok</span>';}
  function tile(label,s,value){return `<div class="card stat"><span class="dot"></span><div class="label">${label}</div>${s?.status==='available'?value:`<strong>—</strong><small>${s?homeUnavailable(s.status):'Bilgiler açılıyor…'}</small>`}</div>`;}
  function shortcuts(){return (data?orderedHomeShortcuts(data.capabilities,user):homeShortcuts).map(s=>{const allowed=data?.capabilities[s.capability],ready=allowed&&data?.navigationReady[s.capability];const note=!data?'':!allowed?'Görüntüleme yetkiniz yok':!ready?'İşlem ekranı henüz hazır değil':'';return `<button class="home-shortcut" data-home-shortcut="${s.id}" ${ready?'':'disabled'}><span class="ico" aria-hidden="true">${s.icon}</span><span>${s.label}${note?`<small>${note}</small>`:''}</span></button>`;}).join('');}
  function dailySections(){

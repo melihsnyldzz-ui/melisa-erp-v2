@@ -17,7 +17,14 @@ test('untrusted identities, enum, date, currency/unit and rational values are re
  assert.throws(()=>lastPurchaseReferenceEnvelope({...envelope(dto()),meta:{readOnly:true,financialEffect:true}},'1','0161 MOLLY'));
 });
 test('explicit recurring quotient is preserved and labels are escaped',()=>{
- const r={...dto(),referenceExact:'0.333333333333333333',referenceNumerator:'1',referenceDenominator:'3',precisionStatus:'TRUNCATED_18',referenceUnitLabel:'<img onerror=alert(1)>'};lastPurchaseReferenceEnvelope(envelope(r),'1','0161 MOLLY');const html=renderLastPurchaseReference(r);assert.match(html,/0,333333333333333333 TRY/);assert.match(html,/&lt;img/);assert.doesNotMatch(html,/<img/);
+ const r={...dto(),referenceExact:'0.333333333333333333',referenceNumerator:'1',referenceDenominator:'3',precisionStatus:'TRUNCATED_18',referenceUnitLabel:'<img onerror=alert(1)>'},before=structuredClone(r);lastPurchaseReferenceEnvelope(envelope(r),'1','0161 MOLLY');const html=renderLastPurchaseReference(r);assert.match(html,/0,33 TRY/);assert.match(html,/&lt;img/);assert.doesNotMatch(html,/<img/);assert.deepEqual(r,before);
+});
+test('positive sub-cent and large reference prices remain verified exact sources when display rounds',()=>{
+ for(const [referenceExact,referenceNumerator,referenceDenominator,display] of [['0.002010070000000000','201007','100000000','0,00 TRY'],['99999999999999999999.999999999999999999','99999999999999999999999999999999999999','1000000000000000000','100.000.000.000.000.000.000,00 TRY']]){
+  const r={...dto(),referenceExact,referenceNumerator,referenceDenominator},before=structuredClone(r);
+  assert.equal(lastPurchaseReferenceEnvelope(envelope(r),'1','0161 MOLLY'),r);const html=renderLastPurchaseReference(r);
+  assert.ok(html.includes(display));assert.match(html,/doğrulanan net tutardır/);assert.deepEqual(r,before);
+ }
 });
 test('commercial entry is labelled as entry and manual value remains protected',()=>{
  const r={...dto(),sourceKind:'COMMERCIAL_ENTRY'};assert.match(renderLastPurchaseReference(r),/Giriş kaydı/);assert.match(renderLastPurchaseReference(r),/Geçerli alış belgesi bulunmadığından/);

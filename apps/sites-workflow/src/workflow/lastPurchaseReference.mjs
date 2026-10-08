@@ -1,3 +1,4 @@
+import {moneyDisplay} from './moneyDisplay.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const exact=v=>v===null||typeof v==='string'&&/^(0|[1-9]\d{0,19})\.\d{8,18}$/.test(v);
 const currency=v=>[null,'TRY','USD','EUR'].includes(v);
@@ -17,7 +18,7 @@ export function lastPurchaseReferenceEnvelope(payload,productId,stockCode){
  else {if(r.referenceExact===null||typeof n!=='string'||typeof d!=='string'||!/^[1-9]\d{0,199}$/.test(n)||!/^[1-9]\d{0,199}$/.test(d)||!['EXACT','TRUNCATED_18'].includes(r.precisionStatus))fail();const scale=r.referenceExact.split('.')[1].length,scaled=BigInt(n)*10n**BigInt(scale),den=BigInt(d),remainder=scaled%den;if(scaled/den!==BigInt(r.referenceExact.replace('.',''))||r.precisionStatus==='EXACT'&&remainder!==0n||r.precisionStatus==='TRUNCATED_18'&&(scale!==18||remainder===0n))fail();}
  return r;
 }
-function amount(v,c){if(v===null)return 'Bilinmiyor';const [whole,fraction]=v.split('.');return `${esc(whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.'))},${esc(fraction.replace(/0+$/,'').padEnd(2,'0'))} ${c===null?'· Döviz bilinmiyor':esc(c)}`;}
+function amount(v,c){if(v===null)return 'Bilinmiyor';return `${esc(moneyDisplay(v))} ${c===null?'· Döviz bilinmiyor':esc(c)}`;}
 const source=k=>({PURCHASE_DOCUMENT:'Alış belgesi',COMMERCIAL_ENTRY:'Giriş kaydı',CARD:'Kart alış',UNKNOWN:'Bilinmiyor'}[k]);
 const shownDate=v=>v===null?'Bilinmiyor':esc(v.slice(0,10).split('-').reverse().join('.'));
 const sameAmount=(a,b)=>a===null||b===null?a===b:a.replace(/0+$/,'').replace(/\.$/,'')===b.replace(/0+$/,'').replace(/\.$/,'');

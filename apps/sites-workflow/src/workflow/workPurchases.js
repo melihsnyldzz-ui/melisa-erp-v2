@@ -1,5 +1,5 @@
 import './workInbound.css';
-import {receivingContext,purchaseContext,purchaseSelection,purchasePreview,purchaseInvoice,inboundInput,inboundAmount,inboundEsc as esc,inboundError,inboundState} from './workInboundModel.mjs';
+import {moneyDisplay,receivingContext,purchaseContext,purchaseSelection,purchasePreview,purchaseInvoice,inboundInput,inboundAmount,inboundEsc as esc,inboundError,inboundState} from './workInboundModel.mjs';
 import {createInboundJournal} from './workInboundJournal.mjs';
 import {tradeUuid} from './workTradeModel.mjs';
 import {createWorkInboundFx} from './workInboundFx.js';
@@ -7,7 +7,7 @@ export function createWorkPurchases({root,session,user,navigate=()=>{},storage=g
  let fxUI=null,fxHost=null;const fxDisabled=new Map();
  let active=false,generation=0,context=null,busy=false,pending=null,note='',denied=false,receiptId='',number='TSTB-',date='',quantities={},preview=null,invoice=null,backupFailed=false;
  const journal=createInboundJournal({storage,key:`melisa-work-inbound-purchase:${globalThis.location?.host??'local'}:${user.id}`,makeUuid:uuid}),alive=n=>active&&root?.isConnected&&n===generation,locked=()=>busy||pending?.status==='pending'||fxUI?.isLocked()===true;
- const money=v=>`${esc(inboundAmount(v))} TRY`,eligible=()=>context?.receipts.filter(r=>r.state==='accepted'&&r.lines.some(l=>BigInt(l.invoiceableQuantityExact3.replace('.',''))>=1000n))??[];
+ const money=v=>`${esc(moneyDisplay(v))} TRY`,eligible=()=>context?.receipts.filter(r=>r.state==='accepted'&&r.lines.some(l=>BigInt(l.invoiceableQuantityExact3.replace('.',''))>=1000n))??[];
  function remember(){try{journal.backup({receiptId,number,date,quantities,invoiceId:invoice?.id??null});backupFailed=false;}catch{backupFailed=true;note='Taslak yedeği korunamadı. Kayıt göndermeden tekrar deneyin.';}}
  function invalidate(){preview=null;root.querySelector('[data-purchase-create]')?.setAttribute?.('disabled','');root.querySelector('[data-purchase-preview-result]')?.remove?.();remember();}
  function selection(){const form=root.querySelector('[data-purchase-entry]');if(form?.elements){for(const key of ['number','date'])if(typeof form.elements[key]?.value==='string'){if(key==='number')number=form.elements[key].value;else date=form.elements[key].value;}}root.querySelectorAll('[data-purchase-qty]').forEach(input=>{if(typeof input.value==='string')quantities[input.dataset.purchaseQty]=input.value;});return purchaseSelection({receiptId,number,documentDate:date,currency:'TRY',lines:Object.entries(quantities).filter(([,v])=>v!==''&&inboundInput(v,3)!=='0.000').map(([receiptLineId,v])=>({receiptLineId,quantityExact3:inboundInput(v,3)}))},context);}

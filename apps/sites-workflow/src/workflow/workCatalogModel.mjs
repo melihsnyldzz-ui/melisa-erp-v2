@@ -1,3 +1,4 @@
+export {moneyDisplay} from './moneyDisplay.mjs';
 import {stockExact,stockRequestGate} from './stockProductsModel.mjs';
 export {stockExact as catalogExact,stockRequestGate as catalogRequestGate};
 const fail=()=>{throw Error('Katalog bilgileri doğrulanamadı. Yeniden deneyin.');};

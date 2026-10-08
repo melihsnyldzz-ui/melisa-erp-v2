@@ -1,5 +1,5 @@
 import './workSupplierPayments.css';
-import {paymentContext,paymentSelection,paymentPreview,paymentRecord,paymentDate,paymentInput,paymentAmount,paymentEsc as esc,paymentError,createPaymentJournal} from './workSupplierPaymentsModel.mjs';
+import {moneyDisplay,paymentContext,paymentSelection,paymentPreview,paymentRecord,paymentDate,paymentInput,paymentAmount,paymentEsc as esc,paymentError,createPaymentJournal} from './workSupplierPaymentsModel.mjs';
 import {receivingContext} from './workInboundModel.mjs';
 import {tradeUuid} from './workTradeModel.mjs';
 import {resolveTestApiBase} from './testAdminSession.mjs';
@@ -7,7 +7,7 @@ const base='/api/work-supplier-payments';
 export function createWorkSupplierPayments({root,session,user,storage=globalThis.localStorage,apiBase=resolveTestApiBase({location:globalThis.location,apiBase:'http://127.0.0.1:4144'}),uuid=tradeUuid,navigate=()=>{}}={}){
  let active=false,generation=0,context=null,busy=false,pending=null,supplierId='',invoiceId='',accountId='',amount='',date='',description='',preview=null,note='',denied=false,backupFailed=false,journal;
  try{journal=createPaymentJournal({storage,actorId:String(user.id),apiBase,makeUuid:uuid});}catch{backupFailed=true;note='Ödeme bağlantısı doğrulanamadı.';}
- const alive=n=>active&&root?.isConnected&&generation===n,locked=()=>busy||pending?.status==='pending',supplier=()=>context?.suppliers.find(s=>s.id===supplierId),chosenInvoice=()=>supplier()?.invoices.find(i=>i.id===invoiceId),money=(v,c)=>`${esc(paymentAmount(v))} ${esc(c)}`;
+ const alive=n=>active&&root?.isConnected&&generation===n,locked=()=>busy||pending?.status==='pending',supplier=()=>context?.suppliers.find(s=>s.id===supplierId),chosenInvoice=()=>supplier()?.invoices.find(i=>i.id===invoiceId),money=(v,c)=>`${esc(moneyDisplay(v))} ${esc(c)}`;
  const fields=()=>({supplierId,invoiceId,accountId,amount,date,description});
  function remember(){try{journal.backup(fields());backupFailed=false;}catch{backupFailed=true;note='Ödeme yedeği korunamadı. Kayıt göndermeden tekrar deneyin.';}}
  function invalidate(){preview=null;root.querySelector('[data-sp-save]')?.setAttribute('disabled','');root.querySelector('[data-sp-preview-result]')?.remove();remember();}

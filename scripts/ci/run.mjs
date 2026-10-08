@@ -36,7 +36,7 @@ if (mode === 'quality') {
   // The identity regression is a real SQL integration suite. CI deliberately
   // runs only these reviewed synthetic migration models and never that suite.
   const tests = mode === 'migration'
-    ? ['accepted-opening-prices', 'mapping-opening', 'operation-quarantine', 'operation-quarantine-v2', 'target-native-opening', 'party-currency-readonly-plan', 'party-currency-evidence-resolution', 'supplier-identity-metadata', 'product-purchase-reference', 'product-last-purchase-model', 'product-last-purchase-runtime', 'unified-finance-approval-plan', 'goal73-supplier-delta', 'final-cutover-plan', 'final-cutover-runtime', 'final-cutover-price-reader'].map(name => path.join(testRoot, `${name}.test.mjs`))
+    ? ['accepted-opening-prices', 'mapping-opening', 'operation-quarantine', 'operation-quarantine-v2', 'target-native-opening', 'party-currency-readonly-plan', 'party-currency-evidence-resolution', 'supplier-identity-metadata', 'product-purchase-reference', 'product-last-purchase-model', 'product-last-purchase-runtime', 'unified-finance-approval-plan', 'current-finance-approval-plan', 'goal73-supplier-delta', 'final-cutover-plan', 'final-cutover-runtime', 'final-cutover-price-reader'].map(name => path.join(testRoot, `${name}.test.mjs`))
     : files(testRoot, name => /\.test\.(js|mjs)$/.test(name));
   if (!tests.length) throw new Error('CI refuses an empty test suite');
   console.log(`${mode}: ${tests.length} unit test files; offline guard active`);

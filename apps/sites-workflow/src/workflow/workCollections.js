@@ -1,5 +1,5 @@
 import './workSales.css';
-import {tradeInvoice,tradeCollection,tradeAmount,tradeInput,tradeId,tradeRevision,tradeExact,tradeDate,createTradeJournal,tradeUuid} from './workTradeModel.mjs';
+import {moneyDisplay,tradeInvoice,tradeCollection,tradeAmount,tradeInput,tradeId,tradeRevision,tradeExact,tradeDate,createTradeJournal,tradeUuid} from './workTradeModel.mjs';
 import {buildWorkFinanceMovements} from './workFinanceMovements.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function validateCollectionContext(c){tradeInvoice(c?.invoice);if(!tradeId(c.customer?.id)||c.customer.synthetic!==true||c.customer.writeEligible!==true||c.customer.id!==c.invoice.customerId||!tradeRevision(c.revision)||!Array.isArray(c.accounts)||!['canCollect','canCancelCollection'].every(k=>typeof c.capabilities?.[k]==='boolean'))throw Error();for(const a of c.accounts)if(!tradeId(a.id)||a.synthetic!==true||typeof a.name!=='string'||a.currency!==c.invoice.currency)throw Error();return c;}
@@ -9,7 +9,7 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
  const journal=createTradeJournal({storage,key:`melisa-work-collection-v1:${globalThis.location?.host??'local'}:${user.id}`}),alive=n=>active&&root?.isConnected&&n===generation;
  const locked=()=>busy||pending?.status==='pending';
  const selectedKey=`melisa-work-selected-invoice:${user.id}`;
- const money=(v,c=context?.invoice.currency)=>`${esc(tradeAmount(v))} ${esc(c)}`;
+ const money=(v,c=context?.invoice.currency)=>`${esc(moneyDisplay(v))} ${esc(c)}`;
  const fail=e=>e?.status===409?'Bilgiler değişti. Fişi yenileyip tutarı tekrar kontrol edin.':e?.status===403?'Tahsilat işlemi için yetkiniz yok.':'Tahsilat tamamlanamadı. Son işlemi doğrulayarak tekrar deneyin.';
  function selection(){for(const [selector,set] of [['[data-collection-amount]',v=>amount=v],['[data-collection-account]',v=>accountId=v],['[data-collection-date]',v=>date=v]]){const value=root.querySelector(selector)?.value;if(typeof value==='string')set(value);}const amountExact4=tradeInput(amount,4);if(!tradeDate(date)||!context?.accounts.some(a=>a.id===accountId)||BigInt(amountExact4.replace('.',''))<=0n)throw Error();return {invoiceId,accountId,amountExact4,documentDate:date};}
  function invalidatePreview(){preview=null;root.querySelector('[data-collection-save]')?.setAttribute?.('disabled','');root.querySelector('[data-collection-preview-result]')?.remove?.();}

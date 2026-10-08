@@ -1,3 +1,4 @@
+export {moneyDisplay} from './moneyDisplay.mjs';
 import {tradeExact,tradeRevision,tradeId,tradeDate,tradeAmount,tradeInput} from './workTradeModel.mjs';
 export {tradeAmount as inboundAmount,tradeInput as inboundInput};
 export const inboundEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

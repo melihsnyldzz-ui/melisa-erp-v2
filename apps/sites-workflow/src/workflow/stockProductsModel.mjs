@@ -1,3 +1,4 @@
+export {moneyDisplay} from './moneyDisplay.mjs';
 const decimal=/^-?(?:0|[1-9]\d{0,19})\.\d{8}$/;
 const invalid=()=>{throw Error('Ürün ve stok yanıtı doğrulanamadı. Yeniden deneyin.');};
 const text=v=>v===null||typeof v==='string';

@@ -1,3 +1,4 @@
+export {moneyDisplay} from './moneyDisplay.mjs';
 const fail=()=>{throw Error('İş sırası şu anda okunamıyor. Yeniden deneyin.');};
 const statuses=['available','forbidden','unavailable'];
 const number=v=>Number.isSafeInteger(v)&&v>=0;

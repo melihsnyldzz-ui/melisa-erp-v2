@@ -1,5 +1,5 @@
 import './stockProducts.css';
-import {stockExact,stockSign,stockProductsPath,stockProductsEnvelope,stockRequestGate,stockImageSource} from './stockProductsModel.mjs';
+import {moneyDisplay,stockExact,stockSign,stockProductsPath,stockProductsEnvelope,stockRequestGate,stockImageSource} from './stockProductsModel.mjs';
 
 const holdReasonLabels={EXACT_NATIVE_IDENTITY_NOT_PROVEN:'Açılış kimlik eşlemesi kabul edilmedi.',QUANTITY_OR_UNIT_UNKNOWN:'Kaynak miktarı veya birimi belirsiz.',BARCODE_OWNER_CONFLICT_PRODUCT_QUARANTINED:'Barkod sahipliği çakışıyor.',INACTIVE_AMBIGUOUS_BARCODE_PRODUCT_QUARANTINED:'Pasif barkodun sahipliği veya kullanımı belirsiz.',NATIVE_TARGET_NOT_PRESENT:'Kaynak kartının ERP eşleşmesi bulunamadı.',SOURCE_STOCK_UNKNOWN:'Kaynak stok miktarı bilinmiyor.',SOURCE_IDENTITY_UNPROVEN:'Ürün eşleşmesi doğrulanmadı.',NATIVE_PRODUCT_DRIFT:'ERP kartında açılış eşleşmesinden farklı bilgi var.',SOURCE_AMBIGUOUS:'Kaynak ürün eşleşmesi belirsiz.',SOURCE_COST_UNKNOWN:'Kaynak maliyeti bilinmiyor.',PRODUCT_QUARANTINED:'Ürün karantinası çözülmedi.'};
 export function createStockProducts({api,esc,permissions=[]}){
@@ -9,7 +9,7 @@ export function createStockProducts({api,esc,permissions=[]}){
  const val=v=>v===null?'Bilinmiyor':esc(v);
  const source=r=>r.provenance.kind==='synthetic-test'?'Sentetik TEST kartı':r.provenance.kind==='quarantined-source'?'Kaynak eşleşmesi belirsiz':'Kabul edilmiş Vega açılışı';
  const held=r=>r.hold.blocked===false?'Karantina engeli yok':r.hold.blocked===true?'Karantina · İşlem kapalı':'Karantina durumu bilinmiyor';
- const money=(v,c)=>`${esc(stockExact(v))}${v!==null?' '+esc(c):''}`;
+ const money=(v,c)=>`${esc(moneyDisplay(v))}${v!==null?' '+esc(c):''}`;
  const unit=r=>r.unit.label===null?'Birim bilinmiyor':`${esc(r.unit.label)}${r.unit.verified?'':' · doğrulanmadı'}`;
  function image(r){const src=stockImageSource(r.imageUrl);return src?`<figure class="stock-photo"><img src="${esc(src)}" alt="${esc(r.productName??r.stockCode)} ürün görseli" loading="lazy" referrerpolicy="no-referrer"><figcaption>ERP’de kayıtlı görsel</figcaption></figure>`:'<p class="stock-photo-missing">Kayıtlı ürün görseli yok / doğrulanmadı.</p>';}
  function prices(r){if(!financePermission)return '<p class="stock-muted">Fiyat ve maliyet görüntülemek için alış görüntüleme yetkisi gerekir.</p>';if(!r.financial)return '<p class="stock-muted">Fiyat ve maliyet bilgileri bu kartta bilinmiyor / doğrulanmadı.</p>';

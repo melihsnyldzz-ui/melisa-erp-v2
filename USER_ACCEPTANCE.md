@@ -1,3 +1,7 @@
+## ERP-UA24/25 — güncel cari ve iki ondalık gösterim hazırlığı, bekliyor
+
+8 Ekim2026 ERP-DEC-030. Kullanıcı yalnız yöntem kararını verdi; yeni283 hesabın tutar onayı veya geniş insan PASS vermedi. 299 hesap onaya hazır/16 önceki korunmuş/283 yeni bekler; LL2 dışarıda. Normal fiyat ve bakiye iki ondalık gösterilir; TRY/USD/EUR/B-A exact yönü ve kaynak hassasiyeti korunur. Yeni tutar/finans/DDL uygulaması0. Paket ve ajan ekran provası teknik kanıttır; ERP-UA24/25 sonuçları **bekliyor** kalır. [Kanıt](docs/evidence/erp/2026-10-08-current-party-completion/README.md). Önceki Goal7.3 dar insan kontrolü ve alış referansı teslimi tarihsel kapsamıyla aşağıda korunur.
+
 ## ERP-UA25 / ERP-MIGUNIFIED01 — son net alış, insan kabulü bekliyor
 
 8 Ekim2026 TEST100/sourcecc4c4601ec0a006c2138385859e5167934829adf, ERP-DEC-029 dar uygulaması. Normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) kartında mevcut üç izinle ayrı "Alış referansını görüntüle" düğmesi. Ajanın API/ekran kontrolü insan kabulü değildir. **Sonuç bekliyor**; ERP-UA24 ve önceki sonuçlar değişmedi.

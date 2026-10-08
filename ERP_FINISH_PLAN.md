@@ -1,3 +1,7 @@
+## Güncel cari tamamlaması — 8 Ekim 2026 / ERP-DEC-030
+
+**49 toplam / 9 🟢 / 39 🟡 / 1 🔴** değişmedi. D02/D06 genel aktarım ve insan kabulü 🟡:299 hesap sayısal onaya hazır (138 müşteri/161 tedarikçi),16 önceki korunmuş,283 yeni=59 fark/224 defter no-op.159 hassasiyet ve157 ana kart gösterge eşitlemesi aynı hazırlanmış pakette; henüz executable değil.770 gerekçeli dışarıda;iki exact LL aktarılmaz. Yeni finans/DDL yazması0; ERP-UA24/25 bekler. [Kanıt](docs/evidence/erp/2026-10-08-current-party-completion/README.md). Eski alış referansı tamamlaması ve önceki kabul sonuçları korunur; bu hazırlıktan sonra DUR.
+
 ## Son net alış eki — 8 Ekim 2026 / ERP-DEC-029
 
 **49 toplam / 9 🟢 / 39 🟡 / 1 🔴**. Aynı birleşik goalin dar TEST eki teknik tamamlandı:16.667 V2 metadata/4.338 belge net/0 giriş/5.076 kart/7.253 bilinmeyen-manuel;12.329 netNULL,1 kimlik drift atlandı. Eski16.668 V1 ve6.090 native maliyet korunur. TEST100/sourcecc4c4601ec0a; yedek/readback/replay0/normal ekran/rol/hız/sourceCI3/3 kanıtlı. [Teslim](docs/evidence/erp/2026-10-08-last-net-purchase/README.md). D03 genel maliyet kabulü 🟡; ERP-UA24/25 bekler.47 hesap finans planı değişmedi; yeni uygulama başlamaz. Aşağıdaki TEST98 sonuçları kendi tarihsel kapsamıdır.

@@ -1,3 +1,4 @@
+export {moneyDisplay} from './moneyDisplay.mjs';
 import {GOAL8_DAY_SQL_PROFILE_META} from '../../../api/src/services/goal8DaySqlProof.mjs';
 const bad=()=>{throw Error('İşlem bilgileri doğrulanamadı. Yenileyerek tekrar deneyin.');};
 export const tradeId=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v);

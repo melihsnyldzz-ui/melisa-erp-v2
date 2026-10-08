@@ -1,11 +1,11 @@
 import './workCatalog.css';
 import {purchaseReferenceEnvelope,renderPurchaseReference} from './purchaseReference.mjs';
 import {createCatalogPhotoLoader,createCatalogThumbnailLoader} from './workCatalogPhoto.mjs';
-import {catalogExact,catalogPath,catalogEnvelope,catalogMainPrice,catalogRequestGate} from './workCatalogModel.mjs';
+import {moneyDisplay,catalogExact,catalogPath,catalogEnvelope,catalogMainPrice,catalogRequestGate} from './workCatalogModel.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const known=v=>v===null?'Bilinmiyor':esc(v);
 const count=v=>v.toLocaleString('tr-TR');
-const money=p=>`${esc(catalogExact(p.priceExact))} ${esc(p.currency)}`;
+const money=p=>`${esc(moneyDisplay(p.priceExact))} ${esc(p.currency)}`;
 const unit=r=>r.unit.label===null?'Birim bilinmiyor':`${esc(r.unit.label)}${r.unit.verified?'':' · doğrulanmadı'}`;
 const status=r=>r.hold.blocked?'İnceleme bekliyor':r.isActive?'Aktif':'Pasif';
 const errorMessage=e=>e.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':e.status===403?'Bu kataloğu görüntüleme yetkiniz yok.':'Katalog şu anda açılamıyor. Yeniden deneyin.';

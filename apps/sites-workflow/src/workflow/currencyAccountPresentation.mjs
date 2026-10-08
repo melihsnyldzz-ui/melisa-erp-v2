@@ -1,8 +1,9 @@
+import {moneyDisplay} from './moneyDisplay.mjs';
 const decimal=/^-?\d{1,28}(?:\.\d{1,8})?$/;
 const valid=v=>typeof v==='string'&&decimal.test(v);
 const units=v=>{const [w,f='']=v.split('.');return BigInt(w.replace('-','')+f.padEnd(8,'0'))*(v.startsWith('-')?-1n:1n);};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function accountExact(value,{absolute=false}={}){if(!valid(value))return 'Bilinmiyor';const n=units(value),[w,f]=value.replace('-','').split('.');return (!absolute&&n<0n?'−':'')+w.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(f?','+f:'');}
+export function accountExact(value,options={}){return valid(value)?moneyDisplay(value,options):'Bilinmiyor';}
 export function accountPresentation(account,{role,blocked=false}={}){
  const unknown={currency:typeof account?.currency==='string'?account.currency:'Döviz bilinmiyor',known:false,amount:'Bilinmiyor',direction:null,label:'Bilinmiyor',opening:'Bilinmiyor',delta:'Bilinmiyor',sourceDelta:null};
  if(!['customer','supplier'].includes(role)||blocked!==false||account?.reconciled!==true||account.confidence!=='source-matched'||typeof account.currency!=='string'||!valid(account.balanceExact))return unknown;
