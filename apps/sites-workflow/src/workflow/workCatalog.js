@@ -12,7 +12,7 @@ const errorMessage=e=>e.status===401?'Oturumunuz sona erdi. Yeniden giriş yapı
 const emptyCard=()=>'<section class="card inspector-empty"><h2>Ürün bilgileri</h2><p>Soldaki listeden bir ürün seçin.</p></section>';
 export function createWorkCatalog({api,media,permissions=[]}){
  const photoLoader=createCatalogPhotoLoader({media}),thumbnails=createCatalogThumbnailLoader({media});
- const allowed=permissions.includes('product.view'),salesPermission=permissions.includes('sales.view'),purchasePermission=permissions.includes('purchase.view');
+ const allowed=permissions.includes('product.view'),salesPermission=permissions.includes('sales.view'),purchasePermission=['product.view','purchase.view','finance.view'].every(p=>permissions.includes(p));
  const listGate=catalogRequestGate(),cardGate=catalogRequestGate();
  let root=null,page=1,meta=null,lastOpener=null;
  const stat=(label,key,note)=>`<div class="card stat"><span class="dot"></span><div class="label">${label}</div><strong data-catalog-stat="${key}">—</strong><small>${note}</small></div>`;

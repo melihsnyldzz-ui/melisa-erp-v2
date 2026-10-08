@@ -23,7 +23,7 @@ async function defaultRuntime(){
 export function createProductPurchaseReferenceService({getRuntime=defaultRuntime}={}){
  return {async read(id,query={},actor){
   productId(id);if(!query||typeof query!=='object'||Array.isArray(query)||Object.keys(query).length)throw fail('PURCHASE_REFERENCE_INPUT',400,'Bu okuma ek filtre kabul etmiyor.');
-  if(!actor)throw fail('AUTH_TOKEN_REQUIRED',401,'Oturum gerekli.');if(!Array.isArray(actor.permissions)||!['product.view','purchase.view'].every(p=>actor.permissions.includes(p)))throw fail('AUTH_PERMISSION_DENIED',403,'Bu bilgi için yetkiniz bulunmuyor.');
+  if(!actor)throw fail('AUTH_TOKEN_REQUIRED',401,'Oturum gerekli.');if(!Array.isArray(actor.permissions)||!['product.view','purchase.view','finance.view'].every(p=>actor.permissions.includes(p)))throw fail('AUTH_PERMISSION_DENIED',403,'Bu bilgi için yetkiniz bulunmuyor.');
   let tx;try{
    const r=await getRuntime();if(r.canonicalTest!==true||!HEX.test(r.manifestHash??'')||!r.proof||Object.keys(r.proof.moduleHashes??{}).length!==5||!moduleNames.every(n=>HEX.test(r.proof.moduleHashes[n]??'')))throw fail();
    const q=r.sql;tx=new q.Transaction(r.pool);await tx.begin(q.ISOLATION_LEVEL.SERIALIZABLE);const req=()=>new q.Request(tx);
