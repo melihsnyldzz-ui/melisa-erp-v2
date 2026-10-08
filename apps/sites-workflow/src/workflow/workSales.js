@@ -1,6 +1,7 @@
 import {workOperationLabels} from './workCopyPresentation.mjs';
+import {operationCopyFromMeta,operationCopyEntity,operationCopyQuote} from './isolatedOperationCopyModel.mjs';
 import './workSales.css';
-import {moneyDisplay,tradeContext,tradeSelection,tradePreview,tradeInvoice,tradeAmount,tradeInput,createTradeJournal,tradeUuid} from './workTradeModel.mjs';
+import {moneyDisplay,tradeExact,tradeContext,tradeSelection,tradePreview,tradeInvoice,tradeAmount,tradeInput,createTradeJournal,tradeUuid} from './workTradeModel.mjs';
 import {catalogPath,catalogEnvelope} from './workCatalogModel.mjs';
 import {createCatalogThumbnailLoader,createCatalogPhotoLoader} from './workCatalogPhoto.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -45,7 +46,9 @@ export function createWorkSales({root,session,user,navigate=()=>{},storage=globa
   if(busy||pending?.status==='pending'){note='Son işlemi doğruladıktan sonra ürün ekleyebilirsiniz.';paint();return false;}
   if(!context.capabilities.canCreate){note='Satış kaydetme yetkiniz yok.';paint();return false;}
   if(selectedCustomer!==context.scope.customer.id){note='Ürün eklemeden önce müşteriyi seçin.';paint();return false;}
-  const p=context.scope.products.find(p=>p.id===id),q=p?.prices.find(q=>q.currency===currency);if(!p||p.synthetic!==true||p.writeEligible!==true||!q){note='Bu ürün için satış fiyatı bilinmiyor.';paint();return false;}
+  const p=context.scope.products.find(p=>p.id===id),q=p?.prices.find(q=>q.currency===currency);let sourceValid=false;
+  try{const copy=operationCopyFromMeta(context.meta);if(copy){operationCopyEntity(p,'products',copy);operationCopyQuote(q,p.id,copy);sourceValid=tradeExact(q.unitPriceExact8,8)&&BigInt(q.unitPriceExact8.replace('.',''))>0n;}else sourceValid=p?.synthetic===true;}catch{}
+  if(!p||!sourceValid||p.writeEligible!==true||!q){note='Bu ürün için satış fiyatı bilinmiyor.';paint();return false;}
   const found=items.find(i=>i.productId===p.id);if(found){let base;try{base=tradeInput(quantityInputs.get(p.id)??found.quantityExact3,3);}catch{note='Her üründen 1–5 tam adet seçin.';paint();return false;}const qty=BigInt(base.replace('.',''))+1000n;if(qty>BigInt(context.limits.maxQuantityPerLine)*1000n){note='Bu ürün için miktar sınırına ulaşıldı.';paint();return false;}quantityInputs.delete(p.id);found.quantityExact3=String(qty/1000n)+'.'+String(qty%1000n).padStart(3,'0');}else items.push({productId:p.id,quoteId:q.quoteId,quantityExact3:'1.000'});
   preview=null;note='Ürün sepete eklendi.';paint();return true;
  }
