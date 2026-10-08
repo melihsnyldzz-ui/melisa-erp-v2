@@ -30,3 +30,6 @@ e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx
 # Exact historical fingerprints only; inline annotations cover later copies.
 7c269e7089366db9b9dfe394f2f73103ac3c0b74:apps/sites-workflow/src/workflow/workCatalog.test.mjs:generic-api-key:5
 7c269e7089366db9b9dfe394f2f73103ac3c0b74:apps/sites-workflow/src/workflow/workCatalog.test.mjs:generic-api-key:10
+# Independently reviewed 2026-10-08: synthetic purchase-document provenance path,
+# not an authentication key. Exact historical fingerprint only.
+750c7252a0acb76cee9cbc33bb464029965ff9b2:scripts/migration/product-last-purchase-model.test.mjs:generic-api-key:20
