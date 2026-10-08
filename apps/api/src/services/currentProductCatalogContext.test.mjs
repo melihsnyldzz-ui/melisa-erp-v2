@@ -6,3 +6,12 @@ function context(){const suffix=runId.replaceAll('-','_').toLowerCase();return {
 test('dated product scope preserves old source lineage and never claims final T1',()=>{const c=validateCurrentProductCatalogContext(context());assert.equal(c.actualT1,false);assert.equal(c.productCount,16674);for(const a of c.ancestry)assert.equal(boundCatalogLineage(c,a),true);assert.equal(boundCatalogLineage(c,{runId:c.runId,sourceAsOf:'2026-09-30'}),false);});
 test('wrong reader names, missing proof or rebased ancestry fail closed',()=>{for(const modify of [c=>c.procedures.catalog='dbo.usp_read_work_catalog_goal7',c=>c.readerDefinitionHash='bad',c=>c.ancestry[1].sourceAsOf='2026-09-30',c=>c.ancestry.pop(),c=>c.actualT1=true,c=>c.evidenceKind='FROZEN_SOURCE',c=>c.productCount=16670]){const c=context();modify(c);assert.throws(()=>validateCurrentProductCatalogContext(c));}});
 test('new dated TEST scope does not loosen old final context validation',()=>{const c=context();c.schemaVersion='melisa-final-catalog-context.v1';assert.throws(()=>validateBoundCatalogContext(c));});
+test('optional reader revision two accepts only the four exact additive r2 names',()=>{
+ const old=context(),validated=validateCurrentProductCatalogContext(old);assert.equal(Object.hasOwn(validated,'readerRevision'),false);assert.deepEqual(validated.procedures,old.procedures);
+ const revised={...old,readerRevision:2,procedures:Object.fromEntries(Object.entries(old.procedures).map(([k,p])=>[k,p+'_r2']))};
+ assert.equal(validateCurrentProductCatalogContext(revised).readerRevision,2);assert.deepEqual(validateCurrentProductCatalogContext(revised).ancestry,old.ancestry);
+ for(const revision of [undefined,null,0,1,3,'2',true])assert.throws(()=>validateCurrentProductCatalogContext({...revised,readerRevision:revision}));
+ assert.throws(()=>validateCurrentProductCatalogContext({...old,readerRevision:2}));
+ assert.throws(()=>validateCurrentProductCatalogContext({...revised,readerRevision:undefined}));
+ for(const k of Object.keys(old.procedures)){const bad={...revised,procedures:{...revised.procedures,[k]:old.procedures[k]}};assert.throws(()=>validateCurrentProductCatalogContext(bad));}
+});

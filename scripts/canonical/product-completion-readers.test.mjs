@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildProductCompletionReaders} from './product-completion-readers.mjs';
+import {buildProductCompletionReaders,productPayloadReaderRevision2} from './product-completion-readers.mjs';
 import {sourceVersionSqlHash} from '../migration/goal7-source-version.mjs';
 const h='a'.repeat(64),goal7='GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',run='PRODUCT-f89c11a7-108b-4ae7-b781-26eb066459d5';
 const baselineContext={runId:goal7,sourceHash:h,planHash:'b'.repeat(64),bindingsHash:'c'.repeat(64),sourceAsOf:'2026-10-07',productCount:16671,priceCount:64015};
@@ -23,4 +23,27 @@ test('dated publication cannot impersonate T1 or discard previous accepted ances
  assert.throws(()=>buildProductCompletionReaders({context:{...context,actualT1:true},baselineContext}));
  assert.throws(()=>buildProductCompletionReaders({context:{...context,ancestry:context.ancestry.slice(1)},baselineContext}));
  assert.throws(()=>buildProductCompletionReaders({context,baselineContext:{...baselineContext,productCount:53084}}));
+});
+test('r2 extracts a long escaped source payload as nvarchar(max), retaining every original guard and field expression',()=>{
+ const original=buildProductCompletionReaders({context,baselineContext}),revised=buildProductCompletionReaders({context:{...context,readerRevision:2},baselineContext});
+ const legacy="JSON_VALUE(r.payload_json,'$.source_payload_json')",wide="(SELECT nested_source.source_payload_json FROM OPENJSON(r.payload_json) WITH(source_payload_json nvarchar(max) '$.source_payload_json') nested_source)";
+ // Actual product-stage shape: the long value is an escaped scalar JSON string,
+ // not an object. JSON_QUERY on this path would not recover it either.
+ const source={unit:'ADET',mainUnitSourceId:'7001',unitStatus:'VERIFIED_ADET_FACTOR_1',unitFactor:'1.00000000',prices:Array.from({length:100},(_,i)=>({tier:1,currency:'USD',price:'8.55000000',unitSourceId:String(7001+i)}))};
+ const stage=JSON.stringify({source_payload_json:JSON.stringify(source)}),nested=JSON.parse(stage).source_payload_json;assert.ok(nested.length>4000);assert.equal(typeof nested,'string');assert.equal(JSON.parse(nested).unit,'ADET');
+ for(const kind of ['catalog','stock','detail','list']){
+  const a=original.readers[kind],b=revised.readers[kind];assert.equal(b.procedure,a.procedure+'_r2');assert.equal(b.definitionHash,sourceVersionSqlHash(b.sql));
+  const reversed=b.sql.replaceAll(b.procedure,a.procedure).replaceAll(wide,legacy);
+  assert.equal(reversed,a.sql,'only procedure name and all eight scalar extraction sites may change');
+  if(kind==='catalog'||kind==='stock'){assert.equal(b.sql.split(wide).length-1,8);assert.equal(b.sql.includes(legacy),false);for(const field of ['mainUnitSourceId','unit','unitStatus','unitFactor'])assert.ok(b.sql.includes("JSON_VALUE("+wide+",'$."+field+"')"));}
+  else assert.equal(b.sql.includes(wide),false);
+ }
+ for(const k of ['runId','sourceAsOf','sourceHash','snapshotHash','planHash','bindingsHash','productCount','priceCount','actualT1','ancestry'])assert.deepEqual(revised.context[k],original.context[k]);
+ assert.equal(Object.hasOwn(original.context,'readerRevision'),false);
+});
+test('r2 refuses a changed nested-payload template or an unknown reader revision',()=>{
+ const original=buildProductCompletionReaders({context,baselineContext}),sql=original.readers.catalog.sql;
+ assert.throws(()=>productPayloadReaderRevision2(sql.replace("JSON_VALUE(r.payload_json,'$.source_payload_json')","JSON_VALUE(r.payload_json,'$.other')"),'catalog'),/REVISION_TEMPLATE/);
+ assert.throws(()=>productPayloadReaderRevision2(sql,'detail'),/REVISION_KIND/);
+ for(const revision of [1,3,'2',null])assert.throws(()=>buildProductCompletionReaders({context:{...context,readerRevision:revision},baselineContext}));
 });

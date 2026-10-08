@@ -5,9 +5,20 @@ import {validateCurrentProductCatalogContext} from '../../apps/api/src/services/
 const check=(ok,code)=>{if(!ok)throw Error(code);};
 const lit=v=>"N'"+String(v).replaceAll("'","''")+"'";
 const hashKeys={catalog:'readerDefinitionHash',stock:'stockReaderDefinitionHash',detail:'openingDetailDefinitionHash',list:'openingListDefinitionHash'};
+const inheritedPayloadScalar="JSON_VALUE(r.payload_json,'$.source_payload_json')";
+const maxPayloadScalar="(SELECT nested_source.source_payload_json FROM OPENJSON(r.payload_json) WITH(source_payload_json nvarchar(max) '$.source_payload_json') nested_source)";
+export function productPayloadReaderRevision2(sql,kind){
+ check(typeof sql==='string'&&['catalog','stock'].includes(kind),'PRODUCT_PAYLOAD_REVISION_KIND');
+ // All eight inherited reads (two binding checks and six unit presentation
+ // reads) must advance together. A changed template cannot silently skip one.
+ check(sql.split(inheritedPayloadScalar).length-1===8&&sql.split("'$.source_payload_json'").length-1===8,'PRODUCT_PAYLOAD_REVISION_TEMPLATE');
+ const revised=sql.replaceAll(inheritedPayloadScalar,maxPayloadScalar);
+ check(!revised.includes(inheritedPayloadScalar)&&revised.split(maxPayloadScalar).length-1===8,'PRODUCT_PAYLOAD_REVISION_INCOMPLETE');
+ return revised;
+}
 export function buildProductCompletionReaders({context,baselineContext}){
  validateSourceCatalogContext(baselineContext);
- const old=buildSourceVersionReaders(baselineContext),suffix=context.runId.replaceAll('-','_').toLowerCase();
+ const old=buildSourceVersionReaders(baselineContext),suffix=context.runId.replaceAll('-','_').toLowerCase()+(context.readerRevision===2?'_r2':'');
  const procedures={catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`};
  const placeholders=Object.fromEntries(Object.values(hashKeys).map(k=>[k,'0'.repeat(64)]));
  validateCurrentProductCatalogContext({...context,...placeholders,procedures});
@@ -40,6 +51,7 @@ export function buildProductCompletionReaders({context,baselineContext}){
    check(sql.includes(' AS BEGIN SET NOCOUNT ON;')&&!sql.includes('WITH EXECUTE AS OWNER'),'PRODUCT_PRICE_EXECUTION_TEMPLATE');
    sql=sql.replace(' AS BEGIN SET NOCOUNT ON;',' WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;');
   }
+  if(context.readerRevision===2&&(kind==='catalog'||kind==='stock'))sql=productPayloadReaderRevision2(sql,kind);
   check(sql.startsWith('CREATE PROCEDURE '+procedures[kind])&&sql.includes('MELISA_ERP_SIRKET_TEST_20260929_01')&&sql.includes('product_count=16622 AND price_count=63774'),'PRODUCT_READER_HISTORICAL_PIN');
   check(sql.includes('product_count='+context.productCount+' AND price_count='+context.priceCount)&&sql.includes('r.run_id=b.lineage_run_id')&&sql.includes('r.run_id=v.lineage_run_id'),'PRODUCT_READER_SEALED_LINEAGE');
   readers[kind]={procedure:procedures[kind],sql,definitionHash:sourceVersionSqlHash(sql),storedDefinition:sql};

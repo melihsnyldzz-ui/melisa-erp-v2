@@ -5,7 +5,8 @@ export function currentProductCatalogVersion(v){
  if(!['sourceHash','planHash','bindingsHash','readerDefinitionHash','stockReaderDefinitionHash','openingDetailDefinitionHash','openingListDefinitionHash','snapshotHash'].every(k=>/^[a-f0-9]{64}$/i.test(v[k]??'')))return false;
  const expected=[{runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30'},{runId:goal7,sourceAsOf:'2026-10-07'},{runId:v.runId,sourceAsOf:v.sourceAsOf}];
  if(!Array.isArray(v.ancestry)||v.ancestry.length!==3||new Set(v.ancestry.map(a=>a.runId)).size!==3||!expected.every(a=>v.ancestry.some(b=>a.runId===b.runId&&a.sourceAsOf===b.sourceAsOf)))return false;
- const suffix=v.runId.replaceAll('-','_').toLowerCase(),procedures={catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`};
+ if(Object.hasOwn(v,'readerRevision')&&v.readerRevision!==2)return false;
+ const suffix=v.runId.replaceAll('-','_').toLowerCase()+(v.readerRevision===2?'_r2':''),procedures={catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`};
  return !!v.procedures&&Object.keys(v.procedures).length===4&&Object.entries(procedures).every(([k,p])=>v.procedures[k]===p);
 }
 export const currentProductLineage=(r,v)=>currentProductCatalogVersion(v)&&r?.provenance?.kind==='accepted-opening'&&v.ancestry.some(a=>a.runId===r.provenance.runId&&a.sourceAsOf===r.provenance.sourceAsOf)&&/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(r.provenance.sourceKey);

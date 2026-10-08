@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import {catalogExact,catalogPath,catalogEnvelope,catalogProduct,catalogMainPrice,catalogPhotoUrl} from './workCatalogModel.mjs';
 import {catalogProductDto,catalogReadResult} from '../../../api/src/services/catalogModel.mjs';
+import {currentProductCatalogVersion} from './currentProductCatalogModel.mjs';
 test('sealed Goal7 mixed lineage renders; wrong count/date/run and revised quarantine fail closed',()=>{
  const revised={...row(),provenance:{...row().provenance,sourceKey:'VEGA2026/F0102/TBLSTOKLAR/12',runId:'GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',sourceAsOf:'2026-10-07'}}; // gitleaks:allow public source identity; no credential
  const updated=envelope([revised],{sourceAsOf:'2026-10-07',scopeCounts:{acceptedOpening:16671,quarantinedSource:54,syntheticTest:0}});
@@ -28,6 +29,15 @@ test('dated TEST projection accepts exact mixed lineage without claiming a final
  const out=catalogReadResult({actorId:'14',canViewSalesPrices:false,rows,total:2,page:1,limit:50,readAt:'2026-10-08T18:00:00.000Z',acceptedCount:v.productCount,syntheticCount:0,quarantinedCount:54,filters:{brands:[],productTypes:[]},sourceVersion:v},{actorId:'14',options:{page:1,limit:50}});
  const e={success:true,...out};assert.equal(e.meta.currentVersion.runId,runId);assert.equal(Object.hasOwn(e.meta,'finalVersion'),false);assert.equal(catalogEnvelope(e).data.length,2);
  for(const mutate of [p=>delete p.meta.currentVersion,p=>p.meta.currentVersion.actualT1=true,p=>p.meta.currentVersion.ancestry[1].sourceAsOf=v.sourceAsOf,p=>p.data[1].provenance.runId='UNKNOWN',p=>p.meta.currentVersion.procedures.catalog='dbo.usp_read_work_catalog']){const p=structuredClone(e);mutate(p);assert.throws(()=>catalogEnvelope(p));}
+ // r2 changes only the four reader identities. The original product/source
+ // envelope and mixed lineage remain byte-stable and use the existing UI.
+ const original=JSON.stringify(e),r2={...v,readerRevision:2,procedures:Object.fromEntries(Object.entries(v.procedures).map(([k,p])=>[k,p+'_r2']))};
+ assert.equal(currentProductCatalogVersion(v),true);assert.equal(Object.hasOwn(v,'readerRevision'),false);assert.equal(currentProductCatalogVersion(r2),true);
+ const out2=catalogReadResult({actorId:'14',canViewSalesPrices:false,rows,total:2,page:1,limit:50,readAt:'2026-10-08T18:00:00.000Z',acceptedCount:r2.productCount,syntheticCount:0,quarantinedCount:54,filters:{brands:[],productTypes:[]},sourceVersion:r2},{actorId:'14',options:{page:1,limit:50}});
+ const e2={success:true,...out2};assert.equal(catalogEnvelope(e2).data.length,2);assert.equal(catalogEnvelope({...e2,data:e2.data[1]},{detail:true}).data,e2.data[1]);assert.equal(e2.meta.currentVersion.readerRevision,2);assert.equal(JSON.stringify(e),original);
+ for(const edit of [c=>c.readerRevision=3,c=>c.readerRevision='2',c=>c.readerRevision=undefined,c=>delete c.readerRevision,c=>c.readerDefinitionHash='bad',c=>c.procedures.stock=v.procedures.stock,c=>c.procedures.detail+='x']){
+  const bad=structuredClone(r2);edit(bad);assert.equal(currentProductCatalogVersion(bad),false);assert.throws(()=>catalogEnvelope({...e2,meta:{...e2.meta,currentVersion:bad}}));
+ }
 });
 test('catalog exact quantities retain unknown, true zero and precision beyond Number',()=>{assert.equal(catalogExact(null),'Bilinmiyor');assert.equal(catalogExact('0.00000000'),'0');assert.equal(catalogExact('-0.00000001'),'-0,00000001');assert.equal(catalogExact('9007199254740993.12345678'),'9.007.199.254.740.993,12345678');assert.throws(()=>catalogExact(0));});
 test('barcode query preserves exact leading zero and bounded filters',()=>{const p=new URL(catalogPath({barcode:' 000012 ',search:'%_[',stock:'negative',status:'passive',page:2}),'https://invalid.test').searchParams;assert.equal(p.get('barcode'),' 000012 ');assert.equal(p.get('search'),'%_[');assert.equal(p.get('page'),'2');assert.equal(p.get('limit'),'50');for(const q of [{barcode:12},{page:0},{page:100001},{stock:'unknown'},{search:'a'.repeat(121)}])assert.throws(()=>catalogPath(q));});
