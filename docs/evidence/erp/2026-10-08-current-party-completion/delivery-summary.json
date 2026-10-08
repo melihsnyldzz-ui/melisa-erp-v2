@@ -72,7 +72,22 @@
   "runtime": {
     "beforePackage": "TEST100",
     "beforeSource": "cc4c4601ec0a006c2138385859e5167934829adf",
-    "newPackage": "PENDING_BUILD_AND_SCREEN_VERIFICATION"
+    "newPackage": "TEST101",
+    "packageId": "CANONICAL-TEST-a2171a2f3ebb",
+    "sourceCommit": "a2171a2f3ebb4b480783c4b9228f368b9d7bfa1e",
+    "packageFiles": 1501,
+    "baselineReproduced": true,
+    "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "server": "Semih\\MELISADEV",
+    "ports": {
+      "web": 5194,
+      "api": 4144,
+      "native": 4146
+    },
+    "sysadmin": 0,
+    "databaseControl": 0,
+    "liveAccess": 0,
+    "nativeReadOnly": true
   },
   "files": [
     {
@@ -98,6 +113,34 @@
     {
       "file": "native/goal73-prior-journal-preserved.json",
       "sha256": "514eed8df396dad7171644793d6512f8cb541e1b1d73141f5c147b6acf806a62"
+    },
+    {
+      "file": "config101-rebind-proof.json",
+      "sha256": "a6e5be90da569f02b3035f6016ae8ab6f51ec3952b378d48d9ed3957fcb1ada4"
+    },
+    {
+      "file": "test101-health.json",
+      "sha256": "0615d9042ae6a7446e0ed9e6e56412bb261e6e84c38de353411eba78733dfb96"
+    },
+    {
+      "file": "ui101-proof.json",
+      "sha256": "620de41894a670ff85f7077820ccd3ffcac50967f8b70f25262f43a4e86c8e34"
+    },
+    {
+      "file": "customer-two-decimals.png",
+      "sha256": "f4a37e27a215a616892b688e2633f19141455db1654cde30c89e66d77abd0ed3"
+    },
+    {
+      "file": "supplier-two-decimals.png",
+      "sha256": "2bc86fa89e51a221d9d0ff393c05829a186f29eba37b7a0ff1ff1687d69e8976"
+    },
+    {
+      "file": "product-two-decimals.png",
+      "sha256": "08942af7dd4949a706a84e8b434c29793fac14298e15ad9bca0a56c540f16898"
+    },
+    {
+      "file": "TEST101 release-manifest.json",
+      "sha256": "850ff3ad9fb1fb30f6bdd4354105c8d8310480dc1bd6c1642797cbb0d76fe514"
     }
   ],
   "scalarProjection": {
@@ -111,5 +154,23 @@
     "status": "passed",
     "scope": "nonexecuting preparation",
     "rowversionProjectionRegression": "passed"
+  },
+  "sourceCommit": "a2171a2f3ebb4b480783c4b9228f368b9d7bfa1e",
+  "sourceCi": {
+    "prRun": 37792912734,
+    "pushRun": 37792909029,
+    "requiredJobsEach": 3,
+    "result": "SUCCESS",
+    "sourceCommit": "a2171a2f3ebb4b480783c4b9228f368b9d7bfa1e"
+  },
+  "presentationVerification": {
+    "normalCustomerCard": true,
+    "normalSupplierCard": true,
+    "normalProductCard": true,
+    "twoDecimals": true,
+    "directionAndUnknownPreserved": true,
+    "readonly": true,
+    "originalTabAndDraftsPreserved": true,
+    "auxiliaryPaymentHistoryNotDeclaredPassed": true
   }
 }

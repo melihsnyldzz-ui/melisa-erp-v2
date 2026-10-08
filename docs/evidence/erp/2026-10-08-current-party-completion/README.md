@@ -29,6 +29,12 @@ Mevcut ana kart scalar alanı decimal18,4, döviz hesabı decimal28,8. Kaynak ha
 
 SQL, her gerçek UPDATE sırasında `row_version` değerini kendisi üretir. Bu otomatik sütun planlanan sonuç projeksiyonunda maskelidir; bütün işletme sütunları exact korunur. Uygulama sonrası tam SQLJSON ve gerçek hash bağımsız native readback ile alınarak journal'a yazılmadan aşama tamamlanmış sayılmaz. Plan gerçek sonuç hash'ini önceden bildiğini iddia etmez. DDL ve eşitleme tek sahipli transaction/rollback sınırında yürütülmelidir.
 
+## Son TEST ve GitHub teslimi
+
+Çalışan TEST101/sourcea2171a2f3ebb4b480783c4b9228f368b9d7bfa1e, CANONICAL-TEST-a2171a2f3ebb/1501 dosya/reproducibletrue. Web5194/API4144/native4146 → Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01; sysadmin0/control0/LIVEaccess0, native read-only. Normal müşteri/tedarikçi ve ürün/son net alış iki ondalık ekranları gerçek tarayıcıda salt okunur kontrol edildi; üç görüntü private kaldı. Kaynak format kilidi, mevcut exact SQL profile seal doğrulanarak yalnız iki config source/package alanıyla yeniden bağlandı; diğer ayarlar/scope/roller eş, SQLwrite0. Orijinal sekme ve taslaklar korunur. Yardımcı deneme ödeme geçmişi bu gözlemde açılamadı; nedeni veya baseline regresyonu belirlenmedi, PASS sayılmadı ve bu dar hazırlık yeni modül düzeltmesine çevrilmedi.
+
+Exact uygulama source CI: PR37792912734 ve push37792909029, üçer kontrol SUCCESS. Son belge HEAD ayrıca doğrulanır; runtime sourcecommit yeni belge HEAD diye sunulmaz. Tek283 hesap private sayısal onay paketi kullanıcıya dosya olarak açıldı. Hazırlık teslimi tamamlandı; finans/DDL uygulaması ve ERP-UA24/25 hâlâ bekliyor.
+
 ## Dışarıda kalan hesaplar
 
 Birincil gerekçeler disjoint; bütün ikincil nedenler private manifestte korunur.
@@ -48,6 +54,6 @@ Birincil gerekçeler disjoint; bütün ikincil nedenler private manifestte korun
 
 Yeni finans, bakiye, açılış, DDL, hold, rol, stok, maliyet, satış fiyatı, Vega/LIVE/CRM yazması **0**. Eski47 sayısal paket18 dosya ve önceki alış referansı teslimi korunur. Ham müşteri/tedarikçi adları, tutarları, source/native satırları, fotoğraf ve özel config GitHub'a çıkmaz.
 
-Mevcut hazırlık modülü genişletildi; yeni motor kurulmadı. Exact report/source/raw SQL aritmetiği ve native defter/current_balance/importedBase/prior/local decomposition yeniden türetilir. Bütün kapsam hash/CAS/yanlış şirket-rol-döviz/hold/UNKNOWN/LL/sub-cent drift kontrollüdür. Eski replay sözleşmesi saf testte ikinci etkiyi reddeder; **yeni gerçek native batch/replay uygulanmadı**. Offline migration184/184; ekran652/652 ve build geçti. Normal yeşil kullanıcı yüzünde yalnız fiyat/bakiye gösterimi exact decimal ile iki Türkçe ondalık; küçük negatif -0,00/B-A kaybolmaz, kaynak hesaplaması/kur/miktar hassasiyeti değişmez. Son paket/UI/CI kanıtı [delivery-summary.json](delivery-summary.json) içinde tamamlanır; kendi hash'ini içeren commit üretilmez.
+Mevcut hazırlık modülü genişletildi; yeni motor kurulmadı. Exact report/source/raw SQL aritmetiği ve native defter/current_balance/importedBase/prior/local decomposition yeniden türetilir. Bütün kapsam hash/CAS/yanlış şirket-rol-döviz/hold/UNKNOWN/LL/sub-cent drift kontrollüdür. Eski replay sözleşmesi saf testte ikinci etkiyi reddeder; **yeni gerçek native batch/replay uygulanmadı**. Offline migration184/184; ekran652/652 ve build geçti. Normal yeşil kullanıcı yüzünde yalnız fiyat/bakiye gösterimi exact decimal ile iki Türkçe ondalık; küçük negatif -0,00/B-A kaybolmaz, kaynak hesaplaması/kur/miktar hassasiyeti değişmez. Son paket/UI/CI kanıtı [delivery-summary.json](delivery-summary.json) içinde kayıtlıdır; kendi hash'ini içeren commit üretilmez.
 
 Private tek kapsam paketi `C:/Sirket/ERP/evidence/ERP-CARICOMPLETION01-20261008/private/MELIH_CURRENT_PARTY_APPROVAL_PACKET.md`; makine paketi `current-finance-approval-packet.json`, sealed faz `scalar-precision-phase-plan.json`. Yalnız kullanıcı incelemesi; public kanıt yalnız sayım ve nötr file/hash içerir. Sayısal onay olmadığı için executeAllowed=false, financialWriteAuthorized=false, executableNow=false. ERP-UA24/25 **bekliyor**. Bu hazırlıktan sonra DUR; onay olmadan aktarım veya başka goal yok.
