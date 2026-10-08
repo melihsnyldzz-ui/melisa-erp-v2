@@ -16,7 +16,8 @@ export function isolatedCopyRequestBody(context,actor,operation,payload){
 }
 function effectProof(value,context,actor,operation,body){
  const proof=parse(value);
- copyAssert(proof.valid===true&&proof.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.requestId===body.requestId&&String(proof.actorId)===String(actor.id)&&proof.operation===operation&&proof.payloadHash===body.hash&&proof.stockVerified===true&&proof.partyAccountsVerified===true&&proof.financeAccountsVerified===true&&proof.protectedRowsVerified===true,'ISOLATED_COPY_EFFECT_UNVERIFIED');
+ const sqlUUID=value=>typeof value==='string'&&isolatedCopyUUID(value.toLowerCase())?value.toLowerCase():null;
+ copyAssert(proof.valid===true&&sqlUUID(proof.copyId)===context.copyId&&proof.sealHash===context.sealHash&&sqlUUID(proof.requestId)===body.requestId&&String(proof.actorId)===String(actor.id)&&proof.operation===operation&&proof.payloadHash===body.hash&&proof.stockVerified===true&&proof.partyAccountsVerified===true&&proof.financeAccountsVerified===true&&proof.protectedRowsVerified===true,'ISOLATED_COPY_EFFECT_UNVERIFIED');
  return proof;
 }
 
@@ -51,7 +52,8 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    };
    const effects=async(operation,body,response,replay)=>{
     const proof=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('response_json',q.NVarChar(q.MAX),isolatedCopyJSON(response)).input('replay',q.Bit,replay).execute(ISOLATED_COPY_PROCEDURES.effects)).recordset?.[0];
-    return effectProof(proof?.effect_proof_json,context,actor,operation,body);
+    const raw=proof?.effect_proof_json;
+    return {proof:effectProof(raw,context,actor,operation,body),raw};
    };
    c.journal=async(operation,payload,execute)=>{
     copyAssert(write&&typeof execute==='function','ISOLATED_COPY_WRITE_TRANSACTION');
@@ -64,7 +66,9 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
     }
     await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).execute(ISOLATED_COPY_PROCEDURES.begin);
     const response=await execute(),proof=await effects(operation,body,response,false);
-    await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).input('response_json',q.NVarChar(q.MAX),isolatedCopyJSON(response)).input('effect_proof_json',q.NVarChar(q.MAX),isolatedCopyJSON(proof)).query('INSERT dbo.stage4_copy_requests(copy_id,request_id,actor_id,operation,payload_hash,payload_json,response_json,effect_proof_json) VALUES(@copy_id,@request_id,@actor_id,@operation,@payload_hash,@payload_json,@response_json,@effect_proof_json);');
+    // The SQL intent seals this exact text. Preserve its order and GUID casing;
+    // a JS reserialization would no longer equal the immutable SQL proof.
+    await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).input('response_json',q.NVarChar(q.MAX),isolatedCopyJSON(response)).input('effect_proof_json',q.NVarChar(q.MAX),proof.raw).query('INSERT dbo.stage4_copy_requests(copy_id,request_id,actor_id,operation,payload_hash,payload_json,response_json,effect_proof_json) VALUES(@copy_id,@request_id,@actor_id,@operation,@payload_hash,@payload_json,@response_json,@effect_proof_json);');
     return response;
    };
    const result=await withIsolatedOperationCopyScope({context,identity,transaction:tx,readProof,write},()=>automatic?c.journal(automatic.operation,automatic.payload,()=>fn(c)):fn(c));

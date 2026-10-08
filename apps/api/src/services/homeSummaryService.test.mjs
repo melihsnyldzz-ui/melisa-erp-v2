@@ -75,3 +75,7 @@ test('copy HOME rejects wrong identity, revoked actor permission and changed mod
 test('copy HOME owners and amounts require exact copy journal/effect bindings and do not mix restored history',()=>{
  assert.match(COPY_HOME_SUMMARY_SQL,/j.copy_id=@copy_id/g);assert.match(COPY_HOME_SUMMARY_SQL,/effect_json COLLATE Latin1_General_100_BIN2=\(SELECT m\.\* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES\)/);assert.match(COPY_HOME_SUMMARY_SQL,/GROUP BY h.document_currency/);assert.match(COPY_HOME_SUMMARY_SQL,/GROUP BY currency/);assert.match(COPY_HOME_SUMMARY_SQL,/TOP\(5\)/);assert.match(COPY_HOME_SUMMARY_SQL,/j.operation=N'count_create'/);assert.match(COPY_HOME_SUMMARY_SQL,/j.operation=N'purchase_draft'/);assert.doesNotMatch(COPY_HOME_SUMMARY_SQL,/UPDATE|DELETE|MERGE|INSERT dbo|CREATE TABLE dbo|finance_accounts|opening_balance|migration_run_id/i);
 });
+test('copy SQL table variables do not collide with case-insensitive native capability parameters',()=>{
+ const parameters=new Set(['copy_id','date','sales','goods','purchase','finance','count','approval','approve_goods','sales_return','purchase_return']);
+ const declarations=[...COPY_HOME_SUMMARY_SQL.matchAll(/DECLARE\s+@([A-Za-z]+)\s+TABLE/g)].map(m=>m[1].toLowerCase());assert(declarations.length>0);assert.equal(new Set(declarations).size,declarations.length);for(const declaration of declarations)assert.equal(parameters.has(declaration),false,declaration);
+});

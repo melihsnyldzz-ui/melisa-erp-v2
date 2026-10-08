@@ -48,8 +48,8 @@ export const homeSummaryReadStore=createHomeSummaryReadStore();
 // Copy ownership is explicit. Restored historical invoices, fixtures and
 // unrelated source movements cannot enter the day's summary.
 export const COPY_HOME_SUMMARY_SQL=`
-DECLARE @Sales TABLE(id bigint PRIMARY KEY);
-INSERT @Sales SELECT DISTINCT h.id FROM dbo.sales_invoices h JOIN dbo.work_sales_links l ON l.invoice_id=h.id WHERE JSON_VALUE(l.preview_json,'$.copyId')=LOWER(CONVERT(varchar(36),@copy_id)) AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.operation=N'sale_draft' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.invoice.id'))=h.id);
+DECLARE @CopyHomeSales TABLE(id bigint PRIMARY KEY);
+INSERT @CopyHomeSales SELECT DISTINCT h.id FROM dbo.sales_invoices h JOIN dbo.work_sales_links l ON l.invoice_id=h.id WHERE JSON_VALUE(l.preview_json,'$.copyId')=LOWER(CONVERT(varchar(36),@copy_id)) AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.operation=N'sale_draft' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.invoice.id'))=h.id);
 DECLARE @Batches TABLE(id bigint PRIMARY KEY);
 INSERT @Batches SELECT DISTINCT b.id FROM dbo.test_goods_batches b WHERE EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.operation=N'count_submit' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.receipt.id'))=b.id);
 DECLARE @Inbound TABLE(id bigint PRIMARY KEY);
@@ -64,8 +64,8 @@ DECLARE @Money TABLE(entity varchar(32),id bigint,currency nvarchar(32),movement
 INSERT @Money SELECT 'customer',m.id,m.currency_code,m.movement_type,m.document_date,CAST(m.amount AS decimal(38,4)) FROM dbo.customer_movements m WHERE @finance=1 AND EXISTS(SELECT 1 FROM dbo.stage4_copy_effect_components e JOIN dbo.stage4_copy_requests j ON j.copy_id=e.copy_id AND j.request_id=e.request_id WHERE e.copy_id=@copy_id AND e.entity=N'customer' AND e.native_id=m.id AND e.effect_json COLLATE Latin1_General_100_BIN2=(SELECT m.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES) COLLATE Latin1_General_100_BIN2);
 INSERT @Money SELECT 'supplier',m.id,m.currency_code,m.movement_type,m.document_date,CAST(m.amount AS decimal(38,4)) FROM dbo.supplier_movements m WHERE @finance=1 AND EXISTS(SELECT 1 FROM dbo.stage4_copy_effect_components e JOIN dbo.stage4_copy_requests j ON j.copy_id=e.copy_id AND j.request_id=e.request_id WHERE e.copy_id=@copy_id AND e.entity=N'supplier' AND e.native_id=m.id AND e.effect_json COLLATE Latin1_General_100_BIN2=(SELECT m.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES) COLLATE Latin1_General_100_BIN2);
 SELECT
- CASE WHEN @sales=1 THEN(SELECT COUNT_BIG(*) FROM dbo.sales_invoices h JOIN @Sales o ON o.id=h.id WHERE h.status=N'finalized' AND h.document_date=@date) END salesCount,
- CASE WHEN @sales=1 THEN(SELECT COUNT_BIG(*) FROM dbo.sales_invoices h JOIN @Sales o ON o.id=h.id WHERE h.status=N'cancelled' AND h.document_date=@date) END salesCancelledCount,
+ CASE WHEN @sales=1 THEN(SELECT COUNT_BIG(*) FROM dbo.sales_invoices h JOIN @CopyHomeSales o ON o.id=h.id WHERE h.status=N'finalized' AND h.document_date=@date) END salesCount,
+ CASE WHEN @sales=1 THEN(SELECT COUNT_BIG(*) FROM dbo.sales_invoices h JOIN @CopyHomeSales o ON o.id=h.id WHERE h.status=N'cancelled' AND h.document_date=@date) END salesCancelledCount,
  CASE WHEN @goods=1 THEN(SELECT COUNT_BIG(*) FROM dbo.test_goods_batches b JOIN @Batches o ON o.id=b.id WHERE b.state=N'pending') END goodsPendingCount,
  CASE WHEN @sales=1 THEN(SELECT COUNT_BIG(*) FROM dbo.invoice_returns r JOIN @Returns o ON o.id=r.id WHERE r.kind=N'sales' AND r.status=N'finalized' AND r.document_date=@date) END salesReturnCount,
  CASE WHEN @purchase=1 THEN(SELECT COUNT_BIG(*) FROM dbo.invoice_returns r JOIN @Returns o ON o.id=r.id WHERE r.kind=N'purchase' AND r.status=N'finalized' AND r.document_date=@date) END purchaseReturnCount,
@@ -74,7 +74,7 @@ SELECT
  CASE WHEN @approval=1 THEN
  (CASE WHEN @approve_goods=1 THEN(SELECT COUNT_BIG(*) FROM dbo.test_goods_batches b JOIN @Batches o ON o.id=b.id WHERE b.state=N'pending') ELSE 0 END)+
  (SELECT COUNT_BIG(*) FROM dbo.test_daily_drafts d JOIN @Daily o ON o.id=d.id WHERE d.state=N'pending' AND ((@count=1 AND d.kind=N'count') OR(@purchase_return=1 AND d.kind=N'invoice-return' AND d.flow=N'purchase'))) END approvalPendingCount;
-SELECT h.document_currency currency,CONVERT(varchar(20),COUNT(h.grand_total)) knownCount,CONVERT(varchar(20),COUNT_BIG(*)-COUNT(h.grand_total)) unknownCount,CASE WHEN COUNT_BIG(*)=COUNT(h.grand_total) THEN CONVERT(varchar(64),CAST(SUM(CAST(h.grand_total AS decimal(38,4))) AS decimal(38,4))) END amountExact4 FROM dbo.sales_invoices h JOIN @Sales o ON o.id=h.id WHERE @sales=1 AND h.status=N'finalized' AND h.document_date=@date GROUP BY h.document_currency;
+SELECT h.document_currency currency,CONVERT(varchar(20),COUNT(h.grand_total)) knownCount,CONVERT(varchar(20),COUNT_BIG(*)-COUNT(h.grand_total)) unknownCount,CASE WHEN COUNT_BIG(*)=COUNT(h.grand_total) THEN CONVERT(varchar(64),CAST(SUM(CAST(h.grand_total AS decimal(38,4))) AS decimal(38,4))) END amountExact4 FROM dbo.sales_invoices h JOIN @CopyHomeSales o ON o.id=h.id WHERE @sales=1 AND h.status=N'finalized' AND h.document_date=@date GROUP BY h.document_currency;
 ${moneyQuery('@Money',"entity='customer' AND @finance=1 AND movement_type=N'collection'").replaceAll('currency_code','currency')}
 ${moneyQuery('@Money',"entity='supplier' AND @finance=1 AND movement_type=N'payment'").replaceAll('currency_code','currency')}
 ${moneyQuery('@Money',"@finance=1 AND movement_type IN(N'collection_cancel',N'collection_refund',N'collection_refund_cancel',N'payment_cancel',N'supplier_refund',N'supplier_refund_cancel')").replaceAll('currency_code','currency')}
@@ -82,7 +82,7 @@ SELECT TOP(5) id,kind,state,[date] FROM(
  SELECT N'goods-batch:'+CONVERT(varchar(20),b.id) id,N'goods' kind,b.state,CAST(NULL AS varchar(10)) [date],1 priority FROM dbo.test_goods_batches b JOIN @Batches o ON o.id=b.id WHERE @goods=1 AND b.state=N'pending'
  UNION ALL SELECT N'inbound-count:'+CONVERT(varchar(20),d.id),N'goods',N'draft',NULL,2 FROM dbo.work_inbound_counts d JOIN @Inbound o ON o.id=d.id WHERE @goods=1 AND d.state IN(N'draft',N'needs_review')
  UNION ALL SELECT N'daily:'+CONVERT(varchar(20),d.id),CASE WHEN d.kind=N'count' THEN N'count' ELSE N'return-purchase' END,d.state,CONVERT(varchar(10),TRY_CONVERT(date,COALESCE(JSON_VALUE(d.payload_json,'$.date'),JSON_VALUE(d.payload_json,'$.documentDate'))),23),3 FROM dbo.test_daily_drafts d JOIN @Daily o ON o.id=d.id WHERE d.state=N'pending' AND ((@count=1 AND d.kind=N'count') OR(@purchase_return=1 AND d.kind=N'invoice-return' AND d.flow=N'purchase'))
- UNION ALL SELECT N'sales-draft:'+CONVERT(varchar(20),h.id),N'sales-draft',N'draft',CONVERT(varchar(10),h.document_date,23),4 FROM dbo.sales_invoices h JOIN @Sales o ON o.id=h.id WHERE @sales=1 AND h.status=N'draft'
+ UNION ALL SELECT N'sales-draft:'+CONVERT(varchar(20),h.id),N'sales-draft',N'draft',CONVERT(varchar(10),h.document_date,23),4 FROM dbo.sales_invoices h JOIN @CopyHomeSales o ON o.id=h.id WHERE @sales=1 AND h.status=N'draft'
  UNION ALL SELECT N'purchase-draft:'+CONVERT(varchar(20),h.id),N'purchase-draft',N'draft',CONVERT(varchar(10),h.document_date,23),4 FROM dbo.purchase_invoices h JOIN @Purchases o ON o.id=h.id WHERE @purchase=1 AND h.status=N'draft'
 ) jobs ORDER BY priority,id;`;
 

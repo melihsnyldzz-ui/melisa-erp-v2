@@ -14,7 +14,13 @@ async function preview(c,input){
  return {...value,previewHash:workHash(value)};
 }
 export function createWorkCollectionService({getStore=defaultStore}={}){return {
- async context(query,actor){actor=workActor(actor,'customer.view');workKeys(query,['invoiceId']);const invoiceId=workId(query.invoiceId);return (await getStore()).read(actor,async c=>{const invoice=await c.invoice(invoiceId);return {invoice,customer:c.context.scope.customer,accounts:c.context.scope.accounts,capabilities:c.context.capabilities,revision:invoice.collections.revision};},'customer.view');},
+ async context(query,actor){actor=workActor(actor,'customer.view');workKeys(query,['invoiceId']);const invoiceId=workId(query.invoiceId);return (await getStore()).read(actor,async c=>{
+  const copy=isolatedCopyOperationDTOContext(c.context),invoice=await c.invoice(invoiceId),customer=c.context.scope.customer;
+  if(copy&&(invoice.customerId!==customer.id||customer.writeEligible!==true))workFail('WORK_COLLECTION_SCOPE','Satışın müşteri hesabı uygun değil.',409);
+  const result={invoice,customer,accounts:c.context.scope.accounts,capabilities:c.context.capabilities,revision:invoice.collections.revision};
+  if(copy)result.meta={...c.context.meta};
+  return result;
+ },'customer.view');},
  async preview(input,actor){actor=workActor(actor,'finance.collection');const s=selection(input);return (await getStore()).read(actor,async c=>{capability(c,'canCollect');return preview(c,s);},'customer.view');},
  async collect(input,actor){actor=workActor(actor,'finance.collection');workKeys(input,['requestId','previewHash','expectedRevision','invoiceId','accountId','amountExact4','documentDate']);const {requestId,previewHash,expectedRevision,...s}=input,payload={requestId:workRequestId(requestId),previewHash:workRevision(previewHash),expectedRevision:workRevision(expectedRevision),...selection(s)};
   return (await getStore()).mutate(actor,'collection_create',payload,async c=>{capability(c,'canCollect');const p=await preview(c,payloadSelection(payload));if(p.revision!==payload.expectedRevision||p.previewHash!==payload.previewHash)workFail('WORK_STALE','Tahsilat bilgisi değişti. Yeniden kontrol edin.',409);const collection=await c.collect(p,payload.requestId);return {collection,invoice:await c.invoice(payload.invoiceId),requestId:payload.requestId,replayed:false};});

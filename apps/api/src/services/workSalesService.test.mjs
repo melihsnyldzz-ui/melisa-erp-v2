@@ -4,6 +4,8 @@ import {workSalePreview,workSelection,workDraftInput,workHash} from './workSales
 import {createWorkSalesService} from './workSalesService.mjs';
 import {createWorkCollectionService} from './workCollectionService.mjs';
 import {withWorkNightScope,isWorkNightProduct} from './workNightScope.mjs';
+import {fixtureContext} from './isolatedOperationCopyContext.test.mjs';
+import {bindIsolatedCopyOperationDTO,validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
 const revision='a'.repeat(64),uuid='a2a49b48-3696-4f2d-b237-e519af1e1b88';
 const actor={id:'16',testAdminSession:true,permissions:['sales.view','sales.create','sales.finalize','sales.cancel','customer.view','finance.collection','finance.collection.cancel']};
 const products=['400001','400002'].map((id,i)=>({id,stockCode:`NIGHT-${i+1}`,name:`Ürün ${i+1}`,synthetic:true,writeEligible:true,stockQuantityExact3:'10.000',unit:{label:'ADET',factorExact8:'1.00000000'},prices:[{quoteId:String(i+1),currency:'TRY',unitPriceExact8:i?'20.12345000':'10.00000000'}]}));
@@ -37,6 +39,31 @@ test('partial/full invoice-linked collections stop overpayment, seller and curre
  assert.equal(p.outstandingAfterExact4,'25.1235');await svc.collect({...s,requestId:uuid,previewHash:p.previewHash,expectedRevision:revision},actor);assert.equal(f.events.filter(x=>x==='collect').length,1);
  await assert.rejects(svc.preview({...s,amountExact4:'30.0000'},actor),{statusCode:409});await assert.rejects(svc.preview(s,{id:'15',permissions:['sales.view']}),{statusCode:403});
  const full=await svc.preview({...s,amountExact4:'25.1235'},actor);assert.equal(full.outstandingAfterExact4,'0.0000');
+});
+test('collection context retains the original response contract without copy metadata',async()=>{
+ const f=fixture(),service=createWorkCollectionService({getStore:async()=>f.store});
+ const result=await service.context({invoiceId:f.current.id},actor);
+ assert.deepEqual(Object.keys(result),['invoice','customer','accounts','capabilities','revision']);
+ assert.equal(result.customer.synthetic,true);assert.equal(result.accounts[0].synthetic,true);
+});
+test('collection context exposes only registered copy metadata and exact selected real parties/accounts',async()=>{
+ const copy=validateIsolatedOperationCopyContext(fixtureContext()),origin={synthetic:false,operationOrigin:copy.operationOrigin};
+ const c={context:bindIsolatedCopyOperationDTO(copy,{meta:{date:copy.date,operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash},scope:{...origin,customer:{...origin,id:'20',currency:'TRY',sourceKey:copy.customers[0].sourceKey,writeEligible:true,balanceExact8:'7395.28000001'},accounts:[{...origin,id:'40',name:'Kasa',currency:'TRY'}]},capabilities:{canCollect:true,canCancelCollection:false}}),invoice:async()=>({...invoice(),customerId:'20'})};
+ let seen;
+ const service=createWorkCollectionService({getStore:async()=>({read:async(a,fn,permission)=>{seen={actor:a,permission};return fn(c);}})});
+ const result=await service.context({invoiceId:'800001'},actor);
+ assert.deepEqual(result.meta,c.context.meta);assert.notEqual(result.meta,c.context.meta);
+ assert.equal(result.customer,c.context.scope.customer);assert.equal(result.customer.synthetic,false);
+ assert.equal(result.customer.balanceExact8,'7395.28000001');assert.equal(result.customer.sourceKey,copy.customers[0].sourceKey);
+ assert.equal(result.accounts,c.context.scope.accounts);assert.equal(result.accounts[0].id,'40');
+ assert.equal(result.capabilities.canCancelCollection,false);assert.equal(seen.permission,'customer.view');
+ await assert.rejects(service.context({invoiceId:'800001'},{id:'16',permissions:[]}),{statusCode:403});
+ c.invoice=async()=>({...invoice(),customerId:'21'});
+ await assert.rejects(service.context({invoiceId:'800001'},actor),{code:'WORK_COLLECTION_SCOPE'});
+ c.invoice=async()=>({...invoice(),customerId:'20'});c.context.scope.accounts[0].id='99';
+ await assert.rejects(service.context({invoiceId:'800001'},actor),{code:'ISOLATED_COPY_DTO_FINANCE'});
+ c.context.scope.accounts[0].id='40';c.context=structuredClone(c.context);
+ await assert.rejects(service.context({invoiceId:'800001'},actor),{code:'ISOLATED_COPY_UNBOUND_DTO'});
 });
 test('night product exception is local to verified transaction and never leaks to other async work',async()=>{
  const proof={database:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV',transaction:{},validated:true,products};assert.equal(isWorkNightProduct(products[0].id),false);
