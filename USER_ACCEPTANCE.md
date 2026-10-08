@@ -1,3 +1,17 @@
+## ERP-UA26 — Aşama 3 ürün/stok/barkod/satış fiyatı — bekliyor
+
+İş ERP-PRODUCTCOMPLETION01 / ERP-DEC-032; ortam TEST113 / source 63f0a017ec23e89ca9aab7e44acb051f4e86479a, kaynak 08.10.2026 20:28:57 TR. Kontrol eden kişi/tarih **bekliyor**; sonuç **bekliyor**. Bağımsız SQL, 384 API ve ajanın beş normal kart provası insan PASS değildir. Önceki ERP-UA02/03/04 PASS ve ERP-UA24/25 bekliyor sonuçları korunur. [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-product-completion/README.md).
+
+Normal [Ürün & stok](http://127.0.0.1:5194/ornek-akis.html#stock) içinde kullanıcı beş kısa kontrol yapar:
+
+1. Stok farkı örneğinde kaynak güncellemesi ve güncel ERP stok miktarını karşılaştırır.
+2. Fiyatı değişen kartta tutar, ayrı döviz ve ana birim/kademeyi kontrol eder.
+3. Baştaki sıfırlı barkodla doğru kartı bulur; çoklu barkodların korunduğunu görür.
+4. Yeni kartta ad/tam stok kodu/marka/tür/birim/stok/fiyatı inceler; bilinmeyen alış/maliyet boş kalır.
+5. Eksik alan veya inceleme bekleyen kartta tahmini fiyat/birim/fotoğraf üretilmediğini ve 50 ürün sayfalamasını kontrol eder.
+
+Tam kodlar/önce-sonra tutarlar yalnız kullanıcıya verilen kısa rapor ve private application/expected-five-examples.json içindedir; ham ticari veri GitHub'a taşınmaz. Kaynak snapshot fiziksel mağaza sayımı veya bugünkü tüm Vega hareketlerinin final kesimi değildir. Kullanıcı sonucu açıkça vermedikçe PASS yok. Bu liste yeni satış/fatura/tahsilat, hold kaldırma, başka migration veya LIVE onayı değildir. Bu dar kapsam sonunda DUR.
+
 ## ERP-UA24/25 — onaylı 283 hesap TEST uygulaması, insan kabulü bekliyor
 
 8 Ekim2026 / ERP-DEC-031. Kullanıcı sabit283 hesaba TEST uygulama onayı verdi; bu onay geniş insan ekran PASS değildir.59 fark,224 finans no-op,0 ayrılan;159 hassasiyet/157 ana kart göstergesi teknik doğrulandı. Bağımsız SQL/API ve ajan normal ekran provası teknik kanıttır. **ERP-UA24 ve ERP-UA25 sonuçları bekliyor kalır.** Önceki16,770 dış kapsam veikiLL aktarılmadı. [Uygulama kanıtı](docs/evidence/erp/2026-10-08-current-party-application/README.md).

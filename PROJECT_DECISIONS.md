@@ -19,6 +19,8 @@ GitHub'daki ilgili PR/commit bu kayıtların sürümünü gösterir. Yerel check
 
 ERP-DEC-014 uygulama sonucu günlük [teslim panosunda](DELIVERY_BOARD.md), teknik kanıt [STATUS.md](STATUS.md), insan denemeleri ERP-UA10/11/12 [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) içinde tutulur. Karar onayı insan kabulüne çevrilmedi.
 
+ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-product-completion/README.md); onaylı TEST alt kapsamı uygulandı, ERP-UA26 insan kabulü bekliyor. Bu bağlantı kararın kapsamını değiştirmez; genel migration/final T1/LIVE ve bütün PRODUCT committed inverse kabulü verilmedi. Pano/STATUS/finish güncellendi; bu teslim sonunda DUR.
+
 ## Kalıcı kararlar
 
 | ID | Tarih | Karar | Gerekçe | Etkilediği alan | Durum |
