@@ -1,4 +1,12 @@
-## Migration veri hazırlığı — 8 Ekim 2026 / ERP-DEC-027
+## Birleşik migration dilimi — 8 Ekim 2026 / ERP-DEC-028
+
+**49 toplam / 9 🟢 / 39 🟡 / 1 🔴**. Ürün alış metadata16.668 satır TEST'te uygulandı;7.429 bilinen tutar (7.368 tam+61 kısmi),9.238 bilinmeyen,1 manuel korunmuş,3 drift dışarıda. Net/gross kanıtı olmadığından net referans/iskonto0;6.090 native maliyet korunur. TEST98/source37d80c33dca9 normal ekran, rol/NULL/replay ve CI teknik kanıtı tamamlandı. İnsan ERP-UA24/UA25 bekler; genel migration 🟡 kalır.
+
+200 cari/209 hesap:16 önceki uygulanmış+37 güncel hazır+10 rapor açılışı önerisi+1 source drift+5 held yöntem adayı+140 kalan. Tek yazmasız47 hesaplık onay paketi44 fark/3 no-op içerir; tutar/kapsam onayı ve taze sürüm kontrolü bekler. Önceki38 plan tarihsel korunur. [Teknik teslim](docs/evidence/erp/2026-10-08-unified-migration/README.md).
+
+**Bu goal teknik tamamlandı; DUR.** Başka görev/finans/stok/satış fiyatı/kasa/T1/LIVE/Vega/CRM/main otomatik başlamaz. Tam sentetik effect exclusion closure, kalan kaynak farkları, devam eden iş bağları ve kasa/banka açılışı somut açık kalır. Aşağıdaki paket/plan kayıtları tarihseldir.
+
+## Önceki migration veri hazırlığı — 8 Ekim 2026 / ERP-DEC-027
 
 **49 toplam / 9 🟢 / 39 🟡 / 1 🔴** korunur. Dört eksik tedarikçi kartı TEST'te oluşturuldu, bakiye UNKNOWN ve karantina devam eder. Aynı 200 cari / 209 hesap: 16 önceki uygulanmış / 38 yeni kanıtı tamam, uygulama onayı bekliyor / 149 teknik eksik / 2 LL işletme kararı / 4 yeni kart finans doğrulaması bekliyor. Yeni finans yazması 0; migration bitmedi, D02/D06/D09 genel kapsamı 🟡 kalır. TEST95/source `0c63a58845d8663252f7dfeb0dcd2bd6a53c998c`; [kanıt](docs/evidence/erp/2026-10-08-migration-preparation/README.md).
 

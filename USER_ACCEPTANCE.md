@@ -1,6 +1,6 @@
 ## ERP-UA25 / ERP-MIGUNIFIED01 — alış bilgisi, insan kabulü bekliyor
 
-8 Ekim2026 teknik TEST uygulaması: normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) kartında mevcut alış görüntüleme izniyle ayrı "Alış referansını görüntüle" düğmesi. İnsan sonucu **bekliyor**; ERP-UA24 ve önceki tüm sonuçlar korunur.
+8 Ekim2026 TEST98/source37d80c33dca976c986af1fab3a99bfe2aca903a9 teknik uygulaması ve ajan ekran kontrolü: normal [Ürün & Stok](http://127.0.0.1:5194/ornek-akis.html#stock) kartında mevcut product.view/purchase.view/finance.view üç izniyle ayrı "Alış referansını görüntüle" düğmesi. İnsan sonucu **bekliyor**; ERP-UA24 ve önceki tüm sonuçlar korunur.
 
 1. 8023 CONCEPT ve0161 MOLLY kart alış tutarı/döviz/birimini incele; iskonto kayıtlı olsa da brüt/net doğrulanmadığı için referans hesaplanmadığını gör.
 2. 0205 NAYİNOM,3344 CONCEPT ve2401 BABY AURA üzerinde bilinmeyen tutarın sıfır olmadığını değerlendir.

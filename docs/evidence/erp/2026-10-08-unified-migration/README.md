@@ -32,4 +32,24 @@ Goal8 sentetik işlem kimlikleri ve güncel scoped request/link kayıtları öze
 
 ## Teknik teslim kaydı
 
-Gerçek TEST batch16.668 metadata satırını kaydetti:7.429 bilinen kart tutarı (7.368 tam döviz/birim+61 kısmi),9.238 bilinmeyen tutar (8.962 eksik/geçersiz+276 açıklanmamış sıfır),1 manuel korunmuş,3 kimlik drift dışlanmış.6.090 native maliyet korunur; hesaplanmış net referans/iskonto uygulaması0. Committed aynı plan replay16.668 satır/metadataWrites0. Finans/stock/salesprice/costWrites0;53 batch koruma grubu eş. Yedek COPY_ONLY/CHECKSUM/VERIFYONLY gerçek;SHA256 2f97c20e4e58e93d91798846869b86c167a19f5fcb60f77363f98535635a1460. İlk lexical-ID readback hatası tam rollback edilmiş; numeric ORDER BY ve ID-map düzeltmesiyle aynı manifest uygulandı. API/native yeni tablolar SELECT-DML0, yalnız API readerEXECUTE1, nativeEXECUTE0; beş SQL tanımı restricted API hesabıyla hash-eş. Paket/sürüm, gerçek ekran, ek46 koruma grubu, hız ve exact CI kaydı teslim sonrası eklenir. Ham maliyetler, cari ad/tutarları, SQL exportları, config/secrets ve yedek Git'e yüklenmez. İnsan kabulü ERP-UA24 ve yeni alış görünümü bekler; teknik test insan PASS değildir.
+Gerçek TEST batch16.668 metadata satırını kaydetti:7.429 bilinen kart tutarı (7.368 tam döviz/birim+61 kısmi),9.238 bilinmeyen tutar (8.962 eksik/geçersiz+276 açıklanmamış sıfır),1 manuel korunmuş,3 kimlik drift dışlanmış.6.090 native maliyet korunur; hesaplanmış net referans/iskonto uygulaması0. Committed aynı plan replay16.668 satır/metadataWrites0. Finans/stock/salesprice/costWrites0;53 batch koruma grubu eş. Yedek COPY_ONLY/CHECKSUM/VERIFYONLY gerçek;SHA256 2f97c20e4e58e93d91798846869b86c167a19f5fcb60f77363f98535635a1460. İlk lexical-ID readback hatası tam rollback edilmiş; numeric ORDER BY ve ID-map düzeltmesiyle aynı manifest uygulandı. API/native yeni tablolar SELECT-DML0, yalnız API readerEXECUTE1, nativeEXECUTE0; beş SQL tanımı restricted API hesabıyla hash-eş. Ek46 eski veri/yetki/hold grubunun hashleri eş; yalnız beş yeni nesne için30 açıkça sınırlı metadata izni eklendi. Eski iş/rol/yetki kayıtları değişmedi. Ham maliyetler, cari ad/tutarları, SQL exportları, config/secrets ve yedek Git'e yüklenmez. İnsan kabulü ERP-UA24 ve yeni alış görünümü bekler; teknik test insan PASS değildir.
+
+## Son TEST98 ekran ve paket teslimi
+
+Çalışan uygulama source `37d80c33dca976c986af1fab3a99bfe2aca903a9`, paket `CANONICAL-TEST-37d80c33dca9`, `C:/Sirket/ERP/releases/CANONICAL-MIGUNIFIED01-TEST-20261008-98`:1487 dosya, baselineReproducedtrue. Web5194/API4144/native4146 aynı `Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01` kimliğine bağlıdır. API ve native sysadmin0/databaseControl0/LIVEaccess0; native READ_ONLY ve readerEXECUTE0. Önceki95/96/97 paketleri korunur. Aynı Goal8 gün/seal yalnız paket/source ve yeni reference manifest bağıyla yeniden bağlandı; kapsam/roller değişmedi. Son belge commit'i uygulama source değildir.
+
+Normal yeşil ekranda8023 CONCEPT,0161 MOLLY,0205 NAYİNOM,3344 CONCEPT,2401 BABY AURA kartlarında isteğe bağlı alış bölümü gerçekten açıldı.2217 ELAYZA kısmi döviz örneği bilinen tutarı "Döviz bilinmiyor" ile korudu. Önceki fotoğraf/stok/satış fiyatları ve tam kodlar korunur; bilinmeyen tutar sıfır yapılmadı. Ekran görüntüleri ve exact tutarlar private kanıtta; Git'e yüklenmez. Bu ajan doğrulamasıdır, ERP-UA25 veya ERP-UA24 insan PASS değildir.
+
+Gerçek normal API aktörleri İlker16:üç izinli GET200; satış15:finance.view yok/GET403; anonim401; ek query400; POST405; geçersiz ek yol404. Normal satış kataloğunda maliyet alanı0. SQL immutable UPDATE negatifleri51138/farklı replay body reddi ve committed replay0 kanıtları korunur. API/client/opt-in ekran65 hedefli test, migration157 test, API501 test ve paket build geçti. Tam kaynak [PR CI37741880294](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741880294) ve [push CI37741875494](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741875494):quality-build-test/windows-startup-test/secret-scan üçer SUCCESS. Son belge HEAD CI ayrıca teslimde doğrulanır.
+
+| Salt okunur API ölçümü | TEST95 önce ms | TEST98 sonra ms |
+|---|---:|---:|
+| İlk50 | 764 | 722 |
+| Sonraki50 | 763 | 756 |
+| Kod8023 | 555 | 514 |
+| Baştaki sıfırlı barkod | 344 | 409 |
+| Ürün kartı | 176 | 178 |
+
+Aynı makinede üç ardışık authenticated loopback GET/JSON okumasının medyanı; ekran paint veya genel hız garantisi değildir. Alış opt-in GET385ms; liste/kart otomatik çağırmaz. Barkod344→409ms yükseldi; diğer ölçümler benzer veya düşük, yeni birkaç saniyelik katalog gecikmesi görülmedi. Sayfa50 korunur; bu dilim performans optimizasyonu değildir.
+
+[Anonim teslim özeti](delivery-summary.json) gerçek makbuzların sayımını içerir. **Bu dar dilim teknik tamamlandı; DUR.** Genel migration kısmi49/9🟢/39🟡/1🔴; finans47 hesabı açık tutar/kapsam onayı ve taze fingerprint bekler. Stok/T1, devam eden iş bağları, tam sentetik exclusion closure, fiziksel kasa/banka ve insan kabulleri tamamlandı sayılmaz.
