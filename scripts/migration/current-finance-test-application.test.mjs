@@ -16,7 +16,7 @@ function row(role='customer',currency='USD',delta='1.00000001') {
 function native(r) {return {id:'10',partyId:'4',partyEntityId:'6',currency:r.source.currency,mainCurrency:r.mainCurrency,
   links:1,holds:0,ledgerMissing:0,value:'1.00000000',ledger:'1.00000000',localEffects:'0.00000000',witness:'account',
   beforeJSON:'{"id":10}',partyJSON:'{"id":4,"name":"SYNTHETIC","balance":1.0000,"row_version":"AAAAAAABAAA="}',movementHashes:[{id:'1',h:'ledger1'}]};}
-function source(r) {return {identity:{server:'DESKTOP-KSRK0EQ',database:'VEGA2026',sysadmin:0},SELECTOnly:true,twoPassStable:true,endedAt:new Date().toISOString(),checks:[{accountKey:r.accountKey,eligible:true,sourceRowsHash:'rows',cardIdentityHash:'card'}]};}
+function source(r) {return {identity:{server:'DESKTOP-KSRK0EQ',database:'VEGA2026',sysadmin:0},SELECTOnly:true,twoPassStable:true,endedAt:new Date().toISOString(),checks:[{accountKey:r.accountKey,eligible:true,twoPassStable:true,sourceRowsHash:'rows',cardIdentityHash:'card'},...Array.from({length:282},(_,i)=>({accountKey:'SYN/other/'+i,eligible:true,twoPassStable:true,sourceRowsHash:'rows',cardIdentityHash:'card'}))]};}
 test('the current TEST approval is pinned independently of immutable preparation authorization',()=>{
   const packet={packetHash:CURRENT_APPROVED_PACKET_HASH,pendingAccountKeys:['a'],summary:{pendingNewAccounts:283,pendingDifferenceAccounts:59,pendingNoOpAccounts:224,scalarMirrorRepairAccounts:157,precisionUpgradeAccounts:159,priorAppliedAccounts:16,blockedOrExcludedAccounts:770}};
   const approval={schemaVersion:'melisa-current-finance-execution-approval.v1',packetHash:packet.packetHash,humanAmountApproved:true,testOnly:true,actorId:'13',target:TARGET,approvedAccountKeys:['a']};
@@ -26,9 +26,17 @@ test('the current TEST approval is pinned independently of immutable preparation
 });
 test('per-account source drift is separated, while wrong DB/admin/stale evidence fails closed',()=>{
   const r=row(),s=source(r);assert.equal(currentSourceEligibility(r,s),null);
-  for(const field of ['sourceRowsHash','cardIdentityHash'])assert.equal(currentSourceEligibility(r,{...s,checks:[{...s.checks[0],[field]:'changed'}]}),'SOURCE_CHANGED');
-  assert.equal(currentSourceEligibility(r,{...s,checks:[]}),'SOURCE_CHANGED');
+  for(const field of ['sourceRowsHash','cardIdentityHash'])assert.equal(currentSourceEligibility(r,{...s,checks:[{...s.checks[0],[field]:'changed'},...s.checks.slice(1)]}),'SOURCE_CHANGED');
+  assert.throws(()=>currentSourceEligibility(r,{...s,checks:[]}),/PROOF_FIXED_SCOPE/);
   for(const bad of [{...s,SELECTOnly:false},{...s,endedAt:'2020-01-01'},{...s,identity:{...s.identity,sysadmin:1}},{...s,identity:{...s.identity,database:'LIVE'}}])assert.throws(()=>currentSourceEligibility(r,bad),/BOUNDARY_OR_FRESHNESS/);
+});
+test('one unstable account among the fixed283 defers only that account; missing/duplicate/foreign scope fails closed',()=>{
+  const r=row(),s=source(r),unstable={...s,twoPassStable:false,checks:s.checks.map((c,i)=>i===1?{...c,twoPassStable:false,eligible:false}:c)};
+  const approvedKeys=s.checks.map(c=>c.accountKey);
+  assert.equal(currentSourceEligibility(r,unstable,Date.now(),approvedKeys),null);
+  const changedRow={...r,accountKey:s.checks[1].accountKey};
+  assert.equal(currentSourceEligibility(changedRow,unstable,Date.now(),approvedKeys),'SOURCE_CHANGED');
+  for(const bad of [{...s,checks:s.checks.slice(1)},{...s,checks:[s.checks[0],s.checks[0],...s.checks.slice(2)]},{...s,checks:[{...s.checks[0],accountKey:'foreign'},...s.checks.slice(1)]}])assert.throws(()=>currentSourceEligibility(r,bad,Date.now(),approvedKeys),/PROOF_FIXED_SCOPE/);
 });
 test('native CAS detects role/currency/holds, local drift and offsetting old-ledger tampering',()=>{
   const r=row(),n=native(r);assert.equal(currentNativeEligibility(r,n),null);

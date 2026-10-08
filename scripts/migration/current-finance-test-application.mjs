@@ -37,13 +37,21 @@ export function validateCurrentExecutionApproval(packet, approval, expectedHash=
   check(hash(approval.approvedAccountKeys)===hash(packet.pendingAccountKeys),'CURRENT_ACCOUNT_KEYS_CHANGED');
   return currentFinanceContext(packet.packetHash);
 }
-export function currentSourceEligibility(row, proof, now=Date.now()) {
-  const c=proof?.checks?.find(c=>c.accountKey===row.accountKey);
+export function currentSourceEligibility(row, proof, now=Date.now(), approvedKeys=null) {
   if(proof?.identity?.server!=='DESKTOP-KSRK0EQ'||proof.identity.database!=='VEGA2026'
-    ||proof.identity.sysadmin!==0||proof.SELECTOnly!==true||proof.twoPassStable!==true
+    ||proof.identity.sysadmin!==0||proof.SELECTOnly!==true
     ||!Number.isFinite(Date.parse(proof.endedAt))||now-Date.parse(proof.endedAt)>120000||now<Date.parse(proof.endedAt))
     throw Error('CURRENT_SOURCE_BOUNDARY_OR_FRESHNESS');
-  if(!c||c.eligible!==true||c.sourceRowsHash!==row.source.rowsHash
+  const checks=proof.checks;
+  if(!Array.isArray(checks)||checks.length!==283||checks.some(c=>typeof c?.accountKey!=='string')
+    ||new Set(checks.map(c=>c.accountKey)).size!==283
+    ||(approvedKeys!==null&&(approvedKeys.length!==283||hash([...checks.map(c=>c.accountKey)].sort())!==hash([...approvedKeys].sort()))))
+    throw Error('CURRENT_SOURCE_PROOF_FIXED_SCOPE');
+  const c=checks.find(c=>c.accountKey===row.accountKey);
+  if(!c)throw Error('CURRENT_SOURCE_PROOF_FIXED_SCOPE');
+  // The batch's aggregate stability can be false because ONE account changed.
+  // Its evidence still binds every account; isolate only the unstable account.
+  if(c.twoPassStable!==true||c.eligible!==true||c.sourceRowsHash!==row.source.rowsHash
     ||c.cardIdentityHash!==row.source.closingWitness.cardIdentityHash) return 'SOURCE_CHANGED';
   return null;
 }
@@ -223,14 +231,14 @@ export function createCurrentFinanceSqlStore(driver) {
       if(existing) {const receipt=verifyCurrentReceipt(JSON.parse(existing.receipt_json),context);check(existing.plan_hash===packet.packetHash&&existing.receipt_hash===receipt.receiptHash,'CURRENT_REPLAY_BODY_CONFLICT');await reconcileReceipt(q,packet,receipt,context);return {...receipt,status:'REPLAY_NOOP',newEffects:0};}
       const actor=await q('actor',"SELECT u.id FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id JOIN dbo.permissions p ON p.role_id=r.id WHERE u.id=13 AND u.is_active=1 AND r.is_active=1 AND r.id=2 AND p.permission_key=N'purchase.finalize' AND p.can_approve=1");check(actor.length===1,'CURRENT_EXISTING_ACTOR');
       const pending=packet.rows.filter(r=>packet.pendingAccountKeys.includes(r.accountKey)),source=await driver.freshSource(packet),eligible=[],deferred=[];
-      for(const row of pending) {const state=await readNative(q,row);const reason=currentSourceEligibility(row,source)||currentNativeEligibility(row,state);if(reason)deferred.push({accountKey:row.accountKey,reason});else eligible.push(row);}
+      for(const row of pending) {const state=await readNative(q,row);const reason=currentSourceEligibility(row,source,Date.now(),packet.pendingAccountKeys)||currentNativeEligibility(row,state);if(reason)deferred.push({accountKey:row.accountKey,reason});else eligible.push(row);}
       const initialSchema=await q('schema',FINAL_SCHEMA_SQL),guards=await q('guards',FINAL_GUARD_SQL);
       check(guards.every(g=>!g.disabled),'CURRENT_DISABLED_GUARD');
       let protectedBefore=await protectedProof(q,eligible,initialSchema,context);
       // Re-read source immediately before the first DDL/mutation, after the
       // potentially expensive whole-target preservation proof.
       const finalSource=await driver.freshSource(packet),beforeCount=eligible.length;
-      for(let i=eligible.length-1;i>=0;i--) {const reason=currentSourceEligibility(eligible[i],finalSource);if(reason){deferred.push({accountKey:eligible[i].accountKey,reason});eligible.splice(i,1);}}
+      for(let i=eligible.length-1;i>=0;i--) {const reason=currentSourceEligibility(eligible[i],finalSource,Date.now(),packet.pendingAccountKeys);if(reason){deferred.push({accountKey:eligible[i].accountKey,reason});eligible.splice(i,1);}}
       if(beforeCount!==eligible.length)protectedBefore=await protectedProof(q,eligible,initialSchema,context);
       check(await driver.verifyPause()===true,'CURRENT_TEST_WRITER_NOT_PAUSED');
       await prepareCurrentPrecisionPermit(q,packet.packetHash);
