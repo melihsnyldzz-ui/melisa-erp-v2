@@ -16,7 +16,7 @@ export const CURRENT_FINANCE_PARTY_PROOF_QUERY_SQL=FINAL_PARTY_READ_SQL
   'FROM #current_finance_receipts r JOIN #current_finance_effects e ON e.child_id=r.child_id')
  .replace('JOIN OPENJSON(@account_ids) ids ON a.id=TRY_CONVERT(bigint,ids.value)','JOIN #current_finance_ids ids ON a.id=ids.account_id')
  .replace("JSON_VALUE(r.receipt_json,'$.status')",'r.parsed_status');
-export const CURRENT_FINANCE_PARTY_PROC_SQL=`CREATE OR ALTER PROCEDURE ${CURRENT_FINANCE_PARTY_PROC} @account_ids nvarchar(max),@cutover_id uniqueidentifier,@plan_hash char(64),@party_hash char(64),@packet_hash char(64) WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;
+export const CURRENT_FINANCE_PARTY_PROC_SQL=`CREATE PROCEDURE ${CURRENT_FINANCE_PARTY_PROC} @account_ids nvarchar(max),@cutover_id uniqueidentifier,@plan_hash char(64),@party_hash char(64),@packet_hash char(64) WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;
  IF DB_NAME()<>N'MELISA_ERP_SIRKET_TEST_20260929_01' OR @@SERVERNAME<>N'Semih\\MELISADEV' OR @@TRANCOUNT=0 THROW 51831,'CURRENT_FINANCE_PARTY_TARGET_TRANSACTION',1;
  IF ISJSON(@account_ids)<>1 OR(SELECT COUNT(*) FROM OPENJSON(@account_ids))>1000 OR EXISTS(SELECT 1 FROM OPENJSON(@account_ids) WHERE TRY_CONVERT(bigint,value) IS NULL OR TRY_CONVERT(bigint,value)<1) THROW 51831,'CURRENT_FINANCE_PARTY_PAGE_SCOPE',1;
  IF NOT EXISTS(SELECT 1 FROM erp_migration.final_cutover_parents WHERE cutover_id=@cutover_id AND plan_hash=@plan_hash AND party_hash=@party_hash AND JSON_VALUE(plan_json,'$.schemaVersion')=N'melisa-current-finance-test-application.v1' AND JSON_VALUE(plan_json,'$.packetHash')=@packet_hash AND JSON_VALUE(plan_json,'$.actualT1')=N'false') OR COALESCE((SELECT TOP(1) state FROM erp_migration.final_cutover_events WHERE cutover_id=@cutover_id ORDER BY id DESC),N'')<>N'CURRENT_RECONCILED' THROW 51831,'CURRENT_FINANCE_PARTY_PARENT_NOT_RECONCILED',1;
@@ -33,6 +33,12 @@ export const CURRENT_FINANCE_PARTY_PROC_SQL=`CREATE OR ALTER PROCEDURE ${CURRENT
  CREATE INDEX IX_current_finance_effect_native ON #current_finance_effects(nativeId,child_id);
  SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(@@PROCID)),2) readerDefinitionHash,(SELECT * FROM(${CURRENT_FINANCE_PARTY_PROOF_QUERY_SQL}) proof FOR JSON PATH,INCLUDE_NULL_VALUES) rowsJson;END`;
 export const CURRENT_FINANCE_PARTY_PROC_HASH=createHash('sha256').update(CURRENT_FINANCE_PARTY_PROC_SQL,'utf16le').digest('hex').toUpperCase();
+// SQL Server can persist either the explicit CREATE or explicit ALTER header
+// in OBJECT_DEFINITION. Both complete bodies are pinned, with no normalization
+// or acceptance of arbitrary alternative procedure text.
+export const CURRENT_FINANCE_PARTY_PROC_ALTER_SQL=CURRENT_FINANCE_PARTY_PROC_SQL.replace(/^CREATE PROCEDURE /,'ALTER PROCEDURE ');
+export const CURRENT_FINANCE_PARTY_PROC_ALTER_HASH=createHash('sha256').update(CURRENT_FINANCE_PARTY_PROC_ALTER_SQL,'utf16le').digest('hex').toUpperCase();
+export const CURRENT_FINANCE_PARTY_DEFINITION_HASHES=Object.freeze([CURRENT_FINANCE_PARTY_PROC_HASH,CURRENT_FINANCE_PARTY_PROC_ALTER_HASH]);
 let configured=null;
 export function currentFinanceContext(context){
  if(context===null||context===undefined)return null;
@@ -49,7 +55,7 @@ export async function readCurrentFinanceProof({sql,tx,ids,context}){
  const c=currentFinanceContext(context);if(!c)return null;
  if(!Array.isArray(ids)||ids.length>1000||ids.some(id=>! /^[1-9]\d*$/.test(id))||new Set(ids).size!==ids.length)throw Error('CURRENT_FINANCE_PARTY_PAGE_SCOPE');
  const result=await new sql.Request(tx).input('account_ids',sql.NVarChar(sql.MAX),JSON.stringify(ids)).input('cutover_id',sql.NVarChar(36),c.cutoverId).input('plan_hash',sql.Char(64),c.planHash).input('party_hash',sql.Char(64),c.partyHash).input('packet_hash',sql.Char(64),c.packetHash).execute(CURRENT_FINANCE_PARTY_PROC),row=result.recordset?.[0];
- if(row?.readerDefinitionHash!==CURRENT_FINANCE_PARTY_PROC_HASH)throw Error('CURRENT_FINANCE_PARTY_READER_DRIFT');
+ if(!CURRENT_FINANCE_PARTY_DEFINITION_HASHES.includes(row?.readerDefinitionHash))throw Error('CURRENT_FINANCE_PARTY_READER_DRIFT');
  const proof=JSON.parse(row.rowsJson??'[]');
  if(!Array.isArray(proof)||proof.some(p=>!ids.includes(p.accountId)||!c.accountIds.includes(p.accountId))||new Set(proof.map(p=>p.accountId)).size!==proof.length)throw Error('CURRENT_FINANCE_PARTY_READBACK');
  const byId=new Map(proof.map(p=>[p.accountId,p]));

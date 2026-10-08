@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CURRENT_FINANCE_PARTY_PROC,CURRENT_FINANCE_PARTY_PROC_HASH,CURRENT_FINANCE_PARTY_PROC_SQL,CURRENT_FINANCE_PARTY_PROOF_QUERY_SQL,currentFinanceContext,configureCurrentFinanceContext,configuredCurrentFinanceContext,readCurrentFinanceProof,attachCurrentFinanceProof} from './currentFinanceDeltaRead.mjs';
+import {CURRENT_FINANCE_PARTY_PROC,CURRENT_FINANCE_PARTY_PROC_HASH,CURRENT_FINANCE_PARTY_PROC_SQL,CURRENT_FINANCE_PARTY_PROC_ALTER_SQL,CURRENT_FINANCE_PARTY_PROC_ALTER_HASH,CURRENT_FINANCE_PARTY_DEFINITION_HASHES,CURRENT_FINANCE_PARTY_PROOF_QUERY_SQL,currentFinanceContext,configureCurrentFinanceContext,configuredCurrentFinanceContext,readCurrentFinanceProof,attachCurrentFinanceProof} from './currentFinanceDeltaRead.mjs';
 import {attachFinalPartyProof,FINAL_PARTY_READ_SQL} from './finalPartyDeltaRead.mjs';
 import {assembleCustomerCardRaw} from './customerCardReadStore.mjs';
 import {assembleSupplierCardRaw} from './supplierCardReadStore.mjs';
@@ -29,7 +29,7 @@ test('materialized proof preserves every original native role/currency/amount/au
 });
 test('large receipt metadata/effects are materialized before page joins on each call, with missing metadata rejected',()=>{
  const sql=CURRENT_FINANCE_PARTY_PROC_SQL;
- assert.match(sql,/^CREATE OR ALTER PROCEDURE/);
+ assert.match(sql,/^CREATE PROCEDURE/);
  assert.equal((sql.match(/OPENJSON\(r.receipt_json\)/g)||[]).length,1);
  assert.equal((sql.match(/OPENJSON\(r.effects_json\)/g)||[]).length,1);
  assert.equal((sql.match(/INTO #current_finance_/g)||[]).length,3);
@@ -44,6 +44,19 @@ test('large receipt metadata/effects are materialized before page joins on each 
  }
  assert.match(sql,/CURRENT_FINANCE_PARTY_RECEIPT_METADATA/);
  assert.doesNotMatch(sql,/\b(?:INSERT|UPDATE|DELETE|MERGE|TRUNCATE|DROP|GRANT|DISABLE)\b/);
+});
+test('only complete explicit CREATE/ALTER procedure definitions are registered and accepted',async()=>{
+ const {createHash}=await import('node:crypto');
+ assert.match(CURRENT_FINANCE_PARTY_PROC_ALTER_SQL,/^ALTER PROCEDURE/);
+ assert.equal(CURRENT_FINANCE_PARTY_PROC_ALTER_SQL.replace(/^ALTER PROCEDURE /,'CREATE PROCEDURE '),CURRENT_FINANCE_PARTY_PROC_SQL);
+ assert.deepEqual(CURRENT_FINANCE_PARTY_DEFINITION_HASHES,[CURRENT_FINANCE_PARTY_PROC_HASH,CURRENT_FINANCE_PARTY_PROC_ALTER_HASH]);
+ assert.equal(Object.isFrozen(CURRENT_FINANCE_PARTY_DEFINITION_HASHES),true);
+ const rows=[{accountId:'10',sourceDeltaExact:'0.00000000',verified:true}];
+ for(const definition of CURRENT_FINANCE_PARTY_DEFINITION_HASHES)assert.deepEqual(await readCurrentFinanceProof(runtime(rows,definition)),rows);
+ for(const changed of [CURRENT_FINANCE_PARTY_PROC_SQL+' ',CURRENT_FINANCE_PARTY_PROC_ALTER_SQL.replace('m.affects_balance<>1','m.affects_balance<>0')]) {
+  const definition=createHash('sha256').update(changed,'utf16le').digest('hex').toUpperCase();
+  await assert.rejects(readCurrentFinanceProof(runtime(rows,definition)),/READER_DRIFT/);
+ }
 });
 test('unverified or numerically mismatching current source evidence never becomes a reconciled balance',()=>{
  for(const role of ['customer','supplier'])for(const currency of ['TRY','USD','EUR']) {

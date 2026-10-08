@@ -6,7 +6,7 @@ import {check, units, exact, sqlHash, TARGET} from './goal73-supplier-delta.mjs'
 import {verifyCurrentFinanceApprovalPacket} from './unified-finance-approval-plan.mjs';
 import {FINAL_SCHEMA_SQL, FINAL_GUARD_SQL, FINAL_PROTECTED_TABLES, FINAL_JOURNAL_DDL,
   finalJournalGuard, finalSqlType, finalGuardBranch, finalNativeReadSql} from './final-cutover-sql.mjs';
-import {CURRENT_FINANCE_PARTY_PROC_SQL,CURRENT_FINANCE_PARTY_PROC_HASH} from '../../apps/api/src/services/currentFinanceDeltaRead.mjs';
+import {CURRENT_FINANCE_PARTY_PROC_SQL,CURRENT_FINANCE_PARTY_DEFINITION_HASHES} from '../../apps/api/src/services/currentFinanceDeltaRead.mjs';
 
 export const CURRENT_APPROVED_PACKET_HASH = '21b32fe75f766be9783f0f5258f21217a300a521f2e9a9c26fce289b89fffa57';
 const sha = text => createHash('sha256').update(text).digest('hex');
@@ -290,9 +290,9 @@ export function createCurrentFinanceSqlStore(driver) {
       await q('child-create','INSERT erp_migration.final_cutover_children VALUES(@id,@parent,@hash,N\'account\',0,@json,@receipt)',{id:receipt.id,parent:context.cutoverId,hash:packet.packetHash,json:JSON.stringify(receipt),receipt:receipt.receiptHash});
       await q('reconciled','INSERT erp_migration.final_cutover_events(cutover_id,plan_hash,state,proof_hash) VALUES(@id,@hash,N\'CURRENT_RECONCILED\',@receipt)',{id:context.cutoverId,hash:packet.packetHash,receipt:receipt.receiptHash});
       const reader=(await q('reader-exists',"SELECT OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_read_current_finance_deltas')) definition"))[0]?.definition;
-      if(!reader)await q('reader-create',CURRENT_FINANCE_PARTY_PROC_SQL);else check(sqlHash(reader)===CURRENT_FINANCE_PARTY_PROC_HASH,'CURRENT_READER_DRIFT');
+      if(!reader)await q('reader-create',CURRENT_FINANCE_PARTY_PROC_SQL);else check(CURRENT_FINANCE_PARTY_DEFINITION_HASHES.includes(sqlHash(reader)),'CURRENT_READER_DRIFT');
       const readerAfter=(await q('reader-readback',"SELECT OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_read_current_finance_deltas')) definition"))[0]?.definition;
-      check(typeof readerAfter==='string'&&sqlHash(readerAfter)===CURRENT_FINANCE_PARTY_PROC_HASH,'CURRENT_READER_INSTALL_VERIFY');
+      check(typeof readerAfter==='string'&&CURRENT_FINANCE_PARTY_DEFINITION_HASHES.includes(sqlHash(readerAfter)),'CURRENT_READER_INSTALL_VERIFY');
       check(await driver.prepareReadModel(q,{...context,accountIds:effects.map(e=>e.nativeId)})===true,'CURRENT_READ_MODEL_NOT_PREPARED');
       check(await driver.verifyPause()===true,'CURRENT_TEST_WRITER_NOT_PAUSED');
       return receipt;
