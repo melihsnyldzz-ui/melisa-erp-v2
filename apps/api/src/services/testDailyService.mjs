@@ -1,7 +1,8 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {isIsolatedOperationCopyRuntime} from '../config/database.js';
 import {getIsolatedOperationCopyWorkStore} from './isolatedOperationCopyStore.mjs';
-import {isolatedCopyTransactionContext,normalizeIsolatedCopyCountLines} from './isolatedOperationCopyScope.mjs';
+import {isolatedCopyTransactionContext,isIsolatedOperationCopyMutation,normalizeIsolatedCopyCountLines} from './isolatedOperationCopyScope.mjs';
+import {copyAssert,ISOLATED_COPY_PROCEDURES} from './isolatedOperationCopyContext.mjs';
 import {postIsolatedCopyCurrencyMovement} from './nativeCurrencyAccount.mjs';
 const copyDailyFlow=new AsyncLocalStorage();
 import {projectPersonnelDailyContext,projectPersonnelDailyResponse} from './personnelDailyProjection.mjs';
@@ -78,8 +79,15 @@ async function assertPurchaseReturnPayload(c,payload,{allowCancelled=false}={}){
  return {source,item};
 }
 async function fingerprint(c,productId=c.scope.product_id){return (await c.req().input('p',c.sqlDriver.BigInt,productId).query('SELECT id,quantity_net,source_type,source_id FROM dbo.stock_movements WHERE product_id=@p ORDER BY id')).recordset;}
+export async function assertIsolatedCopyCountReadReady(c){
+ const copy=isolatedCopyTransactionContext(c.transaction,{writeRequired:false});
+ copyAssert(copy===c.copyContext&&c.copyReadOnly===true&&!isIsolatedOperationCopyMutation({database:copy.target.database,server:copy.target.server,user:copy.target.login,readOnly:false},c.transaction),'ISOLATED_COPY_COUNT_READ_TRANSACTION');
+ // The owner ready procedure verifies exact module pins, selected source cards
+ // and live hold rows. Read-only context has no commercial write intent.
+ await c.req().input('copy_id',c.sqlDriver.UniqueIdentifier,copy.copyId).execute(ISOLATED_COPY_PROCEDURES.ready);
+}
 async function countProductScope(c){
- if(c.copyContext){const result=[];for(const p of c.copyContext.products){const row=(await c.req().input('p',c.sqlDriver.BigInt,p.id).query(`SELECT CONVERT(varchar(20),id) id,stock_code stockCode,name,unit,CONVERT(varchar(60),CONVERT(decimal(18,3),current_stock_qty)) stockQuantityExact3,CONVERT(varchar(60),CONVERT(decimal(18,4),average_cost_try)) costExact4 FROM dbo.products WITH(UPDLOCK,HOLDLOCK) WHERE id=@p AND is_active=1 AND is_deleted=0`)).recordset?.[0];if(!row||row.stockCode!==p.stockCode||row.unit!=='ADET'||row.costExact4===null||!Number.isSafeInteger(Number(row.stockQuantityExact3))||Number(row.stockQuantityExact3)<0)fail('COUNT_SCOPE','Sayım kapsamı doğrulanamadı.',503);result.push({...row,barcode:p.barcodes[0]??null,stockQuantity:Number(row.stockQuantityExact3),movementFingerprint:hash(await fingerprint(c,Number(p.id)))});}await assertOperationQuarantineAllowed(result.map(p=>({entity:'product',nativeId:p.id})),quarantineTransactionContext(c.sqlDriver,c.transaction));return result;}
+ if(c.copyContext){const result=[];for(const p of c.copyContext.products){const row=(await c.req().input('p',c.sqlDriver.BigInt,p.id).query(`SELECT CONVERT(varchar(20),id) id,stock_code stockCode,name,unit,CONVERT(varchar(60),CONVERT(decimal(18,3),current_stock_qty)) stockQuantityExact3,CONVERT(varchar(60),CONVERT(decimal(18,4),average_cost_try)) costExact4 FROM dbo.products WITH(UPDLOCK,HOLDLOCK) WHERE id=@p AND is_active=1 AND is_deleted=0`)).recordset?.[0];if(!row||row.stockCode!==p.stockCode||row.unit!=='ADET'||row.costExact4===null||!Number.isSafeInteger(Number(row.stockQuantityExact3))||Number(row.stockQuantityExact3)<0)fail('COUNT_SCOPE','Sayım kapsamı doğrulanamadı.',503);result.push({...row,barcode:p.barcodes[0]??null,stockQuantity:Number(row.stockQuantityExact3),movementFingerprint:hash(await fingerprint(c,Number(p.id)))});}if(c.copyReadOnly)await assertIsolatedCopyCountReadReady(c);else await assertOperationQuarantineAllowed(result.map(p=>({entity:'product',nativeId:p.id})),quarantineTransactionContext(c.sqlDriver,c.transaction));return result;}
 
  const rows=(await c.req().query(`SELECT CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name,p.unit,CONVERT(varchar(40),CAST(p.current_stock_qty AS decimal(18,3))) stockQuantityExact3,CONVERT(varchar(40),CAST(p.average_cost_try AS decimal(18,4))) costExact4,CASE WHEN (SELECT COUNT(*) FROM dbo.product_barcodes b WHERE b.product_id=p.id AND b.is_active=1 AND b.is_primary=1)=1 THEN (SELECT TOP(1) b.barcode FROM dbo.product_barcodes b WHERE b.product_id=p.id AND b.is_active=1 AND b.is_primary=1) ELSE NULL END barcode FROM dbo.test_purchase_batch_scope s JOIN dbo.products p ON p.id=s.product_id WHERE p.id IN(301985,325503) ORDER BY p.id`)).recordset;
  if(rows?.length!==2||rows[0]?.id!=='301985'||rows[0]?.stockCode!=='TEST-V70-GOODS-P'||rows[1]?.id!=='325503'||rows[1]?.stockCode!=='TEST-FINISH-GOODS-P2'||rows.some((p,i)=>p.unit!=='ADET'||Number(p.costExact4)!==(i===0?60:80)||!Number.isFinite(Number(p.stockQuantityExact3))||Number(p.stockQuantityExact3)<0||Number(p.stockQuantityExact3)>40))fail('COUNT_SCOPE','Sayım için ayrılmış ürün kapsamı doğrulanamadı.',503);
@@ -203,10 +211,10 @@ else if(op==='sale'&&flow==='count-cancel'){const p=await createSalesDraft({docu
 else if(op==='purchase'&&flow==='count-cancel'){const p=await createPurchaseDraft({documentNo:'TDAY-REV-PURCHASE-01',documentDate:date,supplierId:Number(s.supplier_id),supplierCurrency:'TRY',documentCurrency:'TRY',exchangeRate:1,accountExchangeRate:1,description:'TEST sayım arası farklı maliyetli alış',items:[{productId:Number(s.product_id),stockCode:s.stock_code,productName:s.product_name,quantity:1,currency:'TRY',purchasePrice:80}]},actor,c);await finalizePurchaseInvoice(p.id,actor,c);result={id:Number(p.id),quantity:1};}
 else fail('TEST_OPERATION','Bu hazırlık kapsam dışında.',403);settings[op]=result;await c.req().input('f',q.NVarChar(20),flow).input('json',q.NVarChar(q.MAX),JSON.stringify(settings)).query('UPDATE dbo.test_daily_scope SET settings_json=@json WHERE flow=@f');return result;}));}
 
-export async function buildIsolatedCopyDailyDomain({runtime:r,copyContext,context,actor,actual,nativeContext,request:req}){
+export async function buildIsolatedCopyDailyDomain({runtime:r,copyContext,context,actor,actual,nativeContext,request:req,write}){
  const flow=copyDailyFlow.getStore();if(!['count','count-cancel','purchase','return-cancel'].includes(flow))fail('ISOLATED_COPY_DAILY_FLOW','Günlük iş kapsamı yok.',403);
  const p=context.scope.products[0],supplier=context.scope.supplier;
- const c={...nativeContext,context,copyContext,actual,actor,scope:{flow,product_id:Number(p.id),stock_code:p.stockCode,product_name:p.name,unit:'ADET',current_stock_qty:Number(p.stockQuantityExact3),average_cost_try:Number(p.costExact4),supplier_id:Number(supplier.id),customer_id:null,source_id:null,source_kind:'purchase',settings_json:'{}'},req};
+ const c={...nativeContext,context,copyContext,copyReadOnly:write===false,actual,actor,scope:{flow,product_id:Number(p.id),stock_code:p.stockCode,product_name:p.name,unit:'ADET',current_stock_qty:Number(p.stockQuantityExact3),average_cost_try:Number(p.costExact4),supplier_id:Number(supplier.id),customer_id:null,source_id:null,source_kind:'purchase',settings_json:'{}'},req};
  if(!flow.startsWith('count')){const sources=await purchaseReturnSources(c,[]);c.scope.source_id=sources[0]?.id??null;}
  return c;
 }

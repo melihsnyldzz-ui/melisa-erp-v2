@@ -103,6 +103,20 @@ test('master updates allow stock balance only while preserving source identity, 
  assert.match(p,/COUNT\(\*\) FROM OPENJSON\(@inserted\).*COUNT\(\*\) FROM OPENJSON\(@deleted\)/);assert.match(p,/STAGE4_MASTER_SCOPE/);assert.match(p,/x.type<>y.type/);assert.match(p,/Latin1_General_100_BIN2/);
 });
 
+test('personnel draft approval retains a sealed creator while new drafts require the intent actor',()=>{
+ const m=[...metadata,...schema('test_daily_drafts',[['id','bigint'],['created_by','bigint'],['state']])];
+ const d=tableCase(stage4NativeGuardSQL(m),'test_daily_drafts');
+ assert.match(d,/LEFT JOIN OPENJSON\(@deleted\)d ON JSON_VALUE\(i.value,'\$\.id'\)=JSON_VALUE\(d.value,'\$\.id'\)/);
+ assert.match(d,/TRY_CONVERT\(bigint,JSON_VALUE\(i.value,'\$\.created_by'\)\) IS NULL/);
+ assert.match(d,/OPENJSON\(@p,'\$\.actors'\)/);
+ assert.match(d,/d.value IS NULL AND.*<>@actor/);
+ assert.match(d,/d.value IS NOT NULL AND EXISTS/);
+ assert.match(d,/created_by'.*x.type<>y.type/);
+ assert.match(d,/STAGE4_OLD_HISTORY_PROTECTED/);assert.match(d,/STAGE4_HISTORY_DELETE_FORBIDDEN/);
+ const stock=tableCase(stage4NativeGuardSQL(m),'stock_movements');
+ assert.match(stock,/created_by'\)\)<>@actor/);assert.doesNotMatch(stock,/OPENJSON\(@p,'\$\.actors'\)/);
+});
+
 test('a post-created party link may be completed without changing its amount, currency, creator or source identity',()=>{
  const c=tableCase(stage4NativeGuardSQL(metadata),'customer_movements'),columns=immutableColumns(c);
  for(const field of ['id','customer_id','currency_code','balance_effect','source_record_key','migration_run_id','created_by'])assert.ok(columns.includes(field),field);

@@ -110,3 +110,21 @@ test('copy sale/purchase finalize and cancellation insert immutable settlement o
   });
  }finally{copyRuntime=null;}
 });
+
+test('copy count GET uses full ready hold proof in the registered read transaction; write cannot claim read proof',async()=>{
+ const {assertIsolatedCopyCountReadReady}=await import('./testDailyService.mjs');
+ const {fixtureContext,fixtureIdentity,fixtureProof}=await import('./isolatedOperationCopyContext.test.mjs');
+ const {validateIsolatedOperationCopyContext}=await import('./isolatedOperationCopyContext.mjs');
+ const {withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs');
+ const copy=validateIsolatedOperationCopyContext(fixtureContext()),tx={},calls=[];let held=false;
+ const c={copyContext:copy,copyReadOnly:true,transaction:tx,sqlDriver:{UniqueIdentifier:0},req(){const params={};return{input(k,t,v){params[k]=v;return this;},async execute(name){calls.push({name,params});assert.equal(name,'dbo.usp_stage4_copy_ready');assert.equal(params.copy_id,copy.copyId);if(held)throw Object.assign(new Error('STAGE4_PRODUCT_SCOPE_DRIFT'),{number:51904});return{recordset:[]};}}}};
+ await assert.rejects(assertIsolatedCopyCountReadReady(c),{code:'ISOLATED_COPY_TRANSACTION_REQUIRED'});assert.equal(calls.length,0);
+ await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:false},async()=>{
+  await assertIsolatedCopyCountReadReady(c);assert.equal(calls.length,1);
+  await assert.rejects(assertIsolatedCopyCountReadReady({...c,copyReadOnly:false}),{code:'ISOLATED_COPY_COUNT_READ_TRANSACTION'});assert.equal(calls.length,1);
+  held=true;await assert.rejects(assertIsolatedCopyCountReadReady(c),{number:51904});assert.equal(calls.length,2);
+ });
+ await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:true},async()=>{
+  await assert.rejects(assertIsolatedCopyCountReadReady(c),{code:'ISOLATED_COPY_COUNT_READ_TRANSACTION'});assert.equal(calls.length,2);
+ });
+});

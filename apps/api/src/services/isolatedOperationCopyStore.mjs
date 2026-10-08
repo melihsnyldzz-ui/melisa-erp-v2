@@ -39,7 +39,9 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
   const tx=new q.Transaction(r.pool);await tx.begin(q.ISOLATION_LEVEL.SERIALIZABLE);const req=()=>new q.Request(tx);
   try{
    const identity=(await req().query(identitySQL)).recordset?.[0];assertIsolatedCopyIdentity(context,identity);
-   if(write)await req().input('lockKey',q.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@lockKey,@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51401,'ISOLATED_COPY_BUSY',1;");
+   // Readers join the same copy lock before acquiring data locks. Shared reads
+   // remain concurrent; existing exclusive writers cannot invert the lock order.
+   await req().input('lockKey',q.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query(`DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@lockKey,@LockMode=N'${write?'Exclusive':'Shared'}',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51401,'ISOLATED_COPY_BUSY',1;`);
    await req().input('copy_id',q.UniqueIdentifier,context.copyId).execute(ISOLATED_COPY_PROCEDURES.ready);
    assertFiniteCopyForeignKeys((await req().query(ISOLATED_COPY_FINITE_FK_SQL)).recordset);
    const row=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('actor_id',q.BigInt,safeId(actor?.id)).input('domain',q.NVarChar(20),domain).execute(ISOLATED_COPY_PROCEDURES.context)).recordset?.[0];
@@ -83,7 +85,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    // Identity is checked again immediately before committing the same connection.
    assertIsolatedCopyIdentity(context,(await req().query(identitySQL)).recordset?.[0]);
    await tx.commit();return result;
-  }catch(error){try{await tx.rollback();}catch{}throw error;}
+  }catch(error){try{await tx.rollback();}catch{}if(error.number===51401||error.originalError?.info?.number===51401)copyAssert(false,'ISOLATED_COPY_BUSY',503);throw error;}
  }
  return {
   context:actor=>transaction(actor,false,c=>c.context),

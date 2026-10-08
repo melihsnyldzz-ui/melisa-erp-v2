@@ -146,7 +146,12 @@ export function stage4NativeGuardSQL(metadata){
     if(cols.includes(column))checks+=`IF EXISTS(SELECT 1 FROM OPENJSON(@inserted)i WHERE JSON_VALUE(i.value,'$.${column}') IS NOT NULL AND NOT EXISTS(SELECT 1 FROM OPENJSON(@p,'$.${array}') WITH(id bigint '$.id')s WHERE s.id=TRY_CONVERT(bigint,JSON_VALUE(i.value,'$.${column}')))) THROW 51904,'STAGE4_ENTITY_OUTSIDE_SCOPE',1;\n`;
    }
    if(cols.includes('currency_code'))checks+=`IF EXISTS(SELECT 1 FROM OPENJSON(@inserted)i WHERE JSON_VALUE(i.value,'$.currency_code') IS NOT NULL AND JSON_VALUE(i.value,'$.currency_code')<>N'TRY') THROW 51904,'STAGE4_CURRENCY_SCOPE',1;\n`;
-   if(cols.includes('created_by'))checks+=`IF EXISTS(SELECT 1 FROM OPENJSON(@inserted)i WHERE JSON_VALUE(i.value,'$.created_by') IS NOT NULL AND TRY_CONVERT(bigint,JSON_VALUE(i.value,'$.created_by'))<>@actor) THROW 51904,'STAGE4_ACTOR_SCOPE',1;\n`;
+   if(cols.includes('created_by')){
+    // A personnel draft retains its creator when a different authorized actor
+    // approves it. The active intent still authorizes the current operation.
+    if(table==='test_daily_drafts')checks+=`IF EXISTS(SELECT 1 FROM OPENJSON(@inserted)i LEFT JOIN OPENJSON(@deleted)d ON JSON_VALUE(i.value,'$.id')=JSON_VALUE(d.value,'$.id') WHERE TRY_CONVERT(bigint,JSON_VALUE(i.value,'$.created_by')) IS NULL OR NOT EXISTS(SELECT 1 FROM OPENJSON(@p,'$.actors') WITH(id bigint '$.id')a WHERE a.id=TRY_CONVERT(bigint,JSON_VALUE(i.value,'$.created_by'))) OR (d.value IS NULL AND TRY_CONVERT(bigint,JSON_VALUE(i.value,'$.created_by'))<>@actor) OR (d.value IS NOT NULL AND EXISTS(SELECT 1 FROM OPENJSON(i.value)x FULL JOIN OPENJSON(d.value)y ON x.[key]=y.[key] WHERE COALESCE(x.[key],y.[key])=N'created_by' AND (x.[key] IS NULL OR y.[key] IS NULL OR x.type<>y.type OR ISNULL(x.value,N'') COLLATE Latin1_General_100_BIN2<>ISNULL(y.value,N'') COLLATE Latin1_General_100_BIN2)))) THROW 51904,'STAGE4_ACTOR_SCOPE',1;\n`;
+    else checks+=`IF EXISTS(SELECT 1 FROM OPENJSON(@inserted)i WHERE JSON_VALUE(i.value,'$.created_by') IS NOT NULL AND TRY_CONVERT(bigint,JSON_VALUE(i.value,'$.created_by'))<>@actor) THROW 51904,'STAGE4_ACTOR_SCOPE',1;\n`;
+   }
    if(['stock_movements','customer_movements','supplier_movements','finance_account_movements'].includes(table)){
     const updateFields=table==='customer_movements'||table==='supplier_movements'?['party_entity_id','party_currency_account_id','balance_effect_exact','affects_balance']:[];
     const kept=cols.filter(c=>!updateFields.includes(c));
