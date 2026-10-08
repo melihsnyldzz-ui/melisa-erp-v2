@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildProductCompletionReaders,productPayloadReaderRevision2} from './product-completion-readers.mjs';
+import {buildProductCompletionReaders,productPayloadReaderRevision2,productTimestampReaderRevision3} from './product-completion-readers.mjs';
 import {sourceVersionSqlHash} from '../migration/goal7-source-version.mjs';
+import {stockReadTimestamp} from '../../apps/api/src/services/stockProductModel.mjs';
 const h='a'.repeat(64),goal7='GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',run='PRODUCT-f89c11a7-108b-4ae7-b781-26eb066459d5';
 const baselineContext={runId:goal7,sourceHash:h,planHash:'b'.repeat(64),bindingsHash:'c'.repeat(64),sourceAsOf:'2026-10-07',productCount:16671,priceCount:64015};
 const context={schemaVersion:'melisa-product-completion-catalog-context.v1',runId:run,sourceHash:'d'.repeat(64),planHash:'e'.repeat(64),bindingsHash:'f'.repeat(64),sourceAsOf:'2026-10-08',productCount:16725,priceCount:64111,snapshotHash:h,actualT1:false,evidenceKind:'DATED_TEST_PRODUCT_SCOPE',ancestry:[{runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30'},{runId:goal7,sourceAsOf:'2026-10-07'},{runId:run,sourceAsOf:'2026-10-08'}]};
@@ -45,5 +46,24 @@ test('r2 refuses a changed nested-payload template or an unknown reader revision
  const original=buildProductCompletionReaders({context,baselineContext}),sql=original.readers.catalog.sql;
  assert.throws(()=>productPayloadReaderRevision2(sql.replace("JSON_VALUE(r.payload_json,'$.source_payload_json')","JSON_VALUE(r.payload_json,'$.other')"),'catalog'),/REVISION_TEMPLATE/);
  assert.throws(()=>productPayloadReaderRevision2(sql,'detail'),/REVISION_KIND/);
- for(const revision of [1,3,'2',null])assert.throws(()=>buildProductCompletionReaders({context:{...context,readerRevision:revision},baselineContext}));
+ for(const revision of [1,4,'2','3',null,undefined])assert.throws(()=>buildProductCompletionReaders({context:{...context,readerRevision:revision},baselineContext}));
+});
+test('r3 keeps r2 payload fix and every guard byte-exact while canonical timestamps retain zero milliseconds',()=>{
+ const r2=buildProductCompletionReaders({context:{...context,readerRevision:2},baselineContext}),r3=buildProductCompletionReaders({context:{...context,readerRevision:3},baselineContext});
+ const old="CONVERT(varchar(23),CAST(SYSUTCDATETIME() AS datetime2(3)),126)+N'Z'",fixed="REPLACE(CONVERT(varchar(23),CAST(SYSUTCDATETIME() AS datetime2(3)),121),' ','T')+N'Z'";
+ for(const kind of ['catalog','stock','detail','list']){
+  const a=r2.readers[kind],b=r3.readers[kind];assert.equal(b.procedure,a.procedure.replace(/_r2$/,'_r3'));assert.equal(b.definitionHash,sourceVersionSqlHash(b.sql));
+  assert.equal(b.sql.replaceAll(b.procedure,a.procedure).replace(fixed,old),a.sql);
+  if(kind==='catalog'||kind==='stock'){assert.equal(b.sql.split(fixed).length-1,1);assert.equal(b.sql.includes(old),false);assert.equal(b.sql.split('WITH(source_payload_json nvarchar(max)').length-1,8);}else assert.equal(b.sql.includes(fixed),false);
+ }
+ // Style 121 representations include exactly three digits, including .000.
+ // SQL-side .000/.001 behavior is separately verified against the real target.
+ for(const sql121 of ['2026-10-08 12:34:56.000','2026-10-08 12:34:56.001','2026-10-08 23:59:59.999']){
+  const canonical=sql121.replace(' ','T')+'Z';assert.equal(canonical.length,24);assert.equal(stockReadTimestamp(canonical),true);assert.equal(new Date(canonical).toISOString(),canonical);
+ }
+ assert.equal(stockReadTimestamp('2026-10-08T12:34:56Z'),false);
+ for(const k of ['runId','sourceAsOf','sourceHash','snapshotHash','planHash','bindingsHash','productCount','priceCount','actualT1','ancestry'])assert.deepEqual(r3.context[k],r2.context[k]);
+ assert.throws(()=>productTimestampReaderRevision3(r2.readers.catalog.sql.replace(old,old.replace(',126)',',120)')),'catalog'),/TIMESTAMP_REVISION_TEMPLATE/);
+ assert.throws(()=>productTimestampReaderRevision3(r2.readers.catalog.sql+' '+old,'catalog'),/TIMESTAMP_REVISION_TEMPLATE/);
+ assert.throws(()=>productTimestampReaderRevision3(r2.readers.catalog.sql,'detail'),/TIMESTAMP_REVISION_KIND/);
 });

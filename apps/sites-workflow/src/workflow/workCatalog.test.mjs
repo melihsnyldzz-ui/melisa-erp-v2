@@ -38,6 +38,12 @@ test('dated TEST projection accepts exact mixed lineage without claiming a final
  for(const edit of [c=>c.readerRevision=3,c=>c.readerRevision='2',c=>c.readerRevision=undefined,c=>delete c.readerRevision,c=>c.readerDefinitionHash='bad',c=>c.procedures.stock=v.procedures.stock,c=>c.procedures.detail+='x']){
   const bad=structuredClone(r2);edit(bad);assert.equal(currentProductCatalogVersion(bad),false);assert.throws(()=>catalogEnvelope({...e2,meta:{...e2.meta,currentVersion:bad}}));
  }
+ const r3={...v,readerRevision:3,procedures:Object.fromEntries(Object.entries(v.procedures).map(([k,p])=>[k,p+'_r3']))};
+ assert.equal(currentProductCatalogVersion(r3),true);const e3={...e2,meta:{...e2.meta,currentVersion:r3}};assert.equal(catalogEnvelope(e3).data.length,2);assert.equal(catalogEnvelope({...e3,data:e3.data[1]},{detail:true}).data,e3.data[1]);
+ for(const edit of [c=>c.readerRevision=4,c=>c.readerRevision='3',c=>c.readerRevision=undefined,c=>delete c.readerRevision,c=>c.stockReaderDefinitionHash='bad',c=>c.procedures.catalog=r2.procedures.catalog,c=>c.procedures.list+='x']){
+  const bad=structuredClone(r3);edit(bad);assert.equal(currentProductCatalogVersion(bad),false);assert.throws(()=>catalogEnvelope({...e3,meta:{...e3.meta,currentVersion:bad}}));
+ }
+ assert.equal(JSON.stringify(e),original);assert.equal(currentProductCatalogVersion(r2),true);
 });
 test('catalog exact quantities retain unknown, true zero and precision beyond Number',()=>{assert.equal(catalogExact(null),'Bilinmiyor');assert.equal(catalogExact('0.00000000'),'0');assert.equal(catalogExact('-0.00000001'),'-0,00000001');assert.equal(catalogExact('9007199254740993.12345678'),'9.007.199.254.740.993,12345678');assert.throws(()=>catalogExact(0));});
 test('barcode query preserves exact leading zero and bounded filters',()=>{const p=new URL(catalogPath({barcode:' 000012 ',search:'%_[',stock:'negative',status:'passive',page:2}),'https://invalid.test').searchParams;assert.equal(p.get('barcode'),' 000012 ');assert.equal(p.get('search'),'%_[');assert.equal(p.get('page'),'2');assert.equal(p.get('limit'),'50');for(const q of [{barcode:12},{page:0},{page:100001},{stock:'unknown'},{search:'a'.repeat(121)}])assert.throws(()=>catalogPath(q));});

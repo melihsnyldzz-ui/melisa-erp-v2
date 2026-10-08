@@ -10,8 +10,8 @@ export function validateCurrentProductCatalogContext(v){
  if(!Array.isArray(v.ancestry)||v.ancestry.length!==3||new Set(v.ancestry.map(a=>a.runId)).size!==3)fail();
  const expectedAncestry=[{runId:openingRun,sourceAsOf:'2026-09-30'},{runId:priorRun,sourceAsOf:'2026-10-07'},{runId:v.runId,sourceAsOf:v.sourceAsOf}];
  if(expectedAncestry.some(e=>!v.ancestry.some(a=>a.runId===e.runId&&a.sourceAsOf===e.sourceAsOf)))fail();
- if(Object.hasOwn(v,'readerRevision')&&v.readerRevision!==2)fail();
- const suffix=v.runId.replaceAll('-','_').toLowerCase()+(v.readerRevision===2?'_r2':'');
+ if(Object.hasOwn(v,'readerRevision')&&![2,3].includes(v.readerRevision))fail();
+ const suffix=v.runId.replaceAll('-','_').toLowerCase()+([2,3].includes(v.readerRevision)?'_r'+v.readerRevision:'');
  const procedures={catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`};
  if(!v.procedures||Object.keys(v.procedures).length!==4||Object.entries(procedures).some(([k,name])=>v.procedures[k]!==name))fail();
  return Object.freeze({...v,ancestry:v.ancestry.map(a=>Object.freeze({...a})),procedures:Object.freeze(procedures)});

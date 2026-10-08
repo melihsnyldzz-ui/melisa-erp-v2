@@ -15,3 +15,11 @@ test('optional reader revision two accepts only the four exact additive r2 names
  assert.throws(()=>validateCurrentProductCatalogContext({...revised,readerRevision:undefined}));
  for(const k of Object.keys(old.procedures)){const bad={...revised,procedures:{...revised.procedures,[k]:old.procedures[k]}};assert.throws(()=>validateCurrentProductCatalogContext(bad));}
 });
+test('revision three requires exact r3 names and does not reinterpret r1 or r2 contexts',()=>{
+ const old=context(),revised={...old,readerRevision:3,procedures:Object.fromEntries(Object.entries(old.procedures).map(([k,p])=>[k,p+'_r3']))};
+ assert.equal(validateCurrentProductCatalogContext(revised).readerRevision,3);
+ for(const revision of [undefined,null,0,1,4,'3',true])assert.throws(()=>validateCurrentProductCatalogContext({...revised,readerRevision:revision}));
+ for(const kind of Object.keys(old.procedures))for(const suffix of ['', '_r2'])assert.throws(()=>validateCurrentProductCatalogContext({...revised,procedures:{...revised.procedures,[kind]:old.procedures[kind]+suffix}}));
+ for(const key of ['readerDefinitionHash','stockReaderDefinitionHash','openingDetailDefinitionHash','openingListDefinitionHash'])assert.throws(()=>validateCurrentProductCatalogContext({...revised,[key]:'bad'}));
+ assert.equal(Object.hasOwn(validateCurrentProductCatalogContext(old),'readerRevision'),false);
+});
