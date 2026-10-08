@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {customerCardError,parseCustomerCardId} from './customerCardModel.mjs';
 import {catalogSourceVersion} from './catalogProductReadStore.mjs';
 import {finalPartyContext,readFinalPartyProof,attachFinalPartyProof} from './finalPartyDeltaRead.mjs';
+import {configuredCurrentFinanceContext,currentFinanceContext,readCurrentFinanceProof,attachCurrentFinanceProof} from './currentFinanceDeltaRead.mjs';
 
 export const CUSTOMER_CARD_PROC='dbo.usp_read_customer_cards';
 export const CUSTOMER_CARD_RUN='VEGA-OPENING-TEST-20261004-06';
@@ -93,7 +94,7 @@ export function assembleCustomerCardRaw(raw){
 }
 
 async function defaultRuntime(){const db=await import('../config/database.js');if(!db.isCanonicalTest())throw customerCardError('CUSTOMER_CARD_UNAVAILABLE');return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
-export function createCustomerCardReadStore({getRuntime=defaultRuntime,getFinalContext=catalogSourceVersion}={}){
+export function createCustomerCardReadStore({getRuntime=defaultRuntime,getFinalContext=catalogSourceVersion,getCurrentFinanceContext=configuredCurrentFinanceContext}={}){
  const read=async(id,options={})=>{
   const {search='',page=1,limit=25,status='all',quarantine='all'}=options;
   if(typeof search!=='string'||search.length>120||!Number.isInteger(page)||page<1||page>1000000||!Number.isInteger(limit)||limit<1||limit>100||!['all','active','passive'].includes(status)||!['all','included','excluded'].includes(quarantine))throw customerCardError('CUSTOMER_CARD_QUERY_INVALID','Geçerli arama ve sayfalama bilgisi gerekli.',400);
@@ -102,6 +103,7 @@ export function createCustomerCardReadStore({getRuntime=defaultRuntime,getFinalC
    const result=await req.execute(CUSTOMER_CARD_PROC),row=result.recordset?.[0];
    if(!row||row.readerDefinitionHash!==CUSTOMER_CARD_PROC_HASH||!Number.isSafeInteger(row.total)||row.total<0)throw customerCardError();
    const parsed=JSON.parse(row.rowsJson??'[]');if(!Array.isArray(parsed))throw customerCardError();const context=getFinalContext();if(finalPartyContext(context)){const ids=parsed.flatMap(r=>r.nativeAccounts.map(a=>parseCustomerCardId(a.id)));const proof=await readFinalPartyProof({sql,tx,ids,context});attachFinalPartyProof(parsed,proof);}
+   const currentContext=getCurrentFinanceContext();if(currentFinanceContext(currentContext)){const ids=parsed.flatMap(r=>r.nativeAccounts.map(a=>parseCustomerCardId(a.id)));attachCurrentFinanceProof(parsed,await readCurrentFinanceProof({sql,tx,ids,context:currentContext}));}
    const rows=parsed.map(assembleCustomerCardRaw);await tx.commit();return {rows,total:row.total};
   }catch(error){if(tx)try{await tx.rollback();}catch{}if(error?.statusCode===400)throw error;throw customerCardError('CUSTOMER_CARD_UNAVAILABLE','Müşteri kartı okuma kanıtı şu anda kullanılamıyor.',503);}
  };

@@ -5,6 +5,8 @@ const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy
 const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
 if(config.goal7SourceVersion)configureCatalogSourceVersion(config.goal7SourceVersion);
 if(mode==='erp'){
+ const {configureCurrentFinanceContext}=await import('./src/services/currentFinanceDeltaRead.mjs');
+ configureCurrentFinanceContext(config.currentFinanceDeltaContext??null,{identity,mode,port,writes});
  const {configurePartyCurrencyComparisonStore}=await import('./src/services/partyCurrencyComparisonStore.mjs');
  await configurePartyCurrencyComparisonStore({root:config.partyCurrencyComparisonRoot,indexSha256:config.partyCurrencyComparisonIndexSha256,identity,mode,port});
 }
