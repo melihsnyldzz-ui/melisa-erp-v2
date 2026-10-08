@@ -72,11 +72,21 @@ async function prepareInvoiceCurrency(sqlDriver, transaction, kind, draft, befor
   return snapshot;
 }
 
+function copyInvoiceDocumentDate(value){
+ if(value instanceof Date){
+  if(!Number.isFinite(value.getTime())||value.getUTCHours()!==0||value.getUTCMinutes()!==0||value.getUTCSeconds()!==0||value.getUTCMilliseconds()!==0)return null;
+  return value.toISOString().slice(0,10);
+ }
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
+ const date=new Date(value+'T00:00:00.000Z');
+ return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value?value:null;
+}
+
 function copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor,partyId=null,documentDate=null){
  const copy=isolatedCopyTransactionContext(transaction),role=kind==='sales'?'customer':kind==='purchase'?'supplier':null;
  const operation={sales_invoice:'sale_finalize',sales_invoice_cancel:'sale_cancel',purchase_invoice:'purchase_finalize',purchase_invoice_cancel:'purchase_cancel'}[movementType];
  const amount=typeof snapshot?.documentAmount==='number'&&Number.isFinite(snapshot.documentAmount)?snapshot.documentAmount.toFixed(4):null;
- if(copy!==getIsolatedOperationCopyConfig()||!role||!operation||movementType!==(kind==='sales'?'sales_invoice':'purchase_invoice')+(direction===-1?'_cancel':'')||![1,-1].includes(direction)||!copy.actors.some(a=>a.id===String(actor?.id))||!Number.isSafeInteger(Number(invoiceId))||Number(invoiceId)<1||!snapshot||snapshot.documentCurrency!=='TRY'||snapshot.accountCurrency!=='TRY'||snapshot.documentRateToTry!==1||snapshot.accountRateToTry!==1||amount===null||Number(amount)!==snapshot.documentAmount||snapshot.documentAmount<=0||snapshot.documentAmount>500||snapshot.accountAmount!==snapshot.documentAmount||snapshot.amountTry!==snapshot.documentAmount||(documentDate!==null&&documentDate!==copy.date))throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hareket kapsamı doğrulanamadı.',409);
+ if(copy!==getIsolatedOperationCopyConfig()||!role||!operation||movementType!==(kind==='sales'?'sales_invoice':'purchase_invoice')+(direction===-1?'_cancel':'')||![1,-1].includes(direction)||!copy.actors.some(a=>a.id===String(actor?.id))||!Number.isSafeInteger(Number(invoiceId))||Number(invoiceId)<1||!snapshot||snapshot.documentCurrency!=='TRY'||snapshot.accountCurrency!=='TRY'||snapshot.documentRateToTry!==1||snapshot.accountRateToTry!==1||amount===null||Number(amount)!==snapshot.documentAmount||snapshot.documentAmount<=0||snapshot.documentAmount>500||snapshot.accountAmount!==snapshot.documentAmount||snapshot.amountTry!==snapshot.documentAmount||(documentDate!==null&&copyInvoiceDocumentDate(documentDate)!==copy.date))throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hareket kapsamı doğrulanamadı.',409);
  const selected=(role==='customer'?copy.customers:copy.suppliers).find(p=>p.currency==='TRY'&&(partyId===null||p.id===String(partyId)));
  if(!selected)throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hesabı doğrulanamadı.',409);
  return{copy,role,partyId:selected.id,operation,amount,effect:direction===-1?'-'+amount:amount,table:role+'_movements',foreignKey:kind==='sales'?'sales_invoice_id':'purchase_invoice_id',header:kind==='sales'?'sales_invoices':'purchase_invoices',movementType};

@@ -98,6 +98,11 @@ test('copy sale/purchase finalize and cancellation insert immutable settlement o
     await stampInvoiceMovement(sql,tx,kind,args.invoiceId,movementType,snapshot,direction,args.actor);
     assert.doesNotMatch(calls.at(-1).query,/\bUPDATE|INSERT|DELETE\b/);assert.match(calls.at(-1).query,/m.account_amount=@copyStampAmount/);assert.match(calls.at(-1).query,/m.created_by=@copyStampActor/);assert.match(calls.at(-1).query,/m.created_at>=n.created_at/);
    }
+   await insertIsolatedCopyInvoiceMovement(sql,tx,{...args,documentDate:new Date(copy.date+'T00:00:00.000Z')});
+   assert.equal(calls.at(-1).params.copyMovementDate,copy.date,'SQL DATE object binds the same sealed calendar date');
+   for(const documentDate of [new Date('2026-10-09T00:00:00.000Z'),new Date('invalid'),new Date(copy.date+'T01:00:00.000Z'),copy.date+'T00:00:00.000Z','2026-02-30']){
+    const before=calls.length;await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,tx,{...args,documentDate}),{code:'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE'});assert.equal(calls.length,before);
+   }
    for(const patch of [{actor:{id:'1'}},{partyId:'31'},{documentDate:'2026-10-09'},{direction:0},{snapshot:{...snapshot,accountCurrency:'USD'}},{snapshot:{...snapshot,accountRateToTry:2}},{snapshot:{...snapshot,accountAmount:161}},{snapshot:{...snapshot,documentAmount:1.00001,accountAmount:1.00001,amountTry:1.00001}},{snapshot:null}]){
     const before=calls.length;await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,tx,{...args,...patch}),{code:'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE'});assert.equal(calls.length,before);
    }
