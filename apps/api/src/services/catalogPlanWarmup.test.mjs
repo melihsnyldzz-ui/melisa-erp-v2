@@ -19,12 +19,17 @@ test('existing actor and permissions are mandatory; no grants or fallback actor'
 test('SQL role revoke, malformed id/page and detail errors stop readiness with sanitized error',async()=>{
  for(const mutate of [f=>{f.state.sqlSales=false;},f=>{f.state.listRows[0].id='90071992547409930x';},f=>{f.state.listRows.pop();},f=>{f.state.detailError=true;}]){const f=fixture();mutate(f);await assert.rejects(()=>warmCatalogPlan(context(),f.dependencies),e=>e.code==='CATALOG_STARTUP_UNAVAILABLE'&&!e.message.includes('PRIVATE'));}
 });
-test('ODBC retain-min1 applies only canonical writable ERP4144; native/LIVE configs unchanged',async()=>{
+test('ODBC retain-min1 applies to canonical writable ERP4144 and registered copy4154; readonly/LIVE configs unchanged',async()=>{
  // Execute the actual config source with inert drivers; no native addon or SQL.
  const source=await readFile(new URL('../config/database.js',import.meta.url),'utf8'),env={port:4144,sql:{database:db,user:login,readOnly:false,trustedConnection:false,server:'127.0.0.1',port:1433,odbcDriver:'ODBC Driver 18 for SQL Server',password:'fixture-only',encrypt:false,trustServerCertificate:true}},process={env:{MELISA_CANONICAL_TEST:'true',MELISA_TEST_SCOPED_SALES:'true'}};
- const {getSqlConfig}=runInNewContext(source.replace(/^import .*;\r?$/gm,'').replace(/^export /gm,'')+'\n({getSqlConfig})',{env,process,sqlDefault:{},sqlTrusted:{}});
+ const copyState={write:false,read:false},sqlDefault={},sqlTrusted={};
+ const {getSqlConfig,getSqlDriver}=runInNewContext(source.replace(/^import .*;\r?$/gm,'').replace(/^export /gm,'')+'\n({getSqlConfig,getSqlDriver})',{env,process,sqlDefault,sqlTrusted,isIsolatedOperationCopyRuntime:()=>copyState.write,getIsolatedOperationCopyConfig:()=>{throw Error('Config-only test must not open a pool');},isIsolatedCopyReadonlyRuntime:()=>copyState.read,getIsolatedCopyReadonlyRuntime:()=>{throw Error('Config-only test must not open a pool');}});
   assert.deepEqual(JSON.parse(JSON.stringify(getSqlConfig().pool)),{max:10,min:1,idleTimeoutMillis:30000});
   env.port=4146;env.sql.user='melisa_sirket_test_20260929_01';env.sql.readOnly=true;assert.equal(getSqlConfig().pool,undefined);
   env.sql.database='MELISA_ERP_PROD_CANDIDATE_20260917_01';env.port=4114;assert.equal(getSqlConfig().pool,undefined);
   env.sql.database=db;env.sql.user=login;env.sql.readOnly=false;env.port=4144;process.env.MELISA_CANONICAL_TEST='false';assert.deepEqual(JSON.parse(JSON.stringify(getSqlConfig().pool)),{max:5,min:0,idleTimeoutMillis:30000});
+  env.sql.database='MELISA_ERP_STAGE04_COPY_TEST_20261008_01';env.sql.user='melisa_stage4_copy_rw_20261008_01';env.port=4154;copyState.write=true;
+  assert.deepEqual(JSON.parse(JSON.stringify(getSqlConfig().pool)),{max:10,min:1,idleTimeoutMillis:30000});assert.equal(getSqlDriver(),sqlTrusted);
+  copyState.write=false;copyState.read=true;env.sql.user='melisa_stage4_copy_ro_20261008_01';env.sql.readOnly=true;env.port=4156;
+  assert.equal(getSqlConfig().pool,undefined);assert.equal(getSqlDriver(),sqlTrusted);
 });

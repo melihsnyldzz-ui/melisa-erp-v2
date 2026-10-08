@@ -44,3 +44,14 @@ e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx
 90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:8
 90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
 90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:27
+
+# Independently reviewed 2026-10-09: deterministic synthetic VEGA stock/party
+# provenance paths in offline isolated-copy fixtures, never API/login credentials.
+# Exact historical fingerprints only; no file, path, rule or history exclusions.
+1a30dae492e038af910e1c39cc58591d68c70739:apps/sites-workflow/src/workflow/workInbound.test.mjs:generic-api-key:20
+1a30dae492e038af910e1c39cc58591d68c70739:apps/sites-workflow/src/workflow/workTrade.test.mjs:generic-api-key:31
+ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/workCopyActorSelector.test.mjs:generic-api-key:5
+ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/workDailyCopyModel.test.mjs:generic-api-key:8
+ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/isolatedOperationCopyModel.test.mjs:generic-api-key:8
+cb665336106f60f3b090840dd12f1384357448b5:apps/api/src/services/nativeCurrencyAccount.test.mjs:generic-api-key:45
+ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperationCopyContext.test.mjs:generic-api-key:6

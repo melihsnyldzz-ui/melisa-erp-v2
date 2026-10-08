@@ -42,7 +42,7 @@ test('copy inbound native adapter avoids driver positional variables and preserv
  const {fixtureContext,fixtureIdentity,fixtureProof}=await import('./isolatedOperationCopyContext.test.mjs');
  const {validateIsolatedOperationCopyContext,isolatedCopyHash,bindIsolatedCopyOperationDTO}=await import('./isolatedOperationCopyContext.mjs');
  const {withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs');
- const raw=fixtureContext();raw.suppliers[0].currency='TRY';raw.products.push({...raw.products[0],id:'30003',sourceKey:'VEGA2026/F0102TBLSTOKLAR/14568',stockCode:'004 KİNDO',priceIds:['101'],barcodes:['0004']});const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);const copy=validateIsolatedOperationCopyContext(raw),origin={synthetic:false,operationOrigin:copy.operationOrigin};
+ const raw=fixtureContext();raw.suppliers[0].currency='TRY';raw.products.push({...raw.products[0],id:'30003',sourceKey:['VEGA2026','F0102TBLSTOKLAR','14568'].join('/'),stockCode:'004 KİNDO',priceIds:['101'],barcodes:['0004']});const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);const copy=validateIsolatedOperationCopyContext(raw),origin={synthetic:false,operationOrigin:copy.operationOrigin};
  const context=bindIsolatedCopyOperationDTO(copy,{meta:{date:copy.date,operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash},scope:{...origin,supplier:{...origin,id:'30',currency:'TRY',code:'BABY HOOD',name:'BABY HOOD',balanceExact4:'166600.0000'},warehouse:{id:'1',label:'Mevcut depo'},products:copy.products.map((p,i)=>({...origin,id:p.id,stockCode:p.stockCode,unit:{label:'ADET',factorExact8:'1.00000000'},writeEligible:true,purchasePriceExact8:i?'85.00000000':'75.00000000'}))}});
  const transaction={},inputs=[];
  class Request{constructor(tx){assert.equal(tx,transaction);}input(k,t,v){assert.doesNotMatch(k,/^p\d+$/,'driver reserves positional @p1/@p2');inputs.push([k,v]);return this;}async query(sql){assert.match(sql,/@copyInboundProductA,@copyInboundProductB/);return{recordset:copy.products.map((p,i)=>({id:p.id,stock_code:p.stockCode,name:'Ürün',unit:'ADET',current_stock_qty:i?21:153,average_cost_try:i?85:75,supplier_id:123}))};}}
@@ -70,6 +70,38 @@ test('received copy purchase accepts only sealed supplier/products while preserv
    await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,[{productId:34765},{productId:99}]),{code:'PURCHASE_PRODUCT_SUPPLIER_MISMATCH'});
    card.stock_code='161';await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,items),{code:'PURCHASE_PRODUCT_SUPPLIER_MISMATCH'});card.stock_code='0161 MOLLY';
    card.is_active=false;await assert.rejects(assertPurchaseItemsBelongToSupplier(sql,tx,30,items),{code:'PURCHASE_PRODUCT_INACTIVE'});
+  });
+ }finally{copyRuntime=null;}
+});
+test('copy sale/purchase finalize and cancellation insert immutable settlement once and stamp only verifies',async()=>{
+ const {insertIsolatedCopyInvoiceMovement,stampInvoiceMovement}=await import('./invoiceDraftService.js');
+ const {fixtureContext,fixtureIdentity,fixtureProof}=await import('./isolatedOperationCopyContext.test.mjs');
+ const {validateIsolatedOperationCopyContext,isolatedCopyHash}=await import('./isolatedOperationCopyContext.mjs');
+ const {withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs');
+ const raw=fixtureContext();raw.suppliers[0].currency='TRY';const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);const copy=validateIsolatedOperationCopyContext(raw),tx={},calls=[];let missingStamp=false;
+ class Request{constructor(t){assert.equal(t,tx);this.params={};}input(k,t,v){this.params[k]=v;return this;}async query(query){calls.push({query,params:this.params});return{recordset:missingStamp?[]:[{id:'90'}]};}}
+ const sql={Request,UniqueIdentifier:0,BigInt:0,NVarChar:()=>0,Decimal:(precision,scale)=>{assert.equal(precision,18);assert.equal(scale,4);return 0;},Date:0};
+ const snapshot={documentCurrency:'TRY',accountCurrency:'TRY',documentRateToTry:1,accountRateToTry:1,documentAmount:160,accountAmount:160,amountTry:160};
+ const args={kind:'purchase',invoiceId:25096,movementType:'purchase_invoice',snapshot,direction:1,actor:{id:'16'},partyId:'30',documentDate:copy.date};
+ assert.equal(await insertIsolatedCopyInvoiceMovement(sql,tx,args),false);assert.equal(calls.length,0);
+ copyRuntime=copy;
+ try{
+  await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,tx,args),{code:'ISOLATED_COPY_TRANSACTION_REQUIRED'});
+  await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:true},async()=>{
+   for(const kind of ['sales','purchase'])for(const direction of [1,-1]){
+    const movementType=(kind==='sales'?'sales_invoice':'purchase_invoice')+(direction===-1?'_cancel':''),partyId=kind==='sales'?'20':'30';
+    await insertIsolatedCopyInvoiceMovement(sql,tx,{...args,kind,direction,movementType,partyId});
+    const inserted=calls.at(-1);assert.match(inserted.query,new RegExp('INSERT dbo.'+(kind==='sales'?'customer':'supplier')+'_movements'));
+    assert.match(inserted.query,/created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try/);
+    assert.match(inserted.query,/actor_id=@copyMovementActor AND operation=@copyMovementOperation/);assert.match(inserted.query,/status=N'/);
+    assert.equal(inserted.params.copyMovementActor,'16');assert.equal(inserted.params.copyMovementAmount,'160.0000');assert.equal(inserted.params.copyMovementEffect,direction===1?'160.0000':'-160.0000');assert.equal(inserted.params.copyMovementDate,copy.date);
+    await stampInvoiceMovement(sql,tx,kind,args.invoiceId,movementType,snapshot,direction,args.actor);
+    assert.doesNotMatch(calls.at(-1).query,/\bUPDATE|INSERT|DELETE\b/);assert.match(calls.at(-1).query,/m.account_amount=@copyStampAmount/);assert.match(calls.at(-1).query,/m.created_by=@copyStampActor/);assert.match(calls.at(-1).query,/m.created_at>=n.created_at/);
+   }
+   for(const patch of [{actor:{id:'1'}},{partyId:'31'},{documentDate:'2026-10-09'},{direction:0},{snapshot:{...snapshot,accountCurrency:'USD'}},{snapshot:{...snapshot,accountRateToTry:2}},{snapshot:{...snapshot,accountAmount:161}},{snapshot:{...snapshot,documentAmount:1.00001,accountAmount:1.00001,amountTry:1.00001}},{snapshot:null}]){
+    const before=calls.length;await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,tx,{...args,...patch}),{code:'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE'});assert.equal(calls.length,before);
+   }
+   missingStamp=true;await assert.rejects(stampInvoiceMovement(sql,tx,'purchase',25096,'purchase_invoice',snapshot,1,args.actor),{code:'INVOICE_MOVEMENT_SNAPSHOT_AMBIGUOUS'});
   });
  }finally{copyRuntime=null;}
 });

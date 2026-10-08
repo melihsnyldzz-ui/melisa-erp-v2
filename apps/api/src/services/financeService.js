@@ -1,6 +1,7 @@
 import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import sql from 'mssql';
-import { getSqlDriver, getSqlPool } from '../config/database.js';
+import { getSqlDriver, getSqlPool, isIsolatedOperationCopyRuntime, getIsolatedOperationCopyConfig } from '../config/database.js';
+import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
@@ -25,6 +26,17 @@ const MOVEMENT_TYPES = new Set([
   'sales_return_cancel',
   'purchase_return_cancel',
 ]);
+
+export function isolatedCopyFinanceSettlement(transaction,{role,partyId,accountId,documentDate,actor,snapshot}){
+ if(!isIsolatedOperationCopyRuntime())return null;
+ const copy=isolatedCopyTransactionContext(transaction),amount=typeof snapshot?.documentAmount==='number'&&Number.isFinite(snapshot.documentAmount)?snapshot.documentAmount.toFixed(4):null;
+ if(copy!==getIsolatedOperationCopyConfig()||!['customer','supplier'].includes(role)||!(role==='customer'?copy.customers:copy.suppliers).some(p=>p.id===String(partyId)&&p.currency==='TRY')||!copy.financeAccounts.some(a=>a.id===String(accountId)&&a.currency==='TRY')||documentDate!==copy.date||!copy.actors.some(a=>a.id===String(actor?.id))||!snapshot||snapshot.documentCurrency!=='TRY'||snapshot.accountCurrency!=='TRY'||snapshot.documentRateToTry!==1||snapshot.accountRateToTry!==1||amount===null||Number(amount)!==snapshot.documentAmount||snapshot.documentAmount<=0||snapshot.documentAmount>500||snapshot.accountAmount!==snapshot.documentAmount||snapshot.amountTry!==snapshot.documentAmount)throw makeServiceError('ISOLATED_COPY_FINANCE_SETTLEMENT','İşlemin döviz ve cari kapsamı doğrulanamadı.',409);
+ return copy;
+}
+function verifyCopiedFinanceMovement(m,copy,{role,partyId,documentDate,actor,snapshot}){
+ const date=m?.document_date instanceof Date?m.document_date.toISOString().slice(0,10):m?.document_date;
+ if(!m||String(m[role+'_id'])!==String(partyId)||String(m.created_by)!==String(actor.id)||date!==documentDate||m.currency_code!=='TRY'||m.account_currency!=='TRY'||Number(m.amount)!==snapshot.documentAmount||Number(m.account_amount)!==snapshot.accountAmount||Number(m.amount_try)!==snapshot.amountTry||Number(m.balance_effect)!==-snapshot.accountAmount||Number(m.document_exchange_rate_snapshot)!==1||Number(m.account_exchange_rate_snapshot)!==1)throw makeServiceError('ISOLATED_COPY_FINANCE_SETTLEMENT','Cari hareketin döviz bilgileri doğrulanamadı.',409);
+}
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -1830,6 +1842,7 @@ export async function createCustomerCollection(payload, actor, transactionContex
       documentRateToTry: payload.exchangeRate, accountRateToTry: payload.accountExchangeRate, documentDate,
     });
 
+    const copy=isolatedCopyFinanceSettlement(transaction,{role:'customer',partyId:customerId,accountId:account.id,documentDate,actor,snapshot:settlement});
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementCustomerId', sqlDriver.BigInt, customerId)
       .input('linkedInvoiceId', sqlDriver.BigInt, transactionContext?.linkedInvoiceId || null)
@@ -1849,7 +1862,7 @@ export async function createCustomerCollection(payload, actor, transactionContex
           currency_code,
           balance_effect,
           document_date,
-          created_by
+          created_by${copy?',account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try':''}
         )
         OUTPUT inserted.id INTO @newCollectionIds
         VALUES (
@@ -1860,7 +1873,7 @@ export async function createCustomerCollection(payload, actor, transactionContex
           @currency,
           @balanceEffect,
           @documentDate,
-          @createdBy
+          @createdBy${copy?",N'TRY',@amount,1,1,@amount":''}
         );
 
         UPDATE dbo.customers
@@ -1871,7 +1884,8 @@ export async function createCustomerCollection(payload, actor, transactionContex
       `);
 
     const movement = movementResult.recordset?.[0];
-    await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction), 'customer', movement.id, settlement, -settlement.accountAmount);
+    if(copy)verifyCopiedFinanceMovement(movement,copy,{role:'customer',partyId:customerId,documentDate,actor,snapshot:settlement});
+    else await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction), 'customer', movement.id, settlement, -settlement.accountAmount);
     const updatedAccount = await writeFinanceAccountMovement(transaction, sqlDriver, {
       account,
       sourceType: 'collection',
@@ -1970,6 +1984,7 @@ export async function createSupplierPayment(payload, actor, transactionContext =
       documentRateToTry: payload.exchangeRate, accountRateToTry: payload.accountExchangeRate, documentDate,
     });
 
+    const copy=isolatedCopyFinanceSettlement(transaction,{role:'supplier',partyId:supplierId,accountId:account.id,documentDate,actor,snapshot:settlement});
     const movementResult = await new sqlDriver.Request(transaction)
       .input('movementSupplierId', sqlDriver.BigInt, supplierId)
       .input('linkedPurchaseId', sqlDriver.BigInt, transactionContext?.linkedInvoiceId || null)
@@ -1989,7 +2004,7 @@ export async function createSupplierPayment(payload, actor, transactionContext =
           currency_code,
           balance_effect,
           document_date,
-          created_by
+          created_by${copy?',account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try':''}
         )
         OUTPUT inserted.id INTO @newPaymentIds
         VALUES (
@@ -2000,7 +2015,7 @@ export async function createSupplierPayment(payload, actor, transactionContext =
           @currency,
           @balanceEffect,
           @documentDate,
-          @createdBy
+          @createdBy${copy?",N'TRY',@amount,1,1,@amount":''}
         );
 
         UPDATE dbo.suppliers
@@ -2011,7 +2026,8 @@ export async function createSupplierPayment(payload, actor, transactionContext =
       `);
 
     const movement = movementResult.recordset?.[0];
-    await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction), 'supplier', movement.id, settlement, -settlement.accountAmount);
+    if(copy)verifyCopiedFinanceMovement(movement,copy,{role:'supplier',partyId:supplierId,documentDate,actor,snapshot:settlement});
+    else await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction), 'supplier', movement.id, settlement, -settlement.accountAmount);
     const updatedAccount = await writeFinanceAccountMovement(transaction, sqlDriver, {
       account,
       sourceType: 'payment',

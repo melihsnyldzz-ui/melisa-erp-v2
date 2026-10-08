@@ -72,7 +72,41 @@ async function prepareInvoiceCurrency(sqlDriver, transaction, kind, draft, befor
   return snapshot;
 }
 
-async function stampInvoiceMovement(sqlDriver, transaction, kind, invoiceId, movementType, snapshot, direction) {
+function copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor,partyId=null,documentDate=null){
+ const copy=isolatedCopyTransactionContext(transaction),role=kind==='sales'?'customer':kind==='purchase'?'supplier':null;
+ const operation={sales_invoice:'sale_finalize',sales_invoice_cancel:'sale_cancel',purchase_invoice:'purchase_finalize',purchase_invoice_cancel:'purchase_cancel'}[movementType];
+ const amount=typeof snapshot?.documentAmount==='number'&&Number.isFinite(snapshot.documentAmount)?snapshot.documentAmount.toFixed(4):null;
+ if(copy!==getIsolatedOperationCopyConfig()||!role||!operation||movementType!==(kind==='sales'?'sales_invoice':'purchase_invoice')+(direction===-1?'_cancel':'')||![1,-1].includes(direction)||!copy.actors.some(a=>a.id===String(actor?.id))||!Number.isSafeInteger(Number(invoiceId))||Number(invoiceId)<1||!snapshot||snapshot.documentCurrency!=='TRY'||snapshot.accountCurrency!=='TRY'||snapshot.documentRateToTry!==1||snapshot.accountRateToTry!==1||amount===null||Number(amount)!==snapshot.documentAmount||snapshot.documentAmount<=0||snapshot.documentAmount>500||snapshot.accountAmount!==snapshot.documentAmount||snapshot.amountTry!==snapshot.documentAmount||(documentDate!==null&&documentDate!==copy.date))throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hareket kapsamı doğrulanamadı.',409);
+ const selected=(role==='customer'?copy.customers:copy.suppliers).find(p=>p.currency==='TRY'&&(partyId===null||p.id===String(partyId)));
+ if(!selected)throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hesabı doğrulanamadı.',409);
+ return{copy,role,partyId:selected.id,operation,amount,effect:direction===-1?'-'+amount:amount,table:role+'_movements',foreignKey:kind==='sales'?'sales_invoice_id':'purchase_invoice_id',header:kind==='sales'?'sales_invoices':'purchase_invoices',movementType};
+}
+
+// Only the registered copy enters this adapter. All immutable settlement
+// columns are inserted together; the native currency-account bridge links the
+// resulting movement later without rewriting its amount or rate snapshot.
+export async function insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind,invoiceId,movementType,snapshot,direction,actor,partyId,documentDate}){
+ if(!isIsolatedOperationCopyRuntime())return false;
+ const b=copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor,partyId,documentDate);
+ await new sqlDriver.Request(transaction).input('copyMovementCopyId',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyMovementActor',sqlDriver.BigInt,actor.id).input('copyMovementInvoice',sqlDriver.BigInt,invoiceId).input('copyMovementParty',sqlDriver.BigInt,b.partyId).input('copyMovementOperation',sqlDriver.NVarChar(40),b.operation).input('copyMovementType',sqlDriver.NVarChar(40),b.movementType).input('copyMovementAmount',sqlDriver.Decimal(18,4),b.amount).input('copyMovementEffect',sqlDriver.Decimal(18,4),b.effect).input('copyMovementDate',sqlDriver.Date,b.copy.date).query(`
+ IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01' COLLATE Latin1_General_100_BIN2
+ OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@copyMovementActor AND operation=@copyMovementOperation)
+ OR NOT EXISTS(SELECT 1 FROM dbo.${b.header} WHERE id=@copyMovementInvoice AND ${b.role}_id=@copyMovementParty AND document_currency=N'TRY' AND account_currency=N'TRY' AND document_date=@copyMovementDate AND grand_total=@copyMovementAmount AND account_amount=@copyMovementAmount AND exchange_rate_snapshot=1 AND account_exchange_rate_snapshot=1 AND status=N'${direction===1?'draft':'finalized'}')
+ OR EXISTS(SELECT 1 FROM dbo.${b.table} WHERE ${b.foreignKey}=@copyMovementInvoice AND movement_type=@copyMovementType)
+ THROW 51416,'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE',1;
+ INSERT dbo.${b.table}(${b.role}_id,${b.foreignKey},movement_type,amount,currency_code,balance_effect,document_date,created_at,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try)
+ VALUES(@copyMovementParty,@copyMovementInvoice,@copyMovementType,@copyMovementAmount,N'TRY',@copyMovementEffect,@copyMovementDate,SYSUTCDATETIME(),@copyMovementActor,N'TRY',@copyMovementAmount,1,1,@copyMovementAmount);
+ `);
+ return true;
+}
+
+export async function stampInvoiceMovement(sqlDriver, transaction, kind, invoiceId, movementType, snapshot, direction,actor=null) {
+ if(isIsolatedOperationCopyRuntime()){
+  const b=copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor);
+  const r=await new sqlDriver.Request(transaction).input('copyStampCopy',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyStampActor',sqlDriver.BigInt,actor.id).input('copyStampInvoice',sqlDriver.BigInt,invoiceId).input('copyStampParty',sqlDriver.BigInt,b.partyId).input('copyStampOperation',sqlDriver.NVarChar(40),b.operation).input('copyStampType',sqlDriver.NVarChar(40),movementType).input('copyStampAmount',sqlDriver.Decimal(18,4),b.amount).input('copyStampEffect',sqlDriver.Decimal(18,4),b.effect).input('copyStampDate',sqlDriver.Date,b.copy.date).query(`SELECT m.id FROM dbo.${b.table} m JOIN dbo.stage4_copy_intents n ON n.copy_id=@copyStampCopy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@copyStampActor AND n.operation=@copyStampOperation WHERE m.${b.foreignKey}=@copyStampInvoice AND m.${b.role}_id=@copyStampParty AND m.movement_type=@copyStampType AND m.created_by=@copyStampActor AND m.created_at>=n.created_at AND m.document_date=@copyStampDate AND m.currency_code=N'TRY' AND m.account_currency=N'TRY' AND m.amount=@copyStampAmount AND m.account_amount=@copyStampAmount AND m.amount_try=@copyStampAmount AND m.balance_effect=@copyStampEffect AND m.document_exchange_rate_snapshot=1 AND m.account_exchange_rate_snapshot=1;`);
+  if(r.recordset?.length!==1)throw makeServiceError('INVOICE_MOVEMENT_SNAPSHOT_AMBIGUOUS','Fişin cari hareketi tam doğrulanamadı.',409);
+  return;
+ }
   const table = kind === 'sales' ? 'customer_movements' : 'supplier_movements';
   const foreignKey = kind === 'sales' ? 'sales_invoice_id' : 'purchase_invoice_id';
   const rows = (await new sqlDriver.Request(transaction).input('stampInvoice', sql.BigInt, invoiceId).input('stampType', sql.NVarChar(40), movementType)
@@ -2077,7 +2111,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
       ? null
       : profitSnapshots.reduce((total, snapshot) => total + snapshot.grossProfitTry, 0);
 
-    await new sqlDriver.Request(transaction)
+    if(!await insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind:'sales',invoiceId,movementType:'sales_invoice',snapshot:settlement,direction:1,actor,partyId:beforeSnapshot.customerId,documentDate:beforeSnapshot.documentDate}))await new sqlDriver.Request(transaction)
       .input('customerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
       .input('customerMovementInvoiceId', sql.BigInt, invoiceId)
       .input('customerMovementAmount', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
@@ -2109,7 +2143,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
         );
       `);
 
-    await stampInvoiceMovement(sqlDriver, transaction, 'sales', invoiceId, 'sales_invoice', settlement, 1);
+    await stampInvoiceMovement(sqlDriver, transaction, 'sales', invoiceId, 'sales_invoice', settlement, 1,actor);
 
     await new sqlDriver.Request(transaction)
       .input('customerBalanceId', sql.BigInt, beforeSnapshot.customerId)
@@ -2386,7 +2420,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
       await reverseSaleCashCollection(sqlDriver, transaction, beforeSnapshot, actor, reason);
     }
 
-    await new sqlDriver.Request(transaction)
+    if(!await insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind:'sales',invoiceId,movementType:'sales_invoice_cancel',snapshot:settlement,direction:-1,actor,partyId:beforeSnapshot.customerId,documentDate:beforeSnapshot.documentDate}))await new sqlDriver.Request(transaction)
       .input('cancelCustomerMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
       .input('cancelCustomerMovementInvoiceId', sql.BigInt, invoiceId)
       .input('cancelCustomerMovementAmount', sql.Decimal(18, 4), reversedCustomerAmount)
@@ -2419,7 +2453,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
         );
       `);
 
-    await stampInvoiceMovement(sqlDriver, transaction, 'sales', invoiceId, 'sales_invoice_cancel', settlement, -1);
+    await stampInvoiceMovement(sqlDriver, transaction, 'sales', invoiceId, 'sales_invoice_cancel', settlement, -1,actor);
 
     await new sqlDriver.Request(transaction)
       .input('cancelCustomerBalanceId', sql.BigInt, beforeSnapshot.customerId)
@@ -3096,7 +3130,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
         `);
     }
 
-    await new sqlDriver.Request(transaction)
+    if(!await insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind:'purchase',invoiceId,movementType:'purchase_invoice',snapshot:settlement,direction:1,actor,partyId:beforeSnapshot.supplierId,documentDate:beforeSnapshot.documentDate}))await new sqlDriver.Request(transaction)
       .input('supplierMovementSupplierId', sql.BigInt, beforeSnapshot.supplierId)
       .input('supplierMovementInvoiceId', sql.BigInt, invoiceId)
       .input('supplierMovementAmount', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
@@ -3127,7 +3161,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
         );
       `);
 
-    await stampInvoiceMovement(sqlDriver, transaction, 'purchase', invoiceId, 'purchase_invoice', settlement, 1);
+    await stampInvoiceMovement(sqlDriver, transaction, 'purchase', invoiceId, 'purchase_invoice', settlement, 1,actor);
 
     await new sqlDriver.Request(transaction)
       .input('supplierBalanceId', sql.BigInt, beforeSnapshot.supplierId)
@@ -3334,7 +3368,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null, tran
 
     const reversedSupplierAmount = Number(beforeSnapshot.grandTotal || 0);
 
-    await new sqlDriver.Request(transaction)
+    if(!await insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind:'purchase',invoiceId,movementType:'purchase_invoice_cancel',snapshot:settlement,direction:-1,actor,partyId:beforeSnapshot.supplierId,documentDate:beforeSnapshot.documentDate}))await new sqlDriver.Request(transaction)
       .input('cancelSupplierMovementSupplierId', sql.BigInt, beforeSnapshot.supplierId)
       .input('cancelSupplierMovementInvoiceId', sql.BigInt, invoiceId)
       .input('cancelSupplierMovementAmount', sql.Decimal(18, 4), reversedSupplierAmount)
@@ -3367,7 +3401,7 @@ export async function cancelPurchaseInvoice(id, payload = {}, actor = null, tran
         );
       `);
 
-    await stampInvoiceMovement(sqlDriver, transaction, 'purchase', invoiceId, 'purchase_invoice_cancel', settlement, -1);
+    await stampInvoiceMovement(sqlDriver, transaction, 'purchase', invoiceId, 'purchase_invoice_cancel', settlement, -1,actor);
 
     await new sqlDriver.Request(transaction)
       .input('cancelSupplierBalanceId', sql.BigInt, beforeSnapshot.supplierId)
