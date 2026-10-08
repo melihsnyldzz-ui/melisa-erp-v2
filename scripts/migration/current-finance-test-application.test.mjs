@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {hash} from './party-currency-readonly-plan.mjs';
 import {sqlHash,TARGET} from './goal73-supplier-delta.mjs';
 import {CURRENT_APPROVED_PACKET_HASH,currentFinanceContext,validateCurrentExecutionApproval,
-  currentSourceEligibility,currentNativeEligibility,currentFinancialMutations,currentLegacyFourProjection,verifyCurrentReceipt,createCurrentFinanceSqlStore} from './current-finance-test-application.mjs';
+  currentSourceEligibility,currentNativeEligibility,currentFinancialMutations,currentLegacyFourProjection,prepareCurrentPrecisionPermit,verifyCurrentReceipt,createCurrentFinanceSqlStore} from './current-finance-test-application.mjs';
 
 const ctx=currentFinanceContext();
 function row(role='customer',currency='USD',delta='1.00000001') {
@@ -67,4 +67,17 @@ test('receipt UUID/body binding rejects changed delta, duplicate native identity
 });
 test('SQL store cannot be created with a connection/pause-only driver',()=>{
   assert.throws(()=>createCurrentFinanceSqlStore({transaction:()=>{},verifyPause:()=>true}),/CONNECTED_GUARDED_DRIVER/);
+});
+test('precision permit survives parameterized RPC child scope and keeps the packet value bound',async()=>{
+  const ownerTemp=new Set();let boundPacket=null;
+  const q=async(op,sql,params={})=>{
+    // SQL Server preserves owner-batch temps; child sp_executesql temps expire
+    // on return. A combined parameterized CREATE+INSERT cannot authorize the
+    // subsequent precision RPC, even if the INSERT succeeded inside it.
+    const child=Object.keys(params).length>0,scope=child?new Set(ownerTemp):ownerTemp;
+    if(sql.includes('CREATE TABLE #approved_current_finance_precision'))scope.add('permit');
+    if(sql.includes('INSERT #approved_current_finance_precision')){assert.equal(scope.has('permit'),true);boundPacket=params.hash;}
+  };
+  await prepareCurrentPrecisionPermit(q,CURRENT_APPROVED_PACKET_HASH);
+  assert.equal(ownerTemp.has('permit'),true);assert.equal(boundPacket,CURRENT_APPROVED_PACKET_HASH);
 });

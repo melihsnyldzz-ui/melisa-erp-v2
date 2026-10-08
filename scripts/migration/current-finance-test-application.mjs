@@ -76,6 +76,13 @@ export function currentLegacyFourProjection(value) {
   const n=units(value),absolute=n<0n?-n:n,rounded=(absolute/10000n+(absolute%10000n>=5000n?1n:0n))*10000n;
   return exact(n<0n?-rounded:rounded);
 }
+export async function prepareCurrentPrecisionPermit(q,packetHash) {
+  check(/^[a-f0-9]{64}$/.test(packetHash),'CURRENT_PACKET_HASH');
+  // Local temp tables must originate in the owning batch. A parameterized
+  // sp_executesql call would drop its CREATE TABLE when that RPC returns.
+  await q('precision-permit-ddl',"CREATE TABLE #approved_current_finance_precision(packet_hash char(64),backup_verified bit,fresh_native_source_verified bit,mirror_before_images_verified bit,native_writes_paused bit);");
+  await q('precision-permit',"INSERT #approved_current_finance_precision VALUES(@hash,1,1,1,1);EXEC sys.sp_set_session_context @key=N'current_finance_amount_approval',@value=@hash;",{hash:packetHash});
+}
 export function currentFinancialMutations(row,state,context,businessDate) {
   const delta=row.proposal.nativeDelta;
   if(units(delta)===0n) return [];
@@ -226,7 +233,7 @@ export function createCurrentFinanceSqlStore(driver) {
       for(let i=eligible.length-1;i>=0;i--) {const reason=currentSourceEligibility(eligible[i],finalSource);if(reason){deferred.push({accountKey:eligible[i].accountKey,reason});eligible.splice(i,1);}}
       if(beforeCount!==eligible.length)protectedBefore=await protectedProof(q,eligible,initialSchema,context);
       check(await driver.verifyPause()===true,'CURRENT_TEST_WRITER_NOT_PAUSED');
-      await q('precision-permit',"CREATE TABLE #approved_current_finance_precision(packet_hash char(64),backup_verified bit,fresh_native_source_verified bit,mirror_before_images_verified bit,native_writes_paused bit);INSERT #approved_current_finance_precision VALUES(@hash,1,1,1,1);EXEC sys.sp_set_session_context @key=N'current_finance_amount_approval',@value=@hash;",{hash:packet.packetHash});
+      await prepareCurrentPrecisionPermit(q,packet.packetHash);
       await q('precision',precisionSql);
       const schema=await q('schema-after',FINAL_SCHEMA_SQL);check(['customers','suppliers'].every(t=>schema.some(c=>c.table===t&&c.name==='balance'&&c.precision===28&&c.scale===8)),'CURRENT_PRECISION_READBACK');
       const mirrorEffects=[],mirrorBefore=new Map(),mirrorMutations=[];
