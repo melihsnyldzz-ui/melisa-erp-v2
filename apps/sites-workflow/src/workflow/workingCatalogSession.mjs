@@ -49,8 +49,9 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return (await request(path,{expire:true,keepForbiddenSession:true})).data;
   },
   async api(path,{envelope=false,...extra}={}){
-   if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/catalog\/products(?:\/[1-9]\d*)?(?:\?[^#]*)?$/.test(path)||!token||!user)throw problem('Katalog isteği kullanılamıyor.');
-   const payload=await request(path,{expire:true});return envelope?payload:payload.data;
+   const referenceRead=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/purchase-reference$/.test(path);
+   if(Object.keys(extra).length||typeof path!=='string'||!(/^\/api\/catalog\/products(?:\/[1-9]\d*)?(?:\?[^#]*)?$/.test(path)||referenceRead)||!token||!user||referenceRead&&!['product.view','purchase.view','finance.view'].every(p=>user.permissions.includes(p)))throw problem('Katalog isteği kullanılamıyor.');
+   const payload=await request(path,{expire:true,keepForbiddenSession:referenceRead});return envelope?payload:payload.data;
   },
   async customers(path,{envelope=false,...extra}={}){
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/(?:customer-cards\?[^#]*|customers\/[1-9]\d*\/card)$/.test(path)||!token||!user)throw problem('Müşteri kartları okunamıyor.');

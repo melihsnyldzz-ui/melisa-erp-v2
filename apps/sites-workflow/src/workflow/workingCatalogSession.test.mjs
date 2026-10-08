@@ -6,6 +6,13 @@ const location={hostname:'127.0.0.1',protocol:'http:',port:'5194'},apiBase='http
 const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['product.view','sales.view']};
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
+test('private purchase reference reaches only its exact GET with all existing financial privileges',async()=>{
+ const current={...user,permissions:['product.view','purchase.view','finance.view']},calls=[],store=storage();
+ const s=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/test-admin')?reply({user:current,accessToken:'private-read'}):reply({cardAmountExact:'15.03000000'});}});
+ await s.start();const value=await s.api('/api/products/36724/purchase-reference',{envelope:true});assert.equal(value.data.cardAmountExact,'15.03000000');assert.equal(calls[1].options.method,'GET');assert.equal(calls[1].options.body,undefined);assert.equal(calls[1].options.headers.Authorization,'Bearer private-read');
+ const n=calls.length;for(const p of['/api/products/01/purchase-reference','/api/products/36724/purchase-reference?currency=TRY','https://other/api/products/36724/purchase-reference','/api/products/36724/purchase-reference#x','/api/products/36724/purchase-reference/../write'])await assert.rejects(()=>s.api(p));for(const options of[{method:'POST'},{body:{}},{method:'DELETE'}])await assert.rejects(()=>s.api('/api/products/36724/purchase-reference',options));assert.equal(calls.length,n);s.dispose();
+ const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user:{...user,permissions:['product.view','purchase.view']},accessToken:'seller'}):reply({}));await f.session.start();await assert.rejects(()=>f.session.api('/api/products/36724/purchase-reference'));assert.equal(f.calls.length,1);f.session.dispose();
+});
 function fixture(fetchImpl){const store=storage(),calls=[];const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return fetchImpl(url,options);}});return {session,store,calls};}
 test('reports and system use exact authenticated GET; rejected finance reports do not revoke personnel identity',async()=>{
  const {session,calls,store}=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'report-read'}):url.includes('/work-reports?')?reply(null,403):reply({readable:true}));
