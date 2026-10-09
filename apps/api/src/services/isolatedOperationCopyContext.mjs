@@ -13,6 +13,7 @@ const copyTopologies=Object.freeze({
 export const ISOLATED_COPY_PROCEDURES=Object.freeze({ready:'dbo.usp_stage4_copy_ready',context:'dbo.usp_stage4_copy_context',begin:'dbo.usp_stage4_copy_begin',effects:'dbo.usp_stage4_copy_effects'});
 const registered=new WeakSet();
 const operationDTOs=new WeakMap();
+const adapterRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
@@ -66,7 +67,24 @@ export function assertIsolatedCopyActor(context,actor,actual,permission){
 }
 export function assertIsolatedCopyReadProof(context,proof){
  assertIsolatedCopyContext(context);
- copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===p.hash),'ISOLATED_COPY_READ_PROOF');
+ const revision=adapterRevisions.get(context);
+ copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
+}
+// A separate append-only adapter pin preserves the existing profile seal and
+// journal identity. It is never accepted from an HTTP body or an environment flag.
+export function validateIsolatedCopyAdapterRevision(context,input){
+ assertIsolatedCopyContext(context);
+ copyAssert(context.target.database===SHARED_COPY_DATABASE&&input?.schemaVersion==='melisa-shared-copy-adapter-revision.v1'&&input.version===1&&input.copyId===context.copyId&&input.baseSealHash===context.sealHash&&Array.isArray(input.modules)&&input.modules.length===3,'ISOLATED_COPY_ADAPTER_REVISION');
+ const names=['dbo.usp_stage4_copy_ready','dbo.usp_stage4_copy_guard','dbo.usp_stage4_copy_context'];
+ copyAssert(input.modules.every((m,i)=>m.name===names[i]&&hash(m.beforeHash)&&hash(m.afterHash)&&m.beforeHash!==m.afterHash)&&input.modules[0].beforeHash===context.sql.ready.hash&&input.modules[2].beforeHash===context.sql.context.hash&&hash(input.immutableTriggerHash),'ISOLATED_COPY_ADAPTER_PINS');
+ const {revisionHash,...body}=input;
+ copyAssert(hash(revisionHash)&&revisionHash===isolatedCopyHash(body),'ISOLATED_COPY_ADAPTER_SEAL');
+ return freeze(structuredClone(input));
+}
+export function registerIsolatedCopyAdapterRevision(context,input,proof){
+ const revision=validateIsolatedCopyAdapterRevision(context,input);
+ copyAssert(!adapterRevisions.has(context)&&Array.isArray(proof)&&proof.length===3&&revision.modules.every(m=>proof.some(p=>p.name===m.name&&String(p.copyId).toLowerCase()===context.copyId&&p.version===1&&p.baseSealHash===context.sealHash&&p.beforeHash===m.beforeHash&&p.afterHash===m.afterHash&&p.actualHash===m.afterHash&&p.baseManifestHash===m.beforeHash&&p.immutableTriggerHash===revision.immutableTriggerHash&&p.triggerDisabled===0)),'ISOLATED_COPY_ADAPTER_DB_PROOF');
+ adapterRevisions.set(context,revision);return revision;
 }
 export function bindIsolatedCopyOperationDTO(context,dto){
  assertIsolatedCopyContext(context);

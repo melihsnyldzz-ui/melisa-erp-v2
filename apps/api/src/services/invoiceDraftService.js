@@ -98,8 +98,8 @@ function copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snap
 export async function insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind,invoiceId,movementType,snapshot,direction,actor,partyId,documentDate}){
  if(!isIsolatedOperationCopyRuntime())return false;
  const b=copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor,partyId,documentDate);
- await new sqlDriver.Request(transaction).input('copyMovementCopyId',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyMovementActor',sqlDriver.BigInt,actor.id).input('copyMovementInvoice',sqlDriver.BigInt,invoiceId).input('copyMovementParty',sqlDriver.BigInt,b.partyId).input('copyMovementOperation',sqlDriver.NVarChar(40),b.operation).input('copyMovementType',sqlDriver.NVarChar(40),b.movementType).input('copyMovementAmount',sqlDriver.Decimal(18,4),b.amount).input('copyMovementEffect',sqlDriver.Decimal(18,4),b.effect).input('copyMovementDate',sqlDriver.Date,b.copy.date).query(`
- IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01' COLLATE Latin1_General_100_BIN2
+ await new sqlDriver.Request(transaction).input('copyMovementDatabase',sqlDriver.NVarChar(128),b.copy.target.database).input('copyMovementCopyId',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyMovementActor',sqlDriver.BigInt,actor.id).input('copyMovementInvoice',sqlDriver.BigInt,invoiceId).input('copyMovementParty',sqlDriver.BigInt,b.partyId).input('copyMovementOperation',sqlDriver.NVarChar(40),b.operation).input('copyMovementType',sqlDriver.NVarChar(40),b.movementType).input('copyMovementAmount',sqlDriver.Decimal(18,4),b.amount).input('copyMovementEffect',sqlDriver.Decimal(18,4),b.effect).input('copyMovementDate',sqlDriver.Date,b.copy.date).query(`
+ IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyMovementDatabase COLLATE Latin1_General_100_BIN2
  OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@copyMovementActor AND operation=@copyMovementOperation)
  OR NOT EXISTS(SELECT 1 FROM dbo.${b.header} WHERE id=@copyMovementInvoice AND ${b.role}_id=@copyMovementParty AND document_currency=N'TRY' AND account_currency=N'TRY' AND document_date=@copyMovementDate AND grand_total=@copyMovementAmount AND account_amount=@copyMovementAmount AND exchange_rate_snapshot=1 AND account_exchange_rate_snapshot=1 AND status=N'${direction===1?'draft':'finalized'}')
  OR EXISTS(SELECT 1 FROM dbo.${b.table} WHERE ${b.foreignKey}=@copyMovementInvoice AND movement_type=@copyMovementType)
@@ -2900,7 +2900,7 @@ export async function updatePurchaseDraft(id, payload, actor = null) {
   }
 }
 
-async function assertReceivedPurchaseContext(context, invoiceId) {
+export async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
   if(context.isolatedCopyReceived===true){
     const {isolatedCopyTransactionContext}=await import('./isolatedOperationCopyScope.mjs');
@@ -2908,8 +2908,8 @@ async function assertReceivedPurchaseContext(context, invoiceId) {
     if(copy!==context.isolatedOperationCopy)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul işlem kapsamı doğrulanamadı.',409);
     const ids=copy.products.map(p=>p.id),supplier=copy.suppliers.find(p=>p.currency==='TRY');
     if(ids.length!==2||!supplier)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul işlem kapsamı doğrulanamadı.',409);
-    const proof=await new context.sqlDriver.Request(context.transaction).input('invoice',context.sqlDriver.BigInt,invoiceId).input('copy',context.sqlDriver.UniqueIdentifier,copy.copyId).input('supplier',context.sqlDriver.BigInt,supplier.id).input('copyReceiptProductA',context.sqlDriver.BigInt,ids[0]).input('copyReceiptProductB',context.sqlDriver.BigInt,ids[1]).query(`
-      SELECT CASE WHEN DB_NAME()=N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01'
+    const proof=await new context.sqlDriver.Request(context.transaction).input('copyReceiptDatabase',context.sqlDriver.NVarChar(128),copy.target.database).input('invoice',context.sqlDriver.BigInt,invoiceId).input('copy',context.sqlDriver.UniqueIdentifier,copy.copyId).input('supplier',context.sqlDriver.BigInt,supplier.id).input('copyReceiptProductA',context.sqlDriver.BigInt,ids[0]).input('copyReceiptProductB',context.sqlDriver.BigInt,ids[1]).query(`
+      SELECT CASE WHEN DB_NAME() COLLATE Latin1_General_100_BIN2=@copyReceiptDatabase COLLATE Latin1_General_100_BIN2
       AND EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copy AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID())
       AND EXISTS(SELECT 1 FROM dbo.test_purchase_batch_drafts d JOIN dbo.purchase_invoices p ON p.id=d.invoice_id JOIN dbo.test_goods_batches b ON b.id=d.batch_id
        WHERE d.invoice_id=@invoice AND d.state=N'linked' AND b.state=N'accepted' AND b.note LIKE N'STAGE4:'+LOWER(CONVERT(varchar(36),@copy))+N'%'

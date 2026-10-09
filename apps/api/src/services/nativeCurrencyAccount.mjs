@@ -12,8 +12,8 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  const account=(role==='customer'?copy.customers:copy.suppliers).find(a=>a.id===String(partyId)&&a.currency===currency);
  copyAssert(account&&copy.actors.some(a=>a.id===String(actor?.id))&&/^[1-9]\d*$/.test(String(movementId)),'ISOLATED_COPY_ACCOUNT_SCOPE',403);
  const sql=ctx.sqlDriver??getSqlDriver(),request=()=>new sql.Request(ctx.transaction),table=role==='customer'?'customer_movements':'supplier_movements';
- const result=await request().input('copy',sql.UniqueIdentifier,copy.copyId).input('actor',sql.BigInt,actor.id).input('movement',sql.BigInt,movementId).input('party',sql.BigInt,partyId).input('entity',sql.BigInt,account.partyId).input('account',sql.BigInt,account.accountId).input('currency',sql.NVarChar(3),currency).input('effect',sql.Decimal(28,8),effectExact8).query(`
- IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01' COLLATE Latin1_General_100_BIN2
+ const result=await request().input('copyDatabase',sql.NVarChar(128),copy.target.database).input('copy',sql.UniqueIdentifier,copy.copyId).input('actor',sql.BigInt,actor.id).input('movement',sql.BigInt,movementId).input('party',sql.BigInt,partyId).input('entity',sql.BigInt,account.partyId).input('account',sql.BigInt,account.accountId).input('currency',sql.NVarChar(3),currency).input('effect',sql.Decimal(28,8),effectExact8).query(`
+ IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyDatabase COLLATE Latin1_General_100_BIN2
  OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copy AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@actor)
   THROW 51411,'ISOLATED_COPY_ACCOUNT_INTENT_REQUIRED',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.party_currency_accounts WITH(UPDLOCK,HOLDLOCK) WHERE id=@account AND party_entity_id=@entity AND ${role}_id=@party AND ${role==='customer'?'supplier':'customer'}_id IS NULL AND currency_code=@currency AND current_balance IS NOT NULL)

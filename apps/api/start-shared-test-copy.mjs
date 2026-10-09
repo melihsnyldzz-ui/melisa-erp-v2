@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import jwt from 'jsonwebtoken';
 import {assertSharedCopyRelease} from './src/services/sharedCopyRelease.mjs';
-import {validateIsolatedOperationCopyContext,assertIsolatedCopyIdentity,copyAssert} from './src/services/isolatedOperationCopyContext.mjs';
+import {validateIsolatedOperationCopyContext,assertIsolatedCopyIdentity,registerIsolatedCopyAdapterRevision,copyAssert} from './src/services/isolatedOperationCopyContext.mjs';
 import {registerIsolatedOperationCopyRuntime,registerIsolatedCopyReadonlyRuntime} from './src/config/isolatedOperationCopyRuntime.mjs';
 
 const [mode,configPath]=process.argv.slice(2);
@@ -26,6 +26,10 @@ copyAssert(!env.vega.enabled&&!env.whatsapp.enabled&&!env.nakliyat.enabled&&!env
 const {getSqlPool}=await import('./src/config/database.js');const pool=await getSqlPool();
 const raw=(await pool.request().query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess")).recordset[0];
 if(writes)assertIsolatedCopyIdentity(context,raw);else copyAssert(raw.db===context.target.database&&raw.server===context.target.server&&raw.login===user&&raw.databaseUser===user&&raw.sysadmin===0&&raw.control===0&&raw.live===0&&raw.originalDatabaseAccess===0,'STAGE4_READER_IDENTITY');
+if(config.copyAdapterRevision){
+ const proof=(await pool.request().query("SELECT CONVERT(varchar(36),r.copy_id) copyId,r.revision version,r.base_seal_hash baseSealHash,r.name,r.before_hash beforeHash,r.after_hash afterHash,p.after_hash baseManifestHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_module_revisions'))),2) immutableTriggerHash,CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_module_revisions'),'ExecIsTriggerDisabled')) triggerDisabled FROM dbo.stage4_copy_module_revisions r JOIN dbo.stage4_copy_module_manifest p ON p.name=r.name ORDER BY r.name")).recordset;
+ registerIsolatedCopyAdapterRevision(context,config.copyAdapterRevision,proof);
+}
 const identity={databaseName:raw.db,serverName:raw.server,loginName:raw.login,databaseUser:raw.databaseUser,sysadmin:raw.sysadmin,databaseControl:raw.control,liveDatabaseAccess:raw.live,originalDatabaseAccess:raw.originalDatabaseAccess};
 const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
 assertSharedCopyRelease(release);
