@@ -73,3 +73,7 @@ Kayıtlı Goal8 kararı değiştirilmeden [teknik teslim](docs/evidence/erp/2026
 ## ERP-DEC-033 uygulama kanıtı — 9 Ekim 2026
 
 Karar metni ve sınırları değişmedi. ERP-STAGE0401'in izole TEST uygulama/etki ayrımı/günlük zincir/ödeme geçmişi/restore kanıtı [Aşama 4 tesliminde](docs/evidence/erp/2026-10-09-stage4/README.md). ERP-UA27 insan sonucu bekliyor; CI hesap engeli STATUS'tadır. Bu bağlantı yeni LIVE/T1, rol veya işletme kararı değildir; teslim sonunda DUR.
+
+## ERP-DEC-035 uygulama kanıtı — 9 Ekim 2026
+
+Karar ve yazma sınırları korunur. ERP-STAGE0601 ilk7normal ekran durağı mevcut kayıtlarla incelendi;6UYGUN gözlem/1personelKISMİ, ZebraDENENMEDİ ve insan8durakBEKLİYOR.50ekran/63gerçek örnek kare/yenileme, dar rapor etiketi/8test, yeni126kopya web ve korunmuş125 ana TEST/ikiDB kanıtı [Aşama6tesliminde](docs/evidence/erp/2026-10-09-stage6/README.md). Yetki, stok/finans, migration veya karar değişimi değildir. Ham ekranlar özel raporda kalır; CI hesap engeli atlanmaz. Kullanıcı/İlker fiziksel ve insan sonucu ayrıca beklenir. Teslim sonunda DUR.

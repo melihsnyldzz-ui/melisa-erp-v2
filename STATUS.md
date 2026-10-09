@@ -1,3 +1,13 @@
+## ERP-STAGE0601 — Aşama 6 normal ekran incelemesi — 9 Ekim 2026
+
+ERP-DEC-035 / PR23 yorum6076757299: ilk yedi durak gerçek normal tarayıcıda, mevcut kayıtlar ve yenilemelerle incelendi. Altı UYGUN gözlem (1–5,7), sayım/iade personel doğrulaması KISMİ, Zebra DENENMEDİ; insan sonuçlarının tamamı bekliyor.50gerçek JPEG/63örneklenmiş gerçek CDPkare, masaüstü/390CSSmobil;197gözlenenGET/OPTIONS/0POST. Tek özel kabul raporu `C:\Sirket\ERP\evidence\ERP-STAGE06-20261009\private\report\acceptance-report.html`; ham ticari ekranlar GitHub'a yüklenmedi. [Anonim kanıt](docs/evidence/erp/2026-10-09-stage6/README.md).
+
+Dar rapor düzeltmesi: native alış iadesi ters kayıt adı kullanıcı dilinde görünür;8/8 hedefli test/derleme ve yeni kopya webde masaüstü-mobil-Yenile tekrarı geçti. Uygulama source **595621aa82dbdb451e39b02b53105535f8c25e5c**; yeni tam **TEST126**1.585/1.585manifest SHA. **Normal TEST125/sourceedb3c89 /5194/4144/4146 korunur.** Yalnız loopback5204 kopya web126'ya geçti; kopyaAPI/native4154/4156 aynı125. Beş eski süreç aynı; bir kontrollü sahipli kopya web değişimi var. Yeni126API/native başlatılmadı; özel config/roller/DBler aynı.
+
+Son GUI sonrası bağımsız32ticari tablo sayısı/30sınırlı tam-satır master-hareket-journal-rol hash grubu0fark; önceki17kopya isteği/20native etki aynı, yeni ticari yazma0. BütünDBsatırı kanıtı iddiası yok. Eski125manifest1.581dosya/SHAkorundu. Source ile son belge teslim HEAD'i ayrıdır; exact GitHub makbuzu PR23 teslim yorumu ve özel raporda. CI hesap ödemesi/harcama engeli adımları başlatmıyor; yerel test yeşili değildir, kontroller atlanmaz.
+
+ERP-UA28/UA27/UA18 ve diğer insan sonuçları bekliyor. UNKNOWN18/gerçek kasa açılışı0/39/işletme-T1/cihaz engelleri korunur; LIVE hazır ilan edilmez. Finish49/9🟢/39🟡/1🔴. Kullanıcı/İlker için tek15–20dakikalık gözlem ve fiziksel Zebra talimatı raporda. Migration/finans/stok/yetki/Vega/LIVE/CRM/main/T1 işlemi yok. **Bu teslimden sonra DUR.** Aşağıdaki kayıtlar tarihsel teslimlerdir.
+
 ## ERP-STAGE0501 — Aşama 5 teknik teslim — 9 Ekim 2026
 
 ERP-DEC-034 / PR23. Başlangıç temiz HEAD a4be1e176484d40695cbf1420ec30800ccf5b662; yeni teslim kodu kurtarma/sınıflandırma yardımcılarıdır, çalışan uygulama source'u değildir. **TEST125/sourceedb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d** altı health/iki TEST DB kimliği son kontrolde aynı; restart/deploy/remigration yok. [Kanıt](docs/evidence/erp/2026-10-09-stage5/README.md), [anonim makbuz](docs/evidence/erp/2026-10-09-stage5/summary.json), [18 dakikalık tek insan turu](docs/evidence/erp/2026-10-09-stage5/acceptance-tour.md). **LIVE hazır değil; bu aşama tesliminden sonra DUR.**

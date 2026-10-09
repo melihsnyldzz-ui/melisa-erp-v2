@@ -1,3 +1,7 @@
+## ERP-STAGE0601 — Aşama 6 yazmasız ekran incelemesi — 9 Ekim 2026
+
+ERP-DEC-035 kapsamında önceki migration/delta/sourcecapture/finans-stok etkileri tekrar uygulanmadı. Normal TEST125 ve iki TEST DB korunur; yalnız mevcut ters kayıt adının normal raporda doğru görünmesi için ayrı126 kopya web ekranı açıldı. Son GUI sonrası32tablo sayımı/30sınırlı satır-journal-rolhash grubu/20önceki native etkide0fark. Yeni ticari yazma0. [Ekran kanıtı](docs/evidence/erp/2026-10-09-stage6/README.md), özel tek kabul raporu; insan/cihaz sonucu bekler.18UNKNOWN/gerçek kasa-banka açılışı/önceki boyut ve hesap engelleri/gerçekT1 aynen açıktır. Gerçek kaynak/Vega/LIVE/CRM/main veya finalT1 değişmedi; recovery/backup/restore/inverse tekrarı yok. **Teslimden sonra DUR.**
+
 ## ERP-STAGE0501 — Aşama 5 canlı öncesi eksikler — 9 Ekim 2026
 
 ERP-DEC-034. Önceki migration yeniden uygulanmadı. 22 UNKNOWN belgeden dört mevcut TEST siparişinin exact journal/native/guard bağı kanıtlandı; ticari etkileri 0. Kalan 18 belge UNKNOWN (11 tamamlanmış, yedi iptal). 1.151 boyut/hesap engeli ve 179 atanmamış cari hareket bağlantısı kayıt bazında korundu; iptal net sıfırı bilinmeyen depo/birim/kökeni çözmez. 39 kasa hesabının matematiksel kapanışı doğrulandı fakat gerçek açılışa hazır 0; beş kaynak isim/döviz grubu dar Vega D0007 SELECT-only bağıyla çözüldü. Kaynak/yerel/sentetik ayrı; yeni finans tutarı veya otoritesiz açılış yazılmadı.
