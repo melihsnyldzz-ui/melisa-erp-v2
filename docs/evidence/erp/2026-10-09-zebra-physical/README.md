@@ -1,5 +1,7 @@
 # ERP-ZEBRA01 — fiziksel Zebra kabul hazırlığı
 
+**Son fiziksel gözlem / ERP-DEC-038:** Gerçek TC21 donanım trigger/decoder, Bul ile doğru ürün, Wi-Fi kısa off/on ve uyku/oturum/yenileme gözlemlendi. [Güncel fiziksel rapor](physical-scan.md), [anonim özet](physical-scan.json). Sıfırlı optik etiket ve otomatik Enter tamamlanmış sayılmaz; insan kabulü bekler. Aşağıdaki devam ve ilk hazırlık kayıtları tarihsel kapsamlarıdır.
+
 **Güncel devam sonucu:** Kullanıcının açık görülen ADB tıklama yöntemi seçimi sonrası gerçek TC21 Chrome terminal/personel girişi/ürün-kart/fotoğraf, sıfırlı barkod metni ve uyku/yenileme teknik gözlemi tamamlandı. [Güncel rapor](ui-continuation.md), [anonim özet](ui-continuation.json). Donanım decoder ve insan kabulü bekler. Aşağıdaki ilk hazırlık/ret tablosu, sonraki ekran kontrolünden önceki tarihsel gözlemdir.
 
 9 Ekim 2026 · ERP-DEC-036 · mevcut PR23/TEST125. **Teknik Wi-Fi erişimi doğrulandı; fiziksel ve insan kabulü tamamlanmadı.** Mevcut TC21 kullanıcı tarafından test için kullanılabilir bildirildi ve gerçekten bağlı bulundu. TC26 cihazı denenmedi. Önceki Aşama6 kanıtı korunur; bu tur yeni ticari işlem/migration değildir.

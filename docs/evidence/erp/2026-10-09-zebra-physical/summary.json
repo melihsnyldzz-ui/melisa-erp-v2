@@ -1,7 +1,7 @@
 {
   "schemaVersion": "erp-zebra-physical-preparation.v1",
   "snapshotPhase": "INITIAL_PREPARATION_BEFORE_VISIBLE_ADB_TAPS",
-  "currentResultReference": "ui-continuation.json",
+  "currentResultReference": "physical-scan.json",
   "date": "2026-10-09",
   "decisionId": "ERP-DEC-036",
   "deliveryId": "ERP-ZEBRA01",

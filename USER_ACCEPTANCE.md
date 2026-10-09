@@ -1,3 +1,9 @@
+## ERP-UA18 / ERP-UA28 — gerçek optik gözlem alındı, insan sonucu bekliyor
+
+9 Ekim2026 ERP-DEC-038/PR23 talimat6079756665; aynı TEST125. Kullanıcıya tek gerçek okutma çağrısından sonra TC21 hardware trigger ve decoder-success görüldü; Codex Bul ile gerçek ürün/kart/stok/USD fiyat/fotoğraf sonucunu kontrol etti. Wi-Fi kısa off/on, uyku/uyanma ve aynı normal personel/yenileme gözlemlendi. Sıfırlı fiziksel etiket DENENMEDİ; otomatik Enter araması kanıtlanmadı. [Teknik kanıt](docs/evidence/erp/2026-10-09-zebra-physical/physical-scan.md).
+
+**İnsan kişi/tarih/sonuç bekliyor; ERP-UA18 ve ERP-UA28 PASS değil.** Gerçek donanım olayı kullanıcı genel kabulü yerine konmadı. Geniş rol, TC26 ve bütün ticari akışlar yeniden denenmedi; yeni işlem veya LIVE onayı yok. Önceki cihaz hazırlığı kayıtları kendi tarihsel gözlemleridir. Bu kapsam sonunda DUR.
+
 ## ERP-UA18 / ERP-ZEBRA01 devamı — cihaz ekranı teknik doğrulandı / insan bekliyor
 
 ERP-DEC-037,9 Ekim2026; mevcut TEST125/sourceedb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d. Açık ADB tıklama seçimi sonrası gerçek TC21 Chrome terminali açıldı; mevcut normal TEST personel hesabıyla formdan giriş ve Ürünler görüntülendi. Sıfırlı barkod ADBmetin+Enter/kartta sıfır korunumu, ikinci gerçek fotoğraf/kod, uyku/uyanma ve oturum koruyan Chrome yenileme gözlemlendi. Yenileme aramayı sıfırladı; aynı arama korunumu iddiası yok. [Teknik devam kanıtı](docs/evidence/erp/2026-10-09-zebra-physical/ui-continuation.md).

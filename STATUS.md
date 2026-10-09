@@ -1,3 +1,9 @@
+## ERP-ZEBRA01 fiziksel okuyucu — 9 Ekim 2026 / ERP-DEC-038
+
+PR23/6079756665 aynı görev: gerçek TC21 HardKeyDown→decoded-success→HardKeyUp, fiziksel çağrı sırasında ADB metin yok; tam barkod Bul ile tek doğru ürünü, stok/USD fiyat/fotoğrafı getirdi. Bağımsız SELECT eşleşti. Otomatik Enter araması kanıtlanmadı; sıfırlı fiziksel etiket DENENMEDİ. Kısa kontrollü Wi-Fi off/on ve Dozing/Awake, oturum/kart, Chrome yenileme ve ayrı ADB tekrar araması gözlemlendi. [Anonim teknik sonuç](docs/evidence/erp/2026-10-09-zebra-physical/physical-scan.md).
+
+TEST125/sourceedb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d,5194/4144/4146 ve PIDs aynı; kod/paket/restart yok.14:23:18–14:28:22 TR10ticari count ve3rol hash aynı; count ticari UPDATE/tümDB hash kanıtı değildir. Geniş hash timeout kanıt sayılmadı. Ticari/SQL/Vega/LIVE/CRM/main/T1 yazması yok; geçici Wi-Fi kapatılıp açık duruma döndü, DataWedge/MDM/rol/parola korunur. Ham kanıt private/physical. ERP-UA18/UA28 bekliyor/C12🟡. Aktif branch codex/erp-finish-20261004, kaynak başlangıç71e8e14; yeni doküman teslim HEAD ve exact CI PR23 makbuzunda doğrulanır. Önceki CI hesap/harcama engeli yeşil kabul edilmez. DUR.
+
 ## ERP-ZEBRA01 devamı — gerçek cihazda personel girişi ve ürün ekranı — 9 Ekim 2026
 
 ERP-DEC-037: açık ADB tıklama seçimi sonrası aynı araç/onay denetiminde tek görülen UI adımları çalıştı. Önceki reddedilen doğrudan URL açma çağrısı tekrarlanmadı; koruma/MDM bypass yok. TC21 Chrome gerçek LAN5194 terminaline açıldı; mevcut normal TEST personel hesabıyla formdan giriş yapıldı. Personel/ön muhasebe etiketi ve Ürünler görünür; parola/tool çıktısı/GitHub'a verilmedi, Chrome kaydetme istemi onaylanmadı. Yeni hesap/rol/parola/admin oturumu aktarımı yok. [Anonim devam kanıtı](docs/evidence/erp/2026-10-09-zebra-physical/ui-continuation.md).
