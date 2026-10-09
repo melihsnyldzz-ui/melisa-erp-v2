@@ -31,6 +31,15 @@ test('business selected USD account projects currency correctly and blocks missi
  batch.lines[0].purchasePrice=null;await assert.rejects(f.service.preview(selected,office),{code:'INBOUND_PURCHASE_SOURCE_REQUIRED'});
  const receiving=await f.service.context(seller);for(const key of ['purchasePriceExact8','costExact4','stockUnitCostTryExact8','purchaseCurrency','balanceExact4'])assert(!JSON.stringify(receiving).includes(key));
 });
+test('business purchase draft rejects an unsealed date before receipt read/journal/native and preserves legacy date behavior',async()=>{
+ const f=fixture();f.c.copyContext={scopeKind:'VERIFIED_BUSINESS_TEST',date:'2026-10-09'};let reads=0,writes=0;
+ f.c.batches=async()=>{reads++;return{batches:[{id:7,state:'accepted',lines:[{id:1,productId:301985,purchasePrice:60,invoiceableQuantity:2}]}],invoiceDrafts:[]};};
+ f.c.createPurchase=async input=>f.c.journal('purchase_draft',input,async()=>{writes++;return{id:9,...input,status:'draft',lines:[],totals:{subtotal:60,grandTotal:60}};});
+ const input={requestId,receiptId:'7',number:'TSTB-DATE-1',documentDate:'2026-10-08',currency:'TRY',lines:[{receiptLineId:'1',quantityExact3:'1.000'}]};
+ await assert.rejects(f.service.purchaseDraft(input,office),{code:'INBOUND_DATE_OUTSIDE_SCOPE',statusCode:400});assert.equal(reads,0);assert.equal(writes,0);assert.equal(f.history.size,0);
+ assert.equal((await f.service.purchaseDraft({...input,documentDate:'2026-10-09'},office)).invoice.documentDate,'2026-10-09');assert.equal(writes,1);assert.equal(f.history.size,1);
+ for(const copyContext of [undefined,{target:{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'},date:'2026-10-09'}]){f.c.copyContext=copyContext;assert.equal((await f.service.purchaseDraft({...input,requestId:crypto.randomUUID()},office)).invoice.documentDate,'2026-10-08');}
+});
 test('unknown row remains persistent needs_review and cannot reach native submit; cancel retains history',async()=>{
  const f=fixture(),created=await f.service.create({requestId,note:'Barkod inceleme',lines:[line(null)]},seller);assert.equal(created.draft.state,'needs_review');assert.equal(created.draft.lines[0].barcode,'009999');
  await assert.rejects(f.service.submit('1',{requestId:otherId,expectedRevision:created.draft.revision},seller),{statusCode:409});assert.equal(f.native(),0);
@@ -41,6 +50,15 @@ test('business purchase cancellation is unavailable before journal/native mutati
  const current=await f.service.context(office);assert.equal(current.capabilities.canCancelPurchase,false);assert.equal(current.capabilities.canFinalizePurchase,true);assert.equal(current.capabilities.canViewPurchase,true);
  await assert.rejects(f.service.purchaseDecide('1',{requestId,reason:'Sentetik yanlış belge'},office,true),{statusCode:403,code:'INBOUND_OPERATION_NOT_VERIFIED'});assert.equal(called,false);assert.equal(f.history.size,0);
  assert.equal(inboundCapabilities(office,f.c.actual).canCancelPurchase,true);
+});
+test('business three-line create/update reject before journal/save/native while old TEST retains up to20 rows',async()=>{
+ const lines=[line(),{...line('325503'),clientLineId:'line-2'},{...line(null),clientLineId:'line-3'}],body={requestId,note:'Three line boundary',lines},f=fixture();f.c.copyContext={scopeKind:'VERIFIED_BUSINESS_TEST'};
+ await assert.rejects(f.service.create(body,seller),{code:'INBOUND_LINES',statusCode:400,message:'1–2 sayım satırı gerekli.'});assert.equal(f.history.size,0);assert.equal((await f.c.list()).length,0);assert.equal(f.native(),0);
+ const created=await f.service.create({...body,lines:lines.slice(0,2)},seller);assert.equal(created.draft.lines.length,2);assert.equal(f.history.size,1);
+ await assert.rejects(f.service.update(created.draft.id,{...body,requestId:otherId,expectedRevision:created.draft.revision},seller),{code:'INBOUND_LINES',statusCode:400});assert.equal(f.history.size,1);assert.equal((await f.c.draft(created.draft.id)).revision,created.draft.revision);assert.equal(f.native(),0);
+ const legacy=fixture();assert.equal((await legacy.service.create(body,seller)).draft.lines.length,3);
+ const unknown20=Array.from({length:20},(_,i)=>({...line(null),clientLineId:'unknown-'+i,barcode:'UNKNOWN-'+i}));assert.equal(countInput({...body,lines:unknown20},products).lines.length,20);assert.throws(()=>countInput({...body,lines:[...unknown20,{...line(null),clientLineId:'extra'}]},products),{code:'INBOUND_LINES'});
+ const old01=fixture();old01.c.copyContext={scopeKind:undefined,target:{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'}};assert.equal((await old01.service.create(body,seller)).draft.lines.length,3);
 });
 test('count CAS rejects stale updates; full actor/body UUID replay precedes CAS and submit posts native batch once',async()=>{
  const f=fixture(),created=await f.service.create({requestId,note:'',lines:[line()]},seller),body={requestId:otherId,expectedRevision:created.draft.revision};

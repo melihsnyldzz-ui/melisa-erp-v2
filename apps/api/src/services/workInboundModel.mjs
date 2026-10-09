@@ -10,9 +10,9 @@ export function quantity(value){if(typeof value!=='string'||!/^[1-5]\.000$/.test
 export const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
 export const hash=value=>createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 export function nativeExact(value,places,{nullable=false,signed=false}={}){if(value==null){if(nullable)return null;throw inboundError();}const n=Number(value);if(!Number.isFinite(n)||(!signed&&n<0)||Math.abs(n)>999999999999)throw inboundError();return n.toFixed(places);}
-export function countInput(input,products,{update=false}={}){
+export function countInput(input,products,{update=false,maxLines=20}={}){
  keys(input,['requestId',...(update?['expectedRevision']:[]),'note','lines']);
- if(!Array.isArray(input.lines)||input.lines.length<1||input.lines.length>20)reject('INBOUND_LINES','1–20 sayım satırı gerekli.');
+ if(!Number.isInteger(maxLines)||maxLines<1||maxLines>20||!Array.isArray(input.lines)||input.lines.length<1||input.lines.length>maxLines)reject('INBOUND_LINES',`1–${maxLines} sayım satırı gerekli.`);
  const clients=new Set(),resolved=new Set();const lines=input.lines.map(line=>{
   keys(line,['clientLineId','productId','barcode','stockCode','physicalQuantityExact3','expectedQuantityExact3','issue','note']);
   if(typeof line.clientLineId!=='string'||!/^[A-Za-z0-9-]{1,64}$/.test(line.clientLineId)||clients.has(line.clientLineId))reject('INBOUND_LINE_ID','Satır kimliği tekil olmalı.');clients.add(line.clientLineId);
