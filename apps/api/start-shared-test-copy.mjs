@@ -24,6 +24,10 @@ if(config.copyAdapterRevision){
  const proof=(await pool.request().query("SELECT CONVERT(varchar(36),r.copy_id) copyId,r.revision version,r.base_seal_hash baseSealHash,r.name,r.before_hash beforeHash,r.after_hash afterHash,p.after_hash baseManifestHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_module_revisions'))),2) immutableTriggerHash,CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_module_revisions'),'ExecIsTriggerDisabled')) triggerDisabled FROM dbo.stage4_copy_module_revisions r JOIN dbo.stage4_copy_module_manifest p ON p.name=r.name ORDER BY r.name")).recordset;
  registerIsolatedCopyAdapterRevision(context,config.copyAdapterRevision,proof);
 }
+if(config.businessReadyRevision){
+ const {configureBusinessReadyRevision}=await import('./src/services/businessReadyRevisionBootstrap.mjs');
+ await configureBusinessReadyRevision(context,config.businessReadyRevision,pool);
+}
 const identity={databaseName:raw.db,serverName:raw.server,loginName:raw.login,databaseUser:raw.databaseUser,sysadmin:raw.sysadmin,databaseControl:raw.control,liveDatabaseAccess:raw.live,originalDatabaseAccess:raw.originalDatabaseAccess};
 const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
 assertSharedBootstrapRelease(release,context);
