@@ -58,6 +58,8 @@ jobs:
         run: node scripts/ci/run.mjs web-admin
       - name: Sites workflow unit tests
         run: node scripts/ci/run.mjs sites-workflow
+      - name: Isolated training database and HTTP boundaries
+        run: node --require ./scripts/ci/offline-guard.cjs --test apps/training-server/test/*.test.mjs
       - name: Migration models with synthetic data only
         run: node scripts/ci/run.mjs migration
       - name: Canonical SQL source checks without SQL access

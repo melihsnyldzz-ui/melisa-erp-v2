@@ -1,0 +1,9 @@
+{
+  "sameProcessesAndStartTimes": true,
+  "newTrainingPort": 5214,
+  "noSqlOrProviderModules": true,
+  "protectedPorts": [
+    5194,
+    5204
+  ]
+}

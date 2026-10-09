@@ -1,3 +1,6 @@
+## Ek bağımsız kapsam — ERP-TRAIN01 / yalnız ilk ders — 9 Ekim 2026
+
+Kullanıcının doğrudan eğitim modu görevi; mevcut49yaprak ve ana ERP kabul renkleri korunur. Ayrı dal/worktree/PR27 üzerinde ilk beş adım gerçek ERP ekranları, doğrulanmış ürün fotoğrafları, adım kanıtı, geri/tekrar/devam ve üç soruyla teknik hazır. Ayrı5214/SQLite; mevcut TEST125/DB/5194/5204 ve LIVE aynı. [Kanıt](docs/evidence/erp/2026-10-09-training-mode/README.md), [ERP-UA-TRAIN01 insan kabulü bekliyor](USER_ACCEPTANCE.md). GitHub CI hesap/harcama engeli; main'e birleştirme ve başka ders yok. Bu yaprak teknik hazır/insan kabulü bekliyor; önceki ana ERP yapraklarını veya oranını kapatmaz. **DUR.**
 ## ERP-ZEBRA01 — 9 Ekim 2026
 
 **49 toplam /9🟢 /39🟡 /1🔴** korunur. ERP-DEC-036 kapsamında TC21 gerçekten bağlı, şirket Wi-Fi'sinden TEST125 web/API erişimi cihaz üzerinden doğrulandı. Otomatik onay incelemesi TEST adresini Chrome'da açmayı çalışmadan reddetti; farklı yöntemle aşılmadı. Fiziksel ürün/barkod/personel/uyku-uyanma DENENMEDİ, C12🟡 ve ERP-UA18/UA28 bekler. [Kanıt ve tek fiziksel adım](docs/evidence/erp/2026-10-09-zebra-physical/README.md). Kod/paket/ayar/ticari veri değişmedi; bu teknik bağlantı kanıtı insan PASS veya LIVE kabulü değildir. **DUR; yalnız fiziksel gözlem beklenir.**

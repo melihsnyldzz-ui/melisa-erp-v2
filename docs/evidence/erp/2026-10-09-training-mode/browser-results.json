@@ -1,0 +1,48 @@
+[
+  {
+    "device": "desktop",
+    "status": "PASS",
+    "exerciseId": "5cc83b86-50a6-4050-bbcc-a0b03c8fa115",
+    "stock": [
+      "12.000",
+      "13.000"
+    ],
+    "debt": "500.0000",
+    "completedSteps": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "resume": true,
+    "back": true,
+    "repeat": true,
+    "browserErrors": [],
+    "externalRequests": 0,
+    "overflow": false
+  },
+  {
+    "device": "mobile",
+    "status": "PASS",
+    "exerciseId": "d570f623-09d9-4e96-825d-899df4aea248",
+    "stock": [
+      "12.000",
+      "13.000"
+    ],
+    "debt": "500.0000",
+    "completedSteps": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "resume": true,
+    "back": true,
+    "repeat": true,
+    "browserErrors": [],
+    "externalRequests": 0,
+    "overflow": false
+  }
+]
