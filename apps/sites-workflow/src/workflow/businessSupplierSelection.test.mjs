@@ -36,6 +36,21 @@ test('DB02 inbound client sends only sealed supplier pair and keeps replay body 
  assert.equal(calls[1].options.headers['x-melisa-supplier-id'],'602');assert.equal(calls[1].options.headers['x-melisa-currency'],'EUR');assert.equal(calls[1].options.body,JSON.stringify(body));assert.equal(calls[2].options.headers['x-melisa-supplier-id'],undefined);session.dispose();
 }));
 
+test('receiving and purchase UI share session actor selection with API headers while local backups use a distinct store',async()=>onBusiness(async p=>{
+ const {createWorkingCatalogSession}=await import('./workingCatalogSession.mjs');
+ for(const name of ['workReceiving','workPurchases']){
+  const sessionStore=storage(),localStore=storage(),calls=[],key=`melisa-work-business-supplier:${location.host}:16`;localStore.setItem(key,'stale local selection is not an authorization source');
+  const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4184',storage:sessionStore,copyProfile:p,fetchImpl:async(url,options)=>{
+   calls.push({url,options});let data;
+   if(url.endsWith('/auth/test-admin'))data={user:{id:16,permissions:['goods.view'],role:{code:'isolated_test_ilker'}},accessToken:'synthetic'};
+   else{const selected=p.suppliers.find(s=>s.id===options.headers['x-melisa-supplier-id']&&s.currency===options.headers['x-melisa-currency']);assert(selected);data=context(p,selected);if(url.endsWith('/work-purchases/context'))data={...data,scope:{...data.scope,supplier:{...data.scope.supplier,balanceExact4:'0.0000'},products:data.scope.products.map(x=>({...x,purchasePriceExact8:null}))},drafts:[]};}
+   return{ok:true,status:200,json:async()=>({success:true,data})};
+  }});
+  const user=await session.start(),d=dom(),module=await controller(name),ui=module[name==='workReceiving'?'createWorkReceiving':'createWorkPurchases']({root:d.root,session,user,storage:localStore});ui.mount();await tick();await tick();assert.match(d.root.innerHTML,/data-business-supplier/);
+  d.node('[data-business-supplier]').onchange({target:{value:'602:USD'}});await tick();await tick();assert.equal(session.businessSupplierSelection().get().currency,'USD');
+  assert.equal(calls.at(-1).options.headers['x-melisa-supplier-id'],'602');assert.equal(calls.at(-1).options.headers['x-melisa-currency'],'USD');assert.equal(localStore.getItem(key),'stale local selection is not an authorization source');assert.equal(createBusinessSupplierSelection({storage:sessionStore,userId:15}).get().currency,'TRY');ui.dispose();session.dispose();
+ }
+}));
 test('normal foreign purchase screen names selected currency and blocks unproved invoice writes without calling legacy FX adapter',async()=>onBusiness(async p=>{
  const store=storage();createBusinessSupplierSelection({storage:store,userId:16}).set('602','USD');const receiving=context(p,p.suppliers[1]),purchase={...receiving,scope:{...receiving.scope,supplier:{...receiving.scope.supplier,balanceExact4:'123.4567'},products:receiving.scope.products.map(x=>({...x,purchasePriceExact8:null}))},drafts:[]};const d=dom(),calls=[],{createWorkPurchases}=await controller('workPurchases');const ui=createWorkPurchases({root:d.root,session:{inbound:async(path,options)=>{calls.push({path,options});return path==='/api/work-receiving/context'?receiving:purchase;}},user:{id:16,permissions:[]},storage:store});ui.mount();await tick();await tick();assert.match(d.root.innerHTML,/Döviz<input value="USD"/);assert.match(d.root.innerHTML,/123,46 USD/);assert.match(d.root.innerHTML,/alış kaydı kapalıdır/);d.node('[data-purchase-preview]').onclick();await tick();assert.equal(calls.length,2);assert.equal(calls.some(c=>c.path.includes('/fx/')),false);ui.dispose();
 }));
