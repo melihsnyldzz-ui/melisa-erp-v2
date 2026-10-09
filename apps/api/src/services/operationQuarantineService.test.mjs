@@ -5,7 +5,7 @@ import {OPERATION_QUARANTINE_SEAL,OPERATION_QUARANTINE_V2_HASH,createOperationQu
 import {operationQuarantineGate,invoiceQuarantineEntities} from './operationQuarantineGate.mjs';
 import {normalizeOperationQuarantineError} from './operationQuarantineError.mjs';
 import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
-import {validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
+import {validateIsolatedOperationCopyContext,SHARED_COPY_DATABASE,isolatedCopyHash} from './isolatedOperationCopyContext.mjs';
 import {withIsolatedOperationCopyScope} from './isolatedOperationCopyScope.mjs';
 const header=()=>({database_name:run.database,run_id:run.runId,run_status:'COMMITTED',source_hash:run.sourceHash,plan_hash:run.planHash,source_as_of:'2026-09-30',sealed:true,operation_gate:true,seal_hash:OPERATION_QUARANTINE_SEAL,total:1,page:1,page_size:50,native_held:90,not_present:4});
 function harness({response,mutate,isTest=true,getCopyContext,canonicalRequested=false,requiredResolverVersion=1}={}){
@@ -72,6 +72,18 @@ test('copy quarantine retains original seal, source and v2 pins and blocks held 
   const held=harness({isTest:false,getCopyContext:()=>copy,requiredResolverVersion:2,mutate:r=>{Object.assign(r.recordsets[0][0],{database_name:copy.target.database,resolver_version:2,resolver_hash:OPERATION_QUARANTINE_V2_HASH,resolver_sealed:true});Object.assign(r.recordsets[1][0],{blocked:true,source_key:'preserved-source',reason_code:'SOURCE_BARCODE_CONFLICT'});return r;}});
   await assert.rejects(held.service.assertAllowed(input,{transaction:tx,driver:held.sql,request:held.request}),{code:'MIGRATION_ENTITY_QUARANTINED',statusCode:409});
  });
+});
+test('shared native check needs execute permission but still requires its active transaction and original sealed hold metadata',async()=>{
+ const raw=fixtureContext();raw.target={...raw.target,database:SHARED_COPY_DATABASE,login:'melisa_shared_test_rw_20261009_01',databaseUser:'melisa_shared_test_rw_20261009_01'};raw.date='2026-10-09';raw.products=[{...raw.products[0],id:'29980'},{...raw.products[0],id:'30003'}];raw.customers[0].id='210';raw.suppliers[0].id='10162';raw.suppliers[0].currency='TRY';raw.financeAccounts=[{...raw.financeAccounts[0],id:'20043'}];delete raw.sealHash;raw.sealHash=isolatedCopyHash(raw);
+ const copy=validateIsolatedOperationCopyContext(raw),tx={},input=[{entity:'product',nativeId:'29980'},{entity:'supplier',nativeId:'10162'}];let allowed=false,held=false,calls=0;
+ const driver={NVarChar:n=>n,MAX:-1},context={transaction:tx,driver,request:()=>({input(){return this;},async execute(name){calls++;assert.equal(name,'dbo.usp_check_operation_quarantine');if(!allowed)throw Object.assign(new Error('execute denied'),{number:229});return {recordsets:[[{...header(),database_name:SHARED_COPY_DATABASE,resolver_version:2,resolver_hash:OPERATION_QUARANTINE_V2_HASH,resolver_sealed:true}],input.map(v=>({entity:v.entity,native_id:v.nativeId,blocked:held,source_key:'preserved-source',reason_code:'SOURCE_BARCODE_CONFLICT'}))]};}})};
+ const service=createOperationQuarantineService({getCopyContext:()=>copy,requiredResolverVersion:2});
+ await assert.rejects(service.assertAllowed(input,context),{code:'MIGRATION_QUARANTINE_NOT_READY'});assert.equal(calls,0);
+ await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:true},async()=>{
+  await assert.rejects(service.assertAllowed(input,context),{code:'MIGRATION_QUARANTINE_NOT_READY'});allowed=true;await service.assertAllowed(input,context);held=true;
+  await assert.rejects(service.assertAllowed(input,context),{code:'MIGRATION_ENTITY_QUARANTINED',statusCode:409});
+ });
+ await assert.rejects(service.assertAllowed(input,context),{code:'MIGRATION_QUARANTINE_NOT_READY'});
 });
 test('list preserves source-only NULL native IDs and leadingzero codes with bounded parameterized permission-kind query',async()=>{
  const source={entity:'supplier',source_key:'VEGA_CAPTURE_20260930_01/F0103/TBLCARILER/1',source_code:'00017',source_name:'fixture source',native_id:null,native_code:null,native_name:null,status:'not-present',reasons_json:'["NATIVE_TARGET_NOT_PRESENT"]'};

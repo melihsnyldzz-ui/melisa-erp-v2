@@ -48,6 +48,11 @@ try{
  $phase='GRANT_FINITE_RUNTIME';$rw=$b.config.salesSqlUser
  foreach($m in $b.newDefinitions|Where-Object {$_.name -like 'dbo.usp_stage4_copy_*'}){Execute "GRANT EXECUTE ON $($m.name) TO [$rw]"}
  foreach($m in $b.replacements|Where-Object {$_.kind -eq 'PRESERVED_COPY_READER'}){Execute "GRANT EXECUTE ON $($m.name) TO [$rw]"}
+ # The native service calls the copied check in its existing verified transaction.
+ # Its owner-executed nested resolver remains private; grant only this entrypoint.
+ $quarantineCheck=@($b.replacements|Where-Object {$_.kind -eq 'QUARANTINE_NESTED_COPY_VERIFIER' -and $_.name -ceq 'dbo.usp_check_operation_quarantine'})
+ if($quarantineCheck.Count -ne 1){throw 'SHARED_QUARANTINE_CHECK_REQUIRED'}
+ Execute "GRANT EXECUTE ON dbo.usp_check_operation_quarantine TO [$rw]"
  foreach($m in $b.newDefinitions|Where-Object {$_.kind -eq 'FINITE_COPY_NATIVE_GUARD'}){$table=$m.name.Replace('dbo.stage4_guard_','');if($table -cnotmatch '^[a-z_]+$'){throw 'SHARED_DML_TABLE_REJECTED'};Execute "GRANT INSERT,UPDATE,DELETE ON dbo.[$table] TO [$rw]"}
  Execute "GRANT INSERT ON dbo.stage4_copy_requests TO [$rw]"
  $phase='VERIFY_INSTALLED_HASHES';$currentModuleName=$null
