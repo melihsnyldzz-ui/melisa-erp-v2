@@ -1,6 +1,6 @@
 ## ERP-CRM-PREP01 — ortak hazırlık
 
-ERP-DEC-039 kapsamında ortak izole TEST bağlantıları hazırlanıyor. **49 toplam /9🟢 /39🟡 /1🔴** korunur; teknik hazırlık insan kabulü değildir. Bu iş bitince durulur, bütünleşik günlük işletme testi kendiliğinden başlamaz. Önceki aktarımlar yeniden uygulanmaz; normal TEST125 ve eğitim PR27 korunur.
+ERP-DEC-039 kapsamında ortak izole katalog/native sipariş ve Zebra→İlker→stok→alış→borç teknik zinciri kanıtlandı; son okuyucu/paket teslimi STATUS/PR makbuzundadır. **49 toplam /9🟢 /39🟡 /1🔴** korunur; teknik hazırlık insan kabulü değildir. İki ürün/TRY prova bütün mağaza ve döviz kapsamı sayılmaz. Bu teslimde durulur; bütünleşik günlük işletme testi kendiliğinden başlamaz. Önceki aktarımlar yeniden uygulanmaz; normal TEST125 ve eğitim PR27 korunur.
 
 ## ERP-ZEBRA01 gerçek optik devamı — 9 Ekim 2026
 

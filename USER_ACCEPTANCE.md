@@ -2,6 +2,8 @@
 
 ERP-DEC-039 yeni ortak izole TEST hazırlığını ve dar teknik bağlantı provasını yetkilendirir. Hazırlık, bütünleşik işletme TEST'ini başlatma veya mevcut ERP/CRM insan sonuçlarını PASS yapma onayı değildir. Normal ERP/CRM ekranları ve Zebra/personel→İlker zinciri için teknik kanıt ile kullanıcı/İlker sonucu ayrı kaydedilecektir. Önceki UA18/24–28 ve CRM kabul kayıtları kendi kapsamlarıyla korunur.
 
+Güncel teknik prova yalnız yeni ortak DB/ERP5224/CRM62600: katalog ve native taslak/refresh/replay; gerçek TC21 şirket Wi-Fi personel sayımı → İlker onayı → tek stok → alış kesinleşmesi → ayrı TRY tedarikçi hesabı. Normal ekran ve SQL/API kanıtı mevcut; bu tur barkod ADB metniyle girildi. **İnsan kişi/tarih/sonuç bekliyor; yeni PASS yok.** Geniş mağaza/rol/döviz, fiziksel etiket, personel ve İlker kabulü ayrıca yapılacak. Prova tutarları sentetik TEST etkisidir; gerçek satış/ödeme veya LIVE onayı değildir.
+
 ## ERP-UA18 / ERP-UA28 — gerçek optik gözlem alındı, insan sonucu bekliyor
 
 9 Ekim2026 ERP-DEC-038/PR23 talimat6079756665; aynı TEST125. Kullanıcıya tek gerçek okutma çağrısından sonra TC21 hardware trigger ve decoder-success görüldü; Codex Bul ile gerçek ürün/kart/stok/USD fiyat/fotoğraf sonucunu kontrol etti. Wi-Fi kısa off/on, uyku/uyanma ve aynı normal personel/yenileme gözlemlendi. Sıfırlı fiziksel etiket DENENMEDİ; otomatik Enter araması kanıtlanmadı. [Teknik kanıt](docs/evidence/erp/2026-10-09-zebra-physical/physical-scan.md).
