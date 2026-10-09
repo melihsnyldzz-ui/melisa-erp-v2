@@ -57,11 +57,11 @@ export const configuredCurrentFinanceContext=()=>configured;
 export async function readCurrentFinanceProof({sql,tx,ids,context}){
  const c=currentFinanceContext(context);if(!c)return null;
  if(!Array.isArray(ids)||ids.length>1000||ids.some(id=>! /^[1-9]\d*$/.test(id))||new Set(ids).size!==ids.length)throw Error('CURRENT_FINANCE_PARTY_PAGE_SCOPE');
- const copy=registeredSharedPartyContext();let hashes=CURRENT_FINANCE_PARTY_DEFINITION_HASHES;
- if(copy){await assertSharedPartyTransactionIdentity({sql,tx,context:copy});hashes=[sharedPartyReaderDefinition(copy,{role:'currentFinance',sourceSQL:CURRENT_FINANCE_PARTY_PROC_SQL}).afterHash];}
+ const copy=registeredSharedPartyContext();let hashes=CURRENT_FINANCE_PARTY_DEFINITION_HASHES,procedure=CURRENT_FINANCE_PARTY_PROC;
+ if(copy){await assertSharedPartyTransactionIdentity({sql,tx,context:copy});const recipe=sharedPartyReaderDefinition(copy,{role:'currentFinance',sourceSQL:CURRENT_FINANCE_PARTY_PROC_SQL});hashes=[recipe.afterHash];procedure=recipe.name;}
  const req=new sql.Request(tx).input('account_ids',sql.NVarChar(sql.MAX),JSON.stringify(ids)).input('cutover_id',sql.NVarChar(36),c.cutoverId).input('plan_hash',sql.Char(64),c.planHash).input('party_hash',sql.Char(64),c.partyHash).input('packet_hash',sql.Char(64),c.packetHash);
  if(copy)req.input('copy_id',sql.UniqueIdentifier,copy.copyId);
- const result=await req.execute(CURRENT_FINANCE_PARTY_PROC),row=result.recordset?.[0];
+ const result=await req.execute(procedure),row=result.recordset?.[0];
  if(!hashes.includes(row?.readerDefinitionHash))throw Error('CURRENT_FINANCE_PARTY_READER_DRIFT');
  const proof=JSON.parse(row.rowsJson??'[]');
  if(!Array.isArray(proof)||proof.some(p=>!ids.includes(p.accountId)||!c.accountIds.includes(p.accountId))||new Set(proof.map(p=>p.accountId)).size!==proof.length)throw Error('CURRENT_FINANCE_PARTY_READBACK');

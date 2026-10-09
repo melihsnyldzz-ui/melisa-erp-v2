@@ -100,11 +100,11 @@ export function createCustomerCardReadStore({getRuntime=defaultRuntime,getFinalC
   const {search='',page=1,limit=25,status='all',quarantine='all'}=options;
   if(typeof search!=='string'||search.length>120||!Number.isInteger(page)||page<1||page>1000000||!Number.isInteger(limit)||limit<1||limit>100||!['all','active','passive'].includes(status)||!['all','included','excluded'].includes(quarantine))throw customerCardError('CUSTOMER_CARD_QUERY_INVALID','Geçerli arama ve sayfalama bilgisi gerekli.',400);
   let tx;try{const {pool,sql}=await getRuntime();tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
-   const copy=getCopyContext();let readerHash=CUSTOMER_CARD_PROC_HASH;
-   if(copy){await assertSharedPartyTransactionIdentity({sql,tx,context:copy});readerHash=sharedPartyReaderDefinition(copy,{role:'customer',sourceSQL:CUSTOMER_CARD_PROC_SQL}).afterHash;}
+   const copy=getCopyContext();let readerHash=CUSTOMER_CARD_PROC_HASH,readerProcedure=CUSTOMER_CARD_PROC;
+   if(copy){await assertSharedPartyTransactionIdentity({sql,tx,context:copy});const recipe=sharedPartyReaderDefinition(copy,{role:'customer',sourceSQL:CUSTOMER_CARD_PROC_SQL});readerHash=recipe.afterHash;readerProcedure=recipe.name;}
    const req=new sql.Request(tx);req.input('customer_id',sql.BigInt,id??null).input('search',sql.NVarChar(120),search).input('page',sql.Int,page).input('page_size',sql.Int,limit).input('status',sql.NVarChar(12),status).input('quarantine',sql.NVarChar(12),quarantine);
    if(copy)req.input('copy_id',sql.UniqueIdentifier,copy.copyId);
-   const result=await req.execute(CUSTOMER_CARD_PROC),row=result.recordset?.[0];
+   const result=await req.execute(readerProcedure),row=result.recordset?.[0];
    if(!row||row.readerDefinitionHash!==readerHash||!Number.isSafeInteger(row.total)||row.total<0)throw customerCardError();
    const parsed=JSON.parse(row.rowsJson??'[]');if(!Array.isArray(parsed))throw customerCardError();const context=getFinalContext();if(finalPartyContext(context)){const ids=parsed.flatMap(r=>r.nativeAccounts.map(a=>parseCustomerCardId(a.id)));const proof=await readFinalPartyProof({sql,tx,ids,context});attachFinalPartyProof(parsed,proof);}
    const currentContext=getCurrentFinanceContext();if(currentFinanceContext(currentContext)){const ids=parsed.flatMap(r=>r.nativeAccounts.map(a=>parseCustomerCardId(a.id)));attachCurrentFinanceProof(parsed,await readCurrentFinanceProof({sql,tx,ids,context:currentContext}));}

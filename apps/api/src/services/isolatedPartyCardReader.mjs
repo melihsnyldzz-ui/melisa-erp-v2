@@ -23,27 +23,27 @@ export function assertSharedPartyIdentity(c,i){
  assertSharedPartyContext(c);const users=[c.target.login,isolatedCopyTopology(c).reader];
  assert(i?.db===c.target.database&&i.server===c.target.server&&users.includes(i.login)&&i.databaseUser===i.login&&i.sysadmin===0&&i.control===0&&i.originalDatabaseAccess===0&&i.live===0);return i;
 }
-export function sharedPartyReaderDefinition(c,{role,sourceSQL,customerReaderHash=null}){
+export function sharedPartyReaderDefinition(c,{role,sourceSQL}){
  assertSharedPartyContext(c);assert(Object.hasOwn(normalHashes,role)&&hash(sourceSQL)===normalHashes[role]);
- const name=role==='currentFinance'?'dbo.usp_read_current_finance_deltas':`dbo.usp_read_${role}_cards`;
- assert(sourceSQL.startsWith(`CREATE PROCEDURE ${name}`));
+ const sourceName=role==='currentFinance'?'dbo.usp_read_current_finance_deltas':`dbo.usp_read_${role}_cards`;
+ const name=role==='currentFinance'?'dbo.usp_read_shared_current_finance_deltas':`dbo.usp_read_shared_${role}_cards`;
+ assert(sourceSQL.startsWith(`CREATE PROCEDURE ${sourceName}`));
  const param=role==='currentFinance'?'@packet_hash char(64)':"@quarantine nvarchar(12)=N'all'";assert(sourceSQL.split(param).length===2);
  assert(sourceSQL.split(q(originalDatabase)).length===2&&(role==='currentFinance'||sourceSQL.split(originalGuardHash).length===2));
- let definition=sourceSQL.replace(param,param+',@copy_id uniqueidentifier=NULL').replace(q(originalDatabase),q(c.target.database)).replace(originalGuardHash,c.catalogProof.preservedGuardHash);
+ let definition=sourceSQL.replace(`CREATE PROCEDURE ${sourceName}`,`CREATE PROCEDURE ${name}`).replace(param,param+',@copy_id uniqueidentifier=NULL').replace(q(originalDatabase),q(c.target.database)).replace(originalGuardHash,c.catalogProof.preservedGuardHash);
  if(role==='supplier'){
-  assert(/^[A-F0-9]{64}$/.test(customerReaderHash??''));assert(definition.split(normalHashes.customer).length===2);definition=definition.replace(normalHashes.customer,customerReaderHash);
+  // Original C06 remains a byte-exact provenance anchor for immutable catalog readers.
+  assert(definition.split(normalHashes.customer).length===2);
   // Immutable legacy receipts stay unchanged. A substitution requires the
   // same module name and its exact original hash in the sealed copy registry.
   definition=definition.replace(/m\.(after_hash|definition_hash)(?=<>CONVERT\(varchar\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION)/g,(_match,column)=>`COALESCE((SELECT p.after_hash FROM dbo.stage4_copy_module_manifest p WHERE p.name=N'dbo.'+m.name AND p.before_hash=m.${column}),m.${column})`);
   assert(definition.includes('p.before_hash=m.after_hash')&&definition.includes('p.before_hash=m.definition_hash'));
  }
  const opening=role==='currentFinance'?'AS BEGIN SET NOCOUNT ON;':'AS BEGIN\n SET NOCOUNT ON;';assert(definition.split(opening).length===2);
- const ready=`\n IF @copy_id IS NULL OR @copy_id<>CONVERT(uniqueidentifier,${q(c.copyId)}) OR ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2 NOT IN(${q(c.target.login)},${q(isolatedCopyTopology(c).reader)}) OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_manifest WHERE copy_id=@copy_id AND seal_hash=${q(c.sealHash)} AND backup_sha=${q(c.backupSHA)} AND sealed=1) THROW 51904,'ISOLATED_PARTY_READER_COPY_SCOPE',1;\n EXEC dbo.usp_stage4_copy_ready @copy_id;`;
+ const ready=`\n IF @copy_id IS NULL OR @copy_id<>CONVERT(uniqueidentifier,${q(c.copyId)}) OR ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2 NOT IN(${q(c.target.login)},${q(isolatedCopyTopology(c).reader)}) OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_manifest WHERE copy_id=@copy_id AND seal_hash=${q(c.sealHash)} AND backup_sha=${q(c.backupSHA)} AND sealed=1) THROW 51904,'ISOLATED_PARTY_READER_COPY_SCOPE',1;\n EXEC dbo.usp_stage4_copy_ready @copy_id;\n IF COALESCE(CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(${q(sourceName)}))),2),'')<>${q(normalHashes[role])} THROW 51904,'ISOLATED_PARTY_ORIGINAL_READER_DRIFT',1;`;
  definition=definition.replace(opening,opening+ready);
- const sql=definition.replace(/^CREATE PROCEDURE /,'ALTER PROCEDURE ');
- // The copy rehearsal proves SQL Server persists CREATE for this exact ALTER
- // body. Only this complete literal definition is accepted at runtime.
- return {name,beforeHash:normalHashes[role],beforeHashes:role==='currentFinance'?[normalHashes[role],'636A719A34C35A16D18CDCD7472337AD7A1AFD83C6685EE3E3C7927BF8CE4A9B']:[normalHashes[role]],afterHash:hash(definition),definition,sql};
+ const sql=definition;
+ return {name,sourceName,sourceHash:normalHashes[role],beforeHash:null,afterHash:hash(definition),definition,sql};
 }
 
 export async function assertSharedPartyTransactionIdentity({sql,tx,context}){const i=(await new sql.Request(tx).query(SHARED_PARTY_IDENTITY_SQL)).recordset?.[0];return assertSharedPartyIdentity(context,i);}
