@@ -18,6 +18,7 @@ const operationDTOs=new WeakMap();
 const adapterRevisions=new WeakMap();
 const readyRevisions=new WeakMap();
 const readyPerformanceRevisions=new WeakMap();
+const effectsPerformanceRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
@@ -80,7 +81,7 @@ export function assertIsolatedCopyActor(context,actor,actual,permission){
 }
 export function assertIsolatedCopyReadProof(context,proof){
  assertIsolatedCopyContext(context);
- const revision=adapterRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
+ const revision=adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
  copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
@@ -96,7 +97,7 @@ export function validateIsolatedCopyAdapterRevision(context,input){
 }
 export function registerIsolatedCopyAdapterRevision(context,input,proof){
  const revision=validateIsolatedCopyAdapterRevision(context,input);
- copyAssert(!adapterRevisions.has(context)&&Array.isArray(proof)&&proof.length===3&&revision.modules.every(m=>proof.some(p=>p.name===m.name&&String(p.copyId).toLowerCase()===context.copyId&&p.version===1&&p.baseSealHash===context.sealHash&&p.beforeHash===m.beforeHash&&p.afterHash===m.afterHash&&p.actualHash===m.afterHash&&p.baseManifestHash===m.beforeHash&&p.immutableTriggerHash===revision.immutableTriggerHash&&p.triggerDisabled===0)),'ISOLATED_COPY_ADAPTER_DB_PROOF');
+ copyAssert(!adapterRevisions.has(context)&&!effectsPerformanceRevisions.has(context)&&Array.isArray(proof)&&proof.length===3&&revision.modules.every(m=>proof.some(p=>p.name===m.name&&String(p.copyId).toLowerCase()===context.copyId&&p.version===1&&p.baseSealHash===context.sealHash&&p.beforeHash===m.beforeHash&&p.afterHash===m.afterHash&&p.actualHash===m.afterHash&&p.baseManifestHash===m.beforeHash&&p.immutableTriggerHash===revision.immutableTriggerHash&&p.triggerDisabled===0)),'ISOLATED_COPY_ADAPTER_DB_PROOF');
  adapterRevisions.set(context,revision);return revision;
 }
 // This second-copy optimization changes only the ready definition. Its base
@@ -112,7 +113,7 @@ export function validateIsolatedCopyReadyRevision(context,input){
 }
 export function registerIsolatedCopyReadyRevision(context,input,proof){
  const revision=validateIsolatedCopyReadyRevision(context,input),module=revision.modules[0],row=Array.isArray(proof)&&proof.length===1?proof[0]:null;
- copyAssert(!readyRevisions.has(context)&&!readyPerformanceRevisions.has(context)&&!adapterRevisions.has(context)&&row&&row.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.version===1&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===module.name&&row.beforeHash===module.beforeHash&&row.afterHash===module.afterHash&&row.actualHash===module.afterHash&&row.baseManifestHash===module.beforeHash&&row.baseManifestRows===185&&row.revisionHash===revision.revisionHash&&row.immutableTriggerHash===revision.immutableTriggerHash&&row.triggerDisabled===0,'ISOLATED_COPY_READY_DB_PROOF');
+ copyAssert(!readyRevisions.has(context)&&!readyPerformanceRevisions.has(context)&&!effectsPerformanceRevisions.has(context)&&!adapterRevisions.has(context)&&row&&row.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.version===1&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===module.name&&row.beforeHash===module.beforeHash&&row.afterHash===module.afterHash&&row.actualHash===module.afterHash&&row.baseManifestHash===module.beforeHash&&row.baseManifestRows===185&&row.revisionHash===revision.revisionHash&&row.immutableTriggerHash===revision.immutableTriggerHash&&row.triggerDisabled===0,'ISOLATED_COPY_READY_DB_PROOF');
  readyRevisions.set(context,revision);return revision;
 }
 export function validateIsolatedCopyReadyPerformanceRevision(context,baseInput,input){
@@ -132,10 +133,40 @@ export function registerIsolatedCopyReadyPerformanceRevision(context,baseInput,i
  const keys=['databaseName','copyId','version','baseSealHash','manifestSealHash','name','beforeHash','afterHash','actualHash','baseManifestHash','baseManifestRows','revisionHash','immutableTriggerHash','triggerDisabled'];
  const old=Array.isArray(proof?.base)&&proof.base.length===1?proof.base[0]:null,next=Array.isArray(proof?.performance)&&proof.performance.length===1?proof.performance[0]:null;
  const shared=row=>row?.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===m.name&&row.actualHash===m.afterHash&&row.baseManifestHash===original.beforeHash&&row.baseManifestRows===185&&row.triggerDisabled===0;
- copyAssert(!readyPerformanceRevisions.has(context)&&!readyRevisions.has(context)&&!adapterRevisions.has(context)&&exact(proof,['base','performance'])&&exact(old,keys)&&exact(next,[...keys,'baseReadyRevisionHash'])&&shared(old)&&shared(next)
+ copyAssert(!readyPerformanceRevisions.has(context)&&!readyRevisions.has(context)&&!effectsPerformanceRevisions.has(context)&&!adapterRevisions.has(context)&&exact(proof,['base','performance'])&&exact(old,keys)&&exact(next,[...keys,'baseReadyRevisionHash'])&&shared(old)&&shared(next)
   &&old.version===1&&old.beforeHash===original.beforeHash&&old.afterHash===original.afterHash&&old.revisionHash===base.revisionHash&&old.immutableTriggerHash===base.immutableTriggerHash
   &&next.version===2&&next.beforeHash===m.beforeHash&&next.afterHash===m.afterHash&&next.revisionHash===revision.revisionHash&&next.baseReadyRevisionHash===base.revisionHash&&next.immutableTriggerHash===revision.immutableTriggerHash,'ISOLATED_COPY_READY_PERFORMANCE_DB_PROOF');
  readyPerformanceRevisions.set(context,revision);return revision;
+}
+// The third append-only registry preserves the sealed source's exact baseline
+// residuals. It authorizes two real module pins, never a data repair or bypass.
+export function validateIsolatedCopyEffectsPerformanceRevision(context,baseInput,performanceInput,input){
+ const performance=validateIsolatedCopyReadyPerformanceRevision(context,baseInput,performanceInput);
+ const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.sort().join();
+ copyAssert(exact(input,['schemaVersion','version','copyId','baseSealHash','baseReadyRevisionHash','baseReadyPerformanceRevisionHash','modules','baselineResiduals','baselineResidualsHash','immutableTriggerHash','revisionHash'])&&input.schemaVersion==='melisa-business-copy-effects-performance-revision.v1'&&input.version===3&&input.copyId===context.copyId&&input.baseSealHash===context.sealHash&&input.baseReadyRevisionHash===baseInput.revisionHash&&input.baseReadyPerformanceRevisionHash===performance.revisionHash&&Array.isArray(input.modules)&&input.modules.length===2,'ISOLATED_COPY_EFFECTS_PERFORMANCE_REVISION');
+ const names=[ISOLATED_COPY_PROCEDURES.ready,ISOLATED_COPY_PROCEDURES.effects],before=[performance.modules[0].afterHash,context.sql.effects.hash];
+ copyAssert(input.modules.every((m,i)=>exact(m,['name','beforeHash','afterHash'])&&m.name===names[i]&&m.beforeHash===before[i]&&hash(m.afterHash)&&m.afterHash!==m.beforeHash&&m.afterHash!==context.sql[i===0?'ready':'effects'].hash)&&hash(input.immutableTriggerHash),'ISOLATED_COPY_EFFECTS_PERFORMANCE_PINS');
+ const rows=input.baselineResiduals,seen=new Set();
+ copyAssert(Array.isArray(rows)&&rows.length===37,'ISOLATED_COPY_EFFECTS_BASELINE');
+ for(const row of rows){
+  const key=row?.role+':'+row?.id,party=context[row?.role==='customer'?'customers':'suppliers']?.find(p=>p.id===row?.id&&p.accountId===row?.accountId&&p.currency===row?.currency);
+  copyAssert(exact(row,['role','id','accountId','currency','residualExact8','beforeHash','accountBeforeHash','sourceWitnessHash'])&&['customer','supplier'].includes(row.role)&&id(row.id)&&id(row.accountId)&&currency(row.currency)&&!seen.has(key)&&typeof row.residualExact8==='string'&&/^-?(?:0|[1-9]\d{0,20})\.\d{8}$/.test(row.residualExact8)&&!/^[-]?0\.00000000$/.test(row.residualExact8)&&party&&row.beforeHash===party.beforeHash&&row.accountBeforeHash===party.accountBeforeHash&&row.sourceWitnessHash===party.sourceWitnessHash,'ISOLATED_COPY_EFFECTS_BASELINE');seen.add(key);
+ }
+ copyAssert(rows.filter(r=>r.role==='customer').length===26&&rows.filter(r=>r.role==='supplier').length===11&&hash(input.baselineResidualsHash)&&input.baselineResidualsHash===isolatedCopyHash(rows),'ISOLATED_COPY_EFFECTS_BASELINE_SEAL');
+ const {revisionHash,...body}=input;copyAssert(hash(revisionHash)&&revisionHash===isolatedCopyHash(body),'ISOLATED_COPY_EFFECTS_PERFORMANCE_SEAL');
+ return freeze(structuredClone(input));
+}
+export function registerIsolatedCopyEffectsPerformanceRevision(context,baseInput,performanceInput,input,proof){
+ const revision=validateIsolatedCopyEffectsPerformanceRevision(context,baseInput,performanceInput,input),base=validateIsolatedCopyReadyRevision(context,baseInput),performance=validateIsolatedCopyReadyPerformanceRevision(context,baseInput,performanceInput);
+ const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.sort().join();
+ const keys=['databaseName','copyId','version','baseSealHash','manifestSealHash','name','beforeHash','afterHash','actualHash','baseManifestHash','baseManifestRows','revisionHash','immutableTriggerHash','triggerDisabled'];
+ const old=Array.isArray(proof?.base)&&proof.base.length===1?proof.base[0]:null,next=Array.isArray(proof?.performance)&&proof.performance.length===1?proof.performance[0]:null,rows=proof?.effects;
+ const shared=(row,module)=>row?.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===module.name&&row.actualHash===module.afterHash&&row.baseManifestHash===context.sql[module.name===ISOLATED_COPY_PROCEDURES.ready?'ready':'effects'].hash&&row.baseManifestRows===185&&row.triggerDisabled===0;
+ copyAssert(!effectsPerformanceRevisions.has(context)&&!readyPerformanceRevisions.has(context)&&!readyRevisions.has(context)&&!adapterRevisions.has(context)&&exact(proof,['base','performance','effects'])&&exact(old,keys)&&exact(next,[...keys,'baseReadyRevisionHash'])&&shared(old,revision.modules[0])&&shared(next,revision.modules[0])
+  &&old.version===1&&old.beforeHash===base.modules[0].beforeHash&&old.afterHash===base.modules[0].afterHash&&old.revisionHash===base.revisionHash&&old.immutableTriggerHash===base.immutableTriggerHash
+  &&next.version===2&&next.beforeHash===performance.modules[0].beforeHash&&next.afterHash===performance.modules[0].afterHash&&next.revisionHash===performance.revisionHash&&next.baseReadyRevisionHash===base.revisionHash&&next.immutableTriggerHash===performance.immutableTriggerHash
+  &&Array.isArray(rows)&&rows.length===2&&revision.modules.every(m=>{const row=rows.find(r=>r?.name===m.name);return exact(row,[...keys,'baseReadyRevisionHash','baseReadyPerformanceRevisionHash','baselineResidualsHash','baselineResidualsJSON'])&&shared(row,m)&&row.version===3&&row.beforeHash===m.beforeHash&&row.afterHash===m.afterHash&&row.revisionHash===revision.revisionHash&&row.baseReadyRevisionHash===base.revisionHash&&row.baseReadyPerformanceRevisionHash===performance.revisionHash&&row.immutableTriggerHash===revision.immutableTriggerHash&&row.baselineResidualsHash===revision.baselineResidualsHash&&row.baselineResidualsJSON===isolatedCopyJSON(revision.baselineResiduals);}), 'ISOLATED_COPY_EFFECTS_PERFORMANCE_DB_PROOF');
+ effectsPerformanceRevisions.set(context,revision);return revision;
 }
 export function bindIsolatedCopyOperationDTO(context,dto){
  assertIsolatedCopyContext(context);

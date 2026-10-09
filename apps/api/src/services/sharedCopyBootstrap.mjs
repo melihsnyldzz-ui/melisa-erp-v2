@@ -1,4 +1,4 @@
-import {validateIsolatedOperationCopyContext,validateIsolatedCopyReadyRevision,validateIsolatedCopyReadyPerformanceRevision,isolatedCopyTopology,SHARED_COPY_DATABASE,BUSINESS_COPY_DATABASE,copyAssert} from './isolatedOperationCopyContext.mjs';
+import {validateIsolatedOperationCopyContext,validateIsolatedCopyReadyRevision,validateIsolatedCopyReadyPerformanceRevision,validateIsolatedCopyEffectsPerformanceRevision,isolatedCopyTopology,SHARED_COPY_DATABASE,BUSINESS_COPY_DATABASE,copyAssert} from './isolatedOperationCopyContext.mjs';
 import {assertSharedCopyRelease} from './sharedCopyRelease.mjs';
 export function validateSharedCopyBootstrap(config){
  const context=validateIsolatedOperationCopyContext(config?.copyContext),topology=isolatedCopyTopology(context);
@@ -6,6 +6,7 @@ export function validateSharedCopyBootstrap(config){
  copyAssert(config.host==='127.0.0.1'&&config.erpPort===topology.apiPort&&config.nativePort===topology.nativePort&&config.webPort===topology.webPort&&config.database===context.target.database&&config.server===context.target.server&&config.sqlUser===topology.reader&&config.salesSqlUser===context.target.login&&typeof config.jwtAccessSecret==='string'&&config.jwtAccessSecret.length>=48&&typeof config.jwtRefreshSecret==='string'&&config.jwtRefreshSecret.length>=48,'STAGE4_CONFIG_IDENTITY');
  if(config.businessReadyRevision!==undefined){copyAssert(config.copyAdapterRevision===undefined,'STAGE4_REVISION_CONFIG');validateIsolatedCopyReadyRevision(context,config.businessReadyRevision);}
  if(config.businessReadyPerformanceRevision!==undefined){copyAssert(config.copyAdapterRevision===undefined&&config.businessReadyRevision!==undefined,'STAGE4_REVISION_CONFIG');validateIsolatedCopyReadyPerformanceRevision(context,config.businessReadyRevision,config.businessReadyPerformanceRevision);}
+ if(config.businessEffectsPerformanceRevision!==undefined){copyAssert(config.copyAdapterRevision===undefined&&config.businessReadyRevision!==undefined&&config.businessReadyPerformanceRevision!==undefined,'STAGE4_REVISION_CONFIG');validateIsolatedCopyEffectsPerformanceRevision(context,config.businessReadyRevision,config.businessReadyPerformanceRevision,config.businessEffectsPerformanceRevision);}
  if(context.target.database===BUSINESS_COPY_DATABASE)copyAssert(config.copyAdapterRevision===undefined,'STAGE4_REVISION_CONFIG');
  return {context,topology,business:context.target.database===BUSINESS_COPY_DATABASE,webOrigins:['127.0.0.1','localhost','192.168.1.46'].map(host=>`http://${host}:${topology.webPort}`)};
 }
