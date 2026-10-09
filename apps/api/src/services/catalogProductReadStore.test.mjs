@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createCatalogProductReadStore} from './catalogProductReadStore.mjs';
+import {createCatalogProductReadStore,catalogClassificationRequestBudget} from './catalogProductReadStore.mjs';
 import {CATALOG_SQL_PROOF} from './catalogSqlProof.mjs';
 import {parseCatalogQuery} from './catalogModel.mjs';
 function fixture(){const state={commit:0,rollback:0,inputs:{},identity:{db:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV'},row:{...CATALOG_SQL_PROOF,actorId:'14',canView:true,canViewSalesPrices:false,total:0,page:1,limit:50,readAt:'2026-10-05T08:00:00.000Z',rowsJson:'[]',filtersJson:'{"brands":[],"productTypes":[]}',acceptedCount:16622,syntheticCount:0,quarantinedCount:54}};
@@ -35,4 +35,9 @@ test('only full startup classification execution has a 60-second budget; normal 
  const bad=fixture();bad.state.row.classificationValidated=false;
  await assert.rejects(()=>bad.store.validateCatalogClassification({actorId:'14',entriesJson:'[]'}),{statusCode:503});
  assert.deepEqual(bad.state.executeOverrides,{requestTimeout:60000});assert.equal(bad.state.commit,0);assert.equal(bad.state.rollback,1);
+});
+
+test('expanded DB02 startup alone has a 180-second classification budget and no unregistered copy can broaden ordinary readers',()=>{
+ assert.equal(catalogClassificationRequestBudget({scopeKind:'VERIFIED_BUSINESS_TEST',target:{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02'}}),180000);
+ for(const copy of [null,{}, {scopeKind:'VERIFIED_BUSINESS_TEST',target:{database:'LIVE'}},{scopeKind:'VERIFIED_BUSINESS_TEST',target:{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'}},{target:{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02'}}])assert.equal(catalogClassificationRequestBudget(copy),60000);
 });

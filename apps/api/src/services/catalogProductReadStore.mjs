@@ -3,6 +3,7 @@ import {CATALOG_SQL_PROOF} from './catalogSqlProof.mjs';
 import {catalogClassificationStore} from './catalogClassificationStore.mjs';
 import {isBoundCatalogContext,validateBoundCatalogContext} from './currentProductCatalogContext.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
+export const catalogClassificationRequestBudget=copy=>copy?.scopeKind==='VERIFIED_BUSINESS_TEST'&&copy.target?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'?180000:60000;
 export const CATALOG_READ_PROC='dbo.usp_read_work_catalog';
 export const SOURCE_VERSION_CATALOG_READ_PROC='dbo.usp_read_work_catalog_goal7';
 function sourceVersionContext(v){
@@ -38,7 +39,7 @@ export function createCatalogProductReadStore({getRuntime=defaultRuntime,classif
       const identity=(await new sql.Request(tx).query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server")).recordset?.[0];
       if(identity?.db!==(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().target.database:'MELISA_ERP_SIRKET_TEST_20260929_01')||identity.server!=='Semih\\MELISADEV')throw catalogError();
       if(versionRequested&&!version)throw catalogError();
-      const rows=(await new sql.Request(tx,{requestTimeout:60000}).input('actor_id',sql.BigInt,actorId).input('classification_validation',sql.Bit,true).input('classification_bindings',sql.NVarChar(sql.MAX),entriesJson).execute(isBoundCatalogContext(version)?version.procedures.catalog:version?SOURCE_VERSION_CATALOG_READ_PROC:CATALOG_READ_PROC)).recordset;
+      const rows=(await new sql.Request(tx,{requestTimeout:catalogClassificationRequestBudget(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null)}).input('actor_id',sql.BigInt,actorId).input('classification_validation',sql.Bit,true).input('classification_bindings',sql.NVarChar(sql.MAX),entriesJson).execute(isBoundCatalogContext(version)?version.procedures.catalog:version?SOURCE_VERSION_CATALOG_READ_PROC:CATALOG_READ_PROC)).recordset;
       if(!Array.isArray(rows)||rows.length!==1||rows[0].actorId!==actorId||rows[0].canView!==true||rows[0].classificationValidated!==true||Object.entries(proof()).some(([key,value])=>rows[0][key]!==value))throw catalogError();assertVersion(rows[0]);
       await tx.commit();return {validated:true};
     }catch{if(tx)try{await tx.rollback();}catch{}throw catalogError();}
