@@ -55,3 +55,5 @@ ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/workDa
 ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/isolatedOperationCopyModel.test.mjs:generic-api-key:8
 cb665336106f60f3b090840dd12f1384357448b5:apps/api/src/services/nativeCurrencyAccount.test.mjs:generic-api-key:45
 ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperationCopyContext.test.mjs:generic-api-key:6
+# Reviewed 2026-10-09: offline stock sourceKey fixture, no credential.
+41a8e6c42a71a10e3081f492ec9c2fc860892401:apps/api/src/services/isolatedOperationCopyRevision.test.mjs:generic-api-key:7

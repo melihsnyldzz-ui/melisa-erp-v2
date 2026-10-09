@@ -26,3 +26,9 @@ test('revision leaves sealed base and 184 original pins untouched, overriding ex
 test('installer has fixed target, before/after hash seal, transaction rollback, no original writes or role changes',()=>{
  const s=fs.readFileSync(new URL('./shared-test-copy-revision-install.ps1',import.meta.url),'utf8');assert.match(s,/MELISA_ERP_CRM_SHARED_TEST_20261009_01/);assert.match(s,/BeginTransaction\(\[Data.IsolationLevel\]::Serializable\)/);assert.match(s,/SHARED_REVISION_MODULE_AFTER_DRIFT/);assert.match(s,/SHARED_REVISION_BUSINESS_OR_GUARD_DRIFT/);assert.match(s,/\$tx.Rollback\(\)/);assert.doesNotMatch(s,/DISABLE TRIGGER|DROP TABLE|DROP TRIGGER|CREATE LOGIN|GRANT.*EXECUTE|ALTER ROLE|Password=/i);
 });
+test('startup metadata grants cover only three pinned procedures and the registry parent table for two fresh technical principals',()=>{
+ const s=fs.readFileSync(new URL('./shared-test-copy-revision-install.ps1',import.meta.url),'utf8'),grant=s.slice(s.indexOf("$phase='GRANT_FINITE_METADATA'"),s.indexOf("$phase='SNAPSHOT_AFTER'"));
+ for(const name of ['dbo.usp_stage4_copy_ready','dbo.usp_stage4_copy_guard','dbo.usp_stage4_copy_context','dbo.stage4_copy_module_revisions','melisa_shared_test_ro_20261009_01','melisa_shared_test_rw_20261009_01'])assert.ok(grant.includes(name));
+ assert.match(grant,/GRANT VIEW DEFINITION ON OBJECT::\$object TO \[\$principal\]/);assert.doesNotMatch(grant,/ON (?:DATABASE|SCHEMA)|GRANT EXECUTE|GRANT INSERT|GRANT UPDATE|GRANT DELETE|melisa_sirket|melisa_stage4|immutable_stage4_copy_module_revisions/);
+ assert.ok(s.indexOf("$sqlCommitted=$true")<s.indexOf("$phase='CONFIG_ADJUNCT'"));assert.ok(s.indexOf("$proof.status='SQL_COMMITTED_CONFIG_WRITTEN'")<s.indexOf("$phase='CONFIG_ACL'"));
+});
