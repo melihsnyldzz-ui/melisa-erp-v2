@@ -1,0 +1,68 @@
+{
+  "application": "MELISA_ERP_TRAINING_ONLY",
+  "applicationId": 1297371726,
+  "schemaVersion": 1,
+  "schemaHash": "5ce01f91e968ab1745b2e099e287ef92a39eacb84a209645d20fa079cf5584d3",
+  "integrity": "ok",
+  "attachedDatabases": [
+    "main"
+  ],
+  "engine": "SQLite",
+  "sqlServerConnection": false,
+  "erpApiConnection": false,
+  "providerConnection": false,
+  "verified": [
+    {
+      "device": "desktop",
+      "stock": [
+        "12.000",
+        "13.000"
+      ],
+      "debt": "500.0000",
+      "movements": [
+        {
+          "kind": "purchase_invoice",
+          "n": 1
+        },
+        {
+          "kind": "stock_acceptance",
+          "n": 1
+        }
+      ],
+      "completedSteps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "oldExercisePreservedAfterRepeat": true
+    },
+    {
+      "device": "mobile",
+      "stock": [
+        "12.000",
+        "13.000"
+      ],
+      "debt": "500.0000",
+      "movements": [
+        {
+          "kind": "purchase_invoice",
+          "n": 1
+        },
+        {
+          "kind": "stock_acceptance",
+          "n": 1
+        }
+      ],
+      "completedSteps": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "oldExercisePreservedAfterRepeat": true
+    }
+  ]
+}

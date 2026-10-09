@@ -1,0 +1,14 @@
+{
+  "tests": {
+    "backend": 11,
+    "workflow": 699
+  },
+  "humanAcceptance": "BEKLIYOR",
+  "scope": "first lesson only",
+  "manifestSha256": "d608dab682f603f9dcb2cc4804ef9fef0c9e2447bc4ebbcb6728ce7ca6d778cf",
+  "application": "MELISA_ERP_TRAINING_ONLY",
+  "package": "TRAINING-20261009-8b90427",
+  "port": 5214,
+  "sourceCommit": "8b904279bddc1b9bced8622bed91880eec767445",
+  "secretScan": "no leaks in two application commits"
+}
