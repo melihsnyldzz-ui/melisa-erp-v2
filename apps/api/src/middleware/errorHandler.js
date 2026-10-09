@@ -10,6 +10,8 @@ export function errorHandler(err, req, res, next) {
 
   const statusCode = err.statusCode || 500;
   const code = err.code || 'INTERNAL_ERROR';
+  const retryAfterSeconds = code === 'CRM_V2_CRM_RATE_LIMITED' && statusCode === 429 && Number.isInteger(err.retryAfterSeconds) && err.retryAfterSeconds > 0 && err.retryAfterSeconds <= 900 ? err.retryAfterSeconds : undefined;
+  if (retryAfterSeconds !== undefined) res.setHeader('Retry-After', String(retryAfterSeconds));
   const message = statusCode === 500 && env.nodeEnv === 'production'
     ? 'Unexpected server error'
     : err.message || 'Unexpected server error';
@@ -31,6 +33,7 @@ export function errorHandler(err, req, res, next) {
     },
     meta: {
       requestId: req.requestId,
+      ...(retryAfterSeconds === undefined ? {} : {retryAfterSeconds}),
     },
   });
 }

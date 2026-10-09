@@ -1,4 +1,10 @@
 import {CRM_V2_DATABASE,crmV2Error,crmV2Id,crmV2Phone,crmV2Conversation,crmV2Uuid,normalizeCrmV2Request,crmV2Fingerprint,validateCrmV2Document} from './crmOrderV2Contract.mjs';
+function crmResponseError(response){
+ if(response.status!==429)return crmV2Error('CRM_V2_ACCESS_DENIED',response.status===401?401:403);
+ const error=crmV2Error('CRM_V2_CRM_RATE_LIMITED',429),raw=response.headers?.get('retry-after');
+ if(typeof raw==='string'&&/^\d{1,10}$/.test(raw)&&Number(raw)>0)error.retryAfterSeconds=Math.min(900,Number(raw));
+ return error;
+}
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentContext,assertCrmOrderCurrentIdentity,CRM_CURRENT_PROCEDURES,crmOrderCurrentSource,crmOrderCurrentSourceHash,crmOrderCurrentConversationAllowed} from './crmOrderCurrentContext.mjs';
 const codes={51200:'CRM_V2_TARGET_UNAVAILABLE',51201:'CRM_V2_ACCESS_DENIED',51202:'CRM_V2_CUSTOMER_CHANGED',51203:'CRM_V2_CUSTOMER_MAPPING_REQUIRED',51204:'CRM_V2_PRODUCT_CHANGED',51205:'CRM_V2_REQUEST_CONFLICT',51206:'CRM_V2_NOT_FOUND',51207:'CRM_V2_NOT_READY',51208:'CRM_V2_LINES_INVALID',51209:'CRM_V2_LOCK_TIMEOUT'};
 export function createCrmOrderV2Service({environment=process.env,transport=globalThis.fetch,sqlDependencies=()=>import('../config/database.js'),currentContext=getCrmOrderCurrentContext()}={}){
@@ -11,7 +17,7 @@ export function createCrmOrderV2Service({environment=process.env,transport=globa
   environmentGuard();if(typeof authorization!=='string'||!/^Bearer [^\s]+$/.test(authorization))throw crmV2Error('CRM_V2_SESSION_REQUIRED',401);
   crmV2Conversation(conversationId);crmV2Phone(peer);if(currentContext&&!crmOrderCurrentConversationAllowed(currentContext,conversationId,crmV2Phone(peer)))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);
   async function read(route){let response;try{response=await transport(new URL(route,crmOrigin),{headers:{authorization,accept:'application/json'},redirect:'error',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(10000)});}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}
-   if(!response.ok)throw crmV2Error('CRM_V2_ACCESS_DENIED',response.status===401?401:403);
+   if(!response.ok)throw crmResponseError(response);
    try{const raw=await response.text();if(Buffer.byteLength(raw)>2097152)throw Error();const b=JSON.parse(raw);if(b.success!==true)throw Error();return b;}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}}
   const identity=await read('/auth/me'),a=identity.data;
   if(identity.meta?.source!=='crm-auth'||typeof a?.id!=='string'||!a.id||a.id.length>80||a.active===false||!['patron','mudur','personel'].includes(a.role)||!Array.isArray(a.permissions)||!a.permissions.includes('crm.view')||!a.permissions.includes('crm.send'))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);
@@ -51,6 +57,6 @@ export function createCrmOrderV2Service({environment=process.env,transport=globa
    if(current.id!==identity.id||current.role!==identity.role||current.chatwootAgentId!==identity.chatwootAgentId)throw crmV2Error('CRM_V2_ACCESS_DENIED',403);return stored;
   },
  };
- async function crmContextIdentity(authorization){environmentGuard();if(typeof authorization!=='string'||!/^Bearer [^\s]+$/.test(authorization))throw crmV2Error('CRM_V2_SESSION_REQUIRED',401);let response;try{response=await transport(new URL('/auth/me',crmOrigin),{headers:{authorization},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}if(!response.ok)throw crmV2Error('CRM_V2_ACCESS_DENIED',response.status===401?401:403);let body;try{const text=await response.text();if(Buffer.byteLength(text)>2097152)throw Error();body=JSON.parse(text);}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}const a=body.data;if(body.success!==true||body.meta?.source!=='crm-auth'||typeof a?.id!=='string'||!a.id||a.id.length>80||a.active===false||!['patron','mudur','personel'].includes(a.role)||!Array.isArray(a.permissions)||!a.permissions.includes('crm.view')||!a.permissions.includes('crm.send'))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);return a;}
+ async function crmContextIdentity(authorization){environmentGuard();if(typeof authorization!=='string'||!/^Bearer [^\s]+$/.test(authorization))throw crmV2Error('CRM_V2_SESSION_REQUIRED',401);let response;try{response=await transport(new URL('/auth/me',crmOrigin),{headers:{authorization},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}if(!response.ok)throw crmResponseError(response);let body;try{const text=await response.text();if(Buffer.byteLength(text)>2097152)throw Error();body=JSON.parse(text);}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}const a=body.data;if(body.success!==true||body.meta?.source!=='crm-auth'||typeof a?.id!=='string'||!a.id||a.id.length>80||a.active===false||!['patron','mudur','personel'].includes(a.role)||!Array.isArray(a.permissions)||!a.permissions.includes('crm.view')||!a.permissions.includes('crm.send'))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);return a;}
 }
 let instance;export const crmOrderV2Service=()=>instance??=(createCrmOrderV2Service());
