@@ -17,6 +17,7 @@ const registered=new WeakSet();
 const operationDTOs=new WeakMap();
 const adapterRevisions=new WeakMap();
 const readyRevisions=new WeakMap();
+const readyPerformanceRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
@@ -79,7 +80,7 @@ export function assertIsolatedCopyActor(context,actor,actual,permission){
 }
 export function assertIsolatedCopyReadProof(context,proof){
  assertIsolatedCopyContext(context);
- const revision=adapterRevisions.get(context)??readyRevisions.get(context);
+ const revision=adapterRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
  copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
@@ -111,8 +112,30 @@ export function validateIsolatedCopyReadyRevision(context,input){
 }
 export function registerIsolatedCopyReadyRevision(context,input,proof){
  const revision=validateIsolatedCopyReadyRevision(context,input),module=revision.modules[0],row=Array.isArray(proof)&&proof.length===1?proof[0]:null;
- copyAssert(!readyRevisions.has(context)&&!adapterRevisions.has(context)&&row&&row.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.version===1&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===module.name&&row.beforeHash===module.beforeHash&&row.afterHash===module.afterHash&&row.actualHash===module.afterHash&&row.baseManifestHash===module.beforeHash&&row.baseManifestRows===185&&row.revisionHash===revision.revisionHash&&row.immutableTriggerHash===revision.immutableTriggerHash&&row.triggerDisabled===0,'ISOLATED_COPY_READY_DB_PROOF');
+ copyAssert(!readyRevisions.has(context)&&!readyPerformanceRevisions.has(context)&&!adapterRevisions.has(context)&&row&&row.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.version===1&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===module.name&&row.beforeHash===module.beforeHash&&row.afterHash===module.afterHash&&row.actualHash===module.afterHash&&row.baseManifestHash===module.beforeHash&&row.baseManifestRows===185&&row.revisionHash===revision.revisionHash&&row.immutableTriggerHash===revision.immutableTriggerHash&&row.triggerDisabled===0,'ISOLATED_COPY_READY_DB_PROOF');
  readyRevisions.set(context,revision);return revision;
+}
+export function validateIsolatedCopyReadyPerformanceRevision(context,baseInput,input){
+ const base=validateIsolatedCopyReadyRevision(context,baseInput);
+ const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.sort().join();
+ copyAssert(exact(input,['schemaVersion','version','copyId','baseSealHash','baseReadyRevisionHash','modules','immutableTriggerHash','revisionHash'])&&input.schemaVersion==='melisa-business-copy-ready-performance-revision.v1'&&input.version===2&&input.copyId===context.copyId&&input.baseSealHash===context.sealHash&&input.baseReadyRevisionHash===base.revisionHash&&Array.isArray(input.modules)&&input.modules.length===1,'ISOLATED_COPY_READY_PERFORMANCE_REVISION');
+ const m=input.modules[0];
+ copyAssert(exact(m,['name','beforeHash','afterHash'])&&m.name===ISOLATED_COPY_PROCEDURES.ready&&m.beforeHash===base.modules[0].afterHash&&hash(m.afterHash)&&m.afterHash!==m.beforeHash&&m.afterHash!==context.sql.ready.hash&&hash(input.immutableTriggerHash),'ISOLATED_COPY_READY_PERFORMANCE_PINS');
+ const {revisionHash,...body}=input;copyAssert(hash(revisionHash)&&revisionHash===isolatedCopyHash(body),'ISOLATED_COPY_READY_PERFORMANCE_SEAL');
+ return freeze(structuredClone(input));
+}
+// Register the real historical chain in one step. After v2 is installed the
+// historical v1 module is not the current SQL body, so its actual hash is v2.
+export function registerIsolatedCopyReadyPerformanceRevision(context,baseInput,input,proof){
+ const revision=validateIsolatedCopyReadyPerformanceRevision(context,baseInput,input),base=validateIsolatedCopyReadyRevision(context,baseInput),m=revision.modules[0],original=base.modules[0];
+ const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.sort().join();
+ const keys=['databaseName','copyId','version','baseSealHash','manifestSealHash','name','beforeHash','afterHash','actualHash','baseManifestHash','baseManifestRows','revisionHash','immutableTriggerHash','triggerDisabled'];
+ const old=Array.isArray(proof?.base)&&proof.base.length===1?proof.base[0]:null,next=Array.isArray(proof?.performance)&&proof.performance.length===1?proof.performance[0]:null;
+ const shared=row=>row?.databaseName===BUSINESS_COPY_DATABASE&&String(row.copyId).toLowerCase()===context.copyId&&row.baseSealHash===context.sealHash&&row.manifestSealHash===context.sealHash&&row.name===m.name&&row.actualHash===m.afterHash&&row.baseManifestHash===original.beforeHash&&row.baseManifestRows===185&&row.triggerDisabled===0;
+ copyAssert(!readyPerformanceRevisions.has(context)&&!readyRevisions.has(context)&&!adapterRevisions.has(context)&&exact(proof,['base','performance'])&&exact(old,keys)&&exact(next,[...keys,'baseReadyRevisionHash'])&&shared(old)&&shared(next)
+  &&old.version===1&&old.beforeHash===original.beforeHash&&old.afterHash===original.afterHash&&old.revisionHash===base.revisionHash&&old.immutableTriggerHash===base.immutableTriggerHash
+  &&next.version===2&&next.beforeHash===m.beforeHash&&next.afterHash===m.afterHash&&next.revisionHash===revision.revisionHash&&next.baseReadyRevisionHash===base.revisionHash&&next.immutableTriggerHash===revision.immutableTriggerHash,'ISOLATED_COPY_READY_PERFORMANCE_DB_PROOF');
+ readyPerformanceRevisions.set(context,revision);return revision;
 }
 export function bindIsolatedCopyOperationDTO(context,dto){
  assertIsolatedCopyContext(context);
