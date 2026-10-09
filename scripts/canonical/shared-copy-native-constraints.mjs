@@ -3,6 +3,8 @@ import {moduleHash} from './stage4-copy-sql.mjs';
 import {SHARED_COPY_DATABASE,ISOLATED_COPY_SERVER,ISOLATED_COPY_SOURCE_DATABASE,validateIsolatedOperationCopyContext,isolatedCopyHash} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
 export const SHARED_STOCK_CHECK='CK_stock_movements_source_type_native';
 export const SHARED_STOCK_BEFORE_HASH='F0DE6692372B574F9A80B5C68DC1661510935CE49FB4A5081A974BAA44AFB1F2';
+export const SHARED_INTENT_PRICE_CHECK='CK__test_purc__purch__6B4FD30B';
+export const SHARED_INTENT_PRICE_BEFORE_HASH='45BAEBC914F03BD7372F6A34610FCC2C076450C20C44B6EC6EBFF6698BDFB1CD';
 const writer='melisa_shared_test_rw_20261009_01';
 const assert=(ok,code)=>{if(!ok)throw Error(code);};
 const q=s=>"N'"+s.replaceAll("'","''")+"'";
@@ -64,5 +66,37 @@ export function buildReviewedSharedNativeConstraintAdjunct(input,rehearsal,input
  const {adjunctHash,...body}=initial;
  body.replacements=[{...r,afterDefinition:canonical,afterHash:rehearsal.actualHash,sourceExpression:r.afterDefinition}];
  body.canonicalReview={inputArtifactSHA:inputArtifactSHA.toUpperCase(),rolledBack:true,businessProofUnchanged:true,originalInnerExpressionVerbatim:true,normalizations:['flatten associative top-level OR group only','parenthesize DB_NAME and ORIGINAL_LOGIN operands before COLLATE only'],actualDefinitionHash:rehearsal.actualHash};
+ return {...body,adjunctHash:isolatedCopyHash(body)};
+}
+
+export function sharedCopyIntentPriceCheckBranch(raw){
+ const {context:c,products}=scope(raw);
+ const common=`(db_name()) collate Latin1_General_100_BIN2=${q(c.target.database)} AND serverproperty(N'ServerName')=${q(c.target.server)} AND (original_login()) collate Latin1_General_100_BIN2=${q(writer)} AND [draft_id]>(0) AND [receipt_line_id]>(0) AND ([quantity]>=(1) AND [quantity]<=(5)) AND [quantity]=floor([quantity]) AND [line_discount_rate]=(0) AND [line_total]=[quantity]*[purchase_price]`;
+ return `${common} AND (${products.map(p=>`[product_id]=(${p.id}) AND [purchase_price]=(${p.costExact4})`).join(' OR ')})`;
+}
+
+export function buildSharedIntentPriceConstraintAdjunct(input,chainCapture=null){
+ assert(input?.schemaVersion==='melisa-shared-intent-price-check-input.v1'&&input.businessWrites===0,'SHARED_PRICE_CHECK_CAPTURE');
+ const {context:c}=scope(input.copyContext),source=input[ISOLATED_COPY_SOURCE_DATABASE],copy=input[SHARED_COPY_DATABASE];
+ for(const [v,db] of [[source,ISOLATED_COPY_SOURCE_DATABASE],[copy,SHARED_COPY_DATABASE]])assert(v?.identity?.database===db&&v.identity.server===ISOLATED_COPY_SERVER&&Array.isArray(v.constraints),'SHARED_PRICE_CHECK_CAPTURE_IDENTITY');
+ const pick=v=>v.constraints.filter(r=>r.schemaName==='dbo'&&r.tableName==='test_purchase_batch_intent_lines'&&r.name===SHARED_INTENT_PRICE_CHECK),src=pick(source),dst=pick(copy);
+ assert(src.length===1&&dst.length===1&&src[0].parentColumnId===5&&dst[0].parentColumnId===5&&trusted({...src[0],parentColumnId:0})&&trusted({...dst[0],parentColumnId:0}),'SHARED_PRICE_CHECK_TRUSTED_BASE');
+ const before=dst[0];assert(before.definition==='([purchase_price]=(80) OR [purchase_price]=(60))'&&before.definitionHash===SHARED_INTENT_PRICE_BEFORE_HASH&&moduleHash(before.definition)===before.definitionHash&&src[0].definition===before.definition&&src[0].definitionHash===before.definitionHash,'SHARED_PRICE_CHECK_KNOWN_BEFORE');
+ const cols=copy.schema?.filter(r=>r.schemaName==='dbo'&&r.tableName==='test_purchase_batch_intent_lines').map(r=>r.columnName)??[];
+ for(const col of ['draft_id','receipt_line_id','product_id','quantity','purchase_price','line_discount_rate','line_total'])assert(cols.includes(col),'SHARED_PRICE_CHECK_SCHEMA');
+ assert(copy.constraints.length===4&&source.constraints.length===4&&copy.constraints.every(r=>moduleHash(r.definition)===r.definitionHash&&trusted({...r,parentColumnId:0})&&source.constraints.some(s=>s.schemaName===r.schemaName&&s.tableName===r.tableName&&s.name===r.name&&s.definition===r.definition&&s.definitionHash===r.definitionHash)),'SHARED_PRICE_CHECK_COMPANION_BASE');
+ const branch=sharedCopyIntentPriceCheckBranch(c);
+ // The previously rehearsed stock adjunct established this exact SQL Server
+ // normalization: associative outer OR is flattened, inner legacy tokens kept.
+ const afterDefinition=`(${before.definition.slice(1,-1)} OR case when ${branch} then (1) else (0) end=(1))`;
+ const replacement={name:`dbo.${SHARED_INTENT_PRICE_CHECK}`,table:'dbo.test_purchase_batch_intent_lines',constraint:SHARED_INTENT_PRICE_CHECK,beforeHash:before.definitionHash,afterHash:moduleHash(afterDefinition),beforeDefinition:before.definition,afterDefinition,beforeParentColumnId:5,afterParentColumnId:0,branch,sql:`ALTER TABLE dbo.test_purchase_batch_intent_lines DROP CONSTRAINT ${SHARED_INTENT_PRICE_CHECK};\nALTER TABLE dbo.test_purchase_batch_intent_lines WITH CHECK ADD CONSTRAINT ${SHARED_INTENT_PRICE_CHECK} CHECK ${afterDefinition};\nALTER TABLE dbo.test_purchase_batch_intent_lines WITH CHECK CHECK CONSTRAINT ${SHARED_INTENT_PRICE_CHECK};`};
+ let companions=copy.constraints;
+ if(chainCapture){
+  const wide=chainCapture[SHARED_COPY_DATABASE],wideSource=chainCapture[ISOLATED_COPY_SOURCE_DATABASE];
+  assert(chainCapture.businessWrites===0&&chainCapture.copyContext?.copyId===c.copyId&&chainCapture.copyContext?.sealHash===c.sealHash&&wide?.identity?.database===SHARED_COPY_DATABASE&&wide.identity.server===ISOLATED_COPY_SERVER&&wideSource?.identity?.database===ISOLATED_COPY_SOURCE_DATABASE&&wideSource.identity.server===ISOLATED_COPY_SERVER&&wide.constraints?.length===10&&wideSource.constraints?.length===10,'SHARED_PRICE_CHECK_CHAIN_CAPTURE');
+  assert(wide.constraints.every(r=>r.schemaName==='dbo'&&['test_purchase_batch_drafts','test_purchase_batch_intent_lines','test_purchase_batch_links'].includes(r.tableName)&&moduleHash(r.definition)===r.definitionHash&&trusted({...r,parentColumnId:0})&&wideSource.constraints.some(s=>s.name===r.name&&s.tableName===r.tableName&&s.definition===r.definition&&s.definitionHash===r.definitionHash))&&new Set(wide.constraints.map(r=>r.name)).size===10,'SHARED_PRICE_CHECK_CHAIN_PINS');
+  assert(copy.constraints.every(r=>wide.constraints.some(w=>w.name===r.name&&w.definitionHash===r.definitionHash)),'SHARED_PRICE_CHECK_CHAIN_LINE_PINS');companions=wide.constraints;
+ }
+ const body={schemaVersion:'melisa-shared-copy-native-check-adjunct.v1',target:c.target,copyId:c.copyId,baseSealHash:c.sealHash,backupSHA:c.backupSHA,replacements:[replacement],unchangedChecks:companions.filter(r=>r.name!==SHARED_INTENT_PRICE_CHECK).map(({schemaName,tableName,name,definitionHash,isDisabled,isNotTrusted,isNotForReplication,parentColumnId})=>({schemaName,tableName,name,definitionHash,isDisabled,isNotTrusted,isNotForReplication,parentColumnId})),requiredNativeGuard:'dbo.usp_stage4_copy_guard',requiredQuarantineFirstCount:37,baseModuleManifestCount:184,adapterRevisionRows:3,allowedActorId:'16',requiredHeaderCurrency:'TRY',actorCurrencyAuthority:'Existing same-TX native/header guard; these columns do not exist on intent lines',businessWrites:0,normalRolesChanged:false,registryWrites:0,normalSourceWrites:0,requiresOuterSerializableTransaction:true,requiresBeforeAfterBusinessAndModuleProof:true,requiresTrustedEnabledAfter:true,afterHashStatus:'PROSPECTIVE_CANONICAL_REQUIRES_REHEARSE',originalInnerExpressionVerbatim:true};
  return {...body,adjunctHash:isolatedCopyHash(body)};
 }
