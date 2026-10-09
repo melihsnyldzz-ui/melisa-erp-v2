@@ -27,6 +27,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', path.join(root, 'scripts/canonical/stage5-origin-review.test.mjs')]);
   run(['--test', ...['stage4-opening-separation', 'stage4-copy-sql', 'stage4-copy-context-sql', 'stage4-copy-recovery'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/product-completion-readers.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/crm-order-v2-sql.test.mjs'), path.join(root, 'scripts/canonical/build-crm-order-package.test.mjs'), path.join(root, 'apps/api/crm-order-network.test.mjs')]);
@@ -38,7 +39,7 @@ if (mode === 'quality') {
   // The identity regression is a real SQL integration suite. CI deliberately
   // runs only these reviewed synthetic migration models and never that suite.
   const tests = mode === 'migration'
-    ? ['accepted-opening-prices', 'mapping-opening', 'operation-quarantine', 'operation-quarantine-v2', 'target-native-opening', 'party-currency-readonly-plan', 'party-currency-evidence-resolution', 'supplier-identity-metadata', 'product-purchase-reference', 'product-last-purchase-model', 'product-last-purchase-runtime', 'unified-finance-approval-plan', 'current-finance-approval-plan', 'current-finance-test-application', 'goal73-supplier-delta', 'product-completion-plan', 'product-completion-test-application', 'final-cutover-plan', 'final-cutover-runtime', 'final-cutover-price-reader'].map(name => path.join(testRoot, `${name}.test.mjs`))
+    ? ['accepted-opening-prices', 'mapping-opening', 'operation-quarantine', 'operation-quarantine-v2', 'target-native-opening', 'party-currency-readonly-plan', 'party-currency-evidence-resolution', 'supplier-identity-metadata', 'product-purchase-reference', 'product-last-purchase-model', 'product-last-purchase-runtime', 'unified-finance-approval-plan', 'current-finance-approval-plan', 'current-finance-test-application', 'goal73-supplier-delta', 'product-completion-plan', 'product-completion-test-application', 'committed-batch-recovery', 'final-cutover-plan', 'final-cutover-runtime', 'final-cutover-price-reader'].map(name => path.join(testRoot, `${name}.test.mjs`))
     : files(testRoot, name => /\.test\.(js|mjs)$/.test(name));
   if (!tests.length) throw new Error('CI refuses an empty test suite');
   console.log(`${mode}: ${tests.length} unit test files; offline guard active`);

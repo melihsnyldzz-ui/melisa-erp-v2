@@ -1,3 +1,7 @@
+## ERP-UA28 — Aşama 5 tek günlük ekran turu — bekliyor
+
+ERP-STAGE0501 / ERP-DEC-034, 9 Ekim 2026. TEST125/sourceedb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d ve mevcut Stage4 günlük kopyası korunur. [18 dakikalık tek tur](docs/evidence/erp/2026-10-09-stage5/acceptance-tour.md): ürün/barkod, mal kabul/alış, satış/tahsilat, ödeme geçmişi, sayım/iade ve rapor; Zebra yalnız mevcut fiziksel erişim doğrulanırsa. Yeni ticari işlem veya taslak yok; mevcut oturum/taslaklar korunur. Kişi/tarih/insan sonucu **bekliyor**. Fiziksel Zebra erişimi doğrulanamadı; masaüstü gösterim cihaz PASS değildir. Teknik kurtarma ve SQL/API sonuçları insan kabulü yerine geçmez. ERP-UA27, ERP-UA18 ve önceki açık sonuçlar değişmez; bu hazırlık LIVE geçişi onayı değildir.
+
 ## ERP-UA27 — Aşama 4 günlük kopya ve deneme ayrımı — bekliyor
 
 ERP-STAGE0401 / ERP-DEC-033,9Ekim2026. Ortam TEST125/sourceedb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d; insan kişi/tarih/sonuç **bekliyor**. Teknik SQL/API/tarayıcı/ajan provası insan PASS değildir. Önceki ERP-UA24/25/26 bekliyor ve kabul edilmiş önceki sonuçlar korunur. [Teknik kanıt ve açılış engelleri](docs/evidence/erp/2026-10-09-stage4/README.md).
