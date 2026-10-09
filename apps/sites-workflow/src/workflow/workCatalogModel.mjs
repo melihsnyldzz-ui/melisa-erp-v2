@@ -35,6 +35,7 @@ export function catalogProduct(r,{canViewSalesPrices=false,finalVersion:finalCon
 }
 export function catalogEnvelope(p,{salesPermission=false,detail=false}={}){
  const m=p?.meta;
+ if(m?.schemaVersion==='melisa-training-catalog.v1')return trainingCatalogEnvelope(p,{detail});
  const final=finalVersion(m?.finalVersion)&&m.sourceAsOf===m.finalVersion.sourceAsOf&&m.scopeCounts?.acceptedOpening===m.finalVersion.productCount;
  const current=currentProductCatalogVersion(m?.currentVersion)&&m.sourceAsOf===m.currentVersion.sourceAsOf&&m.scopeCounts?.acceptedOpening===m.currentVersion.productCount;
  if(m?.currentVersion&&(!current||m?.finalVersion))fail();
@@ -57,7 +58,19 @@ export function validateCatalogPhoto(photo,row){
  if(photo.status==='missing'){
   if(Object.keys(photo).length!==4||photo.url!==null||photo.sourceKey!==null||photo.verified!==false)fail();return photo;
  }
- if(photo.status!=='available'||Object.keys(photo).length!==6||photo.verified!==true||typeof photo.sha256!=='string'||!/^[a-f0-9]{64}$/i.test(photo.sha256)||!row||!id(row.id)||row.hold?.blocked!==false||row.provenance?.kind!=='accepted-opening'||row.provenance.verified!==true||photo.sourceKey!==row.provenance.sourceKey||photo.url!==`/api/catalog/products/${row.id}/photo?variant=preview`||photo.thumbnailUrl!==`/api/catalog/products/${row.id}/photo?variant=thumbnail`)fail();
+ if(photo.status!=='available'||Object.keys(photo).length!==6||photo.verified!==true||typeof photo.sha256!=='string'||!/^[a-f0-9]{64}$/i.test(photo.sha256)||!row||!id(row.id)||row.hold?.blocked!==false||!['accepted-opening','training-copy'].includes(row.provenance?.kind)||row.provenance.verified!==true||photo.sourceKey!==row.provenance.sourceKey||photo.url!==`/api/catalog/products/${row.id}/photo?variant=preview`||photo.thumbnailUrl!==`/api/catalog/products/${row.id}/photo?variant=thumbnail`)fail();
  return photo;
 }
 export function catalogPhotoUrl(photo,row){if(photo?.status==='missing'){validateCatalogPhoto(photo,row);return null;}validateCatalogPhoto(photo,row);return photo.url;}
+function trainingCatalogEnvelope(p,{detail}){
+ const m=p.meta;
+ if(p.success!==true||m.trainingDatabase!==true||m.readOnly!==true||m.freshLive!==false||m.canViewSalesPrices!==false||!/^\d{4}-\d{2}-\d{2}$/.test(m.sourceAsOf)||!Number.isFinite(Date.parse(m.readAt))||m.scopeCounts?.acceptedOpening!==2||m.scopeCounts?.quarantinedSource!==0||m.scopeCounts?.syntheticTest!==2)fail();
+ const rows=detail?[p.data]:p.data;
+ if(!Array.isArray(rows)||rows.length>2)fail();
+ if(!detail&&(!Number.isInteger(m.total)||m.total<0||m.total>2||!Number.isInteger(m.page)||m.page<1||m.limit!==50||m.totalPages!==Math.ceil(m.total/50)||rows.length!==Math.min(50,Math.max(0,m.total-(m.page-1)*50))||!m.filters||!['brands','productTypes'].every(k=>Array.isArray(m.filters[k])&&m.filters[k].every(v=>typeof v==='string'))))fail();
+ for(const r of rows){
+  if(!id(r?.id)||typeof r.stockCode!=='string'||typeof r.displayCode!=='string'||typeof r.productName!=='string'||typeof r.isActive!=='boolean'||!exact(r.stockQuantityExact)||r.stockQuantityExact===null||r.unit?.label!=='ADET'||r.unit.factorExact8!=='1.00000000'||r.unit.verified!==true||!id(r.unit.sourceId)||!Array.isArray(r.barcodes)||r.barcodes.some(b=>!id(b.id)||typeof b.value!=='string'||typeof b.isPrimary!=='boolean'||!text(b.sourceKey))||r.hold?.blocked!==false||!Array.isArray(r.hold.reasons)||r.hold.reasons.length||!Array.isArray(r.salePrices)||r.salePrices.length||r.provenance?.kind!=='training-copy'||r.provenance.verified!==true||typeof r.provenance.sourceKey!=='string'||!r.classification||!['brand','productType','sourceName'].every(k=>text(r.classification[k]))||r.financial!==undefined||r.imageUrl!==undefined)fail();
+  validateCatalogPhoto(r.photo,r);
+ }
+ if(new Set(rows.map(r=>r.id)).size!==rows.length)fail();return p;
+}
