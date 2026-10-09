@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {warmCatalogPlan} from './catalogPlanWarmup.mjs';
 import {readFile} from 'node:fs/promises';
-import {runInNewContext} from 'node:vm';
+import {createContext,SourceTextModule,SyntheticModule} from 'node:vm';
 const db='MELISA_ERP_SIRKET_TEST_20260929_01',login='melisa_sirket_sales_test_20260929_01';
 const context=()=>({mode:'erp',port:4144,writes:true,env:{sql:{database:db}},identity:{databaseName:db,serverName:'Semih\\MELISADEV',loginName:login,databaseUser:login,sysadmin:0,databaseControl:0,liveDatabaseAccess:0}});
 const card=id=>({id:String(id),stockCode:'P'+id,displayCode:'P'+id,classification:{brand:null,productType:null,sourceName:'Ürün',verified:true},productName:'Ürün',isActive:true,stockQuantityExact:null,unit:{label:null,sourceId:null,factorExact8:null,verified:false},barcodes:[],imageUrl:null,provenance:{kind:'accepted-opening',sourceKey:`VEGA_CAPTURE_20260930_01/F0102/TBLSTOKLAR/${id}`,runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30',verified:true},hold:{blocked:false,reasons:[]},salePrices:[],photo:{status:'missing',url:null,sourceKey:null,verified:false}});
@@ -23,7 +23,16 @@ test('ODBC retain-min1 applies to canonical writable ERP4144 and registered copy
  // Execute the actual config source with inert drivers; no native addon or SQL.
  const source=await readFile(new URL('../config/database.js',import.meta.url),'utf8'),env={port:4144,sql:{database:db,user:login,readOnly:false,trustedConnection:false,server:'127.0.0.1',port:1433,odbcDriver:'ODBC Driver 18 for SQL Server',password:'fixture-only',encrypt:false,trustServerCertificate:true}},process={env:{MELISA_CANONICAL_TEST:'true',MELISA_TEST_SCOPED_SALES:'true'}};
  const copyState={write:false,read:false},sqlDefault={},sqlTrusted={};
- const {getSqlConfig,getSqlDriver}=runInNewContext(source.replace(/^import .*;\r?$/gm,'').replace(/^export /gm,'')+'\n({getSqlConfig,getSqlDriver})',{env,process,sqlDefault,sqlTrusted,isIsolatedOperationCopyRuntime:()=>copyState.write,getIsolatedOperationCopyConfig:()=>{throw Error('Config-only test must not open a pool');},isIsolatedCopyReadonlyRuntime:()=>copyState.read,getIsolatedCopyReadonlyRuntime:()=>{throw Error('Config-only test must not open a pool');}});
+ const sandbox=createContext({process}),dependencies=new Map();
+ const dependency=(specifier,exports)=>{const module=new SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context:sandbox});dependencies.set(specifier,module);return module;};
+ dependency('mssql',{default:sqlDefault});dependency('./env.js',{env});
+ dependency('./isolatedOperationCopyRuntime.mjs',{isIsolatedOperationCopyRuntime:()=>copyState.write,getIsolatedOperationCopyConfig:()=>{throw Error('Config-only test must not open a pool');},isIsolatedCopyReadonlyRuntime:()=>copyState.read,getIsolatedCopyReadonlyRuntime:()=>{throw Error('Config-only test must not open a pool');}});
+ dependency('../services/isolatedOperationCopyContext.mjs',{isolatedCopyTopology:()=>{throw Error('Config-only test must not open a pool');}});
+ dependency('../services/crmOrderCurrentContext.mjs',{getCrmOrderCurrentContext:()=>null,assertCrmOrderCurrentIdentity:()=>{throw Error('Config-only test must not open a pool');}});
+ const native=dependency('mssql/msnodesqlv8.js',{default:sqlTrusted});await native.link(()=>{throw Error('No native imports allowed');});await native.evaluate();
+ const module=new SourceTextModule(source,{context:sandbox,importModuleDynamically:async specifier=>{assert.equal(specifier,'mssql/msnodesqlv8.js');return native;}});
+ await module.link(specifier=>{assert.ok(dependencies.has(specifier),'Unknown database dependency: '+specifier);return dependencies.get(specifier);});await module.evaluate();
+ const {getSqlConfig,getSqlDriver}=module.namespace;
   assert.deepEqual(JSON.parse(JSON.stringify(getSqlConfig().pool)),{max:10,min:1,idleTimeoutMillis:30000});
   env.port=4146;env.sql.user='melisa_sirket_test_20260929_01';env.sql.readOnly=true;assert.equal(getSqlConfig().pool,undefined);
   env.sql.database='MELISA_ERP_PROD_CANDIDATE_20260917_01';env.port=4114;assert.equal(getSqlConfig().pool,undefined);

@@ -1,3 +1,4 @@
+import {isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
 import {registeredSharedPartyContext,sharedPartyReaderDefinition,assertSharedPartyTransactionIdentity} from './isolatedPartyCardReader.mjs';
 // Read-only additive proof for an amount-approved TEST batch, not a T1 cutover.
 import {createHash} from 'node:crypto';
@@ -49,7 +50,7 @@ export function currentFinanceContext(context){
 export function configureCurrentFinanceContext(context,{identity,mode,port,writes}={}){
  if(!context){configured=null;return;}
  const copy=registeredSharedPartyContext();
- if(copy){if(identity?.serverName!==copy.target.server||identity?.databaseName!==copy.target.database||identity?.sysadmin!==0||identity?.loginName!==copy.target.login||identity?.databaseControl!==0||identity?.originalDatabaseAccess!==0||identity?.liveDatabaseAccess!==0||mode!=='erp'||port!==4174||writes!==true)throw Error('CURRENT_FINANCE_PARTY_RUNTIME');}
+ if(copy){if(identity?.serverName!==copy.target.server||identity?.databaseName!==copy.target.database||identity?.sysadmin!==0||identity?.loginName!==copy.target.login||identity?.databaseControl!==0||identity?.originalDatabaseAccess!==0||identity?.liveDatabaseAccess!==0||mode!=='erp'||port!==isolatedCopyTopology(copy).apiPort||writes!==true)throw Error('CURRENT_FINANCE_PARTY_RUNTIME');}
  else if(identity?.serverName!=='Semih\\MELISADEV'||identity?.databaseName!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity?.sysadmin!==0||mode!=='erp'||port!==4144||writes!==true)throw Error('CURRENT_FINANCE_PARTY_RUNTIME');
  currentFinanceContext(context);configured=Object.freeze({...context,accountIds:Object.freeze([...context.accountIds])});
 }

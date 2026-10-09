@@ -18,7 +18,7 @@ stage('MIDDLEWARE_IMPORT_DONE');stage('V2_ROUTES_IMPORT_BEGIN');const {crmOrderV
 stage('V2_ROUTES_IMPORT_DONE');const {isCrmOrderTestRouteAllowed}=await import('./src/services/crmOrderTestRoutePolicy.mjs');
 const app=express();app.disable('x-powered-by');app.use(securityHeaders(),requestContext,apiRateLimit(),express.json({limit:'64kb'}));
 app.use((_req,res,next)=>{res.set('Cache-Control','no-store');res.set('X-Melisa-Environment','CANONICAL-TEST');next();});
-const port=shared?62604:62404;
+const port=shared?context.nativePort:62404;
 const health={ok:true,environment:shared?'ISOLATED_TEST_COPY':'CANONICAL_TEST',purpose:'crm-order-draft-only',port,...identity,database:identity.databaseName,sourceCommit:release.sourceCommit,packageId:release.packageId,sqlReadOnly:false,writeScope:'scoped-sales-order-draft-procedure-only',stockEffect:false,ledgerEffect:false,reservationEffect:false,externalOperations:false,automaticJobs:false,networkPolicy,...(shared?{actualT1:false,copyId:context.copyId,currentSource:(await import('./src/services/crmOrderCurrentContext.mjs')).crmOrderCurrentSource(context)}:{})};
 app.get('/test-health',(_req,res)=>res.json(health));
 app.use((req,res,next)=>isCrmOrderTestRouteAllowed(req.method,req.path)?next():res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Bu TEST servisi yalnız CRM sipariş taslağı oluşturur ve geri okur.'}}));

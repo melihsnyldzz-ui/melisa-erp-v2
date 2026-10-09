@@ -3,6 +3,7 @@ import {nativeError} from './nativeTerminalPolicy.mjs';
 import {writeAuditLog} from './auditService.js';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {copyAssert} from './isolatedOperationCopyContext.mjs';
+import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
 
 // Complete a just-created legacy native effect in the selected copy's currency
 // account. The native engine already changed the main card: never add it again.
@@ -11,18 +12,21 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  copyAssert(['customer','supplier'].includes(role)&&typeof effectExact8==='string'&&/^-?(?:0|[1-9]\d{0,18})\.\d{8}$/.test(effectExact8)&&!/^[-]?0\.00000000$/.test(effectExact8),'ISOLATED_COPY_ACCOUNT_EFFECT',409);
  const account=(role==='customer'?copy.customers:copy.suppliers).find(a=>a.id===String(partyId)&&a.currency===currency);
  copyAssert(account&&copy.actors.some(a=>a.id===String(actor?.id))&&/^[1-9]\d*$/.test(String(movementId)),'ISOLATED_COPY_ACCOUNT_SCOPE',403);
+ const business=copy.target.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&role==='supplier',selection=business?getBusinessInboundSelection(copy):null,rate=business?copy.currencyRates?.find(r=>r.currency===currency):null;
+ if(business)copyAssert(selection?.supplierId===account.id&&selection.accountId===account.accountId&&selection.currency===currency&&rate&&/^\d+\.\d{8}$/.test(rate.rateExact8)&&Number(rate.rateExact8)>0,'ISOLATED_COPY_ACCOUNT_SCOPE',403);
  const sql=ctx.sqlDriver??getSqlDriver(),request=()=>new sql.Request(ctx.transaction),table=role==='customer'?'customer_movements':'supplier_movements';
- const result=await request().input('copyDatabase',sql.NVarChar(128),copy.target.database).input('copy',sql.UniqueIdentifier,copy.copyId).input('actor',sql.BigInt,actor.id).input('movement',sql.BigInt,movementId).input('party',sql.BigInt,partyId).input('entity',sql.BigInt,account.partyId).input('account',sql.BigInt,account.accountId).input('currency',sql.NVarChar(3),currency).input('effect',sql.Decimal(28,8),effectExact8).query(`
+ const result=await request().input('copyDatabase',sql.NVarChar(128),copy.target.database).input('copy',sql.UniqueIdentifier,copy.copyId).input('actor',sql.BigInt,actor.id).input('movement',sql.BigInt,movementId).input('party',sql.BigInt,partyId).input('entity',sql.BigInt,account.partyId).input('account',sql.BigInt,account.accountId).input('currency',sql.NVarChar(3),currency).input('effect',sql.Decimal(28,8),effectExact8).input('copyAccountRate',sql.Decimal(28,8),business?rate.rateExact8:'1.00000000').query(`
  IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyDatabase COLLATE Latin1_General_100_BIN2
  OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copy AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@actor)
   THROW 51411,'ISOLATED_COPY_ACCOUNT_INTENT_REQUIRED',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.party_currency_accounts WITH(UPDLOCK,HOLDLOCK) WHERE id=@account AND party_entity_id=@entity AND ${role}_id=@party AND ${role==='customer'?'supplier':'customer'}_id IS NULL AND currency_code=@currency AND current_balance IS NOT NULL)
  OR (SELECT COUNT(*) FROM dbo.party_currency_accounts WHERE ${role}_id=@party AND party_entity_id=@entity AND currency_code=@currency)<>1
- OR NOT EXISTS(SELECT 1 FROM dbo.${role==='customer'?'customers':'suppliers'} WHERE id=@party AND party_entity_id=@entity AND currency_code=@currency AND is_active=1 AND is_deleted=0)
+ OR NOT EXISTS(SELECT 1 FROM dbo.${role==='customer'?'customers':'suppliers'} WHERE id=@party AND party_entity_id=@entity ${business?'':'AND currency_code=@currency'} AND is_active=1 AND is_deleted=0)
   THROW 51412,'ISOLATED_COPY_ACCOUNT_IDENTITY',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.${table} m WITH(UPDLOCK,HOLDLOCK) JOIN dbo.stage4_copy_intents n ON n.copy_id=@copy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@actor
   WHERE m.id=@movement AND m.${role}_id=@party AND m.created_by=@actor AND m.created_at>=n.created_at AND m.account_currency=@currency AND m.currency_code=@currency
-  AND CONVERT(decimal(28,8),m.balance_effect)=@effect AND m.account_amount IS NOT NULL AND m.document_exchange_rate_snapshot=1 AND m.account_exchange_rate_snapshot=1
+  AND CONVERT(decimal(28,8),m.balance_effect)=@effect AND m.account_amount IS NOT NULL AND m.document_exchange_rate_snapshot=@copyAccountRate AND m.account_exchange_rate_snapshot=@copyAccountRate
+  ${business?"AND m.account_amount=m.amount AND m.amount_try=ROUND(m.amount*@copyAccountRate,4) AND JSON_VALUE(n.payload_json,'$.businessSupplierId')=CONVERT(nvarchar(20),@party) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@account) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@currency":''}
   AND m.party_entity_id IS NULL AND m.party_currency_account_id IS NULL
   AND m.movement_type IN(N'${role==='customer'?'sales_invoice\',N\'sales_invoice_cancel\',N\'collection\',N\'collection_cancel\',N\'sales_return\',N\'sales_return_cancel':'purchase_invoice\',N\'purchase_invoice_cancel\',N\'payment\',N\'payment_cancel\',N\'purchase_return\',N\'purchase_return_cancel'}'))
   THROW 51413,'ISOLATED_COPY_ACCOUNT_MOVEMENT',1;

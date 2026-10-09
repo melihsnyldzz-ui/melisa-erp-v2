@@ -5,7 +5,9 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const file=fileURLToPath(new URL('./stage4-copy-recovery.ps1',import.meta.url));
 const source=await readFile(file,'utf8');
-const windows=process.platform==='win32';
+// The CI child-process guard intentionally denies PowerShell. Exercise these
+// pure Windows helpers separately; CI keeps the source-boundary assertions.
+const windows=process.platform==='win32'&&process.env.CI!=='true';
 function offline(script){
  const quoted="'"+file.replace(/'/g,"''")+"'";
  const run=spawnSync('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-Command',`$ErrorActionPreference='Stop'; . ${quoted}; ${script}`],{encoding:'utf8',timeout:10000});

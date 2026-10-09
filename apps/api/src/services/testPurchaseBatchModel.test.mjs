@@ -1,7 +1,18 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {normalizeTestBatch,normalizeTestInvoiceDraft,validateTestBatchDecision,testPurchaseRequestHash,testPurchaseReplay,publicBatchContext,publicTestBatch,requiredTestBatch} from './testPurchaseBatchModel.mjs';
+import {normalizeTestBatch,normalizeTestInvoiceDraft,validateTestBatchDecision,testPurchaseRequestHash,testPurchaseReplay,publicBatchContext,publicTestBatch,requiredTestBatch,testBatchPurchasePayload} from './testPurchaseBatchModel.mjs';
 const requestId='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const products=[{id:1},{id:2}],scope={supplierId:3,warehouseId:1};
+test('business invoice uses exact source USD price while preserving TRY inventory cost and dated rate',()=>{
+ const receipt={id:1,state:'accepted',supplierId:30,currency:'USD',lines:[{id:10,productId:1,stockCode:'FIXTURE',productName:'Fixture',invoiceableQuantity:2,purchasePrice:2.5,unitCostTry:9.25}]};
+ const input={requestId,batchId:1,number:'TSTB-USD-1',date:'2026-10-09',currency:'USD',lines:[{receiptLineId:10,quantity:1,purchasePrice:2.5,lineDiscountRate:0}],invoiceDiscountRate:0,vatRate:0};
+ const normalized=normalizeTestInvoiceDraft(input,receipt,{business:true});assert.equal(normalized.lines[0].purchasePrice,2.5);
+ assert.throws(()=>normalizeTestInvoiceDraft(input,receipt),{code:'TEST_COST_SCOPE'});assert.throws(()=>normalizeTestInvoiceDraft({...input,currency:'TRY'},receipt,{business:true}),{code:'TEST_COST_SCOPE'});
+ assert.throws(()=>normalizeTestInvoiceDraft({...input,lines:[{...input.lines[0],purchasePrice:9.25}]},receipt,{business:true}),{code:'TEST_COST_SCOPE'});
+ assert.throws(()=>normalizeTestInvoiceDraft(input,{...receipt,lines:[{...receipt.lines[0],purchasePrice:null}]},{business:true}),{code:'TEST_COST_SCOPE'});
+ const payload=testBatchPurchasePayload(normalized,receipt,'Fixture',{currency:'USD',rate:'47.80000000'});assert.equal(payload.documentCurrency,'USD');assert.equal(payload.supplierCurrency,'USD');assert.equal(payload.exchangeRate,47.8);assert.equal(payload.accountExchangeRate,47.8);assert.equal(payload.items[0].purchasePrice,2.5);assert.equal(payload.items[0].stockEffect,'goods_receipt_already_posted');
+ assert.throws(()=>testBatchPurchasePayload(normalized,receipt,'Fixture',{currency:'USD',rate:null}),{code:'TEST_RATE_SCOPE'});
+ const limited=publicBatchContext({products:[{id:1,purchasePrice:2.5,unitCostTry:9.25}],batches:[receipt],invoiceDrafts:[]},false);assert(!JSON.stringify(limited).includes('unitCostTry'));assert(!JSON.stringify(limited).includes('purchasePrice'));
+});
 const batchInput=()=>({requestId,supplierId:3,warehouseId:1,note:'Sayım',lines:[{clientLineId:'a',productId:1,quantity:2,unit:'ADET'},{clientLineId:'b',productId:2,quantity:3,unit:'ADET'}]});
 const batch={id:4,state:'accepted',lines:[{id:8,productId:1,purchasePrice:60,invoiceableQuantity:2},{id:9,productId:2,purchasePrice:80,invoiceableQuantity:3}]};
 const draftInput=()=>({requestId,batchId:4,number:'TSTB-01',date:'2026-10-04',currency:'TRY',invoiceDiscountRate:0,vatRate:0,lines:[{receiptLineId:8,quantity:2,purchasePrice:60,lineDiscountRate:0},{receiptLineId:9,quantity:3,purchasePrice:80,lineDiscountRate:0}]});

@@ -6,9 +6,11 @@ export const ISOLATED_COPY_DATABASE='MELISA_ERP_STAGE04_COPY_TEST_20261008_01';
 export const ISOLATED_COPY_SOURCE_DATABASE='MELISA_ERP_SIRKET_TEST_20260929_01';
 export const ISOLATED_COPY_SERVER='Semih\\MELISADEV';
 export const SHARED_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_01';
+export const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 const copyTopologies=Object.freeze({
  [ISOLATED_COPY_DATABASE]:Object.freeze({apiPort:4154,nativePort:4156,webPort:5204,reader:'melisa_stage4_copy_ro_20261008_01',writer:'melisa_stage4_copy_rw_20261008_01',date:'2026-10-08'}),
- [SHARED_COPY_DATABASE]:Object.freeze({apiPort:4174,nativePort:4176,webPort:5224,reader:'melisa_shared_test_ro_20261009_01',writer:'melisa_shared_test_rw_20261009_01',date:'2026-10-09'})
+ [SHARED_COPY_DATABASE]:Object.freeze({apiPort:4174,nativePort:4176,webPort:5224,reader:'melisa_shared_test_ro_20261009_01',writer:'melisa_shared_test_rw_20261009_01',date:'2026-10-09'}),
+ [BUSINESS_COPY_DATABASE]:Object.freeze({apiPort:4184,nativePort:4186,webPort:5234,reader:'melisa_shared_test_ro_20261009_02',writer:'melisa_shared_test_rw_20261009_02',date:'2026-10-09'})
 });
 export const ISOLATED_COPY_PROCEDURES=Object.freeze({ready:'dbo.usp_stage4_copy_ready',context:'dbo.usp_stage4_copy_context',begin:'dbo.usp_stage4_copy_begin',effects:'dbo.usp_stage4_copy_effects'});
 const registered=new WeakSet();
@@ -24,7 +26,7 @@ const hash=v=>typeof v==='string'&&/^[A-Fa-f0-9]{64}$/.test(v);
 export const isolatedCopyUUID=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v);
 const currency=v=>['TRY','USD','EUR'].includes(v);
 function freeze(v){if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;}
-function unique(rows,key,code){copyAssert(Array.isArray(rows)&&rows.length>0&&rows.length<=50,code);const keys=new Set();for(const r of rows){copyAssert(r&&id(r[key])&&!keys.has(r[key]),code);keys.add(r[key]);}}
+function unique(rows,key,code,max=50){copyAssert(Array.isArray(rows)&&rows.length>0&&rows.length<=max,code);const keys=new Set();for(const r of rows){copyAssert(r&&id(r[key])&&!keys.has(r[key]),code);keys.add(r[key]);}}
 
 // This is server configuration, never a request-body profile. Keep the original
 // TEST and every LIVE target outside this finite, dated copy contract.
@@ -33,20 +35,29 @@ export function validateIsolatedOperationCopyContext(input){
  copyAssert(isolatedCopyUUID(input.copyId)&&hash(input.backupSHA)&&input.sourceDatabase===ISOLATED_COPY_SOURCE_DATABASE&&/^[a-f0-9]{40}$/.test(input.sourceCommit??'')&&/^PRODUCT-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.currentProductSourceVersionRunId??''),'ISOLATED_COPY_ORIGIN');
  const target=input.target;
  const topology=copyTopologies[target?.database];
- copyAssert(target?.server===ISOLATED_COPY_SERVER&&topology&&typeof target.login==='string'&&(target.database===SHARED_COPY_DATABASE?target.login===topology.writer:/^melisa_stage4_copy_[a-z0-9_]{1,64}$/.test(target.login))&&target.databaseUser===target.login,'ISOLATED_COPY_TARGET');
+ const business=target?.database===BUSINESS_COPY_DATABASE;
+ copyAssert(target?.server===ISOLATED_COPY_SERVER&&topology&&typeof target.login==='string'&&([SHARED_COPY_DATABASE,BUSINESS_COPY_DATABASE].includes(target.database)?target.login===topology.writer:/^melisa_stage4_copy_[a-z0-9_]{1,64}$/.test(target.login))&&target.databaseUser===target.login,'ISOLATED_COPY_TARGET');
+ if(business)copyAssert(input.scopeKind==='VERIFIED_BUSINESS_TEST'&&hash(input.businessScopeHash)&&input.date===topology.date&&input.externalOperations===false&&input.humanAccepted===false,'ISOLATED_COPY_BUSINESS_SCOPE');
+ if(business){
+  copyAssert(input.businessInvoiceMaxExact4==='20000.0000','ISOLATED_COPY_BUSINESS_LIMIT');
+  const rates=input.currencyRates;
+  copyAssert(Array.isArray(rates)&&rates.length>=2&&rates.length<=3&&new Set(rates.map(r=>r.currency)).size===rates.length&&rates.some(r=>r.currency==='TRY'&&r.rateExact8==='1.00000000'),'ISOLATED_COPY_BUSINESS_RATES');
+  for(const r of rates)copyAssert(currency(r.currency)&&typeof r.rateExact8==='string'&&/^(?:0|[1-9]\d*)\.\d{8}$/.test(r.rateExact8)&&BigInt(r.rateExact8.replace('.',''))>0n&&typeof r.source==='string'&&r.source.trim()&&/^\d{4}-\d{2}-\d{2}$/.test(r.date??'')&&Number.isFinite(Date.parse(r.date))&&new Date(r.date).toISOString().slice(0,10)===r.date&&r.date<=input.date&&(r.id===null&&r.currency==='TRY'&&r.source==='IDENTITY_TRY'||id(r.id)),'ISOLATED_COPY_BUSINESS_RATES');
+ }
  copyAssert(typeof input.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&Number.isFinite(Date.parse(input.date))&&new Date(input.date).toISOString().slice(0,10)===input.date,'ISOLATED_COPY_DATE');
  if(target.database===SHARED_COPY_DATABASE)copyAssert(input.date===topology.date&&input.actors?.length===2&&input.products?.length===2&&input.products.every(p=>['29980','30003'].includes(p.id))&&input.customers?.length===1&&input.customers[0].id==='210'&&input.customers[0].currency==='TRY'&&input.suppliers?.length===1&&input.suppliers[0].id==='10162'&&input.suppliers[0].currency==='TRY'&&input.financeAccounts?.length===1&&input.financeAccounts[0].id==='20043'&&input.financeAccounts[0].currency==='TRY','ISOLATED_COPY_SHARED_FINITE_SCOPE');
  unique(input.actors,'id','ISOLATED_COPY_ACTORS');
  copyAssert(input.actors.every(a=>['15','16'].includes(a.id)&&a.role===(a.id==='15'?'isolated_test_sales':'isolated_test_ilker')),'ISOLATED_COPY_ACTORS');
- unique(input.products,'id','ISOLATED_COPY_PRODUCTS');
+ unique(input.products,'id','ISOLATED_COPY_PRODUCTS',business?20000:50);
  for(const p of input.products){
   copyAssert(p.unit==='ADET'&&p.unitFactorExact8==='1.00000000'&&typeof p.stockCode==='string'&&p.stockCode.trim()&&typeof p.sourceKey==='string'&&/^VEGA2026\/F0102TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey)&&hash(p.beforeHash),'ISOLATED_COPY_PRODUCT_IDENTITY');
-  copyAssert(Array.isArray(p.priceIds)&&p.priceIds.length>0&&p.priceIds.every(id)&&new Set(p.priceIds).size===p.priceIds.length,'ISOLATED_COPY_PRICE_BINDING');
+  copyAssert(Array.isArray(p.priceIds)&&(business||p.priceIds.length>0)&&p.priceIds.every(id)&&new Set(p.priceIds).size===p.priceIds.length,'ISOLATED_COPY_PRICE_BINDING');
   copyAssert(Array.isArray(p.barcodes)&&p.barcodes.every(b=>typeof b==='string'&&b.length>0&&b.length<=80)&&new Set(p.barcodes).size===p.barcodes.length,'ISOLATED_COPY_BARCODES');
  }
  for(const [name,company] of [['customers','F0102'],['suppliers','F0103']]){
-  unique(input[name],'accountId','ISOLATED_COPY_PARTY_ACCOUNTS');
+  unique(input[name],'accountId','ISOLATED_COPY_PARTY_ACCOUNTS',business?2000:50);
   for(const p of input[name])copyAssert(id(p.id)&&id(p.partyId)&&currency(p.currency)&&typeof p.sourceKey==='string'&&new RegExp('^VEGA2026/'+company+'TBLCARI/[1-9]\\d*$').test(p.sourceKey)&&hash(p.beforeHash)&&hash(p.accountBeforeHash),'ISOLATED_COPY_PARTY_IDENTITY');
+  if(business)copyAssert(input[name].every(p=>!(name==='customers'&&['591','592'].includes(p.id))&&p.sourceKnown===true&&hash(p.sourceWitnessHash)),'ISOLATED_COPY_BUSINESS_PARTY_WITNESS');
  }
  unique(input.financeAccounts,'id','ISOLATED_COPY_FINANCE_ACCOUNTS');
  copyAssert(input.financeAccounts.every(a=>currency(a.currency)&&hash(a.beforeHash)),'ISOLATED_COPY_FINANCE_ACCOUNTS');
@@ -94,10 +105,10 @@ export function bindIsolatedCopyOperationDTO(context,dto){
   copyAssert(scoped(dto.scope),'ISOLATED_COPY_DTO_ORIGIN');
   if(dto.scope.products){
    const products=dto.scope.products;
-   copyAssert(Array.isArray(products)&&products.length===context.products.length&&new Set(products.map(p=>p.id)).size===products.length,'ISOLATED_COPY_DTO_PRODUCTS');
+   copyAssert(Array.isArray(products)&&(context.target.database===BUSINESS_COPY_DATABASE?products.length>0&&products.length<=context.products.length:products.length===context.products.length)&&new Set(products.map(p=>p.id)).size===products.length,'ISOLATED_COPY_DTO_PRODUCTS');
    for(const p of products){const sealed=context.products.find(v=>v.id===p.id);copyAssert(sealed&&scoped(p)&&p.writeEligible===true&&p.stockCode===sealed.stockCode&&p.unit?.label===sealed.unit&&p.unit.factorExact8===sealed.unitFactorExact8,'ISOLATED_COPY_DTO_PRODUCTS');
     copyAssert(p.barcode==null||sealed.barcodes.includes(p.barcode),'ISOLATED_COPY_DTO_BARCODES');
-    if(p.prices)copyAssert(Array.isArray(p.prices)&&p.prices.length>0&&p.prices.every(q=>sealed.priceIds.includes(q.quoteId)&&q.currency==='TRY'&&typeof q.unitPriceExact8==='string'&&/^(?:0|[1-9]\d*)\.\d{8}$/.test(q.unitPriceExact8)&&q.source?.kind==='isolated-test-copy'&&q.source.copyId===context.copyId&&q.source.sealHash===context.sealHash),'ISOLATED_COPY_DTO_QUOTES');
+    if(p.prices)copyAssert(Array.isArray(p.prices)&&p.prices.length>0&&p.prices.every(q=>sealed.priceIds.includes(q.quoteId)&&(context.target.database===BUSINESS_COPY_DATABASE?currency(q.currency):q.currency==='TRY')&&typeof q.unitPriceExact8==='string'&&/^(?:0|[1-9]\d*)\.\d{8}$/.test(q.unitPriceExact8)&&q.source?.kind==='isolated-test-copy'&&q.source.copyId===context.copyId&&q.source.sealHash===context.sealHash),'ISOLATED_COPY_DTO_QUOTES');
    }
   }
   for(const [name,key] of [['customers','customer'],['suppliers','supplier']]){const p=dto.scope[key];if(p)copyAssert(scoped(p)&&context[name].some(v=>v.id===p.id&&v.currency===p.currency),'ISOLATED_COPY_DTO_PARTY');}

@@ -1,4 +1,4 @@
-import {homeCapabilities,homeError} from './homeSummaryModel.mjs';
+import {homeCapabilities,businessInboundHomeCapabilities,homeError} from './homeSummaryModel.mjs';
 import {assertIsolatedCopyContext} from './isolatedOperationCopyContext.mjs';
 import {createIsolatedOperationCopyStore} from './isolatedOperationCopyStore.mjs';
 async function defaultRuntime(){const db=await import('../config/database.js');if(db.isIsolatedOperationCopyRuntime())return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),copyContext:assertIsolatedCopyContext(db.getIsolatedOperationCopyConfig())};if(!db.isCanonicalTest())throw homeError();return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
@@ -86,12 +86,37 @@ SELECT TOP(5) id,kind,state,[date] FROM(
  UNION ALL SELECT N'purchase-draft:'+CONVERT(varchar(20),h.id),N'purchase-draft',N'draft',CONVERT(varchar(10),h.document_date,23),4 FROM dbo.purchase_invoices h JOIN @Purchases o ON o.id=h.id WHERE @purchase=1 AND h.status=N'draft'
 ) jobs ORDER BY priority,id;`;
 
+// Only copy-owned inbound journal rows enter this summary. Restored historical
+// counts, fixtures, sales and financial aggregates remain outside this scope.
+export const BUSINESS_INBOUND_HOME_SUMMARY_SQL=`
+DECLARE @BusinessInbound TABLE(id bigint PRIMARY KEY);
+INSERT @BusinessInbound SELECT DISTINCT c.id FROM dbo.work_inbound_counts c JOIN dbo.work_business_count_bindings binding ON binding.count_id=c.id WHERE (c.created_by=@actor OR @actor=16) AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.operation=N'count_create' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.draft.id'))=c.id);
+DECLARE @BusinessBatches TABLE(id bigint PRIMARY KEY);
+INSERT @BusinessBatches SELECT DISTINCT b.id FROM dbo.test_goods_batches b WHERE (b.created_by=@actor OR @actor=16) AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.operation=N'count_submit' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.receipt.id'))=b.id);
+DECLARE @BusinessPurchases TABLE(id bigint PRIMARY KEY);
+INSERT @BusinessPurchases SELECT DISTINCT p.id FROM dbo.purchase_invoices p WHERE @purchase=1 AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.operation=N'purchase_draft' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.id'))=p.id);
+SELECT CAST(NULL AS bigint) salesCount,CAST(NULL AS bigint) salesCancelledCount,
+ CASE WHEN @goods=1 THEN(SELECT COUNT_BIG(*) FROM dbo.test_goods_batches b JOIN @BusinessBatches own ON own.id=b.id WHERE b.state=N'pending') END goodsPendingCount,
+ CAST(NULL AS bigint) salesReturnCount,CAST(NULL AS bigint) purchaseReturnCount,CAST(NULL AS bigint) returnCancelledCount,CAST(NULL AS bigint) countPendingCount,
+ CASE WHEN @approval=1 THEN(SELECT COUNT_BIG(*) FROM dbo.test_goods_batches b JOIN @BusinessBatches own ON own.id=b.id WHERE b.state=N'pending') END approvalPendingCount;
+SELECT CAST(NULL AS nvarchar(3)) currency,CAST(NULL AS varchar(20)) knownCount,CAST(NULL AS varchar(20)) unknownCount,CAST(NULL AS varchar(64)) amountExact4 WHERE 1=0;
+SELECT CAST(NULL AS nvarchar(3)) currency,CAST(NULL AS varchar(20)) knownCount,CAST(NULL AS varchar(20)) unknownCount,CAST(NULL AS varchar(64)) amountExact4 WHERE 1=0;
+SELECT CAST(NULL AS nvarchar(3)) currency,CAST(NULL AS varchar(20)) knownCount,CAST(NULL AS varchar(20)) unknownCount,CAST(NULL AS varchar(64)) amountExact4 WHERE 1=0;
+SELECT CAST(NULL AS nvarchar(3)) currency,CAST(NULL AS varchar(20)) knownCount,CAST(NULL AS varchar(20)) unknownCount,CAST(NULL AS varchar(64)) amountExact4 WHERE 1=0;
+SELECT TOP(5) id,kind,state,[date] FROM(
+ SELECT N'inbound-count:'+CONVERT(varchar(20),c.id) id,N'goods' kind,N'draft' state,CAST(NULL AS varchar(10)) [date],1 priority FROM dbo.work_inbound_counts c JOIN @BusinessInbound own ON own.id=c.id WHERE @goods=1 AND c.state IN(N'draft',N'needs_review')
+ UNION ALL SELECT N'goods-batch:'+CONVERT(varchar(20),b.id),N'goods',N'pending',NULL,2 FROM dbo.test_goods_batches b JOIN @BusinessBatches own ON own.id=b.id WHERE @goods=1 AND b.state=N'pending'
+ UNION ALL SELECT N'purchase-draft:'+CONVERT(varchar(20),p.id),N'purchase-draft',N'draft',CONVERT(varchar(10),p.document_date,23),3 FROM dbo.purchase_invoices p JOIN @BusinessPurchases own ON own.id=p.id WHERE @purchase=1 AND p.status=N'draft'
+)jobs ORDER BY priority,id;`;
+
 async function readCopyHome(runtime,{actorId,sessionPermissions}){
  const copy=assertIsolatedCopyContext(runtime.copyContext),actor={id:actorId,permissions:sessionPermissions};
- const store=createIsolatedOperationCopyStore({getRuntime:async()=>runtime,domain:'daily',readPermission:'product.view',buildDomain:async({context,actual,request})=>({context,summary:async()=>{
-  const capabilities=homeCapabilities(actual.permissions,sessionPermissions),sql=runtime.sql,req=request().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('date',sql.Date,copy.date);
+ const business=copy.target.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
+ const store=createIsolatedOperationCopyStore({getRuntime:async()=>runtime,domain:business?'inbound':'daily',readPermission:business?'goods.view':'product.view',buildDomain:async({context,actual,request})=>({context,summary:async()=>{
+  const capabilities=business?businessInboundHomeCapabilities(actual.permissions,sessionPermissions,actorId):homeCapabilities(actual.permissions,sessionPermissions),sql=runtime.sql,req=request().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('date',sql.Date,copy.date);
+  if(business)req.input('actor',sql.BigInt,actorId);
   for(const [key,name] of Object.entries({sales:'sales',goods:'goods',purchase:'purchase',finance:'finance',count:'count',approval:'approval',approveGoods:'approve_goods',salesReturn:'sales_return',purchaseReturn:'purchase_return'}))req.input(name,sql.Bit,capabilities[key]);
-  const sets=(await req.query(COPY_HOME_SUMMARY_SQL)).recordsets;if(!Array.isArray(sets)||sets.length!==6||sets[0]?.length!==1)throw homeError();
-  return {capabilities,counts:sets[0][0],salesTotals:sets[1],collections:sets[2],payments:sets[3],reversals:sets[4],tasks:sets[5],copyMeta:{operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash,date:copy.date}};
+  const sets=(await req.query(business?BUSINESS_INBOUND_HOME_SUMMARY_SQL:COPY_HOME_SUMMARY_SQL)).recordsets;if(!Array.isArray(sets)||sets.length!==6||sets[0]?.length!==1)throw homeError();
+  return {capabilities,counts:sets[0][0],salesTotals:sets[1],collections:sets[2],payments:sets[3],reversals:sets[4],tasks:sets[5],copyMeta:{operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash,date:copy.date,...(business?{scopeKind:copy.scopeKind}:{} )}};
  }})});return store.read(actor,c=>c.summary());
 }

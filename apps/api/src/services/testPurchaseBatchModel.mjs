@@ -9,8 +9,8 @@ export function validateRequestId(value){if(typeof value!=='string'||!/^[a-zA-Z0
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 export function testPurchaseRequestHash(input,operation){validateRequestId(input?.requestId);return createHash('sha256').update(JSON.stringify(canonical({...input,operation}))).digest('hex');}
 export function testPurchaseReplay(record,payloadHash,actorId){if(record.payload_hash!==payloadHash||Number(record.actor_id)!==Number(actorId))fail('REQUEST_CONFLICT','İstek kimliği farklı işlemde kullanıldı.',409);return {...JSON.parse(record.response_json),replayed:true};}
-export function publicTestBatch(batch,canViewPurchase){if(canViewPurchase)return batch;return {...batch,lines:batch.lines.map(({purchasePrice,...line})=>line)};}
-export function publicBatchContext(context,canViewPurchase){if(canViewPurchase)return context;const withoutPrice=({purchasePrice,...row})=>row;return {...context,products:context.products.map(withoutPrice),batches:context.batches.map(b=>publicTestBatch(b,false)),invoiceDrafts:[]};}
+export function publicTestBatch(batch,canViewPurchase){if(canViewPurchase)return batch;return {...batch,lines:batch.lines.map(({purchasePrice,unitCostTry,...line})=>line)};}
+export function publicBatchContext(context,canViewPurchase){if(canViewPurchase)return context;const withoutPrice=({purchasePrice,unitCostTry,...row})=>row;return {...context,products:context.products.map(withoutPrice),batches:context.batches.map(b=>publicTestBatch(b,false)),invoiceDrafts:[]};}
 export async function requiredTestBatch(load,id){positiveId(id);const context=await load(id),batch=context.batches.find(b=>b.id===id);if(!batch)fail('GOODS_NOT_FOUND','Sentetik kabul bulunamadı.',404);return {context,batch};}
 function quantity(value){if(!Number.isSafeInteger(value)||value<1||value>5)fail('TEST_QUANTITY','Satır başına 1–5 ADET gerekli.');return value;}
 function lines(value){if(!Array.isArray(value)||value.length<1||value.length>2)fail('TEST_LINES','Bir veya iki farklı ürün satırı gerekli.');return value;}
@@ -28,21 +28,21 @@ export function normalizeTestBatch(input,products,scope){
  });
  return {...input,note:input.note||'',lines:normalized};
 }
-export function normalizeTestInvoiceDraft(input,batch){
+export function normalizeTestInvoiceDraft(input,batch,{business=false}={}){
  strictFields(input,['requestId','batchId','number','date','currency','lines','invoiceDiscountRate','vatRate']);validateRequestId(input.requestId);
  if(positiveId(input.batchId)!==batch.id||batch.state!=='accepted')fail('TEST_RECEIPT_STATE','Fatura için onaylı kabul gerekli.',409);
  if(typeof input.number!=='string'||!/^TSTB-[A-Za-z0-9-]{1,24}$/.test(input.number))fail('DOCUMENT_NUMBER','TEST fatura numarası TSTB- ile başlamalı.');
  if(typeof input.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(input.date)||!Number.isFinite(Date.parse(input.date+'T00:00:00Z'))||new Date(input.date+'T00:00:00Z').toISOString().slice(0,10)!==input.date)fail('TEST_DATE','Geçerli fatura tarihi gerekli.');
- if(input.currency!=='TRY'||input.invoiceDiscountRate!==0||input.vatRate!==0)fail('TEST_COST_SCOPE','Bu sentetik kapsam TRY, iskonto 0 ve açık KDV 0.');
+ if(input.currency!==(business?batch.currency:'TRY')||!['TRY','USD','EUR'].includes(input.currency)||input.invoiceDiscountRate!==0||input.vatRate!==0)fail('TEST_COST_SCOPE','Doğrulanmış kabul dövizi, iskonto 0 ve açık KDV 0 gerekli.');
  const seen=new Set();
  const normalized=lines(input.lines).map(line=>{
   strictFields(line,['receiptLineId','quantity','purchasePrice','lineDiscountRate']);const id=positiveId(line.receiptLineId),receipt=batch.lines.find(r=>r.id===id);
   if(!receipt||seen.has(id))fail('TEST_RECEIPT_LINK','Kabul satırı tekil ve aynı kabulden olmalı.',409);seen.add(id);
   const qty=quantity(line.quantity);if(qty>receipt.invoiceableQuantity)fail('TEST_INVOICE_QUANTITY','Fatura miktarı kabulün kalanını aşıyor.',409);
-  if(line.purchasePrice!==receipt.purchasePrice||line.lineDiscountRate!==0)fail('TEST_COST_SCOPE','Kaynak sentetik fiyat ve iskonto 0 gerekli.');
+  if(business&&(receipt.purchasePrice==null||!Number.isFinite(receipt.purchasePrice)||receipt.purchasePrice<=0)||line.purchasePrice!==receipt.purchasePrice||line.lineDiscountRate!==0)fail('TEST_COST_SCOPE','Doğrulanmış aynı döviz kaynak alış fiyatı ve iskonto 0 gerekli.');
   return {...line,productId:receipt.productId,stockCode:receipt.stockCode,productName:receipt.productName};
  });
- return {...input,lines:normalized};
+ if(business&&normalized.reduce((sum,l)=>sum+l.quantity*l.purchasePrice,0)>20000)fail('TEST_AMOUNT_SCOPE','Kayıtlı TEST belge tutar sınırı aşıldı.',409);return {...input,lines:normalized};
 }
 export function validateTestBatchDecision(input,reject=false){strictFields(input,['requestId','reason']);validateRequestId(input.requestId);if(reject&&(typeof input.reason!=='string'||input.reason.trim().length<5||input.reason.length>500))fail('TEST_REASON','En az 5 karakter gerekçe gerekli.');}
-export function testBatchPurchasePayload(input,batch,supplierName){return {documentNo:input.number,documentDate:input.date,supplierId:batch.supplierId,supplierName,supplierCurrency:'TRY',documentCurrency:'TRY',exchangeRate:1,accountExchangeRate:1,invoiceDiscountRate:0,supplierDiscountRate:0,description:`Sentetik TEST batch #${batch.id}; stok kabulde işlendi`,items:input.lines.map(l=>({productId:l.productId,stockCode:l.stockCode,productName:l.productName,quantity:l.quantity,currency:'TRY',purchasePrice:l.purchasePrice,lineDiscountRate:0,stockEffect:'goods_receipt_already_posted'}))};}
+export function testBatchPurchasePayload(input,batch,supplierName,selection){const currency=selection?.currency??'TRY',rate=selection?Number(selection.rate):1;if(!['TRY','USD','EUR'].includes(currency)||input.currency!==currency||!Number.isFinite(rate)||rate<=0||(currency==='TRY'&&rate!==1))fail('TEST_RATE_SCOPE','Doğrulanmış tarihli TEST döviz kuru gerekli.',409);return {documentNo:input.number,documentDate:input.date,supplierId:batch.supplierId,supplierName,supplierCurrency:currency,documentCurrency:currency,exchangeRate:rate,accountExchangeRate:rate,invoiceDiscountRate:0,supplierDiscountRate:0,description:`Sentetik TEST batch #${batch.id}; stok kabulde işlendi`,items:input.lines.map(l=>({productId:l.productId,stockCode:l.stockCode,productName:l.productName,quantity:l.quantity,currency,purchasePrice:l.purchasePrice,lineDiscountRate:0,stockEffect:'goods_receipt_already_posted'}))};}

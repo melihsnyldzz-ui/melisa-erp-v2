@@ -1,5 +1,10 @@
 export const testSessionModeKey = 'melisaTestSessionMode';
 export function resolveTestApiBase({location,apiBase}){
+ if(location?.protocol==='http:'&&location.port==='5234'){
+  if(['127.0.0.1','localhost'].includes(location.hostname))return apiBase==='http://127.0.0.1:4184'?apiBase:null;
+  if(location.hostname==='192.168.1.46'&&['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase))return 'http://192.168.1.46:4184';
+  return null;
+ }
  if(location?.protocol==='http:'&&location.port==='5224'){
   if(['127.0.0.1','localhost'].includes(location.hostname))return apiBase==='http://127.0.0.1:4174'?apiBase:null;
   if(location.hostname==='192.168.1.46'&&['http://127.0.0.1:4174','http://192.168.1.46:4174'].includes(apiBase))return 'http://192.168.1.46:4174';

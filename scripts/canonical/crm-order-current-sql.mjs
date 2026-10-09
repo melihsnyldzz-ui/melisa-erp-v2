@@ -3,11 +3,17 @@
 import {createHash} from 'node:crypto';
 import {buildCrmV2Procedures,buildCrmV2Guards,CRM_V2_TARGET_SQL,CRM_V2_READY_SQL,CRM_V2_PRODUCT_PROOF_SQL} from './crm-order-v2-sql.mjs';
 import {CUSTOMER_CARD_READY_SQL} from '../../apps/api/src/services/customerCardReadStore.mjs';
-import {assertCrmOrderCurrentContext,CRM_SHARED_SOURCE_DATABASE,CRM_CURRENT_PROCEDURES,crmOrderCurrentSource,crmOrderCurrentSourceHash} from '../../apps/api/src/services/crmOrderCurrentContext.mjs';
+import {assertCrmOrderCurrentContext,CRM_SHARED_SOURCE_DATABASE,CRM_EXTENDED_DATABASE,CRM_CURRENT_PROCEDURES,crmOrderCurrentSource,crmOrderCurrentSourceHash} from '../../apps/api/src/services/crmOrderCurrentContext.mjs';
 import {SOURCE_VERSION_TABLES,sourceVersionImmutableSql} from '../migration/goal7-source-version.mjs';
 const q=v=>"N'"+v.replaceAll("'","''")+"'";
 const hash=v=>createHash('sha256').update(v,'utf16le').digest('hex').toUpperCase();
 const originalGuardHash='9AE41CA1AB25EE165019AD04DBD9A6FB4E5B7190F027E0A07A87FB03D698379E';
+const exact=(a,b)=>`CONVERT(varbinary(max),${a})=CONVERT(varbinary(max),${b})`;
+const approvedConversationSql=(context,conversation,peer)=>`IF NOT EXISTS(SELECT 1 FROM(VALUES ${context.approvedConversations.map(e=>`(${q(e.conversationId)},${q(e.peer)})`).join(',')}) approved(conversation_id,peer) WHERE ${exact('approved.conversation_id',conversation)} AND ${exact('approved.peer',peer)}) THROW 51201,'CRM_V2_ACCESS_DENIED',1;`;
+const excludedCustomerSql=`c.id NOT IN(591,592) AND NOT EXISTS(SELECT 1 FROM dbo.party_source_links excluded WITH(HOLDLOCK) WHERE excluded.customer_id=c.id AND excluded.source_currency=N'LL')`;
+// Draft selection requires an exact imported native/source account link; it never
+// converts an unsupported account or fabricates a missing opening balance.
+const eligibleAccountSql=`a.supplier_id IS NULL AND (a.customer_id=c.id OR (a.customer_id IS NULL AND a.party_entity_id=c.party_entity_id)) AND a.currency_code IN(N'TRY',N'USD',N'EUR') AND a.balance_status=N'IMPORTED_LEDGER_SUM_PENDING_INDEPENDENT_VERIFICATION' AND a.source_record_key IS NOT NULL AND (SELECT COUNT(*) FROM dbo.party_source_links al WITH(HOLDLOCK) WHERE al.customer_id=c.id AND al.supplier_id IS NULL AND al.source_company=N'F0102' AND al.party_entity_id=c.party_entity_id AND c.source_record_key=N'VEGA2026/F0102TBLCARI/'+CONVERT(nvarchar(30),al.source_id) AND (SELECT COUNT(*) FROM erp_migration.records source_account WITH(HOLDLOCK) WHERE source_account.run_id=N'VEGA-OPENING-TEST-20261004-06' AND source_account.entity=N'accounts' AND LOWER(CONVERT(varchar(64),HASHBYTES('SHA2_256',CONVERT(varchar(max),source_account.payload_json COLLATE Latin1_General_100_BIN2_UTF8)),2))=LOWER(source_account.payload_hash) AND JSON_VALUE(source_account.payload_json,'$.role')=N'customer' AND JSON_VALUE(source_account.payload_json,'$.party_source_key')=N'VEGA_CAPTURE_20260930_01/F0102/TBLCARI/'+CONVERT(nvarchar(30),al.source_id) AND JSON_VALUE(source_account.payload_json,'$.currency_code')=a.currency_code AND JSON_VALUE(source_account.payload_json,'$.balance_status')=N'SOURCE' AND TRY_CONVERT(decimal(28,8),JSON_VALUE(source_account.payload_json,'$.balance')) IS NOT NULL)=1)=1 AND (SELECT COUNT(*) FROM dbo.party_currency_accounts other WITH(HOLDLOCK) WHERE other.supplier_id IS NULL AND (other.customer_id=c.id OR (other.customer_id IS NULL AND other.party_entity_id=c.party_entity_id)) AND other.currency_code=a.currency_code)=1`;
 function target(context,requireLogin=true){const t=assertCrmOrderCurrentContext(context).target;return `IF DB_NAME() COLLATE Latin1_General_100_BIN2<>${q(t.database)} OR CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) COLLATE Latin1_General_100_BIN2<>${q(t.server)}${requireLogin?` OR ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>${q(t.login)}`:''} THROW 51200,'CRM_V2_TARGET_UNAVAILABLE',1;`;}
 const registryReady=`IF (SELECT COUNT(*) FROM dbo.crm_order_current_definitions WITH(HOLDLOCK))<>5 OR EXISTS(SELECT 1 FROM dbo.crm_order_current_definitions d WITH(HOLDLOCK) WHERE OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name)) IS NULL OR d.definition_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name))),2) OR (OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'ExecIsTriggerDisabled')<>0)) THROW 51207,'CRM_V2_NOT_READY',1;`;
 export function crmOrderCurrentReadySql(context){
@@ -59,6 +65,21 @@ export function buildCrmOrderCurrentProcedures(context){
   if(name.endsWith('_customers'))text=text.replace('SELECT (SELECT @phone phone,',`SELECT (SELECT JSON_QUERY(${q(sourceJSON)}) currentSource,@phone phone,`);
   if(name.endsWith('_create'))text=text.replace('DELETE dbo.crm_order_v2_intents WHERE request_id=@request_id',`INSERT dbo.crm_order_current_sources(request_id,source_json,source_hash) VALUES(@request_id,${q(sourceJSON)},'${hash(sourceJSON)}');\nDELETE dbo.crm_order_v2_intents WHERE request_id=@request_id`);
   if(name.endsWith('_read'))text=text.replace('SELECT (SELECT JSON_QUERY(@body) request,',`${registryReady}\n${writerGuards(context)}\nIF EXISTS(SELECT 1 FROM dbo.crm_order_current_sources s WITH(HOLDLOCK) WHERE s.request_id=@request_id AND (ISJSON(s.source_json)<>1 OR CONVERT(char(64),HASHBYTES('SHA2_256',s.source_json),2)<>s.source_hash)) THROW 51207,'CRM_V2_NOT_READY',1;\nSELECT (SELECT JSON_QUERY((SELECT s.source_json FROM dbo.crm_order_current_sources s WHERE s.request_id=@request_id)) currentSource,JSON_QUERY(@body) request,`);
+  if(context.target.database===CRM_EXTENDED_DATABASE){
+   if(name.endsWith('_customers')){
+    text=text.replace('@source_context_hash char(64),','@source_context_hash char(64),@conversation_id nvarchar(20),')
+     .replace('IF @phone IS NULL',`${approvedConversationSql(context,'@conversation_id','@phone')}\nIF @phone IS NULL`)
+     .replaceAll("c.currency_code IN(N'TRY',N'USD',N'EUR')",`${excludedCustomerSql} AND EXISTS(SELECT 1 FROM dbo.party_currency_accounts a WITH(HOLDLOCK) WHERE ${eligibleAccountSql})`)
+     .replace('c.currency_code currency','account.currency_code currency')
+     .replace('revision FROM dbo.customers c WITH(HOLDLOCK) WHERE',`revision FROM dbo.customers c WITH(HOLDLOCK) CROSS APPLY(SELECT a.currency_code FROM dbo.party_currency_accounts a WITH(HOLDLOCK) WHERE ${eligibleAccountSql}) account WHERE`);
+   }
+   if(name.endsWith('_create')){
+    text=text.replace('BEGIN TRY BEGIN TRANSACTION;',`${approvedConversationSql(context,"JSON_VALUE(@body_json,'$.conversationId')","JSON_VALUE(@body_json,'$.peer')")}\nBEGIN TRY BEGIN TRANSACTION;`)
+     .replace("c.currency_code IN(N'TRY',N'USD',N'EUR')",`${excludedCustomerSql} AND EXISTS(SELECT 1 FROM dbo.party_currency_accounts a WITH(HOLDLOCK) WHERE ${eligibleAccountSql} AND ${exact('a.currency_code','@currency')})`)
+     .replace("SELECT @document,CONVERT(date,SYSUTCDATETIME()),@customer,N'draft',currency_code,@currency", "SELECT @document,CONVERT(date,SYSUTCDATETIME()),@customer,N'draft',@currency,@currency");
+   }
+   if(name.endsWith('_read'))text=text.replace("IF NOT EXISTS(SELECT 1 FROM dbo.sales_orders o",`${approvedConversationSql(context,"JSON_VALUE(@body,'$.conversationId')","JSON_VALUE(@body,'$.peer')")}\nIF NOT EXISTS(SELECT 1 FROM dbo.sales_orders o`);
+  }
   out[CRM_CURRENT_PROCEDURES[name.endsWith('_customers')?'customers':name.endsWith('_create')?'create':'read'].slice(4)]=text;
  }
  return out;

@@ -19,10 +19,28 @@ test('personnel receiving stays nonfinancial even when existing purchase.view is
  const f=fixture(),data=await f.service.context(seller);assert.equal(data.capabilities.canViewPurchase,false);const json=JSON.stringify(data);for(const secret of ['purchasePrice','balanceExact4','invoiceDrafts','grandTotal'])assert.equal(json.includes(secret),false);await assert.rejects(f.service.purchaseContext(seller),{statusCode:403});assert.equal(inboundCapabilities(office,{permissions:[]}).canApprove,false);
  const financialRevoked=inboundCapabilities(office,{permissions:['sales.view','supplier.view']});assert.equal(financialRevoked.canViewPurchase,false);assert.equal(financialRevoked.canCreatePurchase,false);assert.equal(financialRevoked.canViewSupplier,false);
 });
+test('business selected USD account projects currency correctly and blocks missing or mismatched source purchase quotes',async()=>{
+ const f=fixture();f.c.copyContext={scopeKind:'VERIFIED_BUSINESS_TEST',date:'2026-10-09',operationOrigin:'ISOLATED_TEST_COPY',copyId:requestId,sealHash:'a'.repeat(64)};f.c.supplier={...f.c.supplier,currency:'USD',accountId:'32'};
+ f.c.products=products.map(p=>({...p,purchasePriceExact8:'2.50000000',purchaseCurrency:'USD',stockUnitCostTryExact8:'9.25000000',costExact4:'9.2500'}));
+ const batch={id:7,supplierId:13370,warehouseId:1,state:'accepted',note:'',lines:[{id:1,productId:301985,stockCode:products[0].stockCode,productName:'Fixture',quantity:2,unit:'ADET',purchasePrice:2.5,unitCostTry:9.25,receivedQuantity:2,invoiceableQuantity:2}]};f.c.batches=async()=>({batches:[batch],invoiceDrafts:[]});
+ const selected={receiptId:'7',number:'TSTB-USD-1',documentDate:'2026-10-09',currency:'USD',lines:[{receiptLineId:'1',quantityExact3:'1.000'}]};
+ const shown=await f.service.purchaseContext(office);assert.equal(shown.scope.supplier.currency,'USD');assert.equal(shown.scope.supplier.accountId,'32');assert.equal(shown.scope.products[0].purchasePriceExact8,'2.50000000');
+ const preview=await f.service.preview(selected,office);assert.equal(preview.currency,'USD');assert.equal(preview.items[0].purchasePriceExact8,'2.50000000');assert.equal(preview.totals.grandTotalExact4,'2.5000');
+ await assert.rejects(f.service.preview({...selected,currency:'TRY'},office),{code:'INBOUND_PURCHASE'});
+ f.c.products[0].purchaseCurrency='TRY';assert.equal((await f.service.purchaseContext(office)).scope.products[0].purchasePriceExact8,null);
+ batch.lines[0].purchasePrice=null;await assert.rejects(f.service.preview(selected,office),{code:'INBOUND_PURCHASE_SOURCE_REQUIRED'});
+ const receiving=await f.service.context(seller);for(const key of ['purchasePriceExact8','costExact4','stockUnitCostTryExact8','purchaseCurrency','balanceExact4'])assert(!JSON.stringify(receiving).includes(key));
+});
 test('unknown row remains persistent needs_review and cannot reach native submit; cancel retains history',async()=>{
  const f=fixture(),created=await f.service.create({requestId,note:'Barkod inceleme',lines:[line(null)]},seller);assert.equal(created.draft.state,'needs_review');assert.equal(created.draft.lines[0].barcode,'009999');
  await assert.rejects(f.service.submit('1',{requestId:otherId,expectedRevision:created.draft.revision},seller),{statusCode:409});assert.equal(f.native(),0);
  const cancelled=await f.service.cancel('1',{requestId:otherId,expectedRevision:created.draft.revision,reason:'Yanlış sayım satırı'},seller);assert.equal(cancelled.draft.state,'cancelled');assert.equal(f.history.get(requestId).value.draft.state,'needs_review');
+});
+test('business purchase cancellation is unavailable before journal/native mutation while finalized/read capability remains',async()=>{
+ const f=fixture();f.c.copyContext={scopeKind:'VERIFIED_BUSINESS_TEST'};let called=false;f.c.decidePurchase=async()=>{called=true;throw Error('must not call');};
+ const current=await f.service.context(office);assert.equal(current.capabilities.canCancelPurchase,false);assert.equal(current.capabilities.canFinalizePurchase,true);assert.equal(current.capabilities.canViewPurchase,true);
+ await assert.rejects(f.service.purchaseDecide('1',{requestId,reason:'Sentetik yanlış belge'},office,true),{statusCode:403,code:'INBOUND_OPERATION_NOT_VERIFIED'});assert.equal(called,false);assert.equal(f.history.size,0);
+ assert.equal(inboundCapabilities(office,f.c.actual).canCancelPurchase,true);
 });
 test('count CAS rejects stale updates; full actor/body UUID replay precedes CAS and submit posts native batch once',async()=>{
  const f=fixture(),created=await f.service.create({requestId,note:'',lines:[line()]},seller),body={requestId:otherId,expectedRevision:created.draft.revision};

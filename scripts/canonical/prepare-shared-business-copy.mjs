@@ -1,0 +1,12 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {execFileSync} from 'node:child_process';
+import {buildBusinessCopyBundle} from './shared-business-copy-sql.mjs';
+import {buildBusinessPartyReaderAdjunct} from './shared-business-party-readers.mjs';
+import {validateIsolatedOperationCopyContext} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
+const root='C:/Sirket/ERP/evidence/ERP-CRM-EXPAND-20261009/private/infra';
+const [inputPath,scopePath,outputPath]=process.argv.slice(2);
+for(const [file,expected] of [[inputPath,'business-copy-input.json'],[scopePath,'business-scope-plan.json'],[outputPath,'business-copy-install-bundle.json']])if(!file||path.resolve(file)!==path.resolve(root,expected))throw Error('BUSINESS_PRIVATE_ARTIFACT_EXACT_PATH_REQUIRED');
+const bundle=buildBusinessCopyBundle(JSON.parse(fs.readFileSync(inputPath,'utf8')),JSON.parse(fs.readFileSync(scopePath,'utf8')));
+bundle.partyReaderAdjunct=buildBusinessPartyReaderAdjunct(validateIsolatedOperationCopyContext(bundle.config.copyContext),bundle.config.currentFinanceDeltaContext);
+const bytes=Buffer.from(JSON.stringify(bundle));fs.writeFileSync(outputPath,bytes,{flag:'wx'});
+if(process.platform==='win32')execFileSync('pwsh',['-NoProfile','-NonInteractive','-File',path.join(import.meta.dirname,'protect-business-test-private-file.ps1'),'-Path',outputPath],{stdio:'pipe'});
+console.log(JSON.stringify({bundleSHA256:crypto.createHash('sha256').update(bytes).digest('hex'),copyId:bundle.copyId,modules:bundle.moduleManifest.length,aliases:bundle.partyReaderAdjunct.replacements.length,goodsProducts:bundle.config.copyContext.products.length,customerAccounts:bundle.config.copyContext.customers.length,supplierAccounts:bundle.config.copyContext.suppliers.length,businessWrites:0}));

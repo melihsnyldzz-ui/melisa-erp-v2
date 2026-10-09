@@ -2,7 +2,7 @@
 // installation, role changes, or alternative projections are made here.
 import {createHash} from 'node:crypto';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from '../config/isolatedOperationCopyRuntime.mjs';
-import {assertIsolatedCopyContext,SHARED_COPY_DATABASE,ISOLATED_COPY_SERVER,isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
+import {assertIsolatedCopyContext,SHARED_COPY_DATABASE,BUSINESS_COPY_DATABASE,ISOLATED_COPY_SERVER,isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
 const originalDatabase='MELISA_ERP_SIRKET_TEST_20260929_01';
 const originalGuardHash='9AE41CA1AB25EE165019AD04DBD9A6FB4E5B7190F027E0A07A87FB03D698379E';
 const normalHashes={customer:'7FE6BEE7728312D666FF3B68151CA60A08B84E4A6D5B33B36F300A48381E6C8E',supplier:'D750DDCD6B3F4AEDBDC9A38C5347DED081961A6018505559D2F7D50014404C0B',currentFinance:'874A0A2BF6CCB1955938A080E255555201134E91463469DA4C28D9BB1CFF7340'};
@@ -11,7 +11,7 @@ const assert=(ok)=>{if(!ok)throw Error('ISOLATED_PARTY_READER_UNAVAILABLE');};
 const q=s=>"N'"+s.replaceAll("'","''")+"'";
 export function assertSharedPartyContext(c){
  assertIsolatedCopyContext(c);
- assert(c.target.database===SHARED_COPY_DATABASE&&c.target.server===ISOLATED_COPY_SERVER&&c.target.login==='melisa_shared_test_rw_20261009_01'&&/^[A-F0-9]{64}$/.test(c.catalogProof?.preservedGuardHash??''));
+ assert([SHARED_COPY_DATABASE,BUSINESS_COPY_DATABASE].includes(c.target.database)&&c.target.server===ISOLATED_COPY_SERVER&&c.target.login===isolatedCopyTopology(c).writer&&/^[A-F0-9]{64}$/.test(c.catalogProof?.preservedGuardHash??''));
  return c;
 }
 export function registeredSharedPartyContext(){

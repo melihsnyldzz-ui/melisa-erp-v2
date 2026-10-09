@@ -1,3 +1,7 @@
+## ERP-UA29 / ERP-CRM-EXPAND01 — insan TEST'i başlatılmadı
+
+Durum: **bekliyor**. ERP-DEC-040 teknik genişletme çalışması kullanıcı/İlker/personel kabulü değildir. Tek yönetici raporundaki doğrulanmış ürün/tedarikçi/döviz kapsamıyla personel sayımı → İlker onayı → tek stok etkisi → uygun kaynak fiyatlı alış → ilgili döviz borcu ve CRM native taslak/readback birlikte değerlendirilecektir. Fiziksel Zebra decoder, gerçek personel oturumu ve bağımsız açılış bakiye kabulü ayrı bekler; bilinmeyen cari/personel eşlemesi veya LL hesabı için işlem denenmez. Kişi/deneme tarihi/insan sonucu bildirilmedi. Teknik kaynak/paket/kanıt STATUS'ta tutulur; bu tur geniş insan TEST'i başlatmaz.
+
 ## ERP-CRM-PREP01 — ortak TEST hazırlığı / insan kabulü bekliyor
 
 ERP-DEC-039 yeni ortak izole TEST hazırlığını ve dar teknik bağlantı provasını yetkilendirir. Hazırlık, bütünleşik işletme TEST'ini başlatma veya mevcut ERP/CRM insan sonuçlarını PASS yapma onayı değildir. Normal ERP/CRM ekranları ve Zebra/personel→İlker zinciri için teknik kanıt ile kullanıcı/İlker sonucu ayrı kaydedilecektir. Önceki UA18/24–28 ve CRM kabul kayıtları kendi kapsamlarıyla korunur.

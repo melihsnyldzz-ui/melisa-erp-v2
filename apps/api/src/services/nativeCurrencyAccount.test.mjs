@@ -16,6 +16,26 @@ test('missing, wrong customer/currency/account and duplicate ledger effects fail
 });
 test('old unlinked receipt remains readable; new unlinked receipt cannot claim success',async()=>{sample();records[0][0].linkedAccount=null;await verifyNativeCurrencyAccount(1,request);await assert.rejects(verifyNativeCurrencyAccount(1,request,{required:true}));});
 test('currency posting cannot escape its native transaction',async()=>{await assert.rejects(postNativeCurrencyAccount(1,{},{}),{code:'NATIVE_ACCOUNT_TRANSACTION_REQUIRED'});});
+test('business USD receipt, invoice, movement and account completion bind source cost, same currency, rate and current account',async()=>{
+ const {businessInboundFixture}=await import('./businessInbound.test-fixture.mjs'),{withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs'),{withBusinessInboundSelection}=await import('../middleware/businessInboundSelection.mjs');
+ const {insertIsolatedCopyInvoiceMovement,stampInvoiceMovement,assertReceivedPurchaseContext}=await import('./invoiceDraftService.js'),{withIsolatedCopyPurchaseBatchContext}=await import('./testPurchaseService.mjs');
+ const f=businessInboundFixture(),transaction={},calls=[];let valid=1;
+ class Request{constructor(tx){assert.equal(tx,transaction);this.params={};}input(k,t,v){this.params[k]=v;return this;}async query(query){calls.push({query,params:this.params});if(query.includes('FROM dbo.products WITH'))return {recordset:[{id:34765,stock_code:f.copy.products[0].stockCode,name:'Fixture product',current_stock_qty:1,average_cost_try:9.25,unit:'ADET',supplier_id:30}]};if(query.includes('UPDATE dbo.party_currency_accounts'))return {recordset:[{accountId:'32',partyId:'31',movementId:'50',beforeBalance:'10.00000000',effect:'2.50000000',afterBalance:'12.50000000'}]};return {recordset:[{valid,id:50}]};}}
+ const sql={Request,BigInt:0,UniqueIdentifier:0,NVarChar:()=>0,Decimal:()=>0,Date:0,MAX:-1},nativeContext={transaction,sqlDriver:sql,pool:{},isolatedOperationCopy:f.copy},selection={supplierId:'30',accountId:'32',currency:'USD'};
+ const args={kind:'purchase',invoiceId:99,movementType:'purchase_invoice',snapshot:{documentCurrency:'USD',accountCurrency:'USD',documentRateToTry:47.8,accountRateToTry:47.8,documentAmount:2.5,accountAmount:2.5,amountTry:119.5},direction:1,actor:{id:'16'},partyId:'30',documentDate:f.copy.date};copyRuntime=f.copy;
+ try{await withIsolatedOperationCopyScope({context:f.copy,identity:f.identity,readProof:f.proof,transaction,write:true},()=>withBusinessInboundSelection(f.copy,selection,async()=>{
+  await withIsolatedCopyPurchaseBatchContext({id:'16'},{nativeContext,context:f.dto},async(_ctx,d)=>{assert.equal(d.copyProducts.length,1);assert.equal(d.copyProducts[0].unit_cost,'9.25000000');assert.equal(d.copyProducts[0].purchase_unit_price,'2.50000000');assert.equal(d.s.currency_code,'USD');});
+  await insertIsolatedCopyInvoiceMovement(sql,transaction,args);const inserted=calls.at(-1);assert.equal(inserted.params.copyMovementCurrency,'USD');assert.equal(inserted.params.copyMovementRate,47.8);assert.equal(inserted.params.copyMovementTry,'119.5000');assert.match(inserted.query,/businessAccountId/);
+  await stampInvoiceMovement(sql,transaction,'purchase',99,'purchase_invoice',args.snapshot,1,{id:'16'});assert.doesNotMatch(calls.at(-1).query,/INSERT|UPDATE/);
+  await assertReceivedPurchaseContext({...nativeContext,stockAlreadyReceived:true,isolatedCopyReceived:true,isolatedCopyReceivedSupplier:f.supplier},99);assert.match(calls.at(-1).query,/stockUnitCostTryExact8/);assert.match(calls.at(-1).query,/quote.purchaseCurrency=@currency/);assert.match(calls.at(-1).query,/unit_cost_try=ROUND\(quote.stockUnitCostTryExact8,4\)/);
+  await postIsolatedCopyCurrencyMovement({role:'supplier',partyId:'30',currency:'USD',movementId:'50',effectExact8:'2.50000000'},nativeContext,{id:'16'});assert.equal(calls.at(-1).params.copyAccountRate,'47.80000000');assert.doesNotMatch(calls.at(-1).query,/UPDATE dbo.suppliers/);assert.match(calls.at(-1).query,/JSON_VALUE\(n.payload_json,'\$\.businessAccountId'\)/);
+  await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,transaction,{...args,snapshot:{...args.snapshot,documentRateToTry:1}}),{code:'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE'});
+  await insertIsolatedCopyInvoiceMovement(sql,transaction,{...args,snapshot:{...args.snapshot,documentAmount:1500,accountAmount:1500,amountTry:71700}});assert.equal(calls.at(-1).params.copyMovementAmount,'1500.0000');
+  await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,transaction,{...args,snapshot:{...args.snapshot,documentAmount:20001,accountAmount:20001,amountTry:956047.8}}),{code:'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE'});
+  await assert.rejects(insertIsolatedCopyInvoiceMovement(sql,transaction,{...args,partyId:'31'}),{code:'ISOLATED_COPY_INVOICE_ACCOUNT_SCOPE'});
+  valid=0;await assert.rejects(assertReceivedPurchaseContext({...nativeContext,stockAlreadyReceived:true,isolatedCopyReceived:true,isolatedCopyReceivedSupplier:f.supplier},99),{code:'PURCHASE_RECEIPT_LINK_REQUIRED'});
+ }));}finally{copyRuntime=null;}
+});
 
 test('copied currency completion binds exact8 account effect and never adds a second scalar balance',async()=>{
  const {fixtureContext,fixtureIdentity,fixtureProof}=await import('./isolatedOperationCopyContext.test.mjs');
