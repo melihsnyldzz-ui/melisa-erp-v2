@@ -61,8 +61,3 @@ function updateTarget(){if(!state)return;const [selector,hint]=targetSpec();cons
 function positionPointer(){const pointer=app.querySelector('.training-pointer');if(!pointer)return;if(!target?.isConnected){pointer.hidden=true;return;}const rect=target.getBoundingClientRect();pointer.hidden=rect.bottom<0||rect.top>innerHeight;pointer.style.left=Math.max(5,Math.min(innerWidth-74,rect.left-68))+'px';pointer.style.top=Math.max(5,rect.top-39)+'px';}
 async function start(){shell();try{bootstrap=await session.bootstrap();state=await session.state();if(state.trainingDatabase!==true||state.exerciseId!==bootstrap.exerciseId||!state.progress||!Array.isArray(state.products))throw new Error('Eğitim kaydı doğrulanamadı.');guide();if(state.progress.step>1)navigate(routeFor(state.progress.step));else app.querySelector('[data-erp-screen]').innerHTML='<div class="training-welcome"><span>↗</span><h2>Hoş geldin.</h2><p>Soldaki rehberi oku. İşaretli düğmeye bas. Her adımı gerçek ekranda kendin yap.</p><p>Ürün fotoğrafları gerçektir; tedarikçi, adet ve tutarlar alıştırma içindir.</p></div>';}catch(e){app.innerHTML=`<main class="training-unavailable"><h1>Eğitim açılamadı</h1><p role="alert">${esc(e.message)}</p><p>Bağımsız eğitim ortamı doğrulanmadan işlem yapılmaz.</p><button class="btn" data-retry>Yeniden dene</button></main>`;app.querySelector('[data-retry]').onclick=()=>location.reload();}}
 start();
-
-
-
-
-
