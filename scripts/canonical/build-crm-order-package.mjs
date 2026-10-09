@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 export const CRM_ORDER_PACKAGE = Object.freeze({repository:'https://github.com/melihsnyldzz-ui/melisa-erp-v2.git',database:'MELISA_ERP_SIRKET_TEST_20260929_01',purpose:'crm-order-draft-only',port:62404,manifest:'release-manifest.json'});
-export const CRM_SHARED_ORDER_PACKAGE=Object.freeze({...CRM_ORDER_PACKAGE,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01',port:62504});
+export const CRM_SHARED_ORDER_PACKAGE=Object.freeze({...CRM_ORDER_PACKAGE,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01',port:62604});
 // Exact official v5.2.0 release asset, independently checked against GitHub's
 // published digest. Neither cache names nor caller-supplied hashes are authority.
 export const CRM_NATIVE_DEPENDENCY = Object.freeze({name:'msnodesqlv8',version:'5.2.0',runtime:'node',abi:'137',platform:'win32',arch:'x64',assetId:428095421,artifactUrl:'https://github.com/TimelordUK/node-sqlserver-v8/releases/download/v5.2.0/msnodesqlv8-v5.2.0-node-v137-win32-x64.tar.gz',artifactSize:551409,artifactSha256:'67c366ce167096e8267e12b49b791902ef81b63649dbb18ad0dbf9824ef857ac',npmResolved:'https://registry.npmjs.org/msnodesqlv8/-/msnodesqlv8-5.2.0.tgz',npmIntegrity:'sha512-kSZnvGNo21EGon3HIZ9xkWTh9ndzkdKmfSLj4kKiam2ZqSN7c+ifcTRUpTq5hX8SZiVOlOzWWZFc6aYrxFEHUQ==',memberPath:'build/Release/sqlserver.node',binaryPath:'apps/api/node_modules/msnodesqlv8/build/Release/sqlserver.node',binarySize:1338368,binarySha256:'eb33a36bda5bd1f996d7282ba04ef3428a9d7c40e069f497580f56b784619581'});

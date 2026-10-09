@@ -120,7 +120,7 @@ export async function getSqlPool() {
       throw Object.assign(new Error('Isolated reader identity changed'),{code:'ISOLATED_COPY_READER_REJECTED',statusCode:403});
   }
   const currentCrm=getCrmOrderCurrentContext();
-  const currentCrmAllowed=!!currentCrm&&env.port===62504&&env.sql.database===currentCrm.target.database&&env.sql.server==='127.0.0.1'&&env.sql.port===1433&&env.sql.user===currentCrm.target.login&&env.sql.readOnly===false&&env.sql.trustedConnection===false;
+  const currentCrmAllowed=!!currentCrm&&env.port===62604&&env.sql.database===currentCrm.target.database&&env.sql.server==='127.0.0.1'&&env.sql.port===1433&&env.sql.user===currentCrm.target.login&&env.sql.readOnly===false&&env.sql.trustedConnection===false;
   if(currentCrm&&!currentCrmAllowed)throw Object.assign(new Error('Shared draft SQL identity changed'),{code:'CRM_SHARED_SQL_IDENTITY_CHANGED',statusCode:403});
   if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !isCanonicalTest() && !isIsolatedOperationCopyRuntime() && !currentCrmAllowed) {
     const error = new Error('SQL write mode is only allowed for the LIVE-3 production candidate');

@@ -18,7 +18,7 @@ export function validateCrmOrderCurrentContext(input){
  if(input?.schemaVersion!=='melisa-crm-shared-test-context.v1'||input.actualT1!==false||input.sourceDatabase!==CRM_SHARED_SOURCE_DATABASE||!hash(input.backupSHA)||!hash(input.quarantineGuardHash)||!/^\b[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(input.copyId??''))fail();
  const t=input.target;
  if(t?.server!==CRM_SHARED_SERVER||t.database!==CRM_SHARED_DATABASE||t.login!=='melisa_crm_shared_draft_20261009_01'||t.databaseUser!==t.login)fail();
- if(input.crmOrigin!=='http://127.0.0.1:62501'||input.nativePort!==62504||input.apiPort!==4174||input.externalOperations!==false||input.stockEffect!==false||input.ledgerEffect!==false||input.reservationEffect!==false)fail();
+ if(input.crmOrigin!=='http://127.0.0.1:62601'||input.nativePort!==62604||input.apiPort!==4174||input.externalOperations!==false||input.stockEffect!==false||input.ledgerEffect!==false||input.reservationEffect!==false)fail();
  let catalog;try{catalog=validateCurrentProductCatalogContext(input.catalog);}catch{fail();}
  const result=freeze({...structuredClone(input),catalog:structuredClone(catalog)});registered.add(result);return result;
 }

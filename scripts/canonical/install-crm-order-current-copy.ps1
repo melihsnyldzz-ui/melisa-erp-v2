@@ -55,7 +55,7 @@ try {
  $actualDefs=Read-Rows "SELECT name,CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+name))),2) hash FROM dbo.crm_order_current_definitions"
  foreach($expected in $bundle.definitions){if(@($actualDefs|Where-Object{$_.name-eq$expected.name-and$_.hash-eq$expected.definitionHash}).Count-ne1){throw 'CRM_CURRENT_DEFINITION_DRIFT'}}
  $taskPhase='commit';Run-Sql 'COMMIT;'
- $native=@{database=$taskDatabase;server='127.0.0.1';sqlPort=1433;host='127.0.0.1';nativePort=62504;sqlUser=$taskLogin;sqlPassword=$password;jwtAccessSecret=$shared.jwtAccessSecret;jwtRefreshSecret=$shared.jwtRefreshSecret;crmOrderCurrentContext=$context}
+ $native=@{database=$taskDatabase;server='127.0.0.1';sqlPort=1433;host='127.0.0.1';nativePort=62604;sqlUser=$taskLogin;sqlPassword=$password;jwtAccessSecret=$shared.jwtAccessSecret;jwtRefreshSecret=$shared.jwtRefreshSecret;crmOrderCurrentContext=$context}
  $taskPhase='native-config-exclusive-write'
  $stream=[IO.File]::Open($NativeConfigPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);try{$bytes=[Text.Encoding]::UTF8.GetBytes(($native|ConvertTo-Json -Depth 30));$stream.Write($bytes,0,$bytes.Length)}finally{$stream.Dispose()}
  $taskPhase='native-config-acl';$acl=Get-Acl -LiteralPath $NativeConfigPath;$acl.SetAccessRuleProtection($true,$false);foreach($account in @([Security.Principal.WindowsIdentity]::GetCurrent().Name,'NT AUTHORITY\SYSTEM')){$rule=[Security.AccessControl.FileSystemAccessRule]::new($account,'FullControl','Allow');$acl.AddAccessRule($rule)};Set-Acl -LiteralPath $NativeConfigPath -AclObject $acl
