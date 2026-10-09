@@ -6,6 +6,8 @@ import { env } from '../config/env.js';
 import { getSqlPool } from '../config/database.js';
 import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
+import {sharedCopyAuthClaims} from './sharedCopyAuthClaims.mjs';
 
 function makeAuthError(code, message, statusCode = 401) {
   const error = new Error(message);
@@ -68,6 +70,7 @@ function signAccessToken(user, nativeTerminalCode = null) {
       ...(nativeTerminalCode ? { nativeTerminalCode } : {}),
       username: user.username,
       role: user.role.code,
+      ...sharedCopyAuthClaims(isIsolatedOperationCopyRuntime() ? getIsolatedOperationCopyConfig() : null),
     },
     env.auth.jwtSecret,
     { expiresIn: env.auth.accessExpiresIn },

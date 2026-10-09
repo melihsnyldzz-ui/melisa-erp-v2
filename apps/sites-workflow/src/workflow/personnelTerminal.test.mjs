@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {terminalActions,terminalRoute,terminalCrmUrl,terminalMessage,terminalStorage,terminalUser,createTerminalScanGate,createTerminalSessionFacade,terminalOfflineText} from './personnelTerminalModel.mjs';
+test('shared terminal uses its paired CRM origin without changing the normal terminal or trusting other hosts',()=>{
+ const local={protocol:'http:',hostname:'127.0.0.1',port:'5224',origin:'http://127.0.0.1:5224'};
+ assert.equal(terminalCrmUrl(local).origin,'http://127.0.0.1:62500');
+ assert.equal(terminalCrmUrl({...local,hostname:'192.168.1.46',origin:'http://192.168.1.46:5224'}).origin,'http://192.168.1.46:62500');
+ assert.equal(terminalCrmUrl({...local,port:'5194',origin:'http://127.0.0.1:5194'}).origin,'http://127.0.0.1:62400');
+ for(const changed of [{...local,port:'5214'},{...local,hostname:'192.168.1.47'},{...local,protocol:'https:'}])assert.throws(()=>terminalCrmUrl(changed));
+});
 test('CRM iframe keeps the exact TEST terminal path Referer required by its navigation guard',()=>{
  const html=readFileSync(new URL('../../terminal.html',import.meta.url),'utf8');
  const iframe=html.match(/<iframe\b[^>]*id="terminal-crm-frame"[^>]*>/)?.[0];

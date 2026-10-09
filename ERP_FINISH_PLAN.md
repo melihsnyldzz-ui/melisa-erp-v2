@@ -1,3 +1,7 @@
+## ERP-CRM-PREP01 — ortak hazırlık
+
+ERP-DEC-039 kapsamında ortak izole TEST bağlantıları hazırlanıyor. **49 toplam /9🟢 /39🟡 /1🔴** korunur; teknik hazırlık insan kabulü değildir. Bu iş bitince durulur, bütünleşik günlük işletme testi kendiliğinden başlamaz. Önceki aktarımlar yeniden uygulanmaz; normal TEST125 ve eğitim PR27 korunur.
+
 ## ERP-ZEBRA01 gerçek optik devamı — 9 Ekim 2026
 
 **49 toplam /9🟢 /39🟡 /1🔴** korunur. ERP-DEC-038: TC21 gerçek hardware trigger/decoder, Bul ile doğru ürün/kart/stok/USD fiyat/fotoğraf, kısa Wi-Fi kesinti/geri geliş ve uyku/uyanma/oturum/yenileme teknik gözlemi tamamlandı. Sıfırlı fiziksel etiket DENENMEDİ, otomatik Enter araması kanıtlanmadı; personel genel insan kabulü bekler. C12🟡/ERP-UA18/UA28 PASS değil. [Güncel kanıt](docs/evidence/erp/2026-10-09-zebra-physical/physical-scan.md). TEST125/kod/roller/veriler korundu; geçici Wi-Fi off/on dışında kalıcı cihaz ayarı yok. DUR; sonraki modül/migration başlamaz. Aşağıdaki hazırlık notları tarihsel kapsamlarıyla korunur.

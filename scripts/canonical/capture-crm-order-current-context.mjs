@@ -1,0 +1,25 @@
+// Bounded SELECT proof is executed by the operator in the restored copy only.
+// This helper reads its private result and produces the server-owned SQL bundle.
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
+import {validateCurrentProductCatalogContext} from '../../apps/api/src/services/currentProductCatalogContext.mjs';
+import {validateCrmOrderCurrentContext,CRM_SHARED_DATABASE,CRM_SHARED_SERVER,CRM_SHARED_SOURCE_DATABASE} from '../../apps/api/src/services/crmOrderCurrentContext.mjs';
+import {CUSTOMER_CARD_PRESERVED_SQL} from '../../apps/api/src/services/customerCardReadStore.mjs';
+import {buildCrmOrderCurrentInstallSql,buildCrmOrderCurrentDisableSql,buildCrmOrderCurrentProcedures,buildCrmOrderCurrentGuards,crmOrderLegacyGuardRebindSql,crmOrderLegacyGuardRebinds} from './crm-order-current-sql.mjs';
+const q=v=>"N'"+v.replaceAll("'","''")+"'";const hash=v=>createHash('sha256').update(v,'utf16le').digest('hex').toUpperCase();
+export function currentCrmCaptureQuery(catalog){const c=validateCurrentProductCatalogContext(catalog);return `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;
+SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName;
+SELECT run_id,source_hash,plan_hash,bindings_hash,source_as_of,product_count,price_count,sealed,(SELECT COUNT(*) FROM erp_migration.goal7_source_version_products WHERE version_run_id=${q(c.runId)}) product_rows,(SELECT COUNT(*) FROM erp_migration.goal7_source_version_prices WHERE version_run_id=${q(c.runId)}) price_rows FROM erp_migration.goal7_source_version_manifest WHERE run_id=${q(c.runId)};
+SELECT (${CUSTOMER_CARD_PRESERVED_SQL}) quarantineGuardHash;
+SELECT name,CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(object_id)),2) definitionHash FROM sys.procedures WHERE SCHEMA_NAME(schema_id)=N'dbo' AND name IN(${Object.values(c.procedures).map(p=>q(p.slice(4))).join(',')});
+ROLLBACK;`;}
+export function captureCurrentCrmContext({catalog,copy,proof}){const c=validateCurrentProductCatalogContext(catalog);if(!Array.isArray(proof)||proof.length!==4||proof.some(p=>!Array.isArray(p))||proof[0].length!==1||proof[1].length!==1||proof[2].length!==1||proof[3].length!==4)throw Error('CRM_CAPTURE_PROOF_INVALID');
+ const identity=proof[0][0],m=proof[1][0];if(identity.databaseName!==CRM_SHARED_DATABASE||identity.serverName!==CRM_SHARED_SERVER||m.run_id!==c.runId||m.source_hash!==c.sourceHash||m.plan_hash!==c.planHash||m.bindings_hash!==c.bindingsHash||m.source_as_of!==c.sourceAsOf||!m.sealed||m.product_count!==c.productCount||m.price_count!==c.priceCount||m.product_rows!==c.productCount||m.price_rows!==c.priceCount)throw Error('CRM_CAPTURE_SOURCE_DRIFT');
+ const readerFields={catalog:'readerDefinitionHash',stock:'stockReaderDefinitionHash',detail:'openingDetailDefinitionHash',list:'openingListDefinitionHash'};for(const [kind,field]of Object.entries(readerFields))if(proof[3].find(p=>p.name===c.procedures[kind].slice(4))?.definitionHash?.toUpperCase()!==c[field].toUpperCase())throw Error('CRM_CAPTURE_READER_DRIFT');
+ return validateCrmOrderCurrentContext({schemaVersion:'melisa-crm-shared-test-context.v1',copyId:copy.copyId,backupSHA:copy.backupSHA,sourceDatabase:CRM_SHARED_SOURCE_DATABASE,target:{database:CRM_SHARED_DATABASE,server:CRM_SHARED_SERVER,login:'melisa_crm_shared_draft_20261009_01',databaseUser:'melisa_crm_shared_draft_20261009_01'},crmOrigin:'http://127.0.0.1:62501',nativePort:62504,apiPort:4174,externalOperations:false,stockEffect:false,ledgerEffect:false,reservationEffect:false,actualT1:false,quarantineGuardHash:proof[2][0].quarantineGuardHash,catalog:c});
+}
+export function currentCrmSqlBundle(context){const definitions={...buildCrmOrderCurrentProcedures(context),...buildCrmOrderCurrentGuards(context)};return {schemaVersion:'melisa-crm-current-sql-bundle.v1',context,legacyGuardRebindSql:crmOrderLegacyGuardRebindSql(context),legacyGuards:crmOrderLegacyGuardRebinds(context),installSql:buildCrmOrderCurrentInstallSql(context),disableSql:buildCrmOrderCurrentDisableSql(context),definitions:Object.entries(definitions).map(([name,sql])=>({name,definitionHash:hash(sql)})),businessEffect:false,actualT1:false};}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+ const [mode,inputPath,outputPath]=process.argv.slice(2),privateRoot=path.resolve('C:/Sirket/ERP/evidence/ERP-CRM-PREP-20261009/private');
+ for(const file of [inputPath,outputPath]){const rel=file&&path.relative(privateRoot,path.resolve(file));if(!file||!path.isAbsolute(file)||rel.startsWith('..')||path.isAbsolute(rel))throw Error('CRM_PRIVATE_PATH_REQUIRED');}
+ const input=JSON.parse(fs.readFileSync(inputPath,'utf8'));let out;if(mode==='query')out=currentCrmCaptureQuery(input.catalog);else if(mode==='capture')out=JSON.stringify(currentCrmSqlBundle(captureCurrentCrmContext(input)));else throw Error('CRM_CAPTURE_MODE_REQUIRED');fs.writeFileSync(outputPath,out,{flag:'wx'});console.log(JSON.stringify({artifactSHA256:createHash('sha256').update(out).digest('hex'),businessWrites:0}));
+}

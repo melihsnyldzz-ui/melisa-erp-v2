@@ -5,6 +5,11 @@ export const ISOLATED_COPY_ORIGIN='ISOLATED_TEST_COPY';
 export const ISOLATED_COPY_DATABASE='MELISA_ERP_STAGE04_COPY_TEST_20261008_01';
 export const ISOLATED_COPY_SOURCE_DATABASE='MELISA_ERP_SIRKET_TEST_20260929_01';
 export const ISOLATED_COPY_SERVER='Semih\\MELISADEV';
+export const SHARED_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_01';
+const copyTopologies=Object.freeze({
+ [ISOLATED_COPY_DATABASE]:Object.freeze({apiPort:4154,nativePort:4156,webPort:5204,reader:'melisa_stage4_copy_ro_20261008_01',writer:'melisa_stage4_copy_rw_20261008_01',date:'2026-10-08'}),
+ [SHARED_COPY_DATABASE]:Object.freeze({apiPort:4174,nativePort:4176,webPort:5224,reader:'melisa_shared_test_ro_20261009_01',writer:'melisa_shared_test_rw_20261009_01',date:'2026-10-09'})
+});
 export const ISOLATED_COPY_PROCEDURES=Object.freeze({ready:'dbo.usp_stage4_copy_ready',context:'dbo.usp_stage4_copy_context',begin:'dbo.usp_stage4_copy_begin',effects:'dbo.usp_stage4_copy_effects'});
 const registered=new WeakSet();
 const operationDTOs=new WeakMap();
@@ -26,8 +31,10 @@ export function validateIsolatedOperationCopyContext(input){
  copyAssert(input&&input.schemaVersion===ISOLATED_COPY_SCHEMA&&input.operationOrigin===ISOLATED_COPY_ORIGIN&&input.actualT1===false,'ISOLATED_COPY_SCHEMA');
  copyAssert(isolatedCopyUUID(input.copyId)&&hash(input.backupSHA)&&input.sourceDatabase===ISOLATED_COPY_SOURCE_DATABASE&&/^[a-f0-9]{40}$/.test(input.sourceCommit??'')&&/^PRODUCT-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.currentProductSourceVersionRunId??''),'ISOLATED_COPY_ORIGIN');
  const target=input.target;
- copyAssert(target?.server===ISOLATED_COPY_SERVER&&target.database===ISOLATED_COPY_DATABASE&&typeof target.login==='string'&&/^melisa_stage4_copy_[a-z0-9_]{1,64}$/.test(target.login)&&target.databaseUser===target.login,'ISOLATED_COPY_TARGET');
+ const topology=copyTopologies[target?.database];
+ copyAssert(target?.server===ISOLATED_COPY_SERVER&&topology&&typeof target.login==='string'&&(target.database===SHARED_COPY_DATABASE?target.login===topology.writer:/^melisa_stage4_copy_[a-z0-9_]{1,64}$/.test(target.login))&&target.databaseUser===target.login,'ISOLATED_COPY_TARGET');
  copyAssert(typeof input.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&Number.isFinite(Date.parse(input.date))&&new Date(input.date).toISOString().slice(0,10)===input.date,'ISOLATED_COPY_DATE');
+ if(target.database===SHARED_COPY_DATABASE)copyAssert(input.date===topology.date&&input.actors?.length===2&&input.products?.length===2&&input.products.every(p=>['29980','30003'].includes(p.id))&&input.customers?.length===1&&input.customers[0].id==='210'&&input.customers[0].currency==='TRY'&&input.suppliers?.length===1&&input.suppliers[0].id==='10162'&&input.suppliers[0].currency==='TRY'&&input.financeAccounts?.length===1&&input.financeAccounts[0].id==='20043'&&input.financeAccounts[0].currency==='TRY','ISOLATED_COPY_SHARED_FINITE_SCOPE');
  unique(input.actors,'id','ISOLATED_COPY_ACTORS');
  copyAssert(input.actors.every(a=>['15','16'].includes(a.id)&&a.role===(a.id==='15'?'isolated_test_sales':'isolated_test_ilker')),'ISOLATED_COPY_ACTORS');
  unique(input.products,'id','ISOLATED_COPY_PRODUCTS');
@@ -48,6 +55,7 @@ export function validateIsolatedOperationCopyContext(input){
  const context=freeze(structuredClone(input));registered.add(context);return context;
 }
 export function assertIsolatedCopyContext(context){copyAssert(registered.has(context),'ISOLATED_COPY_SERVER_CONTEXT_REQUIRED');return context;}
+export function isolatedCopyTopology(context){assertIsolatedCopyContext(context);return copyTopologies[context.target.database];}
 export function assertIsolatedCopyIdentity(context,identity){
  assertIsolatedCopyContext(context);const t=context.target;
  copyAssert(identity?.db===t.database&&identity.server===t.server&&identity.login===t.login&&identity.databaseUser===t.databaseUser&&identity.sysadmin===0&&identity.control===0&&identity.live===0&&identity.originalDatabaseAccess===0,'ISOLATED_COPY_DB_IDENTITY');

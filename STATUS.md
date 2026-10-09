@@ -1,3 +1,7 @@
+## ERP-CRM-PREP01 — ortak TEST hazırlığı — 9 Ekim 2026
+
+ERP-DEC-039 kapsamında ayrı, sonlu ortak TEST hedefi hazırlanıyor: ERP5224/API4174/native4176 ve CRM62500–62504; `MELISA_ERP_CRM_SHARED_TEST_20261009_01`. Normal TEST125, günlük prova kopyası ve eğitim ortamı korunur. Güncel ürün/fiyat kaynak sürümüyle sipariş taslağı sözleşmesi, mevcut rol eşlemesi, ücretli AI ve dış gönderim kapatma, Zebra/personel→İlker bağlantısı bu tek teslimin kapsamıdır. Hazırlık tamamlandıktan sonra tam işletme testi ayrıca kullanıcı onayı bekler; insan sonuçları PASS yapılmaz. Önceki LIVE/T1/UNKNOWN/kasa/birim engelleri tarihsel kanıtlarıyla korunur. Bu kayıt uygulama/ekran kanıtı tamamlanınca güncellenecektir.
+
 ## ERP-ZEBRA01 fiziksel okuyucu — 9 Ekim 2026 / ERP-DEC-038
 
 PR23/6079756665 aynı görev: gerçek TC21 HardKeyDown→decoded-success→HardKeyUp, fiziksel çağrı sırasında ADB metin yok; tam barkod Bul ile tek doğru ürünü, stok/USD fiyat/fotoğrafı getirdi. Bağımsız SELECT eşleşti. Otomatik Enter araması kanıtlanmadı; sıfırlı fiziksel etiket DENENMEDİ. Kısa kontrollü Wi-Fi off/on ve Dozing/Awake, oturum/kart, Chrome yenileme ve ayrı ADB tekrar araması gözlemlendi. [Anonim teknik sonuç](docs/evidence/erp/2026-10-09-zebra-physical/physical-scan.md).

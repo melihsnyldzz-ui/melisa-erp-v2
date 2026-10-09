@@ -5,6 +5,7 @@ import {catalogError,parseCatalogId} from './catalogModel.mjs';
 import {catalogSourceVersion} from './catalogProductReadStore.mjs';
 import {isCurrentProductCatalogContext,validateCurrentProductCatalogContext,boundCatalogLineage} from './currentProductCatalogContext.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
+import {isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
 const ROOT='C:/Sirket/ERP/data/TEST-20260929-01/catalog-media';
 const PLAN='5da967d2652aa0d6710ad206ac10b7a5898d5a8af7ff3f45e048669e15d22b6d';
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -49,7 +50,7 @@ export function createCatalogMediaStore({expectedRoot=ROOT,expectedCount=3830,ge
    registry=null;if(root===undefined||root===null)return;
    try{
     const copy=isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null;
-    check(samePath(root,expectedRoot)&&mode==='erp'&&port===(copy?4154:4144)&&writes===true&&identity?.serverName==='Semih\\MELISADEV'&&identity.databaseName===(copy?copy.target.database:'MELISA_ERP_SIRKET_TEST_20260929_01')&&identity.sysadmin===0&&identity.databaseControl===0&&identity.liveDatabaseAccess===0);
+    check(samePath(root,expectedRoot)&&mode==='erp'&&port===(copy?isolatedCopyTopology(copy).apiPort:4144)&&writes===true&&identity?.serverName==='Semih\\MELISADEV'&&identity.databaseName===(copy?copy.target.database:'MELISA_ERP_SIRKET_TEST_20260929_01')&&identity.sysadmin===0&&identity.databaseControl===0&&identity.liveDatabaseAccess===0);
     check(hash(indexSha256));const filename=await safePath(root,'index.json'),raw=await fs.readFile(filename);check(raw.length<=16*1024*1024&&digest(raw)===indexSha256);const index=JSON.parse(raw.toString('utf8'));
     check(keys(index,['schemaVersion','server','database','planRecordsSha256','batchId','entries'])&&index.schemaVersion==='melisa-erp.catalog-media.v1'&&index.server===identity.serverName&&index.database===(copy?copy.sourceDatabase:identity.databaseName)&&index.planRecordsSha256===PLAN&&typeof index.batchId==='string'&&index.batchId.length>0&&index.batchId.length<=128&&Array.isArray(index.entries)&&index.entries.length===expectedCount);
     const entries=new Map(),sources=new Set();

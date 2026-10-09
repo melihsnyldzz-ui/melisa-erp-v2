@@ -31,7 +31,7 @@ export function paymentPreview(p,s,c){paymentSelection(s,c);const fields=['suppl
 const uuid=v=>text(v)&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v),object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v),clone=v=>JSON.parse(JSON.stringify(v));
 const writablePath=p=>p==='/api/work-supplier-payments/payments'||/^\/api\/work-supplier-payments\/payments\/[1-9]\d*\/cancel$/.test(p);
 export function createPaymentJournal({storage,actorId,apiBase,makeUuid=tradeUuid}={}){
- if(!tradeId(String(actorId))||!['http://127.0.0.1:4144','http://192.168.1.46:4144','http://127.0.0.1:4154'].includes(apiBase))throw Error('Ödeme bağlantısı doğrulanamadı.');
+ if(!tradeId(String(actorId))||!['http://127.0.0.1:4144','http://192.168.1.46:4144','http://127.0.0.1:4154','http://127.0.0.1:4174','http://192.168.1.46:4174'].includes(apiBase))throw Error('Ödeme bağlantısı doğrulanamadı.');
  const key=`melisa-work-supplier-payment:${apiBase}:${actorId}`,scope={version:1,actorId:String(actorId),apiBase,operation:'supplier-payment'};
  const failure=()=>{throw Error('Ödeme korunamadı; kayıt gönderilmedi. Tekrar deneyin.');};
  function read(){try{const raw=storage?.getItem(key);if(!raw)return {...scope,draft:null,request:null};const v=JSON.parse(raw),r=v.request;if(!Object.keys(scope).every(k=>v[k]===scope[k])||v.draft!==null&&!object(v.draft)||r!==null&&(!object(r)||!writablePath(r.path)||!['pending','confirmed','rejected'].includes(r.status)||!object(r.body)||!uuid(r.body.requestId)))throw Error();return v;}catch{throw Error('Son ödeme kaydı okunamıyor. Yeni kayıt göndermeden önce sonucu kontrol edin.');}}

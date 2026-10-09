@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import {reportError} from './workReportsModel.mjs';
-import {assertIsolatedCopyContext,assertIsolatedCopyIdentity} from './isolatedOperationCopyContext.mjs';
+import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
 const ERP_STATUS='C:/Sirket/ERP/runtime/canonical-test/health-status.json';
 const CRM_STATUS='C:/Sirket/CRM/runtime/test-completion/health-status.json';
 const BACKUP_STATUS='C:/Sirket/ERP/runtime/canonical-test/backup-status.json';
@@ -21,6 +21,10 @@ async function probeDatabase(){try{const db=await import('../config/database.js'
 async function probeCopyDatabase(copy){try{assertIsolatedCopyContext(copy);const db=await import('../config/database.js');if(db.getIsolatedOperationCopyConfig()!==copy)return false;const row=(await (await db.getSqlPool()).request().query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess")).recordset?.[0];assertIsolatedCopyIdentity(copy,row);return true;}catch{return false;}}
 export function copyRecoveryProjection(copy){
  assertIsolatedCopyContext(copy);const empty=backupProjection(null),r=copy.recoveryProof;
+ if(copy.target.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_01'){
+  if(r?.schemaVersion!=='melisa-shared-test.recovery-comparison.v1'||r.status!=='PASS'||!stamp(r.comparedAt)||r.tablesCompared!==51||!Number.isInteger(r.moduleDefinitionsCompared)||r.moduleDefinitionsCompared<177||r.sourceBeforeAfterEqual!==true||r.rawCopyMatchesSource!==true||!Array.isArray(r.changed)||r.changed.length||r.hashBasis!=='SQL_FULL_ROW_JSON_UTF16_SHA256_SORTED_MULTISET'||r.actualRestorePerformed!==true||r.activeDatabaseOverwritten!==false||typeof r.coverage!=='string'||!r.coverage.includes('not all database rows'))return empty;
+  return {backup:{...empty.backup,status:'success',lastSuccessAt:r.comparedAt,checksumVerified:true},restore:{...empty.restore,status:'success',lastSuccessAt:r.comparedAt,sourceDatabaseMatched:true,criticalDataMatched:true}};
+ }
  if(r?.schemaVersion!=='melisa-stage4.recovery-comparison.v1'||r.status!=='PASS'||!stamp(r.comparedAt)||r.tablesCompared!==29||r.moduleDefinitionsCompared!==337||r.sourceBeforeAfterEqual!==true||r.bothRawRestoresMatchSource!==true||!Array.isArray(r.changed)||r.changed.length||r.hashBasis!=='SQL_FULL_ROW_JSON_UTF16_SHA256_SORTED_MULTISET'||r.recoveryReadOnly!==true||r.operationalCopyReadWrite!==true||r.actualRestorePerformed!==true||r.activeDatabaseOverwritten!==false||r.coverage!=='29 critical tables and all SQL modules/native columns; not whole database rows')return empty;
  // The sealed snapshot proves an actual isolated restore, limited to the declared coverage.
  return {backup:{...empty.backup,status:'success',lastSuccessAt:r.comparedAt,checksumVerified:true},restore:{...empty.restore,status:'success',lastSuccessAt:r.comparedAt,sourceDatabaseMatched:true,criticalDataMatched:true}};
@@ -41,7 +45,8 @@ export function createWorkSystemService({read=readStatus,health=probe,database=p
  if(release.copyContext){
   const copy=assertIsolatedCopyContext(release.copyContext),selected=copy.actors.find(a=>a.id===String(actor.id));
   if(!selected||actor.role?.code!==selected.role)throw reportError(403);
-  const checkedAt=clock().toISOString(),[nativeReady,databaseReady]=await Promise.all([health('http://127.0.0.1:4156/test-health',b=>b.ok===true&&b.environment==='ISOLATED_TEST_COPY'&&b.mode==='native'&&b.port===4156&&b.sqlReadOnly===true&&b.writes===false&&b.databaseName===copy.target.database&&b.serverName===copy.target.server&&b.sysadmin===0&&b.databaseControl===0&&b.liveDatabaseAccess===0&&b.originalDatabaseAccess===0&&b.copyId===copy.copyId&&b.backupSHA===copy.backupSHA&&b.sourceCommit===release.sourceCommit&&b.packageId===release.packageId),copyDatabase(copy)]);
+  const nativePort=isolatedCopyTopology(copy).nativePort;
+  const checkedAt=clock().toISOString(),[nativeReady,databaseReady]=await Promise.all([health(`http://127.0.0.1:${nativePort}/test-health`,b=>b.ok===true&&b.environment==='ISOLATED_TEST_COPY'&&b.mode==='native'&&b.port===nativePort&&b.sqlReadOnly===true&&b.writes===false&&b.databaseName===copy.target.database&&b.serverName===copy.target.server&&b.sysadmin===0&&b.databaseControl===0&&b.liveDatabaseAccess===0&&b.originalDatabaseAccess===0&&b.copyId===copy.copyId&&b.backupSHA===copy.backupSHA&&b.sourceCommit===release.sourceCommit&&b.packageId===release.packageId),copyDatabase(copy)]);
   const permissionsSummary=[];for(const [key,label] of [['sales.view','Satış görüntüleme'],['purchase.view','Alış görüntüleme'],['product.view','Ürün görüntüleme'],['finance.view','Finans görüntüleme'],['settings.manage','Ayarlar yönetimi']])if(actor.permissions.includes(key))permissionsSummary.push(label);
   return {environment:'TEST',package:{sourceCommit:release.sourceCommit,packageId:release.packageId},currentUser:{id:Number(actor.id),displayName:String(actor.displayName||actor.username||'Personel'),roleCodes:[selected.role],permissionsSummary},services:[{id:'api',label:'ERP bağlantısı',status:'ready',checkedAt},{id:'database',label:'Veri bağlantısı',status:databaseReady?'ready':'unavailable',checkedAt},{id:'native',label:'İşlem servisi',status:nativeReady?'ready':'unavailable',checkedAt}],terminal:{webReady:true,physicalAcceptance:'pending',lastAccessAt:null},...copyRecoveryProjection(copy),autostart:{erp:{status:'unknown',lastCheckAt:null},crm:{status:'unknown',lastCheckAt:null}}};
  }

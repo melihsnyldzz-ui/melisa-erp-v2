@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import { shouldAutoOpenTestAdmin,resolveTestApiBase,isTestSessionTarget } from './testAdminSession.mjs';
 const context = { location: { hostname: '127.0.0.1', protocol: 'http:', port: '5194' }, apiBase: 'http://127.0.0.1:4144', mode: null };
+test('shared preparation ports stay finite and never route to the original TEST or older isolated API',()=>{
+ const shared={...context,location:{...context.location,port:'5224'},apiBase:'http://127.0.0.1:4174'};
+ assert.equal(resolveTestApiBase(shared),shared.apiBase);
+ assert.equal(resolveTestApiBase({...shared,location:{...shared.location,hostname:'192.168.1.46'}}),'http://192.168.1.46:4174');
+ for(const apiBase of ['http://127.0.0.1:4144','http://127.0.0.1:4154','http://127.0.0.1:4114','http://127.0.0.1:4174/'])assert.equal(resolveTestApiBase({...shared,apiBase}),null);
+ assert.equal(resolveTestApiBase({...context,apiBase:shared.apiBase}),null);
+ assert.equal(shouldAutoOpenTestAdmin({...shared,mode:'manual'}),false);
+});
 test('fresh TEST session opens admin; manual role acceptance survives reload', () => {
   assert.equal(shouldAutoOpenTestAdmin(context), true);
   assert.equal(shouldAutoOpenTestAdmin({ ...context, mode: 'admin' }), true);

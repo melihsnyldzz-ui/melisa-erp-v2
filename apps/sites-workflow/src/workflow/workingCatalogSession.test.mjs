@@ -6,6 +6,16 @@ const location={hostname:'127.0.0.1',protocol:'http:',port:'5194'},apiBase='http
 const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['product.view','sales.view']};
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
+test('shared LAN session cannot send its catalog reads to either prior TEST API',async()=>{
+ const sharedLocation={...location,hostname:'192.168.1.46',port:'5224'},sharedBase='http://127.0.0.1:4174',calls=[];
+ const session=createWorkingCatalogSession({location:sharedLocation,apiBase:sharedBase,storage:storage(),fetchImpl:async(url)=>{calls.push(url);return url.endsWith('/auth/test-admin')?reply({user,accessToken:'shared-fixture-token'}):reply({products:[]});}});
+ await session.start();await session.api('/api/catalog/products?limit=50');session.dispose();
+ assert.deepEqual(calls,['http://192.168.1.46:4174/api/auth/test-admin','http://192.168.1.46:4174/api/catalog/products?limit=50']);
+ for(const base of [apiBase,'http://127.0.0.1:4154']){
+  const blocked=createWorkingCatalogSession({location:sharedLocation,apiBase:base,storage:storage(),fetchImpl:async()=>{throw Error('Unexpected cross-target request');}});
+  await assert.rejects(()=>blocked.start());blocked.dispose();
+ }
+});
 
 test('isolated copy session routes only to4154 and refuses original/copy cross-pairs before network',async()=>{
  const copyLocation={...location,port:'5204'},copyBase='http://127.0.0.1:4154',calls=[];

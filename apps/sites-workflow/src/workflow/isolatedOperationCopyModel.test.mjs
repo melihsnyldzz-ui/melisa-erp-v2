@@ -7,6 +7,15 @@ import {paymentContext,createPaymentJournal} from './workSupplierPaymentsModel.m
 const location={protocol:'http:',hostname:'127.0.0.1',port:'5204'},origin='ISOLATED_TEST_COPY',copyId='00000000-0000-4000-8000-000000000001',sealHash='a'.repeat(64),revision='b'.repeat(64);
 function bootstrap(){return {schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:origin,copyId,sealHash,backupSHA:'C'.repeat(64),sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_STAGE04_COPY_TEST_20261008_01'},date:'2026-10-08',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:['301','302'].map((id,i)=>({id,sourceKey:['VEGA2026','F0102TBLSTOKLAR',''].join('/')+id,stockCode:'K-'+id,unit:'ADET',unitFactorExact8:'1.00000000',priceIds:[String(801+i)],barcodes:[i?'000302':'000301']})),customers:[{id:'501',partyId:'901',accountId:'1001',currency:'TRY',sourceKey:['VEGA2026','F0102TBLCARI','501'].join('/')}],suppliers:[{id:'601',partyId:'902',accountId:'1002',currency:'TRY',sourceKey:['VEGA2026','F0103TBLCARI','601'].join('/')}],financeAccounts:[{id:'701',currency:'TRY'}]};}
 const meta=schemaVersion=>({schemaVersion,timeZone:'Europe/Istanbul',source:'native-test',date:'2026-10-08',operationOrigin:origin,copyId,sealHash});
+test('shared preparation bootstrap cannot cross into the normal or earlier copy target, including LAN',()=>{
+ const p=bootstrap();p.target.database='MELISA_ERP_CRM_SHARED_TEST_20261009_01';p.date='2026-10-09';
+ const shared={...location,port:'5224'};
+ for(const hostname of ['127.0.0.1','localhost','192.168.1.46'])assert.equal(validateOperationCopyBootstrap(p,{...shared,hostname}),p);
+ for(const other of [location,{...location,port:'5194'},{...shared,hostname:'192.168.1.47'},{...shared,protocol:'https:'}])assert.throws(()=>validateOperationCopyBootstrap(p,other));
+ assert.throws(()=>validateOperationCopyBootstrap(bootstrap(),shared));
+ assert.throws(()=>operationCopyFromMeta({...meta('example'),date:p.date,copyId:'00000000-0000-4000-8000-000000000002'},{profile:p,location:shared}));
+ assert.equal(operationCopyFromMeta({...meta('example'),date:p.date},{profile:p,location:shared}),p);
+});
 const entity=(id,extra={})=>({id,synthetic:false,operationOrigin:origin,writeEligible:true,...extra});
 const products=()=>bootstrap().products.map((p,i)=>entity(p.id,{stockCode:p.stockCode,name:'Ürün '+p.id,barcode:p.barcodes[0],unit:{label:'ADET',factorExact8:'1.00000000'},stockQuantityExact3:'5.000',revision,prices:[{quoteId:p.priceIds[0],currency:'TRY',unitPriceExact8:'10.00000000',revision,source:{kind:'isolated-test-copy',copyId,sealHash}}],purchasePriceExact8:'8.00000000'}));
 const customer=()=>entity('501',{code:'C-501',name:'Müşteri',currency:'TRY',balanceExact4:'0.0000',revision});

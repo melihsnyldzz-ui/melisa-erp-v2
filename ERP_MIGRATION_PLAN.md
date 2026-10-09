@@ -1,3 +1,7 @@
+## ERP-CRM-PREP01 — kaynak veriyi koruyan ortak TEST kopyası
+
+ERP-DEC-039: Güncel TEST125'in COPY_ONLY/CHECKSUM yedeğinden yalnız yeni ortak TEST hedefi hazırlanır; aktif veritabanı üzerine restore/reset yok. Kabul edilmiş ürün/cari/fiyat/medya verileri yeniden migrate edilmez. Yeni kopyada dar işlem kanıtları ayrı copyId ve işlem journal'ıyla izlenir. Kaynak/yerel/sentetik ayrımı ve LL/karantina kararları korunur. Kaynak dönem 8 Ekim tarihli sürümdür; bu hazırlık gerçek final T1 veya güncel Vega yazması değildir.
+
 ## ERP-STAGE0601 — Aşama 6 yazmasız ekran incelemesi — 9 Ekim 2026
 
 ERP-DEC-035 kapsamında önceki migration/delta/sourcecapture/finans-stok etkileri tekrar uygulanmadı. Normal TEST125 ve iki TEST DB korunur; yalnız mevcut ters kayıt adının normal raporda doğru görünmesi için ayrı126 kopya web ekranı açıldı. Son GUI sonrası32tablo sayımı/30sınırlı satır-journal-rolhash grubu/20önceki native etkide0fark. Yeni ticari yazma0. [Ekran kanıtı](docs/evidence/erp/2026-10-09-stage6/README.md), özel tek kabul raporu; insan/cihaz sonucu bekler.18UNKNOWN/gerçek kasa-banka açılışı/önceki boyut ve hesap engelleri/gerçekT1 aynen açıktır. Gerçek kaynak/Vega/LIVE/CRM/main veya finalT1 değişmedi; recovery/backup/restore/inverse tekrarı yok. **Teslimden sonra DUR.**

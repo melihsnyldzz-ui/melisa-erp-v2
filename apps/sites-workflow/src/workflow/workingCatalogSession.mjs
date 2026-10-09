@@ -39,7 +39,8 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
   async selectCopyActor(actorId){
    const profile=validateOperationCopyBootstrap(copyProfile,location),selected=profile.actors.find(a=>a.id===actorId);
-   if(!active||!token||!user||switching||resolvedApiBase!=='http://127.0.0.1:4154'||!['15','16'].includes(actorId)||!selected||stored(workingCatalogTokenKey)!==token)throw problem('Kullanıcı geçişi yapılamıyor.');
+   const copyBase=location?.port==='5224'?`http://${location.hostname==='192.168.1.46'?'192.168.1.46':'127.0.0.1'}:4174`:'http://127.0.0.1:4154';
+   if(!active||!token||!user||switching||resolvedApiBase!==copyBase||!['15','16'].includes(actorId)||!selected||stored(workingCatalogTokenKey)!==token)throw problem('Kullanıcı geçişi yapılamıyor.');
    if(String(user.id)===actorId&&user.role?.code===selected.role)return user;
    switching=true;generation++;controllers.forEach(c=>c.abort());const previous=token,version=generation;
    try{
