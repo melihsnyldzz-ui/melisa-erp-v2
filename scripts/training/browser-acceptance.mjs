@@ -20,14 +20,14 @@ for(const device of [{name:'desktop',viewport:{width:1440,height:1000}},{name:'m
   await page.locator('[data-show-target]').click();await shot(2);await page.locator('[data-count-save]').click();await page.locator('[data-count-submit]').waitFor();await page.locator('[data-count-submit]').click();
   await page.waitForFunction(()=>document.querySelector('[data-guide]')?.innerText.includes('ADIM 3')||document.body.innerText.includes('ADIM 3 / 5'));await shot(3);
   assert.equal((await state()).products[0].currentQuantity,'10.000');
-  await page.locator('[data-count-approve]').click();await page.locator('[data-count-purchase]').waitFor();await shot(3);
+  await page.locator('[data-count-approve]').click();await page.locator('[data-count-purchase]').waitFor();await page.waitForFunction(()=>document.body.innerText.includes('Mal kabulü onaylandı.'));await shot(3);
   await page.locator('[data-count-purchase]').click();await page.locator('[data-purchase-entry]').waitFor();
   await page.locator('[data-purchase-receipt]').selectOption({index:1});
   await page.locator('[data-purchase-entry] input[name="number"]').fill('TSTB-EGITIM-001');
   await page.locator('[data-purchase-entry] input[name="date"]').fill('2026-10-09');
   const quantities=page.locator('[data-purchase-qty]');await quantities.nth(0).fill('2');await quantities.nth(1).fill('3');
   await page.locator('[data-purchase-preview]').click();await page.locator('[data-purchase-create]').waitFor();await page.locator('[data-purchase-create]').click();await page.locator('[data-purchase-finalize]').waitFor();
-  await page.locator('[data-purchase-finalize]').click();await page.waitForFunction(()=>document.body.innerText.includes('Fatura tedarikçi borcuna işlendi'));await shot(4);
+  await page.locator('[data-purchase-finalize]').click();await page.waitForFunction(()=>document.body.innerText.includes('Fatura kesinleşti: aynı stok korunuyor.'));await shot(4);
   await page.locator('[data-purchase-supplier]').click();await page.locator('.training-quiz').waitFor();await shot(5);
   await page.locator('[data-quiz-answer][name="stock"][value="save"]').check();await page.waitForFunction(()=>document.body.innerText.includes('Sayım kaydı adetleri saklar'));
   assert.equal(await page.locator('[data-complete-quiz]').isDisabled(),true);
