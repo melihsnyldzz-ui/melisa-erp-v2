@@ -1,3 +1,5 @@
+import {CUSTOMER_CARD_PROC_SQL} from './customerCardReadStore.mjs';
+import {registeredSharedPartyContext,sharedPartyReaderDefinition,assertSharedPartyTransactionIdentity} from './isolatedPartyCardReader.mjs';
 import {createHash} from 'node:crypto';
 import {supplierCardError,parseSupplierCardId} from './supplierCardModel.mjs';
 import {SUPPLIER_DELTA_READ_SQL,attachSupplierDeltas} from './supplierCurrencyDeltaRead.mjs';
@@ -105,22 +107,25 @@ export function assembleSupplierCardRaw(raw){
  return raw;
 }
 
-async function defaultRuntime(){const db=await import('../config/database.js');if(!db.isCanonicalTest())throw supplierCardError('SUPPLIER_CARD_UNAVAILABLE');return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
-export function createSupplierCardReadStore({getRuntime=defaultRuntime,getFinalContext=catalogSourceVersion,getCurrentFinanceContext=configuredCurrentFinanceContext}={}){
+async function defaultRuntime(){const db=await import('../config/database.js');if(!db.isCanonicalTest()&&!registeredSharedPartyContext())throw supplierCardError('SUPPLIER_CARD_UNAVAILABLE');return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
+export function createSupplierCardReadStore({getRuntime=defaultRuntime,getFinalContext=catalogSourceVersion,getCurrentFinanceContext=configuredCurrentFinanceContext,getCopyContext=registeredSharedPartyContext}={}){
  const read=async(id,options={})=>{
   const {search='',page=1,limit=25,status='all',quarantine='all'}=options;
   if(typeof search!=='string'||search.length>120||!Number.isInteger(page)||page<1||page>1000000||!Number.isInteger(limit)||limit<1||limit>100||!['all','active','passive'].includes(status)||!['all','included','excluded'].includes(quarantine))throw supplierCardError('SUPPLIER_CARD_QUERY_INVALID','Geçerli arama ve sayfalama bilgisi gerekli.',400);
   let tx;try{const {pool,sql}=await getRuntime();tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+   const copy=getCopyContext();let readerHash=SUPPLIER_CARD_PROC_HASH;
+   if(copy){await assertSharedPartyTransactionIdentity({sql,tx,context:copy});const customerReaderHash=sharedPartyReaderDefinition(copy,{role:'customer',sourceSQL:CUSTOMER_CARD_PROC_SQL}).afterHash;readerHash=sharedPartyReaderDefinition(copy,{role:'supplier',sourceSQL:SUPPLIER_CARD_PROC_SQL,customerReaderHash}).afterHash;}
    const req=new sql.Request(tx);req.input('supplier_id',sql.BigInt,id??null).input('search',sql.NVarChar(120),search).input('page',sql.Int,page).input('page_size',sql.Int,limit).input('status',sql.NVarChar(12),status).input('quarantine',sql.NVarChar(12),quarantine);
+   if(copy)req.input('copy_id',sql.UniqueIdentifier,copy.copyId);
    const result=await req.execute(SUPPLIER_CARD_PROC),row=result.recordset?.[0];
-   if(!row||row.readerDefinitionHash!==SUPPLIER_CARD_PROC_HASH||!Number.isSafeInteger(row.total)||row.total<0)throw supplierCardError();
+   if(!row||row.readerDefinitionHash!==readerHash||!Number.isSafeInteger(row.total)||row.total<0)throw supplierCardError();
    const parsed=JSON.parse(row.rowsJson??'[]');if(!Array.isArray(parsed))throw supplierCardError();
    const ids=parsed.flatMap(r=>r.nativeAccounts.map(a=>parseSupplierCardId(a.id)));
    if(ids.length){const deltaReq=new sql.Request(tx).input('account_ids',sql.NVarChar(sql.MAX),JSON.stringify(ids));const proof=(await deltaReq.query(SUPPLIER_DELTA_READ_SQL)).recordset;attachSupplierDeltas(parsed,proof);}
    const context=getFinalContext();if(finalPartyContext(context)){const proof=await readFinalPartyProof({sql,tx,ids,context});attachFinalPartyProof(parsed,proof);}
    const currentContext=getCurrentFinanceContext();if(currentFinanceContext(currentContext)){attachCurrentFinanceProof(parsed,await readCurrentFinanceProof({sql,tx,ids,context:currentContext}));}
    const rows=parsed.map(assembleSupplierCardRaw);await tx.commit();return {rows,total:row.total};
-  }catch(error){if(tx)try{await tx.rollback();}catch{}if(error?.statusCode===400)throw error;throw supplierCardError('SUPPLIER_CARD_UNAVAILABLE','Müşteri kartı okuma kanıtı şu anda kullanılamıyor.',503);}
+  }catch(error){if(tx)try{await tx.rollback();}catch{}if(error?.statusCode===400)throw error;throw supplierCardError('SUPPLIER_CARD_UNAVAILABLE','Tedarikçi kartı okuma kanıtı şu anda kullanılamıyor.',503);}
  };
  return {listSupplierCardRows:options=>read(null,options),readSupplierCardRows:async id=>(await read(parseSupplierCardId(id),{limit:1})).rows[0]??null};
 }
