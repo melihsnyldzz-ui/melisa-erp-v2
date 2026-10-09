@@ -7,7 +7,7 @@ ERP-DEC-039 / CRM-DEC-007; ERP PR23 ve CRM PR3. Teknik hazırlık, geniş işlet
 - Normal TEST125 ve eski CRM624xx çalışmaya devam eder. Eğitim PR27 değişmedi.
 - Güncel TEST125 COPY_ONLY/CHECKSUM yedeği doğrulandı ve yalnız yeni `MELISA_ERP_CRM_SHARED_TEST_20261009_01` hedefine gerçekten restore edildi. Aktif TEST'e restore/reset yapılmadı.
 - ERP5224/API4174/native4176; CRM62600/gateway62601/catalog62602/orders62603/native62604. Native portlar loopback; şirket Wi-Fi yüzleri192.168.1.46. 625xx Windows ayrılmış port engeli nedeniyle kullanılmadı, işletim sistemi ağ ayarı değiştirilmedi.
-- ERP uygulama source41a8e6c; CRM native draft source7b083a6; CRM UI/runtime source81754aa. Teslim HEAD, çalışma paketi ve eski TEST125/sourceedb3c891 ayrıdır.
+- ERP uygulama source6c47c37dc3100da494e44831a7e55fa541f2e1a1; CRM native draft source7b083a6; CRM UI/runtime source81754aa. Teslim HEAD, çalışma paketi ve eski TEST125/sourceedb3c891 ayrıdır.
 - Yeni SQL kimlikleri yalnız yeni kopyaya bağlı; orijinal TEST/LIVE erişimi0, sysadmin/CONTROL0. Eski insan kullanıcıları/rolleri değiştirilmedi. Yeni sırlar repo dışında, sahibi+SYSTEM ACL ile korunur.
 - CRM, mevcut Chatwoot verisini salt okunur tüketir. CRM mesaj veritabanı klonlandı iddiası yok. Incoming/provider worker, atama/read-state/dış mesaj yazması ve ücretli model çağrısı bu ortamda kapalı.
 
@@ -19,6 +19,7 @@ ERP-DEC-039 / CRM-DEC-007; ERP PR23 ve CRM PR3. Teknik hazırlık, geniş işlet
 | Native sipariş | Normal CRM ekranında mevcut ERP rolüyle tek taslak/tek satır oluşturuldu; ayrı GET ve yenileme aynı taslağı gösterdi. | Stok/cari/tahsilat/reservation etkisi0; taslak gerçek satış değildir. |
 | Sipariş replay | Aynı UUID/body200; aynı UUID/değişmiş body409. Altı native kayıt grubunun sayısı ve tam satır özetleri aynı. | 18 kaynak/kimlik kontrolü ve14 replay kontrolü; önceki kaynak ve kopya digest biçimleri karıştırılmadı. |
 | Müşteri kimliği | Kesin telefon eşleşmesi bulunmayınca otomatik eşleme yapılmadı; yalnız mevcut kartın açık gerekçeli TEST seçimi kullanıldı. | Gerçek WhatsApp kişisi↔cari ilişkisi doğrulanmış sayılmaz. |
+| Genel cari okuma | Gerçek müşteri/tedarikçi listesi ve kartı normal ortak ERP'de açıldı; ayrı döviz, B/A, kaynak açılış, güncel ERP ve yerel etki korundu. | Bilinmeyen hesaplar ve mevcut hold/LL istisnaları çözüldü sayılmaz; kaynak bugünkü Vega değildir. |
 | Personel | Mevcut crm-ahmet/Personel oturumu gerçek ekranda açıldı;22 atanmış sohbet ve başka kişiye ait sohbetin görünmemesi doğrulandı. | TESTADMIN gerçek patron değildir; CRM/ERP sayısal kimliği veya SSO uydurulmadı. LAN'da normal mevcut hesap gerekir. |
 | AI / gönderim | Açılış çevirisi, composer çevirisi ve satış önerisi pasif; backend shared ortamda ücretli çağrı/dış yazmayı reddeder. | Gerçek ücretli çağrı veya müşteriye mesaj denemesi yapılmadı. |
 | Zebra → İlker | Gerçek TC21 LAN terminalinde personel sayımı kaydedilip İlker'e gönderildi. | Bu tur barkod metni ADB ile girildi; önceki optik kanıt korunur, yeni fiziksel insan PASS yok. |
@@ -39,7 +40,13 @@ Bağımsız son kontrol25 kritik tablo grubunda beklenen dar değişimleri ve13 
 
 ## Hız
 
-Üç örneklemli API medyanları: first50 önce644/sonra655ms; next50 631/633ms; kod546/558ms; barkod394/444ms; kart224/241ms; mal kabul context79/85ms. Bu ölçüm UI açılışının tamamı veya tüm ağ koşullarının garantisi değildir. Belge taraması her liste isteğinde çalışmaz.
+Üç örneklemli son paket API medyanları: first50 önce644/sonra586ms; next50 631/726ms; kod546/717ms; barkod394/421ms; kart224/269ms; mal kabul context79/105ms. Genel müşteri/tedarikçi ilk liste GET'leri622/630ms, seçili kartlar344/340ms. Bu ölçüm UI açılışının tamamı veya tüm ağ koşullarının garantisi değildir. Belge taraması her liste isteğinde çalışmaz.
+
+## Son cari okuyucu ve paket kontrolü
+
+Kopyanın genel cari okuyucuları eski hedefe sabit olduğundan ilk normal listeler açılamıyordu. Aynı mevcut C06/C07/current-finance projeksiyonları üç finite ortak-kopya okuyucu adıyla sunulur; her biri actual SQL kimliği, copyId/seal, SERIALIZABLE, kaynak ve tanım hash'ini doğrular. Eski üç tanım ve katalogun C06/C07 bağlantıları exact eski hash'leriyle korunur. 184 base module manifest ve3 revision değiştirilmedi; yalnız yeni teknik RW kimliğine üç salt okunur EXECUTE, eski üçünde başlangıç0 korundu. İnsan rolü ve izinleri değişmedi.
+
+35 hedefli test, metadata transaction geri alma provası ve bağımsız actual SQL/hash/izin kontrolü geçti. İlk yerel reader uyarlamasının katalog çapraz bağımlılığı tam paket açılışında saptandı; koruma gevşetilmedi, kayıtlı üç eski tanım geri konup ayrı isimler kullanıldı. Eski deneme/başarısız paket kanıtları saklandı. Son6c47c37 paketi tam sınıflandırma başlangıcını, katalog ve genel cari API/normal ekran okumalarını geçti; stok, borç, eski hareket ve CRM native taslak etkileri değişmedi. Güncel283 ve önceki16 additive kanıtı korunur; FINAL context uydurulmadı.
 
 ## Açık kabul ve kapsam
 
