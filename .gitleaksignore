@@ -57,3 +57,9 @@ cb665336106f60f3b090840dd12f1384357448b5:apps/api/src/services/nativeCurrencyAcc
 ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperationCopyContext.test.mjs:generic-api-key:6
 # Reviewed 2026-10-09: offline stock sourceKey fixture, no credential.
 41a8e6c42a71a10e3081f492ec9c2fc860892401:apps/api/src/services/isolatedOperationCopyRevision.test.mjs:generic-api-key:7
+# Independently reviewed 2026-10-10: deterministic sourceKey provenance tuples
+# in offline daily fixtures, not credentials. Exact historical fingerprints only.
+656bd52f6ecc2ee49e281b78006dd1aaf7c96c2f:apps/api/src/services/businessDailyNativeScope.test.mjs:generic-api-key:16
+656bd52f6ecc2ee49e281b78006dd1aaf7c96c2f:apps/api/src/services/businessDailyRevisionBootstrap.test.mjs:generic-api-key:17
+0f51f01f7d6e4997625bcbabfdbc9fb3ef825d3b:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:10
+0f51f01f7d6e4997625bcbabfdbc9fb3ef825d3b:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:22

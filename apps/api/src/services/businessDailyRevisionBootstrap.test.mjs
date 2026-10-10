@@ -96,3 +96,8 @@ test('v5 drift or forged predecessor cannot authorize v4 normalization',async()=
  for(const mutate of [f=>f.rows[0].actualHash='F'.repeat(64),f=>f.rows[0].copyId='9c0075ed-7f4b-42f8-b056-f27b8369ad9c',f=>f.rows[0].triggerDisabled=1,f=>f.rows[0].beforeHash='F'.repeat(64),f=>f.rows.pop(),f=>f.rows.push({...f.rows[0]}),f=>f.proof[3][4].actualHash='F'.repeat(64),f=>f.proof[0][0].actualHash='F'.repeat(64),f=>f.v5.baseDailyRevisionHash='F'.repeat(64)]){const f=profitFixture();mutate(f);await assert.rejects(configureProfit(f));}
  const noConfig=profitFixture();await assert.rejects(configureBusinessDailyRevision(noConfig.c,noConfig.base,noConfig.performance,noConfig.effects,noConfig.revision,noConfig.pool));
 });
+test('v5 accepts SQL uppercase UUID representation and rejects missing database identity',async()=>{
+ const f=profitFixture();for(const row of f.rows)row.copyId=row.copyId.toUpperCase();await configureProfit(f);
+ assert.deepEqual(getBusinessDailySelection(f.c),f.revision.dailyScope.selection);
+ for(const value of [null,undefined,42,'']){const invalid=profitFixture();invalid.rows[0].copyId=value;await assert.rejects(configureProfit(invalid));}
+});

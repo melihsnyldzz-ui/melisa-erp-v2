@@ -40,7 +40,11 @@ function BusinessHash{
  return HashText ($groups|ConvertTo-Json -Depth 5 -Compress)
 }
 function OldProofHash{
- $hashes=@();foreach($entry in @(@('stage4_copy_manifest','copy_id'),@('stage4_copy_module_manifest','name'),@('stage4_copy_module_revisions','copy_id,name'),@('stage4_copy_ready_revisions','copy_id'),@('stage4_copy_ready_performance_revisions','copy_id'),@('stage4_copy_effects_performance_revisions','copy_id,name'),@('stage4_copy_business_daily_revisions','copy_id,name'),@('stage4_copy_requests','copy_id,request_id'),@('stage4_copy_intents','copy_id,request_id'),@('stage4_copy_effect_components','copy_id,request_id,entity,native_id'),@('work_business_count_bindings','count_id'))){$hashes+=QueryScalar "SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT * FROM dbo.$($entry[0]) ORDER BY $($entry[1]) FOR JSON PATH,INCLUDE_NULL_VALUES)),2)"}
+ # The adapter registry belongs to DB01; DB02 must retain its absence.
+ # Every actual DB02 proof table below is mandatory: missing tables fail closed.
+ $absence=QueryScalar "SELECT CASE WHEN OBJECT_ID(N'dbo.stage4_copy_module_revisions') IS NULL THEN N'DB01_ADAPTER_REGISTRY_ABSENT' ELSE N'UNEXPECTED_DB01_ADAPTER_REGISTRY' END"
+ if($absence-cne'DB01_ADAPTER_REGISTRY_ABSENT'){throw 'DAILY_PROFIT_UNEXPECTED_DB01_REGISTRY'}
+ $hashes=@($absence);foreach($entry in @(@('stage4_copy_manifest','copy_id'),@('stage4_copy_module_manifest','name'),@('stage4_copy_ready_revisions','copy_id'),@('stage4_copy_ready_performance_revisions','copy_id'),@('stage4_copy_effects_performance_revisions','copy_id,name'),@('stage4_copy_business_daily_revisions','copy_id,name'),@('stage4_copy_requests','copy_id,request_id'),@('stage4_copy_intents','copy_id,request_id'),@('stage4_copy_effect_components','copy_id,request_id,entity,native_id'),@('work_business_count_bindings','count_id'))){$hashes+=QueryScalar "SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT * FROM dbo.$($entry[0]) ORDER BY $($entry[1]) FOR JSON PATH,INCLUDE_NULL_VALUES)),2)"}
  $hashes+=QueryScalar "SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT role_principal_id,member_principal_id FROM sys.database_role_members ORDER BY role_principal_id,member_principal_id FOR JSON PATH)),2)"
  return HashText ($hashes|ConvertTo-Json -Compress)
 }
@@ -66,7 +70,17 @@ try{
  foreach($entry in @(@('copy',[Data.SqlDbType]::UniqueIdentifier,[Guid]$a.copyId),@('seal',[Data.SqlDbType]::Char,$a.baseSealHash,64),@('base',[Data.SqlDbType]::Char,$a.baseDailyRevision.revisionHash,64),@('revision',[Data.SqlDbType]::Char,$a.revision.revisionHash,64),@('scope',[Data.SqlDbType]::Char,$a.revision.dailyScopeHash,64))){$parameter=if($entry.Count-eq4){$cmd.Parameters.Add('@'+$entry[0],$entry[1],$entry[3])}else{$cmd.Parameters.Add('@'+$entry[0],$entry[1])};$parameter.Value=$entry[2]}
  for($i=0;$i-lt$a.replacements.Count;$i++){$m=$a.replacements[$i];$cmd.Parameters.Add('@name'+$i,[Data.SqlDbType]::NVarChar,128).Value=$m.name;$cmd.Parameters.Add('@before'+$i,[Data.SqlDbType]::Char,64).Value=$m.beforeHash;$cmd.Parameters.Add('@after'+$i,[Data.SqlDbType]::Char,64).Value=$m.afterHash;$values+="(@copy,@name$i,5,@seal,@base,@scope,@before$i,@after$i,@revision)"}
  $cmd.CommandText="INSERT $registry(copy_id,name,revision,base_seal_hash,base_daily_revision_hash,daily_scope_hash,before_hash,after_hash,revision_hash) VALUES "+($values-join',');try{[void]$cmd.ExecuteNonQuery()}finally{$cmd.Dispose()}
- foreach($principal in @('melisa_shared_test_rw_20261009_02','melisa_shared_test_ro_20261009_02')){ExecuteDDL "GRANT SELECT ON OBJECT::$registry TO [$principal];GRANT VIEW DEFINITION ON OBJECT::$registry TO [$principal];GRANT VIEW DEFINITION ON OBJECT::$trigger TO [$principal];";foreach($m in $a.replacements){ExecuteDDL "GRANT VIEW DEFINITION ON OBJECT::$($m.name) TO [$principal];"}}
+ $phase='GRANT_METADATA'
+ foreach($principal in @('melisa_shared_test_rw_20261009_02','melisa_shared_test_ro_20261009_02')){
+  # A DML trigger is metadata of its parent table, not a standalone securable.
+  ExecuteDDL "GRANT SELECT ON OBJECT::$registry TO [$principal];GRANT VIEW DEFINITION ON OBJECT::$registry TO [$principal];"
+  foreach($m in $a.replacements){ExecuteDDL "GRANT VIEW DEFINITION ON OBJECT::$($m.name) TO [$principal];"}
+ }
+ $phase='VERIFY_METADATA_AS_EXISTING_USERS'
+ foreach($principal in @('melisa_shared_test_rw_20261009_02','melisa_shared_test_ro_20261009_02')){
+  $visibleHash=QueryScalar "DECLARE @h varchar(64); BEGIN TRY EXECUTE AS USER=N'$principal'; SELECT @h=CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'$trigger'))),2); REVERT; END TRY BEGIN CATCH REVERT; THROW; END CATCH; SELECT @h;"
+  if($visibleHash-is[DBNull]-or$null-eq$visibleHash-or$visibleHash-cne$a.revision.immutableTriggerHash){throw 'DAILY_PROFIT_METADATA_VISIBILITY'}
+ }
  $phase='PROTECT_AFTER';$businessAfter=BusinessHash;$oldAfter=OldProofHash;$sqlAfter=ProtectedSQLHash
  if($businessBefore-cne$businessAfter-or$oldBefore-cne$oldAfter-or$sqlBefore-cne$sqlAfter-or(QueryScalar "SELECT COUNT(*) FROM $registry")-ne3-or(QueryScalar 'SELECT COUNT(*) FROM sys.triggers WHERE is_disabled=1')-ne0){throw 'DAILY_PROFIT_PROTECTION_DRIFT'}
  $proof=[ordered]@{status='PASS';artifactSHA256=$ArtifactSHA256.ToUpperInvariant();revisionHash=$a.revision.revisionHash;dailyScopeHash=$a.revision.dailyScopeHash;database=$db;copyId=$a.copyId;businessBefore=$businessBefore;businessAfter=$businessAfter;oldProofBefore=$oldBefore;oldProofAfter=$oldAfter;sqlBefore=$sqlBefore;sqlAfter=$sqlAfter;businessWrites=0;openingHumanAccepted=$false;realFinancialOpeningAuthorized=$false;nativeChecksChanged=0;rolesChanged=$false;recordedAt=[DateTime]::UtcNow.ToString('o')}
