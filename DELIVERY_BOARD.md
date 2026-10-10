@@ -1,8 +1,8 @@
 ## ERP-CRM-HUB01 / ERP-DEC-043 — Melisa Hub hazırlığı
 
-**Birleşik kaynak ve paket hazır; web etkinleştirmesi otomatik onay reddi nedeniyle engelli.** Hub çalışan5234'te henüz etkin değil; normal önceki paket korunur. Sıradaki tek iş somut onayla web etkinleştirme ve gerçek şirket/ev/cihaz okuma kontrolüdür. Teknik ayrıntı ve kurulmamış ayrı başlangıç görevi [STATUS.md](STATUS.md) içindedir. İnsan ERP-UA32 bekler; yeni ağ açılımı veya migration yok.
+**🟡 Teknik portal ve başlangıç görevi etkin; insan kabulü bekliyor.** Açık kullanıcı onayıyla 466ac2d immutable paket çalışıyor; gerçek owned child kurtarması 72,07 saniyede doğrulandı. Aynı kullanıcı/Limited/AtLogOn görevinde tek üç retry bütçesi bulunur; eski görevler, API/native/CRM/TEST125 korunur. Şirket HTTP ve ev tarayıcı/guard kontrolleri tamamlandı; tam reboot/IP/device ACL kabulü yok. [STATUS.md](STATUS.md), [PR28](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/28), insan denemesi **ERP-UA32** [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md). CI ödeme engeli ayrı; teknik kontrol insan PASS değildir. Yeni ağ açılımı, migration veya işletme testi başlatılmaz.
 
-**ŞİMDİ — uygulama ve şirket ortamı entegrasyonu sürüyor; insan kabulü bekliyor.** Portal tek girişte mevcut ekranları, sekiz dersi ve kabul/kanıt durumlarını toplar. Mevcut ağ/oturum sınırları incelenmeden localhost adresleri LAN'a çevrilmez. Kritik ağ/yetki değişikliği ayrı onay bekler; TEST125, ticari kayıtlar, API/native ve bekleyen PR27 korunur. Teknik gerçek durum [STATUS.md](STATUS.md), kullanıcı denemesi **ERP-UA32** [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) içindedir. Önceki eğitim/mağaza/cihaz kabul kayıtları değişmez.
+Portal tek girişte mevcut ekranları, sekiz dersi ve kabul/kanıt durumlarını toplar. Ağ ve oturum sınırları korunur; yalnız mevcut subnet erişimi kullanılır, cihaz ACL güvencesi ileri kabul değildir. Önceki eğitim/mağaza/cihaz kabul kayıtları değişmez.
 
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 

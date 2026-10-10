@@ -1,6 +1,6 @@
 ## ERP-UA32 / ERP-CRM-HUB01 — tek portal kullanım kabulü bekliyor
 
-11 Ekim şirket entegrasyonu: yeni paket hazır, fakat etkinleştirme otomatik onay denetiminde reddedildi; çalışan Hub yolu404. Aşağıdaki insan turu ancak izinli etkinleştirme ve runtime kontrolü sonrası başlar. Teknik test/build ve kaynak portal görünümü PASS insan kabulü değildir. Önceki normal ekran/eğitim paketi korunur.
+11 Ekim şirket entegrasyonu: açık kullanıcı onayıyla 466ac2d paket ve aynı kullanıcı/Limited/AtLogOn görevi etkin. Şirket HTTP/ev tarayıcı/guard kontrolleri ve own-child yeniden açılma teknik olarak doğrulandı. [Hub](http://192.168.1.46:5234/melisa-hub/) açılır; aşağıdaki insan turu hâlâ bekler. Teknik test/build/GUI/recovery insan kabulü değildir. Önceki normal ekranlar, TEST125, DB02 ve eğitim kayıtları korunur. Tam reboot/IP/device ACL kabulü yapılmadı.
 
 Kişi, deneme tarihi ve insan sonucu bildirilmedi; **bekliyor**. Şirket runtime kurulumu ve kesin paket bilgisi STATUS'ta ayrıca doğrulanır. Teknik bağlantı veya tarayıcı testi insan kabulü değildir.
 
