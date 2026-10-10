@@ -40,6 +40,8 @@ test('normal login denial and separate CRM/ERP token denial propagate unchanged 
  const draft=await request('/crm/api/live/crm/erp/v2/drafts','POST',{origin:STABLE_HUB_ORIGIN,authorization:'Bearer crm.fixture.signature','x-erp-token':'erp.fixture.signature'},'{}');
  assert.equal(draft.status,403);assert.equal(seen[1].path,'/crm/api/live/crm/erp/v2/drafts');assert.equal(seen[1].headers.authorization,'Bearer crm.fixture.signature');assert.equal(seen[1].headers['x-erp-token'],'erp.fixture.signature');
  assert.equal(seen[1].headers['x-crm-authorization'],undefined);
+ const logout=await request('/crm/api/live/crm/catalog/auth/sign-out','POST',{origin:STABLE_HUB_ORIGIN,authorization:'Bearer crm.fixture.signature'},'{}');assert.equal(logout.status,200);assert.equal(seen[2].path,'/crm/api/live/crm/catalog/auth/sign-out');assert.equal(seen[2].headers.authorization,'Bearer crm.fixture.signature');assert.equal(seen[2].headers['x-erp-token'],undefined);
+ assert.equal((await request('/crm/api/live/crm/catalog/auth/sign-in','POST',{origin:STABLE_HUB_ORIGIN},'{}')).status,403);assert.equal(seen.length,3);
 }));
 test('photo bytes and assignment scope survive; provider and bootstrap requests never reach fixture',()=>fixture(async(request,seen)=>{
  const photo=await request('/crm/api/live/crm/catalog/products/1/photo?variant=thumbnail','GET',{'x-crm-conversation-id':'55'});assert.equal(photo.status,200);assert.deepEqual(photo.body,Buffer.from([1,2,3]));assert.equal(seen[0].headers['x-crm-conversation-id'],'55');

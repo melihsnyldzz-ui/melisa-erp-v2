@@ -32,9 +32,9 @@ export function hubTest125IdentityMatches(web,api){
  const matches=(body,port)=>body?.ok===true&&body.environment==='CANONICAL_TEST'&&body.port===port&&body.sourceCommit===originalSource&&body.packageId===`CANONICAL-TEST-${originalSource.slice(0,12)}`;
  return matches(web,5194)&&matches(api,4144)&&api.databaseName==='MELISA_ERP_SIRKET_TEST_20260929_01'&&api.serverName==='Semih\\MELISADEV'&&api.sysadmin===0&&api.databaseControl===0&&api.liveDatabaseAccess===0;
 }
-export function hubCrmIdentityMatches(body,sourceCommit,now=Date.now()){
+export function hubCrmIdentityMatches(body,sourceCommit,now=Date.now(),packageId=`crm-shared-test-${sourceCommit}`){
  const age=now-Date.parse(body?.observedAt);
- return body?.sourceCommit===sourceCommit&&body.packageId===`crm-shared-test-${sourceCommit}`&&body.environment==='CANONICAL_TEST'&&Number.isFinite(age)&&age>=-5000&&age<120000&&body.startup?.state==='running'&&['server','catalog','orders'].every(name=>body.services?.[name]?.state==='running')&&['erp','native'].every(name=>body.dependencies?.[name]?.state==='ready');
+ return [`crm-shared-test-${sourceCommit}`,`crm-shared-stable-test-${sourceCommit}`].includes(packageId)&&body?.sourceCommit===sourceCommit&&body.packageId===packageId&&body.environment==='CANONICAL_TEST'&&Number.isFinite(age)&&age>=-5000&&age<120000&&body.startup?.state==='running'&&['server','catalog','orders'].every(name=>body.services?.[name]?.state==='running')&&['erp','native'].every(name=>body.dependencies?.[name]?.state==='ready');
 }
 
 // Read only an explicitly supplied private pin. No credentials or data APIs.
@@ -42,8 +42,9 @@ export function readHubRuntimePin(configPath){
  if(!configPath)return null;
  if(!path.isAbsolute(configPath))throw Error('HUB_CONFIG_ABSOLUTE_REQUIRED');
  const pin=JSON.parse(fs.readFileSync(configPath,'utf8'));
- const keys=['apiSourceCommit','crmSourceCommit','crmIndexSha256','crmHealthPath','trainingFiles'];
+ const keys=['apiSourceCommit','crmSourceCommit','crmIndexSha256','crmHealthPath','trainingFiles',...(Object.hasOwn(pin,'crmPackageId')?['crmPackageId']:[])];
  if(Object.keys(pin).length!==keys.length||Object.keys(pin).some(key=>!keys.includes(key))||!validSource(pin.apiSourceCommit)||!validSource(pin.crmSourceCommit)||!validHash(pin.crmIndexSha256)||!path.isAbsolute(pin.crmHealthPath)||!Array.isArray(pin.trainingFiles)||pin.trainingFiles.length!==8)throw Error('HUB_CONFIG_PIN_REJECTED');
+ if(pin.crmPackageId!==undefined&&! [`crm-shared-test-${pin.crmSourceCommit}`,`crm-shared-stable-test-${pin.crmSourceCommit}`].includes(pin.crmPackageId))throw Error('HUB_CONFIG_PIN_REJECTED');
  const names=new Set();
  for(const file of pin.trainingFiles){if(Object.keys(file).length!==2||!trainingNames.has(file.name)||!validHash(file.sha256)||names.has(file.name))throw Error('HUB_TRAINING_PIN_REJECTED');names.add(file.name);}
  return pin;
@@ -70,7 +71,7 @@ export function createHubMiddleware({root,context,pin=null,stableTransport=false
   if(pin){
    await Promise.all([
     (async()=>{try{const body=JSON.parse((await getBytes('http://127.0.0.1:4184/test-health',65536)).toString());if(hubErpIdentityMatches(body,{context,apiSourceCommit:pin.apiSourceCommit}))services.erp={state:'reachable',detail:'Çalışan izole uygulamaya erişiliyor.'};}catch{services.erp={state:'unreachable',detail:'Uygulamaya şu anda erişilemiyor.'};}})(),
-    (async()=>{try{const body=readHealth();const bytes=await getBytes('http://127.0.0.1:62700/',1048576);if(hubCrmIdentityMatches(body,pin.crmSourceCommit,now())&&hash(bytes)===pin.crmIndexSha256)services.crm={state:'reachable',detail:'Çalışan uygulama ekranına erişiliyor.'};}catch{services.crm={state:'unreachable',detail:'Uygulamaya şu anda erişilemiyor.'};}})(),
+    (async()=>{try{const body=readHealth();const bytes=await getBytes('http://127.0.0.1:62700/',1048576);if(hubCrmIdentityMatches(body,pin.crmSourceCommit,now(),pin.crmPackageId)&&hash(bytes)===pin.crmIndexSha256)services.crm={state:'reachable',detail:'Çalışan uygulama ekranına erişiliyor.'};}catch{services.crm={state:'unreachable',detail:'Uygulamaya şu anda erişilemiyor.'};}})(),
     (async()=>{try{const body=JSON.parse((await getBytes('http://127.0.0.1:4186/test-health',65536)).toString());if(hubTerminalIdentityMatches(body,{context,apiSourceCommit:pin.apiSourceCommit})&&fs.statSync(path.join(root,'terminal.html')).isFile())services.terminal={state:'reachable',detail:'El terminali ekranına ve okuyucuya erişiliyor.'};}catch{services.terminal={state:'unreachable',detail:'El terminali bağlantısı şu anda hazır değil.'};}})(),
     (async()=>{try{const [web,api]=await Promise.all(['http://127.0.0.1:5194/test-health','http://127.0.0.1:4144/test-health'].map(async url=>JSON.parse((await getBytes(url,65536)).toString())));if(hubTest125IdentityMatches(web,api))services.test125={state:'reachable',detail:'Korunan önceki çalışma ortamına erişiliyor.'};}catch{services.test125={state:'unreachable',detail:'Önceki ortam bağlantısı şu anda doğrulanamıyor.'};}})()
    ]);

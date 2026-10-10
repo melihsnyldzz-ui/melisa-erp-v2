@@ -1,5 +1,6 @@
 // Network transport is independent from DB identity and commercial permissions.
 // Adding a normal HTTPS origin never adds it to convenience actor bootstrap.
+import {networkInterfaces} from 'node:os';
 export const STABLE_HUB_ORIGIN='https://semih.tail295701.ts.net:8443';
 export const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 const fail=()=>{throw Error('SHARED_TRANSPORT_REJECTED');};
@@ -16,8 +17,12 @@ export function sharedCopyHosts(port,transport){
 }
 // The caller supplies an already validated optional physical company address.
 // A failed optional LAN bind cannot terminate the independent loopback core.
-export async function bindSharedCopyLan(app,port,transport,onUnavailable=()=>{}){
+export function approvedSharedCopyLanPresent(transport,interfaces){
+ return Boolean(transport.lanAddress&&interfaces?.['Ethernet 2']?.some(row=>row.family==='IPv4'&&row.internal===false&&row.address===transport.lanAddress&&row.netmask==='255.255.255.0'));
+}
+export async function bindSharedCopyLan(app,port,transport,onUnavailable=()=>{},interfaces=networkInterfaces()){
  if(!transport.lanAddress)return null;
+ if(transport.stable&&!approvedSharedCopyLanPresent(transport,interfaces)){onUnavailable('SHARED_OPTIONAL_LAN_UNAVAILABLE');return null;}
  return new Promise((resolve,reject)=>{
   let server;
   try{server=app.listen(port,transport.lanAddress,()=>resolve(server));}

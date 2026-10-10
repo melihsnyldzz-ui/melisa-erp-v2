@@ -70,10 +70,24 @@ test('stable supplier/payment journals retain actor, sealed source and scope; le
  }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
 
-test('stable selector offers manual sign-in guidance with no actor buttons, callbacks or identity requests',()=>{
+test('stable selector offers guarded own-session logout with no actor mint or automatic identity requests',()=>{
  const doc={createElement:()=>({children:[],style:{},setAttribute(){},append(n){this.children.push(n);},remove(){this.removed=true;}})},container={ownerDocument:doc,children:[],append(n){this.children.push(n);}};
- let called=0;const dispose=mountCopyActorSelector({container,profile:profile(),location,user,session:{selectCopyActor(){called++;}},beforeSwitch(){called++;},onChanged(){called++;}});
- const box=container.children[0];assert.equal(box.children.length,1);assert.match(box.children[0].textContent,/kendi hesabınızla yeniden giriş/);assert.equal(called,0);dispose();assert.equal(box.removed,true);
+ let called=0,allowed=false,loggedOut=0,changed=0;const dispose=mountCopyActorSelector({container,profile:profile(),location,user,session:{selectCopyActor(){called++;},logout(){loggedOut++;return true;}},beforeSwitch(){return allowed;},onChanged(){changed++;}});
+ const box=container.children[0];assert.equal(box.children.length,2);assert.equal(box.children[0].textContent,'Oturumu kapat');assert.match(box.children[1].textContent,/kendi hesabınızla yeniden giriş/);assert.equal(called,0);
+ box.children[0].onclick();assert.equal(loggedOut,0);assert.equal(changed,0);allowed=true;box.children[0].onclick();assert.equal(loggedOut,1);assert.equal(changed,1);dispose();assert.equal(box.removed,true);
+});
+test('cached stable account can sign out, abort reads and manually log in as a second account without clearing drafts',async()=>{
+ const storage=store(),calls=[];storage.setItem(workingCatalogTokenKey,'first');storage.setItem('crm-token','preserved');let resolveRead,readSignal;
+ const session=createWorkingCatalogSession({location,apiBase,storage,fetchImpl:async(url,o)=>{calls.push(url);if(url.endsWith('/auth/me'))return reply(user);if(url.endsWith('/auth/login'))return reply({user:{...user,id:15},accessToken:'second'});readSignal=o.signal;return new Promise(r=>resolveRead=r);}});
+ await session.start();const pending=session.api('/api/catalog/products');const rejected=assert.rejects(pending);assert.equal(session.logout(),true);assert.equal(readSignal.aborted,true);resolveRead(reply([]));await rejected;
+ assert.equal(storage.getItem(workingCatalogTokenKey),null);assert.equal(storage.getItem('saved-draft'),'keep');assert.equal(storage.getItem('crm-token'),'preserved');assert.equal(await session.start(),null);
+ assert.equal((await session.login({username:'second',password:'offline'})).id,15);assert.equal(storage.getItem(workingCatalogTokenKey),'second');assert.deepEqual(calls,[apiBase+'/api/auth/me',apiBase+'/api/catalog/products',apiBase+'/api/auth/login']);session.dispose();
+});
+test('in-flight commercial write or replaced session token blocks logout without abort or data loss',async()=>{
+ const storage=store();storage.setItem(workingCatalogTokenKey,'first');let finish,signal;
+ const session=createWorkingCatalogSession({location,apiBase,storage,fetchImpl:async(url,o)=>url.endsWith('/auth/me')?reply(user):new Promise(r=>{finish=r;signal=o.signal;})});await session.start();
+ const pending=session.work('/api/work-sales/preview',{method:'POST',body:{fixture:true}});assert.equal(session.logout(),false);assert.equal(signal.aborted,false);assert.equal(storage.getItem(workingCatalogTokenKey),'first');finish(reply({fixture:true}));await pending;
+ storage.setItem(workingCatalogTokenKey,'replacement');assert.equal(session.logout(),false);assert.equal(storage.getItem(workingCatalogTokenKey),'replacement');assert.equal(storage.getItem('saved-draft'),'keep');session.dispose();
 });
 
 test('stable terminal uses one exact CRM origin and preserves strict window/action checks without token payloads',()=>{

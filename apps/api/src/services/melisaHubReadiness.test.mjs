@@ -7,6 +7,12 @@ const context={copyId:'isolated-copy',target:{database:'isolated',server:'Semih\
 const erp={ok:true,environment:'ISOLATED_TEST_COPY',port:4184,mode:'erp',copyId:context.copyId,databaseName:'isolated',serverName:context.target.server,sourceCommit:source,actualT1:false,sysadmin:0,databaseControl:0,liveDatabaseAccess:0,originalDatabaseAccess:0,externalOperations:false,automaticJobs:false};
 const crm={sourceCommit:crmSource,packageId:`crm-shared-test-${crmSource}`,environment:'CANONICAL_TEST',observedAt:new Date(now).toISOString(),startup:{state:'running'},services:Object.fromEntries(['server','catalog','orders'].map(n=>[n,{state:'running'}])),dependencies:{erp:{state:'ready'},native:{state:'ready'}}};
 const pin={apiSourceCommit:source,crmSourceCommit:crmSource,crmIndexSha256:sha('shell'),crmHealthPath:path.resolve('private-health.json'),trainingFiles:['01-receiving.png','02-sales.png','03-purchases.png','04-collection.png','05-payment.png','06-return.png','07-count.png','08-crm.png'].map(name=>({name,sha256:sha('image')}))};
+test('stable CRM health must match its explicit immutable package pin without accepting the former package',()=>{
+ const packageId=`crm-shared-stable-test-${crmSource}`,stable={...crm,packageId};
+ assert.equal(hubCrmIdentityMatches(stable,crmSource,now,packageId),true);assert.equal(hubCrmIdentityMatches(crm,crmSource,now,packageId),false);assert.equal(hubCrmIdentityMatches(stable,crmSource,now,'foreign'),false);
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'hub-stable-pin-')),file=path.join(directory,'pin.json');
+ try{fs.writeFileSync(file,JSON.stringify({...pin,crmPackageId:packageId}));assert.equal(readHubRuntimePin(file).crmPackageId,packageId);fs.writeFileSync(file,JSON.stringify({...pin,crmPackageId:'crm-shared-stable-test-'+source}));assert.throws(()=>readHubRuntimePin(file));}finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
 function request(handler,p='/',method='GET',headers={host:'127.0.0.1:5234'}){
  const res={headers:{},code:200,set(k,v){this.headers[k]=v;return this;},type(v){this.typeValue=v;return this;},sendStatus(v){this.code=v;return this;},redirect(code,url){this.code=code;this.headers.Location=url;return this;},json(v){this.body=v;return this;},send(v){this.body=v;return this;},end(){return this;}};
  return handler({path:p||'/',originalUrl:'/melisa-hub'+p,method,headers},res).then(()=>res);

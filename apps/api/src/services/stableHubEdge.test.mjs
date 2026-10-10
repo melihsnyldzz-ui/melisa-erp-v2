@@ -33,3 +33,8 @@ test('POST must have finite explicit length; missing upstream CSP gets same-orig
  assert.equal(assertStableEdgeRequest(req('POST','/api/auth/login',{origin:STABLE_HUB_ORIGIN,'content-type':'application/json','content-length':'2'})).port,4184);
  assert.match(stableResponseHeaders({},'crm')['content-security-policy'],/frame-ancestors 'self'/);
 });
+test('upstream CRM policies cannot add foreign browser sources and no-store drops conditional cache headers',()=>{
+ const h=stableResponseHeaders({'content-security-policy':"default-src *; script-src https://foreign.invalid; connect-src https://foreign.invalid; frame-src *; form-action *"},'crm');
+ assert.doesNotMatch(h['content-security-policy'],/foreign|\*/);for(const name of ['connect-src','frame-src','form-action'])assert.ok(h['content-security-policy'].includes(name+" 'self'"));
+ assert.equal(stableUpstreamHeaders({'if-none-match':'fixture-etag'},62700,'crm','/crm/')['if-none-match'],undefined);
+});

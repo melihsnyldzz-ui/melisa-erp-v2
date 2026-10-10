@@ -32,7 +32,7 @@ export function stableEdgeRoute(method,rawUrl){
  if(method==='POST'){
   const normalErp=/^\/api\/(?:auth\/(?:login|terminal-login)|work-(?:sales|collections|receiving|purchases|supplier-payments)(?:\/|$)|test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$)/;
   if(normalErp.test(rawPath)&&isCanonicalTestWriteAllowed(method,rawPath,{writes:true,mode:'erp'}))return {port:4184,path:url.pathname+url.search,kind:'erp-api'};
-  if(rawPath==='/crm/api/live/auth/login'||crmOrderPost.test(rawPath))return {port:62700,path:url.pathname+url.search,kind:'crm'};
+  if(rawPath==='/crm/api/live/auth/login'||rawPath==='/crm/api/live/crm/catalog/auth/sign-out'||crmOrderPost.test(rawPath))return {port:62700,path:url.pathname+url.search,kind:'crm'};
  }
  denied();
 }
@@ -57,7 +57,7 @@ export function assertStableEdgeRequest(req){
 }
 export function stableUpstreamHeaders(headers,port,kind=null,pathname=''){
  const result={host:`127.0.0.1:${port}`};
- for(const name of ['accept','content-type','content-length','authorization','origin','sec-fetch-site','if-none-match'])if(typeof headers[name]==='string')result[name]=headers[name];
+ for(const name of ['accept','content-type','content-length','authorization','origin','sec-fetch-site'])if(typeof headers[name]==='string')result[name]=headers[name];
  // Only anonymous GET/HEAD Hub content gets a transport marker, never API auth.
  if(kind==='hub')result.origin=STABLE_HUB_ORIGIN;
  const positiveId=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v)&&Number.isSafeInteger(Number(v));
@@ -79,9 +79,10 @@ export function stableResponseHeaders(headers,kind){
  if(kind==='hub')result['content-security-policy']="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
  if(kind==='erp-web')result['content-security-policy']="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
  if(kind==='crm'){
-  const csp=headers['content-security-policy'];
-  if(typeof csp==='string')result['content-security-policy']=/frame-ancestors/i.test(csp)?csp.replace(/frame-ancestors[^;]*(?:;|$)/i,"frame-ancestors 'self';"):csp+"; frame-ancestors 'self'";
-  else result['content-security-policy']="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'";
+  // The stable browser trust boundary is fixed; upstream cannot introduce an
+  // external script, network, form, frame or cookie source. Existing inline
+  // CRM bootstrap/style behavior remains explicit until separately reviewed.
+  result['content-security-policy']="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'";
  }
  return result;
 }
