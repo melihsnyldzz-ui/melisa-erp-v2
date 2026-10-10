@@ -2203,7 +2203,8 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
 
     let autoCashCollection = null;
 
-    if (!nativeTransaction && isCashCustomerCode(beforeSnapshot.customerCode) && Number(beforeSnapshot.grandTotal || 0) > 0) {
+    // Isolated copy sales and collections have separate guarded request UUIDs.
+    if (!nativeTransaction && !isIsolatedOperationCopyRuntime() && isCashCustomerCode(beforeSnapshot.customerCode) && Number(beforeSnapshot.grandTotal || 0) > 0) {
       const cashAmount = Number(beforeSnapshot.grandTotal || 0);
       const cashCurrency = beforeSnapshot.documentCurrency;
       const paymentMethod = 'cash';
@@ -2220,6 +2221,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
         .input('cashCollectionDocumentDate', sql.Date, beforeSnapshot.documentDate)
         .input('cashCollectionCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
         .query(`
+          DECLARE @cashCollectionMovementIds TABLE (id bigint);
           INSERT INTO dbo.customer_movements (
             customer_id,
             sales_invoice_id,
@@ -2231,7 +2233,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
             created_at,
             created_by
           )
-          OUTPUT inserted.*
+          OUTPUT inserted.id INTO @cashCollectionMovementIds(id)
           VALUES (
             @cashCollectionCustomerId,
             @cashCollectionInvoiceId,
@@ -2249,6 +2251,9 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
             balance = balance - @cashCollectionAmount,
             updated_at = SYSUTCDATETIME()
           WHERE id = @cashCollectionCustomerId;
+
+          SELECT m.* FROM dbo.customer_movements m
+          JOIN @cashCollectionMovementIds captured ON captured.id = m.id;
         `);
 
       const cashMovement = cashMovementResult.recordset?.[0];
