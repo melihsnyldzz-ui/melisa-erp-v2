@@ -1,3 +1,9 @@
+## ERP-DEC-040 / ERP-CRM-EXPAND01 — 10 Ekim 2026
+
+Doğrulanmış geniş ürün/cari/döviz kapsamı DB02'de API/SQL/replay ve normal GUI ile teknik hazır. [Anonim kapsam ve kanıt](docs/evidence/erp/2026-10-10-business-expansion/README.md). ERP-UA29 / CRM-UA07 insan kabulü bekliyor; **49 / 9 yeşil / 39 sarı / 1 kırmızı** değişmedi. Geniş insan TEST'i başlatılmadı. Çalışan ERP API/salt okunur native source 36c1f5b44953dd00787ba2e37d526c1ea0f246d4, web source f3ff98e399fc18b69ea5b9234c3781191577130c, sipariş native source 60e424b61febd062668be0ccf3595c546da263a0; CRM source 38a168c7720de5f1b73bd523a3dff5125fc12097. LIVE/main/T1/PR27 sınırları korunur.
+
+Bu yetkili genişletme aşağıdaki 9 Ekim sınırlı hazırlık/DUR kaydını bu iş için günceller; kabul edilmiş insan durumları değişmez.
+
 **ŞİMDİ — ERP-DEC-039 / ERP-CRM-PREP01: kontrollü bağlantı hazırlığı teknik teslim edildi / insan kabulü bekliyor.** Ortak izole ortam, güncel native taslak/readback/replay, Zebra/personel→İlker→stok→alış→tedarikçi borcu ve AI/dış gönderim kapısı normal ekranlarda doğrulandı. Genel cari okuma ve son paket başlangıcı tamamlandı. [Kanıt](docs/evidence/erp/2026-10-09-shared-preparation/README.md). Başka modül veya migration işi açılmaz. TEST125/aktarımlar/PR27 korunur. İki ürün/TRY prova bütün mağaza ve döviz kapsamı değildir; geniş kapsam kesin kimlik/hesap bağlantıları, insan kabulü ve ayrıca işletme TEST onayı bekler. GitHub CI hesap/harcama engeli açıktır. Teslimde DUR.
 
 **Güncel optik teslim — ERP-DEC-038 / ERP-ZEBRA01:** PR23/6079756665 aynı görevde TC21 gerçek hardware trigger/decoder, Bul ile doğru ürün/stok/USD fiyat/fotoğraf ve kısa Wi-Fi off/on/uyku/oturum/yenileme teknik gözlemi alındı. Sıfırlı optik etiket ve otomatik Enter tamamlanmış sayılmaz; UA18/UA28 bekler. [Kanıt](docs/evidence/erp/2026-10-09-zebra-physical/physical-scan.md). TEST125/kod/roller/veriler korunur. DUR. Aşağıdaki ilk hazırlık/devam notları kendi tarihsel aşamalarıdır.

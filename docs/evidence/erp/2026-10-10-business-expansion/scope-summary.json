@@ -2,13 +2,17 @@
   "schemaVersion": "melisa-business-expansion-public-summary.v1",
   "recordDate": "2026-10-10",
   "scope": "isolated-shared-business-test-db02",
-  "recordStatus": "SOURCE_AND_REHEARSAL_PROVED_RUNTIME_PENDING",
+  "recordStatus": "TECHNICAL_RUNTIME_PROVED_HUMAN_TEST_NOT_STARTED",
   "source": {
     "products": 16743,
     "activeIdentityVerifiedProducts": 11847,
     "crmDraftProducts": 11843,
     "activeProductQuoteExclusions": {
-      "noPositiveVerifiedSaleQuoteProductIds": [36961, 39169, 40331],
+      "noPositiveVerifiedSaleQuoteProductIds": [
+        36961,
+        39169,
+        40331
+      ],
       "duplicateNativeTupleProductId": 301991,
       "duplicateNativeTupleQuoteId": 278235,
       "duplicateNativeTupleCount": 2,
@@ -18,7 +22,10 @@
     "goodsSourceSupplierIdentities": 53,
     "purchaseInvoiceProducts": 636,
     "purchaseInvoiceSupplierIdentities": 31,
-    "purchaseInvoiceProductsByCurrency": {"TRY": 4, "USD": 632},
+    "purchaseInvoiceProductsByCurrency": {
+      "TRY": 4,
+      "USD": 632
+    },
     "goodsProductsWithUnknownSourcePurchaseQuote": 521,
     "sourcePurchaseCurrencyAccountMismatch": {
       "productId": 36010,
@@ -28,18 +35,36 @@
       "conversionAssumed": false
     },
     "customerCurrencyAccounts": 375,
-    "customerCurrencyAccountsByCurrency": {"TRY": 43, "USD": 294, "EUR": 38},
+    "customerCurrencyAccountsByCurrency": {
+      "TRY": 43,
+      "USD": 294,
+      "EUR": 38
+    },
     "supplierCurrencyAccounts": 406,
-    "supplierCurrencyAccountsByCurrency": {"TRY": 311, "USD": 95},
+    "supplierCurrencyAccountsByCurrency": {
+      "TRY": 311,
+      "USD": 95
+    },
     "sourcePersonnelIdentities": 6,
     "unresolvedPersonnelAliases": 8,
-    "technicalTestActorIds": [15, 16],
+    "technicalTestActorIds": [
+      15,
+      16
+    ],
     "technicalTestActorsAreHumanAcceptance": false,
     "nativeBindingAllowlistProvesHumanIdentity": false,
     "openingBalanceHumanAccepted": false,
     "exchangeRateSnapshotDate": "2026-09-12",
-    "exchangeRateSnapshotCurrencies": ["USD", "EUR"],
-    "snapshotIsCurrentMarketRate": false
+    "exchangeRateSnapshotCurrencies": [
+      "USD",
+      "EUR"
+    ],
+    "snapshotIsCurrentMarketRate": false,
+    "sourceActiveCatalog": 11869,
+    "availableActiveCatalog": 11865,
+    "activeQuarantinedVisible": 22,
+    "crmAllSourceCatalog": 16793,
+    "crmDefaultPhotoCatalog": 3830
   },
   "exclusions": {
     "productGeneralExclusions": 4896,
@@ -90,17 +115,24 @@
     "guardsDisabled": 0,
     "sourceWitnessChecksValid": 8,
     "ephemeralTamperCasesRejected": 6,
-    "tamperCases": ["NullCost", "WrongSupplier", "WrongProductWitness", "WrongSaleQuote", "WrongAccountWitness", "LLCurrency"]
+    "tamperCases": [
+      "NullCost",
+      "WrongSupplier",
+      "WrongProductWitness",
+      "WrongSaleQuote",
+      "WrongAccountWitness",
+      "LLCurrency"
+    ]
   },
   "pendingProof": {
-    "readyRevisionActualApply": "PENDING",
-    "leastPrivilegedBootstrapAndGuardProof": "PENDING",
-    "runningPackageAndApiIdentity": "PENDING",
-    "bulkApiSql": "PENDING",
-    "singleStockSingleDebtAndReplay": "PENDING",
-    "guiAndTwoDecimalMoneyDisplay": "PENDING",
+    "readyRevisionActualApply": "PASS",
+    "leastPrivilegedBootstrapAndGuardProof": "PASS",
+    "runningPackageAndApiIdentity": "PASS",
+    "bulkApiSql": "PASS",
+    "singleStockSingleDebtAndReplay": "PASS",
+    "guiAndTwoDecimalMoneyDisplay": "PASS",
     "physicalZebraAndHumanAcceptance": "NOT_STARTED",
-    "separateRepositoryPushAndExactHeadCi": "PENDING"
+    "separateRepositoryPushAndExactHeadCi": "SEE_EXACT_PR_HEAD_CHECKS_LOCAL_PASS_IS_NOT_CI"
   },
   "boundaries": {
     "newEffectsOrigin": "SYNTHETIC_TEST_EFFECT_SEPARATE_FROM_REAL_SOURCE_COPY",
@@ -110,5 +142,47 @@
     "actualT1": false,
     "mainMerge": false,
     "trainingPr27": "PENDING"
+  },
+  "runtimeAcceptance": {
+    "completed": true,
+    "catalogPages": 238,
+    "catalogProducts": 11865,
+    "crmDraftProducts": 11843,
+    "goodsProducts": 1158,
+    "customerCurrencyAccounts": 375,
+    "allowlistedConversationContexts": 155,
+    "authorizedConversationContexts": 155,
+    "deniedConversationContexts": 0,
+    "syntheticGoodsInvoices": 4,
+    "syntheticStockLines": 5,
+    "syntheticSupplierDebtEffects": 4,
+    "syntheticCrmApiDrafts": 3,
+    "syntheticCrmGuiDrafts": 1,
+    "crmDraftBusinessEffects": 0,
+    "protectedHistoryUnchanged": true,
+    "humanTestStarted": false,
+    "webSource": "f3ff98e399fc18b69ea5b9234c3781191577130c",
+    "bulkReadEvidenceReusedFromSealedHistoricalRun": true,
+    "erpRuntimeCommit": "36c1f5b44953dd00787ba2e37d526c1ea0f246d4"
+  },
+  "localChecks": {
+    "erpOfficialTests": 1593,
+    "crmOfficialTests": 1042,
+    "failures": 0,
+    "secretScanFindings": 0
+  },
+  "sourcePrecisionResiduals": {
+    "count": 37,
+    "dataChanged": false,
+    "exactResidualGuard": true,
+    "openingHumanAccepted": false
+  },
+  "independentStoredDml": {
+    "journals": 24,
+    "remainingTransientIntents": 0,
+    "stockComponents": 5,
+    "supplierComponents": 4,
+    "permissionChanges": 0,
+    "businessWritesByAudit": 0
   }
 }

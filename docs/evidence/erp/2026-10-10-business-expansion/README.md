@@ -1,68 +1,25 @@
-# ERP ↔ CRM işletme kapsamı genişletmesi — anonim kaynak kanıtı
+# ERP geniş ortak TEST teknik teslimi / 10 Ekim 2026
 
-Bu kayıt, ayrı DB02 ortak TEST kopyasının doğrulanmış kaynak kapsamını ve izolasyon provası sonuçlarını gösterir. **Geniş ortak insan TEST’i başlatılmadı; uçtan uca çalışan uygulama, GUI, replay ve son CI kanıtları bekliyor.** Kaynak uygunluğu, tamamlanmış işletme kabulü anlamına gelmez.
+ERP-DEC-040 / CRM-DEC-008
 
-[Makine tarafından okunabilir anonim özet](scope-summary.json) yalnız adet, işlem sınırı ve durum içerir. Ticari isim, telefon, gerçek fiyat/bakiye, özel kişi verisinin hash’i, erişim ayarı ve ayrıntılı cari dışlama listesi GitHub’a eklenmedi. Bütün ayrıntılı istisnalar yerel tek yönetici raporunda tutulur.
+Doğrulanmış kapsam yalnız yeni DB02 ortak TEST ortamında teknik olarak hazırdır. Geniş ortak insan TEST'i başlatılmadı. Kopya gerçek kaynak kayıtlarını ve önceki kabul edilmiş TEST geçmişini içerir. Sonradan eklenen sekiz sentetik TEST zinciri ayrıca işaretlenir; önceki kabul edilmiş aktarımlar yeniden uygulanmadı.
 
-## Doğrulanmış kaynak kapsamı
+Kaynak 16.743 ürün; 11.847 aktif ve doğrulanmış kimlik, 11.843 pozitif/tekil ana birim satış fiyatıyla CRM taslağına uygun ürün. Aktif katalog 11.865 kayıt gösterir: 11.843 uygun ürün ve işlem dışındaki 22 karantina. Üç sıfır fiyat ve bir tekil olmayan kaynak fiyatı ayrı tutulur. Mal kabulü 1.158 ürün / 53 tedarikçi / 57 tedarikçi-döviz bağlamı; kaynak fiyatlı alış faturası 636 ürün / 31 tedarikçi. Müşteri 375 döviz hesabı (43 TRY, 294 USD, 38 EUR), tedarikçi 406 döviz hesabı (311 TRY, 95 USD). 268 cari hesabı somut gerekçeleriyle dışarıda; iki LL müşteri hesabı işlemden dışlanır.
 
-| İşlem veya kaynak | Kapsam | Anlamı |
-| --- | ---: | --- |
-| Kaynak ürün envanteri | 16.743 | Kaynak kimliği ve sürüm tanıkları |
-| Aktif ve kimliği doğrulanmış ürün | 11.847 | ADET / faktör 1 bağı |
-| CRM sipariş taslağı ürünü | 11.843 | Pozitif, tekil ve ana birime bağlı doğrulanmış satış fiyatı |
-| Mühürlü mal kabulü profili | 1.158 | Kesin kaynak tedarikçi bağı ve bilinen TRY stok maliyeti; 53 kaynak tedarikçi |
-| Alış faturası ürünü | 636 | Aynı tedarikçinin kaynak alış dövizindeki doğrulanmış hesabı; 31 tedarikçi, 4 TRY ve 632 USD ürün |
-| Müşteri döviz hesabı | 375 | 43 TRY / 294 USD / 38 EUR |
-| Tedarikçi döviz hesabı | 406 | 311 TRY / 95 USD |
+Bütün 238 katalog sayfası, 57 bağlam ve 375 müşteri hesabı bağımsız kaynak/SQL tanıklarıyla karşılaştırıldı. Dört sentetik sayım → İlker kabulü → alış faturası zinciri beş stok satırı ve dört ilgili döviz borcu üretti. Aynı UUID/gövde ikinci etki oluşturmadı; farklı gövde 409 ve yetkisiz personel 403 verdi. İki ayrı kaynak satırının toplamı tam hassasiyetle doğrulandı; ekranda en fazla iki ondalık gösterilir. TRY/USD/EUR üç API taslağı ve bir normal GUI taslağı ayrı geri okuma/replay ile doğrulandı; CRM taslaklarının stok/cari/fatura/rezervasyon etkisi sıfırdır.
 
-Bu kümeler farklı işlemleri anlatır ve örtüşür; adetleri toplanmaz. 11.843 ürünlük CRM kataloğu, 1.158 ürünlük mal kabulü profiline indirgenmez. Kaynakta uygun görünen diğer adaylar mühürlü işlem profiline otomatik eklenmedi.
+Çalışan immutable ERP API/salt okunur native kaynağı 36c1f5b44953dd00787ba2e37d526c1ea0f246d4, web kaynağı f3ff98e399fc18b69ea5b9234c3781191577130c, ayrı native sipariş kaynağı 60e424b61febd062668be0ccf3595c546da263a0, CRM kaynağı 38a168c7720de5f1b73bd523a3dff5125fc12097. ERP web 5234 / API 4184 / salt okunur native 4186; CRM 62700–62704. Son doküman commit'i ve repo checkout'u deployment değildir. TEST125 5194 ve önceki sınırlı ortak TEST 5224/62600 korunur.
 
-Aktif ürünlerden dört ürün fiyatlı CRM taslağı dışında tutulur: **36961, 39169, 40331** için pozitif doğrulanmış satış fiyatı yoktur; **301991 / fiyat kaydı 278235** için aynı yerel fiyat tuple’ı iki kez bulunmaktadır. Son kaydın kaynak satır hash’i ve binding tanığı eşleşmektedir; sorun tekilliktir. Satır silme, tahminî fiyat veya kaynak yeniden aktarımı uygulanmadı.
+176 karantina, 283 kabul edilmiş cari etki, 16 tedarikçi döviz etkisi, 16.622 kabul ürün ve 63.774 kabul fiyat korunur. Son testte altı korunan kaynak/geçmiş tablosu tam hash karşılaştırmasıyla aynı kaldı. Bu, bütün DB'nin değişmediği iddiası değildir. TEST125'in güncel tam 51 tablo/337 tanım karşılaştırması mevcut reader izinleriyle yapılamadı; izinler genişletilmedi. İlk kaynak önce/sonra kopya kanıtı ve güncel erişilebilir kritik geçmiş tanıkları ayrı tutulur.
 
-Mal kabulü profilinde 521 ürünün kaynak net alış fiyatı bulunmadığı için fatura uygunluğu yoktur. Bir diğer ürünün kaynak alış dövizi ile hesabı uyuşmaz: **ürün 36010 / tedarikçi 10183**, kaynak alış dövizi TRY, doğrulanmış tedarikçi hesabı USD. Döviz dönüşümü varsayılmadı. Pozitif kaynak alış fiyatı bulunan 637 üründen 636’sı aynı dövizde fatura uygundur.
+Ready ve effects performans revizyonları eklemeli ve DB02 ile sınırlıdır; temel 185 manifest, eski mühür ve immutable önceki revizyonlar korunur. İlk sayım isteği süre aşımında geri alındı ve aynı UUID'yle devam edildi. Normal 10 saniye SQL / 15 saniye ekran sınırları değişmedi. DB02 alış taslağında belge/döviz hesabı tutarı ve kur snapshotları ilk başlık INSERT adımında aynı işlem içinde birlikte yazılır; guard uyumu sonradan düzeltmeye bırakılmaz. Kaynakta zaten bulunan 37 tam ondalık bakiye farkı immutable kaynak tanıklarıyla korunur; hiçbir ana-cari veya döviz hesabı yuvarlanmadı/düzeltilmedi. Yeni en küçük bakiye sapması reddedilir. Bu farkların ve açılış bakiyelerinin bağımsız insan kabulü bekliyor.
 
-Genel ürün dışlaması 4.896; işleme göre istisna 11.263; cari döviz hesabı dışlaması 268’dir (106 müşteri / 162 tedarikçi hesabı). Her kayıtta birden fazla neden bulunabilir. **Neden bazındaki adetler örtüşür; toplamları tekil kayıt adedine eşit olmayabilir.** İşleme göre istisna, ürünün bütün işlemlerde kullanılamaz olduğu anlamına gelmez.
+Mal kabulü/alış TEST profili en fazla iki farklı satır, satır başına 1–5 tam ADET ve belge dövizinde 20.000,0000 sınırı taşır. CRM native taslağının ayrı mevcut miktar sözleşmesi korunur. Fiyat/bakiye ekranları en fazla iki ondalıktır. Kaynak kur tarihi 12 Eylül 2026; güncel piyasa kuru olarak sunulmaz. Genel satış, ödeme, finans, iade ve gerçek T1 bu profilin dışındadır.
 
-## Gerçek kopya, TEST etkisi ve insan kabulü
+155 izinli sohbet taze aktör/assignment/peer kontrolüyle okundu: 155 yetkili / 0 somut yetki reddi. Eski geçici kota reddi kişi/cari dışlaması sayılmadı. Gerçek telefon-cari bağı otomatik kurulmadı; gerekçeli sentetik seçim gerçek kişi kabulü değildir. Doğrulanmış DB02 salt okuma kotası 6.000/900 saniye, eski/normal ortam 300'dür; auth/login/send sınırları ve roller korunur. EUR seçeneği doğrulanmış kaynak marker'ıyla sayfadan bağımsızdır. DB02'de açık seçimle tüm kaynak ürünleri okunur; varsayılan/sıfırlama fotoğraflı katalogdur. Fotoğrafsız ürüne fotoğraf veya fiyatı olmayan dövize fiyat üretilmez; karantina taslağa seçilemez.
 
-TEST125’in kabul edilmiş kaynak verisi ve geçmiş tanıkları yeni, ayrı DB02 ortamında korunur. Yeni otomatik veya ekran testlerinin oluşturacağı sayım, kabul, stok, fatura, cari hareket ve CRM taslakları **TEST etkisi** olarak ayrı işlem kökeni ve tekrar deneme günlüğü taşır; gerçek işletme işlemi diye sunulmaz. Önceki sentetik TEST kayıtları da kabul edilmiş kaynak aktarımı olarak yeniden sınıflandırılmaz.
+Yerel resmi çevrimdışı ERP 1593 ve CRM 1042 test PASS; gerekli sözdizimi, guard, derleme ve reachable-history secret taraması geçti (bulgu 0). Son değişikliklerin ek hedefli kontrolleri: Canonical 386: 382 PASS / 4 intentional SKIP / 0 FAIL; API 642 / sites 709 / web-admin 5 / migration 237; CRM frontend 381 / gateway 511 / contract 150; UI currency hint syntax/build PASS; independent stored DML PASS; web/API 503 files identical. GitHub exact-head CI sonucu PR #23 / PR #3'te ayrı değerlendirilir; local PASS, CI yeşili değildir.
 
-Altı gerçek personel kimliği aktif çalışan/kullanıcı bağıyla doğrulanmıştır. İşlemleri yürüten **15 ve 16** numaralı teknik TEST aktörleri gerçek personelin insan kabulü değildir. Sekiz alternatif ad eşlemesi inceleme bekler. Yerel binding için sonlu izin listesi işlem yetkisini sınırlar; gerçek personel kimliği bağı veya insan kabulü oluşturmaz. Mevcut yetkiler genişletilmedi.
+Ücretli AI, gerçek WhatsApp gönderimi, LIVE/Vega/işletme verisi yazması, main merge ve gerçek T1 yok. Eğitim PR #27 açık taslak ve aynı head'de bekler. Eski Stage4 anahtar yenilemesi ayrı bekliyor. Fiziksel yeni Zebra okutması, gerçek personel oturumları, İlker/personel kabulü, sekiz ad eşlemesi ve bağımsız açılış bakiyesi kabulü ERP-UA29 / CRM-UA07'de bekliyor. Altı doğrulanmış kaynak personel kimliği, iki teknik TEST aktörünün 15/16 testine eşit değildir.
 
-Cari hesapların makine kaynak tanığı vardır; açılış bakiyeleri bağımsız insan kabulü olmadan kabul edilmiş bakiye diye sunulmaz. Bilinmeyen eşlemeler, karantina ve dört kaynak belge mutabakatı bekleyen hesap ayrı tutulur. **İki LL müşteri hesabı dışlanır.** TRY görünümü, kaynak LL hesabını uygulanabilir kılmaz.
-
-USD/EUR işlem kur tanıkları **12 Eylül 2026** tarihli kaynak anlık görüntüsüdür; güncel piyasa kuru diye sunulmaz. Bu anonim kayıtta kaynak kur veya ticari tutar değerleri yayımlanmaz. TRY kimlik kuru ayrı tanımlıdır. Fiyat ve bakiye ekranlarında en fazla iki ondalık gösterilir; işlem doğrulaması kesin ondalık değerlerle yapılır.
-
-Belge başına en fazla iki farklı ürün satırı, satır başına 1–5 fiziksel ADET ve belge dövizinde 20.000 tutar TEST sınırı geçerlidir. TRY stok maliyeti ile belge alış dövizi/fiyatı ayrı tutulur.
-
-## Korunan kabul geçmişi ve izolasyon provası
-
-| Korunan kanıt | Adet |
-| --- | ---: |
-| Kabul edilmiş ürün / fiyat | 16.622 / 63.774 |
-| Cari aktarım etkisi / tedarikçi döviz etkisi | 283 / 16 |
-| Karantina bekletme kaydı / FIRST kontrolü | 176 / 37 |
-| DB02 ilk kopya ve çekirdek kurulumunda karşılaştırılan ticari tablo | 51 |
-| Değişmeden tutulan temel modül manifesti | 185 |
-| Kaynak SQL tanımı / kaynak CHECK pini | 337 / 227 |
-
-Kabul edilmiş aktarımlar yeniden uygulanmadı. İlk DB02 kurulumunda 51 ticari tablonun önce/sonra özeti eşleşti; ticari yazı sıfırdı. Eski ortak TEST, TEST125, LIVE/Vega ve kaynak tarihçesi korunur.
-
-Geniş profilin tekrarlı JSON ayrıştırması için yalnız DB02 `ready` doğrulamasına ayrı, eklemeli bir revizyon hazırlanmıştır. Profil mührü, kopya kimliği, temel 185 manifest kaydı, diğer üç işlem prosedürü, karantina ve kaynak koşulları değiştirilmez. Yerel tablo değişkenleri JSON ve tam UTF8 kaynak hash’lerini bir kez hazırlar; mevcut NULL, kaynak, döviz, tekillik ve hesap koşulları korunur.
-
-**Revizyon provası PASS ve rollback tamamlandı:** aynı 51 ticari tablo, 389 korunan SQL tanımı ve 312 mevcut CHECK önce/sonra eşleşti; kapatılan guard ve değiştirilmiş mevcut rol sıfırdır. Ayrı kayıt yalnız bir `ready` revizyonunu yetkilendirir. Gerçek kaynak tanıklarıyla sekiz koşul temizdir. Altı yalnız yerel sahte profil denemesi (NULL maliyet, yanlış tedarikçi, yanlış ürün tanığı, yanlış satış fiyatı, yanlış hesap tanığı, LL dövizi) reddedilmiştir. Bu sonuçlar uçtan uca uygulama veya insan kabulü değildir.
-
-## Pending proof — son çalışma kanıtları
-
-Root, aşağıdaki alanları son kanıtları aldıktan sonra doldurur. Bu taslak testlerin çalışmış veya geçmiş olduğunu ileri sürmez.
-
-- Ready revizyonu actual Apply ve iki en az yetkili bağlantının metadata / aktif guard kanıtı: **bekliyor**.
-- Çalışan ERP, native ve CRM paket kimlikleri; yeni TEST adreslerinin API erişimi: **bekliyor**.
-- Geniş katalog, müşteri/tedarikçi döviz hesabı, mal kabulü ve alış faturası için toplu API/SQL kontrolleri: **bekliyor**.
-- Tek stok, tek cari borç, seçili hesap bağı ve aynı/farklı gövdeli replay sonucu: **bekliyor**.
-- GUI, fiyat/bakiye iki ondalık gösterimi, yetki ve bilinmeyen eşleme ekranları: **bekliyor**.
-- Fiziksel Zebra okutması, İlker ve personel ortak insan kabulü: **bekliyor; başlatılmadı**.
-- ERP PR #23 / CRM PR #3 için ayrı son commit, push ve tam head CI sonucu: **bekliyor**.
-
-Ücretli AI, gerçek WhatsApp gönderimi, gerçek T1, LIVE değişikliği ve main merge yapılmaz. Eğitim Modu PR #27 beklemede kalır. Yerel teknik başarı, CI veya insan kabulü yerine yazılmaz.
+Ayrıntılı gerçek kişi/telefon, kaynak fiyat/bakiye ve satır bazındaki istisnalar GitHub'a yayımlanmaz; tek yerel yönetici raporundadır.

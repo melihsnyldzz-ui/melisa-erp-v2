@@ -1,3 +1,7 @@
+## ERP-DEC-040 / ERP-CRM-EXPAND01 — 10 Ekim 2026
+
+Doğrulanmış geniş ürün/cari/döviz kapsamı DB02'de API/SQL/replay ve normal GUI ile teknik hazır. [Anonim kapsam ve kanıt](docs/evidence/erp/2026-10-10-business-expansion/README.md). ERP-UA29 / CRM-UA07 insan kabulü bekliyor; **49 / 9 yeşil / 39 sarı / 1 kırmızı** değişmedi. Geniş insan TEST'i başlatılmadı. Çalışan ERP API/salt okunur native source 36c1f5b44953dd00787ba2e37d526c1ea0f246d4, web source f3ff98e399fc18b69ea5b9234c3781191577130c, sipariş native source 60e424b61febd062668be0ccf3595c546da263a0; CRM source 38a168c7720de5f1b73bd523a3dff5125fc12097. LIVE/main/T1/PR27 sınırları korunur.
+
 ## ERP-CRM-PREP01 — ortak hazırlık
 
 ERP-DEC-039 kapsamında ortak izole katalog/native sipariş ve Zebra→İlker→stok→alış→borç teknik zinciri, genel cari okuma ve son paket başlangıcı kanıtlandı; teslim STATUS/PR makbuzundadır. **49 toplam /9🟢 /39🟡 /1🔴** korunur; teknik hazırlık insan kabulü değildir. İki ürün/TRY prova bütün mağaza ve döviz kapsamı sayılmaz. Bu teslimde durulur; bütünleşik günlük işletme testi kendiliğinden başlamaz. Önceki aktarımlar yeniden uygulanmaz; normal TEST125 ve eğitim PR27 korunur.
