@@ -2,10 +2,10 @@ import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
 import * as base from './isolatedOperationCopyContext.mjs';
 import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
-const selections=new WeakMap(),scopeHash='D'.repeat(64);
+const selections=new WeakMap(),scopeHash='D'.repeat(64),auditCalls=[];
 mock.module('./isolatedOperationCopyContext.mjs',{namedExports:{...base,getBusinessDailySelection:c=>{base.assertIsolatedCopyContext(c);return selections.get(c)??null;},getBusinessDailyScopeHash:c=>{base.assertIsolatedCopyContext(c);return selections.has(c)?scopeHash:null;}}});
 mock.module('../config/database.js',{namedExports:{getSqlDriver:()=>({BigInt:0}),getSqlPool:async()=>{throw Error('Unit scope may not open a pool');},isCanonicalTest:()=>false,isIsolatedOperationCopyRuntime:()=>false,getIsolatedOperationCopyConfig:()=>null}});
-mock.module('./auditService.js',{namedExports:{writeAuditLog:async()=>{}}});
+mock.module('./auditService.js',{namedExports:{writeAuditLog:async(_request,event)=>{auditCalls.push(event);}}});
 const {resolveBusinessDailyScope,countProductScope}=await import('./testDailyService.mjs');
 const {postIsolatedCopyCurrencyMovement}=await import('./nativeCurrencyAccount.mjs');
 const {withIsolatedOperationCopyScope}=await import('./isolatedOperationCopyScope.mjs');
@@ -32,11 +32,40 @@ test('count context reads only finite selected products, never the complete shar
  assert.deepEqual(lookups,['34765']);assert.equal(calls.filter(s=>s.includes('FROM dbo.products')).length,1);assert.ok(calls.includes(base.ISOLATED_COPY_PROCEDURES.ready));
 });
 test('daily native customer and supplier effects bind exact account, rate and scope hash in the same transaction',async()=>{
- const {copy}=fixture(),tx={},calls=[];
+ const {copy}=fixture(),tx={},calls=[],auditBefore=auditCalls.length;
  class Request{constructor(t){assert.equal(t,tx);this.params={};}input(k,t,v){this.params[k]=v;return this;}async query(sql){calls.push({sql,params:this.params});return {recordset:[{accountId:this.params.account,partyId:this.params.entity,movementId:this.params.movement,beforeBalance:'10.00000000',afterBalance:'11.00000000',effect:this.params.effect}]};}}
  const driver={Request,BigInt:0,UniqueIdentifier:0,NVarChar:()=>0,Decimal:()=>0};
  await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:true},async()=>{
-  for(const [role,partyId,account] of [['customer','20','22'],['supplier','30','32']]){await postIsolatedCopyCurrencyMovement({role,partyId,currency:'TRY',movementId:'50',effectExact8:'1.00000000'},{transaction:tx,sqlDriver:driver},{id:'16'});assert.equal(calls.at(-1).params.account,account);assert.equal(calls.at(-1).params.businessDailyScopeHash,scopeHash);assert.equal(calls.at(-1).params.copyAccountRate,'1.00000000');assert.match(calls.at(-1).sql,/JSON_VALUE\(n.payload_json,'\$\.businessDailyScopeHash'\)=@businessDailyScopeHash/);assert.doesNotMatch(calls.at(-1).sql,/UPDATE dbo.(customers|suppliers)/);}
+  for(const [role,partyId,account] of [['customer','20','22'],['supplier','30','32']]){const result=await postIsolatedCopyCurrencyMovement({role,partyId,currency:'TRY',movementId:'50',effectExact8:'1.00000000'},{transaction:tx,sqlDriver:driver},{id:'16'});assert.equal(result.accountId,account);assert.equal(result.beforeBalance,'10.00000000');assert.equal(result.afterBalance,'11.00000000');assert.equal(result.effect,'1.00000000');assert.equal(result.movementId,'50');assert.equal(calls.at(-1).params.account,account);assert.equal(calls.at(-1).params.businessDailyScopeHash,scopeHash);assert.equal(calls.at(-1).params.copyAccountRate,'1.00000000');assert.match(calls.at(-1).sql,/JSON_VALUE\(n.payload_json,'\$\.businessDailyScopeHash'\)=@businessDailyScopeHash/);assert.match(calls.at(-1).sql,/n\.session_id=@@SPID AND n\.transaction_id=CURRENT_TRANSACTION_ID\(\) AND n\.actor_id=@actor/);assert.match(calls.at(-1).sql,/m\.party_entity_id IS NULL AND m\.party_currency_account_id IS NULL/);assert.match(calls.at(-1).sql,/m\.account_amount=m\.amount/);assert.doesNotMatch(calls.at(-1).sql,/UPDATE dbo.(customers|suppliers)/);}
   await assert.rejects(postIsolatedCopyCurrencyMovement({role:'customer',partyId:'20',currency:'USD',movementId:'50',effectExact8:'1.00000000'},{transaction:tx,sqlDriver:driver},{id:'16'}));selections.delete(copy);await assert.rejects(postIsolatedCopyCurrencyMovement({role:'customer',partyId:'20',currency:'TRY',movementId:'50',effectExact8:'1.00000000'},{transaction:tx,sqlDriver:driver},{id:'16'}),{code:'ISOLATED_COPY_ACCOUNT_SCOPE'});
- });assert.equal(calls.length,2);
+ });assert.equal(calls.length,2);assert.equal(auditCalls.length,auditBefore,'registered daily uses its operation audit and immutable native effect journal');
+});
+
+test('legacy and business inbound postings retain bridge audit and exact before/after fields',async()=>{
+ const {businessInboundFixture}=await import('./businessInbound.test-fixture.mjs');
+ const {withBusinessInboundSelection}=await import('../middleware/businessInboundSelection.mjs');
+ const legacy=base.validateIsolatedOperationCopyContext(fixtureContext()),inbound=businessInboundFixture();
+ for(const entry of [{copy:legacy,identity:fixtureIdentity(legacy),proof:fixtureProof(legacy),role:'customer',partyId:'20',currency:'TRY',account:'22',party:'21'},{copy:inbound.copy,identity:inbound.identity,proof:inbound.proof,role:'supplier',partyId:'30',currency:'USD',account:'32',party:'31',inbound:true}]){
+  const tx={},queries=[],auditBefore=auditCalls.length;
+  const posting={accountId:entry.account,partyId:entry.party,movementId:'50',currency:entry.currency,beforeBalance:'10.00000000',effect:'1.00000000',afterBalance:'11.00000000'};
+  class Request{constructor(t){assert.equal(t,tx);}input(){return this;}async query(sql){queries.push(sql);return{recordset:[posting]};}}
+  const driver={Request,BigInt:0,UniqueIdentifier:0,NVarChar:()=>0,Decimal:()=>0};
+  const post=()=>postIsolatedCopyCurrencyMovement({role:entry.role,partyId:entry.partyId,currency:entry.currency,movementId:'50',effectExact8:'1.00000000'},{transaction:tx,sqlDriver:driver},{id:'16'});
+  await withIsolatedOperationCopyScope({context:entry.copy,identity:entry.identity,readProof:entry.proof,transaction:tx,write:true},async()=>{
+   const result=entry.inbound?await withBusinessInboundSelection(entry.copy,{supplierId:'30',accountId:'32',currency:'USD'},post):await post();assert.equal(result,posting);
+  });
+  assert.equal(queries.length,1);assert.equal(auditCalls.length,auditBefore+1);
+  const event=auditCalls.at(-1);assert.equal(event.action,'isolated_copy_currency_account_posted');assert.equal(event.entityType,entry.role+'_movement');assert.equal(event.entityId,'50');assert.equal(event.beforeSnapshot.balance,'10.00000000');assert.equal(event.afterSnapshot.afterBalance,'11.00000000');assert.equal(event.afterSnapshot.effect,'1.00000000');assert.equal(event.afterSnapshot.copyId,entry.copy.copyId);
+ }
+});
+
+test('missing transaction or unregistered daily selection cannot omit audit or post a movement',async()=>{
+ const {copy}=fixture(),tx={},auditBefore=auditCalls.length;let queries=0;
+ class Request{constructor(t){assert.equal(t,tx);}input(){return this;}async query(){queries++;throw Error('must not query');}}
+ const driver={Request,BigInt:0,UniqueIdentifier:0,NVarChar:()=>0,Decimal:()=>0};
+ const post=()=>postIsolatedCopyCurrencyMovement({role:'customer',partyId:'20',currency:'TRY',movementId:'50',effectExact8:'1.00000000'},{transaction:tx,sqlDriver:driver,businessDaily:true},{id:'16'});
+ await assert.rejects(post(),{code:'ISOLATED_COPY_TRANSACTION_REQUIRED'});
+ selections.delete(copy);
+ await withIsolatedOperationCopyScope({context:copy,identity:fixtureIdentity(copy),readProof:fixtureProof(copy),transaction:tx,write:true},()=>assert.rejects(post(),{code:'ISOLATED_COPY_ACCOUNT_SCOPE'}));
+ assert.equal(queries,0);assert.equal(auditCalls.length,auditBefore);
 });

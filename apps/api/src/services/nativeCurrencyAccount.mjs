@@ -44,7 +44,15 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  CONVERT(varchar(60),@before) beforeBalance,CONVERT(varchar(60),@effect) effect,CONVERT(varchar(60),current_balance) afterBalance FROM dbo.party_currency_accounts WHERE id=@account;
  `);
  copyAssert(result.recordset?.length===1,'ISOLATED_COPY_ACCOUNT_RESULT');
- const posting=result.recordset[0];await writeAuditLog(request(),{actor,action:'isolated_copy_currency_account_posted',entityType:role+'_movement',entityId:movementId,beforeSnapshot:{accountId:posting.accountId,balance:posting.beforeBalance},afterSnapshot:{...posting,copyId:copy.copyId,operationOrigin:copy.operationOrigin}});return posting;
+ const posting=result.recordset[0];
+ // Registered daily callers retain their business operation audit. The same
+ // transaction's immutable copy request/effect components bind this completed
+ // native movement, selected account and exact balance effect; a second bridge
+ // event would be outside the daily audit contract. Legacy/inbound keep it.
+ // `daily` comes from the registered context WeakMap, never a client flag, and
+ // the SQL above already verified its scope hash against the active intent.
+ if(!daily)await writeAuditLog(request(),{actor,action:'isolated_copy_currency_account_posted',entityType:role+'_movement',entityId:movementId,beforeSnapshot:{accountId:posting.accountId,balance:posting.beforeBalance},afterSnapshot:{...posting,copyId:copy.copyId,operationOrigin:copy.operationOrigin}});
+ return posting;
 }
 
 // Runs inside the native sale's SERIALIZABLE transaction. Never guesses an
