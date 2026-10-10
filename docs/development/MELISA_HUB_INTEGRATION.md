@@ -1,6 +1,6 @@
 # Melisa Hub: mevcut izole web üzerinde güvenli giriş
 
-Hub, mevcut iş ekranlarını veya kimlik sistemini değiştirmez. `/melisa-hub/` statik portalı, aynı web sunucusunun mevcut Host/socket korumasından sonra servis edilir. ERP/eğitim/el terminali relative adresler; CRM doğrulanmış mevcut hostname ve UI portu üzerinden açılır. CRM gateway/catalog/order uçları proxy edilmez. TEST125 ve LIVE bağlantıları ilk entegrasyonda kapalıdır.
+Hub, mevcut iş ekranlarını veya kimlik sistemini değiştirmez. `/melisa-hub/` statik portalı, aynı web sunucusunun mevcut Host/socket korumasından sonra servis edilir. ERP/eğitim/el terminali relative adresler; CRM doğrulanmış mevcut hostname ve UI portu üzerinden açılır. CRM gateway/catalog/order uçları proxy edilmez. TEST125 yalnız exact eski web/API source, DB ve LIVE erişim sınırı doğrulanırsa mevcut Host5194 üzerinde açılır; yeni/uyuşmayan kimlikte kapalıdır. LIVE bağlantısı kapalıdır.
 
 `config.json` ve `status.json` yalnız GET/HEAD; diğer yöntemler405. No-store/nosniff ve yalnız self CSP uygulanır; Origin/forwarded header olumsuzları reddedilir. Dört portal dosyası exact allowlist ile yayınlanır; özel rapor, video ve kanıt klasörü mount edilmez. Hub tarayıcı oturumu/token üretmez ve otomatik AI, ticari API veya SQL çağırmaz.
 
