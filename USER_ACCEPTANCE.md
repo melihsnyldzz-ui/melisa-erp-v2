@@ -1,6 +1,18 @@
 ## ERP-UA31 / ERP-CRM-LEARN01 — insan eğitim kabulü bekliyor
 
-İlker/personel henüz dersleri kullanarak kabul bildirmedi. Sekiz dersin ekran, rol devri, kısa soru ve gerçek kullanımda anlaşılabilirliği birlikte değerlendirilecek; kişi/tarih/insan sonucu bildirilmedi. Önceki ERP-UA30/CRM-UA08 ve bütün kabuller korunur. Ders ilerlemesi, otomatik tarayıcı/ADB kontrolü ve quiz sonucu insan PASS değildir. Gerçek ticari işlem, fiziksel barkod ve LIVE kabulü verilmez.
+**Kişi, deneme tarihi ve insan sonucu bildirilmedi; ERP-UA31 bekliyor.** Eğitim kaynağı b5a8ce1, etkin izole web 5234 / DB02. Paket, gerçek tarayıcı ve fiziksel TC21 eğitim ekranı teknik sonuçları [kanıtta](docs/evidence/erp/2026-10-10-training-preparation/README.md) kayıtlıdır. API/native a51b117 ve TEST125 korunur; bu kontroller personelin insan kabulü değildir.
+
+[Kısa eğitim](http://127.0.0.1:5234/kullanim-egitimi.html) üzerinden yalnız mevcut ekranları ve dersleri inceleyin:
+
+1. Sekiz dersin kısa adımlarını ve sorularını okuyup mal kabul/sayımda personelin göndermesiyle İlker'in mevcut yetkisiyle onayı arasındaki farkı anlatın. Muhasebenin belge/tutar/döviz kontrolünün yeni onay yetkisi vermediğini kontrol edin.
+2. Satış ve CRM sipariş taslağının tamamlanmış satış olmadığını; alış faturasının kabul edilmiş mala ikinci stok eklemediğini; tahsilat, ödeme ve iadenin ayrı etkilerini derslerden açıklayın.
+3. Dövizlerin ayrı tutulduğunu ve bilinmeyen açılışta işlem yapılmaması gerektiğini değerlendirin. Ekran başlıklarının, düğmelerin ve açıklamaların anlaşılmayan kısmını bildirin.
+
+| Kabul | Kişi | Deneme tarihi | İnsan sonucu |
+| --- | --- | --- | --- |
+| ERP-UA31 / sekiz ders ve görev devri | Bildirilmedi | Bildirilmedi | Bekliyor |
+
+Bu kısa inceleme yeni ticari kayıt gerektirmez. Önceki ERP-UA30/CRM-UA08 ve bütün kabuller korunur. Ders ilerlemesi, otomatik tarayıcı/ADB kontrolü ve quiz sonucu insan PASS değildir; fiziksel barkod, gerçek ticari işlem veya LIVE kabulü sayılmaz.
 ## ERP-UA30 / ERP-CRM-FINAL01 — tek mağaza günü turu — bekliyor
 
 ERP-DEC-041,10 Ekim2026. Çalışan izole ERP uygulama source **a51b117** / paket **CANONICAL-BUSINESS-TEST-20261010-a51b117**, CRM uygulama source **5f8cb237** / belge teslimi **43ff598**, ortak hedef **DB02**. TEST125 / source edb3c891 ve kabul edilmiş aktarımlar korunur. Native günlük sonlu TRY zinciri 25 kontrol ile, sayım ve alış iadesi ters kayıtları ayrıca SQL/API ve aynı UUID tekrarlarıyla doğrulandı. Personel onayı/ödeme denemesi reddedildi; ikinci stok veya finans etkisi oluşmadı. Normal satış/alış/ödeme, iade ve sayım geçmişi, ayrı dövizli günlük rapor ve CRM 50 ürün / 3.830 görsel kapsamı gerçek ekranda kontrol edildi. Bu teknik kanıt bütün mağaza ve TRY/USD/EUR günlük finans akışlarının kabulü değildir.
