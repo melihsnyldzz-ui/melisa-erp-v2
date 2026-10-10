@@ -1,0 +1,13 @@
+# Melisa Hub: mevcut izole web üzerinde güvenli giriş
+
+Hub, mevcut iş ekranlarını veya kimlik sistemini değiştirmez. `/melisa-hub/` statik portalı, aynı web sunucusunun mevcut Host/socket korumasından sonra servis edilir. ERP/eğitim/el terminali relative adresler; CRM doğrulanmış mevcut hostname ve UI portu üzerinden açılır. CRM gateway/catalog/order uçları proxy edilmez. TEST125 ve LIVE bağlantıları ilk entegrasyonda kapalıdır.
+
+`config.json` ve `status.json` yalnız GET/HEAD; diğer yöntemler405. No-store/nosniff ve yalnız self CSP uygulanır; Origin/forwarded header olumsuzları reddedilir. Dört portal dosyası exact allowlist ile yayınlanır; özel rapor, video ve kanıt klasörü mount edilmez. Hub tarayıcı oturumu/token üretmez ve otomatik AI, ticari API veya SQL çağırmaz.
+
+Özel runtime pin dosyası mevcut API/native source, CRM source/HTML SHA ve sekiz doğrulanmış ders görselinin SHA değerlerini içerir. Startup argümanındaki mevcut operasyon config'i değiştirilmez. İç health okumaları sabit loopback adreslerine kısa timeout/redirect:error ve boyut sınırıyla yapılır. Kimlik/kopya/DB/T1/LIVE erişimi veya CRM freshness/paket HTML'i uyuşmazsa durum `unknown`; bağlantı hatasında `unreachable`. Yanıt yalnız erişilebilirlik ve `acceptance:pending` içerir; DB/login/source/kopya/seal/ticari bilgiler veya ham hata içermez. Beş saniyelik cache ve eşzamanlı birleşme gereksiz tekrar okumayı önler.
+
+`scripts/canonical/start-hub-web.ps1` yalnız web5234 için manuel, owner/Node/manifest/paket/DB02 dependency pinli Inspect/Start sağlar. Başkasının portunu durdurmaz, API/native/CRM başlatmaz; SQL veya ticari kayıt yazmaz. Mevcut TEST1255194 ve eski CRM62400 otomatik başlangıç görevleri DB02 için yeniden hedeflenmez. Yeni scheduled task, firewall, Tailscale/Serve/Funnel/ACL/subnet/device ayarı bu teslimde kurulmaz. IP değişirse mevcut exact bind/Host/CSP kapsamı açılmaz; bağlantı başarısız kalır. Yeni kalıcı DNS/HTTPS adresi ayrı onay ve auth/peer testleri gerektirir.
+
+Aktivasyon: yeni temiz source paketini build et; sekiz ders PNG'sini önceki doğrulanmış paket SHA'larıyla kopyala ve yeni manifestte kaydet; yeni private launcher pinini üret; Inspect'i çalıştır. Mevcut5234 web PID/owner/paket/başlangıç zamanını ve health source'unu eşleştir. Yalnız bu web sahibini kontrollü değiştir; önceki paket/config'i sakla. Başlatma/sağlık başarısızsa yeni web sahibini doğrulayıp durdur, önceki web paketini aynı eski config ile başlat. Aktif DB'ye restore/reset yok. TEST125/API/native/CRM süreç kimlikleri aynı kalmalıdır.
+
+Teknik HTTP/GUI sonucu kullanıcı kabulü değildir. Portalın açılması bütün modüllerin işletme veya LIVE kabulü olarak sunulmaz. Geniş insan turu ve özel rapor erişimi ayrı bekler.
