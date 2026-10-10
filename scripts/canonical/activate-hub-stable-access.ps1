@@ -15,9 +15,24 @@ function Assert-HubAccessPin([string]$Path,[string]$Sha){
 }
 function Invoke-HubAccessTailscale($Settings,[string[]]$Tokens){
  Assert-HubAccessPin $Settings.tailscalePath $Settings.tailscaleSha256
+ if($Tokens[0] -ceq 'set' -or ($Tokens[0] -ceq 'serve' -and $Tokens[1] -cne 'status')){Assert-HubAccessIdentity $Settings}
  $output=@(& $Settings.tailscalePath @Tokens 2>&1)
  if($LASTEXITCODE -ne 0){throw 'HUB_ACCESS_TAILSCALE_FAILED'}
  return ($output -join "`n")
+}
+function Get-HubAccessIdentity($Settings){
+ $status=(Invoke-HubAccessTailscale $Settings @('status','--json'))|ConvertFrom-Json
+ $profiles=@((Invoke-HubAccessTailscale $Settings @('switch','--list','--json'))|ConvertFrom-Json)
+ $selected=@($profiles|Where-Object {$_.selected -is [bool] -and $_.selected -eq $true})
+ if($selected.Count -ne 1 -or $status.BackendState -cne 'Running' -or $status.HaveNodeKey -ne $true){throw 'HUB_ACCESS_IDENTITY_REJECTED'}
+ return [pscustomobject][ordered]@{schemaVersion=1;profileId=[string]$selected[0].id;nodeId=[string]$status.Self.ID;hostName=[string]$status.Self.HostName;dnsName=[string]$status.Self.DNSName;tailnetName=[string]$status.CurrentTailnet.Name;magicDnsSuffix=[string]$status.CurrentTailnet.MagicDNSSuffix}
+}
+function Assert-HubAccessIdentity($Settings){
+ Assert-HubAccessPin $Settings.tailscaleIdentityPath $Settings.tailscaleIdentitySha256
+ $before=Get-Content -LiteralPath $Settings.tailscaleIdentityPath -Raw|ConvertFrom-Json
+ $current=Get-HubAccessIdentity $Settings
+ $keys=@('schemaVersion','profileId','nodeId','hostName','dnsName','tailnetName','magicDnsSuffix')
+ if(@($before.PSObject.Properties.Name).Count -ne $keys.Count -or $before.schemaVersion -ne 1 -or $before.dnsName -cne 'semih.tail295701.ts.net.' -or $before.magicDnsSuffix -cne 'tail295701.ts.net' -or @($keys|Where-Object {!$before.PSObject.Properties[$_] -or $before.$_ -cne $current.$_}).Count){throw 'HUB_ACCESS_IDENTITY_DRIFT'}
 }
 function Get-HubAccessPrefs($Settings){
  $prefs=(Invoke-HubAccessTailscale $Settings @('debug','prefs'))|ConvertFrom-Json
@@ -34,16 +49,17 @@ function Test-HubAccessServe($Settings,[string]$Mode){
 }
 function Save-HubAccessReceipt($Settings,[string]$Stage){
  $path=Join-Path $Settings.receiptRoot 'access-application.json'
- $record=[ordered]@{schemaVersion=1;ownerSid=$Settings.ownerSid;sourceCommit=$Settings.sourceCommit;manifestSha256=$Settings.manifestSha256;serveBeforeSha256=$Settings.serveBeforeSha256;stage=$Stage}
+ $record=[ordered]@{schemaVersion=1;ownerSid=$Settings.ownerSid;sourceCommit=$Settings.sourceCommit;manifestSha256=$Settings.manifestSha256;serveBeforeSha256=$Settings.serveBeforeSha256;tailscaleIdentitySha256=$Settings.tailscaleIdentitySha256;stage=$Stage}
  [IO.File]::WriteAllText($path,($record|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 }
 function Get-HubAccessReceipt($Settings){
  $path=Join-Path $Settings.receiptRoot 'access-application.json';Assert-HubAccessPath $path 'C:\Sirket\ERP\runtime'
  $record=Get-Content -LiteralPath $path -Raw|ConvertFrom-Json
- if(@($record.PSObject.Properties.Name).Count -ne 6 -or $record.schemaVersion -ne 1 -or $record.ownerSid -cne $Settings.ownerSid -or $record.sourceCommit -cne $Settings.sourceCommit -or $record.manifestSha256 -cne $Settings.manifestSha256 -or $record.serveBeforeSha256 -cne $Settings.serveBeforeSha256 -or $record.stage -cnotin @('UNATTENDED_REQUESTED','UNATTENDED_APPLIED','APPLIED','ROLLED_BACK')){throw 'HUB_ACCESS_RECEIPT_REJECTED'}
+ if(@($record.PSObject.Properties.Name).Count -ne 7 -or $record.schemaVersion -ne 1 -or $record.ownerSid -cne $Settings.ownerSid -or $record.sourceCommit -cne $Settings.sourceCommit -or $record.manifestSha256 -cne $Settings.manifestSha256 -or $record.serveBeforeSha256 -cne $Settings.serveBeforeSha256 -or $record.tailscaleIdentitySha256 -cne $Settings.tailscaleIdentitySha256 -or $record.stage -cnotin @('UNATTENDED_REQUESTED','UNATTENDED_APPLIED','APPLIED','ROLLED_BACK')){throw 'HUB_ACCESS_RECEIPT_REJECTED'}
  return $record
 }
 function Undo-HubAccessApplication($Settings){
+ Assert-HubAccessIdentity $Settings
  $receipt=Get-HubAccessReceipt $Settings
  # Partial application may have changed unattended before Serve failed. Accept
  # only the complete before or after image; never overwrite foreign drift.
@@ -63,11 +79,11 @@ function Undo-HubAccessApplication($Settings){
  return [pscustomobject]@{rolledBack=$true;sourceCommit=$Settings.sourceCommit;serveWas=$mode;serveReset=$false;taskChanged=$false;actualRebootTested=$false}
 }
 function Assert-HubAccessSettings($Settings,[string]$OwnerSid){
- $keys=@('schemaVersion','ownerSid','packageRoot','sourceCommit','manifestSha256','nodePath','nodeSha256','tailscalePath','tailscaleSha256','tailscaleVersion','serveBeforePath','serveBeforeSha256','forceDaemonBefore','receiptRoot')
+ $keys=@('schemaVersion','ownerSid','packageRoot','sourceCommit','manifestSha256','nodePath','nodeSha256','tailscalePath','tailscaleSha256','tailscaleVersion','tailscaleIdentityPath','tailscaleIdentitySha256','serveBeforePath','serveBeforeSha256','forceDaemonBefore','receiptRoot')
  if(@($Settings.PSObject.Properties.Name).Count -ne $keys.Count -or @($keys|Where-Object {!$Settings.PSObject.Properties[$_]}).Count -or $Settings.schemaVersion -ne 1 -or $Settings.ownerSid -cne $OwnerSid -or $Settings.sourceCommit -cnotmatch '^[a-f0-9]{40}$' -or $Settings.forceDaemonBefore -isnot [bool] -or $Settings.forceDaemonBefore -ne $false -or $Settings.tailscaleVersion -cne '1.102.2'){throw 'HUB_ACCESS_SETTINGS_REJECTED'}
- Assert-HubAccessPath $Settings.packageRoot 'C:\Sirket\ERP\releases';Assert-HubAccessPath $Settings.serveBeforePath 'C:\Sirket\ERP\evidence';Assert-HubAccessPath $Settings.receiptRoot 'C:\Sirket\ERP\runtime'
+ Assert-HubAccessPath $Settings.packageRoot 'C:\Sirket\ERP\releases';Assert-HubAccessPath $Settings.serveBeforePath 'C:\Sirket\ERP\evidence';Assert-HubAccessPath $Settings.receiptRoot 'C:\Sirket\ERP\runtime';Assert-HubAccessPath $Settings.tailscaleIdentityPath 'C:\Sirket\ERP\evidence'
  if($Settings.tailscalePath -ine 'C:\Program Files\Tailscale\tailscale.exe'){throw 'HUB_ACCESS_TAILSCALE_SCOPE_REJECTED'}
- Assert-HubAccessPin $Settings.nodePath $Settings.nodeSha256;Assert-HubAccessPin $Settings.tailscalePath $Settings.tailscaleSha256;Assert-HubAccessPin $Settings.serveBeforePath $Settings.serveBeforeSha256
+ Assert-HubAccessPin $Settings.nodePath $Settings.nodeSha256;Assert-HubAccessPin $Settings.tailscalePath $Settings.tailscaleSha256;Assert-HubAccessPin $Settings.serveBeforePath $Settings.serveBeforeSha256;Assert-HubAccessPin $Settings.tailscaleIdentityPath $Settings.tailscaleIdentitySha256
  $manifestPath=Join-Path $Settings.packageRoot 'release-manifest.json';Assert-HubAccessPin $manifestPath $Settings.manifestSha256
  $manifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
  if($manifest.repository -cne 'https://github.com/melihsnyldzz-ui/melisa-erp-v2.git' -or $manifest.sourceCommit -cne $Settings.sourceCommit -or $manifest.sharedTestCopy.database -cne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02'){throw 'HUB_ACCESS_PACKAGE_REJECTED'}
@@ -87,6 +103,7 @@ if($Action -eq 'Inspect'){
 $principal=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if(!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){throw 'HUB_ACCESS_APPROVED_ADMIN_EXECUTION_REQUIRED'}
 if($Action -eq 'Apply'){
+ Assert-HubAccessIdentity $settings
  if(Test-Path -LiteralPath (Join-Path $settings.receiptRoot 'access-application.json')){throw 'HUB_ACCESS_APPLICATION_ALREADY_RECORDED'}
  Test-HubAccessServe $settings 'Before';if(Get-HubAccessPrefs $settings){throw 'HUB_ACCESS_PREFS_BEFORE_DRIFT'}
  $health=Invoke-RestMethod 'http://127.0.0.1:5244/test-health' -MaximumRedirection 0 -TimeoutSec 4

@@ -26,7 +26,10 @@ export function createHubTaskRecoveryPlan(snapshot,{approvedDisableHubAtLogon=fa
   ||!/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(snapshot.ownerSid)||typeof snapshot.xml!=='string'||snapshot.xml.length>65536
   ||typeof snapshot.sddl!=='string'||snapshot.sddl.length>8192||!snapshot.sddl.startsWith('O:')
   ||hash(snapshot.xml)!==snapshot.xmlSha256||hash(snapshot.sddl)!==snapshot.sddlSha256)fail('SNAPSHOT_REJECTED');
- if(!snapshot.xml.includes(`<UserId>${snapshot.ownerSid}</UserId>`)||!snapshot.xml.includes('<RunLevel>LeastPrivilege</RunLevel>')||/HighestAvailable|ServiceAccount/.test(snapshot.xml))fail('SNAPSHOT_PRINCIPAL_REJECTED');
+ // Task Scheduler omits its default LUA/LeastPrivilege value in some exports.
+ // Accept that omission without rewriting a single byte of the saved XML.
+ const levels=[...snapshot.xml.matchAll(/<(?:[\w.-]+:)?RunLevel(?:\s[^>]*)?>([^<]*)<\/(?:[\w.-]+:)?RunLevel>/g)].map(match=>match[1].trim());
+ if(!snapshot.xml.includes(`<UserId>${snapshot.ownerSid}</UserId>`)||levels.some(level=>level!=='LeastPrivilege')||/HighestAvailable|ServiceAccount/.test(snapshot.xml))fail('SNAPSHOT_PRINCIPAL_REJECTED');
  const steps=[{action:'PreserveExactXmlAndSddl',taskName:snapshot.taskName,xmlSha256:snapshot.xmlSha256,sddlSha256:snapshot.sddlSha256}];
  if(snapshot.taskName==='Melisa-Hub-TEST-Web'&&approvedDisableHubAtLogon===true)steps.push({action:'DisableOnlyApprovedHubAtLogon',requiresSeparateActivationApproval:true});
  steps.push({action:'RestoreExactTaskDefinitionAndSecurityDescriptor',requiresSeparateRecoveryApproval:true,restoreXmlSha256:snapshot.xmlSha256,restoreSddlSha256:snapshot.sddlSha256});

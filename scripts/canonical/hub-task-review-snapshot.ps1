@@ -11,7 +11,10 @@ try{
  $definition=[string]$task.Xml;$sddl=[string]$task.GetSecurityDescriptor(7)
  $xml=[xml]$definition;$ns=[Xml.XmlNamespaceManager]::new($xml.NameTable);$ns.AddNamespace('t','http://schemas.microsoft.com/windows/2004/02/mit/task')
  $owner=$xml.SelectSingleNode('/t:Task/t:Principals/t:Principal/t:UserId',$ns).InnerText
- $level=$xml.SelectSingleNode('/t:Task/t:Principals/t:Principal/t:RunLevel',$ns).InnerText
+ $levelNode=$xml.SelectSingleNode('/t:Task/t:Principals/t:Principal/t:RunLevel',$ns)
+ $actualRunLevel=[int]$task.Definition.Principal.RunLevel
+ if($actualRunLevel -ne 0){throw 'HUB_TASK_SNAPSHOT_RUNLEVEL_REJECTED'}
+ $level=if($null -eq $levelNode -and $actualRunLevel -eq 0){'LeastPrivilege'}else{$levelNode.InnerText}
  if($owner -cne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value -or $level -cne 'LeastPrivilege'){throw 'HUB_TASK_SNAPSHOT_OWNER_REJECTED'}
  $snapshot=[ordered]@{schemaVersion=1;taskName=$TaskName;taskPath='\';ownerSid=$owner;xml=$definition;sddl=$sddl;xmlSha256=(Get-TextSha $definition);sddlSha256=(Get-TextSha $sddl)}
  if($Action -eq 'Export'){

@@ -19,12 +19,12 @@ export async function evaluateS4uReadiness(settings,context,driver){
   const owners=await driver.inspect(stage);
   if(owners.length===0){services.push({service:stage.name,state:'NOT_RUNNING'});continue;}
   const receipt=await driver.existingReceipt(stage);
-  if(owners.length!==1||!processMatchesReceipt(owners[0],receipt,stage,settings))fail('FOREIGN_PORT_OWNER');
-  await driver.validateReceiptPins(receipt,stage);await driver.readiness(stage,receipt);
-  services.push({service:stage.name,state:'READONLY_READY'});
+  if(owners.length!==1||!processMatchesReceipt(owners[0],receipt,stage,settings)){services.push({service:stage.name,state:'BASELINE_OR_FOREIGN_OCCUPIED',adoptable:false});continue;}
+  try{await driver.validateReceiptPins(receipt,stage);await driver.readiness(stage,receipt);services.push({service:stage.name,state:'READONLY_READY',adoptable:true});}
+  catch{services.push({service:stage.name,state:'CANDIDATE_READINESS_FAILED',adoptable:false});}
  }
  return {schemaVersion:1,probe:'S4U_READONLY',state:'PREFLIGHT_VERIFIED',observedAt:new Date().toISOString(),copyId:settings.copyId,database:settings.database,
-  sourceCommit:settings.stackPackage.sourceCommit,noninteractiveBatchVerified:true,profileVerified:true,privateFilesAndDependenciesVerified:true,readOnlySqlVerified:true,
+  sourceCommit:settings.stackPackage.sourceCommit,accessPreflightVerified:true,candidateStackReady:services.every(item=>item.state==='READONLY_READY'),candidatePortsAvailable:services.every(item=>item.state==='NOT_RUNNING'),noninteractiveBatchVerified:true,profileVerified:true,privateFilesAndDependenciesVerified:true,readOnlySqlVerified:true,
   services,actualBootTested:false,serviceStartup:false,providerRequests:false,humanAcceptance:'PENDING'};
 }
 function noReparse(target){for(let cursor=target;cursor.length>3;cursor=path.dirname(cursor))if(fs.lstatSync(cursor).isSymbolicLink())fail('REPARSE_REJECTED');}

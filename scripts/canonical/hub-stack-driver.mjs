@@ -189,6 +189,19 @@ export function processMatchesReceipt(observation, receipt, stage, settings, req
   return !requireListening||stage.ports.every(port => bindings.some(item => item.port === port && item.address === '127.0.0.1'));
 }
 
+export async function stopHeldSpawnChild({observation,receipt,stage,settings,heldChild,validatePins}) {
+  // Only a retained handle returned by this driver's spawn is eligible; an
+  // adopted receipt or a matching recycled PID never grants a stop capability.
+  if(!heldChild||heldChild.pid!==receipt.pid||!equal(heldChild.spawnfile,settings.node.path))return false;
+  if(heldChild.exitCode!==null)return true;
+  if(!processMatchesReceipt(observation,receipt,stage,settings,false))return false;
+  const expected=[settings.node.path,receipt.entryPath,...(stage.component==='crm'||stage.component==='edge'?[]:[...(stage.mode?[stage.mode]:[]),receipt.configPath])];
+  if(!Array.isArray(heldChild.spawnargs)||heldChild.spawnargs.length!==expected.length||heldChild.spawnargs.some((arg,i)=>!equal(arg,expected[i])))return false;
+  await validatePins();
+  // Node retains its own ChildProcess handle. Never call global PID kill.
+  return heldChild.kill()===true;
+}
+
 export async function stackAttempt(settings, driver) {
   const started = [], tracked = [];
   try {
@@ -278,7 +291,7 @@ export async function createRuntimeDriver(settings,{readOnlyProbe=false}={}) {
     const {stdout} = await runFile(shell, argv, {windowsHide:true,timeout:10000,maxBuffer:128*1024});
     const result = JSON.parse(stdout.replace(/^\ufeff/, '')); if (!Array.isArray(result)) fail('OS_PROBE_SHAPE_REJECTED'); return result;
   };
-  let operation, crm, native, hubPin, crmPins, crmIndexPin;const entries=new Map();
+  let operation, crm, native, hubPin, crmPins, crmIndexPin;const entries=new Map(),spawnHandles=new Map();
   const json = ref => JSON.parse(readPin(ref).toString('utf8').replace(/^\ufeff/, ''));
   const receiptPath = stage => path.join(stateRoot, `${stage.name}.json`);
   const save = (stage, value) => { const file = receiptPath(stage), tmp = `${file}.${process.pid}.tmp`; fs.writeFileSync(tmp, JSON.stringify(value)); fs.renameSync(tmp, file); };
@@ -348,6 +361,7 @@ export async function createRuntimeDriver(settings,{readOnlyProbe=false}={}) {
         copyId:settings.copyId,actualT1:false,entryPath:entry,entrySha256,creationTime:null,run,
         supervisorSourceCommit:settings.stackPackage.sourceCommit,parentEntryPath:fileURLToPath(import.meta.url),
         parentEntrySha256:sha(fs.readFileSync(fileURLToPath(import.meta.url))),driverCreationTime:null};
+      spawnHandles.set(run,child);
       for(let tick=0;tick<40;tick++){
         const rows=await inspect(stage,child.pid);
         if(rows.length===1&&rows[0].pid===child.pid){receipt.creationTime=rows[0].creationTime;receipt.driverCreationTime=rows[0].parentCreationTime;if(!processMatchesReceipt(rows[0],receipt,stage,settings,false))fail('NEW_CHILD_IDENTITY_REJECTED');save(stage,receipt);return receipt;}
@@ -390,11 +404,11 @@ export async function createRuntimeDriver(settings,{readOnlyProbe=false}={}) {
       fs.writeFileSync(target,JSON.stringify({state:'manual-recovery-required',observedAt:new Date().toISOString(),survivors}));
     },
     async stopOwned(stage,child) {
+      const heldChild=spawnHandles.get(child.run);if(!heldChild)return false;
       const rows=await inspect(stage,child.pid);
-      if(rows.length!==1||!processMatchesReceipt(rows[0],child,stage,settings,false))return false;
-      readPin({path:child.entryPath,sha256:child.entrySha256});readPin({path:child.parentEntryPath,sha256:child.parentEntrySha256});readPin(settings.components[stage.component].config);
-      // This pid is this attempt's child with matching OS creation and parent.
-      process.kill(child.pid);return true;
+      const stopped=await stopHeldSpawnChild({observation:rows.length===1?rows[0]:null,receipt:child,stage,settings,heldChild,
+        validatePins:async()=>{readPin({path:child.entryPath,sha256:child.entrySha256});readPin({path:child.parentEntryPath,sha256:child.parentEntrySha256});readPin(settings.components[stage.component].config);}});
+      if(stopped)spawnHandles.delete(child.run);return stopped;
     },
   };
   return driver;

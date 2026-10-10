@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {STACK_STAGES,SQL_IDENTITY_QUERY,SQL_WRITE_PERMISSION_QUERY,assertSqlIdentity,coldSqlProbe,crmChildEnvironment,
-  nativeArgumentTokens,processMatchesReceipt,stackAttempt,validateCrmHubPins,verifyCrmReadiness,crmHealthReceipt,cleanupOwnedChildren} from './hub-stack-driver.mjs';
+  nativeArgumentTokens,processMatchesReceipt,stackAttempt,validateCrmHubPins,verifyCrmReadiness,crmHealthReceipt,cleanupOwnedChildren,stopHeldSpawnChild} from './hub-stack-driver.mjs';
 const hash='a'.repeat(64), source='b'.repeat(40), owner='S-1-5-21-123-456-789-1001';
 function settings() {
   const root='C:\\Sirket\\ERP\\releases';
@@ -111,7 +111,7 @@ test('runtime source has only fixed starters and SELECT probe; no task/network c
   const text=fs.readFileSync(new URL('./hub-stack-driver.mjs',import.meta.url),'utf8');
   assert.doesNotMatch(text,/test-supervisor\.mjs|watch-hub-web\.ps1|Register-ScheduledTask|tailscale serve|Set-NetFirewall|\/api\/auth\/(?:test-admin|stage4-actor)/i);
   assert.match(text,/ACTIVATION_DEPENDENCY_PINS_REQUIRED/);assert.match(text,/DEPENDENCY_INVENTORY_DRIFT/);
-  assert.match(text,/processMatchesReceipt\(rows\[0\],child,stage,settings,false\)/);
+  assert.match(text,/stopHeldSpawnChild/);assert.doesNotMatch(text,/process\.kill\(/);
   assert.match(text,/CRM_STABLE_TRANSPORT/);
   assert.match(SQL_WRITE_PERMISSION_QUERY,/sys\.fn_my_permissions/);
 });
@@ -141,4 +141,14 @@ test('cleanup continues after an error or unverified survivor without killing ad
  const s=settings(),started=STACK_STAGES.map(stage=>({stage,child:receipt(stage,s)})),visited=[];let report;
  const driver={async stopOwned(stage){visited.push(stage.name);if(stage.name==='edge')throw Error('private');if(stage.name==='hub')return false;return true;},async reportCleanupSurvivors(rows){report=rows;}};
  await assert.rejects(cleanupOwnedChildren(started,driver),/CLEANUP_UNVERIFIED_SURVIVORS/);assert.deepEqual(visited,[...STACK_STAGES].reverse().map(x=>x.name));assert.deepEqual(report.map(x=>x.stage),['edge','hub']);
+});
+
+test('cleanup uses only the retained spawned handle with exact creation proof; adopted, wrong or recycled PID never kills',async()=>{
+ const s=settings(),stage=STACK_STAGES[0],r=receipt(stage,s),o=observation(stage,s,r);let killed=0,pins=0;
+ const held={pid:r.pid,spawnfile:s.node.path,spawnargs:[s.node.path,r.entryPath,stage.mode,r.configPath],exitCode:null,kill(){killed++;return true;}};
+ const call=options=>stopHeldSpawnChild({observation:o,receipt:r,stage,settings:s,heldChild:held,validatePins:async()=>{pins++;},...options});
+ assert.equal(await call({heldChild:null}),false);assert.equal(await call({heldChild:{...held,pid:r.pid+1}}),false);
+ assert.equal(await call({observation:{...o,creationTime:'2030-01-01'}}),false);assert.equal(await call({heldChild:{...held,spawnargs:[s.node.path,'other']}}),false);assert.equal(killed,0);
+ assert.equal(await call({}),true);assert.equal(killed,1);assert.equal(pins,1);
+ await assert.rejects(call({validatePins:async()=>{throw Error('HASH_DRIFT');}}),/HASH_DRIFT/);assert.equal(killed,1);
 });
