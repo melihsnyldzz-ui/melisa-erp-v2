@@ -24,7 +24,8 @@ for($attempt=0;$attempt -le 3;$attempt++){
  try{
   $out=Join-Path $c.RuntimeDir ('hub-watch-'+$run+'-'+$attempt+'.out.log')
   $err=Join-Path $c.RuntimeDir ('hub-watch-'+$run+'-'+$attempt+'.err.log')
-  $starter=Start-Process -FilePath $shell -ArgumentList @('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File','"'+$launcher+'"','-StartupConfigPath','"'+$StartupConfigPath+'"','-Action','Start') -WorkingDirectory (Join-Path $c.PackageRoot 'apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+  $arguments=@('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',('"'+$launcher+'"'),'-StartupConfigPath',('"'+$StartupConfigPath+'"'),'-Action','Start')
+  $starter=Start-Process -FilePath $shell -ArgumentList $arguments -WorkingDirectory (Join-Path $c.PackageRoot 'apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
   # Windows PowerShell 5.1 requires caching the handle before redirected
   # process exit, otherwise ExitCode may remain null after WaitForExit.
   $null=$starter.Handle
@@ -41,7 +42,10 @@ for($attempt=0;$attempt -le 3;$attempt++){
   $child.WaitForExit()
   throw 'HUB_WATCH_CHILD_EXITED'
  }catch{
-  $code=if($_.Exception.Message -match '^HUB_WATCH_[A-Z_]+$'){$_.Exception.Message}else{'HUB_WATCH_ATTEMPT_FAILED'}
+  $failure=$_
+  $code=if($failure.Exception.Message -cmatch '^HUB_WATCH_[A-Z_]+$'){$failure.Exception.Message}else{'HUB_WATCH_ATTEMPT_FAILED'}
+  # Private local diagnostics only; Hub status never exposes these details.
+  [ordered]@{run=$run;attempt=$attempt;exceptionType=$failure.Exception.GetType().FullName;message=$failure.Exception.Message;checkedAt=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $c.RuntimeDir ('hub-watch-'+$run+'-'+$attempt+'.failure.json')) -Encoding utf8
   [ordered]@{run=$run;attempt=$attempt;maxRetries=3;retrySeconds=60;state=if($attempt -lt 3){'retry-wait'}else{'exhausted'};reason=$code;sourceCommit=$c.SourceCommit;checkedAt=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath $stateFile -Encoding utf8
   if($attempt -ge 3){throw 'HUB_WATCH_RETRY_EXHAUSTED'}
   Start-Sleep -Seconds 60
