@@ -19,6 +19,7 @@ const adapterRevisions=new WeakMap();
 const readyRevisions=new WeakMap();
 const readyPerformanceRevisions=new WeakMap();
 const effectsPerformanceRevisions=new WeakMap();
+const businessDailyRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
@@ -81,7 +82,7 @@ export function assertIsolatedCopyActor(context,actor,actual,permission){
 }
 export function assertIsolatedCopyReadProof(context,proof){
  assertIsolatedCopyContext(context);
- const revision=adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
+ const revision=businessDailyRevisions.get(context)??adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
  copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
@@ -172,6 +173,14 @@ export function bindIsolatedCopyOperationDTO(context,dto){
  assertIsolatedCopyContext(context);
  copyAssert(dto?.meta?.operationOrigin===ISOLATED_COPY_ORIGIN&&dto.meta.copyId===context.copyId&&dto.meta.sealHash===context.sealHash&&dto.meta.date===context.date,'ISOLATED_COPY_DTO_META');
  const scoped=v=>v?.synthetic===false&&v.operationOrigin===ISOLATED_COPY_ORIGIN;
+ const daily=businessDailyRevisions.get(context),dailyDTO=dto.meta.businessDailyScopeHash!==undefined;
+ if(dailyDTO){
+  copyAssert(daily&&dto.meta.businessDailyScopeHash===daily.dailyScopeHash,'BUSINESS_DAILY_DTO_SEAL');
+  const s=daily.dailyScope;
+  for(const [rows,key] of [['customers','customer'],['suppliers','supplier']])if(dto.scope?.[key])copyAssert(s[rows].some(p=>p.id===dto.scope[key].id&&p.accountId===dto.scope[key].accountId&&p.currency===dto.scope[key].currency),'BUSINESS_DAILY_DTO_PARTY');
+  if(dto.scope?.products)copyAssert(dto.scope.products.length===s.products.length&&dto.scope.products.every(p=>s.products.some(v=>v.id===p.id)),'BUSINESS_DAILY_DTO_PRODUCTS');
+  if(dto.suppliers)copyAssert(dto.suppliers.length===s.suppliers.length&&dto.suppliers.every(p=>s.suppliers.some(v=>v.id===p.id&&v.accountId===p.accountId&&v.currency===p.currency)),'BUSINESS_DAILY_DTO_PARTY');
+ }
  if(dto.scope){
   copyAssert(scoped(dto.scope),'ISOLATED_COPY_DTO_ORIGIN');
   if(dto.scope.products){
@@ -185,7 +194,7 @@ export function bindIsolatedCopyOperationDTO(context,dto){
   for(const [name,key] of [['customers','customer'],['suppliers','supplier']]){const p=dto.scope[key];if(p)copyAssert(scoped(p)&&context[name].some(v=>v.id===p.id&&v.currency===p.currency),'ISOLATED_COPY_DTO_PARTY');}
   if(dto.scope.accounts)copyAssert(Array.isArray(dto.scope.accounts)&&dto.scope.accounts.every(a=>scoped(a)&&context.financeAccounts.some(v=>v.id===a.id&&v.currency===a.currency)),'ISOLATED_COPY_DTO_FINANCE');
  }
- if(dto.suppliers)copyAssert(Array.isArray(dto.suppliers)&&dto.suppliers.length===context.suppliers.length&&dto.suppliers.every(p=>scoped(p)&&context.suppliers.some(a=>a.id===p.id&&a.currency===p.currency)),'ISOLATED_COPY_DTO_PARTY');
+ if(dto.suppliers)copyAssert(Array.isArray(dto.suppliers)&&dto.suppliers.length===(dailyDTO?daily.dailyScope.suppliers.length:context.suppliers.length)&&dto.suppliers.every(p=>scoped(p)&&context.suppliers.some(a=>a.id===p.id&&a.currency===p.currency)),'ISOLATED_COPY_DTO_PARTY');
  if(dto.accounts)copyAssert(Array.isArray(dto.accounts)&&dto.accounts.length===context.financeAccounts.length&&dto.accounts.every(a=>scoped(a)&&context.financeAccounts.some(v=>v.id===a.id&&v.currency===a.currency)),'ISOLATED_COPY_DTO_FINANCE');
  // Binding remains server-only and disappears when the DTO is serialized.
  operationDTOs.set(dto,context);return dto;
@@ -195,3 +204,15 @@ export function isolatedCopyOperationDTOContext(dto){
  if(!context){copyAssert(dto?.meta?.operationOrigin!==ISOLATED_COPY_ORIGIN,'ISOLATED_COPY_UNBOUND_DTO');return null;}
  bindIsolatedCopyOperationDTO(context,dto);return context;
 }
+// This is installed only after SQL registry and historical-chain proof. It is
+// held by server object identity; no body, environment flag or serialized copy
+// can enable the selected daily accounts.
+export function registerBusinessDailyRevision(context,input,proof){
+ assertIsolatedCopyContext(context);
+ const old=effectsPerformanceRevisions.get(context);
+ const {revisionHash,...body}=input??{};
+ copyAssert(old&&!businessDailyRevisions.has(context)&&context.target.database===BUSINESS_COPY_DATABASE&&input?.version===4&&input.baseEffectsRevisionHash===old.revisionHash&&input.copyId===context.copyId&&input.baseSealHash===context.sealHash&&hash(revisionHash)&&revisionHash===isolatedCopyHash(body)&&hash(input.dailyScopeHash)&&input.dailyScopeHash===isolatedCopyHash(input.dailyScope)&&Array.isArray(proof)&&proof.length===8&&new Set(proof.map(r=>r.name)).size===8&&input.modules?.length===8&&input.modules.every(m=>proof.some(r=>r.name===m.name&&r.actualHash===m.afterHash&&r.revisionHash===revisionHash&&r.dailyScopeHash===input.dailyScopeHash&&r.triggerDisabled===0)),'BUSINESS_DAILY_REGISTRATION');
+ const revision=freeze(structuredClone(input));businessDailyRevisions.set(context,revision);return revision;
+}
+export function getBusinessDailySelection(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScope.selection??null;}
+export function getBusinessDailyScopeHash(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScopeHash??null;}

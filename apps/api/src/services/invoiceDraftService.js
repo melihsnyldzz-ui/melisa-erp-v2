@@ -22,12 +22,14 @@ import { assertInvoiceHasNoReturns } from './invoiceReturnGuard.mjs';
 import { createPurchaseCostAccumulator } from './purchaseCostAccumulator.mjs';
 import {CURRENT_PRICE_PURCHASE_SQL_PROOF} from './testProductPriceSqlProof.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
+import {getBusinessDailySelection} from './isolatedOperationCopyContext.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 function businessInvoiceSelection(transaction,kind,partyId,currency){
  if(!isIsolatedOperationCopyRuntime()||getIsolatedOperationCopyConfig()?.target.database!==BUSINESS_COPY_DATABASE||kind!=='purchase')return null;
  const copy=isolatedCopyTransactionContext(transaction),selection=getBusinessInboundSelection(copy);
+ if(!selection){const daily=getBusinessDailySelection(copy),account=copy.suppliers.find(a=>a.accountId===daily?.supplierAccountId);if(daily?.currency==='TRY'&&currency==='TRY'&&account&&(partyId===null||String(partyId)===account.id))return null;}
  const account=copy.suppliers.find(a=>a.id===String(partyId??selection?.supplierId)&&a.currency===currency&&a.accountId===selection?.accountId);
  const rate=copy.currencyRates?.find(r=>r.currency===currency);
  if(copy!==getIsolatedOperationCopyConfig()||!selection||selection.supplierId!==account?.id||selection.currency!==currency||!account||!rate||!/^\d+\.\d{8}$/.test(rate.rateExact8)||Number(rate.rateExact8)<=0||(currency==='TRY'&&Number(rate.rateExact8)!==1))throw makeServiceError('ISOLATED_COPY_INVOICE_ACCOUNT_SCOPE','Doğrulanmış tedarikçi döviz hesabı ve tarihli TEST kuru gerekli.',409);
@@ -106,7 +108,9 @@ function copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snap
  const amount=typeof snapshot?.documentAmount==='number'&&Number.isFinite(snapshot.documentAmount)?snapshot.documentAmount.toFixed(4):null;
  const business=businessInvoiceSelection(transaction,kind,partyId,snapshot?.accountCurrency),currency=business?.currency??'TRY',rate=business?.rate??1,amountTry=amount===null?null:(Number(amount)*rate).toFixed(4);
  if(copy!==getIsolatedOperationCopyConfig()||!role||!operation||movementType!==(kind==='sales'?'sales_invoice':'purchase_invoice')+(direction===-1?'_cancel':'')||![1,-1].includes(direction)||!copy.actors.some(a=>a.id===String(actor?.id))||!Number.isSafeInteger(Number(invoiceId))||Number(invoiceId)<1||!snapshot||snapshot.documentCurrency!==currency||snapshot.accountCurrency!==currency||snapshot.documentRateToTry!==rate||snapshot.accountRateToTry!==rate||amount===null||Number(amount)!==snapshot.documentAmount||snapshot.documentAmount<=0||snapshot.documentAmount>(business?.maxAmount??500)||snapshot.accountAmount!==snapshot.documentAmount||snapshot.amountTry!==Number(amountTry)||(documentDate!==null&&copyInvoiceDocumentDate(documentDate)!==copy.date))throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hareket kapsamı doğrulanamadı.',409);
- const selected=business?.account??(role==='customer'?copy.customers:copy.suppliers).find(p=>p.currency==='TRY'&&(partyId===null||p.id===String(partyId)));
+ const daily=copy.target.database===BUSINESS_COPY_DATABASE?getBusinessDailySelection(copy):null;
+ if(copy.target.database===BUSINESS_COPY_DATABASE&&!business&&!daily)throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin seçili günlük kapsamı doğrulanamadı.',409);
+ const selected=business?.account??(role==='customer'?copy.customers:copy.suppliers).find(p=>p.currency==='TRY'&&(partyId===null||p.id===String(partyId))&&(!daily||p.accountId===(role==='customer'?daily.customerAccountId:daily.supplierAccountId)));
  if(!selected)throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hesabı doğrulanamadı.',409);
  return{copy,role,partyId:selected.id,operation,amount,effect:direction===-1?'-'+amount:amount,table:role+'_movements',foreignKey:kind==='sales'?'sales_invoice_id':'purchase_invoice_id',header:kind==='sales'?'sales_invoices':'purchase_invoices',movementType,business,currency,rate,amountTry};
 }

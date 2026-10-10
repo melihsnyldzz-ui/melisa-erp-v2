@@ -5,8 +5,8 @@ const requireRevision=(actual,expected)=>{if(workRevision(actual)!==expected)wor
 export function createWorkSalesService({getStore=defaultStore}={}){
  return {
   async context(actor){actor=workActor(actor,'sales.view');return (await getStore()).context(actor);},
-  async preview(input,actor){actor=workActor(actor,'sales.create');const selection=workSelection(input);return (await getStore()).read(actor,async c=>{requireCapability(c.context,'canCreate');return workSalePreview(selection,c.context);});},
-  async createDraft(input,actor){actor=workActor(actor,'sales.create');const payload=workDraftInput(input);return (await getStore()).mutate(actor,'sale_draft',payload,async c=>{
+  async preview(input,actor){actor=workActor(actor,'sales.create');const selection=workSelection(input,{allowBusinessCurrencies:true});return (await getStore()).read(actor,async c=>{requireCapability(c.context,'canCreate');return workSalePreview(selection,c.context);});},
+  async createDraft(input,actor){actor=workActor(actor,'sales.create');const payload=workDraftInput(input,{allowBusinessCurrencies:true});return (await getStore()).mutate(actor,'sale_draft',payload,async c=>{
    requireCapability(c.context,'canCreate');requireRevision(c.context.revision,payload.expectedRevision);
    const {requestId,previewHash,expectedRevision,...selection}=payload,preview=workSalePreview(selection,c.context);
    if(preview.previewHash!==previewHash)workFail('WORK_PREVIEW_CHANGED','Önizleme değişti. Yeniden kontrol edin.',409);

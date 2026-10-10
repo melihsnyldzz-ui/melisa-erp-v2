@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
 import {validateIsolatedOperationCopyContext,isolatedCopyHash} from './isolatedOperationCopyContext.mjs';
 import {withIsolatedOperationCopyScope} from './isolatedOperationCopyScope.mjs';
-let registered=null,stampCalls=0,calls=[],wrongMovement=false;
+let registered=null,stampCalls=0,calls=[],wrongMovement=false,lookupOverride=null;
 const tx={};
 const cash={id:40,account_type:'cash',currency_code:'TRY',is_active:true,current_balance:360,opening_balance:null};
 class Request{
@@ -11,6 +11,11 @@ class Request{
  input(key,type,value){this.params[key]=value;return this;}
  async query(query){
   calls.push({query,params:this.params});
+  if('copyFinancePartyMovementId' in this.params){
+   assert.equal(this.params.copyFinancePartyMovementId,90);assert.deepEqual(Object.keys(this.params),['copyFinancePartyMovementId']);
+   const match=query.match(/^SELECT CONVERT\(varchar\(20\),(customer|supplier)_id\) id,currency_code currency FROM dbo.\1_movements WHERE id=@copyFinancePartyMovementId;$/);assert(match,'native lookup must use exact movement identity and its own role table');
+   return {recordset:[lookupOverride??{id:match[1]==='customer'?'20':'30',currency:'TRY'}]};
+  }
   if('financeAccountId' in this.params||'updatedFinanceAccountId' in this.params)return{recordset:[cash]};
   if('customerId' in this.params)return{recordset:[{id:20,customer_code:'Musteri',name:'Müşteri',currency_code:'TRY',balance:7395.28000001}]};
   if('supplierId' in this.params)return{recordset:[{id:30,supplier_code:'Tedarikci',name:'Tedarikçi',currency_code:'TRY',balance:166600}]};
@@ -22,7 +27,7 @@ class Request{
   throw Error('Unexpected offline SQL');
  }
 }
-const driver={Request,BigInt:0,UniqueIdentifier:0,NVarChar:()=>0,Decimal:()=>0,Date:0};
+const driver={Request,BigInt:0,UniqueIdentifier:0,NVarChar:()=>0,Decimal:()=>0,Char:()=>0,Date:0};
 mock.module('../config/database.js',{namedExports:{getSqlPool:async()=>{throw Error('Copy engine must reuse same TX');},getSqlDriver:()=>driver,isIsolatedOperationCopyRuntime:()=>!!registered,getIsolatedOperationCopyConfig:()=>registered}});
 mock.module('./writeGuardService.js',{namedExports:{assertMelisaWriteEnabled:()=>{}}});
 mock.module('./periodLockService.js',{namedExports:{assertAccountingPeriodOpen:async()=>{}}});
@@ -30,7 +35,7 @@ mock.module('./operationQuarantineService.js',{namedExports:{assertOperationQuar
 mock.module('./auditService.js',{namedExports:{writeAuditLog:async()=>{}}});
 mock.module('./currencySettlementStore.mjs',{namedExports:{assertCurrencySnapshotSchema:async()=>{},hasCurrencySnapshotSchema:async()=>true,hasMovementReturnSchema:async()=>true,resolveCurrencySettlement:async(_request,value)=>({...value,documentRateToTry:1,accountRateToTry:1,accountAmount:value.documentAmount,amountTry:value.documentAmount}),writeMovementCurrencySnapshot:async()=>{stampCalls++;},movementCurrencyColumns:()=>'',movementCurrencyDto:v=>v}});
 const {createCustomerCollection,createSupplierPayment,isolatedCopyFinanceSettlement,writeFinanceAccountMovement}=await import('./financeService.js');
-function copyFixture(){const raw=fixtureContext();raw.suppliers[0].currency='TRY';const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);return validateIsolatedOperationCopyContext(raw);}
+function copyFixture(){const raw=fixtureContext();raw.suppliers[0].currency='TRY';raw.customers.unshift({...raw.customers[0],id:'19',partyId:'18',accountId:'17'});raw.suppliers.unshift({...raw.suppliers[0],id:'29',partyId:'28',accountId:'27'});const {sealHash,...body}=raw;raw.sealHash=isolatedCopyHash(body);return validateIsolatedOperationCopyContext(raw);}
 
 test('copy payment and collection atomically include native settlement while original path still stamps',async()=>{
  const copy=copyFixture(),actor={id:'16'},payload={amount:20,currency:'TRY',paymentMethod:'cash',accountId:40,documentDate:copy.date},context={transaction:tx,pool:{},sqlDriver:driver};
@@ -65,7 +70,7 @@ test('copy cash INSERT explicitly affects balance and binds own party movement/c
     await writeFinanceAccountMovement(tx,driver,{...payload,sourceType,partyType});
     const insert=calls.findLast(c=>c.query.includes('INSERT INTO dbo.finance_account_movements'));
     assert.match(insert.query,/created_by, affects_balance/);assert.match(insert.query,/@accountMovementCreatedBy, 1/);
-    assert.match(insert.query,/DB_NAME\(\).*MELISA_ERP_STAGE04_COPY_TEST_20261008_01/);
+    assert.match(insert.query,/DB_NAME\(\).*<>@copyFinanceMovementDatabase/);assert.equal(insert.params.copyFinanceMovementDatabase,copy.target.database);assert.equal(insert.params.copyFinanceMovementScopeHash,null);
     assert.match(insert.query,/session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID\(\) AND actor_id=@accountMovementCreatedBy AND operation=@copyFinanceMovementOperation/);
     assert.match(insert.query,new RegExp('FROM dbo.'+partyType+'_movements WHERE id=@accountMovementPartyMovementId'));
     assert.match(insert.query,/account_amount=@accountMovementAmount AND amount_try=@accountMovementAmount/);
@@ -80,10 +85,12 @@ test('copy cash INSERT explicitly affects balance and binds own party movement/c
     const before=calls.length;await assert.rejects(writeFinanceAccountMovement(tx,driver,{...payload,partyMovementId}),{code:'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE'});assert.equal(calls.length,before);
    }
    for(const change of [{account:{...payload.account,id:41}},{account:{...payload.account,currency:'USD'}},{account:{...payload.account,isActive:false}},{actor:{id:'1'}},{partyType:'customer'},{documentDate:'2026-10-09'},{currency:'USD'},{sourceType:'supplier_refund_cancel'},{partyMovementId:0},{amount:501},{amount:1.00001}]){
-    const before=calls.length;await assert.rejects(writeFinanceAccountMovement(tx,driver,{...payload,...change}),{code:'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE'});assert.equal(calls.length,before);
+    const before=calls.length;await assert.rejects(writeFinanceAccountMovement(tx,driver,{...payload,...change}),{code:'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE'});
+    const expectedReads=change.sourceType==='supplier_refund_cancel'||change.partyMovementId===0?0:1;assert.equal(calls.length,before+expectedReads);for(const call of calls.slice(before))assert.match(call.query,/^SELECT CONVERT\(varchar\(20\),supplier_id\) id,currency_code currency FROM dbo.supplier_movements WHERE id=@copyFinancePartyMovementId;$/);
    }
+   for(const row of [{id:'777',currency:'TRY'},{id:'30',currency:'USD'}]){lookupOverride=row;const before=calls.length;await assert.rejects(writeFinanceAccountMovement(tx,driver,payload),{code:'ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE'});assert.equal(calls.length,before+1);assert(!calls.slice(before).some(c=>/INSERT|UPDATE|DELETE/.test(c.query)));}lookupOverride=null;
   });
- }finally{registered=null;}
+ }finally{registered=null;lookupOverride=null;}
 });
 test('copy finance settlement rejects wrong transaction, source party/cash/date/actor and currency before insert',async()=>{
  const copy=copyFixture(),snapshot={documentCurrency:'TRY',accountCurrency:'TRY',documentRateToTry:1,accountRateToTry:1,documentAmount:20,accountAmount:20,amountTry:20},value={role:'customer',partyId:20,accountId:40,documentDate:copy.date,actor:{id:'16'},snapshot};

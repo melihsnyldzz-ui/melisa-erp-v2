@@ -1,5 +1,6 @@
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyActor,assertIsolatedCopyReadProof,bindIsolatedCopyOperationDTO,copyAssert,isolatedCopyHash,isolatedCopyJSON,isolatedCopyUUID,ISOLATED_COPY_PROCEDURES,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
+import {getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
 import {withIsolatedOperationCopyScope} from './isolatedOperationCopyScope.mjs';
 
 export const ISOLATED_COPY_OPERATION_PERMISSIONS=Object.freeze({sale_draft:'sales.create',sale_finalize:'sales.finalize',sale_cancel:'sales.cancel',collection_create:'finance.collection',collection_cancel:'finance.collection.cancel',count_create:'goods.create',count_update:'goods.create',count_submit:'goods.create',count_cancel:'goods.create',goods_accept:'goods.approve',goods_reject:'goods.reject',purchase_draft:'purchase.create',purchase_finalize:'purchase.finalize',purchase_cancel:'purchase.cancel',payment:'finance.payment',payment_cancel:'finance.payment.cancel',stock_count_draft:'product.view',stock_count_approve:'stock.adjust',stock_count_reject:'stock.adjust',stock_count_cancel:'stock.adjust',purchase_return_draft:'purchase.view',purchase_return_approve:'purchase.cancel',purchase_return_reject:'purchase.cancel',purchase_return_cancel:'purchase.cancel',stock_reverse:'stock.adjust'});
@@ -18,8 +19,9 @@ export function isolatedCopyRequestBody(context,actor,operation,payload){
  assertIsolatedCopyContext(context);copyAssert(Object.hasOwn(ISOLATED_COPY_OPERATION_PERMISSIONS,operation)&&payload&&typeof payload==='object'&&!Array.isArray(payload),'ISOLATED_COPY_OPERATION',400);
  copyAssert(isolatedCopyUUID(payload.requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
  // Reject client-owned identity fields instead of silently overriding them.
- copyAssert(!['copyId','sealHash','backupSHA','operationOrigin','actorId','operation','testProfile','testDayId'].some(k=>Object.hasOwn(payload,k)),'ISOLATED_COPY_CLIENT_PROFILE',400);
- const json=isolatedCopyJSON({...payload,copyId:context.copyId,sealHash:context.sealHash,actorId:String(actor.id),operation,operationOrigin:context.operationOrigin});
+ copyAssert(!['copyId','sealHash','backupSHA','operationOrigin','actorId','operation','testProfile','testDayId','businessDailyScopeHash'].some(k=>Object.hasOwn(payload,k)),'ISOLATED_COPY_CLIENT_PROFILE',400);
+ const dailyHash=getBusinessDailyScopeHash(context),inbound=['count_create','count_update','count_submit','count_cancel','goods_accept','goods_reject','purchase_draft','purchase_finalize'].includes(operation);
+ const json=isolatedCopyJSON({...payload,copyId:context.copyId,sealHash:context.sealHash,actorId:String(actor.id),operation,operationOrigin:context.operationOrigin,...(dailyHash&&!inbound?{businessDailyScopeHash:dailyHash}:{})});
  return {json,hash:isolatedCopyHash(JSON.parse(json)),requestId:payload.requestId};
 }
 function effectProof(value,context,actor,operation,body){

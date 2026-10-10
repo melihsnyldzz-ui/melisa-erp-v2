@@ -2,6 +2,7 @@ import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './o
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool, isIsolatedOperationCopyRuntime, getIsolatedOperationCopyConfig } from '../config/database.js';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
+import {getBusinessDailySelection,getBusinessDailyScopeHash,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
@@ -294,7 +295,11 @@ export async function writeFinanceAccountMovement(transaction, sqlDriver, payloa
     const supported={payment:{operation:'payment',role:'supplier'},payment_cancel:{operation:'payment_cancel',role:'supplier'},collection:{operation:'collection_create',role:'customer'},collection_cancel:{operation:'collection_cancel',role:'customer'}}[payload.sourceType];
     const amount=typeof payload.amount==='number'&&Number.isFinite(payload.amount)?payload.amount.toFixed(4):null;
     partyMovementId=typeof payload.partyMovementId==='string'&&/^[1-9]\d*$/.test(payload.partyMovementId)?Number(payload.partyMovementId):payload.partyMovementId;
-    copyParty=supported&&(supported.role==='customer'?copy.customers:copy.suppliers)[0];
+    if(supported&&Number.isSafeInteger(partyMovementId)&&partyMovementId>0){
+      const partyRows=(await new sqlDriver.Request(transaction).input('copyFinancePartyMovementId',sqlDriver.BigInt,partyMovementId).query(`SELECT CONVERT(varchar(20),${supported.role}_id) id,currency_code currency FROM dbo.${supported.role}_movements WHERE id=@copyFinancePartyMovementId;`)).recordset;
+      if(partyRows?.length===1)copyParty=(supported.role==='customer'?copy.customers:copy.suppliers).find(p=>p.id===partyRows[0].id&&p.currency===partyRows[0].currency);
+    }
+    if(copy.target.database===BUSINESS_COPY_DATABASE){const selected=getBusinessDailySelection(copy),accountId=supported?.role==='customer'?selected?.customerAccountId:selected?.supplierAccountId;if(!selected||copyParty?.accountId!==accountId||String(payload.account?.id)!==selected.financeAccountId||payload.currency!==selected.currency)throw makeServiceError('ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE','Kasa hareketinin seçili hesap kapsamı doğrulanamadı.',409);}
     if(copy!==getIsolatedOperationCopyConfig()||!supported||!copyParty||payload.partyType!==supported.role||!copy.financeAccounts.some(a=>a.id===String(payload.account?.id)&&a.currency==='TRY')||payload.account?.currency!=='TRY'||payload.account?.isActive!==true||payload.currency!=='TRY'||payload.documentDate!==copy.date||!copy.actors.some(a=>a.id===String(payload.actor?.id))||!Number.isSafeInteger(partyMovementId)||partyMovementId<1||amount===null||Number(amount)!==payload.amount||payload.amount<=0||payload.amount>500)throw makeServiceError('ISOLATED_COPY_FINANCE_ACCOUNT_SCOPE','Kasa hareketinin işlem kapsamı doğrulanamadı.',409);
     copyOperation=supported.operation;
   }
@@ -315,9 +320,10 @@ export async function writeFinanceAccountMovement(transaction, sqlDriver, payloa
     .input('accountMovementDescription', sqlDriver.NVarChar(500), payload.description || null)
     .input('accountMovementCreatedBy', sqlDriver.BigInt, payload.actor?.id ? Number(payload.actor.id) : null)
     .input('accountBalanceEffect', sqlDriver.Decimal(18, 4), balanceEffect);
-  if(copy)movementRequest.input('copyFinanceMovementCopyId',sqlDriver.UniqueIdentifier,copy.copyId).input('copyFinanceMovementOperation',sqlDriver.NVarChar(40),copyOperation).input('copyFinanceMovementPartyId',sqlDriver.BigInt,copyParty.id);
+  if(copy)movementRequest.input('copyFinanceMovementDatabase',sqlDriver.NVarChar(128),copy.target.database).input('copyFinanceMovementScopeHash',sqlDriver.Char(64),getBusinessDailyScopeHash(copy)).input('copyFinanceMovementCopyId',sqlDriver.UniqueIdentifier,copy.copyId).input('copyFinanceMovementOperation',sqlDriver.NVarChar(40),copyOperation).input('copyFinanceMovementPartyId',sqlDriver.BigInt,copyParty.id);
   await movementRequest.query(`
-      ${copy?`IF DB_NAME() COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_STAGE04_COPY_TEST_20261008_01' COLLATE Latin1_General_100_BIN2
+      ${copy?`IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyFinanceMovementDatabase COLLATE Latin1_General_100_BIN2
+       OR (@copyFinanceMovementDatabase=N'MELISA_ERP_CRM_SHARED_TEST_20261009_02' AND NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyFinanceMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND JSON_VALUE(payload_json,'$.businessDailyScopeHash')=@copyFinanceMovementScopeHash))
        OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyFinanceMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@accountMovementCreatedBy AND operation=@copyFinanceMovementOperation)
        OR NOT EXISTS(SELECT 1 FROM dbo.finance_accounts WHERE id=@accountMovementAccountId AND currency_code=N'TRY' AND is_active=1)
        OR NOT EXISTS(SELECT 1 FROM dbo.${payload.partyType}_movements WHERE id=@accountMovementPartyMovementId AND ${payload.partyType}_id=@copyFinanceMovementPartyId AND movement_type=@accountMovementSourceType AND created_by=@accountMovementCreatedBy AND document_date=@accountMovementDocumentDate AND currency_code=N'TRY' AND account_currency=N'TRY' AND amount=@accountMovementAmount AND account_amount=@accountMovementAmount AND amount_try=@accountMovementAmount AND document_exchange_rate_snapshot=1 AND account_exchange_rate_snapshot=1 AND created_at>=(SELECT created_at FROM dbo.stage4_copy_intents WHERE copy_id=@copyFinanceMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@accountMovementCreatedBy AND operation=@copyFinanceMovementOperation))

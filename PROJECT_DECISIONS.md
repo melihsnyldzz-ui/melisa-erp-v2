@@ -23,6 +23,12 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-041 — 10 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan **SON TAMAMLAMA PLANI** talimatı dört koordineli aşamayı yetkilendirir: eksik günlük ERP/CRM akışları; kaynak karşılaştırması ve tekil işletme kararları; tek gerçek mağaza günü TEST hazırlığı; yedek/kurtarma/güncel kaynak farkı/final T1 hazırlığı. Yeni iş kimliği **ERP-CRM-FINAL01**. ERP-DEC-040'ın teslim sonunda DUR sınırı yalnız bu tamamlama için superseded; önceki geniş DB02 kanıtı yeniden geliştirilmez veya aktarılmaz.
+
+TEST125, DB02'nin kabul edilmiş kaynak ve deneme geçmişi, karantina, LL dışlamaları, roller ve önceki aktarımlar korunur. Kod/GUI/SQL incelemeleri ayrık ajan sahipliğiyle ilerler; veritabanı işlemlerini tek koordinatör yönetir. Bilinmeyen açılış/kişi/cari tahminle doldurulmaz; finansal açılış tutarlarına onaysız yazılmaz. Yeni sentetik günlük prova etkileri gerçek kaynak açılışından ayrı izlenir. İnsan/İlker/fiziksel kabul otomatik testle PASS olmaz; yeni fiziksel veya finansal karar gerektiğinde somut kapsam gösterilir. Gerçek WhatsApp, ücretli AI ve LIVE yazması açık ayrı onay ister; Vega/main/gerçek T1 ve Eğitim PR27 değişmez. LIVE hazırlığı gerçek geçiş yetkisi değildir.
+
 ### ERP-DEC-040 — 10 Ekim 2026 — Onaylı
 
 Kullanıcının ERP PR23 / CRM PR3 son sınırlı ortak TEST teslimlerinden devam eden açık talimatı: doğrulanmış işletme ürün/müşteri/tedarikçi/personel/döviz kapsamını yeni izole TEST kopyasında genişlet; gereken iki repo düzeltmelerini toplu otomatik, GUI, API, SQL ve replay kanıtıyla teslim et. Önceki kabul edilmiş aktarımlar tekrar uygulanmaz. Karantina, bilinmeyen eşlemeler, iki LL müşteri dışlaması, fiyat/bakiye ekranında en fazla iki ondalık ve mevcut yetkiler korunur. Gerçek kaynak kopyası ile yeni sentetik TEST etkileri ayrı kaydedilir.
