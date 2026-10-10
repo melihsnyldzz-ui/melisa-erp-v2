@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {safeInternalUrl, crmUrl, availability} from '../apps/sites-workflow/public/melisa-hub/hub.mjs';
-import {lessons as portalLessons} from '../apps/sites-workflow/public/melisa-hub/catalog.mjs';
-import {lessons as sourceLessons} from '../apps/sites-workflow/src/training-guide/lessons.mjs';
+import {safeInternalUrl, crmUrl, availability} from '../public/melisa-hub/hub.mjs';
+import {lessons as portalLessons} from '../public/melisa-hub/catalog.mjs';
+import {lessons as sourceLessons} from './training-guide/lessons.mjs';
 
 const lan = new URL('http://192.168.1.46:5234/melisa-hub/');
 const dns = new URL('https://semih.tail295701.ts.net/melisa-hub/');

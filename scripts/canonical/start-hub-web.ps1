@@ -29,7 +29,7 @@ $operation=Get-Content -LiteralPath $c.OperationConfigPath -Raw|ConvertFrom-Json
 $pin=Get-Content -LiteralPath $c.HubConfigPath -Raw|ConvertFrom-Json
 if($operation.database -ne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -or $operation.webPort -ne 5234 -or $operation.erpPort -ne 4184 -or $operation.nativePort -ne 4186 -or $operation.host -ne '127.0.0.1' -or $operation.lanHost -ne '192.168.1.46'){throw 'HUB_OPERATION_SCOPE_REJECTED'}
 foreach($port in @(4184,4186)){
- $health=Invoke-RestMethod ('http://127.0.0.1:'+$port+'/test-health') -TimeoutSec 3
+ $health=Invoke-RestMethod ('http://127.0.0.1:'+$port+'/test-health') -TimeoutSec 3 -MaximumRedirection 0
  if(!$health.ok -or $health.environment -ne 'ISOLATED_TEST_COPY' -or $health.port -ne $port -or $health.databaseName -ne $operation.database -or $health.copyId -ne $operation.copyContext.copyId -or $health.sourceCommit -ne $pin.apiSourceCommit -or $health.actualT1 -ne $false -or $health.sysadmin -ne 0 -or $health.databaseControl -ne 0 -or $health.liveDatabaseAccess -ne 0 -or $health.originalDatabaseAccess -ne 0){throw 'HUB_DEPENDENCY_IDENTITY_REJECTED'}
 }
 if($Action -eq 'Inspect'){Write-Output 'HUB_WEB_PACKAGE_AND_DEPENDENCIES_VERIFIED';exit 0}
@@ -41,5 +41,18 @@ try{
  $env:MELISA_HUB_CONFIG_PATH=$c.HubConfigPath
  $child=Start-Process -FilePath $c.NodePath -ArgumentList @('"'+$entry+'"','"'+$c.OperationConfigPath+'"') -WorkingDirectory (Join-Path $c.PackageRoot 'apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $c.RuntimeDir 'hub-web.out.log') -RedirectStandardError (Join-Path $c.RuntimeDir 'hub-web.err.log')
 }finally{$env:MELISA_HUB_CONFIG_PATH=$previous}
+$ready=$false
+for($attempt=0;$attempt -lt 20;$attempt++){
+ $child.Refresh();if($child.HasExited){throw 'HUB_WEB_CHILD_EXITED'}
+ try{
+  $web=Invoke-RestMethod 'http://127.0.0.1:5234/test-health' -TimeoutSec 1 -MaximumRedirection 0
+  $bindings=@(Get-NetTCPConnection -State Listen -LocalPort 5234 -ErrorAction SilentlyContinue)
+  $listeners=@($bindings|Select-Object -ExpandProperty OwningProcess -Unique)
+  $addresses=@($bindings|Select-Object -ExpandProperty LocalAddress -Unique)
+  if($web.ok -eq $true -and $web.environment -eq 'ISOLATED_TEST_COPY' -and $web.port -eq 5234 -and $web.copyId -eq $operation.copyContext.copyId -and $web.actualT1 -eq $false -and $web.databaseName -eq $operation.database -and $web.sourceCommit -eq $c.SourceCommit -and $listeners.Count -eq 1 -and $listeners[0] -eq $child.Id -and $addresses.Count -eq 2 -and $addresses -contains '127.0.0.1' -and $addresses -contains '192.168.1.46'){$ready=$true;break}
+ }catch{}
+ Start-Sleep -Milliseconds 250
+}
+if(!$ready){$child.Refresh();if(!$child.HasExited){$child.Kill()};throw 'HUB_WEB_READINESS_FAILED'}
 [pscustomobject]@{pid=$child.Id;sourceCommit=$c.SourceCommit;packageRoot=$c.PackageRoot;port=5234;startedAt=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $c.RuntimeDir 'hub-web-process.json') -Encoding utf8
 Write-Output ('HUB_WEB_STARTED_PID_'+$child.Id)
