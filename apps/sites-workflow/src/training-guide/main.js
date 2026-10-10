@@ -2,7 +2,9 @@ import './guide.css';
 import {lessons,trainingCompletionNotice} from './lessons.mjs';
 import {escapeHtml,readProgress,saveProgress} from './progress.mjs';
 const root=document.querySelector('#training-guide');
-let state=readProgress(localStorage),step=0,answer=null;
+let progressStorage=null;
+try{progressStorage=window.localStorage;}catch{/* Keep the lesson usable without browser storage. */}
+let state=readProgress(progressStorage),step=0,answer=null;
 const lesson=()=>lessons.find(l=>l.id===location.hash.slice(1))??lessons[0];
 const esc=escapeHtml;
 const homeLink=new URLSearchParams(location.search).get('terminal')==='1'?'/terminal.html#home':'/ornek-akis.html';
@@ -17,7 +19,7 @@ function render(){
  <details><summary>İşlem yapmadan önce</summary><p>İlk uygulama yalnız ayrılmış deneme ortamında ve yetkili sorumlunun gözetiminde yapılır. Müşteri, tedarikçi, ürün, miktar ve dövizi birlikte kontrol et. Gerçek müşteriye mesaj gönderme.</p><p>Ödeme ve tahsilat stok hareketi değildir. Sipariş taslağı satış değildir. Sayım göndermek stok onayı değildir.</p></details></article></main>`;
  root.querySelectorAll('[data-answer]').forEach(b=>b.addEventListener('click',()=>{answer=Number(b.dataset.answer);render();}));
  root.querySelector('[data-action="back"]').addEventListener('click',()=>{step=Math.max(0,step-1);answer=null;render();});
- root.querySelector('[data-action="next"]').addEventListener('click',()=>{if(question){if(answer!==l.quiz.answer)return;state.completed=[...new Set([...state.completed,l.id])];saveProgress(localStorage,state);const next=lessons[lessons.indexOf(l)+1];if(next)location.hash=next.id;else render();}else{step++;answer=null;render();}});
+ root.querySelector('[data-action="next"]').addEventListener('click',()=>{if(question){if(answer!==l.quiz.answer)return;state.completed=[...new Set([...state.completed,l.id])];saveProgress(progressStorage,state);const next=lessons[lessons.indexOf(l)+1];if(next)location.hash=next.id;else render();}else{step++;answer=null;render();}});
  root.querySelector('img').addEventListener('error',e=>{e.currentTarget.hidden=true;e.currentTarget.parentElement.querySelector('figcaption').textContent='Bu dersin ekran görüntüsü henüz bu pakete eklenmedi.';},{once:true});
 }
 window.addEventListener('hashchange',()=>{step=0;answer=null;render();});
