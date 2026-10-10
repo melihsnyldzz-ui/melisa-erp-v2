@@ -1,3 +1,7 @@
+## ERP-CRM-HUB01 / ERP-DEC-043 — Melisa Hub hazırlığı
+
+**ŞİMDİ — uygulama ve şirket ortamı entegrasyonu sürüyor; insan kabulü bekliyor.** Portal tek girişte mevcut ekranları, sekiz dersi ve kabul/kanıt durumlarını toplar. Mevcut ağ/oturum sınırları incelenmeden localhost adresleri LAN'a çevrilmez. Kritik ağ/yetki değişikliği ayrı onay bekler; TEST125, ticari kayıtlar, API/native ve bekleyen PR27 korunur. Teknik gerçek durum [STATUS.md](STATUS.md), kullanıcı denemesi **ERP-UA32** [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) içindedir. Önceki eğitim/mağaza/cihaz kabul kayıtları değişmez.
+
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 
 **ŞİMDİ — teknik eğitim paketi etkin; insan incelemesi bekliyor.** Sekiz kısa ders, sade ekran başlıkları ve personel → İlker → muhasebe görev devri hazırlandı. ERP b5a8ce1 tam build/manifest kontrolü PASS ve web 5234 / DB02 etkin; mevcut işlem yetkileri ve API/native kaynak a51b117 korundu. Gerçek tarayıcı ve fiziksel TC21 eğitim ekranı kontrolü tamamlandı. Ders tamamlamak insan kabulü değildir.

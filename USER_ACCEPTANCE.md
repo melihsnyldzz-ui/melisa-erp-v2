@@ -1,3 +1,14 @@
+## ERP-UA32 / ERP-CRM-HUB01 — tek portal kullanım kabulü bekliyor
+
+Kişi, deneme tarihi ve insan sonucu bildirilmedi; **bekliyor**. Şirket runtime kurulumu ve kesin paket bilgisi STATUS'ta ayrıca doğrulanır. Teknik bağlantı veya tarayıcı testi insan kabulü değildir.
+
+1. Melisa Hub'ı şirkette ve evde Tailscale açıkken açıp aynı TEST ortamına ulaşıldığını inceleyin.
+2. ERP, CRM, Zebra ürün/mal kabul ve sekiz ders girişlerini kendi mevcut hesap ve yetkinizle okuyun; yeni ticari işlem oluşturmayın.
+3. Bağlantı durumunun insan/cihaz kabulünden ayrı olduğunu, canlı ekranın doğrulama olmadan açılmadığını ve özel kanıtların yönetici erişimi istediğini değerlendirin.
+4. Mobil görünüm ve yenileme sonrasında bağlantıların anlaşılır kaldığını bildirin. Windows tam reboot/logon ve gerçek IP değişimi teknik olarak denenmediyse ayrı bekler.
+
+Önceki ERP-UA31, ERP-UA30, CRM-UA09 ve cihaz kabulleri korunur; bu portal onları PASS yapmaz.
+
 ## ERP-UA31 / ERP-CRM-LEARN01 — insan eğitim kabulü bekliyor
 
 **Kişi, deneme tarihi ve insan sonucu bildirilmedi; ERP-UA31 bekliyor.** Eğitim kaynağı b5a8ce1, etkin izole web 5234 / DB02. Paket, gerçek tarayıcı ve fiziksel TC21 eğitim ekranı teknik sonuçları [kanıtta](docs/evidence/erp/2026-10-10-training-preparation/README.md) kayıtlıdır. API/native a51b117 ve TEST125 korunur; bu kontroller personelin insan kabulü değildir.
