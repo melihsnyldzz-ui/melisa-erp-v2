@@ -8,6 +8,7 @@ import {selectBusinessDailyProfile} from '../../../../scripts/canonical/shared-b
 import {configureBusinessDailyRevision,validateBusinessDailyRevision,BUSINESS_DAILY_REVISION_PROOF_SQL} from './businessDailyRevisionBootstrap.mjs';
 import {validateSharedCopyBootstrap,publicSharedCopyScope} from './sharedCopyBootstrap.mjs';
 import {businessDailyProfitReadSQL} from './businessDailyProfitRevision.mjs';
+import {businessDailyNativeCheckReadSQL,BUSINESS_DAILY_NATIVE_CHECK_BEFORE} from './businessDailyNativeCheck.mjs';
 
 // Anonymous offline fixtures. These account/price values are invented test
 // witnesses, not exported company data and not a real SQL installation.
@@ -29,7 +30,8 @@ function fixture(mutateRaw=()=>{}){
  const current=name=>revision.modules.find(m=>m.name===name).afterHash;
  const historyRow=(r,m)=>({databaseName:c.target.database,copyId:c.copyId,version:r.version,baseSealHash:c.sealHash,manifestSealHash:c.sealHash,name:m.name,beforeHash:m.beforeHash,afterHash:m.afterHash,actualHash:current(m.name),baseManifestHash:c.sql[m.name===c.sql.ready.name?'ready':'effects'].hash,baseManifestRows:185,revisionHash:r.revisionHash,immutableTriggerHash:r.immutableTriggerHash,triggerDisabled:0});
  const proof=[ [historyRow(base,base.modules[0])], [{...historyRow(performance,performance.modules[0]),baseReadyRevisionHash:base.revisionHash}], effects.modules.map(m=>({...historyRow(effects,m),baseReadyRevisionHash:base.revisionHash,baseReadyPerformanceRevisionHash:performance.revisionHash,baselineResidualsHash:effects.baselineResidualsHash,baselineResidualsJSON:isolatedCopyJSON(residuals)})), revision.modules.map((m,i)=>({databaseName:c.target.database,copyId:c.copyId,version:4,baseSealHash:c.sealHash,baseEffectsRevisionHash:effects.revisionHash,manifestSealHash:c.sealHash,name:m.name,beforeHash:m.beforeHash,afterHash:m.afterHash,actualHash:m.afterHash,baseManifestHash:i<5?Object.values(c.sql).find(x=>x.name===m.name)?.hash??m.beforeHash:null,baseManifestRows:185,revisionHash:revision.revisionHash,dailyScopeHash:revision.dailyScopeHash,dailyProfileJSON:isolatedCopyJSON(daily),immutableTriggerHash:revision.immutableTriggerHash,triggerDisabled:0})) ];
- const pool={request:()=>({query:async sql=>{assert.equal(sql,BUSINESS_DAILY_REVISION_PROOF_SQL);return {recordsets:structuredClone(proof)};}})};
+ const nativeProof={recordsets:[[{databaseName:c.target.database,serverName:c.target.server,currentHash:BUSINESS_DAILY_NATIVE_CHECK_BEFORE,isDisabled:false,isNotTrusted:false,registryExists:false,triggerHash:null,triggerDisabled:1,helperExists:false}],[]]};
+ const pool={request:()=>({query:async sql=>{if(sql===businessDailyNativeCheckReadSQL())return structuredClone(nativeProof);assert.equal(sql,BUSINESS_DAILY_REVISION_PROOF_SQL);return {recordsets:structuredClone(proof)};}})};
  return {c,base,performance,effects,revision,proof,pool};
 }
 const configure=f=>configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool);
@@ -81,7 +83,7 @@ function profitFixture(){
  const v5=sealed({schemaVersion:'melisa-business-daily-profit-revision.v1',version:5,copyId:f.c.copyId,baseSealHash:f.c.sealHash,baseDailyRevisionHash:f.revision.revisionHash,dailyScopeHash:f.revision.dailyScopeHash,modules:names.map((name,i)=>({name,beforeHash:f.revision.modules.find(m=>m.name===name).afterHash,afterHash:['A','B','C','D'][i].repeat(64)})),immutableTriggerHash:'E'.repeat(64)});
  const rows=v5.modules.map(m=>({copyId:f.c.copyId,name:m.name,revision:5,baseSealHash:f.c.sealHash,baseDailyRevisionHash:f.revision.revisionHash,dailyScopeHash:f.revision.dailyScopeHash,beforeHash:m.beforeHash,afterHash:m.afterHash,revisionHash:v5.revisionHash,actualHash:m.afterHash,immutableTriggerHash:v5.immutableTriggerHash,triggerDisabled:0}));
  for(const group of f.proof)for(const r of group){const m=v5.modules.find(m=>m.name===r.name);if(m)r.actualHash=m.afterHash;}
- const pool={request:()=>({query:async sql=>sql===businessDailyProfitReadSQL()?{recordset:structuredClone(rows)}:{recordsets:structuredClone(f.proof)}})};
+ const pool={request:()=>({query:async sql=>sql===businessDailyProfitReadSQL()?{recordset:structuredClone(rows)}:sql===businessDailyNativeCheckReadSQL()?f.pool.request().query(sql):{recordsets:structuredClone(f.proof)}})};
  return {...f,v5,rows,pool};
 }
 const configureProfit=f=>configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool,f.v5);

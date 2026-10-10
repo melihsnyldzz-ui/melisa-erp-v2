@@ -1,6 +1,7 @@
 import {copyAssert,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyContext,BUSINESS_COPY_DATABASE,validateIsolatedCopyEffectsPerformanceRevision,registerIsolatedCopyEffectsPerformanceRevision,registerBusinessDailyRevision,registerBusinessDailyProfitRevision} from './isolatedOperationCopyContext.mjs';
 import {BUSINESS_EFFECTS_PERFORMANCE_REVISION_PROOF_SQL} from './businessReadyRevisionBootstrap.mjs';
 import {businessDailyProfitReadSQL,validateBusinessDailyProfitRevision} from './businessDailyProfitRevision.mjs';
+import {businessDailyNativeCheckReadSQL,registerBusinessDailyNativeCheck} from './businessDailyNativeCheck.mjs';
 
 export const BUSINESS_DAILY_REVISION_PROOF_SQL=BUSINESS_EFFECTS_PERFORMANCE_REVISION_PROOF_SQL+`
 SELECT DB_NAME() databaseName,CONVERT(varchar(36),r.copy_id) copyId,r.revision version,r.base_seal_hash baseSealHash,r.base_effects_revision_hash baseEffectsRevisionHash,r.name,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,r.daily_scope_hash dailyScopeHash,r.daily_profile_json dailyProfileJSON,p.after_hash baseManifestHash,
@@ -33,7 +34,7 @@ export function validateBusinessDailyRevision(context,base,performance,effects,i
  const {revisionHash,...body}=input;copyAssert(hash(revisionHash)&&revisionHash===isolatedCopyHash(body),'BUSINESS_DAILY_REVISION_SEAL');
  return input;
 }
-export async function configureBusinessDailyRevision(context,base,performance,effects,input,pool,profitInput){
+export async function configureBusinessDailyRevision(context,base,performance,effects,input,pool,profitInput,nativeCheckInput){
  validateBusinessDailyRevision(context,base,performance,effects,input);
  let profitRows,overrides=[];
  if(profitInput!==undefined){
@@ -55,5 +56,6 @@ export async function configureBusinessDailyRevision(context,base,performance,ef
  registerIsolatedCopyEffectsPerformanceRevision(context,base,performance,effects,historical);
  const registered=registerBusinessDailyRevision(context,input,rows);
  if(profitInput!==undefined)registerBusinessDailyProfitRevision(context,profitInput,profitRows);
+ registerBusinessDailyNativeCheck(context,input,profitInput,nativeCheckInput,await pool.request().query(businessDailyNativeCheckReadSQL()));
  return registered;
 }
