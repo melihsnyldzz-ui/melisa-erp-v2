@@ -2716,7 +2716,10 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'purchase', draft);
     await assertDailyPurchaseSupplierCurrency(sqlDriver, transaction, supplierId, draft.documentCurrency, draft.supplierCurrency);
     await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items);
-    const insert = await new sqlDriver.Request(transaction)
+    // The business-copy INSERT guard validates the account snapshot immediately.
+    // Bind the already verified settlement before that first guarded header write.
+    const initialAccountSnapshot = businessInvoiceSelection(transaction, 'purchase', supplierId, settlement.accountCurrency);
+    const insertRequest = new sqlDriver.Request(transaction)
       .input('documentNo', sql.NVarChar(30), draft.documentNo)
       .input('documentDate', sql.Date, draft.documentDate)
       .input('supplierId', sql.BigInt, supplierId)
@@ -2731,8 +2734,12 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
       .input('discountTotal', sql.Decimal(18, 4), draft.discountTotal)
       .input('grandTotal', sql.Decimal(18, 4), draft.grandTotal)
       .input('amountTry', sql.Decimal(18, 4), draft.amountTry)
-      .input('stockCostEffectTry', sql.Decimal(18, 4), draft.stockCostEffectTry)
-      .query(`
+      .input('stockCostEffectTry', sql.Decimal(18, 4), draft.stockCostEffectTry);
+    if (initialAccountSnapshot) insertRequest
+      .input('initialAccountCurrency', sql.NVarChar(3), settlement.accountCurrency)
+      .input('initialAccountAmount', sql.Decimal(18, 4), settlement.accountAmount)
+      .input('initialAccountRate', sql.Decimal(18, 8), settlement.accountRateToTry);
+    const insert = await insertRequest.query(`
         DECLARE @newPurchaseIds TABLE(invoiceId bigint);
         INSERT INTO dbo.purchase_invoices (
           document_no,
@@ -2751,6 +2758,7 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
           grand_total,
           amount_try,
           stock_cost_effect_try,
+          ${initialAccountSnapshot ? 'account_currency, account_amount, account_exchange_rate_snapshot,' : ''}
           created_by,
           updated_by
         )
@@ -2772,6 +2780,7 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
           @grandTotal,
           @amountTry,
           @stockCostEffectTry,
+          ${initialAccountSnapshot ? '@initialAccountCurrency, @initialAccountAmount, @initialAccountRate,' : ''}
           NULL,
           NULL
         );
