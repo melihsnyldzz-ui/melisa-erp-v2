@@ -37,7 +37,10 @@ export function getSqlConfig() {
         env.sql.trustServerCertificate ? 'TrustServerCertificate=Yes' : 'TrustServerCertificate=No',
         env.sql.encrypt ? 'Encrypt=Yes' : 'Encrypt=No',
       ].join(';'),
-      connectionTimeout: 10000, requestTimeout: 10000,
+      // Registered copy guards can outlast the 15s copy lock wait. Keep the
+      // ordinary connection budget unchanged; bootstrap identity checks still apply.
+      connectionTimeout: 10000,
+      requestTimeout: isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime() ? 60000 : 10000,
       ...((isCanonicalTest() && env.port === 4144 && env.sql.readOnly === false || isIsolatedOperationCopyRuntime())
         ? {pool: {max: 10, min: 1, idleTimeoutMillis: 30000}} : {}),
     };
