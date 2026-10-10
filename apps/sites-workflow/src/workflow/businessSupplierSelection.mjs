@@ -1,8 +1,9 @@
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
+import {isBusinessCopyLocation} from './sharedStableTopology.mjs';
 const fail=()=>{throw Error('Tedarikçi ve döviz seçimi doğrulanamadı. Son kaydı kontrol edin.');};
 const defaults=()=>({profile:globalThis.window?.__MELISA_OPERATION_COPY__??globalThis.__MELISA_OPERATION_COPY__,location:globalThis.window?.location??globalThis.location});
 export function createBusinessSupplierSelection({storage=globalThis.localStorage,userId,profile=defaults().profile,location=defaults().location}={}){
- if(location?.port!=='5234')return null;
+ if(!isBusinessCopyLocation(location))return null;
  validateOperationCopyBootstrap(profile,location);if(profile.scopeKind!=='VERIFIED_BUSINESS_TEST'||!/^\d+$/.test(String(userId)))fail();
  const key=`melisa-work-business-supplier:${location.host??location.hostname+':'+location.port}:${userId}`;
  const members=profile.suppliers,eligible=s=>profile.products.some(p=>p.supplierId===s.id),find=(id,currency)=>members.find(s=>s.id===id&&s.currency===currency&&eligible(s));

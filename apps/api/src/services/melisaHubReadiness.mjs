@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {STABLE_HUB_ORIGIN} from './sharedCopyTransport.mjs';
 
 export const HUB_CSP="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
 const staticFiles=new Set(['index.html','hub.css','hub.mjs','catalog.mjs']);
@@ -12,13 +13,14 @@ const validSource=value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value);
 const originalSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';
 const unavailable=()=>({state:'unknown',detail:'Kimlik veya erişim henüz doğrulanmadı.'});
 
-export function hubRequestAllowed(req){
- return !forwarded.some(key=>req.headers[key]!==undefined)&&(!req.headers.origin||req.headers.origin===`http://${req.headers.host}`)&&(!req.headers['sec-fetch-site']||['same-origin','none'].includes(req.headers['sec-fetch-site']));
+export function hubRequestAllowed(req,{stableTransport=false}={}){
+ const stableRead=stableTransport&&['GET','HEAD'].includes(req.method)&&req.socket?.remoteAddress==='127.0.0.1'&&req.headers.origin===STABLE_HUB_ORIGIN;
+ return !forwarded.some(key=>req.headers[key]!==undefined)&&(!req.headers.origin||req.headers.origin===`http://${req.headers.host}`||stableRead)&&(!req.headers['sec-fetch-site']||['same-origin','none'].includes(req.headers['sec-fetch-site']));
 }
-export function hubPublicConfig(status,host=null){
+export function hubPublicConfig(status,host=null,{stableTransport=false}={}){
  const available=name=>status?.services?.[name]?.state==='reachable';
  let originalUrl=null;if(available('test125')&&['127.0.0.1:5234','localhost:5234','192.168.1.46:5234'].includes(host)){const url=new URL(`http://${host}/ornek-akis.html`);url.port='5194';originalUrl=url.href;}
- return {environment:'ISOLATED_TEST_COPY',erp:{enabled:available('erp'),validated:available('erp')},crm:{enabled:available('crm'),validated:available('crm'),port:62700},test125:{enabled:Boolean(originalUrl),validated:Boolean(originalUrl),port:5194,...(originalUrl?{url:originalUrl}:{})},live:{enabled:false},checkedAt:status.checkedAt,links:[]};
+ return {environment:'ISOLATED_TEST_COPY',erp:{enabled:available('erp'),validated:available('erp')},crm:{enabled:available('crm'),validated:available('crm'),...(stableTransport?{path:'/crm/'}:{port:62700})},test125:stableTransport?{enabled:false,validated:false}:{enabled:Boolean(originalUrl),validated:Boolean(originalUrl),port:5194,...(originalUrl?{url:originalUrl}:{})},live:{enabled:false},checkedAt:status.checkedAt,links:[]};
 }
 export function hubErpIdentityMatches(body,{context,apiSourceCommit}){
  return body?.ok===true&&body.environment==='ISOLATED_TEST_COPY'&&body.port===4184&&body.mode==='erp'&&body.copyId===context.copyId&&body.databaseName===context.target.database&&body.serverName===context.target.server&&body.sourceCommit===apiSourceCommit&&body.actualT1===false&&body.sysadmin===0&&body.databaseControl===0&&body.liveDatabaseAccess===0&&body.originalDatabaseAccess===0&&body.externalOperations===false&&body.automaticJobs===false;
@@ -54,7 +56,7 @@ export function verifyHubTraining(root,files){
  })&&!fs.lstatSync(path.join(root,'kullanim-egitimi.html')).isSymbolicLink()&&fs.statSync(path.join(root,'kullanim-egitimi.html')).isFile();}catch{return false;}
 }
 
-export function createHubMiddleware({root,context,pin=null,fetchImpl=fetch,now=()=>Date.now(),readHealth=()=>JSON.parse(fs.readFileSync(pin.crmHealthPath,'utf8')),trainingValid=verifyHubTraining(root,pin?.trainingFiles)}={}){
+export function createHubMiddleware({root,context,pin=null,stableTransport=false,fetchImpl=fetch,now=()=>Date.now(),readHealth=()=>JSON.parse(fs.readFileSync(pin.crmHealthPath,'utf8')),trainingValid=verifyHubTraining(root,pin?.trainingFiles)}={}){
  const hubRoot=path.join(root,'melisa-hub');let cache=null,pending=null,expires=0;
  async function getBytes(url,maxSize){
   const response=await fetchImpl(url,{redirect:'error',signal:AbortSignal.timeout(2000)});
@@ -83,10 +85,10 @@ export function createHubMiddleware({root,context,pin=null,fetchImpl=fetch,now=(
  }
  return async(req,res)=>{
   res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');res.set('Content-Security-Policy',HUB_CSP);
-  if(!hubRequestAllowed(req))return res.sendStatus(403);
+  if(!hubRequestAllowed(req,{stableTransport}))return res.sendStatus(403);
   if(req.method!=='GET'&&req.method!=='HEAD'){res.set('Allow','GET, HEAD');return res.sendStatus(405);}
   if(req.originalUrl?.split('?')[0]==='/melisa-hub')return res.redirect(308,'/melisa-hub/');
-  if(req.path==='/config.json')return res.json(hubPublicConfig(await status(),req.headers.host));
+  if(req.path==='/config.json')return res.json(hubPublicConfig(await status(),req.headers.host,{stableTransport:stableTransport&&req.headers.origin===STABLE_HUB_ORIGIN}));
   if(req.path==='/status.json')return res.json(await status());
   const name=req.path==='/'?'index.html':req.path.slice(1);
   if(!staticFiles.has(name))return res.sendStatus(404);

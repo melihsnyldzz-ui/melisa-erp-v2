@@ -1,5 +1,6 @@
 import './personnelTerminal.css';
 import {createWorkingCatalogSession,workingCatalogUserLabel} from './workingCatalogSession.mjs';
+import {API_BASE_URL} from '../config/apiConfig.js';
 import {createWorkReceiving} from './workReceiving.js';
 import {createWorkSales} from './workSales.js';
 import {createWorkCount} from './workCount.js';
@@ -46,7 +47,7 @@ function showLogin(message=''){
  root.innerHTML=`<section class="card terminal-login"><h1>Personel girişi</h1><p>Kendi hesabınızla günlük işlerinizi açın.</p><p role="alert">${esc(message)}</p><form id="terminal-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required maxlength="120"></label><label>Parola<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary">Programa gir</button></form></section>`;
  root.querySelector('form').onsubmit=async e=>{e.preventDefault();if(!online()){announce(terminalOfflineText);return;}const form=e.currentTarget,button=form.querySelector('button'),credentials={username:form.elements.username.value,password:form.elements.password.value};button.disabled=true;form.elements.password.value='';try{const current=await session.login(credentials);terminalUser(current);setUser(current);}catch(error){storage.removeItem('melisaTestSalesAccessToken');showLogin(error.message);}finally{credentials.password='';}};
 }
-function start(){session?.dispose();session=createWorkingCatalogSession({location,apiBase:import.meta.env.VITE_API_BASE_URL,storage,onExpired:()=>{requestCrmLogout();showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.');}});root.innerHTML='<p role="status">Personel oturumu açılıyor…</p>';session.start().then(current=>current?setUser(current):showLogin()).catch(error=>{storage.removeItem('melisaTestSalesAccessToken');showLogin(error.message);});}
+function start(){session?.dispose();session=createWorkingCatalogSession({location,apiBase:API_BASE_URL,storage,onExpired:()=>{requestCrmLogout();showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.');}});root.innerHTML='<p role="status">Personel oturumu açılıyor…</p>';session.start().then(current=>current?setUser(current):showLogin()).catch(error=>{storage.removeItem('melisaTestSalesAccessToken');showLogin(error.message);});}
 function clearCrm(){clearTimeout(crmTimer);frame.removeAttribute('src');crmStarted=false;crm.dataset.ready='false';}
 function recoverCrmLogout({reload=false}={}){
  frame.hidden=true;

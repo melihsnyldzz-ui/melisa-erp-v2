@@ -1,4 +1,5 @@
 import {operationCopyFromMeta,operationCopyEntity,operationCopyDailySelection,validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
+import {isSharedStableLocation,sharedStableApiBase} from './sharedStableTopology.mjs';
 export {moneyDisplay} from './moneyDisplay.mjs';
 import {tradeExact,tradeId,tradeRevision,tradeDate,tradeInput,tradeAmount,tradeUuid} from './workTradeModel.mjs';
 export {tradeInput as paymentInput,tradeAmount as paymentAmount};
@@ -33,8 +34,10 @@ export function paymentPreview(p,s,c){paymentSelection(s,c);const fields=['suppl
 const uuid=v=>text(v)&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v),object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v),clone=v=>JSON.parse(JSON.stringify(v));
 const writablePath=p=>p==='/api/work-supplier-payments/payments'||/^\/api\/work-supplier-payments\/payments\/[1-9]\d*\/cancel$/.test(p);
 export function createPaymentJournal({storage,actorId,apiBase,makeUuid=tradeUuid}={}){
- const businessAPI=['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase);
- if(businessAPI){const location=globalThis.window?.location??globalThis.location,profile=globalThis.window?.__MELISA_OPERATION_COPY__??globalThis.__MELISA_OPERATION_COPY__;validateOperationCopyBootstrap(profile,location);if(location?.port!=='5234'||!operationCopyDailySelection(profile)||location.hostname==='192.168.1.46'&&apiBase!=='http://192.168.1.46:4184'||location.hostname!=='192.168.1.46'&&apiBase!=='http://127.0.0.1:4184')fail();}
+ const location=globalThis.window?.location??globalThis.location,stable=sharedStableApiBase({location,apiBase})!==null;
+ const businessAPI=stable||['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase);
+ if(isSharedStableLocation(location)&&!stable)fail();
+ if(businessAPI){const profile=globalThis.window?.__MELISA_OPERATION_COPY__??globalThis.__MELISA_OPERATION_COPY__;validateOperationCopyBootstrap(profile,location);if(!operationCopyDailySelection(profile)||!stable&&(location?.port!=='5234'||location.hostname==='192.168.1.46'&&apiBase!=='http://192.168.1.46:4184'||location.hostname!=='192.168.1.46'&&apiBase!=='http://127.0.0.1:4184'))fail();}
  if(!tradeId(String(actorId))||!businessAPI&&!['http://127.0.0.1:4144','http://192.168.1.46:4144','http://127.0.0.1:4154','http://127.0.0.1:4174','http://192.168.1.46:4174'].includes(apiBase))throw Error('Ödeme bağlantısı doğrulanamadı.');
  const key=`melisa-work-supplier-payment:${apiBase}:${actorId}`,scope={version:1,actorId:String(actorId),apiBase,operation:'supplier-payment'};
  const failure=()=>{throw Error('Ödeme korunamadı; kayıt gönderilmedi. Tekrar deneyin.');};

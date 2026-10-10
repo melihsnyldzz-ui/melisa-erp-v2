@@ -4,14 +4,15 @@ import jwt from 'jsonwebtoken';
 import {validateSharedCopyBootstrap,assertSharedBootstrapRelease} from './src/services/sharedCopyBootstrap.mjs';
 import {validateIsolatedOperationCopyContext,assertIsolatedCopyIdentity,registerIsolatedCopyAdapterRevision,copyAssert} from './src/services/isolatedOperationCopyContext.mjs';
 import {registerIsolatedOperationCopyRuntime,registerIsolatedCopyReadonlyRuntime} from './src/config/isolatedOperationCopyRuntime.mjs';
+import {bindSharedCopyLan,sharedCopyHosts} from './src/services/sharedCopyTransport.mjs';
 
 const [mode,configPath]=process.argv.slice(2);
 copyAssert(['erp','native'].includes(mode)&&path.isAbsolute(configPath??''),'STAGE4_ARGUMENTS');
 const config=JSON.parse(fs.readFileSync(configPath,'utf8'));
-const {context,topology,webOrigins}=validateSharedCopyBootstrap(config);
+const {context,topology,webOrigins,normalWebOrigins,transport}=validateSharedCopyBootstrap(config);
 for(const key of Object.keys(process.env))if(/^(SQL_|VEGA_|ARMADA_|WHATSAPP_|EVOLUTION_|CRM_|NAKLIYAT_|SMTP_|MAIL_|EMAIL_|JWT_|NATIVE_|TERMINAL_|PILOT_|MELISA_|SHIPPING_|SCHEDULE|WORKER_|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NODE_OPTIONS)/i.test(key))delete process.env[key];
 const writes=mode==='erp',port=writes?topology.apiPort:topology.nativePort,user=writes?config.salesSqlUser:config.sqlUser;
-Object.assign(process.env,{NODE_ENV:'production',API_PORT:String(port),APP_NAME:'melisa-shared-test',SQL_SERVER:config.server,SQL_PORT:'1433',SQL_DATABASE:config.database,SQL_USER:user,SQL_PASSWORD:writes?config.salesSqlPassword:config.sqlPassword,SQL_TRUSTED_CONNECTION:'false',SQL_READ_ONLY:String(!writes),SQL_ENCRYPT:'false',SQL_TRUST_SERVER_CERTIFICATE:'true',JWT_ACCESS_SECRET:config.jwtAccessSecret,JWT_SECRET:config.jwtAccessSecret,JWT_REFRESH_SECRET:config.jwtRefreshSecret,JWT_ACCESS_EXPIRES_IN:'8h',MELISA_TEST_STATELESS_AUTH:'true',MELISA_LOCAL_PASSWORDLESS_LOGIN:'false',MELISA_PILOT_RUNTIME:'true',WHATSAPP_ENABLED:'false',NAKLIYAT_ENABLED:'false',SMTP_ENABLED:'false',EMAIL_ENABLED:'false',WORKERS_ENABLED:'false',SCHEDULER_ENABLED:'false',MELISA_INVOICE_EXPORT_ENABLED:'false',TERMINAL_RECEIPT_PRINT_ENABLED:'false',TERMINAL_RECEIPT_PRINT_MODE:'disabled',CORS_ORIGINS:webOrigins.join(','),RATE_LIMIT_ENABLED:'true',RATE_LIMIT_WINDOW_MS:'60000',RATE_LIMIT_MAX:'1000',NATIVE_CUSTOMER_ROUTES_ENABLED:'false'});
+Object.assign(process.env,{NODE_ENV:'production',API_PORT:String(port),APP_NAME:'melisa-shared-test',SQL_SERVER:config.server,SQL_PORT:'1433',SQL_DATABASE:config.database,SQL_USER:user,SQL_PASSWORD:writes?config.salesSqlPassword:config.sqlPassword,SQL_TRUSTED_CONNECTION:'false',SQL_READ_ONLY:String(!writes),SQL_ENCRYPT:'false',SQL_TRUST_SERVER_CERTIFICATE:'true',JWT_ACCESS_SECRET:config.jwtAccessSecret,JWT_SECRET:config.jwtAccessSecret,JWT_REFRESH_SECRET:config.jwtRefreshSecret,JWT_ACCESS_EXPIRES_IN:'8h',MELISA_TEST_STATELESS_AUTH:'true',MELISA_LOCAL_PASSWORDLESS_LOGIN:'false',MELISA_PILOT_RUNTIME:'true',WHATSAPP_ENABLED:'false',NAKLIYAT_ENABLED:'false',SMTP_ENABLED:'false',EMAIL_ENABLED:'false',WORKERS_ENABLED:'false',SCHEDULER_ENABLED:'false',MELISA_INVOICE_EXPORT_ENABLED:'false',TERMINAL_RECEIPT_PRINT_ENABLED:'false',TERMINAL_RECEIPT_PRINT_MODE:'disabled',CORS_ORIGINS:normalWebOrigins.join(','),RATE_LIMIT_ENABLED:'true',RATE_LIMIT_WINDOW_MS:'60000',RATE_LIMIT_MAX:'1000',NATIVE_CUSTOMER_ROUTES_ENABLED:'false'});
 for(const file of ['.env','.env.local'])copyAssert(!fs.existsSync(path.resolve(file)),'STAGE4_DOTENV_REJECTED');
 const runtime={database:context.target.database,server:context.target.server,user,port,readOnly:!writes,trustedConnection:false,externalProvidersDisabled:true};
 if(writes)registerIsolatedOperationCopyRuntime(context,runtime);else registerIsolatedCopyReadonlyRuntime(context,runtime);
@@ -45,7 +46,7 @@ const {default:express}=await import('express'),{default:cors}=await import('cor
 const {securityHeaders,corsOptions,apiRateLimit}=await import('./src/middleware/security.js');
 const {requestContext}=await import('./src/middleware/requestContext.js'),{errorHandler}=await import('./src/middleware/errorHandler.js');
 const app=express();app.disable('x-powered-by');
-app.use((req,res,next)=>{if(!( ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||(writes&&/^192\.168\.1\.[0-9]{1,3}$/.test(req.socket.remoteAddress)))||![`127.0.0.1:${port}`,`localhost:${port}`,...(writes?[`192.168.1.46:${port}`]:[])].includes(req.get('host')))return res.status(403).json({success:false,error:{code:'STAGE4_LOOPBACK_ONLY'}});next();});
+app.use((req,res,next)=>{if(!( ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||(writes&&/^192\.168\.1\.[0-9]{1,3}$/.test(req.socket.remoteAddress)))||!sharedCopyHosts(port,writes?transport:{lanAddress:null}).includes(req.get('host')))return res.status(403).json({success:false,error:{code:'STAGE4_LOOPBACK_ONLY'}});next();});
 app.use(securityHeaders(),cors(corsOptions()),requestContext,apiRateLimit(),express.json({limit:'2mb'}));
 app.use((_req,res,next)=>{res.set('X-Melisa-Environment','ISOLATED-TEST-COPY');res.set('Cache-Control','no-store');next();});
 const health={ok:true,environment:'ISOLATED_TEST_COPY',mode,port,...identity,sqlReadOnly:!writes,writes,externalOperations:false,automaticJobs:false,actualT1:false,copyId:context.copyId,backupSHA:context.backupSHA,copiedFromSourceCommit:context.sourceCommit,sourceCommit:release.sourceCommit,packageId:release.packageId};
@@ -64,7 +65,7 @@ if(writes){
  const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
  app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'STAGE4_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!webOrigins.includes(req.get('origin'))||!isCanonicalTestWriteAllowed(req.method,req.path,{writes:true,mode:'erp'})))return res.status(405).json({success:false,error:{code:'STAGE4_WRITE_OUTSIDE_SCOPE'}});next();
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!normalWebOrigins.includes(req.get('origin'))||!isCanonicalTestWriteAllowed(req.method,req.path,{writes:true,mode:'erp'})))return res.status(405).json({success:false,error:{code:'STAGE4_WRITE_OUTSIDE_SCOPE'}});next();
  });
  const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');configureCatalogSourceVersion(config.goal7SourceVersion);
  const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:config.goal7SourceVersion});
@@ -79,6 +80,6 @@ if(writes){
  const {authRoutes}=await import('./src/routes/authRoutes.js'),{nativeTerminalRoutes}=await import('./src/routes/nativeTerminalRoutes.mjs');app.use('/api',authRoutes);app.use('/api/native-terminal',nativeTerminalRoutes);
 }
 app.use(errorHandler);const server=await new Promise((resolve,reject)=>{const s=app.listen(port,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
-const lanServer=writes?await new Promise((resolve,reject)=>{const s=app.listen(port,'192.168.1.46',()=>resolve(s));s.once('error',reject);}):null;
+const lanServer=writes?await bindSharedCopyLan(app,port,transport,code=>console.error(code)):null;
 console.log(JSON.stringify({event:'SHARED_COPY_READY',...health}));
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,async()=>{await Promise.all([server,lanServer].filter(Boolean).map(s=>new Promise(resolve=>s.close(resolve))));await pool.close();process.exit(0);});

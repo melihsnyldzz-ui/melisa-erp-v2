@@ -1,13 +1,14 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
+import {isSharedStableLocation,isBusinessCopyLocation} from './sharedStableTopology.mjs';
 export const workingCatalogTokenKey='melisaTestSalesAccessToken';
 const problem=(message='ERP bağlantısı kurulamadı. Yeniden deneyin.',status=503)=>Object.assign(new Error(message),{status});
 function validUser(user){
  if(!user||!Number.isSafeInteger(user.id)||user.id<1||!Array.isArray(user.permissions)||user.permissions.some(p=>typeof p!=='string'))throw problem('Oturum bilgileri doğrulanamadı.');
  return user;
 }
-export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
+export function workingCatalogUserLabel(user){if(isBusinessCopyLocation(globalThis.window?.location??globalThis.location)&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
 export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__}={}){
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
  let active=true,token=null,user=null,generation=0,switching=false;const controllers=new Set();
@@ -39,6 +40,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   },
   async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
   async selectCopyActor(actorId){
+   if(isSharedStableLocation(location))throw problem('Başka kullanıcıya geçmek için kendi hesabınızla yeniden giriş yapın.',403);
    const profile=validateOperationCopyBootstrap(copyProfile,location),selected=profile.actors.find(a=>a.id===actorId);
    const copyBase=location?.port==='5234'?`http://${location.hostname==='192.168.1.46'?'192.168.1.46':'127.0.0.1'}:4184`:location?.port==='5224'?`http://${location.hostname==='192.168.1.46'?'192.168.1.46':'127.0.0.1'}:4174`:'http://127.0.0.1:4154';
    if(!active||!token||!user||switching||resolvedApiBase!==copyBase||!['15','16'].includes(actorId)||!selected||stored(workingCatalogTokenKey)!==token)throw problem('Kullanıcı geçişi yapılamıyor.');
