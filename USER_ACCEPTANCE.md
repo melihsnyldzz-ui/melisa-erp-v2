@@ -1,12 +1,14 @@
 ## ERP-UA30 / ERP-CRM-FINAL01 — tek mağaza günü turu — bekliyor
 
-ERP-DEC-041,10Ekim2026. [Tek mağaza günü turu](docs/evidence/erp/2026-10-10-final-preparation/store-day-tour.md) ve [güncel teknik kapsam](docs/evidence/erp/2026-10-10-final-preparation/README.md) üzerinden yalnız doğrulanmış sonlu TEST kapsamı değerlendirilir. Yeni günlük zincirin teknik sonuçları halen tamamlanıyor; yeni kaynak paketinin oluşturulması veya SQL/otomatik test PASS'i insan kabulü değildir.
+ERP-DEC-041,10 Ekim2026. Çalışan izole ERP uygulama source **a51b117** / paket **CANONICAL-BUSINESS-TEST-20261010-a51b117**, CRM uygulama source **5f8cb237** / belge teslimi **43ff598**, ortak hedef **DB02**. TEST125 / source edb3c891 ve kabul edilmiş aktarımlar korunur. Native günlük sonlu TRY zinciri 25 kontrol ile, sayım ve alış iadesi ters kayıtları ayrıca SQL/API ve aynı UUID tekrarlarıyla doğrulandı. Personel onayı/ödeme denemesi reddedildi; ikinci stok veya finans etkisi oluşmadı. Normal satış/alış/ödeme, iade ve sayım geçmişi, ayrı dövizli günlük rapor ve CRM 50 ürün / 3.830 görsel kapsamı gerçek ekranda kontrol edildi. Bu teknik kanıt bütün mağaza ve TRY/USD/EUR günlük finans akışlarının kabulü değildir.
+
+**Kişi/tarih/insan sonucu bildirilmedi; ERP-UA30 PASS yok.** CRM-UA08, öncekiUA29/CRM-UA07 ve tüm diğer bekleyen kayıtlar korunur. [15–20 dakikalık tur](docs/evidence/erp/2026-10-10-final-preparation/store-day-tour.md) yalnız mevcut kayıtların gözle incelenmesini hazırlar; yeni insan işlem turu ayrı onayla imzalı TEST seçiminde yapılır. Fiziksel Zebra etiketi, gerçek kişi/İlker eşlemesi ve geniş TRY/USD/EUR kullanımının ayrı kabulü gerekir.
 
 | Kabul | Kişi | Deneme tarihi | İnsan sonucu |
 | --- | --- | --- | --- |
 | ERP-UA30 / normal günlük ekran turu | Bildirilmedi | Bildirilmedi | Bekliyor |
 
-Satış/tahsilat, mal kabul/alış/ödeme, sayım/iade ve gün sonu kayıtları; personel ile onaylayan kişinin işlem sahipliği, tekrarın ikinci etki oluşturmaması, kaynak ve sentetik etkinin ayrı görünmesi değerlendirilir. Her durak UYGUN/SORUN/DENENMEDİ ile kişi/tarih gözlemi bekler. Desteklenmeyen sayım iptali kapısı zorlanmaz. Gerçek kasa-banka açılışı,18UNKNOWN belge ve8kişi/hesap takma adı bu turda tahminle doğrulanmaz; fiziksel Zebra, tam döviz kapsamı ve gerçek işletme sahibi sonucu ayrı bekler. ERP-UA29/CRM-UA07 ve önceki kabuller korunur; yeni PASS veya LIVE/T1 onayı verilmedi.
+**Genel işletme TEST'i / LIVE hazır değil; ERP-UA30 ve CRM-UA08 bekliyor.** 18 UNKNOWN belge, gerçek açılışı hazır0/39 native kasa-banka kaydı ve8 kişi/hesap takma adı için işletme kanıtı; fiziksel Zebra/personel/İlker turu ve geniş dövizli günlük kapsam açık. Yeni9,2 GB COPY_ONLY/CHECKSUM yedeği VERIFYONLY PASS, bu yeni yedek restore edilmedi; önceki gerçek izole restore ve Aşama5 inverse kanıtı yeniden kullanıldı. 10 Ekim17:01 TR tarihli atomik olmayan okumada ürün 233 / müşteri döviz hesabı 22 / tedarikçi 28 kaynak farkı; yeniden aktarım veya gerçekT1 yok. Katalog ilk50medyan2.080 sn önceki ortak644 ms'den yavaş; bu regresyon ve CRM'nin önceki15 sn timeoutu saklandı, sonraki darliste200/~2.1 sn. Koruma/timeout kaldırılmadı. GitHub CI hesap/harcama nedeniyle başlamadı; yeşil değil. Vega/LIVE/gerçekT1/main/gerçekWhatsApp/ücretliAI/EğitimPR27 değişimi yok.
 
 ## ERP-UA29 / ERP-CRM-EXPAND01 — insan TEST'i başlatılmadı
 

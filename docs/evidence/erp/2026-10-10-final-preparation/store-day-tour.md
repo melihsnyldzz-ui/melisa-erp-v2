@@ -8,6 +8,7 @@ ERP-DEC-041 / CRM-DEC-009 / ERP-CRM-FINAL01. Bu belge turu hazırlar; geniş ins
 - CRM: http://127.0.0.1:62700/
 - Zebra: http://192.168.1.46:5234/terminal.html#products
 - Ortak hedef yalnız izole DB02. TEST125, LIVE, Vega ve Eğitim PR27 korunur.
+- Bu kopyanın sabit işlem tarihi **09.10.2026**. Günlük raporda tarih aralığını bu güne göre okuyun; ekranın takvim başlığı güncel bilgisayar tarihi olabilir.
 - Günlük finans provası yalnız imzalı seçimdeki TRY ürün/müşteri/tedarikçi ve mevcut sentetik deneme kasasıdır. Bu kasa gerçek işletme açılışı değildir. TRY/USD/EUR katalog, cari ve mevcut sipariş okuması ayrı kontrol edilir; dövizler toplanmaz.
 - Tam ürün, barkod, kişi, hesap, belge ve beklenen tutarlar özel kanıt dosyasından seçilir. İsim benzerliğiyle yeni eşleme yapılmaz. Mevcut taslaklar değiştirilmez.
 
