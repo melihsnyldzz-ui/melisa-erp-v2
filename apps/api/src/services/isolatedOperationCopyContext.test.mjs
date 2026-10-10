@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateIsolatedOperationCopyContext,isolatedCopyHash,assertIsolatedCopyIdentity,assertIsolatedCopyActor,bindIsolatedCopyOperationDTO,ISOLATED_COPY_SCHEMA,ISOLATED_COPY_ORIGIN,ISOLATED_COPY_DATABASE,ISOLATED_COPY_SOURCE_DATABASE,ISOLATED_COPY_SERVER,ISOLATED_COPY_PROCEDURES} from './isolatedOperationCopyContext.mjs';
+import {validateIsolatedOperationCopyContext,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyIdentity,assertIsolatedCopyActor,bindIsolatedCopyOperationDTO,ISOLATED_COPY_SCHEMA,ISOLATED_COPY_ORIGIN,ISOLATED_COPY_DATABASE,ISOLATED_COPY_SOURCE_DATABASE,ISOLATED_COPY_SERVER,ISOLATED_COPY_PROCEDURES} from './isolatedOperationCopyContext.mjs';
 
 export function fixtureContext(){
  const hash='A'.repeat(64),body={schemaVersion:ISOLATED_COPY_SCHEMA,operationOrigin:ISOLATED_COPY_ORIGIN,actualT1:false,copyId:'ab9ab06a-6b0f-4b48-8898-43b13c140c93',backupSHA:'b'.repeat(64),sourceDatabase:ISOLATED_COPY_SOURCE_DATABASE,sourceCommit:'c'.repeat(40),currentProductSourceVersionRunId:'PRODUCT-4161d6d9-0716-469e-8c67-c165a20fa674',target:{server:ISOLATED_COPY_SERVER,database:ISOLATED_COPY_DATABASE,login:'melisa_stage4_copy_rw_20261008_01',databaseUser:'melisa_stage4_copy_rw_20261008_01'},date:'2026-10-08',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:[{id:'34765',sourceKey:['VEGA2026','F0102TBLSTOKLAR','161'].join('/'),stockCode:'0161 MOLLY',unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['100'],barcodes:['00161'],beforeHash:hash}],customers:[{id:'20',partyId:'21',accountId:'22',currency:'TRY',sourceKey:['VEGA2026','F0102TBLCARI','23'].join('/'),beforeHash:hash,accountBeforeHash:hash}],suppliers:[{id:'30',partyId:'31',accountId:'32',currency:'USD',sourceKey:['VEGA2026','F0103TBLCARI','33'].join('/'),beforeHash:hash,accountBeforeHash:hash}],financeAccounts:[{id:'40',currency:'TRY',beforeHash:hash},{id:'41',currency:'USD',beforeHash:hash}],sql:Object.fromEntries(Object.entries(ISOLATED_COPY_PROCEDURES).map(([k,name])=>[k,{name,hash}]))};
@@ -10,6 +10,26 @@ export const fixtureIdentity=context=>({db:context.target.database,server:contex
 export const fixtureProof=c=>({copyId:c.copyId,sealHash:c.sealHash,backupSHA:c.backupSHA,valid:true,definitionHashes:Object.fromEntries(Object.entries(c.sql).map(([k,p])=>[k,p.hash]))});
 
 if(import.meta.filename===process.argv[1]){
+test('native Date response journals preserve the same timestamp on first response and replay',()=>{
+ const createdAt=new Date('2026-10-10T09:08:07.123Z');createdAt.nanosecondsDelta=0;
+ const response={result:{createdAt,id:123,plan:{documentDate:'2026-10-09',amount:170}},id:456,dates:[createdAt,new Date('2026-10-10T09:09:00Z')]};
+ const first=JSON.parse(JSON.stringify(response)),replay=JSON.parse(isolatedCopyJSON(response));
+ assert.deepEqual(replay,first);assert.equal(replay.result.createdAt,'2026-10-10T09:08:07.123Z');
+ assert.equal(isolatedCopyHash(response),isolatedCopyHash(first));
+ assert.equal(createdAt.nanosecondsDelta,0);assert.equal(createdAt.getTime(),Date.parse(first.result.createdAt));
+ assert.equal(isolatedCopyJSON(createdAt),JSON.stringify(createdAt));
+ assert.equal(isolatedCopyJSON({createdAt:new Date(NaN)}),'{"createdAt":null}');
+});
+
+test('Date handling leaves existing JSON-only seals and historical malformed journal objects unchanged',()=>{
+ const body={z:[{b:2,a:'2026-10-10'},null],a:{d:false,c:'exact'}};
+ assert.equal(isolatedCopyJSON(body),'{"a":{"c":"exact","d":false},"z":[{"a":"2026-10-10","b":2},null]}');
+ assert.equal(isolatedCopyHash(body),'8F43DA5589AA4F8FD472D027F8C5C8BFEDF974BED34D4CDA4E1178AA0EF998FE');
+ const historical={result:{createdAt:{nanosecondsDelta:0},id:123}};
+ assert.equal(isolatedCopyJSON(historical),'{"result":{"createdAt":{"nanosecondsDelta":0},"id":123}}');
+ assert.deepEqual(JSON.parse(isolatedCopyJSON(historical)),historical);
+});
+
 test('copy context preserves exact source code/barcode and immutable copy origin',()=>{const c=validateIsolatedOperationCopyContext(fixtureContext());assert.equal(c.products[0].stockCode,'0161 MOLLY');assert.equal(c.products[0].barcodes[0],'00161');assert.equal(c.operationOrigin,ISOLATED_COPY_ORIGIN);assert.equal(Object.isFrozen(c.products[0]),true);assertIsolatedCopyIdentity(c,fixtureIdentity(c));});
 test('original target, unknown backup and changed sealed fields fail closed',()=>{
  for(const mutate of [v=>v.target.database=ISOLATED_COPY_SOURCE_DATABASE,v=>v.backupSHA=null,v=>v.products[0].unitFactorExact8='2.00000000',v=>v.products[0].stockCode='161',v=>v.sql.effects.name='dbo.any_writer',v=>v.suppliers[0].currency='LL']){const c=fixtureContext();mutate(c);assert.throws(()=>validateIsolatedOperationCopyContext(c));}

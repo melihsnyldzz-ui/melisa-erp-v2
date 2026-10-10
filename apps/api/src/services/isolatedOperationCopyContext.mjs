@@ -23,7 +23,9 @@ const businessDailyRevisions=new WeakMap();
 const businessDailyProfitRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
-const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
+// ODBC dates can have enumerable nanoseconds metadata. Preserve their JSON
+// timestamp before sorting plain-object keys for immutable request journals.
+const canonical=value=>value instanceof Date?Date.prototype.toJSON.call(value):Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
 export const isolatedCopyJSON=value=>JSON.stringify(canonical(value));
 export const isolatedCopyHash=value=>createHash('sha256').update(isolatedCopyJSON(value),'utf16le').digest('hex').toUpperCase();
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,18}$/.test(v)&&BigInt(v)<=9223372036854775807n;
