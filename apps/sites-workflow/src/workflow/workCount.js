@@ -1,4 +1,6 @@
 import {testDaily} from './testDaily.js';
+import {workTaskHandoff} from './workTaskHandoff.mjs';
+import './workTaskHandoff.css';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
@@ -10,7 +12,7 @@ export function createWorkCount({root,session,user}){
  function draw(){
   if(!alive()||!data)return;
   view=testDaily({api,user,data,flow:'count',refresh,esc,normalScreen:true});
-  root.innerHTML=view.html();view.bind();
+  root.innerHTML=`<div class="work-count">${workTaskHandoff('count')}${view.html()}</div>`;view.bind();
  }
  async function refresh(){
   if(!alive()||busy)return;

@@ -7,6 +7,8 @@ test('shared terminal uses its paired CRM origin without changing the normal ter
  assert.equal(terminalCrmUrl(local).origin,'http://127.0.0.1:62600');
  assert.equal(terminalCrmUrl({...local,hostname:'192.168.1.46',origin:'http://192.168.1.46:5224'}).origin,'http://192.168.1.46:62600');
  assert.equal(terminalCrmUrl({...local,port:'5194',origin:'http://127.0.0.1:5194'}).origin,'http://127.0.0.1:62400');
+ assert.equal(terminalCrmUrl({...local,port:'5234',origin:'http://127.0.0.1:5234'}).origin,'http://127.0.0.1:62700');
+ assert.equal(terminalCrmUrl({...local,port:'5234',hostname:'192.168.1.46',origin:'http://192.168.1.46:5234'}).origin,'http://192.168.1.46:62700');
  for(const changed of [{...local,port:'5214'},{...local,hostname:'192.168.1.47'},{...local,protocol:'https:'}])assert.throws(()=>terminalCrmUrl(changed));
 });
 test('CRM iframe keeps the exact TEST terminal path Referer required by its navigation guard',()=>{

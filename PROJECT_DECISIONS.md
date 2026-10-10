@@ -23,6 +23,9 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-042 — 10 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan **EKRAN SADELEŞTİRME VE KULLANICI EĞİTİMİ** kararı: geniş insan kabulünden önce ERP/CRM/Zebra normal yeşil ekranları sadeleştir; personel → İlker/yetkili sorumlu → muhasebe görev devrini görünür yap; sekiz kısa Türkçe görsel ders hazırla. Tek pano işi **ERP-CRM-LEARN01**. PR23/CRM PR3 son çalışan izole DB02 sürümleri esas, TEST125 ve önceki aktarımlar korunur. Yetki, hesaplama, stok/fiyat/cari/finans mantığı değişmez. Eğitim yalnız okuma ve yerel ders ilerlemesidir; yeni ticari kayıt veya mesaj oluşturmaz. PR27 saf ders yaklaşımı uygun parçalarla yeniden kullanılır, PR27/worktree/SQLite oturumu değişmez. İnsan ERP-UA31/CRM-UA09 bekler; teknik test eğitim veya genel LIVE kabulü değildir. Vega/LIVE/main/T1/finansal açılış/gerçek WhatsApp/ücretli AI yok. Bu dar eğitim hazırlığı sonunda DUR.
 ### ERP-DEC-041 — 10 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan **SON TAMAMLAMA PLANI** talimatı dört koordineli aşamayı yetkilendirir: eksik günlük ERP/CRM akışları; kaynak karşılaştırması ve tekil işletme kararları; tek gerçek mağaza günü TEST hazırlığı; yedek/kurtarma/güncel kaynak farkı/final T1 hazırlığı. Yeni iş kimliği **ERP-CRM-FINAL01**. ERP-DEC-040'ın teslim sonunda DUR sınırı yalnız bu tamamlama için superseded; önceki geniş DB02 kanıtı yeniden geliştirilmez veya aktarılmaz.

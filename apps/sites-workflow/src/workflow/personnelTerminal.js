@@ -39,7 +39,7 @@ function go(value,{initial=false}={}){
  }
  connectionState();return true;
 }
-function home(){root.innerHTML=`<section class="terminal-home"><h1>Bugünkü işiniz</h1><p>İşinizi seçin; kaydınızı aynı ekrandan sürdürün.</p><div class="terminal-actions">${terminalActions.map(a=>`<button class="terminal-action" type="button" data-terminal-route="${a.id}"><span aria-hidden="true">${a.icon}</span>${a.label}</button>`).join('')}</div></section>`;root.querySelectorAll('[data-terminal-route]').forEach(button=>button.onclick=()=>go(button.dataset.terminalRoute));}
+function home(){root.innerHTML=`<section class="terminal-home"><h1>Bugünkü işiniz</h1><p>İşinizi seçin; kaydınızı aynı ekrandan sürdürün.</p><div class="terminal-actions">${terminalActions.map(a=>`<button class="terminal-action" type="button" data-terminal-route="${a.id}"><span aria-hidden="true">${a.icon}</span>${a.label}</button>`).join('')}</div><p><a class="btn" href="/kullanim-egitimi.html?terminal=1#receiving">Kısa eğitimler</a></p></section>`;root.querySelectorAll('[data-terminal-route]').forEach(button=>button.onclick=()=>go(button.dataset.terminalRoute));}
 function setUser(current){user=terminalUser(current);document.getElementById('terminal-user').textContent=workingCatalogUserLabel(user);document.getElementById('terminal-logout').hidden=false;go(route,{initial:true});}
 function showLogin(message=''){
  controller?.dispose();controller=null;user=null;root.hidden=false;crm.hidden=true;document.getElementById('terminal-user').textContent='';document.getElementById('terminal-logout').hidden=true;

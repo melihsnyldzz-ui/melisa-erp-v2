@@ -4,8 +4,9 @@ export const terminalActions=Object.freeze([{id:'goods',label:'Mal Kabul',icon:'
 export const terminalRoute=value=>terminalActions.some(a=>a.id===value)?value:'home';
 export const terminalOfflineText='Bağlantı yok — bu işlem çevrimiçi tamamlanmalıdır.';
 export function terminalCrmUrl(location){
- if(location?.protocol!=='http:'||!['5194','5224'].includes(location?.port)||!['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname))throw Error('Müşteri bağlantısı kullanılamıyor.');
- const origin=`http://${location.hostname}:${location.port==='5224'?'62600':'62400'}`;
+ const pairedPorts={'5194':'62400','5224':'62600','5234':'62700'};
+ if(location?.protocol!=='http:'||!Object.hasOwn(pairedPorts,location?.port??'')||!['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname))throw Error('Müşteri bağlantısı kullanılamıyor.');
+ const origin=`http://${location.hostname}:${pairedPorts[location.port]}`;
  return {origin,url:`${origin}/?${new URLSearchParams({terminal:'1',erpOrigin:location.origin})}`};
 }
 export function terminalMessage(event,frame,origin){

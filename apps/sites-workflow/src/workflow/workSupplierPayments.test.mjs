@@ -17,6 +17,19 @@ function record(s=selected()){return {id:'701',supplierId:s.supplierId,accountId
 function storage(){const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k),map};}
 async function controller(){let s=await readFile(new URL('./workSupplierPayments.js',import.meta.url),'utf8');s=s.replace("import './workSupplierPayments.css';",'');for(const file of ['workCopyPresentation.mjs','workSupplierPaymentsModel.mjs','workInboundModel.mjs','workTradeModel.mjs','testAdminSession.mjs'])s=s.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'));}
 const tick=()=>new Promise(r=>setImmediate(r));
+test('payment history retains the escaped audit description inside closed details with no write',async()=>{
+ const {createWorkSupplierPayments}=await controller(),d=dom(),c=context(),calls=[];
+ c.payments=[record({...selected(),description:'Audit <note & detail>'})];
+ const before=JSON.stringify(c.payments);
+ const ui=createWorkSupplierPayments({root:d.root,session:{inbound:async()=>receiving(),supplierPayments:async(path,options)=>{calls.push({path,options});return c;}},user:{id:16},storage:storage(),apiBase});
+ ui.mount();await tick();d.node('[data-sp-supplier]').onchange({target:{value:'101'}});
+ assert.match(d.root.innerHTML,/<h2>Ödeme geçmişi<\/h2>/);
+ assert.match(d.root.innerHTML,/<details class="payment-description"><summary>Açıklama<\/summary><p>Audit &lt;note &amp; detail&gt;<\/p><\/details>/);
+ assert.doesNotMatch(d.root.innerHTML,/<details[^>]*\bopen\b/);
+ assert.equal(JSON.stringify(c.payments),before);
+ assert.ok(calls.every(call=>!call.options));
+ ui.dispose();
+});
 function dom(){let html='',paints=0;const nodes=new Map(),node=k=>{if(!nodes.has(k))nodes.set(k,{innerHTML:'',value:'',dataset:{},elements:{reason:{value:'Yanlış ödeme'},date:{value:'2026-10-06'}},setAttribute(k,v){this[k]=v;},remove(){this.removed=true;},querySelector:node,addEventListener(e,f){this['on'+e]=f;}});return nodes.get(k);};const root={isConnected:true,get innerHTML(){return html;},set innerHTML(v){html=v;paints++;},querySelector:node,querySelectorAll(selector){const field=selector.slice(1,-1),key=field.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return [...html.matchAll(new RegExp(field+'="([^"]+)"','g'))].map(m=>{const n=node(selector+m[1]);n.dataset[key]=m[1];return n;});}};return {root,node,paints:()=>paints};}
 function receiving(can=true){return {meta:{schemaVersion:'melisa-work-inbound.v1',source:'native-test',timeZone:'Europe/Istanbul'},capabilities:Object.fromEntries(['canCount','canSubmit','canApprove','canReject','canViewPurchase','canViewSupplier','canCreatePurchase','canFinalizePurchase','canCancelPurchase'].map(k=>[k,k==='canViewPurchase'?can:false])),scope:{synthetic:true,supplier:{id:'1',code:'S',name:'S'},warehouse:{id:'1',label:'Depo'},products:['2','3'].map(id=>({id,stockCode:id,name:id,barcode:null,unit:{label:'ADET',factorExact8:'1.00000000'},stockQuantityExact3:null,writeEligible:true}))},countDrafts:[],receipts:[]};}
 test('actual backend typed context and partial/full preview retain invoice document USD separately from TRY payment and account debt',()=>{const c=paymentContext(context()),s=selected(),p=supplierPaymentPreview(s,c);assert.equal(paymentPreview(p,s,c),p);assert.equal(c.suppliers[0].invoices[0].documentCurrency,'USD');assert.equal(p.currency,'TRY');assert.equal(p.balanceAfterExact4,'90.0000');assert.equal(p.invoiceRemainingAfterExact4,'90.0000');assert.equal(paymentPreview(supplierPaymentPreview(selected('140.0000'),c),selected('140.0000'),c).balanceAfterExact4,'0.0000');const usd={...s,supplierId:'102',invoiceId:null,accountId:'202',currency:'USD',amountExact4:'10.0000'};assert.equal(paymentPreview(supplierPaymentPreview(usd,c),usd,c).settlement.amountTryExact4,'400.0000');});
