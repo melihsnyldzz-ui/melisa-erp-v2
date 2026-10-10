@@ -642,3 +642,5 @@ Aşağıdaki paket ve kapsamlar tarihsel kabul kayıtlarıdır; güncel çalış
 **Personelin sıradaki kabulü:** TEST alış ekranında aynı faturadan iade bağlantısının kendi günlük işine uygunluğunu görmesi. Bu bağlı akış hazırdır; tüm ERP'nin tamamlandığı iddia edilmez. Sonraki gerçek eksik çok satırlı kabul/ayrıntılı alış taslağıdır. Fiyat kartı yazımı, tüm ticari kartlar ve fiziksel native kabulü açık kalır; USD/EUR için 12 Eylül kayıtlı kurun güncel piyasa kuru olduğu varsayılmaz.
 
 [Bitirme planı](ERP_FINISH_PLAN.md) · [Yeni bağlı akış kabulü](docs/erp-v2/canonical-20261003/linked-purchase-return-acceptance.md) · [Önceki SQL kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md) · [Teslim kaydı](docs/erp-v2/canonical-20261003/delivery.json)
+
+CI makbuzu (10 Ekim 2026): PR23 head fe816607cff93b539488c1b7783a3d7112a3ee79 uzak doğrulandı. Actions38085037887 ve38085035350 iş adımları başlamadan hesap ödeme/harcama sınırı nedeniyle FAILURE; quality-build-test, windows-startup-test ve secret-scan steps=[] görülüyor. Yerel PASS CI yerine geçmez. İzleyen doküman commit'inin exact CI sonucu PR teslim yorumunda ayrıca kaydedilir.
