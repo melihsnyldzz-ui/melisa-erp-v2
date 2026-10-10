@@ -13,7 +13,7 @@ if($existing){throw 'HUB_TASK_ALREADY_EXISTS_REVIEW_REQUIRED'}
  TaskName='Melisa-Hub-TEST-Web'
  TaskPath='\'
  Execute=(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')
- Arguments=('-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$script+'" -StartupConfigPath "'+$StartupConfigPath+'" -Action Start')
+ Arguments=('-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$script+'" -StartupConfigPath "'+$StartupConfigPath+'" -Action Start -Watch')
  WorkingDirectory=(Join-Path $c.PackageRoot 'apps\api')
  OwnerSid=$c.OwnerSid
  Trigger='AtLogOn for the same current user only'
@@ -23,8 +23,10 @@ if($existing){throw 'HUB_TASK_ALREADY_EXISTS_REVIEW_REQUIRED'}
  StartWhenAvailable=$true
  RestartCount=3
  RestartInterval='PT1M'
- ExecutionTimeLimit='PT5M'
+ ExecutionTimeLimit='PT0S'
  Scope='Web5234 only; no stop, DB/API/native/CRM/task repointing or network changes'
  Failure='Missing exact DB02 API/native dependency or occupied port fails closed'
+ ChildSupervision='Watch holds the exact started child; its exit fails the task for three bounded scheduler retries'
+ UnattendedReboot=$false
  Installed=$false
 } | ConvertTo-Json -Depth 3

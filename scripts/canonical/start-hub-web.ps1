@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$StartupConfigPath,[ValidateSet('Inspect','Start')][string]$Action='Inspect')
+param([Parameter(Mandatory=$true)][string]$StartupConfigPath,[ValidateSet('Inspect','Start')][string]$Action='Inspect',[switch]$Watch)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 # Manual, web-only launcher. Does not install tasks, stop owners or start API/SQL.
@@ -36,10 +36,11 @@ if($Action -eq 'Inspect'){Write-Output 'HUB_WEB_PACKAGE_AND_DEPENDENCIES_VERIFIE
 if(@(Get-NetTCPConnection -State Listen -LocalPort 5234 -ErrorAction SilentlyContinue).Count){throw 'HUB_WEB_PORT_ALREADY_OWNED'}
 New-Item -ItemType Directory -Force -Path $c.RuntimeDir|Out-Null
 $entry=Join-Path $c.PackageRoot 'apps\api\start-shared-test-copy-web.mjs'
+$run=[guid]::NewGuid().ToString('N')
 $previous=$env:MELISA_HUB_CONFIG_PATH
 try{
  $env:MELISA_HUB_CONFIG_PATH=$c.HubConfigPath
- $child=Start-Process -FilePath $c.NodePath -ArgumentList @('"'+$entry+'"','"'+$c.OperationConfigPath+'"') -WorkingDirectory (Join-Path $c.PackageRoot 'apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $c.RuntimeDir 'hub-web.out.log') -RedirectStandardError (Join-Path $c.RuntimeDir 'hub-web.err.log')
+ $child=Start-Process -FilePath $c.NodePath -ArgumentList @('"'+$entry+'"','"'+$c.OperationConfigPath+'"') -WorkingDirectory (Join-Path $c.PackageRoot 'apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $c.RuntimeDir ('hub-web-'+$run+'.out.log')) -RedirectStandardError (Join-Path $c.RuntimeDir ('hub-web-'+$run+'.err.log'))
 }finally{$env:MELISA_HUB_CONFIG_PATH=$previous}
 $ready=$false
 for($attempt=0;$attempt -lt 20;$attempt++){
@@ -56,3 +57,9 @@ for($attempt=0;$attempt -lt 20;$attempt++){
 if(!$ready){$child.Refresh();if(!$child.HasExited){$child.Kill()};throw 'HUB_WEB_READINESS_FAILED'}
 [pscustomobject]@{pid=$child.Id;sourceCommit=$c.SourceCommit;packageRoot=$c.PackageRoot;port=5234;startedAt=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $c.RuntimeDir 'hub-web-process.json') -Encoding utf8
 Write-Output ('HUB_WEB_STARTED_PID_'+$child.Id)
+if($Watch){
+ # The task remains attached to this exact child. Scheduler retries are bounded;
+ # another owner is never killed and API/native/CRM are never started here.
+ $child.WaitForExit()
+ throw 'HUB_WEB_CHILD_EXITED'
+}
