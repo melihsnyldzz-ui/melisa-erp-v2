@@ -1,3 +1,9 @@
+## ŞİMDİ — ERP-CRM-FINAL01 / ERP-DEC-041 — 10 Ekim 2026
+
+**Sonlu ortak TEST tamamlama sürüyor; ERP-UA30 insan kabulü bekliyor.** Günlük akışın kalan normal denemeleri ve [tek mağaza günü turu](docs/evidence/erp/2026-10-10-final-preparation/store-day-tour.md) aynı onaylı işte tamamlanacak. [Güncel hazırlık kanıtı](docs/evidence/erp/2026-10-10-final-preparation/README.md) ve teknik paket/SQL sonucu STATUS'tadır. Genel hazır veya insan PASS verilmedi; önceki ERP-UA29 / CRM-UA07 korunur.
+
+Bağımlılıklar: gerçek açılışı hazır 0/39 kasa-banka, 18 UNKNOWN belge ve 8 kişi/hesap takma adı için işletme kanıtı; tam dövizli günlük tur ve fiziksel insan kabulü. Kaynak farkı tarihli okumadır, gerçek T1 değildir. Eski teslimlerin DUR kayıtları kendi tarihsel aşamalarına aittir; ERP-DEC-041'in mevcut kapsamı uygulanır. Yeni kaynak aktarımları tekrar yapılmaz; TEST125, önceki kanıtlar, roller, LL ve karantina korunur.
+
 ## ERP-DEC-040 / ERP-CRM-EXPAND01 — 10 Ekim 2026
 
 Doğrulanmış geniş ürün/cari/döviz kapsamı DB02'de API/SQL/replay ve normal GUI ile teknik hazır. [Anonim kapsam ve kanıt](docs/evidence/erp/2026-10-10-business-expansion/README.md). ERP-UA29 / CRM-UA07 insan kabulü bekliyor; **49 / 9 yeşil / 39 sarı / 1 kırmızı** değişmedi. Geniş insan TEST'i başlatılmadı. Çalışan ERP API/salt okunur native source 36c1f5b44953dd00787ba2e37d526c1ea0f246d4, web source f3ff98e399fc18b69ea5b9234c3781191577130c, sipariş native source 60e424b61febd062668be0ccf3595c546da263a0; CRM source 38a168c7720de5f1b73bd523a3dff5125fc12097. LIVE/main/T1/PR27 sınırları korunur.

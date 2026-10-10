@@ -6,7 +6,7 @@ Rapor, 10 Ekim tarihli özel kanıtlar ve tek DB koordinatörünün sonuç bildi
 
 ## 1. Günlük ERP / CRM akışları
 
-DB02 üzerindeki yeni ERP paketinin kaynak sürümü `656bd52`, CRM paketinin kaynak öneki `5f8` olarak koordinatör tarafından doğrulandı. Bunlar çalışan paket gözlemidir; mevcut checkout HEAD'i, son PR head'i veya CI sonucu olarak yorumlanmaz. Önceki TEST125 korunur.
+DB02 üzerinde son gözlenen ERP kaynak öneki `656bd52`, CRM kaynak öneki `5f8` olarak koordinatör tarafından doğrulandı. Yeni ERP uygulama kaynağı `c5081be7725dac53cf887ebf6500224eac7a3e91` için paket oluşturuluyor; bu kaynak kayıtlı olsa da yeni paketin başlatıldığı veya exact-head CI'ın geçtiği bu rapor sürümünde ilan edilmez. 14 hedefli test PASS. Önceki TEST125 korunur.
 
 Yeni günlük kapsam, kaynakla eşleşen **açıkça seçilmiş sonlu TRY alt kümesine** bağlıdır. Mevcut sentetik TEST kasası kullanılır; gerçek kasa açılışı doğrulanmış sayılmaz. TRY/USD/EUR kaynak bilgisi okunabilir olması, üç para biriminde tam günlük finans akışlarının çalıştığını kanıtlamaz.
 
@@ -22,6 +22,8 @@ Yeni günlük kapsam, kaynakla eşleşen **açıkça seçilmiş sonlu TRY alt k�
 | Normal yeşil ekran turu | Tam tur doğrulanmadı; API yanıtı tek başına ekran veya kullanıcı kabulü değildir. |
 
 Günlük revision v05 kurulumu **10 Ekim 14:12:10 UTC** teknik PASS: 51 ticari tablo için kurulum öncesi/sonrası tam satır kanıtları aynı; önceki manifest/revision kanıtları ve diğer SQL nesneleri korunmuş. Bu kurulumun ticari yazması 0, native CHECK değişikliği 0 ve rol değişikliği yoktur. Daha sonraki yetkili sentetik işlem etkileri bu DDL korunumu sonucundan ayrı izlenir.
+
+Satış kesinleştirmedeki mevcut native kâr/maliyet kaydı için gerekli **revision 5** ekinin rehearsal ve Apply sonucu **10 Ekim 14:58:26 UTC PASS**. Yalnız günlük guard, ready ve günlük context değişti; yeni üç append-only kanıt satırı, v4'ün eski sekiz satırını değiştirmeden eklendi. 51 ticari tablo, eski proof/journal grupları ve diğer SQL nesneleri önce/sonra aynı; ticari kurulum yazması0, native CHECK/rol değişikliği0. Satış/tahsilat/ödeme/iade ve normal ekran turunun yeni paketle gerçek sonucu bekliyor. Bu DDL PASS, günlük işlemin veya insan kabulünün PASS'i değildir.
 
 Sayım iptali için hazırlanan bağımsız native CHECK ekinin **14:22:15 UTC** provası, tek kuralın yeniden doğrulanması sırasında SQL 547 ile durdu ve transaction geri alındı. Ek kurulmadı; eski kural veya geçmiş ticari satırlar değiştirilmedi. Mevcut kuralın oturum kimliğine bağlı dalı, kurulum sahibi altında tam satır doğrulamasını etkileyebilir; hangi satırın reddedildiği bu kanıtla belirlenmiş değildir. Bu sonuç eski kuralın güvensiz olduğunu veya tüm günlük akışların başarısız olduğunu göstermez. Kuralı zayıflatarak ilerleme yapılmadı.
 
@@ -50,7 +52,7 @@ Gerçek işletme kararı gerektiren açık maddeler:
 
 Mevcut doğrulanmış katalog/cari kapsamı yeniden aktarılmaz. Sonlu TRY denemesi, günlük işlemlerin güvenli teknik alt kapsamını hazırlar; bütün katalog ve cari hesapların günlük kullanıma hazır olduğu anlamına gelmez. Tam dövizli günlük tur, gerçek personel eşlemesi, fiziksel Zebra ve işletme sahibinin gözle denemesi henüz bu raporla tamamlanmış sayılmaz.
 
-**ERP-UA30 bekliyor.** Önceki ERP-UA29 / CRM-UA07 ve diğer bekleyen kabul kayıtları teknik denemeyle PASS'e çevrilmez. Satış, tahsilat, ödeme, mal kabul, sayım, iade ve kapanışın tek normal ekran turunun kalan sonuçları koordinatör raporuyla tamamlanmalıdır. Bu rapor geniş insan TEST'i için genel yeşil sonuç vermez.
+**ERP-UA30 bekliyor.** [Tek mağaza günü turu](store-day-tour.md) hazırlanmıştır. Önceki ERP-UA29 / CRM-UA07 ve diğer bekleyen kabul kayıtları teknik denemeyle PASS'e çevrilmez. Satış, tahsilat, ödeme, mal kabul, sayım, iade ve kapanışın tek normal ekran turunun kalan sonuçları koordinatör raporuyla tamamlanmalıdır. Bu rapor geniş insan TEST'i için genel yeşil sonuç vermez.
 
 ## 4. Yedek, kurtarma ve final T1 hazırlığı
 

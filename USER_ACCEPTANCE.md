@@ -1,3 +1,13 @@
+## ERP-UA30 / ERP-CRM-FINAL01 — tek mağaza günü turu — bekliyor
+
+ERP-DEC-041,10Ekim2026. [Tek mağaza günü turu](docs/evidence/erp/2026-10-10-final-preparation/store-day-tour.md) ve [güncel teknik kapsam](docs/evidence/erp/2026-10-10-final-preparation/README.md) üzerinden yalnız doğrulanmış sonlu TEST kapsamı değerlendirilir. Yeni günlük zincirin teknik sonuçları halen tamamlanıyor; yeni kaynak paketinin oluşturulması veya SQL/otomatik test PASS'i insan kabulü değildir.
+
+| Kabul | Kişi | Deneme tarihi | İnsan sonucu |
+| --- | --- | --- | --- |
+| ERP-UA30 / normal günlük ekran turu | Bildirilmedi | Bildirilmedi | Bekliyor |
+
+Satış/tahsilat, mal kabul/alış/ödeme, sayım/iade ve gün sonu kayıtları; personel ile onaylayan kişinin işlem sahipliği, tekrarın ikinci etki oluşturmaması, kaynak ve sentetik etkinin ayrı görünmesi değerlendirilir. Her durak UYGUN/SORUN/DENENMEDİ ile kişi/tarih gözlemi bekler. Desteklenmeyen sayım iptali kapısı zorlanmaz. Gerçek kasa-banka açılışı,18UNKNOWN belge ve8kişi/hesap takma adı bu turda tahminle doğrulanmaz; fiziksel Zebra, tam döviz kapsamı ve gerçek işletme sahibi sonucu ayrı bekler. ERP-UA29/CRM-UA07 ve önceki kabuller korunur; yeni PASS veya LIVE/T1 onayı verilmedi.
+
 ## ERP-UA29 / ERP-CRM-EXPAND01 — insan TEST'i başlatılmadı
 
 Durum: **bekliyor**. ERP-DEC-040 teknik genişletme çalışması kullanıcı/İlker/personel kabulü değildir. Tek yönetici raporundaki doğrulanmış ürün/tedarikçi/döviz kapsamıyla personel sayımı → İlker onayı → tek stok etkisi → uygun kaynak fiyatlı alış → ilgili döviz borcu ve CRM native taslak/readback birlikte değerlendirilecektir. Fiziksel Zebra decoder, gerçek personel oturumu ve bağımsız açılış bakiye kabulü ayrı bekler; bilinmeyen cari/personel eşlemesi veya LL hesabı için işlem denenmez. Kişi/deneme tarihi/insan sonucu bildirilmedi. Teknik kaynak/paket/kanıt STATUS'ta tutulur; bu tur geniş insan TEST'i başlatmaz.

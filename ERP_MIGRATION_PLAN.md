@@ -1,3 +1,9 @@
+## ERP-CRM-FINAL01 — kaynak / günlük deneme / gerçek T1 ayrımı — 10 Ekim 2026
+
+ERP-DEC-041'in yeni sonlu TRY günlük TEST etkileri kaynak açılışı veya ikinci migration değildir. [Güncel toplu kanıt](docs/evidence/erp/2026-10-10-final-preparation/README.md) ve [mağaza günü turu](docs/evidence/erp/2026-10-10-final-preparation/store-day-tour.md); teknik kurulum sonucu STATUS'ta, ERP-UA30 insan sonucu bekliyor. Önceki manifest/revision/journal/hold/LL/karantina ve kabul edilmiş aktarımlar korunur.
+
+10 Ekim tarihli salt okunur karşılaştırmada ürün233 / müşteri para birimi hesabı22 / tedarikçi hesabı28 fark vardır. Ürün tabanı8Ekim, cari tabanı6Ekim; ardışık geçiş kararlılığı atomik snapshot veya kaynak dondurma değildir. **Gerçek final T1 yapılmadı.** 18UNKNOWN belge,39kasa-banka hesabında0doğrulanmış gerçek açılış ve8kişi/hesap takma adı tahminle kapatılmaz. Yeni9,2GB yedek VERIFYONLY PASS; yeni yedeğin ayrı restore'u bekler, önceki ayrı restore/inverse kanıtı yeniden kullanılır. Gerçek geçişten önce kesin kaynak kesimi/yazıcı-kuyruk sahipliği, yeni plan/drift denetimi, ayrı restore ve açık gerçek uygulama yetkisi gerekir. Günlük zincirin tamamı ve tam dövizli kullanım bu hazırlıkta henüz kanıtlanmadı; finansal açılış yazması0.
+
 ## ERP-CRM-PREP01 — kaynak veriyi koruyan ortak TEST kopyası
 
 ERP-DEC-039: Güncel TEST125'in COPY_ONLY/CHECKSUM yedeğinden yalnız yeni ortak TEST hedefi hazırlanır; aktif veritabanı üzerine restore/reset yok. Kabul edilmiş ürün/cari/fiyat/medya verileri yeniden migrate edilmez. Yeni kopyada dar işlem kanıtları ayrı copyId ve işlem journal'ıyla izlenir. Kaynak/yerel/sentetik ayrımı ve LL/karantina kararları korunur. Kaynak dönem 8 Ekim tarihli sürümdür; bu hazırlık gerçek final T1 veya güncel Vega yazması değildir.

@@ -10,8 +10,11 @@
   "runtime": {
     "evidenceOrigin": "DB_COORDINATOR_OBSERVATION",
     "environment": "ISOLATED_SHARED_TEST_DB02",
-    "erpSourcePrefix": "656bd52",
+    "lastObservedErpSourcePrefix": "656bd52",
     "crmSourcePrefix": "5f8",
+    "nextErpApplicationSource": "c5081be7725dac53cf887ebf6500224eac7a3e91",
+    "nextPackageStatus": "BUILDING_ACTIVATION_NOT_REPORTED",
+    "targetedTestsPassed": 14,
     "protectedTest125": true,
     "exactHeadCiVerifiedByThisReport": false
   },
@@ -41,6 +44,21 @@
     "businessWritesByInstallation": 0,
     "nativeChecksChanged": 0,
     "rolesChanged": false
+  },
+  "profitRevisionDdl": {
+    "revision": 5,
+    "moduleCount": 3,
+    "appliedAtUtc": "2026-10-10T14:58:26Z",
+    "rehearsalStatus": "TECHNICAL_PASS",
+    "applyStatus": "TECHNICAL_PASS",
+    "oldDailyRevisionRowsUnchanged": 8,
+    "commercialFullRowTableGroupsUnchanged": 51,
+    "previousProofsUnchanged": true,
+    "otherSqlObjectsUnchanged": true,
+    "businessWritesByInstallation": 0,
+    "nativeChecksChanged": 0,
+    "rolesChanged": false,
+    "endpointOutcome": "PENDING"
   },
   "nativeCheckAdjunct": {
     "rehearsalAtUtc": "2026-10-10T14:22:15.9848460Z",
