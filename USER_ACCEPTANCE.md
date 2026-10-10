@@ -1,5 +1,7 @@
 ## ERP-UA32 / ERP-CRM-HUB01 — tek portal kullanım kabulü bekliyor
 
+11 Ekim şirket entegrasyonu: yeni paket hazır, fakat etkinleştirme otomatik onay denetiminde reddedildi; çalışan Hub yolu404. Aşağıdaki insan turu ancak izinli etkinleştirme ve runtime kontrolü sonrası başlar. Teknik test/build ve kaynak portal görünümü PASS insan kabulü değildir. Önceki normal ekran/eğitim paketi korunur.
+
 Kişi, deneme tarihi ve insan sonucu bildirilmedi; **bekliyor**. Şirket runtime kurulumu ve kesin paket bilgisi STATUS'ta ayrıca doğrulanır. Teknik bağlantı veya tarayıcı testi insan kabulü değildir.
 
 1. Melisa Hub'ı şirkette ve evde Tailscale açıkken açıp aynı TEST ortamına ulaşıldığını inceleyin.

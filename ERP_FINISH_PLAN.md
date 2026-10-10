@@ -1,5 +1,7 @@
 ## ERP-CRM-HUB01 / ERP-DEC-043 — Melisa Hub
 
+**🟡 Kaynak/paket teknik hazır; etkinleştirme onay denetiminde engelli.** Yeni Hub çalışma yüzünde henüz yok; normal önceki web geri açıldı. ERP-UA32 ve eski kabuller bekler. Genel 49/9/39/1 değişmedi; başlangıç görevi önizlemesi kurulum veya reboot kabulü değildir. Güncel somut durum [STATUS.md](STATUS.md).
+
 Portal kaynak hazırlığı a99050c üzerinde teknik hazır; şirket runtime/ağ/başlangıç entegrasyonu sürüyor ve ERP-UA32 insan kabulü bekliyor. [Kaynak ve hedefli doğrulama](STATUS.md), [portal kullanım düzeni](docs/erp-v2/melisa-hub.md). Teknik HTTP/arayüz sonucuyla eski 49 yaprağın, ERP-UA31 eğitimin veya fiziksel/mağaza kabulünün durumu değiştirilmez; genel **49 / 9 yeşil / 39 sarı / 1 kırmızı** korunur. TEST125, ticari kayıtlar ve bekleyen PR27 aynı kalır.
 
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı

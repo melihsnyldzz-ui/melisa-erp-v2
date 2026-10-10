@@ -1,5 +1,7 @@
 ## ERP-CRM-HUB01 / ERP-DEC-043 — Melisa Hub hazırlığı
 
+**Birleşik kaynak ve paket hazır; web etkinleştirmesi otomatik onay reddi nedeniyle engelli.** Hub çalışan5234'te henüz etkin değil; normal önceki paket korunur. Sıradaki tek iş somut onayla web etkinleştirme ve gerçek şirket/ev/cihaz okuma kontrolüdür. Teknik ayrıntı ve kurulmamış ayrı başlangıç görevi [STATUS.md](STATUS.md) içindedir. İnsan ERP-UA32 bekler; yeni ağ açılımı veya migration yok.
+
 **ŞİMDİ — uygulama ve şirket ortamı entegrasyonu sürüyor; insan kabulü bekliyor.** Portal tek girişte mevcut ekranları, sekiz dersi ve kabul/kanıt durumlarını toplar. Mevcut ağ/oturum sınırları incelenmeden localhost adresleri LAN'a çevrilmez. Kritik ağ/yetki değişikliği ayrı onay bekler; TEST125, ticari kayıtlar, API/native ve bekleyen PR27 korunur. Teknik gerçek durum [STATUS.md](STATUS.md), kullanıcı denemesi **ERP-UA32** [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) içindedir. Önceki eğitim/mağaza/cihaz kabul kayıtları değişmez.
 
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
