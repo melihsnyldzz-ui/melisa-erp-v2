@@ -1,16 +1,17 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
+import {isSharedStableLocation,isBusinessCopyLocation} from './sharedStableTopology.mjs';
 export const workingCatalogTokenKey='melisaTestSalesAccessToken';
 const problem=(message='ERP bağlantısı kurulamadı. Yeniden deneyin.',status=503)=>Object.assign(new Error(message),{status});
 function validUser(user){
  if(!user||!Number.isSafeInteger(user.id)||user.id<1||!Array.isArray(user.permissions)||user.permissions.some(p=>typeof p!=='string'))throw problem('Oturum bilgileri doğrulanamadı.');
  return user;
 }
-export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
+export function workingCatalogUserLabel(user){if(isBusinessCopyLocation(globalThis.window?.location??globalThis.location)&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
 export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__}={}){
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
- let active=true,token=null,user=null,generation=0,switching=false;const controllers=new Set();
+ let active=true,token=null,user=null,generation=0,switching=false,pendingWrites=0;const controllers=new Set();
  const target=()=>isTestSessionTarget({location,apiBase});
  const stored=key=>{try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
@@ -18,13 +19,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  async function request(path,{method='GET',body,expire=false,workErrors=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,startupAuth=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  const commercialWrite=!['GET','HEAD'].includes(method)&&!path.startsWith('/api/auth/');if(commercialWrite)pendingWrites++;
   try{
    const response=await fetchImpl(resolvedApiBase+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    if(!response.ok||payload?.success!==true){if(!startupAuth&&(response.status===401||response.status===403&&!keepForbiddenSession)){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
    return payload;
-  }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
+  }catch(error){if(error?.status)throw error;throw problem();}finally{if(commercialWrite)pendingWrites--;clearTimeout(timer);controllers.delete(controller);}
  }
  async function accept(payload){
   const data=payload?.data;if(typeof data?.accessToken!=='string'||!data.accessToken.length)throw problem('Oturum doğrulanamadı.');
@@ -38,7 +40,12 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return accept(await request('/api/auth/test-admin',{method:'POST',body:{}}));
   },
   async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
+  logout(...args){
+   if(args.length||!active||switching||pendingWrites||!token||!user||stored(workingCatalogTokenKey)!==token)return false;
+   save(testSessionModeKey,'manual');clear();return true;
+  },
   async selectCopyActor(actorId){
+   if(isSharedStableLocation(location))throw problem('Başka kullanıcıya geçmek için kendi hesabınızla yeniden giriş yapın.',403);
    const profile=validateOperationCopyBootstrap(copyProfile,location),selected=profile.actors.find(a=>a.id===actorId);
    const copyBase=location?.port==='5234'?`http://${location.hostname==='192.168.1.46'?'192.168.1.46':'127.0.0.1'}:4184`:location?.port==='5224'?`http://${location.hostname==='192.168.1.46'?'192.168.1.46':'127.0.0.1'}:4174`:'http://127.0.0.1:4154';
    if(!active||!token||!user||switching||resolvedApiBase!==copyBase||!['15','16'].includes(actorId)||!selected||stored(workingCatalogTokenKey)!==token)throw problem('Kullanıcı geçişi yapılamıyor.');

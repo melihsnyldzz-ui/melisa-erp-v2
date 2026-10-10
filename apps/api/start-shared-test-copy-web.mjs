@@ -1,19 +1,23 @@
 import fs from 'node:fs';import path from 'node:path';import express from 'express';
 import {validateSharedCopyBootstrap,assertSharedBootstrapRelease,publicSharedCopyScope} from './src/services/sharedCopyBootstrap.mjs';
 import {sharedWebCspFor} from './src/services/sharedCopyWebPolicy.mjs';
+import {bindSharedCopyLan,sharedCopyHosts} from './src/services/sharedCopyTransport.mjs';
+import {createHubMiddleware,readHubRuntimePin} from './src/services/melisaHubReadiness.mjs';
 import {validateIsolatedOperationCopyContext,copyAssert} from './src/services/isolatedOperationCopyContext.mjs';
 const [configPath]=process.argv.slice(2);copyAssert(path.isAbsolute(configPath??''),'STAGE4_WEB_CONFIG');
-const config=JSON.parse(fs.readFileSync(configPath,'utf8')),{context:c,topology,business}=validateSharedCopyBootstrap(config);
+const config=JSON.parse(fs.readFileSync(configPath,'utf8')),{context:c,topology,business,transport}=validateSharedCopyBootstrap(config);
 const root=path.resolve(business?'../sites-workflow/dist-business':'../sites-workflow/dist-shared'),release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
 assertSharedBootstrapRelease(release,c);
 copyAssert(fs.existsSync(path.join(root,'ornek-akis.html'))&&!fs.lstatSync(root).isSymbolicLink(),'STAGE4_WEB_BUILD_REQUIRED');
 const publicScope=publicSharedCopyScope(c);
 const app=express();app.disable('x-powered-by');
-app.use((req,res,next)=>{if(!(['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||/^192\.168\.1\.[0-9]{1,3}$/.test(req.socket.remoteAddress))||!['127.0.0.1','localhost','192.168.1.46'].map(host=>`${host}:${topology.webPort}`).includes(req.get('host')))return res.sendStatus(403);res.set('Cache-Control','no-store');res.set('Content-Security-Policy',sharedWebCspFor(c));next();});
+app.use((req,res,next)=>{if(!(['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||/^192\.168\.1\.[0-9]{1,3}$/.test(req.socket.remoteAddress))||!sharedCopyHosts(topology.webPort,transport).includes(req.get('host')))return res.sendStatus(403);res.set('Cache-Control','no-store');res.set('Content-Security-Policy',sharedWebCspFor(c));next();});
 app.get('/stage4-runtime.js',(_req,res)=>res.type('application/javascript').send('window.__MELISA_OPERATION_COPY__='+JSON.stringify(publicScope).replaceAll('<','\\u003c')+';'));
 app.get('/test-health',(_req,res)=>res.json({ok:true,environment:'ISOLATED_TEST_COPY',port:topology.webPort,databaseName:c.target.database,copyId:c.copyId,sourceCommit:release.sourceCommit,packageId:release.packageId,actualT1:false}));
+// Hub stays behind the existing Host/socket guard; no application proxy or login.
+if(business)app.use('/melisa-hub',createHubMiddleware({root,context:c,stableTransport:transport.stable,pin:readHubRuntimePin(process.env.MELISA_HUB_CONFIG_PATH)}));
 app.get(['/','/ornek-akis.html','/terminal.html'],(req,res)=>res.type('html').send(fs.readFileSync(path.join(root,req.path==='/terminal.html'?'terminal.html':'ornek-akis.html'),'utf8').replace('<head>','<head><script src="/stage4-runtime.js"></script>')));
 app.use(express.static(root));const server=await new Promise((resolve,reject)=>{const s=app.listen(topology.webPort,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
-const lanServer=await new Promise((resolve,reject)=>{const s=app.listen(topology.webPort,'192.168.1.46',()=>resolve(s));s.once('error',reject);});
+const lanServer=await bindSharedCopyLan(app,topology.webPort,transport,code=>console.error(code));
 console.log(JSON.stringify({event:'SHARED_WEB_READY',port:topology.webPort,copyId:c.copyId,sourceCommit:release.sourceCommit,packageId:release.packageId}));
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>Promise.all([server,lanServer].map(s=>new Promise(resolve=>s.close(resolve)))).then(()=>process.exit(0)));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>Promise.all([server,lanServer].filter(Boolean).map(s=>new Promise(resolve=>s.close(resolve)))).then(()=>process.exit(0)));

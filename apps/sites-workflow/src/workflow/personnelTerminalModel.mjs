@@ -1,9 +1,11 @@
 // The terminal is an online thin client. Roles, commercial truth and replay
 // journals remain owned by the existing ERP / CRM services.
+import {isSharedStableLocation,SHARED_STABLE_ORIGIN} from './sharedStableTopology.mjs';
 export const terminalActions=Object.freeze([{id:'goods',label:'Mal Kabul',icon:'▣'},{id:'sales',label:'Satış',icon:'▤'},{id:'crm',label:'Müşterilerim',icon:'☏'},{id:'products',label:'Ürünler',icon:'▧'},{id:'count',label:'Sayım',icon:'✓'},{id:'returns',label:'İade',icon:'↶'}]);
 export const terminalRoute=value=>terminalActions.some(a=>a.id===value)?value:'home';
 export const terminalOfflineText='Bağlantı yok — bu işlem çevrimiçi tamamlanmalıdır.';
 export function terminalCrmUrl(location){
+ if(isSharedStableLocation(location))return {origin:SHARED_STABLE_ORIGIN,url:`${SHARED_STABLE_ORIGIN}/crm/?${new URLSearchParams({terminal:'1',erpOrigin:SHARED_STABLE_ORIGIN})}`};
  const pairedPorts={'5194':'62400','5224':'62600','5234':'62700'};
  if(location?.protocol!=='http:'||!Object.hasOwn(pairedPorts,location?.port??'')||!['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname))throw Error('Müşteri bağlantısı kullanılamıyor.');
  const origin=`http://${location.hostname}:${pairedPorts[location.port]}`;

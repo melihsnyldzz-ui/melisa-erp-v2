@@ -1,17 +1,18 @@
+import {isSharedStableLocation,isBusinessCopyLocation,SHARED_STABLE_DATABASE} from './sharedStableTopology.mjs';
 const origin='ISOLATED_TEST_COPY';
 const id=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v);
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const hash=v=>typeof v==='string'&&/^[A-Fa-f0-9]{64}$/.test(v);
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const fail=()=>{throw Error('İşlem bağlantısı doğrulanamadı. Yenileyerek tekrar deneyin.');};
-const copyPage=location=>location?.protocol==='http:'&&(location.port==='5204'&&['127.0.0.1','localhost'].includes(location.hostname)||['5224','5234'].includes(location.port)&&['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname));
-const copyIdentity=location=>location?.port==='5234'?{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02',date:'2026-10-09'}:location?.port==='5224'?{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01',date:'2026-10-09'}:{database:'MELISA_ERP_STAGE04_COPY_TEST_20261008_01',date:'2026-10-08'};
+const copyPage=location=>isSharedStableLocation(location)||location?.protocol==='http:'&&(location.port==='5204'&&['127.0.0.1','localhost'].includes(location.hostname)||['5224','5234'].includes(location.port)&&['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname));
+const copyIdentity=location=>isBusinessCopyLocation(location)?{database:SHARED_STABLE_DATABASE,date:'2026-10-09'}:location?.port==='5224'?{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01',date:'2026-10-09'}:{database:'MELISA_ERP_STAGE04_COPY_TEST_20261008_01',date:'2026-10-08'};
 const rows=(value,minimum=1)=>Array.isArray(value)&&value.length>=minimum&&value.every(x=>object(x)&&id(x.id))&&new Set(value.map(x=>x.id)).size===value.length;
 
 const partyRows=(value,business)=>business?Array.isArray(value)&&value.length>0&&value.length<=20000&&value.every(x=>object(x)&&id(x.id))&&new Set(value.map(x=>`${x.id}:${x.currency}`)).size===value.length:rows(value);
 
 export function validateOperationCopyBootstrap(profile,location){
- const expected=copyIdentity(location),business=location?.port==='5234';
+ const expected=copyIdentity(location),business=isBusinessCopyLocation(location);
  if(business&&(profile?.scopeKind!=='VERIFIED_BUSINESS_TEST'||!hash(profile.businessScopeHash)||profile.businessInvoiceMaxExact4!=='20000.0000'))fail();
  if(!business&&profile?.scopeKind==='VERIFIED_BUSINESS_TEST')fail();
  if(!copyPage(location)||!object(profile)||profile.schemaVersion!=='melisa-stage4-isolated-operation-copy.v1'||profile.operationOrigin!==origin||!uuid(profile.copyId)||!hash(profile.sealHash)||!hash(profile.backupSHA)||profile.sourceDatabase!=='MELISA_ERP_SIRKET_TEST_20260929_01'||profile.target?.server!=='Semih\\MELISADEV'||profile.target.database!==expected.database||profile.date!==expected.date||!rows(profile.actors)||profile.actors.some(a=>!['15','16'].includes(a.id)||a.role!==(a.id==='15'?'isolated_test_sales':'isolated_test_ilker'))||!rows(profile.products,business?1:2)||business&&profile.products.length>20000||!partyRows(profile.customers,business)||!partyRows(profile.suppliers,business)||!rows(profile.financeAccounts))fail();

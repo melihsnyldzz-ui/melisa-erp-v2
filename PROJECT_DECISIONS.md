@@ -23,6 +23,10 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-043 — 11 Ekim 2026 — Onaylı
+
+Kullanıcının bu tarihli doğrudan **Melisa Hub** talimatı: şirket bilgisayarındaki mevcut ERP, CRM, Zebra, ürün/mal kabul ekranları, insan kabul turu, sekiz kısa ders ve rapor/kanıt girişlerini tek kalıcı Türkçe başlangıç portalında topla. Mobil ve masaüstü görünüm, erişilebilirlik, dürüst bağlantı durumu, TEST/LIVE ayrımı ve gelecekte eklenecek ekranlar desteklenir. Önce mevcut binding/host/port/firewall/Tailscale route/kimlik/yetki ve launcher incelenir; yalnız kanıtlanmış LAN/Tailscale adresleri teslim edilir. Mevcut güvenli erişim yeniden kullanılır; kritik firewall, Tailscale yetki/cihaz/subnet veya dış erişim değişikliği ayrıca somut onay bekler. TEST125, 283 cari/önceki 16 hesap, migration, Vega/LIVE, bütün ticari kayıtlar, ERP PR23, CRM PR3 ve bekleyen Eğitim PR27 korunur. Yeni portal için gerekli dar kaynak/TEST kurulum ve test yetkilidir; main/LIVE geçişi veya ticari işlem yetkisi verilmedi. ERP-DEC-042'nin teslim sonunda DUR sınırı yalnız **ERP-CRM-HUB01** için superseded; eğitim/işletme/cihaz insan kabulleri bekler.
+
 ### ERP-DEC-042 — 10 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan **EKRAN SADELEŞTİRME VE KULLANICI EĞİTİMİ** kararı: geniş insan kabulünden önce ERP/CRM/Zebra normal yeşil ekranları sadeleştir; personel → İlker/yetkili sorumlu → muhasebe görev devrini görünür yap; sekiz kısa Türkçe görsel ders hazırla. Tek pano işi **ERP-CRM-LEARN01**. PR23/CRM PR3 son çalışan izole DB02 sürümleri esas, TEST125 ve önceki aktarımlar korunur. Yetki, hesaplama, stok/fiyat/cari/finans mantığı değişmez. Eğitim yalnız okuma ve yerel ders ilerlemesidir; yeni ticari kayıt veya mesaj oluşturmaz. PR27 saf ders yaklaşımı uygun parçalarla yeniden kullanılır, PR27/worktree/SQLite oturumu değişmez. İnsan ERP-UA31/CRM-UA09 bekler; teknik test eğitim veya genel LIVE kabulü değildir. Vega/LIVE/main/T1/finansal açılış/gerçek WhatsApp/ücretli AI yok. Bu dar eğitim hazırlığı sonunda DUR.

@@ -1,7 +1,9 @@
+import {isSharedStableLocation,SHARED_STABLE_ORIGIN} from '../workflow/sharedStableTopology.mjs';
 const desktopApiBaseUrl = globalThis.window?.melisaDesktop?.apiBaseUrl;
 
 export const API_BASE_URL = (
-  desktopApiBaseUrl
+  (isSharedStableLocation(globalThis.window?.location)?SHARED_STABLE_ORIGIN:null)
+  || desktopApiBaseUrl
   || import.meta.env.VITE_API_BASE_URL
   || 'http://localhost:4100'
 ).replace(/\/$/, '');

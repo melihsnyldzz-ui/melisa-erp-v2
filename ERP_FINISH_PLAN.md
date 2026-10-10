@@ -1,3 +1,9 @@
+## ERP-CRM-HUB01 / ERP-DEC-043 — Melisa Hub
+
+**🟡 Portal ve sınırlı başlangıç görevi teknik tamam; insan kabulü bekliyor.** 466ac2d paket etkin, gerçek own-child otomatik kurtarma PASS; tek üç retry bütçesi ve aynı kullanıcı yetkisi korunur. Ev/şirket erişim kontrolü teknik kanıttır. Tam reboot/IP değişimi ve insan/cihaz kabulü yapılmadı. Genel 49/9/39/1 değişmedi; güncel somut durum [STATUS.md](STATUS.md).
+
+Portal kaynak hazırlığı a99050c ve şirket entegrasyonu 466ac2d üzerinde teknik hazır; ERP-UA32 insan kabulü bekliyor. [Kaynak ve hedefli doğrulama](STATUS.md), [portal kullanım düzeni](docs/erp-v2/melisa-hub.md). Teknik HTTP/arayüz sonucuyla eski 49 yaprağın, ERP-UA31 eğitimin veya fiziksel/mağaza kabulünün durumu değiştirilmez; genel **49 / 9 yeşil / 39 sarı / 1 kırmızı** korunur. TEST125, ticari kayıtlar ve bekleyen PR27 aynı kalır.
+
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 
 Sekiz ders ve normal ekranların sunum/görev devri hazırlığı ERP b5a8ce1 paketinde teknik hazır; tam build PASS. Dersler mal kabul, satış, alış faturası, tahsilat, tedarikçi ödemesi, iade, sayım ve CRM siparişini kapsar. Personel sayar, İlker mevcut yetkisiyle kontrol edip onaylar, muhasebe belge/tutar/dövizi kontrol eder; yeni rol veya işlem yetkisi eklenmedi. PR27 yalnız saf ders yaklaşımı için kaynak oldu ve değiştirilmedi.

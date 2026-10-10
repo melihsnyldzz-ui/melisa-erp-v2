@@ -1,3 +1,9 @@
+## ERP-CRM-HUB01 / ERP-DEC-043 — Melisa Hub hazırlığı
+
+**🟡 Teknik portal ve başlangıç görevi etkin; insan kabulü bekliyor.** Açık kullanıcı onayıyla 466ac2d immutable paket çalışıyor; gerçek owned child kurtarması 72,07 saniyede doğrulandı. Aynı kullanıcı/Limited/AtLogOn görevinde tek üç retry bütçesi bulunur; eski görevler, API/native/CRM/TEST125 korunur. Şirket HTTP ve ev tarayıcı/guard kontrolleri tamamlandı; tam reboot/IP/device ACL kabulü yok. [STATUS.md](STATUS.md), [PR28](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/28), insan denemesi **ERP-UA32** [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md). CI ödeme engeli ayrı; teknik kontrol insan PASS değildir. Yeni ağ açılımı, migration veya işletme testi başlatılmaz.
+
+Portal tek girişte mevcut ekranları, sekiz dersi ve kabul/kanıt durumlarını toplar. Ağ ve oturum sınırları korunur; yalnız mevcut subnet erişimi kullanılır, cihaz ACL güvencesi ileri kabul değildir. Önceki eğitim/mağaza/cihaz kabul kayıtları değişmez.
+
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 
 **ŞİMDİ — teknik eğitim paketi etkin; insan incelemesi bekliyor.** Sekiz kısa ders, sade ekran başlıkları ve personel → İlker → muhasebe görev devri hazırlandı. ERP b5a8ce1 tam build/manifest kontrolü PASS ve web 5234 / DB02 etkin; mevcut işlem yetkileri ve API/native kaynak a51b117 korundu. Gerçek tarayıcı ve fiziksel TC21 eğitim ekranı kontrolü tamamlandı. Ders tamamlamak insan kabulü değildir.

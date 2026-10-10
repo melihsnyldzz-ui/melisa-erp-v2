@@ -1,5 +1,6 @@
 import {validateIsolatedOperationCopyContext,validateIsolatedCopyReadyRevision,validateIsolatedCopyReadyPerformanceRevision,validateIsolatedCopyEffectsPerformanceRevision,isolatedCopyTopology,SHARED_COPY_DATABASE,BUSINESS_COPY_DATABASE,copyAssert} from './isolatedOperationCopyContext.mjs';
 import {assertSharedCopyRelease} from './sharedCopyRelease.mjs';
+import {resolveSharedCopyTransport} from './sharedCopyTransport.mjs';
 import {validateBusinessDailyRevision} from './businessDailyRevisionBootstrap.mjs';
 import {validateBusinessDailyProfitRevision} from './businessDailyProfitRevision.mjs';
 import {validateBusinessDailyNativeCheckRevision} from './businessDailyNativeCheck.mjs';
@@ -15,7 +16,8 @@ export function validateSharedCopyBootstrap(config){
  if(config.businessDailyProfitRevision!==undefined){copyAssert(config.businessDailyRevision!==undefined,'STAGE4_REVISION_CONFIG');validateBusinessDailyProfitRevision(config.businessDailyRevision,config.businessDailyProfitRevision);}
  if(config.businessDailyNativeCheck!==undefined){copyAssert(config.businessDailyProfitRevision!==undefined,'STAGE4_REVISION_CONFIG');validateBusinessDailyNativeCheckRevision(config.businessDailyRevision,config.businessDailyProfitRevision,config.businessDailyNativeCheck);}
  if(context.target.database===BUSINESS_COPY_DATABASE)copyAssert(config.copyAdapterRevision===undefined,'STAGE4_REVISION_CONFIG');
- return {context,topology,business:context.target.database===BUSINESS_COPY_DATABASE,webOrigins:['127.0.0.1','localhost','192.168.1.46'].map(host=>`http://${host}:${topology.webPort}`)};
+ const transport=resolveSharedCopyTransport(config,topology);
+ return {context,topology,business:context.target.database===BUSINESS_COPY_DATABASE,transport,webOrigins:transport.bootstrapOrigins,normalWebOrigins:transport.normalOrigins};
 }
 export function assertSharedBootstrapRelease(release,context){assertSharedCopyRelease(release);copyAssert(release.sharedTestCopy.database===context.target.database,'SHARED_RELEASE_TARGET_MISMATCH');return release;}
 export function publicSharedCopyScope(c){

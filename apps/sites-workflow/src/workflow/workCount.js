@@ -4,10 +4,38 @@ import './workTaskHandoff.css';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
-export function createWorkCount({root,session,user}){
- let active=true,busy=false,data=null,view=null;
+export function createWorkCount({root,session,user,storage=globalThis.localStorage}){
+ let active=true,busy=false,data=null,view=null,pendingWrites=0;
  const alive=()=>active&&root.isConnected;
- const api=(path,options)=>session.inbound(path,options||{});
+ const api=async(path,options)=>{
+  const writing=!['GET','HEAD'].includes(String(options?.method||'GET').toUpperCase());
+  if(writing)pendingWrites++;
+  try{return await session.inbound(path,options||{});}
+  finally{if(writing)pendingWrites--;}
+ };
+ function unresolvedJournal(){
+  try{
+   if(!storage||user?.id==null)return true;
+   const raw=storage.getItem(`melisa-daily-count-${user.id}`);
+   if(raw==null)return false;
+   const entry=JSON.parse(raw);
+   if(entry===null)return false;
+   return !entry||typeof entry!=='object'||Array.isArray(entry)||!entry.result||typeof entry.result!=='object'||Array.isArray(entry.result);
+  }catch{return true;}
+ }
+ function requestClose(){
+  const doc=root.ownerDocument||globalThis.document,modal=doc?.getElementById('modalback');
+  const modalOpen=modal?.style?.display&&modal.style.display!=='none';
+  if(!pendingWrites&&!modalOpen&&!unresolvedJournal())return true;
+  const message=modalOpen?'Önce sayım penceresini kapatın; taslağınız saklanır.':'Önce sayım işleminin sonucunu kontrol edin. Sonucu doğrulanmadan kullanıcı veya ekran değiştirilemez.';
+  let notice=doc?.getElementById('daily-status')||root.querySelector('[data-count-close-status]');
+  if(!notice&&alive()){
+   root.insertAdjacentHTML('beforeend','<p data-count-close-status role="alert"></p>');
+   notice=root.querySelector('[data-count-close-status]');
+  }
+  if(notice){notice.textContent=message;notice.setAttribute('role','alert');}
+  return false;
+ }
  const status=error=>error?.status===403?'Bu sayım kayıtlarını görüntüleme veya inceleme yetkiniz yok.':'Sayım verileri şu anda açılamıyor. Yenileyip tekrar deneyin.';
  function draw(){
   if(!alive()||!data)return;
@@ -26,5 +54,5 @@ export function createWorkCount({root,session,user}){
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Sayım bilgileri açılıyor…</p></section>';
   refresh();
  }
- return {mount,dispose(){active=false;view=null;data=null;}};
+ return {mount,requestClose,dispose(){active=false;view=null;data=null;}};
 }
