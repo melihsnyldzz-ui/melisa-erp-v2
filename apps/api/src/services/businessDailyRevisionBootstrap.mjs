@@ -1,5 +1,6 @@
-import {copyAssert,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyContext,BUSINESS_COPY_DATABASE,validateIsolatedCopyEffectsPerformanceRevision,registerIsolatedCopyEffectsPerformanceRevision,registerBusinessDailyRevision} from './isolatedOperationCopyContext.mjs';
+import {copyAssert,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyContext,BUSINESS_COPY_DATABASE,validateIsolatedCopyEffectsPerformanceRevision,registerIsolatedCopyEffectsPerformanceRevision,registerBusinessDailyRevision,registerBusinessDailyProfitRevision} from './isolatedOperationCopyContext.mjs';
 import {BUSINESS_EFFECTS_PERFORMANCE_REVISION_PROOF_SQL} from './businessReadyRevisionBootstrap.mjs';
+import {businessDailyProfitReadSQL,validateBusinessDailyProfitRevision} from './businessDailyProfitRevision.mjs';
 
 export const BUSINESS_DAILY_REVISION_PROOF_SQL=BUSINESS_EFFECTS_PERFORMANCE_REVISION_PROOF_SQL+`
 SELECT DB_NAME() databaseName,CONVERT(varchar(36),r.copy_id) copyId,r.revision version,r.base_seal_hash baseSealHash,r.base_effects_revision_hash baseEffectsRevisionHash,r.name,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,r.daily_scope_hash dailyScopeHash,r.daily_profile_json dailyProfileJSON,p.after_hash baseManifestHash,
@@ -32,10 +33,18 @@ export function validateBusinessDailyRevision(context,base,performance,effects,i
  const {revisionHash,...body}=input;copyAssert(hash(revisionHash)&&revisionHash===isolatedCopyHash(body),'BUSINESS_DAILY_REVISION_SEAL');
  return input;
 }
-export async function configureBusinessDailyRevision(context,base,performance,effects,input,pool){
+export async function configureBusinessDailyRevision(context,base,performance,effects,input,pool,profitInput){
  validateBusinessDailyRevision(context,base,performance,effects,input);
+ let profitRows,overrides=[];
+ if(profitInput!==undefined){
+  profitRows=(await pool.request().query(businessDailyProfitReadSQL())).recordset;
+  overrides=validateBusinessDailyProfitRevision(input,profitInput,profitRows);
+ }
  const recordsets=(await pool.request().query(BUSINESS_DAILY_REVISION_PROOF_SQL)).recordsets;
  copyAssert(Array.isArray(recordsets)&&recordsets.length===4,'BUSINESS_DAILY_DB_PROOF');
+ // Only an independently verified append-only v5 proof may map current
+ // definitions back to their immutable historical v4 definitions.
+ for(const group of recordsets)for(const row of group){const pin=overrides.find(m=>m.name===row.name);if(pin){copyAssert(row.actualHash===pin.currentHash,'BUSINESS_DAILY_PROFIT_CURRENT_PIN');row.actualHash=pin.historicalHash;}}
  const rows=recordsets[3],keys=['databaseName','copyId','version','baseSealHash','baseEffectsRevisionHash','manifestSealHash','name','beforeHash','afterHash','actualHash','baseManifestHash','baseManifestRows','revisionHash','dailyScopeHash','dailyProfileJSON','immutableTriggerHash','triggerDisabled'];
  copyAssert(Array.isArray(rows)&&rows.length===8&&new Set(rows.map(r=>r.name)).size===8&&input.modules.every(m=>{const r=rows.find(r=>r.name===m.name);return exact(r,keys)&&r.databaseName===BUSINESS_COPY_DATABASE&&r.copyId?.toLowerCase()===context.copyId&&r.version===4&&r.baseSealHash===context.sealHash&&r.manifestSealHash===context.sealHash&&r.baseEffectsRevisionHash===effects.revisionHash&&r.beforeHash===m.beforeHash&&r.afterHash===m.afterHash&&r.actualHash===m.afterHash&&r.baseManifestRows===185&&r.revisionHash===input.revisionHash&&r.dailyScopeHash===input.dailyScopeHash&&r.dailyProfileJSON===isolatedCopyJSON(input.dailyScope)&&r.immutableTriggerHash===input.immutableTriggerHash&&r.triggerDisabled===0;}),'BUSINESS_DAILY_DB_PROOF');
  for(const r of rows){const key=Object.keys(context.sql).find(k=>context.sql[k].name===r.name);copyAssert(key?r.baseManifestHash===context.sql[key].hash:r.name==='dbo.usp_stage4_copy_guard'?r.baseManifestHash===r.beforeHash:r.baseManifestHash===null,'BUSINESS_DAILY_BASE_MODULE_PROOF');}
@@ -44,5 +53,7 @@ export async function configureBusinessDailyRevision(context,base,performance,ef
  const historical={base:recordsets[0],performance:recordsets[1],effects:recordsets[2]};
  for(const group of Object.values(historical))for(const r of group){const m=input.modules.find(m=>m.name===r.name);copyAssert(m&&r.actualHash===m.afterHash,'BUSINESS_DAILY_HISTORY_CURRENT_PIN');r.actualHash=effects.modules.find(x=>x.name===r.name)?.afterHash;}
  registerIsolatedCopyEffectsPerformanceRevision(context,base,performance,effects,historical);
- return registerBusinessDailyRevision(context,input,rows);
+ const registered=registerBusinessDailyRevision(context,input,rows);
+ if(profitInput!==undefined)registerBusinessDailyProfitRevision(context,profitInput,profitRows);
+ return registered;
 }

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "melisa-erp-final-preparation.public.v1",
+  "date": "2026-10-10",
+  "decisionId": "ERP-DEC-041",
+  "workId": "ERP-CRM-FINAL01",
+  "status": "CONDITIONAL_PREPARATION_IN_PROGRESS",
+  "generalReadinessProven": false,
+  "humanAcceptance": { "id": "ERP-UA30", "status": "PENDING" },
+  "previousAcceptance": { "erp": "ERP-UA29", "crm": "CRM-UA07", "changedByThisReport": false },
+  "runtime": {
+    "evidenceOrigin": "DB_COORDINATOR_OBSERVATION",
+    "environment": "ISOLATED_SHARED_TEST_DB02",
+    "erpSourcePrefix": "656bd52",
+    "crmSourcePrefix": "5f8",
+    "protectedTest125": true,
+    "exactHeadCiVerifiedByThisReport": false
+  },
+  "dailyScope": {
+    "admittedFinancialCurrency": "TRY",
+    "selection": "EXPLICIT_FINITE_SOURCE_BOUND_SUBSET",
+    "financeOrigin": "EXISTING_SYNTHETIC_TEST_CASH",
+    "realFinancialOpeningVerified": false,
+    "fullTryUsdEurDailyOperationsProven": false,
+    "countDraftApprove": "TECHNICAL_PASS",
+    "countSameUuidReplay": "TECHNICAL_PASS_NO_SECOND_STOCK_EFFECT",
+    "countStaffDenial": "TECHNICAL_PASS",
+    "tryGoodsReceiptAndPurchaseInvoice": "TECHNICAL_PASS_CREATE_SUBMIT_APPROVE_DRAFT_FINALIZE_REPLAY",
+    "salePreview": "TECHNICAL_PASS",
+    "countCancellation": "NOT_ATTEMPTED_ADJUNCT_NOT_INSTALLED",
+    "saleFinalizeCollectionPaymentReturn": "FINAL_FINITE_SCOPE_RESULTS_PENDING",
+    "normalScreenTour": "NOT_FULLY_VERIFIED"
+  },
+  "dailyRevisionDdl": {
+    "revision": 4,
+    "artifactVersion": "v05",
+    "appliedAtUtc": "2026-10-10T14:12:10.6930841Z",
+    "status": "TECHNICAL_PASS",
+    "commercialFullRowTableGroupsUnchanged": 51,
+    "previousProofsUnchanged": true,
+    "otherSqlObjectsUnchanged": true,
+    "businessWritesByInstallation": 0,
+    "nativeChecksChanged": 0,
+    "rolesChanged": false
+  },
+  "nativeCheckAdjunct": {
+    "rehearsalAtUtc": "2026-10-10T14:22:15.9848460Z",
+    "status": "STOPPED_ROLLED_BACK",
+    "phase": "REPLACE_ONE_CHECK",
+    "sqlErrorNumber": 547,
+    "installed": false,
+    "sqlCommitted": false,
+    "violatingRowCauseProven": false,
+    "constraintWeakened": false
+  },
+  "sourceDrift": {
+    "capturedAtUtc": "2026-10-10T14:01:33.199Z",
+    "productBaselineDate": "2026-10-08",
+    "partyBaselineDate": "2026-10-06",
+    "stableTwoPasses": true,
+    "atomicSnapshot": false,
+    "writersFrozen": false,
+    "actualT1": false,
+    "sourceWrites": 0,
+    "changedProducts": 233,
+    "changedCustomerCurrencyAccounts": 22,
+    "changedSupplierCurrencyAccounts": 28,
+    "comparedToSyntheticNativeOpening": false
+  },
+  "businessInputs": {
+    "unknownDocuments": 18,
+    "physicalCashBankAccounts": 39,
+    "realCashBankOpeningsReady": 0,
+    "unresolvedPersonAccountAliases": 8,
+    "stockPartyOpeningSourceAndAuthorityInputs": "PENDING",
+    "unknownValuesGuessed": false,
+    "financialOpeningWrites": 0
+  },
+  "preservation": {
+    "previousTransfersReapplied": false,
+    "acceptedRevision3ResidualProofRows": 37,
+    "laterObservationsReplaceAcceptedProof": false
+  },
+  "backup": {
+    "completedAtUtc": "2026-10-10T13:58:35.3112839Z",
+    "sizeBytes": 9204334592,
+    "copyOnly": true,
+    "checksum": true,
+    "verifyOnlyPassed": true,
+    "activeOverwrite": false,
+    "restorePerformedForThisBackup": false,
+    "previousIsolatedRestoreEvidenceReused": true,
+    "previousStage5RecoveryEvidenceReused": true
+  },
+  "finalT1": {
+    "ready": false,
+    "required": [
+      "SOURCE_WRITER_AND_QUEUE_FREEZE_OWNERSHIP",
+      "EXACT_CUTOFF_AND_CURRENT_SOURCE_SCOPE",
+      "CURRENT_PLAN_AND_DRIFT_VALIDATION",
+      "SEPARATE_RESTORE_OF_NEW_BACKUP",
+      "REAL_APPLICATION_AUTHORIZATION"
+    ]
+  },
+  "boundaries": {
+    "vegaWrites": 0,
+    "liveWrites": 0,
+    "actualT1Writes": 0,
+    "mainMerge": false,
+    "realWhatsappSent": false,
+    "paidAiUsed": false,
+    "trainingPrChanged": false,
+    "rawBusinessRowsPublished": false
+  }
+}

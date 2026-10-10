@@ -20,6 +20,7 @@ const readyRevisions=new WeakMap();
 const readyPerformanceRevisions=new WeakMap();
 const effectsPerformanceRevisions=new WeakMap();
 const businessDailyRevisions=new WeakMap();
+const businessDailyProfitRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
@@ -83,7 +84,8 @@ export function assertIsolatedCopyActor(context,actor,actual,permission){
 export function assertIsolatedCopyReadProof(context,proof){
  assertIsolatedCopyContext(context);
  const revision=businessDailyRevisions.get(context)??adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
- copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
+ const profit=businessDailyProfitRevisions.get(context);
+ copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
 // journal identity. It is never accepted from an HTTP body or an environment flag.
@@ -216,3 +218,12 @@ export function registerBusinessDailyRevision(context,input,proof){
 }
 export function getBusinessDailySelection(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScope.selection??null;}
 export function getBusinessDailyScopeHash(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScopeHash??null;}
+// Append-only proof of the three revised definitions. This never changes the
+// v4 selection, journal identity, scope or historical module hashes.
+export function registerBusinessDailyProfitRevision(context,input,proof){
+ assertIsolatedCopyContext(context);const daily=businessDailyRevisions.get(context);
+ const {revisionHash,...body}=input??{},names=['dbo.usp_business_daily_guard','dbo.usp_stage4_copy_ready','dbo.usp_business_daily_context'];
+ copyAssert(daily&&!businessDailyProfitRevisions.has(context)&&input?.schemaVersion==='melisa-business-daily-profit-revision.v1'&&input.version===5&&input.copyId===context.copyId&&input.baseSealHash===context.sealHash&&input.baseDailyRevisionHash===daily.revisionHash&&input.dailyScopeHash===daily.dailyScopeHash&&hash(revisionHash)&&revisionHash===isolatedCopyHash(body)&&Array.isArray(input.modules)&&input.modules.length===3&&new Set(input.modules.map(m=>m.name)).size===3&&Array.isArray(proof)&&proof.length===3&&new Set(proof.map(r=>r.name)).size===3&&input.modules.every(m=>names.includes(m.name)&&hash(m.afterHash)&&m.beforeHash!==m.afterHash&&daily.modules.some(p=>p.name===m.name&&p.afterHash===m.beforeHash)&&proof.some(r=>r.name===m.name&&r.actualHash===m.afterHash&&r.afterHash===m.afterHash&&r.beforeHash===m.beforeHash&&r.revisionHash===revisionHash&&r.immutableTriggerHash===input.immutableTriggerHash&&r.triggerDisabled===0)),'BUSINESS_DAILY_PROFIT_REGISTRATION');
+ copyAssert(proof.every(r=>r.copyId===context.copyId&&r.revision===5&&r.baseSealHash===context.sealHash&&r.baseDailyRevisionHash===daily.revisionHash&&r.dailyScopeHash===daily.dailyScopeHash),'BUSINESS_DAILY_PROFIT_DB_IDENTITY');
+ const revision=freeze(structuredClone(input));businessDailyProfitRevisions.set(context,revision);return revision;
+}

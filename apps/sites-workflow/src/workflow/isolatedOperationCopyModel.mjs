@@ -18,6 +18,7 @@ export function validateOperationCopyBootstrap(profile,location){
  for(const p of profile.products)if(business&&(!id(p.supplierId)||!profile.suppliers.some(s=>s.id===p.supplierId))||typeof p.sourceKey!=='string'||!/^VEGA2026\/F0102TBLSTOKLAR\/[1-9]\d*$/.test(p.sourceKey)||typeof p.stockCode!=='string'||!p.stockCode||p.unit!=='ADET'||p.unitFactorExact8!=='1.00000000'||!Array.isArray(p.priceIds)||(!business&&!p.priceIds.length)||p.priceIds.some(x=>!id(x))||new Set(p.priceIds).size!==p.priceIds.length||!Array.isArray(p.barcodes)||p.barcodes.some(x=>typeof x!=='string'||!x)||new Set(p.barcodes).size!==p.barcodes.length)fail();
  for(const kind of ['customers','suppliers'])for(const p of profile[kind])if(!id(p.partyId)||!id(p.accountId)||(business?!['TRY','USD','EUR'].includes(p.currency):p.currency!=='TRY')||typeof p.sourceKey!=='string'||!new RegExp('^VEGA2026/'+(kind==='customers'?'F0102':'F0103')+'TBLCARI/[1-9]\\d*$').test(p.sourceKey))fail();
  for(const p of profile.financeAccounts)if(business?!['TRY','USD','EUR'].includes(p.currency):p.currency!=='TRY')fail();
+ if(profile.businessDaily!==undefined)operationCopyDailySelection(profile);
  return profile;
 }
 
@@ -26,7 +27,20 @@ export function operationCopyFromMeta(meta,{profile=globalThis.window?.__MELISA_
  if(!marked){if(copyPage(location))fail();return null;}
  const trusted=validateOperationCopyBootstrap(profile,location);
  if(meta.operationOrigin!==origin||meta.copyId!==trusted.copyId||meta.sealHash!==trusted.sealHash||meta.date!==trusted.date||meta.testProfile!==undefined)fail();
+ if(meta.businessDailyScopeHash!==undefined)operationCopyDailySelection(trusted,meta,{requireMetaHash:true});
  return trusted;
+}
+
+// A finite daily selection is server bootstrap metadata, never a client selector.
+// Broad inbound membership remains the original copy profile.
+export function operationCopyDailySelection(profile,meta,{requireMetaHash=false}={}){
+ const daily=profile?.businessDaily;if(daily===undefined){if(meta?.businessDailyScopeHash!==undefined||requireMetaHash)fail();return null;}
+ const s=daily?.selection;
+ if(profile.scopeKind!=='VERIFIED_BUSINESS_TEST'||!hash(daily.scopeHash)||!object(s)||Object.keys(s).sort().join(',')!=='currency,customerAccountId,financeAccountId,productIds,supplierAccountId'||!['TRY','USD','EUR'].includes(s.currency)||!Array.isArray(s.productIds)||s.productIds.length<1||s.productIds.length>2||new Set(s.productIds).size!==s.productIds.length||s.productIds.some(x=>!id(x)||!profile.products.some(p=>p.id===x))||!id(s.customerAccountId)||!id(s.supplierAccountId)||!id(s.financeAccountId))fail();
+ for(const[k,key]of [['customers','customerAccountId'],['suppliers','supplierAccountId']])if(profile[k].filter(p=>p.accountId===s[key]&&p.currency===s.currency).length!==1)fail();
+ if(profile.financeAccounts.filter(p=>p.id===s.financeAccountId&&p.currency===s.currency).length!==1)fail();
+ if(requireMetaHash||meta?.businessDailyScopeHash!==undefined)if(!hash(meta?.businessDailyScopeHash)||meta.businessDailyScopeHash!==daily.scopeHash)fail();
+ return s;
 }
 
 export function operationCopyEntity(entity,kind,profile){

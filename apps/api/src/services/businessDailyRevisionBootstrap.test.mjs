@@ -6,6 +6,8 @@ import {isolatedCopyHash,isolatedCopyJSON,validateIsolatedOperationCopyContext,a
 import {isolatedCopyRequestBody} from './isolatedOperationCopyStore.mjs';
 import {selectBusinessDailyProfile} from '../../../../scripts/canonical/shared-business-daily-revision-sql.mjs';
 import {configureBusinessDailyRevision,validateBusinessDailyRevision,BUSINESS_DAILY_REVISION_PROOF_SQL} from './businessDailyRevisionBootstrap.mjs';
+import {validateSharedCopyBootstrap,publicSharedCopyScope} from './sharedCopyBootstrap.mjs';
+import {businessDailyProfitReadSQL} from './businessDailyProfitRevision.mjs';
 
 // Anonymous offline fixtures. These account/price values are invented test
 // witnesses, not exported company data and not a real SQL installation.
@@ -32,6 +34,16 @@ function fixture(mutateRaw=()=>{}){
 }
 const configure=f=>configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool);
 const resealRevision=f=>{f.revision.dailyScopeHash=isolatedCopyHash(f.revision.dailyScope);const {revisionHash,...body}=f.revision;f.revision.revisionHash=isolatedCopyHash(body);};
+
+test('web daily selection is published only from a fully validated finite config and excludes private witnesses',()=>{
+ const f=fixture(),config={copyContext:f.c,host:'127.0.0.1',lanHost:'192.168.1.46',erpPort:4184,nativePort:4186,webPort:5234,database:f.c.target.database,server:f.c.target.server,sqlUser:'melisa_shared_test_ro_20261009_02',salesSqlUser:f.c.target.login,jwtAccessSecret:'s'.repeat(48),jwtRefreshSecret:'t'.repeat(48),businessReadyRevision:f.base,businessReadyPerformanceRevision:f.performance,businessEffectsPerformanceRevision:f.effects,businessDailyRevision:f.revision};
+ const {context}=validateSharedCopyBootstrap(config),scope=publicSharedCopyScope(context);
+ assert.deepEqual(scope.businessDaily,{scopeHash:f.revision.dailyScopeHash,selection:f.revision.dailyScope.selection});
+ assert.equal(publicSharedCopyScope(f.c).businessDaily,undefined);
+ assert.equal(JSON.stringify(scope.businessDaily).includes('costExact4'),false);
+ scope.businessDaily.selection.productIds.push('999');assert.deepEqual(publicSharedCopyScope(context).businessDaily.selection.productIds,['444']);
+ const bad=structuredClone(config);bad.businessDailyRevision.dailyScope.selection.customerAccountId='999';assert.throws(()=>validateSharedCopyBootstrap(bad));
+});
 
 test('v4 binds eight current modules to v1/v2/v3 history and preserves 37 exact residual witnesses',async()=>{
  const f=fixture();assert.equal(f.effects.baselineResiduals.length,37);assert.equal(f.effects.baselineResiduals.filter(r=>r.role==='customer').length,26);
@@ -62,4 +74,25 @@ test('server object identity and reserved daily hash prevent serialized or clien
  assert.throws(()=>isolatedCopyRequestBody(f.c,{id:'16'},'sale_draft',{...payload,businessDailyScopeHash:'F'.repeat(64)}),{code:'ISOLATED_COPY_CLIENT_PROFILE'});
  assert.throws(()=>isolatedCopyRequestBody(structuredClone(f.c),{id:'16'},'sale_draft',payload),{code:'ISOLATED_COPY_SERVER_CONTEXT_REQUIRED'});
  const changed=isolatedCopyRequestBody(f.c,{id:'16'},'sale_draft',{...payload,customerId:'101'});assert.notEqual(changed.hash,body.hash);assert.equal(JSON.parse(changed.json).businessDailyScopeHash,f.revision.dailyScopeHash);
+});
+
+function profitFixture(){
+ const f=fixture(),names=['dbo.usp_business_daily_guard','dbo.usp_stage4_copy_ready','dbo.usp_business_daily_context'];
+ const v5=sealed({schemaVersion:'melisa-business-daily-profit-revision.v1',version:5,copyId:f.c.copyId,baseSealHash:f.c.sealHash,baseDailyRevisionHash:f.revision.revisionHash,dailyScopeHash:f.revision.dailyScopeHash,modules:names.map((name,i)=>({name,beforeHash:f.revision.modules.find(m=>m.name===name).afterHash,afterHash:['A','B','C','D'][i].repeat(64)})),immutableTriggerHash:'E'.repeat(64)});
+ const rows=v5.modules.map(m=>({copyId:f.c.copyId,name:m.name,revision:5,baseSealHash:f.c.sealHash,baseDailyRevisionHash:f.revision.revisionHash,dailyScopeHash:f.revision.dailyScopeHash,beforeHash:m.beforeHash,afterHash:m.afterHash,revisionHash:v5.revisionHash,actualHash:m.afterHash,immutableTriggerHash:v5.immutableTriggerHash,triggerDisabled:0}));
+ for(const group of f.proof)for(const r of group){const m=v5.modules.find(m=>m.name===r.name);if(m)r.actualHash=m.afterHash;}
+ const pool={request:()=>({query:async sql=>sql===businessDailyProfitReadSQL()?{recordset:structuredClone(rows)}:{recordsets:structuredClone(f.proof)}})};
+ return {...f,v5,rows,pool};
+}
+const configureProfit=f=>configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool,f.v5);
+test('v5 verifies the three current pins before normalizing immutable v4 history and preserves daily identity',async()=>{
+ const f=profitFixture();await configureProfit(f);
+ const hashes=Object.fromEntries(Object.entries(f.c.sql).map(([key,m])=>[key,(f.v5.modules.find(p=>p.name===m.name)??f.revision.modules.find(p=>p.name===m.name)).afterHash]));
+ assertIsolatedCopyReadProof(f.c,{...fixtureProof(f.c),definitionHashes:hashes});
+ assert.throws(()=>assertIsolatedCopyReadProof(f.c,{...fixtureProof(f.c),definitionHashes:Object.fromEntries(Object.entries(f.c.sql).map(([k,m])=>[k,f.revision.modules.find(p=>p.name===m.name).afterHash]))}));
+ assert.deepEqual(getBusinessDailySelection(f.c),f.revision.dailyScope.selection);assert.equal(getBusinessDailyScopeHash(f.c),f.revision.dailyScopeHash);
+});
+test('v5 drift or forged predecessor cannot authorize v4 normalization',async()=>{
+ for(const mutate of [f=>f.rows[0].actualHash='F'.repeat(64),f=>f.rows[0].copyId='9c0075ed-7f4b-42f8-b056-f27b8369ad9c',f=>f.rows[0].triggerDisabled=1,f=>f.rows[0].beforeHash='F'.repeat(64),f=>f.rows.pop(),f=>f.rows.push({...f.rows[0]}),f=>f.proof[3][4].actualHash='F'.repeat(64),f=>f.proof[0][0].actualHash='F'.repeat(64),f=>f.v5.baseDailyRevisionHash='F'.repeat(64)]){const f=profitFixture();mutate(f);await assert.rejects(configureProfit(f));}
+ const noConfig=profitFixture();await assert.rejects(configureBusinessDailyRevision(noConfig.c,noConfig.base,noConfig.performance,noConfig.effects,noConfig.revision,noConfig.pool));
 });
