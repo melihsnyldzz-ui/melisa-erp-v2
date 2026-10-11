@@ -1,3 +1,8 @@
+## ERP-COMPLETE01 — çalışan2d / 200 ürün timeout ve dar finalize kaynağı — 12 Ekim 2026
+
+Uygulama2d371c4, API4184/native4186/web5234 exact DB02 üzerinde etkin;1830manifest/9HTTPasset/v22APK/normal15 refresh-logout ve40 korunan süreç doğrulandı. Controlled native200 rollback/sıra/ad/fiyat/birim/223adet ve tam before-image/request404 geçti. Normal API draft200 oluştu, kayıp yanıt sonrası aynıUUID replay200 ve farklıbody409 doğrulandı. Orijinal finalize90s clienttimeout sonrası BUSY ve activeTX görüldü; root tekrar yazma veya kill yapmadı, finalstok/cari sonucu henüz bilinmiyor.
+
+Guard owner/414bayt statement hash eşleşmesi, her DML'de aynı profil ürün JSON filtresinin tekrarını kesinleştirdi. Dar selectedSOURCE çoklu finalize kaynağı aynı hesap/kilit/transaction, generic-single yollar ve SQLguardları koruyarak profit→products→stock üç parametrik exact-count faz kullanır. Root38 hedefli kontrol ve bağımsız kaynak GO; yeni native rollback/API/performance/paket henüz yok. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Source2d CI jobssteps0 ödeme/harcama engeli; yeni kaynak CI ayrıca takip edilir. UA32/49-9-39-1 aynı. LIVE/Vega/CRM/main/T1 ve roller korunur.
 ## ERP-COMPLETE01 — 200 ürünlü satış teşhisi / dar kaynak düzeltmesi — 12 Ekim 2026
 
 Normal15 / uygulama204b63f / exact DB02 üzerinde200 farklı USD ürün,223 adet immutable preview hazırlandı. Gerçek taslak denemesinin sonucu önce belirsiz tutuldu; son request404 ve tam before-image eşitliği doğrulandı. İki kaynak adının native normalizer'da trim edilmesi mevcut exact snapshot geri okumasını bozar;200 kaynak adı eşit, yalnız2 normalize adı farklı, kod/maliyet/toplamlarda0 fark. [Kanıt ve kapanma ölçütü](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).

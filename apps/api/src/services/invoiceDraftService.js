@@ -96,6 +96,32 @@ async function insertSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,it
  `);
 }
 
+async function finalizeSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,before,rows,selectedSale,actorId){
+ const scope=selectedSale?.scope;
+ if(!scope||scope.operation!=='sale_finalize'||scope.invoiceId!==String(invoiceId)||scope.actorId!==String(actorId)||isolatedCopyTransactionContext(transaction)!==selectedSale.copy||getBusinessSelectedSaleWriteScope(selectedSale.copy,transaction)!==scope||rows.length<2||rows.length>200||rows.length!==before.items.length||rows.length!==scope.productIds.length||new Set(rows.map(r=>String(r.productId))).size!==rows.length||new Set(rows.map(r=>String(r.itemId))).size!==rows.length)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış kesinleştirme kapsamı uyuşmuyor.',409);
+ const decimal=(value,precision,nullable=false)=>{if(nullable&&value===null)return null;if(!Number.isFinite(value))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır görüntüsü doğrulanamadı.',409);const text=value.toFixed(precision);if(!new RegExp('^-?\\d{1,'+(18-precision)+'}\\.\\d{'+precision+'}$').test(text))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır görüntüsü doğrulanamadı.',409);return text;};
+ const payload=rows.map((r,index)=>{const original=before.items[index];if(!Number.isSafeInteger(r.itemId)||r.itemId<=0||!Number.isSafeInteger(r.productId)||r.productId<=0||String(original.id)!==String(r.itemId)||String(original.productId)!==String(r.productId)||!scope.productIds.includes(String(r.productId))||!Number.isSafeInteger(r.quantity)||r.quantity<=0||r.quantity!==Number(original.quantity)||r.currency!==scope.currency||r.currency!==original.currency)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır kimliği doğrulanamadı.',409);return {itemId:String(r.itemId),productId:String(r.productId),quantity:decimal(r.quantity,3),unitPrice:decimal(r.unitPrice,4),currency:r.currency,averageCostTry:decimal(r.averageCostTrySnapshot,4,true),grossProfitTry:decimal(r.grossProfitTry,4,true),grossProfitRate:decimal(r.grossProfitRate,6,true),amountTry:decimal(r.salesAmountTry,4)};});
+ const json=JSON.stringify(payload),request=()=>new sqlDriver.Request(transaction).input('invoiceId',sql.BigInt,invoiceId).input('selectedFinalizeJSON',sql.NVarChar(sql.MAX),json);
+ const assertCount=result=>{const count=result?.recordset?.[0]?.verifiedCount;if(result?.recordset?.length!==1||!(Number.isSafeInteger(count)&&count===rows.length||typeof count==='string'&&count===String(rows.length)))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır etkisi doğrulanamadı.',409);};
+ assertCount(await request().query(`DECLARE @profitIds TABLE(id bigint PRIMARY KEY);
+  UPDATE s SET average_cost_try_snapshot=v.averageCostTry,gross_profit_try=v.grossProfitTry,gross_profit_rate=v.grossProfitRate
+  OUTPUT inserted.id INTO @profitIds(id)
+  FROM dbo.sales_invoice_items s JOIN OPENJSON(@selectedFinalizeJSON) WITH(itemId bigint '$.itemId',productId bigint '$.productId',averageCostTry decimal(18,4) '$.averageCostTry',grossProfitTry decimal(18,4) '$.grossProfitTry',grossProfitRate decimal(18,6) '$.grossProfitRate')v ON s.id=v.itemId AND s.product_id=v.productId AND s.sales_invoice_id=@invoiceId;
+  SELECT COUNT_BIG(*) verifiedCount FROM @profitIds;`));
+ assertCount(await request().query(`DECLARE @productIds TABLE(id bigint PRIMARY KEY);
+  UPDATE p SET current_stock_qty=p.current_stock_qty-v.quantity,updated_at=SYSUTCDATETIME()
+  OUTPUT inserted.id INTO @productIds(id)
+  FROM dbo.products p JOIN OPENJSON(@selectedFinalizeJSON) WITH(productId bigint '$.productId',quantity decimal(18,3) '$.quantity')v ON p.id=v.productId;
+  SELECT COUNT_BIG(*) verifiedCount FROM @productIds;`));
+ assertCount(await request().input('documentDate',sql.Date,before.documentDate).input('customerId',sql.BigInt,before.customerId).input('actorId',sql.BigInt,actorId).query(`DECLARE @stockIds TABLE(id bigint PRIMARY KEY);
+  INSERT INTO dbo.stock_movements(product_id,movement_type,source_type,source_id,quantity_in,quantity_out,quantity_net,unit_cost_try,average_cost_try_after,document_date,customer_id,created_at,created_by,unit_price,currency_code,amount_try)
+  OUTPUT inserted.id INTO @stockIds(id)
+  SELECT v.productId,N'out',N'sales_invoice',@invoiceId,0,v.quantity,-v.quantity,v.averageCostTry,v.averageCostTry,@documentDate,@customerId,SYSUTCDATETIME(),@actorId,v.unitPrice,v.currency,v.amountTry
+  FROM OPENJSON(@selectedFinalizeJSON)j CROSS APPLY OPENJSON(j.value) WITH(productId bigint '$.productId',quantity decimal(18,3) '$.quantity',averageCostTry decimal(18,4) '$.averageCostTry',unitPrice decimal(18,4) '$.unitPrice',currency nvarchar(3) '$.currency',amountTry decimal(18,4) '$.amountTry')v
+  ORDER BY CONVERT(int,j.[key]) ASC;
+  SELECT COUNT_BIG(*) verifiedCount FROM @stockIds;`));
+}
+
 // Trigger row-count messages are not the guarded header UPDATE's row count.
 // The SQL batch returns one named count from OUTPUT ... INTO instead.
 export function purchaseStatusMutationSucceeded(result) {
@@ -2091,6 +2117,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
 
     const warnings = [];
     const profitSnapshots = [];
+    const selectedFinalizeRows=selectedSale&&beforeSnapshot.items.length>1?[]:null;
     const currencyRateMap = await readCurrencyRateMap(new sqlDriver.Request(transaction));
 
     for (const item of beforeSnapshot.items) {
@@ -2131,6 +2158,8 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           projectedStock: nextStock,
         });
       }
+
+      if(selectedFinalizeRows){selectedFinalizeRows.push({...profitSnapshots.at(-1),unitPrice:Number(item.unitPrice||0),currency:item.currency});continue;}
 
       await new sqlDriver.Request(transaction)
         .input('profitSnapshotItemId', sql.BigInt, item.id)
@@ -2208,6 +2237,8 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           );
         `);
     }
+
+    if(selectedFinalizeRows)await finalizeSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,beforeSnapshot,selectedFinalizeRows,selectedSale,actorId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
       action: 'sales_profit_snapshot_created',

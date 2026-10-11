@@ -38,3 +38,21 @@ INSERT SELECT'in ordinal ORDER BY'si identity hesaplama sırasını belirler; fi
 Kapanma: controlled rollback/native ID→ürün→quote/fiyat/birim/ad eşitliği; sonra aynı plan/UUID ile normal API draft/finalize;223 stok etkisi ve yalnız seçilen USD cari etkisi; tam diğer alan koruması; iki kolide23+1, READY/kalan0/reload/replay; normal ekran kanıtı. Snapshot/hash eşitliği garanti edilmeden tekrar yazma yok. Yeni runtime, uygulama source ve belge teslim commit'i ayrı kaydedilir.
 
 Private kaynaklar `readonly-candidates` içindeki plan, progress, request/before-image/normalization/timing sonuçlarıdır. Tarihsel yedek referansı mevcut before-image veya yeni inverse provaları yerine geçmez. Eski193 farklı ürünlü fişe sahte link eklenmedi. Önceki ADB politika reddi aşılmadı;200 cihaz ve yeni video **NOT_RUN/NOT_UPDATED**, ERP-UA32 insan kabulü bekliyor.49/9/39/1 aynı. LIVE/Vega/T1/main/CRM/gerçek WhatsApp/ücretli AI işlemi yok.
+
+## Paketli controlled rollback sonucu
+
+2d371c4 paketinin 1830/1830 dosya hash'i doğrulandı. Aynı mevcut transaction ve native engine üzerinde immutable planın 200 satırı gerçekten INSERT edildi; native ID sırası, tam kaynak adı, ürün/quote/fiyat/birim ve 223 adet doğrulandı. Helper journal/commit öncesinde kontrollü hata üretip mevcut rollback yolunu kullandı. Sonrasında tam before-image aynı ve authoritative request404: ticari commit0. Dedicated oturumdan çıkış doğrulandı.
+
+Private helper SHA256 `fd3eac6c6d8861367b141e20b5066b05fbd6e068c7fe19b40e268cdb8818c473`; sonuç proof SHA256 `7250d6167f8ee9935c98c61c45d986f70b27471e6ecd4b3e8101c9ecb2e92bb3`. Bu native SQL/rollback kanıtıdır; normal HTTP finalize, koli, Android veya insan kabulü değildir. Rollback sonrası identity/rowversion sayacının geri alınması iddia edilmez veya zorlanmaz.
+
+Normal commit kontrolünden önce DB02 şemasında products/customers `row_version` alanlarının otomatik timestamp olduğu, party_currency_accounts üzerinde böyle alan olmadığı bağımsız okundu. Commit sonrası raw alan karşılaştırması yalnız doğrulanmış otomatik rowversion, işlem zaman damgası ve izinli stok/bakiye alanlarını ayrı ele alır; manuel değişebilir başka alanları dışlamaz. Seçilen döviz hesabının bütün diğer alanları ve diğer hesaplar tam korunmalıdır.
+## Normal API 200 taslak / kesinleştirme gözlemi
+
+2d371c4 izole runtime etkinleştirildi; exact DB02/copy/T1=false,9 served asset, v22 APK ve normal15 login-refresh-logout doğrulandı.40 korunan süreç aynı. Orijinal C82 plan/UUID değişmedi. İlk draft çağrısı90.011s client timeout; işlem günlüğü sonrasında200 native satırlı draft varlığını doğruladı. Aynı UUID/body replay6.472/6.607s, aynı UUID farklı body409/5.022s. İkinci taslak yok. Finalize90.006s client timeout; authoritative503BUSY işlem sürerken görüldü, başarı veya rollback sayılmadı.
+
+Salt okunur DMV/owner-definition eşleşmesi mevcut guard tanımı AAFF70... ve414bayt statement8AC650... üzerinde profil ürünlerini intent ürünlerine süzen correlated JSON_MODIFY/OPENJSON yapısını kesinleştirdi (revision-sql.mjs:141). READY çağrısı değildir. Satır başına profit/product/stock DML bunu tekrar çağırır; üç toplu faz korumaları kaldırmadan tekrar sayısını azaltabilir. DMV CPU/elapsed değerleri tek statement süresi diye sunulmaz. Native write sürerken yeni runtime activation veya yeni UUID/işlem yoktur.
+## Selected SOURCE finalize batch — kaynak hazır
+
+Yalnız mevcut branded selectedSOURCE çoklu2..200 finalize dalı: native maliyet/kâr fonksiyonları ve ürün kilitleri aynen çalışır; hesaplanan satırlar typed decimal3/4/6/null ile üç parametreli faza gider. Profit snapshot UPDATE→products stok UPDATE→16kolon stock movement INSERT; her faz OUTPUT COUNT_BIG exactN yoksa failclosed. Header/cari/döviz/audit devamı, generic ve tek satır seri dal aynıdır. Şema/SQLguard/rol değişikliği0. No-op profit atlama yapılmadı; draft kâr alanları boş olduğundan mevcut hesap gerekli.
+
+Root38 hedefli kontrol ve bağımsız yeni5 production-VM test/reviewGO geçti; null/bilinmeyen maliyet, negatif kâr, foreignscope/account/actor/transaction, eksik/bozuk çıktı sayısı ve ikinci/üçüncü DML hatasında rollback/no commit hedeflendi. VM native trigger/decimal/gerçek200 SQL etkisini kanıtlamaz. Yeni paketin dar rollback ve API/performans teslimi bekler.

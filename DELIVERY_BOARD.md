@@ -1,5 +1,7 @@
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
+**12 Ekim / aynı200 vaka kayıp yanıtı:** çalışan2d native controlled rollback geçti; gerçek200 draft aynıUUID'den geri bulundu/replay200/farklıbody409. Orijinal finalize hâlâ pending/BUSY; kill/ikinci etki yok. Aynı hesap/kilit/guardları koruyan üç fazlı finalize batch kaynağı38test/reviewGO; gerçek native prova ve çalışan paket bekler. UA32/49-9-39-1 değişmedi.
+
 **12 Ekim / 200 farklı ürün ve iki koli:** USD223 adet preview; ilk native taslak denemesi commit olmadan ret, request404/tam before-image aynı. İki kaynak adının trim uyuşmazlığı için dar snapshot+aynı engine item batch kaynağı hazır,61 hedefli kontrol. [Gerçek vaka kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md); native rollback/sıra, normal API commit/koli ve çalışan paket kontrolü sıradaki tek bağımsız iş. İnsan/cihaz PASS yok; eski veriler/roller korunur.
 
 **12 Ekim / korumalı hızlı giriş desteği:** Semih kimlik/rol+Windowsprotected bridge birlikte doğrulanmadı;15/16 scopedrefresh/yeni-personel-yüzü adminreti korunur; eski native login ayrı. Helper BLOCKED/NOT_IMPLEMENTED; yeniadmin/alias/bypass/credential0. [Kapanma ölçütü ve aktif hedef](docs/evidence/erp/2026-10-11-completion/protected-semih-entry-readiness.md). Tek ana iş ve49/9/39/1/UA32 aynı; normalTEST ile bağımsız200USD writer/koli hazırlığı sürer.

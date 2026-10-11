@@ -1,3 +1,6 @@
+## ERP-COMPLETE01 — 200 ürünün kayıp yanıtı / finalize performansı — 12 Ekim 2026
+
+Controlled native200 rollback doğrulandı ve normal API200 draft kayıp yanıt sonrası aynıUUID'den bulundu. Orijinal finalize henüz çözümlenmedi; üç fazlı native finalize batch kaynağı38 hedefli test/reviewGO ile hazır, gerçek rollback/commit/koli/hız ve yeni paket bekler. [Güncel vaka kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Tamam sayılmaz; toplam49/9/39/1 ve UA32 bekliyor aynı. Bağımsız teknik ilerleme hedefi active; cihaz/video reddi aşılmadı.
 ## ERP-COMPLETE01 — büyük fişin kalan teknik bağlantısı — 12 Ekim 2026
 
 [200 farklı ürün /223 adet /iki koli kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md): yazmasız seçim ve gerçek başarısız taslak sonrası tam veri korunması doğrulandı. İki kaynak adı için exact snapshot düzeltmesi ve existing-engine kalem batch'i kaynakta hazır; native rollback/sıra/commit, normal ekran ve son paket olmadan tamam sayılmaz.49/9/39/1 ve ERP-UA32 bekliyor aynı; bu teknik çalışma insan kabulü yerine geçmez.
