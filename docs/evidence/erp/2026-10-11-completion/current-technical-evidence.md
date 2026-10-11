@@ -2,7 +2,9 @@
 
 ## Güncel kaynak: ortak servisleri değiştirmeyen HOME okuması
 
-Geçici5264/USB5234 yüzünde yalnız exact HOME GET bağlantısı hazırlandı. Mevcut a51 API'nin normal actor15/16 oturumu, fresh native context/izin eşitliği ve v4/v5 guarded reader kullanılır; SQL izinleri/roller/finans/stok mantığı değişmez. Bootstrap validation, kapalı24 dosyalık import/hash grafiği ve GET-only SQL allowlist ile yeni genel proxy açılmadı. Normal frontend5264 yalnız doğrulanmış bayrak+copy ile bu okumayı kullanır; auto-admin kapalı, diğer auth/API4184'te kalır. Root98/98 hedefli JS kontrol ve bağımsız inceleme geçti.
+Geçici5264/USB5234 yüzünde yalnız exact HOME GET bağlantısı hazırlandı. Mevcut a51 API'nin normal actor15/16 oturumu, fresh native context/izin eşitliği ve v4/v5 guarded reader kullanılır; SQL izinleri/roller/finans/stok mantığı değişmez. Bootstrap validation, kapalı24 dosyalık import/hash grafiği ve GET-only SQL allowlist ile yeni genel proxy açılmadı. Normal frontend yalnız USB/device127.0.0.1:5234 doğrulanmış bayrak+copy ile bu okumayı kullanır; masaüstü5264 normal kullanıcı target değildir, auth/API4184'te kalır. Root98/98 hedefli JS kontrol ve bağımsız inceleme geçti.
+
+Gerçek CORS kontrolünde5264 browser origin'i mevcut API tarafından reddedildi. Desktop normalize kaldırılarak yanlış giriş vaadi ve ağ çağrısı kapandı; shared CORS/config/API korunur. Host5264 readonly teknik HTTP kanıtı ve USB server ucudur; kullanıcının normal masaüstü adresi olarak sunulmaz.
 
 Android için bu exactloopbackGET'e dar izin eklendi;131 unit test,0fail/error/skip ve offline debug build geçti. Yeni APK SHA256 `dff8ed37cf34066416e89dca9676515b4e008eeb69df22c065b67c50d07a8c8f`,63.534.278byte. Derleme/inceleme cihaz kabulü değildir; yeni immutable paket, HTTP ve gerçek Android kontrolü henüz bekliyor. Önceki dört video/16 alıştırma ve private kanıtlar korunur. Tam v6 aktivasyonu bu HOME tesliminin önkoşulu değildir.
 

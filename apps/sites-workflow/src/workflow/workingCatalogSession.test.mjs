@@ -261,8 +261,8 @@ function worktestHomeSession({target=worktestLocation('5234'),bootstrap=homeBoot
  const session=createWorkingCatalogSession({location:target,apiBase:base,storage:store,copyProfile:profile,homeBootstrap:bootstrap,onExpired,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(user):respond(url,options);}});
  return {session,store,calls};
 }
-test('exact DB02 HOME bootstrap selects only same-origin authenticated GET on device or temporary desktop',async()=>{
- for(const port of ['5234','5264']){
+test('exact DB02 HOME bootstrap selects only same-origin authenticated GET on USB device',async()=>{
+ for(const port of ['5234']){
   const f=worktestHomeSession({target:worktestLocation(port)});await f.session.start();assert.deepEqual(await f.session.home(),{meta:{readOnly:true}});
   assert.equal(f.calls[0].url,'http://127.0.0.1:4184/api/auth/me');assert.equal(f.calls[1].url,`http://127.0.0.1:${port}/api/terminal-worktest/home-summary`);
   const opts=f.calls[1].options;assert.equal(opts.method,'GET');assert.equal(opts.body,undefined);assert.equal(opts.headers.Authorization,'Bearer worktest-home-fixture');assert.equal(opts.credentials,'omit');assert.equal(opts.redirect,'error');
@@ -284,9 +284,10 @@ test('malformed HOME bootstrap and every foreign origin retain legacy route or c
  }
  const wrongApi=worktestHomeSession({target:worktestLocation('5264'),base:apiBase});await assert.rejects(()=>wrongApi.session.start());assert.equal(wrongApi.calls.length,0);wrongApi.session.dispose();
 });
-test('temporary desktop bootstrap never opens automatic identity and login stays on normal upstream',async()=>{
+test('temporary desktop bootstrap cannot normalize an invalid target or make any auth or HOME request',async()=>{
+ const cached=worktestHomeSession({target:worktestLocation('5264')});await assert.rejects(()=>cached.session.start());await assert.rejects(()=>cached.session.home());assert.equal(cached.calls.length,0);assert.equal(cached.store.getItem(workingCatalogTokenKey),'worktest-home-fixture');cached.session.dispose();
  const store=storage(),calls=[],session=createWorkingCatalogSession({location:worktestLocation('5264'),apiBase:'http://127.0.0.1:4184',storage:store,copyProfile:homeCopyProfile(),homeBootstrap,fetchImpl:async(url,options)=>{calls.push({url,options});return reply({user,accessToken:'normal-home-fixture'});}});
- assert.equal(await session.start(),null);assert.equal(calls.length,0);await session.login({username:'fixture',password:'fixture-only'});assert.equal(calls[0].url,'http://127.0.0.1:4184/api/auth/login');assert.equal(calls[0].options.method,'POST');assert(calls.every(c=>!c.url.includes('/test-admin')&&!c.url.includes('/stage4-actor')));session.dispose();
+ await assert.rejects(()=>session.start());await assert.rejects(()=>session.login({username:'fixture',password:'fixture-only'}));await assert.rejects(()=>session.home());assert.equal(calls.length,0);session.dispose();
 });
 test('scoped HOME keeps15s deadline, auth-expiry and disposal without retry or new session',async t=>{
  t.mock.timers.enable({apis:['setTimeout']});
