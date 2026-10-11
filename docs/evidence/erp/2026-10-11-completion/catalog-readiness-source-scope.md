@@ -47,4 +47,6 @@ Ham rowlar, tutarlar, login özel ayarları, XML planları ve finans bilgileri G
 
 `executeAllowed=false`, `installAllowed=false`, `fullAcceptance=false`, `readyForSharedActivation=false`, `catalogMeasured=false`. Altı negatif türü tüm11 v6 aktivasyon gereksinimini karşılamaz. Bu revision ortak DB02'ye kurulmadı; mevcut config/185-module manifest/historical registry'ler değiştirilmedi. Yeni çalışan paket üretilmedi; geçici application source181de5ac / immutable181de5a /5264 ve shared API-native sourcea51b117 korunur.
 
+Hazırlık/kaynak teslimi `e562f4b206a9459dbafcf0396b099518815837ff`, `codex/erp-finish-20261004`, PR23'e push edildi. Exact commit CI38130252094/38130249351 required üç job0steps; annotation114442902588 hesap ödemesi/harcama limiti nedeniyle başlamadığını doğruladı. CI PASS değil; preview başarısı bu required kontrollerin yerine geçmez. Belge teslimi bu source commit'ini izler.
+
 **Sıradaki tek teknik iş:** bağlı katalog okuyucusuyla aynı izole kopyada ilk50/sonraki50/tamkod/başta sıfırlı barkod/kart-fiyat sonuç eşitliği ve hız provası; eksik aktivasyon negatiflerini ilgili native katmanda kapatmadan ortak etkinleştirme yok. Bir saniyelik HOME, geniş günlük işletme kapsamı ve diğer completion gereksinimleri açık. ERP-UA32/insan kabulü bekler;49/9/39/1 aynı. Vega/LIVE/T1/main/CRM/gerçek mesaj/ücretliAI yok.
