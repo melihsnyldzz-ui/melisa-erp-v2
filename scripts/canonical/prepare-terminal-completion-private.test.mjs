@@ -29,3 +29,19 @@ test('private projection preserves source bytes and yields exact isolated settin
 test('projection rejects changed scope, missing source identity, broad env or changed existing CRM actor',()=>{
  for(const mutate of [x=>x.operation.value.database='LIVE',x=>x.operation.value.lanHost='0.0.0.0',x=>x.nativeConfig.value.crmOrderCurrentContext.stockEffect=true,x=>x.native.manifest.packageId='',x=>x.crmActivation.value.environmentVariables.PRIVATE_TOKEN='fixture',x=>x.crmActivation.value.environmentVariables.CRM_TEST_TERMINAL_PERSONNEL_USERNAME='admin',x=>x.hubPin.value.crmIndexSha256='c'.repeat(64)]){const input=fixture();mutate(input);assert.throws(()=>buildCompletionProjection(input));}
 });
+test('identical existing private bytes are reused without entering the write map; changed bytes fail closed',()=>{
+ const first=buildCompletionProjection(fixture()),existing=first.files;
+ const again=buildCompletionProjection({...fixture(),existingFile:target=>existing.get(target)??null});
+ assert.equal(again.files.size,0);assert.equal(again.reusedFiles.length,10);assert.deepEqual(again.settingsPin,first.settingsPin);
+ assert.throws(()=>buildCompletionProjection({...fixture(),existingFile:()=>Buffer.from('different private bytes')}),/OUTPUT_ALREADY_EXISTS/);
+});
+test('a newer ERP candidate preserves old private outputs and reuses exact unchanged native and CRM source locks',()=>{
+ const first=buildCompletionProjection(fixture()),existing=new Map(first.files),next=fixture();
+ next.erp={...next.erp,commit:'c'.repeat(40),root:erp+'\\releases\\CANONICAL-COMPLETE-TEST-20261011-ccccccc'};
+ const result=buildCompletionProjection({...next,existingFile:target=>existing.get(target)??null});
+ assert.equal(result.files.size,8);assert.equal(result.reusedFiles.length,2);
+ for(const name of ['nativeOrder','crm'])assert.deepEqual(result.settings.dependencyLocks[name],first.settings.dependencyLocks[name]);
+ assert.equal(result.settings.dependencyLocks.erpApiNative.path,runtime+'\\erpApiNative-cccccccccccc-dependency-lock.json');
+ for(const target of result.files.keys())assert.equal(existing.has(target),false);
+ assert.equal(existing.size,10);
+});

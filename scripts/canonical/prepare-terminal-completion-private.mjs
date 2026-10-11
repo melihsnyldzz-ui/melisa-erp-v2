@@ -29,12 +29,12 @@ function dependencyLock(packageInfo,moduleRoot){
  scan(root);files.sort((a,b)=>a.path.localeCompare(b.path,'en'));
  const lock={schemaVersion:1,sourceCommit:packageInfo.commit,packageRoot:packageInfo.root,files};validateCompletionDependencyLock(lock,{sourceCommit:packageInfo.commit,packageRoot:packageInfo.root},moduleRoot);return lock;
 }
-export function buildCompletionProjection({erp,native,crm,operation,nativeConfig,crmActivation,hubPin,node,ownerSid,baseline,catalogAccess,locks}){
+export function buildCompletionProjection({erp,native,crm,operation,nativeConfig,crmActivation,hubPin,node,ownerSid,baseline,catalogAccess,locks,existingFile=()=>null}){
  if(!/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(ownerSid))fail('OWNER_REQUIRED');
  const c=operation.value,n=nativeConfig.value,old=crmActivation.value.environmentVariables;
  if(c.database!==DB||c.copyContext?.copyId!==COPY||c.host!=='127.0.0.1'||c.lanHost!=='192.168.1.46'||c.webPort!==5234||c.erpPort!==4184||c.nativePort!==4186||c.transport!==undefined||!c.businessSelectedSaleStartup||n.database!==DB||n.nativePort!==62704||n.crmOrderCurrentContext?.copyId!==COPY||n.crmOrderCurrentContext?.actualT1!==false||n.crmOrderCurrentContext?.externalOperations!==false||n.crmOrderCurrentContext?.stockEffect!==false||n.crmOrderCurrentContext?.ledgerEffect!==false)fail('SOURCE_SCOPE');
  if(!old||typeof old!=='object'||old.CRM_TEST_EXPECTED_DATABASE!==DB||old.CRM_TEST_PORT_BASE!=='62700'||old.CRM_ISOLATED_PREPARATION!=='true'||old.CRM_TEST_ERP_ORIGIN!=='http://127.0.0.1:4184'||old.CRM_TEST_LAN_ADDRESS!=='192.168.1.46'||!native.manifest.packageId)fail('CRM_ENV_SOURCE');
- const suffix=erp.commit.slice(0,12),files=new Map(),add=(name,content)=>{const target=path.win32.join(PRIVATE,name);if(files.has(target))fail('DUPLICATE_OUTPUT');files.set(target,content);return {path:target,sha256:sha(content)};};
+ const suffix=erp.commit.slice(0,12),files=new Map(),reusedFiles=[],outputs=new Set(),add=(name,content)=>{const target=path.win32.join(PRIVATE,name);if(outputs.has(target))fail('DUPLICATE_OUTPUT');outputs.add(target);const pin={path:target,sha256:sha(content)},existing=existingFile(target);if(existing!==null){if(!Buffer.isBuffer(existing)||!existing.equals(content))fail('OUTPUT_ALREADY_EXISTS');reusedFiles.push(pin);}else files.set(target,content);return pin;};
  const op=add('operation-'+suffix+'.json',operation.bytes),nc=add('native-order-'+suffix+'.json',nativeConfig.bytes);
  const pin={apiSourceCommit:erp.commit,crmSourceCommit:crm.commit,crmIndexSha256:hubPin.value.crmIndexSha256,crmHealthPath:PRIVATE+'\\crm-health-status.json',trainingFiles:hubPin.value.trainingFiles};
  const env={...old};
@@ -45,12 +45,12 @@ export function buildCompletionProjection({erp,native,crm,operation,nativeConfig
  const ca=add('crm-activation-'+suffix+'.json',bytes(caValue)),hp=add('hub-pin-'+suffix+'.json',bytes(pin));
  const hubStartup={PackageRoot:erp.root,SourceCommit:erp.commit,ManifestSha256:erp.manifestSha256,OperationConfigPath:op.path,HubConfigPath:hp.path,NodePath:node.path,NodeSha256:node.sha256,OwnerSid:ownerSid,RuntimeDir:PRIVATE+'\\hub-web'};
  const hs=add('hub-startup-'+suffix+'.json',bytes(hubStartup));
- const dependencyLocks={};for(const name of ['erpApiNative','nativeOrder','crm'])dependencyLocks[name]=add(name+'-dependency-lock.json',bytes(locks[name]));
+ const infos={erpApiNative:erp,nativeOrder:native,crm},dependencyLocks={};for(const name of ['erpApiNative','nativeOrder','crm'])dependencyLocks[name]=add(name+'-'+infos[name].commit.slice(0,12)+'-dependency-lock.json',bytes(locks[name]));
  const component=(info,config)=>({packageRoot:info.root,sourceCommit:info.commit,manifestSha256:info.manifestSha256,config});
  const settings={schemaVersion:1,ownerSid,actualT1:false,copyId:COPY,database:DB,lanAddress:'192.168.1.46',runtimeDirectory:PRIVATE,node,supervisor:{packageRoot:erp.root,sourceCommit:erp.commit,manifestSha256:erp.manifestSha256},components:{erpApiNative:component(erp,op),nativeOrder:component(native,nc),crm:component(crm,ca),hub:component(erp,hs)},privateSources:{operationConfig:op,nativeOrderConfig:nc,crmActivationConfig:ca,hubPinConfig:hp,hubStartupConfig:hs},dependencyLocks,crmPrivateFiles:{baseline,catalogAccess}};
  validateCompletionSettings(settings,ownerSid);completionCrmEnvironment(caValue,settings);validateCurrentCrmHubPins(pin,settings,caValue,crm.files.get(path.win32.join(crm.root,'apps','frontend','dist','client','index.html').toLowerCase()));
  const settingsPin=add('settings-'+suffix+'.json',bytes(settings));const plan=completionTaskPlan(settings,settingsPin,ownerSid);add('task-plan-'+suffix+'.json',bytes(plan));
- return {files,settingsPin,hubStartupPin:hs,settings,plan};
+ return {files,reusedFiles,settingsPin,hubStartupPin:hs,settings,plan};
 }
 function verifyPrivateDirectory(ownerSid){
  const created=!fs.existsSync(PRIVATE);if(created){fs.mkdirSync(PRIVATE,{recursive:true});assertCompletionNoReparse(PRIVATE);execFileSync('C:\\Windows\\System32\\icacls.exe',[PRIVATE,'/inheritance:r','/grant:r','*'+ownerSid+':(OI)(CI)F','*S-1-5-18:(OI)(CI)F','*S-1-5-32-544:(OI)(CI)F'],{windowsHide:true,stdio:'pipe'});}else assertCompletionNoReparse(PRIVATE);
@@ -72,12 +72,13 @@ export function prepareCompletionPrivate(options){
  const oldEnv=crmActivation.value.environmentVariables;if(!oldEnv)fail('CRM_ENV_REQUIRED');const baseline=filePin(oldEnv.CRM_BASELINE_ENV),catalogAccess=filePin(oldEnv.CRM_ERP_CATALOG_ACCESS_PATH);
  const ownerSid=execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command','[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],{windowsHide:true,encoding:'utf8'}).trim();
  const locks={erpApiNative:dependencyLock(erp,'apps/api'),nativeOrder:dependencyLock(native,'apps/api'),crm:dependencyLock(crm,'apps/gateway')};
- const projection=buildCompletionProjection({erp,native,crm,operation,nativeConfig,crmActivation,hubPin,node,ownerSid,baseline,catalogAccess,locks});
+ const existingFile=file=>{if(!fs.existsSync(file))return null;assertCompletionNoReparse(file);return fs.readFileSync(file);};
+ const projection=buildCompletionProjection({erp,native,crm,operation,nativeConfig,crmActivation,hubPin,node,ownerSid,baseline,catalogAccess,locks,existingFile});
  // No old output is overwritten, even after an interrupted previous preparation.
  for(const file of projection.files.keys())if(fs.existsSync(file))fail('OUTPUT_ALREADY_EXISTS');
  verifyPrivateDirectory(ownerSid);
  for(const [file,content] of projection.files){fs.writeFileSync(file,content,{flag:'wx',mode:0o600});assertCompletionNoReparse(file);if(sha(fs.readFileSync(file))!==sha(content))fail('OUTPUT_VERIFICATION');}
- return {prepared:true,installed:false,started:false,sqlWritten:false,settings:projection.settingsPin,hubStartup:projection.hubStartupPin,files:[...projection.files].map(([file,content])=>({path:file,sha256:sha(content)})),sourceCommit:erp.commit,nativeSourceCommit:native.commit,crmSourceCommit:crm.commit,approvedNativeProofSha256:proof.sha256};
+ return {prepared:true,installed:false,started:false,sqlWritten:false,settings:projection.settingsPin,hubStartup:projection.hubStartupPin,files:[...projection.files].map(([file,content])=>({path:file,sha256:sha(content)})),reusedFiles:projection.reusedFiles,sourceCommit:erp.commit,nativeSourceCommit:native.commit,crmSourceCommit:crm.commit,approvedNativeProofSha256:proof.sha256};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const names=['erp-package','operation-config','native-package','native-config','crm-package','crm-activation','hub-pin','node','native-proof','native-proof-sha256'],args=process.argv.slice(2),options={};

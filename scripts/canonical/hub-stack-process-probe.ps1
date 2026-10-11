@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 # Read-only OS observation. No process/task/grant or network mutation.
 $bindings=@(Get-NetTCPConnection -State Listen -LocalPort @($Ports.Split(',')|ForEach-Object {[int]$_}) -ErrorAction SilentlyContinue)
 $rows=@()
-$ids=if($PSBoundParameters.ContainsKey('ProcessId')){@($ProcessId)}else{@($bindings.OwningProcess|Select-Object -Unique)}
+$ids=if($PSBoundParameters.ContainsKey('ProcessId')){@($ProcessId)}else{@($bindings|ForEach-Object {$_.OwningProcess}|Select-Object -Unique)}
 foreach($procId in $ids){
  $p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$procId)
  if(!$p){throw 'HUB_STACK_OS_PROCESS_DISAPPEARED'}
