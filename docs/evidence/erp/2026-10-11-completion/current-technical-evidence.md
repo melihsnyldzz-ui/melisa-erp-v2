@@ -1,6 +1,10 @@
 # Güncel teknik kanıt ve teslim sınırı — 11 Ekim 2026
 
-## Güncel paket ve gerçek cihaz/eğitim incelemesi
+## B01 günlük özet — güncel kaynak ve paket
+
+Application source8ca0122af79ec03bf3077fc83169f852c4f2a4e8 /immutable8ca0122af79e, manifestSHAf74e9f80a3604a2890e4bd0b7025f07c692e4bdd38053dc3fbf6d7efc8cba6d6: tamBUSINESSbuild/baseline/1735dosya0hashfarkı24pin. İki normalrol gerçek nativeSQL ve4mevcutAPI kapsamı exact uyumlu; yeni geçiciUSB/loopback HTTP6okuma/5negatif tamamlandı. Source5suite91/91PASS. Kasa/satışiadesi bilinmiyor, tarihler/para birimleri ayrı; yeni ticari etki0. Protected16port/PID/adres0fark. [Ayrıntı ve süreler](home-daily-readonly.md). CIhesap/harcama nedeniyle başlamadı; insanUA32bekler. Sıradaki okuma performansı/dar günlük kapsam; dört teslim birlikte tamam denmez.
+
+## Önceki c198 paket ve gerçek cihaz/eğitim incelemesi
 
 Son uygulama source c198bfb3f522992b3abebe63948c8d6298e3ee67 /immutable c198bfb3f522 release:1.735dosya/0hashfarkı/24kapalıpin. ManifestSHA5c5fb2135a3fdcb2ffd6c34e471a1a2e109d3514e1de94fba003191fa9ca353e. USB5234→loopback5264; protected16port/adres/PID0fark. YeniAPK cihazhash dff8ed37cf34066416e89dca9676515b4e008eeb69df22c065b67c50d07a8c8f,131unitPASS. Mevcut normal actor16 giriş/fiş-koli okuması/native4büyük görev ekranı görüldü; önceki actor15 ticari prova tekrar edilmedi. HOME HTTP altırolokuması/beşnegatif geçti; stok/finans/SQL/rol yazması0. Yeni normal ERP HOME cihaz görseli ChromeURLkomutu policy-block nedeniyle NOT_RUN; bypass yok. İstekler2,665–3,002sn, kullanıcı ilk görünüm hızı değildir.
 

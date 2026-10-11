@@ -20,4 +20,8 @@ Native kaynak özetinin gerçek uçtan uca okuması rol16 için3138/2978ms, rol1
 
 Private kanıt: `daily-home-source-readonly-2026-10-11T085036940Z.json`, SHA256 `0f781940c18db3b1050ca240bd2cbfb74ef2217703b34565ac196c18721b48e7`; aynı dosyanın `-comparison.json` eki bağımsız mevcut API karşılaştırmasını içerir. Ticari POST0, persistent SQL writes0, rol/servis değişikliği0. Normal giriş ve mevcut TEST-only actor oturumu auth audit üretebilir.
 
-Bu kaynak sonucu ortak a51b117 API/Hub'ın yeniden başlatıldığı anlamına gelmez. Immutable yeni paket ve geçici USB/loopback HTTP makbuzu ayrıca teslimde bağlanacaktır. Normal ERP HOME cihaz görseli önceki politika reddi nedeniyle NOT_RUN kalır; reddedilen URL açma işlemi başka yoldan denenmez. İnsan ERP-UA32 bekliyor; bu teknik sonuç genel ERP/LIVE kabulü değildir.
+Uygulama source `8ca0122af79ec03bf3077fc83169f852c4f2a4e8`; yeni immutable paket `CANONICAL-COMPLETE-TEST-20261011-8ca0122af79e`, manifestSHA `f74e9f80a3604a2890e4bd0b7025f07c692e4bdd38053dc3fbf6d7efc8cba6d6`. Tam BUSINESS build/baseline ve1735dosya/0hashsapması/24kapalı kaynakpini geçti. GeçiciUSB/loopback5264 PID38956 yeni paketi kullanır;16korunan port/PID/adres kaydında0fark. Ortak a51b117 API/native/Hub ve TEST125 yeniden başlatılmadı.
+
+`packaged-daily-home-http-2026-10-11T085542552Z.json` complete=true: iki normalrol16/15 için6GET okuması; actorsız401,POST405,yabancıorigin403,query404,geçersiztoken401. Config/korunanAPI aynı; ticariPOST/kalıcıSQLyazması0. HTTP örnekleri rol16 2885/2810/3242ms,rol15 2882/4473/7217ms; bu yeni hız kazancı değildir, okuma maliyeti sonraki iştir. Gerekli CI source8ca0122 runs38126450545/38126448293 için hesap/harcama nedeniyle başlamadı; yeşil sayılmaz.
+
+Normal ERP HOME cihaz görseli önceki politika reddi nedeniyle NOT_RUN kalır; reddedilen URL açma işlemi başka yoldan denenmez. İnsan ERP-UA32 bekliyor; bu teknik sonuç genel ERP/LIVE kabulü değildir. Sonraki belge commit'i application source'dan ayrı tutulur.
