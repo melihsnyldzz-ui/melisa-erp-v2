@@ -21,6 +21,7 @@ const readyPerformanceRevisions=new WeakMap();
 const effectsPerformanceRevisions=new WeakMap();
 const businessDailyRevisions=new WeakMap();
 const businessDailyProfitRevisions=new WeakMap();
+const businessReadinessQueryPlanRevisions=new WeakMap();
 export const isolatedCopyError=(code='ISOLATED_COPY_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Ayrılmış deneme işleminin kapsamı doğrulanamadı.'),{code,statusCode});
 export function copyAssert(ok,code,status=503){if(!ok)throw isolatedCopyError(code,status);}
 // ODBC dates can have enumerable nanoseconds metadata. Preserve their JSON
@@ -87,7 +88,8 @@ export function assertIsolatedCopyReadProof(context,proof){
  assertIsolatedCopyContext(context);
  const revision=businessDailyRevisions.get(context)??adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
  const profit=businessDailyProfitRevisions.get(context);
- copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
+ const queryPlan=businessReadinessQueryPlanRevisions.get(context)?.revision;
+ copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(queryPlan?.modules.find(m=>m.name===p.name)?.afterHash??profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
 // journal identity. It is never accepted from an HTTP body or an environment flag.
@@ -220,6 +222,15 @@ export function registerBusinessDailyRevision(context,input,proof){
 }
 export function getBusinessDailySelection(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScope.selection??null;}
 export function getBusinessDailyScopeHash(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScopeHash??null;}
+export function getBusinessReadinessQueryPlanRevision(context){assertIsolatedCopyContext(context);return businessReadinessQueryPlanRevisions.get(context)??null;}
+// Registration is a server-only step after fresh SQL proof and v1-v5 closure.
+export function registerBusinessReadinessQueryPlanRevision(context,input,proof){
+ assertIsolatedCopyContext(context);const daily=businessDailyRevisions.get(context),profit=businessDailyProfitRevisions.get(context),{revisionHash,...body}=input??{},m=input?.modules?.[0];
+ copyAssert(context.target.database===BUSINESS_COPY_DATABASE&&daily&&profit&&!businessReadinessQueryPlanRevisions.has(context)&&input?.schemaVersion==='melisa-readiness-query-plan-revision.v1'&&input.version===6&&input.copyId===context.copyId&&input.baseSealHash===context.sealHash&&input.baseDailyRevisionHash===daily.revisionHash&&input.baseProfitRevisionHash===profit.revisionHash&&input.dailyScopeHash===daily.dailyScopeHash&&input.modules?.length===1&&m.name===ISOLATED_COPY_PROCEDURES.ready&&m.beforeHash===profit.modules.find(p=>p.name===m.name)?.afterHash&&hash(m.afterHash)&&m.afterHash!==m.beforeHash&&hash(input.immutableTriggerHash)&&revisionHash===isolatedCopyHash(body),'BUSINESS_READINESS_QUERY_PLAN_REGISTRATION');
+ const sets=proof?.recordsets,meta=sets?.[0]?.[0],row=sets?.[1]?.[0];
+ copyAssert(Array.isArray(sets)&&sets.length===4&&sets[0]?.length===1&&sets[1]?.length===1&&meta.databaseName===context.target.database&&meta.serverName===context.target.server&&[1,true].includes(meta.registryExists)&&meta.actualHash===m.afterHash&&meta.immutableTriggerHash===input.immutableTriggerHash&&meta.triggerDisabled===0&&meta.baseManifestRows===185&&meta.manifestSealHash===context.sealHash&&typeof row.copyId==='string'&&row.copyId.toLowerCase()===context.copyId&&row.version===6&&row.name===m.name&&row.beforeHash===m.beforeHash&&row.afterHash===m.afterHash&&row.revisionHash===revisionHash&&row.baseSealHash===context.sealHash&&row.baseDailyRevisionHash===daily.revisionHash&&row.baseProfitRevisionHash===profit.revisionHash&&row.dailyScopeHash===daily.dailyScopeHash,'BUSINESS_READINESS_QUERY_PLAN_REGISTRATION_PROOF');
+ const registered=freeze({daily,profit,revision:structuredClone(input)});businessReadinessQueryPlanRevisions.set(context,registered);return registered.revision;
+}
 // Append-only proof of the three revised definitions. This never changes the
 // v4 selection, journal identity, scope or historical module hashes.
 export function registerBusinessDailyProfitRevision(context,input,proof){

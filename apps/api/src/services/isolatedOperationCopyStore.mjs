@@ -3,6 +3,7 @@ import {getBusinessInboundSelection} from '../middleware/businessInboundSelectio
 import {getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
 import {withIsolatedOperationCopyScope} from './isolatedOperationCopyScope.mjs';
 import {verifyBusinessDailyNativeCheck} from './businessDailyNativeCheck.mjs';
+import {verifyBusinessReadinessQueryPlan} from './businessReadinessQueryPlanRevision.mjs';
 
 export const ISOLATED_COPY_OPERATION_PERMISSIONS=Object.freeze({sale_draft:'sales.create',sale_finalize:'sales.finalize',sale_cancel:'sales.cancel',collection_create:'finance.collection',collection_cancel:'finance.collection.cancel',count_create:'goods.create',count_update:'goods.create',count_submit:'goods.create',count_cancel:'goods.create',goods_accept:'goods.approve',goods_reject:'goods.reject',purchase_draft:'purchase.create',purchase_finalize:'purchase.finalize',purchase_cancel:'purchase.cancel',payment:'finance.payment',payment_cancel:'finance.payment.cancel',stock_count_draft:'product.view',stock_count_approve:'stock.adjust',stock_count_reject:'stock.adjust',stock_count_cancel:'stock.adjust',purchase_return_draft:'purchase.view',purchase_return_approve:'purchase.cancel',purchase_return_reject:'purchase.cancel',purchase_return_cancel:'purchase.cancel',stock_reverse:'stock.adjust'});
 const domains=new Set(['trade','inbound','payment','daily']);
@@ -47,6 +48,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    // remain concurrent; existing exclusive writers cannot invert the lock order.
    await req().input('lockKey',q.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query(`DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@lockKey,@LockMode=N'${write?'Exclusive':'Shared'}',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51401,'ISOLATED_COPY_BUSY',1;`);
    if(getBusinessDailyScopeHash(context))await verifyBusinessDailyNativeCheck(context,req());
+   await verifyBusinessReadinessQueryPlan(context,req());
    await req().input('copy_id',q.UniqueIdentifier,context.copyId).execute(ISOLATED_COPY_PROCEDURES.ready);
    assertFiniteCopyForeignKeys((await req().query(ISOLATED_COPY_FINITE_FK_SQL)).recordset);
    const selection=context.target.database===BUSINESS_COPY_DATABASE?getBusinessInboundSelection(context):null;
@@ -57,6 +59,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    const nativeContext={pool:r.pool,sqlDriver:q,transaction:tx,isolatedOperationCopy:context};
    const reloadContext=async()=>{
     if(getBusinessDailyScopeHash(context))await verifyBusinessDailyNativeCheck(context,req());
+    await verifyBusinessReadinessQueryPlan(context,req());
     const fresh=(await contextRequest().execute(ISOLATED_COPY_PROCEDURES.context)).recordset?.[0];
     assertIsolatedCopyReadProof(context,parse(fresh?.proof_json));assertIsolatedCopyActor(context,actor,parse(fresh?.actor_json),permission);
     Object.assign(normalContext,parse(fresh?.context_json));bindIsolatedCopyOperationDTO(context,normalContext);return normalContext;

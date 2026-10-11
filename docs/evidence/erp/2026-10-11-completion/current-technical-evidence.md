@@ -1,5 +1,11 @@
 # Güncel teknik kanıt ve teslim sınırı — 11 Ekim 2026
 
+## Güncel ek: gerçek kurtarma ve izole sorgu provası
+
+Disk bağımlılığı artık çözülmüştür. Eski ve güncel DB02 yedekleri yeni hedeflere gerçekten restore/CHECKDB doğrulandı. Yeni proof kopyasında751tablo/10şema ve exact ayrı login izolasyonu kanıtlandı; aktif DB02/TEST125 üzerine restore/reset yapılmadı. v6 consumer kaynakta hazır, ortak API'de etkin değil. İlk native keşif/saklanan SQL header bulguları dar adapter düzeltmeleriyle ele alındı; hız/eşdeğerlik/11negatif/normal okuyucu kabulü hâlâ tamamlanmadı. [Tarihli kurtarma ve kaynak kanıtı](recovery-and-readiness-proof.md).
+
+Aşağıdaki önceki disk/restore/aday aktivasyon notları kendi tarihlerinin kanıtıdır. Yeni sürekli runtime kontrolünde geçici5264 dinlemiyor; daha önce orada alınmış gerçek Android/video kanıtı korunur fakat yüzün şu an açık olduğu anlamına gelmez. İnsan ERP-UA32 ve49/9/39/1 sayımı korunur.
+
 ## Barkod deneme yöntemi — ERP-DEC-045
 
 Kullanıcı okuyucunun çalıştığını teyit etti ve yeniden fiziksel okutma talebini kaldırdı. Yeni teknik denemelerde barkod elle/ADB metniyle girilecek; doğru ürün/birim/başlangıç sıfırları ve sonuç yine doğrulanacak. Bu kararla yeni fiziksel optik test yapılmadı; kullanıcı teyidi ve teknik elle giriş kanıtı ayrı kalır. Aşağıdaki fiziksel scanner PENDING/NOT_RUN ifadeleri önceki kanıtın tarihsel durumudur; yeniden okutma mevcut görevin engeli veya kullanıcıya verilecek iş değildir. ERP-UA32 genel personel/işletme kabulü bekler; disk/native prova ve aktivasyon sınırları aynı kalır.

@@ -76,7 +76,13 @@ export function readinessProofTarget(bundle,input){
  let baseline=bundle.originalDefinition;
  for(const x of bundle.overlays)baseline=baseline.replace(x.expression,x.replacement);
  baseline=baseline.replace(scalar,scalar+'\n'+bundle.guard);
- const toProof=s=>rebind(s).replaceAll(bundle.revision.immutableTriggerHash,proofTriggerHash);
- const baselineDefinition=toProof(baseline),definition=toProof(bundle.createDefinition);
- return Object.freeze({target:{...input},sourceDefinition:bundle.originalDefinition,baselineDefinition,candidateDefinition:definition,tableSQL:bundle.tableSQL,immutableSQL:trigger,proofBaselineHash:moduleHash(baselineDefinition),proofAfterHash:moduleHash(definition),proofTriggerHash,sharedBeforeHash:bundle.revision.modules[0].beforeHash,sharedAfterHash:bundle.revision.modules[0].afterHash,identityRebindings:['database','originalLogin','isolatedRegistryOwner'],historicalGuardOverlaySameInBoth:true,installAllowed:false,transactionMustRollback:true,requiresProvisionedProofClone:true});
+ // Native clone diagnosis confirmed that ALTER stores a CREATE header in
+ // OBJECT_DEFINITION, with the remaining text unchanged. Separate executable
+ // ALTER SQL from its exact expected stored CREATE text. moduleHash itself is
+ // never normalized, and shared preparation/source pins remain unchanged.
+ const toStored=s=>rebind(s).replaceAll(bundle.revision.immutableTriggerHash,proofTriggerHash);
+ const baselineStoredDefinition=toStored(baseline),candidateStoredDefinition=toStored(bundle.createDefinition);
+ check([baselineStoredDefinition,candidateStoredDefinition].every(s=>s.startsWith('CREATE PROCEDURE dbo.usp_stage4_copy_ready ')),'READINESS_PROOF_STORED_HEADER');
+ const baselineExecutionSQL=baselineStoredDefinition.replace(/^CREATE PROCEDURE /,'ALTER PROCEDURE '),candidateExecutionSQL=candidateStoredDefinition.replace(/^CREATE PROCEDURE /,'ALTER PROCEDURE ');
+ return Object.freeze({target:{...input},sourceDefinition:bundle.originalDefinition,baselineExecutionSQL,baselineStoredDefinition,candidateExecutionSQL,candidateStoredDefinition,tableSQL:bundle.tableSQL,immutableSQL:trigger,proofBaselineHash:moduleHash(baselineStoredDefinition),proofAfterHash:moduleHash(candidateStoredDefinition),proofTriggerHash,sharedBeforeHash:bundle.revision.modules[0].beforeHash,sharedAfterHash:bundle.revision.modules[0].afterHash,identityRebindings:['database','originalLogin','isolatedRegistryOwner'],historicalGuardOverlaySameInBoth:true,installAllowed:false,transactionMustRollback:true,requiresProvisionedProofClone:true});
 }

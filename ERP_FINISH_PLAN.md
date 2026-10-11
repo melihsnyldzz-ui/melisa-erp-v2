@@ -2,6 +2,8 @@
 
 ERP-DEC-045 ile fiziksel barkodun tekrar denenmesi kullanıcı tarafından kaldırıldı; okuyucu kullanıcı teyitli, teknik denemeler elle/ADB girişle yürütülür. Personel/işletme kabulü otomatik PASS olmaz;49/9/39/1 sayımı korunur.
 
+11 Ekim ek teknik kanıt: eski ve güncel DB02 yedekleri ayrı hedeflere gerçekten restore/CHECKDB doğrulandı;751tabloluk yeni native prova kopyası hazır. v6 consumer kaynakta hazır, çalışan ortak API'de etkin değil. Disk bağımlılığı çözüldü; native hız/eşdeğerlik/negatif/rollback ve normal aktör kabulü açık. [Kurtarma ve hazırlık kanıtı](docs/evidence/erp/2026-10-11-completion/recovery-and-readiness-proof.md). Yaprak sayımı/insan kabulü değişmedi.
+
 Teknik denetim, gerçek fiziksel/personel kabulü ve LIVE hazır olma ayrı tutulur. Doğrulanmış **49 / 9 tamam / 39 kısmi / 1 açık** sayımı korunur. Gerçek TC21 normal personel ile mal kabul/gönderim, tek sentetik satış/replay, iki miktarlı koli/yeniden açılış ve atanmış CRM konuşması/taslağa dönüş kanıtlandı. Dört Türkçe sesli/altyazılı cihaz videosu ve16 alıştırma hazır. HOME kaynak düzeltmesi gerçek DB02 SELECT ile kanıtlı fakat mevcut API'de etkin değil; katalog native plan provası ve geniş günlük işletme sınırları açık. Bunlar kapanmadan ilgili yapraklar tamam sayılmaz. [Kanıt](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md). ERP-UA32 bekliyor; sabit ağ/boot checkpoint'i etkinleştirilmedi.
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 

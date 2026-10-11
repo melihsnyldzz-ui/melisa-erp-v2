@@ -26,7 +26,7 @@ if(config.copyAdapterRevision){
 }
 if(config.businessDailyRevision){
  const {configureBusinessDailyRevision}=await import('./src/services/businessDailyRevisionBootstrap.mjs');
- await configureBusinessDailyRevision(context,config.businessReadyRevision,config.businessReadyPerformanceRevision,config.businessEffectsPerformanceRevision,config.businessDailyRevision,pool,config.businessDailyProfitRevision,config.businessDailyNativeCheck);
+ await configureBusinessDailyRevision(context,config.businessReadyRevision,config.businessReadyPerformanceRevision,config.businessEffectsPerformanceRevision,config.businessDailyRevision,pool,config.businessDailyProfitRevision,config.businessDailyNativeCheck,config.businessReadinessQueryPlanRevision);
 }else if(config.businessEffectsPerformanceRevision){
  const {configureBusinessEffectsPerformanceRevision}=await import('./src/services/businessReadyRevisionBootstrap.mjs');
  await configureBusinessEffectsPerformanceRevision(context,config.businessReadyRevision,config.businessReadyPerformanceRevision,config.businessEffectsPerformanceRevision,pool);

@@ -6,6 +6,7 @@ export const FEATURE_ENTRY='scripts/canonical/start-terminal-worktest.mjs';
 export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/businessDailyNativeCheck.mjs',
  'apps/api/src/services/businessDailyProfitRevision.mjs',
+ 'apps/api/src/services/businessReadinessQueryPlanRevision.mjs',
  'apps/api/src/services/businessDailyRevisionBootstrap.mjs',
  'apps/api/src/services/businessReadyRevisionBootstrap.mjs',
  'apps/api/src/services/isolatedOperationCopyContext.mjs',

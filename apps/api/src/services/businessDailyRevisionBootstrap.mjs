@@ -2,6 +2,7 @@ import {copyAssert,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyContext,B
 import {BUSINESS_EFFECTS_PERFORMANCE_REVISION_PROOF_SQL} from './businessReadyRevisionBootstrap.mjs';
 import {businessDailyProfitReadSQL,validateBusinessDailyProfitRevision} from './businessDailyProfitRevision.mjs';
 import {businessDailyNativeCheckReadSQL,registerBusinessDailyNativeCheck} from './businessDailyNativeCheck.mjs';
+import {validateBusinessReadinessQueryPlanRevision,businessReadinessQueryPlanReadSQL,assertBusinessReadinessQueryPlanProof,overlayBusinessReadinessQueryPlanHistory,registerBusinessReadinessQueryPlan} from './businessReadinessQueryPlanRevision.mjs';
 
 export const BUSINESS_DAILY_REVISION_PROOF_SQL=BUSINESS_EFFECTS_PERFORMANCE_REVISION_PROOF_SQL+`
 SELECT DB_NAME() databaseName,CONVERT(varchar(36),r.copy_id) copyId,r.revision version,r.base_seal_hash baseSealHash,r.base_effects_revision_hash baseEffectsRevisionHash,r.name,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,r.daily_scope_hash dailyScopeHash,r.daily_profile_json dailyProfileJSON,p.after_hash baseManifestHash,
@@ -34,15 +35,22 @@ export function validateBusinessDailyRevision(context,base,performance,effects,i
  const {revisionHash,...body}=input;copyAssert(hash(revisionHash)&&revisionHash===isolatedCopyHash(body),'BUSINESS_DAILY_REVISION_SEAL');
  return input;
 }
-export async function configureBusinessDailyRevision(context,base,performance,effects,input,pool,profitInput,nativeCheckInput){
+export async function configureBusinessDailyRevision(context,base,performance,effects,input,pool,profitInput,nativeCheckInput,queryPlanInput){
  validateBusinessDailyRevision(context,base,performance,effects,input);
- let profitRows,overrides=[];
+ let profitRows,queryPlanProof,overrides=[];
+ if(queryPlanInput!==undefined){
+  validateBusinessReadinessQueryPlanRevision(input,profitInput,queryPlanInput);
+  queryPlanProof=await pool.request().query(businessReadinessQueryPlanReadSQL());
+  assertBusinessReadinessQueryPlanProof(context,input,profitInput,queryPlanInput,queryPlanProof);
+ }
  if(profitInput!==undefined){
   profitRows=(await pool.request().query(businessDailyProfitReadSQL())).recordset;
+  if(queryPlanInput!==undefined)profitRows=overlayBusinessReadinessQueryPlanHistory(profitRows,queryPlanInput);
   overrides=validateBusinessDailyProfitRevision(input,profitInput,profitRows);
  }
- const recordsets=(await pool.request().query(BUSINESS_DAILY_REVISION_PROOF_SQL)).recordsets;
+ let recordsets=(await pool.request().query(BUSINESS_DAILY_REVISION_PROOF_SQL)).recordsets;
  copyAssert(Array.isArray(recordsets)&&recordsets.length===4,'BUSINESS_DAILY_DB_PROOF');
+ if(queryPlanInput!==undefined)recordsets=recordsets.map(rows=>overlayBusinessReadinessQueryPlanHistory(rows,queryPlanInput));
  // Only an independently verified append-only v5 proof may map current
  // definitions back to their immutable historical v4 definitions.
  for(const group of recordsets)for(const row of group){const pin=overrides.find(m=>m.name===row.name);if(pin){copyAssert(row.actualHash===pin.currentHash,'BUSINESS_DAILY_PROFIT_CURRENT_PIN');row.actualHash=pin.historicalHash;}}
@@ -57,5 +65,6 @@ export async function configureBusinessDailyRevision(context,base,performance,ef
  const registered=registerBusinessDailyRevision(context,input,rows);
  if(profitInput!==undefined)registerBusinessDailyProfitRevision(context,profitInput,profitRows);
  registerBusinessDailyNativeCheck(context,input,profitInput,nativeCheckInput,await pool.request().query(businessDailyNativeCheckReadSQL()));
+ if(queryPlanInput!==undefined)registerBusinessReadinessQueryPlan(context,input,profitInput,queryPlanInput,queryPlanProof);
  return registered;
 }

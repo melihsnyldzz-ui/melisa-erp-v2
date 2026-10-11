@@ -1,4 +1,16 @@
-## ERP-COMPLETE01 — mevcut native hız / plan / sürüm zinciri gözlemi — 11 Ekim 2026
+## ERP-COMPLETE01 — disk engeli çözüldü; gerçek kurtarma ve v6 consumer hazırlığı — 11 Ekim 2026
+
+Kullanıcının eski prova/kurtarma kopyalarını kaldırma onayıyla13 eski DB, SQL-native yöntemle ve her biri için yeni COPY_ONLY/CHECKSUM/VERIFYONLY/SHA256 yedeği korunarak kaldırıldı. Başarısız kaldırma0; mevcut yedek silme0; çalışan DB01/DB02/TEST125/PRODCAND korundu. Net99.669.041.152byte alan açıldı. Sonraki iki ayrı kurtarma/prova kopyası ve güncel yedek sonrası C boş70.748.737.536byte; eski10,52GB disk engeli aşağıdaki tarihsel kayıtlarda kalır, güncel engel değildir.
+
+10 Ekim9.204.334.592byte DB02 yedeği exact hash yeniden hesaplanarak yeni READ_ONLY hedefte gerçekten restore edildi;CHECKDB temiz,748 tablo. 11 Ekim10:13:13–10:14:18 yerel saatte güncel DB02 COPY_ONLY/CHECKSUM yedeği9.217.900.544byte alındı; yeni READINESS_PROOF kopyasında gerçek restore205.835ms,CHECKDB temiz,751 tablo. Aktif DB üzerine restore/reset/REPLACE yok. [Yeni kanıt](docs/evidence/erp/2026-10-11-completion/recovery-and-readiness-proof.md). Private recovery makbuzları ve orijinal rapor hataları korunur.
+
+v6 kaynak consumer güncel SQL module/registry/trigger pinleri ve parent v1–v5 zincirini işlem/reload'da yeniden doğrular; immutable terminal paketinin14 dosyalık kapalı kaynak listesine eklendi. İlk13 dosyalık root regresyon120/120 offline PASS,0fail/skip; bu native kabul değildir. Yeni kaynak ortak API'de etkin değil. Her negatif ayrı transaction/full rollback/SPID/snapshot ister; fixture setup hatası PASS değildir. Dokuz native bağı hâlâ eksik,11 gereklilik azaltılmadı.
+
+Native ilk gerçek keşifte tüm10şema/751tablo için snapshot quote kapsamı düzeltildi. Sonraki denemede SQL Server'ın ALTER yürütmesinden sonra OBJECT_DEFINITION içinde CREATE başlığı sakladığı gerçek rollback-only DDL ile kanıtlandı. Yürütme SQL'i ile beklenen saklanan metin/hash ayrı sabitlenir; global moduleHash normalizasyonu veya tolerans eklenmez. İlk iki başarısız prova makbuzu korunur; henüz hız kazancı/11negatif/normal okuyucu veya shared aktivasyon PASS iddiası yok.
+
+Korunan kaynaklar: API4184/native4186 a51b117; TEST125 edb3c8915ef; Hub5234 466ac2df. Geçici5264 son port kontrolünde dinlemiyor; önceki geçici Android ekran kanıtları sürekli runtime garantisi değildir. Sabit ağ/başlangıç checkpoint'i etkinleştirilmedi. İnsan ERP-UA32 ve finish49/9/39/1 aynı. Sıradaki tek teknik iş exact native gözlem/rollback makbuzunun tamamlanmasıdır; ardından kalan ayrı actor/effects/kaynak bağları. PR23 kaynak teslimi ve exact head CI ayrı doğrulanır; CI harcama engeli yeşil sayılmaz.
+
+## Tarihsel ERP-COMPLETE01 — mevcut native hız / plan / sürüm zinciri gözlemi — 11 Ekim 2026
 
 Çalışan a51b117 / DB02 / exact copy kimliği korunarak mevcut `usp_stage4_copy_ready` üç kez salt okunur gözlemlendi: **959 / 1.063 / 983 ms; ortanca983 ms**. Mantıksal sayfa okumaları124.635 /124.638 /124.637; bu fiziksel disk okuması değildir. İkinci gözlemde fiyat27.151 ve karantina14.786 mantıksal okuma yaptı. Aynı SPID/SERIALIZABLE/Shared applock sonunda rollback; kalıcı DML/DDL/yetki/servis değişikliği0. Yeni v6 aday yürütülmedi; katalog API toplam süresi veya önce/sonra hız kazancı değildir. Private makbuz `current-ready-native-readonly-observation.json`,SHA `7F67FD532253DDFDEA4FCCB61A5710D8BD191CF0D2CC30EE5A503BB811C6ED2A`.
 

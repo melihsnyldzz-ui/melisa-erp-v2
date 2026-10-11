@@ -1,14 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {businessInboundFixture} from './businessInbound.test-fixture.mjs';
-import {fixtureProof} from './isolatedOperationCopyContext.test.mjs';
-import {isolatedCopyHash,isolatedCopyJSON,validateIsolatedOperationCopyContext,assertIsolatedCopyReadProof,getBusinessDailySelection,getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
-import {isolatedCopyRequestBody} from './isolatedOperationCopyStore.mjs';
+import {fixtureProof,fixtureIdentity} from './isolatedOperationCopyContext.test.mjs';
+import {isolatedCopyHash,isolatedCopyJSON,validateIsolatedOperationCopyContext,assertIsolatedCopyReadProof,assertIsolatedCopyActor,getBusinessDailySelection,getBusinessDailyScopeHash,getBusinessReadinessQueryPlanRevision,registerBusinessReadinessQueryPlanRevision} from './isolatedOperationCopyContext.mjs';
+import {isolatedCopyRequestBody,createIsolatedOperationCopyStore,ISOLATED_COPY_FINITE_FK_SQL} from './isolatedOperationCopyStore.mjs';
 import {selectBusinessDailyProfile} from '../../../../scripts/canonical/shared-business-daily-revision-sql.mjs';
 import {configureBusinessDailyRevision,validateBusinessDailyRevision,BUSINESS_DAILY_REVISION_PROOF_SQL} from './businessDailyRevisionBootstrap.mjs';
 import {validateSharedCopyBootstrap,publicSharedCopyScope} from './sharedCopyBootstrap.mjs';
 import {businessDailyProfitReadSQL} from './businessDailyProfitRevision.mjs';
 import {businessDailyNativeCheckReadSQL,BUSINESS_DAILY_NATIVE_CHECK_BEFORE} from './businessDailyNativeCheck.mjs';
+import {validateBusinessReadinessQueryPlanRevision,businessReadinessQueryPlanReadSQL,overlayBusinessReadinessQueryPlanHistory,verifyBusinessReadinessQueryPlan} from './businessReadinessQueryPlanRevision.mjs';
 
 // Anonymous offline fixtures. These account/price values are invented test
 // witnesses, not exported company data and not a real SQL installation.
@@ -102,4 +103,103 @@ test('v5 accepts SQL uppercase UUID representation and rejects missing database 
  const f=profitFixture();for(const row of f.rows)row.copyId=row.copyId.toUpperCase();await configureProfit(f);
  assert.deepEqual(getBusinessDailySelection(f.c),f.revision.dailyScope.selection);
  for(const value of [null,undefined,42,'']){const invalid=profitFixture();invalid.rows[0].copyId=value;await assert.rejects(configureProfit(invalid));}
+});
+
+function queryPlanFixture(){
+ const f=profitFixture(),parent=f.v5.modules.find(m=>m.name==='dbo.usp_stage4_copy_ready');
+ const v6=sealed({schemaVersion:'melisa-readiness-query-plan-revision.v1',version:6,copyId:f.c.copyId,baseSealHash:f.c.sealHash,baseDailyRevisionHash:f.revision.revisionHash,baseProfitRevisionHash:f.v5.revisionHash,dailyScopeHash:f.revision.dailyScopeHash,modules:[{name:parent.name,beforeHash:parent.afterHash,afterHash:'D'.repeat(64)}],immutableTriggerHash:'F'.repeat(64)});
+ for(const group of [...f.proof,f.rows])for(const r of group){if(r.name===parent.name)r.actualHash=v6.modules[0].afterHash;}
+ const parentRows=p=>p.modules.map(m=>({copyId:p.copyId,version:p.version,baseSealHash:p.baseSealHash,dailyScopeHash:p.dailyScopeHash,name:m.name,beforeHash:m.beforeHash,afterHash:m.afterHash,revisionHash:p.revisionHash}));
+ const queryProof={recordsets:[[{databaseName:f.c.target.database,serverName:f.c.target.server,registryExists:true,actualHash:v6.modules[0].afterHash,immutableTriggerHash:v6.immutableTriggerHash,triggerDisabled:0,baseManifestRows:185,manifestSealHash:f.c.sealHash}],[{copyId:f.c.copyId,version:6,baseSealHash:v6.baseSealHash,baseDailyRevisionHash:v6.baseDailyRevisionHash,baseProfitRevisionHash:v6.baseProfitRevisionHash,dailyScopeHash:v6.dailyScopeHash,name:parent.name,beforeHash:parent.afterHash,afterHash:v6.modules[0].afterHash,revisionHash:v6.revisionHash}],parentRows(f.revision),parentRows(f.v5)]};
+ const pool={request:()=>({query:async sql=>sql===businessReadinessQueryPlanReadSQL()?structuredClone(queryProof):f.pool.request().query(sql)})};
+ return {...f,v6,queryProof,pool};
+}
+const configureQueryPlan=f=>configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool,f.v5,undefined,f.v6);
+const queryPlanHashes=f=>Object.fromEntries(Object.entries(f.c.sql).map(([key,m])=>[key,(f.v6.modules.find(p=>p.name===m.name)??f.v5.modules.find(p=>p.name===m.name)??f.revision.modules.find(p=>p.name===m.name)).afterHash]));
+
+test('v6 validates fresh SQL and immutable v1-v5 closure, preserving scope, actor permissions and latest readProof pin',async()=>{
+ const f=queryPlanFixture(),before=isolatedCopyJSON(f.c),dailyBody=isolatedCopyJSON(f.revision);await configureQueryPlan(f);
+ assert.equal(isolatedCopyJSON(f.c),before);assert.equal(isolatedCopyJSON(f.revision),dailyBody);
+ assertIsolatedCopyReadProof(f.c,{...fixtureProof(f.c),definitionHashes:queryPlanHashes(f)});
+ for(const stale of [f.v5.modules.find(m=>m.name===f.c.sql.ready.name).afterHash,f.revision.modules[0].afterHash,f.c.sql.ready.hash])assert.throws(()=>assertIsolatedCopyReadProof(f.c,{...fixtureProof(f.c),definitionHashes:{...queryPlanHashes(f),ready:stale}}));
+ assert.deepEqual(getBusinessDailySelection(f.c),f.revision.dailyScope.selection);assert.equal(getBusinessDailyScopeHash(f.c),f.revision.dailyScopeHash);
+ const actor={id:'15',permissions:['sales.view']},actual={id:'15',role:f.c.actors.find(a=>a.id==='15').role,active:true,permissions:['sales.view']};
+ assertIsolatedCopyActor(f.c,actor,actual,'sales.view');assert.throws(()=>assertIsolatedCopyActor(f.c,actor,actual,'sales.finalize'),{statusCode:403});assert.throws(()=>assertIsolatedCopyActor(f.c,actor,{...actual,role:'admin'},'sales.view'),{statusCode:403});
+ assert(Object.isFrozen(getBusinessReadinessQueryPlanRevision(f.c).revision.modules[0]));
+});
+
+test('v6 missing/foreign/stale/disabled/duplicate metadata and each parent pin reject before registration',async()=>{
+ const mutations=[
+  p=>p.recordsets[0][0].registryExists=false,p=>p.recordsets[0][0].actualHash='B'.repeat(64),p=>p.recordsets[0][0].immutableTriggerHash='A'.repeat(64),p=>p.recordsets[0][0].triggerDisabled=1,
+  p=>p.recordsets[0][0].databaseName='LIVE',p=>p.recordsets[0][0].serverName='Other',p=>p.recordsets[0][0].baseManifestRows=184,p=>p.recordsets[0][0].manifestSealHash='A'.repeat(64),
+  p=>p.recordsets[1].pop(),p=>p.recordsets[1].push({...p.recordsets[1][0]}),p=>p.recordsets[2].pop(),p=>p.recordsets[3].push({...p.recordsets[3][0]}),p=>p.recordsets.pop()
+ ];
+ for(const mutate of mutations){const f=queryPlanFixture();mutate(f.queryProof);await assert.rejects(configureQueryPlan(f));assert.equal(getBusinessReadinessQueryPlanRevision(f.c),null);}
+ for(const group of [0,1,2,3])for(const key of Object.keys(queryPlanFixture().queryProof.recordsets[group][0])){
+  const f=queryPlanFixture();f.queryProof.recordsets[group][0][key]=null;await assert.rejects(configureQueryPlan(f),`${group}:${key}`);assert.equal(getBusinessReadinessQueryPlanRevision(f.c),null);
+ }
+});
+
+test('v6 accepts SQL uppercase UUIDs but rejects resealed forged parents, module widening and config without v5',async()=>{
+ const valid=queryPlanFixture();for(const rows of valid.queryProof.recordsets.slice(1))for(const r of rows)r.copyId=r.copyId.toUpperCase();await configureQueryPlan(valid);
+ for(const mutate of [r=>r.baseDailyRevisionHash='A'.repeat(64),r=>r.baseProfitRevisionHash='A'.repeat(64),r=>r.dailyScopeHash='A'.repeat(64),r=>r.modules[0].beforeHash='A'.repeat(64),r=>r.modules[0].afterHash=r.modules[0].beforeHash,r=>r.modules[0].name='dbo.usp_stage4_copy_effects',r=>r.modules.push({...r.modules[0]}),r=>r.extra=true]){
+  const f=queryPlanFixture();mutate(f.v6);const {revisionHash,...body}=f.v6;f.v6.revisionHash=isolatedCopyHash(body);assert.throws(()=>validateBusinessReadinessQueryPlanRevision(f.revision,f.v5,f.v6));
+ }
+ const f=queryPlanFixture();await assert.rejects(configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool,undefined,undefined,f.v6));
+ await assert.rejects(configureBusinessDailyRevision(f.c,f.base,f.performance,f.effects,f.revision,f.pool,f.v5));
+});
+
+test('v6 overlay is ready-only, refuses stale ready in any history group and never hides another module drift',async()=>{
+ const f=queryPlanFixture(),rows=[{name:f.c.sql.ready.name,actualHash:f.v6.modules[0].afterHash},{name:f.c.sql.effects.name,actualHash:'7'.repeat(64)}],out=overlayBusinessReadinessQueryPlanHistory(rows,f.v6);
+ assert.equal(out[0].actualHash,f.v6.modules[0].beforeHash);assert.deepEqual(out[1],rows[1]);assert.equal(rows[0].actualHash,f.v6.modules[0].afterHash);
+ for(let group=0;group<4;group++){const changed=queryPlanFixture();changed.proof[group].find(r=>r.name===changed.c.sql.ready.name).actualHash=changed.v6.modules[0].beforeHash;await assert.rejects(configureQueryPlan(changed));}
+ const changed=queryPlanFixture();changed.proof[3].find(r=>r.name===changed.c.sql.effects.name).actualHash='F'.repeat(64);await assert.rejects(configureQueryPlan(changed));
+});
+
+test('v6 runtime verification rereads metadata and parents on every call; unregistered legacy context makes no query',async()=>{
+ const legacy=fixture();let reads=0;await verifyBusinessReadinessQueryPlan(legacy.c,{query:async()=>{reads++;throw Error('not expected');}});assert.equal(reads,0);
+ for(const mutate of [p=>p.recordsets[0][0].triggerDisabled=1,p=>p.recordsets[0][0].actualHash='A'.repeat(64),p=>p.recordsets[1].pop(),p=>p.recordsets[2][0].revisionHash='A'.repeat(64),p=>p.recordsets[3][0].copyId='foreign']){
+  const f=queryPlanFixture();await configureQueryPlan(f);await verifyBusinessReadinessQueryPlan(f.c,f.pool.request());mutate(f.queryProof);await assert.rejects(verifyBusinessReadinessQueryPlan(f.c,f.pool.request()));
+ }
+});
+
+test('shared bootstrap validates optional v6 parents without publishing revision/SQL pins to the web scope',()=>{
+ const f=queryPlanFixture(),config={copyContext:f.c,host:'127.0.0.1',lanHost:'192.168.1.46',erpPort:4184,nativePort:4186,webPort:5234,database:f.c.target.database,server:f.c.target.server,sqlUser:'melisa_shared_test_ro_20261009_02',salesSqlUser:f.c.target.login,jwtAccessSecret:'s'.repeat(48),jwtRefreshSecret:'t'.repeat(48),businessReadyRevision:f.base,businessReadyPerformanceRevision:f.performance,businessEffectsPerformanceRevision:f.effects,businessDailyRevision:f.revision,businessDailyProfitRevision:f.v5,businessReadinessQueryPlanRevision:f.v6};
+ const {context}=validateSharedCopyBootstrap(config);assert.equal(JSON.stringify(publicSharedCopyScope(context)).includes(f.v6.revisionHash),false);
+ const {businessReadinessQueryPlanRevision,...legacy}=config;validateSharedCopyBootstrap(legacy);
+ const noParent={...config};delete noParent.businessDailyProfitRevision;assert.throws(()=>validateSharedCopyBootstrap(noParent));
+ const bad=structuredClone(config);bad.businessReadinessQueryPlanRevision.baseProfitRevisionHash='A'.repeat(64);assert.throws(()=>validateSharedCopyBootstrap(bad));
+});
+
+test('normal copy store revalidates v6 before ready/handler and on context reload; drift rolls back with no commit',async()=>{
+ for(const mode of ['valid','before-handler','on-reload']){
+  const f=queryPlanFixture();await configureQueryPlan(f);const events=[],state={commits:0,rollbacks:0,handlers:0,contextCalls:0},actor={id:'16',permissions:['sales.view']};
+  const normal={meta:{date:f.c.date,operationOrigin:f.c.operationOrigin,copyId:f.c.copyId,sealHash:f.c.sealHash},scope:{synthetic:false,operationOrigin:f.c.operationOrigin}};
+  class Transaction{async begin(level){assert.equal(level,'SERIALIZABLE');events.push('begin');}async commit(){state.commits++;}async rollback(){state.rollbacks++;}}
+  class Request{input(){return this;}async query(sql){
+   if(sql===businessReadinessQueryPlanReadSQL()){events.push('v6');return structuredClone(f.queryProof);}
+   if(sql===businessDailyNativeCheckReadSQL())return f.pool.request().query(sql);
+   if(sql===ISOLATED_COPY_FINITE_FK_SQL)return {recordset:[['FK__test_good__produ__5654B625','test_goods_batch_lines'],['FK__test_purc__produ__69678A99','test_purchase_batch_intent_lines']].map(([constraintName,parentTable])=>({constraintName,parentSchema:'dbo',parentTable,parentColumn:'product_id',referencedSchema:'dbo',referencedTable:'products',referencedColumn:'id',ordinal:1,columnCount:1,isDisabled:false,isNotTrusted:false,deleteAction:'NO_ACTION',updateAction:'NO_ACTION'}))};
+   if(sql.includes('sp_getapplock')){events.push('lock');return {recordset:[]};}
+   if(sql.startsWith('SELECT DB_NAME'))return {recordset:[fixtureIdentity(f.c)]};throw Error('Unexpected SQL');
+  }async execute(name){
+   if(name===f.c.sql.ready.name){events.push('ready');return {recordset:[]};}
+   assert.equal(name,f.c.sql.context.name);events.push('context');state.contextCalls++;
+   return {recordset:[{proof_json:JSON.stringify({...fixtureProof(f.c),definitionHashes:queryPlanHashes(f)}),actor_json:JSON.stringify({...actor,active:true,role:f.c.actors.find(a=>a.id===actor.id).role}),context_json:JSON.stringify(normal)}]};
+  }}
+  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:'SERIALIZABLE'},UniqueIdentifier:'uuid',NVarChar:n=>n,BigInt:'id'},runtime={sql,pool:{},copyContext:f.c};
+  const store=createIsolatedOperationCopyStore({getRuntime:async()=>runtime,buildDomain:async({context,reloadContext})=>{state.handlers++;return {context,reload:reloadContext};}});
+  if(mode==='before-handler')f.queryProof.recordsets[0][0].triggerDisabled=1;
+  const run=()=>store.read(actor,async c=>{if(mode==='on-reload')f.queryProof.recordsets[0][0].actualHash='A'.repeat(64);return c.reload();});
+  if(mode==='valid'){await run();assert.equal(state.commits,1);assert.equal(state.rollbacks,0);assert.equal(state.contextCalls,2);assert.deepEqual(events,['begin','lock','v6','ready','context','v6','context']);}
+  else{await assert.rejects(run());assert.equal(state.commits,0);assert.equal(state.rollbacks,1);assert.equal(state.handlers,mode==='before-handler'?0:1);assert.equal(state.contextCalls,mode==='before-handler'?0:1);}
+ }
+});
+
+test('v6 cannot register from sealed config alone or replace an existing registration',async()=>{
+ const pending=queryPlanFixture(),legacy=profitFixture();await configureProfit(legacy);
+ assert.throws(()=>registerBusinessReadinessQueryPlanRevision(legacy.c,pending.v6),{code:'BUSINESS_READINESS_QUERY_PLAN_REGISTRATION_PROOF'});
+ const current=queryPlanFixture();await configureQueryPlan(current);
+ assert.throws(()=>registerBusinessReadinessQueryPlanRevision(current.c,current.v6,current.queryProof),{code:'BUSINESS_READINESS_QUERY_PLAN_REGISTRATION'});
+ assert.throws(()=>getBusinessReadinessQueryPlanRevision(structuredClone(current.c)),{code:'ISOLATED_COPY_SERVER_CONTEXT_REQUIRED'});
 });

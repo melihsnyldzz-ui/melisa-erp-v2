@@ -11,6 +11,9 @@ export const READINESS_PROOF_NEGATIVES=Object.freeze([
  ['permission_drift','STAGE4_ACTOR_SCOPE_DRIFT'],['stock_drift','STAGE4_PRODUCT_SCOPE_DRIFT'],['price_drift','STAGE4_PRODUCT_SCOPE_DRIFT'],
  ['registry_hash_drift','READINESS_QUERY_PLAN_DEFINITION_DRIFT'],['disabled_query_plan_trigger','READINESS_QUERY_PLAN_REGISTRY_DRIFT']
 ]);
+// A preserved upstream rejection proves the business boundary, not execution
+// of the readiness predicate. The layer is explicit and compared in both runs.
+export const READINESS_PROOF_NEGATIVE_LAYERS=Object.freeze(Object.fromEntries(READINESS_PROOF_NEGATIVES.map(([kind])=>[kind,Object.freeze(kind==='permission_drift'?['native_actor']:kind==='stock_drift'?['native_effects']:kind==='party_hold'?['actual_ready','upstream_native_business']:['registry_hash_drift','disabled_query_plan_trigger'].includes(kind)?['actual_ready']:['actual_ready','upstream_native_business'])])));
 function proofIdentity(x,p){
  check(exact(x,['server','database','originalLogin','copyId','actualT1','dbOwner','sysadmin','accessShared','accessTest125','accessLive','sourceDefinitionHash','protectedSchemaHash','businessHash','permissionsHash','registryHistoryHash'])&&x.server===p.target.server&&x.database===READINESS_PROOF_DATABASE&&x.originalLogin===READINESS_PROOF_LOGIN&&x.copyId===p.target.copyId&&x.actualT1===false&&x.dbOwner===1&&x.sysadmin===0&&x.accessShared===0&&x.accessTest125===0&&x.accessLive===0&&x.sourceDefinitionHash===p.sharedBeforeHash&&['protectedSchemaHash','businessHash','permissionsHash','registryHistoryHash'].every(k=>hex(x[k])),'READINESS_PROOF_IDENTITY');
 }
@@ -28,29 +31,39 @@ export async function validateIsolatedReadinessQueryPlan({bundle,target,adapter}
  const before=await adapter.snapshot();check(hex(before),'READINESS_PROOF_SNAPSHOT');const observations=[],negativeResults=[];
  // Same identity overlay and appended guard in both controls. Only the four
  // measured query changes differ; neither alters historical registry rows.
- for(const [variant,definition,afterHash]of[['baseline',proof.baselineDefinition,proof.proofBaselineHash],['candidate',proof.candidateDefinition,proof.proofAfterHash]]){
+ for(const [variant,executionSQL,storedDefinition,afterHash]of[['baseline',proof.baselineExecutionSQL,proof.baselineStoredDefinition,proof.proofBaselineHash],['candidate',proof.candidateExecutionSQL,proof.candidateStoredDefinition,proof.proofAfterHash]]){
   let transaction;
   try{
    transaction=await adapter.beginRollbackOnly();check(transaction,'READINESS_PROOF_TRANSACTION');
    const {revisionHash,...sourceRevision}=bundle.revision;
    const proofRevision={...sourceRevision,modules:[{...sourceRevision.modules[0],afterHash}],immutableTriggerHash:proof.proofTriggerHash};
-   await adapter.installTemporaryRevision(transaction,{variant,definition,tableSQL:proof.tableSQL,immutableSQL:proof.immutableSQL,afterHash,triggerHash:proof.proofTriggerHash,revision:{...proofRevision,revisionHash:isolatedCopyHash(proofRevision)},proofOnly:true});
+   await adapter.installTemporaryRevision(transaction,{variant,executionSQL,storedDefinition,tableSQL:proof.tableSQL,immutableSQL:proof.immutableSQL,afterHash,triggerHash:proof.proofTriggerHash,revision:{...proofRevision,revisionHash:isolatedCopyHash(proofRevision)},proofOnly:true});
    const values=[];for(let i=0;i<3;i++)values.push(observation(await adapter.observeReady(transaction,{variant,copyId:target.copyId,collectActualPlan:true})));
    check(new Set(values.map(v=>v.sourceContributionHash)).size===1&&new Set(values.map(v=>v.actorPermissionsHash)).size===1,'READINESS_PROOF_UNSTABLE_SOURCE');observations.push({variant,values});
-   for(const [kind,expected]of READINESS_PROOF_NEGATIVES){
-    const result=await adapter.negativeProbe(transaction,{kind,variant,savepointRollbackRequired:true});
-    // Match the baseline's actual code, rather than assuming an old guard's
-    // spelling. New query-plan guards have their own exact expected codes.
-    check(exact(result,['rejected','errorCode','savepointRestored'])&&result.rejected===true&&result.savepointRestored===true&&typeof result.errorCode==='string'&&/^[A-Z0-9_]+$/.test(result.errorCode),'READINESS_PROOF_NEGATIVE');
-    if(kind.startsWith('registry_')||kind==='disabled_query_plan_trigger')check(result.errorCode===expected,'READINESS_PROOF_NEW_GUARD');
-    negativeResults.push({variant,kind,errorCode:result.errorCode});
-   }
   }finally{if(transaction)await adapter.rollback(transaction);}
   await adapter.assertEnded();check(await adapter.snapshot()===before,'READINESS_PROOF_ROLLBACK_DRIFT');
+  // A trigger THROW can doom the transaction. Never claim that a savepoint was
+  // restored: each negative gets its own installation and full rollback.
+  for(const [kind,expected]of READINESS_PROOF_NEGATIVES){
+   let negativeTransaction;
+   try{
+    negativeTransaction=await adapter.beginRollbackOnly();check(negativeTransaction,'READINESS_PROOF_TRANSACTION');
+    const {revisionHash,...sourceRevision}=bundle.revision;
+    const proofRevision={...sourceRevision,modules:[{...sourceRevision.modules[0],afterHash}],immutableTriggerHash:proof.proofTriggerHash};
+    await adapter.installTemporaryRevision(negativeTransaction,{variant,executionSQL,storedDefinition,tableSQL:proof.tableSQL,immutableSQL:proof.immutableSQL,afterHash,triggerHash:proof.proofTriggerHash,revision:{...proofRevision,revisionHash:isolatedCopyHash(proofRevision)},proofOnly:true});
+    const result=await adapter.negativeProbe(negativeTransaction,{kind,variant,fullRollbackRequired:true});
+    // Match the baseline's actual code, rather than assuming an old guard's
+    // spelling. New query-plan guards have their own exact expected codes.
+    check(exact(result,['rejected','errorCode','layer','readinessPredicateExercised','transactionState'])&&result.rejected===true&&READINESS_PROOF_NEGATIVE_LAYERS[kind].includes(result.layer)&&result.readinessPredicateExercised===(result.layer==='actual_ready')&&[-1,0,1].includes(result.transactionState)&&typeof result.errorCode==='string'&&/^[A-Z0-9_]+$/.test(result.errorCode),'READINESS_PROOF_NEGATIVE');
+    if(kind.startsWith('registry_')||kind==='disabled_query_plan_trigger')check(result.errorCode===expected,'READINESS_PROOF_NEW_GUARD');
+    negativeResults.push({variant,kind,...result});
+   }finally{if(negativeTransaction)await adapter.rollback(negativeTransaction);}
+   await adapter.assertEnded();check(await adapter.snapshot()===before,'READINESS_PROOF_ROLLBACK_DRIFT');
+  }
  }
  const [baseline,candidate]=observations;
  check(baseline.values[0].sourceContributionHash===candidate.values[0].sourceContributionHash&&baseline.values[0].actorPermissionsHash===candidate.values[0].actorPermissionsHash,'READINESS_PROOF_EQUIVALENCE');
- for(const [kind]of READINESS_PROOF_NEGATIVES)check(negativeResults.find(x=>x.variant==='baseline'&&x.kind===kind).errorCode===negativeResults.find(x=>x.variant==='candidate'&&x.kind===kind).errorCode,'READINESS_PROOF_NEGATIVE_EQUIVALENCE');
+ for(const [kind]of READINESS_PROOF_NEGATIVES){const a=negativeResults.find(x=>x.variant==='baseline'&&x.kind===kind),b=negativeResults.find(x=>x.variant==='candidate'&&x.kind===kind);check(a.errorCode===b.errorCode&&a.layer===b.layer&&a.readinessPredicateExercised===b.readinessPredicateExercised,'READINESS_PROOF_NEGATIVE_EQUIVALENCE');}
  const finalIdentity=await adapter.inspect();proofIdentity(finalIdentity,proof);check(isolatedCopyHash(identity)===isolatedCopyHash(finalIdentity),'READINESS_PROOF_FINAL_IDENTITY_DRIFT');
  return {schemaVersion:'melisa-isolated-readiness-query-plan-observation.v1',database:READINESS_PROOF_DATABASE,sourceDatabase:target.sourceDatabase,revisionHash:bundle.revision.revisionHash,observations,negativeResults,rolledBack:true,protectedSnapshotUnchanged:true,installAllowed:false,sharedChanges:0,readyForSharedActivation:false,requiresRuntimeConsumerIntegration:true};
 }
