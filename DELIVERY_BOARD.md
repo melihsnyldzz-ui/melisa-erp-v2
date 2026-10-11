@@ -1,5 +1,7 @@
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
+**ERP-DEC-045:** Kullanıcı okuyucunun çalıştığını teyit etti; tekrar fiziksel barkod denemesi istenmeyecek. Teknik kontroller elle/ADB barkod girişiyle yürütülür. Aşağıdaki önceki fiziksel okutma bekleme notu bu tekrar bakımından güncellendi; personel/İlker/işletme kabulü ve disk/native prova bağımlılığı sürer.
+
 Mevcut kabul edilmiş tarihli DB02 tabanı korunur. Gerçek TC21'de personel mal kabulü/İlker'e gönderim, tek sentetik satış, miktarlı iki koli/replay ve atanmış CRM konuşması/taslağa dönüş teknik kanıtlandı. Dört ayrı Türkçe sesli/altyazılı cihaz videosu ve16 alıştırma hazır; eski sekiz ERP dersinin yerine sayılmadı. Immutable5b6cd0c paket yalnız geçici USB/loopback çalışma yüzünde etkin. [Kanıt](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md).
 
 Exact append-only v6 hız hazırlığı ve ayrı rollback-only proof harness kaynakta hazır;14 offline kontrol geçti, native SQL adapter/provası yapılmadı. Sıradaki tek teknik adım ayrı native kopyada eşdeğerlik/plan/negatif/rollback provasıdır;15,05GB kopya için C'de10,56GB kaldığından disk engelli, Gbulut hedefi kullanılamaz. HOME kaynak düzeltmesi gerçek DB02 SELECT ile kanıtlı, çalışan API'ye aktivasyonu ayrı bekler. Sabit adres/başlangıç checkpoint'i, TEST125/DB02 shared süreçleri ve PR27 korunur; bu görev yeni ağ/servis aktivasyonu değildir. Fiziksel optik okuyucu, personel/İlker/işletme kabulü ve işletme açılışları bekler; dört nihai teslim tamamlandı denmez. **49/9/39/1** sayımı aynı.

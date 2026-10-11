@@ -23,7 +23,15 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-045 — 11 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan kararı: "barkod denemesini sen elle gir barkod okuyucusunu bir daha fizikselde istemene gerek yok çalışıyor hep". ERP-COMPLETE01 teknik denemelerinde barkodlar metin olarak elle/ADB ile girilebilir; kullanıcı fiziksel okuyucunun çalıştığını teyit etti ve tekrar fiziksel okutma istemini kaldırdı. Codex kullanıcıdan yeniden fiziksel barkod okutmasını istemeyecek; bu tekrar mevcut işin engeli veya sonraki zorunlu adımı değildir.
+
+ERP-DEC-044'ün fiziksel barkodu yeniden deneme beklentisi bakımından kısmen supersede edilmesidir; diğer kapsam ve sınırlar aynı kalır. Elle girilen barkodun doğru ürün/birim/başlangıç sıfırları/işlem sonucu kontrolü teknik kanıttır. Yeni donanım denemesi yapılmış gibi kaydedilmez; okuyucu durumu **kullanıcı teyidi, tekrar istenmiyor** olarak tutulur. Personelin günlük kullanım/İlker devri/çoklu koli/işletme kabulü ve ERP-UA32 bütünü otomatik PASS olmaz. Mevcut veri, rol, TEST/LIVE ve aktivasyon sınırları değişmez.
+
 ### ERP-DEC-044 — 11 Ekim 2026 — Onaylı
+
+Yeniden fiziksel barkod provası beklentisi **kısmen Superseded by ERP-DEC-045**; aşağıdaki tarihsel kapsam ve diğer sınırlar korunur.
 
 Kullanıcının doğrudan ek talimatı (3b13a14a-79e6-407a-b24b-1438ca7eeda5): mevcut kabul edilmiş tarihli DB02 veri temelinden ERP teknik eksiklerini, gerçek ERP/CRM bağlantılı yeşil Android terminalinin dört görevini, çalışan Android ekranlarından dört kısa Türkçe eğitim videosunu ve kurulum/veri kontrol/yedek/geri dönüş paketini tamamla. Tek pano işi **ERP-COMPLETE01**. Önceki eğitim tesliminin DUR sınırı yalnız bu kapsam için superseded; ERP-DEC-042 metni ve kabul kayıtları korunur.
 

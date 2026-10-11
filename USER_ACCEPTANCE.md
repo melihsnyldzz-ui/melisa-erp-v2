@@ -1,5 +1,7 @@
 ## ERP-UA32 / ERP-COMPLETE01 — Android dört görev ve yeni eğitim — bekliyor
 
+**11 Ekim / ERP-DEC-045:** Kullanıcı barkod okuyucusunun çalıştığını açıkça teyit etti ve yeni fiziksel okutma istemini kaldırdı. Okuyucu: **kullanıcı teyidi / tekrar istenmiyor**. Teknik denemede barkod elle/ADB metniyle girilecek; yeni fiziksel donanım testi yapılmış diye kaydedilmeyecek. Aşağıdaki geçmiş fiziksel okutma bekleme ifadeleri yeni bir zorunlu tekrar değildir. ERP-UA32'nin personel/günlük kullanım kabulü bekliyor; bu karar bütün kabulü PASS yapmaz.
+
 Kullanıcı/personel fiziksel sonucu ve deneme tarihi henüz bildirilmedi. Gerçek TC21 normal personel oturumu, ayrı worktest uygulaması ve kaynak hedefli testleri teknik kanıttır; insan PASS değildir. USB yönlendirmesi şirket Wi-Fi işletim kabulü değildir. Önceki ERP-UA31 ve diğer bekleyen kabuller korunur.
 
 Normal personel15 ile gerçek TC21 ekranında kontrollü sentetik mal kabul kaydı/İlker'e gönderim, tek satışın sonuç-belirsiz/replay doğrulaması ve iki koli/yeniden açılış teknik denetlendi. CRM'de mevcut ayrı personel oturumuyla22 atanmış konuşma ve gönderilmemiş taslağa dönüş kontrol edildi. Bu teknik denetim insan PASS değildir. Barkod ADB metniyle girildi; yeni uygulamadaki fiziksel optik okutma, Wi-Fi işletimi ve büyük200 satırlı fiş personel kabulü yapılmadı.

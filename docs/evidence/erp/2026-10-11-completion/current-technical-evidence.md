@@ -1,5 +1,9 @@
 # Güncel teknik kanıt ve teslim sınırı — 11 Ekim 2026
 
+## Barkod deneme yöntemi — ERP-DEC-045
+
+Kullanıcı okuyucunun çalıştığını teyit etti ve yeniden fiziksel okutma talebini kaldırdı. Yeni teknik denemelerde barkod elle/ADB metniyle girilecek; doğru ürün/birim/başlangıç sıfırları ve sonuç yine doğrulanacak. Bu kararla yeni fiziksel optik test yapılmadı; kullanıcı teyidi ve teknik elle giriş kanıtı ayrı kalır. Aşağıdaki fiziksel scanner PENDING/NOT_RUN ifadeleri önceki kanıtın tarihsel durumudur; yeniden okutma mevcut görevin engeli veya kullanıcıya verilecek iş değildir. ERP-UA32 genel personel/işletme kabulü bekler; disk/native prova ve aktivasyon sınırları aynı kalır.
+
 ## Son cihaz / paket checkpoint'i — 05:00 TR
 
 Bu bölüm aşağıdaki eski ara hazırlık kaydını günceller. Eski "video yok / yeni işlem yok / kaynak teslim edilmedi" cümleleri yalnız önceki checkpoint'e aittir. **Dört teslimin tümü tamam değildir;49/9/39/1 ve insan kabulleri değişmedi.**

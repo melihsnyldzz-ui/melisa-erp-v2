@@ -1,5 +1,7 @@
 ## ERP-COMPLETE01 — dört teslim uygulama checkpoint'i — 11 Ekim 2026
 
+ERP-DEC-045 ile fiziksel barkodun tekrar denenmesi kullanıcı tarafından kaldırıldı; okuyucu kullanıcı teyitli, teknik denemeler elle/ADB girişle yürütülür. Personel/işletme kabulü otomatik PASS olmaz;49/9/39/1 sayımı korunur.
+
 Teknik denetim, gerçek fiziksel/personel kabulü ve LIVE hazır olma ayrı tutulur. Doğrulanmış **49 / 9 tamam / 39 kısmi / 1 açık** sayımı korunur. Gerçek TC21 normal personel ile mal kabul/gönderim, tek sentetik satış/replay, iki miktarlı koli/yeniden açılış ve atanmış CRM konuşması/taslağa dönüş kanıtlandı. Dört Türkçe sesli/altyazılı cihaz videosu ve16 alıştırma hazır. HOME kaynak düzeltmesi gerçek DB02 SELECT ile kanıtlı fakat mevcut API'de etkin değil; katalog native plan provası ve geniş günlük işletme sınırları açık. Bunlar kapanmadan ilgili yapraklar tamam sayılmaz. [Kanıt](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md). ERP-UA32 bekliyor; sabit ağ/boot checkpoint'i etkinleştirilmedi.
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 

@@ -4,6 +4,8 @@ Bu teslim mevcut çalışan paketler için **çalıştırılmış salt okunur de
 
 ## Kullanılabilir paket
 
+ERP-DEC-045: Kullanıcı mevcut barkod okuyucusunu çalışıyor olarak teyit etti; tekrar fiziksel okutma istenmeyecek. Teknik prova elle/ADB barkod girişiyle yapılabilir. Aşağıdaki eski fiziksel barkod tekrar beklentisi bu karar bakımından güncellendi; personel/İlker/işletme kabulü, ayrı kurtarma ve LIVE yetkisi gereksinimleri değişmedi.
+
 Araç: `scripts/canonical/inspect-existing-transition-package.mjs`. Offline olumsuz/hedef kimliği kontrolleri: yanındaki `.test.mjs`.
 
 Kullanıcıya uygulanabilir tek rehber ve provenance manifesti ayrıca `C:\Sirket\ERP\evidence\ERP-COMPLETION01-20261011\private\transition-delivery\` altında hazırlandı: `README.md`, `provenance-manifest.json`, mevcut denetim manifesti/sonucu ve aracın byte-eşit kopyaları. Rehber 12 final-gün adımı ve commit öncesi/sonrası, CAS çelişkisi ve ayrı restore için geri dönüş kararlarını ayırır. Beş mevcut release manifesti ve sekiz eski kanıtın hash'i yeniden eşleşti; bütün 17.655 paket dosyası bu düzenleme sırasında yeniden taranmadı. Kopyalanmış aracın 15 offline testi geçti. Orijinaller, yedek ve servisler değişmedi; özel ayarlar kopyalanmadı.
