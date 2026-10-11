@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — Ana Sayfa gerçek ekran düzeltmesi — 12 Ekim 2026
+
+Çalışan204b63f paketinde yanlış HOME upstream giderildi; normal İlker16 açılış/Yenile/müşteri/HOME dönüşü, API200 ve ekran kanıtı tamam. [Teknik sonuç](docs/evidence/erp/2026-10-11-completion/home-read-route-fix.md). Tarihli iş günü ve okuma ayrıdır. HOME~3,21sn, genericpending iş bağlantısı/kasa açılışı ve200cihaz/video ayrı açık; tüm ERP bitmiş veya insan kabulü PASS değildir. TEST125/DB02/roller/CRM/49-9-39-1/UA32 korunur; yeni migration yok.
+
 ## ERP-COMPLETE01 — korumalı TEST erişimi ve son paket — 11 Ekim 2026
 
 Gerçek ERP571d2d5/CRM09ca/native60e424b tuple'ında eskiSQL/JWT reddi, yeni normalrefresh/logout, korumalı TC21 reopen/ERP→CRM ve günlük redaksiyonu tamam. [Tek teslim kaydı](docs/evidence/erp/2026-10-11-completion/test-access-remediation.md). Eski video/ZIP ve restore/inverse kanıtları kendi tarihli kapsamında korunur; UI/personel/İlker insan PASS üretilmez. **49/9/39/1**, ERP-UA32 bekliyor. CRMsend yetkisi, training browser policy-block, gerçeklogon/IP ve hostedCI hesap engeli somut sınırdır; sonraki kapsam kendiliğinden başlamaz.

@@ -1,6 +1,6 @@
-## ERP-COMPLETE01 — Ana Sayfa route regresyonu / kaynak hazır — 12 Ekim 2026
+## ERP-COMPLETE01 — Ana Sayfa gerçek ekran giderimi — 12 Ekim 2026
 
-Current4b DB02 normal actor15: API `/api/home-summary`404NOT_FOUND, gerçek `/api/home/summary`200/geçerliDTO,5234HOMEproxy404WORKTEST_SCOPE, müşteri kartları200. Mevcut İlker16 browseroturumu aynıHOMEhata/loadingstaletiles gösterdi. Darfix canonical GET upstream + failedloadingayrımı;23root/23review hedefliPASS/GO, roller/veri/guardunchanged. [Canlı neden ve teslim ölçütü](docs/evidence/erp/2026-10-11-completion/home-read-route-fix.md). Yeni immutablepaket/runtime/UIkanıtı bekler; kaynakfixaktif4b diye sunulmaz. HumanUA32/200cihazvideo/CIengeli korunur.
+Uygulama **204b63f** / `CANONICAL-COMPLETE-TEST-20261011-204b63f` DB02 API4184/native4186/web5234 etkin. Canonical HOME200, LAN proxy200/~3,21sn; müşteri kartları200, kaynak/DTO/gerçek public bootstrap aynı. Normal İlker16 mevcut oturumunda açılış→Yenile→müşteri→HOME dönüşü ve screenshot tamam; normal15 login-refresh-logout/401,9servedasset,40korunan süreç/koli journal aynı.23hedefli/reviewGO/build1828/manifest doğrulandı; ticariwrite/rol/restore/migration0. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-11-completion/home-read-route-fix.md). İş günü09.10 ile bugünkü okuma ayrı; kasa açılışı bağlı değil, generic pendingtask inboundmerge sonrası disabled. Route hata kapandı; HOME hız,200cihaz/video ve UA32 bekler. TEST125/CRM/LIVE/Vega/T1 aynı. Son belge head/CI push makbuzunda source'tan ayrı.
 
 ## ERP-COMPLETE01 — koli ekranı çalışan paket / cihaz engeli — 12 Ekim 2026
 
