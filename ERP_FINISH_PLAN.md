@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — selected satış scope/native engine kaynak checkpoint'i — 11 Ekim 2026
+
+Server-owned SOURCE seçim/policy, same-TX owner intent scope, creation journal doğrulaması ve mevcut native invoice/döviz hesabı bağlantısı hazır.65 offline kontrol + exact CREATE gerçek SQL derlemesi/rollback, module/izin/rol metadata eşitliği; ticari yazma/commit0. Yeni scope'u eski begin açamaz; SQL successor/store/paket/normal ekran zinciri henüz yok. [Kanıt](docs/evidence/erp/2026-10-11-completion/selected-sale-write-scope.md). **Sonraki tek teknik iş:** coherent selected begin/guard/effects/profit/READY pinleri ve store journal, ardından izole gerçek işlem/iptal/replay. TEST125/DB02/roller/181de5a/sabitboot/önceki aktarımlar/dört video korunur. **49 / 9 tamam / 39 kısmi / 1 açık** ve ERP-UA32 bekliyor; bütün hedef aktif.
+
 ## ERP-COMPLETE01 — seçilen satışın native önizleme checkpoint'i — 11 Ekim 2026
 
 Kaynak bağlı müşteri/döviz hesabı ve ürün context/preview source/API yolları ile exact CREATE derlemesi tamamlandı. 23 offline test, gerçek actor15 TRY/USD iki ürün okuması, beş native negatif, yedi metadata recovery ve final tam751 veri/şema/rol/registry eşitliği bağımsız doğrulandı; ticari yazma/commit0. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-11-completion/selected-sale-preview.md). Kaynak teslimi SQL kurulum, çalışan paket, UI veya genel satış writer kabulü değildir. Yeni okuma iki ürün/beş miktar ara sınırındadır;20000 önizleme değeri eskiTRY500 yazıcısını açmaz.

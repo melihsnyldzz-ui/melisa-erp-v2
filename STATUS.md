@@ -1,3 +1,9 @@
+## ERP-COMPLETE01 — selected satış scope/native engine kaynak bağlantısı — 11 Ekim 2026
+
+Verified same-TX owner intent, creation journal ve mevcut invoice/currency engine bağlantısı kaynakta tamamlandı;65 hedefli offline kontrol geçti. Exact intent reader CREATE mevcut restricted prova DB'sinde gerçekten derlendi ve rollback yapıldı; module/SQL izin/rol üyeliği eşit, reader yürütülmedi, ticari yazma/commit/shared yazma0. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-11-completion/selected-sale-write-scope.md). Yeni paket/normal ekran/native satış zinciri değildir; eski v4/v5 begin yeni owner witness üretmediği için yol runtime'da kapalı kalır. CODE commit/push sonrası exact head/CI ayrı kayıtla verilecek; önceki billing engeli yeşil sayılmadı.
+
+**Sonraki tek teknik iş:** mevcut begin/guard/effects/profit/READY coherent successor pin + store journal bağlantısı; sonra izole gerçek draft/finalize/cancel/replay ve ekran kanıtı. Eski TRY500/v4-v5/roller/TEST125/DB02/181de5a ve sabitboot korunur;ERP-UA32/49-9-39-1 aynı, genel hedef aktif.
+
 ## ERP-COMPLETE01 — kaynak bağlı satış önizlemesi / gerçek native okuma — 11 Ekim 2026
 
 Kaynak teslimi **3c77f60ea5f297333fa2f2bc8bd8f77dd7e02702**,14dosya, origin/PR23 head exact eşleşti. Yerel23offline test ve stagedGitleaks0bulgu PASS; tam GitHub secret-scan PASS değildir. Bu source commit'in [PR CI38136033297](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38136033297) ve [push CI38136029750](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38136029750) sonuçları FAILURE: windows-startup-test/quality-build-test/secret-scan üçü0adım; quality114459967550 annotation hesap ödemesi/harcama limiti nedeniyle job başlamadığını doğrular. Kontroller atlanmadı, CI yeşil değil. Bu izleyen STATUS kaydı uygulama kodunu veya paketi değiştirmez; son belge head'inin exact CI sonucu PR makbuzunda ayrıca doğrulanır.

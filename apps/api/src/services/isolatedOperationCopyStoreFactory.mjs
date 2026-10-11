@@ -23,7 +23,7 @@ export function isolatedCopyRequestBody(context,actor,operation,payload){
  assertIsolatedCopyContext(context);copyAssert(Object.hasOwn(ISOLATED_COPY_OPERATION_PERMISSIONS,operation)&&payload&&typeof payload==='object'&&!Array.isArray(payload),'ISOLATED_COPY_OPERATION',400);
  copyAssert(isolatedCopyUUID(payload.requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
  // Reject client-owned identity fields instead of silently overriding them.
- copyAssert(!['copyId','sealHash','backupSHA','operationOrigin','actorId','operation','testProfile','testDayId','businessDailyScopeHash'].some(k=>Object.hasOwn(payload,k)),'ISOLATED_COPY_CLIENT_PROFILE',400);
+ copyAssert(!['copyId','sealHash','backupSHA','operationOrigin','actorId','operation','testProfile','testDayId','businessDailyScopeHash','businessCustomerId','businessProductIds','businessSelectedSalePolicyHash','sourceSelectionHash','selectedSaleIntent'].some(k=>Object.hasOwn(payload,k)),'ISOLATED_COPY_CLIENT_PROFILE',400);
  const dailyHash=getBusinessDailyScopeHash(context),inbound=['count_create','count_update','count_submit','count_cancel','goods_accept','goods_reject','purchase_draft','purchase_finalize'].includes(operation);
  const json=isolatedCopyJSON({...payload,copyId:context.copyId,sealHash:context.sealHash,actorId:String(actor.id),operation,operationOrigin:context.operationOrigin,...(dailyHash&&!inbound?{businessDailyScopeHash:dailyHash}:{})});
  return {json,hash:isolatedCopyHash(JSON.parse(json)),requestId:payload.requestId};

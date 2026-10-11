@@ -23,23 +23,41 @@ import { createPurchaseCostAccumulator } from './purchaseCostAccumulator.mjs';
 import {CURRENT_PRICE_PURCHASE_SQL_PROOF} from './testProductPriceSqlProof.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
 import {getBusinessDailySelection} from './isolatedOperationCopyContext.mjs';
+import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 function businessInvoiceSelection(transaction,kind,partyId,currency){
- if(!isIsolatedOperationCopyRuntime()||getIsolatedOperationCopyConfig()?.target.database!==BUSINESS_COPY_DATABASE||kind!=='purchase')return null;
+ if(!isIsolatedOperationCopyRuntime()||getIsolatedOperationCopyConfig()?.target.database!==BUSINESS_COPY_DATABASE)return null;
+ if(kind==='sales'){
+  const copy=isolatedCopyTransactionContext(transaction),scope=getBusinessSelectedSaleWriteScope(copy,transaction);
+  if(!scope)return null;
+  const account=copy.customers.find(a=>a.id===scope.customerId&&a.accountId===scope.customerAccountId&&a.partyId===scope.partyId&&a.currency===scope.currency);
+  if(copy!==getIsolatedOperationCopyConfig()||!account||(partyId!==null&&String(partyId)!==scope.customerId)||currency!==scope.currency||!/^\d+\.\d{8}$/.test(scope.rateExact8)||Number(scope.rateExact8)<=0||(currency==='TRY'&&scope.rateExact8!=='1.00000000')||!/^\d+\.\d{4}$/.test(scope.maxInvoiceAmountExact4)||Number(scope.maxInvoiceAmountExact4)<=0)throw makeServiceError('ISOLATED_COPY_INVOICE_ACCOUNT_SCOPE','Doğrulanmış seçili müşteri döviz hesabı gerekli.',409);
+  return {copy,account,scope,role:'customer',rate:Number(scope.rateExact8),currency,maxAmount:Number(scope.maxInvoiceAmountExact4)};
+ }
+ if(kind!=='purchase')return null;
  const copy=isolatedCopyTransactionContext(transaction),selection=getBusinessInboundSelection(copy);
  if(!selection){const daily=getBusinessDailySelection(copy),account=copy.suppliers.find(a=>a.accountId===daily?.supplierAccountId);if(daily?.currency==='TRY'&&currency==='TRY'&&account&&(partyId===null||String(partyId)===account.id))return null;}
  const account=copy.suppliers.find(a=>a.id===String(partyId??selection?.supplierId)&&a.currency===currency&&a.accountId===selection?.accountId);
  const rate=copy.currencyRates?.find(r=>r.currency===currency);
  if(copy!==getIsolatedOperationCopyConfig()||!selection||selection.supplierId!==account?.id||selection.currency!==currency||!account||!rate||!/^\d+\.\d{8}$/.test(rate.rateExact8)||Number(rate.rateExact8)<=0||(currency==='TRY'&&Number(rate.rateExact8)!==1))throw makeServiceError('ISOLATED_COPY_INVOICE_ACCOUNT_SCOPE','Doğrulanmış tedarikçi döviz hesabı ve tarihli TEST kuru gerekli.',409);
  if(copy.businessInvoiceMaxExact4!=='20000.0000')throw makeServiceError('ISOLATED_COPY_INVOICE_AMOUNT_SCOPE','Kayıtlı TEST tutar sınırı gerekli.',409);
- return {copy,account,rate:Number(rate.rateExact8),currency,maxAmount:20000};
+ return {copy,account,role:'supplier',rate:Number(rate.rateExact8),currency,maxAmount:20000};
 }
 async function assertBusinessInvoiceAccount(sqlDriver,transaction,binding){
- const a=binding.account;
- const proof=await new sqlDriver.Request(transaction).input('businessInvoiceParty',sqlDriver.BigInt,a.id).input('businessInvoiceEntity',sqlDriver.BigInt,a.partyId).input('businessInvoiceAccount',sqlDriver.BigInt,a.accountId).input('businessInvoiceCurrency',sqlDriver.NVarChar(3),a.currency).query(`SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.party_currency_accounts a WITH(UPDLOCK,HOLDLOCK) JOIN dbo.suppliers s ON s.id=a.supplier_id AND s.party_entity_id=a.party_entity_id WHERE a.id=@businessInvoiceAccount AND a.supplier_id=@businessInvoiceParty AND a.customer_id IS NULL AND a.party_entity_id=@businessInvoiceEntity AND a.currency_code=@businessInvoiceCurrency AND a.current_balance IS NOT NULL AND s.is_active=1 AND s.is_deleted=0) AND (SELECT COUNT(*) FROM dbo.party_currency_accounts WHERE supplier_id=@businessInvoiceParty AND party_entity_id=@businessInvoiceEntity AND currency_code=@businessInvoiceCurrency)=1 THEN 1 ELSE 0 END valid;`);
+ const a=binding.account,role=binding.role??'supplier',other=role==='customer'?'supplier':'customer';
+ const proof=await new sqlDriver.Request(transaction).input('businessInvoiceParty',sqlDriver.BigInt,a.id).input('businessInvoiceEntity',sqlDriver.BigInt,a.partyId).input('businessInvoiceAccount',sqlDriver.BigInt,a.accountId).input('businessInvoiceCurrency',sqlDriver.NVarChar(3),a.currency).query(`SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.party_currency_accounts a WITH(UPDLOCK,HOLDLOCK) JOIN dbo.${role}s s ON s.id=a.${role}_id AND s.party_entity_id=a.party_entity_id WHERE a.id=@businessInvoiceAccount AND a.${role}_id=@businessInvoiceParty AND a.${other}_id IS NULL AND a.party_entity_id=@businessInvoiceEntity AND a.currency_code=@businessInvoiceCurrency AND a.current_balance IS NOT NULL AND s.is_active=1 AND s.is_deleted=0) AND (SELECT COUNT(*) FROM dbo.party_currency_accounts WHERE ${role}_id=@businessInvoiceParty AND party_entity_id=@businessInvoiceEntity AND currency_code=@businessInvoiceCurrency)=1 THEN 1 ELSE 0 END valid;`);
  if(Number(proof.recordset?.[0]?.valid)!==1)throw makeServiceError('ISOLATED_COPY_INVOICE_ACCOUNT_SCOPE','Tedarikçi döviz hesabı değişti.',409);
+}
+
+function assertSelectedSaleInvocation(transaction,operation,actor,invoiceId,invoice){
+ if(!isIsolatedOperationCopyRuntime()||getIsolatedOperationCopyConfig()?.target.database!==BUSINESS_COPY_DATABASE)return null;
+ const copy=isolatedCopyTransactionContext(transaction),scope=getBusinessSelectedSaleWriteScope(copy,transaction);
+ if(!scope)return null;
+ const amount=Number(invoice.grandTotal??invoice.documentAmount),account=businessInvoiceSelection(transaction,'sales',invoice.customerId,invoice.accountCurrency??invoice.customerCurrency);
+ if(scope.operation!==operation||String(actor?.id)!==scope.actorId||(operation==='sale_draft'?scope.invoiceId!==null:String(invoiceId)!==scope.invoiceId)||!account||invoice.documentCurrency!==scope.currency||!Number.isFinite(amount)||amount<=0||amount>account.maxAmount||!Array.isArray(invoice.items)||invoice.items.length<1||invoice.items.length>200||invoice.items.length!==scope.productIds.length||new Set(invoice.items.map(i=>String(i.productId))).size!==invoice.items.length||invoice.items.some(i=>!scope.productIds.includes(String(i.productId))||!Number.isSafeInteger(Number(i.quantity))||Number(i.quantity)<=0))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
+ return account;
 }
 
 // Trigger row-count messages are not the guarded header UPDATE's row count.
@@ -108,6 +126,7 @@ function copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snap
  const amount=typeof snapshot?.documentAmount==='number'&&Number.isFinite(snapshot.documentAmount)?snapshot.documentAmount.toFixed(4):null;
  const business=businessInvoiceSelection(transaction,kind,partyId,snapshot?.accountCurrency),currency=business?.currency??'TRY',rate=business?.rate??1,amountTry=amount===null?null:(Number(amount)*rate).toFixed(4);
  if(copy!==getIsolatedOperationCopyConfig()||!role||!operation||movementType!==(kind==='sales'?'sales_invoice':'purchase_invoice')+(direction===-1?'_cancel':'')||![1,-1].includes(direction)||!copy.actors.some(a=>a.id===String(actor?.id))||!Number.isSafeInteger(Number(invoiceId))||Number(invoiceId)<1||!snapshot||snapshot.documentCurrency!==currency||snapshot.accountCurrency!==currency||snapshot.documentRateToTry!==rate||snapshot.accountRateToTry!==rate||amount===null||Number(amount)!==snapshot.documentAmount||snapshot.documentAmount<=0||snapshot.documentAmount>(business?.maxAmount??500)||snapshot.accountAmount!==snapshot.documentAmount||snapshot.amountTry!==Number(amountTry)||(documentDate!==null&&copyInvoiceDocumentDate(documentDate)!==copy.date))throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin cari hareket kapsamı doğrulanamadı.',409);
+ if(business?.scope&&(business.scope.operation!==operation||business.scope.actorId!==String(actor?.id)||business.scope.invoiceId!==String(invoiceId)))throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
  const daily=copy.target.database===BUSINESS_COPY_DATABASE?getBusinessDailySelection(copy):null;
  if(copy.target.database===BUSINESS_COPY_DATABASE&&!business&&!daily)throw makeServiceError('ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE','Fişin seçili günlük kapsamı doğrulanamadı.',409);
  const selected=business?.account??(role==='customer'?copy.customers:copy.suppliers).find(p=>p.currency==='TRY'&&(partyId===null||p.id===String(partyId))&&(!daily||p.accountId===(role==='customer'?daily.customerAccountId:daily.supplierAccountId)));
@@ -121,12 +140,12 @@ function copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snap
 export async function insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{kind,invoiceId,movementType,snapshot,direction,actor,partyId,documentDate}){
  if(!isIsolatedOperationCopyRuntime())return false;
  const b=copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor,partyId,documentDate);
- if(b.business){await assertBusinessInvoiceAccount(sqlDriver,transaction,b.business);await new sqlDriver.Request(transaction).input('copyMovementDatabase',sqlDriver.NVarChar(128),b.copy.target.database).input('copyMovementCopyId',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyMovementActor',sqlDriver.BigInt,actor.id).input('copyMovementInvoice',sqlDriver.BigInt,invoiceId).input('copyMovementParty',sqlDriver.BigInt,b.partyId).input('copyMovementAccount',sqlDriver.BigInt,b.business.account.accountId).input('copyMovementOperation',sqlDriver.NVarChar(40),b.operation).input('copyMovementType',sqlDriver.NVarChar(40),b.movementType).input('copyMovementAmount',sqlDriver.Decimal(18,4),b.amount).input('copyMovementEffect',sqlDriver.Decimal(18,4),b.effect).input('copyMovementDate',sqlDriver.Date,b.copy.date).input('copyMovementCurrency',sqlDriver.NVarChar(3),b.currency).input('copyMovementRate',sqlDriver.Decimal(18,8),b.rate).input('copyMovementTry',sqlDriver.Decimal(18,4),b.amountTry).query(`
+ if(b.business){await assertBusinessInvoiceAccount(sqlDriver,transaction,b.business);await new sqlDriver.Request(transaction).input('copyMovementDatabase',sqlDriver.NVarChar(128),b.copy.target.database).input('copyMovementCopyId',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyMovementActor',sqlDriver.BigInt,actor.id).input('copyMovementInvoice',sqlDriver.BigInt,invoiceId).input('copyMovementParty',sqlDriver.BigInt,b.partyId).input('copyMovementAccount',sqlDriver.BigInt,b.business.account.accountId).input('copyMovementOperation',sqlDriver.NVarChar(40),b.operation).input('copyMovementType',sqlDriver.NVarChar(40),b.movementType).input('selectedSalePolicyHash',sqlDriver.NVarChar(64),b.business?.scope?.policyHash??null).input('selectedSaleRequestId',sqlDriver.NVarChar(100),b.business?.scope?.requestId??null).input('copyMovementAmount',sqlDriver.Decimal(18,4),b.amount).input('copyMovementEffect',sqlDriver.Decimal(18,4),b.effect).input('copyMovementDate',sqlDriver.Date,b.copy.date).input('copyMovementCurrency',sqlDriver.NVarChar(3),b.currency).input('copyMovementRate',sqlDriver.Decimal(18,8),b.rate).input('copyMovementTry',sqlDriver.Decimal(18,4),b.amountTry).query(`
  IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyMovementDatabase COLLATE Latin1_General_100_BIN2
- OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@copyMovementActor AND operation=@copyMovementOperation AND JSON_VALUE(payload_json,'$.businessSupplierId')=CONVERT(nvarchar(20),@copyMovementParty) AND JSON_VALUE(payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@copyMovementAccount) AND JSON_VALUE(payload_json,'$.businessCurrency')=@copyMovementCurrency)
- OR NOT EXISTS(SELECT 1 FROM dbo.${b.header} WHERE id=@copyMovementInvoice AND supplier_id=@copyMovementParty AND document_currency=@copyMovementCurrency AND account_currency=@copyMovementCurrency AND document_date=@copyMovementDate AND grand_total=@copyMovementAmount AND account_amount=@copyMovementAmount AND amount_try=@copyMovementTry AND exchange_rate_snapshot=@copyMovementRate AND account_exchange_rate_snapshot=@copyMovementRate AND status=N'${direction===1?'draft':'finalized'}')
+ OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copyMovementCopyId AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@copyMovementActor AND operation=@copyMovementOperation AND JSON_VALUE(payload_json,'$.${b.role==='customer'?'businessCustomerId':'businessSupplierId'}')=CONVERT(nvarchar(20),@copyMovementParty) AND JSON_VALUE(payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@copyMovementAccount) AND JSON_VALUE(payload_json,'$.businessCurrency')=@copyMovementCurrency ${b.business.scope?"AND JSON_VALUE(payload_json,'$.businessSelectedSalePolicyHash')=@selectedSalePolicyHash AND JSON_VALUE(payload_json,'$.requestId')=@selectedSaleRequestId":''})
+ OR NOT EXISTS(SELECT 1 FROM dbo.${b.header} WHERE id=@copyMovementInvoice AND ${b.role}_id=@copyMovementParty AND document_currency=@copyMovementCurrency AND account_currency=@copyMovementCurrency AND document_date=@copyMovementDate AND grand_total=@copyMovementAmount AND account_amount=@copyMovementAmount AND amount_try=@copyMovementTry AND exchange_rate_snapshot=@copyMovementRate AND account_exchange_rate_snapshot=@copyMovementRate AND status=N'${direction===1?'draft':'finalized'}')
  OR EXISTS(SELECT 1 FROM dbo.${b.table} WHERE ${b.foreignKey}=@copyMovementInvoice AND movement_type=@copyMovementType) THROW 51416,'ISOLATED_COPY_INVOICE_MOVEMENT_SCOPE',1;
- INSERT dbo.${b.table}(supplier_id,purchase_invoice_id,movement_type,amount,currency_code,balance_effect,document_date,created_at,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try)
+ INSERT dbo.${b.table}(${b.role}_id,${b.foreignKey},movement_type,amount,currency_code,balance_effect,document_date,created_at,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try)
  VALUES(@copyMovementParty,@copyMovementInvoice,@copyMovementType,@copyMovementAmount,@copyMovementCurrency,@copyMovementEffect,@copyMovementDate,SYSUTCDATETIME(),@copyMovementActor,@copyMovementCurrency,@copyMovementAmount,@copyMovementRate,@copyMovementRate,@copyMovementTry);`);return true;}
  await new sqlDriver.Request(transaction).input('copyMovementDatabase',sqlDriver.NVarChar(128),b.copy.target.database).input('copyMovementCopyId',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyMovementActor',sqlDriver.BigInt,actor.id).input('copyMovementInvoice',sqlDriver.BigInt,invoiceId).input('copyMovementParty',sqlDriver.BigInt,b.partyId).input('copyMovementOperation',sqlDriver.NVarChar(40),b.operation).input('copyMovementType',sqlDriver.NVarChar(40),b.movementType).input('copyMovementAmount',sqlDriver.Decimal(18,4),b.amount).input('copyMovementEffect',sqlDriver.Decimal(18,4),b.effect).input('copyMovementDate',sqlDriver.Date,b.copy.date).query(`
  IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyMovementDatabase COLLATE Latin1_General_100_BIN2
@@ -143,7 +162,7 @@ export async function insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{k
 export async function stampInvoiceMovement(sqlDriver, transaction, kind, invoiceId, movementType, snapshot, direction,actor=null) {
  if(isIsolatedOperationCopyRuntime()){
   const b=copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor);
-  if(b.business){const r=await new sqlDriver.Request(transaction).input('businessStampCopy',sqlDriver.UniqueIdentifier,b.copy.copyId).input('businessStampActor',sqlDriver.BigInt,actor.id).input('businessStampInvoice',sqlDriver.BigInt,invoiceId).input('businessStampParty',sqlDriver.BigInt,b.partyId).input('businessStampAccount',sqlDriver.BigInt,b.business.account.accountId).input('businessStampOperation',sqlDriver.NVarChar(40),b.operation).input('businessStampType',sqlDriver.NVarChar(40),movementType).input('businessStampAmount',sqlDriver.Decimal(18,4),b.amount).input('businessStampEffect',sqlDriver.Decimal(18,4),b.effect).input('businessStampDate',sqlDriver.Date,b.copy.date).input('businessStampCurrency',sqlDriver.NVarChar(3),b.currency).input('businessStampRate',sqlDriver.Decimal(18,8),b.rate).input('businessStampTry',sqlDriver.Decimal(18,4),b.amountTry).query(`SELECT m.id FROM dbo.supplier_movements m JOIN dbo.stage4_copy_intents n ON n.copy_id=@businessStampCopy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@businessStampActor AND n.operation=@businessStampOperation WHERE m.purchase_invoice_id=@businessStampInvoice AND m.supplier_id=@businessStampParty AND m.movement_type=@businessStampType AND m.created_by=@businessStampActor AND m.created_at>=n.created_at AND m.document_date=@businessStampDate AND m.currency_code=@businessStampCurrency AND m.account_currency=@businessStampCurrency AND m.amount=@businessStampAmount AND m.account_amount=@businessStampAmount AND m.amount_try=@businessStampTry AND m.balance_effect=@businessStampEffect AND m.document_exchange_rate_snapshot=@businessStampRate AND m.account_exchange_rate_snapshot=@businessStampRate AND JSON_VALUE(n.payload_json,'$.businessSupplierId')=CONVERT(nvarchar(20),@businessStampParty) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@businessStampAccount) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@businessStampCurrency;`);if(r.recordset?.length!==1)throw makeServiceError('INVOICE_MOVEMENT_SNAPSHOT_AMBIGUOUS','Fişin cari hareketi tam doğrulanamadı.',409);return;}
+  if(b.business){const r=await new sqlDriver.Request(transaction).input('businessStampCopy',sqlDriver.UniqueIdentifier,b.copy.copyId).input('businessStampActor',sqlDriver.BigInt,actor.id).input('businessStampInvoice',sqlDriver.BigInt,invoiceId).input('businessStampParty',sqlDriver.BigInt,b.partyId).input('businessStampAccount',sqlDriver.BigInt,b.business.account.accountId).input('businessStampOperation',sqlDriver.NVarChar(40),b.operation).input('businessStampType',sqlDriver.NVarChar(40),movementType).input('selectedSalePolicyHash',sqlDriver.NVarChar(64),b.business?.scope?.policyHash??null).input('selectedSaleRequestId',sqlDriver.NVarChar(100),b.business?.scope?.requestId??null).input('businessStampAmount',sqlDriver.Decimal(18,4),b.amount).input('businessStampEffect',sqlDriver.Decimal(18,4),b.effect).input('businessStampDate',sqlDriver.Date,b.copy.date).input('businessStampCurrency',sqlDriver.NVarChar(3),b.currency).input('businessStampRate',sqlDriver.Decimal(18,8),b.rate).input('businessStampTry',sqlDriver.Decimal(18,4),b.amountTry).query(`SELECT m.id FROM dbo.${b.table} m JOIN dbo.stage4_copy_intents n ON n.copy_id=@businessStampCopy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@businessStampActor AND n.operation=@businessStampOperation WHERE m.${b.foreignKey}=@businessStampInvoice AND m.${b.role}_id=@businessStampParty AND m.movement_type=@businessStampType AND m.created_by=@businessStampActor AND m.created_at>=n.created_at AND m.document_date=@businessStampDate AND m.currency_code=@businessStampCurrency AND m.account_currency=@businessStampCurrency AND m.amount=@businessStampAmount AND m.account_amount=@businessStampAmount AND m.amount_try=@businessStampTry AND m.balance_effect=@businessStampEffect AND m.document_exchange_rate_snapshot=@businessStampRate AND m.account_exchange_rate_snapshot=@businessStampRate AND JSON_VALUE(n.payload_json,'$.${b.role==='customer'?'businessCustomerId':'businessSupplierId'}')=CONVERT(nvarchar(20),@businessStampParty) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@businessStampAccount) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@businessStampCurrency ${b.business.scope?"AND JSON_VALUE(n.payload_json,'$.businessSelectedSalePolicyHash')=@selectedSalePolicyHash AND JSON_VALUE(n.payload_json,'$.requestId')=@selectedSaleRequestId":''};`);if(r.recordset?.length!==1)throw makeServiceError('INVOICE_MOVEMENT_SNAPSHOT_AMBIGUOUS','Fişin cari hareketi tam doğrulanamadı.',409);return;}
   const r=await new sqlDriver.Request(transaction).input('copyStampCopy',sqlDriver.UniqueIdentifier,b.copy.copyId).input('copyStampActor',sqlDriver.BigInt,actor.id).input('copyStampInvoice',sqlDriver.BigInt,invoiceId).input('copyStampParty',sqlDriver.BigInt,b.partyId).input('copyStampOperation',sqlDriver.NVarChar(40),b.operation).input('copyStampType',sqlDriver.NVarChar(40),movementType).input('copyStampAmount',sqlDriver.Decimal(18,4),b.amount).input('copyStampEffect',sqlDriver.Decimal(18,4),b.effect).input('copyStampDate',sqlDriver.Date,b.copy.date).query(`SELECT m.id FROM dbo.${b.table} m JOIN dbo.stage4_copy_intents n ON n.copy_id=@copyStampCopy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@copyStampActor AND n.operation=@copyStampOperation WHERE m.${b.foreignKey}=@copyStampInvoice AND m.${b.role}_id=@copyStampParty AND m.movement_type=@copyStampType AND m.created_by=@copyStampActor AND m.created_at>=n.created_at AND m.document_date=@copyStampDate AND m.currency_code=N'TRY' AND m.account_currency=N'TRY' AND m.amount=@copyStampAmount AND m.account_amount=@copyStampAmount AND m.amount_try=@copyStampAmount AND m.balance_effect=@copyStampEffect AND m.document_exchange_rate_snapshot=1 AND m.account_exchange_rate_snapshot=1;`);
   if(r.recordset?.length!==1)throw makeServiceError('INVOICE_MOVEMENT_SNAPSHOT_AMBIGUOUS','Fişin cari hareketi tam doğrulanamadı.',409);
   return;
@@ -1755,7 +1774,9 @@ export async function createSalesDraft(payload, actor = null, transactionContext
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',draft),quarantineTransactionContext(sqlDriver,transaction));
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
-    await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
+    const selectedSale=assertSelectedSaleInvocation(transaction,'sale_draft',actor,null,draft);
+    if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
+    else await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'sales', draft);
     await assertPilotSaleProducts(() => new sqlDriver.Request(transaction), draft.items);
 
@@ -1767,6 +1788,9 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       .input('employeeId', sql.BigInt, draft.employeeId)
       .input('customerCurrency', sql.NVarChar(3), draft.customerCurrency)
       .input('documentCurrency', sql.NVarChar(3), draft.documentCurrency)
+      .input('initialSalesAccountCurrency',sql.NVarChar(3),settlement.accountCurrency)
+      .input('initialSalesAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
+      .input('initialSalesAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
       .input('exchangeRate', sql.Decimal(18, 8), draft.exchangeRate)
       .input('description', sql.NVarChar(500), draft.description || null)
       .input('subtotal', sql.Decimal(18, 4), draft.subtotal)
@@ -1786,6 +1810,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           customer_currency,
           document_currency,
           exchange_rate_snapshot,
+          ${selectedSale ? 'account_currency, account_amount, account_exchange_rate_snapshot,' : ''}
           description,
           subtotal,
           discount_rate,
@@ -1806,6 +1831,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @customerCurrency,
           @documentCurrency,
           @exchangeRate,
+          ${selectedSale ? '@initialSalesAccountCurrency, @initialSalesAccountAmount, @initialSalesAccountRate,' : ''}
           @description,
           @subtotal,
           @discountRate,
@@ -1997,7 +2023,9 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     const settlement = settlementFromInvoice(beforeSnapshot);
     await assertInvoiceSettlementParty(sqlDriver, transaction, 'sales', beforeSnapshot, settlement, { active: true });
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Satış fişi kesinleştirme');
-    await assertPilotCashCustomer(new sqlDriver.Request(transaction), beforeSnapshot.customerId, beforeSnapshot.documentCurrency);
+    const selectedSale=assertSelectedSaleInvocation(transaction,'sale_finalize',actor,invoiceId,beforeSnapshot);
+    if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
+    else await assertPilotCashCustomer(new sqlDriver.Request(transaction), beforeSnapshot.customerId, beforeSnapshot.documentCurrency);
     await assertPilotSaleProducts(() => new sqlDriver.Request(transaction), beforeSnapshot.items, {consume: true, allowNegativeStock: nativeTransaction});
 
     if (!beforeSnapshot.customerId || !beforeSnapshot.customerName) {
@@ -2198,7 +2226,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
         SET
           balance = balance + @customerBalanceEffect,
           updated_at = SYSUTCDATETIME()
-        WHERE id = @customerBalanceId;
+        WHERE id = @customerBalanceId ${selectedSale ? "AND currency_code=N'"+settlement.accountCurrency+"'" : ''};
       `);
 
     let autoCashCollection = null;
@@ -2353,6 +2381,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
       throw makeServiceError('SALES_CANCEL_NOT_FOUND', 'Sales invoice not found', 404);
     }
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
+    const selectedSale=assertSelectedSaleInvocation(transaction,'sale_cancel',actor,invoiceId,beforeSnapshot);
+    if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
 
     let nativeSale = false;
     if (nativeTransaction) {
@@ -2513,7 +2543,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
         SET
           balance = balance - @cancelCustomerBalanceEffect,
           updated_at = SYSUTCDATETIME()
-        WHERE id = @cancelCustomerBalanceId;
+        WHERE id = @cancelCustomerBalanceId ${selectedSale ? "AND currency_code=N'"+settlement.accountCurrency+"'" : ''};
       `);
 
     const cancelResult = await new sqlDriver.Request(transaction)

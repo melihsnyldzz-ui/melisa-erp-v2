@@ -3,6 +3,7 @@ import {nativeError} from './nativeTerminalPolicy.mjs';
 import {writeAuditLog} from './auditService.js';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {copyAssert,BUSINESS_COPY_DATABASE,getBusinessDailySelection,getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
+import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
 
 // Complete a just-created legacy native effect in the selected copy's currency
@@ -13,7 +14,9 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  const account=(role==='customer'?copy.customers:copy.suppliers).find(a=>a.id===String(partyId)&&a.currency===currency);
  copyAssert(account&&copy.actors.some(a=>a.id===String(actor?.id))&&/^[1-9]\d*$/.test(String(movementId)),'ISOLATED_COPY_ACCOUNT_SCOPE',403);
  const business=copy.target.database===BUSINESS_COPY_DATABASE,sql=ctx.sqlDriver??getSqlDriver(),request=()=>new sql.Request(ctx.transaction);
- let operation=null,inbound=null,daily=business?getBusinessDailySelection(copy):null;
+ const selectedSale=business&&role==='customer'?getBusinessSelectedSaleWriteScope(copy,ctx.transaction):null;
+ let operation=selectedSale?.operation??null,inbound=null,daily=selectedSale?null:business?getBusinessDailySelection(copy):null;
+ if(selectedSale)copyAssert(['sale_finalize','sale_cancel'].includes(operation)&&selectedSale.actorId===String(actor?.id)&&selectedSale.customerId===String(partyId)&&selectedSale.customerAccountId===account.accountId&&selectedSale.partyId===account.partyId&&selectedSale.currency===currency&&/^[1-9]\d*$/.test(selectedSale.invoiceId??'')&&(operation==='sale_cancel'?effectExact8.startsWith('-'):!effectExact8.startsWith('-'))&&Number(effectExact8.replace('-',''))<=Number(selectedSale.maxInvoiceAmountExact4),'ISOLATED_COPY_ACCOUNT_SCOPE',403);
  if(business&&role==='supplier'){
   // Inbound middleware also surrounds daily routes. Only the immutable same-TX
   // intent can choose which registered account scope owns this native effect.
@@ -24,11 +27,11 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  }
  const scopeHash=daily?getBusinessDailyScopeHash(copy):null,rates=business?copy.currencyRates?.filter(r=>r.currency===currency):[],rate=rates?.[0];
  if(business){
-  const selected=inbound?inbound.supplierId===account.id&&inbound.accountId===account.accountId&&inbound.currency===currency:daily&&daily[role+'AccountId']===account.accountId&&daily.currency===currency&&/^[a-f0-9]{64}$/i.test(scopeHash??'');
+  const selected=selectedSale?selectedSale.customerAccountId===account.accountId&&selectedSale.currency===currency&&selectedSale.rateExact8===rate?.rateExact8:inbound?inbound.supplierId===account.id&&inbound.accountId===account.accountId&&inbound.currency===currency:daily&&daily[role+'AccountId']===account.accountId&&daily.currency===currency&&/^[a-f0-9]{64}$/i.test(scopeHash??'');
   copyAssert(selected&&rates.length===1&&/^\d+\.\d{8}$/.test(rate.rateExact8)&&Number(rate.rateExact8)>0&&/^\d{4}-\d{2}-\d{2}$/.test(rate.date)&&rate.date<=copy.date&&(currency!=='TRY'||rate.rateExact8==='1.00000000'),'ISOLATED_COPY_ACCOUNT_SCOPE',403);
  }
  const table=role==='customer'?'customer_movements':'supplier_movements';
- const result=await request().input('copyDatabase',sql.NVarChar(128),copy.target.database).input('copy',sql.UniqueIdentifier,copy.copyId).input('actor',sql.BigInt,actor.id).input('movement',sql.BigInt,movementId).input('party',sql.BigInt,partyId).input('entity',sql.BigInt,account.partyId).input('account',sql.BigInt,account.accountId).input('currency',sql.NVarChar(3),currency).input('effect',sql.Decimal(28,8),effectExact8).input('copyAccountRate',sql.Decimal(28,8),business?rate.rateExact8:'1.00000000').input('businessDailyScopeHash',sql.NVarChar(64),scopeHash).input('copyAccountOperation',sql.NVarChar(40),operation).query(`
+ const result=await request().input('copyDatabase',sql.NVarChar(128),copy.target.database).input('copy',sql.UniqueIdentifier,copy.copyId).input('actor',sql.BigInt,actor.id).input('movement',sql.BigInt,movementId).input('party',sql.BigInt,partyId).input('entity',sql.BigInt,account.partyId).input('account',sql.BigInt,account.accountId).input('currency',sql.NVarChar(3),currency).input('effect',sql.Decimal(28,8),effectExact8).input('copyAccountRate',sql.Decimal(28,8),business?rate.rateExact8:'1.00000000').input('businessDailyScopeHash',sql.NVarChar(64),scopeHash).input('copyAccountOperation',sql.NVarChar(40),operation).input('selectedSaleInvoice',sql.BigInt,selectedSale?.invoiceId??null).input('selectedSalePolicyHash',sql.NVarChar(64),selectedSale?.policyHash??null).input('selectedSaleRequestId',sql.NVarChar(100),selectedSale?.requestId??null).query(`
  IF DB_NAME() COLLATE Latin1_General_100_BIN2<>@copyDatabase COLLATE Latin1_General_100_BIN2
  OR NOT EXISTS(SELECT 1 FROM dbo.stage4_copy_intents WHERE copy_id=@copy AND session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id=@actor ${operation?'AND operation=@copyAccountOperation':''})
   THROW 51411,'ISOLATED_COPY_ACCOUNT_INTENT_REQUIRED',1;
@@ -39,7 +42,7 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  IF NOT EXISTS(SELECT 1 FROM dbo.${table} m WITH(UPDLOCK,HOLDLOCK) JOIN dbo.stage4_copy_intents n ON n.copy_id=@copy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@actor ${operation?'AND n.operation=@copyAccountOperation':''}
   WHERE m.id=@movement AND m.${role}_id=@party AND m.created_by=@actor AND m.created_at>=n.created_at AND m.account_currency=@currency AND m.currency_code=@currency
   AND CONVERT(decimal(28,8),m.balance_effect)=@effect AND m.account_amount IS NOT NULL AND m.document_exchange_rate_snapshot=@copyAccountRate AND m.account_exchange_rate_snapshot=@copyAccountRate
-  ${business?"AND m.account_amount=m.amount AND m.amount_try=ROUND(m.amount*@copyAccountRate,4) "+(inbound?"AND JSON_VALUE(n.payload_json,'$.businessSupplierId')=CONVERT(nvarchar(20),@party) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@account) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@currency":"AND JSON_VALUE(n.payload_json,'$.businessDailyScopeHash')=@businessDailyScopeHash"):''}
+  ${business?"AND m.account_amount=m.amount AND m.amount_try=ROUND(m.amount*@copyAccountRate,4) "+(selectedSale?"AND m.sales_invoice_id=@selectedSaleInvoice AND m.movement_type=CASE WHEN @copyAccountOperation=N'sale_cancel' THEN N'sales_invoice_cancel' ELSE N'sales_invoice' END AND JSON_VALUE(n.payload_json,'$.businessCustomerId')=CONVERT(nvarchar(20),@party) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@account) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@currency AND JSON_VALUE(n.payload_json,'$.businessSelectedSalePolicyHash')=@selectedSalePolicyHash AND JSON_VALUE(n.payload_json,'$.requestId')=@selectedSaleRequestId":inbound?"AND JSON_VALUE(n.payload_json,'$.businessSupplierId')=CONVERT(nvarchar(20),@party) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@account) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@currency":"AND JSON_VALUE(n.payload_json,'$.businessDailyScopeHash')=@businessDailyScopeHash"):''}
   AND m.party_entity_id IS NULL AND m.party_currency_account_id IS NULL
   AND m.movement_type IN(N'${role==='customer'?'sales_invoice\',N\'sales_invoice_cancel\',N\'collection\',N\'collection_cancel\',N\'sales_return\',N\'sales_return_cancel':'purchase_invoice\',N\'purchase_invoice_cancel\',N\'payment\',N\'payment_cancel\',N\'purchase_return\',N\'purchase_return_cancel'}'))
   THROW 51413,'ISOLATED_COPY_ACCOUNT_MOVEMENT',1;
@@ -60,7 +63,7 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
  // event would be outside the daily audit contract. Legacy/inbound keep it.
  // `daily` comes from the registered context WeakMap, never a client flag, and
  // the SQL above already verified its scope hash against the active intent.
- if(!daily)await writeAuditLog(request(),{actor,action:'isolated_copy_currency_account_posted',entityType:role+'_movement',entityId:movementId,beforeSnapshot:{accountId:posting.accountId,balance:posting.beforeBalance},afterSnapshot:{...posting,copyId:copy.copyId,operationOrigin:copy.operationOrigin}});
+ if(!daily&&!selectedSale)await writeAuditLog(request(),{actor,action:'isolated_copy_currency_account_posted',entityType:role+'_movement',entityId:movementId,beforeSnapshot:{accountId:posting.accountId,balance:posting.beforeBalance},afterSnapshot:{...posting,copyId:copy.copyId,operationOrigin:copy.operationOrigin}});
  return posting;
 }
 
