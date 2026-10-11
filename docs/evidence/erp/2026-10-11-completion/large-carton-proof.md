@@ -33,3 +33,20 @@ Kurulum: `http://192.168.1.46:5234/install.html`; normal terminal: `http://192.1
 Application4b Gitleaks dar commit taraması0bulgu/diff-check temiz; mevcut exact false-positive politikası genişlemedi. [Push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38174295168) ve [PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38174298446) jobs steps=[]; GitHub annotation ödeme/harcama engeli bildirir. HostedCI PASS yok. Son belge teslim commit'i ve onun CI sonucu root makbuzunda uygulama source'tan ayrı tutulur.
 
 **Kalan tek büyük fiş doğrulaması:** gerçek Zebra'da arama/son ürün adedi/iki koli/save/reopen ve buna bağlı güncel kısa video. ADB açılışı yürütülmeden politika tarafından reddedildi; başka araçla aşılmadı. Mevcut normal native200çeşit fiş guard kanıtı da hazır değildir; sentetik fixture bunu sağlamış sayılmaz. Yeni ana görev veya ticari prova otomatik başlamaz.
+
+
+## 12 Ekim — gerçek kaynaklı 200 ürün okuması / yazmasız kapsam
+
+HOME teslimi204b63f çalışan DB02 üzerinde root, normal15/me ve exact package/config/copy/low-privilege kimliğiyle yeni dar salt okunur önkontrol yaptı. İlk source-option batchlerinin EREQUEST vermesi tüm ürünlerin stoksuz olduğunu göstermez; private ilk sonuç korunup yorum `READ_VALIDATION_BLOCKED / NOT_ASSESSED` olarak düzeltildi. Bilinen tek ürün native context geçti;2/200 karışık seçim aynı51904/class16/line30/v2 ürün-drift korumasıyla reddedildi. İlgili ODBC hatada originalError.info yok; exact mesaj eşleşmesi doğrulanmadığından API error mapper veya native guard değiştirilmedi.
+
+Mevcut sealed kaynak seçenekleri ve aynı native stok koşulu tek bulk SELECT ile önseçildi. Hiçbir miktar yuvarlanarak aday yapılmadı; NULL/missing/negatif/exact3 uyuşmazlığı mevcut predicate ile ayrı kaldı. Bu kaynak okuması yazma izni veya bütün alanlar uygun demek değildir.
+
+| Döviz | Kaynak seçenek | En az1 adet stok adayı | En az24 adet stok adayı | Mevcut stok koşulunda ret | Pozitif1/2/200 native context |
+| --- | ---: | ---: | ---: | ---: | --- |
+| TRY |516|204|60|46|Üçü de READ_VERIFIED|
+| USD |642|361|189|96|Üçü de READ_VERIFIED|
+| EUR |0|—|—|—|Uygun kaynak müşteri hesabı yok|
+
+TRY veUSD pool'ları aynı ürünleri içerebilir; sayıların toplamı tekil ürün sayısı değildir. Her pool'da native kart missing0 ve stok unknown0; ret sayısı tek başına tümünün negatif olduğu iddiası değildir. Pozitif adaylar ardından mevcut200 context okuyucusunun kaynak/birim/maliyet/fiyat/hold/rol/immutable pin korumalarından geçti; guardlar gevşetilmedi. Private numeric SQL teşhis wrapper'ının msnodesqlv8 transaction callback davranışı aynen korundu; uygulama kodu veya çalışma servisi değiştirilmedi.
+
+Private `readonly-candidates/{result,interpretation,native-context-diagnostic-result,native-positive-candidates-result,native-error-shape-result}.json` root geri okumasıyla tamam; her kendi normal oturumu logout oldu. Ticari yazma/SQL DML0; yeni satış/fiş/koli/migration/grant0.200 çeşit birlikte okunabiliyor;200×24 mevcut gerçek stokla kanıtlanamadı. Fiyat toplamı/20000 sınırı,200 kalem preview/finalize/koli writer/replay ve gerçek cihaz/videosu henüz bu kanıtın kapsamı değildir. Önceki193çeşit eski fişe sahte kaynak linki yapılmadı, ADB politika reddi alternatif yöntemle aşılmadı, insanUA32 bekler.
