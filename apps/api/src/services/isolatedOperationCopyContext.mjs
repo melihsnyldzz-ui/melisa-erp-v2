@@ -222,6 +222,14 @@ export function registerBusinessDailyRevision(context,input,proof){
 }
 export function getBusinessDailySelection(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScope.selection??null;}
 export function getBusinessDailyScopeHash(context){assertIsolatedCopyContext(context);return businessDailyRevisions.get(context)?.dailyScopeHash??null;}
+// HOME may remove only a duplicate outer ready call. Return authoritative
+// server registrations; serialized profiles and optional v6 cannot opt in.
+export function getBusinessDailyHomeReadRevisions(context){
+ assertIsolatedCopyContext(context);
+ if(context.target.database!==BUSINESS_COPY_DATABASE||businessReadinessQueryPlanRevisions.has(context))return null;
+ const daily=businessDailyRevisions.get(context),profit=businessDailyProfitRevisions.get(context);
+ return daily?.version===4&&profit?.version===5?Object.freeze({daily,profit}):null;
+}
 export function getBusinessReadinessQueryPlanRevision(context){assertIsolatedCopyContext(context);return businessReadinessQueryPlanRevisions.get(context)??null;}
 // Registration is a server-only step after fresh SQL proof and v1-v5 closure.
 export function registerBusinessReadinessQueryPlanRevision(context,input,proof){

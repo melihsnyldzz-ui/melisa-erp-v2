@@ -178,5 +178,5 @@ async function readCopyHome(runtime,{actorId,sessionPermissions,date},getDailySe
   for(const [key,name] of Object.entries({sales:'sales',goods:'goods',purchase:'purchase',finance:'finance',count:'count',approval:'approval',approveGoods:'approve_goods',salesReturn:'sales_return',purchaseReturn:'purchase_return'}))req.input(name,sql.Bit,capabilities[key]);
   const sets=(await req.query(business?(dailySelectionReady?BUSINESS_DAILY_HOME_SUMMARY_SQL:BUSINESS_INBOUND_HOME_SUMMARY_SQL):COPY_HOME_SUMMARY_SQL)).recordsets;if(!Array.isArray(sets)||sets.length!==6||sets[0]?.length!==1)throw homeError();
   return {capabilities,counts:sets[0][0],salesTotals:sets[1],collections:sets[2],payments:sets[3],reversals:sets[4],tasks:sets[5],copyMeta:{operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash,date:copy.date,...(business?{scopeKind:copy.scopeKind,dailySelectionReady,currentDate:date,dateBasis:'sealed-copy-date'}:{} )}};
- }})});return store.read(actor,c=>c.summary());
+ }})});return store.readHome(actor,c=>c.summary());
 }
