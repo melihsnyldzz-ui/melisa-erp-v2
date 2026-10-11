@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('protected normal refresh/logout require explicit writable ERP opt-in and exact routes',()=>{for(const route of ['/api/auth/refresh','/api/auth/logout']){assert.equal(allowed('POST',route,{...ctx,protectedNormalAuth:true}),true);for(const scope of [ctx,{writes:false,mode:'erp',protectedNormalAuth:true},{writes:true,mode:'native',protectedNormalAuth:true},{...ctx,protectedNormalAuth:'true'}])assert.equal(allowed('POST',route,scope),false);for(const method of ['GET','PUT','DELETE'])assert.equal(allowed(method,route,{...ctx,protectedNormalAuth:true}),false);assert.equal(allowed('POST',route+'/',{...ctx,protectedNormalAuth:true}),false);}assert.equal(allowed('POST','/api/auth/test-admin',{...ctx,protectedNormalAuth:true}),false);});
 test('supplier payments expose only their exact normal lifecycle inside writable ERP TEST',()=>{
  for(const suffix of ['preview','payments','payments/12/cancel']){
   const path='/api/work-supplier-payments/'+suffix;

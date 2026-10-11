@@ -35,6 +35,10 @@ import com.melisaerp.nativeterminal.scanner.createBarcodeScanner
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 
+/** A failed main-frame load can still receive onPageFinished for its requested URL. */
+internal fun workPageReady(protectedStorageReady: Boolean, pageFailed: Boolean, task: String?): Boolean =
+    protectedStorageReady && !pageFailed && task != null
+
 /** Isolated work launcher. The original native activity, database and session keys are untouched. */
 class WorkTasksActivity : ComponentActivity() {
     private val contract by lazy { WorkTasksContract(BuildConfig.WORK_ORIGIN) }
@@ -155,9 +159,11 @@ class WorkTasksActivity : ComponentActivity() {
                 else WebResourceResponse("text/plain", "UTF-8", 403, "Closed", mapOf("Cache-Control" to "no-store"), ByteArrayInputStream(ByteArray(0)))
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) { loading = true; pageReady = false; pageFailed = false; gate.page(null, false) }
             override fun onPageFinished(view: WebView, url: String) {
-                loading = false; pageReady = contract.taskOf(url) != null
-                task = contract.taskOf(url)?.takeIf { it != "home" } ?: task
-                gate.page(if (home) null else task, resumed && pageReady)
+                loading = false
+                val finishedTask = contract.taskOf(url)
+                pageReady = workPageReady(protectedStorageReady, pageFailed, finishedTask)
+                if (pageReady) task = finishedTask?.takeIf { it != "home" } ?: task
+                gate.page(if (home || !pageReady) null else task, resumed && pageReady)
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) { loading = false; pageReady = false; pageFailed = true; gate.page(null, false); message = "Çalışma alanına bağlanılamadı. Wi-Fi bağlantınızı kontrol edin." }

@@ -10,6 +10,17 @@ class WorkProtectedSessionTest {
     private val page = "$origin/terminal.html?worktest=1#crm"
     private val policy = WorkProtectedSessionPolicy(origin)
     private val session = """{"accessToken":"opaque-access","refreshToken":"opaque-refresh","userId":"normal-personel","username":"agent-test","expiresAt":100000}"""
+    @Test fun failedMainFrameCannotBecomeReadyWhenItsRequestedTaskUrlFinishes() {
+        // Android calls onPageFinished even for its network-error page. A valid
+        // requested URL does not establish a usable document or barcode target.
+        assertFalse(workPageReady(true, true, "sales"))
+        assertFalse(workPageReady(true, true, "goods"))
+        assertFalse(workPageReady(false, false, "sales"))
+        assertFalse(workPageReady(true, false, null))
+        // A subsequent successful, protected page load may become ready again.
+        assertTrue(workPageReady(true, false, "sales"))
+        assertTrue(workPageReady(true, false, "home"))
+    }
     @Test fun realmsAreExactAndNeverShared() {
         val erp = policy.key(origin, true, page)
         val crm = policy.key("http://192.168.1.46:62700", false, page)
@@ -53,6 +64,9 @@ class WorkProtectedSessionTest {
         assertTrue(source.contains("}.isSuccess"))
         assertTrue(source.contains("MelisaProtectedWork/1"))
         assertTrue(source.contains("protectedStorageReady && contract.allowedRequest"))
+        assertTrue(source.contains("pageReady = workPageReady(protectedStorageReady, pageFailed, finishedTask)"))
+        assertTrue(source.contains("if (pageReady) task = finishedTask"))
+        assertTrue(source.contains("if (home || !pageReady) null else task"))
         val opening = source.substringAfter("private fun openTask(id: String)").substringBefore("private fun navigateHash")
         assertTrue(opening.indexOf("if (!protectedStorageReady)") in 0 until opening.indexOf("web.loadUrl"))
         assertTrue(opening.substringAfter("if (!protectedStorageReady)").substringBefore("message = \"\"; home = false").contains("return"))
