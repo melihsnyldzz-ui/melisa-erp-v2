@@ -5,6 +5,7 @@ import {createWorkSales} from './workSales.js';
 import {createWorkCount} from './workCount.js';
 import {createWorkSupplierReturns} from './workSupplierReturns.js';
 import {createCartonPacking} from './cartonPacking.js';
+import {compactTerminalHelp} from './terminalCompactHelp.mjs';
 import {moneyDisplay,catalogPath,catalogEnvelope,catalogMainPrice,catalogExact} from './workCatalogModel.mjs';
 import {createCatalogPhotoLoader,createCatalogThumbnailLoader} from './workCatalogPhoto.mjs';
 import {terminalActions,terminalRoute,terminalWorkActions,terminalWorkRoute,terminalCrmUrl,terminalCrmViewportHeight,terminalMessage,terminalStorage,terminalUser,createTerminalScanGate,createTerminalSessionFacade,terminalOfflineText} from './personnelTerminalModel.mjs';
@@ -14,6 +15,13 @@ const root=document.getElementById('view'),crm=document.getElementById('terminal
 const storage=terminalStorage(sessionStorage),scanner=createTerminalScanGate();
 const workTasks=new URLSearchParams(location.search).get('worktest')==='1',actions=workTasks?terminalWorkActions:terminalActions,resolveRoute=workTasks?terminalWorkRoute:terminalRoute;
 if(workTasks)document.body.classList.add('work-task-terminal');
+// The shared ERP modules keep their desktop markup and transaction handlers.
+// Only this small handheld shell folds the unchanged instructional card.
+if(workTasks){
+ const openStates=new Map(),compact=()=>compactTerminalHelp(root,{enabled:matchMedia('(max-width:650px)').matches,openStates});
+ new MutationObserver(compact).observe(root,{childList:true,subtree:true});
+ compact();
+}
 let session=null,user=null,controller=null,route='home',crmStarted=false,crmOrigin=null,crmTimer=null,pendingWrites=0,navigationVersion=0,crmLogoutPending=storage.getItem('crmLogoutPending')==='true',logoutResolve=null;
 function announce(message){connection.textContent=message;connection.hidden=!message;}
 function online(){return navigator.onLine!==false;}

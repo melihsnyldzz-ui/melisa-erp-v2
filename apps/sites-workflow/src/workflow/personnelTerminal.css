@@ -52,4 +52,18 @@
  .work-task-terminal .work-trade .trade-panel > [data-sale-product-detail]{order:8}
  .work-task-terminal .work-trade .trade-cart-line{padding:8px 0}
  .work-task-terminal .work-trade .trade-total{font-size:25px;margin:8px 0}
+ /* Keep the first task field near the top without shrinking touch controls. */
+ .work-task-terminal .terminal-header{min-height:44px;padding:0 8px}
+ .work-task-terminal #terminal-logout{min-height:44px;min-width:44px;padding:4px 10px}
+ .work-task-terminal .work-trade > .heading{flex-wrap:nowrap}
+ .work-task-terminal .work-trade > .heading > div:first-child{flex:1 1 0;width:auto}
+ .work-task-terminal .work-trade > .heading > .btn{flex:0 0 auto}
+ .work-task-terminal .work-task-handoff[data-terminal-compact-help]{padding:4px 8px;margin-bottom:6px}
+ .work-task-terminal .terminal-task-help > summary{min-height:44px;padding:10px 4px;color:var(--green);font-size:13px;font-weight:650;cursor:pointer}
+ .work-task-terminal .terminal-task-help > summary:focus-visible{outline:3px solid #e8b372;outline-offset:2px}
+ .work-task-terminal .work-task-heading a{min-height:44px}
+ .work-task-terminal .work-trade .trade-panel > h2{font-size:18px;line-height:1.3;margin:0 0 8px}
+ .work-task-terminal .work-inbound .inbound-panel > h2{font-size:18px;line-height:1.3;margin:0 0 8px}
+ .work-task-terminal .work-trade > .trade-status:empty{margin:0}
+ .work-task-terminal .work-inbound > .inbound-status:empty{margin:0}
 }

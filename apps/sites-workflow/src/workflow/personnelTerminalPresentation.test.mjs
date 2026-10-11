@@ -51,3 +51,10 @@ test('360px count header reserves a full title row and two bounded wrapping butt
  const buttons=values('.work-task-terminal .work-inbound > .heading .inbound-actions > .btn');assert.equal(buttons['min-width'],'0');assert.equal(buttons['white-space'],'normal');assert.equal(buttons.width,'100%');
  const viewport=360,viewPadding=8,gap=Number.parseInt(actions.gap),available=viewport-2*viewPadding,column=(available-gap)/2;assert.equal(2*column+gap,available);assert.ok(column>140&&column<viewport);
 });
+test('handheld sales keeps title and refresh on one row, small panel headings and 44px help/logout targets',()=>{
+ const values=selector=>{let result;rules.walkRules(r=>{if(r.selector===selector)result=Object.fromEntries(r.nodes.map(n=>[n.prop,n.value]));});assert.ok(result,selector);return result;};
+ assert.equal(values('.work-task-terminal .work-trade > .heading')['flex-wrap'],'nowrap');
+ assert.equal(values('.work-task-terminal .work-trade > .heading > div:first-child').flex,'1 1 0');
+ assert.equal(values('.work-task-terminal .work-trade .trade-panel > h2').margin,'0 0 8px');
+ for(const selector of ['.work-task-terminal #terminal-logout','.work-task-terminal .terminal-task-help > summary','.work-task-terminal .work-task-heading a'])assert.ok(Number.parseInt(values(selector)['min-height'])>=44);
+});

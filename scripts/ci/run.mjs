@@ -29,6 +29,7 @@ if (mode === 'quality') {
 } else if (mode === 'canonical') {
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-completion-logon.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/prepare-terminal-completion-private.test.mjs'), path.join(root, 'scripts/canonical/terminal-worktest-package.test.mjs')]);
   run(['--test', ...['shared-business-selected-sale-preview-sql','shared-business-selected-sale-write-scope-sql','shared-business-selected-sale-revision-sql','shared-business-selected-sale-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--experimental-test-module-mocks', '--test', path.join(root, 'scripts/test-business-selected-sale-native-engine.mjs')]);
   run(['--test', ...['shared-business-scope','shared-business-copy-sql','shared-business-party-readers','shared-business-ready-revision-sql','shared-business-ready-performance-revision-sql','shared-business-effects-performance-revision-sql','crm-order-current-sql'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
@@ -39,6 +40,13 @@ if (mode === 'quality') {
   run(['--test', path.join(root, 'scripts/catalog/apply-confirmed-photo-plan.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/goal8-test-day-contract.test.mjs'),path.join(root,'scripts/canonical/goal8-test-day-profile.test.mjs'),path.join(root,'scripts/canonical/goal8-test-day-runner.test.mjs'),path.join(root,'scripts/canonical/goal8-test-day-repair.test.mjs'),path.join(root,'scripts/canonical/goal8-final-reader-fixture.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/enable-test-purchase-batches.test.mjs'), path.join(root, 'scripts/canonical/enable-test-purchase-batch-stock-source.test.mjs'), path.join(root, 'scripts/canonical/enable-test-purchase-fx.test.mjs'), path.join(root, 'scripts/canonical/enable-test-customer-cards.test.mjs'), path.join(root, 'scripts/canonical/enable-test-supplier-cards.test.mjs'), path.join(root, 'scripts/canonical/enable-test-supplier-contact.test.mjs'), path.join(root, 'scripts/canonical/enable-test-product-prices.test.mjs'), path.join(root, 'scripts/canonical/enable-test-current-price-purchase.test.mjs'), path.join(root, 'scripts/canonical/enable-test-stock-products.test.mjs'), path.join(root, 'scripts/canonical/enable-test-work-catalog.test.mjs'), path.join(root, 'scripts/canonical/enable-test-night-workflows.test.mjs'), path.join(root, 'scripts/canonical/enable-test-work-inbound-counts.test.mjs'), path.join(root, 'scripts/canonical/enable-test-work-finops-fixture.test.mjs')]);
+} else if (mode === 'windows-process-probe') {
+  // This fixed PS5 fixture replaces every OS/network API in memory. Keep it
+  // outside the application child runner; never widen offline-guard to allow
+  // arbitrary shell execution. The Windows CI job calls only this exact mode.
+  if (process.platform !== 'win32') throw new Error('WINDOWS_PROCESS_PROBE_REQUIRES_WINDOWS');
+  const result = spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['-NoProfile', '-NonInteractive', '-File', path.join(root, 'scripts/canonical/hub-stack-process-probe.test.ps1'), '-SourcePath', path.join(root, 'scripts/canonical/hub-stack-process-probe.ps1')], { cwd: root, env, stdio: 'inherit', timeout: 30_000 });
+  if (result.error || result.status !== 0) process.exit(result.status || 1);
 } else if (['api', 'web-admin', 'sites-workflow', 'migration'].includes(mode)) {
   const testRoot = mode === 'migration' ? path.join(root, 'scripts/migration') : path.join(root, 'apps', mode, 'src');
   // The identity regression is a real SQL integration suite. CI deliberately
@@ -53,4 +61,4 @@ if (mode === 'quality') {
   for (const app of ['web-admin', 'sites-workflow']) run([path.join(root, 'apps', app, 'node_modules/vite/bin/vite.js'), 'build'], path.join(root, 'apps', app));
 } else if (mode === 'guard') {
   run([path.join(root, 'scripts/ci/guard.test.mjs')]);
-} else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build');
+} else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build|windows-process-probe');
