@@ -2,6 +2,10 @@
 
 Tarih: 11 Ekim 2026. Aynı ERP-COMPLETE01 işinin ERP-DEC-048 güvenlik alt kapsamıdır; yeni teslim işi veya kullanıcı kabulü değildir.
 
+## Son kaynak denetimi ve PR
+
+[Draft PR #29](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/29), aktif kanonik feature branch içine kaynak teslimidir. Dar ignore ekleri ve kanıt commit'i `f6e75beff688cb369ef78ba751cd90ddda83395d` üzerinde son Gitleaks taraması **exit0/0 findings** verdi. Alt taraftaki ara tarama kaydının commit bekleme durumu bu sonuçla güncellendi. Bu head'de hosted CI hesap ödemesi/harcama sınırı nedeniyle başlamadı; GitHub check annotation doğrulandı. Sonraki senkronizasyon kanonik `80829d8` terminal checkpoint belgelerini korur; logger kodunu değiştirmez. Son PR head'i ve CI ayrıca uzakta doğrulanır. Kaynak teslimi, runtime deploy veya sır yenileme kanıtı değildir.
+
 ## Karar, kaynak ve runtime ayrımı
 
 - Kullanıcının doğrudan talimatı: hassas bilgi konusunu kontrol edip düzeltmek; diğer işleri bekletmeden bitirmek.
