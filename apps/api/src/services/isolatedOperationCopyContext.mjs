@@ -90,8 +90,8 @@ export function assertIsolatedCopyReadProof(context,proof){
  const revision=businessDailyRevisions.get(context)??adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
  const profit=businessDailyProfitRevisions.get(context);
  const queryPlan=businessReadinessQueryPlanRevisions.get(context)?.revision;
- const registeredSelected=getRegisteredBusinessSelectedSaleRevision(context),selected=registeredSelected?.revision,selectedEffects=registeredSelected?.selectedEffectsRevision;
- copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(selectedEffects?.modules.find(m=>m.name===p.name)?.afterHash??selected?.modules.find(m=>m.name===p.name)?.afterHash??queryPlan?.modules.find(m=>m.name===p.name)?.afterHash??profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
+ const registeredSelected=getRegisteredBusinessSelectedSaleRevision(context),selected=registeredSelected?.revision,selectedEffects=registeredSelected?.selectedEffectsRevision,selectedParent=registeredSelected?.selectedParentRevision;
+ copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(selectedParent?.modules.find(m=>m.name===p.name)?.afterHash??selectedEffects?.modules.find(m=>m.name===p.name)?.afterHash??selected?.modules.find(m=>m.name===p.name)?.afterHash??queryPlan?.modules.find(m=>m.name===p.name)?.afterHash??profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
 // journal identity. It is never accepted from an HTTP body or an environment flag.

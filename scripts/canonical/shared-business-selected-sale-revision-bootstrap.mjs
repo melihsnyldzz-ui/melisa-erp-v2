@@ -4,6 +4,7 @@ import {businessDailyProfitReadSQL} from '../../apps/api/src/services/businessDa
 import {businessDailyNativeCheckReadSQL} from '../../apps/api/src/services/businessDailyNativeCheck.mjs';
 import {buildBusinessSelectedSaleRevision,validateBusinessSelectedSaleInstall} from './shared-business-selected-sale-revision-sql.mjs';
 import {buildBusinessSelectedSaleEffectsRevision,SELECTED_SALE_EFFECTS_MODULES} from './shared-business-selected-sale-effects-revision-sql.mjs';
+import {buildBusinessSelectedSaleParentRevision,SELECTED_SALE_PARENT_MODULES} from './shared-business-selected-sale-parent-revision-sql.mjs';
 import {SELECTED_SALE_REGISTRY,SELECTED_SALE_IMMUTABLE} from './shared-business-selected-sale-revision-contract.mjs';
 import {COPY_MUTABLE_TABLES} from './stage4-copy-sql.mjs';
 
@@ -46,6 +47,37 @@ SELECT CONVERT(varchar(36),r.copy_id) copyId,r.name,r.revision,r.base_seal_hash 
 CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_business_selected_sale_effects_revisions'))),2) immutableTriggerHash,ISNULL(CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_business_selected_sale_effects_revisions'),'ExecIsTriggerDisabled')),1) triggerDisabled FROM dbo.stage4_copy_business_selected_sale_effects_revisions r WITH(HOLDLOCK) ORDER BY r.name;
 `+metadataSQL;
 
+export const BUSINESS_SELECTED_SALE_PARENT_REVISION_PROOF_SQL=metadataSQL+`
+SELECT CONVERT(varchar(36),r.copy_id) copyId,r.name,r.revision,r.base_seal_hash baseSealHash,r.base_selected_revision_hash baseSelectedRevisionHash,r.base_effects_revision_hash baseEffectsRevisionHash,r.profile_hash profileHash,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,
+CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_business_selected_sale_parent_revisions'))),2) immutableTriggerHash,ISNULL(CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_business_selected_sale_parent_revisions'),'ExecIsTriggerDisabled')),1) triggerDisabled FROM dbo.stage4_copy_business_selected_sale_parent_revisions r WITH(HOLDLOCK) ORDER BY r.name;
+`+metadataSQL;
+
+function validateParentRevision(copy,base,effects,revision){
+ const keys=['schemaVersion','version','copyId','baseSealHash','baseSelectedRevisionHash','baseEffectsRevisionHash','profileHash','modules','immutableTriggerHash','repair','revisionHash'];
+ copyAssert(effects&&exact(revision,keys)&&revision.schemaVersion==='melisa-business-selected-sale-parent-revision.v1'&&revision.version===8&&revision.copyId===copy.copyId&&revision.baseSealHash===copy.sealHash&&revision.baseSelectedRevisionHash===base.revisionHash&&revision.baseEffectsRevisionHash===effects.revisionHash&&revision.profileHash===isolatedCopyHash(copy)&&revision.repair==='CURRENT_PARENT_PINS','SELECTED_PARENT_BOOT_REVISION');
+ const {revisionHash,...body}=revision;copyAssert(hex(revisionHash)&&revisionHash===isolatedCopyHash(body)&&hex(revision.immutableTriggerHash),'SELECTED_PARENT_BOOT_SEAL');
+ copyAssert(Array.isArray(revision.modules)&&revision.modules.length===4&&revision.modules.every((m,i)=>exact(m,['name','beforeHash','afterHash'])&&m.name===SELECTED_SALE_PARENT_MODULES[i]&&hex(m.afterHash)&&m.beforeHash===(effects.modules.find(p=>p.name===m.name)?.afterHash??base.modules.find(p=>p.name===m.name)?.afterHash)&&m.beforeHash!==m.afterHash),'SELECTED_PARENT_BOOT_PREDECESSOR_PINS');
+}
+function parentProof(copy,revision,result,nativeReadOnly){
+ copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===3&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[2].length===1,'SELECTED_PARENT_BOOT_RECORDSETS');
+ const before=result.recordsets[0][0],after=result.recordsets[2][0];metadata(copy,before,nativeReadOnly);metadata(copy,after,nativeReadOnly);copyAssert(isolatedCopyJSON(before)===isolatedCopyJSON(after),'SELECTED_PARENT_BOOT_SAME_TRANSACTION');
+ const rows=result.recordsets[1],keys=['copyId','name','revision','baseSealHash','baseSelectedRevisionHash','baseEffectsRevisionHash','profileHash','beforeHash','afterHash','revisionHash','actualHash','immutableTriggerHash','triggerDisabled'];
+ copyAssert(rows.length===4&&new Set(rows.map(r=>r.name)).size===4,'SELECTED_PARENT_BOOT_REGISTRY_ROWS');
+ for(const m of revision.modules){const r=rows.find(r=>r.name===m.name);copyAssert(exact(r,keys)&&r.copyId?.toLowerCase()===copy.copyId&&r.revision===8&&r.baseSealHash===copy.sealHash&&r.baseSelectedRevisionHash===revision.baseSelectedRevisionHash&&r.baseEffectsRevisionHash===revision.baseEffectsRevisionHash&&r.profileHash===revision.profileHash&&r.beforeHash===m.beforeHash&&r.afterHash===m.afterHash&&r.actualHash===m.afterHash&&r.revisionHash===revision.revisionHash&&r.immutableTriggerHash===revision.immutableTriggerHash&&r.triggerDisabled===0,'SELECTED_PARENT_BOOT_NATIVE_PINS');}
+ return result;
+}
+function projectVerifiedParents(revision,parentResult,result,selected){
+ const length=selected?11:3;
+ copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===length&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[length-1].length===1,'SELECTED_PARENT_BOOT_HISTORY_RECORDSETS');
+ copyAssert(isolatedCopyJSON(parentResult.recordsets[0][0])===isolatedCopyJSON(result.recordsets[0][0])&&isolatedCopyJSON(parentResult.recordsets[2][0])===isolatedCopyJSON(result.recordsets[length-1][0]),'SELECTED_PARENT_BOOT_SAME_TRANSACTION');
+ const projected=structuredClone(result),groups=selected?[...projected.recordsets.slice(1,6),projected.recordsets[8]]:[projected.recordsets[1]];
+ // Only the proven four v8 definitions may be interpreted as their exact
+ // immutable predecessors. Daily context returns directly to v6; the other
+ // three return to v7, whose separate native registry is proven next.
+ for(const rows of groups)for(const r of rows){const m=revision.modules.find(m=>m.name===r.name);if(m){copyAssert(r.actualHash===m.afterHash,'SELECTED_PARENT_BOOT_HISTORY_CURRENT_PIN');r.actualHash=m.beforeHash;}}
+ return projected;
+}
+
 function validateEffectsRevision(copy,base,revision){
  const keys=['schemaVersion','version','copyId','baseSealHash','baseSelectedRevisionHash','profileHash','modules','immutableTriggerHash','optimization','revisionHash'];
  copyAssert(exact(revision,keys)&&revision.schemaVersion==='melisa-business-selected-sale-effects-revision.v1'&&revision.version===7&&revision.copyId===copy.copyId&&revision.baseSealHash===copy.sealHash&&revision.baseSelectedRevisionHash===base.revisionHash&&revision.profileHash===isolatedCopyHash(copy)&&revision.optimization==='SELECTED_MAX_IDS_ONCE','SELECTED_EFFECTS_BOOT_REVISION');
@@ -71,9 +103,11 @@ function projectVerifiedEffects(revision,effectsResult,result){
 }
 
 async function readCurrentProof(copy,state,request){
- let overlayResult;
- if(state.selectedEffectsRevision!==undefined){validateEffectsRevision(copy,state.selectedRevision,state.selectedEffectsRevision);overlayResult=effectsProof(copy,state.selectedEffectsRevision,await request.query(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL),state.nativeReadOnly);}
- const raw=await request.query(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL),result=overlayResult?projectVerifiedEffects(state.selectedEffectsRevision,overlayResult,raw):raw;
+ let parentResult,overlayResult;
+ if(state.selectedEffectsRevision!==undefined)validateEffectsRevision(copy,state.selectedRevision,state.selectedEffectsRevision);
+ if(state.selectedParentRevision!==undefined){validateParentRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision);parentResult=parentProof(copy,state.selectedParentRevision,await request.query(BUSINESS_SELECTED_SALE_PARENT_REVISION_PROOF_SQL),state.nativeReadOnly);}
+ if(state.selectedEffectsRevision!==undefined){const raw=await request.query(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL);overlayResult=effectsProof(copy,state.selectedEffectsRevision,parentResult?projectVerifiedParents(state.selectedParentRevision,parentResult,raw,false):raw,state.nativeReadOnly);}
+ const raw=await request.query(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL),parentProjected=parentResult?projectVerifiedParents(state.selectedParentRevision,parentResult,raw,true):raw,result=overlayResult?projectVerifiedEffects(state.selectedEffectsRevision,overlayResult,parentProjected):parentProjected;
  return selectedProof(copy,state.selectedRevision,result,state.nativeReadOnly,state.schema);
 }
 
@@ -138,10 +172,12 @@ export async function configureBusinessSelectedSaleRevision({copy,request,native
  copyAssert(isolatedCopyJSON(candidate.revision)===isolatedCopyJSON(revision),'SELECTED_BOOT_CANONICAL_REVISION');
  if(state.selectedInstall!==undefined)validateBusinessSelectedSaleInstall(state.selectedInstall,args);
  if(state.selectedEffectsRevision!==undefined){const overlay=buildBusinessSelectedSaleEffectsRevision(args);copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.selectedEffectsRevision),'SELECTED_EFFECTS_BOOT_CANONICAL_REVISION');}
+ if(state.selectedParentRevision!==undefined){const overlay=buildBusinessSelectedSaleParentRevision(args);copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.selectedParentRevision),'SELECTED_PARENT_BOOT_CANONICAL_REVISION');}
  await proveHistory(copy,state,result);
  const baseBundle=buildBusinessSelectedSaleRevision({copy,daily:state.daily,profit:state.profit,schema:state.schema});
- const bundle=state.selectedEffectsRevision===undefined?baseBundle:buildBusinessSelectedSaleEffectsRevision({copy,daily:state.daily,profit:state.profit,schema:state.schema});
- const value=freeze({revision:baseBundle.revision,...(state.selectedEffectsRevision===undefined?{}:{selectedEffectsRevision:bundle.revision}),bundle,parentHashes:bundle.parentHashes});
+ const effectiveArgs={copy,daily:state.daily,profit:state.profit,schema:state.schema},effectsBundle=state.selectedEffectsRevision===undefined?null:buildBusinessSelectedSaleEffectsRevision(effectiveArgs);
+ const bundle=state.selectedParentRevision===undefined?(effectsBundle??baseBundle):buildBusinessSelectedSaleParentRevision(effectiveArgs);
+ const value=freeze({revision:baseBundle.revision,...(effectsBundle?{selectedEffectsRevision:effectsBundle.revision}:{}),...(state.selectedParentRevision===undefined?{}:{selectedParentRevision:bundle.revision}),bundle,parentHashes:bundle.parentHashes});
  registered.set(copy,{value,input:freeze(state)});return value;
 }
 export function getRegisteredBusinessSelectedSaleRevision(copy){

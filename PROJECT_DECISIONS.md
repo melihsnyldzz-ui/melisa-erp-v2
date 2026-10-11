@@ -23,6 +23,16 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-047 — 11 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan **TEST erişimi ve parola talepleri** kararı: TEST girişini hazırlamak ve sürdürmek ajanın işidir. Kullanıcıdan kullanıcı adı/parola, sohbette sır paylaşımı veya tekrar manuel giriş istenmez. Önce mevcut yetkili oturum ve korumalı giriş teslimi kullanılır; sırlar sohbet, çıktı, kaynak, GitHub veya düz metin günlüğe taşınmaz.
+
+Yalnız izole TEST'te, desteklenen kullanıcı yönetimi yoluyla ajan için ayrılmış hesap oluşturma, gerekli mevcut personel rolünü doğru temsil etme ve yalnız bu hesabın parolasını yenileme yetkilidir. Paylaşılan personel/gerçek/üretim hesaplarının parolası değişmez; yetki yükseltme, giriş kontrolünü kaldırma ve gizli bypass yoktur. Desteklenen yol veya korumalı kayıt bulunamazsa tek somut kurulum engeli bildirilir; bağımsız işler sürer, parola istenmez.
+
+İlk girişten sonra cihazın korumalı deposuyla oturum hatırlama ve desteklenen yenileme sağlanır; yeniden açılış ve ERP/CRM/terminal geçişi doğrulanır. Kimlik ve yetki doğrulanmadan oturumlar eşleştirilmez. Çıkış, kullanıcı değiştirme, erişim iptali ve kişisel MFA/dış sağlayıcı onayı korunur. Teknik hazırlık personel eğitimi veya insan/üretim kabulü değildir.
+
+Tek mevcut pano işi **ERP-COMPLETE01** sürer. ERP-DEC-046'nın parola/manuel giriş bağımlılığı yalnız bu TEST hazırlığı bakımından supersede edilir; önceki kapsam ve veri korumaları aynıdır. LIVE/Vega/T1, gerçek müşteri mesajı, ücretli servis veya eski sistemi kapatma yetkisi verilmedi.
+
 ### ERP-DEC-046 — 11 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan son talimatı: tamamlanmış temizlikleri yeniden inceleme/raporlama ve yeni silme yapma; satış bağlantısını uçtan uca tamamla, ardından mal kabul → İlker'e gönderim, müşteri seçerek satış, çoklu koliyle toplama ve atanmış müşteriyle konuşma görevlerini yapan yeşil Android terminalini teslim et. Tek mevcut pano işi **ERP-COMPLETE01** sürer; ikinci paralel ana görev açılmaz.

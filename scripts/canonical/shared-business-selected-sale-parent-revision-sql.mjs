@@ -1,0 +1,65 @@
+// Forward-only v8 parent-pin repair. No installed v6/v7 registry is edited.
+import {moduleHash} from './stage4-copy-sql.mjs';
+import {buildBusinessSelectedSaleRevision} from './shared-business-selected-sale-revision-sql.mjs';
+import {buildBusinessSelectedSaleEffectsRevision,SELECTED_SALE_EFFECTS_REGISTRY,SELECTED_SALE_EFFECTS_IMMUTABLE} from './shared-business-selected-sale-effects-revision-sql.mjs';
+import {SELECTED_SALE_REGISTRY,SELECTED_SALE_IMMUTABLE,SELECTED_SALE_CONTEXT} from './shared-business-selected-sale-revision-contract.mjs';
+import {assertIsolatedCopyContext,isolatedCopyHash,isolatedCopyJSON} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
+
+export const SELECTED_SALE_PARENT_REGISTRY='dbo.stage4_copy_business_selected_sale_parent_revisions';
+export const SELECTED_SALE_PARENT_IMMUTABLE='dbo.immutable_stage4_copy_business_selected_sale_parent_revisions';
+export const SELECTED_SALE_PARENT_MODULES=Object.freeze(['dbo.usp_stage4_copy_ready','dbo.usp_business_daily_context',SELECTED_SALE_CONTEXT,'dbo.usp_business_selected_sale_write_intent_v1']);
+const prepared=new WeakMap(),check=(ok,code)=>{if(!ok)throw Error(code);};
+const lit=v=>"N'"+String(v).replaceAll("'","''")+"'";
+const hash=name=>`CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(${name}))),2)`;
+const canonical=s=>s.replace(/^(?:ALTER|CREATE OR ALTER|CREATE  ) PROCEDURE /,'CREATE PROCEDURE ');
+const executable=s=>{check(s.startsWith('CREATE PROCEDURE '),'SELECTED_PARENT_HEADER');return s.replace(/^CREATE PROCEDURE /,'CREATE OR ALTER PROCEDURE ');};
+const stored=s=>{check(s.startsWith('CREATE PROCEDURE '),'SELECTED_PARENT_HEADER');return s.replace(/^CREATE PROCEDURE /,'CREATE   PROCEDURE ');};
+const once=(s,a,b,code)=>{check(s.split(a).length===2,code);return s.replace(a,b);};
+
+export function buildBusinessSelectedSaleParentRevision(input){
+ const {copy}=input;assertIsolatedCopyContext(copy);
+ const selected=buildBusinessSelectedSaleRevision(input),effects=buildBusinessSelectedSaleEffectsRevision(input),base=selected.revision,previous=effects.revision;
+ const source=name=>{
+  const m=effects.replacements.find(m=>m.name===name)??selected.replacements.find(m=>m.name===name);
+  check(m&&moduleHash(m.storedDefinition??canonical(m.definition))===m.afterHash,'SELECTED_PARENT_BASE_PIN');return m;
+ };
+ const pins=SELECTED_SALE_PARENT_MODULES.map(name=>({name,beforeHash:source(name).afterHash})),names=SELECTED_SALE_PARENT_MODULES.map(lit).join(',');
+ const tableSQL=`CREATE TABLE ${SELECTED_SALE_PARENT_REGISTRY}(copy_id uniqueidentifier NOT NULL REFERENCES dbo.stage4_copy_manifest(copy_id),name sysname NOT NULL CHECK(name IN(${names})),revision int NOT NULL CHECK(revision=8),base_seal_hash char(64) NOT NULL,base_selected_revision_hash char(64) NOT NULL,base_effects_revision_hash char(64) NOT NULL,profile_hash char(64) NOT NULL,before_hash char(64) NOT NULL,after_hash char(64) NOT NULL,revision_hash char(64) NOT NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),PRIMARY KEY(copy_id,name));`;
+ const v6Values=base.modules.map(m=>`(${lit(m.name)},${m.beforeHash?lit(m.beforeHash):'CAST(NULL AS char(64))'},${lit(m.afterHash)})`).join(',');
+ const v7Values=previous.modules.map(m=>`(${lit(m.name)},${lit(m.beforeHash)},${lit(m.afterHash)})`).join(',');
+ const historyProof=`IF(SELECT COUNT(*) FROM ${SELECTED_SALE_REGISTRY})<>10 OR(SELECT COUNT(*) FROM ${SELECTED_SALE_EFFECTS_REGISTRY})<>4 OR ISNULL(OBJECTPROPERTY(OBJECT_ID(N'${SELECTED_SALE_IMMUTABLE}'),'ExecIsTriggerDisabled'),1)<>0 OR ISNULL(OBJECTPROPERTY(OBJECT_ID(N'${SELECTED_SALE_EFFECTS_IMMUTABLE}'),'ExecIsTriggerDisabled'),1)<>0 OR ISNULL(${hash(lit(SELECTED_SALE_IMMUTABLE))},'')<>${lit(base.immutableTriggerHash)} OR ISNULL(${hash(lit(SELECTED_SALE_EFFECTS_IMMUTABLE))},'')<>${lit(previous.immutableTriggerHash)} OR EXISTS(SELECT 1 FROM ${SELECTED_SALE_REGISTRY} s LEFT JOIN(VALUES ${v6Values})p(name,before_hash,after_hash) ON p.name=s.name WHERE p.name IS NULL OR s.copy_id<>${lit(copy.copyId)} OR s.revision<>6 OR s.base_seal_hash<>${lit(copy.sealHash)} OR s.base_daily_revision_hash<>${lit(base.baseDailyRevisionHash)} OR s.base_profit_revision_hash<>${lit(base.baseProfitRevisionHash)} OR s.profile_hash<>${lit(base.profileHash)} OR s.revision_hash<>${lit(base.revisionHash)} OR ISNULL(s.before_hash,'')<>ISNULL(p.before_hash,'') OR s.after_hash<>p.after_hash) OR EXISTS(SELECT 1 FROM ${SELECTED_SALE_EFFECTS_REGISTRY} e LEFT JOIN(VALUES ${v7Values})p(name,before_hash,after_hash) ON p.name=e.name LEFT JOIN ${SELECTED_SALE_REGISTRY} s ON s.copy_id=e.copy_id AND s.name=e.name AND s.after_hash=e.before_hash WHERE p.name IS NULL OR s.name IS NULL OR e.copy_id<>${lit(copy.copyId)} OR e.revision<>7 OR e.base_seal_hash<>${lit(copy.sealHash)} OR e.base_selected_revision_hash<>${lit(base.revisionHash)} OR e.profile_hash<>${lit(base.profileHash)} OR e.revision_hash<>${lit(previous.revisionHash)} OR e.before_hash<>p.before_hash OR e.after_hash<>p.after_hash) THROW 51904,'SELECTED_PARENT_HISTORY_DRIFT',1;`;
+ const beforeValues=pins.map(m=>`(${lit(m.name)},${lit(m.beforeHash)})`).join(',');
+ const immutableSQL=`CREATE TRIGGER ${SELECTED_SALE_PARENT_IMMUTABLE} ON ${SELECTED_SALE_PARENT_REGISTRY} WITH EXECUTE AS OWNER AFTER INSERT,UPDATE,DELETE AS BEGIN SET NOCOUNT ON;
+IF DB_NAME() COLLATE Latin1_General_100_BIN2<>${lit(copy.target.database)} OR CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) COLLATE Latin1_General_100_BIN2<>${lit(copy.target.server)} OR IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN())<>1 OR EXISTS(SELECT 1 FROM deleted) OR(SELECT COUNT(*) FROM inserted)<>4 OR(SELECT COUNT(*) FROM ${SELECTED_SALE_PARENT_REGISTRY})<>4 OR(SELECT COUNT(*) FROM dbo.stage4_copy_module_manifest)<>185 OR(SELECT COUNT(*) FROM dbo.stage4_copy_business_daily_revisions)<>8 OR(SELECT COUNT(*) FROM dbo.stage4_copy_business_daily_profit_revisions)<>3 THROW 51904,'SELECTED_PARENT_IMMUTABLE',1;
+${historyProof}
+IF EXISTS(SELECT 1 FROM inserted i LEFT JOIN(VALUES ${beforeValues})p(name,before_hash) ON p.name=i.name WHERE p.name IS NULL OR i.copy_id<>${lit(copy.copyId)} OR i.revision<>8 OR i.base_seal_hash<>${lit(copy.sealHash)} OR i.base_selected_revision_hash<>${lit(base.revisionHash)} OR i.base_effects_revision_hash<>${lit(previous.revisionHash)} OR i.profile_hash<>${lit(base.profileHash)} OR i.before_hash<>p.before_hash OR i.before_hash=i.after_hash OR OBJECT_ID(i.name,N'P') IS NULL OR i.after_hash<>ISNULL(${hash('i.name')},'') OR i.revision_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^A-F0-9]%') OR(SELECT COUNT(DISTINCT revision_hash) FROM inserted)<>1 THROW 51904,'SELECTED_PARENT_IMMUTABLE_PIN',1;
+IF EXISTS(SELECT 1 FROM ${SELECTED_SALE_REGISTRY} s LEFT JOIN ${SELECTED_SALE_EFFECTS_REGISTRY} e ON e.copy_id=s.copy_id AND e.name=s.name AND e.before_hash=s.after_hash LEFT JOIN inserted i ON i.copy_id=s.copy_id AND i.name=s.name AND i.before_hash=COALESCE(e.after_hash,s.after_hash) WHERE OBJECT_ID(s.name,N'P') IS NULL OR COALESCE(i.after_hash,e.after_hash,s.after_hash)<>ISNULL(${hash('s.name')},'')) THROW 51904,'SELECTED_PARENT_NATIVE_PIN',1;
+END;`;
+ const triggerHash=moduleHash(immutableSQL);
+ const currentProof=`IF DB_NAME() COLLATE Latin1_General_100_BIN2<>${lit(copy.target.database)} OR CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) COLLATE Latin1_General_100_BIN2<>${lit(copy.target.server)} THROW 51904,'SELECTED_PARENT_TARGET',1;
+IF(SELECT COUNT(*) FROM ${SELECTED_SALE_PARENT_REGISTRY})<>4 OR(SELECT COUNT(DISTINCT revision_hash) FROM ${SELECTED_SALE_PARENT_REGISTRY})<>1 OR ISNULL(OBJECTPROPERTY(OBJECT_ID(N'${SELECTED_SALE_PARENT_IMMUTABLE}'),'ExecIsTriggerDisabled'),1)<>0 OR ISNULL(${hash(lit(SELECTED_SALE_PARENT_IMMUTABLE))},'')<>${lit(triggerHash)} OR EXISTS(SELECT 1 FROM ${SELECTED_SALE_PARENT_REGISTRY} t LEFT JOIN ${SELECTED_SALE_REGISTRY} s ON s.copy_id=t.copy_id AND s.name=t.name AND s.revision=6 LEFT JOIN ${SELECTED_SALE_EFFECTS_REGISTRY} e ON e.copy_id=s.copy_id AND e.name=s.name AND e.revision=7 AND e.before_hash=s.after_hash WHERE s.name IS NULL OR t.name NOT IN(${names}) OR t.copy_id<>@copy_id OR t.revision<>8 OR t.base_seal_hash<>${lit(copy.sealHash)} OR t.base_selected_revision_hash<>${lit(base.revisionHash)} OR t.base_effects_revision_hash<>${lit(previous.revisionHash)} OR t.profile_hash<>${lit(base.profileHash)} OR t.before_hash<>COALESCE(e.after_hash,s.after_hash) OR t.before_hash=t.after_hash OR OBJECT_ID(t.name,N'P') IS NULL OR t.after_hash<>ISNULL(${hash('t.name')},'') OR t.revision_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^A-F0-9]%') THROW 51904,'SELECTED_PARENT_REVISION_DRIFT',1;
+${historyProof}`;
+ const project=(actual,name)=>`COALESCE((SELECT t.before_hash FROM ${SELECTED_SALE_PARENT_REGISTRY} t WHERE t.copy_id=@copy_id AND t.revision=8 AND t.name=${name} AND t.base_effects_revision_hash=${lit(previous.revisionHash)} AND t.after_hash=${actual}),${actual})`;
+ let ready=canonical(source(SELECTED_SALE_PARENT_MODULES[0]).definition),projections=0;
+ ready=ready.replace(/CONVERT\(varchar\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\((@@PROCID|OBJECT_ID\(([a-z]+\.name)\)|o\.object_id)\)\),2\)/g,(actual,object,alias)=>{projections++;return project(actual,object==='@@PROCID'?lit(SELECTED_SALE_PARENT_MODULES[0]):object==='o.object_id'?'p.name':alias);});
+ check(projections>0&&ready.includes(project(hash('e.name'),'e.name')),'SELECTED_PARENT_READY_ANCHOR');
+ // Do not project this new native gate: it proves v8 first, then the original
+ // v7/v6 checks can interpret their exact immutable before-images.
+ const opening=ready.includes('AS BEGIN SET NOCOUNT ON;')?'AS BEGIN SET NOCOUNT ON;':'AS BEGIN ';
+ ready=once(ready,opening,opening+'\n'+currentProof+'\n','SELECTED_PARENT_READY_GATE');
+ const v6=name=>`(SELECT after_hash FROM ${SELECTED_SALE_REGISTRY} WHERE copy_id=@copy_id AND revision=6 AND name=N'${name}')`;
+ const v7=name=>`COALESCE((SELECT e.after_hash FROM ${SELECTED_SALE_EFFECTS_REGISTRY} e JOIN ${SELECTED_SALE_REGISTRY} s ON s.copy_id=e.copy_id AND s.name=e.name AND s.revision=6 AND s.after_hash=e.before_hash WHERE e.copy_id=@copy_id AND e.revision=7 AND e.name=N'${name}' AND e.base_selected_revision_hash=${lit(base.revisionHash)}),${v6(name)})`;
+ const v8=name=>`COALESCE((SELECT t.after_hash FROM ${SELECTED_SALE_PARENT_REGISTRY} t WHERE t.copy_id=@copy_id AND t.revision=8 AND t.name=N'${name}' AND t.base_selected_revision_hash=${lit(base.revisionHash)} AND t.base_effects_revision_hash=${lit(previous.revisionHash)} AND t.before_hash=${v7(name)}),${v7(name)})`;
+ let dailyContext=canonical(source('dbo.usp_business_daily_context').definition);
+ for(const name of ['ready','context','begin','effects'].map(k=>'dbo.usp_stage4_copy_'+k))dailyContext=once(dailyContext,v6(name),v8(name),'SELECTED_PARENT_DAILY_ANCHOR');
+ const reader=name=>once(canonical(source(name).definition),v7('dbo.usp_stage4_copy_ready'),v8('dbo.usp_stage4_copy_ready'),'SELECTED_PARENT_READER_ANCHOR');
+ const definitions=[ready,dailyContext,reader(SELECTED_SALE_CONTEXT),reader(SELECTED_SALE_PARENT_MODULES[3])];
+ const replacements=pins.map((m,i)=>({...m,afterHash:moduleHash(stored(definitions[i])),definition:executable(definitions[i]),storedDefinition:stored(definitions[i])}));
+ const body={schemaVersion:'melisa-business-selected-sale-parent-revision.v1',version:8,copyId:copy.copyId,baseSealHash:copy.sealHash,baseSelectedRevisionHash:base.revisionHash,baseEffectsRevisionHash:previous.revisionHash,profileHash:base.profileHash,modules:replacements.map(({definition,storedDefinition,...m})=>m),immutableTriggerHash:triggerHash,repair:'CURRENT_PARENT_PINS'};
+ const revision={...body,revisionHash:isolatedCopyHash(body)};
+ const parentHashes=Object.fromEntries(Object.entries(effects.parentHashes).map(([key,value])=>[key,replacements.find(m=>m.name===copy.sql[key].name)?.afterHash??value]));
+ const artifact=(prior,kind)=>{const m=replacements.find(m=>m.name===prior.name),value=Object.freeze({...prior,definition:m.definition,executionSQL:m.definition,storedDefinition:m.storedDefinition,definitionHash:m.afterHash,parentHashes:Object.freeze(parentHashes),selectedParentRevisionHash:revision.revisionHash});prepared.set(value,{copy,kind});return value;};
+ return {schemaVersion:'melisa-business-selected-sale-parent-install.v1',target:copy.target,copyId:copy.copyId,baseSealHash:copy.sealHash,baseSelectedRevision:base,baseEffectsRevision:previous,revision,tableSQL,immutableSQL,replacements,parentHashes,contextArtifact:artifact(effects.contextArtifact,'context'),writeScopeArtifact:artifact(effects.writeScopeArtifact,'intent'),businessWrites:0,rolesChanged:false,nativeChecksUnchanged:true,openingHumanAccepted:false};
+}
+export function validateBusinessSelectedSaleParentInstall(bundle,input){check(isolatedCopyJSON(bundle)===isolatedCopyJSON(buildBusinessSelectedSaleParentRevision(input)),'SELECTED_PARENT_CANONICAL_INSTALL');return true;}
+export function assertPreparedSelectedParentRevisionArtifact(artifact,copy,kind){const value=prepared.get(artifact);check(value?.copy===copy&&value.kind===kind,'SELECTED_PARENT_SERVER_ARTIFACT_REQUIRED');return artifact;}
