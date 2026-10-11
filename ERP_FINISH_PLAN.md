@@ -1,4 +1,8 @@
-## ERP-COMPLETE01 — SOURCE native satış ve korumalı oturum checkpoint'i — 11 Ekim 2026
+## ERP-COMPLETE01 — v22 Wi-Fi / normal oturum / dört görev teslimi — 11 Ekim 2026
+
+Gerçek TC21 normal personel SOURCE satış ve iki koli1+1/ortak READY/readback/native ikinci etki0; korunmuş mal kabul gönderimi ve İlker pending okuması; normal atanmış CRM geçmiş/gönderilmemiş taslak tamam. Kurulabilir v22 LANAPK exacthash, Android korumalı oturum/reopen/task/çıkış kontrolü ve beş gerçek klip/dört görev eğitim paketi hazır. Güncel mal kabul video kısmi/readonly, tarihli tam kayıt ayrı; CRM send yetkisi yok. Personel/İlker insan kabulü, gerçek reboot ve IP rezervasyonu ayrı; ilk hızlı taslak kaybı gözlemi korunur, production fix yapılmadı. Genel günlük mağaza ve LIVE kapsamı kapanmadı. [Son teslim ve sınırlar](docs/evidence/erp/2026-10-11-completion/terminal-v22-delivery.md). **49 /9 tamam /39 kısmi /1 açık**, ERP-UA32 bekliyor; teknik kanıt insan PASS değildir. Yeni kapsam otomatik başlamaz.
+
+## Önceki checkpoint — SOURCE native satış ve korumalı oturum — 11 Ekim 2026
 
 İzole DB02 üzerinde mevcut engine ile TRY/USD taslak/finalize/iptal/replay gerçek native sonuçları tamamlandı; iki döngü/yedi negatif, seçili stok/cari net0 ve ikinci etki0 doğrulandı. Normal ERP/CRM refresh/logout gerçek HTTP'de, v22 oturum yeniden açılışı TC21'de geçti. LAN APK indirme exacthash doğrulandı. Normal GUI SOURCE satış→iki koli, mal kabul/İlker readback, kompakt CRM konuşma ve güncel eğitim videoları bitmeden dört görev bütünü tamam sayılmaz. [Kanıt](docs/evidence/erp/2026-10-11-completion/protected-normal-test-sessions.md). **49 / 9 tamam / 39 kısmi / 1 açık**, ERP-UA32 bekliyor. Genel günlük mağaza kapsamı, Windows gerçek reboot ve insan kabulü ayrı kalır.
 
