@@ -1,6 +1,8 @@
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
-Mevcut kabul edilmiş DB02 tarihli veri temeliyle dört teslim: ERP teknik açıkları; Kotlin tabanlı gerçek bağlantılı dört görevli Android terminali; bu terminalin dört Türkçe görsel/video eğitimi; kanıtlı kurulum/veri kontrol/yedek/geri dönüş paketi. Android, koli sözleşmesi ve geçiş paketi ayrık ajanlarda; normal ekran denetimi, entegrasyon ve kayıtlar ana ajanda. 49/9/39/1 doğrulanmış sayım yeniden araştırılmaz. Sabit adres/başlangıç checkpoint'i ve çalışan TEST125/DB02 süreçleri korunur; yeni kalıcı aktivasyon yok. İnsan/cihaz kabulü ayrı bekler. Önceki eğitim hazırlanmıştır; sekiz ERP dersi dört yeni terminal videosunun yerine geçmez.
+Mevcut kabul edilmiş tarihli DB02 tabanı korunur. Gerçek TC21'de personel mal kabulü/İlker'e gönderim, tek sentetik satış, miktarlı iki koli/replay ve atanmış CRM konuşması/taslağa dönüş teknik kanıtlandı. Dört ayrı Türkçe sesli/altyazılı cihaz videosu ve16 alıştırma hazır; eski sekiz ERP dersinin yerine sayılmadı. Immutable5b6cd0c paket yalnız geçici USB/loopback çalışma yüzünde etkin. [Kanıt](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md).
+
+Sıradaki tek teknik adım: katalog regresyonunun mevcut korumaları koruyan exact append-only native adayını izole doğrulama için hazırlamak. HOME kaynak düzeltmesi gerçek DB02 SELECT ile kanıtlı, çalışan API'ye aktivasyonu ayrı bekler. Sabit adres/başlangıç checkpoint'i, TEST125/DB02 shared süreçleri ve PR27 korunur; bu görev yeni ağ/servis aktivasyonu değildir. Fiziksel optik okuyucu, personel/İlker/işletme kabulü ve işletme açılışları bekler; dört nihai teslim tamamlandı denmez. **49/9/39/1** sayımı aynı.
 
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 
