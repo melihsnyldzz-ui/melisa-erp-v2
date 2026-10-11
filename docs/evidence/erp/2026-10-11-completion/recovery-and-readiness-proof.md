@@ -23,6 +23,8 @@ Native rollback-only DDL gözlemi, SQL Server'ın `ALTER PROCEDURE` yürütmesin
 
 İlk gerçek keşif, adapter'in yalnız dbo/erp_migration şemalarını kabul etmesi nedeniyle transaction başlamadan durdu. Düzeltme tüm sys.tables şema/tablo çiftlerini ayrı ve güvenli tırnaklar; zorunlu 62 tablo alt sınırı korunur. Güncel kopya 10 şema ve 751 tablo içerir. Native probe/EXEC pin kapsamı genişletilmedi. İlk başarısız makbuz ayrı tutulur.
 
+Sonraki baseline denemesinde gerçek registry/hash kurulumu geçti, historical `BUSINESS_READY_PERFORMANCE_REVISION_DRIFT` reddi oluştu ve transaction geri alındı. Neden proof baseline dönüştürücüsünün aynı `@@PROCID` ifadesini içeren replacement'ı yeniden taramasıydı. Altı özgün anchor artık tek geçişte değiştirilir; iki tarihsel gate ayrı bir kez örtülür ve kesin konumlardan ters dönüş özgün predicate metnine byte karşılığı eşit olmalıdır. Shared adayın kaynak/revision hash'i değişmedi. Üç helper suite'inde41/41 offline regresyon ve bağımsız35/35 alt kontrol geçti; yeni gerçek deneme ayrı makbuzla sürer.
+
 Ölçüm ve iki yeni registry negatifi ayrı transaction/SPID'de çalışır; her işlem tam rollback, transaction sonu ve tüm satır/şema/izin snapshot eşitliği gerektirir. Dokuz ek native fixture/actor/effects bağı henüz tamamlanmadığından bu çalışma **OBSERVATION_ONLY** kapsamıdır. Tam 11 negatif kabulü veya shared aktivasyona hazır olma sonucu üretmez.
 
 ## Kaynak doğrulama ve kalan

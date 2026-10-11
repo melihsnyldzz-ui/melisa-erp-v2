@@ -73,8 +73,26 @@ export function readinessProofTarget(bundle,input){
  // these proof definitions/hashes into the shared-copy preparation or config.
  const trigger=rebind(bundle.immutableSQL).replace("IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN())<>1",`ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${READINESS_PROOF_LOGIN}'`);
  const proofTriggerHash=moduleHash(trigger);
- let baseline=bundle.originalDefinition;
- for(const x of bundle.overlays)baseline=baseline.replace(x.expression,x.replacement);
+ // Replace original matches in one pass. A replacement deliberately contains
+ // its original hash expression in ELSE; rescanning it would nest the first
+ // duplicate @@PROCID gate and leave the second gate without its overlay.
+ let overlayIndex=0,offsetDelta=0;
+ const baselineOverlayPositions=[];
+ let baseline=bundle.originalDefinition.replace(hashExpression,(expression,object,offset)=>{
+  const overlay=bundle.overlays[overlayIndex++];
+  check(overlay?.expression===expression&&overlay.replacement===`(CASE WHEN ${object}=OBJECT_ID(N'${NAME}') THEN @readinessPreviousHash ELSE ${expression} END)`,'READINESS_PROOF_BASELINE_ANCHOR');
+  baselineOverlayPositions.push({offset:offset+offsetDelta,...overlay});offsetDelta+=overlay.replacement.length-expression.length;
+  return overlay.replacement;
+ });
+ check(overlayIndex===6&&overlayIndex===bundle.overlays.length&&baselineOverlayPositions.filter(x=>x.expression.includes('@@PROCID')).length===2,'READINESS_PROOF_BASELINE_ANCHORS');
+ // Reverse exact recorded positions, never search replacement text again.
+ // This verifies all original predicates and guard text round-trip exactly.
+ let baselineRoundtrip=baseline;
+ for(const overlay of baselineOverlayPositions.toReversed()){
+  check(baselineRoundtrip.slice(overlay.offset,overlay.offset+overlay.replacement.length)===overlay.replacement,'READINESS_PROOF_BASELINE_POSITION');
+  baselineRoundtrip=baselineRoundtrip.slice(0,overlay.offset)+overlay.expression+baselineRoundtrip.slice(overlay.offset+overlay.replacement.length);
+ }
+ check(baselineRoundtrip===bundle.originalDefinition,'READINESS_PROOF_BASELINE_PREDICATE_DRIFT');
  baseline=baseline.replace(scalar,scalar+'\n'+bundle.guard);
  // Native clone diagnosis confirmed that ALTER stores a CREATE header in
  // OBJECT_DEFINITION, with the remaining text unchanged. Separate executable
