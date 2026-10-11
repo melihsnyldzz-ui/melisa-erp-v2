@@ -1,7 +1,8 @@
 import {validateCartonSource,validateCartons,cartonProgress,setCartonAllocation,matchCartonBarcode,cartonInput,cartonRevision} from './cartonModel.mjs';
+import {tradeUuid} from './workTradeModel.mjs';
 import './cartonPacking.css';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function createCartonPacking({root,user,scopeKey,readReceipts,readReceipt,saveCartons,storage=globalThis.localStorage,uuid=()=>crypto.randomUUID()}){
+export function createCartonPacking({root,user,scopeKey,readReceipts,readReceipt,saveCartons,storage=globalThis.localStorage,uuid=tradeUuid}){
  if(!user?.id||!scopeKey||typeof readReceipt!=='function'||typeof saveCartons!=='function')throw Error('Koli bağlantısı doğrulanmalı.');
  const journalKey=`melisa-carton-pending:${scopeKey}:${user.id}`,legacyDraftKey=`melisa-carton-draft:${scopeKey}:${user.id}`;
  const draftKey=id=>`${legacyDraftKey}:${id}`;

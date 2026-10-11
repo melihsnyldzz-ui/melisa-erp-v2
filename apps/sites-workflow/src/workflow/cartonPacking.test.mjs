@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-async function controller(){let src=await readFile(new URL('./cartonPacking.js',import.meta.url),'utf8');src=src.replace("import './cartonPacking.css';",'').replace("'./cartonModel.mjs'",JSON.stringify(new URL('./cartonModel.mjs',import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(src).toString('base64'));}
+async function controller(){let src=await readFile(new URL('./cartonPacking.js',import.meta.url),'utf8');src=src.replace("import './cartonPacking.css';",'').replace(/from '(\.\/[^']+\.mjs)'/g,(_,path)=>'from '+JSON.stringify(new URL(path,import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(src).toString('base64'));}
 function root(){let html='',elements=[];const node={isConnected:true,get innerHTML(){return html;},set innerHTML(s){html=s;elements=[...s.matchAll(/<(button|input|select|form)[^>]*>/g)].map(m=>{const attrs=Object.fromEntries([...m[0].matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map(a=>[a[1],a[2]??'']));return {attrs,dataset:Object.fromEntries(Object.entries(attrs).filter(([k])=>k.startsWith('data-')).map(([k,v])=>[k.slice(5),v])),value:attrs.value??'',events:{},addEventListener(type,fn){this.events[type]=fn;},focus(){}};});},querySelectorAll(selector){const attr=/^\[([^\]]+)\]$/.exec(selector)?.[1];return elements.filter(e=>attr&&Object.hasOwn(e.attrs,attr));},querySelector(selector){return this.querySelectorAll(selector)[0]??null;}};return node;}
 const source=()=>({schemaVersion:'melisa-carton-source.v1',invoiceId:'80',documentNo:'OFFLINE',customerName:'Offline',status:'FINALIZED',revision:'a'.repeat(64),items:[{itemId:'801',productId:'9',stockCode:'0161 MOLLY',name:'Offline',requiredExact3:'3.000',unit:{label:'ADET',factorExact8:'1.00000000',verified:true},barcodes:['00161']}]});
 const memory=()=>{const data=new Map();return {data,getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};};
@@ -57,3 +57,32 @@ test('well formed restored pending journal remains replayable with the original 
  const c=createCartonPacking({root:node,user:{id:15},scopeKey:'db02',storage,readReceipts:async()=>[],readReceipt:async()=>{throw Error('must replay only');},saveCartons:async(id,sent)=>{calls++;assert.equal(id,'80');assert.deepEqual(sent,body);return {source:s,state:{invoiceId:'80',actorId:'15',sourceRevision:s.revision,version:'d'.repeat(64),status:'DRAFT',cartons:[],requestId:sent.requestId,replayed:true}};}});
  await c.mount();assert.equal(c.requestClose(),false);node.querySelector('[data-retry]').events.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,1);assert.equal(c.requestClose(),true);assert.equal(storage.getItem('melisa-carton-pending:db02:15'),null);assert.match(node.innerHTML,/ikinci koli kaydı oluşmadı/);
 });
+
+async function browserCrypto(crypto,run){const previous=Object.getOwnPropertyDescriptor(globalThis,'crypto');Object.defineProperty(globalThis,'crypto',{value:crypto,configurable:true});try{await run();}finally{if(previous)Object.defineProperty(globalThis,'crypto',previous);else delete globalThis.crypto;}}
+test('LAN browser without randomUUID creates two boxes securely and replays the exact shared save after a lost response',async()=>{
+ let randomReads=0;
+ await browserCrypto({getRandomValues(bytes){randomReads++;for(let i=0;i<bytes.length;i++)bytes[i]=(i+randomReads*19)&255;return bytes;}},async()=>{
+  const {createCartonPacking}=await controller(),storage=memory(),node=root(),s=source(),calls=[];s.items[0].requiredExact3='2.000';
+  const save=async(id,body)=>{calls.push({id,body:structuredClone(body)});if(calls.length===1)throw Error('Offline fixture: response lost');return {source:s,state:{invoiceId:id,actorId:'15',sourceRevision:s.revision,version:'d'.repeat(64),status:'READY',cartons:body.cartons,requestId:body.requestId,replayed:true}};};
+  const make=node=>createCartonPacking({root:node,user:{id:15},scopeKey:'db02',storage,readReceipts:async()=>[{id:'80',documentNo:s.documentNo}],readReceipt:async()=>receipt(s),saveCartons:save});
+  const c=make(node);await c.mount();await select(node,'80');
+  for(let n=0;n<2;n++){node.querySelector('[data-add]').events.click();const input=node.querySelector('[data-item]');input.value='1';input.onchange();}
+  assert.match(node.innerHTML,/2 koli/);assert.match(node.innerHTML,/Bütün satırların adedi tamam/);
+  node.querySelector('[data-save]').events.click();await new Promise(resolve=>setImmediate(resolve));
+  const raw=storage.getItem('melisa-carton-pending:db02:15'),pending=JSON.parse(raw),ids=[pending.body.requestId,...pending.body.cartons.map(b=>b.id)];
+  assert.equal(randomReads,3);assert.equal(new Set(ids).size,3);for(const id of ids)assert.match(id,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.deepEqual(pending.body.cartons.map(b=>b.allocations),[[{itemId:'801',quantityExact3:'1.000'}],[{itemId:'801',quantityExact3:'1.000'}]]);
+  assert.equal(c.requestClose(),false);assert.equal(calls.length,1);c.dispose();
+  await browserCrypto({},async()=>{const reopened=root(),again=make(reopened);await again.mount();assert.equal(storage.getItem('melisa-carton-pending:db02:15'),raw);reopened.querySelector('[data-retry]').events.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(again.requestClose(),true);assert.match(reopened.innerHTML,/Kaydedilen koli içeriği fişle tam eşleşiyor/);assert.match(reopened.innerHTML,/ikinci koli kaydı oluşmadı/);assert.equal(storage.getItem('melisa-carton-pending:db02:15'),null);});
+  assert.equal(calls.length,2);assert.deepEqual(calls[1],calls[0]);assert.equal(randomReads,3);
+ });
+});
+
+test('missing secure randomness cannot create a box or submit an existing draft and preserves its bytes',async()=>browserCrypto({},async()=>{
+ const {createCartonPacking}=await controller(),node=root(),storage=memory(),s=source();let writes=0;
+ const c=createCartonPacking({root:node,user:{id:15},scopeKey:'db02',storage,readReceipts:async()=>[{id:'80',documentNo:s.documentNo}],readReceipt:async()=>receipt(s),saveCartons:async()=>{writes++;throw Error('must not send');}});
+ await c.mount();await select(node,'80');node.querySelector('[data-add]').events.click();assert.match(node.innerHTML,/0 koli/);assert.match(node.innerHTML,/İşlem hazırlanamadı; kayıt gönderilmedi/);assert.equal(storage.data.size,0);
+ const draft=JSON.stringify({invoiceId:'80',sourceRevision:s.revision,cartons:[{id:'00000000-0000-4000-8000-000000000001',label:'Korunan koli',allocations:[{itemId:'801',quantityExact3:'1.000'}]}]});
+ storage.setItem('melisa-carton-draft:db02:15:80',draft);await select(node,'80');const before=[...storage.data];node.querySelector('[data-save]').events.click();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(writes,0);assert.deepEqual([...storage.data],before);assert.equal(storage.getItem('melisa-carton-pending:db02:15'),null);assert.equal(c.requestClose(),true);assert.match(node.innerHTML,/İşlem hazırlanamadı; kayıt gönderilmedi/);
+}));
