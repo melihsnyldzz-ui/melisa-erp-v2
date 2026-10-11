@@ -1,6 +1,8 @@
 # ERP-COMPLETE01 — asıl dört teslim gereksinim denetimi
 
-11 Ekim 2026. Kullanıcının ERP-DEC-044/045 kapsamı korunur; hedef yapılan işlere göre küçültülmedi. Bu belge insan veya LIVE kabulü değildir. Kaynak c198bfb ve mevcut DB02/TEST125 kimlikleri STATUS'tadır. Finish49/9/39/1 yeniden sayılmadı;39kısmi madde39eksik kod özelliği sayılmaz.
+11 Ekim 2026. Kullanıcının ERP-DEC-044/045 kapsamı korunur; hedef yapılan işlere göre küçültülmedi. Bu belge insan veya LIVE kabulü değildir. Kaynak/native/paket kimlikleri STATUS'ta ayrı tutulur. Finish49/9/39/1 yeniden sayılmadı;39kısmi madde39eksik kod özelliği sayılmaz.
+
+**Güncel teknik checkpoint:** [kaynak bağlı satış önizlemesi](selected-sale-preview.md) için23offline test, gerçek native CREATE, actor15 TRY/USD iki ürün okuması, beş negatif ve final751veri/şema/rol/registry rollback eşitliği tamamlandı. Normal API yolları source'ta hazır; çalışan API/SQL'e kurulmadı. İki ürün/beş miktar ve20000 önizleme sınırı genel satış writer kabulü değildir. Genel günlük işlem satırının eksikliği devam eder. [Bağlı katalog](catalog-bound-readiness-proof.md) native sonuç/hız eşitliği de tamam;1sn/HTTP/UI hedefi halen kanıtlanmadı.
 
 | Asıl teslim | Gerçek mevcut kanıt | Teknik olarak henüz tamamlanmayan | İnsan/işletme/aktivasyon ayrımı |
 |---|---|---|---|
@@ -11,10 +13,10 @@
 
 ## Sıradaki tek dar iş
 
-**Okuma performansı:** B01 kaynak/native/8ca0122 geçici paketHTTP teslimi tamamlandı. [Kanıt](home-daily-readonly.md). Şimdi katalog ve HOME yavaşlığının gerçek sorgu maliyetini ölçerek, mevcut kimlik/yetki/source/effect guardlarını koruyan uygun cache/validation sınırını tamamla. Önceki v6/full11 hız adayını genel teslim şartına dönüştürme. Dar seçili günlük runtime kapsamı ayrı açıktır; teknik hedef ona göre küçültülmez.
+**Gerçek seçilen satış writer bağlantısı:** tam kaynak profiline bağlı context/preview native kanıtı tamamlandı. Şimdi mevcut SALE engine'ine server-owned selected intent, immutable creation journal'ından finalize/cancel kapsamı, exact replay ve doğru müşteri döviz hesabı bağlantısı ekle; yeni ticari engine/rol kurma. EskiTRY500/v4-v5 pinleri korunmalı; native successor pin, izole gerçek yazma/ters kayıt/replay ve normal ekran kanıtı tamamlanmalı. Ara iki ürün/beş miktar sınırı genel kapsam yerine konmaz. Katalog/HOME performans eksikleri açık; v6/full11 hız adayını bütün teslimin genel önkoşuluna dönüştürme.
 
 v6/full11 native hız revizyonunun aktivasyon şartıdır; asıl dört teslim için yeni genel kapı değildir. Native query observation median1.573→1.338sn yalnız hazır sorgunun dar ölçümüdür; katalog HTTP/UI hız kazancı değildir. Katalog regresyonu açık kalır.
 
 ## Korunanlar ve gerçek dış engeller
 
-TEST125, DB02, sabit adres/boot checkpoint'i, roller/guardlar, LL dışlamaları, holdlar, aktarımlar ve mevcut taslaklar korunur. Vega/LIVE/main/T1/gerçek mesaj/ücretliAI yazması yok. PR23 exactc198 CI required jobs hesap/harcama nedeniyle başlamadı; Vercel yeşili requiredCI yerine geçmez. HumanUA32 ve diğer kabul kayıtları otomatik PASS olmaz. Tüm hedef henüz tamamlanmış değildir.
+TEST125, DB02, sabit adres/boot checkpoint'i, roller/guardlar, LL dışlamaları, holdlar, aktarımlar ve mevcut taslaklar korunur. Vega/LIVE/main/T1/gerçek mesaj/ücretliAI yazması yok. PR23 teslim head'inin required CI sonucu her push sonrası ayrıca doğrulanır; önceki hesap/harcama engeli veya Vercel yeşili requiredCI yerine geçmez. HumanUA32 ve diğer kabul kayıtları otomatik PASS olmaz. Tüm hedef henüz tamamlanmış değildir.

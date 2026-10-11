@@ -1,4 +1,10 @@
-## ERP-COMPLETE01 — dört teslim uygulama checkpoint'i — 11 Ekim 2026
+## ERP-COMPLETE01 — seçilen satışın native önizleme checkpoint'i — 11 Ekim 2026
+
+Kaynak bağlı müşteri/döviz hesabı ve ürün context/preview source/API yolları ile exact CREATE derlemesi tamamlandı. 23 offline test, gerçek actor15 TRY/USD iki ürün okuması, beş native negatif, yedi metadata recovery ve final tam751 veri/şema/rol/registry eşitliği bağımsız doğrulandı; ticari yazma/commit0. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-11-completion/selected-sale-preview.md). Kaynak teslimi SQL kurulum, çalışan paket, UI veya genel satış writer kabulü değildir. Yeni okuma iki ürün/beş miktar ara sınırındadır;20000 önizleme değeri eskiTRY500 yazıcısını açmaz.
+
+**Sonraki tek teknik iş:** mevcut engine'e seçilen satış intent/journal/replay ve döviz hesabı bağlantısı; native successor pin, izole yazma/ters kayıt/replay ve normal ekran kanıtı. Katalog/HOME1sn ve geniş günlük kapsam açık; v6/full11 genel tamamlanma kapısı yapılmaz. TEST125/DB02/181de5a/sabitboot/roller/aktarımlar/dört terminal videosu korunur. **49 / 9 tamam / 39 kısmi / 1 açık** ve ERP-UA32 bekliyor değişmedi.
+
+## ERP-COMPLETE01 — önceki dört teslim uygulama checkpoint'i — 11 Ekim 2026
 
 11 Ekim bağlı katalog ek kanıtı:5gerçeknormal çağrı/30native örnekte kaynak ve iki varyant sonuçları eşit; first50med2251→1664ms, kart1479→1347.4actualnegatif/7full751rollback/exit0 ve bağımsızreviewGO.1sn hedefi açık, HTTP/UI ölçülmedi; ortakDB02'ye kurulum ve yeni paket yok.16protectedport0fark. **Sıradaki tek teknik iş selected satış context/preview ve sonrasında mevcut writer bağlantısı**; mevcut günlük selected1ürün/2kalem üst sınırı genel işletme değildir. v6/full11 yeni genel completion kapısı olmaz. [Bağlı katalog kanıtı](docs/evidence/erp/2026-10-11-completion/catalog-bound-readiness-proof.md). ERP-UA32/49-9-39-1 değişmedi.
 
