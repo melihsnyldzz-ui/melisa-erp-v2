@@ -23,6 +23,17 @@ END;`;
  return {source:{database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02',server:'Semih\\MELISADEV',copyId:copy,actualT1:false,definition,expectedDefinitionHash:moduleHash(definition)},baseSealHash:hash,baseDailyRevisionHash:daily,baseProfitRevisionHash:profit,dailyScopeHash:scope};
 }
 const prepared=()=>prepareReadinessQueryPlanRevision(input());
+test('historical preparation keeps the four-change default; source-scope optimization requires a strict explicit option',()=>{
+ const original=prepared(),explicit=prepareReadinessQueryPlanRevision(input(),{sourceScopeOptimization:false});
+ assert.deepEqual(explicit,original);
+ assert.equal(original.plan.schemaVersion,'melisa-readiness-query-plan-candidate.v1');
+ assert.equal(original.plan.changes.length,4);
+ for(const options of [{},{sourceScopeOptimization:1},{sourceScopeOptimization:true,executeAllowed:true},null]){
+  assert.throws(()=>prepareReadinessQueryPlanRevision(input(),options),/READINESS_REVISION_OPTIONS/);
+ }
+ assert.throws(()=>prepareReadinessQueryPlanRevision(input(),{sourceScopeOptimization:true}));
+ assert.throws(()=>validateReadinessQueryPlanPreparation({...original,plan:{...original.plan,schemaVersion:'melisa-readiness-source-scope-candidate.v1'}}));
+});
 const target=b=>({server:b.target.server,database:READINESS_PROOF_DATABASE,login:READINESS_PROOF_LOGIN,copyId:copy,actualT1:false,isolated:true,sourceDatabase:b.target.database,sourceDefinitionHash:b.revision.modules[0].beforeHash});
 function fixture(b=prepared()){
  const t=target(b),events=[],state={failure:null,identityPatch:null,equivalenceDrift:false,negativeDrift:false,rollbackDrift:false};

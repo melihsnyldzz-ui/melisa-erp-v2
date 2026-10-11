@@ -1,7 +1,7 @@
 // Offline preparation only. No pool, SQL connection, filesystem or CLI side effects.
 import {moduleHash} from './stage4-copy-sql.mjs';
 import {isolatedCopyHash} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
-import {prepareBusinessReadinessQueryPlan} from './shared-business-readiness-query-plan.mjs';
+import {prepareBusinessReadinessQueryPlan,prepareBusinessReadinessSourceScopePlan} from './shared-business-readiness-query-plan.mjs';
 export const QUERY_PLAN_REGISTRY='dbo.stage4_copy_readiness_query_plan_revisions';
 export const QUERY_PLAN_TRIGGER='dbo.immutable_stage4_copy_readiness_query_plan_revisions';
 export const READINESS_PROOF_DATABASE='MELISA_ERP_READINESS_PROOF_TEST_20261011_01';
@@ -17,10 +17,11 @@ const shape=['source','baseSealHash','baseDailyRevisionHash','baseProfitRevision
 // The historical registries stay immutable. The new guard verifies the actual
 // definition first, then the old guards see its exact sealed predecessor hash
 // ONLY for this one procedure. All other module hashes are read fresh unchanged.
-export function prepareReadinessQueryPlanRevision(input){
+export function prepareReadinessQueryPlanRevision(input,options={sourceScopeOptimization:false}){
+ check(exact(options,['sourceScopeOptimization'])&&typeof options.sourceScopeOptimization==='boolean','READINESS_REVISION_OPTIONS');
  check(exact(input,shape),'READINESS_REVISION_INPUT');
  for(const k of shape.slice(1))check(hex(input[k]),'READINESS_REVISION_PARENT_PIN');
- const plan=prepareBusinessReadinessQueryPlan(input.source),original=input.source.definition;
+ const plan=(options.sourceScopeOptimization?prepareBusinessReadinessSourceScopePlan:prepareBusinessReadinessQueryPlan)(input.source),original=input.source.definition;
  check(!original.includes(QUERY_PLAN_REGISTRY)&&!original.includes('@readinessPreviousHash'),'READINESS_REVISION_COLLISION');
  for(const code of ['BUSINESS_DAILY_REVISION_DRIFT','BUSINESS_DAILY_PROFIT_REVISION_DRIFT']){
   const lines=original.split('\n').filter(l=>l.includes("'"+code+"'"));
@@ -60,7 +61,8 @@ IF @readinessPreviousHash IS NULL THROW 51904,'READINESS_QUERY_PLAN_DEFINITION_D
 export function validateReadinessQueryPlanPreparation(bundle){
  check(bundle?.schemaVersion==='melisa-readiness-query-plan-preparation.v1'&&bundle.executeAllowed===false&&bundle.installAllowed===false,'READINESS_REVISION_NOT_INSTALLABLE');
  const r=bundle.revision;
- const rebuilt=prepareReadinessQueryPlanRevision({source:{database:DB,server:SERVER,copyId:COPY,actualT1:false,definition:bundle.originalDefinition,expectedDefinitionHash:r?.modules?.[0]?.beforeHash},baseSealHash:r?.baseSealHash,baseDailyRevisionHash:r?.baseDailyRevisionHash,baseProfitRevisionHash:r?.baseProfitRevisionHash,dailyScopeHash:r?.dailyScopeHash});
+ const sourceScopeOptimization=bundle.plan?.schemaVersion==='melisa-readiness-source-scope-candidate.v1';
+ const rebuilt=prepareReadinessQueryPlanRevision({source:{database:DB,server:SERVER,copyId:COPY,actualT1:false,definition:bundle.originalDefinition,expectedDefinitionHash:r?.modules?.[0]?.beforeHash},baseSealHash:r?.baseSealHash,baseDailyRevisionHash:r?.baseDailyRevisionHash,baseProfitRevisionHash:r?.baseProfitRevisionHash,dailyScopeHash:r?.dailyScopeHash},{sourceScopeOptimization});
  check(isolatedCopyHash(rebuilt)===isolatedCopyHash(bundle),'READINESS_REVISION_ARTIFACT_DRIFT');return rebuilt;
 }
 
