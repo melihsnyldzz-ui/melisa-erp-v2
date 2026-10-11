@@ -1,3 +1,8 @@
+## ERP-COMPLETE01 — güvenli günlükleme alt kapsamı — 11 Ekim 2026
+
+ERP-DEC-048 kapsamındaki [kaynak düzeltmesi ve sentetik kanıt](docs/evidence/erp/2026-10-11-completion/safe-logging-remediation.md) aynı ERP-COMPLETE01 işi altında kaydedildi. Kaynak yaması teknik hazır; deploy/runtime kabulü değildir. TEST sır döndürme ve runtime doğrulaması kanonik sahibinde sürüyor; Gitleaks dar falsepositive sınıflandırması tamam, nihai commit head taraması root'ta bekler. Yeni UI/insan kabulü yapılmadı; **49 / 9 tamam / 39 kısmi / 1 açık** ve **ERP-UA32 bekliyor** değişmedi. Diğer dört teslimin mevcut kapsamı ve açıkları korunur; teknik kaynak/runtime sonucu [STATUS](STATUS.md) içindedir.
+
+
 ## ERP-COMPLETE01 — v22 Wi-Fi / normal oturum / dört görev teslimi — 11 Ekim 2026
 
 Gerçek TC21 normal personel SOURCE satış ve iki koli1+1/ortak READY/readback/native ikinci etki0; korunmuş mal kabul gönderimi ve İlker pending okuması; normal atanmış CRM geçmiş/gönderilmemiş taslak tamam. Kurulabilir v22 LANAPK exacthash, Android korumalı oturum/reopen/task/çıkış kontrolü ve beş gerçek klip/dört görev eğitim paketi hazır. Güncel mal kabul video kısmi/readonly, tarihli tam kayıt ayrı; CRM send yetkisi yok. Personel/İlker insan kabulü, gerçek reboot ve IP rezervasyonu ayrı; ilk hızlı taslak kaybı gözlemi korunur, production fix yapılmadı. Genel günlük mağaza ve LIVE kapsamı kapanmadı. [Son teslim ve sınırlar](docs/evidence/erp/2026-10-11-completion/terminal-v22-delivery.md). **49 /9 tamam /39 kısmi /1 açık**, ERP-UA32 bekliyor; teknik kanıt insan PASS değildir. Yeni kapsam otomatik başlamaz.
