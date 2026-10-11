@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Melisa ERP, CRM, Zebra ve eğitim ekranları için şirket başlangıç portalı.">
+  <meta name="referrer" content="same-origin">
+  <title>Melisa Hub · Şirket başlangıç ekranı</title>
+  <link rel="stylesheet" href="/melisa-hub/hub.css">
+  <script type="module" src="/melisa-hub/hub.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">İçeriğe geç</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/melisa-hub/" aria-label="Melisa Hub ana sayfa"><span class="brand-mark" aria-hidden="true">M</span><span>MELISA <span class="brand-hub">HUB</span><small>Şirket başlangıç ekranı</small></span></a>
+      <span class="badge badge-neutral" id="header-environment">Ortam kontrol ediliyor</span>
+    </div>
+    <nav class="site-nav" aria-label="Sayfa bölümleri">
+      <a href="#ekranlar">İş ekranları</a><a href="#egitim">Eğitimler</a><a href="#kabul">İnsan kabulü</a><a href="#raporlar">Raporlar</a><a href="#durum">Bağlantı durumu</a><a href="#evden">Evden erişim</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">MELISA’YA HOŞ GELDİNİZ</p>
+        <h1 id="hero-title">İşinizin başlangıcı,<br>tek bir adres.</h1>
+        <p class="hero-description">ERP, CRM ve Zebra ekranlarınızı açın. Kısa eğitimlere, denenecek adımlara ve bağlantı durumuna buradan ulaşın.</p>
+        <div class="hero-actions"><a class="button button-primary" href="#ekranlar">İş ekranlarına git <span aria-hidden="true">↗</span></a><a class="button button-light" href="#egitim">İlk gün eğitimleri <span aria-hidden="true">→</span></a></div>
+      </div>
+      <aside class="hero-panel" aria-labelledby="work-environment-title">
+        <div class="panel-topline"><span class="tiny-label">ÇALIŞMA ORTAMI</span><span class="status-dot dot-unknown" id="environment-dot" aria-hidden="true"></span></div>
+        <h2 id="work-environment-title">Ortam doğrulanıyor</h2>
+        <p id="environment-detail">Bağlantı ayarları yüklendiğinde kullanılabilir ekranlar burada açılır.</p>
+        <div class="panel-divider"></div>
+        <div class="panel-row"><span>İnsan / cihaz kabulü</span><span class="badge badge-warning">Bekliyor</span></div>
+        <p class="panel-note">Her ekranda kendi hesabınızı kullanın. Portal, ekranların mevcut yetkileriyle çalışır.</p>
+      </aside>
+    </section>
+
+    <div class="notice" id="config-notice" role="status"><span class="notice-mark" aria-hidden="true">i</span><p id="config-notice-text">Bağlantı ayarları kontrol ediliyor…</p></div>
+    <noscript><div class="notice notice-warning">Ekran bağlantıları ve durum kontrolleri için tarayıcınızda JavaScript’i etkinleştirin. Ağ ayarları doğrulanmadan bağlantılar açılmaz.</div></noscript>
+
+    <section class="section" id="ekranlar" aria-labelledby="screens-title">
+      <div class="section-heading"><div><p class="eyebrow">GÜNLÜK İŞLER</p><h2 id="screens-title">Hangi ekranı açacaksınız?</h2></div><span class="section-note">Her işlem, kendi ekranında</span></div>
+      <div class="card-grid" id="work-cards" aria-busy="true"><p class="loading-text">İş ekranları hazırlanıyor…</p></div>
+      <div class="environment-grid">
+        <article class="environment-card"><div><p class="eyebrow">ORİJİNAL ORTAM</p><h3>ERP · TEST125</h3><p>Korunan orijinal ERP için ayrı giriş. Adresi ve ortamı doğrulandıktan sonra kullanılabilir.</p></div><div class="environment-card-bottom"><span class="badge badge-neutral" id="test125-state">Adres doğrulanmadı</span><button class="button button-outline" id="test125-link" type="button" disabled>Orijinal ERP’yi aç <span aria-hidden="true">↗</span></button></div></article>
+        <article class="environment-card live-card"><div><p class="eyebrow">CANLI ORTAM</p><h3>Canlı ekranlar</h3><p>Gerçek iş kayıtları için ayrı giriş. Açılmadan önce canlı ortam uyarısı gösterilir.</p></div><div class="environment-card-bottom"><span class="badge badge-neutral" id="live-state">Erişim tanımlı değil</span><button class="button button-outline" id="live-link" type="button" disabled>Canlı ekrana geç <span aria-hidden="true">↗</span></button></div></article>
+      </div>
+      <div id="extra-cards" class="card-grid extra-cards"></div>
+      <div class="future-note"><span aria-hidden="true">＋</span><div><strong>Yeni ekranlar da burada yerini alacak.</strong><p>Onaylanan ekranlar, ortamı ve bağlantısı doğrulandıktan sonra bu sayfaya eklenir.</p></div></div>
+    </section>
+
+    <section class="section training-section" id="egitim" aria-labelledby="training-title">
+      <div class="section-heading"><div><p class="eyebrow">ADIM ADIM, KISA VE GÖRSEL</p><h2 id="training-title">8 eğitim dersi</h2><p>İlk gün mal kabulden başlayın; ardından alış ve ödeme derslerini açın.</p></div><span class="badge badge-soft">2–3 dakikalık dersler</span></div>
+      <div class="lesson-grid" id="lesson-cards" aria-busy="true"><p class="loading-text">Dersler hazırlanıyor…</p></div>
+      <p class="section-footnote">Dersi tamamlamak, işyeri veya cihaz kabulü değildir. Gerçek kullanım yetkili kişiyle ayrıca kontrol edilir.</p>
+    </section>
+
+    <section class="section" id="kabul" aria-labelledby="acceptance-title">
+      <div class="section-heading"><div><p class="eyebrow">BİRLİKTE DENEYELİM</p><h2 id="acceptance-title">İnsan kabulü ve cihaz turu</h2><p>Personel ve İlker’in gerçek kullanımıyla kontrol edilecek adımlar.</p></div><span class="badge badge-warning">İnsan kabulü bekliyor</span></div>
+      <div class="handoff" aria-label="Mal kabulde görev sırası"><div><span class="handoff-number">1</span><span><strong>Personel</strong><small>Fiziksel malı sayar, kontrole gönderir.</small></span></div><span class="handoff-arrow" aria-hidden="true">→</span><div><span class="handoff-number">2</span><span><strong>İlker</strong><small>Mevcut yetkisiyle kontrol ve onay yapar.</small></span></div><span class="handoff-arrow" aria-hidden="true">→</span><div><span class="handoff-number">3</span><span><strong>Muhasebe</strong><small>Belge, tutar ve dövizi kontrol eder.</small></span></div></div>
+      <ol class="acceptance-list" id="acceptance-list"></ol>
+      <div class="acceptance-footer"><p>Bu liste hazırlık rehberidir. Kullanıcı ve cihaz kabulü tamamlandığında sonuç yetkili sorumlu tarafından ayrıca kaydedilir.</p><a class="text-link" href="#egitim">Önce eğitimleri aç <span aria-hidden="true">→</span></a></div>
+    </section>
+
+    <section class="section reports-section" id="raporlar" aria-labelledby="reports-title">
+      <div class="section-heading"><div><p class="eyebrow">HAZIRLIK VE KANIT ÖZETİ</p><h2 id="reports-title">Neler hazır, neler bekliyor?</h2></div><span class="section-note">Yönetici özeti</span></div>
+      <div class="report-grid">
+        <article class="report-card"><span class="report-kicker">HAZIR</span><h3>Ekranlar ve eğitim</h3><p>Yeşil görünüm, sade işlem açıklamaları, görünür görev devri ve 8 görsel ders hazırlandı.</p><a class="text-link" href="#egitim">Dersleri incele <span aria-hidden="true">→</span></a></article>
+        <article class="report-card"><span class="report-kicker report-pending">BEKLİYOR</span><h3>Personel ve cihaz kabulü</h3><p>İlker / personel kullanım kabulü, fiziksel barkod turu ve CRM’de kendi ERP hesabıyla giriş kontrolü bekliyor.</p><a class="text-link" href="#kabul">Kontrol adımlarını gör <span aria-hidden="true">→</span></a></article>
+        <article class="report-card"><span class="report-kicker report-private">YETKİLİ YÖNETİCİ</span><h3>Özel rapor ve videolar</h3><p>Ayrıntılı kanıtlar ve cihaz videoları özel yönetici raporunda tutulur. Yetkili yönetici güvenli erişim yolunu paylaşır.</p><span class="report-note">Bu portalda yalnız özet gösterilir.</span></article>
+      </div>
+    </section>
+
+    <section class="section" id="durum" aria-labelledby="status-title">
+      <div class="section-heading"><div><p class="eyebrow">BAĞLANTI KONTROLÜ</p><h2 id="status-title">Ekranların durumu</h2><p>Sunucu erişimi ve insan kabulü ayrı kontrol edilir.</p></div><button class="button button-outline" type="button" id="refresh-status">Durumu yenile <span aria-hidden="true">↻</span></button></div>
+      <div class="table-scroll"><table class="status-table"><caption class="visually-hidden">Ekran bağlantıları, sunucu erişimi ve insan kabulü</caption><thead><tr><th scope="col">Ekran</th><th scope="col">Sunucu kontrolü</th><th scope="col">Bağlantı</th><th scope="col">İnsan kabulü</th></tr></thead><tbody id="status-rows"><tr><td colspan="4">Durum kontrol ediliyor…</td></tr></tbody></table></div>
+      <p class="status-meta" id="status-meta" role="status">Son kontrol henüz alınmadı.</p>
+      <p class="section-footnote">Erişilebilir sonucu sunucudaki kontrolü gösterir. Kendi cihazınızdan giriş ve yetki kontrolü ayrıca yapılır. Durum yaklaşık 30 saniyede bir yenilenir.</p>
+    </section>
+
+    <section class="remote-section" id="evden" aria-labelledby="remote-title">
+      <div><p class="eyebrow">ŞİRKETTE VE EVDEN</p><h2 id="remote-title">Aynı Hub, yetkili erişim.</h2><p id="access-detail">Şirkette doğrulanmış LAN adresini kullanın. Evden erişim için Tailscale bağlantısı ve bu cihaza verilen erişim yetkisi gerekir.</p><p class="remote-footnote" id="access-verification">Bu cihazın uzaktan erişimi henüz portal tarafından doğrulanmadı.</p></div>
+      <ol class="remote-steps"><li><span>1</span><div><strong>Tailscale’e bağlanın</strong><p>Yetkilendirilmiş cihazınızda şirketin izin verdiği hesabı kullanın.</p></div></li><li><span>2</span><div><strong>Doğrulanmış Hub adresini açın</strong><p>192.168.1.46’ya evden doğrudan erişim için şirket ağına subnet route gerekir. Route yoksa doğrulanmış Tailscale IP veya MagicDNS adresi kullanılır.</p></div></li><li><span>3</span><div><strong>Kendi ekran hesabınızla girin</strong><p>ERP ve CRM, mevcut kullanıcı girişi ve yetkileriyle açılır.</p></div></li></ol>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span><strong>MELISA HUB</strong> · Her şey aynı başlangıç ekranında.</span><a href="#main">Başa dön <span aria-hidden="true">↑</span></a></footer>
+
+  <dialog id="live-dialog" aria-labelledby="live-dialog-title" aria-describedby="live-dialog-description"><form method="dialog"><p class="eyebrow">CANLI ORTAM</p><h2 id="live-dialog-title">Gerçek kayıtların olduğu ekrana geçiyorsunuz.</h2><p id="live-dialog-description">Bu ekrandaki işlemler gerçek ticari kayıtları etkileyebilir. Test yapmak için paylaşılan test kopyasını kullanın.</p><label class="live-confirmation"><input type="checkbox" id="live-acknowledge"> Canlı ortamı açtığımı ve kendi yetkimle çalışacağımı biliyorum.</label><div class="dialog-actions"><button class="button button-outline" value="cancel">Vazgeç</button><button class="button button-primary" id="confirm-live" type="button" disabled>Canlı ekranı aç</button></div></form></dialog>
+</body>
+</html>

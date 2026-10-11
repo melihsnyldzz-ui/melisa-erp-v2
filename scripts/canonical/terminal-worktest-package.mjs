@@ -5,6 +5,11 @@ export const FEATURE_ENTRY='scripts/canonical/start-terminal-worktest.mjs';
 // Closed set of the entry's current relative-import graph, including its validators.
 export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/businessDailyHomeReadProof.mjs',
+ 'apps/api/src/services/businessSelectedSaleNativeContext.mjs',
+ 'apps/api/src/services/businessSelectedSaleStartup.mjs',
+ 'apps/api/src/services/businessSelectedSaleWriteIntent.mjs',
+ 'apps/api/src/services/businessSelectedSaleWriteScope.mjs',
+ 'apps/api/src/services/workSalesModel.mjs',
  'apps/api/src/services/businessDailyNativeCheck.mjs',
  'apps/api/src/services/businessDailyProfitRevision.mjs',
  'apps/api/src/services/businessReadinessQueryPlanRevision.mjs',
@@ -27,6 +32,14 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/terminalCartonStore.mjs',
  'apps/sites-workflow/src/workflow/cartonModel.mjs',
  FEATURE_ENTRY,
+ 'scripts/canonical/shared-business-daily-profit-revision.mjs',
+ 'scripts/canonical/shared-business-selected-sale-preview-sql.mjs',
+ 'scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs',
+ 'scripts/canonical/shared-business-selected-sale-revision-contract.mjs',
+ 'scripts/canonical/shared-business-selected-sale-revision-sql.mjs',
+ 'scripts/canonical/shared-business-selected-sale-write-scope-sql.mjs',
+ 'scripts/canonical/stage4-copy-sql.mjs',
+ 'scripts/canonical/terminal-persistent-web-support.mjs',
  'scripts/canonical/terminal-worktest-home-readonly.mjs',
  'scripts/canonical/terminal-worktest-package.mjs'
 ]);

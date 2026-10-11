@@ -53,12 +53,20 @@ test('GET and login retain15s and callers cannot inject a longer work deadline',
 test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
  const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
  store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'carton-fixture');
- const s=createWorkingCatalogSession({location:target,apiBase:'http://127.0.0.1:4184',storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(person):url.endsWith('/receipts/99')?reply(null,403):reply([]);}});
+ const s=createWorkingCatalogSession({location:target,apiBase:'http://127.0.0.1:4184',storage:store,copyProfile:homeCopyProfile(),fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(person):url.endsWith('/receipts/99')?reply(null,403):reply([]);}});
  await s.start();await s.cartons('/api/terminal-cartons/receipts');await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts/99'),e=>e.status===403);assert.equal(store.getItem(workingCatalogTokenKey),'carton-fixture');
  assert.equal(calls[1].url,target.origin+'/api/terminal-cartons/receipts');assert.equal(calls[1].options.headers.Authorization,'Bearer carton-fixture');
  const n=calls.length;for(const path of ['/api/work-sales/invoices','/api/terminal-cartons/receipts/01','/api/terminal-cartons/receipts/1?actorId=16','/api/terminal-cartons/receipts/../1','http://192.168.1.46:5234/api/terminal-cartons/receipts'])await assert.rejects(()=>s.cartons(path));
  await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts',{method:'POST',body:{}}));await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts/1',{method:'DELETE'}));assert.equal(calls.length,n);s.dispose();
- const lan=createWorkingCatalogSession({location:{...target,hostname:'192.168.1.46',origin:'http://192.168.1.46:5234'},apiBase:'http://192.168.1.46:4184',storage:store,fetchImpl:async()=>reply(person)});await lan.start();await assert.rejects(()=>lan.cartons('/api/terminal-cartons/receipts'));lan.dispose();
+ const lanCalls=[],lan=createWorkingCatalogSession({location:{...target,hostname:'192.168.1.46',origin:'http://192.168.1.46:5234'},apiBase:'http://192.168.1.46:4184',storage:store,copyProfile:homeCopyProfile(),fetchImpl:async(url,options)=>{lanCalls.push({url,options});return url.endsWith('/auth/me')?reply(person):reply([]);}});
+ await lan.start();await lan.cartons('/api/terminal-cartons/receipts');const body={requestId:'00000000-0000-4000-8000-000000000001',cartons:[]};await lan.cartons('/api/terminal-cartons/receipts/1',{method:'POST',body});
+ assert.deepEqual(lanCalls.map(c=>c.url),['http://192.168.1.46:4184/api/auth/me','http://192.168.1.46:5234/api/terminal-cartons/receipts','http://192.168.1.46:5234/api/terminal-cartons/receipts/1']);
+ assert.equal(lanCalls[2].options.headers.Authorization,'Bearer carton-fixture');assert.equal(lanCalls[2].options.credentials,'omit');assert.equal(lanCalls[2].options.redirect,'error');assert.deepEqual(JSON.parse(lanCalls[2].options.body),body);lan.dispose();
+});
+test('cartons rejects foreign LAN pairs and missing or wrong DB02 copy brands without network or session loss',async()=>{
+ const target={hostname:'192.168.1.46',protocol:'http:',port:'5234',origin:'http://192.168.1.46:5234'},person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
+ const fixtures=[{location:target,profile:null},{location:target,profile:{...homeCopyProfile(),copyId:'00000000-0000-4000-8000-000000000001'}},{location:target,profile:{...homeCopyProfile(),target:{...homeCopyProfile().target,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'}}},{location:{...target,port:'5224',origin:'http://192.168.1.46:5224'},profile:homeCopyProfile(),base:'http://192.168.1.46:4174'},{location:{...target,hostname:'192.168.1.47',origin:'http://192.168.1.47:5234'},profile:homeCopyProfile()},{location:{...target,origin:'http://127.0.0.1:5234'},profile:homeCopyProfile()},{location:{...target,hostname:'localhost',origin:'http://localhost:5234'},profile:homeCopyProfile()}];
+ for(const f of fixtures){const store=storage(),calls=[];store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'carton-fixture');const s=createWorkingCatalogSession({location:f.location,apiBase:f.base??'http://192.168.1.46:4184',copyProfile:f.profile,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return reply(person);}});try{await s.start();}catch{}const n=calls.length;await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts'));await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts/1',{method:'POST',body:{}}));assert.equal(calls.length,n);assert.equal(store.getItem(workingCatalogTokenKey),'carton-fixture');s.dispose();}
 });
 test('shared LAN session cannot send its catalog reads to either prior TEST API',async()=>{
  const sharedLocation={...location,hostname:'192.168.1.46',port:'5224'},sharedBase='http://127.0.0.1:4174',calls=[];
@@ -261,13 +269,13 @@ function worktestHomeSession({target=worktestLocation('5234'),bootstrap=homeBoot
  const session=createWorkingCatalogSession({location:target,apiBase:base,storage:store,copyProfile:profile,homeBootstrap:bootstrap,onExpired,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(user):respond(url,options);}});
  return {session,store,calls};
 }
-test('exact DB02 HOME bootstrap selects only same-origin authenticated GET on USB device',async()=>{
- for(const port of ['5234']){
-  const f=worktestHomeSession({target:worktestLocation(port)});await f.session.start();assert.deepEqual(await f.session.home(),{meta:{readOnly:true}});
-  assert.equal(f.calls[0].url,'http://127.0.0.1:4184/api/auth/me');assert.equal(f.calls[1].url,`http://127.0.0.1:${port}/api/terminal-worktest/home-summary`);
+test('exact DB02 HOME bootstrap selects only same-origin authenticated GET on USB or approved persistent LAN device',async()=>{
+ for(const host of ['127.0.0.1','192.168.1.46']){
+  const target={...worktestLocation('5234'),hostname:host,origin:`http://${host}:5234`},f=worktestHomeSession({target});await f.session.start();assert.deepEqual(await f.session.home(),{meta:{readOnly:true}});
+  assert.equal(f.calls[0].url,`http://${host}:4184/api/auth/me`);assert.equal(f.calls[1].url,`http://${host}:5234/api/terminal-worktest/home-summary`);
   const opts=f.calls[1].options;assert.equal(opts.method,'GET');assert.equal(opts.body,undefined);assert.equal(opts.headers.Authorization,'Bearer worktest-home-fixture');assert.equal(opts.credentials,'omit');assert.equal(opts.redirect,'error');
   await f.session.api('/api/catalog/products?limit=50');await f.session.work('/api/work-sales/context');const body={requestId:'00000000-0000-4000-8000-000000000001'};await f.session.work('/api/work-sales/drafts',{method:'POST',body});
-  assert(f.calls.slice(2).every(c=>c.url.startsWith('http://127.0.0.1:4184/')));assert.deepEqual(JSON.parse(f.calls.at(-1).options.body),body);
+  assert(f.calls.slice(2).every(c=>c.url.startsWith(`http://${host}:4184/`)));assert.deepEqual(JSON.parse(f.calls.at(-1).options.body),body);
   const count=f.calls.length;await assert.rejects(()=>f.session.home({method:'POST'}));await assert.rejects(()=>f.session.api(homeBootstrap.path));await assert.rejects(()=>f.session.work(homeBootstrap.path,{method:'POST',body}));assert.equal(f.calls.length,count);f.session.dispose();
  }
 });
@@ -277,7 +285,7 @@ test('malformed HOME bootstrap and every foreign origin retain legacy route or c
   const desktop=worktestHomeSession({target:worktestLocation('5264'),bootstrap});await assert.rejects(()=>desktop.session.start());assert.equal(desktop.calls.length,0);desktop.session.dispose();
  }
  for(const target of [{...worktestLocation('5234'),hostname:'192.168.1.46',origin:'http://192.168.1.46:5234'},{...location,origin:'http://127.0.0.1:5194'}]){
-  const base=target.port==='5194'?apiBase:'http://127.0.0.1:4184',expected=target.port==='5194'?apiBase:'http://192.168.1.46:4184';const f=worktestHomeSession({target,base});await f.session.start();await f.session.home();assert.equal(f.calls[1].url,expected+'/api/home/summary');f.session.dispose();
+  const base=target.port==='5194'?apiBase:'http://127.0.0.1:4184',expected=target.port==='5194'?apiBase+'/api/home/summary':'http://192.168.1.46:5234'+homeBootstrap.path;const f=worktestHomeSession({target,base});await f.session.start();await f.session.home();assert.equal(f.calls[1].url,expected);assert.equal(f.calls[1].options.method,'GET');assert.equal(f.calls[1].options.body,undefined);f.session.dispose();
  }
  for(const target of [{...worktestLocation('5264'),protocol:'https:',origin:'https://127.0.0.1:5264'},{...worktestLocation('5264'),hostname:'other',origin:'http://other:5264'},{...worktestLocation('5264'),origin:'http://other:5264'},{...worktestLocation('5264'),port:'5265',origin:'http://127.0.0.1:5265'},{...worktestLocation('5264'),hostname:'localhost',origin:'http://localhost:5264'}]){
   const f=worktestHomeSession({target});await assert.rejects(()=>f.session.start());assert.equal(f.calls.length,0);f.session.dispose();

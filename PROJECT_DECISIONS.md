@@ -23,6 +23,14 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-046 — 11 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan son talimatı: tamamlanmış temizlikleri yeniden inceleme/raporlama ve yeni silme yapma; satış bağlantısını uçtan uca tamamla, ardından mal kabul → İlker'e gönderim, müşteri seçerek satış, çoklu koliyle toplama ve atanmış müşteriyle konuşma görevlerini yapan yeşil Android terminalini teslim et. Tek mevcut pano işi **ERP-COMPLETE01** sürer; ikinci paralel ana görev açılmaz.
+
+ERP-DEC-044'ün kalıcı bağlantı aktivasyonunu checkpoint'te tutan sınırı yalnız bu izole TEST teslimi için supersede edilir. Kullanılabilir teslim USB reverse veya geçici geliştirici oturumuna bağlı olmayacak; kurulabilir APK, kısa kurulum rehberi ve son ekranlara uygun eğitim videoları içerecek. Normal Windows oturumunda kalıcı başlatma ile bilgisayar açılışından önce servis çalışması ayrı doğrulanır; doğrulanmayan başlangıç veya ağ kalıcılığı hazır diye sunulmaz. Sade yeşil ekran, büyük düğme ve az kaydırma korunur.
+
+Mevcut veri, roller, yedekler, TEST125, DB02, karantina ve LL kararları korunur. Yalnız onaylı izole TEST sentetik prova ve gerekli dar bağlantı/kurulum/başlatma işlemleri yetkilidir; Vega/LIVE/main/T1, gerçek müşteri mesajı, ücretli AI ve finansal açılış değişikliği kapsam dışıdır. Kod/APK hazırlığı çalışan uygulama sayılmaz. ERP-DEC-045 uyarınca yeni fiziksel barkod okutma istenmez; insan ERP-UA32 otomatik PASS olmaz. Rapor yalnız yeni tamamlanan iş, kullanılabilir teslim ve somut kalan engeli içerecek.
+
 ### ERP-DEC-045 — 11 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan kararı: "barkod denemesini sen elle gir barkod okuyucusunu bir daha fizikselde istemene gerek yok çalışıyor hep". ERP-COMPLETE01 teknik denemelerinde barkodlar metin olarak elle/ADB ile girilebilir; kullanıcı fiziksel okuyucunun çalıştığını teyit etti ve tekrar fiziksel okutma istemini kaldırdı. Codex kullanıcıdan yeniden fiziksel barkod okutmasını istemeyecek; bu tekrar mevcut işin engeli veya sonraki zorunlu adımı değildir.

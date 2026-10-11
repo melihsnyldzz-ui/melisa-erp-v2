@@ -1,0 +1,40 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {stableEdgeRoute,assertStableEdgeRequest,stableUpstreamHeaders,stableResponseHeaders} from './stableHubEdge.mjs';
+import {STABLE_HUB_ORIGIN} from './sharedCopyTransport.mjs';
+const authority=new URL(STABLE_HUB_ORIGIN).host;
+const req=(method='GET',url='/melisa-hub/',headers={})=>({method,url,socket:{remoteAddress:'127.0.0.1'},rawHeaders:[],headers:{host:authority,'x-forwarded-host':authority,'x-forwarded-proto':'https','x-forwarded-for':'100.87.188.4','tailscale-user-login':'fixture@example.invalid',...headers}});
+test('fixed namespaces and ordinary login retain exact normal HTTPS origin',()=>{assert.equal(assertStableEdgeRequest(req()).port,5234);assert.deepEqual(stableEdgeRoute('GET','/crm/assets/index-safe.js'),{port:62700,path:'/crm/assets/index-safe.js',kind:'crm'});const h=stableUpstreamHeaders(req('POST','/api/auth/login',{origin:STABLE_HUB_ORIGIN,'content-type':'application/json','content-length':'2'}).headers,4184);assert.equal(h.origin,STABLE_HUB_ORIGIN);assert.equal(h.host,'127.0.0.1:4184');});
+test('convenience mint/private/health/provider endpoints never proxy',()=>{for(const p of ['/api/auth/test-admin','/api/auth/stage4-actor','/api/auth/local-passwordless-admin','/crm/api/test-admin/session','/crm/api/test-personnel/session','/test-health','/crm/test-health','/melisa-hub/private/x','/api/whatsapp/send','/api/vega/products'])for(const method of ['GET','POST'])assert.throws(()=>stableEdgeRoute(method,p));});
+test('encoded namespace or traversal cannot bypass denials',()=>{for(const p of ['/api/auth/%74est-admin','/crm/api/%74est-personnel/session','/assets/../private.json','/%2e%2e/x','//evil.invalid','https://evil.invalid/a','/api/auth/test-admin/','/crm//api/live/auth/login','/api\\auth\\test-admin'])assert.throws(()=>stableEdgeRoute('POST',p));});
+test('Host, origin, peer and spoofed forwarding are checked before upstream',()=>{for(const h of [{host:'evil.invalid'},{origin:'https://evil.invalid'},{origin:'null'},{'x-forwarded-host':'evil.invalid'},{'x-forwarded-proto':'http'},{forwarded:'for=evil'},{'x-real-ip':'100.1.1.1'},{'x-forwarded-for':'192.168.1.46'},{'x-forwarded-for':'100.1.1.1,100.87.188.4'},{'tailscale-user-login':''}])assert.throws(()=>assertStableEdgeRequest(req('GET','/melisa-hub/',h)));const remote=req();remote.socket.remoteAddress='192.168.1.46';assert.throws(()=>assertStableEdgeRequest(remote));});
+test('cross-site/missing-origin/body ambiguity writes fail closed',()=>{for(const h of [{},{origin:STABLE_HUB_ORIGIN,'content-type':'text/plain'},{origin:STABLE_HUB_ORIGIN,'content-type':'application/json','content-length':'2097153'},{origin:STABLE_HUB_ORIGIN,'content-type':'application/json','transfer-encoding':'chunked'},{origin:STABLE_HUB_ORIGIN,'content-type':'application/json','sec-fetch-site':'cross-site'}])assert.throws(()=>assertStableEdgeRequest(req('POST','/api/auth/login',h)));const duplicate=req();duplicate.rawHeaders=['Host',authority,'host',authority];assert.throws(()=>assertStableEdgeRequest(duplicate));});
+test('upstream receives no cookies, forwarded or identity headers and no generated token',()=>{const h=stableUpstreamHeaders({...req().headers,cookie:'fixture','set-cookie':'fixture',authorization:'Bearer fixture'},62700);assert.equal(h.authorization,'Bearer fixture');assert.equal(h.cookie,undefined);assert.equal(h['x-forwarded-for'],undefined);assert.equal(h['tailscale-user-login'],undefined);assert.equal(stableUpstreamHeaders(req().headers,4184).authorization,undefined);});
+test('Chatwoot shared-host cookies and response CORS cannot leak through edge',()=>{const h=stableResponseHeaders({'set-cookie':['fixture'],location:'https://evil.invalid','access-control-allow-origin':'*','access-control-allow-credentials':'true'},'erp-web');assert.equal(h['set-cookie'],undefined);assert.equal(h.location,undefined);assert.equal(h['access-control-allow-origin'],undefined);assert.match(h['content-security-policy'],/frame-src 'self'/);assert.equal(h['cache-control'],'no-store');});
+test('CRM keeps own inline script policy while frame-parent becomes same origin',()=>{const h=stableResponseHeaders({'content-security-policy':"script-src 'self' 'unsafe-inline'; frame-ancestors http://192.168.1.46:5234;"},'crm');assert.match(h['content-security-policy'],/unsafe-inline/);assert.match(h['content-security-policy'],/frame-ancestors 'self'/);assert.doesNotMatch(h['content-security-policy'],/192\.168/);});
+test('count, return and supplier history routes and actual CRM order contract are routed',()=>{
+ for(const p of ['/api/test-daily/count','/api/test-daily/purchase','/api/work-suppliers/context','/api/work-suppliers/history'])assert.equal(stableEdgeRoute('GET',p).port,4184);
+ for(const p of ['/crm/api/live/crm/erp/login','/crm/api/live/crm/erp/drafts','/crm/api/live/crm/erp/v2/drafts'])assert.equal(stableEdgeRoute('POST',p).path,p);
+ assert.throws(()=>stableEdgeRoute('POST','/crm/api/live/crm/messages'));assert.throws(()=>stableEdgeRoute('POST','/crm/api/live/crm/erp/orders/drafts'));
+});
+test('exact supplier/currency selection survives; partial or unrelated selection cannot silently fall back',()=>{
+ const h={'x-melisa-supplier-id':'601','x-melisa-currency':'EUR'};
+ const upstream=stableUpstreamHeaders(h,4184,'erp-api','/api/work-receiving/context');assert.equal(upstream['x-melisa-supplier-id'],'601');assert.equal(upstream['x-melisa-currency'],'EUR');
+ for(const bad of [{'x-melisa-supplier-id':'601'},{...h,'x-melisa-currency':'LL'},{...h,'x-melisa-supplier-id':'01'}])assert.throws(()=>stableUpstreamHeaders(bad,4184,'erp-api','/api/work-purchases/context'));
+ assert.throws(()=>stableUpstreamHeaders(h,4184,'erp-api','/api/catalog/products'));
+});
+test('conversation scope survives list, card and image; ERP token survives only order scope',()=>{
+ for(const p of ['/crm/api/live/crm/catalog/products','/crm/api/live/crm/catalog/products/1','/crm/api/live/crm/catalog/products/1/photo'])assert.equal(stableUpstreamHeaders({'x-crm-conversation-id':'55'},62700,'crm',p)['x-crm-conversation-id'],'55');
+ assert.throws(()=>stableUpstreamHeaders({'x-crm-conversation-id':'55'},4184,'erp-api','/api/catalog/products'));
+ const h=stableUpstreamHeaders({'x-erp-token':'fixture.payload.signature'},62700,'crm','/crm/api/live/crm/erp/v2/drafts');assert.equal(h['x-erp-token'],'fixture.payload.signature');
+ assert.throws(()=>stableUpstreamHeaders({'x-erp-token':'fixture.payload.signature'},62700,'crm','/crm/api/live/crm/catalog/products'));
+});
+test('POST must have finite explicit length; missing upstream CSP gets same-origin CRM policy',()=>{
+ assert.throws(()=>assertStableEdgeRequest(req('POST','/api/auth/login',{origin:STABLE_HUB_ORIGIN,'content-type':'application/json'})));
+ assert.equal(assertStableEdgeRequest(req('POST','/api/auth/login',{origin:STABLE_HUB_ORIGIN,'content-type':'application/json','content-length':'2'})).port,4184);
+ assert.match(stableResponseHeaders({},'crm')['content-security-policy'],/frame-ancestors 'self'/);
+});
+test('upstream CRM policies cannot add foreign browser sources and no-store drops conditional cache headers',()=>{
+ const h=stableResponseHeaders({'content-security-policy':"default-src *; script-src https://foreign.invalid; connect-src https://foreign.invalid; frame-src *; form-action *"},'crm');
+ assert.doesNotMatch(h['content-security-policy'],/foreign|\*/);for(const name of ['connect-src','frame-src','form-action'])assert.ok(h['content-security-policy'].includes(name+" 'self'"));
+ assert.equal(stableUpstreamHeaders({'if-none-match':'fixture-etag'},62700,'crm','/crm/')['if-none-match'],undefined);
+});

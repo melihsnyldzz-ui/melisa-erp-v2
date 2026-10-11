@@ -27,7 +27,8 @@ android {
         // This is the intermediate APK. The pinned release script rotates it to the private production key.
         release { signingConfig = signingConfigs.getByName("debug"); isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }
     }
-    val workOrigin = providers.gradleProperty("workOrigin").getOrElse("http://127.0.0.1:5234")
+    // Installed workflow APKs use the approved company LAN. Loopback remains an explicit development-only build option.
+    val workOrigin = providers.gradleProperty("workOrigin").getOrElse("http://192.168.1.46:5234")
     require(workOrigin in setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234")) { "Unknown isolated terminal origin" }
     defaultConfig { buildConfigField("String", "WORK_ORIGIN", "\"$workOrigin\"") }
     testOptions { unitTests.isIncludeAndroidResources = true }

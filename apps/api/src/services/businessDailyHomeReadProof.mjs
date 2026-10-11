@@ -1,4 +1,5 @@
 import {assertIsolatedCopyContext,copyAssert,getBusinessDailyHomeReadRevisions,isolatedCopyHash,ISOLATED_COPY_PROCEDURES} from './isolatedOperationCopyContext.mjs';
+import {getRegisteredBusinessSelectedSaleRevision} from '../../../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs';
 
 // Reviewed stored CREATE definition: target check, unconditional full ready,
 // then domain dispatch. HOME uses inbound and never enters the daily helper.
@@ -34,7 +35,7 @@ export async function verifyBusinessDailyHomeReadProof(context,request,{domain,w
  assertIsolatedCopyContext(context);
  copyAssert(write===false&&automatic===null,'BUSINESS_HOME_READ_ONLY');
  const registered=getBusinessDailyHomeReadRevisions(context);
- if(domain!=='inbound'||!registered)return false;
+ if(domain!=='inbound'||!registered||getRegisteredBusinessSelectedSaleRevision(context))return false;
  const {daily,profit}=registered,contextPin=daily.modules.find(m=>m.name===ISOLATED_COPY_PROCEDURES.context);
  // A different registered context requires its own semantic review; use the
  // existing general reader without weakening any of its guards.

@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {ISOLATED_COPY_OPERATION_PERMISSIONS} from '../../apps/api/src/services/isolatedOperationCopyStore.mjs';
+import {ISOLATED_COPY_OPERATION_PERMISSIONS} from '../../apps/api/src/services/isolatedOperationCopyStoreFactory.mjs';
 
 export const COPY_DB='MELISA_ERP_STAGE04_COPY_TEST_20261008_01';
 export const COPY_LOGIN='melisa_stage4_copy_rw_20261008_01';

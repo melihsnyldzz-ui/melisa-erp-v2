@@ -1,5 +1,5 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
-import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyReadProof,assertIsolatedCopyActor,copyAssert,isolatedCopyHash,isolatedCopyJSON} from './isolatedOperationCopyContext.mjs';
+import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyReadProof,assertIsolatedCopyActor,bindIsolatedCopyOperationDTO,copyAssert,isolatedCopyHash,isolatedCopyJSON} from './isolatedOperationCopyContext.mjs';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {workId,workScaled} from './workSalesModel.mjs';
 import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
@@ -63,7 +63,8 @@ export async function withBusinessSelectedSaleWriteScope({copy,transaction,sql,r
  const row=rows[0],after=await readMeta();
  copyAssert(row.readerDefinitionHash===artifact.definitionHash&&before.sessionId===row.sessionId&&before.sessionId===after.sessionId&&String(before.transactionId)===String(row.transactionId)&&String(before.transactionId)===String(after.transactionId),'SELECTED_SALE_SAME_NATIVE_TRANSACTION');
  const value={copy,transaction,active:true,selection:intentScope(copy,artifact,row,a,operation,requestId)};
- try{return await scopes.run(value,fn);}finally{value.active=false;}
+ const dto=bindIsolatedCopyOperationDTO(copy,parse(row.context_json));
+ try{return await scopes.run(value,()=>fn(dto));}finally{value.active=false;}
 }
 export function getBusinessSelectedSaleWriteScope(copy,transaction){
  const value=scopes.getStore();if(!value?.active)return null;

@@ -7,8 +7,11 @@ export const workingCatalogTokenKey='melisaTestSalesAccessToken';
 const worktestHomePath='/api/terminal-worktest/home-summary';
 function worktestHomeOrigin(location,bootstrap,copyProfile){
  if(!bootstrap||Array.isArray(bootstrap)||Object.keys(bootstrap).sort().join(',')!=='copyId,path'||bootstrap.path!==worktestHomePath||bootstrap.copyId!=='e16b70f0-4057-428b-9abc-6bbcaf35fe82')return null;
- if(location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5234'||location.origin!=='http://127.0.0.1:5234')return null;
- try{if(validateOperationCopyBootstrap(copyProfile,{protocol:'http:',hostname:'127.0.0.1',port:'5234'}).copyId!==bootstrap.copyId)return null;}catch{return null;}
+ return cartonReadOrigin(location,copyProfile);
+}
+function cartonReadOrigin(location,copyProfile){
+ if(location?.protocol!=='http:'||location.port!=='5234'||!['127.0.0.1','192.168.1.46'].includes(location.hostname)||location.origin!==`http://${location.hostname}:5234`)return null;
+ try{if(validateOperationCopyBootstrap(copyProfile,location).copyId!=='e16b70f0-4057-428b-9abc-6bbcaf35fe82')return null;}catch{return null;}
  return location.origin;
 }
 const problem=(message='ERP bağlantısı kurulamadı. Yeniden deneyin.',status=503)=>Object.assign(new Error(message),{status});
@@ -19,6 +22,7 @@ function validUser(user){
 export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
 export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__}={}){
  const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
+ const cartonReadTarget=cartonReadOrigin(location,copyProfile);
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
  let active=true,token=null,user=null,generation=0,switching=false;const controllers=new Set();
  const target=()=>isTestSessionTarget({location,apiBase});
@@ -87,14 +91,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;
   },
   async work(path,{method='GET',body,...extra}={}){
-   const read=/^\/api\/(?:work-sales\/(?:context|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
-   const write=/^\/api\/(?:work-sales\/(?:preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
+   const read=/^\/api\/(?:work-sales\/(?:context|selection-options|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
+   const write=/^\/api\/(?:work-sales\/(?:selected-context|preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,workMutation:method==='POST',workErrors:method==='POST'&&/^\/api\/work-sales\/drafts\/[1-9]\d*\/cancel$/.test(path)})).data;
   },
   async cartons(path,{method='GET',body,...extra}={}){
    const route=/^\/api\/terminal-cartons\/receipts(?:\/[1-9]\d{0,18})?$/;
-   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||location?.origin!=='http://127.0.0.1:5234'||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
+   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!cartonReadTarget||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:true})).data;
   },
   async inbound(path,{method='GET',body,...extra}={}){

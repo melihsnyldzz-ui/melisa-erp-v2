@@ -24,7 +24,18 @@ if(config.copyAdapterRevision){
  const proof=(await pool.request().query("SELECT CONVERT(varchar(36),r.copy_id) copyId,r.revision version,r.base_seal_hash baseSealHash,r.name,r.before_hash beforeHash,r.after_hash afterHash,p.after_hash baseManifestHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_module_revisions'))),2) immutableTriggerHash,CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_module_revisions'),'ExecIsTriggerDisabled')) triggerDisabled FROM dbo.stage4_copy_module_revisions r JOIN dbo.stage4_copy_module_manifest p ON p.name=r.name ORDER BY r.name")).recordset;
  registerIsolatedCopyAdapterRevision(context,config.copyAdapterRevision,proof);
 }
-if(config.businessDailyRevision){
+if(config.businessSelectedSaleStartup){
+ const {loadBusinessSelectedSaleStartup}=await import('./src/services/businessSelectedSaleStartup.mjs');
+ const {configureBusinessSelectedSaleRevision}=await import('../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs');
+ const {getSqlDriver}=await import('./src/config/database.js');
+ const input=loadBusinessSelectedSaleStartup(config,context),sql=getSqlDriver(),tx=new sql.Transaction(pool);
+ await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+ try{
+  await new sql.Request(tx).input('resource',sql.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query("DECLARE @result int;EXEC @result=sys.sp_getapplock @Resource=@resource,@LockMode=N'Shared',@LockOwner=N'Transaction',@LockTimeout=15000;IF @result<0 THROW 51904,'SELECTED_BOOT_COPY_BUSY',1;");
+  await configureBusinessSelectedSaleRevision({copy:context,request:new sql.Request(tx).input('copy_id',sql.UniqueIdentifier,context.copyId),nativeReadOnly:!writes,...input});
+  await tx.commit();
+ }catch(error){try{await tx.rollback();}catch{}throw error;}
+}else if(config.businessDailyRevision){
  const {configureBusinessDailyRevision}=await import('./src/services/businessDailyRevisionBootstrap.mjs');
  await configureBusinessDailyRevision(context,config.businessReadyRevision,config.businessReadyPerformanceRevision,config.businessEffectsPerformanceRevision,config.businessDailyRevision,pool,config.businessDailyProfitRevision,config.businessDailyNativeCheck,config.businessReadinessQueryPlanRevision);
 }else if(config.businessEffectsPerformanceRevision){

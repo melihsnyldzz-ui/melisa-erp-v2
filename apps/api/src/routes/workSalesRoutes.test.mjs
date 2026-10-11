@@ -19,6 +19,8 @@ async function withServer(run,{selectedError=null}={}){
  const authenticate=(req,res,next)=>{authCalls.push(req.originalUrl);const name=req.get('authorization')?.replace(/^Bearer /,'');if(!users[name])return res.status(401).json({code:'AUTH_TOKEN_REQUIRED'});req.user=users[name];next();};
  const selectedService=Object.fromEntries([['context',context],['preview',preview]].map(([name,value])=>[name,async(input,actor)=>{calls.push({family:'selected',name,input,actor,scope:isDailyWebRequest()});if(selectedError)throw selectedError;return value;}]));
  const service=Object.fromEntries(['context','preview','createDraft','finalize','cancel','list','invoice','request'].map(name=>[name,async(...args)=>{calls.push({family:'old',name,args,scope:isDailyWebRequest()});return {old:name};}]));
+ service.selectedContext=selectedService.context;
+ service.selectionOptions=async actor=>{calls.push({family:'selected',name:'selectionOptions',actor,scope:isDailyWebRequest()});return {enabled:false};};
  // Keep the actual permission middleware; only authentication is synthetic.
  app.use('/api',createWorkSalesRoutes({authenticate,service,selectedService}));
  app.post('/api/auth/login',(_req,res)=>res.json({success:true}));app.get('/api/unrelated',(_req,res)=>res.json({success:true}));

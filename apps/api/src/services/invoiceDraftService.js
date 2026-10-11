@@ -1791,6 +1791,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       .input('initialSalesAccountCurrency',sql.NVarChar(3),settlement.accountCurrency)
       .input('initialSalesAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
       .input('initialSalesAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
+      .input('initialSalesActor',sql.BigInt,selectedSale?selectedSale.scope.actorId:null)
       .input('exchangeRate', sql.Decimal(18, 8), draft.exchangeRate)
       .input('description', sql.NVarChar(500), draft.description || null)
       .input('subtotal', sql.Decimal(18, 4), draft.subtotal)
@@ -1839,8 +1840,8 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @grandTotal,
           @amountTry,
           @estimatedProfitTry,
-          NULL,
-          NULL
+          ${selectedSale ? '@initialSalesActor' : 'NULL'},
+          ${selectedSale ? '@initialSalesActor' : 'NULL'}
         );
         SELECT invoiceId FROM @createdSalesIds;
       `);

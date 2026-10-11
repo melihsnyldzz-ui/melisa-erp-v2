@@ -4,6 +4,7 @@ import {validateBusinessDailyRevision} from './businessDailyRevisionBootstrap.mj
 import {validateBusinessDailyProfitRevision} from './businessDailyProfitRevision.mjs';
 import {validateBusinessDailyNativeCheckRevision} from './businessDailyNativeCheck.mjs';
 import {validateBusinessReadinessQueryPlanRevision} from './businessReadinessQueryPlanRevision.mjs';
+import {validateBusinessSelectedSaleStartupPin} from './businessSelectedSaleStartup.mjs';
 const validatedDailyScopes=new WeakMap();
 export function validateSharedCopyBootstrap(config){
  const context=validateIsolatedOperationCopyContext(config?.copyContext),topology=isolatedCopyTopology(context);
@@ -17,6 +18,7 @@ export function validateSharedCopyBootstrap(config){
  if(config.businessDailyNativeCheck!==undefined){copyAssert(config.businessDailyProfitRevision!==undefined,'STAGE4_REVISION_CONFIG');validateBusinessDailyNativeCheckRevision(config.businessDailyRevision,config.businessDailyProfitRevision,config.businessDailyNativeCheck);}
  if(config.businessReadinessQueryPlanRevision!==undefined){copyAssert(config.businessDailyProfitRevision!==undefined&&context.target.database===BUSINESS_COPY_DATABASE,'STAGE4_REVISION_CONFIG');validateBusinessReadinessQueryPlanRevision(config.businessDailyRevision,config.businessDailyProfitRevision,config.businessReadinessQueryPlanRevision);}
  if(context.target.database===BUSINESS_COPY_DATABASE)copyAssert(config.copyAdapterRevision===undefined,'STAGE4_REVISION_CONFIG');
+ validateBusinessSelectedSaleStartupPin(config,context);
  return {context,topology,business:context.target.database===BUSINESS_COPY_DATABASE,webOrigins:['127.0.0.1','localhost','192.168.1.46'].map(host=>`http://${host}:${topology.webPort}`)};
 }
 export function assertSharedBootstrapRelease(release,context){assertSharedCopyRelease(release);copyAssert(release.sharedTestCopy.database===context.target.database,'SHARED_RELEASE_TARGET_MISMATCH');return release;}

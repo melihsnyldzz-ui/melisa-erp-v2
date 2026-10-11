@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {getRegisteredBusinessSelectedSaleRevision} from '../../../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs';
 
 export const ISOLATED_COPY_SCHEMA='melisa-stage4-isolated-operation-copy.v1';
 export const ISOLATED_COPY_ORIGIN='ISOLATED_TEST_COPY';
@@ -89,7 +90,8 @@ export function assertIsolatedCopyReadProof(context,proof){
  const revision=businessDailyRevisions.get(context)??adapterRevisions.get(context)??effectsPerformanceRevisions.get(context)??readyPerformanceRevisions.get(context)??readyRevisions.get(context);
  const profit=businessDailyProfitRevisions.get(context);
  const queryPlan=businessReadinessQueryPlanRevisions.get(context)?.revision;
- copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(queryPlan?.modules.find(m=>m.name===p.name)?.afterHash??profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
+ const selected=getRegisteredBusinessSelectedSaleRevision(context)?.revision;
+ copyAssert(proof?.copyId===context.copyId&&proof.sealHash===context.sealHash&&proof.backupSHA===context.backupSHA&&proof.valid===true&&Object.entries(context.sql).every(([key,p])=>proof.definitionHashes?.[key]===(selected?.modules.find(m=>m.name===p.name)?.afterHash??queryPlan?.modules.find(m=>m.name===p.name)?.afterHash??profit?.modules.find(m=>m.name===p.name)?.afterHash??revision?.modules.find(m=>m.name===p.name)?.afterHash??p.hash)),'ISOLATED_COPY_READ_PROOF');
 }
 // A separate append-only adapter pin preserves the existing profile seal and
 // journal identity. It is never accepted from an HTTP body or an environment flag.

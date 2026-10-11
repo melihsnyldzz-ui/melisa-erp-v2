@@ -13,19 +13,22 @@ aktarılmaz; kullanıcı mevcut normal oturum ile girer. API ve görev rolleri m
 ERP/CRM tarafından doğrulanır. Mal kabulde personel sayar ve İlker'e gönderir;
 personel bu yüz üzerinden yeni bir onay yetkisi kazanmaz.
 
-Varsayılan cihaz origin'i `http://127.0.0.1:5234`, API'si aynı hostta `4184`,
-CRM'si `62700`'dır. USB yönlendirmesini ve izole web adayını ana koordinatör
-doğrular; Android yapılandırması servis başlatmaz veya yönlendirme kurmaz. Tek
-alternatif sabit onaylı LAN çifti `http://192.168.1.46:5234` / `4184`'tür.
+Varsayılan cihaz origin'i `http://192.168.1.46:5234`, API'si aynı hostta `4184`,
+CRM'si `62700`'dır. Kurulmuş APK bu adreslere şirket Wi-Fi'sinden doğrudan bağlanır;
+USB yönlendirmesi kullanmaz. `http://127.0.0.1:5234` yalnız açık geliştirme build
+seçeneğidir. Android yapılandırması servis başlatmaz veya yönlendirme kurmaz;
+bilgisayar tarafındaki kalıcı servisler ve gerçek LAN erişimi ana koordinatörce
+ayrıca doğrulanmalıdır. Onaylı LAN çifti `http://192.168.1.46:5234` / `4184`'tür.
 `-PworkOrigin` başka bir değer alırsa build reddedilir. Koli metadata yolları
 aynı origin'de yalnız `/api/terminal-cartons/receipts` ve `/receipts/<sayısal-id>`
 ile sınırlıdır; ticari stok/finans hareketi üretme yetkisi değildir.
 
-Geçici USB çalışma yüzünde ana sayfa okuyucusu yalnız
-`http://127.0.0.1:5234/api/terminal-worktest/home-summary` adresine,
-ana gezinme dışında, query/fragment içermeyen GET ile ulaşabilir. LAN,
-diğer API origin'leri, alternatif yollar ve bütün yazma yöntemleri bu yeni
-namespace için kapalıdır. Bu bağlantı mevcut normal aktör ve native izin
+Ana sayfa okuyucusu yalnız APK'nın exact onaylı origin'indeki
+`/api/terminal-worktest/home-summary` adresine, ana gezinme dışında,
+query/fragment içermeyen GET ile ulaşabilir. Diğer host/portlar, alternatif yollar
+ve bütün yazma yöntemleri bu namespace için kapalıdır. CRM'nin geçici personel
+oturumu endpoint'i LAN'a açılmaz; mevcut normal kullanıcı oturumu gerekir.
+Bu bağlantı mevcut normal aktör ve native izin
 kontrolünü kullanır; yeni oturum veya ticari yetki oluşturmaz.
 
 Bir WebView görevler arasında korunur. Mevcut ekranın kayıt/sonuç kontrolü
@@ -49,3 +52,7 @@ Derleme ve unit sonuçları fiziksel barkod veya insan kabulü değildir. Cihaz
 kurulumu/giriş/okuma ana koordinatörce ayrıca doğrulanır. Mevcut altı web görevi
 silinmez; dört yeni Android işinin tamamlandığı eski altı menüye bakarak ilan
 edilemez.
+
+Varsayılan LAN APK için [kısa kurulum rehberi](INSTALL-WORKFLOW.md). Kaynakta LAN
+adresinin seçilmiş olması, sunucu servislerinin kalıcılaştırıldığı veya cihazın
+Wi-Fi'den uçtan uca doğrulandığı anlamına gelmez.

@@ -37,6 +37,7 @@ const draft=h=>({documentNo:'OFFLINE-SELECTED',documentDate:h.copy.date,customer
 test('real selected scope permits USD native draft first header with account snapshot despite TRY main card',async()=>scoped({},async h=>{
  stop='header';await assert.rejects(createSalesDraft(draft(h),h.actor,ctx(h)),{code:'STOP_HEADER'});
  const header=calls.at(-1);assert.match(header.query,/account_currency, account_amount, account_exchange_rate_snapshot/);assert.equal(header.params.initialSalesAccountCurrency,'USD');assert.equal(header.params.initialSalesAccountAmount,600);assert.equal(header.params.initialSalesAccountRate,47.8);assert.equal(header.params.amountTry,28680);
+ assert.equal(header.params.initialSalesActor,h.actor.id);assert.match(header.query,/@estimatedProfitTry,\s*@initialSalesActor,\s*@initialSalesActor/);
 }));
 test('selected draft rejects actor, product set, quantity, FX, customer, and document-cap drift before INSERT',async()=>scoped({},async h=>{
  const p=draft(h);for(const [body,actor] of [[p,{...h.actor,id:'16'}],[{...p,customerId:'101'},h.actor],[{...p,items:[...p.items,...p.items]},h.actor],[{...p,items:[{...p.items[0],productId:'445'}]},h.actor],[{...p,items:[{...p.items[0],quantity:1.5}]},h.actor],[{...p,exchangeRate:1},h.actor],[{...p,items:[{...p.items[0],unitPrice:20001}]},h.actor]]){

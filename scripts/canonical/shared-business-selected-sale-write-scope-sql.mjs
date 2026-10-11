@@ -1,6 +1,7 @@
 import {moduleHash} from './stage4-copy-sql.mjs';
 import {prepareBusinessSelectedSaleContextSQL,SELECTED_SALE_READER} from './shared-business-selected-sale-preview-sql.mjs';
 import {isolatedCopyHash,copyAssert} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
+import {assertPreparedSelectedRevisionArtifact} from './shared-business-selected-sale-revision-sql.mjs';
 
 export const SELECTED_SALE_INTENT_READER='dbo.usp_business_selected_sale_write_intent_v1';
 const artifacts=new WeakMap();
@@ -38,4 +39,9 @@ IF ISNULL(JSON_VALUE(@intent,'$.selectedRevision'),'')<>@revision OR (@operation
  const artifact=Object.freeze({schemaVersion:'melisa-selected-sale-write-scope-preparation.v1',name:SELECTED_SALE_INTENT_READER,definition,definitionHash:moduleHash(definition),copyId:copy.copyId,profileHash:isolatedCopyHash(copy),parentHashes:parent.parentHashes,requiresNativeSelectedIntent:true,businessWrites:0,grants:0});
  artifacts.set(artifact,copy);return artifact;
 }
-export function assertPreparedBusinessSelectedSaleWriteScope(artifact,copy){copyAssert(artifacts.get(artifact)===copy,'SELECTED_SALE_SERVER_WRITE_ARTIFACT_REQUIRED');return artifact;}
+export function assertPreparedBusinessSelectedSaleWriteScope(artifact,copy){
+ if(artifacts.get(artifact)===copy)return artifact;
+ // Only the canonical successor compiler can brand its regenerated reader.
+ // Arbitrary artifact hashes or plain JSON cannot enter this branch.
+ try{return assertPreparedSelectedRevisionArtifact(artifact,copy,'intent');}catch{copyAssert(false,'SELECTED_SALE_SERVER_WRITE_ARTIFACT_REQUIRED');}
+}
