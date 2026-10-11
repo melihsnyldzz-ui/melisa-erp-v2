@@ -1,4 +1,13 @@
 # Exact false positives independently reviewed on 2026-10-03; no broad exclusions.
+# Independently reviewed 2026-10-11 against historical source and HEAD 1a14a33.
+# Synthetic provenance/source identifiers and a public scope identifier, not credentials.
+# Only the six exact historical fingerprints; no file/rule-wide exclusions.
+819411baf95c9e37aa7bfd37f98fc5509fdbc3f4:apps/sites-workflow/src/workflow/workingCatalogSession.test.mjs:generic-api-key:258
+181de5ac4102904104c056c9c270b9c6a7ef990d:apps/api/src/services/businessDailyHomeReadProof.test.mjs:generic-api-key:21
+ec5b2b0f09ce4cefecd485d8b68a862fa761d514:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:92
+ec5b2b0f09ce4cefecd485d8b68a862fa761d514:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:95
+ec5b2b0f09ce4cefecd485d8b68a862fa761d514:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:114
+b0068203a71a357af98a32e2835f6d67863a2f67:apps/sites-workflow/src/workflow/personnelTerminal.js:generic-api-key:50
 # Database identity metadata, no credential
 4a725d834af1f9f9b7b9a7449b50c6fa00366697:docs/erp-v2/canonical-20261003/delivery-readonly-sites.json:generic-api-key:14
 # Database identity metadata, no credential

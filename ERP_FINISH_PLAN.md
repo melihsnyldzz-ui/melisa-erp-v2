@@ -1,4 +1,8 @@
-## ERP-COMPLETE01 — SOURCE native satış ve korumalı oturum checkpoint'i — 11 Ekim 2026
+## ERP-COMPLETE01 — güvenli günlükleme alt kapsamı — 11 Ekim 2026
+
+ERP-DEC-048 kapsamındaki [kaynak düzeltmesi ve sentetik kanıt](docs/evidence/erp/2026-10-11-completion/safe-logging-remediation.md) aynı ERP-COMPLETE01 işi altında kaydedildi. Kaynak yaması teknik hazır; deploy/runtime kabulü değildir. TEST sır döndürme ve runtime doğrulaması kanonik sahibinde sürüyor; Gitleaks dar falsepositive sınıflandırması tamam, nihai commit head taraması root'ta bekler. Yeni UI/insan kabulü yapılmadı; **49 / 9 tamam / 39 kısmi / 1 açık** ve **ERP-UA32 bekliyor** değişmedi. Diğer dört teslimin mevcut kapsamı ve açıkları korunur; teknik kaynak/runtime sonucu [STATUS](STATUS.md) içindedir.
+
+## Önceki checkpoint — SOURCE native satış ve korumalı oturum checkpoint'i — 11 Ekim 2026
 
 İzole DB02 üzerinde mevcut engine ile TRY/USD taslak/finalize/iptal/replay gerçek native sonuçları tamamlandı; iki döngü/yedi negatif, seçili stok/cari net0 ve ikinci etki0 doğrulandı. Normal ERP/CRM refresh/logout gerçek HTTP'de, v22 oturum yeniden açılışı TC21'de geçti. LAN APK indirme exacthash doğrulandı. Normal GUI SOURCE satış→iki koli, mal kabul/İlker readback, kompakt CRM konuşma ve güncel eğitim videoları bitmeden dört görev bütünü tamam sayılmaz. [Kanıt](docs/evidence/erp/2026-10-11-completion/protected-normal-test-sessions.md). **49 / 9 tamam / 39 kısmi / 1 açık**, ERP-UA32 bekliyor. Genel günlük mağaza kapsamı, Windows gerçek reboot ve insan kabulü ayrı kalır.
 

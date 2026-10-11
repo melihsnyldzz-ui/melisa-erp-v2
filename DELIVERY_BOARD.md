@@ -1,5 +1,7 @@
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
+**Aynı işin ERP-DEC-048 güvenlik alt işi:** [Güvenli günlükleme kaynak kanıtı](docs/evidence/erp/2026-10-11-completion/safe-logging-remediation.md) hazır; source-only yama runtime'da henüz etkin değil. TEST sır döndürme ve gerçek runtime doğrulaması kanonik sahibinde sürüyor; diğer teslimler paralel devam eder. Altı exact tarihsel falsepositive sınıflandı; nihai commit head taraması root'ta bekler. Ayrı pano işi/yeni UI kabulü açılmadı; **49/9/39/1** ve **ERP-UA32 bekliyor** aynı. Teknik kaynak/runtime ayrımı [STATUS](STATUS.md) içindedir.
+
 **Güncel adım:** SOURCE satış TRY/USD gerçek native lifecycle/replay/iptal ve normal korumalı ERP/CRM refresh/logout tamam. V22 APK LAN'dan exacthash indiriliyor; TC21 normal ERP oturumu force-stop/yeniden açılışta korunuyor. **Sıradaki tek teknik iş:** normal SOURCE satış→iki koli, mevcut mal kabul→İlker okuması ve son cihaz ekranlarına uygun dört eğitim videosunu tamamlamak. CRM konuşma alanının dar mobil yerleşimi source-only düzeltiliyor; henüz etkin teslim sayılmıyor. TEST125/DB02/roller/aktarımlar/LL/karantina/yedekler korunur;ERP-UA32/49-9-39-1 aynı. [Güncel checkpoint](docs/evidence/erp/2026-10-11-completion/protected-normal-test-sessions.md).
 
 **Önceki önizleme checkpoint:**
