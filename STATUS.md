@@ -1,4 +1,8 @@
-## ERP-COMPLETE01 — 200 çeşit koli ekranı / cihaz engeli — 11 Ekim 2026
+## ERP-COMPLETE01 — koli ekranı çalışan paket / cihaz engeli — 12 Ekim 2026
+
+Yeni uygulama source **4b08fdc** immutable `CANONICAL-COMPLETE-TEST-20261011-4b08fdc` içinde DB02'de API4184/native4186/web5234 olarak çalışıyor; CRM09ca/native-order60e korunur.1828 manifest dosyası bağımsız eşleşti,9LAN web/terminal asset byte eşit, normal aktör15 login-refresh-logout/401 geçti.40korunan süreç ve gerçek koli journal aynı; TEST125/LIVE/roller/ticariSQL/migration değişmedi. Kaynak17hedefli test/reviewGO ve dar Gitleaks0bulgu; uygulama CI38174295168/38174298446 ödeme/harcama engelinden başlamadı, PASS yok. [Teslim, guide ve sınırlar](docs/evidence/erp/2026-10-11-completion/large-carton-proof.md). v22APK değişmedi; eskiZIP/klipler yeni koli yerleşimi/200cihaz prova videosu değildir. Cihaz ADB politika reddi **NOT_RUN**, native200çeşit kaynak bağı hazır değil; ERP-UA32/49-9-39-1 bekliyor. Son belge teslim HEAD/CI makbuzda uygulama source'tan ayrı.
+
+## Önceki kaynak checkpoint — 200 çeşit koli ekranı / cihaz engeli — 11 Ekim 2026
 
 Koli UI kod/ad arama,50satır/+50, filtreden bağımsız birim+çarpanlı miktarözeti, sonokutulanı düzeltme ve yereldirtyREADY ayrımı hazır. Root17/17 ve bağımsızUI13/13/QA kaynakGO; izin/kaynak/pending/CAS/replay unchanged. Mevcut200satırlı nativefiş193çeşit ve sealedworklink yok; sahte link/readergevşetme0. Ayrı5294sentetikfixture normalactor15mecheck ile198/200seedDRAFT hazırladı, SQL/finans/stok0; cihazChromeaçmaADB araçpolitikasıreject/NOT_RUN, bypassyok, süreçkapandı. [Dar kanıt ve sınır](docs/evidence/erp/2026-10-11-completion/large-carton-proof.md). Çalışan571d/v22/38ftabanlıeğitimZIP korundu; yeni kaynağın gerçekpaket aktivasyonu ayrıca kaydedilecek. ERP-UA32/49-9-39-1 bekler;200cihazREADY/normalnative200fiş PASS değil.
 
