@@ -39,7 +39,8 @@ export function assertSqlIdentity(row, config) {
   if (!row || row.databaseName !== HUB_STACK_DATABASE || row.serverName !== config.copyContext?.target?.server
       || row.loginName !== config.sqlUser || row.databaseUser !== config.sqlUser
       || row.sysadmin !== 0 || row.databaseControl !== 0 || row.originalDatabaseAccess !== 0 || row.liveDatabaseAccess !== 0
-      || row.copyId !== HUB_STACK_COPY_ID || !equal(row.sealHash, config.copyContext?.sealHash)) fail('COLD_SQL_IDENTITY_REJECTED');
+      || typeof row.copyId !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(row.copyId)
+      || !equal(row.copyId, HUB_STACK_COPY_ID) || !equal(row.sealHash, config.copyContext?.sealHash)) fail('COLD_SQL_IDENTITY_REJECTED');
 }
 
 export async function coldSqlProbe(config, sql) {

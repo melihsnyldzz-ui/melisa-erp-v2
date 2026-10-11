@@ -57,6 +57,13 @@ test('wrong server/DB/login/copy/seal, elevated or original/LIVE access cannot p
   assert.throws(()=>assertSqlIdentity({...sqlRow(c),sysadmin:'0'},c),/COLD_SQL_IDENTITY_REJECTED/);
 });
 
+test('SQL uniqueidentifier uppercase rendering matches only the exact sealed GUID',()=>{
+  const c=sqlConfig(),row=sqlRow(c);
+  assert.doesNotThrow(()=>assertSqlIdentity({...row,copyId:row.copyId.toUpperCase()},c));
+  for(const value of ['{'+row.copyId+'}',row.copyId+' ',row.copyId.replaceAll('-',''),row.copyId.slice(0,-1)+'3',null,123])
+    assert.throws(()=>assertSqlIdentity({...row,copyId:value},c),/COLD_SQL_IDENTITY_REJECTED/);
+});
+
 test('cold SQL denies reader write privileges and closes the connection',async()=>{
   const c=sqlConfig();let closed=false;
   class Pool {async connect(){}async close(){closed=true;}request(){return {input(){return this;},async query(text){return {recordset:text===SQL_IDENTITY_QUERY?[sqlRow(c)]:[{permission_name:'UPDATE'}]};}};}}
