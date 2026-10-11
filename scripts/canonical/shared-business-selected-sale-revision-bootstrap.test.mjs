@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {capturedFixture} from './shared-business-selected-sale-revision-bootstrap.test-fixture.mjs';
 import {compileCapturedBusinessSelectedSaleRevision} from './shared-business-selected-sale-revision-capture.mjs';
 import {assertPreparedSelectedRevisionArtifact} from './shared-business-selected-sale-revision-sql.mjs';
+import {buildBusinessSelectedSaleEffectsRevision,assertPreparedSelectedEffectsRevisionArtifact} from './shared-business-selected-sale-effects-revision-sql.mjs';
 import {isolatedCopyHash,isolatedCopyJSON,isolatedCopyTopology,validateIsolatedOperationCopyContext,getBusinessDailyHomeReadRevisions,assertIsolatedCopyReadProof} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
-import {BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL,configureBusinessSelectedSaleRevision,getRegisteredBusinessSelectedSaleRevision,verifyBusinessSelectedSaleRevision} from './shared-business-selected-sale-revision-bootstrap.mjs';
+import {BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL,BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL,configureBusinessSelectedSaleRevision,getRegisteredBusinessSelectedSaleRevision,verifyBusinessSelectedSaleRevision} from './shared-business-selected-sale-revision-bootstrap.mjs';
 
 async function fixture(){
  const input=await capturedFixture(),{bundle}=await compileCapturedBusinessSelectedSaleRevision(input),copy=validateIsolatedOperationCopyContext(input.context);
@@ -100,4 +101,48 @@ test('native proof reader reads all registries and contains no effect, permissio
  assert.match(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL,/dbo.stage4_copy_business_daily_revisions/);
  assert.match(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL,/dbo.stage4_copy_business_daily_profit_revisions/);
  assert.match(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL,/JOIN sys.columns c ON c.object_id=t.object_id/);
+});
+
+async function effectsFixture(){
+ const f=await fixture(),{copy}=await compileCapturedBusinessSelectedSaleRevision(f.input),overlay=buildBusinessSelectedSaleEffectsRevision({copy,daily:f.input.daily,profit:f.input.profit,schema:f.input.schema});
+ const overlayRows=overlay.revision.modules.map(m=>({copyId:f.copy.copyId,name:m.name,revision:7,baseSealHash:f.copy.sealHash,baseSelectedRevisionHash:f.bundle.revision.revisionHash,profileHash:overlay.revision.profileHash,beforeHash:m.beforeHash,afterHash:m.afterHash,revisionHash:overlay.revision.revisionHash,actualHash:m.afterHash,immutableTriggerHash:overlay.revision.immutableTriggerHash,triggerDisabled:0}));
+ const overlayResult={recordsets:[structuredClone(f.result.recordsets[0]),overlayRows,structuredClone(f.result.recordsets[10])]};
+ for(const rows of [...f.result.recordsets.slice(1,6),f.result.recordsets[8]])for(const r of rows){const m=overlay.revision.modules.find(m=>m.name===r.name);if(m)r.actualHash=m.afterHash;}
+ f.options.selectedEffectsRevision=overlay.revision;f.calls.length=0;
+ f.request={query:async sql=>{f.calls.push(sql);assert([BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL,BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL].includes(sql));return structuredClone(sql===BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL?overlayResult:f.result);}};
+ return {...f,overlay,overlayResult};
+}
+test('v7 proves four native current modules first in the same transaction, retains sealed v6 and exposes separately current artifacts',async()=>{
+ const f=await effectsFixture(),before=isolatedCopyJSON(f.result),overlayBefore=isolatedCopyJSON(f.overlayResult),optionsBefore=isolatedCopyJSON(f.options);
+ const value=await configureBusinessSelectedSaleRevision({copy:f.copy,request:f.request,...f.options});
+ assert.deepEqual(f.calls,[BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL,BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL]);
+ assert.deepEqual(value.revision,f.bundle.revision);assert.equal(value.revision.version,6);assert.deepEqual(value.selectedEffectsRevision,f.overlay.revision);assert.equal(value.bundle.revision.version,7);
+ assert.equal(value.bundle.contextArtifact.selectedRevisionHash,f.bundle.revision.revisionHash);assert.equal(value.bundle.contextArtifact.selectedEffectsRevisionHash,f.overlay.revision.revisionHash);
+ assert.equal(assertPreparedSelectedEffectsRevisionArtifact(value.bundle.contextArtifact,f.copy,'context'),value.bundle.contextArtifact);assert.equal(assertPreparedSelectedEffectsRevisionArtifact(value.bundle.writeScopeArtifact,f.copy,'intent'),value.bundle.writeScopeArtifact);
+ assertIsolatedCopyReadProof(f.copy,{copyId:f.copy.copyId,sealHash:f.copy.sealHash,backupSHA:f.copy.backupSHA,valid:true,definitionHashes:value.parentHashes});
+ assert.throws(()=>assertIsolatedCopyReadProof(f.copy,{copyId:f.copy.copyId,sealHash:f.copy.sealHash,backupSHA:f.copy.backupSHA,valid:true,definitionHashes:f.bundle.parentHashes}),{code:'ISOLATED_COPY_READ_PROOF'});
+ assert.equal(await verifyBusinessSelectedSaleRevision(f.copy,f.request),true);assert.equal(f.calls.length,4);
+ assert.equal(isolatedCopyJSON(f.result),before);assert.equal(isolatedCopyJSON(f.overlayResult),overlayBefore);assert.equal(isolatedCopyJSON(f.options),optionsBefore);
+ assert.deepEqual(getBusinessDailyHomeReadRevisions(f.copy),{daily:f.input.dailyRevision,profit:f.input.profitRevision});
+});
+test('missing duplicated unknown drifted disabled overlay and cross-transaction history cannot register or project v7',async()=>{
+ const source=await effectsFixture();
+ const changes=[f=>f.overlayResult.recordsets[1].pop(),f=>f.overlayResult.recordsets[1].push(structuredClone(f.overlayResult.recordsets[1][0])),f=>f.overlayResult.recordsets[1][0].name='dbo.unknown',f=>f.overlayResult.recordsets[1][0].actualHash='F'.repeat(64),f=>f.overlayResult.recordsets[1][0].beforeHash='F'.repeat(64),f=>f.overlayResult.recordsets[1][0].triggerDisabled=1,f=>f.overlayResult.recordsets[1][0].immutableTriggerHash='F'.repeat(64),f=>f.overlayResult.recordsets[1][0].profileHash='F'.repeat(64),f=>f.overlayResult.recordsets[2][0].transactionId='1002',f=>{f.overlayResult.recordsets[0][0].sessionId=f.overlayResult.recordsets[2][0].sessionId=92;},f=>f.result.recordsets[8][0].actualHash='F'.repeat(64),f=>f.result.recordsets[1][0].actualHash='F'.repeat(64),f=>f.result.recordsets[4].pop(),f=>f.result.recordsets[9].pop(),f=>{f.overlayResult.recordsets[0][0].moduleManifestRows=f.overlayResult.recordsets[2][0].moduleManifestRows=184;}];
+ for(const change of changes){const f={...source,copy:validateIsolatedOperationCopyContext(source.copy),result:structuredClone(source.result),overlayResult:structuredClone(source.overlayResult)},calls=[];change(f);await assert.rejects(()=>configureBusinessSelectedSaleRevision({copy:f.copy,...source.options,request:{query:async sql=>{calls.push(sql);return sql===BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL?f.overlayResult:f.result;}}}));assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);assert.equal(getBusinessDailyHomeReadRevisions(f.copy),null);assert.equal(calls[0],BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL);}
+});
+test('consistent caller v7 substitutions still fail canonical regeneration before original history registration',async()=>{
+ const f=await effectsFixture(),options=structuredClone(f.options),overlay=structuredClone(f.overlayResult),result=structuredClone(f.result),module=options.selectedEffectsRevision.modules[1];module.afterHash='F'.repeat(64);const {revisionHash,...body}=options.selectedEffectsRevision;options.selectedEffectsRevision.revisionHash=isolatedCopyHash(body);
+ for(const r of overlay.recordsets[1]){r.revisionHash=options.selectedEffectsRevision.revisionHash;if(r.name===module.name)r.afterHash=r.actualHash=module.afterHash;}
+ for(const rows of [...result.recordsets.slice(1,6),result.recordsets[8]])for(const r of rows)if(r.name===module.name)r.actualHash=module.afterHash;
+ await assert.rejects(()=>configureBusinessSelectedSaleRevision({copy:f.copy,...options,request:{query:async sql=>sql===BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL?overlay:result}}),{code:'SELECTED_EFFECTS_BOOT_CANONICAL_REVISION'});
+ assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);assert.equal(getBusinessDailyHomeReadRevisions(f.copy),null);
+});
+test('v7 readonly identity persists on re-verification, and legacy v6 cannot consume v7 current hashes',async()=>{
+ const legacy=await effectsFixture(),options={...legacy.options};delete options.selectedEffectsRevision;await assert.rejects(()=>configureBusinessSelectedSaleRevision({copy:legacy.copy,request:legacy.request,...options}),{code:'SELECTED_BOOT_NATIVE_PINS'});
+ const f=await effectsFixture(),reader=isolatedCopyTopology(f.copy).reader;for(const result of [f.result,f.overlayResult])for(const index of [0,result.recordsets.length-1])Object.assign(result.recordsets[index][0],{login:reader,databaseUser:reader});
+ const value=await configureBusinessSelectedSaleRevision({copy:f.copy,request:f.request,...f.options,nativeReadOnly:true});assert.equal(value.selectedEffectsRevision.version,7);assert.equal(await verifyBusinessSelectedSaleRevision(f.copy,f.request),true);
+ for(const index of [0,2])Object.assign(f.overlayResult.recordsets[index][0],{login:f.copy.target.login,databaseUser:f.copy.target.databaseUser});await assert.rejects(()=>verifyBusinessSelectedSaleRevision(f.copy,f.request),{code:'SELECTED_BOOT_READER_IDENTITY'});
+});
+test('v7 native proof SQL reads exact immutable overlay with metadata frames and has no write or grant',()=>{
+ assert.match(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL,/FROM dbo.stage4_copy_business_selected_sale_effects_revisions r WITH\(HOLDLOCK\) ORDER BY r.name/);assert.match(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL,/immutable_stage4_copy_business_selected_sale_effects_revisions/);assert.equal(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL.split('CURRENT_TRANSACTION_ID()').length,3);assert.doesNotMatch(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL,/\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|GRANT|DENY|REVOKE)\b/i);
 });

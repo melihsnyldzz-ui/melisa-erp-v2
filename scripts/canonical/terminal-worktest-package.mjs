@@ -37,6 +37,7 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs',
  'scripts/canonical/shared-business-selected-sale-revision-contract.mjs',
  'scripts/canonical/shared-business-selected-sale-revision-sql.mjs',
+ 'scripts/canonical/shared-business-selected-sale-effects-revision-sql.mjs',
  'scripts/canonical/shared-business-selected-sale-write-scope-sql.mjs',
  'scripts/canonical/stage4-copy-sql.mjs',
  'scripts/canonical/terminal-persistent-web-support.mjs',

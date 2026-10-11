@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {selectedSaleFixture} from './businessSelectedSalePreview.test.mjs';
 import {loadBusinessSelectedSaleStartup,validateBusinessSelectedSaleStartupPin} from './businessSelectedSaleStartup.mjs';
 import {getRegisteredBusinessSelectedSaleRevision} from '../../../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs';
+import {isolatedCopyHash} from './isolatedOperationCopyContext.mjs';
 
 function fixture(change=()=>{}){
  const copy=selectedSaleFixture().c,revisionHash='A'.repeat(64);
@@ -33,4 +34,12 @@ test('startup refuses external files, traversal, ambiguous pin and incompatible 
   const f=fixture();f.config.businessSelectedSaleStartup.path=file;assert.throws(()=>validateBusinessSelectedSaleStartupPin(f.config,f.copy));
  }
  for(const change of [c=>c.businessSelectedSaleStartup.extra=true,c=>c.businessReadinessQueryPlanRevision={},c=>delete c.businessDailyRevision]){const f=fixture();change(f.config);assert.throws(()=>validateBusinessSelectedSaleStartupPin(f.config,f.copy));}
+});
+function effectsFixture(change=()=>{}){const f=fixture(),overlay={schemaVersion:'melisa-business-selected-sale-effects-revision.v1',version:7,copyId:f.copy.copyId,baseSealHash:f.copy.sealHash,baseSelectedRevisionHash:f.config.businessSelectedSaleStartup.revisionHash,profileHash:isolatedCopyHash(f.copy),modules:Array.from({length:4},(_,i)=>({name:'synthetic'+i,beforeHash:'B'.repeat(64),afterHash:'C'.repeat(64)})),immutableTriggerHash:'D'.repeat(64),optimization:'SELECTED_MAX_IDS_ONCE',revisionHash:'E'.repeat(64)};Object.assign(f.input,{schemaVersion:'melisa-selected-sale-startup-input.v2',selectedEffectsRevision:overlay});change(f.input);f.bytes=Buffer.from(JSON.stringify(f.input));f.config.businessSelectedSaleStartup.sha256=createHash('sha256').update(f.bytes).digest('hex');return f;}
+test('v2 optionally carries a separate v7 adjunct without changing the v6 config pin or earning registration',()=>{
+ const f=effectsFixture();assert.deepEqual(loadBusinessSelectedSaleStartup(f.config,f.copy,{readFile:()=>f.bytes}),f.input);assert.equal(f.config.businessSelectedSaleStartup.revisionHash,'A'.repeat(64));assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);
+ const absent=effectsFixture(i=>delete i.selectedEffectsRevision);assert.deepEqual(loadBusinessSelectedSaleStartup(absent.config,absent.copy,{readFile:()=>absent.bytes}),absent.input);
+});
+test('v1 never accepts the new adjunct; v2 unknown null wrong version source or parent rejects before proof',()=>{
+ for(const change of [i=>i.schemaVersion='melisa-selected-sale-startup-input.v1',i=>i.schemaVersion='melisa-selected-sale-startup-input.v3',i=>i.extra=true,i=>i.selectedEffectsRevision=null,i=>i.selectedEffectsRevision.extra=true,i=>i.selectedEffectsRevision.version=6,i=>i.selectedEffectsRevision.copyId='wrong',i=>i.selectedEffectsRevision.baseSealHash='F'.repeat(64),i=>i.selectedEffectsRevision.baseSelectedRevisionHash='F'.repeat(64),i=>i.selectedEffectsRevision.profileHash='F'.repeat(64),i=>i.selectedEffectsRevision.modules.pop(),i=>i.selectedEffectsRevision.immutableTriggerHash='wrong']){const f=effectsFixture(change);assert.throws(()=>loadBusinessSelectedSaleStartup(f.config,f.copy,{readFile:()=>f.bytes}));assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);}
 });

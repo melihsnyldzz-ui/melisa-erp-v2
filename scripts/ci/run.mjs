@@ -30,7 +30,7 @@ if (mode === 'quality') {
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-completion-logon.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-terminal-completion-private.test.mjs'), path.join(root, 'scripts/canonical/terminal-worktest-package.test.mjs')]);
-  run(['--test', ...['shared-business-selected-sale-preview-sql','shared-business-selected-sale-write-scope-sql','shared-business-selected-sale-revision-sql','shared-business-selected-sale-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
+  run(['--test', ...['shared-business-selected-sale-preview-sql','shared-business-selected-sale-write-scope-sql','shared-business-selected-sale-revision-sql','shared-business-selected-sale-effects-revision-sql','shared-business-selected-sale-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--experimental-test-module-mocks', '--test', path.join(root, 'scripts/test-business-selected-sale-native-engine.mjs')]);
   run(['--test', ...['shared-business-scope','shared-business-copy-sql','shared-business-party-readers','shared-business-ready-revision-sql','shared-business-ready-performance-revision-sql','shared-business-effects-performance-revision-sql','crm-order-current-sql'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/stage5-origin-review.test.mjs')]);
