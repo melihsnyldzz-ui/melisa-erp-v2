@@ -23,6 +23,16 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-048 — 11 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan talimatı: **“Bu hassas bilgiler meselesi ne, bir güvenlik sorunu mu var? Onu kontrol edip düzeltin, diğer işleri de bekletmeden bitirin.”** Kaynak: Codex `sesli yönlendirme` sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, doğrudan kullanıcı mesajı `01a12c50-e749-79d0-a096-40b05846fbb9`, tur `01a12c50-e596-7910-9653-12489fa51fed`. Kaynak mesajı yerel hostta `read_thread` ile kullanıcı içeriği olarak doğrulandı. Bu satır bir ajanın bağımsız yeni yetki talebi değildir; doğrudan kullanıcı kararının kalıcı kaydıdır.
+
+Olayda araç çıktısında görünen **izole DB02 TEST SQL servis bağlantı parolaları ve ERP TEST JWT imzalama sırları** için dar inceleme ve giderim yetkilidir. Etkilenen tüketicileri ve TEST/LIVE ayrımını değer dökmeden belirle; desteklenen yönetim yolu ile yalnız bu olayın izole TEST sırlarını yenile, ilgili TEST tüketicilerinin korumalı giriş/config kayıtlarını uyumlu güncelle ve yalnız ilgili TEST hizmetlerini yeniden başlat. Eski SQL girişinin ve eski JWT erişiminin reddini, yeni normal giriş/yenileme/çıkışı, cihaz yeniden açılışını ve görev geçişini sır içermeyen kanıtla doğrula. Kaynak/Git/teslim paketine sır kopyalanmadığını maskelemiş tarama kanıtıyla değerlendir. Eski araç çıktısı geri alınmış gibi sunulmaz.
+
+Yeni yetki yalnız bildirilen servis sırrı olayına ilişkindir; ERP-DEC-047'nin paylaşılan personel/gerçek/üretim hesabı parolasını değiştirmeme sınırı sürer. LIVE ile ortak sır veya tüketici saptanırsa canlı sırrını değiştirmeden o bağımlılığı karantinaya al. Yetki yükseltme, giriş bypass'ı, LIVE/Vega/T1/main merge, gerçek müşteri mesajı, ücretli servis ve eski sistem kapatma yetkisi verilmez. Mevcut veri, roller ve yedekler korunur; kullanıcıdan parola veya aynı dar TEST giderimi için tekrar onay istenmez.
+
+Hassas çıktı riskini gideren dar logger/çıktı filtresi ve sentetik olumsuz testler hazırlanır. Tek ana pano işi **ERP-COMPLETE01** sürer; güvenle ayrılabilen sorun kapanma ölçütüyle karantinaya alınırken bağımsız ERP/yeşil terminal/eğitim/geçiş işleri tamamlanır. Kod veya yeni karar kaydı, servis sırrı yenilendi ya da dört teslim bütünü tamamlandı demek değildir.
+
 ### ERP-DEC-047 — 11 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan **TEST erişimi ve parola talepleri** kararı: TEST girişini hazırlamak ve sürdürmek ajanın işidir. Kullanıcıdan kullanıcı adı/parola, sohbette sır paylaşımı veya tekrar manuel giriş istenmez. Önce mevcut yetkili oturum ve korumalı giriş teslimi kullanılır; sırlar sohbet, çıktı, kaynak, GitHub veya düz metin günlüğe taşınmaz.
