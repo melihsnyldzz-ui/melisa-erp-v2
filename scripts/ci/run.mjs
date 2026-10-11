@@ -27,6 +27,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', path.join(root, 'scripts/canonical/public-terminal-artifact.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-completion-logon.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-terminal-completion-private.test.mjs'), path.join(root, 'scripts/canonical/terminal-worktest-package.test.mjs')]);

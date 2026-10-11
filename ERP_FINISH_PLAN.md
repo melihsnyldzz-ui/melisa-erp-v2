@@ -1,4 +1,8 @@
-## ERP-COMPLETE01 — selected satış scope/native engine kaynak checkpoint'i — 11 Ekim 2026
+## ERP-COMPLETE01 — SOURCE native satış ve korumalı oturum checkpoint'i — 11 Ekim 2026
+
+İzole DB02 üzerinde mevcut engine ile TRY/USD taslak/finalize/iptal/replay gerçek native sonuçları tamamlandı; iki döngü/yedi negatif, seçili stok/cari net0 ve ikinci etki0 doğrulandı. Normal ERP/CRM refresh/logout gerçek HTTP'de, v22 oturum yeniden açılışı TC21'de geçti. LAN APK indirme exacthash doğrulandı. Normal GUI SOURCE satış→iki koli, mal kabul/İlker readback, kompakt CRM konuşma ve güncel eğitim videoları bitmeden dört görev bütünü tamam sayılmaz. [Kanıt](docs/evidence/erp/2026-10-11-completion/protected-normal-test-sessions.md). **49 / 9 tamam / 39 kısmi / 1 açık**, ERP-UA32 bekliyor. Genel günlük mağaza kapsamı, Windows gerçek reboot ve insan kabulü ayrı kalır.
+
+## Önceki checkpoint — selected satış scope/native engine kaynak checkpoint'i — 11 Ekim 2026
 
 Server-owned SOURCE seçim/policy, same-TX owner intent scope, creation journal doğrulaması ve mevcut native invoice/döviz hesabı bağlantısı hazır.65 offline kontrol + exact CREATE gerçek SQL derlemesi/rollback, module/izin/rol metadata eşitliği; ticari yazma/commit0. Yeni scope'u eski begin açamaz; SQL successor/store/paket/normal ekran zinciri henüz yok. [Kanıt](docs/evidence/erp/2026-10-11-completion/selected-sale-write-scope.md). **Sonraki tek teknik iş:** coherent selected begin/guard/effects/profit/READY pinleri ve store journal, ardından izole gerçek işlem/iptal/replay. TEST125/DB02/roller/181de5a/sabitboot/önceki aktarımlar/dört video korunur. **49 / 9 tamam / 39 kısmi / 1 açık** ve ERP-UA32 bekliyor; bütün hedef aktif.
 

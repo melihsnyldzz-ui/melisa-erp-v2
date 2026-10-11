@@ -1,6 +1,6 @@
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
-**Güncel adım:** Selected SOURCE seçim/policy, same-TX owner intent scope, creation journal ve mevcut invoice/currency engine kaynak bağlantısı hazır.65 hedefli offline test ve exact CREATE gerçek SQL derlemesi/rollback;module/izin/rol metadata eşit,ticari yazma/commit/shared yazma0. Eski v4/v5 begin yeni witness üretmez; yeni writer normal runtime'da açılmadı, paket/ekran kanıtı yok. **Sıradaki tek teknik iş:** mevcut begin/guard/effects/profit/READY için coherent successor pin zinciri ve store journal bağlantısı; sonra izole gerçek draft/finalize/cancel/replay ve normal ekran. Eski TRY500/roller/v4-v5/TEST125/DB02/181de5a/sabitboot korunur;ERP-UA32/49-9-39-1 ve bütün ana hedef açık. [Yeni checkpoint](docs/evidence/erp/2026-10-11-completion/selected-sale-write-scope.md).
+**Güncel adım:** SOURCE satış TRY/USD gerçek native lifecycle/replay/iptal ve normal korumalı ERP/CRM refresh/logout tamam. V22 APK LAN'dan exacthash indiriliyor; TC21 normal ERP oturumu force-stop/yeniden açılışta korunuyor. **Sıradaki tek teknik iş:** normal SOURCE satış→iki koli, mevcut mal kabul→İlker okuması ve son cihaz ekranlarına uygun dört eğitim videosunu tamamlamak. CRM konuşma alanının dar mobil yerleşimi source-only düzeltiliyor; henüz etkin teslim sayılmıyor. TEST125/DB02/roller/aktarımlar/LL/karantina/yedekler korunur;ERP-UA32/49-9-39-1 aynı. [Güncel checkpoint](docs/evidence/erp/2026-10-11-completion/protected-normal-test-sessions.md).
 
 **Önceki önizleme checkpoint:**
 
