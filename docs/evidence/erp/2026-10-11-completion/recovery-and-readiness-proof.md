@@ -27,6 +27,14 @@ Sonraki baseline denemesinde gerçek registry/hash kurulumu geçti, historical `
 
 Ölçüm ve iki yeni registry negatifi ayrı transaction/SPID'de çalışır; her işlem tam rollback, transaction sonu ve tüm satır/şema/izin snapshot eşitliği gerektirir. Dokuz ek native fixture/actor/effects bağı henüz tamamlanmadığından bu çalışma **OBSERVATION_ONLY** kapsamıdır. Tam 11 negatif kabulü veya shared aktivasyona hazır olma sonucu üretmez.
 
+## Güncel v5 üzerinde kaynak okuması ve iki ek bağ
+
+Mevcut DB02 v6 config/registry/trigger içermez. Güncel consumer'ın optional v6 parametresi açıkça undefined geçirilerek normal İlker16 rolüyle ready/context ve HOME gerçek SQL okuması geçti; ticari POST/kalıcı SQL DML/servis değişikliği0. Çalışan API a51 kaynağında kalır. Private makbuz `current-source-v6-absent-home-readonly-proof-20261011T074326.json`, SHA256 `6673c6e1574adaea98de53553f5dde545c8fd53cc580f78284764e4a37340135`.
+
+İki yeni source-witness binding kaynakta hazırlanmıştır: exact kaynak hesabını kaldırma ve aynı exact payload'da UNKNOWN/NULL bakiye. Factory bağlantı açmaz veya satır keşfetmez; reviewed data-only fixture, sealed profil ve tüm kayıt hash'i gerektirir. Doğrulama/mutasyon sonrası kontrol hatası negatif PASS değildir. UNKNOWN ret sonucu yalnız composite_source_witness olarak etiketlenir; balance-only koşulun tek başına yürüdüğü iddia edilmez. Baseline/candidate installed CREATE metni ve raw hash'i bağımsız doğrulanır. Üç helper suite'inde46/46 offline test ve bağımsız kaynak incelemesi geçti. Bu iki binding için native sonuç henüz yok; yedi diğer bağ açık, toplam11 gereklilik korunur.
+
+v6 aktivasyonu bu bütün kabulü bekler. Mevcut v4/v5 üzerinde HOME/terminal kaynak teslimi buna bağlı değildir; protected shared servisleri değiştirmeyen geçici USB/loopback paket yolu ayrı ilerler.
+
 ## Kaynak doğrulama ve kalan
 
 13 hedefli test dosyasında root tarafından **120/120 offline PASS**, 0 fail/skip. Bunlar native SQL kanıtına veya insan PASS'e eklenmez. v6 consumer güncel SQL pinleri, immutable registry/trigger ve v1–v5 parent zincirini her işlem/reload'da taze doğrular. Yeni modül immutable terminal paketi kapalı import/hash listesine eklendi.

@@ -54,7 +54,7 @@ export async function validateIsolatedReadinessQueryPlan({bundle,target,adapter}
     const result=await adapter.negativeProbe(negativeTransaction,{kind,variant,fullRollbackRequired:true});
     // Match the baseline's actual code, rather than assuming an old guard's
     // spelling. New query-plan guards have their own exact expected codes.
-    check(exact(result,['rejected','errorCode','layer','readinessPredicateExercised','transactionState'])&&result.rejected===true&&READINESS_PROOF_NEGATIVE_LAYERS[kind].includes(result.layer)&&result.readinessPredicateExercised===(result.layer==='actual_ready')&&[-1,0,1].includes(result.transactionState)&&typeof result.errorCode==='string'&&/^[A-Z0-9_]+$/.test(result.errorCode),'READINESS_PROOF_NEGATIVE');
+    check(exact(result,['rejected','errorCode','layer','readinessPredicateExercised','transactionState',...(result.predicateKind===undefined?[]:['predicateKind'])])&&result.rejected===true&&READINESS_PROOF_NEGATIVE_LAYERS[kind].includes(result.layer)&&result.readinessPredicateExercised===(result.layer==='actual_ready')&&[-1,0,1].includes(result.transactionState)&&typeof result.errorCode==='string'&&/^[A-Z0-9_]+$/.test(result.errorCode)&&(result.predicateKind===undefined||(result.predicateKind==='composite_source_witness'&&['missing_source_account','unknown_balance'].includes(kind)&&result.layer==='actual_ready'&&result.errorCode==='BUSINESS_SOURCE_ACCOUNT_WITNESS_DRIFT')),'READINESS_PROOF_NEGATIVE');
     if(kind.startsWith('registry_')||kind==='disabled_query_plan_trigger')check(result.errorCode===expected,'READINESS_PROOF_NEW_GUARD');
     negativeResults.push({variant,kind,...result});
    }finally{if(negativeTransaction)await adapter.rollback(negativeTransaction);}
@@ -63,7 +63,7 @@ export async function validateIsolatedReadinessQueryPlan({bundle,target,adapter}
  }
  const [baseline,candidate]=observations;
  check(baseline.values[0].sourceContributionHash===candidate.values[0].sourceContributionHash&&baseline.values[0].actorPermissionsHash===candidate.values[0].actorPermissionsHash,'READINESS_PROOF_EQUIVALENCE');
- for(const [kind]of READINESS_PROOF_NEGATIVES){const a=negativeResults.find(x=>x.variant==='baseline'&&x.kind===kind),b=negativeResults.find(x=>x.variant==='candidate'&&x.kind===kind);check(a.errorCode===b.errorCode&&a.layer===b.layer&&a.readinessPredicateExercised===b.readinessPredicateExercised,'READINESS_PROOF_NEGATIVE_EQUIVALENCE');}
+ for(const [kind]of READINESS_PROOF_NEGATIVES){const a=negativeResults.find(x=>x.variant==='baseline'&&x.kind===kind),b=negativeResults.find(x=>x.variant==='candidate'&&x.kind===kind);check(a.errorCode===b.errorCode&&a.layer===b.layer&&a.readinessPredicateExercised===b.readinessPredicateExercised&&a.predicateKind===b.predicateKind,'READINESS_PROOF_NEGATIVE_EQUIVALENCE');}
  const finalIdentity=await adapter.inspect();proofIdentity(finalIdentity,proof);check(isolatedCopyHash(identity)===isolatedCopyHash(finalIdentity),'READINESS_PROOF_FINAL_IDENTITY_DRIFT');
  return {schemaVersion:'melisa-isolated-readiness-query-plan-observation.v1',database:READINESS_PROOF_DATABASE,sourceDatabase:target.sourceDatabase,revisionHash:bundle.revision.revisionHash,observations,negativeResults,rolledBack:true,protectedSnapshotUnchanged:true,installAllowed:false,sharedChanges:0,readyForSharedActivation:false,requiresRuntimeConsumerIntegration:true};
 }

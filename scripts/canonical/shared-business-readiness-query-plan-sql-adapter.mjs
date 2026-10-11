@@ -3,11 +3,12 @@
 import {createHash} from 'node:crypto';
 import {moduleHash} from './stage4-copy-sql.mjs';
 import {isolatedCopyHash} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
-import {readinessProofTarget,READINESS_PROOF_DATABASE,READINESS_PROOF_LOGIN,QUERY_PLAN_REGISTRY,QUERY_PLAN_TRIGGER} from './shared-business-readiness-query-plan-revision.mjs';
+import {readinessProofTarget,validateReadinessQueryPlanPreparation,READINESS_PROOF_DATABASE,READINESS_PROOF_LOGIN,QUERY_PLAN_REGISTRY,QUERY_PLAN_TRIGGER} from './shared-business-readiness-query-plan-revision.mjs';
 import {READINESS_PROOF_NEGATIVE_LAYERS} from './shared-business-readiness-query-plan-isolated.mjs';
 // Eleven requirements are retained. Three need their actual actor/effects/hold
-// contracts; six protected-source fixtures need an intentional, reviewed binding
-// accepted by historical guards. No dormant business-row mutation exists here.
+// contracts; six source fixtures need an intentional, reviewed binding accepted
+// by historical guards. No binding is enabled by default. Two exact records
+// fixture bindings can be built explicitly below; seven still need contracts.
 export const UNSUPPORTED_READINESS_PROBES=Object.freeze(['party_hold','permission_drift','stock_drift','party_currency','party_identity','missing_source_account','unknown_balance','ll_account','price_drift']);
 const unsupportedCodes=Object.freeze({party_hold:'READINESS_SQL_HOLD_FIXTURE_REQUIRED',permission_drift:'READINESS_SQL_ACTOR_CONTEXT_REQUIRED',stock_drift:'READINESS_SQL_STOCK_EFFECTS_REQUIRED',...Object.fromEntries(UNSUPPORTED_READINESS_PROBES.slice(3).map(k=>[k,'READINESS_SQL_PROTECTED_FIXTURE_BINDING_REQUIRED_'+k]))});
 // Schema names only: existing FINAL04 writer-owned-check-rehearsal-v03,
@@ -42,6 +43,39 @@ export const READINESS_ADAPTER_PERMISSION_SQL=`SELECT class,major_id,minor_id,gr
 SELECT role_principal_id,member_principal_id FROM sys.database_role_members ORDER BY role_principal_id,member_principal_id;
 SELECT principal_id,name,type,authentication_type,default_schema_name FROM sys.database_principals WHERE principal_id>4 ORDER BY principal_id;`;
 const guardCode=e=>{for(const value of [e?.message,e?.originalError?.info?.message,...(e?.precedingErrors??[]).map(x=>x.message)])if(typeof value==='string'&&/^[A-Z][A-Z0-9_]+$/.test(value))return value;return null;};
+const sourceRun='VEGA-OPENING-TEST-20261004-06';
+const rowSqlHash="CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT r.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)),2)";
+// Data-only reviewed fixture input. This factory neither discovers a row nor
+// connects to SQL. All pins are rechecked on the owned SERIALIZABLE transaction.
+// Both negatives exercise the composite witness guard; UNKNOWN also invalidates
+// the sealed payload hash, so it cannot prove the balance-only branch separately.
+export function createReadinessSourceWitnessBindings({bundle,fixture}={}){
+ validateReadinessQueryPlanPreparation(bundle);
+ const keys=['schemaVersion','copyId','baseSealHash','profileSqlHash','role','id','accountId','currency','sourceKey','sourceWitnessHash','recordSourceKey','recordSqlHash'];
+ check(fixture&&Object.keys(fixture).sort().join(',')===keys.sort().join(',')&&fixture.schemaVersion==='melisa-readiness-source-witness-fixture.v1'&&fixture.copyId===COPY&&fixture.baseSealHash===bundle?.revision?.baseSealHash&&['baseSealHash','profileSqlHash','recordSqlHash'].every(k=>hex(fixture[k]))&&['customer','supplier'].includes(fixture.role)&&['id','accountId'].every(k=>typeof fixture[k]==='string'&&/^[1-9][0-9]{0,17}$/.test(fixture[k]))&&['TRY','USD','EUR'].includes(fixture.currency)&&typeof fixture.sourceWitnessHash==='string'&&/^[A-Fa-f0-9]{64}$/.test(fixture.sourceWitnessHash)&&typeof fixture.recordSourceKey==='string'&&fixture.recordSourceKey.length>0&&fixture.recordSourceKey.length<=400&&!fixture.recordSourceKey.includes('\0'),'READINESS_SQL_SOURCE_FIXTURE');
+ const f=Object.freeze({...fixture}),company=f.role==='customer'?'F0102':'F0103',plural=f.role==='customer'?'customers':'suppliers',other=f.role==='customer'?'supplier':'customer';
+ check(typeof f.sourceKey==='string'&&new RegExp('^VEGA2026/'+company+'TBLCARI/[1-9][0-9]{0,9}$').test(f.sourceKey)&&hex(bundle?.revision?.modules?.[0]?.beforeHash),'READINESS_SQL_SOURCE_FIXTURE');
+ const sourceId=f.sourceKey.split('/').at(-1),partySourceKey=`VEGA_CAPTURE_20260930_01/${company}/TBLCARI/${sourceId}`;
+ check(BigInt(sourceId)<=2147483647n&&!(f.role==='customer'&&['591','592'].includes(f.id)),'READINESS_SQL_SOURCE_FIXTURE');
+ const parameters=Object.freeze({copy:COPY,seal:f.baseSealHash,profile:f.profileSqlHash,id:f.id,account:f.accountId,currency:f.currency,source:f.sourceKey,witness:f.sourceWitnessHash,record:f.recordSourceKey,row:f.recordSqlHash,party:partySourceKey,sourceId});
+ const manifest=`SELECT 1 FROM dbo.stage4_copy_manifest m WHERE m.copy_id=@copy AND m.sealed=1 AND m.seal_hash=@seal AND JSON_VALUE(m.profile_json,'$.sealHash')=@seal AND JSON_VALUE(m.profile_json,'$.actualT1')=N'false' AND CONVERT(varchar(64),HASHBYTES('SHA2_256',m.profile_json),2)=@profile AND (SELECT COUNT(*) FROM OPENJSON(m.profile_json,'$.${plural}')WITH(id bigint,accountId bigint,currency nvarchar(3),sourceKey nvarchar(250),sourceWitnessHash char(64))s WHERE s.id=@id AND s.accountId=@account AND s.currency=@currency AND s.sourceKey COLLATE Latin1_General_100_BIN2=@source AND s.sourceWitnessHash COLLATE Latin1_General_100_BIN2=@witness)=1`;
+ const sourceScope=`r.run_id=N'${sourceRun}' AND r.entity=N'accounts' AND JSON_VALUE(r.payload_json,'$.party_source_key') COLLATE Latin1_General_100_BIN2=@party AND JSON_VALUE(r.payload_json,'$.role')=N'${f.role}' AND JSON_VALUE(r.payload_json,'$.currency_code')=@currency`;
+ const exactRow=`r.run_id=N'${sourceRun}' AND r.entity=N'accounts' AND r.source_key COLLATE Latin1_General_100_BIN2=@record AND r.payload_hash COLLATE Latin1_General_100_BIN2=@witness AND ${rowSqlHash}=@row`;
+ const verifySQL=`SELECT CASE WHEN (SELECT COUNT(*) FROM dbo.stage4_copy_manifest WHERE copy_id=@copy AND sealed=1)=1 AND EXISTS(${manifest}) AND (SELECT COUNT(*) FROM dbo.party_source_links l WHERE l.${f.role}_id=@id AND l.${other}_id IS NULL AND l.source_company=N'${company}' AND l.source_id=@sourceId AND l.source_currency<>N'LL')=1 AND (SELECT COUNT(*) FROM erp_migration.records r WHERE ${sourceScope})=1 AND EXISTS(SELECT 1 FROM erp_migration.records r WHERE ${exactRow} AND ${sourceScope} AND JSON_VALUE(r.payload_json,'$.balance_status')=N'SOURCE' AND TRY_CONVERT(decimal(28,8),JSON_VALUE(r.payload_json,'$.balance')) IS NOT NULL AND LOWER(CONVERT(varchar(64),HASHBYTES('SHA2_256',CONVERT(varchar(max),r.payload_json COLLATE Latin1_General_100_BIN2_UTF8)),2))=LOWER(r.payload_hash)) AND NOT EXISTS(SELECT 1 FROM sys.triggers WHERE parent_id=OBJECT_ID(N'erp_migration.records') AND is_disabled=0) AND NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE (parent_object_id=OBJECT_ID(N'erp_migration.records') OR referenced_object_id=OBJECT_ID(N'erp_migration.records')) AND is_disabled=0) THEN 1 ELSE 0 END verified;`;
+ const fixtureHash=isolatedCopyHash(f);
+ const confirm=async query=>{const rows=(await query(verifySQL,parameters)).recordset;check(rows?.length===1&&rows[0].verified===1,'READINESS_SQL_SOURCE_FIXTURE_DRIFT');};
+ return Object.freeze(['missing_source_account','unknown_balance'].map(kind=>Object.freeze({kind,layer:'actual_ready',predicateKind:'composite_source_witness',fixtureHash,modulePins:Object.freeze([Object.freeze({name:NAME,hash:bundle.revision.modules[0].beforeHash})]),expectedErrorCodes:Object.freeze(['BUSINESS_SOURCE_ACCOUNT_WITNESS_DRIFT']),
+  async verify({query,copyId}){check(copyId===COPY,'READINESS_SQL_SOURCE_COPY');await confirm(query);return {verified:true,fixtureHash};},
+  async prepare({query,copyId}){
+   check(copyId===COPY,'READINESS_SQL_SOURCE_COPY');await confirm(query);
+   const dml=kind==='missing_source_account'?`DELETE r OUTPUT deleted.source_key sourceKey,deleted.payload_hash payloadHash FROM erp_migration.records r WHERE ${exactRow};`:`UPDATE r SET payload_json=JSON_MODIFY(JSON_MODIFY(r.payload_json,'$.balance_status',N'UNKNOWN'),'strict $.balance',NULL) OUTPUT deleted.source_key sourceKey,deleted.payload_hash payloadHash FROM erp_migration.records r WHERE ${exactRow};`;
+   const rows=(await query(dml,parameters)).recordset;check(rows?.length===1&&rows[0].sourceKey===f.recordSourceKey&&rows[0].payloadHash===f.sourceWitnessHash,'READINESS_SQL_SOURCE_MUTATION_COUNT');
+   const condition=kind==='missing_source_account'?`NOT EXISTS(SELECT 1 FROM erp_migration.records r WHERE ${sourceScope})`:`(SELECT COUNT(*) FROM erp_migration.records r WHERE ${sourceScope})=1 AND EXISTS(SELECT 1 FROM erp_migration.records r WHERE r.run_id=N'${sourceRun}' AND r.entity=N'accounts' AND r.source_key COLLATE Latin1_General_100_BIN2=@record AND r.payload_hash COLLATE Latin1_General_100_BIN2=@witness AND ${sourceScope} AND JSON_VALUE(r.payload_json,'$.balance_status')=N'UNKNOWN' AND JSON_VALUE(r.payload_json,'$.balance') IS NULL AND ${rowSqlHash}<>@row AND LOWER(CONVERT(varchar(64),HASHBYTES('SHA2_256',CONVERT(varchar(max),r.payload_json COLLATE Latin1_General_100_BIN2_UTF8)),2))<>LOWER(r.payload_hash))`;
+   const post=(await query(`SELECT CASE WHEN EXISTS(${manifest}) AND ${condition} THEN 1 ELSE 0 END prepared;`,parameters)).recordset;check(post?.length===1&&post[0].prepared===1,'READINESS_SQL_SOURCE_MUTATION_UNVERIFIED');
+  },
+  async execute({query,copyId}){check(copyId===COPY,'READINESS_SQL_SOURCE_COPY');await query('EXEC dbo.usp_stage4_copy_ready @copy_id=@copy;',{copy:COPY});}
+ })));
+}
 // Trusted server-code bindings, like native domain callbacks. They are never
 // read from JSON or HTTP. No binding means unsupported, not an inferred pass.
 // verify must bind a reviewed fixture; module pins are checked independently
@@ -52,8 +86,9 @@ export function createReadinessQueryPlanSqlAdapter({sql,pool,bundle,target,nativ
  check(Array.isArray(nativeProbeBindings)&&new Set(nativeProbeBindings.map(b=>b?.kind)).size===nativeProbeBindings.length,'READINESS_SQL_BINDINGS');
  const bindings=new Map();
  for(const b of nativeProbeBindings){
-  check(b&&Object.keys(b).sort().join(',')===['kind','layer','fixtureHash','modulePins','expectedErrorCodes','verify','prepare','execute'].sort().join(',')&&UNSUPPORTED_READINESS_PROBES.includes(b.kind)&&READINESS_PROOF_NEGATIVE_LAYERS[b.kind].includes(b.layer)&&hex(b.fixtureHash)&&['verify','prepare','execute'].every(k=>typeof b[k]==='function'),'READINESS_SQL_BINDING_CONTRACT');
+  check(b&&Object.keys(b).sort().join(',')===['kind','layer','fixtureHash','modulePins','expectedErrorCodes','verify','prepare','execute',...(b.predicateKind===undefined?[]:['predicateKind'])].sort().join(',')&&UNSUPPORTED_READINESS_PROBES.includes(b.kind)&&READINESS_PROOF_NEGATIVE_LAYERS[b.kind].includes(b.layer)&&hex(b.fixtureHash)&&['verify','prepare','execute'].every(k=>typeof b[k]==='function')&&(b.predicateKind===undefined||(b.predicateKind==='composite_source_witness'&&['missing_source_account','unknown_balance'].includes(b.kind)&&b.layer==='actual_ready')),'READINESS_SQL_BINDING_CONTRACT');
   check(Array.isArray(b.modulePins)&&b.modulePins.length>0&&new Set(b.modulePins.map(p=>p?.name)).size===b.modulePins.length&&b.modulePins.every(p=>p&&Object.keys(p).sort().join(',')==='hash,name'&&safeTable(p.name)&&hex(p.hash))&&Array.isArray(b.expectedErrorCodes)&&b.expectedErrorCodes.length>0&&b.expectedErrorCodes.every(c=>/^[A-Z][A-Z0-9_]+$/.test(c)),'READINESS_SQL_BINDING_PINS');
+  if(b.predicateKind)check(b.expectedErrorCodes.length===1&&b.expectedErrorCodes[0]==='BUSINESS_SOURCE_ACCOUNT_WITNESS_DRIFT','READINESS_SQL_BINDING_PINS');
   bindings.set(b.kind,Object.freeze({...b,modulePins:b.modulePins.map(p=>Object.freeze({...p})),expectedErrorCodes:[...b.expectedErrorCodes]}));
  }
  let inspected=false,active=null,current=null,ended=true,transactionSpid=null;
@@ -126,7 +161,7 @@ export function createReadinessQueryPlanSqlAdapter({sql,pool,bundle,target,nativ
     // are prerequisites, never negatives. Callbacks cannot see tx or commit.
     await execution(tx,false);
     const declaredNativeCodes=new Set([...current.storedDefinition.matchAll(/THROW\s+\d+\s*,\s*'([A-Z][A-Z0-9_]+)'/g)].map(hit=>hit[1]));
-    for(const pin of binding.modulePins){const rows=(await query("SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(@name))),2) definitionHash,CONVERT(int,OBJECTPROPERTY(OBJECT_ID(@name),'ExecIsTriggerDisabled')) triggerDisabled,OBJECT_DEFINITION(OBJECT_ID(@name)) definition;",{name:pin.name},tx)).recordset;check(rows?.length===1&&rows[0].definitionHash===pin.hash&&rows[0].triggerDisabled!==1&&typeof rows[0].definition==='string','READINESS_SQL_BINDING_MODULE_DRIFT');for(const hit of rows[0].definition.matchAll(/THROW\s+\d+\s*,\s*'([A-Z][A-Z0-9_]+)'/g))declaredNativeCodes.add(hit[1]);}
+    for(const pin of binding.modulePins){const installedReady=pin.name===NAME;if(installedReady)check(pin.hash===proof.sharedBeforeHash,'READINESS_SQL_BINDING_SOURCE_PIN');const rows=(await query("SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(@name))),2) definitionHash,CONVERT(int,OBJECTPROPERTY(OBJECT_ID(@name),'ExecIsTriggerDisabled')) triggerDisabled,OBJECT_DEFINITION(OBJECT_ID(@name)) definition;",{name:pin.name},tx)).recordset;check(rows?.length===1&&rows[0].definitionHash===(installedReady?current.afterHash:pin.hash)&&rows[0].triggerDisabled!==1&&typeof rows[0].definition==='string'&&(!installedReady||rows[0].definition===current.storedDefinition),'READINESS_SQL_BINDING_MODULE_DRIFT');for(const hit of rows[0].definition.matchAll(/THROW\s+\d+\s*,\s*'([A-Z][A-Z0-9_]+)'/g))declaredNativeCodes.add(hit[1]);}
     check(binding.expectedErrorCodes.every(code=>declaredNativeCodes.has(code)),'READINESS_SQL_BINDING_GUARD_CODE_PIN');
     const safeQuery=async(text,parameters={})=>{check(typeof text==='string'&&/^\s*(?:SELECT|INSERT|UPDATE|DELETE|EXEC)\b/i.test(text)&&!text.replace(/;\s*$/,'').includes(';')&&!/\b(?:COMMIT|ROLLBACK|ALTER|CREATE|DROP|TRUNCATE|DISABLE|ENABLE|GRANT|DENY|REVOKE|BACKUP|RESTORE|THROW|RAISERROR|EXECUTE\s+AS)\b/i.test(text),'READINESS_SQL_BINDING_UNSAFE_QUERY');if(/^\s*EXEC\b/i.test(text)){const name=text.match(/^\s*EXEC\s+(dbo\.usp_(?:stage4_copy|business_daily)_[A-Za-z0-9_]+)/i)?.[1];check(name&&(name===NAME||binding.modulePins.some(pin=>pin.name===name)),'READINESS_SQL_BINDING_ENTRYPOINT_PIN');}await identity(tx);return query(text,parameters,tx);};
     const verifyQuery=async(text,parameters={})=>{check(typeof text==='string'&&/^\s*SELECT\b/i.test(text)&&!/\b(?:INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|INTO)\b/i.test(text),'READINESS_SQL_BINDING_VERIFY_READONLY');return safeQuery(text,parameters);};
@@ -144,7 +179,7 @@ export function createReadinessQueryPlanSqlAdapter({sql,pool,bundle,target,nativ
    // Identity still uses the same SPID even if a native trigger ended/doomed
    // the transaction. Full rollback is owned by the harness's finally block.
    const state=(await query('SELECT @@SPID spid,@@TRANCOUNT transactionCount,XACT_STATE() transactionState;',{},tx)).recordset?.[0];check(state&&state.spid===transactionSpid&&[-1,0,1].includes(state.transactionState)&&[0,1].includes(state.transactionCount),'READINESS_SQL_NEGATIVE_TRANSACTION_STATE');
-   return {rejected:true,errorCode:code,layer,readinessPredicateExercised:layer==='actual_ready',transactionState:state.transactionState};
+   return {rejected:true,errorCode:code,layer,readinessPredicateExercised:layer==='actual_ready',transactionState:state.transactionState,...(binding?.predicateKind?{predicateKind:binding.predicateKind}:{})};
   },
   async rollback(token){const tx=transactionOf(token);try{await tx.rollback();}catch{throw Error('READINESS_SQL_ROLLBACK_FAILED');}active=null;current=null;ended=true;transactionSpid=null;tokenMap.delete(token);},
   async assertEnded(){check(ended&&!active,'READINESS_SQL_ROLLBACK_REQUIRED');const x=await identity();check(x.definitionHash===proof.sharedBeforeHash,'READINESS_SQL_ROLLBACK_DEFINITION_DRIFT');}

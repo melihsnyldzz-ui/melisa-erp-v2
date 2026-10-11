@@ -1,3 +1,11 @@
+## ERP-COMPLETE01 — mevcut v5 üzerinde normal rol okuması ve dar negatif bağları — 11 Ekim 2026
+
+Güncel kaynak consumer/HOME, mevcut DB02'de v6 config alanı ve registry/trigger bulunmadan normal İlker16 rolüyle gerçek ready/context/SELECT okumalarında doğrulandı. HOME görev bağlantıları mevcut günlük selection'a göre açılıyor; bağlı olmayan satış/finans/sayım toplamları NULL/unavailable kalıyor. Bir normal login dışında ticari POST, kalıcı SQL DML ve servis değişikliği0. Çalışan a51b117 API değişmedi; bu kaynak sonucu normal HTTP ekranında etkinleşmiş sayılmaz. Private makbuz `current-source-v6-absent-home-readonly-proof-20261011T074326.json`, SHA256 `6673c6e1574adaea98de53553f5dde545c8fd53cc580f78284764e4a37340135`.
+
+Kaynağa iki inert, exact fixture bağlayıcısı eklendi: kaynak hesabının yokluğu ve UNKNOWN bakiye. Sealed profil/PK/tüm satır SQL hash'i, tek satır OUTPUT ve mutasyon sonrası koşul doğrulanır; her bağ yalnız izole rollback-only adapter'e enjekte edilir. Ret katmanı actual_ready/composite_source_witness; UNKNOWN ayrıca payload tanığını bozduğundan bağımsız balance-only predicate kabulü değildir. Üç helper dosyasında46/46 offline kontrol ve bağımsız inceleme geçti; yeni iki bağ henüz native SQL'de denenmedi. Yedi diğer bağ hâlâ zorunlu eksiktir; toplam11 koşul azaltılmadı ve v6 kurulmadı.
+
+v6 performans provası dört nihai teslimin ortak zorunlu önkoşulu değildir. Mevcut v4/v5 guarded sözleşmesiyle yeni kaynak paketi ve geçici USB/loopback terminal teslimi bağımsız ilerler. Native gözlem süreci ayrı yürür; bütün negatifler ve eşdeğerlik olmadan v6 aktivasyonu yok. Sabit ağ/boot checkpoint'i, TEST125/DB02/CRM servisleri, roller ve insan kabulü korunur.
+
 ## ERP-COMPLETE01 — disk engeli çözüldü; gerçek kurtarma ve v6 consumer hazırlığı — 11 Ekim 2026
 
 Kullanıcının eski prova/kurtarma kopyalarını kaldırma onayıyla13 eski DB, SQL-native yöntemle ve her biri için yeni COPY_ONLY/CHECKSUM/VERIFYONLY/SHA256 yedeği korunarak kaldırıldı. Başarısız kaldırma0; mevcut yedek silme0; çalışan DB01/DB02/TEST125/PRODCAND korundu. Net99.669.041.152byte alan açıldı. Sonraki iki ayrı kurtarma/prova kopyası ve güncel yedek sonrası C boş70.748.737.536byte; eski10,52GB disk engeli aşağıdaki tarihsel kayıtlarda kalır, güncel engel değildir.
