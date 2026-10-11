@@ -15,6 +15,12 @@ Object.assign(process.env,{NODE_ENV:'production',API_PORT:String(port),APP_NAME:
 for(const file of ['.env','.env.local'])copyAssert(!fs.existsSync(path.resolve(file)),'STAGE4_DOTENV_REJECTED');
 const runtime={database:context.target.database,server:context.target.server,user,port,readOnly:!writes,trustedConnection:false,externalProvidersDisabled:true};
 if(writes)registerIsolatedOperationCopyRuntime(context,runtime);else registerIsolatedCopyReadonlyRuntime(context,runtime);
+if(config.normalTestSessionPath!==undefined){
+ copyAssert(typeof config.normalTestSessionPath==='string','AUTH_TEST_SESSION_CONFIG');
+ const {configuredNormalTestRefreshStore}=await import('./src/services/normalTestRefreshSession.mjs');
+ configuredNormalTestRefreshStore({copy:context,config:{MELISA_TEST_PROTECTED_SESSION_PATH:config.normalTestSessionPath}});
+ if(writes)process.env.MELISA_TEST_PROTECTED_SESSION_PATH=config.normalTestSessionPath;
+}
 const {env}=await import('./src/config/env.js');
 copyAssert(!env.vega.enabled&&!env.whatsapp.enabled&&!env.nakliyat.enabled&&!env.receiptPrinting.enabled,'STAGE4_EXTERNAL_DISABLED');
 const {getSqlPool}=await import('./src/config/database.js');const pool=await getSqlPool();

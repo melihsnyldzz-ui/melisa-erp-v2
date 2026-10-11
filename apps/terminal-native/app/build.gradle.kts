@@ -12,8 +12,8 @@ android {
         applicationId = "com.melisaerp.nativeterminal"
         minSdk = 28
         targetSdk = 35
-        versionCode = 20
-        versionName = "1.0.0-candidate.18-t2"
+        versionCode = 21
+        versionName = "1.0.0-candidate.19-t2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -24,9 +24,18 @@ android {
             applicationIdSuffix = ".worktest"
             versionNameSuffix = "-workflow4"
         }
+        create("worktestRelease") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".worktest"
+            versionNameSuffix = "-workflow4"
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("debug")
+        }
         // This is the intermediate APK. The pinned release script rotates it to the private production key.
         release { signingConfig = signingConfigs.getByName("debug"); isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }
     }
+    sourceSets.getByName("worktestRelease").manifest.srcFile("src/debug/AndroidManifest.xml")
     // Installed workflow APKs use the approved company LAN. Loopback remains an explicit development-only build option.
     val workOrigin = providers.gradleProperty("workOrigin").getOrElse("http://192.168.1.46:5234")
     require(workOrigin in setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234")) { "Unknown isolated terminal origin" }
@@ -38,6 +47,7 @@ kapt { arguments { arg("room.schemaLocation", "$projectDir/schemas") } }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.04.01"))
     implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("androidx.webkit:webkit:1.12.1")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-tooling-preview")

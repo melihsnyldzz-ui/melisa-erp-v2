@@ -98,6 +98,7 @@ document.getElementById('terminal-home').onclick=()=>go('home');
 document.getElementById('terminal-logout').onclick=async()=>{
  if(!closeAllowed())return;
  const button=document.getElementById('terminal-logout');button.disabled=true;
+ try{await session?.logout();}catch{announce('Sunucuda çıkış doğrulanamadı. Cihaz oturumu kapatıldı.');}
  storage.removeItem('melisaTestSalesAccessToken');session?.dispose();controller?.dispose();controller=null;user=null;frame.hidden=true;crm.hidden=true;root.hidden=false;
  await requestCrmLogout();
  route='home';button.disabled=false;start();if(crmLogoutPending)announce('Müşteri oturumu kapanışı doğrulanamadı. Müşterilerim geçici olarak kapalı.');

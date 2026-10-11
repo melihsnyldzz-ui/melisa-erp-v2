@@ -8,6 +8,7 @@ import { applyRolePermissionDefaults, expandPermissions } from './permissionCata
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 import {sharedCopyAuthClaims} from './sharedCopyAuthClaims.mjs';
+import {bindNormalTestFingerprint,configuredNormalTestRefreshStore} from './normalTestRefreshSession.mjs';
 
 function makeAuthError(code, message, statusCode = 401) {
   const error = new Error(message);
@@ -50,7 +51,7 @@ function getRefreshExpiresAt() {
 function toUserDto(row, permissions = []) {
   const expandedPermissions = applyRolePermissionDefaults(permissions, row.role_code);
 
-  return {
+  return bindNormalTestFingerprint({
     id: Number(row.id),
     username: row.username,
     displayName: row.display_name,
@@ -60,14 +61,15 @@ function toUserDto(row, permissions = []) {
       name: row.role_name,
     },
     permissions: expandedPermissions,
-  };
+  },row);
 }
 
-function signAccessToken(user, nativeTerminalCode = null) {
+function signAccessToken(user, nativeTerminalCode = null, normalTestSessionId = null) {
   return jwt.sign(
     {
       sub: String(user.id),
       ...(nativeTerminalCode ? { nativeTerminalCode } : {}),
+      ...(normalTestSessionId ? { normalTestSessionId } : {}),
       username: user.username,
       role: user.role.code,
       ...sharedCopyAuthClaims(isIsolatedOperationCopyRuntime() ? getIsolatedOperationCopyConfig() : null),
@@ -111,6 +113,7 @@ export async function getUserById(userId) {
         u.id,
         u.username,
         u.display_name,
+        u.password_hash,
         u.role_id,
         r.code AS role_code,
         r.name AS role_name,
@@ -180,6 +183,12 @@ export async function login(credentials, userAgent = '') {
 
 async function issueSession(user, userAgent, nativeTerminalCode = null) {
   const pool = await getSqlPool();
+  const protectedStore=normalTestStore();
+  if(protectedStore&&!nativeTerminalCode&&[15,16].includes(user.id)){
+    const grant=protectedStore.issue(user);
+    const accessToken=signAccessToken(user,null,grant.sid),expiresAt=jwt.decode(accessToken).exp*1000;
+    return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
+  }
   const accessToken = signAccessToken(user, nativeTerminalCode);
 
   if (env.sql.readOnly || process.env.MELISA_TEST_STATELESS_AUTH === 'true') {
@@ -366,6 +375,8 @@ export async function localPasswordlessAdminLogin() {
 }
 
 export async function logout(refreshToken) {
+  const protectedStore=normalTestStore();
+  if(protectedStore&&typeof refreshToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(refreshToken))return protectedStore.revoke(refreshToken);
   if (!refreshToken) {
     return { revoked: false };
   }
@@ -390,6 +401,16 @@ export async function logout(refreshToken) {
 export async function refreshAccessToken(refreshToken, { nativeTerminal = false, terminalCode = '' } = {}) {
   assertMelisaWriteEnabled();
   assertAuthSecretsConfigured();
+
+  const protectedStore=normalTestStore();
+  if(protectedStore&&typeof refreshToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(refreshToken)){
+    if(nativeTerminal||terminalCode)throw makeAuthError('AUTH_REFRESH_INVALID','Session type differs',401);
+    const user=await getUserById(protectedStore.userId(refreshToken));
+    if(![15,16].includes(user.id))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
+    const grant=protectedStore.rotate(refreshToken,user);
+    const accessToken=signAccessToken(user,null,grant.sid),expiresAt=jwt.decode(accessToken).exp*1000;
+    return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
+  }
 
   if (!refreshToken) {
     throw makeAuthError('AUTH_REFRESH_REQUIRED', 'Refresh token is required', 401);
@@ -441,6 +462,8 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
   };
 }
 
+function normalTestStore(){return configuredNormalTestRefreshStore({copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null});}
+export function verifyNormalTestAccessSession(payload,user){if(payload.normalTestSessionId){const store=normalTestStore();if(!store)throw makeAuthError('AUTH_REFRESH_INVALID','Session configuration unavailable',401);store.verify(payload.normalTestSessionId,user);}}
 export function verifyAccessToken(token) {
   assertAuthSecretsConfigured();
 

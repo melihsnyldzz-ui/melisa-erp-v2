@@ -7,6 +7,7 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/businessDailyHomeReadProof.mjs',
  'apps/api/src/services/businessSelectedSaleNativeContext.mjs',
  'apps/api/src/services/businessSelectedSaleStartup.mjs',
+ 'apps/api/src/services/normalTestRefreshSession.mjs',
  'apps/api/src/services/businessSelectedSaleWriteIntent.mjs',
  'apps/api/src/services/businessSelectedSaleWriteScope.mjs',
  'apps/api/src/services/workSalesModel.mjs',
