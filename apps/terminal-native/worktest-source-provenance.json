@@ -23,7 +23,10 @@
     "apkBytes": 63534278,
     "updatedAtUtc": "2026-10-11T08:13:28.7619883Z",
     "exactHomeGetOnly": true,
-    "newApkDeviceVerification": "PENDING"
+    "newApkDeviceVerification": "TECHNICAL_NORMAL_ILKER_LOGIN_PACKING_READ_AND_NATIVE_FOUR_TASK_HOME_OBSERVED",
+    "deviceHomeVisual": "NORMAL_ERP_HOME_NOT_RUN_POLICY_BLOCKED_CHROME_URL_LAUNCH",
+    "deviceActor": "16 / isolated_test_ilker",
+    "existingPersonelFourTaskEvidence": "PRIOR_ACTOR15_PROOFS_PRESERVED_NOT_REPLAYED"
   },
   "files": [
     {

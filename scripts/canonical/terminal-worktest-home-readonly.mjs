@@ -4,7 +4,7 @@ import {businessDailyProfitReadSQL} from '../../apps/api/src/services/businessDa
 import {businessDailyNativeCheckReadSQL} from '../../apps/api/src/services/businessDailyNativeCheck.mjs';
 import {businessReadinessQueryPlanReadSQL} from '../../apps/api/src/services/businessReadinessQueryPlanRevision.mjs';
 import {ISOLATED_COPY_FINITE_FK_SQL} from '../../apps/api/src/services/isolatedOperationCopyStoreFactory.mjs';
-import {createHomeSummaryReadStore,BUSINESS_INBOUND_HOME_SUMMARY_SQL} from '../../apps/api/src/services/homeSummaryReadStoreFactory.mjs';
+import {createHomeSummaryReadStore,BUSINESS_INBOUND_HOME_SUMMARY_SQL,BUSINESS_DAILY_HOME_SUMMARY_SQL} from '../../apps/api/src/services/homeSummaryReadStoreFactory.mjs';
 import {createHomeSummaryService} from '../../apps/api/src/services/createHomeSummaryServiceFactory.mjs';
 
 export const TERMINAL_WORKTEST_HOME_PATH='/api/terminal-worktest/home-summary';
@@ -24,7 +24,7 @@ export function assertTerminalHomeActor(actor,context){
 // accepted by equality; general SQL, batch/bulk and native writes are closed.
 export function createTerminalHomeReadonlySql(native,{context,actor=null}={}){
  assertIsolatedCopyContext(context);if(actor)assertTerminalHomeActor(actor,context);
- const queries=new Set([TERMINAL_HOME_IDENTITY_SQL,TERMINAL_HOME_SHARED_LOCK_SQL,ISOLATED_COPY_FINITE_FK_SQL,BUSINESS_INBOUND_HOME_SUMMARY_SQL,BUSINESS_DAILY_REVISION_PROOF_SQL,businessDailyProfitReadSQL(),businessDailyNativeCheckReadSQL(),businessReadinessQueryPlanReadSQL()]);
+ const queries=new Set([TERMINAL_HOME_IDENTITY_SQL,TERMINAL_HOME_SHARED_LOCK_SQL,ISOLATED_COPY_FINITE_FK_SQL,BUSINESS_INBOUND_HOME_SUMMARY_SQL,BUSINESS_DAILY_HOME_SUMMARY_SQL,BUSINESS_DAILY_REVISION_PROOF_SQL,businessDailyProfitReadSQL(),businessDailyNativeCheckReadSQL(),businessReadinessQueryPlanReadSQL()]);
  class Request extends native.Request{
   query(text,...args){if(args.length||!queries.has(text))throw denied();return super.query(text);}
   async execute(name,...args){

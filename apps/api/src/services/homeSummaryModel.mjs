@@ -17,9 +17,9 @@ export function businessInboundHomeCapabilities(actual,session,actorId){
 // Readiness comes from the server's registered daily revision, never a role,
 // client flag or serialized copy. Keep inbound handoff and approval limits.
 export function businessDailyHomeCapabilities(actual,session,actorId){
- const inbound=businessInboundHomeCapabilities(actual,session,actorId),native=homeCapabilities(actual,session);
+ const inbound=businessInboundHomeCapabilities(actual,session,actorId),native=homeCapabilities(actual,session),office=String(actorId)==='16';
  const daily=['sales','customer','finance','collection','payment','count','returns','salesReturn','purchaseReturn'];
- return {...inbound,...Object.fromEntries(daily.map(key=>[key,native[key]]))};
+ return {...inbound,...Object.fromEntries(daily.map(key=>[key,native[key]])),finance:office&&native.finance,collection:office&&native.collection,payment:office&&native.payment,purchaseReturn:office&&native.purchaseReturn,approval:office&&(native.approveGoods||native.count||native.purchaseReturn)};
 }
 const count=value=>{if(!/^(?:0|[1-9]\d*)$/.test(String(value))||!Number.isSafeInteger(Number(value)))fail();return Number(value);};
 const unavailable=(fields,status='unavailable')=>({status,...Object.fromEntries(fields.map(key=>[key,null]))});
@@ -57,10 +57,19 @@ export function homeSummaryDto(raw,{date,readAt}){
   sections.finance={status:'unavailable',collections:[],payments:[],reversals:[],cash:{status:'unavailable',currencyTotals:[]}};
   sections.refunds=unavailable(['salesCount','purchaseCount','cancelledCount']);sections.counts=unavailable(['pendingCount']);
   if(c.approval)sections.approvals.sourceCoverage=['goods'];
+  if(dailyReady){
+   sections.sales=c.sales?{status:'available',count:count(n.salesCount),cancelledCount:count(n.salesCancelledCount),currencyTotals:homeCurrencyTotals(raw.salesTotals)}:{...unavailable(['count','cancelledCount'],'forbidden'),currencyTotals:[]};
+   sections.finance=c.finance?{status:'available',collections:c.collection?homeCurrencyTotals(raw.collections):[],payments:c.payment?homeCurrencyTotals(raw.payments):[],reversals:c.collection||c.payment?homeCurrencyTotals(raw.reversals):[],cash:{status:'unavailable',currencyTotals:[]}}:{status:'forbidden',collections:[],payments:[],reversals:[],cash:{status:'forbidden',currencyTotals:[]}};
+   // The registered v4 business operation set supports purchase returns only.
+   // A missing sales-return contract is unknown, never an invented zero.
+   sections.refunds=c.purchaseReturn?{status:'available',salesCount:null,purchaseCount:count(n.purchaseReturnCount),cancelledCount:count(n.returnCancelledCount)}:unavailable(['salesCount','purchaseCount','cancelledCount'],'forbidden');
+   sections.counts=c.count?{status:'available',pendingCount:count(n.countPendingCount)}:unavailable(['pendingCount'],'forbidden');
+   if(c.approval)sections.approvals.sourceCoverage=[...(c.approveGoods?['goods']:[]),...(c.count?['count']:[]),...(c.purchaseReturn?['purchase-return']:[])];
+  }
  }
  const tasks=raw.tasks.map(row=>{const spec=HOME_TASKS[row.kind];if(!spec||!c[spec.right]||typeof row.id!=='string'||!/^[-a-z]+:[1-9]\d{0,18}$/.test(row.id)||row.state!=='pending'&&row.state!=='draft'||row.date!==null&&(typeof row.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!Number.isFinite(Date.parse(row.date))))fail();return {id:row.id,kind:row.kind,label:spec.label,state:row.state,date:row.date,target:spec.target};});
  if(new Set(tasks.map(row=>row.id)).size!==tasks.length)fail();
  const capabilities=Object.fromEntries(['goods','purchase','sales','collection','product','customer','supplier','finance','payment','count','returns','approval'].map(key=>[key,c[key]===true]));
- for(const task of tasks)task.ready=business?['goods','purchase-draft'].includes(task.kind)&&c[HOME_TASKS[task.kind].right]===true:operationsReady&&c[HOME_TASKS[task.kind].right]===true&&(task.kind!=='goods'||c.purchase===true);
+ for(const task of tasks)task.ready=business?(dailyReady||['goods','purchase-draft'].includes(task.kind))&&c[HOME_TASKS[task.kind].right]===true:operationsReady&&c[HOME_TASKS[task.kind].right]===true&&(task.kind!=='goods'||c.purchase===true);
  return {meta:{schemaVersion:'melisa-home.v1',date,timeZone:'Europe/Istanbul',readAt,source:'native-test',readOnly:true},capabilities,navigationReady,sections,tasks};
 }

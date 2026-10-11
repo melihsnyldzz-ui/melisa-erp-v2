@@ -1,5 +1,13 @@
 # Güncel teknik kanıt ve teslim sınırı — 11 Ekim 2026
 
+## Güncel paket ve gerçek cihaz/eğitim incelemesi
+
+Son uygulama source c198bfb3f522992b3abebe63948c8d6298e3ee67 /immutable c198bfb3f522 release:1.735dosya/0hashfarkı/24kapalıpin. ManifestSHA5c5fb2135a3fdcb2ffd6c34e471a1a2e109d3514e1de94fba003191fa9ca353e. USB5234→loopback5264; protected16port/adres/PID0fark. YeniAPK cihazhash dff8ed37cf34066416e89dca9676515b4e008eeb69df22c065b67c50d07a8c8f,131unitPASS. Mevcut normal actor16 giriş/fiş-koli okuması/native4büyük görev ekranı görüldü; önceki actor15 ticari prova tekrar edilmedi. HOME HTTP altırolokuması/beşnegatif geçti; stok/finans/SQL/rol yazması0. Yeni normal ERP HOME cihaz görseli ChromeURLkomutu policy-block nedeniyle NOT_RUN; bypass yok. İstekler2,665–3,002sn, kullanıcı ilk görünüm hızı değildir.
+
+Dört videonun HTML dizini gerçek tarayıcıda incelendi:4media readyState4/error0, ayrı oynatımlarda süre ilerlemesi,16alıştırma ve yataytaşma0. `training-index-v2.html` ERP-DEC-045'e uyumludur. V2ZIP12byte-eşit dosya;SHA0ba71dcab40f694ce0814763c356fb20c18eec2951c39a10990ffde8a76f9e5e. Video kaynak byte'ları korunur. Ham kayıtlar/iletişim bilgileri GitHub'a konmadı. Teknik oynatım insan kabulü değildir; UA32bekliyor.
+
+DailyReady HOME bağlantıdan bağımsız gerçek teknik açık bulundu: business query yalnız inbound, modelde satış/finans/sayım/iade unavailable. B01 dar copy-owned okuyucu source/native/paket kanıtı bekliyor. [Dört teslim gereksinim denetimi](completion-audit.md) kalanları insan/işletme/aktivasyonla karıştırmaz. Aşağıdaki disk/paket/restore/cihaz bekliyor ifadeleri tarihsel checkpoint'tir; güncel restore/OBSonly ve c198/cihaz kanıtı bunlardan ayrıdır. v6full11 genel teslim şartı değildir.
+
 ## Güncel kaynak: ortak servisleri değiştirmeyen HOME okuması
 
 Geçici5264/USB5234 yüzünde yalnız exact HOME GET bağlantısı hazırlandı. Mevcut a51 API'nin normal actor15/16 oturumu, fresh native context/izin eşitliği ve v4/v5 guarded reader kullanılır; SQL izinleri/roller/finans/stok mantığı değişmez. Bootstrap validation, kapalı24 dosyalık import/hash grafiği ve GET-only SQL allowlist ile yeni genel proxy açılmadı. Normal frontend yalnız USB/device127.0.0.1:5234 doğrulanmış bayrak+copy ile bu okumayı kullanır; masaüstü5264 normal kullanıcı target değildir, auth/API4184'te kalır. Root98/98 hedefli JS kontrol ve bağımsız inceleme geçti.

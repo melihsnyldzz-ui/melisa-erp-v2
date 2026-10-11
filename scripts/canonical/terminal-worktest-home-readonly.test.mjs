@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {businessInboundFixture} from '../../apps/api/src/services/businessInbound.test-fixture.mjs';
-import {createHomeSummaryReadStore as createPureReadStore,BUSINESS_INBOUND_HOME_SUMMARY_SQL} from '../../apps/api/src/services/homeSummaryReadStoreFactory.mjs';
+import {createHomeSummaryReadStore as createPureReadStore,BUSINESS_INBOUND_HOME_SUMMARY_SQL,BUSINESS_DAILY_HOME_SUMMARY_SQL} from '../../apps/api/src/services/homeSummaryReadStoreFactory.mjs';
 import {createHomeSummaryReadStore as createDefaultReadStore} from '../../apps/api/src/services/homeSummaryReadStore.mjs';
 import {createHomeSummaryService as createPureService} from '../../apps/api/src/services/createHomeSummaryServiceFactory.mjs';
 import {createHomeSummaryService as createDefaultService} from '../../apps/api/src/services/homeSummaryService.mjs';
@@ -19,6 +19,7 @@ function fixture({drift=false,badIdentity=false,badProof=false}={}){
  class Request{
   constructor(){this.inputs={};}input(k,_type,v){this.inputs[k]=v;return this;}
   async query(text){
+   if(text===BUSINESS_DAILY_HOME_SUMMARY_SQL){events.push('daily-summary');return {recordsets:[]};}
    events.push(text===BUSINESS_INBOUND_HOME_SUMMARY_SQL?'summary':'query');
    if(text===TERMINAL_HOME_IDENTITY_SQL)return {recordset:[{...identity,...(badIdentity?{live:1}:{})}]};
    if(text===TERMINAL_HOME_SHARED_LOCK_SQL)return {recordset:[]};
@@ -46,8 +47,8 @@ test('permission drift, wrong native identity and changed readProof fail before 
 });
 test('writer-login request capability admits only exact reader queries and ready/context; all mutation paths close',async()=>{
  const f=fixture(),sql=createTerminalHomeReadonlySql(f.native,{context:f.copy,actor:actor()}),request=new sql.Request(f.pool);
- await request.query(TERMINAL_HOME_IDENTITY_SQL);await request.query(TERMINAL_HOME_SHARED_LOCK_SQL);
- for(const text of ['SELECT 1','UPDATE dbo.users SET is_active=0','INSERT dbo.sales_invoices DEFAULT VALUES','DELETE FROM dbo.stage4_copy_requests','SELECT 1;EXEC dbo.usp_stage4_copy_begin',TERMINAL_HOME_SHARED_LOCK_SQL.replace("N'Shared'","N'Exclusive'"),BUSINESS_INBOUND_HOME_SUMMARY_SQL+';SELECT 1'])assert.throws(()=>request.query(text),{code:'WORKTEST_HOME_UNAVAILABLE'});
+ await request.query(TERMINAL_HOME_IDENTITY_SQL);await request.query(TERMINAL_HOME_SHARED_LOCK_SQL);await request.query(BUSINESS_DAILY_HOME_SUMMARY_SQL);assert(f.events.includes('daily-summary'));
+ for(const text of ['SELECT 1','UPDATE dbo.users SET is_active=0','INSERT dbo.sales_invoices DEFAULT VALUES','DELETE FROM dbo.stage4_copy_requests','SELECT 1;EXEC dbo.usp_stage4_copy_begin',TERMINAL_HOME_SHARED_LOCK_SQL.replace("N'Shared'","N'Exclusive'"),BUSINESS_INBOUND_HOME_SUMMARY_SQL+';SELECT 1',BUSINESS_DAILY_HOME_SUMMARY_SQL+';SELECT 1',BUSINESS_DAILY_HOME_SUMMARY_SQL.replace('j.actor_id=@actor OR @actor=16','1=1')])assert.throws(()=>request.query(text),{code:'WORKTEST_HOME_UNAVAILABLE'});
  for(const name of ['dbo.usp_stage4_copy_begin','dbo.usp_stage4_copy_effects','dbo.usp_business_daily_begin','sp_executesql'])await assert.rejects(()=>request.execute(name),{code:'WORKTEST_HOME_UNAVAILABLE'});
  assert.throws(()=>request.batch('SELECT 1'));assert.throws(()=>request.bulk({}));assert.throws(()=>request.query(TERMINAL_HOME_IDENTITY_SQL,()=>{}));
 });

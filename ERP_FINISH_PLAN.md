@@ -1,5 +1,7 @@
 ## ERP-COMPLETE01 — dört teslim uygulama checkpoint'i — 11 Ekim 2026
 
+Güncel teknik checkpoint: B01 günlük aggregate okuyucusu iki normal rolde gerçek nativeSQL ve4 mevcutAPI karşılaştırmasıyla doğrulandı; yeni paket/HTTP teslimi bekler. Önceki c198 geçici immutable paket, exact yeni APK/normal İlker giriş-fiș okuması/native dört büyük görev görünümü ve dört videonun gerçek tarayıcı oynatımı korunur. Geçiş rehberi/provenance güncellendi. Yeni normal ERP HOME cihaz görseli policy-block nedeniyle yapılmadı. Mevcut dar günlük işlem kapsamının entegrasyonu ve katalog HTTP hız regresyonu açık;39kısmi satır39eksik kod özelliği sayılmaz. v6/full11 yalnız opsiyonel hız aktivasyonu şartıdır. Yaprak/human kabul renkleri otomatik değişmez; **49/9/39/1** korunur. [Gereksinim bazında güncel kanıt ve kalan](docs/evidence/erp/2026-10-11-completion/completion-audit.md).
+
 ERP-DEC-045 ile fiziksel barkodun tekrar denenmesi kullanıcı tarafından kaldırıldı; okuyucu kullanıcı teyitli, teknik denemeler elle/ADB girişle yürütülür. Personel/işletme kabulü otomatik PASS olmaz;49/9/39/1 sayımı korunur.
 
 11 Ekim ek teknik kanıt: eski ve güncel DB02 yedekleri ayrı hedeflere gerçekten restore/CHECKDB doğrulandı;751tabloluk yeni native prova kopyası hazır. v6 consumer kaynakta hazır, çalışan ortak API'de etkin değil. Disk bağımlılığı çözüldü; native hız/eşdeğerlik/negatif/rollback ve normal aktör kabulü açık. [Kurtarma ve hazırlık kanıtı](docs/evidence/erp/2026-10-11-completion/recovery-and-readiness-proof.md). Yaprak sayımı/insan kabulü değişmedi.

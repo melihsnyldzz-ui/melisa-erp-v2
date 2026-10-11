@@ -1,5 +1,15 @@
 # Kurulum, veri kontrolü, yedek ve geri dönüş paketi — 11 Ekim 2026
 
+## Güncel teslim referansı
+
+Private `transition-delivery/README.md` ve `provenance-manifest.json` c198bfb3f522992b3abebe63948c8d6298e3ee67 /CANONICAL-COMPLETE-TEST-20261011-c198bfb3f522 ile yenilendi:manifestSHA5c5fb2135a3fdcb2ffd6c34e471a1a2e109d3514e1de94fba003191fa9ca353e,1.735dosya0hashfarkı24kapalıpin.18privatekopya pini byte/hash eşleşti. RehberSHA10f3039111f71db948962c315847dd76945005ef89e8bbf8ebe7c23c8d82fbda;provenanceSHA360733a4ea0e6635dae1a492c854bf89d808d6d6f0d6de5f05182028e905f046. Eski5b6/b006 ve başarısız/çalışıyor/5264kapalı checkpoint'leri tarihsel korundu; güncel çalışma garantisi olarak sunulmaz.
+
+Eski ve güncel DB02 yedeklerinin yeni hedeflere gerçek restore/CHECKDB kanıtı [kurtarma kaydında](recovery-and-readiness-proof.md) tamamlandı; aktif DB02/TEST125 reset/restore yok. Native sorgu ölçümü `OBSERVATION_ONLY_COMPLETE`,tam751tablo/şema/izin rollback eşitliği ve4varyantnegatif;v6kurulum/full11/fullAcceptance/readyForSharedActivation yok. Bu opsiyonel hız aktivasyonu koşulu dört teslimin genel önkoşulu değildir.
+
+Yeni APK exact cihazhash/131unit/normal actor16 giriş-fiș okuması ve dört büyük native görev ekranı doğrulandı. Yeni ERP HOME cihaz görseli policy-block nedeniyle NOT_RUN; altı normal-rol HOME HTTP okuması ve5negatif ayrı kanıttır. Dört videonun v2dizini gerçek browser oynatımı ve12dosyalı ZIP bütünlüğüyle hazır; insanUA32bekliyor. [Asıl gereksinim denetimi](completion-audit.md) B01günlüközet/dar günlük kapsam/katalogHTTP regresyonunu açık tutar. Kaynak/runtime/teslimHEAD ayrı; nihai hedef henüz tamam değil.
+
+Bu güncel section aşağıdaki eski aday/backup henüzrestoreedilmedi/diskeksik/5264kapalı ifadelerinin tarihsel kapsamını belirtir. Rehber ağ/servis/sabitboot aktivasyonu veya LIVE/T1 yetkisi vermez. TEST125/DB02/roller/kayıtlar korunur; rawbackup, ticari bilgiler, ekranlar ve özel ayarlar GitHub'a yüklenmez.
+
 Bu teslim mevcut çalışan paketler için **çalıştırılmış salt okunur denetim aracı**, exact SHA256 referans manifesti ve önceki uygulanmış kurtarma kanıtlarını bir araya getirir. Yeni kurulum/restart, migration, SQL yazması, yedek, restore, görev veya ağ değişikliği yapmaz. LIVE uygulaması ve gerçek T1 değildir. TEST125 ile DB02 birbirinden ayrı korunur.
 
 ## Kullanılabilir paket

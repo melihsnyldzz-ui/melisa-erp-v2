@@ -1,5 +1,7 @@
 ## ERP-UA32 / ERP-COMPLETE01 — Android dört görev ve yeni eğitim — bekliyor
 
+11 Ekim güncel teknik inceleme: yeni APK exacthash, actor16 mevcut normal giriş/fiș-koli okuması/native dört görev ekranı; c198 paket HTTP rol/path negatifleri ve dört video gerçek tarayıcı oynatımı doğrulandı. Bu sonuç personelin öğrenmesi veya genel kabul değildir. Güncel eğitim `training-index-v2.html` /12dosyalı v2ZIP; eski fiziksel tekrar istemleri kaldırıldı. Normal ERP HOME cihaz görseli policy-block nedeniyle NOT_RUN. **ERP-UA32 bekliyor**, yeni insan PASS yok. Teknik kapsam/günlük özet ve performans açıkları [gereksinim denetiminde](docs/evidence/erp/2026-10-11-completion/completion-audit.md).
+
 **11 Ekim / ERP-DEC-045:** Kullanıcı barkod okuyucusunun çalıştığını açıkça teyit etti ve yeni fiziksel okutma istemini kaldırdı. Okuyucu: **kullanıcı teyidi / tekrar istenmiyor**. Teknik denemede barkod elle/ADB metniyle girilecek; yeni fiziksel donanım testi yapılmış diye kaydedilmeyecek. Aşağıdaki geçmiş fiziksel okutma bekleme ifadeleri yeni bir zorunlu tekrar değildir. ERP-UA32'nin personel/günlük kullanım kabulü bekliyor; bu karar bütün kabulü PASS yapmaz.
 
 Kullanıcı/personel fiziksel sonucu ve deneme tarihi henüz bildirilmedi. Gerçek TC21 normal personel oturumu, ayrı worktest uygulaması ve kaynak hedefli testleri teknik kanıttır; insan PASS değildir. USB yönlendirmesi şirket Wi-Fi işletim kabulü değildir. Önceki ERP-UA31 ve diğer bekleyen kabuller korunur.
