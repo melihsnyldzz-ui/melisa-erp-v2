@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { env } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { logger, requestLogPath } from '../utils/logger.js';
 
 export function requestContext(req, res, next) {
   const requestId = req.get('x-request-id') || crypto.randomUUID();
@@ -14,7 +14,7 @@ export function requestContext(req, res, next) {
     const meta = {
       requestId,
       method: req.method,
-      path: req.originalUrl,
+      path: requestLogPath(req),
       statusCode: res.statusCode,
       durationMs,
       category: res.statusCode >= 500 ? 'api_error' : 'api_request',
