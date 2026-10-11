@@ -6,6 +6,8 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {worktestStaticPath} from './start-terminal-worktest.mjs';
 import {requestGuard,assertActor,assertSqlIdentity,enrichInvoice,createReadonlySourceLock,readUpstream,readScopedReceipts,verifiedCustomerName,createWorktestHandler,CARTON_SOURCE_SQL,WORKTEST} from './start-terminal-worktest.mjs';
+import {businessInboundFixture} from '../../apps/api/src/services/businessInbound.test-fixture.mjs';
+import {TERMINAL_WORKTEST_HOME_PATH} from './terminal-worktest-home-readonly.mjs';
 const context={copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',sealHash:'A'.repeat(64),operationOrigin:'COPY',actors:[{id:'15'}],customers:[{id:'4',currency:'TRY',name:'Doğrulanmış müşteri',sourceKnown:true,sourceWitnessHash:'c'.repeat(64)}],products:[{id:'7',unit:'ADET',unitFactorExact8:'1.00000000',barcodes:['0007']}]};
 const item={productId:'7',stockCode:'0007 X',name:'Ürün',quantityExact3:'2.000',unitPriceExact4:'3.0000',lineTotalExact4:'6.0000',currency:'TRY',unit:{label:'ADET',factorExact8:'1.00000000'}};
 const invoice={id:'12',documentNo:'FIŞ12',customerId:'4',currency:'TRY',status:'finalized',items:[item]};
@@ -55,4 +57,17 @@ test('oversized, shifting or duplicate receipt pages fail without a silently par
  const first=Array.from({length:50},(_,i)=>({id:String(i+1),status:'draft'}));
  await assert.rejects(()=>readScopedReceipts(async p=>p.includes('page=1&')?{data:first,meta:{total:51,page:1,limit:50}}:{data:[{id:'51',status:'finalized'}],meta:{total:52,page:2,limit:50}},'Bearer token'),{code:'WORKTEST_RECEIPT_LIST_CHANGED'});
  await assert.rejects(()=>readScopedReceipts(async p=>p.includes('page=1&')?{data:first,meta:{total:51,page:1,limit:50}}:{data:[{id:'1',status:'finalized'}],meta:{total:51,page:2,limit:50}},'Bearer token'),{code:'WORKTEST_RECEIPT_LIST_CHANGED'});
+});
+test('temporary HOME route is exact GET-only with normal upstream auth and no general proxy',async()=>{
+ const {copy}=businessInboundFixture(),actor={id:16,role:{code:'isolated_test_ilker'},permissions:['goods.view']},calls=[];
+ const handler=createWorktestHandler({context:copy,bootstrap:{copyId:copy.copyId},csp:"default-src 'self'",dist:'.',upstream:async(p,authorization)=>{calls.push(p);assert.equal(authorization,'Bearer normal');return actor;},homeSummary:async actual=>{assert.equal(actual,actor);calls.push('home');return {meta:{copyId:copy.copyId}};}});
+ const res={setHeader(){},writeHead(s){this.status=s;},end(s){this.body=String(s);}},headers={host:'127.0.0.1:5234',origin:'http://127.0.0.1:5234',authorization:'Bearer normal'};
+ await handler(request({url:TERMINAL_WORKTEST_HOME_PATH,headers}),res);assert.equal(res.status,200);assert.equal(JSON.parse(res.body).data.meta.copyId,copy.copyId);assert.deepEqual(calls,['/api/auth/me','home']);
+ for(const extra of [{method:'POST',expected:405},{method:'HEAD',expected:405},{url:TERMINAL_WORKTEST_HOME_PATH+'?actorId=15',expected:404},{url:'/api/home/summary',expected:404},{headers:{host:'127.0.0.1:5234'},expected:401}]){calls.length=0;const {expected,...value}=extra;await handler(request({url:TERMINAL_WORKTEST_HOME_PATH,headers,...value}),res);assert.equal(res.status,expected);assert.equal(calls.length,0);}
+ await handler(request({url:'/stage4-runtime.js'}),res);assert.match(res.body,/window.__MELISA_OPERATION_COPY__/);assert.match(res.body,/window.__MELISA_TERMINAL_WORKTEST_HOME__/);assert.match(res.body,new RegExp(TERMINAL_WORKTEST_HOME_PATH));
+});
+test('HOME route rejects admin/foreign role without entering the reader and publishes no flag when disabled',async()=>{
+ const {copy}=businessInboundFixture();let reads=0;
+ for(const actor of [{id:1,role:{code:'admin'},permissions:['goods.view']},{id:16,role:{code:'isolated_test_sales'},permissions:['goods.view']}]){const handler=createWorktestHandler({context:copy,bootstrap:{},csp:'',dist:'.',upstream:async()=>actor,homeSummary:async()=>{reads++;}}),res={setHeader(){},writeHead(s){this.status=s;},end(s){this.body=String(s);}};await handler(request({url:TERMINAL_WORKTEST_HOME_PATH,headers:{host:'127.0.0.1:5234',authorization:'Bearer normal'}}),res);assert.equal(res.status,403);}assert.equal(reads,0);
+ const handler=createWorktestHandler({context:copy,bootstrap:{},csp:'',dist:'.'}),res={setHeader(){},writeHead(){},end(s){this.body=String(s);}};await handler(request({url:'/stage4-runtime.js'}),res);assert.doesNotMatch(res.body,/__MELISA_TERMINAL_WORKTEST_HOME__/);
 });

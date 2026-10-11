@@ -1,5 +1,11 @@
 # Güncel teknik kanıt ve teslim sınırı — 11 Ekim 2026
 
+## Güncel kaynak: ortak servisleri değiştirmeyen HOME okuması
+
+Geçici5264/USB5234 yüzünde yalnız exact HOME GET bağlantısı hazırlandı. Mevcut a51 API'nin normal actor15/16 oturumu, fresh native context/izin eşitliği ve v4/v5 guarded reader kullanılır; SQL izinleri/roller/finans/stok mantığı değişmez. Bootstrap validation, kapalı24 dosyalık import/hash grafiği ve GET-only SQL allowlist ile yeni genel proxy açılmadı. Normal frontend5264 yalnız doğrulanmış bayrak+copy ile bu okumayı kullanır; auto-admin kapalı, diğer auth/API4184'te kalır. Root98/98 hedefli JS kontrol ve bağımsız inceleme geçti.
+
+Android için bu exactloopbackGET'e dar izin eklendi;131 unit test,0fail/error/skip ve offline debug build geçti. Yeni APK SHA256 `dff8ed37cf34066416e89dca9676515b4e008eeb69df22c065b67c50d07a8c8f`,63.534.278byte. Derleme/inceleme cihaz kabulü değildir; yeni immutable paket, HTTP ve gerçek Android kontrolü henüz bekliyor. Önceki dört video/16 alıştırma ve private kanıtlar korunur. Tam v6 aktivasyonu bu HOME tesliminin önkoşulu değildir.
+
 ## Güncel ek: gerçek kurtarma ve izole sorgu provası
 
 Disk bağımlılığı artık çözülmüştür. Eski ve güncel DB02 yedekleri yeni hedeflere gerçekten restore/CHECKDB doğrulandı. Yeni proof kopyasında751tablo/10şema ve exact ayrı login izolasyonu kanıtlandı; aktif DB02/TEST125 üzerine restore/reset yapılmadı. v6 consumer kaynakta hazır, ortak API'de etkin değil. İlk native keşif/saklanan SQL header bulguları dar adapter düzeltmeleriyle ele alındı; hız/eşdeğerlik/11negatif/normal okuyucu kabulü hâlâ tamamlanmadı. [Tarihli kurtarma ve kaynak kanıtı](recovery-and-readiness-proof.md).

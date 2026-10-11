@@ -2,27 +2,38 @@ import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 export const workingCatalogTokenKey='melisaTestSalesAccessToken';
+// The temporary HOME reader is an exact same-origin GET convenience, not an
+// authentication, actor, API or commercial-route authority.
+const worktestHomePath='/api/terminal-worktest/home-summary';
+function worktestHomeOrigin(location,bootstrap,copyProfile){
+ if(!bootstrap||Array.isArray(bootstrap)||Object.keys(bootstrap).sort().join(',')!=='copyId,path'||bootstrap.path!==worktestHomePath||bootstrap.copyId!=='e16b70f0-4057-428b-9abc-6bbcaf35fe82')return null;
+ if(location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||!['5234','5264'].includes(location.port)||location.origin!==`http://127.0.0.1:${location.port}`)return null;
+ try{if(validateOperationCopyBootstrap(copyProfile,{protocol:'http:',hostname:'127.0.0.1',port:'5234'}).copyId!==bootstrap.copyId)return null;}catch{return null;}
+ return location.origin;
+}
 const problem=(message='ERP bağlantısı kurulamadı. Yeniden deneyin.',status=503)=>Object.assign(new Error(message),{status});
 function validUser(user){
  if(!user||!Number.isSafeInteger(user.id)||user.id<1||!Array.isArray(user.permissions)||user.permissions.some(p=>typeof p!=='string'))throw problem('Oturum bilgileri doğrulanamadı.');
  return user;
 }
 export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
-export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__}={}){
- const resolvedApiBase=resolveTestApiBase({location,apiBase});
+export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__}={}){
+ const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
+ const sessionLocation=homeReadOrigin==='http://127.0.0.1:5264'&&apiBase==='http://127.0.0.1:4184'?{protocol:'http:',hostname:'127.0.0.1',port:'5234'}:location;
+ const resolvedApiBase=resolveTestApiBase({location:sessionLocation,apiBase});
  let active=true,token=null,user=null,generation=0,switching=false;const controllers=new Set();
- const target=()=>isTestSessionTarget({location,apiBase});
+ const target=()=>isTestSessionTarget({location:sessionLocation,apiBase});
  const stored=key=>{try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,startupAuth=false,cartonOrigin=false,headers={}}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
   const deadline=workMutation&&method==='POST'?60000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
-   const response=await fetchImpl((cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
+   const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    if(!response.ok||payload?.success!==true){if(!startupAuth&&(response.status===401||response.status===403&&!keepForbiddenSession)){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
@@ -57,7 +68,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   },
   async home(...args){
    if(args.length||!token||!user)throw problem('Günlük işler okunamıyor.');
-   return (await request('/api/home/summary',{expire:true})).data;
+   return (await request(homeReadOrigin?worktestHomePath:'/api/home/summary',{expire:true,homeOrigin:homeReadOrigin!==null})).data;
   },
   async reports(path,...args){
    if(args.length||typeof path!=='string'||!/^\/api\/work-reports(?:\/(?:context|export))?(?:\?[^#]*)?$/.test(path)||!token||!user)throw problem('Rapor bağlantısı kullanılamıyor.');

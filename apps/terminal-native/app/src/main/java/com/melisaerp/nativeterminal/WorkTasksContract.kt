@@ -17,6 +17,8 @@ internal class WorkTasksContract(val origin: String) {
         val site = "${u.scheme}://${u.host}:${u.port}"
         val path = u.rawPath.orEmpty()
         if (path.contains("%", true) || path.contains("\\") || path.split('/').any { it == ".." || it == "." }) return@runCatching false
+        if (path == "/api/terminal-worktest" || path.startsWith("/api/terminal-worktest/"))
+            return@runCatching !mainFrame && origin == "http://127.0.0.1:5234" && site == origin && path == "/api/terminal-worktest/home-summary" && u.rawQuery == null && u.rawFragment == null && method == "GET"
         if (path.startsWith("/api/test-personnel/") || path.startsWith("/api/test-admin/"))
             return@runCatching !mainFrame && site == "http://127.0.0.1:62700" && site == crmOrigin && path == "/api/test-personnel/session" && u.rawQuery == null && method == "POST"
         if (mainFrame) site == origin && path in setOf("/terminal.html", "/kullanim-egitimi.html")

@@ -10,6 +10,15 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/businessDailyRevisionBootstrap.mjs',
  'apps/api/src/services/businessReadyRevisionBootstrap.mjs',
  'apps/api/src/services/isolatedOperationCopyContext.mjs',
+ 'apps/api/src/services/isolatedOperationCopyStoreFactory.mjs',
+ 'apps/api/src/services/isolatedOperationCopyScope.mjs',
+ 'apps/api/src/middleware/businessInboundSelectionContext.mjs',
+ 'apps/api/src/services/homeSummaryReadStoreFactory.mjs',
+ 'apps/api/src/services/createHomeSummaryServiceFactory.mjs',
+ 'apps/api/src/services/homeSummaryModel.mjs',
+ 'apps/api/src/services/stockProductModel.mjs',
+ 'apps/api/src/services/currentProductCatalogContext.mjs',
+ 'apps/api/src/services/finalCatalogContext.mjs',
  'apps/api/src/services/sharedCopyBootstrap.mjs',
  'apps/api/src/services/sharedCopyRelease.mjs',
  'apps/api/src/services/sharedCopyWebPolicy.mjs',
@@ -17,6 +26,7 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/terminalCartonStore.mjs',
  'apps/sites-workflow/src/workflow/cartonModel.mjs',
  FEATURE_ENTRY,
+ 'scripts/canonical/terminal-worktest-home-readonly.mjs',
  'scripts/canonical/terminal-worktest-package.mjs'
 ]);
 export function assertFeatureEntry(spec,entryPath){

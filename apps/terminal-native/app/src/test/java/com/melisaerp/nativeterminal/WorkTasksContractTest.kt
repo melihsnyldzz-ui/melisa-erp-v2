@@ -64,4 +64,21 @@ class WorkTasksContractTest {
         listOf("http://192.168.1.46:62700/api/test-personnel/session", "http://127.0.0.1:62701/api/test-personnel/session", "http://127.0.0.1:62700/api/test-admin/session", "$url/other", "$url?role=admin").forEach { assertFalse(c.allowedRequest(it, false, "POST")) }
         assertFalse(WorkTasksContract("http://192.168.1.46:5234").allowedRequest("http://192.168.1.46:62700/api/test-personnel/session", false, "POST"))
     }
+    @Test fun homeSummaryOnlyExactLoopbackRead() {
+        val url = "http://127.0.0.1:5234/api/terminal-worktest/home-summary"
+        assertTrue(c.allowedRequest(url, false))
+        assertTrue(c.allowedRequest(url, false, "GET"))
+        assertFalse(c.allowedRequest(url, true, "GET"))
+        listOf("POST", "HEAD", "PUT", "DELETE", "PATCH", "get").forEach { assertFalse(it, c.allowedRequest(url, false, it)) }
+        listOf("$url?", "$url?copyId=other", "$url#", "$url#home", "$url/", "$url/other", "$url%2fother", "http://127.0.0.1:5234/api/terminal-worktest/other", "http://127.0.0.1:5234/api/terminal-worktest").forEach { assertFalse(it, c.allowedRequest(it, false, "GET")) }
+    }
+    @Test fun homeSummaryCannotFallThroughToAnotherApiOrigin() {
+        val path = "/api/terminal-worktest/home-summary"
+        listOf("http://127.0.0.1:5264", "http://127.0.0.1:4184", "http://127.0.0.1:62700", "http://127.0.0.1:62701", "http://127.0.0.1:62702", "http://127.0.0.1:62703", "http://192.168.1.46:5234", "http://localhost:5234", "https://127.0.0.1:5234", "http://127.0.0.1.evil:5234", "http://user@127.0.0.1:5234").forEach { assertFalse(it, c.allowedRequest(it + path, false, "GET")) }
+        val lan = WorkTasksContract("http://192.168.1.46:5234")
+        assertFalse(lan.allowedRequest("http://192.168.1.46:5234$path", false, "GET"))
+        assertFalse(lan.allowedRequest("http://192.168.1.46:4184$path", false, "GET"))
+        assertTrue(c.allowedRequest("http://127.0.0.1:4184/api/auth/me", false))
+        assertTrue(c.allowedRequest("http://127.0.0.1:5234/api/terminal-cartons/receipts/123", false))
+    }
 }

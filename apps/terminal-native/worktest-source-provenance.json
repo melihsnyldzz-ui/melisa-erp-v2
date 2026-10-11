@@ -11,16 +11,19 @@
   "runtimeIdentityValidation": "coordinator required before activation; not a client DB proof",
   "build": {
     "offline": true,
-    "unitTests": 129,
+    "unitTests": 131,
     "failures": 0,
     "errors": 0,
     "assembleDebug": "PASS",
-    "androidInstrumentationCompile": "PASS",
+    "androidInstrumentationCompile": "NOT_RUN_FOR_THIS_REVISION",
     "androidInstrumentationExecution": "NOT_RUN",
     "physicalScan": "NOT_RUN",
     "humanAcceptance": "PENDING",
-    "apkSha256": "8d4f91479f813b81714e6b2829ca50e598698b1f777810af15701bdee35a6fc9",
-    "apkBytes": 63534006
+    "apkSha256": "dff8ed37cf34066416e89dca9676515b4e008eeb69df22c065b67c50d07a8c8f",
+    "apkBytes": 63534278,
+    "updatedAtUtc": "2026-10-11T08:13:28.7619883Z",
+    "exactHomeGetOnly": true,
+    "newApkDeviceVerification": "PENDING"
   },
   "files": [
     {
@@ -40,8 +43,8 @@
     },
     {
       "path": "app/src/main/java/com/melisaerp/nativeterminal/WorkTasksContract.kt",
-      "sha256": "931ce7f0f10c62cfed16b2fd486bab47aaa2acaff71e34ca35a480265e6f910b",
-      "bytes": 4587
+      "sha256": "622416e64b7cee8e8f0c0b029a361fd9a866d63470a14e7ef937d02578d2184b",
+      "bytes": 4891
     },
     {
       "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/DataWedge.kt",
@@ -55,8 +58,8 @@
     },
     {
       "path": "app/src/test/java/com/melisaerp/nativeterminal/WorkTasksContractTest.kt",
-      "sha256": "710821f29faf1dbc3bb7ede17a38d48c9d44a698e5470ff545fd7101c9d5cc49",
-      "bytes": 5088
+      "sha256": "0a1c5c7146d0d7d4417758cbeb7759bf5a89a4b64fff300e323de7e33f409fb2",
+      "bytes": 6708
     },
     {
       "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/DataWedgeProfileAcceptanceTest.java",

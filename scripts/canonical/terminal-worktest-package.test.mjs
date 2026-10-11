@@ -18,9 +18,13 @@ test('all real transitive starter modules are hashed; backend drift or omission 
  const data=new Map();for(const file of FEATURE_SOURCE_FILES)data.set(file,await readFile(new URL('../../'+file,import.meta.url)));
  const files=[...data].map(([file,bytes])=>({path:file,sha256:createHash('sha256').update(bytes).digest('hex')}));const m={...manifest,files:[...manifest.files,...files]};
  await verifyFeatureSources(m,async p=>data.get(p));
- for(const file of ['scripts/canonical/start-terminal-worktest.mjs','apps/api/src/services/terminalCartonStore.mjs','apps/api/src/services/businessReadyRevisionBootstrap.mjs','apps/sites-workflow/src/workflow/cartonModel.mjs']){
+ for(const file of ['scripts/canonical/start-terminal-worktest.mjs','scripts/canonical/terminal-worktest-home-readonly.mjs','apps/api/src/services/homeSummaryReadStoreFactory.mjs','apps/api/src/services/isolatedOperationCopyStoreFactory.mjs','apps/api/src/middleware/businessInboundSelectionContext.mjs','apps/api/src/services/terminalCartonStore.mjs','apps/api/src/services/businessReadyRevisionBootstrap.mjs','apps/sites-workflow/src/workflow/cartonModel.mjs']){
   await assert.rejects(()=>verifyFeatureSources(m,async p=>p===file?Buffer.concat([data.get(p),Buffer.from('\n// changed')]):data.get(p)),{code:'WORKTEST_PACKAGE_PIN'});
   await assert.rejects(()=>verifyFeatureSources({...m,files:m.files.filter(r=>r.path!==file)},async p=>data.get(p)),{code:'WORKTEST_PACKAGE_PIN'});
  }
  const target='apps/api/src/services/terminalCartonStore.mjs';for(const addition of ["\nimport './unlisted-source.mjs';","\nexport {x} from '../../../outside.mjs';","\nimport('file:///arbitrary.mjs');","\nimport external from 'unlisted-package';"]){const changed=Buffer.concat([data.get(target),Buffer.from(addition)]),pin=createHash('sha256').update(changed).digest('hex');await assert.rejects(()=>verifyFeatureSources({...m,files:m.files.map(r=>r.path===target?{...r,sha256:pin}:r)},async p=>p===target?changed:data.get(p)),{code:'WORKTEST_PACKAGE_PIN'});}
+});
+test('terminal HOME pins only the pure injected graph; dynamic default wrappers stay outside it',()=>{
+ for(const file of ['apps/api/src/services/homeSummaryReadStore.mjs','apps/api/src/services/homeSummaryService.mjs','apps/api/src/services/isolatedOperationCopyStore.mjs','apps/api/src/middleware/businessInboundSelection.mjs','apps/api/src/config/database.js'])assert.equal(FEATURE_SOURCE_FILES.includes(file),false);
+ assert.equal(new Set(FEATURE_SOURCE_FILES).size,FEATURE_SOURCE_FILES.length);
 });

@@ -252,3 +252,52 @@ test('normal sale cancellation preserves only its known collection dependency co
  for(const entry of [{path:'/api/work-sales/drafts/42/cancel',status:409,code:'WORK_COLLECTIONS_ACTIVE',expected:'WORK_COLLECTIONS_ACTIVE'},{path:'/api/work-sales/drafts/42/cancel',status:409,code:'SQL_PRIVATE',expected:undefined},{path:'/api/work-sales/drafts/42/cancel',status:400,code:'WORK_COLLECTIONS_ACTIVE',expected:undefined},{path:'/api/work-collections/77/cancel',status:409,code:'WORK_COLLECTIONS_ACTIVE',expected:undefined},{path:'/api/catalog/products',status:409,code:'WORK_COLLECTIONS_ACTIVE',expected:undefined}]){
  const f=fixture(async url=>url.endsWith('/auth/test-admin')?reply({user,accessToken:'token'}):{ok:false,status:entry.status,json:async()=>({success:false,error:{code:entry.code,message:'RAW SQL native internal'}})});await f.session.start();const call=entry.path.startsWith('/api/catalog')?()=>f.session.api(entry.path):()=>f.session.work(entry.path,{method:'POST',body:{requestId:'00000000-0000-4000-8000-000000000001'}});await assert.rejects(call,e=>{assert.equal(e.status,entry.status);assert.equal(e.code,entry.expected);assert.doesNotMatch(e.message,/RAW SQL|SQL_PRIVATE|native internal/);return true;});f.session.dispose();}
 });
+
+const homeBootstrap={path:'/api/terminal-worktest/home-summary',copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82'};
+const worktestLocation=port=>({hostname:'127.0.0.1',protocol:'http:',port,origin:`http://127.0.0.1:${port}`});
+function homeCopyProfile(){return {schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:'ISOLATED_TEST_COPY',copyId:homeBootstrap.copyId,sealHash:'A'.repeat(64),backupSHA:'B'.repeat(64),sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02'},date:'2026-10-09',scopeKind:'VERIFIED_BUSINESS_TEST',businessScopeHash:'C'.repeat(64),businessInvoiceMaxExact4:'20000.0000',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:[{id:'301',supplierId:'601',sourceKey:'VEGA2026/F0102TBLSTOKLAR/301',stockCode:'FIXTURE-301',unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['801'],barcodes:['000301']}],customers:[{id:'501',partyId:'901',accountId:'1001',currency:'TRY',sourceKey:'VEGA2026/F0102TBLCARI/501'}],suppliers:[{id:'601',partyId:'902',accountId:'1002',currency:'TRY',sourceKey:'VEGA2026/F0103TBLCARI/601'}],financeAccounts:[{id:'701',currency:'TRY'}]};}
+function worktestHomeSession({target=worktestLocation('5234'),bootstrap=homeBootstrap,profile=homeCopyProfile(),base='http://127.0.0.1:4184',respond=async()=>reply({meta:{readOnly:true}}),onExpired=()=>{}}={}){
+ const store=storage(),calls=[];store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'worktest-home-fixture');
+ const session=createWorkingCatalogSession({location:target,apiBase:base,storage:store,copyProfile:profile,homeBootstrap:bootstrap,onExpired,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(user):respond(url,options);}});
+ return {session,store,calls};
+}
+test('exact DB02 HOME bootstrap selects only same-origin authenticated GET on device or temporary desktop',async()=>{
+ for(const port of ['5234','5264']){
+  const f=worktestHomeSession({target:worktestLocation(port)});await f.session.start();assert.deepEqual(await f.session.home(),{meta:{readOnly:true}});
+  assert.equal(f.calls[0].url,'http://127.0.0.1:4184/api/auth/me');assert.equal(f.calls[1].url,`http://127.0.0.1:${port}/api/terminal-worktest/home-summary`);
+  const opts=f.calls[1].options;assert.equal(opts.method,'GET');assert.equal(opts.body,undefined);assert.equal(opts.headers.Authorization,'Bearer worktest-home-fixture');assert.equal(opts.credentials,'omit');assert.equal(opts.redirect,'error');
+  await f.session.api('/api/catalog/products?limit=50');await f.session.work('/api/work-sales/context');const body={requestId:'00000000-0000-4000-8000-000000000001'};await f.session.work('/api/work-sales/drafts',{method:'POST',body});
+  assert(f.calls.slice(2).every(c=>c.url.startsWith('http://127.0.0.1:4184/')));assert.deepEqual(JSON.parse(f.calls.at(-1).options.body),body);
+  const count=f.calls.length;await assert.rejects(()=>f.session.home({method:'POST'}));await assert.rejects(()=>f.session.api(homeBootstrap.path));await assert.rejects(()=>f.session.work(homeBootstrap.path,{method:'POST',body}));assert.equal(f.calls.length,count);f.session.dispose();
+ }
+});
+test('malformed HOME bootstrap and every foreign origin retain legacy route or closed target',async()=>{
+ for(const bootstrap of [null,{},[],{...homeBootstrap,copyId:'00000000-0000-4000-8000-000000000001'},{...homeBootstrap,path:'https://other/home'},{...homeBootstrap,path:homeBootstrap.path+'?actorId=16'},{...homeBootstrap,apiBase:'http://other'}]){
+  const legacy=worktestHomeSession({bootstrap});await legacy.session.start();await legacy.session.home();assert.equal(legacy.calls[1].url,'http://127.0.0.1:4184/api/home/summary');legacy.session.dispose();
+  const desktop=worktestHomeSession({target:worktestLocation('5264'),bootstrap});await assert.rejects(()=>desktop.session.start());assert.equal(desktop.calls.length,0);desktop.session.dispose();
+ }
+ for(const target of [{...worktestLocation('5234'),hostname:'192.168.1.46',origin:'http://192.168.1.46:5234'},{...location,origin:'http://127.0.0.1:5194'}]){
+  const base=target.port==='5194'?apiBase:'http://127.0.0.1:4184',expected=target.port==='5194'?apiBase:'http://192.168.1.46:4184';const f=worktestHomeSession({target,base});await f.session.start();await f.session.home();assert.equal(f.calls[1].url,expected+'/api/home/summary');f.session.dispose();
+ }
+ for(const target of [{...worktestLocation('5264'),protocol:'https:',origin:'https://127.0.0.1:5264'},{...worktestLocation('5264'),hostname:'other',origin:'http://other:5264'},{...worktestLocation('5264'),origin:'http://other:5264'},{...worktestLocation('5264'),port:'5265',origin:'http://127.0.0.1:5265'},{...worktestLocation('5264'),hostname:'localhost',origin:'http://localhost:5264'}]){
+  const f=worktestHomeSession({target});await assert.rejects(()=>f.session.start());assert.equal(f.calls.length,0);f.session.dispose();
+ }
+ const wrongApi=worktestHomeSession({target:worktestLocation('5264'),base:apiBase});await assert.rejects(()=>wrongApi.session.start());assert.equal(wrongApi.calls.length,0);wrongApi.session.dispose();
+});
+test('temporary desktop bootstrap never opens automatic identity and login stays on normal upstream',async()=>{
+ const store=storage(),calls=[],session=createWorkingCatalogSession({location:worktestLocation('5264'),apiBase:'http://127.0.0.1:4184',storage:store,copyProfile:homeCopyProfile(),homeBootstrap,fetchImpl:async(url,options)=>{calls.push({url,options});return reply({user,accessToken:'normal-home-fixture'});}});
+ assert.equal(await session.start(),null);assert.equal(calls.length,0);await session.login({username:'fixture',password:'fixture-only'});assert.equal(calls[0].url,'http://127.0.0.1:4184/api/auth/login');assert.equal(calls[0].options.method,'POST');assert(calls.every(c=>!c.url.includes('/test-admin')&&!c.url.includes('/stage4-actor')));session.dispose();
+});
+test('scoped HOME keeps15s deadline, auth-expiry and disposal without retry or new session',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const f=worktestHomeSession({respond:async(url,options)=>new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}))});await f.session.start();const request=f.session.home(),rejection=assert.rejects(request,e=>e.status===503);t.mock.timers.tick(15000);await rejection;assert.equal(f.calls.length,2);assert.equal(f.store.getItem(workingCatalogTokenKey),'worktest-home-fixture');f.session.dispose();
+ for(const status of [401,403]){let expired=0;const lost=worktestHomeSession({respond:async()=>reply(null,status),onExpired:()=>expired++});await lost.session.start();await assert.rejects(()=>lost.session.home(),e=>e.status===status&&!e.message.includes('SQL'));assert.equal(lost.store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);lost.session.dispose();}
+ let finish;const late=worktestHomeSession({respond:async()=>new Promise(resolve=>finish=resolve)});await late.session.start();const pending=late.session.home();late.session.dispose();assert.equal(late.calls.at(-1).options.signal.aborted,true);finish(reply({meta:{readOnly:true}}));await assert.rejects(()=>pending);assert.equal(late.calls.length,2);
+});
+
+test('HOME flag cannot override a missing, different-copy or malformed DB02 operation profile',async()=>{
+ for(const mutate of [()=>null,p=>({...p,copyId:'00000000-0000-4000-8000-000000000001'}),p=>({...p,target:{...p.target,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'}}),p=>({...p,actors:[{id:'15',role:'admin'}]}),p=>({...p,products:p.products.map(x=>({...x,unit:'KOLI'}))}),p=>({...p,businessDaily:{scopeHash:'D'.repeat(64),selection:{}}})]){
+  const profile=mutate(homeCopyProfile()),legacy=worktestHomeSession({profile});await legacy.session.start();await legacy.session.home();assert.equal(legacy.calls[1].url,'http://127.0.0.1:4184/api/home/summary');legacy.session.dispose();
+  const desktop=worktestHomeSession({target:worktestLocation('5264'),profile});await assert.rejects(()=>desktop.session.start());assert.equal(desktop.calls.length,0);desktop.session.dispose();
+ }
+});

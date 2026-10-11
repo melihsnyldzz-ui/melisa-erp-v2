@@ -21,6 +21,13 @@ alternatif sabit onaylı LAN çifti `http://192.168.1.46:5234` / `4184`'tür.
 aynı origin'de yalnız `/api/terminal-cartons/receipts` ve `/receipts/<sayısal-id>`
 ile sınırlıdır; ticari stok/finans hareketi üretme yetkisi değildir.
 
+Geçici USB çalışma yüzünde ana sayfa okuyucusu yalnız
+`http://127.0.0.1:5234/api/terminal-worktest/home-summary` adresine,
+ana gezinme dışında, query/fragment içermeyen GET ile ulaşabilir. LAN,
+diğer API origin'leri, alternatif yollar ve bütün yazma yöntemleri bu yeni
+namespace için kapalıdır. Bu bağlantı mevcut normal aktör ve native izin
+kontrolünü kullanır; yeni oturum veya ticari yetki oluşturmaz.
+
 Bir WebView görevler arasında korunur. Mevcut ekranın kayıt/sonuç kontrolü
 geçişi engelliyorsa Android menüsü bu engeli aşmaz. Arka planda veya gezinirken
 barkod biriktirilmez. Barkod metindir; sıfırlar korunur. Sabit barkod alanına
