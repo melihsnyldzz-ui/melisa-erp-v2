@@ -302,7 +302,7 @@ const knownWarnings = new Map([
 ]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const stringFields = new Set(['requestid', 'code', 'eventcode', 'category', 'method', 'nodeenv', 'signal', 'apiversion', 'path', 'warningcode']);
-const numberFields = new Set(['port', 'statuscode', 'durationms', 'retryafterseconds']);
+const numberFields = new Set(['port', 'statuscode', 'durationms', 'retryafterseconds','sqlnumber','sqlstate','sqlclass','sqllinenumber']);
 const booleanFields = new Set(['sqlconfigured', 'vegaenabled', 'authenabled']);
 const fieldNames = new Map([
   ['requestid', 'requestId'], ['code', 'code'], ['eventcode', 'eventCode'],
@@ -310,6 +310,7 @@ const fieldNames = new Map([
   ['signal', 'signal'], ['apiversion', 'apiVersion'], ['path', 'path'],
   ['port', 'port'], ['statuscode', 'statusCode'], ['durationms', 'durationMs'],
   ['retryafterseconds', 'retryAfterSeconds'], ['sqlconfigured', 'sqlConfigured'],
+  ['sqlnumber','sqlNumber'],['sqlstate','sqlState'],['sqlclass','sqlClass'],['sqllinenumber','sqlLineNumber'],
   ['vegaenabled', 'vegaEnabled'], ['authenabled', 'authEnabled'],
   ['error', 'error'], ['errors', 'errors'], ['details', 'details'],
   ['context', 'context'], ['meta', 'meta'],
@@ -371,6 +372,8 @@ function sanitize(input, key, depth, seen) {
     if (normalizedKey === 'durationms' && input < 0) return REDACTED;
     if (normalizedKey === 'port' && (!Number.isInteger(input) || input < 1 || input > 65535)) return REDACTED;
     if (normalizedKey === 'retryafterseconds' && (!Number.isInteger(input) || input < 1 || input > 900)) return REDACTED;
+    const sqlBounds={sqlnumber:[1,2147483647],sqlstate:[0,255],sqlclass:[0,25],sqllinenumber:[0,1000000]}[normalizedKey];
+    if(sqlBounds&&(!Number.isSafeInteger(input)||input<sqlBounds[0]||input>sqlBounds[1]))return REDACTED;
     return input;
   }
   if (typeof input !== 'object' || depth >= MAX_DEPTH || seen.has(input)) return REDACTED;

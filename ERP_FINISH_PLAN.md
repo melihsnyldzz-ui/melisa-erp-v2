@@ -1,3 +1,11 @@
+## ERP-COMPLETE01 — büyük fişin kalan teknik bağlantısı — 12 Ekim 2026
+
+[200 farklı ürün /223 adet /iki koli kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md): yazmasız seçim ve gerçek başarısız taslak sonrası tam veri korunması doğrulandı. İki kaynak adı için exact snapshot düzeltmesi ve existing-engine kalem batch'i kaynakta hazır; native rollback/sıra/commit, normal ekran ve son paket olmadan tamam sayılmaz.49/9/39/1 ve ERP-UA32 bekliyor aynı; bu teknik çalışma insan kabulü yerine geçmez.
+
+## ERP-COMPLETE01 — kalıcı hedef / hızlı giriş destek sınırı — 12 Ekim 2026
+
+Araç doğrulamasıyla sahibi sohbet hedefi active; mevcut kapsam/49/9/39/1 ve insan kabulü aynı. [Korumalı Semih giriş bağımlılığı ve kapanma ölçütü](docs/evidence/erp/2026-10-11-completion/protected-semih-entry-readiness.md). Mevcut normal15/16 ile uygun bağımsız işler sürer; helper/admin/Windowsbridge henüz uygulanmadı. Hedef oluşturma teknik teslim veya LIVE yetkisi değildir.
+
 ## ERP-COMPLETE01 — Ana Sayfa gerçek ekran düzeltmesi — 12 Ekim 2026
 
 Aynı işte pozitif stok önseçimiyle normal15 TRY/USD200 farklı ürün native context okuması teknik geçti.200×24 için mevcut stok adayı60/189;200 preview/writer/koli/cihaz/video henüz tamam değil. [Kanıt](docs/evidence/erp/2026-10-11-completion/large-carton-proof.md). Ticariwrite0; yaprak sayımı ve insan kabulü aynı.

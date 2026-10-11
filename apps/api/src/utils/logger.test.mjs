@@ -7,6 +7,15 @@ const requestId = '11111111-2222-4333-8444-555555555555';
 const marker = 'harmless-canary-unique-head-and-tail';
 const redacted = '[REDACTED]';
 
+test('SQL diagnostic numeric vocabulary retains exact bounded integers only',()=>{
+ const original=console.error,lines=[];console.error=v=>lines.push(JSON.parse(v));
+ try{
+  logger.error('API error normalized',{sqlNumber:2147483647,sqlState:255,sqlClass:25,sqlLineNumber:1000000});
+  assert.deepEqual(Object.fromEntries(Object.keys(lines[0]).filter(k=>k.startsWith('sql')).map(k=>[k,lines[0][k]])),{sqlNumber:2147483647,sqlState:255,sqlClass:25,sqlLineNumber:1000000});
+  for(const [key,bad] of Object.entries({sqlNumber:[0,-1,2147483648,'51904',1.1],sqlState:[-1,256,'1',0.5],sqlClass:[-1,26,'16',1.5],sqlLineNumber:[-1,1000001,'30',0.5]}))for(const value of bad){logger.error('API error normalized',{[key]:value});assert.equal(lines.at(-1)[key],redacted);}
+ }finally{console.error=original;}
+});
+
 function capture(run) {
   const lines = [];
   const original = {log: console.log, warn: console.warn, error: console.error};
@@ -200,6 +209,7 @@ async function loadMiddleware(name) {
   source = source.replace("import { env } from '../config/env.js';", "const env = {nodeEnv: 'production', slowRequestMs: 100000};");
   source = source.replace("'../utils/logger.js'", JSON.stringify(new URL('./logger.js', import.meta.url).href));
   source = source.replace("'../services/operationQuarantineError.mjs'", JSON.stringify(new URL('../services/operationQuarantineError.mjs', import.meta.url).href));
+  source = source.replace("'../config/isolatedOperationCopyRuntime.mjs'", JSON.stringify(new URL('../config/isolatedOperationCopyRuntime.mjs', import.meta.url).href));
   return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 }
 

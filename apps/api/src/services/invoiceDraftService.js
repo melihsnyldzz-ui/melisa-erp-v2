@@ -61,6 +61,41 @@ function assertSelectedSaleInvocation(transaction,operation,actor,invoiceId,invo
  return account;
 }
 
+function preserveSelectedSourceSalesNames(payload,draft,selectedSale){
+ if(!selectedSale)return;
+ const {copy,scope}=selectedSale;
+ if(!Array.isArray(payload?.items)||payload.items.length!==draft.items.length)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
+ const names=payload.items.map((item,index)=>{
+  const id=String(item?.productId),rows=copy.products.filter(p=>p.id===id),product=rows[0];
+  if(rows.length!==1||!scope.productIds.includes(id)||String(draft.items[index].productId)!==id||product.sourceKnown!==true||product.identityVerified!==true||typeof product.name!=='string'||product.name.length>250||!product.name.trim()||item.productName!==product.name)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili ürün adı kaynakla uyuşmuyor.',409);
+  return product.name;
+ });
+ names.forEach((name,index)=>{draft.items[index].productName=name;});
+}
+
+function selectedSourceSalesItemsJSON(items,selectedSale){
+ const scope=selectedSale?.scope;
+ if(!scope||scope.operation!=='sale_draft'||!Array.isArray(items)||items.length<2||items.length>200||items.length!==scope.productIds.length||new Set(items.map(i=>String(i.productId))).size!==items.length)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
+ const decimal=(value,precision)=>{if(!Number.isFinite(value)||value<0)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır miktarı doğrulanamadı.',409);const text=value.toFixed(precision);if(!new RegExp('^\\d{1,'+(18-precision)+'}\\.\\d{'+precision+'}$').test(text))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır tutarı doğrulanamadı.',409);return text;};
+ const text=(value,max,nullable=false)=>{if(nullable&&!value)return null;if(typeof value!=='string'||value.length>max)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır bilgisi doğrulanamadı.',409);return value;};
+ return JSON.stringify(items.map(item=>{
+  const productId=String(item.productId);if(!Number.isSafeInteger(item.productId)||item.productId<=0||!scope.productIds.includes(productId)||!Number.isSafeInteger(item.quantity)||item.quantity<=0||item.currency!==scope.currency)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır kapsamı uyuşmuyor.',409);
+  return {productId,stockCode:text(item.stockCode,50),barcode:text(item.barcode,80,true),productName:text(item.productName,250),quantity:decimal(item.quantity,3),currency:item.currency,unitPrice:decimal(item.unitPrice,4),lineTotal:decimal(item.lineTotal,4),averageCostTry:decimal(item.averageCostTry,4),stockStatus:text(item.stockStatus,50,true),note:text(item.note,250,true)};
+ }));
+}
+
+async function insertSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,items,selectedSale){
+ if(!selectedSale||isolatedCopyTransactionContext(transaction)!==selectedSale.copy||getBusinessSelectedSaleWriteScope(selectedSale.copy,transaction)!==selectedSale.scope)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
+ const itemsJSON=selectedSourceSalesItemsJSON(items,selectedSale);
+ await new sqlDriver.Request(transaction).input('invoiceId',sql.BigInt,invoiceId).input('selectedItemsJSON',sql.NVarChar(sql.MAX),itemsJSON).query(`
+  INSERT INTO dbo.sales_invoice_items (sales_invoice_id,product_id,stock_code_snapshot,barcode_snapshot,product_name_snapshot,quantity,currency_code,unit_price,line_total,average_cost_try_snapshot,stock_status_snapshot,note)
+  SELECT @invoiceId,v.productId,v.stockCode,v.barcode,v.productName,v.quantity,v.currency,v.unitPrice,v.lineTotal,v.averageCostTry,v.stockStatus,v.note
+  FROM OPENJSON(@selectedItemsJSON) j
+  CROSS APPLY OPENJSON(j.value) WITH(productId bigint '$.productId',stockCode nvarchar(50) '$.stockCode',barcode nvarchar(80) '$.barcode',productName nvarchar(250) '$.productName',quantity decimal(18,3) '$.quantity',currency nvarchar(3) '$.currency',unitPrice decimal(18,4) '$.unitPrice',lineTotal decimal(18,4) '$.lineTotal',averageCostTry decimal(18,4) '$.averageCostTry',stockStatus nvarchar(50) '$.stockStatus',note nvarchar(250) '$.note') v
+  ORDER BY CONVERT(int,j.[key]) ASC;
+ `);
+}
+
 // Trigger row-count messages are not the guarded header UPDATE's row count.
 // The SQL batch returns one named count from OUTPUT ... INTO instead.
 export function purchaseStatusMutationSucceeded(result) {
@@ -1778,6 +1813,8 @@ export async function createSalesDraft(payload, actor = null, transactionContext
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_draft',actor,null,draft);
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
     else await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
+    preserveSelectedSourceSalesNames(payload,draft,selectedSale);
+    if(selectedSale&&draft.items.length>1)selectedSourceSalesItemsJSON(draft.items,selectedSale);
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'sales', draft);
     await assertPilotSaleProducts(() => new sqlDriver.Request(transaction), draft.items);
 
@@ -1850,7 +1887,8 @@ export async function createSalesDraft(payload, actor = null, transactionContext
     const invoiceId = Number(insert.recordset?.[0]?.invoiceId);
     await writeInvoiceCurrencySnapshot(new sqlDriver.Request(transaction), 'sales', invoiceId, settlement);
 
-    for (const item of draft.items) {
+    if(selectedSale&&draft.items.length>1)await insertSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,draft.items,selectedSale);
+    else for (const item of draft.items) {
       await insertSalesItem(sqlDriver, transaction, invoiceId, item);
     }
 
