@@ -399,7 +399,6 @@ export async function logout(refreshToken) {
 }
 
 export async function refreshAccessToken(refreshToken, { nativeTerminal = false, terminalCode = '' } = {}) {
-  assertMelisaWriteEnabled();
   assertAuthSecretsConfigured();
 
   const protectedStore=normalTestStore();
@@ -412,6 +411,7 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
     return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
   }
 
+  assertMelisaWriteEnabled();
   if (!refreshToken) {
     throw makeAuthError('AUTH_REFRESH_REQUIRED', 'Refresh token is required', 401);
   }

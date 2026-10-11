@@ -24,6 +24,7 @@ import {CURRENT_PRICE_PURCHASE_SQL_PROOF} from './testProductPriceSqlProof.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
 import {getBusinessDailySelection} from './isolatedOperationCopyContext.mjs';
 import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
+import {assertSelectedSaleCashlessCancellation} from './selectedSaleCashlessCancellation.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
@@ -2424,6 +2425,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
     const warnings = [];
     let reversedStockTotal = 0;
 
+    if(selectedSale)await assertSelectedSaleCashlessCancellation(sqlDriver,transaction,beforeSnapshot);
+
     for (const item of beforeSnapshot.items) {
       const quantity = safeNumber(item.quantity);
       const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
@@ -2497,7 +2500,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
 
     const reversedCustomerAmount = Number(beforeSnapshot.grandTotal || 0);
 
-    if (!nativeSale && isCashCustomerCode(beforeSnapshot.customerCode) && reversedCustomerAmount > 0) {
+    if (!selectedSale && !nativeSale && isCashCustomerCode(beforeSnapshot.customerCode) && reversedCustomerAmount > 0) {
       await reverseSaleCashCollection(sqlDriver, transaction, beforeSnapshot, actor, reason);
     }
 
