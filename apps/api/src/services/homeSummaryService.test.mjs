@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {homeCapabilities,businessInboundHomeCapabilities,homeCurrencyTotals,homeDate,homeSummaryDto} from './homeSummaryModel.mjs';
+import {homeCapabilities,businessInboundHomeCapabilities,businessDailyHomeCapabilities,homeCurrencyTotals,homeDate,homeSummaryDto} from './homeSummaryModel.mjs';
 import {createHomeSummaryService} from './homeSummaryService.mjs';
 import {createHomeSummaryReadStore,HOME_SUMMARY_SQL,COPY_HOME_SUMMARY_SQL,BUSINESS_INBOUND_HOME_SUMMARY_SQL} from './homeSummaryReadStore.mjs';
 import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
@@ -60,10 +60,10 @@ test('source query uses finalized header snapshot and reversals separately, boun
  assert.doesNotMatch(HOME_SUMMARY_SQL,/sp_getapplock|SERIALIZABLE|UPDATE|DELETE|MERGE|INSERT\s+INTO|finance_accounts|current_balance|opening_balance/i);
  assert.doesNotMatch(HOME_SUMMARY_SQL,/N'sales-draft'|N'purchase-draft'/);
 });
-function copyRuntime({wrongDB=false,deny=false,badProof=false,badFk=false,business=false,actorId='16'}={}){
+function copyRuntime({wrongDB=false,deny=false,badProof=false,badFk=false,business=false,actorId='16',actualPermissions=rights}={}){
  const copy=business?businessInboundFixture().copy:validateIsolatedOperationCopyContext(fixtureContext()),calls=[],events=[];
  class Transaction{async begin(level){events.push(level);}async commit(){events.push('commit');}async rollback(){events.push('rollback');}}
- class Request{constructor(){this.inputs={};}input(k,t,v){this.inputs[k]=v;return this;}async query(q){calls.push({q,inputs:this.inputs});if(q.startsWith('SELECT DB_NAME'))return{recordset:[{...fixtureIdentity(copy),...(wrongDB?{db:copy.sourceDatabase}:{})}]};if(q.includes('sp_getapplock')){assert.match(q,/@LockMode=N'Shared'/);assert.equal(this.inputs.lockKey,'melisa-stage4-copy:'+copy.copyId);return{recordset:[]};}if(q===ISOLATED_COPY_FINITE_FK_SQL)return{recordset:[['FK__test_good__produ__5654B625','test_goods_batch_lines'],['FK__test_purc__produ__69678A99','test_purchase_batch_intent_lines']].map(([constraintName,parentTable])=>({constraintName,parentSchema:'dbo',parentTable,parentColumn:'product_id',referencedSchema:'dbo',referencedTable:badFk?'test_purchase_batch_scope':'products',referencedColumn:'id',ordinal:1,columnCount:1,isDisabled:false,isNotTrusted:false,deleteAction:'NO_ACTION',updateAction:'NO_ACTION'}))};assert.equal(q,business?BUSINESS_INBOUND_HOME_SUMMARY_SQL:COPY_HOME_SUMMARY_SQL);return {recordsets:[[business?{...counts,salesCount:null,salesCancelledCount:null,salesReturnCount:null,purchaseReturnCount:null,returnCancelledCount:null,countPendingCount:null,goodsPendingCount:'3',approvalPendingCount:actorId==='16'?'3':null}:counts],[],[],[],[],[business?{id:'goods-batch:41',kind:'goods',state:'pending',date:null}:{id:'sales-draft:51',kind:'sales-draft',state:'draft',date:copy.date}]]};}async execute(name){calls.push({name,inputs:this.inputs});if(name.endsWith('_ready'))return {recordset:[]};assert(name.endsWith('_context'));assert.equal(this.inputs.domain,business?'inbound':'daily');return {recordset:[{proof_json:JSON.stringify({...fixtureProof(copy),...(badProof?{sealHash:'wrong'}:{})}),actor_json:JSON.stringify({id:actorId,role:copy.actors.find(a=>a.id===actorId).role,active:true,permissions:deny?[]:rights}),context_json:JSON.stringify({meta:{date:copy.date,copyId:copy.copyId,sealHash:copy.sealHash,operationOrigin:copy.operationOrigin},scope:{synthetic:false,operationOrigin:copy.operationOrigin}})}]};}}
+ class Request{constructor(){this.inputs={};}input(k,t,v){this.inputs[k]=v;return this;}async query(q){calls.push({q,inputs:this.inputs});if(q.startsWith('SELECT DB_NAME'))return{recordset:[{...fixtureIdentity(copy),...(wrongDB?{db:copy.sourceDatabase}:{})}]};if(q.includes('sp_getapplock')){assert.match(q,/@LockMode=N'Shared'/);assert.equal(this.inputs.lockKey,'melisa-stage4-copy:'+copy.copyId);return{recordset:[]};}if(q===ISOLATED_COPY_FINITE_FK_SQL)return{recordset:[['FK__test_good__produ__5654B625','test_goods_batch_lines'],['FK__test_purc__produ__69678A99','test_purchase_batch_intent_lines']].map(([constraintName,parentTable])=>({constraintName,parentSchema:'dbo',parentTable,parentColumn:'product_id',referencedSchema:'dbo',referencedTable:badFk?'test_purchase_batch_scope':'products',referencedColumn:'id',ordinal:1,columnCount:1,isDisabled:false,isNotTrusted:false,deleteAction:'NO_ACTION',updateAction:'NO_ACTION'}))};assert.equal(q,business?BUSINESS_INBOUND_HOME_SUMMARY_SQL:COPY_HOME_SUMMARY_SQL);return {recordsets:[[business?{...counts,salesCount:null,salesCancelledCount:null,salesReturnCount:null,purchaseReturnCount:null,returnCancelledCount:null,countPendingCount:null,goodsPendingCount:'3',approvalPendingCount:actorId==='16'?'3':null}:counts],[],[],[],[],[business?{id:'goods-batch:41',kind:'goods',state:'pending',date:null}:{id:'sales-draft:51',kind:'sales-draft',state:'draft',date:copy.date}]]};}async execute(name){calls.push({name,inputs:this.inputs});if(name.endsWith('_ready'))return {recordset:[]};assert(name.endsWith('_context'));assert.equal(this.inputs.domain,business?'inbound':'daily');return {recordset:[{proof_json:JSON.stringify({...fixtureProof(copy),...(badProof?{sealHash:'wrong'}:{})}),actor_json:JSON.stringify({id:actorId,role:copy.actors.find(a=>a.id===actorId).role,active:true,permissions:deny?[]:actualPermissions}),context_json:JSON.stringify({meta:{date:copy.date,copyId:copy.copyId,sealHash:copy.sealHash,operationOrigin:copy.operationOrigin},scope:{synthetic:false,operationOrigin:copy.operationOrigin}})}]};}}
  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:'serializable'},BigInt:'bigint',UniqueIdentifier:'uuid',Date:'date',NVarChar:n=>'nvarchar'+n,Bit:'bit'};
  return {copy,calls,events,getRuntime:async()=>({copyContext:copy,pool:{},sql})};
 }
@@ -97,4 +97,34 @@ test('business HOME journal scope excludes financial/source history and exposes 
  assert.match(BUSINESS_INBOUND_HOME_SUMMARY_SQL,/j\.copy_id=@copy_id/g);assert.match(BUSINESS_INBOUND_HOME_SUMMARY_SQL,/work_business_count_bindings/);assert.match(BUSINESS_INBOUND_HOME_SUMMARY_SQL,/c\.created_by=@actor OR @actor=16/);assert.match(BUSINESS_INBOUND_HOME_SUMMARY_SQL,/TOP\(5\)/);
  assert.doesNotMatch(BUSINESS_INBOUND_HOME_SUMMARY_SQL,/sales_invoices|customer_movements|supplier_movements|finance_accounts|test_daily_drafts|invoice_returns|UPDATE|DELETE|MERGE|INSERT dbo/i);
  for(const options of [{wrongDB:true},{deny:true},{badProof:true},{badFk:true}]){const rt=copyRuntime({...options,business:true});await assert.rejects(createHomeSummaryReadStore(rt).read({actorId:'16',sessionPermissions:rights,date:meta.date}));assert.equal(rt.calls.some(c=>c.q===BUSINESS_INBOUND_HOME_SUMMARY_SQL),false);assert.equal(rt.events.at(-1),'rollback');}
+});
+test('registered daily HOME enables role15 sales/customer links without finance or approval grants or invented totals',async()=>{
+ const staff=['goods.view','goods.create','product.view','purchase.view','sales.view','sales.create','sales.finalize','sales.cancel','customer.view'];
+ const rt=copyRuntime({business:true,actorId:'15',actualPermissions:staff});let reads=0;
+ const getDailySelection=copy=>{assert.equal(copy,rt.copy);assert(rt.calls.some(c=>c.name?.endsWith('_ready')));assert(rt.calls.some(c=>c.name?.endsWith('_context')));reads++;return {productIds:['34765']};};
+ const dto=await createHomeSummaryService({store:createHomeSummaryReadStore({...rt,getDailySelection}),clock:()=>new Date(meta.readAt)}).summary({id:'15',permissions:staff});
+ assert.equal(reads,1);for(const key of ['sales','customer','product','goods','returns'])assert.equal(dto.navigationReady[key],true,key);
+ for(const key of ['finance','collection','payment','count','approval','supplier','purchase'])assert.equal(dto.capabilities[key],false,key);
+ assert.equal(dto.sections.sales.status,'unavailable');assert.equal(dto.sections.sales.count,null);assert.equal(dto.sections.finance.status,'unavailable');assert.deepEqual(dto.sections.finance.collections,[]);assert.equal(dto.sections.counts.pendingCount,null);assert.equal(dto.sections.refunds.salesCount,null);
+ assert.equal(rt.calls.filter(c=>c.q===BUSINESS_INBOUND_HOME_SUMMARY_SQL).length,1);assert.equal(rt.calls.some(c=>c.q===COPY_HOME_SUMMARY_SQL),false);
+});
+test('verified daily links still require current permission AND session; inbound approval remains separate',()=>{
+ for(const removeFrom of ['actual','session']){
+  const actual=removeFrom==='actual'?rights.filter(k=>k!=='sales.view'&&k!=='finance.view'&&k!=='stock.adjust'):rights;
+  const session=removeFrom==='session'?rights.filter(k=>k!=='sales.view'&&k!=='finance.view'&&k!=='stock.adjust'):rights;
+  const capabilities=businessDailyHomeCapabilities(actual,session,'16');
+  for(const key of ['sales','finance','collection','payment','count','salesReturn'])assert.equal(capabilities[key],false,key);
+ }
+ assert.equal(businessDailyHomeCapabilities(rights,rights,'15').approval,false);
+ assert.equal(businessDailyHomeCapabilities(rights,rights,'16').approveGoods,true);
+ const capabilities=businessDailyHomeCapabilities(rights,rights,'16');
+ const dto=homeSummaryDto({...raw(capabilities),counts:{...counts,salesCount:null,countPendingCount:null},copyMeta:{scopeKind:'VERIFIED_BUSINESS_TEST',dailySelectionReady:true}},meta);
+ assert.equal(dto.navigationReady.collection,true);assert.equal(dto.navigationReady.count,true);assert.equal(dto.sections.finance.cash.status,'unavailable');assert.equal(dto.sections.approvals.complete,false);assert.deepEqual(dto.sections.approvals.sourceCoverage,['goods']);
+});
+test('daily selection is never read before failed SQL identity/registry/read proof/actor/FK gates',async()=>{
+ for(const bad of [{wrongDB:true},{badProof:true},{deny:true},{badFk:true}]){
+  const rt=copyRuntime({...bad,business:true});let called=false;
+  await assert.rejects(createHomeSummaryReadStore({...rt,getDailySelection:()=>{called=true;return {};}}).read({actorId:'16',sessionPermissions:rights,date:meta.date}));
+  assert.equal(called,false);assert.equal(rt.calls.some(c=>c.q===BUSINESS_INBOUND_HOME_SUMMARY_SQL),false);
+ }
 });

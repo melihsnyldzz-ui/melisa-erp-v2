@@ -14,6 +14,8 @@ import kotlinx.coroutines.*
 class DataWedge(private val context: Context, private val onScan: (String) -> Unit, private val onStatus: (String) -> Unit, private val preferences: () -> UiPreferences = { UiPreferences() }) {
     private var registered = false
     private val scanAction = context.packageName + ".SCAN"
+    private val profileName = scannerProfileName(context.packageName)
+    private val commandPrefix = if (context.packageName.endsWith(".worktest")) "MELISA_WORKTEST" else "MELISA_NATIVE"
     private var tone: ToneGenerator? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var configured = false
@@ -34,14 +36,14 @@ class DataWedge(private val context: Context, private val onScan: (String) -> Un
                 onScan(value)
             } else if (intent.action == "com.symbol.datawedge.api.RESULT_ACTION") {
                 val command = intent.getStringExtra("COMMAND_IDENTIFIER")
-                if (command == "MELISA_NATIVE_PROFILE") {
+                if (command == commandPrefix + "_PROFILE") {
                     if (intent.getStringExtra("RESULT") == "SUCCESS") readAssociation()
                     else configurationResult(false, "DataWedge ayarı doğrulanamadı")
-                } else if (command == "MELISA_NATIVE_ASSOCIATE") {
+                } else if (command == commandPrefix + "_ASSOCIATE") {
                     val success = intent.getStringExtra("RESULT") == "SUCCESS"
                     configurationResult(success, if (success) "DataWedge hazır" else "DataWedge profil bağlantısı doğrulanamadı")
                 } else intent.getBundleExtra("com.symbol.datawedge.api.RESULT_GET_CONFIG")?.let { config ->
-                    if (config.getString("PROFILE_NAME") == "MelisaNativeV1" && config.containsKey("APP_LIST")) {
+                    if (config.getString("PROFILE_NAME") == profileName && config.containsKey("APP_LIST")) {
                         @Suppress("DEPRECATION") val apps = config.getParcelableArrayList<Bundle>("APP_LIST").orEmpty()
                         if (apps.any { it.getString("PACKAGE_NAME") == context.packageName }) configurationResult(true, "DataWedge hazır")
                         else associate()
@@ -72,16 +74,16 @@ class DataWedge(private val context: Context, private val onScan: (String) -> Un
         configured = success; configurationJob?.cancel(); onStatus(message)
     }
     private fun readAssociation() {
-        val config = Bundle().apply { putString("PROFILE_NAME", "MelisaNativeV1"); putString("APP_LIST", "") }
+        val config = Bundle().apply { putString("PROFILE_NAME", profileName); putString("APP_LIST", "") }
         context.sendBroadcast(Intent("com.symbol.datawedge.api.ACTION").setPackage("com.symbol.datawedge").putExtra("com.symbol.datawedge.api.GET_CONFIG", config))
     }
     private fun associate() {
         val config = Bundle().apply {
-            putString("PROFILE_NAME", "MelisaNativeV1"); putString("CONFIG_MODE", "UPDATE")
+            putString("PROFILE_NAME", profileName); putString("CONFIG_MODE", "UPDATE")
             putParcelableArray("APP_LIST", arrayOf(Bundle().apply { putString("PACKAGE_NAME", context.packageName); putStringArray("ACTIVITY_LIST", arrayOf("*")) }))
         }
         context.sendBroadcast(Intent("com.symbol.datawedge.api.ACTION").setPackage("com.symbol.datawedge")
-            .putExtra("com.symbol.datawedge.api.SET_CONFIG", config).putExtra("SEND_RESULT", "LAST_RESULT").putExtra("COMMAND_IDENTIFIER", "MELISA_NATIVE_ASSOCIATE"))
+            .putExtra("com.symbol.datawedge.api.SET_CONFIG", config).putExtra("SEND_RESULT", "LAST_RESULT").putExtra("COMMAND_IDENTIFIER", commandPrefix + "_ASSOCIATE"))
     }
     fun trigger() = send("com.symbol.datawedge.api.SOFT_SCAN_TRIGGER", "TOGGLE_SCANNING")
     private fun send(extra: String, value: String) = context.sendBroadcast(Intent("com.symbol.datawedge.api.ACTION").setPackage("com.symbol.datawedge").putExtra(extra, value))
@@ -93,7 +95,7 @@ class DataWedge(private val context: Context, private val onScan: (String) -> Un
         val sha1 = MessageDigest.getInstance("SHA-1").digest(signature.toByteArray()).joinToString("") { "%02X".format(it) }
         fun plugin(name: String, parameters: Bundle) = Bundle().apply { putString("PLUGIN_NAME", name); putString("RESET_CONFIG", "false"); putBundle("PARAM_LIST", parameters) }
         val config = Bundle().apply {
-            putString("PROFILE_NAME", "MelisaNativeV1"); putString("PROFILE_ENABLED", "true"); putString("CONFIG_MODE", "CREATE_IF_NOT_EXIST")
+            putString("PROFILE_NAME", profileName); putString("PROFILE_ENABLED", "true"); putString("CONFIG_MODE", "CREATE_IF_NOT_EXIST")
             putParcelableArrayList("PLUGIN_CONFIG", arrayListOf(
                 plugin("BARCODE", Bundle().apply { putString("scanner_input_enabled", "true"); putString("scanner_selection", "auto") }),
                 plugin("KEYSTROKE", Bundle().apply { putString("keystroke_output_enabled", "false") }),
@@ -104,6 +106,6 @@ class DataWedge(private val context: Context, private val onScan: (String) -> Un
             ))
         }
         context.sendBroadcast(Intent("com.symbol.datawedge.api.ACTION").setPackage("com.symbol.datawedge")
-            .putExtra("com.symbol.datawedge.api.SET_CONFIG", config).putExtra("SEND_RESULT", "LAST_RESULT").putExtra("COMMAND_IDENTIFIER", "MELISA_NATIVE_PROFILE"))
+            .putExtra("com.symbol.datawedge.api.SET_CONFIG", config).putExtra("SEND_RESULT", "LAST_RESULT").putExtra("COMMAND_IDENTIFIER", commandPrefix + "_PROFILE"))
     }
 }

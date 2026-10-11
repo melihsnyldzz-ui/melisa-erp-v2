@@ -20,9 +20,16 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     buildTypes {
+        debug {
+            applicationIdSuffix = ".worktest"
+            versionNameSuffix = "-workflow4"
+        }
         // This is the intermediate APK. The pinned release script rotates it to the private production key.
         release { signingConfig = signingConfigs.getByName("debug"); isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }
     }
+    val workOrigin = providers.gradleProperty("workOrigin").getOrElse("http://127.0.0.1:5234")
+    require(workOrigin in setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234")) { "Unknown isolated terminal origin" }
+    defaultConfig { buildConfigField("String", "WORK_ORIGIN", "\"$workOrigin\"") }
     testOptions { unitTests.isIncludeAndroidResources = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }

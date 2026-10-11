@@ -4,22 +4,35 @@ import {createWorkReceiving} from './workReceiving.js';
 import {createWorkSales} from './workSales.js';
 import {createWorkCount} from './workCount.js';
 import {createWorkSupplierReturns} from './workSupplierReturns.js';
+import {createCartonPacking} from './cartonPacking.js';
 import {moneyDisplay,catalogPath,catalogEnvelope,catalogMainPrice,catalogExact} from './workCatalogModel.mjs';
 import {createCatalogPhotoLoader,createCatalogThumbnailLoader} from './workCatalogPhoto.mjs';
-import {terminalActions,terminalRoute,terminalCrmUrl,terminalMessage,terminalStorage,terminalUser,createTerminalScanGate,createTerminalSessionFacade,terminalOfflineText} from './personnelTerminalModel.mjs';
+import {terminalActions,terminalRoute,terminalWorkActions,terminalWorkRoute,terminalCrmUrl,terminalCrmViewportHeight,terminalMessage,terminalStorage,terminalUser,createTerminalScanGate,createTerminalSessionFacade,terminalOfflineText} from './personnelTerminalModel.mjs';
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const root=document.getElementById('view'),crm=document.getElementById('terminal-crm'),frame=document.getElementById('terminal-crm-frame'),crmStatus=document.getElementById('terminal-crm-status'),connection=document.getElementById('terminal-connection');
 const storage=terminalStorage(sessionStorage),scanner=createTerminalScanGate();
+const workTasks=new URLSearchParams(location.search).get('worktest')==='1',actions=workTasks?terminalWorkActions:terminalActions,resolveRoute=workTasks?terminalWorkRoute:terminalRoute;
+if(workTasks)document.body.classList.add('work-task-terminal');
 let session=null,user=null,controller=null,route='home',crmStarted=false,crmOrigin=null,crmTimer=null,pendingWrites=0,navigationVersion=0,crmLogoutPending=storage.getItem('crmLogoutPending')==='true',logoutResolve=null;
 function announce(message){connection.textContent=message;connection.hidden=!message;}
 function online(){return navigator.onLine!==false;}
 function connectionState(){announce(online()?'':terminalOfflineText);}
 window.addEventListener('online',connectionState);window.addEventListener('offline',connectionState);
+function syncCrmHeight(){
+ const headerHeight=document.querySelector('.terminal-header')?.getBoundingClientRect().height??0;
+ const height=terminalCrmViewportHeight({visualHeight:window.visualViewport?.height,innerHeight:window.innerHeight,headerHeight});
+ document.documentElement.style.setProperty('--terminal-crm-height',`${height}px`);
+}
+window.addEventListener('resize',syncCrmHeight);
+window.visualViewport?.addEventListener('resize',syncCrmHeight);
+window.addEventListener('pageshow',syncCrmHeight);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncCrmHeight();});
+syncCrmHeight();
 
 // Existing services own writes and UUID journals. The facade prevents approval,
 // finance and offline actions; it creates no commercial source or sync queue.
-function client(){const scoped=createTerminalSessionFacade(session,{online});return {...scoped,work:(path,options)=>track(()=>scoped.work(path,options),options),inbound:(path,options)=>track(()=>scoped.inbound(path,options),options)};}
+function client(){const scoped=createTerminalSessionFacade(session,{online});return {...scoped,work:(path,options)=>track(()=>scoped.work(path,options),options),inbound:(path,options)=>track(()=>scoped.inbound(path,options),options),cartons:(path,options)=>track(()=>scoped.cartons(path,options),options)};}
 async function track(action,options){const write=options?.method==='POST';if(write)pendingWrites++;try{return await action();}finally{if(write)pendingWrites--;}}
 function closeAllowed(){
  if(pendingWrites||controller?.requestClose?.()===false){announce('Son işlemi doğruladıktan sonra başka ekrana geçebilirsiniz.');return false;}
@@ -28,19 +41,22 @@ function closeAllowed(){
  return true;
 }
 function go(value,{initial=false}={}){
- const next=terminalRoute(value);if(!initial&&!closeAllowed())return false;
+ const next=resolveRoute(value);if(!initial&&!closeAllowed())return false;
  controller?.dispose();controller=null;scanner.reset();route=next;navigationVersion++;root.hidden=route==='crm';crm.hidden=route!=='crm';
  if(location.hash!=='#'+route)history.replaceState(null,'','#'+route);
  if(!user){showLogin();return true;}
- if(route==='home')home();else if(route==='crm')openCrm();else if(route==='products'){controller=products();controller.mount();}else{
+ if(route==='home')home();else if(route==='crm')openCrm();else if(route==='products'){controller=products();controller.mount();}else if(route==='packing'){
+  const scoped=client(),base='/api/terminal-cartons/receipts';
+  controller=createCartonPacking({root,user,scopeKey:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount();
+ }else{
   const args={root,session:client(),user,storage:localStorage,navigate:go};
   controller=route==='goods'?createWorkReceiving(args):route==='sales'?createWorkSales(args):route==='count'?createWorkCount(args):createWorkSupplierReturns(args);
   controller.mount();
  }
  connectionState();return true;
 }
-function home(){root.innerHTML=`<section class="terminal-home"><h1>Bugünkü işiniz</h1><p>İşinizi seçin; kaydınızı aynı ekrandan sürdürün.</p><div class="terminal-actions">${terminalActions.map(a=>`<button class="terminal-action" type="button" data-terminal-route="${a.id}"><span aria-hidden="true">${a.icon}</span>${a.label}</button>`).join('')}</div><p><a class="btn" href="/kullanim-egitimi.html?terminal=1#receiving">Kısa eğitimler</a></p></section>`;root.querySelectorAll('[data-terminal-route]').forEach(button=>button.onclick=()=>go(button.dataset.terminalRoute));}
-function setUser(current){user=terminalUser(current);document.getElementById('terminal-user').textContent=workingCatalogUserLabel(user);document.getElementById('terminal-logout').hidden=false;go(route,{initial:true});}
+function home(){root.innerHTML=`<section class="terminal-home"><h1>Bugünkü işiniz</h1><p>İşinizi seçin; kaydınızı aynı ekrandan sürdürün.</p><div class="terminal-actions">${actions.map(a=>`<button class="terminal-action" type="button" data-terminal-route="${a.id}"><span aria-hidden="true">${a.icon}</span>${a.label}</button>`).join('')}</div><p><a class="btn" href="/kullanim-egitimi.html?terminal=1#receiving">Kısa eğitimler</a></p></section>`;root.querySelectorAll('[data-terminal-route]').forEach(button=>button.onclick=()=>go(button.dataset.terminalRoute));}
+function setUser(current){user=terminalUser(current);document.getElementById('terminal-user').textContent=workTasks&&user.role?.code==='isolated_test_sales'?'Personel':workTasks&&user.role?.code==='isolated_test_ilker'?'İş sorumlusu':workingCatalogUserLabel(user);document.getElementById('terminal-logout').hidden=false;go(route,{initial:true});}
 function showLogin(message=''){
  controller?.dispose();controller=null;user=null;root.hidden=false;crm.hidden=true;document.getElementById('terminal-user').textContent='';document.getElementById('terminal-logout').hidden=true;
  root.innerHTML=`<section class="card terminal-login"><h1>Personel girişi</h1><p>Kendi hesabınızla günlük işlerinizi açın.</p><p role="alert">${esc(message)}</p><form id="terminal-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required maxlength="120"></label><label>Parola<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary">Programa gir</button></form></section>`;
@@ -60,6 +76,7 @@ async function requestCrmLogout(){
  await new Promise(resolve=>{logoutResolve=resolve;recoverCrmLogout();setTimeout(()=>{if(logoutResolve===resolve){logoutResolve=null;resolve();}},4000);});
 }
 function openCrm(){
+ syncCrmHeight();requestAnimationFrame(syncCrmHeight);
  if(crmLogoutPending){frame.hidden=true;crm.dataset.ready='false';crmStatus.textContent='Önceki müşteri oturumunun kapanışı doğrulanıyor. ERP işlerinize devam edebilirsiniz.';recoverCrmLogout();return;}
  frame.hidden=false;
  if(!online()){crmStatus.textContent=terminalOfflineText;crm.dataset.ready='false';return;}
@@ -83,7 +100,7 @@ window.addEventListener('hashchange',()=>{if(!go(location.hash.slice(1)))history
 // must not add another quantity or submit a commercial form a second time.
 document.addEventListener('keydown',event=>{
  if(event.key!=='Enter'||!(event.target instanceof HTMLInputElement))return;
- const input=event.target,scan=input.matches('#count-scan,[name=scan],[name=search],[data-terminal-query]');
+ const input=event.target,scan=input.matches('#count-scan,[name=scan],[name=search],[data-terminal-query],[data-carton-scan]');
  if(!scan)return;
  if(pendingWrites||!scanner.accept(input.value)){event.preventDefault();event.stopImmediatePropagation();return;}
  if(route==='sales'&&input.matches('[name=search]')){event.preventDefault();event.stopImmediatePropagation();input.closest('form')?.querySelector('[data-sale-barcode]')?.click();}
@@ -104,4 +121,4 @@ function products(){
  async function detail(id){const n=++generation,box=root.querySelector('[data-terminal-product-detail]');if(!box||busy)return;box.innerHTML='<p role="status">Ürün açılıyor…</p>';try{const p=catalogEnvelope(await scoped.api(`/api/catalog/products/${id}`,{envelope:true}),{salesPermission,detail:true});if(!active||n!==generation)return;const r=p.data;box.innerHTML=`<article class="card terminal-product-card"><button class="btn" data-terminal-close>Listeye dön</button><h2>${esc(r.displayCode)}</h2><div class="terminal-product-photo" data-terminal-photo></div><p class="terminal-price">${esc(money(r))}</p><dl><dt>Marka</dt><dd>${esc(r.classification.brand??'Bilinmiyor')}</dd><dt>Tür</dt><dd>${esc(r.classification.productType??'Bilinmiyor')}</dd><dt>Stok kodu</dt><dd>${esc(r.stockCode)}</dd><dt>Barkod</dt><dd>${esc(r.barcodes.map(b=>b.value).join(' · ')||'Bilinmiyor')}</dd><dt>Stok</dt><dd>${esc(r.stockQuantityExact===null?'Bilinmiyor':catalogExact(r.stockQuantityExact))} ${esc(r.unit.label??'')}</dd></dl>${r.hold.blocked?'<p>İnceleme bekliyor. İşlem başlatılamaz.</p>':''}</article>`;photo.show(box.querySelector('[data-terminal-photo]'),r);box.querySelector('[data-terminal-close]').onclick=()=>{photo.clear();box.innerHTML='';root.querySelector('[name=query]')?.focus();};box.scrollIntoView({block:'start'});}catch(error){if(active&&n===generation)box.textContent=!online()?terminalOfflineText:'Ürün bilgileri doğrulanamadı.';}}
  return {mount(){state();search();},dispose(){active=false;generation++;photo.dispose();thumbs.dispose();}};
 }
-route=terminalRoute(location.hash.slice(1));connectionState();start();
+route=resolveRoute(location.hash.slice(1));connectionState();start();

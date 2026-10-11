@@ -1,3 +1,10 @@
+## ERP-COMPLETE01 / ERP-DEC-044 — teknik uygulama sürüyor — 11 Ekim 2026
+
+Kabul edilmiş tarihli DB02 tabanı, API4184/native4186 source a51b117 ve TEST125 korunuyor; yeni Vega aktarımı yapılmadı. Dört görevli ayrı Android worktest APK gerçek TC21'e kuruldu; mevcut normal personel hesabı doğrulandı. APK129/129 unit + assemble PASS, optik okuyucu/instrumentation yürütme ve insan kabulü bekliyor. Geçici USB/loopback5264 çalışma yüzü kalıcı Hub5234/API veya sabit başlangıç aktivasyonu değildir.
+
+HOME mevcut rol kesişimi kaynakta düzeltildi ve gerçek DB02 SELECT ile doğrulandı; çalışan API'ye kurulmadı. Koli kaynak/özel dosya metadata, miktar, CAS/replay, bozuk journal ve sayım taslak korumaları hedefli testlidir. Gerçek cihazda müşteri iframe yüksekliği ve 406 seçenekli tedarikçi araması için dar sunum düzeltmesi kaynakta tamamlandı; son cihaz doğrulaması bekliyor. Yeni ticari işlem henüz yapılmadı; dört terminal videosu tamamlanmadı. Dört Türkçe yerel anlatım sesi ve ilk ham cihaz kaydı yalnız hazırlıktır.
+
+Güncel171 hedefli kontrol ve BUSINESS build PASS; kaynak-paket pin bağı için ayrıca16 kontrol PASS. Bunlar yeni çalışan tüm API paketi veya insan kabulü değildir. [Teknik kanıt](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md), [geçiş denetimi](docs/evidence/erp/2026-10-11-completion/transition-package.md). Dal codex/erp-finish-20261004 / PR23; teslim commit'i push sonrası doğrulanacak. CI ödeme/harcama engeli sürüyor; yeşil sayılmadı. Finish49/9 tamam/39 kısmi/1 açık korunur. Bu kayıt ara teknik checkpoint'tir; dört teslim tamamlandı veya LIVE hazır denmez.
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 
 10 Ekim 2026: kaynak **b5a8ce1**, tam ERP paket build'i **PASS**: `CANONICAL-LEARN-TEST-20261010-b5a8ce1`. Web **5234 / DB02** üzerinde etkin; API **4184** / native **4186** kaynak **a51b117** korunur. Sekiz statik ders, sade ekran başlıkları, dokunma düğmeleri ve personel → İlker'in mevcut yetkisiyle kontrol/onay → muhasebenin belge/tutar/döviz kontrolü görev devri hazırdır. Muhasebeye yeni onay yetkisi verilmedi. PR27'nin yalnız saf kısa ders/soru yaklaşımı kullanıldı; PR27 değiştirilmedi.

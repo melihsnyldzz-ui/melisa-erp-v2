@@ -6,6 +6,16 @@ const location={hostname:'127.0.0.1',protocol:'http:',port:'5194'},apiBase='http
 const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['product.view','sales.view']};
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
+test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
+ const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
+ store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'carton-fixture');
+ const s=createWorkingCatalogSession({location:target,apiBase:'http://127.0.0.1:4184',storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(person):url.endsWith('/receipts/99')?reply(null,403):reply([]);}});
+ await s.start();await s.cartons('/api/terminal-cartons/receipts');await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts/99'),e=>e.status===403);assert.equal(store.getItem(workingCatalogTokenKey),'carton-fixture');
+ assert.equal(calls[1].url,target.origin+'/api/terminal-cartons/receipts');assert.equal(calls[1].options.headers.Authorization,'Bearer carton-fixture');
+ const n=calls.length;for(const path of ['/api/work-sales/invoices','/api/terminal-cartons/receipts/01','/api/terminal-cartons/receipts/1?actorId=16','/api/terminal-cartons/receipts/../1','http://192.168.1.46:5234/api/terminal-cartons/receipts'])await assert.rejects(()=>s.cartons(path));
+ await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts',{method:'POST',body:{}}));await assert.rejects(()=>s.cartons('/api/terminal-cartons/receipts/1',{method:'DELETE'}));assert.equal(calls.length,n);s.dispose();
+ const lan=createWorkingCatalogSession({location:{...target,hostname:'192.168.1.46',origin:'http://192.168.1.46:5234'},apiBase:'http://192.168.1.46:4184',storage:store,fetchImpl:async()=>reply(person)});await lan.start();await assert.rejects(()=>lan.cartons('/api/terminal-cartons/receipts'));lan.dispose();
+});
 test('shared LAN session cannot send its catalog reads to either prior TEST API',async()=>{
  const sharedLocation={...location,hostname:'192.168.1.46',port:'5224'},sharedBase='http://127.0.0.1:4174',calls=[];
  const session=createWorkingCatalogSession({location:sharedLocation,apiBase:sharedBase,storage:storage(),fetchImpl:async(url)=>{calls.push(url);return url.endsWith('/auth/test-admin')?reply({user,accessToken:'shared-fixture-token'}):reply({products:[]});}});

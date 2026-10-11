@@ -1,3 +1,8 @@
+## ERP-UA32 / ERP-COMPLETE01 — Android dört görev ve yeni eğitim — bekliyor
+
+Kullanıcı/personel fiziksel sonucu ve deneme tarihi henüz bildirilmedi. Gerçek TC21 normal personel oturumu, ayrı worktest uygulaması ve kaynak hedefli testleri teknik kanıttır; insan PASS değildir. USB yönlendirmesi şirket Wi-Fi işletim kabulü değildir. Önceki ERP-UA31 ve diğer bekleyen kabuller korunur.
+
+Hazırlık tamamlandığında personel mal kabulde gerçek okutma ve adet düzeltme/İlker'e gönderim; satışta müşteri ve barkod; tamamlanmış fişte miktarlı çok koli ve devam; yalnız kendi atanmış CRM konuşması üzerinde kontrollü TEST turunu deneyecek. Dört yeni terminal videosu henüz tamamlanmadı; önceki sekiz ERP dersi bunların yerine sayılmaz. [Güncel teknik durum](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md).
 ## ERP-UA31 / ERP-CRM-LEARN01 — insan eğitim kabulü bekliyor
 
 **Kişi, deneme tarihi ve insan sonucu bildirilmedi; ERP-UA31 bekliyor.** Eğitim kaynağı b5a8ce1, etkin izole web 5234 / DB02. Paket, gerçek tarayıcı ve fiziksel TC21 eğitim ekranı teknik sonuçları [kanıtta](docs/evidence/erp/2026-10-10-training-preparation/README.md) kayıtlıdır. API/native a51b117 ve TEST125 korunur; bu kontroller personelin insan kabulü değildir.

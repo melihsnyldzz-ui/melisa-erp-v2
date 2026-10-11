@@ -2,7 +2,17 @@
 // journals remain owned by the existing ERP / CRM services.
 export const terminalActions=Object.freeze([{id:'goods',label:'Mal Kabul',icon:'▣'},{id:'sales',label:'Satış',icon:'▤'},{id:'crm',label:'Müşterilerim',icon:'☏'},{id:'products',label:'Ürünler',icon:'▧'},{id:'count',label:'Sayım',icon:'✓'},{id:'returns',label:'İade',icon:'↶'}]);
 export const terminalRoute=value=>terminalActions.some(a=>a.id===value)?value:'home';
+export const terminalWorkActions=Object.freeze([terminalActions[0],terminalActions[1],{id:'packing',label:'Koli Hazırlığı',icon:'▣'},terminalActions[2]]);
+export const terminalWorkRoute=value=>terminalWorkActions.some(a=>a.id===value)?value:'home';
 export const terminalOfflineText='Bağlantı yok — bu işlem çevrimiçi tamamlanmalıdır.';
+// The native WebView can report a zero CSS dvh while its real viewport is visible.
+// Only the web header is subtracted; the Android header is outside this viewport.
+export function terminalCrmViewportHeight({visualHeight,innerHeight,headerHeight}={}){
+ const positive=value=>typeof value==='number'&&Number.isFinite(value)&&value>0;
+ const viewport=positive(visualHeight)?visualHeight:positive(innerHeight)?innerHeight:480;
+ const header=typeof headerHeight==='number'&&Number.isFinite(headerHeight)?Math.max(0,headerHeight):0;
+ return Math.max(1,Math.floor(viewport-header));
+}
 export function terminalCrmUrl(location){
  const pairedPorts={'5194':'62400','5224':'62600','5234':'62700'};
  if(location?.protocol!=='http:'||!Object.hasOwn(pairedPorts,location?.port??'')||!['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname))throw Error('Müşteri bağlantısı kullanılamıyor.');
@@ -28,5 +38,5 @@ export function createTerminalSessionFacade(session,{online=()=>globalThis.navig
  const check=()=>{if(!online())throw Object.assign(Error(terminalOfflineText),{status:503});};
  const read=(method)=>(...args)=>{check();return session[method](...args);};
  const write=(method)=>(path,options={})=>{check();if(typeof path!=='string'||/(?:work-collections|supplier-payments|work-purchases|\/approve$|\/reject$|\/cancel$)/.test(path))throw Object.assign(Error('Bu işlem terminal personel yüzünden kullanılamıyor.'),{status:403});return session[method](path,options);};
- return {api:read('api'),media:read('media'),work:write('work'),inbound:write('inbound')};
+ return {api:read('api'),media:read('media'),work:write('work'),inbound:write('inbound'),cartons:write('cartons'),businessSupplierSelection:read('businessSupplierSelection')};
 }

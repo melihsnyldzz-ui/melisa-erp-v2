@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "baselineSource": "d6742c47d5c9552f324b7c7819b3f684c7a9d112",
+  "legacyProvenance": "source-provenance.json",
+  "applicationId": "com.melisaerp.nativeterminal.worktest",
+  "versionName": "1.0.0-candidate.18-t2-workflow4",
+  "workOrigin": "http://127.0.0.1:5234",
+  "apiOrigin": "http://127.0.0.1:4184",
+  "copyId": "e16b70f0-4057-428b-9abc-6bbcaf35fe82",
+  "targetDatabase": "MELISA_ERP_CRM_SHARED_TEST_20261009_02",
+  "runtimeIdentityValidation": "coordinator required before activation; not a client DB proof",
+  "build": {
+    "offline": true,
+    "unitTests": 129,
+    "failures": 0,
+    "errors": 0,
+    "assembleDebug": "PASS",
+    "androidInstrumentationCompile": "PASS",
+    "androidInstrumentationExecution": "NOT_RUN",
+    "physicalScan": "NOT_RUN",
+    "humanAcceptance": "PENDING",
+    "apkSha256": "8d4f91479f813b81714e6b2829ca50e598698b1f777810af15701bdee35a6fc9",
+    "apkBytes": 63534006
+  },
+  "files": [
+    {
+      "path": "app/build.gradle.kts",
+      "sha256": "f88a07142b85890b3683f1505887ba18443eb79e6999431ac2e7f5359247a4a6",
+      "bytes": 3382
+    },
+    {
+      "path": "app/src/debug/AndroidManifest.xml",
+      "sha256": "b7cdf61ea6a5f1775ca1b450cccddc3f49a22da3c304d5a5e89a4432f205b670",
+      "bytes": 814
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/WorkTasksActivity.kt",
+      "sha256": "bfea80581b4aa5166b68bf2a7a9b4c5bf6f24a842f57305c506dda2eea87e515",
+      "bytes": 10693
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/WorkTasksContract.kt",
+      "sha256": "931ce7f0f10c62cfed16b2fd486bab47aaa2acaff71e34ca35a480265e6f910b",
+      "bytes": 4587
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/DataWedge.kt",
+      "sha256": "33bd5b2d7c579b1f5fb4378bf2dc2f962ac5d352084efbd8c4b457f8cbd5517d",
+      "bytes": 8079
+    },
+    {
+      "path": "app/src/main/java/com/melisaerp/nativeterminal/scanner/ScannerContract.kt",
+      "sha256": "ac82224d6a5afa14e48e3ba4aad69188c595105b4a9a43b40841e9ae2e45148b",
+      "bytes": 1324
+    },
+    {
+      "path": "app/src/test/java/com/melisaerp/nativeterminal/WorkTasksContractTest.kt",
+      "sha256": "710821f29faf1dbc3bb7ede17a38d48c9d44a698e5470ff545fd7101c9d5cc49",
+      "bytes": 5088
+    },
+    {
+      "path": "app/src/androidTest/java/com/melisaerp/nativeterminal/DataWedgeProfileAcceptanceTest.java",
+      "sha256": "fa167dc927f7ae3c9cb7d9b5e5bcaae42d888c1dcba053c053f8d1bb4f5085b6",
+      "bytes": 5772
+    }
+  ]
+}

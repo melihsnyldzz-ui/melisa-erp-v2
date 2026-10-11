@@ -1,5 +1,5 @@
-import {homeCapabilities,businessInboundHomeCapabilities,homeError} from './homeSummaryModel.mjs';
-import {assertIsolatedCopyContext} from './isolatedOperationCopyContext.mjs';
+import {homeCapabilities,businessInboundHomeCapabilities,businessDailyHomeCapabilities,homeError} from './homeSummaryModel.mjs';
+import {assertIsolatedCopyContext,getBusinessDailySelection} from './isolatedOperationCopyContext.mjs';
 import {createIsolatedOperationCopyStore} from './isolatedOperationCopyStore.mjs';
 async function defaultRuntime(){const db=await import('../config/database.js');if(db.isIsolatedOperationCopyRuntime())return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),copyContext:assertIsolatedCopyContext(db.getIsolatedOperationCopyConfig())};if(!db.isCanonicalTest())throw homeError();return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
 const moneyQuery=(source,where)=>`SELECT currency_code currency,CONVERT(varchar(20),COUNT(amount)) knownCount,CONVERT(varchar(20),COUNT_BIG(*)-COUNT(amount)) unknownCount,CASE WHEN COUNT_BIG(*)=COUNT(amount) THEN CONVERT(varchar(64),CAST(SUM(amount) AS decimal(38,4))) ELSE NULL END amountExact4 FROM ${source} WHERE document_date=@date AND (${where}) GROUP BY currency_code;`;
@@ -30,8 +30,8 @@ SELECT TOP(5) id,kind,state,[date] FROM (
  FROM dbo.test_daily_drafts WHERE state=N'pending' AND((@goods=1 AND kind=N'goods') OR(@count=1 AND kind=N'count') OR(kind IN(N'invoice-return',N'uninvoiced') AND((@sales_return=1 AND flow=N'sales') OR(@purchase_return=1 AND flow=N'purchase'))))
 ) jobs ORDER BY priority,CASE WHEN ordering IS NULL THEN 1 ELSE 0 END,ordering,id;
 `;
-export function createHomeSummaryReadStore({getRuntime=defaultRuntime}={}){return {async read({actorId,sessionPermissions,date}){
- let tx;try{const runtime=await getRuntime();if(runtime.copyContext)return await readCopyHome(runtime,{actorId,sessionPermissions});const {pool,sql}=runtime;tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.READ_COMMITTED);
+export function createHomeSummaryReadStore({getRuntime=defaultRuntime,getDailySelection=getBusinessDailySelection}={}){return {async read({actorId,sessionPermissions,date}){
+ let tx;try{const runtime=await getRuntime();if(runtime.copyContext)return await readCopyHome(runtime,{actorId,sessionPermissions},getDailySelection);const {pool,sql}=runtime;tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.READ_COMMITTED);
   const identity=(await new sql.Request(tx).query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live")).recordset?.[0];
   if(identity?.db!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity.server!=='Semih\\MELISADEV'||!['melisa_sirket_test_20260929_01','melisa_sirket_sales_test_20260929_01'].includes(identity.login)||identity.databaseUser!==identity.login||identity.sysadmin!==0||identity.control!==0||identity.live!==0)throw homeError();
   const roles=(await new sql.Request(tx).input('actor',sql.BigInt,actorId).query('SELECT CONVERT(varchar(20),u.id) actorId,p.permission_key permissionKey,p.can_view canView FROM dbo.users u LEFT JOIN dbo.permissions p ON p.role_id=u.role_id WHERE u.id=@actor AND u.is_active=1;')).recordset;
@@ -109,14 +109,18 @@ SELECT TOP(5) id,kind,state,[date] FROM(
  UNION ALL SELECT N'purchase-draft:'+CONVERT(varchar(20),p.id),N'purchase-draft',N'draft',CONVERT(varchar(10),p.document_date,23),3 FROM dbo.purchase_invoices p JOIN @BusinessPurchases own ON own.id=p.id WHERE @purchase=1 AND p.status=N'draft'
 )jobs ORDER BY priority,id;`;
 
-async function readCopyHome(runtime,{actorId,sessionPermissions}){
+async function readCopyHome(runtime,{actorId,sessionPermissions},getDailySelection){
  const copy=assertIsolatedCopyContext(runtime.copyContext),actor={id:actorId,permissions:sessionPermissions};
  const business=copy.target.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
  const store=createIsolatedOperationCopyStore({getRuntime:async()=>runtime,domain:business?'inbound':'daily',readPermission:business?'goods.view':'product.view',buildDomain:async({context,actual,request})=>({context,summary:async()=>{
-  const capabilities=business?businessInboundHomeCapabilities(actual.permissions,sessionPermissions,actorId):homeCapabilities(actual.permissions,sessionPermissions),sql=runtime.sql,req=request().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('date',sql.Date,copy.date);
+  // buildDomain is entered only after identity, ready registry, native/FK
+  // proofs and current actor checks. The registered selection unlocks links,
+  // not aggregate data or any additional native permission.
+  const dailySelection=business?getDailySelection(copy):null,dailySelectionReady=business&&dailySelection!==null&&typeof dailySelection==='object';
+  const capabilities=business?(dailySelectionReady?businessDailyHomeCapabilities(actual.permissions,sessionPermissions,actorId):businessInboundHomeCapabilities(actual.permissions,sessionPermissions,actorId)):homeCapabilities(actual.permissions,sessionPermissions),sql=runtime.sql,req=request().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('date',sql.Date,copy.date);
   if(business)req.input('actor',sql.BigInt,actorId);
   for(const [key,name] of Object.entries({sales:'sales',goods:'goods',purchase:'purchase',finance:'finance',count:'count',approval:'approval',approveGoods:'approve_goods',salesReturn:'sales_return',purchaseReturn:'purchase_return'}))req.input(name,sql.Bit,capabilities[key]);
   const sets=(await req.query(business?BUSINESS_INBOUND_HOME_SUMMARY_SQL:COPY_HOME_SUMMARY_SQL)).recordsets;if(!Array.isArray(sets)||sets.length!==6||sets[0]?.length!==1)throw homeError();
-  return {capabilities,counts:sets[0][0],salesTotals:sets[1],collections:sets[2],payments:sets[3],reversals:sets[4],tasks:sets[5],copyMeta:{operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash,date:copy.date,...(business?{scopeKind:copy.scopeKind}:{} )}};
+  return {capabilities,counts:sets[0][0],salesTotals:sets[1],collections:sets[2],payments:sets[3],reversals:sets[4],tasks:sets[5],copyMeta:{operationOrigin:copy.operationOrigin,copyId:copy.copyId,sealHash:copy.sealHash,date:copy.date,...(business?{scopeKind:copy.scopeKind,dailySelectionReady}:{} )}};
  }})});return store.read(actor,c=>c.summary());
 }

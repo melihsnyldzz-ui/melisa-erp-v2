@@ -34,5 +34,6 @@ __pycache__/
 
 # Canonical reproducible build and private runtime outputs
 apps/web-admin/dist-*/
+apps/sites-workflow/dist-business/
 .canonical-runtime/
 *.private.json

@@ -1,3 +1,7 @@
+## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
+
+Mevcut kabul edilmiş DB02 tarihli veri temeliyle dört teslim: ERP teknik açıkları; Kotlin tabanlı gerçek bağlantılı dört görevli Android terminali; bu terminalin dört Türkçe görsel/video eğitimi; kanıtlı kurulum/veri kontrol/yedek/geri dönüş paketi. Android, koli sözleşmesi ve geçiş paketi ayrık ajanlarda; normal ekran denetimi, entegrasyon ve kayıtlar ana ajanda. 49/9/39/1 doğrulanmış sayım yeniden araştırılmaz. Sabit adres/başlangıç checkpoint'i ve çalışan TEST125/DB02 süreçleri korunur; yeni kalıcı aktivasyon yok. İnsan/cihaz kabulü ayrı bekler. Önceki eğitim hazırlanmıştır; sekiz ERP dersi dört yeni terminal videosunun yerine geçmez.
+
 ## ERP-CRM-LEARN01 / ERP-DEC-042 — ekran ve eğitim hazırlığı
 
 **ŞİMDİ — teknik eğitim paketi etkin; insan incelemesi bekliyor.** Sekiz kısa ders, sade ekran başlıkları ve personel → İlker → muhasebe görev devri hazırlandı. ERP b5a8ce1 tam build/manifest kontrolü PASS ve web 5234 / DB02 etkin; mevcut işlem yetkileri ve API/native kaynak a51b117 korundu. Gerçek tarayıcı ve fiziksel TC21 eğitim ekranı kontrolü tamamlandı. Ders tamamlamak insan kabulü değildir.

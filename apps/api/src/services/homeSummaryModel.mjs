@@ -14,6 +14,13 @@ export function businessInboundHomeCapabilities(actual,session,actorId){
  const native=homeCapabilities(actual,session),office=String(actorId)==='16';
  return {...native,goods:native.goods,purchase:office&&native.purchase,supplier:office&&native.purchase&&native.supplier,approval:office&&native.approveGoods,approveGoods:office&&native.approveGoods,sales:false,collection:false,product:native.product,customer:false,finance:false,payment:false,count:false,returns:false,salesReturn:false,purchaseReturn:false};
 }
+// Readiness comes from the server's registered daily revision, never a role,
+// client flag or serialized copy. Keep inbound handoff and approval limits.
+export function businessDailyHomeCapabilities(actual,session,actorId){
+ const inbound=businessInboundHomeCapabilities(actual,session,actorId),native=homeCapabilities(actual,session);
+ const daily=['sales','customer','finance','collection','payment','count','returns','salesReturn','purchaseReturn'];
+ return {...inbound,...Object.fromEntries(daily.map(key=>[key,native[key]]))};
+}
 const count=value=>{if(!/^(?:0|[1-9]\d*)$/.test(String(value))||!Number.isSafeInteger(Number(value)))fail();return Number(value);};
 const unavailable=(fields,status='unavailable')=>({status,...Object.fromEntries(fields.map(key=>[key,null]))});
 export function homeCurrencyTotals(rows){
@@ -35,15 +42,15 @@ export const HOME_TASKS=Object.freeze({
 });
 export function homeSummaryDto(raw,{date,readAt}){
  const c=raw.capabilities;if(!c?.home)throw homeError(403);if(!raw.counts||!Array.isArray(raw.tasks)||raw.tasks.length>5)fail();
- const n=raw.counts,sections={},business=raw.copyMeta?.scopeKind==='VERIFIED_BUSINESS_TEST';
+ const n=raw.counts,sections={},business=raw.copyMeta?.scopeKind==='VERIFIED_BUSINESS_TEST',dailyReady=business&&raw.copyMeta.dailySelectionReady===true;
  const operationsReady=c.sales===true&&c.customer===true&&c.product===true;
  const navigationReady=Object.fromEntries(['goods','sales','collection','product','customer','supplier','purchase','count','returns','approval'].map(key=>[key,c[key]===true&&(['product','customer','supplier'].includes(key)||operationsReady&&(key!=='purchase'||c.goods===true)&&(key!=='goods'||c.purchase===true))]));
- if(business)for(const key of Object.keys(navigationReady))navigationReady[key]=['goods','purchase','supplier','product','approval'].includes(key)&&c[key]===true;
- sections.sales=c.sales?{status:'available',count:count(n.salesCount),cancelledCount:count(n.salesCancelledCount),currencyTotals:homeCurrencyTotals(raw.salesTotals)}:{...unavailable(['count','cancelledCount'],'forbidden'),currencyTotals:[]};
+ if(business)for(const key of Object.keys(navigationReady))navigationReady[key]=(dailyReady||['goods','purchase','supplier','product','approval'].includes(key))&&c[key]===true;
+ sections.sales=!business&&c.sales?{status:'available',count:count(n.salesCount),cancelledCount:count(n.salesCancelledCount),currencyTotals:homeCurrencyTotals(raw.salesTotals)}:{...unavailable(['count','cancelledCount'],'forbidden'),currencyTotals:[]};
  sections.goods=c.goods?{status:'available',pendingCount:count(n.goodsPendingCount)}:unavailable(['pendingCount'],'forbidden');
- sections.finance=c.finance?{status:'available',collections:homeCurrencyTotals(raw.collections),payments:homeCurrencyTotals(raw.payments),reversals:homeCurrencyTotals(raw.reversals),cash:{status:'unavailable',currencyTotals:[]}}:{status:'forbidden',collections:[],payments:[],reversals:[],cash:{status:'forbidden',currencyTotals:[]}};
+ sections.finance=!business&&c.finance?{status:'available',collections:homeCurrencyTotals(raw.collections),payments:homeCurrencyTotals(raw.payments),reversals:homeCurrencyTotals(raw.reversals),cash:{status:'unavailable',currencyTotals:[]}}:{status:'forbidden',collections:[],payments:[],reversals:[],cash:{status:'forbidden',currencyTotals:[]}};
  sections.refunds=business?unavailable(['salesCount','purchaseCount','cancelledCount']):c.sales||c.purchase?{status:'available',salesCount:c.sales?count(n.salesReturnCount):null,purchaseCount:c.purchase?count(n.purchaseReturnCount):null,cancelledCount:count(n.returnCancelledCount)}:unavailable(['salesCount','purchaseCount','cancelledCount'],'forbidden');
- sections.counts=c.count?{status:'available',pendingCount:count(n.countPendingCount)}:unavailable(['pendingCount'],'forbidden');
+ sections.counts=!business&&c.count?{status:'available',pendingCount:count(n.countPendingCount)}:unavailable(['pendingCount'],'forbidden');
  sections.approvals=c.approval?{status:'available',pendingCount:count(n.approvalPendingCount),sourceCoverage:['goods','count','sales-return','purchase-return'],complete:false}:unavailable(['pendingCount'],'forbidden');
  if(business){
   sections.sales={...unavailable(['count','cancelledCount']),currencyTotals:[]};

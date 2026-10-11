@@ -1,3 +1,8 @@
+## ERP-COMPLETE01 — mevcut veri temeli ve geçiş hazırlığı — 11 Ekim 2026
+
+Mevcut kabul edilmiş DB02 kopyası seçildi; kayıtlı kaynak tarihleri bugünkü Vega değeri olarak etiketlenmez. TEST125, önceki283+16 hesap, ürün/stok/barkod/fiyat batch'leri, alış referansı, maliyet, medya, LL dışlama ve karantina yeniden uygulanmaz. Bu tur yeni migration/T1/finans açılışı yazması yok.
+
+Beş mevcut paket ve17.655 dosya hash'i, dokuz port ve eski izole kurtarma/inverse kanıtları salt okunur denetlendi. Yeni9,2GB yedeğin varlık/boyut ve eski VERIFYONLY kaydı restore kanıtı değildir; yeni restore yapılmadı. [Geçiş hazırlık kapsamı](docs/evidence/erp/2026-10-11-completion/transition-package.md). Bilinmeyen köken, kasa/banka açılışı ve işletme eşlemeleri tahminle çözülmez. Dört teslim hâlâ uygulanıyor; LIVE/Vega/T1/boot aktivasyonu yok.
 ## ERP-CRM-FINAL01 — kaynak / günlük deneme / gerçek T1 ayrımı — 10 Ekim 2026
 
 Çalışan izole ERP uygulama source **a51b117** / paket **CANONICAL-BUSINESS-TEST-20261010-a51b117**, CRM uygulama source **5f8cb237** / belge teslimi **43ff598**, ortak hedef **DB02**. TEST125 / source edb3c891 ve kabul edilmiş aktarımlar korunur. Native günlük sonlu TRY zinciri 25 kontrol ile, sayım ve alış iadesi ters kayıtları ayrıca SQL/API ve aynı UUID tekrarlarıyla doğrulandı. Personel onayı/ödeme denemesi reddedildi; ikinci stok veya finans etkisi oluşmadı. Normal satış/alış/ödeme, iade ve sayım geçmişi, ayrı dövizli günlük rapor ve CRM 50 ürün / 3.830 görsel kapsamı gerçek ekranda kontrol edildi. Bu teknik kanıt bütün mağaza ve TRY/USD/EUR günlük finans akışlarının kabulü değildir.

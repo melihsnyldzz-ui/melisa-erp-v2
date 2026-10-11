@@ -23,6 +23,14 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-044 — 11 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan ek talimatı (3b13a14a-79e6-407a-b24b-1438ca7eeda5): mevcut kabul edilmiş tarihli DB02 veri temelinden ERP teknik eksiklerini, gerçek ERP/CRM bağlantılı yeşil Android terminalinin dört görevini, çalışan Android ekranlarından dört kısa Türkçe eğitim videosunu ve kurulum/veri kontrol/yedek/geri dönüş paketini tamamla. Tek pano işi **ERP-COMPLETE01**. Önceki eğitim tesliminin DUR sınırı yalnız bu kapsam için superseded; ERP-DEC-042 metni ve kabul kayıtları korunur.
+
+49 yaprak / 9 tamam / 39 kısmi / 1 açık sayımı kesinleşmiştir; tekrar sayım araştırması yok. Ajanın normal kullanıcı teknik denetimi, fiziksel personel kabulü ve LIVE hazırlığı ayrı tutulur. Terminal: firma → barkod/adet → İlker'e gönder; müşteri → barkodla satış satırı; satılmış fiş → çoklu koli/gereken-toplanan adet; atanmış CRM müşterisi → sade sohbet. Personel terminalinde muhasebe/fatura yok. Mevcut rol, guard, kimlik, birim, döviz, replay sınırları korunur; bilinmeyen işletme değeri tahmin edilmez. Terminal satış kesinleştirme ayrıntısı ve ayrı ürün arama kararı henüz verilmiş değildir.
+
+Kaynak/build/test/paket, dar izole TEST düzeltmeleri ve kontrollü sentetik prova yetkilidir. Yeni Vega deltası beklenmez; eski referans güncel kesin tutar diye etiketlenmez. Sabit adres/başlangıç işi mevcut güvenli checkpoint'te kalır; yeni kalıcı ağ/servis aktivasyonu yetkisi yok. TEST125, önceki aktarımlar, PR27, DB02, karantina/LL ve kullanıcı taslakları korunur. LIVE/Vega/main/T1/eski sistem kapatma, finansal açılış, gerçek alıcıya işlem/WhatsApp ve ücretli AI yok. Fiziksel deneme eksikliği bağımsız teknik işleri durdurmaz; insan PASS üretilmez.
+
 ### ERP-DEC-042 — 10 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan **EKRAN SADELEŞTİRME VE KULLANICI EĞİTİMİ** kararı: geniş insan kabulünden önce ERP/CRM/Zebra normal yeşil ekranları sadeleştir; personel → İlker/yetkili sorumlu → muhasebe görev devrini görünür yap; sekiz kısa Türkçe görsel ders hazırla. Tek pano işi **ERP-CRM-LEARN01**. PR23/CRM PR3 son çalışan izole DB02 sürümleri esas, TEST125 ve önceki aktarımlar korunur. Yetki, hesaplama, stok/fiyat/cari/finans mantığı değişmez. Eğitim yalnız okuma ve yerel ders ilerlemesidir; yeni ticari kayıt veya mesaj oluşturmaz. PR27 saf ders yaklaşımı uygun parçalarla yeniden kullanılır, PR27/worktree/SQLite oturumu değişmez. İnsan ERP-UA31/CRM-UA09 bekler; teknik test eğitim veya genel LIVE kabulü değildir. Vega/LIVE/main/T1/finansal açılış/gerçek WhatsApp/ücretli AI yok. Bu dar eğitim hazırlığı sonunda DUR.

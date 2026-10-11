@@ -21,6 +21,8 @@ import static org.junit.Assert.*;
 public class DataWedgeProfileAcceptanceTest {
     @Test public void profileConfigurationAcknowledgedByZebra() throws Exception {
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        String profileName=context.getPackageName().endsWith(".worktest")?"MelisaNativeWorkTestV1":"MelisaNativeV1";
+        String commandPrefix=context.getPackageName().endsWith(".worktest")?"MELISA_WORKTEST":"MELISA_NATIVE";
         CountDownLatch received=new CountDownLatch(1);
         CountDownLatch associated=new CountDownLatch(1);
         CountDownLatch intentConfigured=new CountDownLatch(1);
@@ -29,7 +31,7 @@ public class DataWedgeProfileAcceptanceTest {
         BroadcastReceiver receiver=new BroadcastReceiver(){
             @Override public void onReceive(Context ctx, Intent intent){
                 Bundle config=intent.getBundleExtra("com.symbol.datawedge.api.RESULT_GET_CONFIG");
-                if(config!=null && "MelisaNativeV1".equals(config.getString("PROFILE_NAME"))){
+                if(config!=null && profileName.equals(config.getString("PROFILE_NAME"))){
                     java.util.ArrayList<Bundle> plugins=config.getParcelableArrayList("PLUGIN_CONFIG");
                     if(plugins!=null)for(Bundle plugin:plugins)if("INTENT".equalsIgnoreCase(plugin.getString("PLUGIN_NAME"))){
                         intentParameters[0]=plugin.getBundle("PARAM_LIST");intentConfigured.countDown();
@@ -37,8 +39,8 @@ public class DataWedgeProfileAcceptanceTest {
                     java.util.ArrayList<Bundle> apps=config.getParcelableArrayList("APP_LIST");
                     if(apps!=null)for(Bundle entry:apps)if(context.getPackageName().equals(entry.getString("PACKAGE_NAME")))associated.countDown();
                 }
-                if("MELISA_NATIVE_ASSOCIATE".equals(intent.getStringExtra("COMMAND_IDENTIFIER")) && "SUCCESS".equals(intent.getStringExtra("RESULT")))associated.countDown();
-                if(!"MELISA_NATIVE_PROFILE".equals(intent.getStringExtra("COMMAND_IDENTIFIER")))return;
+                if((commandPrefix+"_ASSOCIATE").equals(intent.getStringExtra("COMMAND_IDENTIFIER")) && "SUCCESS".equals(intent.getStringExtra("RESULT")))associated.countDown();
+                if(!(commandPrefix+"_PROFILE").equals(intent.getStringExtra("COMMAND_IDENTIFIER")))return;
                 result[0]=intent.getStringExtra("RESULT");
                 Bundle info=intent.getBundleExtra("RESULT_INFO");
                 if(info!=null)for(String key:info.keySet())result[1]+=key+"="+String.valueOf(info.get(key))+"; ";
@@ -52,7 +54,7 @@ public class DataWedgeProfileAcceptanceTest {
             assertTrue("DataWedge did not acknowledge native profile",received.await(15,TimeUnit.SECONDS));
             assertEquals("DataWedge: "+result[1],"SUCCESS",result[0]);
             assertTrue("Native app association was not verified",associated.await(10,TimeUnit.SECONDS));
-            Bundle query=new Bundle();query.putString("PROFILE_NAME","MelisaNativeV1");
+            Bundle query=new Bundle();query.putString("PROFILE_NAME",profileName);
             Bundle plugin=new Bundle();plugin.putStringArrayList("PLUGIN_NAME",new java.util.ArrayList<>(java.util.Arrays.asList("INTENT")));
             query.putBundle("PLUGIN_CONFIG",plugin);
             context.sendBroadcast(new Intent("com.symbol.datawedge.api.ACTION").setPackage("com.symbol.datawedge").putExtra("com.symbol.datawedge.api.GET_CONFIG",query));
