@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — güncel kurulum/eğitim ZIP teslimi — 11 Ekim 2026
+
+Gerçek yeni ZIP18üye/20.015.890byte/SHA256c7ace081c95ed8c2582fb3a526835f6f07671813a51ed4c82a07bd1c576d730b; APK v22, beş eski video/poster, son kurulum/erişim eki ve güvenli kaynak/geri dönüş manifesti tek arşivde. Üyelerin tamamı ZIP'ten geri okunup byte/SHA256 karşılığı eşleşti; CRC temiz,10medya linki mevcut. Eski ZIP ve19eğitim dosyası aynı. Adım eşlemesi tarihli tam mal kabul ile sonraki salt okunur kaydı ayırır; İlker onayı/fatura/CRMsend eksikleri tamam sayılmaz. [Arşiv ve kapsam](docs/evidence/erp/2026-10-11-completion/current-training-bundle.md). Yeni restore/SQL/cihaz/ticari prova yok; training browser politika reddi aşılmadı. Runtime571d/CRM09ca/native60e, APKbuildf3d ve paket tabanı belge38f ayrı; yeni kaynak teslim HEAD/PR23 CI push sonrası makbuzda. ERP-UA32/49-9-39-1 aynı; CRMsend/insan/reboot/IP/CI engelleri korunur.
+
 ## ERP-COMPLETE01 — korumalı TEST erişimi / gerçek paket giderimi — 11 Ekim 2026
 
 ERP-DEC-047/048 kapsamında kullanıcıdan parola istenmeden iki mevcut TEST SQL servis parolası ve JWT çifti yenilendi; eski freshSQL2/2 ve süresi dolmamış eskiJWT/fresh retired-signature401, yeniSQL2/2/normal login-refresh-me200, replay/logout sonrası401 doğrulandı. Bağımsız mühürlü SQL SID/rol/grant eşitliği aynı; mevcut ek prova DB eşlemeleri korunur. Meşru opaque cihaz refresh journal'ı normal yenilemeyi sürdürüyor; bütün refresh'ler iptal edildi iddiası yok. TEST125/LIVE süreçleri aynı; shared personel parolası/rolü, ticari DML/restore/migration0.
