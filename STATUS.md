@@ -1,4 +1,10 @@
-## ERP-COMPLETE01 — normal oturum ve SOURCE satışın gerçek native sonucu — 11 Ekim 2026
+## ERP-COMPLETE01 — normal LAN satış / iki koli / İlker okuması — 11 Ekim 2026
+
+Gerçek TC21 v22 üzerinde kaynak bağlı müşteriyle iki adetlik izole satış kesinleştirildi ve yeniden okundu; bağımsız SQL stok/cari etkisini doğruladı. İki koli 1+1 ortak READY kaydedildi ve yeniden açıldı; paketleme ticari snapshot'ı değiştirmedi. LAN'daki UUID hatası ERP9cc84ff dar güvenli düzeltmesiyle giderildi, 10/10 hedefli test ve bağımsız review GO. Mevcut gönderilmiş sayım personelce geri okundu; mevcut normal İlker rolü aynı kabulü pending gördü, yeni onay/ticari etki yok. [Kanıt ve kaynak ayrımı](docs/evidence/erp/2026-10-11-completion/normal-lan-cartons.md).
+
+Çalışan ERP9cc84ff / CRM09ca1dac / DB02; normal korumalı oturumlar uygulama yeniden açılışında geri geldi. CRM gönderilmemiş taslak geri dönüşünde gerçek reader sorunu bulundu, dar düzeltme/cihaz tekrarı ve dördüncü güncel video sürüyor. İlk üç sesli eğitim hazır; bütün dört görev teslimi henüz kapanmadı. ERP9cc exact CI billing nedeniyle başlamadı; yeşil sayılmadı. TEST125/roller/aktarımlar/LL/karantina/yedekler/UA32 ve49-9-39-1 korunur.
+
+## Önceki checkpoint — normal oturum ve SOURCE satışın gerçek native sonucu — 11 Ekim 2026
 
 Çalışan izole ERP source **2fbcd94a96df316c8e671e40bb8dda3248555621**, CRM source **17ff405a84baed71e71f9d39fb8e8e2b363de280**; LAN Hub5234/API4184/native4186/CRM62700, exact DB02/copy kimliği doğrulandı. Normal ERP/CRM login→refresh→eski grant reddi→logout→access/refresh iptali gerçek HTTP'de geçti. TC21 v22 veri silmeden güncellendi; şirket Wi-Fi192.168.1.124 ve boş ADB reverse ile normal ERP oturumu uygulama force-stop/yeniden açılışından sonra mal kabulü açtı. Korumalı ayrı ERP/CRM oturumları kimlik eşitleme veya rol yükseltme değildir. Windows gerçek reboot/logoff henüz denenmedi.
 
