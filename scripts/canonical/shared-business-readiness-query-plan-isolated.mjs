@@ -20,6 +20,10 @@ function observation(x){
 export async function validateIsolatedReadinessQueryPlan({bundle,target,adapter}={}){
  const proof=readinessProofTarget(bundle,target);
  check(adapter&&['inspect','beginRollbackOnly','snapshot','installTemporaryRevision','observeReady','negativeProbe','rollback','assertEnded'].every(k=>typeof adapter[k]==='function')&&adapter.commit===undefined,'READINESS_PROOF_ADAPTER');
+ if(adapter.unsupportedNegativeKinds!==undefined){
+  check(Array.isArray(adapter.unsupportedNegativeKinds)&&new Set(adapter.unsupportedNegativeKinds).size===adapter.unsupportedNegativeKinds.length&&adapter.unsupportedNegativeKinds.every(k=>READINESS_PROOF_NEGATIVES.some(n=>n[0]===k)),'READINESS_PROOF_PREREQUISITE_SHAPE');
+  check(adapter.unsupportedNegativeKinds.length===0,'READINESS_PROOF_NATIVE_PREREQUISITES_'+adapter.unsupportedNegativeKinds.join('_'));
+ }
  const identity=await adapter.inspect();proofIdentity(identity,proof);
  const before=await adapter.snapshot();check(hex(before),'READINESS_PROOF_SNAPSHOT');const observations=[],negativeResults=[];
  // Same identity overlay and appended guard in both controls. Only the four

@@ -1,5 +1,7 @@
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
+Native hız provasının SQL bağlantı hazırlığı kaynakta hazır,28 hedefli offline kontrol ve bağımsız kaynak incelemesi geçti; gerçek SQL/proof clone/kurulum henüz yok. 11 negatif gerekliliği korunur. Personel yetkisi ve toplam stok etkisi mevcut ayrı actor/context/etki kontrollerine, korunan negatif fixture'lar doğru proof kapsamına bağlanmadan tam prova başlatılmaz. Dokuz çözülmemiş bağ SQL okumadan önce fail-closed reddedilir. Mevcut62 tarihsel snapshot grubunun varlığı ve yeni tabloların korunması gerekir. Alan engeli devam eder; fiziksel barkod tekrar istenmez. [Teknik güncelleme](STATUS.md).
+
 **ERP-DEC-045:** Kullanıcı okuyucunun çalıştığını teyit etti; tekrar fiziksel barkod denemesi istenmeyecek. Teknik kontroller elle/ADB barkod girişiyle yürütülür. Aşağıdaki önceki fiziksel okutma bekleme notu bu tekrar bakımından güncellendi; personel/İlker/işletme kabulü ve disk/native prova bağımlılığı sürer.
 
 Mevcut kabul edilmiş tarihli DB02 tabanı korunur. Gerçek TC21'de personel mal kabulü/İlker'e gönderim, tek sentetik satış, miktarlı iki koli/replay ve atanmış CRM konuşması/taslağa dönüş teknik kanıtlandı. Dört ayrı Türkçe sesli/altyazılı cihaz videosu ve16 alıştırma hazır; eski sekiz ERP dersinin yerine sayılmadı. Immutable5b6cd0c paket yalnız geçici USB/loopback çalışma yüzünde etkin. [Kanıt](docs/evidence/erp/2026-10-11-completion/current-technical-evidence.md).
