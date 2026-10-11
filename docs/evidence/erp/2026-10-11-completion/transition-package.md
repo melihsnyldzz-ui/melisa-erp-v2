@@ -1,6 +1,10 @@
 # Kurulum, veri kontrolü, yedek ve geri dönüş paketi — 11 Ekim 2026
 
-## Güncel teslim referansı
+## Güncel B01 teslim referansı
+
+Private `transition-delivery/README.md` ve `provenance-manifest.json` application source8ca0122af79ec03bf3077fc83169f852c4f2a4e8 /CANONICAL-COMPLETE-TEST-20261011-8ca0122af79e ile yenilendi. ManifestSHAf74e9f80a3604a2890e4bd0b7025f07c692e4bdd38053dc3fbf6d7efc8cba6d6;1735dosya0hashfarkı24pin.22privatekopya hash/byte eşleşti. RehberSHA8db7b52780c320b3ef224a616f55288311cf65bce6d4fdef23053fd21451fafc; provenanceSHA9a403ebc6e0e146f276010a795548b2ad9d474a60057701f30538a915bfa0293. B01 kaynak/native/4API ve paketHTTP6rolokuması/5negatif tamamlandı; önceki c198/restore/video kanıtları korundu. GeçiciUSB/loopback5264 yenilendi; ortakAPI/Hub/TEST125/sabitboot değişmedi. Hız/UI/insan/LIVE PASS verilmedi. [B01 sonucu](home-daily-readonly.md).
+
+## Önceki c198 teslim referansı
 
 Private `transition-delivery/README.md` ve `provenance-manifest.json` c198bfb3f522992b3abebe63948c8d6298e3ee67 /CANONICAL-COMPLETE-TEST-20261011-c198bfb3f522 ile yenilendi:manifestSHA5c5fb2135a3fdcb2ffd6c34e471a1a2e109d3514e1de94fba003191fa9ca353e,1.735dosya0hashfarkı24kapalıpin.18privatekopya pini byte/hash eşleşti. RehberSHA10f3039111f71db948962c315847dd76945005ef89e8bbf8ebe7c23c8d82fbda;provenanceSHA360733a4ea0e6635dae1a492c854bf89d808d6d6f0d6de5f05182028e905f046. Eski5b6/b006 ve başarısız/çalışıyor/5264kapalı checkpoint'leri tarihsel korundu; güncel çalışma garantisi olarak sunulmaz.
 

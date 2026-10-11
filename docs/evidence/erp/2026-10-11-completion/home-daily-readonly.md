@@ -25,3 +25,7 @@ Uygulama source `8ca0122af79ec03bf3077fc83169f852c4f2a4e8`; yeni immutable paket
 `packaged-daily-home-http-2026-10-11T085542552Z.json` complete=true: iki normalrol16/15 için6GET okuması; actorsız401,POST405,yabancıorigin403,query404,geçersiztoken401. Config/korunanAPI aynı; ticariPOST/kalıcıSQLyazması0. HTTP örnekleri rol16 2885/2810/3242ms,rol15 2882/4473/7217ms; bu yeni hız kazancı değildir, okuma maliyeti sonraki iştir. Gerekli CI source8ca0122 runs38126450545/38126448293 için hesap/harcama nedeniyle başlamadı; yeşil sayılmaz.
 
 Normal ERP HOME cihaz görseli önceki politika reddi nedeniyle NOT_RUN kalır; reddedilen URL açma işlemi başka yoldan denenmez. İnsan ERP-UA32 bekliyor; bu teknik sonuç genel ERP/LIVE kabulü değildir. Sonraki belge commit'i application source'dan ayrı tutulur.
+
+## Sonraki performans işi için gerçek faz ölçümü
+
+Yeni salt okunur makbuz `daily-home-source-readonly-timing-2026-10-11T085935290Z.json` complete=true. Aynı iki rolde4gerçek okuma: günlük summary SELECT15–29ms, ready prosedürü1143–1453ms, context prosedürü1555–1880ms; FK2–7ms. Bu HOME ölçümünde maliyet günlük aggregate SELECT'te değil, native readiness/context zincirindedir. Katalog için aynı faz ölçümü henüz yok. Kontroller kaldırılmadı, sonuçTTL ile saklanmadı; kaynak/rol/işlem/hold/fiyat tazeliği korunur. Yeni login/auth audit dışında ticari/kalıcıSQL etkisi0. Gelecek dar optimizasyon bu ölçüme dayanacak; yeni hız sonucu henüz iddia edilmez.
