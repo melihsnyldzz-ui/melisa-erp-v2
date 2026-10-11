@@ -4,7 +4,15 @@
 
 Kullanıcı okuyucunun çalıştığını teyit etti ve yeniden fiziksel okutma talebini kaldırdı. Yeni teknik denemelerde barkod elle/ADB metniyle girilecek; doğru ürün/birim/başlangıç sıfırları ve sonuç yine doğrulanacak. Bu kararla yeni fiziksel optik test yapılmadı; kullanıcı teyidi ve teknik elle giriş kanıtı ayrı kalır. Aşağıdaki fiziksel scanner PENDING/NOT_RUN ifadeleri önceki kanıtın tarihsel durumudur; yeniden okutma mevcut görevin engeli veya kullanıcıya verilecek iş değildir. ERP-UA32 genel personel/işletme kabulü bekler; disk/native prova ve aktivasyon sınırları aynı kalır.
 
-## SQL adapter hazırlığı — native yürütme yapılmadı
+## Gerçek mevcut ready gözlemi — aday yürütülmedi
+
+Mevcut a51b117/DB02 hazır prosedürü959/1.063/983ms, ortanca983ms; mantıksal okumalar124.635/124.638/124.637. İkinci örnekte product_prices27.151 ve operation_quarantine_holds14.786 mantıksal sayfa okuması. Bu katalog API ölçümü, fiziksel disk I/O veya optimizasyon sonucu değildir. Aynı transaction/SPID rollback ile kapandı; kalıcı DML/DDL/grant/commercial POST/service değişikliği0. Private gözlemSHA `7F67FD532253DDFDEA4FCCB61A5710D8BD191CF0D2CC30EE5A503BB811C6ED2A`.
+
+Writer SHOWPLAN0, yetki değişimi yok. Mevcut Windows gözlemcisinin SELECT ile aldığı iki cached derleme planında kapsam tablo değişkenleri scan tahmini1; gerçek runtime row counters yok. Bu planlar normal actor proof veya actual plan değildir; v6 candidate hızını kanıtlamaz. Private plan metadataSHA `2FF7C2E3A0E36BADCB78FC9115BB7D9910CAE7F715D35A6A6ECC0FC73086EF42`.
+
+Metadata closure:190 modül/185 manifest/1.995 edge; base'den farklı beş modülün tamamı mevcut append-only revision zincirine exact bağlandı. Begin/context/guard v4; effects v3→v4; ready v1→v2→v3→v4→v5. Beşinde açıklanamayan drift0; sealed copy/base hash aynı.357 unresolved metadata edge/dynamic SQL tam runtime closure sınırıdır. Private closureSHA `05EEF5FF689D870195C244C0EB5E22578BF4B144AFAA3D8E00D7AF4BBC9B2C63`. Eski korumalar değişmedi; ayrı native proof kopyası/negatif fixture/restore hâlâ yapılmadı. Cboş10.516.971.520byte < DB02tahsis15.049.162.752byte; kaynak helper veya küçük sentetik DB tam native kanıt yerine kullanılamaz.
+
+## SQL adapter hazırlığı — yeni adapter native yürütmesi yapılmadı
 
 `shared-business-readiness-query-plan-sql-adapter.mjs` ayrı exact proof DB/login için kaynak bağlantı sözleşmesidir. Provision/restore/CLI/credential/default connection/commit sağlamaz; mevcut mssql pool yalnız açık bağımlılık olarak verilebilir. Aynı transaction/SPID, actual plan + IO gözlemi ve SQL/izin/tam satır hash snapshot'ları gerekir. Eski51 ticari/11 tarihsel proof grubunun varlığı zorunludur; sonradan eklenen tüm kullanıcı tabloları da korunur. Eski62 grup bütün güncel veritabanı sayısı diye sunulmaz.
 
