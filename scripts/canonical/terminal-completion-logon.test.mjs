@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {COMPLETION_CORE_STAGES,verifyCurrentCrmReadiness,validateCurrentCrmHubPins,completionCrmHealthReceipt,validateCompletionDependencyLock,assertCompletionNoReparse,validateCompletionSettings,completionCrmEnvironment,completionProcessMatches,completionAttempt,completionTaskPlan,runCompletionLogon} from './terminal-completion-logon.mjs';
+import {COMPLETION_CORE_STAGES,verifyCurrentCrmReadiness,validateCurrentCrmHubPins,completionCrmHealthReceipt,validateCompletionDependencyLock,assertCompletionNoReparse,validateCompletionSettings,completionCrmEnvironment,completionCreationPrecisionMatches,completionProcessMatches,completionAttempt,completionTaskPlan,runCompletionLogon} from './terminal-completion-logon.mjs';
 const owner='S-1-5-21-123-456-789-1001',source='b'.repeat(40),hash='a'.repeat(64),erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM';
 function settings(){
  const refs=Object.fromEntries(['operationConfig','nativeOrderConfig','crmActivationConfig','hubPinConfig','hubStartupConfig'].map(key=>[key,{path:`${erp}\\runtime\\completion\\${key}.json`,sha256:hash}]));
@@ -19,6 +19,19 @@ function processEvidence(stage,s=settings()){
  const receipt={pid:12,parentPid:11,parentCreationTime:parentCreation,creationTime:creation,stage:stage.name,sourceCommit:pin.sourceCommit,configSha256:pin.config.sha256,copyId:s.copyId,actualT1:false};return {row,receipt};
 }
 test('exact DB02 LAN topology accepts both existing CRM release identity and current source supervisor',()=>assert.equal(validateCompletionSettings(settings(),owner).lanAddress,'192.168.1.46'));
+test('Windows CIM six-digit creation precision accepts only its same microsecond in the seven-digit managed clock',()=>{
+ const cim='2026-10-11T14:17:49.2011560Z';
+ for(const value of ['2026-10-11T14:17:49.2011560Z','2026-10-11T14:17:49.2011561Z','2026-10-11T14:17:49.2011569Z'])assert.equal(completionCreationPrecisionMatches(cim,value),true);
+ for(const value of ['2026-10-11T14:17:49.2011559Z','2026-10-11T14:17:49.2011570Z','2026-10-11T14:17:49.2012560Z','2026-10-11T14:17:50.2011560Z','2026-10-11T14:17:49.201156Z','2026-10-11T14:17:49.2011560+00:00',null])assert.equal(completionCreationPrecisionMatches(cim,value),false);
+ for(const value of ['2026-02-30T14:17:49.2011560Z','2026-10-11T24:00:00.2011560Z','2026-13-11T14:17:49.2011560Z'])assert.equal(completionCreationPrecisionMatches(value,value),false);
+ assert.equal(completionCreationPrecisionMatches('2026-10-11T14:17:49.2011561Z','2026-10-11T14:17:49.2011561Z'),false);
+});
+test('100ns actual native fixture passes with exact CIM receipt; forged receipt parent owner argv or ports remain rejected',()=>{
+ const s=settings(),stage=COMPLETION_CORE_STAGES[0],{row,receipt}=processEvidence(stage,s);
+ row.creationTime=receipt.creationTime='2026-10-11T14:17:49.2011560Z';row.managedCreationTime='2026-10-11T14:17:49.2011561Z';assert.equal(completionProcessMatches(row,receipt,stage,s),true);
+ for(const change of [{creationTime:row.managedCreationTime},{parentCreationTime:'2026-10-11T11:59:00.0000001Z'},{parentPid:99},{sourceCommit:'c'.repeat(40)}])assert.equal(completionProcessMatches(row,{...receipt,...change},stage,s),false);
+ for(const change of [{managedCreationTime:'2026-10-11T14:17:49.2011570Z'},{ownerSid:'S-1-5-18'},{commandLine:row.commandLine+' extra'},{bindings:[{port:4146,address:'127.0.0.1'}]}])assert.equal(completionProcessMatches({...row,...change},receipt,stage,s),false);
+});
 test('LIVE, TEST125, another copy, remote address, runtime or owner never starts',()=>{for(const change of [{database:'LIVE'},{database:'MELISA_ERP_SIRKET_TEST_20260929_01'},{copyId:'other'},{actualT1:true},{lanAddress:'0.0.0.0'},{lanAddress:'192.168.1.47'},{runtimeDirectory:erp+'\\backups\\runtime'},{ownerSid:'S-1-5-18'}])assert.throws(()=>validateCompletionSettings({...settings(),...change},owner));});
 test('unexpected commands/credentials/components or source pins fail closed',()=>{for(const change of [{command:'malicious'},{password:'fixture'},{schemaVersion:2}])assert.throws(()=>validateCompletionSettings({...settings(),...change},owner));for(const name of ['crm','hub','erpApiNative','nativeOrder']){const s=settings();s.components[name].sourceCommit='bad';assert.throws(()=>validateCompletionSettings(s,owner));}});
 test('config links, dependency pins and private files stay exact and outside packages',()=>{let s=settings();s.components.crm.config={...s.components.crm.config,path:erp+'\\runtime\\other.json'};assert.throws(()=>validateCompletionSettings(s,owner));s=settings();s.dependencyLocks.crm.path=s.components.crm.packageRoot+'\\other.json';assert.throws(()=>validateCompletionSettings(s,owner));s=settings();s.crmPrivateFiles.baseline.path=s.components.crm.packageRoot+'\\.env';assert.throws(()=>validateCompletionSettings(s,owner));});
