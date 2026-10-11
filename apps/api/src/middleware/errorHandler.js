@@ -1,5 +1,5 @@
 import { env } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { logger, requestLogPath } from '../utils/logger.js';
 import {normalizeOperationQuarantineError} from '../services/operationQuarantineError.mjs';
 
 export function errorHandler(err, req, res, next) {
@@ -19,7 +19,7 @@ export function errorHandler(err, req, res, next) {
   logger.error('API error normalized', {
     requestId: req.requestId,
     method: req.method,
-    path: req.originalUrl,
+    path: requestLogPath(req),
     statusCode,
     code,
     category: err.category || 'api_error',
