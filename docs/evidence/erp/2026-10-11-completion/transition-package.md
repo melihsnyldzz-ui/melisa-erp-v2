@@ -54,6 +54,8 @@ Bu kanıtın kapsamı izole Aşama5 kopyasıdır. Otomatik bütün geçmiş geri
 
 ## Yeni yedek: VERIFYONLY ile restore ayrımı
 
+11 Ekim yeni kopya alan kontrolü: DB02 mevcut data+log tahsisi15.049.162.752byte, Cboş10.561.609.728byte; minimum4.487.553.024byte eksik ve çalışma payı gerekiyor. GGoogleDrive SQL storage olarak seçilmedi. Bu ölçüm backupFILELIST/restore kanıtı değildir; yeni9,2GB yedeğin restore edildiği sonucu çıkarılmaz. Hız için ayrıca kaynakta hazırlanmış v6/rollback-only harness gerçek native proof clone/adapter ve consumer entegrasyonu olmadan kurulamıyor. Disk çözümü, native prova ve izinli aktivasyon ayrı somut kalanlardır.
+
 [10 Ekim final hazırlığı](../2026-10-10-final-preparation/README.md) DB02 için 13:58 UTC'de 9.204.334.592 byte COPY_ONLY/CHECKSUM yedek ve VERIFYONLY sonucu kaydetti. **Bu yeni yedek restore edilmedi.** Araç receipt SHA256/koşullarını ve yedek dosyasının varlık/boyutunu okur;9,2GBdosyanın SHA256'sını yeniden hesaplamaz. `sha256Recomputed=false`, `restorePerformed=false` açık kalır. Eski gerçek restore bu yeni yedeğe aktarılmaz.
 
 Yeni restore için yeterli disk alanı, ayrı hedef dosyaları/veritabanı, exact yedek kimliği ve sonradan oluşmuş yerel hareketlerin korunma planı gerekir. Bu teslimde yeni backup/restore yapılmaz. Önceki satır sayısı/checksum kanıtı bütün veritabanının byte eşitliği değildir.
