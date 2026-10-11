@@ -2,10 +2,54 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createWorkingCatalogSession,workingCatalogTokenKey,workingCatalogUserLabel} from './workingCatalogSession.mjs';
 import {testSessionModeKey} from './testAdminSession.mjs';
+import {createTradeJournal} from './workTradeModel.mjs';
 const location={hostname:'127.0.0.1',protocol:'http:',port:'5194'},apiBase='http://127.0.0.1:4144';
 const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['product.view','sales.view']};
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
+
+test('an authenticated work POST can finish after15s while its exact UUID/body and journal stay unchanged',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const store=storage(),calls=[];let finish,signal;
+ store.setItem(workingCatalogTokenKey,'deadline-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{
+  if(url.endsWith('/auth/me'))return reply(user);
+  calls.push({url,options});signal=options.signal;return new Promise(resolve=>{finish=resolve;});
+ }});
+ await session.start();const journal=createTradeJournal({storage:store,key:'deadline-journal'}),body={requestId:'00000000-0000-4000-8000-000000000001',expectedRevision:'fixed-revision'};
+ const pending=journal.begin('/api/work-sales/drafts/99/finalize',body),request=session.work(pending.path,{method:'POST',body:pending.body});
+ t.mock.timers.tick(15001);assert.equal(signal.aborted,false);assert.equal(journal.read().status,'pending');
+ assert.deepEqual(JSON.parse(calls[0].options.body),body);assert.equal(calls.length,1);
+ finish(reply({requestId:body.requestId,replayed:false}));const result=await request;journal.done(pending,result);
+ assert.equal(journal.read().status,'done');assert.equal(calls.length,1);session.dispose();
+});
+
+test('work POST is bounded at60s and preserves the pending request for deliberate identical replay',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'deadline-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{
+  if(url.endsWith('/auth/me'))return reply(user);calls.push(options);
+  return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('aborted')),{once:true}));
+ }});
+ await session.start();const journal=createTradeJournal({storage:store,key:'deadline-journal'}),pending=journal.begin('/api/work-sales/drafts/99/finalize',{requestId:'00000000-0000-4000-8000-000000000001',expectedRevision:'fixed-revision'});
+ const request=session.work(pending.path,{method:'POST',body:pending.body}),rejection=assert.rejects(request,e=>e.status===503);
+ t.mock.timers.tick(59999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejection;
+ assert.equal(journal.read().status,'pending');assert.deepEqual(journal.read().body,pending.body);assert.equal(calls.length,1);
+ assert.equal(store.getItem(workingCatalogTokenKey),'deadline-fixture');session.dispose();
+});
+
+test('GET and login retain15s and callers cannot inject a longer work deadline',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'deadline-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{
+  if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});
+  return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('aborted')),{once:true}));
+ }});
+ await session.start();await assert.rejects(()=>session.work('/api/work-sales/context',{workMutation:true}));assert.equal(calls.length,0);
+ const read=session.work('/api/work-sales/context'),readRejected=assert.rejects(read,e=>e.status===503);t.mock.timers.tick(15000);await readRejected;assert.equal(calls[0].options.signal.aborted,true);
+ const login=session.login({username:'fixture',password:'fixture-only'}),loginRejected=assert.rejects(login,e=>e.status===503);t.mock.timers.tick(15000);await loginRejected;assert.equal(calls[1].options.signal.aborted,true);
+ session.dispose();
+});
 test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
  const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
  store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'carton-fixture');
