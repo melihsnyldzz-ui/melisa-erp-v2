@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {businessInboundFixture} from '../../apps/api/src/services/businessInbound.test-fixture.mjs';
 import {persistentTerminalRequestGuard,isPersistentTerminalApiPath,readPersistentTerminalUpstream,createPersistentTerminalHandler,initializePersistentTerminalSupport} from './terminal-persistent-web-support.mjs';
 import {requestGuard,enrichInvoice,CARTON_IDENTITY_SQL,WORKTEST} from './start-terminal-worktest.mjs';
@@ -21,19 +22,31 @@ test('persistent5234 permits only existing LAN range and exact same origin; temp
 test('HOME uses a finite authenticated GET only; no body/cookie/login/alternate destination proxy',async()=>{
  const calls=[],data={cash:[{currency:'USD',amount:'1.0000'}]};
  const transport=async(url,options)=>{calls.push({url,options});return Response.json({success:true,data});};
- assert.deepEqual(await readPersistentTerminalUpstream('/api/home-summary','Bearer fixture',{transport}),data);
- assert.equal(calls[0].url,WORKTEST.api+'/api/home-summary');assert.equal(calls[0].options.method,'GET');assert.equal(calls[0].options.redirect,'error');assert.deepEqual(calls[0].options.headers,{authorization:'Bearer fixture'});assert.equal(calls[0].options.body,undefined);
- for(const pathname of ['/api/home-summary?actor=16','/api/home-summary/other','/api/auth/login','/api/work-sales/drafts','http://evil/api/home-summary'])await assert.rejects(()=>readPersistentTerminalUpstream(pathname,'Bearer fixture',{transport}));
- assert.equal(calls.length,1);await assert.rejects(()=>readPersistentTerminalUpstream('/api/home-summary','Cookie fixture',{transport}),{code:'WORKTEST_AUTH'});
- await assert.rejects(()=>readPersistentTerminalUpstream('/api/home-summary','Bearer fixture',{transport:async()=>Response.json({}, {status:403})}),{code:'WORKTEST_SCOPE'});
- await assert.rejects(()=>readPersistentTerminalUpstream('/api/home-summary','Bearer fixture',{transport:async()=>Response.json({success:false,data})}),{code:'WORKTEST_API_DATA'});
+ assert.deepEqual(await readPersistentTerminalUpstream('/api/home/summary','Bearer fixture',{transport}),data);
+ assert.equal(calls[0].url,WORKTEST.api+'/api/home/summary');assert.equal(calls[0].options.method,'GET');assert.equal(calls[0].options.redirect,'error');assert.deepEqual(calls[0].options.headers,{authorization:'Bearer fixture'});assert.equal(calls[0].options.body,undefined);
+ for(const pathname of ['/api/home-summary','/api/home/summary?actor=16','/api/home/summary/other','/api/auth/login','/api/work-sales/drafts','http://evil/api/home/summary'])await assert.rejects(()=>readPersistentTerminalUpstream(pathname,'Bearer fixture',{transport}));
+ assert.equal(calls.length,1);await assert.rejects(()=>readPersistentTerminalUpstream('/api/home/summary','Cookie fixture',{transport}),{code:'WORKTEST_AUTH'});
+ await assert.rejects(()=>readPersistentTerminalUpstream('/api/home/summary','Bearer fixture',{transport:async()=>Response.json({}, {status:403})}),{code:'WORKTEST_SCOPE'});
+ await assert.rejects(()=>readPersistentTerminalUpstream('/api/home/summary','Bearer fixture',{transport:async()=>Response.json({success:false,data})}),{code:'WORKTEST_API_DATA'});
+});
+test('HOME proxy follows registered ERP route; legacy missing route is never contacted or aliased',async()=>{
+ const routeSource=await readFile(new URL('../../apps/api/src/routes/homeSummaryRoutes.mjs',import.meta.url),'utf8');
+ const registered=routeSource.match(/router\.get\('([^']+)',authenticate,/);
+ assert.equal(registered?.[1],'/home/summary');
+ const canonical='/api'+registered[1],{copy}=businessInboundFixture(),calls=[];
+ const transport=async url=>{calls.push(url);if(url===WORKTEST.api+'/api/auth/me')return Response.json({success:true,data:{id:15,role:{code:copy.actors.find(a=>a.id==='15').role},permissions:['goods.view','sales.view']}});if(url===WORKTEST.api+canonical)return Response.json({success:true,data:{sections:{goods:{status:'available'}}}});return Response.json({success:false,error:{code:'NOT_FOUND'}},{status:404});};
+ const handler=createPersistentTerminalHandler({context:copy,csp:"default-src 'self'",transport}),res=response();await handler(request(),res);
+ assert.equal(res.status,200);assert.equal(res.body.data.sections.goods.status,'available');assert.deepEqual(calls,[WORKTEST.api+'/api/auth/me',WORKTEST.api+canonical]);
+ const count=calls.length;await assert.rejects(()=>readPersistentTerminalUpstream('/api/home-summary','Bearer fixture',{transport}));assert.equal(calls.length,count);
+ await assert.rejects(()=>readPersistentTerminalUpstream(canonical,'Bearer fixture',{transport:async()=>Response.json({success:false,error:{code:'NOT_FOUND'}},{status:404})}),{code:'WORKTEST_SCOPE',statusCode:404});
+ await assert.rejects(()=>readPersistentTerminalUpstream(canonical,'Bearer fixture',{transport:async()=>new Response('x'.repeat(2097153))}),{code:'WORKTEST_UPSTREAM_SIZE'});
 });
 test('HOME normal native-scoped actor and methods are checked before exact API read; no arbitrary handler paths',async()=>{
  const {copy}=businessInboundFixture(),calls=[],actor={id:15,role:{code:copy.actors.find(a=>a.id==='15').role},permissions:['goods.view','sales.view']},home={summary:'native unchanged'};
  let active=actor;
  const transport=async(url,options)=>{calls.push(url);assert.deepEqual(options.headers,{authorization:'Bearer fixture'});return Response.json({success:true,data:url.endsWith('/api/auth/me')?active:home});};
  const handler=createPersistentTerminalHandler({context:copy,csp:"default-src 'self'",transport});
- const res=response();await handler(request(),res);assert.equal(res.status,200);assert.deepEqual(res.body,{success:true,data:home});assert.deepEqual(calls,[WORKTEST.api+'/api/auth/me',WORKTEST.api+'/api/home-summary']);
+ const res=response();await handler(request(),res);assert.equal(res.status,200);assert.deepEqual(res.body,{success:true,data:home});assert.deepEqual(calls,[WORKTEST.api+'/api/auth/me',WORKTEST.api+'/api/home/summary']);
  for(const actorBad of [{...actor,role:{code:'admin'},isAdmin:true},{...actor,id:999},{...actor,role:{code:'wrong'}},{...actor,permissions:[]}]){active=actorBad;const res=response();await handler(request(),res);assert.equal(res.status,403);}
  const count=calls.length;for(const extra of [{method:'POST',headers:{...request().headers,origin:'http://192.168.1.46:5234'}},{url:'/api/work-sales/drafts'},{url:'/api/terminal-worktest/home-summary?actor=16'},{url:'/terminal.html'}]){const res=response();await handler(request(extra),res);assert.notEqual(res.status,200);}assert.equal(calls.length,count);
  assert(isPersistentTerminalApiPath('/api/terminal-cartons/receipts/7'));assert(isPersistentTerminalApiPath('/api/terminal-worktest/home-summary'));assert(!isPersistentTerminalApiPath('/api/work-sales/drafts'));

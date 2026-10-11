@@ -21,10 +21,10 @@ export function isPersistentTerminalApiPath(pathname){return pathname==='/api/te
 // This is one authenticated GET reader, not a general reverse proxy. No body,
 // cookie, incoming URL, alternate host or session creation is forwarded.
 export async function readPersistentTerminalUpstream(pathname,authorization,{transport=fetch}={}){
- if(pathname!=='/api/home-summary')return readUpstream(pathname,authorization,{transport});
+ if(pathname!=='/api/home/summary')return readUpstream(pathname,authorization,{transport});
  if(!bearer(authorization))throw fail('WORKTEST_AUTH',401);
  let response;
- try{response=await transport(WORKTEST.api+'/api/home-summary',{method:'GET',headers:{authorization},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});}catch{throw fail('WORKTEST_API_UNAVAILABLE');}
+ try{response=await transport(WORKTEST.api+'/api/home/summary',{method:'GET',headers:{authorization},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});}catch{throw fail('WORKTEST_API_UNAVAILABLE');}
  if(!response.ok)throw fail(response.status===401?'WORKTEST_AUTH':'WORKTEST_SCOPE',[401,403,404,409].includes(response.status)?response.status:503);
  const text=await response.text();if(Buffer.byteLength(text)>2097152)throw fail('WORKTEST_UPSTREAM_SIZE');
  let result;try{result=JSON.parse(text);}catch{throw fail('WORKTEST_API_DATA');}
@@ -36,7 +36,7 @@ export function createPersistentTerminalHandler({context,csp,store,withSource,tr
  if(context.target.database!==BUSINESS_COPY_DATABASE||isolatedCopyTopology(context).webPort!==5234)throw fail('WORKTEST_DB_IDENTITY');
  const upstream=(pathname,authorization)=>readPersistentTerminalUpstream(pathname,authorization,{transport});
  return createWorktestHandler({context,csp,store,withSource,upstream,
-  homeSummary:(_actor,authorization)=>upstream('/api/home-summary',authorization),
+  homeSummary:(_actor,authorization)=>upstream('/api/home/summary',authorization),
   guard:persistentTerminalRequestGuard,apiOnly:true});
 }
 export async function initializePersistentTerminalSupport({config,context,csp,native,transport=fetch,assertDirectory=assertPrivateCartonDirectory}){
