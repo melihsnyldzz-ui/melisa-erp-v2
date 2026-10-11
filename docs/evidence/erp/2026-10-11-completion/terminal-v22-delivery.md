@@ -1,12 +1,12 @@
 # Normal Wi-Fi terminal teslimi — 11 Ekim 2026
 
-ERP-COMPLETE01 / ERP-DEC-046–047. Gerçek TC21, Android10, ayrı worktest v22 uygulaması. İnsan ERP-UA32 bekliyor; genel ERP/LIVE kabulü verilmedi.
+ERP-COMPLETE01 / ERP-DEC-046–048. Gerçek TC21, Android10, ayrı worktest v22 uygulaması. İnsan ERP-UA32 bekliyor; genel ERP/LIVE kabulü verilmedi. **11 Ekim22:54 güncellemesi:** son çalışan ERP571d2d5/CRM09ca/native60e424b ve sır giderimi [tek güncel teslim kaydında](test-access-remediation.md); eski video/ZIP capture pinleri korunur.
 
 ## Kullanılabilir teslim
 
 - Kurulum: `http://192.168.1.46:5234/install.html`; v22 APK HTTP200,45.326.137byte, SHA256 `4cbbde0a389924cf25d4eebb9fdb3692ace15edae4219b348c8df78027803bcf`. APK build source `f3d223be8d9af2ed41888f0e894bd2ba05aa46d9`, applicationId `com.melisaerp.nativeterminal.worktest`; çalışan web/API source ile aynı şey değildir.
 - Gerçek TC21 Wi-Fi üzerinden dört görev açıldı. ADB yalnız ekran kontrolü/kayıt içindir; reverse listesi boş. USB veya geçici developer oturumu uygulama bağlantısının parçası değildir.
-- Mevcut Windows aynı-kullanıcı logon görevleri immutable ERP9cc/CRM09ca paketlerini başlatır. Bilgisayar açık ve Windows kullanıcısı giriş yapmış olmalıdır. Gerçek reboot/logoff provası bu son teslimde yapılmadı; oturum açmadan çalışan servis diye sunulmaz. DHCP adresi için modem rezervasyonu kullanıcıca ertelenmiştir.
+- Mevcut Windows aynı-kullanıcı logon görevleri immutable ERP571d2d5/CRM09ca paketlerini başlatır. Bilgisayar açık ve Windows kullanıcısı giriş yapmış olmalıdır. Gerçek reboot/logoff provası bu son teslimde yapılmadı; oturum açmadan çalışan servis diye sunulmaz. DHCP adresi için modem rezervasyonu kullanıcıca ertelenmiştir.
 - Özel yerel teslim kökü: `C:\Sirket\ERP\deliveries\ERP-TERMINAL-20261011`. APK/rehber/eğitim ZIP'i `Melisa-Terminal-v22-egitim-kurulum.zip`,20.074.928byte, SHA256 `9f51dbe5d8a2152d793be8969cc04de0828e411901a5c6f13706d37aa351fefc`;19dosyalı eğitim dizini `egitim-v22-final`, ana sayfa `training-v22-five-clips-four-tasks-final.html`, rehber `terminal-v22-final-install-guide.md`. Kopya hashleri ve ZIP içeriğinin geri okuması doğrulandı. Ham kayıt, kişi verisi ve ayar dosyası GitHub'a alınmaz.
 
 ## Gerçek sonuç ve sınırlar
@@ -34,7 +34,7 @@ Güncel mal kabul video kapsamı salt okunur/kısmi; oluşturma/gönderme adıml
 
 ## Kaynak / GitHub
 
-Çalışan ERP `9cc84ff96981ebc38d7292ffc01087f77441211e` / manifest `2211faf364b6b18a1ae83f67d9e035de9ab12525df8096fc0c933ecddecb741b`; CRM `09ca1dac346e42037fd02901baf3240aa6ce6285` / manifest `9de545b7c06197d628234c67d6ace60780acde4c02685780207abde677cacc4a`. Hub5234/API4184/native4186/CRM62700, DB02 exact copy `e16b70f0-4057-428b-9abc-6bbcaf35fe82`, actualT1false. Bu belge/test tesliminin HEAD'i uygulama source değildir; yalnız belge/test değişikliği için yeni runtime aktivasyonu yapılmaz.
+Çalışan ERP `571d2d5ad00fc33f320609e78ccaaf106c319452` / manifest `4a85b556422cd67a6d1efd0b449a8f885c21421505bc99b57a3c4f2c1e4462ef`; CRM `09ca1dac346e42037fd02901baf3240aa6ce6285` / manifest `9de545b7c06197d628234c67d6ace60780acde4c02685780207abde677cacc4a`; CRM native `60e424b61febd062668be0ccf3595c546da263a0`. Hub5234/API4184/native4186/CRM62700–62704, DB02 exact copy `e16b70f0-4057-428b-9abc-6bbcaf35fe82`, actualT1false. Günlükleme kod yaması yeni pakette etkin; belge teslim HEAD'i uygulama source değildir. Önceki9cc/video tuple'ı tarihsel çekim referansıdır.
 
 ERP PR23/CRM PR3 kaynak teslimleri devam eder. Exact son head CI sonucu push sonrası makbuz/PR kaydında doğrulanır; mevcut GitHub ödeme/harcama engeli nedeniyle jobs başlamadı, CI yeşil değildir. Yerel PASS ve Vercel bu engelin yerine geçmez. TEST125, aktarımlar, LL dışlamaları, karantina, eski maliyet/fotoğraflar, roller/yedekler korunur; cleanup, yeni migration, LIVE/Vega/T1/main/gerçek müşteri mesajı/ücretliAI yok. Genel finish49/9/39/1 ve CRM25/12/13/0 aynı.
 

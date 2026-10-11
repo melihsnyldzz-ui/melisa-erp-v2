@@ -2,6 +2,8 @@
 
 Tarih: 11 Ekim 2026. Aynı ERP-COMPLETE01 işinin ERP-DEC-048 güvenlik alt kapsamıdır; yeni teslim işi veya kullanıcı kabulü değildir.
 
+**11 Ekim22:54 son durum:** Kaynak yaması kanonik PR23 dalına alındı ve ERP571d2d5 TEST paketinde gerçek sensitive-query negatif loguyla doğrulandı. Sır yenileme/eskiSQL-JWTreddi/normalrefresh-logout/TC21reopen sonuçları [ayrı gerçek runtime kaydında](test-access-remediation.md) tamamlandı. Aşağıdaki source-only/deploy bekliyor ifadeleri önceki incelemenin tarihsel kapsamıdır. Meşru opaque cihaz refresh grant'leri normal desteklenen yenilemeyi sürdürür; tüm refresh'ler iptal edildi iddiası verilmez. Final head Git taraması ve CI ayrı teslim makbuzudur.
+
 ## Karar, kaynak ve runtime ayrımı
 
 - Kullanıcının doğrudan talimatı: hassas bilgi konusunu kontrol edip düzeltmek; diğer işleri bekletmeden bitirmek.

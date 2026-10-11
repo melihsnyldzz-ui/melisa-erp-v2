@@ -1,6 +1,20 @@
 # Kurulum, veri kontrolü, yedek ve geri dönüş paketi — 11 Ekim 2026
 
-## Güncel B01 teslim referansı
+## Son çalışan teslim — 11 Ekim 22:54 TR
+
+[Tek güncel paket/erişim kaydı](test-access-remediation.md): ERP **571d2d5ad00fc33f320609e78ccaaf106c319452**, paket `CANONICAL-COMPLETE-TEST-20261011-571d2d5`, manifestSHA **4a85b556422cd67a6d1efd0b449a8f885c21421505bc99b57a3c4f2c1e4462ef**; CRM **09ca1dac346e42037fd02901baf3240aa6ce6285** /manifestSHA **9de545b7c06197d628234c67d6ace60780acde4c02685780207abde677cacc4a**; CRM native **60e424b61febd062668be0ccf3595c546da263a0**. Hub5234/API4184/native4186/CRM62700–62704, exact DB02/copy/actualT1false doğrulandı. Source teslim HEAD'i çalışan uygulama source değildir.
+
+Kurulum **http://192.168.1.46:5234/install.html**; v22APK45.326.137byte/SHA **4cbbde0a389924cf25d4eebb9fdb3692ace15edae4219b348c8df78027803bcf** network geri okuması eşleşti. Bilgisayar ve aynı Windows oturumu açık olmalı; mevcut logon görevleri yeni immutable paketi başlatır. Gerçek reboot/logoff/pre-login servis ve modem rezervasyonu doğrulanmış sayılmaz. Teknik Android reopen/ERP→CRM geçişi normal korumalı oturumlarla geçti; bağımsız personel/İlker insan sonucu bekler. ERP-DEC-045 uyarınca optik barkod tekrar istenmez.
+
+Beş klip/dört görev son eğitimindeki tarihli capture kaynakları ve ZIP **9f51dbe5d8a2152d793be8969cc04de0828e411901a5c6f13706d37aa351fefc** sabit kalır; logger kaynak yenilemesi görüntüleri yeniden çekmiş gibi gösterilmez. Yeni tuple/erişim ek kaydı ayrı teslimdir. Normal CRM send yetkisi yok ve HTML browser oynatımı policy-block nedeniyle ayrıca açık; offline video kanıtı korunur.
+
+Önceki9.204.334.592byte ve11Ekim9.217.900.544byte DB02 yedeklerinin ayrı hedef gerçek RESTORE/CHECKDB sonuçları [kurtarma kaydında](recovery-and-readiness-proof.md) tamamdır; burada eski “restore edilmedi/disk eksik” ifadeleri tarihsel duraktır. Aşama5 inverse kanıtı aşağıdaki kendi kopya/kapsamında korunur; aktif DB02'ye restore veya sonraki yerel hareketleri silen inverse yok. Güncel sır gideriminde SQL rol/grant/SID eşitliği, eski SQL/JWT reddi, yeni normal refresh/logout ve gerçek log redaksiyonu doğrulandı. Kod geri dönüşünde **döndürülmüş korumalı sırlar ve güncel session journal'ları korunur**; iptal edilmiş sır/config geri yüklenmez. Bu yedekler sonradan oluşmuş bütün hareketlerin güncel yedeği sayılmaz; final T1 ve LIVE onayı ayrıca gerekir.
+
+ERP-UA22/UA32 ve genel işletme kabulü bekler; finish49/9/39/1 korunur. GitHub ödeme/harcama engeli CI PASS değildir. Yeni satış, restore, migration veya rol işlemi bu son sürüm eşlemesinde yapılmadı.
+
+## Tarihsel checkpoint'ler — aşağıdaki tuple ve eksikler güncel teslim değildir
+
+## Önceki B01 teslim referansı
 
 Private `transition-delivery/README.md` ve `provenance-manifest.json` application source8ca0122af79ec03bf3077fc83169f852c4f2a4e8 /CANONICAL-COMPLETE-TEST-20261011-8ca0122af79e ile yenilendi. ManifestSHAf74e9f80a3604a2890e4bd0b7025f07c692e4bdd38053dc3fbf6d7efc8cba6d6;1735dosya0hashfarkı24pin.22privatekopya hash/byte eşleşti. RehberSHA8db7b52780c320b3ef224a616f55288311cf65bce6d4fdef23053fd21451fafc; provenanceSHA9a403ebc6e0e146f276010a795548b2ad9d474a60057701f30538a915bfa0293. B01 kaynak/native/4API ve paketHTTP6rolokuması/5negatif tamamlandı; önceki c198/restore/video kanıtları korundu. GeçiciUSB/loopback5264 yenilendi; ortakAPI/Hub/TEST125/sabitboot değişmedi. Hız/UI/insan/LIVE PASS verilmedi. [B01 sonucu](home-daily-readonly.md).
 

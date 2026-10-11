@@ -1,4 +1,12 @@
-## ERP-COMPLETE01 — güvenli API günlükleme / kaynak teslimi — 11 Ekim 2026
+## ERP-COMPLETE01 — korumalı TEST erişimi / gerçek paket giderimi — 11 Ekim 2026
+
+ERP-DEC-047/048 kapsamında kullanıcıdan parola istenmeden iki mevcut TEST SQL servis parolası ve JWT çifti yenilendi; eski freshSQL2/2 ve süresi dolmamış eskiJWT/fresh retired-signature401, yeniSQL2/2/normal login-refresh-me200, replay/logout sonrası401 doğrulandı. Bağımsız mühürlü SQL SID/rol/grant eşitliği aynı; mevcut ek prova DB eşlemeleri korunur. Meşru opaque cihaz refresh journal'ı normal yenilemeyi sürdürüyor; bütün refresh'ler iptal edildi iddiası yok. TEST125/LIVE süreçleri aynı; shared personel parolası/rolü, ticari DML/restore/migration0.
+
+Logger kaynak yaması guarded10/10/reviewGO; son gerçek ERP571d2d5 paketinde sensitive-query negatifGET401'in iki mevcut listener logunda canary/query0, route/status/UUID korunuyor. Core/Hub/logon pinleri yeni korumalı config'le uyumlu; native62704 JWT tüketicisi aynı yenilenmiş çifti kullanıyor. ERP4184/4186/5234 ve CRM62704 sağlık kimlikleri, CRM09ca indexhash ve dış-send/paidAI kapalı durumu; v22 LANAPK exact45.326.137byte/SHA4cbb... geri okuması geçti. TC21 force-stop/reopen→normal Personel mal kabul ve ERP→CRM atanmış liste, giriş istemeden açıldı; reverse boş. Sır veya geçmiş çıktı temizlendi iddiası yok; ham özel ayarlar GitHub'a alınmadı.
+
+[Tek sonuç/kanıt ve çalışma tuple'ı](docs/evidence/erp/2026-10-11-completion/test-access-remediation.md), [güncel geçiş teslim kaydı](docs/evidence/erp/2026-10-11-completion/transition-package.md). Çalışan application571d2d5/CRM09ca/native60e424b, APK buildf3d ayrı; kaynak teslim HEAD/PR23 CI push sonrası ayrı doğrulanır. Exactvalue taraması ERP2885/CRM479/teslim22/ZIPüyeleri185 bulgu0; bir büyük/bir eksik ERP dosyası hariç. FinalGitgeçmiş taraması ve CI makbuzu ayrıca kaydedilir. İnsan UA32/49-9-39-1/CRM25-12-13-0 aynı. Kalan CRMsend yetkisi, training browser policy-block, insan kabulü, gerçekreboot/ertelenenIP ve CI hesap engeli; yeni kapsam başlamaz.
+
+## Önceki checkpoint — güvenli API günlükleme / kaynak teslimi — 11 Ekim 2026
 
 [ERP-DEC-048](PROJECT_DECISIONS.md#erp-dec-048--11-ekim-2026--onaylı), kullanıcı talimatıyla TEST güvenlik giderimini ve diğer teslimlerin paralel sürmesini yetkilendirir; karar kaydı **e4aa5ddbde8527e25f2c7f090011f4ae3284f749** pushlandı ve kanonik sahip tarafından kabul edildi. Güvenli günlükleme kaynak yaması **1a14a3303001d0d4f0b6ec2b48dc72b2361ad713**, bu incelemede sabitlenen runtime kaynak tabanı **9cc84ff96981ebc38d7292ffc01087f77441211e** üzerine hazırlandı. Bu ayrı kaynak teslimi henüz runtime paketine alınmadı veya deploy edilmedi; çalışan servisin düzeltildiği anlamına gelmez.
 

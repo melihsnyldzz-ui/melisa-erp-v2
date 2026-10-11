@@ -1,4 +1,8 @@
-## ERP-COMPLETE01 — güvenli günlükleme alt kapsamı — 11 Ekim 2026
+## ERP-COMPLETE01 — korumalı TEST erişimi ve son paket — 11 Ekim 2026
+
+Gerçek ERP571d2d5/CRM09ca/native60e424b tuple'ında eskiSQL/JWT reddi, yeni normalrefresh/logout, korumalı TC21 reopen/ERP→CRM ve günlük redaksiyonu tamam. [Tek teslim kaydı](docs/evidence/erp/2026-10-11-completion/test-access-remediation.md). Eski video/ZIP ve restore/inverse kanıtları kendi tarihli kapsamında korunur; UI/personel/İlker insan PASS üretilmez. **49/9/39/1**, ERP-UA32 bekliyor. CRMsend yetkisi, training browser policy-block, gerçeklogon/IP ve hostedCI hesap engeli somut sınırdır; sonraki kapsam kendiliğinden başlamaz.
+
+## Önceki checkpoint — güvenli günlükleme alt kapsamı — 11 Ekim 2026
 
 ERP-DEC-048 kapsamındaki [kaynak düzeltmesi ve sentetik kanıt](docs/evidence/erp/2026-10-11-completion/safe-logging-remediation.md) aynı ERP-COMPLETE01 işi altında kaydedildi. Kaynak yaması teknik hazır; deploy/runtime kabulü değildir. TEST sır döndürme ve runtime doğrulaması kanonik sahibinde sürüyor; Gitleaks dar falsepositive sınıflandırması tamam, nihai commit head taraması root'ta bekler. Yeni UI/insan kabulü yapılmadı; **49 / 9 tamam / 39 kısmi / 1 açık** ve **ERP-UA32 bekliyor** değişmedi. Diğer dört teslimin mevcut kapsamı ve açıkları korunur; teknik kaynak/runtime sonucu [STATUS](STATUS.md) içindedir.
 

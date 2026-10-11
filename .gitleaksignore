@@ -72,3 +72,7 @@ ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperation
 656bd52f6ecc2ee49e281b78006dd1aaf7c96c2f:apps/api/src/services/businessDailyRevisionBootstrap.test.mjs:generic-api-key:17
 0f51f01f7d6e4997625bcbabfdbc9fb3ef825d3b:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:10
 0f51f01f7d6e4997625bcbabfdbc9fb3ef825d3b:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:22
+# Independently reviewed 2026-10-11: public TEST database identity guard
+# and offline sourceKey provenance, not credentials. Exact commits only.
+6b99f1bc5758b5a116cd4158f923e09202c66c35:apps/api/src/services/melisaHubReadiness.mjs:generic-api-key:31
+0f52539f56b956d6b7906fc426a885cc9bb7652b:apps/sites-workflow/src/workflow/sharedStableTopology.test.mjs:generic-api-key:15
