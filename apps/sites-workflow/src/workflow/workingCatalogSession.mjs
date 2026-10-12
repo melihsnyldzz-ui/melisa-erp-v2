@@ -35,7 +35,8 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   if(protectedDevice&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
-  const deadline=workMutation&&method==='POST'?60000:timeoutMs;
+  // Carton GETs include cold native source checks; a longer budget adds no retry or API speed gain.
+  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
    const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
