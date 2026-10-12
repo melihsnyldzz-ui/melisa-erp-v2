@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — OPS02 dar gözetim teslimi / kısmi — 13 Ekim 2026
+
+Çalışan3517 paket DB02 ve sekiz portla doğrulandı. Doğrulanamayan süreç gözlemi sağlıklı servisleri topluca kapatıp yeniden başlatmaz. Başlatılmış sürecin izlenmesi, gerçek çıkış ve port kontrolü eklendi;73 yerel kontrol, bağımsız inceleme GO ve final salt okunur gölge prova var. Normal ekran ve ticari hesaplama aynı; dört mevcut DTO hash'i korundu. [Kanıt](docs/evidence/erp/2026-10-13-startup-observation/README.md). Gerçek Windows reboot/logon, tarihsel814 OS aşaması(bilinmiyor), OPS01 hız, final native video ve UA32 açık.49 toplam/9 tamam/39 kısmi/1 açık değişmedi. CI hesap engeliyle başlamadı; insan PASS yok.
+
 ## ERP-COMPLETE01 — son814 dar teslim / kısmi — 12 Ekim 2026
 
 Mevcutfiş/koli GET tekrarı azaltıldı; son814paket ve kurulum/APK HTTP çalışıyor. Normal390tarayıcıda üst50/100,0089/ikiREADYkoli ve yenileme kanıtlı. Native son yeni belge, final200video, süreç başlangıç kararlılığı ve insanUA32 açık; hız hâlâ birkaçsaniye. [Kanıt](docs/evidence/erp/2026-10-12-final-closure/current-delivery.md). Aynı yaprak kısmi;49 toplam/9 tamam/39 kısmi/1 açık değiştirilmedi. Gözetim hatası kesin OS aşamasıyla çözülecek; reddedilen cihaz kapat/başlat başka komutla tekrar edilmeyecek. Kalem bazında rapor eskibaşlangıç ile son teslim farkını ayrı gösterir.

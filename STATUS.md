@@ -1,3 +1,11 @@
+## OPS-02 — çalışan3517 / OS gözlem hatası toplu restart üretmez — 13 Ekim 2026
+
+Source3517bb8f9455de118cb7c8661a89f416288c9981,1870dosya,manifesteb18c6aa…50f6e92 kurulu; web5234/API4184/native4186, DB02/copye16b70f0/T1false. Mevcut task principal/trigger/settings ve CRM09ca/native60e korundu. Root fresh full ownership sonrası yalnız8port TEST sahiplerini değiştirdi; diğer dinleyiciler/TEST125 aynı, ticariSQL yazması0.47Node+26PS offlinePASS, bağımsızGO ve kaynaksecretscan0bulgu.
+
+Unknown/exhausted OS probe residentdegraded; healthycleanup/restart yok. Yalnız finite transient max2fresh yeniden gözlem ve tamguards+health; pendingchild probe/receipt/logclose hatasından önceizlenir; killtrue yerineactualexit+freshport gerekir. NETTCP onlyexactnomatch boş; ownerReturnValue0/SID zorunlu. OSdiagnostic finitephase/category/type/HResult; rawmessage/argv/SID/SQL/sır yok.
+
+Finalpaket gölgeprova gerçek6core/health ile geçti; injectedfault yalnız bellek içinde, processstart/stop0 ve tazePID/creation/parent/bindingssame. Final8port/health/heartbeat yaklaşık117s sonra aynısource/DB ile running; yeni-sourcefailure yok. GerçekWindowsreboot/logon veya tarihselOScause kanıtı değildir; eski814exit1 aşamasıNOT_RECORDED kalır. Mevcut4normal15DTOhashsame/ownlogouttrue;13982/5258/5288/4360ms tekilgözlem, OPS01hız açık.22normalasset/572APIfilehashsame, installerHTTP200/v22APKhashsame. YeniTC21/video veya insanPASS yok. [Dar kanıt](docs/evidence/erp/2026-10-13-startup-observation/README.md). Hosted exact3517CI ödeme/harcama nedeniyle başlamadı; local/Vercel yerine geçmez. Finish49/9/39/1 ve UA32bekliyor aynı.
+
 ## ERP-COMPLETE01 — çalışan814 / normal tarayıcı doğrulandı, son native belge açık — 12 Ekim 2026
 
 e873 tarihsel GET dış READY tekrarı azaltıldı, native iki READY ve exact kimlik/revision/transaction kontrolleri korunur.260 üstnext50,2005 dar okuma timeoutu ve814 hızlıarama/IME kaynağı review GO; root8 tarihsel +59 session/gateway +20 carton kontrol geçti. Yeni1870dosyalı814 paket çalışıyor; manifest6103A7DF…A0C48FF, web5234/API4184/native4186, DB02/copye16b70f0/T1false. CRM09ca/native60e ve özgün TEST125 aynı. Yeni ticari yazma/migration yok.

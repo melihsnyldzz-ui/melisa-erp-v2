@@ -1,3 +1,9 @@
+# 13 Ekim güncellemesi — çalışan3517 gözetim düzeltmesi
+
+Son çalışan web/API/native source **3517bb8f9455de118cb7c8661a89f416288c9981**;1870dosya/manifesteb18c6aa…50f6e92. DB02/copye16b70f0/T1false, CRM09ca/native60e ve TEST125 korunur. [OPS02 teknik teslimi](../2026-10-13-startup-observation/README.md):73offline kontrol/GO, final gerçekguard gölgeprova,8port/health/heartbeat ve4mevcutDTOhashsame. Bilinmeyenprobe sağlıklıstackcleanup/restart üretmez; kaynak guardları sürer. GerçekWindowsreboot/logon ve eski814exit1OSaşaması ayrı bilinmeyen/açık. Normalasset22/APIfile572aynı; installerHTTP200/APKv22same. Yeni tarayıcı/TC21insan kabulü yok,814normalgörselkanıtı değişmeyen UI için devralınır. Nativevideo/UA32/OPS01hız/hostedCIbilling açık. Genelteslim **completeDelivery=false**.
+
+Aşağıdaki12Ekim814metni tarihsel önceki teslim olarak korunur; son runtime kimliği yukarıdadır.
+
 # ERP-COMPLETE01 — çalışan fiş/koli okuyucusu ve son teslim sınırları
 
 12 Ekim 2026. ERP-DEC-053 kapsamında ana iş devam etti; iptal edilen Hub giriş düğmesi etkinleştirilmedi. Yeni satış, stok/cari/kasa hareketi veya migration oluşturulmadı. İnsan UA32 bekliyor; genel ERP/LIVE kabulü yok.

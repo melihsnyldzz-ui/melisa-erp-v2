@@ -1,3 +1,12 @@
+## 13 Ekim OPS02 dar teslim farkı
+
+| Kalem | Yeni kanıt | Kalan |
+| --- | --- | --- |
+| OPS-02 | Çalışan3517: unknownprobe residentdegraded; healthycleanup/restart0.73yerelkontrol/GO; final6coreguard gölgeprova ve8port/DB02/heartbeat. | GerçekWindowsreboot/logon. Eski814exit1OSaşaması kaydedilmedi; neden bilinmiyor. |
+| OPS-01 / UI / native | Normal22asset/572APIfile aynı,4DTOhashkorundu; installer/v22hashaynı. | Hız hâlâ birkaçsaniye; yeni cihaz belgesi/video ve insanUA32. |
+
+[13Ekim teknik kanıt](../2026-10-13-startup-observation/README.md). Aşağıdaki başlangıç ve12Ekim farkı korunur; iş sayıları/insan sonuçları değişmedi.
+
 # MELİSA ERP + CRM — kalem bazında son kapanış raporu
 
 **12 Ekim son devam güncellemesi:** başlangıç fotoğrafı aşağıda tarihsel olarak korunur. Şimdi çalışan ERP **8142742**; CRM09ca/native60e ve özgün TEST125 aynı. [Son çalışan teslim / kanıt ve açıklar](current-delivery.md) eski kaynak hazırlığını çalışan kurulumdan ayırır. Yeni source e873/260/2005/814 ve source sonrası doküman teslimi PR23 üzerindedir; insanUA32 bekliyor.
