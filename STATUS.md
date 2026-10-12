@@ -1,3 +1,11 @@
+## ERP-COMPLETE01 — çalışan1a / kontrollü ilk profit UPDATE teşhisi — 12 Ekim 2026
+
+Paket1a/1834manifest ve normal15 protected giriş-refresh-logout doğrulandı; API4184/native4186/web5234 exact DB02, CRM09ca/native60e aynı. Root mevcut başlangıç görevinden kapanmış cohort'u pinlerle yeniden açtı; kapanma nedeni kanıtlanmadı, PT0S/exit1/stale625failure ile süre sınırı iddiası yok. TEST125/LIVE durdurulmadı. [Vaka kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).
+
+Native200 controlled finalize ID kontrolünü geçti; ilkprofitUPDATE60.018sn başarısız, stok/cari fazları çalışmadı. Bounded statement gözlemi ve sonraki bağımsız SQL/API tam before-image/200DRAFT/request404/eski satış-iki koli korunumu geçti: yeni stok0/müşteri0/kalıcıfinalize0. Timeout/guard/rol gevşetilmedi; gerçek plan/wait teşhisi bekler. Exact1a CI38194712621/38194709143 steps0 hesap ödeme/harcama engeli, yeşil değil. UA32/49-9-39-1 aynı; dört teslim bütünü tamam sayılmaz. Parola istenmez; ERP-DEC-047 korunur.
+
+Passive bounded exit recorder dar kaynakta hazır: root5/review5 yeni kontrol/backend38 toplam/syntax-parse GO; yaşam döngüsü ve sır güvenliği korunur. Çalışan1a'da etkin değil; mevcut kapanma nedeninin çözüldüğü veya kalıcı açılışın tamamlandığı iddiası yok. Normal terminalin korunan personel oturumu/200satır/223adet/iki koli/kalan0 görüntüsü salt okunur görüldü; taslak veya koli değiştirilmedi.
+
 ## ERP-COMPLETE01 — native BIGINT doğrulaması / dar finalize düzeltmesi — 12 Ekim 2026
 
 Çalışan625 korunur. Yeni200 kalemli taslağın controlled denemeleri callback içinde durdu; sonraki bağımsız READ tam before-image/200DRAFT/sıfır stok ve müşteri hareketi/eski satış ve koliler aynı sonucunu verdi. CAST olmadan native SQL okuması200kalem+200ürün ID'sinin canonical string olduğunu kanıtladı; mevcut number-only batch kontrolü400doğru ID'yi reddediyor. Yalnız selectedSOURCE batch ID doğrulaması hassasiyet kaybı olmadan string/safeinteger kabul edecek şekilde daraltıldı;root14/review9 hedefli test ve source GO, native finalize PASS değil. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).

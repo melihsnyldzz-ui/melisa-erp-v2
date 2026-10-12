@@ -1,5 +1,17 @@
 # 200 farklı ürün / iki koli — gerçek native prova — 12 Ekim 2026
 
+## Çalışan 1a / ilk profit UPDATE gecikmesi
+
+Kimlik düzeltmesi `1a2f4e25cefeaaa65f5ece21aee866d2c0252be7` paketinde etkin: 1834/1834 dosya, manifest `d99fd838a4855ad05c6f47b52aab68dbcb56f9c522949e95dc7361afedbf4069`. API4184/native4186/web5234 exact DB02/copy üzerinde; CRM09ca/native60e değişmedi. Normal15 giriş/refresh/logout, dört health ve dokuz served asset ayrı doğrulandı. Uygulama source, belge teslimi ve APKv22 source farklı kimliklerdir.
+
+Yeni aynı 200 kalemli taslağın kontrollü denemesi kimlik kontrolünü geçti. Native observer ilk profit UPDATE batch'ini (630 karakter, SHA256 `a5c62ae2756b5da2b8748b1eeddc756d07ad416d74ab0c09c12d9fe389ea997a`) **60.018 saniye** sonunda başarısız gördü; ürün stok UPDATE ve stok hareket INSERT fazlarına ulaşılmadı. Sonraki rollback SQL3903 ikincil hatadır. Statement bazındaki ölçüm kilit beklemesi ile guard CPU maliyetini henüz ayırmaz; timeout yükseltme veya guard gevşetme yapılmadı. Bounded private gözlem `controlled-finalize-result-1791774108655.json`, SHA256 `5bc8c6780cd0f7b8fce25a2657dfbedea88599d04f0fc73ff4c761b2f08d8416`; ham SQL, parametre, hata mesajı ve ticari değer yayımlanmadı.
+
+Ardından bağımsız native SQL/API okuması tam sekiz before-image bileşenini, önceki satış ve iki koliyi, aynı 200 kalem DRAFT/revision'ı ve finalize UUID404 sonucunu doğruladı. Yeni taslakta stok0/müşteri0 hareket; kalıcı finalize0. Kanıt `retarget-controlled-outcome-1791774210150.json`, SHA256 `a25c0b75ec10ee005ad8e29e7f9e3d18751c7b4e41c59c69f64bbcc57de18815`. Kontrollü finalize PASS değildir.
+
+1a ortak cohort'un 02:49UTC'de durduğu görüldü. TaskReady/exit1 ve PT0S, fakat failure kaydı eski625: kesin kapanma nedeni kanıtlanmadı. Root, boş exact portlar ve settings/config/manifest/owner pinleriyle **aynı mevcut** başlangıç görevini 02:56UTC'de açtı; yeni supervisor/altı servis ve taze CRM running kaydı doğrulandı. TEST125/LIVE/Vega süreçleri durdurulmadı, SQL veri yazması veya rol/parola değişikliği yapılmadı. İnsan UA32 bekler. Exact1a CI38194712621/38194709143 jobssteps0 hesap ödeme/harcama engeli; yerel test CI yeşili değildir.
+
+Beklenmedik çıkışı teşhis etmek için dar kaynak recorder'ı hazırlandı: yalnız realCLI ve başarılı tam pin doğrulamasından sonra passive `uncaughtExceptionMonitor`/`exit`; yeni PID/UUID bağlı private receipt, kaynak/zaman ve allowlist tür/kod/sayısal exit. PowerShell orijinal LASTEXITCODE'u kayıt öncesi yakalar ve mevcut nonzero throw'u korur. Hata mesajı/stack/sorgu/parametre/sır yayımlanmaz; mevcut failure dosyası ve kayıtlar değiştirilmez. Root5/review5 yeni kontrol ve backend38 toplam kontrol, syntax/parse/diff GO. Retry, eşikler, kapatma, izin ve giriş mantığı aynı. **Yalnız kaynakta hazır; çalışan1a recorder'ı içermez.** Hard kill event üretmeyebilir; bu yama mevcut kapanma nedenini kanıtlamaz.
+
 ## Native BIGINT kimliği — gerçek tip kanıtı ve dar kaynak düzeltmesi
 
 Yeni 200 kalemli taslağın kontrollü finalize denemesi native callback içinde durdu; kalıcı finalize çağrısı yapılmadı. Her denemeden sonraki salt okunur kontrol aynı tam before-image, 200 taslak kalemi, sıfır stok/müşteri hareketi, eski satış ve iki koli korunumu sonucunu verdi. Kaynak, kasa/banka ve tedarikçi etkisi değişmedi. Kontrollü finalize henüz PASS değildir.

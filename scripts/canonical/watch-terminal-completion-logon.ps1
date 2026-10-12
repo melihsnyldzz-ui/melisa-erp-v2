@@ -17,4 +17,16 @@ if($pins.Count -ne 1 -or $manifest.sourceCommit -cne $c.supervisor.sourceCommit 
 $driver=Join-Path $c.supervisor.packageRoot 'scripts\canonical\terminal-completion-logon.mjs'
 # Node holds the sole initial+3 retry budget; Scheduler retries must be disabled.
 & $c.node.path $driver --config $StartupConfigPath --sha256 $StartupConfigSha256 --owner-sid $owner --action $Action
-if($LASTEXITCODE -ne 0){throw 'TERMINAL_LOGON_DRIVER_FAILED'}
+$terminalNodeExitCode=$LASTEXITCODE
+# Preserve the original exit result. Diagnostic persistence never handles it.
+try {
+ $terminalExitDirectory=$c.runtimeDirectory
+ if($terminalExitDirectory-cne'C:\Sirket\ERP\runtime\terminal-completion-logon'){throw 'EXIT_RECEIPT_PATH'}
+ for($terminalPath=$terminalExitDirectory;$terminalPath.Length-gt3;$terminalPath=[IO.Path]::GetDirectoryName($terminalPath)){if((Get-Item -LiteralPath $terminalPath -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'EXIT_RECEIPT_REPARSE'}}
+ $terminalBoundedCode=if($terminalNodeExitCode-is[int]){$terminalNodeExitCode}else{$null}
+ $terminalReceipt=@{schemaVersion='melisa-terminal-completion-shell-exit.v1';sourceCommit=$c.supervisor.sourceCommit;shellPid=$PID;nodeExitCode=$terminalBoundedCode;recordedAt=[DateTime]::UtcNow.ToString('o')}
+ $terminalReceiptPath=Join-Path $terminalExitDirectory ('supervisor-shell-exit-'+$PID+'-'+[guid]::NewGuid().ToString()+'.json')
+ $terminalReceiptHandle=[IO.File]::Open($terminalReceiptPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+ try{$terminalReceiptBytes=[Text.UTF8Encoding]::new($false).GetBytes(($terminalReceipt|ConvertTo-Json -Compress));$terminalReceiptHandle.Write($terminalReceiptBytes,0,$terminalReceiptBytes.Length);$terminalReceiptHandle.Flush($true)}finally{$terminalReceiptHandle.Dispose()}
+} catch { }
+if($terminalNodeExitCode -ne 0){throw 'TERMINAL_LOGON_DRIVER_FAILED'}

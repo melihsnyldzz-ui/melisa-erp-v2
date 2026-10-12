@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — çalışan1a / finalize gecikmesinin ölçülen adımı — 12 Ekim 2026
+
+Kimlik düzeltmesi çalışan1a paketinde etkin. İlkprofitUPDATE60.018sn hata verdi; bağımsız SQL/API aynı200DRAFT/sıfırstok-cari etkisi/eski satış-koli/tam before-image korumasını doğruladı. Aynı mevcut başlangıç göreviyle ortak TEST servisleri yeniden hazır; kapanma nedeni henüz bilinmiyor. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynıiş: firstprofitUPDATE gerçek plan/wait teşhisi, sonra dar düzeltme/native rollback. Yeni migration/panoişi yok; insanUA32/49-9-39-1 aynı.
+
 ## ERP-COMPLETE01 — native kimlik tipi düzeltmesi / aynı teslim — 12 Ekim 2026
 
 Yeni200DRAFT stok/cari0 ve eski kayıtlar değişmeden korunur. Gerçek SQL sürücüsü400doğruBIGINTkimliği string döndürürken batchnumber-only kontrolü reddediyordu; dar IDfix root14/review9 source GO. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynıiş: yeni paket→aynıtaslak nativecontrolledrollback→tekfinalize/replay/bağımsız native sonuç. Çalışan625/orijinal200satış/iki koliREADY aynı; yeni migration/anaiş yok. UA32/49-9-39-1 değişmedi.
