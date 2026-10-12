@@ -1,3 +1,9 @@
+## Melisa Host — korumalı TEST erişimi / tanı paketi, ekran doğrulaması engelli — 12 Ekim 2026
+
+Dar Host erişim çalışması; ana goal ve CRM ajanı paused. Desktop source ae250d2 / runtime pin73f4b85 ayrı; 7 dosyalı hazırlık, mevcut Electron39.8.10 NSIS build exit0 ve22/22 hedefli test PASS. Yeni dış paket ERP-HOST-ACCESS-20261012-ae250d2 hazır; kurulmadı/başlatılamadı. İstemci başlatma otomatik güvenlik incelemesince `blocked by policy` reddedildi; ayrıntılı gerekçe yok ve başka yöntemle başlatma denenmedi. Giriş arızasının gerçek aşaması, normal Semih ERP kimliği, korumalı yeniden açılış/geçiş/çıkış açık; kaynak/test/build gerçek erişim PASS değildir. [Kanıt ve paket hash'i](docs/evidence/erp/2026-10-12-host-access/README.md).
+
+Exact ae250d2 PR23 hostedCI38231481950/38231475189 FAILURE; annotation hesap ödeme/harcama engeli nedeniyle işin başlamadığını doğrular. Kullanıcıdan parola istenmedi; shared parola/rol değişimi, servis restart, ticari/SQL yazma ve CRM değişikliği yok. TEST125/DB02/veriler korunur; insan kabulü verilmedi.
+
 ## ERP-COMPLETE01 — 200 satırlı satış tamamlandı / aynı istek kurtarıldı — 12 Ekim 2026
 
 Çalışan ERP source `f411eb8dd84011145931aa22c4fe8a25194faf06`, 1843 dosyalı paket; API4184/native4186/web5234, Semih\\MELISADEV / MELISA_ERP_CRM_SHARED_TEST_20261009_02, copy e16b70f0-4057-428b-9abc-6bbcaf35fe82, T1=false. CRM09ca/native60e aynı. İleri v10 karantina companion mevcut yöntemle Rehearse/rollback/Apply ve normal kısıtlı writer READY geçti; 51 ticari tablo/15 tarihçe grubu, eski registry/izin/nesne kimlikleri korundu. Root77 hedefli kontrol ve paket import grafiği6 kontrol geçti. [Tam kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).
