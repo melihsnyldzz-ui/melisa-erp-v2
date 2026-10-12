@@ -1,3 +1,9 @@
+## Melisa Host — ret sonrası desteklenen giriş yolu incelemesi — 12 Ekim 2026
+
+Dar erişim yetkisi kullanıcı tarafından yeniden doğrulandı; parola/onay istenmedi, ana goal ve CRM ajanı paused. Reddedilen yeni istemci başlatımı tekrar denenmedi. Mevcut web5234/API4184/native4186 `/test-health` source73f4b85/exact DB02/copy/T1false canlı; açık normal ERP satış fişleri sekmesi işlem hatası gösteriyor, Semih girişi kanıtı değildir. Windows korumalı ERP oturum dosyası yok; CRM Semih hazırlığı aktiffalse ve çalışan CRM09ca pin'inden ayrı.
+
+Somut kurulum bağımlılığı: mevcut ERP actor/normal refresh/vault sözleşmesi yalnız15/personel ve16/İlker. AuthAdmin route'u writes dalında mounted olsa da ÖNCE gelen write-policy kullanıcı oluşturma/değiştirme yolunu kapsam dışında405 reddeder; önceki nottaki genel mounted-değil ifadesi [kanıtta düzeltildi](docs/evidence/erp/2026-10-12-host-access/README.md). Semih kimlik/rol kurulumu bu korumaları atlamadan desteklenmiyor. Yetki yükseltme, başka aktörü Semih etiketiyle kullanma, SQL/kod/runtime/CRM değişikliği yapılmadı. Kapanma ölçütü desteklenen kimlik kurulumu ve normal gerçek istemcide login/me/korumalı açılış/geçiş/logout/revoke kanıtıdır. Runtime PASS yok; burada DUR.
+
 ## Melisa Host — korumalı TEST erişimi / tanı paketi, ekran doğrulaması engelli — 12 Ekim 2026
 
 Dar Host erişim çalışması; ana goal ve CRM ajanı paused. Desktop source ae250d2 / runtime pin73f4b85 ayrı; 7 dosyalı hazırlık, mevcut Electron39.8.10 NSIS build exit0 ve22/22 hedefli test PASS. Yeni dış paket ERP-HOST-ACCESS-20261012-ae250d2 hazır; kurulmadı/başlatılamadı. İstemci başlatma otomatik güvenlik incelemesince `blocked by policy` reddedildi; ayrıntılı gerekçe yok ve başka yöntemle başlatma denenmedi. Giriş arızasının gerçek aşaması, normal Semih ERP kimliği, korumalı yeniden açılış/geçiş/çıkış açık; kaynak/test/build gerçek erişim PASS değildir. [Kanıt ve paket hash'i](docs/evidence/erp/2026-10-12-host-access/README.md).
