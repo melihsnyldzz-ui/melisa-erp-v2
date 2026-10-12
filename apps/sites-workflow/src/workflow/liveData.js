@@ -1,3 +1,4 @@
+import {installReadOnlyNavigation} from './readOnlyNavigation.mjs';
 import {exampleSettingsPanel,wireExampleSettings} from './settingsUI.js';
 import {completionTree} from './completion.js';
 import {createLazyVegaClient as createVegaProductClient} from '../services/lazyVegaClient.mjs';
@@ -29,6 +30,7 @@ const savedAccountNames=Object.fromEntries(savedAccounts.map(r=>[r.sourceId,r.na
 
 const workflow=window.MelisaWorkflow;
 let disposeCopyActors=()=>{};
+let disposeReadOnlyNavigation=()=>{};
 function showCopyActors(session,current){disposeCopyActors();disposeCopyActors=mountCopyActorSelector({container:document.querySelector('.top-right'),session,user:current,beforeSwitch:()=>window.MelisaWorkingBeforeNavigate?.()!==false,onChanged:()=>workflow.render()});}
 function refreshBusinessDate(){
  const target=document.getElementById('business-date');
@@ -110,7 +112,8 @@ function createNativeApprovals({root,session,navigate}){
  return {mount(){active=true;refresh();},dispose(){active=false;generation++;}};
 }
 function mount(){
- disposeCopyActors();dispose();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
+ disposeCopyActors();dispose();disposeReadOnlyNavigation();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
+ const clearReadOnlyNavigation=installReadOnlyNavigation({host:window,root,page,isCurrent:()=>workflow.screen()===page});disposeReadOnlyNavigation=clearReadOnlyNavigation;
  const countWorkspace=page==='count';
  const workspace=['stock','home','approvals','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns';
  toolbar.hidden=workspace;toolbar.style.display=workspace?'none':'';
@@ -130,7 +133,7 @@ function mount(){
   }
   function showManagement(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);screenUI?.dispose();screenUI=page==='reports'?createWorkReports({root,session}):createWorkSystemSettings({root,session});screenUI.mount();}
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
-  dispose=()=>{active=false;screenUI?.dispose();session.dispose();};
+  dispose=()=>{active=false;clearReadOnlyNavigation();screenUI?.dispose();session.dispose();};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Bilgiler açılıyor…</p></section>';
   session.start().then(showManagement).catch(error=>{if(alive())showLogin(error.message);});return;
  }
@@ -171,7 +174,7 @@ function mount(){
    homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
   }
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
-  dispose=()=>{active=false;homeUI?.dispose();session.dispose();};
+  dispose=()=>{active=false;clearReadOnlyNavigation();homeUI?.dispose();session.dispose();};
   session.start().then(showHome).catch(error=>{if(alive())showLogin(error.message);});return;
  }
  if(page==='stock'){
@@ -190,7 +193,7 @@ function mount(){
   }
   function showCatalog(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=label.textContent.slice(0,1);catalogUI=createWorkCatalog({api:session.api,media:session.media,permissions:current.permissions});root.innerHTML=catalogUI.html();catalogUI.mount(root);}
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
-  dispose=()=>{active=false;catalogUI?.dispose();session.dispose();};
+  dispose=()=>{active=false;clearReadOnlyNavigation();catalogUI?.dispose();session.dispose();};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Ürün kataloğu açılıyor…</p></section>';
   session.start().then(showCatalog).catch(error=>{if(alive())showLogin(error.message);});return;
  }

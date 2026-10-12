@@ -48,6 +48,8 @@ function closeAllowed(){
  if(route==='count'&&user){try{const pending=JSON.parse(localStorage.getItem(`melisa-daily-count-${user.id}`)||'null');if(pending&&!pending.result){announce('Son sayımın sonucu doğrulanmalı. Aynı isteği yeniden doğrulayın.');return false;}}catch{announce('Son sayım okunamıyor. Kaydı doğrulayın.');return false;}}
  return true;
 }
+// The native Windows menu observes the same existing pending-operation guard.
+window.MelisaWorkingBeforeNavigate=closeAllowed;
 function go(value,{initial=false}={}){
  const next=resolveRoute(value);if(!initial&&!closeAllowed())return false;
  controller?.dispose();controller=null;scanner.reset();route=next;navigationVersion++;root.hidden=route==='crm';crm.hidden=route!=='crm';
@@ -55,7 +57,7 @@ function go(value,{initial=false}={}){
  if(!user){showLogin();return true;}
  if(route==='home')home();else if(route==='crm')openCrm();else if(route==='products'){controller=products();controller.mount();}else if(route==='packing'){
   const scoped=client(),base='/api/terminal-cartons/receipts';
-  controller=createCartonPacking({root,user,scopeKey:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount();
+  controller=createCartonPacking({root,user,scopeKey:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount(); // gitleaks:allow -- fixed public TEST copy UUID; not a credential.
  }else{
   const args={root,session:client(),user,storage:localStorage,navigate:go};
   controller=route==='goods'?createWorkReceiving(args):route==='sales'?createWorkSales(args):route==='count'?createWorkCount(args):createWorkSupplierReturns(args);
@@ -70,7 +72,21 @@ function showLogin(message=''){
  root.innerHTML=`<section class="card terminal-login"><h1>Personel girişi</h1><p>Kendi hesabınızla günlük işlerinizi açın.</p><p role="alert">${esc(message)}</p><form id="terminal-login"><label>Kullanıcı adı<input name="username" autocomplete="username" required maxlength="120"></label><label>Parola<input name="password" type="password" autocomplete="current-password" required></label><button class="btn primary">Programa gir</button></form></section>`;
  root.querySelector('form').onsubmit=async e=>{e.preventDefault();if(!online()){announce(terminalOfflineText);return;}const form=e.currentTarget,button=form.querySelector('button'),credentials={username:form.elements.username.value,password:form.elements.password.value};button.disabled=true;form.elements.password.value='';try{const current=await session.login(credentials);terminalUser(current);setUser(current);}catch(error){storage.removeItem('melisaTestSalesAccessToken');showLogin(error.message);}finally{credentials.password='';}};
 }
-function start(){session?.dispose();session=createWorkingCatalogSession({location,apiBase:import.meta.env.VITE_API_BASE_URL,storage,onExpired:()=>{requestCrmLogout();showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.');}});root.innerHTML='<p role="status">Personel oturumu açılıyor…</p>';session.start().then(current=>current?setUser(current):showLogin()).catch(error=>{storage.removeItem('melisaTestSalesAccessToken');showLogin(error.message);});}
+function showConnectionRetry(){
+ controller?.dispose();controller=null;user=null;root.hidden=false;crm.hidden=true;document.getElementById('terminal-user').textContent='';document.getElementById('terminal-logout').hidden=true;
+ root.innerHTML='<section class="card terminal-login"><h1>Bağlantı bekleniyor</h1><p role="status">Personel oturumu şu anda doğrulanamıyor. Bağlantı geldiğinde yeniden deneyin.</p><button class="btn primary" data-session-retry>Yeniden dene</button></section>';
+ root.querySelector('[data-session-retry]').onclick=()=>{if(!online()){announce(terminalOfflineText);return;}return start();};
+}
+function start(){
+ session?.dispose();let expired=false;
+ const starting=createWorkingCatalogSession({location,apiBase:import.meta.env.VITE_API_BASE_URL,storage,onExpired:()=>{if(session!==starting)return;expired=true;requestCrmLogout();showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.');}});
+ session=starting;root.innerHTML='<p role="status">Personel oturumu açılıyor…</p>';
+ return starting.start().then(current=>{if(session!==starting)return;current?setUser(current):showLogin(expired?'Oturumunuz sona erdi. Yeniden giriş yapın.':'');}).catch(error=>{
+  if(session!==starting)return;
+  if([401,403].includes(error?.status)){storage.removeItem('melisaTestSalesAccessToken');showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.');}
+  else showConnectionRetry();
+ });
+}
 function clearCrm(){clearTimeout(crmTimer);frame.removeAttribute('src');crmStarted=false;crm.dataset.ready='false';}
 function recoverCrmLogout({reload=false}={}){
  frame.hidden=true;

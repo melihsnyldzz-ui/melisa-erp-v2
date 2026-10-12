@@ -1,9 +1,18 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, shell, safeStorage } from 'electron';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {worktest,worktestMode,approvedWorktestPage,approvedWorktestNavigation,assertWorktestSender,assertWorktestHealth,validateWorktestCall} from './protectedWorkSessionPolicy.mjs';
+import {createProtectedWorkSessionStore,prepareWorktestUserData} from './protectedWorkSessionStore.mjs';
+const isolatedWorktest = worktestMode(process.env,process.platform);
+if (isolatedWorktest) app.setPath('userData',prepareWorktestUserData(path.join(app.getPath('appData'),'Melisa-Isolated-Worktest')));
+let worktestWindow = null;
+let protectedStore = null;
+let protectedCallQueue = Promise.resolve();
+const worktestExitStates = new WeakMap();
+const worktestErrorPages = new WeakMap();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, '..');
@@ -239,8 +248,9 @@ function createMenu(mainWindow) {
     {
       label: 'Melisa ERP',
       submenu: [
-        { label: 'Yenile', accelerator: 'F5', click: () => loadErp(mainWindow) },
-        { label: 'Sunucu / IP Ayari', click: () => showConnectionSettings(mainWindow) },
+        { label: 'Yenile', accelerator: 'F5', click: () => isolatedWorktest ? reloadWorktest(mainWindow) : loadErp(mainWindow) },
+        ...(isolatedWorktest ? [{label:'ERP çalışma ekranı',click:()=>switchWorktestPage(mainWindow,worktest.erpUrl)},{label:'Personel görevleri',click:()=>switchWorktestPage(mainWindow,worktest.url)}] : []),
+        ...(!isolatedWorktest ? [{ label: 'Sunucu / IP Ayari', click: () => showConnectionSettings(mainWindow) }] : []),
         { label: 'Tam Ekran', accelerator: 'F11', click: () => mainWindow.setFullScreen(!mainWindow.isFullScreen()) },
         { type: 'separator' },
         { label: 'Cikis', accelerator: 'Alt+F4', role: 'quit' },
@@ -252,7 +262,7 @@ function createMenu(mainWindow) {
         { label: 'Yaklas', role: 'zoomIn' },
         { label: 'Uzaklas', role: 'zoomOut' },
         { label: 'Normal Boyut', role: 'resetZoom' },
-        ...(!app.isPackaged
+        ...(!app.isPackaged && !isolatedWorktest
           ? [
               { type: 'separator' },
               { label: 'Gelistirici Araclari', accelerator: 'Ctrl+Shift+I', role: 'toggleDevTools' },
@@ -322,7 +332,61 @@ async function showConnectionSettings(mainWindow, error = '') {
   `)}`);
 }
 
+async function switchWorktestPage(mainWindow, target) {
+  if(!isolatedWorktest || !approvedWorktestPage(target) || !approvedWorktestPage(mainWindow.webContents.getURL()))return;
+  try {
+    const canLeave=await canLeaveWorktest(mainWindow);
+    if(canLeave!==true)return;
+    await verifyWorktestRuntime();
+    if(!mainWindow.isDestroyed())await mainWindow.loadURL(target);
+  } catch { /* Leave the existing page and pending request intact. */ }
+}
+function isOwnedWorktestErrorPage(mainWindow) {
+  return !mainWindow.isDestroyed() && worktestErrorPages.has(mainWindow) && mainWindow.webContents.getURL() === worktestErrorPages.get(mainWindow);
+}
+async function reloadWorktest(mainWindow) {
+  if(isOwnedWorktestErrorPage(mainWindow))return loadWorktest(mainWindow);
+  if(approvedWorktestPage(mainWindow.webContents.getURL()))return switchWorktestPage(mainWindow,mainWindow.webContents.getURL());
+}
+async function canLeaveWorktest(mainWindow,allowErrorExit=false) {
+  if(allowErrorExit && isOwnedWorktestErrorPage(mainWindow))return true;
+  if(mainWindow.isDestroyed() || !approvedWorktestPage(mainWindow.webContents.getURL()))return false;
+  return await mainWindow.webContents.executeJavaScript('typeof window.MelisaWorkingBeforeNavigate === "function" && window.MelisaWorkingBeforeNavigate() === true') === true;
+}
+function worktestExitState(mainWindow) {
+  if(!worktestExitStates.has(mainWindow))worktestExitStates.set(mainWindow,{approved:false,pending:null,quit:false});
+  return worktestExitStates.get(mainWindow);
+}
+function requestWorktestExit(mainWindow,quit=false) {
+  const state=worktestExitState(mainWindow);state.quit ||= quit;
+  if(state.pending)return state.pending;
+  state.pending=(async()=>{
+    if(!await canLeaveWorktest(mainWindow,true) || mainWindow.isDestroyed())return false;
+    state.approved=true;
+    if(state.quit)app.quit();else mainWindow.close();
+    return true;
+  })().catch(()=>false).finally(()=>{state.pending=null;if(!state.approved)state.quit=false;});
+  return state.pending;
+}
+async function verifyWorktestRuntime() {
+  const records = await Promise.all([worktest.origin,worktest.api,worktest.native].map(async origin => {
+    const response = await fetch(origin+'/test-health',{redirect:'error',credentials:'omit',signal:AbortSignal.timeout(4000)});
+    if(!response.ok) throw new Error('WORKTEST_RUNTIME_UNAVAILABLE');
+    let body=''; for await(const chunk of response.body){body+=Buffer.from(chunk).toString('utf8');if(body.length>32768)throw new Error('WORKTEST_RUNTIME_UNAVAILABLE');}
+    return JSON.parse(body);
+  }));
+  assertWorktestHealth(records,isolatedWorktest.sourceCommit);
+}
+async function loadWorktest(mainWindow) {
+  try { await verifyWorktestRuntime(); if(!safeStorage.isEncryptionAvailable())throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE'); await mainWindow.loadURL(worktest.url); worktestErrorPages.delete(mainWindow); }
+  catch {
+    const errorUrl='data:text/html;charset=utf-8,'+encodeURIComponent('<!doctype html><meta charset="utf-8"><title>Melisa TEST</title><p>Doğrulanmış TEST bağlantısı veya Windows güvenli oturum deposu kullanılamıyor. Bağlantı düzeldikten sonra Yenile seçin.</p>');
+    worktestErrorPages.set(mainWindow,errorUrl);
+    await mainWindow.loadURL(errorUrl);
+  }
+}
 async function loadErp(mainWindow) {
+  if(isolatedWorktest) return loadWorktest(mainWindow);
   const apiHealthUrl = getApiHealthUrl();
   try {
     const { apiState, webState } = await ensureLocalStack();
@@ -339,7 +403,7 @@ async function loadErp(mainWindow) {
 }
 
 async function createWindow() {
-  activeApiBaseUrl = (await readDesktopSettings()).apiBaseUrl;
+  activeApiBaseUrl = isolatedWorktest ? worktest.api : (await readDesktopSettings()).apiBaseUrl;
   const mainWindow = new BrowserWindow({
     width: 1500,
     height: 900,
@@ -353,15 +417,30 @@ async function createWindow() {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
-      additionalArguments: [`--melisa-api-base-url=${encodeURIComponent(activeApiBaseUrl)}`],
+      sandbox: Boolean(isolatedWorktest),
+      ...(isolatedWorktest ? {devTools:false,partition:'persist:melisa-isolated-worktest'} : {}),
+      additionalArguments: [`--melisa-api-base-url=${encodeURIComponent(activeApiBaseUrl)}`, ...(isolatedWorktest ? ['--melisa-isolated-worktest=true'] : [])],
     },
   });
 
+  if(isolatedWorktest) {
+    worktestWindow = mainWindow;
+    mainWindow.on('close',event=>{
+      if(worktestExitState(mainWindow).approved)return;
+      event.preventDefault();void requestWorktestExit(mainWindow);
+    });
+    mainWindow.webContents.setUserAgent(mainWindow.webContents.getUserAgent()+' MelisaProtectedWork/1');
+    const session=mainWindow.webContents.session;
+    session.setPermissionRequestHandler((_webContents,_permission,callback)=>callback(false));
+    session.setPermissionCheckHandler(()=>false);
+    for(const name of ['will-navigate','will-redirect','will-frame-navigate']) mainWindow.webContents.on(name,details=>{if(!approvedWorktestNavigation(details,mainWindow.webContents.mainFrame))details.preventDefault();});
+    mainWindow.webContents.on('will-attach-webview',event=>event.preventDefault());
+    session.on('will-download',event=>event.preventDefault());
+  }
   createMenu(mainWindow);
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if(!isolatedWorktest) shell.openExternal(url);
     return { action: 'deny' };
   });
 
@@ -386,9 +465,27 @@ function stopManagedProcesses() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.setAppUserModelId('com.melisababy.erp.desktop');
+  app.setAppUserModelId(isolatedWorktest ? 'com.melisababy.erp.worktest' : 'com.melisababy.erp.desktop');
   app.whenReady().then(() => {
+    if(isolatedWorktest) {
+      protectedStore=createProtectedWorkSessionStore({root:path.join(app.getPath('userData'),'protected-session'),safeStorage});
+      ipcMain.handle('worktest:protected-session',(event,action,value)=>{
+        const call=protectedCallQueue.then(async()=>{try {
+          assertWorktestSender(event,worktestWindow);
+          const checked=validateWorktestCall(action,value);
+          if(action!=='clear')await verifyWorktestRuntime();
+          assertWorktestSender(event,worktestWindow);
+          const result=await protectedStore[action](checked);
+          assertWorktestSender(event,worktestWindow);
+          return result;
+        } catch {throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE');}});
+        protectedCallQueue=call.catch(()=>{});
+        return call;
+      });
+    }
+
     ipcMain.handle('desktop:save-api-base-url', async (_event, value) => {
+      if(isolatedWorktest) return {ok:false,error:'WORKTEST_FIXED_TARGET'};
       try {
         activeApiBaseUrl = await saveDesktopSettings(value);
         setTimeout(() => {
@@ -415,7 +512,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('before-quit', stopManagedProcesses);
+app.on('before-quit', event=>{
+  if(isolatedWorktest && worktestWindow && !worktestWindow.isDestroyed() && !worktestExitState(worktestWindow).approved){
+    event.preventDefault();void requestWorktestExit(worktestWindow,true);return;
+  }
+  stopManagedProcesses();
+});
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {

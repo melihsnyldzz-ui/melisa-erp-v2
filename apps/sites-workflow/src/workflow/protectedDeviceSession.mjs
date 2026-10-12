@@ -1,5 +1,15 @@
 const bridges=new WeakMap();
 export function createProtectedDeviceSession({host=globalThis.window,timeoutMs=5000}={}){
+ const windows=host?.MelisaWindowsProtectedSession;
+ if(host?.location?.origin==='http://127.0.0.1:5234' && windows && ['get','put','clear'].every(k=>typeof windows[k]==='function')){
+  if(bridges.has(windows))return bridges.get(windows);
+  let queue=Promise.resolve();
+  const call=(action,value)=>{const p=queue.then(()=>new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(Error('Cihaz oturumu yanıt vermedi.')),timeoutMs);
+   Promise.resolve().then(()=>action==='put'?windows.put(value):windows[action]()).then(r=>{clearTimeout(timer);resolve(r??null);},()=>{clearTimeout(timer);reject(Error('Cihaz oturumu kullanılamıyor.'));});
+  }));queue=p.catch(()=>{});return p;};
+  const bridge={get:()=>call('get'),put:r=>call('put',r),clear:()=>call('clear')};bridges.set(windows,bridge);return bridge;
+ }
  if(/MelisaProtectedWork\/1/.test(host?.navigator?.userAgent??'')&&typeof host?.MelisaProtectedSession?.postMessage!=='function'){
   const unavailable=()=>Promise.reject(Error('Cihazın güvenli oturum desteği kullanılamıyor. Uygulamayı güncelleyin.'));
   return {get:unavailable,put:unavailable,clear:unavailable};

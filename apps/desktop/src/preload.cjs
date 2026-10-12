@@ -9,5 +9,13 @@ contextBridge.exposeInMainWorld('melisaDesktop', {
   platform: process.platform,
   version: process.versions.electron,
   apiBaseUrl,
-  saveApiBaseUrl: (value) => ipcRenderer.invoke('desktop:save-api-base-url', value),
+  ...(!process.argv.includes('--melisa-isolated-worktest=true') ? {saveApiBaseUrl: (value) => ipcRenderer.invoke('desktop:save-api-base-url', value)} : {}),
 });
+
+if(process.argv.includes('--melisa-isolated-worktest=true')) {
+  contextBridge.exposeInMainWorld('MelisaWindowsProtectedSession',Object.freeze({
+    get:()=>ipcRenderer.invoke('worktest:protected-session','get'),
+    put:session=>ipcRenderer.invoke('worktest:protected-session','put',session),
+    clear:()=>ipcRenderer.invoke('worktest:protected-session','clear'),
+  }));
+}
