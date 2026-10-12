@@ -1,3 +1,12 @@
+## 13 Ekim TERM01 dar teslim farkı
+
+| Kalem | Yeni çalışan kanıt | Kalan |
+| --- | --- | --- |
+| TERM-01 / C01 | Çalışan4c, mevcut sayım/kabul exact ilişki ve readonly inceleme; normal15 onay/ret kapalı,16 yetkili; yenileme ve1440/1024/390.29hedefli kontrol/GO, raw ve API kayıtları aynı; yeni ticariyazma0. | Genel işletme kapsamı, finalTC21 yeni belge/video ve insanUA32. Mevcut pending kabul bu tur onaylanmadı. |
+| OPS / teslim | API572/startup225/CSS7 aynı, DB02/8port/heartbeat, installer/v22APK HTTP hazır. | OPS01 hız, gerçek reboot/logon ve hostedCI hesap ödeme/harcama engeli. |
+
+[Son görev devri kanıtı](../2026-10-13-receiving-handoff/README.md). Önceki başlangıç/teslimler ve insan sonuçları korunur.
+
 ## 13 Ekim OPS02 dar teslim farkı
 
 | Kalem | Yeni kanıt | Kalan |
