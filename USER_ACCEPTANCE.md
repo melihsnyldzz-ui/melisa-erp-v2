@@ -1,3 +1,7 @@
+## ERP-C05 / ERP09 — açık hesap görünümü — insan kabulü bekliyor
+
+13Ekim çalışan sourcea771afe, DB02/5234. [C05 okuma/görünüm kanıtı](docs/evidence/erp/2026-10-13-open-account/README.md). Müşteriler ekranından mevcut bir kartı açıp doğru müşteri/döviz geçmişini, fiş toplamı/tahsilat/kalan ile ayrı cari bakiyeyi ve Yenile düğmesini inceleyin. İptal fiş sıfır kalanı ödendi değildir; vade kaydı yoksa bilinmiyor kabul edilir. Yeni satış/tahsilat gerekmez. Root tarayıcı/SQL/API ve126teknik kontrol personel kabulü değildir. İnsan kişi/tarih/sonuç: **bekliyor**. ERP-UA32, eski bekleyen/PASS/FAIL kayıtları değişmedi.
+
 ## ERP-UA32 / ERP-COMPLETE01 — Android dört görev ve yeni eğitim — bekliyor
 
 **11 Ekim v22 güncel teknik teslim:** normal Wi-Fi APK/ERP9cc/CRM09ca; SOURCE satış/iki koli native/readback, aynı mal kabul/İlker pending, atanmış görüşme ve kontrollü gönderilmemiş taslak kanıtlı. Korunmuş tam mal kabul40,9sn ve güncel readonly63sn ayrı; satış95sn/koli87sn/CRM42sn Türkçe eğitimleri mevcut. Oturum yeniden açılışı/görev geçişi/çıkış/korumalı yeniden giriş teknik doğrulandı. Gerçek CRM send yetkisi yok; tarihli mal kabul APK pini bilinmiyor. İlk hızlı taslak kaybı gözlemi korunur, reader fix iddiası yok. Kullanıcı/personel kişi-tarih-sonuç vermedi: **ERP-UA32 bekliyor**. [Kapsam ve insan adımı](docs/evidence/erp/2026-10-11-completion/terminal-v22-delivery.md). Yeni fiziksel barkod tekrarı istenmez; teknik kanıt genel ERP/LIVE kabulü değildir.

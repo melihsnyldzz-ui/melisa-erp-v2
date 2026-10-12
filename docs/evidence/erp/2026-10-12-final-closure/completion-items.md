@@ -1,3 +1,12 @@
+## 13 Ekim C05 dar teslim farkı
+
+| Kalem | Yeni çalışan kanıt | Kalan |
+| --- | --- | --- |
+| ERP-C05 / ERP09 | Müşteri+döviz/25fiş geçmişi ve Yenile; açık/kısmi/iptal/doğrulanmamışvade.126kontrol/GO, normalChrome/API/nativeaynı;0ticariyazma. | Genelvade/kredi kuralı-kaynağı, seçili kaynak tahsilat yazıcısı ve insan kabulü. |
+| Teslim | Sourcea771afe/1874dosya,8port/DB02/heartbeat; CSS9/startup225/CRM/TEST125 korundu. | HostedCI ödeme/harcama, OPS01hız, finalnativebelge/video, gerçekreboot. |
+
+[Dar kanıt](../2026-10-13-open-account/README.md). Genel bitiş ve insan sayımları değişmedi.
+
 ## 13 Ekim TERM01 dar teslim farkı
 
 | Kalem | Yeni çalışan kanıt | Kalan |

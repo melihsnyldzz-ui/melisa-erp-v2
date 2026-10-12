@@ -45,21 +45,27 @@
   "mainClosureItems": 21,
   "businessWrites": 0,
   "priorTestsRepeatedForReport": 0,
-  "reportSHA256": "b3dc5575eb1ca06bd1d5e6f713d2f4c2ea72933d3fb3ff7413e7c96aa385dd2d",
+  "reportSHA256": "81692990d1c58f3f3f4bac4b4d820db021acec20da51176475a90cc278f0effe",
   "baselineReportSHA256": "c9e86d0f39c8a5cdba35bfb36450e732855b2c8b0ec908cca529033ecb1816d3",
   "inputsScope": "historical initial snapshot; preserved",
   "latestDelivery": {
-    "recordedAt": "2026-10-12T22:16:52.568Z",
-    "localDate": "2026-10-13",
-    "erpRuntimeSource": "4c879f38d14f5edbf4ec0116731b001830dfeec3",
-    "erpManifestSHA256": "addb43dcead18912190d26b7dde18c60e30882400f9ddbd7f1f12108e10a9406",
+    "recordedAt": "2026-10-12T23:35:07.280Z",
+    "erpRuntimeSource": "a771afe29bde27762e88cf7095d4ff830ef25b30",
+    "erpManifestSHA256": "8c1cafcb691c1ea38ddb0f743f52a4de76249735b1d377a3c0e6fe986e55a397",
     "evidence": "current-delivery.md",
-    "evidenceSHA256": "e54d8d2d24ab662b3d37fe7c5be3f7f092b209962aebda9e228a6e727f98ba6a",
-    "receivingEvidence": "../2026-10-13-receiving-handoff/README.md",
-    "receivingEvidenceSHA256": "37f18f7b1c81db288ee333e5b2209f8e28715d0225a954c2c7ecf592f7e64c69",
     "businessWrites": 0,
-    "humanAcceptance": "PENDING",
+    "rootTargetedTests": 126,
     "currentBrowserVerified": true,
+    "scopedCustomerCurrencyHistory": true,
+    "previousReadDataUnchanged": true,
+    "dueSource": "NOT_VERIFIED",
+    "humanAcceptance": "PENDING",
+    "finalNativeDocumentVerified": false,
+    "completeDelivery": false,
+    "localDate": "2026-10-13",
+    "evidenceSHA256": "0e7fb84428557496c7b2e6d905d093a6d267260d6abc62d57e3b6a118dce4959",
+    "openAccountEvidence": "../2026-10-13-open-account/README.md",
+    "openAccountEvidenceSHA256": "60a95d42d8bfafd0209d4690e421525b4cf75a0c2fedd93767d845c93d00a3b9",
     "browserRoles": [
       15,
       16
@@ -69,13 +75,11 @@
       1024,
       390
     ],
-    "existingRecordsUnchanged": true,
-    "apiFilesUnchanged": 572,
+    "apiFilesChanged": 4,
     "startupFilesUnchanged": 225,
-    "cssFilesUnchanged": 7,
-    "finalNativeDocumentVerified": false,
-    "completeDelivery": false,
-    "actualWindowsRebootTested": false
+    "cssFilesUnchanged": 9,
+    "actualWindowsRebootTested": false,
+    "sourceHostedCI": "FAILURE_BILLING_NOT_STARTED"
   },
   "reportSHA256Encoding": "canonical Git blob (LF); historical Windows baseline hash retained separately",
   "previousDeliveries": [
@@ -113,6 +117,51 @@
       "originalOsFailurePhase": "NOT_RECORDED",
       "actualWindowsRebootTested": false,
       "evidenceCommit": "339e1d9844312b34d5fcaa4156218ce179ee58fc"
+    },
+    {
+      "recordedAt": "2026-10-12T22:16:52.568Z",
+      "localDate": "2026-10-13",
+      "erpRuntimeSource": "4c879f38d14f5edbf4ec0116731b001830dfeec3",
+      "erpManifestSHA256": "addb43dcead18912190d26b7dde18c60e30882400f9ddbd7f1f12108e10a9406",
+      "evidence": "current-delivery.md",
+      "evidenceSHA256": "e54d8d2d24ab662b3d37fe7c5be3f7f092b209962aebda9e228a6e727f98ba6a",
+      "receivingEvidence": "../2026-10-13-receiving-handoff/README.md",
+      "receivingEvidenceSHA256": "37f18f7b1c81db288ee333e5b2209f8e28715d0225a954c2c7ecf592f7e64c69",
+      "businessWrites": 0,
+      "humanAcceptance": "PENDING",
+      "currentBrowserVerified": true,
+      "browserRoles": [
+        15,
+        16
+      ],
+      "viewportWidths": [
+        1440,
+        1024,
+        390
+      ],
+      "existingRecordsUnchanged": true,
+      "apiFilesUnchanged": 572,
+      "startupFilesUnchanged": 225,
+      "cssFilesUnchanged": 7,
+      "finalNativeDocumentVerified": false,
+      "completeDelivery": false,
+      "actualWindowsRebootTested": false,
+      "evidenceCommit": "1d2e091176220b700111fb4f7e3ebc02318c9730"
     }
-  ]
+  ],
+  "c05Delivery": {
+    "recordedAt": "2026-10-12T23:35:07.280Z",
+    "erpRuntimeSource": "a771afe29bde27762e88cf7095d4ff830ef25b30",
+    "erpManifestSHA256": "8c1cafcb691c1ea38ddb0f743f52a4de76249735b1d377a3c0e6fe986e55a397",
+    "evidence": "../2026-10-13-open-account/README.md",
+    "businessWrites": 0,
+    "rootTargetedTests": 126,
+    "currentBrowserVerified": true,
+    "scopedCustomerCurrencyHistory": true,
+    "previousReadDataUnchanged": true,
+    "dueSource": "NOT_VERIFIED",
+    "humanAcceptance": "PENDING",
+    "finalNativeDocumentVerified": false,
+    "completeDelivery": false
+  }
 }
