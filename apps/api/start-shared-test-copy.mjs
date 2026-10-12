@@ -21,6 +21,13 @@ if(config.normalTestSessionPath!==undefined){
  configuredNormalTestRefreshStore({copy:context,config:{MELISA_TEST_PROTECTED_SESSION_PATH:config.normalTestSessionPath}});
  if(writes)process.env.MELISA_TEST_PROTECTED_SESSION_PATH=config.normalTestSessionPath;
 }
+if(config.semihTestIdentity!==undefined){
+ const pin=config.semihTestIdentity;
+ copyAssert(config.normalTestSessionPath!==undefined&&pin&&Object.keys(pin).sort().join(',')==='path,sha256','AUTH_TEST_SEMIH_CONFIG');
+ const {configuredSemihTestIdentity}=await import('./src/services/semihTestIdentityPolicy.mjs');
+ configuredSemihTestIdentity({copy:context,config:{MELISA_TEST_SEMIH_IDENTITY_PATH:pin.path,MELISA_TEST_SEMIH_IDENTITY_SHA256:pin.sha256}});
+ if(writes){process.env.MELISA_TEST_SEMIH_IDENTITY_PATH=pin.path;process.env.MELISA_TEST_SEMIH_IDENTITY_SHA256=pin.sha256;}
+}
 const {env}=await import('./src/config/env.js');
 copyAssert(!env.vega.enabled&&!env.whatsapp.enabled&&!env.nakliyat.enabled&&!env.receiptPrinting.enabled,'STAGE4_EXTERNAL_DISABLED');
 const {getSqlPool}=await import('./src/config/database.js');const pool=await getSqlPool();

@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {validateWorktestPackage} from '../src/worktest-entry.mjs';
 import {worktest} from '../src/protectedWorkSessionPolicy.mjs';
 
-export const worktestSourceFiles=Object.freeze(['main.mjs','preload.cjs','protectedWorkSessionPolicy.mjs','protectedWorkSessionStore.mjs','worktest-entry.mjs']);
+export const worktestSourceFiles=Object.freeze(['main.mjs','preload.cjs','protectedWorkSessionPolicy.mjs','protectedWorkSessionStore.mjs','worktest-entry.mjs','semihHostEntry.mjs']);
 export const worktestDesktopMetadata=Object.freeze({name:'melisa-calisma-test',productName:'Melisa Çalışma TEST',appId:'com.melisababy.erp.worktest',electronVersion:'39.8.10'});
 const sha=b=>createHash('sha256').update(b).digest('hex').toUpperCase();
 const fail=()=>{throw new Error('WORKTEST_PACKAGE_STAGE_REJECTED');};
@@ -40,13 +40,19 @@ export async function prepareWorktestPackage({repoRoot,output,desktopSourceCommi
     if(m.sourceCommit!==pin.sourceCommit||m.baselineReproduced!==true||c?.database!==worktest.database||c.apiPort!==4184||c.nativePort!==4186||c.webPort!==5234||c.nativeWrites!==false||c.externalOperations!==false||c.actualT1!==false)fail();
     const captured=[];
     for(const name of worktestSourceFiles){const file=path.join(repoRoot,'apps','desktop','src',name),s=await regularPath(file);if(s.size>1024*1024)fail();captured.push({name,bytes:await fs.readFile(file)});}
+    const helperCaptured=[];
+    if(pin.semihTestEntry)for(const name of ['semih-test-local-credential.mjs','semih-test-credential.ps1']){const file=path.join(repoRoot,'scripts','canonical',name),s=await regularPath(file);if(s.size>65536)fail();helperCaptured.push({name,file,bytes:await fs.readFile(file)});}
     assertSource();
     for(const item of captured)if(!item.bytes.equals(await fs.readFile(path.join(repoRoot,'apps','desktop','src',item.name))))fail();
-    const metadata={name:worktestDesktopMetadata.name,productName:worktestDesktopMetadata.productName,version:'0.1.0',private:true,type:'module',main:'src/worktest-entry.mjs',description:'Isolated DB02 normal Windows TEST client',build:{appId:worktestDesktopMetadata.appId,electronVersion:worktestDesktopMetadata.electronVersion,files:['src/**/*','package.json']}};
-    const files=[...captured.map(r=>({path:'src/'+r.name,bytes:r.bytes})),{path:'src/worktest-package.json',bytes:publicPin.bytes},{path:'package.json',bytes:Buffer.from(JSON.stringify(metadata,null,2)+'\n')}];
+    for(const item of helperCaptured)if(!item.bytes.equals(await fs.readFile(item.file)))fail();
+    const appId=pin.semihTestEntry?'com.melisababy.erp.semihworktest':worktestDesktopMetadata.appId;
+    // PowerShell -File consumes the code-only DPAPI helper as a real file;
+    // an app.asar virtual path is not executable by Windows PowerShell.
+    const metadata={name:pin.semihTestEntry?'melisa-semih-calisma-test':worktestDesktopMetadata.name,productName:worktestDesktopMetadata.productName,version:'0.1.0',private:true,type:'module',main:'src/worktest-entry.mjs',description:'Isolated DB02 normal Windows TEST client',build:{appId,electronVersion:worktestDesktopMetadata.electronVersion,files:['src/**/*','package.json'],...(pin.semihTestEntry?{asar:false}:{})}};
+    const files=[...captured.map(r=>({path:'src/'+r.name,bytes:r.bytes})),...helperCaptured.map(r=>({path:'src/'+r.name,bytes:r.bytes})),{path:'src/worktest-package.json',bytes:publicPin.bytes},{path:'package.json',bytes:Buffer.from(JSON.stringify(metadata,null,2)+'\n')}];
     await fs.mkdir(output,{mode:0o700});await fs.mkdir(path.join(output,'src'),{mode:0o700});
     for(const item of files){const handle=await fs.open(path.join(output,item.path),'wx',0o600);try{await handle.writeFile(item.bytes);await handle.sync();}finally{await handle.close();}}
-    const receipt={schemaVersion:'melisa-windows-worktest-stage.v1',desktopSourceCommit,runtimeSourceCommit:pin.sourceCommit,runtimeManifestSHA256:sha(manifest.bytes),runtimePinSHA256:sha(publicPin.bytes),copyId:pin.copyId,databaseName:pin.databaseName,appId:worktestDesktopMetadata.appId,electronVersion:'39.8.10',files:files.map(f=>({path:f.path,sha256:sha(f.bytes)})),buildExecuted:false,servicesStarted:0,credentialsIncluded:false};
+    const receipt={schemaVersion:'melisa-windows-worktest-stage.v1',desktopSourceCommit,runtimeSourceCommit:pin.sourceCommit,runtimeManifestSHA256:sha(manifest.bytes),runtimePinSHA256:sha(publicPin.bytes),copyId:pin.copyId,databaseName:pin.databaseName,appId,electronVersion:'39.8.10',files:files.map(f=>({path:f.path,sha256:sha(f.bytes)})),buildExecuted:false,servicesStarted:0,credentialsIncluded:false};
     await fs.writeFile(path.join(output,'worktest-stage-manifest.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx',mode:0o600});
     return receipt;
   } catch { fail(); }

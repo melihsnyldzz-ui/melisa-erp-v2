@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {prepareWorktestPackage,parseWorktestStageArguments,worktestSourceFiles} from './prepare-worktest-package.mjs';
 import {worktestPackageSchema} from '../src/worktest-entry.mjs';
 import {worktest} from '../src/protectedWorkSessionPolicy.mjs';
+import {semihIdentityPath} from '../src/semihHostEntry.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex').toUpperCase();
 async function fixture(t) {
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'melisa-worktest-stage-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const repoRoot=path.join(root,'repo'),source=path.join(repoRoot,'apps','desktop','src');await fs.mkdir(source,{recursive:true});for(const f of worktestSourceFiles)await fs.writeFile(path.join(source,f),'// verified source '+f+'\n');
@@ -36,4 +37,13 @@ test('private extra pin fields, source reparse paths and changes during capture 
 test('CLI accepts only six explicit pin/stage arguments without arbitrary runtime/env options',()=>{
  const args=['--output','C:\\new-stage','--desktop-source-commit','b'.repeat(40),'--runtime-manifest','C:\\release-manifest.json','--runtime-manifest-sha256','A'.repeat(64),'--runtime-pin','C:\\worktest-package.json','--runtime-pin-sha256','B'.repeat(64)];assert.equal(parseWorktestStageArguments(args).desktopSourceCommit,'b'.repeat(40));
  for(const bad of [args.slice(0,-2),[...args,'--url','http://other'],['--env',...args.slice(1)],['--output','x',...args.slice(0,10)]])assert.throws(()=>parseWorktestStageArguments(bad));
+});
+test('optional Semih stage includes only credential helper source, fixed public pin and isolated app identity',async t=>{
+ const f=await fixture(t),helperRoot=path.join(f.input.repoRoot,'scripts','canonical');await fs.mkdir(helperRoot,{recursive:true});
+ for(const name of ['semih-test-local-credential.mjs','semih-test-credential.ps1'])await fs.writeFile(path.join(helperRoot,name),'// CODE ONLY '+name+'\n');
+ const bytes=Buffer.from(JSON.stringify({...f.pin,semihTestEntry:{identityPath:semihIdentityPath,identitySHA256:'c'.repeat(64)}}));await fs.writeFile(f.input.runtimePinPath,bytes);
+ const result=await prepareWorktestPackage({...f.input,runtimePinSHA256:sha(bytes)},f.options);assert.equal(result.appId,'com.melisababy.erp.semihworktest');assert.equal(result.credentialsIncluded,false);assert.equal(result.servicesStarted,0);
+ assert.equal(result.files.length,worktestSourceFiles.length+4);assert(result.files.some(f=>f.path==='src/semih-test-local-credential.mjs'));assert(result.files.some(f=>f.path==='src/semih-test-credential.ps1'));
+ assert(!result.files.some(f=>f.path.endsWith('.dpapi')||f.path.includes('erp-identity.json')));
+ const pkg=JSON.parse(await fs.readFile(path.join(f.input.output,'package.json'),'utf8'));assert.equal(pkg.build.appId,result.appId);assert.equal(pkg.build.asar,false);
 });

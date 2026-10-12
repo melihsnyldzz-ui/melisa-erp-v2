@@ -59,7 +59,7 @@ test('sandboxed preload exposes named frozen promise methods, never generic IPC'
  assert(Object.isFrozen(exposed.MelisaWindowsProtectedSession));assert.deepEqual(Object.keys(exposed.MelisaWindowsProtectedSession),['get','put','clear']);await exposed.MelisaWindowsProtectedSession.put(session);await exposed.MelisaWindowsProtectedSession.clear();assert.deepEqual(calls,[['worktest:protected-session','put',session],['worktest:protected-session','clear']]);
  const legacy={};vm.runInNewContext(source,{require:()=>({contextBridge:{exposeInMainWorld:(k,v)=>legacy[k]=v},ipcRenderer:{}}),process:{argv:[],platform:'win32',versions:{electron:'39.8.10'}}});assert(!legacy.MelisaWindowsProtectedSession);assert.equal(legacy.melisaDesktop.apiBaseUrl,'http://localhost:4100');
 });
-async function mainFixture({enabled=true,badHealth=false}={}) {
+async function mainFixture({enabled=true,badHealth=false,semih=false}={}) {
  let diagnosticDirectoryFailure=false;
  let sourceText=await fs.readFile(new URL('./main.mjs',import.meta.url),'utf8');sourceText=sourceText.replace(/^import .*;\r?\n/gm,'').replace('import.meta.url',JSON.stringify(new URL('./main.mjs',import.meta.url).href));
  const calls={spawn:0,http:0,fetch:[],vault:[],external:0},handlers=new Map(),windows=[],appEvents={},paths={},env=enabled?{MELISA_DESKTOP_ISOLATED_WORKTEST:'true',MELISA_DESKTOP_WORKTEST_SOURCE_COMMIT:source}:{};let menu,healthGate=null;
@@ -73,6 +73,15 @@ async function mainFixture({enabled=true,badHealth=false}={}) {
  const store={get:async()=>{calls.vault.push('get');return session;},put:async()=>{calls.vault.push('put');return null;},clear:async()=>{calls.vault.push('clear');return null;}};
  calls.diagnostics=[];calls.diagnosticFiles=[];
  const context=vm.createContext({app,BrowserWindow:Window,ipcMain:{handle:(k,v)=>handlers.set(k,v)},Menu:{buildFromTemplate:v=>v,setApplicationMenu:v=>menu=v},shell:{openExternal:()=>calls.external++},safeStorage:{isEncryptionAvailable:()=>true},spawn:()=>{calls.spawn++;throw Error('unexpected spawn');},mkdir:async()=>{},readFile:async()=>'{"apiBaseUrl":"http://localhost:4100"}',stat:async()=>({isFile:()=>true}),writeFile:async()=>{},open:async(file,flag,mode)=>{calls.diagnosticFiles.push({file,flag,mode});return{writeFile:async raw=>calls.diagnostics.push(JSON.parse(raw)),sync:async()=>{},close:async()=>{}};},randomUUID:()=>crypto.randomUUID(),http:{get(_url,_options,fn){calls.http++;fn({resume(){},statusCode:200});return{on(){}};}},path,fileURLToPath:u=>new URL(u).pathname,worktest,worktestMode,approvedWorktestPage,approvedWorktestNavigation,assertWorktestSender,assertWorktestHealth,validateWorktestCall,createProtectedWorkSessionStore:()=>store,prepareWorktestUserData:v=>{if(diagnosticDirectoryFailure&&v.endsWith('protected-session-diagnostics'))throw Error('PRIVATE_REPARSE_PATH');return v;},process:{env,platform:'win32',resourcesPath:os.tmpdir()},fetch:fetchImpl,AbortSignal,Buffer,URL,setTimeout,clearTimeout});
+ if(semih){
+  const identity={schemaVersion:'melisa-semih-test-identity.v1',copyId:worktest.copyId,target:{server:worktest.server,database:worktest.database},userId:'17',username:'erp-semih-test-20261012',displayName:'Semih TEST',role:{id:'2',code:'admin'},fingerprint:'c'.repeat(64)};
+  env.MELISA_DESKTOP_SEMIH_ENTRY_PIN=JSON.stringify({identityPath:'fixed-private-pin',identitySHA256:'d'.repeat(64)});
+  context.readSemihHostIdentity=()=>identity;
+  context.createSemihStartupState=()=>({});
+  context.createProtectedWorkSessionStore=options=>{calls.storeIdentity=options.identity;calls.storeRoot=options.root;return store;};
+  context.createSemihHostEntry=()=>({continueSession:async()=>{calls.semihContinues=(calls.semihContinues??0)+1;},accept:async value=>{calls.semihPuts=(calls.semihPuts??0)+1;return store.put(value);},clear:async()=>{calls.semihClears=(calls.semihClears??0)+1;return store.clear();}});
+  sourceText=sourceText.replace("import('./semih-test-local-credential.mjs')","Promise.resolve({readSemihFirstLogin:async()=>null})");
+ }
  vm.runInContext(sourceText,context);await new Promise(r=>setTimeout(r,20));return{calls,handlers,window:windows[0],menu,app,appEvents,store,setHealthGate:p=>healthGate=p,setDiagnosticDirectoryFailure:v=>diagnosticDirectoryFailure=v};
 }
 test('actual main mode branch never starts a stack and gates vault on fresh proof plus current frame',async()=>{
@@ -139,4 +148,21 @@ test('reparse/diagnostic failure is best effort and never hides vault errors or 
  const f=await mainFixture(),event={sender:f.window.webContents,senderFrame:f.window.webContents.mainFrame};f.setDiagnosticDirectoryFailure(true);f.store.put=async()=>{throw Error('PRIVATE_SECRET');};await assert.rejects(()=>f.handlers.get('worktest:protected-session')(event,'put',{...session,accessToken:'PRIVATE_SECRET'}),/WORKTEST_PROTECTED_SESSION_UNAVAILABLE/);assert.deepEqual(f.calls.diagnostics,[]);assert.deepEqual(f.calls.diagnosticFiles,[]);
  f.setDiagnosticDirectoryFailure(false);await assert.rejects(()=>f.handlers.get('worktest:protected-session')(event,'PRIVATE_ACTION',{password:'PRIVATE_SECRET'}));assert.deepEqual(f.calls.diagnostics,[]);assert.deepEqual(f.calls.diagnosticFiles,[]);
  f.store.clear=async()=>{throw Error('PRIVATE_CLEAR');};await assert.rejects(()=>f.handlers.get('worktest:protected-session')(event,'clear'));assert.equal(f.calls.diagnostics[0].action,'clear');assert.equal(f.calls.diagnostics[0].stage,'VAULT');assert(!JSON.stringify(f.calls.diagnostics).includes('PRIVATE'));
+});
+test('actual Semih main chooses normal ERP with separate vault/partition and explicit guarded OS continue',async()=>{
+ const f=await mainFixture({semih:true});assert.equal(f.calls.spawn,0);assert.equal(f.calls.http,0);assert.equal(f.calls.semihContinues,1);
+ assert.equal(f.window.loaded[0],worktest.erpUrl);assert.equal(f.window.options.webPreferences.partition,'persist:melisa-semih-isolated-worktest');assert.equal(f.calls.storeIdentity.userId,'17');assert(f.calls.storeRoot.includes('Melisa-Semih-Isolated-Worktest'));
+ const menu=f.menu[0].submenu,entry=menu.find(i=>i.label==='Semih olarak devam et');assert(entry);assert(!menu.some(i=>i.label==='Personel görevleri'));
+ f.window.webContents.executeJavaScript=async()=>false;await entry.click();assert.equal(f.calls.semihContinues,1);assert.equal(f.window.loaded.length,1);
+ f.window.webContents.executeJavaScript=async()=>true;await entry.click();assert.equal(f.calls.semihContinues,2);assert.equal(f.window.loaded.at(-1),worktest.erpUrl);
+ await menu.find(i=>i.label==='Yenile').click();assert.equal(f.calls.semihContinues,2);
+ const handler=f.handlers.get('worktest:protected-session'),event={sender:f.window.webContents,senderFrame:f.window.webContents.mainFrame},record={...session,userId:'17',username:'erp-semih-test-20261012'};
+ await assert.rejects(()=>handler(event,'put',session));assert.equal(f.calls.semihPuts??0,0);await handler(event,'put',record);assert.equal(f.calls.semihPuts,1);
+ await assert.rejects(()=>handler({...event,senderFrame:{url:worktest.erpUrl}},'get'));assert.equal(f.calls.diagnostics.at(-1).stage,'FIRST_SENDER');
+ await handler(event,'clear');assert.equal(f.calls.semihClears,1);
+});
+test('separate configured Semih DPAPI vault cannot read legacy actor envelope or be read by legacy scope',async t=>{
+ const f=await fixture(t),identity={userId:'17',username:'erp-semih-test-20261012',role:{id:'2',code:'admin'},fingerprint:'c'.repeat(64)},record={...session,userId:'17',username:identity.username},semih=createProtectedWorkSessionStore({root:f.root,safeStorage:f.safeStorage,platform:'win32',identity});
+ await semih.put(record);assert.deepEqual(await semih.get(),record);await assert.rejects(()=>f.store().get());await assert.rejects(()=>semih.put(session));
+ const raw=await fs.readFile(path.join(f.root,'erp-session.json'),'utf8');assert(!raw.includes(identity.username));assert(!raw.includes(record.refreshToken));await semih.clear();assert.equal(await semih.get(),null);
 });

@@ -1,6 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('session pair confirmation requires exact protected writable ERP POST; never opens auth administration',()=>{
+ const route='/api/auth/session-confirm';assert.equal(allowed('POST',route,{...ctx,protectedNormalAuth:true}),true);
+ for(const scope of [ctx,{writes:false,mode:'erp',protectedNormalAuth:true},{writes:true,mode:'native',protectedNormalAuth:true},{...ctx,protectedNormalAuth:'true'}])assert.equal(allowed('POST',route,scope),false);
+ for(const method of ['GET','PUT','PATCH','DELETE'])assert.equal(allowed(method,route,{...ctx,protectedNormalAuth:true}),false);
+ for(const p of [route+'/',route+'/extra','/api/auth-admin/users','/api/auth/test-admin'])assert.equal(allowed('POST',p,{...ctx,protectedNormalAuth:true}),false);
+});
 test('protected normal refresh/logout require explicit writable ERP opt-in and exact routes',()=>{for(const route of ['/api/auth/refresh','/api/auth/logout']){assert.equal(allowed('POST',route,{...ctx,protectedNormalAuth:true}),true);for(const scope of [ctx,{writes:false,mode:'erp',protectedNormalAuth:true},{writes:true,mode:'native',protectedNormalAuth:true},{...ctx,protectedNormalAuth:'true'}])assert.equal(allowed('POST',route,scope),false);for(const method of ['GET','PUT','DELETE'])assert.equal(allowed(method,route,{...ctx,protectedNormalAuth:true}),false);assert.equal(allowed('POST',route+'/',{...ctx,protectedNormalAuth:true}),false);}assert.equal(allowed('POST','/api/auth/test-admin',{...ctx,protectedNormalAuth:true}),false);});
 test('supplier payments expose only their exact normal lifecycle inside writable ERP TEST',()=>{
  for(const suffix of ['preview','payments','payments/12/cancel']){

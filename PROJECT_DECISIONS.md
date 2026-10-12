@@ -23,6 +23,18 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-050 — 12 Ekim 2026 — Onaylı
+
+Kullanıcı, korumalı Semih girişinden sonra önceden yetkili beş aşamalı ana teslim işlerine kendiliğinden devam edilmesini açıkça istedi. Kaynak: `01a12824-1cc4-78f0-817b-6c8389061e4b` sohbetinden iletilen doğrudan kullanıcı cevabı **“İstiyorum tabii ki”**. Semih dar erişimi ilk önceliktir; tamamlanır veya somut policy/destek engeli kayıtla ayrılırsa bağımsız yetkili ERP işleri yeni `devam` beklemeden sürer. CRM sohbetinin ayrı duraklatması kalkmaz. İkinci goal açılmaz; `get_goal` mevcut hedefi paused gösteriyorsa desteklenmeyen araçla active kanıtı üretilmez. Kullanıcının yeni devam kararı işlenir.
+
+Beş kapsam: yetkili günlük ERP/CRM/terminal işlevleri; son yeşil ERP/terminal ve kalıcı korumalı bağlantı; mevcut veri mutabakatı/yedek/kurtarma/geçiş provası; son çalışan ekranlarla dört kısa eğitim; incelenebilir kurulum/veri/eğitim/açıkengel paketi. Kabul edilmiş işler tekrarlanmaz; her aşamada tek somut kapanış işi seçilir. Güvenlik reddi aşılmaz; LIVE/Vega/T1/main/gerçek müşteri/ücretli servis/shared parola reseti yok. İnsan kabulü otomatik verilmez.
+
+### ERP-DEC-049 — 12 Ekim 2026 — Onaylı
+
+Kullanıcının tekrar açık **“Halledebilir misin”** talimatı, yalnız izole TEST Melisa Host üzerinden korumalı Semih ERP/CRM girişinin eksik desteklenen kurulum adaptörünü somut hazırlamayı kapsar. Kaynak: `01a12824-1cc4-78f0-817b-6c8389061e4b` sohbetinden iletilen doğrudan dar yetki. Gerekli mevcut TEST yönetici modülleriyle ayrı dedicated Semih TEST bağlamı desteklenen normal kullanıcı oluşturma/auth yoluyla kurulabilir; mevcut gerçek/shared hesap, rol ve15/16 sealed aktörler değiştirilmez. ERP17 için mevcut2/admin, CRM dedicated Semih için mevcutpatron/agent2; bu kimlikler birbirinin issuer/token'ını kullanmaz ve native15/16 işlem yetkisine dönüşmez.
+
+Normal parola doğrulaması/fresh kullanıcı-rol kontrolü/korumalı OS depo/refresh/logout/revoke korunur. Anonim LAN admin, statik JWT/HTML/URL sırrı, guard kaldırma ve desteklenmeyen login bypass'ı yok. Yeni Windows istemci başlatımına verilmiş `blocked by policy` reddi aynen geçerlidir; aynı eylem başka araç/adres/komut veya kullanıcıya yaptırılarak tekrar edilmez. Kaynak/kurulum ve bağımsız normal auth kanıtı hazırlanmış işi çalışan tek-tık giriş veya insan PASS saymaz. LIVE hazırlığında yardımcı kapalı kalır; ticari/migration yazması ve diğer kapsamlar bu dar karardan yetki almaz. Ana iş devam kararı ERP-DEC-050'de ayrıdır.
+
 ### ERP-DEC-048 — 11 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan talimatı: **“Bu hassas bilgiler meselesi ne, bir güvenlik sorunu mu var? Onu kontrol edip düzeltin, diğer işleri de bekletmeden bitirin.”** Kaynak: Codex `sesli yönlendirme` sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, doğrudan kullanıcı mesajı `01a12c50-e749-79d0-a096-40b05846fbb9`, tur `01a12c50-e596-7910-9653-12489fa51fed`. Kaynak mesajı yerel hostta `read_thread` ile kullanıcı içeriği olarak doğrulandı. Bu satır bir ajanın bağımsız yeni yetki talebi değildir; doğrudan kullanıcı kararının kalıcı kaydıdır.

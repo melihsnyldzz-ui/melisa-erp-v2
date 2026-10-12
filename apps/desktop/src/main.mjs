@@ -7,10 +7,13 @@ import { fileURLToPath } from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {worktest,worktestMode,approvedWorktestPage,approvedWorktestNavigation,assertWorktestSender,assertWorktestHealth,validateWorktestCall} from './protectedWorkSessionPolicy.mjs';
 import {createProtectedWorkSessionStore,prepareWorktestUserData} from './protectedWorkSessionStore.mjs';
+import {readSemihHostIdentity,createSemihHostEntry,createSemihStartupState} from './semihHostEntry.mjs';
 const isolatedWorktest = worktestMode(process.env,process.platform);
-if (isolatedWorktest) app.setPath('userData',prepareWorktestUserData(path.join(app.getPath('appData'),'Melisa-Isolated-Worktest')));
+const semihIdentity=isolatedWorktest&&process.env.MELISA_DESKTOP_SEMIH_ENTRY_PIN ? readSemihHostIdentity(JSON.parse(process.env.MELISA_DESKTOP_SEMIH_ENTRY_PIN)) : null;
+if (isolatedWorktest) app.setPath('userData',prepareWorktestUserData(path.join(app.getPath('appData'),semihIdentity?'Melisa-Semih-Isolated-Worktest':'Melisa-Isolated-Worktest')));
 let worktestWindow = null;
 let protectedStore = null;
+let semihEntry = null;
 let protectedCallQueue = Promise.resolve();
 const worktestExitStates = new WeakMap();
 const worktestErrorPages = new WeakMap();
@@ -250,7 +253,7 @@ function createMenu(mainWindow) {
       label: 'Melisa ERP',
       submenu: [
         { label: 'Yenile', accelerator: 'F5', click: () => isolatedWorktest ? reloadWorktest(mainWindow) : loadErp(mainWindow) },
-        ...(isolatedWorktest ? [{label:'ERP çalışma ekranı',click:()=>switchWorktestPage(mainWindow,worktest.erpUrl)},{label:'Personel görevleri',click:()=>switchWorktestPage(mainWindow,worktest.url)}] : []),
+        ...(isolatedWorktest ? [...(semihIdentity?[{label:'Semih olarak devam et',click:()=>continueSemihWorktest(mainWindow)}]:[]),{label:'ERP çalışma ekranı',click:()=>switchWorktestPage(mainWindow,worktest.erpUrl)},...(!semihIdentity?[{label:'Personel görevleri',click:()=>switchWorktestPage(mainWindow,worktest.url)}]:[])] : []),
         ...(!isolatedWorktest ? [{ label: 'Sunucu / IP Ayari', click: () => showConnectionSettings(mainWindow) }] : []),
         { label: 'Tam Ekran', accelerator: 'F11', click: () => mainWindow.setFullScreen(!mainWindow.isFullScreen()) },
         { type: 'separator' },
@@ -342,6 +345,18 @@ async function switchWorktestPage(mainWindow, target) {
     if(!mainWindow.isDestroyed())await mainWindow.loadURL(target);
   } catch { /* Leave the existing page and pending request intact. */ }
 }
+async function continueSemihWorktest(mainWindow){
+  if(!semihEntry || !semihIdentity || !await canLeaveWorktest(mainWindow))return;
+  // OS menu click, guarded existing page, serial auth and fresh runtime checks.
+  // No renderer argument can choose a username, role, credential or API origin.
+  const call=protectedCallQueue.then(async()=>{
+    if(!await canLeaveWorktest(mainWindow))return;
+    await semihEntry.continueSession();
+    if(!mainWindow.isDestroyed()&&await canLeaveWorktest(mainWindow))await mainWindow.loadURL(worktest.erpUrl);
+  });
+  protectedCallQueue=call.catch(()=>{});
+  try{await call;}catch{/* Keep the current UI and pending records intact. */}
+}
 function isOwnedWorktestErrorPage(mainWindow) {
   return !mainWindow.isDestroyed() && worktestErrorPages.has(mainWindow) && mainWindow.webContents.getURL() === worktestErrorPages.get(mainWindow);
 }
@@ -379,7 +394,7 @@ async function verifyWorktestRuntime() {
   assertWorktestHealth(records,isolatedWorktest.sourceCommit);
 }
 async function loadWorktest(mainWindow) {
-  try { await verifyWorktestRuntime(); if(!safeStorage.isEncryptionAvailable())throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE'); await mainWindow.loadURL(worktest.url); worktestErrorPages.delete(mainWindow); }
+  try { await verifyWorktestRuntime(); if(!safeStorage.isEncryptionAvailable())throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE'); await mainWindow.loadURL(semihIdentity?worktest.erpUrl:worktest.url); worktestErrorPages.delete(mainWindow); }
   catch {
     const errorUrl='data:text/html;charset=utf-8,'+encodeURIComponent('<!doctype html><meta charset="utf-8"><title>Melisa TEST</title><p>Doğrulanmış TEST bağlantısı veya Windows güvenli oturum deposu kullanılamıyor. Bağlantı düzeldikten sonra Yenile seçin.</p>');
     worktestErrorPages.set(mainWindow,errorUrl);
@@ -419,7 +434,7 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: Boolean(isolatedWorktest),
-      ...(isolatedWorktest ? {devTools:false,partition:'persist:melisa-isolated-worktest'} : {}),
+      ...(isolatedWorktest ? {devTools:false,partition:semihIdentity?'persist:melisa-semih-isolated-worktest':'persist:melisa-isolated-worktest'} : {}),
       additionalArguments: [`--melisa-api-base-url=${encodeURIComponent(activeApiBaseUrl)}`, ...(isolatedWorktest ? ['--melisa-isolated-worktest=true'] : [])],
     },
   });
@@ -445,6 +460,12 @@ async function createWindow() {
     return { action: 'deny' };
   });
 
+  if(semihEntry && semihIdentity){
+    // An explicit OS application opening has created this owned window; no
+    // document/draft exists yet. Authenticate through normal API before its
+    // first ERP load. Reload/navigation never repeats this startup operation.
+    try{await semihEntry.continueSession({startup:true});}catch{/* Normal ERP still shows its supported signed-out state. */}
+  }
   await loadErp(mainWindow);
 }
 
@@ -478,17 +499,21 @@ function stopManagedProcesses() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.setAppUserModelId(isolatedWorktest ? 'com.melisababy.erp.worktest' : 'com.melisababy.erp.desktop');
-  app.whenReady().then(() => {
+  app.setAppUserModelId(isolatedWorktest ? (semihIdentity?'com.melisababy.erp.semihworktest':'com.melisababy.erp.worktest') : 'com.melisababy.erp.desktop');
+  app.whenReady().then(async () => {
     if(isolatedWorktest) {
-      protectedStore=createProtectedWorkSessionStore({root:path.join(app.getPath('userData'),'protected-session'),safeStorage});
+      protectedStore=createProtectedWorkSessionStore({root:path.join(app.getPath('userData'),'protected-session'),safeStorage,identity:semihIdentity});
+      if(semihIdentity){
+        const {readSemihFirstLogin}=await import('./semih-test-local-credential.mjs');
+        semihEntry=createSemihHostEntry({identity:semihIdentity,store:protectedStore,readCredential:readSemihFirstLogin,verifyRuntime:verifyWorktestRuntime,startupState:createSemihStartupState({root:path.join(app.getPath('userData'),'semih-entry-state')})});
+      }
       ipcMain.handle('worktest:protected-session',(event,action,value)=>{
         const call=protectedCallQueue.then(async()=>{let failedStage='FIRST_SENDER';try {
           assertWorktestSender(event,worktestWindow);
-          const checked=validateWorktestCall(action,value);
+          const checked=validateWorktestCall(action,value,semihIdentity);
           if(action!=='clear'){failedStage='HEALTH';await verifyWorktestRuntime();}
           failedStage='SECOND_SENDER';assertWorktestSender(event,worktestWindow);
-          failedStage='VAULT';const result=await protectedStore[action](checked);
+          failedStage='VAULT';const result=await (semihEntry&&action==='put'?semihEntry.accept(checked):semihEntry&&action==='clear'?semihEntry.clear():protectedStore[action](checked));
           failedStage='THIRD_SENDER';assertWorktestSender(event,worktestWindow);
           return result;
         } catch {await recordWorktestIpcFailure(failedStage,action);throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE');}});

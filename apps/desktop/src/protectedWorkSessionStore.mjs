@@ -19,7 +19,7 @@ export function prepareWorktestUserData(root,io=syncFs) {
     return root;
   } catch { fail(); }
 }
-export function createProtectedWorkSessionStore({root,safeStorage,platform=process.platform,io=fs}) {
+export function createProtectedWorkSessionStore({root,safeStorage,platform=process.platform,io=fs,identity=null}) {
   if (platform !== 'win32' || !path.isAbsolute(root)) fail();
   const target = path.join(root,'erp-session.json');
   let queue = Promise.resolve();
@@ -43,10 +43,10 @@ export function createProtectedWorkSessionStore({root,safeStorage,platform=proce
       if (Object.keys(envelope).sort().join(',') !== 'ciphertext,schemaVersion' || envelope.schemaVersion !== 'melisa-windows-worktest-session.v1' || typeof envelope.ciphertext !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(envelope.ciphertext) || !envelope.ciphertext.length) fail();
       const inner=JSON.parse(safeStorage.decryptString(Buffer.from(envelope.ciphertext,'base64')));
       if(Object.keys(inner).sort().join(',')!=='copyId,origin,realm,session' || inner.copyId!==worktest.copyId || inner.origin!==worktest.origin || inner.realm!=='erp')fail();
-      return validateWorktestSession(inner.session);
+      return validateWorktestSession(inner.session,identity);
     }),
     put:value=>run(async()=>{
-      const session=validateWorktestSession(value);available();await checkedDirectory();
+      const session=validateWorktestSession(value,identity);available();await checkedDirectory();
       const ciphertext=safeStorage.encryptString(JSON.stringify({copyId:worktest.copyId,origin:worktest.origin,realm:'erp',session}));
       if(!Buffer.isBuffer(ciphertext)||!ciphertext.length)fail();
       const temporary=path.join(root,`.session-${randomUUID()}.tmp`);let handle;

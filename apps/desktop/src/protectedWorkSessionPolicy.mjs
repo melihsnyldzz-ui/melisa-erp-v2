@@ -36,13 +36,14 @@ export function assertWorktestHealth(records, sourceCommit) {
     if (i && (h.serverName !== worktest.server || ['sysadmin','databaseControl','liveDatabaseAccess','originalDatabaseAccess'].some(k => h[k] !== 0) || h.externalOperations !== false || h.automaticJobs !== false || h.writes !== (i === 1) || h.sqlReadOnly !== (i === 2))) fail();
   });
 }
-export function validateWorktestSession(value) {
+export function validateWorktestSession(value, identity = null) {
+  if(identity && (identity.userId!=='17'||identity.username!=='erp-semih-test-20261012'||identity.role?.id!=='2'||identity.role?.code!=='admin'||!/^[a-f0-9]{64}$/.test(identity.fingerprint??'')))fail();
   if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join(',') !== 'accessToken,expiresAt,refreshToken,userId,username') fail();
   for (const k of ['accessToken','refreshToken','userId','username']) if (typeof value[k] !== 'string' || !value[k].length || value[k].length > (k.endsWith('Token') ? 8192 : 160) || /[\u0000-\u001f\u007f]/.test(value[k])) fail();
-  if (!['15','16'].includes(value.userId) || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) fail();
+  if (!(identity ? value.userId === identity.userId && value.username === identity.username : ['15','16'].includes(value.userId)) || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) fail();
   return {...value}; // Identity/role/expiry authority remains the existing fresh refresh + /me flow.
 }
-export function validateWorktestCall(action, value) {
+export function validateWorktestCall(action, value, identity = null) {
   if (!['get','put','clear'].includes(action) || (action !== 'put' && value !== undefined)) fail();
-  return action === 'put' ? validateWorktestSession(value) : undefined;
+  return action === 'put' ? validateWorktestSession(value,identity) : undefined;
 }

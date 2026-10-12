@@ -7,6 +7,7 @@ import {
   postLogout,
   postRefresh,
   postTerminalLogin,
+  postProtectedSessionConfirm,
 } from '../controllers/authController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 
@@ -19,3 +20,4 @@ authRoutes.post('/auth/local-passwordless-admin', postLocalPasswordlessAdminLogi
 authRoutes.post('/auth/logout', postLogout);
 authRoutes.post('/auth/refresh', postRefresh);
 authRoutes.get('/auth/me', requireAuth, getMe);
+authRoutes.post('/auth/session-confirm',requireAuth,postProtectedSessionConfirm);

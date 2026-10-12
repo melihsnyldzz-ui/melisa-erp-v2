@@ -20,6 +20,7 @@ export function createNormalTestRefreshStore({file,now=Date.now,random=()=>crypt
   userId(t){const g=read().grants.find(g=>g.tokenHash===digest(t));if(!g||g.revoked||g.expiresAt<=now())throw reject();return g.userId;},
   rotate(t,u){return mutate(d=>{const g=d.grants.find(g=>g.tokenHash===digest(t));current(g,u);g.revocationHashes??=[];if(g.revocationHashes.length>=5000)throw reject();g.revocationHashes.push(g.tokenHash);const refreshToken=random();g.tokenHash=digest(refreshToken);return{sid:g.sid,refreshToken,refreshExpiresAt:g.expiresAt};});},
   verify(sid,u){current(read().grants.find(g=>g.sid===sid),u);return true;},
+  verifyPair(sid,t,u){const g=read().grants.find(g=>g.sid===sid);current(g,u);if(g.tokenHash!==digest(t))throw reject();return true;},
   revoke(t){return mutate(d=>{const h=digest(t),g=d.grants.find(g=>g.tokenHash===h||g.revocationHashes?.includes(h));if(g)g.revoked=true;return{loggedOut:true};});},
  };
 }
