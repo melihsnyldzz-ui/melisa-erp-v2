@@ -16,7 +16,7 @@ $pins=@($manifest.files|Where-Object {$_.path.Replace('\','/') -ceq 'scripts/can
 if($pins.Count -ne 1 -or $manifest.sourceCommit -cne $c.supervisor.sourceCommit -or (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash -ine $pins[0].sha256){throw 'TERMINAL_LOGON_SHELL_PIN'}
 $driver=Join-Path $c.supervisor.packageRoot 'scripts\canonical\terminal-completion-logon.mjs'
 # Node holds the sole initial+3 retry budget; Scheduler retries must be disabled.
-& $c.node.path $driver --config $StartupConfigPath --sha256 $StartupConfigSha256 --owner-sid $owner --action $Action
+& $c.node.path --no-maglev $driver --config $StartupConfigPath --sha256 $StartupConfigSha256 --owner-sid $owner --action $Action
 $terminalNodeExitCode=$LASTEXITCODE
 # Preserve the original exit result. Diagnostic persistence never handles it.
 try {
