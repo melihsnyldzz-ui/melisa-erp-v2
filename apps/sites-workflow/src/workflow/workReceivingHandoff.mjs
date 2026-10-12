@@ -2,6 +2,12 @@ import {inboundEsc as esc,inboundState} from './workInboundModel.mjs';
 const id=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v);
 const text=v=>typeof v==='string'&&v.length<=500;
 const quantity=v=>typeof v==='string'&&/^(?:0|[1-9]\d*)\.\d{3}$/.test(v);
+const noteLabels=new Map([
+ ['SYNTHETIC FINAL04 daily received unit; not real store-day acceptance','Eğitim turunda kaydedilen mal kabulü; gerçek mağaza günü kabulü değildir.'],
+ ['SYNTHETIC TEST daily chain','Eğitim turunda kaydedilen sayım satırı.'],
+]);
+// Exact historical display labels only. Never classify origin or mutate raw notes.
+export const receivingNotePresentation=value=>noteLabels.get(value)??value;
 export function receivingSupplier(context,receipt){const s=context?.scope?.supplier;return id(receipt?.supplierId)&&receipt.supplierId===s?.id&&typeof s.name==='string'&&typeof s.code==='string'?s:null;}
 // Only native IDs and immutable submitted quantities link these records.
 // No stock code/name matching, receipt working quantities, or person-name inference.
@@ -27,11 +33,11 @@ export function receivingCountHandoffHtml(context,count){
 }
 export function receivingReceiptHandoffHtml(context,receipt){
  const supplier=receivingSupplier(context,receipt),linked=receivingHandoff(context,{receiptId:receipt.id});
- return`${supplier?`<p>Tedarikçi: <b>${esc(supplier.code)} · ${esc(supplier.name)}</b></p>`:'<p>Tedarikçi bilgisi bu kapsamda görüntülenemiyor.</p>'}${linked?`<p>Sayım #${esc(linked.count.id)} · ${esc(inboundState(linked.count.state))} → Kabul: ${esc(inboundState(receipt.state))}</p>${linked.count.note?`<p>Sayım açıklaması: ${esc(linked.count.note)}</p>`:''}<button class="btn" data-count-review="${esc(linked.count.id)}">Sayımı incele</button>`:'<p class="inbound-note">Bu kabulün sayım bağlantısı doğrulanamadı.</p>'}`;
+ return`${supplier?`<p>Tedarikçi: <b>${esc(supplier.code)} · ${esc(supplier.name)}</b></p>`:'<p>Tedarikçi bilgisi bu kapsamda görüntülenemiyor.</p>'}${linked?`<p>Sayım #${esc(linked.count.id)} · ${esc(inboundState(linked.count.state))} → Kabul: ${esc(inboundState(receipt.state))}</p>${linked.count.note?`<p>Sayım açıklaması: ${esc(receivingNotePresentation(linked.count.note))}</p>`:''}<button class="btn" data-count-review="${esc(linked.count.id)}">Sayımı incele</button>`:'<p class="inbound-note">Bu kabulün sayım bağlantısı doğrulanamadı.</p>'}`;
 }
 export function receivingLineHandoffHtml(context,receipt,line){
  const linked=receivingHandoff(context,{receiptId:receipt.id}),pairs=linked?.linePairs.filter(p=>p.receiptLine.id===line.id&&p.receiptLine.clientLineId===line.clientLineId&&p.receiptLine.productId===line.productId)??[];if(pairs.length!==1)return'';const counted=pairs[0].countLine,issue={short:'Eksik',over:'Fazla',wrong:'Yanlış ürün'}[counted.issue];
- return`<small>Barkod: ${esc(counted.barcode??'Bilinmiyor')}</small><small>Beklenen adet bilinmiyor.</small>${issue?`<small>Sayımda seçilen not: ${issue}</small>`:''}${counted.note?`<small>Satır açıklaması: ${esc(counted.note)}</small>`:''}`;
+ return`<small>Barkod: ${esc(counted.barcode??'Bilinmiyor')}</small><small>Beklenen adet bilinmiyor.</small>${issue?`<small>Sayımda seçilen not: ${issue}</small>`:''}${counted.note?`<small>Satır açıklaması: ${esc(receivingNotePresentation(counted.note))}</small>`:''}`;
 }
 export function receivingCountOpenGuard({editor,dirty,locked,backupFailed}={},target){
  if(locked)return{allowed:false,message:'Önce son kaydın sonucunu doğrulayın. Açık sayım korunuyor.'};
