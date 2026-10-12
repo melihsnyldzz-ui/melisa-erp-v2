@@ -47,8 +47,8 @@ export function workContextDto(raw,actor,goal8Profile=false){
  }catch{throw workError();}
 }
 export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
- async function transaction(actor,write,operation,payload,fn,readPermission='sales.view'){
-  const r=await getRuntime();if(r.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return write?store.mutate(actor,operation,payload,fn):store.read(actor,fn,readPermission);}const goal8Profile=goal8DayEnabled(r),run=async()=>{
+ async function transaction(actor,write,operation,payload,fn,readPermission='sales.view',historicalSale=false){
+  const r=await getRuntime();if(r.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return write?store.mutate(actor,operation,payload,fn):(historicalSale?store.readHistoricalSale??store.read:store.read).call(store,actor,fn,readPermission);}const goal8Profile=goal8DayEnabled(r),run=async()=>{
    const tx=new r.sql.Transaction(r.pool);await tx.begin(r.sql.ISOLATION_LEVEL.SERIALIZABLE);const req=()=>new r.sql.Request(tx),q=r.sql;
    try{
     if(write)await req().query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51100,'WORK_LOCK_TIMEOUT',1;");
@@ -129,7 +129,7 @@ export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
   };
   return write?r.withMutation(run):run();
  }
- return {context:actor=>transaction(actor,false,null,null,c=>c.context),read:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission),mutate:(actor,operation,payload,fn)=>transaction(actor,true,operation,payload,fn),selectedSaleEnabled:async actor=>{const runtime=await getRuntime();if(!runtime.isolatedCopy)return false;const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor);},mutateSelectedSale:async(actor,operation,payload,fn)=>{const runtime=await getRuntime();if(runtime.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return store.mutateSelectedSale(actor,operation,payload,fn);}return transaction(actor,true,operation,payload,fn);}};
+ return {context:actor=>transaction(actor,false,null,null,c=>c.context),read:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission),readHistoricalSale:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission,true),mutate:(actor,operation,payload,fn)=>transaction(actor,true,operation,payload,fn),selectedSaleEnabled:async actor=>{const runtime=await getRuntime();if(!runtime.isolatedCopy)return false;const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor);},mutateSelectedSale:async(actor,operation,payload,fn)=>{const runtime=await getRuntime();if(runtime.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return store.mutateSelectedSale(actor,operation,payload,fn);}return transaction(actor,true,operation,payload,fn);}};
 }
 export const workTradeStore=createWorkTradeStore();
 

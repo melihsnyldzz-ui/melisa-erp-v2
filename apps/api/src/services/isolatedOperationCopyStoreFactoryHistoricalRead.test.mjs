@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixtureContext,fixtureIdentity,fixtureProof} from './isolatedOperationCopyContext.test.mjs';
+import {validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
+import {createIsolatedOperationCopyStore,ISOLATED_COPY_FINITE_FK_SQL} from './isolatedOperationCopyStoreFactory.mjs';
+test('unregistered historical route falls back to outer READY in same Shared TX, proof/actor preserved',async()=>{
+ const context=validateIsolatedOperationCopyContext(fixtureContext()),events=[],actor={id:'15',permissions:['sales.view']};let tx,identities=0;
+ class Transaction{async begin(n){assert.equal(n,4);tx=this;events.push('begin');}async commit(){events.push('commit');}async rollback(){events.push('rollback');}}
+ class Request{constructor(parent){assert.equal(parent,tx);this.parent=parent;}input(){return this;}async query(sql){if(sql.includes('sp_getapplock')){assert(sql.includes("@LockMode=N'Shared'"));events.push('Shared');return{};}if(sql===ISOLATED_COPY_FINITE_FK_SQL){events.push('FK');return{recordset:[['FK__test_good__produ__5654B625','test_goods_batch_lines'],['FK__test_purc__produ__69678A99','test_purchase_batch_intent_lines']].map(([constraintName,parentTable])=>({constraintName,parentSchema:'dbo',parentTable,parentColumn:'product_id',referencedSchema:'dbo',referencedTable:'products',referencedColumn:'id',ordinal:1,columnCount:1,isDisabled:false,isNotTrusted:false,deleteAction:'NO_ACTION',updateAction:'NO_ACTION'}))};}assert(sql.startsWith('SELECT DB_NAME'));identities++;return{recordset:[fixtureIdentity(context)]};}async execute(name){if(name.endsWith('_ready')){events.push('outer READY');return{};}assert(name.endsWith('_context'));events.push('owner context');return{recordset:[{proof_json:JSON.stringify(fixtureProof(context)),actor_json:JSON.stringify({id:'15',role:'isolated_test_sales',active:true,permissions:['sales.view']}),context_json:JSON.stringify({meta:{date:context.date,operationOrigin:context.operationOrigin,copyId:context.copyId,sealHash:context.sealHash},scope:{synthetic:false,operationOrigin:context.operationOrigin}})}]};}}
+ const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},UniqueIdentifier:'id',NVarChar:()=>{},BigInt:'id'};
+ const store=createIsolatedOperationCopyStore({getRuntime:async()=>({copyContext:context,sql,pool:{}}),buildDomain:async({context})=>({context,invoice:async()=>{events.push('invoice');return 1;}})});
+ assert.equal(await store.readHistoricalSale(actor,c=>c.invoice()),1);assert.deepEqual(events,['begin','Shared','outer READY','FK','owner context','invoice','commit']);assert.equal(identities,2);
+ events.length=0;await store.read(actor,c=>c.invoice());assert.deepEqual(events,['begin','Shared','outer READY','FK','owner context','invoice','commit']);
+});

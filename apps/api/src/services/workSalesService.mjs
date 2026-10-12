@@ -39,8 +39,8 @@ export function createWorkSalesService({getStore=defaultStore}={}){
    if(invoice.collections.receivedExact4!=='0.0000')workFail('WORK_COLLECTIONS_ACTIVE','Önce bu satışın tahsilatlarını iptal edin.',409);
    return {invoice:await c.cancel(id,payload.reason),requestId:payload.requestId,replayed:false};
   });},
-  async invoice(id,actor){actor=workActor(actor,'sales.view');return (await getStore()).read(actor,c=>c.invoice(workId(id)));},
-  async list(query,actor){actor=workActor(actor,'sales.view');workKeys(query,['page','limit']);const positive=(v,d,max)=>{if(v===undefined)return d;if(typeof v!=='string'||!/^[1-9]\d*$/.test(v)||Number(v)>max)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');return Number(v);};return (await getStore()).read(actor,c=>c.list({page:positive(query.page,1,10000),limit:positive(query.limit,25,50)}));},
+  async invoice(id,actor){actor=workActor(actor,'sales.view');const store=await getStore();return (store.readHistoricalSale??store.read).call(store,actor,c=>c.invoice(workId(id)));},
+  async list(query,actor){actor=workActor(actor,'sales.view');workKeys(query,['page','limit']);const positive=(v,d,max)=>{if(v===undefined)return d;if(typeof v!=='string'||!/^[1-9]\d*$/.test(v)||Number(v)>max)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');return Number(v);};const store=await getStore();return (store.readHistoricalSale??store.read).call(store,actor,c=>c.list({page:positive(query.page,1,10000),limit:positive(query.limit,25,50)}));},
   async request(id,actor){actor=workActor(actor,'sales.view');const {workRequestId,workSelection,workDraftInput}=await import('./workSalesModel.mjs');return (await getStore()).read(actor,c=>c.request(workRequestId(id)));}
  };
 }
