@@ -1,3 +1,7 @@
+## Melisa Host — source26 / API ve Windows kurulum paketi hazır, runtime değil — 12 Ekim 2026
+
+Kaynak26ef4b6 PR23 pushed; canonicalbusinessTEST1859dosya/buildexit0/manifest47211EE7…A73D32F. Ayrı Semihdesktop10dosya stager ve Electron39.8.10NSIS exit0; kurulum yüklenmedi/başlatılmadı, Source26 runtimepin'i geleceketkinleştirmeiçindir. Source635.75KB scan sır0; Root99offline+review43sourceGO ve gerçek ERP/CRM normal-sourceauth qualifications ayrı. [Paket yolları/gerçek sınır](docs/evidence/erp/2026-10-12-host-access/README.md). Exact26 hostedCI38242957432/38242951685 hesapödeme/harcama yüzünden başlamadı, yeşildeğil. ÇalışanERP73/CRM09ca/TEST125 değişmedi; gerçekHostSemih ekran/geçiş/reopen/revoke kabulü policyretiaşılmadan açık. ERP-DEC-050 anaERPdevamı işlendi, toolgoalpaused/CRMajanıpaused; tek bağımsız200stockpredicate performans kapanışı sürer. İnsanUA32/finishtree49-9-39-1 aynı.
+
 ## Melisa Host — gerçek dedicated TEST kurulumu / korumalı normal auth kaynak kanıtı — 12 Ekim 2026
 
 ERP-DEC-049: mevcut normal kullanıcı çekirdeğiyle yalnız DB02 yeni17/SemihTEST/mevcut2-admin oluşturuldu; replaynewuser0. ExacttrustedWindowsowner/server/copy/seal, eskiusers/roles/permissions/module/copyhash ve stok/cari/kasa hareket sayıları korundu. ERP15/16 sealedactors ve kaynak/native ticari scope değişmedi. CurrentUserDPAPI ilk giriş ve private fingerprint/SHA identity pin repo dışında; parola çıktısı/staticJWT/URL/HTML/anonimadmin/sharedreset yok. [Tam kapsam ve kanıt](docs/evidence/erp/2026-10-12-host-access/README.md).
