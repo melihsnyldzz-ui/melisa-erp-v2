@@ -25,14 +25,13 @@ import {createWorkSystemSettings} from './workSystemSettings.js';
 import {resolveTestApiBase,testSessionModeKey} from './testAdminSession.mjs';
 import {createWorkingCatalogSession,workingCatalogUserLabel} from './workingCatalogSession.mjs';
 import {mountCopyActorSelector,verifiedCopyPage} from './workCopyActorSelector.mjs';
-import {mountSemihBrowserControls} from './semihBrowserControls.mjs';
 const savedAccounts=accountSnapshot.rows.map(r=>({sourceId:String(r.IND),accountCode:r.FIRMAKODU,name:r.FIRMAADI,currency:r.PARABIRIMI,groupCode:r.KOD1,readAt:r.readAt}));
 const savedAccountNames=Object.fromEntries(savedAccounts.map(r=>[r.sourceId,r.name]));
 
 const workflow=window.MelisaWorkflow;
 let disposeCopyActors=()=>{};
 let disposeReadOnlyNavigation=()=>{};
-function showCopyActors(session,current){disposeCopyActors();const container=document.querySelector('.top-right'),disposeActors=mountCopyActorSelector({container,session,user:current,beforeSwitch:()=>window.MelisaWorkingBeforeNavigate?.()!==false,onChanged:()=>workflow.render()}),disposeSemih=mountSemihBrowserControls({container,host:window,document,session,user:current,onLogout:()=>workflow.render()});disposeCopyActors=()=>{disposeActors();disposeSemih();};}
+function showCopyActors(session,current){disposeCopyActors();disposeCopyActors=mountCopyActorSelector({container:document.querySelector('.top-right'),session,user:current,beforeSwitch:()=>window.MelisaWorkingBeforeNavigate?.()!==false,onChanged:()=>workflow.render()});}
 function refreshBusinessDate(){
  const target=document.getElementById('business-date');
  if(target)target.textContent=new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',day:'numeric',month:'long',year:'numeric',weekday:'long'}).format(new Date());

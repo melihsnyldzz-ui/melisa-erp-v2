@@ -1,4 +1,8 @@
-## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-052 — Mevcut MELISA HUB'da Semih girişi
+## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-053 — Ana teslimi kalem kalem kapat
+
+Semih giriş düğmesi kullanıcı tarafından iptal; ana teslim kapısı değil. Kaynak fbb6831 ayrı `codex/erp-semih-hub-optional-20261012` dalında korunur; aktive edilmedi. Çalışan ERP6a3eaa1/CRM09ca/TEST125 ve normal auth aynıdır. Önce mevcut kanıta dayalı ERP/CRM/terminal/veri/eğitim/kurulum-LIVE hazırlığı kapanış raporu; ardından aynı ana işte mevcut 200 satırlı fiş/koli okuyucusunun ölçülmüş tekrarını azaltan bekleyen dar performans kaynaklarını review/paket/normal salt okunur sonuçla kapat. Kabul edilmiş satış veya migration tekrarlanmaz, yeni temizlik ve giriş denemesi yok. Sonraki işler rapordaki bağımlılık/kapanışları izler; CRM paused ve gerçek işletme/LIVE yetki sınırları sürer. UA32 insan kabulü bekliyor.
+
+## Önceki giriş önceliği — ERP-DEC-052 / ERP-DEC-053 ile iptal
 
 Doğrudan kullanıcı cevabıyla hedef mevcut tarayıcı Hub'ıdır; ayrı Windows programı iptal. Aynı ana işte normal ERP17 ve ayrı CRM Semih TEST oturumları, tek Hub düğmesi, yenileme/çıkış ve gerçek ekran sonucu hazırlanıyor. Ayrı program başlatımı tekrarlanmaz. Mevcut veri, roller, çalışan başlangıç ve diğer dirty işler korunur. Teknik sonucu STATUS kaydeder; UA32 insan kabulü bekliyor, finish49-9-39-1 aynı. Bu giriş kapanmadan hız/terminal/eğitim işi başlatılmaz.
 

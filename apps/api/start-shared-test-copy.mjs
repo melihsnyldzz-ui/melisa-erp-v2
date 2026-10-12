@@ -28,12 +28,6 @@ if(config.semihTestIdentity!==undefined){
  configuredSemihTestIdentity({copy:context,config:{MELISA_TEST_SEMIH_IDENTITY_PATH:pin.path,MELISA_TEST_SEMIH_IDENTITY_SHA256:pin.sha256}});
  if(writes){process.env.MELISA_TEST_SEMIH_IDENTITY_PATH=pin.path;process.env.MELISA_TEST_SEMIH_IDENTITY_SHA256=pin.sha256;}
 }
-if(config.semihBrowserSessionEnabled===true){
- const {configuredSemihTestIdentity}=await import('./src/services/semihTestIdentityPolicy.mjs');
- const identity=configuredSemihTestIdentity({copy:context,config:{MELISA_TEST_SEMIH_IDENTITY_PATH:config.semihTestIdentity.path,MELISA_TEST_SEMIH_IDENTITY_SHA256:config.semihTestIdentity.sha256}});
- copyAssert(identity?.userId==='17','AUTH_SEMIH_BROWSER_CONFIG');
- if(writes)process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED='true';
-}
 const {env}=await import('./src/config/env.js');
 copyAssert(!env.vega.enabled&&!env.whatsapp.enabled&&!env.nakliyat.enabled&&!env.receiptPrinting.enabled,'STAGE4_EXTERNAL_DISABLED');
 const {getSqlPool}=await import('./src/config/database.js');const pool=await getSqlPool();
@@ -94,7 +88,7 @@ if(writes){
  const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
  app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'STAGE4_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!webOrigins.includes(req.get('origin'))||!isCanonicalTestWriteAllowed(req.method,req.path,{writes:true,mode:'erp',protectedNormalAuth:config.normalTestSessionPath!==undefined,semihBrowserSession:config.semihBrowserSessionEnabled===true})))return res.status(405).json({success:false,error:{code:'STAGE4_WRITE_OUTSIDE_SCOPE'}});next();
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!webOrigins.includes(req.get('origin'))||!isCanonicalTestWriteAllowed(req.method,req.path,{writes:true,mode:'erp',protectedNormalAuth:config.normalTestSessionPath!==undefined})))return res.status(405).json({success:false,error:{code:'STAGE4_WRITE_OUTSIDE_SCOPE'}});next();
  });
  const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');configureCatalogSourceVersion(config.goal7SourceVersion);
  const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:config.goal7SourceVersion});

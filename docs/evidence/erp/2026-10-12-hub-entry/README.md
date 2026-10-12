@@ -1,5 +1,7 @@
 # Mevcut Melisa Hub — Semih TEST girişi
 
+**ERP-DEC-053: kullanıcı tarafından iptal edildi.** fbb6831 kaynakları `codex/erp-semih-hub-optional-20261012` ve clean build worktree'de korunur; paket hazırlanmış olsa da aktive edilmedi. Aktif dal uygulama kodu iptal öncesi cb9633b tabanına döndü. Mevcut korumalı normal auth, çalışan ERP/CRM, hesap/rol ve ticari veri değiştirilmedi. Aşağıdaki metin iptal öncesi teknik hazırlığın tarihsel kaydıdır; giriş kabulü veya ana teslim bağımlılığı değildir.
+
 Karar ERP-DEC-052. Hedef mevcut tarayıcı portalı `http://192.168.1.46:5234/melisa-hub/`; ayrı Windows programı iptal. Kaynak, çalışan paket ve insan kabulü ayrı tutulur.
 
 Hub'ın yeşil ana düğmesi normal ERP'yi `ornek-akis.html?semih=1#stock` adresinde açar. Query yalnız görünüm niyetidir; oturum veya yetki vermez. İlk normal giriş, kullanıcıya parola sorulmadan korumalı TEST teslim kaydından ajan tarafından hazırlanır. Normal grant olmadan cookie oluşturulamaz. Cookie host-only, HttpOnly, SameSite=Strict ve dar auth path'indedir; yenileme sırrı URL, localStorage veya sessionStorage'a konmaz. JWT yalnız sayfanın belleğindedir. Bu HTTP TEST taşıması TLS veya Windows kullanıcı attestation kanıtı olarak sunulmaz.

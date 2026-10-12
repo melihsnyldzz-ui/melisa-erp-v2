@@ -86,33 +86,3 @@ test('actual protected pair confirmation is readonly, rejects another grant and 
  for(const change of [()=>state.passwordHash='changed-fixture',()=>state.role='terminal_user',()=>state.active=false,()=>state.roleActive=false]){change();await assert.rejects(auth.confirmProtectedNormalSession(a.accessToken,a.refreshToken));state.passwordHash='fixture-bcrypt-only';state.role='admin';state.active=true;state.roleActive=true;}
  await auth.logout(a.refreshToken);await assert.rejects(auth.confirmProtectedNormalSession(a.accessToken,a.refreshToken),{code:'AUTH_REFRESH_INVALID'});assert.equal(state.guardCalls,0);
 });
-async function browserRun(fn){const old=process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED;process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED='true';try{return await fn();}finally{old===undefined?delete process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED:process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED=old;}}
-test('browser transport uses existing normal pair, rotation, metadata inspection and retired own logout',async()=>browserRun(async()=>{
- const a=await auth.login(credentials),b=await auth.login(credentials);
- assert.equal(auth.semihBrowserSessionEnabled(),true);
- const enrolled=await auth.enrollSemihBrowserSession(a.accessToken,a.refreshToken);assert.equal(enrolled.user.id,17);assert.equal(enrolled.refreshToken,a.refreshToken);
- const remembered=await auth.rememberedSemihBrowserUser(a.refreshToken);assert.equal(remembered.user.id,17);assert.equal(Object.hasOwn(remembered,'refreshToken'),false);
- await assert.rejects(auth.enrollSemihBrowserSession(a.accessToken,b.refreshToken),{code:'AUTH_REFRESH_INVALID'});assert.equal(store.userId(a.refreshToken),'17');
- const rotated=await auth.restoreSemihBrowserSession(a.refreshToken);assert.notEqual(rotated.refreshToken,a.refreshToken);assert.equal(rotated.user.id,17);
- // Enrollment of a rotated token from the same family does not revoke itself.
- await auth.enrollSemihBrowserSession(rotated.accessToken,rotated.refreshToken,a.refreshToken);assert.equal(store.userId(rotated.refreshToken),'17');
- await auth.logoutSemihBrowserSession(a.refreshToken);await assert.rejects(auth.restoreSemihBrowserSession(rotated.refreshToken));
- assert.equal((await auth.logoutSemihBrowserSession(rotated.refreshToken)).loggedOut,true);assert.equal(state.guardCalls,0);
-}));
-test('foreign current or retired 15/16 tokens are rejected before lookup, rotate or revoke',async()=>browserRun(async()=>{
- for(const id of [15,16]){
-  const foreign=sessions.bindNormalTestFingerprint({id,username:'other',role:{id:4,code:'personel'},permissions:['sales.view']},{password_hash:'fixture'}),a=store.issue(foreign),rotated=store.rotate(a.refreshToken,foreign);
-  state.queries=[];
-  await assert.rejects(auth.restoreSemihBrowserSession(rotated.refreshToken),{code:'AUTH_REFRESH_INVALID'});
-  await assert.rejects(auth.rememberedSemihBrowserUser(rotated.refreshToken),{code:'AUTH_REFRESH_INVALID'});
-  for(const token of [a.refreshToken,rotated.refreshToken])await assert.rejects(auth.logoutSemihBrowserSession(token),{code:'AUTH_REFRESH_INVALID'});
-  assert.equal(state.queries.length,0);assert.equal(store.verify(a.sid,foreign),true);assert.equal(store.userId(rotated.refreshToken),String(id));
- }
- const a=await auth.login(credentials);state.roleActive=false;await assert.rejects(auth.restoreSemihBrowserSession(a.refreshToken),{code:'AUTH_USER_INACTIVE'});
- assert.equal((await auth.logoutSemihBrowserSession(a.refreshToken)).loggedOut,true);assert.equal(state.guardCalls,0);
-}));
-test('browser opt-in and exact configured17 are mandatory while ordinary engine remains unchanged',async()=>{
- const old=process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED;delete process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED;
- try{const a=await auth.login(credentials);assert.equal(auth.semihBrowserSessionEnabled(),false);assert.deepEqual(await auth.rememberedSemihBrowserUser(a.refreshToken),{enabled:false,user:null});await assert.rejects(auth.restoreSemihBrowserSession(a.refreshToken),{code:'AUTH_SEMIH_BROWSER_DISABLED'});assert.equal(store.userId(a.refreshToken),'17');}finally{if(old!==undefined)process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED=old;}
- await browserRun(async()=>{state.identity=null;assert.equal(auth.semihBrowserSessionEnabled(),false);await assert.rejects(auth.logoutSemihBrowserSession(null),{code:'AUTH_SEMIH_BROWSER_DISABLED'});});
-});

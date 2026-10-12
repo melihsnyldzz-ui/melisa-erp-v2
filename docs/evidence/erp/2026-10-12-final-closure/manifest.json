@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "melisa-final-closure-report.v1",
+  "capturedAt": "2026-10-12T17:46:40.7538270Z",
+  "erpTreeCommit": "cb9633bad238cd1f2ddc4a0562b5bce231be33d0",
+  "crmSourceCommit": "0424ac74efd2e7432f8ad8efcf023ba67002bbda",
+  "crmDocuments": "owner-staged; publication pending",
+  "erpRuntimeSource": "6a3eaa16cd66ef1e43a0859198e8eca192892b12",
+  "crmRuntimeSource": "09ca1dac346e42037fd02901baf3240aa6ce6285",
+  "inputs": [
+    {
+      "path": "ERP_FINISH_PLAN.md",
+      "sha256": "6275185b21933a27f55daaea060b7e24c1e9b4077bef2537630099e17f83d9d4"
+    },
+    {
+      "path": "ERP_MIGRATION_PLAN.md",
+      "sha256": "b8ef49584c32a9e1eab3f8169b1a41357d000c62b65e0a1faf755b2fb94b88de"
+    },
+    {
+      "path": "STATUS.md",
+      "sha256": "1f7084389c203d33b3814fb6a51bb0787077e46bb3e86ef7d12dd10a5d741410"
+    },
+    {
+      "path": "PROJECT_DECISIONS.md",
+      "sha256": "ca799f20400028e1c2b57ca1f8312881dcb7be4856b005c64ea5f78f7bc2491e"
+    },
+    {
+      "path": "USER_ACCEPTANCE.md",
+      "sha256": "4321f23fd4d2803334319967b294b9685a363071d5dcea55801a1a603f5c1b8d"
+    },
+    {
+      "path": "C:\\Sirket\\CRM\\melisa-crm\\CRM_FINISH_PLAN.md",
+      "sha256": "fbaba2c7e67d10b0747c85d4f5b50f01bf60c1595514f0b8f0837f4761b73dd3"
+    },
+    {
+      "path": "C:\\Sirket\\CRM\\melisa-crm\\CRM_STATUS.md",
+      "sha256": "1b1085e96d2055f19056a57f8a5e599d0bc90b7a4963994ddd409ac45224d3e2"
+    },
+    {
+      "path": "C:\\Sirket\\CRM\\melisa-crm\\DELIVERY_BOARD.md",
+      "sha256": "6a5584d42f6de5ae257fc748220be43de8156a2ee8206712054779b60aa8d0d3"
+    }
+  ],
+  "erpItems": 49,
+  "crmItems": 25,
+  "mainClosureItems": 21,
+  "businessWrites": 0,
+  "priorTestsRepeatedForReport": 0,
+  "reportSHA256": "c9e86d0f39c8a5cdba35bfb36450e732855b2c8b0ec908cca529033ecb1816d3"
+}

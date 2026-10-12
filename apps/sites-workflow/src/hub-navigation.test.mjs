@@ -1,21 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {safeInternalUrl, crmUrl, availability, semihContinueUrl} from '../public/melisa-hub/hub.mjs';
+import {safeInternalUrl, crmUrl, availability} from '../public/melisa-hub/hub.mjs';
 import {lessons as portalLessons} from '../public/melisa-hub/catalog.mjs';
 import {lessons as sourceLessons} from './training-guide/lessons.mjs';
 
 const lan = new URL('http://192.168.1.46:5234/melisa-hub/');
 const dns = new URL('https://semih.tail295701.ts.net/melisa-hub/');
 const verifiedCrm = {environment:'ISOLATED_TEST_COPY',crm:{enabled:true,validated:true,port:62700}};
-
-test('Semih intent button only opens exact verified copy origin; intent carries no authority or secret',()=>{
- const config={environment:'ISOLATED_TEST_COPY',erp:{enabled:true,validated:true}};
- assert.equal(semihContinueUrl(config,lan),'http://192.168.1.46:5234/ornek-akis.html?semih=1#stock');
- assert.equal(semihContinueUrl(config,new URL('http://127.0.0.1:5234/melisa-hub/')),'http://127.0.0.1:5234/ornek-akis.html?semih=1#stock');
- for(const current of[dns,new URL('http://localhost:5234/melisa-hub/'),new URL('http://192.168.1.47:5234/melisa-hub/'),new URL('http://192.168.1.46:5194/melisa-hub/')])assert.equal(semihContinueUrl(config,current),null);
- assert.equal(semihContinueUrl({...config,environment:'LIVE'},lan),null);assert.equal(semihContinueUrl({},lan),null);
- assert.equal(crmUrl(verifiedCrm,new URL(lan.href+'?semih=1')),'http://192.168.1.46:62700/?semih=1');
-});
 
 test('navigation rejects credentials, foreign hosts, protocols and unrelated ports', () => {
   for (const value of [

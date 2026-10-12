@@ -76,3 +76,6 @@ ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperation
 # and offline sourceKey provenance, not credentials. Exact commits only.
 6b99f1bc5758b5a116cd4158f923e09202c66c35:apps/api/src/services/melisaHubReadiness.mjs:generic-api-key:31
 0f52539f56b956d6b7906fc426a885cc9bb7652b:apps/sites-workflow/src/workflow/sharedStableTopology.test.mjs:generic-api-key:15
+# 2026-10-12 cancelled optional source: offline repeated a/b/c fixture hashes
+# and public provenance source keys, not a credential. Exact commit/line only.
+fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workingCatalogSessionSemihBrowser.test.mjs:generic-api-key:6

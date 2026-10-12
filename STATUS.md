@@ -1,4 +1,10 @@
-## ERP-COMPLETE01 — Mevcut tarayıcı MELISA HUB girişi / kaynak hazırlığı — 12 Ekim 2026
+## ERP-COMPLETE01 — Giriş iptal, çalışan sistem aynı / ana kapanış raporu — 12 Ekim 2026
+
+ERP-DEC-053 doğrudan insan mesajından doğrulandı. Giriş kaynak commit'i fbb6831038495124c55a48325cba7ec1c43dec2f ve build worktree/1872 dosyalı paket ayrı isteğe bağlı hazırlık olarak korunur. Başlamış build güvenli biçimde tamamlandı; runtime config hazırlanmadı, kurulum/restart/normal giriş/cookie veya SQL yazması yapılmadı. CRM0424 paketi de yalnız hazırlık, ortak runtime'da aktive edilmedi. Aktif geliştirme dalından yalnız bu iptal edilen işin 24 uygulama dosyası cb9633b tabanına geri alındı; hazırlanmış kaynak optional dalda ve clean build worktree'de kayıpsızdır. Normal auth/hesap/roller/15–16, mevcut7performansdirtydosyası ve CRM11stagedkanıtı değişmedi. Çalışan ERP6a3eaa1, CRM09ca/native60e, TEST125/DB02 korunur; bunlar daha eski pakete döndürülmedi.
+
+fbb source taramasındaki üç bulgu aynı exact offline fixture satırındaki yapay a/b/c hash ve kaynak kimlikleridir; gerçek sır değildir. Tarihsel commit/path/rule/line için dar fingerprint istisnası kaydedilir; genel tarama veya CI kapatılmaz. Giriş test/kaynak/paket sonucu ana tamamlanma sayılmaz. Kalem bazında mevcut kanıt raporu ve sonraki dar fiş/koli performans kapanışı aynı ERP-COMPLETE01'dir; yeni goal veya migration/temizlik yok. İnsan kabulü ve hosted CI hesap engeli korunur.
+
+## ERP-COMPLETE01 — Mevcut tarayıcı MELISA HUB girişi / iptal öncesi kaynak hazırlığı — 12 Ekim 2026
 
 ERP-DEC-052: kullanıcı hedefin mevcut MELISA HUB tarayıcı başlangıç sayfası olduğunu doğrudan doğruladı; aşağıdaki önceki Windows pencere bağımlılığı supersede edildi. Ayrı Windows deneme programı iptal, dosyalar korunuyor ve reddedilen başlatım tekrarlanmadı. Dar kaynak değişikliği normal ERP17 grant'ini HttpOnly/Strict/host-only cookie ile hatırlıyor; JWT yalnız bellekte, anonime normal grant üreten yol yok. Exact DB02/copy/17/fresh kimlik ve Origin/Host kontrolleri, mevcut15/16/native/rol/ticari sınırlar korunuyor. Root 108/108 hedefli kontrol ve bağımsız kaynak incelemesi GO; çalışan paket/gerçek tarayıcı doğrulaması bu kayıttan sonraki teslim adımıdır. Teknik hazırlık çalışan düğme veya insan kabulü sayılmadı.
 

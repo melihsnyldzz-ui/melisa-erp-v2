@@ -17,13 +17,3 @@ test('readonly pair confirmation requires same current SID and refresh hash with
  store.revoke(rotated.refreshToken);const afterRevoke=fs.readFileSync(file);assert.throws(()=>store.verifyPair(a.sid,rotated.refreshToken,u));assert.deepEqual(fs.readFileSync(file),afterRevoke);
  expire();assert.throws(()=>store.verifyPair(b.sid,b.refreshToken,u));assert.deepEqual(fs.readFileSync(file),afterRevoke);
 });
-test('read-only token ownership includes retired grants only explicitly, and scoped revoke cannot touch another owner',t=>{
- const {file,store,expire}=fixture(t),u=user(),a=store.issue(u),r=store.rotate(a.refreshToken,u);
- const before=fs.readFileSync(file);assert.throws(()=>store.inspectToken(a.refreshToken));
- assert.deepEqual(store.inspectToken(a.refreshToken,{includeRetired:true}),{sid:a.sid,userId:'15',refreshExpiresAt:a.refreshExpiresAt});
- assert.equal(store.inspectToken(r.refreshToken).userId,'15');assert.deepEqual(fs.readFileSync(file),before);
- assert.throws(()=>store.revoke(a.refreshToken,'17'));assert.deepEqual(fs.readFileSync(file),before);assert.equal(store.verify(a.sid,u),true);
- expire();assert.throws(()=>store.inspectToken(r.refreshToken));assert.equal(store.inspectToken(a.refreshToken,{includeRetired:true}).userId,'15');
- assert.equal(store.revoke(a.refreshToken,'15').loggedOut,true);assert.equal(store.revoke(r.refreshToken,'15').loggedOut,true);
- assert.equal(store.inspectToken(a.refreshToken,{includeRetired:true}).userId,'15');
-});

@@ -18,11 +18,10 @@ export function createNormalTestRefreshStore({file,now=Date.now,random=()=>crypt
  return{
   issue(u){return mutate(d=>{if(!u?.[normalTestFingerprint]||d.grants.length>=10000)throw reject();const refreshToken=random(),sid=crypto.randomUUID(),expiresAt=now()+ttlMs;d.grants.push({sid,userId:String(u.id),fingerprint:u[normalTestFingerprint],tokenHash:digest(refreshToken),expiresAt,revoked:false});return{sid,refreshToken,refreshExpiresAt:expiresAt};});},
   userId(t){const g=read().grants.find(g=>g.tokenHash===digest(t));if(!g||g.revoked||g.expiresAt<=now())throw reject();return g.userId;},
-  inspectToken(t,{includeRetired=false}={}){const h=digest(t),g=read().grants.find(g=>g.tokenHash===h||includeRetired&&g.revocationHashes?.includes(h));if(!g||!includeRetired&&(g.revoked||g.expiresAt<=now()))throw reject();return Object.freeze({sid:g.sid,userId:g.userId,refreshExpiresAt:g.expiresAt});},
   rotate(t,u){return mutate(d=>{const g=d.grants.find(g=>g.tokenHash===digest(t));current(g,u);g.revocationHashes??=[];if(g.revocationHashes.length>=5000)throw reject();g.revocationHashes.push(g.tokenHash);const refreshToken=random();g.tokenHash=digest(refreshToken);return{sid:g.sid,refreshToken,refreshExpiresAt:g.expiresAt};});},
   verify(sid,u){current(read().grants.find(g=>g.sid===sid),u);return true;},
   verifyPair(sid,t,u){const g=read().grants.find(g=>g.sid===sid);current(g,u);if(g.tokenHash!==digest(t))throw reject();return true;},
-  revoke(t,expectedUserId){return mutate(d=>{const h=digest(t),g=d.grants.find(g=>g.tokenHash===h||g.revocationHashes?.includes(h));if(expectedUserId!==undefined&&(!g||g.userId!==expectedUserId))throw reject();if(g)g.revoked=true;return{loggedOut:true};});},
+  revoke(t){return mutate(d=>{const h=digest(t),g=d.grants.find(g=>g.tokenHash===h||g.revocationHashes?.includes(h));if(g)g.revoked=true;return{loggedOut:true};});},
  };
 }
 export function configuredNormalTestRefreshStore({copy,config=process.env}={}){

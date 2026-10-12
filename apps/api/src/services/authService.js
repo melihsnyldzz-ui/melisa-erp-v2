@@ -472,47 +472,6 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
 
 function normalTestIdentityOptions(){return {copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
 function normalTestStore(){return configuredNormalTestRefreshStore(normalTestIdentityOptions());}
-export function semihBrowserSessionEnabled(){
- if(process.env.MELISA_TEST_SEMIH_BROWSER_SESSION_ENABLED!=='true')return false;
- const identity=configuredSemihTestIdentity(normalTestIdentityOptions());
- return Boolean(identity?.userId==='17'&&normalTestStore());
-}
-function semihBrowserScope(){
- if(!semihBrowserSessionEnabled())throw makeAuthError('AUTH_SEMIH_BROWSER_DISABLED','Browser session is unavailable',503);
- return {identity:configuredSemihTestIdentity(normalTestIdentityOptions()),store:normalTestStore()};
-}
-async function inspectSemihBrowserGrant(refreshToken,{forLogout=false}={}){
- const {identity,store}=semihBrowserScope(),grant=store.inspectToken(refreshToken,{includeRetired:forLogout});
- if(grant.userId!==identity.userId)throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
- if(forLogout)return {store,grant};
- const user=await getUserById(grant.userId);
- if(!matchesSemihTestUser(user,identity))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
- store.verifyPair(grant.sid,refreshToken,user);
- return {store,grant,user};
-}
-export async function rememberedSemihBrowserUser(refreshToken){
- if(!semihBrowserSessionEnabled())return {enabled:false,user:null};
- if(!refreshToken)return {enabled:true,user:null};
- const {user}=await inspectSemihBrowserGrant(refreshToken);
- return {enabled:true,user};
-}
-export async function enrollSemihBrowserSession(accessToken,refreshToken,previousToken=null){
- const {identity}=semihBrowserScope(),confirmed=await confirmProtectedNormalSession(accessToken,refreshToken);
- if(!matchesSemihTestUser(confirmed.user,identity))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
- const {grant}=await inspectSemihBrowserGrant(refreshToken);
- if(previousToken&&previousToken!==refreshToken){const previous=await inspectSemihBrowserGrant(previousToken,{forLogout:true});if(previous.grant.sid!==grant.sid)previous.store.revoke(previousToken,identity.userId);}
- return {user:confirmed.user,accessToken,expiresAt:confirmed.expiresAt,refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
-}
-export async function restoreSemihBrowserSession(refreshToken){
- await inspectSemihBrowserGrant(refreshToken);
- return refreshAccessToken(refreshToken);
-}
-export async function logoutSemihBrowserSession(refreshToken){
- const {identity}=semihBrowserScope();
- if(!refreshToken)return {loggedOut:true};
- const {store}=await inspectSemihBrowserGrant(refreshToken,{forLogout:true});
- return store.revoke(refreshToken,identity.userId);
-}
 export async function confirmProtectedNormalSession(accessToken,refreshToken){
  const payload=verifyAccessToken(accessToken),store=normalTestStore();
  if(!store||Object.hasOwn(payload,'nativeTerminalCode')||typeof payload.normalTestSessionId!=='string'||!Number.isSafeInteger(payload.exp)||!Number.isSafeInteger(payload.exp*1000)||payload.exp*1000<=Date.now())throw makeAuthError('AUTH_REFRESH_INVALID','Protected normal session is unavailable',401);

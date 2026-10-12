@@ -23,7 +23,13 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
-### ERP-DEC-052 — 12 Ekim 2026 — Onaylı
+### ERP-DEC-053 — 12 Ekim 2026 — Onaylı
+
+Son doğrudan kullanıcı kararı: **“Onu istemiyorum artık. ERP'yi toparlayalım bitirelim kapatalım bu işleri.”** Tek Semih giriş düğmesi iptal; ana teslimin ön koşulu değildir. Aynı kullanıcı **ERP, CRM, terminal ve LIVE'a hazırlıkta kalan bütün işleri tek tek, ayrıntılı raporla** istedi. Kaynak: `sesli yönlendirme` sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, kullanıcı mesajları `01a13127-d0b0-7241-83b1-54a07abd5588`, `01a13128-26ff-7a13-aabb-6275485051d7`, `01a13128-bb2b-74e3-a492-bc65a4a54f92`; `read_thread` ile insan içeriği doğrulandı. ERP-DEC-051/052 giriş önceliği supersede edilir. ERP-DEC-050'nin mevcut ana teslim devam yetkisi korunur.
+
+Başlanmış giriş kaynakları kaybedilmeden isteğe bağlı, tamamlanmamış ayrı dalda korunur; yeni giriş kurulumu/aktivasyonu/denemesi yapılmaz. Mevcut normal korumalı auth, hesap/rol, veri ve çalışan paket korunur. Rapor mevcut kayıt/kanıtlardan sabit kalem ID'leriyle ne istendi/gerçek kanıt/eksik/kapanış/bağımlılık/efor bilgisini verir; teknik test sayısı genel ilerleme yüzdesine dönüşmez. Önceki doğrulanmış prova rapor için tekrarlanmaz. Ardından yeni `devam` beklemeden yetkili ana ERP kapanış işi sürer. CRM'nin ayrı pause kararı korunur; sahibin yeni uygulaması olmadan tamam varsayılmaz. LIVE/Vega/T1/main/gerçek müşteri/ücretli servis yetkisi yoktur; işletme/insan kararları ayrı kalır.
+
+### ERP-DEC-052 — 12 Ekim 2026 — Superseded by ERP-DEC-053
 
 Kullanıcı, doğrudan sorulan “Melisa Host dediğin, tarayıcıda açılan ve üstünde MELISA HUB yazan ERP/CRM başlangıç sayfası mı?” sorusuna **“Evet, MELISA HUB başlangıç sayfası”** cevabını verdi. Hedef mevcut `http://192.168.1.46:5234/melisa-hub/` tarayıcı portalıdır. Ayrı Windows deneme programı/kurulumu iptal edilmiştir; mevcut hazırlıklar silinmez. ERP-DEC-051'in hedef yüzey ve Windows pencere bağımlılığı bu kararla supersede edilir; tek Semih düğmesi önceliği ve diğer kapsam sınırları korunur.
 
