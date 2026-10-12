@@ -1,3 +1,6 @@
+## ERP-COMPLETE01 — güncel teknik alt adım — 12 Ekim 2026
+
+200 ürünlü orijinal satışın native stok/cari ve bütün eski kayıt koruması bağımsız doğrulandı. Dar read-only selectedSOURCE fiş okuyucusu35 hedefli kontrol/reviewGO ile kaynakta hazır; normal terminalin12s sınırı içindeki gerçek sonuç, yeni paket ve iki koli READY/ekran henüz bekler. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). ŞİMDİ aynı ERP-COMPLETE01; kapsam/49-9-39-1/UA32 bekliyor değişmedi. Kod hazırlığı çalışan teslim sayılmaz; yeni migration veya sonraki iş başlatılmaz.
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-044 — uygulanıyor
 
 **12 Ekim / aynı200 vaka kayıp yanıtı:** çalışan2d native controlled rollback geçti; gerçek200 draft aynıUUID'den geri bulundu/replay200/farklıbody409. Orijinal finalize hâlâ pending/BUSY; kill/ikinci etki yok. Aynı hesap/kilit/guardları koruyan üç fazlı finalize batch kaynağı38test/reviewGO; gerçek native prova ve çalışan paket bekler. UA32/49-9-39-1 değişmedi.

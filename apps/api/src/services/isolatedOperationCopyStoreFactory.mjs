@@ -8,6 +8,7 @@ import {verifyBusinessDailyHomeReadProof} from './businessDailyHomeReadProof.mjs
 import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
 import {withBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 import {readBusinessSelectedSaleNativeContext} from './businessSelectedSaleNativeContext.mjs';
+import {createBusinessSelectedSaleInvoiceReader} from './businessSelectedSaleInvoiceRead.mjs';
 import {getRegisteredBusinessSelectedSaleRevision} from '../../../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs';
 
 export const ISOLATED_COPY_OPERATION_PERMISSIONS=Object.freeze({sale_draft:'sales.create',sale_finalize:'sales.finalize',sale_cancel:'sales.cancel',collection_create:'finance.collection',collection_cancel:'finance.collection.cancel',count_create:'goods.create',count_update:'goods.create',count_submit:'goods.create',count_cancel:'goods.create',goods_accept:'goods.approve',goods_reject:'goods.reject',purchase_draft:'purchase.create',purchase_finalize:'purchase.finalize',purchase_cancel:'purchase.cancel',payment:'finance.payment',payment_cancel:'finance.payment.cancel',stock_count_draft:'product.view',stock_count_approve:'stock.adjust',stock_count_reject:'stock.adjust',stock_count_cancel:'stock.adjust',purchase_return_draft:'purchase.view',purchase_return_approve:'purchase.cancel',purchase_return_reject:'purchase.cancel',purchase_return_cancel:'purchase.cancel',stock_reverse:'stock.adjust'});
@@ -88,7 +89,12 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
     Object.assign(normalContext,parse(fresh?.context_json));bindIsolatedCopyOperationDTO(context,normalContext);return normalContext;
    };
    const readSelectedSaleContext=selected?selection=>readBusinessSelectedSaleNativeContext({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,selection}):undefined;
-   const c=await buildDomain({runtime:r,copyContext:context,context:normalContext,actor,actual,identity,nativeContext,request:req,write,reloadContext,readSelectedSaleContext});
+   // Only historical invoice reads use the narrow projection. Preview and every
+   // writer retain the full owner selected-context/intent reader. The closure
+   // is created after fresh READY+owner context, and invoked inside the same
+   // branded read scope below; it cannot escape to another transaction.
+   const readSelectedSaleInvoiceState=selected&&!write&&domain==='trade'?createBusinessSelectedSaleInvoiceReader({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,actual,readProof}):undefined;
+   const c=await buildDomain({runtime:r,copyContext:context,context:normalContext,actor,actual,identity,nativeContext,request:req,write,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState});
    copyAssert(c&&typeof c==='object'&&c.context===normalContext,'ISOLATED_COPY_DOMAIN_CONTEXT');
    c.request=async requestId=>{
     copyAssert(isolatedCopyUUID(requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);

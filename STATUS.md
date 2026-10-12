@@ -1,3 +1,8 @@
+## ERP-COMPLETE01 — 200 ürünün native sonucu / dar okuyucu kaynak teslimi — 12 Ekim 2026
+
+Orijinal immutable200 ürün/223 adet satış, bağımsız SQL'de200stok+1müşteri hareketi ve iki native journal ile doğrulandı; bütün diğer ürün/cari alanları, döviz hesapları, kasa/banka/tedarikçi/eski journal/koli hashleri korunur. ADO hash farkı UTF-8 aktarım hatasıdır, veri drift'i değildir; native tam kayıt kontrolü PASS. Mevcut lowpriv9SELECT/5VIEWDEFINITION gerçek metadata'da var; izin değiştirilmedi. [Tek vaka kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).
+
+Aynı fresh READY/context/readProof/SERIALIZABLE Shared transaction'da güncel selectedSOURCE fiş durumunu toplu okuyan dar kaynak35 hedefli kontrol/reviewGO ile hazır. Normal preview/writer/generic yol/SQLguard/yetki/cache/12s proxy sınırı aynı. Çalışan2d371c4;5d6fb25 yalnız hazırlanmış, yeni okuyucu henüz runtime değildir. Normal200fiş15,53sn/terminal12,02sn503 giderimi ve koli/ekran gerçek kontrolü bekler. GitHub CI jobssteps0 hesap ödeme/harcama engeli; insanUA32 bekliyor/49-9-39-1 aynı. LIVE/Vega/T1/main/CRM/roller/aktarımlar korunur.
 ## ERP-COMPLETE01 — çalışan2d / 200 ürün timeout ve dar finalize kaynağı — 12 Ekim 2026
 
 Uygulama2d371c4, API4184/native4186/web5234 exact DB02 üzerinde etkin;1830manifest/9HTTPasset/v22APK/normal15 refresh-logout ve40 korunan süreç doğrulandı. Controlled native200 rollback/sıra/ad/fiyat/birim/223adet ve tam before-image/request404 geçti. Normal API draft200 oluştu, kayıp yanıt sonrası aynıUUID replay200 ve farklıbody409 doğrulandı. Orijinal finalize90s clienttimeout sonrası BUSY ve activeTX görüldü; root tekrar yazma veya kill yapmadı, finalstok/cari sonucu henüz bilinmiyor.
