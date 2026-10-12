@@ -1,9 +1,10 @@
 import { app, BrowserWindow, ipcMain, Menu, shell, safeStorage } from 'electron';
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile, open } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {randomUUID} from 'node:crypto';
 import {worktest,worktestMode,approvedWorktestPage,approvedWorktestNavigation,assertWorktestSender,assertWorktestHealth,validateWorktestCall} from './protectedWorkSessionPolicy.mjs';
 import {createProtectedWorkSessionStore,prepareWorktestUserData} from './protectedWorkSessionStore.mjs';
 const isolatedWorktest = worktestMode(process.env,process.platform);
@@ -447,6 +448,18 @@ async function createWindow() {
   await loadErp(mainWindow);
 }
 
+async function recordWorktestIpcFailure(stage, action) {
+  if(!isolatedWorktest || !['FIRST_SENDER','HEALTH','SECOND_SENDER','VAULT','THIRD_SENDER'].includes(stage) || !['get','put','clear'].includes(action))return;
+  let handle;
+  try {
+    const directory=prepareWorktestUserData(path.join(app.getPath('userData'),'protected-session-diagnostics'));
+    const record={schemaVersion:'melisa-windows-worktest-ipc-failure.v1',stage,action,recordedAt:new Date().toISOString()};
+    handle=await open(path.join(directory,'ipc-failure-'+randomUUID()+'.json'),'wx',0o600);
+    await handle.writeFile(JSON.stringify(record),'utf8');await handle.sync();
+  } catch { /* Best-effort local diagnostics never turn rejection into success. */ }
+  finally {try{await handle?.close();}catch{}}
+}
+
 function stopManagedProcesses() {
   for (const item of managedProcesses) {
     try {
@@ -470,15 +483,15 @@ if (!app.requestSingleInstanceLock()) {
     if(isolatedWorktest) {
       protectedStore=createProtectedWorkSessionStore({root:path.join(app.getPath('userData'),'protected-session'),safeStorage});
       ipcMain.handle('worktest:protected-session',(event,action,value)=>{
-        const call=protectedCallQueue.then(async()=>{try {
+        const call=protectedCallQueue.then(async()=>{let failedStage='FIRST_SENDER';try {
           assertWorktestSender(event,worktestWindow);
           const checked=validateWorktestCall(action,value);
-          if(action!=='clear')await verifyWorktestRuntime();
-          assertWorktestSender(event,worktestWindow);
-          const result=await protectedStore[action](checked);
-          assertWorktestSender(event,worktestWindow);
+          if(action!=='clear'){failedStage='HEALTH';await verifyWorktestRuntime();}
+          failedStage='SECOND_SENDER';assertWorktestSender(event,worktestWindow);
+          failedStage='VAULT';const result=await protectedStore[action](checked);
+          failedStage='THIRD_SENDER';assertWorktestSender(event,worktestWindow);
           return result;
-        } catch {throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE');}});
+        } catch {await recordWorktestIpcFailure(failedStage,action);throw new Error('WORKTEST_PROTECTED_SESSION_UNAVAILABLE');}});
         protectedCallQueue=call.catch(()=>{});
         return call;
       });
