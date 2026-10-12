@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — son814 dar teslim / kısmi — 12 Ekim 2026
+
+Mevcutfiş/koli GET tekrarı azaltıldı; son814paket ve kurulum/APK HTTP çalışıyor. Normal390tarayıcıda üst50/100,0089/ikiREADYkoli ve yenileme kanıtlı. Native son yeni belge, final200video, süreç başlangıç kararlılığı ve insanUA32 açık; hız hâlâ birkaçsaniye. [Kanıt](docs/evidence/erp/2026-10-12-final-closure/current-delivery.md). Aynı yaprak kısmi;49 toplam/9 tamam/39 kısmi/1 açık değiştirilmedi. Gözetim hatası kesin OS aşamasıyla çözülecek; reddedilen cihaz kapat/başlat başka komutla tekrar edilmeyecek. Kalem bazında rapor eskibaşlangıç ile son teslim farkını ayrı gösterir.
+
 ## ERP-COMPLETE01 — ERP-DEC-053 ana kapanış — 12 Ekim 2026
 
 Semih tek düğme girişi iptal, ayrı isteğe bağlı source/paket hazırlığı olarak korundu ve çalışan uygulamaya alınmadı. Genel teslimin kapısı değildir. Kullanıcının istediği kalem bazında ERP/CRM/terminal/veri/eğitim/geçiş hazırlığı raporu mevcut kanıttan çıkarılır; eski yaprak yüzdeleri iş veya süre tahmini diye sunulmaz. Aynı ana işte sonraki dar teknik kapanış mevcut 200 satırlı fiş/koli GET gecikmesidir. Teknik hazırlık ve insan/işletme/LIVE kabulü ayrı; eski kabul ve finish sayımı değiştirilmedi.

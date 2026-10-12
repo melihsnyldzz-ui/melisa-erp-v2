@@ -1,5 +1,18 @@
 # MELİSA ERP + CRM — kalem bazında son kapanış raporu
 
+**12 Ekim son devam güncellemesi:** başlangıç fotoğrafı aşağıda tarihsel olarak korunur. Şimdi çalışan ERP **8142742**; CRM09ca/native60e ve özgün TEST125 aynı. [Son çalışan teslim / kanıt ve açıklar](current-delivery.md) eski kaynak hazırlığını çalışan kurulumdan ayırır. Yeni source e873/260/2005/814 ve source sonrası doküman teslimi PR23 üzerindedir; insanUA32 bekliyor.
+
+| Kapanış kalemi | Yeni gerçek sonuç | Hâlâ açık |
+| --- | --- | --- |
+| OPS-01 | Dış READY tekrarı azaltılmış okuyucu kurulu; aynı4DTOhash. SonLAN fiş9,47sn/liste5,91sn/koli liste5,00sn/koli2004,39sn. | Native birkaçsaniye maliyeti; hız tamamen kapalı değil. |
+| OPS-02 | İlk crmServer processProbe hatasında cleanup/retry; ikinci başlangıçta8port/DB02/aynısource toparlandı. | KesinOS hata aşaması ve gerçek Windows reboot/logon. |
+| TERM-03 | Normal390tarayıcı üst50→100/0089tekdoğruürün/ikiREADYkoli122+101/yenileme kanıtlı; yeni koli veya miktar yazılmadı. | SonJS'nin native uygulamada yeni belge olarak yüklenmesi. Eski açık belge çekimi son814kanıtı değil. |
+| TERM-05 / FIN-01 | Sonpakette install200 ve hashdoğru v22APK; repo dışı kısa rehber/görsel/manifest hazır. | Native kapat/başlat kontrolü otomatik denetim reddiyle açık; completeDelivery=false. |
+| EDU-02 / UA-01 | Önceki beş klip ve yeni readonly deneme kayıtları korunur. | Son200 eğitim videosu yayımlanmadı; insanUA32 bekliyor. |
+| OPS-04 | Exact814 hosted CI hesap ödeme/harcama nedeniyle başlamadı. | Gerçek GitHub kontrolleri; Vercel success yerine geçmez. |
+
+Yeni ticari/migration yazması yok; diğer veri/kimlik/açılış/insan/T1 satırları aşağıdaki kapsamda sürer. Fotoğraf, maliyet,283+16cari,LL/hold,ürün/fiyat aktarımı ve yedekler korunmuştur. Bu güncelleme genel LIVE kabulü değildir.
+
 12 Ekim 2026, 20:37 Türkiye saati. Kullanıcı ERP-DEC-053: giriş düğmesi iptal; ana ERP/terminal/eğitim/geçiş teslimi sürer.
 
 **ERP ve terminalin çalışan parçaları var; bütün mağazanın LIVE geçişi hazır değildir.** Rapor 49 ERP ve 25 CRM kayıt başlığını ayrı ayrı kapsar; bu sayılar tamamlanma yüzdesi, yeni kod sayısı veya süre değildir. Aynı işi görünüm/işlev/veri satırları paylaşır; süreler toplanmaz. Güncel çalışan sonuç, eski kabul, kaynak/prova ve insan kabulü ayrıdır.

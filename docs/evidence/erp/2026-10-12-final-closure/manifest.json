@@ -1,6 +1,6 @@
 {
   "schemaVersion": "melisa-final-closure-report.v1",
-  "capturedAt": "2026-10-12T17:46:40.7538270Z",
+  "capturedAt": "2026-10-12T17:46:40.753827Z",
   "erpTreeCommit": "cb9633bad238cd1f2ddc4a0562b5bce231be33d0",
   "crmSourceCommit": "0424ac74efd2e7432f8ad8efcf023ba67002bbda",
   "crmDocuments": "owner-staged; publication pending",
@@ -45,5 +45,19 @@
   "mainClosureItems": 21,
   "businessWrites": 0,
   "priorTestsRepeatedForReport": 0,
-  "reportSHA256": "c9e86d0f39c8a5cdba35bfb36450e732855b2c8b0ec908cca529033ecb1816d3"
+  "reportSHA256": "749cb2d18f3189eecf4828a4fb656faac565fa3481c86b9e0655818f67441567",
+  "baselineReportSHA256": "c9e86d0f39c8a5cdba35bfb36450e732855b2c8b0ec908cca529033ecb1816d3",
+  "inputsScope": "historical initial snapshot; preserved",
+  "latestDelivery": {
+    "recordedAt": "2026-10-12T20:10:07.1013922Z",
+    "erpRuntimeSource": "81427424cd0452f7dcf4b8e4439fda400c03f46b",
+    "erpManifestSHA256": "6103a7df9631ad4c9cd90df8aef747c479a1b8476e9566007317c5fe8a0c48ff",
+    "evidence": "current-delivery.md",
+    "evidenceSHA256": "d646ad3a9ca151be6638e6c90691efc565861fba33c34d1b2c9492f82bd96fca",
+    "businessWrites": 0,
+    "humanAcceptance": "PENDING",
+    "currentBrowserVerified": true,
+    "finalNativeDocumentVerified": false,
+    "completeDelivery": false
+  }
 }

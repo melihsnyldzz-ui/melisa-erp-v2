@@ -1,0 +1,54 @@
+# ERP-COMPLETE01 — çalışan fiş/koli okuyucusu ve son teslim sınırları
+
+12 Ekim 2026. ERP-DEC-053 kapsamında ana iş devam etti; iptal edilen Hub giriş düğmesi etkinleştirilmedi. Yeni satış, stok/cari/kasa hareketi veya migration oluşturulmadı. İnsan UA32 bekliyor; genel ERP/LIVE kabulü yok.
+
+## Gerçek çalışan tuple
+
+- ERP web5234 / API4184 / native4186: **81427424cd0452f7dcf4b8e4439fda400c03f46b**, `CANONICAL-COMPLETE-TEST-20261011-8142742`, 1870 dosya.
+- Paket manifest SHA256: `6103a7df9631ad4c9cd90df8aef747c479a1b8476e9566007317c5fe8a0c48ff`.
+- DB: `Semih\MELISADEV / MELISA_ERP_CRM_SHARED_TEST_20261009_02`; copy `e16b70f0-4057-428b-9abc-6bbcaf35fe82`; actualT1=false.
+- CRM mevcut09ca ve native sipariş60e paketleri korundu; yeni CRM kaynağı etkinleştirilmedi. Özgün TEST125 süreçleri değişmedi.
+- v22 APK HTTP indirmesi doğrulandı: 45.326.137 bayt, SHA256 `4cbbde0a389924cf25d4eebb9fdb3692ace15edae4219b348c8df78027803bcf`. APK kaynağı ile web/API kaynağı ayrı.
+
+## Yeni kaynak ve gerçek okuma
+
+`e873e29`: sunucunun seçtiği tarihsel fiş/liste GET'inde yalnız tekrarlanan dış READY kaldırıldı. Aynı transaction/SPID/Shared lock/SERIALIZABLE, exact DB/login/copy/hash ve altı native revision doğrulaması yeni küçük fresh-proof katmanında korunur. Native owner context içindeki **iki READY çağrısı aynen sürer**; desteklenmeyen kayıt eski full doğrulamaya döner, drift kapalı reddedilir. Gerçek V3 profile: her örnekte fresh-proof1 / dış READY0 / owner-context1; native readonly transaction sonucu korunur.
+
+`260c5f8`: mevcut sonraki50 düğmesi listenin üstüne de kondu; iki düğme aynı işlevi kullanır. `2005b05`: yalnız server original GET invoice upstream20s ve frontend carton GET30s; auth/me12s, metadata POST15s ve ticari POST60s sınırları aynı. Otomatik retry eklenmedi. **Timeout bütçesi artırmak hız optimizasyonu olarak sayılmadı.**
+
+`8142742`: hızlı kod yazımında arama alanının her tuşta değiştirilmesi giderildi; 250ms/IME/lifecycle kontrolleri, caret ve diğer miktar alanlarının korunması eklendi. Kaydetme, UUID/body/journal, miktar, rol veya hesaplama değiştirilmedi.
+
+Root hedefli kontroller: tarihsel okuyucunun8 yeni testi, session/gateway59 kontrol ve son carton20 kontrol geçti. Bağımsız kaynak incelemeleri GO. Paket build ve dar commit aralığı secret scan geçti. Bunlar insan kabulü değildir.
+
+## Süreler — aynı mevcut kayıt, yeni ticari yazma0
+
+| Okuma | Önce6a / loopback | Son814 / LAN |
+| --- | ---: | ---: |
+| 200 satırlı yeni tamamlanmış fiş |11258ms|9470ms|
+| Fiş listesi50 |6576ms|5913ms|
+| Koli fiş listesi |6374ms|4996ms|
+| Mevcut200 satırlı iki kolili fiş |11161ms|4386ms|
+
+Bunlar tekil gözlemlerdir; farklı loopback/LAN ve soğuk/ısınmış durumlar garanti/SLA veya kesin yüzde kazanç değildir. Her dört DTO SHA256 öncekiyle birebir aynı; normal15 own session logout doğrulandı. İlk814 ölçümü ortak API toparlanırken bağlantı kuramadan durdu; başarılı ölçümle gizlenmedi. Native owner-context hâlâ birkaç saniye maliyetlidir; OPS-01 tamamen kapanmadı.
+
+Ek readonly kaynak-fragment denemesi tam scope'tan türetilen781 satırda yapıldı. Önerilen semijoin hazırlığı daha hızlı çıkmadı; native metadata'ya uygulanmadı. 37 eski kontrol sayısı güncel scope sayısı yerine kullanılmadı; kalıcı veri/metadata yazılmadı.
+
+## Normal ekran ve cihaz ayrımı
+
+**Son814 normal tarayıcı / gerçek API:** korumalı mevcut15 TEST kaydıyla normal giriş;390 genişlik; üst50→100; hızlı0089→tek doğru satır;200/223/ikiREADY koli;122/101 ayrı; yenilemeden sonra aynı fiş ve iki koli tekrar okundu. Yeni koli, miktar değişikliği veya save yapılmadı. DOM'daki `terminal-BJqS1UT5.js` ve HTTP bytes hash'i son paketle aynı.
+
+**Gerçek TC21:**2005 paketinde kapat-aç sonrası liste/200satır/223adet/2koli, üst50→100 ve mevcut2.koli101 görüldü. O açık sayfada hızlı0089 girişinin eksilmesi bulundu ve kaynakta düzeltildi. Son814 için uygulamayı kapat/başlat kontrolünü içeren komut **otomatik onay denetimince reddedildi**; ayrıntılı sebep verilmedi, tekrar denenmedi. Native hash navigasyonu açık belgenin JavaScript'ini yeniden yüklemediğinden sonraki eski belge çekimi **son814 cihaz kanıtı değildir**. Son kaynak için native yeni belge/kapat-aç, güncel video ve insan kabulü açık.
+
+Başlangıçta crmServer processProbe exit1/2409ms hatası, altı ortak servisin cleanup/retry'ına yol açtı; bu sırada API erişilemedi. İkinci başlangıçta8 port/kimlikler düzeldi ve sonraki okumalar geçti. Ayrık OS/CIM/managed/owner sorgularından hangisinin hata verdiği henüz kanıtlı değil; guard kaldırılmadı. OPS-02 süreç kararlılığı ve gerçek reboot/logon açık kalır.
+
+## Kullanılabilir dosyalar / eksik teslim
+
+- APK kurulum: <http://192.168.1.46:5234/install.html>; önceki geçici pakette404 bulundu, son1870 dosyalı pakete APK/kurulum birlikte dahil edildi; HTTP200 ve APKhash doğrulandı.
+- Normal ERP: <http://192.168.1.46:5234/ornek-akis.html>; terminal: <http://192.168.1.46:5234/terminal.html?worktest=1#packing>.
+- Repo dışı güncel kısmi teslim: `C:\Sirket\ERP\deliveries\ERP-TERMINAL-20261012\guncel-8142742`; APK, kısa rehber, normal tarayıcı görseli ve hash manifesti. `completeDelivery=false`.
+- Eski beş klip/dört görev korunur. Yeni deneme çekimleri eski WebView belgesi içerdiğinden son eğitim diye yayımlanmadı; final200 video bekliyor. Eğitim hazırlığı personel kabulü değildir.
+- DHCP rezervasyonu ertelendi; Windows reboot/logon denenmedi. Gerçek müşteriye WhatsApp/ücretli AI/LIVE/Vega/T1/main değişikliği yok. Cari/ürün aktarımları, LL dışlaması, holdlar, fotoğraflar, maliyetler ve yedekler korundu.
+
+GitHub PR23 source814 head hosted kontrolleri hesap ödeme/harcama engeli nedeniyle başlamadı. Vercel success bu kontrollerin veya insan kabulünün yerine geçmez. Bu dosyayı taşıyan sonraki teslim commit'i, çalışan814 paketten ayrı kaydedilir.
+
+**Sıradaki teknik kapanış:** gözetim processProbe hatasının kesin OS aşamasını güvenli tanıyla belirle; kaynak/kimlik kontrollerini koruyarak kararlı başlangıcı kanıtla. Son native belge ve final eğitim teslimi hâlâ ayrı açık; reddedilen kapat/başlat işlemini farklı komutla tekrarlama.
