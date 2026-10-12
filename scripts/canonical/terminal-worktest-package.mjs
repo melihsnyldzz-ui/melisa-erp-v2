@@ -6,6 +6,7 @@ export const FEATURE_ENTRY='scripts/canonical/start-terminal-worktest.mjs';
 export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/businessDailyHomeReadProof.mjs',
  'apps/api/src/services/businessSelectedSaleNativeContext.mjs',
+ 'apps/api/src/services/businessSelectedSaleInvoiceRead.mjs',
  'apps/api/src/services/businessSelectedSaleStartup.mjs',
  'apps/api/src/services/normalTestRefreshSession.mjs',
  'apps/api/src/services/businessSelectedSaleWriteIntent.mjs',
@@ -40,6 +41,10 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'scripts/canonical/shared-business-selected-sale-revision-sql.mjs',
  'scripts/canonical/shared-business-selected-sale-effects-revision-sql.mjs',
  'scripts/canonical/shared-business-selected-sale-parent-revision-sql.mjs',
+ 'scripts/canonical/shared-business-supplier-item-quarantine-revision.mjs',
+ 'scripts/canonical/shared-business-supplier-item-quarantine-parent-revision-sql.mjs',
+ 'scripts/canonical/shared-business-operation-quarantine-revision.mjs',
+ 'scripts/canonical/shared-business-operation-quarantine-parent-revision-sql.mjs',
  'scripts/canonical/shared-business-selected-sale-write-scope-sql.mjs',
  'scripts/canonical/stage4-copy-sql.mjs',
  'scripts/canonical/terminal-persistent-web-support.mjs',
