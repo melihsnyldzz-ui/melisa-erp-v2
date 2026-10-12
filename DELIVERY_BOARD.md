@@ -1,4 +1,8 @@
-## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-051 — Semih tek düğme girişi
+## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-052 — Mevcut MELISA HUB'da Semih girişi
+
+Doğrudan kullanıcı cevabıyla hedef mevcut tarayıcı Hub'ıdır; ayrı Windows programı iptal. Aynı ana işte normal ERP17 ve ayrı CRM Semih TEST oturumları, tek Hub düğmesi, yenileme/çıkış ve gerçek ekran sonucu hazırlanıyor. Ayrı program başlatımı tekrarlanmaz. Mevcut veri, roller, çalışan başlangıç ve diğer dirty işler korunur. Teknik sonucu STATUS kaydeder; UA32 insan kabulü bekliyor, finish49-9-39-1 aynı. Bu giriş kapanmadan hız/terminal/eğitim işi başlatılmaz.
+
+## Önceki yüzey bağımlılığı — ERP-DEC-051 / ERP-DEC-052 ile değişti
 
 Kullanıcı önceliği tekrar yalnız normal Host'ta **Semih olarak devam et** sonucuna daralttı. Performans ölçümü tamamlanıp salt okunur oturum kapatıldı; yeni hız/terminal/eğitim ve paket aktivasyonu durdu. Gerçek Windows pencere envanterinde açık Melisa Host yok. Yeni istemci başlatımına önce verilmiş policy reddi sürüyor; başka araç/adres/komut veya kullanıcı üzerinden denenmez. Dedicated kimlik/normal auth hazırlığı çalışan düğme değildir. Tek mevcut engel izinli çalışan Host giriş yüzeyinin bulunmaması ve yeni istemci başlatımının reddedilmiş olmasıdır. Parola veya tekrar onay istenmez; giriş kanıtlanmadan başka ana işe geçilmez. UA32/finish49-9-39-1 aynı.
 

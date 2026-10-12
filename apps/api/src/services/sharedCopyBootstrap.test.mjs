@@ -13,6 +13,14 @@ test('bootstrap validates both finite shared topologies and refuses old reader p
  for(const business of [true,false])assert.equal(validateSharedCopyBootstrap(config(business)).business,business);
  for(const patch of [{erpPort:4174},{nativePort:4176},{webPort:5224},{sqlUser:'melisa_shared_test_ro_20261009_01'},{database:SHARED_COPY_DATABASE},{host:'0.0.0.0'},{lanHost:'192.168.1.47'}])assert.throws(()=>validateSharedCopyBootstrap({...config(),...patch}));
 });
+test('Semih browser startup is an explicit boolean DB02 configuration with existing protected session and identity pins',()=>{
+ assert.equal(validateSharedCopyBootstrap({...config(),semihBrowserSessionEnabled:false}).business,true);
+ const base=config();base.copyContext=seal({...base.copyContext,copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82'});
+ const opted={...base,semihBrowserSessionEnabled:true,normalTestSessionPath:'C:\\Sirket\\ERP\\runtime\\fixture.json',semihTestIdentity:{path:'C:\\Sirket\\ERP\\runtime\\identity.json',sha256:'a'.repeat(64)}};
+ assert.equal(validateSharedCopyBootstrap(opted).business,true);
+ for(const patch of [{semihBrowserSessionEnabled:'true'},{normalTestSessionPath:undefined},{semihTestIdentity:undefined},{semihTestIdentity:{path:'fixture'} }])assert.throws(()=>validateSharedCopyBootstrap({...opted,...patch}));
+ assert.throws(()=>validateSharedCopyBootstrap({...config(false),semihBrowserSessionEnabled:true,normalTestSessionPath:opted.normalTestSessionPath,semihTestIdentity:opted.semihTestIdentity}));
+});
 test('business build flag produces exact immutable nested target pins; mixed flags and opposite release never activate',()=>{
  const target=resolveCopyBuildTarget(['--business-test-copy']);assert.equal(target.dist,'dist-business');assert.equal(target.apiPort,4184);const c=validateSharedCopyBootstrap(config()).context;
  const release={sourceCommit:'a'.repeat(40),packageId:'CANONICAL-TEST-synthetic',...copyBuildReleaseFields(target)};assert.equal(assertSharedBootstrapRelease(release,c),release);

@@ -1,6 +1,16 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('cookie auth transport admits only its three exact protected writable ERP opt-in POST paths',()=>{
+ const opted={...ctx,protectedNormalAuth:true,semihBrowserSession:true};
+ for(const p of ['/api/auth/semih-browser/enroll','/api/auth/semih-browser/restore','/api/auth/semih-browser/logout']){
+  assert.equal(allowed('POST',p,opted),true);
+  for(const scope of [ctx,{...ctx,protectedNormalAuth:true},{...ctx,semihBrowserSession:true},{...opted,semihBrowserSession:'true'},{...opted,writes:false},{...opted,mode:'native'}])assert.equal(allowed('POST',p,scope),false);
+  for(const method of ['GET','PUT','DELETE'])assert.equal(allowed(method,p,opted),false);
+  assert.equal(allowed('POST',p+'/',opted),false);
+ }
+ for(const p of ['/api/auth/semih-browser/login','/api/auth/semih-browser/remembered','/api/auth-admin/users'])assert.equal(allowed('POST',p,opted),false);
+});
 test('session pair confirmation requires exact protected writable ERP POST; never opens auth administration',()=>{
  const route='/api/auth/session-confirm';assert.equal(allowed('POST',route,{...ctx,protectedNormalAuth:true}),true);
  for(const scope of [ctx,{writes:false,mode:'erp',protectedNormalAuth:true},{writes:true,mode:'native',protectedNormalAuth:true},{...ctx,protectedNormalAuth:'true'}])assert.equal(allowed('POST',route,scope),false);

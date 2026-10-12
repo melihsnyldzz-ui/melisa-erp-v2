@@ -23,7 +23,13 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
-### ERP-DEC-051 — 12 Ekim 2026 — Onaylı
+### ERP-DEC-052 — 12 Ekim 2026 — Onaylı
+
+Kullanıcı, doğrudan sorulan “Melisa Host dediğin, tarayıcıda açılan ve üstünde MELISA HUB yazan ERP/CRM başlangıç sayfası mı?” sorusuna **“Evet, MELISA HUB başlangıç sayfası”** cevabını verdi. Hedef mevcut `http://192.168.1.46:5234/melisa-hub/` tarayıcı portalıdır. Ayrı Windows deneme programı/kurulumu iptal edilmiştir; mevcut hazırlıklar silinmez. ERP-DEC-051'in hedef yüzey ve Windows pencere bağımlılığı bu kararla supersede edilir; tek Semih düğmesi önceliği ve diğer kapsam sınırları korunur.
+
+Mevcut dedicated ERP17 ve CRM Semih TEST kimlikleri normal doğrulanmış giriş ve kendi yenilenebilir oturumlarıyla kullanılır. İlk giriş korumalı teslim kaydından ajan tarafından hazırlanır; kullanıcıdan parola istenmez. Hub'a tek **Semih olarak devam et** düğmesi eklenir. Tarayıcı oturumunda yenileme sırrı JavaScript'e açık depoya veya URL'ye konmaz; cookie yalnız normal doğrulanmış oturumdan hazırlanır, kimlik/rol/iptal kontrolleri sürer. Anonim LAN admin girişi veya genel yetki artışı yoktur. ERP ve CRM tokenları birbirinin yerine geçmez. Ayrı Windows istemci başlatımı yeniden denenmez. Giriş çalışması bitmeden hız/terminal/eğitim yan işi açılmaz; CRM için yalnız bu dar giriş bağlantısı hazırlanır. Ticari yazma/migration/LIVE/Vega/T1/main/gerçek müşteri/ücretli servis ve insan kabulü sınırları aynıdır.
+
+### ERP-DEC-051 — 12 Ekim 2026 — Superseded by ERP-DEC-052 (hedef yüzey)
 
 Kullanıcının doğrudan yeni önceliği: **“Basit bi giriş istiyorsam… oraya bir tane buton koy, bas gireyim, bu kadar basit.”** Kaynak: `sesli yönlendirme` sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, kullanıcı mesajı `01a130e1-c7af-71b3-820c-254097728f39`; `read_thread` ile doğrulandı. Aynı ERP-COMPLETE01 içinde önce normal Melisa Host'ta **Semih olarak devam et** ve gerçek ERP/CRM giriş sonucu tamamlanır. Açık performans işi güvenli noktada bırakılır; giriş kapanmadan yeni hız/terminal/eğitim işi veya paket döngüsü başlatılmaz. ERP-DEC-050'nin girişten sonraki ana devam yetkisi korunur; günlük önceliği bu karar belirler.
 

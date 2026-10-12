@@ -8,6 +8,10 @@ import {
   confirmProtectedNormalSession,
 } from '../services/authService.js';
 import { fail, ok } from '../utils/response.js';
+import * as semihBrowserAuth from '../services/authService.js';
+import {createSemihBrowserSessionHandlers} from '../services/semihBrowserSession.mjs';
+
+export const semihBrowserSessionHandlers=createSemihBrowserSessionHandlers({auth:semihBrowserAuth,ok,fail});
 
 function authFail(res, error, fallbackCode) {
   return fail(

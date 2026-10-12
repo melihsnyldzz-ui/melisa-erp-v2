@@ -37,14 +37,21 @@ export function crmUrl(config, current = window.location) {
   if (typeof config.crm.path === 'string') {
     if (!config.crm.path.startsWith('/') || config.crm.path.startsWith('//')) return null;
     const url = safeInternalUrl(config.crm.path, current);
-    return url && new URL(url).origin === current.origin ? url : null;
+    return url && new URL(url).origin === current.origin ? preserveSemihIntent(url,current) : null;
   }
   // The audited CRM port is deliberately fixed; config cannot open another
   // service (chat/accounting etc.) merely by supplying an arbitrary port.
   if (config.crm.port !== 62700 || current.protocol !== 'http:') return null;
   const url = new URL('/', current.origin);
   url.port = '62700';
-  return safeInternalUrl(url.href, current, ['62700']);
+  return preserveSemihIntent(safeInternalUrl(url.href, current, ['62700']),current);
+}
+
+function preserveSemihIntent(value,current){if(!value)return null;const url=new URL(value);if(current.search==='?semih=1')url.searchParams.set('semih','1');return url.href;}
+// Public navigation intent only; the ERP validates the copy and normal cookie session.
+export function semihContinueUrl(config,current=window.location){
+  if(config?.environment!==TEST_ENVIRONMENT||config?.erp?.enabled!==true||config.erp.validated!==true||current.protocol!=='http:'||current.port!=='5234'||!['127.0.0.1','192.168.1.46'].includes(current.hostname)||current.origin!==`http://${current.hostname}:5234`)return null;
+  return `${current.origin}/ornek-akis.html?semih=1#stock`;
 }
 
 export function availability(status, key, now = Date.now()) {
@@ -119,6 +126,7 @@ function drawWorkCard(item, url) {
 }
 
 function renderWork() {
+  const semih=$('semih-continue-link'),semihUrl=semihContinueUrl(state.config);if(semihUrl){semih.href=semihUrl;semih.removeAttribute('aria-disabled');}else{semih.removeAttribute('href');semih.setAttribute('aria-disabled','true');}
   const focused = document.activeElement?.id;
   const container = $('work-cards');
   container.replaceChildren(...pages.map(item => drawWorkCard(item, destination(item.id))));

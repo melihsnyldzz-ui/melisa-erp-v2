@@ -1,4 +1,10 @@
-## ERP-COMPLETE01 — Semih giriş önceliği / güncel gerçek sınır — 12 Ekim 2026
+## ERP-COMPLETE01 — Mevcut tarayıcı MELISA HUB girişi / kaynak hazırlığı — 12 Ekim 2026
+
+ERP-DEC-052: kullanıcı hedefin mevcut MELISA HUB tarayıcı başlangıç sayfası olduğunu doğrudan doğruladı; aşağıdaki önceki Windows pencere bağımlılığı supersede edildi. Ayrı Windows deneme programı iptal, dosyalar korunuyor ve reddedilen başlatım tekrarlanmadı. Dar kaynak değişikliği normal ERP17 grant'ini HttpOnly/Strict/host-only cookie ile hatırlıyor; JWT yalnız bellekte, anonime normal grant üreten yol yok. Exact DB02/copy/17/fresh kimlik ve Origin/Host kontrolleri, mevcut15/16/native/rol/ticari sınırlar korunuyor. Root 108/108 hedefli kontrol ve bağımsız kaynak incelemesi GO; çalışan paket/gerçek tarayıcı doğrulaması bu kayıttan sonraki teslim adımıdır. Teknik hazırlık çalışan düğme veya insan kabulü sayılmadı.
+
+CRM mevcut0424ac74 source'unun yeni değişmez paketi hazırlandı; ayrı Semih profili mevcut 7 kullanıcıyı aynen koruyor. Canonical CRM başka sahibine ait 11 staged belge/kanıtı ve ERP ayrı bekleyen 7 performans dosyası korunuyor; bu dar teslimin dışında. Başlangıç çalışan ERP6a3eaa1/CRM09ca1da, TEST125 ayrıca korunuyor. Yeni paketin aktivasyon/normal giriş/yenileme/çıkış sonucu ayrıca kaydedilecek. UA32 bekliyor, finish49-9-39-1 aynı; LIVE/Vega/T1/main/ticari yazma yok.
+
+## ERP-COMPLETE01 — Semih giriş önceliği / önceki yüzey sınırı — 12 Ekim 2026
 
 ERP-DEC-051 ile yalnız tek düğme girişine dönüldü. Gerçek Computer Use `list_apps` + `list_windows` yalnız Chrome, ChatGPT ve Docker pencerelerini döndürdü; açık Melisa Host penceresi **0**. Yeni istemci başlatımı denenmedi; önceki `blocked by policy` reddi aşılmadı. Normal dedicated17/korumalı ilk giriş ve kaynak menü yolu hazırdır; gerçek Host düğmesi, ERP→CRM geçişi ve kapat-aç/çıkış kabulü yok. CRM dedicated v3 hâlâ inactive, çalışan CRM09ca/native60e aynı. Parola veya tekrar onay istenmedi; başka kaynak/paket hazırlığı çalışan giriş sayılmıyor.
 
