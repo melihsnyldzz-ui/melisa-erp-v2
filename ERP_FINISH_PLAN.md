@@ -1,6 +1,6 @@
-## ERP-COMPLETE01 — çalışan1a / ilkprofitUPDATE performansı açık — 12 Ekim 2026
+## ERP-COMPLETE01 — çalışan797 / iç karantina sürüm bağı açık — 12 Ekim 2026
 
-Kimlik düzeltmesi etkin; ilkprofitUPDATE60.018sn hata verdi. Bağımsız SQL/API tam before-image/200DRAFT/stok0-müşteri0/eski satış-iki koli koruması geçti. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Gerçek plan/wait teşhisi ve başarılı nativefinalize/hız bekler; kaynak/paket hazırlığı teknik tamam sayılmaz. Toplam49/9/39/1 ve insanUA32 aynı; kapsam değişmedi.
+Satır başına tekrar kontrolü ölçülüp v9 native metadata uygulanarak normal servis READY doğrulandı; paket797 çalışıyor. Controlled200 finalize iç assertion'ın eski sürüm eşlemesinde durdu; tam before-image/200DRAFT/stok0-müşteri0/eski satış-iki koli bağımsız doğrulandı. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). İç sürüm bağı companion düzeltmesi, başarılı native finalize ve hız bekler; kaynak/paket hazırlığı teknik tamam sayılmaz. Toplam49/9/39/1 ve insanUA32 bekliyor aynı; kapsam değişmedi.
 
 ## ERP-COMPLETE01 — BIGINT tipi düzeltmesi / native kabul bekler — 12 Ekim 2026
 

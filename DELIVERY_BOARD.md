@@ -1,6 +1,6 @@
-## ERP-COMPLETE01 — çalışan1a / finalize gecikmesinin ölçülen adımı — 12 Ekim 2026
+## ERP-COMPLETE01 — çalışan797 / iç karantina sürüm bağı açık — 12 Ekim 2026
 
-Kimlik düzeltmesi çalışan1a paketinde etkin. İlkprofitUPDATE60.018sn hata verdi; bağımsız SQL/API aynı200DRAFT/sıfırstok-cari etkisi/eski satış-koli/tam before-image korumasını doğruladı. Aynı mevcut başlangıç göreviyle ortak TEST servisleri yeniden hazır; kapanma nedeni henüz bilinmiyor. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynıiş: firstprofitUPDATE gerçek plan/wait teşhisi, sonra dar düzeltme/native rollback. Yeni migration/panoişi yok; insanUA32/49-9-39-1 aynı.
+Ölçülen satır başına tekrar kontrolü için v9 native metadata prova/geri alma/uygulama ve normal servis READY doğrulandı; paket797 gerçek ortak TEST adreslerinde çalışıyor. Controlled200 finalize iç karantina doğrulamasının eski sürüm bağı yüzünden durdu. Bağımsız SQL/API tam before-image/aynı200DRAFT/stok0-cari0/eski satış-koli korumasını doğruladı. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynı iş: iç assertion ve bağlı parent sürümlerini ileri companion ile tanıt, ardından başarılı native rollback→tek finalize→bağımsız sonuç/hız. Yeni migration/pano işi yok; UA32 bekliyor ve49/9/39/1 aynı.
 
 ## ERP-COMPLETE01 — native kimlik tipi düzeltmesi / aynı teslim — 12 Ekim 2026
 
