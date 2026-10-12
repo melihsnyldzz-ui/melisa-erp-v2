@@ -1,5 +1,13 @@
 # 200 farklı ürün / iki koli — gerçek native prova — 12 Ekim 2026
 
+## Ölçülen karantina kontrolü / dar v9 kaynak düzeltmesi
+
+Önceki timeout teşhisi artık gerçek aktif istek gözlemiyle ayrıldı: 51 örnekte kilit/bekleme yok; CPU 8,224→59,054 saniye, logical reads 1.593.733→59.815.276. Çalışan statement, `supplier_identity_quarantine_v2_sales_invoice_items` içindeki ürün/fatura hold kontrolüdür. Private safe kanıt `first-profit-dmv-first-profit-v4-1a-v3.safe.json`, SHA256 `ea44a9d09870e6aef745ffad64a0c0378bac6a39ac16694eb0779a4a07292985`. Son denemeden sonra bağımsız native/API kontrolü aynı taslağı ve bütün önceki kayıtları değişmeden doğruladı; kalıcı finalize ve yeni stok/cari etkisi yok (`retarget-controlled-outcome-1791776546437.json`, SHA256 `7dd0e8e4930b6899777cdead8381cc56e4e178a71c696917c465117b920fbb87`).
+
+Dar dönüşüm yalnız dış EXISTS'i ayrı tekil ürün/fatura kimlikleri üzerinden değerlendirir. Inserted/deleted, NULL, bütün iç ürün/fatura kalem hold koşulları, THROW ve kaynak prefix/suffix korunur. Timeout, roller, ticari hesaplama veya karantina kuralları gevşetilmez. Kaynak v9, değişen beş native tanımı ayrı immutable registry ile doğrular; eski 185-modül manifesti ve v6/v7/v8 kayıtları tarihçe olarak değişmeden kalır. Effects tanımı değiştirilmez. Private kaynak tanımı, ticari değerler ve SQL artifact Git'e alınmaz.
+
+Root 13 hedefli dönüşüm/builder kontrolü ve SQL ajanının 50 hedefli entegrasyon kontrolü geçti. Canonical private uygulama artifact'i `822c235cfc785e174f20747ed5564191d09361e47b6b7e4e3638fb043287d601`, revision `A8CE1A7281925E8844B380EEC7F09E1F31D30C47A8BF27CADD186646F933F27B`. Bu aşama **kaynak/offline hazırlık**tır; native Rehearse/rollback, kalıcı metadata uygulaması, yeni paket ve gerçek finalize süresi ayrıca doğrulanacaktır. Çalışan source1a ve mevcut veriler korunur; insan UA32 bekler.
+
 ## Çalışan 1a / ilk profit UPDATE gecikmesi
 
 Kimlik düzeltmesi `1a2f4e25cefeaaa65f5ece21aee866d2c0252be7` paketinde etkin: 1834/1834 dosya, manifest `d99fd838a4855ad05c6f47b52aab68dbcb56f9c522949e95dc7361afedbf4069`. API4184/native4186/web5234 exact DB02/copy üzerinde; CRM09ca/native60e değişmedi. Normal15 giriş/refresh/logout, dört health ve dokuz served asset ayrı doğrulandı. Uygulama source, belge teslimi ve APKv22 source farklı kimliklerdir.

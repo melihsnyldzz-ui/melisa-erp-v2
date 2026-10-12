@@ -5,6 +5,7 @@ import {businessDailyNativeCheckReadSQL} from '../../apps/api/src/services/busin
 import {buildBusinessSelectedSaleRevision,validateBusinessSelectedSaleInstall} from './shared-business-selected-sale-revision-sql.mjs';
 import {buildBusinessSelectedSaleEffectsRevision,SELECTED_SALE_EFFECTS_MODULES} from './shared-business-selected-sale-effects-revision-sql.mjs';
 import {buildBusinessSelectedSaleParentRevision,SELECTED_SALE_PARENT_MODULES} from './shared-business-selected-sale-parent-revision-sql.mjs';
+import {buildSupplierItemQuarantineParentRevision,validateSupplierItemQuarantineRevision,validateSupplierItemQuarantineSource} from './shared-business-supplier-item-quarantine-parent-revision-sql.mjs';
 import {SELECTED_SALE_REGISTRY,SELECTED_SALE_IMMUTABLE} from './shared-business-selected-sale-revision-contract.mjs';
 import {COPY_MUTABLE_TABLES} from './stage4-copy-sql.mjs';
 
@@ -51,6 +52,35 @@ export const BUSINESS_SELECTED_SALE_PARENT_REVISION_PROOF_SQL=metadataSQL+`
 SELECT CONVERT(varchar(36),r.copy_id) copyId,r.name,r.revision,r.base_seal_hash baseSealHash,r.base_selected_revision_hash baseSelectedRevisionHash,r.base_effects_revision_hash baseEffectsRevisionHash,r.profile_hash profileHash,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,
 CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_business_selected_sale_parent_revisions'))),2) immutableTriggerHash,ISNULL(CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_business_selected_sale_parent_revisions'),'ExecIsTriggerDisabled')),1) triggerDisabled FROM dbo.stage4_copy_business_selected_sale_parent_revisions r WITH(HOLDLOCK) ORDER BY r.name;
 `+metadataSQL;
+
+// Literal finite names avoid reading compiler constants during the import cycle.
+export const SUPPLIER_ITEM_QUARANTINE_REVISION_PROOF_SQL=metadataSQL+`
+SELECT CONVERT(varchar(36),r.copy_id) copyId,r.name,r.revision,r.base_seal_hash baseSealHash,r.base_selected_revision_hash baseSelectedRevisionHash,r.base_effects_revision_hash baseEffectsRevisionHash,r.base_parent_revision_hash baseParentRevisionHash,r.profile_hash profileHash,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,
+CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_supplier_item_quarantine_revisions'))),2) immutableTriggerHash,ISNULL(CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_supplier_item_quarantine_revisions'),'ExecIsTriggerDisabled')),1) triggerDisabled,
+RTRIM(o.type) moduleType,CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsTriggerDisabled')),1) ELSE 0 END moduleDisabled,CASE WHEN o.type=N'TR' THEN OBJECT_SCHEMA_NAME(o.parent_object_id)+N'.'+OBJECT_NAME(o.parent_object_id) ELSE NULL END parentName,
+CASE WHEN r.name=N'dbo.supplier_identity_quarantine_v2_sales_invoice_items' THEN (SELECT after_hash FROM dbo.stage4_copy_module_manifest WHERE name=r.name) ELSE NULL END baseManifestHash
+FROM dbo.stage4_copy_supplier_item_quarantine_revisions r WITH(HOLDLOCK) LEFT JOIN sys.objects o ON o.object_id=OBJECT_ID(r.name) ORDER BY r.name;
+`+metadataSQL;
+
+function quarantineProof(copy,revision,result,nativeReadOnly){
+ copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===3&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[2].length===1,'SUPPLIER_ITEM_BOOT_RECORDSETS');
+ const before=result.recordsets[0][0],after=result.recordsets[2][0];metadata(copy,before,nativeReadOnly);metadata(copy,after,nativeReadOnly);copyAssert(isolatedCopyJSON(before)===isolatedCopyJSON(after),'SUPPLIER_ITEM_BOOT_SAME_TRANSACTION');
+ const rows=result.recordsets[1],keys=['copyId','name','revision','baseSealHash','baseSelectedRevisionHash','baseEffectsRevisionHash','baseParentRevisionHash','profileHash','beforeHash','afterHash','revisionHash','actualHash','immutableTriggerHash','triggerDisabled','moduleType','moduleDisabled','parentName','baseManifestHash'];
+ copyAssert(rows.length===5&&new Set(rows.map(r=>r.name)).size===5,'SUPPLIER_ITEM_BOOT_REGISTRY_ROWS');
+ for(const [i,m] of revision.modules.entries()){
+  const r=rows.find(r=>r.name===m.name);
+  copyAssert(exact(r,keys)&&r.copyId?.toLowerCase()===copy.copyId&&r.revision===9&&r.baseSealHash===copy.sealHash&&r.baseSelectedRevisionHash===revision.baseSelectedRevisionHash&&r.baseEffectsRevisionHash===revision.baseEffectsRevisionHash&&r.baseParentRevisionHash===revision.baseParentRevisionHash&&r.profileHash===revision.profileHash&&r.beforeHash===m.beforeHash&&r.afterHash===m.afterHash&&r.actualHash===m.afterHash&&r.revisionHash===revision.revisionHash&&r.immutableTriggerHash===revision.immutableTriggerHash&&r.triggerDisabled===0&&r.moduleType===(i===0?'TR':'P')&&r.moduleDisabled===0&&r.parentName===(i===0?'dbo.sales_invoice_items':null)&&r.baseManifestHash===(i===0?m.beforeHash:null),'SUPPLIER_ITEM_BOOT_NATIVE_PINS');
+ }
+ return result;
+}
+function projectVerifiedQuarantine(revision,current,result,selected){
+ const length=selected?11:3;
+ copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===length&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[length-1].length===1,'SUPPLIER_ITEM_BOOT_HISTORY_RECORDSETS');
+ copyAssert(isolatedCopyJSON(current.recordsets[0][0])===isolatedCopyJSON(result.recordsets[0][0])&&isolatedCopyJSON(current.recordsets[2][0])===isolatedCopyJSON(result.recordsets[length-1][0]),'SUPPLIER_ITEM_BOOT_SAME_TRANSACTION');
+ const projected=structuredClone(result),groups=selected?[...projected.recordsets.slice(1,6),projected.recordsets[8]]:[projected.recordsets[1]];
+ for(const rows of groups)for(const r of rows){const m=revision.modules.find(m=>m.name===r.name);if(m){copyAssert(r.actualHash===m.afterHash,'SUPPLIER_ITEM_BOOT_HISTORY_CURRENT_PIN');r.actualHash=m.beforeHash;}}
+ return projected;
+}
 
 function validateParentRevision(copy,base,effects,revision){
  const keys=['schemaVersion','version','copyId','baseSealHash','baseSelectedRevisionHash','baseEffectsRevisionHash','profileHash','modules','immutableTriggerHash','repair','revisionHash'];
@@ -103,11 +133,19 @@ function projectVerifiedEffects(revision,effectsResult,result){
 }
 
 async function readCurrentProof(copy,state,request){
- let parentResult,overlayResult;
+ let parentResult,overlayResult,quarantineResult;
  if(state.selectedEffectsRevision!==undefined)validateEffectsRevision(copy,state.selectedRevision,state.selectedEffectsRevision);
- if(state.selectedParentRevision!==undefined){validateParentRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision);parentResult=parentProof(copy,state.selectedParentRevision,await request.query(BUSINESS_SELECTED_SALE_PARENT_REVISION_PROOF_SQL),state.nativeReadOnly);}
- if(state.selectedEffectsRevision!==undefined){const raw=await request.query(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL);overlayResult=effectsProof(copy,state.selectedEffectsRevision,parentResult?projectVerifiedParents(state.selectedParentRevision,parentResult,raw,false):raw,state.nativeReadOnly);}
- const raw=await request.query(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL),parentProjected=parentResult?projectVerifiedParents(state.selectedParentRevision,parentResult,raw,true):raw,result=overlayResult?projectVerifiedEffects(state.selectedEffectsRevision,overlayResult,parentProjected):parentProjected;
+ if(state.selectedParentRevision!==undefined)validateParentRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision);
+ copyAssert((state.supplierItemQuarantineRevision===undefined)===(state.supplierItemQuarantineSource===undefined),'SUPPLIER_ITEM_BOOT_SOURCE_REQUIRED');
+ if(state.supplierItemQuarantineRevision!==undefined){
+  validateSupplierItemQuarantineSource(state.supplierItemQuarantineSource);
+  validateSupplierItemQuarantineRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision,state.supplierItemQuarantineRevision);
+  quarantineResult=quarantineProof(copy,state.supplierItemQuarantineRevision,await request.query(SUPPLIER_ITEM_QUARANTINE_REVISION_PROOF_SQL),state.nativeReadOnly);
+ }
+ const project=(raw,selected)=>quarantineResult?projectVerifiedQuarantine(state.supplierItemQuarantineRevision,quarantineResult,raw,selected):raw;
+ if(state.selectedParentRevision!==undefined)parentResult=parentProof(copy,state.selectedParentRevision,project(await request.query(BUSINESS_SELECTED_SALE_PARENT_REVISION_PROOF_SQL),false),state.nativeReadOnly);
+ if(state.selectedEffectsRevision!==undefined){const raw=project(await request.query(BUSINESS_SELECTED_SALE_EFFECTS_REVISION_PROOF_SQL),false);overlayResult=effectsProof(copy,state.selectedEffectsRevision,parentResult?projectVerifiedParents(state.selectedParentRevision,parentResult,raw,false):raw,state.nativeReadOnly);}
+ const raw=project(await request.query(BUSINESS_SELECTED_SALE_REVISION_PROOF_SQL),true),parentProjected=parentResult?projectVerifiedParents(state.selectedParentRevision,parentResult,raw,true):raw,result=overlayResult?projectVerifiedEffects(state.selectedEffectsRevision,overlayResult,parentProjected):parentProjected;
  return selectedProof(copy,state.selectedRevision,result,state.nativeReadOnly,state.schema);
 }
 
@@ -173,11 +211,13 @@ export async function configureBusinessSelectedSaleRevision({copy,request,native
  if(state.selectedInstall!==undefined)validateBusinessSelectedSaleInstall(state.selectedInstall,args);
  if(state.selectedEffectsRevision!==undefined){const overlay=buildBusinessSelectedSaleEffectsRevision(args);copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.selectedEffectsRevision),'SELECTED_EFFECTS_BOOT_CANONICAL_REVISION');}
  if(state.selectedParentRevision!==undefined){const overlay=buildBusinessSelectedSaleParentRevision(args);copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.selectedParentRevision),'SELECTED_PARENT_BOOT_CANONICAL_REVISION');}
+ if(state.supplierItemQuarantineRevision!==undefined){const overlay=buildSupplierItemQuarantineParentRevision({...args,supplierItemQuarantineSource:state.supplierItemQuarantineSource});copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.supplierItemQuarantineRevision),'SUPPLIER_ITEM_BOOT_CANONICAL_REVISION');}
  await proveHistory(copy,state,result);
  const baseBundle=buildBusinessSelectedSaleRevision({copy,daily:state.daily,profit:state.profit,schema:state.schema});
  const effectiveArgs={copy,daily:state.daily,profit:state.profit,schema:state.schema},effectsBundle=state.selectedEffectsRevision===undefined?null:buildBusinessSelectedSaleEffectsRevision(effectiveArgs);
- const bundle=state.selectedParentRevision===undefined?(effectsBundle??baseBundle):buildBusinessSelectedSaleParentRevision(effectiveArgs);
- const value=freeze({revision:baseBundle.revision,...(effectsBundle?{selectedEffectsRevision:effectsBundle.revision}:{}),...(state.selectedParentRevision===undefined?{}:{selectedParentRevision:bundle.revision}),bundle,parentHashes:bundle.parentHashes});
+ const parentBundle=state.selectedParentRevision===undefined?null:buildBusinessSelectedSaleParentRevision(effectiveArgs),quarantineBundle=state.supplierItemQuarantineRevision===undefined?null:buildSupplierItemQuarantineParentRevision({...effectiveArgs,supplierItemQuarantineSource:state.supplierItemQuarantineSource});
+ const bundle=quarantineBundle??parentBundle??effectsBundle??baseBundle;
+ const value=freeze({revision:baseBundle.revision,...(effectsBundle?{selectedEffectsRevision:effectsBundle.revision}:{}),...(parentBundle?{selectedParentRevision:parentBundle.revision}:{}),...(quarantineBundle?{supplierItemQuarantineRevision:quarantineBundle.revision}:{}),bundle,parentHashes:bundle.parentHashes});
  registered.set(copy,{value,input:freeze(state)});return value;
 }
 export function getRegisteredBusinessSelectedSaleRevision(copy){

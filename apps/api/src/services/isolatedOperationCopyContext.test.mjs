@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateIsolatedOperationCopyContext,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyIdentity,assertIsolatedCopyActor,bindIsolatedCopyOperationDTO,ISOLATED_COPY_SCHEMA,ISOLATED_COPY_ORIGIN,ISOLATED_COPY_DATABASE,ISOLATED_COPY_SOURCE_DATABASE,ISOLATED_COPY_SERVER,ISOLATED_COPY_PROCEDURES} from './isolatedOperationCopyContext.mjs';
+import {validateIsolatedOperationCopyContext,isolatedCopyHash,isolatedCopyJSON,assertIsolatedCopyIdentity,assertIsolatedCopyActor,assertIsolatedCopyReadProof,bindIsolatedCopyOperationDTO,ISOLATED_COPY_SCHEMA,ISOLATED_COPY_ORIGIN,ISOLATED_COPY_DATABASE,ISOLATED_COPY_SOURCE_DATABASE,ISOLATED_COPY_SERVER,ISOLATED_COPY_PROCEDURES} from './isolatedOperationCopyContext.mjs';
 
 export function fixtureContext(){
  const hash='A'.repeat(64),body={schemaVersion:ISOLATED_COPY_SCHEMA,operationOrigin:ISOLATED_COPY_ORIGIN,actualT1:false,copyId:'ab9ab06a-6b0f-4b48-8898-43b13c140c93',backupSHA:'b'.repeat(64),sourceDatabase:ISOLATED_COPY_SOURCE_DATABASE,sourceCommit:'c'.repeat(40),currentProductSourceVersionRunId:'PRODUCT-4161d6d9-0716-469e-8c67-c165a20fa674',target:{server:ISOLATED_COPY_SERVER,database:ISOLATED_COPY_DATABASE,login:'melisa_stage4_copy_rw_20261008_01',databaseUser:'melisa_stage4_copy_rw_20261008_01'},date:'2026-10-08',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:[{id:'34765',sourceKey:['VEGA2026','F0102TBLSTOKLAR','161'].join('/'),stockCode:'0161 MOLLY',unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['100'],barcodes:['00161'],beforeHash:hash}],customers:[{id:'20',partyId:'21',accountId:'22',currency:'TRY',sourceKey:['VEGA2026','F0102TBLCARI','23'].join('/'),beforeHash:hash,accountBeforeHash:hash}],suppliers:[{id:'30',partyId:'31',accountId:'32',currency:'USD',sourceKey:['VEGA2026','F0103TBLCARI','33'].join('/'),beforeHash:hash,accountBeforeHash:hash}],financeAccounts:[{id:'40',currency:'TRY',beforeHash:hash},{id:'41',currency:'USD',beforeHash:hash}],sql:Object.fromEntries(Object.entries(ISOLATED_COPY_PROCEDURES).map(([k,name])=>[k,{name,hash}]))};
@@ -10,6 +10,10 @@ export const fixtureIdentity=context=>({db:context.target.database,server:contex
 export const fixtureProof=c=>({copyId:c.copyId,sealHash:c.sealHash,backupSHA:c.backupSHA,valid:true,definitionHashes:Object.fromEntries(Object.entries(c.sql).map(([k,p])=>[k,p.hash]))});
 
 if(import.meta.filename===process.argv[1]){
+test('an unregistered serialized v9 adjunct cannot replace the sealed effective READY hash',()=>{
+ const copy=validateIsolatedOperationCopyContext(fixtureContext()),proof=fixtureProof(copy);assertIsolatedCopyReadProof(copy,proof);
+ const forged={...proof,definitionHashes:{...proof.definitionHashes,ready:'F'.repeat(64)},supplierItemQuarantineRevision:{version:9,modules:[{name:copy.sql.ready.name,afterHash:'F'.repeat(64)}]}};assert.throws(()=>assertIsolatedCopyReadProof(copy,forged),{code:'ISOLATED_COPY_READ_PROOF'});assert.throws(()=>assertIsolatedCopyReadProof(structuredClone(copy),proof),{code:'ISOLATED_COPY_SERVER_CONTEXT_REQUIRED'});
+});
 test('native Date response journals preserve the same timestamp on first response and replay',()=>{
  const createdAt=new Date('2026-10-10T09:08:07.123Z');createdAt.nanosecondsDelta=0;
  const response={result:{createdAt,id:123,plan:{documentDate:'2026-10-09',amount:170}},id:456,dates:[createdAt,new Date('2026-10-10T09:09:00Z')]};

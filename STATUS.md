@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — ölçülen tekrar kontrolü / v9 kaynak hazırlığı — 12 Ekim 2026
+
+Gerçek native aktif istekten 51 örnek, supplier-item karantina kontrolünde beklemesiz CPU/okuma yükünü gösterdi; aynı fatura kontrolünün her satırda tekrarı dar dönüşümle ayrıldı. Root13/SQL50 hedefli kontroller geçti; beş current native before pin ve eski registry/effects bağları salt okunur preflight ile doğrulandı. [Kanıt ve uygulama sınırı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Yalnız kaynak/offline hazırlık: native Rehearse/rollback, yeni paket, gerçek finalize ve sonrası ölçüm bekler. Çalışan1a/DB02/veriler/roller korunur; insan UA32 ve 49/9/39/1 aynı. Hosted CI ödeme/harcama engeli yeşil sayılmaz.
+
 ## ERP-COMPLETE01 — çalışan1a / kontrollü ilk profit UPDATE teşhisi — 12 Ekim 2026
 
 Paket1a/1834manifest ve normal15 protected giriş-refresh-logout doğrulandı; API4184/native4186/web5234 exact DB02, CRM09ca/native60e aynı. Root mevcut başlangıç görevinden kapanmış cohort'u pinlerle yeniden açtı; kapanma nedeni kanıtlanmadı, PT0S/exit1/stale625failure ile süre sınırı iddiası yok. TEST125/LIVE durdurulmadı. [Vaka kanıtı](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).

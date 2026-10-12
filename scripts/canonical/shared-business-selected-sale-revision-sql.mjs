@@ -2,6 +2,7 @@
 import {moduleHash,stage4BeginSQL,stage4NativeGuardSQL,COPY_DB,COPY_LOGIN} from './stage4-copy-sql.mjs';
 import {assertPreparedSelectedEffectsRevisionArtifact} from './shared-business-selected-sale-effects-revision-sql.mjs';
 import {assertPreparedSelectedParentRevisionArtifact} from './shared-business-selected-sale-parent-revision-sql.mjs';
+import {assertPreparedSupplierItemQuarantineArtifact} from './shared-business-supplier-item-quarantine-parent-revision-sql.mjs';
 import {prepareBusinessSelectedSaleContextSQL,SELECTED_SALE_READER} from './shared-business-selected-sale-preview-sql.mjs';
 import {prepareBusinessSelectedSaleWriteScopeSQL,SELECTED_SALE_INTENT_READER} from './shared-business-selected-sale-write-scope-sql.mjs';
 import {validateDailyProfitInstall} from './shared-business-daily-profit-revision.mjs';
@@ -251,4 +252,4 @@ IF EXISTS(SELECT 1 FROM inserted s LEFT JOIN(VALUES ${pins.map(p=>`(${lit(p.name
  return {schemaVersion:'melisa-business-selected-sale-install.v1',target:copy.target,copyId:copy.copyId,baseSealHash:copy.sealHash,baseDailyRevision:daily.revision,baseProfitRevision:profit.revision,revision,tableSQL,immutableSQL,replacements,parentHashes,contextArtifact:artifact(SELECTED_SALE_CONTEXT,'context'),writeScopeArtifact:artifact(SELECTED_SALE_INTENT_READER,'intent'),businessWrites:0,rolesChanged:false,nativeChecksUnchanged:true,openingHumanAccepted:false,realFinancialOpeningAuthorized:false};
 }
 export function validateBusinessSelectedSaleInstall(bundle,input){check(isolatedCopyJSON(bundle)===isolatedCopyJSON(buildBusinessSelectedSaleRevision(input)),'SELECTED_SUCCESSOR_CANONICAL_INSTALL');return true;}
-export function assertPreparedSelectedRevisionArtifact(artifact,copy,kind){const a=prepared.get(artifact);if(a?.copy===copy&&a.kind===kind)return artifact;try{return assertPreparedSelectedEffectsRevisionArtifact(artifact,copy,kind);}catch{return assertPreparedSelectedParentRevisionArtifact(artifact,copy,kind);}}
+export function assertPreparedSelectedRevisionArtifact(artifact,copy,kind){const a=prepared.get(artifact);if(a?.copy===copy&&a.kind===kind)return artifact;try{return assertPreparedSelectedEffectsRevisionArtifact(artifact,copy,kind);}catch{try{return assertPreparedSelectedParentRevisionArtifact(artifact,copy,kind);}catch{return assertPreparedSupplierItemQuarantineArtifact(artifact,copy,kind);}}}
