@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {classifyCompletionProcessExecFailure,completionProcessProbeExec,completionDiagnosticProbe,completionFailureDiagnostic,runCompletionLogon,completionAttempt,COMPLETION_CORE_STAGES} from './terminal-completion-logon.mjs';
+import {classifyCompletionProcessExecFailure,completionProcessProbeExec,completionObserveProcess,completionDiagnosticProbe,completionFailureDiagnostic,runCompletionLogon,completionAttempt,COMPLETION_CORE_STAGES} from './terminal-completion-logon.mjs';
 const owner='S-1-5-21-123-456-789-1001',source='b'.repeat(40),hash='a'.repeat(64),erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM';
 function settings(){
  const refs=Object.fromEntries(['operationConfig','nativeOrderConfig','crmActivationConfig','hubPinConfig','hubStartupConfig'].map(key=>[key,{path:`${erp}\\runtime\\completion\\${key}.json`,sha256:hash}]));
@@ -18,10 +18,10 @@ test('process and CRM failures use only enum types/codes; forged fields cannot e
  assert.equal(completionFailureDiagnostic(Object.assign(new Error(),{diagnostic:{stage:'erpApi'}})),null);
  await assert.rejects(completionDiagnosticProbe('SECRET','health',()=>assert.fail()),/DIAGNOSTIC_SCOPE/);
 });
-test('generic retry persists bounded diagnostic and preserves four attempts and 60s delays',async()=>{
- const records=[],delays=[];let attempts=0;const driver={verify:async()=>{},sqlReady:async()=>{},inspect:async()=>[],start:async()=>({pid:1}),ready:async stage=>{attempts++;await completionDiagnosticProbe(stage.name,'processProbe',async()=>{throw Object.assign(new Error('SECRET SQL params'),{code:'ETIMEDOUT'});});},stop:async()=>true,failure:async(code,stages,diagnostic)=>records.push({code,stages,diagnostic})};
- await assert.rejects(runCompletionLogon({configPath:erp+'\\runtime\\completion\\launcher.json',configSha256:hash,ownerSid:owner,action:'Start',driverFactory:async()=>driver,loadSettings:()=>settings(),delay:async ms=>delays.push(ms)}),/ATTEMPT_FAILED/);
- assert.equal(attempts,4);assert.deepEqual(delays,[60000,60000,60000]);assert.equal(records.length,4);for(const row of records){assert.equal(row.code,'TERMINAL_LOGON_ATTEMPT_FAILED');assert.deepEqual(row.diagnostic,{stage:'erpNative',phase:'processProbe',errorType:'Error',staticCode:'ETIMEDOUT'});assert(!JSON.stringify(row).includes('SECRET'));}
+test('unknown process observation persists bounded diagnostic and quarantines without cleanup or replacement attempt',async()=>{
+ const records=[],delays=[];let attempts=0,stops=0;const driver={verify:async()=>{},sqlReady:async()=>{},inspect:async()=>[],start:async()=>({pid:1}),ready:async stage=>{attempts++;await completionDiagnosticProbe(stage.name,'processProbe',()=>completionObserveProcess(async()=>{throw new Error('SECRET SQL params');},{delay:async()=>assert.fail()}));},stop:async()=>{stops++;return true;},quarantine:async()=>{},failure:async(code,stages,diagnostic)=>records.push({code,stages,diagnostic})};
+ await assert.rejects(runCompletionLogon({configPath:erp+'\\runtime\\completion\\launcher.json',configSha256:hash,ownerSid:owner,action:'Start',driverFactory:async()=>driver,loadSettings:()=>settings(),delay:async ms=>delays.push(ms)}),/OBSERVATION_QUARANTINED/);
+ assert.equal(attempts,1);assert.equal(stops,0);assert.deepEqual(delays,[]);assert.equal(records.length,2);assert.equal(records[0].code,'OBSERVATION_QUARANTINED');assert.deepEqual(records[0].diagnostic,{stage:'erpNative',phase:'processProbe',errorType:'Error',staticCode:'UNCLASSIFIED'});for(const row of records)assert(!JSON.stringify(row).includes('SECRET'));
 });
 test('monitor exception still stops all newly created children in reverse order',async()=>{
  const stopped=[],error=Object.assign(new Error('SECRET'),{code:'ECONNRESET'}),driver={verify:async()=>{},sqlReady:async()=>{},inspect:async()=>[],start:async()=>({pid:1}),ready:async()=>{},hubReady:async()=>{},monitor:async()=>{throw error;},stop:async stage=>{stopped.push(stage.name);return true;}};

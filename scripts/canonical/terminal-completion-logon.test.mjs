@@ -2,8 +2,84 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import {EventEmitter} from 'node:events';
+import {parseCompletionOsProbeFailure,completionObserveProcess,completionProcessProbeExec,completionWaitOwnedExit,completionStartOwnedChild,completionStopOwnedChild} from './terminal-completion-logon.mjs';
 import {COMPLETION_NODE_FLAGS,completionSupervisorFlagsMatch,completionNodeArguments,COMPLETION_CORE_STAGES,verifyCurrentCrmReadiness,validateCurrentCrmHubPins,completionCrmHealthReceipt,validateCompletionDependencyLock,assertCompletionNoReparse,validateCompletionSettings,completionCrmEnvironment,completionCreationPrecisionMatches,completionProcessMatches,completionAttempt,completionTaskPlan,runCompletionLogon} from './terminal-completion-logon.mjs';
 const owner='S-1-5-21-123-456-789-1001',source='b'.repeat(40),hash='a'.repeat(64),erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM';
+const probeFailure={schemaVersion:'melisa-hub-stack-os-probe-failure.v1',phase:'CHILD_CIM',errorCategory:'ObjectNotFound',errorType:'CimException',nativeHResult:-2147024894};
+const probeLine=value=>'HUB_STACK_OS_PROBE_FAILURE '+JSON.stringify(value);
+test('OS probe diagnostic accepts only exact finite flat contract and optional exact disappearance line',()=>{
+ assert.deepEqual(parseCompletionOsProbeFailure(probeLine(probeFailure)),probeFailure);
+ assert.deepEqual(parseCompletionOsProbeFailure(probeLine({...probeFailure,phase:'NETTCP',errorType:'CimJobException'})),{...probeFailure,phase:'NETTCP',errorType:'CimJobException'});
+ assert.deepEqual(parseCompletionOsProbeFailure(probeLine({...probeFailure,finiteReturnValue:65535})+'\r\nHUB_STACK_OS_PROCESS_DISAPPEARED\r\n'),{...probeFailure,finiteReturnValue:65535});
+ for(const change of [{phase:'OTHER'},{errorCategory:'SECRET'},{errorType:'SECRET'},{nativeHResult:2147483648},{nativeHResult:-2147483649},{nativeHResult:1.5},{finiteReturnValue:-1},{finiteReturnValue:65536},{finiteReturnValue:'0'},{message:'SECRET'},{schemaVersion:'other'}])assert.equal(parseCompletionOsProbeFailure(probeLine({...probeFailure,...change})),null);
+ for(const value of ['SECRET\n'+probeLine(probeFailure),probeLine(probeFailure)+'\nSECRET',probeLine(probeFailure)+'\n'+probeLine(probeFailure),probeLine(probeFailure)+'\nHUB_STACK_OS_PROCESS_DISAPPEARED\nHUB_STACK_OS_PROCESS_DISAPPEARED','HUB_STACK_OS_PROBE_FAILURE null','HUB_STACK_OS_PROBE_FAILURE []','HUB_STACK_OS_PROBE_FAILURE {',probeLine(probeFailure).replace('"phase":"CHILD_CIM"','"phase":"OTHER","phase":"CHILD_CIM"')])assert.equal(parseCompletionOsProbeFailure(value),null);
+});
+test('only finite transient observations get at most two fresh retries; returned rows still require the full native guard',async()=>{
+ let attempts=0;const delays=[],s=settings(),stage=COMPLETION_CORE_STAGES[0],{row,receipt}=processEvidence(stage,s);
+ const result=await completionObserveProcess(()=>completionProcessProbeExec(async()=>{attempts++;if(attempts<3)throw Object.assign(Error('PRIVATE'),{killed:true,code:'ETIMEDOUT'});return [row];}),{delay:async ms=>delays.push(ms)});
+ assert.equal(attempts,3);assert.deepEqual(delays,[250,250]);assert.equal(completionProcessMatches(result[0],receipt,stage,s),true);
+ for(const change of [{ownerSid:'foreign'},{pid:13},{creationTime:'2026-10-11T12:00:01.0000000Z'},{parentPid:99},{commandLine:row.commandLine+' extra'},{bindings:[]}])assert.equal(completionProcessMatches({...result[0],...change},receipt,stage,s),false);
+ let calls=0;await assert.rejects(completionObserveProcess(()=>completionProcessProbeExec(async()=>{calls++;throw Object.assign(Error('PRIVATE'),{stderr:probeLine(probeFailure)+'\nHUB_STACK_OS_PROCESS_DISAPPEARED'});}),{delay:async()=>{}}));assert.equal(calls,3);
+ calls=0;await assert.rejects(completionObserveProcess(()=>completionProcessProbeExec(async()=>{calls++;throw Object.assign(Error('PRIVATE'),{stderr:'HUB_STACK_OS_PROCESS_DISAPPEARED\nPRIVATE EXTRA',code:1});}),{delay:async()=>assert.fail('raw extra stderr cannot grant retry')}));assert.equal(calls,1);
+ for(const stderr of [probeLine({...probeFailure,phase:'CHILD_OWNER',errorCategory:'PermissionDenied'}),probeLine(probeFailure)+'\nSECRET','OTHER_FAILURE']){calls=0;await assert.rejects(completionObserveProcess(()=>completionProcessProbeExec(async()=>{calls++;throw Object.assign(Error('PRIVATE'),{stderr,killed:stderr!=='OTHER_FAILURE'});}),{delay:async()=>assert.fail('unknown/owner failure must not retry')}));assert.equal(calls,1);}
+});
+test('all observation entry points quarantine resident owner without cleanup, fresh running claims or replacement attempts',async()=>{
+ for(const phase of ['inspect','start','ready','hub','monitor']){
+  const events=[],records=[],s=settings();let attempts=0;const unknown=()=>completionObserveProcess(async()=>{throw Error('PRIVATE OS ERROR');},{delay:async()=>assert.fail()});
+  const driver={verify:async()=>{attempts++;},sqlReady:async()=>{},inspect:async()=>phase==='inspect'?unknown():[],start:async stage=>{if(phase==='start')return unknown();return {pid:12,run:stage.name};},ready:async()=>{if(phase==='ready')await unknown();},hubReady:async()=>{if(phase==='hub')await unknown();},monitor:async()=>unknown(),publish:async(_,state)=>{events.push(state);if(state==='degraded')throw Error('PRIVATE WRITE ERROR');},stop:async()=>{events.push('stop');return true;},quarantine:async()=>{events.push('quarantine');throw Error('test ends resident wait');},failure:async code=>records.push(code)};
+  await assert.rejects(runCompletionLogon({configPath:erp+'\\runtime\\completion\\launcher.json',configSha256:hash,ownerSid:owner,action:'Start',driverFactory:async()=>driver,loadSettings:()=>s,delay:async()=>assert.fail('no new attempt')}),/OBSERVATION_QUARANTINED/);
+  assert.equal(attempts,1);assert.equal(events.filter(v=>v==='quarantine').length,1);assert(!events.includes('stop'));assert.equal(events.at(-1),'quarantine');assert(records.includes('OBSERVATION_QUARANTINED'));
+ }
+});
+test('actual PS missing-child tuple permits only two fresh observations; every near-miss remains unverified without retry',async()=>{
+ const actual={...probeFailure,errorCategory:'OperationStopped',errorType:'RuntimeException',nativeHResult:-2146233087},marker='HUB_STACK_OS_PROCESS_DISAPPEARED',s=settings(),stage=COMPLETION_CORE_STAGES[0],{row,receipt}=processEvidence(stage,s),delays=[];let calls=0;
+ const recovered=await completionObserveProcess(()=>completionProcessProbeExec(async()=>{calls++;if(calls<3)throw Object.assign(Error('PRIVATE'),{code:1,stderr:marker+'\n'+probeLine(actual)});return [row];}),{delay:async ms=>delays.push(ms)});assert.equal(calls,3);assert.deepEqual(delays,[250,250]);assert.equal(completionProcessMatches(recovered[0],receipt,stage,s),true);
+ for(const [change,token] of [[{phase:'NETTCP'},marker],[{errorCategory:'PermissionDenied'},marker],[{errorType:'CimException'},marker],[{nativeHResult:-2146233086},marker],[{nativeHResult:-2146233088},marker],[{},marker+'_OTHER'],[{},'']]){
+  calls=0;await assert.rejects(completionObserveProcess(()=>completionProcessProbeExec(async()=>{calls++;throw Object.assign(Error('PRIVATE'),{code:1,stderr:(token?token+'\n':'')+probeLine({...actual,...change})});}),{delay:async()=>assert.fail('near-miss cannot retry')}));assert.equal(calls,1);
+ }
+ calls=0;await assert.rejects(completionObserveProcess(()=>completionProcessProbeExec(async()=>{calls++;throw Object.assign(Error('PRIVATE'),{code:1,stderr:marker+'\n'+probeLine(actual)});}),{delay:async()=>{}}));assert.equal(calls,3);
+});
+test('provisional spawn is retained before probe or receipt failure and cleanup includes its in-memory verified receipt',async()=>{
+ const s=settings(),stage=COMPLETION_CORE_STAGES[0],pin=s.components[stage.component],{row}=processEvidence(stage,s);
+ for(const failure of ['probe','receipt','spawn']){
+  const held=[],child=new EventEmitter();child.pid=failure==='spawn'?undefined:12;child.exitCode=null;child.signalCode=null;
+  const work=completionStartOwnedChild({stage,pin,parentPid:11,run:'fixture-run',matches:(r,receipt)=>completionProcessMatches(r,receipt,stage,s),spawnOwned:()=>{queueMicrotask(()=>child.emit(failure==='spawn'?'error':'spawn',Error('PRIVATE')));return child;},register:item=>held.push(item),observe:async()=>{assert.equal(held[0].child,child);if(failure==='probe')throw Error('PROBE');return [row];},writeReceipt:async()=>{throw Error('RECEIPT');},delay:async()=>assert.fail()});
+  await assert.rejects(work);assert.equal(held.length,1);assert.equal(held[0].verified,failure==='receipt');assert.equal(held[0].spawnFailed,failure==='spawn');
+  if(failure==='receipt'){const stopped=[];await assert.rejects(completionAttempt(s,{verify:async()=>{},sqlReady:async()=>{},inspect:async()=>[],start:async()=>{throw Error('write failed');},pendingOwned:()=>held.map(i=>({stage:i.stage,receipt:i.receipt})),stop:async(st,receipt)=>{stopped.push({st,receipt});return true;}}),/write failed/);assert.equal(stopped.length,1);assert.equal(stopped[0].receipt.creationTime,row.creationTime);}
+ }
+});
+test('owned cleanup waits for actual exit plus fresh ports and stays pending for live, failed or reused-PID observations',async()=>{
+ const receipt={pid:12};let ticks=0,probes=0,child={exitCode:null,signalCode:null};
+ assert.equal(await completionWaitOwnedExit(child,{receipt,delay:async()=>ticks++,observe:async()=>{probes++;return [];}}),false);assert.equal(ticks,20);assert.equal(probes,0);
+ child={exitCode:null,signalCode:null};assert.equal(await completionWaitOwnedExit(child,{receipt,delay:async()=>{child.signalCode='SIGTERM';},observe:async()=>[]}),true);
+ for(const rows of [[{pid:12}], [{pid:12,creationTime:'reused',ownerSid:'foreign'}], [{}], [null]])assert.equal(await completionWaitOwnedExit({exitCode:0,signalCode:null},{receipt,observe:async()=>rows}),false);
+ assert.equal(await completionWaitOwnedExit({exitCode:0,signalCode:null},{receipt,observe:async()=>[{pid:99}]}),true);
+ await assert.rejects(completionWaitOwnedExit({exitCode:0,signalCode:null},{receipt,observe:async()=>{throw Error('PROBE');}}),/PROBE/);
+});
+test('production-shaped log-descriptor close failure after spawn retains pending handle and prevents unverified kill or replacement',async()=>{
+ const s=settings(),stage=COMPLETION_CORE_STAGES[0],pin=s.components[stage.component],held=[],events=[],child=new EventEmitter();child.pid=12;child.exitCode=null;child.signalCode=null;child.kill=()=>assert.fail('no fingerprint means no kill');let attempts=0;
+ const driver={verify:async()=>{attempts++;},sqlReady:async()=>{},inspect:async()=>[],start:async()=>completionStartOwnedChild({stage,pin,parentPid:11,spawnOwned:()=>{events.push('spawn');queueMicrotask(()=>child.emit('spawn'));return child;},register:item=>{events.push('register');held.push(item);},releaseSpawnLogs:()=>{events.push('release');assert.equal(held[0].child,child);throw Error('descriptor close failed');},matches:()=>assert.fail(),observe:async()=>assert.fail(),writeReceipt:()=>assert.fail()}),pendingOwned:()=>held.map(item=>({stage:item.stage,receipt:item.receipt})),stop:async(st,receipt)=>completionStopOwnedChild(held[0],{stage:st,receipt,observe:async()=>assert.fail(),matches:()=>assert.fail(),verifyPins:()=>assert.fail(),forget:()=>assert.fail()}),failure:async()=>{}};
+ await assert.rejects(runCompletionLogon({configPath:erp+'\\runtime\\completion\\launcher.json',configSha256:hash,ownerSid:owner,action:'Start',driverFactory:async()=>driver,loadSettings:()=>s,delay:async()=>assert.fail('retained pending child forbids replacement')}),/CLEANUP_UNVERIFIED/);assert.equal(attempts,1);assert.equal(held.length,1);assert.equal(held[0].verified,false);assert.deepEqual(events,['spawn','register','release']);
+});
+test('production owned-stop helper never kills foreign/reused/unverified children and never forgets a merely signaled survivor',async()=>{
+ const s=settings(),stage=COMPLETION_CORE_STAGES[0],{row,receipt}=processEvidence(stage,s);receipt.run='owned-run';
+ for(const change of [{ownerSid:'foreign'},{creationTime:'2026-10-11T12:00:01.0000000Z'},{pid:99},{commandLine:row.commandLine+' --foreign'},{parentOwnerSid:'foreign'}]){
+  let kills=0;const child={pid:12,exitCode:null,signalCode:null,kill(){kills++;return true;}},item={stage,child,receipt,verified:true};
+  assert.equal(await completionStopOwnedChild(item,{stage,receipt,observe:async()=>[{...row,...change}],matches:(r,p)=>completionProcessMatches(r,p,stage,s),verifyPins:()=>assert.fail(),forget:()=>assert.fail(),delay:async()=>assert.fail()}),false);assert.equal(kills,0);
+ }
+ const events=[],child={pid:12,exitCode:null,signalCode:null,kill(){events.push('signal');return true;}},item={stage,child,receipt,verified:true};
+ const options={stage,receipt,observe:async pid=>{events.push(pid?'identity':'ports');return pid?[row]:[];},matches:(r,p)=>completionProcessMatches(r,p,stage,s),verifyPins:()=>events.push('pins'),forget:()=>events.push('forget'),delay:async()=>events.push('wait')};
+ assert.equal(await completionStopOwnedChild(item,options),false);assert.deepEqual(events.slice(0,3),['identity','pins','signal']);assert.equal(events.filter(v=>v==='wait').length,20);assert(!events.includes('forget'));assert(!events.includes('ports'));
+ events.length=0;assert.equal(await completionStopOwnedChild({...item,verified:false},options),false);assert.deepEqual(events,[]);
+ events.length=0;child.exitCode=0;assert.equal(await completionStopOwnedChild({...item,verified:false},options),true);assert.deepEqual(events,['ports','forget']);
+});
+test('successful cleanup requires actual exit and fresh port disappearance, while unverified pending ownership blocks replacement',async()=>{
+ const s=settings(),stage=COMPLETION_CORE_STAGES[0],{row,receipt}=processEvidence(stage,s);receipt.run='pending-run';const events=[],child={pid:12,exitCode:null,signalCode:null,kill(){events.push('signal');return true;}},item={stage,child,receipt,verified:true};
+ assert.equal(await completionStopOwnedChild(item,{stage,receipt,observe:async pid=>{events.push(pid?'identity':'ports');return pid?[row]:[];},matches:(r,p)=>completionProcessMatches(r,p,stage,s),verifyPins:()=>events.push('pins'),forget:()=>events.push('forget'),delay:async()=>{events.push('exit');child.exitCode=0;}}),true);assert.deepEqual(events,['identity','pins','signal','exit','ports','forget']);
+ let attempts=0,stops=0;const pending={stage,receipt:{run:'no-receipt',pid:12}},driver={verify:async()=>{attempts++;},sqlReady:async()=>{},inspect:async()=>[],start:async()=>{throw Error('missing receipt');},pendingOwned:()=>[pending],stop:async()=>{stops++;return false;},failure:async()=>{}};
+ await assert.rejects(runCompletionLogon({configPath:erp+'\\runtime\\completion\\launcher.json',configSha256:hash,ownerSid:owner,action:'Start',driverFactory:async()=>driver,loadSettings:()=>s,delay:async()=>assert.fail('pending cleanup cannot start replacement')}),/CLEANUP_UNVERIFIED/);assert.equal(attempts,1);assert.equal(stops,1);
+});
 function settings(){
  const refs=Object.fromEntries(['operationConfig','nativeOrderConfig','crmActivationConfig','hubPinConfig','hubStartupConfig'].map(key=>[key,{path:`${erp}\\runtime\\completion\\${key}.json`,sha256:hash}]));
  const packageRoot=erp+'\\releases\\CANONICAL-COMPLETE-TEST-20261011-bbbbbbb';
