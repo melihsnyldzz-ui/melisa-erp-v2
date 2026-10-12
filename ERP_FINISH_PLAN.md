@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — V11 stok kontrolü kaynak ve geri alma provası — 12 Ekim 2026
+
+Aynı 200 satır gecikmesi için exact altı-modül V11 native prova/rollback/veri-yetki koruması ve canonical kaynak review tamam. Mevcut V10'da yeni kaynak gerçek kısıtlı writer READY/reader bootstrap ile uyumlu. [Kanıt](docs/evidence/erp/2026-10-12-stock-performance/README.md). Kalıcı ileri uygulama/inverse, yeni paket, V11 READY, gerçek ekran ve süre ölçümü bekler; çalışan hız teslimi veya insan PASS değil. Aynı yaprak kısmi,49 toplam/9 tamam/39 kısmi/1 açık ve UA32 bekliyor değişmedi; günlük sıra panodadır.
+
 ## ERP-COMPLETE01 — native200 kesinleşti / kullanılabilir hız ve cihaz teslimi açık — 12 Ekim 2026
 
 Çalışanf411/v10: aynı200 ürün/223 adet satış controlled rollback→tek normal API finalize→aynı UUID yanıt kurtarma→bağımsız native200stok/1müşteri/tek journal→replay0/farklıbody409 doğrulandı. Normal yeşil fiş okuyucusu yeni200 satırı gösterdi; eski satış/iki READY koli korunur. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). 5,8–6,5sn fiş/koli okumaları, normal finalize90s yanıt kaybı ve core gözetim kesintisinin kesin alt nedeni açık;200Android/video henüz tamam değil. Kaynak tanılama veya native teknik kanıt personel kabulü değildir. UA32 bekliyor ve49toplam/9tamam/39kısmi/1açık aynı; yeni finish işi açılmadı.

@@ -9,6 +9,8 @@ import {buildSupplierItemQuarantineParentRevision,validateSupplierItemQuarantine
 import {buildOperationQuarantineParentRevision,validateOperationQuarantineParentRevision,validateOperationQuarantineSource} from './shared-business-operation-quarantine-parent-revision-sql.mjs';
 import {SELECTED_SALE_REGISTRY,SELECTED_SALE_IMMUTABLE} from './shared-business-selected-sale-revision-contract.mjs';
 import {COPY_MUTABLE_TABLES} from './stage4-copy-sql.mjs';
+import {buildStockPredicateDistinctRevision,validateStockPredicateRevision} from './shared-business-stock-predicate-distinct-revision-sql.mjs';
+import {validateStockPredicateSource,STOCK_PREDICATE_TRIGGER_ORDER} from './shared-business-stock-predicate-distinct-source.mjs';
 
 // Registration is earned by native proof and canonical source regeneration.
 // There is deliberately no caller-facing registration or hash override setter.
@@ -69,6 +71,32 @@ CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2
 CASE WHEN r.name=N'dbo.usp_assert_operation_quarantine_v2' THEN (SELECT after_hash FROM dbo.stage4_copy_module_manifest WHERE name=r.name) ELSE NULL END baseManifestHash
 FROM dbo.stage4_copy_operation_quarantine_revisions r WITH(HOLDLOCK) LEFT JOIN sys.objects o ON o.object_id=OBJECT_ID(r.name) ORDER BY r.name;
 `+metadataSQL;
+
+// Fresh unprojected mixed TR/P proof always precedes interpreting V10 history.
+export const STOCK_PREDICATE_REVISION_PROOF_SQL=metadataSQL+`
+SELECT CONVERT(varchar(36),r.copy_id) copyId,r.name,r.revision,r.base_seal_hash baseSealHash,r.base_operation_quarantine_revision_hash baseOperationQuarantineRevisionHash,r.profile_hash profileHash,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,
+CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(o.object_id)),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.immutable_stage4_copy_stock_predicate_revisions'))),2) immutableTriggerHash,ISNULL(CONVERT(int,OBJECTPROPERTY(OBJECT_ID(N'dbo.immutable_stage4_copy_stock_predicate_revisions'),'ExecIsTriggerDisabled')),1) triggerDisabled,
+o.object_id objectId,RTRIM(o.type) moduleType,CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsTriggerDisabled')),1) ELSE 0 END moduleDisabled,CASE WHEN o.type=N'TR' THEN OBJECT_SCHEMA_NAME(o.parent_object_id)+N'.'+OBJECT_NAME(o.parent_object_id) ELSE NULL END parentName,
+CASE WHEN r.name=N'dbo.supplier_identity_quarantine_v2_stock_movements' THEN (SELECT after_hash FROM dbo.stage4_copy_module_manifest WHERE name=r.name) ELSE NULL END baseManifestHash,
+CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsFirstInsertTrigger')),1) ELSE 0 END firstInsert,CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsFirstUpdateTrigger')),1) ELSE 0 END firstUpdate,CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsFirstDeleteTrigger')),1) ELSE 0 END firstDelete,
+CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsLastInsertTrigger')),1) ELSE 0 END lastInsert,CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsLastUpdateTrigger')),1) ELSE 0 END lastUpdate,CASE WHEN o.type=N'TR' THEN ISNULL(CONVERT(int,OBJECTPROPERTY(o.object_id,'ExecIsLastDeleteTrigger')),1) ELSE 0 END lastDelete
+FROM dbo.stage4_copy_stock_predicate_revisions r WITH(HOLDLOCK) LEFT JOIN sys.objects o ON o.object_id=OBJECT_ID(r.name) ORDER BY r.name;
+`+metadataSQL;
+
+export function validateStockPredicateNativeProof(copy,revision,source,result,nativeReadOnly){
+ copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===3&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[2].length===1,'STOCK_PREDICATE_BOOT_RECORDSETS');
+ const before=result.recordsets[0][0],after=result.recordsets[2][0];metadata(copy,before,nativeReadOnly);metadata(copy,after,nativeReadOnly);copyAssert(isolatedCopyJSON(before)===isolatedCopyJSON(after),'STOCK_PREDICATE_BOOT_SAME_TRANSACTION');
+ const rows=result.recordsets[1],keys=['copyId','name','revision','baseSealHash','baseOperationQuarantineRevisionHash','profileHash','beforeHash','afterHash','revisionHash','actualHash','immutableTriggerHash','triggerDisabled','objectId','moduleType','moduleDisabled','parentName','baseManifestHash',...Object.keys(STOCK_PREDICATE_TRIGGER_ORDER)];
+ copyAssert(rows.length===6&&new Set(rows.map(r=>r.name)).size===6,'STOCK_PREDICATE_BOOT_REGISTRY_ROWS');
+ for(const [i,m] of revision.modules.entries()){const r=rows.find(r=>r.name===m.name);copyAssert(exact(r,keys)&&r.copyId?.toLowerCase()===copy.copyId&&r.revision===11&&r.baseSealHash===copy.sealHash&&r.baseOperationQuarantineRevisionHash===revision.baseOperationQuarantineRevisionHash&&r.profileHash===revision.profileHash&&r.beforeHash===m.beforeHash&&r.afterHash===m.afterHash&&r.actualHash===m.afterHash&&r.revisionHash===revision.revisionHash&&r.immutableTriggerHash===revision.immutableTriggerHash&&r.triggerDisabled===0&&r.moduleType===m.type&&r.moduleDisabled===0&&r.parentName===(i===0?'dbo.stock_movements':null)&&r.baseManifestHash===(i===0?m.beforeHash:null)&&Number.isSafeInteger(r.objectId)&&r.objectId===source.objectIds[m.name]&&Object.keys(STOCK_PREDICATE_TRIGGER_ORDER).every(k=>r[k]===(i===0?source.triggerOrder[k]:0)),'STOCK_PREDICATE_BOOT_NATIVE_PINS');}
+ return result;
+}
+export function projectVerifiedStockPredicate(revision,current,result,selected){
+ const length=selected?11:3;copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===length&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[length-1].length===1,'STOCK_PREDICATE_BOOT_HISTORY_RECORDSETS');
+ copyAssert(isolatedCopyJSON(current.recordsets[0][0])===isolatedCopyJSON(result.recordsets[0][0])&&isolatedCopyJSON(current.recordsets[2][0])===isolatedCopyJSON(result.recordsets[length-1][0]),'STOCK_PREDICATE_BOOT_SAME_TRANSACTION');
+ const projected=structuredClone(result),groups=selected?[...projected.recordsets.slice(1,6),projected.recordsets[8]]:[projected.recordsets[1]];
+ for(const rows of groups)for(const r of rows){const m=revision.modules.find(m=>m.name===r.name);if(m){copyAssert(r.actualHash===m.afterHash,'STOCK_PREDICATE_BOOT_HISTORY_CURRENT_PIN');r.actualHash=m.beforeHash;}}return projected;
+}
 
 function operationProof(copy,revision,result,nativeReadOnly){
  copyAssert(Array.isArray(result?.recordsets)&&result.recordsets.length===3&&result.recordsets.every(Array.isArray)&&result.recordsets[0].length===1&&result.recordsets[2].length===1,'OPERATION_QUARANTINE_BOOT_RECORDSETS');const before=result.recordsets[0][0],after=result.recordsets[2][0];metadata(copy,before,nativeReadOnly);metadata(copy,after,nativeReadOnly);copyAssert(isolatedCopyJSON(before)===isolatedCopyJSON(after),'OPERATION_QUARANTINE_BOOT_SAME_TRANSACTION');
@@ -151,13 +179,16 @@ function projectVerifiedEffects(revision,effectsResult,result){
 }
 
 async function readCurrentProof(copy,state,request){
- let parentResult,overlayResult,quarantineResult,operationResult;
+ let parentResult,overlayResult,quarantineResult,operationResult,stockPredicateResult;
  if(state.selectedEffectsRevision!==undefined)validateEffectsRevision(copy,state.selectedRevision,state.selectedEffectsRevision);
  if(state.selectedParentRevision!==undefined)validateParentRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision);
  copyAssert((state.supplierItemQuarantineRevision===undefined)===(state.supplierItemQuarantineSource===undefined),'SUPPLIER_ITEM_BOOT_SOURCE_REQUIRED');
  copyAssert((state.operationQuarantineRevision===undefined)===(state.operationQuarantineSource===undefined),'OPERATION_QUARANTINE_BOOT_SOURCE_REQUIRED');
- if(state.operationQuarantineRevision!==undefined){validateOperationQuarantineSource(state.operationQuarantineSource,copy.copyId);validateOperationQuarantineParentRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision,state.supplierItemQuarantineRevision,state.operationQuarantineRevision);operationResult=operationProof(copy,state.operationQuarantineRevision,await request.query(OPERATION_QUARANTINE_REVISION_PROOF_SQL),state.nativeReadOnly);}
- const projectOperation=(raw,selected)=>operationResult?projectVerifiedOperation(state.operationQuarantineRevision,operationResult,raw,selected):raw;
+ copyAssert((state.stockPredicateRevision===undefined)===(state.stockPredicateSource===undefined),'STOCK_PREDICATE_BOOT_SOURCE_REQUIRED');
+ if(state.stockPredicateRevision!==undefined){validateStockPredicateSource(state.stockPredicateSource);validateStockPredicateRevision(copy,state.operationQuarantineRevision,state.stockPredicateRevision);stockPredicateResult=validateStockPredicateNativeProof(copy,state.stockPredicateRevision,state.stockPredicateSource,await request.query(STOCK_PREDICATE_REVISION_PROOF_SQL),state.nativeReadOnly);}
+ const projectStock=(raw,selected)=>stockPredicateResult?projectVerifiedStockPredicate(state.stockPredicateRevision,stockPredicateResult,raw,selected):raw;
+ if(state.operationQuarantineRevision!==undefined){validateOperationQuarantineSource(state.operationQuarantineSource,copy.copyId);validateOperationQuarantineParentRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision,state.supplierItemQuarantineRevision,state.operationQuarantineRevision);operationResult=operationProof(copy,state.operationQuarantineRevision,projectStock(await request.query(OPERATION_QUARANTINE_REVISION_PROOF_SQL),false),state.nativeReadOnly);}
+ const projectOperation=(raw,selected)=>{const current=projectStock(raw,selected);return operationResult?projectVerifiedOperation(state.operationQuarantineRevision,operationResult,current,selected):current;};
  if(state.supplierItemQuarantineRevision!==undefined){
   validateSupplierItemQuarantineSource(state.supplierItemQuarantineSource);
   validateSupplierItemQuarantineRevision(copy,state.selectedRevision,state.selectedEffectsRevision,state.selectedParentRevision,state.supplierItemQuarantineRevision);
@@ -234,12 +265,13 @@ export async function configureBusinessSelectedSaleRevision({copy,request,native
  if(state.selectedParentRevision!==undefined){const overlay=buildBusinessSelectedSaleParentRevision(args);copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.selectedParentRevision),'SELECTED_PARENT_BOOT_CANONICAL_REVISION');}
  if(state.supplierItemQuarantineRevision!==undefined){const overlay=buildSupplierItemQuarantineParentRevision({...args,supplierItemQuarantineSource:state.supplierItemQuarantineSource});copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.supplierItemQuarantineRevision),'SUPPLIER_ITEM_BOOT_CANONICAL_REVISION');}
  if(state.operationQuarantineRevision!==undefined){const overlay=buildOperationQuarantineParentRevision({...args,supplierItemQuarantineSource:state.supplierItemQuarantineSource,operationQuarantineSource:state.operationQuarantineSource});copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.operationQuarantineRevision),'OPERATION_QUARANTINE_BOOT_CANONICAL_REVISION');}
+ if(state.stockPredicateRevision!==undefined){const overlay=buildStockPredicateDistinctRevision({...args,supplierItemQuarantineSource:state.supplierItemQuarantineSource,operationQuarantineSource:state.operationQuarantineSource,stockPredicateSource:state.stockPredicateSource});copyAssert(isolatedCopyJSON(overlay.revision)===isolatedCopyJSON(state.stockPredicateRevision),'STOCK_PREDICATE_BOOT_CANONICAL_REVISION');}
  await proveHistory(copy,state,result);
  const baseBundle=buildBusinessSelectedSaleRevision({copy,daily:state.daily,profit:state.profit,schema:state.schema});
  const effectiveArgs={copy,daily:state.daily,profit:state.profit,schema:state.schema},effectsBundle=state.selectedEffectsRevision===undefined?null:buildBusinessSelectedSaleEffectsRevision(effectiveArgs);
  const parentBundle=state.selectedParentRevision===undefined?null:buildBusinessSelectedSaleParentRevision(effectiveArgs),quarantineBundle=state.supplierItemQuarantineRevision===undefined?null:buildSupplierItemQuarantineParentRevision({...effectiveArgs,supplierItemQuarantineSource:state.supplierItemQuarantineSource});
- const operationBundle=state.operationQuarantineRevision===undefined?null:buildOperationQuarantineParentRevision({...effectiveArgs,supplierItemQuarantineSource:state.supplierItemQuarantineSource,operationQuarantineSource:state.operationQuarantineSource}),bundle=operationBundle??quarantineBundle??parentBundle??effectsBundle??baseBundle;
- const value=freeze({revision:baseBundle.revision,...(effectsBundle?{selectedEffectsRevision:effectsBundle.revision}:{}),...(parentBundle?{selectedParentRevision:parentBundle.revision}:{}),...(quarantineBundle?{supplierItemQuarantineRevision:quarantineBundle.revision}:{}),...(operationBundle?{operationQuarantineRevision:operationBundle.revision}:{}),bundle,parentHashes:bundle.parentHashes});
+ const operationBundle=state.operationQuarantineRevision===undefined?null:buildOperationQuarantineParentRevision({...effectiveArgs,supplierItemQuarantineSource:state.supplierItemQuarantineSource,operationQuarantineSource:state.operationQuarantineSource}),stockPredicateBundle=state.stockPredicateRevision===undefined?null:buildStockPredicateDistinctRevision({...effectiveArgs,supplierItemQuarantineSource:state.supplierItemQuarantineSource,operationQuarantineSource:state.operationQuarantineSource,stockPredicateSource:state.stockPredicateSource}),bundle=stockPredicateBundle??operationBundle??quarantineBundle??parentBundle??effectsBundle??baseBundle;
+ const value=freeze({revision:baseBundle.revision,...(effectsBundle?{selectedEffectsRevision:effectsBundle.revision}:{}),...(parentBundle?{selectedParentRevision:parentBundle.revision}:{}),...(quarantineBundle?{supplierItemQuarantineRevision:quarantineBundle.revision}:{}),...(operationBundle?{operationQuarantineRevision:operationBundle.revision}:{}),...(stockPredicateBundle?{stockPredicateRevision:stockPredicateBundle.revision}:{}),bundle,parentHashes:bundle.parentHashes});
  registered.set(copy,{value,input:freeze(state)});return value;
 }
 export function getRegisteredBusinessSelectedSaleRevision(copy){

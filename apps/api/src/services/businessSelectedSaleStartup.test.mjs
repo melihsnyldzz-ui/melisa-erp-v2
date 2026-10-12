@@ -84,6 +84,10 @@ function operationStartupFixture(change=()=>{}){
 test('v5 never accepts omitted, extra or fabricated source pairs in older input formats',()=>{
  for(const change of [i=>i.schemaVersion='melisa-selected-sale-startup-input.v5',i=>{i.operationQuarantineRevision={};i.operationQuarantineSource={};},i=>{i.schemaVersion='melisa-selected-sale-startup-input.v5';i.operationQuarantineRevision={};}]){const f=parentFixture(change);assert.throws(()=>loadBusinessSelectedSaleStartup(f.config,f.copy,{readFile:()=>f.bytes}));assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);}
 });
+
+test('v6 requires exact paired stock source/revision with all V10 predecessors; old formats never consume new fields',()=>{
+ for(const change of [i=>i.schemaVersion='melisa-selected-sale-startup-input.v6',i=>{i.stockPredicateRevision={};i.stockPredicateSource={};},i=>{i.schemaVersion='melisa-selected-sale-startup-input.v6';i.stockPredicateRevision={};},i=>{i.schemaVersion='melisa-selected-sale-startup-input.v6';i.stockPredicateSource={};},i=>{i.schemaVersion='melisa-selected-sale-startup-input.v6';i.stockPredicateRevision={};i.stockPredicateSource={};i.operationQuarantineRevision={};i.operationQuarantineSource={};}]){const f=parentFixture(change);assert.throws(()=>loadBusinessSelectedSaleStartup(f.config,f.copy,{readFile:()=>f.bytes}));assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);}
+});
 test('ROOT v5 carries all sealed predecessor receipts and exact original assert bytes but does not earn native registration',{skip:!quarantinePrivatePath||!operationPrivatePath},()=>{
  const f=operationStartupFixture(),loaded=loadBusinessSelectedSaleStartup(f.config,f.copy,{readFile:()=>f.bytes});assert.equal(isolatedCopyHash(loaded),isolatedCopyHash(f.input));assert.equal(loaded.operationQuarantineRevision.version,10);assert.equal(loaded.supplierItemQuarantineRevision.version,9);assert.equal(f.config.businessSelectedSaleStartup.revisionHash,'A'.repeat(64));assert.equal(getRegisteredBusinessSelectedSaleRevision(f.copy),null);
 });

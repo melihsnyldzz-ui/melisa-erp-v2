@@ -18,6 +18,13 @@ test('serialized v10 self/parent receipts never authorize a new effective READY 
  const copy=validateIsolatedOperationCopyContext(fixtureContext()),proof=fixtureProof(copy);assertIsolatedCopyReadProof(copy,proof);
  const forged={...proof,definitionHashes:{...proof.definitionHashes,ready:'F'.repeat(64)},operationQuarantineRevision:{version:10,modules:[{name:'dbo.usp_assert_operation_quarantine_v2',afterHash:'F'.repeat(64)},{name:copy.sql.ready.name,afterHash:'F'.repeat(64)}]}};assert.throws(()=>assertIsolatedCopyReadProof(copy,forged),{code:'ISOLATED_COPY_READ_PROOF'});assert.equal(proof.definitionHashes.ready,copy.sql.ready.hash);
 });
+
+test('serialized V11 stock/TR and parent/P receipts never replace effective READY or register a write actor',()=>{
+ const copy=validateIsolatedOperationCopyContext(fixtureContext()),proof=fixtureProof(copy);
+ const forged={...proof,definitionHashes:{...proof.definitionHashes,ready:'F'.repeat(64)},stockPredicateRevision:{version:11,modules:[{name:'dbo.supplier_identity_quarantine_v2_stock_movements',type:'TR',afterHash:'F'.repeat(64)},{name:copy.sql.ready.name,type:'P',afterHash:'F'.repeat(64)}]}};
+ assert.throws(()=>assertIsolatedCopyReadProof(copy,forged),{code:'ISOLATED_COPY_READ_PROOF'});assertIsolatedCopyReadProof(copy,proof);
+ assert.throws(()=>assertIsolatedCopyActor(copy,{id:17,permissions:['sales.create']},{id:17,role:'admin',active:true,permissions:['sales.create']},'sales.create'),{code:'ISOLATED_COPY_FORBIDDEN'});
+});
 test('native Date response journals preserve the same timestamp on first response and replay',()=>{
  const createdAt=new Date('2026-10-10T09:08:07.123Z');createdAt.nanosecondsDelta=0;
  const response={result:{createdAt,id:123,plan:{documentDate:'2026-10-09',amount:170}},id:456,dates:[createdAt,new Date('2026-10-10T09:09:00Z')]};
