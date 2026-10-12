@@ -15,6 +15,13 @@ export function workSelectedSaleInput(input,{draft=false}={}){
  const seen=new Set(),items=input.items.map(row=>{workKeys(row,['productId','quoteId','quantityExact3']);const productId=workId(row.productId),quoteId=workId(row.quoteId),quantity=workScaled(row.quantityExact3,3);if(seen.has(productId)||quantity<=0n||quantity%1000n!==0n)workFail('WORK_QUANTITY_INVALID','Pozitif tam ana birim miktarı gerekli.');seen.add(productId);return {productId,quoteId,quantityExact3:row.quantityExact3};});
  return {...(draft?{requestId:workRequestId(input.requestId),previewHash:workRevision(input.previewHash),expectedRevision:workRevision(input.expectedRevision)}:{}),customerId:workId(input.customerId),documentDate:workDate(input.documentDate),currency:input.currency,items};
 }
+export function workSalesListFilter(query){
+ const customer=Object.hasOwn(query,'customerId'),currency=Object.hasOwn(query,'currency');
+ if(customer!==currency)workFail('WORK_QUERY_INVALID','Müşteri ve döviz birlikte seçilmelidir.');
+ if(!customer)return {};
+ if(!['TRY','USD','EUR'].includes(query.currency))workFail('WORK_QUERY_INVALID','Döviz seçimi geçersiz.');
+ return {customerId:workId(query.customerId),currency:query.currency};
+}
 export function createWorkSalesService({getStore=defaultStore}={}){
  const mutateSale=async(actor,operation,payload,fn)=>{const store=await getStore();return (store.mutateSelectedSale??store.mutate).call(store,actor,operation,payload,fn);};
  return {
@@ -40,7 +47,7 @@ export function createWorkSalesService({getStore=defaultStore}={}){
    return {invoice:await c.cancel(id,payload.reason),requestId:payload.requestId,replayed:false};
   });},
   async invoice(id,actor){actor=workActor(actor,'sales.view');const store=await getStore();return (store.readHistoricalSale??store.read).call(store,actor,c=>c.invoice(workId(id)));},
-  async list(query,actor){actor=workActor(actor,'sales.view');workKeys(query,['page','limit']);const positive=(v,d,max)=>{if(v===undefined)return d;if(typeof v!=='string'||!/^[1-9]\d*$/.test(v)||Number(v)>max)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');return Number(v);};const store=await getStore();return (store.readHistoricalSale??store.read).call(store,actor,c=>c.list({page:positive(query.page,1,10000),limit:positive(query.limit,25,50)}));},
+  async list(query,actor){actor=workActor(actor,'sales.view');workKeys(query,['page','limit','customerId','currency']);const positive=(v,d,max)=>{if(v===undefined)return d;if(typeof v!=='string'||!/^[1-9]\d*$/.test(v)||Number(v)>max)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');return Number(v);};const filter=workSalesListFilter(query),options={page:positive(query.page,1,10000),limit:positive(query.limit,25,50),...filter},store=await getStore();return (store.readHistoricalSale??store.read).call(store,actor,c=>c.list(options));},
   async request(id,actor){actor=workActor(actor,'sales.view');const {workRequestId,workSelection,workDraftInput}=await import('./workSalesModel.mjs');return (await getStore()).read(actor,c=>c.request(workRequestId(id)));}
  };
 }

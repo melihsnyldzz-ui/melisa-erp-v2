@@ -6,7 +6,7 @@ import {assertGoal8Profile,goal8DayEnabled,goal8DayPayload,goal8SqlProfileInstal
 import {selectBusinessSaleWriteIntent,businessSelectedSaleOptions} from './businessSelectedSaleWriteIntent.mjs';
 import {deriveBusinessSelectedSaleJournal} from './businessSelectedSaleJournal.mjs';
 import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
-import {workSelectedSaleInput} from './workSalesService.mjs';
+import {workSelectedSaleInput,workSalesListFilter} from './workSalesService.mjs';
 const DB='MELISA_ERP_SIRKET_TEST_20260929_01',SERVER='Semih\\MELISADEV';
 const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
 export const workPayloadJson=(actor,operation,payload)=>JSON.stringify(stable({...payload,operation,actorId:actor.id}));
@@ -78,7 +78,14 @@ export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
      value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});value.revision=workHash(value);return value;
     }
     c.invoice=invoice;c.collection=collection;
-    c.list=async({page,limit})=>{const sets=(await req().input('offset',q.Int,(page-1)*limit).input('limit',q.Int,limit).input('profileDate',q.Date,raw.documentDate).query("SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate;SELECT CONVERT(varchar(20),invoice_id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate ORDER BY invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;")).recordsets;const data=[];for(const row of sets[1])data.push(await invoice(row.id));return {data,meta:{total:Number(sets[0][0].total),page,limit}};};
+    c.list=async(options)=>{
+     const {page,limit}=options,filter=workSalesListFilter(options);
+     if(filter.customerId&&(filter.customerId!==raw.customer.id||filter.currency!==raw.currency))return {data:[],meta:{total:0,page,limit}};
+     const query=req().input('offset',q.Int,(page-1)*limit).input('limit',q.Int,limit).input('profileDate',q.Date,raw.documentDate),suffix=filter.customerId?SALE_LIST_FILTER_SQL:'';
+     if(filter.customerId)query.input('filter_customer_id',q.BigInt,filter.customerId).input('filter_currency',q.NVarChar(3),filter.currency);
+     const sets=(await query.query(`SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate${suffix};SELECT CONVERT(varchar(20),invoice_id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate${suffix} ORDER BY invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`)).recordsets;
+     const data=[];for(const row of sets[1])data.push(await invoice(row.id));return {data,meta:{total:Number(sets[0][0].total),page,limit}};
+    };
     c.request=async id=>{const old=(await req().input('id',q.UniqueIdentifier,id).input('actor',q.BigInt,actor.id).query('SELECT operation,response_json FROM dbo.work_trade_requests WHERE request_id=@id AND actor_id=@actor;')).recordset?.[0];if(!old)workFail('WORK_REQUEST_NOT_FOUND','İşlem kaydı bulunamadı.',404);return {requestId:id,operation:old.operation,response:JSON.parse(old.response_json)};};
     const refresh=async()=>{const current=(await contextRequest().execute('dbo.work_trade_get_context')).recordset?.[0];if(Object.entries(r.proof).some(([key,value])=>current?.[key]!==value))throw workError();const next=workContextDto(JSON.parse(current.context_json),actor,goal8Profile);Object.assign(context,next);};
     c.createDraft=async(preview,requestId)=>{
@@ -147,6 +154,11 @@ export const SELECTED_SALE_LIST_PREDICATE_SQL=`i.document_date=@profileDate AND 
  OR (@selected_enabled=1 AND EXISTS(SELECT 1 FROM dbo.stage4_copy_requests j WHERE j.copy_id=@copy_id AND j.request_id=l.request_id AND j.actor_id=@actor_id AND l.actor_id=j.actor_id AND j.operation=N'sale_draft' AND JSON_VALUE(j.payload_json,'$.businessSelectedSalePolicyHash') IS NOT NULL AND JSON_VALUE(j.payload_json,'$.operationOrigin')=JSON_VALUE(l.preview_json,'$.operationOrigin') AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.invoice.id'))=i.id AND TRY_CONVERT(uniqueidentifier,JSON_VALUE(j.response_json,'$.requestId'))=j.request_id))
 )`;
 export const SELECTED_SALE_LIST_SQL=`SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE ${SELECTED_SALE_LIST_PREDICATE_SQL};SELECT CONVERT(varchar(20),l.invoice_id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE ${SELECTED_SALE_LIST_PREDICATE_SQL} ORDER BY l.invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`;
+const SALE_LIST_FILTER_SQL=' AND i.customer_id=@filter_customer_id AND i.document_currency COLLATE Latin1_General_100_BIN2=@filter_currency COLLATE Latin1_General_100_BIN2';
+export function selectedSaleListSQL(filter={}){
+ const checked=workSalesListFilter(filter);
+ return checked.customerId?SELECTED_SALE_LIST_SQL.replaceAll(SELECTED_SALE_LIST_PREDICATE_SQL,SELECTED_SALE_LIST_PREDICATE_SQL+SALE_LIST_FILTER_SQL):SELECTED_SALE_LIST_SQL;
+}
 export async function loadBusinessSelectedSaleJournal({copy,actor,request,sql,id}){
  workId(id);const sets=(await request().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('id',sql.BigInt,id).query(SELECTED_SALE_JOIN_SQL)).recordsets;
  if(sets?.length!==2||sets[0]?.length!==1)workFail('WORK_INVOICE_NOT_FOUND','Satış kaydı bulunamadı.',404);
@@ -214,10 +226,14 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
      value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});if(selectedInvoice){const {selectedSaleInvoiceRevisionSQL}=await import('../../../../scripts/canonical/shared-business-selected-sale-revision-sql.mjs');const rows=(await req().input('invoice_id',q.BigInt,id).input('copy_id',q.UniqueIdentifier,copyContext.copyId).input('actor_id',q.BigInt,actor.id).query(selectedSaleInvoiceRevisionSQL)).recordset;if(rows?.length!==1)throw workError();value.revision=workRevision(rows[0].invoiceRevision);}else value.revision=workHash(value);if(selectedInvoice)value.capabilities={canCollect:false,canCancelCollection:false};return value;
     }
     c.invoice=invoice;c.collection=collection;
-    c.list=async({page,limit})=>{
+    c.list=async(options)=>{
+     const {page,limit}=options,filter=workSalesListFilter(options);
      if(!Number.isSafeInteger(page)||page<1||!Number.isSafeInteger(limit)||limit<1||limit>50)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');
+     if(!business&&filter.customerId&&(filter.customerId!==raw.customer.id||filter.currency!==raw.customer.currency))return {data:[],meta:{total:0,page,limit}};
      const initialContext={...context},initialRaw=raw,query=req().input('offset',q.Int,(page-1)*limit).input('limit',q.Int,limit).input('profileDate',q.Date,raw.documentDate);
-     const text=business?SELECTED_SALE_LIST_SQL:`SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate AND i.customer_id=${raw.customer.id} AND JSON_VALUE(l.preview_json,'$.copyId')=${sqlCopyId};SELECT CONVERT(varchar(20),invoice_id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate AND i.customer_id=${raw.customer.id} AND JSON_VALUE(l.preview_json,'$.copyId')=${sqlCopyId} ORDER BY invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`;
+     const suffix=filter.customerId?SALE_LIST_FILTER_SQL:'';
+     if(filter.customerId)query.input('filter_customer_id',q.BigInt,filter.customerId).input('filter_currency',q.NVarChar(3),filter.currency);
+     const text=business?selectedSaleListSQL(filter):`SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate AND i.customer_id=${raw.customer.id} AND JSON_VALUE(l.preview_json,'$.copyId')=${sqlCopyId}${suffix};SELECT CONVERT(varchar(20),invoice_id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices i ON i.id=l.invoice_id WHERE i.document_date=@profileDate AND i.customer_id=${raw.customer.id} AND JSON_VALUE(l.preview_json,'$.copyId')=${sqlCopyId}${suffix} ORDER BY invoice_id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`;
      if(business)query.input('copy_id',q.UniqueIdentifier,copyContext.copyId).input('actor_id',q.BigInt,actor.id).input('legacy_customer',q.BigInt,raw.customer.id).input('selected_enabled',q.Bit,c.selectedSaleEnabled);
      const sets=(await query.query(text)).recordsets;if(sets?.length!==2||sets[0]?.length!==1||!Array.isArray(sets[1]))throw workError();
      const restore=()=>{for(const key of Object.keys(context))if(!Object.hasOwn(initialContext,key))delete context[key];Object.assign(context,initialContext);raw=initialRaw;};

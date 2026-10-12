@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createWorkTradeStore,workContextDto,workPayloadJson} from './workTradeStore.mjs';
+import {createWorkTradeStore,workContextDto,workPayloadJson,SELECTED_SALE_LIST_SQL,SELECTED_SALE_LIST_PREDICATE_SQL,selectedSaleListSQL} from './workTradeStore.mjs';
 const hashes={readyHash:'A'.repeat(64),contextHash:'B'.repeat(64),effectsHash:'C'.repeat(64)};
 const actor={id:'16',testAdminSession:true,permissions:['sales.view','sales.create','sales.finalize','sales.cancel','customer.view','finance.view','finance.collection','finance.collection.cancel']};
 const raw=()=>({customer:{id:'500003',code:'NIGHT-C',name:'Sentetik müşteri',currency:'TRY',balanceExact4:'0.0000'},account:{id:'500004',code:'NIGHT-A',name:'Sentetik kasa',currency:'TRY',type:'cash',balanceExact4:'0.0000'},products:['500001','500002'].map((id,i)=>({id,stockCode:`NIGHT-P${i}`,name:`Sentetik ürün ${i}`,barcode:`N${i}`,unit:'ADET',stockQuantityExact3:'20.000',unitPriceExact8:i?'50.00000000':'100.00000000',costExact4:i?'30.0000':'60.0000',priceId:String(i+1)})),currency:'TRY',documentDate:'2026-10-06',maxQuantity:5,maxOperations:30,maxTotalExact4:'500.0000',revision:'D'.repeat(64),permissions:['sales.view','customer.view','finance.view','finance.collection','finance.collection.cancel']});
@@ -45,4 +45,27 @@ test('current finance permission revocation denies even an otherwise valid immut
 
 test('unknown operation count cannot be interpreted as an empty journal',async()=>{
  const r=runtime({used:null});await assert.rejects(createWorkTradeStore(r).mutate(actor,'sale_draft',{requestId:'2c708e7c-8974-4636-94e4-99d0c1b4a8e8'},()=>{}),{statusCode:503});assert.equal(r.queries.some(row=>row.sql.includes('INSERT dbo.work_trade_intents')),false);assert.equal(r.events.at(-1),'rollback');
+});
+
+test('paired list SQL preserves existing copy/journal/actor predicate and applies same AND to count and page',()=>{
+ const text=selectedSaleListSQL({customerId:'40',currency:'USD'});assert.equal(selectedSaleListSQL({}),SELECTED_SALE_LIST_SQL);assert.equal(text.split(SELECTED_SALE_LIST_PREDICATE_SQL).length-1,2);
+ for(const part of["i.document_date=@profileDate","JSON_VALUE(l.preview_json,'$.copyId')","j.actor_id=@actor_id","l.actor_id=j.actor_id","j.operation=N'sale_draft'","JSON_VALUE(j.payload_json,'$.businessSelectedSalePolicyHash')","TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.invoice.id'))=i.id"])assert.equal(text.split(part).length-1,2,part);
+ assert.equal(text.split('i.customer_id=@filter_customer_id').length-1,2);assert.equal(text.split('i.document_currency COLLATE Latin1_General_100_BIN2=@filter_currency').length-1,2);assert(text.indexOf('@filter_currency')<text.indexOf('OFFSET @offset'));assert(!text.includes("'40'"));assert(!text.includes("'USD'"));
+ for(const input of[{customerId:'40'},{currency:'TRY'},{customerId:'040',currency:'TRY'},{customerId:'40',currency:'usd'}])assert.throws(()=>selectedSaleListSQL(input));
+});
+async function listCallbackFixture({business=true,legacy=false}={}){
+ const {readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm'),{workSalesListFilter}=await import('./workSalesService.mjs'),{workFail,workError}=await import('./workSalesModel.mjs');
+ const source=readFileSync(new URL('./workTradeStore.mjs',import.meta.url),'utf8'),begin=source.indexOf('    c.list=async(options)=>{',legacy?0:source.indexOf('export const SELECTED_SALE_LIST_SQL')),end=source.indexOf(legacy?'    c.createDraft':'    const refresh=',begin),code=source.slice(begin,end);
+ const all=[{id:'9',customerId:'40',currency:'USD',owned:true},{id:'8',customerId:'41',currency:'TRY',owned:true},{id:'7',customerId:'40',currency:'TRY',owned:true},{id:'6',customerId:'40',currency:'TRY',owned:true},{id:'5',customerId:'40',currency:'TRY',owned:false}],params={},queries=[],hydrated=[],c={selectedSaleEnabled:true};
+ const request={input(k,t,v){params[k]=v;return this;},async query(sql){queries.push(sql);if(business&&!legacy)assert(sql.includes(SELECTED_SALE_LIST_PREDICATE_SQL));let rows=all.filter(r=>r.owned);if(Object.hasOwn(params,'filter_customer_id'))rows=rows.filter(r=>r.customerId===params.filter_customer_id&&r.currency===params.filter_currency);return{recordsets:[[{total:rows.length}],rows.slice(params.offset,params.offset+params.limit)]};}};
+ const bindings={c,raw:{customer:{id:'40',currency:'TRY'},...(legacy?{currency:'TRY'}:{}),documentDate:'2026-10-06'},context:{},business,req:()=>{for(const k of Object.keys(params))delete params[k];return request;},q:{Int:'int',Date:'date',BigInt:'bigint',Bit:'bit',UniqueIdentifier:'uuid',NVarChar:n=>'nvarchar'+n},actor:{id:'15'},copyContext:{copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82'},sqlCopyId:"'e16b70f0-4057-428b-9abc-6bbcaf35fe82'",invoice:async id=>{hydrated.push(id);return{id};},workSalesListFilter,workFail,workError,selectedSaleListSQL,SELECTED_SALE_LIST_SQL,SALE_LIST_FILTER_SQL:' AND i.customer_id=@filter_customer_id AND i.document_currency COLLATE Latin1_General_100_BIN2=@filter_currency COLLATE Latin1_General_100_BIN2'};
+ runInNewContext(code,bindings);return{c,bindings,params,queries,hydrated};
+}
+test('actual isolated list callback binds filters before pagination and never hydrates a scoped miss',async()=>{
+ const f=await listCallbackFixture(),result=await f.c.list({page:2,limit:1,customerId:'40',currency:'TRY'});assert.deepEqual(JSON.parse(JSON.stringify(result)),{data:[{id:'6'}],meta:{total:2,page:2,limit:1}});assert.deepEqual(f.hydrated,['6']);assert.equal(f.params.actor_id,'15');assert.equal(f.params.copy_id,f.bindings.copyContext.copyId);assert.equal(f.params.filter_customer_id,'40');assert.equal(f.params.filter_currency,'TRY');
+ f.hydrated.length=0;const missing=await f.c.list({page:1,limit:25,customerId:'999',currency:'EUR'});assert.equal(missing.meta.total,0);assert.equal(missing.data.length,0);assert.deepEqual(f.hydrated,[]);
+ const unfiltered=await listCallbackFixture();assert.equal((await unfiltered.c.list({page:1,limit:25})).meta.total,4);assert.equal(unfiltered.queries[0],SELECTED_SALE_LIST_SQL);assert(!Object.hasOwn(unfiltered.params,'filter_currency'));
+});
+test('legacy and non-selected copy callbacks refuse foreign pairs without query or card hydration',async()=>{
+ for(const options of[{legacy:true},{business:false}]){const f=await listCallbackFixture(options);for(const filter of[{customerId:'41',currency:'TRY'},{customerId:'40',currency:'USD'}]){const result=await f.c.list({page:1,limit:25,...filter});assert.equal(result.meta.total,0);assert.equal(result.data.length,0);}assert.deepEqual(f.queries,[]);assert.deepEqual(f.hydrated,[]);const result=await f.c.list({page:2,limit:1,customerId:'40',currency:'TRY'});assert.equal(result.meta.total,2);assert.equal(result.data[0].id,'6');assert.equal(f.queries[0].split('i.customer_id=@filter_customer_id').length-1,2);if(!options.legacy)assert.equal(f.queries[0].split("JSON_VALUE(l.preview_json,'$.copyId')").length-1,2);}
 });

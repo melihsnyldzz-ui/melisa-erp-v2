@@ -70,3 +70,14 @@ test('night product exception is local to verified transaction and never leaks t
  await withWorkNightScope(proof,async()=>{assert.equal(isWorkNightProduct(products[0].id,proof.transaction),true);assert.equal(isWorkNightProduct(products[0].id,{}),false);assert.equal(isWorkNightProduct(products[0].id),false);assert.equal(isWorkNightProduct('301986',proof.transaction),false);});assert.equal(isWorkNightProduct(products[0].id,proof.transaction),false);
  for(const patch of [{database:'LIVE'},{validated:false},{transaction:null},{products:[products[0]]},{products:[...products,{...products[0],id:'400005'}]}])assert.throws(()=>withWorkNightScope({...proof,...patch},()=>{}),{statusCode:503});
 });
+
+test('customer/currency list pair narrows mixed history before pagination without changing response metadata',async()=>{
+ const rows=[{id:'9',customerId:'40',currency:'USD'},{id:'8',customerId:'41',currency:'TRY'},{id:'7',customerId:'40',currency:'TRY'},{id:'6',customerId:'40',currency:'TRY'},{id:'5',customerId:'40',currency:'EUR'}],calls=[];
+ const store={readHistoricalSale:async(a,fn)=>{calls.push(a);return fn({list:async({page,limit,customerId,currency})=>{const visible=customerId?rows.filter(r=>r.customerId===customerId&&r.currency===currency):rows;return{data:visible.slice((page-1)*limit,page*limit),meta:{total:visible.length,page,limit}};}});}};
+ const service=createWorkSalesService({getStore:async()=>store});assert.deepEqual(await service.list({customerId:'40',currency:'TRY',page:'2',limit:'1'},actor),{data:[rows[3]],meta:{total:2,page:2,limit:1}});assert.equal((await service.list({customerId:'999',currency:'TRY'},actor)).meta.total,0);assert.deepEqual((await service.list({},actor)).data,rows);assert.equal(calls.length,3);
+});
+test('list rejects incomplete/unsafe filter keys before store access and preserves sales permission gate',async()=>{
+ let reads=0;const service=createWorkSalesService({getStore:async()=>{reads++;throw Error('unexpected store');}});
+ for(const query of[{customerId:'40'},{currency:'TRY'},{customerId:'40',currency:'try'},{customerId:'40',currency:'GBP'},{customerId:'040',currency:'TRY'},{customerId:40,currency:'TRY'},{customerId:'40 ',currency:'TRY'},{customerId:'40.0',currency:'TRY'},{customerId:'4e1',currency:'TRY'},{customerId:['40'],currency:'TRY'},{customerId:'9223372036854775808',currency:'TRY'},{customerId:'40',currency:'TRY',source:'all'}])await assert.rejects(()=>service.list(query,actor));
+ await assert.rejects(()=>service.list({customerId:'40',currency:'TRY'},{id:'15',permissions:[]}),{statusCode:403});assert.equal(reads,0);
+});

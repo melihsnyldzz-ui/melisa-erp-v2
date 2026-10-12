@@ -8,6 +8,18 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 
+test('invoice history admits only paired customer/currency GET filters and bounded pagination',async()=>{
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});return reply({data:[],meta:{page:1,limit:25,total:0}});}});
+ await session.start();
+ for(const path of ['/api/work-sales/invoices?page=2&limit=25&customerId=501&currency=USD','/api/work-sales/invoices?currency=TRY&customerId=501','/api/work-sales/invoices?page=1&limit=50'])await session.work(path);
+ assert.equal(calls.length,3);assert(calls.every(c=>c.options.method==='GET'&&c.options.headers.Authorization==='Bearer history-fixture'));
+ const base='/api/work-sales/invoices?';
+ for(const query of ['customerId=501','currency=USD','customerId=501&currency=LL','customerId=0501&currency=TRY','customerId=501&currency=TRY&currency=USD','customerId=501&currency=TRY&actorId=16','customerId=501&currency=TRY&token=x','page=0','limit=51','page=10001','page=1&page=2',''])await assert.rejects(()=>session.work(base+query));
+ await assert.rejects(()=>session.work(base+'customerId=501&currency=TRY',{method:'POST',body:{}}));
+ assert.equal(calls.length,3);session.dispose();
+});
+
 test('an authenticated work POST can finish after15s while its exact UUID/body and journal stay unchanged',async t=>{
  t.mock.timers.enable({apis:['setTimeout']});
  const store=storage(),calls=[];let finish,signal;

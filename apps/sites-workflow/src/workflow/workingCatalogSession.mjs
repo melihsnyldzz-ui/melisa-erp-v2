@@ -6,6 +6,14 @@ export const workingCatalogTokenKey='melisaTestSalesAccessToken';
 // The temporary HOME reader is an exact same-origin GET convenience, not an
 // authentication, actor, API or commercial-route authority.
 const worktestHomePath='/api/terminal-worktest/home-summary';
+function invoiceListReadPath(path){
+ if(typeof path!=='string'||!path.startsWith('/api/work-sales/invoices?'))return false;
+ const query=new URLSearchParams(path.slice('/api/work-sales/invoices?'.length)),keys=[...query.keys()];
+ if(!keys.length||new Set(keys).size!==keys.length||keys.some(k=>!['page','limit','customerId','currency'].includes(k)))return false;
+ for(const [key,max] of [['page',10000],['limit',50]])if(query.has(key)&&(!/^[1-9]\d*$/.test(query.get(key))||Number(query.get(key))>max))return false;
+ if(query.has('customerId')!==query.has('currency'))return false;
+ return !query.has('customerId')||/^[1-9]\d*$/.test(query.get('customerId'))&&['TRY','USD','EUR'].includes(query.get('currency'));
+}
 function worktestHomeOrigin(location,bootstrap,copyProfile){
  if(!bootstrap||Array.isArray(bootstrap)||Object.keys(bootstrap).sort().join(',')!=='copyId,path'||bootstrap.path!==worktestHomePath||bootstrap.copyId!=='e16b70f0-4057-428b-9abc-6bbcaf35fe82')return null;
  return cartonReadOrigin(location,copyProfile);
@@ -117,7 +125,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   async work(path,{method='GET',body,...extra}={}){
    const read=/^\/api\/(?:work-sales\/(?:context|selection-options|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
    const write=/^\/api\/(?:work-sales\/(?:selected-context|preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
-   if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
+   if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&(read.test(path)||invoiceListReadPath(path))&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,workMutation:method==='POST',workErrors:method==='POST'&&/^\/api\/work-sales\/drafts\/[1-9]\d*\/cancel$/.test(path)})).data;
   },
   async cartons(path,{method='GET',body,...extra}={}){
