@@ -1,4 +1,8 @@
-## ERP-COMPLETE01 — V11 stok kontrolü / aynı performans kapanışı — 12 Ekim 2026
+## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-051 — Semih tek düğme girişi
+
+Kullanıcı önceliği tekrar yalnız normal Host'ta **Semih olarak devam et** sonucuna daralttı. Performans ölçümü tamamlanıp salt okunur oturum kapatıldı; yeni hız/terminal/eğitim ve paket aktivasyonu durdu. Gerçek Windows pencere envanterinde açık Melisa Host yok. Yeni istemci başlatımına önce verilmiş policy reddi sürüyor; başka araç/adres/komut veya kullanıcı üzerinden denenmez. Dedicated kimlik/normal auth hazırlığı çalışan düğme değildir. Tek mevcut engel izinli çalışan Host giriş yüzeyinin bulunmaması ve yeni istemci başlatımının reddedilmiş olmasıdır. Parola veya tekrar onay istenmez; giriş kanıtlanmadan başka ana işe geçilmez. UA32/finish49-9-39-1 aynı.
+
+## ERP-COMPLETE01 — V11 stok kontrolü / tarihsel hazırlık — 12 Ekim 2026
 
 Gecikmeye yönelik altı modüllü dar stok kontrolü gerçek izole native derleme/koruma/rollback provasını geçti; 51 ticari,16 kontrol-geçmiş,6 karantina tablosu ve bütün mevcut kullanıcı/roller aynı. V11 kaynak review GO ve yeni kaynağın mevcut V10 writer/reader gerçek salt okunur uyumu tamam. [Kanıt](docs/evidence/erp/2026-10-12-stock-performance/README.md). **Henüz kalıcı V11 uygulaması veya çalışan hız teslimi değil.** Sıradaki aynı onaylı iş: metadata inverse/pinli paket → kontrollü ileri uygulama → kısıtlı V11 READY → gerçek süre/ekran. Mevcut satış/migration tekrar edilmez; CRM ayrı paused, Windows istemci policy reddi aşılmaz. İnsan UA32/finish49-9-39-1 aynı; ikinci goal veya yeni finish işi yok.
 

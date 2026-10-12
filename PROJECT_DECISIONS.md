@@ -23,6 +23,12 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-051 — 12 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan yeni önceliği: **“Basit bi giriş istiyorsam… oraya bir tane buton koy, bas gireyim, bu kadar basit.”** Kaynak: `sesli yönlendirme` sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, kullanıcı mesajı `01a130e1-c7af-71b3-820c-254097728f39`; `read_thread` ile doğrulandı. Aynı ERP-COMPLETE01 içinde önce normal Melisa Host'ta **Semih olarak devam et** ve gerçek ERP/CRM giriş sonucu tamamlanır. Açık performans işi güvenli noktada bırakılır; giriş kapanmadan yeni hız/terminal/eğitim işi veya paket döngüsü başlatılmaz. ERP-DEC-050'nin girişten sonraki ana devam yetkisi korunur; günlük önceliği bu karar belirler.
+
+Mevcut dedicated Semih TEST kimliği, korumalı Windows kayıt ve normal auth kullanılır; parola/tekrar onay istenmez, rol yükseltilmez veya bypass kurulmaz. Yeni Windows istemci başlatımına verilen policy reddi başka araç/adres/komutla ya da kullanıcıya yaptırılarak aşılmaz. Mevcut izinli Host penceresine bağlanabilen desteklenen yol yoksa tek gerçek engel bildirilir; kaynak/hesap/paket hazırlığı çalışan düğme sayılmaz. CRM'nin ayrı pause kararı ve bütün veri/LIVE/Vega/T1/main/mesaj/ücretli servis sınırları sürer.
+
 ### ERP-DEC-050 — 12 Ekim 2026 — Onaylı
 
 Kullanıcı, korumalı Semih girişinden sonra önceden yetkili beş aşamalı ana teslim işlerine kendiliğinden devam edilmesini açıkça istedi. Kaynak: `01a12824-1cc4-78f0-817b-6c8389061e4b` sohbetinden iletilen doğrudan kullanıcı cevabı **“İstiyorum tabii ki”**. Semih dar erişimi ilk önceliktir; tamamlanır veya somut policy/destek engeli kayıtla ayrılırsa bağımsız yetkili ERP işleri yeni `devam` beklemeden sürer. CRM sohbetinin ayrı duraklatması kalkmaz. İkinci goal açılmaz; `get_goal` mevcut hedefi paused gösteriyorsa desteklenmeyen araçla active kanıtı üretilmez. Kullanıcının yeni devam kararı işlenir.
