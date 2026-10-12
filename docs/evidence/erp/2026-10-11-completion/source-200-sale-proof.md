@@ -1,5 +1,30 @@
 # 200 farklı ürün / iki koli — gerçek native prova — 12 Ekim 2026
 
+## Güncel gerçek sonuç — çalışanf411 / v10
+
+ERP application source `f411eb8dd84011145931aa22c4fe8a25194faf06`,1843 dosyalı paket/manifest `bc06a588e9c549728804d6406901954c93d8a08d5354c7cd7579816f24738f25`; API4184/native4186/web5234 exact DB02/copy/T1=false. CRM09ca/native60e ve APKv22 sourcef3d223 ayrı kimliklerdir. V10 companion yalnız assertion ve dört parent'ın doğrulanmış ileri sürümünü tanıtır; eski supplier-item/185 manifest/v6–v9 kayıtları ve bütün hold/rol sınırları korunur. Gerçek metadata Rehearse rollback full fingerprint aynı, Apply metadata-only ve normal restricted writer READY geçti; ticari veri/rol yazması0.
+
+Yeni immutable plan `4127ab627d84cf3b576bb2c562bf0cd929d5db9c4945dc19d5b03aa0dd01e5e2`, önceki C82 satışından ayrıdır; yine200 farklı ürün/223 adet. Native controlled finalize tüm fazları geçti ve rollback full before-image aynı/authoritative request404 sonucuna döndü. Sonra normal API tek POST;90.008sn sonunda client yanıt kaybı. Bu anda rollback/failure ilan edilmedi ve başka UUID/taslak/POST üretilmedi. SameUUID authoritative normal GET başarılı yanıtı kurtardı. Bağımsız native kontrol200 immutable satır/aynı kâr snapshot/200 stok hareketi/1müşteri hareketi/223adet/exact döviz/tek journal ve korunacak bütün before alanlarını doğruladı. Aynıbody replay ikinci native etki0; aynıUUID farklıbody409.
+
+| Private kanıt | SHA256 | Sonuç |
+| --- | --- | --- |
+| controlled-finalize-v10-result-1791788081047.json |449101234667756d32a3d1883881521c33644f98047343c4a73a4dca0bb24ed6|Native full proof + rollback PASS|
+| finalize-v10-ack.json |d8d8990b74ec9f0399a892fe546421a0d3761da281d50abf7400019c07d754a2|AUTHORITATIVE_REQUEST_GET; ikinciPOST0|
+| committed-native-v10-result-1791789200241.json |ed271a4dde1c4e6fc8a3c2c6e3388e97bdfe8779a0728f3a6f255a10aad7670a|Bağımsız200/200/1/223/tekjournal/tam eski kayıt koruması|
+| v10-finalize-replay-conflict-1791789289657.json |58d8f407c751acedc25417fae91b46a7507a6851a4157728851979c2ade13dd6|Replay ek etki0/farklıbody409|
+| v10-finalized-read-performance-1791789356625.json |780121f96ad3899771598655853dd009aa70811a68c2c5f097aa31f82eaf91ed|Normal-role dört GET200/önce-sonra aynı|
+| finalized-200-readback-f411.png |e3409ce1ccf064d77198153174e8dfd856ff1c46732acb231b48d054f410d35b|Gerçek yeşil terminal200satır/223adet/henüz yeni koli0|
+
+Ham kanıtlar `C:\Sirket\ERP\evidence\ERP-COMPLETION01-20261011\private\recovery-proof\readonly-candidates\finalize-batch-case-625969d` altında kalır; müşteri/ürün kimliği, tutar, barkod ve SQL/Git aktarımı yok. Yeni fişe koli yazılmadı; öncekiC82 fişinin iki READY kolisi/200satır/223adet ayrı doğrulanan ve korunan teslimdir. Yeni aynı gövde replay ve native okumalar önceki finans/kasa/tedarikçi hareketlerini değiştirmedi.
+
+Güncel normal-role HTTP ölçümleri: fişdetayı5792ms, fişlistesi6490ms, kolifişlistesi6201ms, kolifişdetayı5948ms. Kontrollü prova kâr UPDATE7592ms, stok UPDATE13274ms, stok hareket INSERT55095ms, copy begin23707ms. Normal finalize toplam süresi90s client timeout nedeniyle bilinmiyor; native commit ayrı kanıtlıdır. Bu süreler hızlı kullanım kabulü değildir; yeni timeout/guard artırılmadı.
+
+10:06:41 Türkiye saatinde exactf411 gözetim failure kaydı `erpNative/processProbe/Error/UNCLASSIFIED`; kendi altı core servisi kapandı, web5234 ve TEST125 çalışıyordu. Read-only SSPI aktif kullanıcı transaction0 ve finalized200/stock200/party1/journal1 gösterdi. Aynı mevcut supervisor otomatik retry ile core'u yeniden açtı; sonraki normal API yanıt kurtarma/native/readback geçti. Kesin probe nedeni, transient10s killed veya numeric OS failure olarak tahmin edilmez. Dar ek diagnostic yalnız güvenli enum/numeric alanlarıyla kaynakta hazırlanır; monitor/retry/identity/kapatma eşiği değiştirilmez.
+
+Kullanıcının11Ekim TEST erişim kararı ERP-DEC-047 zaten kalıcıdır. Mevcut dedicatedTEST15 korumalı tesliminden normal personel girişini ajan hazırladı; kullanıcı parola/manuel giriş yapmadı, shared hesabın parolası/rolü değişmedi. Normal tarayıcı reload ve aynı fiş yeniden açılışı personel/223adet/200satır olarak görüldü; `finalized-200-after-refresh-f411.png` private kanıtı kaydedildi. Tarayıcı yenilemesi ve Android Keystore oturum saklama kanıtları farklıdır; Windows protected bridge veya Semih kimliği varmış gibi sunulmaz. İnsanUA32 bekler;200Android/video ve güvenli kalıcı kullanım/hız ayrı açık. Exactf411 PR23 headCI38212114657/38212110735 jobssteps0 hesap ödeme/harcama engeli, yeşil değil.
+
+Ek source-only processProbe tanılama root/reviewer42 hedefli offline kontrol0skip/0fail ve syntax/diff GO aldı. Exec failure'ın sonlu outcome/killed/signal/numericexit/elapsed alanları WeakMap ile tutulur; malicious/getter/sentinel negatifleri, raw metin veya sırın receipt'e girmemesini kontrol eder. Eşik/retry/cleanup/pin/kimlik davranışı aynıdır. Henüz çalışanf411 paketinde etkin değildir; kesintinin nedenini çözmüş veya yeni çalışan sürüm teslim edilmiş diye sunulmaz.
+
 ## Ölçülen karantina kontrolü / dar v9 kaynak düzeltmesi
 
 Önceki timeout teşhisi artık gerçek aktif istek gözlemiyle ayrıldı: 51 örnekte kilit/bekleme yok; CPU 8,224→59,054 saniye, logical reads 1.593.733→59.815.276. Çalışan statement, `supplier_identity_quarantine_v2_sales_invoice_items` içindeki ürün/fatura hold kontrolüdür. Private safe kanıt `first-profit-dmv-first-profit-v4-1a-v3.safe.json`, SHA256 `ea44a9d09870e6aef745ffad64a0c0378bac6a39ac16694eb0779a4a07292985`. Son denemeden sonra bağımsız native/API kontrolü aynı taslağı ve bütün önceki kayıtları değişmeden doğruladı; kalıcı finalize ve yeni stok/cari etkisi yok (`retarget-controlled-outcome-1791776546437.json`, SHA256 `7dd0e8e4930b6899777cdead8381cc56e4e178a71c696917c465117b920fbb87`).

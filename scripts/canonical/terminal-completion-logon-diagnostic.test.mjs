@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {completionDiagnosticProbe,completionFailureDiagnostic,runCompletionLogon,completionAttempt,COMPLETION_CORE_STAGES} from './terminal-completion-logon.mjs';
+import {classifyCompletionProcessExecFailure,completionProcessProbeExec,completionDiagnosticProbe,completionFailureDiagnostic,runCompletionLogon,completionAttempt,COMPLETION_CORE_STAGES} from './terminal-completion-logon.mjs';
 const owner='S-1-5-21-123-456-789-1001',source='b'.repeat(40),hash='a'.repeat(64),erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM';
 function settings(){
  const refs=Object.fromEntries(['operationConfig','nativeOrderConfig','crmActivationConfig','hubPinConfig','hubStartupConfig'].map(key=>[key,{path:`${erp}\\runtime\\completion\\${key}.json`,sha256:hash}]));
@@ -29,4 +29,32 @@ test('monitor exception still stops all newly created children in reverse order'
 });
 test('production driver retains original process and HTTP thresholds and bounded failure writer',()=>{
  const source=fs.readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(source.includes('timeout:10000,maxBuffer:128*1024'));assert(source.includes('AbortSignal.timeout(4000)'));assert(source.includes('setTimeout(resolve,15000)'));assert(source.includes('safeCompletionDiagnostic(diagnostic)'));assert(source.includes('await delay(60000)'));
+});
+
+test('caught exec failure distinguishes killed, nonzero and only exact reported OS disappearance without secret fields',async()=>{
+ const secret='SECRET password SQL params path command 100.00';
+ for(const [fields,outcome] of [[{killed:true,signal:'SIGTERM',code:null},'EXEC_KILLED'],[{killed:false,code:1},'EXEC_EXIT_NONZERO'],[{killed:false,code:1,stderr:"throw 'HUB_STACK_OS_PROCESS_DISAPPEARED'"},'EXEC_PROCESS_DISAPPEARED_REPORTED']]){
+  const error=Object.assign(new Error(secret),{name:'Error',message:secret,stdout:secret,stderr:secret,command:secret,stack:secret,...fields});let time=0;
+  await assert.rejects(completionDiagnosticProbe('supervisor','monitor',()=>completionDiagnosticProbe('erpNative','processProbe',()=>completionProcessProbeExec(async()=>{throw error;},{now:()=>{const result=time;time=10012;return result;}}))),e=>e===error);
+  const record=completionFailureDiagnostic(error);assert.equal(record.stage,'erpNative');assert.equal(record.phase,'processProbe');assert.equal(record.processExec.outcome,outcome);assert.equal(record.processExec.elapsedMs,10012);assert.equal(record.processExec.killed,fields.killed);assert(!JSON.stringify(record).includes(secret));assert(!JSON.stringify(record).includes('HUB_STACK_OS_PROCESS_DISAPPEARED'));assert.deepEqual(Object.keys(record.processExec).sort(),['outcome','killed','elapsedMs',...(fields.signal?['signal']:[]),...(fields.code===1?['exitCode']:[])].sort());
+ }
+});
+test('malicious or malformed exec values never enter diagnostics and similar sentinel text is not accepted',()=>{
+ const input={killed:'SECRET',signal:'C:/private',code:'1',stderr:'HUB_STACK_OS_PROCESS_DISAPPEARED_SECRET',message:'SECRET',stdout:'SECRET',cmd:'SECRET',params:{SECRET:true},stack:'SECRET'};
+ assert.deepEqual(classifyCompletionProcessExecFailure(input,'10000'),{outcome:'EXEC_ERROR'});
+ for(const code of [-1,1.5,NaN,Infinity,2147483648,'1',{},null])assert.equal(classifyCompletionProcessExecFailure({...input,code},60001).exitCode,undefined);
+ assert.equal(classifyCompletionProcessExecFailure({...input,stderr:'x'.repeat(128*1024)+'HUB_STACK_OS_PROCESS_DISAPPEARED'},1).outcome,'EXEC_ERROR');
+ for(const elapsed of [-1,1.5,NaN,Infinity,60001,'5'])assert.equal(classifyCompletionProcessExecFailure({},elapsed).elapsedMs,undefined);
+ assert.deepEqual(classifyCompletionProcessExecFailure({killed:true,signal:'UNTRUSTED',code:-1},0),{outcome:'EXEC_KILLED',killed:true,elapsedMs:0});
+});
+test('exec wrapper preserves success/original error and cannot attach fields to non-process probes or caller-forged errors',async()=>{
+ const result={stdout:'kept in memory'};assert.equal(await completionProcessProbeExec(async()=>result),result);
+ const forged=Object.assign(new Error('SECRET'),{processExec:{outcome:'EXEC_KILLED',command:'SECRET'}});await assert.rejects(completionDiagnosticProbe('erpNative','processProbe',async()=>{throw forged;}));assert.equal(completionFailureDiagnostic(forged).processExec,undefined);
+ const error=Object.assign(new Error('SECRET'),{code:2,killed:false});await assert.rejects(completionDiagnosticProbe('erpApi','health',()=>completionProcessProbeExec(async()=>{throw error;})));assert.equal(completionFailureDiagnostic(error).processExec,undefined);
+});
+
+test('malicious exec-error getters cannot mask the original failure or persist private thrown text',async()=>{
+ const error=new Error('PRIVATE');Object.defineProperty(error,'stderr',{get(){throw Error('PRIVATE GETTER');}});
+ await assert.rejects(completionDiagnosticProbe('erpNative','processProbe',()=>completionProcessProbeExec(async()=>{throw error;},{now:()=>0})),e=>e===error);
+ assert.deepEqual(completionFailureDiagnostic(error).processExec,{outcome:'EXEC_ERROR',elapsedMs:0});assert(!JSON.stringify(completionFailureDiagnostic(error)).includes('PRIVATE'));
 });

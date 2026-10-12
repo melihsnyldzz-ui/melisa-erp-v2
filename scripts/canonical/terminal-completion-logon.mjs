@@ -19,11 +19,42 @@ const diagnosticStages=new Set(['erpNative','erpApi','crmNativeOrder','crmCatalo
 const diagnosticPhases=new Set(['processProbe','health','CRM','hub','monitor']);
 const diagnosticTypes=new Set(['Error','TypeError','SyntaxError','TimeoutError','AbortError']);
 const diagnosticCodes=new Set(['ETIMEDOUT','ETIMEOUT','ECONNREFUSED','ECONNRESET','EPIPE','ENOENT','EACCES','EPERM','ABORT_ERR','ERR_CHILD_PROCESS_STDIO_MAXBUFFER']);
-function safeCompletionDiagnostic(value){if(!value||!diagnosticStages.has(value.stage)||!diagnosticPhases.has(value.phase)||!diagnosticTypes.has(value.errorType)&&value.errorType!=='OtherError'||!diagnosticCodes.has(value.staticCode)&&value.staticCode!=='UNCLASSIFIED')return null;return {stage:value.stage,phase:value.phase,errorType:value.errorType,staticCode:value.staticCode};}
+const processProbeExecDiagnostics=new WeakMap();
+const processProbeOutcomes=new Set(['EXEC_KILLED','EXEC_EXIT_NONZERO','EXEC_PROCESS_DISAPPEARED_REPORTED','EXEC_ERROR']);
+const processProbeSignals=new Set(['SIGTERM','SIGKILL','SIGINT','SIGBREAK']);
+function safeProcessProbeExec(value){
+ if(!value||!processProbeOutcomes.has(value.outcome))return null;
+ const result={outcome:value.outcome};
+ if(typeof value.killed==='boolean')result.killed=value.killed;
+ if(processProbeSignals.has(value.signal))result.signal=value.signal;
+ if(Number.isSafeInteger(value.exitCode)&&value.exitCode>=0&&value.exitCode<=2147483647)result.exitCode=value.exitCode;
+ if(Number.isSafeInteger(value.elapsedMs)&&value.elapsedMs>=0&&value.elapsedMs<=60000)result.elapsedMs=value.elapsedMs;
+ return result;
+}
+export function classifyCompletionProcessExecFailure(error,elapsedMs){
+ // Only the pinned probe's finite OS-disappearance token is inspected in memory.
+ // Its stderr, command, message, output and stack are never copied to a receipt.
+ try{const disappeared=typeof error?.stderr==='string'&&error.stderr.length<=128*1024&&/(?:^|[^A-Z0-9_])HUB_STACK_OS_PROCESS_DISAPPEARED(?:$|[^A-Z0-9_])/.test(error.stderr);
+ const numericExit=Number.isSafeInteger(error?.code)&&error.code>0&&error.code<=2147483647;
+ const outcome=error?.killed===true?'EXEC_KILLED':disappeared?'EXEC_PROCESS_DISAPPEARED_REPORTED':numericExit?'EXEC_EXIT_NONZERO':'EXEC_ERROR';
+ return safeProcessProbeExec({outcome,killed:error?.killed,signal:error?.signal,exitCode:error?.code,elapsedMs});}catch{return safeProcessProbeExec({outcome:'EXEC_ERROR',elapsedMs});}
+}
+export async function completionProcessProbeExec(work,{now=()=>performance.now()}={}){
+ const started=now();try{return await work();}catch(error){
+  if(error&&typeof error==='object')processProbeExecDiagnostics.set(error,classifyCompletionProcessExecFailure(error,Math.floor(now()-started)));
+  throw error;
+ }
+}
+function safeCompletionDiagnostic(value){
+ if(!value||!diagnosticStages.has(value.stage)||!diagnosticPhases.has(value.phase)||!diagnosticTypes.has(value.errorType)&&value.errorType!=='OtherError'||!diagnosticCodes.has(value.staticCode)&&value.staticCode!=='UNCLASSIFIED')return null;
+ const safe={stage:value.stage,phase:value.phase,errorType:value.errorType,staticCode:value.staticCode};
+ const processExec=value.phase==='processProbe'?safeProcessProbeExec(value.processExec):null;
+ return {...safe,...(processExec?{processExec}: {})};
+}
 export function completionFailureDiagnostic(error){return error&&typeof error==='object'?safeCompletionDiagnostic(completionDiagnostics.get(error)):null;}
 export async function completionDiagnosticProbe(stage,phase,work){
  if(!diagnosticStages.has(stage)||!diagnosticPhases.has(phase))throw Error('TERMINAL_LOGON_DIAGNOSTIC_SCOPE');
- try{return await work();}catch(error){if(error&&typeof error==='object'&&!completionDiagnostics.has(error))completionDiagnostics.set(error,{stage,phase,errorType:diagnosticTypes.has(error.name)?error.name:'OtherError',staticCode:diagnosticCodes.has(error.code)?error.code:'UNCLASSIFIED'});throw error;}
+ try{return await work();}catch(error){if(error&&typeof error==='object'&&!completionDiagnostics.has(error))completionDiagnostics.set(error,{stage,phase,errorType:diagnosticTypes.has(error.name)?error.name:'OtherError',staticCode:diagnosticCodes.has(error.code)?error.code:'UNCLASSIFIED',...(phase==='processProbe'&&processProbeExecDiagnostics.has(error)?{processExec:processProbeExecDiagnostics.get(error)}:{})});throw error;}
 }
 // Passive diagnostics only: uncaughtExceptionMonitor observes without handling.
 export function installCompletionExitRecorder(settings,{events=process,fileSystem=fs,uuid=crypto.randomUUID,now=()=>new Date().toISOString(),checkPath=noReparse}={}){
@@ -158,7 +189,7 @@ export function validateCompletionDependencyLock(value,packagePin,moduleRoot){
 function verifyLock(pin,packagePin,moduleRoot){const files=validateCompletionDependencyLock(json(pin),packagePin,moduleRoot),expected=new Set();for(const item of files){readPinned(item);expected.add(item.path.toLowerCase());}const observed=new Set();const scan=dir=>{noReparse(dir);for(const item of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isSymbolicLink())reject('DEPENDENCY_REPARSE');if(item.isDirectory())scan(file);else if(item.isFile())observed.add(file.toLowerCase());else reject('DEPENDENCY_TYPE');}};scan(path.join(packagePin.packageRoot,moduleRoot,'node_modules'));if(expected.size!==observed.size||[...observed].some(file=>!expected.has(file)))reject('DEPENDENCY_DRIFT');}
 export async function createCompletionDriver(settings){
  const shell='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',probe=path.join(settings.supervisor.packageRoot,'scripts','canonical','hub-stack-process-probe.ps1');let operation,native,crm,hubPin,hubStartup,crmHealthPath;const held=new Map(),entries=new Map();let exitRecorderInstalled=false;
- const inspect=async(stage,pid)=>completionDiagnosticProbe(stage.name??'hub','processProbe',async()=>{const args=['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',probe,'-Ports',stage.ports.join(',')];if(pid)args.push('-ProcessId',String(pid));const {stdout}=await runFile(shell,args,{windowsHide:true,timeout:10000,maxBuffer:128*1024});const rows=JSON.parse(stdout.replace(/^\ufeff/,''));if(!Array.isArray(rows))reject('PROCESS_PROBE_REJECTED');return rows;});
+ const inspect=async(stage,pid)=>completionDiagnosticProbe(stage.name??'hub','processProbe',async()=>{const args=['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',probe,'-Ports',stage.ports.join(',')];if(pid)args.push('-ProcessId',String(pid));const {stdout}=await completionProcessProbeExec(()=>runFile(shell,args,{windowsHide:true,timeout:10000,maxBuffer:128*1024}));const rows=JSON.parse(stdout.replace(/^\ufeff/,''));if(!Array.isArray(rows))reject('PROCESS_PROBE_REJECTED');return rows;});
  const receiptPath=stage=>path.join(settings.runtimeDirectory,stage.name+'.json');
  const getHealth=async(port,stage)=>completionDiagnosticProbe(stage,'health',async()=>{const response=await fetch(`http://127.0.0.1:${port}/test-health`,{redirect:'error',credentials:'omit',signal:AbortSignal.timeout(4000)});if(response.status!==200)reject('HEALTH_STATUS');const bytes=await response.text();if(bytes.length>65536)reject('HEALTH_SIZE');return JSON.parse(bytes);});
  const driver={inspect,
