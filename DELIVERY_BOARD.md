@@ -1,3 +1,6 @@
+## ERP-COMPLETE01 — yeni çalışan alt kapsam — 12 Ekim 2026
+
+Çalışan625'te200çeşit/223adet satışın iki kolisiREADY/kalan0/samebodyreplay/nativefinansetkisi0/normal tarayıcı yeniden açılışı doğrulandı. Fiş15,53→5,98sn;terminal503yerine6,05sn200. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynıiş: yeni3faz finalize için ayrı mevcut200SOURCE taslağın exactDEFAULT0 kontrolü→nativecontrolledrollback→gerçekfinal/hız. Gözlemci yeniden başlatmasının kesinprobe'u bilinmiyor; safe tanılama yalnız kaynakta hazır. ŞİMDİ/kapsam/UA32/49-9-39-1 aynı; sonraki iş veya yeni migration yok.
 ## ERP-COMPLETE01 — güncel teknik alt adım — 12 Ekim 2026
 
 200 ürünlü orijinal satışın native stok/cari ve bütün eski kayıt koruması bağımsız doğrulandı. Dar read-only selectedSOURCE fiş okuyucusu35 hedefli kontrol/reviewGO ile kaynakta hazır; normal terminalin12s sınırı içindeki gerçek sonuç, yeni paket ve iki koli READY/ekran henüz bekler. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). ŞİMDİ aynı ERP-COMPLETE01; kapsam/49-9-39-1/UA32 bekliyor değişmedi. Kod hazırlığı çalışan teslim sayılmaz; yeni migration veya sonraki iş başlatılmaz.

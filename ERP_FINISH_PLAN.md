@@ -1,3 +1,6 @@
+## ERP-COMPLETE01 — gerçek200çeşit iki koli teslimi — 12 Ekim 2026
+
+Çalışan625paketinde200çeşit/223adet iki koliREADY/kalan0/23+1/replay/normal yeniden açılış geçti; bütün native/eski kayıtlar korunur. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Yeni finalize bulk kaynak için ayrıtaslak kalemleri doğru/stok-cari0; controlledrollback/commit/hız ve gözlemci exactprobe tanısı bekler. Android200/video ve insanUA32 ayrıaçık; toplam49/9/39/1 değişmedi, bütünhedef tamam sayılmaz.
 ## ERP-COMPLETE01 — bağımsız200 native sonuç / fiş okuma kaynağı — 12 Ekim 2026
 
 Orijinal200 kalem/223 adet native satışın200stok+1müşteri etkisi ve eski kayıt koruması bağımsız SQL'de geçti. Dar aynı-transaction fiş okuyucusu35 kontrol/reviewGO ile kaynakta hazır, gerçek paket/HTTP/koli/normal ekran kabulü bekler. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Genel teslim tamam sayılmaz;49/9/39/1 veUA32 bekliyor aynı.
