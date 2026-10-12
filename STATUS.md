@@ -1,3 +1,9 @@
+## ERP-COMPLETE01 — native BIGINT doğrulaması / dar finalize düzeltmesi — 12 Ekim 2026
+
+Çalışan625 korunur. Yeni200 kalemli taslağın controlled denemeleri callback içinde durdu; sonraki bağımsız READ tam before-image/200DRAFT/sıfır stok ve müşteri hareketi/eski satış ve koliler aynı sonucunu verdi. CAST olmadan native SQL okuması200kalem+200ürün ID'sinin canonical string olduğunu kanıtladı; mevcut number-only batch kontrolü400doğru ID'yi reddediyor. Yalnız selectedSOURCE batch ID doğrulaması hassasiyet kaybı olmadan string/safeinteger kabul edecek şekilde daraltıldı;root14/review9 hedefli test ve source GO, native finalize PASS değil. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).
+
+9aa tanılama paketi1834hash/önceki6251833hash ve mevcut task/privatepin Validate geçti, aktivasyon yapılmadı. Kimlik düzeltmesinin yeni source/paketi ve aynı taslağın rollback→finalize→replay/native geri okuması bekler. HostedCI9aa push38192088836/PR38192093052 jobssteps0 gerçek hesap ödeme/harcama engeli; yeşil değil. UA32/49-9-39-1 değişmedi. Parola istenmedi; mevcut protected normal15/16 ve roller, TEST125/DB02/aktarımlar/LL/holdlar/CRM/LIVE/Vega/T1/main korunur.
+
 ## ERP-COMPLETE01 — çalışan625 /200çeşit iki koli / yeni finalize kontrolü — 12 Ekim 2026
 
 1833manifest/9servedasset/v22APK/normal15refresh-logout ve41korunan süreç doğrulanarak625969d etkin. Orijinal200SOURCE/223adet native satış korunmuş; iki kolide24=23+1/READY/kalan0/200satır tamam/samebodyreplay/yeniden açılış gerçek normal tarayıcıda geçti. Koli kaydı yeni stok/cari etkisi0; tam native/eski journal/koli korunumu doğrulandı. GETfiş15,530→5,975sn, terminal12,022sn503→6,053sn200; guard/rol/pin/SERIALIZABLE/cache/12s sınırı aynı. [Tek kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md).

@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — native kimlik tipi düzeltmesi / aynı teslim — 12 Ekim 2026
+
+Yeni200DRAFT stok/cari0 ve eski kayıtlar değişmeden korunur. Gerçek SQL sürücüsü400doğruBIGINTkimliği string döndürürken batchnumber-only kontrolü reddediyordu; dar IDfix root14/review9 source GO. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynıiş: yeni paket→aynıtaslak nativecontrolledrollback→tekfinalize/replay/bağımsız native sonuç. Çalışan625/orijinal200satış/iki koliREADY aynı; yeni migration/anaiş yok. UA32/49-9-39-1 değişmedi.
+
 ## ERP-COMPLETE01 — yeni çalışan alt kapsam — 12 Ekim 2026
 
 Çalışan625'te200çeşit/223adet satışın iki kolisiREADY/kalan0/samebodyreplay/nativefinansetkisi0/normal tarayıcı yeniden açılışı doğrulandı. Fiş15,53→5,98sn;terminal503yerine6,05sn200. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Sıradaki aynıiş: yeni3faz finalize için ayrı mevcut200SOURCE taslağın exactDEFAULT0 kontrolü→nativecontrolledrollback→gerçekfinal/hız. Gözlemci yeniden başlatmasının kesinprobe'u bilinmiyor; safe tanılama yalnız kaynakta hazır. ŞİMDİ/kapsam/UA32/49-9-39-1 aynı; sonraki iş veya yeni migration yok.

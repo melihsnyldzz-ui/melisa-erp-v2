@@ -1,3 +1,7 @@
+## ERP-COMPLETE01 — BIGINT tipi düzeltmesi / native kabul bekler — 12 Ekim 2026
+
+200taslağın400nativekimliği kaynakla exact aynı ama SQLdriver string biçimi number-only batch sınırına takıldı. Dar canonicalID kaynak düzeltmesi root14/review9 GO; miktar/döviz/math/guard/rol aynı. Nativecontrolledrollback/kalıcıfinalize/hız ve yeni çalışan paket henüz bekler; kod hazırlığı tamamlanmış iş sayılmaz. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Mevcut200satış/223adet/iki koliREADY korunur; insanUA32/Android200/video ayrı bekler. Toplam49/9/39/1 aynı; başka finish işi açılmadı.
+
 ## ERP-COMPLETE01 — gerçek200çeşit iki koli teslimi — 12 Ekim 2026
 
 Çalışan625paketinde200çeşit/223adet iki koliREADY/kalan0/23+1/replay/normal yeniden açılış geçti; bütün native/eski kayıtlar korunur. [Kanıt](docs/evidence/erp/2026-10-11-completion/source-200-sale-proof.md). Yeni finalize bulk kaynak için ayrıtaslak kalemleri doğru/stok-cari0; controlledrollback/commit/hız ve gözlemci exactprobe tanısı bekler. Android200/video ve insanUA32 ayrıaçık; toplam49/9/39/1 değişmedi, bütünhedef tamam sayılmaz.

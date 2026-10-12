@@ -44,3 +44,21 @@ test('second and third native phase errors propagate and roll back an owned tran
  for(const failPhase of [2,3]){const r=await run({failPhase,owns:true});assert.equal(r.failure.code,'EREQUEST');assert.equal(r.rollbackCount,1);assert.equal(r.commitCount,0);assert.equal(r.audit,undefined);assert.deepEqual(r.steps,['product-lock-proof','profit','product',...(failPhase===3?['stock']:[])]);}
  const partial=await run({counts:[200,199],owns:true});assert.equal(partial.failure.code,'ISOLATED_COPY_SELECTED_SALE_SCOPE');assert.equal(partial.rollbackCount,1);assert.equal(partial.commitCount,0);assert.equal(partial.steps.includes('stock'),false);
 });
+
+test('actual native BIGINT string snapshots for all 200 rows retain exact identity, order and three phases',async()=>{
+ const r=await run({change:({before})=>{for(const item of before.items){item.id=String(item.id);item.productId=String(item.productId);}}});
+ assert.equal(r.failure.code,'STOP_AFTER_ITEM_EFFECTS');
+ const statements=r.queries.filter(q=>q.params.selectedFinalizeJSON);assert.equal(statements.length,3);assert.deepEqual(r.steps,['product-lock-proof','profit','product','stock']);
+ const rows=JSON.parse(statements[0].params.selectedFinalizeJSON);assert.equal(rows.length,200);for(let i=0;i<200;i++){assert.equal(rows[i].itemId,String(1000+i));assert.equal(rows[i].productId,String(30000+i));}assert.equal(rows[0].quantity,'24.000');assert.equal(rows[199].quantity,'1.000');
+});
+test('safe integer/string mixtures and SQL BIGINT maximum strings preserve source membership without numeric coercion',async()=>{
+ const mixed=await run({count:3,change:({before})=>{before.items[0].id=String(before.items[0].id);before.items[1].productId=String(before.items[1].productId);}});assert.equal(mixed.failure.code,'STOP_AFTER_ITEM_EFFECTS');
+ const max='9223372036854775807';const large=await run({count:2,change:({before,scope})=>{before.items[0].id=max;before.items[0].productId=max;scope.productIds[0]=max;}});assert.equal(large.failure.code,'STOP_AFTER_ITEM_EFFECTS');const rows=JSON.parse(large.queries.find(q=>q.params.selectedFinalizeJSON).params.selectedFinalizeJSON);assert.equal(rows[0].itemId,max);assert.equal(rows[0].productId,max);
+});
+test('malformed native IDs and unsafe numbers fail before any item DML',async()=>{
+ const values=[0,-1,1.5,Number.MAX_SAFE_INTEGER+1,NaN,Infinity,'0','-1','+1','01000',' 1000','1000 ','1000.0','1e3','9223372036854775808',[],{},1000n,null,undefined];
+ for(const key of ['id','productId'])for(const value of values){const r=await run({count:2,change:({before})=>{before.items[0][key]=value;}});assert.equal(r.failure.code,'ISOLATED_COPY_SELECTED_SALE_SCOPE');assert.equal(r.queries.some(q=>/\bUPDATE\b|\bINSERT\b/.test(q.text)),false);assert.equal(r.audit,undefined);}
+});
+test('numeric/string duplicate aliases, wrong scope and source order remain blocked before DML',async()=>{
+ for(const change of [({before})=>{before.items[1].id=String(before.items[0].id);},({before})=>{before.items[1].productId=String(before.items[0].productId);},({before,scope})=>{before.items[0].productId='999';},({scope})=>{scope.productIds[0]='030000';}]){const r=await run({count:2,change});assert.equal(r.failure.code,'ISOLATED_COPY_SELECTED_SALE_SCOPE');assert.equal(r.queries.some(q=>/\bUPDATE\b|\bINSERT\b/.test(q.text)),false);}
+});

@@ -1,5 +1,15 @@
 # 200 farklı ürün / iki koli — gerçek native prova — 12 Ekim 2026
 
+## Native BIGINT kimliği — gerçek tip kanıtı ve dar kaynak düzeltmesi
+
+Yeni 200 kalemli taslağın kontrollü finalize denemesi native callback içinde durdu; kalıcı finalize çağrısı yapılmadı. Her denemeden sonraki salt okunur kontrol aynı tam before-image, 200 taslak kalemi, sıfır stok/müşteri hareketi, eski satış ve iki koli korunumu sonucunu verdi. Kaynak, kasa/banka ve tedarikçi etkisi değişmedi. Kontrollü finalize henüz PASS değildir.
+
+Mevcut SQL sürücüsüyle CAST uygulanmadan okunan 200 `id` ve 200 `product_id` değeri **string**; şemada ikisi de SQL BIGINT. Miktarlar number, dövizler string. 400 kimliğin tamamı immutable native checkpoint ile birebir eşleşir; mevcut `Number.isSafeInteger` kontrolü bu 400 doğru kimliği reddeder. Salt okunur kanıt SHA256 `a0af598879e316d8e819d83da331363c78131193b5a27ec01e18d13d89dafa56`; private dosya `native-draft-id-types-result-1791770676752.json`. Ham kimlik veya ticari tutar Git'e alınmaz.
+
+Yalnız selectedSOURCE çok satırlı kesinleştirmenin kimlik doğrulaması düzeltilir: pozitif güvenli JS integer veya kanonik pozitif SQL BIGINT string kabul edilir. Kimlikler sayıya çevrilmez, trim edilmez; SQL BIGINT sınırını aşan, başında sıfır bulunan, kesirli, işaretli, bilimsel gösterimli veya hassasiyet kaybetmiş değer reddedilir. Bu kural kaynak stok kodu veya barkodu değiştirmez. Tam kaynak/kalem kimliği, sıra, tekillik, actor, transaction, döviz, miktar, maliyet, kâr ve üç fazın exact satır sayısı kontrolleri korunur. Genel satış ve tek satır yolu değişmez.
+
+Root14 hedefli kontrol ve bağımsız reviewer9 kontrol/source GO: gerçek sürücü biçimindeki 200 string kimlik, güvenli karma biçim, SQL BIGINT sınırı ve 40 bozuk kimlik durumu; duplicate/scope/partial-output/rollback negatifleri dahil. Yeni çalışan paket ve aynı mevcut taslağın native controlled rollback → tek API finalize → bağımsız native geri okuma sonuçları ayrı kaydedilecektir. Hazır kod çalışan uygulama veya insan kabulü değildir; mevcut runtime625, UA32 bekliyor.
+
 ERP-COMPLETE01 / ERP-DEC-044–047, mevcut kontrollü sentetik DB02 kapsamı. Normal dedicated personel15 kullanılır; admin veya yeni izin yoktur. TEST125, kaynak aktarımları, eski belgeler, roller, LL ve holdlar korunur. Kaynaklı işletme kartlarının izole kopyası, güncel Vega veya fiziksel mağaza sayımı değildir.
 
 ## Yazma öncesi kanıt
