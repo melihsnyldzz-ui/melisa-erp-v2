@@ -1,7 +1,59 @@
 # ERP04 / C09 — normal ürün fiyatını sürümlü kaydetme
 
-Durum: **uygulama sürüyor; çalışan fiyat yazıcısı henüz teslim edilmedi**.
+Durum: **normal ERP fiyat kaydı, yenileme ve tekrar güvenliği çalışan DB02 paketinde doğrulandı; CRM sipariş tüketicisi ve insan kabulü açık**.
 Ana kapsam ERP-COMPLETE01 / ERP-DEC-050/053/054/055; PR #23.
+
+## Güncel çalışan teslim — 13 Ekim 2026, 16:06
+
+Source `59c444f9bc79094172ce0a5559a4874cf74d667c`, paket
+`CANONICAL-COMPLETE-TEST-20261011-59c444f`, 1917 dosya;
+manifest `a2ce175678fa100d6fbdba0cef92e9535521ec7a76aceb672e68dd9612c9bff3`.
+Web5234/API4184/native4186, DB02/copye16b70f0 ve actualT1=false doğrulandı.
+TEST125 ve CRM09ca/native60e aynı kaldı; bu belge commit'i uygulama source'u değildir.
+
+Normal Chrome ürün kartında mevcut yetkili TEST İlker rolüyle bir doğrulanmış
+ürünün mevcut satış fiyatı tuple'ı değiştirildi. Liste ve kart yeni fiyatı
+gösterdi. Sayfa yenilendi, aynı ürün tekrar açıldı; tutar ve gerekçeli geçmiş
+korundu. İkinci gerekçeli kayıtla başlangıç tutarı geri getirildi. İki immutable
+sürüm ve iki istek kaydı kaldı; kaynak fiyat satırı değiştirilmedi.
+
+Bağımsız SQL/API: kaynak satırının önce/sonra tam içeriği aynı; doğru ürün,
+birim/kademe/döviz, aktör, iki gerekçe ve sürüm zinciri doğrulandı. Kayıtlı iki
+UUID/body, ilk kayıt daha eski sürüm olmuşken yeniden gönderildi. İki yanıt da
+replayed=true; yeni sürüm0, güncel pointer değişikliği0, SQL önce/sonra kanıtının
+tamamı eşit. Eski tutara dönülmesi MANUAL kaydını SOURCE gibi göstermedi.
+Diğer satış fiyatı kademeleri de API'de birebir korundu. Satış, stok veya finans
+işlemi oluşturulmadı. İnsan kabulü bekliyor.
+
+Özel kanıt: repo dışındaki ERP-COMPLETE01-20261013/private/erp04-price-write
+altında gui-proof/gui-summary.json, bağımsız SQL/API kayıtları ve gerçek
+tarayıcı erişilebilirlik metinleri. Ekran görüntüsü aracı capture timeout verdi;
+görsel dosya varmış veya piksel incelemesi tamamlanmış sayılmadı. İlk SQL kanıt
+çağrısında UTF-8 Türkçe gerekçe okuması reddedildi; açık -f65001 ile düzeltilen
+salt okunur kontrol geçti, veri değişmedi.
+
+### Hız: aynı normal API, üç örnek ortancası
+
+| Okuma | Önce 2bf2762 | İlk entegrasyon 0da9f3d | Çalışan 59c444f |
+|---|---:|---:|---:|
+| İlk50 | 3391ms | 4894ms | 3146ms |
+| Sonraki50 | 3073ms | 5642ms | 2726ms |
+| Kod | 2920ms | 2705ms | 2911ms |
+| Barkod | 2540ms | 2460ms | 2731ms |
+| Kart | 2307ms | 2346ms | 2275ms |
+| Fiyat düzenleyici | yok | 8384ms | 8942ms |
+
+Ölçüm GUI yazmasından önce yapıldı; 15 karşılaştırılan yanıtın veri hashleri
+birebir aynı. Liste overlay'i yalnız mühürlü copy kapsamındaki gerçek ürün
+kesişimine uygulanır; native kimlik/kaynak/hold/yetki kontrolleri kaldırılmadı.
+Listeye eklenen regresyon giderildi; genel saniye düzeyindeki gecikme ve
+düzenleyicinin yaklaşık9s açılması ERP09 kapsamında açıktır.
+
+UI82/82, gerçek özel kaynakla katalog5/5, bağımsız inceleme GO, build ve secret
+scan0. Tam source59c444f için hostedCI altı işi hesap ödeme/harcama sınırından
+başlamadı (check115303054422); yeşil CI veya insan PASS iddiası yok.
+CRM MANUAL fiyat witness sözleşmesi/native successor ayrı açık bağımlılıktır;
+ERP04/C09 ve completeDelivery=false sürer. Aşağıdaki kesitler tarihsel ilerlemedir.
 
 ## Sıra ve bağımlılık
 

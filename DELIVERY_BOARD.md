@@ -1,6 +1,6 @@
 ## ŞİMDİ — ERP04 / C09 genel fiyat kaydı — 13 Ekim 2026
 
-ERP09'un kalan owner/READY sorgu planı adayı mevcut V11 güvenlik zincirinde bağlı sürüm değişikliği gerektiriyor. Dar ve bağımsız bir SQL değişikliği olarak uygulanmadı; aynı prova tekrarlanmadı. Onaylı sıradaki ERP04'ün DB02 sürümlü satış fiyatı kaydı hazırlanıyor. Eski C09 fixture koruması, kaynak fiyatlar ve geçmiş belgeler korunacak. [Kapsam ve kapanış koşulları](docs/evidence/erp/2026-10-13-price-write/README.md). Kaynak hazırlığı çalışan özellik değildir; ERP04/ERP09 ve insan kabulü açık.
+ERP04 normal DB02 fiyat kaydı, yenileme/geçmiş ve aynı istekle ikinci etki oluşmaması çalışan TEST'te teknik doğrulandı. Aynı işin kalan bağımlılığı CRM MANUAL fiyatlı sipariş için kayıtlı native CURRENT doğrulamasıdır; eski SOURCE sözleşmesi ve tarihsel replay korunacak. [Kapsam ve kapanış koşulları](docs/evidence/erp/2026-10-13-price-write/README.md). ERP04/C09 ve insan kabulü açık; genel gecikme ERP09'da sürer. Çalışan sürüm ve teknik ölçümler STATUS'tadır.
 
 ## ERP09 / OPS01 — değişmeyen kaynak profilinin hesabı daraltıldı — 13 Ekim 2026
 

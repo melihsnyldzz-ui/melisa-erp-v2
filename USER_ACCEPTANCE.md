@@ -1,3 +1,7 @@
+## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
+
+13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.
+
 ## ERP03 / A01–B02 — son çalışan stok görünümü — bekliyor
 
 13Ekimb79ce51/DB02/5234. Mevcut belirsiz kartta Doğrulanmadı ve bilinmeyen birimi, doğrulanmış negatif kartta işaretli miktarı inceleyin. Yeni işlem gerekmez. [Stok güven durumu kanıtı](docs/evidence/erp/2026-10-13-stock-card-trust/README.md). Teknik4test/2GET/Chrome insan PASS değildir; ERP-UA26/32 ve geçmiş UA02/04 kişi/tarih/sonuç aynı.

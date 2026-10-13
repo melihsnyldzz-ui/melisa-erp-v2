@@ -1,3 +1,7 @@
+## ERP04 / C09 — normal fiyat alt kapsamı teknik doğrulandı — 13 Ekim 2026
+
+Source59c444f DB02 paketinde normal kart kaydı, yenileme, gerekçeli iki sürüm ve başlangıç tutarına dönüş gerçek Chrome ile doğrulandı. SQL/API exact replay ikinci etki0, kaynak fiyat aynı. Liste regresyonu giderildi; genel hız ERP09'da açık. CRM MANUAL sipariş successor ve insan kabulü bekler; ERP04/C09🟡, toplamlar ve completeDelivery=false değişmedi. [Kanıt](docs/evidence/erp/2026-10-13-price-write/README.md).
+
 ## ERP04 / C09 — native kanıt tamam, normal ekran düzeltmesi teslimde — 13 Ekim 2026
 
 0da9f3d çalışan DB02 paketi ve gerçek native CURRENT/HISTORY/replay/rollback kanıtlı. Liste regresyonu, normal oturum fiyat yolu ve LAN UUID düzeltmeleri kaynakta hazır; ekranda kalıcı kaydetme/geçmiş ve son hız ölçümü bekler. ERP04/C09🟡, toplamlar ve insan kabulü değişmez. [Kanıt](docs/evidence/erp/2026-10-13-price-write/README.md).
