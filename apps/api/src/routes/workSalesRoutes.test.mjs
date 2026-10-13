@@ -6,7 +6,7 @@ import {isDailyWebRequest} from '../services/dailyWebPolicy.mjs';
 // The actual permission middleware remains loaded. Its unused auth backend
 // cannot import a native driver or open SQL in this isolated route test.
 const noAuthBackend=()=>{assert.fail('Route fixture must not access the auth database');};
-mock.module('../services/authService.js',{namedExports:{getUserById:noAuthBackend,verifyAccessToken:noAuthBackend}});
+mock.module('../services/authService.js',{namedExports:{getUserById:noAuthBackend,verifyAccessToken:noAuthBackend,verifyNormalTestAccessSession:noAuthBackend}});
 const {createWorkSalesRoutes}=await import('./workSalesRoutes.mjs');
 
 const selection={customerId:'100',currency:'USD',productIds:['444']};

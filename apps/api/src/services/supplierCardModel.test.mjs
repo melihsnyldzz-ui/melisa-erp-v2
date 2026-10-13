@@ -5,7 +5,7 @@ import {createSupplierCardService} from './supplierCardService.mjs';
 const noSql = () => {throw new Error('Offline permission test must not access SQL');};
 mock.module('./supplierService.js', {namedExports: Object.fromEntries(['createSupplier', 'getSupplierDetail', 'getSuppliersList', 'updateSupplier'].map(name => [name, noSql]))});
 mock.module('./vegaSupplierClientService.js', {namedExports: {getVegaSuppliersListFromWorker: noSql}});
-mock.module('./authService.js', {namedExports: {getUserById: noSql, verifyAccessToken: noSql}});
+mock.module('./authService.js', {namedExports: {getUserById: noSql, verifyAccessToken: noSql, verifyNormalTestAccessSession: noSql}});
 const {supplierRoutes} = await import('../routes/supplierRoutes.js');
 const {requireAuth} = await import('../middleware/authMiddleware.js');
 

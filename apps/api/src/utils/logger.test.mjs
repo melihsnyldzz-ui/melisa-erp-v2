@@ -93,6 +93,14 @@ test('format-compatible canaries are not accepted as known operation codes or ca
   }
 });
 
+test('offline price fixture errors stay outside the production diagnostic vocabulary', () => {
+  for (const code of ['SYNTHETIC_PRIVATE_LEAF_INPUT_PIN', 'SYNTHETIC_PRIVATE_LEAF_MISSING', 'SYNTHETIC_PRICE_QUERY_NOT_MODELED', 'SYNTHETIC_PRICE_READ_PROC', 'SYNTHETIC_PRICE_INTENT_PROC', 'SYNTHETIC_CONFLICT', 'SYNTHETIC_STALE', 'SYNTHETIC_PRICE_STORE_PROC']) {
+    const {payload, line} = capture(() => logger.error('API error normalized', {code}))[0];
+    assert.equal(payload.code, redacted);
+    assert.equal(line.includes(code), false);
+  }
+});
+
 test('startup warnings retain distinct static diagnostic codes without accepting new text', () => {
   const warnings = [
     ['JWT_ACCESS_SECRET is missing or shorter than 32 characters', 'JWT_ACCESS_SECRET_WEAK'],
@@ -186,7 +194,9 @@ test('all current application logger callsites retain their static diagnostic me
       if (entry.name === 'config') continue;
       const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), directory);
       if (entry.isDirectory()) await scan(url);
-      else if (/\.(js|mjs)$/.test(entry.name) && !entry.name.includes('.test.')) {
+      // Offline module doubles use .test-fixture.mjs and are not application
+      // callsites. Their synthetic errors must remain redacted by the logger.
+      else if (/\.(js|mjs)$/.test(entry.name) && !/\.test(?:-fixture)?\.(?:js|mjs)$/.test(entry.name)) {
         const source = await readFile(url, 'utf8');
         callCount += [...source.matchAll(/logger\.(info|warn|error)\(/g)].length;
         for (const match of source.matchAll(/logger\.(info|warn|error)\(\s*(['"])(.*?)\2/g)) calls.push({level: match[1], message: match[3]});

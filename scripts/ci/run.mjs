@@ -22,6 +22,15 @@ function run(args, cwd = root) {
   const result = spawnSync(process.execPath, ['--require', guard, ...args], { cwd, env, stdio: 'inherit', timeout: 180_000 });
   if (result.error || result.status !== 0) process.exit(result.status || 1);
 }
+export const WINDOWS_PROCESS_PROBE_BUDGET_MS = 180_000;
+export function windowsProcessProbeDiagnostic(result, elapsedMs) {
+  return { mode: 'windows-process-probe', elapsedMs: Number.isSafeInteger(elapsedMs) && elapsedMs >= 0 ? elapsedMs : 0,
+    status: Number.isInteger(result.status) ? result.status : null,
+    signal: ['SIGTERM', 'SIGKILL', 'SIGINT'].includes(result.signal) ? result.signal : result.signal ? 'OTHER_SIGNAL' : null,
+    errorCode: ['ETIMEDOUT', 'ENOENT', 'EACCES', 'EINVAL'].includes(result.error?.code) ? result.error.code : result.error ? 'OTHER_ERROR' : null };
+}
+// Importing the finite diagnostic helpers never starts a child process.
+if (path.resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
 if (mode === 'quality') {
   for (const filename of files(path.join(root, 'apps/api/src'), name => /\.(js|mjs)$/.test(name))) run(['--check', filename]);
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
@@ -48,8 +57,17 @@ if (mode === 'quality') {
   // outside the application child runner; never widen offline-guard to allow
   // arbitrary shell execution. The Windows CI job calls only this exact mode.
   if (process.platform !== 'win32') throw new Error('WINDOWS_PROCESS_PROBE_REQUIRES_WINDOWS');
-  const result = spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['-NoProfile', '-NonInteractive', '-File', path.join(root, 'scripts/canonical/hub-stack-process-probe.test.ps1'), '-SourcePath', path.join(root, 'scripts/canonical/hub-stack-process-probe.ps1')], { cwd: root, env, stdio: 'inherit', timeout: 30_000 });
-  if (result.error || result.status !== 0) process.exit(result.status || 1);
+  // 27 isolated PowerShell starts need the same bounded budget as unit suites
+  // on hosted Windows; every fixture assertion and offline boundary is retained.
+  const started = Date.now();
+  const result = spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['-NoProfile', '-NonInteractive', '-File', path.join(root, 'scripts/canonical/hub-stack-process-probe.test.ps1'), '-SourcePath', path.join(root, 'scripts/canonical/hub-stack-process-probe.ps1')], { cwd: root, env, stdio: 'inherit', timeout: WINDOWS_PROCESS_PROBE_BUDGET_MS });
+  if (result.error || result.status !== 0) {
+    // Never emit command arguments, inherited environment or raw OS errors.
+    const diagnostic = windowsProcessProbeDiagnostic(result, Date.now() - started);
+    console.error(JSON.stringify(diagnostic));
+    process.exit(result.status || 1);
+  }
+
 } else if (['api', 'web-admin', 'sites-workflow', 'migration'].includes(mode)) {
   const testRoot = mode === 'migration' ? path.join(root, 'scripts/migration') : path.join(root, 'apps', mode, 'src');
   // The identity regression is a real SQL integration suite. CI deliberately
@@ -64,4 +82,7 @@ if (mode === 'quality') {
   for (const app of ['web-admin', 'sites-workflow']) run([path.join(root, 'apps', app, 'node_modules/vite/bin/vite.js'), 'build'], path.join(root, 'apps', app));
 } else if (mode === 'guard') {
   run([path.join(root, 'scripts/ci/guard.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/ci/windows-process-probe-runner.test.mjs')]);
 } else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build|windows-process-probe');
+
+}
