@@ -1,3 +1,12 @@
+## ERP04 / A02–C09 — mevcut alış referansı ve genel yazma bağımlılığı — 13 Ekim
+
+| Kalem | Yeni teknik sonuç | Somut kalan |
+| --- | --- | --- |
+| ERP04 / A02 | c3a84d0 DB02 normal kartta son net alış referansı;26/26/GO, API/Chrome, ticari yazma0. | Genel fiyat yazma; bilinmeyen maliyet/veri kararları ve insan kabulü. |
+| C09 | Eski fixture/original DB/CAS/replay kanıtı korunur; yeniden prova yok. | DB02 fiyat revision, kaynak mühürlerini koruyan güncel sürüm tüketimi ve dar owner EXEC yok. |
+
+[Kanıt](../2026-10-13-price-reference/README.md). Sabit55 diğer hosttaki yönetici kaydıdır; burada yeni takip veya uzaktaki kaydın güncellendiği iddiası yok. Genel durum kısmi;49/9/39/1 aynı.
+
 ## ERP03 / A01–B02 — normal stok güven durumu — 13 Ekim
 
 | Kalem | Yeni teknik sonuç | Somut kalan |
