@@ -19,3 +19,24 @@ test('descriptor, proof JSON and malformed native records never mint authority',
 test('separate CRM native identity, privileges and outside-owner proof self-pin are mandatory',async()=>{
  for(const mutate of [r=>r.loginName='melisa_shared_test_rw_20261009_02',r=>r.databaseName='MELISA_ERP_CRM_SHARED_TEST_20261009_01',r=>r.sysadmin=1,r=>r.databaseControl=1,r=>r.liveDatabaseAccess=1,r=>r.proofDefinitionHash='0'.repeat(64),r=>r.proofViewDefinition=0,r=>r.createExecute=0,r=>r.oldCreateExecute=1]){const f=crmPriceFixture();f.mutate((text,r)=>{if(text===CRM_ORDER_PRICE_METADATA_SQL)mutate(r.recordset[0]);});await assert.rejects(configureCrmOrderPriceContext(f.context,f.revision,f.request()));assert.equal(getRegisteredCrmOrderPriceContext(f.context),null);assert.equal(f.calls.length,1);}
 });
+test('actual SQL uppercase canonical UUIDs in leaf and sale rows match the exact pinned copy',async()=>{
+ const f=crmPriceFixture();
+ for(const rows of[f.result.recordsets[0],f.result.recordsets[8]])for(const row of rows)row.copyId=f.context.copyId.toUpperCase();
+ assert.equal(validateCrmOrderPriceProof(f.context,f.revision,f.result),true);
+ const value=await configureCrmOrderPriceContext(f.context,f.revision,f.request());assert.strictEqual(getRegisteredCrmOrderPriceContext(f.context),value);
+ assert.strictEqual(await verifyCrmOrderPriceContext(f.context,f.request()),value);
+});
+test('native UUID case compatibility rejects different, malformed and coerced leaf or sale values',async()=>{
+ for(const set of[0,8])for(const mutate of[
+  id=>id.slice(0,-1)+(id.endsWith('0')?'1':'0'),
+  id=>' '+id,id=>id+' ',id=>'{'+id+'}',id=>id.replaceAll('-',''),id=>id.slice(0,-1)+'g',
+  id=>({toString:()=>id}),()=>null,
+ ]){
+  const f=crmPriceFixture();f.result.recordsets[set][0].copyId=mutate(f.context.copyId);
+  assert.throws(()=>validateCrmOrderPriceProof(f.context,f.revision,f.result),{code:'CRM_V2_TARGET_UNAVAILABLE'});
+  assert.equal(getRegisteredCrmOrderPriceContext(f.context),null);
+ }
+ // Descriptor and literal metadata bindings retain their exact original contract.
+ const metadata=crmPriceFixture();metadata.result.recordsets[1][0].copyId+=' ';assert.throws(()=>validateCrmOrderPriceProof(metadata.context,metadata.revision,metadata.result));
+ const wrong=crmPriceFixture(),d=structuredClone(wrong.revision);d.copyId=d.copyId.slice(0,-1)+(d.copyId.endsWith('0')?'1':'0');const {revisionHash,...body}=d;d.revisionHash=fixtureHash(body);await assert.rejects(configureCrmOrderPriceContext(wrong.context,d,wrong.request()));
+});
