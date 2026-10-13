@@ -6,6 +6,12 @@ const fail=()=>{throw Error('Katalog bilgileri doğrulanamadı. Yeniden deneyin.
 const id=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v)&&BigInt(v)<=9223372036854775807n;
 const text=v=>v===null||typeof v==='string';
 const exact=v=>v===null||typeof v==='string'&&/^-?(?:0|[1-9]\d{0,19})\.\d{8}$/.test(v);
+export function catalogStockDisplay(row){
+ if(!row||!exact(row.stockQuantityExact)||typeof row.hold?.blocked!=='boolean'||typeof row.unit?.verified!=='boolean')fail();
+ if(row.stockQuantityExact===null)return 'Bilinmiyor';
+ if(row.hold.blocked||!row.unit.verified)return 'Doğrulanmadı';
+ return stockExact(row.stockQuantityExact);
+}
 const goal7Run='GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d';
 const versionedProduct=r=>r?.provenance?.kind==='accepted-opening'&&r.provenance.runId===goal7Run&&r.provenance.sourceAsOf==='2026-10-07'&&/^(?:VEGA_CAPTURE_20260930_01|VEGA2026)\/F0102\/TBLSTOKLAR\/[1-9]\d*$/.test(r.provenance.sourceKey);
 const finalVersion=v=>v?.schemaVersion==='melisa-final-catalog-context.v1'&&/^FINAL-(?:INVERSE-)?[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v.runId??'')&&/^\d{4}-\d{2}-\d{2}$/.test(v.sourceAsOf??'')&&v.productCount===16671&&['FROZEN_SOURCE','SYNTHETIC_NATIVE_SQL'].includes(v.evidenceKind)&&['sourceHash','planHash','bindingsHash','readerDefinitionHash','snapshotHash'].every(k=>/^[a-f0-9]{64}$/i.test(v[k]??''))&&Array.isArray(v.ancestry)&&v.ancestry.length>0&&v.ancestry.every(a=>a.runId==='VEGA-OPENING-TEST-20261004-06'&&a.sourceAsOf==='2026-09-30'||a.runId===goal7Run&&a.sourceAsOf==='2026-10-07'||a.runId===v.runId&&a.sourceAsOf===v.sourceAsOf);
