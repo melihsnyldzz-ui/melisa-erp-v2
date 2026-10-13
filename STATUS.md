@@ -1,3 +1,7 @@
+## ERP04 / C09 — gerçek native kontrolünde Türkçe collation düzeltmesi — 13 Ekim 2026
+
+Yeni CRM yordamları pasif kuruldu; 21 iş tablosunun tam satır hashleri, eski modüller ve izinler korundu. Dar izin geçişi gerçek DB02'de uygulandı, fakat sınırlı CRM kimliğiyle başlangıç kontrolü CHECK metnindeki Türkçe `LOWER(IS NULL)` / noktasız ı farkında kapalı kaldı. İzinler exact önceki 35 satır/hash'e geri döndürüldü; yeni paket aktive edilmedi. Eski ERP59c444f yeniden sağlıklı, Hub yeniden başlatıldı; TEST125 değişmedi. Kaynak düzeltmesi yalnız CHECK metninin belirli collation ile normalleştirilmesidir; kural/trusted/FK/tip/hassasiyet sınırları aynı. Altı hedefli test ve bağımsız kaynak GO; beş gerçek şema salt okunur kontrolde uygun. Yeni native proof, paket ve CRM ekranı henüz bekler. İnsan kabulü ve ERP04/C09 kısmi durumu korunur.
+
 ## ERP04 / C09 — CRM fiyat sözleşmesi kaynak teslimi — 13 Ekim 2026
 
 MANUAL sürüm kanıtı, eski SOURCE fingerprint/replay koruması, ayrı CRM native kimliğine üç dar yordam ve kazanılan native doğrulama eklendi. 76 hedefli offline kontrol PASS, bağımsız kaynak GO; gerçek DB02 parent25 eşleşti,6 DDL aşaması derleme/rollback PASS ve kalan nesne0. Yeni kalıcı native kurulum/paket/normal CRM kontrolü henüz yok. Çalışan ERP59c444f/CRM09ca/native60e ve TEST125 korunur. ERP04/C09🟡, insan kabulü bekliyor, completeDelivery=false. [Kapsam/kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md). Kaynak teslimi deployment değildir; CI exact teslim head'inde ayrıca raporlanır.

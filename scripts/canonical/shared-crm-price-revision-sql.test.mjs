@@ -60,3 +60,16 @@ test('native sysname alias is accepted only for the two canonical registry name 
  }
  assert.match(proof,/c\.name COLLATE Latin1_General_100_BIN2=N'payload_json' AND c\.system_type_id=TYPE_ID\(N'nvarchar'\) AND\(c\.user_type_id=TYPE_ID\(N'nvarchar'\)\)/);
 });
+test('actual Turkish CHECK form uses deterministic ASCII normalization without relaxing native guards',async()=>{
+ const native="([price_exact] IS NULL OR [price_exact]>=(0))",compact=native.replace(/[\[\]()\s]/g,'');
+ assert.equal(compact.toLocaleLowerCase('tr'),'price_exactısnullorprice_exact>=0');
+ assert.equal(compact.toLowerCase(),'price_exactisnullorprice_exact>=0');
+ const {bundle}=await sharedCrmPriceFixture();
+ for(const o of bundle.objects){
+  assert.match(o.definition,/definition COLLATE Latin1_General_100_BIN2,N'\['/);
+  assert.match(o.definition,/COLLATE Latin1_General_100_BIN2 IN\(N'price_exactisnullorprice_exact>=0'\)/);
+  assert.match(o.definition,/sys\.check_constraints WHERE parent_object_id=.*?AND is_disabled=0 AND is_not_trusted=0/);
+  assert.doesNotMatch(o.definition,/LOWER\(REPLACE\(REPLACE\(REPLACE\(REPLACE\(REPLACE\(definition,N'\['/);
+  assert.match(o.definition,/c\.precision=28 AND c\.scale=8/);assert.match(o.definition,/f\.is_disabled=0 AND f\.is_not_trusted=0/);
+ }
+});
