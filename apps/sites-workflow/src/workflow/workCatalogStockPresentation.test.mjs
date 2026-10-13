@@ -25,8 +25,13 @@ test('actual list and card rendering share stock trust display without changing 
  // Execute the production render functions, with unrelated presentation dependencies bounded.
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const render=Function('esc','known','unit','priceSummary','status','catalogStockDisplay','catalogExact','money','purchasePermission',source.slice(from,to)+';return {table,card};')(esc,esc,r=>r.unit.verified?'ADET':'Bilinmiyor',()=>'',()=>'',catalogStockDisplay,catalogExact,()=>'',false);
- for(const [quantity,blocked,verified,expected] of [[null,false,true,'Bilinmiyor'],['0.00000000',true,false,'Doğrulanmadı'],['0.00000000',false,true,'0'],['-443.00000000',false,true,'-443']]){
+ for(const [quantity,blocked,verified,expected] of [[null,false,true,'Bilinmiyor'],['0.00000000',true,false,'Doğrulanmadı'],['5.00000000',false,false,'Doğrulanmadı'],['5.00000000',true,true,'Doğrulanmadı'],['0.00000000',false,true,'0'],['-443.00000000',false,true,'-443']]){
   const r={...row(quantity,blocked,verified),id:'1',stockCode:'0001',displayCode:'0001',productName:'<Ürün>',isActive:true,classification:{brand:null,productType:null,sourceName:null},barcodes:[],salePrices:[],photo:{status:'missing'},provenance:{sourceAsOf:'2026-09-30'}};r.unit.factorExact8='1.12345678';const before=JSON.stringify(r),meta={canViewSalesPrices:false,readAt:'2026-10-13T09:00:00Z'};
-  assert.ok(render.table([r],meta).includes(`<td data-label="Stok">${expected}<small`));const card=render.card(r,meta);assert.ok(card.includes(`<small>Mevcut stok</small><strong>${expected}</strong>`));if(verified)assert.ok(card.includes('<dt>Birim çarpanı</dt><dd>1,12345678</dd>'));assert.ok(card.includes('&lt;Ürün&gt;'));assert.equal(JSON.stringify(r),before);
+  assert.ok(render.table([r],meta).includes(`<td data-label="Stok">${expected}<small`));const card=render.card(r,meta);
+  const stockClass=quantity===null||blocked||!verified?' class="catalog-detail-price"':'';
+  assert.ok(card.includes(`<small>Mevcut stok</small><strong${stockClass}>${expected}</strong>`));
+  if(stockClass)assert.ok(!card.includes(`<small>Mevcut stok</small><strong>${expected}</strong>`));
+  else assert.ok(!card.includes(`<small>Mevcut stok</small><strong class="catalog-detail-price">${expected}</strong>`));
+  if(verified)assert.ok(card.includes('<dt>Birim çarpanı</dt><dd>1,12345678</dd>'));assert.ok(card.includes('&lt;Ürün&gt;'));assert.equal(JSON.stringify(r),before);
  }
 });
