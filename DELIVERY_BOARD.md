@@ -1,3 +1,7 @@
+## ERP12 / C08 — mevcut günlük finans okuması — 13 Ekim 2026
+
+ERP-DEC-050/053 içinde sonlu mevcut tahsilat/ödeme/kasa okumaları son çalışan paketle bağlandı; yeni işlem veya tekrar prova yok. [Günlük finans okuma kanıtı](docs/evidence/erp/2026-10-13-finance-daily-read/README.md). Genel C08/gerçek açılış/insan kabulü açık; önceki ERP11/C05/TERM/OPS kaynakları korunur. Ana kapanışın kalan yetkili işleri sürer; yeni migration, giriş veya CRM işi yok.
+
 ## ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim 2026
 
 Ana devam ERP-DEC-050/053 içinde mevcut fatura–kabul bağlantısı ve native kayıtlı kur görünümü teknik hazır. [Alış–mal kabul görünümü kanıtı](docs/evidence/erp/2026-10-13-purchase-receipt/README.md). Genel günlük kapsam/insan kabulü açık. Önceki C05/TERM01/OPS02 korunur; yeni ticari/migration yok.

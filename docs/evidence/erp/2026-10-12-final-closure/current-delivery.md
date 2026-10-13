@@ -1,3 +1,9 @@
+# ERP12 / C08 — mevcut günlük finans okuması — 13 Ekim son kanıt
+
+Çalışan source **f2f922af81be6a1852f49ee7a6cf5c6bdb7a1477** ve immutable f2f922a paketi aynı;5234/4184/4186/DB02/T1false. Normal16 mevcut tahsilat/ödeme/hesap/fiş-kabul geçmişi ve Yenile; personel15 ödeme403.17GETeski payload/9native recordset aynı;7nativefişbaşlığı (16günlük2+15readonlyuyum),1tahsilat/1ödeme/1hesap exacttutar-döviz-yön/journal bağlandı. Ticariyazma0; uygulama/paket/runtime/yetki değişimi0, eskiprova tekrarı0. [Günlük finans okuma kanıtı](docs/evidence/erp/2026-10-13-finance-daily-read/README.md). Hareketneti/bakiye/açılış ayrı; UNKNOWN açılış, banka/genelFX/günsonu/insan kabulü açık. C08/B06🟡,UA14/UA32bekliyor,49-9-39-1/completeDeliveryfalse aynı. SourceCI6ödemeengeli, yeni docHEAD ayrı.
+
+Önceki ERP11 kaynak/paket kanıtı son çalışan sürümdür; yeniden build/restart gerekmedi.
+
 # ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim son teslim
 
 Source **f2f922af81be6a1852f49ee7a6cf5c6bdb7a1477**, 1876dosya/manifest2840ecbeaa17c84cd452e78de5738ee2ab494d36f7bb35756c26ce513857e26a;5234/4184/4186/DB02/copye16b70f0/T1false. Mevcut fatura kendi kayıtlı döviz/fiyat/toplamını, exact kabul–supplier–satır–ADET×1 ve native belge/cari kuru+tutarını gösterir; yeni taslak kuru ayrı. Root61/61/HighGO/build/secret scan0;19GET eski alanı aynı+8aynıyetkired;3nativefatura/4satır/stock-supplier geçmişi aynı, ticariyazma0. Chrome/üçgenişlik kanıtı; API2reader+2test/CSS9/startup225/CRM11staged/TEST125 korunur. [Alış–mal kabul görünümü kanıtı](docs/evidence/erp/2026-10-13-purchase-receipt/README.md). C02/C03/B05🟡,49-9-39-1/UA11-UA32bekliyor. Genel kapsam ve tarihsel reader snapshot sınırı açık; completeDelivery=false. Source6hostedCI ödeme nedeniyle başlamadı, docHEAD ayrı.

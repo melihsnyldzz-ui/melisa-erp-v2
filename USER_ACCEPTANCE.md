@@ -1,3 +1,7 @@
+## ERP12 / C08 — mevcut günlük finans okuması — insan kabulü bekliyor
+
+13Ekim f2f922a/DB02/5234. [Günlük finans okuma kanıtı](docs/evidence/erp/2026-10-13-finance-daily-read/README.md). Tahsilat'ta mevcut açık/kısmi fişi ve ayrı döviz hareketlerini; Tedarikçi Ödeme'de mevcut ödeme→fatura→mal kabulü bağını Yenile ile inceleyin. Hareketneti kasa açılışı değildir; gerçek açılış/banka kabulü ayrı. Yeni işlem gerekmez. Root teknik okuması insan kabulü değildir; ERP-UA14/UA32 ve geçmiş kayıtlar değişmedi.
+
 ## ERP11 / C02–C03 — kayıtlı fatura dayanağı — insan kabulü bekliyor
 
 13Ekim f2f922a/DB02/5234. [Alış–mal kabul görünümü kanıtı](docs/evidence/erp/2026-10-13-purchase-receipt/README.md). Mevcut TRY/USD faturayı İncele ile açın; kayıtlı miktar/fiyat/döviz/kur, Bağlı mal kabulü tedarikçi/depo/satır ve Yenile sonrası aynı kaydı kontrol edin. Yeni işlem gerekmez.61teknik test/Chrome/API/native insan kabulü değildir. ERP-UA11/UA32 ve geçmiş kabuller korunur; kişi/tarih/sonuç bekliyor.

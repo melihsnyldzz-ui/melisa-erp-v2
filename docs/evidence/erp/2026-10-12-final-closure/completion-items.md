@@ -1,3 +1,12 @@
+## ERP12 / C08 — mevcut günlük finans okuması — 13 Ekim
+
+| Kalem | Son paketle bağlanan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| ERP12/C08/B06 | Normal mevcut tahsilat/ödeme/hesap ve belge-kabul bağlantısı;17GET/9native set, refresh/yetki; ticariyazma0. | Gerçek açılış/banka/günsonu, genişmüşteri-FX, kayıtlıkur/presentation sınırı, UA14/UA32. |
+| Teslim | Sourcef2f922a aynı; uygulama/paket/runtime/yetki değişmedi. | HostedCI ödeme ve genel insan/işletme kabulleri. |
+
+[Kanıt](../2026-10-13-finance-daily-read/README.md). Tarihsel39hesap analizi fiziksel sayım/ekstre kabulü değildir.
+
 ## ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim
 
 | Kalem | Çalışan kanıt | Kalan |
