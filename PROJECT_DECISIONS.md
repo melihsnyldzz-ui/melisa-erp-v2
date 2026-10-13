@@ -23,6 +23,13 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-054 — 13 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan kararı: **“CRM niye hâlâ duruyor? Onu da kaldığı yerden devam ettir, yapılanları tekrarlamadan kalan işleri kapatsın. Hepsini birlikte bitirelim artık.”** Kaynak: sesli yönlendirme sohbeti 01a12824-1cc4-78f0-817b-6c8389061e4b, kullanıcı mesajı 01a13497-5840-7c70-b47c-05e8d9f63f0a; read_thread ile insan içeriği doğrulandı. ERP-DEC-050/053 içindeki CRM paused sınırı yalnız bu devam kararı bakımından supersede edilir; iptal edilmiş yardımcı giriş geri gelmez.
+
+ERP ve CRM mevcut sahiplerinde, kabul edilmiş işleri tekrarlamadan ana teslimi sürdürür. Ortak DB02/ERP/native/startup/config/port/store değişiklikleri tek ERP koordinatörü üzerinden sıralanır; bağımsız CRM kod/paket hazırlığı ortak runtime'ı habersiz değiştirmez. Çalışan paket, veri, rol ve yedekler korunur; kaynak hazırlığı runtime veya insan kabulü değildir. LIVE/Vega/T1/main merge, gerçek müşteri mesajı, ücretli servis ve retli eylemi başka yöntemle aşma yetkisi verilmedi. ERP-COMPLETE01 aynı ana iştir.
+
+
 ### ERP-DEC-053 — 12 Ekim 2026 — Onaylı
 
 Son doğrudan kullanıcı kararı: **“Onu istemiyorum artık. ERP'yi toparlayalım bitirelim kapatalım bu işleri.”** Tek Semih giriş düğmesi iptal; ana teslimin ön koşulu değildir. Aynı kullanıcı **ERP, CRM, terminal ve LIVE'a hazırlıkta kalan bütün işleri tek tek, ayrıntılı raporla** istedi. Kaynak: `sesli yönlendirme` sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, kullanıcı mesajları `01a13127-d0b0-7241-83b1-54a07abd5588`, `01a13128-26ff-7a13-aabb-6275485051d7`, `01a13128-bb2b-74e3-a492-bc65a4a54f92`; `read_thread` ile insan içeriği doğrulandı. ERP-DEC-051/052 giriş önceliği supersede edilir. ERP-DEC-050'nin mevcut ana teslim devam yetkisi korunur.
