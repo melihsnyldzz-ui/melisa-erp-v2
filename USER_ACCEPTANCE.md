@@ -1,3 +1,7 @@
+## ERP15 / B07–C15 — son çalışan raporlar — insan kabulü bekliyor
+
+13Ekim b68/DB02/5234. [Günlük rapor okuma kanıtı](docs/evidence/erp/2026-10-13-daily-report-read/README.md). Raporlar'da8–10Ekim özel aralık, ayrı TRY/USD/EUR, Maliyet kaydı olan/olmayan veCSV; stok ilk/sonraki50 veYenile. Bugün bu copy'nin9Ekim iş günüdür; gerçek bugünkü mağaza toplamı değildir. Yeni işlem gerektirmez. Teknik/native/indirilenCSV gözlemi ERP-UA19/UA32'yi PASS yapmaz; eski kişi/tarih/sonuç aynı.
+
 ## ERP13 / C10–C11 — mevcut sayım/iade/ters kayıt görünümü — insan kabulü bekliyor
 
 13Ekim0bf8f7d/DB02/5234. [Sayım–iade okuma kanıtı](docs/evidence/erp/2026-10-13-count-return-read/README.md). Mevcut Sayım→Sayımı incele'de özgün miktar/fark ve ayrı Geri alma gerekçesi; Kapat/Yenile. İadeler→Açıklama'da özgün gerekçe, ayrı geri alma gerekçesi ve yetkiye göre döviz/tutar. Yeni işlem gerektirmez. Teknik gözlem ERP-UA15/16/18/32'yi PASS yapmaz; geçmiş kişi/tarih/sonuç değişmedi.

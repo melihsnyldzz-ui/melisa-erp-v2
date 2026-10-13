@@ -1,3 +1,12 @@
+## ERP15 / B07–C15 — mevcut dönem/döviz/CSV — 13 Ekim
+
+| Kalem | Son çalışan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| ERP15/B07/C15 | Mevcut7copyraporu,8–10Ekim,50sayfa/ayrıdöviz/CSVbyte/native ve normalrol; maliyetkaydı dili. | Genel işletme, historicalVega, gerçek açılış/kapama ve UA19/32. |
+| Teslim | Sourceb68 frontend2etiket/test; API/reader/matematik aynı; yeni ticari0. | HostedCI ödeme ve genelOPS01hız/insan sınırları. |
+
+[Kanıt](../2026-10-13-daily-report-read/README.md). Kayıt sayıları farklı rapor kapsamlarıdır; toplanıp ürün/işlem sayısı yapılmaz.
+
 ## ERP13 / C10–C11 — sonlu salt okunur görünüm — 13 Ekim
 
 | Kalem | Bağlanan teknik alt kapsam | Somut kalan |

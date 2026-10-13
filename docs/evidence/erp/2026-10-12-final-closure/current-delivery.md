@@ -1,3 +1,9 @@
+# ERP15 / B07–C15 — son çalışan rapor görünümü — 13 Ekim son teslim
+
+Source **b68aa1b7f6b3e6d044a6d275b587c0d849c03e38**,1876dosya/manifest5f7d8fe3a0ca75a7b867ad872ea14e76b970d3c4292c314654f58b2749bbe65c;5234/4184/4186/DB02/copye16b70f0/T1false. Rapor maliyeti artık kayıt var/yok olarak gösterir; kâr/proof iddiası yok. Root9/9/HighGO/build/secret0;46ortakGETsame+2USD,10native set aynı,10page/CSVparitesi+USD ayrı,8personelfinance403. Normal7rapor/dönem/döviz/stok50/Yenile ve gerçekCSVbyteeşliği kanıtlı; ticariyazma0. [Günlük rapor okuma kanıtı](../2026-10-13-daily-report-read/README.md). API0/startup225/CSS9/CRM11staged/TEST125 aynı. B07/C15🟡/UA19-UA32bekliyor/49-9-39-1/completeDeliveryfalse; genelişletme/tarihselVega/gerçekaçılış/insan veOPS01hız açık. Source6CI ödeme nedeniyle başlamadı; docHEAD ayrı.
+
+Aşağıdaki ERP13/ERP12/ERP11 kayıtları kendi tarihsel paket/kanıtlarıyla korunur; son runtimeb68aa1b'dir.
+
 # ERP13 / C10–C11 — mevcut sayım/iade görünümü — 13 Ekim son teslim
 
 Source **0bf8f7df584fe975f912af7dea3507e41c1eebd2**,1876dosya/manifest8d4f77c234db50bf85cce6c89937a471b5ef7a45040832660a42302957bc8a8c;5234/4184/4186/DB02/copye16b70f0/T1false. Mevcut normal sayım/iade geçmişinde kayıtlı geri alma gerekçesi özgün gerekçeden ayrı, iptal sayım incelemesi salt okunur. Root17/17/HighGO/build/secretscan0;4GET/15native set aynı,2mevcut ters bağ/native journal doğrulandı, ticariyazma0. Normal15/16/Yenile/üç hedefli genişlik kanıtlı; API0/CSS9/startup225 veCRM11staged/TEST125 aynı. [Sayım–iade okuma kanıtı](../2026-10-13-count-return-read/README.md). C10/C11🟡; genelFX/çok satırlı iade/batchinverse/kimlik matrisi ve UA15/16/18/32bekliyor.49-9-39-1/completeDeliveryfalse aynı. Source6CI ödeme nedeniyle başlamadı; docHEAD ayrı.
