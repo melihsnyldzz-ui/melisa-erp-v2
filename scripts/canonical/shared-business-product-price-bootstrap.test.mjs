@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {selectedSaleFixture} from '../../apps/api/src/services/businessSelectedSalePreview.test.mjs';
 import {isolatedCopyHash} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
 import {buildBusinessProductPriceRevision} from './shared-business-product-price-revision-sql.mjs';
-import {BUSINESS_PRICE_COPY_ID, BUSINESS_PRICE_TABLES,BUSINESS_PRICE_IMMUTABLE} from './shared-business-product-price-revision-contract.mjs';
+import {BUSINESS_PRICE_COPY_ID, BUSINESS_PRICE_TABLES,BUSINESS_PRICE_IMMUTABLE,BUSINESS_PRICE_REGISTRY} from './shared-business-product-price-revision-contract.mjs';
 import {BUSINESS_PRODUCT_PRICE_METADATA_SQL,validateBusinessProductPriceNativeProof,configureBusinessProductPriceRevision,getRegisteredBusinessProductPriceRevision,verifyBusinessProductPriceRevision} from './shared-business-product-price-bootstrap.mjs';
 
 function nativeType(type){
@@ -35,6 +35,19 @@ test('canonical finite native shape verifies without minting a registration',()=
   const {copy,bundle,result}=businessPriceNativeFixture();
   assert.equal(validateBusinessProductPriceNativeProof(copy,bundle,result),true);
   assert.equal(getRegisteredBusinessProductPriceRevision(copy),null);
+});
+test('native reordered kind equality CHECK preserves exactly MODULE and SCHEMA',()=>{
+  for(const definition of ["([kind]='SCHEMA' OR [kind]='MODULE')","([kind]='MODULE' OR [kind]='SCHEMA')"]){
+    const {copy,bundle,result}=businessPriceNativeFixture();
+    result.recordsets[4].find(c=>c.tableName===BUSINESS_PRICE_REGISTRY&&c.definition.includes('kind')).definition=definition;
+    assert.equal(validateBusinessProductPriceNativeProof(copy,bundle,result),true);
+    assert.equal(getRegisteredBusinessProductPriceRevision(copy),null);
+  }
+  for(const definition of ["[kind]='MODULE'","[kind]='SCHEMA' OR [kind]='MODULE' OR [kind]='EXTRA'","[kind]='SCHEMA' OR [kind]='MODULE' OR 1=1","[kind]='SCHEMA' AND [kind]='MODULE'","[kind]='S C H E M A' OR [kind]='MODULE'","[kind]='schema' OR [kind]='MODULE'"]){
+    const {copy,bundle,result}=businessPriceNativeFixture();
+    result.recordsets[4].find(c=>c.tableName===BUSINESS_PRICE_REGISTRY&&c.definition.includes('kind')).definition=definition;
+    assert.throws(()=>validateBusinessProductPriceNativeProof(copy,bundle,result),{code:'BUSINESS_PRICE_NATIVE_CHECKS'});
+  }
 });
 test('altered native schema cannot hide behind internally consistent registry hashes',()=>{
   const changes=[r=>r.recordsets[1][0].nullable=true,r=>r.recordsets[1].push({...r.recordsets[1][0],columnName:'extra'}),r=>r.recordsets[2][0].disabled=true,r=>r.recordsets[2][0].columnsJson='[{"columnName":"quote_id","keyOrdinal":1,"descendingKey":false,"included":false}]',r=>r.recordsets[3][0].notTrusted=true,r=>r.recordsets[3][0].onDelete=1,r=>r.recordsets[4][0].definition='actor_id=15',r=>r.recordsets[5][0].disabled=true,r=>r.recordsets[5][0].tableName='dbo.products',r=>r.recordsets[5][0].eventsJson='[{"eventName":"INSERT"}]'];

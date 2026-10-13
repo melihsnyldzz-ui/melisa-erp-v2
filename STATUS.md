@@ -1,3 +1,9 @@
+## ERP04 / C09 — gerçek native fiyat kaydı ve replay provası — 13 Ekim 2026
+
+DB02'de yalnız yeni fiyat metadata/tüketici nesneleri kuruldu; mevcut 14 ürün/stok/cari/finans/rol/karantina tablosunun satır sayısı ve tam satır hashleri önce/sonra eşit. SQL Server'ın eşdeğer CHECK gösterimi ve boş fiyat geçmişinin `[]` serileştirmesi dar düzeltildi; 18 hedefli kontrol geçti. Gerçek sınırlı SQL hesabı başlangıç/yetki kontrolünü geçti. Aynı transactionda gerçek sıfır, NULL, sonraki sürümden sonra eski UUID replay kanıtlandı: güncel sürüm B kaldı, geçmiş iki satır, tüm yazmalar rollback ve ilk kart birebir geri okundu. Kaynak fiyatına yazılmadı; identity boşlukları olabilir, reseed yok.
+
+Bu kanıt çalışan normal ekran teslimi değildir. Runtime hâlâ **2bf2762**; TEST125, CRM09ca/native60e korunur. Yeni satış CURRENT/HISTORY, olumsuz native kontroller, normal ekran ve doğru yeni paket teslimi sürüyor. ERP04/C09 ve insan kabulü açık; completeDelivery=false. [Kanıt](docs/evidence/erp/2026-10-13-price-write/README.md).
+
 ## ERP04 / C09 — katalog/satış kaynak bağlantısı; native uygulama bekliyor — 13 Ekim 2026
 
 Normal katalog editörü/toplu fiyat okuması, native kanıtla açılan ayrı route/startup ve CURRENT/HISTORY tüketicisi kaynakta bağlandı. Gerçek DB02 v11 salt okunur kimliği doğrulandı; 20 yeni DDL adımı tek transaction içinde derlenip geri alındı, yeni nesne kalmadı. SQL130 hatası düzeltildi. API/derleyici106 + özel kaynakla7 PASS; UI35 PASS/build başarılı. Kaynak incelemesinde bulunan global gezinme/pending yetki kaybı düzeltildi. Kalıcı DB kurulumu, native fiyat yazma/replay, normal ekran ve paket henüz yok; çalışan2bf2762/TEST125/CRM09ca aynı. [Ayrım ve kanıt](docs/evidence/erp/2026-10-13-price-write/README.md). ERP04 ve insan kabulü açık; completeDelivery=false.

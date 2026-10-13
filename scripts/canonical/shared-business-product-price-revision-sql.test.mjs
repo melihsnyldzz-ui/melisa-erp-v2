@@ -74,6 +74,14 @@ test('unknown nullable manual price and exact zero are distinct from unedited so
   assert.match(write,/@price_text IS NOT NULL AND\(TRY_CONVERT\(decimal\(28,8\)/);
   assert.match(write,/CONVERT\(varbinary\(max\),@price_text\)<>CONVERT\(varbinary\(max\),CONVERT\(nvarchar\(100\),TRY_CONVERT\(decimal\(28,8\),@price_text\)\)\)/);
 });
+test('empty immutable history serializes as an explicit JSON array in reads and journal cards',()=>{
+  const {bundle}=productPriceCompilerFixture();
+  for(const name of [BUSINESS_PRICE_GET,BUSINESS_PRICE_SET]){
+    const sql=definition(bundle,name),history=sql.match(/JSON_QUERY\(COALESCE\(\(SELECT TOP\(100\)[\s\S]*?FOR JSON PATH,INCLUDE_NULL_VALUES\),N'\[\]'\)\) recentChanges/g);
+    assert.equal(history?.length,name===BUSINESS_PRICE_GET?1:2);
+    assert.doesNotMatch(sql,/JSON_QUERY\(\(SELECT TOP\(100\)[\s\S]*?FOR JSON PATH,INCLUDE_NULL_VALUES\)\) recentChanges/);
+  }
+});
 test('version/current/request invariants keep completed history and tuple identity immutable',()=>{
   const {bundle}=productPriceCompilerFixture();
   assert.match(bundle.tableSQL,/FOREIGN KEY\(copy_id,product_id,quote_id,version_id\) REFERENCES dbo.business_product_price_versions\(copy_id,product_id,quote_id,id\)/);

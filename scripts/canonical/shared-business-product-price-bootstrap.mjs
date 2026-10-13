@@ -11,6 +11,14 @@ const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Obj
 const truth=v=>v===true||v===1;
 const falsity=v=>v===false||v===0;
 const normal=value=>String(value??'').replace(/[\[\]\s()]/g,'').toUpperCase();
+// SQL Server stores this exact IN check as two reordered equalities. Accept
+// only those finite equivalent forms; retain literal case/whitespace so an
+// altered allowed value cannot be normalized into MODULE or SCHEMA.
+const kindCheck=value=>{
+  const compact=String(value??'').split(/('[^']*')/).map((part,i)=>i%2?part:normal(part)).join('');
+  return ["KINDIN'MODULE','SCHEMA'","KINDIN'SCHEMA','MODULE'","KIND='MODULE'ORKIND='SCHEMA'","KIND='SCHEMA'ORKIND='MODULE'"].includes(compact)?"KINDIN'MODULE','SCHEMA'":compact;
+};
+const nativeCheck=(table,value)=>table===BUSINESS_PRICE_REGISTRY?kindCheck(value):normal(value);
 const rows=(set,table)=>set.filter(r=>r.tableName===table);
 const json=value=>{try{return JSON.parse(value);}catch{check(false,'BUSINESS_PRICE_NATIVE_JSON');}};
 const privateTables=[...BUSINESS_PRICE_TABLES,BUSINESS_PRICE_REGISTRY];
@@ -52,7 +60,7 @@ export function validateBusinessProductPriceNativeProof(copy,bundle,result){
     const actualFks=rows(foreignKeys,schema.name);
     check(new Set(actualFks.map(f=>isolatedCopyJSON([f.referencedTable,json(f.columnsJson)]))).size===actualFks.length&&actualFks.length===schema.foreignKeys.length&&actualFks.every(f=>falsity(f.disabled)&&falsity(f.notTrusted)&&f.onDelete===0&&f.onUpdate===0&&schema.foreignKeys.some(e=>e.table===f.referencedTable&&isolatedCopyJSON(e.columns)===isolatedCopyJSON(json(f.columnsJson).map(c=>c.columnName))&&isolatedCopyJSON(e.referencedColumns)===isolatedCopyJSON(json(f.columnsJson).map(c=>c.referencedColumn)))),'BUSINESS_PRICE_NATIVE_FOREIGN_KEYS');
     const actualChecks=rows(checks,schema.name);
-    check(new Set(actualChecks.map(c=>normal(c.definition))).size===actualChecks.length&&actualChecks.length===schema.checks.length&&actualChecks.every(c=>falsity(c.disabled)&&falsity(c.notTrusted)&&schema.checks.some(e=>normal(e)===normal(c.definition))),'BUSINESS_PRICE_NATIVE_CHECKS');
+    check(new Set(actualChecks.map(c=>nativeCheck(schema.name,c.definition))).size===actualChecks.length&&actualChecks.length===schema.checks.length&&actualChecks.every(c=>falsity(c.disabled)&&falsity(c.notTrusted)&&schema.checks.some(e=>nativeCheck(schema.name,e)===nativeCheck(schema.name,c.definition))),'BUSINESS_PRICE_NATIVE_CHECKS');
     const guard=rows(triggers,schema.name),expectedHash=schema.trigger===BUSINESS_PRICE_IMMUTABLE?bundle.revision.immutableTriggerHash:bundle.objects.find(o=>o.name===schema.trigger)?.afterHash;
     check(guard.length===1&&guard[0].triggerName===schema.trigger&&falsity(guard[0].disabled)&&falsity(guard[0].insteadOfTrigger)&&guard[0].definitionHash===expectedHash&&isolatedCopyJSON(json(guard[0].eventsJson).map(e=>e.eventName).toSorted())===isolatedCopyJSON(['DELETE','INSERT','UPDATE']),'BUSINESS_PRICE_NATIVE_GUARD');
   }

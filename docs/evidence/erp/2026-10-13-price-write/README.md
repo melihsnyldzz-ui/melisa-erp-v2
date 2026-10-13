@@ -89,3 +89,33 @@ Hosted CI'ye dört fiyat derleyici/bootstrap test dosyası eklendi;
 bu kaynak kesiti fiyat yazmasını açmaz. ERP04/C09 ve insan kabulü açık;
 sonraki zorunlu iş kalıcı dar TEST kurulumunun eski runtime ile uyumu,
 native kayıt/replay, normal ekran ve çalışan paket kanıtıdır.
+
+## Üçüncü kesit — native kurulum ve geri alınan gerçek fiyat provası
+
+13 Ekim'de yeni fiyat alanı DB02'ye runtime kapalıyken kuruldu. İlk gerçek
+okuma SQL Server'ın `kind IN (...)` CHECK ifadesini eşdeğer iki OR eşitliği
+olarak sakladığını gösterdi. Doğrulayıcı yalnız aynı iki sabit değerin sonlu
+eşdeğer biçimlerini kabul eder; ek değer, OR 1=1 veya farklı sabit kabul edilmez.
+Boş geçmiş native JSON yanıtında NULL dönüyordu; GET ve SET journal kartları
+artık açık `[]` döndürür. API modeli array zorunluluğunu korur.
+
+Düzeltme, exact eski modül hashleri ve boş V/C/R + fiyatlı belge/journal yokluğu
+kanıtıyla yalnız yeni 20 nesneye aynı SERIALIZABLE/Exclusive transaction içinde
+uygulandı. Eski modüller ve 14 korunan tablonun tam satır hashleri/sayıları aynı.
+Metadata sürümü `12CC03BC410804FF88EFE673E0909330F81877E970E789677230E056D8D52557`,
+tüketici `E9E4D83BB93263BB67BFE7F1B07AA53E25D54973206811E2147D16E964E59078`.
+
+Gerçek kısıtlı SQL bağlantısında canonical V11 + metadata + tüketici doğrulaması
+ve normal store yolu geçti. Aynı native transactionda A gerçek sıfır, B NULL
+kaydedildi; A'nın aynı UUID/body tekrarı A'nın değişmez yanıtını verdi, güncel
+pointer B ve iki geçmiş kaydı korundu. Transaction geri alındı ve yeni okuma
+ilk kartla birebir aynıydı. Kalıcı fiyat/ticari hareket yazması yok; SQL identity
+sayacında rollback boşluğu olabilir ve sayaca müdahale edilmedi. 18 hedefli
+kaynak testi geçti. Private kanıt: ERP-COMPLETE01-20261013/private/erp04-price-write;
+ham kartlar, SQL ve özel yapılandırma repoya alınmadı.
+
+Mevcut 11 Ekim DB02 copy-only/checksum yedeğinin referansı/dosya varlığı taze
+kontrol edildi. Önceki restore kanıtı korundu; bu kesitte yeni restore yapılmadı.
+Yeni satış/history tüketimi, olumsuz native kontroller, normal ekran/paket hâlâ
+ayrı açık koşullardır. Çalışan 2bf2762 ve TEST125 değişmedi; e8e42ef paketi boş
+geçmiş düzeltmesinden önceki inactive hazırlıktır ve aktive edilmeyecektir.
