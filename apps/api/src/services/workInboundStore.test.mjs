@@ -1,7 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createWorkInboundStore,workInboundSupplierMovement} from './workInboundStore.mjs';
+import {createWorkInboundStore,workInboundSupplierMovement,readRecordedInvoiceBases,RECORDED_INVOICE_BASIS_SQL} from './workInboundStore.mjs';
+test('recorded invoice basis reads one typed batch inside parent request and preserves native decimals without current rates',async()=>{
+ const invoices=[{id:91,batchId:9,number:'TSTB-PROOF',currency:'USD',lines:[{},{}]}],supplier={id:'71',currency:'USD'},copy={copyId:'25826e43-f3f2-4ffc-9b10-5a9a412c7bcb'};
+ const row={invoiceId:'91',receiptId:'9',supplierId:'71',documentCurrency:'USD',accountCurrency:'USD',documentExchangeRateExact8:'47.80000000',accountExchangeRateExact8:'47.80000000',accountAmountExact4:'9.1000',amountTryExact4:'434.9800',itemCount:2,linkCount:2};
+ const inputs=[],queries=[];let rows=[row];const sql={BigInt:'bigint',NVarChar:n=>'nvarchar'+n,UniqueIdentifier:'uuid',MAX:'MAX'};
+ const request=()=>({input(name,type,value){inputs.push({name,type,value});return this;},async query(query){queries.push(query);return {recordset:rows};}});
+ const read=()=>readRecordedInvoiceBases({request,sql,copy,supplier,invoices});
+ const basis=(await read()).get('91');assert.equal(basis.documentExchangeRateExact8,'47.80000000');assert.equal(basis.accountAmountExact4,'9.1000');assert.equal(basis.source,'stored-native-invoice');assert.equal(queries.length,1);
+ assert.equal(inputs.find(i=>i.name==='supplier').type,'bigint');assert.equal(inputs.find(i=>i.name==='copy').type,'uuid');assert.deepEqual(JSON.parse(inputs.find(i=>i.name==='admitted').value),[{invoiceId:'91',receiptId:'9',number:'TSTB-PROOF'}]);
+ for(const fragment of ['p.supplier_id=@supplier','p.document_currency=@currency','d.batch_id=a.receiptId','g.batch_id<>d.batch_id','i.product_id<>g.product_id','i.quantity<>l.quantity','l.invoice_item_id=i.id'])assert.ok(RECORDED_INVOICE_BASIS_SQL.includes(fragment));
+ assert.equal(/currency_rates|dbo\.products|UPDATE|INSERT|DELETE/.test(RECORDED_INVOICE_BASIS_SQL),false);
+ rows=[{...row,documentExchangeRateExact8:null}];assert.equal((await read()).size,0,'unknown rate must never become identity or context rate');
+ for(const patch of [{documentExchangeRateExact8:'0.00000000'},{accountAmountExact4:'0.0000'},{accountCurrency:'GBP'}]){rows=[{...row,...patch}];assert.equal((await read()).size,0);}
+ rows=[];assert.equal((await read()).size,0);
+ for(const patch of [{supplierId:'72'},{receiptId:'8'},{documentCurrency:'TRY'},{accountCurrency:'TRY'},{linkCount:1},{itemCount:1},{amountTryExact4:'434.98'},{invoiceId:'92'}]){rows=[{...row,...patch}];await assert.rejects(read(),{statusCode:503});}
+ rows=[row,row];await assert.rejects(read(),{statusCode:503});
+ rows=[{...row,accountAmountExact4:null},{...row,accountAmountExact4:null}];await assert.rejects(read(),{statusCode:503});
+ assert.equal(basis.invoiceId,'91');
+});
+test('recorded bases batch admitted partial invoices on the same receipt without one query per invoice/product',async()=>{
+ const invoices=[{id:91,batchId:9,number:'TSTB-A',currency:'TRY',lines:[{}]},{id:92,batchId:9,number:'TSTB-B',currency:'TRY',lines:[{}]}];let calls=0;
+ const rows=invoices.map(i=>({invoiceId:String(i.id),receiptId:'9',supplierId:'71',documentCurrency:'TRY',accountCurrency:'TRY',documentExchangeRateExact8:'1.00000000',accountExchangeRateExact8:'1.00000000',accountAmountExact4:'10.0000',amountTryExact4:'10.0000',itemCount:1,linkCount:1}));
+ const bases=await readRecordedInvoiceBases({invoices,supplier:{id:'71',currency:'TRY'},copy:{copyId:'25826e43-f3f2-4ffc-9b10-5a9a412c7bcb'},sql:{BigInt:1,NVarChar:()=>2,MAX:3,UniqueIdentifier:4},request:()=>({input(){return this;},async query(){calls++;return {recordset:rows};}})});
+ assert.equal(calls,1);assert.equal(bases.size,2);assert.equal(bases.get('92').invoiceId,'92');
+ const source=fs.readFileSync(new URL('./workInboundStore.mjs',import.meta.url),'utf8');assert.ok(source.includes('if(!write&&business)c.recordedInvoiceBases='));
+});
 const proof={readyHash:'A'.repeat(64)},actor={id:'15',permissions:['goods.view','goods.create']};
 function fixture({drift=false,wrongTarget=false,wrongRole=false}={}){
  const events=[],transaction={},loaded={s:{supplier_code:'TEST-V70-GOODS-S',supplier_name:'Tedarikçi',balance:-100,warehouse_name:'Depo'}};let context;
