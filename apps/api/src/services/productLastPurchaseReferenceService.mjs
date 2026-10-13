@@ -16,7 +16,7 @@ function date(v){
  if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}(?:T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,7})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?)?$/.test(v))return false;
  const day=v.slice(0,10);return Number.isFinite(Date.parse(v))&&new Date(day+'T00:00:00Z').toISOString().slice(0,10)===day;
 }
-function card(raw,id,code){
+export function card(raw,id,code){
  if(raw.schemaVersion!=='melisa-product-purchase-reference.v1'||raw.productId!==id||raw.stockCode!==code||!HEX.test(raw.productHash??'')||!HEX.test(raw.bindingHash??'')||!['cardAmountExact','referenceExact','discountExact'].every(k=>exact(raw[k]))||!currency(raw.currency)||!(raw.unitLabel===null||text(raw.unitLabel))||!['UNKNOWN','GROSS','NET'].includes(raw.priceBasis)||!['PROTECTED_MANUAL_PURCHASE','REFERENCE_AVAILABLE','CARD_AMOUNT_ONLY','PARTIAL_CARD_AMOUNT','PURCHASE_UNKNOWN'].includes(raw.status)||!['SOURCE_CARD_AMOUNT','SOURCE_ALREADY_NET_NO_SECOND_DISCOUNT','GROSS_CARD_LESS_RECORDED_DISCOUNT_ONCE','PRESERVE_MANUAL_PURCHASE'].includes(raw.method)||!date(raw.sourceAsOf)||!codes(raw.reasons)||typeof raw.protectedExistingCost!=='boolean'||typeof raw.protectedManual!=='boolean'||raw.accountingCost!==false||raw.financialWrites!==0)throw fail();
  if(raw.referenceExact!==null&&(raw.currency===null||raw.unitLabel===null||raw.priceBasis==='UNKNOWN')||raw.status==='REFERENCE_AVAILABLE'&&raw.referenceExact===null||raw.priceBasis==='NET'&&raw.referenceExact!==null&&raw.referenceExact!==raw.cardAmountExact||raw.protectedManual&&(raw.cardAmountExact!==null||raw.referenceExact!==null))throw fail();
  if(raw.referenceExact!==null&&raw.priceBasis==='NET'&&raw.method!=='SOURCE_ALREADY_NET_NO_SECOND_DISCOUNT'||raw.referenceExact!==null&&raw.priceBasis==='GROSS'&&raw.method!=='GROSS_CARD_LESS_RECORDED_DISCOUNT_ONCE')throw fail();
@@ -31,7 +31,7 @@ function rational(raw){
  const scale=raw.referenceExact.split('.')[1].length,scaled=BigInt(n)*10n**BigInt(scale),den=BigInt(d),remainder=scaled%den;
  if(scaled/den!==BigInt(raw.referenceExact.replace('.',''))||raw.precisionStatus==='EXACT'&&remainder!==0n||raw.precisionStatus==='TRUNCATED_18'&&(scale!==18||remainder===0n))throw fail();
 }
-function selected(raw,c,parentHash,id,code,sourceAsOf){
+export function selected(raw,c,parentHash,id,code,sourceAsOf){
  if(raw.schemaVersion!==SCHEMA||raw.productId!==id||raw.stockCode!==code||raw.parentRecordHash!==parentHash||raw.productHash!==c.productHash||raw.bindingHash!==c.bindingHash||raw.sourceAsOf!==sourceAsOf||!exact(raw.referenceExact)||raw.referenceExact!==null&&!positive(raw.referenceExact)||!currency(raw.referenceCurrency)||!(raw.referenceUnitLabel===null||text(raw.referenceUnitLabel))||!(raw.referenceDate===null||date(raw.referenceDate))||!['PURCHASE_DOCUMENT','COMMERCIAL_ENTRY','CARD','UNKNOWN'].includes(raw.sourceKind)||!SELECTION_REASONS.includes(raw.selectionReason)||!codes(raw.reasons)||!['NET_REFERENCE','CARD_ONLY','PARTIAL_CARD','PURCHASE_UNKNOWN','PROTECTED_MANUAL'].includes(raw.status)||raw.accountingCost!==false||raw.financialWrites!==0)throw fail();
  const net=raw.referenceExact!==null;
  if(net&&(raw.referenceCurrency===null||raw.referenceUnitLabel===null||!['PURCHASE_DOCUMENT','COMMERCIAL_ENTRY'].includes(raw.sourceKind)||raw.status!=='NET_REFERENCE'||raw.referenceDate===null)||!net&&raw.status==='NET_REFERENCE'||c.protectedManual&&(net||raw.status!=='PROTECTED_MANUAL')||!c.protectedManual&&raw.status==='PROTECTED_MANUAL')throw fail();

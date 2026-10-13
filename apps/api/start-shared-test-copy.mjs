@@ -42,6 +42,7 @@ if(config.businessSelectedSaleStartup){
  const {configureBusinessSelectedSaleRevision}=await import('../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs');
  const {getSqlDriver}=await import('./src/config/database.js');
  const input=loadBusinessSelectedSaleStartup(config,context),sql=getSqlDriver(),tx=new sql.Transaction(pool);
+ if(config.productPurchaseReferenceCopyRead)copyAssert(['melisa-selected-sale-startup-input.v5','melisa-selected-sale-startup-input.v6'].includes(input.schemaVersion)&&input.operationQuarantineRevision&&input.operationQuarantineSource,'COPY_PURCHASE_REFERENCE_QUARANTINE_PROOF_REQUIRED');
  await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
  try{
   await new sql.Request(tx).input('resource',sql.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query("DECLARE @result int;EXEC @result=sys.sp_getapplock @Resource=@resource,@LockMode=N'Shared',@LockOwner=N'Transaction',@LockTimeout=15000;IF @result<0 THROW 51904,'SELECTED_BOOT_COPY_BUSY',1;");
@@ -60,6 +61,11 @@ if(config.businessSelectedSaleStartup){
 }else if(config.businessReadyRevision){
  const {configureBusinessReadyRevision}=await import('./src/services/businessReadyRevisionBootstrap.mjs');
  await configureBusinessReadyRevision(context,config.businessReadyRevision,pool);
+}
+if(writes&&config.productPurchaseReferenceCopyRead){
+ const {configureProductCopyPurchaseReferenceRead}=await import('./src/services/productCopyPurchaseReferenceService.mjs');
+ const {getSqlDriver}=await import('./src/config/database.js');
+ await configureProductCopyPurchaseReferenceRead({copy:context,pin:config.productPurchaseReferenceCopyRead,pool,sql:getSqlDriver()});
 }
 const identity={databaseName:raw.db,serverName:raw.server,loginName:raw.login,databaseUser:raw.databaseUser,sysadmin:raw.sysadmin,databaseControl:raw.control,liveDatabaseAccess:raw.live,originalDatabaseAccess:raw.originalDatabaseAccess};
 const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
