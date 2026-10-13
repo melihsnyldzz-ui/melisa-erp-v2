@@ -23,6 +23,14 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-055 — 13 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan kararı: **“İkisi de bitirdiği her işi GitHub’a kaydetsin, sadece bilgisayarda kalmasın. Veri yedeklerini de takip et, yaptığımız işler kaybolmasın.”** Kaynak: sesli yönlendirme sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, insan mesajı `01a134a4-d0a7-78e3-bbe8-e7ba2c50f484`; `read_thread` ile doğrulandı. Takip mesajı `01a134a5-bf00-7220-9480-4711f46d4785` ana işin bölünmemesini ve tamamlananların ayrılmasını ister.
+
+Her tutarlı alt teslim mevcut feature dalında dar commit/push ve uzak PR head doğrulamasıyla kapatılır; ilgisiz dirty/staged çalışma korunur. Ortak 21 sıra ve sabit 55 ana ID ile alt kapsam, kalan, çalışan sürüm/kanıt, uzak commit, gönderilmemiş yerel iş, insan kabulü ve dış engel ayrı kaydedilir. Alt teslim veya push bütün ana kalemi kapatmaz. CI hesap engeli push'u durdurmaz; çalışmayan kontrol PASS değildir. Ayrı ve mükerrer takip ağacı kurulmaz.
+
+Kod GitHub kaydı ile ticari veri yedeği ayrıdır. Veri veya kalıcı durum değişikliği öncesi uygun mevcut korumalı geri dönüş hazırlanır; önemli değişiklik sonrası kapsam/güncellik kaydedilir. Yedek kapsamı, son başarılı tarih, korumalı konum, bütünlük/restore kanıtı ve ayrı cihaz/konum kopyası ayrı izlenir; bilinmeyen doğrulanmış sayılmaz. Kabul edilmiş iki restore her commit'te tekrarlanmaz. Sır, müşteri verisi ve DB dökümleri GitHub'a/sohbete taşınmaz. Mevcut ana iş/sahiplik, LIVE/Vega/T1/main/mesaj/ücretli servis ve ret sınırları sürer.
+
 ### ERP-DEC-054 — 13 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan kararı: **“CRM niye hâlâ duruyor? Onu da kaldığı yerden devam ettir, yapılanları tekrarlamadan kalan işleri kapatsın. Hepsini birlikte bitirelim artık.”** Kaynak: sesli yönlendirme sohbeti 01a12824-1cc4-78f0-817b-6c8389061e4b, kullanıcı mesajı 01a13497-5840-7c70-b47c-05e8d9f63f0a; read_thread ile insan içeriği doğrulandı. ERP-DEC-050/053 içindeki CRM paused sınırı yalnız bu devam kararı bakımından supersede edilir; iptal edilmiş yardımcı giriş geri gelmez.
