@@ -1,3 +1,7 @@
+## ERP16 / B08 — dar Ayarlar görünümü hazır, insan kabulü bekliyor — 13 Ekim 2026
+
+B08🟡: son paket/kullanıcı/rol/bağlantı, tarihli prova ve Yenile normal ekranda teknik hazır. Güncel yedek kapsamı ve gerçek reboot bilinmiyor; UA20/32 bekliyor. [Ayarlar okuma kanıtı](docs/evidence/erp/2026-10-13-settings-read/README.md).49/9/39/1 aynı; eski kabul edilmiş prova tekrar edilmedi.
+
 ## ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim 2026
 
 Dar okuma teslimi hazır; genel işletme/birim/döviz ve insan kabulü kısmi. [Alış–mal kabul görünümü kanıtı](docs/evidence/erp/2026-10-13-purchase-receipt/README.md).49/9/39/1 aynı. Aşağıdaki paket/kaynaklar tarihsel checkpointlerdir.

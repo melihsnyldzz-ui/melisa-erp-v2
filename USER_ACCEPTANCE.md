@@ -1,3 +1,7 @@
+## ERP16 / B08 — ERP-UA20 için son çalışan görünüm — bekliyor
+
+13Ekim0270d12/DB02/5234. Ayarlar'da paket, kendi kullanıcı/rol ve bağlantıları okuyun; Kayıtlı kurtarma provası'nın tarihli sınırlı kapsam olduğunu, güncel yedek ve Windows başlangıcının henüz doğrulanmadığını kontrol edin. Yenile aynı salt okunur görünümü getirir. Yeni işlem/restore gerekmez. [Ayarlar okuma kanıtı](docs/evidence/erp/2026-10-13-settings-read/README.md). Teknik11test/API/Chrome insan PASS değildir; eski kişi/tarih/sonuç ve UA20/32 bekliyor durumu korunur.
+
 ## ERP15 / B07–C15 — son çalışan raporlar — insan kabulü bekliyor
 
 13Ekim b68/DB02/5234. [Günlük rapor okuma kanıtı](docs/evidence/erp/2026-10-13-daily-report-read/README.md). Raporlar'da8–10Ekim özel aralık, ayrı TRY/USD/EUR, Maliyet kaydı olan/olmayan veCSV; stok ilk/sonraki50 veYenile. Bugün bu copy'nin9Ekim iş günüdür; gerçek bugünkü mağaza toplamı değildir. Yeni işlem gerektirmez. Teknik/native/indirilenCSV gözlemi ERP-UA19/UA32'yi PASS yapmaz; eski kişi/tarih/sonuç aynı.

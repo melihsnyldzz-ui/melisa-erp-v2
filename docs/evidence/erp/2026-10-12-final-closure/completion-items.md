@@ -1,3 +1,12 @@
+## ERP16 / B08 — sistem görünümü — 13 Ekim
+
+| Kalem | Son çalışan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| B08 | Paket/kullanıcı/rol/üç bağlantı ve açık tarihli prova, Yenile; normal15/16. | Güncel yedek, gerçek Windows reboot/logon ve UA20/32. |
+| Teslim |0270d12,5dar source/test dosyası,11test/GO; ticari/restore yazma0. | HostedCI ödeme ve genel teslim/insan sınırları. |
+
+[Ayarlar okuma kanıtı](../2026-10-13-settings-read/README.md). Eski provalar kendi tarih/source/kapsamlarıyla korunur.
+
 ## ERP15 / B07–C15 — mevcut dönem/döviz/CSV — 13 Ekim
 
 | Kalem | Son çalışan teknik alt kapsam | Somut kalan |
