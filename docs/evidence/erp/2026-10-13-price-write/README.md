@@ -119,3 +119,23 @@ kontrol edildi. Önceki restore kanıtı korundu; bu kesitte yeni restore yapıl
 Yeni satış/history tüketimi, olumsuz native kontroller, normal ekran/paket hâlâ
 ayrı açık koşullardır. Çalışan 2bf2762 ve TEST125 değişmedi; e8e42ef paketi boş
 geçmiş düzeltmesinden önceki inactive hazırlıktır ve aktive edilmeyecektir.
+
+## Native tüketici yanıtı düzeltmesi
+
+Kaynak kesiti `c94bf781197ddfbd52d004a939a1ebf131285492` uzak PR #23
+head'i olarak doğrulandı. Altı hosted CI yine hesap ödeme/harcama engeliyle
+başlamadı (check 115279302073 açıklaması); yerel kanıt CI yerine sayılmaz.
+
+Gerçek restricted native olumsuz prova dokuz durumu beklenen SQL hata koduyla
+reddetti: yetkisiz aktör, aynı UUID/farklı body, eski kart sürümü, yanlış döviz,
+yanlış birim, fazladan alan ve üç metadata tablosuna doğrudan UPDATE.
+Her ayrı transaction rollback sonrası kart ilk haliyle aynı; bağımsız SQL'de
+V/C/R 0/0/0, fiyatlı link ve pricing intent 0. Bu kanıt manuel fiyat owner'ına
+aittir; satışın tüketici kabulü ayrıca gerekir.
+
+Tüketici CURRENT gerçek okuması eksik ürün fiyat dizisini reddetti. Dar native
+SQL probu `OPENJSON ... WITH(value ... '$' AS JSON)` ifadesinin bu sunucuda
+NULL döndürdüğünü gösterdi. Kaynak quote JSON'u artık doğrudan `raw.value` ile
+korunur; fiyat kimliği/döviz/tutar JSON kontrolü eklenir. Pure proof kontrolü
+gevşetilmedi. Özel V11 kaynakla yedi compiler kontrolü geçti. Bu kesitte
+tüketicinin yeniden native doğrulanması ve normal ekran hâlâ beklemektedir.

@@ -67,6 +67,9 @@ test('context inlines all native guards without nested INSERT EXEC and preserves
  assert.match(context,/pricing_json/);assert.match(context,/versionProofHash/);assert.match(context,/HASHBYTES\('SHA2_256',@price_sale_pricing_json\)/);
  assert.match(context,/JSON_VALUE\(quote_json,'\$\.currency'\) currency/);
  assert.match(context,/JSON_QUERY\(priced\.prices_json\)/);
+ assert.match(context,/s\.bindingHash,raw\.value FROM/);
+ assert.doesNotMatch(context,/value nvarchar\(max\) '\$' AS JSON/);
+ assert.match(context,/SOURCE_QUOTE_JSON/);
  assert.match(context,/CROSS APPLY\(SELECT N'\['\+STRING_AGG/);
  assert.doesNotMatch(context,/STRING_AGG\([^;]*JSON_QUERY\(\(SELECT/);
  assert.doesNotMatch(context,/COALESCE\(v\.price_exact/);
