@@ -5,6 +5,8 @@ import {validateIsolatedOperationCopyContext,isolatedCopyJSON,isolatedCopyHash} 
 import {workHash,workExact,workScaled} from './workSalesModel.mjs';
 import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
 import {deriveBusinessSelectedSaleJournal} from './businessSelectedSaleJournal.mjs';
+import {privateBusinessPriceLeafSources,earnedBusinessProductPriceNativeFixture,modeledBusinessPriceSaleRead} from './businessProductPriceNative.test-fixture.mjs';
+import {workSalePreview} from './workSalesModel.mjs';
 
 function fixture(currency='TRY'){
  const raw=structuredClone(businessInboundFixture().copy),product=raw.products[0];
@@ -26,6 +28,10 @@ function fixture(currency='TRY'){
 }
 const derive=f=>deriveBusinessSelectedSaleJournal(f.copy,f.actor,f.record);
 const changeJSON=(record,key,mutate)=>{const object=JSON.parse(record[key]);mutate(object);record[key]=key==='preview_json'?JSON.stringify(object):isolatedCopyJSON(object);};
+test('caller pricing snapshot and generic HISTORY DTO cannot bypass immutable native pricing authority',()=>{
+ const f=fixture();changeJSON(f.record.link,'preview_json',p=>{p.pricing={pricingJson:'[]',pricingHash:'A'.repeat(64)};});
+ for(const priceHistory of [null,{pricingProof:{mode:'HISTORY',invoiceId:'1000'},scope:{products:[]}}])assert.throws(()=>deriveBusinessSelectedSaleJournal(f.copy,f.actor,f.record,{priceHistory}),{code:'WORK_SELECTED_SALE_DRIFT'});
+});
 test('creation journal derives full SOURCE account and permits changed lifecycle only',()=>{
  for(const currency of ['TRY','USD']){
   const f=fixture(currency);f.record.invoice.status='finalized';f.record.invoice.revision='b'.repeat(64);
@@ -59,4 +65,20 @@ test('coherently rehashed payload still cannot substitute SOURCE account, policy
 });
 test('response cannot silently change immutable original line or creation status',()=>{
  for(const mutate of [o=>o.invoice.items[0].unitPriceExact8='4.00000000',o=>o.invoice.items[0].unit.factorExact8='2.00000000',o=>o.invoice.items[0].currency='USD',o=>o.invoice.status='finalized']){const f=fixture();changeJSON(f.record.journal,'response_json',mutate);assert.throws(()=>derive(f),{code:'WORK_SELECTED_SALE_DRIFT'});}
+});
+test('earned synthetic HISTORY verifies saved manual invoice after later CURRENT price, without repricing its journal',{skip:!process.env.ERP04_V11_LEAF_INPUT||!process.env.ERP04_V11_LEAF_SHA256},async()=>{
+ const f=await earnedBusinessProductPriceNativeFixture(privateBusinessPriceLeafSources(process.env.ERP04_V11_LEAF_INPUT,process.env.ERP04_V11_LEAF_SHA256)),h=modeledBusinessPriceSaleRead(f),requestId='10000000-0000-4000-8000-000000000001';
+ const preview=await h.run(dto=>{
+  const original=workSalePreview({customerId:'100',currency:'TRY',documentDate:f.copy.date,items:[{productId:'444',quoteId:'100',quantityExact3:'1.000'}]},dto),{previewHash,...value}=original;
+  value.selection.customerAccountId=h.selection.customerAccountId;value.items[0].barcode=f.copy.products[0].barcodes[0];value.sourceSelectionHash=h.selection.sourceSelectionHash;value.policyHash=h.selection.policyHash;
+  return {...value,previewHash:workHash(value),copyId:f.copy.copyId,sealHash:f.copy.sealHash,operationOrigin:f.copy.operationOrigin};
+ });
+ const payload={requestId,expectedRevision:preview.scopeRevision,previewHash:preview.previewHash,customerId:'100',documentDate:f.copy.date,currency:'TRY',items:preview.selection.items,businessCustomerId:'100',businessAccountId:h.selection.customerAccountId,businessCurrency:'TRY',businessProductIds:['444'],sourceSelectionHash:h.selection.sourceSelectionHash,businessSelectedSalePolicyHash:h.selection.policyHash,copyId:f.copy.copyId,sealHash:f.copy.sealHash,operationOrigin:f.copy.operationOrigin,actorId:'15',operation:'sale_draft'};
+ const header={id:'500',documentNo:'NIGHT-'+requestId.replaceAll('-','').slice(0,24),documentDate:f.copy.date,status:'draft',customerId:'100',currency:'TRY',subtotalExact4:preview.subtotalExact4,grandTotalExact4:preview.grandTotalExact4,amountTryExact4:preview.amountTryExact4};
+ const item={...preview.items[0],currency:'TRY'},record={link:{invoice_id:'500',request_id:requestId,actor_id:'15',preview_json:JSON.stringify(preview)},journal:{copy_id:f.copy.copyId,request_id:requestId,actor_id:'15',operation:'sale_draft',payload_hash:isolatedCopyHash(payload),payload_json:isolatedCopyJSON(payload),response_json:isolatedCopyJSON({invoice:{...header,items:[item]},requestId,replayed:false})},invoice:{...header,status:'finalized',accountCurrency:'TRY',accountAmountExact4:preview.grandTotalExact4,documentRateExact8:'1.00000000',accountRateExact8:'1.00000000',createdBy:'15'},items:[{...item,averageCostTryExact4:f.copy.products[0].costExact4}]};
+ const serialized=isolatedCopyJSON(record);
+ const later=modeledBusinessPriceSaleRead(f,{priceExact8:'9.00000000'});await later.run(dto=>assert.equal(dto.scope.products[0].prices[0].unitPriceExact8,'9.00000000'));
+ const history=modeledBusinessPriceSaleRead(f,{mode:'HISTORY',invoiceId:'500'});
+ await history.run(dto=>{const result=deriveBusinessSelectedSaleJournal(f.copy,h.actor,record,{priceHistory:dto});assert.equal(result.creation.invoiceId,'500');assert.equal(record.items[0].unitPriceExact4,'4.2500');assert.throws(()=>deriveBusinessSelectedSaleJournal(f.copy,h.actor,record,{priceHistory:structuredClone(dto)}));});
+ assert.equal(isolatedCopyJSON(record),serialized);assert.equal(f.copy.products[0].quotes[0].priceExact8,'3.00000000');
 });

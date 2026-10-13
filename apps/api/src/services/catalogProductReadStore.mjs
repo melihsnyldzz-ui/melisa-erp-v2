@@ -4,6 +4,8 @@ import {catalogClassificationStore} from './catalogClassificationStore.mjs';
 import {isBoundCatalogContext,validateBoundCatalogContext} from './currentProductCatalogContext.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 import {isBusinessCatalogPriceScope,BUSINESS_CATALOG_PRICE_EXCLUSION_SQL,validateBusinessCatalogPriceExclusions,excludeBusinessCatalogPriceCandidates} from './businessCatalogPriceExclusions.mjs';
+import {readBusinessCatalogPrices} from './businessProductPriceCatalog.mjs';
+import {getRegisteredBusinessProductPriceRevision} from '../../../../scripts/canonical/shared-business-product-price-bootstrap.mjs';
 export const catalogClassificationRequestBudget=copy=>copy?.scopeKind==='VERIFIED_BUSINESS_TEST'&&copy.target?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'?180000:60000;
 export const CATALOG_READ_PROC='dbo.usp_read_work_catalog';
 export const SOURCE_VERSION_CATALOG_READ_PROC='dbo.usp_read_work_catalog_goal7';
@@ -23,6 +25,8 @@ export function createCatalogProductReadStore({getRuntime=defaultRuntime,classif
       const {pool,sql}=await getRuntime();tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
       const identity=(await new sql.Request(tx).query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server")).recordset?.[0];
       if(identity?.db!==(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().target.database:'MELISA_ERP_SIRKET_TEST_20260929_01')||identity.server!=='Semih\\MELISADEV')throw catalogError();
+      const priceCopy=getCopyContext();
+      if(priceCopy&&getRegisteredBusinessProductPriceRevision(priceCopy))await new sql.Request(tx).input('lockKey',sql.NVarChar(255),'melisa-stage4-copy:'+priceCopy.copyId).query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@lockKey,@LockMode=N'Shared',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51401,'ISOLATED_COPY_BUSY',1;");
       const selection=classificationStore.selection({productId,options});
       let priceExclusions;
       if(isBusinessCatalogPriceScope(getCopyContext(),version)){
@@ -39,7 +43,9 @@ export function createCatalogProductReadStore({getRuntime=defaultRuntime,classif
       const records=(await req.execute(isBoundCatalogContext(version)?version.procedures.catalog:version?SOURCE_VERSION_CATALOG_READ_PROC:CATALOG_READ_PROC)).recordset;if(!Array.isArray(records)||records.length!==1)throw catalogError();const row=records[0];assertVersion(row);
       if(row.actorId!==actorId||row.canView!==true||typeof row.rowsJson!=='string'||Object.entries(proof()).some(([key,value])=>row[key]!==value))throw catalogError();
       const result={actorId:row.actorId,canViewSalesPrices:row.canViewSalesPrices,total:row.total,page:row.page,limit:row.limit,readAt:row.readAt,acceptedCount:row.acceptedCount,syntheticCount:row.syntheticCount,quarantinedCount:row.quarantinedCount,rows:JSON.parse(row.rowsJson),filters:selection.filters,...(version?{sourceVersion:version}:{}),...(priceExclusions?{priceExclusions}:{})};
-      const validated=catalogReadResult(result,{actorId,productId,options,canViewSalesPrices:row.canViewSalesPrices});for(const row of validated.data)classificationStore.assertRow(row);await tx.commit();return result;
+      const validated=catalogReadResult(result,{actorId,productId,options,canViewSalesPrices:row.canViewSalesPrices});for(const row of validated.data)classificationStore.assertRow(row);
+      if(row.canViewSalesPrices&&priceCopy&&getRegisteredBusinessProductPriceRevision(priceCopy))result.businessPriceProjection=await readBusinessCatalogPrices({copy:priceCopy,sql,transaction:tx,actorId,rows:validated.data});
+      await tx.commit();return result;
     }catch(error){if(tx)try{await tx.rollback();}catch{}if(['ZERO_SOURCE_SALE_PRICE','DUPLICATE_SOURCE_SALE_PRICE'].includes(error?.code)&&error.statusCode===409)throw error;throw catalogError();}
   },async validateCatalogClassification({entriesJson,actorId}){
     parseCatalogId(actorId);let tx;

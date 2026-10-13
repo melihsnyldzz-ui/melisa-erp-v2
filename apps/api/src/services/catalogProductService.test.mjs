@@ -66,3 +66,8 @@ test('whole-catalog exact filters and sort are forwarded; image IDs come only fr
  for(const query of [{brand:null},{brand:['x']},{brand:'x'.repeat(251)},{productType:'\u0000'},{image:'yes'},{sort:'price-desc'},{mediaBindingsJson:'[]'}])assert.throws(()=>parseCatalogQuery(query),{statusCode:400});
  mediaStore.photoFor=row=>row.photo;await assert.rejects(()=>s.list({image:'available'},actor),{statusCode:503});
 });
+
+test('manual catalog projection cannot reveal prices without both native and session sales permission',async()=>{
+ const r=response();r.canViewSalesPrices=true;r.rows[0].salePrices=[price('TRY','3.00000000')];r.businessPriceProjection=[{...card(),salePrices:[{...price('TRY','2.00000000'),pricing:{origin:'MANUAL',versionId:'1',sourcePriceExact:'3.00000000'}}]}];
+ const s=serviceFor(r);assert.deepEqual((await s.list({},actor)).data[0].salePrices,[]);const out=await s.list({},{...actor,permissions:['product.view','sales.view']});assert.equal(out.data[0].salePrices[0].priceExact,'2.00000000');assert.equal(Object.hasOwn(out,'businessPriceProjection'),false);
+});

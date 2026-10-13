@@ -1,8 +1,14 @@
+## ERP04 / C09 — katalog/satış kaynak bağlantısı; native uygulama bekliyor — 13 Ekim 2026
+
+Normal katalog editörü/toplu fiyat okuması, native kanıtla açılan ayrı route/startup ve CURRENT/HISTORY tüketicisi kaynakta bağlandı. Gerçek DB02 v11 salt okunur kimliği doğrulandı; 20 yeni DDL adımı tek transaction içinde derlenip geri alındı, yeni nesne kalmadı. SQL130 hatası düzeltildi. API/derleyici106 + özel kaynakla7 PASS; UI35 PASS/build başarılı. Kaynak incelemesinde bulunan global gezinme/pending yetki kaybı düzeltildi. Kalıcı DB kurulumu, native fiyat yazma/replay, normal ekran ve paket henüz yok; çalışan2bf2762/TEST125/CRM09ca aynı. [Ayrım ve kanıt](docs/evidence/erp/2026-10-13-price-write/README.md). ERP04 ve insan kabulü açık; completeDelivery=false.
+
 ## ERP04 / C09 — sürümlü fiyat kaydı devam ediyor — 13 Ekim 2026
 
 ERP09 mevcut native profil/sorgu planı kanıtı üzerinden sınırlandırıldı: eski aday V11'in bağlı owner/context/intent hash ve startup doğrulamasını birlikte sürümlemeyi gerektiriyor. Bu incelemede performans SQL'i uygulanmadı, yeni benchmark/build/restart yapılmadı. ERP04 için ayrı fiyat metadata/owner sözleşmesi ve API modeli kaynakta hazırlanıyor; henüz DB kurulumu, fiyat yazması, normal ekran kabulü veya yeni çalışan paket yok. Çalışan source2bf2762 ve belge def5873 korunur. [Kapsam](docs/evidence/erp/2026-10-13-price-write/README.md). completeDelivery=false; insan kabulü bekliyor.
 
 İlk kapalı kaynak hazırlığı: 33 hedefli offline kontrol ve bağımsız inceleme GO; sentetik SQL PARSEONLY exit0. Yanlış döviz/kademedeki geçmiş başarı onayı engellendi. `canEdit=false`, API/startup mount yok; native fiyat yazması veya yeni çalışan paket olarak sayılmaz. Satış tüketicisi ve native/normal ekran doğrulaması devam ediyor.
+
+Kaynak alt teslimi **cfccdf4920134567834ced3fea41fc78fc3e7075**, PR #23 uzak head/branch SHA ile doğrulandı; 21 dosya, secret scan0. Tam bu source'un 6 hosted CI işi ödeme/harcama sınırı nedeniyle başlamadı (check115253995324 açıklaması). Vercel önizlemesi CI yerine sayılmaz. Çalışan source2bf2762/DB02 korunur; satış tüketicisi kaynakları ayrı devam ediyor.
 
 ## ERP09 / OPS01 — değişmeyen kaynak profilinin hesabı daraltıldı — 13 Ekim 2026
 

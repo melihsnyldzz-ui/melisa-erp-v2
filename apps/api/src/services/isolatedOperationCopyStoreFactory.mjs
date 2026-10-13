@@ -1,3 +1,4 @@
+import {getRegisteredBusinessProductPriceSaleRevision,verifyBusinessProductPriceSaleRevision} from '../../../../scripts/canonical/shared-business-product-price-sale-bootstrap.mjs';
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyActor,assertIsolatedCopyReadProof,bindIsolatedCopyOperationDTO,copyAssert,isolatedCopyHash,isolatedCopyJSON,isolatedCopyUUID,ISOLATED_COPY_PROCEDURES,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelectionContext.mjs';
 import {getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
@@ -61,7 +62,7 @@ function effectProof(value,context,actor,operation,body){
 export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain='trade',readPermission='sales.view'}={}){
  copyAssert(typeof getRuntime==='function'&&typeof buildDomain==='function'&&domains.has(domain),'ISOLATED_COPY_STORE_DEPENDENCIES');
  async function transaction(actor,write,fn,permission=readPermission,automatic=null,readPath=null){
-  const r=await getRuntime(),context=assertIsolatedCopyContext(r.copyContext),q=r.sql,selected=getRegisteredBusinessSelectedSaleRevision(context);
+  const r=await getRuntime(),context=assertIsolatedCopyContext(r.copyContext),q=r.sql,selected=getRegisteredBusinessSelectedSaleRevision(context),priceConsumer=getRegisteredBusinessProductPriceSaleRevision(context);
   copyAssert(q&&r.pool,'ISOLATED_COPY_RUNTIME');
   const tx=new q.Transaction(r.pool);await tx.begin(q.ISOLATION_LEVEL.SERIALIZABLE);const req=()=>new q.Request(tx);
   try{
@@ -94,12 +95,12 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
     assertIsolatedCopyReadProof(context,parse(fresh?.proof_json));assertIsolatedCopyActor(context,actor,parse(fresh?.actor_json),permission);
     Object.assign(normalContext,parse(fresh?.context_json));bindIsolatedCopyOperationDTO(context,normalContext);return normalContext;
    };
-   const readSelectedSaleContext=selected?selection=>readBusinessSelectedSaleNativeContext({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,selection}):undefined;
+   const readSelectedSaleContext=selected?(selection,{invoiceId=null,sourceOnly=false}={})=>readBusinessSelectedSaleNativeContext({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,selection,priceConsumer:sourceOnly?null:priceConsumer,invoiceId}):undefined;
    // Only historical invoice reads use the narrow projection. Preview and every
    // writer retain the full owner selected-context/intent reader. The closure
    // is created after fresh READY+owner context, and invoked inside the same
    // branded read scope below; it cannot escape to another transaction.
-   const readSelectedSaleInvoiceState=selected&&!write&&domain==='trade'?createBusinessSelectedSaleInvoiceReader({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,actual,readProof}):undefined;
+   const readSelectedSaleInvoiceState=selected&&(!write||priceConsumer)&&domain==='trade'?createBusinessSelectedSaleInvoiceReader({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,actual,readProof,priceConsumer}):undefined;
    const c=await buildDomain({runtime:r,copyContext:context,context:normalContext,actor,actual,identity,nativeContext,request:req,write,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState});
    copyAssert(c&&typeof c==='object'&&c.context===normalContext,'ISOLATED_COPY_DOMAIN_CONTEXT');
    c.request=async requestId=>{
@@ -121,8 +122,16 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
      copyAssert(String(prior.actor_id)===String(actor.id)&&prior.operation===operation&&prior.payload_hash===body.hash&&prior.payload_json===body.json,'ISOLATED_COPY_REQUEST_CONFLICT',409);
      const response=parse(prior.response_json);await effects(operation,body,response,true);return {...response,replayed:true};
     }
-    await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).execute(ISOLATED_COPY_PROCEDURES.begin);
-    const response=selection?await withBusinessSelectedSaleWriteScope({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.writeScopeArtifact,actor,operation,requestId:body.requestId},execute):await execute();
+    let usePriceConsumer=Boolean(selection&&priceConsumer&&operation==='sale_draft');
+    if(selection&&priceConsumer&&operation!=='sale_draft'){
+     // Select a protocol only from the immutable native link. The domain has
+     // already validated its creation journal; the owner reader re-proves it.
+     const rows=(await req().input('id',q.BigInt,payload.id).input('actor',q.BigInt,actor.id).input('copy',q.UniqueIdentifier,context.copyId).query("SELECT CASE WHEN JSON_QUERY(l.preview_json,'$.pricing') IS NOT NULL THEN 1 ELSE 0 END priced FROM dbo.work_sales_links l JOIN dbo.stage4_copy_requests j ON j.copy_id=@copy AND j.request_id=l.request_id AND j.actor_id=l.actor_id AND j.operation=N'sale_draft' WHERE l.invoice_id=@id AND l.actor_id=@actor;")).recordset;
+     copyAssert(rows?.length===1&&[0,1].includes(rows[0].priced),'PRICE_SALE_NATIVE_PROTOCOL');usePriceConsumer=rows[0].priced===1;
+    }
+    if(usePriceConsumer)copyAssert(await verifyBusinessProductPriceSaleRevision(context,req().input('copy_id',q.UniqueIdentifier,context.copyId),{write:true})===priceConsumer,'PRICE_SALE_NATIVE_PROTOCOL');
+    await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).execute(usePriceConsumer?priceConsumer.bundle.beginArtifact.name:ISOLATED_COPY_PROCEDURES.begin);
+    const response=selection?await withBusinessSelectedSaleWriteScope({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.writeScopeArtifact,priceConsumer:usePriceConsumer?priceConsumer:null,actor,operation,requestId:body.requestId},execute):await execute();
     const proof=await effects(operation,body,response,false);
     // The SQL intent seals this exact text. Preserve its order and GUID casing;
     // a JS reserialization would no longer equal the immutable SQL proof.

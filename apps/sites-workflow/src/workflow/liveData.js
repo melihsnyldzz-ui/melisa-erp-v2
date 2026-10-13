@@ -113,7 +113,8 @@ function createNativeApprovals({root,session,navigate}){
 }
 function mount(){
  disposeCopyActors();dispose();disposeReadOnlyNavigation();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
- const clearReadOnlyNavigation=installReadOnlyNavigation({host:window,root,page,isCurrent:()=>workflow.screen()===page});disposeReadOnlyNavigation=clearReadOnlyNavigation;
+ let catalogUI=null;
+ const clearReadOnlyNavigation=installReadOnlyNavigation({host:window,root,page,isCurrent:()=>workflow.screen()===page,beforeNavigate:()=>page!=='stock'||catalogUI?.requestClose?.()!==false});disposeReadOnlyNavigation=clearReadOnlyNavigation;
  const countWorkspace=page==='count';
  const workspace=['stock','home','approvals','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','reports','settings'].includes(page)||countWorkspace||page==='returns';
  toolbar.hidden=workspace;toolbar.style.display=workspace?'none':'';
@@ -183,7 +184,7 @@ function mount(){
   document.querySelectorAll('#nav .badge').forEach(x=>x.hidden=true);
   const side=document.querySelector('aside .sidefoot');if(side)side.textContent='Melisa ERP';
   document.body.classList.add('stock-workspace');
-  let active=true,catalogUI=null,session;
+  let active=true,session;
   const alive=()=>active&&root.isConnected&&workflow.screen()==='stock';
   const label=document.createElement('span');label.id='working-catalog-user';label.textContent='Oturum açılıyor…';document.querySelector('.top-right')?.append(label);
   function showLogin(message=''){
@@ -191,7 +192,7 @@ function mount(){
    root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Ürün & stok</h1></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-catalog-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
    root.querySelector('#working-catalog-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button');button.disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showCatalog(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
-  function showCatalog(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=label.textContent.slice(0,1);catalogUI=createWorkCatalog({api:session.api,media:session.media,permissions:current.permissions});root.innerHTML=catalogUI.html();catalogUI.mount(root);}
+  function showCatalog(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);const avatar=document.getElementById('avatar');if(avatar)avatar.textContent=label.textContent.slice(0,1);catalogUI=createWorkCatalog({api:session.api,media:session.media,permissions:current.permissions,actorId:String(current.id),storage:storage('sessionStorage')});root.innerHTML=catalogUI.html();catalogUI.mount(root);}
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;clearReadOnlyNavigation();catalogUI?.dispose();session.dispose();};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Ürün kataloğu açılıyor…</p></section>';

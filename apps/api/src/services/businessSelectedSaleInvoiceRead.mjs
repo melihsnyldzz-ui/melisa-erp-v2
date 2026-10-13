@@ -2,7 +2,8 @@ import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyR
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
 import {workScaled} from './workSalesModel.mjs';
-import {SELECTED_SALE_CONTEXT_METADATA_SQL} from './businessSelectedSaleNativeContext.mjs';
+import {SELECTED_SALE_CONTEXT_METADATA_SQL,readBusinessSelectedSaleNativeContext} from './businessSelectedSaleNativeContext.mjs';
+import {getRegisteredBusinessProductPriceSaleRevision} from '../../../../scripts/canonical/shared-business-product-price-sale-bootstrap.mjs';
 import {assertPreparedSelectedRevisionArtifact} from '../../../../scripts/canonical/shared-business-selected-sale-revision-sql.mjs';
 
 // Called only by the read-only trade store after its owner READY and owner
@@ -41,12 +42,14 @@ function metadata(copy,artifact,pins,row){
  assertIsolatedCopyIdentity(copy,row);
  copyAssert(row?.transactionCount===1&&row.transactionState===1&&row.isolationLevel===4&&row.copyLockMode==='Shared'&&Number.isSafeInteger(row.sessionId)&&row.sessionId>0&&/^[1-9]\d*$/.test(String(row.transactionId))&&(typeof row.transactionId!=='number'||Number.isSafeInteger(row.transactionId))&&row.readerDefinitionHash===artifact.definitionHash&&Object.keys(copy.sql).every(key=>row[key+'DefinitionHash']===pins[key]),'SELECTED_SALE_INVOICE_READ_PIN');return row;
 }
-export function createBusinessSelectedSaleInvoiceReader({copy,transaction,sql,request,artifact,actor,actual,readProof}){
+export function createBusinessSelectedSaleInvoiceReader({copy,transaction,sql,request,artifact,actor,actual,readProof,priceConsumer=null}){
  assertIsolatedCopyContext(copy);assertPreparedSelectedRevisionArtifact(artifact,copy,'context');assertIsolatedCopyReadProof(copy,readProof);
  const a={id:String(actor?.id),permissions:[...(actor?.permissions??[])]};assertIsolatedCopyActor(copy,a,actual,'sales.view');copyAssert(transaction&&typeof request==='function','SELECTED_SALE_INVOICE_READ_FACTORY');
  const parentPins=Object.freeze({...readProof.definitionHashes}),metaSQL=selectedSaleInvoiceMetadataSQL(copy);
- return async selection=>{
+ if(priceConsumer)copyAssert(priceConsumer===getRegisteredBusinessProductPriceSaleRevision(copy),'PRICE_SALE_SERVER_CONSUMER');
+ return async (selection,{invoiceId=null}={})=>{
   copyAssert(isolatedCopyTransactionContext(transaction,{writeRequired:false})===copy,'SELECTED_SALE_INVOICE_READ_TRANSACTION');
+  if(invoiceId!==null){copyAssert(priceConsumer,'PRICE_SALE_HISTORY_CONSUMER_REQUIRED');return readBusinessSelectedSaleNativeContext({copy,transaction,sql,request,artifact,actor:a,selection,priceConsumer,invoiceId});}
   const selected=selectBusinessSaleWriteIntent(copy,{customerId:selection?.customerId,currency:selection?.currency,productIds:selection?.productIds});for(const [key,value] of Object.entries(selected))copyAssert(isolatedCopyJSON(selection[key])===isolatedCopyJSON(value),'SELECTED_SALE_INVOICE_READ_SELECTION');
   const readMeta=async()=>{const rows=(await request().input('copy_id',sql.UniqueIdentifier,copy.copyId).query(metaSQL)).recordset;copyAssert(rows?.length===1,'SELECTED_SALE_INVOICE_READ_METADATA');return metadata(copy,artifact,parentPins,rows[0]);};const before=await readMeta();
   const sources=selected.productIds.map(id=>copy.products.find(p=>p.id===id)),customer=copy.customers.find(c=>c.id===selected.customerId&&c.currency===selected.currency),rate=copy.currencyRates.find(r=>r.currency===selected.currency);

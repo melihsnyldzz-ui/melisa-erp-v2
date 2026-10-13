@@ -1,6 +1,8 @@
 // Leaf names shared by the offline compiler and independently verified runtime.
 // Importing this file never registers a capability or connects to a database.
 export const BUSINESS_PRICE_SCHEMA = 'melisa-business-product-prices.v1';
+export const BUSINESS_PRICE_CATALOG_SCHEMA = 'melisa-business-product-price-catalog.v1';
+export const BUSINESS_PRICE_CATALOG_LIMIT = 50;
 export const BUSINESS_PRICE_REVISION_SCHEMA = 'melisa-business-product-price-revision.v1';
 export const BUSINESS_PRICE_COPY_ID = 'e16b70f0-4057-428b-9abc-6bbcaf35fe82';
 export const BUSINESS_PRICE_GET = 'dbo.usp_business_product_prices_v1';

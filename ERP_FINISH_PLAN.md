@@ -1,3 +1,7 @@
+## ERP04 / C09 — kaynak bağlantısı ilerledi; çalışan kabul açık — 13 Ekim 2026
+
+Normal editör, toplu katalog okuması ve CURRENT/HISTORY satış tüketicisi kaynakta bağlı. Gerçek native DDL derleme/rollback geçti; kalıcı kurulum, fiyat kaydı/replay, normal ekran ve yeni paket henüz yok. [Güncel kesit](docs/evidence/erp/2026-10-13-price-write/README.md). ERP04/C09🟡 ve insan kabulü bekliyor; ana madde/toplamlar değişmedi.
+
 ## ERP04 / C09 — kapalı kaynak hazırlığı — 13 Ekim 2026
 
 Sürümlü satış fiyatı metadata/owner doğrulaması, API modeli ve henüz bağlanmamış ekran editörü: 33 hedefli offline kontrol, bağımsız kaynak incelemesi ve sentetik SQL sözdizimi kontrolü tamam. Native uygulama/satış tüketimi/ekran kabulü açık; `canEdit=false`, yeni çalışan paket yok. [Kanıt ve kalan koşullar](docs/evidence/erp/2026-10-13-price-write/README.md). Ana ERP04/C09 ve insan kabulü kapanmadı; toplamlar değişmedi.

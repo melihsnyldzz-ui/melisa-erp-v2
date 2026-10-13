@@ -47,6 +47,10 @@ if(config.businessSelectedSaleStartup){
  try{
   await new sql.Request(tx).input('resource',sql.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query("DECLARE @result int;EXEC @result=sys.sp_getapplock @Resource=@resource,@LockMode=N'Shared',@LockOwner=N'Transaction',@LockTimeout=15000;IF @result<0 THROW 51904,'SELECTED_BOOT_COPY_BUSY',1;");
   await configureBusinessSelectedSaleRevision({copy:context,request:new sql.Request(tx).input('copy_id',sql.UniqueIdentifier,context.copyId),nativeReadOnly:!writes,...input});
+  if(writes&&config.businessProductPriceRevisions){
+   const {configureBusinessProductPriceStartup}=await import('./src/services/businessProductPriceStartup.mjs');
+   await configureBusinessProductPriceStartup(config,context,new sql.Request(tx).input('copy_id',sql.UniqueIdentifier,context.copyId),input);
+  }
   await tx.commit();
  }catch(error){try{await tx.rollback();}catch{}throw error;}
 }else if(config.businessDailyRevision){
@@ -92,9 +96,10 @@ if(writes){
  }catch(e){next(e);}};
  app.post('/api/auth/test-admin',session);app.post('/api/auth/stage4-actor',session);
  const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
+ const {isBusinessProductPriceWriteAllowed}=await import('./src/services/businessProductPriceRoutesPolicy.mjs');
  app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'STAGE4_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!webOrigins.includes(req.get('origin'))||!isCanonicalTestWriteAllowed(req.method,req.path,{writes:true,mode:'erp',protectedNormalAuth:config.normalTestSessionPath!==undefined})))return res.status(405).json({success:false,error:{code:'STAGE4_WRITE_OUTSIDE_SCOPE'}});next();
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!webOrigins.includes(req.get('origin'))||!(isCanonicalTestWriteAllowed(req.method,req.path,{writes:true,mode:'erp',protectedNormalAuth:config.normalTestSessionPath!==undefined})||isBusinessProductPriceWriteAllowed(req.method,req.path,context))))return res.status(405).json({success:false,error:{code:'STAGE4_WRITE_OUTSIDE_SCOPE'}});next();
  });
  const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');configureCatalogSourceVersion(config.goal7SourceVersion);
  const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:config.goal7SourceVersion});
@@ -102,6 +107,7 @@ if(writes){
  const {configureCurrentFinanceContext}=await import('./src/services/currentFinanceDeltaRead.mjs');configureCurrentFinanceContext(config.currentFinanceDeltaContext,{identity,mode,port,writes});
  const {configureWorkSystem}=await import('./src/services/workSystemService.mjs');configureWorkSystem({identity,release,copyContext:context});
  const {createBusinessInboundSelectionMiddleware}=await import('./src/middleware/businessInboundSelection.mjs');app.use(createBusinessInboundSelectionMiddleware({getContext:async()=>context}));
+ if(config.businessProductPriceRevisions){const {createBusinessProductPriceRoutes}=await import('./src/routes/businessProductPriceRoutes.mjs');app.use('/api',createBusinessProductPriceRoutes());}
  for(const [file,key]of [['workSystemRoutes.mjs','workSystemRoutes'],['workReportsRoutes.mjs','workReportsRoutes'],['workSalesRoutes.mjs','workSalesRoutes'],['workCollectionRoutes.mjs','workCollectionRoutes'],['workInboundRoutes.mjs','workInboundRoutes'],['workSupplierPaymentRoutes.mjs','workSupplierPaymentRoutes'],['homeSummaryRoutes.mjs','homeSummaryRoutes'],['stockProductRoutes.mjs','stockProductRoutes'],['catalogRoutes.mjs','catalogProductsRoutes'],['testDailyRoutes.mjs','testDailyRoutes']])app.use('/api',(await import('./src/routes/'+file))[key]);
  const {createApp}=await import('./src/app.js');app.use(createApp());
 }else{

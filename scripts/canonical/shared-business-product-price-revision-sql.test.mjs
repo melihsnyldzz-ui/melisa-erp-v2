@@ -4,7 +4,7 @@ import {selectedSaleFixture} from '../../apps/api/src/services/businessSelectedS
 import {moduleHash} from './stage4-copy-sql.mjs';
 import {isolatedCopyHash} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
 import {buildBusinessProductPriceRevision, BUSINESS_PRICE_SCHEMA_DESCRIPTORS} from './shared-business-product-price-revision-sql.mjs';
-import {BUSINESS_PRICE_COPY_ID, BUSINESS_PRICE_GET, BUSINESS_PRICE_SET, BUSINESS_PRICE_MODULES, BUSINESS_PRICE_VERSIONS as V, BUSINESS_PRICE_CURRENT as C, BUSINESS_PRICE_REQUESTS as R} from './shared-business-product-price-revision-contract.mjs';
+import {BUSINESS_PRICE_CATALOG_SCHEMA,BUSINESS_PRICE_CATALOG_LIMIT,BUSINESS_PRICE_COPY_ID, BUSINESS_PRICE_GET, BUSINESS_PRICE_SET, BUSINESS_PRICE_MODULES, BUSINESS_PRICE_VERSIONS as V, BUSINESS_PRICE_CURRENT as C, BUSINESS_PRICE_REQUESTS as R} from './shared-business-product-price-revision-contract.mjs';
 
 export function productPriceCompilerFixture(){
   const {c:copy}=selectedSaleFixture(raw=>{raw.copyId=BUSINESS_PRICE_COPY_ID;});
@@ -94,4 +94,35 @@ test('native proof independently exposes canonical constraints and six resultset
   assert.match(definition(bundle,BUSINESS_PRICE_GET),/BUSINESS_PRICE_ADJUNCT_DRIFT/);
   assert.match(definition(bundle,BUSINESS_PRICE_GET),/ExecIsTriggerDisabled/);
   assert.match(bundle.registryImmutableSQL,/IS_SRVROLEMEMBER\(N'sysadmin',ORIGINAL_LOGIN\(\)\)/);
+});
+test('bulk GET keeps one module and bounded read-only catalog permission separate from editor permission',()=>{
+  const {bundle}=productPriceCompilerFixture(),get=definition(bundle,BUSINESS_PRICE_GET),bulk=get.slice(get.indexOf('IF @catalog_ids_json IS NOT NULL BEGIN'),get.indexOf('RETURN;END;')+11);
+  assert.equal(BUSINESS_PRICE_CATALOG_LIMIT,50);assert(get.includes(BUSINESS_PRICE_CATALOG_SCHEMA));
+  assert.match(get,/@catalog_ids_json nvarchar\(max\)=NULL/);assert.match(bulk,/@product_id IS NOT NULL/);
+  assert.match(bulk,/NOT BETWEEN 1 AND 50/);assert.match(bulk,/COUNT\(DISTINCT value COLLATE Latin1_General_100_BIN2\)/);
+  assert.match(bulk,/type<>1 OR TRY_CONVERT\(bigint,value\) IS NULL/);
+  assert.match(bulk,/permission_key=N'product.view' AND can_view=1/);assert.match(bulk,/permission_key=N'sales.view' AND can_view=1/);
+  assert.doesNotMatch(bulk,/product\.price\.edit|purchase\.view|@actor_id NOT IN\(15,16\)|EXEC dbo.usp_stage4_copy_ready/);
+  assert.equal(bundle.objects.length,6);assert.match(bundle.grantSQL,/GRANT VIEW DEFINITION ON OBJECT::dbo.usp_business_product_prices_v1/);
+  assert.doesNotMatch(bulk,/(INSERT|UPDATE|DELETE) dbo\./);
+});
+test('bulk GET reads only page quote pointers and fails in-scope source/hold/manual provenance drift',()=>{
+  const {bundle}=productPriceCompilerFixture(),get=definition(bundle,BUSINESS_PRICE_GET),bulk=get.slice(get.indexOf('IF @catalog_ids_json IS NOT NULL BEGIN'),get.indexOf('RETURN;END;')+11);
+  assert.match(bulk,/JOIN @catalog_ids selected ON selected.id=p.id/);
+  assert.match(bulk,/JOIN @catalog_ids selected ON selected.id=c.product_id/);
+  for(const guard of ['CATALOG_PRODUCT_DRIFT','CATALOG_SOURCE_TUPLE_DRIFT','CATALOG_VERSION_DRIFT','CATALOG_MODULE_DRIFT'])assert(bulk.includes(guard));
+  assert.match(bulk,/goal7_source_version_products b WITH\(HOLDLOCK\)/);assert.match(bulk,/goal7_source_version_prices v WITH\(HOLDLOCK\)/);
+  assert.match(bulk,/operation_quarantine_holds h WITH\(HOLDLOCK\)/);
+  assert.match(bulk,/v.source_native_hash<>q.native_hash OR v.source_binding_hash<>q.binding_hash/);
+  assert.match(bulk,/r.payload_hash<>CONVERT\(varchar\(64\),HASHBYTES\('SHA2_256',r.payload_json\),2\)/);
+  assert.match(bulk,/JSON_VALUE\(r.payload_json,'\$\.tuple.currency'\)<>q.currency/);
+  assert.doesNotMatch(bulk,/HISTORY_SOURCE_DRIFT|sys\.foreign_keys|sys\.index_columns/);
+});
+test('bulk DTO explicitly preserves outside-profile source, manual NULL and immutable request/version hash',()=>{
+  const {bundle}=productPriceCompilerFixture(),get=definition(bundle,BUSINESS_PRICE_GET),bulk=get.slice(get.indexOf('IF @catalog_ids_json IS NOT NULL BEGIN'),get.indexOf('RETURN;END;')+11);
+  assert.match(bulk,/CASE WHEN s.id IS NULL THEN 0 ELSE 1 END AS bit\) overlayEligible/);
+  assert.match(bulk,/LEFT JOIN @catalog_scope s ON s.id=selected.id/);
+  assert.match(bulk,/CASE WHEN c.version_id IS NULL THEN.*q.price_exact.*ELSE.*v.price_exact.*END priceExact/);
+  assert.doesNotMatch(bulk,/COALESCE\(v.price_exact|ISNULL\(v.price_exact/);
+  for(const field of ['catalog_json','actor_json','readerDefinitionHash','currentVersionId','sourceUnitId','versionRunId','beforePriceExact','versionProofHash'])assert(bulk.includes(field));
 });

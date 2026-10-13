@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {isolatedCopyOperationDTOContext,ISOLATED_COPY_ORIGIN,assertIsolatedCopyContext,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
+import {getBusinessProductPriceSaleDTO} from './businessProductPriceSaleScope.mjs';
 export const workError=(code='WORK_UNAVAILABLE',message='İşlem şu anda doğrulanamıyor.',statusCode=503)=>Object.assign(new Error(message),{code,statusCode});
 export const workFail=(code,message,status=400)=>{throw workError(code,message,status);};
 export function workId(value){if(typeof value!=='string'||!/^[1-9]\d{0,18}$/.test(value)||BigInt(value)>9223372036854775807n)workFail('WORK_ID_INVALID','Kayıt bilgisi geçersiz.');return value;}
@@ -40,6 +41,9 @@ export function workSelection(input,{allowBusinessCurrencies=false}={}){
 }
 export function workSalePreview(selection,context){
  const copy=isolatedCopyOperationDTOContext(context),business=copy?.target.database===BUSINESS_COPY_DATABASE,s=workSelection(selection,{allowBusinessCurrencies:business}),scope=context.scope;
+ const pricing=copy?getBusinessProductPriceSaleDTO(copy,context):null;
+ if(context.pricingProof&&!pricing)workFail('WORK_PRODUCT_SCOPE','Satış fiyatının native sürümü doğrulanamadı.',409);
+ if(pricing&&pricing.proof.mode!=='CURRENT')workFail('WORK_PRODUCT_SCOPE','Yeni satış için güncel fiyatları yeniden okuyun.',409);
  if(s.documentDate!==context.meta?.date)workFail('WORK_DATE_SCOPE','Bu işlem için geçerli günün tarihi gerekli.',409);
  const scoped=value=>copy?value?.synthetic===false&&value.operationOrigin===ISOLATED_COPY_ORIGIN:value?.synthetic===true;
  if(!scoped(scope)||scope.customer?.id!==s.customerId||!scoped(scope.customer)||scope.customer.writeEligible!==true||scope.customer.currency!==s.currency||copy&&!copy.customers.some(p=>p.id===s.customerId&&p.currency===s.currency))workFail('WORK_CUSTOMER_SCOPE','Bu müşteri için kayıt oluşturulamıyor.',403);
@@ -47,7 +51,8 @@ export function workSalePreview(selection,context){
  const items=s.items.map(row=>{
   const p=scope.products.find(product=>product.id===row.productId),quote=p?.prices.find(price=>price.quoteId===row.quoteId&&price.currency===s.currency);
   if(!p||!scoped(p)||p.writeEligible!==true||p.unit?.label!=='ADET'||p.unit.factorExact8!=='1.00000000'||!quote||copy&&!copy.products.some(v=>v.id===p.id&&v.stockCode===p.stockCode&&v.priceIds.includes(quote.quoteId)))workFail('WORK_PRODUCT_SCOPE','Seçilen ürün veya fiyat artık uygun değil.',409);
-  if(copy?.target.database===BUSINESS_COPY_DATABASE){const source=copy.products.find(v=>v.id===p.id),witnesses=source.quotes?.filter(q=>q.quoteId===quote.quoteId&&q.currency===s.currency&&q.verified===true&&q.mainUnit===true&&q.type==='sale');if(witnesses?.length!==1||witnesses[0].priceExact8!==quote.unitPriceExact8)workFail('WORK_PRODUCT_SCOPE','Kaynak satış fiyatı değişti. Yeniden okuyun.',409);}
+  if(copy?.target.database===BUSINESS_COPY_DATABASE){const source=copy.products.find(v=>v.id===p.id),witnesses=source.quotes?.filter(q=>q.quoteId===quote.quoteId&&q.currency===s.currency&&q.verified===true&&q.mainUnit===true&&q.type==='sale');if(witnesses?.length!==1||(pricing?witnesses[0].priceExact8!==quote.pricing?.sourcePriceExact8:witnesses[0].priceExact8!==quote.unitPriceExact8)||quote.pricing&&!pricing)workFail('WORK_PRODUCT_SCOPE','Kaynak satış fiyatı değişti. Yeniden okuyun.',409);}
+  if(quote.unitPriceExact8===null)workFail('WORK_PRICE_UNKNOWN','Satış fiyatı bilinmiyor. Fiyatı doğrulayıp yeniden deneyin.',409);
   const quantity=workScaled(row.quantityExact3,3),stock=workScaled(p.stockQuantityExact3,3),price8=workScaled(quote.unitPriceExact8,8);
   const price4=(price8+5000n)/10000n;
   if(price8<=0n||price4<=0n||stock<quantity)workFail('WORK_STOCK_OR_PRICE','Ürün fiyatı veya stok miktarı uygun değil.',409);
@@ -57,7 +62,7 @@ export function workSalePreview(selection,context){
  const total=items.reduce((sum,row)=>sum+workScaled(row.lineTotalExact4,4),0n);
  if(total<=0n||total>workScaled(context.limits.maxInvoiceAmountExact4,4))workFail('WORK_TOTAL_LIMIT','Satış tutarı işlem sınırını aşıyor.',409);
  const rate=business?workBusinessCurrencyRate(copy,s.currency):null,amountTry=rate?(total*workScaled(rate.rateExact8,8)+50000000n)/100000000n:total;
- const value={selection:s,scopeRevision:workRevision(context.revision),currency:s.currency,subtotalExact4:workExact(total,4),grandTotalExact4:workExact(total,4),amountTryExact4:workExact(amountTry,4),items,writable:true,...(business?{settlement:{documentCurrency:s.currency,accountCurrency:s.currency,accountId:scope.customer.accountId,documentRateExact8:rate.rateExact8,accountRateExact8:rate.rateExact8,rateSource:rate}}:{})};
+ const value={selection:s,scopeRevision:workRevision(context.revision),currency:s.currency,subtotalExact4:workExact(total,4),grandTotalExact4:workExact(total,4),amountTryExact4:workExact(amountTry,4),items,writable:true,...(business?{settlement:{documentCurrency:s.currency,accountCurrency:s.currency,accountId:scope.customer.accountId,documentRateExact8:rate.rateExact8,accountRateExact8:rate.rateExact8,rateSource:rate}}:{}),...(pricing?{pricing:{pricingJson:pricing.pricingJson,pricingHash:pricing.proof.pricingHash,priceRevisionHash:pricing.proof.priceRevisionHash,saleRevisionHash:pricing.proof.saleRevisionHash,copyId:copy.copyId,sealHash:copy.sealHash}}:{})};
  return {...value,previewHash:workHash(value)};
 }
 export function workDraftInput(input,options){

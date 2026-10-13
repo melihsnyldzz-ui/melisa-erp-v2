@@ -1,6 +1,7 @@
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,isolatedCopyHash,isolatedCopyJSON} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
 import {getRegisteredBusinessSelectedSaleRevision,verifyBusinessSelectedSaleRevision} from './shared-business-selected-sale-revision-bootstrap.mjs';
 import {buildBusinessProductPriceRevision} from './shared-business-product-price-revision-sql.mjs';
+import {getRegisteredBusinessProductPriceSaleRevision,verifyBusinessProductPriceSaleRevision} from './shared-business-product-price-sale-bootstrap.mjs';
 import {BUSINESS_PRICE_GET,BUSINESS_PRICE_SET,BUSINESS_PRICE_PROOF,BUSINESS_PRICE_TABLES,BUSINESS_PRICE_REGISTRY,BUSINESS_PRICE_IMMUTABLE} from './shared-business-product-price-revision-contract.mjs';
 
 const registered=new WeakMap();
@@ -79,12 +80,19 @@ export async function configureBusinessProductPriceRevision(copy,candidateRevisi
   await prove(copy,bundle,request,false);
   // No boolean/env/HTTP activation path. Manual writes stay unavailable until
   // the separately installed sale consumer earns its own native capability.
-  const value=freeze({revision:bundle.revision,bundle,canEdit:false});
+  const value=freeze({revision:bundle.revision,bundle,get canEdit(){
+    const consumer=getRegisteredBusinessProductPriceSaleRevision(copy);
+    return consumer?.canEdit===true&&consumer.revision.basePriceRevisionHash===bundle.revision.revisionHash;
+  }});
   registered.set(copy,value);return value;
 }
 export function getRegisteredBusinessProductPriceRevision(copy){return registered.get(copy)??null;}
 export async function verifyBusinessProductPriceRevision(copy,request,{write=false}={}){
   assertIsolatedCopyContext(copy);const value=registered.get(copy);
   check(value&&typeof write==='boolean'&&(!write||value.canEdit===true),'BUSINESS_PRICE_REGISTERED_CAPABILITY');
-  await prove(copy,value.bundle,request,write);return value;
+  await prove(copy,value.bundle,request,write);
+  // Only a write needs the consumer proof here. Consumer proof calls this
+  // metadata verifier read-only, so neither registration nor reads recurse.
+  if(write)await verifyBusinessProductPriceSaleRevision(copy,request,{write:true});
+  return value;
 }

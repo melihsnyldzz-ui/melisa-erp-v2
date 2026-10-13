@@ -51,3 +51,41 @@ Kayıt doğrulayıcısının `canEdit=false` durumu sürer. API route/startup
 bağlantısı, veritabanı kurulumu, satış tüketicisi aktivasyonu, başarılı native
 fiyat kaydı/replay, normal ekran kabulü ve yeni TEST paketi **henüz yok**.
 Çalışan source `2bf2762` korunur; hazırlık bir çalışan özellik sayılmaz.
+
+Kaynak alt teslimi `cfccdf4920134567834ced3fea41fc78fc3e7075`,
+`codex/erp-finish-20261004` ve PR #23 üzerinde uzak SHA ile doğrulandı.
+21 dosya; yerel secret taraması 0 bulgu. Bu commit'in altı hosted CI
+kontrolü hesap ödeme/harcama sınırı nedeniyle başlamadı; kontrol açıklaması
+`115253995324` üzerinde doğrulandı. Vercel önizleme başarısı bu CI'nin
+yerine geçmez. Çalışan paket ve veritabanı hâlâ değişmedi.
+
+## İkinci kaynak kesiti — normal katalog ve satış tüketicisi
+
+Normal kart editörü, tek toplu katalog fiyat okuması, sınırlı route/startup
+bağlantısı ve ayrı satış tüketicisi hazırlandı. Yeni satış CURRENT sürümünü,
+önceden oluşturulan belge immutable HISTORY fiyatını kullanır. Eski SOURCE
+belgeleri eski owner yolunda kalır. NULL fiyat bilinmeyen olarak gösterilir,
+satışa eklenmez; sıfır ve kaynak fiyatına geri dönüşle karıştırılmaz.
+
+Gerçek DB02 v11 kimliği salt okunur doğrulandı. Yeni 20 DDL adımı gerçek SQL
+Server'da aynı transaction içinde derlenip geri alındı; yeni nesne kalmadı.
+Bu prova aggregate içindeki alt sorgu hatasını yakaladı; per-product CROSS
+APPLY ile düzeltildi ve aynı dar prova geçti. Kalıcı kurulum, fiyat yazması
+ve native fiyat replay kanıtı henüz yoktur.
+
+Katalog sayfalamasında tek toplu GET kullanılır; tam başlangıç/yazma
+doğrulaması korunur. Sidebar ve aktör değişimi editörün bekleyen isteğini
+korur. Yetki geri çekilirse pending istek değişmeden saklanır, yeni POST
+yapılmadan salt okunur çıkış mümkündür. Bağımsız kaynak incelemesindeki
+gezinme ve yetki kaybı bulguları kapatıldı.
+
+API/derleyici hedefli kesiti 106 PASS; 7 özel kaynak gerektiren kontrol
+ayrıca hash-pinned kaynakla 7/7 PASS; UI kesiti 35 PASS ve frontend build başarılı. Modeled
+CURRENT/HISTORY/store kontrolleri gerçek SQL fiyat uygulaması değildir.
+Hosted CI'ye dört fiyat derleyici/bootstrap test dosyası eklendi;
+özel kaynak bulunmayan kontroller açık SKIP kalır, SQL erişimi eklenmez.
+
+Çalışan source **2bf2762** değişmedi. Yeni private startup descriptor olmadan
+bu kaynak kesiti fiyat yazmasını açmaz. ERP04/C09 ve insan kabulü açık;
+sonraki zorunlu iş kalıcı dar TEST kurulumunun eski runtime ile uyumu,
+native kayıt/replay, normal ekran ve çalışan paket kanıtıdır.

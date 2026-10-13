@@ -1,3 +1,4 @@
+import {getBusinessProductPriceSaleDTO} from './businessProductPriceSaleScope.mjs';
 import {createHash} from 'node:crypto';
 import {getRegisteredBusinessSelectedSaleRevision} from '../../../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs';
 
@@ -196,7 +197,7 @@ export function bindIsolatedCopyOperationDTO(context,dto){
    copyAssert(Array.isArray(products)&&(context.target.database===BUSINESS_COPY_DATABASE?products.length>0&&products.length<=context.products.length:products.length===context.products.length)&&new Set(products.map(p=>p.id)).size===products.length,'ISOLATED_COPY_DTO_PRODUCTS');
    for(const p of products){const sealed=context.products.find(v=>v.id===p.id);copyAssert(sealed&&scoped(p)&&p.writeEligible===true&&p.stockCode===sealed.stockCode&&p.unit?.label===sealed.unit&&p.unit.factorExact8===sealed.unitFactorExact8,'ISOLATED_COPY_DTO_PRODUCTS');
     copyAssert(p.barcode==null||sealed.barcodes.includes(p.barcode),'ISOLATED_COPY_DTO_BARCODES');
-    if(p.prices)copyAssert(Array.isArray(p.prices)&&p.prices.length>0&&p.prices.every(q=>sealed.priceIds.includes(q.quoteId)&&(context.target.database===BUSINESS_COPY_DATABASE?currency(q.currency):q.currency==='TRY')&&typeof q.unitPriceExact8==='string'&&/^(?:0|[1-9]\d*)\.\d{8}$/.test(q.unitPriceExact8)&&q.source?.kind==='isolated-test-copy'&&q.source.copyId===context.copyId&&q.source.sealHash===context.sealHash),'ISOLATED_COPY_DTO_QUOTES');
+    if(p.prices)copyAssert(Array.isArray(p.prices)&&p.prices.length>0&&p.prices.every(q=>sealed.priceIds.includes(q.quoteId)&&(context.target.database===BUSINESS_COPY_DATABASE?currency(q.currency):q.currency==='TRY')&&(typeof q.unitPriceExact8==='string'&&/^(?:0|[1-9]\d*)\.\d{8}$/.test(q.unitPriceExact8)||q.unitPriceExact8===null&&getBusinessProductPriceSaleDTO(context,dto)?.rows.some(r=>r.productId===p.id&&r.quoteId===q.quoteId&&r.currency===q.currency&&r.pricing.priceExact8===null))&&q.source?.kind==='isolated-test-copy'&&q.source.copyId===context.copyId&&q.source.sealHash===context.sealHash),'ISOLATED_COPY_DTO_QUOTES');
    }
   }
   for(const [name,key] of [['customers','customer'],['suppliers','supplier']]){const p=dto.scope[key];if(p)copyAssert(scoped(p)&&context[name].some(v=>v.id===p.id&&v.currency===p.currency),'ISOLATED_COPY_DTO_PARTY');}

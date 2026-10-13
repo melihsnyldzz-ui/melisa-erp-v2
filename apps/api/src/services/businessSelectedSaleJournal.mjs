@@ -1,6 +1,7 @@
 import {assertIsolatedCopyContext,BUSINESS_COPY_DATABASE,isolatedCopyHash,isolatedCopyJSON,isolatedCopyUUID} from './isolatedOperationCopyContext.mjs';
 import {workError,workId,workDate,workScaled,workExact,workHash,workRevision} from './workSalesModel.mjs';
 import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
+import {getBusinessProductPriceSaleDTO} from './businessProductPriceSaleScope.mjs';
 
 const fail=(code='WORK_SELECTED_SALE_DRIFT',status=409)=>{throw workError(code,'Satışın oluşturma kaydı doğrulanamadı.',status);};
 const check=(value,code,status)=>{if(!value)fail(code,status);};
@@ -22,7 +23,7 @@ const lineKeys=['productId','stockCode','name','quantityExact3','unitPriceExact4
  * Historical previews without that format intentionally fail closed.
  * The immutable creation journal, not an arbitrary link preview, is evidence.
  */
-export function deriveBusinessSelectedSaleJournal(copy,actor,record){
+export function deriveBusinessSelectedSaleJournal(copy,actor,record,{priceHistory=null}={}){
  assertIsolatedCopyContext(copy);
  check(copy.target.database===BUSINESS_COPY_DATABASE,'WORK_SELECTED_SALE_FORBIDDEN',403);
  if(!record)fail('WORK_INVOICE_NOT_FOUND',404);
@@ -40,6 +41,11 @@ export function deriveBusinessSelectedSaleJournal(copy,actor,record){
   check(p.copyId===copy.copyId&&p.sealHash===copy.sealHash&&p.operationOrigin===copy.operationOrigin);
   check(created?.id===h.id&&created.status==='draft'&&response.requestId===j.request_id&&response.replayed===false);
   const s=p.selection;
+  const pricing=p.pricing?getBusinessProductPriceSaleDTO(copy,priceHistory):null;
+  if(p.pricing){
+   check(pricing&&pricing.proof.mode==='HISTORY'&&pricing.proof.invoiceId===h.id,'WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED');
+   check(equal(p.pricing,{pricingJson:pricing.pricingJson,pricingHash:pricing.proof.pricingHash,priceRevisionHash:pricing.proof.priceRevisionHash,saleRevisionHash:pricing.proof.saleRevisionHash,copyId:copy.copyId,sealHash:copy.sealHash}),'WORK_SELECTED_SALE_PRICING_HISTORY_DRIFT');
+  }else check(priceHistory===null,'WORK_SELECTED_SALE_PRICING_HISTORY_DRIFT');
   check(s&&Array.isArray(s.items)&&s.items.length>=1&&s.items.length<=200&&new Set(s.items.map(i=>i.productId)).size===s.items.length);
   const selected=selectBusinessSaleWriteIntent(copy,{customerId:s.customerId,currency:s.currency,productIds:s.items.map(i=>i.productId)});
   check(payload.businessCustomerId===selected.customerId&&payload.businessAccountId===selected.customerAccountId&&payload.businessCurrency===selected.currency&&equal(payload.businessProductIds,selected.productIds)&&payload.sourceSelectionHash===selected.sourceSelectionHash&&payload.businessSelectedSalePolicyHash===selected.policyHash);
@@ -60,7 +66,8 @@ export function deriveBusinessSelectedSaleJournal(copy,actor,record){
    check(fields(item,input,['productId','quoteId','quantityExact3'])&&fields(native,item,lineKeys)&&native.currency===s.currency&&fields(original,item,[...lineKeys,'quoteId','unitPriceExact8'])&&original.currency===s.currency&&equal(original.unit,item.unit));
    const products=copy.products.filter(v=>v.id===input.productId);check(products.length===1);const product=products[0];
    const quotes=product.quotes.filter(q=>q.quoteId===input.quoteId&&q.currency===s.currency&&q.verified===true&&q.mainUnit===true&&q.type==='sale');check(quotes.length===1);
-   check(item.stockCode===product.stockCode&&item.unit?.label===product.unit&&item.unit.factorExact8===product.unitFactorExact8&&item.unitPriceExact8===quotes[0].priceExact8&&native.averageCostTryExact4===product.costExact4&&workScaled(native.averageCostTryExact4,4)>0n&&native.barcode===item.barcode&&(native.barcode===null||product.barcodes.includes(native.barcode)));
+   const price=pricing?pricing.rows.find(r=>r.productId===input.productId&&r.quoteId===input.quoteId&&r.currency===s.currency)?.pricing.priceExact8:quotes[0].priceExact8;
+   check(typeof price==='string'&&item.stockCode===product.stockCode&&item.unit?.label===product.unit&&item.unit.factorExact8===product.unitFactorExact8&&item.unitPriceExact8===price&&native.averageCostTryExact4===product.costExact4&&workScaled(native.averageCostTryExact4,4)>0n&&native.barcode===item.barcode&&(native.barcode===null||product.barcodes.includes(native.barcode)));
    const price4=(workScaled(item.unitPriceExact8,8)+5000n)/10000n,line=(quantity*price4+500n)/1000n;
    check(price4>0n&&item.unitPriceExact4===workExact(price4,4)&&item.lineTotalExact4===workExact(line,4));total+=line;
   }
