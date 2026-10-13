@@ -1,3 +1,7 @@
+## ERP13 / C10–C11 — mevcut sayım/iade/ters kayıt görünümü — insan kabulü bekliyor
+
+13Ekim0bf8f7d/DB02/5234. [Sayım–iade okuma kanıtı](docs/evidence/erp/2026-10-13-count-return-read/README.md). Mevcut Sayım→Sayımı incele'de özgün miktar/fark ve ayrı Geri alma gerekçesi; Kapat/Yenile. İadeler→Açıklama'da özgün gerekçe, ayrı geri alma gerekçesi ve yetkiye göre döviz/tutar. Yeni işlem gerektirmez. Teknik gözlem ERP-UA15/16/18/32'yi PASS yapmaz; geçmiş kişi/tarih/sonuç değişmedi.
+
 ## ERP12 / C08 — mevcut günlük finans okuması — insan kabulü bekliyor
 
 13Ekim f2f922a/DB02/5234. [Günlük finans okuma kanıtı](docs/evidence/erp/2026-10-13-finance-daily-read/README.md). Tahsilat'ta mevcut açık/kısmi fişi ve ayrı döviz hareketlerini; Tedarikçi Ödeme'de mevcut ödeme→fatura→mal kabulü bağını Yenile ile inceleyin. Hareketneti kasa açılışı değildir; gerçek açılış/banka kabulü ayrı. Yeni işlem gerekmez. Root teknik okuması insan kabulü değildir; ERP-UA14/UA32 ve geçmiş kayıtlar değişmedi.

@@ -1,3 +1,9 @@
+# ERP13 / C10–C11 — mevcut sayım/iade görünümü — 13 Ekim son teslim
+
+Source **0bf8f7df584fe975f912af7dea3507e41c1eebd2**,1876dosya/manifest8d4f77c234db50bf85cce6c89937a471b5ef7a45040832660a42302957bc8a8c;5234/4184/4186/DB02/copye16b70f0/T1false. Mevcut normal sayım/iade geçmişinde kayıtlı geri alma gerekçesi özgün gerekçeden ayrı, iptal sayım incelemesi salt okunur. Root17/17/HighGO/build/secretscan0;4GET/15native set aynı,2mevcut ters bağ/native journal doğrulandı, ticariyazma0. Normal15/16/Yenile/üç hedefli genişlik kanıtlı; API0/CSS9/startup225 veCRM11staged/TEST125 aynı. [Sayım–iade okuma kanıtı](../2026-10-13-count-return-read/README.md). C10/C11🟡; genelFX/çok satırlı iade/batchinverse/kimlik matrisi ve UA15/16/18/32bekliyor.49-9-39-1/completeDeliveryfalse aynı. Source6CI ödeme nedeniyle başlamadı; docHEAD ayrı.
+
+Aşağıdaki ERP12/ERP11 kayıtları kendi tarihsel paket ve kanıtlarıyla korunur; son runtime0bf8f7d'dir.
+
 # ERP12 / C08 — mevcut günlük finans okuması — 13 Ekim son kanıt
 
 Çalışan source **f2f922af81be6a1852f49ee7a6cf5c6bdb7a1477** ve immutable f2f922a paketi aynı;5234/4184/4186/DB02/T1false. Normal16 mevcut tahsilat/ödeme/hesap/fiş-kabul geçmişi ve Yenile; personel15 ödeme403.17GETeski payload/9native recordset aynı;7nativefişbaşlığı (16günlük2+15readonlyuyum),1tahsilat/1ödeme/1hesap exacttutar-döviz-yön/journal bağlandı. Ticariyazma0; uygulama/paket/runtime/yetki değişimi0, eskiprova tekrarı0. [Günlük finans okuma kanıtı](docs/evidence/erp/2026-10-13-finance-daily-read/README.md). Hareketneti/bakiye/açılış ayrı; UNKNOWN açılış, banka/genelFX/günsonu/insan kabulü açık. C08/B06🟡,UA14/UA32bekliyor,49-9-39-1/completeDeliveryfalse aynı. SourceCI6ödemeengeli, yeni docHEAD ayrı.

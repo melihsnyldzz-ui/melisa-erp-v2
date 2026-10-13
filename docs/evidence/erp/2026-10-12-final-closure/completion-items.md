@@ -1,3 +1,12 @@
+## ERP13 / C10–C11 — sonlu salt okunur görünüm — 13 Ekim
+
+| Kalem | Bağlanan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| ERP13/C10 | Kayıtlı sayım ve alış iadesi, özgün/ters native bağ/gerekçe, readonly normal görünüm;4GET/15native set aynı. | Genel FX/çok satırlı iade, batch committed inverse ve UA15/16. |
+| C11 | Mevcut15/16 role projection, personel finans gizliliği ve onay sınırı korundu. | Gerçek işletme personel–İlker–muhasebe matrisi; UA18/32. |
+
+[Kanıt](../2026-10-13-count-return-read/README.md). Yeni ticari işlem/replay/inverse0; genel ERP teslimi tamamlanmadı.
+
 ## ERP12 / C08 — mevcut günlük finans okuması — 13 Ekim
 
 | Kalem | Son paketle bağlanan teknik alt kapsam | Somut kalan |
