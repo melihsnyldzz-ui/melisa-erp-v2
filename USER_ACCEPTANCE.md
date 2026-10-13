@@ -1,3 +1,7 @@
+## ERP11 / C02–C03 — kayıtlı fatura dayanağı — insan kabulü bekliyor
+
+13Ekim f2f922a/DB02/5234. [Alış–mal kabul görünümü kanıtı](docs/evidence/erp/2026-10-13-purchase-receipt/README.md). Mevcut TRY/USD faturayı İncele ile açın; kayıtlı miktar/fiyat/döviz/kur, Bağlı mal kabulü tedarikçi/depo/satır ve Yenile sonrası aynı kaydı kontrol edin. Yeni işlem gerekmez.61teknik test/Chrome/API/native insan kabulü değildir. ERP-UA11/UA32 ve geçmiş kabuller korunur; kişi/tarih/sonuç bekliyor.
+
 ## ERP-C05 / ERP09 — açık hesap görünümü — insan kabulü bekliyor
 
 13Ekim çalışan sourcea771afe, DB02/5234. [C05 okuma/görünüm kanıtı](docs/evidence/erp/2026-10-13-open-account/README.md). Müşteriler ekranından mevcut bir kartı açıp doğru müşteri/döviz geçmişini, fiş toplamı/tahsilat/kalan ile ayrı cari bakiyeyi ve Yenile düğmesini inceleyin. İptal fiş sıfır kalanı ödendi değildir; vade kaydı yoksa bilinmiyor kabul edilir. Yeni satış/tahsilat gerekmez. Root tarayıcı/SQL/API ve126teknik kontrol personel kabulü değildir. İnsan kişi/tarih/sonuç: **bekliyor**. ERP-UA32, eski bekleyen/PASS/FAIL kayıtları değişmedi.

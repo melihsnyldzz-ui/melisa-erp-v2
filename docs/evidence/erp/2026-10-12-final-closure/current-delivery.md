@@ -1,3 +1,9 @@
+# ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim son teslim
+
+Source **f2f922af81be6a1852f49ee7a6cf5c6bdb7a1477**, 1876dosya/manifest2840ecbeaa17c84cd452e78de5738ee2ab494d36f7bb35756c26ce513857e26a;5234/4184/4186/DB02/copye16b70f0/T1false. Mevcut fatura kendi kayıtlı döviz/fiyat/toplamını, exact kabul–supplier–satır–ADET×1 ve native belge/cari kuru+tutarını gösterir; yeni taslak kuru ayrı. Root61/61/HighGO/build/secret scan0;19GET eski alanı aynı+8aynıyetkired;3nativefatura/4satır/stock-supplier geçmişi aynı, ticariyazma0. Chrome/üçgenişlik kanıtı; API2reader+2test/CSS9/startup225/CRM11staged/TEST125 korunur. [Alış–mal kabul görünümü kanıtı](docs/evidence/erp/2026-10-13-purchase-receipt/README.md). C02/C03/B05🟡,49-9-39-1/UA11-UA32bekliyor. Genel kapsam ve tarihsel reader snapshot sınırı açık; completeDelivery=false. Source6hostedCI ödeme nedeniyle başlamadı, docHEAD ayrı.
+
+Aşağıdaki a771/4c/3517 kayıtları kendi tarihsel teslimleridir.
+
 # 13 Ekim son teslim — C05 müşteri/döviz bazında açık hesap görünümü
 
 Çalışan source **a771afe29bde27762e88cf7095d4ff830ef25b30**,1874dosya/manifest8c1cafcb691c1ea38ddb0f743f52a4de76249735b1d377a3c0e6fe986e55a397; web5234/API4184/native4186/DB02. [C05 okuma/görünüm kanıtı](../2026-10-13-open-account/README.md).126kontrol/GO, readonly gerçekChrome/API/native kayıtları aynı,0ticariyazma. Seçili geçmiş ve Yenile/ödeme etiketi hazır; genel limit/vade/seçili tahsilat yazıcısı/insan kabulü açık. CRM09ca/native60e veTEST125 aynı; CSS9/startup225 korunur, v22APK HTTP hazır. Hostedsource6check ödeme/harcama nedeniyle başlamadı. C05🟡/UA32bekliyor/49-9-39-1, **completeDelivery=false**. Aşağıdaki4c/3517/814 kayıtları tarihsel teslimlerdir.

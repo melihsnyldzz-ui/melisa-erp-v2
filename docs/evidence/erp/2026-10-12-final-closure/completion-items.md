@@ -1,3 +1,12 @@
+## ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim
+
+| Kalem | Çalışan kanıt | Kalan |
+| --- | --- | --- |
+| C02/C03/B05 | Exact mevcut fatura–kabul; native belge/cari kuru+tutar;61test/HighGO/API/Chrome/native,0ticariyazma. | Genel günlük/birim/döviz, tarihsel reader snapshot, İlker/muhasebe kabulü. |
+| Teslim | f2f922a/1876dosya;CSS/startup/CRM/TEST125 korundu. | CI ödeme, OPS01hız, final belge/video ve gerçek reboot. |
+
+[Kanıt](../2026-10-13-purchase-receipt/README.md). Genel bitiş ve insan sayımları aynı.
+
 ## 13 Ekim C05 dar teslim farkı
 
 | Kalem | Yeni çalışan kanıt | Kalan |

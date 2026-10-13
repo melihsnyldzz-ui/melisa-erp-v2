@@ -45,41 +45,30 @@
   "mainClosureItems": 21,
   "businessWrites": 0,
   "priorTestsRepeatedForReport": 0,
-  "reportSHA256": "81692990d1c58f3f3f4bac4b4d820db021acec20da51176475a90cc278f0effe",
+  "reportSHA256": "01f07c89dca3097c9703138339562001b179e35b2cbf11d4c788dfde82f234f6",
   "baselineReportSHA256": "c9e86d0f39c8a5cdba35bfb36450e732855b2c8b0ec908cca529033ecb1816d3",
   "inputsScope": "historical initial snapshot; preserved",
   "latestDelivery": {
-    "recordedAt": "2026-10-12T23:35:07.280Z",
-    "erpRuntimeSource": "a771afe29bde27762e88cf7095d4ff830ef25b30",
-    "erpManifestSHA256": "8c1cafcb691c1ea38ddb0f743f52a4de76249735b1d377a3c0e6fe986e55a397",
+    "recordedAt": "2026-10-13T01:03:17.188Z",
+    "erpRuntimeSource": "f2f922af81be6a1852f49ee7a6cf5c6bdb7a1477",
+    "erpManifestSHA256": "2840ecbeaa17c84cd452e78de5738ee2ab494d36f7bb35756c26ce513857e26a",
     "evidence": "current-delivery.md",
     "businessWrites": 0,
-    "rootTargetedTests": 126,
+    "rootTargetedTests": 61,
     "currentBrowserVerified": true,
-    "scopedCustomerCurrencyHistory": true,
-    "previousReadDataUnchanged": true,
-    "dueSource": "NOT_VERIFIED",
+    "existingPurchaseReceiptLinks": true,
+    "previousReadFieldsUnchanged": true,
+    "historicalInvoiceRateProjection": "VERIFIED_EXISTING_NATIVE_RECORDS",
     "humanAcceptance": "PENDING",
     "finalNativeDocumentVerified": false,
     "completeDelivery": false,
-    "localDate": "2026-10-13",
-    "evidenceSHA256": "0e7fb84428557496c7b2e6d905d093a6d267260d6abc62d57e3b6a118dce4959",
-    "openAccountEvidence": "../2026-10-13-open-account/README.md",
-    "openAccountEvidenceSHA256": "60a95d42d8bfafd0209d4690e421525b4cf75a0c2fedd93767d845c93d00a3b9",
-    "browserRoles": [
-      15,
-      16
-    ],
-    "viewportWidths": [
-      1440,
-      1024,
-      390
-    ],
     "apiFilesChanged": 4,
     "startupFilesUnchanged": 225,
     "cssFilesUnchanged": 9,
-    "actualWindowsRebootTested": false,
-    "sourceHostedCI": "FAILURE_BILLING_NOT_STARTED"
+    "sourceHostedCI": "FAILURE_BILLING_NOT_STARTED",
+    "evidenceSHA256": "e865d8f41b768382d780d4de23ea86ca1baaf5279d7e07eaa3142a9fa258fb40",
+    "purchaseEvidence": "../2026-10-13-purchase-receipt/README.md",
+    "purchaseEvidenceSHA256": "a7e9521d2d30fd78af9cbd7dc38248066b90a31e6d2dbbf93a89aac497620e78"
   },
   "reportSHA256Encoding": "canonical Git blob (LF); historical Windows baseline hash retained separately",
   "previousDeliveries": [
@@ -147,6 +136,40 @@
       "completeDelivery": false,
       "actualWindowsRebootTested": false,
       "evidenceCommit": "1d2e091176220b700111fb4f7e3ebc02318c9730"
+    },
+    {
+      "recordedAt": "2026-10-12T23:35:07.280Z",
+      "erpRuntimeSource": "a771afe29bde27762e88cf7095d4ff830ef25b30",
+      "erpManifestSHA256": "8c1cafcb691c1ea38ddb0f743f52a4de76249735b1d377a3c0e6fe986e55a397",
+      "evidence": "current-delivery.md",
+      "businessWrites": 0,
+      "rootTargetedTests": 126,
+      "currentBrowserVerified": true,
+      "scopedCustomerCurrencyHistory": true,
+      "previousReadDataUnchanged": true,
+      "dueSource": "NOT_VERIFIED",
+      "humanAcceptance": "PENDING",
+      "finalNativeDocumentVerified": false,
+      "completeDelivery": false,
+      "localDate": "2026-10-13",
+      "evidenceSHA256": "0e7fb84428557496c7b2e6d905d093a6d267260d6abc62d57e3b6a118dce4959",
+      "openAccountEvidence": "../2026-10-13-open-account/README.md",
+      "openAccountEvidenceSHA256": "60a95d42d8bfafd0209d4690e421525b4cf75a0c2fedd93767d845c93d00a3b9",
+      "browserRoles": [
+        15,
+        16
+      ],
+      "viewportWidths": [
+        1440,
+        1024,
+        390
+      ],
+      "apiFilesChanged": 4,
+      "startupFilesUnchanged": 225,
+      "cssFilesUnchanged": 9,
+      "actualWindowsRebootTested": false,
+      "sourceHostedCI": "FAILURE_BILLING_NOT_STARTED",
+      "evidenceCommit": "581a988073275dba244cd67db3e475eed54f6074"
     }
   ],
   "c05Delivery": {
@@ -163,5 +186,27 @@
     "humanAcceptance": "PENDING",
     "finalNativeDocumentVerified": false,
     "completeDelivery": false
+  },
+  "c02c03Delivery": {
+    "recordedAt": "2026-10-13T01:03:17.188Z",
+    "erpRuntimeSource": "f2f922af81be6a1852f49ee7a6cf5c6bdb7a1477",
+    "erpManifestSHA256": "2840ecbeaa17c84cd452e78de5738ee2ab494d36f7bb35756c26ce513857e26a",
+    "evidence": "current-delivery.md",
+    "businessWrites": 0,
+    "rootTargetedTests": 61,
+    "currentBrowserVerified": true,
+    "existingPurchaseReceiptLinks": true,
+    "previousReadFieldsUnchanged": true,
+    "historicalInvoiceRateProjection": "VERIFIED_EXISTING_NATIVE_RECORDS",
+    "humanAcceptance": "PENDING",
+    "finalNativeDocumentVerified": false,
+    "completeDelivery": false,
+    "apiFilesChanged": 4,
+    "startupFilesUnchanged": 225,
+    "cssFilesUnchanged": 9,
+    "sourceHostedCI": "FAILURE_BILLING_NOT_STARTED",
+    "evidenceSHA256": "e865d8f41b768382d780d4de23ea86ca1baaf5279d7e07eaa3142a9fa258fb40",
+    "purchaseEvidence": "../2026-10-13-purchase-receipt/README.md",
+    "purchaseEvidenceSHA256": "a7e9521d2d30fd78af9cbd7dc38248066b90a31e6d2dbbf93a89aac497620e78"
   }
 }
