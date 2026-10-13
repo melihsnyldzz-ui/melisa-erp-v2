@@ -96,7 +96,7 @@ export function nativeApprovalSummary(data){
  const s=data?.sections?.approvals,c=data?.capabilities,n=data?.navigationReady;
  if(!s||!c||!n||!['available','forbidden','unavailable'].includes(s.status))throw Error('Onay bilgileri okunamadı.');
  const coverage=['goods','count','sales-return','purchase-return'];
- if(s.status==='available'&&(c.approval!==true||!Number.isSafeInteger(s.pendingCount)||s.pendingCount<0||s.complete!==false||!Array.isArray(s.sourceCoverage)||s.sourceCoverage.length!==4||new Set(s.sourceCoverage).size!==4||coverage.some(k=>!s.sourceCoverage.includes(k))))throw Error('Onay bilgileri okunamadı.');
+ if(s.status==='available'&&(c.approval!==true||!Number.isSafeInteger(s.pendingCount)||s.pendingCount<0||s.complete!==false||!Array.isArray(s.sourceCoverage)||s.sourceCoverage.length<1||s.sourceCoverage.length>coverage.length||new Set(s.sourceCoverage).size!==s.sourceCoverage.length||[...s.sourceCoverage].some(k=>!coverage.includes(k))))throw Error('Onay bilgileri okunamadı.');
  if(s.status!=='available'&&s.pendingCount!==null)throw Error('Onay bilgileri okunamadı.');
  const links=[['goods','Mal kabulü','goods'],['count','Sayım','count'],['returns','İadeler','returns']].filter(([, ,k])=>c[k]===true&&n[k]===true).map(([screen,label])=>({screen,label}));
  return {pendingCount:s.status==='available'?s.pendingCount:null,status:s.status,links};
