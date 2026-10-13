@@ -4,6 +4,23 @@ import {workKeys,workId,workScaled,workBusinessCurrencyRate} from './workSalesMo
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const hash=value=>typeof value==='string'&&/^[A-F0-9]{64}$/i.test(value);
 const optionsCache=new WeakMap();
+const profileHashes=new WeakMap();
+const profileCacheSafety=new WeakMap();
+function cacheSafeSource(value){
+ if(value===null||typeof value!=='object')return ['undefined','string','number','boolean','bigint'].includes(typeof value)||value===null;
+ const prototype=Object.getPrototypeOf(value);
+ return Object.isFrozen(value)&&(Array.isArray(value)?prototype===Array.prototype:prototype===Object.prototype||prototype===null)&&Object.values(Object.getOwnPropertyDescriptors(value)).every(d=>Object.hasOwn(d,'value')&&cacheSafeSource(d.value));
+}
+function sourceProfileHash(copy){
+ assertIsolatedCopyContext(copy);
+ // Frozen nonplain objects can still mutate (e.g. Date.setTime). Preserve the
+ // original fresh hash for them; only immutable plain SOURCE trees are cached.
+ // Native stock, balances, prices, holds and proofs remain freshly checked.
+ if(!profileCacheSafety.has(copy))profileCacheSafety.set(copy,cacheSafeSource(copy));
+ if(!profileCacheSafety.get(copy))return isolatedCopyHash(copy);
+ if(!profileHashes.has(copy))profileHashes.set(copy,isolatedCopyHash(copy));
+ return profileHashes.get(copy);
+}
 function sourceCustomer(copy,customerId,currency){
  const matches=copy.customers.filter(p=>p.id===customerId&&p.currency===currency),customer=matches[0];
  copyAssert(matches.length===1&&customer.sourceKnown===true&&customer.accountIdentityVerified===true&&customer.sourceAccountWitnessCount===1&&customer.openingHumanAccepted===false&&!customer.quarantined&&!customer.excludedLL&&!['591','592'].includes(customerId)&&hash(customer.sourceWitnessHash),'SELECTED_SALE_SOURCE_CUSTOMER');
@@ -47,7 +64,7 @@ export function selectBusinessSaleWriteIntent(copy,input){
  copyAssert(new Set(productIds).size===productIds.length,'SELECTED_SALE_ITEMS',400);
  const products=productIds.map(id=>sourceProduct(copy,id,currency));
  copyAssert(copy.businessInvoiceMaxExact4==='20000.0000','SELECTED_SALE_SOURCE_POLICY');
- const policy={schemaVersion:'melisa-selected-sale-intent-policy.v1',copyId:copy.copyId,sealHash:copy.sealHash,profileHash:isolatedCopyHash(copy),maxItems:200,maxInvoiceAmountExact4:copy.businessInvoiceMaxExact4,quantity:'POSITIVE_WHOLE_MAIN_UNIT',currency,role:'customer',operations:['sale_draft','sale_finalize','sale_cancel']};
+ const policy={schemaVersion:'melisa-selected-sale-intent-policy.v1',copyId:copy.copyId,sealHash:copy.sealHash,profileHash:sourceProfileHash(copy),maxItems:200,maxInvoiceAmountExact4:copy.businessInvoiceMaxExact4,quantity:'POSITIVE_WHOLE_MAIN_UNIT',currency,role:'customer',operations:['sale_draft','sale_finalize','sale_cancel']};
  const source={copyId:copy.copyId,sealHash:copy.sealHash,customer:structuredClone(customer),currency,productIds,products,rate:structuredClone(rate)};
  return freeze({copyId:copy.copyId,sealHash:copy.sealHash,customerId,customerAccountId:customer.accountId,partyId:customer.partyId,currency,productIds,rateExact8:rate.rateExact8,maxInvoiceAmountExact4:policy.maxInvoiceAmountExact4,maxItems:policy.maxItems,sourceSelectionHash:isolatedCopyHash(source),policyHash:isolatedCopyHash(policy)});
 }
