@@ -114,6 +114,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return (await request(path,{expire:true,keepForbiddenSession:true})).data;
   },
   async api(path,{envelope=false,...extra}={}){
+   const priceRoute=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/current-prices$/.test(path);
+   if(priceRoute){
+    const {method='GET',body,...unsupported}=extra;
+    // The normal price editor is confined to the verified DB02 browser/API
+    // pair. Native metadata and fresh permissions remain the write authority.
+    if(!token||!user||!cartonReadTarget||resolvedApiBase!==`http://${location.hostname}:4184`||Object.keys(unsupported).length||!['product.view','purchase.view'].every(p=>user.permissions.includes(p))||!(method==='GET'&&body===undefined||method==='POST'&&user.permissions.includes('product.price.edit')&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Fiyat bağlantısı kullanılamıyor.');
+    const payload=await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'});return envelope?payload:payload.data;
+   }
    const referenceRead=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/purchase-reference$/.test(path);
    if(Object.keys(extra).length||typeof path!=='string'||!(/^\/api\/catalog\/products(?:\/[1-9]\d*)?(?:\?[^#]*)?$/.test(path)||referenceRead)||!token||!user||referenceRead&&!['product.view','purchase.view','finance.view'].every(p=>user.permissions.includes(p)))throw problem('Katalog isteği kullanılamıyor.');
    const payload=await request(path,{expire:true,keepForbiddenSession:referenceRead});return envelope?payload:payload.data;

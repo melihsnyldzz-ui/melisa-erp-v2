@@ -1,3 +1,7 @@
+## ERP04 / C09 — çalışan native tüketici ve normal ekran düzeltmeleri — 13 Ekim 2026
+
+Çalışan source0da9f3d, 1917dosya/manifest18a0aed3…39a93, DB02/5234/4184/4186 doğrulandı. Normal native fiyat A→B, eski belge A, aynı UUID replay ve rollback kanıtı tamam; kalıcı ticari etki yok. Liste50 regresyonu ölçüldü, güvenli copy kesişimi daraltması kaynakta hazır. Gerçek tarayıcıda yakalanan current-prices oturum bağlantısı ve LAN UUID eksikliği düzeltildi; fiyat geçmişi eklendi. UI82 ve katalog5 hedefli kontrol geçti, bağımsız kaynak review GO. Bu düzeltmeler henüz yeni pakette/normal kayıtla doğrulanmadı. CRM manuel fiyatlı sipariş sözleşmesi ayrıca açık; ERP04/C09 ve insan kabulü bekliyor, completeDelivery=false. [Kanıt](docs/evidence/erp/2026-10-13-price-write/README.md).
+
 ## ERP04 / C09 — gerçek native fiyat kaydı ve replay provası — 13 Ekim 2026
 
 DB02'de yalnız yeni fiyat metadata/tüketici nesneleri kuruldu; mevcut 14 ürün/stok/cari/finans/rol/karantina tablosunun satır sayısı ve tam satır hashleri önce/sonra eşit. SQL Server'ın eşdeğer CHECK gösterimi ve boş fiyat geçmişinin `[]` serileştirmesi dar düzeltildi; 18 hedefli kontrol geçti. Gerçek sınırlı SQL hesabı başlangıç/yetki kontrolünü geçti. Aynı transactionda gerçek sıfır, NULL, sonraki sürümden sonra eski UUID replay kanıtlandı: güncel sürüm B kaldı, geçmiş iki satır, tüm yazmalar rollback ve ilk kart birebir geri okundu. Kaynak fiyatına yazılmadı; identity boşlukları olabilir, reseed yok.

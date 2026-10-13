@@ -1,3 +1,7 @@
+## ERP04 / C09 — native kanıt tamam, normal ekran düzeltmesi teslimde — 13 Ekim 2026
+
+0da9f3d çalışan DB02 paketi ve gerçek native CURRENT/HISTORY/replay/rollback kanıtlı. Liste regresyonu, normal oturum fiyat yolu ve LAN UUID düzeltmeleri kaynakta hazır; ekranda kalıcı kaydetme/geçmiş ve son hız ölçümü bekler. ERP04/C09🟡, toplamlar ve insan kabulü değişmez. [Kanıt](docs/evidence/erp/2026-10-13-price-write/README.md).
+
 ## ERP04 / C09 — kaynak bağlantısı ilerledi; çalışan kabul açık — 13 Ekim 2026
 
 Normal editör, toplu katalog okuması ve CURRENT/HISTORY satış tüketicisi kaynakta bağlı. Gerçek native DDL derleme/rollback geçti; kalıcı kurulum, fiyat kaydı/replay, normal ekran ve yeni paket henüz yok. [Güncel kesit](docs/evidence/erp/2026-10-13-price-write/README.md). ERP04/C09🟡 ve insan kabulü bekliyor; ana madde/toplamlar değişmedi.

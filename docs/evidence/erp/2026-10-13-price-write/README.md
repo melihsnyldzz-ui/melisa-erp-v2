@@ -139,3 +139,83 @@ NULL döndürdüğünü gösterdi. Kaynak quote JSON'u artık doğrudan `raw.val
 korunur; fiyat kimliği/döviz/tutar JSON kontrolü eklenir. Pure proof kontrolü
 gevşetilmedi. Özel V11 kaynakla yedi compiler kontrolü geçti. Bu kesitte
 tüketicinin yeniden native doğrulanması ve normal ekran hâlâ beklemektedir.
+
+## Paket ve native CURRENT kanıtı — 13 Ekim
+
+`0da9f3d70d1441900a7b412c0f0b170f75248c94` uzak PR #23 head'i olarak
+doğrulandı. Altı hosted kontrol hesap ödeme/harcama engeliyle başlamadı
+(check 115282697024); yerel sonuçlar CI veya insan kabulü değildir.
+
+Metadata `12CC03BC…D52557` aynen korunarak yalnız dokuz tüketici nesnesi
+`B174E6F0…6461F` sürümüne geçti. Eski tüketici hashleri, boş fiyat
+metadata/link/journal koşulları ve korunan 14 tablonun tam satır karşılaştırması
+aynı transaction içinde doğrulandı. Kaynak fiyat, stok ve cari yazması yok.
+
+Restricted native CURRENT artık gerçek kaynak fiyat listesini doğruluyor.
+Tek geri alınan NULL fiyat kaydı CURRENT'ta MANUAL/NULL olarak okundu;
+satış önizlemesi `WORK_PRICE_UNKNOWN` ile reddedildi. Kaynak fiyatına geri
+dönülmedi; ayrı SOURCE okuyucusu aynı kaynak değerini korudu. Transaction
+rollback edildi. Bu aktör altında eski fiyatlı belge bulunmadığından HISTORY
+başarılı sayılmadı; gerçek draft/journal yolu üzerinden ayrı rollback provası
+zorunlu açık koşul olarak sürüyor.
+
+1917 dosyalı `CANONICAL-COMPLETE-TEST-20261011-0da9f3d` paketi derlendi;
+manifest `18a0aed3774fe0efb38dd9f01bb58e085efbf53c0eadf6be9bc1e3cb73f39a93`.
+Yalnız hazırlık ve aktivasyon ön kontrolü tamamlandı; bu kayıt anında çalışan
+paket hâlâ `2bf2762`, yeni paket aktive edilmedi.
+
+Aynı normal katalog API'sinde aktör 16 ile beş rotanın üçer salt okunur
+ölçümü alındı. Medyanlar: ilk 50 ürün 3391 ms, sonraki 50 ürün 3073 ms,
+kod 2920 ms, barkod 2540 ms, kart 2307 ms. Her rotanın üç veri hash'i aynı;
+yalnız ölçümün kendi oturumu kapatıldı. Bunlar yeni özellik öncesi baseline;
+eski hız hedefinin sağlandığı veya yeni paketin performansı anlamına gelmez.
+
+## Gerçek native belge geçmişi ve rollback
+
+Aynı `0da9f3d` paketinin gerçek ODBC sürücüsü ve uygulama korumalarıyla
+normal satış aktörü 15, ayrı fiyat aktörü 16 kullanıldı; rol veya admin bayrağı
+eklenmedi. Tek SERIALIZABLE/Exclusive transactionda fiyat A kaydedildi,
+canonical BEGIN/INTENT ve native draft servisi gerçek taslak/journal üretti.
+Fiyat B'ye geçildiğinde CURRENT B oldu; HISTORY A'nın exact fiyatını,
+sürümünü, JSON'unu ve hash'ini korudu. Gerçek UUID replay ikinci draft
+callback'ine girmedi. Mevcut eski SOURCE belgesi de kendi kaynağıyla okundu.
+
+Stok, hesap ve hareket sayıları aynı kaldı; finalize çağrısı yok. Son commit
+yerine gerçek rollback çalıştı. Sonraki native sorguda invoice/item/link/journal
+kalıntısı sıfır; bağımsız SQL'de fiyat V/C/R 0/0/0, fiyatlı link 0 ve
+`OPENJSON` ile denetlenen pricing intent 0. SQL identity boşlukları olabilir;
+sayaca müdahale yok. Bu geri alınan teknik prova insan kabulü değildir.
+
+Private `historical-sale-rollback-proof.json` tüm 12 coverage alanını true ve
+missing listesini boş kaydetti. Native tüketici NULL/replay/rol olumsuz kanıtları
+ile birlikte normal ekran/paket doğrulamasının ön koşulu tamamlandı.
+
+CRM'nin canonical katalog rotası aynı fiyat overlay'ini tüketiyor. Ancak eski
+CRM V2 sipariş sözleşmesi manuel sürüm bilgisini taşımıyor ve kaynak fiyatı
+eşitliğini koruyor: farklı manuel fiyatlı sipariş `CRM_V2_PRODUCT_CHANGED`
+ile reddedilir. Bu kaynak incelemesi CRM sahibine mevcut sipariş işi altında
+aktarıldı. Kaynak eşitliği gevşetilmeyecek; sürümlü fiyatı donduran ayrı
+tüketici bağlantısı ve gerçek CRM kabulü açık. ERP normal fiyat yazması
+kanıtı, bütün ortak sipariş akışının tamamlandığı anlamına gelmez.
+
+## Normal ekran ve liste regresyonu düzeltmesi
+
+0da9f3d paketi gerçek DB02/5234/4184/4186 üzerinde etkinleştirildi; altı core
+süreç, Hub, TEST125 ve CRM kaynakları doğrulandı. Normal API'de fiyat okuması
+200 olmasına rağmen ekranın mevcut oturum allowlist'i current-prices yolunu
+reddetti. Yalnız doğrulanmış DB02 web/API çifti, tam ürün yolu ve mevcut
+product.view/purchase.view/product.price.edit ile dar GET/POST bağlantısı
+eklenir. 403 oturumu silmez; POST'un aynı UUID/gövdesi ve sınırlı bekleme
+süresi korunur. Eski TEST veya başka rotalar yazmaya açılmaz.
+
+İlk etkin pakette üç örnek medyanı: ilk50 3391→4894 ms, sonraki50
+3073→5642 ms; kod2920→2705, barkod2540→2460, kart2307→2346. Veri hashleri
+aynı kaldı. Liste gerilemesi kabul edilmedi. Native BULK'a50 yerine yalnız
+mühürlü copy ile kesin ID kesişimi gönderilir (bu sayfalarda2/3 ürün); bütün
+yerel fiyat/hold/aktör/sürüm/transaction kanıtları aynı çağrıda korunur. Kapsam
+dışı satırlar ve sıralama değişmez. SQL tanımı veya native revision değişmez.
+Kazanç henüz yeni paket üzerinde ölçülmedi.
+
+Normal fiyat kartı mevcut doğrulanmış son değişiklikleri önce/sonra tutar,
+döviz, gerekçe ve tarih/saatle gösterir. Bu kaynak düzeltmeleri henüz çalışan
+pakete alınmadı; kalıcı ekran kaydı ve insan kabulü bekler.

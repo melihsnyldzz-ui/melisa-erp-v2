@@ -34,7 +34,8 @@ function dom(){
  return {host,node,form,opener:()=>node('[data-catalog-results]').querySelectorAll('[data-catalog-open]')[0],slot:()=>node('[data-catalog-detail]').querySelector('[data-business-price-slot]')};
 }
 async function controllers(){
- const editor=(await readFile(new URL('./businessProductPriceEditor.js',import.meta.url),'utf8')).replace("import './testProductPriceEditor.css';",'').replace("'./businessProductPriceModel.mjs'",JSON.stringify(new URL('./businessProductPriceModel.mjs',import.meta.url).href));
+ let editor=(await readFile(new URL('./businessProductPriceEditor.js',import.meta.url),'utf8')).replace("import './testProductPriceEditor.css';",'');
+ for(const name of ['businessProductPriceModel.mjs','workTradeModel.mjs'])editor=editor.replace("'./"+name+"'",JSON.stringify(new URL('./'+name,import.meta.url).href));
  const editorURL='data:text/javascript;base64,'+Buffer.from(editor).toString('base64');
  let source=(await readFile(new URL('./workCatalog.js',import.meta.url),'utf8')).replace("import './workCatalog.css';",'').replace("'./businessProductPriceEditor.js'",JSON.stringify(editorURL));
  for(const name of ['workCatalogModel.mjs','workCatalogPhoto.mjs','purchaseReference.mjs'])source=source.replace("'./"+name+"'",JSON.stringify(new URL('./'+name,import.meta.url).href));
@@ -74,7 +75,8 @@ test('editing and pending requests protect close, refresh, reset, search and nav
 test('confirmed save reloads effective normal list and card once with no second POST',async()=>{
  const {catalog}=await controllers(),d=dom(),b=backend(),store=storage(pending()),ui=catalog({api:b.api,permissions,actorId:'16',storage:store});ui.mount(d.host);await tick();d.opener().onclick();await tick();d.slot().querySelector('[data-business-price-retry]').onclick();await tick();
  assert.equal(store.saved().status,'saved');assert.equal(b.calls.filter(c=>c.options.method==='POST').length,1);assert.equal(b.calls.filter(c=>c.path.includes('?')).length,2);assert.equal(b.calls.filter(c=>c.path==='/api/catalog/products/12').length,2);
- assert.match(d.node('[data-catalog-results]').innerHTML,/9,00 TRY/);assert.match(d.node('[data-catalog-detail]').innerHTML,/9,00 TRY/);assert.match(d.slot().innerHTML,/9,00 TRY/);assert.equal(ui.requestClose(),true);ui.dispose();
+ assert.match(d.node('[data-catalog-results]').innerHTML,/9,00 TRY/);assert.match(d.node('[data-catalog-detail]').innerHTML,/9,00 TRY/);assert.match(d.slot().innerHTML,/9,00 TRY/);
+ assert.match(d.slot().innerHTML,/Son fiyat değişiklikleri/);assert.match(d.slot().innerHTML,/Önce: <strong>3,12 TRY<\/strong> · Sonra: <strong>9,00 TRY<\/strong>/);assert.match(d.slot().innerHTML,/Gerekçe: Yeni fiyat/);assert.equal(ui.requestClose(),true);ui.dispose();
 });
 test('confirmed write plus failed catalog refresh stays saved and hides stale prices',async()=>{
  const {catalog}=await controllers(),d=dom(),b=backend({failRefresh:true}),store=storage(pending()),ui=catalog({api:b.api,permissions,actorId:'16',storage:store});ui.mount(d.host);await tick();d.opener().onclick();await tick();d.slot().querySelector('[data-business-price-retry]').onclick();await tick();
@@ -91,4 +93,43 @@ test('revoked edit capability retains the pending body, forbids POST and permits
  const ui=editor({api:async(path,options={})=>{calls.push(options.method??'GET');assert.notEqual(options.method,'POST');return {...context(),canEdit:false};},esc:String,productId:'12',actorId:'16',storage:store});
  ui.mount(slot);await tick();assert.match(slot.innerHTML,/bekleyen isteğiniz aynı haliyle korunuyor/i);assert.match(slot.innerHTML,/bu ekrandan çıkabilirsiniz/i);
  assert.equal(slot.querySelector('[data-business-price-retry]'),null);assert.equal(ui.requestClose(),true);assert.equal(JSON.stringify(store.saved()),before);assert.deepEqual(calls,['GET']);ui.dispose();
+});
+
+test('normal price history shows escaped before/after, currency, reason and Istanbul date in readonly mode',async()=>{
+ const {editor}=await controllers();
+ const esc=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+ for(const [currency,before,after,expected] of [['TRY',null,'0.00000000',/Önce: <strong>Bilinmiyor \(TRY\)<\/strong> · Sonra: <strong>0,00 TRY<\/strong>/],['USD','0.00000000',null,/Önce: <strong>0,00 USD<\/strong> · Sonra: <strong>Bilinmiyor \(USD\)<\/strong>/]]){
+  const c=acknowledgement({...pending().body,priceExact:after,reason:'Etiket <b>yenilendi</b>'});c.canEdit=false;c.prices[0].tuple.currency=currency;c.recentChanges[0].tuple.currency=currency;c.recentChanges[0].beforePriceExact=before;
+  const slot=new Slot(),calls=[],ui=editor({api:async(path,options={})=>{calls.push(options.method??'GET');return c;},esc,productId:'12',actorId:'16',storage:storage()});
+  ui.mount(slot);await tick();assert.match(slot.innerHTML,/Son fiyat değişiklikleri/);assert.match(slot.innerHTML,expected);assert.match(slot.innerHTML,/Gerekçe: Etiket &lt;b&gt;yenilendi&lt;\/b&gt;/);assert.match(slot.innerHTML,/<time datetime="2026-10-13T10:00:00.000Z">[^<]*13:00<\/time>/);
+  assert.doesNotMatch(slot.innerHTML,/Etiket <b>|actorId|requestId|versionId|Kullanıcı #|Kaydeden/);assert.equal(slot.querySelectorAll('[data-business-price-edit]').length,0);assert.equal(ui.requestClose(),true);assert.deepEqual(calls,['GET']);ui.dispose();
+ }
+});
+
+test('normal price history clearly shows empty history without additional requests',async()=>{
+ const {editor}=await controllers(),slot=new Slot(),calls=[];
+ const ui=editor({api:async(path,options={})=>{calls.push(options.method??'GET');return context();},esc:String,productId:'12',actorId:'16',storage:storage()});ui.mount(slot);await tick();
+ assert.match(slot.innerHTML,/Son fiyat değişiklikleri/);assert.match(slot.innerHTML,/Henüz fiyat değişikliği yok\./);assert.deepEqual(calls,['GET']);ui.dispose();
+});
+
+test('normal LAN price save uses getRandomValues when randomUUID is unavailable',async()=>{
+ const {editor}=await controllers(),slot=new Slot(),store=storage(),calls=[];
+ const original=Object.getOwnPropertyDescriptor(globalThis,'crypto');let randomCalls=0,ui;
+ try{
+  Object.defineProperty(globalThis,'crypto',{configurable:true,value:{getRandomValues(bytes){randomCalls++;assert.equal(bytes.length,16);bytes.fill(0x12);return bytes;}}});
+  ui=editor({api:async(path,options={})=>{calls.push(options);return options.method==='POST'?acknowledgement(options.body):context();},esc:String,productId:'12',actorId:'16',storage:store});ui.mount(slot);await tick();
+  slot.querySelectorAll('[data-business-price-edit]')[0].onclick();const form=slot.querySelector('[data-business-price-form]');form.events.input();form.events.submit({preventDefault(){}});await tick();
+  const posts=calls.filter(c=>c.method==='POST');assert.equal(posts.length,1);assert.equal(randomCalls,1);assert.equal(posts[0].body.requestId,'12121212-1212-4212-9212-121212121212');assert.equal(store.saved().status,'saved');assert.equal(ui.requestClose(),true);
+ }finally{ui?.dispose();if(original)Object.defineProperty(globalThis,'crypto',original);else delete globalThis.crypto;}
+});
+
+test('normal price save without secure randomness reports failure and sends no POST',async()=>{
+ const {editor}=await controllers(),slot=new Slot(),store=storage(),calls=[];
+ const original=Object.getOwnPropertyDescriptor(globalThis,'crypto');let ui;
+ try{
+  Object.defineProperty(globalThis,'crypto',{configurable:true,value:{}});
+  ui=editor({api:async(path,options={})=>{calls.push(options.method??'GET');return context();},esc:String,productId:'12',actorId:'16',storage:store});ui.mount(slot);await tick();
+  slot.querySelectorAll('[data-business-price-edit]')[0].onclick();const form=slot.querySelector('[data-business-price-form]');form.events.input();form.events.submit({preventDefault(){}});await tick();
+  assert.match(slot.innerHTML,/İşlem hazırlanamadı; kayıt gönderilmedi/);assert.deepEqual(calls,['GET']);assert.equal(store.saved(),null);assert.equal(ui.requestClose(),false);
+ }finally{ui?.dispose();if(original)Object.defineProperty(globalThis,'crypto',original);else delete globalThis.crypto;}
 });

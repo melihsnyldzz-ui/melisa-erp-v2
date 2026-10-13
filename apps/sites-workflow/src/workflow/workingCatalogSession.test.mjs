@@ -286,6 +286,35 @@ test('normal sale cancellation preserves only its known collection dependency co
 const homeBootstrap={path:'/api/terminal-worktest/home-summary',copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82'};
 const worktestLocation=port=>({hostname:'127.0.0.1',protocol:'http:',port,origin:`http://127.0.0.1:${port}`});
 function homeCopyProfile(){return {schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:'ISOLATED_TEST_COPY',copyId:homeBootstrap.copyId,sealHash:'A'.repeat(64),backupSHA:'B'.repeat(64),sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02'},date:'2026-10-09',scopeKind:'VERIFIED_BUSINESS_TEST',businessScopeHash:'C'.repeat(64),businessInvoiceMaxExact4:'20000.0000',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:[{id:'301',supplierId:'601',sourceKey:'VEGA2026/F0102TBLSTOKLAR/301',stockCode:'FIXTURE-301',unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['801'],barcodes:['000301']}],customers:[{id:'501',partyId:'901',accountId:'1001',currency:'TRY',sourceKey:'VEGA2026/F0102TBLCARI/501'}],suppliers:[{id:'601',partyId:'902',accountId:'1002',currency:'TRY',sourceKey:'VEGA2026/F0103TBLCARI/601'}],financeAccounts:[{id:'701',currency:'TRY'}]};}
+
+test('normal price editor uses only exact DB02 routes, preserves denial and sends unchanged UUID/body',async()=>{
+ for(const host of ['127.0.0.1','192.168.1.46']){
+  const target={hostname:host,protocol:'http:',port:'5234',origin:`http://${host}:5234`},store=storage(),calls=[];
+  store.setItem(workingCatalogTokenKey,'price-fixture');store.setItem(testSessionModeKey,'manual');
+  const person={...user,role:{code:'isolated_test_ilker'},permissions:['product.view','purchase.view','product.price.edit']};
+  const s=createWorkingCatalogSession({location:target,apiBase:`http://${host}:4184`,copyProfile:homeCopyProfile(),storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(person):url.includes('/302/')?reply(null,403):reply({verified:true});}});
+  await s.start();assert.deepEqual(await s.api('/api/products/301/current-prices'),{verified:true});
+  const body={requestId:'00000000-0000-4000-8000-000000000001',priceExact:'1.25000000',reason:'Fixture price'};
+  await s.api('/api/products/301/current-prices',{method:'POST',body});assert.deepEqual(JSON.parse(calls.at(-1).options.body),body);assert.equal(calls.at(-1).url,`http://${host}:4184/api/products/301/current-prices`);assert.equal(calls.at(-1).options.headers.Authorization,'Bearer price-fixture');
+  await assert.rejects(()=>s.api('/api/products/302/current-prices'),e=>e.status===403);assert.equal(store.getItem(workingCatalogTokenKey),'price-fixture');
+  const count=calls.length;
+  for(const path of ['/api/products/0301/current-prices','/api/products/301/current-prices?actor=16','/api/products/301/current-prices#x','/api/products/301/current-prices/../write','https://other/api/products/301/current-prices'])await assert.rejects(()=>s.api(path));
+  for(const options of [{method:'DELETE'},{body:{}},{method:'POST'},{method:'POST',body:[]},{method:'POST',body,workMutation:true},{method:'POST',body,timeoutMs:90000}])await assert.rejects(()=>s.api('/api/products/301/current-prices',options));
+  await assert.rejects(()=>s.api('/api/catalog/products',{method:'POST',body}));assert.equal(calls.length,count);s.dispose();
+ }
+});
+
+test('price transport rejects original TEST, missing copy and missing permissions before network',async()=>{
+ const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'};
+ for(const f of [{location,apiBase,profile:homeCopyProfile(),permissions:['product.view','purchase.view','product.price.edit']},{location:target,apiBase:'http://127.0.0.1:4184',profile:null,permissions:['product.view','purchase.view','product.price.edit']},{location:target,apiBase:'http://127.0.0.1:4184',profile:homeCopyProfile(),permissions:['product.view']}]){
+  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'price-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:f.location,apiBase:f.apiBase,copyProfile:f.profile,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return reply({...user,permissions:f.permissions});}});await s.start();const n=calls.length;
+  await assert.rejects(()=>s.api('/api/products/301/current-prices'));await assert.rejects(()=>s.api('/api/products/301/current-prices',{method:'POST',body:{}}));assert.equal(calls.length,n);s.dispose();
+ }
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'readonly-price');store.setItem(testSessionModeKey,'manual');
+ const s=createWorkingCatalogSession({location:target,apiBase:'http://127.0.0.1:4184',copyProfile:homeCopyProfile(),storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply({...user,permissions:['product.view','purchase.view']}):reply({canEdit:false});}});
+ await s.start();assert.equal((await s.api('/api/products/301/current-prices')).canEdit,false);const n=calls.length;await assert.rejects(()=>s.api('/api/products/301/current-prices',{method:'POST',body:{}}));assert.equal(calls.length,n);s.dispose();
+});
 function worktestHomeSession({target=worktestLocation('5234'),bootstrap=homeBootstrap,profile=homeCopyProfile(),base='http://127.0.0.1:4184',respond=async()=>reply({meta:{readOnly:true}}),onExpired=()=>{}}={}){
  const store=storage(),calls=[];store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'worktest-home-fixture');
  const session=createWorkingCatalogSession({location:target,apiBase:base,storage:store,copyProfile:profile,homeBootstrap:bootstrap,onExpired,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(user):respond(url,options);}});

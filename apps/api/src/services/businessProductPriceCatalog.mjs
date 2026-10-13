@@ -48,6 +48,11 @@ export async function readBusinessCatalogPrices({copy,sql,transaction,actorId,ro
   const registration=copy&&getRegisteredBusinessProductPriceRevision(copy);
   if(!registration||rows.length===0)return rows;
   check(Array.isArray(rows)&&rows.length<=50&&new Set(rows.map(p=>p.id)).size===rows.length);
+  // Only sealed copy products can own manual-price metadata. Catalog source
+  // validation already covers every original row; native overlay proof remains
+  // fresh for the exact copy intersection, with no business-data cache.
+  const copyIds=new Set(copy.products.map(p=>p.id)),eligibleRows=rows.filter(row=>copyIds.has(row.id));
+  if(eligibleRows.length===0)return rows;
   const pin=registration.revision.modules.find(m=>m.name===BUSINESS_PRICE_GET)?.afterHash;
   check(hash(pin));
   const req=()=>{const r=new sql.Request(transaction);check(r.parent===transaction);return r;};
@@ -56,11 +61,13 @@ export async function readBusinessCatalogPrices({copy,sql,transaction,actorId,ro
     check(result?.length===1);const m=result[0];assertIsolatedCopyIdentity(copy,m);
     check(m.readerDefinitionHash===pin&&m.transactionCount===1&&m.transactionState===1&&m.isolationLevel===4&&['Shared','Exclusive'].includes(m.copyLockMode)&&Number.isSafeInteger(m.sessionId)&&m.sessionId>0&&typeof m.transactionId==='string'&&/^[1-9]\d*$/.test(m.transactionId));return m;
   };
-  const before=await frame(),ids=rows.map(p=>p.id).toSorted((a,b)=>BigInt(a)<BigInt(b)?-1:1);
+  const before=await frame(),ids=eligibleRows.map(p=>p.id).toSorted((a,b)=>BigInt(a)<BigInt(b)?-1:1);
   const result=await req().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('product_id',sql.BigInt,null).input('actor_id',sql.BigInt,actorId).input('catalog_ids_json',sql.NVarChar(sql.MAX),JSON.stringify(ids)).execute(BUSINESS_PRICE_GET);
   check(result.recordsets?.length===1&&result.recordsets[0].length===1);
   const row=result.recordsets[0][0],after=await frame();
   check(keys(row,['catalog_json','actor_json','sessionId','transactionId','readerDefinitionHash'])&&row.readerDefinitionHash===pin&&row.sessionId===before.sessionId&&after.sessionId===before.sessionId&&String(row.transactionId)===before.transactionId&&after.transactionId===before.transactionId&&before.copyLockMode===after.copyLockMode);
   const actor=parse(row.actor_json);check(String(actor.id)===actorId&&actor.active===true&&typeof actor.role==='string'&&Array.isArray(actor.permissions)&&['product.view','sales.view'].every(p=>actor.permissions.includes(p)));
-  return projectBusinessCatalogPrices(copy,rows,parse(row.catalog_json));
+  const projected=projectBusinessCatalogPrices(copy,eligibleRows,parse(row.catalog_json));
+  const byId=new Map(projected.map(value=>[value.id,value]));
+  return rows.map(value=>byId.get(value.id)??value);
 }
