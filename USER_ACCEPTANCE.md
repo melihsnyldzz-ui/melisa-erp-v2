@@ -1,3 +1,7 @@
+## ERP14 / C11 — normal rol ve Onaylar görünümü — bekliyor
+
+13Ekim747ac20/DB02/5234. Onaylar'da İlker görünümü mevcut üç kaynaklı kısmi özeti okur; personel toplam/onay göremez. Kaynak bölümüne geçiş karar yetkisi değildir. Ayrı muhasebe kullanıcı kimliği ve gerçek personel–İlker–muhasebe görev devri henüz doğrulanmadı. [Rol ve modül eşleme kanıtı](docs/evidence/erp/2026-10-13-role-module-binding/README.md). Teknik6test/2GET/Chrome insan kabulü değildir; ERP-UA18/32 ve geçmiş kişi/tarih/sonuç aynı.
+
 ## ERP02 / B01 — ERP-UA05/17/32 için son çalışan görünüm — bekliyor
 
 13Ekim e03dcb5/DB02/5234. Ana Sayfa'da Günlük akış özeti ve kapsam notunu, İş günü9Ekim/Son okuma ayrımını inceleyin. Raporları aç ile aynı tarihin daha geniş kayıtlarını; geri dönüş ve Yenile'yi kontrol edin. Kasa bilinmiyor ve doğrulanmamış kayıt bağlantısı kapalıdır. Yeni işlem gerekmez. [Ana Sayfa kapsam kanıtı](docs/evidence/erp/2026-10-13-home-daily-scope/README.md). Teknik21test/API/Chrome insan PASS değildir; geçmiş kişi/tarih/sonuç değişmedi.

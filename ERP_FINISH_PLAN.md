@@ -1,3 +1,7 @@
+## ERP14 / C11 — mevcut rol/sunum alt kapsamı hazır — 13 Ekim 2026
+
+C11🟡:15/16 için mevcut izin/ret/redaction makbuzları modüllere bağlandı; dar Onaylar arızası çalışan pakette giderildi. Gerçek üç insan/muhasebe eşlemesi ve UA18/32 bekliyor. [Rol ve modül eşleme kanıtı](docs/evidence/erp/2026-10-13-role-module-binding/README.md).49 toplam/9 tamam/39 kısmi/1 açık aynı; önceki kabuller tekrar edilmedi.
+
 ## ERP02 / B01 — dar Ana Sayfa kapsamı hazır, genel kabul bekliyor — 13 Ekim 2026
 
 B01🟡: kayıtlı9Ekim günlük akış ve son okuma ayrı, yetkili Raporlar bağlantısı ve readonly kısa yollar normal ekranda teknik hazır. Kayıt bağlantısı bilinmeyen görev kapalı; kasa/vade/borç sayısı uydurulmaz. Genel görev kapsamı/OPS01 hız ve UA05/17/32 bekliyor. [Ana Sayfa kapsam kanıtı](docs/evidence/erp/2026-10-13-home-daily-scope/README.md).49/9/39/1 aynı; eski provasız dar teslim.
