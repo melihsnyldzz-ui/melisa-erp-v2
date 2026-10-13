@@ -1,3 +1,7 @@
+## ERP02 / B01 — dar Ana Sayfa kapsamı hazır, genel kabul bekliyor — 13 Ekim 2026
+
+B01🟡: kayıtlı9Ekim günlük akış ve son okuma ayrı, yetkili Raporlar bağlantısı ve readonly kısa yollar normal ekranda teknik hazır. Kayıt bağlantısı bilinmeyen görev kapalı; kasa/vade/borç sayısı uydurulmaz. Genel görev kapsamı/OPS01 hız ve UA05/17/32 bekliyor. [Ana Sayfa kapsam kanıtı](docs/evidence/erp/2026-10-13-home-daily-scope/README.md).49/9/39/1 aynı; eski provasız dar teslim.
+
 ## ERP16 / B08 — dar Ayarlar görünümü hazır, insan kabulü bekliyor — 13 Ekim 2026
 
 B08🟡: son paket/kullanıcı/rol/bağlantı, tarihli prova ve Yenile normal ekranda teknik hazır. Güncel yedek kapsamı ve gerçek reboot bilinmiyor; UA20/32 bekliyor. [Ayarlar okuma kanıtı](docs/evidence/erp/2026-10-13-settings-read/README.md).49/9/39/1 aynı; eski kabul edilmiş prova tekrar edilmedi.

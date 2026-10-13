@@ -1,3 +1,7 @@
+## ERP02 / B01 — ERP-UA05/17/32 için son çalışan görünüm — bekliyor
+
+13Ekim e03dcb5/DB02/5234. Ana Sayfa'da Günlük akış özeti ve kapsam notunu, İş günü9Ekim/Son okuma ayrımını inceleyin. Raporları aç ile aynı tarihin daha geniş kayıtlarını; geri dönüş ve Yenile'yi kontrol edin. Kasa bilinmiyor ve doğrulanmamış kayıt bağlantısı kapalıdır. Yeni işlem gerekmez. [Ana Sayfa kapsam kanıtı](docs/evidence/erp/2026-10-13-home-daily-scope/README.md). Teknik21test/API/Chrome insan PASS değildir; geçmiş kişi/tarih/sonuç değişmedi.
+
 ## ERP16 / B08 — ERP-UA20 için son çalışan görünüm — bekliyor
 
 13Ekim0270d12/DB02/5234. Ayarlar'da paket, kendi kullanıcı/rol ve bağlantıları okuyun; Kayıtlı kurtarma provası'nın tarihli sınırlı kapsam olduğunu, güncel yedek ve Windows başlangıcının henüz doğrulanmadığını kontrol edin. Yenile aynı salt okunur görünümü getirir. Yeni işlem/restore gerekmez. [Ayarlar okuma kanıtı](docs/evidence/erp/2026-10-13-settings-read/README.md). Teknik11test/API/Chrome insan PASS değildir; eski kişi/tarih/sonuç ve UA20/32 bekliyor durumu korunur.
