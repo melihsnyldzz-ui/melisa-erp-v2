@@ -1,3 +1,7 @@
+## ERP03 / A01–B02 — dar stok sunumu teknik hazır — 13 Ekim 2026
+
+Belirsiz birim/hold kartta kayıtlı sıfır gerçek sıfır gibi sunulmaz; doğrulanmış negatif ve exact birim korunur. [Stok güven durumu kanıtı](docs/evidence/erp/2026-10-13-stock-card-trust/README.md). Tam kaynak/yerel/sentetik ayrımı, fiziksel stok ve UA26/32 ayrı açık. Kabul edilmiş arama/barkod tekrar edilmedi; ana yetkili işler sürer. CRMpaused/girişiptal/cihaz ret sınırı aynı.
+
 ## ERP14 / C11 — mevcut15/16 teknik alt kapsam eşlendi — 13 Ekim 2026
 
 Onaylar'ın kanıtlı okuyucu hatası kapatıldı; modül kanıtları yeniden işletilmeden eşlendi. [Rol ve modül eşleme kanıtı](docs/evidence/erp/2026-10-13-role-module-binding/README.md). Gerçek personel–İlker–muhasebe kimlik/iş devri ve insan kabulü ayrı açık; diğer bağımsız yetkili ana işler devam eder. CRMpaused/girişiptal/cihaz ret sınırları aynı.
@@ -32,7 +36,7 @@ Ana devam ERP-DEC-050/053 içinde mevcut fatura–kabul bağlantısı ve native 
 
 ## ŞİMDİ — ERP-COMPLETE01 / ERP-DEC-053 — Ana teslimi kalem kalem kapat
 
-Semih giriş düğmesi iptal; optionalfbb dal/paket korunur, aktive edilmez. Çalışan ERP747ac20/CRM09ca/native60e, DB02 ve özgün TEST125 aynı veri/rol sınırındadır. **TERM-01 4c tarihli dar görev devri kanıtı korunur:** mevcut sayım/kabul exact bağı, ayrı durum, tedarikçi/barkod/not ve readonly inceleme; normal15/16, yenileme ve1440/1024/390 gerçek Chrome kanıtlı.29hedefli test/GO, önce–sonra/final API kayıt hash'i aynı; yeni ticariyazma0, pending kabul hâlâonaybekliyor. [Görev devri kanıtı](docs/evidence/erp/2026-10-13-receiving-handoff/README.md), [kalem raporu](docs/evidence/erp/2026-10-12-final-closure/completion-items.md). C01 genel kapsam/insanUA32 ve sonnativebelge/video kapanmadı. OPS02 gözetim guardları değişmeden kurulu; gerçekWindowsreboot/logon için uygun kesinti zamanı ve tarihsel814OSaşaması(bilinmiyor) ayrı. OPS01 hız ve hostedCI ödeme/harcama engeli sürer. Reddedilen cihaz işlemi başka yöntemle tekrarlanmaz. CRMpaused; migration/temizlik/giriş işi, LIVE/Vega/T1/main/gerçekmüşteri/ücretliservis yok.
+Semih giriş düğmesi iptal; optionalfbb dal/paket korunur, aktive edilmez. Çalışan ERPb79ce51/CRM09ca/native60e, DB02 ve özgün TEST125 aynı veri/rol sınırındadır. **TERM-01 4c tarihli dar görev devri kanıtı korunur:** mevcut sayım/kabul exact bağı, ayrı durum, tedarikçi/barkod/not ve readonly inceleme; normal15/16, yenileme ve1440/1024/390 gerçek Chrome kanıtlı.29hedefli test/GO, önce–sonra/final API kayıt hash'i aynı; yeni ticariyazma0, pending kabul hâlâonaybekliyor. [Görev devri kanıtı](docs/evidence/erp/2026-10-13-receiving-handoff/README.md), [kalem raporu](docs/evidence/erp/2026-10-12-final-closure/completion-items.md). C01 genel kapsam/insanUA32 ve sonnativebelge/video kapanmadı. OPS02 gözetim guardları değişmeden kurulu; gerçekWindowsreboot/logon için uygun kesinti zamanı ve tarihsel814OSaşaması(bilinmiyor) ayrı. OPS01 hız ve hostedCI ödeme/harcama engeli sürer. Reddedilen cihaz işlemi başka yöntemle tekrarlanmaz. CRMpaused; migration/temizlik/giriş işi, LIVE/Vega/T1/main/gerçekmüşteri/ücretliservis yok.
 
 ## Önceki giriş önceliği — ERP-DEC-052 / ERP-DEC-053 ile iptal
 

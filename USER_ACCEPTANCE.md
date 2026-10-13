@@ -1,3 +1,7 @@
+## ERP03 / A01–B02 — son çalışan stok görünümü — bekliyor
+
+13Ekimb79ce51/DB02/5234. Mevcut belirsiz kartta Doğrulanmadı ve bilinmeyen birimi, doğrulanmış negatif kartta işaretli miktarı inceleyin. Yeni işlem gerekmez. [Stok güven durumu kanıtı](docs/evidence/erp/2026-10-13-stock-card-trust/README.md). Teknik4test/2GET/Chrome insan PASS değildir; ERP-UA26/32 ve geçmiş UA02/04 kişi/tarih/sonuç aynı.
+
 ## ERP14 / C11 — normal rol ve Onaylar görünümü — bekliyor
 
 13Ekim747ac20/DB02/5234. Onaylar'da İlker görünümü mevcut üç kaynaklı kısmi özeti okur; personel toplam/onay göremez. Kaynak bölümüne geçiş karar yetkisi değildir. Ayrı muhasebe kullanıcı kimliği ve gerçek personel–İlker–muhasebe görev devri henüz doğrulanmadı. [Rol ve modül eşleme kanıtı](docs/evidence/erp/2026-10-13-role-module-binding/README.md). Teknik6test/2GET/Chrome insan kabulü değildir; ERP-UA18/32 ve geçmiş kişi/tarih/sonuç aynı.
