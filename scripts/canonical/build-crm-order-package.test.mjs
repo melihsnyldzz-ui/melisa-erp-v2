@@ -12,6 +12,15 @@ import {CRM_ORDER_PACKAGE,CRM_NATIVE_DEPENDENCY,safeCrmPackagePath,crmPackageSou
 const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const blob=bytes=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`),bytes])).digest('hex');
 const syntheticKeyHeader=['-----BEGIN','PRIVATE','KEY-----'].join(' ');
+test('price runtime includes only its finite contract and rejects a dangling context manifest',()=>withRoot(root=>{
+ assert.equal(crmPackageSourcePath('scripts/canonical/shared-crm-price-contract.mjs'),true);
+ for(const name of ['scripts/canonical/shared-crm-price-sql.mjs','scripts/canonical/shared-crm-price-contract.test.mjs','scripts/migration/goal7-source-version.mjs','scripts/canonical/../canonical/shared-crm-price-contract.mjs'])assert.equal(crmPackageSourcePath(name),false);
+ const {manifest}=fixture(root),name='apps/api/src/services/crmOrderPriceContext.mjs',bytes=Buffer.from('synthetic price context');
+ const partial={...manifest,files:[...manifest.files,{path:name,size:bytes.length,sha256:hash(bytes)}],sourceFiles:[...manifest.sourceFiles,{path:name,gitBlob:blob(bytes)}]};
+ assert.throws(()=>validateCrmPackageManifest(partial),/PRICE_SOURCE_INCOMPLETE/);
+ const contract='scripts/canonical/shared-crm-price-contract.mjs';
+ assert.equal(validateCrmPackageManifest({...partial,files:[...partial.files,{path:contract,size:bytes.length,sha256:hash(bytes)}],sourceFiles:[...partial.sourceFiles,{path:contract,gitBlob:blob(bytes)}]}).schemaVersion,manifest.schemaVersion);
+}));
 test('v2 projection requires its listener module and complete v2 sources while old rollback manifests remain valid',()=>withRoot(root=>{const {manifest}=fixture(root);assert(crmPackageSourcePath('apps/api/canonical-test-listeners.mjs'));const name='apps/api/src/services/crmOrderV2Service.mjs',bytes=Buffer.from('export const v2 = true;');const partial={...manifest,files:[...manifest.files,{path:name,size:bytes.length,sha256:hash(bytes)}],sourceFiles:[...manifest.sourceFiles,{path:name,gitBlob:blob(bytes)}]};assert.throws(()=>validateCrmPackageManifest(partial),/V2_SOURCE_INCOMPLETE/);assert.equal(validateCrmPackageManifest(manifest).schemaVersion,1);}));
 const required=['apps/api/package.json','apps/api/package-lock.json','apps/api/canonical-test-env.mjs','apps/api/canonical-test-network.mjs','apps/api/start-crm-order-test.mjs','apps/api/src/routes/authRoutes.js','apps/api/src/routes/testCrmOrderRoutes.mjs','apps/api/src/services/testCrmOrderContract.mjs','apps/api/src/services/testCrmOrderService.mjs','apps/api/src/services/crmOrderTestRoutePolicy.mjs','apps/api/src/services/openingPriceService.js','apps/api/src/services/operationQuarantineService.js'];
 test('business profile is explicit fixed DB02/62704 and mutually exclusive with the shared DB01 profile',()=>{

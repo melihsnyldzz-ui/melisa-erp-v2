@@ -1,3 +1,7 @@
+## ERP04 / C09 — CRM fiyat sözleşmesi kaynak teslimi — 13 Ekim 2026
+
+MANUAL sürüm kanıtı, eski SOURCE fingerprint/replay koruması, ayrı CRM native kimliğine üç dar yordam ve kazanılan native doğrulama eklendi. 76 hedefli offline kontrol PASS, bağımsız kaynak GO; gerçek DB02 parent25 eşleşti,6 DDL aşaması derleme/rollback PASS ve kalan nesne0. Yeni kalıcı native kurulum/paket/normal CRM kontrolü henüz yok. Çalışan ERP59c444f/CRM09ca/native60e ve TEST125 korunur. ERP04/C09🟡, insan kabulü bekliyor, completeDelivery=false. [Kapsam/kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md). Kaynak teslimi deployment değildir; CI exact teslim head'inde ayrıca raporlanır.
+
 ## ERP04 / C09 — normal ekranda fiyat kaydı ve replay doğrulandı — 13 Ekim 2026
 
 Çalışan source **59c444f9bc79094172ce0a5559a4874cf74d667c**, CANONICAL-COMPLETE-TEST-20261011-59c444f /1917dosya/manifest **a2ce175678fa100d6fbdba0cef92e9535521ec7a76aceb672e68dd9612c9bff3**;5234/4184/4186/DB02/copye16b70f0/T1false doğrulandı. Normal Chrome kartında yetkili TEST İlker fiyat kaydı→liste/kart→reload/geçmiş→başlangıç tutarını ikinci sürümle koruma tamam. Bağımsız SQL/API iki sürüm/tek current/iki request ve kaynak satırının değişmediğini doğruladı. Aynı iki UUID/body replay'i yeni sürüm0 ve tam SQL readback eşitliği verdi. Önceki native CURRENT/HISTORY/rollback/negatif kanıtları korunur; yeni satış/stok/finans işlemi yok. Ekran görüntüsü aracı timeout; gerçek AX metin kanıtı saklandı, piksel kanıtı iddia edilmedi.
