@@ -2,6 +2,8 @@
 
 Güncel korumalı DB02 yedeği ve yeni ERP/native7a41f64–CRM5b6dfe5 ortak paket başlangıcı tamamlandı; gerçek altı süreç guard'ı ve health sağlıklı. Aynı işin kalan adımı normal CRM MANUAL taslak/readback ve exact tekrar/olumsuz/ikinci-etki kontrolleri; CRM sahibi devraldı. Teknik paket sağlığı insan kabulü değildir. [Kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md), çalışan sürüm ve CI/hesap engeli STATUS'tadır. Yeni migration/temizlik/giriş/finish kalemi açılmaz.
 
+ERP-DEC-053–055 ana devam kapsamında, CRM'nin mevcut tek GUI erişim adımı beklerken bağımsız **ERP06 / C06** için yalnız dar iletişim sözleşmesi kaynak hazırlığı yürütüldü. **ERP07 / C07** aynı native bağımlılıkla ayrıldı: mevcut sentetik tedarikçi düzenlemesi genel DB02 kartlarına izin vermez. [Somut bağımlılık ve kapsam](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md). Bu hazırlık native yazıcı/normal ekran/paket teslimi değildir; runtime/SQL/roller değişmedi. Yeni ana iş veya ikinci finish ağacı açılmaz, C06/C07 kısmi ve insan kabulü bekliyor.
+
 ## ŞİMDİ — ERP04 / C09 paket başlangıç bağımlılığı — 14 Ekim 2026
 
 Kesinti sonrası eski sağlıklı ERP/CRM/native geri açıldı; kabul edilmiş fiyat/veri kanıtları korunur ve yeniden uygulanmaz. Aynı işin kalan adımı: güncel korumalı DB02 yedeği, dar import düzeltmeli immutable paket, exact native/ERP/CRM health ve CRM sahibinin normal MANUAL taslak/readback kontrolü. Kaynak hazırlığı çalışan uygulama değildir. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-13-crm-price-witness/README.md); teknik durum STATUS'tadır. Yeni migration/temizlik/giriş işi veya başka finish kalemi açılmaz; insan kabulü bekliyor.

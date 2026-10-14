@@ -1,3 +1,7 @@
+## ERP06 / C06 ve ERP07 / C07 — dar iletişim bağımlılığı — 14 Ekim 2026
+
+Kaynak kimliği ve finans alanları korunarak telefon/şehir/ülke düzenleme sözleşmesi kaynak/test düzeyinde hazırlandı. Genel legacy PUT ve eski sentetik tedarikçi yolu DB02 için kullanılabilir genel düzenleme kanıtı değildir; mevcut native guard iletişim alanlarını da kilitler. [Kaynak hazırlığı ve kalan exact native kapsam](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md). Normal kaydet/yenileme, native audit/replay ve insan kabulü açık; iki kalem 🟡 kalır, 49/9/39/1 ve completeDelivery=false değişmez. Çalışan ERP/native7a41f64–CRM5b6dfe5 korunur.
+
 ## ERP04 / C09 — yeni ortak paket bağlantısı teknik hazır — 14 Ekim 2026
 
 Güncel DB02 COPY_ONLY/CHECKSUM/VERIFYONLY yedeği ve ERP/native7a41f64–CRM5b6dfe5 sağlıklı ortak runtime kanıtlandı. Altı süreç sahiplik/source guard'ı, native9set/3sorgu, API967PASS ve dar pin incelemeleri GO; hostedCI hesap engeli ayrı. Normal CRM MANUAL taslak/readback, tekrar/olumsuz/ikinci etki ve insan kabulü açık. [Kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md). ERP04/C09🟡,49/9/39/1 ve completeDelivery=false aynı; kabul edilmiş fiyat GUI/restore/inverse tekrar edilmedi.

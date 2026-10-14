@@ -1,3 +1,11 @@
+## ERP06 / C06 — dar iletişim sözleşmesi kaynak hazırlığı — 14 Ekim 2026
+
+Kanonik branch/origin/clean9c8adfe başlangıcı ve PR23 head eşleşmesi doğrulandı. CRM normal GUI adımı beklerken ERP-DEC-053–055 bağımsız ana devam kapsamında müşteri iletişimi için yalnız saf model/test hazırlandı: exact SQLbigint müşteri kimliği, mevcut kullanıcı DTO'sunun pozitif güvenli sayısal kimliği ve customer.view+customer.edit, telefon40/şehir100/ülke100, açık nullable alanlar, maskelenmiş telefon/ek kimlik-döviz-finans alanı reddi, UUID+revision'a bağlı deterministik UTF16 SHA256 payload. Guarded hedefli11/11 PASS; API CI otomatik test keşfine girer. Bu, gerçek CAS/journal/replay veya normal kaydet kanıtı değildir.
+
+Somut writer engeli: genel müşteri PUT kendi transaction'ını açar, kaynak kod/ad/döviz/türü de günceller; DB02'nin stage4 native guard'ı iletişim alanlarını değişmez tutar. ERP07 genel tedarikçi PUT aynı sınırda; eski sentetik13373/aktör16/kanonik TEST iletişim teslimi DB02 genel düzenleme kapsamı sağlamaz. Yetkili exact contact getter, dar same-TX native owner/guard/journal ve gerçek kaydet/yenileme kanıtı eksik. [Kanıt ve kapanış koşulları](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md).
+
+Endpoint/store/frontend/SQL/config/port/runtime/rol/veri değişikliği, restart/paket/migration/restore/silme yok. Çalışan uygulama source7a41f64, CRM5b6dfe5, DB02 ve14Ekim korumalı yedek aynı kalır. C06/C07🟡 ve insan kabulü bekliyor;49/9/39/1/completeDelivery=false değişmedi. Teslim commit'i PR23 head'den ayrıca izlenir; kaynak hazırlığı çalışan uygulama diye sunulmaz.
+
 ## ERP04 / C09 — yeni eşleşmiş ortak TEST sağlıklı — 14 Ekim 2026, 11:30
 
 ERP/API/Hub/native uygulama source **7a41f6492273dd1ec0bcb086f820be5575372be8**, CRM source **5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36** aynı DB02/copye16b70f0 üzerinde çalışıyor. ERP1925/native10423 dosyalı immutable paket build/manifest doğrulandı; altı core süreç için source/owner/parent/creation/binding guard'ı, sekiz port ve ERP/Hub/native health PASS. T1/external/automatic false; CRM provider/send/bridge/translation kapalı. Yalnız iki eski görevin action'ları değişti; principal/trigger/settings aynı. TEST125 DB/veri, roller, aktarımlar ve eski kaynaklar korunur; 5194 web bu tur açılmadı.
