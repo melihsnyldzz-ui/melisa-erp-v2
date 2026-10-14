@@ -41,6 +41,15 @@ test('copy server-context diagnostic keeps only its exact closed code; synthetic
  for(const synthetic of [code+'_PRIVATE',code+'_SECRET','ISOLATED_COPY_SYNTHETIC_SCOPE','SYNTHETIC_CANARY_ABC123','GUARDED_HEADER_REACHED','STOP_HEADER','STOP_CARD','OFFLINE_TEST_FAILURE'])assert.equal(capture(()=>logger.error('API error normalized',{code:synthetic}))[0].payload.code,redacted);
 });
 
+test('SOURCE collection preparation keeps only its six static codes without admitting private suffixes or caller text',()=>{
+ const codes=['SOURCE_COLLECTION_PREPARATION_SCOPE','SOURCE_COLLECTION_PREPARATION_CONTEXT','SOURCE_COLLECTION_PREPARATION_FORBIDDEN','SOURCE_COLLECTION_PREPARATION_TRANSACTION','SOURCE_COLLECTION_PREPARATION_ACCOUNT','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED'];
+ for(const code of codes){
+  assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+  for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase()])assert.equal(capture(()=>logger.error('API error normalized',{code:unknown}))[0].payload.code,redacted);
+ }
+ for(const code of ['SOURCE_COLLECTION_PREPARATION','SOURCE_COLLECTION_PREPARATION_SQL','SOURCE_COLLECTION_PREPARATION_SCOPE password='+marker])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
+});
+
 test('serialized logs completely redact key variants, free text, Error and raw query', () => {
   const err = Object.assign(new Error(`Authorization: Bearer ${marker}`), {code: 'INTERNAL_ERROR'});
   const values = {};
