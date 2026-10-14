@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OwnerSid)
+param([Parameter(Mandatory=$true)][string]$OwnerSid,[ValidateSet('b2985d2295c022848c769ea5f494012c1eb3fa00','da82fc6644c1d9dba0c10eaa861773534d43c288')][string]$Source='b2985d2295c022848c769ea5f494012c1eb3fa00')
 $ErrorActionPreference='Stop'
 $actorRoot='C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014'
 $target=$actorRoot+'\assigned-staff-refresh.json'
@@ -7,6 +7,7 @@ $phase='OWNER'
 try {
  if($OwnerSid -notmatch '^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$' -or [Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $OwnerSid){throw 'REJECT'}
  $phase='PARAMETERS'
+ if($Source -cne 'b2985d2295c022848c769ea5f494012c1eb3fa00' -and $Source -cne 'da82fc6644c1d9dba0c10eaa861773534d43c288'){throw 'REJECT'}
  $expected=@(
   'C:\Sirket\CRM\runtime\ERP-COMPLETION01-20261011\normal-agent-test-baseline.env',
   'C:\Sirket\CRM\runtime\ERP-COMPLETION01-20261011\protected-normal-sessions\refresh-journal.json',
@@ -14,6 +15,7 @@ try {
   'C:\Sirket\CRM\runtime\CUSTOMER-PRODUCT-REQUEST-SHARED-20261013\request-issuer-refresh.json',
   ($actorRoot+'\manager-first-login.dpapi'),($actorRoot+'\staff-first-login.dpapi'),($actorRoot+'\agent-test-baseline.env'),($actorRoot+'\provisioning-audit.json'),($actorRoot+'\credential-index.json'),($actorRoot+'\staff-refresh-successor-b2985d2295c0.json')
  )
+ if($Source -ceq 'da82fc6644c1d9dba0c10eaa861773534d43c288'){$expected+=($actorRoot+'\staff-refresh-successor-da82fc6644c1.json')}
  [Array]::Sort($expected,[StringComparer]::Ordinal)
  # Independent finite policy, never a caller-selectable subset. The JS owner
  # also validates its ten-reference input and every returned reference tuple.

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {buildCrm06TestActorProvisioning,crm06ProvisioningInputHash as digest} from './crm06-test-actor-provisioning.mjs';
 import {buildCrm06OwnerProjection,assertCrm06PreparedActorReceipt,CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH} from './crm06-owner-projection.mjs';
-import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06StaffSuccessorParentRefs,crm06SuccessorFileHash,CRM06_STAFF_PARENT_SETTINGS_PATH,CRM06_STAFF_PARENT_ACTIVATION_PATH,CRM06_STAFF_CRM_SOURCE,CRM06_STAFF_SUCCESSOR_PATH} from './crm06-staff-refresh-successor.mjs';
+import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06StaffSuccessorParentRefs,crm06StaffSuccessorProfile,crm06SuccessorFileHash,CRM06_STAFF_PARENT_SETTINGS_PATH,CRM06_STAFF_PARENT_ACTIVATION_PATH,CRM06_STAFF_CRM_SOURCE,CRM06_STAFF_FRONTEND_CRM_SOURCE,CRM06_STAFF_SUCCESSOR_PATH} from './crm06-staff-refresh-successor.mjs';
+import {validateCompletionSettings} from './terminal-completion-logon.mjs';
 const erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM',runtime=erp+'\\runtime\\terminal-completion-logon',source='5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36',native='7a'.padEnd(40,'1'),sha='a'.repeat(64),owner='S-1-5-21-123-456-789-1001';
 const password=n=>`scrypt$${String(n).repeat(48)}$${String(n).repeat(128)}`;
 function fixture(){
@@ -48,4 +49,28 @@ test('runtime successor gate retains old verifier and requires pinned preparatio
  const code=fs.readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(code.includes('assertCrm06PreparedActorReceipt({baseline,activation:crm,receipt:json(settings.crmPrivateFiles.crm06Actors)})'));
  assert(code.includes('await verifyCrm06StaffSuccessorRuntime(settings,{baseline,activation:crm,hubPin,hubStartup})'));assert(code.includes('await inspectCrm06StaffJournalPhysical('));assert(code.includes("if(current.status!=='READY')reject('CRM06_STAFF_JOURNAL_NOT_READY')"));
  const pure=fs.readFileSync(new URL('./crm06-staff-refresh-successor.mjs',import.meta.url),'utf8');for(const banned of ['node:fs','node:child_process','fetch(','writeFile','execFile(','spawn(','mssql'])assert(!pure.includes(banned));
+});
+
+function frontendFixture(){const f=fixture(),profile=crm06StaffSuccessorProfile(CRM06_STAFF_FRONTEND_CRM_SOURCE);f.crmPackagePin={...f.crmPackagePin,sourceCommit:profile.source,packageRoot:crm+'\\releases\\crm-shared-test-'+profile.source};f.crmDependencyLockRef={...f.crmDependencyLockRef,path:profile.dependencyLockPath};f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261014','20261015');return f;}
+test('frontend successor uses only exact da82 profile and same staff family while preserving original parent and legacy immutable child',()=>{
+ const original=fixture(),legacy=buildCrm06StaffRefreshSuccessor(original),before=structuredClone(legacy),f=frontendFixture(),inputBefore=structuredClone(f),profile=crm06StaffSuccessorProfile(CRM06_STAFF_FRONTEND_CRM_SOURCE),p=buildCrm06StaffRefreshSuccessor(f);
+ assert.deepEqual(f,inputBefore);assert.deepEqual(legacy,before);assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,p)),true);
+ assert.equal(p.activation.environmentVariables.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH,legacy.activation.environmentVariables.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH);
+ assert.equal(p.activation.environmentVariables.CRM_ASSIGNED_STAFF_REFRESH_USER_ID,legacy.activation.environmentVariables.CRM_ASSIGNED_STAFF_REFRESH_USER_ID);
+ assert.deepEqual(p.settings.crmPrivateFiles.baseline,legacy.settings.crmPrivateFiles.baseline);assert.deepEqual(p.settings.crmPrivateFiles.crm06Actors,legacy.settings.crmPrivateFiles.crm06Actors);
+ assert.deepEqual(p.receipt.parent,legacy.receipt.parent);assert.deepEqual(p.receipt.rollback,legacy.receipt.rollback);
+ assert.equal(p.receipt.featureBase.crm,CRM06_STAFF_FRONTEND_CRM_SOURCE);assert.equal(p.receiptRef.path,profile.successorPath);assert.equal(p.settingsRef.path,profile.nextPaths.settings);
+ for(const ref of [p.activationRef,p.hubPinRef,p.hubStartupRef,p.settingsRef,p.receiptRef])assert(ref.path.includes('da82fc6644c1'));
+ assert.equal(p.receipt.installed,false);assert.equal(p.receipt.authenticatedOperationsVerified,false);assert.equal(p.receipt.humanAccepted,false);
+ assert.equal(legacy.receiptRef.path,CRM06_STAFF_SUCCESSOR_PATH);assert(Object.isFrozen(profile)&&Object.isFrozen(profile.nextPaths));
+});
+test('frontend successor rejects unknown source, wrong date or dependency paths and adoption of active b298 as the original parent',()=>{
+ for(const source of ['f'.repeat(40),'da82fc6644c1',CRM06_STAFF_FRONTEND_CRM_SOURCE.toUpperCase(),null])assert.throws(()=>crm06StaffSuccessorProfile(source),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});
+ for(const change of [f=>f.crmPackagePin.sourceCommit='f'.repeat(40),f=>f.crmPackagePin.packageRoot+='-other',f=>f.crmDependencyLockRef.path=fixture().crmDependencyLockRef.path,f=>f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261015','20261014'),f=>f.parentSettings=structuredClone(buildCrm06StaffRefreshSuccessor(fixture()).settings),f=>f.parentSettingsRef.path=crm06StaffSuccessorProfile().nextPaths.settings]){const f=frontendFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+});
+test('frontend successor full assertion and runtime private ref gate bind receipt/source/preflight to da82 without changing roles or journals',()=>{
+ const f=frontendFixture(),p=buildCrm06StaffRefreshSuccessor(f);validateCompletionSettings(p.settings,owner);
+ for(const change of [v=>v.currentSettings.crmPrivateFiles.crm06StaffSuccessor.path=CRM06_STAFF_SUCCESSOR_PATH,v=>v.currentSettings.components.crm.sourceCommit=CRM06_STAFF_CRM_SOURCE,v=>v.receipt.featureBase.crm=CRM06_STAFF_CRM_SOURCE,v=>v.receipt.prepared.journalEvidenceSha256='f'.repeat(64),v=>v.currentActivation.environmentVariables.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH+='-new-family',v=>v.currentActivation.environmentVariables.CRM_CUSTOMER_PRODUCT_REQUEST_ISSUER_IDS='["crm-crm06-staff-test-20261014"]',v=>v.currentActivation.environmentVariables.WHATSAPP_SEND_ENABLED='true']){const input=structuredClone(assertion(f,p));change(input);assert.throws(()=>assertCrm06StaffRefreshSuccessor(input),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ const wrong=structuredClone(p.settings);wrong.crmPrivateFiles.crm06StaffSuccessor.path=CRM06_STAFF_SUCCESSOR_PATH;assert.throws(()=>validateCompletionSettings(wrong,owner));
+ const code=fs.readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(code.includes('crm06StaffSuccessorProfile(settings.components.crm.sourceCommit).successorPath'));assert(code.includes('path:profile.journalEvidencePath'));assert(code.includes('excludedPaths,source:profile.source'));assert(code.includes('crm06StaffJournalExcludedPaths(profile.source)'));
 });

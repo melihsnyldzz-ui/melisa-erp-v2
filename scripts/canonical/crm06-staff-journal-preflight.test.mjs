@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {assertCrm06StaffJournalPhysicalEvidence,normalizeCrm06StaffJournalPath,crm06StaffJournalReferenceHash,inspectCrm06StaffJournalPhysical,crm06StaffJournalPhysicalDiagnosticPhase,crm06StaffJournalPhysicalArguments,CRM06_STAFF_JOURNAL_ROOT as root,CRM06_STAFF_JOURNAL_PATH as target,CRM06_STAFF_JOURNAL_EXCLUDED_PATHS as paths} from './crm06-staff-journal-preflight.mjs';
+import {assertCrm06StaffJournalPhysicalEvidence,normalizeCrm06StaffJournalPath,crm06StaffJournalReferenceHash,inspectCrm06StaffJournalPhysical,crm06StaffJournalPhysicalDiagnosticPhase,crm06StaffJournalPhysicalArguments,crm06StaffJournalExcludedPaths,CRM06_STAFF_JOURNAL_ROOT as root,CRM06_STAFF_JOURNAL_PATH as target,CRM06_STAFF_JOURNAL_EXCLUDED_PATHS as paths} from './crm06-staff-journal-preflight.mjs';
 const sid='S-1-5-21-2170750028-1005938530-2568122015-1001';
 const options=()=>({path:target,ownerSid:sid,excludedPaths:[...paths]});
 function fixture(){
@@ -59,4 +59,19 @@ test('legacy PS5 command transport carries only validated owner SID while the ch
  const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:[...paths]});assert(Object.isFrozen(args));assert.deepEqual(args.slice(-2),['-OwnerSid',sid]);assert.equal(args.length,8);assert.equal(args.includes('-ExcludedPathsJson'),false);assert.equal(args.some(arg=>arg.startsWith('[')),false);
  for(const refs of [paths.slice(1),[...paths.slice(0,9),target]])assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
  const source=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(source.includes('$excluded=$expected'));assert(!source.includes('ExcludedPathsJson'));assert(!source.includes('ConvertFrom-Json'));assert(source.includes('foreach($value in $excluded)'));assert(source.includes('staff-refresh-successor-b2985d2295c0.json'));
+});
+const frontendSource='da82fc6644c1d9dba0c10eaa861773534d43c288';
+function frontendEvidence(){const f=fixture(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(frontendSource).map(path=>old.get(path)??{path,exists:true,volumeSerial:'1234ABCD',fileId:'0000000000000099',linkCount:1,reparse:false});return rehash(f);}
+test('frontend physical policy keeps exact old ten metadata references and adds only da82 receipt, with no journal reset or authority grant',()=>{
+ const old=fixture(),oldBefore=structuredClone(old),newPaths=crm06StaffJournalExcludedPaths(frontendSource),opts={...options(),source:frontendSource,excludedPaths:[...newPaths]},f=frontendEvidence();
+ assert.equal(newPaths.length,11);assert.deepEqual(newPaths.filter(path=>path!==root+'\\staff-refresh-successor-da82fc6644c1.json'),[...paths]);assert.equal(crm06StaffJournalExcludedPaths(),paths);
+ assert.equal(assertCrm06StaffJournalPhysicalEvidence(f,opts).journal.path,target);assert.equal(assertCrm06StaffJournalPhysicalEvidence(old,options()).references.length,10);assert.deepEqual(old,oldBefore);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:[...newPaths],source:frontendSource});assert.deepEqual(args.slice(-2),['-Source',frontendSource]);
+ const source=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(source.includes("if($Source -ceq '"+frontendSource+"'){$expected+=($actorRoot+'\\staff-refresh-successor-da82fc6644c1.json')}"));
+});
+test('frontend physical policy rejects cross-profile evidence, unknown sources and alias to the newly added receipt',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(frontendSource)],opts={...options(),source:frontendSource,excludedPaths:refs},evidence=frontendEvidence();
+ reject(fixture(),opts);reject(evidence,options());reject(evidence,{...opts,excludedPaths:[...paths]});
+ for(const source of ['f'.repeat(40),frontendSource.toUpperCase(),null]){assert.throws(()=>crm06StaffJournalExcludedPaths(source),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:refs,source}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
+ const alias=structuredClone(evidence),receipt=alias.references.find(ref=>ref.path.endsWith('staff-refresh-successor-da82fc6644c1.json'));alias.journal.fileId=receipt.fileId;reject(alias,opts);
 });
