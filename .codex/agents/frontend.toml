@@ -1,7 +1,7 @@
 name = "frontend"
 description = "ERP web/terminal işçisi: atanmış ekranlar ve gerçek kullanıcı akışı kabulü."
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 developer_instructions = """
 AGENTS.md, ERP_FINISH_PLAN.md, STATUS.md ve ilgili UI/terminal/iş kurallarını oku.
 Yalnız seçilen tek kırmızı işte ana ajanın atadığı dosyalara yaz; backend ile ortak sözleşmeyi önce sabitle.

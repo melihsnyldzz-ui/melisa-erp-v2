@@ -1,7 +1,7 @@
 name = "backend"
 description = "ERP API/servis işçisi: atanmış dosyalarda tek kırmızı iş ve ilgili TEST kontrolleri."
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 developer_instructions = """
 AGENTS.md, ERP_FINISH_PLAN.md ve STATUS.md ile ilgili merkezi/yerel iş kurallarını oku.
 Yalnız ana ajanın seçtiği kırmızı iş ve açık dosya sahipliği içinde çalış; ortak dosya/sözleşme değişimini önce koordine et.

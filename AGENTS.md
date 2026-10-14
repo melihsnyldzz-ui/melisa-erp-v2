@@ -1,10 +1,27 @@
 # AI Agent Entry Point
 
+## Kalıcı kullanıcı çalışma sözleşmesi — 14 Ekim 2026
+
+Sürüm: **MELISA-WORKING-AGREEMENT-2026-10-14-v1**. Kaynak: kullanıcının 11, 13 ve 14 Ekim doğrudan kararları; son kalıcılaştırma isteği `sesli yönlendirme` sohbetindeki `01a13a1d-61d1-7cc1-8ca1-3c6634b2fa1e` insan mesajıdır. Bu sözleşme aşağıdaki eski belge görevi, Medium varsayılanı ve dedicated TEST istisnası olmayan credential hükümlerini ilgili kapsamda supersede eder. Sistem ve araç güvenliği sınırları korunur; sohbet/özet/model değişimi kararları sıfırlamaz.
+
+1. **Aynı kararı tekrar sorma.** Her devamda bu dosyayı ve mevcut teslim/kaldığı yer kaydını kullan. Kullanıcıdan izinleri, parolayı, kabulü veya iş planını yeniden anlatmasını bekleme. Yeni kullanıcı kararı eski kararla çelişirse yalnız ilgili kuralı güncelle.
+2. **Tek ana başlığı çalışan sonuçla kapat.** Sabit 55 ana ID ve ortak 21 sıra korunur. Mevcut tek odak **CRM06 — Katalog ve müşteri ürün talebi**, özgün K01/K02/K03 kapsamıyla. Tam kapanana veya kullanıcı açıkça değiştiren karar verene kadar bağımsız başlığa atlama. ERP06 iletişim kaynağı dalında korunur. Kaynak/test/belge/push/sağlık ara adımdır; çalışan teslim, cihaz veya insan kabulü değildir. Kapsamı daraltıp sayacı yükseltme.
+3. **Tekrar yerine eksik halkayı tamamla.** Mevcut kabul ve kanıtı son sürümle eşle; değişmeyen kabulü, fb34/403/readback'i, iki gerçek restore'u veya geçmiş provayı yeniden çalıştırma. Yalnız değişen ya da kanıtsız gerekli davranışı doğrula. Alt kapsam, kalan, sürüm, runtime kanıtı, uzak commit, yerel değişiklik ve insan/dış bağımlılık ayrı tutulur.
+4. **TEST erişimini ajan hazırlar.** Kullanıcıdan kullanıcı adı/parola, tekrar giriş veya aynı TEST iznini isteme. Önce geçerli yetkili oturum/korumalı teslim; ardından desteklenen kullanıcı yönetimiyle ajana ayrılmış izole TEST hesabını uygun mevcut normal personel rolüyle hazırlama, gerekirse yalnız bu hesabın parolasını yenileme yetkilidir. Gerekiyorsa böyle ayrılmış TEST hesabını desteklenen yoldan oluşturma yetkilidir. Bir hesap kaydı bulunamadı diye desteklenen ajan hesabı yolunu incelemeden durma. Paylaşılan/gerçek/üretim hesabı reseti, mevcut kimlikte yetki yükseltme, auth kaldırma, kimliksiz LAN admin, statik URL/HTML token veya TEST ADMIN'i normal kullanıcı sayma yok. Geçerli yönetim bağlamı ve desteklenen kurulum yolu gerçekten yoksa denenen yol ile eksik yetki/bileşeni tek somut engel olarak kaydet; parola isteme.
+5. **Güvenli oturum normal işin parçasıdır.** Korunan cihaz deposu, yenileme, uygulamayı yeniden açma ve ERP/CRM/terminal geçişinde doğrulanmış kimlik/rol korunur. Çıkış, kullanıcı değiştirme ve iptal çalışır. MFA gibi yalnız insanın yapabildiği gerçekten gerekli adımı hazırlık tamamlandıktan sonra tek somut işlem olarak ayır. Sırları sohbet, kod, GitHub veya düz metin günlüğe taşıma.
+6. **Ortak ortamın tek yazarı vardır.** ERP sahibi ortak runtime/native/startup/config/port/kullanıcı-store değişikliği, servis kurtarma, sürüm/veri koruma ve bağımsız readback sahibidir. CRM sahibi normal müşteri/personel/mobil akış, gerekli mevcut rol eşlemesi ve kabul kanıtı sahibidir. Aynı ortak dosya/store üzerinde eşzamanlı yazma veya habersiz restart yapma; bağımlılığı kaydet.
+7. **CRM06 bütün özgün koşulları kapsar.** Gerçek katalog/foto/arama/veriye dayalı kategori; mevcut K02 ürün PDF gönderme kabulünün eşlenmesi; ürün/fiyat/döviz doğruluğu; seç–adet–çıkar–yenile–tek kalıcı talep; atanmış personelde aynı kayıt ve yanlış personelde ret; yeniden açılışta korunma/çift kayıt olmaması; son normal mobil ve gereken insan kabulü. Önceki 196 TRY/adet kanıtını başka ürün/dövize genelleme. Talep ERP satış/stok/fiş oluşturmaz. Yeni gerçek müşteri mesajı gönderme. Bağımlı geniş başlıkları tümüyle yeniden yapmak yerine bu akışa düşen özgün davranışı kanıtla.
+8. **İşi kaydet ve devam et.** Her tamamlanan iş parçasını kendi mevcut feature dalında commit+push yap, uzak SHA'yı doğrula. Yalnız değişikliğe uygun kontrolleri çalıştır; belge değişikliğinde uygulama/CI/restore bekleme döngüsü açma. Güncel veri korumasını kalıcı durum değişikliklerinde doğrula; GitHub kod kaydı veri yedeği değildir. Yedek kapsamı/tarihi/korumalı konumu/bütünlük-restore kanıtı/ayrı konum kopyası ayrıdır. Ayrı kopya yoksa makine kaybı koruması var deme.
+9. **Gerçek engeli somutlaştır.** Yetkili ve güvenli sonraki adım varsa yalnız rapor/push üreterek durma. Çalışan giriş/ekran, davranış, kanıt ve kalan varsa tam nedeni göster. Yetki dışı karar gerekiyorsa mümkün hazırlığı tamamla; tekrar eden genel engel yerine eksik bileşeni belirt. Mevcut Goal/sohbeti koru; model/özet değişimi baştan keşif gerekçesi değildir. Rutin ara başarıları tekrarlama.
+10. **Sınırlar korunur.** LIVE/Vega/T1 yazması, main merge, gerçek müşteri mesajı, ücretli servis veya eski sistemi kapatma yetkisi yok. Reddedilmiş özel cihaz200 QA, yerel eğitim HTML ve ayrı deneme EXE işlemini başka araç/adres/komut/kullanıcı/model ile aşma. Geçici Semih düğmesi ve ayrı Windows TEST programı iptal; MELISA HUB ayrı Host uygulaması değildir. İki sahip **gpt-6.1-sol / high** ile devam eder; Astra yalnız somut zor sorun için sınırlıdır, sonra Sol'a dönülür. Yetkili işi tekrar onaya bağlama; bu metin LIVE veya güvenlik sınırı aşma yetkisi vermez.
+
+Bu aktif sözleşme genel günlük sıra hükümlerinden önce uygulanır. Teknik kanıt STATUS, insan sonucu USER_ACCEPTANCE, tam kapsam mevcut finish planında kalır; ikinci takip ağacı veya yeni goal oluşturulmaz.
+
 ## Karar merkezi ve `devam` — 5 Ekim 2026
 
 Kullanıcı ve ChatGPT iş/ürün kararlarını sohbetten planlar; onaylanan kararlar GitHub'da [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) içinde kalıcılaşır. Codex bu kararları uygular. Bu bölüm eski harita/finish-plan/tek-kırmızı yönlendirmelerinin **günlük sıra ve okuma düzenini** günceller; mevcut kapsam, kabul kanıtları ve işlem sınırları korunur.
 
-Bu görev yalnız proje yönetimi belgeleridir; uygulama geliştirmesini veya duraklatılmış çalışmayı başlatmaz. Kullanıcının ilgili projeye daha sonra doğrudan yazdığı `devam / başla / sıradaki`, mevcut yetkili kapsamda aşağıdaki döngüyü başlatır. Belgedeki örnek komut veya rapor sorusu başlatma talimatı değildir.
+**Tarihsel kapsam:** Bu bölümün 5 Ekim'deki ilk teslimi yalnız proje yönetimi belgeleriydi. O tarihli duraklatma güncel ana teslimi durdurmaz; sonraki kullanıcı devam kararları ve baştaki 14 Ekim sözleşmesi yürürlüktedir. Belgedeki örnek komut veya rapor sorusu tek başına yeni yetki değildir.
 
 1. Kanonik kök, fetch/push origin, aktif feature branch ve dirty durumu doğrula; kullanıcı işini koru. GitHub'daki ilgili doküman PR/commit'i ile okuduğun yerel sürümü eşleştir; eski checkout'u güncel plan sayma, dirty ağacı otomatik pull/merge etme.
 2. Sırayla [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) → [DELIVERY_BOARD.md](DELIVERY_BOARD.md) → [STATUS.md](STATUS.md) → [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md) oku. Ardından seçilen işin ilgili yerel/merkezi kuralları ve [USER_ACCEPTANCE.md](USER_ACCEPTANCE.md) kaydını oku. Aynı oturumda değişmeyen belgeleri tekrar okuma.
@@ -73,12 +90,11 @@ credential güvenliği ve LIVE değişikliklerinin onay sınırları sürer.
   böl. Aynı dosyaya eşzamanlı yazma yok; ortak sözleşmeyi önce ana ajan belirler,
   bağımlı işler sırayla ilerler. Plan/status güncellemesi ve entegrasyon ana ajana
   aittir. Alt ajan sonucu otomatik kabul sayılmaz.
-- Varsayılan **GPT-6.1 Sol / Medium** (`gpt-6.1-sol`). Zor reviewer/sql-vega
-  görevini açık `high` reasoning ile başlat; sıradan inceleme Medium kalır.
-  Bu iki rol effort'u dosyada sabitlemez, varsayılanı veya açık spawn effort'unu
-  devralır. Astra (`gpt-6-astra`) yalnız çok zor mimari belirsizlik için gerekçeli
-  ana ajan/default-agent seçimi; sıradan kodlama ya da SQL için otomatik fallback
-  değildir. Model yoksa sessizce başka model kullanma; sınırlamayı raporla.
+- Güncel kullanıcı tercihi **GPT-6.1 Sol / High** (`gpt-6.1-sol`); ana sahipler ve
+  bu kapsamda görevlendirilen ajanlar bunu kullanır. Eski Medium varsayılanı
+  13–14 Ekim kararıyla superseded'dır. Astra yalnız somut zor sorun için sınırlı
+  kullanılır; problem kapanınca Sol'a dönülür. Rutin inceleme/paket/belge için
+  otomatik Astra veya model fallback yok; gerçek sınırlamayı raporla.
 - `.codex/agents/explorer.toml` salt okunur keşif; `backend.toml` API;
   `frontend.toml` web/terminal; `reviewer.toml` bağımsız salt okunur inceleme;
   `sql-vega.toml` salt okunur SQL/Vega analizi; `release.toml` salt okunur
@@ -87,7 +103,9 @@ credential güvenliği ve LIVE değişikliklerinin onay sınırları sürer.
   izin isteme. Restart öncesi port → süreç/checkout → API → database/runtime
   eşlemesini doğrula; LIVE veya ortak servisi durdurma. TEST verisi sentetik olmalı.
   Bu yetki LIVE/Vega yazması, gerçek müşteri/ticari kayıt, mesaj gönderimi, veri
-  kaybı, credential değişikliği ya da riskli backup/restore/reset yetkisi değildir.
+  kaybı, paylaşılan/gerçek credential değişikliği ya da riskli backup/restore/reset
+  yetkisi değildir. ERP-DEC-047 ve baştaki sözleşme uyarınca desteklenen yoldan
+  yalnız ayrılmış izole TEST hesabı hazırlama ve onun parola yenilemesi yetkilidir.
   Bilinmeyen ortam TEST sayılmaz. Bu risklerde hedefi ve işlemi adlandıran açık
   onay, geri dönüş planı ve veri güvenliği gerekir. Salt okunur LIVE inceleme için
   yeniden onay isteme; gereken veriden fazlasını okuma, secret yazdırma.
@@ -145,7 +163,7 @@ Before making any change, read in this order:
 ## Non-Negotiable Rules
 
 - Never expose secrets, tokens, passwords, SQL credentials, WhatsApp keys, or `.env.local` contents.
-- Never touch production data, live SQL Server writes, backup/reset actions, external messages, or deployments without explicit human approval.
+- Never touch production data, live SQL writes, destructive restore/reset, external messages, or LIVE deployment without explicit human approval. Existing dedicated TEST account/setup and scoped TEST runtime authorization is recorded above; do not ask for it again or extend it to shared/production credentials.
 - Plan before coding, especially for business logic, database, auth, finance, inventory, import, terminal, or external integration changes.
 - Make small, safe commits with a single clear purpose.
 - Keep documentation updated whenever behavior, workflow, setup, safety rules, or business operations change.
