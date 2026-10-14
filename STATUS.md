@@ -1,3 +1,9 @@
+## 15 Ekim 2026 — ana çalışma sözleşmesi kayıt teslimi
+
+ERP-DEC-058 / MELISA-WORKING-AGREEMENT-2026-10-15-v3, AGENTS ve PROJECT_DECISIONS içinde kayıtlıdır; karşı proje CRM-DEC-016. Yalnız talimat/karar ve bu kısa teslim kaydı değişti. Mevcut işletme kapsamı, bitiş planı, kabul kayıtları ve aşağıdaki tek etkin Sıradaki iş korunur. Belge kontrolü: dar fark, eski içerik korunumu ve karar bağlantıları; uygulama/DB/restore testi bu değişiklik için çalıştırılmadı, eski CI sonucu bu teslimin PASS'i değildir.
+
+Teslim dalı `codex/erp-finish-20261004`; [mevcut PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23) uzak head/commit kaydıdır. TEST/LIVE runtime bu belge teslimiyle değiştirilmedi veya yeniden doğrulanmadı; gerçek kullanıcı kabulü ve CRM06 kapanışı verilmedi. Kalan: mevcut yetkili ana iş kayıtlı yerden sürer; açık başka oturumun yeni sözleşmeyi okuduğu varsayılmaz.
+
 ## Sıradaki iş
 
 15 Ekim 2026 — bu tek kayıt CRM06 önceliğini ve ERP-DEC-057 ile izinli ERP09 bağımsız teknik hazırlığını gösterir; sabit55/ortak21 sırası ve kapanış sayısı değişmez. Yeni tracker/goal yok; hazır yetkili adıma ayrıca devam mesajı beklenmeden geçilir.
