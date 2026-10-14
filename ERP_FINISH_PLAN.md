@@ -1,3 +1,7 @@
+## ERP04 / C09 — kesinti sonrası aynı işin paket bağlantısı — 14 Ekim 2026
+
+21 iş tablosunda kesinti öncesi hash/sayı eşliği ve eski sağlıklı ERP59c444f/CRM09ca/native60e runtime kurtarması kanıtlı. Yeni dar CRM bootstrap kaynak testi 5/5 ve bağımsız GO; yeni çalışan paket ve normal MANUAL sipariş/readback henüz bekler. Güncel DB02 yedeği tamamlanmadan yeni aktivasyon yok. [Kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md). ERP04/C09🟡, toplamlar ve insan kabulü değişmedi; completeDelivery=false.
+
 ## ERP04 / C09 — normal fiyat alt kapsamı teknik doğrulandı — 13 Ekim 2026
 
 Source59c444f DB02 paketinde normal kart kaydı, yenileme, gerekçeli iki sürüm ve başlangıç tutarına dönüş gerçek Chrome ile doğrulandı. SQL/API exact replay ikinci etki0, kaynak fiyat aynı. Liste regresyonu giderildi; genel hız ERP09'da açık. CRM MANUAL sipariş successor ve insan kabulü bekler; ERP04/C09🟡, toplamlar ve completeDelivery=false değişmedi. [Kanıt](docs/evidence/erp/2026-10-13-price-write/README.md).

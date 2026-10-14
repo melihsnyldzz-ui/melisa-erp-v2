@@ -22,9 +22,13 @@ test('malformed quantity or trust flags fail before masking even held and null r
 test('actual list and card rendering share stock trust display without changing unit factor',()=>{
  const source=readFileSync(new URL('./workCatalog.js',import.meta.url),'utf8'),from=source.indexOf(' function table(rows,m)'),to=source.indexOf('\n function mount(host)',from);
  assert.ok(from>0&&to>from);
+ const gateFrom=source.indexOf(' const priceEditingAllowed=(r,m)=>{'),gateTo=source.indexOf('\n const stat=',gateFrom);
+ assert.ok(gateFrom>0&&gateTo>gateFrom&&gateTo<from);
  // Execute the production render functions, with unrelated presentation dependencies bounded.
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const render=Function('esc','known','unit','priceSummary','status','catalogStockDisplay','catalogExact','money','purchasePermission',source.slice(from,to)+';return {table,card};')(esc,esc,r=>r.unit.verified?'ADET':'Bilinmiyor',()=>'',()=>'',catalogStockDisplay,catalogExact,()=>'',false);
+ // Keep the real edit predicate in this read-only render context. A known
+ // actor with product.view alone must not acquire an editing control.
+ const render=Function('esc','known','unit','priceSummary','status','catalogStockDisplay','catalogExact','money','purchasePermission','actorId','permissions',source.slice(gateFrom,gateTo)+source.slice(from,to)+';return {table,card};')(esc,esc,r=>r.unit.verified?'ADET':'Bilinmiyor',()=>'',()=>'',catalogStockDisplay,catalogExact,()=>'',false,'16',['product.view']);
  for(const [quantity,blocked,verified,expected] of [[null,false,true,'Bilinmiyor'],['0.00000000',true,false,'Doğrulanmadı'],['5.00000000',false,false,'Doğrulanmadı'],['5.00000000',true,true,'Doğrulanmadı'],['0.00000000',false,true,'0'],['-443.00000000',false,true,'-443']]){
   const r={...row(quantity,blocked,verified),id:'1',stockCode:'0001',displayCode:'0001',productName:'<Ürün>',isActive:true,classification:{brand:null,productType:null,sourceName:null},barcodes:[],salePrices:[],photo:{status:'missing'},provenance:{sourceAsOf:'2026-09-30'}};r.unit.factorExact8='1.12345678';const before=JSON.stringify(r),meta={canViewSalesPrices:false,readAt:'2026-10-13T09:00:00Z'};
   assert.ok(render.table([r],meta).includes(`<td data-label="Stok">${expected}<small`));const card=render.card(r,meta);
@@ -33,5 +37,8 @@ test('actual list and card rendering share stock trust display without changing 
   if(stockClass)assert.ok(!card.includes(`<small>Mevcut stok</small><strong>${expected}</strong>`));
   else assert.ok(!card.includes(`<small>Mevcut stok</small><strong class="catalog-detail-price">${expected}</strong>`));
   if(verified)assert.ok(card.includes('<dt>Birim çarpanı</dt><dd>1,12345678</dd>'));assert.ok(card.includes('&lt;Ürün&gt;'));assert.equal(JSON.stringify(r),before);
+  assert.ok(!card.includes('data-business-price-slot'));
+  const editableSource={...r,provenance:{...r.provenance,kind:'accepted-opening'}};
+  assert.ok(!render.card(editableSource,{...meta,productPriceEdit:{enabled:true,productIds:[r.id]}}).includes('data-business-price-slot'),'source metadata cannot grant missing edit permissions');
  }
 });

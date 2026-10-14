@@ -1,7 +1,8 @@
 import { applyRolePermissionDefaults } from './permissionCatalog.js';
 import {canonicalInboundAllowed,canonicalLanHost} from '../../canonical-test-listeners.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
-import {isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
+import {getCrmOrderCurrentContext} from './crmOrderCurrentContext.mjs';
+const isolatedCopyTopology=getCrmOrderCurrentContext()?null:(await import('./isolatedOperationCopyContext.mjs')).isolatedCopyTopology;
 
 const context = Symbol('verified canonical TEST admin');
 const database = 'MELISA_ERP_SIRKET_TEST_20260929_01';
@@ -11,6 +12,7 @@ const loopback = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ad
 // Installed only after configureCanonicalTest has checked the actual SQL identity.
 // No SQL role/user changes: actor 16 keeps all existing named-fixture guards.
 export function canonicalTestAdminContext({ identity, mode, port, writes, env, listenerPolicy }) {
+  if(!isolatedCopyTopology)fail();
   if(isIsolatedOperationCopyRuntime()) {
     const copy=getIsolatedOperationCopyConfig();
     if(mode!=='erp'||port!==isolatedCopyTopology(copy).apiPort||writes!==true||env.sql.database!==copy.target.database

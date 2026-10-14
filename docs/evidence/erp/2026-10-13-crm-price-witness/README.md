@@ -1,8 +1,47 @@
 # ERP04 / C09 — CRM siparişinde güncel ERP fiyatı
 
-Durum: kaynak hazır; native SQL derleme/rollback tamam. Kalıcı native kurulum,
-yeni paket aktivasyonu ve normal CRM ekranı doğrulaması henüz tamamlanmadı.
+Durum: dar native V3 kurulumu ve sınırlı kimlikle fiyat kanıtı tamam; tam yeni
+CRM paket başlangıcı import bağımlılığında kapandı. Eski sağlıklı runtime geri
+açıldı. Yeni paket ve normal CRM ekranı doğrulaması henüz tamamlanmadı.
 ERP-COMPLETE01 / ERP-DEC-053/054/055, ERP PR #23 ve CRM PR #3 kapsamında.
+
+## Kesinti sonrası güncel kapsam — 14 Ekim 2026
+
+21 iş tablosunun satır sayıları ve tam satır hashleri, 13 Ekim 17:22 kesinti
+öncesi kanıtıyla aynı. İki TEST DB online; mevcut CRM talepleri, fiyat sürümleri
+ve journal korundu, bekleyen intent yok. Kontrol bütün veritabanı tablolarını,
+disk dosyası bütünlüğünü veya tarayıcıdaki kaydedilmemiş çalışmayı kapsamaz.
+Özel kanıt `power-audit-20261014` alanında kalır; ham ticari satır GitHub'a girmez.
+
+e3bc144 paketindeki CRM başlangıcı, genel auth/database importlarının ERP-only
+compiler grafiğine gitmesinde kapandı. Mevcut paket allowlist'i genişletilmedi.
+Beş modülde yalnız önceden doğrulanıp kaydedilmiş CRM bağlamı varsa ERP-only
+import seçilmez; ortam bayrağı veya ham JSON yetki yaratmaz. Genel ERP yazıcı,
+admin, claim ve isolated runtime getter/register yolları CRM'de kapalı kalır.
+Normal ERP aynı bağlam/scope doğrulamalarını yükler. Gerçek allowlist kaynak
+projeksiyonunda DB01, fiyatlı DB02, hatalı native proof, yalnız env bayrağı ve
+normal ERP AsyncLocalStorage scope için 5 offline kontrol PASS; bağımsız GO.
+Listener testte memory mock'tur, gerçek SQL/runtime veya insan kabulü değildir.
+
+Canonical feature startup'ın saf pin listesi için alış referansı doğrulayıcısı
+aynı ifadelerle saf modüle çıkarıldı; servis aynı fonksiyonu re-export eder.
+12 kesin statik bağımlılık eklendi. Dinamik/harici import yasağı değişmedi,
+bütün pinler için eksik dosya/hash olumsuzları ve compatibility eşliği
+sınandı: 16 hedefli kontrol PASS, bağımsız GO. Eski stok render ve native
+satış/iptal fixture'ları 4/4 ve 11/11 PASS; üretim işlemi yeniden yapılmadı.
+
+Exact eski 35 izin ve eski görev eylemleri geri alındı. 14 Ekim 10:40 civarı
+altı gerçek core süreç guard'ı, ERP/Hub/native health ve kapalı CRM provider
+health doğrulandı: ERP59c444f / CRM09ca1da / native60e424b, DB02/copye16b70f0,
+actualT1=false. Yeni kaynak çalışan bu eski pakete karıştırılmaz.
+
+Güncel korumalı yedek ve yeni immutable paket aktivasyonu sonraki adımdır.
+11 Ekim DB02 tam yedeği 13 Ekim fiyat değişikliklerini içermez; ayrı cihaz
+kopyası doğrulanmış değildir. Yeni kaynak CI sonucu exact teslim head'inde
+raporlanır; 9e06'nın Sites fixture FAIL'i kaynakta düzeltildi, eski ödeme
+engeli bu run için sebep değildir. Normal MANUAL taslak/readback, kaynak
+eşitliği/replay olumsuzları ve insan kabulü ayrı bekler. Önceki fiyat GUI,
+inverse ve restore provaları yeniden yapılmaz.
 
 Yeni sipariş, ERP'nin onaylı manuel fiyat sürümünü ürün/birim/kademe/döviz
 bağıyla taşır. Tek MANUAL satır varsa sürümlü sözleşme ve her manuel satırda

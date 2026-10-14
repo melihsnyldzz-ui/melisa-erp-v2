@@ -1,8 +1,10 @@
 import sqlDefault from 'mssql';
 import { env } from './env.js';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
-import {isolatedCopyTopology} from '../services/isolatedOperationCopyContext.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
+// A proven CRM draft process has no ERP operation-copy authority and its
+// package intentionally excludes the ERP-only SQL compiler dependency graph.
+const isolatedCopyTopology=getCrmOrderCurrentContext()?null:(await import('../services/isolatedOperationCopyContext.mjs')).isolatedCopyTopology;
 export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 // mssql's two adapters share a process-wide Request driver. Loading ODBC after
 // TDS would give this dedicated TDS pool an ODBC Request and stall its reads.

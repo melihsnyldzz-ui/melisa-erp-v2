@@ -1,6 +1,6 @@
 import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
-let runtime=null,active=null,calls=[],stop='header';
+let runtime=null,active=null,calls=[],stop='header',cashlessRows;
 class Request{
  constructor(transaction){assert.equal(transaction,active.transaction);this.parent=transaction;this.params={};}
  input(name,_type,value){this.params[name]=value;return this;}
@@ -10,10 +10,14 @@ class Request{
   if(query.includes('WHERE id = @customerBalanceId')||query.includes('WHERE id = @cancelCustomerBalanceId'))throw Object.assign(Error('GUARDED_CARD_REACHED'),{code:'STOP_CARD'});
   if(query.includes(' AS currency_snapshot_ready'))return {recordset:[{currency_snapshot_ready:1}]};
   if(query.includes('WHERE id = @currencySnapshotInvoiceId'))return {recordset:[{account_currency:active.selected.currency,account_amount:600,account_exchange_rate_snapshot:Number(active.selected.rateExact8)}]};
-  if(query.includes('WHERE si.id = @finalizeSnapshotId'))return {recordset:[{id:500,customerId:100,customerName:'Synthetic customer',customerCode:'OFFLINE',customerCurrency:active.selected.currency,documentCurrency:active.selected.currency,exchangeRate:Number(active.selected.rateExact8),documentDate:active.copy.date,grandTotal:600,subtotal:600,amountTry:600*Number(active.selected.rateExact8),status:active.operation==='sale_cancel'?'finalized':'draft'}]};
+  if(query.includes('WHERE si.id = @finalizeSnapshotId'))return {recordset:[{id:500,documentNo:'OFFLINE-SELECTED',customerId:100,customerName:'Synthetic customer',customerCode:'OFFLINE',customerCurrency:active.selected.currency,documentCurrency:active.selected.currency,exchangeRate:Number(active.selected.rateExact8),documentDate:active.copy.date,grandTotal:600,subtotal:600,amountTry:600*Number(active.selected.rateExact8),status:active.operation==='sale_cancel'?'finalized':'draft'}]};
   if(query.includes('WHERE sii.sales_invoice_id = @finalizeItemsSnapshotId'))return {recordset:[{id:1,productId:444,stockCode:'OFFLINE-444',productName:'Synthetic product',quantity:1,currentStockQty:10,currency:active.selected.currency,unitPrice:600,lineTotal:600,averageCostTry:1.25,productAverageCostTry:1.25}]};
   if(query.includes('WHERE event_type='))return {recordset:[{id:1}]};
   if(query.includes('movement_type=N\'collection\''))return {recordset:[]};
+  if(query.includes(' AS collectionRows')&&query.includes(' AS financeRows')){
+   assert.equal(this.params.cashlessCancelInvoiceId,500);assert.equal(this.params.cashlessCancelDocumentNo,'OFFLINE-SELECTED');
+   return {recordset:structuredClone(cashlessRows)};
+  }
   if(query.includes('SELECT currency_code, is_active'))return {recordset:[{currency_code:'TRY',is_active:true,is_deleted:false}]};
   if(query.includes('UPDATE dbo.party_currency_accounts'))return {recordset:[{accountId:active.selected.customerAccountId,partyId:active.selected.partyId,movementId:'50',beforeBalance:'10.00000000',effect:this.params.effect,afterBalance:'610.00000000'}]};
   if(query.includes('SELECT m.id FROM dbo.customer_movements'))return {recordset:[{id:50}]};
@@ -27,14 +31,19 @@ mock.module('../apps/api/src/services/writeGuardService.js',{namedExports:{asser
 mock.module('../apps/api/src/services/operationQuarantineService.js',{namedExports:{assertOperationQuarantineAllowed:async()=>{},quarantineTransactionContext:()=>({})}});
 mock.module('../apps/api/src/services/vegaInvoiceExportJournal.mjs',{namedExports:{assertInvoiceNotExported:async()=>{}}});
 mock.module('../apps/api/src/services/auditService.js',{namedExports:{writeAuditLog:async()=>{}}});
+// Supply the required source name before the shared fixture factory seals and
+// validates its profile; never change an already registered native context.
+const selectedFixtures=await import('../apps/api/src/services/businessSelectedSalePreview.test.mjs');
+mock.module('../apps/api/src/services/businessSelectedSalePreview.test.mjs',{namedExports:{...selectedFixtures,selectedSaleFixture:(mutateRaw=()=>{})=>selectedFixtures.selectedSaleFixture(raw=>{raw.products.find(p=>p.id==='444').name='Synthetic product';mutateRaw(raw);})}});
 const {selectedSaleWriteHarness}=await import('../apps/api/src/services/businessSelectedSaleWriteScope.test-fixture.mjs');
 const {createSalesDraft,finalizeSalesInvoice,cancelSalesInvoice,insertIsolatedCopyInvoiceMovement,stampInvoiceMovement}=await import('../apps/api/src/services/invoiceDraftService.js');
 const {postIsolatedCopyCurrencyMovement}=await import('../apps/api/src/services/nativeCurrencyAccount.mjs');
 const ctx=h=>({transaction:h.transaction,sqlDriver:driver,pool:{},nativeTerminalV1:true,nativeApproval:true});
-async function scoped(options,run){const h=await selectedSaleWriteHarness(options);runtime=h.copy;active=h;calls=[];try{return await h.withScope(()=>run(h));}finally{runtime=null;active=null;}}
-const draft=h=>({documentNo:'OFFLINE-SELECTED',documentDate:h.copy.date,customerId:'100',customerCurrency:h.selected.currency,documentCurrency:h.selected.currency,exchangeRate:Number(h.selected.rateExact8),accountExchangeRate:Number(h.selected.rateExact8),items:[{productId:'444',stockCode:'OFFLINE-444',productName:'Synthetic product',currency:h.selected.currency,quantity:1,unitPrice:600}]});
+async function scoped(options,run){const h=await selectedSaleWriteHarness(options);runtime=h.copy;active=h;calls=[];cashlessRows=[{collectionRows:'0',financeRows:'0'}];try{return await h.withScope(()=>run(h));}finally{runtime=null;active=null;cashlessRows=undefined;}}
+const draft=h=>({documentNo:'OFFLINE-SELECTED',documentDate:h.copy.date,customerId:'100',customerCurrency:h.selected.currency,documentCurrency:h.selected.currency,exchangeRate:Number(h.selected.rateExact8),accountExchangeRate:Number(h.selected.rateExact8),items:[{productId:'444',stockCode:'OFFLINE-444',productName:h.copy.products.find(p=>p.id==='444').name,currency:h.selected.currency,quantity:1,unitPrice:600}]});
 
 test('real selected scope permits USD native draft first header with account snapshot despite TRY main card',async()=>scoped({},async h=>{
+ assert.equal(h.copy.products.find(p=>p.id==='444').name,'Synthetic product');assert.equal(draft(h).items[0].productName,h.copy.products.find(p=>p.id==='444').name);
  stop='header';await assert.rejects(createSalesDraft(draft(h),h.actor,ctx(h)),{code:'STOP_HEADER'});
  const header=calls.at(-1);assert.match(header.query,/account_currency, account_amount, account_exchange_rate_snapshot/);assert.equal(header.params.initialSalesAccountCurrency,'USD');assert.equal(header.params.initialSalesAccountAmount,600);assert.equal(header.params.initialSalesAccountRate,47.8);assert.equal(header.params.amountTry,28680);
  assert.equal(header.params.initialSalesActor,h.actor.id);assert.match(header.query,/@estimatedProfitTry,\s*@initialSalesActor,\s*@initialSalesActor/);
@@ -44,11 +53,24 @@ test('selected draft rejects actor, product set, quantity, FX, customer, and doc
   calls=[];await assert.rejects(createSalesDraft(body,actor,ctx(h)));assert(!calls.some(c=>/INSERT|UPDATE/.test(c.query)));
  }
 }));
+test('selected draft rejects a changed source product name before any write',async()=>scoped({},async h=>{
+ const body=draft(h);body.items[0].productName+=' changed';
+ await assert.rejects(createSalesDraft(body,h.actor,ctx(h)),{code:'ISOLATED_COPY_SELECTED_SALE_SCOPE',statusCode:409});
+ assert(!calls.some(c=>/INSERT|UPDATE/.test(c.query)));
+}));
 for(const operation of ['sale_finalize','sale_cancel'])test(`selected ${operation} executes native stock/movement branches with matching-currency main card filter`,async()=>scoped({operation},async h=>{
  stop='card';await assert.rejects(operation==='sale_finalize'?finalizeSalesInvoice(500,h.actor,ctx(h)):cancelSalesInvoice(500,{reason:'Synthetic test cancellation'},h.actor,ctx(h)),{code:'STOP_CARD'});
  assert(calls.some(c=>c.query.includes('UPDATE dbo.products')));assert(calls.some(c=>c.query.includes('INSERT dbo.customer_movements')));
  const card=calls.at(-1);assert.match(card.query,/AND currency_code=N'USD'/);assert.equal(card.params.customerBalanceEffect??card.params.cancelCustomerBalanceEffect,600);
  const movement=calls.find(c=>c.query.includes('INSERT dbo.customer_movements'));assert.equal(movement.params.copyMovementOperation,operation);assert.equal(movement.params.copyMovementAmount,'600.0000');assert.equal(movement.params.copyMovementTry,'28680.0000');assert.equal(movement.params.selectedSalePolicyHash,h.selected.policyHash);
+ if(operation==='sale_cancel')assert(calls.findIndex(c=>c.query.includes(' AS financeRows'))<calls.findIndex(c=>c.query.includes('UPDATE dbo.products')));
+}));
+test('selected cancellation rejects linked or unproven collection/finance evidence before stock writes',async()=>scoped({operation:'sale_cancel'},async h=>{
+ for(const rows of [[{collectionRows:'1',financeRows:'0'}],[{collectionRows:'0',financeRows:'1'}],[],[{collectionRows:'0'}]]){
+  cashlessRows=rows;calls=[];
+  await assert.rejects(cancelSalesInvoice(500,{reason:'Synthetic test cancellation'},h.actor,ctx(h)),{code:'SALES_CASH_COLLECTION_UNVERIFIED',statusCode:409});
+  assert(calls.some(c=>c.query.includes(' AS financeRows')));assert(!calls.some(c=>/INSERT|UPDATE/.test(c.query)));
+ }
 }));
 for(const operation of ['sale_finalize','sale_cancel'])test(`selected ${operation} movement/account completion binds native request, invoice, actor and sign`,async()=>scoped({operation},async h=>{
  const cancel=operation==='sale_cancel',snapshot={documentCurrency:'USD',accountCurrency:'USD',documentRateToTry:47.8,accountRateToTry:47.8,documentAmount:600,accountAmount:600,amountTry:28680};

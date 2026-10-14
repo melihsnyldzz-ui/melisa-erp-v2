@@ -1,3 +1,7 @@
+## ŞİMDİ — ERP04 / C09 paket başlangıç bağımlılığı — 14 Ekim 2026
+
+Kesinti sonrası eski sağlıklı ERP/CRM/native geri açıldı; kabul edilmiş fiyat/veri kanıtları korunur ve yeniden uygulanmaz. Aynı işin kalan adımı: güncel korumalı DB02 yedeği, dar import düzeltmeli immutable paket, exact native/ERP/CRM health ve CRM sahibinin normal MANUAL taslak/readback kontrolü. Kaynak hazırlığı çalışan uygulama değildir. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-13-crm-price-witness/README.md); teknik durum STATUS'tadır. Yeni migration/temizlik/giriş işi veya başka finish kalemi açılmaz; insan kabulü bekliyor.
+
 ## ŞİMDİ — ERP04 / C09 genel fiyat kaydı — 13 Ekim 2026
 
 ERP04 normal DB02 fiyat kaydı, yenileme/geçmiş ve aynı istekle ikinci etki oluşmaması çalışan TEST'te teknik doğrulandı. Aynı işin kalan bağımlılığı CRM MANUAL fiyatlı sipariş için kayıtlı native CURRENT doğrulamasıdır; eski SOURCE sözleşmesi ve tarihsel replay korunacak. [Kapsam ve kapanış koşulları](docs/evidence/erp/2026-10-13-price-write/README.md). ERP04/C09 ve insan kabulü açık; genel gecikme ERP09'da sürer. Çalışan sürüm ve teknik ölçümler STATUS'tadır.

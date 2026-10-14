@@ -5,7 +5,7 @@ import {validateBusinessDailyProfitRevision} from './businessDailyProfitRevision
 import {validateBusinessDailyNativeCheckRevision} from './businessDailyNativeCheck.mjs';
 import {validateBusinessReadinessQueryPlanRevision} from './businessReadinessQueryPlanRevision.mjs';
 import {validateBusinessSelectedSaleStartupPin} from './businessSelectedSaleStartup.mjs';
-import {validateProductCopyPurchaseReferencePin} from './productCopyPurchaseReferenceService.mjs';
+import {validateProductCopyPurchaseReferencePin} from './productCopyPurchaseReferencePin.mjs';
 import {validateBusinessProductPriceStartup} from './businessProductPriceStartup.mjs';
 const validatedDailyScopes=new WeakMap();
 export function validateSharedCopyBootstrap(config){
