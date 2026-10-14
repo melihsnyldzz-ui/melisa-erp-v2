@@ -37,6 +37,14 @@ test('real ERP table and CRM bullet formats agree; absent optional projections s
   assert(result.issues.every(entry => entry.kind === 'check_required'));
   assert.equal(result.wholeClosureGranted, false);
 });
+
+test('legacy CRM25 status counter is not a second fixed main heading', () => {
+  const crmMarkdown = bullet().replace('**CRM06** — K01/K02/K03', 'CRM06 — K01/K02/K03; CRM25/12tamam/13kısmi/0açık sayımı değişmedi');
+  const result = checkProjects({erpMarkdown: table(), crmMarkdown});
+  assert.deepEqual(result.mainIds, {ERP: 'CRM06', CRM: 'CRM06'});
+  assert(!codes(result).includes('PROJECT_MAIN_INVALID'));
+  assert.equal(result.wholeClosureGranted, false);
+});
 test('all verified projections reuse evidence without granting whole-job closure', () => {
   const result = checkProjects({erpMarkdown: table({}, projection), crmMarkdown: bullet(undefined, projection)});
   assert.deepEqual(result.issues, []);

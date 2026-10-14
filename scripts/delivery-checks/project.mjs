@@ -216,7 +216,8 @@ export function checkProjects({erpMarkdown, crmMarkdown} = {}) {
     }
     const main = plain(rows.get('main') ?? '');
     const match = /^(?:ERP|CRM|TER|DATA|EDU|REL)\d{2}\b/.exec(main);
-    const ids = new Set(main.match(/\b(?:ERP|CRM|TER|DATA|EDU|REL)\d{2}\b/g) ?? []);
+    // Historical counters such as CRM25 are not members of the fixed main-ID set.
+    const ids = new Set((main.match(/\b(?:ERP|CRM|TER|DATA|EDU|REL)\d{2}\b/g) ?? []).filter(id => MAIN_ID_SET.has(id)));
     if (!match || !MAIN_ID_SET.has(match[0]) || ids.size !== 1) issues.push(issue('PROJECT_MAIN_INVALID', `${project}.main`, 'inconsistency'));
     else mainIds[project] = match[0];
     if (mainIds[project] === 'CRM06' && !closureGate(rows)) issues.push(issue('PROJECT_CLOSURE_GATE_REQUIRED', `${project}.next`, 'inconsistency'));
