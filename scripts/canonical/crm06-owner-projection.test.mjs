@@ -31,6 +31,21 @@ test('supervisor-only projection preserves all component binaries, locks, Hub, o
  assert.deepEqual(r.settings.crmPrivateFiles.catalogAccess,f.settings.crmPrivateFiles.catalogAccess);assert.equal(r.taskPlan.installed,false);assert.equal(r.taskPlan.runLevel,'LeastPrivilege');assert.equal(r.taskPlan.hubTaskPreserved,'Melisa-Hub-TEST-Web');
  assert.equal(validateCompletionSettings(r.settings,owner),r.settings);const env=completionCrmEnvironment(f.prepared.nextActivation,r.settings);assert.equal(env.CRM_BASELINE_ENV,CRM06_BASELINE_PATH);assert.equal(env.CRM_NORMAL_REFRESH_USER_ID,'crm-agent-test-20261011');assert.equal(env.WHATSAPP_SEND_ENABLED,'false');
 });
+test('assigned staff refresh environment is exact and separate; original immutable setup receipt cannot activate the extension',()=>{
+ const f=setup(),s=buildCrm06OwnerProjection(f.input).settings,base=structuredClone(f.prepared.nextActivation);
+ const tuple={CRM_ASSIGNED_STAFF_REFRESH_ENABLED:'true',CRM_ASSIGNED_STAFF_REFRESH_USER_ID:'crm-crm06-staff-test-20261014',CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH:crm+'\\runtime\\CRM06-TEST-ACTORS-20261014\\assigned-staff-refresh.json'};
+ Object.assign(base.environmentVariables,tuple);const before=structuredClone(base),env=completionCrmEnvironment(base,s);
+ assert.deepEqual(base,before);for(const [key,value]of Object.entries(tuple))assert.equal(env[key],value);
+ assert.equal(env.CRM_NORMAL_REFRESH_USER_ID,'crm-agent-test-20261011');assert.equal(env.CRM_NORMAL_REFRESH_JOURNAL_PATH,f.prepared.nextActivation.environmentVariables.CRM_NORMAL_REFRESH_JOURNAL_PATH);
+ assert.equal(env.CRM_CUSTOMER_PRODUCT_REQUEST_ISSUER_IDS,'["crm-patron","crm-crm06-manager-test-20261014"]');
+ assert.throws(()=>checkReceipt(f,undefined,base),{code:'CRM06_OWNER_PROJECTION_REJECTED'});
+ for(const change of [v=>delete v.CRM_ASSIGNED_STAFF_REFRESH_ENABLED,v=>delete v.CRM_ASSIGNED_STAFF_REFRESH_USER_ID,v=>delete v.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH,v=>v.CRM_ASSIGNED_STAFF_REFRESH_ENABLED='false',v=>v.CRM_ASSIGNED_STAFF_REFRESH_USER_ID='crm-agent-test-20261011',v=>v.CRM_ASSIGNED_STAFF_REFRESH_USER_ID='crm-crm06-manager-test-20261014',v=>v.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH=v.CRM_NORMAL_REFRESH_JOURNAL_PATH,v=>v.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH=v.CRM_CUSTOMER_PRODUCT_REQUEST_REFRESH_JOURNAL_PATH,v=>v.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH+='-other',v=>v.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH=crm+'\\runtime\\CRM06-TEST-ACTORS-20261014\\x\\..\\assigned-staff-refresh.json',v=>delete v.CRM_NORMAL_REFRESH_ENABLED,v=>delete v.CRM_CUSTOMER_PRODUCT_REQUEST_ENABLED,v=>v.WHATSAPP_SEND_ENABLED='true',v=>v.CRM_PAID_AI_ENABLED='true']){
+  const bad=structuredClone(base);change(bad.environmentVariables);assert.throws(()=>completionCrmEnvironment(bad,s));
+ }
+ const legacy=structuredClone(f.activation);Object.assign(legacy.environmentVariables,tuple);assert.throws(()=>completionCrmEnvironment(legacy,f.settings));
+ assert.equal(completionCrmEnvironment(f.prepared.nextActivation,s).CRM_ASSIGNED_STAFF_REFRESH_ENABLED,undefined);
+});
+
 test('legacy two-reference path and single issuer remain accepted, new baseline requires exact pinned third reference',()=>{
  const f=setup();assert.equal(validateCompletionSettings(f.settings,owner),f.settings);assert.equal(completionCrmEnvironment(f.activation,f.settings).CRM_CUSTOMER_PRODUCT_REQUEST_ISSUER_IDS,'["crm-patron"]');
  const s=buildCrm06OwnerProjection(f.input).settings;
