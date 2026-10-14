@@ -6,23 +6,23 @@
 | --- | --- |
 | Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
 | İzinli paralel teknik hazırlık | ERP09 SOURCE oluşturucu15→yetkili tahsilat16 adapter kodu hazır; mevcut servis ve izole journal/effects fixture ile11 yeni test PASS. Kaynak journalı ve güncel rol/izin+TRY hesap aktiflik/döviz/tür kontrolü replay öncesi ayrıdır. Default/native canCollect=false, route/store bağlantısı ve ortak DB02 değişmedi. Bu model native SQL transaction/identity/applock/intent veya genel tahsilat kabulü değildir; ana kapanış sayısı aynı. ERP-DEC-057 / ERP23comment6179460000 / CRM3comment6179459282 uygulanır. |
-| Güncel adım | CRM06 açık startup bağımlılığı dar kaynak düzeltmesi hazır: yalnız exactPARENT_OWNER CimException/ObjectNotFound sonrası tek fresh absent-parent gözlemi; mevcutCOREkimlik reddi aynı. Yeni HUB bariyeri exact2ERP currentreceipt/parent/nativehealth +ikinci taze kimlikten sonra eskiHubwatcherı çalıştırır; bütçe ERP hazır olmadan harcanmaz. Eski10/11profil değişmeden exactda82-parent-probe12ref ve ayrı immutablechildpaths hazır. Yeni17JS test ve PS5targetfixture35PASS, bağımsızsourceGO; paket/kurulum/soğukbaşlangıç kanıtı henüz değil. Mevcut healthy da82/sup266/ERP7a DB02 ve1sentetikrequest/14tablekanıtı korunur, insanCRM-UA11pending. |
+| Güncel adım | CRM06 startup bağımlılığı actual TEST kurulumunda giderildi: supervisor7fd5c0b/CRMda82/ERP7a aynı DB02. İki mevcut görev birlikte başladı; exactERP kimlik/health bariyeri sonrası HUB45668 ilk denemede otomatik açıldı, manuelHubstart yok. Altı CORE ve supervisor28808 fresh readback geçti. Yeni17JS test/PS5fixture35 ve exactsourcePR/pushCI SUCCESS. 24 korunan dosya, bütün önceki journal/request bytes, roller/credential ve SQL/TEST125 süreç kimlikleri aynı; yeni auth/talep0. Gerçek Windows reboot/logon, normal GUI ve CRM-UA11 insan/mobil kabulü ayrı açık. |
 | Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
 | Bitiş koşulu | Özgün CRM06 K01/K02/K03, normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel, yeniden açılış, son normal mobil ve gereken insan kabulü birlikte kanıtlanır. Eski7hesap/roller/journal/requeststore ve yeni iki dedicated normal profil korunur. Sırlar DPAPI/owner korumada kalır; TEST ADMIN/shared reset/auth bypass yok. Paket/kurulum/API teknik sonucu normal GUI veya insan kabulü değildir. |
-| Mevcut kanıt | [15 Ekim actual kurulum ve dar teknik talep](docs/evidence/erp/2026-10-15-isolated-test/README.md): private installed-readback e11738f1..., tekrequest23dc8e5f..., final-preservation a5756d3d...; supervisor30864/Hub17704. Original790 ancestor ve current3010 rollback ayrı,17 değişmez dosya/roller/credential aynı. İki görevin Trigger/Principal/Settings aynı; güncelActionsexact, SQL/TEST125 süreçkimlikleri korundu, yeni journal fiziksel11refREADY. Eski fb34/403/restore ve kabul tekrarlanmadı. API tek talep teknik kanıtı normal GUI/insan PASS değildir. |
-| Teknik bağımlılık | Korumalı credential-reference tüketen desteklenen ilk GUI bileşeni bağlı araçta yok; DPAPI/owner/cipher/actor/SID ve resmi normal izin kontrolleri korunur. API reader tarayıcıya sır köprüsü değildir; Semih/native/clipboard/HTTP/cookie/JWT injection ve ret tekrarı yok. Yeni paket kaynakları da82CRM/266supervisor/7a41ERP ayrıdır. İlk kurulumdaki Hublauncher parent-observation yarışı exactownedCORE toparlamasıyla geçti; soğuk otomatik açılış/reboot/logon kanıtı verilmedi, kaynak problem kayıtta açık. |
+| Mevcut kanıt | [15 Ekim actual kurulum ve otomatik startup](docs/evidence/erp/2026-10-15-isolated-test/README.md): yeni installed-readback b1e11c18..., final-preservation28798945..., bariyer e425d089...;12ref fizikselREADY. Current settingsc61a/manifest a2ab; latest-good rollback020b/sup266, original790 ayrı korunur. Önceki tekrequest23dc8e5f.../14tablekanıtı değişmeyen app/config/store eşliğiyle REUSE; bu tur yeniden auth/SQL businesshash/restore yok. Technical startup, gerçek reboot/logon veya insan PASS değildir. |
+| Teknik bağımlılık | Korumalı credential-reference tüketen desteklenen ilk GUI bileşeni bağlı araçta yok; DPAPI/owner/cipher/actor/SID ve resmi normal izin kontrolleri korunur. API reader tarayıcıya sır köprüsü değildir; Semih/native/clipboard/HTTP/cookie/JWT injection ve ret tekrarı yok. da82CRM/7fd5supervisor/7a41ERP ayrı kaynaklardır. Parent-observation yarışı ve iki görev başlangıç sırası dar kaynak+actual TEST startup ile kapandı; gerçek Windows reboot/logon denenmedi. |
 | İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
-| Bitince sıradaki adım | CRM sahibi actual da82/266 kurulum ve yeni tek talep/no-sale makbuzlarını eşler; kalan kısa normal müşteri/personel/mobil kabulünü mevcut USER_ACCEPTANCE üzerinden yürütür. Korumalı ilkGUI bileşeni desteklenmediği için aynı başarısız yollar tekrar denenmez; parola/manuel giriş talebi yok. Cold otomatik başlangıç yarışı ve gerçek reboot/logon ayrı açık, mevcut healthy kurulum korunur. ERP09 bağımsız11test kaynak/offline hazırlığı korunur, runtime/native writer aktif değildir. Yalnız CRM06 bütün özgün K01/K02/K03 koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur. |
+| Bitince sıradaki adım | CRM sahibi actual da82/7fd5 kurulum+bariyer/koruma makbuzlarını ve değişmeyen önceki tek talep/no-sale kanıtını eşler; hazırlanmış son normal müşteri/personel/mobil kabulü mevcut USER_ACCEPTANCE içindedir. Kullanıcının son sonucu Henüz denemedim; CRM-UA11 bekler. Desteklenmeyen ilkGUI yolu tekrarlanmaz, parola/manuel giriş istenmez. ERP09 bağımsız11test hazırlığı korunur, runtime/native writer aktif değildir. CRM06 bütün özgün koşulları ve gereken insan kabulüyle kapanınca ERP09 ana kapanış önceliği olur. |
 
 ### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
 
-Yeni da82/266 runtime kimliği actual15Ekim kurulum makbuzuna, normal rol ise aynı yeni tek sentetik talebin resmi issuer/personel akışına bağlıdır; önceki ayrı login/refresh/logout provası yeniden çalıştırılmadı. CUA korumalı ilk giriş aktarımı engelli kalır; CLI/API sonucu tarayıcı kanıtı sayılmaz. Bu değişen kurulum için dar process/index/DB02/HUB, yeni tek talebin resmi issuer/personel erişimi ve14 tablo read-only before/after karşılaştırması yapıldı. Eski ayrı auth/işletme/kabul/restore provası tekrarlanmadı; yeni kod CI sonucu yalnız ilgili kaynak için ayrı kaydedildi.
+Yeni da82/7fd5 runtime kimliği actual15Ekim02:11 TR kurulum/bariyer makbuzuna bağlıdır. Önceki normal personel/tek talep kanıtı, değişmeyen CRM/ERP uygulama ve activation bytes ile bu tur byte-identical kalan roller/credential/journal/requeststore üzerinden eşlenir; yeni login/talep veya14tablo/restore tekrarı yapılmadı. CUA korumalı ilk giriş bileşeni hâlâ eksiktir; wholeClosure ve insan kabulü verilmez.
 
 ```melisa-preflight
 {
   "current": {
     "environment": "db02-copy-e16b70f0-test-t1false",
-    "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z",
+    "runtime": "supervisor7fd5c0b-erp7a41-crmda82-20261014T231140Z",
     "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
     "surface": "cua-iab-protected-first-login-component-missing-20261015"
   },
@@ -58,16 +58,16 @@ Yeni da82/266 runtime kimliği actual15Ekim kurulum makbuzuna, normal rol ise ay
       "status": "verified",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z"
+        "runtime": "supervisor7fd5c0b-erp7a41-crmda82-20261014T231140Z"
       },
-      "evidenceRef": "evidence:crm06-cache-installed-20261015"
+      "evidenceRef": "evidence:crm06-parent-probe-installed-20261015"
     },
     {
       "requirementId": "normal-role",
       "status": "verified",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z",
+        "runtime": "supervisor7fd5c0b-erp7a41-crmda82-20261014T231140Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z"
       },
       "evidenceRef": "evidence:crm06-cache-single-interest-20261015"
@@ -77,7 +77,7 @@ Yeni da82/266 runtime kimliği actual15Ekim kurulum makbuzuna, normal rol ise ay
       "status": "blocked",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z",
+        "runtime": "supervisor7fd5c0b-erp7a41-crmda82-20261014T231140Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
         "surface": "cua-iab-protected-first-login-component-missing-20261015"
       },

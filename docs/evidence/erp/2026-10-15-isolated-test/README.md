@@ -73,3 +73,26 @@ The existing CRM06 startup gap now has a narrowly reviewed source correction. On
 The existing Hub task can use the new pinned wrapper: wait for two ERP process/receipt/parent identities, the unchanged full isolated/nonprivileged health contract, then a second fresh unchanged process observation before calling the unchanged Hub watcher in the same PowerShell process. Its initial-plus-three retry budget is untouched and begins after ERP prerequisites. A fixed600-second deadline is checked before READY. Twelve new offline barrier tests passed; PS5 wrapper parsing passed. No process or business mutation is performed by the readiness helper.
 
 Only exact da82 may select the third literal parent-probe generation; old b29810/base-da8211 reference policies and receipts remain compatible. The new12 policy adds only the new receipt. Source/trusted receipt path, constructor/assertion, dependency and child paths, pre-time evidence and fresh physical policy agree. Five new profile tests passed. Independent source review GO after matching the existing CORE health invariants and final deadline. This paragraph records source preparation only: installed266 remains the latest healthy runtime until a separately pinned immutable package and controlled two-task transition prove the new startup. No new tracker, login system, migration, main closure or human acceptance.
+
+## Actual automatic TEST startup correction — 15 October
+
+The recorded CRM06 dependency is now installed and reread, not merely source-ready. Immutable supervisor source **7fd5c0b7d253fd72f5d0c475adfccf301893f51d**, manifest **a2abdb894700c4fde348fe6a972c67155506df205241dafd17db125cafa6fe6b** runs with settings **c61a2edbb99e06c3f5e6db0346ceae0cbeef3f355ebcecf7abdafe66d41f4405**. CRM remains da82 (same manifest/index), ERP/API/native/Hub remains7a41, DB02/copy/T1false unchanged. Latest-good rollback020b/supervisor266 and original790 ancestor were preserved separately.
+
+Both existing scheduled tasks started together using their supported actions. The new Hub wrapper waited for exact fresh ERP native/API/current-parent identities and the full unchanged isolated/nonprivileged health contract. The barrier became ready at **2026-10-14T23:10:37.090Z**; the actual Hub process was born afterward. Supervisor PID28808, wrapper PID31692, Hub PID45668 are observations only. Hub initial attempt was0, no manual Hub start, no retry budget consumed while ERP was unavailable. Six fresh CORE identities, CRM running heartbeat/index, DB02 and effective Hub reachability passed at **2026-10-14T23:11:40.564Z**. This proves coordinated TEST service startup; no actual Windows reboot/logon was performed.
+
+Final readback preserved both tasks' Trigger/Principal/Settings and exact new actions, SQL/TEST125 process identities, all24 captured immutable before-files, roles/credential files, and every prior application journal/request byte. Fresh staff physical policy is READY with12 references. This round created **zero new authentication or interest requests**. No SQL business mutation, migration, customer message or paid service was requested. Previous one-request/replay/assigned-personnel and14-table no-sale evidence is reused via unchanged application, activation, role/store bytes, not rerun or re-labelled as a new API/SQL/GUI test.
+
+Private evidence remains outside GitHub in C:/Sirket/ERP/reports/CRM06-PARENT-PROBE-20261015:
+
+| Receipt | SHA256 |
+| --- | --- |
+| installed-readback.json | b1e11c189d9d2371f9188ff905c578c1632229abadebacb589d47b9b3a2b3c73 |
+| final-preservation.json | 287989454d865c8403a69b4056b4f5613e857f12e43e3871cd3813bae2e2fc34 |
+| transition-before.json | 15251de992dedc9a34559409e474e6e76fd4cdbb249b07859865a607e91b1e98 |
+| transition-started.json | db55fe615ae2ae512f23419294378d7340c475fed17a5155a235b9c830b916e3 |
+| automatic ERP barrier receipt | e425d089622e9bc397cf50d794fc72c3f3a725003e495bc714bfcee0264d384c |
+
+Source7fd5c0b [PR CI38651258785](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38651258785) and [push CI38651252715](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38651252715) completed SUCCESS. New targeted checks were12 barrier tests,5 profile tests and35 actual Windows PowerShell5 process-fixture cases; this is not55 new business acceptances. Independent source and finite transition review GO.
+
+CRM06 full K01/K02/K03, normal GUI/BFCache, physical mobile and CRM-UA11 remain pending; the user's last answer was Henüz denemedim. The protected first-GUI consumer remains unsupported by the connected tool; no alternate secret transport or repeated rejected login was attempted. ERP09 remains independent offline preparation, native writer inactive. Current CRM/Hub/ERP URLs above remain the installed addresses. No main merge, LIVE/Vega/T1 or accepted counter changes.
+The existing metadata checker ran once after this installation/context update. Both main IDs remain CRM06; runtime-health and normal-role evidence were REUSE, normal UI remains PROOF_BLOCKED and wholeClosureGranted=false for both projects. This is an honest missing GUI prerequisite, not a failed business transaction or human acceptance. No old suite was launched.
