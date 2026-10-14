@@ -1,3 +1,18 @@
+## Sıradaki iş
+
+14 Ekim 2026 — bu tek kayıt sabit55/ortak21 içindeki CRM06'nın çalışma görünümüdür; yeni tracker veya kapanış sayısı değildir. Her tur ve özet sonrası okunur; adım kapanınca burada bir kez güncellenir ve sıradaki hazır/yetkili adıma ayrıca devam mesajı beklenmeden geçilir.
+
+| Alan | Güncel kayıt |
+| --- | --- |
+| Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
+| Güncel adım | Desteklenen startup JSON+scrypt yoluyla iki yeni ordinary dedicated TEST kimliğinin korumalı hazırlığı; immutable constructor ve exact supervisor baseline/issuer guard bağlantısı |
+| Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
+| Bitiş koşulu | Eski7hesap/roller/journal/requeststore korunur; yeni yönetici mevcut mudur, yeni personel mevcut personel/crm.view ile gerçekagent2'ye bağlıdır. Normal resmi login/kimlik/rol ve issuer SID doğrulanır; sırlar DPAPI/owner korumada kalır. TEST ADMIN/shared reset/auth bypass kullanılmaz. ERP uygulaması/native7a ve CRM5b paketleri korunur; yeni supervisor/setup sürümü ayrıca kaydedilir. |
+| Mevcut kanıt | Pinned settings/baseline/config doğru:7hesap, selectedcrm-patron/agent2, mevcut agent-test personel/agent3. Kurulu5b normal scrypt ve issuer SID hazır; create/reset API yok. Bağımsız reviewer yeni ayrı role simulation kapsamını uygun buldu; mevcut exact guards yeni privatepath/issuer'ı henüz kabul etmiyor. AGENTS kalıcıv1 kaydı b786042 uzak doğrulandı. |
+| Teknik bağımlılık | Saf profile constructor ve dar incelenmiş supervisor guard/projection; korumalı normal credential tüketicisi; gerçek mevcutagent2/atama doğrulaması. Yeni personel için kalıcı refresh henüz desteklenmiş sayılmaz; gerekiyorsa açıkça ayrılır. |
+| İnsan kararı/engel | Şu adım için yeni parola, manuel giriş veya aynı TEST onayı beklenmiyor. İnsan kabulü teknik kurulumdan sonra ayrı; LIVE/mesaj/ücretli servis yetkisi yok. |
+| Bitince sıradaki adım | CRM sahibi son ortak normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel ve mobil akışı yürütecek; ERP owner bağımsız kalıcılık/no-ERP-sale readback yapacak. Ardından özgün tüm CRM06 koşulları ve gereken insan kabulü birlikte değerlendirilir. Kapanmadan yeni ana başlık yok. |
+
 ## CRM06 — izinli HTTP ekranı artık açık; normal issuer sonucu bekliyor — 14 Ekim 2026
 
 Kullanıcının sonraki doğrudan “bu sefer senin tarayıcında açtım” mesajından sonra CRM sahibi bağlı IAB'de gerçek62700 HTTP dokümanına bağlandı ve7733 konuşmasını açtı. Önceki error-protocol engeli kalktı; alternatif araçla aşılmadı. Gözlenen oturum TEST ADMIN; talep paneli için normal issuer değildir. Mevcut crm-patron/agent2 korumalı normal giriş teslimi doğrulanmadı; parola isteme, yeni rol/grant/allowlist/reset veya bypass yok. CRM sahibi dar giriş/normal akış incelemesini sürdürüyor; katalog/talep/mobil tamamlanmış veya insan PASS değil.
