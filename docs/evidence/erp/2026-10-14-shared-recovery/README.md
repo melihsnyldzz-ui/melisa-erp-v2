@@ -33,4 +33,6 @@ CRM sahibi özgün K01/K02/K03, fb34 ürün talebi, atanmış personel/readback/
 
 Korumalı normal issuer erişimi ve izinli tarayıcı yüzeyi eksikse bu somut bağımlılık açık kalır. View-only TEST agent veya TEST ADMIN normal personel yerine geçirilmez; parola/rol/grant/bypass yok. Kullanıcının CRM'de “Açtım” cevabı kaydedildi; bağlı yüzeyde HTTP dokümanı görülmeden GUI sonucu iddia edilmez, mevcut ret alternatif araçla aşılmaz. Bu alt kanıt 55 ana başlıktaki kapanış sayısını değiştirmez.
 
+Sonraki doğrudan kullanıcı “bu sefer senin tarayıcında açtım” mesajıyla bağlı IAB'de gerçek HTTP62700 CRM açıldı. CRM sahibi 7733 konuşmasını gerçek UI'de açtı; önceki error-protocol önkoşulu değişti. Gözlenen oturum **TEST ADMIN** ve normal talep paneli bu aktörde yok. Bu bir yeni yetki veya normal issuer başarısı değildir. Kalan erişim, mevcut desteklenen `crm-patron`/agent2 normal girişinin korumalı teslimidir; kullanıcıdan parola istenmez, view-only/TEST ADMIN yerine geçirilmez veya issuer listesi genişletilmez. Son ortak müşteri/personel/mobil ve insan kabulü hâlâ açık.
+
 Çalışan adresler: [MELISA HUB](http://192.168.1.46:5234/melisa-hub/), [ERP](http://192.168.1.46:5234/ornek-akis.html#stock), [CRM](http://192.168.1.46:62700/). Adres/health kanıtı normal kullanıcı akışı veya insan PASS değildir.

@@ -1,3 +1,9 @@
+## CRM06 — izinli HTTP ekranı artık açık; normal issuer sonucu bekliyor — 14 Ekim 2026
+
+Kullanıcının sonraki doğrudan “bu sefer senin tarayıcında açtım” mesajından sonra CRM sahibi bağlı IAB'de gerçek62700 HTTP dokümanına bağlandı ve7733 konuşmasını açtı. Önceki error-protocol engeli kalktı; alternatif araçla aşılmadı. Gözlenen oturum TEST ADMIN; talep paneli için normal issuer değildir. Mevcut crm-patron/agent2 korumalı normal giriş teslimi doğrulanmadı; parola isteme, yeni rol/grant/allowlist/reset veya bypass yok. CRM sahibi dar giriş/normal akış incelemesini sürdürüyor; katalog/talep/mobil tamamlanmış veya insan PASS değil.
+
+ERP source checkpoint6f955b1 ve belge946d41b uzak PR23 ile eşleşti; kurulu source7a/5b, DB02 ve21/21 iş tablosu korunma kanıtı aynı. Exact belge946d41b CI run38552261707/38552254963 altı job failure/0step; annotation115812800685 yine payments/spending limit nedeniyle başlamadığını doğruladı. Kaynak testleri hosted CI PASS yerine sayılmaz. [Güncel ortak kurtarma ve kalan](docs/evidence/erp/2026-10-14-shared-recovery/README.md). Yeni bağımsız iş veya ana kapanış sayısı değişikliği yok.
+
 ### CRM06 ortak kapanış sonucu ve kaynak teslimi — 14 Ekim 2026
 
 ERP checkpoint **6f955b16305fa0ba24403dae685c5c97ff5ab93d** commit/push edildi; PR23 head ve uzak feature SHA birebir eşleşti, çalışma ağacı temiz. 27 dosya; staged-diff secret scan0, kaynak/native kurulum ayrımı korunuyor. Exact6f955b1 iki CI run38552120223/38552115091 içindeki altı job failure/0step; check115812322765 annotation açıkça recent payments/spending limit nedeniyle başlamadığını bildiriyor. Hosted CI PASS değildir; Vercel ayrı başarıdır. Bu kayıt belge teslimidir; çalışan application source7a41f64 aynı.
