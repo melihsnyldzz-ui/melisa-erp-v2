@@ -65,6 +65,12 @@ Sağlık ve normal yönetici rolü önceki gerçek işlem makbuzlarına bağlıd
 }
 ```
 
+### Güncel hosted CI ve dar test yükleyici düzeltmesi — 14 Ekim 2026
+
+Repo public olduktan sonra exact **08ea429fc7aded79572cb07bff0b563cba77798f** CI38572980003 gerçekten çalıştı: sır taraması ve Windows başlangıç PASS; kalite işi Sites895 testin892'si PASS/3'ü FAIL sonucuyla durdu. Bu run için ödeme/harcama engeli yok; aşağıdaki eski commit'lerin başlamayan CI kayıtları yalnız tarihsel kanıttır.
+
+Üç hata `workTrade.test.mjs` data-URL test yükleyicisinde yeni `workCustomerContact.mjs` göreli importunun çözülememesiydi. Yalnız mevcut sonlu import listesine bu dosya eklendi; assertion/skip/uygulama veya yetki mantığı değişmedi. Etkilenen dosya ve iletişim modeli **36/36**, ilgili tam Sites suite **895/895 PASS**, skip0; bağımsız salt okunur inceleme GO. [Dar kaynak kanıtı](docs/evidence/erp/2026-10-14-ci-sites-import/README.md). Yeni commit hosted CI sonucu exact uzak head üzerinden ayrıca izlenir. Servis/auth/SQL/işletme testi veya restart yapılmadı; CRM06 korumalı ilk tarayıcı giriş bağımlılığı ve insan kabulü açık kalır.
+
 ### Melisa kayıt kontrolü kuruldu — 14 Ekim 2026
 
 Kurulu ortak script kaynağı **b433b00e9bc9ec5e4ad79961b0db52489f77ad01** / PR30; ilk5003160 paketi ve yalnız tarihsel sayaç parser düzeltmesi birlikte9blob exact eşleşir. Mevcut feature dalına yalnız `scripts/delivery-checks/` alındı; çalışma dalı, uygulama paketleri, uygulama/servis ayarları, DB/rol/credential veya global trust değiştirilmedi. Root AGENTS iş sınırı kuralı aktif; örnek lifecycle hooks kurulu/güvenilmiş değildir. Önceden teslim edilen30 sentetik ve düzeltmenin18 proje testi tekrar edilmedi.
