@@ -1,3 +1,13 @@
+## ERP04 / C09 — yeni eşleşmiş ortak TEST sağlıklı — 14 Ekim 2026, 11:30
+
+ERP/API/Hub/native uygulama source **7a41f6492273dd1ec0bcb086f820be5575372be8**, CRM source **5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36** aynı DB02/copye16b70f0 üzerinde çalışıyor. ERP1925/native10423 dosyalı immutable paket build/manifest doğrulandı; altı core süreç için source/owner/parent/creation/binding guard'ı, sekiz port ve ERP/Hub/native health PASS. T1/external/automatic false; CRM provider/send/bridge/translation kapalı. Yalnız iki eski görevin action'ları değişti; principal/trigger/settings aynı. TEST125 DB/veri, roller, aktarımlar ve eski kaynaklar korunur; 5194 web bu tur açılmadı.
+
+14 Ekim 10:52 güncel DB02 yedeği COPY_ONLY/CHECKSUM/HEADERONLY/VERIFYONLY/SHA ile doğrulandı; 9.265.872.896 byte, restore/reset/silme yok. Ayrı cihaz kopyası doğrulanmadı. Native V3 için exact35→62 dar izin geçişi ve gerçek sınırlı CRM kimliğiyle 9 set/3 sorgu kanıtı geçti; rol/eski modül/ticari yazma0. Yeni kaynak tüm gerçek CRM importlarını başlatabildi; env veya ham JSON genel ERP yazıcı yetkisi vermez. 11:36 salt okunur sayaçta eski CRM9talep/13satır ve fiyat2sürüm/1current/2request aynı.
+
+Yerel API **967 PASS/0 FAIL/13 mevcut koşullu skip**, tam canonical40c5260 exit0, son VM/diagnostic18 kontrolü PASS; bağımsız kaynak/pin incelemeleri GO, commit secret scan0. Exact7a41f64 hosted CI6 işi ödeme/harcama engeliyle başlamadı (run38532042322/38532038102, annotation115745965891); Vercel ayrı, CI veya insan PASS değil. Kaynak40c5260 ve7a41f64 uzak PR23 ile eşleşti; bu belge tesliminin HEAD'i çalışan source'tan ayrıdır. [Dar kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md).
+
+CRM sahibine yeni sağlıklı source için normal MANUAL taslak/readback kontrolü devredildi; henüz normal taslak başarı kanıtı değildir. Sıradaki aynı iş bu GUI sonucu ve exact replay/olumsuz/etki kontrolüdür. ERP04/C09🟡, insan kabulü ve completeDelivery=false sürer; yeni migration/finish işi açılmadı. Önceki fiyat GUI, inverse ve restore provaları tekrarlanmadı.
+
 ## ERP04 / C09 — kesinti sonrası koruma ve CRM paket sınırı — 14 Ekim 2026
 
 Kesinti sonrası salt okunur karşılaştırmada 21 iş tablosunun tam satır hashleri ve sayıları, 13 Ekim 17:22 kayıtlarıyla aynı: bu kapsamda veri kaybı bulgusu yok. İki TEST DB online; mevcut 9 CRM talebi/13 satır, iki fiyat sürümü/tek current ve sıfır bekleyen intent korunmuş. Bu, bütün 751 tablonun veya kaydedilmemiş tarayıcı taslaklarının doğrulanması değildir. CRM sahibinin kalıcı talep/personel journal karşılaştırması da aynı; tarayıcı oturumunun kesintiden sağ çıkması ayrıca doğrulanmadı. Ham kanıt repo dışı private alanda.

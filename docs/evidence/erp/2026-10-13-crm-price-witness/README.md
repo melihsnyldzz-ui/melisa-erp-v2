@@ -1,9 +1,35 @@
 # ERP04 / C09 — CRM siparişinde güncel ERP fiyatı
 
-Durum: dar native V3 kurulumu ve sınırlı kimlikle fiyat kanıtı tamam; tam yeni
-CRM paket başlangıcı import bağımlılığında kapandı. Eski sağlıklı runtime geri
-açıldı. Yeni paket ve normal CRM ekranı doğrulaması henüz tamamlanmadı.
+Durum: dar native V3 kurulumu, gerçek sınırlı kimlikle fiyat kanıtı ve yeni
+paket başlangıcı tamam. ERP/native7a41f64 ve CRM5b6dfe5 aynı DB02'de sağlıklı.
+Normal CRM MANUAL taslak/readback ve insan kabulü henüz tamamlanmadı.
 ERP-COMPLETE01 / ERP-DEC-053/054/055, ERP PR #23 ve CRM PR #3 kapsamında.
+
+## Yeni çalışan paket — 14 Ekim 2026, 11:30
+
+ERP ve native source **7a41f6492273dd1ec0bcb086f820be5575372be8**;
+ERP 1925 dosya/manifest93bd7814d64bb2092f42994d28285b9a25967d07f0413835d5c139b2872ad778,
+native10423 dosya/manifest6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16.
+CRM source5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36 ve kendi immutable manifesti
+korunur. API4184/native4186/web5234/CRM62700–62704, DB02/copye16b70f0,
+actualT1=false. Altı core süreç için kaynak/parent/owner/creation/binding guard'ı
+ve ERP/Hub/native health geçti; CRM provider/send/bridge/translation kapalı.
+Yeni paket eksik compiler'a gitmeden tam gerçek başlangıcı tamamladı.
+
+Güncel yedekten sonra yalnız önceden incelenmiş 35→62 dar native izin geçişi
+uygulandı; rol, eski modül veya ticari veri değişikliği yok. Yeni paketin gerçek
+sınırlı CRM kimliğiyle 9 sonuç kümesi/3 sorgu native fiyat kanıtı geçti.
+Yerel API967 PASS/0 FAIL/13 mevcut koşullu skip; canonical40c5260 exit0 ve
+son diagnostic/VM18 kontrolü PASS. Commit secret scan0; exact7a41f64 hosted
+6CI işi ödeme/harcama nedeniyle başlamadı (run38532042322/38532038102,
+check115745965891). Vercel başarı sonucu CI veya insan kabulü değildir.
+
+Hazırlık aracındaki ilk ACL ret sonucu, PS7 modül yolunun PS5'e aktarılmasından
+kaynaklandı. Aynı sabit ACL kontrolü doğru sistem modül yoluyla exit0 verdi;
+ACL/koruma gevşetilmedi. Yeni immutable dosyalara dokunmadan yalnız pinleri
+güncellenmiş private hazırlık/aktivasyon/süreç guard'ı bağımsız GO aldı.
+Normal CRM sahibi 11:30 yeni sağlıklı kaynak için GUI kontrolünü devraldı.
+Bu handoff normal taslağın başarılı oluşturulduğu anlamına gelmez.
 
 ## Kesinti sonrası güncel kapsam — 14 Ekim 2026
 

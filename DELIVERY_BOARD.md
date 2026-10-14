@@ -1,3 +1,7 @@
+## ŞİMDİ — ERP04 / C09 normal CRM taslak/readback — 14 Ekim 2026
+
+Güncel korumalı DB02 yedeği ve yeni ERP/native7a41f64–CRM5b6dfe5 ortak paket başlangıcı tamamlandı; gerçek altı süreç guard'ı ve health sağlıklı. Aynı işin kalan adımı normal CRM MANUAL taslak/readback ve exact tekrar/olumsuz/ikinci-etki kontrolleri; CRM sahibi devraldı. Teknik paket sağlığı insan kabulü değildir. [Kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md), çalışan sürüm ve CI/hesap engeli STATUS'tadır. Yeni migration/temizlik/giriş/finish kalemi açılmaz.
+
 ## ŞİMDİ — ERP04 / C09 paket başlangıç bağımlılığı — 14 Ekim 2026
 
 Kesinti sonrası eski sağlıklı ERP/CRM/native geri açıldı; kabul edilmiş fiyat/veri kanıtları korunur ve yeniden uygulanmaz. Aynı işin kalan adımı: güncel korumalı DB02 yedeği, dar import düzeltmeli immutable paket, exact native/ERP/CRM health ve CRM sahibinin normal MANUAL taslak/readback kontrolü. Kaynak hazırlığı çalışan uygulama değildir. [Kanıt ve sınırlar](docs/evidence/erp/2026-10-13-crm-price-witness/README.md); teknik durum STATUS'tadır. Yeni migration/temizlik/giriş işi veya başka finish kalemi açılmaz; insan kabulü bekliyor.
