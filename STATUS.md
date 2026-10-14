@@ -5,24 +5,24 @@
 | Alan | Güncel kayıt |
 | --- | --- |
 | Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
-| Güncel adım | Girişten bağımsız paket/successor-projection hazırlığı yürütülüyor: exactCRMb2985d2 ve ERP140fac3 kaynakları; original immutable parent/audit/baseline korunarak ayrı ardıl makbuz, exactpaket/manifest bağı, yeni personel journal fizikselACL/alias ve rollback kimliği hazırlanır. Kurulum yalnız bütün pin/guard koşulları sağlanırsa ERP tek sahipliğinde izoleTEST'e uygulanabilir. İlkGUIgiriş araştırması veya önceki auth/health/restore/CI/kabul tekrarı yok. Şu an kurulu5b6/task/settings aynı; kaynak/paket/kurulu/normalGUI/insan kabulü ayrı. |
+| Güncel adım | Ayrı parent-bound successor kuruldu ve gerçek readback tamamlandı: CRM uygulama b2985d2, supervisor1440007, ERP/native uygulama7a41; aynı DB02/copy/T1=false. Yeni personelin resmi API login/me/sameSIDrefresh/ownlogout+401 ve yeni journal post-atomic ACL/alias READY. Mevcut tek eksik GUI halkası belgelenmiş korumalı credential-reference tüketimi; aynı reddedilmiş yöntem veya eski auth/health/restore/CI/kabul araştırması tekrarlanmaz. CRM sahibi gerçek installed refs'i normal müşteri/personel/mobil akışına eşler; bu bileşen desteklenmeden ilk GUI giriş/talep/insan kabulü kapatılmaz. |
 | Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
-| Bitiş koşulu | Eski7hesap/roller/journal/requeststore korunur; yeni yönetici mevcut mudur, yeni personel mevcut personel/crm.view ile gerçekagent2'ye bağlıdır. Normal resmi login/kimlik/rol ve issuer SID doğrulanır; sırlar DPAPI/owner korumada kalır. TEST ADMIN/shared reset/auth bypass kullanılmaz. ERP uygulaması/native7a ve CRM5b paketleri korunur; yeni supervisor/setup sürümü ayrıca kaydedilir. |
-| Mevcut kanıt | Yeni immutable supervisor7a081, aynı ERP/native7a41 ve CRM5b6 ile etkin; altı taze OS guard ve DB02/copy health geçti, Hub728 korundu. Eski7hesap aynı; ayrı mudur/personel agent2 profilleri mevcut rollerle hazır. Resmi normal yönetici login/me/issuerSID/refresh/logout ve iptal sonrası401 gerçek API'de doğrulandı; ürün talebi oluşturulmadı. |
-| Teknik bağımlılık | Bağlı aracın belgelenmiş korumalı credential-reference tüketimi; mevcut DPAPI/owner/cipher/actor/copy kontrolleri ve resmi normal password/user-role-SID yolu korunmalı. Refresh önceden alınmış grant ister; özel Semih cookie dalı yeni müdür profili değildir, native köprü gerçek native host ve mevcut grant ister. Bu yollar ilk giriş yerine geçirilmez. Process/OS/araç/browser/clipboard/HTTP bridge veya cookie/JWT injection ile ret aşılmaz. Personel source hazırlığının aktivasyonu ayrıca reviewed CRM paketi ve özgün immutable actor makbuzuna bağlı ayrı successor projection ister; eski makbuz genişletilmiş activation'ı reddetmeye devam eder. Kurulu5b6 ve eski agent3 ailesi değişmedi. |
+| Bitiş koşulu | Özgün CRM06 K01/K02/K03, normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel, yeniden açılış, son normal mobil ve gereken insan kabulü birlikte kanıtlanır. Eski7hesap/roller/journal/requeststore ve yeni iki dedicated normal profil korunur. Sırlar DPAPI/owner korumada kalır; TEST ADMIN/shared reset/auth bypass yok. Paket/kurulum/API teknik sonucu normal GUI veya insan kabulü değildir. |
+| Mevcut kanıt | [Gerçek ardıl kurulum](docs/evidence/erp/2026-10-14-crm06-successor-package/installed.md): original immutable parent/audit/baseline değişmedi; six fresh OS receipt/parent/source/config guard, pinned CRM index, DB02 native identity ve etkili HUB CRM/ERP/terminal erişimi geçti. HUB44808 aynı7a41 binary ile yeni pin'i yükledi. Yeni personel/personel/agent2/yalnızcrm.view/noissuer resmi login/me/refresh/ownlogout+401 geçti; önceki müdür kanıtı yeniden çalıştırılmadı. İki görevin yalnız Actions değişti; Trigger/Principal/Settings ve SQL PID/creation aynı. Ticari yazma/talep/gerçek mesaj/ücretliAI0; ilk GUI ve insan kabulü açık. |
+| Teknik bağımlılık | Bağlı aracın belgelenmiş korumalı credential-reference tüketimi eksik. DPAPI/owner/cipher/actor/copy ve resmi normal password/user-role-SID kontrolleri korunur; API reader tarayıcıya sır köprüsü değildir. Refresh önceden alınmış grant ister; özel Semih/native köprü ilk giriş yerine geçirilmez. Process/OS/araç/browser/clipboard/HTTP bridge veya cookie/JWT injection ile ret aşılmaz. Ayrı finite personel journal/successor artık kurulu; eski agent3/issuer aileleri değiştirilmedi. Cold başlangıçta HUB/ERP sırası ilk bütçeyi tüketti; yalnız gerçek yeni ERP hazır olduktan sonra desteklenen Hub görevi başlatılarak toparlandı. Gerçek reboot/logon ve cold otomatik sıralama kabulü yapılmış sayılmaz. |
 | İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
 | Bitince sıradaki adım | CRM sahibi son ortak normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel ve mobil akışı yürütecek; ERP owner bağımsız kalıcılık/no-ERP-sale readback yapacak. Ardından özgün tüm CRM06 koşulları ve gereken insan kabulü birlikte değerlendirilir. Yalnız CRM06 tam kapanırsa ortak21 sıra1 ERP09 — Satış, açık hesap ve kullanılabilir hız seçilir: ERP SQL/normal satış-vade/tek stok-cari etki/hız, CRM gereken müşteri-yetki halkası; ERP03/04/06/14 bağımlılıklarının yalnız bu akıştaki eksik koşulları çözülür. Önceki dar kabul/test yeniden yapılmaz; kapanmadan yeni ana başlık yok. |
 
 ### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
 
-Sağlık ve normal yönetici rolü önceki gerçek işlem makbuzlarına bağlıdır. CUA korumalı giriş aktarımı engelli kalır; CLI/API sonucu tarayıcı kanıtı sayılmaz. Bu kurulum için yeni giriş, sağlık/işletme testi veya restore yapılmadı.
+Yeni runtime kimliği ve yalnız yeni personel oturumu gerçek ardıl kurulum makbuzlarına bağlıdır; önceki normal yönetici/issuer kanıtı tarihsel olarak korunur ve yeniden test edilmedi. CUA korumalı ilk giriş aktarımı engelli kalır; CLI/API sonucu tarayıcı kanıtı sayılmaz. Bu değişen kurulum için dar process/index/DB02/HUB ve yeni personel auth kontrolü yapıldı; eski işletme testi, CI veya restore tekrarlanmadı.
 
 ```melisa-preflight
 {
   "current": {
     "environment": "db02-copy-e16b70f0-test-t1false",
-    "runtime": "supervisor7a081-erp7a41-crm5b6-20261014T120958Z",
-    "identityRole": "normal-issuer-mudur-agent2-api-20261014T122144Z",
+    "runtime": "supervisor1440007-erp7a41-crmb298-20261014T160515Z",
+    "identityRole": "normal-staff-personel-agent2-api-20261014T160524Z",
     "surface": "cua-iab-normal-form-20261014-credential-transport-blocked"
   },
   "required": [
@@ -36,30 +36,30 @@ Sağlık ve normal yönetici rolü önceki gerçek işlem makbuzlarına bağlıd
       "status":"verified",
       "context":{
         "environment":"db02-copy-e16b70f0-test-t1false",
-        "runtime":"supervisor7a081-erp7a41-crm5b6-20261014T120958Z"
+        "runtime":"supervisor1440007-erp7a41-crmb298-20261014T160515Z"
       },
-      "evidenceRef":"evidence:crm06-operator-activation-20261014-121411Z"
+      "evidenceRef":"evidence:crm06-installed-successor-20261014-160515Z"
     },
     {
       "requirementId":"normal-role",
       "status":"verified",
       "context":{
         "environment":"db02-copy-e16b70f0-test-t1false",
-        "runtime":"supervisor7a081-erp7a41-crm5b6-20261014T120958Z",
-        "identityRole":"normal-issuer-mudur-agent2-api-20261014T122144Z"
+        "runtime":"supervisor1440007-erp7a41-crmb298-20261014T160515Z",
+        "identityRole":"normal-staff-personel-agent2-api-20261014T160524Z"
       },
-      "evidenceRef":"evidence:crm06-official-manager-api-auth-20261014-122144Z"
+      "evidenceRef":"evidence:crm06-installed-staff-auth-20261014-160524Z"
     },
     {
       "requirementId":"normal-ui",
       "status":"blocked",
       "context":{
         "environment":"db02-copy-e16b70f0-test-t1false",
-        "runtime":"supervisor7a081-erp7a41-crm5b6-20261014T120958Z",
-        "identityRole":"normal-issuer-mudur-agent2-api-20261014T122144Z",
+        "runtime":"supervisor1440007-erp7a41-crmb298-20261014T160515Z",
+        "identityRole":"normal-staff-personel-agent2-api-20261014T160524Z",
         "surface":"cua-iab-normal-form-20261014-credential-transport-blocked"
       },
-      "evidenceRef":"evidence:crm06-cua-protected-credential-transport-20261014"
+      "evidenceRef":"evidence:crm06-protected-first-gui-component-missing-20261014"
     }
   ]
 }
