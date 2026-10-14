@@ -1,5 +1,8 @@
 ## Sıradaki iş
 
+> **15 Ekim 2026 — YENİ ONAYLI YÜRÜTME KARARI (ERP-DEC-060; karşı CRM-DEC-018):** Kullanıcı mevcut **tüm kalan işlerin bağımlılığı hazır teknik parçalarının**, mevcut ana/alt ajanlar ve Sanal Personel Testçisi rolleriyle **resmî insan kabulünü en sona bırakarak** tamamlanmasını onayladı. Aşağıdaki tarihsel “CRM06 kapanmadan sonraki teknik işe geçilmez” ifadesi artık yalnız **tam işletme kapanışı** için geçerlidir: CRM06 son insan kabulü açık kalırken ERP09 ve diğer mevcut bitiş planı yapraklarının bağımsız güvenli kod, sentetik TEST, GUI (destekleniyorsa), kurulum ve otomatik doğrulaması yapılabilir. Özgün 49+25 yaprak ve eski PASS korunur; yeni Goal/tracker veya yeşil sayım yok. Normal GUI korumalı giriş engeli bypass edilmez; sanal ajan fiziksel telefon/gerçek personel kabulü veremez. Tüm teknik hazırlık sonunda USER_ACCEPTANCE.md üzerinden toplu gerçek personel kabulü yapılır; bu onay olmadan CRM06/ERP09/toplam teslim yeşil olmaz. CRM-DEC-015/ERP-DEC-057 sınırları, ERP tek shared runtime/SQL owner'ı, LIVE/Vega/T1/main/mesaj/ücretli servis yasakları korunur. **Yeni otomatik ajan zamanlaması henüz kurulmadı.** Kayıt karar/iş sırası güncellemesidir; yeni TEST veya insan PASS değildir.
+
+
 15 Ekim 2026 — bu tek kayıt CRM06 önceliğini ve ERP-DEC-057 ile izinli ERP09 bağımsız teknik hazırlığını gösterir; sabit55/ortak21 sırası ve kapanış sayısı değişmez. Yeni tracker/goal yok; hazır yetkili adıma ayrıca devam mesajı beklenmeden geçilir.
 
 | Alan | Güncel kayıt |
