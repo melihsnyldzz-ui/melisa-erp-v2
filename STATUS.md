@@ -13,6 +13,68 @@
 | İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
 | Bitince sıradaki adım | CRM sahibi son ortak normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel ve mobil akışı yürütecek; ERP owner bağımsız kalıcılık/no-ERP-sale readback yapacak. Ardından özgün tüm CRM06 koşulları ve gereken insan kabulü birlikte değerlendirilir. Yalnız CRM06 tam kapanırsa ortak21 sıra1 ERP09 — Satış, açık hesap ve kullanılabilir hız seçilir: ERP SQL/normal satış-vade/tek stok-cari etki/hız, CRM gereken müşteri-yetki halkası; ERP03/04/06/14 bağımlılıklarının yalnız bu akıştaki eksik koşulları çözülür. Önceki dar kabul/test yeniden yapılmaz; kapanmadan yeni ana başlık yok. |
 
+### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
+
+Sağlık ve normal yönetici rolü önceki gerçek işlem makbuzlarına bağlıdır. CUA korumalı giriş aktarımı engelli kalır; CLI/API sonucu tarayıcı kanıtı sayılmaz. Bu kurulum için yeni giriş, sağlık/işletme testi veya restore yapılmadı.
+
+```melisa-preflight
+{
+  "current": {
+    "environment": "db02-copy-e16b70f0-test-t1false",
+    "runtime": "supervisor7a081-erp7a41-crm5b6-20261014T120958Z",
+    "identityRole": "normal-issuer-mudur-agent2-api-20261014T122144Z",
+    "surface": "cua-iab-normal-form-20261014-credential-transport-blocked"
+  },
+  "required": [
+    {"id":"runtime-health","contextKeys":["environment","runtime"]},
+    {"id":"normal-role","contextKeys":["environment","runtime","identityRole"]},
+    {"id":"normal-ui","contextKeys":["environment","runtime","identityRole","surface"]}
+  ],
+  "proofs": [
+    {
+      "requirementId":"runtime-health",
+      "status":"verified",
+      "context":{
+        "environment":"db02-copy-e16b70f0-test-t1false",
+        "runtime":"supervisor7a081-erp7a41-crm5b6-20261014T120958Z"
+      },
+      "evidenceRef":"evidence:crm06-operator-activation-20261014-121411Z"
+    },
+    {
+      "requirementId":"normal-role",
+      "status":"verified",
+      "context":{
+        "environment":"db02-copy-e16b70f0-test-t1false",
+        "runtime":"supervisor7a081-erp7a41-crm5b6-20261014T120958Z",
+        "identityRole":"normal-issuer-mudur-agent2-api-20261014T122144Z"
+      },
+      "evidenceRef":"evidence:crm06-official-manager-api-auth-20261014-122144Z"
+    },
+    {
+      "requirementId":"normal-ui",
+      "status":"blocked",
+      "context":{
+        "environment":"db02-copy-e16b70f0-test-t1false",
+        "runtime":"supervisor7a081-erp7a41-crm5b6-20261014T120958Z",
+        "identityRole":"normal-issuer-mudur-agent2-api-20261014T122144Z",
+        "surface":"cua-iab-normal-form-20261014-credential-transport-blocked"
+      },
+      "evidenceRef":"evidence:crm06-cua-protected-credential-transport-20261014"
+    }
+  ]
+}
+```
+
+### Melisa kayıt kontrolü kuruldu — 14 Ekim 2026
+
+Kurulu ortak script kaynağı **b433b00e9bc9ec5e4ad79961b0db52489f77ad01** / PR30; ilk5003160 paketi ve yalnız tarihsel sayaç parser düzeltmesi birlikte9blob exact eşleşir. Mevcut feature dalına yalnız `scripts/delivery-checks/` alındı; çalışma dalı, uygulama paketleri, uygulama/servis ayarları, DB/rol/credential veya global trust değiştirilmedi. Root AGENTS iş sınırı kuralı aktif; örnek lifecycle hooks kurulu/güvenilmiş değildir. Önceden teslim edilen30 sentetik ve düzeltmenin18 proje testi tekrar edilmedi.
+
+Komut: `node C:/Sirket/ERP/melisa-erp-v2/scripts/delivery-checks/run.mjs --config C:/Sirket/ERP/runtime/agent-checks/config.json`. ERP config ve cache repo dışında `C:/Sirket/ERP/runtime/agent-checks/`; CRM kendi ayrı config/cache'ini kullanır. İki mevcut STATUS yolu okunur; ortak scriptin tek sahibi ERP'dir.
+
+İlk kurulum çağrısındaki `PROJECT_MAIN_INVALID`, CRM25 tarihsel sayacının ikinci ana ID sayılmasından doğan parser yanlış pozitifiydi; source düzeltmesi alındı, bu uyarı için sayım değiştirilmedi. Son gerçek çağrı **CHECK_REQUIRED / exit3**, iki mainID **CRM06**: ERP ve CRM sağlık/normal yönetici rolü **REUSE**, normal UI **BLOCKED / PROOF_BLOCKED**. İkinci değişmeyen çağrı **changed:false / cacheSaved:true**, cache byte/hash aynı. Sonuç yalnız mevcut güvenli tarayıcı giriş adımına aittir; bütün iş veya insan kabulü değildir. `wholeClosureGranted:false`, kabul/restore/login/sağlık testi tekrarı0.
+
+Sabit sonuçlar: **RECORDS_CONSISTENT exit0 / INCONSISTENCY exit2 / CHECK_REQUIRED exit3**. Kaynak kontrolü sabit issue kodları üretir; cache yalnız signature/kod/zaman içerir. Sanitized gerçek çıktı makbuzları runtime agent-checks alanında saklandı; ham önkoşul değerleri, sır, kullanıcı/ticari veri Git'e alınmadı. CRM06 korumalı GUI giriş desteği aynı somut açık bağımlılıktır; ERP09 başlamadı, ana kapanış sayısı artmadı. Bu feature tesliminin uzak SHA'sı PR23 head/makbuzda ayrıca doğrulanır.
+
 ## CRM06 — normal TEST erişimi etkin, gerçek ekran zinciri sürüyor — 14 Ekim 2026
 
 Son somut sonuç: CLI korumalı reader ve resmi normal API başarılı; CRM sahibinin CUA import'u sonrası reader çağrısı `process is not defined` ile decrypt/girişten önce durdu. `node:process` API desteklenmedi; shim, parent env erişimi, başka araç, secret bridge veya token injection denenmedi. Form/oturum korunur. Bu CUA credential-transport eksiği uygulama/parola/rol arızası değildir; normal GUI login, yeni müşteri capability/talep ve son personel/mobil akış kanıtı0. CRM06 kapanmadı; ERP09'a geçilmedi. Bağımsız SQL21/21 tam satır hash/sayı eşliği güncel kurulum sonrası aynı; satış/stok/cari/fiyat/yetki ve nativeCRM request/line verileri değişmedi. Önceki normal refresh journal aynıhash; yeni issuer journal yalnız resmi API kendi login/refresh/logout ailesini içerir. Customer-product-request store önce/sonra yok; yeni interest0. Bu no-effect kanıtı GUI başarı veya kalıcılık/replay kabulü değildir.

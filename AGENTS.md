@@ -21,6 +21,18 @@ CRM06 özgün tüm şartları ve gereken kabulüyle kapanırsa ortak21 sıra1 **
 
 Bu aktif sözleşme genel günlük sıra hükümlerinden önce uygulanır. Teknik kanıt STATUS, insan sonucu USER_ACCEPTANCE, tam kapsam mevcut finish planında kalır; ikinci takip ağacı veya yeni goal oluşturulmaz.
 
+## İş sınırında Melisa kayıt kontrolü — 14 Ekim 2026
+
+Kullanıcının “tamam bunları kuralım lütfen” kararıyla [delivery-checks README](scripts/delivery-checks/README.md) kapsamı etkindir. Ortak scriptin tek sahibi ERP'dir; CRM aynı scripti kendi ayrı config/cache'iyle kullanır. Script kaynağı PR30'daki `b433b00e9bc9ec5e4ad79961b0db52489f77ad01` (ilk paket5003160 ve tarihsel sayaç parser düzeltmesi); çalışan uygulama veya yeni ana teslim değildir.
+
+Sonraki güvenli iş sınırında, yeni/devam eden turda ve özet sonrası önce mevcut **Sıradaki iş** kaydını oku; aşağıdaki yapılandırılmış kayıt kontrolünü **bir kez** çalıştır. Aynı adım kapanınca veya ortam/çalışan paket/rol/ekran önkoşulu değişince yeniden çalıştır; değişmeyen sonucu tekrar bildirme. Mevcut kabul edilmiş kanıtı kullan; yeni giriş, geniş test, restore veya kabul tekrarı açma.
+
+`node C:/Sirket/ERP/melisa-erp-v2/scripts/delivery-checks/run.mjs --config C:/Sirket/ERP/runtime/agent-checks/config.json`
+
+`RECORDS_CONSISTENT` işlevsel tamamlanma değildir. `INCONSISTENCY` yalnız çelişkili kaydı mevcut kanıtla düzeltmeyi; `CHECK_REQUIRED` yalnız ilgili adımın eksik/değişmiş önkoşulunu gösterir. Eksik önkoşul sonucu tek başına yeni yetki doğurmaz; kullanıcıdan parola veya aynı TEST onayını isteme, bağımsız yetkili işi sürdür. Aynı STATUS görünümünü güncelle, biten feature işini GitHub'a kaydet ve sıradaki yetkili adıma yeni kullanıcı/denetçi mesajı beklemeden geç. CRM06 bütün özgün koşulları ve gereken insan kabulüyle kapanmadan ERP09 başlamaz.
+
+Önbellek repo dışındadır; ikinci pano, kapanış otoritesi veya uygulama kanıtı değildir. `hooks.example.json` yalnız örnektir; hook kurulu/güvenilmiş sayılmaz, trust/policy ayarı değiştirilmez. İlk etkin yol bu iş sınırı kuralı ve mevcut denetimdir. Bu kontrol LIVE/main/gerçek müşteri mesajı/ücretli servis yetkisi vermez ve bunları çalıştırmaz.
+
 ## Karar merkezi ve `devam` — 5 Ekim 2026
 
 Kullanıcı ve ChatGPT iş/ürün kararlarını sohbetten planlar; onaylanan kararlar GitHub'da [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) içinde kalıcılaşır. Codex bu kararları uygular. Bu bölüm eski harita/finish-plan/tek-kırmızı yönlendirmelerinin **günlük sıra ve okuma düzenini** günceller; mevcut kapsam, kabul kanıtları ve işlem sınırları korunur.
