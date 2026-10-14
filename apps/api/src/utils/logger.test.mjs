@@ -107,6 +107,11 @@ test('offline price fixture errors stay outside the production diagnostic vocabu
   }
 });
 
+test('contact native diagnostics retain only the six closed codes and redact private or invented suffixes',()=>{
+ for(const code of ['CUSTOMER_CONTACT_UNAVAILABLE','CUSTOMER_CONTACT_FORBIDDEN','CUSTOMER_CONTACT_SCOPE','CUSTOMER_CONTACT_STALE','CUSTOMER_CONTACT_REQUEST_CONFLICT','CUSTOMER_CONTACT_SOURCE_CHANGED'])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const code of ['CUSTOMER_CONTACT_PRIVATE_SOURCE','CUSTOMER_CONTACT_FORBIDDEN_SECRET','CUSTOMER_CONTACT_UNAVAILABLE_'+marker])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
+});
+
 test('startup warnings retain distinct static diagnostic codes without accepting new text', () => {
   const warnings = [
     ['JWT_ACCESS_SECRET is missing or shorter than 32 characters', 'JWT_ACCESS_SECRET_WEAK'],

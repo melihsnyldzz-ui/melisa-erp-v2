@@ -8,7 +8,17 @@ import {
 } from '../services/customerService.js';
 import { getVegaCustomersListFromWorker } from '../services/vegaCustomerClientService.js';
 import {customerCardService} from '../services/customerCardService.mjs';
+import {customerContactService} from '../services/customerContactService.mjs';
 import { created, fail, ok } from '../utils/response.js';
+
+const contactErrors=new Map([
+ ['CUSTOMER_ID_INVALID',400],['CUSTOMER_VALIDATION_FAILED',400],['AUTH_PERMISSION_DENIED',403],
+ ['CUSTOMER_CONTACT_FORBIDDEN',403],['CUSTOMER_CONTACT_SCOPE',403],['CUSTOMER_CONTACT_STALE',409],
+ ['CUSTOMER_CONTACT_REQUEST_CONFLICT',409],['CUSTOMER_CONTACT_SOURCE_CHANGED',409],['CUSTOMER_CONTACT_UNAVAILABLE',503],
+]);
+function contactError(res,error){const status=contactErrors.get(error?.code);return fail(res,status??503,status?error.code:'CUSTOMER_CONTACT_UNAVAILABLE','Müşteri iletişim bilgileri veya düzenleme yetkisi doğrulanamadı.');}
+export async function getCustomerContact(req,res){try{return ok(res,await customerContactService.context(req.params.id,req.user,req.query));}catch(error){return contactError(res,error);}}
+export async function postCustomerContact(req,res){try{return ok(res,await customerContactService.update(req.params.id,req.body,req.user));}catch(error){return contactError(res,error);}}
 
 function cardReadError(res, error) {
   const known = typeof error?.code === 'string' && error.code.startsWith('CUSTOMER_CARD_');

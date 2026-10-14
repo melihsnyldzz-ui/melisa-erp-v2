@@ -1,3 +1,7 @@
+## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
+
+ERP-DEC-056 kapsamında CRM06 özgün K01/K02/K03 + son normal müşteri/personel/mobil şartları birlikte kapanacak. Ortak runtime aynı7a/5b paketle kurtarıldı ve21/21 veri hash/sayı eşliği kanıtlandı; [kurtarma alt kanıtı](docs/evidence/erp/2026-10-14-shared-recovery/README.md) bütün başlığı kapatmaz. ERP06 iletişim API/UI/native kaynak checkpoint'i kurulu veya kullanıcı kabulü değildir; [kalan native koşullar](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md) açık. C06/C07🟡,49/9/39/1/completeDelivery=false aynı; sabit55 ana teslim kapanış sayısı artırılmadı. Yeni bağımsız iş/finish ağacı yok.
+
 ## ERP06 / C06 ve ERP07 / C07 — dar iletişim bağımlılığı — 14 Ekim 2026
 
 Kaynak kimliği ve finans alanları korunarak telefon/şehir/ülke düzenleme sözleşmesi kaynak/test düzeyinde hazırlandı. Genel legacy PUT ve eski sentetik tedarikçi yolu DB02 için kullanılabilir genel düzenleme kanıtı değildir; mevcut native guard iletişim alanlarını da kilitler. [Kaynak hazırlığı ve kalan exact native kapsam](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md). Normal kaydet/yenileme, native audit/replay ve insan kabulü açık; iki kalem 🟡 kalır, 49/9/39/1 ve completeDelivery=false değişmez. Çalışan ERP/native7a41f64–CRM5b6dfe5 korunur.

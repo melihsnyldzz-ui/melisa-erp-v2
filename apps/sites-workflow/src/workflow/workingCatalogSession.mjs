@@ -130,6 +130,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/(?:customer-cards\?[^#]*|customers\/[1-9]\d*\/card)$/.test(path)||!token||!user)throw problem('Müşteri kartları okunamıyor.');
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;
   },
+  async customerContact(id,{method='GET',body,...extra}={}){
+   if(Object.keys(extra).length||typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
+   return (await request('/api/customers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async work(path,{method='GET',body,...extra}={}){
    const read=/^\/api\/(?:work-sales\/(?:context|selection-options|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
    const write=/^\/api\/(?:work-sales\/(?:selected-context|preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;

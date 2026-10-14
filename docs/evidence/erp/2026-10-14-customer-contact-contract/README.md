@@ -1,5 +1,15 @@
 # ERP06 / C06 — iletişim düzenleme sözleşmesi hazırlığı
 
+## Korunan kaynak checkpoint'i — CRM06 önceliği
+
+14 Ekim kullanıcının tek ana başlığı bitirme kararıyla ERP06 bağımsız geliştirmesi durdu; hazırlanmış API/frontend/native derleyici kaynakları kaybolmadan aynı feature dalında saklanıyor. **Bu kaynak kurulu pakete uygulanmadı.** ERP/native7a41f64–CRM5b6dfe5 aynı kaldı. Native kurulum, configure/startup bağlantısı, yeni grant/rol, iletişim yazması ve normal kaydet kabulü yoktur.
+
+Kaynakta dar GET/POST controller/service/store, mevcut iki izin ve karantina bağlantısı; UUID/body/revision doğrulaması; normal müşteri kartı için telefon/şehir/ülke editörü hazırlandı. Editör maskelenmiş değeri kayıt başlangıcı yapmaz; yanıt kaybında aynı body/UUID ile bilinçli tekrar, stale409 ve forbidden403 korunur. Geç tamamlanan istek başka seçilmiş kartı değiştirmez. API guard/VM testleri **41/41**, frontend/session testleri **11/11**; bağımsız kaynak incelemeleri GO. Bunlar SQL/native veya gerçek ekran kanıtı değildir.
+
+Altı native derleyici/bootstrap/model dosyası checkpoint olarak saklanır: yalnız SQL metni üretir, DB'ye bağlanmaz veya kurulumu çalıştırmaz. Başlangıç dosyalarında contact configure/compatibility çağrısı yoktur; kayıtlı native yetki olmadan API store transaction açmaz. Altı sözdizimi kontrolü ve dokuz model testi geçti; bağımsız inceleme yalnız **kaynak checkpoint'i GO**, native/kurulum GO değildir. Kalanlar: canonical descriptor güveni, tam 18 predecessor compatibility zinciri ve cold-start entegrasyonu, gerçek sınırlı native doğrulama/kurulum ve normal ekran kabulü. Bunları bu öncelikte genişletme veya aktive etme.
+
+Salt okunur gerçek DB metadata capture'ı telefon50/şehir100/ülke100 sınırını doğruladı. Kaynak ve şema capture'ları private alanda; raw modül tanımları veya müşteri verisi GitHub'a alınmadı. Aşağıdaki saf model hazırlığı ilk tarihli alt kanıttır; yeni checkpoint onu çalışan uygulamaya dönüştürmez. CRM06 kapanmadan yeni bağımsız başlık yok; C06/C07 ve insan kabulü açık kalır.
+
 14 Ekim 2026. ERP-COMPLETE01 / ERP-DEC-053–055 kapsamında kaynak hazırlığıdır. Çalışan müşteri düzenleme teslimi, yeni paket veya insan kabulü değildir.
 
 ## Doğrulanan mevcut sınır

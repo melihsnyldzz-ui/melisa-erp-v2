@@ -23,6 +23,16 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+### ERP-DEC-056 — 14 Ekim 2026 — Onaylı
+
+Kullanıcının doğrudan kararı: **“O zaman bunu düzelt. Kapanmaya en yakın ana başlığı seçip bütün şartlarıyla bitirecek şekilde yönlendir ikisini de. Yapılanları tekrarlamadan artık çalışan sonuç gösterin.”** Kaynak: sesli yönlendirme sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, kullanıcı mesajı `01a139f3-23ce-7702-9a8f-05ac06f652a6`, tur `01a139f3-2352-7852-8d4d-e518a7a644ce`; read_thread ile insan içeriği doğrulandı. Yetkili koordinasyon aynı sabit55/ortak21 takip içinden **CRM06 — Katalog ve müşteri ürün talebi (K01/K02/K03)** seçti. Bu yeni goal, ikinci görev veya yeni bağımsız kapsam değildir; ERP-DEC-053–055'in genel devamı yalnız öncelik bakımından bu seçime bağlanır.
+
+ERP ortak runtime/paket/veri etkisi ve bağımsız readback sahibidir; CRM özgün kabul eşlemesi ve son normal müşteri/personel/mobil akış sahibidir. ERP06 iletişim kaynakları kaybolmadan aynı dalda checkpoint olarak korunur; CRM06 kapanmadan bağımsız genişletilmez veya aktive edilmez. Eski fb34/403/readback, K01/K02/K03 ve kurulmuş5b6 kanıtları kullanılır; eski inactive1be hazırlığından tekrar kurulum veya geri dönüş çıkarılmaz. K02 özgün ürün gönderme kabulü mevcut kanıtla eşlenir; yeni gerçek müşteri mesajı yok.
+
+Gerçek foto/kategori/arama/fiyat/döviz; normal seç–adet değiştir–çıkar–yenile–tek kalıcı talep; doğru atanmış personelde aynı kayıt, yanlış normal personelde ret; yeniden açılışta korunma/çift kayıt olmaması ve son normal mobil şartlar birlikte kanıtlanmadan CRM06 kapatılmaz veya55 takipte kapanış sayısı artırılmaz. Talep ERP satış/stok/fiş üretmez. Kaynak/push/test/sağlık ara kanıttır; kullanıcıya açılan çalışan sonuç ve bütün özgün şartlar ayrıdır. Gereken son insan kabulü tek somut adım olarak bekler; otomatik PASS yok.
+
+Mevcut veri, rol, yedek, TEST125/DB02, karantina/LL ve ret sınırları korunur. Yeni parola/rol/grant/bypass, LIVE/Vega/T1/main, gerçek müşteri mesajı/ücretli servis yok. Tarayıcı/cihaz reddi alternatif araçla aşılmaz; aynı soru tekrarlanmaz. Eski karar metinleri ve kabuller silinmez.
+
 ### ERP-DEC-055 — 13 Ekim 2026 — Onaylı
 
 Kullanıcının doğrudan kararı: **“İkisi de bitirdiği her işi GitHub’a kaydetsin, sadece bilgisayarda kalmasın. Veri yedeklerini de takip et, yaptığımız işler kaybolmasın.”** Kaynak: sesli yönlendirme sohbeti `01a12824-1cc4-78f0-817b-6c8389061e4b`, insan mesajı `01a134a4-d0a7-78e3-bbe8-e7ba2c50f484`; `read_thread` ile doğrulandı. Takip mesajı `01a134a5-bf00-7220-9480-4711f46d4785` ana işin bölünmemesini ve tamamlananların ayrılmasını ister.

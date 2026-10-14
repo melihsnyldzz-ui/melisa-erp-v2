@@ -1,3 +1,9 @@
+## ŞİMDİ — CRM06 / K01–K03 tek ana kapanış — 14 Ekim 2026
+
+ERP-DEC-056 ile aynı ERP-COMPLETE01 içinde tek öncelik **CRM06 — Katalog ve müşteri ürün talebi**. ERP mevcut ortak runtime/paket/veri etkisi sahibidir; CRM özgün kabul eşlemesi ve son normal müşteri/personel/mobil akış sahibidir. Kabul edilmiş fb34/K01/K02/K03 kanıtları tekrar oluşturulmaz; eski1be hazırlığından geri kurulum yapılmaz. Bütün özgün şartlar kapanmadan yeni bağımsız geliştirme seçilmez veya ana kapanış sayısı artırılmaz.
+
+13:00 servis kesintisi aynı kurulu7a/5b paketle kurtarıldı; taze altı OS süreç ve native health kimliği, 21/21 iş tablosu hash/sayı eşliği doğrulandı. [Kurtarma ve CRM06 sınırı](docs/evidence/erp/2026-10-14-shared-recovery/README.md). Kalan normal issuer/izinli tarayıcı yüzeyi ve son mobil akış, CRM sahibinde somut bağımlılık olarak açık; sağlık insan kabulü değildir. ERP06 API/UI/native kaynakları [checkpoint'te korunur](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md), yeni pakete kurulmaz veya genişletilmez. Aşağıdaki eski ŞİMDİ kayıtları tarihlidir; güncel sıra bu kayıttır.
+
 ## ŞİMDİ — ERP04 / C09 normal CRM taslak/readback — 14 Ekim 2026
 
 Güncel korumalı DB02 yedeği ve yeni ERP/native7a41f64–CRM5b6dfe5 ortak paket başlangıcı tamamlandı; gerçek altı süreç guard'ı ve health sağlıklı. Aynı işin kalan adımı normal CRM MANUAL taslak/readback ve exact tekrar/olumsuz/ikinci-etki kontrolleri; CRM sahibi devraldı. Teknik paket sağlığı insan kabulü değildir. [Kanıt](docs/evidence/erp/2026-10-13-crm-price-witness/README.md), çalışan sürüm ve CI/hesap engeli STATUS'tadır. Yeni migration/temizlik/giriş/finish kalemi açılmaz.
