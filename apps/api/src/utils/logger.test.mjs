@@ -35,6 +35,12 @@ function noCanary(lines) {
   }
 }
 
+test('copy server-context diagnostic keeps only its exact closed code; synthetic and near-match codes remain redacted',()=>{
+ const code='ISOLATED_COPY_SERVER_CONTEXT_REQUIRED';
+ assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const synthetic of [code+'_PRIVATE',code+'_SECRET','ISOLATED_COPY_SYNTHETIC_SCOPE','SYNTHETIC_CANARY_ABC123','GUARDED_HEADER_REACHED','STOP_HEADER','STOP_CARD','OFFLINE_TEST_FAILURE'])assert.equal(capture(()=>logger.error('API error normalized',{code:synthetic}))[0].payload.code,redacted);
+});
+
 test('serialized logs completely redact key variants, free text, Error and raw query', () => {
   const err = Object.assign(new Error(`Authorization: Bearer ${marker}`), {code: 'INTERNAL_ERROR'});
   const values = {};

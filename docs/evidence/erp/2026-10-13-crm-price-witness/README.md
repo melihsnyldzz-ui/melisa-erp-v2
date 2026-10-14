@@ -35,11 +35,16 @@ altı gerçek core süreç guard'ı, ERP/Hub/native health ve kapalı CRM provid
 health doğrulandı: ERP59c444f / CRM09ca1da / native60e424b, DB02/copye16b70f0,
 actualT1=false. Yeni kaynak çalışan bu eski pakete karıştırılmaz.
 
-Güncel korumalı yedek ve yeni immutable paket aktivasyonu sonraki adımdır.
-11 Ekim DB02 tam yedeği 13 Ekim fiyat değişikliklerini içermez; ayrı cihaz
-kopyası doğrulanmış değildir. Yeni kaynak CI sonucu exact teslim head'inde
-raporlanır; 9e06'nın Sites fixture FAIL'i kaynakta düzeltildi, eski ödeme
-engeli bu run için sebep değildir. Normal MANUAL taslak/readback, kaynak
+14 Ekim 10:52 güncel korumalı DB02 tam yedeği alındı: COPY_ONLY/CHECKSUM,
+HEADERONLY/VERIFYONLY ve SHA256 doğrulandı; 9.265.872.896 byte. Restore/reset
+yapılmadı, dosya silinmedi. Uygulamalar kapalı ve yazmalar dışlanmışken aktif
+VLF/gözlenen veri bütçesi, değişmeyen OS/paket rezervleri ve 500ms disk izleme
+kullanıldı; minimum/son boş alan 6.318.379.008 byte. Kontrollü gözlenen bütçe
+sınırsız dış tüketim için kesin boyut garantisi değildir. Exact QDS iç tuple'ları
+logsuz/oturumsuz oldukları için ayrılır, diğer aktif işlemler engellenir.
+Ayrı cihaz kopyası doğrulanmış değildir. Yeni immutable paket aktivasyonu
+sonraki adımdır. 40c5260 tam yerel canonical exit0; hosted altı CI işi tekrar
+ödeme/harcama nedeniyle başlamadı, PASS değildir. Normal MANUAL taslak/readback, kaynak
 eşitliği/replay olumsuzları ve insan kabulü ayrı bekler. Önceki fiyat GUI,
 inverse ve restore provaları yeniden yapılmaz.
 

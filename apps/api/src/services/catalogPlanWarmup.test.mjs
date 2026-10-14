@@ -27,10 +27,10 @@ test('ODBC retain-min1 applies to canonical writable ERP4144 and registered copy
  const dependency=(specifier,exports)=>{const module=new SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context:sandbox});dependencies.set(specifier,module);return module;};
  dependency('mssql',{default:sqlDefault});dependency('./env.js',{env});
  dependency('./isolatedOperationCopyRuntime.mjs',{isIsolatedOperationCopyRuntime:()=>copyState.write,getIsolatedOperationCopyConfig:()=>{throw Error('Config-only test must not open a pool');},isIsolatedCopyReadonlyRuntime:()=>copyState.read,getIsolatedCopyReadonlyRuntime:()=>{throw Error('Config-only test must not open a pool');}});
- dependency('../services/isolatedOperationCopyContext.mjs',{isolatedCopyTopology:()=>{throw Error('Config-only test must not open a pool');}});
+ const topology=dependency('../services/isolatedOperationCopyContext.mjs',{isolatedCopyTopology:()=>{throw Error('Config-only test must not open a pool');}});
  dependency('../services/crmOrderCurrentContext.mjs',{getCrmOrderCurrentContext:()=>null,assertCrmOrderCurrentIdentity:()=>{throw Error('Config-only test must not open a pool');}});
- const native=dependency('mssql/msnodesqlv8.js',{default:sqlTrusted});await native.link(()=>{throw Error('No native imports allowed');});await native.evaluate();
- const module=new SourceTextModule(source,{context:sandbox,importModuleDynamically:async specifier=>{assert.equal(specifier,'mssql/msnodesqlv8.js');return native;}});
+ const native=dependency('mssql/msnodesqlv8.js',{default:sqlTrusted});for(const inert of [native,topology]){await inert.link(()=>{throw Error('No native imports allowed');});await inert.evaluate();}
+ const module=new SourceTextModule(source,{context:sandbox,importModuleDynamically:async specifier=>{assert.ok(['mssql/msnodesqlv8.js','../services/isolatedOperationCopyContext.mjs'].includes(specifier),'Unknown dynamic database dependency: '+specifier);return dependencies.get(specifier);}});
  await module.link(specifier=>{assert.ok(dependencies.has(specifier),'Unknown database dependency: '+specifier);return dependencies.get(specifier);});await module.evaluate();
  const {getSqlConfig,getSqlDriver}=module.namespace;
   assert.deepEqual(JSON.parse(JSON.stringify(getSqlConfig().pool)),{max:10,min:1,idleTimeoutMillis:30000});
