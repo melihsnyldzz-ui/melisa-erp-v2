@@ -1,9 +1,3 @@
-## 15 Ekim 2026 — ana çalışma sözleşmesi kayıt teslimi
-
-ERP-DEC-058 / MELISA-WORKING-AGREEMENT-2026-10-15-v3, AGENTS ve PROJECT_DECISIONS içinde kayıtlıdır; karşı proje CRM-DEC-016. Yalnız talimat/karar ve bu kısa teslim kaydı değişti. Mevcut işletme kapsamı, bitiş planı, kabul kayıtları ve aşağıdaki tek etkin Sıradaki iş korunur. Belge kontrolü: dar fark, eski içerik korunumu ve karar bağlantıları; uygulama/DB/restore testi bu değişiklik için çalıştırılmadı, eski CI sonucu bu teslimin PASS'i değildir.
-
-Teslim dalı `codex/erp-finish-20261004`; [mevcut PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23) uzak head/commit kaydıdır. TEST/LIVE runtime bu belge teslimiyle değiştirilmedi veya yeniden doğrulanmadı; gerçek kullanıcı kabulü ve CRM06 kapanışı verilmedi. Kalan: mevcut yetkili ana iş kayıtlı yerden sürer; açık başka oturumun yeni sözleşmeyi okuduğu varsayılmaz.
-
 ## Sıradaki iş
 
 15 Ekim 2026 — bu tek kayıt CRM06 önceliğini ve ERP-DEC-057 ile izinli ERP09 bağımsız teknik hazırlığını gösterir; sabit55/ortak21 sırası ve kapanış sayısı değişmez. Yeni tracker/goal yok; hazır yetkili adıma ayrıca devam mesajı beklenmeden geçilir.
@@ -12,61 +6,82 @@ Teslim dalı `codex/erp-finish-20261004`; [mevcut PR23](https://github.com/melih
 | --- | --- |
 | Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
 | İzinli paralel teknik hazırlık | ERP09 SOURCE oluşturucu15→yetkili tahsilat16 adapter kodu hazır; mevcut servis ve izole journal/effects fixture ile11 yeni test PASS. Kaynak journalı ve güncel rol/izin+TRY hesap aktiflik/döviz/tür kontrolü replay öncesi ayrıdır. Default/native canCollect=false, route/store bağlantısı ve ortak DB02 değişmedi. Bu model native SQL transaction/identity/applock/intent veya genel tahsilat kabulü değildir; ana kapanış sayısı aynı. ERP-DEC-057 / ERP23comment6179460000 / CRM3comment6179459282 uygulanır. |
-| Güncel adım | CRM06 bağımsız BFCache düzeltmesi da82 için exact iki-source successor/profile kodu hazır: yeni kaynak+manifest/index/lock ve yeni child refs, aynı original-parent/9profil/staffjournal. Paket kurulumuna geçmeden sourceCI, yeni private fiziksel11ref/before-image/kilit ve actual current144/b298 rollback kaydı doğrulanır; parent7a081 rollback atası son çalışan sürüm sanılmaz. Şu anki kurulu b298/supervisor144/ERP7a41/DB02 korunur. Kurulum sonrası yeni ortak API request tek-kalıcılık/no-sale halkası ve kısa personel kabulü hazırlanır; desteklenmeyen GUI aktarımı tekrar denenmez. |
+| Güncel adım | CRM da82/supervisor266 gerçek kurulum tamam: yeni6core, fresh native/DB02, indexe232 ve HUB17704 aynı7a41 binary doğrulandı. Normal korumalı issuer ve personel API üzerinden seç–adet–çıkar–yenile–tek sentetik talep/aynıUUIDreplay/atanmışpersonel kalıcılığı geçti; yeni talep1, ticari yazma0. Satış/stok/cari/kasa/journal12 ve canonical hesap/etki2 olmak üzere14 gerçek tablonun tüm satır hash/sayı eşliği doğrulandı;4 optional absent ayrı kaydedildi. İlk PARENT_OWNER startup yarışı yalnızexactCORE recovery ile toparlandı, Hub/Actions/SQL korundu. Normal GUI/CRM-UA11/mobil ve cold reboot/logon açık. |
 | Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
 | Bitiş koşulu | Özgün CRM06 K01/K02/K03, normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel, yeniden açılış, son normal mobil ve gereken insan kabulü birlikte kanıtlanır. Eski7hesap/roller/journal/requeststore ve yeni iki dedicated normal profil korunur. Sırlar DPAPI/owner korumada kalır; TEST ADMIN/shared reset/auth bypass yok. Paket/kurulum/API teknik sonucu normal GUI veya insan kabulü değildir. |
-| Mevcut kanıt | [Gerçek ardıl kurulum](docs/evidence/erp/2026-10-14-crm06-successor-package/installed.md): original immutable parent/audit/baseline değişmedi; six fresh OS receipt/parent/source/config guard, pinned CRM index, DB02 native identity ve etkili HUB CRM/ERP/terminal erişimi geçti. HUB44808 aynı7a41 binary ile yeni pin'i yükledi. Yeni personel/personel/agent2/yalnızcrm.view/noissuer resmi login/me/refresh/ownlogout+401 geçti; önceki müdür kanıtı yeniden çalıştırılmadı. İki görevin yalnız Actions değişti; Trigger/Principal/Settings ve SQL PID/creation aynı. Ticari yazma/talep/gerçek mesaj/ücretliAI0; ilk GUI ve insan kabulü açık. |
-| Teknik bağımlılık | Bağlı aracın belgelenmiş korumalı credential-reference tüketimi eksik. DPAPI/owner/cipher/actor/copy ve resmi normal password/user-role-SID kontrolleri korunur; API reader tarayıcıya sır köprüsü değildir. Refresh önceden alınmış grant ister; özel Semih/native köprü ilk giriş yerine geçirilmez. Process/OS/araç/browser/clipboard/HTTP bridge veya cookie/JWT injection ile ret aşılmaz. Ayrı finite personel journal/successor artık kurulu; eski agent3/issuer aileleri değiştirilmedi. Cold başlangıçta HUB/ERP sırası ilk bütçeyi tüketti; yalnız gerçek yeni ERP hazır olduktan sonra desteklenen Hub görevi başlatılarak toparlandı. Gerçek reboot/logon ve cold otomatik sıralama kabulü yapılmış sayılmaz. |
+| Mevcut kanıt | [15 Ekim actual kurulum ve dar teknik talep](docs/evidence/erp/2026-10-15-isolated-test/README.md): private installed-readback e11738f1..., tekrequest23dc8e5f..., final-preservation a5756d3d...; supervisor30864/Hub17704. Original790 ancestor ve current3010 rollback ayrı,17 değişmez dosya/roller/credential aynı. İki görevin Trigger/Principal/Settings aynı; güncelActionsexact, SQL/TEST125 süreçkimlikleri korundu, yeni journal fiziksel11refREADY. Eski fb34/403/restore ve kabul tekrarlanmadı. API tek talep teknik kanıtı normal GUI/insan PASS değildir. |
+| Teknik bağımlılık | Korumalı credential-reference tüketen desteklenen ilk GUI bileşeni bağlı araçta yok; DPAPI/owner/cipher/actor/SID ve resmi normal izin kontrolleri korunur. API reader tarayıcıya sır köprüsü değildir; Semih/native/clipboard/HTTP/cookie/JWT injection ve ret tekrarı yok. Yeni paket kaynakları da82CRM/266supervisor/7a41ERP ayrıdır. İlk kurulumdaki Hublauncher parent-observation yarışı exactownedCORE toparlamasıyla geçti; soğuk otomatik açılış/reboot/logon kanıtı verilmedi, kaynak problem kayıtta açık. |
 | İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
-| Bitince sıradaki adım | CRM bağımsız API/iş kuralı ve son normal müşteri/personel/mobil kabul hazırlığını sürdürür; root yeni tek TEST talebinin bağımsız kalıcılık/no-sale kontrolünü yalnız kimlik/yalıtım/kilit/geri dönüş doğrulanınca yapar. Bu beklerken ERP09 bağımsız kaynak/offline/sentetik hazırlığı ERP-DEC-057 ile yürür. Yalnız CRM06 bütün özgün K01/K02/K03 koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; önceki kabul/CI tekrarı ve otomatik insan PASS yok. |
+| Bitince sıradaki adım | CRM sahibi actual da82/266 kurulum ve yeni tek talep/no-sale makbuzlarını eşler; kalan kısa normal müşteri/personel/mobil kabulünü mevcut USER_ACCEPTANCE üzerinden yürütür. Korumalı ilkGUI bileşeni desteklenmediği için aynı başarısız yollar tekrar denenmez; parola/manuel giriş talebi yok. Cold otomatik başlangıç yarışı ve gerçek reboot/logon ayrı açık, mevcut healthy kurulum korunur. ERP09 bağımsız11test kaynak/offline hazırlığı korunur, runtime/native writer aktif değildir. Yalnız CRM06 bütün özgün K01/K02/K03 koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur. |
 
 ### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
 
-Yeni runtime kimliği ve yalnız yeni personel oturumu gerçek ardıl kurulum makbuzlarına bağlıdır; önceki normal yönetici/issuer kanıtı tarihsel olarak korunur ve yeniden test edilmedi. CUA korumalı ilk giriş aktarımı engelli kalır; CLI/API sonucu tarayıcı kanıtı sayılmaz. Bu değişen kurulum için dar process/index/DB02/HUB ve yeni personel auth kontrolü yapıldı; eski işletme testi, CI veya restore tekrarlanmadı.
+Yeni da82/266 runtime kimliği actual15Ekim kurulum makbuzuna, normal rol ise aynı yeni tek sentetik talebin resmi issuer/personel akışına bağlıdır; önceki ayrı login/refresh/logout provası yeniden çalıştırılmadı. CUA korumalı ilk giriş aktarımı engelli kalır; CLI/API sonucu tarayıcı kanıtı sayılmaz. Bu değişen kurulum için dar process/index/DB02/HUB, yeni tek talebin resmi issuer/personel erişimi ve14 tablo read-only before/after karşılaştırması yapıldı. Eski ayrı auth/işletme/kabul/restore provası tekrarlanmadı; yeni kod CI sonucu yalnız ilgili kaynak için ayrı kaydedildi.
 
 ```melisa-preflight
 {
   "current": {
     "environment": "db02-copy-e16b70f0-test-t1false",
-    "runtime": "supervisor1440007-erp7a41-crmb298-20261014T160515Z",
-    "identityRole": "normal-staff-personel-agent2-api-20261014T160524Z",
-    "surface": "cua-iab-normal-form-20261014-credential-transport-blocked"
+    "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z",
+    "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
+    "surface": "cua-iab-protected-first-login-component-missing-20261015"
   },
   "required": [
-    {"id":"runtime-health","contextKeys":["environment","runtime"]},
-    {"id":"normal-role","contextKeys":["environment","runtime","identityRole"]},
-    {"id":"normal-ui","contextKeys":["environment","runtime","identityRole","surface"]}
+    {
+      "id": "runtime-health",
+      "contextKeys": [
+        "environment",
+        "runtime"
+      ]
+    },
+    {
+      "id": "normal-role",
+      "contextKeys": [
+        "environment",
+        "runtime",
+        "identityRole"
+      ]
+    },
+    {
+      "id": "normal-ui",
+      "contextKeys": [
+        "environment",
+        "runtime",
+        "identityRole",
+        "surface"
+      ]
+    }
   ],
   "proofs": [
     {
-      "requirementId":"runtime-health",
-      "status":"verified",
-      "context":{
-        "environment":"db02-copy-e16b70f0-test-t1false",
-        "runtime":"supervisor1440007-erp7a41-crmb298-20261014T160515Z"
+      "requirementId": "runtime-health",
+      "status": "verified",
+      "context": {
+        "environment": "db02-copy-e16b70f0-test-t1false",
+        "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z"
       },
-      "evidenceRef":"evidence:crm06-installed-successor-20261014-160515Z"
+      "evidenceRef": "evidence:crm06-cache-installed-20261015"
     },
     {
-      "requirementId":"normal-role",
-      "status":"verified",
-      "context":{
-        "environment":"db02-copy-e16b70f0-test-t1false",
-        "runtime":"supervisor1440007-erp7a41-crmb298-20261014T160515Z",
-        "identityRole":"normal-staff-personel-agent2-api-20261014T160524Z"
+      "requirementId": "normal-role",
+      "status": "verified",
+      "context": {
+        "environment": "db02-copy-e16b70f0-test-t1false",
+        "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z",
+        "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z"
       },
-      "evidenceRef":"evidence:crm06-installed-staff-auth-20261014-160524Z"
+      "evidenceRef": "evidence:crm06-cache-single-interest-20261015"
     },
     {
-      "requirementId":"normal-ui",
-      "status":"blocked",
-      "context":{
-        "environment":"db02-copy-e16b70f0-test-t1false",
-        "runtime":"supervisor1440007-erp7a41-crmb298-20261014T160515Z",
-        "identityRole":"normal-staff-personel-agent2-api-20261014T160524Z",
-        "surface":"cua-iab-normal-form-20261014-credential-transport-blocked"
+      "requirementId": "normal-ui",
+      "status": "blocked",
+      "context": {
+        "environment": "db02-copy-e16b70f0-test-t1false",
+        "runtime": "supervisor2662f3e-erp7a41-crmda82-20261014T224317Z",
+        "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
+        "surface": "cua-iab-protected-first-login-component-missing-20261015"
       },
-      "evidenceRef":"evidence:crm06-protected-first-gui-component-missing-20261014"
+      "evidenceRef": "evidence:crm06-protected-first-gui-component-missing-20261015"
     }
   ]
 }
@@ -93,6 +108,12 @@ Komut: `node C:/Sirket/ERP/melisa-erp-v2/scripts/delivery-checks/run.mjs --confi
 İlk kurulum çağrısındaki `PROJECT_MAIN_INVALID`, CRM25 tarihsel sayacının ikinci ana ID sayılmasından doğan parser yanlış pozitifiydi; source düzeltmesi alındı, bu uyarı için sayım değiştirilmedi. Son gerçek çağrı **CHECK_REQUIRED / exit3**, iki mainID **CRM06**: ERP ve CRM sağlık/normal yönetici rolü **REUSE**, normal UI **BLOCKED / PROOF_BLOCKED**. İkinci değişmeyen çağrı **changed:false / cacheSaved:true**, cache byte/hash aynı. Sonuç yalnız mevcut güvenli tarayıcı giriş adımına aittir; bütün iş veya insan kabulü değildir. `wholeClosureGranted:false`, kabul/restore/login/sağlık testi tekrarı0.
 
 Sabit sonuçlar: **RECORDS_CONSISTENT exit0 / INCONSISTENCY exit2 / CHECK_REQUIRED exit3**. Kaynak kontrolü sabit issue kodları üretir; cache yalnız signature/kod/zaman içerir. Sanitized gerçek çıktı makbuzları runtime agent-checks alanında saklandı; ham önkoşul değerleri, sır, kullanıcı/ticari veri Git'e alınmadı. CRM06 korumalı GUI giriş desteği aynı somut açık bağımlılıktır; ERP09 başlamadı, ana kapanış sayısı artmadı. Bu feature tesliminin uzak SHA'sı PR23 head/makbuzda ayrıca doğrulanır.
+
+## 15 Ekim 2026 — ana çalışma sözleşmesi kayıt teslimi
+
+ERP-DEC-058 / MELISA-WORKING-AGREEMENT-2026-10-15-v3, AGENTS ve PROJECT_DECISIONS içinde kayıtlıdır; karşı proje CRM-DEC-016. Yalnız talimat/karar ve bu kısa teslim kaydı değişti. Mevcut işletme kapsamı, bitiş planı, kabul kayıtları ve aşağıdaki tek etkin Sıradaki iş korunur. Belge kontrolü: dar fark, eski içerik korunumu ve karar bağlantıları; uygulama/DB/restore testi bu değişiklik için çalıştırılmadı, eski CI sonucu bu teslimin PASS'i değildir.
+
+Teslim dalı `codex/erp-finish-20261004`; [mevcut PR23](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23) uzak head/commit kaydıdır. TEST/LIVE runtime bu belge teslimiyle değiştirilmedi veya yeniden doğrulanmadı; gerçek kullanıcı kabulü ve CRM06 kapanışı verilmedi. Kalan: mevcut yetkili ana iş kayıtlı yerden sürer; açık başka oturumun yeni sözleşmeyi okuduğu varsayılmaz.
 
 ## CRM06 — desteklenen ilk tarayıcı giriş bileşeni kesinleştirildi — 14 Ekim 2026
 
