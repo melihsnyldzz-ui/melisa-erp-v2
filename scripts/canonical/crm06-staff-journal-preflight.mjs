@@ -15,7 +15,8 @@ export const CRM06_STAFF_JOURNAL_EXCLUDED_PATHS=Object.freeze([
 ].sort());
 const originalSource='b2985d2295c022848c769ea5f494012c1eb3fa00',frontendSource='da82fc6644c1d9dba0c10eaa861773534d43c288';
 const frontendExcludedPaths=Object.freeze([...CRM06_STAFF_JOURNAL_EXCLUDED_PATHS,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-da82fc6644c1.json'].sort());
-export function crm06StaffJournalExcludedPaths(source=originalSource){check(source===originalSource||source===frontendSource);return source===frontendSource?frontendExcludedPaths:CRM06_STAFF_JOURNAL_EXCLUDED_PATHS;}
+const parentProbeExcludedPaths=Object.freeze([...frontendExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'].sort());
+export function crm06StaffJournalExcludedPaths(source=originalSource,profileVariant){check(source===originalSource||source===frontendSource);check(profileVariant===undefined||source===frontendSource&&profileVariant==='parent-probe');return profileVariant==='parent-probe'?parentProbeExcludedPaths:source===frontendSource?frontendExcludedPaths:CRM06_STAFF_JOURNAL_EXCLUDED_PATHS;}
 const phases=Object.freeze(['OWNER','PARAMETERS','NATIVE_INIT','ANCESTORS','PARENT_ACL','TARGET','REFERENCES','RECHECK','RESULT']);
 export function crm06StaffJournalPhysicalDiagnosticPhase(value){
  if(typeof value!=='string')return null;
@@ -31,11 +32,11 @@ export function normalizeCrm06StaffJournalPath(value){
  return value;
 }
 function options(value){
- own(value,['path','ownerSid','excludedPaths',...(Object.hasOwn(value,'source')?['source']:[])]);check(value.path===CRM06_STAFF_JOURNAL_PATH);normalizeCrm06StaffJournalPath(value.path);
- const source=Object.hasOwn(value,'source')?value.source:originalSource;check(typeof source==='string');const policy=crm06StaffJournalExcludedPaths(source);
+ own(value,['path','ownerSid','excludedPaths',...(Object.hasOwn(value,'source')?['source']:[]),...(Object.hasOwn(value,'profileVariant')?['profileVariant']:[])]);check(value.path===CRM06_STAFF_JOURNAL_PATH);normalizeCrm06StaffJournalPath(value.path);
+ const source=Object.hasOwn(value,'source')?value.source:originalSource;check(typeof source==='string');if(Object.hasOwn(value,'profileVariant'))check(value.profileVariant==='parent-probe');const policy=crm06StaffJournalExcludedPaths(source,value.profileVariant);
  check(typeof value.ownerSid==='string'&&/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(value.ownerSid));
  check(Array.isArray(value.excludedPaths)&&value.excludedPaths.length===policy.length);
- const refs=value.excludedPaths.map(normalizeCrm06StaffJournalPath).sort();check(refs.every((ref,index)=>ref===policy[index]));return {path:value.path,ownerSid:value.ownerSid,excludedPaths:refs,source};
+ const refs=value.excludedPaths.map(normalizeCrm06StaffJournalPath).sort();check(refs.every((ref,index)=>ref===policy[index]));return {path:value.path,ownerSid:value.ownerSid,excludedPaths:refs,source,...(Object.hasOwn(value,'profileVariant')?{profileVariant:value.profileVariant}:{})};
 }
 const referenceKeys=['path','exists','volumeSerial','fileId','linkCount','reparse'];
 export function crm06StaffJournalReferenceHash(references){
@@ -67,13 +68,13 @@ export function assertCrm06StaffJournalPhysicalEvidence(evidence,input){
  return freeze(JSON.parse(JSON.stringify(evidence)));
 }
 export function crm06StaffJournalPhysicalArguments(input){
- own(input,['ownerSid','excludedPaths',...(Object.hasOwn(input,'source')?['source']:[])]);const reviewed=options({path:CRM06_STAFF_JOURNAL_PATH,...input});
+ own(input,['ownerSid','excludedPaths',...(Object.hasOwn(input,'source')?['source']:[]),...(Object.hasOwn(input,'profileVariant')?['profileVariant']:[])]);const reviewed=options({path:CRM06_STAFF_JOURNAL_PATH,...input});
  // The child has the same independent finite reference list. Do not transport
  // nested JSON through the legacy Windows PowerShell argv parser.
- return Object.freeze(['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',path.join(import.meta.dirname,'crm06-staff-journal-preflight.ps1'),'-OwnerSid',reviewed.ownerSid,...(reviewed.source===frontendSource?['-Source',frontendSource]:[])]);
+ return Object.freeze(['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',path.join(import.meta.dirname,'crm06-staff-journal-preflight.ps1'),'-OwnerSid',reviewed.ownerSid,...(reviewed.source===frontendSource?['-Source',frontendSource]:[]),...(reviewed.profileVariant?['-ProfileVariant',reviewed.profileVariant]:[])]);
 }
 export async function inspectCrm06StaffJournalPhysical(input){
- own(input,['ownerSid','excludedPaths',...(Object.hasOwn(input,'source')?['source']:[])]);const reviewed=options({path:CRM06_STAFF_JOURNAL_PATH,...input});check(process.platform==='win32');
+ own(input,['ownerSid','excludedPaths',...(Object.hasOwn(input,'source')?['source']:[]),...(Object.hasOwn(input,'profileVariant')?['profileVariant']:[])]);const reviewed=options({path:CRM06_STAFF_JOURNAL_PATH,...input});check(process.platform==='win32');
  try{
   const response=await promisify(execFile)('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',crm06StaffJournalPhysicalArguments(input),{windowsHide:true,timeout:20000,maxBuffer:32768,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
   check(!response.stderr);return assertCrm06StaffJournalPhysicalEvidence(JSON.parse(response.stdout),reviewed);

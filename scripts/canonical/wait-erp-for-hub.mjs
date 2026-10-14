@@ -1,0 +1,75 @@
+// Read-only readiness barrier before the existing pinned Hub watcher starts.
+// It never starts/stops a process, changes a task or accesses application auth.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+const CONFIG='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-da82fc6644c1-parent-probe.json';
+const RECEIPTS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web';
+const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+const CRM_SOURCE='da82fc6644c1d9dba0c10eaa861773534d43c288';
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const fail=code=>{throw Object.assign(Error(code),{code});};
+const check=(ok,code='ERP_HUB_WAIT_REJECTED')=>{if(!ok)fail(code);};
+const samePath=(a,b)=>typeof a==='string'&&typeof b==='string'&&path.win32.normalize(a).toLowerCase()===path.win32.normalize(b).toLowerCase();
+function noReparse(p){for(let q=p;;q=path.dirname(q)){check(!fs.lstatSync(q).isSymbolicLink());if(q===path.dirname(q))break;}}
+function readPinned(ref){noReparse(ref.path);const b=fs.readFileSync(ref.path);check(sha(b)===ref.sha256);return b;}
+const identity=rows=>JSON.stringify(rows.map(r=>[r.pid,r.parentPid,r.creationTime,r.parentCreationTime,r.commandLine,r.parentCommandLine]).sort((a,b)=>a[0]-b[0]));
+
+export function assertErpHubHealth(h,settings,stage){
+ check(h?.ok===true&&h.sourceCommit===settings.components[stage.component].sourceCommit&&h.copyId===settings.copyId&&(h.databaseName??h.database)===settings.database&&h.actualT1===false&&h.environment==='ISOLATED_TEST_COPY'&&h.externalOperations===false&&h.automaticJobs===false&&['sysadmin','databaseControl','liveDatabaseAccess','originalDatabaseAccess'].every(key=>h[key]===0),'ERP_HUB_WAIT_TARGET');
+ return true;
+}
+
+export async function waitForErpBeforeHub({settings,stages,probe,receipt,matches,ready,now=Date.now,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
+ check(Array.isArray(stages)&&stages.length===2&&stages[0].name==='erpNative'&&stages[1].name==='erpApi');
+ const deadline=now()+600000;
+ const observe=async()=>{
+  const rows=await probe();check(Array.isArray(rows)&&rows.length<=2,'ERP_HUB_WAIT_OBSERVATION');
+  check(rows.every(r=>r.ownerSid===settings.ownerSid&&samePath(r.nodePath,settings.node.path)&&Array.isArray(r.bindings)&&r.bindings.length>0&&r.bindings.every(b=>[4184,4186].includes(b.port))),'ERP_HUB_WAIT_OWNER');
+  if(rows.length!==2||!stages.every(s=>rows.some(r=>r.bindings.some(b=>s.ports.includes(b.port)))))return null;
+  const linked=[];
+  for(const stage of stages){const found=rows.filter(r=>r.bindings.some(b=>stage.ports.includes(b.port)));check(found.length===1,'ERP_HUB_WAIT_OBSERVATION');const r=await receipt(stage);if(!r)return null;check(matches(found[0],r,stage,settings),'ERP_HUB_WAIT_IDENTITY');linked.push(r);}
+  check(linked[0].parentPid===linked[1].parentPid&&linked[0].parentCreationTime===linked[1].parentCreationTime,'ERP_HUB_WAIT_PARENT');
+  return {rows,linked};
+ };
+ while(now()<deadline){
+  const first=await observe();
+  if(first&&await ready(stages[0])&&await ready(stages[1])){
+   const second=await observe();check(second&&identity(second.rows)===identity(first.rows),'ERP_HUB_WAIT_CHANGED');check(now()<deadline,'ERP_HUB_WAIT_TIMEOUT');
+   return {schemaVersion:'melisa-erp-hub-prerequisites.v1',readyAt:new Date(now()).toISOString(),ready:true,coreSupervisorPid:second.linked[0].parentPid,coreSupervisorCreationTime:second.linked[0].parentCreationTime,erpNativePid:second.rows.find(r=>r.bindings.some(b=>b.port===4186)).pid,erpApiPid:second.rows.find(r=>r.bindings.some(b=>b.port===4184)).pid};
+  }
+  await sleep(1000);
+ }
+ fail('ERP_HUB_WAIT_TIMEOUT');
+}
+
+export async function runErpHubBarrier({configPath,configSha256,ownerSid,receiptPath}){
+ check(process.platform==='win32'&&configPath===CONFIG&&/^[a-f0-9]{64}$/.test(configSha256)&&/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(ownerSid));
+ check(path.win32.dirname(receiptPath)===RECEIPTS&&/^erp-prerequisites-[a-f0-9]{32}\.json$/.test(path.win32.basename(receiptPath)));
+ check(process.execArgv.length===1&&process.execArgv[0]==='--no-maglev');
+ const settings=JSON.parse(readPinned({path:configPath,sha256:configSha256}));
+ check(settings.ownerSid===ownerSid&&settings.components.crm.sourceCommit===CRM_SOURCE&&settings.actualT1===false&&settings.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&settings.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02');
+ check(samePath(process.execPath,settings.node.path)&&samePath(fileURLToPath(import.meta.url),path.win32.join(settings.supervisor.packageRoot,'scripts','canonical','wait-erp-for-hub.mjs')));
+ readPinned(settings.node);const manifest=JSON.parse(readPinned({path:path.win32.join(settings.supervisor.packageRoot,'release-manifest.json'),sha256:settings.supervisor.manifestSha256}));check(manifest.sourceCommit===settings.supervisor.sourceCommit&&manifest.packageRole==='SUPERVISOR_ONLY'&&manifest.applicationDeployment===false&&Array.isArray(manifest.files));
+ for(const file of manifest.files){check(/^scripts\/canonical\/[-_a-zA-Z0-9./]+$/.test(file.path)&&!file.path.includes('..')&&/^[a-f0-9]{64}$/.test(file.sha256));readPinned({path:path.win32.join(settings.supervisor.packageRoot,file.path),sha256:file.sha256});}
+ const required=['terminal-completion-logon.mjs','hub-stack-process-probe.ps1','wait-erp-for-hub.mjs','watch-hub-after-erp.ps1'];for(const name of required)check(manifest.files.some(f=>f.path==='scripts/canonical/'+name));
+ const core=await import(pathToFileURL(path.win32.join(settings.supervisor.packageRoot,'scripts','canonical','terminal-completion-logon.mjs')));core.validateCompletionSettings(settings,ownerSid);
+ const run=promisify(execFile),options={windowsHide:true,timeout:20000,maxBuffer:131072,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}};
+ const caller=await run(SHELL,['-NoProfile','-NonInteractive','-Command','[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],options);check(!caller.stderr&&caller.stdout.trim()===ownerSid);
+ const stages=core.COMPLETION_CORE_STAGES.slice(0,2);
+ const result=await waitForErpBeforeHub({settings,stages,matches:core.completionProcessMatches,
+  probe:async()=>{const r=await run(SHELL,['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',path.win32.join(settings.supervisor.packageRoot,'scripts','canonical','hub-stack-process-probe.ps1'),'-Ports','4184,4186'],options);check(!r.stderr);return JSON.parse(r.stdout);},
+  receipt:async stage=>{try{const p=path.win32.join(settings.runtimeDirectory,stage.name+'.json');noReparse(p);return JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,''));}catch(e){if(e.code==='ENOENT')return null;throw e;}},
+  ready:async stage=>{let response;try{response=await fetch('http://127.0.0.1:'+stage.ports[0]+'/test-health',{redirect:'error',signal:AbortSignal.timeout(5000)});}catch{return false;}if(response.status!==200){check([404,503].includes(response.status),'ERP_HUB_WAIT_HEALTH');return false;}return assertErpHubHealth(await response.json(),settings,stage);}
+ });
+ // Recheck immutable outer pins immediately before releasing the barrier.
+ readPinned({path:configPath,sha256:configSha256});readPinned(settings.node);noReparse(RECEIPTS);
+ const receiptValue={...result,supervisorSource:settings.supervisor.sourceCommit,configSha256,copyId:settings.copyId,actualT1:false,helperPid:process.pid,watcherPid:process.ppid,businessWrites:0};
+ const fd=fs.openSync(receiptPath,'wx');try{fs.writeFileSync(fd,JSON.stringify(receiptValue,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}return receiptValue;
+}
+if(process.argv[1]&&samePath(path.resolve(process.argv[1]),fileURLToPath(import.meta.url))){
+ const args=process.argv.slice(2);try{check(args.length===8&&args[0]==='--config'&&args[2]==='--sha256'&&args[4]==='--owner-sid'&&args[6]==='--receipt');await runErpHubBarrier({configPath:args[1],configSha256:args[3],ownerSid:args[5],receiptPath:args[7]});console.log('ERP_HUB_PREREQUISITES_READY');}catch(e){const codes=new Set(['ERP_HUB_WAIT_REJECTED','ERP_HUB_WAIT_OBSERVATION','ERP_HUB_WAIT_OWNER','ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_PARENT','ERP_HUB_WAIT_CHANGED','ERP_HUB_WAIT_TIMEOUT','ERP_HUB_WAIT_HEALTH','ERP_HUB_WAIT_TARGET']);console.error(codes.has(e.code)?e.code:'ERP_HUB_WAIT_REJECTED');process.exitCode=1;}
+}

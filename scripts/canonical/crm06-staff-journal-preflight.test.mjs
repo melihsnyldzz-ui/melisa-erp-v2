@@ -75,3 +75,16 @@ test('frontend physical policy rejects cross-profile evidence, unknown sources a
  for(const source of ['f'.repeat(40),frontendSource.toUpperCase(),null]){assert.throws(()=>crm06StaffJournalExcludedPaths(source),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:refs,source}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
  const alias=structuredClone(evidence),receipt=alias.references.find(ref=>ref.path.endsWith('staff-refresh-successor-da82fc6644c1.json'));alias.journal.fileId=receipt.fileId;reject(alias,opts);
 });
+function parentProbeEvidence(){const f=frontendEvidence(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe').map(path=>old.get(path)??{path,exists:true,volumeSerial:'1234ABCD',fileId:'00000000000000AA',linkCount:1,reparse:false});return rehash(f);}
+test('parent-probe physical policy adds exact twelfth receipt and keeps ten/eleven defaults unchanged',()=>{
+ const refs=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),opts={...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...refs]},evidence=parentProbeEvidence();assert.equal(refs.length,12);
+ assert.deepEqual(refs.filter(path=>!path.endsWith('da82fc6644c1-parent-probe.json')),[...crm06StaffJournalExcludedPaths(frontendSource)]);assert.equal(crm06StaffJournalExcludedPaths().length,10);assert.equal(crm06StaffJournalExcludedPaths(frontendSource).length,11);
+ assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).journal.path,target);assert.deepEqual(crm06StaffJournalPhysicalArguments({ownerSid:sid,source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...refs]}).slice(-4),['-Source',frontendSource,'-ProfileVariant','parent-probe']);
+ const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("$hasParentProbe=$PSBoundParameters.ContainsKey('ProfileVariant')"));assert(code.includes("if($hasParentProbe){$expected+=($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json')}"));
+});
+test('parent-probe physical policy rejects unknown/cross-source variant, wrong generation evidence and alias to twelfth reference',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')],opts={...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:refs},evidence=parentProbeEvidence();reject(frontendEvidence(),opts);reject(evidence,{...opts,profileVariant:undefined});reject(evidence,{...opts,excludedPaths:[...crm06StaffJournalExcludedPaths(frontendSource)]});
+ for(const profileVariant of ['',null,'PARENT-PROBE','other'])assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:frontendSource,profileVariant,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ assert.throws(()=>crm06StaffJournalExcludedPaths('b2985d2295c022848c769ea5f494012c1eb3fa00','parent-probe'),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ const alias=structuredClone(evidence);alias.journal.fileId=alias.references.find(ref=>ref.path.endsWith('da82fc6644c1-parent-probe.json')).fileId;reject(alias,opts);
+});

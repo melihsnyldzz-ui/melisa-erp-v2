@@ -38,7 +38,21 @@ try{
   $script:probePhase='PARENT_CIM';$parent=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$p.ParentProcessId)
   $script:probePhase='CHILD_OWNER';$ownerSid=Get-VerifiedProbeOwnerSid $p
   $parentOwnerSid=$null
-  if($parent){$script:probePhase='PARENT_OWNER';$parentOwnerSid=Get-VerifiedProbeOwnerSid $parent}
+  if($parent){
+   $script:probePhase='PARENT_OWNER'
+   try{$parentOwnerSid=Get-VerifiedProbeOwnerSid $parent}catch{
+    $parentOwnerError=$_
+    # Optional launcher parents may exit after the CIM snapshot. Only this
+    # exact native error permits ONE fresh observation, never an owner retry.
+    if($parentOwnerError.Exception.GetType().FullName-cne'Microsoft.Management.Infrastructure.CimException'-or[string]$parentOwnerError.CategoryInfo.Category-cne'ObjectNotFound'){throw}
+    $freshParent=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$p.ParentProcessId) -ErrorAction Stop
+    if($null-eq$freshParent){$parent=$null;$parentOwnerSid=$null}else{
+     $freshParents=@($freshParent)
+     if($freshParents.Count-ne1-or$freshParents[0].ProcessId-ne$parent.ProcessId-or$freshParents[0].CreationDate-isnot[datetime]-or$parent.CreationDate-isnot[datetime]-or$freshParents[0].CreationDate.ToUniversalTime().Ticks-ne$parent.CreationDate.ToUniversalTime().Ticks){throw 'HUB_STACK_OS_PARENT_IDENTITY_CHANGED'}
+     throw $parentOwnerError
+    }
+   }
+  }
   $script:probeReturnValue=$null;$script:probePhase='CREATION'
   $creationTime=$p.CreationDate.ToUniversalTime().ToString('o')
   $managedCreationTime=$managed.StartTime.ToUniversalTime().ToString('o')

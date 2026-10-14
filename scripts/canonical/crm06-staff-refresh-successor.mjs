@@ -16,15 +16,24 @@ export const CRM06_STAFF_PARENT_SETTINGS_PATH=root+'\\settings-crm06-7a081ab2b01
 export const CRM06_STAFF_PARENT_ACTIVATION_PATH=root+'\\crm-activation-crm06-7a081ab2b017.json';
 export const CRM06_STAFF_JOURNAL_EVIDENCE_PATH=actorRoot+'\\journal-physical-preflight-b2985d2295c0.json';
 const nextPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-b2985d2295c0.json',settings:root+'\\settings-crm06-staff-b2985d2295c0.json',hubPin:root+'\\hub-pin-crm06-staff-b2985d2295c0.json',hubStartup:root+'\\hub-startup-crm06-staff-b2985d2295c0.json'});
-// Two reviewed immutable deliveries only. The original actor setup remains
-// the parent of both; the active b298 installation is not rebuilt or adopted.
+// Two reviewed CRM sources and three literal supervisor generations only.
+// Every generation retains the original actor setup as its immutable parent.
 const frontendPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-da82fc6644c1.json',settings:root+'\\settings-crm06-staff-da82fc6644c1.json',hubPin:root+'\\hub-pin-crm06-staff-da82fc6644c1.json',hubStartup:root+'\\hub-startup-crm06-staff-da82fc6644c1.json'});
+const parentProbePaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-da82fc6644c1-parent-probe.json',settings:root+'\\settings-crm06-staff-da82fc6644c1-parent-probe.json',hubPin:root+'\\hub-pin-crm06-staff-da82fc6644c1-parent-probe.json',hubStartup:root+'\\hub-startup-crm06-staff-da82fc6644c1-parent-probe.json'});
 const reject=()=>{throw Object.assign(Error('CRM06_STAFF_SUCCESSOR_REJECTED'),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});};
 const check=value=>{if(!value)reject();};
-export function crm06StaffSuccessorProfile(source=CRM06_STAFF_CRM_SOURCE){
+export function crm06StaffSuccessorProfile(source=CRM06_STAFF_CRM_SOURCE,profileVariant){
  check(source===CRM06_STAFF_CRM_SOURCE||source===CRM06_STAFF_FRONTEND_CRM_SOURCE);
+ check(profileVariant===undefined||source===CRM06_STAFF_FRONTEND_CRM_SOURCE&&profileVariant==='parent-probe');
+ if(profileVariant==='parent-probe')return Object.freeze({source,profileVariant,successorPath:actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-da82fc6644c1-parent-probe.json',nextPaths:parentProbePaths,dependencyLockPath:root+'\\crm-da82fc6644c1-parent-probe-dependency-lock.json'});
  const frontend=source===CRM06_STAFF_FRONTEND_CRM_SOURCE;
  return Object.freeze({source,successorPath:frontend?actorRoot+'\\staff-refresh-successor-da82fc6644c1.json':CRM06_STAFF_SUCCESSOR_PATH,journalEvidencePath:frontend?actorRoot+'\\journal-physical-preflight-da82fc6644c1.json':CRM06_STAFF_JOURNAL_EVIDENCE_PATH,nextPaths:frontend?frontendPaths:nextPaths,dependencyLockPath:root+'\\crm-'+source.slice(0,12)+'-dependency-lock.json'});
+}
+export function crm06StaffSuccessorProfileForPath(source,receiptPath){
+ const profile=crm06StaffSuccessorProfile(source);
+ if(receiptPath===profile.successorPath)return profile;
+ const parentProbe=source===CRM06_STAFF_FRONTEND_CRM_SOURCE?crm06StaffSuccessorProfile(source,'parent-probe'):null;
+ check(parentProbe&&receiptPath===parentProbe.successorPath);return parentProbe;
 }
 const exact=(value,keys)=>{check(value&&Object.getPrototypeOf(value)===Object.prototype&&Reflect.ownKeys(value).length===keys.length);for(const key of keys){const d=Object.getOwnPropertyDescriptor(value,key);check(d?.enumerable&&Object.hasOwn(d,'value'));}};
 const same=(a,b)=>digest(a)===digest(b);
@@ -50,9 +59,9 @@ const settingsProjectionHash=(value,profile)=>{const copy=structuredClone(value)
 
 export function buildCrm06StaffRefreshSuccessor(input){
  try{
-  exact(input,['baseline','parentActivation','parentAudit','parentSettings','parentSettingsRef','parentHubPin','parentHubStartup','crmPackagePin','crmIndexSha256','crmDependencyLockRef','supervisorPin','journalEvidenceSha256','ownerSid']);
+  exact(input,['baseline','parentActivation','parentAudit','parentSettings','parentSettingsRef','parentHubPin','parentHubStartup','crmPackagePin','crmIndexSha256','crmDependencyLockRef','supervisorPin','journalEvidenceSha256','ownerSid',...(Object.hasOwn(input,'profileVariant')?['profileVariant']:[])]);
   digest(input);const {baseline,parentActivation,parentAudit,parentSettings,parentSettingsRef,parentHubPin,parentHubStartup,crmPackagePin,crmIndexSha256,crmDependencyLockRef,supervisorPin,journalEvidenceSha256,ownerSid}=input;
-  const profile=crm06StaffSuccessorProfile(crmPackagePin.sourceCommit),paths=profile.nextPaths;
+  const profile=crm06StaffSuccessorProfile(crmPackagePin.sourceCommit,input.profileVariant),paths=profile.nextPaths;
   validateCompletionSettings(parentSettings,ownerSid);
   check(Object.hasOwn(parentSettings.crmPrivateFiles,'crm06Actors')&&!Object.hasOwn(parentSettings.crmPrivateFiles,'crm06StaffSuccessor'));
   check(parentSettings.components.crm.sourceCommit==='5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36');
@@ -86,7 +95,7 @@ export function buildCrm06StaffRefreshSuccessor(input){
   settings.privateSources.hubStartupConfig=hubStartupRef;settings.components.hub.config=hubStartupRef;
   settings.crmPrivateFiles.crm06StaffSuccessor={path:profile.successorPath,sha256:'0'.repeat(64)};
   validateCompletionSettings(settings,ownerSid);completionCrmEnvironment(activation,settings);validateCurrentCrmHubPins(hubPin,settings,activation,crmIndexSha256);
-  const receipt={schemaVersion:'melisa-crm06-staff-refresh-successor.v1',featureBase:{erp:CRM06_STAFF_ERP_FEATURE_BASE,crm:profile.source},parent:{settingsRef:structuredClone(parentSettingsRef),settingsObjectHash:digest(parentSettings),activationRef:structuredClone(parentSettings.privateSources.crmActivationConfig),activationObjectHash:digest(parentActivation),baselineRef:structuredClone(parentSettings.crmPrivateFiles.baseline),actorAuditRef:structuredClone(parentSettings.crmPrivateFiles.crm06Actors)},prepared:{crmPackagePin:structuredClone(crmPackagePin),crmIndexSha256,crmDependencyLockRef:structuredClone(crmDependencyLockRef),supervisorPin:structuredClone(supervisorPin),journalEvidenceSha256},child:{activationRef,activationObjectHash:digest(activation),hubPinRef,hubPinObjectHash:digest(hubPin),hubStartupRef,hubStartupObjectHash:digest(hubStartup),settingsPath:paths.settings,settingsProjectionHash:settingsProjectionHash(settings,profile)},rollback:{settingsRef:structuredClone(parentSettingsRef),crmActivationRef:structuredClone(parentSettings.privateSources.crmActivationConfig),hubStartupRef:structuredClone(parentSettings.privateSources.hubStartupConfig),hubPinRef:structuredClone(parentSettings.privateSources.hubPinConfig),crmPackagePin:{packageRoot:parentSettings.components.crm.packageRoot,sourceCommit:parentSettings.components.crm.sourceCommit,manifestSha256:parentSettings.components.crm.manifestSha256},supervisorPin:structuredClone(parentSettings.supervisor)},installed:false,authenticatedOperationsVerified:false,humanAccepted:false};
+  const receipt={schemaVersion:'melisa-crm06-staff-refresh-successor.v1',featureBase:{erp:CRM06_STAFF_ERP_FEATURE_BASE,crm:profile.source},parent:{settingsRef:structuredClone(parentSettingsRef),settingsObjectHash:digest(parentSettings),activationRef:structuredClone(parentSettings.privateSources.crmActivationConfig),activationObjectHash:digest(parentActivation),baselineRef:structuredClone(parentSettings.crmPrivateFiles.baseline),actorAuditRef:structuredClone(parentSettings.crmPrivateFiles.crm06Actors)},prepared:{crmPackagePin:structuredClone(crmPackagePin),crmIndexSha256,crmDependencyLockRef:structuredClone(crmDependencyLockRef),supervisorPin:structuredClone(supervisorPin),journalEvidenceSha256,...(profile.profileVariant?{profileVariant:profile.profileVariant}:{})},child:{activationRef,activationObjectHash:digest(activation),hubPinRef,hubPinObjectHash:digest(hubPin),hubStartupRef,hubStartupObjectHash:digest(hubStartup),settingsPath:paths.settings,settingsProjectionHash:settingsProjectionHash(settings,profile)},rollback:{settingsRef:structuredClone(parentSettingsRef),crmActivationRef:structuredClone(parentSettings.privateSources.crmActivationConfig),hubStartupRef:structuredClone(parentSettings.privateSources.hubStartupConfig),hubPinRef:structuredClone(parentSettings.privateSources.hubPinConfig),crmPackagePin:{packageRoot:parentSettings.components.crm.packageRoot,sourceCommit:parentSettings.components.crm.sourceCommit,manifestSha256:parentSettings.components.crm.manifestSha256},supervisorPin:structuredClone(parentSettings.supervisor)},installed:false,authenticatedOperationsVerified:false,humanAccepted:false};
   const receiptRef={path:profile.successorPath,sha256:crm06SuccessorFileHash(receipt)};
   settings.crmPrivateFiles.crm06StaffSuccessor=receiptRef;
   const settingsRef={path:paths.settings,sha256:crm06SuccessorFileHash(settings)};
@@ -98,7 +107,7 @@ export function assertCrm06StaffRefreshSuccessor(input){
  try{
   exact(input,['baseline','parentActivation','parentAudit','parentSettings','parentHubPin','parentHubStartup','currentActivation','currentSettings','currentHubPin','currentHubStartup','receipt','ownerSid']);digest(input);
   const {receipt}=input;check(receipt?.schemaVersion==='melisa-crm06-staff-refresh-successor.v1');
-  const expected=buildCrm06StaffRefreshSuccessor({baseline:input.baseline,parentActivation:input.parentActivation,parentAudit:input.parentAudit,parentSettings:input.parentSettings,parentSettingsRef:receipt.parent.settingsRef,parentHubPin:input.parentHubPin,parentHubStartup:input.parentHubStartup,crmPackagePin:receipt.prepared.crmPackagePin,crmIndexSha256:receipt.prepared.crmIndexSha256,crmDependencyLockRef:receipt.prepared.crmDependencyLockRef,supervisorPin:receipt.prepared.supervisorPin,journalEvidenceSha256:receipt.prepared.journalEvidenceSha256,ownerSid:input.ownerSid});
+  const expected=buildCrm06StaffRefreshSuccessor({baseline:input.baseline,parentActivation:input.parentActivation,parentAudit:input.parentAudit,parentSettings:input.parentSettings,parentSettingsRef:receipt.parent.settingsRef,parentHubPin:input.parentHubPin,parentHubStartup:input.parentHubStartup,crmPackagePin:receipt.prepared.crmPackagePin,crmIndexSha256:receipt.prepared.crmIndexSha256,crmDependencyLockRef:receipt.prepared.crmDependencyLockRef,supervisorPin:receipt.prepared.supervisorPin,journalEvidenceSha256:receipt.prepared.journalEvidenceSha256,ownerSid:input.ownerSid,...(Object.hasOwn(receipt.prepared,'profileVariant')?{profileVariant:receipt.prepared.profileVariant}:{})});
   check(same(expected.receipt,receipt)&&same(expected.activation,input.currentActivation)&&same(expected.settings,input.currentSettings)&&same(expected.hubPin,input.currentHubPin)&&same(expected.hubStartup,input.currentHubStartup));
   return true;
  }catch{reject();}

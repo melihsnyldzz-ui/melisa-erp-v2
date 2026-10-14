@@ -19,6 +19,12 @@ $ProgressPreference='SilentlyContinue'
 $global:probeFixtureMode='__MODE__'
 $global:probeFixturePorts='__PORTS__'
 $global:probeFixtureOwnerCalls=0
+$global:probeFixtureParentCimCalls=0
+$global:probeFixtureParentOwnerCalls=0
+function Throw-FixtureCimError([string]$category){
+ $exception=[Microsoft.Management.Infrastructure.CimException]::new('PRIVATE_OS_SECRET native owner')
+ throw [Management.Automation.ErrorRecord]::new($exception,'PRIVATE_NATIVE_OWNER',[Management.Automation.ErrorCategory]$category,$null)
+}
 function Get-NetTCPConnection {
  [CmdletBinding()]param($State,$LocalPort)
  if($State-cne'Listen'-or$PSBoundParameters['ErrorAction']-cne'SilentlyContinue'-or$PSBoundParameters['ErrorVariable']-cne'probeNetErrors'-or(@($LocalPort)-join',')-cne$global:probeFixturePorts){throw 'OFFLINE_TRANSPORT_ARGUMENTS_CHANGED'}
@@ -36,11 +42,22 @@ function Get-CimInstance {
  param($ClassName,$Filter)
  if($ClassName-cne'Win32_Process'){throw 'OFFLINE_CIM_CLASS_CHANGED'}
  $id=[int]($Filter.Split('=')[1])
+ if($id-eq11){
+  $global:probeFixtureParentCimCalls++
+  if($global:probeFixtureParentCimCalls-gt2){throw 'OFFLINE_PARENT_REOBSERVE_LIMIT'}
+  if($global:probeFixtureParentCimCalls-eq2-and$global:probeFixtureMode-eq'PARENT_RACE_GONE'){return $null}
+  if($global:probeFixtureParentCimCalls-eq2-and$global:probeFixtureMode-eq'PARENT_RACE_REOBSERVE_DENIED'){Throw-FixtureCimError 'PermissionDenied'}
+ }
  if($global:probeFixtureMode-eq'DISAPPEARED'-and$id-eq12){return $null}
  if($global:probeFixtureMode-eq'CHILD_CIM'-and$id-eq12){throw [InvalidOperationException]::new('PRIVATE_OS_SECRET child CIM')}
  if($global:probeFixtureMode-eq'PARENT_CIM'-and$id-eq11){throw [InvalidOperationException]::new('PRIVATE_OS_SECRET parent CIM')}
  if($global:probeFixtureMode-eq'NO_PARENT'-and$id-eq11){return $null}
  $date=[datetime]::SpecifyKind([datetime]'2026-10-11T12:00:00',[DateTimeKind]::Utc)
+ if($id-eq11-and$global:probeFixtureParentCimCalls-eq2){
+  if($global:probeFixtureMode-eq'PARENT_RACE_REUSED'){$date=$date.AddSeconds(1)}
+  if($global:probeFixtureMode-eq'PARENT_RACE_MALFORMED'){$date='PRIVATE_OS_SECRET malformed parent'}
+  if($global:probeFixtureMode-eq'PARENT_RACE_PID_CHANGED'){$id=99}
+ }
  if($global:probeFixtureMode-eq'CREATION'-and$id-eq12){$date='PRIVATE_OS_SECRET malformed time'}
  return [pscustomobject]@{ProcessId=$id;ParentProcessId=if($id-eq12){11}else{10};ExecutablePath='C:\Program Files\nodejs\node.exe';CommandLine='synthetic fixture';CreationDate=$date}
 }
@@ -48,6 +65,11 @@ function Get-Process {param($Id,$ErrorAction) if($Id-ne12-or$ErrorAction-cne'Sto
 function Invoke-CimMethod {
  param($InputObject,$MethodName)
  if($MethodName-cne'GetOwnerSid'){throw 'OFFLINE_OWNER_METHOD_CHANGED'}
+ if($InputObject.ProcessId-eq11){$global:probeFixtureParentOwnerCalls++;if($global:probeFixtureParentOwnerCalls-gt1){throw 'OFFLINE_PARENT_OWNER_RETRY_FORBIDDEN'}}
+ if($InputObject.ProcessId-eq11-and$global:probeFixtureMode.StartsWith('PARENT_RACE_')){Throw-FixtureCimError 'ObjectNotFound'}
+ if($InputObject.ProcessId-eq11-and$global:probeFixtureMode-eq'PARENT_NATIVE_PERMISSION'){Throw-FixtureCimError 'PermissionDenied'}
+ if($InputObject.ProcessId-eq12-and$global:probeFixtureMode-eq'CHILD_NATIVE_NOTFOUND'){Throw-FixtureCimError 'ObjectNotFound'}
+ if($InputObject.ProcessId-eq11-and$global:probeFixtureMode-eq'PARENT_FOREIGN_NOTFOUND'){throw [Management.Automation.ErrorRecord]::new([InvalidOperationException]::new('PRIVATE_OS_SECRET foreign type'),'PRIVATE_OTHER',[Management.Automation.ErrorCategory]::ObjectNotFound,$null)}
  if($InputObject.ProcessId-eq12-and$global:probeFixtureMode-eq'CHILD_OWNER'){throw [InvalidOperationException]::new('PRIVATE_OS_SECRET child owner')}
  if($InputObject.ProcessId-eq11-and$global:probeFixtureMode-eq'PARENT_OWNER'){throw [InvalidOperationException]::new('PRIVATE_OS_SECRET parent owner')}
  if($InputObject.ProcessId-eq12-and$global:probeFixtureMode-eq'OWNER_NONZERO'){return [pscustomobject]@{ReturnValue=[uint32]2;Sid='PRIVATE_OS_SECRET'}}
@@ -60,6 +82,7 @@ function Invoke-CimMethod {
 }
 if($global:probeFixtureMode-eq'SERIALIZE'){function ConvertTo-Json {param($InputObject,$Depth,[switch]$Compress) throw [InvalidOperationException]::new('PRIVATE_OS_SECRET serialize')}}
 & '__SOURCE__' -Ports '__PORTS__' __BOUND__
+if($global:probeFixtureMode-eq'PARENT_RACE_GONE'-and($global:probeFixtureParentCimCalls-ne2-or$global:probeFixtureParentOwnerCalls-ne1)){throw 'OFFLINE_PARENT_RACE_OBSERVATION_COUNTS'}
 '@
  $text=$template.Replace('__MODE__',$mode).Replace('__PORTS__',$ports).Replace('__SOURCE__',$escapedSource).Replace('__BOUND__',$(if($boundPid){'-ProcessId 12'}else{''}))
  $info=[Diagnostics.ProcessStartInfo]::new();$info.FileName=$shell;$info.Arguments='-NoProfile -NonInteractive -EncodedCommand '+[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($text));$info.UseShellExecute=$false;$info.CreateNoWindow=$true;$info.WindowStyle='Hidden';$info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
@@ -92,6 +115,12 @@ $bound=Run-Fixture 'BOUND_EMPTY' '4184' $true;$decoded=ConvertFrom-Json $bound.s
 Write-Output 'PASS bound_PID_before_listen_remains_unready_row'
 $absent=Run-Fixture 'NO_PARENT';$decoded=ConvertFrom-Json $absent.stdout;$row=@($decoded);if($absent.exitCode-ne0-or$null-ne$row[0].parentOwnerSid-or$null-ne$row[0].parentCreationTime){throw 'OFFLINE_ABSENT_PARENT_SHAPE_CHANGED'}
 Write-Output 'PASS absent_parent_remains_null_for_external_guard_rejection'
+$gone=Run-Fixture 'PARENT_RACE_GONE';$decoded=ConvertFrom-Json $gone.stdout;$row=@($decoded)
+if($gone.exitCode-ne0-or$gone.stderr-cne''-or$row.Count-ne1-or$row[0].pid-ne12-or$row[0].parentPid-ne11-or$row[0].ownerSid-cne'S-1-5-21-123-456-789-1001'-or$row[0].creationTime-cne$row[0].managedCreationTime-or$row[0].bindings.Count-ne2){throw 'OFFLINE_PARENT_RACE_CHILD_IDENTITY_CHANGED'}
+foreach($key in @('parentOwnerSid','parentNodePath','parentCommandLine','parentCreationTime')){if($null-ne$row[0].$key){throw 'OFFLINE_PARENT_RACE_NOT_ABSENT'}}
+Write-Output 'PASS exact_native_parent_owner_notfound_then_single_absent_reobserve_preserves_child'
+foreach($mode in @('PARENT_RACE_PRESENT','PARENT_RACE_REUSED','PARENT_RACE_PID_CHANGED','PARENT_RACE_MALFORMED','PARENT_RACE_REOBSERVE_DENIED','PARENT_NATIVE_PERMISSION','PARENT_FOREIGN_NOTFOUND')){Assert-Diagnostic $mode 'PARENT_OWNER'}
+Assert-Diagnostic 'CHILD_NATIVE_NOTFOUND' 'CHILD_OWNER'
 foreach($phase in @('NETTCP','CHILD_CIM','CHILD_MANAGED','PARENT_CIM','CHILD_OWNER','PARENT_OWNER','CREATION','SERIALIZE')){Assert-Diagnostic $phase $phase}
 Assert-Diagnostic 'NETTCP_PERMISSION' 'NETTCP'
 Assert-Diagnostic 'NETTCP_FOREIGN_NOTFOUND' 'NETTCP'
