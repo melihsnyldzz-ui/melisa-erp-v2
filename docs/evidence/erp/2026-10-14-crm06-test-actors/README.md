@@ -13,3 +13,13 @@ Supervisor-only immutable bundle mevcut ERP/native7a ve CRM5b uygulama bileşenl
 Kaynak incelemesi GO; hedefli guarded constructor10 + credentials3 + projection6 + mevcut supervisor39 = **58/58 PASS**. Bu sayı actual dosya/DPAPI/login veya GUI PASS değildir. Gerçek korumalı hazırlık, runtime preflight ve normal oturum sonuçları STATUS'ta ayrı güncellenir.
 
 Yeni personel için kalıcı refresh henüz desteklenmiş sayılmaz; mevcut sabit agent3 refresh ailesi değiştirilmez. Yeni yönetici mevcut issuer refresh/SID yolunu kullanır. Gerçek müşteri mesajı, ücretli servis, ERP stok/cari/fiş/satış, LIVE/Vega/T1/main veya iptal edilmiş Semih yardımcısı bu kurulumun parçası değildir. Eski kabul/restore yeniden çalıştırılmaz.
+
+## Gerçek operator kurulum sonucu
+
+15:09:57 yerel saat: aynı core görevin yalnız action'ı yeni supervisor7a081 paketine geçirildi. ERP/native7a41 ve CRM5b6 uygulamaları korunur. Scheduler wrapper'ı durdurup çocukları bırakınca kurulum failclosed durdu; exact owner/creation/fullargv/receipt ile gözlenen supervisor ve altı çocuk retained Windows process HANDLE üzerinden, gerçek çıkışı beklenerek kapatıldı. Hiçbir genel PID/tree kill veya SQL yazması yok. Hub görevi ve PID728 korunur; principal/trigger/settings aynı. Taze altı OS guard, DB02/copy kimliği ve native/API health doğrulandı. Bu başlatma, Windows yeniden giriş veya kesinti kabulü değildir.
+
+12:21:44Z resmi normal API: ayrı yönetici mevcut mudur/agent2; issuerSID, refresh aynıSID, kendi logout ve iptal sonrası401 doğrulandı. TEST ADMIN, rol yükseltme, ücretli AI, liveSend ve root ürün talebi0. Diğer kullanıcının ailesi iptal edilmedi. Yeni personelin kalıcı refresh sınırı aynı kalır.
+
+Credential okuyucusu PS7 çağırıcısının module path'ini WindowsPS5.1'e aktarınca failclosed reddetti; bu aşamada giriş yapılmadı. Dar düzeltme sadece ACL/DPAPI alt süreçlerinin system Modules ortamını seçer, global process.env veya uygulama config'ini değiştirmez. Gerçek korumalı manager/staff tüketimi2/2 ve hedefli envelope test3/3 geçti; sırlar çıktıya taşınmadı. Bağımsız kaynak incelemesi GO. Yeni reader immutable consumer teslimi uygulama veya supervisor yeniden kurulumu gerektirmez.
+
+Kamuya açık rapor kimlik/tutar/credential/store içermez. Private hazırlık, encrypted credentials, görev before-image, shutdown snapshot, activation receipt ve normal auth proof repo dışı korumalı runtime alanındadır. Normal müşteri/personel/mobil GUI ve ERP'nin aynı kayıt için no-sale readback'i tamamlanmadan CRM06 veya insan kabulü PASS değildir.
