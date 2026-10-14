@@ -1,6 +1,6 @@
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
-Yeni korumalı normal TEST erişimi etkin; resmi yönetici login/issuer/refresh/logout teknik doğrulandı. Aynı ERP/native7a41–CRM5b6 ve DB02 korunur. CRM normal müşteri/personel/mobil GUI ve ERP aynı kayıt no-sale kanıtı bekleniyor; bu alt kurulum CRM06 veya insan kabulünü kapatmaz. [Dar kurulum kanıtı](docs/evidence/erp/2026-10-14-crm06-test-actors/README.md).
+Normal GUI korumalı credential aktarımı CUA process API desteği eksikliği nedeniyle açık; giriş/talep0 ve insan kabulü aynı. Yeni korumalı normal TEST erişimi etkin; resmi yönetici login/issuer/refresh/logout teknik doğrulandı. Aynı ERP/native7a41–CRM5b6 ve DB02 korunur. CRM normal müşteri/personel/mobil GUI ve ERP aynı kayıt no-sale kanıtı bekleniyor; bu alt kurulum CRM06 veya insan kabulünü kapatmaz. [Dar kurulum kanıtı](docs/evidence/erp/2026-10-14-crm06-test-actors/README.md).
 
 ERP-DEC-056 kapsamında CRM06 özgün K01/K02/K03 + son normal müşteri/personel/mobil şartları birlikte kapanacak. Ortak runtime aynı7a/5b paketle kurtarıldı ve21/21 veri hash/sayı eşliği kanıtlandı; [kurtarma alt kanıtı](docs/evidence/erp/2026-10-14-shared-recovery/README.md) bütün başlığı kapatmaz. ERP06 iletişim API/UI/native kaynak checkpoint'i kurulu veya kullanıcı kabulü değildir; [kalan native koşullar](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md) açık. C06/C07🟡,49/9/39/1/completeDelivery=false aynı; sabit55 ana teslim kapanış sayısı artırılmadı. Yeni bağımsız iş/finish ağacı yok.
 
