@@ -8,6 +8,8 @@ Yerel API **967 PASS/0 FAIL/13 mevcut koşullu skip**, tam canonical40c5260 exit
 
 CRM sahibine yeni sağlıklı source için normal MANUAL taslak/readback kontrolü devredildi; henüz normal taslak başarı kanıtı değildir. Sıradaki aynı iş bu GUI sonucu ve exact replay/olumsuz/etki kontrolüdür. ERP04/C09🟡, insan kabulü ve completeDelivery=false sürer; yeni migration/finish işi açılmadı. Önceki fiyat GUI, inverse ve restore provaları tekrarlanmadı.
 
+CRM sahibi kendi güncel talep/oturum dosyalarının owner/SYSTEM korumalı kopyasını aldı, byte/hash karşılaştırması ve kaynakların değişmediği doğrulandı; bu aktif restore değildir. Normal GUI'de somut erişim engeli: elektrik kesintisinden kalan sekmenin gerçek protokolü HTTP/HTTPS olmadığı için tarayıcı güvenlik kontrolü görünür/açma eylemini reddetti. Alternatif araç/model/sekme/CDP ile aşılmadı; GUI login, yeni draft veya API create yapılmadı. Kullanıcı yalnız mevcut tarayıcıda normal http://127.0.0.1:62700/ sayfasını açacak; parola istenmez. Bu araç erişim engeli ERP/CRM servis arızası veya insan FAIL/PASS sayılmaz.
+
 ## ERP04 / C09 — kesinti sonrası koruma ve CRM paket sınırı — 14 Ekim 2026
 
 Kesinti sonrası salt okunur karşılaştırmada 21 iş tablosunun tam satır hashleri ve sayıları, 13 Ekim 17:22 kayıtlarıyla aynı: bu kapsamda veri kaybı bulgusu yok. İki TEST DB online; mevcut 9 CRM talebi/13 satır, iki fiyat sürümü/tek current ve sıfır bekleyen intent korunmuş. Bu, bütün 751 tablonun veya kaydedilmemiş tarayıcı taslaklarının doğrulanması değildir. CRM sahibinin kalıcı talep/personel journal karşılaştırması da aynı; tarayıcı oturumunun kesintiden sağ çıkması ayrıca doğrulanmadı. Ham kanıt repo dışı private alanda.

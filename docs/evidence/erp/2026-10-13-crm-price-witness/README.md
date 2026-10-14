@@ -31,6 +31,14 @@ güncellenmiş private hazırlık/aktivasyon/süreç guard'ı bağımsız GO ald
 Normal CRM sahibi 11:30 yeni sağlıklı kaynak için GUI kontrolünü devraldı.
 Bu handoff normal taslağın başarılı oluşturulduğu anlamına gelmez.
 
+CRM sahibi güncel talep/oturum dosyalarını mevcut korumalı yedek yoluyla
+kopyalayıp byte/hash ve kaynak değişmezliğini doğruladı; aktif restore yok.
+GUI'deki tek somut erişim engeli, kesinti sonrası HTTP/HTTPS dışındaki hata
+adresinde kalan sekmenin tarayıcı güvenlik kontrolünce reddedilmesidir.
+Alternatif araç/sekme/model/CDP ile aşılmadı; login, yeni draft ve API create
+çalıştırılmadı. Kullanıcının normal CRM HTTP sayfasını açması beklenir,
+parola istenmez. Servis arızası veya insan kabulü sonucu olarak etiketlenmez.
+
 ## Kesinti sonrası güncel kapsam — 14 Ekim 2026
 
 21 iş tablosunun satır sayıları ve tam satır hashleri, 13 Ekim 17:22 kesinti
