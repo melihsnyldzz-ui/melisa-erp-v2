@@ -1,5 +1,7 @@
 ## Sıradaki iş
 
+15 Ekim — **DOT-CHAIN-20261015-01 kontrollü TEST geçişi BLOKE:** ERP-DEC-061/CRM-DEC-019 ve tek Dot devriyle fresh current894/cac/ERP7a kimlik,6CORE/2görev, DB02/copye16b/T1false, paket/private/dependency pinleri ve19ref fiziksel kontrol PASS. Yeni94f/f450 için yalnız yeni immutable aday dosyaları hazırlandı, candidate verify PASS ve bağımsız inceleme GO;72 eski dosya korundu. Gerçek Apply, iki eski TEST görevini durdurduktan sonra **STOP_CAPTURED / CRM06_SUCCESSOR_TRANSITION_REJECTED** ile reddedildi (mutated=true,newStarted=false). Alt helper sonucu kalıcı kaydedilmediğinden kesin alt neden UNKNOWN; tahmin veya aynı stop tekrarı yapılmadı.20:09:02.916Z saltokunur son kontrolde eski894 CRM index ve7a nativeDB02 yanıt veriyor;6CORE+Hub+eskiNode supervisor canlı, iki shell watcher durmuş, iki görev **Ready**, action/Trigger/Principal/Settings eski894/cac ile aynı. Bu sağlıklı tam-supervision veya başarılı kurulum değildir.72 dosya/rol/credential/journal/request bytes veSQL/TEST125 süreç kimliği aynı; auth/talep/ticari/SQL yazısı0. **94f kurulmadı; ek kurtarma/restart/forcecleanup/restore yapılmadı.** [Geçiş engeli ve koruma kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md#dot-chain-20261015-01--controlled-transition-blocked). Kaynakf450 veCRM94f önceki exactCI SUCCESS ayrı korunur; bu tur yeni sourceCI/test/build yok, metadataHEAD eskiCI ile PASS sayılmaz. NormalGUI/telefon/reboot/CRM-UA11 insan kabulü ve49=9🟢/39🟡/1🔴 aynı. Bu tek görevde DUR; sonraki dar tanı/kurtarma kapsamını yalnız Dot seçer.
+
 15 Ekim — **DOT-ERP-CRM06-R02-94F-PROFILE-r1 teknik SOURCE/OFFLINE teslimi:** exactCRM94f2a75322a3daa695d38010a6f2c8ef23f6c17b için ERP sonlu successor/journal/Hub profili hazırlandı. Kaynak **f450ff488671911877249b84f65bed28df79070f**, aynıSHA PR/push CI SUCCESS;7 yeni hedef PASS/0skip ve bağımsız kaynak/paket incelemesi GO. Yeni10.profil/8.kaynak,19 yalnız politika referansı=eski18+exactyeni; gerçek physical-walker çalıştırılmadı. Yeni94f manifest16cb075a8734d56afd1f364999ab8f0707255be5c4a042a9c197ccf397eea556/index19624f5d0189c5750089b4c50779809f3a381e323ae59541daa5ee4c3efdf3a5 ayrıca sabitlendi. İnaktif SUPERVISOR_ONLY paketi C:/Sirket/ERP/releases/CANONICAL-CRM06-SUPERVISOR-TEST-20261015-f450ff488671, manifest40c88297b94468555bc78b50a7b05ad2d576e7c94ac747aab91428ce48f55656;264 exact Git export dosyası geri karşılaştırıldı. **Aktif helper/settings/config/journal/credential/görev/servis/DB02/SQL/restart/kurulum yazısı0.** CRM94f paketi yeniden oluşturulmadı;2291payload/185Gitblob bağı salt okunur doğrulandı. [Kaynak/inaktif paket kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md#crm06r02--94f-exact-profile-sourceoffline-delivery). Önceki kurulu894/cac/ERP7a kaydı tarihlidir, bu tur fresh runtime kanıtı değildir. NormalGUI/telefon/reboot/insan kabulü ve sayaçlar aynı; yeni aktivasyon ayrı ERP-owner devri ister. Bu tek kaynak görevi sonunda DUR; sonraki işi yalnız Dot tek devir kaydından seçer.
 
 
@@ -30,23 +32,23 @@ Aşağıdaki otomasyon kurulum ve957 kayıtları önceki tarihli checkpointlerdi
 | --- | --- |
 | Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
 | İzinli paralel teknik hazırlık | ERP09 aynı factory/domain read köprüsünü korur. Source6ff6b83/2874171 ile yalnız collector16 için creator15 fiyat geçmişini doğrulayan ayrı readonly compiler/bootstrap/DTO bağlantısı hazır; kayıtsız durumda eski açık ret sürer. Source12b0815 üç sonlu paket pinini, d2bb6bd yalnız registry metadata grant hedefini düzeltir; exact son PR38668867352/push38668863003 CI SUCCESS. Yeni iki history/proof yordamı ve özel2satır registry+immutable trigger DB02'ye gerçekten kuruldu; restricted-service native kayıt/yeniden kanıt PASS,428 eski modül/grant/roller aynı, ticari/auth yazısı0. Normal uygulama7a41/restart/config/route/tahsilat writer değişmedi; collect/cancel403. Fiyatlı sentetik vaka yalnız mevcut ERP09 teknik hazırlığıdır; GUI/insan/ana kapanış aynı açık. ERP-DEC-057/060 uygulanır. |
-| Güncel adım | CRM06/R02 exact94f kaynak/offline profili sourcef450ff4 ile teknik hazır;7 yeni hedef PASS, exactsource2CI SUCCESS ve inaktifSUP264export-byte kanıtı. Yeni19 politika referansı actualphysicalwalker kanıtı değildir. Bu görevde gerçek kurulum/config/servis/SQL0; önceki894/cac/ERP7a readback10:32:13UTC yalnız tarihli önceki kanıttır. |
+| Güncel adım | DOT-CHAIN-20261015-01: actual Apply STOP_CAPTURED ile BLOKE. Exact94f/f450 yeni immutable aday/physical19/driver verify hazır;94f kurulmadı. Eski894/cac/7a HTTP yanıtlıyor, iki shell watcher durmuş ve görevlerReady. Tam supervision sağlıklı sayılmaz; ek recovery/retry yapılmadı. |
 | Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
 | Bitiş koşulu | Özgün CRM06 K01/K02/K03, normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel, yeniden açılış, son normal mobil ve gereken insan kabulü birlikte kanıtlanır. Eski7hesap/roller/journal/requeststore ve yeni iki dedicated normal profil korunur. Sırlar DPAPI/owner korumada kalır; TEST ADMIN/shared reset/auth bypass yok. Paket/kurulum/API teknik sonucu normal GUI veya insan kabulü değildir. |
-| Mevcut kanıt | [Kaynak/inaktif paket kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md#crm06r02--94f-exact-profile-sourceoffline-delivery): sourcef450ff488671911877249b84f65bed28df79070f; PR38747419775/push38747407429 SUCCESS. crm-package-proof.json d47fdb1650b873a3fc0730059bcfaa510cf732da1dc4576754e370b5235c67b2; supervisor-package-proof.json 119361b0b731dcc558d7bc9bf8f21f5f5b3850f1fcf87f7e34b1039edf9daa10. Önceki894 e6ded/c3919 kurulum ve65dosya/18ref gerçek readback tarihsel korunur; bu tur tekrarlanmadı. |
-| Teknik bağımlılık | Korumalı ilk normal GUI consumer araçta yok; bypass/ret tekrarı/parola talebi yok. KuruluCRM8942749/supcac08ea/ERP7a ve gerçek Windows reboot/logon ayrımı korunur. ERP09 collection-specific readonly history artık DB02'de kurulu/native kayıtlı kanıtlandı; creator15 taklidi veya rol genişletme yok. İlk sentetik ürün negatif stok yüzünden doğru reddedildi ve değiştirilmedi; toplu kaynak/hedef okumasından uygun başka ürün seçildi. Native SOURCE tahsilat intent/yazıcı, uygulama aktivasyonu ve normal GUI hâlâ ayrı eksik. |
-| İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
-| Bitince sıradaki adım | Bu94f SOURCE/OFFLINE teslimi sonrası DUR; yeni aktivasyon/ikinci iş yok. Sonraki tek yetkili scope Dot tarafından aynı PR23 koordinasyon kaydından devredilir. CRM06 tüm özgün koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; bağımsız hazırlık da yeni tekil devir sınırındadır. |
+| Mevcut kanıt | [Actual bloke geçiş/koruma](docs/evidence/erp/2026-10-15-isolated-test/README.md#dot-chain-20261015-01--controlled-transition-blocked):2026-10-15T20:09:02.916Z blocked-readback SHA4b89b143f28ef7a407d15e89c74c5f7e334b24660eebc335ff82228d8cabad0e;72 eski dosya/task actions-XML/SQL-TEST125 süreç seti aynı, fakat watcher/task state değişti. Önceki894 kurulum10:32UTC tarihsel; current healthy proof yerine REUSE edilmez. Sourcef450/CRM94f ve inaktif paket kanıtı korunur. |
+| Teknik bağımlılık | İlk somut teknik engel mevcut kontrollü geçişin STOP_CAPTURED reddi; exact alt neden UNKNOWN/child sonucu saklanmamış. İzleyiciler durmuş, sağlıklı tam-owner protokolü geri yüklenmedi. Sonraki dar tanı/kurtarma scope yalnız Dot devriyle. Korumalı ilk normal GUI consumer/mobil ve ERP09 native writer/aktivasyon eksikleri ayrı açık; auth/rol/SQL genişletmesi yok. |
+| İnsan kararı/engel | Kullanıcıdan parola/manuel giriş istenmez. Current teknik engel STOP_CAPTURED ve eksik supervision; genel TEST yetkisi bu tek görevin fail→STOP sınırını aşmaz. GUI korumalı bileşen/fiziksel mobil/CRM-UA11 insan kabulü ayrı BEKLİYOR. |
+| Bitince sıradaki adım | DOT-CHAIN-20261015-01 BLOKE tesliminde DUR; ek kurtarma/stop tekrarı/ikinci iş yok. Sonraki tek yetkili kapsamı Dot mevcut PR23 devir kaydından seçer. CRM06 tüm özgün koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; bağımsız hazırlık da yeni tekil devir sınırındadır. |
 
 ### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
 
-Yeni894/cac08ea runtime gerçek altıCORE/Hub readback ve65file koruma makbuzuna bağlıdır. Önceki957/d469 checkpoint korunur. Önceki bb/76d1 sağlıklı checkpoint olarak korunur. Önceki455 degraded durumu ayrı kanıtlanmış exact partial recovery ile giderildi; eski5012/455 başlangıç sonuçları tarihsel kalır. Önceki normal-role/tek talep kanıtı yalnız gerçekten değişmeyen10auth/session/customer-request modülü ve byte-identical baseline/actor/credential/journal/request üzerinden REUSE; bütün uygulama aynı diye sunulmaz. Yeni giriş/talep/mesaj/14tablohash/restore tekrarı0. Önceki5012 simultaneousHubfailure ve manualretry tarihçesi korunur; yeni cac08ea geçişi attempt0/manualfalse ayrı kanıttır. GUI/mobil/gerçekreboot/logon/insan ve wholeClosure hâlâ açık.
+Güncel gözlem20:09:02UTC: DOT-CHAIN-20261015-01 STOP_CAPTURED nedeniyle BLOKE. Eski894/cac/7a HTTP erişilebilir; iki shell watcher durmuş, görevlerReady. Önceki10:32UTC healthy runtime ve normal-role kanıtları önceki tarihli kurulum kaydında/Git geçmişinde korunur; aşağıdaki current makine görünümünde REUSE edilmez.72 dosya/credential/rol/journal/request bytes ve task actions-XML/SQL süreç seti değişmediği kanıtlandı, fakat sağlıklı supervision geri yüklenmedi. Current runtime-health ve normal-role sürekliliği BLOCKED; yeni login/session veya rol testi yapılmadı. GUI/mobil/gerçek reboot/logon/insan ve wholeClosure açık. Eski957/bb/455 checkpointler tarihsel kalır.
 
 ```melisa-preflight
 {
   "current": {
     "environment": "db02-copy-e16b70f0-test-t1false",
-    "runtime": "supervisorcac08ea-erp7a41-crm8942749-20261015T103213Z",
+    "runtime": "blocked-stop-captured-supervisorcac08ea-erp7a41-crm8942749-20261015T200902Z",
     "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
     "surface": "cua-iab-protected-first-login-component-missing-20261015"
   },
@@ -79,29 +81,29 @@ Yeni894/cac08ea runtime gerçek altıCORE/Hub readback ve65file koruma makbuzuna
   "proofs": [
     {
       "requirementId": "runtime-health",
-      "status": "verified",
+      "status": "blocked",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisorcac08ea-erp7a41-crm8942749-20261015T103213Z"
+        "runtime": "blocked-stop-captured-supervisorcac08ea-erp7a41-crm8942749-20261015T200902Z"
       },
-      "evidenceRef": "evidence:crm06-quantity-sync-installed-20261015"
+      "evidenceRef": "evidence:dot-chain-20261015-01-blocked-readback-20261015T200902Z"
     },
     {
       "requirementId": "normal-role",
-      "status": "verified",
+      "status": "blocked",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisorcac08ea-erp7a41-crm8942749-20261015T103213Z",
+        "runtime": "blocked-stop-captured-supervisorcac08ea-erp7a41-crm8942749-20261015T200902Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z"
       },
-      "evidenceRef": "evidence:crm06-quantity-sync-unchanged-authority-reuse-20261015"
+      "evidenceRef": "evidence:dot-chain-20261015-01-runtime-not-restored-no-new-role-claim"
     },
     {
       "requirementId": "normal-ui",
       "status": "blocked",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisorcac08ea-erp7a41-crm8942749-20261015T103213Z",
+        "runtime": "blocked-stop-captured-supervisorcac08ea-erp7a41-crm8942749-20261015T200902Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
         "surface": "cua-iab-protected-first-login-component-missing-20261015"
       },
