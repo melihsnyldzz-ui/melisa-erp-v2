@@ -2,7 +2,70 @@
   "schemaVersion": 1,
   "scope": "read-only isolated Hub progress preview",
   "baseCommit": "a26e06fe8a70003b613bdf9ca73d54bada5e29d0",
-  "sourceCi": "PENDING_EXACT_SOURCE_COMMIT",
+  "sourceCi": {
+    "sourceCommit": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+    "checkedAt": "2026-10-15T22:36:41.155Z",
+    "runs": [
+      {
+        "id": "38817934818",
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+        "jobs": [
+          {
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818/job/116707170381"
+          },
+          {
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818/job/116707170778"
+          },
+          {
+            "name": "windows-startup-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818/job/116707170891"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818"
+      },
+      {
+        "id": "38817903024",
+        "conclusion": "success",
+        "event": "push",
+        "headSha": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+        "jobs": [
+          {
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024/job/116707069735"
+          },
+          {
+            "name": "windows-startup-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024/job/116707069920"
+          },
+          {
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024/job/116707070091"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024"
+      }
+    ],
+    "newTargetedTestsObservedInHostedLog": 19,
+    "documentationHead": "SUBSEQUENT_SKIP_CI_SEPARATE"
+  },
   "unitTests": {
     "pass": 19,
     "fail": 0,
@@ -286,5 +349,41 @@
       }
     ],
     "warnings": "Existing library directives/dynamic imports/chunk-size warnings; no new panel build error."
+  },
+  "sourceReadback": {
+    "sourceCommit": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+    "checkedAt": "2026-10-15T22:34:29.355Z",
+    "assets": [
+      {
+        "file": "index.html",
+        "sha256": "d182abca1e46135ce95917346790479a306bd1aa76b9a6c4c80f86a817288613",
+        "sourceMatch": true,
+        "servedBytes": 5691
+      },
+      {
+        "file": "model.mjs",
+        "sha256": "ba66c28e7f774d2787746de4caa3f362a04d8bfd6f1aa4f009ed42f6dc16bc98",
+        "sourceMatch": true,
+        "servedBytes": 6043
+      },
+      {
+        "file": "progress.mjs",
+        "sha256": "a87480f40a629b6032753e344f372eb25b950d3f7794bc85189a52efb252a705",
+        "sourceMatch": true,
+        "servedBytes": 8267
+      },
+      {
+        "file": "progress.css",
+        "sha256": "71cd6331b6c0f6719222cec7201c4eb3c1f082b28ba65611d2a530c3d2af59f9",
+        "sourceMatch": true,
+        "servedBytes": 6629
+      },
+      {
+        "file": "evidence.json",
+        "sha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+        "sourceMatch": true,
+        "servedBytes": 3537
+      }
+    ]
   }
 }

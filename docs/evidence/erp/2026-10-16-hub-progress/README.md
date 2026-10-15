@@ -46,3 +46,7 @@ Makine tarafından okunabilir [güvenli doğrulama kaydı](verification.json). E
 ![Masaüstü ajan performansı](desktop-performance.jpg)
 
 ![390 CSS piksel mobil performans](mobile-performance.jpg)
+
+## Exact kaynak CI ve çalışan dosya bağı
+
+Kaynak [1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1) için [PR CI38817934818](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818) ve [push CI38817903024](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024) completed/SUCCESS; iki çalışmanın da quality-build-test, windows-startup-test ve secret-scan job’ları başarılı. Yeni19hedef testin adları PR quality logunda bağımsız geri okundu; yalnız yerel PASS’e dayanılmadı. Çalışan5294önizlemesinden beş yeni asset okunup kaynak commit ve çalışma dosyalarıyla eşleştirildi. Sonraki yalnız doküman HEAD’i [skip ci] ve bu kaynak CI’den ayrı tutulur. Main merge/ortak runtime kurulumu yapılmaz.
