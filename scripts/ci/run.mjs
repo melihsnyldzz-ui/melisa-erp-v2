@@ -36,6 +36,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', path.join(root, 'scripts/canonical/crm06-stop-child-diagnostic.test.mjs')]);
   run(['--test', ...['shared-business-product-price-revision-sql','shared-business-product-price-bootstrap','shared-business-product-price-sale-sql','shared-business-product-price-sale-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/public-terminal-artifact.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
