@@ -147,3 +147,25 @@ ConvertTo-Json -InputObject @($results) -Compress`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
  assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.deepEqual(rows.slice(0,2),[{accepted:true,source},{accepted:true,source:previous}]);for(const row of rows.slice(2))assert.equal(row.accepted,false);
 });
+
+test('a724 Hub tuple preserves receipt-wait behavior and rejects every preceding source or private path cross-pair',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',source='a7243dedf9ca5d1ca1d5aa1cb3dffaee7c18a7e9',next=root+'settings-crm06-staff-a7243dedf9ca.json',previous=[['da82fc6644c1-parent-probe','da82fc6644c1d9dba0c10eaa861773534d43c288'],['5ce452b01ef2','5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'],['5bcd5ad136ff','5bcd5ad136ff7ca35d623d436b8724cc491641be'],['5bcd5ad136ff-receipt-wait','5bcd5ad136ff7ca35d623d436b8724cc491641be'],['bb8966c59a6c','bb8966c59a6cfbdc1cc83472cb331e48b720a173'],['957f98773695','957f98773695874ea3d101b7eb4816f9ea080880'],['89427492f27c','89427492f27caf72c511a27262b55e73d782c407'],['94f2a75322a3','94f2a75322a3daa695d38010a6f2c8ef23f6c17b']];
+ assert.equal(assertErpHubProfile(next,source),true);for(const [suffix,oldSource]of previous){const old=root+'settings-crm06-staff-'+suffix+'.json';assert.equal(assertErpHubProfile(old,oldSource),true);assert.throws(()=>assertErpHubProfile(old,source),{code:'ERP_HUB_WAIT_REJECTED'});assert.throws(()=>assertErpHubProfile(next,oldSource),{code:'ERP_HUB_WAIT_REJECTED'});}
+ for(const [config,value]of [[next.toUpperCase(),source],[next,source.toUpperCase()],[next,source.slice(0,12)],[next.replace('.json','-receipt-wait.json'),source],[next.replace('.json','-parent-probe.json'),source],[root+'settings-crm06-staff-unknown.json',source]])assert.throws(()=>assertErpHubProfile(config,value),{code:'ERP_HUB_WAIT_REJECTED'});
+});
+
+test('a724 WindowsPS5 Hub switch maps exact config and rejects path aliases without loading private settings',async()=>{
+ const {spawnSync}=await import('node:child_process'),{fileURLToPath}=await import('node:url');
+ const sourcePath=fileURLToPath(new URL('./watch-hub-after-erp.ps1',import.meta.url)).replaceAll("'","''"),source='a7243dedf9ca5d1ca1d5aa1cb3dffaee7c18a7e9',previous='94f2a75322a3daa695d38010a6f2c8ef23f6c17b',root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',next=root+'settings-crm06-staff-a7243dedf9ca.json',old=root+'settings-crm06-staff-94f2a75322a3.json';
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$assignment=@($ast.EndBlock.Statements|Where-Object {$_.Extent.Text.StartsWith('$expectedCrmSource=switch ')})
+if($assignment.Count-ne1){throw 'SWITCH_AST_MISSING'}
+$policy=[scriptblock]::Create('param($StartupConfigPath)'+[Environment]::NewLine+$assignment[0].Extent.Text+[Environment]::NewLine+'return $expectedCrmSource')
+$cases=@('${next}','${old}','${next.toUpperCase()}','${next.replace('.json','-receipt-wait.json')}','${next.replace('.json','-parent-probe.json')}','${root}settings-crm06-staff-unknown.json')
+$results=@(foreach($c in $cases){try{[pscustomobject]@{accepted=$true;source=(& $policy $c)}}catch{[pscustomobject]@{accepted=$false;source=$null}}})
+ConvertTo-Json -InputObject @($results) -Compress`;
+ // Execute only the pure assignment AST; no Read-PinnedJson or process launch.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.deepEqual(rows.slice(0,2),[{accepted:true,source},{accepted:true,source:previous}]);for(const row of rows.slice(2))assert.equal(row.accepted,false);
+});
