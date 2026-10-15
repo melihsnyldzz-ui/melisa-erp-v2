@@ -9,23 +9,23 @@
 | --- | --- |
 | Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
 | İzinli paralel teknik hazırlık | ERP09 SOURCE oluşturucu15→yetkili tahsilat16 adapter kodu hazır; mevcut servis ve izole journal/effects fixture ile11 yeni test PASS. Kaynak journalı ve güncel rol/izin+TRY hesap aktiflik/döviz/tür kontrolü replay öncesi ayrıdır. Default/native canCollect=false, route/store bağlantısı ve ortak DB02 değişmedi. Bu model native SQL transaction/identity/applock/intent veya genel tahsilat kabulü değildir; ana kapanış sayısı aynı. ERP-DEC-057 / ERP23comment6179460000 / CRM3comment6179459282 uygulanır. |
-| Güncel adım | FinalCRM5bcd/sup5012/ERP7a DB02 actual kuruldu ve guardedtekHubtaskretry ile sağlıklı. İlk simultaneous Hubexit1 ve CORE otomatikretry kayıtta korunur; exactcauseUNCONFIRMED. Full6CORE+Hub/index/DB readback ve37file/role/credential/journal/request/protectedSQL-TEST125 karşılaştırması geçti; yeni auth/talep0. Kalıcı receipt-publication race düzeltmesi kaynakta: strictoldgeneration pending, actualfreshreceipt+allguard/deadline şart; exactreceipt-wait15ref, yeni11hedefli test/PS5AST geçer. Kaynak henüz kurulmadı; currentee0 latestgood, original790ancestor ayrı. Normal GUI/mobil/reboot/logon/insan kabulü bekler. |
+| Güncel adım | CRM5bcd / supervisor455243d / ERP7a41 DB02 gerçekten kurulu. Receipt-wait düzeltmeli iki mevcut görev birlikte başlatıldı; ERP bariyeri01:04:13Z sonrası Hub ilk denemede otomatik açıldı, attempt0/manualHubStart=false. Altı CORE+Hub/index/DB02 readback01:05:49Z ve44 before-file/rol/credential/journal/request/görev metadata/SQL-TEST125 koruması geçti; yeni auth/talep0. Fresh15ref READY. Önceki5012 ilk hata ve tek manuel kurtarma tarihçesi korunur; bu yeni455 kurulumu otomatik ilk başlangıçtır, gerçek Windows reboot/logon değildir. Normal GUI/mobil/insan kabulü bekler. |
 | Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
 | Bitiş koşulu | Özgün CRM06 K01/K02/K03, normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel, yeniden açılış, son normal mobil ve gereken insan kabulü birlikte kanıtlanır. Eski7hesap/roller/journal/requeststore ve yeni iki dedicated normal profil korunur. Sırlar DPAPI/owner korumada kalır; TEST ADMIN/shared reset/auth bypass yok. Paket/kurulum/API teknik sonucu normal GUI veya insan kabulü değildir. |
-| Mevcut kanıt | [Actual final5bcd kurulum/recovery](docs/evidence/erp/2026-10-15-isolated-test/README.md): installed 7ec73dfbe69d..., final37file 7b70b237290c..., unchanged-authority10module bc843ed5f7ce...; tüm journal/request bytes aynı, yeni auth/talep0. Currentee0/5012 latestgood, older c61/7fd veoriginal790ancestor ayrı korunur. İlkHubstartup exit1 / tekmanualHubtaskretry ve sonraki fullreadback ayrıdır. |
-| Teknik bağımlılık | Korumalı ilk normal GUI consumer araçta yok; bypass/ret tekrarı/parola talebi yok. CurrentCRM5bcd/sup5012/ERP7a DB02 recoveredhealthy. Başlangıç receipt-race kalıcı düzeltmesi source+11targettest/PS5AST/ROreviewGO hazır; yeniimmutable SUP/receipt-wait15ref kurulumu ve actualstartup kanıtı henüz değil. İlk gerçekfailurecauseUNCONFIRMED; offlineproductionmatcher race mechanism ayrı. |
+| Mevcut kanıt | [Kurulu455/5bcd otomatik başlangıç](docs/evidence/erp/2026-10-15-isolated-test/README.md): installed4ff85ece9ad2..., final44file8b0876edc1a4..., barrier67c238963afa..., settings7182b8bab998..., successor125aaf6af46e...; bütün eski journal/request bytes aynı. Değişmeyen10auth/session/request modülü bc843ed5f7ce... üzerinden önceki rol/tek talep/no-sale kanıtı REUSE. Geri dönüş5012/ee0, eski7fd/c61 ve original790 ayrı korunur. Source455 PR38662826807/push38662821981 SUCCESS; belge HEAD'i ayrı. |
+| Teknik bağımlılık | Korumalı ilk normal GUI consumer araçta yok; bypass/ret tekrarı/parola talebi yok. GüncelCRM5bcd/sup455/ERP7a DB02 sağlıklı; başlangıç düzeltmesi gerçekten kuruldu ve görevler birlikte ilk denemede açıldı. Gerçek Windows reboot/logon yapılmadı. ERP09 ayrı read/preview same-TX bridge incelemesinde priced creator15 history→collector16 yetkili okuyucusu eksik; creator taklidi/guard gevşetmesi yok. Native SOURCE tahsilat intent/yazıcı/normal GUI hâlâ etkin değil. |
 | İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
-| Bitince sıradaki adım | Receipt-wait düzeltmesini currenthealthy5012/ee0 before-image ve tek-owner korumalarıyla paketle/kur/readback yap; CRM sahibi finalexactmakbuzları eşler. ERP-DEC-060 kapsamında insan/mobil kabulleri ensonatoplu BEKLİYOR; CRM06 öncelikli bağımsız teknik halkalar ve ERP09 internal same-TX/intent hazırlığı mevcutplan üzerinden sürer. Tüm özgün koşullar/insan sonucu olmadan kapanış/PASS yok. CRM06 tüm özgün koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; bağımsız teknik hazırlık ERP-DEC-060 ile sürer. |
+| Bitince sıradaki adım | CRM sahibi final455/5bcd kurulum/koruma makbuzlarını eşler; kontrollü geçiş beklemesi bitti. ERP-DEC-060 kapsamında insan/mobil kabulleri en sonda toplu BEKLİYOR; CRM06 öncelikli bağımsız teknik halkalar ve ERP09 unpriced read/preview ile collection-specific yetkili history/intent hazırlığı mevcut plan üzerinden sürer. Tüm özgün koşullar/insan sonucu olmadan kapanış/PASS yok. CRM06 tüm özgün koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; bağımsız teknik hazırlık ERP-DEC-060 ile sürer. |
 
 ### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
 
-Yeni5bcd/5012 runtime actualkurulum+tekHubtaskrecovery makbuzuna bağlıdır. Önceki normal-role/tek talep kanıtı yalnız gerçekten değişmeyen10auth/session/customer-request modülü ve byte-identical baseline/actor/credential/journal/request üzerinden REUSE; bütün uygulama aynı diye sunulmaz. Yeni giriş/talep/mesaj/14tablohash/restore tekrarı0. İlk simultaneousHubfailure ve manualretry korunur; GUI/mobil/gerçekreboot/logon/insan ve wholeClosure hâlâ açık.
+Yeni5bcd/455 runtime gerçek otomatik başlangıç ve44file koruma makbuzuna bağlıdır. Önceki normal-role/tek talep kanıtı yalnız gerçekten değişmeyen10auth/session/customer-request modülü ve byte-identical baseline/actor/credential/journal/request üzerinden REUSE; bütün uygulama aynı diye sunulmaz. Yeni giriş/talep/mesaj/14tablohash/restore tekrarı0. Önceki5012 simultaneousHubfailure ve manualretry tarihçesi korunur; yeni455 first-start attempt0/manualfalse ayrı kanıttır. GUI/mobil/gerçekreboot/logon/insan ve wholeClosure hâlâ açık.
 
 ```melisa-preflight
 {
   "current": {
     "environment": "db02-copy-e16b70f0-test-t1false",
-    "runtime": "supervisor5012f56-erp7a41-crm5bcd-20261015T005307Z",
+    "runtime": "supervisor455243d-erp7a41-crm5bcd-20261015T010549Z",
     "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
     "surface": "cua-iab-protected-first-login-component-missing-20261015"
   },
@@ -61,26 +61,26 @@ Yeni5bcd/5012 runtime actualkurulum+tekHubtaskrecovery makbuzuna bağlıdır. Ö
       "status": "verified",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor5012f56-erp7a41-crm5bcd-20261015T005307Z"
+        "runtime": "supervisor455243d-erp7a41-crm5bcd-20261015T010549Z"
       },
-      "evidenceRef": "evidence:crm06-final-batch-installed-recovered-20261015"
+      "evidenceRef": "evidence:crm06-receipt-wait-installed-automatic-20261015"
     },
     {
       "requirementId": "normal-role",
       "status": "verified",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor5012f56-erp7a41-crm5bcd-20261015T005307Z",
+        "runtime": "supervisor455243d-erp7a41-crm5bcd-20261015T010549Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z"
       },
-      "evidenceRef": "evidence:crm06-final-batch-unchanged-authority-reuse-20261015"
+      "evidenceRef": "evidence:crm06-receipt-wait-unchanged-authority-reuse-20261015"
     },
     {
       "requirementId": "normal-ui",
       "status": "blocked",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor5012f56-erp7a41-crm5bcd-20261015T005307Z",
+        "runtime": "supervisor455243d-erp7a41-crm5bcd-20261015T010549Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
         "surface": "cua-iab-protected-first-login-component-missing-20261015"
       },
