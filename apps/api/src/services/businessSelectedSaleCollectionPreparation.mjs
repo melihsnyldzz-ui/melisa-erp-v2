@@ -93,9 +93,9 @@ export function createBusinessSelectedSaleCollectionReadPreparation({getStore}={
  const service=createBusinessSelectedSaleCollectionPreparation({withContext:async(actor,fn)=>{
   const store=await getStore();requireValue(typeof store?.readSelectedSaleCollectionPreparation==='function','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
   return store.readSelectedSaleCollectionPreparation(actor,bridge=>withSelectedSaleCollectionReadBridge(bridge,async native=>{
-   // This unregistered checkpoint supports unpriced SOURCE journals only.
-   // A priced creator15 invoice cannot borrow collector16's HISTORY reader.
-   const readPriceHistory=()=>fail('WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED');
+   // Only an earned factory-owned collection-history reader may admit prices.
+   // Absence retains the explicit rejection; ordinary HISTORY is never used.
+   const readPriceHistory=typeof native.readPriceHistory==='function'?native.readPriceHistory:()=>fail('WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED');
    const c={copyContext:native.copyContext,context:native.context,transaction:native.transaction,sql:native.sql,request:native.request,readPriceHistory};
    // Verify creator records inside this same read transaction, independently
    // of the collector16's current permissions and finance-account checks.

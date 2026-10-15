@@ -7,6 +7,9 @@ import {createIsolatedOperationCopyStore,ISOLATED_COPY_FINITE_FK_SQL,withSelecte
 import {buildIsolatedCopyTradeDomain,buildBusinessSelectedSalePreview,SELECTED_SALE_JOIN_SQL} from './workTradeStore.mjs';
 import {createBusinessSelectedSaleCollectionReadPreparation,SOURCE_COLLECTION_ACCOUNT_SQL,SOURCE_COLLECTION_COLLECTOR_SQL} from './businessSelectedSaleCollectionPreparation.mjs';
 import {isolatedCopyTransactionContext,isIsolatedOperationCopyMutation} from './isolatedOperationCopyScope.mjs';
+import {readFileSync} from 'node:fs';
+import {workId,workError} from './workSalesModel.mjs';
+import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
 
 const rights=['sales.view','customer.view','finance.view','finance.collection'];
 const actor=()=>({id:'16',role:{code:'isolated_test_ilker'},permissions:[...rights]});
@@ -39,9 +42,9 @@ function harness(){
  }
  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},UniqueIdentifier:'uuid',BigInt:'bigint',NVarChar:()=>{},Bit:'bit',MAX:'max'};
  const runtime={copyContext:copy,sql,pool:{}};
- const store=createIsolatedOperationCopyStore({getRuntime:async()=>runtime,buildDomain:async args=>{lastDomain=await buildIsolatedCopyTradeDomain(args);return lastDomain;}});
+ const store=createIsolatedOperationCopyStore({getRuntime:async()=>runtime,buildDomain:async args=>{lastDomain=await buildIsolatedCopyTradeDomain(args);if(state.forgedDomainHistory)lastDomain.readPriceHistory=state.forgedDomainHistory;return lastDomain;}});
  const service=createBusinessSelectedSaleCollectionReadPreparation({getStore:async()=>store});
- return {copy,state,row,items,events,store,service,lastDomain:()=>lastDomain,selection:{invoiceId:'1000',accountId:account.id,amountExact4:'5.0000',documentDate:copy.date}};
+ return {copy,state,row,items,events,store,service,runtime,lastDomain:()=>lastDomain,selection:{invoiceId:'1000',accountId:account.id,amountExact4:'5.0000',documentDate:copy.date}};
 }
 
 test('SOURCE read bridge uses real factory transaction READY FK actor and separate creator/current-account proof without writer capability',async()=>{
@@ -70,4 +73,24 @@ test('SOURCE read bridge rejects price-bearing journal before any native HISTORY
  f.row.preview_json=JSON.stringify(preview);
  await assert.rejects(f.service.preview(f.selection,actor()),{code:'WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED',statusCode:409});
  assert.deepEqual(f.events,['SERIALIZABLE','identity','Shared','READY','FK','context','collector','collector','creator','rollback']);
+});
+test('SOURCE priced read bridge ignores unearned runtime/domain callbacks and refuses callback injection into opaque native view',async()=>{
+ const f=harness();let called=0;const fake=()=>{called++;throw Error('FORGED_HISTORY');};f.state.forgedDomainHistory=fake;f.runtime.collectionHistoryConsumer={readOnly:true,readPriceHistory:fake};
+ await f.store.readSelectedSaleCollectionPreparation(actor(),bridge=>withSelectedSaleCollectionReadBridge(bridge,native=>{assert(Object.isFrozen(native));assert.equal(Object.hasOwn(native,'readPriceHistory'),false);assert.throws(()=>{native.readPriceHistory=fake;},TypeError);}));
+ const preview=JSON.parse(f.row.preview_json);preview.pricing={};f.row.preview_json=JSON.stringify(preview);
+ await assert.rejects(f.service.preview(f.selection,actor()),{code:'WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED'});assert.equal(called,0);assert.equal(f.events.at(-1),'rollback');
+});
+test('SOURCE priced read journal matches new proof to creator link header and immutable creation before ordinary derive',async()=>{
+ const f=harness(),source=readFileSync(new URL('./workTradeStore.mjs',import.meta.url),'utf8'),start=source.indexOf('export async function loadBusinessSelectedSaleJournal('),end=source.indexOf('\nexport function buildBusinessSelectedSalePreview',start);assert(start>=0&&end>start);
+ // Execute the production join loader with a modeled PRIVATE binding getter.
+ // This tests its new cross-binding predicate, not native capability earning.
+ let derived=0,info=null;
+ const load=Function('workId','SELECTED_SALE_JOIN_SQL','workError','selectBusinessSaleWriteIntent','getBusinessProductPriceSaleDTO','deriveBusinessSelectedSaleJournal',`return ${source.slice(start,end).replace('export ','')}`)(workId,SELECTED_SALE_JOIN_SQL,workError,selectBusinessSaleWriteIntent,()=>info,()=>{derived++;return {};});
+ const request=()=>({input(){return this;},async query(sql){assert.equal(sql,SELECTED_SALE_JOIN_SQL);return {recordsets:[[structuredClone(f.row)],structuredClone(f.items)]};}});
+ const preview=JSON.parse(f.row.preview_json);preview.pricing={};f.row.preview_json=JSON.stringify(preview);
+ const base={collectorId:'16',creatorId:'15',invoiceId:f.row.id,creationRequestId:f.row.request_id,creationPayloadHash:f.row.payload_hash,copyId:f.copy.copyId,sealHash:f.copy.sealHash};
+ const invoke=()=>load({copy:f.copy,actor:{id:'15'},request,sql:{UniqueIdentifier:'uuid',BigInt:'id'},id:f.row.id,readPriceHistory:async()=>({})});
+ info={collectionHistoryProof:Object.freeze(base)};await invoke();assert.equal(derived,1);
+ for(const [key,value]of Object.entries({collectorId:'15',creatorId:'16',invoiceId:'999',creationRequestId:'10000000-0000-4000-8000-000000000099',creationPayloadHash:'F'.repeat(64),copyId:'10000000-0000-4000-8000-000000000099',sealHash:'F'.repeat(64)})){info={collectionHistoryProof:Object.freeze({...base,[key]:value})};await assert.rejects(invoke(),{code:'WORK_SELECTED_SALE_DRIFT'});assert.equal(derived,1);}
+ info={};await invoke();assert.equal(derived,2,'ordinary prior pricing proof has unchanged derive path');
 });

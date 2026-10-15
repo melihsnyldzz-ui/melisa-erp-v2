@@ -1,4 +1,5 @@
 import {getRegisteredBusinessProductPriceSaleRevision,verifyBusinessProductPriceSaleRevision} from '../../../../scripts/canonical/shared-business-product-price-sale-bootstrap.mjs';
+import {getRegisteredBusinessCollectionHistoryRevision} from '../../../../scripts/canonical/shared-business-collection-history-bootstrap.mjs';
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyActor,assertIsolatedCopyReadProof,bindIsolatedCopyOperationDTO,copyAssert,isolatedCopyHash,isolatedCopyJSON,isolatedCopyUUID,ISOLATED_COPY_PROCEDURES,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelectionContext.mjs';
 import {getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
@@ -24,7 +25,7 @@ const collectionReadBridges=new WeakMap();
 export function withSelectedSaleCollectionReadBridge(bridge,operation){
  const value=collectionReadBridges.get(bridge);
  copyAssert(value&&value.active&&typeof operation==='function'&&isolatedCopyTransactionContext(value.transaction,{writeRequired:false})===value.copyContext,'ISOLATED_COPY_TRANSACTION_REQUIRED');
- return operation(value);
+ return operation(value.view);
 }
 const parse=value=>{copyAssert(typeof value==='string','ISOLATED_COPY_SQL_JSON');try{return JSON.parse(value);}catch{copyAssert(false,'ISOLATED_COPY_SQL_JSON');}};
 const safeId=id=>{const n=Number(id);copyAssert(Number.isSafeInteger(n)&&n>0,'ISOLATED_COPY_ID');return n;};
@@ -112,7 +113,12 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    const readSelectedSaleInvoiceState=selected&&(!write||priceConsumer)&&domain==='trade'?createBusinessSelectedSaleInvoiceReader({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,actual,readProof,priceConsumer}):undefined;
    const c=await buildDomain({runtime:r,copyContext:context,context:normalContext,actor,actual,identity,nativeContext,request:req,write,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState});
    copyAssert(c&&typeof c==='object'&&c.context===normalContext,'ISOLATED_COPY_DOMAIN_CONTEXT');
-   if(!write&&readPath===collectionPreparationRead)collectionReadBridges.set(c,{copyContext:context,transaction:tx,sql:q,request:req,context:normalContext});
+   if(!write&&readPath===collectionPreparationRead){
+    const collectionHistoryConsumer=getRegisteredBusinessCollectionHistoryRevision(context);
+    const readPriceHistory=collectionHistoryConsumer&&collectionHistoryConsumer.readOnly===true&&collectionHistoryConsumer.canCollect===false&&collectionHistoryConsumer.canCancelCollection===false&&priceConsumer&&collectionHistoryConsumer.consumer===priceConsumer?
+     (selection,{invoiceId}={})=>readBusinessSelectedSaleNativeContext({copy:context,transaction:tx,sql:q,request:req,artifact:selected?.bundle.contextArtifact,actor,selection,priceConsumer,collectionHistoryConsumer,invoiceId}):undefined;
+    collectionReadBridges.set(c,{copyContext:context,transaction:tx,sql:q,request:req,context:normalContext,...(readPriceHistory?{readPriceHistory}:{})});
+   }
    c.request=async requestId=>{
     copyAssert(isolatedCopyUUID(requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
     const prior=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,requestId).input('actor_id',q.BigInt,safeId(actor.id)).query('SELECT operation,response_json FROM dbo.stage4_copy_requests WHERE copy_id=@copy_id AND request_id=@request_id AND actor_id=@actor_id;')).recordset?.[0];
@@ -175,7 +181,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    // The transaction-local native bundle is attached below, never caller data.
    const native=collectionReadBridges.get(c);copyAssert(native,'ISOLATED_COPY_READ_ONLY');
    const active=()=>copyAssert(value.active&&isolatedCopyTransactionContext(native.transaction,{writeRequired:false})===native.copyContext,'ISOLATED_COPY_TRANSACTION_REQUIRED');
-   Object.assign(value,native,{request:()=>{active();return native.request();},invoice:original=>{active();return c.readSelectedSaleCollectionInvoice(original);}});collectionReadBridges.set(bridge,value);
+   Object.assign(value,{copyContext:native.copyContext,transaction:native.transaction,view:Object.freeze({...native,request:()=>{active();return native.request();},invoice:original=>{active();return c.readSelectedSaleCollectionInvoice(original);},...(native.readPriceHistory?{readPriceHistory:(...args)=>{active();return native.readPriceHistory(...args);}}:{})})});collectionReadBridges.set(bridge,value);
    try{return await fn(bridge);}finally{value.active=false;collectionReadBridges.delete(bridge);collectionReadBridges.delete(c);}
   },'customer.view',null,collectionPreparationRead),
   readHistoricalSale:(actor,fn,permission)=>transaction(actor,false,fn,permission??readPermission,null,historicalSaleRead),

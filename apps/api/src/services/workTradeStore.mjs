@@ -170,6 +170,8 @@ export async function loadBusinessSelectedSaleJournal({copy,actor,request,sql,id
   if(typeof readPriceHistory!=='function')throw workError('WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED','Satışın kayıtlı fiyat sürümü okunamadı.');
   const payload=JSON.parse(record.journal.payload_json),selection=selectBusinessSaleWriteIntent(copy,{customerId:payload.businessCustomerId,currency:payload.businessCurrency,productIds:payload.businessProductIds});
   priceHistory=await readPriceHistory(selection,{invoiceId:id});
+  const collectionProof=getBusinessProductPriceSaleDTO(copy,priceHistory)?.collectionHistoryProof;
+  if(collectionProof&&(String(actor?.id)!=='15'||collectionProof.collectorId!=='16'||collectionProof.creatorId!==String(row.actor_id)||collectionProof.creatorId!==String(row.journal_actor_id)||collectionProof.creatorId!==String(row.createdBy)||collectionProof.invoiceId!==String(row.id)||collectionProof.invoiceId!==String(row.invoice_id)||collectionProof.creationRequestId!==row.request_id||collectionProof.creationRequestId!==row.journal_request_id||collectionProof.creationPayloadHash!==row.payload_hash||collectionProof.copyId!==copy.copyId||collectionProof.sealHash!==copy.sealHash))throw workError('WORK_SELECTED_SALE_DRIFT','Satışın tahsilat okuma kaydı doğrulanamadı.',409);
  }
  return {...deriveBusinessSelectedSaleJournal(copy,actor,record,{priceHistory}),record,priceHistory};
 }
