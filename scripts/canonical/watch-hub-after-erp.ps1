@@ -5,6 +5,7 @@ $ProgressPreference='SilentlyContinue'
 $expectedCrmSource=switch -CaseSensitive ($StartupConfigPath){
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-da82fc6644c1-parent-probe.json'{'da82fc6644c1d9dba0c10eaa861773534d43c288';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-5ce452b01ef2.json'{'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8';break}
+ 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-5bcd5ad136ff.json'{'5bcd5ad136ff7ca35d623d436b8724cc491641be';break}
  default {throw 'ERP_HUB_WAIT_CONFIG_SCOPE'}
 }
 function Read-PinnedJson([string]$p,[string]$hash){

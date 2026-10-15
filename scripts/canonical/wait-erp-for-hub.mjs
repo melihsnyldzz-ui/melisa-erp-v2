@@ -8,7 +8,8 @@ import {promisify} from 'node:util';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 const PROFILES=Object.freeze([
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-da82fc6644c1-parent-probe.json',source:'da82fc6644c1d9dba0c10eaa861773534d43c288'}),
- Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5ce452b01ef2.json',source:'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'})
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5ce452b01ef2.json',source:'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5bcd5ad136ff.json',source:'5bcd5ad136ff7ca35d623d436b8724cc491641be'})
 ]);
 const RECEIPTS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web';
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';

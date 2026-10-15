@@ -55,3 +55,12 @@ test('5ce Hub profile binds exact new config/source while preserving installed d
  assert.equal(assertErpHubProfile(old,a),true);assert.equal(assertErpHubProfile(next,b),true);
  for(const [file,source]of [[old,b],[next,a],[next,b.toUpperCase()],[next.toUpperCase(),b],[root+'settings-crm06-staff-unknown.json',b],[root+'settings-crm06-staff-da82fc6644c1.json',a],[next,'f'.repeat(40)],[next,b.slice(0,12)]])assert.throws(()=>assertErpHubProfile(file,source),{code:'ERP_HUB_WAIT_REJECTED'});
 });
+
+test('final 5bcd Hub tuple rejects every preceding config/source cross-pair and case alias',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',source='5bcd5ad136ff7ca35d623d436b8724cc491641be',next=root+'settings-crm06-staff-5bcd5ad136ff.json';
+ assert.equal(assertErpHubProfile(next,source),true);
+ for(const [suffix,oldSource]of [['da82fc6644c1-parent-probe','da82fc6644c1d9dba0c10eaa861773534d43c288'],['5ce452b01ef2','5ce452b01ef20fc84a09c52b78311db8eb1dd1d8']]){
+  const previous=root+'settings-crm06-staff-'+suffix+'.json';assert.equal(assertErpHubProfile(previous,oldSource),true);assert.throws(()=>assertErpHubProfile(previous,source),{code:'ERP_HUB_WAIT_REJECTED'});assert.throws(()=>assertErpHubProfile(next,oldSource),{code:'ERP_HUB_WAIT_REJECTED'});
+ }
+ for(const [file,s]of [[next.toUpperCase(),source],[next,source.toUpperCase()],[root+'settings-crm06-staff-unknown.json',source],[next,source.slice(0,12)]])assert.throws(()=>assertErpHubProfile(file,s),{code:'ERP_HUB_WAIT_REJECTED'});
+});

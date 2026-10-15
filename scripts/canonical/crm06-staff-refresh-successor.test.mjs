@@ -5,7 +5,7 @@ import {buildCrm06TestActorProvisioning,crm06ProvisioningInputHash as digest} fr
 import {buildCrm06OwnerProjection,assertCrm06PreparedActorReceipt,CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH} from './crm06-owner-projection.mjs';
 import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06StaffSuccessorParentRefs,crm06StaffSuccessorProfile,crm06StaffSuccessorProfileForPath,crm06SuccessorFileHash,CRM06_STAFF_PARENT_SETTINGS_PATH,CRM06_STAFF_PARENT_ACTIVATION_PATH,CRM06_STAFF_CRM_SOURCE,CRM06_STAFF_FRONTEND_CRM_SOURCE,CRM06_STAFF_SUCCESSOR_PATH} from './crm06-staff-refresh-successor.mjs';
 import {validateCompletionSettings} from './terminal-completion-logon.mjs';
-import {CRM06_STAFF_CANDIDATE_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
+import {CRM06_STAFF_CANDIDATE_CRM_SOURCE,CRM06_STAFF_FINAL_BATCH_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
 const erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM',runtime=erp+'\\runtime\\terminal-completion-logon',source='5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36',native='7a'.padEnd(40,'1'),sha='a'.repeat(64),owner='S-1-5-21-123-456-789-1001';
 const password=n=>`scrypt$${String(n).repeat(48)}$${String(n).repeat(128)}`;
 function fixture(){
@@ -131,4 +131,21 @@ test('exact 5ce admission preserves literal three historical profiles and input 
   for(const [key,prefix]of Object.entries({activation:'crm-activation',settings:'settings',hubPin:'hub-pin',hubStartup:'hub-startup'}))assert.equal(profile.nextPaths[key],runtime+'\\'+prefix+'-crm06-staff-'+suffix+'.json');
   assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,historical)),true);
  }
+});
+function finalBatchFixture(){const f=candidateFixture(),profile=crm06StaffSuccessorProfile(CRM06_STAFF_FINAL_BATCH_CRM_SOURCE);f.crmPackagePin={...f.crmPackagePin,sourceCommit:profile.source,packageRoot:crm+'\\releases\\crm-shared-test-'+profile.source};f.crmDependencyLockRef.path=profile.dependencyLockPath;return f;}
+test('5bcd frozen final batch derives fifth literal generation without touching published 5ce or the staff family',()=>{
+ const published=buildCrm06StaffRefreshSuccessor(candidateFixture()),before=crm06SuccessorFileHash(published),f=finalBatchFixture(),inputBefore=structuredClone(f),p=buildCrm06StaffRefreshSuccessor(f),profile=crm06StaffSuccessorProfileForPath(CRM06_STAFF_FINAL_BATCH_CRM_SOURCE,p.receiptRef.path);
+ assert.deepEqual(f,inputBefore);assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,p)),true);validateCompletionSettings(p.settings,owner);assert.equal(crm06SuccessorFileHash(published),before);assert.equal(profile.source,'5bcd5ad136ff7ca35d623d436b8724cc491641be');assert.equal(Object.hasOwn(profile,'profileVariant'),false);assert.equal(Object.hasOwn(p.receipt.prepared,'profileVariant'),false);
+ for(const ref of [p.activationRef,p.hubPinRef,p.hubStartupRef,p.settingsRef,p.receiptRef])assert(ref.path.endsWith('5bcd5ad136ff.json'));assert(profile.journalEvidencePath.endsWith('journal-physical-preflight-5bcd5ad136ff.json'));assert.equal(p.settings.dependencyLocks.crm.path,profile.dependencyLockPath);
+ assert.deepEqual(p.receipt.parent,published.receipt.parent);assert.deepEqual(p.receipt.rollback,published.receipt.rollback);assert.deepEqual(p.settings.crmPrivateFiles.baseline,published.settings.crmPrivateFiles.baseline);assert.deepEqual(p.settings.crmPrivateFiles.crm06Actors,published.settings.crmPrivateFiles.crm06Actors);
+ const allowed=new Set(['CRM_TEST_SOURCE_COMMIT','CRM_TEST_PACKAGE_ROOT','CRM_TEST_PACKAGE_MANIFEST_SHA256']);for(const [key,value]of Object.entries(published.activation.environmentVariables))if(!allowed.has(key))assert.equal(p.activation.environmentVariables[key],value);
+ for(const component of ['erpApiNative','nativeOrder'])assert.deepEqual(p.settings.components[component],published.settings.components[component]);assert.equal(p.receipt.installed,false);assert.equal(p.receipt.humanAccepted,false);assert.equal(p.receipt.authenticatedOperationsVerified,false);
+});
+test('5bcd frozen final batch rejects variants, unknown source and cross-generation private refs or active-parent adoption',()=>{
+ for(const source of ['5bcd5ad136ff',CRM06_STAFF_FINAL_BATCH_CRM_SOURCE.toUpperCase(),'f'.repeat(40)])assert.throws(()=>crm06StaffSuccessorProfile(source),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});
+ for(const variant of ['parent-probe','',null,'other'])assert.throws(()=>crm06StaffSuccessorProfile(CRM06_STAFF_FINAL_BATCH_CRM_SOURCE,variant),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});
+ for(const change of [f=>f.crmDependencyLockRef.path=candidateFixture().crmDependencyLockRef.path,f=>f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261015','20261014'),f=>f.parentSettings=structuredClone(buildCrm06StaffRefreshSuccessor(parentProbeFixture()).settings)]){const f=finalBatchFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ const f=finalBatchFixture(),p=buildCrm06StaffRefreshSuccessor(f),previous=crm06StaffSuccessorProfile(CRM06_STAFF_CANDIDATE_CRM_SOURCE);
+ assert.throws(()=>crm06StaffSuccessorProfileForPath(CRM06_STAFF_FINAL_BATCH_CRM_SOURCE,previous.successorPath));assert.throws(()=>crm06StaffSuccessorProfileForPath(CRM06_STAFF_CANDIDATE_CRM_SOURCE,p.receiptRef.path));
+ for(const change of [v=>v.currentSettings.crmPrivateFiles.crm06StaffSuccessor.path=previous.successorPath,v=>v.currentSettings.components.crm.config.path=previous.nextPaths.activation,v=>v.currentSettings.dependencyLocks.crm.path=previous.dependencyLockPath,v=>v.receipt.prepared.profileVariant='parent-probe',v=>v.currentActivation.environmentVariables.CRM_ASSIGNED_STAFF_REFRESH_JOURNAL_PATH+='-reset']){const input=structuredClone(assertion(f,p));change(input);assert.throws(()=>assertCrm06StaffRefreshSuccessor(input),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
 });
