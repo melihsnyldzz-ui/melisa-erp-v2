@@ -215,3 +215,32 @@ The initial execution session became unavailable; no reason is claimed. An indep
 | erp09-case-final-readback.json | aba9549cdc31888031f69d1b5f293846ba541722b45d265e9b0ea839f7c35e2e |
 
 CRM owner delivered one frozen subsequent frontend batch **bb8966c59a6cfbdc1cc83472cb331e48b720a173**: response-status preservation for malformed/empty401/403/410 and same-document customer-catalog context transitions. Root independently matched manifest **6a9fe4f40c6e7b852ba62721a6f63dae1030321d9b9f46069405cbcd5d505d7c** and exact completed successful CRM PR38670744468/push38670739038/AIoffline38670744580. The manifest's actual index path is apps/frontend/dist/client/index.html, expected SHA **7ea43551750ead26b7bb166e6ccf35bd613e23a1ca888026352966d99cb289d1**. This handoff is not installation; current455/5bcd remains protected until the existing finite-profile/physical-reference and root-owned transition protocol proves a new installed runtime. No new agent, Goal, tracker, auth/API acceptance loop, real message or paid request is launched by the handoff. CRM06 remains the next priority while ERP09's actual closed failure is retained honestly.
+
+
+### CRM06 next frozen catalog-context batch actually installed — 15 October09:47 TR
+
+CRM source **bb8966c59a6cfbdc1cc83472cb331e48b720a173** is now installed with supervisor **76d1e5916d355592bcde96e51889a7536084fe91**. ERP/API/native/Hub application **7a41f6492273dd1ec0bcb086f820be5575372be8**, DB02/copy e16b70f0/T1false and all original boundaries remain unchanged. The CRM batch fixes HTTP status preservation for malformed/empty401/403/410 and same-document customer catalog context transitions. This is an installed source delivery, not normal GUI, physical staff or human acceptance. The separately prepared later CRM957 batch is not included or activated.
+
+Root independently verified all2,291 payload files/23,935,040 bytes, manifest/index/locks and the same ten gateway authority modules against previous bc843ed5f7ce... evidence. New finite ERP startup profile adds exactly one variants-free reviewed source, a16th physical reference after all prior15, and one exact Hub source/config pair. Six new focused tests passed, including the public WindowsPS5 parameter-policy AST slice; independent review found no remaining scoped P1/P2. Exact source [PR38693505519](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38693505519) and [push38693498882](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38693498882) completed SUCCESS. Old accepted CI/login/API/restore/14-table suites were not rerun.
+
+Before Apply, the strict full-state owner inspection rejected with mutated=false: the previous455 runtime was already degraded. Its09:23TR crmNativeOrder log recorded a10-second ETIMEOUT and process disappearance; source455 then correctly quarantined. Only its two ERP children and Hub were live. This does not establish the cause of the timeout, and the not-yet-active new CRM package was not blamed. Failure/heartbeat and partial OS evidence were retained. A separately reviewed, exact old455/7182/failure/heartbeat/supervisor-birth partial transition verified two ERP receipts, one Hub, the absence of all four CRM ports and exact missing-process argv, and rechecked before stopping. Stale CRM receipts were never adopted. Original retained-handle ownership, two task actions/SID/XML, all clear ports, preserved files and bounded rollback checks remained intact. Only the two existing owned TEST tasks were transitioned once; no automatic restore/reset, SQL commercial write or login was used.
+
+Actual readback at **2026-10-15T06:47:26.073Z** proved six current CORE processes, fresh running CRM heartbeat, served index, DB02/nonprivileged native identity and Hub reachability. Hub started after its fresh ERP prerequisite barrier at attempt0/manualHubStart=false. Real Windows reboot/logon was not performed. Root preserved51 immutable files, including the omitted current455 physical receipt added to a new51 snapshot; original50/44 snapshots were retained. Old credential/roles/journal/request bytes and task trigger/principal/settings plus SQL/TEST125 process identities remained identical. Fresh physical16 READY; this transition produced0 auth/interest/business requests. Earlier ERP09's two own synthetic draft/cancel journal rows are separately retained; they are not this transition's new business work. Current operational rollback is455/7182; immutable actor ancestor remains original790, neither is silently substituted.
+
+| Exact installed/private receipt | SHA256 |
+| --- | --- |
+| CRM manifest | 6a9fe4f40c6e7b852ba62721a6f63dae1030321d9b9f46069405cbcd5d505d7c |
+| Served CRM index | 7ea43551750ead26b7bb166e6ccf35bd613e23a1ca888026352966d99cb289d1 |
+| Supervisor manifest | 81435e5a1ea02d51ccfd5ad4c58cb49cc3ebc3550ed6f38ff3ae76aead9a31b9 |
+| Settings bb896 | e3dee7bb10f13e7ce8e0d06cf74522721ba5f70ca3dc8b7e6fa16701aa07a371 |
+| Actor successor bb896 | 3c4a23eb4dc77435c2c0fc680c80e79721719aee1f452f7118cacc868c189f82 |
+| CRM dependency lock | cfc23e859c741f840bc6a2b77e772f113a12b0c1043dbed4e33ee953645efdba |
+| complete51 preservation snapshot | a7c94a47c38c559a088df5894797113620b90ca2d41f1c4cb258f6d5854cf3f1 |
+| candidate verify | a9293dc74f9cc2d1b8405f36104205f6804e022972fa794af3b30ecf365f7335 |
+| reviewed partial transition helper | 87e5d09dedb3ae0a5bcdd4c9416734d3a6cd7ceb70bd10ac8a661eac8a3f5033 |
+| transition-before | 9b4bc1ed923fd6713a6a3502e70e6e2011c8e60142bc50941124814d40b566ca |
+| transition-started | ac2dea376c9be77f478cc102772aace4999385750d5c6297ea08c2e1de7fe5fb |
+| installed-readback | 6c065a9a49b69e440e75830106a016ffbed0f224a869c6c09f4b70eb7ed70ea4 |
+| final-preservation | cbb6368a7fd3ad37586b8e040f8c6026d6c5a4cf419a3572c2628648a20ea0fa |
+
+Private receipt root: C:/Sirket/ERP/reports/CRM06-CATALOG-CONTEXT-20261015. Commercial records, source profiles, credentials and private settings are not published. Existing user-facing addresses remain http://127.0.0.1:62700/ and http://127.0.0.1:5234/melisa-hub/. CRM06/CRM-UA11/normal GUI/mobile/human acceptance remain pending; original49ERP/25CRM leaf counts are unchanged. No LIVE/Vega/T1/main/customer send/paid AI operation occurred.
