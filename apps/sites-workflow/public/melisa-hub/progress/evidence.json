@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "timeZone": "Europe/Istanbul",
+  "observedAt": "2026-10-15T22:18:42.113Z",
+  "sourceErrors": [],
+  "coverage": {
+    "kind": "selected-main-turns",
+    "completePeriodTelemetry": false,
+    "nativeTimestampResolution": "seconds",
+    "activeWaitingEvents": false,
+    "pairedNotificationEvents": false,
+    "pairedHandoffEvents": false,
+    "provenance": "Supported native main-turn summaries verified read-only; only semantic labels and start/end timestamps retained. No raw task/thread/callback identifiers or logs."
+  },
+  "projects": [
+    {
+      "id": "ERP",
+      "total": 49,
+      "complete": 9,
+      "partial": 39,
+      "open": 1,
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/a26e06fe8a70003b613bdf9ca73d54bada5e29d0/ERP_FINISH_PLAN.md",
+      "deliveryUrl": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6203134045"
+    },
+    {
+      "id": "CRM",
+      "total": 25,
+      "complete": 12,
+      "partial": 13,
+      "open": 0,
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-crm/blob/60a82d00bab12888291033e271b4a4c019427ec6/CRM_FINISH_PLAN.md",
+      "deliveryUrl": "https://github.com/melihsnyldzz-ui/melisa-crm/pull/3#issuecomment-6202814105"
+    }
+  ],
+  "observations": [
+    {
+      "key": "erp-sample-1792100874",
+      "project": "ERP",
+      "title": "CRM adayına ERP kaynak uyarlaması",
+      "role": "main",
+      "status": "completed",
+      "startedAt": "2026-10-15T21:47:54.000Z",
+      "completedAt": "2026-10-15T21:58:54.000Z",
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6203134045"
+    },
+    {
+      "key": "erp-sample-1792096909",
+      "project": "ERP",
+      "title": "Desteklenen kurtarma yolu incelemesi",
+      "role": "main",
+      "status": "completed",
+      "startedAt": "2026-10-15T20:41:49.000Z",
+      "completedAt": "2026-10-15T20:46:35.000Z",
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6201927868"
+    },
+    {
+      "key": "erp-sample-1792095579",
+      "project": "ERP",
+      "title": "Alt çağrı tanı kanıtı",
+      "role": "main",
+      "status": "completed",
+      "startedAt": "2026-10-15T20:19:39.000Z",
+      "completedAt": "2026-10-15T20:29:27.000Z",
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6201625030"
+    },
+    {
+      "key": "crm-sample-1792099482",
+      "project": "CRM",
+      "title": "İnaktif aday paketinin hazırlanması",
+      "role": "main",
+      "status": "completed",
+      "startedAt": "2026-10-15T21:24:42.000Z",
+      "completedAt": "2026-10-15T21:38:55.000Z",
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-crm/pull/3#issuecomment-6202814105"
+    },
+    {
+      "key": "crm-sample-1792098761",
+      "project": "CRM",
+      "title": "Kopyalama sırası düzeltmesi",
+      "role": "main",
+      "status": "completed",
+      "startedAt": "2026-10-15T21:12:41.000Z",
+      "completedAt": "2026-10-15T21:20:22.000Z",
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-crm/pull/3#issuecomment-6202511918"
+    },
+    {
+      "key": "crm-sample-1792097567",
+      "project": "CRM",
+      "title": "Katalog bağlantısı geri bildirimi",
+      "role": "main",
+      "status": "completed",
+      "startedAt": "2026-10-15T20:52:47.000Z",
+      "completedAt": "2026-10-15T21:07:25.000Z",
+      "sourceUrl": "https://github.com/melihsnyldzz-ui/melisa-crm/pull/3#issuecomment-6202284836"
+    }
+  ]
+}

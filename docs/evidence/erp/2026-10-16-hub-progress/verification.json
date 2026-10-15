@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "scope": "read-only isolated Hub progress preview",
+  "baseCommit": "a26e06fe8a70003b613bdf9ca73d54bada5e29d0",
+  "sourceCi": "PENDING_EXACT_SOURCE_COMMIT",
+  "unitTests": {
+    "pass": 19,
+    "fail": 0,
+    "skip": 0,
+    "offlineGuard": true,
+    "reviewFailingBefore": {
+      "pass": 17,
+      "fail": 2
+    },
+    "finalLogSha256": "999d1ca422393cd8c7333d1a390546b53fb6215fa3b4baf20ef913ff730cee74"
+  },
+  "review": {
+    "openP1": 0,
+    "openP2": 0,
+    "mode": "read-only source review",
+    "fixedFindings": [
+      "bounded origin-form parser rejects malformed target with 400",
+      "same safe projected observation deduplicates across different keys"
+    ]
+  },
+  "browser": {
+    "checkedAt": "2026-10-15T22:29:17.279Z",
+    "uiChecks": [
+      {
+        "period": "Bugün",
+        "selected": "true",
+        "values": [
+          "4",
+          "11 dk 53 sn",
+          "Ölçülemiyor"
+        ]
+      },
+      {
+        "period": "7 gün",
+        "selected": "true",
+        "values": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ]
+      },
+      {
+        "period": "30 gün",
+        "selected": "true",
+        "values": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ]
+      },
+      {
+        "scenario": "empty",
+        "values": [
+          "Ölçülemiyor",
+          "Ölçülemiyor",
+          "Ölçülemiyor"
+        ],
+        "passed": true
+      },
+      {
+        "scenario": "source-auth-error",
+        "values": [
+          "Ölçülemiyor",
+          "Ölçülemiyor",
+          "Ölçülemiyor"
+        ],
+        "passed": true
+      },
+      {
+        "scenario": "invalid-source",
+        "panelHidden": true,
+        "passed": true
+      },
+      {
+        "scenario": "xss-title",
+        "literalText": true,
+        "injectedImageCount": 0,
+        "passed": true
+      },
+      {
+        "scenario": "desktop",
+        "height": 1000,
+        "metricValues": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ],
+        "overflow": false,
+        "width": 1440
+      },
+      {
+        "scenario": "mouse-filter",
+        "period": "7 gün",
+        "pressed": "true",
+        "passed": true
+      },
+      {
+        "scenario": "mobile",
+        "height": 844,
+        "overflow": false,
+        "sectionTop": 149.51390075683594,
+        "values": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ],
+        "width": 390
+      },
+      {
+        "scenario": "console",
+        "errors": 0,
+        "warnings": 0,
+        "passed": true
+      }
+    ],
+    "physicalDeviceTested": false,
+    "humanAcceptance": false,
+    "screenshotPrivacyReview": "Only newly created panel; no secrets, contact, credentials, private operational identifiers or other tabs visible."
+  },
+  "localHttpSmoke": {
+    "checkedAt": "2026-10-15T22:24:54.770Z",
+    "target": "ISOLATED_LOCALHOST_PREVIEW",
+    "cases": [
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/evidence.json",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/model.mjs",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/hub.css",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "HEAD",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "POST",
+        "status": 405,
+        "expected": 405,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "GET",
+        "status": 421,
+        "expected": 421,
+        "securityHeaders": true
+      },
+      {
+        "path": "//[",
+        "method": "GET",
+        "status": 400,
+        "expected": 400,
+        "securityHeaders": true
+      },
+      {
+        "path": "//foreign.example/",
+        "method": "GET",
+        "status": 400,
+        "expected": 400,
+        "securityHeaders": true
+      },
+      {
+        "path": "/%2e%2e/private",
+        "method": "GET",
+        "status": 400,
+        "expected": 400,
+        "securityHeaders": true
+      },
+      {
+        "path": "/api/products",
+        "method": "GET",
+        "status": 404,
+        "expected": 404,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/hub.mjs",
+        "method": "GET",
+        "status": 404,
+        "expected": 404,
+        "securityHeaders": true
+      },
+      {
+        "path": "/",
+        "method": "GET",
+        "status": 302,
+        "expected": 302,
+        "securityHeaders": true
+      }
+    ]
+  },
+  "screenshots": [
+    {
+      "file": "desktop-overview.jpg",
+      "sha256": "ae701cf30291aa1af2b2c1ad93b9551aa200924924695f54797eef6e816470b1",
+      "bytes": 90752
+    },
+    {
+      "file": "desktop-performance.jpg",
+      "sha256": "8b929816eb1a8546b39068df2f823523794546c9f8962aead8b2f82c9bcca8ee",
+      "bytes": 87638
+    },
+    {
+      "file": "mobile-performance.jpg",
+      "sha256": "5178480a644cb2cbd6260a358de8adbf2901f112ccfab5e00335760831001ef0",
+      "bytes": 54729
+    }
+  ],
+  "originalEvidenceRestoredSha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+  "sharedRuntimeReadOrWrite": false,
+  "commercialDataOrCredentialsRead": false,
+  "humanAcceptanceGranted": false,
+  "originalCounts": {
+    "ERP": {
+      "total": 49,
+      "complete": 9,
+      "partial": 39,
+      "open": 1
+    },
+    "CRM": {
+      "total": 25,
+      "complete": 12,
+      "partial": 13,
+      "open": 0
+    },
+    "total": 74
+  },
+  "build": {
+    "status": "PASS",
+    "method": "locked ignore-scripts dependencies; existing Vite build",
+    "newPublicAssetsVerified": [
+      {
+        "file": "index.html",
+        "sha256": "d182abca1e46135ce95917346790479a306bd1aa76b9a6c4c80f86a817288613",
+        "builtBytes": 5691
+      },
+      {
+        "file": "model.mjs",
+        "sha256": "ba66c28e7f774d2787746de4caa3f362a04d8bfd6f1aa4f009ed42f6dc16bc98",
+        "builtBytes": 6043
+      },
+      {
+        "file": "progress.mjs",
+        "sha256": "a87480f40a629b6032753e344f372eb25b950d3f7794bc85189a52efb252a705",
+        "builtBytes": 8267
+      },
+      {
+        "file": "progress.css",
+        "sha256": "71cd6331b6c0f6719222cec7201c4eb3c1f082b28ba65611d2a530c3d2af59f9",
+        "builtBytes": 6629
+      },
+      {
+        "file": "evidence.json",
+        "sha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+        "builtBytes": 3537
+      }
+    ],
+    "warnings": "Existing library directives/dynamic imports/chunk-size warnings; no new panel build error."
+  }
+}
