@@ -272,3 +272,27 @@ All58 old files are preserved: prior51 plus the seven exact currentbb settings/a
 | final-preservation.json | 14daef4c8105fd366c45962c56a5f5f7c2459ccb2ade0986e452e70682653603 |
 
 Private receipt root: C:/Sirket/ERP/reports/CRM06-STAFF-CONTEXT-20261015. No commercial records, credentials or private setting values are published. TEST URLs remain http://127.0.0.1:62700/ and http://127.0.0.1:5234/melisa-hub/. Normal GUI, physical/mobile, real reboot/logon, CRM06/CRM-UA11 human acceptance and whole closure remain pending; original leaf counts are unchanged. LIVE/Vega/T1/main/real messages/paid services were not used.
+
+
+## CRM06 quantity-input synchronization — actual isolated installation, 15 October
+
+15 Ekim — CRM06 miktar kutusu düzeltmesi gerçekten izole TEST'e kuruldu; readback 2026-10-15T10:32:13.068Z. CRM8942749 / supervisorcac08ea / ERP7a41, aynı DB02/copye16b/T1false. Sunucu farklı miktarı doğruladığında kutunun eski yazılan değeri göstermesi bu frontend partisiyle düzeltilir; normal GUI kanıtı değildir. Tek kontrollü iki-görev geçişi altı CORE, sunulan index, Hub ve native kimliği doğruladı; Hub ERP bariyeri sonrası attempt0/manualfalse. Eski65 dosya, credential/rol/journal/request byte'ları, görev metadata ve SQL/TEST125 süreç kimliği korundu; fresh18refREADY. Yeni auth/talep/ticari yazı0. ERP sourcecac08ea PR38720005028/push38719997556 SUCCESS,6 yeni hedef test PASS; CRM894 exact3CI SUCCESS. Bu bölümdeki kurulum ve koruma makbuzları. NormalGUI/mobil/gerçek Windows reboot-logon/CRM-UA11 ve insan kabulü BEKLİYOR; özgün kapsam/sayılar değişmedi.
+
+CRM source `89427492f27caf72c511a27262b55e73d782c407`, supervisor-only source `cac08eaed0c4419550ecdaf6fdf4976252b83fa7`, settings SHA256 `12fe75519fe0780c587e6404de6077331697391a76c2bd0ae9ab12d8fe5991ac`, successor SHA256 `8f5932003d5ce204eeaf2c59ca1eb5e9eef8cae95f2308ede806f1ce88702f62`. ERP/API/native/Hub application remains7a41f6492273dd1ec0bcb086f820be5575372be8. Immutable CRM manifestb4f593eb736820577b19a489f104e599be6e3749e3f31db759898733c73ef3a7 and index3bb1ec44de971549f95cb858bb315cdf101d83b3381321c53c2ef477e95a96a6 match the served artifact. Current957/5cdf is the preserved operational rollback; original790 actor ancestor remains distinct. Six new guarded profile/policy tests passed (including the WindowsPS5 parameter AST slice); independent source/private-helper review GO. No prior accepted suite or old source CI was rerun.
+
+Private receipts remain under C:/Sirket/ERP/reports/CRM06-QUANTITY-SYNC-20261015; no raw account values, credentials or payloads are uploaded.
+
+| Receipt | SHA256 |
+| --- | --- |
+| `crm-package-pin.json` | `d5598659bffe9162e28f3bb8d2a1b2056e6876dacb2bb62062d460d8364c051e` |
+| `candidate-verify.json` | `8e89b7a09523c30b521a44e8bdfd33eb07cf96a6d9b1696ccd5c901e5ac16615` |
+| `transition-before.json` | `e453a811ea991ac7e61117a233537c354a402ff2ee5ad95759887aed734a3279` |
+| `transition-started.json` | `fb5da3e8d0555450c62fa2d86208556e73ccf66fc0e917a9e9f00dedf475c289` |
+| `installed-readback.json` | `e6dedf2f9a29e2a6b2b449c2f2c8311a6190c048d4155f5f1ed4b1d2143ec0d8` |
+| `final-preservation.json` | `c3919dc4e435883fb3d841200413e4755bfbb0053347d66503596dafba695f66` |
+| `original-and-current-preservation-complete.json` | `2b59640c425d7c2455e7c1a911de21203599baad0065c71377d751164f9c00a5` |
+| `heartbeat-dispatch.json` | `37d2633e0505b1d07aa78a638b0f7d2e8a8c6707862810ca11640e40f44a106a` |
+
+**15 Ekim13:16:28 TR otomasyon yürütme kanıtı:** Bu aynı konuşmaya gelen gerçek heartbeat, yerel native dispatch kaydında `automation_heartbeat_run_now` olarak doğrulandı; normal periyodik scheduler çalışması değildir. last_run_at10:16:28.899Z; sıradaki periyodik next_run_at14:23:26TR/nominal14:25TR. Bu turda CRM894 miktar-UI paketi için sonlu profil kodu,6 hedef test, bağımsız inceleme, sourceCI, gerçek izole kurulum ve65dosya/18ref geri okuması tamamlandı. **İlk normal periyodik çalışma BEKLİYOR**; Run-now sonucu zamanlama PASS veya insan kabulü değildir. Native zamanlama/CRM ayarı elle değiştirilmedi; ham log veya sır yayımlanmadı.
+
+Machine context: `supervisorcac08ea-erp7a41-crm8942749-20261015T103213Z`. Unchanged10-module authority surface remains byte-identical to bc843ed5f7ce2974a8ed36fcee5b2592c977fd35d5a9960b560fc1d8c069bb25; retained official normal-role evidence is reused only for that unchanged scope. The new quantity UI was tested offline, installed, and identity-readback verified; protected normal GUI remains BLOCKED, no human/mobile acceptance is claimed.
