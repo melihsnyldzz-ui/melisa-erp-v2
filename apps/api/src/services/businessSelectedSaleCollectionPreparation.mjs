@@ -2,6 +2,7 @@ import {assertIsolatedCopyContext,bindIsolatedCopyOperationDTO,BUSINESS_COPY_DAT
 import {loadBusinessSelectedSaleJournal} from './workTradeStore.mjs';
 import {createWorkCollectionService} from './workCollectionService.mjs';
 import {workId,workScaled} from './workSalesModel.mjs';
+import {withSelectedSaleCollectionReadBridge} from './isolatedOperationCopyStoreFactory.mjs';
 
 // Deliberately unregistered preparation adapter. There is no default store,
 // connection, route, native intent or authority to enable the DB02 writer.
@@ -82,4 +83,31 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
   }),
  });
  return createWorkCollectionService({getStore});
+}
+
+// Explicit server-only READ/PREVIEW bridge. No default connection/route and no
+// mutable writer DTO escapes. Existing factory identity/READY/actor checks own
+// the read transaction; the preparation repeats current collection authority.
+export function createBusinessSelectedSaleCollectionReadPreparation({getStore}={}){
+ requireValue(typeof getStore==='function','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
+ const service=createBusinessSelectedSaleCollectionPreparation({withContext:async(actor,fn)=>{
+  const store=await getStore();requireValue(typeof store?.readSelectedSaleCollectionPreparation==='function','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
+  return store.readSelectedSaleCollectionPreparation(actor,bridge=>withSelectedSaleCollectionReadBridge(bridge,async native=>{
+   // This unregistered checkpoint supports unpriced SOURCE journals only.
+   // A priced creator15 invoice cannot borrow collector16's HISTORY reader.
+   const readPriceHistory=()=>fail('WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED');
+   const c={copyContext:native.copyContext,context:native.context,transaction:native.transaction,sql:native.sql,request:native.request,readPriceHistory};
+   // Verify creator records inside this same read transaction, independently
+   // of the collector16's current permissions and finance-account checks.
+   let verified;
+   c.invoice=async id=>{verified=await loadBusinessSelectedSaleJournal({copy:native.copyContext,actor:{id:'15'},request:native.request,sql:native.sql,id,readPriceHistory});return native.invoice(verified);};
+   const result=await fn(c);requireValue(verified);
+   return {...result,preparationProof:Object.freeze({creatorId:'15',collectorId:'16',copyId:native.copyContext.copyId,sealHash:native.copyContext.sealHash,invoiceId:verified.creation.invoiceId,creationRequestId:verified.creation.requestId,policyHash:verified.selection.policyHash,sourceSelectionHash:verified.selection.sourceSelectionHash})};
+  }));
+ }});
+ return Object.freeze({
+  preview:async(input,actor)=>Object.freeze({...await service.preview(input,actor),preparationOnly:true,readOnly:true,capabilities:Object.freeze({canCollect:false,canCancelCollection:false})}),
+  collect:async()=>fail('ISOLATED_COPY_READ_ONLY',403),
+  cancel:async()=>fail('ISOLATED_COPY_READ_ONLY',403),
+ });
 }

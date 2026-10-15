@@ -2,7 +2,7 @@ import {getRegisteredBusinessProductPriceSaleRevision,verifyBusinessProductPrice
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyActor,assertIsolatedCopyReadProof,bindIsolatedCopyOperationDTO,copyAssert,isolatedCopyHash,isolatedCopyJSON,isolatedCopyUUID,ISOLATED_COPY_PROCEDURES,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelectionContext.mjs';
 import {getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
-import {withIsolatedOperationCopyScope} from './isolatedOperationCopyScope.mjs';
+import {withIsolatedOperationCopyScope,isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {verifyBusinessDailyNativeCheck} from './businessDailyNativeCheck.mjs';
 import {verifyBusinessReadinessQueryPlan} from './businessReadinessQueryPlanRevision.mjs';
 import {verifyBusinessDailyHomeReadProof} from './businessDailyHomeReadProof.mjs';
@@ -17,6 +17,15 @@ export const ISOLATED_COPY_OPERATION_PERMISSIONS=Object.freeze({sale_draft:'sale
 const domains=new Set(['trade','inbound','payment','daily']);
 const homeRead=Symbol('server HOME read');
 const historicalSaleRead=Symbol('server historical sale read');
+const collectionPreparationRead=Symbol('server collection preparation read');
+const collectionReadBridges=new WeakMap();
+// Opaque bridge tokens exist only inside a verified factory read callback.
+// Never expose the SQL request factory as c.request (UUID recovery).
+export function withSelectedSaleCollectionReadBridge(bridge,operation){
+ const value=collectionReadBridges.get(bridge);
+ copyAssert(value&&value.active&&typeof operation==='function'&&isolatedCopyTransactionContext(value.transaction,{writeRequired:false})===value.copyContext,'ISOLATED_COPY_TRANSACTION_REQUIRED');
+ return operation(value);
+}
 const parse=value=>{copyAssert(typeof value==='string','ISOLATED_COPY_SQL_JSON');try{return JSON.parse(value);}catch{copyAssert(false,'ISOLATED_COPY_SQL_JSON');}};
 const safeId=id=>{const n=Number(id);copyAssert(Number.isSafeInteger(n)&&n>0,'ISOLATED_COPY_ID');return n;};
 const identitySQL="SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess";
@@ -103,6 +112,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    const readSelectedSaleInvoiceState=selected&&(!write||priceConsumer)&&domain==='trade'?createBusinessSelectedSaleInvoiceReader({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,actual,readProof,priceConsumer}):undefined;
    const c=await buildDomain({runtime:r,copyContext:context,context:normalContext,actor,actual,identity,nativeContext,request:req,write,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState});
    copyAssert(c&&typeof c==='object'&&c.context===normalContext,'ISOLATED_COPY_DOMAIN_CONTEXT');
+   if(!write&&readPath===collectionPreparationRead)collectionReadBridges.set(c,{copyContext:context,transaction:tx,sql:q,request:req,context:normalContext});
    c.request=async requestId=>{
     copyAssert(isolatedCopyUUID(requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
     const prior=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,requestId).input('actor_id',q.BigInt,safeId(actor.id)).query('SELECT operation,response_json FROM dbo.stage4_copy_requests WHERE copy_id=@copy_id AND request_id=@request_id AND actor_id=@actor_id;')).recordset?.[0];
@@ -159,6 +169,15 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
   selectedSaleEnabled:async()=>{const r=await getRuntime();return !!getRegisteredBusinessSelectedSaleRevision(r.copyContext);},
   context:actor=>transaction(actor,false,c=>c.context),
   read:(actor,fn,permission)=>transaction(actor,false,fn,permission??readPermission),
+  readSelectedSaleCollectionPreparation:(actor,fn)=>transaction(actor,false,async c=>{
+   copyAssert(domain==='trade'&&typeof fn==='function'&&typeof c.readSelectedSaleCollectionInvoice==='function','ISOLATED_COPY_READ_ONLY');
+   const bridge=Object.freeze({}),value={active:true,copyContext:null};
+   // The transaction-local native bundle is attached below, never caller data.
+   const native=collectionReadBridges.get(c);copyAssert(native,'ISOLATED_COPY_READ_ONLY');
+   const active=()=>copyAssert(value.active&&isolatedCopyTransactionContext(native.transaction,{writeRequired:false})===native.copyContext,'ISOLATED_COPY_TRANSACTION_REQUIRED');
+   Object.assign(value,native,{request:()=>{active();return native.request();},invoice:original=>{active();return c.readSelectedSaleCollectionInvoice(original);}});collectionReadBridges.set(bridge,value);
+   try{return await fn(bridge);}finally{value.active=false;collectionReadBridges.delete(bridge);collectionReadBridges.delete(c);}
+  },'customer.view',null,collectionPreparationRead),
   readHistoricalSale:(actor,fn,permission)=>transaction(actor,false,fn,permission??readPermission,null,historicalSaleRead),
   readHome:(actor,fn)=>transaction(actor,false,fn,readPermission,null,homeRead),
   mutate:(actor,operation,payload,fn)=>typeof operation==='function'?transaction(actor,true,operation):transaction(actor,true,fn,readPermission,{operation,payload}),

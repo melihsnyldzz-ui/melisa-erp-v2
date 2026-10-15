@@ -194,7 +194,7 @@ export function validateBusinessTradeContext(context,copy){
  for(const p of scope.products){const source=copy.products.find(s=>s.id===p.id);if(p.costExact4!==source?.costExact4||workScaled(p.costExact4,4)<=0n||!Array.isArray(p.prices)||p.prices.some(q=>source.quotes?.filter(w=>w.quoteId===q.quoteId&&w.currency===q.currency&&w.priceExact8===(pricing?q.pricing?.sourcePriceExact8:q.unitPriceExact8)&&w.verified===true&&w.mainUnit===true&&w.type==='sale').length!==1))throw workError();}
  const limit=workScaled(context.limits?.maxInvoiceAmountExact4,4);if(limit<=0n||limit>(context.limits?.maxItems===200?workScaled(copy.businessInvoiceMaxExact4,4):5000000n))throw workError();
 }
-export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,context,actor,nativeContext:ctx,request:req,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState}){
+export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,context,actor,nativeContext:ctx,request:req,write,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState}){
  const q=r.sql,tx=ctx.transaction,sqlCopyId="N'"+copyContext.copyId+"'",business=copyContext.target.database===BUSINESS_COPY_DATABASE;
  const takeRaw=()=>{validateBusinessTradeContext(context,copyContext);const products=context.scope.products.map(p=>({...p}));for(const p of context.scope.products)delete p.costExact4;return{customer:context.scope.customer,accounts:context.scope.accounts,products,documentDate:context.meta.date};};let raw=takeRaw();
  const selectedAccount=(id,currency=raw.customer.currency)=>{const matches=raw.accounts.filter(a=>a.id===String(id)&&a.currency===currency);if(matches.length!==1||!copyContext.financeAccounts.some(a=>a.id===matches[0].id&&a.currency===currency))workFail('WORK_COLLECTION_SCOPE','Tahsilat hesabı uygun değil.',409);return matches[0];};
@@ -236,6 +236,19 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
      value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});if(selectedInvoice){const {selectedSaleInvoiceRevisionSQL}=await import('../../../../scripts/canonical/shared-business-selected-sale-revision-sql.mjs');const rows=(await req().input('invoice_id',q.BigInt,id).input('copy_id',q.UniqueIdentifier,copyContext.copyId).input('actor_id',q.BigInt,actor.id).query(selectedSaleInvoiceRevisionSQL)).recordset;if(rows?.length!==1)throw workError();value.revision=workRevision(rows[0].invoiceRevision);}else value.revision=workHash(value);if(selectedInvoice)value.capabilities={canCollect:false,canCancelCollection:false};return value;
     }
     c.invoice=invoice;c.collection=collection;
+    if(write===false&&business)c.readSelectedSaleCollectionInvoice=async original=>{
+     // This separate internal read never borrows creator15's permissions or
+     // changes the ordinary invoice reader's actor-owned journal boundary.
+     const verified=deriveBusinessSelectedSaleJournal(copyContext,{id:'15'},original?.record,{priceHistory:original?.priceHistory??null}),h=original.record.invoice,s=verified.selection;
+     if(actor.id!=='16'||h.status!=='finalized'||s.currency!=='TRY'||h.customerId!==raw.customer.id||s.customerAccountId!==raw.customer.accountId||h.currency!==raw.customer.currency)throw workError();
+     const ids=(await req().input('invoice',q.BigInt,h.id).query('SELECT CONVERT(varchar(20),movement_id) id FROM dbo.work_collection_links WITH(HOLDLOCK) WHERE invoice_id=@invoice AND original_id IS NULL ORDER BY movement_id;')).recordset;
+     if(!Array.isArray(ids)||new Set(ids.map(v=>v.id)).size!==ids.length)throw workError();
+     const collections=[];for(const row of ids){const value=await collection(row.id);if(value.invoiceId!==h.id)throw workError();collections.push(value);}
+     const received=collections.filter(v=>v.status==='active').reduce((sum,v)=>sum+workScaled(v.amountExact4,4),0n),total=workScaled(h.grandTotalExact4,4);
+     if(received<0n||received>total)throw workError();
+     const value={...h,items:JSON.parse(original.record.link.preview_json).items,collections:{receivedExact4:workExact(received,4),outstandingExact4:workExact(total-received,4),items:collections},customerBalanceExact4:context.scope.customer.balanceExact4,capabilities:{canCollect:false,canCancelCollection:false}};
+     value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});value.revision=workHash(value);return value;
+    };
     c.list=async(options)=>{
      const {page,limit}=options,filter=workSalesListFilter(options);
      if(!Number.isSafeInteger(page)||page<1||!Number.isSafeInteger(limit)||limit<1||limit>50)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');
