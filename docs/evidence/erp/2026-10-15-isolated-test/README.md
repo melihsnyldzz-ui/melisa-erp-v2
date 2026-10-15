@@ -320,3 +320,32 @@ Private evidence remains outside Git under C:/Sirket/ERP/reports/ERP09-10053-DIA
 | package-pin-target.txt (1PASS) | 46b803f560c3771f08d7da490128bf1efb068759134e45dded61c8cb9c8f3345 |
 
 Exact delivery commit and its hosted CI are recorded in the PR23 delivery comment after publication; local target results are not hosted CI. This source change is **NOT installed in TEST**. No package installation, restart, SQL/database/schema/grant/role/auth write, old-case replay, finance/stock effect, migration, LIVE/Vega/T1/main, real message or paid API occurred. Existing installed894/cac08ea and ERP7a41 identities refer to the preceding receipt, not a new runtime check. The historical10053 cause remains unknown; no native finalize or collection-history success is claimed. CRM06 priority, ERP09 partial status and all original human acceptance remain pending. Stop after this one task.
+
+
+## CRM06/R02 — 94f exact profile SOURCE/OFFLINE delivery
+
+Task DOT-ERP-CRM06-R02-94F-PROFILE-r1 was reconciled once against the sole [Dot handoff record](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6190971998), canonical clean d537514 HEAD and existing task/source history before edits. No previous94f ERP profile delivery existed. This is one source-only task; no CRM message or new agent/Goal/automation/tracker. Dot retains ownership of the single handoff record.
+
+ERP source **f450ff488671911877249b84f65bed28df79070f** adds the eighth exact CRM source and tenth literal successor generation only. New source94f2a75322a3daa695d38010a6f2c8ef23f6c17b is additionally tied to manifest16cb075a8734d56afd1f364999ab8f0707255be5c4a042a9c197ccf397eea556 and index19624f5d0189c5750089b4c50779809f3a381e323ae59541daa5ee4c3efdf3a5; valid-looking but different hashes reject. Existing nine profiles, original actor ancestor/default source/feature pin, environment/role/owner/DB/copy/T1false/health/path/ACL/reparse/rollback guards remain unchanged. New paths are literal94f2a75322a3; no variants, wildcard, free source or bypass. The original constructor ancestor is distinct from latest-good operational894/cac and prior957/d469; no operational rollback/config is prepared in this task.
+
+JournalJS and WindowsPS5 exact policies retain18old references and add one19th future successor reference. Seven new offline tests cover constructor positive/old-profile output hashes and negative source/path/hash/cross-pair/variant/ref/active-parent cases, plus independent PS5 parameter-policy and Hub-switch AST slices. Those slices do not execute physical inspection, load private settings or launch services. Six targets passed, and the separate seventh passed after suppressing first-use PowerShell progress only; its initial CLIXML-progress failure is retained. This is19-reference policy/fixture proof, not a fresh physical READY receipt or actual device acceptance.
+
+The already prepared inactive CRM package was read only:2291payload files/23935639bytes and185source Git blob references/treec98dd26ca6250a8626ac2d34d1ee225d4bada0d4 match the supplied immutable manifest. No CRM source rebuild, package replacement, auth/API/GUI or provider request occurred.
+
+A new inactive SUPERVISOR_ONLY bundle was created with the existing supported builder from clean committedf450ff488671911877249b84f65bed28df79070f: C:/Sirket/ERP/releases/CANONICAL-CRM06-SUPERVISOR-TEST-20261015-f450ff488671; manifestSHA256 **40c88297b94468555bc78b50a7b05ad2d576e7c94ac747aab91428ce48f55656**;264files. Independent package verification checks every manifest hash, exact file set and exact bytes against a fresh official Git archive of this commit. Windows Git export policy produces CRLF: raw Git blob bytes match0, export bytes match264. An initial verifier incorrectly expected raw blob equality and rejected the first file; only the verifier comparison basis was corrected, without normalizing bytes or changing the artifact/builder/config. The source-comment/tree/export checks and packaged pure profile/journal/Hub tuple passed. PackageRole remains SUPERVISOR_ONLY/applicationDeploymentfalse/writesfalse. Creating this source artifact is not activation. Independent source/package review GO.
+
+Exact source CI: [pull_request SUCCESS](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38747419775) / [push SUCCESS](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38747407429). Later docs-only HEAD is separate; source CI is not assigned to that documentation commit. Source profiles and package preparation did not rerun old accepted application/GUI/native/reboot suites.
+
+Private evidence: C:/Sirket/ERP/reports/CRM06-R02-94F-PROFILE-20261015; only sanitized counts/hashes are public.
+
+| Receipt | SHA256 |
+| --- | --- |
+| targeted-tests.txt | fafa471245e2a3f181f78ecec3ec6ad9392920b4289a3d7d67f807bb4b81d89a |
+| hub-switch-target.txt | b0e29c95a9012f0249ff8fd73eaa8126fe6b5d3bdd0b566e945a6578543289b9 |
+| hub-switch-final.txt | 7ab8cec20f47eda631fcd06e4fe4622d8fbee7f9eff9c002c37a293cf5df0627 |
+| crm-package-proof.json | d47fdb1650b873a3fc0730059bcfaa510cf732da1dc4576754e370b5235c67b2 |
+| supervisor-package-proof.json | 119361b0b731dcc558d7bc9bf8f21f5f5b3850f1fcf87f7e34b1039edf9daa10 |
+| verification-notes.json | c03b6bed9b6f9fc1055b026bd951ff62ef12ade068c4406d890efa98f737a45b |
+| source-ci.json | a3972154abf42b640d091f227919df5bc1ae187e58bcb71d6269d48932f4fe7d |
+
+**No active settings/config/helper/journal/credential/auth/grant/role/task/service/SQL/DB02/TEST125/restart/deploy/activation or security setting changed.** The constructor was exercised only with in-memory test inputs; no active/private constructor input or receipt was prepared and no physical walker was run. No LIVE/Vega/T1/main/message/paid API operation; d537514 diagnostics and the old10053 NETZERO case were not repeated. Dated894/cac/ERP7a runtime evidence is retained as prior evidence, not freshly checked. NormalGUI/phone/reboot/human acceptance and original counters remain pending/unchanged. Remaining dependency is a separately delegated ERP-owner activation scope with fresh owner/isolation/before-image/rollback proof. This task stops at source/offline delivery; no second task begins.

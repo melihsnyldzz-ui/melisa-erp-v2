@@ -23,6 +23,9 @@ ERP-DEC-032 uygulama kanıtı: [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-
 
 ## Kalıcı kararlar
 
+
+**15 Ekim güncel tek görev devri önceliği:** Kullanıcının [Dot koordinasyon kararı](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6190971998) görev seçimi/devir bakımından önceki özerk sıradaki-iş/otomasyon ifadelerini günceller; özgün74plan, kabuller ve güvenlik sınırları korunur. Mevcut ERP/CRM ana ajanları yalnız Dot'un aynı tek kayıtta devrettiği kapsamı yürütür; teslimde durur, kendiliğinden ikinci ana iş veya kurulum başlatmaz. Yeni ana/alt ajan, Goal, otomasyon veya tracker yok. Kullanıcı iki zamanlamayı duraklattığını teyit etti; kuyruk UNKNOWN, boş sayılmaz; ayarlar burada değiştirilmez. Aynı task/scope/ACK/teslim varsa NOOP, çakışmada ikinci iş yok. Mevcut SOURCE/OFFLINE94f profil hazırlığı aktif TEST veya güvenlik/servis değişikliği yetkisi değildir; ortak TEST yazarı ERP kalır. Tek devir kaydını yalnız Dot günceller. Sonraki yetkili işi Dot seçer; insan kabulü mevcut özgün ID'lerde en sonda BEKLİYOR kalır.
+
 ### ERP-DEC-060 — 15 Ekim 2026 — Kalan bütün teknik gereksinimleri ilerlet, insan kabulünü en sona topla
 
 **Durum: Onaylı kullanıcı kararı.** Kaynak: “tamam kalan gereksinimleride tamamlayalım, bana vereceğin görev varsa ver, sonra ajanları otomatik ...” onayı; hemen önceki konuşmada “bütün mümkün teknik işler, en sonda toplu insan kabulü” seçeneğinin açık kabulü. Karşı proje: CRM-DEC-018. v3 ana çalışma sözleşmesini tümden değiştirmez; CRM06'nın son insan kabulünü beklerken başka ana başlıkların **bağımsız teknik geliştirmesini bekleten** kısmına açık istisna getirir ve tek tek kişi kabulü yerine **son toplu personel kabulü** hazırlar.

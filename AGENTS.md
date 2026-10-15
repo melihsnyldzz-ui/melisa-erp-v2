@@ -1,5 +1,8 @@
 # AI Agent Entry Point
 
+
+**15 Ekim güncel tek görev devri önceliği:** Kullanıcının [Dot koordinasyon kararı](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6190971998) görev seçimi/devir bakımından önceki özerk sıradaki-iş/otomasyon ifadelerini günceller; özgün74plan, kabuller ve güvenlik sınırları korunur. Mevcut ERP/CRM ana ajanları yalnız Dot'un aynı tek kayıtta devrettiği kapsamı yürütür; teslimde durur, kendiliğinden ikinci ana iş veya kurulum başlatmaz. Yeni ana/alt ajan, Goal, otomasyon veya tracker yok. Kullanıcı iki zamanlamayı duraklattığını teyit etti; kuyruk UNKNOWN, boş sayılmaz; ayarlar burada değiştirilmez. Aynı task/scope/ACK/teslim varsa NOOP, çakışmada ikinci iş yok. Mevcut SOURCE/OFFLINE94f profil hazırlığı aktif TEST veya güvenlik/servis değişikliği yetkisi değildir; ortak TEST yazarı ERP kalır. Tek devir kaydını yalnız Dot günceller. Sonraki yetkili işi Dot seçer; insan kabulü mevcut özgün ID'lerde en sonda BEKLİYOR kalır.
+
 ## Toplu teknik bitiriş ve en sonda insan kabulü — 15 Ekim / ERP-DEC-060
 
 **15 Ekim 2026 kullanıcı kararı — teknik işler önce, insan kabulü sona:** Bu yeni yürütme kararı önceki v3 ana çalışma sözleşmesinin yalnız "CRM06 insan kabulü olmadan başka ana işe teknik olarak geçilmez" ve "kabulü her yaprağın hemen sonunda alma" kısmını açıkça günceller. Tarihsel karar ve kanıtları silmez; tüm 74 bitiş yaprağı (ERP 49 = 9🟢/39🟡/1🔴; CRM 25 = 12🟢/13🟡/0🔴), sabit55/ortak21 ve özgün kabul ölçütleri aynen korunur. Yeni Goal/ana ajan/iş tablosu/ikinci takip sistemi YOK.
