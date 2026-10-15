@@ -6,14 +6,20 @@ import crypto from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-const CONFIG='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-da82fc6644c1-parent-probe.json';
+const PROFILES=Object.freeze([
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-da82fc6644c1-parent-probe.json',source:'da82fc6644c1d9dba0c10eaa861773534d43c288'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5ce452b01ef2.json',source:'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'})
+]);
 const RECEIPTS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web';
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
-const CRM_SOURCE='da82fc6644c1d9dba0c10eaa861773534d43c288';
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const check=(ok,code='ERP_HUB_WAIT_REJECTED')=>{if(!ok)fail(code);};
 const samePath=(a,b)=>typeof a==='string'&&typeof b==='string'&&path.win32.normalize(a).toLowerCase()===path.win32.normalize(b).toLowerCase();
+export function assertErpHubProfile(configPath,crmSource){
+ const profile=PROFILES.find(p=>p.config===configPath);
+ check(profile&&profile.source===crmSource);return true;
+}
 function noReparse(p){for(let q=p;;q=path.dirname(q)){check(!fs.lstatSync(q).isSymbolicLink());if(q===path.dirname(q))break;}}
 function readPinned(ref){noReparse(ref.path);const b=fs.readFileSync(ref.path);check(sha(b)===ref.sha256);return b;}
 const identity=rows=>JSON.stringify(rows.map(r=>[r.pid,r.parentPid,r.creationTime,r.parentCreationTime,r.commandLine,r.parentCommandLine]).sort((a,b)=>a[0]-b[0]));
@@ -47,11 +53,12 @@ export async function waitForErpBeforeHub({settings,stages,probe,receipt,matches
 }
 
 export async function runErpHubBarrier({configPath,configSha256,ownerSid,receiptPath}){
- check(process.platform==='win32'&&configPath===CONFIG&&/^[a-f0-9]{64}$/.test(configSha256)&&/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(ownerSid));
+ check(process.platform==='win32'&&PROFILES.some(p=>p.config===configPath)&&/^[a-f0-9]{64}$/.test(configSha256)&&/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(ownerSid));
  check(path.win32.dirname(receiptPath)===RECEIPTS&&/^erp-prerequisites-[a-f0-9]{32}\.json$/.test(path.win32.basename(receiptPath)));
  check(process.execArgv.length===1&&process.execArgv[0]==='--no-maglev');
  const settings=JSON.parse(readPinned({path:configPath,sha256:configSha256}));
- check(settings.ownerSid===ownerSid&&settings.components.crm.sourceCommit===CRM_SOURCE&&settings.actualT1===false&&settings.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&settings.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02');
+ assertErpHubProfile(configPath,settings.components.crm.sourceCommit);
+ check(settings.ownerSid===ownerSid&&settings.actualT1===false&&settings.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&settings.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02');
  check(samePath(process.execPath,settings.node.path)&&samePath(fileURLToPath(import.meta.url),path.win32.join(settings.supervisor.packageRoot,'scripts','canonical','wait-erp-for-hub.mjs')));
  readPinned(settings.node);const manifest=JSON.parse(readPinned({path:path.win32.join(settings.supervisor.packageRoot,'release-manifest.json'),sha256:settings.supervisor.manifestSha256}));check(manifest.sourceCommit===settings.supervisor.sourceCommit&&manifest.packageRole==='SUPERVISOR_ONLY'&&manifest.applicationDeployment===false&&Array.isArray(manifest.files));
  for(const file of manifest.files){check(/^scripts\/canonical\/[-_a-zA-Z0-9./]+$/.test(file.path)&&!file.path.includes('..')&&/^[a-f0-9]{64}$/.test(file.sha256));readPinned({path:path.win32.join(settings.supervisor.packageRoot,file.path),sha256:file.sha256});}

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {waitForErpBeforeHub,runErpHubBarrier,assertErpHubHealth} from './wait-erp-for-hub.mjs';
+import {waitForErpBeforeHub,runErpHubBarrier,assertErpHubHealth,assertErpHubProfile} from './wait-erp-for-hub.mjs';
 const stages=[{name:'erpNative',ports:[4186]},{name:'erpApi',ports:[4184]}];
 const make=()=>{
  const settings={ownerSid:'S-1-5-21-1-2-3-4',node:{path:'C:\\Program Files\\nodejs\\node.exe'}};
@@ -46,4 +46,12 @@ test('health evidence preserves the full existing ERP isolated/nonprivileged exe
 });
 test('slow successful probes may not release Hub after the fixed deadline',async()=>{
  const f=make();let clock=0;f.input.now=()=>clock;f.input.ready=async()=>{clock=600001;return true;};await assert.rejects(waitForErpBeforeHub(f.input),{code:'ERP_HUB_WAIT_TIMEOUT'});
+});
+
+test('5ce Hub profile binds exact new config/source while preserving installed da82 rollback tuple',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\';
+ const old=root+'settings-crm06-staff-da82fc6644c1-parent-probe.json',next=root+'settings-crm06-staff-5ce452b01ef2.json';
+ const a='da82fc6644c1d9dba0c10eaa861773534d43c288',b='5ce452b01ef20fc84a09c52b78311db8eb1dd1d8';
+ assert.equal(assertErpHubProfile(old,a),true);assert.equal(assertErpHubProfile(next,b),true);
+ for(const [file,source]of [[old,b],[next,a],[next,b.toUpperCase()],[next.toUpperCase(),b],[root+'settings-crm06-staff-unknown.json',b],[root+'settings-crm06-staff-da82fc6644c1.json',a],[next,'f'.repeat(40)],[next,b.slice(0,12)]])assert.throws(()=>assertErpHubProfile(file,source),{code:'ERP_HUB_WAIT_REJECTED'});
 });

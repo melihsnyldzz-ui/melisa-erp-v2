@@ -8,6 +8,7 @@ import {validateCompletionSettings,completionCrmEnvironment,validateCurrentCrmHu
 
 export const CRM06_STAFF_CRM_SOURCE='b2985d2295c022848c769ea5f494012c1eb3fa00';
 export const CRM06_STAFF_FRONTEND_CRM_SOURCE='da82fc6644c1d9dba0c10eaa861773534d43c288';
+export const CRM06_STAFF_CANDIDATE_CRM_SOURCE='5ce452b01ef20fc84a09c52b78311db8eb1dd1d8';
 export const CRM06_STAFF_ERP_FEATURE_BASE='140fac3aa2a9293b63fdf7a6998acf4aaa814d77';
 const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon',actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014';
 export const CRM06_STAFF_SUCCESSOR_PATH=actorRoot+'\\staff-refresh-successor-b2985d2295c0.json';
@@ -16,16 +17,18 @@ export const CRM06_STAFF_PARENT_SETTINGS_PATH=root+'\\settings-crm06-7a081ab2b01
 export const CRM06_STAFF_PARENT_ACTIVATION_PATH=root+'\\crm-activation-crm06-7a081ab2b017.json';
 export const CRM06_STAFF_JOURNAL_EVIDENCE_PATH=actorRoot+'\\journal-physical-preflight-b2985d2295c0.json';
 const nextPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-b2985d2295c0.json',settings:root+'\\settings-crm06-staff-b2985d2295c0.json',hubPin:root+'\\hub-pin-crm06-staff-b2985d2295c0.json',hubStartup:root+'\\hub-startup-crm06-staff-b2985d2295c0.json'});
-// Two reviewed CRM sources and three literal supervisor generations only.
+// Three reviewed CRM sources and four literal supervisor generations only.
 // Every generation retains the original actor setup as its immutable parent.
 const frontendPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-da82fc6644c1.json',settings:root+'\\settings-crm06-staff-da82fc6644c1.json',hubPin:root+'\\hub-pin-crm06-staff-da82fc6644c1.json',hubStartup:root+'\\hub-startup-crm06-staff-da82fc6644c1.json'});
 const parentProbePaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-da82fc6644c1-parent-probe.json',settings:root+'\\settings-crm06-staff-da82fc6644c1-parent-probe.json',hubPin:root+'\\hub-pin-crm06-staff-da82fc6644c1-parent-probe.json',hubStartup:root+'\\hub-startup-crm06-staff-da82fc6644c1-parent-probe.json'});
+const candidatePaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-5ce452b01ef2.json',settings:root+'\\settings-crm06-staff-5ce452b01ef2.json',hubPin:root+'\\hub-pin-crm06-staff-5ce452b01ef2.json',hubStartup:root+'\\hub-startup-crm06-staff-5ce452b01ef2.json'});
 const reject=()=>{throw Object.assign(Error('CRM06_STAFF_SUCCESSOR_REJECTED'),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});};
 const check=value=>{if(!value)reject();};
 export function crm06StaffSuccessorProfile(source=CRM06_STAFF_CRM_SOURCE,profileVariant){
- check(source===CRM06_STAFF_CRM_SOURCE||source===CRM06_STAFF_FRONTEND_CRM_SOURCE);
+ check(source===CRM06_STAFF_CRM_SOURCE||source===CRM06_STAFF_FRONTEND_CRM_SOURCE||source===CRM06_STAFF_CANDIDATE_CRM_SOURCE);
  check(profileVariant===undefined||source===CRM06_STAFF_FRONTEND_CRM_SOURCE&&profileVariant==='parent-probe');
  if(profileVariant==='parent-probe')return Object.freeze({source,profileVariant,successorPath:actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-da82fc6644c1-parent-probe.json',nextPaths:parentProbePaths,dependencyLockPath:root+'\\crm-da82fc6644c1-parent-probe-dependency-lock.json'});
+ if(source===CRM06_STAFF_CANDIDATE_CRM_SOURCE)return Object.freeze({source,successorPath:actorRoot+'\\staff-refresh-successor-5ce452b01ef2.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-5ce452b01ef2.json',nextPaths:candidatePaths,dependencyLockPath:root+'\\crm-5ce452b01ef2-dependency-lock.json'});
  const frontend=source===CRM06_STAFF_FRONTEND_CRM_SOURCE;
  return Object.freeze({source,successorPath:frontend?actorRoot+'\\staff-refresh-successor-da82fc6644c1.json':CRM06_STAFF_SUCCESSOR_PATH,journalEvidencePath:frontend?actorRoot+'\\journal-physical-preflight-da82fc6644c1.json':CRM06_STAFF_JOURNAL_EVIDENCE_PATH,nextPaths:frontend?frontendPaths:nextPaths,dependencyLockPath:root+'\\crm-'+source.slice(0,12)+'-dependency-lock.json'});
 }
@@ -74,7 +77,7 @@ export function buildCrm06StaffRefreshSuccessor(input){
   validateCurrentCrmHubPins(parentHubPin,parentSettings,parentActivation,parentHubPin.crmIndexSha256);
   check(parentHubStartup.HubConfigPath===parentSettings.privateSources.hubPinConfig.path);
   pin(crmPackagePin,source=>'C:\\Sirket\\CRM\\releases\\crm-shared-test-'+source,profile.source);
-  pin(supervisorPin,source=>'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-'+(profile.source===CRM06_STAFF_FRONTEND_CRM_SOURCE?'20261015':'20261014')+'-'+source.slice(0,12));
+  pin(supervisorPin,source=>'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-'+(profile.source===CRM06_STAFF_CRM_SOURCE?'20261014':'20261015')+'-'+source.slice(0,12));
   check(!same(supervisorPin,parentSettings.supervisor));sha(crmIndexSha256);sha(journalEvidenceSha256);
   ref(crmDependencyLockRef,profile.dependencyLockPath);
 

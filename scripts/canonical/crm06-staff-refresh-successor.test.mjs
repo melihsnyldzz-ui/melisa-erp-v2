@@ -5,6 +5,7 @@ import {buildCrm06TestActorProvisioning,crm06ProvisioningInputHash as digest} fr
 import {buildCrm06OwnerProjection,assertCrm06PreparedActorReceipt,CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH} from './crm06-owner-projection.mjs';
 import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06StaffSuccessorParentRefs,crm06StaffSuccessorProfile,crm06StaffSuccessorProfileForPath,crm06SuccessorFileHash,CRM06_STAFF_PARENT_SETTINGS_PATH,CRM06_STAFF_PARENT_ACTIVATION_PATH,CRM06_STAFF_CRM_SOURCE,CRM06_STAFF_FRONTEND_CRM_SOURCE,CRM06_STAFF_SUCCESSOR_PATH} from './crm06-staff-refresh-successor.mjs';
 import {validateCompletionSettings} from './terminal-completion-logon.mjs';
+import {CRM06_STAFF_CANDIDATE_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
 const erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM',runtime=erp+'\\runtime\\terminal-completion-logon',source='5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36',native='7a'.padEnd(40,'1'),sha='a'.repeat(64),owner='S-1-5-21-123-456-789-1001';
 const password=n=>`scrypt$${String(n).repeat(48)}$${String(n).repeat(128)}`;
 function fixture(){
@@ -96,4 +97,38 @@ test('parent-probe runtime selects variant only from exact source and trusted re
  for(const [source,receiptPath]of [[CRM06_STAFF_CRM_SOURCE,p.receiptRef.path],[CRM06_STAFF_FRONTEND_CRM_SOURCE,p.receiptRef.path+'-other'],['f'.repeat(40),p.receiptRef.path]])assert.throws(()=>crm06StaffSuccessorProfileForPath(source,receiptPath),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});
  for(const change of [v=>v.components.crm.config.path=crm06StaffSuccessorProfile(CRM06_STAFF_FRONTEND_CRM_SOURCE).nextPaths.activation,v=>v.privateSources.crmActivationConfig.path+='-other',v=>v.privateSources.hubPinConfig.path+='-other',v=>v.privateSources.hubStartupConfig.path+='-other',v=>v.components.hub.config.path+='-other',v=>v.dependencyLocks.crm.path=frontendFixture().crmDependencyLockRef.path]){const settings=structuredClone(p.settings);change(settings);assert.throws(()=>validateCompletionSettings(settings,owner));}
  const code=fs.readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(code.includes('profileVariant:profile.profileVariant'));assert(code.includes('excludedPaths,source:profile.source,...variant'));assert(code.includes('crm06StaffJournalExcludedPaths(profile.source,profile.profileVariant)'));
+});
+
+function candidateFixture(){const f=frontendFixture(),profile=crm06StaffSuccessorProfile(CRM06_STAFF_CANDIDATE_CRM_SOURCE);f.crmPackagePin={...f.crmPackagePin,sourceCommit:profile.source,packageRoot:crm+'\\releases\\crm-shared-test-'+profile.source};f.crmDependencyLockRef.path=profile.dependencyLockPath;return f;}
+test('exact 5ce candidate derives fourth immutable generation with original actor parent and unchanged authority',()=>{
+ const f=candidateFixture(),before=structuredClone(f),p=buildCrm06StaffRefreshSuccessor(f),base=buildCrm06StaffRefreshSuccessor(frontendFixture());
+ assert.deepEqual(f,before);assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,p)),true);validateCompletionSettings(p.settings,owner);
+ const profile=crm06StaffSuccessorProfileForPath(CRM06_STAFF_CANDIDATE_CRM_SOURCE,p.receiptRef.path);
+ assert.equal(profile.source,'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8');assert(Object.isFrozen(profile)&&Object.isFrozen(profile.nextPaths));assert.equal(Object.hasOwn(profile,'profileVariant'),false);
+ for(const ref of [p.activationRef,p.hubPinRef,p.hubStartupRef,p.settingsRef,p.receiptRef])assert(ref.path.endsWith('5ce452b01ef2.json'));
+ assert.equal(profile.journalEvidencePath,runtime.replace('ERP\\runtime\\terminal-completion-logon','CRM\\runtime\\CRM06-TEST-ACTORS-20261014')+'\\journal-physical-preflight-5ce452b01ef2.json');
+ assert.deepEqual(p.receipt.parent,base.receipt.parent);assert.deepEqual(p.receipt.rollback,base.receipt.rollback);
+ assert.deepEqual(p.settings.crmPrivateFiles.baseline,base.settings.crmPrivateFiles.baseline);assert.deepEqual(p.settings.crmPrivateFiles.crm06Actors,base.settings.crmPrivateFiles.crm06Actors);
+ for(const key of ['erpApiNative','nativeOrder']){assert.deepEqual(p.settings.components[key],base.settings.components[key]);assert.deepEqual(p.settings.dependencyLocks[key],base.settings.dependencyLocks[key]);}
+ const allowed=new Set(['CRM_TEST_SOURCE_COMMIT','CRM_TEST_PACKAGE_ROOT','CRM_TEST_PACKAGE_MANIFEST_SHA256']);
+ for(const [key,value]of Object.entries(base.activation.environmentVariables))if(!allowed.has(key))assert.equal(p.activation.environmentVariables[key],value);
+ assert.equal(p.receipt.installed,false);assert.equal(p.receipt.authenticatedOperationsVerified,false);assert.equal(p.receipt.humanAccepted,false);
+});
+test('exact 5ce candidate rejects unknown sources variants cross-generation refs and successor-as-parent',()=>{
+ for(const value of ['5ce452b01ef2',CRM06_STAFF_CANDIDATE_CRM_SOURCE.toUpperCase(),'f'.repeat(40),null])assert.throws(()=>crm06StaffSuccessorProfile(value),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});
+ for(const variant of ['parent-probe','',null,'other'])assert.throws(()=>crm06StaffSuccessorProfile(CRM06_STAFF_CANDIDATE_CRM_SOURCE,variant),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});
+ for(const change of [f=>f.crmDependencyLockRef.path=frontendFixture().crmDependencyLockRef.path,f=>f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261015','20261014'),f=>f.parentSettings=structuredClone(buildCrm06StaffRefreshSuccessor(parentProbeFixture()).settings),f=>f.parentSettingsRef.path=crm06StaffSuccessorProfile(CRM06_STAFF_FRONTEND_CRM_SOURCE,'parent-probe').nextPaths.settings]){const f=candidateFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ const f=candidateFixture(),p=buildCrm06StaffRefreshSuccessor(f);
+ for(const old of [crm06StaffSuccessorProfile(),crm06StaffSuccessorProfile(CRM06_STAFF_FRONTEND_CRM_SOURCE),crm06StaffSuccessorProfile(CRM06_STAFF_FRONTEND_CRM_SOURCE,'parent-probe')]){
+  assert.throws(()=>crm06StaffSuccessorProfileForPath(CRM06_STAFF_CANDIDATE_CRM_SOURCE,old.successorPath));assert.throws(()=>crm06StaffSuccessorProfileForPath(old.source,p.receiptRef.path));
+  for(const change of [v=>v.currentSettings.crmPrivateFiles.crm06StaffSuccessor.path=old.successorPath,v=>v.currentSettings.dependencyLocks.crm.path=old.dependencyLockPath,v=>v.currentSettings.components.crm.config.path=old.nextPaths.activation,v=>v.receipt.prepared.profileVariant='parent-probe']){const input=structuredClone(assertion(f,p));change(input);assert.throws(()=>assertCrm06StaffRefreshSuccessor(input),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ }
+});
+test('exact 5ce admission preserves literal three historical profiles and input bytes',()=>{
+ for(const [f,suffix]of [[fixture(),'b2985d2295c0'],[frontendFixture(),'da82fc6644c1'],[parentProbeFixture(),'da82fc6644c1-parent-probe']]){
+  const before=structuredClone(f),historical=buildCrm06StaffRefreshSuccessor(f),hash=crm06SuccessorFileHash(historical);buildCrm06StaffRefreshSuccessor(candidateFixture());assert.deepEqual(f,before);assert.equal(crm06SuccessorFileHash(historical),hash);
+  const profile=crm06StaffSuccessorProfile(f.crmPackagePin.sourceCommit,f.profileVariant);assert.equal(profile.successorPath,crm+'\\runtime\\CRM06-TEST-ACTORS-20261014\\staff-refresh-successor-'+suffix+'.json');
+  for(const [key,prefix]of Object.entries({activation:'crm-activation',settings:'settings',hubPin:'hub-pin',hubStartup:'hub-startup'}))assert.equal(profile.nextPaths[key],runtime+'\\'+prefix+'-crm06-staff-'+suffix+'.json');
+  assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,historical)),true);
+ }
 });

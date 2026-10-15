@@ -88,3 +88,23 @@ test('parent-probe physical policy rejects unknown/cross-source variant, wrong g
  assert.throws(()=>crm06StaffJournalExcludedPaths('b2985d2295c022848c769ea5f494012c1eb3fa00','parent-probe'),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
  const alias=structuredClone(evidence);alias.journal.fileId=alias.references.find(ref=>ref.path.endsWith('da82fc6644c1-parent-probe.json')).fileId;reject(alias,opts);
 });
+const layoutSource='5ce452b01ef20fc84a09c52b78311db8eb1dd1d8';
+function layoutEvidence(){const f=parentProbeEvidence(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(layoutSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('5ce physical base policy adds exact thirteenth receipt and preserves all three immutable predecessor policies',()=>{
+ const predecessor=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),refs=crm06StaffJournalExcludedPaths(layoutSource),opts={...options(),source:layoutSource,excludedPaths:[...refs]},evidence=layoutEvidence();
+ assert.equal(refs.length,13);assert.deepEqual(refs.filter(path=>!path.endsWith('staff-refresh-successor-5ce452b01ef2.json')),[...predecessor]);assert.deepEqual([crm06StaffJournalExcludedPaths().length,crm06StaffJournalExcludedPaths(frontendSource).length,predecessor.length],[10,11,12]);
+ assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).journal.path,target);assert.equal(evidence.references.find(ref=>ref.path.endsWith('5ce452b01ef2.json')).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:layoutSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',layoutSource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('5ce physical base policy rejects every variant, cross-generation metadata and aliases to the added receipt',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(layoutSource)],opts={...options(),source:layoutSource,excludedPaths:refs},evidence=layoutEvidence();reject(parentProbeEvidence(),opts);reject(evidence,{...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')]});
+ for(const profileVariant of ['parent-probe','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(layoutSource,profileVariant),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:layoutSource,profileVariant,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
+ for(const source of [layoutSource.toUpperCase(),'5ce452b01ef2','f'.repeat(40)])assert.throws(()=>crm06StaffJournalExcludedPaths(source),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ const alias=structuredClone(evidence),newRef=alias.references.find(ref=>ref.path.endsWith('5ce452b01ef2.json'));Object.assign(newRef,{exists:true,volumeSerial:alias.journal.volumeSerial,fileId:alias.journal.fileId,linkCount:1});reject(rehash(alias),opts);
+ const foreign=structuredClone(evidence);foreign.references.at(-1).path+='-foreign';reject(rehash(foreign),opts);
+});
+test('5ce physical child whitelist and existing runtime profile handoff remain source bound without new environment selectors',()=>{
+ const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("if($Source -ceq '"+layoutSource+"'){$expected+=@(($actorRoot+'\\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\\staff-refresh-successor-5ce452b01ef2.json'))}"));
+ assert(code.includes("$hasParentProbe -and ($ProfileVariant -cne 'parent-probe' -or $Source -cne '"+frontendSource+"')"));
+ const runtime=readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(runtime.includes('crm06StaffSuccessorProfileForPath(settings.components.crm.sourceCommit,settings.crmPrivateFiles.crm06StaffSuccessor.path)'));assert(runtime.includes('crm06StaffJournalExcludedPaths(profile.source,profile.profileVariant)'));assert(runtime.includes('excludedPaths,source:profile.source,...variant'));
+});

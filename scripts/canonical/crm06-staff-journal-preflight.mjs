@@ -13,10 +13,11 @@ export const CRM06_STAFF_JOURNAL_EXCLUDED_PATHS=Object.freeze([
  'C:\\Sirket\\CRM\\runtime\\CUSTOMER-PRODUCT-REQUEST-SHARED-20261013\\request-issuer-refresh.json',
  ...['manager-first-login.dpapi','staff-first-login.dpapi','agent-test-baseline.env','provisioning-audit.json','credential-index.json','staff-refresh-successor-b2985d2295c0.json'].map(leaf=>CRM06_STAFF_JOURNAL_ROOT+'\\'+leaf),
 ].sort());
-const originalSource='b2985d2295c022848c769ea5f494012c1eb3fa00',frontendSource='da82fc6644c1d9dba0c10eaa861773534d43c288';
+const originalSource='b2985d2295c022848c769ea5f494012c1eb3fa00',frontendSource='da82fc6644c1d9dba0c10eaa861773534d43c288',layoutSource='5ce452b01ef20fc84a09c52b78311db8eb1dd1d8';
 const frontendExcludedPaths=Object.freeze([...CRM06_STAFF_JOURNAL_EXCLUDED_PATHS,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-da82fc6644c1.json'].sort());
 const parentProbeExcludedPaths=Object.freeze([...frontendExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'].sort());
-export function crm06StaffJournalExcludedPaths(source=originalSource,profileVariant){check(source===originalSource||source===frontendSource);check(profileVariant===undefined||source===frontendSource&&profileVariant==='parent-probe');return profileVariant==='parent-probe'?parentProbeExcludedPaths:source===frontendSource?frontendExcludedPaths:CRM06_STAFF_JOURNAL_EXCLUDED_PATHS;}
+const layoutExcludedPaths=Object.freeze([...parentProbeExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-5ce452b01ef2.json'].sort());
+export function crm06StaffJournalExcludedPaths(source=originalSource,profileVariant){check(source===originalSource||source===frontendSource||source===layoutSource);check(profileVariant===undefined||source===frontendSource&&profileVariant==='parent-probe');return source===layoutSource?layoutExcludedPaths:profileVariant==='parent-probe'?parentProbeExcludedPaths:source===frontendSource?frontendExcludedPaths:CRM06_STAFF_JOURNAL_EXCLUDED_PATHS;}
 const phases=Object.freeze(['OWNER','PARAMETERS','NATIVE_INIT','ANCESTORS','PARENT_ACL','TARGET','REFERENCES','RECHECK','RESULT']);
 export function crm06StaffJournalPhysicalDiagnosticPhase(value){
  if(typeof value!=='string')return null;
@@ -71,7 +72,7 @@ export function crm06StaffJournalPhysicalArguments(input){
  own(input,['ownerSid','excludedPaths',...(Object.hasOwn(input,'source')?['source']:[]),...(Object.hasOwn(input,'profileVariant')?['profileVariant']:[])]);const reviewed=options({path:CRM06_STAFF_JOURNAL_PATH,...input});
  // The child has the same independent finite reference list. Do not transport
  // nested JSON through the legacy Windows PowerShell argv parser.
- return Object.freeze(['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',path.join(import.meta.dirname,'crm06-staff-journal-preflight.ps1'),'-OwnerSid',reviewed.ownerSid,...(reviewed.source===frontendSource?['-Source',frontendSource]:[]),...(reviewed.profileVariant?['-ProfileVariant',reviewed.profileVariant]:[])]);
+ return Object.freeze(['-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',path.join(import.meta.dirname,'crm06-staff-journal-preflight.ps1'),'-OwnerSid',reviewed.ownerSid,...(reviewed.source===frontendSource||reviewed.source===layoutSource?['-Source',reviewed.source]:[]),...(reviewed.profileVariant?['-ProfileVariant',reviewed.profileVariant]:[])]);
 }
 export async function inspectCrm06StaffJournalPhysical(input){
  own(input,['ownerSid','excludedPaths',...(Object.hasOwn(input,'source')?['source']:[]),...(Object.hasOwn(input,'profileVariant')?['profileVariant']:[])]);const reviewed=options({path:CRM06_STAFF_JOURNAL_PATH,...input});check(process.platform==='win32');
