@@ -8,6 +8,7 @@ import {selectBusinessSaleWriteIntent,businessSelectedSaleOptions} from './busin
 import {deriveBusinessSelectedSaleJournal} from './businessSelectedSaleJournal.mjs';
 import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 import {workSelectedSaleInput,workSalesListFilter} from './workSalesService.mjs';
+import {selectedSaleDiagnosticProbe} from './selectedSaleSqlDiagnostic.mjs';
 const DB='MELISA_ERP_SIRKET_TEST_20260929_01',SERVER='Semih\\MELISADEV';
 const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
 export const workPayloadJson=(actor,operation,payload)=>JSON.stringify(stable({...payload,operation,actorId:actor.id}));
@@ -272,7 +273,12 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
      await req().input('id',q.BigInt,id).input('actor',q.BigInt,actor.id).query('UPDATE dbo.sales_invoices SET created_by=@actor,updated_by=@actor WHERE id=@id;');
      await req().input('id',q.BigInt,id).input('request',q.UniqueIdentifier,requestId).input('actor',q.BigInt,actor.id).input('preview',q.NVarChar(q.MAX),JSON.stringify({...preview,copyId:copyContext.copyId,sealHash:copyContext.sealHash,operationOrigin:copyContext.operationOrigin})).query('INSERT dbo.work_sales_links(invoice_id,request_id,actor_id,preview_json)VALUES(@id,@request,@actor,@preview);');return invoice(id);
     };
-    c.finalize=async id=>{await r.invoice.finalizeSalesInvoice(nativeId(id),actor,ctx);await postInvoice(id,'sales_invoice');await refresh();return invoice(id);};
+    c.finalize=async id=>{
+     await selectedSaleDiagnosticProbe('invoice.finalize',()=>r.invoice.finalizeSalesInvoice(nativeId(id),actor,ctx));
+     await selectedSaleDiagnosticProbe('invoice.post',()=>postInvoice(id,'sales_invoice'));
+     await selectedSaleDiagnosticProbe('invoice.refresh',()=>refresh());
+     return selectedSaleDiagnosticProbe('invoice.read',()=>invoice(id));
+    };
     c.cancel=async(id,reason)=>{const before=await invoice(id);if(before.status==='draft'){
       await r.period.assertAccountingPeriodOpen(req(),before.documentDate,'Satış taslağı iptal');
       await req().input('id',q.BigInt,id).input('actor',q.BigInt,actor.id).input('reason',q.NVarChar(500),reason).query("UPDATE dbo.sales_invoices SET status=N'cancelled',cancelled_at=SYSUTCDATETIME(),cancel_reason=@reason,updated_by=@actor,updated_at=SYSUTCDATETIME() WHERE id=@id AND status=N'draft';IF @@ROWCOUNT<>1 THROW 51100,'WORK_STALE',1;");

@@ -1,3 +1,4 @@
+import {isSelectedSaleDiagnosticCall} from '../services/selectedSaleSqlDiagnostic.mjs';
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
 const MAX_ENTRIES = 64;
@@ -311,8 +312,8 @@ const knownWarnings = new Map([
   ['Nakliyat read-only health is enabled, but service credentials are missing; quote operations will fail closed', 'NAKLIYAT_CREDENTIALS_MISSING'],
 ]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const stringFields = new Set(['requestid', 'code', 'eventcode', 'category', 'method', 'nodeenv', 'signal', 'apiversion', 'path', 'warningcode']);
-const numberFields = new Set(['port', 'statuscode', 'durationms', 'retryafterseconds','sqlnumber','sqlstate','sqlclass','sqllinenumber']);
+const stringFields = new Set(['requestid', 'code', 'eventcode', 'category', 'method', 'nodeenv', 'signal', 'apiversion', 'path', 'warningcode','sqlstatecode','sqlcall']);
+const numberFields = new Set(['port', 'statuscode', 'durationms', 'retryafterseconds','sqlnumber','sqlstate','sqlclass','sqllinenumber','sqlcalldurationms']);
 const booleanFields = new Set(['sqlconfigured', 'vegaenabled', 'authenabled']);
 const fieldNames = new Map([
   ['requestid', 'requestId'], ['code', 'code'], ['eventcode', 'eventCode'],
@@ -321,6 +322,7 @@ const fieldNames = new Map([
   ['port', 'port'], ['statuscode', 'statusCode'], ['durationms', 'durationMs'],
   ['retryafterseconds', 'retryAfterSeconds'], ['sqlconfigured', 'sqlConfigured'],
   ['sqlnumber','sqlNumber'],['sqlstate','sqlState'],['sqlclass','sqlClass'],['sqllinenumber','sqlLineNumber'],
+  ['sqlstatecode','sqlStateCode'],['sqlcall','sqlCall'],['sqlcalldurationms','sqlCallDurationMs'],
   ['vegaenabled', 'vegaEnabled'], ['authenabled', 'authEnabled'],
   ['error', 'error'], ['errors', 'errors'], ['details', 'details'],
   ['context', 'context'], ['meta', 'meta'],
@@ -348,6 +350,8 @@ function safeString(value, key) {
     case 'nodeenv': return /^(development|test|production)$/.test(value) ? value : REDACTED;
     case 'signal': return /^(SIGINT|SIGTERM)$/.test(value) ? value : REDACTED;
     case 'apiversion': return /^v?\d+(?:\.\d+){0,2}$/.test(value) ? value : REDACTED;
+    case 'sqlstatecode': return /^[0-9A-Z]{5}$/.test(value) ? value : REDACTED;
+    case 'sqlcall': return isSelectedSaleDiagnosticCall(value) ? value : REDACTED;
     default: return REDACTED;
   }
 }
@@ -382,7 +386,7 @@ function sanitize(input, key, depth, seen) {
     if (normalizedKey === 'durationms' && input < 0) return REDACTED;
     if (normalizedKey === 'port' && (!Number.isInteger(input) || input < 1 || input > 65535)) return REDACTED;
     if (normalizedKey === 'retryafterseconds' && (!Number.isInteger(input) || input < 1 || input > 900)) return REDACTED;
-    const sqlBounds={sqlnumber:[1,2147483647],sqlstate:[0,255],sqlclass:[0,25],sqllinenumber:[0,1000000]}[normalizedKey];
+    const sqlBounds={sqlnumber:[1,2147483647],sqlstate:[0,255],sqlclass:[0,25],sqllinenumber:[0,1000000],sqlcalldurationms:[0,86400000]}[normalizedKey];
     if(sqlBounds&&(!Number.isSafeInteger(input)||input<sqlBounds[0]||input>sqlBounds[1]))return REDACTED;
     return input;
   }

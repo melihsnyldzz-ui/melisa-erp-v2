@@ -480,6 +480,10 @@ F02 için SEMIH'te ilk bakılacak yerler: çalışan süreçlerin gerçek dosya 
 - `codex/native-terminal-source-20260929` (`552491b…`): 1 commit, 74 dosya; native Android candidate.18-t2 kaynak koruması. **Uyumlu native backend bu teslimde yok.** Android kaynağını main'e almak tek başına terminal entegrasyonunu bitirmez.
 - Mayıs/Haziran EVDEKIPC kopyaları ve değiştirilmiş UI/terminal dosyaları envanterde korunuyor. Son tarih tek başına değer ölçüsü değildir; kullanıcı farkları kaybolmaz.
 
+## ERP09 — 10053 tanılama alt teslimi, 15 Ekim
+
+ERP09-10053-DIAG-20261015-1 yalnız diagnostic-only kaynak düzeltmesidir. Eski fiyatlı vaka FINALIZE10053 sonrası own draft/cancel NETZERO olarak korunur; tekrar/native işlem yok. Kaynak, en iç çağrı sınırı ile SQLSTATE kodunu güvenli server-log alanlarına bağlar; SQL metni veya kesin tarihsel neden iddiası yok. İki failing-before kaybı ve40 hedefli çevrimdışı kontrol/bağımsız inceleme kanıtı mevcut [15 Ekim kaydındadır](docs/evidence/erp/2026-10-15-isolated-test/README.md#erp09-10053-diag-20261015-1--diagnostic-only-source-delivery). TEST'e kurulmadı, servis/DB02/SQL/yetki/otomasyon değişmedi. ERP09🟡, CRM06 önceliği ve49/9/39/1 sayımı/insan kabulü aynı; tek görev teslimi sonunda DUR.
+
 ## Kabul ve bitiş ölçütü
 
 Bir düzeltme için kayıt: sorun → değişen dosya/commit → TEST adresi → iş ekranındaki sonuç → stok/cari/kasa etkisi → kalan somut eksik. Otomatik test/HTTP 200 yalnız teknik destek kanıtıdır. Önceden kabul edilmiş değişmeyen özellikler yeniden açılmaz. Yeni/düzeltilen akış kullanıcıya gerçek ERP ekranında gösterilir; iş kabulü kullanıcının gördüğü sonuca bağlanır.

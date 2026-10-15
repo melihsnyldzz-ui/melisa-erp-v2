@@ -25,6 +25,7 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/businessReadyRevisionBootstrap.mjs',
  'apps/api/src/services/isolatedOperationCopyContext.mjs',
  'apps/api/src/services/isolatedOperationCopyStoreFactory.mjs',
+ 'apps/api/src/services/selectedSaleSqlDiagnostic.mjs',
  'apps/api/src/services/isolatedOperationCopyScope.mjs',
  'apps/api/src/middleware/businessInboundSelectionContext.mjs',
  'apps/api/src/services/homeSummaryReadStoreFactory.mjs',

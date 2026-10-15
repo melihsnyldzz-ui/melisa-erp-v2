@@ -7,6 +7,17 @@ const requestId = '11111111-2222-4333-8444-555555555555';
 const marker = 'harmless-canary-unique-head-and-tail';
 const redacted = '[REDACTED]';
 
+test('SQL call vocabulary and ODBC SQLSTATE remain independently bounded and private strings are redacted',()=>{
+ const lines=capture(()=>{
+  logger.error('API error normalized',{sqlCall:'invoice.finalize',sqlStateCode:'08S01',sqlCallDurationMs:0});
+  for(const sqlCall of ['invoice.finalize_PRIVATE','private-procedure',null])logger.error('API error normalized',{sqlCall});
+  for(const sqlStateCode of ['08S01_PRIVATE','08s01','08S01 ',1,null])logger.error('API error normalized',{sqlStateCode});
+  for(const sqlCallDurationMs of [-1,0.1,86400001,'1',Infinity])logger.error('API error normalized',{sqlCallDurationMs});
+ });
+ assert.equal(lines[0].payload.sqlCall,'invoice.finalize');assert.equal(lines[0].payload.sqlStateCode,'08S01');assert.equal(lines[0].payload.sqlCallDurationMs,0);
+ for(const {payload} of lines.slice(1))for(const key of ['sqlCall','sqlStateCode','sqlCallDurationMs'])if(Object.hasOwn(payload,key))assert.equal(payload[key],redacted);
+});
+
 test('SQL diagnostic numeric vocabulary retains exact bounded integers only',()=>{
  const original=console.error,lines=[];console.error=v=>lines.push(JSON.parse(v));
  try{
@@ -240,6 +251,7 @@ async function loadMiddleware(name) {
   source = source.replace("'../utils/logger.js'", JSON.stringify(new URL('./logger.js', import.meta.url).href));
   source = source.replace("'../services/operationQuarantineError.mjs'", JSON.stringify(new URL('../services/operationQuarantineError.mjs', import.meta.url).href));
   source = source.replace("'../config/isolatedOperationCopyRuntime.mjs'", JSON.stringify(new URL('../config/isolatedOperationCopyRuntime.mjs', import.meta.url).href));
+  source = source.replace("'../services/selectedSaleSqlDiagnostic.mjs'", JSON.stringify(new URL('../services/selectedSaleSqlDiagnostic.mjs', import.meta.url).href));
   return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 }
 

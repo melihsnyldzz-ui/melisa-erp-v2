@@ -10,6 +10,7 @@ import {verifyBusinessDailyHomeReadProof} from './businessDailyHomeReadProof.mjs
 import {verifyBusinessSelectedSaleHistoricalReadProof} from './businessSelectedSaleHistoricalReadProof.mjs';
 import {selectBusinessSaleWriteIntent} from './businessSelectedSaleWriteIntent.mjs';
 import {withBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
+import {selectedSaleDiagnosticProbe} from './selectedSaleSqlDiagnostic.mjs';
 import {readBusinessSelectedSaleNativeContext} from './businessSelectedSaleNativeContext.mjs';
 import {createBusinessSelectedSaleInvoiceReader} from './businessSelectedSaleInvoiceRead.mjs';
 import {getRegisteredBusinessSelectedSaleRevision} from '../../../../scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs';
@@ -147,7 +148,7 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
     }
     if(usePriceConsumer)copyAssert(await verifyBusinessProductPriceSaleRevision(context,req().input('copy_id',q.UniqueIdentifier,context.copyId),{write:true})===priceConsumer,'PRICE_SALE_NATIVE_PROTOCOL');
     await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).execute(usePriceConsumer?priceConsumer.bundle.beginArtifact.name:ISOLATED_COPY_PROCEDURES.begin);
-    const response=selection?await withBusinessSelectedSaleWriteScope({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.writeScopeArtifact,priceConsumer:usePriceConsumer?priceConsumer:null,actor,operation,requestId:body.requestId},execute):await execute();
+    const response=selection?await selectedSaleDiagnosticProbe('selectedSale.writeScope',()=>withBusinessSelectedSaleWriteScope({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.writeScopeArtifact,priceConsumer:usePriceConsumer?priceConsumer:null,actor,operation,requestId:body.requestId},execute)):await execute();
     const proof=await effects(operation,body,response,false);
     // The SQL intent seals this exact text. Preserve its order and GUID casing;
     // a JS reserialization would no longer equal the immutable SQL proof.
@@ -187,6 +188,6 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
   readHistoricalSale:(actor,fn,permission)=>transaction(actor,false,fn,permission??readPermission,null,historicalSaleRead),
   readHome:(actor,fn)=>transaction(actor,false,fn,readPermission,null,homeRead),
   mutate:(actor,operation,payload,fn)=>typeof operation==='function'?transaction(actor,true,operation):transaction(actor,true,fn,readPermission,{operation,payload}),
-  mutateSelectedSale:(actor,operation,payload,fn)=>transaction(actor,true,fn,readPermission,{operation,payload,selected:true}),
+  mutateSelectedSale:(actor,operation,payload,fn)=>selectedSaleDiagnosticProbe('selectedSale.transaction',()=>transaction(actor,true,fn,readPermission,{operation,payload,selected:true})),
  };
 }

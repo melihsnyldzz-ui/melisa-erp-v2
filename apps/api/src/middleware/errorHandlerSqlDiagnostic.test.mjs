@@ -21,3 +21,19 @@ test('flat and info driver shapes are supported, invalid types and bounds are ne
  for(const [field,values] of Object.entries({number:[0,-1,2147483648,'51904',1.1,NaN],state:[-1,256,'1',1.1],class:[-1,26,'16',16.5],lineNumber:[-1,1000001,'30',30.5]}))for(const value of values){const e=native();e[field]=value;const key={number:'sqlNumber',state:'sqlState',class:'sqlClass',lineNumber:'sqlLineNumber'}[field];assert.equal(Object.hasOwn(isolatedSqlNumericDiagnostics(e),key),false);}
  for(const code of ['ETIMEOUT','EABORT','OTHER',undefined])assert.deepEqual(isolatedSqlNumericDiagnostics({...native(),code}),{});
 });
+
+test('10053 ODBC SQLSTATE survives separately from numeric SQL Server state',()=>{
+ const error=Object.assign(new Error('PRIVATE_MESSAGE_CANARY'),{code:'EREQUEST',number:10053,state:'08S01',originalError:{code:10053,sqlstate:'08S01',severity:16,message:'PRIVATE_DRIVER_CANARY'}});
+ const result=isolatedSqlNumericDiagnostics(error);
+ assert.equal(result.sqlNumber,10053);assert.equal(result.sqlStateCode,'08S01');assert.equal(Object.hasOwn(result,'sqlState'),false);
+ assert.equal(JSON.stringify(result).includes('PRIVATE'),false);
+});
+
+test('tracked inner call and SQLSTATE reach only sanitized server log, never API response',async()=>{
+ const {selectedSaleDiagnosticProbe}=await import('../services/selectedSaleSqlDiagnostic.mjs');
+ const error=Object.assign(new Error('PRIVATE_MESSAGE_CANARY'),{code:'EREQUEST',number:10053,state:'08S01',originalError:{sqlstate:'08S01',message:'PRIVATE_DRIVER_CANARY'}});
+ await assert.rejects(selectedSaleDiagnosticProbe('selectedSale.transaction',()=>selectedSaleDiagnosticProbe('invoice.refresh',()=>{throw error;})),e=>e===error);
+ const lines=[],old=console.error;let payload;console.error=value=>lines.push(value);
+ try{errorHandler(error,{requestId:'11111111-2222-4333-8444-555555555555',method:'POST',route:{path:'/work-sales/:id/finalize'}},{headersSent:false,status(v){assert.equal(v,500);return this;},json(v){payload=v;return v;}},()=>assert.fail());}finally{console.error=old;}
+ const record=JSON.parse(lines[0]);assert.equal(record.sqlNumber,10053);assert.equal(record.sqlStateCode,'08S01');assert.equal(record.sqlCall,'invoice.refresh');assert(Number.isSafeInteger(record.sqlCallDurationMs));assert.equal(record.sqlState,undefined);assert(!lines[0].includes('PRIVATE'));assert.equal(payload.error.message,'Unexpected server error');for(const key of ['sqlCall','sqlStateCode','sqlCallDurationMs'])assert(!JSON.stringify(payload).includes(key));
+});
