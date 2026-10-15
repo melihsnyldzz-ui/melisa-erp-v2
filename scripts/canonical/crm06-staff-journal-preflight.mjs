@@ -18,7 +18,8 @@ const frontendExcludedPaths=Object.freeze([...CRM06_STAFF_JOURNAL_EXCLUDED_PATHS
 const parentProbeExcludedPaths=Object.freeze([...frontendExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'].sort());
 const layoutExcludedPaths=Object.freeze([...parentProbeExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-5ce452b01ef2.json'].sort());
 const finalBatchExcludedPaths=Object.freeze([...layoutExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-5bcd5ad136ff.json'].sort());
-export function crm06StaffJournalExcludedPaths(source=originalSource,profileVariant){check(source===originalSource||source===frontendSource||source===layoutSource||source===finalBatchSource);check(profileVariant===undefined||source===frontendSource&&profileVariant==='parent-probe');return source===finalBatchSource?finalBatchExcludedPaths:source===layoutSource?layoutExcludedPaths:profileVariant==='parent-probe'?parentProbeExcludedPaths:source===frontendSource?frontendExcludedPaths:CRM06_STAFF_JOURNAL_EXCLUDED_PATHS;}
+const receiptWaitExcludedPaths=Object.freeze([...finalBatchExcludedPaths,CRM06_STAFF_JOURNAL_ROOT+'\\staff-refresh-successor-5bcd5ad136ff-receipt-wait.json'].sort());
+export function crm06StaffJournalExcludedPaths(source=originalSource,profileVariant){check(source===originalSource||source===frontendSource||source===layoutSource||source===finalBatchSource);check(profileVariant===undefined||source===frontendSource&&profileVariant==='parent-probe'||source===finalBatchSource&&profileVariant==='receipt-wait');return profileVariant==='receipt-wait'?receiptWaitExcludedPaths:source===finalBatchSource?finalBatchExcludedPaths:source===layoutSource?layoutExcludedPaths:profileVariant==='parent-probe'?parentProbeExcludedPaths:source===frontendSource?frontendExcludedPaths:CRM06_STAFF_JOURNAL_EXCLUDED_PATHS;}
 const phases=Object.freeze(['OWNER','PARAMETERS','NATIVE_INIT','ANCESTORS','PARENT_ACL','TARGET','REFERENCES','RECHECK','RESULT']);
 export function crm06StaffJournalPhysicalDiagnosticPhase(value){
  if(typeof value!=='string')return null;
@@ -35,7 +36,7 @@ export function normalizeCrm06StaffJournalPath(value){
 }
 function options(value){
  own(value,['path','ownerSid','excludedPaths',...(Object.hasOwn(value,'source')?['source']:[]),...(Object.hasOwn(value,'profileVariant')?['profileVariant']:[])]);check(value.path===CRM06_STAFF_JOURNAL_PATH);normalizeCrm06StaffJournalPath(value.path);
- const source=Object.hasOwn(value,'source')?value.source:originalSource;check(typeof source==='string');if(Object.hasOwn(value,'profileVariant'))check(value.profileVariant==='parent-probe');const policy=crm06StaffJournalExcludedPaths(source,value.profileVariant);
+ const source=Object.hasOwn(value,'source')?value.source:originalSource;check(typeof source==='string');if(Object.hasOwn(value,'profileVariant'))check(['parent-probe','receipt-wait'].includes(value.profileVariant));const policy=crm06StaffJournalExcludedPaths(source,value.profileVariant);
  check(typeof value.ownerSid==='string'&&/^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$/.test(value.ownerSid));
  check(Array.isArray(value.excludedPaths)&&value.excludedPaths.length===policy.length);
  const refs=value.excludedPaths.map(normalizeCrm06StaffJournalPath).sort();check(refs.every((ref,index)=>ref===policy[index]));return {path:value.path,ownerSid:value.ownerSid,excludedPaths:refs,source,...(Object.hasOwn(value,'profileVariant')?{profileVariant:value.profileVariant}:{})};

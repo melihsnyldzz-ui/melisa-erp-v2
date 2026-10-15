@@ -9,7 +9,7 @@ try {
  $phase='PARAMETERS'
  if($Source -cne 'b2985d2295c022848c769ea5f494012c1eb3fa00' -and $Source -cne 'da82fc6644c1d9dba0c10eaa861773534d43c288' -and $Source -cne '5ce452b01ef20fc84a09c52b78311db8eb1dd1d8' -and $Source -cne '5bcd5ad136ff7ca35d623d436b8724cc491641be'){throw 'REJECT'}
  $hasParentProbe=$PSBoundParameters.ContainsKey('ProfileVariant')
- if($hasParentProbe -and ($ProfileVariant -cne 'parent-probe' -or $Source -cne 'da82fc6644c1d9dba0c10eaa861773534d43c288')){throw 'REJECT'}
+ if($hasParentProbe -and -not (($ProfileVariant -ceq 'parent-probe' -and $Source -ceq 'da82fc6644c1d9dba0c10eaa861773534d43c288') -or ($ProfileVariant -ceq 'receipt-wait' -and $Source -ceq '5bcd5ad136ff7ca35d623d436b8724cc491641be'))){throw 'REJECT'}
  $expected=@(
   'C:\Sirket\CRM\runtime\ERP-COMPLETION01-20261011\normal-agent-test-baseline.env',
   'C:\Sirket\CRM\runtime\ERP-COMPLETION01-20261011\protected-normal-sessions\refresh-journal.json',
@@ -18,9 +18,10 @@ try {
   ($actorRoot+'\manager-first-login.dpapi'),($actorRoot+'\staff-first-login.dpapi'),($actorRoot+'\agent-test-baseline.env'),($actorRoot+'\provisioning-audit.json'),($actorRoot+'\credential-index.json'),($actorRoot+'\staff-refresh-successor-b2985d2295c0.json')
  )
  if($Source -ceq 'da82fc6644c1d9dba0c10eaa861773534d43c288'){$expected+=($actorRoot+'\staff-refresh-successor-da82fc6644c1.json')}
- if($hasParentProbe){$expected+=($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json')}
+ if($hasParentProbe -and $ProfileVariant -ceq 'parent-probe'){$expected+=($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json')}
  if($Source -ceq '5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'){$expected+=@(($actorRoot+'\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\staff-refresh-successor-5ce452b01ef2.json'))}
  if($Source -ceq '5bcd5ad136ff7ca35d623d436b8724cc491641be'){$expected+=@(($actorRoot+'\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\staff-refresh-successor-5ce452b01ef2.json'),($actorRoot+'\staff-refresh-successor-5bcd5ad136ff.json'))}
+ if($hasParentProbe -and $ProfileVariant -ceq 'receipt-wait'){$expected+=($actorRoot+'\staff-refresh-successor-5bcd5ad136ff-receipt-wait.json')}
  [Array]::Sort($expected,[StringComparer]::Ordinal)
  # Independent finite policy, never a caller-selectable subset. The JS owner
  # also validates its exact profile reference set and every returned tuple.

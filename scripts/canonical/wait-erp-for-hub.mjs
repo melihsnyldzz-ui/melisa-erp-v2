@@ -9,9 +9,11 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 const PROFILES=Object.freeze([
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-da82fc6644c1-parent-probe.json',source:'da82fc6644c1d9dba0c10eaa861773534d43c288'}),
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5ce452b01ef2.json',source:'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'}),
- Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5bcd5ad136ff.json',source:'5bcd5ad136ff7ca35d623d436b8724cc491641be'})
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5bcd5ad136ff.json',source:'5bcd5ad136ff7ca35d623d436b8724cc491641be'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5bcd5ad136ff-receipt-wait.json',source:'5bcd5ad136ff7ca35d623d436b8724cc491641be'})
 ]);
 const RECEIPTS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web';
+const FAILURE_CODES=new Set(['ERP_HUB_WAIT_REJECTED','ERP_HUB_WAIT_OBSERVATION','ERP_HUB_WAIT_OWNER','ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_PARENT','ERP_HUB_WAIT_CHANGED','ERP_HUB_WAIT_TIMEOUT','ERP_HUB_WAIT_HEALTH','ERP_HUB_WAIT_TARGET']);
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -21,9 +23,31 @@ export function assertErpHubProfile(configPath,crmSource){
  const profile=PROFILES.find(p=>p.config===configPath);
  check(profile&&profile.source===crmSource);return true;
 }
+export function erpHubFailureMetadata(configPath,configSha256,receiptPath,code){
+ check(PROFILES.some(p=>p.config===configPath)&&typeof configSha256==='string'&&/^[a-f0-9]{64}$/.test(configSha256));
+ check(typeof receiptPath==='string'&&path.win32.dirname(receiptPath)===RECEIPTS&&/^erp-prerequisites-[a-f0-9]{32}\.json$/.test(path.win32.basename(receiptPath)));
+ return {path:receiptPath+'.failure.json',code:FAILURE_CODES.has(code)?code:'ERP_HUB_WAIT_REJECTED',configSha256};
+}
 function noReparse(p){for(let q=p;;q=path.dirname(q)){check(!fs.lstatSync(q).isSymbolicLink());if(q===path.dirname(q))break;}}
 function readPinned(ref){noReparse(ref.path);const b=fs.readFileSync(ref.path);check(sha(b)===ref.sha256);return b;}
 const identity=rows=>JSON.stringify(rows.map(r=>[r.pid,r.parentPid,r.creationTime,r.parentCreationTime,r.commandLine,r.parentCommandLine]).sort((a,b)=>a[0]-b[0]));
+const receiptKeys=['run','pid','parentPid','parentCreationTime','creationTime','stage','sourceCommit','configSha256','copyId','actualT1'];
+const nativeTime=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}0Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(Date.parse(value)).toISOString().slice(0,19)===value.slice(0,19);
+function staleReceiptPending(row,r,stage,settings,matches){
+ const pin=settings.components?.[stage.component];
+ check(r&&Object.getPrototypeOf(r)===Object.prototype&&Reflect.ownKeys(r).length===receiptKeys.length&&receiptKeys.every(k=>Object.hasOwn(r,k)),'ERP_HUB_WAIT_IDENTITY');
+ check(typeof r.run==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(r.run)&&Number.isSafeInteger(r.pid)&&r.pid>0&&Number.isSafeInteger(r.parentPid)&&r.parentPid>0&&nativeTime(r.creationTime)&&nativeTime(r.parentCreationTime)&&r.parentCreationTime<=r.creationTime,'ERP_HUB_WAIT_IDENTITY');
+ check(pin&&r.stage===stage.name&&r.sourceCommit===pin.sourceCommit&&r.configSha256===pin.config.sha256&&r.copyId===settings.copyId&&r.actualT1===false,'ERP_HUB_WAIT_IDENTITY');
+ // The supervisor publishes after its owned process probe, before health.
+ // A newly bound child may therefore precede its fresh on-disk receipt.
+ // A different, older child may belong to this exact live supervisor or an
+ // older supervisor generation. Same-PID/different-birth reuse may not wait.
+ const parentGeneration=row.parentPid===r.parentPid?row.parentCreationTime===r.parentCreationTime:r.parentCreationTime<row.parentCreationTime;
+ check(nativeTime(row.creationTime)&&nativeTime(row.parentCreationTime)&&row.parentCreationTime<=row.creationTime&&row.pid!==r.pid&&r.creationTime<row.creationTime&&parentGeneration,'ERP_HUB_WAIT_IDENTITY');
+ const candidate={...r,pid:row.pid,parentPid:row.parentPid,creationTime:row.creationTime,parentCreationTime:row.parentCreationTime};
+ check(matches(row,candidate,stage,settings),'ERP_HUB_WAIT_IDENTITY');
+ return true;
+}
 
 export function assertErpHubHealth(h,settings,stage){
  check(h?.ok===true&&h.sourceCommit===settings.components[stage.component].sourceCommit&&h.copyId===settings.copyId&&(h.databaseName??h.database)===settings.database&&h.actualT1===false&&h.environment==='ISOLATED_TEST_COPY'&&h.externalOperations===false&&h.automaticJobs===false&&['sysadmin','databaseControl','liveDatabaseAccess','originalDatabaseAccess'].every(key=>h[key]===0),'ERP_HUB_WAIT_TARGET');
@@ -37,8 +61,9 @@ export async function waitForErpBeforeHub({settings,stages,probe,receipt,matches
   const rows=await probe();check(Array.isArray(rows)&&rows.length<=2,'ERP_HUB_WAIT_OBSERVATION');
   check(rows.every(r=>r.ownerSid===settings.ownerSid&&samePath(r.nodePath,settings.node.path)&&Array.isArray(r.bindings)&&r.bindings.length>0&&r.bindings.every(b=>[4184,4186].includes(b.port))),'ERP_HUB_WAIT_OWNER');
   if(rows.length!==2||!stages.every(s=>rows.some(r=>r.bindings.some(b=>s.ports.includes(b.port)))))return null;
-  const linked=[];
-  for(const stage of stages){const found=rows.filter(r=>r.bindings.some(b=>stage.ports.includes(b.port)));check(found.length===1,'ERP_HUB_WAIT_OBSERVATION');const r=await receipt(stage);if(!r)return null;check(matches(found[0],r,stage,settings),'ERP_HUB_WAIT_IDENTITY');linked.push(r);}
+  const linked=[];let pending=false;
+  for(const stage of stages){const found=rows.filter(r=>r.bindings.some(b=>stage.ports.includes(b.port)));check(found.length===1,'ERP_HUB_WAIT_OBSERVATION');const r=await receipt(stage);if(!r)return null;if(!matches(found[0],r,stage,settings)){staleReceiptPending(found[0],r,stage,settings,matches);pending=true;}linked.push(r);}
+  if(pending)return null;
   check(linked[0].parentPid===linked[1].parentPid&&linked[0].parentCreationTime===linked[1].parentCreationTime,'ERP_HUB_WAIT_PARENT');
   return {rows,linked};
  };
@@ -79,5 +104,5 @@ export async function runErpHubBarrier({configPath,configSha256,ownerSid,receipt
  const fd=fs.openSync(receiptPath,'wx');try{fs.writeFileSync(fd,JSON.stringify(receiptValue,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}return receiptValue;
 }
 if(process.argv[1]&&samePath(path.resolve(process.argv[1]),fileURLToPath(import.meta.url))){
- const args=process.argv.slice(2);try{check(args.length===8&&args[0]==='--config'&&args[2]==='--sha256'&&args[4]==='--owner-sid'&&args[6]==='--receipt');await runErpHubBarrier({configPath:args[1],configSha256:args[3],ownerSid:args[5],receiptPath:args[7]});console.log('ERP_HUB_PREREQUISITES_READY');}catch(e){const codes=new Set(['ERP_HUB_WAIT_REJECTED','ERP_HUB_WAIT_OBSERVATION','ERP_HUB_WAIT_OWNER','ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_PARENT','ERP_HUB_WAIT_CHANGED','ERP_HUB_WAIT_TIMEOUT','ERP_HUB_WAIT_HEALTH','ERP_HUB_WAIT_TARGET']);console.error(codes.has(e.code)?e.code:'ERP_HUB_WAIT_REJECTED');process.exitCode=1;}
+ const args=process.argv.slice(2);try{check(args.length===8&&args[0]==='--config'&&args[2]==='--sha256'&&args[4]==='--owner-sid'&&args[6]==='--receipt');await runErpHubBarrier({configPath:args[1],configSha256:args[3],ownerSid:args[5],receiptPath:args[7]});console.log('ERP_HUB_PREREQUISITES_READY');}catch(e){const code=FAILURE_CODES.has(e.code)?e.code:'ERP_HUB_WAIT_REJECTED';try{const metadata=erpHubFailureMetadata(args[1],args[3],args[7],code);noReparse(RECEIPTS);const fd=fs.openSync(metadata.path,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify({schemaVersion:'melisa-erp-hub-prerequisites-failure.v1',code:metadata.code,configSha256:metadata.configSha256,recordedAt:new Date().toISOString(),helperPid:process.pid,watcherPid:process.ppid,businessWrites:0})+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}catch{}console.error(code);process.exitCode=1;}
 }

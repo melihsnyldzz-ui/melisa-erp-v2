@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {waitForErpBeforeHub,runErpHubBarrier,assertErpHubHealth,assertErpHubProfile} from './wait-erp-for-hub.mjs';
+import {waitForErpBeforeHub,runErpHubBarrier,assertErpHubHealth,assertErpHubProfile,erpHubFailureMetadata} from './wait-erp-for-hub.mjs';
+import {COMPLETION_CORE_STAGES,completionNodeArguments,completionProcessMatches} from './terminal-completion-logon.mjs';
 const stages=[{name:'erpNative',ports:[4186]},{name:'erpApi',ports:[4184]}];
 const make=()=>{
  const settings={ownerSid:'S-1-5-21-1-2-3-4',node:{path:'C:\\Program Files\\nodejs\\node.exe'}};
@@ -63,4 +64,46 @@ test('final 5bcd Hub tuple rejects every preceding config/source cross-pair and 
   const previous=root+'settings-crm06-staff-'+suffix+'.json';assert.equal(assertErpHubProfile(previous,oldSource),true);assert.throws(()=>assertErpHubProfile(previous,source),{code:'ERP_HUB_WAIT_REJECTED'});assert.throws(()=>assertErpHubProfile(next,oldSource),{code:'ERP_HUB_WAIT_REJECTED'});
  }
  for(const [file,s]of [[next.toUpperCase(),source],[next,source.toUpperCase()],[root+'settings-crm06-staff-unknown.json',source],[next,source.slice(0,12)]])assert.throws(()=>assertErpHubProfile(file,s),{code:'ERP_HUB_WAIT_REJECTED'});
+});
+
+function staleStartupFixture(){
+ const root='C:\\synthetic',stages=COMPLETION_CORE_STAGES.slice(0,2),settings={ownerSid:'S-1-5-21-1-2-3-4',copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',node:{path:root+'\\node.exe'},supervisor:{packageRoot:root+'\\sup'},components:{erpApiNative:{packageRoot:root+'\\api',sourceCommit:'a'.repeat(40),config:{path:root+'\\operation.json',sha256:'b'.repeat(64)}}}};
+ const quote=args=>args.map(x=>'"'+x+'"').join(' '),time='2026-10-15T00:00:02.0000000Z',parentTime='2026-10-15T00:00:01.0000000Z';
+ const rows=stages.map((s,i)=>({pid:30+i,parentPid:20,ownerSid:settings.ownerSid,parentOwnerSid:settings.ownerSid,nodePath:settings.node.path,parentNodePath:settings.node.path,creationTime:time,managedCreationTime:time,parentCreationTime:parentTime,commandLine:quote([settings.node.path,...completionNodeArguments(s,settings)]),parentCommandLine:quote([settings.node.path,'--no-maglev',root+'\\sup\\scripts\\canonical\\terminal-completion-logon.mjs']),bindings:s.ports.flatMap(port=>[{port,address:'127.0.0.1'},...(s.name==='erpApi'?[{port,address:'192.168.1.46'}]:[])])}));
+ const fresh=stages.map((s,i)=>({run:'11111111-1111-4111-8111-111111111111',pid:rows[i].pid,parentPid:20,creationTime:time,parentCreationTime:parentTime,stage:s.name,sourceCommit:'a'.repeat(40),configSha256:'b'.repeat(64),copyId:settings.copyId,actualT1:false}));
+ const old=fresh.map(r=>({...r,pid:r.pid-10,parentPid:10,creationTime:'2026-10-14T00:00:02.0000000Z',parentCreationTime:'2026-10-14T00:00:01.0000000Z'}));
+ let clock=0,sleeps=0,probes=0,health=0;
+ const input={settings,stages,probe:async()=>{probes++;return structuredClone(rows);},receipt:async s=>structuredClone((clock===0?old:fresh)[stages.indexOf(s)]),matches:completionProcessMatches,ready:async()=>{health++;return true;},now:()=>clock,sleep:async ms=>{clock+=ms;sleeps++;}};
+ return {input,rows,old,fresh,counts:()=>({sleeps,probes,health})};
+}
+test('stale generation race waits for actual fresh receipts then exact native identities health and second snapshot',async()=>{
+ const f=staleStartupFixture(),result=await waitForErpBeforeHub(f.input);assert.equal(result.ready,true);assert.equal(result.coreSupervisorPid,20);assert.deepEqual(f.counts(),{sleeps:1,probes:3,health:2});
+});
+test('stale generation race never releases from self-derived candidates and retains fixed deadline',async()=>{
+ const f=staleStartupFixture();f.input.receipt=async s=>f.old[f.input.stages.indexOf(s)];f.input.sleep=async()=>{};let n=0;f.input.now=()=>n++*200001;
+ await assert.rejects(waitForErpBeforeHub(f.input),{code:'ERP_HUB_WAIT_TIMEOUT'});assert.equal(f.counts().health,0);
+});
+test('stale generation race rejects malformed static drift same PID reuse and foreign current identity immediately',async()=>{
+ const changes=[f=>f.old[0].run='bad',f=>delete f.old[0].run,f=>f.old[0].extra=true,f=>f.old[0].sourceCommit='c'.repeat(40),f=>f.old[0].configSha256='c'.repeat(64),f=>f.old[0].copyId='other',f=>f.old[0].actualT1=true,f=>f.old[0].stage='erpApi',f=>f.old[0].pid=f.rows[0].pid,f=>f.old[0].parentPid=f.rows[0].parentPid,f=>f.old[0].creationTime=f.rows[0].creationTime,f=>f.old[0].parentCreationTime=f.rows[0].parentCreationTime,f=>f.old[0].creationTime='2026-02-30T00:00:02.0000000Z',f=>f.old[0].pid='20',f=>f.rows[0].ownerSid='S-1-5-18',f=>f.rows[0].nodePath='C:\\foreign.exe',f=>f.rows[0].parentOwnerSid='S-1-5-18',f=>f.rows[0].parentNodePath='C:\\foreign.exe',f=>f.rows[0].parentCommandLine='foreign supervisor',f=>f.rows[0].commandLine+=' extra',f=>f.rows[0].managedCreationTime='2026-10-15T00:00:03.0000000Z'];
+ for(const change of changes){const f=staleStartupFixture();change(f);await assert.rejects(waitForErpBeforeHub(f.input),e=>['ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_OWNER'].includes(e.code));assert.deepEqual(f.counts(),{sleeps:0,probes:1,health:0});}
+});
+test('stale generation race still requires common fresh parent and unchanged second OS observation',async()=>{
+ for(const mode of ['parent','second']){const f=staleStartupFixture();if(mode==='parent'){f.rows[1].parentPid=21;f.fresh[1].parentPid=21;f.rows[1].parentCreationTime='2026-10-15T00:00:01.0000010Z';f.fresh[1].parentCreationTime=f.rows[1].parentCreationTime;}else{let n=0;f.input.probe=async()=>{n++;const rows=structuredClone(f.rows);if(n===3)rows[0].parentCommandLine+=' changed';return rows;};}await assert.rejects(waitForErpBeforeHub(f.input),e=>['ERP_HUB_WAIT_PARENT','ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_CHANGED'].includes(e.code));}
+});
+test('receipt-wait literal fourth tuple admits only exact 5bcd source and preserves base tuples',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',source='5bcd5ad136ff7ca35d623d436b8724cc491641be',next=root+'settings-crm06-staff-5bcd5ad136ff-receipt-wait.json';
+ assert.equal(assertErpHubProfile(next,source),true);assert.equal(assertErpHubProfile(root+'settings-crm06-staff-5bcd5ad136ff.json',source),true);
+ for(const [config,value]of [[next,'da82fc6644c1d9dba0c10eaa861773534d43c288'],[next,'5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'],[next,source.toUpperCase()],[next.toUpperCase(),source],[next,source.slice(0,12)],[next.replace('receipt-wait','other'),source],[root+'settings-crm06-staff-5ce452b01ef2-receipt-wait.json',source]])assert.throws(()=>assertErpHubProfile(config,value),{code:'ERP_HUB_WAIT_REJECTED'});
+});
+test('stale generation race accepts same live supervisor child retry but rejects child PID reuse or changed parent birth',async()=>{
+ const makeRetry=()=>{const f=staleStartupFixture();for(let i=0;i<2;i++)Object.assign(f.old[i],{parentPid:f.rows[i].parentPid,parentCreationTime:f.rows[i].parentCreationTime,creationTime:'2026-10-15T00:00:01.5000000Z'});return f;};
+ const f=makeRetry(),result=await waitForErpBeforeHub(f.input);assert.equal(result.ready,true);assert.deepEqual(f.counts(),{sleeps:1,probes:3,health:2});
+ for(const change of [v=>v.old[0].pid=v.rows[0].pid,v=>v.old[0].parentCreationTime='2026-10-15T00:00:01.0000010Z',v=>v.old[0].parentPid=99]){const bad=makeRetry();change(bad);await assert.rejects(waitForErpBeforeHub(bad.input),{code:'ERP_HUB_WAIT_IDENTITY'});assert.deepEqual(bad.counts(),{sleeps:0,probes:1,health:0});}
+});
+
+test('readiness failure metadata admits only fixed profile and receipt destinations and never exposes dynamic errors',()=>{
+ const config='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-5bcd5ad136ff-receipt-wait.json',receipt='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web\\erp-prerequisites-'+ 'a'.repeat(32)+'.json',hash='b'.repeat(64);
+ assert.deepEqual(erpHubFailureMetadata(config,hash,receipt,'ERP_HUB_WAIT_IDENTITY'),{path:receipt+'.failure.json',code:'ERP_HUB_WAIT_IDENTITY',configSha256:hash});
+ const opaque=erpHubFailureMetadata(config,hash,receipt,'PRIVATE_DYNAMIC_ERROR');assert.equal(opaque.code,'ERP_HUB_WAIT_REJECTED');assert.equal(JSON.stringify(opaque).includes('PRIVATE'),false);
+ for(const args of [['C:\\foreign.json',hash,receipt],[config,'not-a-hash',receipt],[config,hash,'C:\\foreign.json'],[config,hash,receipt+'.other'],[config,hash,receipt.toUpperCase()]])assert.throws(()=>erpHubFailureMetadata(...args,'ERP_HUB_WAIT_IDENTITY'),{code:'ERP_HUB_WAIT_REJECTED'});
 });

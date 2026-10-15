@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {assertCrm06StaffJournalPhysicalEvidence,normalizeCrm06StaffJournalPath,crm06StaffJournalReferenceHash,inspectCrm06StaffJournalPhysical,crm06StaffJournalPhysicalDiagnosticPhase,crm06StaffJournalPhysicalArguments,crm06StaffJournalExcludedPaths,CRM06_STAFF_JOURNAL_ROOT as root,CRM06_STAFF_JOURNAL_PATH as target,CRM06_STAFF_JOURNAL_EXCLUDED_PATHS as paths} from './crm06-staff-journal-preflight.mjs';
 const sid='S-1-5-21-2170750028-1005938530-2568122015-1001';
 const options=()=>({path:target,ownerSid:sid,excludedPaths:[...paths]});
@@ -80,7 +82,7 @@ test('parent-probe physical policy adds exact twelfth receipt and keeps ten/elev
  const refs=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),opts={...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...refs]},evidence=parentProbeEvidence();assert.equal(refs.length,12);
  assert.deepEqual(refs.filter(path=>!path.endsWith('da82fc6644c1-parent-probe.json')),[...crm06StaffJournalExcludedPaths(frontendSource)]);assert.equal(crm06StaffJournalExcludedPaths().length,10);assert.equal(crm06StaffJournalExcludedPaths(frontendSource).length,11);
  assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).journal.path,target);assert.deepEqual(crm06StaffJournalPhysicalArguments({ownerSid:sid,source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...refs]}).slice(-4),['-Source',frontendSource,'-ProfileVariant','parent-probe']);
- const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("$hasParentProbe=$PSBoundParameters.ContainsKey('ProfileVariant')"));assert(code.includes("if($hasParentProbe){$expected+=($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json')}"));
+ const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("$hasParentProbe=$PSBoundParameters.ContainsKey('ProfileVariant')"));assert(code.includes("if($hasParentProbe -and $ProfileVariant -ceq 'parent-probe'){$expected+=($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json')}"));
 });
 test('parent-probe physical policy rejects unknown/cross-source variant, wrong generation evidence and alias to twelfth reference',()=>{
  const refs=[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')],opts={...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:refs},evidence=parentProbeEvidence();reject(frontendEvidence(),opts);reject(evidence,{...opts,profileVariant:undefined});reject(evidence,{...opts,excludedPaths:[...crm06StaffJournalExcludedPaths(frontendSource)]});
@@ -105,7 +107,7 @@ test('5ce physical base policy rejects every variant, cross-generation metadata 
 });
 test('5ce physical child whitelist and existing runtime profile handoff remain source bound without new environment selectors',()=>{
  const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("if($Source -ceq '"+layoutSource+"'){$expected+=@(($actorRoot+'\\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\\staff-refresh-successor-5ce452b01ef2.json'))}"));
- assert(code.includes("$hasParentProbe -and ($ProfileVariant -cne 'parent-probe' -or $Source -cne '"+frontendSource+"')"));
+ assert(code.includes("$ProfileVariant -ceq 'parent-probe' -and $Source -ceq '"+frontendSource+"'"));
  const runtime=readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(runtime.includes('crm06StaffSuccessorProfileForPath(settings.components.crm.sourceCommit,settings.crmPrivateFiles.crm06StaffSuccessor.path)'));assert(runtime.includes('crm06StaffJournalExcludedPaths(profile.source,profile.profileVariant)'));assert(runtime.includes('excludedPaths,source:profile.source,...variant'));
 });
 const finalBatchSource='5bcd5ad136ff7ca35d623d436b8724cc491641be';
@@ -121,4 +123,33 @@ test('5bcd physical base policy rejects all variants, predecessor evidence and a
  for(const profileVariant of ['parent-probe','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource,profileVariant),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:finalBatchSource,profileVariant,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
  const alias=structuredClone(evidence),ref=alias.references.find(item=>item.path.endsWith('5bcd5ad136ff.json'));Object.assign(ref,{exists:true,volumeSerial:alias.journal.volumeSerial,fileId:alias.journal.fileId,linkCount:1});reject(rehash(alias),opts);
  assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource.toUpperCase()),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource.slice(0,12)),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+});
+test('receipt-wait physical policy adds only fifteenth receipt and rejects crossed variants missing refs and journal alias',()=>{
+ const refs=crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),base=crm06StaffJournalExcludedPaths(finalBatchSource),old=new Map(finalBatchEvidence().references.map(r=>[r.path,r]));
+ assert.equal(refs.length,15);assert.deepEqual(refs.filter(p=>!p.endsWith('5bcd5ad136ff-receipt-wait.json')),[...base]);
+ const evidence=finalBatchEvidence();evidence.references=refs.map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});rehash(evidence);
+ const opts={...options(),source:finalBatchSource,profileVariant:'receipt-wait',excludedPaths:[...refs]};assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,15);
+ assert.deepEqual(crm06StaffJournalPhysicalArguments({ownerSid:sid,source:finalBatchSource,profileVariant:'receipt-wait',excludedPaths:[...refs]}).slice(-4),['-Source',finalBatchSource,'-ProfileVariant','receipt-wait']);
+ reject(finalBatchEvidence(),opts);reject(evidence,{...opts,profileVariant:undefined,excludedPaths:[...base]});
+ for(const source of [frontendSource,layoutSource,'b2985d2295c022848c769ea5f494012c1eb3fa00'])assert.throws(()=>crm06StaffJournalExcludedPaths(source,'receipt-wait'));
+ for(const variant of ['RECEIPT-WAIT','parent-probe','receipt-wait-extra','',null])assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource,variant));
+ const alias=structuredClone(evidence),ref=alias.references.find(r=>r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));Object.assign(ref,{exists:true,volumeSerial:alias.journal.volumeSerial,fileId:alias.journal.fileId,linkCount:1});reject(rehash(alias),opts);
+});
+test('receipt-wait WindowsPS5 AST executes only finite parameter policy with exact fifteen paths and closed cross-source variants',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$cases=@(@('${finalBatchSource}','receipt-wait'),@('${finalBatchSource}','parent-probe'),@('${frontendSource}','receipt-wait'),@('${layoutSource}','receipt-wait'),@('${finalBatchSource}','RECEIPT-WAIT'),@('${finalBatchSource}',''),@('${frontendSource}','parent-probe'))
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$results=@(foreach($case in $cases){try{$paths=& $policy -Source $case[0] -ProfileVariant $case[1] -actorRoot 'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014';[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Invoke only the parsed parameter-policy slice; no native/ACL/store statements.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait')]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')]);
 });
