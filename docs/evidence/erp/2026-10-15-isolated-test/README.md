@@ -376,3 +376,49 @@ Private evidence remains outside Git at C:/Sirket/ERP/reports/DOT-CHAIN-20261015
 | candidate-verify.json | 477b45c7f74751107e81cbecbf0a78d8239418f1cd919af89314aac9be049922 |
 | transition-before.json | 07533143633b15e7837b8979ee74664ee32560b87fad22d46724130e68b86548 |
 | blocked-readback.json | 4b89b143f28ef7a407d15e89c74c5f7e334b24660eebc335ff82228d8cabad0e |
+
+
+## DOT-CHAIN-20261015-02 — stop-result diagnostics and unapplied recovery plan
+
+Existing CRM06/R02 scope; source/offline diagnostics and read-only recovery prerequisites only. [Single Dot task6190971998](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6190971998), ERP-DEC-061/CRM-DEC-019; no new plan tree or runtime recovery authority exercised.
+
+### What is known and what remains unknown
+
+The private original transition (SHAe7bd880bb277124560f38553858fc28027345a3539fa43f6ebab4233d126de2d) awaits promisified execFile atline34; an execution rejection loses code/output/signal, while exit-zero unexpected stdout or ANY stderr becomes a generic REJECTED. stopResults atline88 exists only in RAM and is written atline97 only after successful startup. The outer catch atline100 does not retain the error. The pinned private stopper (SHA79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d) collapses its inner exceptions to one static rejection/exit1 atline21. No persisted child result was found in the actual invocation chain. **Historical exact cause UNKNOWN**; stderr/progress/precision/permission/timeouts are not diagnosed. STOP_CAPTURED also includes the final clearPorts guard atline88: phase alone does not prove which child or whether a child failed. Neither a live stop nor a fixture was used to invent that historical cause.
+
+### Source-only result preservation
+
+Source [0c5247ced386b027f0a916348ada56ed00539770](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/0c5247ced386b027f0a916348ada56ed00539770) adds scripts/canonical/crm06-stop-child-diagnostic.mjs: an injected-executor extraction of the existing exact stop call, **no process executor import, CLI, persistence or deployed integration**. Proof PID/parent/SID/argv, original precision conversion, shell flags/base64/options, timeout, strict output whitelist and ANY-stderr refusal are unchanged. It never changes the PowerShell helper, guard, exit or retry behavior. A callback receives only closed target/outcome/code/signal/type/kind enums and bounded numeric child exit data. Raw output/message/stack/arguments/tokens/paths are not serialized. Original exec error identity and result remain unchanged; sink throw/reject/pending cannot mask them or initiate a retry. Physical stopping/ACL/owner/kill code is not implemented or modified here. Future owner use still requires reviewed, pinned integration and a real receipt sink; the source function alone is not durable deployed logging or recovery.
+
+- Missing-result baseline:1FAIL/0PASS from the exact legacy-call extraction, injected fixture only.
+- New targeted suite:9PASS/0FAIL/0skip under existing offline guard. Call/proof/options equality and acceptance/refusal matrix, exception identity, earlier-child records surviving a later rejection, finite redaction/oversize/getter/sink failures verified. No actual execFile/process/TerminateProcess/task/OS stop invoked. This is not a reproduction of the historical failure or proof of native recovery.
+- Existing canonical CI runner adds only this new test file. Syntax/diff-check/staged secret scan clean; independent source review GO. Unchanged old acceptance suites were not manually rerun.
+- Exact source [PR CI38801808540](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38801808540) and [push CI38801800362](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38801800362): **completed/SUCCESS**, both headSha0c5247ced386b027f0a916348ada56ed00539770, independently read via REST. This is offline hosted CI, not runtime or human acceptance; following documentation HEAD [skip ci] does not inherit source CI PASS.
+
+### Fresh read-only state
+
+Observed **2026-10-15T20:24:42.826Z**: existing CRM89427492f27caf72c511a27262b55e73d782c407 / supervisorcac08eaed0c4419550ecdaf6fdf4976252b83fa7 / ERP7a41f6492273dd1ec0bcb086f820be5575372be8. All6CORE match current OS PID/parent/owner/birth/argv and existing receipts; old Node supervisor and Hub match previous exact identities. Both shell watchers remain absent, both existing tasks Ready; task actions/Trigger/Principal/Settings unchanged. Seven listening process rows cover the eight service ports. Native/API/native-order GET identity is DB02/copye16b70f0-4057-428b-9abc-6bbcaf35fe82/actualT1false, external/jobsfalse, all reported privilege guards0. CRM62700 serves the old894 index3bb1ec44de971549f95cb858bb315cdf101d83b3381321c53c2ef477e95a96a6; existing heartbeat reports running with age6670ms, **not full healthy watcher ownership**.72 file/role/credential/journal/request bytes and observed SQL/TEST125 process identities unchanged; TEST125 endpoint availability not claimed. The private transition and stopper exact hashes remain unchanged. No shared/config/service/task/SQL/auth/business writes, no new login, no recovery/restore/restart or new package.94f/f450 stays inactive. Original790 actor ancestor is separate from current894 settings12fe75519fe0780c587e6404de6077331697391a76c2bd0ae9ab12d8fe5991ac operational rollback.
+
+### UNAPPLIED recovery plan — not an executable runbook or permission to bypass a guard
+
+**Single concrete missing condition:** a verified supported bounded owner-recovery path for this actual old-Node-alive / watchers-absent state. Current healthy-transition preflight requires both watchers running. Its rollback catch (private transition90–94) covers ACTIONS failure only and never ran for STOP_CAPTURED. Merely starting the tasks is insufficient: watch-terminal-completion-logon.ps1 starts a new supervisor, while terminal-completion-logon.mjs completionAttempt/held map does not transfer the living old supervisor's child handles into that new owner. Existing watch-hub-web.ps1 requires a fresh launcher receipt; start-hub-web.ps1 rejects occupied5234. **Safe adoption or automatic rollback is not proved.** Source-only diagnostics do not close this condition.
+
+The following sequence is a proposed verification order for a separately delegated ERP owner recovery scope; **none executed in this task**:
+
+1. Dot selects exactly one recovery scope after this delivery, reconciles previous task stopped, CRM/main/subagents idle, sole ERP writer and locks; unknown queue is not empty-queue proof.
+2. Read fresh actual state; require exact894/cac/ERP7a packages/settings12fe, DB02/copy/T1false, disabled external/send/paid/jobs, source manifests/dependency locks/Node pins/SID/ACL/reparse, with original790 kept separate. Missing or changed identity blocks that record/path.
+3. Seal fresh current task XML/actions/owner/LimitedInteractive and live Node supervisor/6CORE/Hub PID/parent/birth/SID/full argv/receipt/log bindings plus72 protected files, credential/journal/request/role and SQL/TEST125 identities. Do not reuse20:24 observation as future fresh proof; preserve inactive94f files as well.
+4. Independently review and pin the exact existing stop/rollback procedure, fail-closed per-child outcome persistence and explicit orphan-state entry conditions. The existing healthy-only Apply cannot simply be rerun here. If its scope cannot safely support that state, stop with that missing condition; do not invent adoption, skip guards, or switch kill methods.
+5. Only if a separately authorized supported cleanup path is established: retain handles for proven owned living processes, validate owner/birth/argv immediately before every bounded action, prove each actual exit and all eight ports clear. Unknown/reused PID/partial exit/ret stop further action. This is a proposal, **not an executed stop or approved guard change**.
+6. Revalidate same894 operational package/config and unchanged task Trigger/Principal/Settings; use the existing two-task supported start and automatic ERP-before-Hub barrier only after its exact preconditions hold. No DB reset/restore, role/config rewrite or source94f activation is implied.
+7. Require new exact6CORE+Hub owner/parent/receipt/index/native DB/copy/T1 health, both watchers/task states, fresh barrier provenance and72 protections. Old HTTP200 alone is insufficient. Failure follows only preverified bounded rollback; never automatic DB restore or destructive cleanup.
+8. Record actual installed/runtime state, protection differences and remaining GUI/device/reboot/human acceptance. No healthy or rollback PASS until actual proof. This task **did not perform any of these recovery actions**.
+
+NormalGUI/device/reboot/CRM-UA11 and human acceptance remain BEKLİYOR; ERP49=9green/39partial/1open and CRM25=12green/13partial/0open unchanged. Two-task chain ends here; only Dot selects any future work.
+
+| Private evidence receipt (not uploaded) | SHA256 |
+| --- | --- |
+| failing-before.txt | df1bc058bc28eddcb5b2af3352a71cd40d2e7e0638b336173dfa9fff7a2f74d2 |
+| passing-after.txt | deb9adf4d0570f3451afc9697479681a88210dfdab321ed13c15e0bd50543a01 |
+| readonly-prerequisites.json | 40722706a26b4aff60a1c89151e4916c088e4f7acd3b3b76698f0a4fd6226949 |
+| technical-evidence.json | 442ad9b446c83f2e861400a7209d60e4cb61904517d117aba5d6c3f25ab87644 |
