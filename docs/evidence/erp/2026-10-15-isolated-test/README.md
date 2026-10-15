@@ -447,3 +447,34 @@ The eight prior recovery prerequisites remain UNAPPLIED and unchanged. There is 
 No fresh runtime identity or health observation was made in this SOURCE/OFFLINE scope. The preceding task's last dated runtime observation remains historical context only; the supervision issue remains unclosed, earlier candidate stays inactive and new source remains unapplied. No active helper, immutable package, configuration, security, credential, journal or data was changed. NormalGUI/device/reboot/CRM-UA11/human acceptance and all original counts remain unchanged and BEKLİYOR. **STOP after03; no fourth task.**
 
 Independent existing reviewer reached the same supported-path BLOCKED verdict by read-only source review, with no test/OS/API/SQL execution. Private audit receipt SHA256: 526c4c3c2c47ab00e8a560627c9cb0ab9f388dc010e1ccc5c6d2c5629a128645. Only safe source references and this conclusion are public; no private operational paths, process identity values, configurations, database identifiers or payloads are included in this new section.
+
+## DOT-CHAIN-20261015-07 — exact copy-feedback profile SOURCE/OFFLINE
+
+16 October 2026; existing CRM06/R02 and [single Dot task record](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6190971998), ERP-DEC-061/CRM-DEC-019. This delegated source task supersedes earlier tasks' stop instructions only within its own finite scope. It does not authorize a package, transition, recovery or second task.
+
+### Exact candidate and source result
+
+CRM [delivery6202814105](https://github.com/melihsnyldzz-ui/melisa-crm/pull/3#issuecomment-6202814105) and [fixed verification record](https://github.com/melihsnyldzz-ui/melisa-crm/blob/60a82d00bab12888291033e271b4a4c019427ec6/docs/evidence/crm/2026-10-15-technical-automation/verification.json) were read, not rebuilt. The existing candidate was independently sealed READY/INACTIVE by its owner; this ERP task verified that source record, not an actual deployment.
+
+| Candidate identity | Exact value |
+| --- | --- |
+| CRM source | a7243dedf9ca5d1ca1d5aa1cb3dffaee7c18a7e9 |
+| Git tree | 96008f72aa44661b505fcd8ff44f864e65155fa3 |
+| Manifest SHA256 | 82ec0b63849817b8d88fe74097a5a0820c118a78d631cf54cf649b90e1545236 |
+| Index SHA256 | 6d67b7a335f490715e792a9940e9c1b97f745069cf4049fa5b1d4f597fa8a192 |
+| Existing owner package record | 185 source / 2291 payload files / 23,936,372 bytes; not rebuilt or installed here |
+
+ERP source [7fe06d0e30afd4409da2ab3b32907fc0bfcee5aa](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/7fe06d0e30afd4409da2ab3b32907fc0bfcee5aa) adds exactly one literal successor profile, JS/PowerShell journal policy and Hub config/source tuple. Both CRM manifest and index must match that exact source. No wildcard, generic suffix, short-SHA, new variant or cross-generation pair is accepted. Default source, original actor ancestor, ERP feature base and ten old profile outputs remain unchanged. The new profile is generation11/source9; its20 policy references are exactly old19 plus the one new successor reference. This is a fixture-level closed reference set, **not a real physical preflight READY claim**. JS Source argv and PowerShell case-sensitive admission carry the same exact source. ACL/owner/UTC/physical/path/held-handle, health, deadline, adoption/recovery, role, credential and service guards were not weakened.
+
+### Changed-behavior evidence
+
+- Failing-before:1 new positive test FAIL with CRM06_STAFF_SUCCESSOR_REJECTED against the unchanged parent. Ten old synthetic whole-plan hashes and ten old policy/argv fingerprints were captured before the change; only hashes were saved, no operational constructor input/output was produced.
+- Final local Windows targeted tests: **9PASS/0FAIL/0skip**:3 pure successor tests under the existing offline guard plus6 policy/Hub tests. The latter execute only literal source AST policy/assignment slices with Windows PowerShell5, never the full scripts, physical walker, native calls or private settings. Exact positive, wrong source/variant/valid-looking manifest/index, cross-pair/alias/path/parent/journal, missing old reference and identity-collision negatives are covered. Ten fixed legacy plan/ref/argv sentinels and unchanged default are checked; old acceptance suites were not manually rerun.
+- The intermediate policy test caught the missing new-source argv branch; it was corrected with the same exact finite source, without relaxing a test. The failed receipt is retained. Independent review then found one new-test portability issue: an absolute checkout path in an argv hash. The test now verifies the exact script argument first, then normalizes only that verified slot to the repository-relative name for hashing. No production guard changed. Final existing reviewer **GO; remaining P1/P2=0**.
+- Exact source [PR CI38813292861](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38813292861) and [push CI38813283945](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38813283945): completed/SUCCESS at headSha7fe06d0e30afd4409da2ab3b32907fc0bfcee5aa. These are the existing hosted workflow checks; the nine new local targeted results are reported separately and are not claimed as hosted runs. No CI runner or workflow change. Changed JS syntax, diff-check and staged redacted secret scan passed. The subsequent documentation HEAD uses [skip ci] and does not inherit this source CI result.
+
+### Explicit delivery boundary
+
+**Source profile ready / UNAPPLIED.** No supervisor bundle/build/package/export/snapshot was created. No operational activation/settings/profile/pin/receipt/dependency-lock/journal or private constructor input was created. No package inspection, physical walk, runtime identity/health observation, config/task/service/restart/stop/start/Apply/recovery/restore/SQL/auth/session/business action was performed. Private evidence contains offline fixtures, test results, fingerprints and delivery metadata only. No protected runtime file was opened or changed. Historical STOP_CAPTURED exact cause remains UNKNOWN; the prior supported owner-recovery entry remains BLOCKED and was not researched again. The preceding dated runtime observation remains historical and is not fresh evidence for this source task. This finite profile does not claim to solve that operational condition.
+
+Normal GUI, phone/Zebra, actual Windows reboot/logon, CRM-UA11 and human acceptance remain BEKLİYOR. ERP49=9green/39partial/1open and CRM25=12green/13partial/0open unchanged; no accepted requirement was recolored. Only these four existing delivery records were updated. No new tracker, task, automation, Goal or agent; Dot's handoff is not edited here. **STOP after task07; only Dot selects the next scope.** No private operational paths, process identities, database identifiers, configurations, credentials or callback payloads are added to this public evidence section.
