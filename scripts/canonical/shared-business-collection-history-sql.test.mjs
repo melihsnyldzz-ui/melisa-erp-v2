@@ -18,6 +18,16 @@ export async function collectionHistoryCompilerFixture(){
  const args={copyContext:copy,priceSaleBundle};return {copy,priceSaleBundle,args,bundle:buildBusinessCollectionHistoryRevision(args)};
 }
 if(import.meta.filename===process.argv[1]){
+
+test('collection history metadata grant targets the registry table rather than its non-securable DML trigger',async()=>{
+ const {bundle:b,copy}=await collectionHistoryCompilerFixture();
+ assert(b.grantSQL.includes(`GRANT VIEW DEFINITION ON OBJECT::${BUSINESS_COLLECTION_HISTORY_REGISTRY} TO [${copy.target.login}];`));
+ assert(!b.grantSQL.includes(`ON OBJECT::${BUSINESS_COLLECTION_HISTORY_IMMUTABLE}`));
+ assert(b.grantVerifySQL.includes(`major_id=OBJECT_ID(N'${BUSINESS_COLLECTION_HISTORY_REGISTRY}',N'U')`));
+ assert(b.grantVerifySQL.includes("permission_name=N'VIEW DEFINITION' AND state=N'G'"));
+ assert(b.grantSQL.includes(`DENY SELECT,INSERT,UPDATE,DELETE ON OBJECT::${BUSINESS_COLLECTION_HISTORY_REGISTRY} TO [${copy.target.login}];`));
+ assert(!/GRANT (?:CONTROL|ALTER|SELECT|INSERT|UPDATE|DELETE)\b/.test(b.grantSQL));
+});
 test('collection history additive compiler preserves all seven original definitions registry and grants byte exactly',async()=>{
  const f=await collectionHistoryCompilerFixture(),before=isolatedCopyJSON(f.priceSaleBundle),b=buildBusinessCollectionHistoryRevision({copyContext:f.copy,priceSaleBundle:f.priceSaleBundle});
  assert.equal(isolatedCopyJSON(f.priceSaleBundle),before);assert.equal(b.objects.length,2);assert.equal(b.revision.baseSaleRevisionHash,f.priceSaleBundle.revision.revisionHash);assert.equal(b.businessWrites,0);assert.equal(b.installed,false);assert.equal(b.rolesChanged,false);assert(Object.isFrozen(b));
