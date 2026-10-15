@@ -107,3 +107,9 @@ test('readiness failure metadata admits only fixed profile and receipt destinati
  const opaque=erpHubFailureMetadata(config,hash,receipt,'PRIVATE_DYNAMIC_ERROR');assert.equal(opaque.code,'ERP_HUB_WAIT_REJECTED');assert.equal(JSON.stringify(opaque).includes('PRIVATE'),false);
  for(const args of [['C:\\foreign.json',hash,receipt],[config,'not-a-hash',receipt],[config,hash,'C:\\foreign.json'],[config,hash,receipt+'.other'],[config,hash,receipt.toUpperCase()]])assert.throws(()=>erpHubFailureMetadata(...args,'ERP_HUB_WAIT_IDENTITY'),{code:'ERP_HUB_WAIT_REJECTED'});
 });
+
+test('bb896 Hub tuple preserves receipt-wait behavior and rejects every preceding source or private path cross-pair',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',source='bb8966c59a6cfbdc1cc83472cb331e48b720a173',next=root+'settings-crm06-staff-bb8966c59a6c.json',previous=[['da82fc6644c1-parent-probe','da82fc6644c1d9dba0c10eaa861773534d43c288'],['5ce452b01ef2','5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'],['5bcd5ad136ff','5bcd5ad136ff7ca35d623d436b8724cc491641be'],['5bcd5ad136ff-receipt-wait','5bcd5ad136ff7ca35d623d436b8724cc491641be']];
+ assert.equal(assertErpHubProfile(next,source),true);for(const [suffix,oldSource]of previous){const old=root+'settings-crm06-staff-'+suffix+'.json';assert.equal(assertErpHubProfile(old,oldSource),true);assert.throws(()=>assertErpHubProfile(old,source),{code:'ERP_HUB_WAIT_REJECTED'});assert.throws(()=>assertErpHubProfile(next,oldSource),{code:'ERP_HUB_WAIT_REJECTED'});}
+ for(const [config,value]of [[next.toUpperCase(),source],[next,source.toUpperCase()],[next,source.slice(0,12)],[next.replace('.json','-receipt-wait.json'),source],[next.replace('.json','-parent-probe.json'),source],[root+'settings-crm06-staff-unknown.json',source]])assert.throws(()=>assertErpHubProfile(config,value),{code:'ERP_HUB_WAIT_REJECTED'});
+});

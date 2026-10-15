@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OwnerSid,[ValidateSet('b2985d2295c022848c769ea5f494012c1eb3fa00','da82fc6644c1d9dba0c10eaa861773534d43c288','5ce452b01ef20fc84a09c52b78311db8eb1dd1d8','5bcd5ad136ff7ca35d623d436b8724cc491641be')][string]$Source='b2985d2295c022848c769ea5f494012c1eb3fa00',[string]$ProfileVariant)
+param([Parameter(Mandatory=$true)][string]$OwnerSid,[ValidateSet('b2985d2295c022848c769ea5f494012c1eb3fa00','da82fc6644c1d9dba0c10eaa861773534d43c288','5ce452b01ef20fc84a09c52b78311db8eb1dd1d8','5bcd5ad136ff7ca35d623d436b8724cc491641be','bb8966c59a6cfbdc1cc83472cb331e48b720a173')][string]$Source='b2985d2295c022848c769ea5f494012c1eb3fa00',[string]$ProfileVariant)
 $ErrorActionPreference='Stop'
 $actorRoot='C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014'
 $target=$actorRoot+'\assigned-staff-refresh.json'
@@ -7,7 +7,7 @@ $phase='OWNER'
 try {
  if($OwnerSid -notmatch '^S-1-5-21-(?:[1-9]\d*-){3}[1-9]\d*$' -or [Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $OwnerSid){throw 'REJECT'}
  $phase='PARAMETERS'
- if($Source -cne 'b2985d2295c022848c769ea5f494012c1eb3fa00' -and $Source -cne 'da82fc6644c1d9dba0c10eaa861773534d43c288' -and $Source -cne '5ce452b01ef20fc84a09c52b78311db8eb1dd1d8' -and $Source -cne '5bcd5ad136ff7ca35d623d436b8724cc491641be'){throw 'REJECT'}
+ if($Source -cne 'b2985d2295c022848c769ea5f494012c1eb3fa00' -and $Source -cne 'da82fc6644c1d9dba0c10eaa861773534d43c288' -and $Source -cne '5ce452b01ef20fc84a09c52b78311db8eb1dd1d8' -and $Source -cne '5bcd5ad136ff7ca35d623d436b8724cc491641be' -and $Source -cne 'bb8966c59a6cfbdc1cc83472cb331e48b720a173'){throw 'REJECT'}
  $hasParentProbe=$PSBoundParameters.ContainsKey('ProfileVariant')
  if($hasParentProbe -and -not (($ProfileVariant -ceq 'parent-probe' -and $Source -ceq 'da82fc6644c1d9dba0c10eaa861773534d43c288') -or ($ProfileVariant -ceq 'receipt-wait' -and $Source -ceq '5bcd5ad136ff7ca35d623d436b8724cc491641be'))){throw 'REJECT'}
  $expected=@(
@@ -22,6 +22,7 @@ try {
  if($Source -ceq '5ce452b01ef20fc84a09c52b78311db8eb1dd1d8'){$expected+=@(($actorRoot+'\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\staff-refresh-successor-5ce452b01ef2.json'))}
  if($Source -ceq '5bcd5ad136ff7ca35d623d436b8724cc491641be'){$expected+=@(($actorRoot+'\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\staff-refresh-successor-5ce452b01ef2.json'),($actorRoot+'\staff-refresh-successor-5bcd5ad136ff.json'))}
  if($hasParentProbe -and $ProfileVariant -ceq 'receipt-wait'){$expected+=($actorRoot+'\staff-refresh-successor-5bcd5ad136ff-receipt-wait.json')}
+ if($Source -ceq 'bb8966c59a6cfbdc1cc83472cb331e48b720a173'){$expected+=@(($actorRoot+'\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\staff-refresh-successor-5ce452b01ef2.json'),($actorRoot+'\staff-refresh-successor-5bcd5ad136ff.json'),($actorRoot+'\staff-refresh-successor-5bcd5ad136ff-receipt-wait.json'),($actorRoot+'\staff-refresh-successor-bb8966c59a6c.json'))}
  [Array]::Sort($expected,[StringComparer]::Ordinal)
  # Independent finite policy, never a caller-selectable subset. The JS owner
  # also validates its exact profile reference set and every returned tuple.
