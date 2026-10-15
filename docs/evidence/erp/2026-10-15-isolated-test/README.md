@@ -244,3 +244,31 @@ Actual readback at **2026-10-15T06:47:26.073Z** proved six current CORE processe
 | final-preservation | cbb6368a7fd3ad37586b8e040f8c6026d6c5a4cf419a3572c2628648a20ea0fa |
 
 Private receipt root: C:/Sirket/ERP/reports/CRM06-CATALOG-CONTEXT-20261015. Commercial records, source profiles, credentials and private settings are not published. Existing user-facing addresses remain http://127.0.0.1:62700/ and http://127.0.0.1:5234/melisa-hub/. CRM06/CRM-UA11/normal GUI/mobile/human acceptance remain pending; original49ERP/25CRM leaf counts are unchanged. No LIVE/Vega/T1/main/customer send/paid AI operation occurred.
+
+
+### CRM06 separate staff-context batch installed — 15 October
+
+Actual installed source **957f98773695874ea3d101b7eb4816f9ea080880**, supervisor **d469f192b315fcd322e3e85815cb5f257947532b**, readback **2026-10-15T08:36:47.677Z**. ERP/API/native/Hub7a41 and DB02/copye16b/T1false remain unchanged. This separate CRM package fixes pending draft/submit state being released by an unrelated catalog read failure and resets the staff request context when conversation assignment changes. It does not change gateway authentication, role policy, stores or business calculations. The later quantity-input work is not included in this frozen package.
+
+Root matched manifest/index/unchanged locks, all2,291 payload files/23,935,427 bytes and ten authority modules against prior bc843ed5... evidence. CRM source exact PR38693616257/push38693610774/AIoffline38693616302 completed SUCCESS. ERP adds only one variants-free exact source/profile,17=previous16+one physical references, and a sixth exact Hub tuple; all seven prior profiles and actor ancestor/default/feature base remain unchanged. Six new focused tests passed, including the public WindowsPS5 parameter-policy AST slice; scoped independent review found no P1/P2. Source [PR38705965431](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38705965431) / [push38705956977](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38705956977) completed SUCCESS. No old acceptance/login/API/14-table/restore run or unchanged-source CI rerun was manually launched; changed-source CI ran normally.
+
+Before this transition the current bb896/76d1 runtime had six exact owned CORE processes and Hub; native DB02/copy/nonprivileged/T1false identity and old served index were freshly matched. Unlike the previous incident recovery, this transition uses the reviewed full healthy-state protocol, retaining all seven process, owner/birth/argv, task XML, exact cleanup, clear-port, before-image and rollback guards. Two existing TEST task actions were updated once and started through their supported watchers. Readback proves all six new CORE, current CRM heartbeat and index, Hub reachability and native DB02 identity. Fresh ERP prerequisite barrier **ca88a30f5b6b5d3f6059d246525c608f70727b1c49e2b239e24766f4423cc2e4** precedes Hub birth; attempt0/manualHubStart=false. Real Windows reboot/logon was not tested.
+
+All58 old files are preserved: prior51 plus the seven exact currentbb settings/activation/Hub pin/Hub startup/successor/dependency/physical-evidence files. Roles/credentials/old journal/request bytes, task trigger/principal/settings and SQL/TEST125 process identities remain identical. Fresh17 references READY. This transition produced0 auth/interest/business requests. The latest operational rollback is bb896/76d1/settings e3dee; immutable actor ancestor remains original790. Earlier455 timeout/quarantine and its bounded recovery remain historical evidence, not hidden or relabeled successful. Earlier ERP09 own draft/cancel NETZERO is separate; no new case was replayed.
+
+| Installed metadata or private receipt | SHA256 |
+| --- | --- |
+| CRM manifest | a93d2cdd14eafcb021091d98294c41d5e60d31bbc5842d31447f091a843a18af |
+| Served CRM index | 8cdf8904557755900d98769df26f6edcd6efa929bc400970b073b48e4d2d1ddd |
+| Supervisor manifest | bfc152eb3335e1dfe294a2014ef7796bec00feb2bf7d825da7a6c66659da028f |
+| Settings957 | 5cdfa444233780cf8d00b6933b207fec4641d40ec02830e96e5dd45d2fd14846 |
+| Successor957 | ce5ab1078cfee970bf94e3f46ef46cb3d7d5d3c997ab05cd824a1b2ff38b9e22 |
+| CRM dependency lock | 7a84d3e6e5ded9819a65ef08de989637e95a636b6e35c2608c85265b9eafc90e |
+| preservation-complete58 | 331633aab302e7736d9c564614df74a4fd2cc5f0fab519e155e49529a904982e |
+| candidate-verify.json | 2af658d6d4934216b64b39568abb34764e03f2b421976e10b114073750ca9469 |
+| transition-before.json | 6b2392e0bfb005d1d76d4f3a180596838193ebf3ea22c0be1622a94f6ff43a47 |
+| transition-started.json | 506801104089913bc1dec120921424ace4ac39cc1acc83e351215ae3ba5bbc82 |
+| installed-readback.json | b8bba71c27db9fa4df49cf3226996f0b5a9aa8808fa444f93631970478c4f86f |
+| final-preservation.json | 14daef4c8105fd366c45962c56a5f5f7c2459ccb2ade0986e452e70682653603 |
+
+Private receipt root: C:/Sirket/ERP/reports/CRM06-STAFF-CONTEXT-20261015. No commercial records, credentials or private setting values are published. TEST URLs remain http://127.0.0.1:62700/ and http://127.0.0.1:5234/melisa-hub/. Normal GUI, physical/mobile, real reboot/logon, CRM06/CRM-UA11 human acceptance and whole closure remain pending; original leaf counts are unchanged. LIVE/Vega/T1/main/real messages/paid services were not used.

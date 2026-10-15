@@ -1,5 +1,8 @@
 ## Sıradaki iş
 
+15 Ekim — CRM06 ayrı957 partisi gerçekten TEST'e kuruldu; readback 2026-10-15T08:36:47.677Z. CRM957f987/supervisord469f19/ERP7a41 aynıDB02/copye16b/T1false. Katalog okuma hatası sırasında devam eden kayıt/gönderim kilidinin korunması ve personel ataması değiştiğinde eski talep bağlamının temizlenmesi bu pakette. Mevcutbb/76d1 geçiş öncesi altıCORE+Hub ile sağlıklı ve sahiplikli doğrulandı; mevcut iki görev yeni paketle tek kontrollü başlangıçla açıldı. Yeni altıCORE/index/Hub/DB02 ve ERP bariyeri sonrası Hub attempt0/manualfalse doğrulandı; gerçek Windows reboot/logon değil. 58 eski dosya/credential/rol/journal/request bytes, görev metadata ve SQL/TEST125 süreç kimliği korundu; fresh17refREADY, bu geçişte auth/talep/ticari yazı0. Kaynakd469 PR38705965431/push38705956977 SUCCESS,6 yeni hedef test PASS; CRM957 exact3CI SUCCESS. Sonraki miktar UI düzeltmesi bu dondurulmuş pakete alınmadı. [Gerçek kurulum ve koruma kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md). NormalGUI/mobil/insan ve CRM-UA11 BEKLİYOR; özgün kapsam/sayılar aynı.
+
+
 15 Ekim09:47 TR — CRM06 yeni bb896 frontend partisi gerçekten kuruldu: supervisor76d1e59/CRMbb896/ERP7a41, DB02/copye16b/T1false. Bozuk veya boş401/403/410 yanıtlarında yetki durumu ve aynı dokümandaki müşteri katalog bağı düzeltmeleri bu pakette; GUI kabulü değildir. Önceki455 runtime09:23TR crmNativeOrder ETIMEOUT sonrası eksik4CRM süreciyle quarantined bulundu; ilk strict Inspect hiçbir değişiklik yapmadan reddetti. Sabitlenmiş exact2ERP+Hub/current455 partial snapshot bağımsız incelendi, yalnız kendi iki TEST görevi kontrollü geçirildi. Altı yeni CORE/index/Hub/DB02 readback geçti; Hub ERP bariyerinden sonra attempt0/manualfalse, gerçek Windows reboot/logon değil. 51 eski dosya, rol/credential/journal/request bytes, görev metadata ve SQL/TEST125 süreç kimliği korundu; fresh16refREADY, bu geçişte auth/talep/ticari yazı0. Son source76d1 PR38693505519/push38693498882 SUCCESS; yeni6 hedef test PASS. Eski455/7182 rollback ve original790 ancestor ayrıdır, eski partial/failure kanıtı korunur. [Kurulum ve koruma kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md). İnsan/mobil/normalGUI ve CRM-UA11 BEKLİYOR; sayılar ve kapsam aynı.
 
 
@@ -12,23 +15,23 @@
 | --- | --- |
 | Ana ID | CRM06 — Katalog ve müşteri ürün talebi, özgün K01/K02/K03 |
 | İzinli paralel teknik hazırlık | ERP09 aynı factory/domain read köprüsünü korur. Source6ff6b83/2874171 ile yalnız collector16 için creator15 fiyat geçmişini doğrulayan ayrı readonly compiler/bootstrap/DTO bağlantısı hazır; kayıtsız durumda eski açık ret sürer. Source12b0815 üç sonlu paket pinini, d2bb6bd yalnız registry metadata grant hedefini düzeltir; exact son PR38668867352/push38668863003 CI SUCCESS. Yeni iki history/proof yordamı ve özel2satır registry+immutable trigger DB02'ye gerçekten kuruldu; restricted-service native kayıt/yeniden kanıt PASS,428 eski modül/grant/roller aynı, ticari/auth yazısı0. Normal uygulama7a41/restart/config/route/tahsilat writer değişmedi; collect/cancel403. Fiyatlı sentetik vaka yalnız mevcut ERP09 teknik hazırlığıdır; GUI/insan/ana kapanış aynı açık. ERP-DEC-057/060 uygulanır. |
-| Güncel adım | CRMbb896/supervisor76d1e59/ERP7a41 DB02 gerçekten kurulu; readback 2026-10-15T06:47:26.073Z. Önceki455 eksik4CRM/quarantine durumu exact sahiplikli partial recovery ile giderildi; yeni altıCORE+Hub/index/DB02 sağlıklı. Hub attempt0/manualfalse. 51before-file koruması ve16physicalrefREADY; yeni auth/talep/ticari yazı0. NormalGUI/insan/gerçek reboot-logon kabulü açık. |
+| Güncel adım | CRM957f987/supervisord469f19/ERP7a41 DB02 gerçekten kurulu; readback 2026-10-15T08:36:47.677Z. Önceki bb/76d1 sağlıklı başlangıç olarak gözlendi; tek controlled two-task geçişi yeni altıCORE+Hub/index/DB02 doğruladı. ERP bariyeri sonrası Hub attempt0/manualfalse;58before-file ve17physicalrefREADY. Bu geçişte auth/talep/ticari yazı0; normalGUI/insan/gerçek reboot-logon kabulü açık. |
 | Sahip | ERP sahibi ortak config/store/paket/servis yazarı; backend saf constructor, reviewer bağımsız inceleme; CRM sahibi normal UI akışının sahibi |
 | Bitiş koşulu | Özgün CRM06 K01/K02/K03, normal müşteri seç–adet–çıkar–yenile–tek talep, atanmış/yanlış personel, yeniden açılış, son normal mobil ve gereken insan kabulü birlikte kanıtlanır. Eski7hesap/roller/journal/requeststore ve yeni iki dedicated normal profil korunur. Sırlar DPAPI/owner korumada kalır; TEST ADMIN/shared reset/auth bypass yok. Paket/kurulum/API teknik sonucu normal GUI veya insan kabulü değildir. |
-| Mevcut kanıt | [Kurulum ve koruma kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md): installed6c065a9a49b6..., final51filecbb6368a7fd3..., beforelista7c94a47c38c..., settings e3dee7bb10f1..., successor3c4a23eb4dc7.... YeniCRM10authority modülü önceki bc843ed5f7ce... ile eşleşir; eski normal-role API kanıtı ve byte-identical eski kayıtlar REUSE. Source76d1 PR38693505519/push38693498882 SUCCESS; CRMbb896 exact CI daha önce SUCCESS, tekrar tetiklenmedi. |
-| Teknik bağımlılık | Korumalı ilk normal GUI consumer araçta yok; bypass/ret tekrarı/parola talebi yok. KuruluCRMbb896/sup76d1e59/ERP7a ve gerçek Windows reboot/logon ayrımı korunur. ERP09 collection-specific readonly history artık DB02'de kurulu/native kayıtlı kanıtlandı; creator15 taklidi veya rol genişletme yok. İlk sentetik ürün negatif stok yüzünden doğru reddedildi ve değiştirilmedi; toplu kaynak/hedef okumasından uygun başka ürün seçildi. Native SOURCE tahsilat intent/yazıcı, uygulama aktivasyonu ve normal GUI hâlâ ayrı eksik. |
+| Mevcut kanıt | [Gerçek kurulum ve koruma kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md): installedb8bba71c27db..., final58file14daef4c8105..., beforelist331633aab302..., settings5cdfa4442337..., successorce5ab1078cfe.... YeniCRM10authority modülü önceki bc843ed5f7ce... ile aynı; normal-role API kanıtı yalnız unchanged authority+eski byte kayıtlarıyla REUSE. Source d469 PR38705965431/push38705956977 SUCCESS; CRM957 üç exact CI SUCCESS, eski kabuller tekrar edilmedi. |
+| Teknik bağımlılık | Korumalı ilk normal GUI consumer araçta yok; bypass/ret tekrarı/parola talebi yok. KuruluCRM957f987/supd469f19/ERP7a ve gerçek Windows reboot/logon ayrımı korunur. ERP09 collection-specific readonly history artık DB02'de kurulu/native kayıtlı kanıtlandı; creator15 taklidi veya rol genişletme yok. İlk sentetik ürün negatif stok yüzünden doğru reddedildi ve değiştirilmedi; toplu kaynak/hedef okumasından uygun başka ürün seçildi. Native SOURCE tahsilat intent/yazıcı, uygulama aktivasyonu ve normal GUI hâlâ ayrı eksik. |
 | İnsan kararı/engel | Kullanıcıdan parola veya manuel giriş istenmez; yeni kapsam onayı beklenmiyor. Engel hesap/rol/SQL değil, aracın korumalı GUI giriş bileşenidir. Fiziksel mobil ve CRM-UA11 insan kabulü ayrı açık; LIVE/mesaj/ücretli servis yetkisi yok. |
-| Bitince sıradaki adım | CRM06 önceliği korunur: yeni bb896 kurulum kanıtı CRM sahibine devredildi; sahibi normal ekran/mobil son kabul eksiğini ve sonraki ayrı kaynak partisini kendi kaydında tutar. Sonraki CRM957 partisi bu kuruluma katılmadı. ERP09 finalize bağlantı10053 hatası bağımsız teknik eksik olarak durur; eski iki own draft/cancel veNETZERO korunur, yeni vaka tekrarı veya fiyatlıHISTORY/writer PASS yok. İnsan kabulleri en sonda BEKLİYOR; kapsam/sayı aynı. CRM06 tüm özgün koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; bağımsız teknik hazırlık ERP-DEC-060 ile sürer. |
+| Bitince sıradaki adım | CRM06 önceliği korunur: yeni957 kurulum makbuzları CRM sahibine devredilir; sahibi normal ekran/mobil son kabul eksiği ve sonraki ayrı kaynak partisini kendi kaydında tutar. Sonraki miktar UI çalışması bu pakete katılmadı. ERP09 finalize bağlantı10053 hatası ve eski own draft/cancel NETZERO kaydı aynı, yeni prova tekrarı veya fiyatlıHISTORY/writer PASS yok. İnsan kabulleri en sonda BEKLİYOR; kapsam/sayı aynı. CRM06 tüm özgün koşulları ve gereken insan kabulüyle tam kapanınca ERP09 ana kapanış önceliği olur; bağımsız teknik hazırlık ERP-DEC-060 ile sürer. |
 
 ### Mevcut kanıtın makine görünümü — yeni kabul veya tracker değildir
 
-Yeni bb896/76d1e59 runtime gerçek altıCORE/Hub readback ve51file koruma makbuzuna bağlıdır. Önceki455 degraded durumu ayrı kanıtlanmış exact partial recovery ile giderildi; eski5012/455 başlangıç sonuçları tarihsel kalır. Önceki normal-role/tek talep kanıtı yalnız gerçekten değişmeyen10auth/session/customer-request modülü ve byte-identical baseline/actor/credential/journal/request üzerinden REUSE; bütün uygulama aynı diye sunulmaz. Yeni giriş/talep/mesaj/14tablohash/restore tekrarı0. Önceki5012 simultaneousHubfailure ve manualretry tarihçesi korunur; yeni76d1e59 geçişi attempt0/manualfalse ayrı kanıttır. GUI/mobil/gerçekreboot/logon/insan ve wholeClosure hâlâ açık.
+Yeni957/d469 runtime gerçek altıCORE/Hub readback ve58file koruma makbuzuna bağlıdır. Önceki bb/76d1 sağlıklı checkpoint olarak korunur. Önceki455 degraded durumu ayrı kanıtlanmış exact partial recovery ile giderildi; eski5012/455 başlangıç sonuçları tarihsel kalır. Önceki normal-role/tek talep kanıtı yalnız gerçekten değişmeyen10auth/session/customer-request modülü ve byte-identical baseline/actor/credential/journal/request üzerinden REUSE; bütün uygulama aynı diye sunulmaz. Yeni giriş/talep/mesaj/14tablohash/restore tekrarı0. Önceki5012 simultaneousHubfailure ve manualretry tarihçesi korunur; yeni d469 geçişi attempt0/manualfalse ayrı kanıttır. GUI/mobil/gerçekreboot/logon/insan ve wholeClosure hâlâ açık.
 
 ```melisa-preflight
 {
   "current": {
     "environment": "db02-copy-e16b70f0-test-t1false",
-    "runtime": "supervisor76d1e59-erp7a41-crmbb896-20261015T064726Z",
+    "runtime": "supervisord469f19-erp7a41-crm957f987-20261015T083647Z",
     "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
     "surface": "cua-iab-protected-first-login-component-missing-20261015"
   },
@@ -64,26 +67,26 @@ Yeni bb896/76d1e59 runtime gerçek altıCORE/Hub readback ve51file koruma makbuz
       "status": "verified",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor76d1e59-erp7a41-crmbb896-20261015T064726Z"
+        "runtime": "supervisord469f19-erp7a41-crm957f987-20261015T083647Z"
       },
-      "evidenceRef": "evidence:crm06-catalog-context-installed-20261015"
+      "evidenceRef": "evidence:crm06-staff-context-installed-20261015"
     },
     {
       "requirementId": "normal-role",
       "status": "verified",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor76d1e59-erp7a41-crmbb896-20261015T064726Z",
+        "runtime": "supervisord469f19-erp7a41-crm957f987-20261015T083647Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z"
       },
-      "evidenceRef": "evidence:crm06-catalog-context-unchanged-authority-reuse-20261015"
+      "evidenceRef": "evidence:crm06-staff-context-unchanged-authority-reuse-20261015"
     },
     {
       "requirementId": "normal-ui",
       "status": "blocked",
       "context": {
         "environment": "db02-copy-e16b70f0-test-t1false",
-        "runtime": "supervisor76d1e59-erp7a41-crmbb896-20261015T064726Z",
+        "runtime": "supervisord469f19-erp7a41-crm957f987-20261015T083647Z",
         "identityRole": "normal-staff-personel-agent2-interest-api-20261014T224348Z",
         "surface": "cua-iab-protected-first-login-component-missing-20261015"
       },
