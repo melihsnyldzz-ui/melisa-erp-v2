@@ -258,3 +258,38 @@ ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
  assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(quantitySource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(separateBatchSource)]);
 });
+
+const searchSource='94f2a75322a3daa695d38010a6f2c8ef23f6c17b';
+function searchEvidence(){const f=quantityEvidence(),old=new Map(f.references.map(r=>[r.path,r]));f.references=crm06StaffJournalExcludedPaths(searchSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('94f physical policy adds only nineteenth receipt and retains every receipt-wait reference',()=>{
+ const previous=[crm06StaffJournalExcludedPaths(),crm06StaffJournalExcludedPaths(frontendSource),crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),crm06StaffJournalExcludedPaths(layoutSource),crm06StaffJournalExcludedPaths(finalBatchSource),crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),crm06StaffJournalExcludedPaths(readySource),crm06StaffJournalExcludedPaths(separateBatchSource),crm06StaffJournalExcludedPaths(quantitySource)],before=structuredClone(previous),refs=crm06StaffJournalExcludedPaths(searchSource),added=root+'\\staff-refresh-successor-94f2a75322a3.json';
+ assert.equal(refs.length,19);assert.deepEqual(refs.filter(p=>p!==added),previous[8]);assert.deepEqual(previous,before);assert.deepEqual(previous.map(p=>p.length),[10,11,12,13,14,15,16,17,18]);
+ const opts={...options(),source:searchSource,excludedPaths:[...refs]},evidence=searchEvidence();assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,19);assert.equal(evidence.references.find(r=>r.path===added).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:searchSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',searchSource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('94f physical policy denies variants aliases older evidence and missing receipt-wait reference',()=>{
+ const refs=crm06StaffJournalExcludedPaths(searchSource),opts={...options(),source:searchSource,excludedPaths:[...refs]},evidence=searchEvidence();reject(quantityEvidence(),opts);reject(evidence,{...opts,source:quantitySource,excludedPaths:[...crm06StaffJournalExcludedPaths(quantitySource)]});
+ for(const variant of ['parent-probe','receipt-wait','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(searchSource,variant));assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:searchSource,profileVariant:variant,excludedPaths:[...refs]}));}
+ for(const source of [searchSource.toUpperCase(),searchSource.slice(0,12),'f'.repeat(40),null])assert.throws(()=>crm06StaffJournalExcludedPaths(source));
+ for(const suffix of ['94f2a75322a3.json','89427492f27c.json','957f98773695.json','bb8966c59a6c.json','5bcd5ad136ff-receipt-wait.json']){const value=structuredClone(evidence),ref=value.references.find(r=>r.path.endsWith(suffix));Object.assign(ref,{exists:true,volumeSerial:value.journal.volumeSerial,fileId:value.journal.fileId,linkCount:1});reject(rehash(value),opts);}
+ const missing=structuredClone(evidence);missing.references=missing.references.filter(r=>!r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));reject(rehash(missing),opts);
+});
+test('94f WindowsPS5 parameter slice admits exact nineteen references and rejects source variants without native calls',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${searchSource}',$null),@('${searchSource}','receipt-wait'),@('${searchSource}','parent-probe'),@('${searchSource}',''),@('${searchSource.toUpperCase()}',$null),@('${searchSource.slice(0,12)}',$null),@('${quantitySource}',$null))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Only the source parameter-policy AST slice executes; no Add-Type, file
+ // handles, private paths, credentials or physical inspection are invoked.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(searchSource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(quantitySource)]);
+});
