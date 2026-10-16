@@ -1,3 +1,7 @@
+## B03/C07 — dönem hareket adetleri — son toplu kabul BEKLİYOR
+
+16 Ekim 2026, [PR35](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/35), kaynak `77d984b748cf2ebcec70dcaa84e9385e8f6bc81b`. Mevcut ERP-UA12/13/32 kabul ID'leri korunur. Offline test, tutarı bilinmeyen hareketin kendisini ve aynı dövizde sonraki hareketleri dönem adedinden düşürmediğini; tutar/bakiye/döviz ve tarih filtresinin korunduğunu doğrular. SOURCE_UNAPPLIED; gerçek TEST kurulumu ve GUI/cihaz denemesi yok. Yerel sahip kurulumu tamamlayınca son toplu normal personel kabulünde tedarikçi ekstresindeki Son 1 ay/Son 3 ay adetleri ile mevcut kayıtları karşılaştırın; bilinmeyen tutar senaryosu yalnız sentetik ortamda hazırlanır. Gerçek ticari kayıt oluşturma/değiştirme gerekmez. Kişi/tarih/insan sonucu yok; teknik PASS insan kabulü değildir. Önceki kabuller ve sayaçlar değişmez.
+
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
 
 13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.
