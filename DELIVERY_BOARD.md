@@ -297,3 +297,6 @@ ERP-PRODUCTCOMPLETION01 kullanıcı tarafından önceliklendirildi; önceki dili
 | ID | Hedef | Kabul kriteri | Durum | Bağımlılık |
 | --- | --- | --- | --- | --- |
 | ERP-D08 | Canlı teslimi engellemeyen yeni fikirleri canlıdan sonra değerlendir. | Somut fikir geldiğinde ERP-DEC-007 uyarınca ID/kabul ölçütüyle kaydedilir; uygulama yeni kullanıcı kararıyla başlar. | Bekleyen fikir havuzu; uygulama onayı yok | Mevcut canlı teslim; yeni kullanıcı kararı |
+# 17 Ekim — mevcut P02/P03 Hub devamı
+
+Altı CORE Node24 uyumlu paketlerle açıldı; web başlatıcısının `-native-ready` paket adı reddi nedeniyle ortak başlangıç kapanmadı. Dar sonlu profil hazır: API/native d9, Hub aynı f5 kaynağının orijinal 0e119 paketi, CRM e85. Eski paketler/roller/veriler değişmez;44 hedefli test ve20 PS kapı örneği geçti. Kurulum/kararlılık/normal GUI henüz doğrulanmadı; özgün kabul sayaçları değişmedi. [Aynı owner kanıtı](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).

@@ -47,3 +47,9 @@ ERP Probe/verify artık CRM build Node/platform/arch tuple'ını SQL readiness v
 DB02/copy `e16b70f0-4057-428b-9abc-6bbcaf35fe82`, `actualT1=false`; TEST125, mevcut ticari veriler, roller, karantina, LL dışlamaları, eski journal ve yedekler korunur. Bu teslimde yeni finans/stok/cari işlemi, migration, veri silme veya restore yapılmadı. Görevlerin Trigger/Principal/Settings alanları değiştirilmiyor; yalnız iki mevcut action mühürlü adaya bağlanıyor. Yeni runtime başladıktan sonra otomatik toplu geri alma veya tekrar başlatma yok.
 
 Ham private ayarlar, ticari veri, giriş sırrı, fotoğraf ve günlükler GitHub'a konulmadı. Ayrıntılı yerel kanıtlar `C:/Sirket/ERP/reports/ERP-COMMON-TEST-20261016` altında. Normal GUI, fiziksel Zebra/telefon, gerçek Windows reboot/logon ve özgün insan kabulü ayrı; USER_ACCEPTANCE PASS ve bitiş sayaçları artırılmadı. LIVE/Vega/gerçek T1/mesaj/ücretli API/main merge yok.
+
+### 17 Ekim — Hub başlatıcısının paket seçimi
+
+Node24 uyumlu CRM e85 ile altı CORE gerçekten açıldı. Hub paket adındaki `-native-ready` soneki mevcut başlatıcı tarafından `HUB_PACKAGE_SCOPE_REJECTED` ile reddedildi; CORE denetimi 22:35:17Z tarihinde `TERMINAL_LOGON_HUB_TASK_NOT_READY` kaydetti. Bu deneme normal çalışan TEST değildir. Eski başarısızlık ve makbuzlar korunur.
+
+Yeni ayrı `erp-crm-node24-hub-ready` profili API/native için d9 paketini, yalnız Hub web için aynı f5 uygulama kaynağının orijinal0e119 paketini seçer. Orijinal web payload SQL native binding kullanmaz. Immutable paket/başlatıcılar değiştirilmedi, genel paket adı koruması gevşetilmedi. Eski profil fingerprintleri aynı;44 ilgili profil testi,20 gerçek PS kaynak kapısı örneği,iki PS5 AST parse ve bağımsız kaynak incelemesi GO. Yeni test CI runner içindedir. Bu aşamada yeni profilin gerçek kurulumu, kararlılığı ve GUI kanıtı bekliyor; kaynak teslimi bu sonuçların yerine geçmez.
