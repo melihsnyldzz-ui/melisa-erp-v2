@@ -120,6 +120,7 @@ test('unified scheduled PowerShell Hub entry preserves the exact case-sensitive 
  const pairs=[...block[1].matchAll(pattern)].map(([,config,source])=>({config,source}));
  const expected=legacyProfiles.filter(([source,variant])=>source!==CRM06_STAFF_CRM_SOURCE&&(source!=='da82fc6644c1d9dba0c10eaa861773534d43c288'||variant==='parent-probe')).map(([source,variant])=>({config:crm06StaffSuccessorProfile(source,variant).nextPaths.settings,source}));
  expected.push({config:crm06StaffSuccessorProfile(unifiedSource).nextPaths.settings,source:unifiedSource});
+ expected.push({config:runtime+'\\settings-crm06-staff-439b63db8376-erp-candidate.json',source:unifiedSource});
  assert.deepEqual(pairs,expected);for(const pair of pairs)assert.equal(assertErpHubProfile(pair.config,pair.source),true);
  assert.equal(block[1].replace(pattern,'').replace(/default \{throw 'ERP_HUB_WAIT_CONFIG_SCOPE'\}/,'').trim(),'');
  const next=expected.at(-1);assert(!pairs.some(pair=>pair.config===next.config.toUpperCase()));assert(!pairs.some(pair=>pair.config===next.config+'-other'));
