@@ -1,3 +1,7 @@
+## B05/C02 — kayıt bağlantısı düzeltmesi — son toplu kabul BEKLİYOR
+
+16 Ekim 2026, [PR34](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/34), kaynak `0542d5228f23908e6de774676aadfb139b78abf7`. Mevcut ERP-UA11/32 kabul ID'leri korunur. Offline test geçersiz kayıt kimliğinin yeni boş fiş bağlantısına dönüşmediğini, geçerli kayıt ve gerçekten yeni/reset fiş davranışını doğrular. Kaynak gerçek TEST'e kurulmadı; GUI/cihaz denenmedi. Yerel sahip kurulumu tamamlayınca son toplu normal personel kabulünde mevcut alış fişini aç/yenile ve yeni fiş açma davranışını değerlendirin; bozuk kimlik senaryosu yalnız sentetik ortamda hazırlanır. Gerçek ticari fiş oluşturma/değiştirme gerekmez. Kişi/tarih/insan sonucu yok; teknik PASS insan kabulü değildir. Önceki kabuller ve sayaçlar değişmez.
+
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
 
 13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.
