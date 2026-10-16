@@ -14,7 +14,10 @@ export function printInvoiceReceipt(options) {
 }
 
 function csvEscape(value) {
-  const text = value === null || value === undefined ? '' : String(value);
+  let text = value === null || value === undefined ? '' : String(value);
+  // Quoting CSV cells does not prevent spreadsheet formula evaluation.
+  // Mark user text as literal while preserving numeric values such as -12.
+  if (typeof value === 'string' && (/^\s*[=+\-@]/u.test(text) || /^[\t\r\n]/u.test(text))) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
