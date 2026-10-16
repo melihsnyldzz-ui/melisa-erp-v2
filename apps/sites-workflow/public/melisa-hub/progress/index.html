@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light"><meta name="referrer" content="no-referrer">
+  <title>Proje İlerlemesi ve Ajan Performansı · Melisa Hub</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../hub.css"><link rel="stylesheet" href="./progress.css">
+  <script type="module" src="./progress.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">İçeriğe geç</a>
+  <header class="site-header"><div class="header-inner">
+    <a class="brand" href="#main"><span class="brand-mark" aria-hidden="true">M</span><span>MELISA <span class="brand-hub">HUB</span><small>Proje ilerlemesi ve ajan performansı</small></span></a>
+    <span class="badge badge-soft">Salt okunur görünüm</span>
+  </div><nav class="site-nav" aria-label="Panel bölümleri"><a href="#ilerleme">Proje ilerlemesi</a><a href="#performans">Ajan performansı</a><a href="#kanit">Kaynaklar ve tanımlar</a></nav></header>
+  <main id="main">
+    <section class="progress-hero"><div><p class="eyebrow">MELİSA ERP + CRM</p><h1>Ne tamamlandı,<br>ne bekliyor?</h1><p class="hero-description">İki projenin gerçek kapanışını ve kanıtlanabilen çalışma sürelerini tek yerden izleyin.</p></div><div class="snapshot-note"><span class="badge badge-neutral" id="snapshot-state">Görüntü yükleniyor</span><p id="snapshot-time">Kanıt zamanı kontrol ediliyor.</p><button type="button" class="button button-outline" id="refresh">Görüntüyü yeniden oku ↻</button></div></section>
+    <p class="notice" id="load-state" role="status">Kayıtlı kanıt görüntüsü okunuyor…</p>
+    <noscript><p class="notice notice-warning">Panel için JavaScript gerekli. Bu sayfa ticari sisteme bağlanmaz.</p></noscript>
+    <div id="panel-content" hidden>
+      <section class="section" id="ilerleme" aria-labelledby="progress-title">
+        <div class="section-heading"><div><p class="eyebrow">ÖZGÜN BİTİŞ PLANI</p><h2 id="progress-title">74 madde, tek kapsam</h2></div><span class="section-note">Kısmi işler tamamlanma oranına eklenmez.</span></div>
+        <div class="overall" id="overall"></div>
+        <div class="project-grid" id="projects"></div>
+        <div class="blockers"><h3>Sonraki kullanımı engelleyenler</h3><ul><li>Ortak servis gözetimi için desteklenen kurtarma yolu henüz kanıtlanmadı.</li><li>Normal ekran, fiziksel telefon / terminal ve gerçek personel kabulü bekliyor.</li></ul><p>Bu panel canlı servis sağlığını ölçmez. Kaynak teslimi, TEST kurulumu ve insan kabulü birbirinden ayrıdır.</p></div>
+      </section>
+      <section class="section" id="performans" aria-labelledby="performance-title">
+        <div class="section-heading"><div><p class="eyebrow">KANITLI ANA OTURUMLAR</p><h2 id="performance-title">Ajan performansı</h2></div><div class="periods" role="group" aria-label="Performans dönemi"><button type="button" data-period="1" aria-pressed="true">Bugün</button><button type="button" data-period="7" aria-pressed="false">7 gün</button><button type="button" data-period="30" aria-pressed="false">30 gün</button></div></div>
+        <p class="coverage" id="coverage"></p>
+        <div class="metrics" id="metrics"></div>
+        <div class="performance-grid"><article class="data-card"><h3>Saatlik gözlenen süre</h3><p class="small-copy">İstanbul saati · yalnız kanıt bulunan saatler. Paralel süreler aktif çalışma veya CPU süresi değildir.</p><div id="hourly"></div></article><article class="data-card"><h3>Henüz ölçülemeyenler</h3><dl id="unknown-metrics"></dl><p class="small-copy">Aktif / bekleme olayları ve eşleşen bildirim / devir zamanları yok. Kullanıcının arada beklediği süre bu alanlara yazılmaz.</p></article></div>
+        <details class="observations"><summary>Kanıtlı ana işleri tek tek gör</summary><div id="observations"></div></details>
+      </section>
+      <section class="section definitions" id="kanit" aria-labelledby="evidence-title"><p class="eyebrow">SAYILARIN ANLAMI</p><h2 id="evidence-title">Kaynaklar ve ölçüm sınırı</h2><div class="definition-grid"><article><h3>İlerleme</h3><p>Tam kapanış = tamamlanan madde / özgün toplam. ERP ve CRM’nin kendi bitiş planları esastır; teknik alt teslim yeni madde sayılmaz.</p><div id="plan-sources"></div></article><article><h3>Görev süresi</h3><p>Doğrulanmış ana oturum başlangıcı → tamamlanması arasındaki duvar saati. Yardımcı ve reviewer oturumları sayılmaz. Aynı gözlem iki kez sayılmaz; çelişen kayıt dışlanır.</p><p>Gün filtresi tamamlanma tarihine göre, Europe/Istanbul saat dilimindedir. Saniye hassasiyetindeki native ana oturum özetlerinden türetilmiştir; Git commit saatinden görev süresi çıkarılmaz.</p></article><article><h3>Bildirim ve devir</h3><p>Bildirim gecikmesi: ana işin bitişi → Dot’a doğrulanmış bildirim gelişi. Devir gecikmesi: doğrulanmış devir başlangıcı → ana iş başlangıcı / ACK. Eşleşen olay yoksa ölçülemez.</p><p>Bu görüntü seçilmiş ana oturumları kapsar; bütün gün / 7 gün / 30 gün performansı veya personel verimlilik puanı değildir.</p></article></div><p class="section-footnote">Yenile düğmesi yalnız bu yerel kanıt dosyasını yeniden okur. Otomatik GitHub sorgusu, ücretli servis, iş kaydı veya arka plan zamanlayıcısı yoktur. Kaynak hatası / eski veri güncel sonuç gibi gösterilmez.</p></section>
+    </div>
+  </main><footer class="panel-footer">Melisa Hub · Teknik kanıt, insan kabulü ve LIVE izni ayrı tutulur.</footer>
+</body></html>

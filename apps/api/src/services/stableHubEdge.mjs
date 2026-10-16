@@ -11,7 +11,7 @@ const inboundScope=/^\/api\/(?:work-(?:receiving|purchases|suppliers)(?:\/|$)|te
 const conversationScope=/^\/crm\/api\/live\/crm\/catalog(?:\/|$)/;
 const orderScope=/^\/crm\/api\/live\/crm\/erp(?:\/|$)/;
 const erpStatic=new Set(['/ornek-akis.html','/terminal.html','/kullanim-egitimi.html','/stage4-runtime.js']);
-const hubStatic=new Set(['/melisa-hub/','/melisa-hub/index.html','/melisa-hub/hub.css','/melisa-hub/hub.mjs','/melisa-hub/catalog.mjs','/melisa-hub/config.json','/melisa-hub/status.json']);
+const hubStatic=new Set(['/melisa-hub/','/melisa-hub/index.html','/melisa-hub/hub.css','/melisa-hub/hub.mjs','/melisa-hub/catalog.mjs','/melisa-hub/config.json','/melisa-hub/status.json','/melisa-hub/progress/','/melisa-hub/progress/index.html','/melisa-hub/progress/model.mjs','/melisa-hub/progress/progress.mjs','/melisa-hub/progress/progress.css','/melisa-hub/progress/evidence.json']);
 const asset=/^\/(?:assets|egitim-gorselleri)\/[A-Za-z0-9_.-]+\.(?:js|css|png|jpe?g|webp|svg|woff2)$/;
 const crmAsset=/^\/crm\/assets\/[A-Za-z0-9_.-]+\.(?:js|css|png|jpe?g|webp|svg|woff2)$/;
 const denied=()=>{throw Object.assign(Error('STABLE_EDGE_REQUEST_REJECTED'),{statusCode:403});};

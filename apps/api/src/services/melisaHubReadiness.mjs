@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export const HUB_CSP="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
-const staticFiles=new Set(['index.html','hub.css','hub.mjs','catalog.mjs']);
+const staticFiles=new Set(['index.html','hub.css','hub.mjs','catalog.mjs','progress/index.html','progress/model.mjs','progress/progress.mjs','progress/progress.css','progress/evidence.json']);
 const trainingNames=new Set(['01-receiving.png','02-sales.png','03-purchases.png','04-collection.png','05-payment.png','06-return.png','07-count.png','08-crm.png']);
 const forwarded=['forwarded','x-forwarded-for','x-forwarded-host','x-forwarded-proto','x-real-ip'];
 const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
@@ -88,9 +88,9 @@ export function createHubMiddleware({root,context,pin=null,fetchImpl=fetch,now=(
   if(req.originalUrl?.split('?')[0]==='/melisa-hub')return res.redirect(308,'/melisa-hub/');
   if(req.path==='/config.json')return res.json(hubPublicConfig(await status(),req.headers.host));
   if(req.path==='/status.json')return res.json(await status());
-  const name=req.path==='/'?'index.html':req.path.slice(1);
+  const name=req.path==='/'?'index.html':req.path==='/progress/'?'progress/index.html':req.path.slice(1);
   if(!staticFiles.has(name))return res.sendStatus(404);
   const target=path.join(hubRoot,name);
-  try{if(fs.lstatSync(hubRoot).isSymbolicLink()||fs.lstatSync(target).isSymbolicLink()||!fs.statSync(target).isFile())return res.sendStatus(404);res.type(path.extname(target));if(req.method==='HEAD')return res.end();return res.send(fs.readFileSync(target));}catch{return res.sendStatus(404);}
+  try{if(fs.lstatSync(hubRoot).isSymbolicLink()||name.startsWith('progress/')&&fs.lstatSync(path.join(hubRoot,'progress')).isSymbolicLink()||fs.lstatSync(target).isSymbolicLink()||!fs.statSync(target).isFile())return res.sendStatus(404);res.type(path.extname(target));if(req.method==='HEAD')return res.end();return res.send(fs.readFileSync(target));}catch{return res.sendStatus(404);}
  };
 }

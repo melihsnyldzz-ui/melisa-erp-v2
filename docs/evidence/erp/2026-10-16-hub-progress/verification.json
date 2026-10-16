@@ -1,0 +1,614 @@
+{
+  "schemaVersion": 1,
+  "scope": "read-only isolated Hub progress preview",
+  "baseCommit": "a26e06fe8a70003b613bdf9ca73d54bada5e29d0",
+  "sourceCi": {
+    "sourceCommit": "4aecffeb93fbd6f69eecf1505d56729537d9ce88",
+    "checkedAt": "2026-10-15T22:47:42.355Z",
+    "runs": [
+      {
+        "id": "38819159354",
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "4aecffeb93fbd6f69eecf1505d56729537d9ce88",
+        "jobs": [
+          {
+            "name": "windows-startup-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819159354/job/116711202356"
+          },
+          {
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819159354/job/116711202650"
+          },
+          {
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819159354/job/116711202696"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819159354"
+      },
+      {
+        "id": "38819153134",
+        "conclusion": "success",
+        "event": "push",
+        "headSha": "4aecffeb93fbd6f69eecf1505d56729537d9ce88",
+        "jobs": [
+          {
+            "name": "windows-startup-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819153134/job/116711182350"
+          },
+          {
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819153134/job/116711182605"
+          },
+          {
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819153134/job/116711182645"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38819153134"
+      }
+    ],
+    "newRoutingTestsObservedInHostedLog": 7,
+    "existingModelTestsObservedInHostedLog": 19,
+    "documentationHead": "SUBSEQUENT_SKIP_CI_SEPARATE"
+  },
+  "unitTests": {
+    "pass": 19,
+    "fail": 0,
+    "skip": 0,
+    "offlineGuard": true,
+    "reviewFailingBefore": {
+      "pass": 17,
+      "fail": 2
+    },
+    "finalLogSha256": "999d1ca422393cd8c7333d1a390546b53fb6215fa3b4baf20ef913ff730cee74"
+  },
+  "review": {
+    "openP1": 0,
+    "openP2": 0,
+    "mode": "read-only source review",
+    "fixedFindings": [
+      "bounded origin-form parser rejects malformed target with 400",
+      "same safe projected observation deduplicates across different keys"
+    ]
+  },
+  "browser": {
+    "checkedAt": "2026-10-15T22:29:17.279Z",
+    "uiChecks": [
+      {
+        "period": "Bugün",
+        "selected": "true",
+        "values": [
+          "4",
+          "11 dk 53 sn",
+          "Ölçülemiyor"
+        ]
+      },
+      {
+        "period": "7 gün",
+        "selected": "true",
+        "values": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ]
+      },
+      {
+        "period": "30 gün",
+        "selected": "true",
+        "values": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ]
+      },
+      {
+        "scenario": "empty",
+        "values": [
+          "Ölçülemiyor",
+          "Ölçülemiyor",
+          "Ölçülemiyor"
+        ],
+        "passed": true
+      },
+      {
+        "scenario": "source-auth-error",
+        "values": [
+          "Ölçülemiyor",
+          "Ölçülemiyor",
+          "Ölçülemiyor"
+        ],
+        "passed": true
+      },
+      {
+        "scenario": "invalid-source",
+        "panelHidden": true,
+        "passed": true
+      },
+      {
+        "scenario": "xss-title",
+        "literalText": true,
+        "injectedImageCount": 0,
+        "passed": true
+      },
+      {
+        "scenario": "desktop",
+        "height": 1000,
+        "metricValues": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ],
+        "overflow": false,
+        "width": 1440
+      },
+      {
+        "scenario": "mouse-filter",
+        "period": "7 gün",
+        "pressed": "true",
+        "passed": true
+      },
+      {
+        "scenario": "mobile",
+        "height": 844,
+        "overflow": false,
+        "sectionTop": 149.51390075683594,
+        "values": [
+          "6",
+          "10 dk 21 sn",
+          "Ölçülemiyor"
+        ],
+        "width": 390
+      },
+      {
+        "scenario": "console",
+        "errors": 0,
+        "warnings": 0,
+        "passed": true
+      }
+    ],
+    "physicalDeviceTested": false,
+    "humanAcceptance": false,
+    "screenshotPrivacyReview": "Only newly created panel; no secrets, contact, credentials, private operational identifiers or other tabs visible."
+  },
+  "localHttpSmoke": {
+    "checkedAt": "2026-10-15T22:24:54.770Z",
+    "target": "ISOLATED_LOCALHOST_PREVIEW",
+    "cases": [
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/evidence.json",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/model.mjs",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/hub.css",
+        "method": "GET",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "HEAD",
+        "status": 200,
+        "expected": 200,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "POST",
+        "status": 405,
+        "expected": 405,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/progress/",
+        "method": "GET",
+        "status": 421,
+        "expected": 421,
+        "securityHeaders": true
+      },
+      {
+        "path": "//[",
+        "method": "GET",
+        "status": 400,
+        "expected": 400,
+        "securityHeaders": true
+      },
+      {
+        "path": "//foreign.example/",
+        "method": "GET",
+        "status": 400,
+        "expected": 400,
+        "securityHeaders": true
+      },
+      {
+        "path": "/%2e%2e/private",
+        "method": "GET",
+        "status": 400,
+        "expected": 400,
+        "securityHeaders": true
+      },
+      {
+        "path": "/api/products",
+        "method": "GET",
+        "status": 404,
+        "expected": 404,
+        "securityHeaders": true
+      },
+      {
+        "path": "/melisa-hub/hub.mjs",
+        "method": "GET",
+        "status": 404,
+        "expected": 404,
+        "securityHeaders": true
+      },
+      {
+        "path": "/",
+        "method": "GET",
+        "status": 302,
+        "expected": 302,
+        "securityHeaders": true
+      }
+    ]
+  },
+  "screenshots": [
+    {
+      "file": "desktop-overview.jpg",
+      "sha256": "ae701cf30291aa1af2b2c1ad93b9551aa200924924695f54797eef6e816470b1",
+      "bytes": 90752
+    },
+    {
+      "file": "desktop-performance.jpg",
+      "sha256": "8b929816eb1a8546b39068df2f823523794546c9f8962aead8b2f82c9bcca8ee",
+      "bytes": 87638
+    },
+    {
+      "file": "mobile-performance.jpg",
+      "sha256": "5178480a644cb2cbd6260a358de8adbf2901f112ccfab5e00335760831001ef0",
+      "bytes": 54729
+    }
+  ],
+  "originalEvidenceRestoredSha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+  "sharedRuntimeReadOrWrite": false,
+  "commercialDataOrCredentialsRead": false,
+  "humanAcceptanceGranted": false,
+  "originalCounts": {
+    "ERP": {
+      "total": 49,
+      "complete": 9,
+      "partial": 39,
+      "open": 1
+    },
+    "CRM": {
+      "total": 25,
+      "complete": 12,
+      "partial": 13,
+      "open": 0
+    },
+    "total": 74
+  },
+  "build": {
+    "status": "PASS",
+    "method": "locked ignore-scripts dependencies; existing Vite build",
+    "newPublicAssetsVerified": [
+      {
+        "file": "index.html",
+        "sha256": "d182abca1e46135ce95917346790479a306bd1aa76b9a6c4c80f86a817288613",
+        "builtBytes": 5691
+      },
+      {
+        "file": "model.mjs",
+        "sha256": "ba66c28e7f774d2787746de4caa3f362a04d8bfd6f1aa4f009ed42f6dc16bc98",
+        "builtBytes": 6043
+      },
+      {
+        "file": "progress.mjs",
+        "sha256": "a87480f40a629b6032753e344f372eb25b950d3f7794bc85189a52efb252a705",
+        "builtBytes": 8267
+      },
+      {
+        "file": "progress.css",
+        "sha256": "71cd6331b6c0f6719222cec7201c4eb3c1f082b28ba65611d2a530c3d2af59f9",
+        "builtBytes": 6629
+      },
+      {
+        "file": "evidence.json",
+        "sha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+        "builtBytes": 3537
+      }
+    ],
+    "warnings": "Existing library directives/dynamic imports/chunk-size warnings; no new panel build error."
+  },
+  "sourceReadback": {
+    "sourceCommit": "4aecffeb93fbd6f69eecf1505d56729537d9ce88",
+    "checkedAt": "2026-10-15T22:44:57.919Z",
+    "assets": [
+      {
+        "file": "index.html",
+        "sha256": "d182abca1e46135ce95917346790479a306bd1aa76b9a6c4c80f86a817288613",
+        "bytes": 5691,
+        "sourceMatch": true,
+        "unchangedSinceOriginalUiProof": true
+      },
+      {
+        "file": "model.mjs",
+        "sha256": "ba66c28e7f774d2787746de4caa3f362a04d8bfd6f1aa4f009ed42f6dc16bc98",
+        "bytes": 6043,
+        "sourceMatch": true,
+        "unchangedSinceOriginalUiProof": true
+      },
+      {
+        "file": "progress.mjs",
+        "sha256": "a87480f40a629b6032753e344f372eb25b950d3f7794bc85189a52efb252a705",
+        "bytes": 8267,
+        "sourceMatch": true,
+        "unchangedSinceOriginalUiProof": true
+      },
+      {
+        "file": "progress.css",
+        "sha256": "71cd6331b6c0f6719222cec7201c4eb3c1f082b28ba65611d2a530c3d2af59f9",
+        "bytes": 6629,
+        "sourceMatch": true,
+        "unchangedSinceOriginalUiProof": true
+      },
+      {
+        "file": "evidence.json",
+        "sha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+        "bytes": 3537,
+        "sourceMatch": true,
+        "unchangedSinceOriginalUiProof": true
+      }
+    ],
+    "previewServerSourceUnchanged": true,
+    "screenshotsAndBrowserProofReused": true,
+    "sharedRoutingInstalled": false,
+    "sharedRuntimeReadOrWritten": false
+  },
+  "initialSourceCi": {
+    "sourceCommit": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+    "checkedAt": "2026-10-15T22:36:41.155Z",
+    "runs": [
+      {
+        "id": "38817934818",
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+        "jobs": [
+          {
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818/job/116707170381"
+          },
+          {
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818/job/116707170778"
+          },
+          {
+            "name": "windows-startup-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818/job/116707170891"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817934818"
+      },
+      {
+        "id": "38817903024",
+        "conclusion": "success",
+        "event": "push",
+        "headSha": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+        "jobs": [
+          {
+            "name": "quality-build-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024/job/116707069735"
+          },
+          {
+            "name": "windows-startup-test",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024/job/116707069920"
+          },
+          {
+            "name": "secret-scan",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024/job/116707070091"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38817903024"
+      }
+    ],
+    "newTargetedTestsObservedInHostedLog": 19,
+    "documentationHead": "SUBSEQUENT_SKIP_CI_SEPARATE"
+  },
+  "initialSourceReadback": {
+    "sourceCommit": "1f3b6ade4c74ee4cd9a4287a73275f46db3bb7a1",
+    "checkedAt": "2026-10-15T22:34:29.355Z",
+    "assets": [
+      {
+        "file": "index.html",
+        "sha256": "d182abca1e46135ce95917346790479a306bd1aa76b9a6c4c80f86a817288613",
+        "sourceMatch": true,
+        "servedBytes": 5691
+      },
+      {
+        "file": "model.mjs",
+        "sha256": "ba66c28e7f774d2787746de4caa3f362a04d8bfd6f1aa4f009ed42f6dc16bc98",
+        "sourceMatch": true,
+        "servedBytes": 6043
+      },
+      {
+        "file": "progress.mjs",
+        "sha256": "a87480f40a629b6032753e344f372eb25b950d3f7794bc85189a52efb252a705",
+        "sourceMatch": true,
+        "servedBytes": 8267
+      },
+      {
+        "file": "progress.css",
+        "sha256": "71cd6331b6c0f6719222cec7201c4eb3c1f082b28ba65611d2a530c3d2af59f9",
+        "sourceMatch": true,
+        "servedBytes": 6629
+      },
+      {
+        "file": "evidence.json",
+        "sha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+        "sourceMatch": true,
+        "servedBytes": 3537
+      }
+    ]
+  },
+  "routingCorrection": {
+    "finding": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/31#discussion_r4288969705",
+    "sourceCommit": "4aecffeb93fbd6f69eecf1505d56729537d9ce88",
+    "sourceOnly": true,
+    "productionScope": "five exact static assets and directory entry in two existing Hub layers; nested directory symlink refusal",
+    "failingBefore": {
+      "pass": 4,
+      "fail": 3
+    },
+    "finalRoutingTests": {
+      "pass": 7,
+      "fail": 0,
+      "skip": 0,
+      "offlineGuard": true
+    },
+    "directAffectedLegacyRegressions": {
+      "pass": 3,
+      "fail": 0,
+      "skip": 0
+    },
+    "review": {
+      "openP1": 0,
+      "openP2": 0,
+      "readOnlySourceReview": true
+    },
+    "guardsUnchanged": [
+      "origin",
+      "forwarding",
+      "tailnet identity",
+      "GET_HEAD",
+      "authorization",
+      "CSP",
+      "operational header scope",
+      "service probes"
+    ],
+    "evidenceHashes": [
+      {
+        "file": "routing-failing-before.txt",
+        "sha256": "784303af65ec167bf628a44fcf46c63eb1d134a48bc9ac2abe68d5ed83526f78"
+      },
+      {
+        "file": "routing-passing-after.txt",
+        "sha256": "c1d95ec5bd7a0a69f936ce514ff71eeffb8d9806450a2ffd4d0484a72a75dcb2"
+      },
+      {
+        "file": "routing-affected-regressions.txt",
+        "sha256": "50202030bf72f0f7e7c2bcf0be9c571446f47294801ceede50a764299ecbf8e4"
+      }
+    ],
+    "readback": {
+      "sourceCommit": "4aecffeb93fbd6f69eecf1505d56729537d9ce88",
+      "checkedAt": "2026-10-15T22:44:57.919Z",
+      "assets": [
+        {
+          "file": "index.html",
+          "sha256": "d182abca1e46135ce95917346790479a306bd1aa76b9a6c4c80f86a817288613",
+          "bytes": 5691,
+          "sourceMatch": true,
+          "unchangedSinceOriginalUiProof": true
+        },
+        {
+          "file": "model.mjs",
+          "sha256": "ba66c28e7f774d2787746de4caa3f362a04d8bfd6f1aa4f009ed42f6dc16bc98",
+          "bytes": 6043,
+          "sourceMatch": true,
+          "unchangedSinceOriginalUiProof": true
+        },
+        {
+          "file": "progress.mjs",
+          "sha256": "a87480f40a629b6032753e344f372eb25b950d3f7794bc85189a52efb252a705",
+          "bytes": 8267,
+          "sourceMatch": true,
+          "unchangedSinceOriginalUiProof": true
+        },
+        {
+          "file": "progress.css",
+          "sha256": "71cd6331b6c0f6719222cec7201c4eb3c1f082b28ba65611d2a530c3d2af59f9",
+          "bytes": 6629,
+          "sourceMatch": true,
+          "unchangedSinceOriginalUiProof": true
+        },
+        {
+          "file": "evidence.json",
+          "sha256": "d8af0ea968ba080e9a47aad08387d2102343fea3ac224eb3fd6e8e2ab75d981d",
+          "bytes": 3537,
+          "sourceMatch": true,
+          "unchangedSinceOriginalUiProof": true
+        }
+      ],
+      "previewServerSourceUnchanged": true,
+      "screenshotsAndBrowserProofReused": true,
+      "sharedRoutingInstalled": false,
+      "sharedRuntimeReadOrWritten": false
+    },
+    "screenshotsReused": [
+      {
+        "file": "desktop-overview.jpg",
+        "sha256": "ae701cf30291aa1af2b2c1ad93b9551aa200924924695f54797eef6e816470b1",
+        "bytes": 90752
+      },
+      {
+        "file": "desktop-performance.jpg",
+        "sha256": "8b929816eb1a8546b39068df2f823523794546c9f8962aead8b2f82c9bcca8ee",
+        "bytes": 87638
+      },
+      {
+        "file": "mobile-performance.jpg",
+        "sha256": "5178480a644cb2cbd6260a358de8adbf2901f112ccfab5e00335760831001ef0",
+        "bytes": 54729
+      }
+    ],
+    "browserProofReusedFrom": "2026-10-15T22:29:17.279Z",
+    "sharedRoutingInstalled": false,
+    "sharedRuntimeReadOrWritten": false
+  }
+}
