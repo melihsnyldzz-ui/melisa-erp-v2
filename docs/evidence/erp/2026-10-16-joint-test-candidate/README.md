@@ -53,3 +53,31 @@ Ham private ayarlar, ticari veri, giriş sırrı, fotoğraf ve günlükler GitHu
 Node24 uyumlu CRM e85 ile altı CORE gerçekten açıldı. Hub paket adındaki `-native-ready` soneki mevcut başlatıcı tarafından `HUB_PACKAGE_SCOPE_REJECTED` ile reddedildi; CORE denetimi 22:35:17Z tarihinde `TERMINAL_LOGON_HUB_TASK_NOT_READY` kaydetti. Bu deneme normal çalışan TEST değildir. Eski başarısızlık ve makbuzlar korunur.
 
 Yeni ayrı `erp-crm-node24-hub-ready` profili API/native için d9 paketini, yalnız Hub web için aynı f5 uygulama kaynağının orijinal0e119 paketini seçer. Orijinal web payload SQL native binding kullanmaz. Immutable paket/başlatıcılar değiştirilmedi, genel paket adı koruması gevşetilmedi. Eski profil fingerprintleri aynı;44 ilgili profil testi,20 gerçek PS kaynak kapısı örneği,iki PS5 AST parse ve bağımsız kaynak incelemesi GO. Yeni test CI runner içindedir. Bu aşamada yeni profilin gerçek kurulumu, kararlılığı ve GUI kanıtı bekliyor; kaynak teslimi bu sonuçların yerine geçmez.
+
+### 17 Ekim — Gerçek ortak TEST kurulumu ve kararlılık sonucu
+
+**Teknik kurulum tamamlandı; CRM06/insan kabulü tamamlanmadı.** Mevcut desteklenen iki görev yeni sonlu adaya **16 Ekim22:56:21.105Z /17 Ekim01:56:21TR** tarihinde bağlandı. Bu girişte stop çağrısı0; eski başlatıcının sınırlı Hub-hata döngüsü kendiliğinden sona erdikten sonra yeni tek başlangıç yapıldı. Uygulama kodu veya kabul edilmiş akışlar yeniden geliştirilmedi.
+
+- ERP uygulama kaynağı: `f5f672c439972b287f77ddd2c7750fa0c6369e87`; API/native manifest `d9e8488888aa89380a690fd6a6a491e7bec14be35c3104e8b742263577c26e97`, yalnız web manifest `0e119c7256f8e34290973cd0e4c627e992906eb2641cf06fd830f853525af653`.
+- CRM uygulama kaynağı: `439b63db8376a6b9d3ac8baa625ed98367022623`; gerçek Node24.19 paketi `e85ce261ece92201e24c86ea52e4df7e95b022b0ae6835e80c9b99e5abaec938`. Eski paketler değiştirilmedi.
+- Denetleyici kaynağı: [2bf0f7554c5b1984e2baf0e9afc121967d2485e8](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/2bf0f7554c5b1984e2baf0e9afc121967d2485e8), manifest `fac5850aba38c71e3be8d2228093a06ab1a88567272437d21cfd1a8a5e6a202c`; [PR CI38977022199](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38977022199) ve [push CI38977018199](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/38977018199) gerçek SUCCESS. Yeni kaynak için44 ilgili test/20PS kapı örneği ve bağımsız inceleme GO; değişmeyen eski uygulama CI'leri tekrar çalıştırılmadı.
+
+İlk bağımsız geri okuma **2026-10-16T22:59:33.397Z**, son geri okuma **2026-10-16T23:10:36.810Z**. Altı CORE+web için PID/doğum/argv/owner, tek supervisor, exact paket/config ve sunulan CRM index hash'i eşleşti. Native DB02 kimliği, read-only kullanıcı/sysadmin0/LIVE erişimi0/writefalse ve T1false doğrulandı. Hub ERP bariyerinden sonra attempt0 ile açıldı; elle ayrı web server başlatılmadı. **600419ms /21 ölçümde** servisler hazır, aynı supervisor; ilk/son tüm7 uygulama süreci aynı. Bu10dakika, gerçek Windows reboot/logon veya uzun süreli işletme kabulü değildir.
+
+Kapanış **2026-10-16T23:12:27.529Z**:100 önceki özel kayıt byte/hash ile aynı; SQL/TEST125 süreç kimliği ve iki görevin Trigger/Principal/Settings alanları aynı. Beş tamamlanmış owner kilidinin tamamı önce ayrı ham wx/fsync kopyalarına alındı, sonra yalnız bu5 kilit kapatıldı. Eski başarısızlıklar/journal/yedekler silinmedi; yeni DB/restore/migration/ticari kayıt/rol değişikliği yok.
+
+**Normal ekran:** CUA Chrome'da gerçek yeşil50ürün listesi, arama, ürün kartı, fotoğraf, barkod, stok ve satış fiyatı/döviz görüldü. Ticari işlem oluşturulmadı. Ekran JPEG'leri private kanıt alanında; ham ürün/fiyat/görseller GitHub'a konulmadı. **CRM normal GUI:** `ERR_BLOCKED_BY_CLIENT`. **HUB normal GUI:** `403 Forbidden`; public status API'sinde ERP/CRM/terminal reachable. Hiçbir giriş veya istek koruması değiştirilmedi; bu iki normal ekranın ve gerçek personelin kabulü açık. Normal ürün ekranı teknik kanıtı USER_ACCEPTANCE PASS veya bütün günlük iş akışının kabulü değildir.
+
+TEST adresleri: ERP `http://127.0.0.1:5234/ornek-akis.html#stock`; CRM `http://127.0.0.1:62700/`. LAN aynı portlarla192.168.1.46; sabit IP rezervasyonu veya fiziksel cihaz bu tur doğrulanmadı. Çalışan uygulama source, kontrol source ve bu sonuçları kaydeden sonraki belge commit'i ayrı tutulur. Son belge güncellemesinde değişmeyen kaynak CI'si yeniden koşturulmaz.
+
+Yerel private kanıt kökü: `C:/Sirket/ERP/reports/ERP-COMMON-TEST-20261016/hub-ready-install`.
+
+| Yerel kanıt | SHA256 |
+|---|---|
+| `installed-readback.json` | `0ee343b1ba9b840801e82405e8b16e33b612b899f3fdec6f4a8c0b4f075d81be` |
+| `stability.json` | `7240bcdb14ec0879290b7645c6d55b8043a408c9b7ff4d1ffde9306c9b71c915` |
+| `installed-readback-final.json` | `a4499de54219b3f42873191962491e382b0c752c6ef330476281cd46da87e4b0` |
+| `technical-completion.json` | `13609dd104585def2a2c5edde968a53fbd19a4f6b40d01ef5d0218f05812e232` |
+| `normal-screen-evidence.json` | `744228f45c5a55926db1cb26c9c1c1a1f8fc01d0862fb00f5cd458d4233d676c` |
+
+Özgün49ERP+25CRM kapsamı ve kabul sayaçları aynı. İnsan/telefon/Zebra/reboot, finans açılışı ve yayımlanmamış Cloud kaynaklarına ilişkin engeller bu teknik kurulumla kapanmadı. LIVE/Vega/gerçek T1/gerçek mesaj/ücretli API/main merge yok.
