@@ -1,3 +1,7 @@
+## C06/C07 — tam liste kaynak düzeltmesi — son toplu kabul BEKLİYOR
+
+16 Ekim 2026, [PR33](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/33), kaynak `046bb38f4a8dd77625ca2229f8db23714482c710`. ERP-UA09/12/13/32 mevcut kabul ID'leri korunur. Çevrimdışı test bilinmeyen toplamın boş/tam müşteri veya tedarikçi listesi/defteri sayılmadığını doğrular; kaynak gerçek TEST'e kurulmadı, GUI/cihaz denenmedi. Yetkili yerel sahip kurulumu tamamlayınca son toplu normal personel denemesinde müşteri/tedarikçi seçimi ve hareketleri yenileme/boş sonuç/hata görünümünü değerlendirin. Bozuk yanıt senaryosu yalnız sentetik ortamda hazırlanır; gerçek ticari kayıt değişikliği gerektirmez. Kişi/tarih/insan sonucu yok; teknik PASS insan kabulü değildir. Önceki kabuller ve sayaçlar değişmez.
+
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
 
 13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.
