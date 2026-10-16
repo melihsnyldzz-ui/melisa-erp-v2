@@ -34,6 +34,16 @@ Kontrollü kurulum ve bağımsız geri okuma henüz tamamlanmadı. Eski başarı
 
 ## Koruma ve sınırlar
 
+### 17 Ekim — Gerçek toolchain engeli ve aynı kaynaklı paket
+
+Native-ready aday **16 Ekim21:08:17Z**'de mevcut iki görevle başlatıldı. ERP native/API ve CRM native/catalog/orders olmak üzere beş CORE açıldı; CRM web **21:12:18Z**'de `PACKAGE_TOOLCHAIN_MISMATCH` ile çıktı, gözetim **21:12:22Z**'de quarantine durumuna geçti. İlk readback beklemesi doldu; otomatik ikinci başlangıç yapılmadı. CRM paketinin Node24.15 metadata'sı ile çalışan Node24.19 farklıydı. Bu kısmi çalışma tam kurulum veya normal ekran PASS'i değildir.
+
+CRM sahibi [cb7060a](https://github.com/melihsnyldzz-ui/melisa-crm/commit/cb7060a524a26d2c5bbd05b85aada896fef7d5fc) ile yalnız exact source/tree/iki lock/Node SHA/izole kökü kabul eden constructor ekledi;23 yeni ve17 doğrudan etkilenen test geçti. [PR CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/38970314160), [push CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/38970309602) ve [AI offline CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/38970314336) başarılı; ücretli AI çağrısı yok.
+
+ERP owner aynı `439b63db8376a6b9d3ac8baa625ed98367022623` kaynağını gerçek Node24.19 ile `C:/Sirket/CRM/releases/node-v24.19.0/crm-shared-test-439b63db8376a6b9d3ac8baa625ed98367022623` altında üretti. Manifest `e85ce261ece92201e24c86ea52e4df7e95b022b0ae6835e80c9b99e5abaec938`; index öncekiyle aynı. Paket içindeki özgün439b doğrulayıcısı ayrıca çalıştı. Karşılaştırmada186 Git kaynak blobu, iki lock ve2.292 payload manifest satırı birebir aynı; yalnız gerçek build toolchain sürümü24.15→24.19. Eski pakete veya manifestine yazılmadı.
+
+ERP Probe/verify artık CRM build Node/platform/arch tuple'ını SQL readiness ve ilk child öncesinde doğrular;6 yeni hedef test geçti. Yeni ayrı `erp-crm-node24-ready` profili yalnız bu paketi, önceki ERP native-ready paketini ve exact Node24'ü kabul eder;8 yeni hedef test, eski28 ilgili profil testi ve eski fingerprint koruması geçti. CI runner yeni testi içerir.93 eski dosya ve beş canlı CORE kimliği salt okunur kayıt altına alındı. **Son kontrollü kurulum, bağımsız readback, normal GUI ve kararlılık henüz tamamlanmadı.** Yeni başarılı sonuç ayrı tarih/sürümle eklenecek.
+
 DB02/copy `e16b70f0-4057-428b-9abc-6bbcaf35fe82`, `actualT1=false`; TEST125, mevcut ticari veriler, roller, karantina, LL dışlamaları, eski journal ve yedekler korunur. Bu teslimde yeni finans/stok/cari işlemi, migration, veri silme veya restore yapılmadı. Görevlerin Trigger/Principal/Settings alanları değiştirilmiyor; yalnız iki mevcut action mühürlü adaya bağlanıyor. Yeni runtime başladıktan sonra otomatik toplu geri alma veya tekrar başlatma yok.
 
 Ham private ayarlar, ticari veri, giriş sırrı, fotoğraf ve günlükler GitHub'a konulmadı. Ayrıntılı yerel kanıtlar `C:/Sirket/ERP/reports/ERP-COMMON-TEST-20261016` altında. Normal GUI, fiziksel Zebra/telefon, gerçek Windows reboot/logon ve özgün insan kabulü ayrı; USER_ACCEPTANCE PASS ve bitiş sayaçları artırılmadı. LIVE/Vega/gerçek T1/mesaj/ücretli API/main merge yok.

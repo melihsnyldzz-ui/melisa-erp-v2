@@ -41,6 +41,7 @@ if (mode === 'quality') {
   run(['--test', path.join(root, 'scripts/canonical/crm06-combined-candidate.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/native-sql-package.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/crm06-native-ready-candidate.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/crm06-node24-ready-candidate.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/web-build-baseline.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/crm06-stop-child-diagnostic.test.mjs')]);
   run(['--test', ...['shared-business-product-price-revision-sql','shared-business-product-price-bootstrap','shared-business-product-price-sale-sql','shared-business-product-price-sale-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
