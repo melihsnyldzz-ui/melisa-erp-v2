@@ -14,6 +14,7 @@ $expectedCrmSource=switch -CaseSensitive ($StartupConfigPath){
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-a7243dedf9ca.json'{'a7243dedf9ca5d1ca1d5aa1cb3dffaee7c18a7e9';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-candidate.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
+ 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-candidate-native-ready.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
  default {throw 'ERP_HUB_WAIT_CONFIG_SCOPE'}
 }
 function Read-PinnedJson([string]$p,[string]$hash){
@@ -24,7 +25,9 @@ function Read-PinnedJson([string]$p,[string]$hash){
 $c=Read-PinnedJson $StartupConfigPath $StartupConfigSha256
 $owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $literalCandidateNode=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-candidate.json'-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
-if($c.components.crm.sourceCommit-cne$expectedCrmSource-or$c.ownerSid-cne$owner-or($c.node.path-cne'C:\Program Files\nodejs\node.exe'-and!$literalCandidateNode)-or$c.actualT1-ne$false-or$c.database-cne'MELISA_ERP_CRM_SHARED_TEST_20261009_02'-or$c.copyId-cne'e16b70f0-4057-428b-9abc-6bbcaf35fe82'){throw 'ERP_HUB_WAIT_TARGET'}
+$nativeReadyNodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-candidate-native-ready.json'
+$literalNativeReadyNode=$nativeReadyNodeRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
+if($c.components.crm.sourceCommit-cne$expectedCrmSource-or$c.ownerSid-cne$owner-or($c.node.path-cne'C:\Program Files\nodejs\node.exe'-and!$literalCandidateNode-and!$literalNativeReadyNode)-or($nativeReadyNodeRequired-and!$literalNativeReadyNode)-or$c.actualT1-ne$false-or$c.database-cne'MELISA_ERP_CRM_SHARED_TEST_20261009_02'-or$c.copyId-cne'e16b70f0-4057-428b-9abc-6bbcaf35fe82'){throw 'ERP_HUB_WAIT_TARGET'}
 $manifest=Read-PinnedJson (Join-Path $c.supervisor.packageRoot 'release-manifest.json') $c.supervisor.manifestSha256
 if($manifest.sourceCommit-cne$c.supervisor.sourceCommit-or$manifest.packageRole-cne'SUPERVISOR_ONLY'-or$manifest.applicationDeployment-ne$false-or[IO.Path]::GetFullPath($PSCommandPath)-ine(Join-Path $c.supervisor.packageRoot 'scripts\canonical\watch-hub-after-erp.ps1')){throw 'ERP_HUB_WAIT_PACKAGE'}
 foreach($name in @('watch-hub-after-erp.ps1','wait-erp-for-hub.mjs')){$pins=@($manifest.files|Where-Object{$_.path-ceq('scripts/canonical/'+$name)});if($pins.Count-ne1-or(Get-FileHash -LiteralPath(Join-Path $c.supervisor.packageRoot ('scripts\canonical\'+$name)) -Algorithm SHA256).Hash.ToLowerInvariant()-cne$pins[0].sha256){throw 'ERP_HUB_WAIT_ENTRY_PIN'}}

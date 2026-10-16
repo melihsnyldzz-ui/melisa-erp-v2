@@ -22,6 +22,9 @@ cp.execFileSync('git',['archive','--format=tar','--output='+archive,sourceCommit
 cp.execFileSync('tar',['-xf',archive,'-C',destination]);fs.unlinkSync(archive);
 function npm(args,cwd,env=process.env){cp.execFileSync(process.env.ComSpec||'cmd.exe',['/d','/c','npm.cmd',...args],{cwd,env,stdio:'inherit'});}
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/api');
+// A locked npm tree can still omit the native install script. Verify the
+// actual SQL binding before publishing any package; importing opens no DB.
+try{cp.execFileSync(process.execPath,['--no-maglev','-e',"const native=require('msnodesqlv8'),sql=require('mssql/msnodesqlv8');if(typeof native.open!=='function'||typeof sql.ConnectionPool!=='function')process.exit(1)"],{cwd:destination+'/apps/api',windowsHide:true,stdio:'pipe'});}catch{throw Error('PACKAGE_NATIVE_SQL_BINDING_NOT_LOADABLE');}
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/web-admin');
 const env={...process.env,VITE_API_BASE_URL:'http://192.168.1.46:4114',VITE_MELISA_PILOT:'true',VITE_DEMO_MODE:'false',VITE_LOCAL_PASSWORDLESS_LOGIN:'false'};
 const expected=JSON.parse(fs.readFileSync(repo+'/docs/erp-v2/canonical-20261003/web-rebuild-proof.json')).files;

@@ -23,6 +23,7 @@ export const CRM06_STAFF_UNIFIED_CRM_SOURCE='439b63db8376a6b9d3ac8baa625ed983670
 export const CRM06_STAFF_UNIFIED_CRM_MANIFEST='342eb291f570dd4294d50206327d67d895bf2e90944026b56392e498a38aebba';
 export const CRM06_STAFF_UNIFIED_CRM_INDEX='0fcb6b27d9cac1aefa186a41b60962cf18be06154b27b171bb65df99a4dfc5af';
 export const CRM06_STAFF_ERP_CANDIDATE_PACKAGE=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-COMPLETE-TEST-20261011-f5f672c',sourceCommit:'f5f672c439972b287f77ddd2c7750fa0c6369e87',manifestSha256:'0e119c7256f8e34290973cd0e4c627e992906eb2641cf06fd830f853525af653'});
+export const CRM06_STAFF_ERP_NATIVE_READY_PACKAGE=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-COMPLETE-TEST-20261011-f5f672c-native-ready',sourceCommit:'f5f672c439972b287f77ddd2c7750fa0c6369e87',manifestSha256:'d9e8488888aa89380a690fd6a6a491e7bec14be35c3104e8b742263577c26e97'});
 export const CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME=Object.freeze({path:'C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe',sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'});
 export const CRM06_STAFF_ERP_FEATURE_BASE='140fac3aa2a9293b63fdf7a6998acf4aaa814d77';
 const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon',actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014';
@@ -32,7 +33,7 @@ export const CRM06_STAFF_PARENT_SETTINGS_PATH=root+'\\settings-crm06-7a081ab2b01
 export const CRM06_STAFF_PARENT_ACTIVATION_PATH=root+'\\crm-activation-crm06-7a081ab2b017.json';
 export const CRM06_STAFF_JOURNAL_EVIDENCE_PATH=actorRoot+'\\journal-physical-preflight-b2985d2295c0.json';
 const nextPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-b2985d2295c0.json',settings:root+'\\settings-crm06-staff-b2985d2295c0.json',hubPin:root+'\\hub-pin-crm06-staff-b2985d2295c0.json',hubStartup:root+'\\hub-startup-crm06-staff-b2985d2295c0.json'});
-// Ten reviewed CRM sources and thirteen literal supervisor generations only.
+// Ten reviewed CRM sources and fourteen literal supervisor generations only.
 // Every generation retains the original actor setup as its immutable parent.
 const frontendPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-da82fc6644c1.json',settings:root+'\\settings-crm06-staff-da82fc6644c1.json',hubPin:root+'\\hub-pin-crm06-staff-da82fc6644c1.json',hubStartup:root+'\\hub-startup-crm06-staff-da82fc6644c1.json'});
 const parentProbePaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-da82fc6644c1-parent-probe.json',settings:root+'\\settings-crm06-staff-da82fc6644c1-parent-probe.json',hubPin:root+'\\hub-pin-crm06-staff-da82fc6644c1-parent-probe.json',hubStartup:root+'\\hub-startup-crm06-staff-da82fc6644c1-parent-probe.json'});
@@ -46,11 +47,13 @@ const searchPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-9
 const copyFeedbackPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-a7243dedf9ca.json',settings:root+'\\settings-crm06-staff-a7243dedf9ca.json',hubPin:root+'\\hub-pin-crm06-staff-a7243dedf9ca.json',hubStartup:root+'\\hub-startup-crm06-staff-a7243dedf9ca.json'});
 const unifiedPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-439b63db8376.json',settings:root+'\\settings-crm06-staff-439b63db8376.json',hubPin:root+'\\hub-pin-crm06-staff-439b63db8376.json',hubStartup:root+'\\hub-startup-crm06-staff-439b63db8376.json'});
 const erpCandidatePaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-439b63db8376-erp-candidate.json',settings:root+'\\settings-crm06-staff-439b63db8376-erp-candidate.json',hubPin:root+'\\hub-pin-crm06-staff-439b63db8376-erp-candidate.json',hubStartup:root+'\\hub-startup-crm06-staff-439b63db8376-erp-candidate.json'});
+const erpNativeReadyPaths=Object.freeze({activation:root+'\\crm-activation-crm06-staff-439b63db8376-erp-candidate-native-ready.json',settings:root+'\\settings-crm06-staff-439b63db8376-erp-candidate-native-ready.json',hubPin:root+'\\hub-pin-crm06-staff-439b63db8376-erp-candidate-native-ready.json',hubStartup:root+'\\hub-startup-crm06-staff-439b63db8376-erp-candidate-native-ready.json'});
 const reject=()=>{throw Object.assign(Error('CRM06_STAFF_SUCCESSOR_REJECTED'),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});};
 const check=value=>{if(!value)reject();};
 export function crm06StaffSuccessorProfile(source=CRM06_STAFF_CRM_SOURCE,profileVariant){
  check(source===CRM06_STAFF_CRM_SOURCE||source===CRM06_STAFF_FRONTEND_CRM_SOURCE||source===CRM06_STAFF_CANDIDATE_CRM_SOURCE||source===CRM06_STAFF_FINAL_BATCH_CRM_SOURCE||source===CRM06_STAFF_READY_CRM_SOURCE||source===CRM06_STAFF_SEPARATE_BATCH_CRM_SOURCE||source===CRM06_STAFF_QUANTITY_CRM_SOURCE||source===CRM06_STAFF_SEARCH_CRM_SOURCE||source===CRM06_STAFF_COPY_FEEDBACK_CRM_SOURCE||source===CRM06_STAFF_UNIFIED_CRM_SOURCE);
- check(profileVariant===undefined||source===CRM06_STAFF_FRONTEND_CRM_SOURCE&&profileVariant==='parent-probe'||source===CRM06_STAFF_FINAL_BATCH_CRM_SOURCE&&profileVariant==='receipt-wait'||source===CRM06_STAFF_UNIFIED_CRM_SOURCE&&profileVariant==='erp-candidate');
+ check(profileVariant===undefined||source===CRM06_STAFF_FRONTEND_CRM_SOURCE&&profileVariant==='parent-probe'||source===CRM06_STAFF_FINAL_BATCH_CRM_SOURCE&&profileVariant==='receipt-wait'||source===CRM06_STAFF_UNIFIED_CRM_SOURCE&&(profileVariant==='erp-candidate'||profileVariant==='erp-candidate-native-ready'));
+ if(profileVariant==='erp-candidate-native-ready')return Object.freeze({source,profileVariant,successorPath:actorRoot+'\\staff-refresh-successor-439b63db8376-erp-candidate-native-ready.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-439b63db8376-erp-candidate-native-ready.json',nextPaths:erpNativeReadyPaths,dependencyLockPath:root+'\\crm-439b63db8376-dependency-lock.json',erpDependencyLockPath:root+'\\erpApiNative-f5f672c43997-native-ready-dependency-lock.json'});
  if(profileVariant==='receipt-wait')return Object.freeze({source,profileVariant,successorPath:actorRoot+'\\staff-refresh-successor-5bcd5ad136ff-receipt-wait.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-5bcd5ad136ff-receipt-wait.json',nextPaths:receiptWaitPaths,dependencyLockPath:root+'\\crm-5bcd5ad136ff-receipt-wait-dependency-lock.json'});
  if(profileVariant==='parent-probe')return Object.freeze({source,profileVariant,successorPath:actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-da82fc6644c1-parent-probe.json',nextPaths:parentProbePaths,dependencyLockPath:root+'\\crm-da82fc6644c1-parent-probe-dependency-lock.json'});
  if(profileVariant==='erp-candidate')return Object.freeze({source,profileVariant,successorPath:actorRoot+'\\staff-refresh-successor-439b63db8376-erp-candidate.json',journalEvidencePath:actorRoot+'\\journal-physical-preflight-439b63db8376-erp-candidate.json',nextPaths:erpCandidatePaths,dependencyLockPath:root+'\\crm-439b63db8376-dependency-lock.json',erpDependencyLockPath:root+'\\erpApiNative-f5f672c43997-dependency-lock.json'});
@@ -68,6 +71,7 @@ export function crm06StaffSuccessorProfile(source=CRM06_STAFF_CRM_SOURCE,profile
 export function crm06StaffSuccessorProfileForPath(source,receiptPath){
  const profile=crm06StaffSuccessorProfile(source);
  if(receiptPath===profile.successorPath)return profile;
+ if(source===CRM06_STAFF_UNIFIED_CRM_SOURCE){const nativeReady=crm06StaffSuccessorProfile(source,'erp-candidate-native-ready');if(receiptPath===nativeReady.successorPath)return nativeReady;}
  const parentProbe=source===CRM06_STAFF_FRONTEND_CRM_SOURCE?crm06StaffSuccessorProfile(source,'parent-probe'):source===CRM06_STAFF_FINAL_BATCH_CRM_SOURCE?crm06StaffSuccessorProfile(source,'receipt-wait'):source===CRM06_STAFF_UNIFIED_CRM_SOURCE?crm06StaffSuccessorProfile(source,'erp-candidate'):null;
  check(parentProbe&&receiptPath===parentProbe.successorPath);return parentProbe;
 }
@@ -98,9 +102,10 @@ export function buildCrm06StaffRefreshSuccessor(input){
   exact(input,['baseline','parentActivation','parentAudit','parentSettings','parentSettingsRef','parentHubPin','parentHubStartup','crmPackagePin','crmIndexSha256','crmDependencyLockRef','supervisorPin','journalEvidenceSha256','ownerSid',...(Object.hasOwn(input,'profileVariant')?['profileVariant']:[]),...(Object.hasOwn(input,'erpCandidate')?['erpCandidate']:[])]);
   digest(input);const {baseline,parentActivation,parentAudit,parentSettings,parentSettingsRef,parentHubPin,parentHubStartup,crmPackagePin,crmIndexSha256,crmDependencyLockRef,supervisorPin,journalEvidenceSha256,ownerSid}=input;
   const profile=crm06StaffSuccessorProfile(crmPackagePin.sourceCommit,input.profileVariant),paths=profile.nextPaths;
-  check(Object.hasOwn(input,'erpCandidate')===(profile.profileVariant==='erp-candidate'));
-  const erpCandidate=profile.profileVariant==='erp-candidate'?input.erpCandidate:null;
-  if(erpCandidate){exact(erpCandidate,['packagePin','dependencyLockRef',...(Object.hasOwn(erpCandidate,'nodeRuntimePin')?['nodeRuntimePin']:[])]);pin(erpCandidate.packagePin,()=>CRM06_STAFF_ERP_CANDIDATE_PACKAGE.packageRoot,CRM06_STAFF_ERP_CANDIDATE_PACKAGE.sourceCommit);check(erpCandidate.packagePin.manifestSha256===CRM06_STAFF_ERP_CANDIDATE_PACKAGE.manifestSha256);ref(erpCandidate.dependencyLockRef,profile.erpDependencyLockPath);}else check(profile.profileVariant!=='erp-candidate');
+  const nativeReady=profile.profileVariant==='erp-candidate-native-ready',erpProfile=profile.profileVariant==='erp-candidate'||nativeReady;
+  check(Object.hasOwn(input,'erpCandidate')===erpProfile);
+  const erpCandidate=erpProfile?input.erpCandidate:null,erpPackage=nativeReady?CRM06_STAFF_ERP_NATIVE_READY_PACKAGE:CRM06_STAFF_ERP_CANDIDATE_PACKAGE;
+  if(erpCandidate){exact(erpCandidate,['packagePin','dependencyLockRef',...(nativeReady||Object.hasOwn(erpCandidate,'nodeRuntimePin')?['nodeRuntimePin']:[])]);pin(erpCandidate.packagePin,()=>erpPackage.packageRoot,erpPackage.sourceCommit);check(erpCandidate.packagePin.manifestSha256===erpPackage.manifestSha256);ref(erpCandidate.dependencyLockRef,profile.erpDependencyLockPath);}else check(!erpProfile);
   if(erpCandidate&&Object.hasOwn(erpCandidate,'nodeRuntimePin')){exact(erpCandidate.nodeRuntimePin,['path','sha256']);check(same(erpCandidate.nodeRuntimePin,CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME));}
   validateCompletionSettings(parentSettings,ownerSid);
   check(Object.hasOwn(parentSettings.crmPrivateFiles,'crm06Actors')&&!Object.hasOwn(parentSettings.crmPrivateFiles,'crm06StaffSuccessor'));
