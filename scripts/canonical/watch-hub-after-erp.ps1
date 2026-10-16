@@ -12,6 +12,7 @@ $expectedCrmSource=switch -CaseSensitive ($StartupConfigPath){
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-89427492f27c.json'{'89427492f27caf72c511a27262b55e73d782c407';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-94f2a75322a3.json'{'94f2a75322a3daa695d38010a6f2c8ef23f6c17b';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-a7243dedf9ca.json'{'a7243dedf9ca5d1ca1d5aa1cb3dffaee7c18a7e9';break}
+ 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
  default {throw 'ERP_HUB_WAIT_CONFIG_SCOPE'}
 }
 function Read-PinnedJson([string]$p,[string]$hash){
