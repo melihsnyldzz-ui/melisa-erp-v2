@@ -54,6 +54,11 @@ function summarizePeriod(rows, days = null) {
   const summary = rows.reduce((summary, row) => {
     if (days != null && !isWithinDays(row, days)) return summary;
 
+    // A known movement still counts when its monetary settlement is unknown.
+    if (row.movementType === 'payment') summary.paymentCount += 1;
+    else if (row.movementType === 'purchase_return') summary.returnCount += 1;
+    else if (row.movementType === 'purchase_invoice') summary.goodsCount += 1;
+
     const effect = ledgerEffect(row);
     const amount = Math.abs(effect);
     const currency = ledgerAccountCurrency(row);
@@ -65,15 +70,12 @@ function summarizePeriod(rows, days = null) {
     }
 
     if (row.movementType === 'payment') {
-      summary.paymentCount += 1;
       summary.paymentTotal += amount;
       summary.byCurrency[currency].paymentTotal += amount;
     } else if (row.movementType === 'purchase_return') {
-      summary.returnCount += 1;
       summary.returnTotal += amount;
       summary.byCurrency[currency].returnTotal += amount;
     } else if (row.movementType === 'purchase_invoice') {
-      summary.goodsCount += 1;
       summary.goodsTotal += amount;
       summary.byCurrency[currency].goodsTotal += amount;
     }
