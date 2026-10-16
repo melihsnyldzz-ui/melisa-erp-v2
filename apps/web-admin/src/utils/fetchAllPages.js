@@ -8,7 +8,12 @@ export async function fetchAllPages(fetchPage, { limit = 200, ...filters } = {})
   for (let page = 1; ; page += 1) {
     const response = await fetchPage({ ...filters, page, limit });
     const data = response?.data;
-    const total = Number(response?.meta?.total);
+    const rawTotal = response?.meta?.total;
+    // Missing totals are unknown, not an explicit empty list. Validate the
+    // primitive before Number() can turn null, blanks or booleans into counts.
+    const hasTotal = typeof rawTotal === 'number'
+      || (typeof rawTotal === 'string' && rawTotal.trim() !== '');
+    const total = hasTotal ? Number(rawTotal) : NaN;
     if (!Array.isArray(data) || !Number.isSafeInteger(total) || total < 0) {
       throw new Error('Cari listesinin toplam kayıt bilgisi okunamadı. Yenileyin.');
     }
