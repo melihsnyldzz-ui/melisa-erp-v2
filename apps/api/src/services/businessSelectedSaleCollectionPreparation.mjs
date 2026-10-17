@@ -1,7 +1,7 @@
 import {assertIsolatedCopyContext,bindIsolatedCopyOperationDTO,BUSINESS_COPY_DATABASE,isolatedCopyOperationDTOContext} from './isolatedOperationCopyContext.mjs';
 import {loadBusinessSelectedSaleJournal} from './workTradeStore.mjs';
 import {createWorkCollectionService} from './workCollectionService.mjs';
-import {workId,workScaled} from './workSalesModel.mjs';
+import {workId,workScaled,workFail} from './workSalesModel.mjs';
 import {withSelectedSaleCollectionReadBridge,withSelectedCollectionNativeBridge,isIsolatedSelectedCollectionNativeStore} from './isolatedOperationCopyStoreFactory.mjs';
 
 import {getBusinessSelectedCollectionWriteScope} from './businessSelectedCollectionWriteScope.mjs';
@@ -67,9 +67,13 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
  // No new finance or idempotence algorithm: the existing service validates
  // money, dates, revisions, preview hashes and invokes the supplied existing
  // collection methods. The isolated transaction's journal owns UUID replay.
- const getStore=async()=>({
+ const checkAmount=amountExact4=>{
+  if(workScaled(amountExact4,4)>5000000n)workFail('WORK_OPERATION_LIMIT','Kaynak satış tahsilatı işlem başına 500 TRY sınırını aşamaz.',409);
+ };
+ const getStore=async previewAmount=>({
   read:(actor,fn)=>withContext(actor,async c=>{
    const a=await authority(c,actor,false);
+   if(previewAmount!==undefined)checkAmount(previewAmount);
    const context=bindIsolatedCopyOperationDTO(a.copy,{...c.context,capabilities:{...c.context.capabilities,canCollect:true,canCancelCollection:a.canCancel}});
    return fn({...c,context,invoice:async id=>(await prepareBusinessSelectedSaleCollection(c,actor,id)).invoice(id)});
   },{write:false}),
@@ -78,6 +82,7 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
    const cancelling=operation==='collection_cancel';
    // Authorize BEFORE reading an original movement or replay journal.
    await authority(c,actor,cancelling);
+   if(!cancelling)checkAmount(payload.amountExact4);
    const prior=cancelling?await c.collection(payload.id):null;
    const id=cancelling?prior.invoiceId:payload.invoiceId;
    const prepared=await prepareBusinessSelectedSaleCollection(c,actor,id,{cancelling});
@@ -87,7 +92,10 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
    return typeof c.selectedCollectionJournal==='function'?c.selectedCollectionJournal(operation,payload,prepared.proof,execute):c.journal(operation,payload,execute);
   },{write:true,operation,payload}),
  });
- const service=Object.freeze(createWorkCollectionService({getStore}));
+ const base=createWorkCollectionService({getStore});
+ // A per-call store closure binds only this preview amount; concurrent requests
+ // cannot exchange policy inputs. Mutation checks its validated payload below.
+ const service=Object.freeze({...base,preview:(input,actor)=>createWorkCollectionService({getStore:()=>getStore(input.amountExact4)}).preview(input,actor)});
  preparedServices.add(service);
  return service;
 }
@@ -150,3 +158,4 @@ export function createBusinessSelectedSaleCollectionNativePreparation({getStore}
   }));
  }});
 }
+

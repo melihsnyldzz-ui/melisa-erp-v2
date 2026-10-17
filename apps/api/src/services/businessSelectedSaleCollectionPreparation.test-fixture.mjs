@@ -47,8 +47,8 @@ export function selectedSaleFixture(mutateRaw=()=>{}){
 const rights=['finance.view','customer.view','finance.collection','finance.collection.cancel'];
 const collector=()=>({id:'16',role:{code:'isolated_test_ilker'},permissions:[...rights]});
 const uuid=n=>'10000000-0000-4000-8000-'+String(n).padStart(12,'0');
-function fixture(){
- const copy=selectedSaleFixture().c,customer=copy.customers.find(p=>p.currency==='TRY'),product=copy.products[0],account=copy.financeAccounts.find(p=>p.currency==='TRY');
+function fixture({unitPriceExact8='3.00000000'}={}){
+ const copy=selectedSaleFixture(raw=>{raw.products[0].quotes.find(q=>q.currency==='TRY').priceExact8=unitPriceExact8;}).c,customer=copy.customers.find(p=>p.currency==='TRY'),product=copy.products[0],account=copy.financeAccounts.find(p=>p.currency==='TRY');
  const origin={synthetic:false,operationOrigin:copy.operationOrigin};
  const context=bindIsolatedCopyOperationDTO(copy,{meta:{date:copy.date,copyId:copy.copyId,sealHash:copy.sealHash,operationOrigin:copy.operationOrigin},revision:'a'.repeat(64),capabilities:{canCreate:true,canCollect:false,canCancelCollection:false},limits:{maxItems:200,maxInvoiceAmountExact4:copy.businessInvoiceMaxExact4},scope:{...origin,customer:{...customer,...origin,writeEligible:true},accounts:[{...account,...origin,name:'Offline cash'}],products:[{...origin,id:product.id,stockCode:product.stockCode,name:'Offline SOURCE item',barcode:product.barcodes[0],costExact4:product.costExact4,writeEligible:true,unit:{label:product.unit,factorExact8:product.unitFactorExact8},stockQuantityExact3:'10.000',prices:product.quotes.filter(p=>p.currency==='TRY').map(p=>({quoteId:p.quoteId,currency:p.currency,unitPriceExact8:p.priceExact8,source:{kind:'isolated-test-copy',copyId:copy.copyId,sealHash:copy.sealHash}}))}]}});
  const input={customerId:customer.id,documentDate:copy.date,currency:'TRY',items:[{productId:product.id,quoteId:product.quotes.find(p=>p.currency==='TRY').quoteId,quantityExact3:'8.000'}]},p=buildBusinessSelectedSalePreview(copy,input,context),requestId=uuid(1);
@@ -69,3 +69,4 @@ function fixture(){
  return {copy,context,c,row,items,actual,events,service,state:()=>state,invoice,selection:amountExact4=>({invoiceId:'1000',accountId:account.id,amountExact4,documentDate:copy.date})};
 }
 export {fixture as selectedSourceCollectionFixture,collector as selectedSourceCollector,uuid as selectedSourceRequestId};
+
