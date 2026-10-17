@@ -29,7 +29,7 @@ function validUser(user){
  return user;
 }
 export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
-export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,protectedDevice=createProtectedDeviceSession()}={}){
+export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,selectedSourceCollections=false,protectedDevice=createProtectedDeviceSession()}={}){
  const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
  const cartonReadTarget=cartonReadOrigin(location,copyProfile);
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
@@ -135,6 +135,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return (await request('/api/customers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
   },
   async work(path,{method='GET',body,...extra}={}){
+   if(typeof path==='string'&&path.startsWith('/api/work-collections/selected-source')){
+    const read=/^\/api\/work-collections\/selected-source\/context\?invoiceId=[1-9]\d*$/;
+    const write=/^\/api\/work-collections\/selected-source(?:\/preview|\/[1-9]\d*\/cancel)?$/;
+    const cancel=/^\/api\/work-collections\/selected-source\/[1-9]\d*\/cancel$/;
+    const allowed=selectedSourceCollections===true&&!!token&&!!user&&!!cartonReadTarget&&resolvedApiBase===`http://${location.hostname}:4184`&&user.id===16&&user.role?.code==='isolated_test_ilker'&&['finance.view','customer.view','finance.collection'].every(p=>user.permissions.includes(p))&&(!cancel.test(path)||user.permissions.includes('finance.collection.cancel'));
+    if(Object.keys(extra).length||!allowed||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Tahsilat bağlantısı kullanılamıyor.',403);
+    return (await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+   }
    const read=/^\/api\/(?:work-sales\/(?:context|selection-options|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
    const write=/^\/api\/(?:work-sales\/(?:selected-context|preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&(read.test(path)||invoiceListReadPath(path))&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');

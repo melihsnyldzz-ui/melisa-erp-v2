@@ -287,6 +287,28 @@ const homeBootstrap={path:'/api/terminal-worktest/home-summary',copyId:'e16b70f0
 const worktestLocation=port=>({hostname:'127.0.0.1',protocol:'http:',port,origin:`http://127.0.0.1:${port}`});
 function homeCopyProfile(){return {schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:'ISOLATED_TEST_COPY',copyId:homeBootstrap.copyId,sealHash:'A'.repeat(64),backupSHA:'B'.repeat(64),sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02'},date:'2026-10-09',scopeKind:'VERIFIED_BUSINESS_TEST',businessScopeHash:'C'.repeat(64),businessInvoiceMaxExact4:'20000.0000',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:[{id:'301',supplierId:'601',sourceKey:'VEGA2026/F0102TBLSTOKLAR/301',stockCode:'FIXTURE-301',unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['801'],barcodes:['000301']}],customers:[{id:'501',partyId:'901',accountId:'1001',currency:'TRY',sourceKey:'VEGA2026/F0102TBLCARI/501'}],suppliers:[{id:'601',partyId:'902',accountId:'1002',currency:'TRY',sourceKey:'VEGA2026/F0103TBLCARI/601'}],financeAccounts:[{id:'701',currency:'TRY'}]};}
 
+test('selected-source collection transport is constructor gated to the DB02 business copy and actor 16',async()=>{
+ const target=worktestLocation('5234'),base='http://127.0.0.1:4184',path='/api/work-collections/selected-source/context?invoiceId=42';
+ const person={...user,role:{code:'isolated_test_ilker'},permissions:['finance.view','customer.view','finance.collection','finance.collection.cancel']};
+ const make=({enabled=false,location=target,apiBase=base,profile=homeCopyProfile(),actor=person,respond=()=>reply({safe:true})}={})=>{
+  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'selected-fixture');store.setItem(testSessionModeKey,'manual');
+  const session=createWorkingCatalogSession({location,apiBase,copyProfile:profile,selectedSourceCollections:enabled,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(actor):respond(url,options);}});
+  return {session,calls,store};
+ };
+ for(const variant of [{},{enabled:true,location:worktestLocation('5224'),apiBase:'http://127.0.0.1:4174'},{enabled:true,apiBase:'http://192.168.1.46:4184'},{enabled:true,profile:{...homeCopyProfile(),target:{...homeCopyProfile().target,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'}}},{enabled:true,actor:{...person,id:15}},{enabled:true,actor:{...person,role:{code:'admin'}}},{enabled:true,actor:{...person,permissions:['finance.view','customer.view']}}]){
+  const f=make(variant);try{await f.session.start();}catch{}const count=f.calls.length;await assert.rejects(()=>f.session.work(path),e=>e.status===403);assert.equal(f.calls.length,count);f.session.dispose();
+ }
+ const f=make({enabled:true});await f.session.start();const body={requestId:'00000000-0000-4000-8000-000000000001'};
+ for(const [route,options] of [[path,{}],['/api/work-collections/selected-source/preview',{method:'POST',body}],['/api/work-collections/selected-source',{method:'POST',body}],['/api/work-collections/selected-source/77/cancel',{method:'POST',body}]]){
+  assert.deepEqual(await f.session.work(route,options),{safe:true});assert.equal(f.calls.at(-1).url,base+route);assert.equal(f.calls.at(-1).options.headers.Authorization,'Bearer selected-fixture');
+ }
+ const count=f.calls.length;
+ for(const [route,options] of [['/api/work-collections/selected-source/context?invoiceId=042',{}],['/api/work-collections/selected-source/context?invoiceId=42&x=1',{}],['/api/work-collections/selected-source/preview?x=1',{method:'POST',body}],['/api/work-collections/selected-source/77/cancel/extra',{method:'POST',body}],['/api/work-collections/selected-source/0/cancel',{method:'POST',body}],['/api/work-collections/selected-source/preview',{method:'GET'}],['/api/work-collections/selected-source/preview',{method:'POST'}],['/api/work-collections/selected-source/preview',{method:'POST',body:[]}],['/api/work-collections/selected-source/preview',{method:'POST',body,headers:{x:'override'}}],[path,{body}],['https://other/api/work-collections/selected-source/preview',{method:'POST',body}]])await assert.rejects(()=>f.session.work(route,options));
+ assert.equal(f.calls.length,count);f.session.dispose();
+ const withoutCancel=make({enabled:true,actor:{...person,permissions:person.permissions.filter(p=>p!=='finance.collection.cancel')}});await withoutCancel.session.start();const before=withoutCancel.calls.length;await assert.rejects(()=>withoutCancel.session.work('/api/work-collections/selected-source/77/cancel',{method:'POST',body}),e=>e.status===403);assert.equal(withoutCancel.calls.length,before);withoutCancel.session.dispose();
+ const forbidden=make({enabled:true,respond:()=>reply(null,403)});await forbidden.session.start();await assert.rejects(()=>forbidden.session.work(path),e=>e.status===403);assert.equal(forbidden.store.getItem(workingCatalogTokenKey),'selected-fixture');forbidden.session.dispose();
+});
+
 test('normal price editor uses only exact DB02 routes, preserves denial and sends unchanged UUID/body',async()=>{
  for(const host of ['127.0.0.1','192.168.1.46']){
   const target={hostname:host,protocol:'http:',port:'5234',origin:`http://${host}:5234`},store=storage(),calls=[];
