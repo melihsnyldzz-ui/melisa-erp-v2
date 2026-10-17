@@ -8,6 +8,7 @@ const SUPERVISOR_ROOT='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TES
 const SETTINGS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e0e6c28.json';
 const SETTINGS_SHA='201a159b9b51058896d25961c5292d1d8e22cc3a76024958b4c324de07896e35';
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+const SCHEDULE_PATH_NAME='C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p';
 const PIN=Object.freeze({packageRoot:SUPERVISOR_ROOT,sourceCommit:'c4010efa8ff6b49f3e342032c98611a26c41cfaf',manifestSha256:'4fecac939834ee66266472bfc2d0d4ede3c475292971183da6e58de006c58590'});
 const TASKS=Object.freeze({
  'Melisa-Terminal-Completion-Logon':Object.freeze({script:'watch-terminal-completion-logon.ps1'}),
@@ -48,11 +49,20 @@ export function assertP03CandidateTaskProof(input){
  if(observed.processInventoryScope!=='CIM.Win32_Process.AllP03WatcherCommands')reject();
  if(!Array.isArray(observed.runningTasks)||!Array.isArray(observed.registeredTasks)||!Array.isArray(observed.processes)||observed.processes.length!==2)reject();
  const service=object(observed.scheduleService),serviceProcess=object(observed.scheduleServiceProcess);
- exact(service.name,'Schedule');exact(service.state,'Running');exact(service.startName,'LocalSystem');pid(service.processId);
+ exact(service.name,'Schedule');exact(service.state,'Running');exact(service.startName,'LocalSystem');exact(service.pathName,SCHEDULE_PATH_NAME);pid(service.processId);
  if(service.processId!==serviceProcess.processId)reject();
- exact(expected.scheduleServiceExecutablePath,'C:\\Windows\\System32\\svchost.exe');
- exact(serviceProcess.executablePath,expected.scheduleServiceExecutablePath);
- exact(serviceProcess.commandLine,expected.scheduleServiceCommandLine);
+ exact(serviceProcess.name,'svchost.exe');
+ const pathAvailable=typeof serviceProcess.executablePath==='string'&&serviceProcess.executablePath.length>0;
+ const argvAvailable=typeof serviceProcess.commandLine==='string'&&serviceProcess.commandLine.length>0;
+ if(pathAvailable!==argvAvailable)reject();
+ if(pathAvailable){
+  if(serviceProcess.pathArgvMarker!==null)reject();
+  exact(expected.scheduleServiceExecutablePath,'C:\\Windows\\System32\\svchost.exe');
+  exact(serviceProcess.executablePath,expected.scheduleServiceExecutablePath);
+  exact(serviceProcess.commandLine,expected.scheduleServiceCommandLine);
+ }else{
+  if(![null,''].includes(serviceProcess.executablePath)||![null,''].includes(serviceProcess.commandLine)||serviceProcess.pathArgvMarker!=='UNAVAILABLE_CIM_EMPTY')reject();
+ }
  const ownerResult=object(serviceProcess.ownerResult);
  if(ownerResult.code===0){exact(ownerResult.sid,'S-1-5-18');}
  else if(ownerResult.code===2){if(ownerResult.sid!==null||ownerResult.marker!=='UNAVAILABLE_ACCESS_DENIED')reject();}
