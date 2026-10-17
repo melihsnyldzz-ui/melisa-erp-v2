@@ -51,6 +51,14 @@ Güncel `93a072f137728435f21037e70e9cf074fa6a3fb3` tabanında controller/service
 
 Bu patch SQL metni üretmez/değiştirmez ve SQL/DB02/Vega bağlantısı, sorgusu, migration, `EXEC`, grant, configure çalıştırması, paket veya Windows kurulumu yapmaz. Gerçek native nesnelerin kurulmuş descriptor ile aynı olduğu ve normal müşteri kartında kaydet→yenile akışı ayrıca izole native/GUI entegrasyonudur; bu çevrimdışı teslim bunları PASS saymaz.
 
+### 17 Ekim — P07.1.b iletişim kaydı uygulama içi gezinme koruması
+
+ERP06/C06 normal müşteri kartında iletişim POST'u beklerken yenileme, arama, sayfalama, kart seçimi/kapatma, geçmiş döviz/sayfa ve üst ekran geçişi bekleyen isteği düşürebiliyordu. [PR39](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/39) kaynak `89664d36461d4a4eb9ea58642eed571865d7fdcf`, bu uygulama içi kontrolleri `saving` ve `uncertain` sırasında kapatır ve nedenini ekranda gösterir. Yanıt belirsizse aynı UUID/gövdeyle bilinçli tekrar korunur. Sunucu erişimi uzun süre yoksa kullanıcı, kaydın sunucuda zaten oluşmuş olabileceği uyarısını okuyarak iki adımda isteği bırakabilir; ilk adım geri alınabilir, onay ek POST göndermez.
+
+Yeni pozitif/negatif regresyonlar; bekleyen/yanıtı kayıp POST, aynı gövdeyle tekrar, yinelenen 503, üst gezinme kapısı, form kapatma, kart/arama/geçmiş kontrolleri, başarılı yanıt sonrası açılma ve iki adımlı vazgeçmeyi içerir. `node --test` ile yeni ve mevcut müşteri iletişim testleri **13/13 PASS**, `node --check` ve `git diff --check` temiz; bağımsız son kaynak incelemesi GO, P1/P2 yok. Exact kaynak `89664d36461d4a4eb9ea58642eed571865d7fdcf` için [push CI39034240320](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39034240320) ve [PR CI39034248365](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39034248365) completed SUCCESS. Son belge commit'i bu kaynak SHA'sı değildir.
+
+**Açık sınır:** Tarayıcının tamamen yeniden yüklenmesi veya çökmesi, mevcut editörde yalnız bellekte duran UUID/gövdeyi hâlâ kaybettirir. Bu kaynak alt adımı kalıcı taslak, native SQL/DB02, kurulmuş TEST, normal GUI veya insan kabulü değildir. C06 kısmi, özgün 49/9/39/1 aynı.
+
 ### ERP-TEKNIK-23EKIM / P07.1.a — R1 düzeltmesi ve gerçek kaynak teslimi
 
 17 Ekim tarihli Goal, mevcut ana oturumda `get_goal` ile **active** doğrulandı; yeni Goal, ortam veya takip ağacı oluşturulmadı. [Tarihli kapsam6232818354](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232818354) ve [aynı rapor P07.1.a](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6222599673) esas alındı. Önceki tur normal Windows ekran aracının URL güvenlik reddiyle sona ermişti; bu tur ekran işlemi tekrarlanmadı.
