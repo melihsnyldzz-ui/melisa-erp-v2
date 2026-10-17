@@ -1,3 +1,9 @@
+## 18 Ekim 2026 — ERP09/C05 seçili tahsilat ekranı ve incelenmiş aday kaynak birleşimi
+
+PR45 (`2910efb3f5fbdd4bcf3fcf3802cd78863175273b`) kaynak/test akışı PR47 (`51aa9ba22a3aa1c0ddac18a788e382b368773904`) üzerine yeni feature adayında alındı. Tek kod çakışması workingCatalogSession içinde uzlaştırıldı; C06 customerContactRecovery tam korunur. Diğer 10 kaynak/test dosyası PR45 ile aynıdır. 93/93 hedefli offline kontrol PASS, 0 FAIL/0 SKIP; Node24.19.0, sentetik domain ve DOM doubles. Bağımsız kök incelemesi ve ayrı müşteri kurtarma/aktör devri kontrolü PASS. Exact yeni head CI sonucu PR Checks üzerinden ayrıca doğrulanır.
+
+Bu yalnız kaynak bütünleştirmesidir. Backend varsayılan kapalı, native TRY/500 ve seçili müşteri/hesap sınırları aynı; genel müşteri/döviz tahsilatı tamamlanmadı. SQL/servis/kurulum/gerçek GUI/cihaz/insan kabulü veya main merge yok. Özgün49ERP/25CRM ve renk sayıları aynı. Vega migrasyonu en sonda. [Kanıt](docs/evidence/erp/2026-10-18-collection-ui-integration.md).
+
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
 18 Ekim — P03 ERP1a/CRM6bc/supervisorba65/e442 yeni OS callback v3 kaynağı `3e26eaf` 18 test, bağımsız GO ve exact iki CI SUCCESS; eski profil korunur. Fiziksel before-image/kurtarma/kurulum/GUI yok; P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).

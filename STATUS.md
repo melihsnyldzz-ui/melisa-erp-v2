@@ -1,3 +1,9 @@
+## 18 Ekim 2026 — ERP09/C05 seçili tahsilat ekranı ve incelenmiş aday kaynak birleşimi
+
+PR45 (`2910efb3f5fbdd4bcf3fcf3802cd78863175273b`) kaynak/test akışı PR47 (`51aa9ba22a3aa1c0ddac18a788e382b368773904`) üzerine yeni feature adayında alındı. Tek kod çakışması workingCatalogSession içinde uzlaştırıldı; C06 customerContactRecovery tam korunur. Diğer 10 kaynak/test dosyası PR45 ile aynıdır. 93/93 hedefli offline kontrol PASS, 0 FAIL/0 SKIP; Node24.19.0, sentetik domain ve DOM doubles. Bağımsız kök incelemesi ve ayrı müşteri kurtarma/aktör devri kontrolü PASS. Exact yeni head CI sonucu PR Checks üzerinden ayrıca doğrulanır.
+
+Bu yalnız kaynak bütünleştirmesidir. Backend varsayılan kapalı, native TRY/500 ve seçili müşteri/hesap sınırları aynı; genel müşteri/döviz tahsilatı tamamlanmadı. SQL/servis/kurulum/gerçek GUI/cihaz/insan kabulü veya main merge yok. Özgün49ERP/25CRM ve renk sayıları aynı. Vega migrasyonu en sonda. [Kanıt](docs/evidence/erp/2026-10-18-collection-ui-integration.md).
+
 ## Sıradaki iş
 
 18 Ekim — **Birleşik teknik kaynak adayı:** PR42 Hub açılış düzeltmesi, PR43 tedarikçi metadata inceleme aracı, PR44 müşteri iletişim kurtarması ve PR46 dar tahsilat adaptörü aynı ağaçta toplanır. Bu aday tam ERP bitişi veya yayın onayı değildir. C07 tedarikçi iletişim yazıcısı mevcut hedef şeması/öncül modüller okunmadan tamamlanamaz; PR43 yalnız bu bağımlılığı çözecek salt okunur aracı sağlar. Genel müşteri/döviz tahsilat kapsamı ve özgün insan kabulü satırları açık kalır. Mevcut49/25 sayımları ve en-son migrasyon sırası korunur.
