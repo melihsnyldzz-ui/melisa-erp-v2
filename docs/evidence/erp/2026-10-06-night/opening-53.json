@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "sourceCommit": "11f17341dc69002aed8c249878c468058afc8da5",
+  "times": [
+    203,
+    38,
+    39
+  ],
+  "actor": 16,
+  "products": 2,
+  "businessWrites": 0
+}

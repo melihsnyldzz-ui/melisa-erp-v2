@@ -1,0 +1,16 @@
+import {Router} from 'express';
+import {requireAuth,requirePermission} from '../middleware/authMiddleware.js';
+import {testCurrentPricePurchaseService as service} from '../services/testCurrentPricePurchaseService.mjs';
+export const testCurrentPricePurchaseRoutes=Router();
+const handle=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)});}catch(error){next(error);}};
+const get=(path,permission,fn)=>testCurrentPricePurchaseRoutes.get('/test-current-price-purchase'+path,requireAuth,requirePermission(permission),requirePermission('product.view'),handle(fn));
+const post=(path,permission,fn)=>testCurrentPricePurchaseRoutes.post('/test-current-price-purchase'+path,requireAuth,requirePermission(permission),requirePermission('purchase.view'),requirePermission('product.view'),handle(fn));
+get('/context','purchase.view',r=>service.context(r.user));
+post('/preview','purchase.view',r=>service.preview(r.body,r.user));
+post('/receipts','goods.create',r=>service.createReceipt(r.body,r.user));
+post('/receipts/:id/approve','goods.approve',r=>service.decideReceipt(r.params.id,r.body,r.user,true));
+post('/receipts/:id/reject','goods.reject',r=>service.decideReceipt(r.params.id,r.body,r.user,false));
+post('/invoice-drafts','purchase.create',r=>service.createDraft(r.body,r.user));
+get('/invoice-drafts/:id','purchase.view',r=>service.getDraft(r.params.id,r.user));
+post('/invoice-drafts/:id/finalize','purchase.finalize',r=>service.finalizeDraft(r.params.id,r.body,r.user));
+post('/invoice-drafts/:id/cancel','purchase.cancel',r=>service.cancelDraft(r.params.id,r.body,r.user));

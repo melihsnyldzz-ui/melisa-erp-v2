@@ -1,0 +1,1435 @@
+{
+  "at": "2026-10-06T13:40:53.5029594Z",
+  "stage": "return-before",
+  "readOnly": true,
+  "sourceCommit": "0383c5ddb249c6d5edc244741d13e0f4113209ee",
+  "identity": [
+    {
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "serverName": "Semih\\MELISADEV"
+    }
+  ],
+  "products": [
+    {
+      "id": 40451,
+      "stockCode": "4620 LEYLEK",
+      "stock": 0.000,
+      "cost": 155.8000
+    },
+    {
+      "id": 301985,
+      "stockCode": "TEST-V70-GOODS-P",
+      "stock": 30.000,
+      "cost": 60.0000
+    },
+    {
+      "id": 301986,
+      "stockCode": "TEST-DAILY-PURCHASE",
+      "stock": 32.000,
+      "cost": 62.4222
+    },
+    {
+      "id": 301988,
+      "stockCode": "TEST-DAILY-COUNT",
+      "stock": 23.000,
+      "cost": 60.0000
+    },
+    {
+      "id": 325503,
+      "stockCode": "TEST-FINISH-GOODS-P2",
+      "stock": 3.000,
+      "cost": 80.0000
+    }
+  ],
+  "suppliers": [
+    {
+      "id": 13370,
+      "code": "TEST-V70-GOODS-S",
+      "currency": "TRY",
+      "balance": -100.0000
+    },
+    {
+      "id": 13371,
+      "code": "TEST-V70-PAY-USD",
+      "currency": "USD",
+      "balance": 300.0000
+    },
+    {
+      "id": 13372,
+      "code": "TEST-V70-PAY-EUR",
+      "currency": "EUR",
+      "balance": 300.0000
+    },
+    {
+      "id": 13373,
+      "code": "TEST-DAILY-PUR-S",
+      "currency": "TRY",
+      "balance": 60.0000
+    },
+    {
+      "id": 23381,
+      "code": "TEST-V70-FINOPS-S",
+      "currency": "TRY",
+      "balance": 300.0000
+    }
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "code": "KASA-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 2,
+      "code": "BANKA-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 3,
+      "code": "POS-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 4,
+      "code": "KASA-USD",
+      "currency": "USD",
+      "balance": 0.0000
+    },
+    {
+      "id": 5,
+      "code": "QA-S019-1783581537295-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 6,
+      "code": "QA-S019-1783581628463-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 7,
+      "code": "QA-SCEN-1783583334466-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 8,
+      "code": "QA-SCEN-1783583387696-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 9,
+      "code": "QA-S030-1783601204159-REV-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 10,
+      "code": "QA-S030-1783601204159-FIN-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 11,
+      "code": "CEKMECE-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 12,
+      "code": "CEKMECE-USD",
+      "currency": "USD",
+      "balance": 0.0000
+    },
+    {
+      "id": 13,
+      "code": "KASA-EUR",
+      "currency": "EUR",
+      "balance": 0.0000
+    },
+    {
+      "id": 14,
+      "code": "CEKMECE-EUR",
+      "currency": "EUR",
+      "balance": 0.0000
+    },
+    {
+      "id": 15,
+      "code": "QA-S019-1785153001843-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 16,
+      "code": "QA-S030-1785153005351-REV-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 17,
+      "code": "QA-S030-1785153005351-FIN-KASA",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 23,
+      "code": "VG-F0102-fe7a3968-EUR",
+      "currency": "EUR",
+      "balance": 1346970.9852
+    },
+    {
+      "id": 24,
+      "code": "VG-F0102-fe7a3968-USD",
+      "currency": "USD",
+      "balance": 16209283.4364
+    },
+    {
+      "id": 25,
+      "code": "VG-F0102-fe7a3968-TRY",
+      "currency": "TRY",
+      "balance": 7425220.8795
+    },
+    {
+      "id": 26,
+      "code": "VG-F0103-fe7a3968-TRY",
+      "currency": "TRY",
+      "balance": -303979360.0100
+    },
+    {
+      "id": 27,
+      "code": "VG-F0103-fe7a3968-USD",
+      "currency": "USD",
+      "balance": -8549709.0742
+    },
+    {
+      "id": 28,
+      "code": "TEST-V70-CASH-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 29,
+      "code": "TEST-V70-BANK-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 30,
+      "code": "TEST-V70-CASH-USD",
+      "currency": "USD",
+      "balance": 0.0000
+    },
+    {
+      "id": 31,
+      "code": "TEST-V70-BANK-EUR",
+      "currency": "EUR",
+      "balance": 0.0000
+    },
+    {
+      "id": 32,
+      "code": "TEST-V70-PAY-TRY",
+      "currency": "TRY",
+      "balance": 900.0000
+    },
+    {
+      "id": 33,
+      "code": "TEST-V70-PAY-USD",
+      "currency": "USD",
+      "balance": 1000.0000
+    },
+    {
+      "id": 34,
+      "code": "TEST-V70-PAY-EUR",
+      "currency": "EUR",
+      "balance": 1000.0000
+    },
+    {
+      "id": 35,
+      "code": "TEST-DAILY-PUR-TRY",
+      "currency": "TRY",
+      "balance": 700.0000
+    },
+    {
+      "id": 36,
+      "code": "TEST-DAILY-SALES-TRY",
+      "currency": "TRY",
+      "balance": 500.0000
+    },
+    {
+      "id": 37,
+      "code": "TEST-DAILY-FX-TRY",
+      "currency": "TRY",
+      "balance": 0.0000
+    },
+    {
+      "id": 38,
+      "code": "TEST-DAILY-FX-USD",
+      "currency": "USD",
+      "balance": 0.0000
+    },
+    {
+      "id": 39,
+      "code": "TEST-DAILY-FX-EUR",
+      "currency": "EUR",
+      "balance": 0.0000
+    },
+    {
+      "id": 40,
+      "code": "TEST-REFUND-TRY",
+      "currency": "TRY",
+      "balance": 900.0000
+    },
+    {
+      "id": 41,
+      "code": "TEST-REFUND-USD",
+      "currency": "USD",
+      "balance": 900.0000
+    },
+    {
+      "id": 42,
+      "code": "TEST-REFUND-EUR",
+      "currency": "EUR",
+      "balance": 900.0000
+    },
+    {
+      "id": 20043,
+      "code": "TEST-NIGHT-20261006-K",
+      "currency": "TRY",
+      "balance": 300.0000
+    },
+    {
+      "id": 20045,
+      "code": "TEST-V70-PAY-FINOPS",
+      "currency": "TRY",
+      "balance": 1000.0000
+    }
+  ],
+  "stockMovements": [
+    {
+      "id": 903120,
+      "productId": 301986,
+      "sourceType": "purchase_invoice",
+      "sourceId": 25075,
+      "quantityNet": 5.000,
+      "unitCost": 60.0000,
+      "actorId": null,
+      "currency": "TRY",
+      "amountTry": 300.0000
+    },
+    {
+      "id": 903121,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 1,
+      "quantityNet": 2.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 120.0000
+    },
+    {
+      "id": 903122,
+      "productId": 301986,
+      "sourceType": "invoice_return",
+      "sourceId": 209,
+      "quantityNet": -2.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": -120.0000
+    },
+    {
+      "id": 903123,
+      "productId": 301986,
+      "sourceType": "invoice_return",
+      "sourceId": 210,
+      "quantityNet": -3.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": -180.0000
+    },
+    {
+      "id": 903124,
+      "productId": 301986,
+      "sourceType": "invoice_return_cancel",
+      "sourceId": 209,
+      "quantityNet": 2.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 120.0000
+    },
+    {
+      "id": 903125,
+      "productId": 301986,
+      "sourceType": "invoice_return_cancel",
+      "sourceId": 210,
+      "quantityNet": 3.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 180.0000
+    },
+    {
+      "id": 903126,
+      "productId": 301986,
+      "sourceType": "stock_adjustment",
+      "sourceId": 4,
+      "quantityNet": -2.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 0.0000
+    },
+    {
+      "id": 903128,
+      "productId": 301986,
+      "sourceType": "invoice_return",
+      "sourceId": 212,
+      "quantityNet": -1.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": -60.0000
+    },
+    {
+      "id": 903129,
+      "productId": 301986,
+      "sourceType": "invoice_return_cancel",
+      "sourceId": 212,
+      "quantityNet": 1.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 60.0000
+    },
+    {
+      "id": 903146,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 17,
+      "quantityNet": 3.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 180.0000
+    },
+    {
+      "id": 903147,
+      "productId": 301986,
+      "sourceType": "stock_adjustment",
+      "sourceId": 18,
+      "quantityNet": -2.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 0.0000
+    },
+    {
+      "id": 906573,
+      "productId": 301986,
+      "sourceType": "invoice_return",
+      "sourceId": 219,
+      "quantityNet": -1.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": -60.0000
+    },
+    {
+      "id": 906574,
+      "productId": 301986,
+      "sourceType": "invoice_return_cancel",
+      "sourceId": 219,
+      "quantityNet": 1.000,
+      "unitCost": 60.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 60.0000
+    },
+    {
+      "id": 907899,
+      "productId": 325503,
+      "sourceType": "goods_receipt_batch",
+      "sourceId": 2,
+      "quantityNet": 2.000,
+      "unitCost": 80.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 160.0000
+    },
+    {
+      "id": 907900,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 32,
+      "quantityNet": 1.000,
+      "unitCost": 49.5000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 49.5000
+    },
+    {
+      "id": 907901,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 33,
+      "quantityNet": 1.000,
+      "unitCost": 194.8000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 194.8000
+    },
+    {
+      "id": 907903,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 35,
+      "quantityNet": 1.000,
+      "unitCost": 49.5000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 49.5000
+    },
+    {
+      "id": 907904,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 37,
+      "quantityNet": 2.000,
+      "unitCost": 44.9400,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 89.8800
+    },
+    {
+      "id": 907918,
+      "productId": 325503,
+      "sourceType": "goods_receipt_batch",
+      "sourceId": 6,
+      "quantityNet": 1.000,
+      "unitCost": 80.0000,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 80.0000
+    },
+    {
+      "id": 907919,
+      "productId": 301986,
+      "sourceType": "goods_receipt",
+      "sourceId": 38,
+      "quantityNet": 1.000,
+      "unitCost": 53.8280,
+      "actorId": 16,
+      "currency": "TRY",
+      "amountTry": 53.8280
+    }
+  ],
+  "returns": [
+    {
+      "id": 209,
+      "sourceInvoiceId": 25075,
+      "status": "cancelled",
+      "currency": "TRY",
+      "documentRate": 1.00000000,
+      "amount": 120.0000,
+      "accountAmount": 120.0000,
+      "accountRate": 1.00000000,
+      "reason": "TEST kısmi iade sayıldı",
+      "actorId": 16,
+      "cancelledBy": 16,
+      "cancelReason": "TEST iade ters kayıt kabulü"
+    },
+    {
+      "id": 210,
+      "sourceInvoiceId": 25075,
+      "status": "cancelled",
+      "currency": "TRY",
+      "documentRate": 1.00000000,
+      "amount": 180.0000,
+      "accountAmount": 180.0000,
+      "accountRate": 1.00000000,
+      "reason": "TEST kısmi iade sayıldı",
+      "actorId": 16,
+      "cancelledBy": 16,
+      "cancelReason": "TEST iade ters kayıt kabulü"
+    },
+    {
+      "id": 212,
+      "sourceInvoiceId": 25075,
+      "status": "cancelled",
+      "currency": "TRY",
+      "documentRate": 1.00000000,
+      "amount": 60.0000,
+      "accountAmount": 60.0000,
+      "accountRate": 1.00000000,
+      "reason": "TEST yeşil ekran ve atomiklik kabulü",
+      "actorId": 16,
+      "cancelledBy": 16,
+      "cancelReason": "TEST yeşil ekran iade iptali"
+    },
+    {
+      "id": 219,
+      "sourceInvoiceId": 25075,
+      "status": "cancelled",
+      "currency": "TRY",
+      "documentRate": 1.00000000,
+      "amount": 60.0000,
+      "accountAmount": 60.0000,
+      "accountRate": 1.00000000,
+      "reason": "Kanonik gerçek kısmi iade kabulü",
+      "actorId": 16,
+      "cancelledBy": 16,
+      "cancelReason": "TEST kısmi iade kabulü ters kayıt"
+    }
+  ],
+  "returnItems": [
+    {
+      "id": 3493,
+      "returnId": 209,
+      "productId": 301986,
+      "sourceItemId": 93173,
+      "quantity": 2.000,
+      "amount": 120.0000,
+      "accountAmount": 120.0000,
+      "unitCost": 60.0000
+    },
+    {
+      "id": 3494,
+      "returnId": 210,
+      "productId": 301986,
+      "sourceItemId": 93173,
+      "quantity": 3.000,
+      "amount": 180.0000,
+      "accountAmount": 180.0000,
+      "unitCost": 60.0000
+    },
+    {
+      "id": 3496,
+      "returnId": 212,
+      "productId": 301986,
+      "sourceItemId": 93173,
+      "quantity": 1.000,
+      "amount": 60.0000,
+      "accountAmount": 60.0000,
+      "unitCost": 60.0000
+    },
+    {
+      "id": 3504,
+      "returnId": 219,
+      "productId": 301986,
+      "sourceItemId": 93173,
+      "quantity": 1.000,
+      "amount": 60.0000,
+      "accountAmount": 60.0000,
+      "unitCost": 60.0000
+    }
+  ],
+  "supplierMovements": [
+    {
+      "id": 47921,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 300.0000,
+      "currency": "TRY",
+      "balanceEffect": 300.0000,
+      "actorId": null,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47922,
+      "returnId": null,
+      "type": "payment",
+      "amount": 300.0000,
+      "currency": "TRY",
+      "balanceEffect": -300.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47923,
+      "returnId": 209,
+      "type": "purchase_return",
+      "amount": 120.0000,
+      "currency": "TRY",
+      "balanceEffect": -120.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47924,
+      "returnId": 210,
+      "type": "purchase_return",
+      "amount": 180.0000,
+      "currency": "TRY",
+      "balanceEffect": -180.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47925,
+      "returnId": 209,
+      "type": "purchase_return_cancel",
+      "amount": 120.0000,
+      "currency": "TRY",
+      "balanceEffect": 120.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47926,
+      "returnId": 210,
+      "type": "purchase_return_cancel",
+      "amount": 180.0000,
+      "currency": "TRY",
+      "balanceEffect": 180.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47927,
+      "returnId": 212,
+      "type": "purchase_return",
+      "amount": 60.0000,
+      "currency": "TRY",
+      "balanceEffect": -60.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47928,
+      "returnId": 212,
+      "type": "purchase_return_cancel",
+      "amount": 60.0000,
+      "currency": "TRY",
+      "balanceEffect": 60.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47930,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 60.0000,
+      "currency": "TRY",
+      "balanceEffect": 60.0000,
+      "actorId": null,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47969,
+      "returnId": 219,
+      "type": "purchase_return",
+      "amount": 60.0000,
+      "currency": "TRY",
+      "balanceEffect": -60.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 47970,
+      "returnId": 219,
+      "type": "purchase_return_cancel",
+      "amount": 60.0000,
+      "currency": "TRY",
+      "balanceEffect": 60.0000,
+      "actorId": 16,
+      "documentRate": 1.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48053,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 4.8700,
+      "currency": "USD",
+      "balanceEffect": 194.8000,
+      "actorId": null,
+      "documentRate": 40.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48054,
+      "returnId": null,
+      "type": "purchase_invoice_cancel",
+      "amount": 4.8700,
+      "currency": "USD",
+      "balanceEffect": -194.8000,
+      "actorId": 16,
+      "documentRate": 40.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48055,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 1.1000,
+      "currency": "EUR",
+      "balanceEffect": 49.5000,
+      "actorId": null,
+      "documentRate": 45.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48056,
+      "returnId": null,
+      "type": "purchase_invoice_cancel",
+      "amount": 1.1000,
+      "currency": "EUR",
+      "balanceEffect": -49.5000,
+      "actorId": 16,
+      "documentRate": 45.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48057,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 2.2470,
+      "currency": "USD",
+      "balanceEffect": 89.8800,
+      "actorId": null,
+      "documentRate": 40.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48058,
+      "returnId": null,
+      "type": "purchase_invoice_cancel",
+      "amount": 2.2470,
+      "currency": "USD",
+      "balanceEffect": -89.8800,
+      "actorId": 16,
+      "documentRate": 40.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48061,
+      "returnId": null,
+      "type": "purchase_invoice",
+      "amount": 1.3457,
+      "currency": "USD",
+      "balanceEffect": 53.8280,
+      "actorId": null,
+      "documentRate": 40.00000000,
+      "accountRate": 1.00000000
+    },
+    {
+      "id": 48062,
+      "returnId": null,
+      "type": "purchase_invoice_cancel",
+      "amount": 1.3457,
+      "currency": "USD",
+      "balanceEffect": -53.8280,
+      "actorId": 16,
+      "documentRate": 40.00000000,
+      "accountRate": 1.00000000
+    }
+  ],
+  "drafts": [
+    {
+      "id": 1,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": null,
+      "payload": "{\"quantity\":2,\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-09-29\"}",
+      "reason": null
+    },
+    {
+      "id": 2,
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "cancelled",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"requestId\":\"6e76250c-ba91-4487-9731-c90a7d4762e8\",\"kind\":\"purchase\",\"sourceInvoiceId\":25075,\"documentDate\":\"2026-09-29\",\"reason\":\"TEST kısmi iade sayıldı\",\"items\":[{\"productId\":301986,\"sourceItemId\":93173,\"quantity\":2}]}",
+      "reason": "TEST iade ters kayıt kabulü"
+    },
+    {
+      "id": 3,
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "cancelled",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"requestId\":\"b285f703-4328-460f-87c0-6a2fb4c0efb3\",\"kind\":\"purchase\",\"sourceInvoiceId\":25075,\"documentDate\":\"2026-09-29\",\"reason\":\"TEST kısmi iade sayıldı\",\"items\":[{\"productId\":301986,\"sourceItemId\":93173,\"quantity\":3}]}",
+      "reason": "TEST iade ters kayıt kabulü"
+    },
+    {
+      "id": 4,
+      "flow": "purchase",
+      "kind": "uninvoiced",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"goodsId\":1,\"quantity\":2,\"reason\":\"TEST kısmi iade sayıldı\",\"date\":\"2026-09-29\"}",
+      "reason": null
+    },
+    {
+      "id": 5,
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "cancelled",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"requestId\":\"ddbd01a4-773d-467c-8412-0d59b3345f0a\",\"kind\":\"purchase\",\"sourceInvoiceId\":25075,\"documentDate\":\"2026-09-29\",\"reason\":\"TEST yeşil ekran ve atomiklik kabulü\",\"items\":[{\"productId\":301986,\"sourceItemId\":93173,\"quantity\":1}]}",
+      "reason": "TEST yeşil ekran iade iptali"
+    },
+    {
+      "id": 8,
+      "flow": "count",
+      "kind": "count",
+      "state": "rejected",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"physical\":23,\"system\":20,\"fingerprint\":[],\"reason\":\"TEST depo sayımı fark kontrolü\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": "Araya alış hareketi girdi; yeniden sayım"
+    },
+    {
+      "id": 9,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"physical\":23,\"system\":21,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"}],\"reason\":\"TEST depo sayımı fark kontrolü\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": null
+    },
+    {
+      "id": 10,
+      "flow": "count",
+      "kind": "count",
+      "state": "rejected",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"physical\":24,\"system\":23,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"},{\"id\":\"903137\",\"quantity_net\":2,\"source_type\":\"stock_count\",\"source_id\":null}],\"reason\":\"TEST depo sayımı fark kontrolü\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": "Net sıfır olsa da hareket geçmişi değişti"
+    },
+    {
+      "id": 11,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"physical\":24,\"system\":23,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"},{\"id\":\"903137\",\"quantity_net\":2,\"source_type\":\"stock_count\",\"source_id\":null}],\"reason\":\"TEST depo sayımı fark kontrolü\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": null
+    },
+    {
+      "id": 12,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"physical\":23,\"system\":24,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"},{\"id\":\"903137\",\"quantity_net\":2,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903138\",\"quantity_net\":1,\"source_type\":\"stock_count\",\"source_id\":null}],\"reason\":\"TEST depo sayımı fark kontrolü\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": null
+    },
+    {
+      "id": 13,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 15,
+      "decidedBy": 16,
+      "payload": "{\"physical\":22,\"system\":23,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"},{\"id\":\"903137\",\"quantity_net\":2,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903138\",\"quantity_net\":1,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903139\",\"quantity_net\":-1,\"source_type\":\"stock_count\",\"source_id\":null}],\"reason\":\"TEST depo sayımı fark kontrolü\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": null
+    },
+    {
+      "id": 15,
+      "flow": "count",
+      "kind": "count",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"physical\":23,\"system\":22,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"},{\"id\":\"903137\",\"quantity_net\":2,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903138\",\"quantity_net\":1,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903139\",\"quantity_net\":-1,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903140\",\"quantity_net\":-1,\"source_type\":\"stock_count\",\"source_id\":null}],\"reason\":\"TEST yeşil mevcut barkod formu ile sayım\",\"date\":\"2026-09-29\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": null
+    },
+    {
+      "id": 17,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": null,
+      "payload": "{\"quantity\":3,\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-09-29\",\"invoiceId\":25078,\"invoicedQuantity\":1}",
+      "reason": null
+    },
+    {
+      "id": 18,
+      "flow": "purchase",
+      "kind": "uninvoiced",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"goodsId\":17,\"quantity\":2,\"reason\":\"TEST faturalı miktar hariç mal iadesi\",\"date\":\"2026-09-29\"}",
+      "reason": null
+    },
+    {
+      "id": 29,
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "cancelled",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"requestId\":\"904e6b94-7db1-4b57-ab15-307c2e8c443d\",\"kind\":\"purchase\",\"sourceInvoiceId\":25075,\"documentDate\":\"2026-10-03\",\"reason\":\"Kanonik gerçek kısmi iade kabulü\",\"items\":[{\"productId\":301986,\"sourceItemId\":93173,\"quantity\":1}]}",
+      "reason": "TEST kısmi iade kabulü ters kayıt"
+    },
+    {
+      "id": 30,
+      "flow": "count",
+      "kind": "count",
+      "state": "cancelled",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"physical\":24,\"system\":23,\"fingerprint\":[{\"id\":\"903135\",\"quantity_net\":1,\"source_type\":\"purchase_invoice\",\"source_id\":\"25076\"},{\"id\":\"903137\",\"quantity_net\":2,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903138\",\"quantity_net\":1,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903139\",\"quantity_net\":-1,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903140\",\"quantity_net\":-1,\"source_type\":\"stock_count\",\"source_id\":null},{\"id\":\"903144\",\"quantity_net\":1,\"source_type\":\"stock_count\",\"source_id\":\"15\"}],\"reason\":\"Kanonik gerçek sayım farkı kabulü\",\"date\":\"2026-10-03\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": "TEST sayım farkı kabulü ters kayıt"
+    },
+    {
+      "id": 31,
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "cancelled",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"requestId\":\"5bfe4e87-ef97-4fd9-8361-4f0e217254b6\",\"kind\":\"purchase\",\"sourceInvoiceId\":25083,\"documentDate\":\"2026-10-03\",\"reason\":\"TEST yeni faturadan hasarlı ürün iadesi\",\"items\":[{\"productId\":301985,\"sourceItemId\":93181,\"quantity\":1}]}",
+      "reason": "TEST hatalı iade kaydı ters çevriliyor"
+    },
+    {
+      "id": 32,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"marker\":\"C03FX\",\"intentId\":1,\"quantity\":1,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":49.5,\"amountTry\":49.5}",
+      "reason": null
+    },
+    {
+      "id": 33,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"marker\":\"C03FX\",\"intentId\":2,\"quantity\":1,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":194.8,\"amountTry\":194.8}",
+      "reason": null
+    },
+    {
+      "id": 35,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"marker\":\"C03FX\",\"intentId\":4,\"quantity\":1,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":49.5,\"amountTry\":49.5}",
+      "reason": null
+    },
+    {
+      "id": 36,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "rejected",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"marker\":\"C03FX\",\"intentId\":5,\"quantity\":1,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":49.5,\"amountTry\":49.5}",
+      "reason": "C03 normal ekran sentetik ret kabulü"
+    },
+    {
+      "id": 37,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"marker\":\"C09PRICE\",\"intentId\":1,\"quantity\":2,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":44.94,\"amountTry\":89.88}",
+      "reason": null
+    },
+    {
+      "id": 38,
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": 16,
+      "decidedBy": 16,
+      "payload": "{\"marker\":\"C09PRICE\",\"intentId\":2,\"quantity\":1,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":53.828,\"amountTry\":53.828}",
+      "reason": null
+    },
+    {
+      "id": 39,
+      "flow": "count",
+      "kind": "count",
+      "state": "pending",
+      "createdBy": 15,
+      "decidedBy": null,
+      "payload": "{\"lines\":[{\"productId\":\"325503\",\"stockCode\":\"TEST-FINISH-GOODS-P2\",\"physical\":4,\"system\":3,\"reason\":\"Goal3 kontrollü gerçek TEST sayımı: bir adet fark\",\"fingerprint\":\"821fb8a1a8dc9ace863b1211977c3e47dc715d54936e21350118168ff0d717ea\"}],\"unknownScans\":[],\"date\":\"2026-10-06\",\"unit\":\"ADET\",\"warehouse\":\"TEST-DAILY-WH\"}",
+      "reason": null
+    }
+  ],
+  "journal": [
+    {
+      "requestId": "098d5f2b-978f-4173-b6ae-c6725819e8b4",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "3fdf6c608490214d435cd9dfe0e7b5e7dca84da4c4c84fb5bff0bdcc344d9247"
+    },
+    {
+      "requestId": "0a90b628-ba74-4d53-b2a2-2f6823089da4",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "47a7662bd79e1644fe0d4329dfb45b4f3bf7264a2651d594ddfd3eb0e98781f3"
+    },
+    {
+      "requestId": "11faa978-1202-4a44-ae88-8448a46770ba",
+      "flow": "purchase",
+      "operation": "cancel",
+      "actorId": 16,
+      "payloadHash": "93ad98c8b3361f5a72dea357e723f352be4ce04a8303718823695166b6e16f7c"
+    },
+    {
+      "requestId": "18067ea3-8923-4578-a5c0-de939dbb7c3e",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "4378ae152538c9893bcdf0b79d49d6ecf18054f386425842267429c5b2edebdd"
+    },
+    {
+      "requestId": "21137640-3870-495f-a620-0329c045ee3f",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "80c66a8577e87c2c33de47973555074a6a530644ebc1b5c24cb958583b3a32c5"
+    },
+    {
+      "requestId": "220c41d6-9e34-4fdb-9b39-4b12f2dc6798",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "bd1c639fa675d2ab9d39b386934209fcead9673f6275e5b9a5155f2e34eb0a6d"
+    },
+    {
+      "requestId": "3ada9600-f95e-4563-8fe2-2eb0b97c67ed",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 16,
+      "payloadHash": "45ab2893c58448ddee8606c0d281ea84aeac4edc34f9f08353960ec58b000c4b"
+    },
+    {
+      "requestId": "42f6291b-4df0-4f6f-be53-2befe27c7623",
+      "flow": "count",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "167ac78e0a272a63c00d962faff6565c5eb54b64bbaee66f8048ede13fce5643"
+    },
+    {
+      "requestId": "4737a231-8e3c-4241-a386-cb3ef78bc034",
+      "flow": "purchase",
+      "operation": "cancel",
+      "actorId": 16,
+      "payloadHash": "ba1046bfb82ac721e32b81fd8c1dd221acd5780eb373fff8d26d7a67d08d1a00"
+    },
+    {
+      "requestId": "49698803-ca2e-46dd-a5f5-d66fb5060b60",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "48ee87f73f7d9564e8822c050f5eabdc6fc1f54d9870a1e126572cd58e7605e5"
+    },
+    {
+      "requestId": "4ae80f10-297e-4764-b4e7-cbed9ffa60dd",
+      "flow": "purchase",
+      "operation": "cancel",
+      "actorId": 16,
+      "payloadHash": "28af695fc2519a7a470dc005c009b8d067af82af8a54ca606d313d112e8dda88"
+    },
+    {
+      "requestId": "5bfe4e87-ef97-4fd9-8361-4f0e217254b6",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 16,
+      "payloadHash": "2508a417a5fa3d1d7236a0f73a7bdbbe7efa62bea2f56ed19138efcdaae6880e"
+    },
+    {
+      "requestId": "615c5b7c-a2e8-447b-bc48-88a2fd55d1b2",
+      "flow": "count",
+      "operation": "reject",
+      "actorId": 16,
+      "payloadHash": "5bad90c404b6d7e0b9faae35fdff9f7b3765879672ff323c68900bcf370c3d0f"
+    },
+    {
+      "requestId": "61bc2b4f-0485-4c7d-9648-02c3922db04e",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 16,
+      "payloadHash": "0cc6090222a93fec86d72574c3bdfd2af7bdba278bebe830ac857d50d8d078b2"
+    },
+    {
+      "requestId": "6e76250c-ba91-4487-9731-c90a7d4762e8",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "314b6e5b14c395d70cde88b405fa14e053b36d0bbe9e24667e4cad8735616d86"
+    },
+    {
+      "requestId": "7080065d-1de7-4cfc-89d4-f93cb261d2ff",
+      "flow": "count",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "4b67a14569649ce9f1ac7a1f74351e7814b6bbc618bf4c117a101bbd1874a59a"
+    },
+    {
+      "requestId": "71e0c11f-0f39-4f0e-ad0f-3090189f4c48",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "cf429d799f1e6e9b1114601b69e901a70d5a9766361c54ded1ff44fea4f67c54"
+    },
+    {
+      "requestId": "7629e8f6-61be-481e-997f-cd2795ec1ee1",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "0d48afe57f2215ee2641e98d27c39c3b1291db2682a906a154b56f1983bf0e78"
+    },
+    {
+      "requestId": "774edb6c-0f7c-4e9d-b15c-8bbb8225116c",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 16,
+      "payloadHash": "f0339d31ee9e60eba9560dc217261fff2519e11091f72b303cc5d4a164247d7a"
+    },
+    {
+      "requestId": "77526a41-9021-4cdb-920a-9f40d2d7cf88",
+      "flow": "count",
+      "operation": "cancel",
+      "actorId": 16,
+      "payloadHash": "87784ac6127a2c7cbbbb9e2818761b74e32894da923d7169a75aa0e9b465026b"
+    },
+    {
+      "requestId": "886ad779-3913-442c-9556-8f9bc55aa2d7",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "610ea826e51c0f80f62f1dde31d7858a8b61f8932d416a4b17217301d12823b1"
+    },
+    {
+      "requestId": "904e6b94-7db1-4b57-ab15-307c2e8c443d",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 16,
+      "payloadHash": "7c0fdb663410f161fe2d6a5b024574fed024bf88b62dbd7c1f38bded92039352"
+    },
+    {
+      "requestId": "90c23ecc-11f6-449d-92de-436e386794af",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "1368670c48d0f0384858080ceedaf7d0b300c50e7690ffd2b36b01b8bafb065a"
+    },
+    {
+      "requestId": "91fdcbd9-bfe0-4055-8779-c505d07d039b",
+      "flow": "purchase",
+      "operation": "cancel",
+      "actorId": 16,
+      "payloadHash": "a5dd89b8c045ff0cacee841418022d7a564766ff5325f41884aa805050c6276a"
+    },
+    {
+      "requestId": "9398909e-fe5d-4022-a84c-6006f052381e",
+      "flow": "count",
+      "operation": "reject",
+      "actorId": 16,
+      "payloadHash": "b80ff3dc431d5875d4740126823127b7e888468903318487e4791dee1f4d17d0"
+    },
+    {
+      "requestId": "9f0ba71d-aa65-40f9-81c1-e895b409092a",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "3352d34ef0eb4b143d593103a2634d1b9c8e5d651a5109ca6faf27796e85d0cc"
+    },
+    {
+      "requestId": "a0f6e368-69a5-4758-a41f-e41e1b50ab1c",
+      "flow": "purchase",
+      "operation": "cancel",
+      "actorId": 16,
+      "payloadHash": "c6122f26ad5a4a71e75edc0bda59e1f7381500d62f15133d5bcdb731dc540c5e"
+    },
+    {
+      "requestId": "a5a11110-c59a-413e-8ec4-f7cf899c3037",
+      "flow": "count",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "d321552136e6b683292f445a51a798f8837bbd8472ef6807a5601b709424ac02"
+    },
+    {
+      "requestId": "ae86031c-1e05-48d8-8085-daee1d19e46f",
+      "flow": "count",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "f8149b2bc687dc621557bbd3a3d1c567d16ce553d59c4a19e8b88dc58c8869b5"
+    },
+    {
+      "requestId": "b285f703-4328-460f-87c0-6a2fb4c0efb3",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "66c007fffdb16ac37c9e394a388d7a83fb81481df1effe09dc9f2363695ac44e"
+    },
+    {
+      "requestId": "b3e55ba3-759e-4b7d-8888-bc711202e4a7",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "77c71d0dbd21437a10934a0653e8b49ad0cb5d4dd8689c2234c84af0b4999857"
+    },
+    {
+      "requestId": "c64076a4-db6b-419a-bc37-990d5fcafab4",
+      "flow": "count",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "99c4fd3f64f7d24b25dbc9a2da331ef84b1f4fbac3bf94dec97f453c18787bef"
+    },
+    {
+      "requestId": "daily-count-prepare-0001",
+      "flow": "count",
+      "operation": "prepare",
+      "actorId": 16,
+      "payloadHash": "0fc49fd9aa623a35f20e56212fa7ba1a8d64cca523d766fd8eef45d8f2b8979b"
+    },
+    {
+      "requestId": "daily-partial-goods-prepare-01",
+      "flow": "purchase",
+      "operation": "prepare-partial-goods",
+      "actorId": 16,
+      "payloadHash": "5d4cf584e2ee22c737bc202ef6bb1ca3e2c3d1fc3f76c08205dce15fb0689094"
+    },
+    {
+      "requestId": "daily-purchase-prepare-0001",
+      "flow": "purchase",
+      "operation": "prepare",
+      "actorId": 16,
+      "payloadHash": "a1ccd0453f6ebf5c79b8d1bf6b82d8e654f00636388c2b3e20a7c7bbd93359b0"
+    },
+    {
+      "requestId": "ddbd01a4-773d-467c-8412-0d59b3345f0a",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 16,
+      "payloadHash": "6f674c8a90ba70114da026f913d3224323a32f2c0e6889182e04eaff09812098"
+    },
+    {
+      "requestId": "ea31d764-0983-4018-a9bc-2f44aeaa03a3",
+      "flow": "count",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "1a236eecb1a5f345d0253b5352f9d35d9d62c3d0651c506364832beb54245fe1"
+    },
+    {
+      "requestId": "f6904b7c-238b-41c1-99d7-f5dc615573a2",
+      "flow": "purchase",
+      "operation": "draft",
+      "actorId": 15,
+      "payloadHash": "f9b74fdbbc43904508d78c9d070c7f8453d4ef9943bef24104a1e640454a2f7e"
+    },
+    {
+      "requestId": "fe332603-3309-4fc4-a510-712d16a8667f",
+      "flow": "purchase",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "62e64972d120a5ada772628b67e4e390bc591b590dbb98a9c2d4442f9157f500"
+    },
+    {
+      "requestId": "ffb17fe6-a37d-4c23-a42b-d345547a9728",
+      "flow": "count",
+      "operation": "approve",
+      "actorId": 16,
+      "payloadHash": "66a95a442705aa01549259f4a6683f70b5229875f7927ed0d44f4a72ebf83c5d"
+    }
+  ],
+  "sourceInvoice": [
+    {
+      "id": 25075,
+      "number": "TDAY-PURCHASE-01",
+      "status": "finalized",
+      "currency": "TRY",
+      "total": 300.0000
+    }
+  ],
+  "financeMovementCount": [
+    {
+      "count": 16837
+    }
+  ],
+  "sourceInvoiceDigest": [
+    {
+      "digest": "18C37D7925EDB80A250FD54D4F7B248F5E96ABE6CBF4A310DD0D4B233FB87081"
+    }
+  ],
+  "sourceItemDigest": [
+    {
+      "digest": "B9F39CF9421F19DA86AF97698E280B82851ED25129E71136A08B517CAD3A387F"
+    }
+  ],
+  "protectedDigests": [
+    {
+      "table": "products",
+      "count": 52968,
+      "digest": "2C6A387BE0FD37A78730268B17DB38270B1746EB16C0B4A2D311429015472CEA"
+    },
+    {
+      "table": "suppliers",
+      "count": 530,
+      "digest": "445B8C5C9B8E93A541E768E8906213D31647E6F33A376BD3457F52B8212C6BFD"
+    },
+    {
+      "table": "customers",
+      "count": 442,
+      "digest": "EC50AC8A76A16998A83661CC16E6B6DA3EC389F2556B524E3ED0D4BB7785D8FE"
+    },
+    {
+      "table": "product_prices",
+      "count": 279229,
+      "digest": "FD02AEDA5129151F34F0D404FD5C8D61EB1C9E10F43CA36415FDE8651F65AA4A"
+    },
+    {
+      "table": "finance_accounts",
+      "count": 39,
+      "digest": "F26DA4508C23E4D7498E9641062CAA612C2A474EE2BE9ADBC7827F28A16D866B"
+    },
+    {
+      "table": "users",
+      "count": 16,
+      "digest": "9E21FD332955140CC021783CCF25159785482FF7619F7A3C8D020F866573E5B0"
+    },
+    {
+      "table": "roles",
+      "count": 16,
+      "digest": "5C7DE342681D7915197302DD85969B43CBD3E3471DAFE8729FFC52925A617B84"
+    },
+    {
+      "table": "permissions",
+      "count": 137,
+      "digest": "E579793CC7F7CD4A764D2E6EE548445D192D56DB0BE16380DBE9E0ADC5346C76"
+    }
+  ]
+}

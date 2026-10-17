@@ -12,6 +12,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { SuggestedTextInput } from '../../components/forms/SuggestedTextInput.jsx';
+import { makeCardPurchasePreparation, newPurchasePreparationId, productCreateWasRejected, productOpeningQuantity } from '../../utils/purchasePreparation.js';
+import '../purchase/purchase-preparation.css';
 import {
   applyProductBulkCreate,
   checkProductIdentityAvailability,
@@ -37,6 +39,7 @@ function createRow(overrides = {}) {
     purchasePrice: '',
     salePrice: '',
     openingStock: '0',
+    preparedQuantity: '1',
     ...safeOverrides,
   };
 }
@@ -124,7 +127,7 @@ function todayIsoDate() {
   return new Date(now.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
-function toRequestRows(rows) {
+function toRequestRows(rows, mode = 'purchase') {
   return rows.filter(hasRowContent).map((row) => ({
     rowId: row.id,
     stockCode: row.stockCode,
@@ -137,7 +140,7 @@ function toRequestRows(rows) {
     purchasePrice: row.purchasePrice,
     salePrice: row.salePrice,
     purchaseDiscountRate: 0,
-    openingStock: row.openingStock,
+    openingStock: productOpeningQuantity(row, mode),
   }));
 }
 
@@ -146,6 +149,10 @@ function getApiErrorMessage(error) {
 }
 
 export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
+  const [entryMode, setEntryMode] = useState('purchase');
+  const [creationNeedsReview, setCreationNeedsReview] = useState(false);
+  const [createdPreparation, setCreatedPreparation] = useState(null);
+  const [showSavedCardDetails, setShowSavedCardDetails] = useState(false);
   const [rows, setRows] = useState(() => createBlankRows());
   const [options, setOptions] = useState({
     brands: [],
@@ -171,6 +178,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   const [identityChecks, setIdentityChecks] = useState({});
   const identityTimersRef = useRef(new Map());
   const identityVersionsRef = useRef(new Map());
+  const cardSaveRef = useRef(false);
 
   const duplicateStockCodes = useMemo(() => getDuplicateValues(rows, 'stockCode'), [rows]);
   const duplicateBarcodes = useMemo(() => getDuplicateValues(rows, 'barcode'), [rows]);
@@ -219,7 +227,8 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
     error: total.error + (state.tone === 'error' ? 1 : 0),
     pending: total.pending + (state.tone === 'pending' ? 1 : 0),
   }), { total: 0, ready: 0, error: 0, pending: 0 }), [rowStates]);
-  const canSave = Boolean(preview?.canApply) && !isChecking && !isSaving && createdRows.length === 0;
+  const canSave = Boolean(preview?.canApply) && !isChecking && !isSaving && !creationNeedsReview && createdRows.length === 0;
+  const editLocked = isChecking || isSaving || creationNeedsReview || createdRows.length > 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -256,6 +265,8 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   function invalidatePreview() {
     setPreview(null);
     setCreatedRows([]);
+    setCreatedPreparation(null);
+    setShowSavedCardDetails(false);
   }
 
   function markDirty() {
@@ -263,6 +274,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function updateRow(rowId, key, value) {
+    if (editLocked || cardSaveRef.current) return;
     setRows((current) => current.map((row) => (
       row.id === rowId ? { ...row, [key]: value } : row
     )));
@@ -334,6 +346,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function updateIdentityField(rowId, key, value) {
+    if (editLocked || cardSaveRef.current) return;
     const currentRow = rows.find((row) => row.id === rowId);
     if (!currentRow) return;
     const nextRow = { ...currentRow, [key]: value };
@@ -345,6 +358,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function updateRowBrand(rowId, brand) {
+    if (editLocked || cardSaveRef.current) return;
     const canonicalBrand = findCanonicalOption(brand, options.brands);
     const preferred = canonicalBrand ? options.brandDefaults[canonicalBrand] : null;
     const supplierCurrency = preferred?.supplier ? options.supplierCurrencies[preferred.supplier] : '';
@@ -366,6 +380,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function updateDefaultBrand(brand) {
+    if (editLocked || cardSaveRef.current) return;
     const canonicalBrand = findCanonicalOption(brand, options.brands);
     const preferred = canonicalBrand ? options.brandDefaults[canonicalBrand] : null;
     const supplierCurrency = preferred?.supplier ? options.supplierCurrencies[preferred.supplier] : '';
@@ -383,6 +398,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function updateRowSupplier(rowId, supplier) {
+    if (editLocked || cardSaveRef.current) return;
     const canonicalSupplier = findCanonicalOption(supplier, options.suppliers);
     const supplierCurrency = canonicalSupplier ? options.supplierCurrencies[canonicalSupplier] : '';
     setRows((current) => current.map((row) => (
@@ -399,6 +415,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function updateDefaultSupplier(supplier) {
+    if (editLocked || cardSaveRef.current) return;
     const canonicalSupplier = findCanonicalOption(supplier, options.suppliers);
     const supplierCurrency = canonicalSupplier ? options.supplierCurrencies[canonicalSupplier] : '';
     setDefaults((current) => ({
@@ -411,6 +428,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function addRow() {
+    if (editLocked || cardSaveRef.current) return;
     setRows((current) => [...current, createRow(defaults)]);
     invalidatePreview();
     setNotice('Yeni boş satır eklendi.');
@@ -419,6 +437,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function copyRow(row) {
+    if (editLocked || cardSaveRef.current) return;
     setRows((current) => [...current, createRow({ ...row, stockCode: '', barcode: '' })]);
     invalidatePreview();
     setNotice('Satır kopyalandı; stok kodu ve barkod güvenlik için boş bırakıldı.');
@@ -427,6 +446,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function deleteRow(rowId) {
+    if (editLocked || cardSaveRef.current) return;
     setRows((current) => {
       const next = current.filter((row) => row.id !== rowId);
       return next.length > 0 ? next : [createRow(defaults)];
@@ -447,6 +467,8 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function clearRows() {
+    if (isChecking || isSaving || creationNeedsReview || cardSaveRef.current) return;
+    setEntryMode('purchase');
     identityTimersRef.current.forEach((timer) => clearTimeout(timer));
     identityTimersRef.current.clear();
     identityVersionsRef.current.clear();
@@ -459,6 +481,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   function applyDefaults() {
+    if (editLocked || cardSaveRef.current) return;
     setRows((current) => current.map((row) => {
       const appliesDefaultSupplier = !row.supplier && Boolean(defaults.supplier);
       return {
@@ -476,7 +499,13 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   async function runDatabaseCheck() {
-    const requestRows = toRequestRows(rows);
+    if (editLocked) return null;
+    if (entryMode === 'purchase' && rows.some((row) => hasRowContent(row) && (!Number.isFinite(Number(row.preparedQuantity)) || Number(row.preparedQuantity) < 0))) {
+      setNotice('Hazırlanan alış adedi geçerli ve sıfır veya daha büyük olmalı.');
+      setNoticeTone('error');
+      return null;
+    }
+    const requestRows = toRequestRows(rows, entryMode);
     if (requestRows.length === 0) {
       setNotice('Kontrol edilecek dolu bir satır yok.');
       setNoticeTone('error');
@@ -511,24 +540,40 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
   }
 
   async function saveCards() {
-    if (!preview?.canApply) return;
+    if (!canSave || cardSaveRef.current) return;
+    cardSaveRef.current = true;
     setIsSaving(true);
     try {
       const response = await applyProductBulkCreate({
         documentDate: preview.documentDate,
         confirmationCode: preview.confirmationCode,
-        rows: toRequestRows(rows),
+        rows: toRequestRows(rows, entryMode),
       });
       const result = response.data;
+      if (!Array.isArray(result?.rows) || result.rows.length !== toRequestRows(rows, entryMode).length) {
+        throw new Error('Kaydedilen kartların tamamı doğrulanamadı.');
+      }
       setCreatedRows(result.rows || []);
-      setNotice(`${result.createdCount} stok kartı ve varsa açılış stok hareketleri başarıyla kaydedildi.`);
+      if (entryMode === 'purchase') {
+        const preparation = makeCardPurchasePreparation(result.rows, rows, newPurchasePreparationId());
+        setCreatedPreparation(preparation);
+        onDirtyChange?.(preparation.rows.length > 0);
+      } else {
+        onDirtyChange?.(false);
+      }
+      setNotice(entryMode === 'purchase'
+        ? `${result.createdCount} stok kartı sıfır stokla kaydedildi. Hazırlanan adetler alış belgesine aktarılmayı bekliyor.`
+        : `${result.createdCount} stok kartı ve varsa açılış stok hareketleri kaydedildi. Bu miktarlar için ayrıca alış girişi yapmayın.`);
       setNoticeTone('success');
-      onDirtyChange?.(false);
     } catch (error) {
       setPreview(null);
-      setNotice(`${getApiErrorMessage(error)} Veritabanına kısmi kayıt yapılmadı.`);
+      const rejected = productCreateWasRejected(error);
+      setCreationNeedsReview(!rejected);
+      setNotice(rejected ? `${getApiErrorMessage(error)} Alanları düzeltip kartları yeniden kontrol edin.`
+        : `${getApiErrorMessage(error)} Kayıt sonucu doğrulanamadı; kartlar kaydedilmiş olabilir. Yeniden göndermeden Stok Listesi'nden kontrol edin.`);
       setNoticeTone('error');
     } finally {
+      cardSaveRef.current = false;
       setIsSaving(false);
     }
   }
@@ -539,17 +584,17 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
         <div className="bulk-product-create-title">
           <span className="bulk-product-create-icon"><PackagePlus aria-hidden="true" size={20} /></span>
           <div>
-            <strong>Toplu Stok Kartı</strong>
-            <span>Satırları kontrol edin, ardından kartları tek işlemde kaydedin</span>
+            <strong>Stok Kartı ve Alış Hazırlığı</strong>
+            <span>Kartları ve gelecek adetleri hazırlayın; stok alış belgesiyle artsın</span>
           </div>
-          <b className="is-live">Canlı kayıt</b>
+          <b className="is-live">{entryMode === 'purchase' ? 'Kart hazırlığı' : 'Açılış işlemi'}</b>
         </div>
         <div className="bulk-product-create-actions">
-          <button type="button" onClick={addRow}><Plus aria-hidden="true" size={15} />Yeni Satır</button>
-          <button type="button" onClick={clearRows}><Trash2 aria-hidden="true" size={15} />Satırları Temizle</button>
-          <button disabled={isChecking || isSaving} type="button" onClick={runDatabaseCheck}>
+          <button disabled={editLocked} type="button" onClick={addRow}><Plus aria-hidden="true" size={15} />Yeni Satır</button>
+          <button disabled={isChecking || isSaving || creationNeedsReview} type="button" onClick={clearRows}><Trash2 aria-hidden="true" size={15} />{createdRows.length > 0 ? 'Yeni Hazırlık' : 'Satırları Temizle'}</button>
+          <button disabled={editLocked} type="button" onClick={runDatabaseCheck}>
             {isChecking ? <LoaderCircle className="bulk-product-spin" aria-hidden="true" size={15} /> : <ClipboardCheck aria-hidden="true" size={15} />}
-            {isChecking ? 'Kontrol Ediliyor' : 'Veritabanını Kontrol Et'}
+            {isChecking ? 'Kontrol Ediliyor' : 'Kartları Kontrol Et'}
           </button>
           <button className="primary" disabled={!canSave} title={canSave ? 'Kontrol edilen kartları kaydet' : 'Önce veritabanı kontrolünü tamamlayın'} type="button" onClick={saveCards}>
             {isSaving ? <LoaderCircle className="bulk-product-spin" aria-hidden="true" size={15} /> : <Save aria-hidden="true" size={15} />}
@@ -558,6 +603,21 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
         </div>
       </section>
 
+      <div className="purchase-preparation-flow" aria-label="Alış hazırlığı adımları">
+        <span><b>1</b> Stok kartlarını hazırla</span><span>→</span>
+        <span><b>2</b> Alış adetlerini ve tedarikçiyi kontrol et</span><span>→</span>
+        <span><b>3</b> Alış belgesini kesinleştir</span>
+      </div>
+      <div className="purchase-preparation-mode">
+        <label>İşlem türü <select value={entryMode} disabled={editLocked} onChange={(event) => { setEntryMode(event.target.value); invalidatePreview(); }}>
+          <option value="purchase">Yeni kart ve alış hazırlığı — stok değişmez</option>
+          <option value="opening">Ayrı işlem: mevcut malın açılış stoğu</option>
+        </select></label>
+        <button type="button" onClick={() => onOpenScreen?.('bulk-purchase-entry')}>Mevcut Ürünlerle Alış Hazırla</button>
+      </div>
+      {entryMode === 'opening' && <div className="purchase-preparation-warning">Açılış, kartla birlikte stoğu hemen artırır; tedarikçi borcu oluşturmaz. Günlük gelen mal için normal alış hazırlığını kullanın. Aynı miktarı sonradan alış belgesine tekrar girmeyin.</div>}
+      {creationNeedsReview && <div className="purchase-preparation-warning"><b>Kayıt kontrolü gerekiyor.</b> Bu liste yeniden gönderime kapatıldı. <button type="button" onClick={() => onOpenScreen?.('stock-list')}>Stok Listesini Aç</button></div>}
+      {createdRows.length === 0 && <fieldset className="preparation-edit-fields" disabled={editLocked}>
       <section className="erp-panel bulk-product-defaults-panel">
         <div className="bulk-product-defaults-heading">
           <div>
@@ -587,12 +647,13 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
           </label>
         </div>
       </section>
+      </fieldset>}
 
       <section className="bulk-product-summary">
         <div><span>Dolu satır</span><strong>{summary.total}</strong><small>Hazırlanan kart</small></div>
         <div className="is-ready"><span>Kayda hazır</span><strong>{summary.ready}</strong><small>Veritabanından geçen</small></div>
         <div className={summary.error > 0 ? 'has-error' : ''}><span>Kontrol gerekli</span><strong>{summary.error + summary.pending}</strong><small>Eksik, tekrar veya bekleyen</small></div>
-        <div><span>Açılış stoğu</span><strong>{rows.reduce((total, row) => total + Number(row.openingStock || 0), 0)}</strong><small>Toplam adet</small></div>
+        <div><span>{entryMode === 'purchase' ? 'Hazırlanan alış' : 'Açılış stoğu'}</span><strong>{rows.filter(hasRowContent).reduce((total, row) => total + Number((entryMode === 'purchase' ? row.preparedQuantity : row.openingStock) || 0), 0)}</strong><small>{entryMode === 'purchase' ? 'Belge kesinleşene kadar stok artmaz' : 'Kart kaydında stoğa eklenir'}</small></div>
       </section>
 
       {notice ? (
@@ -614,7 +675,14 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
           ))}
         </section>
       ) : null}
+      {entryMode === 'purchase' && createdPreparation?.rows.length > 0 && <section className="purchase-preparation-success">
+        <p>Kartlar hazır. {createdPreparation.rows.length} ürünün alış adedi ve fiyatı sonraki ekrana taşınacak. Gerçek tedarikçiyi orada seçin.</p>
+        <button className="primary" type="button" onClick={() => { onOpenScreen?.('bulk-purchase-entry', { purchasePreparationId: createdPreparation.id, tabLabel: 'Yeni kartlar', preparation: createdPreparation }); onDirtyChange?.(false); }}>Alış Hazırlığına Aktar</button>
+      </section>}
 
+      {createdRows.length > 0 && <div className="purchase-preparation-mode"><button type="button" aria-expanded={showSavedCardDetails} onClick={() => setShowSavedCardDetails((visible) => !visible)}>{showSavedCardDetails ? 'Kart Ayrıntılarını Gizle' : 'Kaydedilen Kart Ayrıntılarını Göster'}</button></div>}
+      {(createdRows.length === 0 || showSavedCardDetails) && <>
+      <fieldset className="preparation-edit-fields" disabled={editLocked}>
       <section className="erp-panel bulk-product-grid-panel">
         <div className="panel-title">
           <strong>Stok Kartı Satırları</strong>
@@ -625,7 +693,7 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
             <thead>
               <tr>
                 <th>#</th><th>Stok kodu *</th><th>Barkod *</th><th>Ürün adı *</th><th>Marka *</th><th>Kategori *</th>
-                <th>Ana tedarikçi *</th><th>PB</th><th>Alış *</th><th>Satış *</th><th>Açılış</th><th>Durum</th><th>İşlem</th>
+                <th>Ana tedarikçi *</th><th>PB</th><th>Alış *</th><th>Satış *</th><th>{entryMode === 'purchase' ? 'Alış adedi' : 'Açılış'}</th><th>Durum</th><th>İşlem</th>
               </tr>
             </thead>
             <tbody>
@@ -673,7 +741,9 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
                     <td><select aria-label={`${index + 1}. satır para birimi`} value={row.currency} onChange={(event) => updateRow(row.id, 'currency', event.target.value)}><option value="TRY">TRY</option><option value="USD">USD</option><option value="EUR">EUR</option></select></td>
                     <td><input aria-label={`${index + 1}. satır alış fiyatı`} min="0" step="0.01" type="number" value={row.purchasePrice} onChange={(event) => updateRow(row.id, 'purchasePrice', event.target.value)} /></td>
                     <td><input aria-label={`${index + 1}. satır satış fiyatı`} min="0" step="0.01" type="number" value={row.salePrice} onChange={(event) => updateRow(row.id, 'salePrice', event.target.value)} /></td>
-                    <td><input aria-label={`${index + 1}. satır açılış stoğu`} min="0" step="1" type="number" value={row.openingStock} onChange={(event) => updateRow(row.id, 'openingStock', event.target.value)} /></td>
+                    <td>{entryMode === 'purchase'
+                      ? <input aria-label={`${index + 1}. satır hazırlanan alış adedi`} min="0" step="1" type="number" value={row.preparedQuantity} onChange={(event) => updateRow(row.id, 'preparedQuantity', event.target.value)} />
+                      : <input aria-label={`${index + 1}. satır açılış stoğu`} min="0" step="1" type="number" value={row.openingStock} onChange={(event) => updateRow(row.id, 'openingStock', event.target.value)} />}</td>
                     <td>
                       <span className={`bulk-product-status is-${state.tone}`} title={state.message}>{state.label}</span>
                       {state.tone === 'error' && state.message ? (
@@ -698,9 +768,11 @@ export function BulkProductCreateScreen({ onDirtyChange, onOpenScreen }) {
         <footer className="bulk-product-grid-footer">
           <span>* Zorunlu alan</span>
           <b>{summary.ready} hazır · {summary.error + summary.pending} kontrol bekliyor</b>
-          <span>Açılış stoğu, ürün kartıyla aynı işlemde denetlenebilir stok hareketi oluşturur.</span>
+          <span>{entryMode === 'purchase' ? 'Kartlar sıfır stokla açılır. Hazırlanan alış adedi, alış belgesi kesinleşince stoğa eklenir.' : 'Açılış stoğu, ürün kartıyla aynı işlemde denetlenebilir stok hareketi oluşturur.'}</span>
         </footer>
       </section>
+      </fieldset>
+      </>}
     </main>
   );
 }

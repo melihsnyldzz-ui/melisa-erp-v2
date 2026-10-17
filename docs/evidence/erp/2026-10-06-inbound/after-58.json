@@ -1,0 +1,67 @@
+{
+  "at": "2026-10-06T08:31:05.709Z",
+  "sourceCommit": "93365d0baf002e93010a2759bd45af2af11040e7",
+  "package": "CANONICAL-INBOUND-TEST-20261006-58",
+  "actor": 16,
+  "conditions": {
+    "transport": "LAN HTTP",
+    "pageSize": 50,
+    "samples": 3,
+    "sequence": "first50,next50,code,barcode,card,home",
+    "acceptedOpening": 16622,
+    "quarantine": 54
+  },
+  "measurements": {
+    "first50": [
+      598,
+      653,
+      722
+    ],
+    "next50": [
+      686,
+      564,
+      819
+    ],
+    "code": [
+      578,
+      593,
+      689
+    ],
+    "barcode": [
+      353,
+      375,
+      403
+    ],
+    "card": [
+      177,
+      213,
+      223
+    ],
+    "home": [
+      240,
+      185,
+      95
+    ],
+    "receiving": [
+      2027,
+      145,
+      176
+    ],
+    "purchase": [
+      354,
+      313,
+      221
+    ],
+    "supplier": [
+      346,
+      313,
+      356
+    ],
+    "fx": [
+      861,
+      120,
+      134
+    ]
+  },
+  "businessWrites": 0
+}

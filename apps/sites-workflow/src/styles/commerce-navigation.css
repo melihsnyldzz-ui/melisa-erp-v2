@@ -1,0 +1,63 @@
+.module-menu .module {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 42px;
+  padding-inline: 8px;
+}
+
+.module-menu .module-label {
+  display: inline;
+  max-width: none;
+}
+
+@media (max-width: 1200px) {
+  .erp-shell { --erp-topbar-height: 108px; }
+  .top-menu {
+    grid-template-columns: minmax(120px, 1fr) auto !important;
+    grid-template-rows: 48px 48px;
+    gap: 0 8px;
+  }
+  .top-menu .brand-block { grid-area: 1 / 1; }
+  .top-menu .top-actions { grid-area: 1 / 2; }
+  .top-menu .module-menu {
+    grid-area: 2 / 1 / 3 / 3;
+    width: 100%;
+    scrollbar-width: thin;
+  }
+  .module-menu::-webkit-scrollbar { display: block; height: 4px; }
+  .top-actions .role-view-select,
+  .top-actions .search-box { display: inline-flex; }
+}
+
+.secondary-navigation {
+  margin: 10px 0 4px;
+  border-top: 1px solid #334155;
+  padding-top: 8px;
+}
+
+.sidebar .secondary-navigation-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px;
+  border: 1px solid #475569;
+  border-radius: 5px;
+  background: #1e293b;
+  color: #e2e8f0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar .secondary-navigation-toggle:hover,
+.sidebar .secondary-navigation-toggle:focus-visible {
+  background: #334155;
+  outline: 2px solid #94a3b8;
+  outline-offset: 1px;
+}
+
+.secondary-navigation-toggle small {
+  color: #cbd5e1;
+}

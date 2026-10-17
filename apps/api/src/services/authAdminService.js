@@ -3,6 +3,7 @@ import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import { createManagedAuthUserCore, normalizeManagedAuthUser } from './createManagedAuthUserCore.mjs';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -167,60 +168,16 @@ export async function getAuthAdminOverview() {
 
 export async function createAuthAdminUser(payload = {}, actor = null) {
   assertMelisaWriteEnabled();
-  const username = normalizeUsername(payload.username);
-  const displayName = normalizeDisplayName(payload.displayName);
-  const password = normalizePassword(payload.password);
-  const roleId = Number(payload.roleId);
-  if (!Number.isInteger(roleId) || roleId < 1) {
-    throw makeServiceError('AUTH_ADMIN_ROLE_REQUIRED', 'An active role must be selected');
-  }
-
-  const passwordHash = await bcrypt.hash(password, 12);
+  // Keep target authorization and transaction lifecycle on the normal API path.
+  normalizeManagedAuthUser(payload);
   const sqlDriver = getSqlDriver();
   const pool = await getSqlPool();
   const transaction = new sqlDriver.Transaction(pool);
+  const createUser = createManagedAuthUserCore({sql, request: tx => new sqlDriver.Request(tx),
+    hashPassword: (password, rounds) => bcrypt.hash(password, rounds), writeAudit: writeAuditLog});
   await transaction.begin();
-
   try {
-    const roleResult = await new sqlDriver.Request(transaction)
-      .input('roleId', sql.BigInt, roleId)
-      .query('SELECT TOP (1) id, code, name FROM dbo.roles WHERE id = @roleId AND is_active = 1;');
-    const role = roleResult.recordset?.[0];
-    if (!role) {
-      throw makeServiceError('AUTH_ADMIN_ROLE_NOT_FOUND', 'Active role not found', 404);
-    }
-
-    const insertResult = await new sqlDriver.Request(transaction)
-      .input('username', sql.NVarChar(80), username)
-      .input('passwordHash', sql.NVarChar(255), passwordHash)
-      .input('displayName', sql.NVarChar(150), displayName)
-      .input('roleId', sql.BigInt, roleId)
-      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
-      .query(`
-        INSERT INTO dbo.users (
-          username, password_hash, display_name, role_id, is_active, created_by, updated_by
-        )
-        OUTPUT INSERTED.id
-        VALUES (
-          @username, @passwordHash, @displayName, @roleId, 1, @actorId, @actorId
-        );
-      `);
-    const userId = Number(insertResult.recordset[0].id);
-
-    await writeAuditLog(new sqlDriver.Request(transaction), {
-      action: 'user_created',
-      entityType: 'user',
-      entityId: userId,
-      afterSnapshot: {
-        username,
-        displayName,
-        roleId,
-        roleCode: role.code,
-        isActive: true,
-        passwordConfigured: true,
-      },
-      actor,
-    });
+    await createUser(transaction, payload, actor);
 
     await transaction.commit();
     return getAuthAdminOverview();

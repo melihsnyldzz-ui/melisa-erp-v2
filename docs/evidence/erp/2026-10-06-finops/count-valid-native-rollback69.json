@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-06T14:09:23.6134571Z",
+  "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "draftId": 39,
+  "productId": 325503,
+  "trialStock": 4,
+  "trialMovementCount": 1,
+  "outerRollback": true,
+  "finalStock": 3,
+  "committedBusinessWrites": 0
+}

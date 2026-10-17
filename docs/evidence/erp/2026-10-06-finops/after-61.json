@@ -1,0 +1,72 @@
+{
+  "at": "2026-10-06T11:33:35.109Z",
+  "sourceCommit": "aff60757dcb8641001ca36ac9030ab572cae8808",
+  "package": "CANONICAL-FINOPS-TEST-20261006-61",
+  "actor": 16,
+  "conditions": {
+    "transport": "LAN HTTP",
+    "pageSize": 50,
+    "samples": 3,
+    "sequence": "first50,next50,code,barcode,card,home,supplierPayments",
+    "acceptedOpening": 16622,
+    "quarantine": 54
+  },
+  "measurements": {
+    "first50": [
+      475,
+      500,
+      514
+    ],
+    "next50": [
+      403,
+      402,
+      393
+    ],
+    "code": [
+      434,
+      436,
+      451
+    ],
+    "barcode": [
+      287,
+      251,
+      266
+    ],
+    "card": [
+      138,
+      140,
+      151
+    ],
+    "home": [
+      78,
+      78,
+      83
+    ],
+    "receiving": [
+      105,
+      146,
+      115
+    ],
+    "purchase": [
+      172,
+      188,
+      162
+    ],
+    "supplier": [
+      239,
+      269,
+      258
+    ],
+    "supplierPayments": [
+      338,
+      314,
+      353
+    ],
+    "fx": [
+      84,
+      95,
+      82
+    ]
+  },
+  "businessWrites": 0
+}

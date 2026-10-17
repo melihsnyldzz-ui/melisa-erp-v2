@@ -6,6 +6,10 @@ import { env } from '../config/env.js';
 import { getSqlPool } from '../config/database.js';
 import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
+import {sharedCopyAuthClaims} from './sharedCopyAuthClaims.mjs';
+import {bindNormalTestFingerprint,configuredNormalTestRefreshStore} from './normalTestRefreshSession.mjs';
+import {allowsProtectedNormalTestUser,configuredSemihTestIdentity,matchesSemihTestUser} from './semihTestIdentityPolicy.mjs';
 
 function makeAuthError(code, message, statusCode = 401) {
   const error = new Error(message);
@@ -48,7 +52,7 @@ function getRefreshExpiresAt() {
 function toUserDto(row, permissions = []) {
   const expandedPermissions = applyRolePermissionDefaults(permissions, row.role_code);
 
-  return {
+  return bindNormalTestFingerprint({
     id: Number(row.id),
     username: row.username,
     displayName: row.display_name,
@@ -58,15 +62,18 @@ function toUserDto(row, permissions = []) {
       name: row.role_name,
     },
     permissions: expandedPermissions,
-  };
+  },row);
 }
 
-function signAccessToken(user) {
+function signAccessToken(user, nativeTerminalCode = null, normalTestSessionId = null) {
   return jwt.sign(
     {
       sub: String(user.id),
+      ...(nativeTerminalCode ? { nativeTerminalCode } : {}),
+      ...(normalTestSessionId ? { normalTestSessionId } : {}),
       username: user.username,
       role: user.role.code,
+      ...sharedCopyAuthClaims(isIsolatedOperationCopyRuntime() ? getIsolatedOperationCopyConfig() : null),
     },
     env.auth.jwtSecret,
     { expiresIn: env.auth.accessExpiresIn },
@@ -107,9 +114,11 @@ export async function getUserById(userId) {
         u.id,
         u.username,
         u.display_name,
+        u.password_hash,
         u.role_id,
         r.code AS role_code,
         r.name AS role_name,
+        r.is_active AS role_is_active,
         u.is_active
       FROM dbo.users u
       INNER JOIN dbo.roles r ON r.id = u.role_id
@@ -118,7 +127,7 @@ export async function getUserById(userId) {
 
   const row = userResult.recordset?.[0];
 
-  if (!row || !row.is_active) {
+  if (!row || !row.is_active || (row.username==='erp-semih-test-20261012'&&!row.role_is_active)) {
     throw makeAuthError('AUTH_USER_INACTIVE', 'User is inactive or not found', 401);
   }
 
@@ -126,7 +135,7 @@ export async function getUserById(userId) {
   return toUserDto(row, permissions);
 }
 
-export async function login({ username, password }, userAgent = '') {
+export async function authenticateUserCredentials({ username, password }) {
   assertAuthSecretsConfigured();
 
   const normalizedUsername = trimText(username);
@@ -148,6 +157,7 @@ export async function login({ username, password }, userAgent = '') {
         u.role_id,
         r.code AS role_code,
         r.name AS role_name,
+        r.is_active AS role_is_active,
         u.is_active
       FROM dbo.users u
       INNER JOIN dbo.roles r ON r.id = u.role_id
@@ -159,22 +169,43 @@ export async function login({ username, password }, userAgent = '') {
     ? await bcrypt.compare(normalizedPassword, row.password_hash)
     : false;
 
-  if (!row || !row.is_active || !passwordOk) {
+  if (!row || !row.is_active || !passwordOk || (row.username==='erp-semih-test-20261012'&&!row.role_is_active)) {
     throw makeAuthError('AUTH_INVALID_CREDENTIALS', 'Username or password is invalid', 401);
   }
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
   const user = toUserDto(row, permissions);
-  const accessToken = signAccessToken(user);
+  return user;
+}
 
-  if (env.sql.readOnly) {
+// Native persistence is selected by the dedicated server, never by a client flag.
+const nativeSessionPrefix = 'melisa-native-v1:';
+export async function login(credentials, userAgent = '') {
+  return issueSession(await authenticateUserCredentials(credentials), userAgent);
+}
+
+async function issueSession(user, userAgent, nativeTerminalCode = null) {
+  const pool = await getSqlPool();
+  const protectedStore=normalTestStore();
+  const identity=configuredSemihTestIdentity(normalTestIdentityOptions());
+  const semih=matchesSemihTestUser(user,identity);
+  if(user.username==='erp-semih-test-20261012'&&!semih)throw makeAuthError('AUTH_REFRESH_INVALID','Dedicated TEST identity is not configured',401);
+  if(identity&&String(user.id)===identity.userId&&(!semih||nativeTerminalCode||!protectedStore))throw makeAuthError('AUTH_REFRESH_INVALID','Dedicated TEST session configuration differs',401);
+  if(protectedStore&&!nativeTerminalCode&&allowsProtectedNormalTestUser(user,normalTestIdentityOptions())){
+    const grant=protectedStore.issue(user);
+    const accessToken=signAccessToken(user,null,grant.sid),expiresAt=jwt.decode(accessToken).exp*1000;
+    return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
+  }
+  const accessToken = signAccessToken(user, nativeTerminalCode);
+
+  if (env.sql.readOnly || process.env.MELISA_TEST_STATELESS_AUTH === 'true') {
     return {
       user,
       accessToken,
       refreshToken: null,
       tokenType: 'Bearer',
       expiresIn: env.auth.accessExpiresIn,
-      readOnlySession: true,
+      readOnlySession: env.sql.readOnly,
     };
   }
 
@@ -182,13 +213,18 @@ export async function login({ username, password }, userAgent = '') {
 
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
-  const refreshExpiresAt = getRefreshExpiresAt();
+  // DATETIME2 is non-nullable. Its final day represents explicit-logout lifetime.
+  // Short access JWT lifetime and server-side refresh revocation remain unchanged.
+  const refreshExpiresAt = nativeTerminalCode ? new Date('9999-12-31T00:00:00.000Z') : getRefreshExpiresAt();
+  const storedAgent = nativeTerminalCode
+    ? nativeSessionPrefix + Buffer.from(nativeTerminalCode).toString('base64url')
+    : 'client:' + trimText(userAgent);
 
   await pool.request()
     .input('loginUserId', sql.BigInt, user.id)
     .input('refreshTokenHash', sql.NVarChar(255), refreshTokenHash)
     .input('refreshExpiresAt', sql.DateTime2, refreshExpiresAt)
-    .input('userAgent', sql.NVarChar(300), trimText(userAgent).slice(0, 300) || null)
+    .input('userAgent', sql.NVarChar(300), storedAgent.slice(0, 300))
     .query(`
       INSERT INTO dbo.auth_refresh_tokens (
         user_id,
@@ -282,7 +318,7 @@ export async function listTerminalLoginUsers(terminalCode) {
   return getTerminalLoginContext(terminalCode);
 }
 
-export async function terminalLogin({ username, password, terminalCode }, userAgent = '') {
+export async function terminalLogin({ username, password, terminalCode }, userAgent = '', { nativeTerminal = false } = {}) {
   const context = await getTerminalLoginContext(terminalCode);
   const normalizedUsername = trimText(username);
   const normalizedUsernameKey = normalizedUsername.toLocaleLowerCase('tr-TR');
@@ -294,7 +330,9 @@ export async function terminalLogin({ username, password, terminalCode }, userAg
     throw makeAuthError('TERMINAL_USER_NOT_ALLOWED', 'User is not enabled for terminal login', 403);
   }
 
-  const session = await login({ username: normalizedUsername, password }, userAgent);
+  const user = await authenticateUserCredentials({ username: normalizedUsername, password });
+  if(user.username==='erp-semih-test-20261012')throw makeAuthError('TERMINAL_USER_NOT_ALLOWED','Dedicated TEST identity is not a personnel terminal actor',403);
+  const session = await issueSession(user, userAgent, nativeTerminal ? context.device.code : null);
   return {
     ...session,
     terminal: context.device,
@@ -345,6 +383,8 @@ export async function localPasswordlessAdminLogin() {
 }
 
 export async function logout(refreshToken) {
+  const protectedStore=normalTestStore();
+  if(protectedStore&&typeof refreshToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(refreshToken))return protectedStore.revoke(refreshToken);
   if (!refreshToken) {
     return { revoked: false };
   }
@@ -366,10 +406,20 @@ export async function logout(refreshToken) {
   };
 }
 
-export async function refreshAccessToken(refreshToken) {
-  assertMelisaWriteEnabled();
+export async function refreshAccessToken(refreshToken, { nativeTerminal = false, terminalCode = '' } = {}) {
   assertAuthSecretsConfigured();
 
+  const protectedStore=normalTestStore();
+  if(protectedStore&&typeof refreshToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(refreshToken)){
+    if(nativeTerminal||terminalCode)throw makeAuthError('AUTH_REFRESH_INVALID','Session type differs',401);
+    const user=await getUserById(protectedStore.userId(refreshToken));
+    if(!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
+    const grant=protectedStore.rotate(refreshToken,user);
+    const accessToken=signAccessToken(user,null,grant.sid),expiresAt=jwt.decode(accessToken).exp*1000;
+    return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
+  }
+
+  assertMelisaWriteEnabled();
   if (!refreshToken) {
     throw makeAuthError('AUTH_REFRESH_REQUIRED', 'Refresh token is required', 401);
   }
@@ -379,7 +429,7 @@ export async function refreshAccessToken(refreshToken) {
     .input('refreshTokenHashForRefresh', sql.NVarChar(255), hashRefreshToken(refreshToken))
     .query(`
       SELECT TOP (1)
-        user_id
+        user_id, user_agent
       FROM dbo.auth_refresh_tokens
       WHERE token_hash = @refreshTokenHashForRefresh
         AND revoked_at IS NULL
@@ -392,8 +442,25 @@ export async function refreshAccessToken(refreshToken) {
     throw makeAuthError('AUTH_REFRESH_INVALID', 'Refresh token is invalid or expired', 401);
   }
 
+  let nativeTerminalCode = null;
+  if (String(tokenRow.user_agent || '').startsWith(nativeSessionPrefix)) {
+    const boundCode = Buffer.from(tokenRow.user_agent.slice(nativeSessionPrefix.length), 'base64url').toString('utf8');
+    if (!nativeTerminal || trimText(terminalCode) !== boundCode) {
+      throw makeAuthError('AUTH_REFRESH_INVALID', 'Terminal session does not match this device', 401);
+    }
+    nativeTerminalCode = boundCode;
+    try {
+      const context = await getTerminalLoginContext(boundCode);
+      if (!context.users.some((user) => user.id === Number(tokenRow.user_id))) {
+        throw makeAuthError('AUTH_REFRESH_INVALID', 'Personnel is no longer enabled for terminal login', 401);
+      }
+    } catch (error) {
+      if (error.statusCode === 403) throw makeAuthError('AUTH_REFRESH_INVALID', 'Terminal session is no longer enabled', 401);
+      throw error;
+    }
+  }
   const user = await getUserById(tokenRow.user_id);
-  const accessToken = signAccessToken(user);
+  const accessToken = signAccessToken(user, nativeTerminalCode);
 
   return {
     user,
@@ -403,6 +470,18 @@ export async function refreshAccessToken(refreshToken) {
   };
 }
 
+function normalTestIdentityOptions(){return {copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
+function normalTestStore(){return configuredNormalTestRefreshStore(normalTestIdentityOptions());}
+export async function confirmProtectedNormalSession(accessToken,refreshToken){
+ const payload=verifyAccessToken(accessToken),store=normalTestStore();
+ if(!store||Object.hasOwn(payload,'nativeTerminalCode')||typeof payload.normalTestSessionId!=='string'||!Number.isSafeInteger(payload.exp)||!Number.isSafeInteger(payload.exp*1000)||payload.exp*1000<=Date.now())throw makeAuthError('AUTH_REFRESH_INVALID','Protected normal session is unavailable',401);
+ const user=await getUserById(payload.sub);
+ if(!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
+ verifyNormalTestAccessSession(payload,user);
+ store.verifyPair(payload.normalTestSessionId,refreshToken,user);
+ return {confirmed:true,user,expiresAt:payload.exp*1000};
+}
+export function verifyNormalTestAccessSession(payload,user){if(payload.normalTestSessionId){const store=normalTestStore();if(!store)throw makeAuthError('AUTH_REFRESH_INVALID','Session configuration unavailable',401);if(!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);store.verify(payload.normalTestSessionId,user);}}
 export function verifyAccessToken(token) {
   assertAuthSecretsConfigured();
 

@@ -1,0 +1,63 @@
+import {CRM_V2_DATABASE,crmV2Error,crmV2Id,crmV2Phone,crmV2Conversation,crmV2Uuid,normalizeCrmV2Request,crmV2Fingerprint,validateCrmV2Document} from './crmOrderV2Contract.mjs';
+function crmResponseError(response){
+ if(response.status!==429)return crmV2Error('CRM_V2_ACCESS_DENIED',response.status===401?401:403);
+ const error=crmV2Error('CRM_V2_CRM_RATE_LIMITED',429),raw=response.headers?.get('retry-after');
+ if(typeof raw==='string'&&/^\d{1,10}$/.test(raw)&&Number(raw)>0)error.retryAfterSeconds=Math.min(900,Number(raw));
+ return error;
+}
+import {getCrmOrderCurrentContext,assertCrmOrderCurrentContext,assertCrmOrderCurrentIdentity,CRM_CURRENT_PROCEDURES,crmOrderCurrentSource,crmOrderCurrentSourceHash,crmOrderCurrentConversationAllowed} from './crmOrderCurrentContext.mjs';
+import {getRegisteredCrmOrderPriceContext,verifyCrmOrderPriceContext} from './crmOrderPriceContext.mjs';
+const codes={51200:'CRM_V2_TARGET_UNAVAILABLE',51201:'CRM_V2_ACCESS_DENIED',51202:'CRM_V2_CUSTOMER_CHANGED',51203:'CRM_V2_CUSTOMER_MAPPING_REQUIRED',51204:'CRM_V2_PRODUCT_CHANGED',51205:'CRM_V2_REQUEST_CONFLICT',51206:'CRM_V2_NOT_FOUND',51207:'CRM_V2_NOT_READY',51208:'CRM_V2_LINES_INVALID',51209:'CRM_V2_LOCK_TIMEOUT'};
+export function createCrmOrderV2Service({environment=process.env,transport=globalThis.fetch,sqlDependencies=()=>import('../config/database.js'),currentContext=getCrmOrderCurrentContext()}={}){
+ if(currentContext)assertCrmOrderCurrentContext(currentContext);
+ const crmOrigin=currentContext?.crmOrigin??'http://127.0.0.1:62401';
+ const procedures=currentContext?CRM_CURRENT_PROCEDURES:{customers:'dbo.usp_test_crm_order_v2_customers',create:'dbo.usp_test_crm_order_v2_create',read:'dbo.usp_test_crm_order_v2_read'};
+ function environmentGuard(){if(currentContext){if(environment.MELISA_CRM_SHARED_TEST!=='true'||environment.SQL_DATABASE!==currentContext.target.database||environment.SQL_USER!==currentContext.target.login||String(environment.API_PORT)!==String(currentContext.nativePort)||environment.MELISA_TEST_SCOPED_SALES!=='true'||environment.SQL_READ_ONLY!=='false')throw crmV2Error('CRM_V2_TARGET_UNAVAILABLE',503);}else if(environment.MELISA_CANONICAL_TEST!=='true'||environment.MELISA_TEST_SCOPED_SALES!=='true'||environment.SQL_DATABASE!==CRM_V2_DATABASE||environment.SQL_READ_ONLY!=='false')throw crmV2Error('CRM_V2_TARGET_UNAVAILABLE',503);}
+ function nativeActor(actor,permission){try{crmV2Id(Number(actor?.id));if(String(Number(actor.id))!==String(actor.id)||actor.active===false||!Array.isArray(actor.permissions)||!actor.permissions.includes(permission))throw Error();return Number(actor.id);}catch{throw crmV2Error('CRM_V2_ACCESS_DENIED',403);}}
+ async function crmContext(authorization,conversationId,peer){
+  environmentGuard();if(typeof authorization!=='string'||!/^Bearer [^\s]+$/.test(authorization))throw crmV2Error('CRM_V2_SESSION_REQUIRED',401);
+  crmV2Conversation(conversationId);crmV2Phone(peer);if(currentContext&&!crmOrderCurrentConversationAllowed(currentContext,conversationId,crmV2Phone(peer)))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);
+  async function read(route){let response;try{response=await transport(new URL(route,crmOrigin),{headers:{authorization,accept:'application/json'},redirect:'error',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(10000)});}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}
+   if(!response.ok)throw crmResponseError(response);
+   try{const raw=await response.text();if(Buffer.byteLength(raw)>2097152)throw Error();const b=JSON.parse(raw);if(b.success!==true)throw Error();return b;}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}}
+  const identity=await read('/auth/me'),a=identity.data;
+  if(identity.meta?.source!=='crm-auth'||typeof a?.id!=='string'||!a.id||a.id.length>80||a.active===false||!['patron','mudur','personel'].includes(a.role)||!Array.isArray(a.permissions)||!a.permissions.includes('crm.view')||!a.permissions.includes('crm.send'))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);
+  const conv=await read('/crm/conversations/'+conversationId);
+  if(conv.meta?.source!=='chatwoot-conversation'||String(conv.data?.id)!==conversationId||crmV2Phone(conv.data?.phone)!==crmV2Phone(peer))throw crmV2Error('CRM_V2_CONVERSATION_CHANGED',403);
+  environmentGuard();return a;
+ }
+ async function sqlExecute(procedure,bindings,fresh){environmentGuard();const db=await sqlDependencies(),pool=await db.getSqlPool(),sql=db.getSqlDriver();
+  const identity=(await pool.request().query(currentContext?"SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,ORIGINAL_LOGIN() loginName,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') databaseControl,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess,(SELECT COUNT(*) FROM sys.databases WHERE name<>DB_NAME() AND (UPPER(name) LIKE '%PROD%' OR UPPER(name) LIKE '%LIVE%') AND HAS_DBACCESS(name)=1) liveDatabaseAccess":"SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName")).recordset?.[0];
+  if(currentContext)assertCrmOrderCurrentIdentity(currentContext,identity);else if(identity?.databaseName!==CRM_V2_DATABASE||identity.serverName!=='Semih\\MELISADEV')throw crmV2Error('CRM_V2_TARGET_UNAVAILABLE',503);
+  await fresh();environmentGuard();const price=getRegisteredCrmOrderPriceContext(currentContext),priced=price&&[price.procedures.create,price.procedures.read].includes(procedure);if(priced)await verifyCrmOrderPriceContext(currentContext,pool.request());const request=pool.request();for(const [name,type,value] of bindings)request.input(name,type(sql),value);
+  try{const result=await request.execute(procedure);if(priced)await verifyCrmOrderPriceContext(currentContext,pool.request());return result;}catch(e){const code=codes[e.number||e.originalError?.info?.number]||'CRM_V2_UNAVAILABLE';throw crmV2Error(code,code==='CRM_V2_NOT_FOUND'?404:code==='CRM_V2_ACCESS_DENIED'?403:['CRM_V2_CUSTOMER_CHANGED','CRM_V2_CUSTOMER_MAPPING_REQUIRED','CRM_V2_PRODUCT_CHANGED','CRM_V2_REQUEST_CONFLICT'].includes(code)?409:503);}}
+ const actors=(native,crm)=>[['actor_id',s=>s.BigInt,native],['crm_actor_id',s=>s.NVarChar(80),crm.id],...(currentContext?[['source_context_hash',s=>s.Char(64),crmOrderCurrentSourceHash(currentContext)]]:[])];
+ function document(raw,uuid){if(!currentContext)return validateCrmV2Document(raw,uuid);const {currentSource=null,...base}=raw;const result=validateCrmV2Document(base,uuid);if(currentSource!==null){const c=currentSource;if(Object.keys(c).sort().join()!==['runId','sourceAsOf','sourceHash','planHash','bindingsHash','snapshotHash','counts','actualT1'].sort().join()||!/^PRODUCT-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(c.runId)||!/^\d{4}-\d{2}-\d{2}$/.test(c.sourceAsOf)||c.actualT1!==false||['sourceHash','planHash','bindingsHash','snapshotHash'].some(k=>!/^[a-f0-9]{64}$/i.test(c[k]))||!c.counts||Object.keys(c.counts).sort().join()!=='prices,products'||Object.values(c.counts).some(n=>!Number.isSafeInteger(n)||n<1))throw crmV2Error('CRM_V2_READBACK_INVALID',503);}return {...result,currentSource,sourceMetadataStatus:currentSource?'sealed-current-source':'legacy-persisted'};}
+ const resultJson=result=>{try{const rows=result.recordset;if(!Array.isArray(rows)||rows.length!==1||typeof rows[0].resultJson!=='string')throw Error();return JSON.parse(rows[0].resultJson);}catch{throw crmV2Error('CRM_V2_READBACK_INVALID',503);}};
+ async function access(actor,authorization,permission,conversationId,peer){const native=nativeActor(actor,permission),crm=await crmContext(authorization,conversationId,peer);const fresh=async()=>{const now=await crmContext(authorization,conversationId,peer);if(now.id!==crm.id||now.role!==crm.role||now.chatwootAgentId!==crm.chatwootAgentId)throw crmV2Error('CRM_V2_ACCESS_DENIED',403);};return {native,crm,fresh};}
+ return {
+  async customers(query,actor,authorization){
+   if(!query||Object.keys(query).some(k=>!['phone','conversationId','search'].includes(k))||typeof query.search!=='undefined'&&(typeof query.search!=='string'||query.search.length>120))throw crmV2Error('CRM_V2_QUERY_INVALID');
+   const phone=crmV2Phone(query.phone),conversationId=crmV2Conversation(query.conversationId),a=await access(actor,authorization,'sales.view',conversationId,phone);
+   const result=await sqlExecute(procedures.customers,[...actors(a.native,a.crm),...(currentContext?.approvedConversations?[['conversation_id',s=>s.NVarChar(20),conversationId]]:[]),['phone',s=>s.NVarChar(15),phone],['search',s=>s.NVarChar(120),query.search??'']],a.fresh);
+   await a.fresh();const out=resultJson(result);
+   if(out.phone!==phone||!['matched','missing','ambiguous','quarantined'].includes(out.status)||!Array.isArray(out.entries)||out.entries.length>50||!Number.isInteger(out.exactMatchCount)||out.exactMatchCount<0)throw crmV2Error('CRM_V2_READBACK_INVALID',503);
+   for(const e of out.entries){crmV2Id(e.id);if(typeof e.code!=='string'||typeof e.name!=='string'||!['TRY','USD','EUR'].includes(e.currency)||typeof e.exactPhoneMatch!=='boolean'||typeof e.blocked!=='boolean'||typeof e.revision!=='string'||!/^[a-f0-9]{64}$/.test(e.revision)||Object.keys(e).some(k=>!['id','code','name','currency','exactPhoneMatch','blocked','revision'].includes(k)))throw crmV2Error('CRM_V2_READBACK_INVALID',503);}
+   if(currentContext&&JSON.stringify(out.currentSource)!==JSON.stringify(crmOrderCurrentSource(currentContext)))throw crmV2Error('CRM_V2_READBACK_INVALID',503);return out;
+  },
+  async create(input,actor,authorization){const normalized=normalizeCrmV2Request(input),price=getRegisteredCrmOrderPriceContext(currentContext);if(normalized.pricingContract&&!price)throw crmV2Error('CRM_V2_TARGET_UNAVAILABLE',503);const a=await access(actor,authorization,'sales.create',normalized.conversationId,normalized.peer),hash=crmV2Fingerprint(normalized,a.native,a.crm.id);
+   const result=await sqlExecute(price?.procedures.create??procedures.create,[...actors(a.native,a.crm),['request_id',s=>s.UniqueIdentifier,normalized.requestId],['body_json',s=>s.NVarChar(s.MAX),JSON.stringify(normalized)],['payload_hash',s=>s.VarChar(64),hash]],a.fresh);
+   await a.fresh();const raw=resultJson(result);if(raw.payloadHash!==hash)throw crmV2Error('CRM_V2_READBACK_INVALID',503);return document(raw,normalized.requestId);
+  },
+  async get(requestId,actor,authorization){const uuid=crmV2Uuid(requestId),native=nativeActor(actor,'sales.view');
+   // Native scoped read first returns the frozen conversation/peer for fresh CRM
+   // authorization. Only this service-local result is read before that check.
+   const identity=await crmContextIdentity(authorization);
+   const result=await sqlExecute(getRegisteredCrmOrderPriceContext(currentContext)?.procedures.read??procedures.read,actors(native,identity).concat([['request_id',s=>s.UniqueIdentifier,uuid]]),async()=>{const now=await crmContextIdentity(authorization);if(now.id!==identity.id||now.role!==identity.role||now.chatwootAgentId!==identity.chatwootAgentId)throw crmV2Error('CRM_V2_ACCESS_DENIED',403);});
+   const raw=resultJson(result),stored=document(raw,uuid),current=await crmContext(authorization,stored.request.conversationId,stored.request.peer);
+   if(current.id!==identity.id||current.role!==identity.role||current.chatwootAgentId!==identity.chatwootAgentId)throw crmV2Error('CRM_V2_ACCESS_DENIED',403);return stored;
+  },
+ };
+ async function crmContextIdentity(authorization){environmentGuard();if(typeof authorization!=='string'||!/^Bearer [^\s]+$/.test(authorization))throw crmV2Error('CRM_V2_SESSION_REQUIRED',401);let response;try{response=await transport(new URL('/auth/me',crmOrigin),{headers:{authorization},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}if(!response.ok)throw crmResponseError(response);let body;try{const text=await response.text();if(Buffer.byteLength(text)>2097152)throw Error();body=JSON.parse(text);}catch{throw crmV2Error('CRM_V2_CRM_UNAVAILABLE',503);}const a=body.data;if(body.success!==true||body.meta?.source!=='crm-auth'||typeof a?.id!=='string'||!a.id||a.id.length>80||a.active===false||!['patron','mudur','personel'].includes(a.role)||!Array.isArray(a.permissions)||!a.permissions.includes('crm.view')||!a.permissions.includes('crm.send'))throw crmV2Error('CRM_V2_ACCESS_DENIED',403);return a;}
+}
+let instance;export const crmOrderV2Service=()=>instance??=(createCrmOrderV2Service());

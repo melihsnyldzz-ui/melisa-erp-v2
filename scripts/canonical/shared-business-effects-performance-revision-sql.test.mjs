@@ -1,0 +1,39 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+import {stage4EffectsSQL,moduleHash,COPY_DB,COPY_LOGIN} from './stage4-copy-sql.mjs';
+import {businessCopyReadySQL} from './shared-business-native-guards.mjs';
+import {buildBusinessReadyRevision} from './shared-business-ready-revision-sql.mjs';
+import {buildBusinessReadyPerformanceRevision} from './shared-business-ready-performance-revision-sql.mjs';
+import {buildBusinessEffectsPerformanceRevision,optimizeBusinessEffectsSQL,effectsTableSQL} from './shared-business-effects-performance-revision-sql.mjs';
+import {businessInboundFixture} from '../../apps/api/src/services/businessInbound.test-fixture.mjs';
+import {isolatedCopyHash,validateIsolatedOperationCopyContext,validateIsolatedCopyEffectsPerformanceRevision} from '../../apps/api/src/services/isolatedOperationCopyContext.mjs';
+function fixture(){
+ const raw=structuredClone(businessInboundFixture().copy);
+ for(const [kind,count,start] of [['customers',26,100],['suppliers',11,200]])raw[kind]=Array.from({length:count},(_,i)=>({...raw[kind][0],id:String(start+i),accountId:String(start+1000+i)}));
+ const ready=businessCopyReadySQL();const factory=fs.readFileSync(new URL('./shared-business-copy-sql.mjs',import.meta.url),'utf8');const block=factory.slice(factory.indexOf('let effects=stage4EffectsSQL();'),factory.indexOf('const newDefinitions='));
+ const effects=Function('stage4EffectsSQL',block+'return effects;')(stage4EffectsSQL).replaceAll(COPY_DB,raw.target.database).replaceAll(COPY_LOGIN,raw.target.login);
+ raw.sql.ready.hash=moduleHash(ready);raw.sql.effects.hash=moduleHash(effects);delete raw.sealHash;raw.sealHash=isolatedCopyHash(raw);const context=validateIsolatedOperationCopyContext(raw);
+ const definitions=[{name:raw.sql.ready.name,definition:ready,afterHash:moduleHash(ready)},{name:raw.sql.effects.name,definition:effects,afterHash:moduleHash(effects)}];const bundle={config:{copyContext:raw},newDefinitions:definitions,moduleManifest:[...definitions.map(({name,afterHash})=>({name,afterHash})),...Array.from({length:183},(_,i)=>({name:'dbo.fixture_'+i,afterHash:'A'.repeat(64)}))]};
+ const old1=buildBusinessReadyRevision(bundle),old2=buildBusinessReadyPerformanceRevision(bundle,old1);
+ const baselineResiduals=[...raw.customers.map(p=>({...p,role:'customer'})),...raw.suppliers.map(p=>({...p,role:'supplier'}))].map((p,i)=>({role:p.role,id:p.id,accountId:p.accountId,currency:p.currency,residualExact8:i%2?'-0.00000001':'0.00000001',beforeHash:p.beforeHash,accountBeforeHash:p.accountBeforeHash,sourceWitnessHash:p.sourceWitnessHash}));
+ const capture={schemaVersion:'melisa-business-effects-baseline-capture.v1',database:raw.target.database,server:raw.target.server,copyId:raw.copyId,baseSealHash:raw.sealHash,baseReadyPerformanceRevisionHash:old2.revision.revisionHash,baselineResiduals,capturedNativeRowsMatch:true,businessWrites:0,openingHumanAccepted:false};return {bundle,old1,old2,capture,context,effects};
+}
+test('v3 source preserves every effects predicate and replay/DML line except four scalar materializations and the exact captured residual invariant',()=>{
+ const f=fixture(),a=buildBusinessEffectsPerformanceRevision(f.bundle,f.old1,f.old2,f.capture),sql=a.replacements[1].definition;
+ for(const k of ['Stock','Customer','Supplier','Finance'])assert.equal((sql.match(new RegExp("JSON_VALUE\\(@before,'\\$\\.max"+k+"Id'\\)",'g'))||[]).length,1);
+ for(const line of f.effects.split('\n')){if(line.includes('STAGE4_EFFECT_INTENT_REQUIRED')||line.includes('STAGE4_MAIN_CARD_BALANCE_MISMATCH')||line.startsWith('CREATE PROCEDURE'))continue;const cached=['Stock','Customer','Supplier','Finance'].reduce((s,k)=>s.replaceAll(`TRY_CONVERT(bigint,JSON_VALUE(@before,'$.max${k}Id'))`,`@max${k}Id`),line);assert.ok(sql.split('\n').includes(cached),line);}
+ assert.match(sql,/c\.currency_code=a\.currency_code AND CONVERT\(decimal\(28,8\),c\.balance\)-CONVERT\(decimal\(28,8\),a\.current_balance\)<>ISNULL\(r\.residualExact8,CONVERT\(decimal\(29,8\),0\)\)/);assert.doesNotMatch(sql,/ROUND\(|decimal\(38,8\),c\.balance\)/);assert.ok(sql.includes("'BUSINESS_UNBOUND_NATIVE_MOVEMENT'"));
+});
+test('v3 preserves all historical artifacts and produces API-valid two-module source-sealed finite37 chain',()=>{
+ const f=fixture(),before=structuredClone(f),a=buildBusinessEffectsPerformanceRevision(f.bundle,f.old1,f.old2,f.capture);assert.deepEqual(f,before);validateIsolatedCopyEffectsPerformanceRevision(f.context,f.old1.revision,f.old2.revision,a.revision);assert.equal(a.revision.baselineResidualsHash,isolatedCopyHash(a.revision.baselineResiduals));assert.equal(a.replacements.length,2);for(const m of a.replacements)assert.equal(moduleHash(m.definition.replace(/^ALTER PROCEDURE /,'CREATE PROCEDURE ')),m.afterHash);assert.equal(a.businessWrites,0);
+ const sql=a.replacements[0].definition;assert.ok(sql.includes('COALESCE(w.after_hash,v.after_hash,r.after_hash,p.after_hash)'));assert.equal((sql.match(/JSON_VALUE\(@p,'\$\.sealHash'\)/g)||[]).length,1);for(const line of f.old2.replacements[0].definition.split('\n').filter(l=>!l.includes('OBJECT_DEFINITION(@@PROCID)')&&!l.includes('STAGE4_MODULE_DRIFT')&&!l.startsWith('ALTER PROCEDURE')))assert.ok(sql.split('\n').includes(line),line);
+});
+test('residual witnesses, list membership, amounts and old frozen body drift fail closed',()=>{
+ for(const mutate of [f=>f.capture.baselineResiduals.pop(),f=>f.capture.baselineResiduals[0].residualExact8='0.00000000',f=>f.capture.baselineResiduals[0].residualExact8='0.000000001',f=>f.capture.baselineResiduals[0].accountBeforeHash='F'.repeat(64),f=>f.capture.baselineResiduals[0].sourceWitnessHash='F'.repeat(64),f=>f.capture.baselineResiduals[0].currency='LL',f=>f.capture.baselineResiduals[0].id='591',f=>f.capture.baselineResiduals[0].extra=true,f=>f.old2.replacements[0].definition+=' ',f=>f.capture.capturedNativeRowsMatch=false]){const f=fixture();mutate(f);assert.throws(()=>buildBusinessEffectsPerformanceRevision(f.bundle,f.old1,f.old2,f.capture));}
+ assert.throws(()=>optimizeBusinessEffectsSQL('no known source body','A'.repeat(64)));
+});
+test('immutable two-row append binds37 full source/native hashes, exact residual and unchanged old1/2 chain',()=>{
+ const f=fixture(),a=buildBusinessEffectsPerformanceRevision(f.bundle,f.old1,f.old2,f.capture);assert.match(effectsTableSQL,/REFERENCES dbo\.stage4_copy_ready_performance_revisions\(copy_id\)/);assert.match(effectsTableSQL,/PRIMARY KEY\(copy_id,name\)/);for(const needle of ['COUNT(*) FROM inserted)<>2','EXISTS(SELECT 1 FROM deleted)','<>185','COUNT(*) FROM @baselineResiduals)<>37',f.old1.revision.immutableTriggerHash,f.old2.revision.immutableTriggerHash,'b.accountBeforeHash<>','b.beforeHash<>','BUSINESS_EFFECTS_BASELINE_NATIVE_DRIFT','sourceKnown=1'])assert.ok(a.immutableSQL.includes(needle),needle);assert.doesNotMatch(a.immutableSQL,/UPDATE dbo\.|DELETE FROM dbo\.|DISABLE TRIGGER|NOCHECK|ROUND\(/);
+});
+test('separate installer requires frozen chain, candidate normal10s rollback and owner rollback snapshot before Apply',()=>{
+ const s=fs.readFileSync(new URL('./shared-business-effects-performance-revision-install.ps1',import.meta.url),'utf8');for(const needle of ["$Mode='Rehearse'",'BUSINESS_EFFECTS_PERFORMANCE_REHEARSAL_REQUIRED','CANDIDATE_REHEARSAL_REQUIRED',"$_.ms-lt 10000",'BusinessSnapshot','HistorySnapshot','ProtectedSQLSnapshot','RoleSnapshot','businessReadyPerformanceRevision','businessEffectsPerformanceRevision',"'dbo.stage4_copy_ready_performance_revisions'",'VERIFY_METADATA_VISIBILITY',"'melisa_shared_test_ro_20261009_02'","'melisa_shared_test_rw_20261009_02'",'storedDMLProof=\'PENDING_AFTER_APPLY\''])assert.ok(s.includes(needle),needle);assert.doesNotMatch(s,/UPDATE dbo\.stage4_copy_ready|UPDATE dbo\.stage4_copy_module_manifest|DISABLE TRIGGER|NOCHECK|DROP TABLE|TRUNCATE|ALTER ROLE/);
+});

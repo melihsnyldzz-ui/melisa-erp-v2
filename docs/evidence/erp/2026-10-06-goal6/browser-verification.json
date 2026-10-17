@@ -1,0 +1,152 @@
+{
+  "sourceCommit": "4f918c51fd49c86953a69484714af41bec1cf794",
+  "sevenReportsVerified": true,
+  "sixPeriodsVerified": true,
+  "groupingVerified": [
+    "brand",
+    "type",
+    "product"
+  ],
+  "unknownClassification": "Bilinmiyor",
+  "periodReadyMs": {
+    "today": 542,
+    "yesterday": 328,
+    "last7": 335,
+    "month": 326,
+    "previousMonth": 311
+  },
+  "csvUi": "2 kayıt CSV olarak hazırlandı. Aktif filtreler ve döviz ayrımı korundu.",
+  "downloadEventObserved": false,
+  "screens": [
+    {
+      "screen": "reports",
+      "requestedCssWidth": 1440,
+      "metrics": {
+        "clientHeight": 999.9999389648438,
+        "clientWidth": 1439.6693115234375,
+        "offsetX": 0,
+        "offsetY": 0,
+        "pageX": 0,
+        "pageY": 0,
+        "scale": 1,
+        "zoom": 1.2100000381469729
+      },
+      "dom": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      }
+    },
+    {
+      "screen": "reports",
+      "requestedCssWidth": 1024,
+      "metrics": {
+        "clientHeight": 999.9999389648438,
+        "clientWidth": 1023.9668579101562,
+        "offsetX": 0,
+        "offsetY": 0,
+        "pageX": 0,
+        "pageY": 0,
+        "scale": 1,
+        "zoom": 1.2100000381469729
+      },
+      "dom": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      }
+    },
+    {
+      "screen": "reports",
+      "requestedCssWidth": 390,
+      "metrics": {
+        "clientHeight": 843.8016357421875,
+        "clientWidth": 390.0826110839844,
+        "offsetX": 0,
+        "offsetY": 0,
+        "pageX": 0,
+        "pageY": 0,
+        "scale": 1,
+        "zoom": 1.2100000381469729
+      },
+      "dom": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "screen": "settings",
+      "requestedCssWidth": 1440,
+      "metrics": {
+        "clientHeight": 999.9999389648438,
+        "clientWidth": 1439.6693115234375,
+        "offsetX": 0,
+        "offsetY": 0,
+        "pageX": 0,
+        "pageY": 0,
+        "scale": 1,
+        "zoom": 1.2100000381469729
+      },
+      "dom": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      }
+    },
+    {
+      "screen": "settings",
+      "requestedCssWidth": 1024,
+      "metrics": {
+        "clientHeight": 999.9999389648438,
+        "clientWidth": 1023.9668579101562,
+        "offsetX": 0,
+        "offsetY": 0,
+        "pageX": 0,
+        "pageY": 0,
+        "scale": 1,
+        "zoom": 1.2100000381469729
+      },
+      "dom": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      }
+    },
+    {
+      "screen": "settings",
+      "requestedCssWidth": 390,
+      "metrics": {
+        "clientHeight": 843.8016357421875,
+        "clientWidth": 390.0826110839844,
+        "offsetX": 0,
+        "offsetY": 0,
+        "pageX": 0,
+        "pageY": 0,
+        "scale": 1,
+        "zoom": 1.2100000381469729
+      },
+      "dom": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      }
+    }
+  ],
+  "openings": [
+    {
+      "screen": "settings",
+      "observedReadyMs": 63
+    },
+    {
+      "screen": "reports",
+      "readyMs": 39
+    },
+    {
+      "screen": "settings",
+      "readyMs": 163
+    },
+    {
+      "screen": "settings",
+      "fullReloadReadyMs": 273
+    },
+    {
+      "screen": "reports",
+      "fullReloadDataReadyMs": 532
+    }
+  ]
+}

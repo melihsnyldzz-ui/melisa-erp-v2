@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "melisa-goal8-runtime-readonly.v1",
+  "mode": "READ_ONLY",
+  "liveChanges": false,
+  "backup": {
+    "newBackup": false,
+    "freshVerifyOnly": false,
+    "newRestore": false,
+    "goal6": {
+      "copyOnly": true,
+      "sourceBeforeAfterEqual": true,
+      "readOnly": true,
+      "historical": true,
+      "verifyOnlyPassed": true,
+      "filePresent": true,
+      "checksum": true,
+      "sha256": "238D65006C7515CCEA30F79B1678AA65AFA6BB2A366EF4337F8CA6745C1EE47D",
+      "restoredMatchesSource": true,
+      "sizeBytes": 7283015680,
+      "restoreCompletedAt": "2026-10-06T19:45:53.5863028Z",
+      "restoreDatabase": "MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01",
+      "activeDatabaseOverwritten": false,
+      "restored": true,
+      "backupCompletedAt": "2026-10-06T19:45:35.6851707Z"
+    },
+    "notFreshCutoverRecoveryProof": true,
+    "goal73": {
+      "activeDatabaseRestore": false,
+      "filePresent": true,
+      "sizeBytes": 7748976640,
+      "verifyOnlyPassed": true,
+      "sha256": "949b835f062fc3d3d45f01e81de1bebde51dc3a624244e4b103c6d5e60232ca0",
+      "historical": true,
+      "completedAt": "2026-10-07T13:33:36.5680288Z",
+      "copyOnly": true,
+      "checksum": true
+    },
+    "backupFileHashRecomputed": false
+  },
+  "crm": {
+    "at": "2026-10-07T19:38:06.732Z",
+    "currentReadProbe": "VERIFIED",
+    "sourceCommit": "77a2fa346b4c3653b77e33625e185c1259402af7",
+    "packageId": "crm-test-77a2fa346b4c3653b77e33625e185c1259402af7",
+    "manifestSha256": "ccdaab18c33973ef5a7e95e28f696fb8ff0426c41c339faefc00bf9eb9929b31",
+    "healthStatus": 200,
+    "conversationGetStatus": 200,
+    "conversationSamplesMs": [
+      247,
+      150,
+      144
+    ],
+    "conversationMedianMs": 150,
+    "catalogProductGetStatus": 200,
+    "catalogProductMs": 289,
+    "authBootstrapOnly": true,
+    "messagesSent": 0,
+    "translationCalls": 0,
+    "draftsCreated": 0,
+    "assignmentsChanged": 0,
+    "rolesChanged": 0
+  },
+  "sourceProcedureFiles": [
+    {
+      "sha256": "ce0e044ecc0743b05154e45edadcd79eff01a1dabc2f229e12c54a8852623663",
+      "path": "scripts/canonical/manage-owned-test-startup.ps1",
+      "exists": true
+    },
+    {
+      "sha256": "677676be8739ca4a8d4a54bb4c8d02969f7291e602e74477e636d44b68d33565",
+      "path": "scripts/canonical/start-owned-test.ps1",
+      "exists": true
+    },
+    {
+      "sha256": "5b6eb67eded018bf379f05426e16fd63d439ef228b0bce57fb6e1b7fabcbdc45",
+      "path": "scripts/canonical/goal6-backup-restore.ps1",
+      "exists": true
+    },
+    {
+      "sha256": "9ede0750ae4bfec6580060b3451a1d13d9980a63251d28c56256767bbebab4f2",
+      "path": "scripts/canonical/goal6-restore-read.mjs",
+      "exists": true
+    },
+    {
+      "sha256": "b16e4f083d26db4d112e4a6fc4e07fb08cef4be9cc9a4a64bf5eebd3511fa885",
+      "path": "scripts/canonical/goal6-restore-contract.mjs",
+      "exists": true
+    }
+  ],
+  "realT1": false,
+  "status": "VERIFIED",
+  "terminal": {
+    "apiReadProbe": "VERIFIED",
+    "nativeHealthPort": 4146,
+    "nativeHealthStatus": 200,
+    "nativeWriteEnabled": false,
+    "automaticSubmit": false,
+    "pilotProductReadPort": 4144,
+    "productsGetStatus": 200,
+    "productsMs": 2693,
+    "salesSubmitted": 0,
+    "physicalDeviceAccepted": false
+  },
+  "at": "2026-10-07T19:52:02.9455368Z",
+  "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+  "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+  "releaseName": "CANONICAL-GOAL8-TEST-20261007-94",
+  "releaseManifestSha256": "52973390f69b8eeb4937c16cff14ac461f0128d6ecfd3934f530f7a5c0aa365c",
+  "allReleaseFileHashesVerified": true,
+  "services": [
+    {
+      "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+      "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+      "environment": "CANONICAL_TEST",
+      "name": "web",
+      "databaseControl": null,
+      "sysadmin": null,
+      "sqlReadOnly": null,
+      "ownedProcessVerified": true,
+      "port": 5194,
+      "observedAt": "2026-10-07T19:51:59.5459279Z",
+      "database": null,
+      "healthOK": true,
+      "ownedRecordMatched": true,
+      "liveDatabaseAccess": null
+    },
+    {
+      "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+      "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+      "environment": "CANONICAL_TEST",
+      "name": "native",
+      "databaseControl": 0,
+      "sysadmin": 0,
+      "sqlReadOnly": true,
+      "ownedProcessVerified": true,
+      "port": 4146,
+      "observedAt": "2026-10-07T19:52:01.1839183Z",
+      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "healthOK": true,
+      "ownedRecordMatched": true,
+      "liveDatabaseAccess": 0
+    },
+    {
+      "packageId": "CANONICAL-TEST-cee7d7a85b4c",
+      "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+      "environment": "CANONICAL_TEST",
+      "name": "api",
+      "databaseControl": 0,
+      "sysadmin": 0,
+      "sqlReadOnly": false,
+      "ownedProcessVerified": true,
+      "port": 4144,
+      "observedAt": "2026-10-07T19:52:02.9407670Z",
+      "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "healthOK": true,
+      "ownedRecordMatched": true,
+      "liveDatabaseAccess": 0
+    }
+  ],
+  "startup": {
+    "runLevel": "Limited",
+    "restart": false,
+    "ownerMatched": true,
+    "physicalLogonAccepted": false,
+    "observedAt": "2026-10-07T19:52:02.9455368Z",
+    "actionMatched": true,
+    "taskName": "Melisa-ERP-TEST-Canonical",
+    "logonType": "Interactive",
+    "executableMatched": true,
+    "state": "Ready",
+    "existingOwnedRecordsMatched": true,
+    "taskRun": false
+  },
+  "sectionObservedAt": {
+    "crm": "2026-10-07T19:38:06.732Z",
+    "priorTerminalProductRead": "RETAINED_FROM_PREVIOUS_RECEIPT_NOT_REPROBED",
+    "runtime": "2026-10-07T19:52:02.9455368Z",
+    "startup": "2026-10-07T19:52:02.9455368Z",
+    "historicalBackupReceiptInventory": "2026-10-07T19:36:43.9865305Z",
+    "services": "2026-10-07T19:52:02.9455368Z"
+  },
+  "terminalHealthRefresh": {
+    "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+    "liveDatabaseAccess": 0,
+    "nativeReadOnly": true,
+    "port": 4146,
+    "observedAt": "2026-10-07T19:52:02.9455368Z",
+    "physicalDeviceAccepted": false,
+    "productsReprobed": false,
+    "salesSubmitted": 0
+  },
+  "directSqlStatements": 0
+}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 function formatMoney(amount, currency) {
+  if (amount == null || !Number.isFinite(amount)) return '—';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -20,6 +21,7 @@ export function PurchaseInvoiceTotals({ totals }) {
           <span><small>Ara toplam</small><b>{formatMoney(totals.subtotal, currency)}</b></span>
           <span><small>İskonto</small><b>{formatMoney(totals.totalDiscount, currency)}</b></span>
           <span className="invoice-grand-total"><small>Genel toplam</small><strong>{formatMoney(totals.grandTotal, currency)}</strong></span>
+          <span><small>Tedarikçi cari borcu · {totals.accountCurrency || 'Cari seçin'}</small><strong>{formatMoney(totals.accountAmount, totals.accountCurrency === '-' ? 'TRY' : totals.accountCurrency || 'TRY')}</strong></span>
         </div>
         <button
           aria-expanded={isOpen}
@@ -40,8 +42,8 @@ export function PurchaseInvoiceTotals({ totals }) {
           <dd>{formatMoney(totals.lineDiscountTotal, currency)}</dd>
         </div>
         <div>
-          <dt>Fiş geneli iskonto %</dt>
-          <dd>%{totals.invoiceDiscountRate}</dd>
+          <dt>Fiş geneli iskonto {totals.invoiceDiscountType === 'amount' ? 'tutarı' : '%'}</dt>
+          <dd>{totals.invoiceDiscountType === 'amount' ? formatMoney(totals.invoiceDiscountAmount, currency) : `%${totals.invoiceDiscountRate}`}</dd>
         </div>
         <div>
           <dt>Tedarikçi genel iskonto %</dt>
@@ -57,7 +59,7 @@ export function PurchaseInvoiceTotals({ totals }) {
         </div>
         <div>
           <dt>Kur</dt>
-          <dd>{currency} {Number(totals.exchangeRate || 1).toFixed(4)}</dd>
+          <dd>{currency} {Number(totals.exchangeRate) > 0 ? Number(totals.exchangeRate).toFixed(4) : 'Tanımsız'}</dd>
         </div>
         <div>
           <dt>Satır sayısı</dt>
@@ -70,6 +72,14 @@ export function PurchaseInvoiceTotals({ totals }) {
         <div>
           <dt>TRY karşılık</dt>
           <dd>{formatMoney(totals.tryEquivalent, 'TRY')}</dd>
+        </div>
+        <div>
+          <dt>Tedarikçi cari borcu · {totals.accountCurrency}</dt>
+          <dd>{formatMoney(totals.accountAmount, totals.accountCurrency === '-' ? 'TRY' : totals.accountCurrency || 'TRY')}</dd>
+        </div>
+        <div>
+          <dt>Cari kuru · 1 {totals.accountCurrency} kaç TRY?</dt>
+          <dd>{totals.accountExchangeRate || 'Tanımsız'}</dd>
         </div>
         <div>
           <dt>Stok maliyet etkisi</dt>

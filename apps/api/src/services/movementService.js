@@ -1,14 +1,24 @@
+import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
+import { readCompleteLedger } from './completeLedger.mjs';
+import { hasCurrencySnapshotSchema, hasMovementReturnSchema, movementCurrencyColumns, movementCurrencyDto } from './currencySettlementStore.mjs';
 
 function normalizeDate(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10))
     ? value.slice(0, 10)
     : null;
+}
+
+function parseAccountCurrency(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const currency = String(value).trim().toUpperCase();
+  if (!['TRY', 'USD', 'EUR'].includes(currency)) throw makeMovementError('LEDGER_ACCOUNT_CURRENCY_INVALID', 'Cari döviz hesabı geçersiz.');
+  return currency;
 }
 
 function formatSqlDate(value) {
@@ -25,12 +35,19 @@ function formatSqlDate(value) {
 }
 
 function mapStockMovement(row) {
-  const targetScreen = row.source_type === 'sales_invoice'
+  const isReturn = ['invoice_return', 'invoice_return_cancel'].includes(row.source_type);
+  const returnKind = isReturn && ['sales', 'purchase'].includes(row.return_kind) ? row.return_kind : null;
+  const invoiceReturnId = isReturn && Number.isSafeInteger(Number(row.source_id)) && Number(row.source_id) > 0 ? Number(row.source_id) : null;
+  const targetScreen = isReturn
+    ? (returnKind && invoiceReturnId ? `${returnKind}-invoice-list` : null)
+    : row.source_type === 'sales_invoice'
     ? 'sales-invoice'
     : row.source_type === 'purchase_invoice'
       ? 'purchase-invoice'
       : 'product-card';
-  const targetPayload = row.source_type === 'sales_invoice'
+  const targetPayload = isReturn
+    ? (targetScreen ? { returnId: invoiceReturnId } : null)
+    : row.source_type === 'sales_invoice'
     ? { salesDraftId: row.source_id, invoiceNo: row.source_document_no || '-' }
     : row.source_type === 'purchase_invoice'
       ? { purchaseDraftId: row.source_id, invoiceNo: row.source_document_no || '-' }
@@ -54,10 +71,12 @@ function mapStockMovement(row) {
     movementType: row.movement_type,
     sourceType: row.source_type,
     sourceId: row.source_id,
+    invoiceReturnId,
+    returnKind,
     targetScreen,
     targetId: row.source_id || row.product_id,
     targetPayload,
-    sourceDocumentNo: row.source_document_no || '-',
+    sourceDocumentNo: isReturn && invoiceReturnId ? `IADE-${invoiceReturnId}` : row.source_document_no || '-',
     quantityIn: Number(row.quantity_in || 0),
     quantityOut: Number(row.quantity_out || 0),
     quantityNet: Number(row.quantity_net || 0),
@@ -124,6 +143,8 @@ function mapCustomerMovement(row) {
     customerId: row.customer_id,
     customerCode: row.customer_code,
     customerName: row.customer_name,
+    currentBalance: row.current_balance == null ? null : Number(row.current_balance),
+    currentCurrency: row.current_currency || null,
     salesInvoiceId: row.sales_invoice_id,
     targetScreen,
     targetId: row.sales_invoice_id || row.id || null,
@@ -135,7 +156,7 @@ function mapCustomerMovement(row) {
     isCancelled,
     amount: Number(row.amount || 0),
     currency: row.currency_code,
-    balanceEffect: Number(row.balance_effect || 0),
+    ...movementCurrencyDto(row, row.current_currency),
     documentDate: formatSqlDate(row.document_date),
     createdAt: row.created_at,
   };
@@ -162,6 +183,8 @@ function mapSupplierMovement(row) {
     supplierId: row.supplier_id,
     supplierCode: row.supplier_code,
     supplierName: row.supplier_name,
+    currentBalance: row.current_balance == null ? null : Number(row.current_balance),
+    currentCurrency: row.current_currency || null,
     purchaseInvoiceId: row.purchase_invoice_id,
     targetScreen,
     targetId: row.purchase_invoice_id || row.id || null,
@@ -173,8 +196,8 @@ function mapSupplierMovement(row) {
     isCancelled,
     amount: Number(row.amount || 0),
     currency: row.currency_code,
-    balanceEffect: Number(row.balance_effect || 0),
-    runningBalance: Number(row.running_balance || 0),
+    ...movementCurrencyDto(row, row.current_currency),
+    runningBalance: row.running_balance == null ? null : Number(row.running_balance),
     documentDate: formatSqlDate(row.document_date),
     createdAt: row.created_at,
   };
@@ -192,9 +215,14 @@ function summarizeLedgerRows(rows, { excludeCancelled = false } = {}) {
       return summary;
     }
 
-    const currency = row.currency || 'TRY';
+    const currency = row.accountCurrency || row.currentCurrency || row.currency || 'TRY';
     if (!summary[currency]) {
       summary[currency] = { debit: 0, credit: 0, balance: 0 };
+    }
+
+    if (row.balanceEffect == null || !Number.isFinite(row.balanceEffect) || summary[currency].balance == null) {
+      summary[currency] = { debit: null, credit: null, balance: null };
+      return summary;
     }
 
     if (row.balanceEffect >= 0) {
@@ -232,6 +260,12 @@ export async function getStockMovementsList(query = {}) {
   const sourceType = typeof query.sourceType === 'string' ? query.sourceType.trim().toLowerCase() : '';
   const productId = Number(query.productId || 0);
   const pool = await getSqlPool();
+  const returnSchemaReady = (await pool.request().query(`
+    SELECT CASE WHEN OBJECT_ID(N'dbo.invoice_returns',N'U') IS NOT NULL
+      AND COL_LENGTH(N'dbo.invoice_returns',N'id') IS NOT NULL
+      AND COL_LENGTH(N'dbo.invoice_returns',N'kind') IS NOT NULL
+      THEN 1 ELSE 0 END AS stock_return_schema_ready;
+  `)).recordset?.[0]?.stock_return_schema_ready === 1;
   const filters = [
     `(si.id IS NULL OR COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')`,
     `(pi.id IS NULL OR COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')`,
@@ -272,6 +306,7 @@ export async function getStockMovementsList(query = {}) {
           sm.movement_type,
           sm.source_type,
           sm.source_id,
+          ${returnSchemaReady ? 'ir.kind' : 'CAST(NULL AS NVARCHAR(10))'} AS return_kind,
           COALESCE(si.document_no, pi.document_no) AS source_document_no,
           sm.quantity_in,
           sm.quantity_out,
@@ -293,6 +328,7 @@ export async function getStockMovementsList(query = {}) {
         LEFT JOIN dbo.suppliers s ON s.id = sm.supplier_id
         LEFT JOIN dbo.sales_invoices si ON si.id = sm.source_id AND sm.source_type = N'sales_invoice'
         LEFT JOIN dbo.purchase_invoices pi ON pi.id = sm.source_id AND sm.source_type = N'purchase_invoice'
+        ${returnSchemaReady ? "LEFT JOIN dbo.invoice_returns ir ON ir.id = sm.source_id AND sm.source_type IN (N'invoice_return', N'invoice_return_cancel')" : ''}
         ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}
       ),
       numbered AS (
@@ -472,11 +508,16 @@ export async function getCustomerMovementsList(query = {}) {
   const dateFrom = normalizeDate(query.dateFrom);
   const dateTo = normalizeDate(query.dateTo);
   const customerId = Number(query.customerId || 0);
+  const accountCurrency = parseAccountCurrency(query.accountCurrency);
   const pool = await getSqlPool();
+  const currencyReady = await hasCurrencySnapshotSchema(pool.request(), 'customer');
+  const returnReady = await hasMovementReturnSchema(pool.request(), 'customer');
+  const ledgerCurrency = currencyReady ? 'COALESCE(cm.account_currency, cm.currency_code)' : 'cm.currency_code';
   const filters = [
     `(si.id IS NULL OR COALESCE(si.description, N'') NOT LIKE N'%TEST_ARCHIVED%')`,
     ...buildDateFilter('cm', dateFrom, dateTo),
     customerId > 0 ? 'cm.customer_id = @customerId' : '',
+    accountCurrency ? `${ledgerCurrency} = @accountCurrency` : '',
     options.search ? `(
       ${sqlNormalizedLike('c.customer_code')}
       OR ${sqlNormalizedLike('c.name')}
@@ -489,6 +530,7 @@ export async function getCustomerMovementsList(query = {}) {
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('customerId', sql.Int, customerId > 0 ? customerId : null)
+    .input('accountCurrency', sql.NVarChar(3), accountCurrency)
     .input('offset', sql.Int, options.offset)
     .query(`
       WITH filtered AS (
@@ -497,6 +539,8 @@ export async function getCustomerMovementsList(query = {}) {
           cm.customer_id,
           c.customer_code,
           c.name AS customer_name,
+          c.balance AS current_balance,
+          c.currency_code AS current_currency,
           cm.sales_invoice_id,
           si.document_no,
           si.status AS invoice_status,
@@ -504,6 +548,7 @@ export async function getCustomerMovementsList(query = {}) {
           cm.amount,
           cm.currency_code,
           cm.balance_effect,
+          ${movementCurrencyColumns('cm', currencyReady, returnReady)},
           cm.document_date,
           cm.created_at
         FROM dbo.customer_movements cm
@@ -532,16 +577,13 @@ export async function getCustomerMovementsList(query = {}) {
       ...options,
       total,
       source: 'sql-customer-movements',
-      filters: { search: options.search || null, dateFrom, dateTo, customerId: customerId > 0 ? customerId : null },
+      filters: { search: options.search || null, dateFrom, dateTo, customerId: customerId > 0 ? customerId : null, accountCurrency },
     }),
   };
 }
 
 export async function getCustomerStatement(query = {}) {
-  const movementResult = await getCustomerMovementsList({
-    ...query,
-    limit: query.limit || 100,
-  });
+  const movementResult = await readCompleteLedger(getCustomerMovementsList, query);
   const rows = movementResult.data;
   const regularTotals = summarizeLedgerRows(rows, { excludeCancelled: true });
   const cancelledTotals = summarizeLedgerRows(rows.filter(isCancelledLedgerMovement));
@@ -559,11 +601,17 @@ export async function getSupplierMovementsList(query = {}) {
   const dateFrom = normalizeDate(query.dateFrom);
   const dateTo = normalizeDate(query.dateTo);
   const supplierId = Number(query.supplierId || 0);
+  const accountCurrency = parseAccountCurrency(query.accountCurrency);
   const pool = await getSqlPool();
+  const currencyReady = await hasCurrencySnapshotSchema(pool.request(), 'supplier');
+  const returnReady = await hasMovementReturnSchema(pool.request(), 'supplier');
+  const ledgerCurrency = currencyReady ? 'COALESCE(sm.account_currency, sm.currency_code)' : 'sm.currency_code';
+  const mixedCurrency = currencyReady ? 'COALESCE(mixed.account_currency, mixed.currency_code)' : 'mixed.currency_code';
   const filters = [
     `(pi.id IS NULL OR COALESCE(pi.description, N'') NOT LIKE N'%TEST_ARCHIVED%')`,
     ...buildDateFilter('sm', dateFrom, dateTo),
     supplierId > 0 ? 'sm.supplier_id = @supplierId' : '',
+    accountCurrency ? `${ledgerCurrency} = @accountCurrency` : '',
     options.search ? `(
       ${sqlNormalizedLike('s.supplier_code')}
       OR ${sqlNormalizedLike('s.name')}
@@ -576,6 +624,7 @@ export async function getSupplierMovementsList(query = {}) {
     .input('dateFrom', sql.Date, dateFrom)
     .input('dateTo', sql.Date, dateTo)
     .input('supplierId', sql.BigInt, supplierId > 0 ? supplierId : null)
+    .input('accountCurrency', sql.NVarChar(3), accountCurrency)
     .input('offset', sql.Int, options.offset)
     .query(`
       WITH movement_balances AS (
@@ -594,6 +643,8 @@ export async function getSupplierMovementsList(query = {}) {
           sm.supplier_id,
           s.supplier_code,
           s.name AS supplier_name,
+          s.balance AS current_balance,
+          s.currency_code AS current_currency,
           sm.purchase_invoice_id,
           COALESCE(pi.document_no, CONCAT(N'OD-', sm.id)) AS document_no,
           pi.status AS invoice_status,
@@ -601,7 +652,11 @@ export async function getSupplierMovementsList(query = {}) {
           sm.amount,
           sm.currency_code,
           sm.balance_effect,
-          s.balance - COALESCE(sm.newer_balance_effect, 0) AS running_balance,
+          ${movementCurrencyColumns('sm', currencyReady, returnReady)},
+          CASE WHEN ${ledgerCurrency} = s.currency_code AND NOT EXISTS (
+            SELECT 1 FROM dbo.supplier_movements mixed
+            WHERE mixed.supplier_id = sm.supplier_id AND ${mixedCurrency} <> s.currency_code
+          ) THEN s.balance - COALESCE(sm.newer_balance_effect, 0) ELSE NULL END AS running_balance,
           sm.document_date,
           sm.created_at
         FROM movement_balances sm
@@ -630,16 +685,13 @@ export async function getSupplierMovementsList(query = {}) {
       ...options,
       total,
       source: 'sql-supplier-movements',
-      filters: { search: options.search || null, dateFrom, dateTo, supplierId: supplierId > 0 ? supplierId : null },
+      filters: { search: options.search || null, dateFrom, dateTo, supplierId: supplierId > 0 ? supplierId : null, accountCurrency },
     }),
   };
 }
 
 export async function getSupplierStatement(query = {}) {
-  const movementResult = await getSupplierMovementsList({
-    ...query,
-    limit: query.limit || 100,
-  });
+  const movementResult = await readCompleteLedger(getSupplierMovementsList, query);
   const rows = movementResult.data;
   const regularTotals = summarizeLedgerRows(rows, { excludeCancelled: true });
   const cancelledTotals = summarizeLedgerRows(rows.filter(isCancelledLedgerMovement));
@@ -652,7 +704,10 @@ export async function getSupplierStatement(query = {}) {
   };
 }
 
-export async function applyStockCountAdjustment(payload = {}, actor = null) {
+export async function applyStockCountAdjustment(payload = {}, actor = null, transactionContext = null) {
+  if (!['product.view', 'stock.adjust'].every(permission => actor?.permissions?.includes(permission))) {
+    throw makeMovementError('AUTH_PERMISSION_DENIED', 'Stock count requires product.view and stock.adjust', 403);
+  }
   assertMelisaWriteEnabled();
 
   const productId = Number(payload.productId || 0);
@@ -668,13 +723,14 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
     throw makeMovementError('STOCK_COUNT_REASON_REQUIRED', 'Stock count adjustment reason is required');
   }
 
-  const sqlDriver = getSqlDriver();
-  const pool = await getSqlPool();
-  const transaction = new sqlDriver.Transaction(pool);
+  const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
+  const pool = transactionContext?.pool || await getSqlPool();
+  const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
-  await transaction.begin();
+  if (!transactionContext) await transaction.begin();
 
   try {
+    await assertOperationQuarantineAllowed([{entity:'product',nativeId:productId}],quarantineTransactionContext(sqlDriver,transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), documentDate, 'Stok sayım düzeltmesi');
 
     const productResult = await new sqlDriver.Request(transaction)
@@ -711,7 +767,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
     const averageCostTry = Number(product.average_cost_try || 0);
 
     if (difference === 0) {
-      await transaction.commit();
+      if (!transactionContext) await transaction.commit();
       return {
         productId,
         stockCode: product.stock_code,
@@ -751,7 +807,10 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       .input('movementCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .input('movementCurrency', sqlDriver.NVarChar(3), product.currency_code || 'TRY')
       .input('movementAmountTry', sqlDriver.Decimal(18, 4), amountTry)
+      .input('countDocumentId', sqlDriver.BigInt, transactionContext?.countDocumentId || null)
+      .input('countWarehouse', sqlDriver.NVarChar(120), transactionContext?.countWarehouse || null)
       .query(`
+        DECLARE @countIds TABLE(id bigint);
         INSERT INTO dbo.stock_movements (
           product_id,
           movement_type,
@@ -767,14 +826,14 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
           created_by,
           unit_price,
           currency_code,
-          amount_try
+          amount_try, warehouse_name
         )
-        OUTPUT INSERTED.id
+        OUTPUT INSERTED.id INTO @countIds
         VALUES (
           @movementProductId,
           @movementType,
-          N'adjustment',
-          NULL,
+          N'stock_count',
+          @countDocumentId,
           @movementQuantityIn,
           @movementQuantityOut,
           @movementQuantityNet,
@@ -785,8 +844,8 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
           @movementCreatedBy,
           0,
           @movementCurrency,
-          @movementAmountTry
-        );
+          @movementAmountTry, @countWarehouse
+        ); SELECT id FROM @countIds;
       `);
 
     const movementId = Number(movementResult.recordset?.[0]?.id || 0);
@@ -807,7 +866,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       actor,
     });
 
-    await transaction.commit();
+    if (!transactionContext) await transaction.commit();
 
     return {
       productId,
@@ -825,7 +884,7 @@ export async function applyStockCountAdjustment(payload = {}, actor = null) {
       message: difference > 0 ? 'Sayım fazlası stok giriş hareketi yazıldı.' : 'Sayım eksiği stok çıkış hareketi yazıldı.',
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transactionContext) await transaction.rollback();
     throw error;
   }
 }

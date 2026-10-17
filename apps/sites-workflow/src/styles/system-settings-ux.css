@@ -1,0 +1,74 @@
+/* System Settings uses dashboard primitives, but it is a long form rather than a fixed dashboard. */
+.system-settings-screen > * {
+  flex: 0 0 auto;
+}
+
+.system-settings-screen > .split-grid {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 10px;
+  align-items: start;
+  min-height: auto;
+}
+
+.system-settings-screen > .erp-panel,
+.system-settings-screen > .split-grid > .erp-panel {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.system-settings-screen .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+}
+
+.system-settings-screen .filter-grid > label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.system-settings-screen .filter-grid input,
+.system-settings-screen .filter-grid select {
+  width: 100%;
+  min-height: 36px;
+}
+
+.system-settings-screen > .split-grid > .erp-panel:first-child .filter-grid > label:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
+.system-settings-screen > .list-state,
+.system-settings-screen .accounting-lock-panel > .list-state {
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.system-settings-screen .cleanup-apply-grid {
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+}
+
+.system-settings-screen .cleanup-apply-grid > button {
+  min-height: 36px;
+  align-self: end;
+}
+
+@media (max-width: 960px) {
+  .system-settings-screen > .split-grid,
+  .system-settings-screen .filter-grid,
+  .system-settings-screen .cleanup-apply-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .system-settings-screen > .split-grid > .erp-panel:first-child .filter-grid > label:nth-child(4) {
+    grid-column: auto;
+  }
+}

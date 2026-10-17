@@ -1,0 +1,186 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T21:50:49.454Z",
+  "endpoint": "http://192.168.1.46:4116",
+  "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+  "roleLogins": [
+    {
+      "label": "Personel",
+      "username": "c1.personel",
+      "status": 200,
+      "authenticated": true,
+      "role": "terminal_user"
+    },
+    {
+      "label": "Müdür",
+      "username": "c1.mudur",
+      "status": 200,
+      "authenticated": true,
+      "role": "owner_manager"
+    },
+    {
+      "label": "Patron",
+      "username": "c1.patron",
+      "status": 200,
+      "authenticated": true,
+      "role": "admin"
+    }
+  ],
+  "terminal": {
+    "username": "ahmet",
+    "status": 200,
+    "authenticated": true,
+    "terminalCode": "TERM-V2-001"
+  },
+  "customerSelection": {
+    "status": 200,
+    "id": 168,
+    "name": "HANLAR",
+    "currency": "USD"
+  },
+  "productSelection": {
+    "status": 200,
+    "id": 36317,
+    "stockCode": "3008 BEBEDEX'S",
+    "unitPrice": 0.22,
+    "currency": "USD"
+  },
+  "sale": {
+    "clientEventId": "1e802899-f0c6-4fd0-97d4-6fa7691032d6",
+    "invoiceId": 34463,
+    "documentNo": "MN-1e802899f0c64fd097d46fa769",
+    "total": 0.22,
+    "currency": "USD",
+    "finalizeStatus": 200,
+    "finalizeState": "COMPLETED",
+    "duplicateStatus": 409,
+    "duplicateCode": "ALREADY_FINALIZED",
+    "cancelStatus": 200,
+    "cancelState": "CANCELLED"
+  },
+  "before": {
+    "product": {
+      "id": 36317,
+      "stockCode": "3008 BEBEDEX'S",
+      "quantity": 36
+    },
+    "account": {
+      "customerId": 168,
+      "customerName": "HANLAR",
+      "currency": "USD",
+      "legacyBalance": 0.0027,
+      "partyId": 14,
+      "accountId": 16,
+      "currentBalance": 0.002667
+    },
+    "effects": {
+      "invoiceCount": 0,
+      "stockCount": 0,
+      "stockNet": 0,
+      "customerCount": 0,
+      "customerNet": 0,
+      "queueCount": 0,
+      "auditCount": 0,
+      "status": null,
+      "documentNo": null,
+      "grandTotal": null,
+      "partyCurrencyAccountId": null
+    }
+  },
+  "afterFinalize": {
+    "product": {
+      "id": 36317,
+      "stockCode": "3008 BEBEDEX'S",
+      "quantity": 35
+    },
+    "account": {
+      "customerId": 168,
+      "customerName": "HANLAR",
+      "currency": "USD",
+      "legacyBalance": 0.2227,
+      "partyId": 14,
+      "accountId": 16,
+      "currentBalance": 0.222667
+    },
+    "effects": {
+      "invoiceCount": 1,
+      "stockCount": 1,
+      "stockNet": -1,
+      "customerCount": 1,
+      "customerNet": 0.22,
+      "queueCount": 1,
+      "auditCount": 5,
+      "status": "finalized",
+      "documentNo": "MN-1e802899f0c64fd097d46fa769",
+      "grandTotal": 0.22,
+      "partyCurrencyAccountId": 16
+    }
+  },
+  "afterDuplicate": {
+    "product": {
+      "id": 36317,
+      "stockCode": "3008 BEBEDEX'S",
+      "quantity": 35
+    },
+    "account": {
+      "customerId": 168,
+      "customerName": "HANLAR",
+      "currency": "USD",
+      "legacyBalance": 0.2227,
+      "partyId": 14,
+      "accountId": 16,
+      "currentBalance": 0.222667
+    },
+    "effects": {
+      "invoiceCount": 1,
+      "stockCount": 1,
+      "stockNet": -1,
+      "customerCount": 1,
+      "customerNet": 0.22,
+      "queueCount": 1,
+      "auditCount": 5,
+      "status": "finalized",
+      "documentNo": "MN-1e802899f0c64fd097d46fa769",
+      "grandTotal": 0.22,
+      "partyCurrencyAccountId": 16
+    }
+  },
+  "afterCancel": {
+    "product": {
+      "id": 36317,
+      "stockCode": "3008 BEBEDEX'S",
+      "quantity": 36
+    },
+    "account": {
+      "customerId": 168,
+      "customerName": "HANLAR",
+      "currency": "USD",
+      "legacyBalance": 0.0027,
+      "partyId": 14,
+      "accountId": 16,
+      "currentBalance": 0.002667
+    },
+    "effects": {
+      "invoiceCount": 1,
+      "stockCount": 2,
+      "stockNet": 0,
+      "customerCount": 2,
+      "customerNet": 0,
+      "queueCount": 1,
+      "auditCount": 8,
+      "status": "cancelled",
+      "documentNo": "MN-1e802899f0c64fd097d46fa769",
+      "grandTotal": 0.22,
+      "partyCurrencyAccountId": 16
+    }
+  },
+  "checks": {
+    "finalizeEffectsOk": true,
+    "duplicateEffectsUnchanged": true,
+    "reversalOk": true,
+    "secondInvoiceEffects": 0
+  },
+  "verificationConnection": "trusted-read-only",
+  "writesConnection": "melisa_candidate_runtime_live3",
+  "status": "PASS"
+}

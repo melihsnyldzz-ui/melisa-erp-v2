@@ -1,0 +1,737 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { ProductBarcodePanel } from './ProductBarcodePanel.jsx';
+import { ProductCardForm } from './ProductCardForm.jsx';
+import { ProductCardHeader } from './ProductCardHeader.jsx';
+import { Product360Panel } from './Product360Panel.jsx';
+import { ProductImagePanel } from './ProductImagePanel.jsx';
+import { ProductStockUsagePanel } from './ProductStockUsagePanel.jsx';
+import { ProductSupplierModelPanel } from './ProductSupplierModelPanel.jsx';
+import {
+  buildProduct360,
+  buildProductView,
+  emptyProductForm,
+  mapBarcodes,
+  mapDetailToForm,
+  validateProductForm,
+} from './productCardUtils.js';
+import {
+  addProductBarcode,
+  checkProductIdentityAvailability,
+  changeProductPassive,
+  changeProductBarcodePassive,
+  changeProductSupplierModelActive,
+  createProduct,
+  fetchProductDetail,
+  fetchProductOptions,
+  fetchProductStockMovements,
+  linkProductSupplierModel,
+  saveProductImage,
+  updateProduct,
+} from '../../services/productDetailApi.js';
+
+export function ProductCardScreen({ productId, permissions = [], onDirtyChange, onOpenScreen }) {
+  const isTask05Test = import.meta.env.VITE_TEST_READ_ONLY === 'true';
+  const [activeProductId, setActiveProductId] = useState(productId || null);
+  const [form, setForm] = useState(emptyProductForm);
+  const [isLoading, setIsLoading] = useState(Boolean(productId));
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPassiveSaving, setIsPassiveSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [duplicateProductSuggestion, setDuplicateProductSuggestion] = useState(null);
+  const [identityAvailability, setIdentityAvailability] = useState({
+    stockCode: { status: 'idle', duplicateProduct: null },
+    barcode: { status: 'idle', duplicateProduct: null },
+  });
+  const [successMessage, setSuccessMessage] = useState('');
+  const [stockMovements, setStockMovements] = useState([]);
+  const [isMovementsLoading, setIsMovementsLoading] = useState(false);
+  const [optionSuggestions, setOptionSuggestions] = useState({
+    brands: [],
+    categories: [],
+    suppliers: [],
+    supplierCurrencies: {},
+    supplierOptions: [],
+  });
+  const [isEditing, setIsEditing] = useState(!productId);
+  const [isDirty, setIsDirty] = useState(false);
+  const mode = activeProductId ? 'update' : 'create';
+  const canEditForm = mode === 'create' || isEditing;
+  const canSave = permissions.includes('product.edit');
+  const canTogglePassive = false;
+  const requestId = () => window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  useEffect(() => {
+    setActiveProductId(productId || null);
+    setIsEditing(!productId);
+  }, [productId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProduct() {
+      if (!activeProductId) {
+        setForm(emptyProductForm);
+        setIsEditing(true);
+        setErrorMessage('');
+        setDuplicateProductSuggestion(null);
+        setIsLoading(false);
+        setIsDirty(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setErrorMessage('');
+
+      try {
+        const response = await fetchProductDetail(activeProductId);
+
+        if (isMounted) {
+          setForm(mapDetailToForm(response.data));
+          setIsEditing(false);
+          setIsDirty(false);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setForm(emptyProductForm);
+          setErrorMessage(error.message || 'Ürün kartı API bağlantısı başarısız.');
+          setIsDirty(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadProduct();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeProductId]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!canEditForm) {
+      setIdentityAvailability({
+        stockCode: { status: 'idle', duplicateProduct: null },
+        barcode: { status: 'idle', duplicateProduct: null },
+      });
+      return undefined;
+    }
+
+    const stockCode = form.stockCode.trim();
+    const barcode = form.barcode.trim();
+
+    if (!stockCode && !barcode) {
+      setIdentityAvailability({
+        stockCode: { status: 'idle', duplicateProduct: null },
+        barcode: { status: 'idle', duplicateProduct: null },
+      });
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setIdentityAvailability({
+      stockCode: stockCode
+        ? { status: 'checking', duplicateProduct: null }
+        : { status: 'idle', duplicateProduct: null },
+      barcode: barcode
+        ? { status: 'checking', duplicateProduct: null }
+        : { status: 'idle', duplicateProduct: null },
+    });
+
+    const timerId = window.setTimeout(async () => {
+      try {
+        const response = await checkProductIdentityAvailability({
+          stockCode,
+          barcode,
+          excludeProductId: activeProductId || undefined,
+        });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setIdentityAvailability({
+          stockCode: stockCode
+            ? {
+              status: response.data?.stockCode?.available ? 'available' : 'duplicate',
+              duplicateProduct: response.data?.stockCode?.duplicateProduct || null,
+            }
+            : { status: 'idle', duplicateProduct: null },
+          barcode: barcode
+            ? {
+              status: response.data?.barcode?.available ? 'available' : 'duplicate',
+              duplicateProduct: response.data?.barcode?.duplicateProduct || null,
+            }
+            : { status: 'idle', duplicateProduct: null },
+        });
+      } catch {
+        if (isCurrent) {
+          setIdentityAvailability({
+            stockCode: stockCode
+              ? { status: 'error', duplicateProduct: null }
+              : { status: 'idle', duplicateProduct: null },
+            barcode: barcode
+              ? { status: 'error', duplicateProduct: null }
+              : { status: 'idle', duplicateProduct: null },
+          });
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timerId);
+    };
+  }, [activeProductId, canEditForm, form.barcode, form.stockCode]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadOptions() {
+      try {
+        const response = await fetchProductOptions();
+
+        if (isMounted) {
+          setOptionSuggestions({
+            brands: response.data?.brands || [],
+            categories: response.data?.categories || [],
+            suppliers: response.data?.suppliers || [],
+            supplierCurrencies: response.data?.supplierCurrencies || {},
+            supplierOptions: response.data?.supplierOptions || [],
+          });
+        }
+      } catch {
+        if (isMounted) {
+          setOptionSuggestions({
+            brands: [],
+            categories: [],
+            suppliers: [],
+            supplierCurrencies: {},
+            supplierOptions: [],
+          });
+        }
+      }
+    }
+
+    loadOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMovements() {
+      if (isTask05Test) {
+        setStockMovements([]);
+        setIsMovementsLoading(false);
+        return;
+      }
+
+      if (!activeProductId) {
+        setStockMovements([]);
+        setIsMovementsLoading(false);
+        return;
+      }
+
+      setIsMovementsLoading(true);
+
+      try {
+        const response = await fetchProductStockMovements(activeProductId);
+        if (isMounted) {
+          setStockMovements(response.data || []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setStockMovements([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsMovementsLoading(false);
+        }
+      }
+    }
+
+    loadMovements();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeProductId, isTask05Test]);
+
+  const productView = useMemo(() => buildProductView(form, activeProductId), [form, activeProductId]);
+  const product360 = useMemo(() => buildProduct360(form, stockMovements), [form, stockMovements]);
+  const barcodes = useMemo(() => mapBarcodes(form), [form]);
+  const images = useMemo(() => form.images || [], [form.images]);
+  const productSuggestions = useMemo(() => {
+    return {
+      brands: [form.brand, ...optionSuggestions.brands].filter(Boolean),
+      categories: [form.category, ...optionSuggestions.categories].filter(Boolean),
+      suppliers: [form.supplierName, ...optionSuggestions.suppliers].filter(Boolean),
+    };
+  }, [form.brand, form.category, form.supplierName, optionSuggestions]);
+
+  function updateField(field, value) {
+    if (!canEditForm) {
+      return;
+    }
+
+    const supplierCurrency = mode === 'create' && field === 'supplierName'
+      ? optionSuggestions.supplierCurrencies[value]
+      : '';
+    const supplierOption = field === 'supplierName'
+      ? optionSuggestions.supplierOptions.find((item) => item.label === value)
+      : null;
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'supplierName' ? { supplierId: supplierOption?.id || null } : {}),
+      ...(supplierCurrency ? { currency: supplierCurrency } : {}),
+    }));
+    setIsDirty(true);
+    setSuccessMessage(supplierCurrency ? `Tedarikçi para birimi uygulandı: ${supplierCurrency}` : '');
+    setDuplicateProductSuggestion(null);
+  }
+
+  function startNewProduct() {
+    setActiveProductId(null);
+    setForm(emptyProductForm);
+    setIsEditing(true);
+    setErrorMessage('');
+    setDuplicateProductSuggestion(null);
+    setSuccessMessage('');
+    setIsDirty(false);
+  }
+
+  function setProductError(error, fallbackMessage) {
+    const duplicateProduct = error.meta.duplicateProduct || null;
+    setDuplicateProductSuggestion(duplicateProduct);
+    setErrorMessage(`${error.message || fallbackMessage} (${error.code || 'API_ERROR'})`);
+  }
+
+  function openDuplicateProduct() {
+    const duplicateProductId = Number(duplicateProductSuggestion.productId || duplicateProductSuggestion.id || 0);
+
+    if (!duplicateProductId) {
+      return;
+    }
+
+    setActiveProductId(duplicateProductId);
+    setErrorMessage('');
+    setDuplicateProductSuggestion(null);
+    setSuccessMessage(`Kullanılan stok kartı açılıyor: ${duplicateProductSuggestion.stockCode || duplicateProductId}`);
+
+    if (onOpenScreen) {
+      onOpenScreen('product-card', {
+        productId: duplicateProductId,
+        stockCode: duplicateProductSuggestion.stockCode,
+      });
+    }
+  }
+
+  function openIdentityDuplicate(duplicateProduct) {
+    setDuplicateProductSuggestion(duplicateProduct);
+    const duplicateProductId = Number(duplicateProduct?.productId || duplicateProduct?.id || 0);
+
+    if (!duplicateProductId) {
+      return;
+    }
+
+    setActiveProductId(duplicateProductId);
+    setErrorMessage('');
+    setSuccessMessage(`Kullanılan stok kartı açılıyor: ${duplicateProduct.stockCode || duplicateProductId}`);
+
+    if (onOpenScreen) {
+      onOpenScreen('product-card', {
+        productId: duplicateProductId,
+        stockCode: duplicateProduct.stockCode,
+      });
+    }
+  }
+
+  function openStockMovement(row) {
+    if (!onOpenScreen) {
+      return;
+    }
+
+    if (row.targetScreen && row.targetPayload) {
+      onOpenScreen(row.targetScreen, row.targetPayload);
+      return;
+    }
+
+    if (row.sourceType === 'sales_invoice') {
+      onOpenScreen('sales-invoice', {
+        salesDraftId: row.sourceId,
+        invoiceNo: row.sourceDocumentNo,
+      });
+      return;
+    }
+
+    if (row.sourceType === 'purchase_invoice') {
+      onOpenScreen('purchase-invoice', {
+        purchaseDraftId: row.sourceId,
+        invoiceNo: row.sourceDocumentNo,
+      });
+      return;
+    }
+
+    onOpenScreen('stock-movements', {
+      productId: activeProductId,
+      stockCode: form.stockCode,
+    });
+  }
+
+  function openUsageParty(row) {
+    if (!onOpenScreen) {
+      return;
+    }
+
+    if (row.partyTargetScreen && row.partyTargetPayload) {
+      onOpenScreen(row.partyTargetScreen, row.partyTargetPayload);
+      return;
+    }
+
+    if (row.customerId) {
+      onOpenScreen('customer-card', {
+        customerId: row.customerId,
+        customerName: row.customerName,
+      });
+      return;
+    }
+
+    if (row.supplierId) {
+      onOpenScreen('supplier-card', {
+        supplierId: row.supplierId,
+        supplierName: row.supplierName,
+      });
+    }
+  }
+
+  async function saveProduct() {
+    const identityDuplicate = identityAvailability.stockCode?.status === 'duplicate'
+      ? identityAvailability.stockCode.duplicateProduct
+      : identityAvailability.barcode?.status === 'duplicate'
+        ? identityAvailability.barcode.duplicateProduct
+        : null;
+
+    if (identityDuplicate) {
+      setDuplicateProductSuggestion(identityDuplicate);
+      setErrorMessage(`Stok kodu veya barkod başka bir kartta kullanılıyor: ${identityDuplicate.stockCode} / ${identityDuplicate.productName}.`);
+      setSuccessMessage('');
+      return;
+    }
+
+    const missing = validateProductForm(form, mode);
+
+    if (!canSave) {
+      setErrorMessage('Bu islem icin product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (missing.length > 0) {
+      setErrorMessage(`Kaydetmeden once zorunlu alanlari tamamlayin: ${missing.join(', ')}.`);
+      setSuccessMessage('');
+      return;
+    }
+
+    const payload = {
+      requestId: requestId(),
+      productName: form.productName,
+      brand: form.brand,
+      category: form.category,
+      currency: form.currency,
+      salePrice: String(form.salePrice).trim(),
+      purchasePrice: String(form.purchasePrice).trim(),
+      purchaseDiscountRate: String(form.purchaseDiscountRate || 0).trim(),
+      supplierId: form.supplierId,
+      reason: 'Görev 05 TEST kullanıcı işlemi',
+      ...(mode === 'create'
+        ? { stockCode: form.stockCode, barcode: form.barcode }
+        : { expectedRowVersion: form.rowVersion }),
+    };
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = mode === 'create'
+        ? await createProduct(payload)
+        : await updateProduct(activeProductId, payload);
+
+      setActiveProductId(response.data.id);
+      setForm(mapDetailToForm(response.data));
+      setIsEditing(false);
+      setIsDirty(false);
+      setSuccessMessage(response.message || (mode === 'create' ? 'Ürün oluşturuldu ve audit kaydı yazıldı.' : 'Ürün güncellendi ve audit kaydı yazıldı.'));
+    } catch (error) {
+      setProductError(error, 'Ürün kaydedilemedi.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function togglePassiveProduct() {
+    if (!activeProductId) {
+      setErrorMessage('Pasif/Aktif işlemi için önce kayıtlı ürün açılmalı.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (!canTogglePassive) {
+      setErrorMessage('Bu işlem için product.passive yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    const nextIsPassive = !form.isPassive;
+
+    setIsPassiveSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await changeProductPassive(activeProductId, nextIsPassive);
+      setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
+      setSuccessMessage(response.message || (nextIsPassive
+        ? 'Ürün pasif yapıldı ve audit kaydı yazıldı.'
+        : 'Ürün aktif yapıldı ve audit kaydı yazıldı.'));
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Pasif/Aktif işlemi başarısız.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsPassiveSaving(false);
+    }
+  }
+
+  async function addBarcode(payload) {
+    if (!activeProductId) {
+      setErrorMessage('Ek barkod eklemek için önce ürünü kaydedin.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (!canSave) {
+      setErrorMessage('Bu işlem için product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await addProductBarcode(activeProductId, {
+        ...payload,
+        requestId: requestId(),
+        expectedProductRowVersion: form.rowVersion,
+        reason: 'Görev 05 TEST alternatif barkod',
+      });
+      setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
+      setSuccessMessage('Barkod kaydedildi. Terminal barkod aramasında kullanılabilir.');
+    } catch (error) {
+      setProductError(error, 'Barkod kaydedilemedi.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function toggleBarcode(barcodeId, currentIsActive) {
+    if (!activeProductId || barcodeId === 'pending-primary') {
+      return;
+    }
+
+    if (!canSave) {
+      setErrorMessage('Bu işlem için product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const barcode = barcodes.find((item) => String(item.id) === String(barcodeId));
+      const response = await changeProductBarcodePassive(activeProductId, barcodeId, {
+        isPassive: currentIsActive,
+        requestId: requestId(),
+        expectedRowVersion: barcode?.rowVersion || '',
+        reason: 'Görev 05 TEST alternatif barkod durumu',
+      });
+      setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
+      setSuccessMessage(currentIsActive ? 'Barkod pasif yapıldı.' : 'Barkod aktif yapıldı.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Barkod durumu değiştirilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function addSupplierModel(payload) {
+    if (!activeProductId || !canSave) return;
+    setIsSaving(true); setErrorMessage(''); setSuccessMessage('');
+    try {
+      const response = await linkProductSupplierModel(activeProductId, {
+        ...payload,
+        requestId: requestId(),
+        expectedProductRowVersion: form.rowVersion,
+        reason: payload.isPrimary ? 'Görev 05 TEST ana tedarikçi/model bağlantısı' : 'Görev 05 TEST ikincil tedarikçi/model bağlantısı',
+      });
+      setForm(mapDetailToForm(response.data)); setIsDirty(false); setSuccessMessage('Tedarikçi/model bağlantısı tarihçeye eklendi.');
+    } catch (error) { setProductError(error, 'Tedarikçi/model bağlantısı eklenemedi.'); }
+    finally { setIsSaving(false); }
+  }
+
+  async function toggleSupplierModel(mapping) {
+    if (!activeProductId || !canSave) return;
+    setIsSaving(true); setErrorMessage(''); setSuccessMessage('');
+    try {
+      const response = await changeProductSupplierModelActive(activeProductId, mapping.id, {
+        requestId: requestId(),
+        expectedRowVersion: mapping.rowVersion,
+        isActive: !mapping.isActive,
+        reason: mapping.isActive ? 'Görev 05 TEST model bağlantısı pasife alma' : 'Görev 05 TEST model bağlantısı yeniden etkinleştirme',
+      });
+      setForm(mapDetailToForm(response.data)); setIsDirty(false); setSuccessMessage(mapping.isActive ? 'Bağlantı pasife alındı; geçmiş korundu.' : 'Bağlantı yeni dönem olarak etkinleştirildi.');
+    } catch (error) { setProductError(error, 'Tedarikçi/model bağlantısı değiştirilemedi.'); }
+    finally { setIsSaving(false); }
+  }
+
+  async function saveImage(payload) {
+    if (!activeProductId) {
+      setErrorMessage('Görsel kaydetmek için önce ürünü kaydedin.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (!canSave) {
+      setErrorMessage('Bu işlem için product.edit yetkisi gerekli.');
+      setSuccessMessage('');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await saveProductImage(activeProductId, payload);
+      setForm(mapDetailToForm(response.data));
+      setIsDirty(false);
+      setSuccessMessage('Ürün görseli kaydedildi.');
+    } catch (error) {
+      setErrorMessage(`${error.message || 'Görsel kaydedilemedi.'} (${error.code || 'API_ERROR'})`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <main className="work-area product-card-screen">
+      {isLoading && <div className="list-state">API'den ürün kartı yükleniyor...</div>}
+      {!isLoading && (
+        <>
+          <ProductCardHeader
+            product={productView}
+            cardOpenedAt={form.cardOpenedAt}
+            mode={mode}
+            isSaving={isSaving}
+            isPassiveSaving={isPassiveSaving}
+            isEditing={canEditForm}
+            canSave={canSave}
+            canTogglePassive={canTogglePassive}
+            onEdit={() => setIsEditing(true)}
+            onSave={saveProduct}
+            onNew={startNewProduct}
+            onTogglePassive={togglePassiveProduct}
+          />
+          {errorMessage && (
+            <div className="list-state list-state-error product-duplicate-error">
+              <span>{errorMessage}</span>
+              {duplicateProductSuggestion ? (
+                <button onClick={openDuplicateProduct} type="button">
+                  Kullanılan stok kartını aç: {duplicateProductSuggestion.stockCode} / {duplicateProductSuggestion.productName}
+                </button>
+              ) : null}
+            </div>
+          )}
+          {successMessage && <div className="list-state list-state-success">{successMessage}</div>}
+          {form.isPassive && (
+            <div className="list-state list-state-passive">
+              PASİF kayıt: yeni fişlerde seçilemez, geçmiş rapor ve hareketlerde görünmeye devam eder.
+            </div>
+          )}
+          <section className={`product-card-layout product-card-details-layout${isTask05Test ? ' task05-card-layout' : ''}`}>
+            <ProductCardForm
+              product={productView}
+              form={form}
+              mode={mode}
+              suggestions={productSuggestions}
+              identityAvailability={identityAvailability}
+              isEditing={canEditForm}
+              onChange={updateField}
+              onOpenDuplicate={openIdentityDuplicate}
+            />
+            {!isTask05Test && <aside className="product-side-panels">
+              <ProductImagePanel
+                product={productView}
+                images={images}
+                canEdit={false}
+                disabled
+                onSaveImage={saveImage}
+              />
+            </aside>}
+          </section>
+          {!isTask05Test && <Product360Panel
+            activeProductId={activeProductId}
+            form={form}
+            product360={product360}
+            onOpenScreen={onOpenScreen}
+          />}
+          {!isTask05Test && <ProductStockUsagePanel
+            defaultOpen={false}
+            isLoading={isMovementsLoading}
+            key={activeProductId || 'new-product'}
+            movements={stockMovements}
+            onOpenMovement={openStockMovement}
+            onOpenParty={openUsageParty}
+          />}
+          <ProductBarcodePanel
+            barcodes={barcodes}
+            canEdit={canSave && canEditForm}
+            disabled={isSaving || !activeProductId}
+            onAddBarcode={addBarcode}
+            onToggleBarcode={toggleBarcode}
+          />
+          <ProductSupplierModelPanel
+            mappings={form.supplierModels}
+            supplierOptions={optionSuggestions.supplierOptions}
+            canEdit={canSave}
+            disabled={isSaving || !activeProductId}
+            onAdd={addSupplierModel}
+            onToggle={toggleSupplierModel}
+          />
+          <section className="screen-summary product-card-summary">
+            <span>Ürün: {productView.stockCode}</span>
+            <span>Durum: {productView.status}</span>
+            <span>Mod: {mode === 'create' ? 'Yeni kayıt' : canEditForm ? 'Düzenleme' : 'İzleme'}</span>
+            <span>Kaynak: API</span>
+          </section>
+        </>
+      )}
+    </main>
+  );
+}

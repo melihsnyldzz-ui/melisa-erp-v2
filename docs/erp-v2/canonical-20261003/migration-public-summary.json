@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "runId": "VEGA-OPENING-TEST-20261004-06",
+  "sourceSnapshotHash": "36971dab7296dd171ee0084c185f833b47b96d6a47fe57c8486a2b81d78ef400",
+  "sourceCapturedAt": "2026-10-03T21:58:30.628Z",
+  "sourceAsOf": "2026-09-30",
+  "freshLiveSource": false,
+  "targetDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "status": "PARTIAL",
+  "rehearsalMode": "native-opening",
+  "counts": {
+    "supplierAccounts": 401,
+    "products": 16622,
+    "customerAccounts": 371
+  },
+  "checks": [
+    {
+      "domain": "stock",
+      "status": "PASS",
+      "rows": 16622,
+      "differences": 0
+    },
+    {
+      "domain": "customer",
+      "status": "PASS",
+      "rows": 379,
+      "differences": 0
+    },
+    {
+      "domain": "supplier",
+      "status": "PASS",
+      "rows": 406,
+      "differences": 0
+    },
+    {
+      "domain": "price",
+      "status": "PARTIAL",
+      "rows": 63774,
+      "differences": 0
+    },
+    {
+      "domain": "cost",
+      "status": "PARTIAL",
+      "rows": 16622,
+      "differences": 0
+    },
+    {
+      "domain": "opening",
+      "status": "PASS",
+      "rows": 1493,
+      "differences": 0
+    }
+  ],
+  "blockers": [
+    "NEGATIVE_STOCK",
+    "UNKNOWN_STOCK",
+    "UNKNOWN_COST",
+    "AMBIGUOUS_PRODUCT",
+    "AMBIGUOUS_PARTY",
+    "BARCODE_CONFLICT",
+    "CURRENCY_CONFLICT",
+    "SOURCE_DRIFT",
+    "SOURCE_NOT_CURRENT",
+    "CUTOVER_NOT_ACCEPTED"
+  ]
+}

@@ -1,0 +1,72 @@
+.profitability-screen { display: flex; min-height: 0; flex-direction: column; gap: 8px; }
+.profitability-header { display: flex; min-height: 54px; padding: 8px 10px; align-items: center; justify-content: space-between; gap: 12px; }
+.profitability-header > div:first-child { display: grid; gap: 2px; }
+.profitability-header strong { font-size: 15px; }
+.profitability-header span { color: #667085; font-size: 10px; }
+.profitability-actions { display: flex; gap: 6px; }
+.profitability-actions button { min-height: 32px; }
+.profitability-boundary-note { display: flex; padding: 7px 10px; align-items: center; gap: 10px; border-left: 4px solid #b7791f; background: #fffbeb; }
+.profitability-boundary-note strong { flex: 0 0 auto; color: #92400e; font-size: 10px; text-transform: uppercase; }
+.profitability-boundary-note span { color: #78350f; font-size: 10px; }
+.profitability-filters { display: grid; grid-template-columns: 145px 145px minmax(260px, 1fr) 160px auto; padding: 8px; align-items: end; gap: 7px; }
+.profitability-filters label { display: grid; min-width: 0; gap: 3px; }
+.profitability-filters label > span { color: #667085; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.profitability-filters input, .profitability-filters select, .profitability-filters button { min-width: 0; height: 31px; }
+.profitability-loading { color: #475467; }
+.profitability-summary { display: grid; grid-template-columns: repeat(6, minmax(135px, 1fr)); gap: 7px; }
+.profitability-summary article { display: grid; min-width: 0; padding: 8px 9px; border: 1px solid #d9e2ec; border-radius: 7px; background: #fff; gap: 3px; }
+.profitability-summary article > span { color: #667085; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.profitability-summary article > strong { overflow: hidden; color: #101828; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.profitability-summary article > small { color: #667085; font-size: 9px; }
+.profitability-summary article.positive { border-color: #a7d7c5; background: #f0fdf4; }
+.profitability-summary article.positive > strong, .profit-positive { color: #067647; }
+.profitability-summary article.negative { border-color: #fecaca; background: #fff1f2; }
+.profitability-summary article.negative > strong, .profit-negative { color: #b42318; }
+.profitability-coverage { display: grid; grid-template-columns: minmax(210px, .8fr) minmax(180px, 1fr) auto minmax(360px, 1.4fr); padding: 8px 10px; align-items: center; gap: 10px; }
+.profitability-coverage > div:first-child { display: grid; gap: 1px; }
+.profitability-coverage > div:first-child > span { color: #667085; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.profitability-coverage > div:first-child > strong { font-size: 16px; }
+.profitability-coverage > div:first-child > small { color: #667085; font-size: 9px; }
+.coverage-track { overflow: hidden; height: 9px; border-radius: 999px; background: #e4e7ec; }
+.coverage-track > span { display: block; height: 100%; border-radius: inherit; background: #1570ef; }
+.profit-confidence { display: inline-flex; min-height: 21px; padding: 3px 7px; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 999px; font-size: 9px; font-weight: 850; white-space: nowrap; }
+.profit-confidence.strong { border-color: #a6f4c5; background: #ecfdf3; color: #067647; }
+.profit-confidence.review { border-color: #fedf89; background: #fffaeb; color: #b54708; }
+.profit-confidence.incomplete { border-color: #fecdca; background: #fef3f2; color: #b42318; }
+.profitability-audit-meta { display: flex; min-width: 0; justify-content: flex-end; gap: 10px; color: #667085; font-size: 9px; }
+.profitability-audit-meta strong { color: #101828; }
+.profitability-table-panel { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; }
+.profitability-table-title { display: flex; padding: 7px 8px; align-items: center; justify-content: space-between; gap: 10px; }
+.profitability-table-title > span { color: #667085; font-size: 9px; }
+.profitability-tabs { display: flex; gap: 4px; }
+.profitability-tabs button { min-height: 28px; padding: 4px 10px; border: 1px solid #d0d5dd; border-radius: 5px; background: #fff; font-size: 10px; font-weight: 800; }
+.profitability-tabs button.active { border-color: #1570ef; background: #eff8ff; color: #175cd3; }
+.profitability-table-shell { min-height: 0; flex: 1 1 auto; overflow: auto; }
+.profitability-table { min-width: 1180px; }
+.profitability-table th:not(:nth-child(2)), .profitability-table td:not(:nth-child(2)) { text-align: right; }
+.profitability-table th:first-child, .profitability-table td:first-child, .profitability-table th:last-child, .profitability-table td:last-child { text-align: center; }
+.profitability-table tbody > tr:not(.profitability-detail-row) { cursor: pointer; }
+.profitability-table tbody > tr:not(.profitability-detail-row):hover td, .profitability-table tbody > tr.selected td { background: #eff8ff; }
+.profitability-table td:nth-child(2) strong, .profitability-table td:nth-child(2) small { display: block; }
+.profitability-table td:nth-child(2) small { margin-top: 2px; color: #667085; font-size: 9px; }
+.profitability-detail-row td { padding: 8px 10px; background: #f8fafc; text-align: left !important; }
+.profitability-detail-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 6px; }
+.profitability-detail-grid > span { display: grid; padding: 6px 7px; border: 1px solid #e4e7ec; border-radius: 5px; background: #fff; color: #667085; font-size: 9px; gap: 2px; }
+.profitability-detail-grid strong { color: #101828; font-size: 10px; }
+.profitability-warnings { display: flex; margin-top: 7px; flex-wrap: wrap; gap: 5px; }
+.profitability-warnings span { padding: 4px 6px; border-radius: 4px; background: #fff4ed; color: #b93815; font-size: 9px; }
+.profitability-source-note { display: flex; min-height: 27px; padding: 4px 8px; align-items: center; gap: 12px; color: #667085; font-size: 9px; }
+
+@media (max-width: 1500px) {
+  .profitability-summary { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+  .profitability-coverage { grid-template-columns: minmax(210px, .8fr) minmax(180px, 1fr) auto; }
+  .profitability-audit-meta { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+@media (max-width: 1100px) {
+  .profitability-header, .profitability-table-title { align-items: flex-start; flex-direction: column; }
+  .profitability-filters { grid-template-columns: repeat(2, minmax(145px, 1fr)); }
+  .profitability-filters .wide { grid-column: span 2; }
+  .profitability-coverage { grid-template-columns: 1fr; }
+  .profitability-detail-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+}

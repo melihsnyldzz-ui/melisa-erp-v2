@@ -23,13 +23,13 @@ export function DashboardRecentTransactions({ rows }) {
     <section className="erp-panel dashboard-table-panel">
       <div className="panel-title">
         <strong>Son Satışlar / Son Alışlar</strong>
-        <span>Satış / alış / cari / terminal sync</span>
+        <span>En yeni satış ve alış belgeleri</span>
       </div>
       <div className="table-wrap dashboard-table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Saat</th>
+              <th>Tarih / saat</th>
               <th>Belge</th>
               <th>Cari / kaynak</th>
               <th>Tip</th>
@@ -40,7 +40,7 @@ export function DashboardRecentTransactions({ rows }) {
           <tbody>
             {rows.map((row) => (
               <tr key={`${row.time}-${row.document}`}>
-                <td>{row.time}</td>
+                <td>{row.date} {row.time}</td>
                 <td className="code-cell">{row.document}</td>
                 <td>{row.account}</td>
                 <td>{row.type}</td>

@@ -1,0 +1,257 @@
+{
+  "schemaVersion": "melisa-erp.goal7-public-proof.v1",
+  "completedAt": "2026-10-06T23:40:33.769Z",
+  "status": "PHASE_B_TECHNICALLY_COMPLETE_HUMAN_PENDING",
+  "sourceCommit": "e2ffea6c96430699a37e0227c28f76fc66e22851",
+  "release": "C:/Sirket/ERP/releases/CANONICAL-GOAL7-TEST-20261007-83",
+  "manifestSha256": "92b2dcd249b27f004b8a6b1f4ddfdfb2f56e967108521d5518e1a055afe6363b",
+  "manifestFiles": 1428,
+  "t0": {
+    "host": "DESKTOP-KSRK0EQ",
+    "database": "VEGA2026",
+    "access": "SELECT_ONLY",
+    "turkey": "2026-10-07 00:40:52–00:41:05",
+    "sourceHash": "a681b7f98003fa1c61dc57bda25f725536849efadc0d823f81c875c4909b53e4",
+    "atomicSnapshot": false,
+    "twoPassStableProjections": 8
+  },
+  "delta": {
+    "allNew": 86,
+    "allChanged": 752,
+    "missing": 0,
+    "inScopeNew": 84,
+    "inScopeChanged": 748,
+    "changedCustomers": 29,
+    "changedSuppliers": 56,
+    "quantityChanges": 731,
+    "safeQuantityAtoms": 563
+  },
+  "applied": {
+    "stockRun": "GOAL7-b8fd65a6-fc1f-44a7-ad84-12d6f6f314e1",
+    "stockPlanHash": "059d736d75fa053e1422b7fdd1988db499d7593591d30dcbcc3db4d081e57c60",
+    "stockMovements": 563,
+    "stockWrites": 1126,
+    "sourceRun": "GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d",
+    "sourcePlanHash": "38e77efd0f0d90dddb67501d7faf4b7b5c177d9217cb8240647b5fdc06547efe",
+    "bindingsHash": "fb0f543c98653cf0536c267b615ff74b3b4373acf02bf8c36bfad5068fee1c13",
+    "newProducts": 49,
+    "changedMasters": 12,
+    "priceInserts": 241,
+    "priceUpdates": 16,
+    "barcodes": 62,
+    "aliases": 49,
+    "nonzeroOpenings": 43,
+    "nativeSourceWrites": 468,
+    "newKnownCost": 20,
+    "newNullCost": 29,
+    "versionProducts": 16671,
+    "versionPrices": 64015,
+    "financeWrites": 0
+  },
+  "replay": {
+    "statuses": [
+      "REPLAY_NOOP",
+      "REPLAY_NOOP",
+      "REPLAY_NOOP",
+      "REPLAY_NOOP"
+    ],
+    "writes": 0,
+    "sourceNativeProof": "IMMEDIATE_GLOBAL_SEALS_NO_POST_BUSINESS_DRIFT_CLAIM"
+  },
+  "independentReconciliation": {
+    "stockProducts": 563,
+    "priorLocalEffectProducts": 45,
+    "nullCostsPreserved": 321,
+    "sourceEffects": 468,
+    "protectedTables": 46,
+    "guards": 16,
+    "mismatches": 0,
+    "sqlWrites": 0
+  },
+  "committedRollback": {
+    "effects": [
+      -2,
+      2
+    ],
+    "newerNativeCount": -1,
+    "afterInverseStock": 29,
+    "afterSeparateCleanupStock": 30,
+    "newerMovementAndAuditHashesPreserved": true,
+    "explicitOriginalOpeningBasis": 20,
+    "historyDeleted": false
+  },
+  "catalog": {
+    "nativeCards": 64,
+    "pageSize": 50,
+    "leadingZeroVerified": true,
+    "media": 3830,
+    "hold4620Preserved": true,
+    "syntheticListed": 0,
+    "browser": {
+      "sourceCommit": "e2ffea6c96430699a37e0227c28f76fc66e22851",
+      "at": "2026-10-06T23:40:09.009Z",
+      "greenDesignPreserved": true,
+      "newProductStockUSD": true,
+      "newSourceDate": true,
+      "revisedNameAndPrice": true,
+      "oldLineageDatePreserved": true,
+      "oldConfirmedPhotoDecoded": true,
+      "leadingZeroBarcode": true,
+      "page50NextVerified": true,
+      "technicalDebugCopyAdded": false,
+      "screenshots": [
+        "browser-final-new-product-83.jpg",
+        "browser-final-revised-product-83.jpg",
+        "browser-final-old-photo-83.jpg",
+        "browser-final-leading-zero-83.jpg",
+        "browser-final-next-page-83.jpg"
+      ]
+    },
+    "optimization": {
+      "method": "Direct indexed sealed-version lookup replaces per-request full version temp copy",
+      "safetyChecksRemoved": 0,
+      "otherThreeReaderBodiesUnchanged": true,
+      "builderTestsPassed": 5,
+      "independentReview": true
+    }
+  },
+  "performance": {
+    "before": {
+      "first50": {
+        "samplesMs": [
+          635,
+          582,
+          613,
+          643,
+          522
+        ],
+        "medianMs": 613
+      },
+      "next50": {
+        "samplesMs": [
+          556,
+          534,
+          590,
+          562,
+          574
+        ],
+        "medianMs": 562
+      },
+      "code": {
+        "samplesMs": [
+          620,
+          506,
+          480,
+          521,
+          662
+        ],
+        "medianMs": 521
+      },
+      "barcode": {
+        "samplesMs": [
+          353,
+          387,
+          338,
+          342,
+          409
+        ],
+        "medianMs": 353
+      },
+      "card": {
+        "samplesMs": [
+          210,
+          208,
+          199,
+          182,
+          187
+        ],
+        "medianMs": 199
+      }
+    },
+    "after": {
+      "first50": {
+        "samplesMs": [
+          888,
+          785,
+          700,
+          777,
+          686
+        ],
+        "medianMs": 777
+      },
+      "next50": {
+        "samplesMs": [
+          723,
+          756,
+          718,
+          721,
+          858
+        ],
+        "medianMs": 723
+      },
+      "code": {
+        "samplesMs": [
+          691,
+          576,
+          535,
+          568,
+          490
+        ],
+        "medianMs": 568
+      },
+      "barcode": {
+        "samplesMs": [
+          354,
+          367,
+          370,
+          391,
+          342
+        ],
+        "medianMs": 367
+      },
+      "card": {
+        "samplesMs": [
+          201,
+          205,
+          326,
+          304,
+          233
+        ],
+        "medianMs": 233
+      }
+    },
+    "method": "Five authenticated API requests each; median ms; same exact Molly barcode. Leading-zero separately verified."
+  },
+  "backup": {
+    "path": "C:/Sirket/ERP/backups/ERP-GOAL7-20261007/GOAL7_TEST_20261007_01.bak",
+    "bytes": 7283474432,
+    "sha256": "C94267CED54085DA3A4D9C935E9D4DDBBE982CCCA56DE589BCC288D42DA62B53",
+    "copyOnly": true,
+    "checksum": true,
+    "verifyOnly": true,
+    "activeRestore": false
+  },
+  "decisionPacket": {
+    "path": "C:/Sirket/ERP/evidence/ERP-GOAL7-20261007/analysis-private/final-04/MELIH_KARAR_PAKETI_20261007.md",
+    "sha256": "9fb08aa63293504c070de62f3513501d37e9fbd1d31f40460ce3874ed6078a20",
+    "rawCommercialDataCommitted": false
+  },
+  "boundaries": {
+    "vegaWrites": 0,
+    "liveWrites": 0,
+    "actualCutover": false,
+    "historicalImport": false,
+    "mainMerge": false,
+    "crmSourceChanged": false,
+    "crmRestartCommandIssued": false,
+    "liveSamePids": true,
+    "crmAutomaticRecovery": "2026-10-06T23:12:19.6147602Z TEST_SUPERVISOR_EXITED existing recovery mechanism"
+  },
+  "humanAcceptance": "ERP-UA19–23 pending",
+  "finishTree": {
+    "total": 49,
+    "green": 9,
+    "yellow": 34,
+    "red": 6
+  }
+}

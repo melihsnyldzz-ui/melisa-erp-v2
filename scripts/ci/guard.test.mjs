@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import net from 'node:net';
+import http from 'node:http';
+import dns from 'node:dns';
+import { readFileSync } from 'node:fs';
+import { execSync, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const denied = { code: 'CI_OFFLINE_BOUNDARY' };
+assert.throws(() => net.connect(1433, '192.0.2.1'), denied);
+assert.throws(() => net.connect(4114, '127.0.0.1'), denied);
+assert.throws(() => http.get('http://127.0.0.1:4114/api/health'), denied);
+assert.throws(() => fetch('https://example.invalid'), denied);
+assert.throws(() => dns.lookup('example.invalid'), denied);
+assert.throws(() => readFileSync('.env.local'), denied);
+assert.throws(() => execSync('echo blocked'), denied);
+assert.throws(() => spawnSync(process.execPath, ['-e', 'process.exit(0)']), denied);
+assert.throws(() => net.createServer().listen(4114, '127.0.0.1'), denied);
+const guard = fileURLToPath(new URL('./offline-guard.cjs', import.meta.url));
+const child = spawnSync(process.execPath, ['--require', guard, '-e', "require('node:assert/strict').throws(()=>require('node:net').connect(1433,'192.0.2.1'),{code:'CI_OFFLINE_BOUNDARY'})"], { env: {} });
+assert.equal(child.status, 0, 'an overridden child environment must retain the guard');
+console.log('Offline guard negative checks and child inheritance: PASS');

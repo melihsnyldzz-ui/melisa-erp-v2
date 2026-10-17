@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "name": "green-ui-sale-stock-customer",
+      "status": "PASS",
+      "invoiceId": "34612"
+    },
+    {
+      "name": "green-ui-sale-retry-no-duplicate",
+      "status": "PASS"
+    },
+    {
+      "name": "green-ui-cancel-and-reload-persistence",
+      "status": "PASS"
+    },
+    {
+      "name": "green-ui-collection-ledger-cash",
+      "status": "PASS",
+      "movementId": 47628
+    },
+    {
+      "name": "green-ui-collection-cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "green-ui-received-goods-to-invoice-no-double-stock",
+      "status": "PASS",
+      "invoiceId": 25082
+    },
+    {
+      "name": "green-ui-purchase-cancel-physical-stock-preserved",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-no-javascript-errors",
+      "status": "PASS"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,274 @@
+{
+  "at": "2026-10-06T14:21:41.569Z",
+  "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+  "packageId": "CANONICAL-TEST-9ada67ca4494",
+  "releaseDirectory": "C:/Sirket/ERP/releases/CANONICAL-FINOPS-TEST-20261006-71",
+  "roles": [
+    {
+      "actorId": 15,
+      "role": "isolated_test_sales",
+      "stockAdjust": false,
+      "purchaseCancel": false,
+      "financePayment": false,
+      "testAdminSession": false
+    },
+    {
+      "actorId": 16,
+      "role": "isolated_test_ilker",
+      "stockAdjust": true,
+      "purchaseCancel": true,
+      "financePayment": true,
+      "testAdminSession": false
+    }
+  ],
+  "negatives": [
+    {
+      "label": "changed-movement-fingerprint",
+      "status": 409,
+      "code": "STOCK_COUNT_STALE",
+      "bodySha256": "70917c74dfefb4bdf8c174844bb25d6135140a7be6c26b715225b231e0440241",
+      "actor": 15
+    },
+    {
+      "label": "changed-stock-snapshot",
+      "status": 409,
+      "code": "STOCK_COUNT_STALE",
+      "bodySha256": "730d68a5486d1773ff00de40b798aa16cf415c36f897892522bbcc143f32cf60",
+      "actor": 15
+    },
+    {
+      "label": "missing-approval-justification",
+      "status": 400,
+      "code": "COUNT_APPROVAL_REASON",
+      "bodySha256": "42803d28766935fc347666076c55eb0da8a8042f5f38af4c686705e6aa8f673d",
+      "actor": 16
+    },
+    {
+      "label": "personnel-count-approve",
+      "status": 403,
+      "code": "AUTH_PERMISSION_DENIED",
+      "bodySha256": "cea63ea1989d4e0b1f2748d70f1730ca781ac7e346908b188057dccce3cfbdad",
+      "actor": 15
+    },
+    {
+      "label": "same-uuid-different-count-body",
+      "status": 409,
+      "code": "REQUEST_CONFLICT",
+      "bodySha256": "37d124d6079add107422407e743fbc25cd4495bd1c4b22efbb4efd6ec94dd1e5",
+      "actor": 16
+    },
+    {
+      "label": "same-count-draft-uuid-different-body",
+      "status": 409,
+      "code": "REQUEST_CONFLICT",
+      "bodySha256": "f4b6c60a2668fc21e558fa8ee65595450166424533c51c02351ac86b7407c9c2",
+      "actor": 15
+    },
+    {
+      "label": "negative-count-quantity",
+      "status": 400,
+      "code": "COUNT_QUANTITY",
+      "bodySha256": "5ad470b9aa85e517520fa2138b3736eafc05df36bd61a3e79329ca045513e50b",
+      "actor": 15
+    },
+    {
+      "label": "quarantined-product-count",
+      "status": 403,
+      "code": "COUNT_PRODUCT_SCOPE",
+      "bodySha256": "1052c703828cceeb176f71bf3a6d14d010edfcea9afea4ce3aba9cd6bedada8e",
+      "actor": 15
+    },
+    {
+      "label": "unknown-barcode-count-approve",
+      "status": 409,
+      "code": "COUNT_NEEDS_REVIEW",
+      "bodySha256": "26559803e4b0cfa5fffc4aea3c8aa223fd2a79f75d1d0150099f101a50b4f397",
+      "actor": 16
+    },
+    {
+      "label": "personnel-payment-preview",
+      "status": 403,
+      "code": "WORK_PAYMENT_FORBIDDEN",
+      "bodySha256": "aaebbe7d72b65138db2c715de92afeef808bf1125dfc63d4080e05b754ca2742",
+      "actor": 15
+    },
+    {
+      "label": "personnel-payment-write",
+      "status": 403,
+      "code": "WORK_PAYMENT_FORBIDDEN",
+      "bodySha256": "0b94939b53b16ae50f333286cdc9097b0413faab7c4ff27dcdefc336744e6c5c",
+      "actor": 15
+    },
+    {
+      "label": "wrong-currency-payment",
+      "status": 409,
+      "code": "WORK_PAYMENT_SCOPE",
+      "bodySha256": "30897c86c4e4c6cd2045ebabda4c1555bbde30c6c56671a3d3082d61e8f44444",
+      "actor": 16
+    },
+    {
+      "label": "zero-payment",
+      "status": 400,
+      "code": "WORK_PAYMENT_INPUT",
+      "bodySha256": "3d305e175de151174f1f654e74d0d3d555fb0dabb8ecb9b7ac5170bd946aea91",
+      "actor": 16
+    },
+    {
+      "label": "negative-payment",
+      "status": 400,
+      "code": "WORK_PAYMENT_INPUT",
+      "bodySha256": "cdf7484c1c5f198f99aa2db17c11a27914e54d23c3e7cc443cefc2ae72387a50",
+      "actor": 16
+    },
+    {
+      "label": "native-port-readonly",
+      "port": 4146,
+      "status": 405,
+      "code": "TEST_WRITE_OUTSIDE_SCOPE"
+    }
+  ],
+  "replay": [
+    {
+      "flow": "count",
+      "doubleClickStatuses": [
+        200,
+        200
+      ],
+      "lostResponseBody": true,
+      "retryReplayed": true,
+      "newUuidAlreadyApplied": true,
+      "refreshState": "approved",
+      "stockMovementsCreated": 1
+    }
+  ],
+  "snapshots": [
+    "count71-before",
+    "count71-drafted",
+    "count71-counted",
+    "count71-count-replayed",
+    "count71-final"
+  ],
+  "requests": [
+    {
+      "path": "/api/test-daily/count/draft",
+      "actor": 15,
+      "body": {
+        "requestId": "71e0c11f-0f39-4f0e-ad0f-3090189f4c48",
+        "date": "2026-10-06",
+        "lines": [
+          {
+            "productId": "325503",
+            "stockCode": "TEST-FINISH-GOODS-P2",
+            "physical": 4,
+            "system": 3,
+            "reason": "Goal3 kontrollü gerçek TEST sayımı: bir adet fark",
+            "movementFingerprint": "821fb8a1a8dc9ace863b1211977c3e47dc715d54936e21350118168ff0d717ea"
+          }
+        ],
+        "unknownScans": []
+      },
+      "bodySha256": "30252f5d5c4b5eb81c0d6fa3cc9d2dbf3ff77a4bdee7c2900bcf3330bfd8e189"
+    },
+    {
+      "path": "/api/test-daily/count/approve",
+      "actor": 16,
+      "body": {
+        "requestId": "79083c39-1f0b-4592-9ad3-60311ad1fc2c",
+        "id": 39,
+        "reason": "Goal3 sayım farkının gerekçeli yetkili onayı",
+        "date": "2026-10-06"
+      },
+      "bodySha256": "cea63ea1989d4e0b1f2748d70f1730ca781ac7e346908b188057dccce3cfbdad"
+    },
+    {
+      "path": "/api/test-daily/count/approve",
+      "actor": 16,
+      "body": {
+        "requestId": "28d02b28-6c9b-4147-b724-36ada8433063",
+        "id": 39,
+        "reason": "Goal3 sayım farkının gerekçeli yetkili onayı",
+        "date": "2026-10-06"
+      },
+      "bodySha256": "5b94c8b97d86cd27013d37da65958bcbab2b2ec63db3356a4b57b822723bb24a"
+    },
+    {
+      "path": "/api/test-daily/count/draft",
+      "actor": 15,
+      "body": {
+        "requestId": "72d3df10-7716-478f-9a56-069868e37821",
+        "date": "2026-10-06",
+        "lines": [],
+        "unknownScans": [
+          {
+            "value": "UNKNOWN-GOAL3-20261006",
+            "quantity": 1,
+            "status": "needs_review"
+          }
+        ]
+      },
+      "bodySha256": "f8f6389a921ffc14bff68387da01fa321c2a993e8250769e911f3ec3e30db121"
+    },
+    {
+      "path": "/api/test-daily/count/reject",
+      "actor": 16,
+      "body": {
+        "requestId": "4c7c50a7-aa2c-4a66-ac0b-14b8944d525a",
+        "id": 41,
+        "date": "2026-10-06",
+        "reason": "Goal3 negatif prova: bilinmeyen okutma inceleme kaydı korundu"
+      },
+      "bodySha256": "756717662c789da290f1301c510c2e091fa2b5c80af400e2ba0a82a3c4bc6300"
+    },
+    {
+      "path": "/api/test-daily/count/draft",
+      "actor": 15,
+      "body": {
+        "requestId": "04bae674-460e-43f0-b719-148f4a37cad4",
+        "date": "2026-10-06",
+        "lines": [
+          {
+            "productId": "325503",
+            "stockCode": "TEST-FINISH-GOODS-P2",
+            "physical": 3,
+            "system": 4,
+            "reason": "Goal3 prova sonrası ayrı gerekçeli sayım ile başlangıç miktarına dönüş",
+            "movementFingerprint": "e0d1663209349ac29c8458281552c74846f3d8c75cfc6c4477a5ea5d76b26698"
+          }
+        ],
+        "unknownScans": []
+      },
+      "bodySha256": "785b5ea2a8a34bc69fbbafb90949ae07b8776f6a1b19be67334e91ca599829ff"
+    },
+    {
+      "path": "/api/test-daily/count/approve",
+      "actor": 16,
+      "body": {
+        "requestId": "c8a187bc-ae48-4605-a33b-aa8641b1caf4",
+        "id": 42,
+        "date": "2026-10-06",
+        "reason": "Ayrı telafi sayımı yetkili onayı"
+      },
+      "bodySha256": "24371f623de8dd9044167d1aeece0fe588c61125681c51613df1b0e432efe1f9"
+    }
+  ],
+  "humanAcceptance": "ERP-UA13–17 bekliyor",
+  "resumedDraftId": 39,
+  "count": {
+    "draftId": 39,
+    "productId": "325503",
+    "stockBefore": 3,
+    "counted": 4,
+    "reason": "Goal3 kontrollü gerçek TEST sayımı: bir adet fark",
+    "personnelId": 15,
+    "approverId": 16,
+    "approvalReason": "Goal3 sayım farkının gerekçeli yetkili onayı",
+    "movementId": 917931,
+    "nativeEffectOnce": true,
+    "compensationDraftId": 42
+  },
+  "unknownCountId": 41,
+  "protectedRowsAndAuthUnchanged": true,
+  "stockAndSupplierBaselinesRestored": true,
+  "success": true,
+  "completedAt": "2026-10-06T14:22:15.603Z"
+}

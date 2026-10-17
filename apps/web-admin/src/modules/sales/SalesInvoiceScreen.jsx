@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { partyScopeId } from '../../utils/operationNavigation.js';
 import { SalesInvoiceHeader } from './SalesInvoiceHeader.jsx';
 import { SalesInvoiceItemsTable } from './SalesInvoiceItemsTable.jsx';
 import { SalesInvoiceToolbar } from './SalesInvoiceToolbar.jsx';
@@ -11,11 +12,15 @@ import {
   updateSalesDraft,
 } from '../../services/invoiceDraftApi.js';
 import { ensureCashCustomerDefinitions, fetchCustomers } from '../../services/customerApi.js';
-import { fetchCurrencyRates, rateValueForCurrency } from '../../services/currencyRateApi.js';
+import { fetchCurrencyRates } from '../../services/currencyRateApi.js';
+import { currencyPreview, definedCurrencyRate, storedRate } from '../../utils/currencyPreview.js';
 import { fetchProducts } from '../../services/productApi.js';
 import { apiConfig } from '../../config/apiConfig.js';
-import { exportRowsToExcel, printBusinessDocument } from '../../utils/exportUtils.js';
-import { normalizeSearchText, searchTextIncludes } from '../../utils/searchText.js';
+import { exportRowsToExcel, printInvoiceReceipt } from '../../utils/exportUtils.js';
+import { normalizeSearchText } from '../../utils/searchText.js';
+import { fetchAllPages } from '../../utils/fetchAllPages.js';
+import { clearInvoiceCustomerSelection, customerMatchesQuery, customerSelectionLabel, resolveCustomerSelection } from '../../utils/customerSelection.js';
+import { mapPersistedSalesTotals } from './salesInvoiceTotals.js';
 
 const emptySalesInvoice = {
   invoiceNo: 'Taslak',
@@ -27,6 +32,8 @@ const emptySalesInvoice = {
   invoiceCurrency: 'TRY',
   exchangeRate: 'TRY 1.0000',
   exchangeRateValue: 1,
+  accountExchangeRateValue: '',
+  ratesFromDate: true,
   description: '',
   status: 'Taslak',
   terminalCode: '',
@@ -40,7 +47,8 @@ function todayIsoDate() {
 }
 
 function formatExchangeRate(currency, value) {
-  return `${currency || 'TRY'} ${Number(value || 1).toFixed(4)}`;
+  const rate = storedRate(currency, value);
+  return rate === null ? `${currency} kur gerekli` : `${currency} ${rate.toFixed(8)}`;
 }
 
 function roundCurrency(value) {
@@ -52,23 +60,24 @@ function applyDiscount(amount, discountRate) {
   return Number(amount || 0) * (1 - (rate / 100));
 }
 
-function calculateTotals(items, discountRate, exchangeRate = 1, currency = 'TRY') {
+function calculateTotals(items, discountRate, exchangeRate, currency = 'TRY') {
+  const rate = storedRate(currency, exchangeRate);
   const subtotal = items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
   const totalCost = items.reduce((total, item) => total + item.quantity * item.averageCostTry, 0);
   const lineCount = items.length;
   const totalQuantity = items.reduce((total, item) => total + Number(item.quantity || 0), 0);
-  const grossProfit = items.some((item) => item.grossProfitTry !== null && item.grossProfitTry !== undefined)
+  const grossProfit = rate !== null && items.some((item) => item.grossProfitTry !== null && item.grossProfitTry !== undefined)
      ? items.reduce((total, item) => total + Number(item.grossProfitTry || 0), 0)
     : null;
-  const grossProfitDocument = grossProfit === null ? null : grossProfit / Number(exchangeRate || 1);
+  const grossProfitDocument = grossProfit === null || rate === null ? null : grossProfit / rate;
   const discountAmount = subtotal * (discountRate / 100);
   const grandTotal = subtotal - discountAmount;
-  const tryEquivalent = grandTotal * Number(exchangeRate || 1);
-  const estimatedProfit = tryEquivalent - totalCost;
+  const tryEquivalent = rate === null ? null : grandTotal * rate;
+  const estimatedProfit = tryEquivalent === null ? null : tryEquivalent - totalCost;
 
   return {
     currency,
-    exchangeRate: Number(exchangeRate || 1),
+    exchangeRate: rate,
     subtotal,
     discountRate,
     discountAmount,
@@ -85,7 +94,7 @@ function calculateTotals(items, discountRate, exchangeRate = 1, currency = 'TRY'
 function resolveUnitCostTry(item, invoiceCurrency, exchangeRate) {
   const productCurrency = String(item.cardCurrency || item.productCurrency || item.currency || 'TRY').toUpperCase();
   const lineCurrency = String(invoiceCurrency || item.currency || 'TRY').toUpperCase();
-  const rate = Number(exchangeRate || 1);
+  const rate = storedRate(invoiceCurrency, exchangeRate);
   const productRateToTry = Number(item.cardRateToTry || 0);
   const purchasePrice = applyDiscount(item.cardPurchasePrice ?? item.purchasePrice ?? 0, item.purchaseDiscountRate);
   const averageCostTry = Number(item.productAverageCostTry ?? item.averageCostTry ?? 0);
@@ -114,17 +123,17 @@ function resolveUnitCostTry(item, invoiceCurrency, exchangeRate) {
 function withProfitSnapshot(item, invoiceCurrency, exchangeRate) {
   const quantity = Number(item.quantity || 0);
   const unitPrice = Number(item.unitPrice || 0);
-  const rate = Number(exchangeRate || 1);
+  const rate = storedRate(invoiceCurrency, exchangeRate);
   const unitCostTry = resolveUnitCostTry(item, invoiceCurrency, rate);
   const lineTotalTry = quantity * unitPrice * rate;
   const totalCostTry = quantity * unitCostTry;
-  const grossProfitTry = lineTotalTry - totalCostTry;
+  const grossProfitTry = rate === null ? null : lineTotalTry - totalCostTry;
 
   return {
     ...item,
     averageCostTry: unitCostTry,
     grossProfitTry,
-    grossProfitRate: lineTotalTry > 0 ? grossProfitTry / lineTotalTry : 0,
+    grossProfitRate: rate === null ? null : lineTotalTry > 0 ? grossProfitTry / lineTotalTry : 0,
   };
 }
 
@@ -163,17 +172,23 @@ function mapDraftToInvoice(draft) {
     date: formatDate(draft.documentDate),
     customerId: draft.customerId,
     customer: draft.customerName || `Müşteri #${draft.customerId}`,
-    customerCurrency: draft.customerCurrency,
+    customerCurrency: draft.accountCurrency || draft.customerCurrency,
     customerBalanceLabel: draft.customerBalanceLabel || '-',
     invoiceCurrency: draft.documentCurrency,
     exchangeRate: formatExchangeRate(draft.documentCurrency, draft.exchangeRate),
-    exchangeRateValue: Number(draft.exchangeRate || 1),
+    exchangeRateValue: storedRate(draft.documentCurrency, draft.exchangeRate) ?? '',
+    accountExchangeRateValue: storedRate(draft.accountCurrency || draft.customerCurrency,
+      draft.accountExchangeRate ?? (draft.documentCurrency === draft.customerCurrency ? draft.exchangeRate : null)) ?? '',
+    ratesFromDate: false,
+    storedAccountSnapshotMissing: draft.documentCurrency !== (draft.accountCurrency || draft.customerCurrency)
+      && (draft.accountAmount == null || draft.accountExchangeRate == null || !draft.accountCurrency),
     description: draft.description || '',
     status: status === 'DRAFT' ? 'Taslak' : status,
     terminalCode: draft.terminalCode || '',
     terminalName: draft.terminalName || '',
     employeeCode: draft.employeeCode || '',
     employeeName: draft.employeeName || '',
+    printSnapshot: { items: draft.items, subtotal: draft.subtotal, discountTotal: draft.discountTotal, grandTotal: draft.grandTotal, taxTotal: draft.taxTotal, currency: draft.documentCurrency },
   };
 }
 
@@ -212,9 +227,9 @@ function mapCustomerOption(customer) {
 }
 
 const cashCustomerShortcuts = [
-  { code: 'PESIN-TL', label: 'Peşin TL', currency: 'TRY' },
-  { code: 'PESIN-USD', label: 'Peşin USD', currency: 'USD' },
-  { code: 'PESIN-EUR', label: 'Peşin EUR', currency: 'EUR' },
+  { code: apiConfig.pilotMode ? '2-PEŞİN TL' : 'PESIN-TL', label: 'Peşin TL', currency: 'TRY' },
+  { code: apiConfig.pilotMode ? '1-PEŞİN $' : 'PESIN-USD', label: 'Peşin USD', currency: 'USD' },
+  { code: apiConfig.pilotMode ? '3-PEŞİN €' : 'PESIN-EUR', label: 'Peşin EUR', currency: 'EUR' },
 ];
 
 function mergeCustomerOptions(currentCustomers, nextCustomers) {
@@ -293,15 +308,19 @@ function mergeProductOptions(currentProducts, nextProducts) {
   return Array.from(productsById.values());
 }
 
-export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChange, onOpenScreen }) {
+export function SalesInvoiceScreen({ salesDraftId, initialCustomerId, permissions = [], onDirtyChange, onOpenScreen, onRecordSaved }) {
+  const loadedDraftIdRef = useRef(null);
   const [draftId, setDraftId] = useState(salesDraftId ?? null);
+  const initialCustomerApplied = useRef(false);
   const [invoice, setInvoice] = useState(emptySalesInvoice);
   const [items, setItems] = useState([]);
   const [discountRate, setDiscountRate] = useState(0);
   const [status, setStatus] = useState('DRAFT');
+  const [persistedTotals, setPersistedTotals] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Taslak fiş henüz stok veya cari hareket oluşturmaz.');
   const [draftCustomerOptions, setDraftCustomerOptions] = useState([]);
+  const [areCustomersReady, setAreCustomersReady] = useState(false);
   const [draftProductOptions, setDraftProductOptions] = useState([]);
   const [productOptionCache, setProductOptionCache] = useState([]);
   const [productToAddId, setProductToAddId] = useState('');
@@ -318,16 +337,29 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   const [isCancelling, setIsCancelling] = useState(false);
   const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const totals = useMemo(
+  const calculatedTotals = useMemo(
     () => calculateTotals(items, discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency),
     [discountRate, invoice.exchangeRateValue, invoice.invoiceCurrency, items],
   );
   const isFinalized = status === 'FINALIZED';
   const isCancelled = status === 'CANCELLED';
   const isReadonly = isCancelled || (isFinalized && !isCorrectionMode);
+  const totals = useMemo(() => (
+    isReadonly && persistedTotals
+      ? { ...calculatedTotals, ...persistedTotals }
+      : calculatedTotals
+  ), [calculatedTotals, isReadonly, persistedTotals]);
+  const settlementPreview = isFinalized && invoice.storedAccountSnapshotMissing
+    ? { valid: false, settlement: null, error: 'Eski çapraz döviz fişinin kayıtlı cari kur/tutar bilgisi eksik.' }
+    : currencyPreview({ amount: totals.grandTotal, currency: invoice.invoiceCurrency,
+      accountCurrency: invoice.customerCurrency, exchangeRate: invoice.exchangeRateValue, accountExchangeRate: invoice.accountExchangeRateValue });
   const canSaveDraft = draftId ? permissions.includes('sales.edit') : permissions.includes('sales.create');
   const canFinalize = permissions.includes('sales.finalize');
   const canCancel = permissions.includes('sales.cancel');
+  useEffect(() => {
+    if (isFinalized || isCancelled) return;
+    setItems((current) => current.map((item) => withProfitSnapshot(item, invoice.invoiceCurrency, invoice.exchangeRateValue)));
+  }, [invoice.invoiceCurrency, invoice.exchangeRateValue, isFinalized, isCancelled]);
   const productLookupOptions = useMemo(
     () => mergeProductOptions(productOptionCache, draftProductOptions),
     [draftProductOptions, productOptionCache],
@@ -344,9 +376,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     });
   }, [draftProductOptions, productLookupOptions, productQuery]);
   const filteredCustomers = useMemo(() => {
-    return draftCustomerOptions.filter((customer) => (
-      [customer.code, customer.name, customer.currency].some((value) => searchTextIncludes(value, customerQuery))
-    ));
+    return draftCustomerOptions.filter((customer) => customerMatchesQuery(customer, customerQuery));
   }, [customerQuery, draftCustomerOptions]);
   const selectedCustomer = useMemo(
     () => draftCustomerOptions.find((customer) => String(customer.id) === String(invoice.customerId)) || null,
@@ -375,11 +405,12 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         const response = await fetchCurrencyRates({ date: invoice.date });
 
         if (isMounted) {
-          setCurrencyRates(response.data);
+          setCurrencyRates({ date: invoice.date, data: response.data });
           setCurrencyRateError('');
         }
       } catch (error) {
         if (isMounted) {
+          setCurrencyRates(null);
           setCurrencyRateError(`Kur bilgisi okunamadı: ${error.message || 'API_ERROR'}`);
         }
       }
@@ -393,39 +424,29 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }, [invoice.date]);
 
   useEffect(() => {
-    if (draftId || invoice.invoiceCurrency === 'TRY') {
-      return;
-    }
-
-    const nextRate = centralRateForCurrency(invoice.invoiceCurrency);
-    if (nextRate === null) {
-      return;
-    }
-
-    setInvoice((current) => ({
-      ...current,
-      exchangeRateValue: nextRate,
-      exchangeRate: formatExchangeRate(current.invoiceCurrency, nextRate),
-    }));
-  }, [currencyRates, draftId, invoice.invoiceCurrency]);
+    if (isFinalized || !invoice.ratesFromDate || currencyRates?.date !== invoice.date) return;
+    setInvoice((current) => {
+      const exchangeRateValue = current.exchangeRateValue === '' ? definedCurrencyRate(currencyRates.data, current.invoiceCurrency) ?? '' : current.exchangeRateValue;
+      const accountExchangeRateValue = current.invoiceCurrency === current.customerCurrency ? exchangeRateValue
+        : current.accountExchangeRateValue === '' ? definedCurrencyRate(currencyRates.data, current.customerCurrency) ?? '' : current.accountExchangeRateValue;
+      return { ...current, exchangeRateValue, accountExchangeRateValue, exchangeRate: formatExchangeRate(current.invoiceCurrency, exchangeRateValue) };
+    });
+  }, [currencyRates, invoice.date, invoice.invoiceCurrency, invoice.customerCurrency, invoice.ratesFromDate, isFinalized]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadCustomers() {
       try {
-        const [response, cashResponse] = await Promise.all([
-          fetchCustomers({ page: 1, limit: 50, activeOnly: true }),
-          fetchCustomers({ page: 1, limit: 10, search: 'PESIN', activeOnly: true }),
-        ]);
+        const customers = await fetchAllPages(fetchCustomers, { activeOnly: true });
         if (isMounted) {
-          setDraftCustomerOptions(mergeCustomerOptions(
-            (response.data || []).map(mapCustomerOption),
-            (cashResponse.data || []).map(mapCustomerOption),
-          ));
+          setDraftCustomerOptions(customers.map(mapCustomerOption));
+          setAreCustomersReady(true);
         }
       } catch (error) {
         if (isMounted) {
+          setDraftCustomerOptions([]);
+          setAreCustomersReady(false);
           setReferenceOptionsError(`Cari listesi okunamadi: ${error.message || 'API_ERROR'}`);
         }
       }
@@ -485,7 +506,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }, [productQuery]);
 
   useEffect(() => {
-    if (!salesDraftId) {
+    if (!salesDraftId || loadedDraftIdRef.current === String(salesDraftId)) {
       return undefined;
     }
 
@@ -501,9 +522,12 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         const nextItems = mapDraftItems(response.data.items);
 
         if (isMounted) {
+          loadedDraftIdRef.current = String(response.data.id);
           setDraftId(response.data.id);
           setInvoice(nextInvoice);
+          setCustomerQuery('');
           setItems(nextItems);
+          setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
           setDiscountRate(Number(response.data.discountRate || 0));
           setStatus(nextInvoice.status);
           setIsCorrectionMode(false);
@@ -537,10 +561,11 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       customerId: invoice.customerId,
       customerCurrency: invoice.customerCurrency,
       documentCurrency: invoice.invoiceCurrency,
-      exchangeRate: invoice.exchangeRateValue || 1,
+      exchangeRate: settlementPreview.settlement.documentRateToTry,
+      accountExchangeRate: settlementPreview.settlement.accountRateToTry,
       description: invoice.description,
       discountRate,
-      estimatedProfitTry: totals.estimatedProfit,
+      estimatedProfitTry: calculatedTotals.estimatedProfit,
       items: items.map((item, index) => ({
         productId: item.productId || index + 1,
         stockCode: item.stockCode,
@@ -557,9 +582,13 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   function createNewDraft() {
+    if (isSaving || isFinalizing || isCancelling) return;
+    loadedDraftIdRef.current = null;
+    onRecordSaved?.(null);
     setDraftId(null);
     setInvoice({ ...emptySalesInvoice, date: todayIsoDate() });
     setItems([]);
+    setPersistedTotals(null);
     setDiscountRate(0);
     setStatus('Taslak');
     setIsCorrectionMode(false);
@@ -584,9 +613,11 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return 1;
     }
 
-    const nextRate = rateValueForCurrency(currencyRates, nextCurrency);
+    const snapshotRate = nextCurrency === invoice.invoiceCurrency ? storedRate(nextCurrency, invoice.exchangeRateValue)
+      : nextCurrency === invoice.customerCurrency ? storedRate(nextCurrency, invoice.accountExchangeRateValue) : null;
+    const nextRate = snapshotRate ?? definedCurrencyRate(currencyRates?.date === invoice.date ? currencyRates.data : null, nextCurrency);
     if (nextRate === null) {
-      setCurrencyRateError(`${nextCurrency} kuru bu fis tarihi icin tanıml değil. Ayarlar > Döviz Kurlar ekranından kur girin.`);
+      setCurrencyRateError(`${nextCurrency} kuru bu fiş tarihi için tanımlı değil. Fişin kur alanına geçerli kur girin.`);
       return null;
     }
 
@@ -597,6 +628,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   function convertCurrencyAmount(amount, sourceCurrency, targetCurrency) {
     const source = String(sourceCurrency || 'TRY').toUpperCase();
     const target = String(targetCurrency || 'TRY').toUpperCase();
+    if (source === target) return roundCurrency(amount);
     const sourceRate = centralRateForCurrency(source);
     const targetRate = centralRateForCurrency(target);
 
@@ -627,6 +659,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   function updateInvoiceField(field, value) {
+    if (isReadonly || isSaving || isFinalizing || isCancelling) return;
     if (isFinalized && field === 'invoiceCurrency') {
       setStatusMessage('Kesinleşmiş fişte cari ve para birimi değiştirilemez.');
       return;
@@ -636,12 +669,19 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       const nextCurrency = String(value || 'TRY').toUpperCase();
       const nextRate = centralRateForCurrency(nextCurrency);
       if (nextRate === null) {
+        if (items.length) {
+          setErrorMessage('Satırlı fişin para birimini değiştirmek için hedef döviz kuru gerekli. Önce Döviz Kurları ekranından tanımlayın.');
+          return;
+        }
         setInvoice((current) => ({
           ...current,
           invoiceCurrency: nextCurrency,
           exchangeRateValue: '',
           exchangeRate: `${nextCurrency} tanımsız`,
+          accountExchangeRateValue: current.customerCurrency === nextCurrency ? '' : current.accountExchangeRateValue,
+          ratesFromDate: true,
         }));
+        markDirty('Fiş para birimi değişti; kaydetmeden önce kur girin.');
         return;
       }
       const convertedItems = items.map((item) => {
@@ -658,14 +698,36 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
         invoiceCurrency: nextCurrency,
         exchangeRateValue: nextRate,
         exchangeRate: formatExchangeRate(nextCurrency, nextRate),
+        accountExchangeRateValue: current.customerCurrency === nextCurrency ? nextRate : current.accountExchangeRateValue,
+        ratesFromDate: true,
       }));
       setItems(convertedItems);
       markDirty('Fi para birimi de?i?ti; tanıml kur snapshot olarak kaydedilecek.');
       return;
     }
 
-    if (field === 'exchangeRateValue') {
-      setStatusMessage('Kur fis uzerinden de?i?mez; Ayarlar > Döviz Kurlar ekranından tanimlanir.');
+    if (field === 'exchangeRateValue' || field === 'accountExchangeRateValue') {
+      if (isFinalized) {
+        setStatusMessage('Kesinleşmiş fişin işlem ve cari kurları korunur.');
+        return;
+      }
+      const targetCurrency = field === 'exchangeRateValue' ? invoice.invoiceCurrency : invoice.customerCurrency;
+      if (targetCurrency === 'TRY' || (field === 'accountExchangeRateValue' && invoice.invoiceCurrency === invoice.customerCurrency)) return;
+      setInvoice((current) => ({ ...current, [field]: value,
+        ...(field === 'exchangeRateValue' ? { exchangeRate: formatExchangeRate(current.invoiceCurrency, value),
+          ...(current.invoiceCurrency === current.customerCurrency ? { accountExchangeRateValue: value } : {}) } : {}) }));
+      if (field === 'exchangeRateValue') setItems((current) => current.map((item) => withProfitSnapshot(item, invoice.invoiceCurrency, value)));
+      setCurrencyRateError('');
+      markDirty('Kur değişti; cari karşılığı kaydederken bu kurla hesaplanır.');
+      return;
+    }
+
+    if (field === 'date' && !isFinalized) {
+      setInvoice((current) => ({ ...current, date: value, ratesFromDate: true,
+        exchangeRateValue: current.invoiceCurrency === 'TRY' ? 1 : '',
+        accountExchangeRateValue: current.customerCurrency === 'TRY' ? 1 : '',
+        exchangeRate: formatExchangeRate(current.invoiceCurrency, null) }));
+      markDirty('Fiş tarihi değişti; yeni tarih için kurları kontrol edin.');
       return;
     }
 
@@ -676,16 +738,14 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     markDirty('Taslak de?i?ti; stok ve cari hareket olumad.');
   }
 
-  function selectCustomer(customerId) {
-    if (isFinalized) {
+  function selectCustomer(customer) {
+    if (isReadonly || isFinalized) {
       setStatusMessage('Kesinleşmiş fişte cari değiştirilemez.');
-      return;
+      return false;
     }
 
-    const customer = draftCustomerOptions.find((item) => String(item.id) === String(customerId));
-
-    if (!customer) {
-      return;
+    if (!customer?.id) {
+      return false;
     }
 
     const nextRate = centralRateForCurrency(customer.currency);
@@ -693,9 +753,9 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       const convertedItem = convertItemToInvoiceCurrency(item, customer.currency);
       return convertedItem ? withProfitSnapshot(convertedItem, customer.currency, nextRate) : null;
     });
-    if (nextRate !== null && convertedItems.some((item) => item === null)) {
+    if (items.length && (nextRate === null || convertedItems.some((item) => item === null))) {
       setErrorMessage(`${customer.currency} icin mevcut satır fiyatları çevrilemedi. Döviz Kurlar ekranından kur tanımını kontrol edin.`);
-      return;
+      return false;
     }
 
     setInvoice((current) => ({
@@ -707,15 +767,34 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       invoiceCurrency: customer.currency,
       exchangeRate: nextRate === null ? `${customer.currency} tanımsz` : formatExchangeRate(customer.currency, nextRate),
       exchangeRateValue: nextRate === null ? '' : nextRate,
+      accountExchangeRateValue: nextRate === null ? '' : nextRate,
+      ratesFromDate: true,
+      storedAccountSnapshotMissing: false,
     }));
     if (nextRate !== null) {
       setItems(convertedItems);
     }
-    setCustomerQuery(customer.name);
+    setCustomerQuery(customerSelectionLabel(customer));
     markDirty('Cari se?ildi; fis para birimi icin tanıml kur alindi.');
+    return true;
   }
 
+  useEffect(() => {
+    if (initialCustomerApplied.current || !initialCustomerId || !areCustomersReady || isLoading) return;
+    // Card context is applied once, only to an untouched new document. A later
+    // menu visit or reference refresh never replaces the operator's selection.
+    initialCustomerApplied.current = true;
+    if (draftId || invoice.customerId || isDirty || items.length || isReadonly || !permissions.includes('sales.create')) return;
+    let id;
+    try { id = partyScopeId(initialCustomerId); } catch (error) { setErrorMessage(error.message); return; }
+    const customer = draftCustomerOptions.find(item => String(item.id) === id);
+    if (!customer || customer.isPassive) { setErrorMessage('Bağlantıdaki cari aktif satış listesinde bulunamadı. Cariyi kontrol ederek seçin.'); return; }
+    selectCustomer(customer);
+  }, [initialCustomerId, areCustomersReady, isLoading, draftId, invoice.customerId, isDirty, items.length, isReadonly, draftCustomerOptions, permissions]);
+
   async function selectCashCustomer(shortcut) {
+    if (isReadonly || isFinalized || !areCustomersReady || isLoading) return;
+
     let customer = draftCustomerOptions.find((item) => (
       String(item.code || '').toUpperCase() === shortcut.code
     ));
@@ -738,19 +817,20 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
     }
 
     setErrorMessage('');
-    selectCustomer(customer.id);
-    setStatusMessage(`${shortcut.label} secildi; kesinlesince otomatik tahsilat KASA-${shortcut.currency} hesabina yazilir.`);
+    if (selectCustomer(customer)) {
+      setStatusMessage(`${shortcut.label} secildi; kesinlesince otomatik tahsilat KASA-${shortcut.currency} hesabina yazilir.`);
+    }
   }
 
   function selectCustomerByQuery(value) {
-    setCustomerQuery(value);
-    const normalizedValue = normalizeSearchText(value);
-    const exactCustomer = draftCustomerOptions.find((customer) => normalizeSearchText(customer.name) === normalizedValue);
-    const firstMatch = draftCustomerOptions.find((customer) => normalizeSearchText(customer.name).includes(normalizedValue));
-    const customer = exactCustomer || (normalizedValue ? firstMatch : null);
+    if (isReadonly || isFinalized || !areCustomersReady || isLoading) return;
 
-    if (customer) {
-      selectCustomer(customer.id);
+    setCustomerQuery(value);
+    setInvoice(clearInvoiceCustomerSelection);
+    const customer = resolveCustomerSelection(draftCustomerOptions, value);
+
+    if (!customer || !selectCustomer(customer)) {
+      markDirty('Cari seçimi tamamlanmadı; listeden kodu ve adıyla bir cari seçin.');
     }
   }
 
@@ -921,9 +1001,10 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
-    if (invoice.invoiceCurrency !== 'TRY' && (!Number.isFinite(Number(invoice.exchangeRateValue)) || Number(invoice.exchangeRateValue) <= 0)) {
-      setErrorMessage(`${invoice.invoiceCurrency} kuru tanımlı değil. Ayarlar > Döviz Kurları ekranından kur girin.`);
-      setStatusMessage('Kur tanımı olmadan dövizli fiş kaydedilemez.');
+    if (!settlementPreview.valid || (isFinalized && invoice.storedAccountSnapshotMissing)) {
+      setErrorMessage(isFinalized && invoice.storedAccountSnapshotMissing
+        ? 'Bu eski çapraz döviz fişinin kayıtlı cari kur/tutar bilgisi eksik. Tahmin edilerek düzeltilemez.' : settlementPreview.error);
+      setStatusMessage('Geçerli işlem ve cari kuru olmadan fiş kaydedilemez.');
       return;
     }
 
@@ -939,14 +1020,17 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       const nextInvoice = mapDraftToInvoice(response.data);
       const nextItems = mapDraftItems(response.data.items);
 
+      loadedDraftIdRef.current = String(response.data.id);
       setDraftId(response.data.id);
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setSelectedItemId(nextItems[0]?.id ?? null);
       setIsDirty(false);
       setIsCorrectionMode(false);
+      onRecordSaved?.({ id: response.data.id, documentNo: response.data.documentNo });
       setStatusMessage(wasFinalizedCorrection
         ? `Kesin satış fişi düzeltildi (#${response.data.id}); stok, cari ve hareket kayıtları fark kadar güncellendi.`
         : response.message || `Taslak fiş DB'ye kaydedildi (#${response.data.id}); stok ve cari etkisi oluşmadı.`);
@@ -994,6 +1078,16 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
       return;
     }
 
+    if (!invoice.customerId || isDirty) {
+      setErrorMessage('Kesinleştirmeden önce cariyi seçip taslaktaki değişiklikleri kaydedin.');
+      return;
+    }
+
+    if (!settlementPreview.valid || invoice.storedAccountSnapshotMissing) {
+      setErrorMessage(invoice.storedAccountSnapshotMissing ? 'Fişin cari kur/tutar bilgisi eksik. Önce taslağı geçerli kurlarla kaydedin.' : settlementPreview.error);
+      return;
+    }
+
     setIsFinalizing(true);
     setErrorMessage('');
 
@@ -1004,6 +1098,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setIsCorrectionMode(false);
@@ -1056,6 +1151,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
 
       setInvoice(nextInvoice);
       setItems(nextItems);
+      setPersistedTotals(mapPersistedSalesTotals(response.data, nextItems));
       setDiscountRate(Number(response.data.discountRate || 0));
       setStatus(nextInvoice.status);
       setIsCorrectionMode(false);
@@ -1071,19 +1167,23 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
   }
 
   function printSalesInvoice() {
-    printBusinessDocument({
+    const savedPrint = !isDirty ? invoice.printSnapshot : null;
+    printInvoiceReceipt({
       title: 'Satış Fişi',
       documentNo: invoice.invoiceNo,
       status,
+      hasUnsavedChanges: isDirty,
       date: invoice.date,
       partyLabel: 'Müşteri',
       partyName: invoice.customer,
       currency: invoice.invoiceCurrency,
       exchangeRate: invoice.exchangeRate,
       description: invoice.description,
-      items,
-      totals,
+      items: savedPrint?.items || items,
+      totals: savedPrint || totals,
       extraInfo: [
+        { label: 'Personel', value: invoice.employeeName || '—' },
+        { label: 'Terminal', value: invoice.terminalCode || invoice.terminalName || 'Web admin' },
         { label: 'Cari PB', value: invoice.customerCurrency },
         { label: 'Cari Bakiye', value: invoice.customerBalanceLabel },
         { label: 'Satır Sayısı', value: totals.lineCount },
@@ -1165,7 +1265,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
                   className={invoice.customerCurrency === shortcut.currency && String(selectedCustomer?.code || '').toUpperCase() === shortcut.code ? 'active' : ''}
                   key={shortcut.code}
                   type="button"
-                  disabled={isFinalized}
+                  disabled={isFinalized || !areCustomersReady || isLoading}
                   onClick={() => selectCashCustomer(shortcut)}
                 >
                   <strong>{shortcut.label}</strong><span>{shortcut.currency}</span>
@@ -1177,15 +1277,15 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
             <label>
               <span>Cari</span>
               <input
-                disabled={isReadonly || isFinalized}
+                disabled={isReadonly || isFinalized || !areCustomersReady || isLoading}
                 list="sales-customer-suggestions"
-                placeholder="Cari adı yaz"
-                value={customerQuery || invoice.customer}
+                placeholder={areCustomersReady ? 'Cari kodu veya adı yaz' : 'Cari listesi bekleniyor'}
+                value={customerQuery || (selectedCustomer ? customerSelectionLabel(selectedCustomer) : invoice.customer)}
                 onChange={(event) => selectCustomerByQuery(event.target.value)}
               />
               <datalist id="sales-customer-suggestions">
                 {filteredCustomers.map((customer) => (
-                  <option key={customer.id} value={customer.name} label={`${customer.code || '-'} / ${customer.currency}`} />
+                  <option key={customer.id} value={customerSelectionLabel(customer)} label={customer.currency} />
                 ))}
               </datalist>
             </label>
@@ -1242,7 +1342,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           <div className="sales-entry-context" aria-live="polite">
             <span className={selectedCustomer ? 'is-ready' : ''}><b>Cari:</b> {selectedCustomer?.name || 'Seçilmedi'}</span>
             <span className={selectedQuickProduct ? 'is-ready' : ''}><b>Ürün:</b> {selectedQuickProduct ? `${selectedQuickProduct.stockCode} / ${selectedQuickProduct.productName}` : 'Seçilmedi'}</span>
-            <span><b>Fiş:</b> {invoice.invoiceCurrency || 'TRY'} / Kur {invoice.exchangeRateValue || 1}</span>
+            <span><b>Fiş:</b> {invoice.invoiceCurrency} / Kur {invoice.exchangeRateValue === '' ? 'Gerekli' : invoice.exchangeRateValue}</span>
           </div>
         </section>}
         <SalesInvoiceHeader
@@ -1276,7 +1376,7 @@ export function SalesInvoiceScreen({ salesDraftId, permissions = [], onDirtyChan
           onUpdateItem={updateDraftItem}
           showProfitColumns={isFinalized || isCancelled}
         />
-        <SalesInvoiceTotals totals={totals} />
+        <SalesInvoiceTotals totals={totals} settlementPreview={settlementPreview} accountCurrency={invoice.customerCurrency} />
       </section>
       <section className="screen-summary sales-invoice-summary">
         <span>Fiş: {invoice.invoiceNo}</span>

@@ -262,7 +262,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
          ? await (isOffer ? updateSalesOffer : updateSalesOrder)(form.id, payload)
         : await (isOffer ? createSalesOffer : createSalesOrder)(payload);
       setForm(normalizeDetail(response.data));
-      setMessage(`${isOffer ? 'Teklif' : 'Siparis'} kaydedildi.`);
+      setMessage(`${isOffer ? 'Teklif' : 'Sipariş'} kaydedildi.`);
       onDirtyChange?.(false);
     } catch (error) {
       setErrorMessage(error.message || 'Kayıt başarısız.');
@@ -282,10 +282,10 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     try {
       const response = await (isOffer ? changeSalesOfferStatus : changeSalesOrderStatus)(form.id, status);
       setForm(normalizeDetail(response.data));
-      setMessage('Durum g?ncellendi.');
+      setMessage('Durum güncellendi.');
       onDirtyChange?.(false);
     } catch (error) {
-      setErrorMessage(error.message || 'Durum g?ncellenemedi.');
+      setErrorMessage(error.message || 'Durum güncellenemedi.');
     } finally {
       setIsSaving(false);
     }
@@ -304,7 +304,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
       if (isOffer) {
         const response = await convertSalesOfferToOrder(form.id);
         const order = response.data.order;
-        setMessage(response.data.duplicate ? 'Bu teklif daha once siparie donusturulmus.' : 'Teklif siparie donusturuldu.');
+        setMessage(response.data.duplicate ? 'Bu teklif daha önce siparişe dönüştürülmüş.' : 'Teklif siparişe dönüştürüldü.');
         if (order.id) {
           onOpenScreen?.('sales-order', { orderId: order.id, documentNo: order.documentNo });
         }
@@ -325,6 +325,10 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
 
   function printPipelineDocument() {
     const selectedCustomer = customers.find((customer) => String(customer.id) === String(form.customerId));
+    if (!selectedCustomer) {
+      setErrorMessage('Yazdırmak için listeden geçerli bir müşteri seçin.');
+      return;
+    }
     printBusinessDocument({
       title: isOffer ? 'Teklif' : 'Sipariş',
       documentNo: form.documentNo || 'Taslak',
@@ -352,7 +356,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
 
   function exportPipelineRows() {
     exportRowsToCsv({
-      filename: `${isOffer ? 'teklif' : 'sipari'}-${form.documentNo || 'taslak'}`,
+      filename: `${isOffer ? 'teklif' : 'siparis'}-${form.documentNo || 'taslak'}`,
       rows: form.items,
       columns: [
         { label: 'Stok Kodu', key: 'stockCode' },
@@ -375,7 +379,7 @@ export function SalesPipelineScreen({ type, documentId, onDirtyChange, onOpenScr
     <main className="work-area invoice-screen">
       <section className="invoice-toolbar">
         <div className="invoice-title">
-          <strong>{isOffer ? 'Teklif Kartı' : 'Siparis Kartı'}</strong>
+          <strong>{isOffer ? 'Teklif Kartı' : 'Sipariş Kartı'}</strong>
           <span>{form.documentNo || 'Yeni belge'} / {form.status}</span>
         </div>
         <div className="invoice-actions">

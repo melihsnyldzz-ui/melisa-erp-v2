@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-10-06",
+  "sourceCommit": "100a5286f943baee4f4699229e1bd101452d7dff",
+  "runtimePackage": "CANONICAL-TEST-100a5286f943",
+  "runtimeRelease": "C:\\Sirket\\ERP\\releases\\CANONICAL-FINOPS-TEST-20261006-64",
+  "url": "http://127.0.0.1:5194/ornek-akis.html#count",
+  "mode": "local-demo",
+  "userChoice": "Yalnız yerel demo",
+  "observations": [
+    "The screen displayed the notice: ÖRNEK MOD — Bu kayıtlar TEST veritabanına yazılmaz.",
+    "The normal green count screen displayed a count list and a difference investigation section.",
+    "The visible sample included count SY-00118, product M-208, system quantity 24, physical quantity 18, and a six-unit difference marked for investigation.",
+    "The page stated that the data is stored in this browser and does not change real stock or accounting."
+  ],
+  "dataClassification": "Synthetic local browser demo; not shared TEST SQL data and not Vega data.",
+  "databaseWrites": 0,
+  "humanAcceptance": "pending",
+  "limitations": [
+    "No normal TEST user credentials were available.",
+    "The user selected local demo access and rejected a TEST-only personnel session.",
+    "This observation does not accept the persistent TEST count workflow or approve a stock adjustment."
+  ]
+}

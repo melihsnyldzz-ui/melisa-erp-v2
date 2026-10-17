@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {decodeCrm06CredentialEnvelope,readCrm06TestCredential} from './crm06-test-credentials.mjs';
+const fixture=()=>({schemaVersion:'melisa-crm06-test-credential.v1',copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',actorId:'crm-crm06-manager-test-20261014',username:'crm-crm06-manager',password:'a'.repeat(48)});
+test('decoded credentials are identity bound and secret is not enumerable',()=>{const v=decodeCrm06CredentialEnvelope(Buffer.from(JSON.stringify(fixture())),'manager');assert.equal(v.password.length,48);assert.equal(JSON.stringify(v),'{"username":"crm-crm06-manager"}');assert(Object.isFrozen(v));});
+test('foreign copy, actor, username, extra field or malformed secret is rejected',()=>{for(const alter of [v=>v.copyId='foreign',v=>v.actorId='crm-patron',v=>v.username='patron',v=>v.extra=true,v=>v.password='short']){const f=fixture();alter(f);assert.throws(()=>decodeCrm06CredentialEnvelope(Buffer.from(JSON.stringify(f)),'manager'),{code:'CRM06_CREDENTIAL_REJECTED'});}assert.throws(()=>decodeCrm06CredentialEnvelope(Buffer.from(JSON.stringify(fixture())),'staff'));});
+test('reader needs explicit cipher pin before private file or DPAPI access',async()=>{await assert.rejects(()=>readCrm06TestCredential('manager'),{code:'CRM06_CREDENTIAL_REJECTED'});await assert.rejects(()=>readCrm06TestCredential('foreign',{expectedSha256:'a'.repeat(64)}),{code:'CRM06_CREDENTIAL_REJECTED'});});

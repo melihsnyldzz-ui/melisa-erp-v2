@@ -1,0 +1,83 @@
+{
+  "workId": "ERP-CARICOMPLETION01",
+  "decisionId": "ERP-DEC-031",
+  "date": "2026-10-08",
+  "status": "TECHNICALLY_COMPLETED_HUMAN_ACCEPTANCE_PENDING",
+  "scope": {
+    "approvedAccounts": 283,
+    "customerAccounts": 138,
+    "supplierAccounts": 145,
+    "appliedFinancialDifferences": 59,
+    "customerDifferences": 25,
+    "supplierDifferences": 34,
+    "verifiedWithoutNewMovement": 224,
+    "deferredForErrorOrDrift": 0,
+    "requiredPrecisionAccounts": 159,
+    "plannedMainCardMirrorRepairs": 157,
+    "naturalMainCardDeltaUpdates": 8,
+    "verifiedMainCurrencyCards": 278,
+    "priorAppliedAccountsPreserved": 16,
+    "outsideScopeAccountsUntouched": 770,
+    "excludedLlAccounts": 2
+  },
+  "runtime": {
+    "package": "TEST107",
+    "sourceCommit": "6c31585efa5bde23047a1776fb61c3ab0bbcd7f3",
+    "packageId": "CANONICAL-TEST-6c31585efa5b",
+    "financialApplicationSourceCommit": "967cba5ac86f79bdf9dabf5faf7bc3f185fb7e18",
+    "manifestFileCount": 1505,
+    "baselineReproduced": true,
+    "webPort": 5194,
+    "apiPort": 4144,
+    "nativePort": 4146,
+    "targetIsVerifiedTest": true,
+    "nativeIsReadOnly": true,
+    "customersUrl": "http://127.0.0.1:5194/ornek-akis.html#customers",
+    "suppliersUrl": "http://127.0.0.1:5194/ornek-akis.html#suppliers"
+  },
+  "proof": {
+    "backupChecksumHeaderFileHashAndVerifyOnly": "PASS",
+    "fullBeforeCommitFaultRollback": "PASS",
+    "independentSqlAccounts": 283,
+    "independentApiAccounts": 283,
+    "apiFailures": 0,
+    "oldMovementRowsPreserved": 53217,
+    "newApprovedMovementRows": 59,
+    "committedReplayNewEffects": 0,
+    "changedBodyRejectedBeforeSql": true,
+    "losslessBalanceColumnPrecision": "decimal(28,8)",
+    "legacyMovementCompatibilityPrecision": "decimal(18,4)",
+    "authoritativeEffectPrecision": 8,
+    "selectReaderUpgradeFinancialWrites": 0,
+    "selectReaderUpgradeBusinessTableHashesEqual": 15,
+    "selectReaderUpgradeProcedureAclPreserved": true,
+    "selectReaderRollback": "PASS",
+    "currentBatchCommittedInverseExecutedOrProven": false,
+    "normalUiExamples": 3,
+    "normalUiCommercialWrites": 0,
+    "unknownOtherCurrencyRemainedUnknown": true,
+    "userTabsSessionAndDraftsPreserved": true
+  },
+  "performance": {
+    "measurement": "11 sequential authenticated limit100 normal party-card HTTP GETs; not browser paint",
+    "beforeTest104": { "minMs": 9640, "maxMs": 10664, "averageMs": 9997 },
+    "afterTest107": { "minMs": 290, "maxMs": 640, "averageMs": 476 },
+    "exactProofChecksAndTimeoutPreserved": true
+  },
+  "sourceCi": {
+    "pullRequestRun": 37803123289,
+    "pushRun": 37803112209,
+    "jobsPerRun": 3,
+    "conclusion": "SUCCESS",
+    "finalDocumentationHeadReceipt": "Verify exact head separately in PR23"
+  },
+  "humanAcceptance": { "ERP-UA24": "bekliyor", "ERP-UA25": "bekliyor" },
+  "knownLimitations": [
+    "Existing separate trial supplier payment-history panel remains unavailable; no fix or human PASS claimed.",
+    "Legacy movement compatibility columns remain four decimals; authoritative effects and balances preserve eight.",
+    "Atomic rollback and verified backup are proven; this committed batch inverse was not executed."
+  ],
+  "untouched": ["Vega writes", "LIVE", "CRM", "stock", "sales prices", "main branch"],
+  "rawFinanceEvidenceIsPrivate": true,
+  "stopAfterDelivery": true
+}

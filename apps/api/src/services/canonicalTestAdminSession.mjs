@@ -1,0 +1,68 @@
+import { applyRolePermissionDefaults } from './permissionCatalog.js';
+import {canonicalInboundAllowed,canonicalLanHost} from '../../canonical-test-listeners.mjs';
+import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
+import {getCrmOrderCurrentContext} from './crmOrderCurrentContext.mjs';
+const isolatedCopyTopology=getCrmOrderCurrentContext()?null:(await import('./isolatedOperationCopyContext.mjs')).isolatedCopyTopology;
+
+const context = Symbol('verified canonical TEST admin');
+const database = 'MELISA_ERP_SIRKET_TEST_20260929_01';
+const fail = () => { throw Object.assign(new Error('TEST ADMIN yalnız doğrulanmış ERP TEST oturumunda kullanılabilir.'), { code: 'TEST_ADMIN_SCOPE', statusCode: 401 }); };
+const loopback = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address);
+
+// Installed only after configureCanonicalTest has checked the actual SQL identity.
+// No SQL role/user changes: actor 16 keeps all existing named-fixture guards.
+export function canonicalTestAdminContext({ identity, mode, port, writes, env, listenerPolicy }) {
+  if(!isolatedCopyTopology)fail();
+  if(isIsolatedOperationCopyRuntime()) {
+    const copy=getIsolatedOperationCopyConfig();
+    if(mode!=='erp'||port!==isolatedCopyTopology(copy).apiPort||writes!==true||env.sql.database!==copy.target.database
+      ||identity.databaseName!==copy.target.database||identity.serverName!==copy.target.server
+      ||identity.loginName!==copy.target.login||identity.databaseUser!==copy.target.databaseUser
+      ||identity.sysadmin!==0||identity.databaseControl!==0||identity.liveDatabaseAccess!==0
+      ||identity.originalDatabaseAccess!==0)fail();
+    // This validates the catalog bootstrap only. It does not install or grant
+    // the original admin claims in a different database.
+    return (_req,_res,next)=>next();
+  }
+  if (mode !== 'erp' || port !== 4144 || writes !== true || env.sql.database !== database
+    || identity.databaseName !== database || identity.serverName.toLowerCase() !== 'semih\\melisadev'
+    || identity.loginName !== 'melisa_sirket_sales_test_20260929_01'
+    || identity.databaseUser !== identity.loginName || identity.sysadmin !== 0
+    || identity.databaseControl !== 0 || identity.liveDatabaseAccess !== 0) fail();
+  return (req, _res, next) => {
+    if (loopback(req.socket.remoteAddress)) req[context] = 'loopback';
+    else if(listenerPolicy?.lanEnabled===true&&req.get('host')===`${canonicalLanHost}:4144`
+      &&canonicalInboundAllowed({remoteAddress:req.socket.remoteAddress,host:req.get('host')},{port,policy:listenerPolicy}))req[context]='lan';
+    next();
+  };
+}
+
+export function assertTestAdminRequest(req, { bootstrap = false } = {}) {
+  if (!['loopback','lan'].includes(req[context])) fail();
+  if(bootstrap){
+    if(req[context]==='lan'){
+      if(req.get('host')!==`${canonicalLanHost}:4144`||req.get('origin')!==`http://${canonicalLanHost}:5194`)fail();
+    }else if(!['127.0.0.1:4144','localhost:4144'].includes(req.get('host'))||!['http://127.0.0.1:5194','http://localhost:5194'].includes(req.get('origin')))fail();
+  }
+}
+
+export function testAdminUser(user) {
+  if (Number(user?.id) !== 16) fail();
+  return {
+    ...user,
+    displayName: 'TEST ADMIN',
+    role: { ...user.role, code: 'admin', name: 'TEST ADMIN' },
+    permissions: [...new Set([...applyRolePermissionDefaults(user.permissions, 'admin'), 'stock.adjust', 'goods.view', 'goods.create', 'goods.approve', 'goods.reject'])].sort(),
+    testAdminSession: true,
+    sessionScope: 'canonical-test-only; existing named TEST records',
+  };
+}
+
+export function resolveTestAdminUser(req, payload, user) {
+  if (payload.canonicalTestAdmin !== true) return user;
+  assertTestAdminRequest(req);
+  if (payload.sub !== '16' || payload.canonicalTestDatabase !== database || payload.nativeTerminalCode) fail();
+  return testAdminUser(user);
+}
+
+export const testAdminClaims = Object.freeze({ sub: '16', canonicalTestAdmin: true, canonicalTestDatabase: database });

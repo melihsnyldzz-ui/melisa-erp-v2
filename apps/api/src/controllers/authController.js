@@ -5,6 +5,7 @@ import {
   logout,
   refreshAccessToken,
   terminalLogin,
+  confirmProtectedNormalSession,
 } from '../services/authService.js';
 import { fail, ok } from '../utils/response.js';
 
@@ -39,7 +40,7 @@ export async function getTerminalLoginUsers(req, res) {
 
 export async function postTerminalLogin(req, res) {
   try {
-    const data = await terminalLogin(req.body, req.get('user-agent') || '');
+    const data = await terminalLogin(req.body, req.get('user-agent') || '', { nativeTerminal: req.app.locals.nativeTerminalV1 === true });
     return ok(res, data, { source: 'sql-terminal-auth' });
   } catch (error) {
     return authFail(res, error, 'AUTH_TERMINAL_LOGIN_FAILED');
@@ -70,7 +71,7 @@ export async function postLogout(req, res) {
 
 export async function postRefresh(req, res) {
   try {
-    const data = await refreshAccessToken(req.body?.refreshToken);
+    const data = await refreshAccessToken(req.body?.refreshToken, { nativeTerminal: req.app.locals.nativeTerminalV1 === true, terminalCode: req.body?.terminalCode });
     return ok(res, data, {
       source: 'sql-auth',
     });
@@ -83,4 +84,15 @@ export async function getMe(req, res) {
   return ok(res, req.user, {
     source: 'jwt-auth',
   });
+}
+
+export async function postProtectedSessionConfirm(req,res) {
+  try {
+    if(!req.body||Object.getPrototypeOf(req.body)!==Object.prototype||Object.keys(req.body).join(',')!=='refreshToken') {
+      throw Object.assign(new Error('Only refreshToken is accepted'),{code:'AUTH_SESSION_CONFIRM_BODY_INVALID',statusCode:400});
+    }
+    const [type,accessToken]=String(req.get('authorization')||'').split(' ');
+    if(type!=='Bearer'||!accessToken)throw Object.assign(new Error('Access token is required'),{code:'AUTH_TOKEN_REQUIRED',statusCode:401});
+    return ok(res,await confirmProtectedNormalSession(accessToken,req.body.refreshToken),{source:'protected-normal-auth'});
+  }catch(error){return authFail(res,error,'AUTH_SESSION_CONFIRM_FAILED');}
 }

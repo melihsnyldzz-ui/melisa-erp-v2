@@ -1,0 +1,11 @@
+{
+  "result": "PASS",
+  "sourceCommit": "78e6cc94c01f7f46cf0844149c7e987889057b2f",
+  "package": "C:\\Sirket\\ERP\\releases\\CANONICAL-NIGHT-TEST-20261006-51",
+  "privateConfigUnchanged": true,
+  "nativeLoopbackOnly": true,
+  "liveOwnersUnchanged": true,
+  "ipConfigurationChanged": false,
+  "businessWrites": 0,
+  "oldReleaseRetained": true
+}

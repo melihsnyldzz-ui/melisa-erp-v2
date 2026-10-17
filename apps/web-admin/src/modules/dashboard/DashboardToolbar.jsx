@@ -4,16 +4,15 @@ export function DashboardToolbar({
   activeView,
   isLayoutEditorOpen,
   onLayoutEditorToggle,
-  period,
-  onPeriodChange,
+  onOpenReports,
   onRefresh,
   onViewChange,
 }) {
   return (
     <section className="dashboard-toolbar">
       <div className="dashboard-toolbar-title">
-        <strong>Melisa Bebe Operasyon Masası</strong>
-        <span>Satış, stok, tahsilat, terminal ve kanal performansı</span>
+        <strong>Bugün</strong>
+        <span className="dashboard-scope-label">İşlem tutarları: bugün · Stok/cari: güncel</span>
       </div>
       <div className="dashboard-toolbar-actions">
         <button
@@ -30,20 +29,15 @@ export function DashboardToolbar({
         >
           Finans görünümü
         </button>
-        <select value={period} onChange={(event) => onPeriodChange(event.target.value)}>
-          <option value="today">Bugün</option>
-          <option value="week">Bu hafta</option>
-          <option value="month">Bu ay</option>
-        </select>
-        <button
-          type="button"
-          className={isLayoutEditorOpen ? 'pressed' : ''}
-          onClick={onLayoutEditorToggle}
-        >
-          Masayı Düzenle
-        </button>
-        <span className="auto-refresh-label">30 sn otomatik yenileme</span>
         <button type="button" onClick={onRefresh}>Yenile</button>
+        <details className="dashboard-tools">
+          <summary>Diğer</summary>
+          <div>
+            {onOpenReports && <button type="button" onClick={onOpenReports}>Dönem Raporları</button>}
+            <button type="button" className={isLayoutEditorOpen ? 'pressed' : ''} onClick={onLayoutEditorToggle}>Masayı Düzenle</button>
+            <span className="auto-refresh-label">30 sn otomatik yenileme</span>
+          </div>
+        </details>
       </div>
     </section>
   );

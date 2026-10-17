@@ -1,12 +1,6 @@
 # Melisa ERP v2
 
-Melisa ERP v2, Melisa Baby'nin stok, alış, satış, cari, tahsilat/kasa ve terminal işlerini yöneten mevcut ERP uygulamasıdır.
-
-## Güncel bitirme düzeni
-
-**İlk okunacak kaynak: [ERP_FINISH_PLAN.md](ERP_FINISH_PLAN.md).** Günlük kısa durum [STATUS.md](STATUS.md), kaynak/ortam kanıtları [3 Ekim envanteri](docs/erp-v2/inventory-20261003.md) içindedir. Çalışan ERP baseline kabul edilir; geçmiş kabulü olan özellikler yeniden geliştirilmez.
-
-GitHub `main`, çalışan LIVE kaynakla henüz eşleştirilmiş değildir. TEST/LIVE portları ve DB'leri için bitirme planını esas alın; aşağıdaki geliştirme komutlarını doğrudan üretim launcher'ı saymayın.
+Melisa ERP v2, Melisa Bebe için web tabanlı, desktop-first ve Vega/Wolvox hissinde tasarlanacak yeni ERP projesidir.
 
 ## Hedef
 
@@ -45,11 +39,11 @@ Kodlamaya başlamadan önce özellikle şu dosyalar okunmalıdır:
 
 ## Geliştirme Notu
 
-Repo çalışan API, web-admin, terminal ve Electron uygulama kodu içerir. Eski implementation roadmap ilk kuruluşun tarihsel kaydıdır; güncel iş sırası `ERP_FINISH_PLAN.md` içindedir.
+Bu repo iskeleti henüz uygulama kodu veya package kurulumu içermez. İlk kod sprinti `docs/erp-v2/implementation-roadmap.md` içindeki Faz 1 kapsamına göre başlatılmalıdır.
 
 ## API Gelistirme
 
-API `apps/api` altında Node.js + Express ile çalışır. SQL, Vega ve auth bağlantıları ortama bağlıdır; kapalı veya mock oldukları varsayılmaz. Aşağıdaki yollar geliştirme referansıdır; çalışan TEST/LIVE kaynağı ve DB eşlemesi bitirme planında takip edilir.
+API foundation `apps/api` altinda Node.js + Express ile baslatilir. Vega ve auth database baglantisi kapalidir. `GET /api/products` ve `GET /api/customers` endpointleri `MELISA_ERP_V2` uzerinden SELECT-only SQL okuma yapar; diger endpointler simdilik mock veri doner.
 
 ```powershell
 cd apps/api
@@ -64,7 +58,7 @@ Varsayilan API adresi:
 http://127.0.0.1:4100/api
 ```
 
-Örnek API yolları:
+Ilk mock endpointler:
 
 - `GET /api/health`
 - `GET /api/version`

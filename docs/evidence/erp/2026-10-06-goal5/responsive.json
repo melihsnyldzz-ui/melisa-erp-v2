@@ -1,0 +1,41 @@
+{
+  "source": "ERP74 actual browser; existing121% zoom kept; override reset at end",
+  "checks": [
+    {
+      "requestedCssWidth": 360,
+      "scrollWidth": 360,
+      "width": 360,
+      "physicalWidth": 436,
+      "zoom": 1.21,
+      "minButtonHeight": 46,
+      "buttonCount": 8
+    },
+    {
+      "requestedCssWidth": 390,
+      "scrollWidth": 390,
+      "width": 390,
+      "physicalWidth": 472,
+      "zoom": 1.21,
+      "minButtonHeight": 46,
+      "buttonCount": 8
+    },
+    {
+      "requestedCssWidth": 1024,
+      "scrollWidth": 1024,
+      "width": 1024,
+      "physicalWidth": 1239,
+      "zoom": 1.21,
+      "minButtonHeight": 46,
+      "buttonCount": 8
+    },
+    {
+      "requestedCssWidth": 1440,
+      "scrollWidth": 1440,
+      "width": 1440,
+      "physicalWidth": 1742,
+      "zoom": 1.21,
+      "minButtonHeight": 46,
+      "buttonCount": 8
+    }
+  ]
+}

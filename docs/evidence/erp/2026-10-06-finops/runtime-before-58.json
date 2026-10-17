@@ -1,0 +1,77 @@
+{
+  "at": "2026-10-06T09:45:30.5042752Z",
+  "health": [
+    {
+      "port": 4144,
+      "mode": "erp",
+      "sourceCommit": "93365d0baf002e93010a2759bd45af2af11040e7",
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "serverName": "Semih\\MELISADEV",
+      "liveDatabaseAccess": 0,
+      "externalOperations": false,
+      "listenerHosts": [
+        "127.0.0.1",
+        "192.168.1.46"
+      ]
+    },
+    {
+      "port": 4146,
+      "mode": "native",
+      "sourceCommit": "93365d0baf002e93010a2759bd45af2af11040e7",
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "serverName": "Semih\\MELISADEV",
+      "liveDatabaseAccess": 0,
+      "externalOperations": false,
+      "listenerHosts": [
+        "127.0.0.1"
+      ]
+    }
+  ],
+  "listeners": [
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 5194,
+      "OwningProcess": 59072
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 5194,
+      "OwningProcess": 59072
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 5188,
+      "OwningProcess": 31820
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 5188,
+      "OwningProcess": 31820
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 4146,
+      "OwningProcess": 75436
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 4144,
+      "OwningProcess": 3736
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 4144,
+      "OwningProcess": 3736
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 4116,
+      "OwningProcess": 40828
+    },
+    {
+      "LocalAddress": "192.168.1.46",
+      "LocalPort": 4114,
+      "OwningProcess": 33624
+    }
+  ]
+}

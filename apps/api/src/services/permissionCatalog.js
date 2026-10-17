@@ -1,4 +1,5 @@
 export const GRANULAR_PERMISSIONS = [
+  'terminal.packing.exception',
   'sales.view',
   'sales.create',
   'sales.edit',
@@ -11,6 +12,7 @@ export const GRANULAR_PERMISSIONS = [
   'purchase.cancel',
   'product.view',
   'product.edit',
+  'product.price.edit',
   'product.passive',
   'customer.view',
   'customer.edit',

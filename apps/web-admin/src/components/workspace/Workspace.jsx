@@ -14,8 +14,10 @@ import { CashBankLedgerScreen } from '../../modules/finance/CashBankLedgerScreen
 import { CashRegisterScreen } from '../../modules/finance/CashRegisterScreen.jsx';
 import { CashCustomerTrackingScreen } from '../../modules/finance/CashCustomerTrackingScreen.jsx';
 import { CollectionsOverviewScreen } from '../../modules/finance/CollectionsOverviewScreen.jsx';
+import { linkedReceiptQuery } from '../../modules/finance/financeReceiptNavigation.js';
 import { FinanceOverviewScreen } from '../../modules/finance/FinanceOverviewScreen.jsx';
 import { ImportScreen } from '../../modules/import/ImportScreen.jsx';
+import { VegaHistoryScreen } from '../../modules/history/VegaHistoryScreen.jsx';
 import { ExportCenterScreen } from '../../modules/reports/ExportCenterScreen.jsx';
 import { ManagementReportsScreen } from '../../modules/reports/ManagementReportsScreen.jsx';
 import { VegaSalesComparisonScreen } from '../../modules/reports/VegaSalesComparisonScreen.jsx';
@@ -24,8 +26,13 @@ import { VegaProductProfitabilityScreen } from '../../modules/reports/VegaProduc
 import { ProductCardScreen } from '../../modules/product/ProductCardScreen.jsx';
 import { BulkPurchaseEntryScreen } from '../../modules/purchase/BulkPurchaseEntryScreen.jsx';
 import { VegaPurchaseInvoiceListScreen } from '../../modules/purchase/VegaPurchaseInvoiceListScreen.jsx';
+import { PurchaseInvoiceListScreen } from '../../modules/purchase/PurchaseInvoiceListScreen.jsx';
 import { PurchaseInvoiceScreen } from '../../modules/purchase/PurchaseInvoiceScreen.jsx';
 import { VegaSalesInvoiceListScreen } from '../../modules/sales/VegaSalesInvoiceListScreen.jsx';
+import { SalesInvoiceListScreen } from '../../modules/sales/SalesInvoiceListScreen.jsx';
+import { apiConfig } from '../../config/apiConfig.js';
+import { isScreenAvailable } from '../../config/runtimeCapabilities.js';
+import { VegaReportsUnavailableScreen } from '../../modules/reports/VegaReportsUnavailableScreen.jsx';
 import { FedexMicroExportDemoScreen } from '../../modules/sales/FedexMicroExportDemoScreen.jsx';
 import { ProformaInvoiceScreen } from '../../modules/sales/ProformaInvoiceScreen.jsx';
 import { SalesInvoiceScreen } from '../../modules/sales/SalesInvoiceScreen.jsx';
@@ -84,6 +91,12 @@ function hasRoutePermission(permissions, route) {
 }
 
 const workspaceRouteRegistry = {
+  'vega-history': {
+    permissionKeys: ['dashboard.view', 'finance.view'],
+    permissionMode: 'all',
+    unauthorizedMessage: 'Vega geçmişini görüntülemek için rapor ve finans yetkisi gerekiyor.',
+    render: ({ activeTab, permissions }) => <VegaHistoryScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.company, activeTab.payload?.partySourceId])} permissions={permissions} initialCompany={activeTab.payload?.company} initialPartySourceId={activeTab.payload?.partySourceId} />,
+  },
   dashboard: {
     permissionKeys: ['dashboard.view'],
     unauthorizedMessage: 'Ana sayfayı görüntüleme yetkiniz yok.',
@@ -101,10 +114,12 @@ const workspaceRouteRegistry = {
     unauthorizedMessage: 'Stok görüntüleme yetkiniz yok.',
     render: ({ activeTab, onOpenScreen, permissions }) => (
       <StockListScreen
+        key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.stockCode, activeTab.payload?.sourceId, activeTab.payload?.stockState])}
         onOpenScreen={onOpenScreen}
         permissions={permissions}
         initialStockCode={activeTab.payload?.stockCode}
         initialSourceId={activeTab.payload?.sourceId}
+        initialStockState={activeTab.payload?.stockState}
       />
     ),
   },
@@ -123,7 +138,13 @@ const workspaceRouteRegistry = {
   'stock-movements': {
     permissionKeys: ['product.view'],
     unauthorizedMessage: 'Stok hareketleri görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <StockMovementsScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <StockMovementsScreen
+      key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.productId, activeTab.payload?.stockCode, activeTab.payload?.sourceType])}
+      onOpenScreen={onOpenScreen}
+      initialProductId={activeTab.payload?.productId}
+      initialStockCode={activeTab.payload?.stockCode}
+      initialSourceType={activeTab.payload?.sourceType}
+    />,
   },
   'stock-valuation': {
     permissionKeys: ['product.view'],
@@ -168,7 +189,7 @@ const workspaceRouteRegistry = {
   'customer-movements': {
     permissionKeys: ['customer.view'],
     unauthorizedMessage: 'Cari hareketleri görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CustomerMovementsScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <CustomerMovementsScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.customerId])} initialCustomerId={activeTab.payload?.customerId} initialCustomerCode={activeTab.payload?.customerCode} onOpenScreen={onOpenScreen} />,
   },
   'vega-koli-movements': {
     permissionKeys: ['customer.view'],
@@ -188,7 +209,7 @@ const workspaceRouteRegistry = {
   'customer-statement': {
     permissionKeys: ['customer.view'],
     unauthorizedMessage: 'Cari ekstre görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CustomerStatementScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <CustomerStatementScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.customerId, activeTab.payload?.accountCurrency])} initialCustomerId={activeTab.payload?.customerId} initialCustomerCode={activeTab.payload?.customerCode} initialAccountCurrency={activeTab.payload?.accountCurrency} onOpenScreen={onOpenScreen} />,
   },
   'supplier-list': {
     permissionKeys: ['supplier.view'],
@@ -210,7 +231,7 @@ const workspaceRouteRegistry = {
   'supplier-movements': {
     permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi cari hareketleri görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SupplierMovementsScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <SupplierMovementsScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.supplierId])} initialSupplierId={activeTab.payload?.supplierId} initialSupplierCode={activeTab.payload?.supplierCode} onOpenScreen={onOpenScreen} />,
   },
   'vega-supplier-movements': {
     permissionKeys: ['supplier.view'],
@@ -227,14 +248,16 @@ const workspaceRouteRegistry = {
   'supplier-statement': {
     permissionKeys: ['supplier.view'],
     unauthorizedMessage: 'Tedarikçi ekstresi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <SupplierStatementScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen }) => <SupplierStatementScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.supplierId, activeTab.payload?.accountCurrency])} initialSupplierId={activeTab.payload?.supplierId} initialSupplierCode={activeTab.payload?.supplierCode} initialAccountCurrency={activeTab.payload?.accountCurrency} onOpenScreen={onOpenScreen} />,
   },
   'sales-invoice': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Satış fişi görüntüleme yetkiniz yok.',
-    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions }) => (
+    render: ({ activeTab, onDirtyChange, onOpenScreen, onRecordSaved, permissions }) => (
       <SalesInvoiceScreen
         salesDraftId={activeTab.payload?.salesDraftId}
+        initialCustomerId={activeTab.payload?.customerId}
+        onRecordSaved={onRecordSaved}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
@@ -244,7 +267,7 @@ const workspaceRouteRegistry = {
   'sales-invoice-list': {
     permissionKeys: ['sales.view'],
     unauthorizedMessage: 'Satış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen, permissions, user, onDirtyChange }) => apiConfig.pilotMode ? <SalesInvoiceListScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.customerId, activeTab.payload?.returnId])} initialCustomerId={activeTab.payload?.customerId} initialCustomerCode={activeTab.payload?.customerCode} onOpenScreen={onOpenScreen} permissions={permissions} userId={user?.id} onDirtyChange={onDirtyChange} initialReturnId={activeTab.payload?.returnId} /> : <VegaSalesInvoiceListScreen onOpenScreen={onOpenScreen} />,
   },
   'fedex-micro-export-demo': {
     permissionKeys: ['sales.view'],
@@ -304,9 +327,11 @@ const workspaceRouteRegistry = {
   'purchase-invoice': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Alış fişi görüntüleme yetkiniz yok.',
-    render: ({ activeTab, onDirtyChange, permissions }) => (
+    render: ({ activeTab, onDirtyChange, onRecordSaved, permissions }) => (
       <PurchaseInvoiceScreen
         purchaseDraftId={activeTab.payload?.purchaseDraftId}
+        initialSupplierId={activeTab.payload?.supplierId}
+        onRecordSaved={onRecordSaved}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
       />
@@ -315,8 +340,10 @@ const workspaceRouteRegistry = {
   'bulk-purchase-entry': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Toplu alış girişini görüntüleme yetkiniz yok.',
-    render: ({ onDirtyChange, onOpenScreen, permissions }) => (
+    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions, user }) => (
       <BulkPurchaseEntryScreen
+        initialPreparation={activeTab.payload?.preparation}
+        userId={user?.id}
         permissions={permissions}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
@@ -326,7 +353,7 @@ const workspaceRouteRegistry = {
   'purchase-invoice-list': {
     permissionKeys: ['purchase.view'],
     unauthorizedMessage: 'Alış listesi görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
+    render: ({ activeTab, onOpenScreen, permissions, user, onDirtyChange }) => apiConfig.pilotMode ? <PurchaseInvoiceListScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.supplierId, activeTab.payload?.returnId])} initialSupplierId={activeTab.payload?.supplierId} initialSupplierCode={activeTab.payload?.supplierCode} onOpenScreen={onOpenScreen} permissions={permissions} userId={user?.id} onDirtyChange={onDirtyChange} initialReturnId={activeTab.payload?.returnId} /> : <VegaPurchaseInvoiceListScreen onOpenScreen={onOpenScreen} />,
   },
   'finance-overview': {
     permissionKeys: ['dashboard.view', 'finance.view'],
@@ -336,11 +363,14 @@ const workspaceRouteRegistry = {
   'collections-overview': {
     permissionKeys: ['finance.collection', 'finance.payment', 'customer.edit', 'purchase.edit'],
     unauthorizedMessage: 'Tahsilat/ödeme kaydı için finans yetkiniz yok.',
-    render: ({ activeTab, onDirtyChange, onOpenScreen }) => (
+    render: ({ activeTab, onDirtyChange, onOpenScreen, permissions, user }) => (
       <CollectionsOverviewScreen
+        contextRevision={activeTab.contextRevision}
         initialPayload={activeTab.payload}
         onDirtyChange={onDirtyChange}
         onOpenScreen={onOpenScreen}
+        permissions={permissions}
+        userId={user?.id}
       />
     ),
   },
@@ -449,9 +479,9 @@ const workspaceRouteRegistry = {
     render: () => <PersonnelDefinitionsScreen />,
   },
   'terminal-overview': {
-    permissionKeys: ['dashboard.view'],
+    permissionKeys: ['dashboard.view', 'settings.manage'],
     unauthorizedMessage: 'Terminal yönetimi görüntüleme yetkiniz yok.',
-    render: () => <TerminalAdminScreen />,
+    render: ({ permissions, onDirtyChange }) => <TerminalAdminScreen permissions={permissions} onDirtyChange={onDirtyChange} />,
   },
   'auth-overview': {
     permissionKeys: ['audit.view'],
@@ -465,16 +495,31 @@ const workspaceRouteRegistry = {
   },
 };
 
-export function Workspace({ activeTab, onDirtyChange, onOpenScreen, permissions = [], roleViewId = 'yonetici', user = null }) {
+export function Workspace({ activeTab, onDirtyChange, onOpenScreen, onRecordSaved, permissions = [], roleViewId = 'yonetici', user = null }) {
   const screenId = activeTab.screenId ?? activeTab.id;
   const route = workspaceRouteRegistry[screenId];
 
   if (route) {
-    if (!hasRoutePermission(permissions, route)) {
+    let permitted = hasRoutePermission(permissions, route);
+    if (screenId === 'collections-overview' && Object.hasOwn(activeTab.payload || {}, 'movementId')) {
+      // A validated receipt uses read permissions. Invalid links never become
+      // an entry form, and the ordinary entry route keeps its write permissions.
+      let query;
+      try { query = linkedReceiptQuery(activeTab.payload); }
+      catch { return <UnauthorizedScreen message="Makbuz bağlantısındaki hareket veya işlem türü geçersiz." />; }
+      permitted = query.partyType === 'supplier'
+        ? ['supplier.view', 'finance.view'].every(permission => permissions.includes(permission))
+        : permissions.includes('customer.view');
+    }
+    if (!permitted) {
       return <UnauthorizedScreen message={route.unauthorizedMessage} />;
     }
 
-    return route.render({ activeTab, onDirtyChange, onOpenScreen, permissions, roleViewId, user });
+    if (!isScreenAvailable(screenId, apiConfig)) {
+      return <VegaReportsUnavailableScreen onOpenScreen={onOpenScreen} />;
+    }
+
+    return route.render({ activeTab, onDirtyChange, onOpenScreen, onRecordSaved, permissions, roleViewId, user });
   }
 
   return <UnmappedScreen screen={activeTab} />;

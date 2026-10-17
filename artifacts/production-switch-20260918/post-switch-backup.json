@@ -1,0 +1,9 @@
+{
+  "createdAt": "2026-09-17T22:08:14.029Z",
+  "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+  "file": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Backup\\MELISA-PRODUCTION-20260917T220758Z.bak",
+  "sizeBytes": 6668128256,
+  "checksum": true,
+  "restoreVerifyOnly": "PASS",
+  "metadataSha256": "27adbdf6a35604a6c64213bdbe4fb0f28a5c308a87c222a8b4ddac24c1be8580"
+}

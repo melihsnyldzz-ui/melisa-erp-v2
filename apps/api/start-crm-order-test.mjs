@@ -1,0 +1,27 @@
+// Separate loopback CRM draft listener. Daily ERP/native listeners stay separate.
+const shared=process.argv[2]==='--shared-current-test';
+if(shared?process.argv.length!==4:process.argv.length!==3)throw Error('CRM_ORDER_ARGUMENT_REJECTED');
+const stage=code=>{if(shared)process.stderr.write(JSON.stringify({event:'CRM_SHARED_LISTENER_STAGE',stage:code})+'\n');};
+stage('ENV_SETUP_BEGIN');
+const setup=shared?await(await import('./crm-order-shared-env.mjs')).configureSharedCrmOrderTest(process.argv[3]):await(await import('./canonical-test-env.mjs')).configureCanonicalTest(process.argv[2],'erp');
+stage('ENV_SETUP_DONE');
+const {identity,pool,release,writes,context}=setup;
+if(!writes)throw Error('CRM_ORDER_TEST_WRITER_REQUIRED');
+const networkPolicy=shared?setup.networkPolicy:(await import('./canonical-test-network.mjs')).enableCrmOrderTestGateway(identity);
+stage('EXPRESS_IMPORT_BEGIN');const {default:express}=await import('express');stage('EXPRESS_IMPORT_DONE');
+stage('MIDDLEWARE_IMPORT_BEGIN');const {securityHeaders,apiRateLimit}=await import('./src/middleware/security.js');
+const {requestContext}=await import('./src/middleware/requestContext.js');
+const {errorHandler}=await import('./src/middleware/errorHandler.js');
+const {authRoutes}=shared?{}:await import('./src/routes/authRoutes.js');
+const {testCrmOrderRoutes}=shared?{}:await import('./src/routes/testCrmOrderRoutes.mjs');
+stage('MIDDLEWARE_IMPORT_DONE');stage('V2_ROUTES_IMPORT_BEGIN');const {crmOrderV2Routes}=await import('./src/routes/crmOrderV2Routes.mjs');
+stage('V2_ROUTES_IMPORT_DONE');const {isCrmOrderTestRouteAllowed}=await import('./src/services/crmOrderTestRoutePolicy.mjs');
+const app=express();app.disable('x-powered-by');app.use(securityHeaders(),requestContext,apiRateLimit(),express.json({limit:'64kb'}));
+app.use((_req,res,next)=>{res.set('Cache-Control','no-store');res.set('X-Melisa-Environment','CANONICAL-TEST');next();});
+const port=shared?context.nativePort:62404;
+const health={ok:true,environment:shared?'ISOLATED_TEST_COPY':'CANONICAL_TEST',purpose:'crm-order-draft-only',port,...identity,database:identity.databaseName,sourceCommit:release.sourceCommit,packageId:release.packageId,sqlReadOnly:false,writeScope:'scoped-sales-order-draft-procedure-only',stockEffect:false,ledgerEffect:false,reservationEffect:false,externalOperations:false,automaticJobs:false,networkPolicy,...(shared?{actualT1:false,copyId:context.copyId,currentSource:(await import('./src/services/crmOrderCurrentContext.mjs')).crmOrderCurrentSource(context)}:{})};
+app.get('/test-health',(_req,res)=>res.json(health));
+app.use((req,res,next)=>isCrmOrderTestRouteAllowed(req.method,req.path)?next():res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Bu TEST servisi yalnız CRM sipariş taslağı oluşturur ve geri okur.'}}));
+if(shared){const {default:jwt}=await import('jsonwebtoken');app.use('/api',(req,res,next)=>{try{const [type,token]=String(req.get('authorization')??'').split(' ');if(type!=='Bearer'||!token)throw Error();const p=jwt.verify(token,process.env.JWT_ACCESS_SECRET);if(p.isolatedOperationCopy!==context.copyId||p.database!==context.target.database)throw Error();next();}catch{res.status(401).json({success:false,error:{code:'CRM_SHARED_SESSION_REQUIRED'}});}});app.use('/api',crmOrderV2Routes);}else app.use('/api',authRoutes,testCrmOrderRoutes,crmOrderV2Routes);app.use(errorHandler);
+stage('LISTEN_BEGIN');const server=app.listen(port,'127.0.0.1',()=>console.log(JSON.stringify({event:'CRM_ORDER_TEST_READY',...health})));server.on('error',()=>process.exit(1));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(async()=>{await pool.close();process.exit(0);}));

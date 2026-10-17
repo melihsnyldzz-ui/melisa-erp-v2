@@ -1,0 +1,131 @@
+{
+  "screens": [
+    {
+      "screen": "home",
+      "title": [
+        "Günlük operasyon"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "stock",
+      "title": [
+        "Ürün & stok"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "customers",
+      "title": [
+        "Müşteriler"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "sales",
+      "title": [
+        "Satış terminali"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "receipts",
+      "title": [
+        "Satış fişleri"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "goods",
+      "title": [
+        "Gelen mal"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "purchases",
+      "title": [
+        "Alış faturaları"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "finance",
+      "title": [
+        "Tahsilat"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "fx",
+      "title": [
+        "Tahsilat"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "supplier-refund",
+      "title": [
+        "Tedarikçiden para dönüşü"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "prices",
+      "title": [
+        "Fiyat & maliyet"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "return-purchase",
+      "title": [],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "return-sales",
+      "title": [
+        "İadeler"
+      ],
+      "alerts": [
+        ""
+      ],
+      "pass": true
+    },
+    {
+      "screen": "count-test",
+      "title": [
+        "Sayım & düzeltme"
+      ],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "return-cancel",
+      "title": [],
+      "alerts": [],
+      "pass": true
+    },
+    {
+      "screen": "count-cancel",
+      "title": [
+        "Sayım & düzeltme"
+      ],
+      "alerts": [],
+      "pass": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,46 @@
+{
+  "observedAt": "2026-10-03T18:46:39.648Z",
+  "pass": true,
+  "tables": {
+    "products": {
+      "n": "52959",
+      "checksum": 833202211
+    },
+    "customers": {
+      "n": "437",
+      "checksum": -659366317
+    },
+    "suppliers": {
+      "n": "520",
+      "checksum": -254891062
+    },
+    "accounts": {
+      "n": "22",
+      "checksum": -426494674
+    },
+    "stock": {
+      "n": "514774",
+      "checksum": 624364827
+    },
+    "customerMovements": {
+      "n": "28972",
+      "checksum": 1762554647
+    },
+    "supplierMovements": {
+      "n": "23868",
+      "checksum": 1469203232
+    },
+    "financeMovements": {
+      "n": "16745",
+      "checksum": 1348411143
+    },
+    "sales": {
+      "n": "19219",
+      "checksum": -1559204970
+    },
+    "purchases": {
+      "n": "11221",
+      "checksum": -530446297
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "path": "/api/work-receiving/receipts/3/approve",
+  "body": {
+    "requestId": "0f0c4be8-f002-4510-96b1-f0d778cc8ca9"
+  },
+  "sameBody": true,
+  "responses": [
+    {
+      "path": "/api/work-receiving/receipts/3/approve",
+      "status": 204
+    },
+    {
+      "path": "/api/work-receiving/receipts/3/approve",
+      "status": 200
+    },
+    {
+      "path": "/api/work-receiving/context",
+      "status": 204
+    },
+    {
+      "path": "/api/work-receiving/context",
+      "status": 200
+    }
+  ]
+}

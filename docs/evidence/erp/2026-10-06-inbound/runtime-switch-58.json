@@ -1,0 +1,11 @@
+{
+  "result": "PASS",
+  "sourceCommit": "93365d0baf002e93010a2759bd45af2af11040e7",
+  "package": "C:\\Sirket\\ERP\\releases\\CANONICAL-INBOUND-TEST-20261006-58",
+  "privateConfigUnchanged": true,
+  "nativeLoopbackOnly": true,
+  "liveOwnersUnchanged": true,
+  "ipConfigurationChanged": false,
+  "businessWrites": 0,
+  "oldReleaseRetained": true
+}

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import { purchaseStockEffectLabel } from '../../utils/purchasePreparation.js';
 
 function formatMoney(amount, currency) {
+  if (amount == null || !Number.isFinite(amount)) return '—';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -12,40 +14,19 @@ function formatMoney(amount, currency) {
 export function PurchaseInvoiceItemsTable({
   isReadonly = false,
   items,
+  lineCosts = [],
   invoiceRate = 0,
   supplierRate = 0,
   exchangeRate = 1,
   invoiceCurrency = 'TRY',
+  invoiceStatus = 'DRAFT',
+  isCorrectionMode = false,
   selectedItemId,
   onDeleteItem,
   onSelectItem,
   onUpdateItem,
 }) {
   const [showCostDetails, setShowCostDetails] = useState(false);
-  const afterLineDiscounts = items.reduce((sum, item) => {
-    const gross = Number(item.quantity || 0) * Number(item.purchasePrice || 0);
-    return sum + (gross - gross * (Number(item.lineDiscountRate || 0) / 100));
-  }, 0);
-  const invoiceDiscountTotal = afterLineDiscounts * (Number(invoiceRate || 0) / 100);
-  const afterInvoiceDiscount = afterLineDiscounts - invoiceDiscountTotal;
-  const supplierDiscountTotal = afterInvoiceDiscount * (Number(supplierRate || 0) / 100);
-  const rate = Number(exchangeRate || 1);
-
-  function lineCostBreakdown(lineTotal, quantity) {
-    const share = afterLineDiscounts > 0 ? lineTotal / afterLineDiscounts : 0;
-    const invoiceShare = invoiceDiscountTotal * share;
-    const afterInvoiceShare = lineTotal - invoiceShare;
-    const supplierShare = supplierDiscountTotal * (afterInvoiceDiscount > 0 ? afterInvoiceShare / afterInvoiceDiscount : share);
-    const documentDiscountShare = invoiceShare + supplierShare;
-    const netLineTotal = afterInvoiceShare - supplierShare;
-
-    return {
-      documentDiscountShare,
-      netLineTotal,
-      netUnitPrice: Number(quantity || 0) > 0 ? netLineTotal / Number(quantity) : 0,
-      netLineCostTry: netLineTotal * rate,
-    };
-  }
 
   return (
     <section className="erp-panel purchase-items-panel">
@@ -76,11 +57,9 @@ export function PurchaseInvoiceItemsTable({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => {
-              const gross = item.quantity * item.purchasePrice;
-              const lineTotal = gross - gross * (item.lineDiscountRate / 100);
-              const cost = lineCostBreakdown(lineTotal, item.quantity);
-              const unitCostTry = Number(item.quantity || 0) > 0 ? cost.netLineCostTry / Number(item.quantity || 0) : 0;
+            {items.map((item, index) => {
+              const cost = lineCosts[index] || {};
+              const unitCostTry = cost.unitCostTry;
 
               return (
                 <tr
@@ -128,9 +107,9 @@ export function PurchaseInvoiceItemsTable({
                   <td className="money-cell invoice-discount-cell">{formatMoney(cost.documentDiscountShare, item.currency)}</td>
                   <td className="money-cell purchase-net-unit-price">{formatMoney(cost.netUnitPrice, item.currency)}</td>
                   <td className="money-cell invoice-total-cell">{formatMoney(cost.netLineTotal, item.currency)}</td>
-                  {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(cost.netLineCostTry, 'TRY')}</td>}
+                  {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(cost.lineTotalTry, 'TRY')}</td>}
                   {showCostDetails && <td className="money-cell purchase-cost-try">{formatMoney(unitCostTry, 'TRY')}</td>}
-                  <td><span className="purchase-stock-in">{item.stockEffect}</span></td>
+                  <td><span className={invoiceStatus === 'FINALIZED' && !isCorrectionMode ? 'purchase-stock-in' : 'purchase-stock-pending'}>{purchaseStockEffectLabel(invoiceStatus, item.quantity, isCorrectionMode)}</span></td>
                   {!isReadonly && (
                     <td>
                       <button className="invoice-row-icon-button" aria-label="Satırı sil" title="Satırı sil" type="button" onClick={() => onDeleteItem(item.id)}><Trash2 size={14} /></button>

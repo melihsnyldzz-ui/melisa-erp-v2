@@ -1,0 +1,12 @@
+{
+  "independentServicesUnchanged": true,
+  "foreignProcessStillAlive": true,
+  "launcherExitCode": 1,
+  "observedAt": "2026-10-06T20:08:37.4876452Z",
+  "foreignFixturePid": 40000,
+  "sourceCommit": "257ab50b7a0b3339b8f585f8a9904c9c850aa912",
+  "scope": "Controlled local fixture outside ERP; launcher rejected owner, did not kill it or independent services",
+  "port": 5194,
+  "visibleFailureCode": "TEST_STARTUP_PROCESS_ARGUMENT_MISMATCH",
+  "fixtureCleanupVerifiedAt": "2026-10-06T20:09:33.5349524Z"
+}

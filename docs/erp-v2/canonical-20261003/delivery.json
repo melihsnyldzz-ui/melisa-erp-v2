@@ -1,0 +1,37 @@
+{
+  "releaseRoot": "C:/Sirket/ERP/releases/CANONICAL-LINKED-RETURN-TEST-20261003-05",
+  "sourceRoot": "C:/Sirket/ERP/source/canonical-live-20261003",
+  "branch": "codex/canonical-live-20261003",
+  "commercialCodeCommit": "16bd97f5315786748e7efe0d12653273979c6cec",
+  "exactPackageIdentity": "Read sourceCommit, packageId and file hashes from releaseRoot/release-manifest.json; final-verification.json independently records the running identity.",
+  "webUrl": "http://127.0.0.1:5194/is-akisi-taslagi.html#purchases",
+  "apiSqlDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "launcher": "C:/Sirket/ERP/runtime/start-canonical-test.ps1",
+  "testPorts": [
+    5194,
+    4144,
+    4146
+  ],
+  "workflow": "Accepted goods -> its new purchase invoice -> return from the same invoice item",
+  "unitTests": 14,
+  "browserChecks": 14,
+  "invoiceId": 25083,
+  "sourceItemId": 93181,
+  "draftId": 31,
+  "returnId": 223,
+  "acceptanceDocument": "linked-purchase-return-acceptance.md",
+  "localEvidenceRoot": "C:/Sirket/ERP/evidence/LINKED-PURCHASE-RETURN-20261003",
+  "initialFinalStock": 28,
+  "initialFinalSupplierBalance": -100,
+  "financeUnchanged": true,
+  "nativeWrites": false,
+  "liveDeployment": false,
+  "remainingAcceptance": "Personnel acceptance of this linked workflow on existing named TEST records",
+  "knownLimits": [
+    "Multi-line goods/purchase editor remains unfinished.",
+    "Price-card writes and normal commercial cards outside this TEST scope.",
+    "Physical native scanner/printer acceptance remains open.",
+    "Stored FX latest date 2026-09-12; no current market-rate assertion."
+  ],
+  "previousAcceptanceSource": "3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8"
+}

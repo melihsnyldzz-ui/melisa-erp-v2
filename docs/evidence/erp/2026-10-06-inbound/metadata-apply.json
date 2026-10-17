@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-06T07:28:39.9710779Z",
+  "mode": "Apply",
+  "result": "PASS",
+  "sourceSha256": "CF5928311B99A379D8C43132E96DFD6F0FF755B33BE433C980156E561FC03589",
+  "legacyGuardGrantRoleDigest": "154B1204BD06F20249AF00C82FA21C79CBDDECD7B7D38FBDF1D29170F1162235",
+  "legacyUnchanged": true,
+  "rolledBack": false,
+  "sets": [
+    {
+      "rows": [
+        {
+          "readyHash": "5C64D6E80DB1B9EFB7422B45A9F592866F6018240E130990B36980E211427960"
+        }
+      ]
+    },
+    {
+      "rows": [
+        {
+          "installed": 1
+        }
+      ]
+    }
+  ]
+}

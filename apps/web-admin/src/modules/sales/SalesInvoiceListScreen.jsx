@@ -1,8 +1,14 @@
+import { partyScopeId, assertPartyScope } from '../../utils/operationNavigation.js';
+import { PartyContextNotice } from '../shared/PartyContextNotice.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchSalesDrafts, fetchSalesInvoice } from '../../services/invoiceDraftApi.js';
 import { fetchVegaCustomers } from '../../services/customerApi.js';
-import { exportRowsToExcel, printBusinessDocument, printRowsReport } from '../../utils/exportUtils.js';
+import { InvoiceVegaExportDialog, vegaExportLabel } from './InvoiceVegaExportDialog.jsx';
+import { post } from '../../services/apiClient.js';
+import { apiConfig } from '../../config/apiConfig.js';
+import { exportRowsToExcel, printInvoiceReceipt, printRowsReport } from '../../utils/exportUtils.js';
 import { InvoiceListAdvancedFilters } from '../shared/InvoiceListAdvancedFilters.jsx';
+import { InvoiceReturnDialog } from '../shared/InvoiceReturnDialog.jsx';
 
 function todayIsoDate() {
   const now = new Date();
@@ -120,19 +126,50 @@ function readVisibleSalesColumns() {
   }
 }
 
-export function SalesInvoiceListScreen({ onOpenScreen }) {
+export function SalesInvoiceListScreen({ onOpenScreen, permissions = [], userId, onDirtyChange, initialReturnId, initialCustomerId, initialCustomerCode }) {
+  const scopedPartyId = partyScopeId(initialCustomerId);
+  const [returnDialog,setReturnDialog]=useState(null);
+  useEffect(()=>{if(initialReturnId&&permissions.includes('sales.view'))setReturnDialog({source:null,initialReturnId});},[initialReturnId,permissions]);
   const today = useMemo(() => todayIsoDate(), []);
   const [search, setSearch] = useState('');
   const [customer, setCustomer] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [dateFrom, setDateFrom] = useState(today);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState(scopedPartyId ? '' : today);
+  const [dateTo, setDateTo] = useState(scopedPartyId ? '' : today);
   const [currencyFilter, setCurrencyFilter] = useState('ALL');
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
   const [employee, setEmployee] = useState('');
   const [terminal, setTerminal] = useState('');
   const [rows, setRows] = useState([]);
+  const [exportIds, setExportIds] = useState([]);
+  const [exportDialogIds, setExportDialogIds] = useState(null);
+  const [exportStates, setExportStates] = useState({});
+  const exportEligible = row => row.status === 'FINALIZED' && !['VERIFIED', 'REVIEW_REQUIRED'].includes(exportStates[row.id]?.state);
+  function mergeExportResults(results) {
+    setExportStates(current => ({ ...current, ...Object.fromEntries(results.map(r => [r.invoiceId, r])) }));
+    setExportIds(current => current.filter(id => !results.some(r => r.invoiceId === id && r.state !== 'NOT_ATTEMPTED')));
+  }
+  useEffect(() => { setExportIds([]); }, [search, customer, statusFilter, dateFrom, dateTo, currencyFilter, amountMin, amountMax, employee, terminal]);
+  useEffect(() => {
+    let active = true;
+    if (apiConfig.pilotMode && rows.length) {
+      (async () => {
+        for (let offset = 0; offset < rows.length; offset += 20) {
+          try {
+            const response = await post('/api/invoice-vega-export/status', { invoiceIds: rows.slice(offset, offset + 20).map(r => r.id) });
+            if (active) setExportStates(current => ({ ...current, ...Object.fromEntries(response.data.rows.map(r => [r.invoiceId, r])) }));
+          } catch { /* Preview always verifies the durable status before enabling send. */ }
+        }
+      })();
+    }
+    setExportIds(current => current.filter(id => rows.some(row => row.id === id && row.status === 'FINALIZED')));
+    return () => { active = false; };
+  }, [rows]);
+  function toggleExport(row) {
+    if (!exportEligible(row)) return;
+    setExportIds(current => current.includes(row.id) ? current.filter(id => id !== row.id) : current.length < 20 ? [...current, row.id] : current);
+  }
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [meta, setMeta] = useState(null);
@@ -143,6 +180,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
   const [cashShortcutLoading, setCashShortcutLoading] = useState('');
   const [detailErrorMessage, setDetailErrorMessage] = useState('');
   const [previewWidth, setPreviewWidth] = useState(480);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showCategoryReport, setShowCategoryReport] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
@@ -167,7 +205,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       .join(' ')
   ), [visibleColumns]);
   const selectedCurrency = selectedDetail?.documentCurrency || selectedDetail?.currency || selectedRow?.currency || 'TRY';
-  const selectedTotal = selectedDetail?.originalTotal ?? selectedDetail?.totalAmount ?? selectedRow?.totalAmount ?? 0;
+  const selectedTotal = selectedDetail?.grandTotal ?? selectedDetail?.originalTotal ?? selectedDetail?.totalAmount ?? selectedRow?.totalAmount ?? 0;
   const selectedVat = selectedDetail?.vatAmount ?? selectedDetail?.taxAmount ?? 0;
   const selectedSubtotal = Math.max(0, Number(selectedTotal || 0) - Number(selectedVat || 0));
   const selectedQuantity = selectedItems.reduce((total, item) => total + Number(item.quantity || 0), 0);
@@ -252,6 +290,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
     try {
       const response = await fetchSalesDrafts({
+          customerId: scopedPartyId || undefined,
         page: 1,
         limit: 100,
         search,
@@ -265,6 +304,8 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
         employee,
         terminal,
       });
+
+      assertPartyScope(response.data, 'customer', scopedPartyId);
 
       setRows(response.data);
       setMeta(response.meta);
@@ -290,6 +331,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
       try {
         const response = await fetchSalesDrafts({
+          customerId: scopedPartyId || undefined,
           page: 1,
           limit: 100,
           search,
@@ -305,6 +347,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
         });
 
         if (isMounted) {
+          assertPartyScope(response.data, 'customer', scopedPartyId);
           setRows(response.data);
           setMeta(response.meta);
           setSelectedRowId((currentId) => (
@@ -330,7 +373,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [amountMax, amountMin, currencyFilter, customer, dateFrom, dateTo, employee, search, statusFilter, terminal]);
+  }, [scopedPartyId, amountMax, amountMin, currencyFilter, customer, dateFrom, dateTo, employee, search, statusFilter, terminal]);
 
   useEffect(() => {
     let isMounted = true;
@@ -399,6 +442,12 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
   }
 
   async function openCashCustomerStockExits(shortcut) {
+    if (apiConfig.pilotMode) {
+      const range = lastCalendarDaysRange(7);
+      setSearch(''); setCustomer(shortcut.code); setCurrencyFilter(shortcut.currency);
+      setDateFrom(range.dateFrom); setDateTo(range.dateTo); setStatusFilter('ALL');
+      return;
+    }
     setCashShortcutLoading(shortcut.code);
     setCashShortcutError('');
 
@@ -495,7 +544,12 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       return;
     }
 
-    printBusinessDocument({
+    if (isDetailLoading || !selectedDetail || String(selectedDetail.id) !== String(selectedRow.id)) {
+      setErrorMessage('Yazdırmak için seçili fişin ayrıntılarının yüklenmesini bekleyin.');
+      return;
+    }
+
+    printInvoiceReceipt({
       title: 'Satış Fişi',
       documentNo: documentNo(selectedRow),
       status: statusLabel(selectedDetail?.status || selectedRow.status),
@@ -504,32 +558,43 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       partyName: selectedDetail?.customerName || selectedRow.customerName || '-',
       currency: selectedCurrency,
       exchangeRate: selectedDetail?.exchangeRateToTry || selectedDetail?.exchangeRate || selectedRow.exchangeRateToTry || 1,
-      description: selectedDetail?.description || 'Satış fişi listesi önizlemesinden yazdırıldı.',
+      description: selectedDetail?.description || '',
       items: selectedItems,
       totals: {
         currency: selectedCurrency,
-        subtotal: selectedSubtotal,
-        discountAmount: selectedDetail?.discountAmount || 0,
-        tryEquivalent: selectedDetail?.totalTry || selectedDetail?.amountTry || 0,
+        subtotal: selectedDetail?.subtotal,
+        discountAmount: selectedDetail?.discountTotal ?? selectedDetail?.discountAmount,
+        taxTotal: selectedDetail?.taxTotal ?? selectedDetail?.vatAmount ?? selectedDetail?.taxAmount,
+        tryEquivalent: selectedDetail?.grandTotalTry ?? selectedDetail?.totalTry ?? selectedDetail?.amountTry,
         grandTotal: selectedTotal,
       },
       extraInfo: [
         { label: 'Cari Kod', value: selectedDetail?.customerCode || selectedRow.customerCode || '-' },
         { label: 'Satır Sayısı', value: selectedItems.length || selectedRow.itemCount || 0 },
         { label: 'Toplam Adet', value: selectedQuantity || selectedRow.itemCount || 0 },
-        { label: 'Kaynak', value: selectedDetail?.sourceTerminal || selectedDetail?.terminalId || 'Web admin' },
+        { label: 'Personel', value: selectedDetail?.employeeName || selectedRow.employeeName || '-' },
+        { label: 'Terminal', value: selectedDetail?.terminalCode || selectedRow.terminalCode || 'Web admin' },
       ],
     });
   }
 
   return (
     <main className="work-area invoice-list-screen sales-receipt-workspace">
+      <PartyContextNotice entityType="customer" partyId={scopedPartyId} partyCode={initialCustomerCode} screenId="sales-invoice-list" onOpenScreen={onOpenScreen} />
+      {exportDialogIds && <InvoiceVegaExportDialog invoiceIds={exportDialogIds} onClose={() => setExportDialogIds(null)} onResult={mergeExportResults}/>}
       <section className="invoice-list-toolbar sales-receipt-toolbar">
         <div className="invoice-list-title">
           <strong>Satış Fişleri</strong>
           <span>Fiş listesi, seçili fiş önizleme, sync durumu ve hızlı işlemler</span>
         </div>
         <div className="invoice-list-actions">
+          <button type="button" onClick={() => onOpenScreen('sales-invoice', scopedPartyId ? { customerId: scopedPartyId, customerCode: initialCustomerCode } : {})}>Yeni Satış Fişi</button>
+          <button type="button" onClick={() => openInvoice()} disabled={!selectedRow}>Seçili Fişi Aç</button>
+          <button type="button" aria-expanded={isPreviewOpen} aria-controls="sales-invoice-preview" disabled={!selectedRow} onClick={() => setIsPreviewOpen((current) => !current)}>{isPreviewOpen ? 'Önizlemeyi Kapat' : 'Önizleme'}</button>
+          <button type="button" onClick={loadSalesInvoices}>Yenile</button>
+          <details className="invoice-toolbar-more" onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
+            <summary>Diğer işlemler{exportIds.length > 0 ? ` (${exportIds.length} seçili)` : ''}</summary>
+            <div className="invoice-toolbar-more-actions" onClick={(event) => { if (event.target.closest('button:not(:disabled)')) event.currentTarget.closest('details').open = false; }}>
           <div className="cash-sale-toolbar-buttons" aria-label="Peşin satış fişleri">
             {cashCustomerShortcuts.map((shortcut) => {
               const isOpening = cashShortcutLoading === shortcut.code;
@@ -546,12 +611,16 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
               );
             })}
           </div>
-          <button type="button" onClick={() => onOpenScreen('sales-invoice')}>Yeni Satış Fişi</button>
-          <button type="button" onClick={() => openInvoice()} disabled={!selectedRow}>Seçili Fişi Aç</button>
+          {['dashboard.view', 'finance.view', 'customer.view', 'sales.view'].every(key => permissions.includes(key)) && <button type="button" onClick={() => onOpenScreen('vega-history', { company: 'F0102' })}>Vega 2026 Belgeleri</button>}
+          {permissions.includes('sales.view') && <button type="button" onClick={()=>setReturnDialog({source:null})}>{permissions.includes('sales.cancel')?'İadeler / Bağımsız İade':'İadeler'}</button>}
+          {permissions.includes('sales.cancel') && <><button type="button" disabled={!selectedDetail || isDetailLoading || selectedRow?.status!=='FINALIZED' || String(selectedDetail.id)!==String(selectedRow?.id)} onClick={()=>setReturnDialog({source:selectedDetail})}>Seçili Fişten İade</button></>}
+          {apiConfig.pilotMode && <button type="button" className="vega-export-toolbar" disabled={!exportIds.length || isLoading} onClick={() => setExportDialogIds([...exportIds])}>Seçilenleri Vega’ya Gönder ({exportIds.length})</button>}
+          {apiConfig.pilotMode && exportIds.length > 0 && <button type="button" onClick={() => setExportIds([])}>Seçimi temizle</button>}
           <button type="button" onClick={exportSalesRows}>Excel</button>
           <button type="button" onClick={printSalesRows}>Yazdır/PDF</button>
-          <button type="button" onClick={loadSalesInvoices}>Yenile</button>
           <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}>Kolonlar</button>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -562,14 +631,13 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           <span>Fiş No / Ürün / Barkod</span>
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fiş no, ürün adı, barkod veya stok kodu" />
         </label>
-        <label>
-          <span>Cari</span>
-          <input value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="Müşteri adı veya kodu" />
-        </label>
         <button type="button" className="filter-reset-button" onClick={resetFilters}>Temizle</button>
       </section>
 
       <InvoiceListAdvancedFilters
+        party={customer}
+        partyLabel="Müşteri"
+        onPartyChange={setCustomer}
         status={statusFilter}
         onStatusChange={setStatusFilter}
         dateFrom={dateFrom}
@@ -621,7 +689,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
       )}
 
       <section
-        className={`sales-receipt-layout ${!isLoading && !errorMessage && rows.length === 0 ? 'is-empty' : ''}`}
+        className={`sales-receipt-layout ${isPreviewOpen ? 'has-preview' : 'preview-closed'} ${!isLoading && !errorMessage && rows.length === 0 ? 'is-empty' : ''}`}
         style={{ '--sales-preview-width': `${previewWidth}px` }}
       >
         <section className="erp-panel invoice-list-panel sales-receipt-list-panel">
@@ -644,7 +712,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
               <strong>Bu filtrelerde satış fişi yok</strong>
               <p>Tarih aralığını genişletebilir veya yeni bir satış fişi oluşturabilirsiniz.</p>
               <div className="invoice-list-empty-actions">
-                <button type="button" className="primary" onClick={() => onOpenScreen('sales-invoice')}>Yeni Satış Fişi</button>
+                <button type="button" className="primary" onClick={() => onOpenScreen('sales-invoice', scopedPartyId ? { customerId: scopedPartyId, customerCode: initialCustomerCode } : {})}>Yeni Satış Fişi</button>
                 <button type="button" onClick={resetFilters}>Tüm Fişleri Göster</button>
               </div>
             </div>
@@ -654,7 +722,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
               <table className={`invoice-list-table sales-receipt-table ${hiddenColumnClasses}`}>
                 <thead>
                   <tr>
-                    <th>Fiş No</th>
+                    <th><span className="vega-export-select">{apiConfig.pilotMode && <input type="checkbox" aria-label="Bu sayfadaki ilk 20 uygun kesinleşmiş fişi seç" title="En fazla 20 kesinleşmiş fiş seçilir; seçim yalnız bu sayfayı kapsar." checked={rows.filter(exportEligible).slice(0, 20).length > 0 && rows.filter(exportEligible).slice(0, 20).every(r => exportIds.includes(r.id))} onChange={event => setExportIds(event.target.checked ? rows.filter(exportEligible).slice(0, 20).map(r => r.id) : [])}/>}Fiş No</span></th>
                     <th>Tarih</th>
                     <th>Cari</th>
                     <th>Personel</th>
@@ -674,7 +742,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
                       onClick={() => setSelectedRowId(row.id)}
                       onDoubleClick={() => openInvoice(row.id)}
                     >
-                      <td className="code-cell">{documentNo(row)}</td>
+                      <td className="code-cell"><span className="vega-export-select">{apiConfig.pilotMode && <input type="checkbox" aria-label={documentNo(row) + ' fişini Vega aktarımı için seç'} disabled={!exportEligible(row) || (!exportIds.includes(row.id) && exportIds.length >= 20)} checked={exportIds.includes(row.id)} onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onChange={() => toggleExport(row)}/>}<span>{documentNo(row)}</span></span>{apiConfig.pilotMode && exportStates[row.id]?.state && exportStates[row.id].state !== 'NOT_ATTEMPTED' && <small className={'vega-export-badge ' + exportStates[row.id].state}>{vegaExportLabel(exportStates[row.id].state)}</small>}</td>
                       <td>{formatDate(row.documentDate || row.createdAt)}</td>
                       <td>{row.customerName || '-'}</td>
                       <td>{row.employeeName || '-'}</td>
@@ -696,7 +764,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           )}
         </section>
 
-        <div
+        {isPreviewOpen && <div
           aria-label="Fiş önizleme panel genişliği"
           className="sales-receipt-resizer"
           onMouseDown={startPreviewResize}
@@ -704,12 +772,13 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
           title="Sürükle: önizleme panelini genişlet/daralt"
         >
           <span />
-        </div>
+        </div>}
 
-        <aside className="erp-panel sales-receipt-preview-panel">
+        {isPreviewOpen && <aside id="sales-invoice-preview" aria-label="Satış fişi önizlemesi" className="erp-panel sales-receipt-preview-panel">
           <div className="panel-title">
             <strong>Fiş Önizleme</strong>
             <span>{selectedRow ? documentNo(selectedRow) : 'Seçili fiş yok'}</span>
+            <button type="button" className="invoice-preview-close" onClick={() => setIsPreviewOpen(false)}>Kapat</button>
           </div>
 
           {!selectedRow && <div className="list-state">Detay görmek için listeden bir fiş seçin.</div>}
@@ -821,7 +890,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
 
               <div className="sales-receipt-preview-actions">
                 <button type="button" onClick={() => openInvoice()}>Aç / Düzenle</button>
-                <button type="button" onClick={printSelectedSalesInvoice}>Yazdır</button>
+                <button type="button" onClick={printSelectedSalesInvoice} disabled={isDetailLoading || !selectedDetail || String(selectedDetail.id) !== String(selectedRow.id)}>Yazdır</button>
                 <button type="button" className="category-summary-button" onClick={() => { setSelectedCategory(''); setShowCategoryReport((current) => !current); }}>
                   {showCategoryReport ? 'Satırları Göster' : categorySummaryLabel}
                 </button>
@@ -836,7 +905,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
               </div>
             </>
           )}
-        </aside>
+        </aside>}
       </section>
 
       <section className="screen-summary invoice-list-summary">
@@ -846,6 +915,7 @@ export function SalesInvoiceListScreen({ onOpenScreen }) {
         <span>Tarih: {dateFrom || '-'} / {dateTo || '-'}</span>
         <span>Kaynak: API / canlı SQL</span>
       </section>
+      {returnDialog&&<InvoiceReturnDialog canManage={permissions.includes('sales.cancel')} kind="sales" source={returnDialog.source} initialReturnId={returnDialog.initialReturnId} userId={userId} onDirtyChange={onDirtyChange} onClose={()=>setReturnDialog(null)}/>}
     </main>
   );
 }

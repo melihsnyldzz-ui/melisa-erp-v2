@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "4f918c51fd49c86953a69484714af41bec1cf794",
+  "period": {
+    "label": "Kaynak kapsamı: 30 Eylül açılış verisi + Melisa ERP TEST hareketleri",
+    "timeZone": "Europe/Istanbul",
+    "fromDate": "2026-10-01",
+    "toDateInclusive": "2026-10-06",
+    "fromUtc": "2026-09-30T21:00:00.000Z",
+    "toUtcExclusive": "2026-10-06T21:00:00.000Z",
+    "historyLimited": true,
+    "limitations": [
+      "İşlem raporları Melisa ERP içinde oluşturulmuş kayıtlardır. Önceki Vega satış geçmişi bu rapora dahil değildir.",
+      "TRY, USD ve EUR ayrı gösterilir. Tarihler kayıtlı işlem gününe göre seçilir."
+    ]
+  },
+  "total": 43,
+  "quantity": "12.0000",
+  "allRowsRead": true,
+  "noMonetaryTotals": true,
+  "result": "PASS"
+}

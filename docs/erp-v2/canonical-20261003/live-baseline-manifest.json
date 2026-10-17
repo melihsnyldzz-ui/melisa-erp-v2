@@ -1,0 +1,1533 @@
+{
+  "capturedAt": "2026-10-03T17:45:35.703Z",
+  "roots": {
+    "live": "C:/do-wt/melisa-production-20260918",
+    "web": "C:/do-wt/melisa-pilot-20260913/apps/web-admin/dist-live-fix-4-20260918-01"
+  },
+  "files": [
+    {
+      "kind": "api-native",
+      "path": "apply-switch.ps1",
+      "bytes": 4641,
+      "sha256": "8495684cf4c20057213e6611cf33d909b3e413d19ff63f632944242550f1ccdc"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/backup-production-candidate.mjs",
+      "bytes": 2547,
+      "sha256": "2aeeb223b86985b6d913ff19a60a94c8fde845ffbb51f21c5acda44a1da36f49"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/live3-env.mjs",
+      "bytes": 2724,
+      "sha256": "8cfe8ec9e5d516adcbfb1103ce83ef445f3e8ab46914a4d67c41677ca42d1c6a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/live3-server.mjs",
+      "bytes": 2833,
+      "sha256": "ef4a16ba8fd197fab4a233b087fee6c640a8b494c4812a07942ddd9dd88f33af"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/package.json",
+      "bytes": 1218,
+      "sha256": "ba39bb7aadbe90890a5d9656edbe82c664b80cde1558e2f3b3d42ed21576273f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/production-env.mjs",
+      "bytes": 3338,
+      "sha256": "bf141fefe017e5f1df9cb614427c7b7f677fd133b0573042ac4650324b7e3625"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/app.js",
+      "bytes": 913,
+      "sha256": "9801010f2c49adbda2ff2df49381c3db6f1337cefa26552514c1be7a0daf213d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/config/database.js",
+      "bytes": 3626,
+      "sha256": "c60531ba66b418d7ab68e00b5aeab770cf26ab2580b449f96d019d5762725f87"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/config/env.js",
+      "bytes": 6816,
+      "sha256": "73b46f8bbca9ec73b743a8251437cc64fec5a6b2b61d271b3bdcfdec8f9a616e"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/config/vegaDatabase.js",
+      "bytes": 2783,
+      "sha256": "0f01338828635e2c7e820987565da788721a3aca6fe2d868455d76a6426d52d9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/auditController.js",
+      "bytes": 1462,
+      "sha256": "f859cfe31dfa6c35c2518cada868c2263485c35eacbd7327438cfaf018ab8f53"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/authAdminController.js",
+      "bytes": 1609,
+      "sha256": "220cbc998948db94f1e53070bf2225230035a87a6c36935f6d017dd8122c8401"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/authController.js",
+      "bytes": 2324,
+      "sha256": "804ae859d6b0482a0bb98c75eefdaf5490df8f5bfd92d461d9c54a34b5dd2ce9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/cashRegisterController.js",
+      "bytes": 2289,
+      "sha256": "34d52986e5587df0e4ce06206e8e9eeacee0149874ac84872894af984b69be66"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/catalogController.js",
+      "bytes": 2134,
+      "sha256": "e695d1d671f06b9066d8abc9e3f0b897c41c0ca46ffbf05dd920ba6ffe684aa2"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/cleanupController.js",
+      "bytes": 2386,
+      "sha256": "5766bf650e97a7a106ce17612a4dea441d57cb96e78761445caa381059d28e46"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/currencyRateController.js",
+      "bytes": 964,
+      "sha256": "f72ce6acec7ed347ffaeb3e190da9b1d3f1410c22f1b6f31e169d15ed5d39eef"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/customerController.js",
+      "bytes": 2766,
+      "sha256": "822204978e29462ea99a09e2223caadd33d0c92939371413f5cb54ea1d8675b5"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/dashboardController.js",
+      "bytes": 3640,
+      "sha256": "92c3f28ad54cea8f29888872942ef6e77d36a5656aacba14c8b68d72afaf7e79"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/financeController.js",
+      "bytes": 5281,
+      "sha256": "bd020e3b2cff0f0711033f2b9ac18880059e4934861aaddd3fd576c850f0a5d4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/importController.js",
+      "bytes": 2255,
+      "sha256": "ed2b3696943c190b32f320003d9ea48c854707fe4168a54a3b8b9adaff96350f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/invoiceController.js",
+      "bytes": 5363,
+      "sha256": "8cfed12f5b95009c3b6e6383e7ff257c65e4adace293551856aa52d0e8b9d9e9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/movementController.js",
+      "bytes": 5738,
+      "sha256": "0f52aac89bfc5a33fbe47f7d3c62fae8a7e13d4abbcb19530debae2d1c007385"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/personnelController.js",
+      "bytes": 1940,
+      "sha256": "b82055c2de2d050026ceaf39c7563d49a71c5424731e0e71f3f39439e2254cdf"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/productController.js",
+      "bytes": 8010,
+      "sha256": "fbc7f87d7e40aa076fe65b110b4822225501945b887caf270240d65b2b05232c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/productIntelligenceController.js",
+      "bytes": 563,
+      "sha256": "8086e942de185b3bd131cebc5104c4973b05707a31f29363bab25322fbe99c14"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/productSalesEvidenceController.js",
+      "bytes": 884,
+      "sha256": "6a5584ed2e19a3e69b3e5a6c58399c0092e681592c159869bde5eb2297474718"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/salesPipelineController.js",
+      "bytes": 3039,
+      "sha256": "5d808fb356c414072c636bea25689782f2267df0131f0ba9313ac1d6fc8c0044"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/settingsController.js",
+      "bytes": 890,
+      "sha256": "86e8afb6d9dd4474c2d774268e2f9bbd0c9ca449a779f83f12b0fd66b0855568"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/shippingIntegrationController.js",
+      "bytes": 2456,
+      "sha256": "f6130ee44c2d11004a34831c48dc430cfffa123ade588e5a0c5e7af1759c60fb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/sqlHealthController.js",
+      "bytes": 923,
+      "sha256": "fbb1b79db9f3017a4af75cb21ae560aad1c6d64d425175d199fbf98603717b4a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/supplierController.js",
+      "bytes": 2092,
+      "sha256": "38ac10db00359bbd6c100de3ca5bc6447759c23e64a75c8608cb4e88ebdc1b95"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/systemController.js",
+      "bytes": 1119,
+      "sha256": "eaa6b4a46d2e54e0bb650834a59d80f38750002f58a33cbf437b45c3f897a167"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/terminalAdminController.js",
+      "bytes": 651,
+      "sha256": "43580ef52bf34820745342c9c2426268c237819c258ef1f1723decf6f1b44872"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/terminalCapabilityController.js",
+      "bytes": 419,
+      "sha256": "de071a2d1c80791bb23f535e2677148ecd963398306dc7edbda731a60646ad65"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/terminalCatalogSyncController.js",
+      "bytes": 1024,
+      "sha256": "a9b2d602a8aae067445a215dfcd30661bdef88ded42d08a36825083d6d86866e"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/terminalController.js",
+      "bytes": 5067,
+      "sha256": "77e5a1fd81a4878cf2d4c1780f16582190b6395dd139a32c7a59d31360cf3372"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/controllers/terminalOfflineController.js",
+      "bytes": 658,
+      "sha256": "6be6b8a0032e8125a4c2afe3eeac5aadc0e1e12e93f269363709cae3d8885c46"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/authMiddleware.js",
+      "bytes": 1624,
+      "sha256": "c8e64235575bfc772ebd5db283a2a9d3282b5fd2cce43f1383fb5aed942d9e78"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/errorHandler.js",
+      "bytes": 826,
+      "sha256": "86e26cbf21dfc31cb438e85bca1f94725b30bfdd5d5f1fe5a16f2adc31f96093"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/nativeDeviceScope.mjs",
+      "bytes": 584,
+      "sha256": "f8454a21c30b380315ec114754355165ca99b70ba04fd97631aef76284070158"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/nativeDeviceScope.test.mjs",
+      "bytes": 1080,
+      "sha256": "0a270e83bd3cebf24dcaa3ab3d29ecd7412c97d7746f09badebd5887fc8b8a48"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/notFound.js",
+      "bytes": 193,
+      "sha256": "2e3bfc01402e243173ed41704a890077aeb074ff0a59a63e74f2737bb32129f2"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/requestContext.js",
+      "bytes": 1007,
+      "sha256": "4a99276f7d3d34276f26c68670c401df8c0a6cb5bb151c5e7f712fde85f2c2fb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/middleware/security.js",
+      "bytes": 1019,
+      "sha256": "568540ae85cebcf372a2fcd04fb7e78979b92c8d040747cc2d4dfca3d57e48d4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/auditRoutes.js",
+      "bytes": 734,
+      "sha256": "1ca7e0df463433bbe60c367e026eba1c941a452e809113d44ff6d86e01970822"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/authAdminRoutes.js",
+      "bytes": 793,
+      "sha256": "450b5f298fb70ee694c92f37c48428e2b5c2768d32de9ed4db9ed682601d130f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/authRoutes.js",
+      "bytes": 730,
+      "sha256": "fa363b4bca4111c2d7e79e0ce8c6070df9fc51751fbd560104c82df6458abe8c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/cashRegisterRoutes.js",
+      "bytes": 1271,
+      "sha256": "771c308331d3c54e781295ca0af264756a65e89f0b33d8f8bd258f9e086bed3d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/catalogRoutes.js",
+      "bytes": 973,
+      "sha256": "8b52da36d9ac33ccc3ddb03c77088cea73fdb53050007365769e8173bccadddb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/currencyRateRoutes.js",
+      "bytes": 452,
+      "sha256": "e4fda056390c7e56d574e283be2131a6d3e3f42e1e7bdef3a97b80519d171573"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/customerRoutes.js",
+      "bytes": 1132,
+      "sha256": "a9949b3a6540839f7619f9c06abbb48b1614b0975b9248cd539ccd2d634bb380"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/dashboardRoutes.js",
+      "bytes": 1342,
+      "sha256": "123d8b1aa0e0d975fb2435c01c1047c088b60ab0a01d8f0e1b1e372c788aa125"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/financeRoutes.js",
+      "bytes": 2797,
+      "sha256": "537d4319c75d85acab9e58dc30aac28d03f3e6c9a6a310399b82443a99184bb4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/importRoutes.js",
+      "bytes": 1394,
+      "sha256": "674324dbb7d1e40d76ff6184f298c8b9bb4eec8591b0941808da5dc6066ddece"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/index.js",
+      "bytes": 2649,
+      "sha256": "4c865103dea8b8ba38c6b346b4d9e42aa4a7f977890964195843d6c92034c78a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/invoiceReturnRoutes.mjs",
+      "bytes": 1794,
+      "sha256": "fd74333d7532356edb3c1c7b12d07d12b38665e6a2ef6c634f858247981181f4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/invoiceRoutes.js",
+      "bytes": 1865,
+      "sha256": "c303d207ee680502cfb46edc7f2ae4176c4e2ffa5fe619847111de08bc700994"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/movementRoutes.js",
+      "bytes": 2552,
+      "sha256": "1511a7cd9e3a34f95da96f3583be89fa7bdd32027932cd26b77b9364a69e0cbc"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/nativeReceiptPdfRoutes.mjs",
+      "bytes": 1922,
+      "sha256": "740fdcacd4eea1469de302d92c18556eff81fbeb3a78a7b8a8f1e75dcf0d25a3"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "bytes": 4500,
+      "sha256": "c45e84badadbd5cafb4238005ff0bcfdfaa35b86e4fd351a70f7282898ff4a20"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/personnelRoutes.js",
+      "bytes": 916,
+      "sha256": "37907a8efa9f57263f566c6ab6b2d43ad64f9e99ad3aaee515078efb3d4009c9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "bytes": 4831,
+      "sha256": "a7ed6d745083f6efcd676c6c9d483a64a6ca85302ec356e0bfd5c331bc005124"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/productIntelligenceRoutes.js",
+      "bytes": 416,
+      "sha256": "def70ea131917f3a7f055cbbc965722090e2a5a5b003268d0e13c89b5adbeaf0"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/productRoutes.js",
+      "bytes": 2603,
+      "sha256": "75a22a29cd10470197004907bce0efc4652c92435ac0cf9671d259f6f7332caf"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/productSalesEvidenceRoutes.js",
+      "bytes": 405,
+      "sha256": "fc24ff7f426d1b64c4d22675606b98f4a18396d58c75a06fbbd5685eb9039c79"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/salesPipelineRoutes.js",
+      "bytes": 1973,
+      "sha256": "9028f0dd1b9e0494ad9af1ce400def42df45742c9a2228e873bf2b46c15e2a7b"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/settingsRoutes.js",
+      "bytes": 1489,
+      "sha256": "6864e2be2faec5e1078a520bc1657dc09ea003ab157bee1084dc730e2889a681"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "bytes": 1290,
+      "sha256": "831fb6a09a218c35bf8532a6d4d9016e3235ea7ce053e658bd3a31f55475d74a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/sqlHealthRoutes.js",
+      "bytes": 380,
+      "sha256": "78d303d8f3aa1b6388e653b44e6a5f206db15b5db29e3707298cfc1797fa3764"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/supplierRoutes.js",
+      "bytes": 797,
+      "sha256": "4bfcadaed160ff80be67b7b89911ae2f335ec3a71324013a12d4b2014bf4356c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/systemRoutes.js",
+      "bytes": 454,
+      "sha256": "af2ba252ec2b74e3715511fab7d0a0f5fffa3593b3e0bb92528bb585bfa45091"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/terminalAdminRoutes.js",
+      "bytes": 369,
+      "sha256": "0da71b0a4612ba334043be9ad742957203467d89c02e5b234c97926c1f451229"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/terminalCustomerRoutesRoutes.mjs",
+      "bytes": 1635,
+      "sha256": "d8483614c83c14e7e4c515c86ec54f7e4e685db4eda6d5638870fb6ee56ca15d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/terminalRoutes.js",
+      "bytes": 3111,
+      "sha256": "e6d71d1016bf097ce0a7eb75378f826a3f3c3dbeff851a58a6d6a88d976e0dbb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/vegaCardRoutes.mjs",
+      "bytes": 905,
+      "sha256": "38c072b0f5e5c8efaf717f26e4f9c9526b5e33929fa9d25adff2376e19c56ce6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/vegaHistoryRoutes.js",
+      "bytes": 1861,
+      "sha256": "c478f6a4a5a3654ede08e72d47de45f9fffc9127af929b657b8fc0a634535d4c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/routes/vegaInvoiceExportRoutes.mjs",
+      "bytes": 918,
+      "sha256": "a1427bf3610c417e2b2377b962f4a2dba68079c25c032b30375a91e675416ada"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/server.js",
+      "bytes": 865,
+      "sha256": "ebff8fd92ab24533dfe3cdd4fb9c7a79bf2455b8ea5afff3beaf8eb02adebab7"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaDailyCompiler.mjs",
+      "bytes": 14252,
+      "sha256": "66b4846591636f2cce11e685620605f0601f8a5a425cbb7cbba03ce47321541f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaDailyGateway.mjs",
+      "bytes": 7805,
+      "sha256": "bdfa2ba894c9b65b99d7414c1f24ab99c1bc451c3b296471cd75bba2c1dbcfef"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaDailyPreflightService.js",
+      "bytes": 2745,
+      "sha256": "ab5e75fcfa4eb766936e14b272dd67ded0218a663dbe4e6e80c14f7b90f03d30"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaDocumentCodec.mjs",
+      "bytes": 4006,
+      "sha256": "09ac3cf5d4b31df87b588188b124126cd6efb4b18c14507dddf918ef1393b514"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaOfflineCompiler.mjs",
+      "bytes": 9197,
+      "sha256": "579438e18685334ece0fe105a0ca626fd74943a4a8c7dfe007408f7ddadf42bb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaOfflineGateway.mjs",
+      "bytes": 3829,
+      "sha256": "431dd825b1b04e612136763bc9970d02adec092088979c1c31f09da0109d62a8"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaPilotCompiler.mjs",
+      "bytes": 10235,
+      "sha256": "7f15fdaaabce89412484a1ce25a8201faff0924a2a3ae0f711df482642b49e16"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaReadBridgeClient.mjs",
+      "bytes": 2815,
+      "sha256": "24ec0855b020b29754602b2ecbfd3b4666d7b5eadbd7f3cc8bc7df863b136d97"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaReceipt.mjs",
+      "bytes": 7402,
+      "sha256": "3f182276b33742c4570429e2af0899c6484db5ed978529efda4d9f8d8db43c59"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaSaleSubmission.mjs",
+      "bytes": 8724,
+      "sha256": "bf812741d95abd02baa1b3cbfd7445464a6751069cb77243f77ffc3e72d0c9ce"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaSubmissionJournal.mjs",
+      "bytes": 11087,
+      "sha256": "e156e3b2d953c59fbaebca4072112bf91989e3ac7f34f90f64eae67141587996"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaTerminalService.mjs",
+      "bytes": 7642,
+      "sha256": "ba3d12f7addb9a7004a9415c281f33b3bff6b254e3bc4d0142547ed9e14b76c4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaVegaClientService.mjs",
+      "bytes": 1177,
+      "sha256": "bc0baf4a0bd63f80b273e52f9e323cb646f9f67c44713b198b6142e85b52a3bc"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaVegaPreflightService.js",
+      "bytes": 1921,
+      "sha256": "413e443744c3f408d5857de1406f40c627fec6831fef7dd32df824688a80be76"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaVegaResultMatcher.mjs",
+      "bytes": 6316,
+      "sha256": "a97663192ec6c7e04a324291d42e3f28f6be24601eaf8e4f6e77a31003e08e06"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/armadaVegaResultService.js",
+      "bytes": 4288,
+      "sha256": "3e60426f0980d335783ea1cc37d7f209ce82ab42120bc7c676f7ef9cd1642fad"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/auditMetadataEvents.test.js",
+      "bytes": 3325,
+      "sha256": "d8bb2b1ae828a76e76e0eb9e80b7322293606c0707399b2a3b5720845bd76a98"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/auditService.js",
+      "bytes": 19799,
+      "sha256": "38a51779a1ee22659afd7bd5b0a0e4b6db5a042bacf974296d0b17ee2eec793c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/authAdminService.js",
+      "bytes": 12680,
+      "sha256": "8d46aa7736a35570cb17225f780870b29439d2db3e9dfe790d23e73c60703704"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/authService.js",
+      "bytes": 13707,
+      "sha256": "d3cbb39d1c25fa1d50aa5abc184244ffc4b182ebe87cbe23f08bd722de86921c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/cashRegisterService.js",
+      "bytes": 34512,
+      "sha256": "b378b5b829ddadb616fb5ba168bea0c2140e0a8c272f9a518663a13c45563792"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/catalogService.js",
+      "bytes": 43104,
+      "sha256": "904a541b68bddf4adf7a42b8dba2ed5bf2a573ee0207e32a1cc529bf501da7da"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/cleanupService.js",
+      "bytes": 48158,
+      "sha256": "84ddee578dd224ef37b5f406d34d019d4b4304659a12c537b712b383a2761216"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/completeLedger.mjs",
+      "bytes": 1403,
+      "sha256": "1b17073383edcf1f81af9ab9e572049797326b9104f1c0a50c40757e68c416c9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/currencyRateService.js",
+      "bytes": 5612,
+      "sha256": "8fe4812938c87c4fd81a0ed9f58239e3ba1d86c481fad6d7b7f3c157921cee9e"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/currencySettlement.mjs",
+      "bytes": 155,
+      "sha256": "6f4d971f945e064d7fcd15394e8192373a111a5df168070da2b636663b4ce2fe"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/currencySettlementStore.mjs",
+      "bytes": 9923,
+      "sha256": "0daaa7b6e2f50856347df37501be29fe0a4026b0c8baa43fb2cd502dccbf7f95"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/customerService.js",
+      "bytes": 22330,
+      "sha256": "9b113883860a6603b392aa3b22b9693273fe401dd27bd5c11da5faeaa0a80e66"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/dailyWebPolicy.mjs",
+      "bytes": 3379,
+      "sha256": "de5554df933ab743442065e4190d5c2ed6e0c98951ea5b93b968ce2641d7b845"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/dashboardService.js",
+      "bytes": 38216,
+      "sha256": "2643ed090598ed329742d6fc3dfb252497e9d9acc1978dc1ea5dd90031592f63"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/explicitSaleCurrency.mjs",
+      "bytes": 945,
+      "sha256": "f0d2cbe2d9364a4a0b971b6a98ea9de205d8f3bbcf0c1df20fdb4e73228b80e3"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/financeReporting.mjs",
+      "bytes": 6057,
+      "sha256": "100272e1c3764b3bbdbff3eb19a8d2e0f0c6575c88d38157ebdea63efc006379"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/financeService.js",
+      "bytes": 81101,
+      "sha256": "52b7fb0751ddaf5c07481f4e300bc42f4444fa67f18ada65ef9fc21af63720d6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/fullStockDataService.mjs",
+      "bytes": 9769,
+      "sha256": "33563b55534978f088cf88dca56174add66f9f06e3d28204d3de4ba82453ba45"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/fullStockSnapshot.mjs",
+      "bytes": 4512,
+      "sha256": "60f402154c00e1f526200f0a2de95098e8feb44457b5ec836d91cf50897fd092"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/importService.js",
+      "bytes": 32399,
+      "sha256": "3687c92e16963dd54085705d1c4b73e731b97d484854d20df9b49e52b835cacd"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/invoiceDraftService.js",
+      "bytes": 133475,
+      "sha256": "c27a348ad06fa52d37f368c1f37e365577ee6a59532f1a0127bc3098411ad7d4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/invoiceReturnGuard.mjs",
+      "bytes": 1429,
+      "sha256": "9b2d351624e232cb1f418bc3b47ef98a5db3fecbdd0fe4fd98442dd3e391b421"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/invoiceReturnPolicy.mjs",
+      "bytes": 7452,
+      "sha256": "2fc3442f423ea98d07cd5b22f48f483098919cd9e57913c415571bb63319f014"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/invoiceReturnService.mjs",
+      "bytes": 9306,
+      "sha256": "1affe9aa9047243b90b67959b767d11f3d112abff5a038ad83efceb31ba8f41c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/invoiceReturnSql.mjs",
+      "bytes": 13365,
+      "sha256": "8d70a204838886e4c0f65ed17ebc5cb905a69185ed595b5c7cb944877cc4e1b0"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/mockDataService.js",
+      "bytes": 5407,
+      "sha256": "1db9863cdb9be2dff723c27b85719496701071b73910b492142d2e9b0862fbe5"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/monitoringService.js",
+      "bytes": 2822,
+      "sha256": "44787dcc399d0023b12ac3e5bbf1606367c3953bf79965e42606994c71e90d30"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/movementService.js",
+      "bytes": 32923,
+      "sha256": "4ae8f267b0cb18939e03c62c7a0ccfdb5dde16f837cbd4bd25d49f076b1dd007"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nakliyatShippingService.js",
+      "bytes": 10290,
+      "sha256": "19b9c0b39d3df411f8bf3f90c30722194780e59b753fb5c21deeeca0d98dc6c6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCatalogCategories.test.mjs",
+      "bytes": 4425,
+      "sha256": "2196ea1dd95f68230ede0a315eaddcdcd3fc487c417837bc1b99d852244f8410"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCatalogFeed.mjs",
+      "bytes": 2802,
+      "sha256": "e339f5f8646e11bb766fe12525545bb06db241fbd50df8f048141b51b2c46231"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCatalogFeed.test.mjs",
+      "bytes": 4566,
+      "sha256": "8b57bd94c1b9d5ab9e5a7ee4adca2154ec834c1fffce29d854bbfb7bd4ff60bd"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCatalogSync.mjs",
+      "bytes": 2535,
+      "sha256": "a9ea2a2a6bb3121b83f4e1b779fdd0f5bfb0bb925e0b43ffe1b57a34ad35d7a9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCategoryReports.mjs",
+      "bytes": 3236,
+      "sha256": "2a512432dff01db6d65fe523fea9045763d07f71d786cad990d8ab4137cf2981"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCategoryReports.test.mjs",
+      "bytes": 11158,
+      "sha256": "1ac845b9baa5c09a3f0fcbd022f10a6487d977c51a1a63864ab1a98fdd79f9c3"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCurrencyAccount.mjs",
+      "bytes": 6263,
+      "sha256": "1d32eda897c0ac1cb4c719972c5ac890260df69cf84391ee5d0accde98b4464d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCurrencyAccount.test.mjs",
+      "bytes": 2268,
+      "sha256": "55e86c215e3f39609fde30e827dcea6aa0beb72737a59f259b096be610ed1d27"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCustomerRoutes.mjs",
+      "bytes": 7861,
+      "sha256": "d466d51bf5105f1a5db569c85e0f172ea876f0b2480547111f7c5c8fdb0c60d6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeCustomerRoutes.test.mjs",
+      "bytes": 8488,
+      "sha256": "f115399952f64b001804c8c2592164f99792e9da907a6551016072310e754dea"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeInvoiceWebGuard.mjs",
+      "bytes": 1063,
+      "sha256": "33adcfaf8594450d4f77931dc43cbdf2373b661f32d4cea3e78801b2c0f3542c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativePackingAudit.mjs",
+      "bytes": 2713,
+      "sha256": "34af6ffcefca5e7a73b7ada3e6c2a2f3e2b2794b760c09f0803ec201bbe86c98"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativePackingCheck.mjs",
+      "bytes": 3823,
+      "sha256": "8a96b0c1206634670c7ba8b4d7d465fed900b3ebddf28831148d9b857c6e508d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativePackingCheck.test.mjs",
+      "bytes": 3715,
+      "sha256": "69d0f6f3e349d328736ccb85102334a5e5796d1acf3e0934d19cf631be7b3047"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeReceiptPdfShare.mjs",
+      "bytes": 4271,
+      "sha256": "9f2f06ecb29e4cdbe41e957f458c457e5b0fca7928e70a300cc5228a46cda19c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeReceiptPdfShare.test.mjs",
+      "bytes": 14037,
+      "sha256": "63c1eaa18c67288b30243dcc104eaada40333c5568480e65a854fbb60452e70c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalAuth.test.mjs",
+      "bytes": 6851,
+      "sha256": "0374d6eff48c5449575eeb92f0940f018da92907372e76a5bd1881c222b16af0"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalCatalog.mjs",
+      "bytes": 5064,
+      "sha256": "937bdbe3b27de548793d50447f9e3054cbb670aba75dd757d13b2456c6f746c2"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalPacking.mjs",
+      "bytes": 3835,
+      "sha256": "2329eb9fbe51c10be126e400873b1e06f504751934c3a99128e94384df83fa8a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalPacking.test.mjs",
+      "bytes": 13095,
+      "sha256": "d0ce674f30fb714eb5917f2ba068b3473cb55ba5503fab25e2631d937ff5d066"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalPolicy.mjs",
+      "bytes": 5699,
+      "sha256": "3e96b2ade9b15fe7e95afce8cc28ad40a00a55330c36c964a3659f638d1dc128"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalPolicy.test.mjs",
+      "bytes": 4490,
+      "sha256": "cd50fc8d1a7fd5a2fd2f88ccbe7e138794b5d79a76fca68654b8bba1636bd509"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalSale.mjs",
+      "bytes": 14678,
+      "sha256": "14ac0fe601e9f9887c8e86d1e8a4ff651062d76d7f29a3c98e34d7be009f4d97"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalSale.test.mjs",
+      "bytes": 12116,
+      "sha256": "7c5dc0640c9874d8d8d236f19035dd4eca4baed587e2fc49c97d49212dd9bff6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalWorkflows.mjs",
+      "bytes": 3962,
+      "sha256": "b9baccaa3d3a19f37a828dd93bcbb0007a501095e0f4108649bf44ab228e4c26"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/nativeTerminalWorkflows.test.mjs",
+      "bytes": 4825,
+      "sha256": "80fb9f9b913fc80fa6e6e1bacd024f1466db139dd1ebaca728e415d112d410e1"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/periodLockService.js",
+      "bytes": 2000,
+      "sha256": "cfcd5d8a86bc22bb7ebf92dab4477fcd47f07d2f897b2a0d419d70614b18d945"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/permissionCatalog.js",
+      "bytes": 4672,
+      "sha256": "74340662017181fd2442459eb5ef7e80d95ed850a7b6fe83684bc49079aae5a3"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/permissionCatalog.test.js",
+      "bytes": 767,
+      "sha256": "ea36d209272b8ec79fcc1b813689baafe61298d256a4560bb80cd79ae726722c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/personnelService.js",
+      "bytes": 21403,
+      "sha256": "5d3afd839fbdcfda0c05658e9faffa35e6ab5e5007aed677f8f6ac1b475d3191"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/pilotCashPolicy.mjs",
+      "bytes": 3250,
+      "sha256": "b4ff243ad5080e945440257edd814c02b212f34a9fc338f509e34f86b35e3abe"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/pilotDataService.mjs",
+      "bytes": 8131,
+      "sha256": "38a944fdf9a0d4283f26c79fb9612e018e3d4f7148379d19053d215a8b30d7ce"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/pilotProductScope.mjs",
+      "bytes": 608,
+      "sha256": "3f68ef8156b714415043a657586274803b1a1ee461de69f05f8e900517a34dba"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/pilotTerminalCatalog.mjs",
+      "bytes": 6374,
+      "sha256": "ba442a367fdc1bff358769251c1ccb9a3bc47119b1e59d3b980ec5e7f5b944e2"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/pilotTerminalSale.mjs",
+      "bytes": 14937,
+      "sha256": "d92e75b4255056c6c7f490f982e29717064353d21c0c1138a4179bee1fd5dcde"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/productCustomsClassifier.js",
+      "bytes": 4710,
+      "sha256": "cb9342ea39e75dd0dacb9e600deb02698f18eeee3227f7fe350e1fc856c569aa"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/productCustomsClassifier.test.js",
+      "bytes": 1754,
+      "sha256": "36faa5526921242a4250c918e552bb9b39a7e674220c97379276e7b449a4f511"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/productService.js",
+      "bytes": 74272,
+      "sha256": "571491a13c890ab6bfd008098e3fd6ab8137dd58a77d9bdc153ac13ae5db6d13"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/purchaseCostAccumulator.mjs",
+      "bytes": 1358,
+      "sha256": "94c7a2eab0f218e062168160da548acb12bcf584c2a5b6d43a201c3f0918ca4a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/queryHelpers.js",
+      "bytes": 2322,
+      "sha256": "eb01db30b8219cad1911ee85acaee83247192589680592f84778eea3ba7ef68b"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/queryIdentityFilters.mjs",
+      "bytes": 643,
+      "sha256": "4ecf8baca2848ae7cef3f55aed0a7baf742742645b335da0d7d35fa5d6f3de42"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/returnReporting.mjs",
+      "bytes": 6192,
+      "sha256": "4db00f228c78ae6d14332c9735ac295661c5a8707d2f200ff75f91a8cb0a00bd"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/salesCashReversal.mjs",
+      "bytes": 4379,
+      "sha256": "147c8de061a0c98152cc60cb95781c275f4b481fd35d9d13c07a83d16eeeb8dc"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/salesPipelineService.js",
+      "bytes": 27650,
+      "sha256": "ad5609f48fc7d78dd9f3c0161dfab647981f31fc6ea3b609a9ca7b03d19ba31a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/settingsService.js",
+      "bytes": 5521,
+      "sha256": "ca4d2d342e0a8054a7bd8e776eb09ba251766bf405c42d54d5ae3ac20098c8d4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/sqlHealthService.js",
+      "bytes": 2516,
+      "sha256": "2c5f9e7b3510325c89547436dcd3ec27f6eb4a3e495907b92535ade6a7e2a781"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/supplierService.js",
+      "bytes": 20143,
+      "sha256": "f4751b052c2b098bf4f1c3e2c6acdfa2cc2bb08e40899c81fe9ff4a2f627c19f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalAdminService.js",
+      "bytes": 8254,
+      "sha256": "f7dfb484e0cf3f2397a609ae2da57f2cef0868e66aefd4cc6dc27279f4ba106f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalCatalogSync.mjs",
+      "bytes": 11042,
+      "sha256": "333273090da23eae925533cd232bbd863244abd7d0fc652722239ebd1adb23be"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalCustomerRoutesService.mjs",
+      "bytes": 17823,
+      "sha256": "9787729c5e8188b96d9330850b890a2cbd7eb915fbeb5ffb5769f81a4cc08d19"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalOfflineCatalogReadService.js",
+      "bytes": 1914,
+      "sha256": "1087d14a574fdbcaa311d545a6c5c226b6ddc440f5264c9aa01771aef15c1893"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalOfflineCatalogService.mjs",
+      "bytes": 8086,
+      "sha256": "e52e142522b5ac19260b2bf7000884ade5bfc762cd862c48509eb0f7fade7de1"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalOfflineCatalogSnapshot.mjs",
+      "bytes": 3053,
+      "sha256": "8369d24eca91f2428bc93fb2bd1f09eb22705dac390df9f456298c0f678cfaf7"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalRateSnapshot.mjs",
+      "bytes": 6029,
+      "sha256": "8f1b1a86250be66da55ca03d7e5a204985f3a5a6ac56f6d92eb877f08dfde360"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalReceiptA4.mjs",
+      "bytes": 3271,
+      "sha256": "7c34fbb04304141ab4a8d9260bbed3476bd4906c28cacc0f578f95e9cae036b4"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalReceiptA4.test.mjs",
+      "bytes": 2621,
+      "sha256": "e6df5c451ea687e2dd7f4f444972c3e2aa930ceaf6864a780eb6547ebe3e63a0"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalReceiptPdf.mjs",
+      "bytes": 7326,
+      "sha256": "f6a02912fd489f05200c17e8d78f1fbbc224611b49594f32b01e54355f3c858d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalReceiptPdf.test.mjs",
+      "bytes": 7514,
+      "sha256": "7893153eca26e816da1c0c4bc21a5915c29ff525ee5d7c5ea096a3ea3b0d5154"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalReceiptPrintService.js",
+      "bytes": 7845,
+      "sha256": "d734dc2892b504c5f185b2fb043140922971fc62b19a819bb1d28c4757676744"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalReceiptPrintService.test.mjs",
+      "bytes": 2944,
+      "sha256": "9189e8c291fc85893e73c145708b3129e2c8a513097aa485996967b7252e9a0f"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalSaleCapabilities.mjs",
+      "bytes": 3492,
+      "sha256": "8e3801188e4ad397c01624ee388611d56853e73d63b0636fbea22822c6db5ea7"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/terminalService.js",
+      "bytes": 20763,
+      "sha256": "7da007de0bbe73daab3f566afe4021230e331feb7220baa5209c8905ebb69b36"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaCardAutoSync.mjs",
+      "bytes": 3984,
+      "sha256": "e6e85b45dbeda2c36861675f08ab12cc5989532377f55c636550acced61b41bb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaCardPlan.mjs",
+      "bytes": 7506,
+      "sha256": "3d2c1d81c8b55018df1e494689ba457e56e6379b71692221a86f53f39a266c0b"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaCardSync.mjs",
+      "bytes": 11758,
+      "sha256": "68f1e5a78e8263f3d2ef2b223ee129ef4522ac03b8349e4ab9e7a35f8707df49"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaCustomerClientService.js",
+      "bytes": 2089,
+      "sha256": "6d98e456bb13d41a68ecfc5102ec6dd23234be56dc075c6a8e7ab546a7f48efb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaCustomerService.js",
+      "bytes": 5966,
+      "sha256": "48c308c064cf3bd6abdeee78800290d0b64f886fdc32433304d91f5047b4c4b2"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaHistoryCore.mjs",
+      "bytes": 12824,
+      "sha256": "34b467b2eb722bf83b22ddc082e8fa936987f63d0071ed7f773c1cc133e37d51"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaHistoryService.js",
+      "bytes": 15905,
+      "sha256": "a3977090886499d8f1eae228b767adf317470718c7583b6c5478c524423a40bd"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaInvoiceExportCore.mjs",
+      "bytes": 9166,
+      "sha256": "40e7c1fab47bd3337ac3485fbdb4a81087de713660d0b7337706682b79e21b8b"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaInvoiceExportJournal.mjs",
+      "bytes": 3833,
+      "sha256": "5e6a693db42fe703283e0e281c812ce676097535ed2602af2efe9f2e5b5e73a6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaInvoiceExportService.mjs",
+      "bytes": 11743,
+      "sha256": "8fcdcb460a782ca8b5adc77b7dfa7190be526e6f1ab5ede1e593865f128253a3"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaKoliLedgerClientService.js",
+      "bytes": 2546,
+      "sha256": "94873ec43039b13dc79927866391a31b3468d16641f143204d73acaa6fb8ebbb"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaKoliLedgerService.js",
+      "bytes": 22248,
+      "sha256": "e0d573528eaa2a29e2cf5b51ace91decf29ac7ba1f2150ab68182cb54b0f35c3"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductClientService.js",
+      "bytes": 4390,
+      "sha256": "a76fe68ca0452fb2ff4654b80c038a93684376f7dfafbb1313b3fbf7b2278d91"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductCustomsService.js",
+      "bytes": 1809,
+      "sha256": "3efde5a81b57aaf8b0f6998acfe9c54857912badeb9d3f19edf867051bf33fcf"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductImageService.js",
+      "bytes": 8532,
+      "sha256": "4dff085ef42f9ff2905fc1f614d06072e76546725c549647bcd728de38934c23"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductIntelligenceService.js",
+      "bytes": 8992,
+      "sha256": "6898e8ae98875fd993938d792958caecfb27b9d09a48a7ab35d86c08804acf60"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductIntelligenceService.test.js",
+      "bytes": 2217,
+      "sha256": "aa76af9f7d15364ad2bdfdd993f18bd234fb6077133c3c1f388033db466adc5c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductMatchClientService.js",
+      "bytes": 1704,
+      "sha256": "978dff9ee944bbab2eb6399915b1646b262ec445ef66cadc00fecccb838cac64"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductMatchService.js",
+      "bytes": 813,
+      "sha256": "1494922d41d36a5974e373ab65daaa9fdf2491f1b6251c1dc1b5db2ce4c5ed97"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductMetadataClientService.js",
+      "bytes": 1923,
+      "sha256": "3219b0ab9125af968f2411e6bb03a5cd9baffa8e76b61d21966f37413cbd8e0b"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductMetadataService.js",
+      "bytes": 4042,
+      "sha256": "457db46a4d948c1c52b32f352ddd124e1d569aff6806ceb3169c1c6bf0c50b50"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductProfitabilityClientService.js",
+      "bytes": 3018,
+      "sha256": "76c7c87f2539e71fe59639d1e09d50dd803a570c1dfc40795bc7d6b378efb49c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductProfitabilityService.js",
+      "bytes": 24947,
+      "sha256": "9cb6bfffc356fb1f6f5c1ca26ec118635569be07825396a85deb573ac0b91d1a"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductProfitabilityService.test.js",
+      "bytes": 4003,
+      "sha256": "404afcb0ee10e7c1c07a116e2bca728de085d1de699f9f80469cc5e528647cd2"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductSalesEvidenceService.js",
+      "bytes": 8911,
+      "sha256": "9cdeee7e7842177fedaa1e27309ac30dd9bb3f9ef9f1e547604fbd173d9283d9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductSalesEvidenceService.test.js",
+      "bytes": 9886,
+      "sha256": "79d6110a5e5ec46a9b8e4ee24ab3df471cc000a1f55da5515b2ac067c21040da"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaProductService.js",
+      "bytes": 11367,
+      "sha256": "59d9132bfa2ab3e7146abfefd381fdcc42dcbdfb6f8361a7a3e90a42ff6f4e4c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSalesComparisonClientService.js",
+      "bytes": 2011,
+      "sha256": "758bfac8765abb283c447e48040c24dffb0ecc93f86832f4f4837be2af3f8931"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSalesComparisonService.js",
+      "bytes": 7039,
+      "sha256": "dec68f6eba272d1425ef9d888000030c34618d18f71a31fbff1208eb9f4a5a91"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSalesPerformanceClientService.js",
+      "bytes": 2005,
+      "sha256": "09b3811758a709e8e858e2d47d62943a8ed681e487ce3c78ddf42613c2951cd0"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSalesPerformanceService.js",
+      "bytes": 8814,
+      "sha256": "dcb5be302c76ae34e5281c08c721d401bacfc020b9fd4b88bb9449a3ad25de5c"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSupplierClientService.js",
+      "bytes": 2754,
+      "sha256": "729b6f400c5697887dc0acff72bb911c49142801d0cc6779f08b23c1da8b61e1"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSupplierLedgerService.js",
+      "bytes": 16359,
+      "sha256": "e8f9548f84c072a14c887a43b98ec558de64b65a53676dd226ed05b940759fce"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSupplierPurchaseIntelligenceService.js",
+      "bytes": 21059,
+      "sha256": "466e058f96c7c675163f310200cf127641e3903f0608500c8dcea40626bb5e73"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSupplierPurchaseIntelligenceService.test.js",
+      "bytes": 3448,
+      "sha256": "7e30ec2262221fd9a990901f3d08179b830824b9a107c243c7f0bc2a14ee1602"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/vegaSupplierService.js",
+      "bytes": 6479,
+      "sha256": "f7e386ed53674a483382ed02a9d8bd2db6f2d45c16b31c174160271103122b80"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/services/writeGuardService.js",
+      "bytes": 584,
+      "sha256": "16dfd4e45e5a2130538d3dfca92d29fffce06d1615e27ea52aa0dd9f6e109255"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/utils/logger.js",
+      "bytes": 1411,
+      "sha256": "b5ed5d31ca9d6140264bc24dea947a984b09378e3e964820c9fd37d7ca756ebc"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/utils/pagination.js",
+      "bytes": 637,
+      "sha256": "8f16488396f7d0f5afc1dd35b275c048a78ca18ca3287eaedc4ce9026f1a44ba"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/utils/response.js",
+      "bytes": 455,
+      "sha256": "34200cce01c7356be049551920665767c3e4050284c5d9433ed28cc2ea2588df"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/armadaVegaWorker.js",
+      "bytes": 1328,
+      "sha256": "f9c165d33657aafe384f55cbbb1004cd72ff23b2345ae785d0aa968ba23b36ac"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaCustomerWorker.js",
+      "bytes": 832,
+      "sha256": "4acc2f3d0cae68244ec6ad8b1ebe521577542bbfabdca44282d517fbae6ffcc6"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaKoliLedgerWorker.js",
+      "bytes": 1459,
+      "sha256": "ae523581c336dbfa7a0b9e5c92ece5364018f5447bd934575b03987939befa17"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaProductMatchWorker.js",
+      "bytes": 603,
+      "sha256": "057ac05d947688aeb6ce57b2b983af7f1a7c19281db20ffb494562c5f473acc0"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaProductMetadataWorker.js",
+      "bytes": 633,
+      "sha256": "a61a665234e1e556cf2cf99749172ff56404fabc178c08c0e1aaab24be482c46"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaProductProfitabilityWorker.js",
+      "bytes": 808,
+      "sha256": "f2f3ccbda2ea798ee5809e7d09ba92e0942d99dc9a5b0fcb8e5f6be59e382a98"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaProductWorker.js",
+      "bytes": 825,
+      "sha256": "d629726032b6b61d94de5842d40a7a76f43f213b1e661438eee2a89e44fe1a2d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaSalesComparisonWorker.js",
+      "bytes": 599,
+      "sha256": "f67d57555673aa2d27c84b66b0ac2a99a3f7289a82ea75659addde14db9b9802"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaSalesPerformanceWorker.js",
+      "bytes": 604,
+      "sha256": "1172563a675e5500a462b137c20f262420ad73b2b08ccf75cc144308a0282c74"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/src/workers/vegaSupplierWorker.js",
+      "bytes": 1776,
+      "sha256": "3e7f60b6158cc1c94f75ebda1b130545313ac12f52ff50c20e1d15b80870dc44"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/start-production-erp.mjs",
+      "bytes": 3963,
+      "sha256": "bf346f8b043090e670c39ff3614de5d996c094b333e0325589ca1568f085a412"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/start-production-native.mjs",
+      "bytes": 2872,
+      "sha256": "043aeb76a3baff66e0cbd866b7324c524e1c07e24c64c0bf42d21823234528f1"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/start-production-web.mjs",
+      "bytes": 1081,
+      "sha256": "2b5a1fa410bfd6c8711e17a03542b9530bc87c4248049a0cec7d5af8dc3cb839"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-duplicate.mjs",
+      "bytes": 1920,
+      "sha256": "83597658c54cca3ffdb3561b646d06597f677e95331ec912820dcbcac8d04873"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-env.mjs",
+      "bytes": 1834,
+      "sha256": "0101de89b69b959f6e867b67255f2b0e375849d63b7dd5e322f138770dd1380d"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-role.mjs",
+      "bytes": 2321,
+      "sha256": "f91766d08846723beff00f1c0cd05346d0e96e647d2b20d6ef7cd397df89eb48"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-server.mjs",
+      "bytes": 2925,
+      "sha256": "43dec2d1cdbc1655a3d4a9e63938a06917b55154b595e0254c4185d738a2c4dc"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-snapshot.mjs",
+      "bytes": 2497,
+      "sha256": "1e65d94eca99329b99254bb5407893fbc70276d0eea656fce0467f3b82f34a68"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-sql-guards.mjs",
+      "bytes": 2165,
+      "sha256": "e91fb489f774e3dfd7d7650d4d1ffc84d5c945ba40ca56d7bd626a1b3297ebb9"
+    },
+    {
+      "kind": "api-native",
+      "path": "apps/api/t32-verify.mjs",
+      "bytes": 3704,
+      "sha256": "961bad9d0620b8b0403200ccd9928b066dcadd4d084b3e21ad3c1ff72c18f972"
+    },
+    {
+      "kind": "api-native",
+      "path": "packages/shared/.gitkeep",
+      "bytes": 2,
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
+    },
+    {
+      "kind": "api-native",
+      "path": "packages/shared/src/currencySettlement.mjs",
+      "bytes": 4426,
+      "sha256": "15130395ad2ce46a221da8ce097d2b3c4d6d752cbd64d71039564814175d7386"
+    },
+    {
+      "kind": "api-native",
+      "path": "packages/shared/src/purchaseDiscounts.mjs",
+      "bytes": 6059,
+      "sha256": "b1b636ff43ac3c7337d1169c74baa79f9336d156b21adb3b6e74fa5fb2a127e1"
+    },
+    {
+      "kind": "api-native",
+      "path": "start-production.ps1",
+      "bytes": 2613,
+      "sha256": "d265243fa3e186957bc8e037ff62bef3b09ca8ff29503213773547984c80869c"
+    },
+    {
+      "kind": "web",
+      "path": "assets/index-CjyxL4bG.js",
+      "bytes": 1631056,
+      "sha256": "28fb441f8a1d985e2382719d8f961cd8348b8f23701b4f1100c9f795901f849a"
+    },
+    {
+      "kind": "web",
+      "path": "assets/index-WEZGfS6P.css",
+      "bytes": 586683,
+      "sha256": "543667057ddd4e07ee98ff8053f759fb5260bfb6f9367b237d08fd990e132da1"
+    },
+    {
+      "kind": "web",
+      "path": "index.html",
+      "bytes": 420,
+      "sha256": "da0a8f1087b07758954979ab8195b264834fac1d2e71ec9a25b5aa8a3fee01e1"
+    },
+    {
+      "kind": "web",
+      "path": "melisa-baby-watermark.png",
+      "bytes": 82146,
+      "sha256": "81e27d4d5394eb147b573b86a0b6af4f7f97cb76216f2b4d37b5cc23395e77cb"
+    }
+  ]
+}

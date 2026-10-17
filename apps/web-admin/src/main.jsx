@@ -29,9 +29,10 @@ import './styles/system-settings-ux.css';
 import './styles/management-reports-ux.css';
 import './styles/stock-count.css';
 import './styles/sales-pipeline-list.css';
-import './styles/visual-refresh-phase2.css';
-import './styles/visual-refresh-phase3.css';
-import './styles/dashboard-efficiency.css';
+import './styles/daily-navigation-ux.css';
+import './styles/calm-workspace.css';
+import './styles/invoice-workspace-usability.css';
+import './styles/finance-workspace-usability.css';
 import { App } from './App.jsx';
 
 class RootErrorBoundary extends React.Component {

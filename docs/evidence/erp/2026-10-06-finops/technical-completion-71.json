@@ -1,0 +1,137 @@
+{
+  "at": "2026-10-06T14:34:46.289Z",
+  "result": "TECHNICALLY_COMPLETE_HUMAN_ACCEPTANCE_PENDING",
+  "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+  "package": "TEST71",
+  "decision": "ERP-DEC-016",
+  "count": {
+    "draftId": 39,
+    "personnel": 15,
+    "approver": 16,
+    "productId": 325503,
+    "stock": [
+      3,
+      4,
+      4,
+      3
+    ],
+    "movementId": 917931,
+    "compensationDraftId": 42,
+    "approvalReasonPersisted": true
+  },
+  "purchaseReturn": {
+    "proofPackage": "TEST66",
+    "currentPackageReadOnlyRecheck": "TEST71",
+    "draftId": 40,
+    "returnId": 224,
+    "productId": 301986,
+    "stock": [
+      32,
+      31,
+      31,
+      32
+    ],
+    "supplierId": 13373,
+    "debtTry": [
+      60,
+      0,
+      0,
+      60
+    ],
+    "cashEffect": 0,
+    "originalPurchasePreserved": true
+  },
+  "negativeAttempts": {
+    "countAndFinanceApi": 15,
+    "returnAndFinanceApi": 12,
+    "directSqlRolledBack": 13
+  },
+  "replay": {
+    "doubleConcurrentRequest": true,
+    "lostResponseBodyDiscarded": true,
+    "sameActorUuidFullBody": true,
+    "refresh": true,
+    "newUuidSameApprovedDraft": true,
+    "extraBusinessEffect": 0
+  },
+  "auth": {
+    "existingNormalActors": [
+      15,
+      16
+    ],
+    "testAdminUsed": false,
+    "roleGrantCredentialChanges": false
+  },
+  "independentReviews": [
+    "goal3_native_audit: CLEAR",
+    "goal3_guard_review: CLEAR"
+  ],
+  "humanAcceptance": {
+    "ERP-UA13": "bekliyor",
+    "ERP-UA14": "bekliyor",
+    "ERP-UA15": "bekliyor",
+    "ERP-UA16": "bekliyor",
+    "ERP-UA17": "bekliyor"
+  },
+  "finishTree": {
+    "total": 49,
+    "complete": 7,
+    "partial": 24,
+    "open": 18
+  },
+  "scope": {
+    "crm": false,
+    "live": false,
+    "vegaWrites": false,
+    "mainMerge": false,
+    "goal4Started": false,
+    "customerReturnBonusStarted": false
+  },
+  "sourceCi": {
+    "pushRun": 37477836029,
+    "prRun": 37477845178,
+    "qualityBuildTest": "PASS",
+    "secretScan": "PASS"
+  },
+  "speedMedianMs": {
+    "first50": 617,
+    "next50": 475,
+    "code": 544,
+    "barcode": 283,
+    "card": 168,
+    "home": 79,
+    "count": 52,
+    "purchaseReturn": 340,
+    "payment": 426,
+    "finance": 453
+  },
+  "browser": {
+    "normalExistingSessions": true,
+    "demoNotTechnicalAcceptance": true,
+    "countWidths": [
+      {
+        "width": 1440,
+        "scrollWidth": 1425
+      },
+      {
+        "width": 1024,
+        "scrollWidth": 1009
+      },
+      {
+        "width": 390,
+        "scrollWidth": 375
+      }
+    ],
+    "returnThreeWidths": "TEST66 native normal screen evidence retained; current TEST71 history rechecked",
+    "currentScreens": [
+      "count-native-71-1440.jpg",
+      "count-native-71-1024.jpg",
+      "count-native-71-390.jpg",
+      "count-personnel-native-71.jpg",
+      "return-native-71.jpg",
+      "payment-native-71.jpg",
+      "finance-native-71.jpg",
+      "home-native-71.jpg"
+    ]
+  }
+}

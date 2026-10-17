@@ -1,0 +1,98 @@
+.vega-workspace { padding: 28px; max-width: 1600px; margin: 0 auto; color: #202938; }
+.vega-workspace h1 { font-size: 1.65rem; line-height: 1.3; margin: 5px 0 10px; letter-spacing: -.035em; }
+.vega-workspace h2 { font-size: 1.1rem; margin: 8px 0 14px; }
+.vega-workspace h3 { font-size: 1rem; margin: 26px 0 10px; }
+.vega-workspace p { margin: 8px 0 16px; }
+.vega-heading, .vega-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.vega-heading p { color: #657184; font-size: .9rem; }
+.vega-eyebrow { font-size: .8rem; font-weight: 600; color: #526488; }
+.vega-card { padding: 22px; background: #fff; border: 1px solid #e3e7ee; border-radius: 12px; margin-bottom: 22px; min-width: 0; }
+.vega-workspace button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: #fff; border: 1px solid #d5dce8; border-radius: 7px; color: #334366; font: inherit; font-size: .875rem; min-height: 38px; padding: 8px 13px; cursor: pointer; white-space: nowrap; }
+.vega-workspace button:hover:not(:disabled) { background: #edf1fd; border-color: #acbbe5; }
+.vega-workspace button:disabled { opacity: .5; cursor: not-allowed; }
+.vega-workspace button[type=submit], .vega-overview-grid button { background: #3659d9; color: white; border-color: #3659d9; }
+.vega-workspace button[type=submit]:hover:not(:disabled), .vega-overview-grid button:hover:not(:disabled) { background: #2948b9; color: white; }
+.vega-search { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.vega-search label { display: grid; gap: 6px; font-size: .875rem; }
+.vega-search-input { flex: 1; min-width: 180px; }
+.vega-search input, .vega-search select { width: 100%; min-height: 42px; border: 1px solid #d5dce8; border-radius: 7px; padding: 8px 10px; color: #202938; background: white; font-size: 1rem; }
+.vega-muted { color: #657184; font-size: .875rem; line-height: 1.6; }
+.vega-source { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 12px 0; margin: 6px 0 14px; font-size: .8rem; color: #657184; }
+.vega-table-scroll { overflow-x: auto; border: 1px solid #e7eaf0; border-radius: 8px; }
+.vega-workspace table { width: 100%; border-collapse: collapse; text-align: left; font-size: .875rem; }
+.vega-workspace th { background: #f7f8fb; color: #627087; font-weight: 500; }
+.vega-workspace td, .vega-workspace th { padding: 12px 14px; border-bottom: 1px solid #edf0f4; white-space: normal; overflow-wrap: anywhere; }
+.vega-workspace td:first-child { min-width: 130px; }
+.vega-workspace tr.selected td { background: #edf1fd; }
+.vega-workspace tr:last-child td { border-bottom: 0; }
+.vega-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 18px; color: #657184; font-size: .875rem; }
+.vega-pagination > div { display: flex; gap: 8px; }
+.vega-empty { text-align: center; padding: 35px 12px; color: #657184; }
+.vega-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 18px; margin: 20px 0; }
+.vega-fields dt { font-size: .8rem; color: #657184; margin-bottom: 5px; }
+.vega-fields dd { font-size: .95rem; margin: 0; overflow-wrap: anywhere; }
+.vega-note { background: #f3f6fd; color: #43587d; padding: 14px 16px; border-radius: 7px; font-size: .9rem; }
+.vega-error { display: flex; align-items: start; gap: 14px; padding: 18px; color: #963b32; background: #fff4f2; border: 1px solid #f5d5cf; border-radius: 8px; margin: 14px 0; }
+.vega-error > div { flex: 1; }.vega-error > svg { flex-shrink: 0; }.vega-error p { margin: 6px 0; }.vega-error small { font-size: .8rem; }
+.vega-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.vega-overview-grid .vega-card > svg { color: #3659d9; margin-bottom: 12px; }
+.vega-workspace details { margin: 18px 0; font-size: .875rem; }.vega-workspace summary { cursor: pointer; color: #526488; }
+@media(max-width: 700px) { .vega-workspace { padding: 16px; }.vega-card { padding: 16px; }.vega-overview-grid { grid-template-columns: 1fr; gap: 0; }.vega-heading { align-items: start; }.vega-search label { width: 100%; }.vega-pagination { align-items: start; flex-direction: column; }.vega-workspace th, .vega-workspace td { padding: 10px; }.vega-error { flex-wrap: wrap; } }
+
+/* Keep the selected product beside its list on desktop. */
+.vega-record-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
+.vega-record-layout.has-selection { grid-template-columns:minmax(460px,1.05fr) minmax(410px,1fr); }
+.vega-record-layout>.vega-card { min-width:0; margin-bottom:0; }
+.vega-record-list .vega-product-list-table { max-height:64vh; overflow:auto; scrollbar-gutter:stable; }
+.vega-product-list-table th { position:sticky; top:0; z-index:1; }
+.vega-product-list-table tbody tr:nth-child(even):not(.selected) { background:#fafbfe; }
+.vega-product-list-table tbody tr:hover { background:#f2f5fd; }
+.vega-workspace .vega-product-name { background:transparent; border:0; padding:0; min-height:28px; white-space:normal; text-align:left; justify-content:flex-start; color:#304eac; font-weight:600; }
+.vega-workspace .vega-cell-secondary { display:block; font-size:12px; color:#69778e; font-weight:400; margin-top:3px; overflow-wrap:anywhere; }
+.vega-record-layout.has-selection .vega-record-list .vega-search { gap:8px; }
+.vega-record-layout.has-selection .vega-record-list .vega-search-input { min-width:160px; }
+.vega-record-layout.has-selection .vega-record-list th:nth-child(3),
+.vega-record-layout.has-selection .vega-record-list td:nth-child(3),
+.vega-record-layout.has-selection .vega-record-list th:nth-child(4),
+.vega-record-layout.has-selection .vega-record-list td:nth-child(4) { display:none; }
+.vega-workspace .vega-detail { scroll-margin:12px; max-height:calc(100vh - 190px); overflow:auto; position:sticky; top:0; outline-offset:3px; }
+.vega-detail .vega-card-heading { position:sticky; top:-14px; background:#fff; z-index:2; border-bottom:1px solid #e6ebf2; padding:8px 0 12px; margin-bottom:12px; align-items:flex-start; }
+.vega-detail .vega-card-heading h2 { line-height:1.45; margin:4px 0 0; }
+.vega-detail .vega-fields { gap:10px; margin:10px 0 16px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.vega-detail .vega-fields>div:first-child { grid-column:1/-1; }
+.vega-workspace .vega-product-section { padding:12px 0; border-top:1px solid #edf0f5; }
+.vega-workspace .vega-product-section h3 { font-size:14px; margin:0 0 10px; }
+.vega-stock-summary { display:flex; flex-wrap:wrap; gap:8px; }
+.vega-stock-summary>div { display:flex; align-items:baseline; gap:9px; background:#f1f5fc; padding:10px 14px; border-radius:7px; }
+.vega-stock-summary strong { font-size:24px; line-height:1.2; color:#263f70; font-variant-numeric:tabular-nums; }
+.vega-stock-summary span { color:#62748e; font-size:13px; }
+.vega-stock-summary .negative { background:#fff2ed; }
+.vega-stock-summary .negative strong { color:#a24030; }
+.vega-detail .vega-product-section .vega-muted { margin:8px 0 0; }
+.vega-detail .vega-table-scroll { max-height:32vh; overflow:auto; }
+.vega-detail .vega-table-scroll th { position:sticky; top:0; }
+.vega-detail td:first-child { min-width:80px; }
+.vega-product-section[aria-label="Kayıtlı fiyatlar"] td:nth-child(3),
+.vega-product-section[aria-label="Kayıtlı fiyatlar"] th:nth-child(3) { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.vega-detail .vega-source-info { border-top:1px solid #e6ebf2; padding-top:12px; }
+.vega-detail .vega-source-info .vega-table-scroll { margin:8px 0; }
+@media(max-width:1250px) {
+ .vega-record-layout.has-selection { grid-template-columns:minmax(0,1fr); }
+ .vega-workspace .vega-detail { position:static; max-height:none; }
+ .vega-record-layout.has-selection .vega-record-list .vega-product-list-table { max-height:35vh; }
+ .vega-detail .vega-card-heading { position:static; }
+}
+@media(max-width:700px) {
+ .vega-detail .vega-card-heading { flex-wrap:wrap; gap:8px; }
+ .vega-detail .vega-card-heading>button { margin-left:auto; }
+ .vega-record-layout { gap:12px; }
+ .vega-record-list .vega-product-list-table { max-height:56vh; }
+ .vega-record-list .vega-product-list-table table { min-width:420px; }
+}
+
+.v17-readonly.v17-shell main.vega-workspace.vega-integrated .vega-product-list-table th,
+.v17-readonly.v17-shell main.vega-workspace.vega-integrated .vega-detail th { position:sticky; top:0; z-index:1; padding:8px 10px; }
+.v17-readonly.v17-shell main.vega-workspace.vega-integrated td { padding:7px 10px; }
+.v17-readonly.v17-shell main.vega-workspace.vega-integrated .vega-product-name { border:0; background:transparent; padding:0; min-height:28px; box-shadow:none; text-align:left; justify-content:flex-start; color:#304eac; }
+.v17-readonly.v17-shell main.vega-workspace.vega-integrated .vega-product-section h3 { margin:0 0 10px; }
+.v17-readonly.v17-shell main.vega-workspace.vega-integrated .vega-product-section td { white-space:normal; }

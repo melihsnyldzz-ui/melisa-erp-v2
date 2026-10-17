@@ -1,0 +1,210 @@
+{
+  "testedAt": "2026-10-03T18:02:15.322Z",
+  "sourceCommit": "dc2fdfeece74f7fd89d9b22f36c89264c4cd0710",
+  "packageId": "CANONICAL-TEST-dc2fdfeece74",
+  "pass": true,
+  "checks": [
+    {
+      "name": "identity-4144",
+      "pass": true,
+      "health": {
+        "ok": true,
+        "environment": "CANONICAL_TEST",
+        "mode": "erp",
+        "port": 4144,
+        "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "serverName": "Semih\\MELISADEV",
+        "loginName": "melisa_sirket_test_20260929_01",
+        "databaseUser": "melisa_sirket_test_20260929_01",
+        "sysadmin": 0,
+        "databaseControl": 0,
+        "canInsertSales": 0,
+        "liveDatabaseAccess": 0,
+        "sqlReadOnly": true,
+        "writes": false,
+        "externalOperations": false,
+        "automaticJobs": false,
+        "networkPolicy": {
+          "hosts": [
+            "127.0.0.1",
+            "localhost",
+            "::1"
+          ],
+          "ports": [
+            1433,
+            4144,
+            4146,
+            5194
+          ],
+          "subprocesses": false,
+          "externalMessages": false
+        },
+        "sourceCommit": "dc2fdfeece74f7fd89d9b22f36c89264c4cd0710",
+        "packageId": "CANONICAL-TEST-dc2fdfeece74"
+      }
+    },
+    {
+      "name": "identity-4146",
+      "pass": true,
+      "health": {
+        "ok": true,
+        "environment": "CANONICAL_TEST",
+        "mode": "native",
+        "port": 4146,
+        "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "serverName": "Semih\\MELISADEV",
+        "loginName": "melisa_sirket_test_20260929_01",
+        "databaseUser": "melisa_sirket_test_20260929_01",
+        "sysadmin": 0,
+        "databaseControl": 0,
+        "canInsertSales": 0,
+        "liveDatabaseAccess": 0,
+        "sqlReadOnly": true,
+        "writes": false,
+        "externalOperations": false,
+        "automaticJobs": false,
+        "networkPolicy": {
+          "hosts": [
+            "127.0.0.1",
+            "localhost",
+            "::1"
+          ],
+          "ports": [
+            1433,
+            4144,
+            4146,
+            5194
+          ],
+          "subprocesses": false,
+          "externalMessages": false
+        },
+        "sourceCommit": "dc2fdfeece74f7fd89d9b22f36c89264c4cd0710",
+        "packageId": "CANONICAL-TEST-dc2fdfeece74"
+      }
+    },
+    {
+      "name": "identity-5194",
+      "pass": true,
+      "health": {
+        "ok": true,
+        "environment": "CANONICAL_TEST",
+        "port": 5194,
+        "sourceCommit": "dc2fdfeece74f7fd89d9b22f36c89264c4cd0710",
+        "packageId": "CANONICAL-TEST-dc2fdfeece74",
+        "webUi": "sites-v70",
+        "webStorage": "demo-localStorage",
+        "sitesSourceCommit": "d559243a62080c8de5ce9ba1e2ba2d6231c098b9"
+      }
+    },
+    {
+      "name": "anonymous-denied",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "readonly-login-4144",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "read-4144-/api/auth/me",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "read-4144-/api/products?page=1&limit=1",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "read-4144-/api/customers?page=1&limit=1",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "read-4144-/api/suppliers?page=1&limit=1",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "write-blocked-4144",
+      "pass": true,
+      "status": 405
+    },
+    {
+      "name": "readonly-login-4146",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "read-4146-/api/auth/me",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "write-blocked-4146",
+      "pass": true,
+      "status": 405
+    },
+    {
+      "name": "external-blocked-/api/whatsapp/health",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "external-blocked-/api/shipping/health",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "external-blocked-/api/invoice-vega-export",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "sites-entry",
+      "pass": true
+    },
+    {
+      "name": "web-test-label",
+      "pass": true
+    },
+    {
+      "name": "asset-/assets/vegaProductStorage-BCUEhcUG.js",
+      "pass": true
+    },
+    {
+      "name": "asset-/assets/demoOperations-B5iEJtvX.js",
+      "pass": true
+    },
+    {
+      "name": "asset-/assets/demoOperations-D3vrl1x3.css",
+      "pass": true
+    },
+    {
+      "name": "live-files-unchanged",
+      "pass": true,
+      "checked": 254,
+      "mismatch": []
+    },
+    {
+      "name": "api-preservation-with-declared-test-adapter",
+      "pass": true,
+      "sourceDiff": [
+        "apps/api/src/config/database.js"
+      ]
+    },
+    {
+      "name": "egress-rejected-http://192.168.1.46:4114/api/health",
+      "pass": true
+    },
+    {
+      "name": "egress-rejected-https://example.com",
+      "pass": true
+    },
+    {
+      "name": "egress-rejected-http://127.0.0.1:4200",
+      "pass": true
+    }
+  ]
+}

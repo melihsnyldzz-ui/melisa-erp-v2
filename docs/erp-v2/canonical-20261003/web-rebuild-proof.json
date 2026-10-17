@@ -1,0 +1,40 @@
+{
+  "node": "v24.15.0",
+  "flags": {
+    "VITE_API_BASE_URL": "http://192.168.1.46:4114",
+    "VITE_MELISA_PILOT": "true",
+    "VITE_DEMO_MODE": "false",
+    "VITE_LOCAL_PASSWORDLESS_LOGIN": "false"
+  },
+  "files": [
+    {
+      "kind": "web",
+      "path": "assets/index-CjyxL4bG.js",
+      "bytes": 1631056,
+      "sha256": "28fb441f8a1d985e2382719d8f961cd8348b8f23701b4f1100c9f795901f849a",
+      "rebuildSha256": "28fb441f8a1d985e2382719d8f961cd8348b8f23701b4f1100c9f795901f849a"
+    },
+    {
+      "kind": "web",
+      "path": "assets/index-WEZGfS6P.css",
+      "bytes": 586683,
+      "sha256": "543667057ddd4e07ee98ff8053f759fb5260bfb6f9367b237d08fd990e132da1",
+      "rebuildSha256": "543667057ddd4e07ee98ff8053f759fb5260bfb6f9367b237d08fd990e132da1"
+    },
+    {
+      "kind": "web",
+      "path": "index.html",
+      "bytes": 420,
+      "sha256": "da0a8f1087b07758954979ab8195b264834fac1d2e71ec9a25b5aa8a3fee01e1",
+      "rebuildSha256": "da0a8f1087b07758954979ab8195b264834fac1d2e71ec9a25b5aa8a3fee01e1"
+    },
+    {
+      "kind": "web",
+      "path": "melisa-baby-watermark.png",
+      "bytes": 82146,
+      "sha256": "81e27d4d5394eb147b573b86a0b6af4f7f97cb76216f2b4d37b5cc23395e77cb",
+      "rebuildSha256": "81e27d4d5394eb147b573b86a0b6af4f7f97cb76216f2b4d37b5cc23395e77cb"
+    }
+  ],
+  "allMatch": true
+}

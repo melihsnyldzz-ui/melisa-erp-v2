@@ -13,11 +13,14 @@ import { screenRegistry, sidebarGroups } from '../../data/mockNavigationData.js'
 import { searchErpRecords } from '../../services/quickSearchApi.js';
 import { screenTypeLabel } from '../../utils/screenLabels.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
+import { apiConfig } from '../../config/apiConfig.js';
+import { isScreenAvailable } from '../../config/runtimeCapabilities.js';
 
 const pinnedCommands = [
   { label: 'Yeni Satış Fişi', screenId: 'sales-invoice', hint: 'Satış işlemi ekranını aç' },
   { label: 'Stok Listesi', screenId: 'stock-list', hint: 'Ürün ve depo durumunu gör' },
-  { label: 'Cari Listesi', screenId: 'customer-list', hint: 'Müşteri ve tedarikçi kartları' },
+  { label: 'Müşteri Cari Listesi', screenId: 'customer-list', hint: 'Müşteri kartları ve bakiyeleri' },
+  { label: 'Stok Girişi Hazırlığı', screenId: 'bulk-purchase-entry', hint: 'Ürünleri hazırla, tek alış fişine aktar' },
   { label: 'Rapor Merkezi', screenId: 'reports-overview', hint: 'Yönetim ve operasyon raporları' },
 ];
 
@@ -34,7 +37,7 @@ function normalize(value) {
   return normalizeSearchText(value);
 }
 
-function buildCommandList() {
+export function buildCommandList() {
   const sidebarCommands = sidebarGroups.flatMap((group) => (
     group.items.map((item) => {
       const screen = screenRegistry[item.screenId];
@@ -77,7 +80,8 @@ function buildCommandList() {
   const seen = new Set();
 
   return mergedCommands.filter((command) => {
-    const key = `${command.label}-${command.screenId}`;
+    const key = command.screenId;
+    if (!isScreenAvailable(key, apiConfig)) return false;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

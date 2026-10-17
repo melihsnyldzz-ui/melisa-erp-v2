@@ -15,7 +15,11 @@ function formatMoney(value, currency = 'TRY') {
   }).format(Number(value || 0));
 }
 
-function sourceLabel(sourceType) {
+function sourceLabel(sourceType, returnKind = null) {
+  if (['invoice_return', 'invoice_return_cancel'].includes(sourceType)) {
+    const name = returnKind === 'sales' ? 'Satış iadesi' : returnKind === 'purchase' ? 'Alış iadesi' : 'İade';
+    return sourceType === 'invoice_return_cancel' ? `${name} iptali` : name;
+  }
   const labels = {
     sales_invoice: 'Satış fişi',
     purchase_invoice: 'Alış fişi',
@@ -47,15 +51,30 @@ function sourceTone(row) {
   return '';
 }
 
-function hasSourceTarget(row) {
-  return Boolean(resolveLedgerTarget(row));
+function resolveStockSourceTarget(row) {
+  if (['invoice_return', 'invoice_return_cancel'].includes(row.sourceType)) {
+    const returnId = Number(row.invoiceReturnId ?? row.sourceId);
+    if (!['sales', 'purchase'].includes(row.returnKind) || !Number.isSafeInteger(returnId) || returnId < 1) return null;
+    return { screen: `${row.returnKind}-invoice-list`, payload: { returnId } };
+  }
+  return resolveLedgerTarget(row);
 }
 
-export function StockMovementsScreen({ onOpenScreen }) {
+function sourceActionLabel(row) {
+  if (['invoice_return', 'invoice_return_cancel'].includes(row.sourceType)) return resolveStockSourceTarget(row) ? 'İadeye Git' : 'İade türü bilinmiyor';
+  return resolveStockSourceTarget(row) ? ledgerTargetActionLabel(row) : 'Belge Yok';
+}
+
+export function StockMovementsScreen({ onOpenScreen, initialProductId = '', initialStockCode = '', initialSourceType = '' }) {
+  const [productScope, setProductScope] = useState(() => initialProductId === '' || initialProductId == null ? null : {
+    id: Number(initialProductId),
+    label: initialStockCode || `Ürün #${initialProductId}`,
+  });
+  const invalidProductScope = productScope !== null && (!Number.isSafeInteger(productScope.id) || productScope.id <= 0);
   const [filters, setFilters] = useState({
     search: '',
     movementType: '',
-    sourceType: '',
+    sourceType: ['sales_invoice', 'purchase_invoice'].includes(initialSourceType) ? initialSourceType : '',
     dateFrom: '',
     dateTo: '',
   });
@@ -68,10 +87,19 @@ export function StockMovementsScreen({ onOpenScreen }) {
     page: 1,
     limit: 150,
     ...filters,
-  }), [filters]);
+    ...(productScope && !invalidProductScope ? { productId: productScope.id } : {}),
+  }), [filters, invalidProductScope, productScope]);
 
   useEffect(() => {
     let isMounted = true;
+
+    if (invalidProductScope) {
+      setRows([]);
+      setMeta(null);
+      setIsLoading(false);
+      setErrorMessage('Seçilen ürünün kimliği doğrulanamadı. Ürün listesinden tekrar açın veya ürün filtresini kaldırın.');
+      return undefined;
+    }
 
     async function loadRows() {
       setIsLoading(true);
@@ -101,7 +129,7 @@ export function StockMovementsScreen({ onOpenScreen }) {
     return () => {
       isMounted = false;
     };
-  }, [query]);
+  }, [invalidProductScope, query]);
 
   const totals = useMemo(() => rows.reduce((summary, row) => ({
     in: summary.in + Number(row.quantityIn || 0),
@@ -124,7 +152,7 @@ export function StockMovementsScreen({ onOpenScreen }) {
   }
 
   function openSource(row) {
-    const target = resolveLedgerTarget(row);
+    const target = resolveStockSourceTarget(row);
     if (!target) {
       return false;
     }
@@ -152,15 +180,15 @@ export function StockMovementsScreen({ onOpenScreen }) {
   function exportMovementRows() {
     const columns = [
       { label: 'Tarih', key: 'documentDate' },
-      { label: 'Kaynak', value: (row) => sourceLabel(row.sourceType) },
+      { label: 'Kaynak', value: (row) => sourceLabel(row.sourceType, row.returnKind) },
       { label: 'Belge No', key: 'sourceDocumentNo' },
       { label: 'Stok Kodu', key: 'stockCode' },
       { label: 'Ürün', key: 'productName' },
       { label: 'Giriş', key: 'quantityIn' },
       { label: 'Çıkış', key: 'quantityOut' },
       { label: 'Net', key: 'quantityNet' },
-      { label: 'Maliyet TRY', key: 'unitCostTry' },
-      { label: 'Tutar TRY', key: 'amountTry' },
+      { label: 'Birim stok maliyeti TRY', key: 'unitCostTry' },
+      { label: 'İşlem bedeli TRY (işaretli)', key: 'amountTry' },
       { label: 'Müşteri/Tedarikçi', value: (row) => row.customerName || row.supplierName || '-' },
     ];
     exportRowsToExcel({
@@ -178,14 +206,14 @@ export function StockMovementsScreen({ onOpenScreen }) {
       rows,
       columns: [
         { label: 'Tarih', key: 'documentDate' },
-        { label: 'Kaynak', value: (row) => sourceLabel(row.sourceType) },
+        { label: 'Kaynak', value: (row) => sourceLabel(row.sourceType, row.returnKind) },
         { label: 'Belge No', key: 'sourceDocumentNo' },
         { label: 'Stok Kodu', key: 'stockCode' },
         { label: 'Ürün', key: 'productName' },
         { label: 'Giriş', key: 'quantityIn' },
         { label: 'Çıkış', key: 'quantityOut' },
         { label: 'Net', key: 'quantityNet' },
-        { label: 'Tutar TRY', key: 'amountTry' },
+        { label: 'İşlem bedeli TRY (işaretli)', key: 'amountTry' },
         { label: 'Cari', value: (row) => row.customerName || row.supplierName || '-' },
       ],
     });
@@ -196,8 +224,12 @@ export function StockMovementsScreen({ onOpenScreen }) {
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Stok Hareketleri</strong>
-          <span>Alış girişleri, satış çıkışları, stok düzeltmeleri / Satır: {meta?.total ?? rows.length}</span>
+          <span>Alış, satış, iade ve stok düzeltmeleri / Satır: {meta?.total ?? rows.length}</span>
         </div>
+        {productScope && <div className="list-state list-state-info" role="status">
+          <strong>Ürün: {productScope.label}</strong> · Yalnız bu ürünün hareketleri gösterilir.{' '}
+          <button type="button" className="mini-button" onClick={() => setProductScope(null)}>Ürün filtresini kaldır</button>
+        </div>}
         <div className="movement-quick-filters">
           <button type="button" className={!filters.movementType && !filters.sourceType ? 'pressed' : ''} onClick={resetFilters}>Tüm Hareketler</button>
           <button type="button" className={filters.movementType === 'in' ? 'pressed in' : 'in'} onClick={() => applyQuickFilter({ movementType: 'in', sourceType: '' })}>Girişler</button>
@@ -229,6 +261,8 @@ export function StockMovementsScreen({ onOpenScreen }) {
               <option value="">Tüm kaynaklar</option>
               <option value="sales_invoice">Satış fişi</option>
               <option value="purchase_invoice">Alış fişi</option>
+              <option value="invoice_return">İade</option>
+              <option value="invoice_return_cancel">İade iptali</option>
               <option value="adjustment">Stok düzeltme</option>
             </select>
           </label>
@@ -250,12 +284,12 @@ export function StockMovementsScreen({ onOpenScreen }) {
         <article className="summary-card">
           <span>Toplam giriş</span>
           <strong className="ledger-in">+{formatNumber(totals.in)}</strong>
-          <small>{formatMoney(totals.inValueTry, 'TRY')}</small>
+          <small>İşlem bedeli TRY (işaretli): {formatMoney(totals.inValueTry, 'TRY')}</small>
         </article>
         <article className="summary-card">
           <span>Toplam çıkış</span>
           <strong className="ledger-out">-{formatNumber(totals.out)}</strong>
-          <small>{formatMoney(totals.outValueTry, 'TRY')}</small>
+          <small>İşlem bedeli TRY (işaretli): {formatMoney(totals.outValueTry, 'TRY')}</small>
         </article>
         <article className="summary-card">
           <span>Net stok etkisi</span>
@@ -285,19 +319,19 @@ export function StockMovementsScreen({ onOpenScreen }) {
                   <th>Giriş</th>
                   <th>Çıkış</th>
                   <th>Net</th>
-                  <th>Maliyet TRY</th>
-                  <th>Tutar TRY</th>
+                  <th>Birim stok maliyeti TRY</th>
+                  <th>İşlem bedeli TRY (işaretli)</th>
                   <th>Cari</th>
                   <th>Git</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const sourceTarget = hasSourceTarget(row);
+                  const sourceTarget = Boolean(resolveStockSourceTarget(row));
                   return (
                     <tr className={sourceTarget ? 'clickable-row' : ''} key={row.id} onClick={() => sourceTarget && openSource(row)}>
                       <td>{row.documentDate || '-'}</td>
-                      <td><span className={`movement-source-pill ${sourceTone(row)}`}>{sourceLabel(row.sourceType)}</span></td>
+                      <td><span className={`movement-source-pill ${sourceTone(row)}`}>{sourceLabel(row.sourceType, row.returnKind)}</span></td>
                       <td>
                         <button type="button" className="document-link-button" disabled={!sourceTarget} onClick={(event) => { event.stopPropagation(); openSource(row); }}>
                           {row.sourceDocumentNo || '-'}
@@ -324,7 +358,7 @@ export function StockMovementsScreen({ onOpenScreen }) {
                       <td>
                         <div className="movement-action-stack">
                           <button type="button" className="mini-button" disabled={!sourceTarget} onClick={(event) => { event.stopPropagation(); openSource(row); }}>
-                            {sourceTarget ? ledgerTargetActionLabel(row) : 'Belge Yok'}
+                            {sourceActionLabel(row)}
                           </button>
                           {row.productId && (
                             <button type="button" className="mini-button ghost" onClick={(event) => { event.stopPropagation(); openProduct(row); }}>Ürün</button>

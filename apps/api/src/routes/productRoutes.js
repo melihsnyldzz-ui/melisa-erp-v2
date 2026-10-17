@@ -1,3 +1,4 @@
+import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import { Router } from 'express';
 import {
   getProduct,
@@ -19,8 +20,14 @@ import {
   putProduct,
 } from '../controllers/productController.js';
 import { requireAuth, requirePermission } from '../middleware/authMiddleware.js';
+import {getOpeningProductPrices,getOpeningPriceProducts} from '../controllers/openingPriceController.js';
 
+import {registerProductPurchaseReferenceRoute} from '../controllers/productPurchaseReferenceController.js';
 export const productRoutes = Router();
+registerProductPurchaseReferenceRoute(productRoutes,{requireAuth,requirePermission});
+
+productRoutes.get('/migration-opening-prices', requireAuth, requirePermission('product.view'), requirePermission('purchase.view'), getOpeningPriceProducts);
+productRoutes.get('/products/:id/opening-prices', requireAuth, requirePermission('product.view'), requirePermission('purchase.view'), getOpeningProductPrices);
 
 productRoutes.get('/products', requireAuth, requirePermission('product.view'), getProducts);
 productRoutes.get('/vega/products', requireAuth, requirePermission('product.view'), getVegaProducts);
@@ -33,9 +40,9 @@ productRoutes.post('/products/bulk-create/apply', requireAuth, requirePermission
 productRoutes.post('/products/bulk-update/preview', requireAuth, requirePermission('product.edit'), getProductBulkUpdatePreview);
 productRoutes.post('/products/bulk-update/apply', requireAuth, requirePermission('product.edit'), postProductBulkUpdateApply);
 productRoutes.post('/products', requireAuth, requirePermission('product.edit'), postProduct);
-productRoutes.post('/products/:id/barcodes', requireAuth, requirePermission('product.edit'), postProductBarcode);
-productRoutes.patch('/products/:id/barcodes/:barcodeId/passive', requireAuth, requirePermission('product.edit'), patchProductBarcodePassive);
-productRoutes.post('/products/:id/images', requireAuth, requirePermission('product.edit'), postProductImage);
+productRoutes.post('/products/:id/barcodes', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), postProductBarcode);
+productRoutes.patch('/products/:id/barcodes/:barcodeId/passive', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), patchProductBarcodePassive);
+productRoutes.post('/products/:id/images', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), postProductImage);
 productRoutes.get('/products/:id', requireAuth, requirePermission('product.view'), getProduct);
-productRoutes.put('/products/:id', requireAuth, requirePermission('product.edit'), putProduct);
-productRoutes.patch('/products/:id/passive', requireAuth, requirePermission('product.passive'), patchProductPassive);
+productRoutes.put('/products/:id', requireAuth, requirePermission('product.edit'), operationQuarantineGate('product'), putProduct);
+productRoutes.patch('/products/:id/passive', requireAuth, requirePermission('product.passive'), operationQuarantineGate('product'), patchProductPassive);

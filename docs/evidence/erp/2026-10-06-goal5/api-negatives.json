@@ -1,0 +1,639 @@
+{
+  "historicalPhases": [
+    {
+      "recordedAt": "2026-10-06T18:16:28.572853Z",
+      "checks": [
+        {
+          "check": "CRM missing JWT",
+          "path": "/api/live/crm/conversations/55",
+          "pass": true,
+          "code": "WHATSAPP_CRM_AUTH_TOKEN_REQUIRED",
+          "status": 401
+        },
+        {
+          "pass": true,
+          "path": "/api/finance/cash-register",
+          "check": "ERP seller finance",
+          "code": "AUTH_PERMISSION_DENIED",
+          "status": 403
+        },
+        {
+          "pass": true,
+          "path": "/api/work-supplier-payments/context",
+          "check": "ERP seller supplier payments",
+          "code": "WORK_PAYMENT_FORBIDDEN",
+          "status": 403
+        },
+        {
+          "pass": true,
+          "path": "/api/work-purchases/context",
+          "check": "ERP seller purchase",
+          "code": "INBOUND_FORBIDDEN",
+          "status": 403
+        },
+        {
+          "pass": false,
+          "path": "/api/test-daily/purchase",
+          "check": "ERP seller purchase returns",
+          "code": null,
+          "status": 200
+        },
+        {
+          "status": 403,
+          "path": "/api/test-daily/count/approve",
+          "pass": true,
+          "code": "AUTH_PERMISSION_DENIED",
+          "businessMutationInvoked": false,
+          "check": "ERP seller stock adjustment",
+          "method": "POST empty body, requirePermission rejects before service"
+        },
+        {
+          "status": 200,
+          "pass": true,
+          "productCostAbsent": true,
+          "financeAccountsCount": 0,
+          "scopeCostAbsent": true,
+          "check": "ERP seller count DTO strips financial fields"
+        },
+        {
+          "pass": true,
+          "count": 0,
+          "check": "Unknown barcode",
+          "status": 200
+        },
+        {
+          "salePriceCount": 0,
+          "blocked": true,
+          "photoStatus": "missing",
+          "productId": "40451",
+          "stockCode": "4620 LEYLEK",
+          "check": "Held product excludes price and image",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "salePriceCount": 3,
+          "blocked": false,
+          "photoStatus": "missing",
+          "productId": "30226",
+          "stockCode": "3344 CONCEPT",
+          "check": "No-photo product retains clean missing state",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "example": null,
+          "fallbackMissingPriceExample": null,
+          "confirmed": false,
+          "pagesRead": 12,
+          "check": "Literal NULL catalog sale price",
+          "note": "Missing sale rows are not represented as a literal NULL source price proof",
+          "descendingPagesRead": 6,
+          "unverifiedUnitExample": null
+        },
+        {
+          "status": 403,
+          "assignedAgentId": 2,
+          "pass": true,
+          "conversationId": 753,
+          "code": "WHATSAPP_CRM_CONVERSATION_FORBIDDEN",
+          "check": "CRM foreign assignment"
+        },
+        {
+          "code": null,
+          "requestId": "c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "draftId": 9,
+          "status": 200,
+          "replayed": null,
+          "check": "Native exact UUID/body replay 1",
+          "pass": true,
+          "sideEffects": "existing draft only; no finalize/payment"
+        },
+        {
+          "code": null,
+          "requestId": "c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "draftId": 9,
+          "status": 200,
+          "replayed": null,
+          "check": "Native exact UUID/body replay 2",
+          "pass": true,
+          "sideEffects": "existing draft only; no finalize/payment"
+        },
+        {
+          "check": "Native same UUID changed quantity",
+          "requestId": "c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "status": 409,
+          "pass": true,
+          "code": "CRM_V2_REQUEST_CONFLICT"
+        },
+        {
+          "stockEffect": false,
+          "itemCount": 2,
+          "requestId": "c0bd83c2-6515-4b4b-a074-5386b73c7639",
+          "pass": true,
+          "reservationEffect": false,
+          "draftId": 9,
+          "ledgerEffect": false,
+          "quantities": [
+            1,
+            1
+          ],
+          "check": "Native draft preserved after replay/conflict",
+          "documentStatus": "draft",
+          "status": 200
+        }
+      ],
+      "runtime": {
+        "apiPort": 4144,
+        "testPersonnel": true,
+        "erpSource": "7583dbf9b81c71da694f4beb5e393c36c1b6c41b",
+        "webPort": 5194,
+        "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "nativeDraftPackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "actorAgentId": 3,
+        "nativeHealthStatus": 200,
+        "nativeDraftHealthStatus": 200,
+        "existingIlkerActorId": 16,
+        "existingSellerActorId": 15,
+        "nativeDraftDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "outboundScope": "905387217733 only; no send performed",
+        "actorId": "crm-personel-3",
+        "normalPersonnelCanSendChanged": false,
+        "nativeDraftSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "normalNativePort": 4146,
+        "crmSource": "ebe8e416d92ac2563ead08fa72b5952d82016a27",
+        "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmGatewayPort": 62401,
+        "actorRole": "personel",
+        "crmHealthStatus": 200,
+        "crmUiPort": 62400,
+        "nativeDraftPort": 62404,
+        "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "erpPackage": "CANONICAL-TEST-7583dbf9b81c"
+      },
+      "phase": "ERP73/CRMebe8 baseline and controlled replay"
+    },
+    {
+      "runtime": {
+        "webPort": 5194,
+        "testPersonnel": true,
+        "apiPort": 4144,
+        "crmUiPort": 62400,
+        "crmSource": "95465dfb02431c56850a1486979d8809d33029b5",
+        "nativeDraftPort": 62404,
+        "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmGatewayPort": 62401,
+        "actorId": "crm-personel-3",
+        "existingSellerActorId": 15,
+        "normalPersonnelCanSendChanged": false,
+        "normalNativePort": 4146,
+        "erpPackage": "CANONICAL-TEST-5972f847fe46",
+        "outboundScope": "905387217733 only; no message send performed",
+        "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+        "crmPackage": "crm-test-95465dfb02431c56850a1486979d8809d33029b5",
+        "actorAgentId": 3,
+        "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01"
+      },
+      "recordedAt": "2026-10-06T18:28:33.8219172Z",
+      "checks": [
+        {
+          "path": "/api/finance/cash-register",
+          "check": "ERP seller finance",
+          "code": "AUTH_PERMISSION_DENIED",
+          "pass": true,
+          "status": 403
+        },
+        {
+          "path": "/api/work-supplier-payments/context",
+          "check": "ERP seller supplier payments",
+          "code": "WORK_PAYMENT_FORBIDDEN",
+          "pass": true,
+          "status": 403
+        },
+        {
+          "path": "/api/work-purchases/context",
+          "check": "ERP seller purchase",
+          "code": "INBOUND_FORBIDDEN",
+          "pass": true,
+          "status": 403
+        },
+        {
+          "status": 200,
+          "containsPendingCount43": false,
+          "planCount": 7,
+          "check": "ERP seller purchase DTO financial projection",
+          "pass": true,
+          "financialKeys": [],
+          "accountCount": 0,
+          "draftCount": 17
+        },
+        {
+          "status": 200,
+          "containsPendingCount43": true,
+          "planCount": 0,
+          "check": "ERP seller count DTO financial projection",
+          "pass": true,
+          "financialKeys": [],
+          "accountCount": 0,
+          "draftCount": 12
+        },
+        {
+          "note": "Previous real403 empty-body approval proof retained in historical phase; no business POST repeated",
+          "hasStockAdjust": false,
+          "check": "Current existing seller adjustment permission",
+          "pass": true,
+          "actorId": 15
+        },
+        {
+          "status": 401,
+          "check": "CRM missing JWT",
+          "code": "WHATSAPP_CRM_AUTH_TOKEN_REQUIRED",
+          "pass": true
+        },
+        {
+          "status": 403,
+          "conversationId": 753,
+          "check": "CRM foreign assignment",
+          "pass": true,
+          "code": "WHATSAPP_CRM_CONVERSATION_FORBIDDEN",
+          "knownAssignedAgentId": 2
+        },
+        {
+          "pass": true,
+          "liveSendEnabled": true,
+          "check": "Own assigned7733 capabilities",
+          "peerIsApproved7733": true,
+          "agentId": 3,
+          "actorId": "crm-personel-3",
+          "conversationId": 55,
+          "normalPersonnelCanSendChanged": false,
+          "canSend": true,
+          "canAssign": false
+        },
+        {
+          "status": 200,
+          "check": "Unknown leading-zero barcode",
+          "pass": true,
+          "count": 0
+        },
+        {
+          "status": 200,
+          "productId": "40451",
+          "check": "Held product excludes price and image",
+          "salePriceCount": 0,
+          "pass": true,
+          "blocked": true,
+          "stockCode": "4620 LEYLEK",
+          "photoStatus": "missing"
+        },
+        {
+          "status": 200,
+          "productId": "30226",
+          "check": "No-photo product retains clean missing state",
+          "salePriceCount": 3,
+          "pass": true,
+          "blocked": false,
+          "stockCode": "3344 CONCEPT",
+          "photoStatus": "missing"
+        },
+        {
+          "productId": "38919",
+          "note": "Absent currency tuple remains unknown; absent row is not called a literal SQL NULL price",
+          "check": "Real canonical missing-currency price state",
+          "currencyTuples": [
+            {
+              "hasVerifiedNonNullPrice": false,
+              "currency": "EUR",
+              "configuredCount": 0,
+              "literalNullCount": 0
+            },
+            {
+              "hasVerifiedNonNullPrice": false,
+              "currency": "USD",
+              "configuredCount": 0,
+              "literalNullCount": 0
+            },
+            {
+              "hasVerifiedNonNullPrice": true,
+              "currency": "TRY",
+              "configuredCount": 1,
+              "literalNullCount": 0
+            }
+          ],
+          "pass": true,
+          "stockCode": "0205 NAYİNOM",
+          "status": 200
+        }
+      ],
+      "phase": "FINAL ERP74/CRM95465"
+    },
+    {
+      "recordedAt": "2026-10-06T18:45:02.6299471Z",
+      "phase": "FINAL ERP74/CRM9c62702",
+      "runtime": {
+        "webPort": 5194,
+        "testPersonnel": true,
+        "apiPort": 4144,
+        "crmUiPort": 62400,
+        "crmSource": "9c62702417cceca2f17882721870e6a06b772a2b",
+        "nativeDraftPort": 62404,
+        "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmGatewayPort": 62401,
+        "actorId": "crm-personel-3",
+        "existingSellerActorId": 15,
+        "normalPersonnelCanSendChanged": false,
+        "normalNativePort": 4146,
+        "erpPackage": "CANONICAL-TEST-5972f847fe46",
+        "outboundScope": "905387217733 only; no message send performed",
+        "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+        "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+        "crmPackage": "crm-test-9c62702417cceca2f17882721870e6a06b772a2b",
+        "actorAgentId": 3,
+        "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+        "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "crmManifestSha256": "82abc2fdd15f8d0cb16e2f7afcd9c9d6590859ecb7bfcad9e608866daa9857f4"
+      },
+      "checks": [
+        {
+          "path": "/api/finance/cash-register",
+          "check": "ERP seller finance",
+          "code": "AUTH_PERMISSION_DENIED",
+          "pass": true,
+          "status": 403
+        },
+        {
+          "path": "/api/work-supplier-payments/context",
+          "check": "ERP seller supplier payments",
+          "code": "WORK_PAYMENT_FORBIDDEN",
+          "pass": true,
+          "status": 403
+        },
+        {
+          "path": "/api/work-purchases/context",
+          "check": "ERP seller purchase",
+          "code": "INBOUND_FORBIDDEN",
+          "pass": true,
+          "status": 403
+        },
+        {
+          "note": "Previous real403 empty-body approval proof retained in historical phase; no business POST repeated",
+          "hasStockAdjust": false,
+          "check": "Current existing seller adjustment permission",
+          "pass": true,
+          "actorId": 15
+        },
+        {
+          "status": 200,
+          "check": "Unknown leading-zero barcode",
+          "pass": true,
+          "count": 0
+        },
+        {
+          "status": 200,
+          "productId": "40451",
+          "check": "Held product excludes price and image",
+          "salePriceCount": 0,
+          "pass": true,
+          "blocked": true,
+          "stockCode": "4620 LEYLEK",
+          "photoStatus": "missing"
+        },
+        {
+          "status": 200,
+          "productId": "30226",
+          "check": "No-photo product retains clean missing state",
+          "salePriceCount": 3,
+          "pass": true,
+          "blocked": false,
+          "stockCode": "3344 CONCEPT",
+          "photoStatus": "missing"
+        },
+        {
+          "productId": "38919",
+          "note": "Absent currency tuple remains unknown; absent row is not called a literal SQL NULL price",
+          "check": "Real canonical missing-currency price state",
+          "currencyTuples": [
+            {
+              "hasVerifiedNonNullPrice": false,
+              "currency": "EUR",
+              "configuredCount": 0,
+              "literalNullCount": 0
+            },
+            {
+              "hasVerifiedNonNullPrice": false,
+              "currency": "USD",
+              "configuredCount": 0,
+              "literalNullCount": 0
+            },
+            {
+              "hasVerifiedNonNullPrice": true,
+              "currency": "TRY",
+              "configuredCount": 1,
+              "literalNullCount": 0
+            }
+          ],
+          "pass": true,
+          "stockCode": "0205 NAYİNOM",
+          "status": 200
+        },
+        {
+          "code": "WHATSAPP_CRM_AUTH_TOKEN_REQUIRED",
+          "status": 401,
+          "check": "CRM missing JWT",
+          "readOnly": true
+        },
+        {
+          "code": "WHATSAPP_CRM_CONVERSATION_FORBIDDEN",
+          "status": 403,
+          "check": "CRM foreign assignment",
+          "conversationId": 753,
+          "readOnly": true
+        },
+        {
+          "send": true,
+          "check": "Own assigned7733 capabilities",
+          "actorId": "crm-personel-3",
+          "assign": false,
+          "testPersonnel": true,
+          "normalRoleGrantsChanged": false,
+          "agentId": 3,
+          "conversationId": 55,
+          "liveSendEnabled": true
+        },
+        {
+          "pass": true,
+          "status": 200,
+          "financialKeys": [],
+          "check": "ERP seller purchase DTO financial projection",
+          "path": "/api/test-daily/purchase",
+          "readOnly": true,
+          "ms": 1731.6
+        },
+        {
+          "pass": true,
+          "status": 200,
+          "financialKeys": [],
+          "check": "ERP seller count DTO financial projection",
+          "path": "/api/test-daily/count",
+          "readOnly": true,
+          "ms": 62.6
+        }
+      ]
+    }
+  ],
+  "phase": "FINAL ERP74/CRM4eadb51",
+  "recordedAt": "2026-10-06T19:03:13.2174573Z",
+  "scope": "Final GET reads and existing authentication bootstrap only; previous approval403/native exact replay proof retained historically",
+  "checks": [
+    {
+      "path": "/api/finance/cash-register",
+      "check": "ERP seller finance",
+      "code": "AUTH_PERMISSION_DENIED",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "path": "/api/work-supplier-payments/context",
+      "check": "ERP seller supplier payments",
+      "code": "WORK_PAYMENT_FORBIDDEN",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "path": "/api/work-purchases/context",
+      "check": "ERP seller purchase",
+      "code": "INBOUND_FORBIDDEN",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "note": "Previous real403 empty-body approval proof retained in historical phase; no business POST repeated",
+      "hasStockAdjust": false,
+      "check": "Current existing seller adjustment permission",
+      "pass": true,
+      "actorId": 15
+    },
+    {
+      "status": 200,
+      "check": "Unknown leading-zero barcode",
+      "pass": true,
+      "count": 0
+    },
+    {
+      "status": 200,
+      "productId": "40451",
+      "check": "Held product excludes price and image",
+      "salePriceCount": 0,
+      "pass": true,
+      "blocked": true,
+      "stockCode": "4620 LEYLEK",
+      "photoStatus": "missing"
+    },
+    {
+      "status": 200,
+      "productId": "30226",
+      "check": "No-photo product retains clean missing state",
+      "salePriceCount": 3,
+      "pass": true,
+      "blocked": false,
+      "stockCode": "3344 CONCEPT",
+      "photoStatus": "missing"
+    },
+    {
+      "productId": "38919",
+      "note": "Absent currency tuple remains unknown; absent row is not called a literal SQL NULL price",
+      "check": "Real canonical missing-currency price state",
+      "currencyTuples": [
+        {
+          "hasVerifiedNonNullPrice": false,
+          "currency": "EUR",
+          "configuredCount": 0,
+          "literalNullCount": 0
+        },
+        {
+          "hasVerifiedNonNullPrice": false,
+          "currency": "USD",
+          "configuredCount": 0,
+          "literalNullCount": 0
+        },
+        {
+          "hasVerifiedNonNullPrice": true,
+          "currency": "TRY",
+          "configuredCount": 1,
+          "literalNullCount": 0
+        }
+      ],
+      "pass": true,
+      "stockCode": "0205 NAYİNOM",
+      "status": 200
+    },
+    {
+      "pass": true,
+      "status": 200,
+      "financialKeys": [],
+      "check": "ERP seller purchase DTO financial projection",
+      "path": "/api/test-daily/purchase",
+      "readOnly": true,
+      "ms": 1731.6
+    },
+    {
+      "pass": true,
+      "status": 200,
+      "financialKeys": [],
+      "check": "ERP seller count DTO financial projection",
+      "path": "/api/test-daily/count",
+      "readOnly": true,
+      "ms": 62.6
+    },
+    {
+      "code": "WHATSAPP_CRM_AUTH_TOKEN_REQUIRED",
+      "check": "CRM missing JWT",
+      "readOnly": true,
+      "status": 401
+    },
+    {
+      "conversationId": 753,
+      "check": "CRM foreign assignment",
+      "code": "WHATSAPP_CRM_CONVERSATION_FORBIDDEN",
+      "readOnly": true,
+      "status": 403
+    },
+    {
+      "check": "Own assigned7733 capabilities",
+      "liveSendEnabled": true,
+      "assign": false,
+      "actorId": "crm-personel-3",
+      "send": true,
+      "agentId": 3,
+      "testPersonnel": true,
+      "conversationId": 55,
+      "normalRoleGrantsChanged": false
+    }
+  ],
+  "runtime": {
+    "webPort": 5194,
+    "testPersonnel": true,
+    "apiPort": 4144,
+    "crmUiPort": 62400,
+    "crmSource": "4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+    "nativeDraftPort": 62404,
+    "erpDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "crmGatewayPort": 62401,
+    "actorId": "crm-personel-3",
+    "existingSellerActorId": 15,
+    "normalPersonnelCanSendChanged": false,
+    "normalNativePort": 4146,
+    "erpPackage": "CANONICAL-TEST-5972f847fe46",
+    "outboundScope": "905387217733 only; no message send performed",
+    "nativePackage": "CRM-ORDER-DRAFT-TEST-20261006-05",
+    "erpSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+    "crmPackage": "crm-test-4eadb51f0b1428311e253ac049faa49e8fbf02cf",
+    "actorAgentId": 3,
+    "nativeSource": "0940c49f3c90bc365955d3e2f64fb5b541f0717d",
+    "nativeDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "crmManifestSha256": "b88c2b5cdda0027974b8c78847af64c363744dc010f8660c94ee271176286bf6"
+  }
+}

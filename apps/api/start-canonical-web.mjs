@@ -1,0 +1,18 @@
+import express from 'express';import path from 'node:path';import fs from 'node:fs';
+import {canonicalListenerPolicy,validateCanonicalWebConfig,startCanonicalListeners,canonicalInboundMiddleware,canonicalReadiness} from './canonical-test-listeners.mjs';
+const [configPath,...extra]=process.argv.slice(2);
+if(extra.length||configPath!==undefined&&!path.isAbsolute(configPath))throw Error('TEST_ARGUMENT_REJECTED');
+const listenerPolicy=configPath===undefined?canonicalListenerPolicy({},{mode:'web',writes:false}):validateCanonicalWebConfig(JSON.parse(fs.readFileSync(configPath,'utf8')));
+const root=path.resolve('../sites-workflow/dist');
+const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
+const app=express();app.disable('x-powered-by');
+app.use(canonicalInboundMiddleware({port:5194,policy:listenerPolicy}));
+app.use((_req,res,next)=>{res.set('Cache-Control','no-store');res.set('X-Melisa-Environment','CANONICAL-TEST');res.set('Content-Security-Policy',"connect-src 'self' http://127.0.0.1:4144 http://127.0.0.1:4146"+(listenerPolicy.lanEnabled?' http://192.168.1.46:4144':''));next();});
+const readiness=canonicalReadiness();
+app.get('/test-health',(_req,res)=>readiness.send(res,{ok:true,environment:'CANONICAL_TEST',port:5194,listenerHosts:listenerPolicy.hosts,sourceCommit:release.sourceCommit,packageId:release.packageId,webUi:release.webUi,webStorage:release.webStorage,sitesSourceCommit:release.sitesSourceCommit}));
+app.use(express.static(root,{dotfiles:'deny'}));
+app.get('*',(_req,res)=>res.sendFile(path.join(root,'index.html')));
+const listeners=await startCanonicalListeners(app,{port:5194,policy:listenerPolicy});
+readiness.markReady();
+console.log('CANONICAL_TEST_WEB_READY');
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,async()=>{await listeners.close();process.exit(0);});

@@ -11,6 +11,10 @@ export function PurchaseInvoiceHeader({
   onChange,
   onCurrencyChange,
   onInvoiceRateChange,
+  onInvoiceDiscountTypeChange,
+  onInvoiceDiscountAmountChange,
+  onDocumentRateChange,
+  onAccountRateChange,
   onSupplierRateChange,
 }) {
   const statusText = { DRAFT: 'Taslak', FINALIZED: 'Kesin', CANCELLED: 'İptal' }[String(status || '').toUpperCase()] || status;
@@ -39,28 +43,39 @@ export function PurchaseInvoiceHeader({
           <span>Tedarikçi</span>
           <input value={invoice.supplier} readOnly />
         </label>
-        <div><span>Para birimi</span><strong>{invoice.invoiceCurrency || 'TRY'}</strong></div>
+        <label><span>Fiş dövizi</span><select value={invoice.invoiceCurrency || 'TRY'} disabled={isReadonly || isIdentityLocked} onChange={(event) => onCurrencyChange?.(event.target.value)}>
+          <option value="TRY">TRY</option><option value="USD">USD</option><option value="EUR">EUR</option>
+        </select></label>
         <div><span>Bakiye</span><strong>{invoice.supplierBalanceLabel || '-'}</strong></div>
       </div>
+      <div className="purchase-header-details-grid invoice-rate-strip">
+          <label><span>Fiş kuru · 1 {invoice.invoiceCurrency || 'TRY'} kaç TRY?</span><input min="0.00000001" step="0.00000001" type="number"
+            value={invoice.exchangeRateValue} readOnly={isReadonly || isIdentityLocked || invoice.invoiceCurrency === 'TRY'}
+            onChange={event => onDocumentRateChange?.(event.target.value === '' ? '' : Number(event.target.value))} /></label>
+          {invoice.supplierId && <label><span>Cari kuru · 1 {invoice.supplierCurrency} kaç TRY?</span><input min="0.00000001" step="0.00000001" type="number"
+            value={invoice.accountExchangeRate} readOnly={isReadonly || isIdentityLocked || invoice.supplierCurrency === 'TRY' || invoice.supplierCurrency === invoice.invoiceCurrency}
+            onChange={event => onAccountRateChange?.(event.target.value === '' ? '' : Number(event.target.value))} /></label>}
+        <small>{isIdentityLocked ? 'Kesin fişte kayıtlı iki kur korunur.' : 'Kurlar bu fişte saklanır; belge ve cari dövizi ayrı izlenir.'}</small>
+      </div>
       <details className="purchase-invoice-details">
-        <summary aria-label="Fiş ayarları ve iskontolar" title="Fiş ayarları ve iskontolar"><Settings2 size={15} /><ChevronDown size={13} /></summary>
+        <summary aria-label="Fiş ayarları ve iskontolar" title="Fiş ayarları ve iskontolar"><Settings2 size={15} /><span>İskonto ve not</span><ChevronDown size={13} /></summary>
         <div className="purchase-header-details-grid">
           <label>
-            <span>Fiş para birimi</span>
-            <select value={invoice.invoiceCurrency || 'TRY'} disabled={isReadonly || isIdentityLocked} onChange={(event) => onCurrencyChange?.(event.target.value)}>
-              <option value="TRY">TRY</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
+            <span>Fiş iskonto türü</span>
+            <select value={invoice.invoiceDiscountType || 'rate'} disabled={isReadonly} onChange={event => onInvoiceDiscountTypeChange?.(event.target.value)}>
+              <option value="rate">Yüzde (%)</option><option value="amount">Sabit tutar</option>
             </select>
           </label>
-          <label><span>Kur bilgisi</span><input value={invoice.exchangeRate} readOnly /></label>
-          <label>
+          {invoice.invoiceDiscountType === 'amount' ? <label>
+            <span>Fiş iskonto tutarı · {invoice.invoiceCurrency}</span>
+            <input min="0" step="0.0001" readOnly={isReadonly} type="number" value={invoice.invoiceDiscountAmount} onChange={event => onInvoiceDiscountAmountChange?.(Number(event.target.value || 0))} />
+          </label> : <label>
             <span>Fiş iskonto %</span>
-            <input min="0" max="100" readOnly={isReadonly} type="number" value={invoiceRate} onChange={(event) => onInvoiceRateChange?.(Number(event.target.value || 0))} />
-          </label>
+            <input min="0" max="100" step="0.0001" readOnly={isReadonly} type="number" value={invoiceRate} onChange={(event) => onInvoiceRateChange?.(Number(event.target.value || 0))} />
+          </label>}
           <label>
             <span>Tedarikçi fiş sonu iskonto %</span>
-            <input min="0" max="100" readOnly={isReadonly} type="number" value={supplierRate} onChange={(event) => onSupplierRateChange?.(Number(event.target.value || 0))} />
+            <input min="0" max="100" step="0.0001" readOnly={isReadonly} type="number" value={supplierRate} onChange={(event) => onSupplierRateChange?.(Number(event.target.value || 0))} />
           </label>
           <label className="purchase-description-field">
             <span>Açıklama</span>

@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-10-06T20:06:56.1313290Z",
+  "scope": "Real TEST process closure, independent HTTP availability and exact-owner recovery; no business write",
+  "sourceCommit": "257ab50b7a0b3339b8f585f8a9904c9c850aa912",
+  "services": [
+    {
+      "name": "api",
+      "oldPid": 66684,
+      "independentService": "web",
+      "recovery": {
+        "pid": 53744,
+        "sourceCommit": "257ab50b7a0b3339b8f585f8a9904c9c850aa912",
+        "recoveryMs": 92923.0
+      },
+      "port": 4144,
+      "whileClosedUnavailable": true,
+      "independentReady": true
+    },
+    {
+      "name": "web",
+      "oldPid": 78856,
+      "independentService": "api",
+      "recovery": {
+        "pid": 62192,
+        "sourceCommit": "257ab50b7a0b3339b8f585f8a9904c9c850aa912",
+        "recoveryMs": 18757.0
+      },
+      "port": 5194,
+      "whileClosedUnavailable": true,
+      "independentReady": true
+    }
+  ]
+}

@@ -2,8 +2,9 @@ import sql from 'mssql';
 import { getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { createSalesDraft, finalizeSalesInvoice, getSalesDraft } from './invoiceDraftService.js';
-import { getCustomersList } from './customerService.js';
-import { getProductsList } from './productService.js';
+import { getVegaCustomersListFromWorker } from './vegaCustomerClientService.js';
+import { getVegaProductsListFromWorker } from './vegaProductClientService.js';
+import { getVegaProductImageMap } from './vegaProductImageService.js';
 
 const IDEMPOTENCY_PREFIX = 'terminalClientEventId:';
 
@@ -59,6 +60,18 @@ function normalizeSubmitPayload(payload = {}) {
 
   if (items.length < 1) {
     throw serviceError('TERMINAL_ITEMS_REQUIRED', 'items cannot be empty');
+  }
+
+  const vegaItem = items.find((item) => (
+    trimText(item.productSource).toLowerCase() === 'vega'
+    || trimText(item.productId).toLowerCase().startsWith('vega-')
+  ));
+  if (vegaItem) {
+    throw serviceError(
+      'TERMINAL_VEGA_SALE_WRITE_DISABLED',
+      'Armada satış bağlantısı henüz hazır değil. Belge numarası ve Vega kayıt bağlantısı doğrulanmadan gönderim yapılamaz. Fiş taslak olarak korunur.',
+      409,
+    );
   }
 
   return {
@@ -127,7 +140,21 @@ async function getActiveCustomer(customerId) {
   return customer;
 }
 
-async function getTerminalOperatorContext(terminalCode, actorUserId) {
+export async function getTerminalOperatorContext(terminalCode, actorUserId) {
+  const { canTerminalSale, ...context } = await getTerminalPersonnelContext(terminalCode, actorUserId);
+  if (!canTerminalSale) {
+    throw serviceError(
+      'TERMINAL_EMPLOYEE_SALE_RESTRICTED',
+      'This employee is not allowed to create terminal sales',
+      403,
+    );
+  }
+  return context;
+}
+
+// Read-only terminal helpers still require an active device and assigned personnel.
+// The sales context above retains the independent permission to create sales.
+export async function getTerminalPersonnelContext(terminalCode, actorUserId) {
   const userId = Number(actorUserId);
   if (!Number.isInteger(userId) || userId < 1) {
     throw serviceError('TERMINAL_OPERATOR_REQUIRED', 'Authenticated terminal personnel is required', 401);
@@ -194,15 +221,8 @@ async function getTerminalOperatorContext(terminalCode, actorUserId) {
       409,
     );
   }
-  if (!terminal.can_terminal_sale) {
-    throw serviceError(
-      'TERMINAL_EMPLOYEE_SALE_RESTRICTED',
-      'This employee is not allowed to create terminal sales',
-      403,
-    );
-  }
-
   return {
+    canTerminalSale: Boolean(terminal.can_terminal_sale),
     terminalDeviceId: Number(terminal.terminal_device_id),
     terminalCode: terminal.device_code,
     terminalName: terminal.device_name,
@@ -407,6 +427,11 @@ function toSubmitResponse(invoice, { duplicate = false } = {}) {
 }
 
 export async function submitTerminalSale(payload = {}, actor = null) {
+  if (payload.customerSource === 'vega' || String(payload.customerId || '').startsWith('vega-')
+    || payload.items?.some((item) => item.productSource === 'vega' || String(item.productId || '').startsWith('vega-'))) {
+    const { submitArmadaTerminalSale } = await import('./armadaDailyGateway.mjs');
+    return submitArmadaTerminalSale(payload, actor, getTerminalOperatorContext);
+  }
   const normalized = normalizeSubmitPayload(payload);
   const existing = await findExistingTerminalSale(normalized.clientEventId);
 
@@ -476,21 +501,74 @@ export async function submitTerminalSale(payload = {}, actor = null) {
 }
 
 export async function searchTerminalProducts(query = {}) {
-  return getProductsList({
+  const result = await getVegaProductsListFromWorker({
+    ...query,
     page: query.page || 1,
     limit: query.limit || 30,
     search: query.q || query.search || '',
-    activeOnly: 'true',
+    activeOnly: true,
   });
+  const sourceIds = result.data.map((product) => Number(product.sourceId));
+  const imageMap = await getVegaProductImageMap(sourceIds);
+
+  return {
+    data: result.data.map((product) => ({
+      ...product,
+      imageUrl: imageMap.get(Number(product.sourceId)) || product.imageUrl || null,
+      saleWritable: false,
+    })),
+    meta: {
+      ...result.meta,
+      source: 'terminal-vega-live-read-only',
+      saleWriteEnabled: false,
+    },
+  };
+}
+
+export async function getTerminalSaleStatus(payload, actor) {
+  const { getArmadaTerminalSaleStatus } = await import('./armadaDailyGateway.mjs');
+  return getArmadaTerminalSaleStatus(payload, actor, getTerminalOperatorContext);
+}
+
+export async function getTerminalSaleReadiness(payload, actor) {
+  const { getArmadaTerminalSaleReadiness } = await import('./armadaDailyGateway.mjs');
+  return getArmadaTerminalSaleReadiness(payload, actor, getTerminalOperatorContext);
 }
 
 export async function searchTerminalCustomers(query = {}) {
-  return getCustomersList({
+  const context = { source: 'vega', database: 'VEGA2026', company: 'F0102', period: 'D0007' };
+  // The existing worker reads these fixed Vega tables. Reject a different
+  // requested scope instead of relabelling another company's customer identity.
+  for (const [key, value] of Object.entries(context)) {
+    if (query[key] !== undefined && query[key] !== value) {
+      throw serviceError('TERMINAL_CUSTOMER_SCOPE_UNSUPPORTED', 'Terminal cari kaynağı Vega F0102/D0007 olmalıdır.', 400);
+    }
+  }
+  const result = await getVegaCustomersListFromWorker({
     page: query.page || 1,
     limit: query.limit || 30,
     search: query.q || query.search || '',
-    activeOnly: 'true',
   });
+  if (result?.meta?.filters?.companyCode !== context.company
+    || result?.meta?.filters?.periodCode !== context.period
+    || !Array.isArray(result?.data)
+    || result.data.some((customer) => customer?.source !== 'vega'
+      || !Number.isSafeInteger(customer.sourceId) || customer.sourceId <= 0
+      || customer.id !== `vega-${customer.sourceId}`)) {
+    throw serviceError('TERMINAL_CUSTOMER_SOURCE_INVALID', 'Vega cari kaynağı veya kimliği doğrulanamadı.', 503);
+  }
+  return {
+    data: result.data.map((customer) => ({
+      ...customer,
+      ...context,
+      sourceContext: { ...context },
+    })),
+    meta: {
+      ...result.meta,
+      source: 'terminal-vega-live-read-only',
+      sourceContext: { ...context },
+    },
+  };
 }
 
 export async function getTerminalProductByBarcode(barcode) {
@@ -500,57 +578,23 @@ export async function getTerminalProductByBarcode(barcode) {
     throw serviceError('TERMINAL_BARCODE_REQUIRED', 'Barcode is required');
   }
 
-  const pool = await getSqlPool();
-  const result = await pool.request()
-    .input('barcode', sql.NVarChar(120), normalizedBarcode)
-    .query(`
-      SELECT TOP (1)
-        p.id,
-        p.stock_code AS stockCode,
-        pb.barcode AS barcode,
-        p.name AS productName,
-        p.brand,
-        p.category,
-        p.currency_code AS currency,
-        p.sales_price AS salePrice,
-        p.current_stock_qty AS stockQuantity,
-        pi.file_path AS imageUrl,
-        p.is_active AS isActive
-      FROM dbo.product_barcodes pb
-      INNER JOIN dbo.products p ON p.id = pb.product_id
-      OUTER APPLY (
-        SELECT TOP (1) image.file_path
-        FROM dbo.product_images image
-        WHERE image.product_id = p.id
-          AND image.is_active = 1
-        ORDER BY image.is_primary DESC, image.sort_order ASC, image.id ASC
-      ) pi
-      WHERE pb.barcode = @barcode
-        AND pb.is_active = 1
-        AND p.is_deleted = 0
-      ORDER BY pb.is_primary DESC, pb.id ASC;
-    `);
-
-  const product = result.recordset?.[0];
+  const result = await getVegaProductsListFromWorker({
+    barcode: normalizedBarcode,
+    page: 1,
+    limit: 20,
+    activeOnly: true,
+  });
+  const product = result.data.find((item) => (
+    trimText(item.matchedBarcode || item.barcodeMasked).toLowerCase() === normalizedBarcode.toLowerCase()
+  ));
   if (!product) {
     throw serviceError('TERMINAL_PRODUCT_NOT_FOUND', 'Product barcode not found', 404);
   }
 
-  if (!product.isActive) {
-    throw serviceError('TERMINAL_PRODUCT_PASSIVE', 'Passive product cannot be sold', 409);
-  }
-
+  const imageMap = await getVegaProductImageMap([Number(product.sourceId)]);
   return {
-    id: product.id,
-    stockCode: product.stockCode,
-    barcode: product.barcode,
-    productName: product.productName,
-    brand: product.brand,
-    category: product.category,
-    currency: product.currency,
-    salePrice: Number(product.salePrice || 0),
-    stockQuantity: Number(product.stockQuantity || 0),
-    imageUrl: product.imageUrl || null,
-    isPassive: false,
+    ...product,
+    imageUrl: imageMap.get(Number(product.sourceId)) || product.imageUrl || null,
+    saleWritable: false,
   };
 }

@@ -17,10 +17,13 @@ import {
   Terminal,
   Users,
   WalletCards,
+  ChevronRight,
+  Truck,
 } from 'lucide-react';
-import { getNavigationSection, sidebarGroups } from '../../data/mockNavigationData.js';
-import { screenTypeLabel } from '../../utils/screenLabels.js';
+import { getNavigationSection, navigationSections, screenRegistry, sidebarGroups } from '../../data/mockNavigationData.js';
 import { normalizeSearchText } from '../../utils/searchText.js';
+import { apiConfig } from '../../config/apiConfig.js';
+import { isScreenAvailable } from '../../config/runtimeCapabilities.js';
 
 const groupDisplayLabels = {
   operasyon: 'Operasyon',
@@ -46,7 +49,7 @@ const itemDisplayLabels = {
   'operational-health': 'Operasyon Sağlığı',
   'stock-list': 'Stok Listesi',
   'product-card': 'Ürün Kartı',
-  'bulk-product-create': 'Toplu Stok Kartı',
+  'bulk-product-create': 'Toplu Ürün Kartı',
   'price-list': 'Fiyat Listesi',
   'stock-movements': 'Stok Hareketleri',
   'stock-valuation': 'Stok Değerleme',
@@ -68,9 +71,9 @@ const itemDisplayLabels = {
   'sales-orders': 'Siparişler',
   'purchase-invoice': 'Yeni Alış Fişi',
   'purchase-invoice-list': 'Alış Fişleri',
-  'bulk-purchase-entry': 'Toplu Alış Girişi',
+  'bulk-purchase-entry': 'Stok Girişi Hazırlığı',
   'finance-overview': 'Finans Özeti',
-  'collections-overview': 'Tahsilatlar',
+  'collections-overview': 'Tahsilat / Ödeme',
   'cash-customers': 'Peşin Cariler',
   'cash-register': 'Günlük Kasa',
   'cash-bank-ledger': 'Kasa/Banka Defteri',
@@ -83,6 +86,7 @@ const itemDisplayLabels = {
   'terminal-overview': 'Terminal Ekranları',
   'import-foundation': 'Excel / CSV Aktarım',
   'reports-overview': 'Rapor Merkezi',
+  'vega-history': 'Vega 2026 Belgeleri',
   'vega-sales-comparison': 'Yıllık Satış Karşılaştırması',
   'vega-sales-performance': 'Satış Performansı',
   'vega-product-profitability': 'Ürün Kârlılığı',
@@ -156,6 +160,7 @@ const itemIcons = {
   'terminal-overview': Terminal,
   'import-foundation': Database,
   'reports-overview': BarChart3,
+  'vega-history': BarChart3,
   'vega-sales-comparison': BarChart3,
   'vega-sales-performance': BarChart3,
   'vega-product-profitability': BarChart3,
@@ -168,18 +173,22 @@ const itemIcons = {
   'audit-log': FileSpreadsheet,
 };
 
+const sectionIcons = { 'Ana Sayfa': LayoutDashboard, Satış: ReceiptText, Alış: ClipboardList, Stok: Package, Müşteriler: Users, Tedarikçiler: Truck, Finans: WalletCards, Raporlar: BarChart3, Ayarlar: Settings, Tanımlar: FolderKanban, 'WhatsApp CRM': MessageCircle };
+const sectionOrder = ['Ana Sayfa', 'Satış', 'Alış', 'Stok', 'Müşteriler', 'Tedarikçiler', 'Finans', 'Raporlar', 'Ayarlar', 'Tanımlar', 'WhatsApp CRM'];
+
 export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, onOpenScreen }) {
   const activeScreenId = activeTab.screenId ?? activeTab.id;
   const [searchTerm, setSearchTerm] = useState('');
-  const visibleGroups = useMemo(() => (roleScreenIds
-    ? sidebarGroups
+  const visibleGroups = useMemo(() => sidebarGroups
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => roleScreenIds.has(item.screenId)),
+        items: group.items.filter((item) => (!roleScreenIds || roleScreenIds.has(item.screenId)) && isScreenAvailable(item.screenId, apiConfig)),
       }))
-      .filter((group) => group.items.length > 0)
-    : sidebarGroups), [roleScreenIds]);
+      .filter((group) => group.items.length > 0), [roleScreenIds]);
   const activeSection = useMemo(() => getNavigationSection(activeScreenId), [activeScreenId]);
+  const visibleSections = useMemo(() => sectionOrder.map((label) => navigationSections.find((section) => section.label === label))
+    .map((section) => ({ ...section, screenIds: section.screenIds.filter((screenId) => (!roleScreenIds || roleScreenIds.has(screenId)) && isScreenAvailable(screenId, apiConfig)) }))
+    .filter((section) => section.screenIds.length > 0), [roleScreenIds]);
   const contextualGroups = useMemo(() => visibleGroups
     .map((group) => ({
       ...group,
@@ -203,15 +212,22 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
   const activeGroupTitle = useMemo(() => (
     visibleGroups.find((group) => group.items.some((item) => item.screenId === activeScreenId))?.title
   ), [activeScreenId, visibleGroups]);
+  const dailyGroups = filteredGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => normalizedSearch || !item.secondary) }))
+    .filter((group) => group.items.length > 0);
+  const additionalGroups = normalizedSearch ? [] : filteredGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => item.secondary) }))
+    .filter((group) => group.items.length > 0);
+  const additionalCount = additionalGroups.reduce((count, group) => count + group.items.length, 0);
+  const activeAdditionalScreen = additionalGroups.some((group) => group.items.some((item) => item.screenId === activeScreenId));
 
   return (
-    <aside className="sidebar sidebar-flat">
+    <aside className="sidebar sidebar-flat workspace-navigation" id="workspace-navigation" aria-label="Ana menü">
       <div className="sidebar-header">
-        <strong>Modül Paneli</strong>
-        <span>{activeSection.label} / {screenTypeLabel(activeTab.type)}</span>
         <label className="sidebar-search">
           <Search size={14} />
           <input
+            aria-label="Menüde ara"
             placeholder="Menüde ara"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -219,7 +235,26 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
         </label>
       </div>
       <div className="sidebar-flat-body">
-        {filteredGroups.map((group) => (
+        {!normalizedSearch && <nav className="workspace-modules" aria-label="Ana modüller">
+          {visibleSections.map((section) => {
+            const Icon = sectionIcons[section.label] || FolderKanban;
+            const active = section.label === activeSection.label;
+            const target = section.screenIds.includes(section.screenId) ? section.screenId : section.screenIds[0];
+            return <div className="workspace-module-group" key={section.label}>
+              <button type="button" className={`workspace-module${active ? ' active' : ''}`} aria-current={active ? 'true' : undefined} onClick={() => onOpenScreen(target)}>
+                <Icon size={18} aria-hidden="true" /><span>{section.label}</span><ChevronRight className="module-chevron" size={14} aria-hidden="true" />
+              </button>
+              {active && <div className="workspace-module-pages">
+                {dailyGroups.map((group) => <SidebarGroup activeGroupTitle={activeGroupTitle} activeScreenId={activeScreenId} group={group} key={group.title} onOpenScreen={onOpenScreen} />)}
+                {additionalCount > 0 && <details className="sidebar-additional" open={activeAdditionalScreen || undefined}>
+                  <summary>Diğer işlemler <span>{additionalCount}</span></summary>
+                  {additionalGroups.map((group) => <SidebarGroup activeGroupTitle={activeGroupTitle} activeScreenId={activeScreenId} group={group} key={group.title} onOpenScreen={onOpenScreen} />)}
+                </details>}
+              </div>}
+            </div>;
+          })}
+        </nav>}
+        {normalizedSearch && dailyGroups.map((group) => (
           <SidebarGroup
             activeGroupTitle={activeGroupTitle}
             activeScreenId={activeScreenId}
@@ -228,13 +263,27 @@ export function Sidebar({ activeTab, isDemoMode = false, roleScreenIds, user, on
             onOpenScreen={onOpenScreen}
           />
         ))}
+        {normalizedSearch && additionalCount > 0 && (
+          <details className="sidebar-additional" key={activeSection.label} open={activeAdditionalScreen || undefined}>
+            <summary>Diğer işlemler <span>{additionalCount}</span></summary>
+            {additionalGroups.map((group) => (
+              <SidebarGroup
+                activeGroupTitle={activeGroupTitle}
+                activeScreenId={activeScreenId}
+                group={group}
+                key={group.title}
+                onOpenScreen={onOpenScreen}
+              />
+            ))}
+          </details>
+        )}
         {filteredGroups.length === 0 && (
           <div className="sidebar-empty">Menüde eşleşen ekran yok.</div>
         )}
         <section className="side-group compact connection-details">
           <h3>Durum</h3>
-          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> Uygulama: {isDemoMode ? 'demo modu' : 'hazır'}</p>
-          <p><span className={`status-dot ${isDemoMode ? 'offline' : 'online'}`} /> Veritabanı: {isDemoMode ? 'bağlantı yok' : 'hazır'}</p>
+          <p>Çalışma: {isDemoMode ? 'demo modu' : 'ERP oturumu'}</p>
+          <p>Veri bağlantısı ilgili ekranda kontrol edilir.</p>
           <p><span className="status-dot online" /> Oturum: {user?.username || '-'}</p>
         </section>
       </div>
@@ -255,7 +304,7 @@ function getGroupKey(title) {
 }
 
 function getItemLabel(item) {
-  return itemDisplayLabels[item.screenId] || item.label;
+  return item.label || screenRegistry[item.screenId]?.label || itemDisplayLabels[item.screenId];
 }
 
 function SidebarGroup({ group, activeGroupTitle, activeScreenId, onOpenScreen }) {
@@ -291,13 +340,14 @@ function SidebarItem({ item, isActive, groupTitle, onOpenScreen }) {
     <button
       className={[isActive ? 'active' : '', isComingSoon ? 'coming-soon' : ''].filter(Boolean).join(' ')}
       data-screen-id={item.screenId}
+      aria-current={isActive ? 'page' : undefined}
       onClick={() => onOpenScreen(item.screenId)}
       type="button"
     >
       <Icon size={14} strokeWidth={2.1} />
       <span>{label}</span>
       {groupTitle ? <em>{getGroupLabel(groupTitle)}</em> : null}
-      {isComingSoon && <small>Hazır</small>}
+      {isComingSoon && <small>Hazırlanıyor</small>}
     </button>
   );
 }

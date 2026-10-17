@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+import { buildTerminalA4Model } from './terminalReceiptA4.mjs';
 import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -52,7 +54,7 @@ function dateLabel(value) {
   if (Number.isNaN(parsed.getTime())) return text(value);
   return new Intl.DateTimeFormat('tr-TR', {
     dateStyle: 'short',
-    timeStyle: 'short',
+    // Sales document_date is a calendar date, not the time of the sale.
     timeZone: 'Europe/Istanbul',
   }).format(parsed);
 }
@@ -98,53 +100,22 @@ export function buildTerminalReceiptText(invoice = {}) {
   return lines.join(os.EOL);
 }
 
-async function executeWindowsPrint(receiptText, printerName) {
+async function executeWindowsPrint(receiptModel, printerName) {
   if (process.platform !== 'win32') {
     throw serviceError('TERMINAL_RECEIPT_WINDOWS_REQUIRED', 'Receipt printing requires the ERP API to run on Windows', 503);
   }
-
   const workingDirectory = await mkdtemp(path.join(os.tmpdir(), 'melisa-receipt-'));
-  const receiptPath = path.join(workingDirectory, 'receipt.txt');
-  const scriptPath = path.join(workingDirectory, 'print-receipt.ps1');
-  const powershellPath = path.join(
-    process.env.SystemRoot || 'C:\\Windows',
-    'System32',
-    'WindowsPowerShell',
-    'v1.0',
-    'powershell.exe',
-  );
-
-  const script = [
-    'param([string]$ReceiptPath, [string]$PrinterName)',
-    "$ErrorActionPreference = 'Stop'",
-    '$content = Get-Content -LiteralPath $ReceiptPath -Raw -Encoding UTF8',
-    'if ([string]::IsNullOrWhiteSpace($PrinterName)) {',
-    '  $content | Out-Printer',
-    '} else {',
-    '  $content | Out-Printer -Name $PrinterName',
-    '}',
-  ].join('\r\n');
-
+  const receiptPath = path.join(workingDirectory, 'receipt.json');
+  const scriptPath = fileURLToPath(new URL('../../scripts/print-terminal-a4.ps1', import.meta.url));
+  const powershellPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
   try {
-    await writeFile(receiptPath, receiptText, 'utf8');
-    await writeFile(scriptPath, script, 'utf8');
+    await writeFile(receiptPath, JSON.stringify(receiptModel), 'utf8');
     await execFileAsync(powershellPath, [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      scriptPath,
-      '-ReceiptPath',
-      receiptPath,
-      '-PrinterName',
-      printerName || '',
-    ], {
-      windowsHide: true,
-      timeout: env.receiptPrinting.timeoutMs,
-      maxBuffer: 1024 * 1024,
-    });
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath,
+      '-ModelPath', receiptPath, '-PrinterName', printerName || '',
+    ], { windowsHide: true, timeout: env.receiptPrinting.timeoutMs, maxBuffer: 1024 * 1024 });
   } finally {
+    if (!workingDirectory.startsWith(path.join(os.tmpdir(), 'melisa-receipt-'))) throw Error('Unexpected receipt temporary path');
     await rm(workingDirectory, { recursive: true, force: true }).catch(() => {});
   }
 }
@@ -183,6 +154,7 @@ export async function printTerminalSaleReceipt(invoiceId, actor = null) {
   }
 
   const receiptText = buildTerminalReceiptText(invoice);
+  const receiptModel = buildTerminalA4Model(invoice);
   const requestedAt = new Date().toISOString();
   await writePrintAudit('terminal_receipt_print_requested', invoice, actor, { requestedAt });
 
@@ -194,6 +166,8 @@ export async function printTerminalSaleReceipt(invoiceId, actor = null) {
       documentNumber: invoice.documentNo,
       printerName: env.receiptPrinting.printerName || 'Windows default printer',
       receiptText,
+      receiptModel,
+      paperFormat: 'A4',
     };
   }
 
@@ -202,8 +176,13 @@ export async function printTerminalSaleReceipt(invoiceId, actor = null) {
   }
 
   try {
-    await enqueuePrint(receiptText, env.receiptPrinting.printerName);
+    await enqueuePrint(receiptModel, env.receiptPrinting.printerName);
   } catch (error) {
+    await writePrintAudit('terminal_receipt_print_failed', invoice, actor, {
+      requestedAt, failedAt: new Date().toISOString(), code: 'WINDOWS_PRINT_FAILED',
+      // Never infer whether paper emerged from a process failure.
+      physicalOutputConfirmed: false,
+    }).catch(() => {});
     throw serviceError(
       'TERMINAL_RECEIPT_PRINT_FAILED',
       `Windows printer could not print the receipt: ${error.message || 'unknown error'}`,
@@ -220,6 +199,7 @@ export async function printTerminalSaleReceipt(invoiceId, actor = null) {
     invoiceId: Number(invoice.id),
     documentNumber: invoice.documentNo,
     printerName: env.receiptPrinting.printerName || 'Windows default printer',
+    paperFormat: 'A4',
     printedAt,
   };
 }

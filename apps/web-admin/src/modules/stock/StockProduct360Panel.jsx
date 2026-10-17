@@ -104,6 +104,7 @@ export function StockProduct360Panel({
           {!isReadOnly && <div className="stock-360-actions">
             <button type="button" onClick={onOpenSelectedProduct}>Ürün Kartı</button>
             <button type="button" onClick={() => onOpenScreen('stock-movements', { productId: selectedRow.id, stockCode: selectedRow.stockCode })}>Hareketler</button>
+            <button type="button" onClick={() => onOpenScreen('stock-movements', { productId: selectedRow.id, stockCode: selectedRow.stockCode, sourceType: 'sales_invoice' })}>Satış Hareketleri</button>
             <button type="button" onClick={() => selectedRow.supplierId && onOpenScreen('supplier-card', { supplierId: selectedRow.supplierId, supplierCode: selectedRow.supplierCode })} disabled={!selectedRow.supplierId}>Tedarikçi</button>
             <button type="button" onClick={() => stockMovements[0] && onOpenMovementParty(stockMovements[0])} disabled={!stockMovements.some((row) => row.customerId || row.supplierId)}>Cari</button>
           </div>}

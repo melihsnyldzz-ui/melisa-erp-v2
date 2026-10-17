@@ -1,0 +1,359 @@
+/* Keep module names readable and separate everyday work from supporting tools. */
+.erp-shell {
+  --erp-topbar-height: 92px;
+}
+
+.erp-shell .daily-navigation-header {
+  grid-template-columns: minmax(180px, 1fr) auto !important;
+  grid-template-rows: 42px 42px;
+  gap: 0 10px;
+  padding: 4px 12px;
+}
+
+.daily-navigation-header .brand-block {
+  grid-column: 1;
+  grid-row: 1;
+  padding: 0 0 0 42px;
+  border-right: 0;
+}
+
+.daily-navigation-header .brand-block::before {
+  top: 6px;
+  left: 0;
+  width: 30px;
+  height: 30px;
+}
+
+.daily-navigation-header .brand-block span {
+  display: none;
+}
+
+.daily-navigation-header .top-actions {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 0;
+}
+
+.daily-navigation-header .module-menu {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.daily-navigation-header .module-menu .module {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  gap: 6px;
+}
+
+.daily-navigation-header .module-menu .module-label {
+  display: inline;
+  max-width: none;
+  overflow: visible;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.daily-navigation-header .module-menu::-webkit-scrollbar {
+  display: block;
+  height: 4px;
+}
+
+.module-more-wrap {
+  flex: 0 0 auto;
+}
+
+.module-more-panel {
+  position: fixed;
+  z-index: 1100;
+  display: grid;
+  gap: 4px;
+  width: 242px;
+  padding: 10px;
+  border: 1px solid var(--ui-border, #d7e0eb);
+  border-radius: 8px;
+  background: var(--ui-surface, #fff);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.2);
+}
+
+.module-more-panel > strong {
+  padding: 4px 6px 8px;
+  color: var(--ui-muted, #64748b);
+  font-size: 11px;
+}
+
+.daily-navigation-header .module-more-panel .module {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 36px;
+}
+
+.sidebar-flat .side-group-items button {
+  min-height: 34px;
+  height: auto;
+  padding-block: 7px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.sidebar-flat .side-group-items button > span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sidebar-additional {
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.sidebar-additional > summary {
+  padding: 9px 7px;
+  color: #dbe5f1;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sidebar-additional > summary > span {
+  float: right;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.sidebar-additional > summary:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
+@media (max-width: 900px) {
+  .erp-shell .daily-navigation-header {
+    grid-template-columns: minmax(116px, 1fr) auto !important;
+    padding-inline: 8px;
+  }
+
+  .daily-navigation-header .brand-block {
+    padding-left: 0;
+  }
+
+  .daily-navigation-header .brand-block::before {
+    display: none;
+  }
+}
+
+/* Legacy quote/order cards use invoice-screen; sales and purchase have their
+   own classes. These rules therefore do not alter their commercial forms. */
+.work-area.invoice-screen,
+.work-area.export-center-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  overflow: auto;
+  font-size: 13px;
+}
+
+.invoice-screen .invoice-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--ui-border, #d7e0eb);
+  border-radius: 8px;
+  background: var(--ui-surface, #fff);
+}
+
+.invoice-screen .invoice-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invoice-screen .invoice-title strong {
+  font-size: 17px;
+}
+
+.invoice-screen .invoice-title span {
+  color: var(--ui-muted, #64748b);
+  font-size: 12px;
+}
+
+.invoice-screen .invoice-actions,
+.export-center-screen .export-center-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.invoice-screen button,
+.export-center-screen button {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--ui-border, #d7e0eb);
+  border-radius: 6px;
+  background: var(--ui-surface, #fff);
+  color: var(--ui-text, #253247);
+  font: inherit;
+  cursor: pointer;
+}
+
+.invoice-screen button.primary-button,
+.export-center-screen button.primary {
+  border-color: #9f241b;
+  background: #b42318;
+  color: #fff;
+  font-weight: 600;
+}
+
+.invoice-screen button.danger-button {
+  color: #b42318;
+}
+
+.invoice-screen button:disabled,
+.export-center-screen button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.invoice-screen .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.invoice-screen .filter-grid > label,
+.invoice-screen .quick-line-grid > label,
+.export-center-screen .export-filter-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.invoice-screen input,
+.invoice-screen select,
+.export-center-screen .export-filter-form input,
+.export-center-screen .export-filter-form select {
+  min-width: 0;
+  width: 100%;
+  min-height: 35px;
+  padding: 7px 9px;
+  border: 1px solid var(--ui-border, #cbd5e1);
+  border-radius: 5px;
+  background: var(--ui-surface, #fff);
+  color: var(--ui-text, #253247);
+  font: inherit;
+  font-weight: 400;
+}
+
+.invoice-screen .quick-line-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(100px, 160px) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+}
+
+.invoice-screen .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.invoice-screen .erp-table {
+  min-width: 850px;
+}
+
+.invoice-screen .erp-table :is(th, td),
+.export-center-screen .erp-table :is(th, td) {
+  padding: 9px 10px;
+  font-size: 12px;
+}
+
+.invoice-screen .erp-table input {
+  min-width: 90px;
+}
+
+.invoice-screen .floating-summary {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px 24px;
+  padding: 14px;
+  border: 1px solid var(--ui-border, #d7e0eb);
+  border-radius: 8px;
+  background: var(--ui-surface, #fff);
+  font-size: 13px;
+}
+
+.export-center-screen .export-filter-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(200px, 280px) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+}
+
+.export-center-screen .export-advanced-filters > summary {
+  min-height: 35px;
+  font-size: 12px;
+}
+
+.export-center-screen .export-advanced-filters > div {
+  min-width: min(440px, calc(100vw - 80px));
+}
+
+.export-center-screen .export-center-actions {
+  padding: 12px;
+}
+
+.export-center-screen .summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.export-center-screen .summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 76px;
+  padding: 12px;
+}
+
+@media (max-width: 1366px) {
+  .invoice-screen .filter-grid {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 1050px) {
+  .invoice-screen .filter-grid,
+  .export-center-screen .export-filter-form {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .export-center-screen .export-filter-form > button {
+    justify-self: start;
+  }
+
+  .invoice-screen .quick-line-grid {
+    grid-template-columns: minmax(160px, 1fr) 100px;
+  }
+
+  .invoice-screen .quick-line-grid > button {
+    justify-self: start;
+  }
+}

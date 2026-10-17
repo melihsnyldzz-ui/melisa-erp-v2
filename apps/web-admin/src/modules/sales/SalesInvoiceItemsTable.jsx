@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ExternalLink, Minus, Plus, Trash2 } from 'lucide-react';
+import { storedRate } from '../../utils/currencyPreview.js';
 
 function formatMoney(amount, currency) {
+  if (amount == null || !Number.isFinite(amount)) return '—';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -10,6 +12,7 @@ function formatMoney(amount, currency) {
 }
 
 function formatPercent(value) {
+  if (value == null || !Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('tr-TR', {
     style: 'percent',
     minimumFractionDigits: 1,
@@ -18,7 +21,7 @@ function formatPercent(value) {
 }
 
 export function SalesInvoiceItemsTable({
-  exchangeRate = 1,
+  exchangeRate,
   invoiceCurrency = 'TRY',
   items,
   onAdjustQuantity,
@@ -64,9 +67,9 @@ export function SalesInvoiceItemsTable({
           <tbody>
             {items.map((item) => {
               const lineTotal = item.quantity * item.unitPrice;
-              const rate = Number(exchangeRate || 1);
-              const costInInvoiceCurrency = rate > 0 ? Number(item.averageCostTry || 0) / rate : 0;
-              const profitInInvoiceCurrency = rate > 0 ? Number(item.grossProfitTry || 0) / rate : 0;
+              const rate = storedRate(invoiceCurrency, exchangeRate);
+              const costInInvoiceCurrency = rate === null ? null : Number(item.averageCostTry || 0) / rate;
+              const profitInInvoiceCurrency = rate === null || item.grossProfitTry == null ? null : item.grossProfitTry / rate;
               const profitClassName = Number(item.grossProfitTry || 0) < 0 ? 'negative' : 'positive';
               return (
                 <tr
@@ -103,8 +106,8 @@ export function SalesInvoiceItemsTable({
                   <td className="money-cell invoice-total-cell">{formatMoney(lineTotal, item.currency)}</td>
                   {showProfitColumns && showFinancialDetails && <td className="money-cell">{formatMoney(costInInvoiceCurrency, invoiceCurrency)}</td>}
                   {showProfitColumns && showFinancialDetails && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatMoney(profitInInvoiceCurrency, invoiceCurrency)}</td>}
-                  {showProfitColumns && showFinancialDetails && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatMoney(item.grossProfitTry || 0, 'TRY')}</td>}
-                  {showProfitColumns && showFinancialDetails && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatPercent(item.grossProfitRate || 0)}</td>}
+                  {showProfitColumns && showFinancialDetails && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatMoney(item.grossProfitTry, 'TRY')}</td>}
+                  {showProfitColumns && showFinancialDetails && <td className={`money-cell invoice-profit-cell ${profitClassName}`}>{formatPercent(item.grossProfitRate)}</td>}
                   <td>
                     <span className={item.stockState === 'Eksiye duser' ? 'sales-stock-pill risk' : 'sales-stock-pill'}>
                       {item.stockState}

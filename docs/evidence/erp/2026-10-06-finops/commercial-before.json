@@ -1,0 +1,170 @@
+[
+  {
+    "table": "audit_logs",
+    "count": 27513,
+    "maxId": 116118,
+    "digest": "3DFDC7A9014BCB2F56BCD1BA9D2AC8A415A37C15172105D943B79C091DCC5AFB"
+  },
+  {
+    "table": "cash_adjustments",
+    "count": 0,
+    "maxId": 0,
+    "digest": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+  },
+  {
+    "table": "cash_drawer_accounts",
+    "count": 3,
+    "maxId": 3,
+    "digest": "0DBF2CAF6D0FC8EE45CB3163D2D73CCBB25FF108DF501AA0A450D893F6896669"
+  },
+  {
+    "table": "cash_drawers",
+    "count": 1,
+    "maxId": 1,
+    "digest": "FDB406DC05D7052D5C07FDDB8EE66CC2DE6901D6EED61DE8118B14149F5061FE"
+  },
+  {
+    "table": "cash_expenses",
+    "count": 0,
+    "maxId": 0,
+    "digest": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+  },
+  {
+    "table": "cash_session_counts",
+    "count": 0,
+    "maxId": 0,
+    "digest": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+  },
+  {
+    "table": "cash_sessions",
+    "count": 0,
+    "maxId": 0,
+    "digest": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+  },
+  {
+    "table": "cash_transfers",
+    "count": 0,
+    "maxId": 0,
+    "digest": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+  },
+  {
+    "table": "customer_movements",
+    "count": 29169,
+    "maxId": 47758,
+    "digest": "D413A007C84B28FCD97E9BE22F118159D3F6DEE5A0AA285537461A2F2FF0CF5D"
+  },
+  {
+    "table": "customers",
+    "count": 442,
+    "maxId": 30598,
+    "digest": "EC50AC8A76A16998A83661CC16E6B6DA3EC389F2556B524E3ED0D4BB7785D8FE"
+  },
+  {
+    "table": "finance_account_movements",
+    "count": 16833,
+    "maxId": 44242,
+    "digest": "4266E4177480CD989F18FAED38D668AC71E290F7D83A11A94B1D6ED2CC4CA2AB"
+  },
+  {
+    "table": "finance_accounts",
+    "count": 38,
+    "maxId": 20043,
+    "digest": "464F24D4969410A470EDED4472DFD4D78B5C96E0BCCBDEA4AA5E02F68D7A6E3A"
+  },
+  {
+    "table": "invoice_return_items",
+    "count": 2918,
+    "maxId": 3508,
+    "digest": "04F4D681C6956CCBF123EA8FA182E502DB5EFA92788E20FEE0DBB03AC63397DA"
+  },
+  {
+    "table": "invoice_returns",
+    "count": 218,
+    "maxId": 223,
+    "digest": "C72A3B5DDD50F06DD6B23EF1D3B159BCA140BF5E883145642DE0ACC66A13E2E8"
+  },
+  {
+    "table": "party_currency_accounts",
+    "count": 1045,
+    "maxId": 1045,
+    "digest": "26AEE2F34F9C534C002EFD73901D65606D6C2CD5E6E10E3DE77D432F282F3AB1"
+  },
+  {
+    "table": "party_entities",
+    "count": 928,
+    "maxId": 929,
+    "digest": "88BD87BF2601C71F8928A0223CE3EF66CD869E30B404B4454B73DB78A5E5CC37"
+  },
+  {
+    "table": "party_source_links",
+    "count": 928,
+    "maxId": 928,
+    "digest": "B01EF378B14755F5CBDC71F3747E4AE9656F7C26794F8607D167561BF2412489"
+  },
+  {
+    "table": "product_prices",
+    "count": 279229,
+    "maxId": 279233,
+    "digest": "FD02AEDA5129151F34F0D404FD5C8D61EB1C9E10F43CA36415FDE8651F65AA4A"
+  },
+  {
+    "table": "products",
+    "count": 52969,
+    "maxId": 345505,
+    "digest": "D86D634A30C194F45DBB0B52BD716192D2AB380656FACA23963F4AEEE2F56F0B"
+  },
+  {
+    "table": "purchase_invoice_items",
+    "count": 59542,
+    "maxId": 93193,
+    "digest": "D809E81D8B14114D5B4E27326E4C9288018E1FD907C9F5BAABE749F540952CB9"
+  },
+  {
+    "table": "purchase_invoices",
+    "count": 11243,
+    "maxId": 25092,
+    "digest": "46E6E5CDF2F5F69BE62445DF8C44D69C8B48AE7C9E67C50FF67ECA0D58F8C971"
+  },
+  {
+    "table": "sales_invoice_items",
+    "count": 345563,
+    "maxId": 469715,
+    "digest": "7584F880DBB47DC01DB853F77542222809D90B061B7D6EFC72A2ACDA3F87A282"
+  },
+  {
+    "table": "sales_invoices",
+    "count": 19233,
+    "maxId": 34620,
+    "digest": "297270B948F93D9C0C43FFA0D60B64A416BC45CCD1EC56CBBAF2F6C143070242"
+  },
+  {
+    "table": "stock_movements",
+    "count": 558980,
+    "maxId": 907919,
+    "digest": "366649FB9746CCDAC888CCAC302251E9AE21BF3938C24EB06C958069363A69E0"
+  },
+  {
+    "table": "supplier_movements",
+    "count": 24021,
+    "maxId": 48062,
+    "digest": "7645379C415DE4FD94E2EEDBC0091B9188856692A3400E6B03C6D2DBF61AD545"
+  },
+  {
+    "table": "suppliers",
+    "count": 530,
+    "maxId": 23379,
+    "digest": "5E285D2E8F91E01208437C03348F65957324834FDEB44D8091A42542E80CD64C"
+  },
+  {
+    "table": "test_daily_drafts",
+    "count": 36,
+    "maxId": 38,
+    "digest": "F47CA81C35A8B0BB1956CF160432941CA2C3393CEB4ED2E82284A8124946CC0B"
+  },
+  {
+    "table": "test_goods_receipts",
+    "count": 4,
+    "maxId": 4,
+    "digest": "A05AE22209B2258FEB3B06B931139B270E1D54EC419140AEB9E1CE28C1BBE569"
+  }
+]

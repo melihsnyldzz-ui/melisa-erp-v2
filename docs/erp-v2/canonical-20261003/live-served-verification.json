@@ -1,0 +1,20 @@
+[
+  {
+    "path": "assets/index-CjyxL4bG.js",
+    "status": 200,
+    "sha256": "28fb441f8a1d985e2382719d8f961cd8348b8f23701b4f1100c9f795901f849a",
+    "diskMatch": true
+  },
+  {
+    "path": "assets/index-WEZGfS6P.css",
+    "status": 200,
+    "sha256": "543667057ddd4e07ee98ff8053f759fb5260bfb6f9367b237d08fd990e132da1",
+    "diskMatch": true
+  },
+  {
+    "path": "index.html",
+    "status": 200,
+    "sha256": "da0a8f1087b07758954979ab8195b264834fac1d2e71ec9a25b5aa8a3fee01e1",
+    "diskMatch": true
+  }
+]

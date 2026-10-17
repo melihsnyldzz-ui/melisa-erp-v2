@@ -1,0 +1,728 @@
+{
+  "schemaVersion": "melisa-goal8-ui.v1",
+  "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+  "package": "TEST94",
+  "humanAccepted": false,
+  "observations": [
+    {
+      "nav": "İş sırası",
+      "alerts": [],
+      "headings": [
+        "İş Sırası"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Ürün & stok",
+      "alerts": [],
+      "headings": [
+        "Ürün & stok"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Gelen mal",
+      "alerts": [],
+      "headings": [
+        "Gelen mal"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Alış faturaları",
+      "alerts": [],
+      "headings": [
+        "Alış faturaları"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Satış terminali",
+      "alerts": [],
+      "headings": [
+        "Satış"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Satış fişleri",
+      "alerts": [],
+      "headings": [
+        "Satış fişleri"
+      ],
+      "scroll": 1440,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Müşteriler",
+      "alerts": [],
+      "headings": [
+        "Müşteriler"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tedarikçiler",
+      "alerts": [],
+      "headings": [
+        "Tedarikçiler"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tahsilat",
+      "alerts": [],
+      "headings": [
+        "Tahsilat"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tedarikçi Ödeme",
+      "alerts": [],
+      "headings": [
+        "Tedarikçi ödemeleri"
+      ],
+      "scroll": 1440,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Sayım & düzeltme",
+      "alerts": [],
+      "headings": [
+        "Sayım & düzeltme"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "İadeler",
+      "alerts": [],
+      "headings": [
+        "Tedarikçiye iade"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Onaylar",
+      "alerts": [],
+      "headings": [
+        "Onaylar"
+      ],
+      "scroll": 1440,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Raporlar",
+      "alerts": [],
+      "headings": [
+        "Raporlar"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Ayarlar",
+      "alerts": [],
+      "headings": [
+        "Ayarlar / Sistem Durumu"
+      ],
+      "scroll": 1427,
+      "width": 1440,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "İş sırası",
+      "alerts": [],
+      "headings": [
+        "İş Sırası"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Ürün & stok",
+      "alerts": [],
+      "headings": [
+        "Ürün & stok"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Gelen mal",
+      "alerts": [],
+      "headings": [
+        "Gelen mal"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Alış faturaları",
+      "alerts": [],
+      "headings": [
+        "Alış faturaları"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Satış terminali",
+      "alerts": [],
+      "headings": [
+        "Satış"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Satış fişleri",
+      "alerts": [],
+      "headings": [
+        "Satış fişleri"
+      ],
+      "scroll": 1024,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Müşteriler",
+      "alerts": [],
+      "headings": [
+        "Müşteriler"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tedarikçiler",
+      "alerts": [],
+      "headings": [
+        "Tedarikçiler"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tahsilat",
+      "alerts": [],
+      "headings": [
+        "Tahsilat"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tedarikçi Ödeme",
+      "alerts": [],
+      "headings": [
+        "Tedarikçi ödemeleri"
+      ],
+      "scroll": 1024,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Sayım & düzeltme",
+      "alerts": [],
+      "headings": [
+        "Sayım & düzeltme"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "İadeler",
+      "alerts": [],
+      "headings": [
+        "Tedarikçiye iade"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Onaylar",
+      "alerts": [],
+      "headings": [
+        "Onaylar"
+      ],
+      "scroll": 1024,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Raporlar",
+      "alerts": [],
+      "headings": [
+        "Raporlar"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Ayarlar",
+      "alerts": [],
+      "headings": [
+        "Ayarlar / Sistem Durumu"
+      ],
+      "scroll": 1011,
+      "width": 1024,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "İş sırası",
+      "alerts": [],
+      "headings": [
+        "İş Sırası"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Ürün & stok",
+      "alerts": [],
+      "headings": [
+        "Ürün & stok"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Gelen mal",
+      "alerts": [],
+      "headings": [
+        "Gelen mal"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Alış faturaları",
+      "alerts": [],
+      "headings": [
+        "Alış faturaları"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Satış terminali",
+      "alerts": [],
+      "headings": [
+        "Satış"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Satış fişleri",
+      "alerts": [],
+      "headings": [
+        "Satış fişleri"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Müşteriler",
+      "alerts": [],
+      "headings": [
+        "Müşteriler"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tedarikçiler",
+      "alerts": [],
+      "headings": [
+        "Tedarikçiler"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tahsilat",
+      "alerts": [],
+      "headings": [
+        "Tahsilat"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Tedarikçi Ödeme",
+      "alerts": [],
+      "headings": [
+        "Tedarikçi ödemeleri"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Sayım & düzeltme",
+      "alerts": [],
+      "headings": [
+        "Sayım & düzeltme"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "İadeler",
+      "alerts": [],
+      "headings": [
+        "Tedarikçiye iade"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Onaylar",
+      "alerts": [],
+      "headings": [
+        "Onaylar"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Raporlar",
+      "alerts": [],
+      "headings": [
+        "Raporlar"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    },
+    {
+      "nav": "Ayarlar",
+      "alerts": [],
+      "headings": [
+        "Ayarlar / Sistem Durumu"
+      ],
+      "scroll": 378,
+      "width": 390,
+      "loading": false,
+      "genericFailure": false
+    }
+  ],
+  "checks": 45,
+  "widths": [
+    1440,
+    1024,
+    390
+  ],
+  "role": "existing-ilker",
+  "modal": {
+    "module": "count",
+    "id": 47,
+    "width": 390,
+    "left": 17.99,
+    "right": 359.7,
+    "top": 311.34,
+    "bottom": 688.66,
+    "closed": true
+  },
+  "offlineRecovery": {
+    "module": "collections",
+    "networkRestored": true,
+    "sameInvoice": true,
+    "newWrite": false,
+    "documentDate": "2026-10-07"
+  },
+  "screenshots": {
+    "storedOutsideGit": true,
+    "inventory": [
+      {
+        "file": "ui94-1024-Alış_faturaları.png",
+        "sha256": "50f62d2268b5664a4561735fd39b0eaf5727ba56e64a4f0421b55b589c536863"
+      },
+      {
+        "file": "ui94-1024-Ayarlar.png",
+        "sha256": "c0ece711c1ff0673b30951174382fb83793e1b77a7842cf159d420acd5692b88"
+      },
+      {
+        "file": "ui94-1024-Gelen_mal.png",
+        "sha256": "acbc77b89510a101607a3b12b1abab84ef2a2c45734ec5184e4d47a75f0660cb"
+      },
+      {
+        "file": "ui94-1024-Müşteriler.png",
+        "sha256": "14fde3f2ba190ddf804d61e6882bc272b4023ef81d938c000feb47e8471f98fb"
+      },
+      {
+        "file": "ui94-1024-Onaylar.png",
+        "sha256": "a46e079aebad94d35c93915566aaf10bccc10c662c7c1292731fcd3cbc38cb20"
+      },
+      {
+        "file": "ui94-1024-Raporlar.png",
+        "sha256": "81e4dd4b913ab32c57d5d8e7373ff653de5325e8d80ff88358ad550ead6501a7"
+      },
+      {
+        "file": "ui94-1024-Satış_fişleri.png",
+        "sha256": "2172c5f5ebeef0888ad189b3c1ac6cace784dea151f0368fed3862dc49fcef25"
+      },
+      {
+        "file": "ui94-1024-Satış_terminali.png",
+        "sha256": "4c19a8a9d4003b7488c74c10c15d29ac788a127a8b1308d825b00df56d654e98"
+      },
+      {
+        "file": "ui94-1024-Sayım_düzeltme.png",
+        "sha256": "321f1afc483dbfa4a7ce58750cdea1b025a6f28341b0786a48a0b3cf56b4a1c4"
+      },
+      {
+        "file": "ui94-1024-Tahsilat.png",
+        "sha256": "d81dcb44a7877cb2f7aebaa33c7b545517e30185e6f5b0f0df33702920537fb4"
+      },
+      {
+        "file": "ui94-1024-Tedarikçiler.png",
+        "sha256": "124fe51e1abb9bee6636769f72f91890040b883810e5246bdfabcd6b6d141746"
+      },
+      {
+        "file": "ui94-1024-Tedarikçi_Ödeme.png",
+        "sha256": "48f38ea1cd21984767483c9585501f19c99d8042a8fc3607f2ba1f62b9844cf1"
+      },
+      {
+        "file": "ui94-1024-Ürün_stok.png",
+        "sha256": "293b2952216b3d453f69dc73d8eac111acd54b5383370f04fd119ec1c9fdd796"
+      },
+      {
+        "file": "ui94-1024-İadeler.png",
+        "sha256": "9b29ac32f9dba509f5bbebee0083c7e2c588668beff5340c022ae5ce0962ab64"
+      },
+      {
+        "file": "ui94-1024-İş_sırası.png",
+        "sha256": "b0ce29005b71839a47eeccefe84c5eed3057bebfa05a16349a8e727562b3bf3f"
+      },
+      {
+        "file": "ui94-1440-Alış_faturaları.png",
+        "sha256": "cf8a595732298c2bdd07e1d63b29e6f70a4ebf91d7df486e17c41f22bca22a10"
+      },
+      {
+        "file": "ui94-1440-Ayarlar.png",
+        "sha256": "77044108e487e24a9746883b78504e8a575ca12cac2ea370bcbff3c65632d61d"
+      },
+      {
+        "file": "ui94-1440-Gelen_mal.png",
+        "sha256": "779c9bf0971ce60ba4b06c4adccf23c20f360687171572c84bfa1d6c0c2c0468"
+      },
+      {
+        "file": "ui94-1440-Müşteriler.png",
+        "sha256": "5c8f4e1e65848ca9531dc6a9063e8da7c9733ca524728a957cf37df40d1c0ab2"
+      },
+      {
+        "file": "ui94-1440-Onaylar.png",
+        "sha256": "c034c5596dd875f109be51875f1ba21cb733fbcf45ad9a6ceea9ddc4cf5cff86"
+      },
+      {
+        "file": "ui94-1440-Raporlar.png",
+        "sha256": "fafbb413c2865c736c382cccf39fdc96d4ac247e7b3a1bdc8995e1122cc71975"
+      },
+      {
+        "file": "ui94-1440-Satış_fişleri.png",
+        "sha256": "c4d6ce9b6dc734bf39ee56b3d263fbb518b2ad5d1410f6ff1fd0d9f952a03791"
+      },
+      {
+        "file": "ui94-1440-Satış_terminali.png",
+        "sha256": "7e6a10754f5e0c3df19a9d003a687a2df57cede2a8ceecd5c7a4e52e4e2b70e2"
+      },
+      {
+        "file": "ui94-1440-Sayım_düzeltme.png",
+        "sha256": "e68f7f581616b75be6b513cc3b336597245a5e7360df1cc4f84ed1ed61ef7019"
+      },
+      {
+        "file": "ui94-1440-Tahsilat.png",
+        "sha256": "09c7ead71745434bd22482e4ac211da2fa6a85bb54ab6c479343e0e1c043b0ed"
+      },
+      {
+        "file": "ui94-1440-Tedarikçiler.png",
+        "sha256": "a9df3dd4e363a2f63f054ac4a972ab7f1041de2c07dc0eff296d59503dc4da50"
+      },
+      {
+        "file": "ui94-1440-Tedarikçi_Ödeme.png",
+        "sha256": "8bdff83f84cb5aa43578ed9950400dbe034ce634b4336500fa5d532beb6b7f58"
+      },
+      {
+        "file": "ui94-1440-Ürün_stok.png",
+        "sha256": "8eb7493ea509ead9c6c0569df69aa3f4ae686fc3683ed08f22432acfb3e763b5"
+      },
+      {
+        "file": "ui94-1440-İadeler.png",
+        "sha256": "18c2c3a69275c77635c8598b5b19da17f177d39fdf91b50b4c43598921145a96"
+      },
+      {
+        "file": "ui94-1440-İş_sırası.png",
+        "sha256": "a954b832b1c004dc80c82c77bd3b09012695c903e2f49beac653e59a0ff405e4"
+      },
+      {
+        "file": "ui94-390-Alış_faturaları.png",
+        "sha256": "078e9c44cd6cc7e8dc361600879f4004ecfa75c1cf077cd69f5f1cd76061d5ed"
+      },
+      {
+        "file": "ui94-390-Ayarlar.png",
+        "sha256": "6d424f13f960f7d5ba31ca258d26688c7e5c192d28d1e28ef96717462558906c"
+      },
+      {
+        "file": "ui94-390-Gelen_mal.png",
+        "sha256": "130a7f5ae123ee0d95bce0db03b35cbc7fd9d4b24e8b40e3c45fbb7347a67000"
+      },
+      {
+        "file": "ui94-390-Müşteriler.png",
+        "sha256": "cccde4875b57eee46f79a72adb7833726db156439c51ebebd8d1f82a2fcfa7e4"
+      },
+      {
+        "file": "ui94-390-Onaylar.png",
+        "sha256": "42e07a4f715cb50fced2d8a1950fabd2f320d14bfc9764346aaac3503b5c8f41"
+      },
+      {
+        "file": "ui94-390-Raporlar.png",
+        "sha256": "00fe7e3a52e039e0d6c82e6c7f427cfde987902bd781c51bfa1249cdc6f218ac"
+      },
+      {
+        "file": "ui94-390-Satış_fişleri.png",
+        "sha256": "fa1461a1701753ba20284a288fd4d524d2d0e91cbaaa83d78a86e47430270bdc"
+      },
+      {
+        "file": "ui94-390-Satış_terminali.png",
+        "sha256": "6c996884e01b0c6e19d1c48e3bc5432866894ab88420c638ec2100fae00ed66e"
+      },
+      {
+        "file": "ui94-390-Sayım_düzeltme.png",
+        "sha256": "3c45a90a329e7cee0b869c32eee8a51f841df6a89d5c92df5cf54db6654cb74a"
+      },
+      {
+        "file": "ui94-390-Tahsilat.png",
+        "sha256": "d958eb38b8fb010baba8559035fb651ff2edb63b8a9840978fedab7d74408ac5"
+      },
+      {
+        "file": "ui94-390-Tedarikçiler.png",
+        "sha256": "dffbe1a8ea92ca230c2aa531aa7b4f5a299fc6cd790ea20afc332a7dd5723780"
+      },
+      {
+        "file": "ui94-390-Tedarikçi_Ödeme.png",
+        "sha256": "5f8ef23c13d2c073da0bed0d060ff4045d56abbc2e41c4fc620bfc6029c360c2"
+      },
+      {
+        "file": "ui94-390-Ürün_stok.png",
+        "sha256": "75dcf2b79e85ccda37d5c539239ac322e702a767c0d493ff7753161bd34b78d7"
+      },
+      {
+        "file": "ui94-390-İadeler.png",
+        "sha256": "c00a303cd728005272cf3ddd505459f27a62c72772d2af1c93be2f47bd10fa81"
+      },
+      {
+        "file": "ui94-390-İş_sırası.png",
+        "sha256": "1f5732e5809e45515210d4a85e4e6919f14f21b2ea1f6951abf977ddf12e2140"
+      },
+      {
+        "file": "ui94-count47-modal390-clip.png",
+        "sha256": "8de5a2cb7117bc5b908619e08cfe3f791b0d38132d0bb5399602d854da8e1dcd"
+      },
+      {
+        "file": "ui94-count47-modal390.png",
+        "sha256": "690f40cb34fd8ff3ffd0b68b187456b93660081f3cdc767b875a057157a3431d"
+      },
+      {
+        "file": "ui94-onaylar1440.png",
+        "sha256": "c034c5596dd875f109be51875f1ba21cb733fbcf45ad9a6ceea9ddc4cf5cff86"
+      }
+    ]
+  },
+  "limits": [
+    "DOM geometry and visual browser checks are technical evidence, not physical device or human acceptance.",
+    "Only the collections connection loss was injected in the final browser run; other applicable errors/replay use controller/native evidence."
+  ]
+}

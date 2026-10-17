@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function DashboardOperationsPanel({ columns, rows, title, subtitle }) {
+export function DashboardOperationsPanel({ columns, rows, title, subtitle, isAvailable = true }) {
   const isEmpty = rows.length === 0;
 
   return (
@@ -12,7 +12,7 @@ export function DashboardOperationsPanel({ columns, rows, title, subtitle }) {
       {isEmpty ? (
         <div className="dashboard-compact-empty">
           <span aria-hidden="true">—</span>
-          <p>Bu dönem için gösterilecek kayıt oluşmadı.</p>
+          <p>{isAvailable ? 'Bu dönem için gösterilecek kayıt oluşmadı.' : 'Bu bölüm için veri sağlanmıyor.'}</p>
         </div>
       ) : (
       <div className="table-wrap dashboard-table-wrap">

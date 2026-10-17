@@ -25,8 +25,11 @@ export function InvoiceListAdvancedFilters({
   onEmployeeChange,
   terminal = '',
   onTerminalChange,
+  party = '',
+  partyLabel = 'Cari',
+  onPartyChange,
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const activeCount = [
     status !== 'ALL' ? status : '',
     dateFrom,
@@ -36,7 +39,14 @@ export function InvoiceListAdvancedFilters({
     amountMax,
     employee,
     terminal,
+    party,
   ].filter(Boolean).length;
+  const activeSummary = [
+    dateFrom || dateTo ? `${dateFrom || 'Başlangıç yok'} – ${dateTo || 'Bitiş yok'}` : '',
+    status !== 'ALL' ? statusOptions.find(([value]) => value === status)?.[1] : '',
+    currency !== 'ALL' ? currency : '',
+    party ? `${partyLabel}: ${party}` : '',
+  ].filter(Boolean).join(' · ');
 
   return (
     <section className={isOpen ? 'invoice-advanced-search open' : 'invoice-advanced-search'}>
@@ -47,9 +57,13 @@ export function InvoiceListAdvancedFilters({
         type="button"
       >
         <span>Detaylı Arama</span>
-        <small>{activeCount > 0 ? `${activeCount} kriter aktif` : 'Durum, tarih, para birimi ve tutar'}</small>
+        <small>{activeCount > 0 ? `${activeCount} kriter aktif${activeSummary ? ` · ${activeSummary}` : ''}` : 'Cari, durum, tarih, para birimi ve tutar'}</small>
       </button>
       {isOpen && <div className="invoice-advanced-search-grid">
+        {onPartyChange && <label>
+          <span>{partyLabel}</span>
+          <input value={party} onChange={(event) => onPartyChange(event.target.value)} placeholder={`${partyLabel} adı veya kodu`} />
+        </label>}
         <label>
           <span>Durum</span>
           <select value={status} onChange={(event) => onStatusChange(event.target.value)}>

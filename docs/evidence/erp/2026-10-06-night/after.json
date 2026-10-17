@@ -1,0 +1,47 @@
+{
+  "at": "2026-10-06T00:02:01.779Z",
+  "sourceCommit": "78e6cc94c01f7f46cf0844149c7e987889057b2f",
+  "package": "CANONICAL-NIGHT-TEST-20261006-51",
+  "actor": 16,
+  "conditions": {
+    "transport": "LAN HTTP",
+    "pageSize": 50,
+    "samples": 3,
+    "sequence": "first50,next50,code,barcode,card,home",
+    "acceptedOpening": 16622,
+    "quarantine": 54
+  },
+  "measurements": {
+    "first50": [
+      726,
+      791,
+      924
+    ],
+    "next50": [
+      634,
+      674,
+      649
+    ],
+    "code": [
+      744,
+      658,
+      596
+    ],
+    "barcode": [
+      376,
+      371,
+      390
+    ],
+    "card": [
+      210,
+      222,
+      197
+    ],
+    "home": [
+      177,
+      91,
+      102
+    ]
+  },
+  "businessWrites": 0
+}

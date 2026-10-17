@@ -1,0 +1,223 @@
+{
+  "testedAt": "2026-10-03T18:39:26.703Z",
+  "sourceCommit": "3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8",
+  "packageId": "CANONICAL-TEST-3eb36e70fddb",
+  "pass": true,
+  "checks": [
+    {
+      "name": "exact-package-identity-4144",
+      "pass": true,
+      "health": {
+        "ok": true,
+        "environment": "CANONICAL_TEST",
+        "mode": "erp",
+        "port": 4144,
+        "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "serverName": "Semih\\MELISADEV",
+        "loginName": "melisa_sirket_sales_test_20260929_01",
+        "databaseUser": "melisa_sirket_sales_test_20260929_01",
+        "sysadmin": 0,
+        "databaseControl": 0,
+        "canInsertSales": 1,
+        "liveDatabaseAccess": 0,
+        "sqlReadOnly": false,
+        "writes": true,
+        "writeScope": "Existing named TEST records; guarded API and SQL triggers",
+        "externalOperations": false,
+        "automaticJobs": false,
+        "networkPolicy": {
+          "hosts": [
+            "127.0.0.1",
+            "localhost",
+            "::1"
+          ],
+          "ports": [
+            1433,
+            4144,
+            4146,
+            5194
+          ],
+          "subprocesses": false,
+          "externalMessages": false
+        },
+        "sourceCommit": "3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8",
+        "packageId": "CANONICAL-TEST-3eb36e70fddb"
+      }
+    },
+    {
+      "name": "exact-package-identity-4146",
+      "pass": true,
+      "health": {
+        "ok": true,
+        "environment": "CANONICAL_TEST",
+        "mode": "native",
+        "port": 4146,
+        "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+        "serverName": "Semih\\MELISADEV",
+        "loginName": "melisa_sirket_test_20260929_01",
+        "databaseUser": "melisa_sirket_test_20260929_01",
+        "sysadmin": 0,
+        "databaseControl": 0,
+        "canInsertSales": 0,
+        "liveDatabaseAccess": 0,
+        "sqlReadOnly": true,
+        "writes": false,
+        "writeScope": "none",
+        "externalOperations": false,
+        "automaticJobs": false,
+        "networkPolicy": {
+          "hosts": [
+            "127.0.0.1",
+            "localhost",
+            "::1"
+          ],
+          "ports": [
+            1433,
+            4144,
+            4146,
+            5194
+          ],
+          "subprocesses": false,
+          "externalMessages": false
+        },
+        "sourceCommit": "3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8",
+        "packageId": "CANONICAL-TEST-3eb36e70fddb"
+      }
+    },
+    {
+      "name": "exact-package-identity-5194",
+      "pass": true,
+      "health": {
+        "ok": true,
+        "environment": "CANONICAL_TEST",
+        "port": 5194,
+        "sourceCommit": "3eb36e70fddbbf4ff3a090e560153b5bfba7b3b8",
+        "packageId": "CANONICAL-TEST-3eb36e70fddb",
+        "webUi": "sites-v70-sql",
+        "webStorage": "sql-business-records; browser-pending-requests-only",
+        "sitesSourceCommit": "d559243a62080c8de5ce9ba1e2ba2d6231c098b9"
+      }
+    },
+    {
+      "name": "anonymous-denied",
+      "pass": true
+    },
+    {
+      "name": "authenticated-real-user-4144",
+      "pass": true
+    },
+    {
+      "name": "session-scope-4144",
+      "pass": true
+    },
+    {
+      "name": "auth-user-4144",
+      "pass": true
+    },
+    {
+      "name": "outside-write-rejected-4144",
+      "pass": true
+    },
+    {
+      "name": "authenticated-real-user-4146",
+      "pass": true
+    },
+    {
+      "name": "session-scope-4146",
+      "pass": true
+    },
+    {
+      "name": "auth-user-4146",
+      "pass": true
+    },
+    {
+      "name": "outside-write-rejected-4146",
+      "pass": true
+    },
+    {
+      "name": "external-disabled-/api/whatsapp/health",
+      "pass": true
+    },
+    {
+      "name": "external-disabled-/api/shipping/health",
+      "pass": true
+    },
+    {
+      "name": "external-disabled-/api/invoice-vega-export",
+      "pass": true
+    },
+    {
+      "name": "external-disabled-/api/vega/products",
+      "pass": true
+    },
+    {
+      "name": "green-sql-entry",
+      "pass": true
+    },
+    {
+      "name": "served-asset-/assets/workflow-CgHnl6i2.js",
+      "pass": true
+    },
+    {
+      "name": "served-asset-/assets/modulepreload-polyfill-B5Qt9EMX.js",
+      "pass": true
+    },
+    {
+      "name": "served-asset-/assets/countUI-De1m3--N.js",
+      "pass": true
+    },
+    {
+      "name": "served-asset-/assets/workflow-BzPrHcrm.css",
+      "pass": true
+    },
+    {
+      "name": "immutable-package-hashes",
+      "pass": true,
+      "checked": 1085
+    },
+    {
+      "name": "accepted-flow-code-identical-after-rate-fix",
+      "pass": true,
+      "changed": []
+    },
+    {
+      "name": "live-baseline-unchanged",
+      "pass": true,
+      "checked": 254
+    },
+    {
+      "name": "live-served-unchanged-assets/index-CjyxL4bG.js",
+      "pass": true
+    },
+    {
+      "name": "live-served-unchanged-assets/index-WEZGfS6P.css",
+      "pass": true
+    },
+    {
+      "name": "live-served-unchanged-index.html",
+      "pass": true
+    },
+    {
+      "name": "dirty-source-unchanged",
+      "pass": true,
+      "entries": 587
+    },
+    {
+      "name": "shared-loopback-refresh-burst-320",
+      "pass": true,
+      "requests": 320
+    },
+    {
+      "name": "network-boundary-http://192.168.1.46:4114/api/health",
+      "pass": true
+    },
+    {
+      "name": "network-boundary-https://example.com",
+      "pass": true
+    },
+    {
+      "name": "network-boundary-http://127.0.0.1:4200",
+      "pass": true
+    }
+  ]
+}

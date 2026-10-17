@@ -1,0 +1,1608 @@
+{
+  "at": "2026-10-06T08:09:00.1902269Z",
+  "stage": "accepted",
+  "syntheticOnly": true,
+  "selectOnly": true,
+  "runtime": {
+    "erpSource": "e54a1d0f428a9ec15c75feb131b672a56be0b231",
+    "erpPackage": "CANONICAL-TEST-e54a1d0f428a",
+    "nativePackage": "CANONICAL-TEST-e54a1d0f428a",
+    "nativeSource": "e54a1d0f428a9ec15c75feb131b672a56be0b231"
+  },
+  "expectedSourceProof": {
+    "getterHash": "E086690CB1F9FED0ADE717AFCDE3615FFAB4CD2C8125BBD2BC7594D1E51654B8",
+    "setterHash": "65B893C0DE2C93682DEB5FB73A8562BD61CD3518ED84D4B06A56D8375D6E291F",
+    "nativeGuardHash": "4557F61641783D8FC08DDB56CCF53228455A21D8EBA3E1B5A2E5A03B71FAAE52",
+    "currentGuardHash": "F2DB9D9F5EDACF8CE96684E709ACC36D362476A15DDD4ED2FFA96F04FBA51326",
+    "versionGuardHash": "754106E88E26876D5E39B2665DB9416393AE018F610020D566C1B5E3759B5266",
+    "journalGuardHash": "3C9A21AE92CF23E9E71877DB08FF9E9F4FA04F6889856AE387ED7CDE8E2FC0EB",
+    "manifestGuardHash": "5F28DFBBE063EFB8D1B94BB1E8EF8D80B80AD63DE3ABDC199155765743B89DD4",
+    "scopeGuardHash": "B15C888460A23B9BFDF25087518C47707F81679D85715D001D2F480C4A81E649",
+    "unitGuardHash": "EF3250868470E47F1C312707A9EB8ACEEA5352EAFBEF95ACC5C7CAC215D43C8C",
+    "consumerGetterHash": "AEE9DA2CDDC3EC96BE426C210FB78AE7078FD03544A4F315B3CA835AF1A06B3A",
+    "consumerAssertHash": "A042A928FF449C6B3AA1241CF1DB910524F53D145F77A553D8E62E84376E41BB",
+    "consumerManifestGuardHash": "F12A5E55992A477052F40816E5B35B24F4440CAEE7FEEC89E3A88157F3EE0713"
+  },
+  "identity": [
+    {
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "serverName": "Semih\\MELISADEV"
+    }
+  ],
+  "products": [
+    {
+      "productId": "301986",
+      "stockCode": "TEST-DAILY-PURCHASE",
+      "unit": "ADET",
+      "stockExact3": "32.000",
+      "averageCostTryExact4": "62.4222",
+      "supplierId": "13373",
+      "sourceRecordReference": null,
+      "migrationRunId": null
+    }
+  ],
+  "supplier": [
+    {
+      "supplierId": "13373",
+      "supplierCode": "TEST-DAILY-PUR-S",
+      "currency": "TRY",
+      "supplierBalanceExact4": "60.0000"
+    }
+  ],
+  "currentPrices": [
+    {
+      "priceId": "279225",
+      "nativePriceId": "279225",
+      "versionId": "7",
+      "type": "purchase",
+      "unitId": null,
+      "tier": 0,
+      "currency": "USD",
+      "priceExact8": "1.34567890",
+      "nativePriceExact": "1.34567890",
+      "rowVersion": "\u0000\u0000\u0000\u0000\u0001\u0001™Q",
+      "sourceRecordReference": "C09/301986/purchase/CARD/0/USD"
+    },
+    {
+      "priceId": "279226",
+      "nativePriceId": "279226",
+      "versionId": "5",
+      "type": "purchase",
+      "unitId": null,
+      "tier": 0,
+      "currency": "EUR",
+      "priceExact8": null,
+      "nativePriceExact": null,
+      "rowVersion": "\u0000\u0000\u0000\u0000\u0001\u0001\\*",
+      "sourceRecordReference": "C09/301986/purchase/CARD/0/EUR"
+    },
+    {
+      "priceId": "279227",
+      "nativePriceId": "279227",
+      "versionId": "6",
+      "type": "sale",
+      "unitId": "98694",
+      "tier": 1,
+      "currency": "TRY",
+      "priceExact8": "2.34567890",
+      "nativePriceExact": "2.34567890",
+      "rowVersion": "\u0000\u0000\u0000\u0000\u0001\u0001z\u0012",
+      "sourceRecordReference": "C09/301986/sale/98694/1/TRY"
+    }
+  ],
+  "priceVersions": [
+    {
+      "versionId": "1",
+      "priceId": "279225",
+      "priceExact8": "1.12345678",
+      "actorId": "16",
+      "reason": "TEST C09: fiyat kaydı ve yeni alış kabulü",
+      "changedAt": "2026-10-05T07:49:45.296Z",
+      "requestId": "09459CB9-830F-49C9-8AB9-3E5E5D65A3ED",
+      "isCurrent": false
+    },
+    {
+      "versionId": "2",
+      "priceId": "279225",
+      "priceExact8": "1.23456789",
+      "actorId": "16",
+      "reason": "TEST C09: kesin fiyat, bilinmiyor ve gerçek sıfır kabulü",
+      "changedAt": "2026-10-05T08:05:08.131Z",
+      "requestId": "45E35C4C-6413-46CB-AB84-BB922B607E37",
+      "isCurrent": false
+    },
+    {
+      "versionId": "3",
+      "priceId": "279226",
+      "priceExact8": null,
+      "actorId": "16",
+      "reason": "TEST C09: kesin fiyat, bilinmiyor ve gerçek sıfır kabulü",
+      "changedAt": "2026-10-05T08:05:09.083Z",
+      "requestId": "27878409-C14E-4165-A3E7-AD218C27CD72",
+      "isCurrent": false
+    },
+    {
+      "versionId": "4",
+      "priceId": "279226",
+      "priceExact8": "0.00000000",
+      "actorId": "16",
+      "reason": "TEST C09: kesin fiyat, bilinmiyor ve gerçek sıfır kabulü",
+      "changedAt": "2026-10-05T08:05:09.628Z",
+      "requestId": "43384E87-044E-4102-8E94-435BCD43BE99",
+      "isCurrent": false
+    },
+    {
+      "versionId": "5",
+      "priceId": "279226",
+      "priceExact8": null,
+      "actorId": "16",
+      "reason": "TEST C09: kesin fiyat, bilinmiyor ve gerçek sıfır kabulü",
+      "changedAt": "2026-10-05T08:05:10.755Z",
+      "requestId": "F9D5DA38-7B15-4D81-90D1-7A2749B72823",
+      "isCurrent": true
+    },
+    {
+      "versionId": "6",
+      "priceId": "279227",
+      "priceExact8": "2.34567890",
+      "actorId": "16",
+      "reason": "TEST C09: satış tuple ve kayıt sonrası seçimi koruma",
+      "changedAt": "2026-10-05T08:08:40.684Z",
+      "requestId": "63F3A02C-0B0A-4BC1-A3B6-CF820D0FCBB5",
+      "isCurrent": true
+    },
+    {
+      "versionId": "7",
+      "priceId": "279225",
+      "priceExact8": "1.34567890",
+      "actorId": "16",
+      "reason": "TEST C09: normal ekranda mevcut fiyat düzenleme kabulü",
+      "changedAt": "2026-10-05T08:18:41.366Z",
+      "requestId": "F8E2F88C-943C-4377-8E5D-5F7011AB06F4",
+      "isCurrent": true
+    }
+  ],
+  "intents": [
+    {
+      "id": "1",
+      "request_id": "cea1d733-f597-476f-8199-3ca5c44c3978",
+      "actor_id": "16",
+      "receipt_id": "37",
+      "invoice_id": "25090",
+      "status": "cancelled",
+      "price_id": "279225",
+      "version_id": "1",
+      "native_price_id": "279225",
+      "before_revision": "C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022",
+      "price_exact": "1.12345678",
+      "native_price": "1.1235",
+      "currency": "USD",
+      "quantity": "2.000",
+      "document_rate_id": 2,
+      "account_rate_id": 1,
+      "document_rate": "40.00000000",
+      "account_rate": "1.00000000",
+      "document_total": "2.2470",
+      "account_total": "89.8800",
+      "amount_try": "89.8800",
+      "payload_hash": "913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7",
+      "document_no": "TDAY-C09-d8693fb5a60fa50a4553",
+      "document_date": "2026-10-04T00:00:00.0000000Z",
+      "unit": "ADET",
+      "unit_factor": "1.00000000",
+      "stock_before": "29.000",
+      "cost_before": "63.9242",
+      "stock_after": "31.000",
+      "cost_after": "62.6994",
+      "immutableVersionPriceExact8": "1.12345678",
+      "priceReason": "TEST C09: fiyat kaydı ve yeni alış kabulü",
+      "priceChangedAt": "2026-10-05T07:49:45.296Z"
+    },
+    {
+      "id": "2",
+      "request_id": "eb2db8fe-245c-4087-908b-7af1a9da22c5",
+      "actor_id": "16",
+      "receipt_id": "38",
+      "invoice_id": null,
+      "status": "received",
+      "price_id": "279225",
+      "version_id": "7",
+      "native_price_id": "279225",
+      "before_revision": "C1301F97238843BBF6DF487CABC9786B11EC2C53830D0906D44C9D05403E6E1A",
+      "price_exact": "1.34567890",
+      "native_price": "1.3457",
+      "currency": "USD",
+      "quantity": "1.000",
+      "document_rate_id": 2,
+      "account_rate_id": 1,
+      "document_rate": "40.00000000",
+      "account_rate": "1.00000000",
+      "document_total": "1.3457",
+      "account_total": "53.8280",
+      "amount_try": "53.8280",
+      "payload_hash": "dcd48a20f87974528b0b0cef68ab8308bf6c5a0dd5865a239442f40a8f48a1d8",
+      "document_no": "TDAY-C09-8befaf27e6c3d271553c",
+      "document_date": "2026-10-04T00:00:00.0000000Z",
+      "unit": "ADET",
+      "unit_factor": "1.00000000",
+      "stock_before": "31.000",
+      "cost_before": "62.6994",
+      "stock_after": "32.000",
+      "cost_after": "62.4222",
+      "immutableVersionPriceExact8": "1.34567890",
+      "priceReason": "TEST C09: normal ekranda mevcut fiyat düzenleme kabulü",
+      "priceChangedAt": "2026-10-05T08:18:41.366Z"
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "37",
+      "intentId": "1",
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": "16",
+      "decidedBy": "16",
+      "reason": null,
+      "storedPayloadJson": "{\"marker\":\"C09PRICE\",\"intentId\":1,\"quantity\":2,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":44.94,\"amountTry\":89.88}",
+      "storedPlanJson": null,
+      "storedResultJson": null
+    },
+    {
+      "receiptId": "38",
+      "intentId": "2",
+      "flow": "purchase",
+      "kind": "goods",
+      "state": "approved",
+      "createdBy": "16",
+      "decidedBy": "16",
+      "reason": null,
+      "storedPayloadJson": "{\"marker\":\"C09PRICE\",\"intentId\":2,\"quantity\":1,\"unit\":\"ADET\",\"unitFactor\":1,\"warehouse\":\"TEST-DAILY-WH\",\"date\":\"2026-10-04\",\"unitCostTry\":53.828,\"amountTry\":53.828}",
+      "storedPlanJson": null,
+      "storedResultJson": null
+    }
+  ],
+  "invoices": [
+    {
+      "invoiceId": "25090",
+      "intentId": "1",
+      "documentNo": "TDAY-C09-d8693fb5a60fa50a4553",
+      "status": "cancelled",
+      "documentDate": "2026-10-04",
+      "documentCurrency": "USD",
+      "supplierCurrency": "TRY",
+      "documentRate": "40.00000000",
+      "accountCurrency": "TRY",
+      "accountRate": "1.00000000",
+      "documentTotal": "2.2470",
+      "accountAmount": "89.8800",
+      "amountTry": "89.8800",
+      "stockCostEffectTry": "89.8800",
+      "cancelReason": "TEST C09: orijinal fiyat ve kurla fatura iptal kabulü"
+    }
+  ],
+  "invoiceItems": [
+    {
+      "id": "93190",
+      "purchase_invoice_id": "25090",
+      "product_id": "301986",
+      "stock_code_snapshot": "TEST-DAILY-PURCHASE",
+      "barcode_snapshot": null,
+      "product_name_snapshot": "TEST GÜNLÜK PURCHASE",
+      "quantity": "2.000",
+      "currency_code": "USD",
+      "purchase_price": "1.1235",
+      "line_discount_rate": "0.0000",
+      "line_total": "2.2470",
+      "line_total_try": "89.8800",
+      "stock_effect_snapshot": "goods_receipt_already_posted",
+      "note": null,
+      "created_at": "2026-10-05T08:02:14.0000000Z",
+      "source_record_key": null,
+      "migration_run_id": null,
+      "source_payload_hash": null,
+      "source_payload_json": null,
+      "source_document_key": null,
+      "original_document_date": null,
+      "document_id": null,
+      "source_product_id": null,
+      "source_stock_code": null,
+      "source_product_name": null,
+      "quantity_exact": null,
+      "unit_price_source": null,
+      "line_total_source": null,
+      "exchange_rate": null,
+      "discount_rates_json": null,
+      "description": null,
+      "unit_name": null,
+      "unit_multiplier": null,
+      "brand_snapshot": null,
+      "category_snapshot": null,
+      "product_link_status": null,
+      "discount_rate_1": null,
+      "discount_rate_2": null,
+      "discount_rate_3": null,
+      "discount_rate_4": null,
+      "discount_rate_5": null,
+      "discount_rate_6": null
+    }
+  ],
+  "stockMovements": [
+    {
+      "id": "903120",
+      "sourceType": "purchase_invoice",
+      "sourceId": "25075",
+      "movementType": "in",
+      "quantityIn": "5.000",
+      "quantityOut": "0.000",
+      "quantityNet": "5.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "300.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": null
+    },
+    {
+      "id": "903121",
+      "sourceType": "goods_receipt",
+      "sourceId": "1",
+      "movementType": "in",
+      "quantityIn": "2.000",
+      "quantityOut": "0.000",
+      "quantityNet": "2.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "120.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903122",
+      "sourceType": "invoice_return",
+      "sourceId": "209",
+      "movementType": "out",
+      "quantityIn": "0.000",
+      "quantityOut": "2.000",
+      "quantityNet": "-2.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "-120.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903123",
+      "sourceType": "invoice_return",
+      "sourceId": "210",
+      "movementType": "out",
+      "quantityIn": "0.000",
+      "quantityOut": "3.000",
+      "quantityNet": "-3.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "-180.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903124",
+      "sourceType": "invoice_return_cancel",
+      "sourceId": "209",
+      "movementType": "in",
+      "quantityIn": "2.000",
+      "quantityOut": "0.000",
+      "quantityNet": "2.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "120.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903125",
+      "sourceType": "invoice_return_cancel",
+      "sourceId": "210",
+      "movementType": "in",
+      "quantityIn": "3.000",
+      "quantityOut": "0.000",
+      "quantityNet": "3.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "180.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903126",
+      "sourceType": "stock_adjustment",
+      "sourceId": "4",
+      "movementType": "out",
+      "quantityIn": "0.000",
+      "quantityOut": "2.000",
+      "quantityNet": "-2.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "0.0000",
+      "amountTry": "0.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903128",
+      "sourceType": "invoice_return",
+      "sourceId": "212",
+      "movementType": "out",
+      "quantityIn": "0.000",
+      "quantityOut": "1.000",
+      "quantityNet": "-1.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "-60.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903129",
+      "sourceType": "invoice_return_cancel",
+      "sourceId": "212",
+      "movementType": "in",
+      "quantityIn": "1.000",
+      "quantityOut": "0.000",
+      "quantityNet": "1.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "60.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903146",
+      "sourceType": "goods_receipt",
+      "sourceId": "17",
+      "movementType": "in",
+      "quantityIn": "3.000",
+      "quantityOut": "0.000",
+      "quantityNet": "3.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "180.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "903147",
+      "sourceType": "stock_adjustment",
+      "sourceId": "18",
+      "movementType": "out",
+      "quantityIn": "0.000",
+      "quantityOut": "2.000",
+      "quantityNet": "-2.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "0.0000",
+      "amountTry": "0.0000",
+      "currency": "TRY",
+      "documentDate": "2026-09-29T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "906573",
+      "sourceType": "invoice_return",
+      "sourceId": "219",
+      "movementType": "out",
+      "quantityIn": "0.000",
+      "quantityOut": "1.000",
+      "quantityNet": "-1.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "-60.0000",
+      "currency": "TRY",
+      "documentDate": "2026-10-03T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "906574",
+      "sourceType": "invoice_return_cancel",
+      "sourceId": "219",
+      "movementType": "in",
+      "quantityIn": "1.000",
+      "quantityOut": "0.000",
+      "quantityNet": "1.000",
+      "unitCostTry": "60.0000",
+      "averageCostTryAfter": "60.0000",
+      "unitPrice": "60.0000",
+      "amountTry": "60.0000",
+      "currency": "TRY",
+      "documentDate": "2026-10-03T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "907900",
+      "sourceType": "goods_receipt",
+      "sourceId": "32",
+      "movementType": "in",
+      "quantityIn": "1.000",
+      "quantityOut": "0.000",
+      "quantityNet": "1.000",
+      "unitCostTry": "49.5000",
+      "averageCostTryAfter": "59.6111",
+      "unitPrice": "49.5000",
+      "amountTry": "49.5000",
+      "currency": "TRY",
+      "documentDate": "2026-10-04T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "907901",
+      "sourceType": "goods_receipt",
+      "sourceId": "33",
+      "movementType": "in",
+      "quantityIn": "1.000",
+      "quantityOut": "0.000",
+      "quantityNet": "1.000",
+      "unitCostTry": "194.8000",
+      "averageCostTryAfter": "64.4393",
+      "unitPrice": "194.8000",
+      "amountTry": "194.8000",
+      "currency": "TRY",
+      "documentDate": "2026-10-04T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "907903",
+      "sourceType": "goods_receipt",
+      "sourceId": "35",
+      "movementType": "in",
+      "quantityIn": "1.000",
+      "quantityOut": "0.000",
+      "quantityNet": "1.000",
+      "unitCostTry": "49.5000",
+      "averageCostTryAfter": "63.9242",
+      "unitPrice": "49.5000",
+      "amountTry": "49.5000",
+      "currency": "TRY",
+      "documentDate": "2026-10-04T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "907904",
+      "sourceType": "goods_receipt",
+      "sourceId": "37",
+      "movementType": "in",
+      "quantityIn": "2.000",
+      "quantityOut": "0.000",
+      "quantityNet": "2.000",
+      "unitCostTry": "44.9400",
+      "averageCostTryAfter": "62.6994",
+      "unitPrice": "44.9400",
+      "amountTry": "89.8800",
+      "currency": "TRY",
+      "documentDate": "2026-10-04T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    },
+    {
+      "id": "907919",
+      "sourceType": "goods_receipt",
+      "sourceId": "38",
+      "movementType": "in",
+      "quantityIn": "1.000",
+      "quantityOut": "0.000",
+      "quantityNet": "1.000",
+      "unitCostTry": "53.8280",
+      "averageCostTryAfter": "62.4222",
+      "unitPrice": "53.8280",
+      "amountTry": "53.8280",
+      "currency": "TRY",
+      "documentDate": "2026-10-04T00:00:00.0000000Z",
+      "supplierId": "13373",
+      "createdBy": "16"
+    }
+  ],
+  "supplierMovements": [
+    {
+      "id": "47921",
+      "invoiceId": "25075",
+      "movementType": "purchase_invoice",
+      "documentCurrency": "TRY",
+      "documentAmount": "300.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "300.0000",
+      "debtEffect": "300.0000",
+      "amountTry": "300.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47922",
+      "invoiceId": "25075",
+      "movementType": "payment",
+      "documentCurrency": "TRY",
+      "documentAmount": "300.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "300.0000",
+      "debtEffect": "-300.0000",
+      "amountTry": "300.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47923",
+      "invoiceId": null,
+      "movementType": "purchase_return",
+      "documentCurrency": "TRY",
+      "documentAmount": "120.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "120.0000",
+      "debtEffect": "-120.0000",
+      "amountTry": "120.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47924",
+      "invoiceId": null,
+      "movementType": "purchase_return",
+      "documentCurrency": "TRY",
+      "documentAmount": "180.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "180.0000",
+      "debtEffect": "-180.0000",
+      "amountTry": "180.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47925",
+      "invoiceId": null,
+      "movementType": "purchase_return_cancel",
+      "documentCurrency": "TRY",
+      "documentAmount": "120.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "120.0000",
+      "debtEffect": "120.0000",
+      "amountTry": "120.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47926",
+      "invoiceId": null,
+      "movementType": "purchase_return_cancel",
+      "documentCurrency": "TRY",
+      "documentAmount": "180.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "180.0000",
+      "debtEffect": "180.0000",
+      "amountTry": "180.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47927",
+      "invoiceId": null,
+      "movementType": "purchase_return",
+      "documentCurrency": "TRY",
+      "documentAmount": "60.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "60.0000",
+      "debtEffect": "-60.0000",
+      "amountTry": "60.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47928",
+      "invoiceId": null,
+      "movementType": "purchase_return_cancel",
+      "documentCurrency": "TRY",
+      "documentAmount": "60.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "60.0000",
+      "debtEffect": "60.0000",
+      "amountTry": "60.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47930",
+      "invoiceId": "25078",
+      "movementType": "purchase_invoice",
+      "documentCurrency": "TRY",
+      "documentAmount": "60.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "60.0000",
+      "debtEffect": "60.0000",
+      "amountTry": "60.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47969",
+      "invoiceId": null,
+      "movementType": "purchase_return",
+      "documentCurrency": "TRY",
+      "documentAmount": "60.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "60.0000",
+      "debtEffect": "-60.0000",
+      "amountTry": "60.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "47970",
+      "invoiceId": null,
+      "movementType": "purchase_return_cancel",
+      "documentCurrency": "TRY",
+      "documentAmount": "60.0000",
+      "accountCurrency": "TRY",
+      "accountAmount": "60.0000",
+      "debtEffect": "60.0000",
+      "amountTry": "60.0000",
+      "documentRate": "1.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "48053",
+      "invoiceId": "25088",
+      "movementType": "purchase_invoice",
+      "documentCurrency": "USD",
+      "documentAmount": "4.8700",
+      "accountCurrency": "TRY",
+      "accountAmount": "194.8000",
+      "debtEffect": "194.8000",
+      "amountTry": "194.8000",
+      "documentRate": "40.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "48054",
+      "invoiceId": "25088",
+      "movementType": "purchase_invoice_cancel",
+      "documentCurrency": "USD",
+      "documentAmount": "4.8700",
+      "accountCurrency": "TRY",
+      "accountAmount": "194.8000",
+      "debtEffect": "-194.8000",
+      "amountTry": "194.8000",
+      "documentRate": "40.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "48055",
+      "invoiceId": "25087",
+      "movementType": "purchase_invoice",
+      "documentCurrency": "EUR",
+      "documentAmount": "1.1000",
+      "accountCurrency": "TRY",
+      "accountAmount": "49.5000",
+      "debtEffect": "49.5000",
+      "amountTry": "49.5000",
+      "documentRate": "45.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "48056",
+      "invoiceId": "25087",
+      "movementType": "purchase_invoice_cancel",
+      "documentCurrency": "EUR",
+      "documentAmount": "1.1000",
+      "accountCurrency": "TRY",
+      "accountAmount": "49.5000",
+      "debtEffect": "-49.5000",
+      "amountTry": "49.5000",
+      "documentRate": "45.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "48057",
+      "invoiceId": "25090",
+      "movementType": "purchase_invoice",
+      "documentCurrency": "USD",
+      "documentAmount": "2.2470",
+      "accountCurrency": "TRY",
+      "accountAmount": "89.8800",
+      "debtEffect": "89.8800",
+      "amountTry": "89.8800",
+      "documentRate": "40.00000000",
+      "accountRate": "1.00000000"
+    },
+    {
+      "id": "48058",
+      "invoiceId": "25090",
+      "movementType": "purchase_invoice_cancel",
+      "documentCurrency": "USD",
+      "documentAmount": "2.2470",
+      "accountCurrency": "TRY",
+      "accountAmount": "89.8800",
+      "debtEffect": "-89.8800",
+      "amountTry": "89.8800",
+      "documentRate": "40.00000000",
+      "accountRate": "1.00000000"
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "cea1d733-f597-476f-8199-3ca5c44c3978",
+      "actor_id": "16",
+      "operation": "quote_create",
+      "payload_json": "{\"input\":{\"date\":\"2026-10-04\",\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"quantity\":2,\"rateVersion\":\"1\",\"requestId\":\"cea1d733-f597-476f-8199-3ca5c44c3978\",\"selection\":{\"priceId\":\"279225\",\"productId\":\"301986\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\",\"versionId\":\"1\"}},\"operation\":\"quote_create\"}",
+      "payload_hash": "C5FF4E10893150FF120BA6A0D8C1173D64B55B96E38E533A26245FD599CE6EE4",
+      "entity_id": "37",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\"},\"quantity\":2,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T07:49:45.296Z\",\"reason\":\"TEST C09: fiyat kaydı ve yeni alış kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.12345678\",\"writable\":true,\"documentAmountExact4\":\"2.2470\",\"accountAmountExact4\":\"89.8800\",\"amountTryExact4\":\"89.8800\",\"projection\":{\"priceExact\":\"1.12345678\",\"nativePriceExact4\":\"1.1235\",\"roundingDeltaExact8\":\"0.00004322\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.1235,\"exact\":\"1.1235\"}},\"nativePriceExact4\":\"1.1235\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":37,\"intentId\":1,\"receiptId\":37,\"invoiceId\":null,\"status\":\"quoted\",\"number\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"state\":\"pending\"}",
+      "created_at": "2026-10-05T08:01:01.0670000Z"
+    },
+    {
+      "request_id": "f9d0afca-5e42-4524-83e0-ff69bbd09318",
+      "actor_id": "16",
+      "operation": "receipt_accept",
+      "payload_json": "{\"input\":{\"id\":37,\"requestId\":\"f9d0afca-5e42-4524-83e0-ff69bbd09318\"},\"operation\":\"receipt_accept\"}",
+      "payload_hash": "8A05F6E449CE804DE4F45470E190C94DF8FDB4A9A8DCD479675080F1B27A88E2",
+      "entity_id": "37",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\"},\"quantity\":2,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T07:49:45.296Z\",\"reason\":\"TEST C09: fiyat kaydı ve yeni alış kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.12345678\",\"writable\":true,\"documentAmountExact4\":\"2.2470\",\"accountAmountExact4\":\"89.8800\",\"amountTryExact4\":\"89.8800\",\"projection\":{\"priceExact\":\"1.12345678\",\"nativePriceExact4\":\"1.1235\",\"roundingDeltaExact8\":\"0.00004322\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.1235,\"exact\":\"1.1235\"}},\"nativePriceExact4\":\"1.1235\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":37,\"intentId\":1,\"receiptId\":37,\"invoiceId\":null,\"status\":\"received\",\"number\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"state\":\"approved\"}",
+      "created_at": "2026-10-05T08:01:53.4120000Z"
+    },
+    {
+      "request_id": "6dc49081-a727-40ce-8f19-a5529238a3fa",
+      "actor_id": "16",
+      "operation": "draft_create",
+      "payload_json": "{\"input\":{\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"receiptId\":37,\"requestId\":\"6dc49081-a727-40ce-8f19-a5529238a3fa\"},\"operation\":\"draft_create\"}",
+      "payload_hash": "5D968C4F22D4F3EF134EB9993553E6026D1521DD17310D74D4DDB4E22D0F360F",
+      "entity_id": "25090",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\"},\"quantity\":2,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T07:49:45.296Z\",\"reason\":\"TEST C09: fiyat kaydı ve yeni alış kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.12345678\",\"writable\":true,\"documentAmountExact4\":\"2.2470\",\"accountAmountExact4\":\"89.8800\",\"amountTryExact4\":\"89.8800\",\"projection\":{\"priceExact\":\"1.12345678\",\"nativePriceExact4\":\"1.1235\",\"roundingDeltaExact8\":\"0.00004322\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.1235,\"exact\":\"1.1235\"}},\"nativePriceExact4\":\"1.1235\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":25090,\"intentId\":1,\"receiptId\":37,\"invoiceId\":25090,\"status\":\"draft\",\"number\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"invoice\":{\"id\":\"25090\",\"documentNo\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"documentDate\":\"2026-10-04T00:00:00.000Z\",\"supplierId\":\"13373\",\"supplierName\":\"TEST GÜNLÜK ALIŞ İADE TEDARİKÇİ\",\"status\":\"DRAFT\",\"supplierCurrency\":\"TRY\",\"documentCurrency\":\"USD\",\"exchangeRate\":40,\"description\":\"C09PRICE TEST kabul #37\",\"subtotal\":2.247,\"lineDiscountTotal\":0,\"invoiceDiscountRate\":0,\"supplierDiscountRate\":0,\"discountTotal\":0,\"grandTotal\":2.247,\"amountTry\":89.88,\"stockCostEffectTry\":89.88,\"updatedAt\":null,\"accountCurrency\":\"TRY\",\"accountAmount\":89.88,\"accountExchangeRate\":1,\"invoiceDiscountType\":\"rate\",\"invoiceDiscountAmount\":0,\"items\":[{\"id\":\"93190\",\"productId\":\"301986\",\"stockCode\":\"TEST-DAILY-PURCHASE\",\"barcode\":null,\"productName\":\"TEST GÜNLÜK PURCHASE\",\"quantity\":2,\"currency\":\"USD\",\"purchasePrice\":1.1235,\"lineDiscountRate\":0,\"lineTotal\":2.247,\"lineTotalTry\":89.88,\"stockEffect\":\"goods_receipt_already_posted\",\"note\":null}]}}",
+      "created_at": "2026-10-05T08:02:15.0880000Z"
+    },
+    {
+      "request_id": "01bb8d50-3494-43d7-b373-4cd849fee079",
+      "actor_id": "16",
+      "operation": "draft_finalize",
+      "payload_json": "{\"input\":{\"id\":25090,\"requestId\":\"01bb8d50-3494-43d7-b373-4cd849fee079\"},\"operation\":\"draft_finalize\"}",
+      "payload_hash": "0A07338A8B985E8F311094BD60481D96B280C1204C5028FA1A0EFF8899557FD5",
+      "entity_id": "25090",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\"},\"quantity\":2,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T07:49:45.296Z\",\"reason\":\"TEST C09: fiyat kaydı ve yeni alış kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.12345678\",\"writable\":true,\"documentAmountExact4\":\"2.2470\",\"accountAmountExact4\":\"89.8800\",\"amountTryExact4\":\"89.8800\",\"projection\":{\"priceExact\":\"1.12345678\",\"nativePriceExact4\":\"1.1235\",\"roundingDeltaExact8\":\"0.00004322\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.1235,\"exact\":\"1.1235\"}},\"nativePriceExact4\":\"1.1235\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":25090,\"intentId\":1,\"receiptId\":37,\"invoiceId\":25090,\"status\":\"finalized\",\"number\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"invoice\":{\"id\":\"25090\",\"documentNo\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"documentDate\":\"2026-10-04T00:00:00.000Z\",\"supplierId\":\"13373\",\"supplierName\":\"TEST GÜNLÜK ALIŞ İADE TEDARİKÇİ\",\"status\":\"FINALIZED\",\"supplierCurrency\":\"TRY\",\"documentCurrency\":\"USD\",\"exchangeRate\":40,\"description\":\"C09PRICE TEST kabul #37\",\"subtotal\":2.247,\"lineDiscountTotal\":0,\"invoiceDiscountRate\":0,\"supplierDiscountRate\":0,\"discountTotal\":0,\"grandTotal\":2.247,\"amountTry\":89.88,\"stockCostEffectTry\":89.88,\"updatedAt\":\"2026-10-05T08:02:58.000Z\",\"accountCurrency\":\"TRY\",\"accountAmount\":89.88,\"accountExchangeRate\":1,\"invoiceDiscountType\":\"rate\",\"invoiceDiscountAmount\":0,\"items\":[{\"id\":\"93190\",\"productId\":\"301986\",\"stockCode\":\"TEST-DAILY-PURCHASE\",\"barcode\":null,\"productName\":\"TEST GÜNLÜK PURCHASE\",\"quantity\":2,\"currency\":\"USD\",\"purchasePrice\":1.1235,\"lineDiscountRate\":0,\"lineTotal\":2.247,\"lineTotalTry\":89.88,\"stockEffect\":\"goods_receipt_already_posted\",\"note\":null}]}}",
+      "created_at": "2026-10-05T08:02:58.3770000Z"
+    },
+    {
+      "request_id": "e48a2226-73d6-4da2-8291-4df674018b93",
+      "actor_id": "16",
+      "operation": "draft_cancel",
+      "payload_json": "{\"input\":{\"id\":25090,\"reason\":\"TEST C09: orijinal fiyat ve kurla fatura iptal kabulü\",\"requestId\":\"e48a2226-73d6-4da2-8291-4df674018b93\"},\"operation\":\"draft_cancel\"}",
+      "payload_hash": "B5D7CE6C79CE1A70E86817FB60A491F0BA2D52FCEB3A14E9769C56A4454738FF",
+      "entity_id": "25090",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\"},\"quantity\":2,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"1\",\"revision\":\"C8A2ABB2EED6BCA61090A3E3A3DF16A8B4F9EBAB99C5072AA2741CA827C59022\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T07:49:45.296Z\",\"reason\":\"TEST C09: fiyat kaydı ve yeni alış kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.12345678\",\"writable\":true,\"documentAmountExact4\":\"2.2470\",\"accountAmountExact4\":\"89.8800\",\"amountTryExact4\":\"89.8800\",\"projection\":{\"priceExact\":\"1.12345678\",\"nativePriceExact4\":\"1.1235\",\"roundingDeltaExact8\":\"0.00004322\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.1235,\"exact\":\"1.1235\"}},\"nativePriceExact4\":\"1.1235\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":25090,\"intentId\":1,\"receiptId\":37,\"invoiceId\":25090,\"status\":\"cancelled\",\"number\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"previewHash\":\"913cb9c87e314ec9e1fa056941640114b000dec2e77fbfb70029114c32d661c7\",\"invoice\":{\"id\":\"25090\",\"documentNo\":\"TDAY-C09-d8693fb5a60fa50a4553\",\"documentDate\":\"2026-10-04T00:00:00.000Z\",\"supplierId\":\"13373\",\"supplierName\":\"TEST GÜNLÜK ALIŞ İADE TEDARİKÇİ\",\"status\":\"CANCELLED\",\"supplierCurrency\":\"TRY\",\"documentCurrency\":\"USD\",\"exchangeRate\":40,\"description\":\"C09PRICE TEST kabul #37\",\"subtotal\":2.247,\"lineDiscountTotal\":0,\"invoiceDiscountRate\":0,\"supplierDiscountRate\":0,\"discountTotal\":0,\"grandTotal\":2.247,\"amountTry\":89.88,\"stockCostEffectTry\":89.88,\"updatedAt\":\"2026-10-05T08:03:51.000Z\",\"accountCurrency\":\"TRY\",\"accountAmount\":89.88,\"accountExchangeRate\":1,\"invoiceDiscountType\":\"rate\",\"invoiceDiscountAmount\":0,\"items\":[{\"id\":\"93190\",\"productId\":\"301986\",\"stockCode\":\"TEST-DAILY-PURCHASE\",\"barcode\":null,\"productName\":\"TEST GÜNLÜK PURCHASE\",\"quantity\":2,\"currency\":\"USD\",\"purchasePrice\":1.1235,\"lineDiscountRate\":0,\"lineTotal\":2.247,\"lineTotalTry\":89.88,\"stockEffect\":\"goods_receipt_already_posted\",\"note\":null}]}}",
+      "created_at": "2026-10-05T08:03:51.6910000Z"
+    },
+    {
+      "request_id": "eb2db8fe-245c-4087-908b-7af1a9da22c5",
+      "actor_id": "16",
+      "operation": "quote_create",
+      "payload_json": "{\"input\":{\"date\":\"2026-10-04\",\"previewHash\":\"dcd48a20f87974528b0b0cef68ab8308bf6c5a0dd5865a239442f40a8f48a1d8\",\"quantity\":1,\"rateVersion\":\"1\",\"requestId\":\"eb2db8fe-245c-4087-908b-7af1a9da22c5\",\"selection\":{\"priceId\":\"279225\",\"productId\":\"301986\",\"revision\":\"C1301F97238843BBF6DF487CABC9786B11EC2C53830D0906D44C9D05403E6E1A\",\"versionId\":\"7\"}},\"operation\":\"quote_create\"}",
+      "payload_hash": "B268A50B4A9ABF4D7C6C76793536A9823B3283E1469E5043316741FF7F2BBA7C",
+      "entity_id": "38",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"7\",\"revision\":\"C1301F97238843BBF6DF487CABC9786B11EC2C53830D0906D44C9D05403E6E1A\"},\"quantity\":1,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"7\",\"revision\":\"C1301F97238843BBF6DF487CABC9786B11EC2C53830D0906D44C9D05403E6E1A\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T08:18:41.366Z\",\"reason\":\"TEST C09: normal ekranda mevcut fiyat düzenleme kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.34567890\",\"writable\":true,\"documentAmountExact4\":\"1.3457\",\"accountAmountExact4\":\"53.8280\",\"amountTryExact4\":\"53.8280\",\"projection\":{\"priceExact\":\"1.34567890\",\"nativePriceExact4\":\"1.3457\",\"roundingDeltaExact8\":\"0.00002110\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.3457,\"exact\":\"1.3457\"}},\"nativePriceExact4\":\"1.3457\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":38,\"intentId\":2,\"receiptId\":38,\"invoiceId\":null,\"status\":\"quoted\",\"number\":\"TDAY-C09-8befaf27e6c3d271553c\",\"previewHash\":\"dcd48a20f87974528b0b0cef68ab8308bf6c5a0dd5865a239442f40a8f48a1d8\",\"state\":\"pending\"}",
+      "created_at": "2026-10-06T08:08:00.2080000Z"
+    },
+    {
+      "request_id": "1b43065d-b8ae-4f22-acee-ba81530e87cf",
+      "actor_id": "16",
+      "operation": "receipt_accept",
+      "payload_json": "{\"input\":{\"id\":38,\"requestId\":\"1b43065d-b8ae-4f22-acee-ba81530e87cf\"},\"operation\":\"receipt_accept\"}",
+      "payload_hash": "444057AC1E5A90A0008EA705E02BF24CAF911DD1780957426A0804304DE07C46",
+      "entity_id": "38",
+      "response_json": "{\"selection\":{\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"7\",\"revision\":\"C1301F97238843BBF6DF487CABC9786B11EC2C53830D0906D44C9D05403E6E1A\"},\"quantity\":1,\"date\":\"2026-10-04\",\"currency\":\"USD\",\"accountCurrency\":\"TRY\",\"sourceProof\":{\"source\":\"native-operational-price\",\"productId\":\"301986\",\"priceId\":\"279225\",\"versionId\":\"7\",\"revision\":\"C1301F97238843BBF6DF487CABC9786B11EC2C53830D0906D44C9D05403E6E1A\",\"actorId\":\"16\",\"changedAt\":\"2026-10-05T08:18:41.366Z\",\"reason\":\"TEST C09: normal ekranda mevcut fiyat düzenleme kabulü\"},\"operationalUnit\":{\"productId\":\"301986\",\"unit\":\"ADET\",\"factorExact8\":\"1.00000000\",\"source\":\"synthetic-copy-unit-evidence\",\"hash\":\"d64ed01c53b5fc7098c4fc8ebc7516563303df7545dffafd09efb6d28d71fac7\"},\"synthetic\":true,\"targetProductId\":301986,\"supplierId\":13373,\"priceExact\":\"1.34567890\",\"writable\":true,\"documentAmountExact4\":\"1.3457\",\"accountAmountExact4\":\"53.8280\",\"amountTryExact4\":\"53.8280\",\"projection\":{\"priceExact\":\"1.34567890\",\"nativePriceExact4\":\"1.3457\",\"roundingDeltaExact8\":\"0.00002110\",\"roundingRule\":\"HALF_UP\",\"roundingRequired\":true,\"knownZero\":false,\"nativeNumberBoundary\":{\"safe\":true,\"value\":1.3457,\"exact\":\"1.3457\"}},\"nativePriceExact4\":\"1.3457\",\"rates\":{\"document\":{\"currency\":\"USD\",\"rateToTryExact8\":\"40.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-USD\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"0799172ceed0e902cc17e77839107be4c2a53a7967b99b42e9802363fa19c82a\"},\"account\":{\"currency\":\"TRY\",\"rateToTryExact8\":\"1.00000000\",\"source\":\"synthetic-test\",\"sourceId\":\"C03-FX-20261004-TRY\",\"asOf\":\"2026-10-04\",\"version\":\"1\",\"hash\":\"6a25ba76785ffa7359ebbf413229ae40b7771db6fa19e3bebf85ebd74e5ee9aa\"}},\"blockedCode\":null,\"id\":38,\"intentId\":2,\"receiptId\":38,\"invoiceId\":null,\"status\":\"received\",\"number\":\"TDAY-C09-8befaf27e6c3d271553c\",\"previewHash\":\"dcd48a20f87974528b0b0cef68ab8308bf6c5a0dd5865a239442f40a8f48a1d8\",\"state\":\"approved\"}",
+      "created_at": "2026-10-06T08:08:30.1650000Z"
+    }
+  ],
+  "objects": [
+    {
+      "name": "c09_guard_current_price_audit",
+      "definitionHash": "BC918BFABBA634EE7DABA340196F6257715395A0CC58E865C3EF96255F6130E4",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_daily_receipts",
+      "definitionHash": "D19F5AA3BF6E3A3DBFC92E7DD5F9A6F439DE8BC241EEF53BA2283FDDE433E2BF",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_headers",
+      "definitionHash": "5174AA5C3229C497E6173158C7098A372FCDEF0B50694778CD587511383B21FD",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_items",
+      "definitionHash": "88E7156B2FDC9D546DA142F3786613451B58F97F7CD60F57C736BFCEC84C817A",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_products",
+      "definitionHash": "0774CB0B8571AE7FEC9CA40908A234B0FA31E6B0D36CCE20E94A398C00EAA490",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_purchase_intents",
+      "definitionHash": "74F13A60B714C3EE65E86B3E130CFF6DCCA1054FAF8AB2B4065F21CA5A7D8D7B",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_requests",
+      "definitionHash": "4CD4882602684AC348E8C31E9FBC9BA614A2D0E3F6A93172E19CB9B5198A8E0D",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_stock",
+      "definitionHash": "F244B5162D5400686BC04486BB30D4BE8B557B41C1FE286B69C96901DC6C2513",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_supplier_balance",
+      "definitionHash": "25121BAD5EDA623463C5414106B19B1F98843D8A2B525A88B959FD353399109F",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_current_price_supplier_movements",
+      "definitionHash": "F0A9D917FD13226A13A4351E09714DDAF3B2E7777CE24E2035E1B3CA11E215F9",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_native_product_prices",
+      "definitionHash": "4557F61641783D8FC08DDB56CCF53228455A21D8EBA3E1B5A2E5A03B71FAAE52",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_product_price_current",
+      "definitionHash": "F2DB9D9F5EDACF8CE96684E709ACC36D362476A15DDD4ED2FFA96F04FBA51326",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_product_price_requests",
+      "definitionHash": "3C9A21AE92CF23E9E71877DB08FF9E9F4FA04F6889856AE387ED7CDE8E2FC0EB",
+      "disabled": false
+    },
+    {
+      "name": "c09_guard_product_price_versions",
+      "definitionHash": "754106E88E26876D5E39B2665DB9416393AE018F610020D566C1B5E3759B5266",
+      "disabled": false
+    },
+    {
+      "name": "c09_immutable_test_current_price_purchase_manifest",
+      "definitionHash": "F12A5E55992A477052F40816E5B35B24F4440CAEE7FEEC89E3A88157F3EE0713",
+      "disabled": false
+    },
+    {
+      "name": "c09_immutable_test_product_price_manifest",
+      "definitionHash": "5F28DFBBE063EFB8D1B94BB1E8EF8D80B80AD63DE3ABDC199155765743B89DD4",
+      "disabled": false
+    },
+    {
+      "name": "c09_immutable_test_product_price_scope",
+      "definitionHash": "B15C888460A23B9BFDF25087518C47707F81679D85715D001D2F480C4A81E649",
+      "disabled": false
+    },
+    {
+      "name": "c09_immutable_test_product_price_units",
+      "definitionHash": "EF3250868470E47F1C312707A9EB8ACEEA5352EAFBEF95ACC5C7CAC215D43C8C",
+      "disabled": false
+    },
+    {
+      "name": "usp_assert_test_current_price_purchase_received",
+      "definitionHash": "A042A928FF449C6B3AA1241CF1DB910524F53D145F77A553D8E62E84376E41BB",
+      "disabled": false
+    },
+    {
+      "name": "usp_get_test_current_price_purchase_context",
+      "definitionHash": "AEE9DA2CDDC3EC96BE426C210FB78AE7078FD03544A4F315B3CA835AF1A06B3A",
+      "disabled": false
+    },
+    {
+      "name": "usp_get_test_product_prices",
+      "definitionHash": "E086690CB1F9FED0ADE717AFCDE3615FFAB4CD2C8125BBD2BC7594D1E51654B8",
+      "disabled": false
+    },
+    {
+      "name": "usp_set_test_product_price",
+      "definitionHash": "65B893C0DE2C93682DEB5FB73A8562BD61CD3518ED84D4B06A56D8375D6E291F",
+      "disabled": false
+    }
+  ],
+  "c09ManifestObjects": [
+    {
+      "manifest": "price",
+      "name": "c09_guard_native_product_prices",
+      "expectedHash": "4557F61641783D8FC08DDB56CCF53228455A21D8EBA3E1B5A2E5A03B71FAAE52",
+      "actualHash": "4557F61641783D8FC08DDB56CCF53228455A21D8EBA3E1B5A2E5A03B71FAAE52",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "c09_guard_product_price_current",
+      "expectedHash": "F2DB9D9F5EDACF8CE96684E709ACC36D362476A15DDD4ED2FFA96F04FBA51326",
+      "actualHash": "F2DB9D9F5EDACF8CE96684E709ACC36D362476A15DDD4ED2FFA96F04FBA51326",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "c09_guard_product_price_requests",
+      "expectedHash": "3C9A21AE92CF23E9E71877DB08FF9E9F4FA04F6889856AE387ED7CDE8E2FC0EB",
+      "actualHash": "3C9A21AE92CF23E9E71877DB08FF9E9F4FA04F6889856AE387ED7CDE8E2FC0EB",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "c09_guard_product_price_versions",
+      "expectedHash": "754106E88E26876D5E39B2665DB9416393AE018F610020D566C1B5E3759B5266",
+      "actualHash": "754106E88E26876D5E39B2665DB9416393AE018F610020D566C1B5E3759B5266",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "c09_immutable_test_product_price_manifest",
+      "expectedHash": "5F28DFBBE063EFB8D1B94BB1E8EF8D80B80AD63DE3ABDC199155765743B89DD4",
+      "actualHash": "5F28DFBBE063EFB8D1B94BB1E8EF8D80B80AD63DE3ABDC199155765743B89DD4",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "c09_immutable_test_product_price_scope",
+      "expectedHash": "B15C888460A23B9BFDF25087518C47707F81679D85715D001D2F480C4A81E649",
+      "actualHash": "B15C888460A23B9BFDF25087518C47707F81679D85715D001D2F480C4A81E649",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "c09_immutable_test_product_price_units",
+      "expectedHash": "EF3250868470E47F1C312707A9EB8ACEEA5352EAFBEF95ACC5C7CAC215D43C8C",
+      "actualHash": "EF3250868470E47F1C312707A9EB8ACEEA5352EAFBEF95ACC5C7CAC215D43C8C",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "usp_get_test_product_prices",
+      "expectedHash": "E086690CB1F9FED0ADE717AFCDE3615FFAB4CD2C8125BBD2BC7594D1E51654B8",
+      "actualHash": "E086690CB1F9FED0ADE717AFCDE3615FFAB4CD2C8125BBD2BC7594D1E51654B8",
+      "disabled": false
+    },
+    {
+      "manifest": "price",
+      "name": "usp_set_test_product_price",
+      "expectedHash": "65B893C0DE2C93682DEB5FB73A8562BD61CD3518ED84D4B06A56D8375D6E291F",
+      "actualHash": "65B893C0DE2C93682DEB5FB73A8562BD61CD3518ED84D4B06A56D8375D6E291F",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_audit",
+      "expectedHash": "BC918BFABBA634EE7DABA340196F6257715395A0CC58E865C3EF96255F6130E4",
+      "actualHash": "BC918BFABBA634EE7DABA340196F6257715395A0CC58E865C3EF96255F6130E4",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_daily_receipts",
+      "expectedHash": "D19F5AA3BF6E3A3DBFC92E7DD5F9A6F439DE8BC241EEF53BA2283FDDE433E2BF",
+      "actualHash": "D19F5AA3BF6E3A3DBFC92E7DD5F9A6F439DE8BC241EEF53BA2283FDDE433E2BF",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_headers",
+      "expectedHash": "5174AA5C3229C497E6173158C7098A372FCDEF0B50694778CD587511383B21FD",
+      "actualHash": "5174AA5C3229C497E6173158C7098A372FCDEF0B50694778CD587511383B21FD",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_items",
+      "expectedHash": "88E7156B2FDC9D546DA142F3786613451B58F97F7CD60F57C736BFCEC84C817A",
+      "actualHash": "88E7156B2FDC9D546DA142F3786613451B58F97F7CD60F57C736BFCEC84C817A",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_products",
+      "expectedHash": "0774CB0B8571AE7FEC9CA40908A234B0FA31E6B0D36CCE20E94A398C00EAA490",
+      "actualHash": "0774CB0B8571AE7FEC9CA40908A234B0FA31E6B0D36CCE20E94A398C00EAA490",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_purchase_intents",
+      "expectedHash": "74F13A60B714C3EE65E86B3E130CFF6DCCA1054FAF8AB2B4065F21CA5A7D8D7B",
+      "actualHash": "74F13A60B714C3EE65E86B3E130CFF6DCCA1054FAF8AB2B4065F21CA5A7D8D7B",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_requests",
+      "expectedHash": "4CD4882602684AC348E8C31E9FBC9BA614A2D0E3F6A93172E19CB9B5198A8E0D",
+      "actualHash": "4CD4882602684AC348E8C31E9FBC9BA614A2D0E3F6A93172E19CB9B5198A8E0D",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_stock",
+      "expectedHash": "F244B5162D5400686BC04486BB30D4BE8B557B41C1FE286B69C96901DC6C2513",
+      "actualHash": "F244B5162D5400686BC04486BB30D4BE8B557B41C1FE286B69C96901DC6C2513",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_supplier_balance",
+      "expectedHash": "25121BAD5EDA623463C5414106B19B1F98843D8A2B525A88B959FD353399109F",
+      "actualHash": "25121BAD5EDA623463C5414106B19B1F98843D8A2B525A88B959FD353399109F",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_guard_current_price_supplier_movements",
+      "expectedHash": "F0A9D917FD13226A13A4351E09714DDAF3B2E7777CE24E2035E1B3CA11E215F9",
+      "actualHash": "F0A9D917FD13226A13A4351E09714DDAF3B2E7777CE24E2035E1B3CA11E215F9",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "c09_immutable_test_current_price_purchase_manifest",
+      "expectedHash": "F12A5E55992A477052F40816E5B35B24F4440CAEE7FEEC89E3A88157F3EE0713",
+      "actualHash": "F12A5E55992A477052F40816E5B35B24F4440CAEE7FEEC89E3A88157F3EE0713",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "usp_assert_test_current_price_purchase_received",
+      "expectedHash": "A042A928FF449C6B3AA1241CF1DB910524F53D145F77A553D8E62E84376E41BB",
+      "actualHash": "A042A928FF449C6B3AA1241CF1DB910524F53D145F77A553D8E62E84376E41BB",
+      "disabled": false
+    },
+    {
+      "manifest": "consumer",
+      "name": "usp_get_test_current_price_purchase_context",
+      "expectedHash": "AEE9DA2CDDC3EC96BE426C210FB78AE7078FD03544A4F315B3CA835AF1A06B3A",
+      "actualHash": "AEE9DA2CDDC3EC96BE426C210FB78AE7078FD03544A4F315B3CA835AF1A06B3A",
+      "disabled": false
+    }
+  ],
+  "legacyManifestObjects": [
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_goods_batch_lines",
+      "expectedHash": "CB665011747B53F68A34A543EF96720CF1A63617B40CD98943C561AEF3F7CA92",
+      "actualHash": "CB665011747B53F68A34A543EF96720CF1A63617B40CD98943C561AEF3F7CA92",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_goods_batches",
+      "expectedHash": "E1EA449A4AE132AD815D26272B425AAAE06F82720EAC974E60CF4C10872847B6",
+      "actualHash": "E1EA449A4AE132AD815D26272B425AAAE06F82720EAC974E60CF4C10872847B6",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_purchase_batch_drafts",
+      "expectedHash": "2FBC722C898A265C1EFCDD6ADB722A09CC1D42C34E7D3362AC3C54ADA1EBE698",
+      "actualHash": "2FBC722C898A265C1EFCDD6ADB722A09CC1D42C34E7D3362AC3C54ADA1EBE698",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_purchase_batch_guard_manifest",
+      "expectedHash": "A20898DD4E5DA9C29FD108693CF7271AB62A7D7899744EB18E479BDDF726E1B0",
+      "actualHash": "A20898DD4E5DA9C29FD108693CF7271AB62A7D7899744EB18E479BDDF726E1B0",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_purchase_batch_intent_lines",
+      "expectedHash": "6515C077E332761FD8C9B981541C3846AB38C43140F95582F5B850BEC6288064",
+      "actualHash": "6515C077E332761FD8C9B981541C3846AB38C43140F95582F5B850BEC6288064",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_purchase_batch_links",
+      "expectedHash": "3F34AE5EB874BF652B6167F2B0CB024E8B654C12A559D483072EB81453DB41E5",
+      "actualHash": "3F34AE5EB874BF652B6167F2B0CB024E8B654C12A559D483072EB81453DB41E5",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_batch_guard_test_purchase_batch_scope",
+      "expectedHash": "C2CCEDC66DECC21D2684877C1C8E85262F53C6E8DB8CEF78CBB07FDB58BAEFD7",
+      "actualHash": "C2CCEDC66DECC21D2684877C1C8E85262F53C6E8DB8CEF78CBB07FDB58BAEFD7",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_audit_logs",
+      "expectedHash": "E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E",
+      "actualHash": "E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_products",
+      "expectedHash": "6962769EA4567178D107BE4B416ADF0ED716CCCFB194F0C2781A0F535AE770C9",
+      "actualHash": "6962769EA4567178D107BE4B416ADF0ED716CCCFB194F0C2781A0F535AE770C9",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_purchase_invoice_items",
+      "expectedHash": "58BAF43BD6BF9235FDED652692AB3EA8C7ABD846980FC4155D63D5E12661DDF3",
+      "actualHash": "58BAF43BD6BF9235FDED652692AB3EA8C7ABD846980FC4155D63D5E12661DDF3",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_purchase_invoices",
+      "expectedHash": "AF7FC59573D2112F4DD1F7730F78AD86FB119F74D5E2141818CFE54FB5F1D8FC",
+      "actualHash": "AF7FC59573D2112F4DD1F7730F78AD86FB119F74D5E2141818CFE54FB5F1D8FC",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_stock_movements",
+      "expectedHash": "FCC05C512C27C40C028BE9912F6442EC3101D76F1A9A1148CEE4A5398EDACC63",
+      "actualHash": "FCC05C512C27C40C028BE9912F6442EC3101D76F1A9A1148CEE4A5398EDACC63",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_supplier_movements",
+      "expectedHash": "2E9DEF9DD038511972F774271F44C20E8627FC53C1A4A754D99C0C80F7A04220",
+      "actualHash": "2E9DEF9DD038511972F774271F44C20E8627FC53C1A4A754D99C0C80F7A04220",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_suppliers",
+      "expectedHash": "201398D0AD53D8FA50F99C78699C13ECFF875F9D5E6787777961A31788910314",
+      "actualHash": "201398D0AD53D8FA50F99C78699C13ECFF875F9D5E6787777961A31788910314",
+      "disabled": false
+    },
+    {
+      "manifest": "batch15",
+      "name": "test_guard_test_purchase_requests",
+      "expectedHash": "FEF624D00B624BD8A3FE2666FD21AD31BE041E9404E89DC8AA89754345C800A8",
+      "actualHash": "FEF624D00B624BD8A3FE2666FD21AD31BE041E9404E89DC8AA89754345C800A8",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_audit",
+      "expectedHash": "FBD16D7B8476D7079F5432215332912AB3AC24C55D17794ED8CB5C8FE3FB6596",
+      "actualHash": "FBD16D7B8476D7079F5432215332912AB3AC24C55D17794ED8CB5C8FE3FB6596",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_daily_receipts",
+      "expectedHash": "837726152A01192C719D030A2FF6E78170537F6325CC1474F10A901B251F2623",
+      "actualHash": "837726152A01192C719D030A2FF6E78170537F6325CC1474F10A901B251F2623",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_headers",
+      "expectedHash": "030382C696E622667B0752DC6BD96AB4DA6369478189FF5A7C7D946DED5D8F67",
+      "actualHash": "030382C696E622667B0752DC6BD96AB4DA6369478189FF5A7C7D946DED5D8F67",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_intents",
+      "expectedHash": "1E16AFBAE063DB8B76064E6F08C5D2F40663D0AB7898C88CC169752EC88B54CC",
+      "actualHash": "1E16AFBAE063DB8B76064E6F08C5D2F40663D0AB7898C88CC169752EC88B54CC",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_items",
+      "expectedHash": "89946DEDB255DD4287B24CD4CF07DD35F96E7B23F344BA790FB6B2E57B0D77DA",
+      "actualHash": "89946DEDB255DD4287B24CD4CF07DD35F96E7B23F344BA790FB6B2E57B0D77DA",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_products",
+      "expectedHash": "1CB8F021F6B6B56BCC4A7719E8461E99548DFBB3A7CC3A5A317EC75795EF9E1A",
+      "actualHash": "1CB8F021F6B6B56BCC4A7719E8461E99548DFBB3A7CC3A5A317EC75795EF9E1A",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_requests",
+      "expectedHash": "E1451ADEB1F10CD2ED8F25D0A3D3872278717F1EBE6D796E883C02127A1AFAB8",
+      "actualHash": "E1451ADEB1F10CD2ED8F25D0A3D3872278717F1EBE6D796E883C02127A1AFAB8",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_stock",
+      "expectedHash": "46839407E80E203F0C0C4B68A6A2566E0DF807515A397E450076D014001A3973",
+      "actualHash": "46839407E80E203F0C0C4B68A6A2566E0DF807515A397E450076D014001A3973",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_supplier_balance",
+      "expectedHash": "81A36BD4AF24A4FF692B730B314D112776F339BE3CDB67E709D6E1B01B70638D",
+      "actualHash": "81A36BD4AF24A4FF692B730B314D112776F339BE3CDB67E709D6E1B01B70638D",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_guard_supplier_movements",
+      "expectedHash": "260F9098C77AF4C3849B957413BD691C590A0D13334F5439C38930EC45B6536A",
+      "actualHash": "260F9098C77AF4C3849B957413BD691C590A0D13334F5439C38930EC45B6536A",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_immutable_test_purchase_fx_guard_manifest",
+      "expectedHash": "F184BE4F10CC1232E0C446ED5418BF68BEBE296C9B6BAB8282ED043B1A7A2DC1",
+      "actualHash": "F184BE4F10CC1232E0C446ED5418BF68BEBE296C9B6BAB8282ED043B1A7A2DC1",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_immutable_test_purchase_fx_rates",
+      "expectedHash": "6CFF4CB0BE40AB54AC9859A52074C94762E7C54B98079282F4B3FA200263A0F3",
+      "actualHash": "6CFF4CB0BE40AB54AC9859A52074C94762E7C54B98079282F4B3FA200263A0F3",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_immutable_test_purchase_fx_scope",
+      "expectedHash": "84FAB09D798101332C18D924E1A59C20B09A6F2801F9CA0CFB6F59EC93A1DB6F",
+      "actualHash": "84FAB09D798101332C18D924E1A59C20B09A6F2801F9CA0CFB6F59EC93A1DB6F",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "c03_immutable_test_purchase_fx_sources",
+      "expectedHash": "36C16A2C9091A920E16D414BC0B5CD422F79845AED367B2A466A91166978A9D8",
+      "actualHash": "36C16A2C9091A920E16D414BC0B5CD422F79845AED367B2A466A91166978A9D8",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "usp_assert_test_purchase_fx_received",
+      "expectedHash": "7303F334B24609910EB787CFF190B787082B31523A37045D74AFDEA669ADBD85",
+      "actualHash": "7303F334B24609910EB787CFF190B787082B31523A37045D74AFDEA669ADBD85",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "usp_get_test_purchase_fx_context",
+      "expectedHash": "F6449E0382872414230426F14966096645A7DBA068E4B6A828FE43F6D6966359",
+      "actualHash": "F6449E0382872414230426F14966096645A7DBA068E4B6A828FE43F6D6966359",
+      "disabled": false
+    },
+    {
+      "manifest": "fx17",
+      "name": "usp_get_test_purchase_fx_unit_evidence",
+      "expectedHash": "4E213DC982A5677BE2F53592FABA586D85AD9246CC73E1C58BB707FDFE1CC70B",
+      "actualHash": "4E213DC982A5677BE2F53592FABA586D85AD9246CC73E1C58BB707FDFE1CC70B",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_audit_logs",
+      "expectedHash": "E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E",
+      "actualHash": "E9FC039F081E2B824440CBAE2302B53FCDF75B6F5A405161885AAC341640853E",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_customer_movements",
+      "expectedHash": "659C1C7B171BE196D187C54EB6B9BC7D5970E4BD7131C33D91197EE5212C32AC",
+      "actualHash": "659C1C7B171BE196D187C54EB6B9BC7D5970E4BD7131C33D91197EE5212C32AC",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_customers",
+      "expectedHash": "898759122A75148488200E50522996DCFDC64BD83658DEBD762C37325D902988",
+      "actualHash": "898759122A75148488200E50522996DCFDC64BD83658DEBD762C37325D902988",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_finance_accounts",
+      "expectedHash": "FF9ACB5B97D6E972D56CE9F4D3588DA431863FEF8EC9C3050952C6DB97D56854",
+      "actualHash": "FF9ACB5B97D6E972D56CE9F4D3588DA431863FEF8EC9C3050952C6DB97D56854",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_finance_movements",
+      "expectedHash": "E4AD1F48EBD22923ED849A36A1C118676679FBBB8C307CEB1B846FD070A027B5",
+      "actualHash": "E4AD1F48EBD22923ED849A36A1C118676679FBBB8C307CEB1B846FD070A027B5",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_products",
+      "expectedHash": "6962769EA4567178D107BE4B416ADF0ED716CCCFB194F0C2781A0F535AE770C9",
+      "actualHash": "6962769EA4567178D107BE4B416ADF0ED716CCCFB194F0C2781A0F535AE770C9",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_sales_invoice_items",
+      "expectedHash": "86A96D9F01AD980C473ED687AF71C24C0DAFF8EC9B6FA85A61549DE2936650D0",
+      "actualHash": "86A96D9F01AD980C473ED687AF71C24C0DAFF8EC9B6FA85A61549DE2936650D0",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_sales_invoices",
+      "expectedHash": "D4A9E7095B196608A060E49DA8F96AB72F224D987C3E77FD385FF5F43105F897",
+      "actualHash": "D4A9E7095B196608A060E49DA8F96AB72F224D987C3E77FD385FF5F43105F897",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "test_guard_stock_movements",
+      "expectedHash": "FCC05C512C27C40C028BE9912F6442EC3101D76F1A9A1148CEE4A5398EDACC63",
+      "actualHash": "FCC05C512C27C40C028BE9912F6442EC3101D76F1A9A1148CEE4A5398EDACC63",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_product_prices",
+      "expectedHash": "E5A51456582F7530AB9F5502BDDB960EEE12A066DC363EF46BCDA3A60C8FFF9A",
+      "actualHash": "E5A51456582F7530AB9F5502BDDB960EEE12A066DC363EF46BCDA3A60C8FFF9A",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_collection_links",
+      "expectedHash": "E9EC9505E8E5F8A19F1D2826C7E941262CC89BBE0F14C31FC0855A2272DEE8F0",
+      "actualHash": "E9EC9505E8E5F8A19F1D2826C7E941262CC89BBE0F14C31FC0855A2272DEE8F0",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_sales_links",
+      "expectedHash": "53893E38A0E45975897F9FCECAAFC95D98CBDB7A3D318C1CE7B6FF85A7190A5D",
+      "actualHash": "53893E38A0E45975897F9FCECAAFC95D98CBDB7A3D318C1CE7B6FF85A7190A5D",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_guard_manifest",
+      "expectedHash": "43A3720FDFD2E840C725814D474BDA6D10BEA0F753B51AC49F3318A5608DC7CA",
+      "actualHash": "43A3720FDFD2E840C725814D474BDA6D10BEA0F753B51AC49F3318A5608DC7CA",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_install_state",
+      "expectedHash": "63E5A3FF2396AD1CF63C45886E812E757AA49E5B0A9080188035AFFA135708CC",
+      "actualHash": "63E5A3FF2396AD1CF63C45886E812E757AA49E5B0A9080188035AFFA135708CC",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_intents",
+      "expectedHash": "2596D6E392E351C83598EC44DC7ECB078F33B499D867EC1CE15C055BFB363076",
+      "actualHash": "2596D6E392E351C83598EC44DC7ECB078F33B499D867EC1CE15C055BFB363076",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_legacy_manifest",
+      "expectedHash": "06E2CDC550B4C7895E3D4803B12095726F0CF458D8EF694787E2592FA6D679D5",
+      "actualHash": "06E2CDC550B4C7895E3D4803B12095726F0CF458D8EF694787E2592FA6D679D5",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_products",
+      "expectedHash": "337222622F1A1E5C4861C86CD3C6CA74E6A625BF8EADF3D44CAF6B59957E6CCA",
+      "actualHash": "337222622F1A1E5C4861C86CD3C6CA74E6A625BF8EADF3D44CAF6B59957E6CCA",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_requests",
+      "expectedHash": "B8076E0857942FC2E836AF83CB42B9B7E3A702464C597EF00D9558D998A3746B",
+      "actualHash": "B8076E0857942FC2E836AF83CB42B9B7E3A702464C597EF00D9558D998A3746B",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_night_guard_work_trade_scope",
+      "expectedHash": "9D4DC33DDD98032AFE619C48837B758B5F4EC2DE28E94DE9E934D515F0977BB9",
+      "actualHash": "9D4DC33DDD98032AFE619C48837B758B5F4EC2DE28E94DE9E934D515F0977BB9",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_trade_assert_effects",
+      "expectedHash": "3913AAD04ED69B9CA978EE1B99C4735161014AACCA60577BEA7AA38E7B1EEA2F",
+      "actualHash": "3913AAD04ED69B9CA978EE1B99C4735161014AACCA60577BEA7AA38E7B1EEA2F",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_trade_assert_ready",
+      "expectedHash": "71245635F3787A0DD3FC1982D2BA34DBF9713DB3925C0E26F3EF7FAADF8B13EF",
+      "actualHash": "71245635F3787A0DD3FC1982D2BA34DBF9713DB3925C0E26F3EF7FAADF8B13EF",
+      "disabled": false
+    },
+    {
+      "manifest": "night22",
+      "name": "work_trade_get_context",
+      "expectedHash": "A1519BBBFD145CC8FC53DBBB7B1F5D3B97D1D34CC5B66A42CE6000985341D23D",
+      "actualHash": "A1519BBBFD145CC8FC53DBBB7B1F5D3B97D1D34CC5B66A42CE6000985341D23D",
+      "disabled": false
+    }
+  ],
+  "rates": [
+    {
+      "currency": "TRY",
+      "rateExact8": "1.00000000",
+      "source": "synthetic-test",
+      "asOf": "2026-10-04",
+      "version": 1,
+      "hash": "6A25BA76785FFA7359EBBF413229AE40B7771DB6FA19E3BEBF85EBD74E5EE9AA"
+    },
+    {
+      "currency": "USD",
+      "rateExact8": "40.00000000",
+      "source": "synthetic-test",
+      "asOf": "2026-10-04",
+      "version": 1,
+      "hash": "0799172CEED0E902CC17E77839107BE4C2A53A7967B99B42E9802363FA19C82A"
+    },
+    {
+      "currency": "EUR",
+      "rateExact8": "45.00000000",
+      "source": "synthetic-test",
+      "asOf": "2026-10-04",
+      "version": 1,
+      "hash": "4A72419BA8DE16E63CC4321B2E9AB6C317E8EC45220AA56ACDA9D7FBCB15DD96"
+    }
+  ],
+  "sourcePinsVerified": true
+}

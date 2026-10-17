@@ -1,0 +1,189 @@
+{
+  "sourceCommit": "5baa621e6f3bb17d170aa9169ebfc1c8887df87b",
+  "actorSequence": [
+    "seller15",
+    "ilker16"
+  ],
+  "measurements": [
+    {
+      "path": "/api/work-sales/preview",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 4
+    },
+    {
+      "path": "/api/work-sales/preview",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 156
+    },
+    {
+      "path": "/api/work-sales/drafts",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 3
+    },
+    {
+      "path": "/api/work-sales/drafts",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 2115
+    },
+    {
+      "path": "/api/work-sales/drafts/34619/finalize",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 3
+    },
+    {
+      "path": "/api/work-sales/drafts/34619/finalize",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 2616
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 176
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 3
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 2
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 109
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 136
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 3
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 2
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 75
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 5
+    },
+    {
+      "path": "/api/work-collections/preview",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 4
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 233
+    },
+    {
+      "path": "/api/work-collections/preview",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 195
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 148
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 5
+    },
+    {
+      "path": "/api/work-collections",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 6
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 176
+    },
+    {
+      "path": "/api/work-collections",
+      "method": "POST",
+      "status": 200,
+      "durationMs": 902
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 189
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 2
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 69
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 197
+    },
+    {
+      "path": "/api/work-collections/context",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 2
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 76
+    },
+    {
+      "path": "/api/work-sales/invoices",
+      "method": "OPTIONS",
+      "status": 204,
+      "durationMs": 3
+    }
+  ]
+}

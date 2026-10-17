@@ -1,0 +1,19 @@
+{
+  "name": "@melisa-erp/sites-workflow",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "node scripts/test.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "jsbarcode": "3.12.3",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "vite": "^7.2.6",
+    "xlsx": "^0.18.5"
+  }
+}

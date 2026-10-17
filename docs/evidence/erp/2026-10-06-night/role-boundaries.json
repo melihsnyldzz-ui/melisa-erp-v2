@@ -1,0 +1,35 @@
+{
+  "at": "2026-10-06T00:32:03.599Z",
+  "sourceCommit": "11f17341dc69002aed8c249878c468058afc8da5",
+  "businessWrites": 0,
+  "roles": [
+    {
+      "role": "seller",
+      "actor": 15,
+      "capabilities": {
+        "canCreate": true,
+        "canFinalize": true,
+        "canCancel": true,
+        "canCollect": false,
+        "canCancelCollection": false
+      },
+      "collectionStatus": 200,
+      "accountCount": 0,
+      "financePreviewStatus": 403
+    },
+    {
+      "role": "ilker",
+      "actor": 16,
+      "capabilities": {
+        "canCreate": false,
+        "canFinalize": false,
+        "canCancel": false,
+        "canCollect": true,
+        "canCancelCollection": true
+      },
+      "collectionStatus": 200,
+      "accountCount": null,
+      "financePreviewStatus": null
+    }
+  ]
+}

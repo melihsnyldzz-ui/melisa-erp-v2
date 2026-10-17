@@ -1,0 +1,159 @@
+{
+  "success": true,
+  "data": {
+    "meta": {
+      "schemaVersion": "melisa-home.v1",
+      "date": "2026-10-06",
+      "timeZone": "Europe/Istanbul",
+      "readAt": "2026-10-06T00:27:25.722Z",
+      "source": "native-test",
+      "readOnly": true
+    },
+    "capabilities": {
+      "goods": true,
+      "purchase": true,
+      "sales": true,
+      "collection": true,
+      "product": true,
+      "customer": true,
+      "supplier": true,
+      "finance": true,
+      "payment": true,
+      "count": true,
+      "returns": true,
+      "approval": true
+    },
+    "navigationReady": {
+      "goods": true,
+      "sales": true,
+      "collection": true,
+      "product": true,
+      "customer": true,
+      "supplier": true,
+      "purchase": true,
+      "count": true,
+      "returns": true,
+      "approval": true
+    },
+    "sections": {
+      "sales": {
+        "status": "available",
+        "count": 1,
+        "cancelledCount": 2,
+        "currencyTotals": [
+          {
+            "currency": "TRY",
+            "amountExact4": "150.0000",
+            "knownCount": 1,
+            "unknownCount": 0
+          },
+          {
+            "currency": "USD",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          },
+          {
+            "currency": "EUR",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          }
+        ]
+      },
+      "goods": {
+        "status": "available",
+        "pendingCount": 0
+      },
+      "finance": {
+        "status": "available",
+        "collections": [
+          {
+            "currency": "TRY",
+            "amountExact4": "350.0000",
+            "knownCount": 4,
+            "unknownCount": 0
+          },
+          {
+            "currency": "USD",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          },
+          {
+            "currency": "EUR",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          }
+        ],
+        "payments": [
+          {
+            "currency": "TRY",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          },
+          {
+            "currency": "USD",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          },
+          {
+            "currency": "EUR",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          }
+        ],
+        "reversals": [
+          {
+            "currency": "TRY",
+            "amountExact4": "300.0000",
+            "knownCount": 3,
+            "unknownCount": 0
+          },
+          {
+            "currency": "USD",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          },
+          {
+            "currency": "EUR",
+            "amountExact4": "0.0000",
+            "knownCount": 0,
+            "unknownCount": 0
+          }
+        ],
+        "cash": {
+          "status": "unavailable",
+          "currencyTotals": []
+        }
+      },
+      "refunds": {
+        "status": "available",
+        "salesCount": 0,
+        "purchaseCount": 0,
+        "cancelledCount": 0
+      },
+      "counts": {
+        "status": "available",
+        "pendingCount": 0
+      },
+      "approvals": {
+        "status": "available",
+        "pendingCount": 0,
+        "sourceCoverage": [
+          "goods",
+          "count",
+          "sales-return",
+          "purchase-return"
+        ],
+        "complete": false
+      }
+    },
+    "tasks": []
+  }
+}

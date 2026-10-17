@@ -1,14 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Printer, RefreshCw } from 'lucide-react';
 import { fetchCustomers } from '../../services/customerApi.js';
 import { createCustomerCollection, createSupplierPayment, fetchFinanceAccounts, fetchFinanceMovements } from '../../services/financeApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
+import { fetchCurrencyRates } from '../../services/currencyRateApi.js';
+import { currencyPreview, definedCurrencyRate } from '../../utils/currencyPreview.js';
 import { exportRowsToCsv, printCurrentScreen, printFinanceReceipt } from '../../utils/exportUtils.js';
 import { openLedgerTarget } from '../shared/ledgerNavigation.js';
-import { normalizeSearchText } from '../../utils/searchText.js';
+import { apiConfig } from '../../config/apiConfig.js';
+import { resolveCustomerSelection } from '../../utils/customerSelection.js';
+import { fetchAllPages } from '../../utils/fetchAllPages.js';
 import { CollectionsEntryForm, CollectionsEffectPanel } from './CollectionsEntryForm.jsx';
 import { CollectionsHistoryTable } from './CollectionsHistoryTable.jsx';
 import { CollectionsReceiptPanel } from './CollectionsReceiptPanel.jsx';
+import { LinkedFinanceReceiptScreen } from './LinkedFinanceReceiptScreen.jsx';
+import { receiptFromMovement } from './financeReceiptNavigation.js';
+import { resolveCollectionsCapabilities } from './collectionsPermissions.js';
+import { clearFinanceReview, financeReviewKey, readFinanceReview, submitFinanceForReview } from './financeSubmissionReview.js';
 import {
   accountReceiptLabel,
   formatMoney,
@@ -20,8 +28,25 @@ import {
   today,
 } from './collectionsFormatters.js';
 
-export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpenScreen }) {
-  const initialMode = initialPayload.mode === 'payment' ? 'payment' : 'collection';
+const reviewStorage = {
+  getItem: (key) => window.localStorage.getItem(key),
+  setItem: (key, value) => window.localStorage.setItem(key, value),
+  removeItem: (key) => window.localStorage.removeItem(key),
+};
+
+export function CollectionsOverviewScreen(props) {
+  const movementId = props.initialPayload?.movementId;
+  return movementId !== undefined && movementId !== null && movementId !== ''
+    ? <LinkedFinanceReceiptScreen {...props} />
+    : <CollectionsEntryScreen {...props} />;
+}
+
+function CollectionsEntryScreen({ initialPayload = {}, onDirtyChange, onOpenScreen, permissions = [], userId }) {
+  const reviewKey = financeReviewKey(apiConfig.baseUrl, userId);
+  const [pendingReview, setPendingReview] = useState(() => readFinanceReview(reviewStorage, reviewKey));
+  const [reviewChecked, setReviewChecked] = useState(false);
+  const { canCollect, canPay } = resolveCollectionsCapabilities(permissions);
+  const initialMode = initialPayload.mode === 'payment' || (!canCollect && canPay) ? 'payment' : 'collection';
   const [mode, setMode] = useState(initialMode);
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -32,44 +57,79 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
     supplierId: initialMode === 'payment' && initialPayload.supplierId ? String(initialPayload.supplierId) : '',
     amount: '',
     currency: 'TRY',
+    exchangeRate: 1,
+    accountExchangeRate: '',
     paymentMethod: 'cash',
     accountId: '',
     documentDate: today(),
     description: '',
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [referenceDataReady, setReferenceDataReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [partyQuery, setPartyQuery] = useState('');
+  const [currencyRates, setCurrencyRates] = useState(null);
+  const [currencyRateError, setCurrencyRateError] = useState('');
+  const loadSequence = useRef(0);
+  const actionPending = useRef(false);
+  const canUseMode = mode === 'collection' ? canCollect : canPay;
+
+  useEffect(() => {
+    const refreshReview = () => { setPendingReview(readFinanceReview(reviewStorage, reviewKey)); setReviewChecked(false); };
+    refreshReview();
+    const onStorage = (event) => {
+      if (event.key && event.key !== reviewKey) return;
+      refreshReview();
+      if (event.newValue === null) {
+        setForm((current) => ({ ...current, customerId: '', supplierId: '', amount: '', accountId: '', description: '' }));
+        setPartyQuery('');
+        setIsDirty(false);
+        setErrorMessage('');
+        setMessage('İşlem kontrolü başka ekranda tamamlandı. Yeni giriş açıldı.');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [reviewKey]);
 
   async function loadData() {
+    const sequence = ++loadSequence.current;
     setIsLoading(true);
+    setReferenceDataReady(false);
     setErrorMessage('');
 
     try {
-      const [customerResponse, supplierResponse, accountResponse, movementResponse] = await Promise.all([
-        fetchCustomers({ page: 1, limit: 200, activeOnly: true }),
-        fetchSuppliers({ page: 1, limit: 200, activeOnly: true }),
+      if (!canUseMode) {
+        setErrorMessage('Bu işlem için cari görüntüleme ve tahsilat/ödeme yetkileri birlikte gerekli.');
+        return;
+      }
+      const [partyResponse, accountResponse, movementResponse] = await Promise.all([
+        fetchAllPages(mode === 'collection' ? fetchCustomers : fetchSuppliers, { activeOnly: true }),
         fetchFinanceAccounts(),
-        fetchFinanceMovements({ limit: 100 }),
+        fetchFinanceMovements({ limit: 100, partyType: mode === 'collection' ? 'customer' : 'supplier' }),
       ]);
-      setCustomers(customerResponse.data || []);
-      setSuppliers(supplierResponse.data || []);
+      if (sequence !== loadSequence.current) return;
+      if (mode === 'collection') setCustomers(partyResponse);
+      else setSuppliers(partyResponse);
       setAccounts(accountResponse.data || []);
       setMovements(movementResponse.data || []);
+      setReferenceDataReady(true);
     } catch (error) {
+      if (sequence !== loadSequence.current) return;
       setErrorMessage(`${error.message || 'Tahsilat/ödeme verisi okunamadı.'} (${error.code || 'API_ERROR'})`);
     } finally {
-      setIsLoading(false);
+      if (sequence === loadSequence.current) setIsLoading(false);
     }
   }
 
   useEffect(() => {
     loadData();
-  }, []);
+    return () => { loadSequence.current += 1; };
+  }, [mode, canUseMode]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -88,8 +148,10 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
   const currentParty = mode === 'collection' ? selectedCustomer : selectedSupplier;
   const amount = Number(form.amount || 0);
   const currentBalance = Number(currentParty?.balance || 0);
-  const nextBalance = currentParty ? currentBalance - amount : 0;
-  const partyCurrency = currentParty?.currency || form.currency || 'TRY';
+  const partyCurrency = currentParty?.currency || '';
+  const preview = currencyPreview({ amount: form.amount, currency: form.currency, accountCurrency: partyCurrency,
+    exchangeRate: form.exchangeRate, accountExchangeRate: form.accountExchangeRate });
+  const nextBalance = currentParty && preview.valid ? currentBalance - preview.settlement.accountAmount : null;
   const selectedPartyId = mode === 'collection' ? form.customerId : form.supplierId;
   const accountTypeByPaymentMethod = {
     bank: 'bank',
@@ -103,15 +165,33 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
     (account.type === accountTypeForPayment || form.paymentMethod === 'other')
   ));
   const hasValidAmount = Number.isFinite(amount) && amount > 0;
-  const canSubmit = Boolean(selectedPartyId) && hasValidAmount && !isSaving && !isLoading;
+  const canSubmit = canUseMode && referenceDataReady && Boolean(selectedPartyId) && Boolean(currentParty) && hasValidAmount && preview.valid && !isSaving && !isLoading && !pendingReview;
   useEffect(() => {
-    if (mode === 'collection' && selectedCustomer?.currency) {
-      setForm((current) => ({ ...current, currency: selectedCustomer.currency }));
-    }
-    if (mode === 'payment' && selectedSupplier?.currency) {
-      setForm((current) => ({ ...current, currency: selectedSupplier.currency }));
-    }
-  }, [mode, selectedCustomer, selectedSupplier]);
+    if (pendingReview) return;
+    const rate = definedCurrencyRate(currencyRates?.date === form.documentDate ? currencyRates.data : null, partyCurrency) ?? '';
+    setForm((current) => ({ ...current, ...(partyCurrency ? { currency: partyCurrency, exchangeRate: rate } : {}), accountExchangeRate: rate }));
+  }, [mode, currentParty?.id, partyCurrency]);
+
+  useEffect(() => {
+    let active = true;
+    setCurrencyRateError('');
+    fetchCurrencyRates({ date: form.documentDate }).then((response) => {
+      if (active) setCurrencyRates({ date: form.documentDate, data: response.data });
+    }).catch(() => {
+      if (active) { setCurrencyRates(null); setCurrencyRateError('Tarih için kur okunamadı. İşlem ve cari kurlarını girin.'); }
+    });
+    return () => { active = false; };
+  }, [form.documentDate]);
+
+  useEffect(() => {
+    if (pendingReview || currencyRates?.date !== form.documentDate) return;
+    setForm((current) => {
+      const exchangeRate = current.exchangeRate === '' ? definedCurrencyRate(currencyRates.data, current.currency) ?? '' : current.exchangeRate;
+      const accountExchangeRate = current.currency === partyCurrency ? exchangeRate
+        : current.accountExchangeRate === '' ? definedCurrencyRate(currencyRates.data, partyCurrency) ?? '' : current.accountExchangeRate;
+      return { ...current, exchangeRate, accountExchangeRate };
+    });
+  }, [currencyRates, form.currency, form.documentDate, partyCurrency]);
 
   useEffect(() => {
     if (currentParty && !partyQuery) {
@@ -128,25 +208,37 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
   }, [accountOptions, form.accountId]);
 
   function updateField(key, value) {
-    setForm((current) => ({ ...current, [key]: value }));
+    if (isSaving || pendingReview) return;
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      if (key === 'documentDate') {
+        next.exchangeRate = current.currency === 'TRY' ? 1 : '';
+        next.accountExchangeRate = partyCurrency === 'TRY' ? 1 : '';
+      }
+      if (key === 'currency') {
+        next.exchangeRate = definedCurrencyRate(currencyRates?.date === current.documentDate ? currencyRates.data : null, value) ?? '';
+      }
+      if (next.currency === partyCurrency) next.accountExchangeRate = next.exchangeRate;
+      return next;
+    });
     setIsDirty(true);
     setMessage('');
   }
 
   function updatePartyQuery(value) {
+    if (isSaving || pendingReview) return;
     setPartyQuery(value);
-    const query = normalizeSearchText(value);
-    const match = query && partyOptions.find((party) => {
-      const code = partyCode(party, mode);
-      const name = partyName(party, mode);
-      return [code, name, `${code} / ${name}`]
-        .some((candidate) => normalizeSearchText(candidate) === query);
-    });
+    const match = resolveCustomerSelection(partyOptions.map((party) => ({
+      id: party.id, code: partyCode(party, mode), name: partyName(party, mode),
+    })), value);
 
     updateField(mode === 'collection' ? 'customerId' : 'supplierId', match ? String(match.id) : '');
   }
 
   function switchMode(nextMode) {
+    if (isSaving || pendingReview || nextMode === mode || !(nextMode === 'collection' ? canCollect : canPay)) return;
+    loadSequence.current += 1;
+    setReferenceDataReady(false);
     setMode(nextMode);
     setPartyQuery('');
     setForm((current) => ({
@@ -168,13 +260,13 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
   }
 
   function openParty(row) {
-    if (row.partyType === 'supplier' && row.supplierId) {
-      onOpenScreen?.('supplier-card', { supplierId: row.supplierId, supplierCode: row.partyCode });
+    if (row.partyType === 'supplier' && (row.supplierId || row.partyId)) {
+      onOpenScreen?.('supplier-card', { supplierId: row.supplierId || row.partyId, supplierCode: row.partyCode });
       return;
     }
 
-    if (row.partyType !== 'supplier' && row.customerId) {
-      onOpenScreen?.('customer-card', { customerId: row.customerId, customerCode: row.partyCode });
+    if (row.partyType === 'customer' && (row.customerId || row.partyId)) {
+      onOpenScreen?.('customer-card', { customerId: row.customerId || row.partyId, customerCode: row.partyCode });
     }
   }
 
@@ -188,28 +280,7 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
   }
 
   function buildReceiptFromRow(row) {
-    const isPayment = row.movementType === 'payment';
-    const isCollection = row.movementType === 'collection';
-
-    if (!isPayment && !isCollection) {
-      return null;
-    }
-
-    return {
-      receiptNo: row.documentNo || `${isPayment ? 'OD' : 'TH'}-${row.id}`,
-      type: isPayment ? 'Ödeme Makbuzu' : 'Tahsilat Makbuzu',
-      partyType: row.partyType,
-      partyCode: row.partyCode,
-      partyName: row.partyName,
-      documentDate: row.documentDate,
-      amount: row.amount,
-      currency: row.currency,
-      paymentMethod: paymentMethodLabel(row.paymentMethod),
-      accountLabel: row.accountCode ? `${row.accountCode} / ${row.accountName || '-'}` : 'Hesap atanmamış',
-      balanceEffect: row.balanceEffect,
-      source: 'Hareket listesi',
-      description: `${row.documentNo || ''} cari hareketinden uretilen makbuz`,
-    };
+    return receiptFromMovement(row);
   }
 
   function buildReceiptFromResponse(responseData, party, currentMode) {
@@ -221,11 +292,17 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
       partyCode: partyCode(party, currentMode),
       partyName: partyName(party, currentMode),
       documentDate: responseData.documentDate || form.documentDate,
-      amount: responseData.amount || amount,
+      amount: responseData.amount,
       currency: responseData.currency || form.currency,
+      accountCurrency: responseData.accountCurrency,
+      accountAmount: responseData.accountAmount,
+      exchangeRate: responseData.exchangeRate,
+      accountExchangeRate: responseData.accountExchangeRate,
+      amountTry: responseData.amountTry,
+      settlementKnown: responseData.settlementKnown,
       paymentMethod: paymentMethodLabel(responseData.paymentMethod || form.paymentMethod),
       accountLabel: accountReceiptLabel(responseData.account),
-      balanceEffect: responseData.balanceEffect || -amount,
+      balanceEffect: responseData.balanceEffect,
       source: 'Yeni kayıt',
       description: form.description || `${partyCode(party, currentMode)} ${paymentMethodLabel(form.paymentMethod)}`,
     };
@@ -250,11 +327,27 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
 
   async function submitFinanceMovement(event) {
     event.preventDefault();
+    if (actionPending.current || isSaving || pendingReview) return;
     setMessage('');
     setErrorMessage('');
 
+    if (!canUseMode) {
+      setErrorMessage('Bu tahsilat/ödeme işlemi için yetkiniz yok.');
+      return;
+    }
+
+    if (isLoading || !referenceDataReady) {
+      setErrorMessage('Cari ve finans listeleri tamamen yüklenmeden kayıt yapılamaz. Yenile ile tekrar deneyin.');
+      return;
+    }
+
     if (!currentParty) {
       setErrorMessage(mode === 'collection' ? 'Önce müşteri seçin.' : 'Önce tedarikçi seçin.');
+      return;
+    }
+
+    if (!preview.valid) {
+      setErrorMessage(preview.error);
       return;
     }
 
@@ -263,28 +356,52 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
       return;
     }
 
+    actionPending.current = true;
     setIsSaving(true);
 
     try {
       const payload = {
         amount,
         currency: form.currency,
+        exchangeRate: preview.settlement.documentRateToTry,
+        accountExchangeRate: preview.settlement.accountRateToTry,
         paymentMethod: form.paymentMethod,
         accountId: form.accountId ? Number(form.accountId) : undefined,
         documentDate: form.documentDate,
         description: form.description || `${partyCode(currentParty, mode)} ${paymentMethodLabel(form.paymentMethod)}`,
       };
 
-      const response = mode === 'collection'
-         ? await createCustomerCollection({ ...payload, customerId: Number(form.customerId) })
-        : await createSupplierPayment({ ...payload, supplierId: Number(form.supplierId) });
+      const result = await submitFinanceForReview({
+        storage: reviewStorage, key: reviewKey,
+        details: { mode, partyId: Number(selectedPartyId), partyLabel: `${partyCode(currentParty, mode)} / ${partyName(currentParty, mode)}`,
+          amount, currency: form.currency, accountCurrency: partyCurrency, accountAmount: preview.settlement.accountAmount,
+          exchangeRate: payload.exchangeRate, accountExchangeRate: payload.accountExchangeRate, amountTry: preview.settlement.amountTry,
+          paymentMethod: form.paymentMethod, accountId: payload.accountId ?? null, documentDate: form.documentDate },
+        onReview: setPendingReview,
+        send: () => mode === 'collection'
+          ? createCustomerCollection({ ...payload, customerId: Number(form.customerId) })
+          : createSupplierPayment({ ...payload, supplierId: Number(form.supplierId) }),
+      });
+      if (result.status === 'blocked') {
+        setErrorMessage('Önceki işlemin kontrolü veya tarayıcı kayıt alanının erişimi tamamlanmadan yeni kayıt gönderilemez.');
+        return;
+      }
+      if (result.status === 'uncertain') {
+        setErrorMessage('İşlemin sonucu doğrulanamadı. Kayıt oluşmuş olabilir; yeniden göndermeden cari hareketlerini kontrol edin.');
+        return;
+      }
+      if (result.status === 'rejected') {
+        setErrorMessage(`${result.error.message || 'İşlem reddedildi.'} (${result.error.code || 'API_ERROR'})`);
+        return;
+      }
+      const response = result.response;
 
       const effect = Number(response.data.balanceEffect || 0);
       const resultText = mode === 'collection'
          ? 'Tahsilat kaydedildi, müşteri borcu azaldı'
         : 'Ödeme kaydedildi, tedarikçi borcu azaldı';
 
-      setMessage(`${resultText}. Bakiye etkisi: ${formatMoney(effect, response.data.currency || form.currency)}.`);
+      setMessage(`${resultText}. Bakiye etkisi: ${formatMoney(effect, response.data.accountCurrency)}.`);
       setSelectedReceipt(buildReceiptFromResponse(response.data, currentParty, mode));
       setForm((current) => ({
         ...current,
@@ -295,10 +412,37 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
       setIsDirty(false);
       await loadData();
     } catch (error) {
-      setErrorMessage(`${error.message || 'Kayıt başarısız.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage('İşlem ekranı tamamlanamadı. Yeni kayıt göndermeden cari hareketlerini kontrol edin.');
     } finally {
+      actionPending.current = false;
       setIsSaving(false);
     }
+  }
+
+  function finishReview() {
+    if (!reviewChecked || isSaving || !pendingReview || pendingReview.unavailable) return;
+    try {
+      clearFinanceReview(reviewStorage, reviewKey, pendingReview);
+      setPendingReview(null);
+      setReviewChecked(false);
+      setForm((current) => ({ ...current, customerId: '', supplierId: '', amount: '', accountId: '', description: '' }));
+      setPartyQuery('');
+      setIsDirty(false);
+      setErrorMessage('');
+      setMessage('Kontrol tamamlandı; yeni giriş açıldı. Önceki işlem yeniden gönderilmedi.');
+      loadData();
+    } catch {
+      setPendingReview(readFinanceReview(reviewStorage, reviewKey));
+      setReviewChecked(false);
+      setErrorMessage('Kontrol kaydı değişti veya temizlenemedi. Bilgileri yenileyip tekrar kontrol edin.');
+    }
+  }
+
+  function openReviewParty() {
+    const record = pendingReview?.record;
+    if (!record) return;
+    const payment = record.mode === 'payment';
+    onOpenScreen?.(payment ? 'supplier-card' : 'customer-card', payment ? { supplierId: record.partyId } : { customerId: record.partyId });
   }
 
   function exportMovementRows() {
@@ -315,6 +459,10 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
         { label: 'Tutar', key: 'amount' },
         { label: 'Bakiye Etkisi', key: 'balanceEffect' },
         { label: 'Para Birimi', key: 'currency' },
+        { label: 'Cari Para Birimi', key: 'accountCurrency' },
+        { label: 'Cari Tutarı', key: 'accountAmount' },
+        { label: 'İşlem Kuru', key: 'exchangeRate' },
+        { label: 'Cari Kuru', key: 'accountExchangeRate' },
       ],
     });
   }
@@ -327,19 +475,36 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
           <small>Cari seç, tutarı gir, bakiye etkisini kontrol ederek kaydet.</small>
         </div>
         <div className="collections-mode-switch">
-          <button className={mode === 'collection' ? 'pressed' : ''} type="button" onClick={() => switchMode('collection')}>Müşteri Tahsilatı</button>
-          <button className={mode === 'payment' ? 'pressed' : ''} type="button" onClick={() => switchMode('payment')}>Tedarikçi Ödemesi</button>
+          <button className={mode === 'collection' ? 'pressed' : ''} type="button" disabled={!canCollect || isSaving || Boolean(pendingReview)} onClick={() => switchMode('collection')}>Müşteri Tahsilatı</button>
+          <button className={mode === 'payment' ? 'pressed' : ''} type="button" disabled={!canPay || isSaving || Boolean(pendingReview)} onClick={() => switchMode('payment')}>Tedarikçi Ödemesi</button>
         </div>
         <div className="collections-hero-actions">
           <button type="button" onClick={exportMovementRows}><Download size={15} />Excel</button>
           <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tahsilat Ödeme')}><Printer size={15} />Yazdır</button>
-          <button type="button" onClick={loadData}><RefreshCw size={15} />Yenile</button>
+          <button type="button" onClick={loadData} disabled={isLoading || isSaving}><RefreshCw size={15} />Yenile</button>
         </div>
       </section>
 
       {isLoading && <div className="list-state">Finans verileri yükleniyor...</div>}
       {message && <div className="list-state list-state-success">{message}</div>}
       {errorMessage && <div className="list-state list-state-error">{errorMessage}</div>}
+      {pendingReview && !isSaving && <section className="erp-panel" role="alert" aria-label="İşlem kontrolü bekliyor">
+        <div className="panel-title"><strong>İşlem kontrolü bekliyor</strong></div>
+        <div className="finance-review-body" style={{ padding: '12px 16px', display: 'grid', gap: 12 }}>
+          {pendingReview.record && <p>{pendingReview.record.mode === 'payment' ? 'Tedarikçi ödemesi' : 'Müşteri tahsilatı'}: {pendingReview.record.partyLabel} — {formatMoney(pendingReview.record.amount, pendingReview.record.currency)} / {pendingReview.record.documentDate}</p>}
+          <p>{pendingReview.unavailable ? 'Tarayıcının işlem kontrol kaydına erişilemiyor. Yeni kayıt gönderilmedi; erişimi düzelttikten sonra ekranı yeniden açın.'
+            : 'Önceki işlemin sonucunu cari hareketlerinde kontrol edin. Son hareket listesi işlemin oluşmadığını tek başına kanıtlamaz. Yenileme veya ekranı tekrar açma işlemi yeniden göndermez.'}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+          {pendingReview.record && <button type="button" onClick={openReviewParty}>Cari Kartını Aç</button>}
+          {!pendingReview.unavailable && <>
+            <label><input type="checkbox" checked={reviewChecked} onChange={(event) => setReviewChecked(event.target.checked)} /> Önceki işlemin durumunu kontrol ettim.</label>
+            <button type="button" disabled={!reviewChecked} onClick={finishReview}>Kontrol tamamlandı; yeni giriş aç</button>
+          </>}
+          </div>
+        </div>
+      </section>}
+      {currencyRateError && <div className="list-state">{currencyRateError}</div>}
+      {currentParty && hasValidAmount && !preview.valid && <div className="list-state list-state-error">{preview.error}</div>}
 
       <section className="finance-entry-layout">
         <CollectionsEntryForm
@@ -353,6 +518,7 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
           accountOptions={accountOptions}
           canSubmit={canSubmit}
           isSaving={isSaving}
+          ratesReadonly={isSaving || Boolean(pendingReview)}
           onUpdateField={updateField}
           onPartyQueryChange={updatePartyQuery}
           onSubmit={submitFinanceMovement}
@@ -364,7 +530,8 @@ export function CollectionsOverviewScreen({ initialPayload, onDirtyChange, onOpe
           currentBalance={currentBalance}
           nextBalance={nextBalance}
           amount={amount}
-          hasValidAmount={hasValidAmount}
+          hasValidAmount={hasValidAmount && preview.valid}
+          accountAmount={preview.settlement?.accountAmount}
           partyCurrency={partyCurrency}
           formCurrency={form.currency}
           canSubmit={canSubmit}

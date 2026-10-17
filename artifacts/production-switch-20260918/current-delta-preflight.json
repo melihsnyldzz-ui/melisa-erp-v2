@@ -1,0 +1,540 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T22:08:55.843Z",
+  "mode": "READ_ONLY_CURRENT_DELTA_PREFLIGHT",
+  "identity": {
+    "server": "Semih\\MELISADEV",
+    "database": "master",
+    "sysadmin": 1
+  },
+  "databases": [
+    {
+      "name": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+      "state_desc": "ONLINE",
+      "user_access_desc": "MULTI_USER",
+      "is_read_only": false
+    },
+    {
+      "name": "MELISA_ERP_V2",
+      "state_desc": "ONLINE",
+      "user_access_desc": "MULTI_USER",
+      "is_read_only": false
+    }
+  ],
+  "counts": [
+    {
+      "scope": "LIVE",
+      "sales_invoices": "25",
+      "terminal_events": "23",
+      "audits": "21304",
+      "users": "10",
+      "stock_movements": "5868",
+      "customer_movements": "61"
+    },
+    {
+      "scope": "CANDIDATE",
+      "sales_invoices": "19083",
+      "terminal_events": "11",
+      "audits": "27198",
+      "users": "13",
+      "stock_movements": "554188",
+      "customer_movements": "28787"
+    }
+  ],
+  "missing": {
+    "salesInvoices": [
+      {
+        "id": "10038",
+        "document_no": "MP-f9c458fb8f06d4d6bc34495bcd",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T16:06:56.000Z",
+        "finalized_at": "2026-09-13T16:06:56.000Z",
+        "cancelled_at": "2026-09-13T16:06:56.000Z",
+        "document_currency": "USD",
+        "grand_total": 5.85
+      },
+      {
+        "id": "10039",
+        "document_no": "MP-082df046e2ea414bce0c435d24",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T16:06:56.000Z",
+        "finalized_at": "2026-09-13T16:06:56.000Z",
+        "cancelled_at": "2026-09-13T16:26:23.000Z",
+        "document_currency": "USD",
+        "grand_total": 11.7
+      },
+      {
+        "id": "10040",
+        "document_no": "PILOT-20260913-KASA-01",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T16:27:03.000Z",
+        "finalized_at": "2026-09-13T16:27:22.000Z",
+        "cancelled_at": "2026-09-13T16:36:34.000Z",
+        "document_currency": "USD",
+        "grand_total": 5.85
+      },
+      {
+        "id": "10041",
+        "document_no": "MP-06b50bbac589bb8f373e098b85",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T16:30:02.000Z",
+        "finalized_at": "2026-09-13T16:30:02.000Z",
+        "cancelled_at": "2026-09-13T16:39:45.000Z",
+        "document_currency": "USD",
+        "grand_total": 5.85
+      },
+      {
+        "id": "10042",
+        "document_no": "MP-e8048d043cd700e64537406f06",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T17:28:56.000Z",
+        "finalized_at": "2026-09-13T17:28:56.000Z",
+        "cancelled_at": "2026-09-13T17:34:19.000Z",
+        "document_currency": "USD",
+        "grand_total": 5.85
+      },
+      {
+        "id": "10043",
+        "document_no": "MP-eede278a826add20ccc1603b5f",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T17:40:40.000Z",
+        "finalized_at": "2026-09-13T17:40:40.000Z",
+        "cancelled_at": "2026-09-13T17:43:41.000Z",
+        "document_currency": "USD",
+        "grand_total": 5.85
+      },
+      {
+        "id": "10044",
+        "document_no": "MP-8d54766725dd06301ac51bd2bc",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T18:21:01.000Z",
+        "finalized_at": "2026-09-13T18:21:01.000Z",
+        "cancelled_at": "2026-09-13T18:21:02.000Z",
+        "document_currency": "USD",
+        "grand_total": 4.37
+      },
+      {
+        "id": "10045",
+        "document_no": "MP-77177ed7da7a05c1bef528ea41",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T18:21:02.000Z",
+        "finalized_at": "2026-09-13T18:21:02.000Z",
+        "cancelled_at": "2026-09-13T18:21:03.000Z",
+        "document_currency": "TRY",
+        "grand_total": 230
+      },
+      {
+        "id": "10046",
+        "document_no": "MP-1733c75d1cc53754747810f2fb",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T18:21:03.000Z",
+        "finalized_at": "2026-09-13T18:21:03.000Z",
+        "cancelled_at": "2026-09-13T18:21:04.000Z",
+        "document_currency": "EUR",
+        "grand_total": 3.65
+      },
+      {
+        "id": "10047",
+        "document_no": "FS-CASH-KASA-20260913-01",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T18:23:20.000Z",
+        "finalized_at": "2026-09-13T18:23:34.000Z",
+        "cancelled_at": "2026-09-13T18:28:44.000Z",
+        "document_currency": "TRY",
+        "grand_total": 460
+      },
+      {
+        "id": "10048",
+        "document_no": "MP-379c01191e2fe828b2a8e2667a",
+        "status": "cancelled",
+        "document_date": "2026-09-13T00:00:00.000Z",
+        "created_at": "2026-09-13T18:33:09.000Z",
+        "finalized_at": "2026-09-13T18:33:09.000Z",
+        "cancelled_at": "2026-09-13T18:40:37.000Z",
+        "document_currency": "USD",
+        "grand_total": 4.37
+      },
+      {
+        "id": "10049",
+        "document_no": "MP-412d27aa97271ffdae09cc8f56",
+        "status": "finalized",
+        "document_date": "2026-09-14T00:00:00.000Z",
+        "created_at": "2026-09-14T06:55:48.000Z",
+        "finalized_at": "2026-09-14T06:55:49.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 10.36
+      },
+      {
+        "id": "10050",
+        "document_no": "MP-d35b72c6408ae6bcc6f760a0a4",
+        "status": "cancelled",
+        "document_date": "2026-09-14T00:00:00.000Z",
+        "created_at": "2026-09-14T08:20:24.000Z",
+        "finalized_at": "2026-09-14T08:20:24.000Z",
+        "cancelled_at": "2026-09-14T12:34:59.000Z",
+        "document_currency": "USD",
+        "grand_total": 140.8
+      },
+      {
+        "id": "10051",
+        "document_no": "MN-71781d8aa40545179176331da9",
+        "status": "finalized",
+        "document_date": "2026-09-14T00:00:00.000Z",
+        "created_at": "2026-09-14T12:33:46.000Z",
+        "finalized_at": "2026-09-14T12:33:46.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 12.8
+      },
+      {
+        "id": "10052",
+        "document_no": "MN-476038c7898945a2a01bdce44d",
+        "status": "finalized",
+        "document_date": "2026-09-14T00:00:00.000Z",
+        "created_at": "2026-09-14T13:16:15.000Z",
+        "finalized_at": "2026-09-14T13:16:15.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 222.6
+      },
+      {
+        "id": "10053",
+        "document_no": "MN-e25fac816cda4e2e84d92e8980",
+        "status": "finalized",
+        "document_date": "2026-09-14T00:00:00.000Z",
+        "created_at": "2026-09-14T13:21:52.000Z",
+        "finalized_at": "2026-09-14T13:21:52.000Z",
+        "cancelled_at": null,
+        "document_currency": "TRY",
+        "grand_total": 279.63
+      },
+      {
+        "id": "10054",
+        "document_no": "MN-530c7ced0a73439fb4dd4228da",
+        "status": "finalized",
+        "document_date": "2026-09-14T00:00:00.000Z",
+        "created_at": "2026-09-14T14:25:42.000Z",
+        "finalized_at": "2026-09-14T14:25:42.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 23.29
+      },
+      {
+        "id": "10055",
+        "document_no": "MN-d456d9ad60f24a849ab8d9d288",
+        "status": "cancelled",
+        "document_date": "2026-09-15T00:00:00.000Z",
+        "created_at": "2026-09-14T21:34:12.000Z",
+        "finalized_at": "2026-09-14T21:34:12.000Z",
+        "cancelled_at": "2026-09-14T21:35:29.000Z",
+        "document_currency": "USD",
+        "grand_total": 23.44
+      },
+      {
+        "id": "10056",
+        "document_no": "MN-5229bd1e3fb74c4683690af134",
+        "status": "finalized",
+        "document_date": "2026-09-15T00:00:00.000Z",
+        "created_at": "2026-09-15T09:26:01.000Z",
+        "finalized_at": "2026-09-15T09:26:01.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 209.35
+      },
+      {
+        "id": "10057",
+        "document_no": "MN-c791bd89772646688acff2ca57",
+        "status": "finalized",
+        "document_date": "2026-09-15T00:00:00.000Z",
+        "created_at": "2026-09-15T09:35:02.000Z",
+        "finalized_at": "2026-09-15T09:35:02.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 51.2
+      },
+      {
+        "id": "10058",
+        "document_no": "MN-c28db40bdf2446728ec18c558e",
+        "status": "finalized",
+        "document_date": "2026-09-15T00:00:00.000Z",
+        "created_at": "2026-09-15T11:43:53.000Z",
+        "finalized_at": "2026-09-15T11:43:53.000Z",
+        "cancelled_at": null,
+        "document_currency": "USD",
+        "grand_total": 472.93
+      }
+    ],
+    "terminalEvents": [
+      {
+        "id": "0",
+        "client_request_id": "PILOT-20260913-CREDIT-ACCEPTANCE-01",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T16:06:56.000Z",
+        "processed_at": "2026-09-13T16:06:56.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10038"
+      },
+      {
+        "id": "1",
+        "client_request_id": "PILOT-20260913-CASH-ACCEPTANCE-01",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T16:06:56.000Z",
+        "processed_at": "2026-09-13T16:06:56.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10039"
+      },
+      {
+        "id": "2",
+        "client_request_id": "TERM-V2-001-1789316823997-85039",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T16:30:02.000Z",
+        "processed_at": "2026-09-13T16:30:02.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10041"
+      },
+      {
+        "id": "3",
+        "client_request_id": "TERM-V2-001-1789320433856-16031",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T17:28:56.000Z",
+        "processed_at": "2026-09-13T17:28:56.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10042"
+      },
+      {
+        "id": "4",
+        "client_request_id": "TERM-V2-001-1789321240854-44252",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T17:40:40.000Z",
+        "processed_at": "2026-09-13T17:40:40.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10043"
+      },
+      {
+        "id": "5",
+        "client_request_id": "FULL-STOCK-20260913-CASH-USD-01",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T18:21:01.000Z",
+        "processed_at": "2026-09-13T18:21:01.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10044"
+      },
+      {
+        "id": "6",
+        "client_request_id": "FULL-STOCK-20260913-CASH-TRY-01",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T18:21:02.000Z",
+        "processed_at": "2026-09-13T18:21:02.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10045"
+      },
+      {
+        "id": "7",
+        "client_request_id": "FULL-STOCK-20260913-CASH-EUR-01",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T18:21:03.000Z",
+        "processed_at": "2026-09-13T18:21:03.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10046"
+      },
+      {
+        "id": "8",
+        "client_request_id": "TERM-V2-001-1789324301316-81434",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-13T18:33:09.000Z",
+        "processed_at": "2026-09-13T18:33:09.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10048"
+      },
+      {
+        "id": "9",
+        "client_request_id": "TERM-V2-001-1789368949447-85281",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T06:55:48.000Z",
+        "processed_at": "2026-09-14T06:55:49.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10049"
+      },
+      {
+        "id": "10",
+        "client_request_id": "TERM-V2-001-1789373961203-99616",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T08:20:24.000Z",
+        "processed_at": "2026-09-14T08:20:24.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10050"
+      },
+      {
+        "id": "11",
+        "client_request_id": "71781d8a-a405-4517-9176-331da91f4ea5",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T12:33:46.000Z",
+        "processed_at": "2026-09-14T12:33:46.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10051"
+      },
+      {
+        "id": "12",
+        "client_request_id": "476038c7-8989-45a2-a01b-dce44d5aea58",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T13:16:15.000Z",
+        "processed_at": "2026-09-14T13:16:15.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10052"
+      },
+      {
+        "id": "13",
+        "client_request_id": "e25fac81-6cda-4e2e-84d9-2e89805668bf",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T13:21:52.000Z",
+        "processed_at": "2026-09-14T13:21:52.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10053"
+      },
+      {
+        "id": "14",
+        "client_request_id": "530c7ced-0a73-439f-b4dd-4228da7bee31",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T14:25:42.000Z",
+        "processed_at": "2026-09-14T14:25:42.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10054"
+      },
+      {
+        "id": "15",
+        "client_request_id": "d456d9ad-60f2-4a84-9ab8-d9d288df5a31",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-14T21:34:12.000Z",
+        "processed_at": "2026-09-14T21:34:12.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10055"
+      },
+      {
+        "id": "16",
+        "client_request_id": "5229bd1e-3fb7-4c46-8369-0af134a4f418",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-15T09:26:01.000Z",
+        "processed_at": "2026-09-15T09:26:01.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10056"
+      },
+      {
+        "id": "17",
+        "client_request_id": "c791bd89-7726-4668-8acf-f2ca577de350",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-15T09:35:02.000Z",
+        "processed_at": "2026-09-15T09:35:02.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10057"
+      },
+      {
+        "id": "18",
+        "client_request_id": "c28db40b-df24-4672-8ec1-8c558ee8dd03",
+        "event_type": "invoice_created",
+        "status": "synced",
+        "received_at": "2026-09-15T11:43:53.000Z",
+        "processed_at": "2026-09-15T11:43:53.000Z",
+        "target_entity": "sales_invoice",
+        "target_entity_id": "10058"
+      }
+    ],
+    "userDifferences": [
+      {
+        "id": "2",
+        "username": "ahmet",
+        "role_id": "5",
+        "is_active": true,
+        "updated_at": "2026-08-05T14:10:53.000Z",
+        "missing_in_candidate": 0,
+        "password_changed": 1,
+        "authorization_changed": 0
+      }
+    ],
+    "audits": [
+      {
+        "id": "41233",
+        "action": "sales_invoice_draft_created",
+        "entity_type": "sales_invoice",
+        "entity_id": "10062",
+        "created_at": "2026-09-17T11:00:03.000Z"
+      },
+      {
+        "id": "41234",
+        "action": "sales_profit_snapshot_created",
+        "entity_type": "sales_invoice",
+        "entity_id": "10062",
+        "created_at": "2026-09-17T11:00:03.000Z"
+      },
+      {
+        "id": "41235",
+        "action": "sales_invoice_finalized",
+        "entity_type": "sales_invoice",
+        "entity_id": "10062",
+        "created_at": "2026-09-17T11:00:04.000Z"
+      },
+      {
+        "id": "41236",
+        "action": "native_sale_finalized",
+        "entity_type": "sales_invoice",
+        "entity_id": "10062",
+        "created_at": "2026-09-17T11:00:04.000Z"
+      },
+      {
+        "id": "41237",
+        "action": "terminal_receipt_print_requested",
+        "entity_type": "sales_invoice",
+        "entity_id": "10062",
+        "created_at": "2026-09-17T11:00:05.000Z"
+      },
+      {
+        "id": "41238",
+        "action": "terminal_receipt_print_completed",
+        "entity_type": "sales_invoice",
+        "entity_id": "10062",
+        "created_at": "2026-09-17T11:00:15.000Z"
+      }
+    ],
+    "productImages": []
+  },
+  "writes": {
+    "live": 0,
+    "candidate": 0,
+    "vega": 0
+  },
+  "blockers": [
+    "LIVE_SALES_NOT_IN_CANDIDATE",
+    "LIVE_TERMINAL_EVENTS_NOT_IN_CANDIDATE",
+    "LIVE_USER_AUTH_DIFFERENCE",
+    "LIVE_AUDITS_NOT_IN_CANDIDATE"
+  ],
+  "status": "FAIL"
+}

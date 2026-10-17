@@ -1,3 +1,5 @@
+import { ledgerAccountCurrency, ledgerEffect, summarizeLedgerPeriod } from '../shared/ledgerBalances.js';
+import { VegaHistoryAccountLink } from '../history/VegaHistoryAccountLink.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createSupplier, fetchSupplier, updateSupplier } from '../../services/supplierApi.js';
 import { SupplierProductTracePanel } from './SupplierProductTracePanel.jsx';
@@ -27,6 +29,7 @@ const emptySupplierForm = {
 };
 
 function formatMoney(amount, currency) {
+  if (amount == null || !Number.isFinite(Number(amount)) || !['TRY', 'USD', 'EUR'].includes(currency)) return 'Bilinmiyor';
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: currency || 'TRY',
@@ -35,65 +38,34 @@ function formatMoney(amount, currency) {
 }
 
 function buildSupplierBalanceRows(form) {
-  const summary = new Map(['TRY', 'USD', 'EUR'].map((currency) => [currency, {
-    currency,
-    debit: 0,
-    credit: 0,
-    balance: 0,
-  }]));
-
-  (form.movements || []).forEach((movement) => {
-    const currency = movement.currency || form.currency || 'TRY';
-    const effect = Number(movement.balanceEffect ?? movement.amount ?? 0);
-    const amount = Math.abs(Number(movement.amount || effect || 0));
-    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
-
-    if (effect > 0) {
-      row.credit += amount;
-    } else if (effect < 0) {
-      row.debit += amount;
-    }
-
-    row.balance += effect;
-    summary.set(currency, row);
-  });
-
-  if ((form.movements || []).length === 0) {
+  const movements = (form.movements || []).map(row => ({ ...row, currentCurrency: row.currentCurrency || form.currency }));
+  const totals = summarizeLedgerPeriod(movements, { debitWhenPositive: false });
+  if (movements.length === 0) {
     const currency = form.currency || 'TRY';
-    const balance = Number(form.balance || 0);
-    const row = summary.get(currency) || { currency, debit: 0, credit: 0, balance: 0 };
-
-    row.credit = balance > 0 ? balance : 0;
-    row.debit = balance < 0 ? Math.abs(balance) : 0;
-    row.balance = balance;
-    summary.set(currency, row);
+    const balance = form.balance == null ? null : Number(form.balance);
+    totals[currency] = { currency, balance,
+      debit: balance == null ? null : Math.max(-balance, 0),
+      credit: balance == null ? null : Math.max(balance, 0) };
   }
-
-  return Array.from(summary.values());
+  return Object.values(totals);
 }
 
 function movementLabel(type) {
   const labels = {
     purchase_invoice: 'Alış fişi',
     purchase_invoice_cancel: 'Alış iptal',
+    purchase_return: 'Alış iadesi',
+    purchase_return_cancel: 'Alış iadesi iptal',
     payment: 'Ödeme',
   };
 
   return labels[type] || type || '-';
 }
 
-function buildSupplierMovementRows(movements = [], currentBalance = 0) {
-  let fallbackBalance = Number(currentBalance || 0);
-
-  return movements.map((movement) => {
-    const hasRunningBalance = movement.runningBalance !== null
-      && movement.runningBalance !== undefined
-      && Number.isFinite(Number(movement.runningBalance));
-    const runningBalance = hasRunningBalance ? Number(movement.runningBalance) : fallbackBalance;
-
-    fallbackBalance = runningBalance - Number(movement.balanceEffect || 0);
-    return { ...movement, runningBalance };
-  });
+function buildSupplierMovementRows(movements = []) {
+  return movements.map((movement) => ({ ...movement,
+    runningBalance: movement.runningBalance == null || !Number.isFinite(Number(movement.runningBalance)) ? null : Number(movement.runningBalance),
+  }));
 }
 
 function mapDetailToForm(detail) {
@@ -140,6 +112,16 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
   const mode = activeSupplierId ? 'update' : 'create';
   const canEditForm = mode === 'create' || isEditing;
   const canSave = permissions.includes('supplier.edit');
+
+  function openStatement() {
+    if (!activeSupplierId) return;
+    onOpenScreen?.('supplier-statement', {
+      supplierId: activeSupplierId,
+      supplierCode: form.supplierCode,
+      accountCurrency: form.currency,
+      tabLabel: `${form.supplierName || form.supplierCode || 'Tedarikçi'} Ekstre`,
+    });
+  }
 
   useEffect(() => {
     setActiveSupplierId(supplierId || null);
@@ -194,15 +176,15 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
 
   const summary = useMemo(() => {
     const purchaseMovements = form.movements.filter((row) => row.type === 'purchase_invoice');
-    const cancelMovements = form.movements.filter((row) => row.type === 'purchase_invoice_cancel');
+    const cancelMovements = form.movements.filter((row) => ['purchase_invoice_cancel', 'purchase_return_cancel'].includes(row.type));
     const paymentMovements = form.movements.filter((row) => row.type === 'payment');
 
     return {
       purchaseCount: purchaseMovements.length || form.purchaseCount,
       cancelCount: cancelMovements.length,
       paymentCount: paymentMovements.length,
-      purchaseTotal: purchaseMovements.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-      paymentTotal: paymentMovements.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      purchaseTotal: purchaseMovements.reduce((sum, row) => sum == null || ledgerEffect(row) == null || ledgerAccountCurrency(row) !== form.currency ? null : sum + Math.abs(ledgerEffect(row)), 0),
+      paymentTotal: paymentMovements.reduce((sum, row) => sum == null || ledgerEffect(row) == null || ledgerAccountCurrency(row) !== form.currency ? null : sum + Math.abs(ledgerEffect(row)), 0),
       productQuantity: form.productTrace.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
       productAmountTry: form.productTrace.reduce((sum, row) => sum + Number(row.lineTotalTry || 0), 0),
       mainSupplierProductCount: Number(form.stockSummary?.productCount || 0),
@@ -321,7 +303,9 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                 {isSaving ? 'Kaydediliyor' : 'Kaydet'}
               </button>
               <button type="button" onClick={startNewSupplier}>Yeni</button>
-              <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list')}>Alış Fişleri</button>
+              <button type="button" onClick={openStatement} disabled={!activeSupplierId}>Ekstre</button>
+              <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list', { supplierId: activeSupplierId, supplierCode: form.supplierCode })}>Alış Fişleri</button>
+              <VegaHistoryAccountLink entityType="supplier" entityId={activeSupplierId} permissions={permissions} onOpenScreen={onOpenScreen} />
               <span className="toolbar-mode">{mode === 'create' ? 'Yeni' : canEditForm ? 'Düzenleme açık' : 'İzleme'}</span>
             </div>
           </section>
@@ -336,6 +320,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                 <span>Alış fişi, ödeme, borç ve alınan ürün izi tek bakışta.</span>
               </div>
               <div className="entity-360-actions">
+                <button type="button" onClick={openStatement} disabled={!activeSupplierId}>Ekstre</button>
                 <button type="button" onClick={() => onOpenScreen?.('purchase-invoice-list', { supplierId: activeSupplierId, supplierCode: form.supplierCode })}>
                   Alış Fişleri
                 </button>
@@ -393,7 +378,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                       <small>{row.date || '-'} / {String(row.status || '-').toUpperCase()}</small>
                     </span>
                     <strong className={Number(row.balanceEffect || 0) >= 0 ? 'out' : 'in'}>
-                      {formatMoney(row.amount, row.currency || form.currency)}
+                      {formatMoney(ledgerEffect(row), ledgerAccountCurrency(row))}
                     </strong>
                   </button>
                 ))}
@@ -555,8 +540,8 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                       <th>Tarih</th>
                       <th>Tip</th>
                       <th>Belge no</th>
-                      <th>Tutar</th>
-                      <th>Bakiye etkisi</th>
+                      <th>Belge tutarı</th>
+                      <th>Cari bakiye etkisi</th>
                       <th>Durum</th>
                       <th>İşlem</th>
                     </tr>
@@ -579,7 +564,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                           onClick={() => canOpen && openPurchaseInvoice(row)}
                         >
                           <td className="money-cell supplier-running-balance">
-                            {formatMoney(row.runningBalance, row.currency)}
+                            {formatMoney(row.runningBalance, ledgerAccountCurrency(row))}
                           </td>
                           <td>{row.date || '-'}</td>
                           <td>{movementLabel(row.type)}</td>
@@ -598,7 +583,7 @@ export function SupplierCardScreen({ supplierId, permissions = [], onDirtyChange
                           </td>
                           <td className="money-cell">{formatMoney(row.amount, row.currency)}</td>
                           <td className={`money-cell ${row.balanceEffect >= 0 ? 'customer-payable' : 'status-active'}`}>
-                            {formatMoney(row.balanceEffect, row.currency)}
+                            {formatMoney(ledgerEffect(row), ledgerAccountCurrency(row))}
                           </td>
                           <td>{String(row.status || '-').toUpperCase()}</td>
                           <td>

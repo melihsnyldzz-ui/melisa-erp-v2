@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BanknoteArrowDown,
   Boxes,
@@ -16,7 +16,7 @@ import {
 const dashboardQuickActions = [
   { key: 'new-sale', label: 'Yeni Satış', detail: 'Fiş aç', screenId: 'sales-invoice', permissionKeys: ['sales.view'], views: ['yonetici', 'patron', 'satis'], icon: ReceiptText, tone: 'good' },
   { key: 'sales-list', label: 'Satış Fişleri', detail: 'Liste', screenId: 'sales-invoice-list', permissionKeys: ['sales.view'], views: ['yonetici', 'patron', 'muhasebe', 'satis'], icon: ClipboardList, tone: 'info' },
-  { key: 'bulk-purchase', label: 'Toplu Alış', detail: 'Mal girişi', screenId: 'bulk-purchase-entry', permissionKeys: ['purchase.view'], views: ['yonetici', 'muhasebe', 'depo'], icon: ShoppingBag, tone: 'warn' },
+  { key: 'bulk-purchase', label: 'Stok Girişi Hazırlığı', detail: 'Ürünleri topla, alış belgesi oluştur', screenId: 'bulk-purchase-entry', permissionKeys: ['purchase.view'], views: ['yonetici', 'muhasebe', 'depo'], icon: ShoppingBag, tone: 'warn' },
   { key: 'purchase-list', label: 'Alış Fişleri', detail: 'Liste', screenId: 'purchase-invoice-list', permissionKeys: ['purchase.view'], views: ['yonetici', 'patron', 'muhasebe', 'depo'], icon: FilePlus2, tone: 'info' },
   { key: 'stock-list', label: 'Ürün Ara', detail: 'Stok', screenId: 'stock-list', permissionKeys: ['product.view'], views: ['yonetici', 'patron', 'muhasebe', 'depo', 'satis'], icon: PackageSearch, tone: 'info' },
   { key: 'product-card', label: 'Ürün Kartı', detail: 'Yeni/aç', screenId: 'product-card', permissionKeys: ['product.view'], views: ['yonetici', 'depo'], icon: Boxes, tone: 'info' },
@@ -36,16 +36,21 @@ function canUseQuickAction(permissions, action) {
 }
 
 export function DashboardQuickActions({ onOpenScreen, permissions = [], roleViewId = 'yonetici' }) {
+  const [showAll, setShowAll] = useState(false);
   const visibleActions = dashboardQuickActions.filter((action) => action.views.includes(roleViewId));
+  const preferredKeys = ['new-sale', 'stock-list', 'bulk-purchase', 'collections'];
+  const dailyActions = visibleActions.filter((action) => preferredKeys.includes(action.key));
+  const displayedActions = showAll ? visibleActions : (dailyActions.length ? dailyActions : visibleActions.slice(0, 4));
 
   return (
     <section className="dashboard-quick-actions" aria-label="Hızlı işlem paneli">
       <div className="dashboard-quick-actions-head">
         <strong>Hızlı İşlem</strong>
         <span>Menüde gezmeden sık kullanılan ekranlara geç</span>
+        {visibleActions.length > displayedActions.length || showAll ? <button className="dashboard-quick-more" aria-expanded={showAll} onClick={() => setShowAll((open) => !open)} type="button">{showAll ? 'Daha az göster' : 'Diğer hızlı işlemler'}</button> : null}
       </div>
       <div className="dashboard-quick-actions-grid">
-        {visibleActions.map((action) => {
+        {displayedActions.map((action) => {
           const Icon = action.icon;
           const isAllowed = canUseQuickAction(permissions, action);
 

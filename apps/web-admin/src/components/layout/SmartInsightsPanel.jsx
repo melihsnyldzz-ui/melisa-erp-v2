@@ -4,27 +4,27 @@ import { getRoleView } from '../../config/roleViews.js';
 
 const roleInsights = {
   yonetici: [
-    { tone: 'good', title: 'Stok kontrolü temiz', detail: 'Canlı stok değerleme raporunu aç', screenId: 'stock-valuation' },
-    { tone: 'info', title: 'Tahsilat ekranı hazır', detail: 'Bugünün kasa/banka hareketlerini kontrol et', screenId: 'collections-overview' },
-    { tone: 'info', title: 'Yönetim raporu hazır', detail: 'Kârlılık ve kanal performansını incele', screenId: 'reports-overview' },
+    { tone: 'info', title: 'Stok değerlemesini incele', detail: 'Stok değerleme ekranını aç', screenId: 'stock-valuation' },
+    { tone: 'info', title: 'Tahsilat ve ödemeler', detail: 'Kasa/banka hareketlerini incele', screenId: 'collections-overview' },
+    { tone: 'info', title: 'Yönetim raporları', detail: 'Rapor ekranını aç', screenId: 'reports-overview' },
   ],
   patron: [
-    { tone: 'info', title: 'Brüt kâr raporu hazır', detail: 'Son 7 gün raporunu aç', screenId: 'reports-overview' },
+    { tone: 'info', title: 'Yönetim raporlarını incele', detail: 'Dönem ve rapor seçimini yap', screenId: 'reports-overview' },
     { tone: 'info', title: 'Cari riskleri izle', detail: 'Tahsilat önceliklerini gözden geçir', screenId: 'customer-list' },
-    { tone: 'good', title: 'Finans özeti hazır', detail: 'Kanal özetini kontrol et', screenId: 'finance-overview' },
+    { tone: 'info', title: 'Finans özetini incele', detail: 'Cari bakiye ve hareketleri gör', screenId: 'finance-overview' },
   ],
   muhasebe: [
-    { tone: 'info', title: 'Ekstre ekranı hazır', detail: 'Cari ekstreleri sıraya al', screenId: 'customer-statement' },
-    { tone: 'info', title: 'Fiş kontrolü hazır', detail: 'Satış ve alış fişlerini karşılaştır', screenId: 'sales-invoice-list' },
-    { tone: 'info', title: 'Tahsilat takibi açık', detail: 'Bugünün hareket listesini gör', screenId: 'collections-overview' },
+    { tone: 'info', title: 'Cari ekstreleri', detail: 'Cari ve dönem seçerek incele', screenId: 'customer-statement' },
+    { tone: 'info', title: 'Satış fişlerini incele', detail: 'Fiş listesini aç', screenId: 'sales-invoice-list' },
+    { tone: 'info', title: 'Tahsilat hareketleri', detail: 'Tahsilat ve ödeme ekranını aç', screenId: 'collections-overview' },
   ],
   depo: [
-    { tone: 'good', title: 'Eksi stok yok', detail: 'Stok hareketlerini kontrol et', screenId: 'stock-movements' },
-    { tone: 'info', title: 'Terminal kuyruğu hazır', detail: 'El terminali iş kuyruğunu aç', screenId: 'terminal-overview' },
-    { tone: 'info', title: 'CSV şablonu hazır', detail: 'Aktarım ekranını incele', screenId: 'import-foundation' },
+    { tone: 'info', title: 'Stok hareketlerini incele', detail: 'Ürün ve dönem seçerek kontrol et', screenId: 'stock-movements' },
+    { tone: 'info', title: 'Terminal ekranları', detail: 'El terminali yönetimini aç', screenId: 'terminal-overview' },
+    { tone: 'info', title: 'Aktarım araçları', detail: 'Aktarım ekranını incele', screenId: 'import-foundation' },
   ],
   satis: [
-    { tone: 'good', title: 'Satış ekranı hazır', detail: 'Teklif ve sipariş ekranını aç', screenId: 'sales-offers' },
+    { tone: 'info', title: 'Satış teklifleri', detail: 'Teklif ekranını aç', screenId: 'sales-offers' },
     { tone: 'info', title: 'Cari fiyat kontrolü', detail: 'Cari ve fiyat kontrolünü yap', screenId: 'customer-list' },
     { tone: 'info', title: 'WhatsApp hazırlık listesi', detail: 'Manuel kopyalama listesini gör', screenId: 'whatsapp-planner' },
   ],
@@ -43,9 +43,9 @@ export function SmartInsightsPanel({ activeTab, isCollapsed = false, roleViewId,
   const activeContext = activeTab.label || 'Operasyon Masası';
 
   return (
-    <aside className={isCollapsed ? 'smart-panel collapsed' : 'smart-panel'} aria-label="Bugün önemli">
+    <aside className={isCollapsed ? 'smart-panel collapsed' : 'smart-panel'} aria-label="Ekran kısayolları">
       <div className="smart-panel-header">
-        <span><TrendingUp size={16} /> Bugün önemli</span>
+        <span><TrendingUp size={16} /> Ekran kısayolları</span>
         <strong>{roleView.label}</strong>
         <button
           aria-label={isCollapsed ? 'Akıllı paneli genişlet' : 'Akıllı paneli daralt'}
@@ -78,7 +78,7 @@ export function SmartInsightsPanel({ activeTab, isCollapsed = false, roleViewId,
         })}
       </div>
       <div className="smart-panel-note">
-        Bu panel yalnızca ekran açar; kayıt kesinleştirme veya canlı veritabanı yazımı yapmaz.
+        Kısayollar ilgili ekranı açar. Güncel durumu açılan ekranda kontrol edin.
       </div>
     </aside>
   );

@@ -1,0 +1,257 @@
+{
+  "schemaVersion": "melisa-goal6.independent-report-sql-truth.v1",
+  "capturedAt": "2026-10-06T19:57:44.8226347Z",
+  "sourceDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "readOnly": true,
+  "sourceCommit": "257ab50",
+  "dateSemantics": "inclusive document_date DATE boundaries in Turkey; no UTC shift for DATE",
+  "monetaryValues": "decimal(38,4) rendered as varchar; no cross-currency sum",
+  "periods": [
+    {
+      "costCoverage": [
+        {
+          "lineCount": 4,
+          "knownLineCount": 4,
+          "unknownLineCount": 0
+        }
+      ],
+      "reports": {
+        "sales": {
+          "total": 2,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 2,
+              "amount": "400.0000"
+            }
+          ]
+        },
+        "purchases": {
+          "total": 1,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 1,
+              "amount": "300.0000"
+            }
+          ]
+        },
+        "collections": {
+          "total": 8,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 8,
+              "amount": "300.0000",
+              "debit": null,
+              "credit": null
+            }
+          ]
+        },
+        "supplier-payments": {
+          "total": 4,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 4,
+              "amount": "0.0000",
+              "debit": null,
+              "credit": null
+            }
+          ]
+        },
+        "customer-movements": {
+          "total": 14,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 14,
+              "amount": "100.0000",
+              "debit": "1000.0000",
+              "credit": "900.0000"
+            }
+          ]
+        },
+        "supplier-movements": {
+          "total": 9,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 9,
+              "amount": "300.0000",
+              "debit": "800.0000",
+              "credit": "500.0000"
+            }
+          ]
+        },
+        "stock-movements": {
+          "total": 19,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 19,
+              "quantity": "2.0000"
+            }
+          ]
+        }
+      },
+      "from": "2026-10-06",
+      "to": "2026-10-06",
+      "name": "today"
+    },
+    {
+      "costCoverage": [
+        {
+          "lineCount": 4,
+          "knownLineCount": 4,
+          "unknownLineCount": 0
+        }
+      ],
+      "reports": {
+        "sales": {
+          "total": 2,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 2,
+              "amount": "400.0000"
+            }
+          ]
+        },
+        "purchases": {
+          "total": 1,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 1,
+              "amount": "300.0000"
+            }
+          ]
+        },
+        "collections": {
+          "total": 22,
+          "currencyTotals": [
+            {
+              "currency": "EUR",
+              "recordCount": 4,
+              "amount": "0.0000",
+              "debit": null,
+              "credit": null
+            },
+            {
+              "currency": "TRY",
+              "recordCount": 14,
+              "amount": "300.0000",
+              "debit": null,
+              "credit": null
+            },
+            {
+              "currency": "USD",
+              "recordCount": 4,
+              "amount": "0.0000",
+              "debit": null,
+              "credit": null
+            }
+          ]
+        },
+        "supplier-payments": {
+          "total": 10,
+          "currencyTotals": [
+            {
+              "currency": "EUR",
+              "recordCount": 2,
+              "amount": "0.0000",
+              "debit": null,
+              "credit": null
+            },
+            {
+              "currency": "TRY",
+              "recordCount": 6,
+              "amount": "0.0000",
+              "debit": null,
+              "credit": null
+            },
+            {
+              "currency": "USD",
+              "recordCount": 2,
+              "amount": "0.0000",
+              "debit": null,
+              "credit": null
+            }
+          ]
+        },
+        "customer-movements": {
+          "total": 38,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 34,
+              "amount": "100.0000",
+              "debit": "1606.5000",
+              "credit": "1506.5000"
+            },
+            {
+              "currency": "USD",
+              "recordCount": 4,
+              "amount": "0.0000",
+              "debit": "2.1653",
+              "credit": "2.1653"
+            }
+          ]
+        },
+        "supplier-movements": {
+          "total": 43,
+          "currencyTotals": [
+            {
+              "currency": "EUR",
+              "recordCount": 4,
+              "amount": "0.0000",
+              "debit": "2.0000",
+              "credit": "2.0000"
+            },
+            {
+              "currency": "TRY",
+              "recordCount": 35,
+              "amount": "300.0000",
+              "debit": "1750.0080",
+              "credit": "1450.0080"
+            },
+            {
+              "currency": "USD",
+              "recordCount": 4,
+              "amount": "0.0000",
+              "debit": "2.0000",
+              "credit": "2.0000"
+            }
+          ]
+        },
+        "stock-movements": {
+          "total": 43,
+          "currencyTotals": [
+            {
+              "currency": "TRY",
+              "recordCount": 43,
+              "quantity": "12.0000"
+            }
+          ]
+        }
+      },
+      "from": "2026-10-01",
+      "to": "2026-10-06",
+      "name": "month"
+    }
+  ],
+  "stockFlagEvidence": [
+    {
+      "affects_inventory": true,
+      "recordCount": 43,
+      "quantity": "12.0000"
+    }
+  ],
+  "stockFlagSchema": [
+    {
+      "is_nullable": false,
+      "defaultDefinition": "((1))"
+    }
+  ]
+}

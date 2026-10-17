@@ -1,0 +1,32 @@
+{
+  "runId": "PRODUCTION-SWITCH-20260918-01",
+  "generatedAt": "2026-09-17T21:42:01.692Z",
+  "server": "Semih\\MELISADEV",
+  "receipts": [
+    {
+      "database": "MELISA_ERP_V2",
+      "file": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Backup\\PRODUCTION-SWITCH-20260918-01-MELISA_ERP_V2-PRE-SWITCH-COPY_ONLY.bak",
+      "sizeBytes": 477922304,
+      "compressedSizeBytes": 477922304,
+      "copyOnly": true,
+      "checksum": true,
+      "restoreVerifyOnly": "PASS",
+      "metadataSha256": "7b83754e948d68a620a599956ca97826be70161c135294195cdd6b1aea1e573f",
+      "startedAt": "2026-09-18T00:41:44.000Z",
+      "finishedAt": "2026-09-18T00:41:45.000Z"
+    },
+    {
+      "database": "MELISA_ERP_PROD_CANDIDATE_20260917_01",
+      "file": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Backup\\PRODUCTION-SWITCH-20260918-01-MELISA_ERP_PROD_CANDIDATE_20260917_01-PRE-SWITCH-COPY_ONLY.bak",
+      "sizeBytes": 6667341824,
+      "compressedSizeBytes": 6667341824,
+      "copyOnly": true,
+      "checksum": true,
+      "restoreVerifyOnly": "PASS",
+      "metadataSha256": "74c4f4fc089aae10cd1c3f8930a29a78b964f2fde8ee3be0d0bab66212acfa0d",
+      "startedAt": "2026-09-18T00:41:45.000Z",
+      "finishedAt": "2026-09-18T00:41:58.000Z"
+    }
+  ],
+  "status": "PASS"
+}

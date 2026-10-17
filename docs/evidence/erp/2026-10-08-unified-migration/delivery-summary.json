@@ -1,0 +1,249 @@
+{
+  "recordedAt": "2026-10-08T07:19:50.043Z",
+  "scope": "ERP-MIGUNIFIED01",
+  "sourceCommit": "37d80c33dca976c986af1fab3a99bfe2aca903a9",
+  "packageId": "CANONICAL-TEST-37d80c33dca9",
+  "releasePath": "C:/Sirket/ERP/releases/CANONICAL-MIGUNIFIED01-TEST-20261008-98",
+  "packageFiles": 1487,
+  "baselineReproduced": true,
+  "application": {
+    "status": "REFERENCE_METADATA_COMMITTED",
+    "manifestHash": "3417153ade5cc0d7622c17f5d2cbd58425073973ecd56588bba85a8d2a3a9508",
+    "metadataWrites": 16668,
+    "financialWrites": 0,
+    "stockWrites": 0,
+    "salesPriceWrites": 0,
+    "costWrites": 0,
+    "skipped": [],
+    "summary": {
+      "scope": 16671,
+      "metadataRows": 16668,
+      "purchaseCardFilled": 7429,
+      "discountApplied": 0,
+      "cardOnly": 7368,
+      "protectedExistingCosts": 6090,
+      "protectedManual": 1,
+      "empty": 9239,
+      "excluded": 3,
+      "statusCounts": {
+        "CARD_AMOUNT_ONLY": 7368,
+        "PURCHASE_UNKNOWN": 9238,
+        "PARTIAL_CARD_AMOUNT": 61,
+        "PROTECTED_MANUAL_PURCHASE": 1
+      },
+      "reasonCounts": {
+        "DISCOUNT_BASIS_UNVERIFIED": 16668,
+        "DISCOUNT_UNKNOWN": 6038,
+        "CURRENCY_UNKNOWN": 9288,
+        "PURCHASE_AMOUNT_UNKNOWN_OR_INVALID": 8962,
+        "UNEXPLAINED_ZERO_PURCHASE": 276,
+        "MANUAL_PURCHASE_PROTECTED": 1
+      },
+      "exclusionCounts": {
+        "IDENTITY_BINDING_DRIFT": 3
+      },
+      "financialWrites": 0,
+      "stockWrites": 0,
+      "salesPriceWrites": 0,
+      "costWrites": 0
+    },
+    "protectedGroups": 53
+  },
+  "committedReplay": {
+    "status": "REPLAY_NOOP",
+    "metadataWrites": 0,
+    "financialWrites": 0
+  },
+  "oldProtectedGroups": {
+    "count": 46,
+    "same": true
+  },
+  "newScopedSqlPermissions": 30,
+  "api": {
+    "threeExistingPermissions": [
+      "product.view",
+      "purchase.view",
+      "finance.view"
+    ],
+    "negatives": [
+      {
+        "actor": "anonymous",
+        "suffix": "",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "actor": "seller",
+        "suffix": "",
+        "method": "GET",
+        "status": 403
+      },
+      {
+        "actor": "ilker",
+        "suffix": "?currency=TRY",
+        "method": "GET",
+        "status": 400
+      },
+      {
+        "actor": "ilker",
+        "suffix": "",
+        "method": "POST",
+        "status": 405
+      },
+      {
+        "actor": "ilker",
+        "suffix": "/invalid",
+        "method": "GET",
+        "status": 404
+      }
+    ],
+    "normalCatalogCostKeys": [],
+    "verifiedExamples": [
+      {
+        "productId": "36724",
+        "ok": true
+      },
+      {
+        "productId": "34765",
+        "ok": true
+      },
+      {
+        "productId": "38919",
+        "ok": true
+      },
+      {
+        "productId": "30226",
+        "ok": true
+      },
+      {
+        "productId": "32811",
+        "ok": true
+      },
+      {
+        "productId": "30221",
+        "ok": true
+      },
+      {
+        "productId": "41359",
+        "ok": true
+      }
+    ],
+    "businessWrites": 0,
+    "roleChanges": 0
+  },
+  "browser": {
+    "normalScreen": "http://127.0.0.1:5194/ornek-akis.html#stock",
+    "fiveRequiredExamples": true,
+    "partialCurrencyExample": true,
+    "privateEvidence": true,
+    "humanAcceptance": "ERP-UA25_PENDING"
+  },
+  "finance": {
+    "partyCount": 200,
+    "accountCount": 209,
+    "previousApplied": 16,
+    "evidenceReady": 37,
+    "reportOpeningProposals": 10,
+    "approvalAccounts": 47,
+    "differences": 44,
+    "noops": 3,
+    "sourceDriftDeferred": 1,
+    "heldMethodCandidatesExcluded": 5,
+    "otherRemaining": 140,
+    "financialWrites": 0,
+    "executeAllowed": false
+  },
+  "performance": {
+    "method": "3 sequential authenticated loopback GET samples, median ms including JSON read, not screen paint",
+    "comparison": {
+      "first50": {
+        "beforeMs": 764,
+        "afterMs": 722
+      },
+      "next50": {
+        "beforeMs": 763,
+        "afterMs": 756
+      },
+      "code": {
+        "beforeMs": 555,
+        "afterMs": 514
+      },
+      "barcode": {
+        "beforeMs": 344,
+        "afterMs": 409
+      },
+      "card": {
+        "beforeMs": 176,
+        "afterMs": 178
+      }
+    },
+    "optionalPurchaseReferenceMs": 385
+  },
+  "sourceCi": [
+    {
+      "headSha": "37d80c33dca976c986af1fab3a99bfe2aca903a9",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741880294",
+      "jobs": [
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741880294/job/113194223726"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741880294/job/113194223949"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741880294/job/113194224016"
+        }
+      ]
+    },
+    {
+      "headSha": "37d80c33dca976c986af1fab3a99bfe2aca903a9",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741875494",
+      "jobs": [
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741875494/job/113194209434"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741875494/job/113194209584"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/37741875494/job/113194209624"
+        }
+      ]
+    }
+  ],
+  "technicalTests": {
+    "targetedReferenceApiUiSession": 65,
+    "migration": 157,
+    "apiSuite": 501
+  },
+  "humanPass": false,
+  "finish": {
+    "total": 49,
+    "complete": 9,
+    "partial": 39,
+    "open": 1
+  },
+  "stopAfterDelivery": true
+}

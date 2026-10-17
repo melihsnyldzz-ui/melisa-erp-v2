@@ -11,6 +11,22 @@ function movementDocumentNo(row = {}) {
 }
 
 export function resolveLedgerTarget(row = {}) {
+  // Receipt identity must survive legacy API targets that point only to the party card.
+  const receiptKind = row.movementType || row.type;
+  if (['collection', 'payment'].includes(receiptKind)) {
+    const supplier = receiptKind === 'payment';
+    const number = movementDocumentNo(row);
+    return {
+      screen: 'collections-overview',
+      payload: {
+        mode: receiptKind, movementId: row.movementId ?? row.id,
+        ...(supplier ? { supplierId: row.supplierId ?? (row.partyType === 'supplier' ? row.partyId : undefined) }
+          : { customerId: row.customerId ?? (row.partyType === 'customer' ? row.partyId : undefined) }),
+        tabLabel: `${supplier ? 'Ödeme' : 'Tahsilat'}${number ? `: ${number}` : ''}`,
+      },
+      reason: receiptKind,
+    };
+  }
   if (row.targetScreen && row.targetPayload) {
     return {
       screen: row.targetScreen,
@@ -22,6 +38,14 @@ export function resolveLedgerTarget(row = {}) {
   const kind = movementKind(row);
   const documentId = movementDocumentId(row);
   const documentNo = movementDocumentNo(row);
+
+  if (['sales_return', 'sales_return_cancel', 'purchase_return', 'purchase_return_cancel'].includes(row.movementType || row.type)) {
+    return {
+      screen: (row.movementType || row.type).startsWith('sales_') ? 'sales-invoice-list' : 'purchase-invoice-list',
+      payload: { returnId: row.invoiceReturnId },
+      reason: 'invoice-return',
+    };
+  }
 
   if (row.salesInvoiceId || kind.includes('sales')) {
     return {
@@ -112,6 +136,10 @@ export function openLedgerTarget(row, onOpenScreen) {
 
 export function ledgerTargetActionLabel(row = {}) {
   const kind = movementKind(row);
+
+  if (['sales_return', 'sales_return_cancel', 'purchase_return', 'purchase_return_cancel'].includes(row.movementType || row.type)) {
+    return 'İadeye Git';
+  }
 
   if (row.movementType === 'collection' || kind === 'collection') {
     return 'Tahsilata Git';

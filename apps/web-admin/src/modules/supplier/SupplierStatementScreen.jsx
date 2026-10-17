@@ -1,4 +1,8 @@
+import { ledgerAccountCurrency, ledgerEffect } from '../shared/ledgerBalances.js';
+import { partyScopeId, assertPartyScope } from '../../utils/operationNavigation.js';
+import { PartyContextNotice } from '../shared/PartyContextNotice.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
+import { LedgerBalanceSummary } from '../shared/LedgerBalanceSummary.jsx';
 import { fetchSupplierStatement } from '../../services/movementApi.js';
 import { fetchSuppliers } from '../../services/supplierApi.js';
 import { exportRowsToCsv, printLedgerStatement } from '../../utils/exportUtils.js';
@@ -16,7 +20,9 @@ import {
   toSupplierSuggestion,
 } from './supplierStatementUtils.js';
 
-export function SupplierStatementScreen({ onOpenScreen }) {
+export function SupplierStatementScreen({ onOpenScreen, initialSupplierId, initialSupplierCode, initialAccountCurrency }) {
+  const scopedPartyId = partyScopeId(initialSupplierId);
+  const scopedAccountCurrency = ['TRY', 'USD', 'EUR'].includes(initialAccountCurrency) ? initialAccountCurrency : '';
   const [filters, setFilters] = useState({
     search: '',
     dateFrom: '',
@@ -33,11 +39,13 @@ export function SupplierStatementScreen({ onOpenScreen }) {
   );
 
   const query = useMemo(() => ({
+    supplierId: scopedPartyId || undefined,
+    accountCurrency: scopedAccountCurrency || undefined,
     limit: 250,
     search: normalizedSearch,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
-  }), [filters.dateFrom, filters.dateTo, normalizedSearch]);
+  }), [scopedAccountCurrency, scopedPartyId, filters.dateFrom, filters.dateTo, normalizedSearch]);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,6 +85,8 @@ export function SupplierStatementScreen({ onOpenScreen }) {
 
       try {
         const response = await fetchSupplierStatement(query);
+        assertPartyScope(response.data?.rows, 'supplier', scopedPartyId);
+        if (scopedAccountCurrency && (response.data?.rows || []).some((row) => ledgerAccountCurrency(row) !== scopedAccountCurrency)) throw new Error('Ekstre döviz hesabı seçilen kartla eşleşmiyor. Liste gösterilmedi.');
         if (isMounted) {
           setStatement(response.data || { rows: [], totals: [] });
         }
@@ -156,9 +166,10 @@ export function SupplierStatementScreen({ onOpenScreen }) {
         { label: 'Tedarikçi', value: (row) => row.supplierName || row.supplierCode || '-' },
         { label: 'Belge No', key: 'documentNo' },
         { label: 'İşlem', value: (row) => displayMovementLabel(row) },
-        { label: 'Tutar', key: 'amount' },
-        { label: 'Bakiye Etkisi', key: 'balanceEffect' },
-        { label: 'Para Birimi', key: 'currency' },
+        { label: 'Belge Tutarı', key: 'amount' },
+        { label: 'Belge Dövizi', key: 'currency' },
+        { label: 'Cari Bakiye Etkisi', value: (row) => ledgerEffect(row) ?? 'Bilinmiyor' },
+        { label: 'Cari Dövizi', value: ledgerAccountCurrency },
       ],
     });
   }
@@ -180,6 +191,8 @@ export function SupplierStatementScreen({ onOpenScreen }) {
 
   return (
     <main className="work-area supplier-ledger-screen">
+      <PartyContextNotice entityType="supplier" partyId={scopedPartyId} partyCode={initialSupplierCode} screenId="supplier-statement" onOpenScreen={onOpenScreen} />
+      {scopedAccountCurrency && <div className="list-state">Döviz hesabı: {scopedAccountCurrency}</div>}
       <section className="erp-panel">
         <div className="panel-title">
           <strong>Tedarikci Cari Ekstre</strong>
@@ -205,6 +218,7 @@ export function SupplierStatementScreen({ onOpenScreen }) {
         />
       </section>
 
+      <LedgerBalanceSummary rows={rows} partyType="supplier" isLoading={isLoading} errorMessage={errorMessage} />
       <SupplierStatementSummaryStrip totals={totals} />
 
       <SupplierCancelledStatementTable

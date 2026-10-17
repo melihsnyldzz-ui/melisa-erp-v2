@@ -1,0 +1,6 @@
+export function seedOperations(){return {version:2,revision:0,nextId:1,nextOrderId:1,commandReceipts:[],
+ products:[{id:'101',code:'STK-100245',name:'Örnek Zıbın Takımı',supplierId:'501',stock:20,cost:16400,salePrice:28500},{id:'102',code:'STK-100318',name:'Örnek Elbise Seti',supplierId:'502',stock:12,cost:24800,salePrice:42000},{id:'103',code:'STK-100509',name:'Örnek Pamuk Battaniye',supplierId:'503',stock:8,cost:37100,salePrice:54000}],
+ customers:[{id:'201',name:'Örnek Berlin Mağazası'},{id:'202',name:'Örnek İstanbul Mağazası'},{id:'203',name:'Örnek Balkan Mağazası'}],
+ suppliers:[{id:'501',name:'Örnek Zıbın Tedarikçisi'},{id:'502',name:'Örnek Elbise Tedarikçisi'},{id:'503',name:'Örnek Battaniye Tedarikçisi'}],cash:{TRY:0,USD:0,EUR:0},cashOpen:false,documents:[],movements:[],orders:[]};}
+import { ensureFinanceShape } from './operationsFinance.js';
+export function ensureShape(state){state.orders||=[];state.nextOrderId||=1;state.cardAudit||=[];state.exchangeRates||=[];for(const product of state.products){product.prices||={TRY:product.salePrice};product.barcodes||=[];product.unitBarcodes||=[];product.series||=[];product.unitFactor||=1;product.active??=true;product.lastPurchasePrice??=null;}for(const customer of state.customers)customer.creditLimits||={TRY:0,USD:0,EUR:0};return ensureFinanceShape(state);}

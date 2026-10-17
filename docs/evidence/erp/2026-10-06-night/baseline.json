@@ -1,0 +1,47 @@
+{
+  "at": "2026-10-05T22:51:53.528Z",
+  "sourceCommit": "bb082dfc5b182070b1ebd09de239c7894b89982d",
+  "package": "CANONICAL-LAN-TEST-20261006-49",
+  "actor": 16,
+  "conditions": {
+    "transport": "LAN HTTP",
+    "pageSize": 50,
+    "samples": 3,
+    "sequence": "first50,next50,code,barcode,card,home",
+    "acceptedOpening": 16622,
+    "quarantine": 54
+  },
+  "measurements": {
+    "first50": [
+      1559,
+      755,
+      743
+    ],
+    "next50": [
+      770,
+      662,
+      692
+    ],
+    "code": [
+      722,
+      679,
+      650
+    ],
+    "barcode": [
+      372,
+      420,
+      424
+    ],
+    "card": [
+      180,
+      189,
+      188
+    ],
+    "home": [
+      160,
+      94,
+      91
+    ]
+  },
+  "businessWrites": 0
+}

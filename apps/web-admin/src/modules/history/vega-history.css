@@ -1,0 +1,97 @@
+.vega-history-screen{display:flex;flex-direction:column;gap:14px;padding:18px;min-width:0;color:#172b3d;background:#f3f6f9}
+.vega-history-screen *{box-sizing:border-box}
+.vega-history-screen h2,.vega-history-screen h3,.vega-history-screen h4,.vega-history-screen p{margin:0}
+.vega-history-screen h2{font-size:23px;line-height:1.3;margin:6px 0}
+.vega-history-screen h3{font-size:17px;line-height:1.4;overflow-wrap:anywhere}
+.vega-history-screen h4{font-size:15px;margin:16px 0 10px}
+.vega-history-screen p{font-size:13px;line-height:1.55}
+.vega-history-screen button,.vega-history-screen input,.vega-history-screen select{font:inherit;font-size:13px;min-height:36px;border:1px solid #b9c9d7;border-radius:6px}
+.vega-history-screen button{background:#fff;color:#164664;padding:7px 12px;cursor:pointer;line-height:1.3}
+.vega-history-screen button:hover:not(:disabled){background:#eaf2f8;border-color:#638ba7}
+.vega-history-screen button:disabled{opacity:.45;cursor:default}
+.vega-history-screen :is(button,input,select,summary):focus-visible{outline:3px solid #277eab;outline-offset:2px}
+.vega-history-screen input,.vega-history-screen select{background:#fff;color:#172b3d;padding:7px 10px;max-width:100%}
+.vega-history-header,.vega-history-toolbar,.vega-history-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.vega-history-source-badge{display:inline-block;background:#e2eef9;color:#194b75;border:1px solid #b3cfe7;padding:4px 9px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.vega-history-toolbar{justify-content:flex-start;background:#eaf0f5;border:1px solid #d2dfe9;border-radius:8px;padding:12px 14px;gap:24px}
+.vega-history-toolbar label{display:grid;gap:5px;font-size:12px;font-weight:600;min-width:235px}
+.vega-history-toolbar p{display:grid;gap:3px}
+.vega-history-toolbar p span,.vega-history-caption,.vega-history-eyebrow{color:#536c80}
+.vega-history-layout{display:grid;grid-template-columns:minmax(240px,290px) minmax(0,1fr);gap:14px;align-items:start;min-width:0}
+.vega-history-panel{background:#fff;border:1px solid #d1dde7;border-radius:8px;padding:14px;min-width:0}
+.vega-history-content{display:grid;gap:14px;min-width:0}
+.vega-history-search{display:flex;gap:6px;margin:12px 0}
+.vega-history-search input{flex:1;min-width:0}
+.vega-history-document-search{max-width:600px}
+.vega-history-party-list{list-style:none;margin:0;padding:0;max-height:560px;overflow-y:auto;display:grid;gap:7px}
+.vega-history-party-list li{min-width:0}
+.vega-history-party-list button{display:grid;gap:5px;text-align:left;width:100%;padding:11px;white-space:normal;overflow-wrap:anywhere}
+.vega-history-party-list button strong{font-size:14px}
+.vega-history-party-list button>span{font-size:12px;color:#496277}
+.vega-history-party-list button.is-selected{background:#e8f3fc;border-color:#327dad;box-shadow:inset 3px 0 #327dad}
+.vega-history-all-documents{width:100%;margin-top:12px;text-align:left;font-weight:600!important}
+.vega-history-all-documents[aria-pressed=true]{background:#e8f3fc;border-color:#327dad}
+.vega-history-flags{display:flex;gap:4px;flex-wrap:wrap}
+.vega-history-flag{display:inline-block;padding:3px 6px;border-radius:4px;font-size:11px;line-height:1.25;white-space:normal}
+.vega-history-flag.is-yes{color:#8d2929;background:#fff0ed;border:1px solid #e7b5ac}
+.vega-history-flag.is-no{color:#436054;background:#edf5f0;border:1px solid #d1e2d7}
+.vega-history-flag.is-unknown{color:#6b5d3c;background:#faf5e9;border:1px solid #e8dfc8}
+.vega-history-state{padding:20px 4px;color:#597086}
+.vega-history-error{background:#fff2ed;color:#922d25;border:1px solid #e9c3b9;border-radius:6px;padding:14px;margin:12px 0!important}
+.vega-history-pagination{display:grid;gap:7px;border-top:1px solid #dce4eb;margin-top:12px;padding-top:10px;font-size:12px;color:#496277}
+.vega-history-pagination>div{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.vega-history-pagination button{font-size:12px;padding:5px 8px;min-height:32px}
+.vega-history-pagination>div>span{padding:4px 2px}
+.vega-history-welcome{padding:26px;min-height:180px}
+.vega-history-welcome p{margin-top:12px;max-width:650px}
+.vega-history-eyebrow{font-size:12px;display:block;margin-bottom:4px}
+.vega-history-caption{font-size:12px!important;margin:10px 0!important}
+.vega-history-tabs{display:flex;gap:6px;border-bottom:1px solid #d1dde7;padding:8px 0 10px;margin-top:8px}
+.vega-history-tabs button[aria-selected=true]{background:#19587d;color:white;border-color:#19587d;font-weight:600}
+.vega-history-ledger-source{display:grid;gap:5px;max-width:300px;margin-top:12px;font-size:12px;font-weight:600}
+.vega-history-table-scroll{overflow:auto;max-width:100%;margin-top:10px}
+.vega-history-screen table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.4;text-align:left}
+.vega-history-screen table caption{text-align:left;color:#63798c;padding:0 0 8px;font-size:11px}
+.vega-history-screen th,.vega-history-screen td{padding:10px 8px;border-bottom:1px solid #dde5ed;vertical-align:top}
+.vega-history-screen thead th{background:#eef3f7;color:#324c61;font-size:11px;white-space:normal}
+.vega-history-screen td{max-width:270px;overflow-wrap:anywhere}
+.vega-history-screen td small{display:block;font-size:11px;color:#587186;margin-top:4px}
+.vega-history-screen tr.is-selected>td{background:#edf6fe}
+.vega-history-number{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.vega-history-document-link{font-weight:600;text-align:left!important;white-space:normal;word-break:break-word}
+.vega-history-source-fields{margin-top:10px;border:1px solid #d9e3eb;border-radius:5px;padding:9px;background:#fafcfd;max-width:100%}
+.vega-history-source-fields summary{font-size:12px;color:#2d5979;cursor:pointer;overflow-wrap:anywhere}
+.vega-history-source-fields table{min-width:320px}
+.vega-history-source-fields tbody th{width:38%;font-weight:600}
+.vega-history-source-fields td{max-width:none}
+.vega-history-identity{font-size:11px;margin:12px 0;display:grid;gap:8px}
+.vega-history-identity div{display:grid;gap:3px}
+.vega-history-identity dt{font-weight:600;color:#587084}
+.vega-history-identity dd{margin:0;overflow-wrap:anywhere}
+.vega-history-verbatim{white-space:pre-wrap;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.vega-history-document-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.vega-history-document-summary>div{border:1px solid #dce5ec;border-radius:5px;padding:10px;display:grid;gap:6px;min-width:0}
+.vega-history-document-summary span{font-size:11px;color:#597186}
+.vega-history-document-summary strong{font-size:14px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.vega-history-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.calm-workspace-shell .vega-history-screen{background:var(--ui-page);color:var(--ui-text);gap:10px;font:inherit}
+.calm-workspace-shell .vega-history-screen h2{font-size:20px}
+.calm-workspace-shell .vega-history-toolbar{background:var(--ui-surface-soft);border-color:var(--ui-border);padding:10px 12px;gap:18px}
+.calm-workspace-shell .vega-history-panel{border-color:var(--ui-border);padding:12px}
+.calm-workspace-shell .vega-history-screen button{color:var(--ui-text);border-color:var(--ui-border-strong)}
+.calm-workspace-shell .vega-history-screen button:hover:not(:disabled){background:var(--ui-primary-soft);border-color:var(--ui-primary)}
+.calm-workspace-shell .vega-history-screen :is(button,input,select,summary):focus-visible{outline-color:var(--ui-primary)}
+.calm-workspace-shell .vega-history-party-list button.is-selected{background:var(--ui-primary-soft);border-color:var(--ui-primary);box-shadow:inset 3px 0 var(--ui-primary)}
+.calm-workspace-shell .vega-history-all-documents[aria-pressed=true]{background:var(--ui-primary-soft);border-color:var(--ui-primary);color:var(--ui-primary-strong)}
+.calm-workspace-shell .vega-history-tabs button[aria-selected=true]{background:var(--ui-primary);border-color:var(--ui-primary);color:#fff}
+.calm-workspace-shell .vega-history-source-badge{background:var(--ui-surface-soft);border-color:var(--ui-border);color:var(--ui-muted)}
+.calm-workspace-shell .vega-history-screen thead th{background:var(--ui-surface-soft);color:var(--ui-muted)}
+.calm-workspace-shell .vega-history-screen tr.is-selected>td{background:var(--ui-primary-soft)}
+.calm-workspace-shell .vega-history-party-list{max-height:420px}
+.calm-workspace-shell .work-area.vega-history-screen table{table-layout:auto!important;min-width:940px}
+.calm-workspace-shell .work-area.vega-history-screen :is(th,td){max-width:none;overflow:visible;text-overflow:clip;resize:none;white-space:normal;word-break:normal}
+.calm-workspace-shell .work-area.vega-history-screen .vega-history-number{white-space:nowrap}
+.calm-workspace-shell .work-area.vega-history-screen .vega-history-document-link{min-width:135px;max-width:190px;width:auto;white-space:normal;word-break:normal;overflow-wrap:anywhere}
+.calm-workspace-shell .work-area.vega-history-screen .vega-history-source-fields table{min-width:360px}
+@media(max-width:1050px){.vega-history-layout{grid-template-columns:minmax(210px,240px) minmax(0,1fr)}.vega-history-screen{padding:12px}.vega-history-screen th,.vega-history-screen td{padding:8px 6px}.vega-history-document-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.vega-history-layout{grid-template-columns:1fr}.vega-history-party-list{max-height:260px}.vega-history-toolbar{gap:12px}.vega-history-toolbar label{width:100%}.vega-history-screen table{min-width:640px}.vega-history-source-fields table{min-width:300px}}

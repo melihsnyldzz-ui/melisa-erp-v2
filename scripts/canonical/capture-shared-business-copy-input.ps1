@@ -1,0 +1,33 @@
+param()
+$ErrorActionPreference='Stop'
+$root='C:\Sirket\ERP\evidence\ERP-CRM-EXPAND-20261009\private\infra'
+$output=Join-Path $root 'business-copy-input.json'
+if(Test-Path -LiteralPath $output){throw 'BUSINESS_INPUT_ALREADY_EXISTS'}
+$source=Get-Content -LiteralPath 'C:\Sirket\ERP\evidence\ERP-CRM-PREP-20261009\private\infra\shared-input.json' -Raw|ConvertFrom-Json -AsHashtable -Depth 100
+$current=Get-Content -LiteralPath 'C:\Sirket\ERP\config\TEST-20260929-01\runtime-private.json' -Raw|ConvertFrom-Json -AsHashtable -Depth 100
+$recovery=Get-Content -LiteralPath (Join-Path $root 'shared-restore-comparison.json') -Raw|ConvertFrom-Json -AsHashtable
+$backup=Get-Content -LiteralPath (Join-Path $root 'shared-backup.json') -Raw|ConvertFrom-Json -AsHashtable
+if($recovery.status-cne 'PASS'-or$recovery.sourceBeforeAfterEqual-ne $true-or$recovery.rawCopyMatchesSource-ne $true){throw 'BUSINESS_INPUT_RAW_COPY_PROOF'}
+$cn=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=MELISA_ERP_CRM_SHARED_TEST_20261009_02;Integrated Security=True;Encrypt=False;Application Name=BUSINESS-COPY-INPUT-SELECT')
+function Rows([string]$sql){if($sql-match '(?i)\b(INSERT|UPDATE|DELETE|MERGE|EXEC|ALTER|CREATE|DROP|TRUNCATE|BACKUP|RESTORE|DBCC)\b'){throw 'BUSINESS_INPUT_SELECT_ONLY'};$cmd=$cn.CreateCommand();$cmd.CommandTimeout=900;$cmd.CommandText=$sql;$r=$cmd.ExecuteReader();$rows=[Collections.Generic.List[object]]::new();try{while($r.Read()){$x=[ordered]@{};for($i=0;$i-lt$r.FieldCount;$i++){$x[$r.GetName($i)]=if($r.IsDBNull($i)){$null}else{$r.GetValue($i)}};$rows.Add([pscustomobject]$x)}}finally{$r.Close();$cmd.Dispose()};return $rows.ToArray()}
+try{
+ $cn.Open();$identity=@(Rows 'SELECT @@SERVERNAME server,DB_NAME() [database],@@TRANCOUNT openTransactions')[0]
+ if($identity.server-cne 'Semih\MELISADEV'-or$identity.database-cne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02'-or$identity.openTransactions-ne 0){throw 'BUSINESS_INPUT_IDENTITY'}
+ if(@(Rows "SELECT name FROM sys.tables WHERE name=N'stage4_copy_manifest'").Count-ne 0){throw 'BUSINESS_INPUT_ALREADY_INSTALLED'}
+ $modules=@(Rows "SELECT SCHEMA_NAME(o.schema_id) schemaName,o.name,o.type_desc,m.definition,CAST(COALESCE(OBJECTPROPERTY(o.object_id,'ExecIsTriggerDisabled'),0) AS int) isDisabled,CAST(COALESCE(OBJECTPROPERTY(o.object_id,'ExecIsFirstInsertTrigger'),0) AS int) firstInsert,CAST(COALESCE(OBJECTPROPERTY(o.object_id,'ExecIsFirstUpdateTrigger'),0) AS int) firstUpdate,CAST(COALESCE(OBJECTPROPERTY(o.object_id,'ExecIsFirstDeleteTrigger'),0) AS int) firstDelete FROM sys.sql_modules m JOIN sys.objects o ON o.object_id=m.object_id WHERE o.is_ms_shipped=0 ORDER BY schemaName,o.name")
+ $schema=@(Rows "SELECT SCHEMA_NAME(o.schema_id) schemaName,o.name tableName,c.name columnName,TYPE_NAME(c.user_type_id) typeName FROM sys.tables o JOIN sys.columns c ON c.object_id=o.object_id WHERE o.is_ms_shipped=0 ORDER BY schemaName,tableName,c.column_id")
+ $constraints=@(Rows "SELECT SCHEMA_NAME(o.schema_id) schemaName,o.name tableName,c.name,c.definition,CONVERT(varchar(64),HASHBYTES('SHA2_256',c.definition),2) definitionHash,c.parent_column_id parentColumnId,c.is_disabled isDisabled,c.is_not_trusted isNotTrusted,c.is_not_for_replication isNotForReplication FROM sys.check_constraints c JOIN sys.tables o ON o.object_id=c.parent_object_id WHERE SCHEMA_NAME(o.schema_id)=N'dbo' ORDER BY tableName,c.name")
+ $foreignKeys=@(Rows "SELECT SCHEMA_NAME(o.schema_id) schemaName,o.name tableName,k.name,COL_NAME(f.parent_object_id,f.parent_column_id) columnName,OBJECT_SCHEMA_NAME(k.referenced_object_id) referencedSchema,OBJECT_NAME(k.referenced_object_id) referencedTable,COL_NAME(f.referenced_object_id,f.referenced_column_id) referencedColumn,f.constraint_column_id columnOrdinal,k.is_disabled isDisabled,k.is_not_trusted isNotTrusted,k.is_not_for_replication isNotForReplication,k.delete_referential_action deleteAction,k.update_referential_action updateAction FROM sys.foreign_keys k JOIN sys.foreign_key_columns f ON f.constraint_object_id=k.object_id JOIN sys.tables o ON o.object_id=k.parent_object_id WHERE SCHEMA_NAME(o.schema_id)=N'dbo' ORDER BY tableName,k.name,f.constraint_column_id")
+ $profile=$source.profile;$actorRows=@{}
+ foreach($actor in $profile.actors){$id=$actor.id;if($id-cnotin @('15','16')){throw 'BUSINESS_INPUT_ACTOR_SCOPE'};$actor.permissionsRowsHash=@(Rows "SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',(SELECT p.* FROM dbo.permissions p WHERE p.role_id=$id ORDER BY p.id FOR JSON PATH,INCLUDE_NULL_VALUES)),2) h")[0].h;$actorRows[$id]=@(Rows "SELECT permission_key,can_view,can_create,can_update,can_approve FROM dbo.permissions WHERE role_id=$id AND(can_view=1 OR can_create=1 OR can_update=1 OR can_approve=1) ORDER BY permission_key")}
+ $profile.baselineMaxIds=@{};$profile.baselineRowIds=@{}
+ $factorySource=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'stage4-copy-sql.mjs') -Raw
+ $finite=[regex]::Match($factorySource,'COPY_MUTABLE_TABLES=Object\.freeze\(\[([\s\S]*?)\]\);').Groups[1].Value
+ $tables=@([regex]::Matches($finite,"'([a-z_]+)'")|ForEach-Object {$_.Groups[1].Value});if($tables.Count-ne 35){throw 'BUSINESS_INPUT_FINITE_TABLES'}
+ foreach($name in $tables){$columns=@($schema|Where-Object {$_.schemaName-ceq 'dbo'-and$_.tableName-ceq $name});if($columns.Count-eq 0){continue};$id=@($columns|Where-Object columnName -CEQ 'id');$rq=@($columns|Where-Object columnName -CEQ 'request_id');if($id.Count-eq 1-and$id[0].typeName-cin @('int','bigint')){$profile.baselineMaxIds[$name]=[string]@(Rows "SELECT CONVERT(varchar(20),ISNULL(MAX(id),0)) m FROM dbo.[$name]")[0].m}elseif($id.Count-eq 1-or$rq.Count-eq 1){$col=if($id.Count-eq 1){'id'}else{'request_id'};$profile.baselineRowIds[$name]=@(@(Rows "SELECT CONVERT(varchar(80),[$col]) v FROM dbo.[$name] ORDER BY [$col]")|ForEach-Object {$_.v})}}
+ $input=[ordered]@{identity=$identity;profile=$profile;modules=$modules;schema=$schema;constraints=$constraints;foreignKeys=$foreignKeys;actorPermissionRows=$actorRows;recoveryProof=$recovery;backupSHA=$backup.sha256;sourceCommit=$source.sourceCommit;goal7SourceVersion=$current.goal7SourceVersion;businessWrites=0}
+ foreach($k in @('catalogMediaRoot','catalogMediaIndexSha256','catalogClassificationRoot','catalogClassificationIndexSha256','currentFinanceDeltaContext')){$input[$k]=$current[$k]}
+ if($input.currentFinanceDeltaContext.accountIds.Count-ne 283){throw 'BUSINESS_INPUT_CURRENT_FINANCE_CONTEXT'}
+ [IO.File]::WriteAllText($output,($input|ConvertTo-Json -Depth 100),[Text.UTF8Encoding]::new($false))
+ @{captured=$true;database=$identity.database;moduleCount=$modules.Count;checks=$constraints.Count;businessWrites=0;secretsSaved=$false}|ConvertTo-Json -Compress
+}finally{$cn.Dispose()}

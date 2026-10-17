@@ -62,15 +62,6 @@ export const env = {
     trustServerCertificate: String(process.env.SQL_TRUST_SERVER_CERTIFICATE || 'true').toLowerCase() === 'true',
     readOnly: String(process.env.SQL_READ_ONLY || 'true').toLowerCase() !== 'false',
   },
-  bionicReadOnly: {
-    enabled: booleanEnv('BIONIC_READ_ONLY_ENABLED', false),
-    apiKey: process.env.BIONIC_READ_ONLY_API_KEY || '',
-    publicBaseUrl: process.env.BIONIC_ERP_PUBLIC_BASE_URL || 'http://host.docker.internal:4100/api',
-    maxRows: Math.min(1000, Math.max(1, numberEnv('BIONIC_READ_ONLY_MAX_ROWS', 500))),
-    maxTables: Math.min(500, Math.max(1, numberEnv('BIONIC_READ_ONLY_MAX_TABLES', 200))),
-    maxQueryChars: Math.min(20000, Math.max(500, numberEnv('BIONIC_READ_ONLY_MAX_QUERY_CHARS', 10000))),
-    queryTimeoutMs: Math.min(30000, Math.max(1000, numberEnv('BIONIC_READ_ONLY_QUERY_TIMEOUT_MS', 15000))),
-  },
   vega: {
     enabled: Boolean(
       process.env.VEGA_SQL_SERVER
@@ -160,13 +151,6 @@ export function getStartupWarnings() {
     warnings.push('JWT refresh secret is not configured; refresh endpoints will fail closed');
   }
 
-  if (env.bionicReadOnly.enabled && !env.bionicReadOnly.apiKey) {
-    warnings.push('BIONIC_READ_ONLY_ENABLED=true but BIONIC_READ_ONLY_API_KEY is missing; Bionic integration will fail closed');
-  }
-
-  if (env.bionicReadOnly.enabled && !env.sql.readOnly) {
-    warnings.push('Bionic read-only integration is enabled while SQL_READ_ONLY is false; use a database login with SELECT-only permissions');
-  }
 
   if (env.nakliyat.enabled && (!env.nakliyat.serviceEmail || !env.nakliyat.servicePassword)) {
     warnings.push('Nakliyat read-only health is enabled, but service credentials are missing; quote operations will fail closed');

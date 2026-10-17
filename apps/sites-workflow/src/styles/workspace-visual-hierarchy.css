@@ -1,0 +1,173 @@
+/* App-wide visual hierarchy. WhatsApp CRM keeps its purpose-built chat theme. */
+.work-area:not(.whatsapp-crm-screen) {
+  --workspace-bg: #edf1f5;
+  --workspace-panel: #ffffff;
+  --workspace-panel-border: #c7d0dc;
+  --workspace-divider: #d5dde7;
+  --workspace-title-bg: #e7edf4;
+  --workspace-table-head: #dce5ef;
+  --workspace-row-alt: #f4f7fa;
+  --workspace-row-hover: #e8f1f7;
+  --workspace-selected: #d9f1ed;
+  gap: 8px;
+  padding: 8px;
+  background: var(--workspace-bg);
+}
+
+.work-area:not(.whatsapp-crm-screen) .erp-panel {
+  border-color: var(--workspace-panel-border);
+  background-color: var(--workspace-panel);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.work-area:not(.whatsapp-crm-screen) .panel-title {
+  border-bottom-color: var(--workspace-divider);
+  background: var(--workspace-title-bg);
+  color: #172033;
+}
+
+.work-area:not(.whatsapp-crm-screen) .panel-title strong {
+  color: #172033;
+}
+
+.work-area:not(.whatsapp-crm-screen) .dashboard-toolbar,
+.work-area:not(.whatsapp-crm-screen) .invoice-list-toolbar,
+.work-area:not(.whatsapp-crm-screen) .customer-list-toolbar,
+.work-area:not(.whatsapp-crm-screen) .stock-toolbar,
+.work-area:not(.whatsapp-crm-screen) .import-toolbar,
+.work-area:not(.whatsapp-crm-screen) .product-card-header,
+.work-area:not(.whatsapp-crm-screen) .customer-card-header,
+.work-area:not(.whatsapp-crm-screen) .supplier-card-header {
+  border-color: var(--workspace-panel-border);
+  border-left: 3px solid #0f766e;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.work-area:not(.whatsapp-crm-screen) details.erp-panel > summary {
+  border-bottom-color: var(--workspace-divider);
+}
+
+.work-area:not(.whatsapp-crm-screen) details.erp-panel[open] > summary {
+  background: var(--workspace-title-bg);
+}
+
+.work-area:not(.whatsapp-crm-screen) .table-wrap,
+.work-area:not(.whatsapp-crm-screen) .product-table-wrap,
+.work-area:not(.whatsapp-crm-screen) .import-table-wrap {
+  border-color: var(--workspace-panel-border);
+  background: #ffffff;
+}
+
+.work-area:not(.whatsapp-crm-screen) table thead th {
+  border-color: #bfcbd8;
+  background: var(--workspace-table-head);
+  color: #27364b;
+}
+
+.work-area:not(.whatsapp-crm-screen) table tbody tr:not(.selected):not(.usage-in-row):not(.usage-out-row):not(.purchase-row):not(.payment-row):not(.cash-in-row):not(.cash-out-row):nth-child(odd) td {
+  background: #ffffff;
+}
+
+.work-area:not(.whatsapp-crm-screen) table tbody tr:not(.selected):not(.usage-in-row):not(.usage-out-row):not(.purchase-row):not(.payment-row):not(.cash-in-row):not(.cash-out-row):nth-child(even) td {
+  background: var(--workspace-row-alt);
+}
+
+.work-area:not(.whatsapp-crm-screen) table tbody tr:not(.selected):not(.purchase-row):not(.payment-row):not(.cash-in-row):not(.cash-out-row):hover td {
+  background: var(--workspace-row-hover);
+}
+
+.work-area:not(.whatsapp-crm-screen) table tbody tr.selected td {
+  background: var(--workspace-selected);
+  box-shadow: inset 3px 0 0 #0f766e;
+}
+
+.work-area:not(.whatsapp-crm-screen) table td {
+  border-color: var(--workspace-divider);
+}
+
+.work-area:not(.whatsapp-crm-screen) input,
+.work-area:not(.whatsapp-crm-screen) select,
+.work-area:not(.whatsapp-crm-screen) textarea {
+  border-color: #b9c5d3;
+  background-color: #ffffff;
+}
+
+.work-area:not(.whatsapp-crm-screen) input:focus,
+.work-area:not(.whatsapp-crm-screen) select:focus,
+.work-area:not(.whatsapp-crm-screen) textarea:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.13);
+}
+
+.work-area:not(.whatsapp-crm-screen) > .screen-summary:not(.screen-insights) {
+  border-color: var(--workspace-panel-border);
+  background: var(--workspace-title-bg);
+}
+
+.work-area:not(.whatsapp-crm-screen) > .list-state {
+  border-color: var(--workspace-panel-border);
+  background: #f8fafc;
+}
+
+.work-area:not(.whatsapp-crm-screen) > .list-state-success {
+  border-color: #86efac;
+  background: #eaf8ef;
+}
+
+.work-area:not(.whatsapp-crm-screen) > .list-state-error {
+  border-color: #fca5a5;
+  background: #fff1f2;
+}
+
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) {
+  --workspace-bg: #111827;
+  --workspace-panel: #182334;
+  --workspace-panel-border: #475569;
+  --workspace-divider: #3b4758;
+  --workspace-title-bg: #263244;
+  --workspace-table-head: #2b394c;
+  --workspace-row-alt: #1c2737;
+  --workspace-row-hover: #24364a;
+  --workspace-selected: #164e48;
+}
+
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .panel-title,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .panel-title strong,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) table thead th {
+  color: #e5edf7;
+}
+
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .dashboard-toolbar,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .invoice-list-toolbar,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .customer-list-toolbar,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .stock-toolbar,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .import-toolbar,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .product-card-header,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .customer-card-header,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .supplier-card-header,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .table-wrap,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .product-table-wrap,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) .import-table-wrap,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) table tbody tr:not(.selected):not(.usage-in-row):not(.usage-out-row):not(.purchase-row):not(.payment-row):not(.cash-in-row):not(.cash-out-row):nth-child(odd) td,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) input,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) select,
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) textarea {
+  background: var(--workspace-panel);
+  color: #e5edf7;
+}
+
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) table tbody tr:not(.selected):not(.usage-in-row):not(.usage-out-row):not(.purchase-row):not(.payment-row):not(.cash-in-row):not(.cash-out-row):nth-child(even) td {
+  background: var(--workspace-row-alt);
+}
+
+.dark-mode-shell .work-area:not(.whatsapp-crm-screen) table tbody tr:not(.selected):not(.purchase-row):not(.payment-row):not(.cash-in-row):not(.cash-out-row):hover td {
+  background: var(--workspace-row-hover);
+}
+
+@media (max-width: 760px) {
+  .work-area:not(.whatsapp-crm-screen) {
+    gap: 6px;
+    padding: 5px;
+  }
+}

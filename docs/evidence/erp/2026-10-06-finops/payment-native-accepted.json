@@ -1,0 +1,144 @@
+{
+  "at": "2026-10-06T11:04:32.0418011Z",
+  "stage": "accepted",
+  "businessWrites": 0,
+  "syntheticScopeOnly": true,
+  "identity": [
+    {
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "serverName": "Semih\\MELISADEV"
+    }
+  ],
+  "balances": [
+    {
+      "currency": "EUR",
+      "supplierId": "13372",
+      "debtExact4": "300.0000",
+      "accountId": "34",
+      "cashExact4": "1000.0000",
+      "productId": null,
+      "stockExact3": null,
+      "invoiceId": null,
+      "invoiceNumber": null,
+      "invoiceState": null
+    },
+    {
+      "currency": "TRY",
+      "supplierId": "23381",
+      "debtExact4": "300.0000",
+      "accountId": "20045",
+      "cashExact4": "1000.0000",
+      "productId": "345507",
+      "stockExact3": "5.000",
+      "invoiceId": "25094",
+      "invoiceNumber": "TDAY-FINOPS-20261006",
+      "invoiceState": "finalized"
+    },
+    {
+      "currency": "USD",
+      "supplierId": "13371",
+      "debtExact4": "300.0000",
+      "accountId": "33",
+      "cashExact4": "1000.0000",
+      "productId": null,
+      "stockExact3": null,
+      "invoiceId": null,
+      "invoiceNumber": null,
+      "invoiceState": null
+    }
+  ],
+  "journal": [
+    {
+      "requestId": "f0c304e9-6708-49c8-9327-8ecaa60c4761",
+      "actorId": "16",
+      "operation": "payment",
+      "movementId": "48065",
+      "originalId": null,
+      "currency": "TRY",
+      "amountExact4": "100.0000",
+      "debtEffectExact4": "-100.0000",
+      "amountTryExact4": "100.0000",
+      "documentRateExact8": "1.00000000",
+      "accountRateExact8": "1.00000000",
+      "financeMovementId": "44243",
+      "direction": "out",
+      "financeAmountExact4": "100.0000",
+      "financeNumber": "OD-48065"
+    },
+    {
+      "requestId": "a096bfb0-561a-42fa-a28d-24b32a9d88fe",
+      "actorId": "16",
+      "operation": "payment",
+      "movementId": "48066",
+      "originalId": null,
+      "currency": "TRY",
+      "amountExact4": "200.0000",
+      "debtEffectExact4": "-200.0000",
+      "amountTryExact4": "200.0000",
+      "documentRateExact8": "1.00000000",
+      "accountRateExact8": "1.00000000",
+      "financeMovementId": "44244",
+      "direction": "out",
+      "financeAmountExact4": "200.0000",
+      "financeNumber": "OD-48066"
+    },
+    {
+      "requestId": "4cd778db-8ee8-4169-87a9-14e3fe59a12e",
+      "actorId": "16",
+      "operation": "payment_cancel",
+      "movementId": "48067",
+      "originalId": "48066",
+      "currency": "TRY",
+      "amountExact4": "200.0000",
+      "debtEffectExact4": "200.0000",
+      "amountTryExact4": "200.0000",
+      "documentRateExact8": "1.00000000",
+      "accountRateExact8": "1.00000000",
+      "financeMovementId": "44245",
+      "direction": "in",
+      "financeAmountExact4": "200.0000",
+      "financeNumber": "ODI-48067"
+    },
+    {
+      "requestId": "ab836ce9-2177-49e0-b550-ed5143893d6e",
+      "actorId": "16",
+      "operation": "payment_cancel",
+      "movementId": "48068",
+      "originalId": "48065",
+      "currency": "TRY",
+      "amountExact4": "100.0000",
+      "debtEffectExact4": "100.0000",
+      "amountTryExact4": "100.0000",
+      "documentRateExact8": "1.00000000",
+      "accountRateExact8": "1.00000000",
+      "financeMovementId": "44246",
+      "direction": "in",
+      "financeAmountExact4": "100.0000",
+      "financeNumber": "ODI-48068"
+    }
+  ],
+  "stockMovements": [
+    {
+      "count": 1
+    }
+  ],
+  "legacyJournal": [
+    {
+      "count": 15
+    }
+  ],
+  "unowned": [
+    {
+      "currency": "EUR",
+      "unownedCount": 0
+    },
+    {
+      "currency": "TRY",
+      "unownedCount": 0
+    },
+    {
+      "currency": "USD",
+      "unownedCount": 0
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import sql from 'mssql';
 import { env } from '../config/env.js';
 import { getVegaSqlPool } from '../config/vegaDatabase.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
+import { explicitInventoryQuantity, explicitSaleCurrency } from './explicitSaleCurrency.mjs';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -59,9 +60,10 @@ function normalizeStockCodes(values) {
     .slice(0, 100);
 }
 
-function toVegaProductDto(row) {
-  const currency = normalizeCurrency(row.sale_currency, normalizeCurrency(row.purchase_currency));
-  const purchaseCurrency = normalizeCurrency(row.purchase_currency, currency);
+export function toVegaProductDto(row) {
+  // Preserve the existing internal cost fallback independently of sale truth.
+  const internalCurrency = normalizeCurrency(row.sale_currency, normalizeCurrency(row.purchase_currency));
+  const purchaseCurrency = normalizeCurrency(row.purchase_currency, internalCurrency);
   const purchasePriceLocal = Number(row.purchase_price_local || 0);
   const purchasePriceForeign = Number(row.purchase_price_foreign || 0);
 
@@ -69,6 +71,8 @@ function toVegaProductDto(row) {
     id: `vega-${row.source_id}`,
     source: 'vega',
     sourceId: Number(row.source_id),
+    unitId: Number.isSafeInteger(Number(row.unit_id)) && Number(row.unit_id) > 0 ? Number(row.unit_id) : null,
+    sourceContext: { source: 'vega', database: 'VEGA2026', company: 'F0102', period: 'D0007' },
     stockCode: row.stock_code || `VEGA-${row.source_id}`,
     barcodeMasked: row.barcode || null,
     matchedBarcode: row.barcode || null,
@@ -81,7 +85,7 @@ function toVegaProductDto(row) {
     supplierCode: '',
     supplierName: '',
     unitName: row.unit_name || '',
-    currency,
+    ...explicitSaleCurrency(row.sale_currency),
     salePrice: Number(row.sale_price || 0),
     purchaseCurrency,
     purchasePrice: purchaseCurrency !== 'TRY' && purchasePriceForeign > 0
@@ -91,8 +95,8 @@ function toVegaProductDto(row) {
     purchasePriceForeign,
     purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
     averageCostTry: 0,
-    stockQuantity: Number(row.stock_quantity || 0),
-    reservedQuantity: Number(row.reserved_quantity || 0),
+    stockQuantity: explicitInventoryQuantity(row.stock_quantity),
+    reservedQuantity: explicitInventoryQuantity(row.reserved_quantity),
     imageUrl: null,
     isPassive: !row.is_active,
     cardOpenedAt: row.card_opened_at || null,
@@ -193,7 +197,7 @@ export async function getVegaProductsList(query) {
           CASE
             WHEN ISNULL(period_stock.movement_count, 0) > 0
               THEN ISNULL(period_stock.stock_quantity, 0)
-            ELSE ISNULL(s.KALAN, 0)
+            ELSE s.KALAN
           END AS stock_quantity,
           s.REZERV AS reserved_quantity,
           s.ALISFIYATI AS purchase_price_local,
@@ -205,6 +209,7 @@ export async function getVegaProductsList(query) {
           s.SONSATISTARIHI AS last_sale_at,
           CAST(CASE WHEN ISNULL(s.STATUS, 1) = 1 THEN 1 ELSE 0 END AS bit) AS is_active,
           u.BARCODE AS barcode,
+          u.IND AS unit_id,
           u.BIRIMADI AS unit_name,
           u.SATISFIYATI1 AS sale_price,
           u.PB1 AS sale_currency
@@ -213,6 +218,7 @@ export async function getVegaProductsList(query) {
           ON period_stock.source_id = s.IND
         OUTER APPLY (
           SELECT TOP (1)
+            unit_row.IND,
             unit_row.BARCODE,
             unit_row.BIRIMADI,
             unit_row.SATISFIYATI1,
@@ -220,6 +226,7 @@ export async function getVegaProductsList(query) {
           FROM dbo.F0102TBLBIRIMLEREX unit_row
           WHERE unit_row.STOKNO = s.IND
           ORDER BY
+            CASE WHEN @barcode IS NOT NULL AND unit_row.BARCODE = @barcode THEN 0 ELSE 1 END,
             CASE WHEN ISNULL(unit_row.VARSAYILAN, 0) = 1 THEN 0 ELSE 1 END,
             CASE WHEN ISNULL(unit_row.ANABIRIM, 0) = 1 THEN 0 ELSE 1 END,
             unit_row.IND ASC

@@ -1,0 +1,177 @@
+.fedex-demo-screen { display: flex; min-height: 0; flex-direction: column; gap: 8px; color: #172033; }
+.fedex-demo-banner, .fedex-demo-steps, .fedex-demo-status { border: 1px solid #cad5e3; border-radius: 8px; background: #fff; }
+.fedex-demo-banner { display: flex; min-height: 58px; padding: 8px 12px; align-items: center; justify-content: space-between; gap: 14px; border-left: 4px solid #4d148c; }
+.fedex-demo-brand, .fedex-demo-brand > div, .fedex-demo-guard, .fedex-demo-guard > span { display: flex; align-items: center; gap: 10px; }
+.fedex-demo-brand > div, .fedex-demo-guard > span { align-items: flex-start; flex-direction: column; gap: 2px; }
+.fedex-demo-mark { color: #4d148c; font-size: 25px; font-weight: 950; letter-spacing: -2px; }
+.fedex-demo-mark span { color: #ff6200; }
+.fedex-demo-brand strong { font-size: 14px; }
+.fedex-demo-brand small, .fedex-demo-guard small { color: #667085; font-size: 9px; }
+.fedex-demo-guard { padding: 7px 10px; border: 1px solid #f79009; border-radius: 7px; background: #fffaeb; color: #b54708; }
+.fedex-demo-guard strong { font-size: 10px; letter-spacing: .05em; }
+
+.fedex-demo-steps { display: grid; grid-template-columns: repeat(7, 1fr); overflow: hidden; }
+.fedex-demo-steps button { display: flex; min-width: 0; min-height: 48px; padding: 6px 8px; align-items: center; gap: 7px; border: 0; border-right: 1px solid #e4e7ec; border-radius: 0; background: #f8fafc; text-align: left; }
+.fedex-demo-steps button:last-child { border-right: 0; }
+.fedex-demo-steps button > span { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #e4e7ec; color: #475467; font-size: 10px; font-weight: 900; }
+.fedex-demo-steps button div { display: grid; min-width: 0; gap: 1px; }
+.fedex-demo-steps button strong { font-size: 10px; }
+.fedex-demo-steps button small { overflow: hidden; color: #667085; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.fedex-demo-steps button.active { background: #f4ebff; box-shadow: inset 0 -3px #4d148c; }
+.fedex-demo-steps button.active > span { background: #4d148c; color: #fff; }
+
+.fedex-demo-summary-grid { display: grid; grid-template-columns: repeat(5, minmax(150px, 1fr)); gap: 6px; }
+.fedex-summary-card { display: flex; min-height: 62px; padding: 8px 10px; align-items: center; gap: 9px; border: 1px solid #d5deea; border-radius: 7px; background: #fff; }
+.fedex-summary-card > svg { color: #4d148c; }
+.fedex-summary-card > div { display: grid; min-width: 0; gap: 1px; }
+.fedex-summary-card span, .fedex-summary-card small { color: #667085; font-size: 8px; }
+.fedex-summary-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.fedex-summary-card.warning { border-color: #fdb022; background: #fffcf5; }
+.fedex-summary-card.success { border-color: #32d583; background: #f6fef9; }
+
+.fedex-demo-content { min-height: 0; flex: 1 1 auto; }
+.fedex-demo-content > .erp-panel, .fedex-demo-content > div { height: 100%; }
+.fedex-two-column, .fedex-package-layout, .fedex-approval-layout { display: grid; min-height: 0; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fedex-two-column > .erp-panel, .fedex-package-layout > .erp-panel, .fedex-approval-layout > .erp-panel { min-height: 0; }
+.fedex-panel-title { min-height: 38px; }
+.fedex-panel-title > span { display: flex; align-items: center; gap: 6px; }
+.fedex-panel-title > span svg { color: #4d148c; }
+.fedex-panel-title small { color: #667085; font-size: 9px; }
+
+.fedex-check-table { display: grid; padding: 8px; gap: 5px; }
+.fedex-check-table > div { display: flex; min-height: 38px; padding: 7px 9px; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #e4e7ec; border-radius: 6px; background: #f9fafb; }
+.fedex-check-table > div > span { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.fedex-check-table > div > strong { font-size: 10px; }
+.fedex-check-table .ok svg { color: #039855; }
+.fedex-check-table .warning { border-color: #fec84b; background: #fffcf5; }
+.fedex-check-table .warning svg { color: #dc6803; }
+.fedex-issue-list, .fedex-operation-list { display: grid; margin: 0; padding: 10px 12px 10px 30px; gap: 8px; color: #475467; font-size: 10px; line-height: 1.45; }
+.fedex-issue-list strong { color: #b42318; }
+
+.fedex-party-card { border-top: 3px solid #4d148c; }
+.fedex-party-card.recipient { border-top-color: #ff6200; }
+.fedex-party-card dl, .fedex-shipment-dl { display: grid; margin: 0; padding: 8px; gap: 5px; }
+.fedex-party-card dl > div, .fedex-shipment-dl > div { display: grid; min-height: 39px; padding: 6px 8px; align-items: center; grid-template-columns: 120px 1fr; border: 1px solid #e4e7ec; border-radius: 5px; background: #f9fafb; }
+.fedex-party-card dt, .fedex-shipment-dl dt { color: #667085; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.fedex-party-card dd, .fedex-shipment-dl dd { margin: 0; font-size: 10px; font-weight: 750; }
+.fedex-party-card em, .fedex-shipment-dl em { margin-left: 5px; color: #b54708; font-size: 8px; font-style: normal; }
+
+.fedex-product-panel { display: flex; min-height: 0; flex-direction: column; }
+.fedex-product-panel .table-shell { min-height: 0; flex: 1 1 auto; overflow: auto; }
+.fedex-product-panel table { min-width: 1120px; }
+.fedex-material-rule { margin: 6px 8px 0; padding: 6px 8px; border: 1px solid #b692f6; border-radius: 5px; background: #f4ebff; color: #4d148c; font-size: 9px; }
+.fedex-product-panel tfoot th { position: sticky; bottom: 0; background: #edf2f8; }
+.fedex-inline-warning { display: flex; margin: 6px 8px; padding: 6px 8px; align-items: center; gap: 6px; border: 1px solid #fec84b; border-radius: 5px; background: #fffcf5; color: #93370d; font-size: 9px; }
+.fedex-confidence { display: inline-grid; min-width: 48px; padding: 2px 5px; place-items: center; border-radius: 999px; font-size: 8px; font-weight: 900; }
+.fedex-confidence.yüksek { background: #dcfae6; color: #067647; }
+.fedex-confidence.orta { background: #fef0c7; color: #b54708; }
+.fedex-confidence.düşük { background: #fee4e2; color: #b42318; }
+
+.fedex-form-grid { display: grid; padding: 10px; grid-template-columns: repeat(3, minmax(110px, 1fr)); gap: 8px; }
+.fedex-form-grid label { display: grid; gap: 3px; }
+.fedex-form-grid label span { color: #667085; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.fedex-form-grid input, .fedex-form-grid select { width: 100%; height: 32px; }
+.fedex-form-grid label:last-child { grid-column: span 3; }
+.fedex-weight-cards { display: grid; padding: 10px; gap: 7px; }
+.fedex-weight-cards > div { display: flex; min-height: 54px; padding: 8px 10px; align-items: center; justify-content: space-between; border: 1px solid #d5deea; border-radius: 7px; background: #f8fafc; }
+.fedex-weight-cards span { color: #667085; font-size: 9px; text-transform: uppercase; }
+.fedex-weight-cards strong { font-size: 17px; }
+.fedex-weight-cards .accent { border-color: #b692f6; background: #f4ebff; color: #4d148c; }
+.fedex-formula { margin: 0 10px 10px; color: #667085; font-size: 9px; line-height: 1.45; }
+
+.fedex-document-list { display: grid; padding: 8px; grid-template-columns: 1fr 1fr; gap: 6px; }
+.fedex-document-list article { display: grid; min-height: 58px; padding: 7px 9px; align-items: center; grid-template-columns: 25px 1fr auto; gap: 7px; border: 1px solid #e4e7ec; border-radius: 6px; background: #f9fafb; }
+.fedex-document-list article > span.ready { color: #039855; }
+.fedex-document-list article > span.blocked { color: #d92d20; }
+.fedex-document-list article > div { display: grid; gap: 2px; }
+.fedex-document-list strong { font-size: 10px; }
+.fedex-document-list small { color: #667085; font-size: 8px; }
+.fedex-document-list em { padding: 3px 6px; border-radius: 999px; background: #eef2f7; font-size: 8px; font-style: normal; font-weight: 850; }
+.fedex-document-actions { display: flex; padding: 4px 8px 8px; align-items: center; gap: 9px; }
+.fedex-document-actions button { display: flex; align-items: center; gap: 5px; }
+.fedex-document-actions span { color: #667085; font-size: 8px; }
+
+.fedex-operation-list { counter-reset: operation; list-style: none; padding-left: 12px; }
+.fedex-operation-list li { display: flex; align-items: center; gap: 8px; }
+.fedex-operation-list li::before { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #f4ebff; color: #4d148c; content: counter(operation); counter-increment: operation; font-size: 9px; font-weight: 900; }
+
+.fedex-live-layout { display: grid; height: 100%; min-height: 0; grid-template-columns: minmax(300px, .72fr) minmax(520px, 1.28fr); gap: 8px; }
+.fedex-live-layout > .erp-panel { min-height: 0; overflow: auto; }
+.fedex-connection-card { display: grid; margin: 8px; padding: 9px; gap: 8px; border: 1px solid #d5deea; border-radius: 7px; background: #f8fafc; }
+.fedex-connection-card > div { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.fedex-connection-card > div.ok { color: #067647; }
+.fedex-connection-card > div.blocked { color: #b42318; }
+.fedex-connection-card dl { display: grid; margin: 0; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+.fedex-connection-card dl > div { display: flex; min-height: 30px; padding: 5px 7px; align-items: center; justify-content: space-between; border: 1px solid #e4e7ec; border-radius: 5px; background: #fff; }
+.fedex-connection-card dt { color: #667085; font-size: 8px; font-weight: 800; text-transform: uppercase; }
+.fedex-connection-card dd { margin: 0; font-size: 9px; font-weight: 850; }
+.fedex-connection-card button { display: inline-flex; width: max-content; min-height: 30px; align-items: center; gap: 5px; }
+.fedex-live-actions { display: flex; flex-direction: column; }
+.fedex-api-error { display: flex; margin: 7px 8px 0; padding: 7px 9px; align-items: center; gap: 6px; border: 1px solid #f04438; border-radius: 6px; background: #fff6f5; color: #b42318; font-size: 9px; font-weight: 800; }
+.fedex-gate-list { display: grid; padding: 8px; gap: 6px; }
+.fedex-live-gate { display: grid; min-height: 58px; padding: 7px 8px; align-items: center; grid-template-columns: 25px minmax(160px, 1fr) auto minmax(180px, auto); gap: 7px; border: 1px solid #e4e7ec; border-radius: 7px; background: #f9fafb; }
+.fedex-live-gate > span { display: grid; width: 23px; height: 23px; place-items: center; border-radius: 50%; background: #eaecf0; color: #475467; font-size: 9px; font-weight: 900; }
+.fedex-live-gate > div:nth-child(2) { display: grid; gap: 2px; }
+.fedex-live-gate > div > strong { font-size: 10px; }
+.fedex-live-gate > div > small { color: #667085; font-size: 8px; line-height: 1.3; }
+.fedex-live-gate > em { padding: 3px 6px; border-radius: 999px; background: #eaecf0; color: #475467; font-size: 8px; font-style: normal; font-weight: 900; }
+.fedex-live-gate.enabled { border-color: #fdb022; background: #fffcf5; }
+.fedex-live-gate.enabled > span, .fedex-live-gate.enabled > em { background: #fef0c7; color: #b54708; }
+.fedex-live-gate.complete { border-color: #32d583; background: #f6fef9; }
+.fedex-live-gate.complete > span, .fedex-live-gate.complete > em { background: #dcfae6; color: #067647; }
+.fedex-live-gate-actions { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.fedex-live-gate-actions button { min-height: 30px; white-space: nowrap; }
+.fedex-live-gate-actions input[type='number'] { width: 110px; height: 30px; }
+.fedex-final-confirm { display: flex; max-width: 135px; align-items: center; gap: 4px; color: #475467; font-size: 8px; line-height: 1.2; }
+.fedex-final-confirm input { width: 14px; height: 14px; flex: 0 0 auto; }
+.fedex-rate-list { display: grid; gap: 4px; }
+.fedex-rate-list label { display: grid; min-height: 42px; padding: 6px 8px; align-items: center; grid-template-columns: 18px 1fr auto; gap: 6px; border: 1px solid #d5deea; border-radius: 6px; background: #fff; cursor: pointer; }
+.fedex-rate-list label.selected { border-color: #7f56d9; background: #f4ebff; }
+.fedex-rate-list label.road { border-left: 4px solid #039855; }
+.fedex-rate-list label.road.selected { border-color: #039855; background: #ecfdf3; }
+.fedex-rate-list span { display: grid; gap: 1px; }
+.fedex-rate-list strong, .fedex-rate-list b { font-size: 9px; }
+.fedex-rate-list small { color: #667085; font-size: 8px; }
+.fedex-road-summary { display: flex; min-height: 42px; padding: 7px 9px; align-items: center; gap: 7px; border: 1px solid #fdb022; border-radius: 6px; background: #fffcf5; color: #b54708; }
+.fedex-road-summary.available { border-color: #32d583; background: #ecfdf3; color: #067647; }
+.fedex-road-summary > span { display: grid; gap: 2px; }
+.fedex-road-summary strong { font-size: 9px; }
+.fedex-road-summary small { color: #667085; font-size: 8px; }
+.fedex-transport-badge { display: inline-flex !important; width: max-content; padding: 2px 6px; border-radius: 999px; background: #eff4ff; color: #3538cd; font-size: 7px; font-weight: 900; letter-spacing: .02em; text-transform: uppercase; }
+.fedex-transport-badge.road { background: #dcfae6; color: #067647; }
+.fedex-demo-status strong.connected { color: #067647; }
+
+.fedex-approval-layout { grid-template-columns: 1.35fr .65fr; }
+.fedex-approval-checks { display: grid; padding: 8px; gap: 6px; }
+.fedex-approval-checks label { display: grid; min-height: 45px; padding: 7px 9px; align-items: center; grid-template-columns: 18px 24px 1fr; gap: 6px; border: 1px solid #fdb022; border-radius: 6px; background: #fffcf5; cursor: pointer; }
+.fedex-approval-checks label.checked { border-color: #32d583; background: #f6fef9; }
+.fedex-approval-checks input { width: 15px; height: 15px; }
+.fedex-approval-checks label > span { color: #dc6803; }
+.fedex-approval-checks label.checked > span { color: #039855; }
+.fedex-approval-checks strong { font-size: 9px; line-height: 1.35; }
+.fedex-final-gate { display: flex; padding: 18px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; text-align: center; }
+.fedex-final-gate.blocked { border-color: #f04438; background: #fff6f5; color: #b42318; }
+.fedex-final-gate.ready { border-color: #12b76a; background: #f6fef9; color: #067647; }
+.fedex-final-gate > strong { font-size: 15px; }
+.fedex-final-gate p { margin: 0; color: #475467; font-size: 9px; line-height: 1.45; }
+.fedex-final-gate button { width: 100%; min-height: 32px; }
+.fedex-final-gate small { color: #667085; font-size: 8px; }
+
+.fedex-demo-status { display: flex; min-height: 28px; padding: 5px 8px; align-items: center; gap: 14px; color: #667085; font-size: 8px; }
+.fedex-demo-status > span { display: flex; align-items: center; gap: 5px; }
+.fedex-demo-status strong { margin-left: auto; color: #b42318; }
+
+@media (max-width: 1200px) {
+  .fedex-demo-summary-grid { grid-template-columns: repeat(3, 1fr); }
+  .fedex-demo-steps { grid-template-columns: repeat(4, 1fr); }
+  .fedex-demo-steps button { border-bottom: 1px solid #e4e7ec; }
+  .fedex-live-layout { grid-template-columns: 1fr; }
+  .fedex-live-gate { grid-template-columns: 25px 1fr auto; }
+  .fedex-live-gate-actions { grid-column: 2 / -1; justify-content: flex-start; }
+}
+
+@media print {
+  .top-menu, .sidebar, .tab-strip, .status-bar, .fedex-demo-steps, .fedex-demo-status, button { display: none !important; }
+  .fedex-demo-screen::before { display: block; margin-bottom: 8px; padding: 8px; border: 2px solid #b42318; color: #b42318; content: 'DEMO — GÜMRÜĞE SUNULAMAZ / FEDEX GÖNDERİSİ DEĞİLDİR'; font-size: 15px; font-weight: 900; text-align: center; }
+  .fedex-demo-content { min-height: auto; }
+}

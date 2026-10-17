@@ -1,0 +1,17 @@
+{
+  "startedAt": "2026-10-06T19:45:35.6983362Z",
+  "schemaVersion": "melisa-goal6.restore.v1",
+  "restored": true,
+  "server": "Semih\\MELISADEV",
+  "dataFile": "C:\\Sirket\\ERP\\data\\GOAL6-RESTORE-20261006-01\\MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01.mdf",
+  "readOnly": true,
+  "backupSha256": "238D65006C7515CCEA30F79B1678AA65AFA6BB2A366EF4337F8CA6745C1EE47D",
+  "sourceDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "database": "MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01",
+  "activeDatabaseOverwritten": false,
+  "backupFile": "C:\\Sirket\\ERP\\backups\\ERP-GOAL6-20261006\\GOAL6_TEST_20261006_01.bak",
+  "restoreMs": 17823,
+  "completedAt": "2026-10-06T19:45:53.5863028Z",
+  "logFile": "C:\\Sirket\\ERP\\data\\GOAL6-RESTORE-20261006-01\\MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01_log.ldf",
+  "retainedForEvidence": true
+}

@@ -5,8 +5,19 @@
     .replace(/^-+|-+$/g, '') || 'rapor';
 }
 
+import { buildInvoiceReceiptHtml } from './invoiceReceipt.js';
+import { financeAccountEffect } from './currencyPreview.js';
+import { ledgerAccountCurrency, ledgerEffect } from '../modules/shared/ledgerBalances.js';
+
+export function printInvoiceReceipt(options) {
+  printHtmlDocument(buildInvoiceReceiptHtml(options), options.title);
+}
+
 function csvEscape(value) {
-  const text = value === null || value === undefined ? '' : String(value);
+  let text = value === null || value === undefined ? '' : String(value);
+  // Quoting CSV cells does not prevent spreadsheet formula evaluation.
+  // Mark user text as literal while preserving numeric values such as -12.
+  if (typeof value === 'string' && (/^\s*[=+\-@]/u.test(text) || /^[\t\r\n]/u.test(text))) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
@@ -426,7 +437,7 @@ export function printFinanceReceipt(receipt = {}) {
   const titleColor = isPayment ? '#b42318' : '#007a4d';
   const directionLabel = isPayment ? 'Çıkış' : 'Giriş';
   const partyTypeLabel = receipt.partyType === 'supplier' ? 'Tedarikçi' : 'Müşteri';
-  const balanceEffect = Number(receipt.balanceEffect ?? 0);
+  const accountEffect = financeAccountEffect(receipt);
   const amount = Number(receipt.amount || 0);
   const printCompany = getPrintCompanyInfo();
   const companySubline = [printCompany.address, printCompany.phone].filter(Boolean).join(' / ');
@@ -484,7 +495,11 @@ export function printFinanceReceipt(receipt = {}) {
               { label: 'Kasa / Banka', value: receipt.accountLabel || receipt.accountName || receipt.accountCode || '-' },
               { label: 'Hareket Yönü', value: directionLabel },
               { label: 'Para Birimi', value: currency },
-              { label: 'Bakiye Etkisi', value: formatMoney(balanceEffect, currency) },
+              { label: 'Cari Bakiye Etkisi', value: accountEffect ? formatMoney(accountEffect.amount, accountEffect.currency) : 'Doğrulanamadı' },
+              ...(receipt.accountCurrency && receipt.accountCurrency !== currency ? [
+                { label: 'İşlem Kuru', value: `1 ${currency} = ${receipt.exchangeRate ?? '—'} TRY` },
+                { label: 'Cari Kuru', value: `1 ${receipt.accountCurrency} = ${receipt.accountExchangeRate ?? '—'} TRY` },
+              ] : []),
             ])}
           </section>
           <section class="amount-box">
@@ -514,13 +529,19 @@ export function printFinanceReceipt(receipt = {}) {
   printHtmlDocument(html, type);
 }
 
+function formatStatementMoney(value, currency) {
+  if (value == null || !Number.isFinite(Number(value)) || !['TRY', 'USD', 'EUR'].includes(currency)) return 'Bilinmiyor';
+  return formatMoney(value, currency);
+}
+
 function buildStatementRows(rows = [], { partyKey, movementLabel, debitWhenPositive = true }) {
   return rows.map((row) => {
-    const effect = Number(row.balanceEffect || row.amount || 0);
-    const debit = debitWhenPositive
+    const effect = ledgerEffect(row);
+    const currency = ledgerAccountCurrency(row);
+    const debit = effect == null ? null : debitWhenPositive
        ? (effect >= 0 ? effect : 0)
       : (effect < 0 ? Math.abs(effect) : 0);
-    const credit = debitWhenPositive
+    const credit = effect == null ? null : debitWhenPositive
        ? (effect < 0 ? Math.abs(effect) : 0)
       : (effect >= 0 ? effect : 0);
 
@@ -530,10 +551,11 @@ function buildStatementRows(rows = [], { partyKey, movementLabel, debitWhenPosit
         <td>${htmlEscape(row[partyKey] || row.customerName || row.supplierName || row.customerCode || row.supplierCode || '-')}</td>
         <td>${htmlEscape(row.documentNo || '-')}</td>
         <td>${htmlEscape(movementLabel(row, row.movementType))}</td>
-        <td class="num debit">${debit ? formatMoney(debit, row.currency) : '-'}</td>
-        <td class="num credit">${credit ? formatMoney(credit, row.currency) : '-'}</td>
-        <td class="num">${formatMoney(effect, row.currency)}</td>
-        <td>${htmlEscape(row.currency || 'TRY')}</td>
+        <td class="num">${formatStatementMoney(row.amount, row.currency)}</td>
+        <td class="num debit">${debit == null ? 'Bilinmiyor' : debit ? formatStatementMoney(debit, currency) : '-'}</td>
+        <td class="num credit">${credit == null ? 'Bilinmiyor' : credit ? formatStatementMoney(credit, currency) : '-'}</td>
+        <td class="num">${formatStatementMoney(effect, currency)}</td>
+        <td>${htmlEscape(currency)}</td>
       </tr>
     `;
   }).join('');
@@ -543,8 +565,8 @@ function buildStatementTotals(totals = []) {
   return totals.map((total) => `
     <div class="total-card">
       <span>${htmlEscape(total.currency)} bakiye</span>
-      <strong>${formatMoney(total.balance, total.currency)}</strong>
-      <small>Borç ${formatMoney(total.debit, total.currency)} / Alacak ${formatMoney(total.credit, total.currency)}</small>
+      <strong>${formatStatementMoney(total.balance, total.currency)}</strong>
+      <small>Borç ${formatStatementMoney(total.debit, total.currency)} / Alacak ${formatStatementMoney(total.credit, total.currency)}</small>
     </div>
   `).join('');
 }
@@ -633,14 +655,15 @@ export function printLedgerStatement({
               <th>${htmlEscape(partyLabel)}</th>
               <th>Belge No</th>
               <th>İşlem</th>
+              <th class="num">Belge Tutarı</th>
               <th class="num">Borç</th>
               <th class="num">Alacak</th>
-              <th class="num">Bakiye Etkisi</th>
-              <th>PB</th>
+              <th class="num">Cari Bakiye Etkisi</th>
+              <th>Cari Dövizi</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.length ? buildStatementRows(rows, { partyKey, movementLabel, debitWhenPositive }) : '<tr><td colspan="8">Normal ekstre satırı yok.</td></tr>'}
+            ${rows.length ? buildStatementRows(rows, { partyKey, movementLabel, debitWhenPositive }) : '<tr><td colspan="9">Normal ekstre satırı yok.</td></tr>'}
           </tbody>
         </table>
         ${cancelledRows.length ? `
@@ -653,10 +676,11 @@ export function printLedgerStatement({
                 <th>${htmlEscape(partyLabel)}</th>
                 <th>Belge No</th>
                 <th>İşlem</th>
+                <th class="num">Belge Tutarı</th>
                 <th class="num">Borç</th>
                 <th class="num">Alacak</th>
-                <th class="num">Bakiye Etkisi</th>
-                <th>PB</th>
+                <th class="num">Cari Bakiye Etkisi</th>
+                <th>Cari Dövizi</th>
               </tr>
             </thead>
             <tbody>${buildStatementRows(cancelledRows, { partyKey, movementLabel, debitWhenPositive })}</tbody>

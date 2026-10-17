@@ -1,0 +1,60 @@
+{
+  "stockPeriodsProductUnits": [
+    {
+      "period": "September",
+      "unit": "ADET",
+      "cnt": 48728,
+      "netQuantity": "558372.000"
+    },
+    {
+      "period": "October01-06",
+      "unit": "ADET",
+      "cnt": 43,
+      "netQuantity": "12.000"
+    }
+  ],
+  "stockUnitColumns": [
+    {
+      "columnName": "quantity_in"
+    },
+    {
+      "columnName": "quantity_out"
+    },
+    {
+      "columnName": "quantity_net"
+    },
+    {
+      "columnName": "unit_cost_try"
+    },
+    {
+      "columnName": "unit_price"
+    },
+    {
+      "columnName": "quantity_in_exact"
+    },
+    {
+      "columnName": "quantity_out_exact"
+    }
+  ],
+  "allScopedStockProductUnits": [
+    {
+      "unit": "ADET",
+      "cnt": 48771
+    }
+  ],
+  "salesItemUnitNames": [
+    {
+      "unit_name": null,
+      "cnt": 127
+    }
+  ],
+  "schemaVersion": "melisa-goal6.report-unit-check.v1",
+  "capturedAt": "2026-10-06T20:11:08.2767955Z",
+  "readOnly": true,
+  "salesProductUnits": [
+    {
+      "unit": "ADET",
+      "cnt": 127
+    }
+  ]
+}

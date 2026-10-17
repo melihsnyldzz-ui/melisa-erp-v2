@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-export function DashboardAlertsPanel({ alerts }) {
+export function DashboardAlertsPanel({ alerts, errorMessage = '', onOpenScreen }) {
   const [showAll, setShowAll] = useState(false);
   const sortedAlerts = useMemo(() => {
     const typePriority = {
@@ -35,12 +35,15 @@ export function DashboardAlertsPanel({ alerts }) {
         )}
       </div>
       <div className="dashboard-alert-list">
+        {errorMessage && <div className="list-state list-state-error" role="alert">{errorMessage}{alerts.length > 0 ? ' Son başarılı okumadaki uyarılar gösteriliyor.' : ''}</div>}
         {visibleAlerts.map((alert) => (
           <div className={`dashboard-alert-row ${alert.severity}`} key={`${alert.type}-${alert.subject}`}>
             <strong>{alert.type}</strong>
             <span>{alert.subject}</span>
             <b>{alert.value}</b>
-            <em>{alert.owner}</em>
+            {alert.type === 'Eksi stok' && onOpenScreen
+              ? <button type="button" className="mini-button" aria-label={`Eksi stokları incele: ${alert.subject}`} onClick={() => onOpenScreen('stock-list', { stockState: 'negative' })}>İncele</button>
+              : <em>{alert.owner}</em>}
           </div>
         ))}
         {!showAll && hiddenCount > 0 && (
@@ -48,7 +51,7 @@ export function DashboardAlertsPanel({ alerts }) {
             +{hiddenCount} düşük öncelikli uyarı daha
           </button>
         )}
-        {sortedAlerts.length === 0 && <div className="list-state dashboard-empty-state">Kritik uyarı bulunmuyor.</div>}
+        {!errorMessage && sortedAlerts.length === 0 && <div className="list-state dashboard-empty-state">Kritik uyarı bulunmuyor.</div>}
       </div>
     </section>
   );
