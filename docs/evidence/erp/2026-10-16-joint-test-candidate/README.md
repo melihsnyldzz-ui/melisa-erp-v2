@@ -1,5 +1,13 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 17 Ekim — P03 yeni inaktif ERP aday paketi
+
+Temiz detached worktree `1b5a02ce9526d3e2edbf92560269577a8dcd2ee6` ile seçili `C:/Sirket/ERP/tools/node-v24.19.0/node.exe`, `npm_config_offline=true`, `--historical-web-baseline --business-test-copy` kullanılarak yeni ayrı `C:/Sirket/ERP/releases/CANONICAL-COMPLETE-TEST-20261017-1b5a02c` üretildi. Build exit0; seçili Node'un kendi npm CLI'si `11.12.1`, native SQL modülleri aynı Node `v24.19.0` altında require-only yüklenebilir (`native.open` ve `sql.ConnectionPool` fonksiyon). SQL bağlantısı açılmadı.
+
+Manifest SHA256 **`e22abeceb563e9fc64d6d69be5489df159111f346d4a1c88f467538828a03780`**; seçili `dist-business/index.html` SHA256 **`74deae2a3f2d8d951a22ffa55e7b6a816d57691938967799de64321def3f6056`**. Bağımsız salt okunur inceleme manifestteki **1.991/1.991** dosya hashini, release-kaynak **1.886/1.886** blob eşliğini ve manifest dışı dosya0 sonucunu gördü; açık P1/P2 yok. Seçili `sharedTestCopy` DB `MELISA_ERP_CRM_SHARED_TEST_20261009_02`, API4184/native4186/web5234, `nativeLoopbackOnly=true`, `nativeWrites=false`, `externalOperations=false`, `actualT1=false`. Üst manifestin varsayılan TEST125 portları seçili shared-copy profili yerine kullanılmamalıdır. Kaynak `1b5a02c` exact [push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39028993736) ve [PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39028997351) completed SUCCESS.
+
+Bu yeni paket **inaktif**; f5/CRM439 kurulu paketleri, ortak DB02, servis, config, roller ve ticari kayıtlar değiştirilmedi. Sonlu owner profili, CRM aday uyumu, taze sahiplik/rollback, gerçek kontrollü geçiş ve son readback ayrı sıradaki halkadır. Normal CRM/Hub GUI, fiziksel cihaz, reboot/logon ve insan kabulü bekler.
+
 ## 17 Ekim — P03 paket npm/Node kaynak bağı
 
 Kaynak `4edfb380e59f284059a53ed10fcfa107630a5a36` / PR23: paketleyici artık Windows `npm.cmd` sarmalayıcısının Node seçimine güvenmez. Bulunan npm CLI, paketleyiciyi çalıştıran `process.execPath` ile açılır; çocuk PATH'in başına aynı Node dizini konur. npm CLI yoksa install/build başlamadan reddedilir. Bu, eski global Node24.15 ile seçili Node24.19 karışmasını hedefler. Çağıran Node sürümünü kendi başına seçmez; owner paket üretiminde exact Node24.19'u kullanmalıdır.
