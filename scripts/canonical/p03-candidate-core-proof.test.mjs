@@ -58,7 +58,7 @@ test('configuration, common lineage and pinned metadata must remain exact',()=>{
  for(const change of changes){const v=fixture();change(v);denied(v);}
 });
 test('all ten old identities, their births and a fresh before-image are mandatory',()=>{
- const changes=[v=>v.oldPids=[],v=>v.oldPids.pop(),v=>v.beforeImage.oldOwners.pop(),v=>v.beforeImage.oldOwners[0].role='unknown',v=>v.beforeImage.oldOwners[0].creationTime='bad',v=>v.beforeImage.oldOwners[0].pid=v.beforeImage.oldOwners[1].pid,v=>v.beforeImage.observedAt='2026-10-17T11:58:00.000Z',v=>v.observations[0].receipt.pid=30,v=>v.observations.forEach(o=>{o.receipt.parentPid=30;o.rows[0].parentPid=30;})];
+ const changes=[v=>v.oldPids=[],v=>v.oldPids.pop(),v=>v.beforeImage.oldOwners.pop(),v=>v.beforeImage.oldOwners[0].role='unknown',v=>v.beforeImage.oldOwners[0].creationTime='bad',v=>v.beforeImage.oldOwners[0].pid=v.beforeImage.oldOwners[1].pid,v=>v.beforeImage.observedAt='2026-10-17T12:00:03.000Z',v=>v.observations[0].receipt.pid=30,v=>v.observations.forEach(o=>{o.receipt.parentPid=30;o.rows[0].parentPid=30;})];
  for(const change of changes){const v=fixture();change(v);denied(v);}
 });
 test('fresh row and receipt provenance, chronological birth and exact integrated pins are required',()=>{
@@ -84,4 +84,8 @@ test('CORE parent requires the exact integrated supervisor package, source and m
 test('receipt readback must follow both before-image and child birth at 100ns precision',()=>{
  const changes=[v=>v.observations[0].receiptRef.observedAt='2026-10-17T11:59:59.9999999Z',v=>v.observations[0].receiptRef.observedAt='2026-10-17T12:00:00.1999999Z'];
  for(const change of changes){const v=fixture();change(v);denied(v);}
+});
+test('frozen before-image can predate a long transition while observations stay fresh',()=>{
+ const v=fixture();v.beforeImage.observedAt='2026-10-17T11:45:00.000Z';assert.equal(proveP03CandidateCore(v).status,'CANDIDATE_CORE_CONDITIONAL_CONSISTENCY');
+ for(const observedAt of ['2026-10-17T12:00:03.000Z','bad']){const changed=fixture();changed.beforeImage.observedAt=observedAt;denied(changed);}
 });

@@ -27,27 +27,28 @@ export function proveP03CandidateCore({settings,ownerSid,settingsRef,supervisorC
  check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.components.crm[key]===CRM06_STAFF_INTEGRATED_CRM_PACKAGE[key]));
  check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.supervisor[key]===integratedSupervisor[key]));
  check(keys(supervisorConfig,['path','sha256'])&&supervisorConfig.path===settingsRef.path&&supervisorConfig.sha256===settingsRef.sha256);
- const clock=Date.parse(now);check(typeof now==='string'&&Number.isFinite(clock)&&recent(beforeImage?.observedAt,clock));
+ const clock=Date.parse(now),clockTicks=stampTicks(now),beforeTicks=stampTicks(beforeImage?.observedAt);
+ check(typeof now==='string'&&Number.isFinite(clock)&&clockTicks!==null&&beforeTicks!==null&&beforeTicks<=clockTicks);
  check(keys(beforeImage,['observedAt','oldOwners'])&&Array.isArray(beforeImage.oldOwners)&&beforeImage.oldOwners.length===10);
  const old=new Set(),roles=new Set();
- for(const identity of beforeImage.oldOwners){check(keys(identity,['role','pid','creationTime'])&&oldRoles.includes(identity.role)&&!roles.has(identity.role)&&Number.isSafeInteger(identity.pid)&&identity.pid>0&&!old.has(identity.pid)&&born(identity.creationTime)&&Date.parse(identity.creationTime)<=Date.parse(beforeImage.observedAt));roles.add(identity.role);old.add(identity.pid);}
+ for(const identity of beforeImage.oldOwners){check(keys(identity,['role','pid','creationTime'])&&oldRoles.includes(identity.role)&&!roles.has(identity.role)&&Number.isSafeInteger(identity.pid)&&identity.pid>0&&!old.has(identity.pid)&&born(identity.creationTime)&&birthTicks(identity.creationTime)<=beforeTicks);roles.add(identity.role);old.add(identity.pid);}
  check(oldRoles.every(role=>roles.has(role))&&Array.isArray(oldPids)&&oldPids.length===10&&new Set(oldPids).size===10&&oldPids.every(pid=>old.has(pid)));
  check(Array.isArray(observations)&&observations.length===COMPLETION_CORE_STAGES.length);
  const names=new Set(),pids=new Set(),runs=new Set(),bindings=new Set();
  let parentPid,parentCreationTime;
  for(const observation of observations){
-  check(keys(observation,['stage','rows','receipt','observedAt','receiptRef'])&&typeof observation.stage==='string'&&!names.has(observation.stage)&&recent(observation.observedAt,clock)&&Date.parse(observation.observedAt)>=Date.parse(beforeImage.observedAt));
+  check(keys(observation,['stage','rows','receipt','observedAt','receiptRef'])&&typeof observation.stage==='string'&&!names.has(observation.stage)&&recent(observation.observedAt,clock)&&stampTicks(observation.observedAt)!==null&&stampTicks(observation.observedAt)>=beforeTicks);
   const stage=COMPLETION_CORE_STAGES.find(item=>item.name===observation.stage);
   check(stage&&Array.isArray(observation.rows)&&observation.rows.length===1);
   const [row]=observation.rows,receipt=observation.receipt,pin=settings.components[stage.component];
-  check(keys(observation.receiptRef,['path','sha256','observedAt'])&&observation.receiptRef.path===settings.runtimeDirectory+'\\'+stage.name+'.json'&&sha(observation.receiptRef.sha256)&&recent(observation.receiptRef.observedAt,clock)&&Date.parse(observation.receiptRef.observedAt)<=Date.parse(observation.observedAt));
+  check(keys(observation.receiptRef,['path','sha256','observedAt'])&&observation.receiptRef.path===settings.runtimeDirectory+'\\'+stage.name+'.json'&&sha(observation.receiptRef.sha256)&&recent(observation.receiptRef.observedAt,clock)&&stampTicks(observation.receiptRef.observedAt)!==null&&stampTicks(observation.receiptRef.observedAt)<=stampTicks(observation.observedAt));
   check(keys(receipt,['run','pid','parentPid','parentCreationTime','creationTime','stage','sourceCommit','configSha256','copyId','actualT1'])&&
    typeof receipt.run==='string'&&receipt.run.length>0&&!runs.has(receipt.run)&&
    commit(pin.sourceCommit)&&sha(pin.manifestSha256)&&sha(pin.config.sha256)&&
    !old.has(receipt.pid)&&!old.has(receipt.parentPid)&&!pids.has(receipt.pid)&&
-   born(receipt.creationTime)&&born(receipt.parentCreationTime)&&stampTicks(beforeImage.observedAt)!==null&&stampTicks(observation.observedAt)!==null&&birthTicks(receipt.parentCreationTime)>stampTicks(beforeImage.observedAt)&&birthTicks(receipt.creationTime)>birthTicks(receipt.parentCreationTime)&&birthTicks(receipt.creationTime)<=stampTicks(observation.observedAt)&&
+   born(receipt.creationTime)&&born(receipt.parentCreationTime)&&birthTicks(receipt.parentCreationTime)>beforeTicks&&birthTicks(receipt.creationTime)>birthTicks(receipt.parentCreationTime)&&birthTicks(receipt.creationTime)<=stampTicks(observation.observedAt)&&
    completionProcessMatches(row,receipt,stage,settings));
-  check(stampTicks(observation.receiptRef.observedAt)!==null&&stampTicks(observation.receiptRef.observedAt)>=stampTicks(beforeImage.observedAt)&&stampTicks(observation.receiptRef.observedAt)>=birthTicks(receipt.creationTime));
+  check(stampTicks(observation.receiptRef.observedAt)>=beforeTicks&&stampTicks(observation.receiptRef.observedAt)>=birthTicks(receipt.creationTime));
   const parent=nativeArgumentTokens(row.parentCommandLine);
   check(parent.length===11&&parent[3]==='--config'&&parent[4]===supervisorConfig.path&&
    parent[5]==='--sha256'&&parent[6]===supervisorConfig.sha256&&
