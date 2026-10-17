@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createP03OwnerOsCallbacks} from './p03-owner-os-callbacks.mjs';
+import {createHash} from 'node:crypto';
+import {createP03OwnerOsCallbacks,createP03NewLineageOwnerOsCallbacks} from './p03-owner-os-callbacks.mjs';
 import {p03TransitionDigest,runP03OwnerTransition} from './p03-integrated-owner-transition.mjs';
 
 const targets=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
@@ -55,4 +56,57 @@ test('wrong pinned report and competing task action edit both fail before overwr
  const drift=fixture(),stop=drift.io.stopNamedTasks;drift.io.stopNamedTasks=async()=>{const result=await stop();drift.actions.set(names[1],'other');return result;};
  await assert.rejects(runP03OwnerTransition(createP03OwnerOsCallbacks({snapshot:drift.snapshot,io:drift.io,now:()=>drift.now})),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='ACTION_'+names[0]);
  assert.equal(drift.calls.some(x=>x.startsWith('action:')),false);assert.equal(drift.calls.includes('startTasks'),false);
+});
+
+function newFixture(){
+ const f=fixture(),next='e4422f910fe92cf4dbed636b71eea515180131b617fc3329f2d9eeabc8f1b319';
+ const profile={erpSource:'1a03157a323e6a6c16aea714194a76b6438a435c',erpManifest:'9e5d75db4312231ab06af2f17d421b0f4e3e909cdfaee19743d92ae171ad6a66',crmSource:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',crmManifest:'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83',supervisorSource:'ba65c8cb2ca9826c98edd06bc5129e37b51bb64a',supervisorManifest:'b5810d589ea1a4876cbb513d86b2ce90ef322f192e83845cac4e8f7103149435'};
+ f.snapshot.schemaVersion='melisa-p03-owner-observation.v3';f.snapshot.profile=profile;f.snapshot.newConfig.sha256=next;
+ f.snapshot.plan.newSettingsSha256=next;f.snapshot.plan.digest=p03TransitionDigest(f.snapshot.plan);
+ const bytes=Buffer.from(JSON.stringify(f.snapshot),'utf8');f.snapshotRef={sha256:createHash('sha256').update(bytes).digest('hex')};
+ f.io.readPinnedSnapshot=async()=>({sha256:f.snapshotRef.sha256,bytesBase64:bytes.toString('base64')});
+ f.clock=f.now;const stop=f.io.stopNamedTasks;f.io.stopNamedTasks=async()=>{const result=await stop();f.clock=f.now+1;return result;};
+ f.io.freshObservation=async()=>{f.calls.push('observe');return {observedAt:new Date(f.now-1000).toISOString(),ownerSid:f.snapshot.ownerSid,oldConfigSha256:f.snapshot.oldConfig.sha256,newConfigSha256:next,database:f.snapshot.database,copyId:f.snapshot.copyId,actualT1:false,tasks:f.snapshot.tasks,identities:f.snapshot.identities};};
+ f.io.postStopObservation=async()=>{f.calls.push('poststop');return {observedAt:new Date(f.clock).toISOString(),ownerSid:f.snapshot.ownerSid,oldConfigSha256:f.snapshot.oldConfig.sha256,newConfigSha256:next,database:f.snapshot.database,copyId:f.snapshot.copyId,actualT1:false,tasks:f.snapshot.tasks.map(row=>({...row,state:'Ready'})),runningTaskCollection:'Schedule.Service.GetRunningTasks(1)',runningTaskInstances:[],watcherProcessInventoryScope:'CIM.Win32_Process.AllP03WatcherCommands',watcherProcesses:[],identities:Object.fromEntries(targets.map(name=>[name,f.live.get(f.snapshot.identities[name].pid)??null]))};};
+ return f;
+}
+const runNew=f=>runP03OwnerTransition(createP03NewLineageOwnerOsCallbacks({snapshot:f.snapshot,snapshotRef:f.snapshotRef,io:f.io,now:()=>f.clock}));
+test('new lineage requires exact versioned profile and completes only after fresh poststop readback',async()=>{
+ const f=newFixture(),result=await runNew(f);assert.equal(result.status,'COMPLETE');
+ assert.equal(f.snapshotRef.sha256,createHash('sha256').update(Buffer.from(JSON.stringify(f.snapshot))).digest('hex'));
+ assert.ok(f.calls.indexOf('poststop')>f.calls.indexOf('stopTasks'));
+ assert.ok(f.calls.indexOf('poststop')<f.calls.indexOf('stop:hub'));
+ assert.deepEqual(f.calls.filter(x=>x.startsWith('action:')),names.map(name=>'action:'+name));
+});
+test('new lineage rejects wrong profile or old pinned report before any stop',async()=>{
+ for(const edit of [f=>{f.snapshot.profile.supervisorSource='c4010efa8ff6b49f3e342032c98611a26c41cfaf';},f=>{f.snapshot.newConfig.sha256='201a159b9b51058896d25961c5292d1d8e22cc3a76024958b4c324de07896e35';},f=>{f.io.readPinnedSnapshot=async()=>({sha256:'3a8513e96a14348c0deb9b6b6cb4b85bfdcb7a39e64a9f7ee0d04703656c77dd',bytesBase64:Buffer.from(JSON.stringify(f.snapshot)).toString('base64')});}]){
+  const f=newFixture();edit(f);await assert.rejects(async()=>runNew(f),/P03_OWNER_OS_CALLBACK_REJECTED/);assert.equal(f.calls.includes('stopTasks'),false);
+ }
+});
+test('new lineage rejects stale old PID and changed poststop settings before exact stop',async()=>{
+ const stale=newFixture(),stop=stale.io.stopNamedTasks;stale.io.stopNamedTasks=async()=>{const done=await stop();stale.live.set(stale.snapshot.identities.hub.pid,{...stale.snapshot.identities.hub,creationTime:'2026-10-17T16:01:00.000000Z'});return done;};
+ await assert.rejects(runNew(stale),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='TASK_STOP');assert.equal(stale.calls.includes('stop:hub'),false);
+ const drift=newFixture(),post=drift.io.postStopObservation;drift.io.postStopObservation=async()=>({...await post(),newConfigSha256:'201a159b9b51058896d25961c5292d1d8e22cc3a76024958b4c324de07896e35'});
+ await assert.rejects(runNew(drift),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='TASK_STOP');assert.equal(drift.calls.includes('stop:hub'),false);
+});
+test('Ready tasks do not prove stop while COM instance or P03 watcher still exists',async()=>{
+ for(const change of [seen=>({...seen,runningTaskInstances:[{name:names[0],enginePID:123}]}),seen=>({...seen,watcherProcesses:[{pid:456,commandLine:'watch-terminal-completion-logon.ps1'}]})]){
+  const f=newFixture(),observe=f.io.postStopObservation;f.io.postStopObservation=async()=>change(await observe());
+  await assert.rejects(runNew(f),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='TASK_STOP');
+  assert.equal(f.calls.includes('stop:hub'),false);
+ }
+ const physical=newFixture();physical.io.tasksStopped=async()=>false;
+ await assert.rejects(runNew(physical),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='TASK_STOP');
+ assert.equal(physical.calls.includes('stop:hub'),false);
+});
+test('poststop observation captured before the stop completion is rejected',async()=>{
+ const f=newFixture(),observe=f.io.postStopObservation;
+ f.io.postStopObservation=async()=>({...await observe(),observedAt:new Date(f.now-1).toISOString()});
+ await assert.rejects(runNew(f),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='TASK_STOP');
+ assert.equal(f.calls.includes('stop:hub'),false);
+});
+test('new lineage quarantines ambiguous action write without starting tasks',async()=>{
+ const f=newFixture();f.io.setTaskAction=async(name,kind)=>{f.calls.push('action:'+name);f.actions.set(name,kind);throw Error('READBACK_LOST');};
+ await assert.rejects(runNew(f),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='ACTION_'+names[0]&&error.actionRestore==='FAILED');
+ assert.equal(f.calls.includes('startTasks'),false);assert.equal(f.actions.get(names[0]),'new');
 });
