@@ -14,7 +14,7 @@ function fixture(){
   const args=`-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "${root}\\scripts\\canonical\\${script}" -StartupConfigPath "${settings}" -StartupConfigSha256 ${hash}`;
   return {name,path:'\\'+name,oldEnginePid,currentAction:shell,action:{execute:shell,arguments:args,workingDirectory:root},settingsSha256:hash,supervisorPin:{...pin},watcherExecutablePath:shell,watcherCommandLine:`"${shell}" ${args}`};
  });
- return {beforeImage:{capturedAt:'2026-10-17T10:00:00.000Z',oldWatchers:names.map(([name,,pid])=>({name,pid,creationTime:'2026-10-17T09:30:00.000Z'}))},expected:{ownerSid:sid,scheduleServiceOwnerSid:systemSid,scheduleServiceExecutablePath:'C:\\Windows\\System32\\svchost.exe',scheduleServiceCommandLine:'C:\\Windows\\system32\\svchost.exe -k netsvcs -p',tasks},observed:{capturedAt:'2026-10-17T10:03:00.000Z',runningTaskCollection:'Schedule.Service.GetRunningTasks(1)',processInventoryScope:'CIM.Win32_Process.AllP03WatcherCommands',scheduleService:{name:'Schedule',state:'Running',processId:1000},scheduleServiceProcess:{processId:1000,ownerSid:systemSid,executablePath:'C:\\Windows\\System32\\svchost.exe',commandLine:'C:\\Windows\\system32\\svchost.exe -k netsvcs -p',creationTime:'2026-10-17T09:00:00.000Z'},registeredTasks:tasks.map(t=>({name:t.name,path:t.path,state:4,ownerSid:sid,action:{...t.action},settingsSha256:t.settingsSha256,supervisorPin:{...t.supervisorPin},taskInfoLastRunTime:'2026-10-17T10:01:00.000Z'})),runningTasks:tasks.map((t,i)=>({name:t.name,path:t.path,state:4,currentAction:shell,enginePID:names[i][3],instanceGuid:names[i][4]})),processes:tasks.map((t,i)=>({processId:names[i][3],ownerSid:sid,executablePath:shell,commandLine:t.watcherCommandLine,creationTime:'2026-10-17T10:01:01.000Z',parentProcessId:1000}))}};
+ return {beforeImage:{capturedAt:'2026-10-17T10:00:00.000Z',oldWatchers:names.map(([name,,pid])=>({name,pid,creationTime:'2026-10-17T09:30:00.000Z'}))},expected:{ownerSid:sid,scheduleServiceExecutablePath:'C:\\Windows\\System32\\svchost.exe',scheduleServiceCommandLine:'C:\\Windows\\system32\\svchost.exe -k netsvcs -p',tasks},observed:{capturedAt:'2026-10-17T10:03:00.000Z',runningTaskCollection:'Schedule.Service.GetRunningTasks(1)',processInventoryScope:'CIM.Win32_Process.AllP03WatcherCommands',scheduleService:{name:'Schedule',state:'Running',startName:'LocalSystem',processId:1000},scheduleServiceProcess:{processId:1000,ownerResult:{code:0,sid:systemSid},executablePath:'C:\\Windows\\System32\\svchost.exe',commandLine:'C:\\Windows\\system32\\svchost.exe -k netsvcs -p',creationTime:'2026-10-17T09:00:00.000Z'},registeredTasks:tasks.map(t=>({name:t.name,path:t.path,state:4,ownerSid:sid,action:{...t.action},settingsSha256:t.settingsSha256,supervisorPin:{...t.supervisorPin},taskInfoLastRunTime:'2026-10-17T10:01:00.000Z'})),runningTasks:tasks.map((t,i)=>({name:t.name,path:t.path,state:4,currentAction:shell,enginePID:names[i][3],instanceGuid:names[i][4]})),processes:tasks.map((t,i)=>({processId:names[i][3],ownerSid:sid,executablePath:shell,commandLine:t.watcherCommandLine,creationTime:'2026-10-17T10:01:01.000Z',parentProcessId:1000}))}};
 }
 test('two distinct new COM-backed task engines with exact metadata are conditionally consistent',()=>{
  const result=assertP03CandidateTaskProof(fixture());
@@ -66,6 +66,21 @@ test('complete CIM watcher inventory rejects extra manual lookalike and unproved
   x=>x.observed.processes[1].processId=62000,
   x=>delete x.observed.processInventoryScope,
   x=>x.observed.processInventoryScope='CIM.Win32_Process.EnginePIDOnly',
+ ];
+ for(const change of changes){const x=fixture();change(x);assert.throws(()=>assertP03CandidateTaskProof(x),{code:'P03_TASK_IDENTITY_REJECTED'});}
+});
+test('Schedule LocalSystem owner may be verified or explicitly access denied',()=>{
+ const denied=fixture();denied.observed.scheduleServiceProcess.ownerResult={code:2,sid:null,marker:'UNAVAILABLE_ACCESS_DENIED'};
+ assert.equal(assertP03CandidateTaskProof(denied).status,'CONDITIONAL_CONSISTENCY');
+ const changes=[
+  x=>x.observed.scheduleService.startName='LocalService',
+  x=>x.observed.scheduleService.processId=2000,
+  x=>x.observed.scheduleServiceProcess.commandLine+=' -foreign',
+  x=>x.observed.scheduleServiceProcess.ownerResult={code:0,sid},
+  x=>x.observed.scheduleServiceProcess.ownerResult={code:2,sid:null},
+  x=>x.observed.scheduleServiceProcess.ownerResult={code:2,sid:systemSid,marker:'UNAVAILABLE_ACCESS_DENIED'},
+  x=>x.observed.scheduleServiceProcess.ownerResult={code:5,sid:null,marker:'UNAVAILABLE_ACCESS_DENIED'},
+  x=>x.observed.scheduleServiceProcess.creationTime='2026-10-17T10:00:01.000Z',
  ];
  for(const change of changes){const x=fixture();change(x);assert.throws(()=>assertP03CandidateTaskProof(x),{code:'P03_TASK_IDENTITY_REJECTED'});}
 });

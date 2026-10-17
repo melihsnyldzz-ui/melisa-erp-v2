@@ -48,14 +48,16 @@ export function assertP03CandidateTaskProof(input){
  if(observed.processInventoryScope!=='CIM.Win32_Process.AllP03WatcherCommands')reject();
  if(!Array.isArray(observed.runningTasks)||!Array.isArray(observed.registeredTasks)||!Array.isArray(observed.processes)||observed.processes.length!==2)reject();
  const service=object(observed.scheduleService),serviceProcess=object(observed.scheduleServiceProcess);
- exact(service.name,'Schedule');exact(service.state,'Running');pid(service.processId);
+ exact(service.name,'Schedule');exact(service.state,'Running');exact(service.startName,'LocalSystem');pid(service.processId);
  if(service.processId!==serviceProcess.processId)reject();
  exact(expected.scheduleServiceExecutablePath,'C:\\Windows\\System32\\svchost.exe');
- exact(expected.scheduleServiceOwnerSid,'S-1-5-18');
  exact(serviceProcess.executablePath,expected.scheduleServiceExecutablePath);
  exact(serviceProcess.commandLine,expected.scheduleServiceCommandLine);
- exact(serviceProcess.ownerSid,expected.scheduleServiceOwnerSid);
- if(!SID.test(expected.scheduleServiceOwnerSid)||time(serviceProcess.creationTime)>before)reject();
+ const ownerResult=object(serviceProcess.ownerResult);
+ if(ownerResult.code===0){exact(ownerResult.sid,'S-1-5-18');}
+ else if(ownerResult.code===2){if(ownerResult.sid!==null||ownerResult.marker!=='UNAVAILABLE_ACCESS_DENIED')reject();}
+ else reject();
+ if(time(serviceProcess.creationTime)>before)reject();
  const keys=new Set(),enginePids=new Set(),instanceGuids=new Set();
  for(const e of expected.tasks){
   const key=taskKey(e),ea=action(e.action),ep=pin(e.supervisorPin);
