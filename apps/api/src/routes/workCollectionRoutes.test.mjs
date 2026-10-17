@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import {createWorkCollectionRoutes,workCollectionRoutes} from './workCollectionRoutes.mjs';
 import {workCollectionService} from '../services/workCollectionService.mjs';
-import {selectedSourceCollectionFixture,selectedSourceCollector,selectedSourceRequestId} from '../services/businessSelectedSaleCollectionPreparation.fixture.mjs';
+import {selectedSourceCollectionFixture,selectedSourceCollector,selectedSourceRequestId} from '../services/businessSelectedSaleCollectionPreparation.test-fixture.mjs';
 
 async function withServer(run,{selectedSourceService,legacyService}={}){
  const app=express(),calls=[],fixture=selectedSourceCollectionFixture();app.use(express.json());
