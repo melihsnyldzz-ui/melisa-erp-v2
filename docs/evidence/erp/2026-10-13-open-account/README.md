@@ -1,5 +1,13 @@
 # ERP-C05 / ERP09 — müşteri ve döviz bazında açık hesap görünümü
 
+## 18 Ekim — P06.2 sürümlü native tahsilat hazırlığı
+
+[PR51](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/51) / kaynak `e566f833550ea5cf08b3911694d27c7504c3df69`, PR36 tabanında varsayılan kapalı bir native hazırlık adaptörü ekler. Açıkça enjekte edilen sürümlü yazar aynı işlem nesnesini ve hata halinde rollback sözleşmesini taşımalıdır. Her denemede satış yaratıcısı15'in kaynak günlüğü/fiyatı ile güncel tahsilatçı16, copy/seal, hesap, TRY, revizyon ve UUID yeniden doğrulanır. Yeni istekte owner/guard/journal/effects tanıkları ve tek callback, replay'de sıfır callback ve salt okunur effects doğrulaması gerekir; collect/cancel yalnız etkin pin içinde çağrılır.
+
+Sentetik fixture ile kısmi5+tam19 TRY, replay, iptal, yanlış aktör/hesap/kaynak, eski revizyon, tanık sapması, callback atlama/çift çağrı/gecikme ve hata sonrası kayıt/borç/kasa rollback kontrolleri dâhil iki hedef test dosyası **18/18 PASS**. Bağımsız salt okunur inceleme ilk P1 bulgularının düzeltmesini doğrulayıp yalnız kod sözleşmesi için GO verdi. Kod/test dışı SQL, DB02, ortak servis, config, görev, paket veya ticari kayıt yazısı yapılmadı.
+
+**Açık bağ:** Native factory ve gerçek collection writer bu sözleşmeye henüz bağlı değildir; production default route kapalıdır. PR/CI, gerçek SQL etkisi, kurulu TEST, normal GUI, fiziksel cihaz veya insan kabulü değildir. P03 yeni paket geçişi için fiziksel owner/recovery ve rollback/readback kanıtı ayrıca gerekir. ERP09/C05 kapanışı ve 49/9/39/1 sayısı değişmez.
+
 ## 17 Ekim — P06.2 seçili SOURCE tahsilat API kapısı
 
 **Sonraki native writer bağımlılığı (salt okunur inceleme):** `isolatedOperationCopyStoreFactory` seçili owner intent/body yolunu yalnız `sale_*` işlemleri için kuruyor; satış yaratıcı15 satırını tahsilatçı16 ile aynı aktör koşuluyla seçmek yanlış. `workTradeStore` tahsilat ve iptal işlemlerinde hâlâ eski genel müşteri/hesap/finans yolunu kullanıyor; sentetik PR36 fixture'ı gerçek DB02 etkisi değildir. Güvenli sonraki kaynak işi factory journal/owner intent, creator15 lineage, collector16 yetki, collection-specific guard/effects ve existing collect/cancel bağını **birlikte** sürümleyip negatifleri sınamalıdır. Bu incelemede yeni SQL, grant, kurulum, finans etkisi veya servis işlemi yapılmadı.
