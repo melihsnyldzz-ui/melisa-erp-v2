@@ -1,9 +1,16 @@
-import test from 'node:test';
+import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import {createWorkCollectionRoutes,workCollectionRoutes} from './workCollectionRoutes.mjs';
-import {workCollectionService} from '../services/workCollectionService.mjs';
 import {selectedSourceCollectionFixture,selectedSourceCollector,selectedSourceRequestId} from '../services/businessSelectedSaleCollectionPreparation.test-fixture.mjs';
+
+// The production router imports these defaults when it is constructed. Keep
+// its real permission middleware while preventing unused SQL/auth backends
+// from loading a native driver in this isolated HTTP route test.
+const noNativeBackend=()=>{assert.fail('Route fixture must not access SQL or the auth database');};
+const workCollectionService=Object.fromEntries(['context','preview','collect','cancel'].map(name=>[name,noNativeBackend]));
+mock.module('../services/workCollectionService.mjs',{exports:{workCollectionService}});
+mock.module('../services/authService.js',{exports:{getUserById:noNativeBackend,verifyAccessToken:noNativeBackend,verifyNormalTestAccessSession:noNativeBackend}});
+const {createWorkCollectionRoutes,workCollectionRoutes}=await import('./workCollectionRoutes.mjs');
 
 async function withServer(run,{selectedSourceService,legacyService}={}){
  const app=express(),calls=[],fixture=selectedSourceCollectionFixture();app.use(express.json());
