@@ -203,6 +203,8 @@ Bu yetkili genişletme aşağıdaki 9 Ekim sınırlı hazırlık/DUR kaydını b
 
 # ERP teslim panosu
 
+17 Ekim — **P05.2.b aynı tarih/fiyat kayıtlı belge dayanağı kaynak alt adımı 🟢:** [PR37](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/37) bozuk invoice/receipt kimliğini finalized GET normal liste→detay akışında reddeder; basis'siz legacy okuma, taslak/preview/POST ve eski drift davranışı korunur.38/38 hedefli test, bağımsızGO ve exact push/PR CI SUCCESS. Bu yeni kurulu paket, stok/borç hareketi veya personel kabulü değildir; P05 üstü ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-13-purchase-receipt/README.md#17-ekim--p052b-aynı-tarih-ve-fiyatta-kayıtlı-dayanak-denetimi).
+
 17 Ekim — **P06.2 seçili tahsilat API kapısı kaynak alt adımı 🟢:** [PR36](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/36) sentetik Express→auth→işlem journal/store→GET kısmi/tam/replay/iptal ve yetki/hesap/döviz/revizyon negatiflerini aynı zincirde kanıtladı; default production 404 ve yanlış servis503.32 ilgili + eski satış route5 yerel PASS, bağımsızGO, exact push/PR CI SUCCESS. Native DB02 writer/kurulum/GUI/insan hâlâ açık; P06 üstü ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-13-open-account/README.md#17-ekim--p062-seçili-source-tahsilat-api-kapısı).
 
 17 Ekim — **P03 inaktif ERP paket adımı 🟢:** Exact `1b5a02c` Node24.19/çevrimdışı yeni paket, 1.991 manifest+1.886 kaynak hash eş, exact native require PASS ve bağımsız inceleme0; kaynak push/PR CI SUCCESS. Sonlu owner profili, kontrollü ortak TEST kurulumu/readback ve insan kabulü ayrı; özgün49/9🟢/39🟡/1🔴 aynı. [Paket ve sınır](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md#17-ekim--p03-yeni-inaktif-erp-aday-paketi).
