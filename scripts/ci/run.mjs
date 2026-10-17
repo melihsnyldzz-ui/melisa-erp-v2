@@ -36,6 +36,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', ...['shared-business-selected-collection-revision-sql','shared-business-selected-collection-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', ...[
     'p03-candidate-core-proof', 'p03-candidate-task-proof', 'p03-candidate-outer-proof',
     'p03-integrated-owner-transition', 'p03-owner-os-callbacks', 'p03-owner-recovery',
@@ -102,3 +103,4 @@ if (mode === 'quality') {
 } else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build|windows-process-probe');
 
 }
+

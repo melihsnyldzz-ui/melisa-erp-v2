@@ -58,7 +58,7 @@ try{
 }finally{$env:MELISA_HUB_CONFIG_PATH=$previous}
 try{
 $ready=$false
-for($attempt=0;$attempt -lt 20;$attempt++){
+for($readinessAttempt=0;$readinessAttempt -lt 20;$readinessAttempt++){
  $child.Refresh();if($child.HasExited){throw 'HUB_WEB_CHILD_EXITED'}
  try{
   $web=Invoke-RestMethod 'http://127.0.0.1:5234/test-health' -TimeoutSec 1 -MaximumRedirection 0

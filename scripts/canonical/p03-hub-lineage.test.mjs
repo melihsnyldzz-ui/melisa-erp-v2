@@ -9,6 +9,92 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const read=name=>fs.readFileSync(path.join(here,name),'utf8');
 const start=read('start-hub-web.ps1'),watch=read('watch-hub-web.ps1');
 
+const readinessBlock=()=>{
+ const block=start.match(/\$ready=\$false[\s\S]*?if\(!\$ready\)\{throw 'HUB_WEB_READINESS_FAILED'\}/)?.[0];
+ assert.ok(block,'launcher readiness extraction failed');
+ return block;
+};
+
+test('readiness polling never assigns the case-insensitive Attempt parameter',()=>{
+ assert.doesNotMatch(readinessBlock(),/\$attempt\s*(?:=|\+\+|--|\+=|-=)/i);
+});
+
+test('readiness polling preserves caller retry identity and receipt filenames',()=>{
+ const readiness=readinessBlock();
+ const lineagePath=start.match(/^\$lineagePath=Join-Path[^\r\n]+/m)?.[0];
+ const pointerPath=start.match(/^\$pointer=Join-Path[^\r\n]+/m)?.[0];
+ assert.ok(lineagePath&&pointerPath,'launcher receipt path extraction failed');
+ const command=`
+$ErrorActionPreference='Stop'
+Set-StrictMode -Version Latest
+function Invoke-RestMethod {
+ param($Uri,$TimeoutSec,$MaximumRedirection)
+ if($script:readyPoll -lt 0 -or $script:poll -lt $script:readyPoll){throw 'NOT_READY'}
+ return [pscustomobject]@{
+  ok=$true;environment='ISOLATED_TEST_COPY';port=5234;copyId='copy'
+  actualT1=$false;databaseName='test';sourceCommit='commit'
+ }
+}
+function Get-NetTCPConnection {
+ param($State,$LocalPort,$ErrorAction)
+ return @(
+  [pscustomobject]@{OwningProcess=42;LocalAddress='127.0.0.1'}
+  [pscustomobject]@{OwningProcess=42;LocalAddress='192.168.1.46'}
+ )
+}
+function Start-Sleep {param($Milliseconds)}
+$exercise={
+ param([int]$Attempt,[int]$ReadyOn)
+ $script:poll=-1
+ $script:readyPoll=$ReadyOn
+ $child=[pscustomobject]@{Id=42;HasExited=$false}
+ $child|Add-Member -MemberType ScriptMethod -Name Refresh -Value {$script:poll++}
+ $operation=[pscustomobject]@{
+  copyContext=[pscustomobject]@{copyId='copy'};database='test'
+ }
+ $c=[pscustomobject]@{SourceCommit='commit';RuntimeDir='C:\\runtime'}
+ $run='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+ $failure=$null
+ try{
+${readiness}
+ }catch{$failure=$_.Exception.Message}
+${lineagePath}
+${pointerPath}
+ [pscustomobject]@{
+  attempt=$Attempt;readyOn=$ReadyOn;ready=$ready;failure=$failure
+  polls=$script:poll+1
+  lineageName=[IO.Path]::GetFileName($lineagePath)
+  pointerName=[IO.Path]::GetFileName($pointer)
+ }
+}
+$results=@(
+ foreach($inputAttempt in 0..3){
+  foreach($readyOn in @(0,2,-1)){
+   & $exercise $inputAttempt $readyOn
+  }
+ }
+)
+ConvertTo-Json -InputObject $results -Compress
+`;
+ const result=spawnSync('powershell.exe',[
+  '-NoProfile','-NonInteractive','-Command',command
+ ],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0,`${result.stderr} ${result.stdout}`);
+ const rows=JSON.parse(result.stdout.trim());
+ assert.equal(rows.length,12);
+ for(let attempt=0;attempt<=3;attempt++){
+  for(const readyOn of [0,2,-1]){
+   const row=rows[attempt*3+[0,2,-1].indexOf(readyOn)];
+   assert.equal(row.attempt,attempt,`attempt ${attempt}, readyOn ${readyOn}`);
+   assert.equal(row.ready,readyOn>=0);
+   assert.equal(row.failure,readyOn<0?'HUB_WEB_READINESS_FAILED':null);
+   assert.equal(row.polls,readyOn<0?20:readyOn+1);
+   assert.equal(row.lineageName,`hub-web-lineage-${'a'.repeat(32)}-${attempt}.json`);
+   assert.equal(row.pointerName,`hub-web-process-${'a'.repeat(32)}-${attempt}.json`);
+  }
+ }
+});
+
 test('both PowerShell sources parse without running startup or stop actions',()=>{
  for(const name of ['start-hub-web.ps1','watch-hub-web.ps1']){
   const file=path.join(here,name).replaceAll("'","''");

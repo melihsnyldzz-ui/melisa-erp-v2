@@ -280,3 +280,12 @@ test('request and normalized-error middleware serialize safe routes while retain
   assert.equal(response.error.message, 'fixture public message');
   assert.equal(response.meta.retryAfterSeconds, 17);
 });
+
+test('native selected collection keeps its exact scope code without opening a prefix vocabulary',()=>{
+ const code='SELECTED_COLLECTION_NATIVE_SCOPE';
+ assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'SELECTED_COLLECTION_NATIVE','SELECTED_COLLECTION_NATIVE_SQL','SELECTED_COLLECTION_ARBITRARY_SCOPE']){
+  const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+  assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+ }
+});
