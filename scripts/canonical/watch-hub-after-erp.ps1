@@ -17,6 +17,8 @@ $expectedCrmSource=switch -CaseSensitive ($StartupConfigPath){
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-candidate-native-ready.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-crm-node24-ready.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json'{'439b63db8376a6b9d3ac8baa625ed98367022623';break}
+ 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e0e6c28.json'{'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';break}
+ 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json'{'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';break}
  default {throw 'ERP_HUB_WAIT_CONFIG_SCOPE'}
 }
 function Read-PinnedJson([string]$p,[string]$hash){
@@ -33,7 +35,11 @@ $crmNode24Required=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-complet
 $literalCrmNode24=$crmNode24Required-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
 $crmNode24HubRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json'
 $literalCrmNode24Hub=$crmNode24HubRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
-if($c.components.crm.sourceCommit-cne$expectedCrmSource-or$c.ownerSid-cne$owner-or($c.node.path-cne'C:\Program Files\nodejs\node.exe'-and!$literalCandidateNode-and!$literalNativeReadyNode-and!$literalCrmNode24-and!$literalCrmNode24Hub)-or($nativeReadyNodeRequired-and!$literalNativeReadyNode)-or($crmNode24Required-and!$literalCrmNode24)-or($crmNode24HubRequired-and!$literalCrmNode24Hub)-or$c.actualT1-ne$false-or$c.database-cne'MELISA_ERP_CRM_SHARED_TEST_20261009_02'-or$c.copyId-cne'e16b70f0-4057-428b-9abc-6bbcaf35fe82'){throw 'ERP_HUB_WAIT_TARGET'}
+$integratedNodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e0e6c28.json'
+$literalIntegratedNode=$integratedNodeRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
+$hubLineageNodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json'
+$literalHubLineageNode=$hubLineageNodeRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
+if($c.components.crm.sourceCommit-cne$expectedCrmSource-or$c.ownerSid-cne$owner-or($c.node.path-cne'C:\Program Files\nodejs\node.exe'-and!$literalCandidateNode-and!$literalNativeReadyNode-and!$literalCrmNode24-and!$literalCrmNode24Hub-and!$literalIntegratedNode-and!$literalHubLineageNode)-or($nativeReadyNodeRequired-and!$literalNativeReadyNode)-or($crmNode24Required-and!$literalCrmNode24)-or($crmNode24HubRequired-and!$literalCrmNode24Hub)-or($integratedNodeRequired-and!$literalIntegratedNode)-or($hubLineageNodeRequired-and!$literalHubLineageNode)-or$c.actualT1-ne$false-or$c.database-cne'MELISA_ERP_CRM_SHARED_TEST_20261009_02'-or$c.copyId-cne'e16b70f0-4057-428b-9abc-6bbcaf35fe82'){throw 'ERP_HUB_WAIT_TARGET'}
 $manifest=Read-PinnedJson (Join-Path $c.supervisor.packageRoot 'release-manifest.json') $c.supervisor.manifestSha256
 if($manifest.sourceCommit-cne$c.supervisor.sourceCommit-or$manifest.packageRole-cne'SUPERVISOR_ONLY'-or$manifest.applicationDeployment-ne$false-or[IO.Path]::GetFullPath($PSCommandPath)-ine(Join-Path $c.supervisor.packageRoot 'scripts\canonical\watch-hub-after-erp.ps1')){throw 'ERP_HUB_WAIT_PACKAGE'}
 foreach($name in @('watch-hub-after-erp.ps1','wait-erp-for-hub.mjs')){$pins=@($manifest.files|Where-Object{$_.path-ceq('scripts/canonical/'+$name)});if($pins.Count-ne1-or(Get-FileHash -LiteralPath(Join-Path $c.supervisor.packageRoot ('scripts\canonical\'+$name)) -Algorithm SHA256).Hash.ToLowerInvariant()-cne$pins[0].sha256){throw 'ERP_HUB_WAIT_ENTRY_PIN'}}

@@ -96,9 +96,10 @@ test('unified physical journal policy extends the old finite refs by one without
 test('unified independent PowerShell closed source set and reference set match the JS policy',()=>{
  const code=fs.readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8'),set=/\[ValidateSet\(([^)]+)\)\]\[string\]\$Source/.exec(code);
  assert(set);const actual=[...set[1].matchAll(/'([a-f0-9]{40})'/g)].map(match=>match[1]);
- assert.deepEqual(actual,[...new Set(legacyProfiles.map(([source])=>source)),unifiedSource]);
- assert(code.includes("-and $Source -cne '"+unifiedSource+"'){throw 'REJECT'}"));
- const line=code.split(/\r?\n/).find(value=>value.startsWith(" if($Source -ceq '"+unifiedSource+"')"));assert(line);
+ const integratedSource='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';
+ assert.deepEqual(actual,[...new Set(legacyProfiles.map(([source])=>source)),unifiedSource,integratedSource]);
+ assert(code.includes("-and $Source -cne '"+unifiedSource+"' -and $Source -cne '"+integratedSource+"'){throw 'REJECT'}"));
+ const line=code.split(/\r?\n/).find(value=>value.startsWith(" if($Source -ceq '"+unifiedSource+"' -or $Source -ceq '"+integratedSource+"')"));assert(line);
  const root=crm+'\\runtime\\CRM06-TEST-ACTORS-20261014';
  const references=[...line.matchAll(/\$actorRoot\+'([^']+)'/g)].map(match=>root+match[1]).sort();
  const expected=crm06StaffJournalExcludedPaths(unifiedSource).filter(name=>name.includes('\\staff-refresh-successor-')&&!name.endsWith('b2985d2295c0.json'));
@@ -124,6 +125,8 @@ test('unified scheduled PowerShell Hub entry preserves the exact case-sensitive 
  expected.push({config:runtime+'\\settings-crm06-staff-439b63db8376-erp-candidate-native-ready.json',source:unifiedSource});
  expected.push({config:runtime+'\\settings-crm06-staff-439b63db8376-erp-crm-node24-ready.json',source:unifiedSource});
  expected.push({config:runtime+'\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json',source:unifiedSource});
+ expected.push({config:crm06StaffSuccessorProfile('6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','erp-crm-integrated-20261017').nextPaths.settings,source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'});
+ expected.push({config:crm06StaffSuccessorProfile('6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','erp-crm-hub-lineage-20261017').nextPaths.settings,source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'});
  assert.deepEqual(pairs,expected);for(const pair of pairs)assert.equal(assertErpHubProfile(pair.config,pair.source),true);
  assert.equal(block[1].replace(pattern,'').replace(/default \{throw 'ERP_HUB_WAIT_CONFIG_SCOPE'\}/,'').trim(),'');
  const next=expected.at(-1);assert(!pairs.some(pair=>pair.config===next.config.toUpperCase()));assert(!pairs.some(pair=>pair.config===next.config+'-other'));

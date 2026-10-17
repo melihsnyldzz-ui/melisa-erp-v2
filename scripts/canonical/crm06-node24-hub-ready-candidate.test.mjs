@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {buildCrm06TestActorProvisioning,crm06ProvisioningInputHash as digest} from './crm06-test-actor-provisioning.mjs';
 import {buildCrm06OwnerProjection,CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH} from './crm06-owner-projection.mjs';
 import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06StaffSuccessorProfile,crm06StaffSuccessorProfileForPath,crm06SuccessorFileHash,CRM06_STAFF_PARENT_SETTINGS_PATH,CRM06_STAFF_PARENT_ACTIVATION_PATH,CRM06_STAFF_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
@@ -105,4 +107,91 @@ test('Hub-ready accessor pins are rejected without reading them',()=>{
 
 test('Hub-ready addition preserves Node24 native-ready and CRM base fingerprints',()=>{
  assert.equal(crm06SuccessorFileHash(buildCrm06StaffRefreshSuccessor(node24Fixture())),'8800a730b2a18f648cf40c776cb5673613bdce8ecb5d794fbb072c0833f7f343');assert.equal(crm06SuccessorFileHash(buildCrm06StaffRefreshSuccessor(priorNativeFixture())),'73543326bf96e9353ae765c790a12517922df836865f5bfce4e93ac9ea214d42');assert.equal(crm06SuccessorFileHash(buildCrm06StaffRefreshSuccessor(inputFor())),'c6767e23a680b35dec6ad5e9bd52d5245eab4254d666ccbae60bd502a084253f');
+});
+
+const integratedVariant='erp-crm-integrated-20261017',integratedCrmSource='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';
+const integratedErp={packageRoot:erp+'\\releases\\CANONICAL-COMPLETE-TEST-20261017-e0e6c28',sourceCommit:'e0e6c288373478208a1fb2b48fca36b18b092dac',manifestSha256:'c1f01f72b907b6b481a2665096270c9ceaea977446ed8f300f600e9e9640dcfa'};
+const integratedCrm={packageRoot:crm+'\\releases\\crm-shared-test-'+integratedCrmSource,sourceCommit:integratedCrmSource,manifestSha256:'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'};
+function integratedFixture(){const f=hubFixture();f.profileVariant=integratedVariant;f.crmPackagePin=structuredClone(integratedCrm);f.crmIndexSha256='e1a8faeabe007b54ecd63dd8bd3dd345f3b5a0144bb6f4f9ce4df037dd76dc04';f.crmDependencyLockRef.path=runtime+'\\crm-6bc82e6fe972-node24-dependency-lock.json';f.erpCandidate.packagePin=structuredClone(integratedErp);f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-e0e6c2883734-dependency-lock.json';f.supervisorPin.packageRoot=erp+'\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-'+'8'.repeat(12);return f;}
+test('integrated TEST profile binds only exact ERP and CRM immutable candidates without enabling writes',()=>{
+ const f=integratedFixture(),p=buildCrm06StaffRefreshSuccessor(f),profile=crm06StaffSuccessorProfile(integratedCrmSource,integratedVariant);
+ assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,p)),true);validateCompletionSettings(p.settings,owner);
+ assert.deepEqual(p.settings.components.erpApiNative,{...integratedErp,config:f.parentSettings.components.erpApiNative.config});
+ assert.deepEqual(p.settings.components.hub,{...integratedErp,config:p.hubStartupRef});assert.deepEqual(p.settings.components.crm,{...integratedCrm,config:p.activationRef});
+ assert.deepEqual(p.settings.node,requiredNode);assert.equal(p.receipt.prepared.profileVariant,integratedVariant);assert.equal(p.receipt.installed,false);assert.equal(p.receipt.humanAccepted,false);
+ assert.equal(crm06StaffSuccessorProfileForPath(integratedCrmSource,profile.successorPath).profileVariant,integratedVariant);
+ assert.equal(assertErpHubProfile(profile.nextPaths.settings,integratedCrmSource),true);
+});
+test('integrated TEST profile rejects changed package, Node and crossed old profile',()=>{
+ for(const change of [f=>f.erpCandidate.packagePin.manifestSha256='0'.repeat(64),f=>f.crmPackagePin.manifestSha256='0'.repeat(64),f=>f.crmIndexSha256='0'.repeat(64),f=>f.erpCandidate.nodeRuntimePin.sha256='0'.repeat(64),f=>f.crmPackagePin.packageRoot=node24Crm.packageRoot,f=>f.profileVariant=hubVariant]){const f=integratedFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ assert.throws(()=>crm06StaffSuccessorProfile(unifiedSource,integratedVariant));
+});
+test('integrated TEST journal and Hub gates accept one literal profile only',()=>{
+ const profile=crm06StaffSuccessorProfile(integratedCrmSource,integratedVariant),prior=crm06StaffJournalExcludedPaths(unifiedSource,hubVariant),next=crm06StaffJournalExcludedPaths(integratedCrmSource,integratedVariant);
+ assert.equal(prior.length,25);assert.deepEqual(next,[...prior,profile.successorPath].sort());
+ assert.deepEqual(crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:integratedVariant,excludedPaths:next,ownerSid:owner}).slice(-4),['-Source',integratedCrmSource,'-ProfileVariant',integratedVariant]);
+ assert.throws(()=>crm06StaffJournalExcludedPaths(integratedCrmSource));assert.throws(()=>crm06StaffSuccessorProfile(integratedCrmSource));
+ for(const source of [unifiedSource,'0'.repeat(40)])assert.throws(()=>assertErpHubProfile(profile.nextPaths.settings,source));
+ const ps=fs.readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8'),watch=fs.readFileSync(new URL('./watch-hub-after-erp.ps1',import.meta.url),'utf8');
+ assert(ps.includes("($ProfileVariant -ceq '"+integratedVariant+"' -and $Source -ceq '"+integratedCrmSource+"')"));
+ assert(ps.includes("if($Source -ceq '"+integratedCrmSource+"' -and -not $hasParentProbe){throw 'REJECT'}"));
+ assert(watch.includes("'"+profile.nextPaths.settings+"'{'"+integratedCrmSource+"';break}"));
+ assert(watch.includes("$integratedNodeRequired=$StartupConfigPath-ceq'"+profile.nextPaths.settings+"'"));
+ assert(watch.includes('($integratedNodeRequired-and!$literalIntegratedNode)'));
+ const builder=fs.readFileSync(new URL('./build-crm06-supervisor-package.mjs',import.meta.url),'utf8');
+ assert(builder.includes("expected=['20261014','20261015','20261017'].map(day=>"));
+});
+
+const lineageVariant='erp-crm-hub-lineage-20261017';
+const lineageErp={packageRoot:erp+'\\releases\\CANONICAL-COMPLETE-TEST-20261017-1a03157a323e',sourceCommit:'1a03157a323e6a6c16aea714194a76b6438a435c',manifestSha256:'9e5d75db4312231ab06af2f17d421b0f4e3e909cdfaee19743d92ae171ad6a66'};
+function lineageFixture(){const f=integratedFixture();f.profileVariant=lineageVariant;f.erpCandidate.packagePin=structuredClone(lineageErp);f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-1a03157a323e-dependency-lock.json';return f;}
+test('Hub lineage is a separate inactive exact CRM6bc ERP1a source profile',()=>{
+ const old=buildCrm06StaffRefreshSuccessor(integratedFixture()),f=lineageFixture(),next=buildCrm06StaffRefreshSuccessor(f),profile=crm06StaffSuccessorProfile(integratedCrmSource,lineageVariant);
+ assert.equal(crm06SuccessorFileHash(old),'a941d9d924eb220451516f6eb152fb8f990742aa162a53f9c7a6ef069b3eb70d');
+ assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,next)),true);validateCompletionSettings(next.settings,owner);
+ assert.deepEqual(next.settings.components.erpApiNative,{...lineageErp,config:f.parentSettings.components.erpApiNative.config});
+ assert.deepEqual(next.settings.components.hub,{...lineageErp,config:next.hubStartupRef});assert.deepEqual(next.settings.node,requiredNode);
+ assert.equal(next.settings.dependencyLocks.erpApiNative.path,profile.erpDependencyLockPath);
+ assert.equal(next.receipt.installed,false);assert.equal(next.receipt.humanAccepted,false);
+ assert.equal(crm06StaffSuccessorProfileForPath(integratedCrmSource,profile.successorPath).profileVariant,lineageVariant);
+ assert.equal(assertErpHubProfile(profile.nextPaths.settings,integratedCrmSource),true);
+ assert.notEqual(profile.successorPath,crm06StaffSuccessorProfile(integratedCrmSource,integratedVariant).successorPath);
+ assert.deepEqual(old,buildCrm06StaffRefreshSuccessor(integratedFixture()));
+});
+test('Hub lineage rejects package and path substitutions before generation',()=>{
+ for(const change of [f=>f.erpCandidate.packagePin.sourceCommit=integratedErp.sourceCommit,f=>f.erpCandidate.packagePin.packageRoot=integratedErp.packageRoot,f=>f.erpCandidate.packagePin.manifestSha256=integratedErp.manifestSha256,f=>f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-e0e6c2883734-dependency-lock.json',f=>f.erpCandidate.nodeRuntimePin.sha256='0'.repeat(64),f=>f.profileVariant=integratedVariant]){const f=lineageFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ const profile=crm06StaffSuccessorProfile(integratedCrmSource,lineageVariant);
+ assert.equal(crm06StaffSuccessorProfileForPath(integratedCrmSource,crm06StaffSuccessorProfile(integratedCrmSource,integratedVariant).successorPath).profileVariant,integratedVariant);
+ for(const wrong of [profile.successorPath.toUpperCase(),profile.successorPath+'-other'])assert.throws(()=>crm06StaffSuccessorProfileForPath(integratedCrmSource,wrong));
+ assert.throws(()=>assertErpHubProfile(profile.nextPaths.settings,integratedErp.sourceCommit));
+});
+test('Hub lineage journal adds old e0e and new exact successor refs with matching PowerShell policy',()=>{
+ const old=crm06StaffJournalExcludedPaths(integratedCrmSource,integratedVariant),profile=crm06StaffSuccessorProfile(integratedCrmSource,lineageVariant),next=crm06StaffJournalExcludedPaths(integratedCrmSource,lineageVariant);
+ assert.deepEqual(next,[...old,profile.successorPath].sort());
+ assert.deepEqual(crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:lineageVariant,excludedPaths:next,ownerSid:owner}).slice(-4),['-Source',integratedCrmSource,'-ProfileVariant',lineageVariant]);
+ assert.throws(()=>crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:lineageVariant,excludedPaths:old,ownerSid:owner}));
+ const ps=fs.readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8'),watch=fs.readFileSync(new URL('./watch-hub-after-erp.ps1',import.meta.url),'utf8');
+ assert(ps.includes("($ProfileVariant -ceq '"+lineageVariant+"' -and $Source -ceq '"+integratedCrmSource+"')"));
+ assert(ps.includes("if($hasParentProbe -and $ProfileVariant -ceq '"+lineageVariant+"'){$expected+=($actorRoot+'\\staff-refresh-successor-6bc82e6fe972-erp-1a03157.json')}"));
+ assert(watch.includes("'"+profile.nextPaths.settings+"'{'"+integratedCrmSource+"';break}"));
+ assert(watch.includes("($hubLineageNodeRequired-and!$literalHubLineageNode)"));
+});
+test('WindowsPS5 journal parameter AST admits only both exact CRM6bc profiles',{skip:process.platform!=='win32'},()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${integratedCrmSource}','${integratedVariant}'),@('${integratedCrmSource}','${lineageVariant}'),@('${integratedCrmSource}',$null),@('${integratedCrmSource}','erp-crm-hub-lineage-20261017-other'),@('${unifiedSource}','${lineageVariant}'))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0,result.stderr);const rows=JSON.parse(result.stdout);assert.equal(rows.length,5);
+ assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(integratedCrmSource,integratedVariant)]);
+ assert.deepEqual(rows[1].paths,[...crm06StaffJournalExcludedPaths(integratedCrmSource,lineageVariant)]);
+ for(const row of rows.slice(2))assert.equal(row.accepted,false);
 });
