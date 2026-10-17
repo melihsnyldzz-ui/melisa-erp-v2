@@ -1,5 +1,7 @@
 ## ŞİMDİ — CRM06 öncelikli kapanış; ERP09 bağımsız teknik hazırlık — 15 Ekim 2026
 
+17 Ekim — P03 kaynak CORE/COM/günlük sınırları `d930bcb`→`734f417` PR41 üzerinde hedefli sentetik test, bağımsız inceleme ve exact son iki kaynak CI çifti SUCCESS ile ilerledi. Özel salt okunur toplayıcı eski iki görev örneğini iki watcher'a eşledi; on eski rol, eski be8 ayarı ve dört HTTP200 korunuyor, P03 geçiş lock/olayı yok. Yeni paket kurulmadı. Kısmi yeni başlangıç için gerçek OS recovery callback/ayrı durable journal ve yeni aday normal readback hâlâ açık; mevcut iş verileri fonksiyon smoke girdisi kullanılmayacak. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 17 Ekim — Kullanıcının sentetik smoke yönlendirmesiyle mevcut DB02 iş kayıtları kullanılmadan satış5, tahsilat18, müşteri3, sayım4 ve CRM ürün talebi2 hedefli kaynak/yerel HTTP testi PASS. Ayrı tahsilat route testi bu worktree'deki eksik `msnodesqlv8` binary yüzünden başlamadı ve PASS sayılmadı. Kurulum/normal GUI/insan/cihaz ayrı; P03 Apply NO-GO sürüyor. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
 
 17 Ekim — P03 kısmi başlangıç kurtarma source `efb5cab`/PR41,9 sentetik test, bağımsız kaynak GO ve exact iki CI SUCCESS. Gerçek Windows kimlik doğrulama callback'i ve kısmi journal karantina/çağıran yok; Apply NO-GO ve kurulu eski TEST aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
