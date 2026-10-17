@@ -1,5 +1,7 @@
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
+18 Ekim — P03 ayrı kurtarma günlüğü okuyucu ve CAS/ilk niyet belirsizliği kaynakta `cf0110e`/`e0005b2` ile kapatıldı; 80 ilgili P03 testinin platforma uygun CI bağlantısı `4145dde`, exact push/PR SUCCESS ve bağımsız kaynak incelemesi GO. Gerçek OS collector/kurtarma çağıranı/kurulum yok; P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 18 Ekim — P03 yeni ERP1a/CRM6bc/supervisorba65 inaktif paket ve korumalı profil/Probe hazır. PR41 `164ceb3` koşullu yeni CORE+COM+Hub kimlik kanıtı 31/31 test, bağımsız GO, exact push/PR CI SUCCESS; gerçek kurulum ve normal ekran kanıtı değildir. Kısmi başlangıç OS recovery/son readback açık, P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
 
 17 Ekim — P03 CORE6/COM2 kaynak koşulları, kilit öncesi admission ve replay vermeyen günlük okuyucu `d930bcb`–`734f417` source/test/review/exact CI ile dar teknik hazırlık PASS. Özel Windows okuması yalnız eski kurulu görev/owner ve kilit yokluğunu kanıtladı. Yeni aday OS kurtarma/kurulum/normal GUI/insan yok; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
