@@ -1,5 +1,7 @@
 ## ŞİMDİ — CRM06 öncelikli kapanış; ERP09 bağımsız teknik hazırlık — 15 Ekim 2026
 
+17 Ekim — P03 kısmi başlangıç kurtarma source `efb5cab`/PR41,9 sentetik test, bağımsız kaynak GO ve exact iki CI SUCCESS. Gerçek Windows kimlik doğrulama callback'i ve kısmi journal karantina/çağıran yok; Apply NO-GO ve kurulu eski TEST aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 17 Ekim — P03 DB02 salt okunur 51 iş tablosu tutarlı içerik başlangıcı PASS:1.817.793 satır, içerik hash `df311fee7d05e9672bf491cca133839bb9ad5325360dd83334ba04f6d7d10ef2`, korumalı rapor hash `b2789bfc`. Query Store iç log yazısı yüzünden ilk iki katı LSN denemesi durmuştu; yeni SERIALIZABLE/tablo kilidi yöntemi bağımsız inceleme sonrası sınırlı çalıştı. Özel OS yürütücü koduna stop öncesi paket pini, journal sırası ve son veri/readback eklendi; bağımsız **koşullu kod GO**, gerçek Apply/rollback/kurulum/GUI yok. Ortak çalışan TEST korunuyor. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
 
 17 Ekim — P03 callback sınırı `0436f1c`/PR41,11 ilgili sentetik test/bağımsız kaynak GO/exact push39052665608+PR39052669882 CI SUCCESS. Özel OS executor henüz yalnız taslak; read-only DB02 tam içerik baseline `DIGEST_DB_LOG_CHANGED` nedeniyle oluşmadı. Bağımsız executor incelemesi Apply NO-GO; kurulu be8 görevlerine, servislerine ve SQL verisine yazı0. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).

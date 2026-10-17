@@ -1,5 +1,7 @@
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
+17 Ekim — P03 `efb5cab` source-only kısmi başlangıç kurtarma/9 test/bağımsız GO/exact push+PR CI SUCCESS. Gerçek OS verifier ve mühürlü recovery yürütücüsü olmadan kurulum yok; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 17 Ekim — P03 DB02 51 iş tablosu/1.817.793 satır kilitli salt okunur baseline raporu korumalı hash `b2789bfc` ile alındı. Özel OS yürütücü kod incelemesi koşullu GO; gerçek Apply, kısmi start geri dönüşü, yeni kurulum ve normal ekran henüz yok. P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
 
 17 Ekim — P03 `0436f1c` kaynak callback/11 ilgili sentetik test/bağımsız kaynak GO/exact iki CI SUCCESS; OS executor ve DB02 tam içerik baseline açık. Salt okunur baseline `DIGEST_DB_LOG_CHANGED` ile durdu, bağımsız Apply incelemesi NO-GO. Yeni kurulum/normal GUI/insan kabulü yok; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
