@@ -106,3 +106,36 @@ test('Hub-ready accessor pins are rejected without reading them',()=>{
 test('Hub-ready addition preserves Node24 native-ready and CRM base fingerprints',()=>{
  assert.equal(crm06SuccessorFileHash(buildCrm06StaffRefreshSuccessor(node24Fixture())),'8800a730b2a18f648cf40c776cb5673613bdce8ecb5d794fbb072c0833f7f343');assert.equal(crm06SuccessorFileHash(buildCrm06StaffRefreshSuccessor(priorNativeFixture())),'73543326bf96e9353ae765c790a12517922df836865f5bfce4e93ac9ea214d42');assert.equal(crm06SuccessorFileHash(buildCrm06StaffRefreshSuccessor(inputFor())),'c6767e23a680b35dec6ad5e9bd52d5245eab4254d666ccbae60bd502a084253f');
 });
+
+const integratedVariant='erp-crm-integrated-20261017',integratedCrmSource='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';
+const integratedErp={packageRoot:erp+'\\releases\\CANONICAL-COMPLETE-TEST-20261017-e0e6c28',sourceCommit:'e0e6c288373478208a1fb2b48fca36b18b092dac',manifestSha256:'c1f01f72b907b6b481a2665096270c9ceaea977446ed8f300f600e9e9640dcfa'};
+const integratedCrm={packageRoot:crm+'\\releases\\crm-shared-test-'+integratedCrmSource,sourceCommit:integratedCrmSource,manifestSha256:'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'};
+function integratedFixture(){const f=hubFixture();f.profileVariant=integratedVariant;f.crmPackagePin=structuredClone(integratedCrm);f.crmIndexSha256='e1a8faeabe007b54ecd63dd8bd3dd345f3b5a0144bb6f4f9ce4df037dd76dc04';f.crmDependencyLockRef.path=runtime+'\\crm-6bc82e6fe972-node24-dependency-lock.json';f.erpCandidate.packagePin=structuredClone(integratedErp);f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-e0e6c2883734-dependency-lock.json';f.supervisorPin.packageRoot=erp+'\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-'+'8'.repeat(12);return f;}
+test('integrated TEST profile binds only exact ERP and CRM immutable candidates without enabling writes',()=>{
+ const f=integratedFixture(),p=buildCrm06StaffRefreshSuccessor(f),profile=crm06StaffSuccessorProfile(integratedCrmSource,integratedVariant);
+ assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,p)),true);validateCompletionSettings(p.settings,owner);
+ assert.deepEqual(p.settings.components.erpApiNative,{...integratedErp,config:f.parentSettings.components.erpApiNative.config});
+ assert.deepEqual(p.settings.components.hub,{...integratedErp,config:p.hubStartupRef});assert.deepEqual(p.settings.components.crm,{...integratedCrm,config:p.activationRef});
+ assert.deepEqual(p.settings.node,requiredNode);assert.equal(p.receipt.prepared.profileVariant,integratedVariant);assert.equal(p.receipt.installed,false);assert.equal(p.receipt.humanAccepted,false);
+ assert.equal(crm06StaffSuccessorProfileForPath(integratedCrmSource,profile.successorPath).profileVariant,integratedVariant);
+ assert.equal(assertErpHubProfile(profile.nextPaths.settings,integratedCrmSource),true);
+});
+test('integrated TEST profile rejects changed package, Node and crossed old profile',()=>{
+ for(const change of [f=>f.erpCandidate.packagePin.manifestSha256='0'.repeat(64),f=>f.crmPackagePin.manifestSha256='0'.repeat(64),f=>f.crmIndexSha256='0'.repeat(64),f=>f.erpCandidate.nodeRuntimePin.sha256='0'.repeat(64),f=>f.crmPackagePin.packageRoot=node24Crm.packageRoot,f=>f.profileVariant=hubVariant]){const f=integratedFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
+ assert.throws(()=>crm06StaffSuccessorProfile(unifiedSource,integratedVariant));
+});
+test('integrated TEST journal and Hub gates accept one literal profile only',()=>{
+ const profile=crm06StaffSuccessorProfile(integratedCrmSource,integratedVariant),prior=crm06StaffJournalExcludedPaths(unifiedSource,hubVariant),next=crm06StaffJournalExcludedPaths(integratedCrmSource,integratedVariant);
+ assert.equal(prior.length,25);assert.deepEqual(next,[...prior,profile.successorPath].sort());
+ assert.deepEqual(crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:integratedVariant,excludedPaths:next,ownerSid:owner}).slice(-4),['-Source',integratedCrmSource,'-ProfileVariant',integratedVariant]);
+ assert.throws(()=>crm06StaffJournalExcludedPaths(integratedCrmSource));assert.throws(()=>crm06StaffSuccessorProfile(integratedCrmSource));
+ for(const source of [unifiedSource,'0'.repeat(40)])assert.throws(()=>assertErpHubProfile(profile.nextPaths.settings,source));
+ const ps=fs.readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8'),watch=fs.readFileSync(new URL('./watch-hub-after-erp.ps1',import.meta.url),'utf8');
+ assert(ps.includes("($ProfileVariant -ceq '"+integratedVariant+"' -and $Source -ceq '"+integratedCrmSource+"')"));
+ assert(ps.includes("if($Source -ceq '"+integratedCrmSource+"' -and -not $hasParentProbe){throw 'REJECT'}"));
+ assert(watch.includes("'"+profile.nextPaths.settings+"'{'"+integratedCrmSource+"';break}"));
+ assert(watch.includes("$integratedNodeRequired=$StartupConfigPath-ceq'"+profile.nextPaths.settings+"'"));
+ assert(watch.includes('($integratedNodeRequired-and!$literalIntegratedNode)'));
+ const builder=fs.readFileSync(new URL('./build-crm06-supervisor-package.mjs',import.meta.url),'utf8');
+ assert(builder.includes("expected=['20261014','20261015','20261017'].map(day=>"));
+});

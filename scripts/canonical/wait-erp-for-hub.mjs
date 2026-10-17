@@ -20,7 +20,8 @@ const PROFILES=Object.freeze([
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-candidate.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'}),
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-candidate-native-ready.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'}),
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-ready.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'}),
- Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'})
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e0e6c28.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'})
 ]);
 const RECEIPTS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web';
 const FAILURE_CODES=new Set(['ERP_HUB_WAIT_REJECTED','ERP_HUB_WAIT_OBSERVATION','ERP_HUB_WAIT_OWNER','ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_PARENT','ERP_HUB_WAIT_CHANGED','ERP_HUB_WAIT_TIMEOUT','ERP_HUB_WAIT_HEALTH','ERP_HUB_WAIT_TARGET']);
