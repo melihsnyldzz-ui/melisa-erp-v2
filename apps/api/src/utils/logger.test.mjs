@@ -132,6 +132,14 @@ test('contact native diagnostics retain only the six closed codes and redact pri
  for(const code of ['CUSTOMER_CONTACT_PRIVATE_SOURCE','CUSTOMER_CONTACT_FORBIDDEN_SECRET','CUSTOMER_CONTACT_UNAVAILABLE_'+marker])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
 });
 
+
+test('selected collection native scope retains one exact diagnostic while private variants stay redacted',()=>{
+ assert.equal(capture(()=>logger.error('API error normalized',{code:'SELECTED_COLLECTION_NATIVE_SCOPE'}))[0].payload.code,'SELECTED_COLLECTION_NATIVE_SCOPE');
+ for(const code of ['SELECTED_COLLECTION_NATIVE_SCOPE_PRIVATE','SELECTED_COLLECTION_NATIVE_SCOPE_'+marker,'SELECTED_COLLECTION_UNKNOWN_SCOPE']){
+  assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
+ }
+});
+
 test('startup warnings retain distinct static diagnostic codes without accepting new text', () => {
   const warnings = [
     ['JWT_ACCESS_SECRET is missing or shorter than 32 characters', 'JWT_ACCESS_SECRET_WEAK'],
