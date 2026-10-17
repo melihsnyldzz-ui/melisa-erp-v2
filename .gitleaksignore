@@ -98,3 +98,8 @@ fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workin
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:20
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:8
+
+# Independently reviewed 2026-10-18 by root and review_hub: synthetic fixture
+# product301/customer501/supplier601 VEGA provenance paths, never credentials.
+# Exact historical commit/path/rule/line only; no file or rule exclusion.
+90b0bc03dd1b377a18d188b6fbd1feaae86a42e3:apps/sites-workflow/src/workflow/selectedSourceCollectionHandoff.test.mjs:generic-api-key:10
