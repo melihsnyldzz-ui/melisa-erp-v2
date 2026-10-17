@@ -1,5 +1,7 @@
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
+18 Ekim — ERP09/C05 seçili kaynak tahsilat UI+güvenli oturum/handoff PR45 `1c2c8e0`→`e64da19` kaynak teknik halkası; sentetik kısmi/tam/yenile/iptal ve ret testleri, build, bağımsız GO, exact iki CI SUCCESS. Native DB02 yazıcı, ortak TEST paketi, normal ekran ve ERP-UA08 insan kabulü açık; ERP09 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-13-open-account/README.md).
+
 17 Ekim — **ERP09/C05/P06.2 seçili SOURCE tahsilat API kapısı teknik kaynak alt adımı hazır:** [PR36](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/36) yalnız injected ve işaretli yalıtılmış servisle çalışır; production default kapalı. Kısmi/tam/replay/iptal ve negatif Express zinciri32 hedef/High review/exactCI ile kanıtlı. Gerçek native writer, DB02 işlem etkisi, kurulum, normal GUI ve insan kabulü açık; özgün49/9🟢/39🟡/1🔴 değişmez. [Kanıt](docs/evidence/erp/2026-10-13-open-account/README.md#17-ekim--p062-seçili-source-tahsilat-api-kapısı).
 
 17 Ekim — **P03 yeni ERP immutable aday paket teknik hazır/inaktif:** Exact1b5a02c, seçili Node24.19/DB02 shared copy,1.991/1.991 manifest+1.886/1.886 kaynak hash ve native require-only doğrulandı; bağımsız incelemede açık P1/P2 yok. Yeni paket kurulu TEST, GUI veya insan kabulü değildir; owner profili/geçiş/readback bekler. Özgün49/9🟢/39🟡/1🔴 korunur. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md#17-ekim--p03-yeni-inaktif-erp-aday-paketi).
