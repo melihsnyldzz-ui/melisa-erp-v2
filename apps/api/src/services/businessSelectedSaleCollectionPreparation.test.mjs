@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {selectedSourceCollectionFixture as fixture,selectedSourceCollector as collector,selectedSourceRequestId as uuid} from './businessSelectedSaleCollectionPreparation.fixture.mjs';
+import {selectedSourceCollectionFixture as fixture,selectedSourceCollector as collector,selectedSourceRequestId as uuid} from './businessSelectedSaleCollectionPreparation.test-fixture.mjs';
 import assert from 'node:assert/strict';
 import {createBusinessSelectedSaleCollectionPreparation,isBusinessSelectedSaleCollectionPreparationService,prepareBusinessSelectedSaleCollection,SOURCE_COLLECTION_ACCOUNT_SQL} from './businessSelectedSaleCollectionPreparation.mjs';
 
