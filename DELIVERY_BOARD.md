@@ -203,6 +203,8 @@ Bu yetkili genişletme aşağıdaki 9 Ekim sınırlı hazırlık/DUR kaydını b
 
 # ERP teslim panosu
 
+17 Ekim — Goal'ın ikinci bağımsız kod döngüsü **P06 tahsilat sonucu/yenileme**, source51aae11 /52offline PASS/GO/Sites build ve exact PR39027662913/push39027659716 CI SUCCESS. Başarılı kaydı yanlış retle ezme ve eski tutar bırakma hatası düzeltildi. Çalışan TEST'e kurulmadı, insan kabulü değil. P05/C02–C03 tarihsel alış okumasındaki mevcut eksik sıradaki teknik incelemedir; onaylı sıra ve genel kapsam aynı. [Kanıt](docs/evidence/erp/2026-10-13-open-account/README.md).
+
 17 Ekim — ERP-DEC-064 / mevcut **ERP-TEKNIK-23EKIM active**. Tek ortak rapor6222599673 ve mevcut ŞİMDİ sırası korunur; yeni pano/TEST yok. ERP06/P07.1.a R1 kaynak düzeltmesi **56fb2e6** ile teslim edildi:46+27 ilgili offline kontrol, bağımsız review GO; exact CI geri okuması STATUS'a bağlanır. Native read-only compatibility ve normal GUI/insan kabulü açık olduğundan C06 tamam değildir. Ekran güvenlik reddi tekrar edilmeksizin P05/P06 bağımsız teknik eksiği ilerletilir; mevcut paket/DB/roller ve 19/23/26–27/28/30 Ekim hedefleri aynı. [Kanıt](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md).
 
 **Önceki teslim — ERP-DEC-032 / ERP-PRODUCTCOMPLETION01:** Kesin alt kapsam TEST'te uygulandı: 72 yeni kart / 310 mevcut satır / 109 barkod / 343 stok farkı / 319 yeni + 47 güncel satış fiyatı. Replay 0, bağımsız SQL ve 384/384 API, normal beş kart/hız, TEST113 ve source CI kanıtlı; ERP-UA26 bekliyor. 61 tam bekleyen kart, alan istisnaları ve bütün PRODUCT committed inverse açık. Cari/alış/maliyet/medya/rol/hold korundu. [Aşama 3 kanıtı](docs/evidence/erp/2026-10-08-product-completion/README.md). **DUR; sonraki aşama başlatılmadı.**
