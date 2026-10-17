@@ -176,7 +176,7 @@ test('Hub lineage journal adds old e0e and new exact successor refs with matchin
  assert(watch.includes("'"+profile.nextPaths.settings+"'{'"+integratedCrmSource+"';break}"));
  assert(watch.includes("($hubLineageNodeRequired-and!$literalHubLineageNode)"));
 });
-test('WindowsPS5 journal parameter AST admits only both exact CRM6bc profiles',()=>{
+test('WindowsPS5 journal parameter AST admits only both exact CRM6bc profiles',{skip:process.platform!=='win32'},()=>{
  const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
  const script=`$ErrorActionPreference='Stop';$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
 if($errors.Count-ne0){throw 'PARSE_FAILED'}
