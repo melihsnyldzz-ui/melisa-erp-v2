@@ -1,5 +1,11 @@
 # ERP15 / B07–C15 — mevcut günlük raporları son çalışan paketle eşleştirme
 
+## 17 Ekim — P08.2 rapor filtre sayfa CSV sözleşmesi
+
+[ERP PR38](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/38) kaynak `92bf14ea2c87d5489ab9c5f19603cbd8a55a2f1e`, mevcut yedi raporun kullanıcı filtresiyle dönen tablo ve CSV gövdesi arasındaki bağlantıyı dar kapsamda doğrular. Yanıtın kind/period/from/to/currency/brand/type/groupBy alanları ve offset/50 limit, seçili istekle eşleşmeden tablo çizilmez; Türkiye gün etiketleri gerçek `+03:00` half-open UTC kapsamına bağlıdır. Sayfa toplamı/satır adedi ve satır tarih-döviz kapsamı tutarsızsa görünüm hata/Yenile durumuna döner. CSV yalnız BOM, quoted semicolon/CRLF/escape şeması, filtre metadata'sı, sütun başlığı, satır sayısı/toplamlar ve her satırın uygun tarih/döviz/görünür marka/tür bağı doğrulanınca indirilir. Korunmamış formül başlangıcı reddedilir; negatif sayısal değerler, NULL, gruplanmış satışın boş tarih alanı ve stok hareketinin filtresiz bilinmeyen dövizi korunur.
+
+Eski kaynakta yanlış tür/dönem/döviz/UTC/sayfa ve yanlış tablo/CSV satırı kontrollü sentetik yanıtla kabul edilebiliyordu; yeni hedefli negatifler önce FAIL, son web rapor **23/23**, ilgili API rapor **6/6 PASS**. Bağımsız High salt okunur incelemede açık P0/P1/P2=0. Exact [push CI39033410985](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39033410985) ve [PR CI39033423282](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39033423282) completed SUCCESS. Bu, gerçek sunucunun yanlış yanıt verdiği iddiası değildir; istemcinin kontrat dışı yanıtı reddetme kanıtıdır. PR38 dar diff için geçici PR36 tabanı üzerindedir. **Yeni paket/kurulum, gerçek normal GUI, SQL/ticari işlem, fiziksel cihaz ve insan kabulü yapılmadı;** P08/B07/C15 genel kapanışı ve49/9/39/1 değişmez.
+
 13 Ekim 2026; ERP-DEC-050/053 ana devam kapsamında. Yeni satış, alış, tahsilat, ödeme, sayım, iade, stok/cari/kasa hareketi veya migration oluşturulmadı. Kabul edilmiş Goal6/Goal8/Aşama4 rapor ve işlem provaları kendi tarih/source/DB/kapsamlarıyla korunur; eski mağaza günü tekrar oynatılmadı.
 
 ## Çalışan sürüm ve kaynak eşitliği
