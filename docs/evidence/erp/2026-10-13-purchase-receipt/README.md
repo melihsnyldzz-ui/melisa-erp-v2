@@ -32,3 +32,17 @@ C02/C03/B05 kısmi; genel işletme/birim/döviz kombinasyonları ve İlker/muhas
 ERP-UA11/UA32 bekliyor;49 toplam/9 tamam/39 kısmi/1 açık aynı, completeDelivery=false. OPS01 hız, gerçek Windows reboot/logon ve final native belge/video açık. GitHub altı source kontrolü FAILURE: hesap/ödeme nedeniyle başlamadı; yerelPASS veya Vercel bunu karşılamaz. Sonraki doküman HEAD ayrı raporlanır. LIVE/Vega/T1/main/CRM geliştirme/mesaj/ücretliAI/yetki/migration/temizlik yok.
 
 [TEST alış ekranı](http://192.168.1.46:5234/ornek-akis.html#purchases): mevcut fatura→İncele→Bağlı mal kabulü→Faturayı yenile. Yeni işlem gerekmez.
+
+## 17 Ekim — ERP-TEKNIK-23EKIM / P05 kayıtlı alış belgesini yeniden okuma
+
+Yukarıdaki 13 Ekim paketi/CI gözlemi tarihsel kayıttır. Bu yeni kaynak düzeltmesi, kesinleşmiş faturanın kendi fiyat/tarihi ile güncel çalışma kapsamı farklılaştığında normal alış ekranının kapanmasını giderir. Yeni alış fiyatı, kur, stok, borç veya SQL nesnesi yazılmaz.
+
+Üç gerçek kontrolör regresyonu önce FAIL verdi: yalnız güncel ürün fiyatı değişmesi, yalnız eski belge tarihi ve ikisi birlikte. Backend zaten native fatura tarihi/satır fiyatı ile exact mal kabulü ve kayıtlı kur dayanağını okuyordu; eksik frontend GET doğrulamasındaydı.
+
+Ayrı `purchaseInvoiceRead`, yalnız doğrulanmış business TEST'teki **finalized GET** belgesinde fiyat/tarih farkına izin verir. Exact kayıtlı native dayanak; fatura/kabul/tedarikçi-hesap-party/döviz; tekil fatura, kabul satırı ve ürün kimliği; kabul edilmiş özgün miktar; kayıtlı satır fiyatlarından exact toplam korunur. Gelecek tarih, eksik/değişmiş dayanak, fazla miktar veya başka kayıt reddedilir. Belgenin fiyatı ve kuru güncel üründen yeniden hesaplanmaz.
+
+`purchaseInvoice`, varsayılan context, yeni seçim/preview ve POST yanıtı aynı sıkı kontroldedir. Yalnız GET context/named GET çağrıları açık read-only yolu kullanır. Kaydedilmiş journal yanıtı tarihsel okuma yetkisi sayılmaz; fatura yeniden okuyucudan alınır. Ortak named GET helper'ı typed kimlik ve istenen→dönen fatura ID eşitliğini denetler; bozuk kimlikle GET dahi yapılmaz.
+
+Son root koşusu **48/48 PASS, 0 skip**: `node --require ./scripts/ci/offline-guard.cjs --test` altında `workInbound.test.mjs`, `workPurchasePresentation.test.mjs`, `purchaseReference.test.mjs`, `workInboundFx.test.mjs`. Fiyat/tarih pozitifleri; missing/tampered/extra dayanak, yabancı kimlik/döviz, duplicate satır/ürün, miktar aşımı, kod/ad, toplam, seal/rate ve gelecek tarih negatifleri; POST varsayılan ret ve yanlış saved-ID yanıtı kapsandı. Bağımsız kaynak incelemesi GO; son Sites üretim build/syntax/diff temiz. Uzak source/exact CI sonraki teslim kaydıyla bağlanır; bu sonucun yerine eski CI kullanılmaz.
+
+**Sınır:** Backend hâlâ güncel aktif ürün/birim/maliyet/kapsam bağını arar ve ürün kod/adını güncel join'den okur. Bu düzeltme genel tarihsel katalog/maliyet bağımsızlığı veya tarihsel ad snapshot'ı değildir. Mevcut çalışan ERPf5/CRM439b/denetleyici2bf0 değiştirilmedi; bu source henüz TEST'e kurulmadı. SQL/servis/rol/ticari yazı, yeni TEST, normal GUI veya insan kabulü yok. C02/C03/B05, ERP-UA11/32 ve 49/9/39/1 kısmi/bekliyor kalır;19/23/26–27/28/30 Ekim hedefleri aynı.
