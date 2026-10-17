@@ -4,7 +4,7 @@ import {contactFixture} from './customerContact.test-fixture.mjs';
 
 function harness(){const f=contactFixture(),calls=[];let gets=0;
  const state={context:f.context,replayed:false,bad:false};
- const store={async withCustomerContact(options,fn){calls.push(options);return fn({copy:f.copy,context:state.context,update:async payload=>{calls.push(payload);if(state.bad)return {};const raw=JSON.parse(payload);return {context:{...f.context,contact:{phone:raw.phone,city:raw.city,country:raw.country},revision:raw.expectedRevision},replayed:state.replayed};}});}};
+ const store={async withCustomerContact(options,fn){calls.push(options);return fn({copy:f.copy,context:state.context,recover:async requestId=>{calls.push(requestId);return {context:state.context,replayed:state.replayed};},update:async payload=>{calls.push(payload);if(state.bad)return {};const raw=JSON.parse(payload);return {context:{...f.context,contact:{phone:raw.phone,city:raw.city,country:raw.country},revision:raw.expectedRevision},replayed:state.replayed};}});}};
  return {...f,calls,state,getCount:()=>gets,service:createCustomerContactService({getStore:async()=>{gets++;return store;}})};
 }
 test('modeled contact read keeps unmasked phone and all distinct sealed currency links without exposing a trade action',async()=>{
@@ -25,3 +25,6 @@ test('unexpected or altered native context and malformed update result cannot be
  const h=harness();h.state.context={...h.context,sourceId:'999'};await assert.rejects(h.service.context('100',h.actor),{code:'CUSTOMER_CONTACT_UNAVAILABLE'});
  h.state.context=h.context;h.state.bad=true;await assert.rejects(h.service.update('100',h.body,h.actor),{code:'CUSTOMER_CONTACT_UNAVAILABLE'});
 });
+
+
+test('recovery is authenticated read-only and validates scope before store access',async()=>{const h=harness();h.state.replayed=true;const result=await h.service.recover('100',h.body.requestId,h.actor);assert.equal(result.committed,true);assert.equal(h.calls[0].write,false);assert.equal(h.calls[1],h.body.requestId);assert.equal(result.context.customerId,'100');h.state.replayed=false;assert.equal((await h.service.recover('100',h.body.requestId,h.actor)).committed,false);const n=h.getCount();for(const id of ['../1','bad','AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'])await assert.rejects(h.service.recover('100',id,h.actor));await assert.rejects(h.service.recover('100',h.body.requestId,{...h.actor,permissions:[]}));await assert.rejects(h.service.recover('100',h.body.requestId,h.actor,{actorId:17}));assert.equal(h.getCount(),n);});
