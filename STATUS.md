@@ -1,3 +1,9 @@
+## 18 Ekim — ERP09 tahsilat yanıt kimliği ve tutar sınırı
+
+PR49 kaynak `30619b9` exact CI39077196756 SUCCESS. Yeni dar kaynak düzeltmesi: seçili tahsilat yanıtı istek tutarı/tarihi/durumu ve fişteki aynı tahsilat satırıyla eşleşmeden journal done olmaz; iptal kimliği rotayla eşleşir. Bozuk yanıt belirsiz kalır ve aynı UUID ile kontrollü tekrar ikinci etki üretmez. Yeni regresyon eski kodda FAIL, düzeltmede PASS. PR48'in mevcut500TRY önizleme/journal öncesi sınırı da bu adayda korunur; iki fixture farkı (parametreli fiyat ve native-shaped revision) birlikte taşınır.
+
+Root bağımsız inceleme ve birleşik107/107offline test PASS/0skip (13 backend+94 frontend/handoff/oturum/regresyon). Gerçek SQL/kurulum/normal GUI/insan kabulü değil; native/default-off/genel müşteri-döviz ve özgün49/25 sayımları aynı. Yeni exact CI ayrıca PR Checks'te izlenir. [Kanıt](docs/evidence/erp/2026-10-18-collection-response-identity.md).
+
 ## 18 Ekim 2026 — ERP09/C05 seçili tahsilat ekranı ve incelenmiş aday kaynak birleşimi
 
 PR45 (`2910efb3f5fbdd4bcf3fcf3802cd78863175273b`) kaynak/test akışı PR47 (`51aa9ba22a3aa1c0ddac18a788e382b368773904`) üzerine yeni feature adayında alındı. Tek kod çakışması workingCatalogSession içinde uzlaştırıldı; C06 customerContactRecovery tam korunur. Diğer 10 kaynak/test dosyası PR45 ile aynıdır. 93/93 hedefli offline kontrol PASS, 0 FAIL/0 SKIP; Node24.19.0, sentetik domain ve DOM doubles. Bağımsız kök incelemesi ve ayrı müşteri kurtarma/aktör devri kontrolü PASS. Exact yeni head CI sonucu PR Checks üzerinden ayrıca doğrulanır.
