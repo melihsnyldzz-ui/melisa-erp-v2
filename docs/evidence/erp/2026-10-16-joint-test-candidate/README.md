@@ -1,5 +1,13 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 17 Ekim — P03 paket npm/Node kaynak bağı
+
+Kaynak `4edfb380e59f284059a53ed10fcfa107630a5a36` / PR23: paketleyici artık Windows `npm.cmd` sarmalayıcısının Node seçimine güvenmez. Bulunan npm CLI, paketleyiciyi çalıştıran `process.execPath` ile açılır; çocuk PATH'in başına aynı Node dizini konur. npm CLI yoksa install/build başlamadan reddedilir. Bu, eski global Node24.15 ile seçili Node24.19 karışmasını hedefler. Çağıran Node sürümünü kendi başına seçmez; owner paket üretiminde exact Node24.19'u kullanmalıdır.
+
+Hedefli iki yeni test farklı global npm.cmd kökenine rağmen install/build komutunun seçili Node ile çalışmasını ve eksik CLI reddini doğruladı. İlgili mevcut baseline/APK kontrolleriyle **20/20 PASS**; seçili gerçek `C:/Sirket/ERP/tools/node-v24.19.0/node.exe` `v24.19.0`, onunla npm CLI `11.12.1` döndürdü. Syntax ve diff kontrolü geçti; bağımsız salt okunur incelemede açık P1/P2 yok. Exact [push CI39028669735](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39028669735) ve [PR CI39028672477](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39028672477) completed SUCCESS. Testler npm child yürütmesini stub ile sınadı; tam paket build çalıştırılmadı.
+
+**Kaynak tamam; paket/kurulum ayrı.** Bu tur yeni release, TEST restartı, DB02/SQL, config, rol, auth veya ticari kayıt yazısı yapmadı. Sıradaki P03 adımı aynı seçili Node ile temiz kaynaktan yeni immutable inaktif ERP paketini ve sonlu owner profilini hazırlamak, ardından taze sahiplik/geri dönüş ve son readback ile ortak TEST geçişini ayrı doğrulamaktır. Mevcut f5/CRM439 paketleri, C06 native read-only engeli ve insan kabulü korunur.
+
 Mevcut [ortak bitiş raporu](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6222599673) için teknik kanıt; yeni plan veya kabul kaydı değildir. ERP ortak runtime/SQL/kurulumun tek yazarıdır. CRM ana konuşması kurulum öncesinde `idle` görüldü; görünmeyen kuyruğa `boş` denmedi. Mevcut alt ajanlar kaynak ve bağımsız inceleme yaptı, ortak runtime'a yazmadı.
 
 ## Kaynak, paket ve doğrulama ayrımı
