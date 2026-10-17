@@ -1,5 +1,7 @@
 # AI Agent Entry Point
 
+**17 Ekim / ERP-DEC-064:** Mevcut ana konuşmanın `ERP-TEKNIK-23EKIM` native Goal durumu gerçekten active doğrulandı. [Tarihli kapsam](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232818354), tek ortak rapor ve mevcut STATUS/finish planı üzerinden bağımlılığı hazır teknik işlere devam edilir. Yeni Goal/TEST/plan yok; ekran güvenlik reddi tekrarlanmaz. Kaynak/exact CI, kurulum, normal GUI ve insan kabulü ayrı; 19/23/26–27/28/30 Ekim hedefleri ve önceki izin sınırları korunur.
+
 ## EN YÜKSEK ÖNCELİK — 16 Ekim 2026 / ERP-DEC-063: Büyük iş akışını tamamla, sonra panel
 
 Kullanıcı **önce ERP/CRM'deki orijinal bitiş gereksinimlerinin büyük dikey akışlarını** ilerletmeyi, yüzde/performans panelini **sonra** geliştirmeyi açıkça seçti. Bağlayıcı kalıcı karar [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) **ERP-DEC-063**; karşı repo **CRM-DEC-021**. Bu öncelik, önceki mini Cloud bug-fix görev seçimini günceller; eski teslimlerin teknik kanıtı korunur.

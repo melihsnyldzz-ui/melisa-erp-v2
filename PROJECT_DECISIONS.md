@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-064 — 17 Ekim 2026 — Mevcut ana oturumda ERP-TEKNIK-23EKIM
+
+**Kullanıcı kararı:** [Tarihli Goal tanımı6232818354](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232818354) ve bu ana konuşmadaki aktif hedef esas alınır. `get_goal` mevcut ERP oturumu `01a107ef-f13e-73c0-9e08-fd5c4545325e` için **active**, token bütçesi tanımsız sonucunu verdi; yeni Goal/ana ajan/TEST/plan oluşturulmadı. Bu kayıt çalışmanın 23 Ekim'e kadar kesintisiz veya bilgisayar kapalıyken süreceği garantisi değildir.
+
+Mevcut 49 ERP/25 CRM ve tek rapor6222599673 korunur. En erken tarihli yapılabilir teknik eksik → kod → ilgili test → bağımsız inceleme → erişilebilir feature teslimi/exact CI → aynı rapor → sıradaki hazır alt iş sırası uygulanır; her küçük iş için yeni devam beklenmez. 19 Ekim ara teslim, 20–23 Ekim teknik bütünleştirme, 26–27 Ekim insan/cihaz, 28 Ekim hazırlık ve 30 Ekim ayrı onaylı geçiş hedefleri değişmez. Teknik yüzde için sabit ölçüt/pay/kanıt eşlemesi gerekir; Goal/PR/test sayısı yeni payda olmaz.
+
+İzin/güvenlik reddedilen ekran işlemi başka araçla tekrarlanmaz. Böyle bir engel bağımsız kaynak işini durdurmaz; insan/GUI/cihaz/reboot kabulü özgün kayıtlarda BEKLİYOR kalır. Mevcut tek ortak TEST sahibi ERP ve ERP-DEC-057/060/062/063 sınırları sürer. Yeni ortam, yetki/bütçe genişletmesi, LIVE/Vega/gerçek T1/ticari kayıt/mesaj/ücretli servis/main merge/tag/release yetkisi yok.
+
 ### ERP-DEC-063 — 16 Ekim 2026 — Önce dikey iş akışları, Cloud sentetik TEST ve yerel entegrasyon (karşı CRM-DEC-021)
 
 **Durum: Onaylı; kurulum/Cloud E2E TEST PASS değildir.**

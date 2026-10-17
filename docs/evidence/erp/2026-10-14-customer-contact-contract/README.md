@@ -65,7 +65,7 @@ Yerel çevrimdışı sonuçlar:
 
 - Startup/paket/route/shared-bootstrap/contact compiler ve projector: **46/46 PASS**, 0 skip.
 - Değişen bağlantının mevcut model/service/store/controller yetki, CAS, replay, karantina ve rollback regresyonları: **27/27 PASS**, 0 skip. İlk çağrıda gerekli VM modül bayrağı eksik olduğu için iki dosya yüklenemedi; CI ile aynı `--experimental-vm-modules` bayrağıyla yukarıdaki son sonuç alındı.
-- Başlatıcı JavaScript syntax ve `git diff --check` temiz; bağımsız kaynak/paket incelemesi GO. Hosted CI ve uzak HEAD sonucu teslimden sonra aynı rapora yazılır; yerel PASS bunların yerine geçmez.
+- Başlatıcı JavaScript syntax ve `git diff --check` temiz; bağımsız kaynak/paket incelemesi GO. Uzak tam kaynak **56fb2e62c952c010c82eae38dc04b8229f4c0c6c** / PR23 için [PR39027311353](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39027311353) ve [push39027308631](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39027308631) completed SUCCESS; quality/build/test, Windows startup ve secret scan başarılı. Kaynak CI'si bu sonucu kaydeden sonraki belge commit'i veya çalışan TEST paketiyle eşit sayılmaz.
 
 Komutlar `node --require ./scripts/ci/offline-guard.cjs --test` altında ilk gruptaki altı dosyayı; ikinci grup için ayrıca `--experimental-vm-modules --experimental-test-module-mocks` ile dört contact model/service/store/controller dosyasını çalıştırdı. SQL/provider/HTTP/servis erişimi yok.
 
