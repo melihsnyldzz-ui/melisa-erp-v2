@@ -1,3 +1,9 @@
+## 18 Ekim — ERP09 belirsiz tahsilat ve iptal doğrulaması
+
+PR50 `c36e38d7` exact CI39077428145 SUCCESS tabanı korunur. Yeni kaynakta seçili SOURCE iptal yanıtının tutarı çağrı öncesindeki özgün ödeme tutarıyla da eşleşir; yanıtın iki kopyasının birlikte yanlış olması kabul edilmez. İlk istek sonrası sonucu belirsiz kalan kaydın tekrarında403/404/409 gibi retler önceki işlem yapılmadı kanıtı sayılmaz; aynı pending UUID yenileme/yeniden açma sonrasında korunur. İlk kesin ret yeni önizlemeyi engellemez; generic tahsilat davranışı değişmedi.
+
+İki yeni hata testi eski kaynakta FAIL, düzeltme sonrası root bağımsız110/110hedefli offline test PASS/0skip (13backend+97UI/oturum/devretme/journal). Üç yeni regresyon: iptalde birlikte bozulmuş tutar, kayıp yanıt→ret→yeniden aç→aynıUUID ile tek etki, ilk kesin409 sonrası yeni önizleme. Native/default-off/genel müşteri-döviz kapsamı ve özgün49/25 sayımları değişmez. SQL/runtime/kurulum/normalGUI/cihaz/insan kabulü yok. Exact yeni head CI PR Checks'te ayrı. [Kanıt](docs/evidence/erp/2026-10-18-collection-pending-recovery.md).
+
 ## 18 Ekim — ERP09 tahsilat yanıt kimliği ve tutar sınırı
 
 PR49 kaynak `30619b9` exact CI39077196756 SUCCESS. Yeni dar kaynak düzeltmesi: seçili tahsilat yanıtı istek tutarı/tarihi/durumu ve fişteki aynı tahsilat satırıyla eşleşmeden journal done olmaz; iptal kimliği rotayla eşleşir. Bozuk yanıt belirsiz kalır ve aynı UUID ile kontrollü tekrar ikinci etki üretmez. Yeni regresyon eski kodda FAIL, düzeltmede PASS. PR48'in mevcut500TRY önizleme/journal öncesi sınırı da bu adayda korunur; iki fixture farkı (parametreli fiyat ve native-shaped revision) birlikte taşınır.

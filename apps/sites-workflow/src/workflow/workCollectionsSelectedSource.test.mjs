@@ -8,6 +8,52 @@ function dom(){const nodes=new Map(),node=k=>{if(!nodes.has(k))nodes.set(k,{isCo
 const storage=()=>{const map=new Map();return {map,getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
+test('selected SOURCE uncertain committed payment survives replay denial and reload until exact confirmation',async()=>{
+ const priorWindow=globalThis.window,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';let stage='lost';
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ try{
+  const {createWorkCollections}=await controller(),make=()=>createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(130),session:{work:async(path,options)=>{
+   if(path===base&&stage==='denied')throw {status:403};
+   const r=await bridge.work(path,options);if(path===base&&stage==='lost'){stage='denied';throw Error('response lost');}return r;
+  }}});
+  let ui=make();ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'}),original=journal.read().body;
+  d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'pending');assert.equal(ui.requestClose(),false);
+  ui.dispose();ui=make();ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'pending');assert.deepEqual(journal.read().body,original);
+  stage='confirmed';d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'done');assert.equal(f.state().records.length,1);assert.equal(f.state().customerDebt,190000n);assert.equal(ui.requestClose(),true);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;}
+});
+
+test('selected SOURCE fresh definitive stale rejection still permits a new preview',async()=>{
+ const priorWindow=globalThis.window,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ try{
+  const {createWorkCollections}=await controller(),ui=createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(140),session:{work:async(path,options)=>{if(path===base)throw {status:409};return bridge.work(path,options);}}});
+  ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});assert.equal(journal.read().status,'done');assert.equal(journal.read().result.status,409);assert.equal(f.state().records.length,0);assert.equal(ui.requestClose(),true);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;}
+});
+
+test('selected SOURCE cancellation verifies original amount even when both response copies agree',async()=>{
+ const priorWindow=globalThis.window,priorFormData=globalThis.FormData,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';let corrupt=true,next=110;
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ globalThis.FormData=class{get(){return 'Synthetic cancellation reason';}};
+ try{
+  const {createWorkCollections}=await controller(),ui=createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(next++),session:{work:async(path,options)=>{
+   const r=await bridge.work(path,options);
+   if(path===base+'/2000/cancel'&&corrupt){corrupt=false;const reply=structuredClone(r);reply.collection.amountExact4='6.0000';reply.invoice.collections.items.find(c=>c.id==='2000').amountExact4='6.0000';return reply;}
+   return r;
+  }}});
+  ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  d.node('[data-collection-cancel]2000').onclick();d.node('form').onsubmit({preventDefault(){},target:{}});await tick();
+  const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});
+  assert.equal(journal.read().status,'pending');assert.equal(ui.requestClose(),false);
+  d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'done');
+  const cancellations=bridge.calls.filter(c=>c.path===base+'/2000/cancel');assert.equal(cancellations.length,2);assert.deepEqual(cancellations[0].options.body,cancellations[1].options.body);
+  assert.equal(f.state().customerDebt,240000n);assert.equal(f.state().records.length,1);assert.match(d.root.innerHTML,/5,00 TRY/);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;globalThis.FormData=priorFormData;}
+});
+
 test('selected SOURCE mismatched successful collection response remains pending until exact replay verifies it',async()=>{
  const previous=globalThis.window,base='/api/work-collections/selected-source';
  try{
