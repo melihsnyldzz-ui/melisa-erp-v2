@@ -1,5 +1,13 @@
 # ERP-FINOPS01 — teknik tamamlandı / insan kabulü bekliyor
 
+## 17 Ekim — P08.1.a bilinmeyen barkodun tekrar sayımı, yalnız kaynak
+
+[ERP PR40](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/40) kaynak `73aea9a09326f8ea09dce9ff5df67f713caebace`: çevrimdışı sayım modelinde önceki `needs_review` bilinmeyen barkod, tekrar sayımın zorunlu tam kimlik listesine dahil edilir. Bilinen ürün ve bilinmeyen barkod ayrı tür kimliğiyle karşılaştırılır; `|` içeren barkodlar farklı satırları taklit edemez. Eksik/farklı barkod gönderimi önceki satırı değiştirmeden reddeder. Doğru tekrarın gönderiminde eski `pending` ve `needs_review` satırları birlikte `superseded` olur; yeni bilinmeyen satır yine onaylanamaz ve stok değişmez. Tekrarlanan bilinmeyen okutmanın toplam adedi mevcut 1.000.000 sınırını aşarsa taslak değişmez.
+
+Önce başarısız kaynak regresyonu, sonra `countCompletion.test.mjs`, `countUI.test.mjs` ve `workCount.test.mjs` birlikte **21/21 PASS**; sözdizimi ve diff kontrolü temiz. Bağımsız salt okunur inceleme ilk delimiter çarpışmasını buldu, düzeltme ve negatif regresyon sonrasında GO/P1–P2 sıfır. Exact kaynak `73aea9a09326f8ea09dce9ff5df67f713caebace` için [push CI39034580531](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39034580531) ve [PR CI39034587549](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39034587549) completed SUCCESS; son belge commit'i farklı SHA'dır.
+
+Bu yalnız demo modelindeki kaynak/test alt adımıdır. Gerçek DB02/native yazı, kurulmuş TEST, normal GUI, fiziksel cihaz veya insan kabulü değildir. Önceki gerçek TEST71 ve diğer kabul edilmiş kanıtlar yeniden çalıştırılmadı; P08.1/C10 ile genel sayım/iade/ters koşulları açık kalır.
+
 ## Güncel kapanış — TEST71, 6 Ekim2026
 
 ERP-DEC-016 ile kullanıcıya giriş yükü olmadan mevcut normal TEST aktörleri15/16 kullanıldı. **Goal3 zorunlu teknik maddeleri tamam; ERP-UA13–17 bekliyor.** Demo görsel kanıtı gerçek native sonucun yerine kullanılmadı. [Makine özeti](technical-completion-71.json), [runtime](runtime-71.json), [switch](runtime-switch-finops-71.json). İnsan kabulü ve finish49/7tamam/24kısmi/18açık değişmez; Goal4/CRM/bonus başlamadı.

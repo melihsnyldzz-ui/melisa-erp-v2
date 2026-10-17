@@ -43,6 +43,26 @@ test('recount retains original history, replaces pending count, and requires eve
  approveCountBatch(s,repeat.id,'İlker');assert.equal(stockQuantity(s,'M-100'),24);assert.equal(countRows(s,repeat.id)[0].repeatOf,d.id);
  const third=create(s,'count-third',repeat.id);scan(s,third,'M-100',23);reason(s,third,'M-100');scan(s,third,'M-142',10);submitCountSession(s,third.id,third.revision,'Satış ekibi');approveCountBatch(s,third.id,'Semih');assert.equal(stockQuantity(s,'M-100'),23);
 });
+test('recount keeps unknown barcode review rows and supersedes the earlier review batch once',()=>{
+ const s=seed(),first=create(s,'count-unknown-first');scan(s,first,'M-100',24);scan(s,first,'0000098765432',1);submitCountSession(s,first.id,first.revision,'Satış ekibi');
+ const original=countRows(s,first.id),unknown=original.find(row=>row.unknown);assert.equal(unknown.state,'needs_review');
+ const repeat=create(s,'count-unknown-repeat',first.id);scan(s,repeat,'M-100',24);
+ let before=structuredClone(s);assert.throws(()=>submitCountSession(s,repeat.id,repeat.revision,'Satış ekibi'),/bütün ürün/);assert.deepEqual(s,before);
+ scan(s,repeat,'0000098765433',1);before=structuredClone(s);assert.throws(()=>submitCountSession(s,repeat.id,repeat.revision,'Satış ekibi'),/bütün ürün/);assert.deepEqual(s,before);
+ edit(s,repeat,{type:'remove-unknown',value:'0000098765433'});scan(s,repeat,'0000098765432',2);scan(s,repeat,'0000098765432',1);
+ before=structuredClone(s);assert.throws(()=>scan(s,repeat,'0000098765432',1000000),/Toplam adet sınırı/);assert.deepEqual(s,before);
+ before=structuredClone(s);assert.equal(repeat.unknownScans.length,1);assert.equal(repeat.unknownScans[0].quantity,3);
+ const rows=submitCountSession(s,repeat.id,repeat.revision,'Satış ekibi');assert.equal(rows.find(row=>row.unknown).physical,3);
+ assert.ok(original.every(row=>row.state==='superseded'&&row.supersededBy===repeat.id));assert.equal(unknown.physical,1);
+ assert.throws(()=>approveCountBatch(s,repeat.id,'İlker'),/Stok kartı gerekli/);
+ before=structuredClone(s);assert.throws(()=>create(s,'count-unknown-third',first.id),/daha yeni/);assert.deepEqual(s,before);
+});
+test('unknown barcode delimiters cannot impersonate another recount row',()=>{
+ const s=seed(),first=create(s,'count-delimiter-first');scan(s,first,'A|unknown:B',1);submitCountSession(s,first.id,first.revision,'Satış ekibi');
+ const repeat=create(s,'count-delimiter-repeat',first.id);scan(s,repeat,'A',1);scan(s,repeat,'B',1);
+ const before=structuredClone(s);assert.throws(()=>submitCountSession(s,repeat.id,repeat.revision,'Satış ekibi'),/bütün ürün/);assert.deepEqual(s,before);
+ assert.equal(countRows(s,first.id)[0].state,'needs_review');
+});
 test('rejection preserves explanation, author and quantity without changing inventory',()=>{
  const s=seed(),d=create(s);scan(s,d,'M-100',23);reason(s,d,'M-100');submitCountSession(s,d.id,d.revision,'Satış ekibi');
  for(const actor of ['Satış ekibi','Angela'])assert.throws(()=>rejectCountBatch(s,d.id,'Tekrar sayılmalı',actor));assert.throws(()=>rejectCountBatch(s,d.id,'','İlker'));
