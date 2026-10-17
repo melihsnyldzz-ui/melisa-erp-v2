@@ -1,0 +1,52 @@
+[
+  {
+    "path": "scripts/canonical/start-owned-test.ps1",
+    "sourceHashes": {
+      "257ab50b7a0b3339b8f585f8a9904c9c850aa912": "677676be8739ca4a8d4a54bb4c8d02969f7291e602e74477e636d44b68d33565",
+      "f8946ee14d13ae473f2365818b721bafbde2c5f9": "677676be8739ca4a8d4a54bb4c8d02969f7291e602e74477e636d44b68d33565",
+      "4f918c51fd49c86953a69484714af41bec1cf794": "677676be8739ca4a8d4a54bb4c8d02969f7291e602e74477e636d44b68d33565"
+    },
+    "same": true
+  },
+  {
+    "path": "scripts/canonical/manage-owned-test-startup.ps1",
+    "sourceHashes": {
+      "257ab50b7a0b3339b8f585f8a9904c9c850aa912": "ce0e044ecc0743b05154e45edadcd79eff01a1dabc2f229e12c54a8852623663",
+      "f8946ee14d13ae473f2365818b721bafbde2c5f9": "ce0e044ecc0743b05154e45edadcd79eff01a1dabc2f229e12c54a8852623663",
+      "4f918c51fd49c86953a69484714af41bec1cf794": "ce0e044ecc0743b05154e45edadcd79eff01a1dabc2f229e12c54a8852623663"
+    },
+    "same": true
+  },
+  {
+    "path": "apps/api/canonical-test-network.mjs",
+    "sourceHashes": {
+      "f8946ee14d13ae473f2365818b721bafbde2c5f9": "697d40c525284d9141f3d16e45b0cc06fce9be393b83c16c6f0b87c2a8cbaec5",
+      "4f918c51fd49c86953a69484714af41bec1cf794": "697d40c525284d9141f3d16e45b0cc06fce9be393b83c16c6f0b87c2a8cbaec5"
+    },
+    "same": true
+  },
+  {
+    "path": "apps/api/src/services/workSystemService.mjs",
+    "sourceHashes": {
+      "f8946ee14d13ae473f2365818b721bafbde2c5f9": "44070456132d7bb8856ddac2e0d03af52d54e26e26e80e7c5df6f71e89639da3",
+      "4f918c51fd49c86953a69484714af41bec1cf794": "44070456132d7bb8856ddac2e0d03af52d54e26e26e80e7c5df6f71e89639da3"
+    },
+    "same": true
+  },
+  {
+    "path": "apps/api/src/services/workReportsReadStore.mjs",
+    "sourceHashes": {
+      "f8946ee14d13ae473f2365818b721bafbde2c5f9": "acef7ace48a7b3fc273e88360906915e06db754d3189d62ee4bb97a400348cdb",
+      "4f918c51fd49c86953a69484714af41bec1cf794": "acef7ace48a7b3fc273e88360906915e06db754d3189d62ee4bb97a400348cdb"
+    },
+    "same": true
+  },
+  {
+    "path": "apps/api/src/services/workReportsModel.mjs",
+    "sourceHashes": {
+      "f8946ee14d13ae473f2365818b721bafbde2c5f9": "e3f9e242579755ab5e61c1b2b5db087e3ccb8924666f81471422bf39e1d9780e",
+      "4f918c51fd49c86953a69484714af41bec1cf794": "e3f9e242579755ab5e61c1b2b5db087e3ccb8924666f81471422bf39e1d9780e"
+    },
+    "same": true
+  }
+]

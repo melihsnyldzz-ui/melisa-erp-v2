@@ -1,9 +1,14 @@
 import {operationQuarantineGate} from '../services/operationQuarantineGate.mjs';
 import { Router } from 'express';
-import { getCustomer, getCustomers, getVegaCustomers, patchCustomerPassive, postCashCustomersEnsure, postCustomer, putCustomer } from '../controllers/customerController.js';
+import { getCustomer, getCustomerCard, getCustomerCards, getCustomerContact, postCustomerContact, getCustomers, getVegaCustomers, patchCustomerPassive, postCashCustomersEnsure, postCustomer, putCustomer } from '../controllers/customerController.js';
 import { requireAnyPermission, requireAuth, requirePermission } from '../middleware/authMiddleware.js';
 
 export const customerRoutes = Router();
+
+customerRoutes.get('/customer-cards', requireAuth, requirePermission('customer.view'), getCustomerCards);
+customerRoutes.get('/customers/:id/card', requireAuth, requirePermission('customer.view'), getCustomerCard);
+customerRoutes.get('/customers/:id/contact',requireAuth,requirePermission('customer.view'),requirePermission('customer.edit'),getCustomerContact);
+customerRoutes.post('/customers/:id/contact',requireAuth,requirePermission('customer.view'),requirePermission('customer.edit'),operationQuarantineGate('customer'),postCustomerContact);
 
 customerRoutes.get('/customers', requireAuth, requirePermission('customer.view'), getCustomers);
 customerRoutes.get('/vega/customers', requireAuth, requirePermission('customer.view'), getVegaCustomers);

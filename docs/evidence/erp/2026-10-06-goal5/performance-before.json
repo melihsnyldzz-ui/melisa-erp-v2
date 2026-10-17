@@ -1,0 +1,94 @@
+{
+  "at": "2026-10-06T17:50:05.140Z",
+  "identity": {
+    "sourceCommit": "9ada67ca44947d16226a4894cfcf52aeb6e1c923",
+    "packageId": "CANONICAL-TEST-9ada67ca4494"
+  },
+  "catalogExample": {
+    "id": "34765",
+    "stockCode": "0161 MOLLY",
+    "barcode": "8697130801618"
+  },
+  "measurements": {
+    "first50": {
+      "samplesMs": [
+        1113,
+        888,
+        542
+      ],
+      "medianMs": 888
+    },
+    "next50": {
+      "samplesMs": [
+        699,
+        593,
+        592
+      ],
+      "medianMs": 593
+    },
+    "code": {
+      "samplesMs": [
+        611,
+        594,
+        618
+      ],
+      "medianMs": 611
+    },
+    "barcode": {
+      "samplesMs": [
+        353,
+        350,
+        379
+      ],
+      "medianMs": 353
+    },
+    "card": {
+      "samplesMs": [
+        200,
+        230,
+        198
+      ],
+      "medianMs": 200
+    },
+    "home": {
+      "samplesMs": [
+        184,
+        18,
+        15
+      ],
+      "medianMs": 18
+    },
+    "salesCart": {
+      "samplesMs": [
+        158,
+        166,
+        30
+      ],
+      "medianMs": 158
+    },
+    "countOpen": {
+      "samplesMs": [
+        455,
+        78,
+        74
+      ],
+      "medianMs": 78
+    },
+    "receivingOpen": {
+      "samplesMs": [
+        492,
+        189,
+        249
+      ],
+      "medianMs": 249
+    },
+    "returnOpen": {
+      "samplesMs": [
+        2458,
+        456,
+        461
+      ],
+      "medianMs": 461
+    }
+  }
+}

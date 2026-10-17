@@ -1,0 +1,152 @@
+{
+  "at": "2026-10-07T22:58:47.553Z",
+  "package": "TEST95",
+  "sourceCommit": "0c63a58845d8663252f7dfeb0dcd2bd6a53c998c",
+  "method": "3 sequential authenticated loopback GET samples per derived route; median rounded milliseconds, includes JSON body read; not screen paint",
+  "results": {
+    "first50": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        1932,
+        914,
+        890
+      ],
+      "medianMs": 914
+    },
+    "next50": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        954,
+        835,
+        848
+      ],
+      "medianMs": 848
+    },
+    "code": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        673,
+        538,
+        485
+      ],
+      "medianMs": 538
+    },
+    "barcode": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        349,
+        327,
+        298
+      ],
+      "medianMs": 327
+    },
+    "card": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        172,
+        233,
+        173
+      ],
+      "medianMs": 173
+    },
+    "customers": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        480,
+        324,
+        272
+      ],
+      "medianMs": 324
+    },
+    "suppliers": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        423,
+        451,
+        382
+      ],
+      "medianMs": 423
+    },
+    "home": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        190,
+        22,
+        30
+      ],
+      "medianMs": 30
+    },
+    "supplierContext": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        342,
+        418,
+        355
+      ],
+      "medianMs": 355
+    },
+    "paymentContext": {
+      "ok": true,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "samplesMs": [
+        803,
+        664,
+        719
+      ],
+      "medianMs": 719
+    }
+  },
+  "frontendPaymentValidatorKnownGap": true,
+  "businessWrites": 0,
+  "humanAccepted": false,
+  "comparisonCaveat": "Customer/supplier list requests use current frontend limit25; prior Goal8 performance proof used limit50. Code and card targets differ. Only same-request medians are directly comparable; three samples are observational, not a statistical performance gate."
+}

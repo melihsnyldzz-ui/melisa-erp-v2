@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "melisa-goal8-performance.v1",
+  "at": "2026-10-07T20:04:48.566Z",
+  "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+  "package": "TEST94",
+  "method": "loopback API, existing named actors, 3 sequential GET samples; median milliseconds; not screen paint",
+  "baseline": {
+    "package": "TEST86",
+    "sourceCommit": "769031c",
+    "mediansMs": {
+      "home": 34,
+      "catalog": 974,
+      "barcode": 662,
+      "customers": 421,
+      "suppliers": 475,
+      "sales": 41,
+      "receiving": 286,
+      "purchases": 162,
+      "collection": 165,
+      "count": 58,
+      "returns": 444,
+      "payments": 475
+    }
+  },
+  "results": {
+    "home": {
+      "ok": true,
+      "samplesMs": [
+        107,
+        21,
+        23
+      ],
+      "medianMs": 23,
+      "baselineMedianMs": 34
+    },
+    "catalog": {
+      "ok": true,
+      "samplesMs": [
+        900,
+        726,
+        643
+      ],
+      "medianMs": 726,
+      "baselineMedianMs": 974
+    },
+    "next50": {
+      "ok": true,
+      "samplesMs": [
+        711,
+        761,
+        971
+      ],
+      "medianMs": 761,
+      "baselineMedianMs": null
+    },
+    "code": {
+      "ok": true,
+      "samplesMs": [
+        779,
+        595,
+        687
+      ],
+      "medianMs": 687,
+      "baselineMedianMs": null
+    },
+    "card": {
+      "ok": true,
+      "samplesMs": [
+        240,
+        211,
+        217
+      ],
+      "medianMs": 217,
+      "baselineMedianMs": null
+    },
+    "barcode": {
+      "ok": true,
+      "samplesMs": [
+        491,
+        403,
+        433
+      ],
+      "medianMs": 433,
+      "baselineMedianMs": 662
+    },
+    "customers": {
+      "ok": true,
+      "samplesMs": [
+        502,
+        625,
+        514
+      ],
+      "medianMs": 514,
+      "baselineMedianMs": 421
+    },
+    "suppliers": {
+      "ok": true,
+      "samplesMs": [
+        447,
+        409,
+        510
+      ],
+      "medianMs": 447,
+      "baselineMedianMs": 475
+    },
+    "sales": {
+      "ok": true,
+      "samplesMs": [
+        173,
+        39,
+        37
+      ],
+      "medianMs": 39,
+      "baselineMedianMs": 41
+    },
+    "receiving": {
+      "ok": true,
+      "samplesMs": [
+        261,
+        252,
+        173
+      ],
+      "medianMs": 252,
+      "baselineMedianMs": 286
+    },
+    "purchases": {
+      "ok": true,
+      "samplesMs": [
+        290,
+        185,
+        243
+      ],
+      "medianMs": 243,
+      "baselineMedianMs": 162
+    },
+    "collection": {
+      "ok": true,
+      "samplesMs": [
+        255,
+        179,
+        238
+      ],
+      "medianMs": 238,
+      "baselineMedianMs": 165
+    },
+    "count": {
+      "ok": true,
+      "samplesMs": [
+        147,
+        73,
+        85
+      ],
+      "medianMs": 85,
+      "baselineMedianMs": 58
+    },
+    "returns": {
+      "ok": true,
+      "samplesMs": [
+        825,
+        582,
+        658
+      ],
+      "medianMs": 658,
+      "baselineMedianMs": 444
+    },
+    "payments": {
+      "ok": true,
+      "samplesMs": [
+        706,
+        632,
+        757
+      ],
+      "medianMs": 706,
+      "baselineMedianMs": 475
+    }
+  },
+  "crm": {
+    "sourceCommit": "77a2fa346b4c3653b77e33625e185c1259402af7",
+    "conversationMedianMs": 150,
+    "samplesMs": [
+      247,
+      150,
+      144
+    ],
+    "readOnly": true
+  },
+  "businessWrites": 0,
+  "humanAccepted": false
+}

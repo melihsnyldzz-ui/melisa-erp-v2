@@ -1,7 +1,15 @@
+import {resolveCopyBuildTarget,copyBuildReleaseFields} from './copy-build-target.mjs';
 import fs from 'node:fs';import path from 'node:path';import cp from 'node:child_process';import crypto from 'node:crypto';
 import { renderMigrationProof } from './migration-proof.mjs';
+import {parseTerminalArtifactArgs,attachTerminalArtifact} from './public-terminal-artifact.mjs';
+import {parseWebBaselineArgs,copyHistoricalWebBaseline} from './web-build-baseline.mjs';
+import {runPinnedNpm} from './package-npm.mjs';
 const repo=path.resolve(import.meta.dirname,'../..');
 const destination=path.resolve(process.argv[2]||'');
+const terminalArgs=parseTerminalArtifactArgs(process.argv.slice(3));
+const baselineArgs=parseWebBaselineArgs(terminalArgs.remaining);
+const copyBuild=resolveCopyBuildTarget(baselineArgs.remaining);
+if(terminalArgs.artifact&&copyBuild?.kind!=='business')throw Error('TERMINAL_ARTIFACT_BUSINESS_TEST_ONLY');
 if(!process.argv[2]||fs.existsSync(destination))throw Error('NEW_ABSOLUTE_RELEASE_DESTINATION_REQUIRED');
 if(cp.execFileSync('git',['status','--porcelain'],{cwd:repo}).toString().trim())throw Error('CLEAN_COMMITTED_SOURCE_REQUIRED');
 const sourceCommit=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:repo}).toString().trim();
@@ -13,12 +21,19 @@ if(migrationFiles.some(file=>!/^scripts\/migration\/[a-z0-9._/-]+\.(mjs|sql|md)$
 const migrationPaths=migrationFiles.length?['scripts/migration','ERP_MIGRATION_PLAN.md','STATUS.md']:[];
 cp.execFileSync('git',['archive','--format=tar','--output='+archive,sourceCommit,'apps/api','apps/web-admin','apps/sites-workflow','packages','scripts/canonical','docs/erp-v2/canonical-20261003',...migrationPaths],{cwd:repo});
 cp.execFileSync('tar',['-xf',archive,'-C',destination]);fs.unlinkSync(archive);
-function npm(args,cwd,env=process.env){cp.execFileSync(process.env.ComSpec||'cmd.exe',['/d','/c','npm.cmd',...args],{cwd,env,stdio:'inherit'});}
+function npm(args,cwd,env=process.env){runPinnedNpm(args,cwd,env);}
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/api');
+// A locked npm tree can still omit the native install script. Verify the
+// actual SQL binding before publishing any package; importing opens no DB.
+try{cp.execFileSync(process.execPath,['--no-maglev','-e',"const native=require('msnodesqlv8'),sql=require('mssql/msnodesqlv8');if(typeof native.open!=='function'||typeof sql.ConnectionPool!=='function')process.exit(1)"],{cwd:destination+'/apps/api',windowsHide:true,stdio:'pipe'});}catch{throw Error('PACKAGE_NATIVE_SQL_BINDING_NOT_LOADABLE');}
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/web-admin');
 const env={...process.env,VITE_API_BASE_URL:'http://192.168.1.46:4114',VITE_MELISA_PILOT:'true',VITE_DEMO_MODE:'false',VITE_LOCAL_PASSWORDLESS_LOGIN:'false'};
-npm(['run','build','--','--outDir','dist-baseline-proof'],destination+'/apps/web-admin',env);
 const expected=JSON.parse(fs.readFileSync(repo+'/docs/erp-v2/canonical-20261003/web-rebuild-proof.json')).files;
+// The explicit historical mode preserves old output; current source is still
+// built below as dist-test and is never claimed to match the old baseline.
+let historicalBaseline=null;
+if(baselineArgs.historical)historicalBaseline=copyHistoricalWebBaseline({destination,expected});
+else npm(['run','build','--','--outDir','dist-baseline-proof'],destination+'/apps/web-admin',env);
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 for(const row of expected)if(sha(fs.readFileSync(destination+'/apps/web-admin/dist-baseline-proof/'+row.path))!==row.sha256)throw Error('BASELINE_REBUILD_MISMATCH:'+row.path);
 npm(['run','build','--','--outDir','dist-test'],destination+'/apps/web-admin',{...env,VITE_API_BASE_URL:'http://127.0.0.1:4144'});
@@ -26,16 +41,19 @@ const index=destination+'/apps/web-admin/dist-test/index.html';
 fs.writeFileSync(index,fs.readFileSync(index,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">TEST · Salt okunur · '+sourceCommit.slice(0,12)+'</div>'));
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/sites-workflow');
 npm(['run','build'],destination+'/apps/sites-workflow',{...env,VITE_API_BASE_URL:'http://127.0.0.1:4144',VITE_VEGA_PRODUCTS_BASE_URL:'http://127.0.0.1:4144',VITE_TEST_READ_ONLY:'false'});
-for(const page of ['is-akisi-taslagi.html','ornek-akis.html','legacy-admin.html']){
+// The normal working face carries product information, not package/debug labels.
+for(const page of ['is-akisi-taslagi.html','legacy-admin.html']){
  const f=destination+'/apps/sites-workflow/dist/'+page;
  const label=page==='is-akisi-taslagi.html'?'TEST · SQL iş akışları · LIVE’dan ayrı':'TEST · Ayrı örnek ekran';
  fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">'+label+' · '+sourceCommit.slice(0,12)+'</div>'));
 }
+if(copyBuild)npm(['run','build','--','--outDir',copyBuild.dist],destination+'/apps/sites-workflow',{...env,VITE_API_BASE_URL:`http://127.0.0.1:${copyBuild.apiPort}`,VITE_VEGA_PRODUCTS_BASE_URL:`http://127.0.0.1:${copyBuild.apiPort}`,VITE_TEST_READ_ONLY:'false'});
 if(migrationFiles.length){
  const summary=JSON.parse(fs.readFileSync(destination+'/docs/erp-v2/canonical-20261003/migration-public-summary.json','utf8'));
  fs.writeFileSync(destination+'/apps/sites-workflow/dist/migration-proof.html',renderMigrationProof(summary,sourceCommit));
 }
+attachTerminalArtifact({releaseRoot:destination,target:copyBuild,artifact:terminalArgs.artifact});
 function walk(root,rel=''){return fs.readdirSync(path.join(root,rel),{withFileTypes:true}).flatMap(d=>d.isSymbolicLink()?(()=>{throw Error('RELEASE_SYMLINK_REJECTED');})():['node_modules','.canonical-runtime'].includes(d.name)?[]:d.isDirectory()?walk(root,path.posix.join(rel,d.name)):[path.posix.join(rel,d.name)]);}
 const files=walk(destination).map(file=>({path:file,sha256:sha(fs.readFileSync(destination+'/'+file))}));
-fs.writeFileSync(destination+'/release-manifest.json',JSON.stringify({packageId,sourceCommit,node:process.version,builtAt:new Date().toISOString(),baselineReproduced:true,webUi:'sites-v70-sql',webStorage:'sql-business-records; browser-pending-requests-only',sitesSourceCommit:'d559243a62080c8de5ce9ba1e2ba2d6231c098b9',apiPort:4144,nativePort:4146,webPort:5194,database:'MELISA_ERP_SIRKET_TEST_20260929_01',writes:true,writeScope:'existing-named-test-records',nativeWrites:false,files},null,2));
+fs.writeFileSync(destination+'/release-manifest.json',JSON.stringify({packageId,sourceCommit,node:process.version,builtAt:new Date().toISOString(),baselineReproduced:true,...(historicalBaseline?{...historicalBaseline,currentWebSourceCommit:sourceCommit}:{}),webUi:'sites-v70-sql',webStorage:'sql-business-records; browser-pending-requests-only',sitesSourceCommit:'d559243a62080c8de5ce9ba1e2ba2d6231c098b9',apiPort:4144,nativePort:4146,webPort:5194,database:'MELISA_ERP_SIRKET_TEST_20260929_01',writes:true,writeScope:'existing-named-test-records',nativeWrites:false,...copyBuildReleaseFields(copyBuild),files},null,2));
 console.log(JSON.stringify({packageId,sourceCommit,files:files.length,destination}));

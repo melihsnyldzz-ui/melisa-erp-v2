@@ -1,3 +1,4 @@
+import {legacyPaymentScope,assertLegacyPaymentScope,filterLegacyPaymentContext} from './workSupplierPaymentLegacyScope.mjs';
 import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {createHash} from 'node:crypto';
 import {getSqlPool,getSqlDriver} from '../config/database.js';
@@ -16,6 +17,7 @@ async function atomic(actor,fn,write=true){return withTestSalesMutation(async()=
  try{
   await req().query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'MELISA-TEST-V70-SALES',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51071,'TEST_LOCK_TIMEOUT',1;IF DB_NAME()<>N'MELISA_ERP_SIRKET_TEST_20260929_01' THROW 51070,'WRONG_DATABASE',1;");
   if(write&&Number(actor.id)!==16)fail('TEST_PAYMENT_ACTOR','Ödeme yalnız yetkili İlker TEST oturumuna açıktır.',403);
+  ctx.workPaymentScope=await legacyPaymentScope(ctx,actor);
   const value=await fn(ctx,req);await transaction.commit();return value;
  }catch(e){try{await transaction.rollback()}catch{}if(e.number===51070||e.originalError?.info?.number===51070)fail('TEST_DATABASE_BOUNDARY','TEST SQL sınırı işlemi tamamen geri aldı.',409);throw e}
 });}
@@ -32,9 +34,9 @@ export async function paymentContext(actor){return atomic(actor,async(ctx,req)=>
  const accounts=(await req().query('SELECT a.id,a.account_code,a.account_name,a.account_type,a.currency_code,a.opening_balance,a.current_balance FROM dbo.test_payment_accounts t JOIN dbo.finance_accounts a ON a.id=t.account_id ORDER BY a.id')).recordset;
  const invoices=(await req().query('SELECT p.id,p.supplier_id,p.document_no,p.status,p.document_currency,p.grand_total,p.document_date,u.display_name actor,i.quantity,i.purchase_price,i.line_total,i.stock_code_snapshot stock_code FROM dbo.test_payment_invoices t JOIN dbo.purchase_invoices p ON p.id=t.invoice_id JOIN dbo.purchase_invoice_items i ON i.purchase_invoice_id=p.id JOIN dbo.users u ON u.id=p.created_by ORDER BY p.id')).recordset;
  const movements=(await req().query(`SELECT m.*,j.request_id,j.operation,j.original_id,r.movement_id reversed_by,f.id finance_movement_id,f.account_id,f.direction,f.document_no,f.description,u.display_name actor FROM dbo.test_payment_requests j JOIN dbo.supplier_movements m ON m.id=j.movement_id JOIN dbo.finance_account_movements f ON f.party_movement_id=m.id AND f.party_type=N'supplier' AND f.source_type=m.movement_type JOIN dbo.users u ON u.id=m.created_by LEFT JOIN dbo.test_payment_requests r ON r.original_id=m.id ORDER BY m.id`)).recordset;
- return {environment:'ISOLATED_TEST',suppliers,accounts,invoices,movements,maximumOperations:30};
+ return filterLegacyPaymentContext(ctx.workPaymentScope,{environment:'ISOLATED_TEST',suppliers,accounts,invoices,movements,maximumOperations:30});
 },false);}
-export async function payTestSupplier(i,actor){return atomic(actor,async(ctx,req)=>journal(ctx,actor,i,'payment',async()=>{
+export async function payTestSupplier(i,actor){return atomic(actor,async(ctx,req)=>{if(!ctx.actualPaymentPermissions.includes('finance.payment')||!actor.permissions?.includes('finance.payment'))fail('TEST_PAYMENT_ACTOR','Bu işlem için yetkiniz bulunmuyor.',403);assertLegacyPaymentScope(ctx.workPaymentScope,i);return journal(ctx,actor,i,'payment',async()=>{
  keys(i,['requestId','supplierId','accountId','purchaseInvoiceId','amount','currency','documentDate','description']);date(i.documentDate);
  const amount=Number(i.amount);if(!Number.isFinite(amount)||amount<=0||amount>500||Math.abs(amount*100-Math.round(amount*100))>1e-7)fail('AMOUNT_INVALID','Tutar 0–500 arasında ve en fazla iki ondalık olmalı.');
  const {sqlDriver:s,transaction:t}=ctx;
@@ -50,11 +52,12 @@ export async function payTestSupplier(i,actor){return atomic(actor,async(ctx,req
  }
  const result=await createSupplierPayment({...i,amount,paymentMethod:account.account_type},actor,{...ctx,linkedInvoiceId:i.purchaseInvoiceId?Number(i.purchaseInvoiceId):null});
  return {...result,purchaseInvoiceId:i.purchaseInvoiceId?Number(i.purchaseInvoiceId):null,requestId:i.requestId};
-}));}
-export async function cancelTestPayment(id,i,actor){return atomic(actor,async(ctx,req)=>journal(ctx,actor,{...i,originalId:Number(id)},'payment_cancel',async()=>{
+});});}
+export async function cancelTestPayment(id,i,actor){return atomic(actor,async(ctx,req)=>{if(!ctx.actualPaymentPermissions.includes('finance.payment.cancel')||!actor.permissions?.includes('finance.payment.cancel'))fail('TEST_PAYMENT_ACTOR','Bu işlem için yetkiniz bulunmuyor.',403);return journal(ctx,actor,{...i,originalId:Number(id)},'payment_cancel',async()=>{
  keys(i,['requestId','reason','documentDate']);date(i.documentDate);if(typeof i.reason!=='string'||i.reason.trim().length<3||i.reason.length>300)fail('REASON_REQUIRED','En az 3 karakter iptal gerekçesi gerekli.');
  const {sqlDriver:s,transaction:t}=ctx;
  const m=(await req().input('id',s.BigInt,Number(id)).query("SELECT m.*,f.account_id,f.payment_method FROM dbo.test_payment_requests j JOIN dbo.supplier_movements m ON m.id=j.movement_id JOIN dbo.finance_account_movements f ON f.party_movement_id=m.id AND f.party_type=N'supplier' AND f.source_type=N'payment' WHERE j.operation=N'payment' AND m.id=@id")).recordset[0];
+ if(m)assertLegacyPaymentScope(ctx.workPaymentScope,{supplierId:m.supplier_id,accountId:m.account_id,purchaseInvoiceId:m.purchase_invoice_id});
  if(!m)fail('TEST_ORIGINAL','Asıl TEST ödemesi bulunamadı.',404);
  await assertOperationQuarantineAllowed([{entity:'supplier',nativeId:m.supplier_id}],quarantineTransactionContext(s,t));
  if((await req().input('id',s.BigInt,Number(id)).query('SELECT original_id FROM dbo.test_payment_requests WHERE original_id=@id')).recordset.length)fail('ALREADY_CANCELLED','Ödeme zaten iptal edildi.',409);
@@ -66,6 +69,6 @@ export async function cancelTestPayment(id,i,actor){return atomic(actor,async(ct
  const updated=await writeFinanceAccountMovement(t,s,{account,sourceType:'payment_cancel',partyType:'supplier',partyMovementId:movementId,amount:Number(m.amount),currency:m.currency_code,paymentMethod:m.payment_method,documentNo:`ODI-${movementId}`,documentDate:i.documentDate,description:i.reason,actor});
  await writeAuditLog(req(),{actor,action:'supplier_payment_cancelled',entityType:'supplier_movement',entityId:movementId,afterSnapshot:{originalId:Number(id),reason:i.reason,amount:Number(m.amount),currency:m.currency_code,accountId:Number(m.account_id)}});
  return {id:movementId,originalId:Number(id),amount:Number(m.amount),currency:m.currency_code,account:updated,requestId:i.requestId};
-}));}
+});});}
 
 

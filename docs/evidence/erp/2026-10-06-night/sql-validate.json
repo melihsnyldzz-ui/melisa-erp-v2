@@ -1,0 +1,154 @@
+{
+  "at": "2026-10-05T23:21:48.6779459Z",
+  "mode": "Validate",
+  "sourceHash": "102E0981208D242DBE039469512DF889A49482A5E4AF2CF84D90601A7C0A9FB8",
+  "result": "PASS",
+  "lowPrivilegeContexts": [
+    {
+      "products": 2,
+      "permissions": [
+        "customer.view",
+        "dashboard.view",
+        "goods.create",
+        "goods.view",
+        "product.view",
+        "purchase.view",
+        "sales.cancel",
+        "sales.create",
+        "sales.finalize",
+        "sales.view"
+      ],
+      "knownCosts": true,
+      "knownPrices": true,
+      "proof": "PASS"
+    },
+    {
+      "products": 2,
+      "permissions": [
+        "customer.view",
+        "dashboard.view",
+        "finance.collection",
+        "finance.collection.cancel",
+        "finance.payment",
+        "finance.payment.cancel",
+        "finance.refund",
+        "finance.view",
+        "goods.approve",
+        "goods.create",
+        "goods.reject",
+        "goods.view",
+        "product.view",
+        "purchase.cancel",
+        "purchase.create",
+        "purchase.finalize",
+        "purchase.view",
+        "sales.cancel",
+        "sales.view",
+        "stock.adjust",
+        "supplier.view"
+      ],
+      "knownCosts": true,
+      "knownPrices": true,
+      "proof": "PASS"
+    }
+  ],
+  "usersPermissionsUnchanged": true,
+  "existingBusinessContentsUnchanged": true,
+  "protectedContentHashes": [
+    {
+      "scope": "products-operational-existing",
+      "hash": "18E2ED6BACB3812181FC567DEC8018A8852C29B7D29C72B4D4CBABA205B2ABBB"
+    },
+    {
+      "scope": "customers-operational-existing",
+      "hash": "188A3283D64FA8841B2E97026F4A02F920FA5756544AB61BAAA6DC2E6469B631"
+    },
+    {
+      "scope": "finance-operational-existing",
+      "hash": "7A73B10F0D808BDF3C587E610EC35A10CA8082D3C4B7DE33CDDBC461F8304060"
+    },
+    {
+      "scope": "prices-operational-existing",
+      "hash": "96AAAE29B052F7BE39E824DB094208DBB91E2973C12A94B427C5E072EFEA011C"
+    },
+    {
+      "scope": "sales-operational-existing",
+      "hash": "659D7450F18877EA144FAA1270E34A72303E83266A363FADE49E98195D564931"
+    },
+    {
+      "scope": "sales-items-operational-existing",
+      "hash": "67B447F0B5F1DB1C8CFB817997DC0004EAE44C635C1033F1122A43B0B04F1AC7"
+    },
+    {
+      "scope": "stock-movements-operational-existing",
+      "hash": "78CE6323B4A345DF3577F86D9719E8E2B3E158980B0A04A48D07BB168A96F085"
+    },
+    {
+      "scope": "customer-movements-operational-existing",
+      "hash": "4B684FD36597929064F3D047DCC16EE8358A246B163F90C587022F42EA54C1C5"
+    },
+    {
+      "scope": "cash-movements-operational-existing",
+      "hash": "AD9451D9BDEAC8FBE6984E4A9CB0E7CA40014EE46CE86489D689332B4EA22DAF"
+    }
+  ],
+  "beforeCounts": {
+    "products": 52967,
+    "customers": 441,
+    "accounts": 37,
+    "prices": 279227,
+    "invoices": 19229,
+    "items": 345555,
+    "stockMovements": 558965,
+    "customerMovements": 29155,
+    "cashMovements": 16825
+  },
+  "afterCounts": {
+    "products": 52967,
+    "customers": 441,
+    "accounts": 37,
+    "prices": 279227,
+    "invoices": 19229,
+    "items": 345555,
+    "stockMovements": 558965,
+    "customerMovements": 29155,
+    "cashMovements": 16825
+  },
+  "identityBefore": [
+    {
+      "tableName": "products",
+      "identityValue": 335503.0
+    },
+    {
+      "tableName": "customers",
+      "identityValue": 20597.0
+    },
+    {
+      "tableName": "finance_accounts",
+      "identityValue": 10042.0
+    },
+    {
+      "tableName": "product_prices",
+      "identityValue": 279229.0
+    }
+  ],
+  "identityAfter": [
+    {
+      "tableName": "products",
+      "identityValue": 345503.0
+    },
+    {
+      "tableName": "customers",
+      "identityValue": 30597.0
+    },
+    {
+      "tableName": "finance_accounts",
+      "identityValue": 20042.0
+    },
+    {
+      "tableName": "product_prices",
+      "identityValue": 279231.0
+    }
+  ],
+  "note": "Identity counters can advance in rollback; no reseed is performed."
+}

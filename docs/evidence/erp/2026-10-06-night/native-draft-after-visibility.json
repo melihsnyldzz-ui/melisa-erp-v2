@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-05T23:46:43.3595241Z",
+  "stage": "draft-after-visibility",
+  "syntheticOnly": true,
+  "products": [
+    {
+      "productId": 345504,
+      "stockCode": "TEST-NIGHT-20261006-P1",
+      "stockExact3": "20.000"
+    },
+    {
+      "productId": 345505,
+      "stockCode": "TEST-NIGHT-20261006-P2",
+      "stockExact3": "20.000"
+    }
+  ],
+  "balances": [
+    {
+      "customerId": 30598,
+      "customerDebtExact4": "0.0000",
+      "accountId": 20043,
+      "cashExact4": "0.0000"
+    }
+  ],
+  "invoices": [
+    {
+      "id": 34617,
+      "documentNo": "NIGHT-cf1a716809c44e4a8df68855",
+      "status": "draft",
+      "totalExact4": "150.0000"
+    }
+  ],
+  "customerMovements": [],
+  "cashMovements": [],
+  "journal": [
+    {
+      "count": 1
+    }
+  ],
+  "intents": [
+    {
+      "count": 0
+    }
+  ],
+  "stockMovements": [
+    {
+      "count": 0
+    }
+  ]
+}

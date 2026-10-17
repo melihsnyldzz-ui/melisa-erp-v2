@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-05T23:36:45.6824422Z",
+  "stage": "before-sale",
+  "syntheticOnly": true,
+  "products": [
+    {
+      "productId": 345504,
+      "stockCode": "TEST-NIGHT-20261006-P1",
+      "stockExact3": "20.000"
+    },
+    {
+      "productId": 345505,
+      "stockCode": "TEST-NIGHT-20261006-P2",
+      "stockExact3": "20.000"
+    }
+  ],
+  "balances": [
+    {
+      "customerId": 30598,
+      "customerDebtExact4": "0.0000",
+      "accountId": 20043,
+      "cashExact4": "0.0000"
+    }
+  ],
+  "invoices": [],
+  "customerMovements": [],
+  "cashMovements": [],
+  "journal": [
+    {
+      "count": 0
+    }
+  ],
+  "intents": [
+    {
+      "count": 0
+    }
+  ],
+  "stockMovements": [
+    {
+      "count": 0
+    }
+  ]
+}

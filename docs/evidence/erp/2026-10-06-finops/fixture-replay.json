@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-06T10:47:13.8678578Z",
+  "mode": "replay",
+  "result": "PASS",
+  "target": "Semih\\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01",
+  "sqlSha256": "F428678D9C35BE17D2BC6836081016D97A30795ED23FFE99A8B21216311B6197",
+  "rolledBack": false,
+  "note": "A rolled-back fixture validation may consume identity values; old records and IDs are preserved.",
+  "results": [
+    {
+      "installed": false
+    }
+  ]
+}

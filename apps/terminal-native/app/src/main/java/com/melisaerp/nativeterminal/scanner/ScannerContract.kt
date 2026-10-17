@@ -2,6 +2,10 @@ package com.melisaerp.nativeterminal.scanner
 
 enum class ScannerProvider { DATA_WEDGE, HONEYWELL, NEWLAND }
 
+/** A separately installed work client must never replace the existing candidate's profile. */
+internal fun scannerProfileName(packageName: String): String =
+    if (packageName.endsWith(".worktest")) "MelisaNativeWorkTestV1" else "MelisaNativeV1"
+
 fun scannerProvider(manufacturer: String): ScannerProvider =
     if (manufacturer.trim().equals("Honeywell", ignoreCase = true)) ScannerProvider.HONEYWELL
     else if (manufacturer.trim().equals("Newland", ignoreCase = true)) ScannerProvider.NEWLAND

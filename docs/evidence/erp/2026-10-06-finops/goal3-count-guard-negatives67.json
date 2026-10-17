@@ -1,0 +1,116 @@
+{
+  "at": "2026-10-06T14:12:14.7179803Z",
+  "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "server": "Semih\\MELISADEV",
+  "draftId": 39,
+  "scope": "325503 exact pending personnel count3to4; held40451 negative only",
+  "committedBusinessWrites": 0,
+  "identityCountersMayAdvanceOnRolledBackInsert": true,
+  "cases": [
+    {
+      "case": "no-session-tag",
+      "denied": true,
+      "sqlErrorNumber": 51070,
+      "message": "TEST_BATCH_EXACT_SCOPE_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-session-actor",
+      "denied": true,
+      "sqlErrorNumber": 51070,
+      "message": "TEST_BATCH_EXACT_SCOPE_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-transaction-tag",
+      "denied": true,
+      "sqlErrorNumber": 51070,
+      "message": "TEST_BATCH_EXACT_SCOPE_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-draft-tag",
+      "denied": true,
+      "sqlErrorNumber": 51070,
+      "message": "TEST_BATCH_EXACT_SCOPE_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-stock-delta",
+      "denied": true,
+      "sqlErrorNumber": 51070,
+      "message": "TEST_BATCH_EXACT_SCOPE_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "card-field-change",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_PRODUCT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-movement-actor",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_MOVEMENT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-movement-cost",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_MOVEMENT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "duplicate-movement",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_MOVEMENT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-audit-actor",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_AUDIT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "wrong-audit-reason",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_AUDIT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "duplicate-audit",
+      "denied": true,
+      "sqlErrorNumber": 51240,
+      "message": "DAILY_COUNT_EXACT_AUDIT_REQUIRED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    },
+    {
+      "case": "held-product-update",
+      "denied": true,
+      "sqlErrorNumber": 51076,
+      "message": "MIGRATION_OPERATION_QUARANTINED",
+      "rolledBack": true,
+      "protectedBusinessDigestUnchanged": true
+    }
+  ],
+  "protectedBeforeAfterDigest": "84694847F0297AFBE42226C28E7ACA9C4BDB6DACE77FD500F74E84122E030791"
+}

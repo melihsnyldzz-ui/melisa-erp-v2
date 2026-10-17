@@ -1,0 +1,88 @@
+import './workCatalog.css';
+import {createBusinessProductPriceEditor} from './businessProductPriceEditor.js';
+import {purchaseReferenceEnvelope,renderPurchaseReference} from './purchaseReference.mjs';
+import {createCatalogPhotoLoader,createCatalogThumbnailLoader} from './workCatalogPhoto.mjs';
+import {moneyDisplay,catalogExact,catalogStockDisplay,catalogPath,catalogEnvelope,catalogMainPrice,catalogRequestGate} from './workCatalogModel.mjs';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const known=v=>v===null?'Bilinmiyor':esc(v);
+const count=v=>v.toLocaleString('tr-TR');
+const money=p=>`${esc(moneyDisplay(p.priceExact))} ${esc(p.currency)}`;
+const unit=r=>r.unit.label===null?'Birim bilinmiyor':`${esc(r.unit.label)}${r.unit.verified?'':' · doğrulanmadı'}`;
+const status=r=>r.hold.blocked?'İnceleme bekliyor':r.isActive?'Aktif':'Pasif';
+const errorMessage=e=>e.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':e.status===403?'Bu kataloğu görüntüleme yetkiniz yok.':'Katalog şu anda açılamıyor. Yeniden deneyin.';
+const emptyCard=()=>'<section class="card inspector-empty"><h2>Ürün bilgileri</h2><p>Soldaki listeden bir ürün seçin.</p></section>';
+export function createWorkCatalog({api,media,permissions=[],actorId,storage}){
+ const photoLoader=createCatalogPhotoLoader({media}),thumbnails=createCatalogThumbnailLoader({media});
+ const allowed=permissions.includes('product.view'),salesPermission=permissions.includes('sales.view'),purchasePermission=['product.view','purchase.view','finance.view'].every(p=>permissions.includes(p));
+ const listGate=catalogRequestGate(),cardGate=catalogRequestGate();
+ let root=null,page=1,meta=null,lastOpener=null,priceEditor=null;
+ const requestClose=()=>priceEditor?.requestClose()!==false;
+ const disposeEditor=()=>{priceEditor?.dispose();priceEditor=null;};
+ const priceEditingAllowed=(r,m)=>{
+  const c=m.productPriceEdit;
+  return String(actorId)==='16'&&['product.view','purchase.view','product.price.edit'].every(p=>permissions.includes(p))&&!r.hold.blocked&&r.provenance.kind==='accepted-opening'&&c?.enabled===true&&Object.keys(c).sort().join()==='enabled,productIds'&&Array.isArray(c.productIds)&&c.productIds.length===1&&c.productIds[0]===r.id;
+ };
+ const stat=(label,key,note)=>`<div class="card stat"><span class="dot"></span><div class="label">${label}</div><strong data-catalog-stat="${key}">—</strong><small>${note}</small></div>`;
+ function html(){return `<div class="heading"><div><div class="eyebrow">ÜRÜN KARTLARI</div><h1>Ürün & stok</h1><p class="sub">Ürünü bulun; stok, barkod ve satış fiyatını kartında inceleyin.</p></div><div class="actions"><button class="btn" data-catalog-refresh>Yenile</button></div></div>${allowed?`<div class="grid stats">${stat('Katalogdaki ürün','catalog','Ürün kartları')}${stat('Bulunan ürün','filtered','Seçtiğiniz filtrede')}${stat('Gösterilen ürün','page','Bu sayfada')}${stat('Katalog tarihi','date','Stok okuma anında güncellenir')}</div><div class="stock-split work-catalog"><section class="card panel"><div class="panel-head"><h2>Stok listesi</h2><small>Kartı seçerek ayrıntıyı açın</small></div><form class="filters catalog-filters" data-catalog-filter><label class="catalog-search">Ürün kodu / adı<input class="search" name="search" maxlength="120" placeholder="Kod veya ürün adı" autocomplete="off"></label><label class="catalog-barcode">Barkod<input name="barcode" maxlength="160" placeholder="Barkodu okut" autocomplete="off" inputmode="text"></label><label>Marka<select name="brand"><option value="">Tüm markalar</option></select></label><label>Tür<select name="productType"><option value="">Tüm türler</option></select></label><label>Fotoğraf<select name="image"><option value="all">Tüm ürünler</option><option value="available">Fotoğraflı</option><option value="missing">Fotoğrafsız</option></select></label><label>Stok<select name="stock"><option value="all">Tüm stoklar</option><option value="positive">Stokta var</option><option value="zero">Stok sıfır</option><option value="negative">Negatif stok</option></select></label><label>Durum<select name="status"><option value="all">Tüm durumlar</option><option value="active">Aktif</option><option value="passive">Pasif</option></select></label><label>Sıralama<select name="sort"><option value="code-asc">Kod: küçükten büyüğe</option><option value="code-desc">Kod: büyükten küçüğe</option><option value="stock-desc">Stok: çoktan aza</option></select></label><button class="btn primary" type="submit">Ara</button><button class="btn" type="button" data-catalog-reset>Temizle</button></form><p class="catalog-status" data-catalog-summary role="status"></p><div class="tablewrap" data-catalog-results aria-live="polite">Katalog açılıyor…</div><nav class="catalog-pagination" aria-label="Ürün sayfaları"><button class="btn" data-catalog-prev disabled>Önceki</button><span data-catalog-page></span><button class="btn" data-catalog-next disabled>Sonraki</button></nav></section><div id="productDetail" class="product-inspector" data-catalog-detail aria-live="polite" tabindex="-1">${emptyCard()}</div></div>`:'<section class="card inspector-empty"><h2>Ürün kataloğu</h2><p role="status">Ürün ve stok kartlarını görüntüleme yetkiniz yok.</p></section>'}`;}
+ function priceSummary(r,m){if(r.hold.blocked)return 'Doğrulanmadı';if(!m.canViewSalesPrices)return 'Görüntüleme izni yok';const p=catalogMainPrice(r);return p?money(p):r.salePrices.length?`${r.salePrices.length} fiyat · Ayrıntıyı aç`:'Bilinmiyor';}
+ function table(rows,m){return `<table id="stocktable" class="catalog-table"><thead><tr><th>Foto</th><th>Kod</th><th>Marka</th><th>Tür</th><th>Stok</th><th>Satış fiyatı</th><th>Durum</th></tr></thead><tbody>${rows.map(r=>`<tr data-catalog-row="${esc(r.id)}"><td data-label="Foto"><div class="catalog-thumb" data-catalog-thumb="${esc(r.id)}"><span aria-hidden="true">▧</span><span class="catalog-thumb-label">${r.photo.status==='available'?'Ürün fotoğrafı':'Fotoğraf yok'}</span></div></td><td data-label="Kod"><button class="catalog-code" data-catalog-open="${esc(r.id)}" aria-label="${esc(r.stockCode)} kartını aç">${esc(r.displayCode)}</button><small class="catalog-name">${known(r.productName)}</small><small class="catalog-barcode-value">${r.barcodes.length?esc((r.barcodes.find(b=>b.isPrimary)||r.barcodes[0]).value):'Barkod bilinmiyor'}</small></td><td data-label="Marka">${known(r.classification.brand)}</td><td data-label="Tür">${known(r.classification.productType)}</td><td data-label="Stok">${esc(catalogStockDisplay(r))}<small class="catalog-unit">${unit(r)}</small></td><td data-label="Satış fiyatı">${priceSummary(r,m)}</td><td data-label="Durum"><span class="pill ${r.hold.blocked?'orange':r.isActive?'green':''}">${status(r)}</span></td></tr>`).join('')}</tbody></table>`;}
+ function card(r,m){return `<section class="card inspector-card"><header><div><div class="eyebrow">ÜRÜN KARTI</div><h2>${esc(r.displayCode)}</h2><p class="sub">${known(r.productName)}</p></div><button class="btn catalog-close" data-catalog-close aria-label="Ürün kartını kapat">×</button></header><span class="pill ${r.hold.blocked?'orange':'green'}">${status(r)}</span>${r.hold.blocked?'<div class="notice amber">Bu kartın kaynak eşleşmesi inceleniyor. Satış fiyatı doğrulanmadı.</div>':''}<div class="catalog-photo" data-catalog-photo><span aria-hidden="true">▧</span><strong>Fotoğraf henüz bağlı değil</strong><small>Doğrulanmış ürün fotoğrafı burada görünecek.</small></div><div class="inspector-metrics"><div><small>Mevcut stok</small><strong${r.stockQuantityExact===null||r.hold.blocked||!r.unit.verified?' class="catalog-detail-price"':''}>${esc(catalogStockDisplay(r))}</strong><span>${unit(r)}</span></div><div><small>Satış fiyatı</small><strong class="catalog-detail-price">${priceSummary(r,m)}</strong></div></div><dl><div><dt>Stok kodu</dt><dd>${esc(r.stockCode)}</dd></div><div><dt>Marka</dt><dd>${known(r.classification.brand)}</dd></div><div><dt>Tür</dt><dd>${known(r.classification.productType)}</dd></div><div><dt>Kaynak ürün adı</dt><dd>${known(r.classification.sourceName)}</dd></div><div><dt>Birim</dt><dd>${unit(r)}</dd></div><div><dt>Birim çarpanı</dt><dd>${r.unit.verified?esc(catalogExact(r.unit.factorExact8)):'Doğrulanmadı'}</dd></div></dl><h3>Barkodlar</h3><div class="catalog-barcodes">${r.barcodes.map(b=>`<span>${esc(b.value)}${b.isPrimary?' · Ana barkod':''}</span>`).join('')||'<p>Kayıtlı barkod bulunamadı.</p>'}</div><h3>Satış fiyatları</h3>${m.canViewSalesPrices&&!r.hold.blocked?`<div class="catalog-prices">${r.salePrices.map(p=>`<article><b>${money(p)}</b><small>${p.isMainUnit&&r.unit.verified&&p.unitSourceId===r.unit.sourceId?esc(r.unit.label):'Birim doğrulanmadı'} · Kademe ${p.tier}${p.isMainUnit?' · Ana birim':''}</small></article>`).join('')||'<p>Kayıtlı satış fiyatı bilinmiyor.</p>'}</div>`:`<p>${r.hold.blocked?'Fiyat doğrulanmadı.':'Satış fiyatını görüntüleme izni yok.'}</p>`}${priceEditingAllowed(r,m)?'<div data-business-price-slot></div>':''}${purchasePermission&&!r.hold.blocked?'<div data-purchase-reference><button class="btn" data-purchase-reference-open>Alış referansını görüntüle</button></div>':''}<p class="inspector-foot">Katalog tarihi: ${esc(r.provenance.sourceAsOf.split('-').reverse().join('.'))}<br>Stok okuma: ${esc(new Date(m.readAt).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'}))}</p></section>`;}
+ function mount(host){
+  if(!allowed||!host)return;root=host;
+  const form=host.querySelector('[data-catalog-filter]'),results=host.querySelector('[data-catalog-results]'),detail=host.querySelector('[data-catalog-detail]'),summary=host.querySelector('[data-catalog-summary]'),prev=host.querySelector('[data-catalog-prev]'),next=host.querySelector('[data-catalog-next]'),pageLabel=host.querySelector('[data-catalog-page]');
+  const alive=(gate,n)=>root===host&&host.isConnected&&gate.current(n);
+  const close=()=>{if(!requestClose())return false;disposeEditor();photoLoader.clear();cardGate.next();detail.innerHTML=emptyCard();results.querySelectorAll('tr.selected').forEach(r=>r.classList.remove('selected'));if(lastOpener?.isConnected)lastOpener.focus();return true;};
+  const values=()=>Object.fromEntries(['search','barcode','brand','productType','image','stock','status','sort'].map(k=>[k,form.elements[k].value]));
+  async function open(id,opener){
+   if(!requestClose())return false;disposeEditor();photoLoader.clear();const n=cardGate.next();lastOpener=opener;
+   detail.innerHTML='<section class="card inspector-card"><p role="status">Ürün bilgileri açılıyor…</p><button class="btn" data-catalog-close>Kapat</button></section>';
+   detail.querySelector('[data-catalog-close]').onclick=close;results.querySelectorAll('tr.selected').forEach(r=>r.classList.remove('selected'));opener?.closest?.('tr')?.classList.add('selected');
+   try{
+    const p=catalogEnvelope(await api('/api/catalog/products/'+encodeURIComponent(id),{envelope:true}),{salesPermission,detail:true});
+    if(!alive(cardGate,n))return false;if(p.data.id!==id)throw Error('Kart kimliği eşleşmedi');detail.innerHTML=card(p.data,p.meta);
+    const referenceButton=detail.querySelector('[data-purchase-reference-open]');
+    if(referenceButton)referenceButton.onclick=async()=>{const slot=detail.querySelector('[data-purchase-reference]');referenceButton.disabled=true;slot.setAttribute('aria-live','polite');try{const payload=await api('/api/products/'+encodeURIComponent(id)+'/purchase-reference',{envelope:true});if(!alive(cardGate,n)||!slot.isConnected)return;slot.innerHTML=renderPurchaseReference(purchaseReferenceEnvelope(payload,id,p.data.stockCode));}catch{if(alive(cardGate,n)&&slot.isConnected)slot.innerHTML='<p role="alert">Alış referansı şu anda görüntülenemiyor.</p>';}};
+    if(p.data.photo.status==='available')photoLoader.show(detail.querySelector('[data-catalog-photo]'),p.data);
+    detail.querySelector('[data-catalog-close]').onclick=close;
+    if(priceEditingAllowed(p.data,p.meta)){
+     const slot=detail.querySelector('[data-business-price-slot]');
+     priceEditor=createBusinessProductPriceEditor({api,esc,productId:id,actorId:String(actorId),storage,onSaved:async()=>{
+      const fresh=await load({reopenId:id});
+      if(!fresh&&root===host&&host.isConnected)summary.textContent='Fiyat kaydı doğrulandı. Güncel liste ve kart yüklenemedi; Yenile düğmesiyle tekrar okuyun.';
+      return fresh;
+     }});
+     priceEditor.mount(slot);
+    }
+    detail.focus();return true;
+   }catch(e){
+    if(!alive(cardGate,n))return false;disposeEditor();
+    detail.innerHTML='<section class="card inspector-card"><h2>Ürün bilgileri</h2><p role="alert">'+esc(errorMessage(e))+'</p><button class="btn" data-catalog-card-retry>Yeniden dene</button><button class="btn" data-catalog-close>Kapat</button></section>';
+    detail.querySelector('[data-catalog-close]').onclick=close;detail.querySelector('[data-catalog-card-retry]').onclick=()=>open(id,opener);return false;
+   }
+  }
+  async function load({reopenId=null}={}){
+   if(!close())return false;const n=listGate.next();thumbnails.clear();meta=null;prev.disabled=next.disabled=true;pageLabel.textContent='';summary.textContent='Ürünler okunuyor…';results.textContent='Katalog açılıyor…';host.querySelectorAll('[data-catalog-stat]').forEach(x=>x.textContent='—');
+   try{
+    const filters=values(),p=catalogEnvelope(await api(catalogPath({...filters,page}),{envelope:true}),{salesPermission});
+    if(!alive(listGate,n))return false;if(p.meta.page!==page)throw Error('Sayfa eşleşmedi');meta=p.meta;
+    for(const [field,key,label] of [['brand','brands','Tüm markalar'],['productType','productTypes','Tüm türler']]){const select=form.elements[field],chosen=select.value;select.innerHTML='<option value="">'+label+'</option>'+meta.filters[key].map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');select.value=chosen;}
+    host.querySelector('[data-catalog-stat="catalog"]').textContent=count(meta.scopeCounts.acceptedOpening+meta.scopeCounts.quarantinedSource);host.querySelector('[data-catalog-stat="filtered"]').textContent=count(meta.total);host.querySelector('[data-catalog-stat="page"]').textContent=count(p.data.length);host.querySelector('[data-catalog-stat="date"]').textContent=meta.sourceAsOf.split('-').reverse().join('.');
+    summary.textContent=count(meta.total)+' ürün'+(filters.barcode&&meta.total>1?' · Bu barkod birden fazla kartta bulunuyor; doğru kartı seçin.':'');results.innerHTML=p.data.length?table(p.data,meta):'<div class="big-empty"><h2>Ürün bulunamadı</h2><p>Kodu veya barkodu kontrol edin; filtreleri temizleyerek tekrar arayın.</p></div>';
+    pageLabel.textContent=page+' / '+Math.max(1,meta.totalPages);prev.disabled=page<=1;next.disabled=page>=meta.totalPages;
+    thumbnails.mount(results,[...results.querySelectorAll('[data-catalog-thumb]')].map(slot=>({slot,row:p.data.find(r=>r.id===slot.dataset.catalogThumb)})));
+    results.querySelectorAll('[data-catalog-open]').forEach(b=>b.onclick=()=>open(b.dataset.catalogOpen,b));results.querySelectorAll('[data-catalog-row]').forEach(r=>r.onclick=e=>{if(!e.target.closest('button'))r.querySelector('[data-catalog-open]')?.click();});
+    if(reopenId!==null){const opener=[...results.querySelectorAll('[data-catalog-open]')].find(b=>b.dataset.catalogOpen===reopenId);return await open(reopenId,opener);}
+    return true;
+   }catch(e){
+    if(!alive(listGate,n))return false;summary.textContent='Katalog okunamadı.';results.innerHTML='<div class="big-empty"><p role="alert">'+esc(errorMessage(e))+'</p><button class="btn" data-catalog-retry>Yeniden dene</button></div>';results.querySelector('[data-catalog-retry]').onclick=()=>load({reopenId});return false;
+   }
+  }
+  form.onsubmit=e=>{e.preventDefault();if(!requestClose())return;page=1;load();};
+  host.querySelector('[data-catalog-reset]').onclick=()=>{if(!requestClose())return;form.reset();page=1;load();};
+  host.querySelector('[data-catalog-refresh]').onclick=()=>load();
+  prev.onclick=()=>{if(page>1&&meta&&requestClose()){page--;load();}};next.onclick=()=>{if(meta&&page<meta.totalPages&&requestClose()){page++;load();}};
+  host.onkeydown=e=>{if(e.key==='Escape')close();};load();
+ }
+
+ return {html,mount,requestClose,dispose(){disposeEditor();thumbnails.dispose();photoLoader.dispose();listGate.dispose();cardGate.dispose();if(root)root.onkeydown=null;root=null;meta=null;lastOpener=null;}};
+}

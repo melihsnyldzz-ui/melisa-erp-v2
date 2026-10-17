@@ -1,0 +1,168 @@
+{
+  "at": "2026-10-07T17:26:47.125Z",
+  "evidenceKind": "SYNTHETIC_NATIVE_SQL",
+  "actualT1": false,
+  "commercialPreserved": true,
+  "commercialTablesChecked": 37,
+  "normalizedFixtureGuards": 33,
+  "status": "SYNTHETIC_NATIVE_SQL_REHEARSED",
+  "fixtureOnly": true,
+  "commercialWrites": 0,
+  "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+  "initialRecovery": {
+    "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+    "status": "STOPPED",
+    "inverseStarted": false
+  },
+  "lostResponse": true,
+  "forwardBlocked": true,
+  "priorReceiptProof": [
+    {
+      "runId": "GOAL73-44444444-4444-4444-8444-444444444444",
+      "manifestHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "committed": true,
+      "delta": "-20.00000000"
+    },
+    {
+      "runId": "GOAL7-44444444-4444-4444-8444-444444444444",
+      "manifestHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "committed": true,
+      "delta": "-4.00000000"
+    }
+  ],
+  "negatives": [
+    {
+      "scenario": "scalar-drift",
+      "rejection": "FINAL_NATIVE_SCALAR_DRIFT",
+      "rolledBack": true
+    },
+    {
+      "scenario": "active-null-ledger",
+      "rejection": "NATIVE_NOT_NULL_CONSTRAINT",
+      "rolledBack": true
+    },
+    {
+      "scenario": "hold",
+      "rejection": "FINAL_NATIVE_IDENTITY_HOLD",
+      "rolledBack": true
+    },
+    {
+      "scenario": "price-cas",
+      "rejection": "FINAL_PRICE_INVERSE_CAS",
+      "rolledBack": true
+    }
+  ],
+  "laterLocalReplay": {
+    "status": "RECONCILED",
+    "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+    "replayed": 3,
+    "newEffects": 0,
+    "reconciliation": {
+      "ok": true,
+      "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+      "receiptHashes": [
+        "80cecb5e28502aea684ad2b4919689d38e83cd875f2ce297d3871fe8b0f87937",
+        "c03e69fddbd0594d8aa5e9507b7d4d9a19daa7aeca7897d39b3c52d2201fc568",
+        "8a8b72cd8e1ce2c422387fd0732523e84b48a5c8725112692f466f8559ccc7df"
+      ]
+    }
+  },
+  "localAfterInverse": {
+    "accounts": [
+      {
+        "id": "10",
+        "value": "107.00000000"
+      },
+      {
+        "id": "11",
+        "value": "107.00000000"
+      },
+      {
+        "id": "12",
+        "value": "107.00000000"
+      },
+      {
+        "id": "13",
+        "value": "107.00000000"
+      },
+      {
+        "id": "14",
+        "value": "87.00000000"
+      },
+      {
+        "id": "15",
+        "value": "107.00000000"
+      }
+    ],
+    "stock": [
+      {
+        "value": "15.000"
+      }
+    ]
+  },
+  "apply": {
+    "status": "RECONCILED",
+    "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+    "replayed": 2,
+    "newEffects": 6,
+    "reconciliation": {
+      "ok": true,
+      "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+      "receiptHashes": [
+        "80cecb5e28502aea684ad2b4919689d38e83cd875f2ce297d3871fe8b0f87937",
+        "c03e69fddbd0594d8aa5e9507b7d4d9a19daa7aeca7897d39b3c52d2201fc568",
+        "8a8b72cd8e1ce2c422387fd0732523e84b48a5c8725112692f466f8559ccc7df"
+      ]
+    }
+  },
+  "replay": {
+    "status": "RECONCILED",
+    "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+    "replayed": 3,
+    "newEffects": 0,
+    "reconciliation": {
+      "ok": true,
+      "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+      "receiptHashes": [
+        "80cecb5e28502aea684ad2b4919689d38e83cd875f2ce297d3871fe8b0f87937",
+        "c03e69fddbd0594d8aa5e9507b7d4d9a19daa7aeca7897d39b3c52d2201fc568",
+        "8a8b72cd8e1ce2c422387fd0732523e84b48a5c8725112692f466f8559ccc7df"
+      ]
+    }
+  },
+  "inverse": {
+    "status": "INVERSED",
+    "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+    "replayed": 1,
+    "newEffects": 3,
+    "reconciliation": {
+      "ok": true,
+      "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+      "receiptHashes": [
+        "1c36e158d7ebbd01eaf4ebd5a7e78fc862a275a374062ff65442c456a1074a5c",
+        "8716fc5255df9a266f1c40d4a4ceda3243c82b879beff58357628c491220fa5d",
+        "06bcc8ce183b388824129c7f574d726c0e1ad5b1f6cc29c20d952b1d8acfc3bd"
+      ]
+    }
+  },
+  "inverseReplay": {
+    "status": "INVERSED",
+    "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+    "replayed": 3,
+    "newEffects": 0,
+    "reconciliation": {
+      "ok": true,
+      "planHash": "44527df927cb949a6575c1891a325d1114f936ea89829802266a547ce67422a5",
+      "receiptHashes": [
+        "1c36e158d7ebbd01eaf4ebd5a7e78fc862a275a374062ff65442c456a1074a5c",
+        "8716fc5255df9a266f1c40d4a4ceda3243c82b879beff58357628c491220fa5d",
+        "06bcc8ce183b388824129c7f574d726c0e1ad5b1f6cc29c20d952b1d8acfc3bd"
+      ]
+    }
+  },
+  "normalRuntimeCatalog": "NOT_PROVED_BY_FIXTURE",
+  "preservedSchemas": [
+    "final_cutover_fixture_n",
+    "final_cutover_fixture_j"
+  ]
+}

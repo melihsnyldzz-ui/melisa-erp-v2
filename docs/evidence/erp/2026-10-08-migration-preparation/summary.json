@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "melisa-erp-migration-preparation.v1",
+  "at": "2026-10-07T23:08:02.686Z",
+  "decision": "ERP-DEC-027",
+  "boardItem": "ERP-MIGPREP01",
+  "scope": {
+    "parties": 200,
+    "accounts": 209
+  },
+  "initial": {
+    "applied": 16,
+    "readyAwaitingAuthorization": 0,
+    "technicalMissing": 191,
+    "businessDecision": 2,
+    "cardsCreated": 0
+  },
+  "finalCounts": {
+    "UYGULANMIŞ": 16,
+    "AKTARIM KANITI TAMAM — UYGULAMA ONAYI BEKLİYOR": 38,
+    "TEKNİK KANIT EKSİK": 149,
+    "İŞLETME KARARI BEKLİYOR": 2,
+    "KART OLUŞTU — FİNANS DOĞRULAMASI BEKLİYOR": 4
+  },
+  "newEvidenceResolved": {
+    "precision": 29,
+    "minusDisplay": 3,
+    "accountInceptionCarry": 5,
+    "reportSourceVersion": 1,
+    "total": 38
+  },
+  "newFinancePlan": {
+    "planHash": "27aefef1b8fe7e1595a1bdcf3ddf722c706554959c6ba66ee3a0abab5957091a",
+    "sourceVersionHash": "997d2f78ae8f9d71e4fd4bec5cc7dd76846bb69a42d2239744522efb5090d173",
+    "priorJournalHash": "181c7c3a4222b318824d8abd2a3970d63205dcca38edab111d14270f00902f2a",
+    "accounts": 38,
+    "proposedNonzeroDeltas": 36,
+    "proposedNoopChecks": 2,
+    "priorAppliedAccountsExcluded": 16,
+    "newUnknownCardsExcluded": 4,
+    "financialWriteAuthorized": false,
+    "dryRunStatus": "READONLY_VERIFIED",
+    "planReplayStatus": "SAME_PLAN_REPLAY",
+    "negatives": {
+      "differentBody": "PLAN_PAYLOAD_CONFLICT",
+      "sourceDrift": "RUN_OR_SOURCE_CONFLICT",
+      "nativeDrift": "NATIVE_DRIFT"
+    },
+    "inverseIsPlanOnly": true,
+    "atomicT1": false,
+    "independentReportExactEightDecimals": false,
+    "activeVegaGeneralRoundingAlgorithmProven": false
+  },
+  "pendingTechnical": {
+    "holdFinanceEvidence": 119,
+    "carryInceptionScope": 22,
+    "reportSourceVersion": 6,
+    "newPaymentAfterReport": 1,
+    "isolatedEurDocumentDiscrepancy": 1,
+    "total": 149
+  },
+  "cards": {
+    "created": 4,
+    "coreMetadataRows": 16,
+    "accountStatus": "UNKNOWN",
+    "currentBalance": null,
+    "confirmedZeroProduced": false,
+    "quarantinePreserved": true,
+    "committedReplayWrites": 0,
+    "nativeQuarantineRejections": 4,
+    "apiListDetailVerified": 4,
+    "normalUiVerified": 4,
+    "oldProtectedGroupsUnchanged": 44,
+    "financialWrites": 0,
+    "stockWrites": 0,
+    "holdLift": 0,
+    "rolesPermissionsChanged": 0
+  },
+  "guardCompatibility": {
+    "oldFirstGuardsPreserved": 37,
+    "additionalSidecarGuards": 37,
+    "sealedModules": 79,
+    "oldAggregateModules": 42,
+    "oldAggregateHash": "9AE41CA1AB25EE165019AD04DBD9A6FB4E5B7190F027E0A07A87FB03D698379E",
+    "resolverHash": "ea2204d7af1d1569cab0c621b30f14a20dd1d1daf87a12e9337d39c671909deb",
+    "immutableProof": true,
+    "oldNormalReadersChanged": 0
+  },
+  "runtime": {
+    "package": "TEST95",
+    "packageId": "CANONICAL-TEST-0c63a58845d8",
+    "sourceCommit": "0c63a58845d8663252f7dfeb0dcd2bd6a53c998c",
+    "manifestSha256": "64875cee7b5490a71152aab5857fc128396a622c82dd2fecd9b86688e63855d3",
+    "manifestFiles": 1476,
+    "baselineReproduced": true,
+    "ports": {
+      "web": 5194,
+      "api": 4144,
+      "native": 4146
+    },
+    "testOnly": true,
+    "nativeReadOnly": true,
+    "liveAccess": 0,
+    "sysadmin": 0,
+    "previousPackagePreserved": "TEST94",
+    "previousSource": "cee7d7a85b4c797732cfcba8967855f2efbad55b"
+  },
+  "technicalChecks": {
+    "api": 493,
+    "migration": 129,
+    "canonical": 276,
+    "packageBuild": "PASS",
+    "sourceCi": [
+      {
+        "event": "push",
+        "runId": 37698571426,
+        "conclusion": "success"
+      },
+      {
+        "event": "pull_request",
+        "runId": 37698577775,
+        "conclusion": "success"
+      }
+    ],
+    "finalDocumentationHead": "See exact PR head checks; separate from runtime source"
+  },
+  "knownPreexistingUiGap": {
+    "paymentHistory": "Goal8 batch receipt kind rejected by unchanged frontend validator",
+    "apiReadStatus": 200,
+    "presentInPreviousPackage": true
+  },
+  "finishTree": {
+    "total": 49,
+    "complete": 9,
+    "partial": 39,
+    "open": 1
+  },
+  "humanAcceptance": {
+    "ua24": "PENDING",
+    "userAcceptanceFileChanged": false
+  },
+  "financialWritesThisTurn": 0,
+  "vegaWrites": 0,
+  "liveWrites": 0,
+  "crmChanges": 0,
+  "mainMerge": false,
+  "migrationComplete": false,
+  "nextSingleAction": "Explicit authorization for the private 38-account TEST plan; revalidate source and target before application",
+  "privateProofSha256": {
+    "cards-apply.json": "1b3657855a1ab88dd53180e42fccae24b2c4c81266eed0c60e8e4d62566c462c",
+    "cards-replay.json": "6080d9ba186b1d41aee9cd50ad4079581397d299bdfba504f9775298f1113a33",
+    "cards-negative-proof.json": "66d5ac6bf295f5dfd97deadb2c7b918aa96b1603c22ec0c854726e0873f2efc1",
+    "native-card-hold-proof.json": "b1d6720f25ff8107e175eb30701d1a32810b0b3c215319b08625fc4ebce130f6",
+    "authorized-card-readback-95": "72571a59529e77567c8a73c53c895ac148f425d6b2c337d56f1ea729367d0c70",
+    "normal-ui-proof-95.json": "e27afa082354f23ee6ca846a0906516fcf86546890a824b93b7b2a69d2b8744c",
+    "quarantine-additive-commit.json": "ba42ca97b521ec43eed4d5709c5eb33f9c3bf8f2e2e19a6a6a93f7f8d6d9f67c",
+    "account-matrix-current.json": "7a2670d56b731fc0e78007708c4b843f0915708400d43fe362c06e2b1f6ac5b2",
+    "account-owner-triage-current.json": "a36b718cdefd4c6e77ad8927c9d8898d16d013b8127134ae4ae38f19cfa852c9",
+    "MELIH_REVIEW.md": "a75b8d84339ed57781b645d9881e4babeb9312568ffacdf1dba08004037d3e0f",
+    "finance-transfer-plan.json": "579f6916c47a53f9d3e916b37983f02cb4d906475a2e09b4f3621caa030763eb",
+    "finance-preparation-summary.json": "df8f5fe1534bc47f9f749bfb40565c073966b4bed7722c2a14d61ea79d03ed4e",
+    "payment-ui-known-gap.json": "63da16149e004b65d619a552cdf2294a362be4550d51a0f332bdc637e930e2fc"
+  }
+}

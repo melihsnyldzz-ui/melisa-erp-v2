@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "mode": "projects",
+  "erpStatusPath": "C:/Sirket/ERP/melisa-erp-v2/STATUS.md",
+  "crmStatusPath": "C:/Sirket/CRM/melisa-crm/CRM_STATUS.md",
+  "cachePath": "C:/Sirket/ERP/runtime/agent-checks/record-check-cache.json",
+  "allowStopContinuation": false
+}

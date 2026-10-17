@@ -138,7 +138,11 @@ export function buildScreenDeepLink(search, screenId, payload = {}) {
   }
   const recordKey = recordKeyByScreen[screenId];
   const recordId = recordKey ? validRecordId(payload?.[recordKey]) : null;
-  if (recordKey && recordId) params.set(recordKey, recordId);
+  if (recordKey && payload[recordKey] !== undefined && payload[recordKey] !== null && payload[recordKey] !== '') {
+    // Preserve an invalid explicit target for the reader to reject. Dropping it
+    // would turn a failed saved-record link into a new blank document on reload.
+    params.set(recordKey, recordId ?? String(payload[recordKey]));
+  }
   if (!recordId && (operationPartyKeys[screenId] || screenId === 'collections-overview')) {
     const finance = screenId === 'collections-overview';
     const partyKey = finance ? (payload.mode === 'payment' ? 'supplierId' : 'customerId') : operationPartyKeys[screenId];

@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "cd1eab3960afae31ce64b223f61b96d784edfb6d",
+  "package": "CANONICAL-FINOPS-TEST-20261006-65",
+  "manifestFiles": 1522,
+  "manifestSha256": "1F32BD8D2EA824239D1F61B3CD33C750704B9478C0EFE0535A4FB02708536414",
+  "dependencyFilesVerified": 16977,
+  "switch": {
+    "result": "PASS",
+    "sourceCommit": "cd1eab3960afae31ce64b223f61b96d784edfb6d",
+    "package": "C:\\Sirket\\ERP\\releases\\CANONICAL-FINOPS-TEST-20261006-65",
+    "privateConfigUnchanged": true,
+    "nativeLoopbackOnly": true,
+    "liveOwnersUnchanged": true,
+    "ipConfigurationChanged": false,
+    "businessWrites": 0,
+    "oldReleaseRetained": true
+  },
+  "health": [
+    {
+      "port": 4144,
+      "sourceCommit": "cd1eab3960afae31ce64b223f61b96d784edfb6d",
+      "packageId": "CANONICAL-TEST-cd1eab3960af",
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "sysadmin": 0,
+      "databaseControl": 0,
+      "liveDatabaseAccess": 0,
+      "externalOperations": false
+    },
+    {
+      "port": 4146,
+      "sourceCommit": "cd1eab3960afae31ce64b223f61b96d784edfb6d",
+      "packageId": "CANONICAL-TEST-cd1eab3960af",
+      "databaseName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "sysadmin": 0,
+      "databaseControl": 0,
+      "liveDatabaseAccess": 0,
+      "externalOperations": false
+    },
+    {
+      "port": 5194,
+      "sourceCommit": "cd1eab3960afae31ce64b223f61b96d784edfb6d",
+      "packageId": "CANONICAL-TEST-cd1eab3960af",
+      "databaseName": null,
+      "sysadmin": null,
+      "databaseControl": null,
+      "liveDatabaseAccess": null,
+      "externalOperations": null
+    }
+  ],
+  "unauthenticatedPurchaseContextStatus": 401,
+  "normalBrowser": "local demo selected; no real SQL write",
+  "screen": "runtime-demo-65.jpg",
+  "currentAuthenticatedPerformanceMeasured": false,
+  "nativeNewReturnScenarioExecuted": false,
+  "humanAcceptance": "pending"
+}

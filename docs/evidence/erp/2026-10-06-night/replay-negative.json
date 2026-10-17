@@ -1,0 +1,57 @@
+{
+  "at": "2026-10-06T00:11:56.519Z",
+  "sourceCommit": "78e6cc94c01f7f46cf0844149c7e987889057b2f",
+  "results": [
+    {
+      "path": "/api/work-sales/drafts",
+      "status": 200,
+      "replayed": true,
+      "requestId": "4f8eb60e-2433-4ae6-901f-3f409f055d1a"
+    },
+    {
+      "path": "/api/work-sales/drafts/34618/finalize",
+      "status": 200,
+      "replayed": true,
+      "requestId": "dd452fb3-60bf-4c53-95a6-09b5f91822a0"
+    },
+    {
+      "path": "/api/work-collections",
+      "status": 200,
+      "replayed": true,
+      "requestId": "e73fee9a-67ce-49cb-b8ea-149f3e650b95"
+    },
+    {
+      "path": "/api/work-collections/47751/cancel",
+      "status": 200,
+      "replayed": true,
+      "requestId": "190343ba-7286-4db6-a31c-ef2480a5c1c1"
+    },
+    {
+      "path": "/api/work-collections/47750/cancel",
+      "status": 200,
+      "replayed": true,
+      "requestId": "2a6b7134-a5cd-4782-8cf7-8fe6b837c549"
+    },
+    {
+      "path": "/api/work-collections",
+      "parallelSameRequests": 2,
+      "bothReplayed": true
+    },
+    {
+      "sameUuidDifferentBody": 409,
+      "code": "WORK_REQUEST_CONFLICT"
+    },
+    {
+      "realProductPreviewOnly": 409,
+      "nativeWriteAttempt": false,
+      "code": "WORK_PRODUCT_SCOPE"
+    },
+    {
+      "unknownCurrencyPreviewOnly": 409,
+      "nativeWriteAttempt": false,
+      "code": "WORK_CURRENCY_UNSUPPORTED"
+    }
+  ],
+  "currentInvoiceStatus": "cancelled",
+  "newBusinessWrites": 0
+}

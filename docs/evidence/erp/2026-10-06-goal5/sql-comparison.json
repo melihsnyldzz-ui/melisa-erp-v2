@@ -1,0 +1,94 @@
+{
+  "atomic": false,
+  "identity": {
+    "integratedSecurity": true,
+    "server": "Semih\\MELISADEV",
+    "isSysadmin": 1,
+    "database": "MELISA_ERP_SIRKET_TEST_20260929_01"
+  },
+  "tables": [
+    {
+      "sha256Before": "C5E8BE5A3BE07CE1C4BB949596848E76FD5DEE6FDF4C9E88D99F0E037F9CF4D1",
+      "table": "customer_movements",
+      "countBefore": 29169,
+      "countAfter": 29169,
+      "sha256After": "C5E8BE5A3BE07CE1C4BB949596848E76FD5DEE6FDF4C9E88D99F0E037F9CF4D1",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "DB333CCD952104CE99812F28BF3F4356840AACD0DA5F3063C2B5C26718CF93DC",
+      "table": "products",
+      "countBefore": 52970,
+      "countAfter": 52970,
+      "sha256After": "DB333CCD952104CE99812F28BF3F4356840AACD0DA5F3063C2B5C26718CF93DC",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "AF6471E151C67965CBEBB209748F0815B2B898525C16E518A968B5295C5F28FF",
+      "table": "purchase_invoice_items",
+      "countBefore": 59543,
+      "countAfter": 59543,
+      "sha256After": "AF6471E151C67965CBEBB209748F0815B2B898525C16E518A968B5295C5F28FF",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "2826DF00F6EAF50BA1DF8DCF9FB5B1BB975603872E0CEBBAA9EA7D3DE75E12E9",
+      "table": "purchase_invoices",
+      "countBefore": 11244,
+      "countAfter": 11244,
+      "sha256After": "2826DF00F6EAF50BA1DF8DCF9FB5B1BB975603872E0CEBBAA9EA7D3DE75E12E9",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "B2BBE12D0069D54C3CEDB176891E2A99970A77A6BB1F099E56CBA4F169D9A393",
+      "table": "sales_invoice_items",
+      "countBefore": 345563,
+      "countAfter": 345563,
+      "sha256After": "B2BBE12D0069D54C3CEDB176891E2A99970A77A6BB1F099E56CBA4F169D9A393",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "F5A646EC5395A59B3CF2888D4E430CAFCC41FD4982F7F49D592065F44471C07C",
+      "table": "sales_invoices",
+      "countBefore": 19233,
+      "countAfter": 19233,
+      "sha256After": "F5A646EC5395A59B3CF2888D4E430CAFCC41FD4982F7F49D592065F44471C07C",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "ABF53FE7D0FDD724E43401968B4A090B05430F543A4C286AC1CF9A33AF732B7B",
+      "table": "stock_movements",
+      "countBefore": 558985,
+      "countAfter": 558985,
+      "sha256After": "ABF53FE7D0FDD724E43401968B4A090B05430F543A4C286AC1CF9A33AF732B7B",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "142BAFE3B12989DA4CB04F36130862D8FBDEEBE7867B491C44DF382BCA6AA2C8",
+      "table": "supplier_movements",
+      "countBefore": 24028,
+      "countAfter": 24028,
+      "sha256After": "142BAFE3B12989DA4CB04F36130862D8FBDEEBE7867B491C44DF382BCA6AA2C8",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "3D5DBF9CC3B9FF0E0BB41D03D061B04799BE47B72E5145976820459376E0E62C",
+      "table": "work_collection_links",
+      "countBefore": 8,
+      "countAfter": 8,
+      "sha256After": "3D5DBF9CC3B9FF0E0BB41D03D061B04799BE47B72E5145976820459376E0E62C",
+      "unchanged": true
+    },
+    {
+      "sha256Before": "555298A6D79DA987D03056DE850E63558C2E8B8CEDA8D3455EAB85C6FF854655",
+      "table": "work_supplier_payment_requests",
+      "countBefore": 4,
+      "countAfter": 4,
+      "sha256After": "555298A6D79DA987D03056DE850E63558C2E8B8CEDA8D3455EAB85C6FF854655",
+      "unchanged": true
+    }
+  ],
+  "coverage": "ten named commercial tables and forty-three existing guard definitions; not a whole-database digest",
+  "guardsUnchanged": true,
+  "guardCount": 43
+}

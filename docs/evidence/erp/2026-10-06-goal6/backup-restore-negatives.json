@@ -1,0 +1,32 @@
+{
+  "cases": [
+    {
+      "result": "blocked-before-connect",
+      "case": "wrong-database"
+    },
+    {
+      "result": "production guard rejected injected header before restore",
+      "case": "wrong-backup-database",
+      "sqlRestoreAttempted": false,
+      "kind": "guard input negative; not a second real database backup"
+    },
+    {
+      "result": "blocked-before-restore",
+      "case": "existing-restore-target"
+    },
+    {
+      "result": "SQL rejected unavailable parent; source untouched",
+      "case": "unavailable-backup-path",
+      "fileCreated": false
+    },
+    {
+      "result": "SQL header rejected before restore",
+      "case": "malformed-backup",
+      "restoreAttempted": false
+    }
+  ],
+  "schemaVersion": "melisa-goal6.backup-negatives.v1",
+  "activeOverwrite": false,
+  "recordedAt": "2026-10-06T19:50:31.5151916Z",
+  "liveConnected": false
+}

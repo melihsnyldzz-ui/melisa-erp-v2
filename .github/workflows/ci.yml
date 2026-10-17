@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-startup-test:
+    name: windows-startup-test
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Windows owner and single-instance startup boundaries
+        run: node --test scripts/canonical/start-owned-test.test.mjs
+      - name: Windows PowerShell 5 empty-port process probe with in-memory OS fixtures
+        run: node scripts/ci/run.mjs windows-process-probe
+  quality-build-test:
+    name: quality-build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.1
+        with:
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            apps/web-admin/package-lock.json
+            apps/sites-workflow/package-lock.json
+      - name: Install locked dependencies without lifecycle scripts
+        run: |
+          npm ci --prefix apps/api --ignore-scripts --no-audit --no-fund
+          npm ci --prefix apps/web-admin --ignore-scripts --no-audit --no-fund
+          npm ci --prefix apps/sites-workflow --ignore-scripts --no-audit --no-fund
+      - name: Verify the offline boundary
+        run: node scripts/ci/run.mjs guard
+      - name: JavaScript syntax and basic quality
+        run: node scripts/ci/run.mjs quality
+      - name: API unit tests with synthetic boundaries
+        run: node scripts/ci/run.mjs api
+      - name: Web admin calculation tests
+        run: node scripts/ci/run.mjs web-admin
+      - name: Sites workflow unit tests
+        run: node scripts/ci/run.mjs sites-workflow
+      - name: Migration models with synthetic data only
+        run: node scripts/ci/run.mjs migration
+      - name: Canonical SQL source checks without SQL access
+        run: node scripts/ci/run.mjs canonical
+      - name: Build web admin and Sites workflow
+        run: node scripts/ci/run.mjs build
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full source history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - name: Scan reachable history with pinned Gitleaks and masked findings
+        run: bash scripts/ci/scan-secrets.sh

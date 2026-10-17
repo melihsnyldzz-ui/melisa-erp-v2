@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "environment": "TEST",
+  "sourceDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+  "backup": {
+    "sizeBytes": 7283015680,
+    "status": "success",
+    "completedAt": "2026-10-06T19:45:35.6851707Z",
+    "checksumVerified": true
+  },
+  "restore": {
+    "criticalDataMatched": true,
+    "sourceDatabaseMatched": true,
+    "status": "success",
+    "completedAt": "2026-10-06T19:45:53.5863028Z"
+  }
+}

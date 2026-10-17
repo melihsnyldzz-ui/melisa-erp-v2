@@ -1,0 +1,308 @@
+{
+  "schemaVersion": "melisa-goal8-public-day.v1",
+  "at": "2026-10-07T19:17:57.097Z",
+  "mode": "synthetic-test-day",
+  "runtime": {
+    "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
+    "packageId": "CANONICAL-TEST-a4a05b2b3cdb"
+  },
+  "seal": {
+    "profileId": "ERP-GOAL8-20261007",
+    "dayId": "b5f7b5fd-5d45-472d-83c3-b95230e8ea8f",
+    "definitionHash": "163DF110EEE5373A925AE4CBD42AEE89164FFFC42E0997430DB65FAC4823DBCA",
+    "sourceCommit": "a4a05b2b3cdbb89fe2423bb14b1452b7a299fa45",
+    "packageId": "CANONICAL-TEST-a4a05b2b3cdb"
+  },
+  "chainExecuted": true,
+  "nativeTechnicalPass": true,
+  "technicalPass": true,
+  "humanAccepted": false,
+  "scope": {
+    "synthetic": true,
+    "productId": "325503",
+    "supplierId": "13370",
+    "customerId": "30598",
+    "currency": "TRY",
+    "realCommercialWrites": false
+  },
+  "refs": {
+    "receiptId": "4",
+    "receiptLineId": "7",
+    "purchaseInvoiceId": "25095",
+    "purchaseItemId": "93196",
+    "salesInvoiceId": "34621",
+    "collectionId": "47760",
+    "paymentAmountExact4": "60.0000",
+    "paymentId": "58087",
+    "countDraftId": "47",
+    "returnDraftId": "48",
+    "returnId": "225"
+  },
+  "paymentPlan": {
+    "paymentAmountExact4": "60.0000",
+    "netDebtBeforePaymentExact4": "60.0000",
+    "supplierDeltaExact4": "20.0000",
+    "cashDeltaExact4": "60.0000",
+    "invoiceOutstandingExact4": "20.0000"
+  },
+  "consistency": {
+    "status": "LINKED_EVIDENCE_CONSISTENT",
+    "consistencyVerified": true,
+    "stockDeltaExact3": "0.000",
+    "supplierDeltaExact4": "20.0000",
+    "customerDeltaExact4": "0.0000",
+    "cashDeltaExact4": "60.0000",
+    "paymentAmountExact4": "60.0000",
+    "invoiceOutstandingExact4": "20.0000",
+    "finalSupplierBalanceExact4": "-80.0000",
+    "references": {
+      "receiptId": "4",
+      "purchaseInvoiceId": "25095",
+      "salesInvoiceId": "34621"
+    },
+    "humanAccepted": false,
+    "crmChainIncluded": false
+  },
+  "stages": [
+    {
+      "stage": "baseline",
+      "stockExact3": "3.000",
+      "supplierExact4": "-100.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "300.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": false,
+        "purchaseVerified": false,
+        "saleVerified": false,
+        "collectionVerified": false,
+        "paymentVerified": false,
+        "countVerified": false,
+        "returnVerified": false,
+        "customerSaleMovementId": null,
+        "supplierPurchaseMovementId": null,
+        "supplierReturnMovementId": null,
+        "stockMovementIds": null,
+        "effectHash": "7163D1C4C5C34D60D5DF74CDBF2152D74FE3390464E7E2563FA8EEB91090B165"
+      }
+    },
+    {
+      "stage": "receive",
+      "stockExact3": "5.000",
+      "supplierExact4": "-100.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "300.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": false,
+        "saleVerified": false,
+        "collectionVerified": false,
+        "paymentVerified": false,
+        "countVerified": false,
+        "returnVerified": false,
+        "customerSaleMovementId": null,
+        "supplierPurchaseMovementId": null,
+        "supplierReturnMovementId": null,
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"}]",
+        "effectHash": "016F2ACAFD19FCB93F985E2A43E3CD930832FFF431B385DC79233BD3E34A0F28"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "purchase",
+      "stockExact3": "5.000",
+      "supplierExact4": "60.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "300.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": false,
+        "collectionVerified": false,
+        "paymentVerified": false,
+        "countVerified": false,
+        "returnVerified": false,
+        "customerSaleMovementId": null,
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": null,
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"}]",
+        "effectHash": "21CE75FE44761824FDC00CE69BCCEA2A779BC5D22CAED4D395BFBAA2CE41C6FE"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "sale",
+      "stockExact3": "4.000",
+      "supplierExact4": "60.0000",
+      "customerExact4": "220.0000",
+      "cashExact4": "300.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": true,
+        "collectionVerified": false,
+        "paymentVerified": false,
+        "countVerified": false,
+        "returnVerified": false,
+        "customerSaleMovementId": "47759",
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": null,
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"},{\"id\":\"918544\",\"sourceType\":\"sales_invoice\"}]",
+        "effectHash": "2F6BD74152231302A1CBDCA870685B4A7AE854C804E40B66ED48FEAF2553A855"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "collect",
+      "stockExact3": "4.000",
+      "supplierExact4": "60.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "420.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": true,
+        "collectionVerified": true,
+        "paymentVerified": false,
+        "countVerified": false,
+        "returnVerified": false,
+        "customerSaleMovementId": "47759",
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": null,
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"},{\"id\":\"918544\",\"sourceType\":\"sales_invoice\"}]",
+        "effectHash": "0C9DFE1995F2391D0F41B0D9622DF55638FD69CD5D2EEF284A8781BB4846F7DE"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "pay",
+      "stockExact3": "4.000",
+      "supplierExact4": "0.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "360.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": true,
+        "collectionVerified": true,
+        "paymentVerified": true,
+        "countVerified": false,
+        "returnVerified": false,
+        "customerSaleMovementId": "47759",
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": null,
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"},{\"id\":\"918544\",\"sourceType\":\"sales_invoice\"}]",
+        "effectHash": "055FF6D4555F5BC4000230C7A2ADD2914152AA14F9C0568567A089D9D22BDF26"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "count",
+      "stockExact3": "4.000",
+      "supplierExact4": "0.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "360.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": true,
+        "collectionVerified": true,
+        "paymentVerified": true,
+        "countVerified": true,
+        "returnVerified": false,
+        "customerSaleMovementId": "47759",
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": null,
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"},{\"id\":\"918544\",\"sourceType\":\"sales_invoice\"}]",
+        "effectHash": "A1EC8C32D8B4351E80217CF05750C12A3A7509864CBC9C09B362C0EA30CED408"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "return",
+      "stockExact3": "3.000",
+      "supplierExact4": "-80.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "360.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": true,
+        "collectionVerified": true,
+        "paymentVerified": true,
+        "countVerified": true,
+        "returnVerified": true,
+        "customerSaleMovementId": "47759",
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": "58088",
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"},{\"id\":\"918544\",\"sourceType\":\"sales_invoice\"},{\"id\":\"918545\",\"sourceType\":\"invoice_return\"}]",
+        "effectHash": "A0362453384FD88BF828064F8CF99F9ED26D745BF4FBEA513D789558EF606720"
+      },
+      "replayAdditionalEffects": 0
+    },
+    {
+      "stage": "daily-report",
+      "stockExact3": "3.000",
+      "supplierExact4": "-80.0000",
+      "customerExact4": "100.0000",
+      "cashExact4": "360.0000",
+      "independentNativeReadback": true,
+      "nativeProof": {
+        "receiptVerified": true,
+        "purchaseVerified": true,
+        "saleVerified": true,
+        "collectionVerified": true,
+        "paymentVerified": true,
+        "countVerified": true,
+        "returnVerified": true,
+        "customerSaleMovementId": "47759",
+        "supplierPurchaseMovementId": "58086",
+        "supplierReturnMovementId": "58088",
+        "stockMovementIds": "[{\"id\":\"918543\",\"sourceType\":\"goods_receipt_batch\"},{\"id\":\"918544\",\"sourceType\":\"sales_invoice\"},{\"id\":\"918545\",\"sourceType\":\"invoice_return\"}]",
+        "effectHash": "A0362453384FD88BF828064F8CF99F9ED26D745BF4FBEA513D789558EF606720"
+      }
+    }
+  ],
+  "crm": {
+    "sameDay": true,
+    "customerId": "30598",
+    "catalogProductId": "30740",
+    "receivedProductId": "325503",
+    "draftId": "10",
+    "differentProductExplicit": true,
+    "neutralNativeDraft": true,
+    "externalMessages": 0,
+    "stockFinanceEffect": 0
+  },
+  "reports": {
+    "verifiedKinds": 7,
+    "counts": {
+      "sales": 1,
+      "collections": 1,
+      "purchases": 1,
+      "supplierPayments": 1,
+      "stockMovements": 3,
+      "customerMovements": 2,
+      "supplierMovements": 3
+    }
+  },
+  "continuation": {
+    "originalPrefixPackage": "TEST90",
+    "remainingStagesPackage": "TEST92",
+    "previousStagesNotRepeated": true,
+    "oldCreditPreserved": true,
+    "nativeScopeUnchanged": true
+  },
+  "replay": {
+    "additionalStockEffects": 0,
+    "additionalFinanceEffects": 0
+  },
+  "humanAcceptance": "PENDING"
+}

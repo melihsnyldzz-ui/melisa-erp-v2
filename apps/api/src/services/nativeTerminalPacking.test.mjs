@@ -30,7 +30,7 @@ mock.module('./currencyRateService.js',{namedExports:{getCurrencyRates:blocked,u
 mock.module('./salesPipelineService.js',{namedExports:{listPipelineDocuments:blocked,getPipelineDocument:blocked}});
 mock.module('./nativeTerminalSale.mjs',{namedExports:{nativeSubmitSale:blocked,nativeSaleStatus:blocked,nativeDiscountApproval:blocked,nativeCancelSale:blocked,nativeOwnedInvoice:blocked}});
 mock.module('./terminalReceiptPrintService.js',{namedExports:{printTerminalSaleReceipt:blocked}});
-mock.module('./authService.js',{namedExports:{getUserById:async()=>actor,verifyAccessToken:token=>{
+mock.module('./authService.js',{namedExports:{getUserById:async()=>actor,verifyNormalTestAccessSession:(payload,user)=>{assert.deepEqual(payload,{sub:8});assert.equal(user,actor);},verifyAccessToken:token=>{
  if(token!=='synthetic-test-token')throw Object.assign(Error('Invalid token'),{code:'AUTH_TOKEN_INVALID',statusCode:401});
  return {sub:8};
 }}});

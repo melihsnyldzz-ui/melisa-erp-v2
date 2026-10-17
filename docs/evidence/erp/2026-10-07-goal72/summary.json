@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "melisa-goal72-readonly-evidence.v1",
+  "status": "PLAN_DELIVERED_DATED_REPORT_DEPENDENCY_OPEN",
+  "startedFromCommit": "35a70a14ca3309fc6658ca9d5824d81f35d20f0d",
+  "runtime": {
+    "sourceCommit": "07101548d4af1f4a9344fe7cf7f19e64ffa26edb",
+    "package": "CANONICAL-GOAL71-TEST-20261007-84",
+    "webPort": 5194,
+    "apiPort": 4144,
+    "nativePort": 4146,
+    "server": "Semih\\MELISADEV",
+    "database": "MELISA_ERP_SIRKET_TEST_20260929_01",
+    "restarted": false,
+    "deployed": false
+  },
+  "source": {
+    "server": "DESKTOP-KSRK0EQ",
+    "database": "VEGA2026",
+    "dateFrom": "2026-01-01",
+    "dateToExclusive": "2026-10-08",
+    "capturedFrom": "2026-10-07T10:28:32.949Z",
+    "capturedThrough": "2026-10-07T10:28:33.868Z",
+    "atomicSnapshot": false,
+    "sourceVersionHash": "154592c226cc655228e645af3445c33e712c93c762da1b7b483826b90386d77f",
+    "planHash": "464749ee4dd47bc1c3e4bb76e4d0216512e5eef34d9da4edc43eb659f0137fce"
+  },
+  "counts": {
+    "parties": 200,
+    "accounts": 209,
+    "missingIdentityCards": 4,
+    "newCardsRequired": 4,
+    "currentMovements": 3806,
+    "openingRows": 86,
+    "openingHeadersVerified": 86,
+    "allCurrentHeadersVerified": 3806,
+    "changedSourceParties": 10,
+    "changedRows": 14,
+    "removedRows": 1,
+    "sourceStableProjections": 4,
+    "financialResearchPool": 84,
+    "nonzeroDiagnosticDeltas": 77,
+    "poolOpeningAndPeriodVerified": 57,
+    "poolNoExplicitCarry": 27,
+    "poolNoExplicitCarryWithPriorYear": 14,
+    "sourceNoMovement": 83,
+    "unknownCurrency": 2,
+    "statuses": {
+      "KANIT EKSİK": 203,
+      "İŞLETME KARARI": 2,
+      "EŞLEŞME YOK": 4
+    },
+    "fullyProvenAccounts": 0,
+    "datedReportReconciledAccounts": 0,
+    "financialWrites": 0,
+    "holdsLifted": 0
+  },
+  "protected": {
+    "twelveFinanceTablesUnchanged": true,
+    "twoReaderDefinitionsUnchanged": true,
+    "sameSinceGoal71": true,
+    "authorizationAndHoldsScopes": 5,
+    "financialWrites": 0,
+    "holdsLifted": 0,
+    "liveWrites": 0,
+    "vegaWrites": 0,
+    "crmChanges": 0,
+    "mainMerged": false,
+    "humanAccepted": false
+  },
+  "offlineTests": {
+    "newPlanTests": 9,
+    "migrationTests": 46
+  },
+  "evidence": {
+    "privateManifestSha256": "c4015fd7bd79eb4e9838cf690ae1e2fdc742d366a0dd4ff45ccaf7d00a95ccad",
+    "privateAccountPlanSha256": "3bc44c7ff1d1050036d90cba371d96c1847458fc88fc6180b80b1cb2c2b351aa",
+    "privateFourCardPlanSha256": "fbd15fcfce49ddd149b57b36d9fabe75f7f491e9afde2b8c5aaf672bb6f2224a",
+    "financeBeforeSha256": "a2dc117bf175b4d0cfdc81322391bc81d821b0b0f352613762baec0238ee227c",
+    "financeAfterSha256": "6079cde4024b63d68eb526be8207581058d7e2c3dab1ac5d48420852632b8803",
+    "authorizationBeforeSha256": "778db505fae055a3bc628de582d33ff83fa095a3a6369da050aa8fcd9bc24fb6",
+    "authorizationAfterSha256": "5a7e4d2423ea31bba6aec4dcb35f2bc58d08374a41df4c0eb3dcb970ba39ca30",
+    "qqqSha256": "2dcef8ca7e63ef02fb0e413e0aeb25d030e2b08877ffdbb28f6bff4a9fa83f31"
+  },
+  "nextSingleDependency": "Dated same-filter Vega Cari Hesap Listesi Ozet package F0102+F0103; no financial apply approval granted"
+}

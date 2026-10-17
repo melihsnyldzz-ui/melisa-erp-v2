@@ -15,13 +15,14 @@ test('batch scans aggregate barcode/model, persist draft, then approve every row
  assert.throws(()=>acceptCount(s,s.counts[0].id,'İlker'),/bütün satır/);approveCountBatch(s,d.id,'İlker');assert.equal(stockQuantity(s,'M-100'),22);assert.equal(stockQuantity(s,'M-142'),10);
  const before=structuredClone(s);assert.throws(()=>approveCountBatch(s,d.id,'Semih'));assert.deepEqual(s,before);assert.throws(()=>submitCountSession(s,d.id,d.revision,'Satış ekibi'));
 });
-test('invalid scans, empty reason, unknown product and stale draft never partially mutate',()=>{
+test('unknown barcode stays in review; invalid quantities, empty reason and stale draft never partially mutate',()=>{
  const s=seed(),d=create(s);scan(s,d,'M-100',1);
- for(const action of [{type:'scan',input:'UNKNOWN',quantity:1},{type:'scan',input:'M-142',quantity:-1},{type:'quantity',code:'M-100',quantity:1.5},{type:'scan',input:'M-100',quantity:1000000}]){const before=structuredClone(s);assert.throws(()=>edit(s,d,action));assert.deepEqual(s,before)}
+ const beforeUnknown=structuredClone(s);edit(s,d,{type:'scan',input:'0000098765432',quantity:1});assert.deepEqual(d.unknownScans.map(x=>({value:x.value,quantity:x.quantity,status:x.status})),[{value:'0000098765432',quantity:1,status:'needs_review'}]);assert.deepEqual(s.counts,beforeUnknown.counts);
+ for(const action of [{type:'scan',input:'M-142',quantity:-1},{type:'quantity',code:'M-100',quantity:1.5},{type:'scan',input:'M-100',quantity:1000000}]){const before=structuredClone(s);assert.throws(()=>edit(s,d,action));assert.deepEqual(s,before)}
  let before=structuredClone(s);assert.throws(()=>submitCountSession(s,d.id,d.revision,'Satış ekibi'),/neden/);assert.deepEqual(s,before);
  assert.throws(()=>updateCountSession(s,d.id,0,{type:'quantity',code:'M-100',quantity:24},'İlker'),/başka/);assert.deepEqual(s,before);
  assert.equal(create(s).id,d.id);assert.equal(s.countSessions.length,1);
- edit(s,d,{type:'quantity',code:'M-100',quantity:0});reason(s,d,'M-100','Ürün rafta bulunamadı');submitCountSession(s,d.id,d.revision,'Satış ekibi');approveCountBatch(s,d.id,'Semih');assert.equal(stockQuantity(s,'M-100'),0);
+ edit(s,d,{type:'quantity',code:'M-100',quantity:0});reason(s,d,'M-100','Ürün rafta bulunamadı');const submitted=submitCountSession(s,d.id,d.revision,'Satış ekibi'),unknownId=submitted.find(x=>x.unknown).id;const beforeReview=structuredClone(s);assert.throws(()=>approveCountBatch(s,d.id,'Semih'),/Stok kartı gerekli/);assert.deepEqual(s,beforeReview);rejectCountBatch(s,d.id,'Önce stok kartı doğrulansın','Semih');assert.equal(stockQuantity(s,'M-100'),24);assert.equal(countRows(s,d.id).find(x=>x.unknown).state,'rejected');assert.ok(unknownId);
 });
 test('movement during counting or approval blocks the entire batch without overwriting stock',()=>{
  const s=seed(),d=create(s);scan(s,d,'M-142',9);reason(s,d,'M-142');scan(s,d,'M-100',23);reason(s,d,'M-100');

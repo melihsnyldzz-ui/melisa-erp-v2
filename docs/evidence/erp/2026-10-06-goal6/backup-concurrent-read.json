@@ -1,0 +1,30 @@
+{
+  "catalog": [
+    {
+      "productCount": "16622"
+    }
+  ],
+  "capturedAt": "2026-10-06T19:44:08.4695023Z",
+  "products": [
+    {
+      "productId": "34765",
+      "stock_code": "0161 MOLLY",
+      "stock": "14.000"
+    },
+    {
+      "productId": "36724",
+      "stock_code": "8023 CONCEPT",
+      "stock": "0.000"
+    }
+  ],
+  "backupActive": [
+    {
+      "command": "BACKUP DATABASE",
+      "pct": "24.642",
+      "dbName": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "elapsedMs": 24427
+    }
+  ],
+  "durationMs": 86,
+  "readOnlyUsage": true
+}

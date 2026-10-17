@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-07T17:50:14.207Z",
+  "status": "VERIFIED",
+  "commercialPreserved": true,
+  "statements": 472,
+  "proof": {
+    "fixtureOnly": true,
+    "evidenceKind": "SYNTHETIC_NATIVE_SQL",
+    "actualT1": false,
+    "historicalReadinessReproved": false,
+    "normalErpRuntimeActivated": false,
+    "normalReaderSqlEngineProved": true,
+    "nativeNullPreserved": true,
+    "boundNullExcluded": true,
+    "productCount": 16671,
+    "priceCount": 63775,
+    "heldCount": 54,
+    "changedTypedPrices": 3,
+    "negativeProofs": [
+      "immutable-sealed-version",
+      "native-price-drift",
+      "actor-permission",
+      "native-tuple-type"
+    ],
+    "forward": {
+      "runId": "FINAL-22222222-2222-4222-8222-222222222222",
+      "snapshotHash": "62691692f74e639245b6eae79122700a9a5ec249d7b56de2f64e4f7538f76d07",
+      "contractHash": "858a51509d98927b05f4a58ff359eeeddcdbd4e04f2efd119ea15f5f9c5884f2"
+    },
+    "inverse": {
+      "runId": "FINAL-INVERSE-22222222-2222-4222-8222-222222222222",
+      "snapshotHash": "f9d0bcbc090e661f7b9e820ef87bcdc0f0bce71562323777aed6c0ead4cdd062",
+      "contractHash": "9c28ae73ef2b730e26257b14d6d637044d6eba8355a92c2c2db25be3810200fd"
+    },
+    "commercialWrites": 0
+  }
+}

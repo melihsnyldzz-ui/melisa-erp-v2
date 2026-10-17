@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "melisa-goal6.restore-application-read.v1",
+  "capturedAt": "2026-10-06T19:48:04.681Z",
+  "identity": {
+    "serverName": "Semih\\MELISADEV",
+    "databaseName": "MELISA_ERP_GOAL6_RESTORE_TEST_20261006_01",
+    "isReadOnly": true,
+    "state": "ONLINE"
+  },
+  "connector": "sealed TEST74 apps/api/src/config/database.js getSqlPool; msnodesqlv8 / integrated Windows authentication",
+  "applicationSource": "5972f847fe4697db3386b4fe7fabd98a006d21c7",
+  "applicationPackage": "C:/Sirket/ERP/releases/CANONICAL-PERSONNEL-TEST-20261006-74",
+  "temporaryProcess": true,
+  "runningServicesRedirected": false,
+  "sqlStatements": "SELECT only; database READ_ONLY asserted before business reads",
+  "catalog": {
+    "count": "16622",
+    "unknownCost": "10552",
+    "prices": "63774"
+  },
+  "products": [
+    {
+      "productId": "34765",
+      "stockCode": "0161 MOLLY",
+      "stock": "14.000",
+      "barcode": "8697130801618",
+      "price": "9.66000000",
+      "currency": "USD"
+    },
+    {
+      "productId": "36724",
+      "stockCode": "8023 CONCEPT",
+      "stock": "0.000",
+      "barcode": "3617221176192",
+      "price": "15.78000000",
+      "currency": "USD"
+    }
+  ],
+  "nativeOrder": {
+    "id": "9",
+    "status": "draft",
+    "currency": "USD",
+    "total": "25.4400"
+  },
+  "nativeLines": [
+    {
+      "productId": "34765",
+      "stockCode": "0161 MOLLY",
+      "quantity": "1.000",
+      "currency": "USD",
+      "unitPrice": "9.6600"
+    },
+    {
+      "productId": "36724",
+      "stockCode": "8023 CONCEPT",
+      "quantity": "1.000",
+      "currency": "USD",
+      "unitPrice": "15.7800"
+    }
+  ],
+  "dailyDrafts": [
+    {
+      "id": "43",
+      "flow": "count",
+      "kind": "count",
+      "state": "pending"
+    },
+    {
+      "id": "44",
+      "flow": "purchase",
+      "kind": "invoice-return",
+      "state": "pending"
+    }
+  ],
+  "inbound": {
+    "id": "7"
+  },
+  "roles": {
+    "users": 16,
+    "roles": 16,
+    "permissions": 137
+  },
+  "elapsedMs": 1031
+}

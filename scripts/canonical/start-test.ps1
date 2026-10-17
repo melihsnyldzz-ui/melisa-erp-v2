@@ -16,7 +16,7 @@ $node=(Get-Command node.exe).Source
 $launches=@(
  @{Port=4144;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('erp',$ConfigPath);Name='erp'},
  @{Port=4146;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('native',$ConfigPath);Name='native'},
- @{Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@();Name='web'}
+ @{Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@($ConfigPath);Name='web'}
 )
 foreach($x in $launches){if(Get-NetTCPConnection -State Listen -LocalPort $x.Port -ErrorAction SilentlyContinue){throw "TEST_PORT_OCCUPIED: $($x.Port)"}}
 $started=@()
@@ -27,7 +27,10 @@ try {
   $process=Start-Process -FilePath $node -ArgumentList $argsList -WorkingDirectory $api -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtime ($x.Name+'.out.log')) -RedirectStandardError (Join-Path $runtime ($x.Name+'.err.log'))
   $started+=$process
   $ready=$false
-  for($i=0;$i -lt 30;$i++){
+  # ERP validates all pinned central media bytes before opening its listener.
+  # Keep the shorter budget for native/web, and never accept an unverified listener.
+  $readyAttempts=if($x.Name -eq 'erp'){360}else{30}
+  for($i=0;$i -lt $readyAttempts;$i++){
    Start-Sleep -Milliseconds 500
    try{$health=Invoke-RestMethod "http://127.0.0.1:$($x.Port)/test-health" -TimeoutSec 2;if($health.sourceCommit -eq $manifest.sourceCommit -and $health.packageId -eq $manifest.packageId){$ready=$true;break}}catch{}
    if($process.HasExited){break}

@@ -1,0 +1,90 @@
+{
+  "at": "2026-10-06T08:24:20.6698509Z",
+  "selectOnly": true,
+  "syntheticOnly": true,
+  "counts": [
+    {
+      "id": 3,
+      "actorId": 16,
+      "state": "needs_review",
+      "version": 1,
+      "note": "Bulunamayan barkod incelemesi",
+      "linesJson": "[{\"clientLineId\":\"fc6e9f5e-e096-458e-9dd6-1b4f3d962407\",\"productId\":null,\"barcode\":\"0000098765432\",\"stockCode\":null,\"physicalQuantityExact3\":\"1.000\",\"expectedQuantityExact3\":null,\"issue\":null,\"note\":\"\"}]",
+      "receiptId": null
+    },
+    {
+      "id": 4,
+      "actorId": 16,
+      "state": "submitted",
+      "version": 2,
+      "note": "Sabah iki ürünlü kabul provası",
+      "linesJson": "[{\"clientLineId\":\"a151a261-cdc8-4225-8ac5-9b43c13302f6\",\"productId\":\"301985\",\"barcode\":null,\"stockCode\":\"TEST-V70-GOODS-P\",\"physicalQuantityExact3\":\"1.000\",\"expectedQuantityExact3\":null,\"issue\":\"short\",\"note\":\"Fiziksel sayımda bir adet görüldü.\"},{\"clientLineId\":\"a2beaf09-c8f6-4325-889b-a02f44201165\",\"productId\":\"325503\",\"barcode\":null,\"stockCode\":\"TEST-FINISH-GOODS-P2\",\"physicalQuantityExact3\":\"1.000\",\"expectedQuantityExact3\":null,\"issue\":\"over\",\"note\":\"\"}]",
+      "receiptId": 3
+    },
+    {
+      "id": 5,
+      "actorId": 15,
+      "state": "draft",
+      "version": 1,
+      "note": "Kullanıcının sabah inceleyeceği iki satırlı sayım",
+      "linesJson": "[{\"clientLineId\":\"7e2e0046-87fc-4029-b7b2-20b0d7a5d8fb\",\"productId\":\"301985\",\"barcode\":null,\"stockCode\":\"TEST-V70-GOODS-P\",\"physicalQuantityExact3\":\"1.000\",\"expectedQuantityExact3\":null,\"issue\":null,\"note\":\"\"},{\"clientLineId\":\"5effa692-2499-40b9-afc4-9424411a483d\",\"productId\":\"325503\",\"barcode\":null,\"stockCode\":\"TEST-FINISH-GOODS-P2\",\"physicalQuantityExact3\":\"1.000\",\"expectedQuantityExact3\":null,\"issue\":null,\"note\":\"\"}]",
+      "receiptId": null
+    },
+    {
+      "id": 6,
+      "actorId": 15,
+      "state": "needs_review",
+      "version": 1,
+      "note": "Personel barkod incelemesi; stok kartı gerekli.",
+      "linesJson": "[{\"clientLineId\":\"e257aba1-af41-42d5-9cd4-fde73d67ffd2\",\"productId\":null,\"barcode\":\"0000098765432\",\"stockCode\":null,\"physicalQuantityExact3\":\"1.000\",\"expectedQuantityExact3\":null,\"issue\":null,\"note\":\"\"}]",
+      "receiptId": null
+    }
+  ],
+  "immutableFxSource": [
+    {
+      "field": "currentPrices",
+      "equal": true,
+      "beforeCount": 3,
+      "afterCount": 3
+    },
+    {
+      "field": "priceVersions",
+      "equal": true,
+      "beforeCount": 7,
+      "afterCount": 7
+    },
+    {
+      "field": "expectedSourceProof",
+      "equal": true,
+      "beforeCount": 1,
+      "afterCount": 1
+    },
+    {
+      "field": "objects",
+      "equal": true,
+      "beforeCount": 22,
+      "afterCount": 22
+    },
+    {
+      "field": "c09ManifestObjects",
+      "equal": true,
+      "beforeCount": 22,
+      "afterCount": 22
+    },
+    {
+      "field": "legacyManifestObjects",
+      "equal": true,
+      "beforeCount": 54,
+      "afterCount": 54
+    },
+    {
+      "field": "rates",
+      "equal": true,
+      "beforeCount": 3,
+      "afterCount": 3
+    }
+  ],
+  "oldInvoice25090Unchanged": true,
+  "newInvoicesInPaymentAllowlist": 0,
+  "paymentBonus": "Not connected: new invoices are outside the existing payment allowlist; no guard or scope expansion."
+}

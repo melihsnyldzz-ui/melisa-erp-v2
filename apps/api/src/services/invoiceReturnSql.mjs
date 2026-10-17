@@ -1,3 +1,6 @@
+import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
+import {copyAssert,getBusinessDailySelection,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
+import {postIsolatedCopyCurrencyMovement} from './nativeCurrencyAccount.mjs';
 import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './operationQuarantineService.js';
 import {returnError} from './invoiceReturnPolicy.mjs';
 import {settlementFromInvoice} from './currencySettlement.mjs';
@@ -12,6 +15,11 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
  return {async transaction(write,work){
   const pool=await getPool(),transaction=dependencies.transaction??new sql.Transaction(pool),owns=!dependencies.transaction;if(owns)await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   const request=()=>new sql.Request(transaction);
+  const copy=dependencies.isolatedOperationCopy??null;if(copy)copyAssert(isolatedCopyTransactionContext(transaction,{writeRequired:write})===copy,'ISOLATED_COPY_RETURN_TRANSACTION');
+  const daily=copy?.target.database===BUSINESS_COPY_DATABASE?getBusinessDailySelection(copy):null;
+  if(copy?.target.database===BUSINESS_COPY_DATABASE)copyAssert(daily,'ISOLATED_COPY_RETURN_SCOPE',403);
+  const selectedSupplier=copy?(daily?copy.suppliers.find(p=>p.accountId===daily.supplierAccountId):copy.suppliers[0]):null;
+  const allowedProductIds=copy?(daily?daily.productIds:copy.products.map(p=>p.id)):null;
   try {
    const schema=await request().query(`SELECT CASE WHEN OBJECT_ID(N'dbo.invoice_returns',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.invoice_return_items',N'U') IS NOT NULL AND COL_LENGTH(N'dbo.customer_movements',N'invoice_return_id') IS NOT NULL AND COL_LENGTH(N'dbo.supplier_movements',N'invoice_return_id') IS NOT NULL AND COL_LENGTH(N'dbo.sales_invoices',N'account_amount') IS NOT NULL AND COL_LENGTH(N'dbo.purchase_invoices',N'account_amount') IS NOT NULL THEN 1 ELSE 0 END AS ready;`);
    if(!schema.recordset?.[0]?.ready)throw returnError('RETURN_SCHEMA_REQUIRED','İade veri yapısı henüz kurulmamış. İşlem kaydedilmedi.',503);
@@ -24,6 +32,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
     async products(ids){const req=request(),unique=[...new Set(ids)].sort((a,b)=>a-b);unique.forEach((id,i)=>req.input('p'+i,sql.BigInt,id));const result=await req.query(`SELECT id,stock_code AS code,name,current_stock_qty AS stock,average_cost_try AS averageCostTry,is_active AS isActive,is_deleted AS isDeleted FROM dbo.products ${hints} WHERE id IN(${unique.map((_,i)=>'@p'+i).join(',')}) ORDER BY id;`);return result.recordset.map(r=>({...r,id:Number(r.id),stock:r.stock==null?null:Number(r.stock),averageCostTry:r.averageCostTry==null?null:Number(r.averageCostTry),isActive:Boolean(r.isActive),isDeleted:Boolean(r.isDeleted)}));},
     async party(kind,id){const table=kind==='sales'?'customers':'suppliers';const result=await request().input('partyId',sql.BigInt,id).query(`SELECT id,name,currency_code AS currency,is_active AS isActive,is_deleted AS isDeleted FROM dbo.${table} ${hints} WHERE id=@partyId;`);const p=result.recordset?.[0];return p?{...p,id:Number(p.id),isActive:Boolean(p.isActive),isDeleted:Boolean(p.isDeleted)}:null;},
     async context(payload){
+     if(copy){copyAssert(payload.kind==='purchase'&&payload.sourceInvoiceId&&payload.items?.length===1&&payload.items.every(i=>allowedProductIds.includes(String(i.productId))),'ISOLATED_COPY_RETURN_SCOPE',403);const own=(await request().input('source',sql.BigInt,payload.sourceInvoiceId).input('copy',sql.UniqueIdentifier,copy.copyId).query(`SELECT 1 valid FROM dbo.test_purchase_batch_drafts d JOIN dbo.test_goods_batches b ON b.id=d.batch_id JOIN dbo.purchase_invoices p ON p.id=d.invoice_id WHERE p.id=@source AND b.note LIKE N'STAGE4:'+LOWER(CONVERT(nvarchar(36),@copy))+N':%' AND b.state=N'accepted' AND d.state=N'linked' AND p.supplier_id=${selectedSupplier.id} AND p.document_currency=N'TRY' AND p.account_currency=N'TRY'`)).recordset;copyAssert(own.length===1,'ISOLATED_COPY_RETURN_SOURCE',403);}
      const sales=payload.kind==='sales',partyTable=sales?'customers':'suppliers',partyColumn=sales?'customer_id':'supplier_id',invoiceTable=sales?'sales_invoices':'purchase_invoices';
      let source=null,partyId=payload.partyId,prior=[];
      if(payload.sourceInvoiceId){
@@ -52,6 +61,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
      return saved;
     },
     async apply(saved,plan,sign,actorId){
+     if(copy){copyAssert(plan.kind==='purchase'&&copy.suppliers.some(p=>p.id===String(plan.partyId)&&p.currency===plan.accountCurrency)&&plan.documentCurrency==='TRY'&&plan.items.every(i=>allowedProductIds.includes(String(i.productId))),'ISOLATED_COPY_RETURN_SCOPE',403);if(sign<0){const own=(await request().input('r',sql.BigInt,saved.id).input('copy',sql.UniqueIdentifier,copy.copyId).query(`SELECT 1 valid FROM dbo.stage4_copy_requests WHERE copy_id=@copy AND operation=N'purchase_return_approve' AND TRY_CONVERT(bigint,JSON_VALUE(response_json,'$.result.id'))=@r`)).recordset;copyAssert(own.length===1,'ISOLATED_COPY_RETURN_OWNER',403);}}
      await assertOperationQuarantineAllowed([{entity:plan.kind==='sales'?'customer':'supplier',nativeId:plan.partyId},...plan.items.map(i=>({entity:'product',nativeId:i.productId}))],quarantineTransactionContext(sql,transaction));
      const sales=plan.kind==='sales',direction=(sales?1:-1)*sign;
      for(const item of plan.items){
@@ -61,6 +71,7 @@ export async function createInvoiceReturnSqlRepository(dependencies={}) {
      const table=sales?'customer_movements':'supplier_movements',partyColumn=sales?'customer_id':'supplier_id';
      await request().input('partyId',sql.BigInt,plan.partyId).input('returnId',sql.BigInt,saved.id).input('type',sql.NVarChar(40),`${plan.kind}_return${sign<0?'_cancel':''}`).input('amount',sql.Decimal(18,4),plan.amount).input('currency',sql.NVarChar(3),plan.documentCurrency).input('effect',sql.Decimal(18,4),-sign*plan.accountAmount).input('date',sql.Date,plan.documentDate).input('actor',sql.BigInt,actorId).input('accountCurrency',sql.NVarChar(3),plan.accountCurrency).input('accountAmount',sql.Decimal(18,4),plan.accountAmount).input('documentRate',sql.Decimal(18,8),plan.exchangeRate).input('accountRate',sql.Decimal(18,8),plan.accountExchangeRate).input('amountTry',sql.Decimal(18,4),plan.amountTry).query(`INSERT dbo.${table}(${partyColumn},invoice_return_id,movement_type,amount,currency_code,balance_effect,document_date,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try) VALUES(@partyId,@returnId,@type,@amount,@currency,@effect,@date,@actor,@accountCurrency,@accountAmount,@documentRate,@accountRate,@amountTry);`);
      await request().input('partyId',sql.BigInt,plan.partyId).input('effect',sql.Decimal(18,4),-sign*plan.accountAmount).query(`UPDATE dbo.${sales?'customers':'suppliers'} SET balance=balance+@effect,updated_at=SYSUTCDATETIME() WHERE id=@partyId;`);
+     if(copy){const rows=(await request().input('return',sql.BigInt,saved.id).input('type',sql.NVarChar(40),`${plan.kind}_return${sign<0?'_cancel':''}`).query(`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(60),CONVERT(decimal(28,8),balance_effect)) effect FROM dbo.${table} WHERE invoice_return_id=@return AND movement_type=@type`)).recordset;copyAssert(rows.length===1,'ISOLATED_COPY_RETURN_EFFECT');await postIsolatedCopyCurrencyMovement({role:sales?'customer':'supplier',partyId:plan.partyId,currency:plan.accountCurrency,movementId:rows[0].id,effectExact8:rows[0].effect},{pool,sqlDriver:sql,transaction},dependencies.actor);}
     },
     async markCancelled(id,reason,actorId){await request().input('id',sql.BigInt,id).input('reason',sql.NVarChar(500),reason).input('actor',sql.BigInt,actorId).query("UPDATE dbo.invoice_returns SET status=N'cancelled',cancelled_at=SYSUTCDATETIME(),cancelled_by=@actor,cancel_reason=@reason WHERE id=@id;");},
    };

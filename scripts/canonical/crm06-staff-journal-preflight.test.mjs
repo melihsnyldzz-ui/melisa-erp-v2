@@ -1,0 +1,332 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {assertCrm06StaffJournalPhysicalEvidence,normalizeCrm06StaffJournalPath,crm06StaffJournalReferenceHash,inspectCrm06StaffJournalPhysical,crm06StaffJournalPhysicalDiagnosticPhase,crm06StaffJournalPhysicalArguments,crm06StaffJournalExcludedPaths,CRM06_STAFF_JOURNAL_ROOT as root,CRM06_STAFF_JOURNAL_PATH as target,CRM06_STAFF_JOURNAL_EXCLUDED_PATHS as paths} from './crm06-staff-journal-preflight.mjs';
+const sid='S-1-5-21-2170750028-1005938530-2568122015-1001';
+const options=()=>({path:target,ownerSid:sid,excludedPaths:[...paths]});
+function fixture(){
+ const meta=(path,directory,fileId)=>({path,ownerSid:sid,daclProtected:true,foreignWritable:false,foreignAllowed:false,volumeSerial:'1234ABCD',fileId,linkCount:1,reparse:false,directory});
+ const references=paths.map((path,index)=>({path,exists:index%2===0,volumeSerial:index%2===0?'1234ABCD':null,fileId:index%2===0?(index+10).toString(16).padStart(16,'0').toUpperCase():null,linkCount:index%2===0?1:null,reparse:false}));
+ return {schemaVersion:'crm06-staff-journal-physical.v1',status:'READY',path:target,actorRoot:root,callerSid:sid,ancestorReparse:false,parent:meta(root,true,'0000000000000001'),journal:meta(target,false,'0000000000000002'),references,referenceSha256:crm06StaffJournalReferenceHash(references)};
+}
+const reject=(evidence,opts=options())=>assert.throws(()=>assertCrm06StaffJournalPhysicalEvidence(evidence,opts),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+const rehash=evidence=>{evidence.referenceSha256=crm06StaffJournalReferenceHash(evidence.references);return evidence;};
+
+test('synthetic READY validates one protected owner-bound file, all ten distinct references and metadata-only digest',()=>{
+ const f=fixture(),before=structuredClone(f),result=assertCrm06StaffJournalPhysicalEvidence(f,options());assert.deepEqual(result,f);assert.deepEqual(f,before);assert.equal(result.references.length,10);assert(Object.isFrozen(result)&&Object.isFrozen(result.parent)&&Object.isFrozen(result.references[0]));
+ const serialized=JSON.stringify(result);assert(!/token|password|grants|fileContent/i.test(serialized));assert.equal(result.referenceSha256.length,64);
+});
+test('absent target is PREPARE_REQUIRED only, with verified protected actual parent and explicit absent-reference metadata',()=>{
+ const f=fixture();f.status='PREPARE_REQUIRED';f.journal=null;assert.equal(assertCrm06StaffJournalPhysicalEvidence(f,options()).status,'PREPARE_REQUIRED');
+ f.parent.path='C:\\Sirket\\CRM\\runtime';assert.equal(assertCrm06StaffJournalPhysicalEvidence(f,options()).parent.path,f.parent.path);
+ f.status='READY';reject(f);f.status='PREPARE_REQUIRED';f.parent.daclProtected=false;reject(f);
+});
+test('target and reference paths reject ADS, UNC/device aliases, normalization changes, trailing dots/spaces and foreign leaves',()=>{
+ for(const value of [target+':stream',target+'::$DATA',target+'.',target+' ',target.replace('CRM06-TEST-ACTORS-20261014','CRM06-TEST-ACTORS-20261014.'),target.replace('\\assigned','\\x\\..\\assigned'),target.replaceAll('\\','/'),'\\\\?\\'+target,target.replace('C:','D:'),target.toLowerCase()])assert.throws(()=>normalizeCrm06StaffJournalPath(value),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ for(const change of [opts=>opts.path=target+'-other',opts=>opts.excludedPaths.pop(),opts=>opts.excludedPaths[0]=target,opts=>opts.excludedPaths[0]=opts.excludedPaths[1],opts=>opts.excludedPaths[0]=root+'\\unknown.json',opts=>opts.ownerSid='S-1-5-18']){const opts=options();change(opts);reject(fixture(),opts);}
+ assert.equal(normalizeCrm06StaffJournalPath(target),target);
+});
+test('ancestor or target reparse, hard links, forged/missing identity and aliases to any existing reference reject even under recomputed hashes',()=>{
+ for(const change of [f=>f.ancestorReparse=true,f=>f.journal.reparse=true,f=>f.parent.reparse=true,f=>f.journal.linkCount=2,f=>f.references[0].linkCount=2,f=>f.references[0].reparse=true,f=>f.journal.fileId='0000000000000000',f=>f.journal.volumeSerial='bad',f=>f.journal.fileId=f.parent.fileId,f=>{f.journal.fileId=f.references[0].fileId;},f=>f.references[1].fileId='0000000000000009']){const f=fixture();change(f);reject(rehash(f));}
+});
+test('wrong caller/owner or writable foreign ACE evidence fails; owner and SYSTEM identities remain finite',()=>{
+ for(const change of [f=>f.callerSid='S-1-5-21-1-2-3-4',f=>f.parent.ownerSid='S-1-5-32-544',f=>f.journal.ownerSid='S-1-1-0',f=>f.parent.foreignWritable=true,f=>f.journal.foreignWritable=true,f=>f.parent.foreignAllowed=true,f=>f.journal.foreignAllowed=true,f=>f.parent.daclProtected=false]){const f=fixture();change(f);reject(f);}
+ const system=fixture();system.parent.ownerSid='S-1-5-18';system.journal.ownerSid='S-1-5-18';assert.equal(assertCrm06StaffJournalPhysicalEvidence(system,options()).journal.ownerSid,'S-1-5-18');
+ const inherited=fixture();inherited.journal.daclProtected=false;assert.equal(assertCrm06StaffJournalPhysicalEvidence(inherited,options()).journal.daclProtected,false);
+});
+test('stale reference digest, changed reference order, added content/authority fields and getters cannot become accepted physical evidence',()=>{
+ for(const change of [f=>f.referenceSha256='a'.repeat(64),f=>f.references.reverse(),f=>f.references[0].password='should-not-return',f=>f.canWrite=true,f=>f.parent.token='should-not-return',f=>f.status='PASS']){const f=fixture();change(f);reject(f);}
+ const f=fixture();Object.defineProperty(f.journal,'foreignWritable',{get(){throw Error('getter must not run');},enumerable:true});reject(f);
+});
+test('inspection rejects malformed arguments before any OS path, child process or private-file access',async()=>{
+ await assert.rejects(inspectCrm06StaffJournalPhysical({ownerSid:sid,excludedPaths:[]}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ await assert.rejects(inspectCrm06StaffJournalPhysical({ownerSid:'foreign',excludedPaths:[...paths]}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ await assert.rejects(inspectCrm06StaffJournalPhysical({ownerSid:sid,excludedPaths:[...paths],path:target}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+});
+test('bundled PS5.1 checker uses metadata-only official handles, descriptor inspection and fixed safe output; no journal/credential content reader or writer',()=>{
+ const source=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');
+ assert(source.includes('CreateFileW($value,0x20080,1'));assert(source.includes('GetFileInformationByHandle'));assert(source.includes('GetSecurityInfo'));assert(source.includes('0x500D0156'));assert(source.includes('DiscretionaryAclProtected'));assert(source.includes('Check-Ancestors'));assert(source.includes('staff-refresh-successor-b2985d2295c0.json'));
+ assert(!/Get-Content|ReadAllBytes|ReadAllText|ReadFile\(|Set-Acl|Set-Content|WriteAll|New-Item|ProtectedData|CreateHardLink|SetFile/i.test(source));
+ assert(source.includes("[Console]::Error.Write('CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:'+$phase)"));
+ assert(source.includes("if($status -eq 'PREPARE_REQUIRED' -and $null -ne (Attributes $target)){throw 'REJECT'}"));
+});
+test('physical diagnostic retains only exact finite phase codes and drops native text, paths and near matches',()=>{
+ for(const phase of ['OWNER','PARAMETERS','NATIVE_INIT','ANCESTORS','PARENT_ACL','TARGET','REFERENCES','RECHECK','RESULT'])assert.equal(crm06StaffJournalPhysicalDiagnosticPhase('CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:'+phase),phase);
+ for(const value of [null,{},'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED','CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:UNKNOWN','CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:PARAMETERS_PRIVATE','prefix CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:OWNER','CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:OWNER\nprivate native detail','CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:'+target])assert.equal(crm06StaffJournalPhysicalDiagnosticPhase(value),null);
+ assert.equal(crm06StaffJournalPhysicalDiagnosticPhase('CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED:PARAMETERS\r\n'),'PARAMETERS');
+});
+test('legacy PS5 command transport carries only validated owner SID while the child independently inspects every finite reference',()=>{
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:[...paths]});assert(Object.isFrozen(args));assert.deepEqual(args.slice(-2),['-OwnerSid',sid]);assert.equal(args.length,8);assert.equal(args.includes('-ExcludedPathsJson'),false);assert.equal(args.some(arg=>arg.startsWith('[')),false);
+ for(const refs of [paths.slice(1),[...paths.slice(0,9),target]])assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ const source=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(source.includes('$excluded=$expected'));assert(!source.includes('ExcludedPathsJson'));assert(!source.includes('ConvertFrom-Json'));assert(source.includes('foreach($value in $excluded)'));assert(source.includes('staff-refresh-successor-b2985d2295c0.json'));
+});
+const frontendSource='da82fc6644c1d9dba0c10eaa861773534d43c288';
+function frontendEvidence(){const f=fixture(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(frontendSource).map(path=>old.get(path)??{path,exists:true,volumeSerial:'1234ABCD',fileId:'0000000000000099',linkCount:1,reparse:false});return rehash(f);}
+test('frontend physical policy keeps exact old ten metadata references and adds only da82 receipt, with no journal reset or authority grant',()=>{
+ const old=fixture(),oldBefore=structuredClone(old),newPaths=crm06StaffJournalExcludedPaths(frontendSource),opts={...options(),source:frontendSource,excludedPaths:[...newPaths]},f=frontendEvidence();
+ assert.equal(newPaths.length,11);assert.deepEqual(newPaths.filter(path=>path!==root+'\\staff-refresh-successor-da82fc6644c1.json'),[...paths]);assert.equal(crm06StaffJournalExcludedPaths(),paths);
+ assert.equal(assertCrm06StaffJournalPhysicalEvidence(f,opts).journal.path,target);assert.equal(assertCrm06StaffJournalPhysicalEvidence(old,options()).references.length,10);assert.deepEqual(old,oldBefore);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:[...newPaths],source:frontendSource});assert.deepEqual(args.slice(-2),['-Source',frontendSource]);
+ const source=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(source.includes("if($Source -ceq '"+frontendSource+"'){$expected+=($actorRoot+'\\staff-refresh-successor-da82fc6644c1.json')}"));
+});
+test('frontend physical policy rejects cross-profile evidence, unknown sources and alias to the newly added receipt',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(frontendSource)],opts={...options(),source:frontendSource,excludedPaths:refs},evidence=frontendEvidence();
+ reject(fixture(),opts);reject(evidence,options());reject(evidence,{...opts,excludedPaths:[...paths]});
+ for(const source of ['f'.repeat(40),frontendSource.toUpperCase(),null]){assert.throws(()=>crm06StaffJournalExcludedPaths(source),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,excludedPaths:refs,source}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
+ const alias=structuredClone(evidence),receipt=alias.references.find(ref=>ref.path.endsWith('staff-refresh-successor-da82fc6644c1.json'));alias.journal.fileId=receipt.fileId;reject(alias,opts);
+});
+function parentProbeEvidence(){const f=frontendEvidence(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe').map(path=>old.get(path)??{path,exists:true,volumeSerial:'1234ABCD',fileId:'00000000000000AA',linkCount:1,reparse:false});return rehash(f);}
+test('parent-probe physical policy adds exact twelfth receipt and keeps ten/eleven defaults unchanged',()=>{
+ const refs=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),opts={...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...refs]},evidence=parentProbeEvidence();assert.equal(refs.length,12);
+ assert.deepEqual(refs.filter(path=>!path.endsWith('da82fc6644c1-parent-probe.json')),[...crm06StaffJournalExcludedPaths(frontendSource)]);assert.equal(crm06StaffJournalExcludedPaths().length,10);assert.equal(crm06StaffJournalExcludedPaths(frontendSource).length,11);
+ assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).journal.path,target);assert.deepEqual(crm06StaffJournalPhysicalArguments({ownerSid:sid,source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...refs]}).slice(-4),['-Source',frontendSource,'-ProfileVariant','parent-probe']);
+ const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("$hasParentProbe=$PSBoundParameters.ContainsKey('ProfileVariant')"));assert(code.includes("if($hasParentProbe -and $ProfileVariant -ceq 'parent-probe'){$expected+=($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json')}"));
+});
+test('parent-probe physical policy rejects unknown/cross-source variant, wrong generation evidence and alias to twelfth reference',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')],opts={...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:refs},evidence=parentProbeEvidence();reject(frontendEvidence(),opts);reject(evidence,{...opts,profileVariant:undefined});reject(evidence,{...opts,excludedPaths:[...crm06StaffJournalExcludedPaths(frontendSource)]});
+ for(const profileVariant of ['',null,'PARENT-PROBE','other'])assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:frontendSource,profileVariant,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ assert.throws(()=>crm06StaffJournalExcludedPaths('b2985d2295c022848c769ea5f494012c1eb3fa00','parent-probe'),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ const alias=structuredClone(evidence);alias.journal.fileId=alias.references.find(ref=>ref.path.endsWith('da82fc6644c1-parent-probe.json')).fileId;reject(alias,opts);
+});
+const layoutSource='5ce452b01ef20fc84a09c52b78311db8eb1dd1d8';
+function layoutEvidence(){const f=parentProbeEvidence(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(layoutSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('5ce physical base policy adds exact thirteenth receipt and preserves all three immutable predecessor policies',()=>{
+ const predecessor=crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),refs=crm06StaffJournalExcludedPaths(layoutSource),opts={...options(),source:layoutSource,excludedPaths:[...refs]},evidence=layoutEvidence();
+ assert.equal(refs.length,13);assert.deepEqual(refs.filter(path=>!path.endsWith('staff-refresh-successor-5ce452b01ef2.json')),[...predecessor]);assert.deepEqual([crm06StaffJournalExcludedPaths().length,crm06StaffJournalExcludedPaths(frontendSource).length,predecessor.length],[10,11,12]);
+ assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).journal.path,target);assert.equal(evidence.references.find(ref=>ref.path.endsWith('5ce452b01ef2.json')).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:layoutSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',layoutSource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('5ce physical base policy rejects every variant, cross-generation metadata and aliases to the added receipt',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(layoutSource)],opts={...options(),source:layoutSource,excludedPaths:refs},evidence=layoutEvidence();reject(parentProbeEvidence(),opts);reject(evidence,{...options(),source:frontendSource,profileVariant:'parent-probe',excludedPaths:[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')]});
+ for(const profileVariant of ['parent-probe','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(layoutSource,profileVariant),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:layoutSource,profileVariant,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
+ for(const source of [layoutSource.toUpperCase(),'5ce452b01ef2','f'.repeat(40)])assert.throws(()=>crm06StaffJournalExcludedPaths(source),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+ const alias=structuredClone(evidence),newRef=alias.references.find(ref=>ref.path.endsWith('5ce452b01ef2.json'));Object.assign(newRef,{exists:true,volumeSerial:alias.journal.volumeSerial,fileId:alias.journal.fileId,linkCount:1});reject(rehash(alias),opts);
+ const foreign=structuredClone(evidence);foreign.references.at(-1).path+='-foreign';reject(rehash(foreign),opts);
+});
+test('5ce physical child whitelist and existing runtime profile handoff remain source bound without new environment selectors',()=>{
+ const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("if($Source -ceq '"+layoutSource+"'){$expected+=@(($actorRoot+'\\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\\staff-refresh-successor-5ce452b01ef2.json'))}"));
+ assert(code.includes("$ProfileVariant -ceq 'parent-probe' -and $Source -ceq '"+frontendSource+"'"));
+ const runtime=readFileSync(new URL('./terminal-completion-logon.mjs',import.meta.url),'utf8');assert(runtime.includes('crm06StaffSuccessorProfileForPath(settings.components.crm.sourceCommit,settings.crmPrivateFiles.crm06StaffSuccessor.path)'));assert(runtime.includes('crm06StaffJournalExcludedPaths(profile.source,profile.profileVariant)'));assert(runtime.includes('excludedPaths,source:profile.source,...variant'));
+});
+const finalBatchSource='5bcd5ad136ff7ca35d623d436b8724cc491641be';
+function finalBatchEvidence(){const f=layoutEvidence(),old=new Map(f.references.map(ref=>[ref.path,ref]));f.references=crm06StaffJournalExcludedPaths(finalBatchSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('5bcd physical base policy adds only fourteenth receipt and leaves all four previous reference policies unchanged',()=>{
+ const refs=crm06StaffJournalExcludedPaths(finalBatchSource),opts={...options(),source:finalBatchSource,excludedPaths:[...refs]},evidence=finalBatchEvidence(),old=[...crm06StaffJournalExcludedPaths(layoutSource)];assert.equal(refs.length,14);assert.deepEqual(refs.filter(path=>!path.endsWith('staff-refresh-successor-5bcd5ad136ff.json')),old);
+ assert.deepEqual([crm06StaffJournalExcludedPaths().length,crm06StaffJournalExcludedPaths(frontendSource).length,crm06StaffJournalExcludedPaths(frontendSource,'parent-probe').length,crm06StaffJournalExcludedPaths(layoutSource).length],[10,11,12,13]);assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).journal.path,target);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:finalBatchSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',finalBatchSource]);assert.equal(args.includes('-ProfileVariant'),false);
+ const code=readFileSync(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url),'utf8');assert(code.includes("if($Source -ceq '"+finalBatchSource+"'){$expected+=@(($actorRoot+'\\staff-refresh-successor-da82fc6644c1.json'),($actorRoot+'\\staff-refresh-successor-da82fc6644c1-parent-probe.json'),($actorRoot+'\\staff-refresh-successor-5ce452b01ef2.json'),($actorRoot+'\\staff-refresh-successor-5bcd5ad136ff.json'))}"));
+});
+test('5bcd physical base policy rejects all variants, predecessor evidence and aliases to the final batch receipt',()=>{
+ const refs=[...crm06StaffJournalExcludedPaths(finalBatchSource)],opts={...options(),source:finalBatchSource,excludedPaths:refs},evidence=finalBatchEvidence();reject(layoutEvidence(),opts);reject(evidence,{...options(),source:layoutSource,excludedPaths:[...crm06StaffJournalExcludedPaths(layoutSource)]});
+ for(const profileVariant of ['parent-probe','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource,profileVariant),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:finalBatchSource,profileVariant,excludedPaths:refs}),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});}
+ const alias=structuredClone(evidence),ref=alias.references.find(item=>item.path.endsWith('5bcd5ad136ff.json'));Object.assign(ref,{exists:true,volumeSerial:alias.journal.volumeSerial,fileId:alias.journal.fileId,linkCount:1});reject(rehash(alias),opts);
+ assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource.toUpperCase()),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource.slice(0,12)),{code:'CRM06_STAFF_JOURNAL_PHYSICAL_REJECTED'});
+});
+test('receipt-wait physical policy adds only fifteenth receipt and rejects crossed variants missing refs and journal alias',()=>{
+ const refs=crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),base=crm06StaffJournalExcludedPaths(finalBatchSource),old=new Map(finalBatchEvidence().references.map(r=>[r.path,r]));
+ assert.equal(refs.length,15);assert.deepEqual(refs.filter(p=>!p.endsWith('5bcd5ad136ff-receipt-wait.json')),[...base]);
+ const evidence=finalBatchEvidence();evidence.references=refs.map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});rehash(evidence);
+ const opts={...options(),source:finalBatchSource,profileVariant:'receipt-wait',excludedPaths:[...refs]};assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,15);
+ assert.deepEqual(crm06StaffJournalPhysicalArguments({ownerSid:sid,source:finalBatchSource,profileVariant:'receipt-wait',excludedPaths:[...refs]}).slice(-4),['-Source',finalBatchSource,'-ProfileVariant','receipt-wait']);
+ reject(finalBatchEvidence(),opts);reject(evidence,{...opts,profileVariant:undefined,excludedPaths:[...base]});
+ for(const source of [frontendSource,layoutSource,'b2985d2295c022848c769ea5f494012c1eb3fa00'])assert.throws(()=>crm06StaffJournalExcludedPaths(source,'receipt-wait'));
+ for(const variant of ['RECEIPT-WAIT','parent-probe','receipt-wait-extra','',null])assert.throws(()=>crm06StaffJournalExcludedPaths(finalBatchSource,variant));
+ const alias=structuredClone(evidence),ref=alias.references.find(r=>r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));Object.assign(ref,{exists:true,volumeSerial:alias.journal.volumeSerial,fileId:alias.journal.fileId,linkCount:1});reject(rehash(alias),opts);
+});
+test('receipt-wait WindowsPS5 AST executes only finite parameter policy with exact fifteen paths and closed cross-source variants',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$cases=@(@('${finalBatchSource}','receipt-wait'),@('${finalBatchSource}','parent-probe'),@('${frontendSource}','receipt-wait'),@('${layoutSource}','receipt-wait'),@('${finalBatchSource}','RECEIPT-WAIT'),@('${finalBatchSource}',''),@('${frontendSource}','parent-probe'))
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$results=@(foreach($case in $cases){try{$paths=& $policy -Source $case[0] -ProfileVariant $case[1] -actorRoot 'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014';[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Invoke only the parsed parameter-policy slice; no native/ACL/store statements.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait')]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(frontendSource,'parent-probe')]);
+});
+
+const readySource='bb8966c59a6cfbdc1cc83472cb331e48b720a173';
+function readyEvidence(){const f=finalBatchEvidence(),old=new Map(f.references.map(r=>[r.path,r]));f.references=crm06StaffJournalExcludedPaths(readySource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('bb896 physical policy adds only sixteenth receipt and retains every receipt-wait reference',()=>{
+ const previous=[crm06StaffJournalExcludedPaths(),crm06StaffJournalExcludedPaths(frontendSource),crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),crm06StaffJournalExcludedPaths(layoutSource),crm06StaffJournalExcludedPaths(finalBatchSource),crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait')],before=structuredClone(previous),refs=crm06StaffJournalExcludedPaths(readySource),added=root+'\\staff-refresh-successor-bb8966c59a6c.json';
+ assert.equal(refs.length,16);assert.deepEqual(refs.filter(p=>p!==added),previous[5]);assert.deepEqual(previous,before);assert.deepEqual(previous.map(p=>p.length),[10,11,12,13,14,15]);
+ const opts={...options(),source:readySource,excludedPaths:[...refs]},evidence=readyEvidence();assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,16);assert.equal(evidence.references.find(r=>r.path===added).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:readySource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',readySource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('bb896 physical policy denies variants aliases older evidence and missing receipt-wait reference',()=>{
+ const refs=crm06StaffJournalExcludedPaths(readySource),opts={...options(),source:readySource,excludedPaths:[...refs]},evidence=readyEvidence();reject(finalBatchEvidence(),opts);reject(evidence,{...opts,source:finalBatchSource,profileVariant:'receipt-wait',excludedPaths:[...crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait')]});
+ for(const variant of ['parent-probe','receipt-wait','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(readySource,variant));assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:readySource,profileVariant:variant,excludedPaths:[...refs]}));}
+ for(const source of [readySource.toUpperCase(),readySource.slice(0,12),'f'.repeat(40),null])assert.throws(()=>crm06StaffJournalExcludedPaths(source));
+ for(const suffix of ['bb8966c59a6c.json','5bcd5ad136ff-receipt-wait.json']){const value=structuredClone(evidence),ref=value.references.find(r=>r.path.endsWith(suffix));Object.assign(ref,{exists:true,volumeSerial:value.journal.volumeSerial,fileId:value.journal.fileId,linkCount:1});reject(rehash(value),opts);}
+ const missing=structuredClone(evidence);missing.references=missing.references.filter(r=>!r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));reject(rehash(missing),opts);
+});
+test('bb896 WindowsPS5 parameter slice admits exact sixteen references and rejects source variants without native calls',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${readySource}',$null),@('${readySource}','receipt-wait'),@('${readySource}','parent-probe'),@('${readySource}',''),@('${readySource.toUpperCase()}',$null),@('${readySource.slice(0,12)}',$null),@('${finalBatchSource}','receipt-wait'))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Only the source parameter-policy AST slice executes; no Add-Type, file
+ // handles, private paths, credentials or physical inspection are invoked.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(readySource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait')]);
+});
+
+const separateBatchSource='957f98773695874ea3d101b7eb4816f9ea080880';
+function separateBatchEvidence(){const f=readyEvidence(),old=new Map(f.references.map(r=>[r.path,r]));f.references=crm06StaffJournalExcludedPaths(separateBatchSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('957 physical policy adds only seventeenth receipt and retains every receipt-wait reference',()=>{
+ const previous=[crm06StaffJournalExcludedPaths(),crm06StaffJournalExcludedPaths(frontendSource),crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),crm06StaffJournalExcludedPaths(layoutSource),crm06StaffJournalExcludedPaths(finalBatchSource),crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),crm06StaffJournalExcludedPaths(readySource)],before=structuredClone(previous),refs=crm06StaffJournalExcludedPaths(separateBatchSource),added=root+'\\staff-refresh-successor-957f98773695.json';
+ assert.equal(refs.length,17);assert.deepEqual(refs.filter(p=>p!==added),previous[6]);assert.deepEqual(previous,before);assert.deepEqual(previous.map(p=>p.length),[10,11,12,13,14,15,16]);
+ const opts={...options(),source:separateBatchSource,excludedPaths:[...refs]},evidence=separateBatchEvidence();assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,17);assert.equal(evidence.references.find(r=>r.path===added).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:separateBatchSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',separateBatchSource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('957 physical policy denies variants aliases older evidence and missing receipt-wait reference',()=>{
+ const refs=crm06StaffJournalExcludedPaths(separateBatchSource),opts={...options(),source:separateBatchSource,excludedPaths:[...refs]},evidence=separateBatchEvidence();reject(readyEvidence(),opts);reject(evidence,{...opts,source:readySource,excludedPaths:[...crm06StaffJournalExcludedPaths(readySource)]});
+ for(const variant of ['parent-probe','receipt-wait','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(separateBatchSource,variant));assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:separateBatchSource,profileVariant:variant,excludedPaths:[...refs]}));}
+ for(const source of [separateBatchSource.toUpperCase(),separateBatchSource.slice(0,12),'f'.repeat(40),null])assert.throws(()=>crm06StaffJournalExcludedPaths(source));
+ for(const suffix of ['957f98773695.json','bb8966c59a6c.json','5bcd5ad136ff-receipt-wait.json']){const value=structuredClone(evidence),ref=value.references.find(r=>r.path.endsWith(suffix));Object.assign(ref,{exists:true,volumeSerial:value.journal.volumeSerial,fileId:value.journal.fileId,linkCount:1});reject(rehash(value),opts);}
+ const missing=structuredClone(evidence);missing.references=missing.references.filter(r=>!r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));reject(rehash(missing),opts);
+});
+test('957 WindowsPS5 parameter slice admits exact seventeen references and rejects source variants without native calls',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${separateBatchSource}',$null),@('${separateBatchSource}','receipt-wait'),@('${separateBatchSource}','parent-probe'),@('${separateBatchSource}',''),@('${separateBatchSource.toUpperCase()}',$null),@('${separateBatchSource.slice(0,12)}',$null),@('${readySource}',$null))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Only the source parameter-policy AST slice executes; no Add-Type, file
+ // handles, private paths, credentials or physical inspection are invoked.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(separateBatchSource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(readySource)]);
+});
+
+const quantitySource='89427492f27caf72c511a27262b55e73d782c407';
+function quantityEvidence(){const f=separateBatchEvidence(),old=new Map(f.references.map(r=>[r.path,r]));f.references=crm06StaffJournalExcludedPaths(quantitySource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('894 physical policy adds only eighteenth receipt and retains every receipt-wait reference',()=>{
+ const previous=[crm06StaffJournalExcludedPaths(),crm06StaffJournalExcludedPaths(frontendSource),crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),crm06StaffJournalExcludedPaths(layoutSource),crm06StaffJournalExcludedPaths(finalBatchSource),crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),crm06StaffJournalExcludedPaths(readySource),crm06StaffJournalExcludedPaths(separateBatchSource)],before=structuredClone(previous),refs=crm06StaffJournalExcludedPaths(quantitySource),added=root+'\\staff-refresh-successor-89427492f27c.json';
+ assert.equal(refs.length,18);assert.deepEqual(refs.filter(p=>p!==added),previous[7]);assert.deepEqual(previous,before);assert.deepEqual(previous.map(p=>p.length),[10,11,12,13,14,15,16,17]);
+ const opts={...options(),source:quantitySource,excludedPaths:[...refs]},evidence=quantityEvidence();assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,18);assert.equal(evidence.references.find(r=>r.path===added).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:quantitySource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',quantitySource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('894 physical policy denies variants aliases older evidence and missing receipt-wait reference',()=>{
+ const refs=crm06StaffJournalExcludedPaths(quantitySource),opts={...options(),source:quantitySource,excludedPaths:[...refs]},evidence=quantityEvidence();reject(separateBatchEvidence(),opts);reject(evidence,{...opts,source:separateBatchSource,excludedPaths:[...crm06StaffJournalExcludedPaths(separateBatchSource)]});
+ for(const variant of ['parent-probe','receipt-wait','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(quantitySource,variant));assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:quantitySource,profileVariant:variant,excludedPaths:[...refs]}));}
+ for(const source of [quantitySource.toUpperCase(),quantitySource.slice(0,12),'f'.repeat(40),null])assert.throws(()=>crm06StaffJournalExcludedPaths(source));
+ for(const suffix of ['89427492f27c.json','957f98773695.json','bb8966c59a6c.json','5bcd5ad136ff-receipt-wait.json']){const value=structuredClone(evidence),ref=value.references.find(r=>r.path.endsWith(suffix));Object.assign(ref,{exists:true,volumeSerial:value.journal.volumeSerial,fileId:value.journal.fileId,linkCount:1});reject(rehash(value),opts);}
+ const missing=structuredClone(evidence);missing.references=missing.references.filter(r=>!r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));reject(rehash(missing),opts);
+});
+test('894 WindowsPS5 parameter slice admits exact eighteen references and rejects source variants without native calls',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${quantitySource}',$null),@('${quantitySource}','receipt-wait'),@('${quantitySource}','parent-probe'),@('${quantitySource}',''),@('${quantitySource.toUpperCase()}',$null),@('${quantitySource.slice(0,12)}',$null),@('${separateBatchSource}',$null))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Only the source parameter-policy AST slice executes; no Add-Type, file
+ // handles, private paths, credentials or physical inspection are invoked.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(quantitySource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(separateBatchSource)]);
+});
+
+const searchSource='94f2a75322a3daa695d38010a6f2c8ef23f6c17b';
+function searchEvidence(){const f=quantityEvidence(),old=new Map(f.references.map(r=>[r.path,r]));f.references=crm06StaffJournalExcludedPaths(searchSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('94f physical policy adds only nineteenth receipt and retains every receipt-wait reference',()=>{
+ const previous=[crm06StaffJournalExcludedPaths(),crm06StaffJournalExcludedPaths(frontendSource),crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),crm06StaffJournalExcludedPaths(layoutSource),crm06StaffJournalExcludedPaths(finalBatchSource),crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),crm06StaffJournalExcludedPaths(readySource),crm06StaffJournalExcludedPaths(separateBatchSource),crm06StaffJournalExcludedPaths(quantitySource)],before=structuredClone(previous),refs=crm06StaffJournalExcludedPaths(searchSource),added=root+'\\staff-refresh-successor-94f2a75322a3.json';
+ assert.equal(refs.length,19);assert.deepEqual(refs.filter(p=>p!==added),previous[8]);assert.deepEqual(previous,before);assert.deepEqual(previous.map(p=>p.length),[10,11,12,13,14,15,16,17,18]);
+ const opts={...options(),source:searchSource,excludedPaths:[...refs]},evidence=searchEvidence();assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,19);assert.equal(evidence.references.find(r=>r.path===added).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:searchSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',searchSource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('94f physical policy denies variants aliases older evidence and missing receipt-wait reference',()=>{
+ const refs=crm06StaffJournalExcludedPaths(searchSource),opts={...options(),source:searchSource,excludedPaths:[...refs]},evidence=searchEvidence();reject(quantityEvidence(),opts);reject(evidence,{...opts,source:quantitySource,excludedPaths:[...crm06StaffJournalExcludedPaths(quantitySource)]});
+ for(const variant of ['parent-probe','receipt-wait','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(searchSource,variant));assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:searchSource,profileVariant:variant,excludedPaths:[...refs]}));}
+ for(const source of [searchSource.toUpperCase(),searchSource.slice(0,12),'f'.repeat(40),null])assert.throws(()=>crm06StaffJournalExcludedPaths(source));
+ for(const suffix of ['94f2a75322a3.json','89427492f27c.json','957f98773695.json','bb8966c59a6c.json','5bcd5ad136ff-receipt-wait.json']){const value=structuredClone(evidence),ref=value.references.find(r=>r.path.endsWith(suffix));Object.assign(ref,{exists:true,volumeSerial:value.journal.volumeSerial,fileId:value.journal.fileId,linkCount:1});reject(rehash(value),opts);}
+ const missing=structuredClone(evidence);missing.references=missing.references.filter(r=>!r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));reject(rehash(missing),opts);
+});
+test('94f WindowsPS5 parameter slice admits exact nineteen references and rejects source variants without native calls',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${searchSource}',$null),@('${searchSource}','receipt-wait'),@('${searchSource}','parent-probe'),@('${searchSource}',''),@('${searchSource.toUpperCase()}',$null),@('${searchSource.slice(0,12)}',$null),@('${quantitySource}',$null))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Only the source parameter-policy AST slice executes; no Add-Type, file
+ // handles, private paths, credentials or physical inspection are invoked.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(searchSource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(quantitySource)]);
+});
+
+const copyFeedbackSource='a7243dedf9ca5d1ca1d5aa1cb3dffaee7c18a7e9';
+function copyFeedbackEvidence(){const f=searchEvidence(),old=new Map(f.references.map(r=>[r.path,r]));f.references=crm06StaffJournalExcludedPaths(copyFeedbackSource).map(path=>old.get(path)??{path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false});return rehash(f);}
+test('a724 physical policy adds only twentieth receipt and retains every receipt-wait reference',()=>{
+ const previous=[crm06StaffJournalExcludedPaths(),crm06StaffJournalExcludedPaths(frontendSource),crm06StaffJournalExcludedPaths(frontendSource,'parent-probe'),crm06StaffJournalExcludedPaths(layoutSource),crm06StaffJournalExcludedPaths(finalBatchSource),crm06StaffJournalExcludedPaths(finalBatchSource,'receipt-wait'),crm06StaffJournalExcludedPaths(readySource),crm06StaffJournalExcludedPaths(separateBatchSource),crm06StaffJournalExcludedPaths(quantitySource),crm06StaffJournalExcludedPaths(searchSource)],before=structuredClone(previous),refs=crm06StaffJournalExcludedPaths(copyFeedbackSource),added=root+'\\staff-refresh-successor-a7243dedf9ca.json';
+ assert.equal(refs.length,20);assert.deepEqual(refs.filter(p=>p!==added),previous[9]);assert.deepEqual(previous,before);assert.deepEqual(previous.map(p=>p.length),[10,11,12,13,14,15,16,17,18,19]);
+ const opts={...options(),source:copyFeedbackSource,excludedPaths:[...refs]},evidence=copyFeedbackEvidence();assert.equal(assertCrm06StaffJournalPhysicalEvidence(evidence,opts).references.length,20);assert.equal(evidence.references.find(r=>r.path===added).exists,false);
+ const args=crm06StaffJournalPhysicalArguments({ownerSid:sid,source:copyFeedbackSource,excludedPaths:[...refs]});assert.deepEqual(args.slice(-2),['-Source',copyFeedbackSource]);assert.equal(args.includes('-ProfileVariant'),false);
+});
+test('a724 physical policy denies variants aliases older evidence and missing receipt-wait reference',()=>{
+ const refs=crm06StaffJournalExcludedPaths(copyFeedbackSource),opts={...options(),source:copyFeedbackSource,excludedPaths:[...refs]},evidence=copyFeedbackEvidence();reject(searchEvidence(),opts);reject(evidence,{...opts,source:searchSource,excludedPaths:[...crm06StaffJournalExcludedPaths(searchSource)]});
+ for(const variant of ['parent-probe','receipt-wait','',null,'other']){assert.throws(()=>crm06StaffJournalExcludedPaths(copyFeedbackSource,variant));assert.throws(()=>crm06StaffJournalPhysicalArguments({ownerSid:sid,source:copyFeedbackSource,profileVariant:variant,excludedPaths:[...refs]}));}
+ for(const source of [copyFeedbackSource.toUpperCase(),copyFeedbackSource.slice(0,12),'f'.repeat(40),null])assert.throws(()=>crm06StaffJournalExcludedPaths(source));
+ for(const suffix of ['a7243dedf9ca.json','94f2a75322a3.json','89427492f27c.json','957f98773695.json','bb8966c59a6c.json','5bcd5ad136ff-receipt-wait.json']){const value=structuredClone(evidence),ref=value.references.find(r=>r.path.endsWith(suffix));Object.assign(ref,{exists:true,volumeSerial:value.journal.volumeSerial,fileId:value.journal.fileId,linkCount:1});reject(rehash(value),opts);}
+ const missing=structuredClone(evidence);missing.references=missing.references.filter(r=>!r.path.endsWith('5bcd5ad136ff-receipt-wait.json'));reject(rehash(missing),opts);
+});
+test('a724 WindowsPS5 parameter slice admits exact twenty references and rejects source variants without native calls',()=>{
+ const sourcePath=fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)).replaceAll("'","''");
+ const script=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${sourcePath}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw 'PARSE_FAILED'}
+$try=$ast.EndBlock.Statements|Where-Object {$_ -is [Management.Automation.Language.TryStatementAst]}|Select-Object -First 1
+$statements=@($try.Body.Statements);$start=$statements|Where-Object {$_.Extent.Text.StartsWith('$phase=') -and $_.Extent.Text.Contains("'PARAMETERS'")}|Select-Object -First 1
+$end=$statements|Where-Object {$_.Extent.Text.StartsWith('[Array]::Sort($expected,')}|Select-Object -First 1
+if(-not $start-or-not $end){throw 'POLICY_AST_MISSING'}
+$text=$ast.Extent.Text.Substring($start.Extent.StartOffset,$end.Extent.EndOffset-$start.Extent.StartOffset)
+$policy=[scriptblock]::Create('param($Source,$ProfileVariant,$actorRoot)'+[Environment]::NewLine+$text+[Environment]::NewLine+'return ,$expected')
+$cases=@(@('${copyFeedbackSource}',$null),@('${copyFeedbackSource}','receipt-wait'),@('${copyFeedbackSource}','parent-probe'),@('${copyFeedbackSource}',''),@('${copyFeedbackSource.toUpperCase()}',$null),@('${copyFeedbackSource.slice(0,12)}',$null),@('${searchSource}',$null))
+$results=@(foreach($case in $cases){try{$a=@{Source=$case[0];actorRoot='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014'};if($null-ne$case[1]){$a.ProfileVariant=$case[1]};$paths=& $policy @a;[pscustomobject]@{accepted=$true;paths=@($paths)}}catch{[pscustomobject]@{accepted=$false;paths=@()}}})
+ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
+ // Only the source parameter-policy AST slice executes; no Add-Type, file
+ // handles, private paths, credentials or physical inspection are invoked.
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.equal(rows.length,7);assert.equal(rows[0].accepted,true);assert.deepEqual(rows[0].paths,[...crm06StaffJournalExcludedPaths(copyFeedbackSource)]);for(const row of rows.slice(1,6))assert.equal(row.accepted,false);assert.equal(rows[6].accepted,true);assert.deepEqual(rows[6].paths,[...crm06StaffJournalExcludedPaths(searchSource)]);
+});
+
+test('a724 preserves ten pinned legacy policy and argument tuple hashes',async()=>{const {createHash}=await import('node:crypto'),hash=v=>createHash('sha256').update(JSON.stringify(v)+'\n').digest('hex'),expected=[{"source":"b2985d2295c022848c769ea5f494012c1eb3fa00","variant":null,"refHash":"209fda695420f34c59c04559aefe14064e6f01b34e747b9bb8b1187a5d18b6f6","argHash":"3042796293b3a5b0163a8902ef5064115a7ca6fbd7934f388ed3deac6576200d","count":10},{"source":"da82fc6644c1d9dba0c10eaa861773534d43c288","variant":null,"refHash":"9e2b448dcf03bf7c2592ae12b521295700c2551469a36203877055941b57e807","argHash":"14d5f8368bf4631f92e90db4be484aaa7616b5ed71239bb1809f4c5dd782a908","count":11},{"source":"da82fc6644c1d9dba0c10eaa861773534d43c288","variant":"parent-probe","refHash":"85104828d1b512416a463866ffa546cdb0d33785b9835b3e7a0bf2ff234428b6","argHash":"1dfbaa07c560dc1c18b3d2312d18b7548b35da3f07457d59de4476b3d4bc7dee","count":12},{"source":"5ce452b01ef20fc84a09c52b78311db8eb1dd1d8","variant":null,"refHash":"70d98c23b7ee63b371924b8dac6d20bff437e8cc76eb9c06a5c8f3f5155bc777","argHash":"263753bf7dfe697a3cb6568a9d4833e82bf2ed65f2d0809f3f935d2b1a4a17e4","count":13},{"source":"5bcd5ad136ff7ca35d623d436b8724cc491641be","variant":null,"refHash":"e5d6836e30813bb62c54d8e22f705f616e58794bee4b4082f7ca2fff862f0c13","argHash":"678c7adb07c0865b081cbabd809a987dd6d4fd994b619337678195417c248e1f","count":14},{"source":"5bcd5ad136ff7ca35d623d436b8724cc491641be","variant":"receipt-wait","refHash":"d19d65a312cf8a2c4a556553f8b7ac2569be5e57c944124af45879755a24b094","argHash":"f5f5f628efab1ab9977b19a5e7f580982224df9208af456cd95f3aa12f331b26","count":15},{"source":"bb8966c59a6cfbdc1cc83472cb331e48b720a173","variant":null,"refHash":"7c5c9fa76cddec49d94665c9d203cdb6c79b44761702cf8ed31eea76faa86f30","argHash":"287b9bec2361883494e8859929fd94f783cbf9193a82a5942b5e2e6004101232","count":16},{"source":"957f98773695874ea3d101b7eb4816f9ea080880","variant":null,"refHash":"800696ca86d3dd0f40f5e5da67dd0126cc90695aa9af078f1b9f193c17eb0f0a","argHash":"cb6a318cca4cf2b6690d59577a405aca48edd2b43395a2d47e8988df45d5acb4","count":17},{"source":"89427492f27caf72c511a27262b55e73d782c407","variant":null,"refHash":"e324c20327e8cdffbc61ee57ca60ff5f4e28867fd32c45365398c52fce39cbf7","argHash":"422aebaf56ef4089a4a372636e9127932ee09c2a0a3f015051e4de44cc20a8be","count":18},{"source":"94f2a75322a3daa695d38010a6f2c8ef23f6c17b","variant":null,"refHash":"601a323c32a34ad445c92d9827c5191a57b339b9e7a9be6785f12f2644f6e2eb","argHash":"5b6eb613e77c3c864ca8dd58c32963ce2089646d4209b3e189bc81c50f6b936f","count":19}];for(const p of expected){const refs=crm06StaffJournalExcludedPaths(p.source,p.variant??undefined),input={ownerSid:sid,source:p.source,excludedPaths:[...refs],...(p.variant?{profileVariant:p.variant}:{})},args=[...crm06StaffJournalPhysicalArguments(input)];assert.equal(refs.length,p.count);assert.equal(hash(refs),p.refHash);assert.equal(args[4],'-File');assert.equal(args[5],fileURLToPath(new URL('./crm06-staff-journal-preflight.ps1',import.meta.url)));args[5]='scripts/canonical/crm06-staff-journal-preflight.ps1';assert.equal(hash(args),p.argHash);}});

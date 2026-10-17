@@ -4,13 +4,15 @@ import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {tokenCodec} from './nativeTerminalPolicy.mjs';
+import {OPENING_PRICE_RUN} from './openingPriceService.js';
+import {OPERATION_QUARANTINE_SEAL,OPERATION_QUARANTINE_V2_HASH as OPERATION_QUARANTINE_RESOLVER_V2_HASH} from './operationQuarantineService.js';
 
 const signer=tokenCodec(randomBytes(32).toString('hex'));
 const actor={id:3,username:'synthetic.operator',permissions:['terminal.sales.create']};
 const manager={id:4,username:'synthetic.manager',permissions:['sales.edit','sales.finalize','sales.cancel']};
 const operator={terminalDeviceId:1,employeeId:2,canChangeSalePrice:true};
-let state,tail=Promise.resolve(),failCommit=false,corruptEffect=false,failAccount=false;
-function reset(){process.env.NATIVE_CUSTOMER_ROUTES_ENABLED='false';state={queue:[],invoices:[],stock:-1,customerBalance:0,audits:[],finalizes:0,cancels:0,routeGranted:true};failCommit=false;corruptEffect=false,failAccount=false;}
+let state,tail=Promise.resolve(),failCommit=false,corruptEffect=false,failAccount=false,canonicalRuntime=false,heldProduct=false,quarantineReady=true;
+function reset(){process.env.NATIVE_CUSTOMER_ROUTES_ENABLED='false';state={queue:[],invoices:[],stock:-1,customerBalance:0,audits:[],finalizes:0,cancels:0,routeGranted:true};failCommit=false;corruptEffect=false,failAccount=false;canonicalRuntime=false;heldProduct=false;quarantineReady=true;}
 class Transaction {
  async begin(){let release;const before=tail;tail=new Promise(r=>release=r);await before;this.release=release;this.data=structuredClone(state);}
  async commit(){state=this.data;this.done=true;this.release();if(failCommit){failCommit=false;throw Error('Synthetic commit response lost');}}
@@ -19,6 +21,11 @@ class Transaction {
 class Request {
  constructor(tx){this.tx=tx;this.args={};}
  input(key,_type,value){this.args[key]=value;return this;}
+ async execute(procedure){
+  assert.equal(procedure,'dbo.usp_check_operation_quarantine');
+  if(!quarantineReady)throw Error('Synthetic quarantine unavailable');
+  return {recordsets:[[{database_name:OPENING_PRICE_RUN.database,run_id:OPENING_PRICE_RUN.runId,run_status:'COMMITTED',source_hash:OPENING_PRICE_RUN.sourceHash,plan_hash:OPENING_PRICE_RUN.planHash,sealed:1,operation_gate:1,seal_hash:OPERATION_QUARANTINE_SEAL,source_as_of:'2026-09-30',resolver_version:2,resolver_hash:OPERATION_QUARANTINE_RESOLVER_V2_HASH,resolver_sealed:1}],JSON.parse(this.args.entities_json).map(row=>({entity:row.entity,native_id:row.nativeId,blocked:heldProduct&&row.entity==='product'&&row.nativeId==='20'?1:0,source_key:'SYNTHETIC/PRODUCT/20',reason_code:'SYNTHETIC_HOLD'}))]};
+ }
  async query(query){
   const s=this.tx?.data||state,a=this.args;
   if(query.includes('sp_getapplock')){assert.match(query,/@LockMode=N'Shared'/);assert.equal(s.queue.length,0);return {recordset:[{route_lock_result:0}]};}
@@ -40,7 +47,7 @@ class Request {
 }
 const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},NVarChar:()=>0,BigInt:0,MAX:0};
 const pool={request:()=>new Request()};
-mock.module('../config/database.js',{namedExports:{getSqlPool:async()=>pool,getSqlDriver:()=>sql}});
+mock.module('../config/database.js',{namedExports:{getSqlPool:async()=>pool,getSqlDriver:()=>sql,isCanonicalTest:()=>canonicalRuntime}});
 mock.module('./writeGuardService.js',{namedExports:{assertMelisaWriteEnabled(){}}});
 mock.module('./nativeTerminalCatalog.mjs',{namedExports:{nativeSigner:()=>signer,nativeRequestContext:async()=>operator}});
 mock.module('./authService.js',{namedExports:{authenticateUserCredentials:async c=>{if(c.username!=='synthetic.manager'||c.password!=='fixture-only')throw Object.assign(Error('Denied'),{statusCode:401});return manager;},getUserById:async id=>{assert.equal(id,4);return manager;}}});
@@ -61,6 +68,14 @@ function routedPayload(){
  p.items[0].quoteToken=signer.issue('quote',{...q,priceScope:'currency-v1'});
  return p;
 }
+test('canonical quarantine hold and unavailable gate stop the native transaction without effects',async()=>{
+ for(const missing of [false,true]){
+  reset();canonicalRuntime=true;heldProduct=!missing;quarantineReady=!missing;
+  await assert.rejects(nativeSubmitSale(payload(),actor),{code:missing?'MIGRATION_QUARANTINE_NOT_READY':'MIGRATION_ENTITY_QUARANTINED'});
+  assert.equal(state.queue.length,0);assert.equal(state.invoices.length,0);assert.equal(state.stock,-1);assert.equal(state.customerBalance,0);assert.equal(state.audits.length,0);
+ }
+ reset();canonicalRuntime=true;assert.equal((await nativeSubmitSale(payload(),actor)).state,'COMPLETED');assert.equal(state.finalizes,1);
+});
 test('allowed routed customer retains actual customer identity and denied route writes nothing',async()=>{
  reset();process.env.NATIVE_CUSTOMER_ROUTES_ENABLED='true';
  const p=routedPayload();state.routeGranted=false;

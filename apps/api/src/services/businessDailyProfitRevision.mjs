@@ -1,0 +1,17 @@
+import {isolatedCopyHash} from './isolatedOperationCopyContext.mjs';
+export const BUSINESS_DAILY_PROFIT_REGISTRY='dbo.stage4_copy_business_daily_profit_revisions';
+export const BUSINESS_DAILY_PROFIT_TRIGGER='dbo.immutable_stage4_copy_business_daily_profit_revisions';
+export const BUSINESS_DAILY_PROFIT_MODULES=Object.freeze(['dbo.usp_business_daily_guard','dbo.usp_stage4_copy_ready','dbo.usp_business_daily_context']);
+const check=(x,c)=>{if(!x)throw Error(c);};
+const hex=x=>typeof x==='string'&&/^[A-F0-9]{64}$/.test(x);
+export function businessDailyProfitReadSQL(){return `SELECT CONVERT(varchar(36),r.copy_id) copyId,r.name,r.revision,r.base_seal_hash baseSealHash,r.base_daily_revision_hash baseDailyRevisionHash,r.daily_scope_hash dailyScopeHash,r.before_hash beforeHash,r.after_hash afterHash,r.revision_hash revisionHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(r.name))),2) actualHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'${BUSINESS_DAILY_PROFIT_TRIGGER}'))),2) immutableTriggerHash,ISNULL(OBJECTPROPERTY(OBJECT_ID(N'${BUSINESS_DAILY_PROFIT_TRIGGER}'),'ExecIsTriggerDisabled'),1) triggerDisabled FROM ${BUSINESS_DAILY_PROFIT_REGISTRY} r ORDER BY r.name;`;}
+export function validateBusinessDailyProfitRevision(base,revision,rows){
+ check(revision&&typeof revision==='object'&&!Array.isArray(revision)&&Object.keys(revision).sort().join(',')==='baseDailyRevisionHash,baseSealHash,copyId,dailyScopeHash,immutableTriggerHash,modules,revisionHash,schemaVersion,version','DAILY_PROFIT_RUNTIME_CONFIG_KEYS');
+ const {revisionHash,...body}=revision??{};
+ check(base?.version===4&&base.modules?.length===8&&revision?.schemaVersion==='melisa-business-daily-profit-revision.v1'&&revision.version===5&&hex(revisionHash)&&revisionHash===isolatedCopyHash(body)&&revision.copyId===base.copyId&&revision.baseSealHash===base.baseSealHash&&revision.baseDailyRevisionHash===base.revisionHash&&revision.dailyScopeHash===base.dailyScopeHash&&hex(revision.immutableTriggerHash)&&revision.modules?.length===3&&new Set(revision.modules.map(m=>m.name)).size===3,'DAILY_PROFIT_RUNTIME_CONFIG');
+ for(const m of revision.modules)check(BUSINESS_DAILY_PROFIT_MODULES.includes(m.name)&&Object.keys(m).sort().join(',')==='afterHash,beforeHash,name'&&hex(m.beforeHash)&&hex(m.afterHash)&&m.beforeHash!==m.afterHash&&base.modules.some(b=>b.name===m.name&&b.afterHash===m.beforeHash),'DAILY_PROFIT_RUNTIME_PREDECESSOR');
+ if(rows===undefined)return [];
+ check(Array.isArray(rows)&&rows.every(r=>r&&typeof r==='object'&&!Array.isArray(r))&&rows.length===3&&new Set(rows.map(r=>r.name)).size===3,'DAILY_PROFIT_RUNTIME_PROOF');
+ for(const m of revision.modules){const r=rows.find(r=>r?.name===m.name);check(r&&Object.keys(r).sort().join(',')==='actualHash,afterHash,baseDailyRevisionHash,baseSealHash,beforeHash,copyId,dailyScopeHash,immutableTriggerHash,name,revision,revisionHash,triggerDisabled'&&typeof r.copyId==='string'&&r.copyId.toLowerCase()===base.copyId&&r.revision===5&&r.baseSealHash===revision.baseSealHash&&r.baseDailyRevisionHash===base.revisionHash&&r.dailyScopeHash===base.dailyScopeHash&&r.beforeHash===m.beforeHash&&r.afterHash===m.afterHash&&r.actualHash===m.afterHash&&r.revisionHash===revisionHash&&r.immutableTriggerHash===revision.immutableTriggerHash&&r.triggerDisabled===0,'DAILY_PROFIT_RUNTIME_PROOF');}
+ return revision.modules.map(m=>Object.freeze({name:m.name,currentHash:m.afterHash,historicalHash:m.beforeHash}));
+}

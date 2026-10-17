@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "melisa-goal8-role-report.v1",
+  "sourceCommit": "cee7d7a85b4c797732cfcba8967855f2efbad55b",
+  "package": "TEST94",
+  "at": "2026-10-07T19:51:10.005Z",
+  "rolesModified": false,
+  "grantsModified": false,
+  "cases": [
+    {
+      "actor": "anonymous",
+      "path": "/api/catalog/products?limit=50",
+      "expected": 401,
+      "actual": 401,
+      "ok": true,
+      "code": "AUTH_TOKEN_REQUIRED"
+    },
+    {
+      "actor": "anonymous",
+      "path": "/api/home/summary",
+      "expected": 401,
+      "actual": 401,
+      "ok": true,
+      "code": "AUTH_TOKEN_REQUIRED"
+    },
+    {
+      "actor": "anonymous",
+      "path": "/api/customer-cards?limit=50",
+      "expected": 401,
+      "actual": 401,
+      "ok": true,
+      "code": "AUTH_TOKEN_REQUIRED"
+    },
+    {
+      "actor": "anonymous",
+      "path": "/api/supplier-cards?limit=50",
+      "expected": 401,
+      "actual": 401,
+      "ok": true,
+      "code": "AUTH_TOKEN_REQUIRED"
+    },
+    {
+      "actor": "seller",
+      "path": "/api/work-supplier-payments/context",
+      "expected": 403,
+      "actual": 403,
+      "ok": true,
+      "code": "WORK_PAYMENT_FORBIDDEN"
+    },
+    {
+      "actor": "seller",
+      "path": "/api/supplier-cards?limit=50",
+      "expected": 403,
+      "actual": 403,
+      "ok": true,
+      "code": "AUTH_PERMISSION_DENIED"
+    },
+    {
+      "actor": "seller",
+      "path": "/api/work-collections/preview",
+      "expected": 403,
+      "actual": 403,
+      "ok": true,
+      "code": "AUTH_PERMISSION_DENIED"
+    },
+    {
+      "actor": "seller",
+      "path": "/api/test-daily/count",
+      "expected": 200,
+      "actual": 200,
+      "ok": true
+    },
+    {
+      "actor": "seller",
+      "path": "/api/test-daily/purchase",
+      "expected": 200,
+      "actual": 200,
+      "ok": true
+    },
+    {
+      "actor": "ilker",
+      "path": "/api/supplier-cards?limit=50",
+      "expected": 200,
+      "actual": 200,
+      "ok": true
+    },
+    {
+      "actor": "seller",
+      "path": "/api/work-sales/context",
+      "expected": 200,
+      "actual": 200,
+      "ok": true
+    },
+    {
+      "actor": "ilker",
+      "path": "/api/work-receiving/context",
+      "expected": 200,
+      "actual": 200,
+      "ok": true
+    },
+    {
+      "actor": "ilker",
+      "path": "/api/work-purchases/context",
+      "expected": 200,
+      "actual": 200,
+      "ok": true
+    }
+  ],
+  "passed": 13,
+  "reports": {
+    "at": "2026-10-07T19:51:13.741Z",
+    "businessWrites": 0,
+    "rows": [
+      {
+        "kind": "sales",
+        "total": 1,
+        "rows": 1,
+        "ok": true
+      },
+      {
+        "kind": "collections",
+        "total": 1,
+        "rows": 1,
+        "ok": true
+      },
+      {
+        "kind": "purchases",
+        "total": 1,
+        "rows": 1,
+        "ok": true
+      },
+      {
+        "kind": "supplier-payments",
+        "total": 1,
+        "rows": 1,
+        "ok": true
+      },
+      {
+        "kind": "stock-movements",
+        "total": 3,
+        "rows": 3,
+        "ok": true
+      },
+      {
+        "kind": "customer-movements",
+        "total": 2,
+        "rows": 2,
+        "ok": true
+      },
+      {
+        "kind": "supplier-movements",
+        "total": 3,
+        "rows": 3,
+        "ok": true
+      }
+    ],
+    "passed": 7
+  },
+  "humanAccepted": false
+}

@@ -1,0 +1,81 @@
+# Exact false positives independently reviewed on 2026-10-03; no broad exclusions.
+# Independently reviewed 2026-10-11 against historical source and HEAD 1a14a33.
+# Synthetic provenance/source identifiers and a public scope identifier, not credentials.
+# Only the six exact historical fingerprints; no file/rule-wide exclusions.
+819411baf95c9e37aa7bfd37f98fc5509fdbc3f4:apps/sites-workflow/src/workflow/workingCatalogSession.test.mjs:generic-api-key:258
+181de5ac4102904104c056c9c270b9c6a7ef990d:apps/api/src/services/businessDailyHomeReadProof.test.mjs:generic-api-key:21
+ec5b2b0f09ce4cefecd485d8b68a862fa761d514:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:92
+ec5b2b0f09ce4cefecd485d8b68a862fa761d514:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:95
+ec5b2b0f09ce4cefecd485d8b68a862fa761d514:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:114
+b0068203a71a357af98a32e2835f6d67863a2f67:apps/sites-workflow/src/workflow/personnelTerminal.js:generic-api-key:50
+# Database identity metadata, no credential
+4a725d834af1f9f9b7b9a7449b50c6fa00366697:docs/erp-v2/canonical-20261003/delivery-readonly-sites.json:generic-api-key:14
+# Database identity metadata, no credential
+4dfd2736e26a7af9ab3549e09219b03ab8893571:docs/erp-v2/canonical-20261003/delivery.json:generic-api-key:14
+# Browser localStorage identifier
+dc2fdfeece74f7fd89d9b22f36c89264c4cd0710:apps/sites-workflow/public/workflow-settlement-ui.js:generic-api-key:2
+# Cost evidence template identifier
+dc2fdfeece74f7fd89d9b22f36c89264c4cd0710:apps/sites-workflow/src/workflow/testPrices.js:generic-api-key:13
+# Stock provenance source path
+6bc4877533b09673f1a732d921044ed1db18c998:apps/api/scripts/stock-audit-4-unit-closeout.mjs:generic-api-key:10
+# 40-hex Git commit metadata
+fdcaa59981640cd2fa57b637b3bac2002671ad7b:docs/erp-v2/canonical-20261003/sites-v70-verification.json:sourcegraph-access-token:3
+# Empty key plus adjacent local example causes cross-line match
+608de6b6c387da7ab7f0cbe7aa778f515140b3fa:apps/whatsapp-crm-api/.env.example:generic-api-key:20
+
+# Exact public TEST database identity metadata, independently reviewed 2026-10-04
+9a7410b31c669e7b0c80e33c6635b1b0726d4e5c:docs/erp-v2/canonical-20261003/delivery.json:generic-api-key:8
+# Independently reviewed 2026-10-05: rejected synthetic source tuple, no credential.
+c9711d1f27168d2b04419e31d3886700c94a5e9a:apps/api/src/services/testCrmOrderService.test.mjs:generic-api-key:36
+# Bare PEM-header rejection fixtures; no private-key body. Exact historical fingerprint only.
+c9711d1f27168d2b04419e31d3886700c94a5e9a:scripts/canonical/build-crm-order-package.test.mjs:private-key:29
+# Independently reviewed 2026-10-06: deterministic synthetic native price tuple, no credential.
+# SQL binding C09/301986/type/unit/tier/currency; exact historical fingerprint only.
+e54a1d0f428a9ec15c75feb131b672a56be0b231:docs/evidence/erp/2026-10-06-inbound/fx-native-before.json:generic-api-key:90
+# Independently reviewed 2026-10-06: deterministic UUID uppercase/lowercase test,
+# never an authentication key. Exact historical fingerprint only.
+3a1f404426e18181cae9c33a4aa25e502db2a676:scripts/canonical/crm-order-v2-sql.test.mjs:generic-api-key:6
+# Reviewed Goal7 public/invalid synthetic product source identity, no credential.
+# Exact historical fingerprints only; inline annotations cover later copies.
+7c269e7089366db9b9dfe394f2f73103ac3c0b74:apps/sites-workflow/src/workflow/workCatalog.test.mjs:generic-api-key:5
+7c269e7089366db9b9dfe394f2f73103ac3c0b74:apps/sites-workflow/src/workflow/workCatalog.test.mjs:generic-api-key:10
+# Independently reviewed 2026-10-08: synthetic purchase-document provenance path,
+# not an authentication key. Exact historical fingerprint only.
+750c7252a0acb76cee9cbc33bb464029965ff9b2:scripts/migration/product-last-purchase-model.test.mjs:generic-api-key:20
+# Independently reviewed 2026-10-08: SHA256 of private evidence files, not keys.
+# Exact historical fingerprints; later manifests use separate file/digest fields.
+0f9bedec7fe862a11dace7cb3ad37023cffe1393:docs/evidence/erp/2026-10-08-last-net-purchase/delivery-summary.json:generic-api-key:113
+0f9bedec7fe862a11dace7cb3ad37023cffe1393:docs/evidence/erp/2026-10-08-last-net-purchase/delivery-summary.json:generic-api-key:117
+# Reviewed 2026-10-08: deterministic synthetic F0102 product provenance paths,
+# not login/API credentials. Exact historical fingerprints only.
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:8
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:20
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:8
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
+90ef8047e8dcc27b5c7d0b0d819dcd98b037a8ac:scripts/migration/product-completion-plan.test.mjs:generic-api-key:27
+
+# Independently reviewed 2026-10-09: deterministic synthetic VEGA stock/party
+# provenance paths in offline isolated-copy fixtures, never API/login credentials.
+# Exact historical fingerprints only; no file, path, rule or history exclusions.
+1a30dae492e038af910e1c39cc58591d68c70739:apps/sites-workflow/src/workflow/workInbound.test.mjs:generic-api-key:20
+1a30dae492e038af910e1c39cc58591d68c70739:apps/sites-workflow/src/workflow/workTrade.test.mjs:generic-api-key:31
+ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/workCopyActorSelector.test.mjs:generic-api-key:5
+ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/workDailyCopyModel.test.mjs:generic-api-key:8
+ae6855c7decc53d08911a0593bdb224455396217:apps/sites-workflow/src/workflow/isolatedOperationCopyModel.test.mjs:generic-api-key:8
+cb665336106f60f3b090840dd12f1384357448b5:apps/api/src/services/nativeCurrencyAccount.test.mjs:generic-api-key:45
+ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperationCopyContext.test.mjs:generic-api-key:6
+# Reviewed 2026-10-09: offline stock sourceKey fixture, no credential.
+41a8e6c42a71a10e3081f492ec9c2fc860892401:apps/api/src/services/isolatedOperationCopyRevision.test.mjs:generic-api-key:7
+# Independently reviewed 2026-10-10: deterministic sourceKey provenance tuples
+# in offline daily fixtures, not credentials. Exact historical fingerprints only.
+656bd52f6ecc2ee49e281b78006dd1aaf7c96c2f:apps/api/src/services/businessDailyNativeScope.test.mjs:generic-api-key:16
+656bd52f6ecc2ee49e281b78006dd1aaf7c96c2f:apps/api/src/services/businessDailyRevisionBootstrap.test.mjs:generic-api-key:17
+0f51f01f7d6e4997625bcbabfdbc9fb3ef825d3b:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:10
+0f51f01f7d6e4997625bcbabfdbc9fb3ef825d3b:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:22
+# Independently reviewed 2026-10-11: public TEST database identity guard
+# and offline sourceKey provenance, not credentials. Exact commits only.
+6b99f1bc5758b5a116cd4158f923e09202c66c35:apps/api/src/services/melisaHubReadiness.mjs:generic-api-key:31
+0f52539f56b956d6b7906fc426a885cc9bb7652b:apps/sites-workflow/src/workflow/sharedStableTopology.test.mjs:generic-api-key:15
+# 2026-10-12 cancelled optional source: offline repeated a/b/c fixture hashes
+# and public provenance source keys, not a credential. Exact commit/line only.
+fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workingCatalogSessionSemihBrowser.test.mjs:generic-api-key:6

@@ -1,0 +1,209 @@
+{
+  "at": "2026-10-06T13:40:52.453Z",
+  "sourceCommit": "0383c5ddb249c6d5edc244741d13e0f4113209ee",
+  "packageId": "CANONICAL-TEST-0383c5ddb249",
+  "releaseDirectory": "C:/Sirket/ERP/releases/CANONICAL-FINOPS-TEST-20261006-66",
+  "roles": [
+    {
+      "actorId": 15,
+      "role": "isolated_test_sales",
+      "stockAdjust": false,
+      "purchaseCancel": false,
+      "financePayment": false,
+      "testAdminSession": false
+    },
+    {
+      "actorId": 16,
+      "role": "isolated_test_ilker",
+      "stockAdjust": true,
+      "purchaseCancel": true,
+      "financePayment": true,
+      "testAdminSession": false
+    }
+  ],
+  "negatives": [
+    {
+      "label": "zero-return-quantity",
+      "status": 409,
+      "code": "SOURCE_REQUIRED",
+      "bodySha256": "07bf0e289ef988136f4f3fd46df54c9a2dde49b8fed5a12e1ff0bc66f7c100fe",
+      "actor": 16
+    },
+    {
+      "label": "negative-return-quantity",
+      "status": 400,
+      "code": "INPUT",
+      "bodySha256": "c5b6302ab70579dcf36363018efc338a15aff50df8b6d06fb574cc45f755c93b",
+      "actor": 16
+    },
+    {
+      "label": "client-wrong-return-currency",
+      "status": 400,
+      "code": "TEST_PAYLOAD",
+      "bodySha256": "0308244508d72290900b27e20bef9f4172d4ed6ceac82121fbcbbe41616dcd5b",
+      "actor": 16
+    },
+    {
+      "label": "personnel-return-approve",
+      "status": 403,
+      "code": "AUTH_PERMISSION_DENIED",
+      "bodySha256": "ea9ad31377f0c94290d200182f2a190ad8257ebe11e6e74e005c45619f22d103",
+      "actor": 15
+    },
+    {
+      "label": "same-uuid-different-return-body",
+      "status": 409,
+      "code": "REQUEST_CONFLICT",
+      "bodySha256": "28e666ad92448ee861f6bb227003fc2991d80b51f59dd938707f4b56245c60e9",
+      "actor": 16
+    },
+    {
+      "label": "personnel-return-cancel",
+      "status": 403,
+      "code": "AUTH_PERMISSION_DENIED",
+      "bodySha256": "374b08bc9d0dfd5616cb9aa01a3effa8a4ce4d89cfe57e5ec9771fb3dea5b6f3",
+      "actor": 15
+    },
+    {
+      "label": "personnel-payment-preview",
+      "status": 403,
+      "code": "WORK_PAYMENT_FORBIDDEN",
+      "bodySha256": "aaebbe7d72b65138db2c715de92afeef808bf1125dfc63d4080e05b754ca2742",
+      "actor": 15
+    },
+    {
+      "label": "personnel-payment-write",
+      "status": 403,
+      "code": "WORK_PAYMENT_FORBIDDEN",
+      "bodySha256": "b03784529d9b46cece18706bdfb7a33b1331b9de4fd04b5af80167f5ee75d1af",
+      "actor": 15
+    },
+    {
+      "label": "wrong-currency-payment",
+      "status": 409,
+      "code": "WORK_PAYMENT_SCOPE",
+      "bodySha256": "30897c86c4e4c6cd2045ebabda4c1555bbde30c6c56671a3d3082d61e8f44444",
+      "actor": 16
+    },
+    {
+      "label": "zero-payment",
+      "status": 400,
+      "code": "WORK_PAYMENT_INPUT",
+      "bodySha256": "3d305e175de151174f1f654e74d0d3d555fb0dabb8ecb9b7ac5170bd946aea91",
+      "actor": 16
+    },
+    {
+      "label": "negative-payment",
+      "status": 400,
+      "code": "WORK_PAYMENT_INPUT",
+      "bodySha256": "cdf7484c1c5f198f99aa2db17c11a27914e54d23c3e7cc443cefc2ae72387a50",
+      "actor": 16
+    },
+    {
+      "label": "native-port-readonly",
+      "port": 4146,
+      "status": 405,
+      "code": "TEST_WRITE_OUTSIDE_SCOPE"
+    }
+  ],
+  "replay": [
+    {
+      "flow": "purchaseReturn",
+      "doubleClickStatuses": [
+        200,
+        200
+      ],
+      "lostResponseBody": true,
+      "retryReplayed": true,
+      "newUuidAlreadyApplied": true,
+      "refreshState": "approved",
+      "stockMovementsCreated": 1,
+      "supplierMovementsCreated": 1
+    }
+  ],
+  "snapshots": [
+    "before",
+    "returned",
+    "return-replayed",
+    "reversed",
+    "final"
+  ],
+  "requests": [
+    {
+      "path": "/api/test-daily/purchase/draft",
+      "actor": 16,
+      "body": {
+        "requestId": "91b14c40-ff0e-4299-91d3-d7cdfc9d8b3b",
+        "sourceInvoiceId": 25075,
+        "sourceItemId": 93173,
+        "quantity": 1,
+        "date": "2026-10-06",
+        "reason": "Goal3 kontrollü TEST fiziksel alış iadesi"
+      },
+      "bodySha256": "6757843ecda859e5355afccdd11088d61d4a24a92315610bb986a966a21bb1c9"
+    },
+    {
+      "path": "/api/test-daily/purchase/approve",
+      "actor": 16,
+      "body": {
+        "requestId": "d074df0a-2f81-40ab-88fe-5b1e39539658",
+        "id": 40,
+        "date": "2026-10-06",
+        "reason": "Kontrollü gerçek TEST alış iadesi onayı"
+      },
+      "bodySha256": "a88612ac0008251e2dd07af2dd57c172f48b08475d32e6d42b2ee970f21dc9a3"
+    },
+    {
+      "path": "/api/test-daily/purchase/cancel",
+      "actor": 16,
+      "body": {
+        "requestId": "3b87db1b-d448-4f85-9090-a383ba1d57d8",
+        "id": 40,
+        "date": "2026-10-06",
+        "reason": "Goal3 kontrollü iade provası gerekçeli ters kayıt"
+      },
+      "bodySha256": "374b08bc9d0dfd5616cb9aa01a3effa8a4ce4d89cfe57e5ec9771fb3dea5b6f3"
+    },
+    {
+      "path": "/api/test-daily/purchase/cancel",
+      "actor": 16,
+      "body": {
+        "requestId": "3b87db1b-d448-4f85-9090-a383ba1d57d8",
+        "id": 40,
+        "date": "2026-10-06",
+        "reason": "Goal3 kontrollü iade provası gerekçeli ters kayıt"
+      },
+      "bodySha256": "374b08bc9d0dfd5616cb9aa01a3effa8a4ce4d89cfe57e5ec9771fb3dea5b6f3"
+    }
+  ],
+  "humanAcceptance": "ERP-UA13–17 bekliyor",
+  "purchaseReturn": {
+    "draftId": 40,
+    "sourceInvoiceId": 25075,
+    "sourceItemId": 93173,
+    "productId": 301986,
+    "quantity": 1,
+    "supplierId": 13373,
+    "returnId": 224,
+    "stockEffect": -1,
+    "supplierEffectTry": -60,
+    "cashEffect": 0,
+    "originalInvoicePreserved": true,
+    "reversal": {
+      "stockEffect": 1,
+      "supplierEffectTry": 60,
+      "historyRetained": true,
+      "cashEffect": 0
+    }
+  },
+  "success": true,
+  "priorHarnessFailures": [
+    {
+      "message": "approve is not defined",
+      "code": null
+    }
+  ],
+  "protectedRowsAndAuthUnchanged": true,
+  "stockAndSupplierBaselinesRestored": true,
+  "completedAt": "2026-10-06T13:42:16.781Z"
+}

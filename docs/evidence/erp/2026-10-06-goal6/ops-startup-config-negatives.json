@@ -1,0 +1,22 @@
+{
+  "observedAt": "2026-10-06T20:13:11.5104990Z",
+  "cases": [
+    {
+      "code": "TEST_STARTUP_SCOPE_REJECTED",
+      "result": "REJECTED_BEFORE_START",
+      "case": "wrong-database"
+    },
+    {
+      "code": "TEST_STARTUP_RELEASE_IDENTITY_MISMATCH",
+      "result": "REJECTED_BEFORE_START",
+      "case": "wrong-source"
+    },
+    {
+      "code": "TEST_STARTUP_MANIFEST_HASH_MISMATCH",
+      "result": "REJECTED_BEFORE_START",
+      "case": "wrong-manifest"
+    }
+  ],
+  "scope": "Private config candidates only; active config and services unchanged, no SQL connection or business write",
+  "sourceCommit": "f8946ee14d13ae473f2365818b721bafbde2c5f9"
+}

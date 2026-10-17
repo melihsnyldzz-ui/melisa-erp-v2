@@ -1,0 +1,84 @@
+{
+  "sourceCommit": "78e6cc94c01f7f46cf0844149c7e987889057b2f",
+  "checks": [
+    {
+      "view": "collections",
+      "body": 1425,
+      "scroll": 1425,
+      "width": 1440
+    },
+    {
+      "view": "collections",
+      "body": 1009,
+      "scroll": 1009,
+      "width": 1024
+    },
+    {
+      "view": "collections",
+      "body": 375,
+      "scroll": 375,
+      "width": 390
+    },
+    {
+      "view": "customers",
+      "body": 1425,
+      "scroll": 1425,
+      "width": 1440
+    },
+    {
+      "view": "customers",
+      "body": 1009,
+      "scroll": 1009,
+      "width": 1024
+    },
+    {
+      "view": "customers",
+      "body": 375,
+      "scroll": 375,
+      "width": 390
+    },
+    {
+      "view": "home",
+      "body": 1425,
+      "scroll": 1425,
+      "width": 1440
+    },
+    {
+      "view": "home",
+      "body": 1009,
+      "scroll": 1009,
+      "width": 1024
+    },
+    {
+      "view": "home",
+      "body": 375,
+      "scroll": 375,
+      "width": 390
+    },
+    {
+      "view": "sales",
+      "body": 1440,
+      "scroll": 1440,
+      "width": 1440
+    },
+    {
+      "view": "sales",
+      "body": 390,
+      "scroll": 390,
+      "width": 390
+    },
+    {
+      "view": "sales",
+      "body": 1024,
+      "scroll": 1024,
+      "width": 1024
+    },
+    {
+      "view": "sales",
+      "body": 1440,
+      "scroll": 1440,
+      "width": 1440
+    }
+  ],
+  "method": "actual DOM CSS viewport; screenshot visible area may be clipped by in-app browser"
+}

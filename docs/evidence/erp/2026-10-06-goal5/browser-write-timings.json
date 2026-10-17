@@ -1,0 +1,20 @@
+{
+  "source": "ebe8 CRM / ERP73 actual browser Network; includes current assignment/readback",
+  "checks": [
+    {
+      "path": "/api/live/crm/conversations/55/translate",
+      "status": 200,
+      "durationMs": 1957
+    },
+    {
+      "path": "/api/live/crm/erp/v2/drafts",
+      "status": 200,
+      "durationMs": 5914
+    },
+    {
+      "path": "/api/live/crm/erp/v2/drafts/c0bd83c2-6515-4b4b-a074-5386b73c7639",
+      "status": 200,
+      "durationMs": 667
+    }
+  ]
+}

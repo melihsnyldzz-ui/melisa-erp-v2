@@ -1,0 +1,283 @@
+## ERP09 / OPS01 — değişmeyen kaynak profilinin hesabı daraltıldı — 13 Ekim 2026
+
+Ortak sıra1 / ana ID ERP09 için yalnız hash CPU alt teslimi tamamlandı. Source **2bf27620b1884742b509328969b90bca90c2972c**,1880dosya/manifest **f31caf92b91400caf1f4a40997223fd480900a0317a832ff7fb7a05dc1a3559a**;5234/4184/4186/DB02/copye16b70f0/T1false çalışıyor. Derin değişmez kayıtlı kaynak profilinde hash tekrar kullanılır; SQL/fiyat/stok/hold/rol/owner kontrolü aynı.10offline/HighGO/build/secret scan temiz;12normalGET data+meta birebir aynı, ticari yazma0. Fiş detay ortancası11,436→4,179s; liste5,958→4,763s; koli detay4,897→4,971s; koli liste5,557→4,599s. Üç örnek dalgalı, genel hız hedefi açık; CPU alt kazancı toplam hız diye sunulmaz. TEST125/CRM09ca/native60e/roller/eski veriler korunur. CRM ayrı sahibiyle ERP-DEC-054 kapsamında devam eder. CI6ödeme/harcama nedeniyle başlamadı; kaynak ve belge teslimi ayrı. [Kanıt](../2026-10-13-profile-hash/README.md). ERP09/OPS01🟡, insan kabulü ve completeDelivery=false sürer. Sonraki teknik iş owner/native okuma gecikmesi; ERP04 genel fiyat yazıcısı teknik eksik olarak sırada, eski guardlar kaldırılmaz.
+
+## ERP04 / A02–C09 — mevcut alış referansı ve genel yazma bağımlılığı — 13 Ekim
+
+| Kalem | Yeni teknik sonuç | Somut kalan |
+| --- | --- | --- |
+| ERP04 / A02 | c3a84d0 DB02 normal kartta son net alış referansı;26/26/GO, API/Chrome, ticari yazma0. | Genel fiyat yazma; bilinmeyen maliyet/veri kararları ve insan kabulü. |
+| C09 | Eski fixture/original DB/CAS/replay kanıtı korunur; yeniden prova yok. | DB02 fiyat revision, kaynak mühürlerini koruyan güncel sürüm tüketimi ve dar owner EXEC yok. |
+
+[Kanıt](../2026-10-13-price-reference/README.md). Sabit55 diğer hosttaki yönetici kaydıdır; burada yeni takip veya uzaktaki kaydın güncellendiği iddiası yok. Genel durum kısmi;49/9/39/1 aynı.
+
+## ERP03 / A01–B02 — normal stok güven durumu — 13 Ekim
+
+| Kalem | Yeni teknik sonuç | Somut kalan |
+| --- | --- | --- |
+| A01 / ERP03 | Liste/kartta NULL, doğrulanmamış miktar ve doğrulanmış sıfır ayrılır; exact negatif ve birim korunur. | Tam stok kökeni, kaynak/yerel/sentetik ayrımı, fiziksel sayım ve UA26/32. |
+| B02 | Geçmiş arama/barkod kabulü korunur; yeni sunum4test/GO ve2GET aynı. | Yeni genel kabul ilan edilmedi. |
+
+[Stok güven durumu kanıtı](../2026-10-13-stock-card-trust/README.md); yeni ticari yazma0.
+
+## ERP14 / C11 — mevcut kimlik/modül bağlantısı — 13 Ekim
+
+| Kalem | Son çalışan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| C11 / ERP14 |15/16 izin/ret/redaction makbuzları eşlendi; Onaylar üç kaynaklı özet ve forbidden/null normal ekranda. | Gerçek üç insan/muhasebe kimliği ve UA18/32. |
+| Teslim |747ac20,2source/test,6hedefli kontrol/GO; API/yetki0, iki yeniGET same, ticari0. | HostedCI ödeme ve genel insan/işletme sınırları. |
+
+[Rol ve modül eşleme kanıtı](../2026-10-13-role-module-binding/README.md). Eski kabul/prova yeniden yapılmadı.
+
+## ERP02 / B01 — günlük akış kapsamı — 13 Ekim
+
+| Kalem | Son çalışan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| B01 | Doğrulanmış profil kapsam notu, ayrı tarih, yetkili Raporlar bağlantısı, bilinmeyen kayıt bağlantısı kapalı; normal15/16/Yenile. | Genel görev/kasa/vade/borç, OPS01 hız ve UA05/17/32. |
+| Teslim | e03dcb5,3frontend/test dosyası,21test/GO;14GET eski veri/yetki aynı, ticari0. | HostedCI ödeme ve genel teslim/insan sınırları. |
+
+[Ana Sayfa kapsam kanıtı](../2026-10-13-home-daily-scope/README.md). Önceki kayıt/prova kanıtları kendi tarih/kapsamıyla korunur.
+
+## ERP16 / B08 — sistem görünümü — 13 Ekim
+
+| Kalem | Son çalışan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| B08 | Paket/kullanıcı/rol/üç bağlantı ve açık tarihli prova, Yenile; normal15/16. | Güncel yedek, gerçek Windows reboot/logon ve UA20/32. |
+| Teslim |0270d12,5dar source/test dosyası,11test/GO; ticari/restore yazma0. | HostedCI ödeme ve genel teslim/insan sınırları. |
+
+[Ayarlar okuma kanıtı](../2026-10-13-settings-read/README.md). Eski provalar kendi tarih/source/kapsamlarıyla korunur.
+
+## ERP15 / B07–C15 — mevcut dönem/döviz/CSV — 13 Ekim
+
+| Kalem | Son çalışan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| ERP15/B07/C15 | Mevcut7copyraporu,8–10Ekim,50sayfa/ayrıdöviz/CSVbyte/native ve normalrol; maliyetkaydı dili. | Genel işletme, historicalVega, gerçek açılış/kapama ve UA19/32. |
+| Teslim | Sourceb68 frontend2etiket/test; API/reader/matematik aynı; yeni ticari0. | HostedCI ödeme ve genelOPS01hız/insan sınırları. |
+
+[Kanıt](../2026-10-13-daily-report-read/README.md). Kayıt sayıları farklı rapor kapsamlarıdır; toplanıp ürün/işlem sayısı yapılmaz.
+
+## ERP13 / C10–C11 — sonlu salt okunur görünüm — 13 Ekim
+
+| Kalem | Bağlanan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| ERP13/C10 | Kayıtlı sayım ve alış iadesi, özgün/ters native bağ/gerekçe, readonly normal görünüm;4GET/15native set aynı. | Genel FX/çok satırlı iade, batch committed inverse ve UA15/16. |
+| C11 | Mevcut15/16 role projection, personel finans gizliliği ve onay sınırı korundu. | Gerçek işletme personel–İlker–muhasebe matrisi; UA18/32. |
+
+[Kanıt](../2026-10-13-count-return-read/README.md). Yeni ticari işlem/replay/inverse0; genel ERP teslimi tamamlanmadı.
+
+## ERP12 / C08 — mevcut günlük finans okuması — 13 Ekim
+
+| Kalem | Son paketle bağlanan teknik alt kapsam | Somut kalan |
+| --- | --- | --- |
+| ERP12/C08/B06 | Normal mevcut tahsilat/ödeme/hesap ve belge-kabul bağlantısı;17GET/9native set, refresh/yetki; ticariyazma0. | Gerçek açılış/banka/günsonu, genişmüşteri-FX, kayıtlıkur/presentation sınırı, UA14/UA32. |
+| Teslim | Sourcef2f922a aynı; uygulama/paket/runtime/yetki değişmedi. | HostedCI ödeme ve genel insan/işletme kabulleri. |
+
+[Kanıt](../2026-10-13-finance-daily-read/README.md). Tarihsel39hesap analizi fiziksel sayım/ekstre kabulü değildir.
+
+## ERP11 / C02–C03 — kayıtlı fatura dayanağı — 13 Ekim
+
+| Kalem | Çalışan kanıt | Kalan |
+| --- | --- | --- |
+| C02/C03/B05 | Exact mevcut fatura–kabul; native belge/cari kuru+tutar;61test/HighGO/API/Chrome/native,0ticariyazma. | Genel günlük/birim/döviz, tarihsel reader snapshot, İlker/muhasebe kabulü. |
+| Teslim | f2f922a/1876dosya;CSS/startup/CRM/TEST125 korundu. | CI ödeme, OPS01hız, final belge/video ve gerçek reboot. |
+
+[Kanıt](../2026-10-13-purchase-receipt/README.md). Genel bitiş ve insan sayımları aynı.
+
+## 13 Ekim C05 dar teslim farkı
+
+| Kalem | Yeni çalışan kanıt | Kalan |
+| --- | --- | --- |
+| ERP-C05 / ERP09 | Müşteri+döviz/25fiş geçmişi ve Yenile; açık/kısmi/iptal/doğrulanmamışvade.126kontrol/GO, normalChrome/API/nativeaynı;0ticariyazma. | Genelvade/kredi kuralı-kaynağı, seçili kaynak tahsilat yazıcısı ve insan kabulü. |
+| Teslim | Sourcea771afe/1874dosya,8port/DB02/heartbeat; CSS9/startup225/CRM/TEST125 korundu. | HostedCI ödeme/harcama, OPS01hız, finalnativebelge/video, gerçekreboot. |
+
+[Dar kanıt](../2026-10-13-open-account/README.md). Genel bitiş ve insan sayımları değişmedi.
+
+## 13 Ekim TERM01 dar teslim farkı
+
+| Kalem | Yeni çalışan kanıt | Kalan |
+| --- | --- | --- |
+| TERM-01 / C01 | Çalışan4c, mevcut sayım/kabul exact ilişki ve readonly inceleme; normal15 onay/ret kapalı,16 yetkili; yenileme ve1440/1024/390.29hedefli kontrol/GO, raw ve API kayıtları aynı; yeni ticariyazma0. | Genel işletme kapsamı, finalTC21 yeni belge/video ve insanUA32. Mevcut pending kabul bu tur onaylanmadı. |
+| OPS / teslim | API572/startup225/CSS7 aynı, DB02/8port/heartbeat, installer/v22APK HTTP hazır. | OPS01 hız, gerçek reboot/logon ve hostedCI hesap ödeme/harcama engeli. |
+
+[Son görev devri kanıtı](../2026-10-13-receiving-handoff/README.md). Önceki başlangıç/teslimler ve insan sonuçları korunur.
+
+## 13 Ekim OPS02 dar teslim farkı
+
+| Kalem | Yeni kanıt | Kalan |
+| --- | --- | --- |
+| OPS-02 | Çalışan3517: unknownprobe residentdegraded; healthycleanup/restart0.73yerelkontrol/GO; final6coreguard gölgeprova ve8port/DB02/heartbeat. | GerçekWindowsreboot/logon. Eski814exit1OSaşaması kaydedilmedi; neden bilinmiyor. |
+| OPS-01 / UI / native | Normal22asset/572APIfile aynı,4DTOhashkorundu; installer/v22hashaynı. | Hız hâlâ birkaçsaniye; yeni cihaz belgesi/video ve insanUA32. |
+
+[13Ekim teknik kanıt](../2026-10-13-startup-observation/README.md). Aşağıdaki başlangıç ve12Ekim farkı korunur; iş sayıları/insan sonuçları değişmedi.
+
+# MELİSA ERP + CRM — kalem bazında son kapanış raporu
+
+**12 Ekim son devam güncellemesi:** başlangıç fotoğrafı aşağıda tarihsel olarak korunur. Şimdi çalışan ERP **8142742**; CRM09ca/native60e ve özgün TEST125 aynı. [Son çalışan teslim / kanıt ve açıklar](current-delivery.md) eski kaynak hazırlığını çalışan kurulumdan ayırır. Yeni source e873/260/2005/814 ve source sonrası doküman teslimi PR23 üzerindedir; insanUA32 bekliyor.
+
+| Kapanış kalemi | Yeni gerçek sonuç | Hâlâ açık |
+| --- | --- | --- |
+| OPS-01 | Dış READY tekrarı azaltılmış okuyucu kurulu; aynı4DTOhash. SonLAN fiş9,47sn/liste5,91sn/koli liste5,00sn/koli2004,39sn. | Native birkaçsaniye maliyeti; hız tamamen kapalı değil. |
+| OPS-02 | İlk crmServer processProbe hatasında cleanup/retry; ikinci başlangıçta8port/DB02/aynısource toparlandı. | KesinOS hata aşaması ve gerçek Windows reboot/logon. |
+| TERM-03 | Normal390tarayıcı üst50→100/0089tekdoğruürün/ikiREADYkoli122+101/yenileme kanıtlı; yeni koli veya miktar yazılmadı. | SonJS'nin native uygulamada yeni belge olarak yüklenmesi. Eski açık belge çekimi son814kanıtı değil. |
+| TERM-05 / FIN-01 | Sonpakette install200 ve hashdoğru v22APK; repo dışı kısa rehber/görsel/manifest hazır. | Native kapat/başlat kontrolü otomatik denetim reddiyle açık; completeDelivery=false. |
+| EDU-02 / UA-01 | Önceki beş klip ve yeni readonly deneme kayıtları korunur. | Son200 eğitim videosu yayımlanmadı; insanUA32 bekliyor. |
+| OPS-04 | Exact814 hosted CI hesap ödeme/harcama nedeniyle başlamadı. | Gerçek GitHub kontrolleri; Vercel success yerine geçmez. |
+
+Yeni ticari/migration yazması yok; diğer veri/kimlik/açılış/insan/T1 satırları aşağıdaki kapsamda sürer. Fotoğraf, maliyet,283+16cari,LL/hold,ürün/fiyat aktarımı ve yedekler korunmuştur. Bu güncelleme genel LIVE kabulü değildir.
+
+12 Ekim 2026, 20:37 Türkiye saati. Kullanıcı ERP-DEC-053: giriş düğmesi iptal; ana ERP/terminal/eğitim/geçiş teslimi sürer.
+
+**ERP ve terminalin çalışan parçaları var; bütün mağazanın LIVE geçişi hazır değildir.** Rapor 49 ERP ve 25 CRM kayıt başlığını ayrı ayrı kapsar; bu sayılar tamamlanma yüzdesi, yeni kod sayısı veya süre değildir. Aynı işi görünüm/işlev/veri satırları paylaşır; süreler toplanmaz. Güncel çalışan sonuç, eski kabul, kaynak/prova ve insan kabulü ayrıdır.
+
+**Kanıt seviyesi:** normal ekranda/cihazda görülen; SQL/API gerçek kayıt sonucu; eski insan kabulü; yalnız kaynak/prova/paket hazırlığı. Birinin varlığı diğerini tamam saymaz. CRM kendi sahibi tarafından yürütülür ve ayrı paused kararı sürer. Staged sahibi kanıtları yayınlanmış veya ortak runtime’da kurulu sayılmaz.
+
+**Efor:** aşağıdaki aralıklar planlama tahminidir; ölçülmüş teslim garantisi değildir. Aynı teknik işin birden çok satırı aynı aralığı paylaşır. İnsan/işletme/CI bekleme süresi dahil değildir. Kaynak/kimlik kararı olmayan işe saat uydurulmadı. Kalan işin tek güvenilir toplam saati şu an yok.
+
+Kısa sözlük: “native” gerçek SQL hareket/hesap sonucudur; “source” yazılım kaynağıdır; “replay” aynı isteğin tekrar gönderilmesidir; “CAS” eşzamanlı değişmiş alanın üzerine yazmama kontrolüdür. Kaynak testi veya paket hazırlığı, çalışan ekran teslimi değildir.
+
+## Çalışan başlangıç ve korunacaklar
+
+| Parça | Gerçek çalışan / kayıtlı durum |
+| --- | --- |
+| ERP ortak TEST | Web5234 / API4184 / native4186; source **6a3eaa16cd66ef1e43a0859198e8eca192892b12**, immutable6a3eaa1 paket |
+| CRM ortak TEST |62700–62704; UI/gateway/catalog/orders source **09ca1dac346e42037fd02901baf3240aa6ce6285**; native draft **60e424b61febd062668be0ccf3595c546da263a0** |
+| DB | Semih\MELISADEV / MELISA_ERP_CRM_SHARED_TEST_20261009_02; copye16b70f0; actualT1=false |
+| Korunan özgün TEST125 |5194 /4144 /4146, sourceedb3c891; yeniden aktarım/reset yok |
+| ERP / CRM kaynak | ERP remote head başlangıcı cb9633b, PR23; CRM source0424ac74, PR3. Source/teslim head/runtime birbirinden ayrı |
+| İptal edilen giriş | fbb6831 yerel optional dal/worktree ve paket hazırlığı korunur; **aktive edilmedi**. CRM0424 paketi de bu çalışmada ortak62700’e kurulmadı |
+| Yeni aktarım yok |283hesap/59fark/224no-op ve önceki16;72kart/343stokfarkı/109barkod/319yeni+47fiyat;4.338netalış/6.090maliyet/3.830görsel;LL ve holdlar korunur |
+
+Adresler: [ERP](http://192.168.1.46:5234/ornek-akis.html#stock), [CRM](http://192.168.1.46:62700/), [Hub](http://192.168.1.46:5234/melisa-hub/), [APK kurulum](http://192.168.1.46:5234/install.html). Ağ IP rezervasyonu ertelendi; bu adres DHCP ile kalıcı garanti değildir.
+
+## Beş ana aşamada somut kapanış kalemleri
+
+| ID / istenen iş | Bugün kanıtlanan | Somut kalan / kapanma ölçütü | Bağımlılık / efor |
+| --- | --- | --- | --- |
+| OPS-01 — Hızlı günlük ERP ve büyük fiş |200çeşit/223adet native tek stok-cari etkisi ve ayrı iki READY koli var; normal GET’ler halen yaklaşık5–7sn, bazen daha uzun. V11 metadata uygulanmış; bütün ekranın hızını kapatmadı. |Bekleyen dar tarihsel fiş/koli okuyucu değişikliği kaynakta. Aynı mevcut fiş/liste/koli sonuçlarını koruyarak gerçek normal API ve Android süre/ekranı; yeni satış oluşturulmayacak. |**Sıradaki teknik iş.**2–6saat tahmin; kod hazırlığı çalışan hız değildir. |
+| OPS-02 — Kalıcı bilgisayar başlangıcı |Sınırlı aynı-kullanıcı logon görevleri ve child toparlanma çalışıyor. |Gerçek reboot/logon turunda doğru paket/DB/ağ ile açılış. Kullanıcı Windows’a girmeden çalışan servis olduğu iddia edilmez. |Uygun yeniden açılış zamanı;0,5–2saat teknik. |
+| OPS-03 — Kalıcı ağ adresi |Şirket Wi-Fi/LAN adresi ve USB’siz bağlantı kanıtlı. |Modem IP rezervasyonu/yerel ağ düzeni; kullanıcı bunu ertelemiş. |Ağ yöneticisi; bekleme bilinmiyor. |
+| OPS-04 — GitHub kontrolleri |PR/commit düzeni var; hosted işler ödeme/harcama engeli nedeniyle başlamadı. |Hesap engeli giderilince exactsonHEAD kontrolleri gerçekten koşmalı; yeşil gösterilmeyecek. |GitHub hesap yetkilisi; dış süre bilinmiyor. Ek satın alma yapılmıyor/istenmiyor. |
+| TERM-01 — Gelen mal→İlker |TC21 normal personel say/kaydet/gönder ve aynı pendingkaydı; sonlu İlker→stok→fatura→borç önceki native zinciri kanıtlı. |Son ekranda görev devri/eksik-fazla/yarım işe dönüş ve İlker’in anlaşılır kontrolü; eski işlem tekrar oluşturulmaz. |C01–03;1–4saat teknik, insan kabulü ayrı. |
+| TERM-02 — Müşteri seçerek satış |TRY/USD kaynaklı satış; normal cihaz küçük örnek ve native200çeşit sonuç var. |Son Android’de büyük mevcut fişin hızlı açılması, doğru müşteri/döviz, sonuç/kurtarma ve genel kapsam sınırı. |OPS-01;1–3saat terminal kapanışı, ortak hız hariç. |
+| TERM-03 — Çoklu koli toplama |200çeşit/223adet fişte iki koli READY/kalan0; küçük cihaz örneği ve reopen var. |Son Android’de200satır fiş, gereken/toplanan/adet düzeltme/ikinci koli görünümü hızlı ve anlaşılır. Yeni satış veya ikinci stok etkisi yok. |OPS-01;1–3saat teknik/ekran. |
+| TERM-04 — Atanmış müşteriye konuşma |Normal personel kendi atanmış liste/geçmiş/gönderilmemiş taslağını Wi-Fi’de açtı. |Mesaj **gönderme** yok: normal TEST rolü read/draft. Gerçek alıcı ve gönderim ayrı onay ister; geniş işletme kişi/cari bağı açık. |CRM sahibi paused/DATA-05;1–4saat teknik, yetki/insan ayrı. |
+| TERM-05 — Kurulabilir yeşil APK |v22 APK gerçek cihazda, Wi-Fi/normal korumalı yeniden açılış; kurulum sayfası ve rehber var. |Son ekran/API tuple ile final APK/rehber, masaüstü+TC21 son değişmiş ekranların doğrulanması. |TERM-01–04;1–3saat. |
+| DATA-01 — Ürün/stok/barkod/fiyat istisnaları |8Ekim kesin alt kapsam gerçekten uygulandı; eski katkı+yerel+deneme ayrıldı. |61kart,185etkiayrımı,1.990negatifstokalanı,9döviztuple,5barkodsahipliği,1manuel/kanıtsızfiyat kendi tarihli istisnaları. Birbirine eklenmez. Kullanılacak kapsam kanıtla çözülmeli veya açıkça dışarıda kabul edilmeli. |İşletme/kaynak; saat bilinmiyor. 54held toplu açılmaz. |
+| DATA-02 — Cari kapsamı |283hesap59fark224no-op; eski16korunmuş. AyrıTRY/USD/EUR veB-A doğru. |770engelli/dışkapsam veikiLL (PEŞİN TLL/TLL) dışarıda; gereken belirsiz cari ayrıca kanıt ister. Her Vega değişiminde yeniden migration yok. |Kullanılacak cari işletme kapsamı; bilinmiyor. |
+| DATA-03 — TEST etkisi/UNKNOWN |160kanıtlıdeneme/241etki eskiayrım; yeni copy/journal etkileri ayrı.4eski UNKNOWNsiparişin deneme kökeni çözüldü. |18UNKNOWNbelge,1.151boyut/hesapengeli,179atanmamışcarihareketbağı. Açılışa otomatik gerçek/deneme diye katılmaz; kayıt bazlı kanıt veya kapsam kararı. |Kaynakbelge/kimlik; bilinmiyor. |
+| DATA-04 — Kasa/banka gerçek açılışı |39hesabın matematiksel kapanışı; gerçekaçılışa hazır0/39. Onaysız açılış yazılmadı. |Kullanılacak kasa/banka ve döviz, aynıtarihli fiziksel sayım/ekstre, yoldaki işlem/devir; tek sayısal onay kapsamı. |İşletme/muhasebe kanıtı; bilinmiyor. |
+| DATA-05 — Gerçek kişi/cari/rol eşlemeleri |Mevcut roller korunmuş; exact atanmış konuşmada yetkili okuma/yabancıret kanıtlı. |Kayıtlı8kişi/hesaptakmaadı ve genelCRMmüşterisi→ERPcarisi; tahmini kimlik birleştirme yok. |İşletme ve CRM sahibi; bilinmiyor. |
+| DATA-06 — Restore ve sonraki hareketleri koruyan inverse |Aşama5 izole committedinverse; sonraki6prova/3manualCASkorundu.11Ekim iki ayrıgerçekrestore/CHECKDBtemiz. |Son finalpaket/geçişbatch’ine geri dönüş bağlamak; normalLIVEinverseaktive edilmedi. Eski gerçekrestore/inverse yeniden test için tekrarlanmaz. |FIN-01/02;1–3saat hazırlık. |
+| EDU-01 — ERP eğitimi |Mal kabul/satış/alış/tahsilat/ödeme/iade/sayım/CRM için8ders hazır. |Son değişen ekranlarla ders/kaynak uyumu, İlker/personel alıştırmaları. |Son ekranlar;1–3saat güncelleme. |
+| EDU-02 — Terminal dört eğitim |Dört görev için Türkçe ses/altyazı/vurgu; v22beşklip/dörtgörev paketi var. |Son200fiş/koli ve sonAPKekranlarıyla yeniden eşleştirmek; tarihli/kısmi mal kabul çekimini tam güncel akış diye sunmamak. |TERM-01–05;3–6saat video/kare/rehber. |
+| UA-01 — Tek mağaza günü kabulü |Önceki teknik ekran turları ve dar insan kabulleri korunuyor. |Eğitimsonrası personel→İlker→muhasebe, satış/tahsilat/ödeme/sayım/iade/günsonu tek kontrol; sadece yeni/değişmiş açıkları kontrol. Okuyucu kullanıcı teyitli, tekrar fizikselbarkod istenmez. |Son ekran/eğitim ve gerçekişletmekapsamı; insan takvimi bilinmiyor. |
+| FIN-01 — Son kullanılabilir teslim |KurulabilirAPK, eskiZIP/rehber, immutablepaket ve privatekanıtlar var. |SonERP/CRM/APK/config/rehber/eğitimi tek teslim listesi ve hash’lerle bağlamak; açık istisnaları eklemek. |OPS/TERM/EDU/CRM sahipliği;1–3saat. |
+| FIN-02 — Final T0/T1 hazırlığı |Tek10adım stok/fiyat/cari prosedürü ve kaynakfark/replay/inverse teknik altyapısı var. |Vega yazıcı/kuyrukdondurma, sonmüşteri/tedarikçiDövizBakiye+stok+fiyattek-kesim, tazeyedek, yerel/denemeayrımı, sadeceT0→T1farkı. **GerçekT1 başlamadı.** |DATA-01–06/UA-01;2–4saat planbağlama, fiili gün ayrı. |
+| FIN-03 — LIVE/merge/eski Vega |ŞimdiLIVE/main/Vega yazması yok; arşivplanı hazır. |Kabul edilmiş exactsürüm/CI ve ayrı sayısal/operasyonel geçişonayı, sorumlu/bakım/geri dönüş; sonraVegaREADONLYarşiv. |Kullanıcı/işletme/CI kararı; bugünkü kapsamda uygulama yok. |
+
+## ERP — 49 kayıt başlığının tamamı
+
+Kayıtlı dar kapsam tamam geçmişte kabul edilmiş ilgili scope’tur; bütün LIVE modülü değildir. Diğer satırlarda teknik ve insan/işletme açıkları ayrı anlatılır.
+
+| ID / iş | Kanıtlı durum / seviyesi | Somut kalan ve kapanış | Bağımlılık | Aktif ajan eforu |
+| --- | --- | --- | --- | --- |
+| **ERP-P01 — Kanonik kaynak ve origin** | **Kayıtlı dar kapsam tamam**. Kanonik repo/origin doğrulanmış. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L227) | **Kalan:** Kayıtlı kapsam tamam. **Kapanış:** Kaynağı aynı kanonik kökten sürdür. | Yok | 0 |
+| **ERP-P02 — TEST/LIVE süreç ve DB ayrımı** | **Kayıtlı dar kapsam tamam**. Çalışan DB02 ile TEST125 ayrı; LIVE/T1 kapalı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L228) | **Kalan:** Kayıtlı TEST ayrımı tamam; LIVE geçişi ayrı. **Kapanış:** Ayrı hedefi korumak. | Yok | 0 |
+| **ERP-P03 — Tek TEST launcher ve paket/hash kaydı** | **Kayıtlı dar kapsam tamam**. Paket/hash ve mevcut başlatıcı kayıtları var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L229) | **Kalan:** Son nihai paket daha hazırlanacak. **Kapanış:** Son ERP/CRM/APK tuple ve geri dönüşü aynı teslimde sabitle. | FIN-01 | 1–3 saat; ortak paket işi |
+| **ERP-A01 — Stok kartı, kod/ad, barkod, stok, birim / ERP03 takip karşılığı** | **Kısmi / açık**. Aşama3 eski aktarımı korunur;b79ce51 listede/kartta stok güven durumu ve signed exact birim teknik hazır. [Stok güven durumu kanıtı](../2026-10-13-stock-card-trust/README.md) | **Kalan:** Kaynak–yerel–sentetik kökeni, belirsiz birim/negatif kaynak kararı, fiziksel stok ve UA26/32. **Kapanış:** Kullanılacak alanlar kesin veya açıkça bilinmiyor; eski arama/barkod kabulü yeniden işletilmez. | DATA-01 / DATA-03 | Belirsiz kaynak için bilinmiyor |
+| **ERP-A02 — Satış/alış fiyatı, maliyet, döviz** | **Kısmi / açık**. Satış kademeleri/dövizler, net alış referansları ve eski maliyetler korunuyor. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L231) | **Kalan:** Eksik maliyet ve fiyat dövizi/manuel çatışmalar; genel fiyat düzenleme kapsamı. **Kapanış:** Her kullanılacak tuple için tutar/döviz/birim doğru; bilinmeyen fiyat ücretsiz satış açmaz. | DATA-01 / C09 | Bilinmiyor; kapsam kararına bağlı |
+| **ERP-A03 — Gerçek ürün fotoğrafı** | **Kayıtlı dar kapsam tamam**. 3.830 onaylı merkezi fotoğraf ve kullanıcı katalog kabulü var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L232) | **Kalan:** 67 belirsiz fotoğraf onaysız bağlanmayacak; bunlar bu teslimin tamamlanmış kapsamı dışında. **Kapanış:** Kabul edilmiş medya bağlantılarını korumak. | Yok | 0; mevcut kapsam |
+| **ERP-A04 — Gerçek müşteri ve dövizli bakiyeler** | **Kısmi / açık**. Ayrı müşteri döviz kartları ve onaylı 283 paketinin hesap sonuçları okunmuş. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L233) | **Kalan:** Kapsam dışı/belirsiz hesaplar; T1 güncelliği ve kullanım kabulü. **Kapanış:** Doğru müşterinin ayrı döviz/B-A hesabı; yerel etkiler korunmuş. | DATA-02 / DATA-03 | Bilinmiyor; kimlik ve işletme kanıtı |
+| **ERP-A05 — Gerçek tedarikçi ve dövizli borçlar** | **Kısmi / açık**. Tedarikçi kartları, ayrı döviz borçları ve önceki 16 hesap korunuyor. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L234) | **Kalan:** Belirsiz/hold hesaplar; kaynağın sonraki değişimleri final kesime bırakılmış. **Kapanış:** Kullanılacak tedarikçi hesabının rolü/dövizi/yönü açık; ikinci açılış etkisi yok. | DATA-02 / DATA-03 | Bilinmiyor; kapsam kararına bağlı |
+| **ERP-A06 — Kaynak güvenirliği ve karantina gösterimi** | **Kısmi / açık**. Hold/karantina API ve SQL korumaları kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L235) | **Kalan:** İşletmede gerekli held kartların kararı; engeli gizlememek. **Kapanış:** Karantinalı kartın kullanılabilir diye sunulmaması ve gereken kart için kanıtlı karar. | D01 / DATA-02 | Bilinmiyor; işletme kararı |
+| **ERP-B01 — Ana Sayfa günlük iş sırası / ERP02 takip karşılığı** | **Kısmi**. e03dcb5 günlük profil ve geniş rapor kapsamını açıklar; normal15/16 bağlantı/Yenile doğrulandı. [Ana Sayfa kapsam kanıtı](../2026-10-13-home-daily-scope/README.md) | **Kalan:** Eşlenmemiş görev bağı, genel kasa/vade/borç, OPS01 hız ve UA05/17/32. **Kapanış:** Sahte sayı yok; doğrulanmış mevcut işe doğru bağlantı ve açık kapsam; teknik kanıt insan kabulü değildir. | C08 / OPS-01 | 1–3 saat; işletme/insan kabulü ayrıca |
+| **ERP-B02 — Stok arama/filtre ve detay** | **Kayıtlı dar kapsam tamam**. Normal yeşil 50 ürün katalog, arama/filtre/kart kullanıcıca kabul edildi. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L237) | **Kalan:** Bu eski kabul ortak DB02 bütün ekran hızını kabul ettirmez; ortak hız ayrı takip edilir. **Kapanış:** Kabul edilmiş tasarımı/arama sözleşmesini korumak. | OPS-01 | 0 mevcut UX; ortak hız ayrı |
+| **ERP-B03 — Cariler bilgi hiyerarşisi** | **Kısmi / açık**. Müşteri/tedarikçi kartı, arama ve ayrı döviz ekranı teknik görüldü. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L238) | **Kalan:** Günlük kullanım ve doğru hesabı hızlı seçme kabulü. **Kapanış:** Kullanıcı doğru kart/hesabı bulur; dövizler birleşmez. | C06 / C07 / UA-01 | Teknik 0–2 saat; insan süresi ayrı |
+| **ERP-B04 — Satış günlük kullanım ekranı** | **Kısmi / açık**. Normal satış ve kaynak bağlı büyük fiş native sonucu kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L239) | **Kalan:** 200 satır bekleme/yanıt kurtarma ve son ekran kabulü. **Kapanış:** Büyük mevcut fiş hızlı ve hatasız okunur; doğru müşteri/döviz ve tek etki. | OPS-01 / TERM-02 | 2–6 saat; OPS-01 ile ortak |
+| **ERP-B05 — Alış günlük kullanım ekranı** | **Kısmi / açık**. Mal kabul→alış→borç zinciri sonlu kapsamda normal ekran/native olarak var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L240) | **Kalan:** Genel birim/döviz/çok satır günlük kapsamı ve İlker/muhasebe kabulü. **Kapanış:** Mal kabul ile fatura ikinci stok oluşturmaz; belge/borç/geçmiş doğru. | C01–C03 / UA-01 | 2–6 saat; günlük kapsam ortak |
+| **ERP-B06 — Finans günlük kullanım ekranı** | **Kısmi / açık**. Tahsilat/ödeme/ters kayıt ekranları ve ödeme geçmişi çalışmış. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L241) | **Kalan:** Gerçek kasa/banka açılışı ve tüm günlük finans kapsamı. **Kapanış:** Yetkili hesap, döviz ve borç etkisi görünür; gerçek banka işlemi varsayılmaz. | C08 / DATA-04 | Açılış kararı olmadan bilinmiyor |
+| **ERP-B07 — Raporlar filtre ve kapsam** | **Kısmi / açık**. Native raporlar, dönem/ürün/marka/tür ve ayrı döviz filtreleri var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L242) | **Kalan:** Son günlük kapsamla rapor eşleşmesi ve insan yorumlama kabulü. **Kapanış:** Stok/cari/kasa raporu aynı kayıtlara dayanır; farklı döviz toplanmaz. | C15 / DATA-03 | 1–3 saat |
+| **ERP-B08 — Ayarlar günlük kullanım ekranı** | **Kısmi / açık**. Salt okunur ayarlar/sistem/kullanıcı/terminal/yedek özetleri var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L243) | **Kalan:** Son paketle bilginin eşleşmesi ve kullanım kabulü. **Kapanış:** Sır göstermeden doğru paket ve erişim bilgisi, riskli restore düğmesi yok. | FIN-01 | 0,5–2 saat |
+| **ERP-C01 — Çok satırlı mal kabul** | **Kısmi / açık**. Çok satırlı sayım→İlker onayı→tek stok etkisi sonlu TEST zincirinde kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L244) | **Kalan:** Android güncel gönderimin İlker göreviyle anlaşılır devri ve genel kapsam. **Kapanış:** Personel yalnız sayıp gönderir; mevcut yetkili onayı bir kez stok etkiler. | TERM-01 / UA-01 | 1–4 saat; yeni kayıt tekrar edilmez |
+| **ERP-C02 — Ayrıntılı alış taslağı** | **Kısmi / açık**. Kalıcı alış taslağı/fatura ve tedarikçi borcu, yenileme/ters kayıt doğrulandı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L245) | **Kalan:** Genel belge/günlük kapsam ve son normal yüz kabulü. **Kapanış:** Aynı kabul faturalanır; stok yeniden artmaz, eski belge korunur. | C01 / C03 | 1–4 saat; ortak günlük kapsam |
+| **ERP-C03 — Dövizli alış fiyatı operasyonu** | **Kısmi / açık**. Dövizli alış fiyatı, birim ve tarihli kur alt kapsamı kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L246) | **Kalan:** Bütün kullanılacak TRY/USD/EUR ve birim kombinasyonlarının sınırı açıklaştırılmalı. **Kapanış:** Eksik kur/döviz tahmini yok; desteklenmeyen işlem görünür biçimde reddedilir. | DATA-01 / işletme kapsamı | 2–6 saat; kapsam belirleyici |
+| **ERP-C04 — Gerçek satış ekranı kabulü** | **Kısmi / açık**. Kaynak bağlı TRY/USD satış ve 200 çeşit fişin tek stok/cari etkisi kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L247) | **Kalan:** Performans, son Android ekranı, genel birim/döviz ve insan kabulü. **Kapanış:** Müşteri seçimi→satış→fiş→aynı sonuç; yanıt kaybında ikinci etki yok. | OPS-01 / TERM-02 / UA-01 | 2–6 saat; B04 ile aynı iş |
+| **ERP-C05 — Açık hesap** | **Kısmi / açık**. Borç, kısmi/tam tahsilat ve ters kayıt alt kapsamı native doğrulandı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L248) | **Kalan:** Genel limit/vade/döviz işletme kapsamı. **Kapanış:** Açık hesap ve tahsilat doğru ayrı hesapta; kasa etkisi işlem türüne uygun. | DATA-04 / işletme kararı | 2–5 saat teknik; karar bekleme ayrı |
+| **ERP-C06 — Gerçek müşteri kartı** | **Kısmi / açık**. Gerçek müşteri kartı arama/okuma/ayrı döviz teknik kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L249) | **Kalan:** Genel ticari kart düzenleme ve personel kullanım kapsamı. **Kapanış:** Kaynak kimliği korunarak mevcut yetkiye uygun düzenleme/okuma. | C11 / DATA-02 | 1–4 saat; kapsam ve izin bağı |
+| **ERP-C07 — Gerçek tedarikçi kartı** | **Kısmi / açık**. Tedarikçi kartı ve deneme iletişim/düzenleme alt kapsamı var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L250) | **Kalan:** Gerçek genel kart düzenleme ve İlker/muhasebe işi. **Kapanış:** Cari/borç kaybolmadan mevcut yetkili doğru kartı kullanır. | C11 / DATA-02 | 1–4 saat; kapsam ve izin bağı |
+| **ERP-C08 — Kasa/banka günlük akışı** | **Kısmi / açık**. Sonlu ödeme/kasa hareketi ve ters kayıt native sonuçları var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L251) | **Kalan:** 39 hesabın gerçek açılış kanıtı, banka ve gün sonu işletme kapsamı. **Kapanış:** Hesap/döviz/tarihli açılış kabul edilir; ödeme/tahsilat/gün sonu tutarlı. | DATA-04 | Bilinmiyor; onaysız tutar yazılmaz |
+| **ERP-C09 — Fiyat yazma/düzenleme** | **Kısmi / açık**. Ayrılmış deneme ürünü fiyat sürümü/CAS/replay ve eski belge korunması var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L252) | **Kalan:** Genel fiyat yazma kapsamı ve terminal fiyat tüketimi. **Kapanış:** Sadece izinli kullanıcı doğru kademe/döviz/birimi sürümlü değiştirir. | A02 / C11 | 2–6 saat; yetki artırılmadan |
+| **ERP-C10 — Sayım/iade/ters kayıt** | **Kısmi / açık**. Sayım farkı onay/ters, alış iadesi/ters ve replay native doğrulandı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L253) | **Kalan:** Genel çok satırlı/dövizli iade, batch iptali ve insan kabulü. **Kapanış:** Stok/borç/eski belge birlikte korunur; personel kendi farkını onaylayamaz. | C11 / günlük kapsam | 3–8 saat; kapsam netleştirilmeli |
+| **ERP-C11 — Kullanıcı/yetki / ERP14 takip karşılığı** | **Kısmi**. Mevcut15/16 modül makbuzları eşlendi;747ac20 normal Onaylar kısmi kapsamı okur, personel redaction korunur. [Rol ve modül eşleme kanıtı](../2026-10-13-role-module-binding/README.md) | **Kalan:** Gerçek personel–İlker–muhasebe kimlik/iş devri ve UA18/32. **Kapanış:** Kimlik/rol tahmin edilmez; izin/ret/yazma/redaction ayrı kanıtlanır. | DATA-05 / CRM-C02 | İşletme kimliği ayrı; bağımsız ERP işleri sürer |
+| **ERP-C12 — Fiziksel terminal** | **Kısmi / açık**. Gerçek TC21, Wi-Fi, okuyucu, uyku/uyanma ve normal görev örnekleri var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L255) | **Kalan:** Son sürümde dört görev ve 200 çeşit kullanılabilirlik; insan kabulü. **Kapanış:** TERM-01–04 aynı kalıcı kurulumda; fiziksel barkod tekrar istenmez. | TERM-01–05 / UA-01 | 2–6 saat; terminal ortak işi |
+| **ERP-C13 — Windows otomatik başlama** | **Kısmi / açık**. Mevcut sınırlı kullanıcı logon görevleri ve child recovery kurulu. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L256) | **Kalan:** Gerçek reboot/logon ve kalıcı IP rezervasyonu. **Kapanış:** Bilgisayar yeniden açıldığında doğru paket/DB ve ağ erişimi çalışır. | OPS-02 / OPS-03 | 0,5–2 saat; uygun zaman/IT ayrı |
+| **ERP-C14 — Backup/restore** | **Kısmi / açık**. Gerçek ayrı restore/CHECKDB ve yedek hashleri kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L257) | **Kalan:** Final kesim gününe bağlı taze yedek ve operatör kurtarma kabulü. **Kapanış:** Aktif DB üzerine kontrolsüz restore yok; final hedef için uygulanabilir geri dönüş. | DATA-06 / FIN-02 | 1–3 saat; gerçek geçiş günü ayrı |
+| **ERP-C15 — Günlük raporlar** | **Kısmi / açık**. Günlük native rapor/CSV ve ayrı para birimi görünümü var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L258) | **Kalan:** Son günlük işlem kapsamıyla karşılaştırma ve gün sonu kabulü. **Kapanış:** Belge/defter/hesap raporu aynı; sentetik etkiler açılıştan ayrı. | DATA-03 / C08 | 1–3 saat |
+| **ERP-D00 — Donmuş Vega açılış mutabakatı** | **Kayıtlı dar kapsam tamam**. Tarihli donmuş Vega açılış mutabakatı kabul edilmiş. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L259) | **Kalan:** Bu kayıt bugünkü Vega veya mağaza fiziksel sayımı değildir. **Kapanış:** Kabul edilmiş kaynak katkısını korumak. | Yok | 0 mevcut kapsam |
+| **ERP-D01 — 54 ürün belirsizliği** | **Açık — kaynak/işletme kararı**. 54 held ürün açılmadan korunuyor; sorun kayıt bazında var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L260) | **Kalan:** Kullanılması gereken belirsiz kartların işletme/kaynak kararı. **Kapanış:** Kimlik/birim/bağ kesinleşir veya kullanılacak açılış kapsamında açıkça dışlanır. | DATA-01 | Bilinmiyor; toplu hold kaldırma yok |
+| **ERP-D02 — 122 cari belirsizliği** | **Kısmi / açık**. Cari belirsizlik çalışmasının sonraki 283 uygulama ve 16 eski hesap kanıtı var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L261) | **Kalan:** 770 kapsam dışı/engelli ve iki LL hariç; gereken belirsiz cari kapsamı. **Kapanış:** Kullanılacak hesap kimliği/dövizi/yönü kesin; LL dışarıda. | DATA-02 | Bilinmiyor; eski 47 sınırı yeniden açılmaz |
+| **ERP-D03 — Eksik maliyetler** | **Kısmi / açık**. 6.090 korunmuş maliyet ve belge öncelikli referans mevcut. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L262) | **Kalan:** Bilinmeyen maliyetler; genel yeni araştırma yetkisi yok. **Kapanış:** Bilinen/NULL ayrımı korunur; maliyetsiz ürün kârı uydurulmaz. | A02 / seçili ürün kapsamı | Bilinmiyor; açıkça bilinmeyen kalabilir |
+| **ERP-D04 — Yeni fiziksel ürün kartları — tarihli delta** | **Kısmi / açık**. 72 yeni fiziksel kart gerçekten TEST’e uygulanmış. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L263) | **Kalan:** 61 bekleyen kart: hold/tür/kod çakışması. **Kapanış:** Uygun kalan kart kimliği/birimi kesin; geçmişi bozmadan uygulanabilir. | DATA-01 | Bilinmiyor; işletme kapsamı |
+| **ERP-D05 — Değişmiş ürün/stok/satış fiyatı — tarihli delta** | **Kısmi / açık**. 343 ürün-depo farkı ve satış fiyatı güncellemeleri uygulanmış. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L264) | **Kalan:** Negatif stok/ayrışmayan etki ve fiyat tuple istisnaları; son T1 farkı ayrı. **Kapanış:** Kaynak katkısı yerel/deneme etkiyle çift sayılmaz. | DATA-01 / DATA-03 / FIN-02 | Bilinmiyor; kayıt bazlı engeller |
+| **ERP-D06 — 85 değişmiş cari delta (29müşteri56tedarikçi)** | **Kısmi / açık**. 283 hesap paketi ve eski16 korunmuş; güncel değişim her seferinde aktarılmıyor. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L265) | **Kalan:** Final kesimde tek tarihli cari farkı. **Kapanış:** T0→T1 farkı ayrı döviz/B-A, eski açılış ve yerel hareket ikinci kez eklenmez. | FIN-02 | 1–4 saat hazırlık; fiili kesim ayrı |
+| **ERP-D07 — T0/T1 cutover planı** | **Kısmi / açık**. 10 adımlı stok/fiyat/cari final kesim yöntemi hazır. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L266) | **Kalan:** Gerçek T1 ve FINAL uygulama/işletme geçişi yapılmadı. **Kapanış:** Kaynak yazıcı durduktan sonra tek kesim ve onaylı doğru hedef. | FIN-02 / UA-01 | 2–4 saat hazırlık; geçiş günü ayrı |
+| **ERP-D08 — İdempotent delta batch** | **Kayıtlı dar kapsam tamam**. Batch replay/aynı içeriğe ikinci etki yok kanıtları var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L267) | **Kalan:** Yeni kesim batch’inin kendi onay/tazelik sınırı korunacak. **Kapanış:** Mevcut kabulü korumak; farklı gövde aynı ID reddedilir. | Yok mevcut kapsam | 0; final batch kendi kontrolü |
+| **ERP-D09 — Son mutabakat** | **Kısmi / açık**. Aktarım kayıt bazlı SQL/API ve izole inverse sonuçları var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L268) | **Kalan:** Final kaynak, fiziksel stok ve işletme kapsamı mutabakatı. **Kapanış:** Kullanılacak kayıt/depo/birim/döviz tekil eşleşir; sahte toplam yok. | DATA-01–05 / FIN-02 | 2–6 saat; kaynak/işletme bekleme ayrı |
+| **ERP-D10 — Dar onaylı TEST committed rollback provası** | **Kayıtlı dar kapsam tamam**. İzole committed inverse, sonraki prova/manual CAS korunumu kanıtlı. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L269) | **Kalan:** Genel normal ERP/LIVE inverse aktivasyonu bu dar kabul değildir. **Kapanış:** Mevcut teknik kanıtı yeniden koşmadan son geçiş paketine bağlamak. | FIN-01 / DATA-06 | 0 mevcut prova; paket işi ortak |
+| **ERP-D11 — Vega READ ONLY arşiv planı** | **Kısmi / açık**. Vega read-only arşiv/single writer planı hazır. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L270) | **Kalan:** Fiili yetki değişimi/eskisini kapatma ve arşiv kabulü. **Kapanış:** Kabul edilmiş geçiş sonrası yalnız yetkili arşiv okuması; ayrı insan kararı. | FIN-03 | 1–3 saat hazırlık; uygulama ayrı |
+| **ERP-E01 — Modül bazında gerçek kabul** | **Kısmi / açık**. Normal ekran teknik turları ve kayıtlı önceki kabuller var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L271) | **Kalan:** Son sürümde kullanıcıya kalmış somut yeni/değişen maddeler. **Kapanış:** Eğitim sonrası tek mağaza günü turu; eski kabul tekrar istenmez. | EDU-01 / UA-01 | Teknik 1–3 saat; insan takvimi ayrı |
+| **ERP-E02 — Personelin günlük akış kabulü** | **Kısmi / açık**. Bağlı günlük native alt kapsam ve gerçek cihaz örnekleri var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L272) | **Kalan:** Personel/İlker/muhasebe son görev devri kabulü. **Kapanış:** Kendi işi anlaşılır, yetkisiyle tamamlanır; ajan kabulü insan yerine geçmez. | TERM-01–04 / EDU-01 | İnsan takvimi bilinmiyor |
+| **ERP-E03 — Görsel üç genişlik kabulü** | **Kısmi / açık**. 1440/1024/390 ve TC21 teknik görüntü kayıtları var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L273) | **Kalan:** Son değişmiş ekranlar ve günlük personel kullanımı. **Kapanış:** Taşma/önemli düğme/taslak koruması; geniş redesign yok. | TERM-05 / UA-01 | 1–3 saat yalnız değişen ekranlar |
+| **ERP-F01 — Tek finish tree ve otomatik sıra** | **Kayıtlı dar kapsam tamam**. Tek karar/pano/finish/kabul kayıt düzeni var. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L274) | **Kalan:** Yeni rapor günlük sıralamanın ikinci kopyası değildir. **Kapanış:** Kapanan kaleme kanıtı bağlamak. | Yok | 0 mevcut düzen |
+| **ERP-F02 — GitHub/CI teslim düzeni** | **Kısmi / açık**. Branch/commit/PR düzeni var; güncel hosted CI başlayamıyor. [Kayıt](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L275) | **Kalan:** GitHub hesap/harcama engeli ve son head CI sonucu. **Kapanış:** Gerçek kontroller koşup başarılı; eski/yerel yeşil bunun yerine geçmez. | OPS-04 | Dış bekleme bilinmiyor; teknik 0,5–1 saat |
+
+## CRM — 25 kayıt başlığının tamamı
+
+CRM’nin güncel owner-staged belgeleri okundu; source0424, kendi proof628xx ve ortak çalışan09ca/627xx aynı şey değildir. CRM’yi bu rapor nedeniyle yeniden geliştirme/aktive etme veya genel hazır ilan etme yok.
+
+| ID / iş | Kanıtlı durum / seviyesi | Somut kalan ve kapanış | Bağımlılık | Aktif ajan eforu |
+| --- | --- | --- | --- | --- |
+| **CRM-I01 — Inbox, gelen/giden metin, geçmiş ve yeni mesaj** | **Kısmi / açık**. Gerçek metin/geçmiş kabulü ve daha geniş incoming alt kapsam kayıtları var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:56) | **Kalan:** Genel normal gelen mesaj/ayrı kişi/geçmiş görünümü kabulü; yoğun kuyruk sınırı. **Kapanış:** Normal doğru konuşmada gelen/giden ve yeni/geçmiş ayrımı; eski deneme genelleştirilmez. | CRM sahibi / normal provider kapsamı | Bilinmiyor; CRM paused |
+| **CRM-I02 — Fotoğraf ve açma** | **Kayıtlı dar kapsam tamam**. Fotoğraf decode/açma kullanıcı kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:57) | **Kalan:** Kayıtlı kapsam tamam. **Kapanış:** Önceki kabulü koru. | Yok | 0 |
+| **CRM-I03 — PDF/dosya, açma/indirme** | **Kayıtlı dar kapsam tamam**. PDF/TXT dosya/açma/indirme kullanıcı kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:58) | **Kalan:** Her Office biçimi destekleniyor iddiası yok. **Kapanış:** Kayıtlı biçimleri koru. | Yok | 0 |
+| **CRM-I04 — Ses/video ve oynatma** | **Kayıtlı dar kapsam tamam**. Ses/video gönder-al ve oynatma insan kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:59) | **Kalan:** Kayıtlı kapsam tamam. **Kapanış:** Önceki kabulü koru. | Yok | 0 |
+| **CRM-C01 — Atanmamışlar, müşteri bilgisi, atama ve doğru personel ekranı** | **Kısmi / açık**. Atama filtreleri ve atanmış normal rol okuması teknik kanıtlı. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:60) | **Kalan:** Gerçek günlük personel müşterisi/atama kabulü. **Kapanış:** Kendi müşteri/geçmişini görür; yabancı konuşma görünmez. | DATA-05 / CRM sahibi | 1–3 saat; paused/insan ayrı |
+| **CRM-C02 — Patron/müdür/personel yetkileri** | **Kısmi / açık**. Normal rol/assignment ve yanlış temsilci reddi teknik kanıtlı. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:61) | **Kalan:** Üç gerçek işletme rolünün günlük kabulü. **Kapanış:** Görme/gönderme/atama sınırı personel/İlker/patron için açık. | DATA-05 / işletme rol matrisi | 1–4 saat; paused/insan ayrı |
+| **CRM-T01 — Otomatik çeviri, dil ve manuel kontrol** | **Kayıtlı dar kapsam tamam**. Kayıtlı dil/çeviri kullanıcı kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:62) | **Kalan:** Bütün dil kalitesi kabulü değil; ücretli çağrı şu an kapalı. **Kapanış:** Kabul edilmiş davranış korunur; yeni ücretli test ayrı izin. | Ücretli servis ayrı onay | 0 mevcut kapsam |
+| **CRM-K01 — Gerçek katalog, arama/filtre, görsel/bilgi** | **Kayıtlı dar kapsam tamam**. Gerçek katalog ve dar müşteri ürün talebi ayrı proof’ta çalışmış. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:63) | **Kalan:** Bu yeni talep akışı ortak62700’e aktive edilmedi; insan/mobil kabulü ayrı. **Kapanış:** Güncel ERP katalogdan doğru ürün/görsel seçimi ve atanmış personel readback. | CRM sahibi / OPS-01 | 1–4 saat; CRM paused |
+| **CRM-K02 — Ürün gönderme** | **Kayıtlı dar kapsam tamam**. Kayıtlı ürün PDF gönderme telefon kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:64) | **Kalan:** Yeni gerçek müşteriye gönderim bu işte yetkili değil. **Kapanış:** Kabul edilmiş kapsamı koru. | Gerçek alıcı ayrı onay | 0 mevcut kapsam |
+| **CRM-K03 — Fiyat ve doğru para birimi** | **Kayıtlı dar kapsam tamam**. Ürün fiyatı/dövizi normal mesaj/PDF kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:65) | **Kalan:** Stok/teslim vaadi değildir; daha geniş günlük kaynak kapsamı ayrı. **Kapanış:** Güncel ürün tuple ile doğru para birimi; kurla fiyat uydurma yok. | ERP-A02 | 0 mevcut kabul; kapsam ayrı |
+| **CRM-E01 — CRM→ERP taslak: mevcut doğrulanmış müşteri/ürün kapsamı** | **Kayıtlı dar kapsam tamam**. Doğrulanmış müşteri/ürün ilk ERP taslağı ve tek journal kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:66) | **Kalan:** Taslak stok/cari etkisi veya otomatik satış değildir. **Kapanış:** Eski kabulü koru. | Yok | 0 mevcut kapsam |
+| **CRM-E02 — Günlük ERP müşteri/ürün eşleme kapsamı** | **Kısmi / açık**. Yeni gerçek ürün/döviz ERP taslağı SQL/GET/refresh alt kapsamı var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:67) | **Kalan:** Genel müşteri/telefon-cari kimlik eşlemesi ve insan kabulü. **Kapanış:** Gerçek doğru cari seçilir; tahmini telefondan yeni kart birleşmez. | DATA-05 / CRM sahibi | 2–6 saat; işletme kimliği ayrı |
+| **CRM-A01 — Açık AI V1 çekirdeğini mevcut CRM ile uzlaştırma** | **Kayıtlı dar kapsam tamam**. AI çekirdeği birleştirildi; tarihli gerçek öneri kanıtı var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:68) | **Kalan:** Bugünkü ücretli/otomatik satış sistemi hazır kabulü yok. **Kapanış:** Eski çekirdek korunur; normal taslak insan kontrolünde. | Yeni ücretli çağrı ayrı onay | 0 mevcut çekirdek |
+| **CRM-A02 — Gerçek satış kuralları: ülke/MOQ/kargo/indirim** | **Kısmi / açık**. MOQ/ülke/kargo/indirim kural ekranı ve okuması teknik hazır. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:69) | **Kalan:** Gerçek işletme kural değerleri ve kabulü. **Kapanış:** Bilinen/bilinmeyen kural ayrımı; otomatik indirim/gönderim yok. | İşletme politikası / CRM sahibi | Bilinmiyor; işletme kararı |
+| **CRM-A03 — Normal sohbette cevap önerisi→incele→taslağa aktar** | **Kısmi / açık**. Öneri→inceleme→düzenlenebilir taslak tarihli normal ekran kanıtı var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:70) | **Kalan:** Kullanıcı davranış kabulü; bugün ücretli model denemesi yapılmaz. **Kapanış:** Mevcut metin korunur, atama/bağlam değişince eski öneri kullanılmaz. | CRM sahibi / AI ayrı onay | 1–3 saat; paused/insan ayrı |
+| **CRM-A04 — Güvenilir gerçek ürün/katalog/fiyat önerisi** | **Kısmi / açık**. Gerçek kaynak ürün/fiyat önerisi tarihli gerçek model kanıtı var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:71) | **Kalan:** Genel katalog/metin işletme kabulü; yeni fiyat/teslim taahhüdü yok. **Kapanış:** Ürün kimliği/döviz/birim eşleşir; uydurma stok/fiyat yok. | ERP-A02 / CRM sahibi | 1–4 saat; AI onayı ayrı |
+| **CRM-A05 — AI müşteri dili, mevcut taslak bağlamı ve gerçek kabul** | **Kısmi / açık**. Müşteri dili/Türkçe özet/taslak bağlamı teknik kanıtlı. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:72) | **Kalan:** Dil/metin/işletme insan kabulü. **Kapanış:** Yanıt müşterinin doğru dilinde, mevcut taslak korunmuş. | CRM sahibi / AI ayrı onay | 1–3 saat; paused/insan ayrı |
+| **CRM-U01 — Sade/premium masaüstü ve 1440/1024/390 UX** | **Kısmi / açık**. Üç genişlik ve konuşma/kimlik kapsamlı taslak koruma teknik kanıtlı. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:73) | **Kalan:** Son bütün normal ekranların kullanıcı kabulü. **Kapanış:** Kullanıcı yanlış konuşma veya kayıp taslak yaşamadan işini bulur. | TERM-04 / EDU-01 / UA-01 | 1–4 saat; sadece değişmiş kapsam |
+| **CRM-M01 — Fiziksel telefonda bütün CRM akışları** | **Kısmi / açık**. Gerçek TC21 atanmış konuşma/geçmiş/gönderilmemiş taslak var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:74) | **Kalan:** Bütün CRM akışları/mobil insan kabulü ve mesaj gönderebilme ayrı. **Kapanış:** TERM-04 normal personel kimliğinde; tarayıcı provası fiziksel genel kabul değildir. | TERM-04 / CRM sahibi | 1–4 saat; paused/insan ayrı |
+| **CRM-O01 — Child restart sonrası normal kullanım** | **Kayıtlı dar kapsam tamam**. Child yeniden başlatma ve normal içerik korunumu geçmişte kanıtlı. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:75) | **Kalan:** Eski kabul tamam; son paket değişirse dar kontrol. **Kapanış:** Mevcut recovery sınırını koru. | FIN-01 | 0 mevcut kapsam |
+| **CRM-O02 — Windows otomatik açılış ve bağımlılık zinciri** | **Kısmi / açık**. Mevcut normal logon/child recovery teknik hazır. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:76) | **Kalan:** Gerçek reboot/logon/işyeri kabulü. **Kapanış:** Windows açılışında doğru ERP bağımlılığı ve CRM gelir. | OPS-02 / OPS-03 | 0,5–2 saat; uygun zaman ayrı |
+| **CRM-R01 — GitHub CI altyapısı ve her teslim HEAD'inin kontrolü** | **Kayıtlı dar kapsam tamam**. CI altyapısının eski kabulü var; son head job’ları billing ile başlamıyor. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:77) | **Kalan:** Güncel CI yeşil değildir. **Kapanış:** Son head required kontroller gerçekten koşar. | OPS-04 | Dış bekleme bilinmiyor |
+| **CRM-R02 — Değişmez TEST paketi ve uygulanabilir rollback hazırlığı** | **Kayıtlı dar kapsam tamam**. Değişmez CRM paket ve gerçek A→B rollback eski kabulü var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:78) | **Kalan:** Son ortak tuple ve request/session özel kurtarma hazırlığı ayrı. **Kapanış:** Son paket/config eş ve doğru durumda geri açılır. | FIN-01 / CRM sahibi | 1–3 saat; ortak paket işi |
+| **CRM-R03 — Kabul edilmiş sürümü main/tag/release'e almak** | **Kısmi / açık**. Feature PR var; main/tag/release yapılmadı. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:79) | **Kalan:** Kritik işler/CI/kullanıcı onayı. **Kapanış:** Tam commit için açık merge/release onayı sonrası uygulanır. | FIN-03 / OPS-04 | Hazırlık0,5–1 saat; onay ayrı |
+| **CRM-R04 — Kontrollü LIVE geçiş ve gerçek rollback kabulü** | **Kısmi / açık**. LIVE’a dokunulmadı; eski TEST rollback kanıtı var. [Kayıt](C:/Sirket/CRM/melisa-crm/CRM_FINISH_PLAN.md:80) | **Kalan:** Gerçek kontrollü LIVE geçiş ve işletme geri dönüş kabulü. **Kapanış:** Onaylı hedef/kesim/yedek/sorumlu ile ayrı uygulama. | FIN-02 / FIN-03 | Şimdi yetkisiz; geçiş planıyla belirlenecek |
+
+## Kullanıcıdan gerçekten gereken kararlar
+
+1. Kullanılacak belirsiz/held ürün ve cari kapsamı: gerekenleri kanıtla çözme, gerekmeyenleri açıkça dışarıda tutma. İkiLLkararı zaten verilmiştir; tekrar sorulmaz.
+2. Kasa/banka: kullanılacak hesap/döviz, aynıtarihli sayım/ekstre/devir ve onaylı sayısal açılış. Ajan bunları tahminle yazmaz.
+3. Gerçek kişi/cari eşlemeleri ve personel görev matrisi. Paylaşılan hesap parolası istenmez/değiştirilmez; TEST erişimini ajan hazırlar.
+4. Son ekran/eğitimden sonra yalnız yeni/değişen kalemlere insan/İlker kabulü; yapılmış denemeler yeniden istenmez.
+5. Ağrezervasyonu ve uygun Windowsyenidenaçılış zamanı; GitHubhesapengeli ayrı dış sorumlu.
+6. LIVE/T1/main/eskiVega için hazırlanmış somut paket üzerinde ayrı açık geçiş onayı. GerçekWhatsApp/ücretliAI bundan da otomatik yetki almaz.
+
+## Kaynak ve kanıt rehberi
+
+- ERP49kayıt: cb9633b commit [ERP_FINISH_PLAN.md](https://github.com/melihsnyldzz-ui/melisa-erp-v2/blob/cb9633bad238cd1f2ddc4a0562b5bce231be33d0/ERP_FINISH_PLAN.md#L219); satır226–275. Teknik en yeni çalışan6a ve önceki tarihselcheckpoint ayrımı [STATUS](../../../../STATUS.md), [kararlar](../../../../PROJECT_DECISIONS.md).
+- CRM25kayıt: canonical CRM_FINISH_PLAN.md satır56–80; owner-staged güncellemeler, CRM_STATUS.md satır1–18; kaynak0424ac74 ve separateproof/ortakruntime ayrımı. StageddocSHA rapor manifestindedir.
+- 200fiş/koli: [gerçek native sonuç](../2026-10-11-completion/source-200-sale-proof.md#L1), [V11](../2026-10-12-stock-performance/README.md#L1); STATUS’taki sonraki6aaktivasyonu eskiV11prova metnini tarihsel yapar.
+- Terminal/APK/eğitim: [v22](../2026-10-11-completion/terminal-v22-delivery.md#L1), [normal erişim/sır giderimi](../2026-10-11-completion/test-access-remediation.md#L1). Eski capture source’u bugünkü runtime diye yazılmaz.
+- Veri: [ürün](../2026-10-08-product-completion/README.md#L1), [283cari](../2026-10-08-current-party-application/README.md#L1), [Aşama5inverse](../2026-10-09-stage5/README.md#L1), [11Ekimgerçekrestore](../2026-10-11-completion/recovery-and-readiness-proof.md#L1), [finalT1](../../../../docs/erp-v2/canonical-20261007/final-cutover-procedure.md#L1).
+
+**Sonraki tek yetkili teknik iş: OPS-01 — mevcut200satırlı fiş/koli okumalarının gecikmesini kapatmak.** Satış/migration yeniden yapılmaz; Semih düğmesi veya yeni temizlik kapı değildir. Bu rapor ana teslimin bittiği, insan kabulü veya LIVE onayı anlamına gelmez.

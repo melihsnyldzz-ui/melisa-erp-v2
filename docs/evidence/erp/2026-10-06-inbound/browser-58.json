@@ -1,0 +1,156 @@
+{
+  "at": "2026-10-06T08:31:12.166Z",
+  "sourceCommit": "93365d0baf002e93010a2759bd45af2af11040e7",
+  "package": "CANONICAL-INBOUND-TEST-20261006-58",
+  "home": {
+    "firstUsableMs": 749,
+    "workListMs": 995
+  },
+  "checks": [
+    {
+      "page": "goods",
+      "requestedWidth": 1440,
+      "heading": "Gelen mal",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1425,
+      "width": 1440
+    },
+    {
+      "page": "purchases",
+      "requestedWidth": 1440,
+      "heading": "Alış faturaları",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1425,
+      "width": 1440
+    },
+    {
+      "page": "suppliers",
+      "requestedWidth": 1440,
+      "heading": "Tedarikçiler",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1425,
+      "width": 1440
+    },
+    {
+      "page": "home",
+      "requestedWidth": 1440,
+      "heading": "İş Sırası",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1425,
+      "width": 1440
+    },
+    {
+      "page": "goods",
+      "requestedWidth": 1024,
+      "heading": "Gelen mal",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1009,
+      "width": 1024
+    },
+    {
+      "page": "purchases",
+      "requestedWidth": 1024,
+      "heading": "Alış faturaları",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1009,
+      "width": 1024
+    },
+    {
+      "page": "suppliers",
+      "requestedWidth": 1024,
+      "heading": "Tedarikçiler",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1009,
+      "width": 1024
+    },
+    {
+      "page": "home",
+      "requestedWidth": 1024,
+      "heading": "İş Sırası",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 1009,
+      "width": 1024
+    },
+    {
+      "page": "goods",
+      "requestedWidth": 390,
+      "heading": "Gelen mal",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 375,
+      "width": 390
+    },
+    {
+      "page": "purchases",
+      "requestedWidth": 390,
+      "heading": "Alış faturaları",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 375,
+      "width": 390
+    },
+    {
+      "page": "suppliers",
+      "requestedWidth": 390,
+      "heading": "Tedarikçiler",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 375,
+      "width": 390
+    },
+    {
+      "page": "home",
+      "requestedWidth": 390,
+      "heading": "İş Sırası",
+      "horizontalOverflow": false,
+      "loginVisible": false,
+      "scrollWidth": 375,
+      "width": 390
+    }
+  ],
+  "personnel": {
+    "actor": 15,
+    "reloadPreservesManualRole": true,
+    "unknownBarcode": "0000098765432",
+    "unknownCountId": 6,
+    "submissionEnabled": false,
+    "financialFieldsVisible": false,
+    "purchaseDeniedAndNavigationSessionPreserved": true,
+    "readyCount5Reload": true,
+    "readyQuantities": [
+      "1",
+      "1"
+    ]
+  },
+  "realCards": [
+    {
+      "productId": 36724,
+      "stockCode": "8023 CONCEPT",
+      "name": "TAKIM",
+      "unit": "ADET",
+      "stock": "0",
+      "barcode": "3617221176192",
+      "readOnly": true,
+      "photos": [
+        {
+          "complete": true,
+          "naturalHeight": 128,
+          "naturalWidth": 103
+        },
+        {
+          "complete": true,
+          "naturalHeight": 768,
+          "naturalWidth": 617
+        }
+      ]
+    }
+  ]
+}

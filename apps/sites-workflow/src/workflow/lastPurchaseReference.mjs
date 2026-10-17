@@ -1,0 +1,32 @@
+import {moneyDisplay} from './moneyDisplay.mjs';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const exact=v=>v===null||typeof v==='string'&&/^(0|[1-9]\d{0,19})\.\d{8,18}$/.test(v);
+const currency=v=>[null,'TRY','USD','EUR'].includes(v);
+const label=v=>v===null||typeof v==='string'&&v.length>0&&v.length<=250;
+const code=v=>typeof v==='string'&&/^[A-Z0-9_]{1,100}$/.test(v);
+const kind=v=>['PURCHASE_DOCUMENT','COMMERCIAL_ENTRY','CARD','UNKNOWN'].includes(v);
+const selection=v=>['LATEST_VERIFIED_PURCHASE_DOCUMENT','LATEST_VERIFIED_COMMERCIAL_ENTRY','OLDER_VERIFIED_WITH_NEWER_AMBIGUITY','CARD_FALLBACK_NO_VERIFIED_NET_SOURCE','NO_VERIFIED_SOURCE','MANUAL_PURCHASE_PROTECTED'].includes(v);
+function date(v){if(v===null)return true;if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}(?:T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,7})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?)?$/.test(v)||!Number.isFinite(Date.parse(v)))return false;return new Date(v.slice(0,10)+'T00:00:00Z').toISOString().slice(0,10)===v.slice(0,10);}
+export function lastPurchaseReferenceEnvelope(payload,productId,stockCode){
+ const r=payload?.data,fail=()=>{throw Error('PURCHASE_REFERENCE_INVALID');};
+ if(payload?.success!==true||payload.meta?.readOnly!==true||payload.meta?.financialEffect!==false||!r||r.schemaVersion!=='melisa-product-last-purchase.v2'||r.productId!==productId||r.stockCode!==stockCode||!['cardAmountExact','referenceExact','discountExact'].every(k=>exact(r[k]))||!currency(r.cardCurrency)||!currency(r.referenceCurrency)||!label(r.cardUnitLabel)||!label(r.referenceUnitLabel)||!date(r.referenceDate)||!kind(r.sourceKind)||!selection(r.selectionReason)||!Array.isArray(r.reasons)||!r.reasons.every(code)||!['NET_REFERENCE','CARD_ONLY','PARTIAL_CARD','PURCHASE_UNKNOWN','PROTECTED_MANUAL'].includes(r.status)||!['UNKNOWN','GROSS','NET'].includes(r.cardPriceBasis)||r.accountingCost!==false||typeof r.protectedExistingCost!=='boolean'||typeof r.protectedManual!=='boolean'||!Array.isArray(r.alternatives)||r.alternatives.length>3)fail();
+ if(r.referenceExact!==null&&(BigInt(r.referenceExact.replace('.',''))<=0n||r.referenceCurrency===null||r.referenceUnitLabel===null||r.status!=='NET_REFERENCE'||!['PURCHASE_DOCUMENT','COMMERCIAL_ENTRY'].includes(r.sourceKind)||r.referenceDate===null)||r.referenceExact===null&&r.status==='NET_REFERENCE'||r.protectedManual&&(r.referenceExact!==null||r.status!=='PROTECTED_MANUAL'))fail();
+ if(r.discountExact!==null&&BigInt(r.discountExact.replace('.',''))>100n*10n**BigInt(r.discountExact.split('.')[1].length))fail();
+ for(const a of r.alternatives)if(!a||!kind(a.sourceKind)||!exact(a.amountExact)||!currency(a.currency)||!label(a.unitLabel)||!date(a.date)||!code(a.reason))fail();
+ const n=r.referenceNumerator,d=r.referenceDenominator;
+ if(n===null&&d===null){if(r.precisionStatus!==null||r.referenceExact!==null&&r.sourceKind!=='CARD')fail();}
+ else {if(r.referenceExact===null||typeof n!=='string'||typeof d!=='string'||!/^[1-9]\d{0,199}$/.test(n)||!/^[1-9]\d{0,199}$/.test(d)||!['EXACT','TRUNCATED_18'].includes(r.precisionStatus))fail();const scale=r.referenceExact.split('.')[1].length,scaled=BigInt(n)*10n**BigInt(scale),den=BigInt(d),remainder=scaled%den;if(scaled/den!==BigInt(r.referenceExact.replace('.',''))||r.precisionStatus==='EXACT'&&remainder!==0n||r.precisionStatus==='TRUNCATED_18'&&(scale!==18||remainder===0n))fail();}
+ return r;
+}
+function amount(v,c){if(v===null)return 'Bilinmiyor';return `${esc(moneyDisplay(v))} ${c===null?'· Döviz bilinmiyor':esc(c)}`;}
+const source=k=>({PURCHASE_DOCUMENT:'Alış belgesi',COMMERCIAL_ENTRY:'Giriş kaydı',CARD:'Kart alış',UNKNOWN:'Bilinmiyor'}[k]);
+const shownDate=v=>v===null?'Bilinmiyor':esc(v.slice(0,10).split('-').reverse().join('.'));
+const sameAmount=(a,b)=>a===null||b===null?a===b:a.replace(/0+$/,'').replace(/\.$/,'')===b.replace(/0+$/,'').replace(/\.$/,'');
+export function renderLastPurchaseReference(r){
+ const net=r.referenceExact!==null;
+ const newer=r.reasons.some(v=>/NEWER.*(AMBIGUOUS|UNVERIFIED|CONFLICT)|SAME.*(CONFLICT|AMBIGUOUS)/.test(v))||r.alternatives.some(a=>a.date!==null&&r.referenceDate!==null&&Date.parse(a.date)>=Date.parse(r.referenceDate)&&/(AMBIGUOUS|UNVERIFIED|CONFLICT)/.test(a.reason));
+ let explanation=r.protectedManual?'Elle düzenlenmiş alış bilgisi korunuyor.':net?'Belge veya girişte doğrulanan net tutardır; kart iskontosu yeniden düşülmedi.':r.cardAmountExact===null?'Son net alışın kaynak, tutar, döviz ve birim bilgileri doğrulanamadı.':r.cardPriceBasis==='UNKNOWN'?'Kart alış fiyatının brüt veya net olduğu doğrulanmadığından son net alış boş bırakıldı.':r.cardCurrency===null||r.reasons.some(v=>/^CURRENCY_(UNKNOWN|UNVERIFIED)$/.test(v))?'Döviz doğrulanmadığı için son net alış boş bırakıldı.':r.cardUnitLabel===null||r.reasons.includes('UNIT_UNVERIFIED')?'Birim doğrulanmadığı için son net alış boş bırakıldı.':'Geçerli son net alış bulunamadı.';
+ const different=r.alternatives.some(a=>a.amountExact!==null&&(!sameAmount(a.amountExact,r.referenceExact)||a.currency!==r.referenceCurrency||a.unitLabel!==r.referenceUnitLabel));
+ if(different&&!r.protectedManual)explanation+=' '+(r.sourceKind==='PURCHASE_DOCUMENT'?'Doğrulanmış alış belgesi, giriş ve kart bilgilerine göre öncelikli seçildi.':r.sourceKind==='COMMERCIAL_ENTRY'?'Geçerli alış belgesi bulunmadığından doğrulanmış giriş kaydı seçildi.':r.sourceKind==='CARD'?'Geçerli belge veya uygun giriş bulunmadığından kart alış bilgisi korundu.':'Kaynaklar arasındaki fark nedeniyle net tutar doğrulanamadı.');
+ return `<h3>Son net alış</h3><dl><div><dt>Son net alış</dt><dd>${amount(r.referenceExact,r.referenceCurrency)}</dd></div><div><dt>Birim</dt><dd>${r.referenceUnitLabel===null?'Bilinmiyor':esc(r.referenceUnitLabel)}</dd></div><div><dt>Kaynak tarihi</dt><dd>${shownDate(r.referenceDate)}</dd></div><div><dt>Kaynak</dt><dd>${source(r.sourceKind)}</dd></div><div><dt>Mevcut kart alış fiyatı</dt><dd>${amount(r.cardAmountExact,r.cardCurrency)}</dd></div><div><dt>Kart birimi</dt><dd>${r.cardUnitLabel===null?'Bilinmiyor':esc(r.cardUnitLabel)}</dd></div><div><dt>Kart iskontosu</dt><dd>${r.discountExact===null?'Bilinmiyor':esc(r.discountExact.replace(/0+$/,'').replace(/\.$/,'').replace('.',','))+' %'}</dd></div></dl><p class="sub">${explanation}</p>${newer?'<p class="sub">Daha yeni veya aynı tarihli belirsiz kayıt bulundu. Gösterilen tarih, bulunan son doğrulanmış alışa aittir.</p>':''}<p class="sub">Bu değer ortalama stok maliyeti veya gerçekleşmiş kâr hesabı değildir.</p>`;
+}

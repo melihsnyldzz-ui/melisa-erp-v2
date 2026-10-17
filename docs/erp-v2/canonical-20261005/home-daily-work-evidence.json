@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-05",
+  "task": "B01",
+  "technicalStatus": "READY",
+  "humanAcceptance": "ERP-UA05_PENDING",
+  "applicationSourceCommit": "236d49b96dbd71b000670254b1699b742f6a9038",
+  "package": "CANONICAL-HOME-TEST-20261005-47",
+  "testUrl": "http://127.0.0.1:5194/ornek-akis.html#home",
+  "browserUsableMs": 324,
+  "firstPaintMs": 161,
+  "actualHomeApiMedianMs": 63,
+  "catalog50BeforeMs": 648,
+  "catalog50WarmAfterMs": 654,
+  "preservation": {
+    "sqlModules": 142,
+    "businessTables": 28,
+    "result": "UNCHANGED",
+    "permissionRows": 555
+  },
+  "evidenceRoot": "C:\\Sirket\\ERP\\evidence\\ERP-HOME-20261005",
+  "screenshots": [
+    {
+      "fileName": "ERP-B01-before-home.png",
+      "filePath": "C:\\Users\\Xaser\\Documents\\Codex\\2026-10-04\\referenced-chatgpt-conversation-this-is-an-6\\outputs\\ERP-B01-before-home.png",
+      "bytes": 58945,
+      "sha256": "bc54be86483d98f59e538ac2c0808bf5d41336130e4bb8b68b94974082b732c4"
+    },
+    {
+      "fileName": "ERP-B01-home-1440.png",
+      "filePath": "C:\\Users\\Xaser\\Documents\\Codex\\2026-10-04\\referenced-chatgpt-conversation-this-is-an-6\\outputs\\ERP-B01-home-1440.png",
+      "bytes": 101060,
+      "sha256": "27c3771508cd418413a39ebb643c8c75e2eb3ee26b1f7807e282ae725eee632a"
+    },
+    {
+      "fileName": "ERP-B01-home-1024.png",
+      "filePath": "C:\\Users\\Xaser\\Documents\\Codex\\2026-10-04\\referenced-chatgpt-conversation-this-is-an-6\\outputs\\ERP-B01-home-1024.png",
+      "bytes": 101737,
+      "sha256": "917254a64f470e6084aeb7b5b4dfd0120204b5f88d9e4feb5e6b0af9c23616b6"
+    },
+    {
+      "fileName": "ERP-B01-home-390.png",
+      "filePath": "C:\\Users\\Xaser\\Documents\\Codex\\2026-10-04\\referenced-chatgpt-conversation-this-is-an-6\\outputs\\ERP-B01-home-390.png",
+      "bytes": 81545,
+      "sha256": "a0d10958ac46a0d49d92979efc706399deaba053f6799e91528ab4be0287d899"
+    },
+    {
+      "fileName": "ERP-B01-home-ilker.png",
+      "filePath": "C:\\Users\\Xaser\\Documents\\Codex\\2026-10-04\\referenced-chatgpt-conversation-this-is-an-6\\outputs\\ERP-B01-home-ilker.png",
+      "bytes": 103447,
+      "sha256": "f6848d741954292ae288b5419783978d888d59827a1d4f75b3748e7a2509a8f6"
+    },
+    {
+      "fileName": "ERP-B01-home-readonly.png",
+      "filePath": "C:\\Users\\Xaser\\Documents\\Codex\\2026-10-04\\referenced-chatgpt-conversation-this-is-an-6\\outputs\\ERP-B01-home-readonly.png",
+      "bytes": 106110,
+      "sha256": "62e94bfade4783ddf7752d5d0cbd74f6b214fb4a5b2393b3ae4fcc524af2bc76"
+    }
+  ]
+}

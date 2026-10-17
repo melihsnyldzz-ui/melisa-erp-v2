@@ -1,0 +1,21 @@
+{
+  "description": "Optional Melisa read-only record check; review/trust required before activation.",
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "startup|resume|compact",
+      "hooks": [{
+        "type": "command",
+        "command": "node C:/Sirket/ERP/melisa-erp-v2/scripts/delivery-checks/run.mjs --config C:/Sirket/ERP/runtime/agent-checks/config.json --hook",
+        "timeout": 10,
+        "additionalContextLimit": 1800
+      }]
+    }],
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node C:/Sirket/ERP/melisa-erp-v2/scripts/delivery-checks/run.mjs --config C:/Sirket/ERP/runtime/agent-checks/config.json --hook",
+        "timeout": 10
+      }]
+    }]
+  }
+}
