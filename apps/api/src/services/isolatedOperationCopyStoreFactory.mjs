@@ -1,3 +1,5 @@
+import {getRegisteredBusinessSelectedCollectionRevision,verifyBusinessSelectedCollectionRevision} from '../../../../scripts/canonical/shared-business-selected-collection-revision-bootstrap.mjs';
+import {withBusinessSelectedCollectionWriteScope} from './businessSelectedCollectionWriteScope.mjs';
 import {getRegisteredBusinessProductPriceSaleRevision,verifyBusinessProductPriceSaleRevision} from '../../../../scripts/canonical/shared-business-product-price-sale-bootstrap.mjs';
 import {getRegisteredBusinessCollectionHistoryRevision} from '../../../../scripts/canonical/shared-business-collection-history-bootstrap.mjs';
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,assertIsolatedCopyActor,assertIsolatedCopyReadProof,bindIsolatedCopyOperationDTO,copyAssert,isolatedCopyHash,isolatedCopyJSON,isolatedCopyUUID,ISOLATED_COPY_PROCEDURES,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
@@ -20,6 +22,16 @@ const domains=new Set(['trade','inbound','payment','daily']);
 const homeRead=Symbol('server HOME read');
 const historicalSaleRead=Symbol('server historical sale read');
 const collectionPreparationRead=Symbol('server collection preparation read');
+const collectionNativeRead=Symbol('server native collection read');
+const collectionNativeWrite=Symbol('server native collection write');
+const collectionNativeBridges=new WeakMap();
+const nativeCollectionStores=new WeakSet();
+export const isIsolatedSelectedCollectionNativeStore=store=>!!store&&nativeCollectionStores.has(store);
+export function withSelectedCollectionNativeBridge(bridge,operation){
+ const value=collectionNativeBridges.get(bridge);
+ copyAssert(value?.active&&typeof operation==='function'&&isolatedCopyTransactionContext(value.transaction,{writeRequired:value.write})===value.copyContext,'ISOLATED_COPY_TRANSACTION_REQUIRED');
+ return operation(value.view);
+}
 const collectionReadBridges=new WeakMap();
 // Opaque bridge tokens exist only inside a verified factory read callback.
 // Never expose the SQL request factory as c.request (UUID recovery).
@@ -42,7 +54,7 @@ export function isolatedCopyRequestBody(context,actor,operation,payload){
  assertIsolatedCopyContext(context);copyAssert(Object.hasOwn(ISOLATED_COPY_OPERATION_PERMISSIONS,operation)&&payload&&typeof payload==='object'&&!Array.isArray(payload),'ISOLATED_COPY_OPERATION',400);
  copyAssert(isolatedCopyUUID(payload.requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
  // Reject client-owned identity fields instead of silently overriding them.
- copyAssert(!['copyId','sealHash','backupSHA','operationOrigin','actorId','operation','testProfile','testDayId','businessDailyScopeHash','businessCustomerId','businessProductIds','businessSelectedSalePolicyHash','sourceSelectionHash','selectedSaleIntent'].some(k=>Object.hasOwn(payload,k)),'ISOLATED_COPY_CLIENT_PROFILE',400);
+ copyAssert(!['copyId','sealHash','backupSHA','operationOrigin','actorId','operation','testProfile','testDayId','businessDailyScopeHash','businessCustomerId','businessProductIds','businessSelectedSalePolicyHash','sourceSelectionHash','selectedSaleIntent','businessSelectedCollection','selectedCollectionIntent'].some(k=>Object.hasOwn(payload,k)),'ISOLATED_COPY_CLIENT_PROFILE',400);
  const dailyHash=getBusinessDailyScopeHash(context),inbound=['count_create','count_update','count_submit','count_cancel','goods_accept','goods_reject','purchase_draft','purchase_finalize'].includes(operation);
  const json=isolatedCopyJSON({...payload,copyId:context.copyId,sealHash:context.sealHash,actorId:String(actor.id),operation,operationOrigin:context.operationOrigin,...(dailyHash&&!inbound?{businessDailyScopeHash:dailyHash}:{})});
  return {json,hash:isolatedCopyHash(JSON.parse(json)),requestId:payload.requestId};
@@ -60,6 +72,19 @@ export function isolatedCopySelectedSaleRequestBody(context,actor,operation,payl
  delete value.businessDailyScopeHash;
  const json=isolatedCopyJSON(value);return{json,hash:isolatedCopyHash(value),requestId:body.requestId};
 }
+export function isolatedCopySelectedCollectionRequestBody(context,actor,operation,payload,selection){
+ const body=isolatedCopyRequestBody(context,actor,operation,payload);
+ copyAssert(context.target.database===BUSINESS_COPY_DATABASE&&String(actor?.id)==='16'&&['collection_create','collection_cancel'].includes(operation),'SELECTED_COLLECTION_OPERATION',403);
+ const keys=['invoiceId','creatorId','collectorId','customerId','customerAccountId','accountId','currency','creationRequestId','policyHash','sourceSelectionHash'];
+ copyAssert(selection&&Object.keys(selection).sort().join()===keys.toSorted().join(),'SELECTED_COLLECTION_SERVER_SELECTION_REQUIRED');
+ copyAssert(selection.creatorId==='15'&&selection.collectorId==='16'&&selection.currency==='TRY'&&isolatedCopyUUID(selection.creationRequestId)&&[selection.policyHash,selection.sourceSelectionHash].every(v=>typeof v==='string'&&/^[A-Fa-f0-9]{64}$/.test(v)),'SELECTED_COLLECTION_SERVER_SELECTION_REQUIRED');
+ for(const k of ['invoiceId','customerId','customerAccountId','accountId'])safeId(selection[k]);
+ copyAssert(context.customers.filter(c=>c.id===selection.customerId&&c.accountId===selection.customerAccountId&&c.currency===selection.currency).length===1&&context.financeAccounts.filter(a=>a.id===selection.accountId&&a.currency===selection.currency&&['cash','bank'].includes(a.type)).length===1,'SELECTED_COLLECTION_SERVER_SELECTION_REQUIRED');
+ copyAssert(operation!=='collection_create'||payload.invoiceId===selection.invoiceId&&payload.accountId===selection.accountId,'SELECTED_COLLECTION_SERVER_SELECTION_REQUIRED');
+ const value={...parse(body.json),businessSelectedCollection:{...selection}},json=isolatedCopyJSON(value);
+ return {json,hash:isolatedCopyHash(value),requestId:body.requestId};
+}
+
 function effectProof(value,context,actor,operation,body){
  const proof=parse(value);
  const sqlUUID=value=>typeof value==='string'&&isolatedCopyUUID(value.toLowerCase())?value.toLowerCase():null;
@@ -114,30 +139,34 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    const readSelectedSaleInvoiceState=selected&&(!write||priceConsumer)&&domain==='trade'?createBusinessSelectedSaleInvoiceReader({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.contextArtifact,actor,actual,readProof,priceConsumer}):undefined;
    const c=await buildDomain({runtime:r,copyContext:context,context:normalContext,actor,actual,identity,nativeContext,request:req,write,reloadContext,readSelectedSaleContext,readSelectedSaleInvoiceState});
    copyAssert(c&&typeof c==='object'&&c.context===normalContext,'ISOLATED_COPY_DOMAIN_CONTEXT');
-   if(!write&&readPath===collectionPreparationRead){
+   if((!write&&readPath===collectionPreparationRead)||readPath===collectionNativeRead||readPath===collectionNativeWrite){
     const collectionHistoryConsumer=getRegisteredBusinessCollectionHistoryRevision(context);
     const readPriceHistory=collectionHistoryConsumer&&collectionHistoryConsumer.readOnly===true&&collectionHistoryConsumer.canCollect===false&&collectionHistoryConsumer.canCancelCollection===false&&priceConsumer&&collectionHistoryConsumer.consumer===priceConsumer?
      (selection,{invoiceId}={})=>readBusinessSelectedSaleNativeContext({copy:context,transaction:tx,sql:q,request:req,artifact:selected?.bundle.contextArtifact,actor,selection,priceConsumer,collectionHistoryConsumer,invoiceId}):undefined;
-    collectionReadBridges.set(c,{copyContext:context,transaction:tx,sql:q,request:req,context:normalContext,...(readPriceHistory?{readPriceHistory}:{})});
+    const native={copyContext:context,transaction:tx,sql:q,request:req,context:normalContext,domain:c,readSelectedSaleContext,...(readPriceHistory?{readPriceHistory}:{})};
+    if(readPath===collectionPreparationRead)collectionReadBridges.set(c,native);
+    else collectionNativeBridges.set(c,native);
    }
    c.request=async requestId=>{
     copyAssert(isolatedCopyUUID(requestId),'ISOLATED_COPY_REQUEST_REQUIRED',400);
     const prior=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,requestId).input('actor_id',q.BigInt,safeId(actor.id)).query('SELECT operation,response_json FROM dbo.stage4_copy_requests WHERE copy_id=@copy_id AND request_id=@request_id AND actor_id=@actor_id;')).recordset?.[0];
     copyAssert(prior,'ISOLATED_COPY_REQUEST_NOT_FOUND',404);return{requestId,operation:prior.operation,response:parse(prior.response_json)};
    };
-   const effects=async(operation,body,response,replay)=>{
-    const proof=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('response_json',q.NVarChar(q.MAX),isolatedCopyJSON(response)).input('replay',q.Bit,replay).execute(ISOLATED_COPY_PROCEDURES.effects)).recordset?.[0];
+   const effects=async(operation,body,response,replay,collectionConsumer=null)=>{
+    const proof=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('response_json',q.NVarChar(q.MAX),isolatedCopyJSON(response)).input('replay',q.Bit,replay).execute(collectionConsumer?collectionConsumer.bundle.effectsArtifact.name:ISOLATED_COPY_PROCEDURES.effects)).recordset?.[0];
     const raw=proof?.effect_proof_json;
     return {proof:effectProof(raw,context,actor,operation,body),raw};
    };
-   const journal=async(operation,payload,execute,selection=null)=>{
+   const journal=async(operation,payload,execute,selection=null,collectionSelection=null)=>{
     copyAssert(write&&typeof execute==='function','ISOLATED_COPY_WRITE_TRANSACTION');
-    const body=selection?isolatedCopySelectedSaleRequestBody(context,actor,operation,payload,selection):isolatedCopyRequestBody(context,actor,operation,payload);
+    const collectionConsumer=collectionSelection?getRegisteredBusinessSelectedCollectionRevision(context):null;
+    if(collectionSelection)copyAssert(collectionConsumer&&await verifyBusinessSelectedCollectionRevision(context,req().input('copy_id',q.UniqueIdentifier,context.copyId),{write:true})===collectionConsumer,'SELECTED_COLLECTION_SERVER_CONSUMER');
+    const body=collectionSelection?isolatedCopySelectedCollectionRequestBody(context,actor,operation,payload,collectionSelection):selection?isolatedCopySelectedSaleRequestBody(context,actor,operation,payload,selection):isolatedCopyRequestBody(context,actor,operation,payload);
     assertIsolatedCopyActor(context,actor,actual,ISOLATED_COPY_OPERATION_PERMISSIONS[operation]);
     const prior=(await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).query('SELECT actor_id,operation,payload_hash,payload_json,response_json,effect_proof_json FROM dbo.stage4_copy_requests WITH(UPDLOCK,HOLDLOCK) WHERE copy_id=@copy_id AND request_id=@request_id;')).recordset?.[0];
     if(prior){
      copyAssert(String(prior.actor_id)===String(actor.id)&&prior.operation===operation&&prior.payload_hash===body.hash&&prior.payload_json===body.json,'ISOLATED_COPY_REQUEST_CONFLICT',409);
-     const response=parse(prior.response_json);await effects(operation,body,response,true);return {...response,replayed:true};
+     const response=parse(prior.response_json);await effects(operation,body,response,true,collectionConsumer);return {...response,replayed:true};
     }
     let usePriceConsumer=Boolean(selection&&priceConsumer&&operation==='sale_draft');
     if(selection&&priceConsumer&&operation!=='sale_draft'){
@@ -147,14 +176,15 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
      copyAssert(rows?.length===1&&[0,1].includes(rows[0].priced),'PRICE_SALE_NATIVE_PROTOCOL');usePriceConsumer=rows[0].priced===1;
     }
     if(usePriceConsumer)copyAssert(await verifyBusinessProductPriceSaleRevision(context,req().input('copy_id',q.UniqueIdentifier,context.copyId),{write:true})===priceConsumer,'PRICE_SALE_NATIVE_PROTOCOL');
-    await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).execute(usePriceConsumer?priceConsumer.bundle.beginArtifact.name:ISOLATED_COPY_PROCEDURES.begin);
-    const response=selection?await selectedSaleDiagnosticProbe('selectedSale.writeScope',()=>withBusinessSelectedSaleWriteScope({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.writeScopeArtifact,priceConsumer:usePriceConsumer?priceConsumer:null,actor,operation,requestId:body.requestId},execute)):await execute();
-    const proof=await effects(operation,body,response,false);
+    await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).execute(collectionConsumer?collectionConsumer.bundle.beginArtifact.name:usePriceConsumer?priceConsumer.bundle.beginArtifact.name:ISOLATED_COPY_PROCEDURES.begin);
+    const response=collectionConsumer?await withBusinessSelectedCollectionWriteScope({copy:context,transaction:tx,sql:q,request:req,actor,operation,requestId:body.requestId,collectionConsumer},execute):selection?await selectedSaleDiagnosticProbe('selectedSale.writeScope',()=>withBusinessSelectedSaleWriteScope({copy:context,transaction:tx,sql:q,request:req,artifact:selected.bundle.writeScopeArtifact,priceConsumer:usePriceConsumer?priceConsumer:null,actor,operation,requestId:body.requestId},execute)):await execute();
+    const proof=await effects(operation,body,response,false,collectionConsumer);
     // The SQL intent seals this exact text. Preserve its order and GUID casing;
     // a JS reserialization would no longer equal the immutable SQL proof.
     await req().input('copy_id',q.UniqueIdentifier,context.copyId).input('request_id',q.UniqueIdentifier,body.requestId).input('actor_id',q.BigInt,safeId(actor.id)).input('operation',q.NVarChar(40),operation).input('payload_hash',q.Char(64),body.hash).input('payload_json',q.NVarChar(q.MAX),body.json).input('response_json',q.NVarChar(q.MAX),isolatedCopyJSON(response)).input('effect_proof_json',q.NVarChar(q.MAX),proof.raw).query('INSERT dbo.stage4_copy_requests(copy_id,request_id,actor_id,operation,payload_hash,payload_json,response_json,effect_proof_json) VALUES(@copy_id,@request_id,@actor_id,@operation,@payload_hash,@payload_json,@response_json,@effect_proof_json);');
     return response;
    };
+   if(readPath===collectionNativeRead||readPath===collectionNativeWrite){const native=collectionNativeBridges.get(c);native.journal=(operation,payload,proof,execute)=>journal(operation,payload,execute,null,proof);}
    c.journal=(operation,payload,execute)=>journal(operation,payload,execute);
    c.selectedSaleJournal=(operation,payload,selection,execute)=>journal(operation,payload,execute,selection);
    const run=async()=>{
@@ -172,7 +202,19 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
    await tx.commit();return result;
   }catch(error){try{await tx.rollback();}catch{}if(error.number===51401||error.originalError?.info?.number===51401)copyAssert(false,'ISOLATED_COPY_BUSY',503);throw error;}
  }
- return {
+ const store={
+
+  withSelectedCollectionNative:(actor,write,fn)=>transaction(actor,write,async c=>{
+   copyAssert(domain==='trade'&&typeof fn==='function','SELECTED_COLLECTION_STORE_REQUIRED');
+   const native=collectionNativeBridges.get(c);copyAssert(native,'SELECTED_COLLECTION_STORE_REQUIRED');
+   if(write)copyAssert(getRegisteredBusinessSelectedCollectionRevision(native.copyContext),'SELECTED_COLLECTION_SERVER_CONSUMER');
+   const bridge=Object.freeze({}),value={active:true,write,transaction:native.transaction,copyContext:native.copyContext};
+   const active=()=>copyAssert(value.active&&isolatedCopyTransactionContext(native.transaction,{writeRequired:write})===native.copyContext,'ISOLATED_COPY_TRANSACTION_REQUIRED');
+   const domainView=Object.freeze(Object.fromEntries(Object.entries(native.domain).map(([key,value])=>[key,typeof value==='function'?(...args)=>{active();return value(...args);}:value])));
+   value.view=Object.freeze({...native,domain:domainView,request:()=>{active();return native.request();},journal:(...args)=>{active();copyAssert(write,'ISOLATED_COPY_READ_ONLY');return native.journal(...args);}});
+   collectionNativeBridges.set(bridge,value);
+   try{return await fn(bridge);}finally{value.active=false;collectionNativeBridges.delete(bridge);collectionNativeBridges.delete(c);}
+  },'customer.view',null,write?collectionNativeWrite:collectionNativeRead),
   selectedSaleEnabled:async()=>{const r=await getRuntime();return !!getRegisteredBusinessSelectedSaleRevision(r.copyContext);},
   context:actor=>transaction(actor,false,c=>c.context),
   read:(actor,fn,permission)=>transaction(actor,false,fn,permission??readPermission),
@@ -190,4 +232,5 @@ export function createIsolatedOperationCopyStore({getRuntime,buildDomain,domain=
   mutate:(actor,operation,payload,fn)=>typeof operation==='function'?transaction(actor,true,operation):transaction(actor,true,fn,readPermission,{operation,payload}),
   mutateSelectedSale:(actor,operation,payload,fn)=>selectedSaleDiagnosticProbe('selectedSale.transaction',()=>transaction(actor,true,fn,readPermission,{operation,payload,selected:true})),
  };
+ nativeCollectionStores.add(store);return store;
 }

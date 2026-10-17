@@ -78,3 +78,15 @@ test('SOURCE cancel requires native-facing cancel permission before collection r
   assert.equal(response.status,403);assert.equal(response.value.code,'AUTH_PERMISSION_DENIED');assert.deepEqual(f.events,[]);
  },{selectedSourceService:true});
 });
+
+
+test('explicit native SOURCE selector mounts only a branded factory store without starting runtime or widening defaults',async()=>{
+ const {createIsolatedOperationCopyStore}=await import('../services/isolatedOperationCopyStoreFactory.mjs');let runtimeCalls=0;
+ const store=createIsolatedOperationCopyStore({getRuntime:async()=>{runtimeCalls++;throw Error('Native fixture remains unconfigured');},buildDomain:async()=>{throw Error('Native fixture must not build a domain');}});
+ const router=createWorkCollectionRoutes({selectedSourceNativeStore:store});
+ const paths=router.stack.filter(layer=>layer.route).map(layer=>layer.route.path);
+ assert.equal(paths.filter(p=>p.includes('/selected-source')).length,4);assert.equal(runtimeCalls,0);
+ for(const input of [{...store},{withSelectedCollectionNative:store.withSelectedCollectionNative},null])assert.throws(()=>createWorkCollectionRoutes({selectedSourceNativeStore:input}),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED'});
+ assert.throws(()=>createWorkCollectionRoutes({selectedSourceNativeStore:store,selectedSourceService:selectedSourceCollectionFixture().service}),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED'});
+ assert.equal(runtimeCalls,0);
+});
