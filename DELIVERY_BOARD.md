@@ -203,6 +203,8 @@ Bu yetkili genişletme aşağıdaki 9 Ekim sınırlı hazırlık/DUR kaydını b
 
 # ERP teslim panosu
 
+17 Ekim — Goal üçüncü source döngüsü **P05/C02 kayıtlı alış GET okuması**, c988ab6 /48offline PASS/GO/build/exactPR39028258323–push39028254830 SUCCESS. Eski kesinleşmiş belgenin fiyat/tarihi güncel kapsamdan ayrılabilir; native dayanak/kimlik/miktar/toplam şartları ve yeni işlem guard'ları korunur. Normal GUI/kurulum/insan kapanışı değil. Sonraki hazır P03 işi exactNode paket üretim çağrısını tamamlayıp aynı mevcut TEST'in yeni adayına bağlamaktır; yeni TEST/DB yok. [Kanıt](docs/evidence/erp/2026-10-13-purchase-receipt/README.md).
+
 17 Ekim — Goal'ın ikinci bağımsız kod döngüsü **P06 tahsilat sonucu/yenileme**, source51aae11 /52offline PASS/GO/Sites build ve exact PR39027662913/push39027659716 CI SUCCESS. Başarılı kaydı yanlış retle ezme ve eski tutar bırakma hatası düzeltildi. Çalışan TEST'e kurulmadı, insan kabulü değil. P05/C02–C03 tarihsel alış okumasındaki mevcut eksik sıradaki teknik incelemedir; onaylı sıra ve genel kapsam aynı. [Kanıt](docs/evidence/erp/2026-10-13-open-account/README.md).
 
 17 Ekim — ERP-DEC-064 / mevcut **ERP-TEKNIK-23EKIM active**. Tek ortak rapor6222599673 ve mevcut ŞİMDİ sırası korunur; yeni pano/TEST yok. ERP06/P07.1.a R1 kaynak düzeltmesi **56fb2e6** ile teslim edildi:46+27 ilgili offline kontrol, bağımsız review GO; exact CI geri okuması STATUS'a bağlanır. Native read-only compatibility ve normal GUI/insan kabulü açık olduğundan C06 tamam değildir. Ekran güvenlik reddi tekrar edilmeksizin P05/P06 bağımsız teknik eksiği ilerletilir; mevcut paket/DB/roller ve 19/23/26–27/28/30 Ekim hedefleri aynı. [Kanıt](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md).
