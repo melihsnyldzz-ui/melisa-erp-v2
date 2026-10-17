@@ -1,5 +1,11 @@
 # ERP11 / C02–C03 — kayıtlı fatura dayanağı
 
+## 17 Ekim — P05.2.b aynı tarih ve fiyatta kayıtlı dayanak denetimi
+
+[ERP PR37](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/37) kaynak `8cc942548ea7c124df532077a1473b086328f7f9`, önceki c988ab6 tarih/fiyat driftli historical GET teslimini tamamlayan dar kaynak alt adımıdır. `purchaseInvoiceRead`, VERIFIED_BUSINESS_TEST kesinleşmiş GET belgesinde kendi `recordedInvoiceBasis` alanı mevcutsa, güncel tarih ve alış fiyatı aynı olsa bile `historicalPurchaseIdentity` ile özgün fatura ID'si ve `receiptId`→kabul/satır/tedarikçi/fiyat/kur bağını doğrular. Önceki kodda aynı tarih/fiyatlı bozuk `recordedInvoiceBasis.invoiceId='9'` veya `receiptId='9'` kabul edilirdi; yeni negatif test önce FAIL, düzeltme sonrası PASS. Normal liste→tekil detay GET testinde bozuk belge detayı/fiyat/kur gösterilmez, journal değişmez ve POST çıkmaz. Dayanağı hiç olmayan eski ve drift bulunmayan GET okunur, kur “doğrulanamadı” kalır. Yeni taslak/preview/POST ve değişmiş tarih/fiyat guard'ları aynı.
+
+Yerel ilgili model/controller/presentation **38/38 PASS**, bağımsız High salt okunur inceleme açık P0/P1=0. Exact [push CI39032354473](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39032354473) ve [PR CI39032369412](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39032369412) completed SUCCESS; kapsamı dar tutmak için PR37 geçici PR36 tabanı üzerindedir. Bu kaynak/CI sonucu yeni ERP paketi, DB02 okuma-yazma, gerçek normal ekran, yeni alış/stok/borç etkisi veya insan kabulü değildir. P05/B05/C02–C03 üstleri ve49/9/39/1 değişmez.
+
 13 Ekim 2026. ERP-DEC-050/053 ana devam kapsamında dar okuma/görünüm teslimi. Yeni kabul, taslak, fatura, iptal, stok, tedarikçi borcu veya ticari hareket oluşturulmadı. Önceki native işlem/replay kanıtları kendi hedefleriyle korunur; yeniden uygulanmadı.
 
 ## Çalışan sürüm

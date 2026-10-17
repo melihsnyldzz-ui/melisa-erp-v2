@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {receivingContext,countLines,countDraft,purchaseSelection,purchasePreview,purchaseInvoice,purchaseInvoiceRead,purchaseContext,supplierContext,inboundError} from './workInboundModel.mjs';
+import {recordedPurchaseBasisHtml,historicalPurchaseRateUnknown} from './workPurchasePresentation.mjs';
 import {createInboundJournal} from './workInboundJournal.mjs';
 import {countInput,countDto} from '../../../api/src/services/workInboundModel.mjs';
 import {supplierPaymentContext as nativePaymentContext} from '../../../api/src/services/workSupplierPaymentModel.mjs';
@@ -52,6 +53,64 @@ test('historical GET keeps its own prices and native rates while default invoice
   const s={...selection(),currency:'USD'};assert.throws(()=>purchaseSelection(s,c));
   const current={...s,documentDate:profile.date},available=structuredClone(c);available.receipts[0].lines.forEach(l=>l.invoiceableQuantityExact3='2.000');
   const p={selection:current,currency:'USD',items:i.items.map(({receiptLineId,productId,quantityExact3,purchasePriceExact8,lineTotalExact4})=>({receiptLineId,productId,quantityExact3,purchasePriceExact8,lineTotalExact4})),totals:i.totals};assert.throws(()=>purchasePreview(p,current,available));
+ }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+
+test('same-date same-price finalized GET verifies its recorded invoice and receipt identities',()=>{
+ const previous=globalThis.window;
+ try{
+  for(const [name,change] of [
+   ['invoice basis',f=>{f.i.recordedInvoiceBasis.invoiceId='9';}],
+   ['receipt link',f=>{f.i.receiptId='9';}]
+  ]){
+   const f=historicalPurchaseFixture({priceChanged:false,dateChanged:false});
+   globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.profile};
+   assert.equal(purchaseInvoiceRead(f.i,f.c),f.i);
+   assert.equal(purchaseContext(f.c,{readOnly:true}),f.c);
+   change(f);
+   assert.throws(()=>purchaseInvoiceRead(f.i,f.c),name);
+   assert.throws(()=>purchaseContext(f.c,{readOnly:true}),name);
+  }
+ }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+
+test('purchase screen refuses same-date same-price GET with a foreign receipt or recorded invoice ID without posting',async()=>{
+ const previous=globalThis.window;
+ try{
+  for(const [name,change] of [
+   ['receipt ID',i=>{i.receiptId='9';}],
+   ['recorded invoice ID',i=>{i.recordedInvoiceBasis.invoiceId='9';}]
+  ]){
+   const {profile,c,receiving,i}=historicalPurchaseFixture({priceChanged:false,dateChanged:false}),detail=structuredClone(i),calls=[],store=storage(),d=dom();
+   change(detail);
+   globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:profile};
+   const {createWorkPurchases}=await controller('workPurchases'),selected={get:()=>({...profile.suppliers[0]}),members:profile.suppliers,eligible:()=>true,journalSuffix:()=>':13370:USD'};
+   const ui=createWorkPurchases({root:d.root,session:{businessSupplierSelection:()=>selected,inbound:async(path,options)=>{
+    calls.push({path,options});
+    if(path==='/api/work-receiving/context')return structuredClone(receiving);
+    if(path==='/api/work-purchases/context')return structuredClone(c);
+    if(path==='/api/work-purchases/drafts/8')return structuredClone(detail);
+    throw Error(path);
+   }},user:{id:16},storage:store});
+   ui.mount();await tick();assert.match(d.root.innerHTML,/data-purchase-open="8"/,name);
+   const before=JSON.stringify([...store.values]);d.root.querySelectorAll('[data-purchase-open]')[0].onclick();await tick();
+   assert.equal(calls.filter(call=>call.path==='/api/work-purchases/drafts/8').length,1,name);
+   assert.doesNotMatch(d.root.innerHTML,/data-purchase-receipt-details|data-purchase-recorded-rate|Faturaya kayÄ±tlÄ± alÄ±ÅŸ fiyatÄ±/,name);
+   assert.equal(JSON.stringify([...store.values]),before,name);
+   assert.ok(calls.every(call=>call.options?.method!=='POST'),name);
+   ui.dispose();
+  }
+ }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+
+test('same-date same-price legacy finalized GET without a recorded basis remains readable',()=>{
+ const previous=globalThis.window,f=historicalPurchaseFixture({priceChanged:false,dateChanged:false});
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.profile};
+ try{
+  delete f.i.recordedInvoiceBasis;
+  assert.equal(purchaseInvoiceRead(f.i,f.c),f.i);
+  assert.equal(purchaseContext(f.c,{readOnly:true}),f.c);
+  assert.ok(recordedPurchaseBasisHtml(f.i,f.c).includes(historicalPurchaseRateUnknown));
  }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
 
