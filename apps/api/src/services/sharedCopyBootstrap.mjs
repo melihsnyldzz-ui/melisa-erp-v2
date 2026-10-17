@@ -7,6 +7,7 @@ import {validateBusinessReadinessQueryPlanRevision} from './businessReadinessQue
 import {validateBusinessSelectedSaleStartupPin} from './businessSelectedSaleStartup.mjs';
 import {validateProductCopyPurchaseReferencePin} from './productCopyPurchaseReferencePin.mjs';
 import {validateBusinessProductPriceStartup} from './businessProductPriceStartup.mjs';
+import {validateCustomerContactStartup} from './customerContactStartupPin.mjs';
 const validatedDailyScopes=new WeakMap();
 export function validateSharedCopyBootstrap(config){
  const context=validateIsolatedOperationCopyContext(config?.copyContext),topology=isolatedCopyTopology(context);
@@ -22,6 +23,7 @@ export function validateSharedCopyBootstrap(config){
  if(context.target.database===BUSINESS_COPY_DATABASE)copyAssert(config.copyAdapterRevision===undefined,'STAGE4_REVISION_CONFIG');
  validateBusinessSelectedSaleStartupPin(config,context);
  validateBusinessProductPriceStartup(config,context);
+ validateCustomerContactStartup(config,context);
  if(config.productPurchaseReferenceCopyRead!==undefined){copyAssert(config.businessSelectedSaleStartup!==undefined,'COPY_PURCHASE_REFERENCE_QUARANTINE_PROOF_REQUIRED');validateProductCopyPurchaseReferencePin(context,config.productPurchaseReferenceCopyRead);}
  return {context,topology,business:context.target.database===BUSINESS_COPY_DATABASE,webOrigins:['127.0.0.1','localhost','192.168.1.46'].map(host=>`http://${host}:${topology.webPort}`)};
 }

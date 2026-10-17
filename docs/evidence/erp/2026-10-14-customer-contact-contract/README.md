@@ -39,3 +39,34 @@ ERP07 / C07 genel tedarikçi güncellemesi aynı bağımlılığa sahiptir. Mevc
 Hedefli model testleri offline guard altında 11/11 geçti; bağımsız kaynak/test incelemesi GO ve ayrı 11/11 sonuç verdi. Komut: `node --require ./scripts/ci/offline-guard.cjs --test apps/api/src/services/customerContactModel.test.mjs`. API CI test keşfi `apps/api/src/**/*.test.mjs` dosyalarını otomatik alır. Modelin olumlu/olumsuz sonuçları gerçek SQL değişikliği veya çalışan native tekrar güvenliği olarak sunulmaz.
 
 Bu çalışma runtime, SQL, config, port, store, yedek veya servis değiştirmez. Önceki ERP/native7a41f64–CRM5b6dfe5 paket ve 14 Ekim korumalı DB02 yedeği korunur; yeniden paket/restore/prova yapılmaz. CRM MANUAL normal GUI erişim adımı ayrı açık kalır. ERP06/C06 ve ERP07/C07 kısmi, insan kabulü bekliyor; ana toplamlar ve `completeDelivery=false` değişmez.
+
+## 17 Ekim 2026 — çevrimdışı cold-start bağlantısı
+
+Güncel `93a072f137728435f21037e70e9cf074fa6a3fb3` tabanında controller/service/store/editör ve 22 modüllü native successor hazırdı; eksik kaynak bağlantısı, serialized descriptor'ın ortak bootstrap tarafından hiç doğrulanmaması ve `start-shared-test-copy.mjs` çağrı zincirinde predecessor compatibility ile contact registration'ın bulunmamasıydı. Önce bu eksikliği gösteren sentetik cold-start regresyonu eklendi, ardından yalnız aşağıdaki kaynak bağlantısı tamamlandı:
+
+- config descriptor; exact copy/seal/profile/revision hashini, sıralı 18 predecessor ile dört yeni modülü ve mevcut selected-sale/product-price bağımlılıklarını doğrular;
+- desteklenen sıra contact native proof → predecessor hash projection → mevcut selected-sale/product-price configure → tekrar contact proof → exact descriptor registration şeklindedir;
+- config tek başına capability üretmez; kayıt ancak aynı transaction/native proof başarılı olduktan sonra oluşur;
+- descriptor yoksa eski bootstrap yolu değişmeden çalışır, bozuk veya bağımlılığı eksik descriptor SQL/callback öncesinde kapalı kalır.
+
+Bu patch SQL metni üretmez/değiştirmez ve SQL/DB02/Vega bağlantısı, sorgusu, migration, `EXEC`, grant, configure çalıştırması, paket veya Windows kurulumu yapmaz. Gerçek native nesnelerin kurulmuş descriptor ile aynı olduğu ve normal müşteri kartında kaydet→yenile akışı ayrıca izole native/GUI entegrasyonudur; bu çevrimdışı teslim bunları PASS saymaz.
+
+### ERP-TEKNIK-23EKIM / P07.1.a — R1 düzeltmesi ve gerçek kaynak teslimi
+
+17 Ekim tarihli Goal, mevcut ana oturumda `get_goal` ile **active** doğrulandı; yeni Goal, ortam veya takip ağacı oluşturulmadı. [Tarihli kapsam6232818354](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232818354) ve [aynı rapor P07.1.a](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6222599673) esas alındı. Önceki tur normal Windows ekran aracının URL güvenlik reddiyle sona ermişti; bu tur ekran işlemi tekrarlanmadı.
+
+[6232135117 önerisi](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232135117), exact `93a072f` tabanına hunk kontrolünden sonra alındı. R1 regresyonu gerçek callback projector'ıyla önce **FAIL** verdi: adsız reader/proof metadata hash'i dönüşmüyor, bazı ilgisiz adlı satırlar yanlış dönüşüyordu. Açık if/else blokları iki durumu düzeltti; farklı hash, yeni contact modülü ve kaynak yanıt korunur. Projector callback sonrasında kullanılamaz; önce/sonra aynı session/transaction/lock doğrulanır.
+
+Ek failing-before kontrolünde son proof reddedildiğinde kayıtlı capability kalıyordu. Registration bütün compatibility kontrollerinden sonraya taşındı. On sorgunun her birinde enjekte edilen hata ve callback sırasında bütün frame'in tutarlı biçimde değiştirilmesi, writer capability oluşturmadan reddedilir. Bu, mevcut yetkiyi genişletmez.
+
+Saf startup pin'i runtime wrapper'ından ayrıldı. Terminal paketinin kapalı import listesine yalnız saf pin/contract/compiler eklendi; dinamik import koruması aynı. Gerçek transitive starter ve her pin için eksik/değiştirilmiş dosya reddi test edildi. API test keşfi yeni startup suite'ini alır; canonical CI artık contact compiler/bootstrap regresyonlarını da açıkça çalıştırır.
+
+Yerel çevrimdışı sonuçlar:
+
+- Startup/paket/route/shared-bootstrap/contact compiler ve projector: **46/46 PASS**, 0 skip.
+- Değişen bağlantının mevcut model/service/store/controller yetki, CAS, replay, karantina ve rollback regresyonları: **27/27 PASS**, 0 skip. İlk çağrıda gerekli VM modül bayrağı eksik olduğu için iki dosya yüklenemedi; CI ile aynı `--experimental-vm-modules` bayrağıyla yukarıdaki son sonuç alındı.
+- Başlatıcı JavaScript syntax ve `git diff --check` temiz; bağımsız kaynak/paket incelemesi GO. Hosted CI ve uzak HEAD sonucu teslimden sonra aynı rapora yazılır; yerel PASS bunların yerine geçmez.
+
+Komutlar `node --require ./scripts/ci/offline-guard.cjs --test` altında ilk gruptaki altı dosyayı; ikinci grup için ayrıca `--experimental-vm-modules --experimental-test-module-mocks` ile dört contact model/service/store/controller dosyasını çalıştırdı. SQL/provider/HTTP/servis erişimi yok.
+
+**Kurulum açık:** Contact successor 18 eski native modülü değiştirir. Mevcut salt okunur native başlangıç bu successor için desteklenen compatibility/proof yoluna sahip değildir; eski V11 hash doğrulaması kapanır. ERP RW kimliğini native'e vermek veya grant/rol korumasını gevşetmek çözüm olarak uygulanmadı. Mevcut TEST paketi f5/CRM439b/denetleyici2bf0 korunur; yeni paket, SQL nesnesi, config, rol, servis veya ticari kayıt yazılmadı. Bu teslim yalnız incelenmiş kaynak ve sentetik kanıttır; C06, normal kaydet→yenile, ERP-UA32 ve özgün insan kabulleri **BEKLİYOR**. 19/23/26–27/28/30 Ekim hedefleri ve 49/9/39/1 sayımı değişmez.

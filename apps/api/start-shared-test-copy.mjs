@@ -46,11 +46,18 @@ if(config.businessSelectedSaleStartup){
  await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
  try{
   await new sql.Request(tx).input('resource',sql.NVarChar(255),'melisa-stage4-copy:'+context.copyId).query("DECLARE @result int;EXEC @result=sys.sp_getapplock @Resource=@resource,@LockMode=N'Shared',@LockOwner=N'Transaction',@LockTimeout=15000;IF @result<0 THROW 51904,'SELECTED_BOOT_COPY_BUSY',1;");
-  await configureBusinessSelectedSaleRevision({copy:context,request:new sql.Request(tx).input('copy_id',sql.UniqueIdentifier,context.copyId),nativeReadOnly:!writes,...input});
-  if(writes&&config.businessProductPriceRevisions){
-   const {configureBusinessProductPriceStartup}=await import('./src/services/businessProductPriceStartup.mjs');
-   await configureBusinessProductPriceStartup(config,context,new sql.Request(tx).input('copy_id',sql.UniqueIdentifier,context.copyId),input);
-  }
+  const request=new sql.Request(tx).input('copy_id',sql.UniqueIdentifier,context.copyId);
+  const configurePredecessors=async compatible=>{
+   await configureBusinessSelectedSaleRevision({copy:context,request:compatible,nativeReadOnly:!writes,...input});
+   if(writes&&config.businessProductPriceRevisions){
+    const {configureBusinessProductPriceStartup}=await import('./src/services/businessProductPriceStartup.mjs');
+    await configureBusinessProductPriceStartup(config,context,compatible,input);
+   }
+  };
+  if(writes&&config.customerContactRevision){
+   const {configureCustomerContactStartup}=await import('./src/services/customerContactStartup.mjs');
+   await configureCustomerContactStartup(config,context,request,configurePredecessors);
+  }else await configurePredecessors(request);
   await tx.commit();
  }catch(error){try{await tx.rollback();}catch{}throw error;}
 }else if(config.businessDailyRevision){

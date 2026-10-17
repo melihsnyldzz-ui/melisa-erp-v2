@@ -23,10 +23,11 @@ test('all real transitive starter modules are hashed; backend drift or omission 
   await assert.rejects(()=>verifyFeatureSources({...m,files:m.files.filter(r=>r.path!==file)},async p=>data.get(p)),{code:'WORKTEST_PACKAGE_PIN'});
  }
  const invoiceReader='apps/api/src/services/businessSelectedSaleInvoiceRead.mjs';await assert.rejects(()=>verifyFeatureSources({...m,files:m.files.filter(r=>r.path!==invoiceReader)},async p=>data.get(p)),{code:'WORKTEST_PACKAGE_PIN'});
+ for(const pin of ['apps/api/src/services/customerContactStartupPin.mjs','scripts/canonical/shared-business-customer-contact-contract.mjs','scripts/canonical/shared-business-customer-contact-sql.mjs'])assert(FEATURE_SOURCE_FILES.includes(pin));
  const target='apps/api/src/services/terminalCartonStore.mjs';for(const addition of ["\nimport './unlisted-source.mjs';","\nexport {x} from '../../../outside.mjs';","\nimport('file:///arbitrary.mjs');","\nimport external from 'unlisted-package';"]){const changed=Buffer.concat([data.get(target),Buffer.from(addition)]),pin=createHash('sha256').update(changed).digest('hex');await assert.rejects(()=>verifyFeatureSources({...m,files:m.files.map(r=>r.path===target?{...r,sha256:pin}:r)},async p=>p===target?changed:data.get(p)),{code:'WORKTEST_PACKAGE_PIN'});}
 });
 test('terminal HOME pins only the pure injected graph; dynamic default wrappers stay outside it',()=>{
- for(const file of ['apps/api/src/services/homeSummaryReadStore.mjs','apps/api/src/services/homeSummaryService.mjs','apps/api/src/services/isolatedOperationCopyStore.mjs','apps/api/src/middleware/businessInboundSelection.mjs','apps/api/src/config/database.js','apps/api/src/services/productCopyPurchaseReferenceService.mjs','apps/api/src/services/productLastPurchaseReferenceService.mjs'])assert.equal(FEATURE_SOURCE_FILES.includes(file),false);
+ for(const file of ['apps/api/src/services/homeSummaryReadStore.mjs','apps/api/src/services/homeSummaryService.mjs','apps/api/src/services/isolatedOperationCopyStore.mjs','apps/api/src/middleware/businessInboundSelection.mjs','apps/api/src/config/database.js','apps/api/src/services/productCopyPurchaseReferenceService.mjs','apps/api/src/services/productLastPurchaseReferenceService.mjs','apps/api/src/services/customerContactStartup.mjs','scripts/canonical/shared-business-customer-contact-bootstrap.mjs'])assert.equal(FEATURE_SOURCE_FILES.includes(file),false);
  assert.equal(new Set(FEATURE_SOURCE_FILES).size,FEATURE_SOURCE_FILES.length);
 });
 test('pure purchase startup pin retains the exact service compatibility export',async()=>{
@@ -34,4 +35,10 @@ test('pure purchase startup pin retains the exact service compatibility export',
  const service=await import('../../apps/api/src/services/productCopyPurchaseReferenceService.mjs');
  assert.strictEqual(service.validateProductCopyPurchaseReferencePin,pure.validateProductCopyPurchaseReferencePin);
  assert(FEATURE_SOURCE_FILES.includes('apps/api/src/services/productCopyPurchaseReferencePin.mjs'));
+});
+
+test('pure contact startup pin retains the exact runtime compatibility export',async()=>{
+ const pure=await import('../../apps/api/src/services/customerContactStartupPin.mjs');
+ const runtime=await import('../../apps/api/src/services/customerContactStartup.mjs');
+ assert.strictEqual(runtime.validateCustomerContactStartup,pure.validateCustomerContactStartup);
 });

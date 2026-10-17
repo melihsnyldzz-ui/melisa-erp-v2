@@ -13,6 +13,11 @@ test('bootstrap validates both finite shared topologies and refuses old reader p
  for(const business of [true,false])assert.equal(validateSharedCopyBootstrap(config(business)).business,business);
  for(const patch of [{erpPort:4174},{nativePort:4176},{webPort:5224},{sqlUser:'melisa_shared_test_ro_20261009_01'},{database:SHARED_COPY_DATABASE},{host:'0.0.0.0'},{lanHost:'192.168.1.47'}])assert.throws(()=>validateSharedCopyBootstrap({...config(),...patch}));
 });
+test('customer contact descriptor cannot enter shared bootstrap without its sealed predecessors',async()=>{
+ const {customerContactFixture}=await import('../../../../scripts/canonical/shared-business-customer-contact-test-fixture.mjs');const f=await customerContactFixture(),base=config();
+ base.copyContext=f.copy;base.database=f.copy.target.database;base.server=f.copy.target.server;base.salesSqlUser=f.copy.target.login;base.customerContactRevision=f.bundle.revision;
+ assert.throws(()=>validateSharedCopyBootstrap(base));
+});
 test('business build flag produces exact immutable nested target pins; mixed flags and opposite release never activate',()=>{
  const target=resolveCopyBuildTarget(['--business-test-copy']);assert.equal(target.dist,'dist-business');assert.equal(target.apiPort,4184);const c=validateSharedCopyBootstrap(config()).context;
  const release={sourceCommit:'a'.repeat(40),packageId:'CANONICAL-TEST-synthetic',...copyBuildReleaseFields(target)};assert.equal(assertSharedBootstrapRelease(release,c),release);

@@ -45,12 +45,13 @@ async function prove(context,request,revision,kind,write){
  const after=metadata(await request.query(CUSTOMER_CONTACT_METADATA_SQL),revision,kind,write);check(frameEqual(before,after));
  return Object.freeze({context,revision,kind,frame:after});
 }
-export async function configureCustomerContactRevision(copy,candidate,request,{sourceInput}={}){
+export async function configureCustomerContactRevision(copy,candidate,request,{sourceInput,nativeDescriptor=false}={}){
  await assertContext(copy,'ERP');check(!registered.has(copy));
- const bundle=sourceInput?buildCustomerContactRevision({...sourceInput,copyContext:copy}):assertPreparedCustomerContactArtifact(copy,candidate);
- const revision=candidate?.revision??candidate;check(customerContactJSON(bundle.revision)===customerContactJSON(revision));
- await prove(copy,request,bundle.revision,'ERP',false);
- const capability=freeze({revision:bundle.revision,actor:{...bundle.revision.actor},modules:bundle.revision.modules,bundle});registered.set(copy,capability);return capability;
+ const bundle=sourceInput?buildCustomerContactRevision({...sourceInput,copyContext:copy}):nativeDescriptor?null:assertPreparedCustomerContactArtifact(copy,candidate);
+ const revision=candidate?.revision??candidate;check(nativeDescriptor?!sourceInput:customerContactJSON(bundle.revision)===customerContactJSON(revision));
+ const proved=bundle?.revision??revision;
+ await prove(copy,request,proved,'ERP',false);
+ const capability=freeze({revision:proved,actor:{...proved.actor},modules:proved.modules,bundle});registered.set(copy,capability);return capability;
 }
 export function getRegisteredCustomerContactRevision(copy){return registered.get(copy)??null;}
 export function getRegisteredCustomerContactCompatibility(context){return compatibility.get(context)??null;}
@@ -70,7 +71,14 @@ export function projectCustomerContactPredecessorProof(witness,result,{metadataM
  const project=(name,value)=>{const m=p.revision.modules.find(x=>x.name===name&&CUSTOMER_CONTACT_PREDECESSOR_NAMES.includes(name));if(!m||value!==m.afterHash)return value;check(hash(m.beforeHash));return m.beforeHash;};
  const sets=cloned.recordsets??(Array.isArray(cloned.recordset)?[cloned.recordset]:[]);check(Array.isArray(sets));
  for(const set of sets)for(const row of set){
-  if(typeof row.name==='string')for(const key of ['actualHash','proofDefinitionHash','readerDefinitionHash'])if(Object.hasOwn(row,key))row[key]=project(row.name,row[key]);
+  if(typeof row.name==='string'){
+   for(const key of ['actualHash','proofDefinitionHash','readerDefinitionHash'])if(Object.hasOwn(row,key))row[key]=project(row.name,row[key]);
+  }else{
+   for(const key of ['actualHash','proofDefinitionHash','readerDefinitionHash'])if(Object.hasOwn(row,key)){
+    const module=p.revision.modules.find(x=>CUSTOMER_CONTACT_PREDECESSOR_NAMES.includes(x.name)&&x.afterHash===row[key]);
+    if(module)row[key]=project(module.name,row[key]);
+   }
+  }
   if(metadataModule)for(const key of ['proofDefinitionHash','readerDefinitionHash'])if(Object.hasOwn(row,key))row[key]=project(metadataModule,row[key]);
  }
  return cloned;
@@ -80,6 +88,7 @@ export async function withCustomerContactCompatibilityProof(context,request,desc
  earned.set(witness,{context,revision:witness.revision,kind:witness.kind,frame:witness.frame});
  try{
   const value=await callback((result,projectionOptions)=>projectCustomerContactPredecessorProof(witness,result,projectionOptions));
-  await prove(context,request,witness.revision,witness.kind,false);return value;
+  const after=await prove(context,request,witness.revision,witness.kind,false);
+  check(frameEqual(witness.frame,after.frame));return value;
  }finally{earned.delete(witness);}
 }
