@@ -239,7 +239,7 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
      value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});if(selectedInvoice){const {selectedSaleInvoiceRevisionSQL}=await import('../../../../scripts/canonical/shared-business-selected-sale-revision-sql.mjs');const rows=(await req().input('invoice_id',q.BigInt,id).input('copy_id',q.UniqueIdentifier,copyContext.copyId).input('actor_id',q.BigInt,actor.id).query(selectedSaleInvoiceRevisionSQL)).recordset;if(rows?.length!==1)throw workError();value.revision=workRevision(rows[0].invoiceRevision);}else value.revision=workHash(value);if(selectedInvoice)value.capabilities={canCollect:false,canCancelCollection:false};return value;
     }
     c.invoice=invoice;c.collection=collection;
-    if(write===false&&business)c.readSelectedSaleCollectionInvoice=async original=>{
+    if(business)c.readSelectedSaleCollectionInvoice=async original=>{
      // This separate internal read never borrows creator15's permissions or
      // changes the ordinary invoice reader's actor-owned journal boundary.
      const verified=deriveBusinessSelectedSaleJournal(copyContext,{id:'15'},original?.record,{priceHistory:original?.priceHistory??null}),h=original.record.invoice,s=verified.selection;
@@ -301,3 +301,4 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
 
  return c;
 }
+

@@ -1,8 +1,13 @@
 import {Router} from 'express';
 import {requireAuth,requirePermission} from '../middleware/authMiddleware.js';
 import {workCollectionService} from '../services/workCollectionService.mjs';
-import {isBusinessSelectedSaleCollectionPreparationService} from '../services/businessSelectedSaleCollectionPreparation.mjs';
-export function createWorkCollectionRoutes({authenticate=requireAuth,permission=requirePermission,service=workCollectionService,selectedSourceService}={}){
+import {isIsolatedSelectedCollectionNativeStore} from '../services/isolatedOperationCopyStoreFactory.mjs';
+import {isBusinessSelectedSaleCollectionPreparationService,createBusinessSelectedSaleCollectionNativePreparation} from '../services/businessSelectedSaleCollectionPreparation.mjs';
+export function createWorkCollectionRoutes({authenticate=requireAuth,permission=requirePermission,service=workCollectionService,selectedSourceService,selectedSourceNativeStore}={}){
+ if(selectedSourceNativeStore!==undefined){
+  if(selectedSourceService!==undefined||!isIsolatedSelectedCollectionNativeStore(selectedSourceNativeStore))throw Object.assign(new Error('Seçili kaynak tahsilat servisi doğrulanamadı.'),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',statusCode:503});
+  selectedSourceService=createBusinessSelectedSaleCollectionNativePreparation({getStore:async()=>selectedSourceNativeStore});
+ }
  if(selectedSourceService!==undefined&&!isBusinessSelectedSaleCollectionPreparationService(selectedSourceService))throw Object.assign(new Error('Seçili kaynak tahsilat servisi doğrulanamadı.'),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',statusCode:503});
  const r=Router(),run=fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)});}catch(error){next(error);}};
  r.get('/work-collections/context',authenticate,permission('customer.view'),run(req=>service.context(req.query,req.user)));
@@ -21,3 +26,4 @@ export function createWorkCollectionRoutes({authenticate=requireAuth,permission=
  return r;
 }
 export const workCollectionRoutes=createWorkCollectionRoutes();
+
