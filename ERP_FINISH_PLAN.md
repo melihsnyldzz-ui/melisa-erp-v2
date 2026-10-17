@@ -1,5 +1,7 @@
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
+17 Ekim — P03 geçiş sırası `42774a8` source/6test/bağımsız GO/exact CI; tarihli korumalı owner gözlemi eski 7 dinleyiciyi ve2 görevi eşler. Yeni yürütücü/son stop-rollback/readback ve normal ekran henüz yok; P03 genel 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 17 Ekim — P03 yeni pasif paket/profil hazırlığına iki başarılı salt okunur Probe,26-ref journal,12.381 bağımlılık dosyası hash ve beş yeni korumalı profil dosyası eklendi. Eski iki görev/config korunuyor. Tek-owner güvenli stop/rollback koordinatörü henüz yok; kurulum/normal GUI/insan açık. Son DB02 yedeği14 Ekim ve sonraki değişiklikleri kapsamaz; yeni tam backup yer sorunu nedeniyle yapılmadı. Bu kaynak/preflight kanıtı özgün49/9🟢/39🟡/1🔴 sayımını değiştirmez. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
 
 17 Ekim — P03 birleşik kaynak ve **pasif** ERP e0e6/CRM6bc/supervisor c401 paketleri exact manifest, ilgili115 uygulama+160 profil testi, bağımsız review ve exact CI ile hazır. Taze kurulu before-image/rollback/fiziksel owner preflight olmadan ortak DB02 TEST geçişi başlatılmaz. Normal GUI/personel/cihaz ve özgün49/9🟢/39🟡/1🔴 açık. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
