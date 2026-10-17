@@ -10,6 +10,9 @@ const SETTINGS_SHA='201a159b9b51058896d25961c5292d1d8e22cc3a76024958b4c324de0789
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
 const SCHEDULE_PATH_NAME='C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p';
 const PIN=Object.freeze({packageRoot:SUPERVISOR_ROOT,sourceCommit:'c4010efa8ff6b49f3e342032c98611a26c41cfaf',manifestSha256:'4fecac939834ee66266472bfc2d0d4ede3c475292971183da6e58de006c58590'});
+const NEW_PIN=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-ba65c8cb2ca9',sourceCommit:'ba65c8cb2ca9826c98edd06bc5129e37b51bb64a',manifestSha256:'b5810d589ea1a4876cbb513d86b2ce90ef322f192e83845cac4e8f7103149435'});
+const NEW_SETTINGS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json';
+const NEW_SETTINGS_SHA='e4422f910fe92cf4dbed636b71eea515180131b617fc3329f2d9eeabc8f1b319';
 const TASKS=Object.freeze({
  'Melisa-Terminal-Completion-Logon':Object.freeze({script:'watch-terminal-completion-logon.ps1'}),
  'Melisa-Hub-TEST-Web':Object.freeze({script:'watch-hub-after-erp.ps1'})
@@ -30,7 +33,8 @@ function pin(value){const p=object(value);for(const key of ['packageRoot','sourc
  * All observations are plain serializable records from an external trusted collector.
  * A true result is CONDITIONAL_CONSISTENCY only, never OS/Apply/physical proof.
  */
-export function assertP03CandidateTaskProof(input){
+function proveTasks(input,profile){
+ const selected=profile==='lineage'?{pin:NEW_PIN,settings:NEW_SETTINGS,sha:NEW_SETTINGS_SHA}:{pin:PIN,settings:SETTINGS,sha:SETTINGS_SHA};
  const x=object(input),beforeImage=object(x.beforeImage),expected=object(x.expected),observed=object(x.observed);
  const before=time(beforeImage.capturedAt),captured=time(observed.capturedAt);
  if(captured<=before||observed.runningTaskCollection!=='Schedule.Service.GetRunningTasks(1)')reject();
@@ -77,13 +81,13 @@ export function assertP03CandidateTaskProof(input){
   if(typeof e.name!=='string'||!e.name.startsWith('Melisa-'))reject();
   if(!Object.hasOwn(TASKS,e.name))reject();
   if(e.oldEnginePid!==oldByName.get(e.name)?.pid)reject();
-  const script=SUPERVISOR_ROOT+'\\scripts\\canonical\\'+TASKS[e.name].script;
+  const script=selected.pin.packageRoot+'\\scripts\\canonical\\'+TASKS[e.name].script;
   exact(e.currentAction,SHELL);exact(e.watcherExecutablePath,SHELL);
   exact(e.watcherCommandLine,`"${SHELL}" ${ea.arguments}`);
-  exact(ea.execute,SHELL);exact(ea.workingDirectory,SUPERVISOR_ROOT);
-  exact(ea.arguments,`-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "${script}" -StartupConfigPath "${SETTINGS}" -StartupConfigSha256 ${SETTINGS_SHA}`);
-  exact(e.settingsSha256,SETTINGS_SHA);
-  for(const field of ['packageRoot','sourceCommit','manifestSha256'])exact(ep[field],PIN[field]);
+  exact(ea.execute,SHELL);exact(ea.workingDirectory,selected.pin.packageRoot);
+  exact(ea.arguments,`-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "${script}" -StartupConfigPath "${selected.settings}" -StartupConfigSha256 ${selected.sha}`);
+  exact(e.settingsSha256,selected.sha);
+  for(const field of ['packageRoot','sourceCommit','manifestSha256'])exact(ep[field],selected.pin[field]);
   const runs=observed.runningTasks.filter(r=>object(r).path===key),regs=observed.registeredTasks.filter(r=>object(r).path===key);
   if(runs.length!==1||regs.length!==1)reject();
   const run=runs[0],reg=regs[0];
@@ -115,3 +119,5 @@ export function assertP03CandidateTaskProof(input){
  }
  return Object.freeze({status:'CONDITIONAL_CONSISTENCY',taskCount:2,enginePids:[...enginePids],instanceGuids:[...instanceGuids]});
 }
+export function assertP03CandidateTaskProof(input){return proveTasks(input,'integrated');}
+export function assertP03NewLineageTaskProof(input){return proveTasks(input,'lineage');}

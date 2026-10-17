@@ -2,7 +2,7 @@
 // immutable receipt for each CORE role. No process, port, file or task is touched.
 import {COMPLETION_CORE_STAGES,completionProcessMatches,validateCompletionSettings} from './terminal-completion-logon.mjs';
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
-import {CRM06_STAFF_INTEGRATED_CRM_PACKAGE,CRM06_STAFF_ERP_INTEGRATED_PACKAGE,crm06StaffSuccessorProfile,CRM06_STAFF_INTEGRATED_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
+import {CRM06_STAFF_INTEGRATED_CRM_PACKAGE,CRM06_STAFF_ERP_INTEGRATED_PACKAGE,CRM06_STAFF_ERP_HUB_LINEAGE_PACKAGE,crm06StaffSuccessorProfile,CRM06_STAFF_INTEGRATED_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
 
 const fail=()=>{throw Error('P03_CANDIDATE_CORE_REJECTED');};
 const check=value=>{if(!value)fail();};
@@ -13,19 +13,22 @@ const commit=value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value);
 const oldRoles=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','terminalWatcher','hubWatcher','coreSupervisor'];
 const integratedNativeOrder=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CRM-ORDER-DRAFT-TEST-20261013-7a41f64',sourceCommit:'7a41f6492273dd1ec0bcb086f820be5575372be8',manifestSha256:'6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'});
 const integratedSupervisor=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-c4010efa8ff6',sourceCommit:'c4010efa8ff6b49f3e342032c98611a26c41cfaf',manifestSha256:'4fecac939834ee66266472bfc2d0d4ede3c475292971183da6e58de006c58590'});
+const lineageSupervisor=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-ba65c8cb2ca9',sourceCommit:'ba65c8cb2ca9826c98edd06bc5129e37b51bb64a',manifestSha256:'b5810d589ea1a4876cbb513d86b2ce90ef322f192e83845cac4e8f7103149435'});
+const lineageSettingsSha='e4422f910fe92cf4dbed636b71eea515180131b617fc3329f2d9eeabc8f1b319';
 const born=value=>typeof value==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{7}Z$/.test(value)&&Number.isFinite(Date.parse(value));
 const stampTicks=value=>{const match=typeof value==='string'&&/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\.(\d{1,7})Z$/.exec(value);if(!match)return null;const second=Date.parse(match[1]+'.000Z');return Number.isFinite(second)?BigInt(second)*10000n+BigInt(match[2].padEnd(7,'0')):null;};
 const birthTicks=stampTicks;
 const recent=(value,now)=>typeof value==='string'&&Number.isFinite(Date.parse(value))&&Date.parse(value)<=now&&now-Date.parse(value)<=60000;
 
-export function proveP03CandidateCore({settings,ownerSid,settingsRef,supervisorConfig,beforeImage,observations,oldPids,now}){
+function proveCore({settings,ownerSid,settingsRef,supervisorConfig,beforeImage,observations,oldPids,now},variant){
  check(typeof ownerSid==='string'&&validateCompletionSettings(settings,ownerSid)===settings);
- const profile=crm06StaffSuccessorProfile(CRM06_STAFF_INTEGRATED_CRM_SOURCE,'erp-crm-integrated-20261017');
- check(keys(settingsRef,['path','sha256'])&&settingsRef.path===profile.nextPaths.settings&&sha(settingsRef.sha256));
- for(const name of ['erpApiNative','hub'])check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.components[name][key]===CRM06_STAFF_ERP_INTEGRATED_PACKAGE[key]));
+ const lineage=variant==='lineage',profile=crm06StaffSuccessorProfile(CRM06_STAFF_INTEGRATED_CRM_SOURCE,lineage?'erp-crm-hub-lineage-20261017':'erp-crm-integrated-20261017');
+ check(keys(settingsRef,['path','sha256'])&&settingsRef.path===profile.nextPaths.settings&&sha(settingsRef.sha256)&&(!lineage||settingsRef.sha256===lineageSettingsSha));
+ for(const name of ['erpApiNative','hub'])check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.components[name][key]===(lineage?CRM06_STAFF_ERP_HUB_LINEAGE_PACKAGE:CRM06_STAFF_ERP_INTEGRATED_PACKAGE)[key]));
+ if(lineage)check(settings.components.hub.config.path===profile.nextPaths.hubStartup&&settings.components.hub.config.sha256==='ad4419162f641c5bda94198f5fdae1474e1c189782fc21ea823c463382de560f');
  check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.components.nativeOrder[key]===integratedNativeOrder[key]));
  check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.components.crm[key]===CRM06_STAFF_INTEGRATED_CRM_PACKAGE[key]));
- check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.supervisor[key]===integratedSupervisor[key]));
+ check(['packageRoot','sourceCommit','manifestSha256'].every(key=>settings.supervisor[key]===(lineage?lineageSupervisor:integratedSupervisor)[key]));
  check(keys(supervisorConfig,['path','sha256'])&&supervisorConfig.path===settingsRef.path&&supervisorConfig.sha256===settingsRef.sha256);
  const clock=Date.parse(now),clockTicks=stampTicks(now),beforeTicks=stampTicks(beforeImage?.observedAt);
  check(typeof now==='string'&&Number.isFinite(clock)&&clockTicks!==null&&beforeTicks!==null&&beforeTicks<=clockTicks);
@@ -65,3 +68,5 @@ export function proveP03CandidateCore({settings,ownerSid,settingsRef,supervisorC
  check(COMPLETION_CORE_STAGES.every(stage=>names.has(stage.name)));
  return Object.freeze({status:'CANDIDATE_CORE_CONDITIONAL_CONSISTENCY',roles:Object.freeze([...names]),parentPid});
 }
+export function proveP03CandidateCore(input){return proveCore(input,'integrated');}
+export function proveP03NewLineageCore(input){return proveCore(input,'lineage');}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assertP03CandidateTaskProof} from './p03-candidate-task-proof.mjs';
+import {assertP03CandidateTaskProof,assertP03NewLineageTaskProof} from './p03-candidate-task-proof.mjs';
 
 const root='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-c4010efa8ff6';
 const settings='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e0e6c28.json';
@@ -95,4 +95,20 @@ test('Schedule LocalSystem owner may be verified or explicitly access denied',()
   x=>x.observed.scheduleServiceProcess.creationTime='2026-10-17T10:00:01.000Z',
  ];
  for(const change of changes){const x=fixture();change(x);assert.throws(()=>assertP03CandidateTaskProof(x),{code:'P03_TASK_IDENTITY_REJECTED'});}
+});
+function newLineageFixture(){
+ const x=fixture(),newRoot='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-ba65c8cb2ca9',newSettings='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json',newHash='e4422f910fe92cf4dbed636b71eea515180131b617fc3329f2d9eeabc8f1b319';
+ const newPin={packageRoot:newRoot,sourceCommit:'ba65c8cb2ca9826c98edd06bc5129e37b51bb64a',manifestSha256:'b5810d589ea1a4876cbb513d86b2ce90ef322f192e83845cac4e8f7103149435'};
+ for(let i=0;i<2;i++){
+  const e=x.expected.tasks[i],r=x.observed.registeredTasks[i],p=x.observed.processes[i];
+  e.action.arguments=e.action.arguments.replaceAll(root,newRoot).replaceAll(settings,newSettings).replaceAll(hash,newHash);
+  e.action.workingDirectory=newRoot;e.settingsSha256=newHash;e.supervisorPin={...newPin};e.watcherCommandLine=`"${shell}" ${e.action.arguments}`;
+  r.action={...e.action};r.settingsSha256=newHash;r.supervisorPin={...newPin};p.commandLine=e.watcherCommandLine;
+ }
+ return x;
+}
+test('new ba65 COM task pair is conditional and rejects stale settings, old PID and foreign watcher',()=>{
+ const x=newLineageFixture();assert.equal(assertP03NewLineageTaskProof(x).taskCount,2);
+ assert.throws(()=>assertP03CandidateTaskProof(x),{code:'P03_TASK_IDENTITY_REJECTED'});
+ for(const change of [v=>v.expected.tasks[0].settingsSha256=hash,v=>v.observed.runningTasks[0].enginePID=53356,v=>v.observed.processes.push({...v.observed.processes[0],processId:62000})]){const bad=newLineageFixture();change(bad);assert.throws(()=>assertP03NewLineageTaskProof(bad),{code:'P03_TASK_IDENTITY_REJECTED'});}
 });

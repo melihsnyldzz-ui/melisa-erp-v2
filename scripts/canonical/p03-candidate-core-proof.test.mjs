@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {COMPLETION_CORE_STAGES} from './terminal-completion-logon.mjs';
-import {proveP03CandidateCore} from './p03-candidate-core-proof.mjs';
-import {CRM06_STAFF_INTEGRATED_CRM_PACKAGE,CRM06_STAFF_ERP_INTEGRATED_PACKAGE,crm06StaffSuccessorProfile,CRM06_STAFF_INTEGRATED_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
+import {proveP03CandidateCore,proveP03NewLineageCore} from './p03-candidate-core-proof.mjs';
+import {CRM06_STAFF_INTEGRATED_CRM_PACKAGE,CRM06_STAFF_ERP_INTEGRATED_PACKAGE,CRM06_STAFF_ERP_HUB_LINEAGE_PACKAGE,crm06StaffSuccessorProfile,CRM06_STAFF_INTEGRATED_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
 
 const owner='S-1-5-21-123-456-789-1001',source='b'.repeat(40),hash='a'.repeat(64);
 const erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM';
@@ -88,4 +88,26 @@ test('receipt readback must follow both before-image and child birth at 100ns pr
 test('frozen before-image can predate a long transition while observations stay fresh',()=>{
  const v=fixture();v.beforeImage.observedAt='2026-10-17T11:45:00.000Z';assert.equal(proveP03CandidateCore(v).status,'CANDIDATE_CORE_CONDITIONAL_CONSISTENCY');
  for(const observedAt of ['2026-10-17T12:00:03.000Z','bad']){const changed=fixture();changed.beforeImage.observedAt=observedAt;denied(changed);}
+});
+function newLineageFixture(){
+ const v=fixture(),p=crm06StaffSuccessorProfile(CRM06_STAFF_INTEGRATED_CRM_SOURCE,'erp-crm-hub-lineage-20261017');
+ v.settingsRef={path:p.nextPaths.settings,sha256:'e4422f910fe92cf4dbed636b71eea515180131b617fc3329f2d9eeabc8f1b319'};
+ v.supervisorConfig={...v.settingsRef};
+ v.settings.supervisor={packageRoot:erp+'\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261017-ba65c8cb2ca9',sourceCommit:'ba65c8cb2ca9826c98edd06bc5129e37b51bb64a',manifestSha256:'b5810d589ea1a4876cbb513d86b2ce90ef322f192e83845cac4e8f7103149435'};
+ for(const name of ['erpApiNative','hub'])Object.assign(v.settings.components[name],CRM06_STAFF_ERP_HUB_LINEAGE_PACKAGE);
+ v.settings.privateSources.hubStartupConfig={path:p.nextPaths.hubStartup,sha256:'ad4419162f641c5bda94198f5fdae1474e1c189782fc21ea823c463382de560f'};
+ v.settings.components.hub.config=v.settings.privateSources.hubStartupConfig;
+ v.settings.dependencyLocks.erpApiNative.path=p.erpDependencyLockPath;
+ for(const o of v.observations){
+  const stage=COMPLETION_CORE_STAGES.find(s=>s.name===o.stage),pin=v.settings.components[stage.component],row=o.rows[0];
+  o.receipt.sourceCommit=pin.sourceCommit;
+  row.commandLine=row.commandLine.replaceAll(CRM06_STAFF_ERP_INTEGRATED_PACKAGE.packageRoot,pin.packageRoot);
+  row.parentCommandLine=`"${v.settings.node.path}" --no-maglev "${v.settings.supervisor.packageRoot}\\scripts\\canonical\\terminal-completion-logon.mjs" --config "${v.settingsRef.path}" --sha256 ${v.settingsRef.sha256} --owner-sid ${owner} --action Start`;
+ }
+ return v;
+}
+test('new 1a/ba65 CORE profile proves only conditional fresh rows',()=>{
+ const v=newLineageFixture();assert.equal(proveP03NewLineageCore(v).roles.length,6);
+ assert.throws(()=>proveP03CandidateCore(v),/REJECTED/);
+ for(const change of [x=>x.settingsRef.sha256=hash,x=>x.settings.supervisor.sourceCommit='c4010efa8ff6b49f3e342032c98611a26c41cfaf',x=>x.observations[0].receipt.pid=30]){const bad=newLineageFixture();change(bad);assert.throws(()=>proveP03NewLineageCore(bad),/REJECTED/);}
 });
