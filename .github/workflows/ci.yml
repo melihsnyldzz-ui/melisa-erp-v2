@@ -26,6 +26,8 @@ jobs:
           node-version: '24'
       - name: Windows owner and single-instance startup boundaries
         run: node --test scripts/canonical/start-owned-test.test.mjs
+      - name: P03 Hub lineage PowerShell 5 source boundaries
+        run: node --test scripts/canonical/p03-hub-lineage.test.mjs
       - name: Windows PowerShell 5 empty-port process probe with in-memory OS fixtures
         run: node scripts/ci/run.mjs windows-process-probe
   quality-build-test:
