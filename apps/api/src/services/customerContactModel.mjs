@@ -4,6 +4,10 @@ import {createHash} from 'node:crypto';
 // The source customers DDL uses phone NVARCHAR(50), city/country NVARCHAR(100).
 // Keep phone within the existing updater's narrower 40-character parameter.
 export const CUSTOMER_CONTACT_LIMITS=Object.freeze({phone:40,city:100,country:100});
+export function parseCustomerContactRequestId(value){
+ if(typeof value!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value))throw invalid();
+ return value;
+}
 const bodyKeys=['requestId','expectedRevision','phone','city','country'];
 const error=(code,message,statusCode)=>Object.assign(new Error(message),{code,statusCode});
 const invalid=()=>error('CUSTOMER_VALIDATION_FAILED','Telefon, şehir, ülke ve düzenleme bilgilerini kontrol edin.',400);
@@ -44,3 +48,4 @@ export function parseCustomerContact(customerId,body){
  const payloadJson=JSON.stringify(input),payloadHash=createHash('sha256').update(payloadJson,'utf16le').digest('hex').toUpperCase();
  return Object.freeze({...input,payloadJson,payloadHash});
 }
+

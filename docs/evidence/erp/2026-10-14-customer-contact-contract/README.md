@@ -70,3 +70,16 @@ Yerel çevrimdışı sonuçlar:
 Komutlar `node --require ./scripts/ci/offline-guard.cjs --test` altında ilk gruptaki altı dosyayı; ikinci grup için ayrıca `--experimental-vm-modules --experimental-test-module-mocks` ile dört contact model/service/store/controller dosyasını çalıştırdı. SQL/provider/HTTP/servis erişimi yok.
 
 **Kurulum açık:** Contact successor 18 eski native modülü değiştirir. Mevcut salt okunur native başlangıç bu successor için desteklenen compatibility/proof yoluna sahip değildir; eski V11 hash doğrulaması kapanır. ERP RW kimliğini native'e vermek veya grant/rol korumasını gevşetmek çözüm olarak uygulanmadı. Mevcut TEST paketi f5/CRM439b/denetleyici2bf0 korunur; yeni paket, SQL nesnesi, config, rol, servis veya ticari kayıt yazılmadı. Bu teslim yalnız incelenmiş kaynak ve sentetik kanıttır; C06, normal kaydet→yenile, ERP-UA32 ve özgün insan kabulleri **BEKLİYOR**. 19/23/26–27/28/30 Ekim hedefleri ve 49/9/39/1 sayımı değişmez.
+
+## 18 Ekim — tarayıcı yenilemesi sonrası kayıt sonucu kurtarma kaynağı
+
+C06'nın hard-reload belirsizliği için kaynak dikey akış tamamlandı. Gövde yalnız bellekte kalır; sessionStorage yalnız actorId/customerId/copyId/sealHash/requestId tutar. İşaret POST öncesinde yazılıp geri okunur; depolama hatasında gönderim yapılmaz. Reload sonrası aynı kartta kullanıcı bilinçli **Kaydı tekrar kontrol et** der; normal authenticated GET `/customers/:id/contact/requests/:requestId` iki mevcut izinle çalışır. Otomatik POST veya yeni UUID yoktur.
+
+Native CONTEXT prosedürü isteğe bağlı UUID alır; önce güncel aktör/rol/permission/source/quarantine ve mevcut native proof çalışır. Commit journal'ı copy+request+actor+operation+customer, canonical payload hash ve effect-proof kimlikleriyle doğrulanır. Bulunmuş committed kayıt mevcut exact context satırıyla döner. Bulunamayan veya bağlantısı kesilen istek belirsiz kalır; kullanıcı ancak mevcut iki aşamalı vazgeçmeyle işareti bırakır. Kaybolmuş uncommitted body kurtarılmış sayılmaz.
+
+Yeni tablo, işlem yetkisi, public grant veya modül eklenmedi: aynı 22 modül ve mevcut GET/SET/PROOF EXEC listesi. Compiler çıktısının native GET hash'i değiştiği için kurulum sahibi yeni exact descriptor/proof/paketi hazırlamadan çalışan native aktifleştirilmiş sayılmaz. Önceki paketleri uyumlu varsaymak veya proof kapısını gevşetmek yoktur.
+
+Kaynak dalı `codex/erp-c06-contact-recovery-20261018`. Hedefli compiler/bootstrap/startup/model/service/store/controller/transport/editor/navigation regresyonları **70/70 PASS, 0 skip**. Çalıştırma: `node --require ./scripts/ci/offline-guard.cjs --experimental-vm-modules --experimental-test-module-mocks --test` ve aynı contact test dosyaları; SQL/provider/ağ/Windows yok. İlk controller router fixture'i yeni recovery export'unu modellemediği için düzeltildi, son birleşik sonuç 70/70. Bağımsız root kaynak incelemesi GO. CI sonucu PR head üzerinde ayrıca doğrulanır.
+
+**Açık:** Native successor kurulumu ve gerçek readonly compatibility, normal browser/cihaz, personel kabulü. DB02/Vega/gerçek veri/Windows/rol/config/servis/main/LIVE değişmedi. C06 genel kapanışı ve sayımlar artmadı.
+
