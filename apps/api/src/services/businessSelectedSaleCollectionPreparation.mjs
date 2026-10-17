@@ -1,4 +1,4 @@
-import {assertIsolatedCopyContext,bindIsolatedCopyOperationDTO,BUSINESS_COPY_DATABASE,isolatedCopyOperationDTOContext} from './isolatedOperationCopyContext.mjs';
+import {assertIsolatedCopyContext,bindIsolatedCopyOperationDTO,BUSINESS_COPY_DATABASE,isolatedCopyOperationDTOContext,isolatedCopyHash,isolatedCopyUUID} from './isolatedOperationCopyContext.mjs';
 import {loadBusinessSelectedSaleJournal} from './workTradeStore.mjs';
 import {createWorkCollectionService} from './workCollectionService.mjs';
 import {workId,workScaled} from './workSalesModel.mjs';
@@ -57,7 +57,7 @@ export async function prepareBusinessSelectedSaleCollection(c,actor,invoiceId,{c
   return current;
  };
  await invoice(invoiceId);
- return {context,invoice,proof:Object.freeze({preparationOnly:true,copyId:copy.copyId,invoiceId,creatorId:'15',collectorId:'16',customerId:s.customerId,customerAccountId:s.customerAccountId,accountId:accounts[0].id,currency:s.currency,creationRequestId:original.creation.requestId,policyHash:s.policyHash,sourceSelectionHash:s.sourceSelectionHash})};
+ return {context,invoice,proof:Object.freeze({preparationOnly:true,copyId:copy.copyId,invoiceId,creatorId:'15',collectorId:'16',customerId:s.customerId,customerAccountId:s.customerAccountId,accountId:accounts[0].id,currency:s.currency,creationRequestId:original.creation.requestId,creationPayloadHash:original.creation.payloadHash,priceProofHash:isolatedCopyHash(original.record.items.map(i=>({productId:i.productId,quoteId:i.quoteId,quantityExact3:i.quantityExact3,unitPriceExact8:i.unitPriceExact8,lineTotalExact4:i.lineTotalExact4}))),policyHash:s.policyHash,sourceSelectionHash:s.sourceSelectionHash})};
 }
 
 export function createBusinessSelectedSaleCollectionPreparation({withContext}={}){
@@ -114,4 +114,81 @@ export function createBusinessSelectedSaleCollectionReadPreparation({getStore}={
   collect:async()=>fail('ISOLATED_COPY_READ_ONLY',403),
   cancel:async()=>fail('ISOLATED_COPY_READ_ONLY',403),
  });
+}
+
+// P06.2 CODE-ONLY successor. A factory must supply an exact native writer in
+// the SAME transaction as the creator journal reader. No route or default
+// factory uses this adapter. The native implementation must retain the intent,
+// guard, effects and journal until the enclosing transaction commits.
+export const SOURCE_COLLECTION_NATIVE_VERSION='business-selected-sale-collection-native.v1';
+const nativeContexts=new WeakSet();
+export function bindBusinessSelectedSaleCollectionNativeContext(c,nativeWrite){
+ requireValue(c&&typeof c==='object'&&nativeWrite&&typeof nativeWrite==='object'&&nativeWrite.version===SOURCE_COLLECTION_NATIVE_VERSION&&nativeWrite.transaction===c.transaction&&nativeWrite.rollbackOnError===true,'SOURCE_COLLECTION_NATIVE_CONTEXT',503);
+ for(const method of ['ownerIntent','guard','effects','verifyEffects','journal','collect','cancelCollection'])requireValue(typeof nativeWrite[method]==='function','SOURCE_COLLECTION_NATIVE_CONTEXT',503);
+ const bound=Object.freeze({...c,nativeWrite:Object.freeze({...nativeWrite})});nativeContexts.add(bound);return bound;
+}
+
+function nativePin(c,actor,operation,payload,proof){
+ requireValue(nativeContexts.has(c)&&c.nativeWrite.transaction===c.transaction,'SOURCE_COLLECTION_NATIVE_CONTEXT',503);
+ requireValue(['collection_create','collection_cancel'].includes(operation)&&isolatedCopyUUID(payload.requestId)&&String(actor.id)==='16','SOURCE_COLLECTION_NATIVE_SCOPE',403);
+ const copy=assertIsolatedCopyContext(c.copyContext);
+ requireValue(proof.copyId===copy.copyId&&proof.creatorId==='15'&&proof.collectorId==='16'&&proof.currency==='TRY'&&proof.invoiceId===(operation==='collection_create'?payload.invoiceId:proof.invoiceId),'SOURCE_COLLECTION_NATIVE_LINEAGE');
+ requireValue(proof.customerAccountId===c.context.scope.customer.accountId&&proof.customerId===c.context.scope.customer.id&&proof.accountId===c.context.scope.accounts[0]?.id,'SOURCE_COLLECTION_NATIVE_SCOPE');
+ if(operation==='collection_create')requireValue(payload.accountId===proof.accountId&&payload.invoiceId===proof.invoiceId&&typeof payload.expectedRevision==='string'&&typeof payload.previewHash==='string','SOURCE_COLLECTION_NATIVE_SCOPE');
+ else requireValue(payload.id&&typeof payload.expectedRevision==='string','SOURCE_COLLECTION_NATIVE_SCOPE');
+ const body={version:SOURCE_COLLECTION_NATIVE_VERSION,copyId:copy.copyId,sealHash:copy.sealHash,actorId:'16',creatorId:'15',operation,requestId:payload.requestId,payloadHash:isolatedCopyHash(payload),payload:Object.freeze(structuredClone(payload)),invoiceId:proof.invoiceId,creationRequestId:proof.creationRequestId,creationPayloadHash:proof.creationPayloadHash,priceProofHash:proof.priceProofHash,policyHash:proof.policyHash,sourceSelectionHash:proof.sourceSelectionHash,customerId:proof.customerId,customerAccountId:proof.customerAccountId,accountId:proof.accountId,currency:'TRY',expectedRevision:payload.expectedRevision,...(operation==='collection_create'?{previewHash:payload.previewHash,amountExact4:payload.amountExact4}:{collectionId:payload.id})};
+ return Object.freeze({...body,pinHash:isolatedCopyHash(body),transaction:c.transaction});
+}
+function assertNativeWitness(w,pin,stage){
+ requireValue(w?.verified===true&&w.stage===stage&&w.version===pin.version&&w.transaction===pin.transaction&&w.pinHash===pin.pinHash&&w.copyId===pin.copyId&&w.sealHash===pin.sealHash&&w.actorId===pin.actorId&&w.operation===pin.operation&&w.requestId===pin.requestId&&w.payloadHash===pin.payloadHash&&w.invoiceId===pin.invoiceId&&w.creationRequestId===pin.creationRequestId&&w.accountId===pin.accountId&&w.customerId===pin.customerId&&w.customerAccountId===pin.customerAccountId&&w.currency===pin.currency&&w.expectedRevision===pin.expectedRevision,'SOURCE_COLLECTION_NATIVE_'+stage.toUpperCase(),503);
+}
+
+export function createBusinessSelectedSaleCollectionNativePreparation({withContext}={}){
+ requireValue(typeof withContext==='function','SOURCE_COLLECTION_NATIVE_STORE_REQUIRED',503);
+ return createBusinessSelectedSaleCollectionPreparation({withContext:async(actor,fn)=>withContext(actor,async original=>{
+  requireValue(nativeContexts.has(original)&&original.nativeWrite.transaction===original.transaction,'SOURCE_COLLECTION_NATIVE_CONTEXT',503);
+  const native=original.nativeWrite;
+  const c={...original};
+  // The ordinary preparation independently rechecks collector16, creator15,
+  // price history, current account and invoice on every attempt, including replay.
+  let activePin=null;
+  c.collect=(preview,requestId)=>{
+   const pin=activePin;
+   requireValue(pin?.operation==='collection_create'&&pin.transaction===c.transaction&&requestId===pin.requestId&&preview?.selection?.invoiceId===pin.invoiceId&&preview.selection.accountId===pin.accountId&&preview.selection.amountExact4===pin.amountExact4&&preview.revision===pin.expectedRevision&&preview.previewHash===pin.previewHash,'SOURCE_COLLECTION_NATIVE_EXECUTION',503);
+   return native.collect(preview,requestId,pin);
+  };
+  c.cancelCollection=(id,body)=>{
+   const pin=activePin;
+   requireValue(pin?.operation==='collection_cancel'&&pin.transaction===c.transaction&&id===pin.collectionId&&body?.requestId===pin.requestId&&body.expectedRevision===pin.expectedRevision,'SOURCE_COLLECTION_NATIVE_EXECUTION',503);
+   return native.cancelCollection(id,body,pin);
+  };
+  c.journal=async(operation,payload,execute)=>{
+   const prepared=await prepareBusinessSelectedSaleCollection(c,actor,operation==='collection_cancel'?(await c.collection(payload.id)).invoiceId:payload.invoiceId,{cancelling:operation==='collection_cancel'});
+   const pin=nativePin(original,actor,operation,payload,prepared.proof);
+   assertNativeWitness(await native.ownerIntent(pin),pin,'owner');
+   assertNativeWitness(await native.guard(pin),pin,'guard');
+   let executed=0,executedResult,journalOpen=true;
+   let outcome;
+   try{outcome=await native.journal(pin,async()=>{
+    requireValue(journalOpen&&executed===0&&activePin===null,'SOURCE_COLLECTION_NATIVE_EXECUTION',503);
+    executed++;activePin=pin;
+    try{
+     const value=await execute();
+     assertNativeWitness(await native.effects(pin,value),pin,'effects');
+     executedResult=value;return value;
+    }finally{activePin=null;}
+   });}finally{journalOpen=false;}
+   const result=outcome?.response;
+   requireValue(result&&typeof result==='object','SOURCE_COLLECTION_NATIVE_JOURNAL',503);
+   assertNativeWitness(outcome.witness,pin,'journal');
+   requireValue(outcome.witness.responseHash===isolatedCopyHash(result),'SOURCE_COLLECTION_NATIVE_JOURNAL',503);
+   requireValue(result.requestId===pin.requestId&&result.invoice?.id===pin.invoiceId&&result.collection?.invoiceId===pin.invoiceId&&result.collection?.accountId===pin.accountId&&result.collection?.currency===pin.currency&&result.collection?.id&&(operation==='collection_cancel'?result.collection.id===pin.collectionId:result.collection.amountExact4===pin.amountExact4),'SOURCE_COLLECTION_NATIVE_RESULT',503);
+   if(result.replayed===true){
+    requireValue(executed===0,'SOURCE_COLLECTION_NATIVE_JOURNAL',503);
+    assertNativeWitness(await native.verifyEffects(pin,result),pin,'effects');
+   }else requireValue(result.replayed===false&&executed===1&&result===executedResult,'SOURCE_COLLECTION_NATIVE_JOURNAL',503);
+   return result;
+  };
+  return fn(c);
+ })});
 }
