@@ -45,6 +45,10 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
   try{
    const r=await work(p.path,{method:'POST',body:p.body});tradeCollection(r.collection);const i=(sourceMode?selectedSourceInvoice:tradeInvoice)(r.invoice);
    if(r.requestId!==p.body.requestId||r.collection.invoiceId!==i.id||i.id!==invoiceId||sourceMode&&(i.currency!=='TRY'||r.collection.currency!=='TRY'||r.collection.accountId!==(p.body.accountId??context?.accounts[0]?.id)))throw Error();
+   if(sourceMode){
+    const c=r.collection,creating=p.path===collectionBase,receipt=i.collections.items.find(item=>item.id===c.id);
+    if(c.documentDate!==p.body.documentDate||(creating?c.amountExact4!==p.body.amountExact4||c.status!=='active':c.id!==p.path.split('/').at(-2)||c.status!=='cancelled')||!receipt||!['id','invoiceId','accountId','currency','amountExact4','documentDate','status'].every(key=>receipt[key]===c[key]))throw Error();
+   }
    if(!alive(n))return;
    pending=journal.done(p,r);invoiceId=i.id;
    // A confirmed write ends this request. Refresh failures cannot turn its
@@ -64,3 +68,4 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
  async function load(){if(busy)return;if(sourceMode&&!sourceReady){context=null;note='Seçili kaynak fiş aktarımı doğrulanamadı.';paint();return;}const n=++generation;busy=true;preview=null;note='';financeRows=null;financeLoaded=false;financeLoading=false;financeNote='';invoicesLoaded=false;invoiceRows=null;invoiceNote='';try{pending=journal.read();if(pending?.status==='pending'&&pending.path===collectionBase){invoiceId=pending.body.invoiceId;accountId=pending.body.accountId;amount=pending.body.amountExact4;date=pending.body.documentDate;}invoiceId=sourceMode?selectedSource.invoiceId:[invoiceId,storage.getItem(selectedKey),pending?.result?.invoice?.id,pending?.body?.invoiceId].find(v=>v&&v!==missingInvoiceId)||'';if(invoiceId){if(!tradeId(invoiceId))throw Error();const c=validateCollectionContext(await work(`${collectionBase}/context?invoiceId=`+invoiceId),{selectedSource:sourceMode});if(!alive(n))return;if(c.invoice.id!==invoiceId||sourceMode&&(!operationCopyFromMeta(c.meta)||c.invoice.currency!=='TRY'||c.invoice.status!=='finalized'||c.capabilities.canCollect!==true||c.accounts.length!==1||c.accounts[0].currency!=='TRY'))throw Error();context=c;date=date||(pending?.status==='pending'?pending.body.documentDate:sourceMode?c.meta.date:c.invoice.documentDate);}}catch(e){if(alive(n)){context=null;if(!sourceMode&&e?.status===404&&pending?.status!=='pending'){missingInvoiceId=invoiceId;invoiceId='';accountId='';amount='';date='';note='Seçili fiş artık bulunamıyor. Listeden başka bir fiş seçin.';try{if(storage.getItem(selectedKey)===missingInvoiceId)storage.removeItem(selectedKey);}catch{}}else note=fail(e);}}finally{if(alive(n)){busy=false;paint();}}}
  return {mount(){active=true;load();},refresh:load,requestClose(){if(busy||pending?.status==='pending'){note='Son işlemi doğruladıktan sonra başka ekrana geçebilirsiniz.';paint();return false;}return true;},dispose(){active=false;generation++;root=null;}};
 }
+
