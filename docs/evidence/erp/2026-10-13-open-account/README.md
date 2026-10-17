@@ -1,5 +1,17 @@
 # ERP-C05 / ERP09 — müşteri ve döviz bazında açık hesap görünümü
 
+## 17 Ekim — P06.2 seçili SOURCE tahsilat API kapısı
+
+**Sonraki native writer bağımlılığı (salt okunur inceleme):** `isolatedOperationCopyStoreFactory` seçili owner intent/body yolunu yalnız `sale_*` işlemleri için kuruyor; satış yaratıcı15 satırını tahsilatçı16 ile aynı aktör koşuluyla seçmek yanlış. `workTradeStore` tahsilat ve iptal işlemlerinde hâlâ eski genel müşteri/hesap/finans yolunu kullanıyor; sentetik PR36 fixture'ı gerçek DB02 etkisi değildir. Güvenli sonraki kaynak işi factory journal/owner intent, creator15 lineage, collector16 yetki, collection-specific guard/effects ve existing collect/cancel bağını **birlikte** sürümleyip negatifleri sınamalıdır. Bu incelemede yeni SQL, grant, kurulum, finans etkisi veya servis işlemi yapılmadı.
+
+[ERP PR36](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/36) eski PR23'ün feature tabanına squash birleşmesinden sonra ayrı, dar kaynak teslimidir: `52fde73` API kapısı, `69bbfa4` test fixture ayrımı, `3f6cc80` exact geçmiş tarama onarımı. Yeni `selected-source` context/preview/collect/cancel uçları production varsayılan router'da **yok/404**. Yalnız `createBusinessSelectedSaleCollectionPreparation` tarafından üretilen, modül içi WeakSet ile işaretli servis açıkça verildiğinde kaydolur; genel tahsilat servisi, kopyası veya benzeri nesne route kurulmadan503 reddedilir. Mevcut dört tahsilat uçları korunur.
+
+Gerçek Express auth ve permission zinciri, yalıtılmış sentetik işlem journal/store'u ve yanıt/GET ile kısmi5TRY→kalan19TRY, tam19TRY→kalan0, aynı UUID'de ikinci etki0, iptal→kalan19TRY ve iptal replay'i doğrulandı. Yanlış aktör, izin, hesap, döviz, body, revision, fazla tutar ve iptal izni retleri ek finans/stok etkisi oluşturmadı. Ayrı test fixture'ı üretim logger kod envanterine katılmaz. Yerel route+service16/16, logger dâhil32/32 ve mevcut satış route5/5 PASS; bağımsız High inceleme ilk yanlış servis enjeksiyonu bulgusunu kapattı, son GO/açık P0/P1=0. Exact [push CI39031519965](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39031519965) ve [PR CI39031534448](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39031534448) completed SUCCESS.
+
+PR23 squash merge `90d0a33` yeni erişilebilir ref'te önceden incelenmiş sentetik test satırlarını16 yeni fingerprintle görünür kıldı. Bağımsız salt okunur karşılaştırma, `.gitleaksignore` ekinin yalnız bu16 exact commit/path/rule/line parmak izi olduğunu ve genel yol/kural istisnası açmadığını doğruladı; birleşim commit taraması ve PR36 tam tarihçe CI secret scan0. Gerçek credential veya ham müşteri verisi GitHub'a taşınmadı.
+
+**Sınır:** Bu yalnız sentetik kaynak/API kontratıdır. Default production ve kurulu ERPf5/CRM439 paketi değişmedi; native DB02 writer, gerçek SQL/finans/ticari etki, servis restartı, normal GUI, cihaz ve personel kabulü yapılmadı. P06/ERP09-C05 üst kapanışı ve 49/9/39/1 sayımı aynı. Sıradaki ortak P03 için CRM'nin yeni immutable paket makbuzu ve ERP tek-owner kontrollü geçişi ayrı bekler.
+
 13 Ekim 2026. ERP-DEC-053 ana devam kapsamındaki dar okuma/gösterim teslimidir. Yeni satış, tahsilat, iptal, stok/cari/kasa hareketi, migration veya veri temizliği oluşturulmadı.
 
 - Çalışan source: **a771afe29bde27762e88cf7095d4ff830ef25b30**; immutable paket `CANONICAL-COMPLETE-TEST-20261011-a771afe`,1874 dosya. Manifest SHA256: `8c1cafcb691c1ea38ddb0f743f52a4de76249735b1d377a3c0e6fe986e55a397`.

@@ -79,3 +79,22 @@ ae6855c7decc53d08911a0593bdb224455396217:apps/api/src/services/isolatedOperation
 # 2026-10-12 cancelled optional source: offline repeated a/b/c fixture hashes
 # and public provenance source keys, not a credential. Exact commit/line only.
 fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workingCatalogSessionSemihBrowser.test.mjs:generic-api-key:6
+
+# Exact synthetic fixture/provenance matches reintroduced by the 2026-10-17 PR23 squash merge 90d0a33.
+# Each source line matched a previously reviewed historical fingerprint; no file/rule-wide exclusion.
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/api/src/services/businessDailyHomeReadProof.test.mjs:generic-api-key:21
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/api/src/services/businessDailyNativeScope.test.mjs:generic-api-key:16
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/api/src/services/businessDailyRevisionBootstrap.test.mjs:generic-api-key:21
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/api/src/services/isolatedOperationCopyRevision.test.mjs:generic-api-key:7
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:10
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/sites-workflow/src/workflow/workBusinessDailyScope.test.mjs:generic-api-key:22
+90d0a331ed16cc5003f8a1b1d451882fad9761be:apps/sites-workflow/src/workflow/workingCatalogSession.test.mjs:generic-api-key:288
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/canonical/crm-order-v2-sql.test.mjs:generic-api-key:6
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:114
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:92
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/canonical/shared-business-readiness-query-plan-sql-adapter.test.mjs:generic-api-key:95
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-plan.test.mjs:generic-api-key:36
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-plan.test.mjs:generic-api-key:8
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:20
+90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:8
