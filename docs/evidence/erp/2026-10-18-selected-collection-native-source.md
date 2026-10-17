@@ -23,3 +23,10 @@ After earned registration, the server can explicitly construct `createWorkCollec
 The native request fixture checks exact effects parameter names, including payload_hash. Partial5 + full19 TRY, cancellation after full payment, replay, conflicting UUID, revoked proof, effect and journal rollback, server marker spoofing and escaped bridge/domain callbacks are covered. Hosted CI runs compiler suites explicitly and discovers service/route tests normally.
 
 Independent root source review found no remaining blocking source finding after the history/generic DTO fix; exact hosted CI still belongs to the PR head. Real owner SQL syntax/DDL/native before-after verification, controlled installation, normal GUI, physical devices and human acceptance remain open. No DB02/Vega/T1/LIVE, grants, service, customer message, main merge or data migration was performed. Migration remains last.
+
+
+## Source preview/write amount coherence
+
+The selected-source service rejects amounts above the existing 500.0000 TRY native per-collection ceiling during preview and before any mutation journal or financial effect. Fresh authority is checked first. Ordinary collection behavior and cancellation inverses remain unchanged. Each preview snapshots its primitive amount before awaiting authority, so a caller cannot change the original request body while the validated selection is waiting.
+
+Thirteen targeted offline tests pass with zero skipped, independently repeated by root. They cover 499.9999 and 500.0000 preview/collection on a coherent 1000 TRY invoice, rejection of 500.0001 before source/journal/effects, revoked-authority precedence, and mutation of the original preview body during deferred authority. Both new regressions were reproduced as failing against the earlier implementation. Hosted CI belongs to the new PR head; no new native SQL, default-route activation, permissions or general-customer/currency completion is claimed.
