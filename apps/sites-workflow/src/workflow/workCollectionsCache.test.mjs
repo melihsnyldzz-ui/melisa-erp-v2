@@ -19,3 +19,70 @@ test('404 cannot discard an unresolved payment journal or unlock another invoice
 test('late finance completion after disposal cannot repaint retained rows',async()=>{const create=await controller(),d=dom();let finish;const session={work:async p=>p==='/api/work-sales/invoices'?{data:[invoice('42')]}:{},supplierPayments:()=>new Promise(resolve=>{finish=resolve;})},ui=create({root:d.root,session,user:{id:16},storage:storage()});ui.mount();await tick();const rendered=d.root.innerHTML;ui.dispose();finish({});await tick();assert.equal(d.root.innerHTML,rendered);});
 
 test('a completed older journal cannot supply the date of a newly selected invoice',async()=>{const create=await controller(),d=dom(),store=storage();store.setItem('melisa-work-selected-invoice:16','42');const j=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),p=j.begin('/api/work-collections',{invoiceId:'41',accountId:'99',amountExact4:'1.0000',documentDate:'2026-10-06',requestId});j.done(p,{invoice:invoice('41')});const original=store.getItem('melisa-work-collection-v1:local:16');const session={work:async path=>path.includes('/context?')?context('42'):{data:[invoice('42')]}};const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();assert.match(d.root.innerHTML,/data-collection-date value="2026-10-07"/);assert.equal(store.getItem('melisa-work-collection-v1:local:16'),original);ui.dispose();});
+
+for(const operation of ['partial','full','cancel','replay'])for(const refreshFailure of ['network',403,404,409])test(`successful ${operation} result survives follow-up ${refreshFailure} without another payment`,async()=>{
+ const create=await controller(),d=dom(),store=storage(),journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),amount=operation==='full'?'120.0000':'50.0000',cancel=operation==='cancel';
+ const body=cancel?{requestId,expectedRevision:revision,reason:'Yanlış tahsilat',documentDate:'2026-10-07'}:{requestId,invoiceId:'42',accountId:'99',amountExact4:amount,documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
+ const path=cancel?'/api/work-collections/77/cancel':'/api/work-collections',entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:amount,currency:'TRY',documentDate:'2026-10-07',status:cancel?'cancelled':'active',revision};
+ const remaining=cancel?'120.0000':operation==='full'?'0.0000':'70.0000',received=cancel?'0.0000':amount;
+ const updated={...invoice('42'),customerBalanceExact4:remaining,collections:{revision,receivedExact4:received,outstandingExact4:remaining,items:[entry]}},result={collection:entry,invoice:updated,requestId,replayed:operation==='replay'};
+ store.setItem('melisa-work-selected-invoice:16','42');if(cancel||operation==='replay')journal.begin(path,body);
+ let contextReads=0;const writes=[];
+ const session={work:async(p,o)=>{
+  if(p==='/api/work-collections/preview')return {selection:o.body,previewHash:revision,revision,currency:'TRY',amountExact4:amount,receivedAfterExact4:amount,outstandingAfterExact4:remaining};
+  if(o?.method==='POST'){writes.push({path:p,body:structuredClone(o.body)});assert.equal(p,path);return structuredClone(result);}
+  if(p.includes('/context?')){contextReads++;if(contextReads===2)throw refreshFailure==='network'?new Error('private transport detail'):{status:refreshFailure};return {...context('42'),invoice:contextReads>2?updated:invoice('42')};}
+  return {data:contextReads>1?[]:[invoice('42')]};
+ }};
+ const ui=create({root:d.root,session,user:{id:16},storage:store,uuid:()=>requestId});ui.mount();await tick();
+ if(cancel||operation==='replay')d.node('[data-collection-retry]').onclick();else{
+  for(const [selector,value] of [['[data-collection-account]','99'],['[data-collection-amount]',amount],['[data-collection-date]','2026-10-07']])d.node(selector).value=value;
+  d.node('[data-collection-preview]').onclick();await tick();assert.match(d.root.innerHTML,/data-collection-save/);d.node('[data-collection-save]').onclick();
+ }
+ await tick();
+ assert.equal(writes.length,1);assert.deepEqual(writes[0],{path,body});assert.equal(journal.read().status,'done');assert.deepEqual(journal.read().result,result);
+ assert.doesNotMatch(d.root.innerHTML,/data-collection-save|data-collection-preview|data-collection-retry|Fiş toplamı:|private transport detail/);
+ assert.match(d.root.innerHTML,/İşlem kaydedildi|Kayıt doğrulandı/);assert.equal(ui.requestClose(),true);
+ await ui.refresh();await tick();assert.match(d.root.innerHTML,new RegExp('Kalan: '+remaining.replace('.0000',',00')+' TRY'));assert.equal(writes.length,1);assert.deepEqual(journal.read().result,result);ui.dispose();
+});
+
+test('a pre-payment list response cannot restore the old amount after a confirmed payment',async()=>{
+ const create=await controller(),d=dom(),store=storage(),journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'});
+ const body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
+ const entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision},updated={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}};
+ journal.begin('/api/work-collections',body);let oldList,lists=0,reads=0,posts=0;
+ const session={work:async(path,o)=>{
+  if(o?.method==='POST'){posts++;return {collection:entry,invoice:updated,requestId,replayed:true};}
+  if(path.includes('/context?')){if(++reads===2)throw {status:403};return context('42');}
+  if(++lists===1)return new Promise(resolve=>{oldList=resolve;});return {data:[updated]};
+ }};
+ const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();
+ assert.match(d.root.innerHTML,/Kalan 70,00 TRY/);oldList({data:[invoice('42')]});await tick();
+ assert.match(d.root.innerHTML,/Kalan 70,00 TRY/);assert.doesNotMatch(d.root.innerHTML,/Kalan 120,00 TRY|data-collection-save|data-collection-retry/);assert.equal(posts,1);assert.equal(journal.read().result.replayed,true);ui.dispose();
+});
+
+test('failed success storage keeps the original pending request locked until the same UUID is replayed',async()=>{
+ const create=await controller(),d=dom(),backing=storage();let failed=false;
+ const store={...backing,setItem(key,value){if(key==='melisa-work-collection-v1:local:16'&&JSON.parse(value).status==='done'&&!failed){failed=true;throw Error('storage unavailable');}backing.setItem(key,value);}};
+ const journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision},sent=journal.begin('/api/work-collections',body),original=store.getItem('melisa-work-collection-v1:local:16');
+ const entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision},updated={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}},writes=[];
+ const session={work:async(path,o)=>{
+  if(o?.method==='POST'){writes.push({path,body:structuredClone(o.body)});return {collection:entry,invoice:updated,requestId,replayed:writes.length>1};}
+  if(path.includes('/context?'))return {...context('42'),invoice:writes.length?updated:invoice('42')};return {data:[writes.length?updated:invoice('42')]};
+ }};
+ const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();
+ assert.equal(failed,true);assert.equal(writes.length,1);assert.equal(store.getItem('melisa-work-collection-v1:local:16'),original);assert.deepEqual(journal.read(),sent);assert.equal(ui.requestClose(),false);
+ assert.match(d.root.innerHTML,/data-collection-retry/);assert.doesNotMatch(d.root.innerHTML,/İşlem kaydedildi|Tahsilat kaydedildi|Kayıt doğrulandı/);
+ d.node('[data-collection-retry]').onclick();await tick();
+ assert.deepEqual(writes,[{path:sent.path,body},{path:sent.path,body}]);assert.equal(journal.read().status,'done');assert.equal(journal.read().result.replayed,true);assert.equal(journal.read().result.collection.id,'77');assert.equal(ui.requestClose(),true);assert.match(d.root.innerHTML,/Kalan: 70,00 TRY/);assert.doesNotMatch(d.root.innerHTML,/data-collection-retry/);ui.dispose();
+});
+
+test('a pre-payment finance failure cannot replace the new finance result after a confirmed payment',async()=>{
+ const create=await controller(),d=dom(),store=storage(),journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
+ journal.begin('/api/work-collections',body);let oldFinance,financeReads=0,posts=0;
+ const entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision},updated={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}};
+ const session={work:async(path,o)=>{if(o?.method==='POST'){posts++;return {collection:entry,invoice:updated,requestId,replayed:true};}if(path.includes('/context?'))return {...context('42'),invoice:posts?updated:invoice('42')};if(path==='/api/work-sales/context')return {};return {data:[posts?updated:invoice('42')]};},supplierPayments:()=>++financeReads===1?new Promise((_resolve,reject)=>{oldFinance=reject;}):Promise.reject({status:403})};
+ const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();assert.equal(financeReads,1);d.node('[data-collection-retry]').onclick();await tick();assert.equal(financeReads,2);
+ assert.match(d.root.innerHTML,/Finans hareketlerini görüntüleme yetkiniz yok/);oldFinance(new Error('old transport failure'));await tick();
+ assert.match(d.root.innerHTML,/Finans hareketlerini görüntüleme yetkiniz yok/);assert.doesNotMatch(d.root.innerHTML,/Hareket bilgileri şu anda açılamıyor|old transport failure/);assert.match(d.root.innerHTML,/Kalan: 70,00 TRY/);assert.equal(posts,1);ui.dispose();
+});

@@ -34,7 +34,27 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
  async function loadFinanceMovements(invoices,n){if(typeof session.supplierPayments!=='function')return;financeLoading=true;financeNote='';paint();try{const [sales,payments]=await Promise.all([session.work('/api/work-sales/context'),session.supplierPayments('/api/work-supplier-payments/context')]);if(!alive(n))return;financeRows=buildWorkFinanceMovements({salesContext:sales,invoices,paymentContext:payments});financeLoaded=true;}catch(e){if(alive(n)){financeRows=null;financeNote=e?.status===403?'Finans hareketlerini görüntüleme yetkiniz yok.':'Hareket bilgileri şu anda açılamıyor.';}}finally{if(alive(n)){financeLoading=false;paint();}}}
  async function check(){if(locked()||!context?.capabilities.canCollect)return;const n=generation;let s;try{s=selection();}catch{preview=null;note='Hesabı, pozitif tutarı ve işlem tarihini kontrol edin.';paint();return;}busy=true;note='Tutar kontrol ediliyor…';paint();try{const p=validateCollectionPreview(await session.work('/api/work-collections/preview',{method:'POST',body:s}),s,context.invoice.currency);if(alive(n)){preview=p;note='Tutar doğrulandı.';}}catch(e){if(alive(n)){preview=null;note=fail(e);}}finally{if(alive(n)){busy=false;paint();}}}
  function begin(path,body){if(busy||pending?.status==='pending')return;try{send(journal.begin(path,{...body,requestId:uuid()}));}catch{note='İşlem hazırlanamadı; kayıt gönderilmedi. Lütfen tekrar deneyin.';paint();}}
- async function send(p){if(busy||!p)return;const n=generation;busy=true;pending=p;note='Tahsilat kaydediliyor…';paint();try{const r=await session.work(p.path,{method:'POST',body:p.body});tradeCollection(r.collection);const i=tradeInvoice(r.invoice);if(r.requestId!==p.body.requestId||r.collection.invoiceId!==i.id||i.id!==invoiceId)throw Error();if(alive(n)){pending=journal.done(p,r);invoiceId=i.id;context=validateCollectionContext(await session.work('/api/work-collections/context?invoiceId='+i.id));if(!alive(n))return;preview=null;amount='';invoicesLoaded=false;financeLoaded=false;financeRows=null;note=r.replayed?'Kayıt doğrulandı; aynı tahsilat tekrar oluşturulmadı.':'Tahsilat kaydedildi.';}}catch(e){if(alive(n)){if([400,403,404,409,422].includes(e?.status)){try{pending=journal.done(p,{rejected:true,status:e.status});}catch{}}note=fail(e);}}finally{if(alive(n)){busy=false;paint();}}}
+ async function send(p){
+  if(busy||!p)return;let n=generation;busy=true;pending=p;note='Tahsilat kaydediliyor…';paint();
+  try{
+   const r=await session.work(p.path,{method:'POST',body:p.body});tradeCollection(r.collection);const i=tradeInvoice(r.invoice);
+   if(r.requestId!==p.body.requestId||r.collection.invoiceId!==i.id||i.id!==invoiceId)throw Error();
+   if(!alive(n))return;
+   pending=journal.done(p,r);invoiceId=i.id;
+   // A confirmed write ends this request. Refresh failures cannot turn its
+   // persisted success into a rejection or leave the old amount available.
+   n=++generation;context=null;preview=null;amount='';invoicesLoaded=false;invoiceRows=null;invoiceNote='';financeLoaded=false;financeLoading=false;financeRows=null;financeNote='';
+   try{
+    const refreshed=validateCollectionContext(await session.work('/api/work-collections/context?invoiceId='+i.id));
+    if(!alive(n))return;if(refreshed.invoice.id!==i.id)throw Error();context=refreshed;
+    note=r.replayed?'Kayıt doğrulandı; aynı tahsilat tekrar oluşturulmadı.':'Tahsilat kaydedildi.';
+   }catch{
+    if(alive(n))note=(r.replayed?'Kayıt doğrulandı.':'İşlem kaydedildi.')+' Güncel fiş bilgileri açılamadı. Yenile ile tekrar görüntüleyin.';
+   }
+  }catch(e){
+   if(alive(n)){if([400,403,404,409,422].includes(e?.status)){try{pending=journal.done(p,{rejected:true,status:e.status});}catch{}}note=fail(e);}
+  }finally{if(alive(n)){busy=false;paint();}}
+ }
  async function load(){if(busy)return;const n=++generation;busy=true;preview=null;note='';financeRows=null;financeLoaded=false;financeLoading=false;financeNote='';invoicesLoaded=false;invoiceRows=null;invoiceNote='';try{pending=journal.read();if(pending?.status==='pending'&&pending.path==='/api/work-collections'){invoiceId=pending.body.invoiceId;accountId=pending.body.accountId;amount=pending.body.amountExact4;date=pending.body.documentDate;}invoiceId=[invoiceId,storage.getItem(selectedKey),pending?.result?.invoice?.id,pending?.body?.invoiceId].find(v=>v&&v!==missingInvoiceId)||'';if(invoiceId){if(!tradeId(invoiceId))throw Error();const c=validateCollectionContext(await session.work('/api/work-collections/context?invoiceId='+invoiceId));if(!alive(n))return;if(c.invoice.id!==invoiceId)throw Error();context=c;date=date||(pending?.status==='pending'?pending.body.documentDate:c.invoice.documentDate);}}catch(e){if(alive(n)){context=null;if(e?.status===404&&pending?.status!=='pending'){missingInvoiceId=invoiceId;invoiceId='';accountId='';amount='';date='';note='Seçili fiş artık bulunamıyor. Listeden başka bir fiş seçin.';try{if(storage.getItem(selectedKey)===missingInvoiceId)storage.removeItem(selectedKey);}catch{}}else note=fail(e);}}finally{if(alive(n)){busy=false;paint();}}}
  return {mount(){active=true;load();},refresh:load,requestClose(){if(busy||pending?.status==='pending'){note='Son işlemi doğruladıktan sonra başka ekrana geçebilirsiniz.';paint();return false;}return true;},dispose(){active=false;generation++;root=null;}};
 }
