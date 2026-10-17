@@ -1,5 +1,11 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 17 Ekim — DB02 içerik baseline ve özel geçiş taslağı
+
+İlk iki salt okunur tam içerik denemesinde DB02 `log_end_lsn` değişti ve yöntem rapor üretmeden durdu. Salt okunur işlem günlüğü incelemesinde yeni kayıtlar Query Store `sys.plan_persist*` iç tablolarına aitti; katı tüm-DB LSN eşliği bu iş tablosu taramasıyla kullanılamadı. Bağımsız SQL incelemesi sonrası ERP ana sahibi 51 manifest iş tablosunu aynı SERIALIZABLE işlemde `TABLOCK,HOLDLOCK` ile kilitleyip 51 ayrı object_id için granted S kilitlerini doğrulayan sınırlı okuma çalıştırdı. Baseline PASS: 1.817.793 satır, iş içeriği SHA256 `df311fee7d05e9672bf491cca133839bb9ad5325360dd83334ba04f6d7d10ef2`, özel rapor SHA256 `b2789bfcd1e2dbc9d3f7e7cc394fa4a1c31ac759e1db3f67f2db007c00c849aa`, yalnız owner+SYSTEM FullControl ve korumalı ACL. Bu 51 tabloyu tarama boyunca sabitler; bütün764 tablo, taze tam yedek veya taramalar arası değişmezlik kanıtı değildir.
+
+Özel OS yürütücü taslağında 279 supervisor+1.994 ERP+2.292 CRM manifest dosyası ve özel referanslar stop öncesi pinlenir; salt okunur `verifyOldPins` PASS. Son readback artık iki yeni watcher kimliğini, 30 saniye kararlılığı, kilitli PostApply iş içeriği özetini PreApply/Baseline ile ve son süreç/sağlık durumunu kontrol eder. Durable journal sırası ve yardımcı dosya hash'i pinlendi; bağımsız kod incelemesi **koşullu GO**. Henüz mühürlü Apply çağıranı/kısmi start geri dönüşü uygulanmadı. İki mevcut görev durdurulmadı; yeni kurulum, normal satış/tahsilat/müşteri/sayım GUI, fiziksel cihaz ve personel kabulü açık. Özel rapor/hassas içerik GitHub'a yüklenmedi.
+
 ## 17 Ekim — callback kaynak sınırı ve açık Apply engeli
 
 PR41 `0436f1cf4fafaec3a76598380df0a80ace72bdaa` source, sonlu geçiş koordinatörüne exact owner/konfigürasyon/port/görev kabul callback sınırı ekledi. İlgili11 sentetik test ve bağımsız kaynak incelemesi GO; exact [push CI39052665608](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39052665608) ile [PR CI39052669882](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39052669882) SUCCESS. Bu, gerçek Windows yürütücüsü veya kurulum değildir.
