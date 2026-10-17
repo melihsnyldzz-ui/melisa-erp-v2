@@ -13,6 +13,8 @@ export const SOURCE_COLLECTION_COLLECTOR_SQL=`SELECT CONVERT(varchar(20),u.id) a
 FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id LEFT JOIN dbo.permissions p ON p.role_id=r.id WHERE u.id=@actor;`;
 export const SOURCE_COLLECTION_ACCOUNT_SQL=`SELECT CONVERT(varchar(20),a.id) id,a.currency_code currency,CONVERT(bit,a.is_active) isActive,a.account_type type FROM dbo.finance_accounts a WITH(HOLDLOCK) WHERE a.id=@account;`;
 const rights=['finance.view','customer.view','finance.collection'];
+const preparedServices=new WeakSet();
+export const isBusinessSelectedSaleCollectionPreparationService=service=>service!==null&&typeof service==='object'&&preparedServices.has(service);
 
 async function authority(c,actor,cancelling){
  const copy=assertIsolatedCopyContext(c.copyContext);
@@ -82,7 +84,9 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
    return c.journal(operation,payload,()=>fn({...c,context:prepared.context,invoice:prepared.invoice}));
   }),
  });
- return createWorkCollectionService({getStore});
+ const service=Object.freeze(createWorkCollectionService({getStore}));
+ preparedServices.add(service);
+ return service;
 }
 
 // Explicit server-only READ/PREVIEW bridge. No default connection/route and no
