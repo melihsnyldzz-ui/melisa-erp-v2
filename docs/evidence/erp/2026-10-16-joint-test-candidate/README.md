@@ -1,5 +1,11 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 17 Ekim — callback kaynak sınırı ve açık Apply engeli
+
+PR41 `0436f1cf4fafaec3a76598380df0a80ace72bdaa` source, sonlu geçiş koordinatörüne exact owner/konfigürasyon/port/görev kabul callback sınırı ekledi. İlgili11 sentetik test ve bağımsız kaynak incelemesi GO; exact [push CI39052665608](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39052665608) ile [PR CI39052669882](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39052669882) SUCCESS. Bu, gerçek Windows yürütücüsü veya kurulum değildir.
+
+Özel read-only DB02 tam içerik baseline denemesi `DIGEST_DB_LOG_CHANGED` ile durdu; başarılı rapor yok. Bu sırada aktif kullanıcı işlemi gözlenmedi, fakat aynı satır sayısı veri içeriği eşliği kanıtlamaz. Bağımsız executor incelemesi watcher son kimliği, durable olay sırası ve tam içerik koruması eksikleriyle **Apply NO-GO** verdi. Özel executor taslağında watcher/fail-fast denetimi düzenlendi; yeniden bağımsız GO ve DB02 koruması olmadan herhangi bir callback çalıştırılmadı. Eski iki görev/servis çalışır; görev durdurma/action/restart/config/SQL veri yazısı0. Kurulum, satış/tahsilat/müşteri/sayım normal GUI ve insan/cihaz kabulü açık.
+
 ## 17 Ekim — yeni birleşik inaktif aday ve sınırları
 
 ### Owner koruması, iki Probe ve kurulum NO-GO
