@@ -81,3 +81,15 @@ test('stopper refusal quarantines and never restores old actions',async()=>{
  const f=fixture();f.state.stopper=false;await assert.rejects(runP03OwnerRecovery(f.input),error=>error.phase==='EXACT_STOP'&&error.quarantined===true);
  assert.equal(f.calls.includes('restore'),false);assert.equal(f.state.processes.length,1);
 });
+test('first recovery intent persisted but readback failed is quarantined before task stop',async()=>{
+ const f=fixture(),append=f.input.io.appendEventCAS;
+ let first=true;
+ f.input.io.appendEventCAS=async input=>{
+  if(first){first=false;await append(input);throw Error('POST_WRITE_READBACK_FAILED');}
+  return append(input);
+ };
+ await assert.rejects(runP03OwnerRecovery(f.input),error=>error.code==='P03_OWNER_RECOVERY_STOPPED'&&error.phase==='TASK_STOP'&&error.quarantined===true);
+ assert.equal(f.events[0].event,'RECOVERY_INTENT');
+ assert.equal(f.calls.includes('stopTasks'),false);
+ assert.equal(f.calls.includes('restore'),false);
+});

@@ -54,7 +54,9 @@ export async function runP03OwnerRecovery({explicit,plan,before,journal,io,now=(
   // parent lineage and the role-specific port map against pinned new-owner data.
   for(const row of first.processes)check(await io.verifyCandidateProcess({candidate:row,plan,before})===true);
   // A foreign target port, an unreported watcher, or a reused old PID is ambiguous.
-  await event('RECOVERY_INTENT');phase='TASK_STOP';mutated=true;
+  // CreateNew can persist RECOVERY_INTENT and then fail its readback. From the
+  // first append attempt onward the outcome is ambiguous until proven otherwise.
+  phase='TASK_STOP';mutated=true;await event('RECOVERY_INTENT');
   check(await io.stopTasksCAS({names:tasks,expectedActionHashes:plan.newActionHashes})===true);
   check(await io.tasksStopped(tasks)===true);await event('RECOVERY_TASKS_STOPPED');
   await protectedOk();check(await io.taskActionsMatch(plan.newActionHashes)===true);
