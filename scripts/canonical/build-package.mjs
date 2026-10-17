@@ -3,6 +3,7 @@ import fs from 'node:fs';import path from 'node:path';import cp from 'node:child
 import { renderMigrationProof } from './migration-proof.mjs';
 import {parseTerminalArtifactArgs,attachTerminalArtifact} from './public-terminal-artifact.mjs';
 import {parseWebBaselineArgs,copyHistoricalWebBaseline} from './web-build-baseline.mjs';
+import {runPinnedNpm} from './package-npm.mjs';
 const repo=path.resolve(import.meta.dirname,'../..');
 const destination=path.resolve(process.argv[2]||'');
 const terminalArgs=parseTerminalArtifactArgs(process.argv.slice(3));
@@ -20,7 +21,7 @@ if(migrationFiles.some(file=>!/^scripts\/migration\/[a-z0-9._/-]+\.(mjs|sql|md)$
 const migrationPaths=migrationFiles.length?['scripts/migration','ERP_MIGRATION_PLAN.md','STATUS.md']:[];
 cp.execFileSync('git',['archive','--format=tar','--output='+archive,sourceCommit,'apps/api','apps/web-admin','apps/sites-workflow','packages','scripts/canonical','docs/erp-v2/canonical-20261003',...migrationPaths],{cwd:repo});
 cp.execFileSync('tar',['-xf',archive,'-C',destination]);fs.unlinkSync(archive);
-function npm(args,cwd,env=process.env){cp.execFileSync(process.env.ComSpec||'cmd.exe',['/d','/c','npm.cmd',...args],{cwd,env,stdio:'inherit'});}
+function npm(args,cwd,env=process.env){runPinnedNpm(args,cwd,env);}
 npm(['ci','--no-audit','--no-fund'],destination+'/apps/api');
 // A locked npm tree can still omit the native install script. Verify the
 // actual SQL binding before publishing any package; importing opens no DB.
