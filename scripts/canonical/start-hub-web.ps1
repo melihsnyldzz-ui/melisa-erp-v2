@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$StartupConfigPath,[ValidateSet('Inspect','Start')][string]$Action='Inspect',[switch]$Watch)
+param([Parameter(Mandatory=$true)][string]$StartupConfigPath,[ValidateSet('Inspect','Start')][string]$Action='Inspect',[switch]$Watch,[string]$RunId,[int]$Attempt=0)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 # Manual, web-only launcher. Does not install tasks, stop owners or start API/SQL.
@@ -21,7 +21,7 @@ Assert-HubPath $c.PackageRoot 'C:\Sirket\ERP\releases'
 $packageName=Split-Path $c.PackageRoot -Leaf
 # Retain the approved Hub package family and admit only the exact current
 # completion family whose suffix identifies this pinned source commit.
-$completionName=$packageName -cmatch '^CANONICAL-COMPLETE-TEST-20261011-([a-f0-9]{7,12})$'
+$completionName=$packageName -cmatch '^CANONICAL-COMPLETE-TEST-(?:20261011|20261017)-([a-f0-9]{7,12})$'
 $completionSource=$completionName -and $c.SourceCommit.StartsWith($Matches[1])
 if(!$packageName.StartsWith('CANONICAL-HUB-TEST-') -and !$completionSource){throw 'HUB_PACKAGE_SCOPE_REJECTED'}
 if((Get-FileHash -LiteralPath $c.NodePath -Algorithm SHA256).Hash -ne $c.NodeSha256){throw 'HUB_NODE_PIN_REJECTED'}
@@ -41,12 +41,22 @@ if($Action -eq 'Inspect'){Write-Output 'HUB_WEB_PACKAGE_AND_DEPENDENCIES_VERIFIE
 if(@(Get-NetTCPConnection -State Listen -LocalPort 5234 -ErrorAction SilentlyContinue).Count){throw 'HUB_WEB_PORT_ALREADY_OWNED'}
 New-Item -ItemType Directory -Force -Path $c.RuntimeDir|Out-Null
 $entry=Join-Path $c.PackageRoot 'apps\api\start-shared-test-copy-web.mjs'
-$run=[guid]::NewGuid().ToString('N')
+$run=if($RunId){$RunId}else{[guid]::NewGuid().ToString('N')}
+if($run -cnotmatch '^[a-f0-9]{32}$' -or $Attempt -lt 0 -or $Attempt -gt 3){throw 'HUB_LINEAGE_ATTEMPT_REJECTED'}
+$launcher=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID)
+$parent=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$launcher.ParentProcessId)
+if(!$parent -or (Invoke-CimMethod $parent -MethodName GetOwnerSid).Sid -ne $c.OwnerSid){throw 'HUB_LAUNCHER_PARENT_REJECTED'}
+# The scheduled wrapper invokes watch-hub-web.ps1 in its own process;
+# manual starts retain the owner-scoped path and receive a receipt too. The
+# parent must have the same owner SID so its recorded chain has a trusted root.
+$launcherSid=(Invoke-CimMethod $launcher -MethodName GetOwnerSid).Sid
+if($launcherSid -ne $c.OwnerSid){throw 'HUB_LAUNCHER_OWNER_REJECTED'}
 $previous=$env:MELISA_HUB_CONFIG_PATH
 try{
  $env:MELISA_HUB_CONFIG_PATH=$c.HubConfigPath
  $child=Start-Process -FilePath $c.NodePath -ArgumentList @('"'+$entry+'"','"'+$c.OperationConfigPath+'"') -WorkingDirectory (Join-Path $c.PackageRoot 'apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $c.RuntimeDir ('hub-web-'+$run+'.out.log')) -RedirectStandardError (Join-Path $c.RuntimeDir ('hub-web-'+$run+'.err.log'))
 }finally{$env:MELISA_HUB_CONFIG_PATH=$previous}
+try{
 $ready=$false
 for($attempt=0;$attempt -lt 20;$attempt++){
  $child.Refresh();if($child.HasExited){throw 'HUB_WEB_CHILD_EXITED'}
@@ -59,8 +69,68 @@ for($attempt=0;$attempt -lt 20;$attempt++){
  }catch{}
  Start-Sleep -Milliseconds 250
 }
-if(!$ready){$child.Refresh();if(!$child.HasExited){$child.Kill()};throw 'HUB_WEB_READINESS_FAILED'}
-[pscustomobject]@{pid=$child.Id;sourceCommit=$c.SourceCommit;packageRoot=$c.PackageRoot;port=5234;startedAt=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $c.RuntimeDir 'hub-web-process.json') -Encoding utf8
+if(!$ready){throw 'HUB_WEB_READINESS_FAILED'}
+$node=Get-CimInstance Win32_Process -Filter ('ProcessId='+$child.Id)
+$bindings=@(Get-NetTCPConnection -State Listen -LocalPort 5234 -ErrorAction SilentlyContinue)
+$entry=Join-Path $c.PackageRoot 'apps\api\start-shared-test-copy-web.mjs'
+$expectedNode='"'+$c.NodePath+'" "'+$entry+'" "'+$c.OperationConfigPath+'"'
+if(!$node -or $node.ParentProcessId -ne $PID -or (Invoke-CimMethod $node -MethodName GetOwnerSid).Sid -ne $c.OwnerSid -or $node.ExecutablePath -ne $c.NodePath -or $node.CommandLine.TrimEnd() -cne $expectedNode -or $bindings.Count -ne 2 -or @($bindings|Where-Object {$_.OwningProcess -ne $child.Id -or $_.LocalAddress -notin @('127.0.0.1','192.168.1.46')}).Count -ne 0){throw 'HUB_LINEAGE_CHILD_REJECTED'}
+function New-ReceiptSecurity{
+ $security=New-Object Security.AccessControl.FileSecurity
+ $security.SetAccessRuleProtection($true,$false)
+ foreach($value in @($c.OwnerSid,'S-1-5-18')){
+  $sid=[Security.Principal.SecurityIdentifier]::new($value)
+  $rule=[Security.AccessControl.FileSystemAccessRule]::new($sid,[Security.AccessControl.FileSystemRights]::FullControl,[Security.AccessControl.AccessControlType]::Allow)
+  $security.AddAccessRule($rule)
+ }
+ return $security
+}
+function Assert-ReceiptSecurity([string]$file){
+ $read=Get-Acl -LiteralPath $file
+ $sids=@($read.Access|ForEach-Object {$_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value})
+ if(!$read.AreAccessRulesProtected -or @($read.Access).Count -ne 2 -or @($read.Access|Where-Object {$_.AccessControlType -ne 'Allow' -or $_.FileSystemRights -ne [Security.AccessControl.FileSystemRights]::FullControl}).Count -or @($sids|Sort-Object -Unique).Count -ne 2 -or $c.OwnerSid -notin $sids -or 'S-1-5-18' -notin $sids){throw 'HUB_RECEIPT_ACL_REJECTED'}
+}
+function Write-ProtectedJson([string]$file,$value){
+ $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12 -Compress))
+ $security=New-ReceiptSecurity
+ $stream=[IO.FileStream]::new($file,[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::FullControl,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$security)
+ try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
+ Assert-ReceiptSecurity $file
+ $hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+ $sha=[Security.Cryptography.SHA256]::Create()
+ try{$expected=([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ if($hash -ne $expected){throw 'HUB_RECEIPT_HASH_REJECTED'}
+ return $hash
+}
+$lineage=[ordered]@{
+ schemaVersion=1;run=$run;attempt=$Attempt;ownerSid=$c.OwnerSid;sourceCommit=$c.SourceCommit;packageRoot=$c.PackageRoot;manifestSha256=$c.ManifestSha256;nodeSha256=$c.NodeSha256
+ startupConfig=[ordered]@{path=$StartupConfigPath;sha256=(Get-FileHash -LiteralPath $StartupConfigPath -Algorithm SHA256).Hash.ToLowerInvariant()}
+ operationConfig=[ordered]@{path=$c.OperationConfigPath;sha256=(Get-FileHash -LiteralPath $c.OperationConfigPath -Algorithm SHA256).Hash.ToLowerInvariant()}
+ hubConfig=[ordered]@{path=$c.HubConfigPath;sha256=(Get-FileHash -LiteralPath $c.HubConfigPath -Algorithm SHA256).Hash.ToLowerInvariant()}
+ watcher=[ordered]@{pid=[int]$parent.ProcessId;birth=$parent.CreationDate.ToUniversalTime().ToString('o');sid=$c.OwnerSid;argv=$parent.CommandLine}
+ launcher=[ordered]@{pid=$PID;birth=$launcher.CreationDate.ToUniversalTime().ToString('o');sid=$launcherSid;argv=$launcher.CommandLine;parentPid=[int]$parent.ProcessId}
+ node=[ordered]@{pid=$child.Id;birth=$node.CreationDate.ToUniversalTime().ToString('o');sid=$c.OwnerSid;argv=$node.CommandLine;parentPid=$PID}
+ bindings=@($bindings|ForEach-Object {[ordered]@{address=$_.LocalAddress;port=5234;pid=$child.Id}})
+ startedAt=(Get-Date).ToUniversalTime().ToString('o')
+}
+$lineagePath=Join-Path $c.RuntimeDir ('hub-web-lineage-'+$run+'-'+$Attempt+'.json')
+$lineageSha=Write-ProtectedJson $lineagePath $lineage
+$legacy=[ordered]@{pid=$child.Id;sourceCommit=$c.SourceCommit;packageRoot=$c.PackageRoot;port=5234;startedAt=$lineage.startedAt;run=$run;attempt=$Attempt;lineagePath=$lineagePath;lineageSha256=$lineageSha}
+$pointer=Join-Path $c.RuntimeDir ('hub-web-process-'+$run+'-'+$Attempt+'.json')
+$pointerSha=Write-ProtectedJson $pointer $legacy
+$published=Get-Content -LiteralPath $pointer -Raw|ConvertFrom-Json
+if($published.lineageSha256 -ne $lineageSha -or (Get-FileHash -LiteralPath $lineagePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $lineageSha -or (Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pointerSha){throw 'HUB_RECEIPT_PUBLISH_REJECTED'}
+Assert-ReceiptSecurity $pointer
+}catch{
+ $failure=$_
+ # Only the Process handle returned by this invocation can be stopped here.
+ try{
+  $child.Refresh()
+  if(!$child.HasExited){$child.Kill()}
+  if(!$child.WaitForExit(5000) -or !$child.HasExited){throw 'HUB_WEB_OWN_CHILD_CLEANUP_UNCONFIRMED'}
+ }catch{throw 'HUB_WEB_OWN_CHILD_CLEANUP_UNCONFIRMED'}
+ throw $failure
+}
 Write-Output ('HUB_WEB_STARTED_PID_'+$child.Id)
 if($Watch){
  # The task remains attached to this exact child. Scheduler retries are bounded;
