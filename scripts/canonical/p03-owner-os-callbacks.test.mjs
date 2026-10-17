@@ -28,6 +28,14 @@ test('finite callbacks hand a fresh exact owner through the pure transition cont
  assert.equal(result.status,'COMPLETE');assert.equal(f.calls.filter(x=>x.startsWith('stop:')).length,8);
  assert.deepEqual(f.calls.filter(x=>x.startsWith('action:')),names.map(x=>'action:'+x));assert.equal(f.calls.at(-1),'event:COMPLETE');
 });
+test('admission finishes with the protected lock and does no fresh probe after it',async()=>{
+ const f=fixture(),original=f.io.freshObservation;let observations=0;
+ f.io.freshObservation=async()=>{observations++;if(observations>1)throw Error('POST_LOCK_PROBE');return original();};
+ const callbacks=createP03OwnerOsCallbacks({snapshot:f.snapshot,io:f.io,now:()=>f.now});
+ const admitted=await callbacks.admit();
+ assert.deepEqual(admitted,{owner:true,oldHealthy:true,oldActions:true,emptyJournal:true});
+ assert.equal(observations,1);assert.equal(f.calls.at(-1),'lock');
+});
 test('task, process or protected identity drift refuses before stopping tasks',async()=>{
  for(const change of [f=>{f.io.freshObservation=async()=>({...f.snapshot,observedAt:new Date(f.now-1000).toISOString(),oldConfigSha256:f.snapshot.oldConfig.sha256,newConfigSha256:f.snapshot.newConfig.sha256,tasks:[{...f.snapshot.tasks[0],xml:'changed'},f.snapshot.tasks[1]]});},f=>{f.io.freshObservation=async()=>({...f.snapshot,observedAt:new Date(f.now-1000).toISOString(),oldConfigSha256:f.snapshot.oldConfig.sha256,newConfigSha256:f.snapshot.newConfig.sha256,identities:{...f.snapshot.identities,hub:{...f.snapshot.identities.hub,commandLine:'other'}}});},f=>f.setProtected(false)]){
   const f=fixture();change(f);await assert.rejects(runP03OwnerTransition(createP03OwnerOsCallbacks({snapshot:f.snapshot,io:f.io,now:()=>f.now})),/P03_OWNER_OS_CALLBACK_REJECTED/);assert.equal(f.calls.includes('stopTasks'),false);

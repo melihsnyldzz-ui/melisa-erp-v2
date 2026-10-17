@@ -39,7 +39,7 @@ export function createP03OwnerOsCallbacks({snapshot,io,now=()=>Date.now()}){
   return true;
  };
  return Object.freeze({plan,
-  admit:async()=>{const pinned=await io.readPinnedSnapshot();check(exact(pinned,['sha256','snapshot'])&&pinned.sha256===observationSha&&JSON.stringify(pinned.snapshot)===JSON.stringify(snapshot));check(await io.verifyOldPins({oldSha,newSha,observationSha,taskXml:snapshot.tasks,stopperSha:snapshot.stopperSha,supervisor:snapshot.oldSupervisor})===true);await fresh();const held=await io.acquireExclusive(plan);check(exact(held,['owner','oldHealthy','oldActions','emptyJournal'])&&Object.values(held).every(value=>value===true));await fresh();return held;},
+  admit:async()=>{const pinned=await io.readPinnedSnapshot();check(exact(pinned,['sha256','snapshot'])&&pinned.sha256===observationSha&&JSON.stringify(pinned.snapshot)===JSON.stringify(snapshot));check(await io.verifyOldPins({oldSha,newSha,observationSha,taskXml:snapshot.tasks,stopperSha:snapshot.stopperSha,supervisor:snapshot.oldSupervisor})===true);await fresh();const held=await io.acquireExclusive(plan);check(exact(held,['owner','oldHealthy','oldActions','emptyJournal'])&&Object.values(held).every(value=>value===true));return held;},
   persist:async record=>{check(record.digest===plan.digest&&Number.isSafeInteger(record.sequence)&&record.sequence>=0);return io.persistEvent(record);},
   stopTasks:async()=>{await fresh();return io.stopNamedTasks(tasks);},
   tasksStopped:async()=>io.tasksStopped(tasks),
