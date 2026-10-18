@@ -83,6 +83,16 @@ function WorkerAuthority{
 # Reuse current-generation classification, never the historical PID42036 grant.
 function Authority{WorkerAuthority}
 function LegacyConsoleAuxiliaries($inv){return @()}
+function Inventory{
+ # Keep the same complete inventories as fe; take CIM after slower network
+ # and COM enumeration so ephemeral probe SID reads use the newest frame.
+ $allListeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
+ $listeners=@($allListeners|Where-Object{$_.LocalPort -in $ports})
+ $running=$schedule.GetRunningTasks(1);$instances=@()
+ for($i=1;$i -le $running.Count;$i++){$r=$running.Item($i);if($r.Name -cin $names){$instances+=,$r}}
+ $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
+ return [pscustomobject]@{all=$all;allListeners=$allListeners;listeners=$listeners;instances=$instances}
+}
 function WriteWorkerEvidence([string]$leaf,$value){
  Need ($leaf -cin @('successor-core-cut-completed.json','successor-core-probe-drain.json')) 'SUCCESSOR_WRITE_SCOPE'
  $path=Join-Path $dir $leaf;NoReparse $dir;Need (-not (Test-Path -LiteralPath $path)) 'SUCCESSOR_ONCE'
@@ -97,7 +107,14 @@ function AssertWorkerBindings($inv,$selected){
  foreach($b in $expected){Need (@($inv.listeners|Where-Object{$_.LocalPort -eq $b.port -and $_.LocalAddress -ceq $b.address -and $_.OwningProcess -eq $b.pid}).Count -eq 1) 'SUCCESSOR_BINDING'}
 }
 function CaptureWorkerAdmissionCore{
- Authority;PrepareProbeSource;$inv=Inventory;ProtectedProcesses $inv
+ Authority;PrepareProbeSource;$inv=Inventory
+ # Expected parents serve only the imported console classifier's lookup.
+ # Admission still requires all ten live identities below. Authenticate the
+ # shortest-lived rows first; sorting retains the entire unfiltered frame.
+ $expectedParents=@($order|ForEach-Object{$before.identities.$_})+@($profile.oldWatchers)
+ $auxInventory=[pscustomobject]@{all=@($inv.all|Sort-Object CreationDate -Descending);allListeners=$inv.allListeners;listeners=$inv.listeners;instances=$inv.instances}
+ $probes=@(ProbeAuxiliaries $auxInventory);$aux=@(ConsoleAuxiliaries $auxInventory @($expectedParents+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
+ ProtectedProcesses $inv
  Need ($inv.instances.Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.oldWatchers).Count -eq 2) 'SUCCESSOR_CAPTURE_COM'
  $selected=@();foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'SUCCESSOR_CAPTURE_APP';$selected+=,$e}
  foreach($entry in $profile.tasks){
@@ -106,7 +123,6 @@ function CaptureWorkerAdmissionCore{
   $watchers=@($profile.oldWatchers|Where-Object{$_.pid -eq [int]$instances[0].EnginePID});Need ($watchers.Count -eq 1) 'SUCCESSOR_CAPTURE_WATCHER';$w=$watchers[0];$actual=@($inv.all|Where-Object{$_.ProcessId -eq $w.pid});Need ($actual.Count -eq 1 -and (Identity $actual[0] $w)) 'SUCCESSOR_CAPTURE_WATCHER_IDENTITY';$selected+=,$w
  }
  Need (@($selected|Select-Object -ExpandProperty pid -Unique).Count -eq 10) 'SUCCESSOR_CAPTURE_DISTINCT'
- $probes=@(ProbeAuxiliaries $inv);$aux=@(ConsoleAuxiliaries $inv @($selected+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
  $relevant=[Collections.Generic.HashSet[int]]::new();foreach($p in $selected){[void]$relevant.Add([int]$p.pid)}
  foreach($p in $inv.all){foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){[void]$relevant.Add([int]$p.ProcessId)}};if(IsWatcherCommand ([string]$p.CommandLine)){[void]$relevant.Add([int]$p.ProcessId)}}
  do{$added=$false;foreach($p in $inv.all){if($relevant.Contains([int]$p.ParentProcessId) -and $relevant.Add([int]$p.ProcessId)){$added=$true}}}while($added)

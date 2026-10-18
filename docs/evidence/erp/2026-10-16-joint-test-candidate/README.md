@@ -1,5 +1,23 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 18 Ekim 21:18 — PR54 gerçek Windows okuyucu farkları ve güvenli kurulum duruşu
+
+Eski iki gözetmenin19:04:51TR geç owner kararlılık kanıtı ve frozen motorun önceki zaman aşımı/QUARANTINED kayıtları birlikte korunur. Yeni uygulama adayı hâlâ ERP e59e07ab / supervisor13bdf75a / CRM6bc82e6; uygulamalar bu kaynak kontrol düzeltmeleri nedeniyle yeniden paketlenmedi.
+
+Kontrol kaynağı `6b62e1ddc02e9d2552638096315ffd9523e69053`: [PR CI39152931261](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39152931261) ve [push CI39152927873](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39152927873) SUCCESS. Kapanmış süreç hiçbir zaman SID/stop yetkisi kazanmaz: exact kaynak, native argv, tam canlı core kimliği, doğum, global CIM/kernel/descendant/listener yokluğu ve son tekrar kontrolü gerekir. Native WinPS5 hata kaydı gerçek `CimException/ObjectNotFound`, exact Invoke-CimMethod FQID ve generic CLR HRESULT taşır; serbest hata mesajı eşlemesi yapılmaz. Yalnız canonical Microsoft imzalı/hash-pinned Windows PowerShell hardlink'i desteklenir; Node/foreign hardlink, symlink ve source/private ACL sınırları korunur. OLD köklerin eşdeğer slash yazımı normalize edilir; her iki kökte reparse ve exact manifest SHA kontrolü kalır.
+
+NEW tam okuyucu,13b manifestindeki supervisor+probe dosyalarını ve gerçek11listener sözleşmesini doğrular: ERP API/CRM web/Hub için mevcut LAN+loopback; diğer servisler yalnız belirlenmiş loopback portları. Liste önerisi yalnız gerçek startup çağrısından sonra `CANDIDATE_PROPOSAL_ONLY` olabilir; claim/eski stop yetkisi değildir. İlk ve son bağımsız NEW30sn/fullraw/global/COM/XML/health/protected/source kanıtı ile gerçek Post51tablo karşılaştırması zorunlu kalır. Donmuş fe motoru değiştirilmez; yeni okuyucu kendi sonucunu frozen PreflightNew veya uygulama rollback PASS diye sunmaz.
+
+Gerçek readonly kanıtlar:
+
+- Collector geçerli eski owner ile birlikte kapanmış bir onaylı probe'u ayrı unverified audit olarak gözledi; sonraki katı reddi de gizlemedi. Private proof SHA256 `f074f5f9a74eb9145b2686e392251071a9bd806ad0f55605fb5734726c69158d`.
+- Aynı kaynakla iki ayrı tam admission claim yazma sınırına kadar PASS; claim oluşturma özel salt okunur probeda bilinçli durduruldu. Private proof SHA256 `95b0e05327afbedfc781e0850cf79493b528e221995b82410214e3db44d776a1`, runtimeMutation=false/claimWritten=false.
+- Son gerçek Apply `35a2131ba215e39d9632b4ae88a19978`, `SUCCESSOR_INSPECT / P03_SUCCESSOR_PROBE_RECAPTURE_EXHAUSTED` ile **STOPPED_BEFORE_START**. Claim yok; görev/uygulama stop/start yok; Post capture ve yeni GUI yok. İlk hatanın süresi46,554saniye. Kaynak kontrollü worker'ın CIM listesinden sonra yaptığı yavaş okumalar somut neden olarak ayrıldı; önceki kesin kabul ve kurtarma provaları yeniden başlatılmadı.
+
+Worker düzeltmesi `a3fdf440c98c80da7114363e786484f81230545fd5eaa1ccd0b2394730a3195f` kaynak dosyası SHA'sıdır. Global listener/COM önce, unfiltered CIM en son; geçici probe/console kimlikleri bütün satırları tutan en-yeni-doğum sırasıyla önce doğrulanır. Beklenen8+2pinler bu ön adımda yalnız parent lookup içindir; bütün10gerçekkimlik/COM/XML/protected/foreign/exactbinding kontrolleri geçmeden snapshot dönmez. Eski iki sıra da zaman fixture'ında expiry FAIL→yeni sıra PASS;14ham satır korunur, eksik/denied SID/parent/foreignargv/child/globalprobe listener negatifleri dahil13/13PASS ve bağımsız GO. Frozenfe/e8helper/Drain dispatcher değişmez; Drain çağrısı tekrar edilmez. Yeni exact CI ve gerçek kurulum sonucu ayrıca beklenecek.
+
+Private profile SHA256 `d950630fcce99238935b0a225092599b509197ca06dba2ea326cd40f95ca1754`, before `3d1fce9fe26756478ca696124b8cf796df83ccef9b06b8c78d051d5eeea19c5d`. Ham ticari veri/ayar/görsel/sır yayımlanmaz; özgün49/25 ve insan kabulü durumları değişmez. LIVE/Vega/gerçek T1/main yazısı yok.
+
 ## 18 Ekim — eski TEST kurtarıldı; zaman aşımı ayrı kanıtla korundu
 
 Gerçek frozen fe RollbackOld iki eski gözetmeni18:46:44TR başlattı; soğuk açılış beş dakika sınırını aştı ve gerçek ROLLBACK_FAILED/QUARANTINED eventleri korundu. Yeniden restart yapılmadı. Ayrı salt okunur gözlemci, aynı start/boş aday/sekiz event ham zincirini ve başarısız sonuç pinini doğrulayarak19:04:51TR'de8OLDrol+2COM/Runninggörev/sağlık+DB02 kimliğinde30sn kararlılık kanıtladı: LATE_OLD_OWNER_OBSERVED_READY, proofSHA84b19487e2485e925f5fd8dfc8ebe2ff0f9f44f91a7b41642d22b32c39ee353c. Bu, frozen motorun zaman aşımını PASS'e çevirmez. Eski konsolPIDleri yok; original kilitler/journal/ACLler korunur. Motorun oluşturduğu iki boş inherited lock yalnız sabit yol/emptySHA ve aynı protectedparent/current-owner+SYSTEM effective ACL ile okunur; ACL değiştirilmedi.

@@ -50,6 +50,64 @@ function ExpectRejected($name,[scriptblock]$action){try{& $action|Out-Null}catch
 ResetFixture
 `;
 const captureFunctions=()=>extract(['ConsoleAuxiliaries'],engine)+'\n'+extract(['AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','WorkerSamePin','SeedWorkerAdmission']);
+const timingFunctions=()=>captureFunctions()+'\n'+extract(['Identity','Tokens'],engine)+'\n'+extract(['Inventory'],engine,{Inventory:'LegacyInventory'})+'\n'+extract(['ProbeArgumentsAllowed','LatePrecutProbeAllowed','ProbeAuxiliaries'],recovery)+'\n'+extract(['Inventory']);
+const timingFixture=String.raw`
+function ResetTiming{
+ ResetFixture;$script:clock=0;$script:expiresAt=0;$script:trace=@();$script:sidReads=@();$script:sidMode='normal';$script:sidTarget=500;$script:expiryEnabled=$true;$script:protectedChecks=0
+ $script:ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
+ $script:probe=[pscustomobject]@{ProcessId=500;ParentProcessId=100;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=($profile.shell.path+' -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File C:\fixture\probe.ps1 -Ports 5234 -ProcessId 101');CreationDate=[DateTime]::Parse('2026-10-18T10:00:01Z').ToUniversalTime();OwnerSid=$owner}
+ $script:probeConsole=[pscustomobject]@{ProcessId=501;ParentProcessId=500;Name='conhost.exe';ExecutablePath='C:\Windows\System32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';CreationDate=$probe.CreationDate.AddTicks(1);OwnerSid=$owner}
+ $script:unrelated=[pscustomobject]@{ProcessId=9999;ParentProcessId=1;Name='other.exe';ExecutablePath='C:\other\other.exe';CommandLine='unrelated';CreationDate=[DateTime]::Parse('2026-10-18T08:00:00Z').ToUniversalTime();OwnerSid='other'}
+ $script:inv.all+=@($probe,$probeConsole,$unrelated)
+ $script:folder|Add-Member ScriptMethod GetTask {param($name);$script:clock+=2;$script:trace+=,('XML-'+$name);[pscustomobject]@{State=$script:taskState;Xml='old'}} -Force
+ $script:schedule=[pscustomobject]@{};$schedule|Add-Member ScriptMethod GetRunningTasks {param($flags);if($flags-ne1){throw 'FIXTURE_COM_FLAGS'};$script:clock+=10;$script:trace+=,'COM';$runs=[pscustomobject]@{Count=$script:inv.instances.Count};$runs|Add-Member ScriptMethod Item {param($index);return $script:inv.instances[$index-1]};return $runs}
+}
+function Get-NetTCPConnection{param($State,$ErrorAction);if($State-cne'Listen'-or$ErrorAction-cne'Stop'){throw 'FIXTURE_NET_SCOPE'};$script:clock+=10;$script:trace+=,'NET';return $script:inv.allListeners}
+function Get-CimInstance{param($ClassName,$Filter,$ErrorAction)
+ if($ClassName-cne'Win32_Process'-or$ErrorAction-cne'Stop'){throw 'FIXTURE_CIM_SCOPE'}
+ if($Filter){if($Filter-cne'ProcessId=500'){throw 'FIXTURE_FILTER_SCOPE'};if($script:expiryEnabled-and$script:clock-gt$script:expiresAt){return @()};return @($script:inv.all|Where-Object{$_.ProcessId-eq500})}
+ $script:trace+=,'CIM';$script:expiresAt=$script:clock+4;return $script:inv.all
+}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction)
+ if($MethodName-cne'GetOwnerSid'-or$ErrorAction-cne'Stop'){throw 'FIXTURE_SID_SCOPE'}
+ $script:clock++;$script:sidReads+=,[int]$InputObject.ProcessId;$script:trace+=,('SID-'+$InputObject.ProcessId)
+ if($script:expiryEnabled-and$InputObject.ProcessId-in@(500,501)-and$script:clock-gt$script:expiresAt){throw 'FIXTURE_PROBE_EXPIRED'}
+ if($InputObject.ProcessId-eq$script:sidTarget){if($script:sidMode-ceq'missing'){return [pscustomobject]@{ReturnValue=0;Sid=$null}};if($script:sidMode-ceq'denied'){return [pscustomobject]@{ReturnValue=2;Sid=$null}}}
+ return [pscustomobject]@{ReturnValue=0;Sid=$InputObject.OwnerSid}
+}
+function ProtectedProcesses($inventory){$script:clock+=2;$script:protectedChecks++}
+ResetTiming
+`;
+
+test('actual PS5 worker collects CIM last and authenticates ephemeral probe/console before full admission; both old delays fail',windows,()=>{
+ const out=run(`${fixture}\n${timingFunctions()}\n${timingFixture}\n${String.raw`
+$newInventory=(Get-Command Inventory).Definition
+$newCapture=(Get-Command CaptureWorkerAdmissionCore).Definition
+$start=$newCapture.IndexOf(' $expectedParents=@(');$end=$newCapture.IndexOf(' ProtectedProcesses $inv',$start)
+if($start-lt0-or$end-le$start){throw 'FIXTURE_CAPTURE_PHASE'}
+$legacyCapture=$newCapture.Remove($start,$end-$start)
+# Literal source marker: do not expand fixture's selected variable here.
+$marker=' Need (@($selected|Select-Object -ExpandProperty pid -Unique).Count -eq 10) ''SUCCESSOR_CAPTURE_DISTINCT'''
+$legacyCapture=$legacyCapture.Replace($marker,$marker+[Environment]::NewLine+' $probes=@(ProbeAuxiliaries $inv);$aux=@(ConsoleAuxiliaries $inv @($selected+$probes));$aux+=@($probes|ForEach-Object{$_.pid})')
+if($legacyCapture-ceq$newCapture-or-not$legacyCapture.Contains('ProbeAuxiliaries $inv')){throw 'FIXTURE_LEGACY_BODY'}
+. ([scriptblock]::Create('function Inventory{'+(Get-Command LegacyInventory).Definition+'}'))
+ExpectRejected 'CIM-before-slow-reads' {CaptureWorkerAdmissionCore}
+ResetTiming;. ([scriptblock]::Create('function Inventory{'+$newInventory+'}'));. ([scriptblock]::Create('function LegacyCapture{'+$legacyCapture+'}'))
+ExpectRejected 'stable-UIDs-before-probes' {LegacyCapture}
+ResetTiming;$snapshot=CaptureWorkerAdmissionCore
+'APPS='+$snapshot.oldIdentities.Count;'WATCHERS='+$snapshot.oldWatchers.Count;'PROBES='+$snapshot.probePins.Count;'CONSOLES='+$snapshot.consolePins.Count;'PROTECTED='+$protectedChecks;'WRITES='+$writes.Count
+'SID_ORDER='+($sidReads-join',');'TRACE='+($trace-join',')
+$frame=Inventory;'FIELDS='+(@($frame.PSObject.Properties.Name|Sort-Object)-join',');'ALL='+$frame.all.Count;'UNRELATED='+@($frame.all|Where-Object{$_.ProcessId-eq9999}).Count
+`}`);
+ for(const name of ['CIM-before-slow-reads','stable-UIDs-before-probes'])assert.match(out,new RegExp('REJECTED='+name));
+ assert.match(out,/APPS=8/);assert.match(out,/WATCHERS=2/);assert.match(out,/PROBES=1/);assert.match(out,/CONSOLES=2/);assert.match(out,/PROTECTED=1/);assert.match(out,/WRITES=0/);assert.match(out,/SID_ORDER=100,500,500,501,/);assert.match(out,/TRACE=NET,COM,CIM,SID-100,SID-500,SID-500,SID-501,/);assert.match(out,/FIELDS=all,allListeners,instances,listeners/);assert.match(out,/ALL=14/);assert.match(out,/UNRELATED=1/);
+});
+
+test('early ephemeral authentication retains full ten SID checks, strict parent, global listeners and foreign-descendant rejection',windows,()=>{
+ const edits=[['missing-probe-SID',"$script:sidMode='missing'"],['denied-probe-SID',"$script:sidMode='denied'"],['missing-old-SID',"$script:sidMode='missing';$script:sidTarget=107"],['denied-watcher-SID',"$script:sidMode='denied';$script:sidTarget=11"],['probe-parent',"$probe.ParentProcessId=9999"],['parent-SID',"$inv.all[0].OwnerSid='foreign'"],['foreign-argv',"$probe.CommandLine+=' -Write'"],['unknown-listener',"$inv.allListeners=@([pscustomobject]@{LocalPort=4184;LocalAddress='127.0.0.1';OwningProcess=9999})"],['probe-global-listener',"$inv.allListeners=@([pscustomobject]@{LocalPort=65000;LocalAddress='127.0.0.1';OwningProcess=500})"],['foreign-child',"$foreign=ProcessFor $before.identities.hub;$foreign.ProcessId=777;$foreign.ParentProcessId=100;$foreign.CommandLine='foreign';$inv.all+=,$foreign"]];
+ const out=run(`${fixture}\n${timingFunctions()}\n${timingFixture}\n${edits.map(([name,edit])=>`ResetTiming;$script:expiryEnabled=$false;${edit};ExpectRejected '${name}' {CaptureWorkerAdmissionCore}`).join('\n')}`);
+ for(const [name]of edits)assert.match(out,new RegExp('REJECTED='+name));
+});
 test('worker source uses pinned AST functions without dispatch, exact claim/intent and only two CreateNew witnesses',()=>{
  const s=readFileSync(source,'utf8');
  assert.match(s,/ValidateSet\('Inspect','Capture','Drain'\)/);assert.match(s,/Mode='Capture'/);assert.match(s,/ReadWorkerPin \$RecoveryHelperPath \$RecoveryHelperSha256/);
