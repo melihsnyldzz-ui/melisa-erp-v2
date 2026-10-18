@@ -17,7 +17,7 @@ function main(){
  const mode=parseP03RehearsalMode(process.argv.slice(2));if(process.platform!=='win32')throw Error('P03_REHEARSAL_PLATFORM');
  const directory=path.dirname(fileURLToPath(import.meta.url)),request=p03RehearsalSourceRequest(directory,mode);
  const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(directory,'p03-rehearsal-driver.ps1'),'-Mode',mode],{input:JSON.stringify(request),encoding:'utf8',windowsHide:true,timeout:mode==='Run'?600000:60000,maxBuffer:65536,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
- if(child.status!==0||child.error){const codes=String(child.stderr??'').match(/\bP03_[A-Z_]+\b/g)??[];process.stderr.write(JSON.stringify({status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:codes.at(-1)??'P03_REHEARSAL_EXECUTION_REJECTED'})+'\n');process.exitCode=1;return;}
+ if(child.status!==0||child.error){const stderr=String(child.stderr??''),codes=stderr.match(/\bP03_[A-Z_]+\b/g)??[];process.stderr.write(JSON.stringify({status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:codes.at(-1)??'P03_REHEARSAL_EXECUTION_REJECTED',errorType:stderr.match(/\bTYPE_(MethodInvocationException|RuntimeException|UnauthorizedAccessException|IOException|OtherException)\b/)?.[1]??'OtherException',method:stderr.match(/\bMETHOD_(Invoke|InvokeMethod|CreateDirectory|Write|Flush|AddAccessRule|SetOwner|CheckActionPreference|UnknownMethod)\b/)?.[1]??'UnknownMethod'})+'\n');process.exitCode=1;return;}
  const result=JSON.parse(child.stdout);if(!['DRY_RUN_READY','REHEARSAL_ROLLBACK_READY'].includes(result.status))throw Error('P03_REHEARSAL_RESULT');
  process.stdout.write(JSON.stringify(result,null,2)+'\n');
 }

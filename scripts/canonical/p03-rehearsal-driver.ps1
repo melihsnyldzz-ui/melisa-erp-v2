@@ -1,7 +1,7 @@
 param([ValidateSet('DryRun','Run')][string]$Mode='DryRun')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-trap{if([string]$_.Exception.Message-cmatch'\AP03_[A-Z_]+\z'){[Console]::Error.WriteLine([string]$_.Exception.Message)}else{[Console]::Error.WriteLine('P03_REHEARSAL_EXECUTION_REJECTED')};exit 1}
+trap{$kind=$_.Exception.GetType().Name;if($kind-cnotin@('MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException')){$kind='OtherException'};$site=$_.Exception.TargetSite;$method=if($null-ne$site){$site.Name}else{'UnknownMethod'};if($method-cnotin@('Invoke','InvokeMethod','CreateDirectory','Write','Flush','AddAccessRule','SetOwner','CheckActionPreference')){$method='UnknownMethod'};$code=if([string]$_.Exception.Message-cmatch'\AP03_[A-Z_]+\z'){[string]$_.Exception.Message}else{'P03_REHEARSAL_EXECUTION_REJECTED'};[Console]::Error.WriteLine(($code+' TYPE_'+$kind+' METHOD_'+$method));exit 1}
 foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop}
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $root='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018'
@@ -22,12 +22,12 @@ function Bytes($v){,[Text.UTF8Encoding]::new($false).GetBytes(($v|ConvertTo-Json
 function NoReparse([string]$p){for($q=$p;$q;$q=[IO.Path]::GetDirectoryName($q)){if(Test-Path -LiteralPath $q){Need (((Get-Item -LiteralPath $q -Force).Attributes-band[IO.FileAttributes]::ReparsePoint)-eq0) 'REPARSE'}}}
 function FileSecurity{
  $s=[Security.AccessControl.FileSecurity]::new();$s.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$s.SetAccessRuleProtection($true,$false)
- foreach($sid in @($owner,'S-1-5-18')){$s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','Allow'))};return $s
+ foreach($sid in @($owner,'S-1-5-18')){$s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','Allow'))};return $s
 }
 function DirectoryNew([string]$p){
  NoReparse $p;Need (-not(Test-Path -LiteralPath $p)) 'DIRECTORY_EXISTS'
  $s=[Security.AccessControl.DirectorySecurity]::new();$s.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$s.SetAccessRuleProtection($true,$false)
- foreach($sid in @($owner,'S-1-5-18')){$s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
+ foreach($sid in @($owner,'S-1-5-18')){$s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
  [void][IO.Directory]::CreateDirectory($p,$s)
 }
 function WriteNew([string]$p,[byte[]]$bytes){
