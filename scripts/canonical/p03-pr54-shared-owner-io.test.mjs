@@ -11,7 +11,15 @@ import {p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
 import {assertPr54WriteScope,pr54ProtectedWriteProgram} from './p03-pr54-shared-owner-io.mjs';
 import {pr54SafeFailure,pr54StopObservationSummary} from './p03-pr54-shared-owner-io.mjs';
 import {diagnosePr54PausedOld} from './p03-pr54-shared-owner-io.mjs';
+import {proposePr54CandidateProcesses} from './p03-pr54-shared-owner-io.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+test('role proposal cannot admit unknown monitor/startup processes or duplicate identities',()=>{
+ const profile={protectedProcesses:[],candidateRules:[{role:'coreSupervisor',nodePath:'C:\\node.exe',commandLine:'node core'}]},known={pid:10,nodePath:'C:\\node.exe',commandLine:'node core'},unknown={pid:11,parentPid:10,nodePath:'C:\\Windows\\powershell.exe',commandLine:'unproved startup'};
+ const seen={processes:[known,unknown],bindings:[]},prior=structuredClone(seen);
+ assert.deepEqual(proposePr54CandidateProcesses(seen,profile).map(p=>p.pid),[10]);assert.deepEqual(seen,prior);assert.throws(()=>selectPr54CandidateProcesses(seen,profile));
+ assert.throws(()=>proposePr54CandidateProcesses({processes:[known,{...known,pid:12}]},profile));
+ const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/proof\.status==='NEW_OWNER_OBSERVED_READY'/);assert.match(source,/proof\.sourceProof\?\.supervisorSourceCommit===before\.profile\.supervisorSource/);assert.match(source,/observeNewOwner\(capture\.ref,'new-owner-readback-initial\.json'\)/);assert.match(source,/observeNewOwner\(final\.ref,'new-owner-readback-final\.json'\)/);
+});
 test('successor IO finite claim scope requires explicit fixed admission and preserves legacy global lock',()=>{
  const root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018',dir=root+'\\MelisaERP-P03-transition-'+'a'.repeat(32),global=root+'\\p03-pr54-shared-owner.lock.json';
  assert.throws(()=>assertPr54WriteScope(PR54_SUCCESSOR_CLAIM_PATH,dir,global));assert.doesNotThrow(()=>assertPr54WriteScope(PR54_SUCCESSOR_CLAIM_PATH,dir,global,PR54_SUCCESSOR_CLAIM_PATH));

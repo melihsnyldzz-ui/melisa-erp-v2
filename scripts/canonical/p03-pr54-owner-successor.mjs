@@ -23,6 +23,8 @@ export const PR54_PREDECESSOR_REFS=Object.freeze({
  originalConsoleCut:fixed('paused-old-console-core-cut-observation.json','cd086021c17e6b15a3abead8fc328782a5d5a378b29e82abc95153aa8b247be0'),
  originalConsoleCompleted:fixed('paused-old-console-core-cut-completed.json','c89baea866c1f7610f230eff18a866e2f689196833ddd16888e36072b322a1a0'),
  originalConsoleFailure:fixed('paused-old-console-recovery-failed.json','62c0f948119081e250e6cc62626c39e9f9f834bd4950c99d6c47d09c955df26b'),
+ resumeIntent:fixed('paused-old-console-resume-intent.json','1a1df3dd63acb1b77834b61df9a17b71b04fb44c942ec092ac35c8ffc9f89bbd'),
+ resumeFailure:fixed('paused-old-console-resume-failed.json','ad72bbabfe2a69033ad4ea3772fc2c0a9288989b24e5fba9ac673db82f8fadb0'),
  engine:fixed('p03-physical-rollback.ps1',PR54_REHEARSED_ENGINE_SHA),
 });
 const owner='S-1-5-21-2170750028-1005938530-2568122015-1001';
@@ -45,15 +47,15 @@ const bytesOf=row=>{check(row?.bytes instanceof Uint8Array&&ref(row.ref)&&hash(r
 export function pr54OwnerSuccessorRefs(predecessorRef){
  check(exact(predecessorRef,['recoveryResult','candidate','consoleIntent','consoleCut','recoveryTail']));
  for(const value of Object.values(predecessorRef))check(ref(value));
- check(predecessorRef.recoveryResult.path===PR54_PREDECESSOR_TRANSITION+'\\paused-old-console-resume-result.json');
- check(predecessorRef.consoleIntent.path===PR54_PREDECESSOR_TRANSITION+'\\paused-old-console-resume-intent.json');
+ check(predecessorRef.recoveryResult.path===PR54_PREDECESSOR_TRANSITION+'\\late-old-owner-observed-ready.json');
+ check(same(predecessorRef.consoleIntent,PR54_PREDECESSOR_REFS.resumeIntent));
  check(predecessorRef.consoleCut.path===PR54_PREDECESSOR_TRANSITION+'\\paused-old-console-core-cut-observation.json');
  check(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-[a-f0-9]{32}\.json$/.test(predecessorRef.candidate.path));
- check(predecessorRef.recoveryTail.path===PR54_PREDECESSOR_JOURNAL+'\\event-0006.json');
+ check(predecessorRef.recoveryTail.path===PR54_PREDECESSOR_JOURNAL+'\\event-0007.json'&&predecessorRef.recoveryTail.sha256==='6f7f5b31e418f0d98499b77b85120239efee7ae54cfb10c7b6a6d3fc8e9c07a3');
  return {...PR54_PREDECESSOR_REFS,...predecessorRef};
 }
 function proveRecovery({refs,previous,raw}){
- check(exact(previous,['globalLock','transitionLock','profile','before','event0','event1','priorIntent','priorFailure','originalConsoleIntent','originalConsoleCut','originalConsoleCompleted','originalConsoleFailure']));
+ check(exact(previous,['globalLock','transitionLock','profile','before','event0','event1','priorIntent','priorFailure','originalConsoleIntent','originalConsoleCut','originalConsoleCompleted','originalConsoleFailure','resumeIntent','resumeFailure']));
  const oldProfile=previous.profile,oldBefore=previous.before;
  for(const lock of [previous.globalLock,previous.transitionLock])check(same(lock.profileRef,refs.profile)&&same(lock.beforeRef,refs.before));
  check(previous.globalLock.transitionDirectory===PR54_PREDECESSOR_TRANSITION);
@@ -68,26 +70,30 @@ function proveRecovery({refs,previous,raw}){
  check(completed.event==='PAUSED_OLD_CORE_CUT_COMPLETED'&&identity(completed.core,oldBefore.identities.coreSupervisor)&&completed.heldProcessHandle===true&&completed.processAbsent===true&&time(completed.windowOpenedAt)&&time(completed.cutCompletedAt)&&Date.parse(completed.windowOpenedAt)>=Date.parse(originalIntent.observedAt)&&Date.parse(originalCut.observedAt)>=Date.parse(completed.windowOpenedAt)&&Date.parse(completed.cutCompletedAt)>=Date.parse(originalCut.observedAt));
  check(exact(originalFailure,['exceptionType','sourceLine','code'])&&typeof originalFailure.exceptionType==='string'&&originalFailure.exceptionType.length>0&&Number.isSafeInteger(originalFailure.sourceLine)&&originalFailure.sourceLine>=0&&originalFailure.sourceLine<=10000&&originalFailure.code==='P03_PHYSICAL_PAUSED_REMAINING_IDENTITY');
  const result=bytesOf(raw.recoveryResult),candidate=bytesOf(raw.candidate),intent=bytesOf(raw.consoleIntent),cut=bytesOf(raw.consoleCut);
+ check(same(intent,previous.resumeIntent));
  for(const key of ['recoveryResult','candidate','consoleIntent','consoleCut'])check(same(raw[key].ref,refs[key]));
- check(exact(result,['status','engineSha256','candidateSha256','recoveryTailSha256','stableSeconds','newGenerationStarted','locksRetained'])&&result.status==='PAUSED_OLD_RESTORED_READY'&&result.engineSha256===PR54_REHEARSED_ENGINE_SHA&&result.candidateSha256===refs.candidate.sha256&&result.recoveryTailSha256===refs.recoveryTail.sha256&&Number.isFinite(result.stableSeconds)&&result.stableSeconds>=30&&result.newGenerationStarted===false&&result.locksRetained===true);
+ check(exact(result,['status','profileSha256','beforeSha256','engineSha256','candidateSha256','recoveryTailSha256','startedAt','observedAt','stableSeconds','identityDigest','engineOutcome','newGenerationStarted','mutationExecuted','locksRetained'])&&result.status==='LATE_OLD_OWNER_OBSERVED_READY'&&result.profileSha256===refs.profile.sha256&&result.beforeSha256===refs.before.sha256&&result.engineSha256===PR54_REHEARSED_ENGINE_SHA&&result.candidateSha256===refs.candidate.sha256&&result.recoveryTailSha256===refs.recoveryTail.sha256&&Number.isFinite(result.stableSeconds)&&result.stableSeconds>=30&&sha(result.identityDigest)&&time(result.startedAt)&&time(result.observedAt)&&result.engineOutcome==='ROLLBACK_READBACK_FAILED'&&result.newGenerationStarted===false&&result.mutationExecuted===false&&result.locksRetained===true);
  check(candidate.schemaVersion==='melisa-p03-physical-candidate.v1'&&candidate.profileSha256===refs.profile.sha256&&candidate.beforeSha256===refs.before.sha256&&time(candidate.observedAt)&&Array.isArray(candidate.processes)&&candidate.processes.length===0&&Array.isArray(candidate.receipts)&&candidate.receipts.length===0);
  for(const row of [intent,cut])check(row.profileSha256===refs.profile.sha256&&row.beforeSha256===refs.before.sha256&&row.engineSha256===PR54_REHEARSED_ENGINE_SHA&&time(row.observedAt));
  check(intentHeader(intent)&&Date.parse(intent.observedAt)>=Date.parse(completed.cutCompletedAt));
  // The original cut predates the resumed attempt. Both reads refer to the
  // same immutable fixed file; IO pins its cd086... bytes before this function.
  check(same(cut,originalCut)&&Date.parse(intent.observedAt)>=Date.parse(cut.observedAt)&&Date.parse(candidate.observedAt)>=Date.parse(intent.observedAt));
- const expected=['RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_COMPLETE','ROLLBACK_START_INTENT','ROLLBACK_STARTED','RESTORED_READY'];
+ const expected=['RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_COMPLETE','ROLLBACK_START_INTENT','ROLLBACK_STARTED','ROLLBACK_FAILED','QUARANTINED'];
  check(Array.isArray(raw.journal)&&raw.journal.length===expected.length);
  let previousSha=refs.before.sha256,previousTime=Date.parse(candidate.observedAt);const records=[];
  for(const [n,row]of raw.journal.entries()){
   check(ref(row.ref)&&row.ref.path===PR54_PREDECESSOR_JOURNAL+'\\event-'+String(n).padStart(4,'0')+'.json');
   const record=bytesOf(row);
   // These are the exact fields emitted by the unchanged fe engine Append().
-  check(exact(record,['sequence','previousSha256','profileSha256','beforeSha256','event','observedAt'])&&record.sequence===n&&record.previousSha256===previousSha&&record.profileSha256===refs.profile.sha256&&record.beforeSha256===refs.before.sha256&&record.event===expected[n]&&time(record.observedAt)&&Date.parse(record.observedAt)>=previousTime);
+  check(exact(record,['sequence','previousSha256','profileSha256','beforeSha256','event','observedAt',...(n===6?['failure']:[])])&&record.sequence===n&&record.previousSha256===previousSha&&record.profileSha256===refs.profile.sha256&&record.beforeSha256===refs.before.sha256&&record.event===expected[n]&&time(record.observedAt)&&Date.parse(record.observedAt)>=previousTime);
+  if(n===6)check(exact(record.failure,['exceptionType','sourceLine','code'])&&record.failure.exceptionType==='System.Management.Automation.RuntimeException'&&record.failure.sourceLine===29&&record.failure.code==='P03_PHYSICAL_ROLLBACK_READBACK_FAILED'&&same(record.failure,previous.resumeFailure));
   previousSha=row.ref.sha256;previousTime=Date.parse(record.observedAt);records.push(record);
  }
- check(same(raw.journal.at(-1).ref,refs.recoveryTail)&&previousSha===result.recoveryTailSha256&&Date.parse(records[6].observedAt)-Date.parse(records[4].observedAt)>=30000);
- return {oldProfile,oldBefore,restoredAt:records[6].observedAt,startedAt:records[4].observedAt};
+ check(same(raw.journal.at(-1).ref,refs.recoveryTail)&&previousSha===result.recoveryTailSha256&&result.startedAt===records[4].observedAt&&Date.parse(result.observedAt)-Date.parse(records[7].observedAt)>=30000);
+ // The frozen engine remains failed/quarantined. Only this separately pinned,
+ // read-only observation proves the OLD owner subsequently became stable.
+ return {oldProfile,oldBefore,restoredAt:result.observedAt,startedAt:records[4].observedAt};
 }
 export function admitPr54OwnerSuccessor({predecessorRef,previous,raw,profileRef,beforeRef,profile,before,current,now=Date.now()}){
  const refs=pr54OwnerSuccessorRefs(predecessorRef),{oldProfile,oldBefore,restoredAt,startedAt}=proveRecovery({refs,previous,raw});

@@ -1,5 +1,12 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 18 Ekim — eski TEST kurtarıldı; zaman aşımı ayrı kanıtla korundu
+
+Gerçek frozen fe RollbackOld iki eski gözetmeni18:46:44TR başlattı; soğuk açılış beş dakika sınırını aştı ve gerçek ROLLBACK_FAILED/QUARANTINED eventleri korundu. Yeniden restart yapılmadı. Ayrı salt okunur gözlemci, aynı start/boş aday/sekiz event ham zincirini ve başarısız sonuç pinini doğrulayarak19:04:51TR'de8OLDrol+2COM/Runninggörev/sağlık+DB02 kimliğinde30sn kararlılık kanıtladı: LATE_OLD_OWNER_OBSERVED_READY, proofSHA84b19487e2485e925f5fd8dfc8ebe2ff0f9f44f91a7b41642d22b32c39ee353c. Bu, frozen motorun zaman aşımını PASS'e çevirmez. Eski konsolPIDleri yok; original kilitler/journal/ACLler korunur. Motorun oluşturduğu iki boş inherited lock yalnız sabit yol/emptySHA ve aynı protectedparent/current-owner+SYSTEM effective ACL ile okunur; ACL değiştirilmedi.
+
+Yeni aday henüz kurulmadı. Son kontrol kaynağı, yalnız pinned13b source/core kimliğine bağlı portsuz ve çocuksuz readonly probe'ları ayrı politika ile doğrular; frozen NewFullOwner/Health/COM/NEWXML/rol-port kontrolleri korunur, diğer süreçler filtrelenmez. NEW_OWNER_OBSERVED_READY, frozen PreflightNew sonucu diye sunulmaz.14 successor/8 late/11 new-observer Windows veya offline hedefleri ve root31 IO testi PASS; bağımsız source GO. İlk/son gerçek yeni gözlem ve Post51tablo kıyası Apply'da zorunlu; insan kabulü bekler. Yabancı/kanıtsız kısmi durumda güvenli quarantine korunur; otomatik restore bütün kesintiler için garanti değildir.
+
+
 ## 18 Ekim — gerçek core cut sonrası dar resume ve successor hazırlığı
 
 Core49908 exact stopper ile kapandıktan sonra bağlı altı Node child doğal çıktı. İlk gerçek attempt, remaining identity beklentisinde durdu; olay kayıtları korunur. Dört ek SHA pinli orijinal attempt dosyasını kullanan ayrı ResumeCoreCut yolu yalnız küresel envanterde yokluğu kanıtlı captured PID'leri atlar; yaşayan Hub tam kimlikle durdurulur, PID reuse/yabancı descendant reddedilir. Resume dry-run8/7/1 ve27 Windows test PASS, bağımsız GO; f824ec98 exact PR/push CI SUCCESS. Gerçek frozen fe StopNew eski action'ları geri yükledi; RollbackOld/30sn sonucu ve yeni aday kurulumu henüz tamamlanmadı.
