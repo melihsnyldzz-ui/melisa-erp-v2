@@ -297,6 +297,34 @@ function SupervisorParent($evidence,$expected,$inventory){
   Need ($receipt.pid -eq $child.pid -and $receipt.parentPid -eq $expected.pid -and [DateTime]::Parse($receipt.parentCreationTime).ToUniversalTime().Ticks -eq [DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks) 'SUPERVISOR_SHARED_PARENT_RECEIPT'
  }
 }
+function ConsoleAuxiliaries($inventory,$selected){
+ if(-not (Get-Variable consolePins -Scope Script -ErrorAction SilentlyContinue)){$script:consolePins=@{}}
+ $allowed=@();$binary='C:\Windows\System32\conhost.exe'
+ foreach($p in $inventory.all){
+  $parents=@($selected|Where-Object{$_.pid -eq $p.ParentProcessId})
+  $known=$script:consolePins.ContainsKey([int]$p.ProcessId)
+  if(-not $known -and ($parents.Count -ne 1 -or $p.Name -ine 'conhost.exe')){continue}
+  Need ($parents.Count -eq 1 -or ($known -and $script:tasksStopRequested)) 'CONSOLE_PARENT'
+  if($known){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_CHANGED'}else{
+   Need (-not $script:tasksStopRequested) 'CONSOLE_NEW_AFTER_STOP'
+   $parent=$parents[0];$actualParent=@($inventory.all|Where-Object{$_.ProcessId -eq $parent.pid})
+   Need ($actualParent.Count -eq 1 -and (Identity $actualParent[0] $parent)) 'CONSOLE_PARENT_IDENTITY'
+   Need ($p.ExecutablePath -ieq $binary -and $p.CommandLine -ieq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and $p.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($parent.creationTime).ToUniversalTime()) 'CONSOLE_SOURCE'
+   NoReparse $binary;Need ((Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq 'c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac') 'CONSOLE_BINARY'
+   $signature=Get-AuthenticodeSignature -LiteralPath $binary;Need ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -ceq 'CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US') 'CONSOLE_SIGNATURE'
+   $pin=[pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$binary;ownerSid=$parent.ownerSid;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o')}
+   Need (Identity $p $pin) 'CONSOLE_OWNER';$script:consolePins[[int]$p.ProcessId]=$pin
+  }
+  Need (@($inventory.allListeners|Where-Object{$_.OwningProcess -eq $p.ProcessId}).Count -eq 0) 'CONSOLE_LISTENER'
+  $allowed+=,[int]$p.ProcessId
+ }
+ return $allowed
+}
+function WaitConsoleAbsence{
+ $until=[DateTime]::UtcNow.AddSeconds(15)
+ do{$current=Inventory;$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
+ Need $false 'CONSOLE_NOT_ABSENT'
+}
 function CandidateInventory($evidence){
  $inventory=Inventory;ProtectedProcesses $inventory
  Need (@($profile.oldWatchers).Count -eq 2) 'OLD_WATCHER_PINS'
@@ -360,6 +388,7 @@ function CandidateInventory($evidence){
   $selected+=,$expected;$seen+=$expected.role
  }
  foreach($listener in $inventory.listeners){Need (@($selected|Where-Object{$_.pid -eq $listener.OwningProcess -and @($_.bindings|Where-Object{$_.port -eq $listener.LocalPort -and $_.address -ceq $listener.LocalAddress}).Count -eq 1}).Count -eq 1) 'FOREIGN_LISTENER'}
+ $auxiliaryPids=@(ConsoleAuxiliaries $inventory $selected)
  $relevantPids=[Collections.Generic.HashSet[int]]::new()
  foreach($p in $inventory.all){
   $relevant=$p.ProcessId -in $oldPids -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or (IsWatcherCommand ([string]$p.CommandLine))
@@ -367,7 +396,7 @@ function CandidateInventory($evidence){
   if($relevant){[void]$relevantPids.Add([int]$p.ProcessId)}
  }
  do{$added=$false;foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ParentProcessId) -and $relevantPids.Add([int]$p.ProcessId)){$added=$true}}}while($added)
- foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ProcessId)){Need (@($selected|Where-Object{$_.pid -eq $p.ProcessId}).Count -eq 1) 'FOREIGN_PROCESS'}}
+ foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ProcessId)){Need (@($selected|Where-Object{$_.pid -eq $p.ProcessId}).Count -eq 1 -or $p.ProcessId -in $auxiliaryPids) 'FOREIGN_PROCESS'}}
  return [pscustomobject]@{inventory=$inventory;selected=$selected}
 }
 function Health($expectedOwners,[ValidateSet('old','new')][string]$generation='old'){
@@ -592,6 +621,7 @@ if($Mode -ceq 'StopNew'){
    $after=Inventory;Need (@($after.all|Where-Object{$_.ProcessId -eq $row[0].pid}).Count -eq 0) 'EXACT_STOP_NOT_ABSENT';ProtectedProcesses $after
    Append 'RECOVERY_EXACT_STOPPED' $row[0].pid
   }
+  WaitConsoleAbsence
   AssertEmpty (Inventory);TaskPhase 'new'
   Append 'RECOVERY_OLD_ACTION_RESTORE_INTENT'
   foreach($entry in $profile.tasks){

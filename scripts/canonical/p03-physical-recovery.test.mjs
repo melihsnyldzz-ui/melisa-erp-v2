@@ -68,6 +68,7 @@ function candidateHarness(foreign,oldPid=false,protectedPid=false){
  const harness=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
  function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
  function ProtectedProcesses($inventory){}
+ function ConsoleAuxiliaries($inventory,$selected){return @()}
  $owner='S-1-5-21-test';$isRehearsal=$false;$profile=[pscustomobject]@{oldWatchers=@([pscustomobject]@{pid=1},[pscustomobject]@{pid=2});candidateRules=@();packages=@();protectedProcesses=@([pscustomobject]@{kind='ProtectedSqlService';pid=6180})}
  $before=[pscustomobject]@{identities=[pscustomobject]@{}}
  $evidence=[pscustomobject]@{processes=@(${protectedPid?"[pscustomobject]@{pid=6180;role='erpNative';ownerSid='S-1-5-21-test'}":oldPid?"[pscustomobject]@{pid=1;role='coreSupervisor';ownerSid='S-1-5-21-test'}":""});receipts=@()}
@@ -202,3 +203,21 @@ test('CRM manifest source uses its explicit v1 TEST repository schema rather tha
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});
  assert.match(out,/439b63db8376a6b9d3ac8baa625ed98367022623/);assert.match(out,/CRM_MANIFEST_SCHEMA/);assert.match(out,/MANIFEST_SOURCE_SCHEMA/);
 });
+
+test('console auxiliaries require exact signed binary, selected parent and zero listeners',windows,()=>{
+ const src=readFileSync(rollback,'utf8');const fn=src.slice(src.indexOf('function ConsoleAuxiliaries('),src.indexOf('function WaitConsoleAbsence'));
+ const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ function Need($c,$code){if(-not $c){throw ('P03_PHYSICAL_'+$code)}}
+ function Identity($a,$e){return $true};function NoReparse($p){}
+ function Get-FileHash{param($LiteralPath,$Algorithm);[pscustomobject]@{Hash='c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac'}}
+ function Get-AuthenticodeSignature{param($LiteralPath);[pscustomobject]@{Status='Valid';SignerCertificate=[pscustomobject]@{Subject='CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'}}}
+ ${fn}
+ $script:tasksStopRequested=$false;$parent=[pscustomobject]@{pid=10;ownerSid='fixture';creationTime='2026-10-18T00:00:00Z'}
+ $child=[pscustomobject]@{ProcessId=11;ParentProcessId=10;Name='conhost.exe';ExecutablePath='C:\\Windows\\System32\\conhost.exe';CommandLine='\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4';CreationDate=[DateTime]::Parse('2026-10-18T00:00:01Z')}
+ $inv=[pscustomobject]@{all=@([pscustomobject]@{ProcessId=10;ParentProcessId=1;Name='node.exe'},$child);allListeners=@()}
+ ConsoleAuxiliaries $inv @($parent)
+ $inv.allListeners=@([pscustomobject]@{OwningProcess=11});try{ConsoleAuxiliaries $inv @($parent)}catch{$_.Exception.Message}
+ $script:consolePins=@{};$inv.allListeners=@();$child.CommandLine+=' arbitrary';try{ConsoleAuxiliaries $inv @($parent)}catch{$_.Exception.Message}`;
+ const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/11/);assert.match(out,/CONSOLE_LISTENER/);assert.match(out,/CONSOLE_SOURCE/);
+});
+
