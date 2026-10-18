@@ -1,5 +1,29 @@
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
+18 Ekim — P03 kısmi başlangıç aday kimliği saf kaynak `7d2d05f`, 9 test, bağımsız koşullu GO ve exact push/PR CI SUCCESS; yabancı/önceki PID ve Hub/COM/port sapmaları reddedilir, `stopPermitted:false`. Gerçek filtresiz OS gözlemi, kısmi kurtarma ve kurulum yok; P03 🟡/özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+18 Ekim — P03 ERP1a/CRM6bc/supervisorba65/e442 yeni OS callback v3 kaynağı `3e26eaf` 18 test, bağımsız GO ve exact iki CI SUCCESS; eski profil korunur. Fiziksel before-image/kurtarma/kurulum/GUI yok; P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+18 Ekim — P03 ayrı kurtarma günlüğü okuyucu ve CAS/ilk niyet belirsizliği kaynakta `cf0110e`/`e0005b2` ile kapatıldı; 80 ilgili P03 testinin platforma uygun CI bağlantısı `4145dde`, exact push/PR SUCCESS ve bağımsız kaynak incelemesi GO. Gerçek OS collector/kurtarma çağıranı/kurulum yok; P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+18 Ekim — P03 yeni ERP1a/CRM6bc/supervisorba65 inaktif paket ve korumalı profil/Probe hazır. PR41 `164ceb3` koşullu yeni CORE+COM+Hub kimlik kanıtı 31/31 test, bağımsız GO, exact push/PR CI SUCCESS; gerçek kurulum ve normal ekran kanıtı değildir. Kısmi başlangıç OS recovery/son readback açık, P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 CORE6/COM2 kaynak koşulları, kilit öncesi admission ve replay vermeyen günlük okuyucu `d930bcb`–`734f417` source/test/review/exact CI ile dar teknik hazırlık PASS. Özel Windows okuması yalnız eski kurulu görev/owner ve kilit yokluğunu kanıtladı. Yeni aday OS kurtarma/kurulum/normal GUI/insan yok; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — Dört akış ve CRM ürün talebi için toplam32 sentetik hedefli test PASS; mevcut DB02 iş verisi kullanılmadı. Eksik yerel native modül nedeniyle bir ek tahsilat route testi başlamadı. Bu kaynak kanıtı P03 kurulumu/normal GUI/insan kabulü yerine geçmez; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 `efb5cab` source-only kısmi başlangıç kurtarma/9 test/bağımsız GO/exact push+PR CI SUCCESS. Gerçek OS verifier ve mühürlü recovery yürütücüsü olmadan kurulum yok; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 DB02 51 iş tablosu/1.817.793 satır kilitli salt okunur baseline raporu korumalı hash `b2789bfc` ile alındı. Özel OS yürütücü kod incelemesi koşullu GO; gerçek Apply, kısmi start geri dönüşü, yeni kurulum ve normal ekran henüz yok. P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 `0436f1c` kaynak callback/11 ilgili sentetik test/bağımsız kaynak GO/exact iki CI SUCCESS; OS executor ve DB02 tam içerik baseline açık. Salt okunur baseline `DIGEST_DB_LOG_CHANGED` ile durdu, bağımsız Apply incelemesi NO-GO. Yeni kurulum/normal GUI/insan kabulü yok; P03 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 geçiş sırası `42774a8` source/6test/bağımsız GO/exact CI; tarihli korumalı owner gözlemi eski 7 dinleyiciyi ve2 görevi eşler. Yeni yürütücü/son stop-rollback/readback ve normal ekran henüz yok; P03 genel 🟡 ve49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 yeni pasif paket/profil hazırlığına iki başarılı salt okunur Probe,26-ref journal,12.381 bağımlılık dosyası hash ve beş yeni korumalı profil dosyası eklendi. Eski iki görev/config korunuyor. Tek-owner güvenli stop/rollback koordinatörü henüz yok; kurulum/normal GUI/insan açık. Son DB02 yedeği14 Ekim ve sonraki değişiklikleri kapsamaz; yeni tam backup yer sorunu nedeniyle yapılmadı. Bu kaynak/preflight kanıtı özgün49/9🟢/39🟡/1🔴 sayımını değiştirmez. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
+17 Ekim — P03 birleşik kaynak ve **pasif** ERP e0e6/CRM6bc/supervisor c401 paketleri exact manifest, ilgili115 uygulama+160 profil testi, bağımsız review ve exact CI ile hazır. Taze kurulu before-image/rollback/fiziksel owner preflight olmadan ortak DB02 TEST geçişi başlatılmaz. Normal GUI/personel/cihaz ve özgün49/9🟢/39🟡/1🔴 açık. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 17 Ekim — **ERP09/C05/P06.2 seçili SOURCE tahsilat API kapısı teknik kaynak alt adımı hazır:** [PR36](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/36) yalnız injected ve işaretli yalıtılmış servisle çalışır; production default kapalı. Kısmi/tam/replay/iptal ve negatif Express zinciri32 hedef/High review/exactCI ile kanıtlı. Gerçek native writer, DB02 işlem etkisi, kurulum, normal GUI ve insan kabulü açık; özgün49/9🟢/39🟡/1🔴 değişmez. [Kanıt](docs/evidence/erp/2026-10-13-open-account/README.md#17-ekim--p062-seçili-source-tahsilat-api-kapısı).
 
 17 Ekim — **P03 yeni ERP immutable aday paket teknik hazır/inaktif:** Exact1b5a02c, seçili Node24.19/DB02 shared copy,1.991/1.991 manifest+1.886/1.886 kaynak hash ve native require-only doğrulandı; bağımsız incelemede açık P1/P2 yok. Yeni paket kurulu TEST, GUI veya insan kabulü değildir; owner profili/geçiş/readback bekler. Özgün49/9🟢/39🟡/1🔴 korunur. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md#17-ekim--p03-yeni-inaktif-erp-aday-paketi).

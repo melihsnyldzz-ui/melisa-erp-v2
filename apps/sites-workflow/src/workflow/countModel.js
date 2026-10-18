@@ -31,7 +31,7 @@ function editable(s,id,revision,actor){counter(actor);const d=(s.countSessions||
 export function updateCountSession(s,id,revision,action,actor,receipts=[]){
  const d=editable(s,id,revision,actor),lines=structuredClone(d.lines);
  if(action.type==='scan'){
-  check(quantity(action.quantity)&&action.quantity>0,'Okutma adedi pozitif tam sayı olmalı.');let code;try{code=findGoodsProduct(s,action.input)[0]}catch(e){if(!String(e.message).startsWith('Ürün bulunamadı.'))throw e;const value=String(action.input||'').trim();check(value.length>0&&value.length<=64,'Barkod veya ürün kodu geçerli değil.');d.unknownScans||=[];const unresolved=d.unknownScans.find(x=>x.value===value);if(unresolved)unresolved.quantity+=action.quantity;else d.unknownScans.push({value,quantity:action.quantity,status:'needs_review',at:new Date().toISOString()});d.revision++;d.updatedAt=new Date().toISOString();d.updatedBy=actor;return d;}
+  check(quantity(action.quantity)&&action.quantity>0,'Okutma adedi pozitif tam sayı olmalı.');let code;try{code=findGoodsProduct(s,action.input)[0]}catch(e){if(!String(e.message).startsWith('Ürün bulunamadı.'))throw e;const value=String(action.input||'').trim();check(value.length>0&&value.length<=64,'Barkod veya ürün kodu geçerli değil.');const unknown=d.unknownScans||[],unresolved=unknown.find(x=>x.value===value);if(unresolved){check(quantity(unresolved.quantity+action.quantity),'Toplam adet sınırı aşıldı.');unresolved.quantity+=action.quantity;}else unknown.push({value,quantity:action.quantity,status:'needs_review',at:new Date().toISOString()});d.unknownScans=unknown;d.revision++;d.updatedAt=new Date().toISOString();d.updatedBy=actor;return d;}
   const old=lines.find(l=>l.code===code);
   if(old){check(quantity(old.physical+action.quantity),'Toplam adet sınırı aşıldı.');old.physical+=action.quantity;}
   else{check(lines.length<100,'Bir sayımda en fazla 100 ürün olabilir.');lines.push({code,system:stockQuantity(s,code,receipts),physical:action.quantity,reason:'',fingerprint:countFingerprint(s,code,receipts),at:new Date().toISOString()})}
@@ -51,11 +51,11 @@ export function submitCountSession(s,id,revision,actor){
  for(const l of d.lines){check(quantity(l.physical),'Sayım adedini kontrol edin.');check(l.physical===l.system||l.reason.trim().length>=3,`${l.code} için fark nedenini yazın.`)}
  const previous=d.repeatOf?countRows(s,d.repeatOf):[];
  check(!previous.some(c=>c.state==='superseded'),'Önceki sayım için yeni bir tekrar zaten gönderildi.');
- if(previous.length){const expected=previous.map(c=>c.code).sort().join('|'),actual=d.lines.map(l=>l.code).sort().join('|');check(expected===actual,'Tekrar sayımda önceki sayımın bütün ürünlerini yeniden sayın.');}
+ if(previous.length){const expected=previous.map(c=>`${c.unknown?'unknown':'known'}:${c.code}`).sort(),actual=[...d.lines.map(l=>`known:${l.code}`),...(d.unknownScans||[]).map(x=>`unknown:${x.value}`)].sort();check(expected.length===actual.length&&expected.every((value,index)=>value===actual[index]),'Tekrar sayımda önceki sayımın bütün ürünlerini yeniden sayın.');}
  const at=new Date().toISOString();
  const rows=d.lines.map((l,index)=>({...structuredClone(l),id:`${d.id}-${index+1}`,batchId:d.id,repeatOf:d.repeatOf,difference:l.physical-l.system,state:'pending',countedBy:actor,submittedAt:at}));
  const unknown=(d.unknownScans||[]).map((x,index)=>({id:`${d.id}-U${index+1}`,batchId:d.id,code:x.value,physical:x.quantity,system:null,difference:null,reason:'Stok kartı gerekli',unknown:true,unknownScans:[{value:x.value,quantity:x.quantity,status:'needs_review'}],state:'needs_review',countedBy:actor,submittedAt:at}));
- for(const p of previous)if(p.state==='pending'){p.state='superseded';p.supersededBy=d.id;}
+ for(const p of previous)if(['pending','needs_review'].includes(p.state)){p.state='superseded';p.supersededBy=d.id;}
  s.counts.push(...rows,...unknown);d.state='submitted';d.revision++;audit(s,'Toplu sayım onaya gönderildi',d.id,actor);return [...rows,...unknown];
 }
 export function approveCountBatch(s,id,actor,receipts=[]){
