@@ -15,7 +15,7 @@ if($errors.Count){throw 'FIXTURE_SOURCE_PARSE'}
 ${names.map(name=>`$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq ${q(name)}},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION_MISSING'};$text=$defs[0].Extent.Text${alias[name]?`.Replace('function ${name}','function ${alias[name]}')`:''};. ([scriptblock]::Create($text))`).join('\n')}`;}
 function run(code){
  try{return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$source=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($source))','utf16le').toString('base64')],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n${code}`,encoding:'utf8',timeout:15000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
- catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z_]+/u)?.[0]??'FIXTURE_FAILED');}
+ catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z_]+/u)?.[0]??String(error.stderr??'FIXTURE_FAILED').slice(0,1400));}
 }
 const fixture=String.raw`
 function Need($value,$code){if(-not$value){throw ('P03_PHYSICAL_'+$code)}}
@@ -52,7 +52,7 @@ ResetFixture
 const captureFunctions=()=>extract(['ConsoleAuxiliaries'],engine)+'\n'+extract(['AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','WorkerSamePin','SeedWorkerAdmission']);
 test('worker source uses pinned AST functions without dispatch, exact claim/intent and only two CreateNew witnesses',()=>{
  const s=readFileSync(source,'utf8');
- assert.match(s,/ValidateSet\('Capture','Drain'\)/);assert.match(s,/Mode='Capture'/);assert.match(s,/ReadWorkerPin \$RecoveryHelperPath \$RecoveryHelperSha256/);
+ assert.match(s,/ValidateSet\('Inspect','Capture','Drain'\)/);assert.match(s,/Mode='Capture'/);assert.match(s,/ReadWorkerPin \$RecoveryHelperPath \$RecoveryHelperSha256/);
  assert.match(s,/FunctionDefinitionAst/);assert.match(s,/ProbeArgumentsAllowed.*PrepareProbeSource.*LatePrecutProbeAllowed.*ProbeAuxiliaries/);
  assert.match(s,/fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037/);assert.match(s,/79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d/);
  assert.match(s,/EXACT_STOP_INTENT/);assert.match(s,/stopOrderDigest/);assert.match(s,/SUCCESSOR_SNAPSHOT_FRESH/);assert.match(s,/FileMode\]::CreateNew/);assert.match(s,/\.Flush\(\$true\)/);
@@ -60,6 +60,34 @@ test('worker source uses pinned AST functions without dispatch, exact claim/inte
  const cut=s.indexOf("$cut=WriteWorkerEvidence 'successor-core-cut-completed.json'"),open=s.indexOf('$script:lateAdmissionOpen=$true',cut),wait=s.indexOf('try{WaitCoreProbeAbsence}',open);
  assert.ok(cut>0&&open>cut&&wait>open);assert.match(s,/finally\{\$script:lateAdmissionOpen=\$false\}/);assert.match(s,/finally\{if\(\$null -ne \$script:coreLifetime\)\{\$script:coreLifetime.Dispose\(\)\}\}/);
  assert.ok(s.indexOf('[void]$held.Handle')<s.indexOf("'SUCCESSOR_CORE_LIFETIME'"));
+});
+const inspectAuthorityFixture=String.raw`
+$script:base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$script:predecessor='639e2da815e1e7ac0f1c0d04d7f7bdc3';$script:runId='a'*32;$script:dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
+$script:ProfilePath=Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json');$script:BeforeImagePath=Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json');$script:ProfileSha256='a'*64;$script:BeforeImageSha256='b'*64;$script:RecoveryHelperSha256='c'*64;$script:engineSha='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'
+$script:EnginePath=Join-Path $base ('MelisaERP-P03-transition-'+$predecessor+'\p03-physical-rollback.ps1');$script:RecoveryHelperPath=Join-Path $base 'p03-pr54-paused-old-recover.ps1';$script:Environment='Shared';$script:isRehearsal=$false;$script:database='MELISA_ERP_CRM_SHARED_TEST_20261009_02';$script:Mode='Inspect';$script:ClaimPath='';$script:ClaimSha256='';$script:reads=@()
+foreach($entry in @{schemaVersion='melisa-p03-owner-observation.v3';runId=$runId;ownerSid=$owner;database=$database;copyId='copy';actualT1=$false;plan=[pscustomobject]@{digest=('d'*64)}}.GetEnumerator()){$before|Add-Member NoteProperty $entry.Key $entry.Value -Force}
+foreach($entry in @{schemaVersion='melisa-p03-physical-profile.v1';ownerSid=$owner;database=$database;beforeImage=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};oldSettings=[pscustomobject]@{path=(Join-Path $base 'old-settings.json');sha256='be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96'};newSettings=[pscustomobject]@{path=(Join-Path $base 'new-settings.json');sha256='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'}}.GetEnumerator()){$profile|Add-Member NoteProperty $entry.Key $entry.Value -Force}
+$script:oldSettings=[pscustomobject]@{ownerSid=$owner;database=$database;copyId='copy';actualT1=$false};$script:newSettings=$oldSettings
+function ReadWorkerPin($path,$sha){$script:reads+=,$path;if($path-eq$script:ClaimPath-and-not[string]::IsNullOrEmpty($path)){return ,[Text.Encoding]::UTF8.GetBytes(($script:claim|ConvertTo-Json -Depth 8 -Compress))};return ,[byte[]]@(1)}
+function ReadPinned($path,$sha){return ReadWorkerPin $path $sha}
+function Authority{WorkerAuthority}
+`;
+test('Inspect runs actual full capture admission with authenticated OLD probes and never reads a claim',windows,()=>{
+ const out=run(`${fixture}\n${captureFunctions()}\n${extract(['Hash','Json','Tokens'],engine)}\n${extract(['ProbeArgumentsAllowed','LatePrecutProbeAllowed','ProbeAuxiliaries'],recovery)}\n${extract(['WorkerAuthority'])}\n${inspectAuthorityFixture}\n${String.raw`
+$probe=[pscustomobject]@{ProcessId=500;ParentProcessId=100;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=($profile.shell.path+' -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File C:\fixture\probe.ps1 -Ports 5234 -ProcessId 101');CreationDate=[DateTime]::Parse('2026-10-18T10:00:01Z').ToUniversalTime();OwnerSid=$owner};$inv.all+=,$probe
+$snapshot=CaptureWorkerAdmission;'APPS='+$snapshot.oldIdentities.Count;'PROBES='+$snapshot.probePins.Count;'READS='+$script:reads.Count;'CLAIM_READ='+@($script:reads|Where-Object{$_-match'successor-of'}).Count;'WRITES='+$script:writes.Count
+$probe.CommandLine+=' -Write';ExpectRejected 'foreign-argv' {CaptureWorkerAdmission};$probe.CommandLine=$probe.CommandLine.Replace(' -Write','');$probe.OwnerSid='S-1-5-18';ExpectRejected 'foreign-owner' {CaptureWorkerAdmission};$probe.OwnerSid=$owner;$inv.allListeners=@([pscustomobject]@{OwningProcess=500;LocalPort=65000});ExpectRejected 'probe-listener' {CaptureWorkerAdmission}
+`}`);
+ assert.match(out,/APPS=8/);assert.match(out,/PROBES=1/);assert.match(out,/CLAIM_READ=0/);assert.match(out,/WRITES=0/);for(const name of ['foreign-argv','foreign-owner','probe-listener'])assert.match(out,new RegExp('REJECTED='+name));
+});
+test('only Inspect omits claim admission; Capture and Drain require the exact claim and frozen helper scope',windows,()=>{
+ const out=run(`${fixture}\n${extract(['Hash','Json'],engine)}\n${extract(['WorkerAuthority'])}\n${inspectAuthorityFixture}\n${String.raw`
+WorkerAuthority;'INSPECT=PASS';$script:ClaimPath='C:\forged\claim.json';$script:ClaimSha256='f'*64;WorkerAuthority;'INSPECT_CLAIM_READ='+@($reads|Where-Object{$_-eq$ClaimPath}).Count
+$script:Mode='Capture';$script:EnginePath=Join-Path $dir 'p03-physical-rollback.ps1';$script:RecoveryHelperPath=Join-Path $dir 'p03-pr54-paused-old-recover.ps1';$script:ClaimPath='';$script:ClaimSha256='';ExpectRejected 'capture-missing' {WorkerAuthority};$script:Mode='Drain';ExpectRejected 'drain-missing' {WorkerAuthority}
+$script:Mode='Capture';$script:ClaimPath=Join-Path $base ('p03-pr54-successor-of-'+$predecessor+'.lock.json');$script:ClaimSha256='f'*64;$script:claim=[pscustomobject]@{schemaVersion='melisa-p03-owner-successor-claim.v1';predecessorRunId=$predecessor;successorRunId=$runId;successorProfile=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};successorBefore=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};engineSha256=$engineSha;stopOrderDigest=(Hash ([Text.Encoding]::UTF8.GetBytes(([ordered]@{planDigest=$before.plan.digest;stopOrder=$order}|ConvertTo-Json -Compress))))};WorkerAuthority;'CAPTURE=PASS';'CAPTURE_CLAIM_READ='+@($reads|Where-Object{$_-eq$ClaimPath}).Count
+$script:claim.successorRunId='b'*32;ExpectRejected 'claim-tamper' {WorkerAuthority};$script:Mode='Inspect';$script:EnginePath='C:\foreign\p03-physical-rollback.ps1';ExpectRejected 'inspect-root' {WorkerAuthority}
+`}`);
+ assert.match(out,/INSPECT=PASS/);assert.match(out,/INSPECT_CLAIM_READ=0/);assert.match(out,/CAPTURE=PASS/);assert.match(out,/CAPTURE_CLAIM_READ=1/);for(const name of ['capture-missing','drain-missing','claim-tamper','inspect-root'])assert.match(out,new RegExp('REJECTED='+name));
 });
 test('Capture actual worker AST authenticates all ten live parents and fe console cache without writing',windows,()=>{
  const out=run(`${fixture}\n${captureFunctions()}\n$snapshot=CaptureWorkerAdmission;'APPS='+$snapshot.oldIdentities.Count;'WATCHERS='+$snapshot.oldWatchers.Count;'CONSOLES='+$snapshot.consolePins.Count;'WRITES='+$script:writes.Count;$inv.all=@($inv.all|Where-Object{$_.ProcessId -notin @(10,11)});$inv.instances=@();$script:taskState=3;$script:consolePins=@{};SeedWorkerAdmission $snapshot;$script:tasksStopRequested=$true;[void](ConsoleAuxiliaries $inv @($before.identities.PSObject.Properties|ForEach-Object{$_.Value}));'ORPHAN_CACHE='+$script:consolePins.Count`);

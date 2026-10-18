@@ -1,13 +1,13 @@
 param(
- [ValidateSet('Capture','Drain')][string]$Mode='Capture',
+ [ValidateSet('Inspect','Capture','Drain')][string]$Mode='Capture',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][string]$BeforeImageSha256,
  [Parameter(Mandatory=$true)][string]$EnginePath,[Parameter(Mandatory=$true)][string]$EngineSha256,
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,[Parameter(Mandatory=$true)][string]$RecoveryHelperSha256,
- [Parameter(Mandatory=$true)][string]$ClaimPath,[Parameter(Mandatory=$true)][string]$ClaimSha256,
+ [string]$ClaimPath,[string]$ClaimSha256,
  [string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$StopIntentPath,[string]$StopIntentSha256
 )
-# Source-bound successor worker. Capture only reads; Drain stops only the exact
+# Source-bound successor worker. Inspect/Capture only read; Drain stops only the exact
 # core after the coordinator's durable intent. Consoles/probes are never killed.
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
@@ -56,13 +56,24 @@ function WorkerSamePin($a,$b){
 function WorkerAuthority{
  [void](ReadWorkerPin $ProfilePath $ProfileSha256);[void](ReadWorkerPin $BeforeImagePath $BeforeImageSha256);[void](ReadWorkerPin $EnginePath $engineSha);[void](ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256)
  Need ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne $predecessor -and $ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json'))) 'SUCCESSOR_RUN_SCOPE'
- Need ($EnginePath -ceq (Join-Path $dir 'p03-physical-rollback.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'SUCCESSOR_HELPER_SCOPE'
+ if($Mode -ceq 'Inspect'){
+  # Initial and claim-CAS inspections precede the frozen transition directory.
+  # Only already pinned private source files under this owner root may supply
+  # definitions. Inspect grants neither claim admission nor any mutation.
+  foreach($entry in @(@($EnginePath,'p03-physical-rollback.ps1'),@($RecoveryHelperPath,'p03-pr54-paused-old-recover.ps1'))){Need ([IO.Path]::GetFullPath($entry[0]) -ceq $entry[0] -and $entry[0].StartsWith($base+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0]) -ceq $entry[1]) 'SUCCESSOR_INSPECT_HELPER_SCOPE'}
+ }else{Need ($EnginePath -ceq (Join-Path $dir 'p03-physical-rollback.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'SUCCESSOR_HELPER_SCOPE'}
+ Need ($Environment -ceq 'Shared' -and $isRehearsal -eq $false -and $profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3') 'SUCCESSOR_ENVIRONMENT'
  Need ($profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256 -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $database -and $before.database -ceq $database -and $before.actualT1 -eq $false) 'SUCCESSOR_PROFILE'
  Need ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071') 'SUCCESSOR_SETTINGS'
- Need ($ClaimPath -ceq (Join-Path $base ('p03-pr54-successor-of-'+$predecessor+'.lock.json'))) 'SUCCESSOR_CLAIM_PATH'
- $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256)
+ foreach($settings in @($oldSettings,$newSettings)){Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId -and $settings.actualT1 -ceq $false) 'SUCCESSOR_SETTINGS_SCOPE'}
+ [void](ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);[void](ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
  $stopDigest=Hash ([Text.Encoding]::UTF8.GetBytes(([ordered]@{planDigest=$before.plan.digest;stopOrder=$order}|ConvertTo-Json -Compress)))
- Need ($claim.schemaVersion -ceq 'melisa-p03-owner-successor-claim.v1' -and $claim.predecessorRunId -ceq $predecessor -and $claim.successorRunId -ceq $runId -and $claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256 -and $claim.engineSha256 -ceq $engineSha -and $claim.stopOrderDigest -ceq $stopDigest) 'SUCCESSOR_CLAIM'
+ if($Mode -cne 'Inspect'){
+  Need (-not [string]::IsNullOrEmpty($ClaimPath) -and $ClaimSha256 -cmatch '\A[a-f0-9]{64}\z') 'SUCCESSOR_CLAIM_REQUIRED'
+  Need ($ClaimPath -ceq (Join-Path $base ('p03-pr54-successor-of-'+$predecessor+'.lock.json'))) 'SUCCESSOR_CLAIM_PATH'
+  $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256)
+  Need ($claim.schemaVersion -ceq 'melisa-p03-owner-successor-claim.v1' -and $claim.predecessorRunId -ceq $predecessor -and $claim.successorRunId -ceq $runId -and $claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256 -and $claim.engineSha256 -ceq $engineSha -and $claim.stopOrderDigest -ceq $stopDigest) 'SUCCESSOR_CLAIM'
+ }
  if($Mode -ceq 'Drain'){
   Need ($AdmittedSnapshotPath -ceq (Join-Path $dir 'successor-precut-admission.json') -and $StopIntentPath -cmatch ('\A'+[regex]::Escape($dir)+'\\event-[0-9]{4}\.json\z')) 'SUCCESSOR_DRAIN_PATH'
   [void](ReadWorkerPin $AdmittedSnapshotPath $AdmittedSnapshotSha256);$intent=Json (ReadWorkerPin $StopIntentPath $StopIntentSha256)
@@ -176,5 +187,5 @@ function DrainWorkerCore{
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
 WorkerAuthority
-if($Mode -ceq 'Capture'){CaptureWorkerAdmission|ConvertTo-Json -Depth 14 -Compress;return}
+if($Mode -cin @('Inspect','Capture')){CaptureWorkerAdmission|ConvertTo-Json -Depth 14 -Compress;return}
 DrainWorkerCore|ConvertTo-Json -Depth 8 -Compress

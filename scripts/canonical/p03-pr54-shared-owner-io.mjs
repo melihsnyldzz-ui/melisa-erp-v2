@@ -116,6 +116,12 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  const sharedArgs=['-Environment','Shared','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256];
  async function engine(action,extra=[]){pin(engineRef);pin(profileRef);pin(beforeRef);const r=await run(shell,['-NoProfile','-NonInteractive','-File',engineRef.path,...sharedArgs,'-Mode',action,...extra],{...opts,timeout:900000});need(!r.stderr,'ENGINE_STDERR');return JSON.parse(r.stdout);}
  async function observeRef(ref){pin(ref);const r=await run(shell,['-NoProfile','-NonInteractive','-File',ref.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256],opts);need(!r.stderr,'OBSERVER_STDERR');return JSON.parse(r.stdout);}
+ async function inspectOldOwnerPhysical(){
+  pin(successorDrainerRef);pin(recoveryHelperRef);pin(engineRef);
+  const r=await run(shell,['-NoProfile','-NonInteractive','-File',successorDrainerRef.path,'-Mode','Inspect',...sharedArgs.slice(2),'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256],{...opts,timeout:180000});need(!r.stderr,'SUCCESSOR_INSPECT_STDERR');const frame=JSON.parse(r.stdout);
+  need(frame.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&frame.profileSha256===profileRef.sha256&&frame.beforeSha256===beforeRef.sha256&&frame.engineSha256===engineRef.sha256&&frame.recoveryHelperSha256===recoveryHelperRef.sha256&&Date.now()-Date.parse(frame.observedAt)>=0&&Date.now()-Date.parse(frame.observedAt)<60000&&frame.oldIdentities?.length===8&&frame.oldWatchers?.length===2,'SUCCESSOR_INSPECT_FRAME');
+  need(Object.values(before.identities).every(p=>frame.oldIdentities.some(q=>sameIdentity(p,q)))&&profile.oldWatchers.every(p=>frame.oldWatchers.some(q=>sameIdentity(p,q))),'SUCCESSOR_INSPECT_IDENTITY');return frame;
+ }
  async function inspectSuccessor(observed){
   need(predecessorRef!==null&&engineRef.sha256===PR54_REHEARSED_ENGINE_SHA,'SUCCESSOR_ENGINE');
   const refs=pr54OwnerSuccessorRefs(predecessorRef),previous={},raw={},checked=[];
@@ -133,9 +139,10 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
   await ps(`foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Security')){Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop};$pins=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${pins}'))|ConvertFrom-Json;foreach($r in $pins){$p=$r.path;${psNoReparse}$i=Get-Item -LiteralPath $p -Force;if($i.PSIsContainer-or($i.Attributes-band[IO.FileAttributes]::ReparsePoint)){throw 'SUCCESSOR_FILE'};$a=Get-Acl -LiteralPath $p;$rules=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));$inheritedLock=$false;if(-not$a.AreAccessRulesProtected){$allowedLocks=@('C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-639e2da815e1e7ac0f1c0d04d7f7bdc3\\recovery.lock','C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-639e2da815e1e7ac0f1c0d04d7f7bdc3\\rollback.lock');if($p-cnotin$allowedLocks-or$r.sha256-cne'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'-or$i.Length-ne0){throw 'SUCCESSOR_ACL'};$pa=Get-Acl -LiteralPath ([IO.Path]::GetDirectoryName($p));$pr=@($pa.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if(-not$pa.AreAccessRulesProtected-or$pa.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne'${owner}'-or$pr.Count-ne2){throw 'SUCCESSOR_PARENT_ACL'};foreach($sid in @('${owner}','S-1-5-18')){if(@($pr|Where-Object{$_.IdentityReference.Value-ceq$sid-and-not$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){throw 'SUCCESSOR_PARENT_ACL'}};$inheritedLock=$true};if($a.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne'${owner}'-or$rules.Count-ne2){throw 'SUCCESSOR_ACL'};foreach($sid in @('${owner}','S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and$_.IsInherited-eq$inheritedLock-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){throw 'SUCCESSOR_ACL'}};if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()-cne$r.sha256){throw 'SUCCESSOR_HASH'}};'VERIFIED'`);
   pin(profileRef);pin(beforeRef);await guardProtected();
   const current=observed??await observeRef(observerRef);
-  // Reuse the existing exact identity/auxiliary scope; successor admission
-  // cannot turn the observer's extra descendants into arbitrary allowances.
-  admitPr54PrestartRecovery({profile,before,admittedOld:current,current});
+  // The same physical classifier used before the core cut authenticates the
+  // OLD monitor's live read-only probes on each side of the atomic claim.
+  // Generic prestart fallback stays strict and is not a startup admission.
+  await inspectOldOwnerPhysical();
   return admitPr54OwnerSuccessor({predecessorRef,previous,raw,profileRef,beforeRef,profile,before,current});
  }
  need((await engine('PreflightOld')).status==='OLD_PHYSICAL_PREFLIGHT','OLD_PREFLIGHT');

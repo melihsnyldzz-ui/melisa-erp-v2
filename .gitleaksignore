@@ -103,3 +103,6 @@ fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workin
 # product301/customer501/supplier601 VEGA provenance paths, never credentials.
 # Exact historical commit/path/rule/line only; no file or rule exclusion.
 90b0bc03dd1b377a18d188b6fbd1feaae86a42e3:apps/sites-workflow/src/workflow/selectedSourceCollectionHandoff.test.mjs:generic-api-key:10
+
+# Reviewed 2026-10-18: three public release commit IDs and manifest SHA pins; no credential.
+69e99264020d9a0fb24641a52ae12fcf8aca4a2d:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:73
