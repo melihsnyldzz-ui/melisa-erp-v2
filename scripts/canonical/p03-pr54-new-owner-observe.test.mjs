@@ -50,8 +50,11 @@ function ExpectRejected($name,[scriptblock]$action){try{& $action|Out-Null}catch
 ResetFixture
 `;
 const classifier=()=>extract(['Identity','Tokens'],engine)+'\n'+extract(['ProbeArgumentsAllowed'],helper)+'\n'+extract(['NewProbeArgvAllowed','NewProtectedPids','NewProbeConsole','NewFilteredInventory']);
-const sharedAbsent=()=>extract(['ObserverRequire','ObserverPinnedConsoleBinary','ObserverAssertAbsentFamily','ObserverVanishedConsole','ObserverPolicyCoreAlive','ObserverTryVanishedProbe','ObserverAssertVanishedAudits'],observer);
+const sharedAbsent=()=>extract(['ObserverRequire','ObserverExactNotFound','ObserverPinnedConsoleBinary','ObserverAssertAbsentFamily','ObserverVanishedConsole','ObserverPolicyCoreAlive','ObserverTryVanishedProbe','ObserverAssertVanishedAudits'],observer);
 const consoleFixture=String.raw`
+Import-Module CimCmdlets
+$script:notFoundId='HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand'
+$script:notFoundCategory=[Management.Automation.ErrorCategory]::ObjectNotFound;$script:notFoundHResult=-2146233088
 $script:console=[pscustomobject]@{ProcessId=201;ParentProcessId=200;Name='conhost.exe';ExecutablePath='C:\WINDOWS\system32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';CreationDate=$probe.CreationDate.AddSeconds(1);OwnerSid=$owner}
 $inv.all+=,$console;$script:freshGlobal=$inv.all;$script:freshListeners=@();$script:kernelLive=@();$script:gone=@();$script:policyReadFails=$false
 $script:consoleHash='c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac';$script:signatureStatus='Valid'
@@ -61,7 +64,11 @@ function Get-CimInstance{param($ClassName,$Filter,$ErrorAction)
  if($Filter){return @($script:freshGlobal|Where-Object{$_.ProcessId -eq [int]($Filter -replace '^ProcessId=','')})};return $script:freshGlobal
 }
 function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction)
- if($InputObject.ProcessId -in $script:gone){throw 'FIXTURE_NOT_FOUND'}
+ if($InputObject.ProcessId -in $script:gone){
+  $exception=[Microsoft.Management.Infrastructure.CimException]::new('offline fixture only; no CIM invocation')
+  if($exception.HResult -ne $script:notFoundHResult){[Exception].GetProperty('HResult',[Reflection.BindingFlags]'Instance,Public,NonPublic').SetValue($exception,[int]$script:notFoundHResult,$null)}
+  throw [Management.Automation.ErrorRecord]::new($exception,$script:notFoundId,$script:notFoundCategory,$InputObject)
+ }
  [pscustomobject]@{ReturnValue=0;Sid=$InputObject.OwnerSid}
 }
 function Get-NetTCPConnection{param($State,$ErrorAction);return $script:freshListeners}
@@ -145,12 +152,14 @@ test('actual shared absent probe and console proof yields only unverified audit 
  const out=run(`${prefix}
 $filtered=NewFilteredInventory $inv;'PIDS='+($filtered.all.ProcessId -join ',');'AUDITS='+$filtered.vanishedAuxiliaries.Count
 foreach($a in $filtered.vanishedAuxiliaries){'REASON='+$a.reason;'VERIFIED='+$a.ownerVerified;'STATE='+$a.ownerState;'FIELDS='+(@($a.Keys|Sort-Object)-join ',')}
+$script:notFoundHResult=-2147217406;$native=NewFilteredInventory $inv;'NATIVE_AUDITS='+$native.vanishedAuxiliaries.Count;$script:notFoundHResult=-2146233088
 $script:policyReadFails=$true;ExpectRejected 'final-source-pin' {ObserverAssertVanishedAudits $filtered.vanishedAuxiliaries ([pscustomobject]@{all=$inv.all;selected=$inv.all;allListeners=$inv.allListeners}) $newProbePolicy}`);
- assert.match(out,/PIDS=100,900/);assert.match(out,/AUDITS=2/);assert.match(out,/REASON=CIM_NOT_FOUND_CONFIRMED_ABSENT_APPROVED_RO_PROBE/);assert.match(out,/REASON=CIM_NOT_FOUND_CONFIRMED_ABSENT_STANDARD_CONSOLE/);assert.match(out,/VERIFIED=False/);assert.match(out,/STATE=UNVERIFIED_EXITED/);assert.match(out,/FIELDS=creationTime,ownerState,ownerVerified,parentPid,pid,reason/);assert.match(out,/REJECTED=final-source-pin/);
+ assert.match(out,/PIDS=100,900/);assert.match(out,/AUDITS=2/);assert.match(out,/NATIVE_AUDITS=2/);assert.match(out,/REASON=CIM_NOT_FOUND_CONFIRMED_ABSENT_APPROVED_RO_PROBE/);assert.match(out,/REASON=CIM_NOT_FOUND_CONFIRMED_ABSENT_STANDARD_CONSOLE/);assert.match(out,/VERIFIED=False/);assert.match(out,/STATE=UNVERIFIED_EXITED/);assert.match(out,/FIELDS=creationTime,ownerState,ownerVerified,parentPid,pid,reason/);assert.match(out,/REJECTED=final-source-pin/);
  for(const [name,edit]of [
   ['kernel-live','$script:kernelLive=@(200)'],['PID-reused','$script:freshGlobal+=,$probe'],['console-live','$script:freshGlobal+=,$console'],
   ['grandchild',"$inv.all+=,[pscustomobject]@{ProcessId=202;ParentProcessId=201;Name='unknown.exe';CommandLine='unknown'};$script:freshGlobal+=,$inv.all[-1]"],
-  ['core-SID',"$parent.OwnerSid='S-1-5-18'"],['raw-listener','$inv.allListeners=@([pscustomobject]@{OwningProcess=200;LocalPort=65000})']
+  ['core-SID',"$parent.OwnerSid='S-1-5-18'"],['raw-listener','$inv.allListeners=@([pscustomobject]@{OwningProcess=200;LocalPort=65000})'],
+  ['access-denied-id',"$script:notFoundId=$script:notFoundId.Replace('80041002','80041003')"],['different-command',"$script:notFoundId=$script:notFoundId.Replace('InvokeCimMethodCommand','GetCimInstanceCommand')"],['wrong-category','$script:notFoundCategory=[Management.Automation.ErrorCategory]::PermissionDenied'],['wrong-HResult','$script:notFoundHResult=-2147024891']
  ]){const rejected=run(`${prefix}\n${edit};ExpectRejected '${name}' {NewFilteredInventory $inv}`);assert.match(rejected,new RegExp('REJECTED='+name));}
 });
 

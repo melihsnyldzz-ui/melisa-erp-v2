@@ -54,7 +54,7 @@ function ResetVanished{
  $script:rawSelected=@($old,$probe,$console);$script:all=$rawSelected;$script:freshRows=@($old,$probe);$script:rawListeners=@();$script:freshListeners=@();$script:kernelAbsent=$true;$script:kernelError=$false;$script:globalReads=0;$script:listenerReads=0
  $script:binaryHash='c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac';$script:signature='Valid';$script:signer='CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US';$script:reparse=$false
  $ex=[pscustomobject]@{HResult=-2147217406;typeName='Microsoft.Management.Infrastructure.CimException'};$ex|Add-Member ScriptMethod GetType {return [pscustomobject]@{FullName=$this.typeName}} -Force
- $script:failure=[pscustomobject]@{Exception=$ex;CategoryInfo=[pscustomobject]@{Category='ObjectNotFound'}}
+ $script:failure=[pscustomobject]@{Exception=$ex;CategoryInfo=[pscustomobject]@{Category='ObjectNotFound'};FullyQualifiedErrorId='HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand'}
 }
 function Get-CimInstance{param($ClassName,$ErrorAction);if($ClassName-cne'Win32_Process'-or$ErrorAction-cne'Stop'){throw 'FIXTURE_GLOBAL_CIM_SCOPE'};$script:globalReads++;return $script:freshRows}
 function Get-NetTCPConnection{param($State,$ErrorAction);if($State-cne'Listen'-or$ErrorAction-cne'Stop'){throw 'FIXTURE_GLOBAL_LISTENER_SCOPE'};$script:listenerReads++;return $script:freshListeners}
@@ -67,6 +67,27 @@ ResetVanished
 test('exact NotFound classifier rejects every other type category and HRESULT',windows,()=>{
  const out=run(`${fixture}\n${actualBlock}\n${vanishedFixture}\n'EXACT='+(ObserverExactNotFound $failure);foreach($kind in @('type','category','HRESULT')){ResetVanished;switch($kind){'type'{$failure.Exception.typeName='System.UnauthorizedAccessException'}'category'{$failure.CategoryInfo.Category='PermissionDenied'}'HRESULT'{$failure.Exception.HResult=-2147024891}};if(ObserverExactNotFound $failure){throw ('FIXTURE_ACCEPTED_'+$kind)};'DENIED='+$kind}`);
  assert.match(out,/EXACT=True/);for(const kind of ['type','category','HRESULT'])assert.match(out,new RegExp('DENIED='+kind));
+});
+
+test('real PS5 CimException generic CLR HResult requires the exact structured Invoke-CimMethod native NotFound ID',windows,()=>{
+ const out=run(`${fixture}\n${actualBlock}\n${vanishedFixture}\n${String.raw`
+Import-Module CimCmdlets
+$id='HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand'
+$ex=[Microsoft.Management.Infrastructure.CimException]::new('offline fixture only: no CIM invocation')
+$record=[Management.Automation.ErrorRecord]::new($ex,$id,[Management.Automation.ErrorCategory]::ObjectNotFound,$null)
+if($ex.HResult-ne-2146233088-or-not(ObserverExactNotFound $record)){throw 'FIXTURE_REAL_GENERIC_NOT_FOUND'};'REAL_GENERIC=PASS'
+foreach($badId in @($id.Replace('80041002','80041003'),$id.Replace('InvokeCimMethodCommand','GetCimInstanceCommand'),('prefix'+$id),($id+'suffix'),$id.ToLowerInvariant(),'')){
+ $bad=[Management.Automation.ErrorRecord]::new($ex,$badId,[Management.Automation.ErrorCategory]::ObjectNotFound,$null)
+ if(ObserverExactNotFound $bad){throw 'FIXTURE_FOREIGN_ERROR_ID'}
+};'ERROR_ID_NEGATIVES=PASS'
+$denied=[Management.Automation.ErrorRecord]::new($ex,$id,[Management.Automation.ErrorCategory]::PermissionDenied,$null)
+if(ObserverExactNotFound $denied){throw 'FIXTURE_DENIED_CATEGORY'};'DENIED_CATEGORY=PASS'
+$other=[Management.Automation.ErrorRecord]::new([InvalidOperationException]::new('offline fixture'),$id,[Management.Automation.ErrorCategory]::ObjectNotFound,$null)
+if(ObserverExactNotFound $other){throw 'FIXTURE_WRONG_TYPED_EXCEPTION'};'TYPED_NEGATIVE=PASS'
+$failure.FullyQualifiedErrorId=$id;if(-not(ObserverExactNotFound $failure)){throw 'FIXTURE_NATIVE_HRESULT'};'NATIVE=PASS'
+$failure.FullyQualifiedErrorId=$id+'suffix';if(ObserverExactNotFound $failure){throw 'FIXTURE_NATIVE_WRONG_ID'};'NATIVE_ID_NEGATIVE=PASS'
+`}`);
+ for(const label of ['REAL_GENERIC','ERROR_ID_NEGATIVES','DENIED_CATEGORY','TYPED_NEGATIVE','NATIVE','NATIVE_ID_NEGATIVE'])assert.match(out,new RegExp(label+'=PASS'));
 });
 test('only proved absent standard console becomes separate unverified evidence with both absence passes',windows,()=>{
  const out=run(`${fixture}\n${actualBlock}\n${vanishedFixture}\n$e=ObserverVanishedConsole $failure $console $rawSelected @(10,20) $all $rawListeners;ObserverAssertAbsentFamily $e $all $rawListeners;'FIELDS='+(@($e.Keys|Sort-Object)-join ',');'OWNER='+$e.ownerVerified;'STATE='+$e.ownerState;'GLOBALS='+$globalReads;'LISTENERS='+$listenerReads`);

@@ -12,7 +12,9 @@ $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_OWNER'}
 function ObserverRequire($condition){if(-not $condition){throw 'P03_VANISHED_CONSOLE_REJECTED'}}
 function ObserverExactNotFound($failure){
- return $failure.Exception.GetType().FullName -ceq 'Microsoft.Management.Infrastructure.CimException' -and [string]$failure.CategoryInfo.Category -ceq 'ObjectNotFound' -and $failure.Exception.HResult -eq -2147217406
+ # CIM can expose the generic CLR HResult while preserving the native WMI
+ # status in Invoke-CimMethod's exact structured error ID. Never parse Message.
+ return $failure.Exception.GetType().FullName -ceq 'Microsoft.Management.Infrastructure.CimException' -and [string]$failure.CategoryInfo.Category -ceq 'ObjectNotFound' -and $failure.FullyQualifiedErrorId -ceq 'HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand' -and $failure.Exception.HResult -in @(-2147217406,-2146233088)
 }
 function ObserverKernelAbsent([int]$targetPid){
  ObserverRequire ($targetPid -gt 0)
