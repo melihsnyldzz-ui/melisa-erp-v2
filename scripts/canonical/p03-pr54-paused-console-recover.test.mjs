@@ -320,6 +320,94 @@ test('core completion witness precedes late admission and outer finally releases
  assert.match(out,/FAILED_WRITE_OPEN=False/);assert.match(out,/SUCCESS_WRITE_OPEN=True/);assert.match(out,/WITNESS=paused-old-console-core-cut-completed.json/);assert.match(out,/DISPOSED=True/);
 });
 
+const resumeFunctions=()=>extract(['ConsoleAuxiliaries'],fileURLToPath(new URL('./p03-physical-rollback.ps1',import.meta.url)))+'\n'+extract(['Authority','ResumePausedCoreCut','PausedTasks','PausedRemaining','PausedRemainingCore','LegacyConsoleAuxiliaries','ProbeAuxiliaries','LatePrecutProbeAllowed']);
+const resumeFixture=String.raw`
+function Json([byte[]]$bytes){[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json}
+function PrepareProbeSource{$script:probePath='C:\fixture\hub-stack-process-probe.ps1'};function ProtectedProcesses($inv){};function IsWatcherCommand($line){return $false}
+function XmlHash($xml){return $xml}
+function ProcessFor($pin){return [pscustomobject]@{ProcessId=$pin.pid;ParentProcessId=$pin.parentPid;Name=if($pin.nodePath -match 'conhost'){ 'conhost.exe' }else{'node.exe'};ExecutablePath=$pin.nodePath;CommandLine=$pin.commandLine;OwnerSid=$pin.ownerSid;CreationDate=[DateTime]::Parse($pin.creationTime).ToUniversalTime()}}
+function Inventory{
+ $script:inventoryReads++
+ if($script:changeStateAt -and $script:inventoryReads -ge $script:changeStateAt){$script:registeredTasks['core'].State=4}
+ return $script:inv
+}
+function BootPin($path,$hash){
+ $leaf=[IO.Path]::GetFileName($path);$script:pinReads+=,$leaf
+ if($script:missing -eq $leaf){throw 'FIXTURE_MISSING_PIN'}
+ if($script:tamper -eq $leaf){throw 'FIXTURE_PIN_HASH'}
+ if($script:resumeHashes.ContainsKey($leaf)){Need ($hash -ceq $script:resumeHashes[$leaf]) 'EXPECTED_PIN_HASH'}
+ $value=if($leaf -eq 'paused-old-console-recovery-intent.json'){$script:resumeIntent}elseif($leaf -eq 'paused-old-console-core-cut-completed.json'){$script:resumeCut}else{@{}}
+ return ,[Text.Encoding]::UTF8.GetBytes(($value|ConvertTo-Json -Depth 12 -Compress))
+}
+function Get-ChildItem{param($LiteralPath,$Filter,[switch]$File,[switch]$Force);if($LiteralPath -eq $profile.journalDirectory){return @()};return @('event-0000.json','event-0001.json')}
+function Test-Path{param($LiteralPath);return $false}
+function ResetResumeFixture{
+ ResetFixture
+ $script:dir='C:\fixture\transition';$script:base='C:\fixture';$script:ProfilePath='C:\fixture\profile.json';$script:BeforeImagePath='C:\fixture\before.json';$script:engine='C:\fixture\engine.ps1'
+ $script:ProfileSha256='fixture-profile';$script:BeforeImageSha256='fixture-before';$script:engineSha='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'
+ $profile|Add-Member NoteProperty journalDirectory 'C:\fixture\journal'
+ $script:order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative');$ids=@(49908,23272,15416,10344,32112,30080,31604,48100)
+ for($i=1;$i -lt $order.Count;$i++){$pin=[pscustomobject]@{pid=$ids[$i];parentPid=if($i -eq 1){49164}else{49908};nodePath='C:\fixture\node.exe';commandLine=('captured-'+$order[$i]);ownerSid=$owner;creationTime='2026-10-16T22:56:22.0000000Z';bindings=@()};$before.identities|Add-Member NoteProperty $order[$i] $pin}
+ $regular=[pscustomobject]@{pid=45000;parentPid=23272;nodePath='C:\Windows\System32\conhost.exe';ownerSid=$owner;commandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';creationTime='2026-10-16T22:56:23.0000000Z'}
+ $legacy=[pscustomobject]@{pid=42036;parentPid=53356;nodePath=$regular.nodePath;ownerSid=$owner;commandLine=$regular.commandLine;creationTime='2026-10-16T22:56:21.0862000Z'}
+ $script:resumeIntent=[pscustomobject]@{consolePins=@($regular);legacyConsolePins=@($legacy);probePins=@()}
+ $script:resumeCut=[pscustomobject]@{event='PAUSED_OLD_CORE_CUT_COMPLETED';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;heldProcessHandle=$true;processAbsent=$true;core=$core}
+ $script:resumeHashes=@{
+  'paused-old-console-recovery-intent.json'='6d89a9eadffdec76df380a5c6feb7ae819c6ebfbf20544598938f3f9f227a2ed'
+  'paused-old-console-core-cut-observation.json'='cd086021c17e6b15a3abead8fc328782a5d5a378b29e82abc95153aa8b247be0'
+  'paused-old-console-core-cut-completed.json'='c89baea866c1f7610f230eff18a866e2f689196833ddd16888e36072b322a1a0'
+  'paused-old-console-recovery-failed.json'='62c0f948119081e250e6cc62626c39e9f9f834bd4950c99d6c47d09c955df26b'
+ }
+ $script:pins=@($resumeHashes.Keys|ForEach-Object{,@($_,$resumeHashes[$_])})
+ $profile|Add-Member NoteProperty tasks @([pscustomobject]@{name='core';oldXmlSha256='old-core'},[pscustomobject]@{name='hub';oldXmlSha256='old-hub'})
+ $script:registeredTasks=@{core=[pscustomobject]@{State=3;Xml='old-core'};hub=[pscustomobject]@{State=3;Xml='old-hub'}}
+ $script:folder=[pscustomobject]@{};$folder|Add-Member ScriptMethod GetTask {param($name);return $script:registeredTasks[$name]}
+ $script:inv.all=@((ProcessFor $before.identities.hub),(ProcessFor $regular));$script:missing='';$script:tamper='';$script:inventoryReads=0;$script:changeStateAt=0;$script:pinReads=@()
+}
+function ResumeOutcome{try{$rows=@(ResumePausedCoreCut);return ('ADMITTED='+$rows.Count)}catch{return $_.Exception.Message}}
+ResetResumeFixture
+`;
+
+test('resume authenticates seven absent captured OLD IDs and the exact remaining Hub with prior auxiliary pins',windows,()=>{
+ const out=run(`${fixture}\n${resumeFunctions()}\n${resumeFixture}\n'RESUME='+(ResumeOutcome);'DRAINED='+$script:drainedPids.Count;'HUB_DRAINED='+($before.identities.hub.pid -in $script:drainedPids);'CONSOLE_CACHE='+$script:consolePins.Count;'LEGACY_CACHE='+$script:legacyConsolePins.Count;'LATE_OPEN='+$script:lateAdmissionOpen;'PINNED_FOUR='+@($resumeHashes.Keys|Where-Object{$_ -in $script:pinReads}).Count`);
+ assert.match(out,/RESUME=ADMITTED=8/);assert.match(out,/DRAINED=7/);assert.match(out,/HUB_DRAINED=False/);assert.match(out,/CONSOLE_CACHE=1/);assert.match(out,/LEGACY_CACHE=1/);assert.match(out,/LATE_OPEN=False/);assert.match(out,/PINNED_FOUR=4/);
+});
+
+test('resume rejects missing or altered prior evidence and a mismatched completed cut',windows,()=>{
+ const leaves=['paused-old-console-recovery-intent.json','paused-old-console-core-cut-observation.json','paused-old-console-core-cut-completed.json','paused-old-console-recovery-failed.json'];
+ const lines=leaves.flatMap((leaf,i)=>[`ResetResumeFixture;$script:missing='${leaf}';'MISSING${i}='+(ResumeOutcome)`,`ResetResumeFixture;$script:tamper='${leaf}';'TAMPER${i}='+(ResumeOutcome)`]);
+ lines.push("ResetResumeFixture;$resumeCut.profileSha256='different';'CUT='+(ResumeOutcome)");
+ const out=run(`${fixture}\n${resumeFunctions()}\n${resumeFixture}\n${lines.join('\n')}`);
+ for(let i=0;i<leaves.length;i++){assert.ok(out.includes('MISSING'+i+'=FIXTURE_MISSING_PIN'));assert.ok(out.includes('TAMPER'+i+'=FIXTURE_PIN_HASH'));}assert.match(out,/CUT=FIXTURE_REJECT_PAUSED_RESUME_CUT/);
+});
+
+test('resume rejects core presence reused captured identity foreign descendants and Ready COM XML state changes',windows,()=>{
+ const cases=[
+  ['core',"$inv.all+=,(ProcessFor $core)",'PAUSED_RESUME_CORE_PRESENT'],
+  ['reuse',"$inv.all[0].CreationDate=$inv.all[0].CreationDate.AddTicks(1)",'PAUSED_RESUME_REUSED'],
+  ['foreign',"$inv.all+=,[pscustomobject]@{ProcessId=62000;ParentProcessId=$core.pid;Name='foreign.exe';CommandLine='foreign'}",'PAUSED_DRAIN_FOREIGN_PROCESS'],
+  ['ready',"$registeredTasks['core'].State=4",'PAUSED_OLD_ACTION'],
+  ['xml',"$registeredTasks['hub'].Xml='changed'",'PAUSED_OLD_ACTION'],
+  ['com',"$inv.instances=@('unexpected')",'PAUSED_COM'],
+  ['between-reads',"$script:changeStateAt=2",'PAUSED_OLD_ACTION']
+ ];
+ const lines=cases.map(([name,edit])=>`ResetResumeFixture;${edit};'${name}='+(ResumeOutcome)`);
+ const out=run(`${fixture}\n${resumeFunctions()}\n${resumeFixture}\n${lines.join('\n')}`);
+ for(const [name,,code]of cases)assert.ok(out.includes(name+'=FIXTURE_REJECT_'+code),name);
+});
+
+test('resume evidence uses a distinct CreateNew namespace and rejects overwriting any previous attempt',windows,()=>{
+ const out=run(`${fixture}\n${extract(['WriteEvidence'])}\n${String.raw`
+ $resumeCoreCut=$true;$dir='C:\fixture\transition';$script:checked=''
+ function Test-Path{param($LiteralPath);$script:checked=$LiteralPath;return $true}
+ foreach($suffix in @('intent','failed','result')){try{WriteEvidence ('paused-old-console-recovery-'+$suffix+'.json') @{};throw 'FIXTURE_OVERWRITE_ACCEPTED'}catch{'ONCE='+$_.Exception.Message};'TARGET='+[IO.Path]::GetFileName($script:checked)}
+ `}`);
+ assert.equal((out.match(/ONCE=FIXTURE_REJECT_PAUSED_ONCE/g)??[]).length,3);
+ for(const suffix of ['intent','failed','result'])assert.ok(out.includes('TARGET=paused-old-console-resume-'+suffix+'.json'));
+ const s=readFileSync(source,'utf8');assert.match(s,/\[IO.FileMode\]::CreateNew/);assert.match(s,/ResumeCoreCutDryRun/);assert.match(s,/if\(\$before.identities\.\$role.pid -in \$script:drainedPids\)\{\[void\]\(PausedRemaining\);continue\}/);
+ for(const sha of ['6d89a9eadffdec76df380a5c6feb7ae819c6ebfbf20544598938f3f9f227a2ed','cd086021c17e6b15a3abead8fc328782a5d5a378b29e82abc95153aa8b247be0','c89baea866c1f7610f230eff18a866e2f689196833ddd16888e36072b322a1a0','62c0f948119081e250e6cc62626c39e9f9f834bd4950c99d6c47d09c955df26b'])assert.ok(s.includes(sha));
+});
+
 test('recovery source keeps failed evidence pinned and creates a distinct one-shot console attempt',()=>{
  const s=readFileSync(source,'utf8');
  assert.match(s,/fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037/);

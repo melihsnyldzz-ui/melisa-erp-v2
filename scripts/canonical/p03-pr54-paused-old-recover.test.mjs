@@ -16,7 +16,7 @@ test('paused helper retains finite source authority, default DryRun and canonica
  assert.ok(s.indexOf("if($Mode -ceq 'DryRun')")<s.indexOf("WriteEvidence 'paused-old-console-recovery-intent.json'"));assert.ok(s.indexOf("WriteEvidence 'paused-old-console-recovery-intent.json'")<s.indexOf("foreach($role in $order){",s.indexOf("$intentWritten=$true;")));
 });
 test('empty gate rejects globally reused captured watcher PID and orphan child even absent from observer',windows,()=>{
- const s=readFileSync(source,'utf8');const fn=s.slice(s.indexOf('function PausedEmpty{'),s.indexOf('$selected=PausedOld'));
+ const s=readFileSync(source,'utf8');const fn=s.slice(s.indexOf('function PausedEmpty{'),s.indexOf('function ResumePausedCoreCut{'));
  const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
  function Need($v,$c){if(-not $v){throw ('P03_PHYSICAL_'+$c)}};function ProtectedProcesses($i){};function AssertEmpty($i){};function Inventory{return [pscustomobject]@{all=$script:all}}
  ${fn}
@@ -64,7 +64,7 @@ test('fresh readonly probe can enter before authenticated core cut but is reject
  $child=[pscustomobject]@{ProcessId=10;ParentProcessId=1;Name='powershell.exe';ExecutablePath='fixed-shell';CommandLine='finite';CreationDate=$birth.AddSeconds(1)};$parent=[pscustomobject]@{ProcessId=1;ParentProcessId=0};$inv=[pscustomobject]@{all=@($parent,$child);allListeners=@()};$rows=@(ProbeAuxiliaries $inv);'PRECUT='+$rows.Count
  $script:probePins=@{};$script:legacyConsolePins=@{};$script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;try{ProbeAuxiliaries $inv}catch{$_.Exception.Message}`;
  const out=ps(code);assert.match(out,/PRECUT=1/);assert.match(out,/PAUSED_NEW_PROBE_AFTER_CORE_EXIT/);
- const freeze=s.indexOf('$script:coreQuiesced=$true;');assert.ok(freeze>s.indexOf("'PAUSED_DRAIN_ABSENCE'"));assert.ok(s.indexOf("WriteEvidence 'paused-old-console-core-cut-observation.json'")<s.indexOf("$result=&"));
+ const freeze=s.lastIndexOf('$script:coreQuiesced=$true;');assert.ok(freeze>s.indexOf("'PAUSED_DRAIN_ABSENCE'"));assert.ok(s.indexOf("WriteEvidence 'paused-old-console-core-cut-observation.json'")<s.indexOf("$result=&"));
 });
 
 test('actual engine native Tokens feed flat nine and eleven probe arguments to classifier',windows,()=>{

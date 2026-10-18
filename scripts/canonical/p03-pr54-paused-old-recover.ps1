@@ -1,4 +1,4 @@
-param([ValidateSet('DryRun','Recover')][string]$Mode='DryRun')
+param([ValidateSet('DryRun','Recover','ResumeCoreCut','ResumeCoreCutDryRun')][string]$Mode='DryRun')
 # One known paused OLD run only. Importing the frozen engine's function definitions
 # does not execute its dispatcher. No new generation is ever started here.
 Set-StrictMode -Version Latest
@@ -37,6 +37,12 @@ $pins=@(
  @('paused-old-recovery-intent.json','6eb43d46509faeb8bef1b740c19d8410a33699232137a27576522be02f68f263'),
  @('paused-old-recovery-failed.json','6bf3d88d0c866ae0c7c1f83df044e9b64f427e1565be6f82f5f6bbca8e0241b8'),
  @('p03-physical-recovery-observe.ps1','04f0039ad959fe7cdd1329cedf9bed0130c00d1f70a80352ab120cee0a5fb9a9'))
+$resumeCoreCut=$Mode -cin @('ResumeCoreCut','ResumeCoreCutDryRun')
+if($resumeCoreCut){$pins+=@(
+ @('paused-old-console-recovery-intent.json','6d89a9eadffdec76df380a5c6feb7ae819c6ebfbf20544598938f3f9f227a2ed'),
+ @('paused-old-console-core-cut-observation.json','cd086021c17e6b15a3abead8fc328782a5d5a378b29e82abc95153aa8b247be0'),
+ @('paused-old-console-core-cut-completed.json','c89baea866c1f7610f230eff18a866e2f689196833ddd16888e36072b322a1a0'),
+ @('paused-old-console-recovery-failed.json','62c0f948119081e250e6cc62626c39e9f9f834bd4950c99d6c47d09c955df26b'))}
 function Authority{
  [void](BootPin $ProfilePath $ProfileSha256);[void](BootPin $BeforeImagePath $BeforeImageSha256);[void](BootPin $engine $engineSha)
  foreach($pin in $pins){$path=if($pin[0] -ceq 'p03-pr54-shared-owner.lock.json'){Join-Path $base $pin[0]}else{Join-Path $dir $pin[0]};[void](BootPin $path $pin[1])}
@@ -45,7 +51,8 @@ function Authority{
  Need (-not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-core-cut-observation.json')) -and -not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-recovery-result.json'))) 'PAUSED_PRIOR_NO_CORE_CUT'
 }
 function WriteEvidence([string]$leaf,$value){
- Need ($leaf -cin @('paused-old-console-recovery-intent.json','paused-old-console-recovery-failed.json','paused-old-console-recovery-result.json','paused-old-console-core-cut-observation.json','paused-old-console-core-cut-completed.json','paused-old-console-probe-drain.json')) 'PAUSED_WRITE_SCOPE'
+ if($resumeCoreCut){$leaf=$leaf.Replace('paused-old-console-recovery-','paused-old-console-resume-')}
+ Need ($leaf -cin @('paused-old-console-recovery-intent.json','paused-old-console-recovery-failed.json','paused-old-console-recovery-result.json','paused-old-console-core-cut-observation.json','paused-old-console-core-cut-completed.json','paused-old-console-probe-drain.json','paused-old-console-resume-intent.json','paused-old-console-resume-failed.json','paused-old-console-resume-result.json')) 'PAUSED_WRITE_SCOPE'
  $target=Join-Path $dir $leaf;Need (-not (Test-Path -LiteralPath $target)) 'PAUSED_ONCE'
  $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12 -Compress))
  $acl=[Security.AccessControl.FileSecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false)
@@ -197,14 +204,34 @@ function PausedEmpty{
  $captured=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})+@($script:consolePins.Keys)+@($script:probePins.Keys)+@($script:legacyConsolePins.Keys)
  foreach($p in $inv.all){Need ($p.ProcessId -notin $captured -and $p.ParentProcessId -notin $captured) 'PAUSED_OLD_DESCENDANT_REMAINS'}
 }
-$selected=PausedOld
+function ResumePausedCoreCut{
+ Authority
+ $intent=Json (BootPin (Join-Path $dir 'paused-old-console-recovery-intent.json') '6d89a9eadffdec76df380a5c6feb7ae819c6ebfbf20544598938f3f9f227a2ed')
+ $cut=Json (BootPin (Join-Path $dir 'paused-old-console-core-cut-completed.json') 'c89baea866c1f7610f230eff18a866e2f689196833ddd16888e36072b322a1a0')
+ Need ($cut.event -ceq 'PAUSED_OLD_CORE_CUT_COMPLETED' -and $cut.profileSha256 -ceq $ProfileSha256 -and $cut.beforeSha256 -ceq $BeforeImageSha256 -and $cut.engineSha256 -ceq $engineSha -and $cut.heldProcessHandle -ceq $true -and $cut.processAbsent -ceq $true) 'PAUSED_RESUME_CUT'
+ $inv=PausedTasks;ProtectedProcesses $inv
+ # A completed exact parent stop can close its Windows-lifetime children.
+ # Only globally absent captured IDs become drained; any reuse remains fatal.
+ $script:drainedPids=@();foreach($role in $order){$e=$before.identities.$role;$rows=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});if($rows.Count -eq 0){$script:drainedPids+=,[int]$e.pid}else{Need ($rows.Count -eq 1 -and (Identity $rows[0] $e)) 'PAUSED_RESUME_REUSED'}}
+ Need ($before.identities.coreSupervisor.pid -in $script:drainedPids) 'PAUSED_RESUME_CORE_PRESENT'
+ foreach($pin in $intent.consolePins){$script:consolePins[[int]$pin.pid]=$pin}
+ foreach($pin in $intent.legacyConsolePins){$script:legacyConsolePins[[int]$pin.pid]=$pin}
+ foreach($pin in $intent.probePins){$script:probePins[[int]$pin.pid]=$pin}
+ $script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true
+ [void](PausedRemaining)
+ return @($order|ForEach-Object{$before.identities.$_})
+}
+if($resumeCoreCut){$selected=ResumePausedCoreCut}else{$selected=PausedOld}
+if($Mode -ceq 'ResumeCoreCutDryRun'){[ordered]@{status='PAUSED_CORE_CUT_RESUME_DRY_RUN';mutationExecuted=$false;capturedOldRoles=$selected.Count;absentOldRoles=$script:drainedPids.Count;remainingOldRoles=$selected.Count-$script:drainedPids.Count;engineSha256=$engineSha}|ConvertTo-Json;return}
 if($Mode -ceq 'DryRun'){[ordered]@{status='PAUSED_OLD_RECOVERY_DRY_RUN';mutationExecuted=$false;oldRoles=$selected.Count;auxiliaryCount=$script:consolePins.Count;legacyAuxiliaryCount=$script:legacyConsolePins.Count;authenticatedProbeCount=$script:probePins.Count;engineSha256=$engineSha}|ConvertTo-Json;return}
-Need (-not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-console-recovery-intent.json'))) 'PAUSED_ONCE'
+$attemptIntentLeaf=if($resumeCoreCut){'paused-old-console-resume-intent.json'}else{'paused-old-console-recovery-intent.json'}
+Need (-not (Test-Path -LiteralPath (Join-Path $dir $attemptIntentLeaf))) 'PAUSED_ONCE'
 $intentWritten=$false
 try{
  WriteEvidence 'paused-old-console-recovery-intent.json' ([ordered]@{event='PAUSED_OLD_CONSOLE_RECOVERY_INTENT';priorIntentSha256='6eb43d46509faeb8bef1b740c19d8410a33699232137a27576522be02f68f263';priorFailureSha256='6bf3d88d0c866ae0c7c1f83df044e9b64f427e1565be6f82f5f6bbca8e0241b8';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;observedAt=[DateTime]::UtcNow.ToString('o');oldPids=@($selected|ForEach-Object{$_.pid});consolePins=@($script:consolePins.Values);legacyConsolePins=@($script:legacyConsolePins.Values);probePins=@($script:probePins.Values)})
- $intentWritten=$true;$script:drainedPids=@()
+ $intentWritten=$true;if(-not $resumeCoreCut){$script:drainedPids=@()}
  foreach($role in $order){
+  if($before.identities.$role.pid -in $script:drainedPids){[void](PausedRemaining);continue}
   if($role -ceq 'coreSupervisor'){
    $script:coreLifetime=[Diagnostics.Process]::GetProcessById([int]$before.identities.coreSupervisor.pid);[void]$script:coreLifetime.Handle
    Need (-not $script:coreLifetime.HasExited -and $script:coreLifetime.StartTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ') -ceq [DateTime]::Parse($before.identities.coreSupervisor.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'PAUSED_CORE_HELD_LIFETIME'
