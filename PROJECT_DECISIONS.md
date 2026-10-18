@@ -2,6 +2,8 @@
 
 ### ERP-DEC-065 — 18 Ekim 2026 — v75 ekran sunumunu teknik adayda birleştirme
 
+**19 Ekim kullanıcı devamı:** “kurulu TEST’i koru, bu ekranla eşleştir, sonra günlük akışa geç”. Kurulu e59/13b/6bc temelini ve eski journal/rolleri koru; zaten taşınmış v75 sunumunu yeniden geliştirme veya aynı paketi yeniden kurma. Ekran→kurulu kaynak eşliğini doğruladıktan sonra C01/C02–C03 günlük akışını mevcut kayıtlarla normal GUI'de ilerlet. Teknik ekran kanıtı yeni stok/finans etkisi, genel çok satırlı işletme kabulü veya insan PASS değildir; mevcut yetki ve LIVE sınırları sürer.
+
 **Kullanıcı talimatı:** ERP turunda görülen farkları gelen maldaki gibi diğer ekranlarda da düzelt; programa yetişmek için son ekran düzenini GitHub teknik adayıyla birleştir ve işleme devam et. Ara raporlar biten teknik işi, doğrulamasını ve canlıya kalan somut koşulu kısa anlatır. Bu yönlendirme özgün49/25 planı değiştirmez; örnek Sites v75 görünüm kabulü gerçek native kurulum veya personel kabulü sayılmaz.
 
 Mevcut API doğrulaması/yetki/UUID kurtarma korunarak sunum uyarlanır; örnek controller'ların doğrudan kopyalanması, API'de olmayan gönderen adı/saat/bakiye ve ortak belge aktarımı uydurulmaz. Kaynak/test/bağımsız inceleme/feature PR ve exact CI teslimi yetkilidir.19–20Ekim bütünleştirme ve23Ekim teknik hedefi korunur. Ortak TEST'in tek-owner/P03 güvenli kurtarma önkoşulu, insan kabulü ve LIVE/main/gerçek ticari işlem sınırları değişmez. [Teknik kapsam/kanıt](docs/evidence/erp/2026-10-18-office-layout-v75.md).

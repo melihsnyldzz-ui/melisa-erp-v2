@@ -1,5 +1,18 @@
 # 18 Ekim 2026 — 75. sürüm ekran düzeninin teknik adaya taşınması
 
+## 19 Ekim — mevcut kurulum eşliği ve günlük akışın normal ekran kanıtı
+
+Kullanıcının “kurulu TEST'i koru, bu ekranla eşleştir, sonra günlük akışa geç” talimatıyla var olan ERP e59/13b/CRM6bc kurulumu korundu. V75 port`7abf962a6446eb3a800babd5b54312a8b913d814`, çalışan uygulama`e59e07abf7ae2567cdc2adb93811fe29e0032fe5` kaynağının atasıdır; e59 ile kontrol/doküman313f4b2d arasında API ve Sites kaynak farkı yok. Sunulan `http://127.0.0.1:5234/ornek-akis.html` byte'ları, e59 paketindeki dist-business dosyası ve mevcut `start-shared-test-copy-web.mjs` tarafından yapılan tek stage4-runtime.js eklemesiyle birebir eşleşti: SHA `4f28883acf403759f56bc2a41a87915742e3694fd473b2210924507735cf22fb`. Yeni build/port/paket/servis işlemi yok. Taze10originalUID/ikiRunninggözetmen ve API/native/web DB02/copye16b/T1false/source kimliği okundu; bu18Ekim30sn testi veya Post51 karşılaştırmasının yeniden koşumu değildir.
+
+| Özgün halka | Bu yeni pakette gerçek normal GUI sonucu | Kapsam sınırı |
+| --- | --- | --- |
+| C01 / ERP-UA10, UA32 | Önceki gönderilmiş Sayım18→pendingKabul10 aynı hesap/döviz/satır/miktar/barkod bağıyla16İlker ve15personel görünümünde okundu. İlker onay/ret düğmeleri açık; personelde ikisi kapalı. İlker bileşen yenilemesi ve personel sayfa reload'u aynı readonly kaydı korudu. | Yeni sayım/gönderim/onay/ret yok; yeni stok etkisi veya backend rol-negatif POST testi değil. |
+| C02–C03 / B05, ERP-UA11 | Mevcut finalizedfatura25102→acceptedKabul9 normal listeden görüldü; görünür incele düğmesinin data-purchase-open25102 kimliği okundu. Kayıtlı belge tarihi2026-10-09, TRY/fiyat/kur/dayanak ve bağlı kabul satırı açıldı; normal “Faturayı yenile” aynı kaydı getirdi. | Yeni fatura/finalize/iptal/finans veya stok yazısı yok; eski native tek-etki kanıtı bu turun SQL/replay testi değildir. |
+
+Desteklenen TEST15/16 seçimi mevcut auth/sessionPOST'udur; rol/grant değişikliği veya bütünüyle GET-only tur diye sunulmaz. Tedarikçi seçimi ve gönderilmiş sayımın yerel readonly yedeği browser durumudur; eski ticari kayıt değiştirilmedi. Varsayılan hesapta0kayıt bulunması bütün sistemde kayıt yok anlamına gelmedi; yalnız önceki exact kaynak kanıtındaki hesap/döviz seçildi, vendor taraması yapılmadı. Ham cari adı/tutar/fotoğraf/Görsel dosyalar GitHub'a konmadı.
+
+Repo dışı `reports/pr54-7b082195-gui/20261019-daily` alanında binding proof SHA `c74b3ccecd634f5ef9e1a21020defc1c1b1259958b5f4e6e1cc88ae9d6d2e7a4`, GUI observation SHA `adf83c7b534d6a736020451b45c67eaafec866f3612b3aabd5b6620f22177c6e` ve6ekran PNG'si saklandı. Önceki kurulum/journal/kurtarma kanıtları değişmedi. Bu dar masaüstü GUI kanıtı aşağıdaki tarihli browser NOT_RUN kaydını yalnız gözlenen bu alt kapsam için ilerletir; genel çok satır/ortak belge/gönderen adı-saat/ayrı muhasebe/CRMnormalpersonel/fizikselcihaz/reboot/insan kabulü açık kalır. Native2satır/1–5tamADET sınırı korunur;49ERP/25CRM ve UA kayıtları değiştirilmez.
+
 ## Kaynak ve kapsam
 
 Kullanıcının ekran turundan sonraki “her şeyi düzelt”, “programa yetişelim”, “işlemine devam et” talimatlarıyla özel Sites önizlemesindeki v75 sunumu güncel API bağlı ERP çalışma modüllerine uyarlandı. Örnek uygulama bütünüyle kopyalanmadı: örnek controller/native controller farkı gerçek kimlik, yetki, journal ve navigation korumalarını etkiliyordu.
