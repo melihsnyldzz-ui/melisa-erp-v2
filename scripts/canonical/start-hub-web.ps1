@@ -21,7 +21,7 @@ Assert-HubPath $c.PackageRoot 'C:\Sirket\ERP\releases'
 $packageName=Split-Path $c.PackageRoot -Leaf
 # Retain the approved Hub package family and admit only the exact current
 # completion family whose suffix identifies this pinned source commit.
-$completionName=$packageName -cmatch '^CANONICAL-COMPLETE-TEST-(?:20261011|20261017)-([a-f0-9]{7,12})$'
+$completionName=$packageName -cmatch '^CANONICAL-COMPLETE-TEST-(?:20261011|20261017|20261018)-([a-f0-9]{7,12})$'
 $completionSource=$completionName -and $c.SourceCommit.StartsWith($Matches[1])
 if(!$packageName.StartsWith('CANONICAL-HUB-TEST-') -and !$completionSource){throw 'HUB_PACKAGE_SCOPE_REJECTED'}
 if((Get-FileHash -LiteralPath $c.NodePath -Algorithm SHA256).Hash -ne $c.NodeSha256){throw 'HUB_NODE_PIN_REJECTED'}

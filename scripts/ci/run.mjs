@@ -38,7 +38,7 @@ if (mode === 'quality') {
 } else if (mode === 'canonical') {
   run(['--test', ...['shared-business-selected-collection-revision-sql','shared-business-selected-collection-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', ...[
-    'p03-candidate-core-proof', 'p03-candidate-task-proof', 'p03-candidate-outer-proof', 'p03-partial-candidate-proof',
+    'p03-package-date', 'p03-candidate-core-proof', 'p03-candidate-task-proof', 'p03-candidate-outer-proof', 'p03-partial-candidate-proof',
     'p03-integrated-owner-transition', 'p03-owner-os-callbacks', 'p03-owner-recovery',
     'p03-recovery-journal', 'p03-recovery-journal-reader', 'p03-recovery-event-cas'
   ].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);

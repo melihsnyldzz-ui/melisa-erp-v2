@@ -105,13 +105,13 @@ test('both PowerShell sources parse without running startup or stop actions',()=
 });
 
 test('source admits only exact pinned completion package dates and keeps Hub family',()=>{
- const admission=/\^CANONICAL-COMPLETE-TEST-\(\?:20261011\|20261017\)-\(\[a-f0-9\]\{7,12\}\)\$/;
+ const admission=/\^CANONICAL-COMPLETE-TEST-\(\?:20261011\|20261017\|20261018\)-\(\[a-f0-9\]\{7,12\}\)\$/;
  assert.match(start,admission);
- const pattern=/^CANONICAL-COMPLETE-TEST-(?:20261011|20261017)-([a-f0-9]{7,12})$/;
- for(const [name,commit] of [['CANONICAL-COMPLETE-TEST-20261011-bbbbbbb','b'.repeat(40)],['CANONICAL-COMPLETE-TEST-20261017-e0e6c28','e0e6c288373478208a1fb2b48fca36b18b092dac']]){
+ const pattern=/^CANONICAL-COMPLETE-TEST-(?:20261011|20261017|20261018)-([a-f0-9]{7,12})$/;
+ for(const [name,commit] of [['CANONICAL-COMPLETE-TEST-20261018-7abf962a6446','7abf962a6446eb3a800babd5b54312a8b913d814'],['CANONICAL-COMPLETE-TEST-20261011-bbbbbbb','b'.repeat(40)],['CANONICAL-COMPLETE-TEST-20261017-e0e6c28','e0e6c288373478208a1fb2b48fca36b18b092dac']]){
   const match=pattern.exec(name);assert.ok(match&&commit.startsWith(match[1]));
  }
- for(const name of ['CANONICAL-COMPLETE-TEST-20261012-e0e6c28','CANONICAL-COMPLETE-TEST-20261017-e0e6c28-extra','CANONICAL-COMPLETE-TEST-20261017-E0E6C28'])assert.equal(pattern.test(name),false);
+ for(const name of ['CANONICAL-COMPLETE-TEST-20261019-7abf962a6446','CANONICAL-COMPLETE-TEST-20261018-7ABF962A6446','CANONICAL-COMPLETE-TEST-20261018-7abf962a6446-extra','CANONICAL-COMPLETE-TEST-20261012-e0e6c28','CANONICAL-COMPLETE-TEST-20261017-e0e6c28-extra','CANONICAL-COMPLETE-TEST-20261017-E0E6C28'])assert.equal(pattern.test(name),false);
  assert.match(start,/CANONICAL-HUB-TEST-/);
 });
 

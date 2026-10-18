@@ -8,7 +8,7 @@ const repo=path.resolve(import.meta.dirname,'../..'),fail=()=>{throw Error('CRM0
 if(process.platform!=='win32'||process.argv.length!==3)fail();
 const commit=execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim();
 if(!/^[a-f0-9]{40}$/.test(commit)||execFileSync('git',['status','--porcelain'],{cwd:repo,encoding:'utf8'}).trim())fail();
-const target=path.resolve(process.argv[2]),expected=['20261014','20261015','20261017'].map(day=>path.join('C:\\Sirket\\ERP\\releases','CANONICAL-CRM06-SUPERVISOR-TEST-'+day+'-'+commit.slice(0,12)));
+const target=path.resolve(process.argv[2]),expected=['20261014','20261015','20261017','20261018'].map(day=>path.join('C:\\Sirket\\ERP\\releases','CANONICAL-CRM06-SUPERVISOR-TEST-'+day+'-'+commit.slice(0,12)));
 if(!expected.some(value=>target.toLowerCase()===value.toLowerCase())||fs.existsSync(target))fail();
 for(let p=path.dirname(target);;p=path.dirname(p)){if(fs.lstatSync(p).isSymbolicLink())fail();if(p===path.dirname(p))break;}
 fs.mkdirSync(target);
