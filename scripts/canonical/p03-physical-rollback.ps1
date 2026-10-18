@@ -46,7 +46,15 @@ function XmlHash([string]$xml){Hash ([Text.UTF8Encoding]::new($false).GetBytes($
 function Metadata([string]$xml){Need ($xml -match '<Actions\b[^>]*>[\s\S]*?</Actions>') 'TASK_XML';[regex]::Replace($xml,'<Actions\b[^>]*>[\s\S]*?</Actions>','<Actions/>')}
 function Identity($actual,$expected){
  if(-not $actual){return $false}
- $sid=Invoke-CimMethod -InputObject $actual -MethodName GetOwnerSid -ErrorAction Stop
+ try{$sid=Invoke-CimMethod -InputObject $actual -MethodName GetOwnerSid -ErrorAction Stop}catch{
+  if((Get-Variable tasksStopRequested -Scope Script -ErrorAction SilentlyContinue) -and $script:tasksStopRequested -and (Get-Variable admittedExitPins -Scope Script -ErrorAction SilentlyContinue) -and $script:admittedExitPins.ContainsKey([int]$expected.pid)){
+   $pin=$script:admittedExitPins[[int]$expected.pid]
+   $sameExpected=($pin|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)
+   $sameSnapshot=[int]$actual.ProcessId -eq [int]$pin.pid -and [int]$actual.ParentProcessId -eq [int]$pin.parentPid -and $actual.ExecutablePath -ieq $pin.nodePath -and $actual.CommandLine -ceq $pin.commandLine -and $actual.CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($pin.creationTime).ToUniversalTime().Ticks
+   if($sameExpected -and $sameSnapshot){$fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$pin.pid) -ErrorAction Stop);if($fresh.Count -eq 0){throw 'P03_PHYSICAL_KNOWN_EXIT_RECAPTURE'}}
+  }
+  throw
+ }
  return $sid.ReturnValue -eq 0 -and $sid.Sid -ceq $expected.ownerSid -and [int]$actual.ProcessId -eq [int]$expected.pid -and [int]$actual.ParentProcessId -eq [int]$expected.parentPid -and $actual.ExecutablePath -ieq $expected.nodePath -and $actual.CommandLine -ceq $expected.commandLine -and $actual.CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks
 }
 function Inventory{
@@ -236,7 +244,7 @@ function VerifyRule($rule){
  NoReparse $exe.path;Need ((Get-FileHash -LiteralPath $exe.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $exe.sha256) 'RULE_EXECUTABLE_HASH'
 }
 function FailureDiagnostic($failure){
- $known=@('System.Management.Automation.PropertyNotFoundException','System.Management.Automation.RuntimeException','System.Management.Automation.MethodInvocationException','System.Management.Automation.ParameterBindingException','System.InvalidOperationException','System.UnauthorizedAccessException','System.IO.IOException')
+ $known=@('System.Management.Automation.PropertyNotFoundException','System.Management.Automation.RuntimeException','System.Management.Automation.MethodInvocationException','System.Management.Automation.ParameterBindingException','System.InvalidOperationException','System.UnauthorizedAccessException','System.IO.IOException','Microsoft.Management.Infrastructure.CimException')
  $type=$failure.Exception.GetType().FullName;if($type -cnotin $known){$type='OtherException'}
  $line=[int]$failure.InvocationInfo.ScriptLineNumber;if($line -lt 1 -or $line -gt 10000){$line=0}
  $code=if($failure.Exception.Message -cmatch '\AP03_PHYSICAL_[A-Z0-9_]{1,80}\z'){$failure.Exception.Message}else{'P03_PHYSICAL_UNCLASSIFIED'}
@@ -330,7 +338,7 @@ function ConsoleAuxiliaries($inventory,$selected){
 }
 function WaitConsoleAbsence{
  $until=[DateTime]::UtcNow.AddSeconds(15)
- do{$current=Inventory;foreach($p in $current.all){Need (-not ($p.ParentProcessId -in $script:capturedCandidatePids -or $script:consolePins.ContainsKey([int]$p.ParentProcessId)) -or $script:consolePins.ContainsKey([int]$p.ProcessId)) 'CONSOLE_UNKNOWN_DESCENDANT'};$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
+ do{$current=Inventory;foreach($p in $current.all){Need (-not ($p.ParentProcessId -in $script:capturedCandidatePids -or $script:consolePins.ContainsKey([int]$p.ParentProcessId)) -or $script:consolePins.ContainsKey([int]$p.ProcessId)) 'CONSOLE_UNKNOWN_DESCENDANT'};$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){try{Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'}catch{if($_.Exception.Message -cne 'P03_PHYSICAL_KNOWN_EXIT_RECAPTURE'){throw}}};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
  Need $false 'CONSOLE_NOT_ABSENT'
 }
 function CandidateParentSnapshot($snapshot,[int]$parentPid){
@@ -344,6 +352,11 @@ function CandidateParentSnapshot($snapshot,[int]$parentPid){
  }
 }
 function CandidateInventory($evidence){
+ for($recapture=0;$recapture -lt 3;$recapture++){
+  try{return CandidateInventoryCore $evidence}catch{if($_.Exception.Message -cne 'P03_PHYSICAL_KNOWN_EXIT_RECAPTURE'){throw};if($recapture -eq 2){throw 'P03_PHYSICAL_EXIT_RECAPTURE_EXHAUSTED'}}
+ }
+}
+function CandidateInventoryCore($evidence){
  $script:capturedCandidatePids=@($evidence.processes|ForEach-Object{[int]$_.pid})
  $inventory=Inventory;ProtectedProcesses $inventory
  Need (@($profile.oldWatchers).Count -eq 2) 'OLD_WATCHER_PINS'
@@ -421,6 +434,9 @@ function CandidateInventory($evidence){
  }
  do{$added=$false;foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ParentProcessId) -and $relevantPids.Add([int]$p.ProcessId)){$added=$true}}}while($added)
  foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ProcessId)){Need (@($selected|Where-Object{$_.pid -eq $p.ProcessId}).Count -eq 1 -or $p.ProcessId -in $auxiliaryPids) 'FOREIGN_PROCESS'}}
+ if(-not $script:tasksStopRequested){
+  $script:admittedExitPins=@{};foreach($pin in $selected){$script:admittedExitPins[[int]$pin.pid]=$pin};foreach($pin in $script:consolePins.Values){$script:admittedExitPins[[int]$pin.pid]=$pin}
+ }
  return [pscustomobject]@{inventory=$inventory;selected=$selected}
 }
 function Health($expectedOwners,[ValidateSet('old','new')][string]$generation='old'){

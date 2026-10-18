@@ -69,7 +69,7 @@ function candidateHarness(foreign,oldPid=false,protectedPid=false){
  function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
  function ProtectedProcesses($inventory){}
  function ConsoleAuxiliaries($inventory,$selected){$script:consolePins=@{};return @()}
- $owner='S-1-5-21-test';$isRehearsal=$false;$profile=[pscustomobject]@{oldWatchers=@([pscustomobject]@{pid=1},[pscustomobject]@{pid=2});candidateRules=@();packages=@();protectedProcesses=@([pscustomobject]@{kind='ProtectedSqlService';pid=6180})}
+ $script:tasksStopRequested=$false;$owner='S-1-5-21-test';$isRehearsal=$false;$profile=[pscustomobject]@{oldWatchers=@([pscustomobject]@{pid=1},[pscustomobject]@{pid=2});candidateRules=@();packages=@();protectedProcesses=@([pscustomobject]@{kind='ProtectedSqlService';pid=6180})}
  $before=[pscustomobject]@{identities=[pscustomobject]@{}}
  $evidence=[pscustomobject]@{processes=@(${protectedPid?"[pscustomobject]@{pid=6180;role='erpNative';ownerSid='S-1-5-21-test'}":oldPid?"[pscustomobject]@{pid=1;role='coreSupervisor';ownerSid='S-1-5-21-test'}":""});receipts=@()}
  function Inventory{return [pscustomobject]@{all=@();instances=@();listeners=@(${foreign?"[pscustomobject]@{OwningProcess=999;LocalPort=4184;LocalAddress='127.0.0.1'}":""})}}
@@ -247,4 +247,20 @@ test('post-COM parent snapshot exit is accepted only with cached birth and fresh
  $script:fresh=@([pscustomobject]@{ProcessId=10;CreationDate=$birth.AddSeconds(1)});try{CandidateParentSnapshot $snapshot 10}catch{$_.Exception.Message}
  $script:fresh=@();$script:tasksStopRequested=$false;try{CandidateParentSnapshot $snapshot 10}catch{$_.Exception.Message}`;
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/GONE=0/);assert.match(out,/CANDIDATE_PARENT_EXIT_RACE_UNPROVEN/);assert.match(out,/CIM_PARENT_DISAPPEARED/);
+});
+
+test('known post-stop Identity exit forces whole inventory recapture and never masks present or unknown PID',windows,()=>{
+ const src=readFileSync(rollback,'utf8');const identity=src.slice(src.indexOf('function Identity('),src.indexOf('function Inventory{'));const wrapper=src.slice(src.indexOf('function CandidateInventory('),src.indexOf('function CandidateInventoryCore('));
+ const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ ${identity}
+ ${wrapper}
+ function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction);throw 'CIM_FAILURE'}
+ function Get-CimInstance{param($ClassName,$Filter,$ErrorAction);return $script:fresh}
+ $birth=[DateTime]::Parse('2026-10-18T00:00:00Z').ToUniversalTime();$pin=[pscustomobject]@{pid=10;parentPid=1;nodePath='C:\\Windows\\System32\\conhost.exe';ownerSid='fixture';commandLine='exact';creationTime=$birth.ToString('o')}
+ $actual=[pscustomobject]@{ProcessId=10;ParentProcessId=1;ExecutablePath=$pin.nodePath;CommandLine='exact';CreationDate=$birth};$script:tasksStopRequested=$true;$script:admittedExitPins=@{10=$pin};$script:fresh=@();$script:captures=0
+ function CandidateInventoryCore($e){$script:captures++;if($script:captures -eq 1){[void](Identity $actual $pin)};return 'FRESH_INVENTORY'}
+ CandidateInventory @{};'CAPTURES='+$script:captures
+ $script:fresh=@($actual);try{Identity $actual $pin}catch{$_.Exception.Message}
+ $script:fresh=@();$script:admittedExitPins=@{};try{Identity $actual $pin}catch{$_.Exception.Message}`;
+ const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/FRESH_INVENTORY/);assert.match(out,/CAPTURES=2/);assert.equal((out.match(/CIM_FAILURE/g)||[]).length,2);
 });
