@@ -5,6 +5,16 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const cli=fs.readFileSync(new URL('./p03-pr53-ci-prepare-owner-cli.mjs',import.meta.url),'utf8');
 const ps=fs.readFileSync(new URL('./p03-pr53-ci-protected-create.ps1',import.meta.url),'utf8');
+
+test('Node child loads exact Windows built-ins with module discovery disabled, read only',{skip:process.platform!=='win32'},()=>{
+ const bootstrap=ps.match(/try\{\s*foreach\(\$moduleName[\s\S]*?\n\}catch\{[\s\S]*?\n\}/)?.[0];assert.ok(bootstrap);
+ assert.doesNotMatch(bootstrap,/Set-ExecutionPolicy|PSModulePath\s*=/);
+ const file=fileURLToPath(new URL('./p03-pr53-ci-protected-create.ps1',import.meta.url)).replaceAll("'","''");
+ const command=`$ErrorActionPreference='Stop';$PSModuleAutoLoadingPreference='None';${bootstrap};$acl=Get-Acl -LiteralPath '${file}';$item=Get-Item -LiteralPath '${file}';$hash=Get-FileHash -LiteralPath '${file}' -Algorithm SHA256;if(-not $acl-or-not $item-or$hash.Hash.Length-ne64){exit 2};'BUILTIN_READONLY_PASS'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:''}});
+ assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),'BUILTIN_READONLY_PASS');
+ assert.match(cli,/P03_BUILTIN_MODULE_IMPORT_FAILED/);assert.match(cli,/P03_PROTECTED_WRITER_EXEC_FAILED/);
+});
 test('owner CLI defaults to DryRun and admits only one explicit creation mode',()=>{
  assert.match(cli,/\['--DryRun','--PrepareNew',undefined\]\.includes/);
  assert.match(cli,/const prepareNew=process\.argv\[2\]==='--PrepareNew'/);

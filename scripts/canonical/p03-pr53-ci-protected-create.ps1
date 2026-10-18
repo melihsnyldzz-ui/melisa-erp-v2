@@ -6,6 +6,17 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+# Load only the Windows PowerShell built-ins from this executable's own module
+# directory. This does not change PSModulePath or an execution policy.
+try{
+ foreach($moduleName in @('Microsoft.PowerShell.Security','Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){
+  $builtinModule=[IO.Path]::Combine($PSHOME,'Modules',$moduleName,$moduleName+'.psd1')
+  Import-Module -Name $builtinModule -ErrorAction Stop
+ }
+}catch{
+ [Console]::Error.WriteLine('P03_BUILTIN_MODULE_IMPORT_FAILED')
+ exit 1
+}
 $erp='C:\Sirket\ERP\runtime\terminal-completion-logon'
 $crm='C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014'
 $oldSettings=$erp+'\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json'

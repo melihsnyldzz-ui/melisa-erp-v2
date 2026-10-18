@@ -91,7 +91,7 @@ stage('OUTPUTS_PREPARED');
 if(prepareNew){
  jsonPinned(installed);jsonPinned(installedSettings.crmPrivateFiles.crm06StaffSuccessor);readPinned(parentSettingsRef);
  for(const [name,value,ref] of pending){const bytes=Buffer.from(JSON.stringify(value,null,2)+'\n'),template=name==='receipt'||name==='journalEvidence'?installedSettings.crmPrivateFiles.crm06StaffSuccessor.path:installed.path;
- const result=execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(import.meta.dirname,'p03-pr53-ci-protected-create.ps1'),'-Target',ref.path,'-Template',template,'-ExpectedSha256',ref.sha256],{input:bytes,windowsHide:true,timeout:30000,maxBuffer:4096}).toString('utf8').trim();
+ let result;try{result=execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(import.meta.dirname,'p03-pr53-ci-protected-create.ps1'),'-Target',ref.path,'-Template',template,'-ExpectedSha256',ref.sha256],{input:bytes,windowsHide:true,timeout:30000,maxBuffer:4096}).toString('utf8').trim();}catch(error){if(String(error?.stderr??'').includes('P03_BUILTIN_MODULE_IMPORT_FAILED'))throw Error('P03_BUILTIN_MODULE_IMPORT_FAILED');throw Error('P03_PROTECTED_WRITER_EXEC_FAILED');}
  if(result!=='CREATED_PROTECTED '+ref.sha256||sha(fs.readFileSync(ref.path))!==ref.sha256)throw Error('PROTECTED_WRITE_FAILED:'+name);
  stage('CREATED_'+name);
  }
