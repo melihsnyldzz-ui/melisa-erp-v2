@@ -139,7 +139,7 @@ test('integrated TEST journal and Hub gates accept one literal profile only',()=
  assert(watch.includes("$integratedNodeRequired=$StartupConfigPath-ceq'"+profile.nextPaths.settings+"'"));
  assert(watch.includes('($integratedNodeRequired-and!$literalIntegratedNode)'));
  const builder=fs.readFileSync(new URL('./build-crm06-supervisor-package.mjs',import.meta.url),'utf8');
- assert(builder.includes("expected=['20261014','20261015','20261017'].map(day=>"));
+ assert(builder.includes("expected=['20261014','20261015','20261017','20261018'].map(day=>"));
 });
 
 const lineageVariant='erp-crm-hub-lineage-20261017';
