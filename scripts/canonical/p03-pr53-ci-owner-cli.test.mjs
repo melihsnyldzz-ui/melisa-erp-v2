@@ -13,7 +13,19 @@ test('Node child loads exact Windows built-ins with module discovery disabled, r
  const command=`$ErrorActionPreference='Stop';$PSModuleAutoLoadingPreference='None';${bootstrap};$acl=Get-Acl -LiteralPath '${file}';$item=Get-Item -LiteralPath '${file}';$hash=Get-FileHash -LiteralPath '${file}' -Algorithm SHA256;if(-not $acl-or-not $item-or$hash.Hash.Length-ne64){exit 2};'BUILTIN_READONLY_PASS'`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:''}});
  assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),'BUILTIN_READONLY_PASS');
+ assert.equal(result.stderr,'');
  assert.match(cli,/P03_BUILTIN_MODULE_IMPORT_FAILED/);assert.match(cli,/P03_PROTECTED_WRITER_EXEC_FAILED/);
+});
+
+test('writer child uses only the Windows PowerShell built-in module discovery root',{skip:process.platform!=='win32'},()=>{
+ const line=cli.split('\n').find(x=>x.startsWith('const writerEnvironment='));assert.ok(line);
+ assert.match(line,/PSModulePath:'C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1\.0\\\\Modules'/);
+ assert.match(cli,/maxBuffer:4096,env:writerEnvironment/);
+ const bootstrap=ps.match(/try\{\s*foreach\(\$moduleName[\s\S]*?\n\}catch\{[\s\S]*?\n\}/)?.[0];assert.ok(bootstrap);
+ const file=fileURLToPath(new URL('./p03-pr53-ci-protected-create.ps1',import.meta.url)).replaceAll("'","''");
+ const command=`$ErrorActionPreference='Stop';${bootstrap};$acl=Get-Acl -LiteralPath '${file}';if(-not $acl){exit 2};'ISOLATED_BUILTIN_READONLY_PASS'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.equal(result.stdout.trim(),'ISOLATED_BUILTIN_READONLY_PASS');
 });
 test('owner CLI defaults to DryRun and admits only one explicit creation mode',()=>{
  assert.match(cli,/\['--DryRun','--PrepareNew',undefined\]\.includes/);
