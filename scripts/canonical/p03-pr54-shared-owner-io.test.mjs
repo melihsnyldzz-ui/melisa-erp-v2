@@ -2,9 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
 import {assertPr54SharedProfile,admitPr54PrestartRecovery,classifyPr54Auxiliary,selectPr54CandidateProcesses,comparePr54InvarianceSnapshots,PR54_PROTECT_SQL_CONNECTION} from './p03-pr54-shared-owner-io.mjs';
 import {p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
+import {assertPr54WriteScope,pr54ProtectedWriteProgram} from './p03-pr54-shared-owner-io.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+test('protected writer transport keeps large payload out of command line, verifies hash and strict ACL and rejects overwrite',{skip:process.platform!=='win32'},()=>{
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'p03-writer-')),file=path.join(directory,'payload.bin'),bytes=crypto.randomBytes(256*1024),sha=hash(bytes),code=pr54ProtectedWriteProgram(file,sha);
+ const invoke=(program,data)=>spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{input:data.toString('base64'),encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ try{assert.ok(Buffer.from(code,'utf16le').toString('base64').length<16000);assert.ok(!code.includes(bytes.toString('base64')));const result=invoke(code,bytes);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/CREATED/);assert.equal(hash(fs.readFileSync(file)),sha);
+ const check=`$a=Get-Acl -LiteralPath '${file.replaceAll("'","''")}';if(-not$a.AreAccessRulesProtected-or@($a.Access).Count-ne2){exit 1};$ids=@($a.Access|ForEach-Object{$_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value}|Sort-Object);if(($ids-join'|')-cne('S-1-5-18|S-1-5-21-2170750028-1005938530-2568122015-1001')){exit 2}`;assert.equal(invoke(check,Buffer.alloc(0)).status,0);
+ assert.notEqual(invoke(code,bytes).status,0);assert.equal(hash(fs.readFileSync(file)),sha);const wrong=path.join(directory,'wrong.bin');assert.notEqual(invoke(pr54ProtectedWriteProgram(wrong,sha),Buffer.from('changed')).status,0);assert.equal(fs.existsSync(wrong),false);
+ }finally{if(fs.existsSync(file))fs.unlinkSync(file);fs.rmdirSync(directory);}
+});
+test('writer rejects paths outside finite owner scope and traversal before mutation',()=>{const root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018',dir=root+'\\MelisaERP-P03-transition-'+'a'.repeat(32),lock=root+'\\owner-transition.lock';assert.doesNotThrow(()=>assertPr54WriteScope(dir+'\\engine.ps1',dir,lock));for(const file of ['C:\\foreign\\engine.ps1',dir+'\\..\\escape',dir+'evil\\engine.ps1'])assert.throws(()=>assertPr54WriteScope(file,dir,lock));});
 function auxiliary(parent){return {pid:900,parentPid:parent.pid,ownerSid:parent.ownerSid,nodePath:'C:\\Windows\\System32\\conhost.exe',commandLine:'\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4',creationTime:'2026-10-18T10:00:01.1234567Z',bindings:[]};}
 test('only bounded console auxiliary with exact parent owner birth and no listener is preliminary classified',()=>{
  const parent={pid:500,ownerSid:'S-1-5-21-2170750028-1005938530-2568122015-1001',creationTime:'2026-10-18T10:00:00.1234567Z'},a=auxiliary(parent);
