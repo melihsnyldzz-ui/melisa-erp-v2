@@ -31,6 +31,8 @@ function Get-CimInstance{param($ClassName,$Filter,$ErrorAction)
 }
 function ObserverExactNotFound($failure){return $failure.Exception.Message -ceq 'FIXTURE_NOT_FOUND'}
 function ObserverAssertVanishedAudits($audits,$raw,$policy){$script:assertedAudits=@($audits)}
+function NewRevalidateHistoricalAudits{}
+function NewHistoricalReadProcess($process){return $process}
 function ResetFixture{
  $script:now=[DateTime]::Parse('2026-10-18T18:00:00Z').ToUniversalTime()
  $script:owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
@@ -44,7 +46,7 @@ function ResetFixture{
  $script:probe=[pscustomobject]@{ProcessId=200;ParentProcessId=100;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=($profile.shell.path+' -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File '+$newProbeSource.probePath+' -Ports 5234');CreationDate=[DateTime]::Parse('2026-10-18T17:01:00.1234567Z').ToUniversalTime();OwnerSid=$owner}
  $script:unrelated=[pscustomobject]@{ProcessId=900;ParentProcessId=1;Name='other.exe';CommandLine='unrelated'}
  $script:inv=[pscustomobject]@{all=@($parent,$probe,$unrelated);allListeners=@();listeners=@();instances=@()}
- $script:fresh=@($probe);$script:ownerThrows=$false;$script:captures=0;$script:newProbePolicy=[pscustomobject]@{};$script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@();$script:assertedAudits=@();$script:SourceObserverSha256='observer'
+ $script:fresh=@($probe);$script:ownerThrows=$false;$script:captures=0;$script:newProbePolicy=[pscustomobject]@{};$script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@();$script:historicalPidReuseAudits=@();$script:historicalPidReuseFrames=@();$script:assertedAudits=@();$script:SourceObserverSha256='observer'
 }
 function ExpectRejected($name,[scriptblock]$action){try{& $action|Out-Null}catch{'REJECTED='+$name;return};throw ('FIXTURE_ACCEPTED_'+$name)}
 ResetFixture
@@ -346,4 +348,160 @@ try{
 }finally{foreach($stream in $streams){$stream.Dispose()};$resolved=[IO.Path]::GetFullPath($root);if(-not$resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase)-or[IO.Path]::GetFileName($resolved)-notmatch'^p03-new-hub-file-[a-f0-9]{32}$'){throw 'FIXTURE_TEMP_SCOPE'};[IO.Directory]::Delete($resolved,$true)}
 `}`);
  assert.match(out,/OS_FILE_ID=PASS/);
+});
+
+const historicalFunctions=()=>extract(['Hash'],engine)+'\n'+extract(['NewHistoricalDigest','NewHistoricalIdentity','NewHistoricalKernel','NewHistoricalFamily','NewHistoricalProof','NewHistoricalOldPidRelevant','NewRevalidateHistoricalAudits']);
+test('historical native helper compiles in PS5 and requests only limited query and synchronization rights without opening a runtime process',windows,()=>{
+ const text=readFileSync(source,'utf8');
+ assert.match(text,/OpenProcess\(0x00101000,false,pid\)/);assert.doesNotMatch(text,/Diagnostics\.Process\]::GetProcessById/);
+ const out=run(`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(source)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};$definition=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'NewHistoricalOpenProcess'},$true));$native=@($definition[0].FindAll({param($n)$n-is[Management.Automation.Language.StringConstantExpressionAst]-and$n.Value.Contains('public static class P03NewHistoricalProcess')},$true));if($native.Count-ne1){throw 'FIXTURE_NATIVE_BODY'};Add-Type -TypeDefinition $native[0].Value;if(-not('P03NewHistoricalHandle'-as[type])-or-not('P03NewHistoricalProcess'-as[type])){throw 'FIXTURE_NATIVE_COMPILE'};'QUERY_ONLY_COMPILED=PASS'`);
+ assert.match(out,/QUERY_ONLY_COMPILED=PASS/);
+});
+test('held historical kernel comparison truncates only sub-microsecond tails while preserving different microsecond rejection',windows,()=>{
+ const out=run(`${fixture}\n${extract(['NewHistoricalKernel'])}\n${String.raw`
+$pin=[pscustomobject]@{pid=400;creationTime='2026-10-18T17:00:00.1234567Z';nodePath='C:\external\python.exe'}
+$held=[pscustomobject]@{Id=400;HasExited=$false;StartTime=[DateTime]::Parse('2026-10-18T17:00:00.1234561Z').ToUniversalTime();MainModule=[pscustomobject]@{FileName=$pin.nodePath}}
+NewHistoricalKernel $held $pin;'SAME_MICRO=PASS'
+if($pin.creationTime-cne'2026-10-18T17:00:00.1234567Z'){throw 'FIXTURE_RAW_BIRTH_MUTATED'}
+$held.StartTime=[DateTime]::Parse('2026-10-18T17:00:00.1234571Z').ToUniversalTime();ExpectRejected 'different-micro' {NewHistoricalKernel $held $pin}
+$held.StartTime=[DateTime]::Parse('2026-10-18T17:00:00.1234561Z').ToUniversalTime();$held.HasExited=$true;ExpectRejected 'exited-handle' {NewHistoricalKernel $held $pin};$held.HasExited=$false
+$held.MainModule.FileName='C:\external\other.exe';ExpectRejected 'kernel-path' {NewHistoricalKernel $held $pin}
+`}`);
+ assert.match(out,/SAME_MICRO=PASS/);for(const c of ['different-micro','exited-handle','kernel-path'])assert.match(out,new RegExp('REJECTED='+c));
+});
+const historicalFixture=String.raw`
+function ResetHistorical{
+ ResetFixture
+ $script:isRehearsal=$false
+ $script:old=[pscustomobject]@{pid=400;parentPid=40;name='node.exe';nodePath='C:\managed\old\node.exe';ownerSid=$owner;commandLine='node old exact';creationTime='2026-10-18T15:00:00.0000000Z'}
+ $script:before=[pscustomobject]@{identities=[pscustomobject]@{crmNativeOrder=$old};tasks=@()}
+ $profile.oldWatchers=@([pscustomobject]@{pid=700;creationTime=$old.creationTime},[pscustomobject]@{pid=701;creationTime=$old.creationTime})
+ $profile|Add-Member NoteProperty packages @([pscustomobject]@{root='C:\managed'})
+ $profile|Add-Member NoteProperty candidateRules @()
+ $script:rootProcess=[pscustomobject]@{ProcessId=300;ParentProcessId=0;Name='desktop.exe';ExecutablePath='C:\external\desktop.exe';CommandLine='desktop exact';CreationDate=[DateTime]::Parse('2026-10-18T14:00:00Z').ToUniversalTime();OwnerSid=$owner}
+ $script:externalParent=[pscustomobject]@{ProcessId=350;ParentProcessId=300;Name='tool.exe';ExecutablePath='C:\external\tool.exe';CommandLine='tool exact';CreationDate=[DateTime]::Parse('2026-10-18T16:00:00Z').ToUniversalTime();OwnerSid=$owner}
+ $script:reused=[pscustomobject]@{ProcessId=400;ParentProcessId=350;Name='python.exe';ExecutablePath='C:\external\python.exe';CommandLine='python readonly external';CreationDate=[DateTime]::Parse('2026-10-18T17:00:00.1234567Z').ToUniversalTime();OwnerSid=$owner}
+ $script:externalChild=[pscustomobject]@{ProcessId=450;ParentProcessId=400;Name='python.exe';ExecutablePath='C:\external\python.exe';CommandLine='python worker external';CreationDate=$reused.CreationDate.AddSeconds(1);OwnerSid=$owner}
+ $script:externalInventory=[pscustomobject]@{all=@($rootProcess,$externalParent,$reused,$externalChild);allListeners=@();listeners=@();instances=@()}
+ $script:historicalEvidence=[pscustomobject]@{processes=@();receipts=@()};$script:oldIds=@(400,700,701);$script:consolePins=@{};$script:watcherPins=@{};$script:parentPins=@{};$script:tasksStopRequested=$false
+ $script:freshCount=0;$script:closed=0;$script:denied=$false;$script:freshMutation=$null;$script:kernelMutation=$false
+}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction);if($script:denied){throw 'FIXTURE_OWNER_ACCESS_DENIED'};[pscustomobject]@{ReturnValue=0;Sid=$InputObject.OwnerSid}}
+function NewRawInventory{$script:freshCount++;if($null-ne$script:freshMutation){& $script:freshMutation};return $script:externalInventory}
+function NewHistoricalOpenProcess($processId){
+ if($processId-ne400){throw 'FIXTURE_KERNEL_PID'}
+ $p=[pscustomobject]@{Id=400;StartTime=$script:reused.CreationDate;HasExited=$script:kernelMutation;MainModule=[pscustomobject]@{FileName=$script:reused.ExecutablePath}}
+ $p|Add-Member ScriptMethod Dispose {$script:closed++};return $p
+}
+ResetHistorical
+`;
+
+test('historical reuse proof retains raw rows, holds kernel identity and emits only separate non-owner audit with final CAS',windows,()=>{
+ const out=run(`${fixture}\n${extract(['IsWatcherCommand'],engine)}\n${historicalFunctions()}\n${historicalFixture}\n${String.raw`
+$raw=$externalInventory|ConvertTo-Json -Depth 12 -Compress
+if(NewHistoricalOldPidRelevant $reused $oldIds $externalInventory $historicalEvidence){throw 'FIXTURE_RELEVANT'}
+NewRevalidateHistoricalAudits
+if(($externalInventory|ConvertTo-Json -Depth 12 -Compress)-cne$raw){throw 'FIXTURE_RAW_MUTATED'}
+'ROWS='+$externalInventory.all.Count;'AUDITS='+$historicalPidReuseAudits.Count;'AUDIT='+($historicalPidReuseAudits[0]|ConvertTo-Json -Compress);'CLOSED='+$closed;'FRESH='+$freshCount
+if($consolePins.Count-ne0-or$parentPins.Count-ne0-or$watcherPins.Count-ne0){throw 'FIXTURE_OWNER_PIN_MUTATED'}
+if(NewHistoricalOldPidRelevant $externalParent $oldIds $externalInventory $historicalEvidence){throw 'FIXTURE_NON_OLD_RELEVANT'}
+$reused.CommandLine='changed later';ExpectRejected 'final-UID-drift' {NewRevalidateHistoricalAudits}
+ResetHistorical;[void](NewHistoricalOldPidRelevant $reused $oldIds $externalInventory $historicalEvidence);$externalChild.CommandLine='family changed later';ExpectRejected 'final-family-drift' {NewRevalidateHistoricalAudits}
+ResetHistorical;[void](NewHistoricalOldPidRelevant $reused $oldIds $externalInventory $historicalEvidence);$externalInventory.allListeners=@([pscustomobject]@{OwningProcess=450;LocalPort=9999});ExpectRejected 'final-listener-drift' {NewRevalidateHistoricalAudits}
+`}`);
+ assert.match(out,/ROWS=4/);assert.match(out,/AUDITS=1/);assert.match(out,/UNRELATED_HISTORICAL_PID_REUSE/);assert.match(out,/"oldUidDigest":"[a-f0-9]{64}"/);assert.match(out,/"currentUidDigest":"[a-f0-9]{64}"/);assert.match(out,/"admittedOwner":false,"stopAuthority":false/);assert.match(out,/CLOSED=2/);assert.match(out,/FRESH=5/);for(const c of ['final-UID-drift','final-family-drift','final-listener-drift'])assert.match(out,new RegExp('REJECTED='+c));
+});
+
+test('historical reuse fails closed for selected protected console COM managed descendants listener owner and missing identity',windows,()=>{
+ const out=run(`${fixture}\n${extract(['IsWatcherCommand'],engine)}\n${historicalFunctions()}\n${historicalFixture}\n${String.raw`
+foreach($case in @('selected','protected','console','COM','listener','managed-root','managed-descendant','watcher','probe','same-birth','older-birth','missing-old-birth','unknown-old-pid','missing-identity','owner-denied','owner-other','orphan-child','live-old-family','kernel-exited')){
+ ResetHistorical
+ switch($case){
+  'selected' {$historicalEvidence.processes=@([pscustomobject]@{pid=400})}
+  'protected' {$profile.protectedProcesses=@([pscustomobject]@{pid=400})}
+  'console' {$consolePins[400]=$old}
+  'COM' {$externalInventory.instances=@([pscustomobject]@{EnginePID=400})}
+  'listener' {$externalInventory.allListeners=@([pscustomobject]@{OwningProcess=400;LocalPort=7777})}
+  'managed-root' {$reused.ExecutablePath='C:\managed\python.exe'}
+  'managed-descendant' {$externalChild.CommandLine='anything C:/managed/start.mjs'}
+  'watcher' {$reused.CommandLine='powershell watch-hub-after-erp.ps1'}
+  'probe' {$reused.CommandLine=$newProbeSource.probePath}
+  'same-birth' {$reused.CreationDate=[DateTime]::Parse($old.creationTime).ToUniversalTime()}
+  'older-birth' {$reused.CreationDate=[DateTime]::Parse($old.creationTime).ToUniversalTime().AddSeconds(-1)}
+  'missing-old-birth' {$old.PSObject.Properties.Remove('creationTime')}
+  'unknown-old-pid' {$before.identities=[pscustomobject]@{}}
+  'missing-identity' {$reused.CommandLine=$null}
+  'owner-denied' {$script:denied=$true}
+  'owner-other' {$reused.OwnerSid='S-1-5-18'}
+  'orphan-child' {$externalChild.CreationDate=$reused.CreationDate.AddSeconds(-1)}
+  'live-old-family' {$before.identities|Add-Member NoteProperty hub ([pscustomobject]@{pid=450;creationTime=$externalChild.CreationDate.ToString('o')})}
+  'kernel-exited' {$script:kernelMutation=$true}
+ }
+ ExpectRejected $case {NewHistoricalOldPidRelevant $reused $oldIds $externalInventory $historicalEvidence}
+ if($historicalPidReuseAudits.Count-ne0){throw 'FIXTURE_REJECTED_AUDIT_ADMITTED'}
+}
+`}`);
+ for(const c of ['selected','protected','console','COM','listener','managed-root','managed-descendant','watcher','probe','same-birth','older-birth','missing-old-birth','unknown-old-pid','missing-identity','owner-denied','owner-other','orphan-child','live-old-family','kernel-exited'])assert.match(out,new RegExp('REJECTED='+c));
+});
+
+test('historical reuse rechecks fresh full family and kernel and rejects fresh reuse family port and identity races',windows,()=>{
+ const out=run(`${fixture}\n${extract(['IsWatcherCommand'],engine)}\n${historicalFunctions()}\n${historicalFixture}\n${String.raw`
+foreach($case in @('UID-reuse','child-added','child-removed','listener-added','COM-added','parent-link-drift','missing-current','missing-fresh-SID')){
+ ResetHistorical
+ $script:race=$case
+ $script:freshMutation={if($script:freshCount-eq2){switch($script:race){
+  'UID-reuse' {$reused.CreationDate=$reused.CreationDate.AddSeconds(1)}
+  'child-added' {$externalInventory.all+=,[pscustomobject]@{ProcessId=451;ParentProcessId=400;Name='tool.exe';ExecutablePath='C:\external\tool.exe';CommandLine='external';CreationDate=$reused.CreationDate.AddSeconds(2);OwnerSid=$owner}}
+  'child-removed' {$externalInventory.all=@($externalInventory.all|Where-Object{$_.ProcessId-ne450})}
+  'listener-added' {$externalInventory.allListeners=@([pscustomobject]@{OwningProcess=450;LocalPort=8000})}
+  'COM-added' {$externalInventory.instances=@([pscustomobject]@{EnginePID=450})}
+  'parent-link-drift' {$reused.ParentProcessId=351}
+  'missing-current' {$externalInventory.all=@($externalInventory.all|Where-Object{$_.ProcessId-ne400})}
+  'missing-fresh-SID' {$reused.OwnerSid=$null}
+ }}}
+ ExpectRejected $case {NewHistoricalOldPidRelevant $reused $oldIds $externalInventory $historicalEvidence}
+ if($closed-ne1){throw 'FIXTURE_KERNEL_NOT_DISPOSED'}
+}
+`}`);
+ for(const c of ['UID-reuse','child-added','child-removed','listener-added','COM-added','parent-link-drift','missing-current','missing-fresh-SID'])assert.match(out,new RegExp('REJECTED='+c));
+});
+
+test('historical reuse does not adopt or require external ancestors and preserves missing-parent rows and unrelated metadata',windows,()=>{
+ const out=run(`${fixture}\n${extract(['IsWatcherCommand'],engine)}\n${historicalFunctions()}\n${historicalFixture}\n${String.raw`
+foreach($case in @('exited-external-ancestor','missing-external-parent','external-ancestor-metadata','external-ancestor-listener')){
+ ResetHistorical
+ switch($case){
+  'exited-external-ancestor' {$rootProcess.ParentProcessId=4684}
+  'missing-external-parent' {$reused.ParentProcessId=999}
+  'external-ancestor-metadata' {$externalParent.ExecutablePath=$null;$externalParent.CommandLine=$null;$externalParent.CreationDate=$null;$externalParent.OwnerSid=$null}
+  'external-ancestor-listener' {$externalInventory.allListeners=@([pscustomobject]@{OwningProcess=350;LocalPort=7777})}
+ }
+ $raw=$externalInventory|ConvertTo-Json -Depth 12 -Compress
+ if(NewHistoricalOldPidRelevant $reused $oldIds $externalInventory $historicalEvidence){throw 'FIXTURE_EXTERNAL_RELEVANT'}
+ NewRevalidateHistoricalAudits
+ if(($externalInventory|ConvertTo-Json -Depth 12 -Compress)-cne$raw){throw 'FIXTURE_RAW_MUTATED'}
+ if($historicalPidReuseAudits.Count-ne1-or$historicalPidReuseAudits[0].admittedOwner-or$historicalPidReuseAudits[0].stopAuthority){throw 'FIXTURE_EXTERNAL_AUTHORITY'}
+ 'SCOPE_UNCHANGED='+$case
+}
+`}`);
+ for(const c of ['exited-external-ancestor','missing-external-parent','external-ancestor-metadata','external-ancestor-listener'])assert.match(out,new RegExp('SCOPE_UNCHANGED='+c));
+});
+
+test('actual pinned FE CandidateInventory import equivalence and wrapper routing replace only the historical seed and preserve foreign and selected PID guards',windows,()=>{
+ const out=run(`${fixture}\n${extract(['ImportNewObserverFunctions'])}\n$engineBytes=[IO.File]::ReadAllBytes(${q(engine)});$digest=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($engineBytes)).Replace('-','').ToLowerInvariant();if($digest-cne'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'){throw 'FIXTURE_ENGINE_PIN'};ImportNewObserverFunctions $engineBytes @('Need','Hash','IsWatcherCommand','CandidateInventory','CandidateInventoryCore','ConsoleAuxiliaries')\n${historicalFunctions()}\n${extract(['NewCandidateInventoryCore','CandidateInventoryCore','NewAssertCandidateInventoryEquivalence'])}\n${historicalFixture}\n${String.raw`
+NewAssertCandidateInventoryEquivalence
+. ([scriptblock]::Create('function FrozenCandidateInventoryCore($evidence)'+$script:newFrozenCandidateInventoryBody))
+function Inventory{return $script:externalInventory};function ProtectedProcesses($inventory){}
+$script:isRehearsal=$false
+ExpectRejected 'frozen-PID-only-foreign' {FrozenCandidateInventoryCore $historicalEvidence}
+$raw=$externalInventory|ConvertTo-Json -Depth 12 -Compress
+$seen=CandidateInventory $historicalEvidence;'ROUTED_ROWS='+$seen.inventory.all.Count;'SELECTED='+$seen.selected.Count;'AUDITS='+$historicalPidReuseAudits.Count
+if(($externalInventory|ConvertTo-Json -Depth 12 -Compress)-cne$raw){throw 'FIXTURE_RAW_MUTATED'}
+$rootProcess.ParentProcessId=4684;$seen=CandidateInventory $historicalEvidence;if($seen.inventory.all.Count-ne4){throw 'FIXTURE_EXTERNAL_PARENT_FILTERED'};'EXITED_EXTERNAL_ANCESTOR=PASS'
+$externalParent.CommandLine='node C:\managed\supervisor.mjs';ExpectRejected 'managed-ancestor-closure-still-rejected' {CandidateInventory $historicalEvidence};$externalParent.CommandLine='tool exact'
+$historicalEvidence.processes=@([pscustomobject]@{pid=400;role='crmNativeOrder';ownerSid=$owner});ExpectRejected 'selected-old-PID-still-forbidden' {CandidateInventory $historicalEvidence};$historicalEvidence.processes=@()
+$externalInventory.all+=,[pscustomobject]@{ProcessId=800;ParentProcessId=0;CommandLine='node C:\managed\foreign.mjs'};ExpectRejected 'other-managed-foreign-still-rejected' {CandidateInventory $historicalEvidence}
+$script:newFrozenCandidateInventoryBody=$script:newFrozenCandidateInventoryBody.Replace('FOREIGN_LISTENER','OTHER_CHECK');ExpectRejected 'non-predicate-frozen-drift' {NewAssertCandidateInventoryEquivalence}
+`}`);
+ for(const c of ['frozen-PID-only-foreign','managed-ancestor-closure-still-rejected','selected-old-PID-still-forbidden','other-managed-foreign-still-rejected','non-predicate-frozen-drift'])assert.match(out,new RegExp('REJECTED='+c));assert.match(out,/ROUTED_ROWS=4/);assert.match(out,/SELECTED=0/);assert.match(out,/AUDITS=1/);assert.match(out,/EXITED_EXTERNAL_ANCESTOR=PASS/);
 });

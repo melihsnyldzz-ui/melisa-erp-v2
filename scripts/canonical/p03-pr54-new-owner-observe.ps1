@@ -38,7 +38,7 @@ function ImportNewObserverFunctions([byte[]]$bytes,[string[]]$only=@()){
  if($errors.Count){throw 'P03_NEW_OBSERVER_PARSE'}
  $definitions=@($ast.FindAll({param($node)$node -is [Management.Automation.Language.FunctionDefinitionAst]},$false))
  if($only.Count){foreach($name in $only){if(@($definitions|Where-Object{$_.Name -ceq $name}).Count -ne 1){throw 'P03_NEW_OBSERVER_FUNCTION'}};$definitions=@($definitions|Where-Object{$_.Name -cin $only})}
- foreach($definition in $definitions){if($definition.Name -ceq 'HubLineage'){$script:newFrozenHubLineageBody=$definition.Body.Extent.Text};$name=if($definition.Name -ceq 'Inventory'){'NewRawInventory'}else{$definition.Name};. ([scriptblock]::Create('function script:'+$name+$definition.Extent.Text.Substring(('function '+$definition.Name).Length)))}
+ foreach($definition in $definitions){if($definition.Name -ceq 'HubLineage'){$script:newFrozenHubLineageBody=$definition.Body.Extent.Text};if($definition.Name -ceq 'CandidateInventoryCore'){$script:newFrozenCandidateInventoryBody=$definition.Body.Extent.Text};$name=if($definition.Name -ceq 'Inventory'){'NewRawInventory'}else{$definition.Name};. ([scriptblock]::Create('function script:'+$name+$definition.Extent.Text.Substring(('function '+$definition.Name).Length)))}
 }
 function ImportSharedObserverFunctions([byte[]]$bytes){
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$tokens,[ref]$errors)
@@ -149,6 +149,210 @@ function NewAssertHubLineageEquivalence{
  Need ($actual -ceq $expected) 'NEW_HUB_LINEAGE_EQUIVALENCE'
 }
 function HubLineage($evidence,$expected,$inventory){return NewHubLineage $evidence $expected $inventory}
+function NewHistoricalDigest($value){return Hash ([Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12 -Compress)))}
+function NewHistoricalIdentity($process){
+ Need ([int]$process.ProcessId -gt 0 -and [int]$process.ParentProcessId -ge 0 -and -not [string]::IsNullOrWhiteSpace($process.Name) -and -not [string]::IsNullOrWhiteSpace($process.ExecutablePath) -and -not [string]::IsNullOrWhiteSpace($process.CommandLine) -and $process.CreationDate -is [DateTime]) 'NEW_HISTORICAL_IDENTITY'
+ $sid=Invoke-CimMethod -InputObject $process -MethodName GetOwnerSid -ErrorAction Stop
+ Need ($sid.ReturnValue -eq 0 -and $sid.Sid -cmatch '\AS-1-[0-9-]+\z') 'NEW_HISTORICAL_OWNER'
+ return [ordered]@{pid=[int]$process.ProcessId;parentPid=[int]$process.ParentProcessId;name=[string]$process.Name;nodePath=[string]$process.ExecutablePath;ownerSid=[string]$sid.Sid;commandLine=[string]$process.CommandLine;creationTime=$process.CreationDate.ToUniversalTime().ToString('o')}
+}
+function NewHistoricalOpenProcess([int]$processId){
+ if(-not ('P03NewHistoricalProcess' -as [type])){Add-Type -TypeDefinition @'
+using System;using System.Text;using System.ComponentModel;using System.Runtime.InteropServices;using Microsoft.Win32.SafeHandles;
+public sealed class P03NewHistoricalHandle:SafeHandleZeroOrMinusOneIsInvalid {
+ public P03NewHistoricalHandle():base(true){}
+ protected override bool ReleaseHandle(){return P03NewHistoricalProcess.CloseHandle(handle);}
+}
+public static class P03NewHistoricalProcess {
+ public sealed class State {public uint Id;public DateTime Birth;public string Path;public bool Running;}
+ [DllImport("kernel32.dll",SetLastError=true)] static extern P03NewHistoricalHandle OpenProcess(uint access,bool inherit,uint pid);
+ [DllImport("kernel32.dll",SetLastError=true)] public static extern bool CloseHandle(IntPtr h);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern uint GetProcessId(P03NewHistoricalHandle h);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetProcessTimes(P03NewHistoricalHandle h,out long creation,out long exit,out long kernel,out long user);
+ [DllImport("kernel32.dll",EntryPoint="QueryFullProcessImageNameW",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(P03NewHistoricalHandle h,uint flags,StringBuilder path,ref uint size);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern uint WaitForSingleObject(P03NewHistoricalHandle h,uint milliseconds);
+ public static P03NewHistoricalHandle Open(uint pid){
+  // QUERY_LIMITED_INFORMATION | SYNCHRONIZE; no process control/write rights.
+  var h=OpenProcess(0x00101000,false,pid);if(h.IsInvalid){int error=Marshal.GetLastWin32Error();h.Dispose();throw new Win32Exception(error);}return h;
+ }
+ public static State Read(P03NewHistoricalHandle h){
+  uint id=GetProcessId(h);long creation,exit,kernel,user;uint wait=WaitForSingleObject(h,0);
+  if(id==0||wait==0xffffffff||!GetProcessTimes(h,out creation,out exit,out kernel,out user))throw new Win32Exception(Marshal.GetLastWin32Error());
+  var path=new StringBuilder(32768);uint size=(uint)path.Capacity;if(!QueryFullProcessImageName(h,0,path,ref size))throw new Win32Exception(Marshal.GetLastWin32Error());
+  if(wait!=0&&wait!=258)throw new InvalidOperationException("P03_HISTORICAL_WAIT");
+  return new State{Id=id,Birth=DateTime.FromFileTimeUtc(creation),Path=path.ToString(),Running=wait==258};
+ }
+}
+'@}
+ Need ($processId -gt 0) 'NEW_HISTORICAL_KERNEL_PID'
+ return [P03NewHistoricalProcess]::Open([uint32]$processId)
+}
+function NewHistoricalReadProcess($handle){
+ $state=[P03NewHistoricalProcess]::Read($handle)
+ return [pscustomobject]@{Id=$state.Id;StartTime=$state.Birth;HasExited=(-not $state.Running);MainModule=[pscustomobject]@{FileName=$state.Path}}
+}
+function NewHistoricalKernel($process,$pin){
+ $state=NewHistoricalReadProcess $process
+ # CIM timestamps have microsecond precision. Preserve the raw CIM UID; only
+ # this kernel/CIM comparison truncates the kernel's finer 100 ns remainder.
+ $format='yyyy-MM-ddTHH:mm:ss.ffffffZ';$culture=[Globalization.CultureInfo]::InvariantCulture
+ Need (-not $state.HasExited -and $state.Id -eq $pin.pid -and $state.StartTime.ToUniversalTime().ToString($format,$culture) -ceq [DateTime]::Parse($pin.creationTime).ToUniversalTime().ToString($format,$culture) -and $state.MainModule.FileName -ieq $pin.nodePath) 'NEW_HISTORICAL_KERNEL'
+}
+function NewHistoricalFamily($inventory,[int]$processId,$evidence){
+ $all=@($inventory.all);Need ($all.Count -gt 0 -and $all.Count -le 100000) 'NEW_HISTORICAL_INVENTORY'
+ $map=@{};foreach($row in $all){$key=[int]$row.ProcessId;Need (-not $map.ContainsKey($key)) 'NEW_HISTORICAL_DUPLICATE';$map[$key]=$row}
+ Need ($map.ContainsKey($processId)) 'NEW_HISTORICAL_MISSING'
+ $family=[Collections.Generic.HashSet[int]]::new();[void]$family.Add($processId)
+ do{$added=$false;foreach($row in $all){if($family.Contains([int]$row.ParentProcessId) -and $family.Add([int]$row.ProcessId)){$added=$true}};Need ($family.Count -le 256) 'NEW_HISTORICAL_FAMILY_BOUND'}while($added)
+ # Only the reused PID's causal descendants need this additional proof.
+ # External ancestors remain in the unfiltered inventory: the unchanged
+ # namespace seeds and descendant closure still reject any managed ancestor.
+ $scope=@($family|Sort-Object)
+ $forbidden=@(@($evidence.processes|ForEach-Object{$_.pid})+@($profile.protectedProcesses|ForEach-Object{$_.pid})+@($inventory.instances|ForEach-Object{$_.EnginePID})+@($script:consolePins.Keys))
+ $pins=@();foreach($id in $scope){
+  $row=$map[[int]$id];Need ([int]$id -notin $forbidden) 'NEW_HISTORICAL_MANAGED_PID'
+  Need (-not (IsWatcherCommand ([string]$row.CommandLine)) -and $row.Name -ine 'conhost.exe' -and ([string]$row.CommandLine).IndexOf($script:newProbeSource.probePath,[StringComparison]::OrdinalIgnoreCase) -lt 0) 'NEW_HISTORICAL_MANAGED_ARGV'
+  foreach($pkg in $profile.packages){foreach($value in @([string]$row.CommandLine,[string]$row.ExecutablePath)){Need ($value.Replace('/','\').IndexOf(([string]$pkg.root).Replace('/','\'),[StringComparison]::OrdinalIgnoreCase) -lt 0) 'NEW_HISTORICAL_PACKAGE'}}
+  Need (@($inventory.allListeners|Where-Object{$_.OwningProcess -eq $id}).Count -eq 0) 'NEW_HISTORICAL_LISTENER'
+  $pin=NewHistoricalIdentity $row
+  if($family.Contains([int]$id)){Need ($pin.ownerSid -ceq $owner) 'NEW_HISTORICAL_FAMILY_OWNER'}
+  if([int]$id -ne $processId){Need ($map.ContainsKey([int]$row.ParentProcessId) -and $row.CreationDate.ToUniversalTime() -ge $map[[int]$row.ParentProcessId].CreationDate.ToUniversalTime()) 'NEW_HISTORICAL_EDGE'}
+  # An extant historical owner in either direction is still managed. Only the
+  # one demonstrated reused PID may have a different generation here.
+  foreach($old in @(@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers))){if([int]$old.pid -eq [int]$id -and [int]$id -ne $processId){Need ($old.PSObject.Properties.Name -contains 'creationTime' -and [DateTime]::Parse($old.creationTime).ToUniversalTime().Ticks -ne $row.CreationDate.ToUniversalTime().Ticks) 'NEW_HISTORICAL_OLD_FAMILY'}}
+  $pins+=,$pin
+ }
+ return @($pins|Sort-Object pid)
+}
+function NewHistoricalProof($process,$oldPids,$inventory,$evidence){
+ $processId=[int]$process.ProcessId
+ Need ($processId -in $oldPids) 'NEW_HISTORICAL_OLD_PID'
+ $old=@(@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)|Where-Object{[int]$_.pid -eq $processId})
+ Need ($old.Count -eq 1 -and $old[0].PSObject.Properties.Name -contains 'creationTime' -and -not [string]::IsNullOrWhiteSpace($old[0].creationTime)) 'NEW_HISTORICAL_OLD_UID'
+ $oldBirth=[DateTime]::Parse($old[0].creationTime).ToUniversalTime()
+ $current=NewHistoricalIdentity $process;Need ([DateTime]::Parse($current.creationTime).ToUniversalTime() -gt $oldBirth -and $current.ownerSid -ceq $owner) 'NEW_HISTORICAL_GENERATION'
+ $rawFamily=@(NewHistoricalFamily $inventory $processId $evidence)
+ $held=NewHistoricalOpenProcess $processId
+ try{
+  NewHistoricalKernel $held $current
+  # Both passes are unfiltered global collections. No row is removed and no
+  # unrelated process is granted an ERP owner or stop identity.
+  for($pass=0;$pass -lt 2;$pass++){
+   $fresh=NewRawInventory;$rows=@($fresh.all|Where-Object{$_.ProcessId -eq $processId})
+   Need ($rows.Count -eq 1 -and (NewHistoricalDigest (NewHistoricalIdentity $rows[0])) -ceq (NewHistoricalDigest $current)) 'NEW_HISTORICAL_CURRENT_CAS'
+   Need ($rows[0].CreationDate.ToUniversalTime() -gt $oldBirth) 'NEW_HISTORICAL_OLD_UID_PRESENT'
+   $family=@(NewHistoricalFamily $fresh $processId $evidence)
+   Need ((NewHistoricalDigest $family) -ceq (NewHistoricalDigest $rawFamily)) 'NEW_HISTORICAL_FAMILY_CAS'
+   NewHistoricalKernel $held $current
+  }
+ }finally{$held.Dispose()}
+ return [pscustomobject]@{audit=[ordered]@{status='UNRELATED_HISTORICAL_PID_REUSE';pid=$processId;oldUidDigest=(NewHistoricalDigest $old[0]);currentUidDigest=(NewHistoricalDigest $current);admittedOwner=$false;stopAuthority=$false};familyDigest=(NewHistoricalDigest $rawFamily);process=$process;oldPids=@($oldPids);evidence=$evidence}
+}
+function NewHistoricalOldPidRelevant($process,$oldPids,$inventory,$evidence){
+ if([int]$process.ProcessId -notin $oldPids){return $false}
+ $proof=NewHistoricalProof $process $oldPids $inventory $evidence
+ $script:historicalPidReuseAudits+=,$proof.audit;$script:historicalPidReuseFrames+=,$proof
+ return $false
+}
+function NewRevalidateHistoricalAudits{
+ foreach($frame in $script:historicalPidReuseFrames){
+  $fresh=NewRawInventory;$rows=@($fresh.all|Where-Object{$_.ProcessId -eq $frame.process.ProcessId});Need ($rows.Count -eq 1) 'NEW_HISTORICAL_FINAL_MISSING'
+  $proof=NewHistoricalProof $rows[0] $frame.oldPids $fresh $frame.evidence
+  Need (($proof.audit|ConvertTo-Json -Compress) -ceq ($frame.audit|ConvertTo-Json -Compress) -and $proof.familyDigest -ceq $frame.familyDigest) 'NEW_HISTORICAL_FINAL_CAS'
+ }
+}
+function NewCandidateInventoryCore($evidence){
+ $script:capturedCandidatePids=@($evidence.processes|ForEach-Object{[int]$_.pid})
+ $inventory=Inventory;ProtectedProcesses $inventory
+ Need (@($profile.oldWatchers).Count -eq 2) 'OLD_WATCHER_PINS'
+ $oldPids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})
+ foreach($instance in $inventory.instances){$oldPids+=@($before.tasks|Where-Object{$_.name -ceq $instance.Name}|ForEach-Object{if($_.PSObject.Properties.Name -contains 'enginePid'){[int]$_.enginePid}})}
+ Need (@($evidence.processes|ForEach-Object{$_.role}|Sort-Object -Unique).Count -eq @($evidence.processes).Count -and @($evidence.processes|ForEach-Object{$_.pid}|Sort-Object -Unique).Count -eq @($evidence.processes).Count) 'CANDIDATE_DUPLICATE'
+ $selected=@();$rules=@($profile.candidateRules);$seen=@()
+ foreach($expected in @($evidence.processes)){
+  Need ($expected.PSObject.Properties.Name -cnotcontains 'kind') 'CANDIDATE_PROTECTED_KIND'
+  Need ([int]$expected.pid -notin @($profile.protectedProcesses|ForEach-Object{[int]$_.pid})) 'CANDIDATE_PROTECTED_PID'
+  Need ($expected.ownerSid -ceq $owner -and [int]$expected.pid -gt 0 -and [int]$expected.pid -notin $oldPids -and $expected.role -cnotin $seen) 'CANDIDATE_OLD_OR_DUPLICATE'
+  $rule=@($rules|Where-Object{$_.role -ceq $expected.role});Need ($rule.Count -eq 1) 'CANDIDATE_ROLE'
+  VerifyRule $rule[0]
+  Need ($expected.nodePath -ceq $rule[0].nodePath -and ((Tokens $expected.commandLine)|ConvertTo-Json -Compress) -ceq ((Tokens $rule[0].commandLine)|ConvertTo-Json -Compress)) 'CANDIDATE_ARGV'
+  [void](ReadPinned $rule[0].config.path $rule[0].config.sha256)
+  Need (@($profile.packages|Where-Object{$_.root -ceq $rule[0].packageRoot -and $_.sourceCommit -ceq $rule[0].sourceCommit}).Count -eq 1) 'CANDIDATE_PACKAGE'
+  $actual=@($inventory.all|Where-Object{$_.ProcessId -eq $expected.pid})
+  if($actual.Count -eq 0){continue}
+  Need ($actual.Count -eq 1 -and (Identity $actual[0] $expected)) 'CANDIDATE_IDENTITY'
+  RehearsalBindings $expected.role $expected $inventory
+  $parent=@($inventory.all|Where-Object{$_.ProcessId -eq $expected.parentPid})
+  $hubParentBirth=if($expected.role -ceq 'hub' -and -not $isRehearsal){HubLineage $evidence $expected $inventory}else{$null}
+  if($parent.Count -eq 1){
+   $parentProof=@(CandidateParentSnapshot $parent ([int]$expected.parentPid))
+   if($parentProof.Count -eq 0){$parent=@()}else{$parent=@($parentProof[0].process);$parentSid=$parentProof[0].sid}
+  }
+  if($parent.Count -eq 1){
+   if($expected.role -cin @('terminalWatcher','hubWatcher')){
+    $service=@(Get-CimInstance Win32_Service -Filter "Name='Schedule'" -ErrorAction Stop)
+    $pathAvailable=$parent[0].ExecutablePath -ieq 'C:\Windows\System32\svchost.exe' -and $parent[0].CommandLine -ieq 'C:\Windows\system32\svchost.exe -k netsvcs -p'
+    $pathUnavailable=[string]::IsNullOrEmpty($parent[0].ExecutablePath) -and [string]::IsNullOrEmpty($parent[0].CommandLine)
+    Need ($service.Count -eq 1 -and $service[0].State -ceq 'Running' -and $service[0].StartName -ceq 'LocalSystem' -and $service[0].PathName -ieq 'C:\Windows\system32\svchost.exe -k netsvcs -p' -and [int]$service[0].ProcessId -eq [int]$expected.parentPid -and $parent[0].Name -ieq 'svchost.exe' -and ($pathAvailable -or $pathUnavailable) -and (($parentSid.ReturnValue -eq 0 -and $parentSid.Sid -ceq 'S-1-5-18') -or ($parentSid.ReturnValue -eq 2 -and -not $parentSid.Sid))) 'CANDIDATE_SCHEDULE_PARENT'
+   }else{Need ($parentSid.ReturnValue -eq 0 -and $parentSid.Sid -ceq $owner) 'CANDIDATE_PARENT_OWNER'}
+   Need ($parent[0].CreationDate.ToUniversalTime() -le $actual[0].CreationDate.ToUniversalTime()) 'CANDIDATE_PARENT_BIRTH'
+   $parentBirth=$parent[0].CreationDate.ToUniversalTime()
+   if($script:parentPins.ContainsKey([int]$expected.parentPid)){Need ($script:parentPins[[int]$expected.parentPid].Ticks -eq $parentBirth.Ticks) 'CANDIDATE_PARENT_REUSED'}else{$script:parentPins[[int]$expected.parentPid]=$parentBirth}
+  }else{
+   if($expected.role -ceq 'hub' -and -not $isRehearsal -and $null -ne $hubParentBirth){$parentBirth=$hubParentBirth;$script:parentPins[[int]$expected.parentPid]=$parentBirth}else{
+    Need ($parent.Count -eq 0 -and $script:tasksStopRequested -and $script:parentPins.ContainsKey([int]$expected.parentPid)) 'CANDIDATE_PARENT_UNPROVEN'
+    $parentBirth=$script:parentPins[[int]$expected.parentPid]
+   }
+  }
+  if($expected.role -cin @('terminalWatcher','hubWatcher')){
+   $instances=@($inventory.instances|Where-Object{$_.Name -ceq $rule[0].taskName -and $_.EnginePID -eq $expected.pid})
+   Need ($instances.Count -eq 1 -or ($script:tasksStopRequested -and $script:watcherPins.ContainsKey([int]$expected.pid))) 'CANDIDATE_COM'
+   if($instances.Count -eq 1){
+    if($script:watcherPins.ContainsKey([int]$expected.pid)){Need ($script:watcherPins[[int]$expected.pid] -ceq [string]$instances[0].InstanceGuid) 'CANDIDATE_COM_GUID_DRIFT'}else{$script:watcherPins[[int]$expected.pid]=[string]$instances[0].InstanceGuid}
+   }
+  }elseif($expected.role -ceq 'hub' -and -not $isRehearsal){
+   Need ($parentBirth.Ticks -eq $hubParentBirth.Ticks) 'HUB_PARENT_BIRTH'
+  }elseif($expected.role -ceq 'coreSupervisor'){
+   Need ($null -eq $rule[0].receipt) 'SUPERVISOR_NO_SYNTHETIC_RECEIPT'
+   SupervisorParent $evidence $expected $inventory
+  }else{
+   $refs=@($evidence.receipts|Where-Object{$_.role -ceq $expected.role});Need ($refs.Count -eq 1 -and $refs[0].path -ceq $rule[0].receipt.path) 'CANDIDATE_RECEIPT_REF'
+   $receipt=Json (ReadPinned $refs[0].path $refs[0].sha256);$fields=$rule[0].receipt.fields
+   $coreKeys=@('run','pid','parentPid','parentCreationTime','creationTime','stage','sourceCommit','configSha256','copyId','actualT1')|Sort-Object
+   Need ((@($receipt.PSObject.Properties.Name|Sort-Object)-join '|') -ceq ($coreKeys-join '|') -and $receipt.stage -ceq $expected.role -and $receipt.run -cmatch '\A[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\z') 'CORE_RECEIPT_SCHEMA'
+   Need ((@($receipt.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (@($rule[0].receipt.exactKeys|Sort-Object)-join '|')) 'CANDIDATE_RECEIPT_KEYS'
+   if($null -ne $rule[0].receipt.schemaVersion){Need ((Field $receipt $fields.schema) -ceq $rule[0].receipt.schemaVersion) 'CANDIDATE_RECEIPT_SCHEMA'}
+   Need ((Field $receipt $fields.pid) -eq $expected.pid -and (Field $receipt $fields.parentPid) -eq $expected.parentPid -and [DateTime]::Parse((Field $receipt $fields.birth)).ToUniversalTime().Ticks -eq [DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks -and (Field $receipt $fields.sourceCommit) -ceq $rule[0].sourceCommit -and (Field $receipt $fields.configSha256) -ceq $rule[0].config.sha256 -and (Field $receipt $fields.copyId) -ceq $before.copyId -and (Field $receipt $fields.actualT1) -ceq $false -and [DateTime]::Parse((Field $receipt $fields.parentBirth)).ToUniversalTime().Ticks -eq $parentBirth.Ticks) 'CANDIDATE_RECEIPT_IDENTITY'
+  }
+  foreach($binding in @($expected.bindings)){Need (@($inventory.listeners|Where-Object{$_.OwningProcess -eq $expected.pid -and $_.LocalPort -eq $binding.port -and $_.LocalAddress -ceq $binding.address}).Count -eq 1) 'CANDIDATE_BINDING'}
+  $selected+=,$expected;$seen+=$expected.role
+ }
+ foreach($listener in $inventory.listeners){Need (@($selected|Where-Object{$_.pid -eq $listener.OwningProcess -and @($_.bindings|Where-Object{$_.port -eq $listener.LocalPort -and $_.address -ceq $listener.LocalAddress}).Count -eq 1}).Count -eq 1) 'FOREIGN_LISTENER'}
+ $auxiliaryPids=@(ConsoleAuxiliaries $inventory $selected)
+ $relevantPids=[Collections.Generic.HashSet[int]]::new()
+ foreach($captured in @($evidence.processes)){[void]$relevantPids.Add([int]$captured.pid)}
+ foreach($capturedPid in @($script:consolePins.Keys)){[void]$relevantPids.Add([int]$capturedPid)}
+ foreach($p in $inventory.all){
+  $relevant=(NewHistoricalOldPidRelevant $p $oldPids $inventory $evidence) -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or (IsWatcherCommand ([string]$p.CommandLine))
+  foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){$relevant=$true}}
+  if($relevant){[void]$relevantPids.Add([int]$p.ProcessId)}
+ }
+ do{$added=$false;foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ParentProcessId) -and $relevantPids.Add([int]$p.ProcessId)){$added=$true}}}while($added)
+ foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ProcessId)){Need (@($selected|Where-Object{$_.pid -eq $p.ProcessId}).Count -eq 1 -or $p.ProcessId -in $auxiliaryPids) 'FOREIGN_PROCESS'}}
+ if(-not $script:tasksStopRequested){
+  $script:admittedExitPins=@{};foreach($pin in $selected){$script:admittedExitPins[[int]$pin.pid]=$pin};foreach($pin in $script:consolePins.Values){$script:admittedExitPins[[int]$pin.pid]=$pin}
+ }
+ return [pscustomobject]@{inventory=$inventory;selected=$selected}
+}
+function NewAssertCandidateInventoryEquivalence{
+ $old='$p.ProcessId -in $oldPids';$replacement='(NewHistoricalOldPidRelevant $p $oldPids $inventory $evidence)'
+ Need ([regex]::Matches($script:newFrozenCandidateInventoryBody,[regex]::Escape($old)).Count -eq 1) 'NEW_CANDIDATE_INVENTORY_SOURCE'
+ $expected=$script:newFrozenCandidateInventoryBody.Replace($old,$replacement).Replace("`r`n","`n").Trim()
+ $definition=(Get-Command NewCandidateInventoryCore -CommandType Function).ScriptBlock.Ast
+ Need ($definition -is [Management.Automation.Language.FunctionDefinitionAst] -and $definition.Name -ceq 'NewCandidateInventoryCore') 'NEW_CANDIDATE_INVENTORY_DEFINITION'
+ Need ($definition.Body.Extent.Text.Replace("`r`n","`n").Trim() -ceq $expected) 'NEW_CANDIDATE_INVENTORY_EQUIVALENCE'
+}
+function CandidateInventoryCore($evidence){return NewCandidateInventoryCore $evidence}
 function NewAuthority{
  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($CandidatePath,$CandidateSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($SourceObserverPath,$SourceObserverSha256))){[void](ReadPinned $pin[0] $pin[1])}
  Need ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne '639e2da815e1e7ac0f1c0d04d7f7bdc3' -and $ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json')) -and $EnginePath -ceq (Join-Path $dir 'p03-physical-rollback.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'NEW_OBSERVER_PATH'
@@ -247,27 +451,30 @@ function NewFullOwner($evidence){
 }
 function NewFrame($evidence){
  $script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@()
+ $script:historicalPidReuseAudits=@();$script:historicalPidReuseFrames=@()
  NewAuthority;NewAssertTasks
  $digest=NewFullOwner $evidence
  ProtectedProcesses (Inventory);NewAssertTasks
  # Recheck each audit against its original raw descendant links and a fresh
  # global inventory; audit rows never become active owner or stop identities.
  foreach($auditFrame in $script:newFrameAuditSnapshots){ObserverAssertVanishedAudits $auditFrame.audits $auditFrame.rawSnapshot $script:newProbePolicy}
+ NewRevalidateHistoricalAudits
  Need ($digest -cmatch '\A[a-f0-9]{64}\z') 'NEW_OBSERVER_DIGEST';return $digest
 }
 function ObserveNewOwner($evidence){
- if($Mode -ceq 'DryRun'){$digest=NewFrame $evidence;return [ordered]@{status='NEW_OWNER_OBSERVATION_DRY_RUN';identityDigest=$digest;sourceObserverSha256=$SourceObserverSha256;vanishedAuxiliaries=$script:newFrameVanishedAudits;mutationExecuted=$false}}
+ if($Mode -ceq 'DryRun'){$digest=NewFrame $evidence;return [ordered]@{status='NEW_OWNER_OBSERVATION_DRY_RUN';identityDigest=$digest;sourceObserverSha256=$SourceObserverSha256;vanishedAuxiliaries=$script:newFrameVanishedAudits;historicalPidReuseAudits=$script:historicalPidReuseAudits;mutationExecuted=$false}}
  $deadline=(NewNow).AddMinutes(10);$stableSince=$null;$stableDigest=$null;$lastFailureCode='P03_NEW_OWNER_NO_STABLE_FRAME'
  while((NewNow) -lt $deadline){
   $digest=$null;try{$digest=NewFrame $evidence}catch{$stableSince=$null;$stableDigest=$null;$safe=[regex]::Match($_.Exception.Message,'\AP03_[A-Z_]{1,100}\z').Value;$lastFailureCode=if($safe){$safe}else{'P03_NEW_OWNER_FRAME_UNCLASSIFIED'}}
   if($null -ne $digest){if($null -eq $stableSince -or $digest -cne $stableDigest){$stableSince=NewNow;$stableDigest=$digest};$now=NewNow
-   if(($now-$stableSince).TotalSeconds -ge 30 -and $now -lt $deadline){NewAuthority;return [ordered]@{status='NEW_OWNER_OBSERVED_READY';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;candidateSha256=$CandidateSha256;engineSha256=$engineSha;sourceObserverSha256=$SourceObserverSha256;identityDigest=$stableDigest;observedAt=(NewNow).ToString('o');sourceProof=$script:newProbeSource;vanishedAuxiliaries=$script:newFrameVanishedAudits;stableSeconds=30;mutationExecuted=$false}}
+   if(($now-$stableSince).TotalSeconds -ge 30 -and $now -lt $deadline){NewAuthority;NewRevalidateHistoricalAudits;return [ordered]@{status='NEW_OWNER_OBSERVED_READY';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;candidateSha256=$CandidateSha256;engineSha256=$engineSha;sourceObserverSha256=$SourceObserverSha256;identityDigest=$stableDigest;observedAt=(NewNow).ToString('o');sourceProof=$script:newProbeSource;vanishedAuxiliaries=$script:newFrameVanishedAudits;historicalPidReuseAudits=$script:historicalPidReuseAudits;stableSeconds=30;mutationExecuted=$false}}
   }
   Start-Sleep -Milliseconds 500
  }
  throw ('P03_NEW_OWNER_NOT_STABLE_'+$lastFailureCode)
 }
 NewAssertHubLineageEquivalence
+NewAssertCandidateInventoryEquivalence
 NewAuthority
 $evidence=AdmitCandidate
 Need (@($evidence.processes).Count -eq 10 -and @($evidence.processes|Select-Object -ExpandProperty role -Unique).Count -eq 10) 'NEW_CANDIDATE_COUNT'
