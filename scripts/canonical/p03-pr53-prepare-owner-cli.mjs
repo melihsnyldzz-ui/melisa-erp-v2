@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 
+import {verifyPr53CompletePackageInventory} from './p03-pr53-package-inventory.mjs';
 import {preparePr53OwnerProfile} from './p03-pr53-owner-preparation.mjs';
 import {validateCompletionDependencyLock} from './terminal-completion-logon.mjs';
 const require=createRequire(import.meta.url);
@@ -37,6 +38,10 @@ for(const pin of [erpPin,crmPin,supervisorPin])readPinned({path:path.win32.join(
 const erpManifest=JSON.parse(readPinned({path:path.win32.join(erpPin.packageRoot,'release-manifest.json'),sha256:erpPin.manifestSha256}));
 if(erpManifest.sourceCommit!==erpPin.sourceCommit||erpManifest.files.length!==2036)throw Error('ERP_PACKAGE_CHANGED');
 const erpSeen=new Set();for(const row of erpManifest.files){if(typeof row.path!=='string'||row.path.includes('..')||erpSeen.has(row.path.toLowerCase()))throw Error('ERP_PATH_CHANGED');erpSeen.add(row.path.toLowerCase());const file=path.join(erpPin.packageRoot,row.path),stat=fs.lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||fs.realpathSync.native(file).toLowerCase()!==path.resolve(file).toLowerCase()||sha(fs.readFileSync(file))!==row.sha256)throw Error('ERP_FILE_CHANGED');}
+const erpObserved=[];
+function scanErp(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,entry.name),stat=fs.lstatSync(file);if(stat.isSymbolicLink()||fs.realpathSync.native(file).toLowerCase()!==path.resolve(file).toLowerCase())throw Error('ERP_INVENTORY_REPARSE');if(entry.isDirectory()){scanErp(file);continue;}if(!entry.isFile()||stat.nlink!==1)throw Error('ERP_INVENTORY_PHYSICAL');erpObserved.push({path:path.relative(erpPin.packageRoot,file).replaceAll('\\','/'),sha256:sha(fs.readFileSync(file))});}}
+scanErp(erpPin.packageRoot);const erpCompleteInventory=verifyPr53CompletePackageInventory(erpManifest,erpObserved);
+if(erpObserved.find(x=>x.path==='release-manifest.json')?.sha256!==erpPin.manifestSha256)throw Error('ERP_MANIFEST_RACE');
 const crmManifest=JSON.parse(readPinned({path:path.win32.join(crmPin.packageRoot,'release-manifest.json'),sha256:crmPin.manifestSha256}));
 if(crmManifest.source?.commit!==crmPin.sourceCommit||crmManifest.source?.tree!=='714f198561fb47d1e1c7308c274c117dba40367b'||crmManifest.files.length!==2292)throw Error('CRM_SOURCE_CHANGED');
 if(fs.realpathSync.native(crmPin.packageRoot).toLowerCase()!==path.resolve(crmPin.packageRoot).toLowerCase())throw Error('CRM_ROOT_REPARSE');
@@ -58,6 +63,7 @@ const crmDependencyLockRef={path:profile.dependencyLockPath,sha256:'4f6e35ba0622
 const erpFiles=[],depSeen=new Set();
 function dependencies(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,entry.name),stat=fs.lstatSync(file);if(stat.isSymbolicLink()||fs.realpathSync.native(file).toLowerCase()!==path.resolve(file).toLowerCase())throw Error('DEPENDENCY_REPARSE');if(entry.isDirectory()){dependencies(file);continue;}if(!entry.isFile()||stat.nlink!==1)throw Error('DEPENDENCY_PHYSICAL');const relative=path.relative(erpPin.packageRoot,file).replaceAll('\\','/');if(!relative.startsWith('apps/api/node_modules/')||depSeen.has(relative.toLowerCase()))throw Error('DEPENDENCY_PATH');depSeen.add(relative.toLowerCase());erpFiles.push({path:relative,sha256:sha(fs.readFileSync(file))});}}
 dependencies(path.join(erpPin.packageRoot,'apps/api/node_modules'));erpFiles.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+if(sha(Buffer.from(JSON.stringify(erpFiles,null,2)+'\n'))!==erpCompleteInventory.dependencyInventories.find(x=>x.prefix==='apps/api/node_modules/').inventorySha256)throw Error('ERP_DEPENDENCY_RACE');
 const erpDependencyLock={schemaVersion:1,sourceCommit:erpPin.sourceCommit,packageRoot:erpPin.packageRoot,files:erpFiles};validateCompletionDependencyLock(erpDependencyLock,erpPin,'apps/api');
 const erpDependencyLockRef={path:profile.erpDependencyLockPath,sha256:sha(Buffer.from(JSON.stringify(erpDependencyLock,null,2)+'\n'))};
 const crmDependencyLock=jsonPinned(crmDependencyLockRef);validateCompletionDependencyLock(crmDependencyLock,crmPin,'apps/gateway');
@@ -83,6 +89,6 @@ if(prepareNew){
  if(result!=='CREATED_PROTECTED '+ref.sha256||sha(fs.readFileSync(ref.path))!==ref.sha256)throw Error('PROTECTED_WRITE_FAILED:'+name);
  }
 }
-console.log(JSON.stringify({status:prepareNew?'PREPARED_INACTIVE':'DRY_RUN_READY',installed:false,outputs:pending.map(([name,,ref])=>({name,path:ref.path,sha256:ref.sha256})),rollbackCurrentSettingsSha256:installed.sha256}));
+console.log(JSON.stringify({status:prepareNew?'PREPARED_INACTIVE':'DRY_RUN_READY',installed:false,erpCompleteInventory,outputs:pending.map(([name,,ref])=>({name,path:ref.path,sha256:ref.sha256})),rollbackCurrentSettingsSha256:installed.sha256}));
 }
 main().catch(error=>{console.error(JSON.stringify({status:'PREPARATION_FAILED_PARTIAL_FILES_RETAINED',reason:/^[A-Z_]+(?::[A-Za-z]+)?$/.test(error?.message??'')?error.message:'PRIVATE_DETAIL_WITHHELD'}));process.exitCode=1;});
