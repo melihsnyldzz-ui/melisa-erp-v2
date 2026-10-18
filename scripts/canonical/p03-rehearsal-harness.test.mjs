@@ -5,6 +5,23 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {parseP03RehearsalMode} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
+
+test('Windows PowerShell engine script named binding rejects array flags and accepts exact source hashtable without IO',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
+ const declaration=source.match(/^\$common=@\{[^\r\n]+/m)[0];
+ // Single-quoted here-string preserves parameter names inside the nested script.
+ const fixed=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ $engine=[scriptblock]::Create(@'
+ param([ValidateSet('Shared','Rehearsal')][string]$Environment,[string]$ProfilePath,[string]$ProfileSha256,[string]$BeforeImagePath,[string]$BeforeImageSha256,[string]$Mode)
+ if($Environment-cne'Rehearsal'-or$ProfilePath-cne'profile'-or$ProfileSha256-cne'psha'-or$BeforeImagePath-cne'before'-or$BeforeImageSha256-cne'bsha'-or$Mode-cne'PreflightOld'){throw 'WRONG_BINDING'};'BINDING_PASS'
+'@)
+ $bad=@('-Environment','Rehearsal','-ProfilePath','profile','-ProfileSha256','psha','-BeforeImagePath','before','-BeforeImageSha256','bsha');$rejected=$false;try{& $engine @bad -Mode PreflightOld}catch{if($_.Exception.GetType().Name-cne'ParameterBindingValidationException'){throw};$rejected=$true};if(-not$rejected){throw 'OLD_NOT_REJECTED'}
+ $profileRef=@{path='profile';sha256='psha'};$beforeRef=@{path='before';sha256='bsha'}
+ ${declaration}
+ & $engine @common -Mode PreflightOld`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(fixed,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/BINDING_PASS/);
+});
 test('rehearsal mode defaults to read only and refuses generic runtime selectors',()=>{
  assert.equal(parseP03RehearsalMode([]),'DryRun');assert.equal(parseP03RehearsalMode(['--DryRun']),'DryRun');assert.equal(parseP03RehearsalMode(['--Run']),'Run');
  for(const args of [['--Apply'],['--Run','--Run'],['--port','4184'],['--runtime','C:\\Sirket\\ERP\\runtime']])assert.throws(()=>parseP03RehearsalMode(args));
@@ -17,7 +34,7 @@ test('fixture accepts only exact rehearsal generation and known roles',()=>{
 });
 test('physical harness uses same recovery engine and preserves honest proof scope',()=>{
  const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
- assert.match(source,/-Environment','Rehearsal'/);assert.match(source,/-Mode StopNew/);assert.match(source,/-Mode RollbackOld/);assert.match(source,/-Mode PreflightOld/);
+ assert.match(source,/\$common=@\{Environment='Rehearsal';ProfilePath=/);assert.match(source,/-Mode StopNew/);assert.match(source,/-Mode RollbackOld/);assert.match(source,/-Mode PreflightOld/);
  assert.match(source,/PARTIAL_START_INTENT/);assert.match(source,/protectedBeforeSha/);assert.match(source,/PROTECTED_BASELINE_CHANGED/);
  assert.match(source,/applicationRollbackVerified=\$false;databaseRollbackVerified=\$false/);
  assert.match(source,/FileMode\]::CreateNew/);assert.match(source,/\.Flush\(\$true\)/);assert.doesNotMatch(source,/Remove-Item|Unregister-ScheduledTask|DROP DATABASE|ALTER DATABASE|DELETE FROM/i);
@@ -64,12 +81,12 @@ test('driver trap classifies a real controlled refusal without leaking raw error
  const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
  const command=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);$trap=$a.EndBlock.Traps[0].Extent.Text;. ([scriptblock]::Create($trap+[Environment]::NewLine+"throw 'P03_REHEARSAL_CONTROLLED_REFUSAL'"))`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
- assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_REHEARSAL_CONTROLLED_REFUSAL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+\r?\n$/);assert.doesNotMatch(result.stderr,/CLIXML|At line|CategoryInfo/);
+ assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_REHEARSAL_CONTROLLED_REFUSAL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+ LINE_\d+\r?\n$/);assert.doesNotMatch(result.stderr,/CLIXML|At line|CategoryInfo/);
 });
 
 test('wrapped physical-engine refusal retains only the fixed inner P03 code',{skip:process.platform!=='win32'},()=>{
  const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
  const command=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);$trap=$a.EndBlock.Traps[0].Extent.Text;. ([scriptblock]::Create($trap+[Environment]::NewLine+"throw [InvalidOperationException]::new('wrapped action: P03_PHYSICAL_ACL private-sentinel-value')"))`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
- assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_PHYSICAL_ACL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+\r?\n$/);assert.doesNotMatch(result.stderr,/private-sentinel-value|wrapped action|CLIXML/);
+ assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_PHYSICAL_ACL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+ LINE_\d+\r?\n$/);assert.doesNotMatch(result.stderr,/private-sentinel-value|wrapped action|CLIXML/);
 });
