@@ -45,7 +45,7 @@ function Authority{
  Need (-not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-core-cut-observation.json')) -and -not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-recovery-result.json'))) 'PAUSED_PRIOR_NO_CORE_CUT'
 }
 function WriteEvidence([string]$leaf,$value){
- Need ($leaf -cin @('paused-old-console-recovery-intent.json','paused-old-console-recovery-failed.json','paused-old-console-recovery-result.json','paused-old-console-core-cut-observation.json')) 'PAUSED_WRITE_SCOPE'
+ Need ($leaf -cin @('paused-old-console-recovery-intent.json','paused-old-console-recovery-failed.json','paused-old-console-recovery-result.json','paused-old-console-core-cut-observation.json','paused-old-console-core-cut-completed.json','paused-old-console-probe-drain.json')) 'PAUSED_WRITE_SCOPE'
  $target=Join-Path $dir $leaf;Need (-not (Test-Path -LiteralPath $target)) 'PAUSED_ONCE'
  $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12 -Compress))
  $acl=[Security.AccessControl.FileSecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false)
@@ -58,6 +58,7 @@ $script:tasksStopRequested=$false;$script:consolePins=@{};$script:parentPins=@{}
 $order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')
 $script:probePins=@{};$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false
 $script:legacyConsolePins=@{}
+$script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null;$script:lateAdmissionOpen=$false;$script:lateProbePids=@()
 function LegacyConsoleAuxiliaries($inv){
  # One historical watcher child only. Never turn a missing parent into general
  # admission, and never add this console to application stop targets.
@@ -115,15 +116,27 @@ function PrepareProbeSource{
  NoReparse $profile.shell.path;Need ($profile.shell.path -ceq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and (Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'PAUSED_PROBE_SHELL'
  $script:probePath=$probe
 }
+function LatePrecutProbeAllowed($p,$inv){
+ $core=$before.identities.coreSupervisor
+ if(-not $script:lateAdmissionOpen){return $false}
+ Need ($null -ne $script:coreLifetime -and $script:coreLifetime.Handle -ne [IntPtr]::Zero -and $script:coreLifetime.HasExited) 'PAUSED_PROBE_CORE_HANDLE'
+ Need ($script:coreLifetime.Id -eq $core.pid -and $script:coreLifetime.StartTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ') -ceq [DateTime]::Parse($core.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'PAUSED_PROBE_CORE_LIFETIME'
+ Need (@($inv.all|Where-Object{$_.ProcessId -eq $core.pid}).Count -eq 0) 'PAUSED_PROBE_CORE_REUSED'
+ Need ($null -ne $script:precutWindowOpenedAt -and $null -ne $script:coreStopCompletedAt -and $script:precutWindowOpenedAt -le $script:coreStopCompletedAt) 'PAUSED_PROBE_CUT_WITNESS'
+ $born=$p.CreationDate.ToUniversalTime()
+ return $p.ParentProcessId -eq $core.pid -and $born -ge $script:precutWindowOpenedAt -and $born -le $script:coreStopCompletedAt
+}
 function ProbeAuxiliaries($inv){
  $core=$before.identities.coreSupervisor;$probe=$script:probePath
  $result=@();foreach($p in $inv.all){
   $known=$script:probePins.ContainsKey([int]$p.ProcessId)
   if(-not $known -and $p.ParentProcessId -ne $core.pid){continue}
   if(-not $known -and $p.Name -ine 'powershell.exe'){continue}
-  Need ((-not $script:coreQuiesced -and -not $script:probeAdmissionFrozen) -or $known) 'PAUSED_NEW_PROBE_AFTER_CORE_EXIT'
+  $late=$false
+  if(-not $known -and ($script:coreQuiesced -or $script:probeAdmissionFrozen)){$late=LatePrecutProbeAllowed $p $inv}
+  Need ((-not $script:coreQuiesced -and -not $script:probeAdmissionFrozen) -or $known -or $late) 'PAUSED_NEW_PROBE_AFTER_CORE_EXIT'
   if($known){$pin=$script:probePins[[int]$p.ProcessId]}else{
-   $parent=@($inv.all|Where-Object{$_.ProcessId -eq $core.pid});Need ($parent.Count -eq 1 -and (Identity $parent[0] $core)) 'PAUSED_PROBE_PARENT'
+   if(-not $late){$parent=@($inv.all|Where-Object{$_.ProcessId -eq $core.pid});Need ($parent.Count -eq 1 -and (Identity $parent[0] $core)) 'PAUSED_PROBE_PARENT'}
    $sourceMatches=$p.ExecutablePath -ceq $profile.shell.path -and $p.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($core.creationTime).ToUniversalTime()
    if((-not $p.ExecutablePath -or -not $p.CommandLine) -and (-not $p.ExecutablePath -or $p.ExecutablePath -ceq $profile.shell.path)){
     $fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$p.ProcessId) -ErrorAction Stop)
@@ -139,7 +152,7 @@ function ProbeAuxiliaries($inv){
    if($fresh.Count -eq 0 -and $p.CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($pin.creationTime).ToUniversalTime().Ticks){throw 'P03_PAUSED_PROBE_EXIT_RECAPTURE'};throw
   }
   Need (@($inv.allListeners|Where-Object{$_.OwningProcess -eq $p.ProcessId}).Count -eq 0) 'PAUSED_PROBE_LISTENER'
-  $script:probePins[[int]$p.ProcessId]=$pin;$result+=,$pin
+  $script:probePins[[int]$p.ProcessId]=$pin;if($late){$script:lateProbePids+=,[int]$p.ProcessId};$result+=,$pin
  }
  return $result
 }
@@ -191,7 +204,13 @@ $intentWritten=$false
 try{
  WriteEvidence 'paused-old-console-recovery-intent.json' ([ordered]@{event='PAUSED_OLD_CONSOLE_RECOVERY_INTENT';priorIntentSha256='6eb43d46509faeb8bef1b740c19d8410a33699232137a27576522be02f68f263';priorFailureSha256='6bf3d88d0c866ae0c7c1f83df044e9b64f427e1565be6f82f5f6bbca8e0241b8';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;observedAt=[DateTime]::UtcNow.ToString('o');oldPids=@($selected|ForEach-Object{$_.pid});consolePins=@($script:consolePins.Values);legacyConsolePins=@($script:legacyConsolePins.Values);probePins=@($script:probePins.Values)})
  $intentWritten=$true;$script:drainedPids=@()
- foreach($role in $order){$inv=PausedRemaining;$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'PAUSED_DRAIN_IDENTITY';[void](ReadPinned $profile.stopper.path '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d')
+ foreach($role in $order){
+  if($role -ceq 'coreSupervisor'){
+   $script:coreLifetime=[Diagnostics.Process]::GetProcessById([int]$before.identities.coreSupervisor.pid);[void]$script:coreLifetime.Handle
+   Need (-not $script:coreLifetime.HasExited -and $script:coreLifetime.StartTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ') -ceq [DateTime]::Parse($before.identities.coreSupervisor.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'PAUSED_CORE_HELD_LIFETIME'
+   $script:precutWindowOpenedAt=[DateTime]::UtcNow
+  }
+  $inv=PausedRemaining;$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'PAUSED_DRAIN_IDENTITY';[void](ReadPinned $profile.stopper.path '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d')
   $proof=[ordered]@{pid=$e.pid;parentPid=$e.parentPid;nodePath=$e.nodePath;ownerSid=$e.ownerSid;commandLine=$e.commandLine;creationTime=[DateTime]::Parse($e.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')}
   # Hold this exact code file against write/delete through process completion.
   $codeHandle=[IO.File]::Open($profile.stopper.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
@@ -206,7 +225,12 @@ try{
   Need (@((Inventory).all|Where-Object{$_.ProcessId -eq $e.pid}).Count -eq 0) 'PAUSED_DRAIN_ABSENCE'
   $script:drainedPids+=,[int]$e.pid
   if($role -ceq 'coreSupervisor'){
-   $script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true;WaitCoreProbeAbsence
+   Need ($script:coreLifetime.HasExited) 'PAUSED_CORE_HELD_EXIT'
+   $script:coreStopCompletedAt=[DateTime]::UtcNow
+   WriteEvidence 'paused-old-console-core-cut-completed.json' ([ordered]@{event='PAUSED_OLD_CORE_CUT_COMPLETED';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;windowOpenedAt=$script:precutWindowOpenedAt.ToString('o');cutCompletedAt=$script:coreStopCompletedAt.ToString('o');core=$e;heldProcessHandle=$true;processAbsent=$true})
+   $script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true;$script:lateAdmissionOpen=$true
+   try{WaitCoreProbeAbsence}finally{$script:lateAdmissionOpen=$false}
+   WriteEvidence 'paused-old-console-probe-drain.json' ([ordered]@{event='PAUSED_OLD_CORE_PROBES_ABSENT';observedAt=[DateTime]::UtcNow.ToString('o');probePins=@($script:probePins.Values);latePrecutProbePids=$script:lateProbePids;heldCoreExited=$true})
   }
  }
  $script:capturedCandidatePids=@($selected|ForEach-Object{$_.pid});WaitLegacyConsoleAbsence;WaitConsoleAbsence;PausedEmpty;Authority
@@ -223,4 +247,4 @@ try{
  [void](ReadPinned $engine $engineSha);$ready=(& $engine @common -Mode RollbackOld -RecoveryTailSha256 $recovered.journalTailSha256)|ConvertFrom-Json;Need ($ready.status -ceq 'RESTORED_READY' -and $ready.stableSeconds -ge 30) 'PAUSED_RESTORED'
  WriteEvidence 'paused-old-console-recovery-result.json' ([ordered]@{status='PAUSED_OLD_RESTORED_READY';engineSha256=$engineSha;candidateSha256=$candidateSha;recoveryTailSha256=$ready.journalTailSha256;stableSeconds=$ready.stableSeconds;newGenerationStarted=$false;locksRetained=$true})
  [ordered]@{status='PAUSED_OLD_RESTORED_READY';stableSeconds=30;newGenerationStarted=$false;locksRetained=$true}|ConvertTo-Json
-}catch{if($intentWritten){try{WriteEvidence 'paused-old-console-recovery-failed.json' (FailureDiagnostic $_)}catch{}};throw}
+}catch{if($intentWritten){try{WriteEvidence 'paused-old-console-recovery-failed.json' (FailureDiagnostic $_)}catch{}};throw}finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}

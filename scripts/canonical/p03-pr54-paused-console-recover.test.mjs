@@ -8,9 +8,9 @@ const source=fileURLToPath(new URL('./p03-pr54-paused-old-recover.ps1',import.me
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const windows={skip:process.platform!=='win32'};
 const quote=value=>"'"+value.replaceAll("'","''")+"'";
-const extract=names=>`
+const extract=(names,file=source)=>`
 $tokens=$null;$errors=$null
-$ast=[Management.Automation.Language.Parser]::ParseFile(${quote(source)},[ref]$tokens,[ref]$errors)
+$ast=[Management.Automation.Language.Parser]::ParseFile(${quote(file)},[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'FIXTURE_SOURCE_PARSE'}
 foreach($name in @(${names.map(quote).join(',')})){
  $defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true))
@@ -37,6 +37,7 @@ function ResetFixture{
  $script:owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
  $script:legacyConsolePins=@{};$script:consolePins=@{};$script:probePins=@{}
  $script:tasksStopRequested=$false;$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false
+ $script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null;$script:lateAdmissionOpen=$false;$script:lateProbePids=@()
  $script:watcher=[pscustomobject]@{role='terminalWatcher';pid=53356;parentPid=100;nodePath='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';ownerSid=$owner;commandLine='captured-old-watcher';creationTime='2026-10-16T22:56:21.0723420Z'}
  $script:profile=[pscustomobject]@{oldWatchers=@($watcher,[pscustomobject]@{role='hubWatcher';pid=49164;parentPid=100;nodePath=$watcher.nodePath;ownerSid=$owner;commandLine='captured-hub-watcher';creationTime=$watcher.creationTime});packages=@()}
  $script:core=[pscustomobject]@{pid=49908;parentPid=53356;nodePath='C:\fixture\node.exe';commandLine='captured-core';ownerSid=$owner;creationTime='2026-10-16T22:56:21.1050000Z';bindings=@()}
@@ -230,6 +231,93 @@ test('core probe wait excludes six authenticated OLD children but waits for admi
  assert.match(out,/AUTHENTICATED_CORE_CHILDREN=6/);assert.match(out,/OLD_ONLY_CAPTURES=1/);assert.match(out,/OLD_ONLY_SLEEPS=0/);
  assert.match(out,/PROBE_CAPTURES=3/);assert.match(out,/PROBE_SLEEPS=2/);assert.match(out,/PROBE_CACHE=1/);
  assert.match(out,/FOREIGN=FIXTURE_REJECT_PAUSED_DRAIN_FOREIGN_PROCESS/);assert.match(out,/REUSED_OLD=FIXTURE_REJECT_PAUSED_REMAINING_IDENTITY/);
+});
+
+const lateProbeFunctions=()=>extract(['Tokens'],fileURLToPath(new URL('./p03-physical-rollback.ps1',import.meta.url)))+'\n'+extract(['ProbeArgumentsAllowed','LatePrecutProbeAllowed','ProbeAuxiliaries']);
+const lateProbeFixture=String.raw`
+function ResetLateProbeFixture{
+ ResetFixture
+ $profile|Add-Member NoteProperty shell ([pscustomobject]@{path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'})
+ $script:probePath='C:\fixture package\hub-stack-process-probe.ps1'
+ foreach($role in @('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')){$before.identities|Add-Member NoteProperty $role ([pscustomobject]@{pid=62000})}
+ $script:precutWindowOpenedAt=[DateTime]::Parse('2026-10-18T10:00:00.0000000Z').ToUniversalTime()
+ $script:coreStopCompletedAt=$script:precutWindowOpenedAt.AddSeconds(1)
+ $script:coreLifetime=[pscustomobject]@{Id=$core.pid;Handle=[IntPtr]17;HasExited=$true;StartTime=[DateTime]::Parse($core.creationTime).ToUniversalTime()}
+ $script:probe=[pscustomobject]@{ProcessId=61000;ParentProcessId=$core.pid;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=('"'+$profile.shell.path+'" -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File "'+$probePath+'" -Ports 62700,62701');OwnerSid=$owner;CreationDate=$script:precutWindowOpenedAt.AddMilliseconds(500)}
+ $script:inv.all=@($probe);$script:lateAdmissionOpen=$true;$script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true
+}
+function LateOutcome{
+ try{$rows=@(ProbeAuxiliaries $inv);return ('ADMITTED='+$rows.Count)}catch{return $_.Exception.Message}
+}
+ResetLateProbeFixture
+`;
+
+test('late precut admission uses actual native argv and exact classifier with retained core lifetime and microsecond start identity',windows,()=>{
+ const out=run(`${fixture}\n${lateProbeFunctions()}\n${lateProbeFixture}\n${String.raw`
+ $coreLifetime.StartTime=$coreLifetime.StartTime.AddTicks(1)
+ 'EXACT='+(LateOutcome);'PINS='+$script:probePins.Count;'LATE='+($script:lateProbePids -join ',')
+ ResetLateProbeFixture;$probe.CommandLine+=' -ProcessId 62000';'OPTIONAL_PID='+(LateOutcome)
+ ResetLateProbeFixture;$probe.CreationDate=$precutWindowOpenedAt;'START_BOUNDARY='+(LateOutcome)
+ ResetLateProbeFixture;$probe.CreationDate=$coreStopCompletedAt;'END_BOUNDARY='+(LateOutcome)
+ `}`);
+ assert.match(out,/EXACT=ADMITTED=1/);assert.match(out,/PINS=1/);assert.match(out,/LATE=61000/);assert.match(out,/OPTIONAL_PID=ADMITTED=1/);assert.match(out,/START_BOUNDARY=ADMITTED=1/);assert.match(out,/END_BOUNDARY=ADMITTED=1/);
+});
+
+test('late precut admission rejects missing live wrong or reused core lifetime and children outside the witnessed interval',windows,()=>{
+ const cases=[
+  ['missing-handle',"$script:coreLifetime=$null",'PAUSED_PROBE_CORE_HANDLE'],
+  ['zero-handle',"$coreLifetime.Handle=[IntPtr]::Zero",'PAUSED_PROBE_CORE_HANDLE'],
+  ['unexited',"$coreLifetime.HasExited=$false",'PAUSED_PROBE_CORE_HANDLE'],
+  ['wrong-core',"$coreLifetime.Id++",'PAUSED_PROBE_CORE_LIFETIME'],
+  ['reused-birth',"$coreLifetime.StartTime=$coreLifetime.StartTime.AddTicks(10)",'PAUSED_PROBE_CORE_LIFETIME'],
+  ['core-present',"$inv.all+=,[pscustomobject]@{ProcessId=$core.pid}",'PAUSED_PROBE_CORE_REUSED'],
+  ['missing-witness',"$script:coreStopCompletedAt=$null",'PAUSED_PROBE_CUT_WITNESS'],
+  ['reversed-window',"$script:precutWindowOpenedAt=$coreStopCompletedAt.AddTicks(1)",'PAUSED_PROBE_CUT_WITNESS'],
+  ['prewindow',"$probe.CreationDate=$precutWindowOpenedAt.AddTicks(-1)",'PAUSED_NEW_PROBE_AFTER_CORE_EXIT'],
+  ['future',"$probe.CreationDate=$coreStopCompletedAt.AddTicks(1)",'PAUSED_NEW_PROBE_AFTER_CORE_EXIT'],
+  ['closed',"$script:lateAdmissionOpen=$false",'PAUSED_NEW_PROBE_AFTER_CORE_EXIT']
+ ];
+ const body=cases.map(([name,edit])=>`ResetLateProbeFixture;${edit};'${name}='+(LateOutcome);'${name}-PINS='+$script:probePins.Count`).join('\n');
+ const out=run(`${fixture}\n${lateProbeFunctions()}\n${lateProbeFixture}\n${body}`);
+ for(const [name,,code]of cases){assert.ok(out.includes(name+'=FIXTURE_REJECT_'+code),name);assert.ok(out.includes(name+'-PINS=0'),name+' never earns a probe pin');}
+});
+
+test('late precut still rejects foreign binary argv owner listener and unrelated parent without extending its whitelist',windows,()=>{
+ const cases=[
+  ['binary',"$probe.ExecutablePath='C:\\foreign\\powershell.exe'",'PAUSED_PROBE_BINARY'],
+  ['argv',"$probe.CommandLine+=' -Command Stop-Process'",'PAUSED_PROBE_ARGV'],
+  ['script',"$probe.CommandLine=$probe.CommandLine.Replace('hub-stack-process-probe.ps1','other.ps1')",'PAUSED_PROBE_ARGV'],
+  ['pid',"$probe.CommandLine+=' -ProcessId 99999'",'PAUSED_PROBE_ARGV'],
+  ['owner',"$probe.OwnerSid='S-1-5-18'",'PAUSED_PROBE_IDENTITY'],
+  ['listener',"$inv.allListeners=@([pscustomobject]@{OwningProcess=61000;LocalPort=65000})",'PAUSED_PROBE_LISTENER']
+ ];
+ const body=cases.map(([name,edit])=>`ResetLateProbeFixture;${edit};'${name}='+(LateOutcome);'${name}-PINS='+$script:probePins.Count`).join('\n');
+ const out=run(`${fixture}\n${lateProbeFunctions()}\n${lateProbeFixture}\n${body}\nResetLateProbeFixture;$probe.ParentProcessId=65000;'UNRELATED='+(LateOutcome);'UNRELATED_PINS='+$script:probePins.Count`);
+ for(const [name,,code]of cases){assert.ok(out.includes(name+'=FIXTURE_REJECT_'+code),name);assert.ok(out.includes(name+'-PINS=0'),name+' never earns a probe pin');}
+ assert.match(out,/UNRELATED=ADMITTED=0/);assert.match(out,/UNRELATED_PINS=0/);
+});
+
+test('core completion witness precedes late admission and outer finally releases the retained handle even on failure',windows,()=>{
+ const s=readFileSync(source,'utf8'),completed=s.indexOf("WriteEvidence 'paused-old-console-core-cut-completed.json'"),open=s.indexOf('$script:lateAdmissionOpen=$true',completed),wait=s.indexOf('try{WaitCoreProbeAbsence}',open),drained=s.indexOf("WriteEvidence 'paused-old-console-probe-drain.json'",wait);
+ assert.ok(completed>s.indexOf("'PAUSED_DRAIN_ABSENCE'"));assert.ok(open>completed&&wait>open&&drained>wait);
+ assert.ok(s.indexOf('[void]$script:coreLifetime.Handle')<s.indexOf("'PAUSED_CORE_HELD_LIFETIME'"));
+ assert.match(s,/finally\{\$script:lateAdmissionOpen=\$false\}/);
+ const gate=s.slice(completed,open+'$script:lateAdmissionOpen=$true'.length);
+ const out=run(`${fixture}\n${extract(['LatePrecutProbeAllowed'])}\n${lateProbeFixture}\n${String.raw`
+ $ProfileSha256='fixture-profile';$BeforeImageSha256='fixture-before';$engineSha='fixture-engine';$e=$core
+ $script:writeFails=$true;$script:writes=@();$script:lateAdmissionOpen=$false
+ function WriteEvidence($leaf,$value){if($script:writeFails){throw 'FIXTURE_DURABLE_WRITE_FAILED'};$script:writes+=,$leaf}
+ `}\n$gateBlock=[scriptblock]::Create(${quote(gate)});try{. $gateBlock}catch{};'FAILED_WRITE_OPEN='+$script:lateAdmissionOpen\n$script:writeFails=$false;. $gateBlock;'SUCCESS_WRITE_OPEN='+$script:lateAdmissionOpen;'WITNESS='+$script:writes[0]\n${String.raw`
+ $tokens=$null;$errors=$null
+ `}\n$ast=[Management.Automation.Language.Parser]::ParseFile(${quote(source)},[ref]$tokens,[ref]$errors)\n${String.raw`
+ $outer=@($ast.EndBlock.Statements|Where-Object{$_ -is [Management.Automation.Language.TryStatementAst] -and $_.Finally -and $_.Finally.Extent.Text.Contains('$script:coreLifetime.Dispose()')})
+ if($outer.Count -ne 1){throw 'FIXTURE_OUTER_FINALLY_MISSING'}
+ $script:disposed=$false;$script:coreLifetime|Add-Member ScriptMethod Dispose {$script:disposed=$true}
+ $cleanup=[scriptblock]::Create(($outer[0].Finally.Statements|ForEach-Object{$_.Extent.Text}) -join [Environment]::NewLine)
+ try{try{throw 'FIXTURE_RECOVERY_FAILED'}finally{. $cleanup}}catch{}
+ 'DISPOSED='+$script:disposed
+ `}`);
+ assert.match(out,/FAILED_WRITE_OPEN=False/);assert.match(out,/SUCCESS_WRITE_OPEN=True/);assert.match(out,/WITNESS=paused-old-console-core-cut-completed.json/);assert.match(out,/DISPOSED=True/);
 });
 
 test('recovery source keeps failed evidence pinned and creates a distinct one-shot console attempt',()=>{

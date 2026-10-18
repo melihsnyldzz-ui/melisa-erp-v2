@@ -13,7 +13,7 @@ test('paused helper parses without executing any dispatcher',windows,()=>{
 test('paused helper retains finite source authority, default DryRun and canonical drain order',()=>{
  const s=readFileSync(source,'utf8');assert.match(s,/\$Mode='DryRun'/);assert.match(s,/639e2da815e1e7ac0f1c0d04d7f7bdc3/);assert.match(s,/fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037/);
  assert.match(s,/\$order=@\('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative'\)/);assert.doesNotMatch(s,/Remove-Item|Unregister-ScheduledTask|Start-Process|\.Run\(\$null\)/);
- assert.ok(s.indexOf("if($Mode -ceq 'DryRun')")<s.indexOf("WriteEvidence 'paused-old-console-recovery-intent.json'"));assert.ok(s.indexOf("WriteEvidence 'paused-old-console-recovery-intent.json'")<s.indexOf("foreach($role in $order){$inv=PausedRemaining"));
+ assert.ok(s.indexOf("if($Mode -ceq 'DryRun')")<s.indexOf("WriteEvidence 'paused-old-console-recovery-intent.json'"));assert.ok(s.indexOf("WriteEvidence 'paused-old-console-recovery-intent.json'")<s.indexOf("foreach($role in $order){",s.indexOf("$intentWritten=$true;")));
 });
 test('empty gate rejects globally reused captured watcher PID and orphan child even absent from observer',windows,()=>{
  const s=readFileSync(source,'utf8');const fn=s.slice(s.indexOf('function PausedEmpty{'),s.indexOf('$selected=PausedOld'));
@@ -58,7 +58,7 @@ test('cached probe PID reuse is rejected and genuine exit requests whole invento
 test('fresh readonly probe can enter before authenticated core cut but is rejected after verified exit',windows,()=>{
  const s=readFileSync(source,'utf8');const fn=s.slice(s.indexOf('function ProbeAuxiliaries('),s.indexOf('function PausedTasks{'));
  const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
- function Need($v,$c){if(-not $v){throw ('P03_PHYSICAL_'+$c)}};function Identity($a,$e){return $true};function Tokens($s){return @('exact')};function ProbeArgumentsAllowed($a,$p){return $true}
+ function Need($v,$c){if(-not $v){throw ('P03_PHYSICAL_'+$c)}};function Identity($a,$e){return $true};function Tokens($s){return @('exact')};function ProbeArgumentsAllowed($a,$p){return $true};function LatePrecutProbeAllowed($p,$inv){return $false}
  ${fn}
  $birth=[DateTime]::Parse('2026-10-18T00:00:00Z').ToUniversalTime();$core=[pscustomobject]@{pid=1;creationTime=$birth.ToString('o');ownerSid='fixture'};$before=[pscustomobject]@{identities=[pscustomobject]@{coreSupervisor=$core}};$profile=[pscustomobject]@{shell=[pscustomobject]@{path='fixed-shell'}};$script:probePath='fixed-probe';$script:probePins=@{};$script:legacyConsolePins=@{};$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false
  $child=[pscustomobject]@{ProcessId=10;ParentProcessId=1;Name='powershell.exe';ExecutablePath='fixed-shell';CommandLine='finite';CreationDate=$birth.AddSeconds(1)};$parent=[pscustomobject]@{ProcessId=1;ParentProcessId=0};$inv=[pscustomobject]@{all=@($parent,$child);allListeners=@()};$rows=@(ProbeAuxiliaries $inv);'PRECUT='+$rows.Count
