@@ -1,4 +1,7 @@
 import test from 'node:test';
+// Existing Windows-hosted entry point also owns the pure successor regressions.
+import './p03-pr54-owner-successor.test.mjs';
+import {PR54_SUCCESSOR_CLAIM_PATH} from './p03-pr54-owner-successor.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -9,6 +12,16 @@ import {assertPr54WriteScope,pr54ProtectedWriteProgram} from './p03-pr54-shared-
 import {pr54SafeFailure,pr54StopObservationSummary} from './p03-pr54-shared-owner-io.mjs';
 import {diagnosePr54PausedOld} from './p03-pr54-shared-owner-io.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+test('successor IO finite claim scope requires explicit fixed admission and preserves legacy global lock',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018',dir=root+'\\MelisaERP-P03-transition-'+'a'.repeat(32),global=root+'\\p03-pr54-shared-owner.lock.json';
+ assert.throws(()=>assertPr54WriteScope(PR54_SUCCESSOR_CLAIM_PATH,dir,global));assert.doesNotThrow(()=>assertPr54WriteScope(PR54_SUCCESSOR_CLAIM_PATH,dir,global,PR54_SUCCESSOR_CLAIM_PATH));
+ assert.throws(()=>assertPr54WriteScope(PR54_SUCCESSOR_CLAIM_PATH.replace('639e','739e'),dir,global,PR54_SUCCESSOR_CLAIM_PATH));
+ const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
+ assert.match(source,/predecessorRef=null/);assert.match(source,/if\(mode==='DryRun'\)return/);assert.ok(source.indexOf("if(mode==='DryRun')return")<source.indexOf('claimPr54OwnerSuccessor({'));
+ assert.match(source,/predecessorRef===null\|\|file!==globalOwnerLock,'PREDECESSOR_IMMUTABLE'/);assert.match(source,/predecessorRef===null\?runP03OwnerTransition:runP03CoreFirstOwnerTransition/);
+ assert.match(source,/admitPr54PrestartRecovery\(\{profile,before,admittedOld:current,current\}\)/);assert.match(source,/if\(predecessorRef===null\)need\(\(await useFrozenEngine\('PreflightOld'\)\)/);
+ assert.match(source,/SUCCESSOR_JOURNAL_SCOPE/);assert.match(source,/SUCCESSOR_TRANSITION_ADVANCED/);assert.match(source,/SUCCESSOR_FAILED_OR_AMBIGUOUS/);assert.match(source,/SUCCESSOR_ACL/);assert.match(source,/claimPr54OwnerSuccessor\(\{inspect:async\(\)=>inspectSuccessor\(await currentOld\(\)\)/);
+});
 test('paused old read-only diagnosis uses durable captured identities without invented admittedOld',()=>{const f=prestartFixture();f.current.runningInstances=[];f.current.tasks.forEach(t=>{t.state=3;t.xml='old';});f.current.processes=f.current.processes.filter(p=>!f.profile.oldWatchers.some(w=>w.pid===p.pid));f.current.bindings=f.current.bindings.filter(b=>f.current.processes.some(p=>p.pid===b.pid));const good=diagnosePr54PausedOld(f);assert.equal(good.mutationAuthorized,false);assert.equal(good.requiresDurableJournalProof,true);for(const change of [x=>x.current.processes[0].creationTime='2026-10-18T10:00:00.1234568Z',x=>x.current.tasks[0].xml='new',x=>x.current.processes.push({...x.current.processes[0],pid:999}),x=>x.current.bindings.push({pid:999,port:4184,address:'127.0.0.1'})]){const bad=structuredClone(f);change(bad);assert.throws(()=>diagnosePr54PausedOld(bad));}});
 test('stop diagnostics disclose only fixed codes and identity counts without raw command lines',()=>{assert.equal(pr54SafeFailure({message:'private P03_SHARED_OBSERVER_STDERR secret'}),'P03_SHARED_OBSERVER_STDERR');assert.equal(pr54SafeFailure({message:'private',code:'ETIMEDOUT'}),'ETIMEDOUT');assert.equal(pr54SafeFailure({message:'private token'}),'UNCLASSIFIED_IO_FAILURE');const f=prestartFixture();f.current.processes[0].commandLine='watch-terminal-completion-logon.ps1 private-sentinel';const summary=pr54StopObservationSummary(f.current,f.before,f.profile);assert.equal(summary.watcherMatches.length,1);assert.ok(!JSON.stringify(summary).includes('private-sentinel'));assert.ok(!JSON.stringify(summary).includes('commandLine'));});
 test('callback failure diagnostic preserves first failure and uses create-only sanitized durable evidence',()=>{const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/lastCallbackFailure\?\?=\{callback:callbackName,reason:pr54SafeFailure\(error\),elapsedMs:/);assert.match(source,/protectedWrite\(path.win32.join\(transitionDir,'io-failure-diagnostic.json'\)/);assert.match(source,/recoveryReason:pr54SafeFailure\(recoveryError\)/);assert.doesNotMatch(source,/jsonBytes\(error\)|JSON.stringify\(error\)/);});

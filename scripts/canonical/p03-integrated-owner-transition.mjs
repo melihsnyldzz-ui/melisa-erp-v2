@@ -3,6 +3,7 @@
 // existing captured-identity stopper. Importing this file performs no IO.
 import {createHash} from 'node:crypto';
 const expectedTargets=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
+const coreFirstTargets=['coreSupervisor',...expectedTargets.filter(role=>role!=='coreSupervisor')];
 const taskNames=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
 const refuse=()=>{throw Error('P03_OWNER_TRANSITION_REJECTED');};
 const check=value=>{if(!value)refuse();};
@@ -13,7 +14,15 @@ export function p03TransitionDigest({targets,oldSettingsSha256,newSettingsSha256
  return createHash('sha256').update(JSON.stringify({targets,oldSettingsSha256,newSettingsSha256})).digest('hex');
 }
 
-export async function runP03OwnerTransition({plan,admit,persist,stopTasks,tasksStopped,stopExact,absent,portsClear,setAction,actionsEqual,startTasks,readback,restoreOldActions}){
+export function p03CoreFirstStopDigest(plan){
+ check(plan.digest===p03TransitionDigest(plan));
+ return createHash('sha256').update(JSON.stringify({planDigest:plan.digest,stopOrder:coreFirstTargets})).digest('hex');
+}
+export async function runP03OwnerTransition(options){return runOrderedOwnerTransition(options,expectedTargets,null);}
+// Explicit successor-only ordering; each durable record carries the extra
+// order commitment. The legacy entry point and canonical inventory plan stay exact.
+export async function runP03CoreFirstOwnerTransition(options){return runOrderedOwnerTransition(options,coreFirstTargets,p03CoreFirstStopDigest(options.plan));}
+async function runOrderedOwnerTransition({plan,admit,persist,stopTasks,tasksStopped,stopExact,absent,portsClear,setAction,actionsEqual,startTasks,readback,restoreOldActions},stopOrder,stopOrderDigest){
  check(own(plan,['digest','targets','oldSettingsSha256','newSettingsSha256'])&&/^[a-f0-9]{64}$/.test(plan.digest));
  check(plan.digest===p03TransitionDigest(plan));
  for(const callback of [admit,persist,stopTasks,tasksStopped,stopExact,absent,portsClear,setAction,actionsEqual,startTasks,readback,restoreOldActions])check(typeof callback==='function');
@@ -23,13 +32,13 @@ export async function runP03OwnerTransition({plan,admit,persist,stopTasks,tasksS
  const admission=await admit(plan);
  check(own(admission,['owner','oldHealthy','oldActions','emptyJournal'])&&Object.values(admission).every(value=>value===true));
  let sequence=0,phase='ADMITTED',taskStopAttempted=false,startAttempted=false,actionAttempted=false;
- const save=async(event,target)=>{const record=Object.freeze({sequence,digest:plan.digest,event,...(target?{target}:{})});const result=await persist(record);check(own(result,['created','sequence'])&&result.created===true&&result.sequence===sequence);sequence++;};
+ const save=async(event,target)=>{const record=Object.freeze({sequence,digest:plan.digest,event,...(stopOrderDigest?{stopOrderDigest}:{}),...(target?{target}:{})});const result=await persist(record);check(own(result,['created','sequence'])&&result.created===true&&result.sequence===sequence);sequence++;};
  try{
   await save('TASK_STOP_INTENT');phase='TASK_STOP';taskStopAttempted=true;
   check(await stopTasks()===true);
   check(await tasksStopped()===true);
   await save('TASKS_STOPPED');
-  for(const target of plan.targets){
+  for(const target of stopOrder){
    await save('EXACT_STOP_INTENT',target);phase='STOP_'+target;
    const result=await stopExact(target);
    check(['EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE'].includes(result));

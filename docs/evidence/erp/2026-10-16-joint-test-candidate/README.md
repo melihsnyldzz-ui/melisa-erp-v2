@@ -1,5 +1,12 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 18 Ekim — gerçek core cut sonrası dar resume ve successor hazırlığı
+
+Core49908 exact stopper ile kapandıktan sonra bağlı altı Node child doğal çıktı. İlk gerçek attempt, remaining identity beklentisinde durdu; olay kayıtları korunur. Dört ek SHA pinli orijinal attempt dosyasını kullanan ayrı ResumeCoreCut yolu yalnız küresel envanterde yokluğu kanıtlı captured PID'leri atlar; yaşayan Hub tam kimlikle durdurulur, PID reuse/yabancı descendant reddedilir. Resume dry-run8/7/1 ve27 Windows test PASS, bağımsız GO; f824ec98 exact PR/push CI SUCCESS. Gerçek frozen fe StopNew eski action'ları geri yükledi; RollbackOld/30sn sonucu ve yeni aday kurulumu henüz tamamlanmadı.
+
+Successor kaynak yolu global639 kilidini veya eski journal'ı silmez; gerçek resume sonucu/boş aday/fe yedi event ham zinciri ve yeni tam eski owner gözlemiyle bir create-only successor claim tüketir. Kanonik plan digest korunur, gerçek core-first stop sırası ayrıca hashlenip her event'e bağlanır. Capture, canlı8app+2watcher ve Microsoft imzalı portsuz console pinlerini salt okunur alır; core drain exact79 stopper/held process handle/kalıcı cut witness ile yalnız dar precut zaman aralığındaki exact readonly probe'ları doğal yokluğa kadar izler. Kaynak motoru fe değişmedi; sonraki bağımsız uygulamalar doğal çıkmışsa tekrar stop edilmez. Kalan console'lar doğrudan öldürülmez. Tam paket taraması dakikalar sürdüğünden before-image tarihi değiştirilmeden15dk üst sınır, her claim kapısında60sn taze tam kimlik/COM/XML/port/protected kontrolü korunur. Bunlar kaynak kanıtlarıdır; yeni normal GUI/cihaz/insan PASS yok.
+
+
 ## 18 Ekim — PR54 tarihsel konsol için dar kurtarma düzeltmesi
 
 Kullanıcının PR54'ten devam talimatıyla eski watcher53356'nın portsuz ve Microsoft imzalı conhost42036 çocuğu için ayrı, tek kimlikli admission eklendi. Mühürlü639 profil/before zinciri, exact PID/parent/doğum/SID/argv, c861 binary/signature ve listener yokluğu doğrulanır. Genel yardımcı kabulü açılmaz; uygulama stop hedefleri aynı sekiz OLD roldür, conhost doğrudan öldürülmez. Konsolun doğal yokluğu bütün bağlı OLD uygulamalar çıktıktan sonra doğrulanır. İlk ve ara envanterler aynı watcher/yardımcı descendant kapsamını kullanır.
