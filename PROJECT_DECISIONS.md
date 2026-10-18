@@ -1,5 +1,11 @@
 # ERP karar merkezi
 
+### ERP-DEC-065 — 18 Ekim 2026 — v75 ekran sunumunu teknik adayda birleştirme
+
+**Kullanıcı talimatı:** ERP turunda görülen farkları gelen maldaki gibi diğer ekranlarda da düzelt; programa yetişmek için son ekran düzenini GitHub teknik adayıyla birleştir ve işleme devam et. Ara raporlar biten teknik işi, doğrulamasını ve canlıya kalan somut koşulu kısa anlatır. Bu yönlendirme özgün49/25 planı değiştirmez; örnek Sites v75 görünüm kabulü gerçek native kurulum veya personel kabulü sayılmaz.
+
+Mevcut API doğrulaması/yetki/UUID kurtarma korunarak sunum uyarlanır; örnek controller'ların doğrudan kopyalanması, API'de olmayan gönderen adı/saat/bakiye ve ortak belge aktarımı uydurulmaz. Kaynak/test/bağımsız inceleme/feature PR ve exact CI teslimi yetkilidir.19–20Ekim bütünleştirme ve23Ekim teknik hedefi korunur. Ortak TEST'in tek-owner/P03 güvenli kurtarma önkoşulu, insan kabulü ve LIVE/main/gerçek ticari işlem sınırları değişmez. [Teknik kapsam/kanıt](docs/evidence/erp/2026-10-18-office-layout-v75.md).
+
 ### ERP-DEC-064 — 17 Ekim 2026 — Mevcut ana oturumda ERP-TEKNIK-23EKIM
 
 **Kullanıcı kararı:** [Tarihli Goal tanımı6232818354](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232818354) ve bu ana konuşmadaki aktif hedef esas alınır. `get_goal` mevcut ERP oturumu `01a107ef-f13e-73c0-9e08-fd5c4545325e` için **active**, token bütçesi tanımsız sonucunu verdi; yeni Goal/ana ajan/TEST/plan oluşturulmadı. Bu kayıt çalışmanın 23 Ekim'e kadar kesintisiz veya bilgisayar kapalıyken süreceği garantisi değildir.

@@ -1,3 +1,7 @@
+## 18 Ekim — v75 sunumun native kaynak portu; insan kabulü bekliyor
+
+İş sırası, mal kabul/alış, müşteri bakiyesi–fiş kalan, tahsilat ve iade/onay görünümü güncel teknik adaya taşındı.264offline test+build+bağımsız inceleme insan kabulü değildir; bu adayın normal GUI/mobile kontrolü yönetilen önizleme ortam hatası nedeniyle NOT_RUN. Ortak TEST'e kurulumdan sonra ERP-UA05/07/08/09/10/11/14/16/17/18/32 mevcut adımlarında yetkili kişi/tarih/sonuç alınacak; bu kayıt yeni görev veya PASS yaratmaz. [Kaynak kapsamı ve kalanlar](docs/evidence/erp/2026-10-18-office-layout-v75.md). Önceki gerçek kabuller korunur.
+
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
 
 13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.
