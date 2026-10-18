@@ -9,7 +9,7 @@ import os from 'node:os';import path from 'node:path';import {spawnSync} from 'n
 import {assertPr54SharedProfile,admitPr54PrestartRecovery,classifyPr54Auxiliary,selectPr54CandidateProcesses,comparePr54InvarianceSnapshots,PR54_PROTECT_SQL_CONNECTION} from './p03-pr54-shared-owner-io.mjs';
 import {p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
 import {assertPr54WriteScope,pr54ProtectedWriteProgram} from './p03-pr54-shared-owner-io.mjs';
-import {pr54SafeFailure,pr54StopObservationSummary} from './p03-pr54-shared-owner-io.mjs';
+import {pr54SafeFailure,pr54StopObservationSummary,pr54CollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 import {diagnosePr54PausedOld} from './p03-pr54-shared-owner-io.mjs';
 import {proposePr54CandidateProcesses} from './p03-pr54-shared-owner-io.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -33,6 +33,17 @@ test('successor IO finite claim scope requires explicit fixed admission and pres
 test('paused old read-only diagnosis uses durable captured identities without invented admittedOld',()=>{const f=prestartFixture();f.current.runningInstances=[];f.current.tasks.forEach(t=>{t.state=3;t.xml='old';});f.current.processes=f.current.processes.filter(p=>!f.profile.oldWatchers.some(w=>w.pid===p.pid));f.current.bindings=f.current.bindings.filter(b=>f.current.processes.some(p=>p.pid===b.pid));const good=diagnosePr54PausedOld(f);assert.equal(good.mutationAuthorized,false);assert.equal(good.requiresDurableJournalProof,true);for(const change of [x=>x.current.processes[0].creationTime='2026-10-18T10:00:00.1234568Z',x=>x.current.tasks[0].xml='new',x=>x.current.processes.push({...x.current.processes[0],pid:999}),x=>x.current.bindings.push({pid:999,port:4184,address:'127.0.0.1'})]){const bad=structuredClone(f);change(bad);assert.throws(()=>diagnosePr54PausedOld(bad));}});
 test('stop diagnostics disclose only fixed codes and identity counts without raw command lines',()=>{assert.equal(pr54SafeFailure({message:'private P03_SHARED_OBSERVER_STDERR secret'}),'P03_SHARED_OBSERVER_STDERR');assert.equal(pr54SafeFailure({message:'private',code:'ETIMEDOUT'}),'ETIMEDOUT');assert.equal(pr54SafeFailure({message:'private token'}),'UNCLASSIFIED_IO_FAILURE');const f=prestartFixture();f.current.processes[0].commandLine='watch-terminal-completion-logon.ps1 private-sentinel';const summary=pr54StopObservationSummary(f.current,f.before,f.profile);assert.equal(summary.watcherMatches.length,1);assert.ok(!JSON.stringify(summary).includes('private-sentinel'));assert.ok(!JSON.stringify(summary).includes('commandLine'));});
 test('callback failure diagnostic preserves first failure and uses create-only sanitized durable evidence',()=>{const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/lastCallbackFailure\?\?=\{callback:callbackName,reason:pr54SafeFailure\(error\),elapsedMs:/);assert.match(source,/protectedWrite\(path.win32.join\(transitionDir,'io-failure-diagnostic.json'\)/);assert.match(source,/recoveryReason:pr54SafeFailure\(recoveryError\)/);assert.doesNotMatch(source,/jsonBytes\(error\)|JSON.stringify\(error\)/);});
+
+test('whole physical observation recaptures only the frozen transient identity error, with a finite bound',async()=>{
+ const frame={processes:[{pid:123}],tasks:[{state:4}],bindings:[{port:4184}]};let calls=0;
+ const recovered=await pr54CollectPhysicalObservation(async()=>{calls++;if(calls===1)throw Object.assign(Error('redacted'),{stderr:'P03_PROCESS_IDENTITY_UNAVAILABLE'});return frame;});
+ assert.equal(calls,2);assert.equal(recovered,frame);
+ for(const code of ['P03_OWNER','P03_BEFORE_HASH','P03_SHARED_FOREIGN_CANDIDATE','ETIMEDOUT']){
+  let rejectedCalls=0;const failure=Error(code);await assert.rejects(pr54CollectPhysicalObservation(async()=>{rejectedCalls++;throw failure;}),error=>error===failure);assert.equal(rejectedCalls,1);
+ }
+ let exhausted=0;const failure=Error('P03_PROCESS_IDENTITY_UNAVAILABLE');await assert.rejects(pr54CollectPhysicalObservation(async()=>{exhausted++;throw failure;}),error=>error===failure);assert.equal(exhausted,3);
+ const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/callbackName of \['admit','stopTasks','tasksStopped'\]/);assert.match(source,/callbackName!=='admit'&&result!==true/);
+});
 test('protected writer transport keeps large payload out of command line, verifies hash and strict ACL and rejects overwrite',{skip:process.platform!=='win32'},()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'p03-writer-')),file=path.join(directory,'payload.bin'),bytes=crypto.randomBytes(256*1024),sha=hash(bytes);
  const invoke=(program,data)=>spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{input:data.toString('base64'),encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
