@@ -5,8 +5,12 @@ trap{$code=if([string]$_.Exception.Message-cmatch'\bP03_[A-Z_]+\b'){$Matches[0]}
 foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop}
 # Import only the named audited functions from the exact source bytes, never its main body.
 $helper=Join-Path $PSScriptRoot 'p03-rehearsal-quiesce.ps1'
-if((Get-FileHash -LiteralPath $helper -Algorithm SHA256).Hash.ToLowerInvariant()-cne'8f18fc9e039762a41d59d0d0fdddbf0233e66cefb2476435a7e8c844732ead9a'){throw 'P03_PARTIAL_HELPER_PIN'}
-$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($helper,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'P03_PARTIAL_HELPER_PARSE'}
+$helperBytes=[IO.File]::ReadAllBytes($helper)
+$helperSha=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($helperBytes)).Replace('-','').ToLowerInvariant()
+# Only these two byte encodings of the reviewed source are accepted, never normalization.
+$helperPins=@('8f18fc9e039762a41d59d0d0fdddbf0233e66cefb2476435a7e8c844732ead9a','01afec8534e7570b7d7976ea219ac1d7f81d6ee57d5f5093b701416ddd2c6e7a')
+if($helperSha-cnotin$helperPins){throw 'P03_PARTIAL_HELPER_PIN'}
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.Encoding]::UTF8.GetString($helperBytes),[ref]$tokens,[ref]$errors);if($errors.Count){throw 'P03_PARTIAL_HELPER_PARSE'}
 foreach($name in @('Need','Hash','NoReparse','Protected','ReadPinned','Identity','ProtectedUnchanged','Inventory','SaveIntent')){$f=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq$name},$true));if($f.Count-ne1){throw 'P03_PARTIAL_HELPER_FUNCTION'};. ([scriptblock]::Create($f[0].Extent.Text))}
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001';$root=Join-Path 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018' ('run-'+$RunId)
 $names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');$ports=@(4284,4286,5334,62710,62711,62712,62713,62714);$roles=@('erpNative','coreSupervisor','terminalWatcher')

@@ -1,6 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
 import {parseP03PartialQuiesceArgs} from './p03-rehearsal-partial-quiesce.mjs';
 const source=fs.readFileSync(new URL('./p03-rehearsal-partial-quiesce.ps1',import.meta.url),'utf8');
+test('only exact reviewed LF and CRLF bytes are accepted and AST parses those same read-once bytes',()=>{
+ const pins=[...source.match(/^\$helperPins=@\([^\r\n]+/m)[0].matchAll(/'([a-f0-9]{64})'/g)].map(x=>x[1]);assert.equal(pins.length,2);
+ const helper=fs.readFileSync(new URL('./p03-rehearsal-quiesce.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+ for(const bytes of [Buffer.from(helper),Buffer.from(helper.replaceAll('\n','\r\n'))])assert.ok(pins.includes(digest(bytes)));
+ const changed=Buffer.from(helper);changed[0]^=1;assert.ok(!pins.includes(digest(changed)));assert.ok(!pins.includes(digest(Buffer.from(helper+' '))));
+ assert.equal((source.match(/ReadAllBytes\(\$helper\)/g)??[]).length,1);assert.match(source,/ParseInput\(\[Text.Encoding\]::UTF8.GetString\(\$helperBytes\)/);assert.doesNotMatch(source,/ParseFile\(\$helper|Get-FileHash -LiteralPath \$helper/);
+});
 test('real Win32 argv parsing accepts cosmetic quote difference only and empty auxiliary result remains empty',{skip:process.platform!=='win32'},()=>{
  const type=source.match(/^Add-Type[^\r\n]+/m)[0],fn=source.match(/^function SameRuleArguments[^\r\n]+/m)[0];
  const cmd=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
