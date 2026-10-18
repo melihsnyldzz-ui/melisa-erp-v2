@@ -1,4 +1,5 @@
 param(
+ [ValidateSet('Shared','Rehearsal')][string]$Environment='Shared',
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$BeforeImageSha256
 )
@@ -8,7 +9,10 @@ $ErrorActionPreference='Stop'
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_OWNER'}
 $resolved=[IO.Path]::GetFullPath($BeforeImagePath)
-if($resolved -cnotmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z'){throw 'P03_BEFORE_PATH'}
+$rehearsal=$Environment -ceq 'Rehearsal'
+$pattern=if($rehearsal){'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\before\.json\z'}else{'\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z'}
+if($resolved -cnotmatch $pattern){throw 'P03_BEFORE_PATH'}
+$runRoot=if($rehearsal){[IO.Path]::GetDirectoryName($resolved)}else{$null}
 for($part=$resolved;$part;$part=[IO.Path]::GetDirectoryName($part)){
  $item=Get-Item -LiteralPath $part -Force -ErrorAction Stop
  if(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'P03_REPARSE'}
@@ -31,9 +35,11 @@ try{
  $actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()
  if($actual -cne $BeforeImageSha256){throw 'P03_BEFORE_HASH'}
  $before=[Text.UTF8Encoding]::new($false,$true).GetString($bytes)|ConvertFrom-Json
- if($before.schemaVersion -cne 'melisa-p03-owner-observation.v3' -or $before.ownerSid -cne $owner -or $before.database -cne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -or $before.actualT1 -cne $false){throw 'P03_BEFORE_SCOPE'}
- $names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')
- $ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
+ $database=if($rehearsal){'MELISA_ERP_P03_RESTORE_TEST_20261018_01'}else{'MELISA_ERP_CRM_SHARED_TEST_20261009_02'}
+ if($before.schemaVersion -cne 'melisa-p03-owner-observation.v3' -or $before.ownerSid -cne $owner -or $before.database -cne $database -or $before.actualT1 -cne $false){throw 'P03_BEFORE_SCOPE'}
+ if($rehearsal -and ($before.environment -cne 'P03_REHEARSAL' -or $before.copyId -cne 'P03-RECOVERY-REHEARSAL-20261018')){throw 'P03_REHEARSAL_SCOPE'}
+ $names=if($rehearsal){@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')}else{@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')}
+ $ports=if($rehearsal){@(4284,4286,5334,62710,62711,62712,62713,62714)}else{@(4184,4186,5234,62700,62701,62702,62703,62704)}
  $started=[DateTime]::UtcNow.ToString('o')
  # Unfiltered source inventories: selectors belong to the independently reviewed classifier.
  $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
@@ -55,7 +61,7 @@ try{
  $pids+=@($instances|ForEach-Object{$_.enginePid})
  $bindings=@($listeners|Where-Object{$_.LocalPort -in $ports}|ForEach-Object{[ordered]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress;pid=[int]$_.OwningProcess}})
  $pids+=@($bindings|ForEach-Object{$_.pid})
- $selected=@($all|Where-Object{$_.ProcessId -in $pids -or [string]$_.CommandLine -match '(?i)C:\\Sirket\\(?:ERP|CRM)\\releases\\|watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1'})
+ $selected=if($rehearsal){@($all|Where-Object{$_.ProcessId -in $pids -or ([string]$_.CommandLine).IndexOf($runRoot,[StringComparison]::OrdinalIgnoreCase) -ge 0})}else{@($all|Where-Object{$_.ProcessId -in $pids -or [string]$_.CommandLine -match '(?i)C:\\Sirket\\(?:ERP|CRM)\\releases\\|watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1'})}
  # Include every descendant of selected application processes; never add their
  # OS ancestors (Schedule's parent would otherwise encompass the whole host).
  do{
@@ -69,5 +75,5 @@ try{
   if($sid.ReturnValue -ne 0 -or -not $sid.Sid -or -not $p.ExecutablePath -or -not $p.CommandLine){throw 'P03_PROCESS_IDENTITY_UNAVAILABLE'}
   $processes+=,[ordered]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;ownerSid=[string]$sid.Sid;nodePath=[string]$p.ExecutablePath;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o')}
  }
- [ordered]@{schemaVersion='melisa-p03-physical-observation.v1';beforeImage=[ordered]@{path=$resolved;sha256=$actual};startedAt=$started;observedAt=[DateTime]::UtcNow.ToString('o');collection='Schedule.Service.GetRunningTasks(1)';processScope='CIM.Win32_Process.Unfiltered';portScope='Get-NetTCPConnection.Listen.Unfiltered';tasks=$tasks;runningInstances=$instances;processes=$processes;bindings=$bindings;stopPermitted=$false;applyAvailable=$false}|ConvertTo-Json -Depth 12
+ [ordered]@{schemaVersion='melisa-p03-physical-observation.v1';environment=$Environment;beforeImage=[ordered]@{path=$resolved;sha256=$actual};startedAt=$started;observedAt=[DateTime]::UtcNow.ToString('o');collection='Schedule.Service.GetRunningTasks(1)';processScope='CIM.Win32_Process.Unfiltered';portScope='Get-NetTCPConnection.Listen.Unfiltered';tasks=$tasks;runningInstances=$instances;processes=$processes;bindings=$bindings;stopPermitted=$false;applyAvailable=$false}|ConvertTo-Json -Depth 12
 }finally{$stream.Dispose()}

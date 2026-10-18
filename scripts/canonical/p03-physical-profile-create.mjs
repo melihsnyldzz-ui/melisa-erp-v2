@@ -22,6 +22,32 @@ const encode=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
 const xml=x=>String(x).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const quote=x=>/[\s"]/u.test(x)?'"'+x.replaceAll('"','\\"')+'"':x;
 const command=xs=>xs.map(quote).join(' ');
+// Public service/SQL metadata proves a protected instance is unchanged. It is
+// deliberately not an owner/executable observation and can never authorize stop.
+export function validateP03ProtectedSqlService(value){
+ const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).sort().join('|')===[...keys].sort().join('|');
+ need(exact(value,['kind','name','pid','creationTime','service','sql'])&&value.kind==='ProtectedSqlService'&&value.name==='sqlservr.exe'&&Number.isSafeInteger(value.pid)&&value.pid>0&&Number.isFinite(Date.parse(value.creationTime)),'SQL_PROTECTED_SCHEMA');
+ need(exact(value.service,['name','processId','state','startName','pathName'])&&value.service.name==='MSSQL$MELISADEV'&&value.service.processId===value.pid&&value.service.state==='Running'&&typeof value.service.startName==='string'&&value.service.startName.length>0&&typeof value.service.pathName==='string'&&value.service.pathName.length>0,'SQL_PROTECTED_SERVICE');
+ need(exact(value.sql,['serverName','databaseName','processId'])&&value.sql.serverName==='Semih\\MELISADEV'&&value.sql.databaseName==='master'&&value.sql.processId===value.pid,'SQL_PROTECTED_IDENTITY');
+ return value;
+}
+export const P03_SQL_SERVICE_CAPTURE_PS=String.raw`
+function Get-P03ProtectedSqlService($process){
+ $service=@(Get-CimInstance Win32_Service -Filter 'Name=''MSSQL$MELISADEV''' -ErrorAction Stop)
+ if($service.Count -ne 1 -or $service[0].State -cne 'Running' -or [int]$service[0].ProcessId -ne [int]$process.ProcessId -or $process.Name -cne 'sqlservr.exe' -or -not $service[0].StartName -or -not $service[0].PathName){throw 'P03_PROTECTED_SQL_SERVICE'}
+ $connection=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=master;Integrated Security=True;Connect Timeout=5;Application Name=MelisaP03SqlProtectionCaptureReadOnly')
+ try{
+  $connection.Open();$command=$connection.CreateCommand();$command.CommandTimeout=5;$command.CommandText="SELECT CAST(SERVERPROPERTY('ProcessID') AS int),CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)),DB_NAME()"
+  $reader=$command.ExecuteReader()
+  try{
+   if(-not $reader.Read() -or $reader.GetInt32(0) -ne [int]$process.ProcessId -or $reader.GetString(1) -cne 'Semih\MELISADEV' -or $reader.GetString(2) -cne 'master'){throw 'P03_PROTECTED_SQL_IDENTITY'}
+   $sql=[ordered]@{serverName=$reader.GetString(1);databaseName=$reader.GetString(2);processId=$reader.GetInt32(0)}
+   if($reader.Read()){throw 'P03_PROTECTED_SQL_COUNT'}
+  }finally{$reader.Dispose();$command.Dispose()}
+ }finally{$connection.Dispose()}
+ return [ordered]@{kind='ProtectedSqlService';name='sqlservr.exe';pid=[int]$process.ProcessId;creationTime=$process.CreationDate.ToUniversalTime().ToString('o');service=[ordered]@{name=[string]$service[0].Name;processId=[int]$service[0].ProcessId;state=[string]$service[0].State;startName=[string]$service[0].StartName;pathName=[string]$service[0].PathName};sql=$sql}
+}
+`;
 function pin(ref){
  need(ref&&/^[a-f0-9]{64}$/.test(ref.sha256),'PIN_FORMAT');
  const stat=fs.lstatSync(ref.path);need(stat.isFile()&&!stat.isSymbolicLink()&&stat.nlink===1&&fs.realpathSync.native(ref.path).toLowerCase()===path.resolve(ref.path).toLowerCase(),'PIN_FILE');
@@ -57,6 +83,7 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
  need(newSettingsRef.path===NEW&&/^[a-f0-9]{64}$/.test(newSettingsRef.sha256)&&/^[a-f0-9]{64}$/.test(shellSha256),'REFS');
  need(now-Date.parse(oldObservation.observedAt)>=0&&now-Date.parse(oldObservation.observedAt)<60000&&now-Date.parse(extras.observedAt)>=0&&now-Date.parse(extras.observedAt)<60000,'STALE');
  need(extras.tasks.length===2&&extras.oldWatchers.length===2&&extras.protectedProcesses.length>0&&extras.protectedProcesses.some(x=>x.name==='sqlservr.exe'),'EXTRAS');
+ for(const row of extras.protectedProcesses)if(Object.hasOwn(row,'kind'))validateP03ProtectedSqlService(row);
  need(TASKS.every(name=>extras.tasks.some(x=>x.name===name&&x.xml===oldObservation.tasks.find(y=>y.name===name)?.xml)),'TASK_DRIFT');
  need(oldObservation.identities&&Object.keys(oldObservation.identities).sort().join('|')===[...ROLES].sort().join('|'),'OLD_IDENTITY_ROLES');
  const oldIdentities=structuredClone(oldObservation.identities),pids=new Set();
@@ -91,10 +118,11 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
   if(packages.has(root.toLowerCase()))need(JSON.stringify(packages.get(root.toLowerCase()))===JSON.stringify(row),'PACKAGE_CONFLICT');packages.set(root.toLowerCase(),row);
  }
  const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:OWNER,database:DB,beforeImage:beforeRef,oldSettings:{path:OLD,sha256:OLD_SHA},newSettings:newSettingsRef,packages:[...packages.values()],stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'},tasks,candidateRules,oldWatchers:extras.oldWatchers,protectedProcesses:extras.protectedProcesses,businessDigest,journalDirectory:path.win32.join(ROOT,'MelisaERP-P03-recovery-'+runId),shell:{path:SHELL,sha256:shellSha256},health:[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:oldSettings.components.erpApiNative.sourceCommit}))};
+ profile.candidateHealth=[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:newSettings.components.erpApiNative.sourceCommit}));
  const profileBytes=encode(profile);
  return {runId,before:{bytesBase64:beforeBytes.toString('base64'),sha256:beforeRef.sha256},profile:{bytesBase64:profileBytes.toString('base64'),sha256:hash(profileBytes)},summary:{runId,beforeImage:beforeRef,profile:{path:path.win32.join(ROOT,'MelisaERP-P03-profile-'+runId+'.json'),sha256:hash(profileBytes)},journalDirectory:profile.journalDirectory,candidateSources:{erp:erp.sourceCommit,crm:crm.sourceCommit,supervisor:sup.sourceCommit},runtimeMutation:false}};
 }
-function ps(code){return execFileSync(SHELL,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{windowsHide:true,timeout:60000,maxBuffer:4*1024*1024,encoding:'utf8'}).trim();}
+function ps(code){return execFileSync(SHELL,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(P03_SQL_SERVICE_CAPTURE_PS+'\n'+code,'utf16le').toString('base64')],{windowsHide:true,timeout:60000,maxBuffer:4*1024*1024,encoding:'utf8'}).trim();}
 async function main(){
  const args=process.argv.slice(2);if(args.length===1&&args[0]==='--help'){process.stdout.write('Default DryRun: --new-settings-path PATH --new-settings-sha256 SHA --business-digest-path PATH --business-digest-sha256 SHA [--mode DryRun|Create]\n');return;}
  need(args.length===8||args.length===10,'ARGUMENTS');const flags=new Map();for(let i=0;i<args.length;i+=2){need(['--new-settings-path','--new-settings-sha256','--business-digest-path','--business-digest-sha256','--mode'].includes(args[i])&&!flags.has(args[i]),'FLAG');flags.set(args[i],args[i+1]);}
@@ -104,7 +132,7 @@ async function main(){
  const businessDigest={path:win(flags.get('--business-digest-path')),sha256:flags.get('--business-digest-sha256')};pin(businessDigest);
  pin({path:COLLECTOR,sha256:COLLECTOR_SHA});const {captureP03OwnerObservation}=await import(pathToFileURL(COLLECTOR).href);
  const first=await captureP03OwnerObservation();
- const extras=JSON.parse(ps(`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$s=New-Object -ComObject Schedule.Service;$s.Connect();$folder=$s.GetFolder('\\');$runs=$s.GetRunningTasks(1);$tasks=@();$watch=@();foreach($name in $names){$t=$folder.GetTask($name);if([int]$t.State -ne 4){throw 'TASK_NOT_RUNNING'};$tasks+=,[ordered]@{name=$name;xml=[string]$t.Xml};$found=@();for($i=1;$i -le $runs.Count;$i++){$r=$runs.Item($i);if($r.Name -ceq $name){$found+=,$r}};if($found.Count -ne 1){throw 'TASK_INSTANCE'};$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$found[0].EnginePID);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'WATCHER_OWNER'};$watch+=,[ordered]@{role=$(if($name -ceq $names[0]){'terminalWatcher'}else{'hubWatcher'});pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};$ids=@(Get-NetTCPConnection -State Listen|Where-Object LocalPort -in 4144,4146,5194|ForEach-Object OwningProcess);$ids+=@(Get-CimInstance Win32_Process -Filter "Name='sqlservr.exe'"|ForEach-Object ProcessId);$protected=@();foreach($id in @($ids|Sort-Object -Unique)){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$id);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'PROTECTED_OWNER'};$protected+=,[ordered]@{name=$p.Name;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};[ordered]@{observedAt=[DateTime]::UtcNow.ToString('o');tasks=$tasks;oldWatchers=$watch;protectedProcesses=$protected}|ConvertTo-Json -Depth 12 -Compress`));
+ const extras=JSON.parse(ps(`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$s=New-Object -ComObject Schedule.Service;$s.Connect();$folder=$s.GetFolder('\\');$runs=$s.GetRunningTasks(1);$tasks=@();$watch=@();foreach($name in $names){$t=$folder.GetTask($name);if([int]$t.State -ne 4){throw 'TASK_NOT_RUNNING'};$tasks+=,[ordered]@{name=$name;xml=[string]$t.Xml};$found=@();for($i=1;$i -le $runs.Count;$i++){$r=$runs.Item($i);if($r.Name -ceq $name){$found+=,$r}};if($found.Count -ne 1){throw 'TASK_INSTANCE'};$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$found[0].EnginePID);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'WATCHER_OWNER'};$watch+=,[ordered]@{role=$(if($name -ceq $names[0]){'terminalWatcher'}else{'hubWatcher'});pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};$ids=@(Get-NetTCPConnection -State Listen|Where-Object LocalPort -in 4144,4146,5194|ForEach-Object OwningProcess);$ids+=@(Get-CimInstance Win32_Process -Filter "Name='sqlservr.exe'"|ForEach-Object ProcessId);$protected=@();foreach($id in @($ids|Sort-Object -Unique)){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$id);if($p.Name -ceq 'sqlservr.exe'){$protected+=,(Get-P03ProtectedSqlService $p);continue};$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'PROTECTED_OWNER'};$protected+=,[ordered]@{name=$p.Name;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};[ordered]@{observedAt=[DateTime]::UtcNow.ToString('o');tasks=$tasks;oldWatchers=$watch;protectedProcesses=$protected}|ConvertTo-Json -Depth 12 -Compress`));
  const last=await captureP03OwnerObservation();need(JSON.stringify(first.identities)===JSON.stringify(last.identities)&&JSON.stringify(first.tasks)===JSON.stringify(last.tasks),'OBSERVATION_DRIFT');
  const request=buildP03PhysicalProfile({oldObservation:last,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId:crypto.randomBytes(16).toString('hex'),shellSha256:hash(fs.readFileSync(SHELL))});
  if(mode==='DryRun'){process.stdout.write(JSON.stringify({status:'DRY_RUN_ONLY',...request.summary,created:false},null,2)+'\n');return;}

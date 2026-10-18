@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {buildP03PhysicalProfile,deriveP03CandidateRules} from './p03-physical-profile-create.mjs';
+import {buildP03PhysicalProfile,deriveP03CandidateRules,validateP03ProtectedSqlService,P03_SQL_SERVICE_CAPTURE_PS} from './p03-physical-profile-create.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 function fixture(){
  const ownerSid='S-1-5-21-2170750028-1005938530-2568122015-1001',database='MELISA_ERP_CRM_SHARED_TEST_20261009_02',copyId='fixture-copy';
@@ -47,5 +47,17 @@ test('rules preserve actual CORE receipt schema and derive CRM arguments without
 test('protected writer parses without execution', {skip:process.platform!=='win32'},()=>{
  const source=fileURLToPath(new URL('./p03-physical-profile-create.ps1',import.meta.url));
  const code="$errors=$null;$tokens=$null;[void][System.Management.Automation.Language.Parser]::ParseFile('"+source.replaceAll("'","''")+"',[ref]$tokens,[ref]$errors);if($errors.Count){throw 'PARSE_ERROR'};'PARSE_OK'";
+ assert.equal(execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'}).trim(),'PARSE_OK');
+});
+test('typed SQL protection preserves service/process linkage without manufacturing SID or executable fields',()=>{
+ const value={kind:'ProtectedSqlService',name:'sqlservr.exe',pid:6180,creationTime:'2026-10-18T10:00:00Z',service:{name:'MSSQL$MELISADEV',processId:6180,state:'Running',startName:'NT Service\\MSSQL$MELISADEV',pathName:'sqlservr.exe -sMELISADEV'},sql:{serverName:'Semih\\MELISADEV',databaseName:'master',processId:6180}};
+ assert.equal(validateP03ProtectedSqlService(value),value);
+ assert.throws(()=>validateP03ProtectedSqlService({...value,ownerSid:'invented'}),/SQL_PROTECTED_SCHEMA/);
+ assert.throws(()=>validateP03ProtectedSqlService({...value,sql:{...value.sql,processId:9}}),/SQL_PROTECTED_IDENTITY/);
+ assert.throws(()=>validateP03ProtectedSqlService({...value,service:{...value.service,name:'MSSQL$OTHER'}}),/SQL_PROTECTED_SERVICE/);
+});
+test('typed SQL capture source parses without executing SQL', {skip:process.platform!=='win32'},()=>{
+ const encoded=Buffer.from(P03_SQL_SERVICE_CAPTURE_PS).toString('base64');
+ const code="$errors=$null;$tokens=$null;$source=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+encoded+"'));[void][System.Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'PARSE_ERROR'};'PARSE_OK'";
  assert.equal(execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'}).trim(),'PARSE_OK');
 });

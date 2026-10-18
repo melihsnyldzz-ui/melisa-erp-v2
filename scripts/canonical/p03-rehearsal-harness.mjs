@@ -1,0 +1,24 @@
+// Root-operated real Windows rehearsal. Default inspection writes nothing.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {pathToFileURL,fileURLToPath} from 'node:url';
+export function parseP03RehearsalMode(args){if(args.length>1||!['--DryRun','--Run',undefined].includes(args[0]))throw Error('P03_REHEARSAL_MODE');return args[0]==='--Run'?'Run':'DryRun';}
+export function p03RehearsalSourceRequest(directory,mode){
+ if(!['DryRun','Run'].includes(mode))throw Error('P03_REHEARSAL_MODE');
+ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+ const names=['p03-rehearsal-fixture.mjs','p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1'];
+ const files=names.map(name=>{const source=path.join(directory,name),stat=fs.lstatSync(source);if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1)throw Error('P03_REHEARSAL_SOURCE');const bytes=fs.readFileSync(source);return {name,sha256:hash(bytes),bytesBase64:bytes.toString('base64')};});
+ const engine=path.join(directory,'p03-physical-rollback.ps1'),engineBytes=fs.readFileSync(engine);
+ return {mode,files,engine:{path:engine,sha256:hash(engineBytes)},cloneProof:{path:'C:\\Sirket\\ERP\\backups\\P03-20261018-121000\\isolated-restore-v4\\restore-rehearsal-verified.json',sha256:'e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353'}};
+}
+function main(){
+ const mode=parseP03RehearsalMode(process.argv.slice(2));if(process.platform!=='win32')throw Error('P03_REHEARSAL_PLATFORM');
+ const directory=path.dirname(fileURLToPath(import.meta.url)),request=p03RehearsalSourceRequest(directory,mode);
+ const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(directory,'p03-rehearsal-driver.ps1'),'-Mode',mode],{input:JSON.stringify(request),encoding:'utf8',windowsHide:true,timeout:mode==='Run'?600000:60000,maxBuffer:65536,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ if(child.status!==0||child.error){const codes=String(child.stderr??'').match(/\bP03_[A-Z_]+\b/g)??[];process.stderr.write(JSON.stringify({status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:codes.at(-1)??'P03_REHEARSAL_EXECUTION_REJECTED'})+'\n');process.exitCode=1;return;}
+ const result=JSON.parse(child.stdout);if(!['DRY_RUN_READY','REHEARSAL_ROLLBACK_READY'].includes(result.status))throw Error('P03_REHEARSAL_RESULT');
+ process.stdout.write(JSON.stringify(result,null,2)+'\n');
+}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){try{main();}catch{process.stderr.write('P03_REHEARSAL_REJECTED\n');process.exitCode=1;}}
