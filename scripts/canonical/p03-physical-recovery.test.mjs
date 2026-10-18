@@ -224,7 +224,7 @@ test('console auxiliaries require exact signed binary, selected parent and zero 
 
 
 test('observer retains orphan descendants of captured exited old process and watcher PIDs',windows,()=>{
- const src=readFileSync(script,'utf8').replaceAll('\r\n','\n');const start=src.indexOf(' do{\n  $selectedPids=');const end=src.indexOf(' $processes=@()',start);assert.ok(start>=0&&end>start);const closure=src.slice(start,end);
+ const src=readFileSync(script,'utf8').replaceAll('\r\n','\n');const start=src.indexOf(' do{\n  $selectedPids=');const end=src.indexOf(' $rawSnapshot=',start);assert.ok(start>=0&&end>start);const closure=src.slice(start,end);
  const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$pids=@(10,20);$selected=@();$all=@([pscustomobject]@{ProcessId=11;ParentProcessId=10},[pscustomobject]@{ProcessId=12;ParentProcessId=11},[pscustomobject]@{ProcessId=21;ParentProcessId=20},[pscustomobject]@{ProcessId=99;ParentProcessId=1});${closure};$selected.ProcessId -join ','`;
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/11,21,12/);assert.doesNotMatch(out,/99/);
 });

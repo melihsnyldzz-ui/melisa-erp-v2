@@ -9,10 +9,21 @@ import os from 'node:os';import path from 'node:path';import {spawnSync} from 'n
 import {assertPr54SharedProfile,admitPr54PrestartRecovery,classifyPr54Auxiliary,selectPr54CandidateProcesses,comparePr54InvarianceSnapshots,PR54_PROTECT_SQL_CONNECTION} from './p03-pr54-shared-owner-io.mjs';
 import {p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
 import {assertPr54WriteScope,pr54ProtectedWriteProgram} from './p03-pr54-shared-owner-io.mjs';
-import {pr54SafeFailure,pr54StopObservationSummary,pr54CollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
+import {pr54SafeFailure,pr54StopObservationSummary,pr54CollectPhysicalObservation,assertPr54ObservationAuthority} from './p03-pr54-shared-owner-io.mjs';
 import {diagnosePr54PausedOld} from './p03-pr54-shared-owner-io.mjs';
 import {proposePr54CandidateProcesses} from './p03-pr54-shared-owner-io.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+test('role-only collection cannot stand in for an OLD admission or complete inventory',()=>{
+ const proposal={collectionAuthority:'CANDIDATE_PROPOSAL_ONLY',processes:[]},full={processes:[]};
+ assert.equal(assertPr54ObservationAuthority(proposal,true),proposal);
+ assert.equal(assertPr54ObservationAuthority(full,false),full);
+ for(const args of [[proposal,false],[full,true],[null,false],[full,'true']])assert.throws(()=>assertPr54ObservationAuthority(...args));
+ const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
+ assert.match(source,/const proposal=predecessorRef!==null&&startAttempted/);
+ assert.match(source,/assertPr54ObservationAuthority\(JSON\.parse\(r\.stdout\),false\)/);
+ assert.match(source,/'-SourceObserverPath',frozen\.observer\.path,'-SourceObserverSha256',frozen\.observer\.sha256/);
+ assert.match(source,/proof\.sourceObserverSha256===frozen\.observer\.sha256/);
+});
 test('role proposal cannot admit unknown monitor/startup processes or duplicate identities',()=>{
  const profile={protectedProcesses:[],candidateRules:[{role:'coreSupervisor',nodePath:'C:\\node.exe',commandLine:'node core'}]},known={pid:10,nodePath:'C:\\node.exe',commandLine:'node core'},unknown={pid:11,parentPid:10,nodePath:'C:\\Windows\\powershell.exe',commandLine:'unproved startup'};
  const seen={processes:[known,unknown],bindings:[]},prior=structuredClone(seen);
@@ -45,7 +56,9 @@ test('whole physical observation recaptures only the frozen transient identity e
   let rejectedCalls=0;const failure=Error(code);await assert.rejects(pr54CollectPhysicalObservation(async()=>{rejectedCalls++;throw failure;}),error=>error===failure);assert.equal(rejectedCalls,1);
  }
  let exhausted=0;const failure=Error('P03_PROCESS_IDENTITY_UNAVAILABLE');await assert.rejects(pr54CollectPhysicalObservation(async()=>{exhausted++;throw failure;}),error=>error===failure);assert.equal(exhausted,3);
+ assert.equal(failure.p03ObservationStage,'PHYSICAL');const denied=Error('P03_OWNER');await assert.rejects(pr54CollectPhysicalObservation(async()=>{throw denied;},'SUCCESSOR_INSPECT'),error=>error===denied&&error.p03ObservationStage==='SUCCESSOR_INSPECT');let invalid=0;await assert.rejects(pr54CollectPhysicalObservation(async()=>{invalid++;},'DRAIN'));assert.equal(invalid,0);
  const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/callbackName of \['admit','stopTasks','tasksStopped'\]/);assert.match(source,/callbackName!=='admit'&&result!==true/);assert.match(source,/async function observeRef\(ref\)\{return pr54CollectPhysicalObservation/);assert.match(source,/async function physical\(\)\{return pr54CollectPhysicalObservation/);
+ assert.match(source,/async function inspectOldOwnerPhysical\(\)\{return pr54CollectPhysicalObservation/);assert.match(source,/return action==='Capture'\?pr54CollectPhysicalObservation\(collect,'SUCCESSOR_CAPTURE'\):collect\(\)/);assert.match(source,/observationStage:error\?\.p03ObservationStage\?\?'NONE'/);
 });
 test('protected writer transport keeps large payload out of command line, verifies hash and strict ACL and rejects overwrite',{skip:process.platform!=='win32'},()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'p03-writer-')),file=path.join(directory,'payload.bin'),bytes=crypto.randomBytes(256*1024),sha=hash(bytes);

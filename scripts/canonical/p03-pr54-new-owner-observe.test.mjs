@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 const source=fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url));
 const engine=fileURLToPath(new URL('./p03-physical-rollback.ps1',import.meta.url));
 const helper=fileURLToPath(new URL('./p03-pr54-paused-old-recover.ps1',import.meta.url));
+const observer=fileURLToPath(new URL('./p03-physical-recovery-observe.ps1',import.meta.url));
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const windows={skip:process.platform!=='win32'};
 const q=value=>"'"+value.replaceAll("'","''")+"'";
@@ -15,7 +16,7 @@ if($errors.Count){throw 'FIXTURE_PARSE'}
 ${names.map(name=>`$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq ${q(name)}},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))`).join('\n')}`;}
 function run(code){
  try{return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$source=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($source))','utf16le').toString('base64')],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n${code}`,encoding:'utf8',timeout:20000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
- catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z_]+/u)?.[0]??'FIXTURE_FAILED');}
+ catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z_]+/u)?.[0]??String(error.stderr??'FIXTURE_FAILED').slice(0,1400));}
 }
 const fixture=String.raw`
 function Need($value,$code){if(-not $value){throw ('P03_PHYSICAL_'+$code)}}
@@ -28,10 +29,12 @@ function Get-CimInstance{param($ClassName,$Filter,$ErrorAction)
  if($ClassName -cne 'Win32_Process' -or $Filter -cne 'ProcessId=200'){throw 'FIXTURE_CAPTURE_SCOPE'}
  return $script:fresh
 }
+function ObserverExactNotFound($failure){return $failure.Exception.Message -ceq 'FIXTURE_NOT_FOUND'}
+function ObserverAssertVanishedAudits($audits,$raw,$policy){$script:assertedAudits=@($audits)}
 function ResetFixture{
  $script:now=[DateTime]::Parse('2026-10-18T18:00:00Z').ToUniversalTime()
  $script:owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
- $script:profile=[pscustomobject]@{shell=[pscustomobject]@{path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';sha256=('c'*64)}}
+ $script:profile=[pscustomobject]@{shell=[pscustomobject]@{path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';sha256=('c'*64)};oldWatchers=@();protectedProcesses=@()}
  $script:core=[pscustomobject]@{pid=100;parentPid=10;nodePath='C:\fixture\node.exe';ownerSid=$owner;commandLine='node current core';creationTime='2026-10-18T17:00:00.0000000Z'}
  $script:before=[pscustomobject]@{identities=[pscustomobject]@{hub=[pscustomobject]@{pid=99}}}
  $script:newCandidateIdentities=[pscustomobject]@{coreSupervisor=$core}
@@ -41,18 +44,44 @@ function ResetFixture{
  $script:probe=[pscustomobject]@{ProcessId=200;ParentProcessId=100;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=($profile.shell.path+' -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File '+$newProbeSource.probePath+' -Ports 5234');CreationDate=[DateTime]::Parse('2026-10-18T17:01:00.1234567Z').ToUniversalTime();OwnerSid=$owner}
  $script:unrelated=[pscustomobject]@{ProcessId=900;ParentProcessId=1;Name='other.exe';CommandLine='unrelated'}
  $script:inv=[pscustomobject]@{all=@($parent,$probe,$unrelated);allListeners=@();listeners=@();instances=@()}
- $script:fresh=@($probe);$script:ownerThrows=$false;$script:captures=0
+ $script:fresh=@($probe);$script:ownerThrows=$false;$script:captures=0;$script:newProbePolicy=[pscustomobject]@{};$script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@();$script:assertedAudits=@();$script:SourceObserverSha256='observer'
 }
 function ExpectRejected($name,[scriptblock]$action){try{& $action|Out-Null}catch{'REJECTED='+$name;return};throw ('FIXTURE_ACCEPTED_'+$name)}
 ResetFixture
 `;
-const classifier=()=>extract(['Identity','Tokens'],engine)+'\n'+extract(['ProbeArgumentsAllowed'],helper)+'\n'+extract(['NewProbeArgvAllowed','NewFilteredInventory']);
+const classifier=()=>extract(['Identity','Tokens'],engine)+'\n'+extract(['ProbeArgumentsAllowed'],helper)+'\n'+extract(['NewProbeArgvAllowed','NewProtectedPids','NewProbeConsole','NewFilteredInventory']);
+const sharedAbsent=()=>extract(['ObserverRequire','ObserverPinnedConsoleBinary','ObserverAssertAbsentFamily','ObserverVanishedConsole','ObserverPolicyCoreAlive','ObserverTryVanishedProbe','ObserverAssertVanishedAudits'],observer);
+const consoleFixture=String.raw`
+$script:console=[pscustomobject]@{ProcessId=201;ParentProcessId=200;Name='conhost.exe';ExecutablePath='C:\WINDOWS\system32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';CreationDate=$probe.CreationDate.AddSeconds(1);OwnerSid=$owner}
+$inv.all+=,$console;$script:freshGlobal=$inv.all;$script:freshListeners=@();$script:kernelLive=@();$script:gone=@();$script:policyReadFails=$false
+$script:consoleHash='c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac';$script:signatureStatus='Valid'
+$script:newProbePolicy=[pscustomobject]@{core=$core;engineRef=[pscustomobject]@{path='engine'};helperRef=[pscustomobject]@{path='helper'};settingsRef=[pscustomobject]@{path='settings'};manifestRef=[pscustomobject]@{path='manifest'};probeRef=[pscustomobject]@{path=$newProbeSource.probePath};nodeRef=[pscustomobject]@{path='node'};shellRef=$profile.shell}
+function Get-CimInstance{param($ClassName,$Filter,$ErrorAction)
+ if($ClassName -cne 'Win32_Process' -or $ErrorAction -cne 'Stop'){throw 'FIXTURE_CAPTURE_SCOPE'}
+ if($Filter){return @($script:freshGlobal|Where-Object{$_.ProcessId -eq [int]($Filter -replace '^ProcessId=','')})};return $script:freshGlobal
+}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction)
+ if($InputObject.ProcessId -in $script:gone){throw 'FIXTURE_NOT_FOUND'}
+ [pscustomobject]@{ReturnValue=0;Sid=$InputObject.OwnerSid}
+}
+function Get-NetTCPConnection{param($State,$ErrorAction);return $script:freshListeners}
+function ObserverKernelAbsent($pidValue){return $pidValue -notin $script:kernelLive}
+function Get-Item{param($LiteralPath,[switch]$Force);[pscustomobject]@{Attributes=0}}
+function Get-FileHash{param($LiteralPath,$Algorithm);[pscustomobject]@{Hash=$script:consoleHash}}
+function Get-AuthenticodeSignature{param($LiteralPath);[pscustomobject]@{Status=$script:signatureStatus;SignerCertificate=[pscustomobject]@{Subject='CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'}}}
+function ObserverPolicyRead($ref,$private=$true){if($script:policyReadFails){throw 'P03_TEST_POLICY_PIN'};return ,[byte[]]@(1)}
+function ObserverPolicyBinary($ref){if($script:policyReadFails){throw 'P03_TEST_POLICY_PIN'}}
+function ObserverNativeTokens($command){return Tokens $command}
+function ObserverPolicyArgvAllowed($argv,$policy){return NewProbeArgvAllowed $argv}
+`;
 
-test('new observer source is read only, imports definitions only and preserves frozen owner and health checks',()=>{
+test('new observer imports definitions only and preserves receipt and health gates with finite 13b NEW bindings',()=>{
  const s=readFileSync(source,'utf8');
  assert.match(s,/Mode='Observe'/);assert.match(s,/FunctionDefinitionAst/);assert.match(s,/ImportNewObserverFunctions \(NewObserverPin \$RecoveryHelperPath \$RecoveryHelperSha256\) @\('ProbeArgumentsAllowed'\)/);
  assert.match(s,/NewRawInventory/);assert.match(s,/\$digest=NewFullOwner \$evidence/);assert.match(s,/ProtectedProcesses \(Inventory\);NewAssertTasks/);
  assert.match(s,/AdmitCandidate/);assert.match(s,/NEW_CANDIDATE_COUNT/);assert.match(s,/AddMinutes\(10\)/);assert.match(s,/TotalSeconds -ge 30/);
+ assert.match(s,/ImportSharedObserverFunctions \(NewObserverPin \$SourceObserverPath \$SourceObserverSha256\)/);assert.match(s,/sourceObserverSha256=\$SourceObserverSha256/);assert.match(s,/ObserverInitializeProbePolicy \$profile \$before \$script:newCandidateIdentities 'New'/);
+ assert.match(s,/e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5/);assert.match(s,/foreach\(\$auditFrame in \$script:newFrameAuditSnapshots\)/);
  assert.match(s,/NewSourceBytes \$probe \$files\[0\].sha256/);assert.match(s,/Get-FileHash -LiteralPath \$profile.shell.path/);
  assert.match(s,/13bdf75a032ae8f694354a2e57b6ed382aec2f17/);assert.match(s,/e59e07abf7ae2567cdc2adb93811fe29e0032fe5/);assert.match(s,/6bc82e6fe9726261ef1d0171d97e5d9da9f5398a/);
  assert.doesNotMatch(s,/Stop-Process|taskkill|\.Kill\(|\.Stop\(|\.Run\(|RegisterTask|WriteAll|FileMode\]::Create|Append |& \$EnginePath|& \$RecoveryHelperPath|NEW_PHYSICAL_PREFLIGHT|Invoke-Sqlcmd/);
@@ -65,6 +94,15 @@ ImportNewObserverFunctions $bytes;'INVENTORY='+(NewRawInventory);'SAFE='+(Safe)
 $helperBytes=[Text.Encoding]::UTF8.GetBytes("function ProbeArgumentsAllowed{return 'ARGV'};function Forbidden{throw 'FIXTURE_FORBIDDEN'};throw 'FIXTURE_HELPER_DISPATCHER_RAN'")
 ImportNewObserverFunctions $helperBytes @('ProbeArgumentsAllowed');'ARGV='+(ProbeArgumentsAllowed);'FORBIDDEN='+[bool](Get-Command Forbidden -ErrorAction SilentlyContinue)`);
  assert.match(out,/INVENTORY=RAW/);assert.match(out,/SAFE=SAFE/);assert.match(out,/ARGV=ARGV/);assert.match(out,/FORBIDDEN=False/);
+});
+
+test('shared source importer admits only required Observer definitions and never its dispatcher or unrelated functions',windows,()=>{
+ const out=run(`${fixture}\n${extract(['ImportNewObserverFunctions','ImportSharedObserverFunctions'])}
+$names=@('ObserverInitializeProbePolicy','ObserverTryVanishedProbe','ObserverAssertVanishedAudits','ObserverVanishedConsole','ObserverExactNotFound','ObserverPinnedConsoleBinary');$defs=($names|ForEach-Object{'function '+$_+"{return 'SAFE'}"}) -join ';'
+$bytes=[Text.Encoding]::UTF8.GetBytes($defs+";function UnrelatedDanger{throw 'FIXTURE_UNRELATED'};throw 'FIXTURE_DISPATCHER'")
+ImportSharedObserverFunctions $bytes;'POLICY='+(ObserverInitializeProbePolicy);'DANGER='+[bool](Get-Command UnrelatedDanger -ErrorAction SilentlyContinue)
+$bad=[Text.Encoding]::UTF8.GetBytes("function SomethingElse{return 1}");ExpectRejected 'missing-exports' {ImportSharedObserverFunctions $bad}`);
+ assert.match(out,/POLICY=SAFE/);assert.match(out,/DANGER=False/);assert.match(out,/REJECTED=missing-exports/);
 });
 
 test('actual classifier accepts finite 9 and 11 argv probes using current candidate IDs and retains other inventory',windows,()=>{
@@ -84,6 +122,36 @@ test('actual classifier rejects wrong binary script parent SID birth listener de
  ];
  const out=run(`${fixture}\n${classifier()}\n${edits.map(([name,edit])=>`ResetFixture;${edit};ExpectRejected '${name}' {NewFilteredInventory $inv}`).join('\n')}`);
  for(const [name]of edits)assert.match(out,new RegExp('REJECTED='+name+'(?:\\r?\\n|$)'));
+});
+
+test('live approved probe accepts only fully authenticated canonical Microsoft console children',windows,()=>{
+ const prefix=`${fixture}\n${classifier()}\n${sharedAbsent()}\n${consoleFixture}`;
+ const good=run(`${prefix}\n$filtered=NewFilteredInventory $inv;'PIDS='+($filtered.all.ProcessId -join ',');'AUDITS='+$filtered.vanishedAuxiliaries.Count;'OWNER_UNCHANGED='+$before.identities.hub.pid`);
+ assert.match(good,/PIDS=100,900/);assert.match(good,/AUDITS=0/);assert.match(good,/OWNER_UNCHANGED=99/);
+ const edits=[
+ ['binary',"$console.ExecutablePath='C:\\foreign\\conhost.exe'"],['argv',"$console.CommandLine+=' foreign'"],['SID',"$console.OwnerSid='S-1-5-18'"],['hash',"$script:consoleHash='0'*64"],['signature',"$script:signatureStatus='NotSigned'"],
+ ['birth','$console.CreationDate=$probe.CreationDate.AddTicks(-1)'],['raw-listener','$inv.allListeners=@([pscustomobject]@{OwningProcess=201;LocalPort=65000})'],['fresh-listener','$script:freshListeners=@([pscustomobject]@{OwningProcess=201;LocalPort=65000})'],
+ ['child',"$inv.all+=,[pscustomobject]@{ProcessId=202;ParentProcessId=201;Name='unknown.exe';CommandLine='unknown'}"],['fresh-child',"$script:freshGlobal+=,[pscustomobject]@{ProcessId=202;ParentProcessId=201;Name='unknown.exe';CommandLine='unknown'}"],['wrong-kind',"$console.Name='foreign.exe'"],['reused',"$script:freshGlobal=@($parent,$probe,$unrelated,[pscustomobject]@{ProcessId=201;ParentProcessId=1;OwnerSid=$owner;ExecutablePath='C:\\foreign.exe';CommandLine='unknown';CreationDate=$console.CreationDate.AddTicks(1)})"]
+ ];
+ for(const [name,edit]of edits){const out=run(`${prefix}\n${edit};ExpectRejected '${name}' {NewFilteredInventory $inv}`);assert.match(out,new RegExp('REJECTED='+name));}
+ const gone=run(`${prefix}\n$script:freshGlobal=@($parent,$probe,$unrelated);try{NewFilteredInventory $inv|Out-Null}catch{'CODE='+$_.Exception.Message};'AUDITS='+$script:newFrameVanishedAudits.Count`);
+ assert.match(gone,/CODE=P03_NEW_PROBE_EXIT_RECAPTURE/);assert.match(gone,/AUDITS=0/);
+ const parentMismatch=run(`${prefix}\n$console.ParentProcessId=100;ExpectRejected 'wrong-parent' {NewProbeConsole $console $probe ([pscustomobject]@{all=$inv.all;selected=$inv.all;allListeners=@()}) @(NewProtectedPids $inv)}`);
+ assert.match(parentMismatch,/REJECTED=wrong-parent/);
+});
+
+test('actual shared absent probe and console proof yields only unverified audit rows and rechecks full family',windows,()=>{
+ const prefix=`${fixture}\n${classifier()}\n${sharedAbsent()}\n${consoleFixture}\n$script:gone=@(200,201);$script:freshGlobal=@($parent,$unrelated);`;
+ const out=run(`${prefix}
+$filtered=NewFilteredInventory $inv;'PIDS='+($filtered.all.ProcessId -join ',');'AUDITS='+$filtered.vanishedAuxiliaries.Count
+foreach($a in $filtered.vanishedAuxiliaries){'REASON='+$a.reason;'VERIFIED='+$a.ownerVerified;'STATE='+$a.ownerState;'FIELDS='+(@($a.Keys|Sort-Object)-join ',')}
+$script:policyReadFails=$true;ExpectRejected 'final-source-pin' {ObserverAssertVanishedAudits $filtered.vanishedAuxiliaries ([pscustomobject]@{all=$inv.all;selected=$inv.all;allListeners=$inv.allListeners}) $newProbePolicy}`);
+ assert.match(out,/PIDS=100,900/);assert.match(out,/AUDITS=2/);assert.match(out,/REASON=CIM_NOT_FOUND_CONFIRMED_ABSENT_APPROVED_RO_PROBE/);assert.match(out,/REASON=CIM_NOT_FOUND_CONFIRMED_ABSENT_STANDARD_CONSOLE/);assert.match(out,/VERIFIED=False/);assert.match(out,/STATE=UNVERIFIED_EXITED/);assert.match(out,/FIELDS=creationTime,ownerState,ownerVerified,parentPid,pid,reason/);assert.match(out,/REJECTED=final-source-pin/);
+ for(const [name,edit]of [
+  ['kernel-live','$script:kernelLive=@(200)'],['PID-reused','$script:freshGlobal+=,$probe'],['console-live','$script:freshGlobal+=,$console'],
+  ['grandchild',"$inv.all+=,[pscustomobject]@{ProcessId=202;ParentProcessId=201;Name='unknown.exe';CommandLine='unknown'};$script:freshGlobal+=,$inv.all[-1]"],
+  ['core-SID',"$parent.OwnerSid='S-1-5-18'"],['raw-listener','$inv.allListeners=@([pscustomobject]@{OwningProcess=200;LocalPort=65000})']
+ ]){const rejected=run(`${prefix}\n${edit};ExpectRejected '${name}' {NewFilteredInventory $inv}`);assert.match(rejected,new RegExp('REJECTED='+name));}
 });
 
 test('unknown siblings remain visible and only genuine missing probe races can request whole recapture',windows,()=>{
@@ -110,22 +178,22 @@ test('actual source preparation pins new supervisor manifest and probe bytes and
  const out=run(`${fixture}\n${extract(['NewPrepareProbeSource'])}
 function Json($b){return [Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}
 function NoReparse($p){}
-function NewSourceBytes($p,$sha){$script:reads+=,$p;if($p.EndsWith('release-manifest.json')){return ,[Text.Encoding]::UTF8.GetBytes(($script:manifest|ConvertTo-Json -Depth 8 -Compress))};if($sha -cne ('b'*64)){throw 'FIXTURE_PROBE_SHA'};return ,[byte[]]@(1)}
+function NewSourceBytes($p,$sha){$script:reads+=,$p;if($p.EndsWith('release-manifest.json')){return ,[Text.Encoding]::UTF8.GetBytes(($script:manifest|ConvertTo-Json -Depth 8 -Compress))};if(($p.EndsWith('hub-stack-process-probe.ps1') -and $sha -cne ('b'*64)) -or ($p.EndsWith('terminal-completion-logon.mjs') -and $sha -cne ('d'*64))){throw 'FIXTURE_PROBE_SHA'};return ,[byte[]]@(1)}
 function Get-FileHash{param($LiteralPath,$Algorithm);[pscustomobject]@{Hash=$script:shellHash}}
 $script:RecoveryHelperSha256='helper';$script:reads=@();$script:shellHash='c'*64
 $script:newSettings=[pscustomobject]@{supervisor=[pscustomobject]@{packageRoot='C:\\fixture\\new';sourceCommit='13bdf75a032ae8f694354a2e57b6ed382aec2f17';manifestSha256=('a'*64)}}
-$script:manifest=[pscustomobject]@{sourceCommit=$newSettings.supervisor.sourceCommit;files=@([pscustomobject]@{path='scripts/canonical/hub-stack-process-probe.ps1';sha256=('b'*64)})}
+$script:manifest=[pscustomobject]@{sourceCommit=$newSettings.supervisor.sourceCommit;files=@([pscustomobject]@{path='scripts/canonical/hub-stack-process-probe.ps1';sha256=('b'*64)},[pscustomobject]@{path='scripts/canonical/terminal-completion-logon.mjs';sha256=('d'*64)})}
 NewPrepareProbeSource;'READS='+($reads -join '|');'PROBE='+$newProbeSource.probeSha256
 $manifest.sourceCommit='old';ExpectRejected 'manifest' {NewPrepareProbeSource};$manifest.sourceCommit=$newSettings.supervisor.sourceCommit
-$manifest.files+=,$manifest.files[0];ExpectRejected 'duplicate' {NewPrepareProbeSource};$manifest.files=@($manifest.files[0])
+$manifest.files+=,$manifest.files[0];ExpectRejected 'duplicate' {NewPrepareProbeSource};$manifest.files=@($manifest.files[0],$manifest.files[1])
 $manifest.files[0].sha256='d'*64;ExpectRejected 'probe' {NewPrepareProbeSource};$manifest.files[0].sha256='b'*64
 $script:shellHash='d'*64;ExpectRejected 'shell' {NewPrepareProbeSource}`);
  assert.match(out,/READS=C:\\fixture\\new\\release-manifest.json\|C:\\fixture\\new\\scripts\\canonical\\hub-stack-process-probe.ps1/);assert.match(out,/PROBE=b{64}/);
  for(const name of ['manifest','duplicate','probe','shell'])assert.match(out,new RegExp('REJECTED='+name));
 });
 
-test('real NewFrame retains unmodified NewFullOwner role bindings, NEW health, COM digest and protected checks',windows,()=>{
- const out=run(`${fixture}\n${classifier()}\n${extract(['Inventory','NewFrame'])}\n${extract(['Hash','NewFullOwner'],engine)}
+test('finite 13b NEW owner requires exact eleven listeners while retaining receipt gate, NEW health, COM digest and protected checks',windows,()=>{
+ const out=run(`${fixture}\n${classifier()}\n${extract(['Inventory','NewFrame','NewFullOwner'])}\n${extract(['Hash'],engine)}
 $script:isRehearsal=$false;$script:health=0;$script:protected=0;$script:tasks=0
 function NewAuthority{}
 function NewAssertTasks{$script:tasks++}
@@ -136,13 +204,18 @@ function NewRawInventory{return $script:inv}
 $roles=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','terminalWatcher','hubWatcher')
 $rolePorts=@{erpNative=@(4186);erpApi=@(4184);crmNativeOrder=@(62704);crmCatalog=@(62702);crmOrders=@(62703);crmServer=@(62700,62701);hub=@(5234);coreSupervisor=@();terminalWatcher=@();hubWatcher=@()}
 $script:selected=@();$pidValue=100
-foreach($role in $roles){$bindings=@();foreach($port in $rolePorts[$role]){foreach($address in @(if($role -ceq 'hub'){'127.0.0.1';'192.168.1.46'}else{'127.0.0.1'})){$bindings+=,[pscustomobject]@{port=$port;address=$address};$inv.allListeners+=,[pscustomobject]@{OwningProcess=$pidValue;LocalPort=$port;LocalAddress=$address}}};$script:selected+=,[pscustomobject]@{role=$role;pid=$pidValue;bindings=$bindings};$pidValue++}
+foreach($role in $roles){$bindings=@();foreach($port in $rolePorts[$role]){foreach($address in @(if($role -cin @('hub','erpApi') -or ($role -ceq 'crmServer' -and $port -eq 62700)){'127.0.0.1';'192.168.1.46'}else{'127.0.0.1'})){$bindings+=,[pscustomobject]@{port=$port;address=$address};$inv.allListeners+=,[pscustomobject]@{OwningProcess=$pidValue;LocalPort=$port;LocalAddress=$address}}};$script:selected+=,[pscustomobject]@{role=$role;pid=$pidValue;bindings=$bindings};$pidValue++}
 $inv.listeners=$inv.allListeners;$inv.instances=@([pscustomobject]@{Name='core';EnginePID=108;InstanceGuid='guid-core'},[pscustomobject]@{Name='hub';EnginePID=109;InstanceGuid='guid-hub'})
 function CandidateInventory($e){$inventory=Inventory;foreach($p in $inventory.all){if($p.ParentProcessId -eq 100 -and $p.ProcessId -ne 100){throw 'FIXTURE_FOREIGN_RETAINED'}};[pscustomobject]@{inventory=$inventory;selected=$script:selected}}
 $digest=NewFrame ([pscustomobject]@{});'DIGEST='+$digest;'HEALTH='+$health;'PROTECTED='+$protected;'TASKS='+$tasks
 $inv.all+=,[pscustomobject]@{ProcessId=300;ParentProcessId=100;Name='foreign.exe';CommandLine='unknown'};ExpectRejected 'foreign-retained' {NewFrame ([pscustomobject]@{})};$inv.all=@($inv.all|Where-Object{$_.ProcessId -ne 300})
-$inv.allListeners=@($inv.allListeners|Select-Object -Skip 1);ExpectRejected 'binding' {NewFrame ([pscustomobject]@{})}`);
- assert.match(out,/DIGEST=[a-f0-9]{64}/);assert.match(out,/HEALTH=1/);assert.match(out,/PROTECTED=1/);assert.match(out,/TASKS=2/);assert.match(out,/REJECTED=foreign-retained/);assert.match(out,/REJECTED=binding/);
+$original=$inv.allListeners;$inv.allListeners=@($original|Select-Object -Skip 1);ExpectRejected 'binding' {NewFrame ([pscustomobject]@{})};$inv.allListeners=$original
+$saved=$original[0].LocalAddress;$original[0].LocalAddress='0.0.0.0';ExpectRejected 'foreign-address' {NewFrame ([pscustomobject]@{})};$original[0].LocalAddress=$saved
+$saved=$original[0].OwningProcess;$original[0].OwningProcess=999;ExpectRejected 'swapped-PID' {NewFrame ([pscustomobject]@{})};$original[0].OwningProcess=$saved
+$saved=$selected[1].bindings[0].address;$selected[1].bindings[0].address='0.0.0.0';ExpectRejected 'declared-address' {NewFrame ([pscustomobject]@{})};$selected[1].bindings[0].address=$saved
+function Health($selected,$generation){throw 'FIXTURE_HEALTH_FAILED'};ExpectRejected 'health' {NewFrame ([pscustomobject]@{})}`);
+ assert.match(out,/DIGEST=[a-f0-9]{64}/);assert.match(out,/HEALTH=1/);assert.match(out,/PROTECTED=1/);assert.match(out,/TASKS=2/);
+ for(const name of ['foreign-retained','binding','foreign-address','swapped-PID','declared-address','health'])assert.match(out,new RegExp('REJECTED='+name));
 });
 
 test('NEW task check uses exact NEW XML while the frozen OLD AssertTasks rejects that same fixture',windows,()=>{
@@ -159,7 +232,7 @@ $profile.tasks=@($profile.tasks[0],$profile.tasks[0]);ExpectRejected 'duplicate-
 
 test('real observation loop resets on failures and changed digest and requires thirty new stable seconds',windows,()=>{
  const out=run(`${fixture}\n${extract(['ObserveNewOwner'])}
-$script:Mode='Observe';$script:ProfileSha256='profile';$script:BeforeImageSha256='before';$script:CandidateSha256='candidate';$script:engineSha='engine';$script:frame=0;$script:authority=0
+$script:Mode='Observe';$script:ProfileSha256='profile';$script:BeforeImageSha256='before';$script:CandidateSha256='candidate';$script:engineSha='engine';$script:SourceObserverSha256='observer';$script:frame=0;$script:authority=0
 function NewAuthority{$script:authority++}
 function NewFrame($e){$script:frame++;if($script:frame -eq 3){throw 'FIXTURE_UNHEALTHY'};if($script:frame -lt 5){return ('a'*64)};return ('b'*64)}
 function Start-Sleep{param($Milliseconds);if($Milliseconds -ne 500){throw 'FIXTURE_INTERVAL'};$script:now=$script:now.AddSeconds(10)}
@@ -176,4 +249,15 @@ try{ObserveNewOwner ([pscustomobject]@{})|Out-Null}catch{'TIMEOUT='+$_.Exception
 $script:Mode='DryRun';function NewFrame($e){return ('a'*64)};function Start-Sleep{throw 'FIXTURE_DRY_SLEEP'}
 $p=ObserveNewOwner ([pscustomobject]@{});'DRY='+$p.status;'MUTATION='+$p.mutationExecuted`);
  assert.match(out,/TIMEOUT=P03_NEW_OWNER_NOT_STABLE/);assert.match(out,/FRAMES=2/);assert.match(out,/DRY=NEW_OWNER_OBSERVATION_DRY_RUN/);assert.match(out,/MUTATION=False/);
+});
+
+test('timeout exposes only the final fixed frame code and never raw exception text',windows,()=>{
+ const out=run(`${fixture}\n${extract(['ObserveNewOwner'])}
+$script:Mode='Observe'
+function NewFrame($e){throw 'P03_PHYSICAL_NEW_ROLE_BINDING'}
+function Start-Sleep{param($Milliseconds);$script:now=$script:now.AddSeconds(301)}
+try{ObserveNewOwner ([pscustomobject]@{})|Out-Null}catch{'FIXED='+$_.Exception.Message}
+$script:now=[DateTime]::Parse('2026-10-18T18:00:00Z');function NewFrame($e){throw 'private-sentinel /secret/path token'}
+try{ObserveNewOwner ([pscustomobject]@{})|Out-Null}catch{'UNKNOWN='+$_.Exception.Message}`);
+ assert.match(out,/FIXED=P03_NEW_OWNER_NOT_STABLE_P03_PHYSICAL_NEW_ROLE_BINDING/);assert.match(out,/UNKNOWN=P03_NEW_OWNER_NOT_STABLE_P03_NEW_OWNER_FRAME_UNCLASSIFIED/);assert.doesNotMatch(out,/private-sentinel|secret\/path|token/);
 });

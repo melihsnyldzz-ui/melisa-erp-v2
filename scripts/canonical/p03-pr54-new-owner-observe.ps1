@@ -9,7 +9,9 @@ param(
  [Parameter(Mandatory=$true)][string]$EnginePath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$EngineSha256,
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,
- [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$RecoveryHelperSha256
+ [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$RecoveryHelperSha256,
+ [Parameter(Mandatory=$true)][string]$SourceObserverPath,
+ [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$SourceObserverSha256
 )
 # Separate read-only NEW observation. The frozen engine is imported only as
 # function definitions. No engine PASS/event, task action or process is written.
@@ -38,9 +40,18 @@ function ImportNewObserverFunctions([byte[]]$bytes,[string[]]$only=@()){
  if($only.Count){foreach($name in $only){if(@($definitions|Where-Object{$_.Name -ceq $name}).Count -ne 1){throw 'P03_NEW_OBSERVER_FUNCTION'}};$definitions=@($definitions|Where-Object{$_.Name -cin $only})}
  foreach($definition in $definitions){$name=if($definition.Name -ceq 'Inventory'){'NewRawInventory'}else{$definition.Name};. ([scriptblock]::Create('function script:'+$name+$definition.Extent.Text.Substring(('function '+$definition.Name).Length)))}
 }
+function ImportSharedObserverFunctions([byte[]]$bytes){
+ $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$tokens,[ref]$errors)
+ if($errors.Count){throw 'P03_NEW_OBSERVER_SHARED_PARSE'}
+ $only=@($ast.FindAll({param($node)$node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -cmatch '\AObserver[A-Za-z]+\z'},$false)|ForEach-Object{$_.Name})
+ foreach($required in @('ObserverInitializeProbePolicy','ObserverTryVanishedProbe','ObserverAssertVanishedAudits','ObserverVanishedConsole','ObserverExactNotFound','ObserverPinnedConsoleBinary')){Need (@($only|Where-Object{$_ -ceq $required}).Count -eq 1) 'NEW_SHARED_EXPORT'}
+ ImportNewObserverFunctions $bytes $only
+}
 if($EngineSha256 -cne $engineSha){throw 'P03_NEW_OBSERVER_ENGINE'}
+if($RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_NEW_OBSERVER_HELPER'}
 ImportNewObserverFunctions (NewObserverPin $EnginePath $engineSha)
 ImportNewObserverFunctions (NewObserverPin $RecoveryHelperPath $RecoveryHelperSha256) @('ProbeArgumentsAllowed')
+ImportSharedObserverFunctions (NewObserverPin $SourceObserverPath $SourceObserverSha256)
 $profile=Json (ReadPinned $ProfilePath $ProfileSha256);$before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $Environment='Shared';$isRehearsal=$false;$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
@@ -48,7 +59,7 @@ $names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184
 $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 $script:parentPins=@{};$script:watcherPins=@{};$script:consolePins=@{};$script:tasksStopRequested=$false
-$script:newCandidateIdentities=$null;$script:newProbeSource=$null
+$script:newCandidateIdentities=$null;$script:newProbeSource=$null;$script:newProbePolicy=$null;$script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@()
 function NewSourceBytes([string]$path,[string]$sha){
  NoReparse $path;$stream=[IO.File]::Open($path,'Open','Read','None')
  try{Need ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'NEW_SOURCE_SIZE';$memory=[IO.MemoryStream]::new();$stream.CopyTo($memory);$bytes=$memory.ToArray();Need ((Hash $bytes) -ceq $sha) 'NEW_SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
@@ -60,12 +71,16 @@ function NewPrepareProbeSource{
  $files=@($manifest.files|Where-Object{$_.path -ceq 'scripts/canonical/hub-stack-process-probe.ps1'})
  Need ($files.Count -eq 1 -and $files[0].sha256 -cmatch '\A[a-f0-9]{64}\z') 'NEW_PROBE_FILE'
  $probe=Join-Path $root 'scripts\canonical\hub-stack-process-probe.ps1';[void](NewSourceBytes $probe $files[0].sha256)
+ $entries=@($manifest.files|Where-Object{$_.path -ceq 'scripts/canonical/terminal-completion-logon.mjs'});Need ($entries.Count -eq 1 -and $entries[0].sha256 -cmatch '\A[a-f0-9]{64}\z') 'NEW_SUPERVISOR_ENTRY'
+ [void](NewSourceBytes (Join-Path $root 'scripts\canonical\terminal-completion-logon.mjs') $entries[0].sha256)
  NoReparse $profile.shell.path;Need ($profile.shell.path -ceq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and (Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'NEW_PROBE_SHELL'
- $script:newProbeSource=[ordered]@{supervisorSourceCommit=$manifest.sourceCommit;supervisorManifestSha256=$supervisor.manifestSha256;probePath=$probe;probeSha256=$files[0].sha256;shellSha256=$profile.shell.sha256;recoveryHelperSha256=$RecoveryHelperSha256}
+ $script:newProbeSource=[ordered]@{supervisorSourceCommit=$manifest.sourceCommit;supervisorManifestSha256=$supervisor.manifestSha256;supervisorEntrySha256=$entries[0].sha256;probePath=$probe;probeSha256=$files[0].sha256;shellSha256=$profile.shell.sha256;recoveryHelperSha256=$RecoveryHelperSha256}
 }
 function NewAuthority{
- foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($CandidatePath,$CandidateSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256))){[void](ReadPinned $pin[0] $pin[1])}
+ foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($CandidatePath,$CandidateSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($SourceObserverPath,$SourceObserverSha256))){[void](ReadPinned $pin[0] $pin[1])}
  Need ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne '639e2da815e1e7ac0f1c0d04d7f7bdc3' -and $ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json')) -and $EnginePath -ceq (Join-Path $dir 'p03-physical-rollback.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'NEW_OBSERVER_PATH'
+ Need ($SourceObserverPath -ceq (Join-Path $dir 'p03-physical-recovery-observe.ps1')) 'NEW_SHARED_OBSERVER_PATH'
+ Need ($RecoveryHelperSha256 -ceq 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5') 'NEW_RECOVERY_HELPER_PIN'
  Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $database -and $before.database -ceq $database -and $before.actualT1 -ceq $false -and $profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256) 'NEW_OBSERVER_SCOPE'
  Need ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $before.oldConfig.sha256 -ceq $profile.oldSettings.sha256 -and $before.newConfig.sha256 -ceq $profile.newSettings.sha256) 'NEW_OBSERVER_SETTINGS'
  foreach($settings in @($oldSettings,$newSettings)){Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId -and $settings.actualT1 -ceq $false) 'NEW_OBSERVER_SETTINGS_SCOPE'}
@@ -80,11 +95,28 @@ function NewProbeArgvAllowed($argv){
  $before=[pscustomobject]@{identities=$script:newCandidateIdentities}
  return (ProbeArgumentsAllowed $argv $script:newProbeSource.probePath)
 }
+function NewProtectedPids($inventory){
+ return @(@($script:newCandidateIdentities.PSObject.Properties|ForEach-Object{$_.Value.pid})+@($before.identities.PSObject.Properties|ForEach-Object{$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{$_.pid})+@($profile.protectedProcesses|ForEach-Object{$_.pid})+@($inventory.instances|ForEach-Object{$_.EnginePID})+@($inventory.allListeners|ForEach-Object{$_.OwningProcess})|Sort-Object -Unique)
+}
+function NewProbeConsole($process,$parent,$rawSnapshot,$protectedPids){
+ Need ($process.Name -ieq 'conhost.exe' -and $process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe' -and $process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and $process.ParentProcessId -eq $parent.ProcessId -and [int]$process.ProcessId -gt 0 -and $process.ProcessId -notin $protectedPids) 'NEW_PROBE_CONSOLE_SOURCE'
+ $born=$process.CreationDate.ToUniversalTime();Need ($born -ge $parent.CreationDate.ToUniversalTime() -and $born -le (NewNow)) 'NEW_PROBE_CONSOLE_BIRTH'
+ Need (@($rawSnapshot.all|Where-Object{$_.ParentProcessId -eq $process.ProcessId}).Count -eq 0 -and @($rawSnapshot.allListeners|Where-Object{$_.OwningProcess -eq $process.ProcessId}).Count -eq 0) 'NEW_PROBE_CONSOLE_DESCENDANT'
+ ObserverPinnedConsoleBinary
+ $pin=[pscustomobject]@{pid=[int]$process.ProcessId;parentPid=[int]$process.ParentProcessId;nodePath='C:\Windows\System32\conhost.exe';ownerSid=$script:newCandidateIdentities.coreSupervisor.ownerSid;commandLine=[string]$process.CommandLine;creationTime=$born.ToString('o')}
+ try{Need (Identity $process $pin) 'NEW_PROBE_CONSOLE_IDENTITY'}catch{if(-not (ObserverExactNotFound $_)){throw};return (ObserverVanishedConsole $_ $process $rawSnapshot.selected $protectedPids $rawSnapshot.all $rawSnapshot.allListeners)}
+ $fresh=@(Get-CimInstance Win32_Process -ErrorAction Stop);$current=@($fresh|Where-Object{$_.ProcessId -eq $process.ProcessId})
+ if($current.Count -eq 0){throw 'P03_NEW_PROBE_EXIT_RECAPTURE'}
+ Need ($current.Count -eq 1 -and @($fresh|Where-Object{$_.ParentProcessId -eq $process.ProcessId}).Count -eq 0) 'NEW_PROBE_CONSOLE_FAMILY'
+ if($current.Count -eq 1){try{Need (Identity $current[0] $pin) 'NEW_PROBE_CONSOLE_REUSED'}catch{if(-not (ObserverExactNotFound $_)){throw};return (ObserverVanishedConsole $_ $process $rawSnapshot.selected $protectedPids $rawSnapshot.all $rawSnapshot.allListeners)}}
+ Need (@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.OwningProcess -eq $process.ProcessId}).Count -eq 0) 'NEW_PROBE_CONSOLE_LISTENER'
+ return $null
+}
 function NewFilteredInventory($inventory){
  $core=$script:newCandidateIdentities.coreSupervisor;$parents=@($inventory.all|Where-Object{$_.ProcessId -eq $core.pid})
  Need ($parents.Count -eq 1 -and (Identity $parents[0] $core)) 'NEW_PROBE_CORE'
- $excluded=@()
- foreach($process in $inventory.all){
+ $excluded=@();$audits=@();$rawSnapshot=[pscustomobject]@{all=$inventory.all;selected=$inventory.all;allListeners=$inventory.allListeners};$protectedPids=@(NewProtectedPids $inventory)
+ foreach($process in @($inventory.all|Sort-Object CreationDate -Descending)){
   $looks=($process.ParentProcessId -eq $core.pid -and $process.Name -ieq 'powershell.exe') -or ([string]$process.CommandLine).IndexOf($script:newProbeSource.probePath,[StringComparison]::OrdinalIgnoreCase) -ge 0
   if(-not $looks){continue}
   Need ($process.ParentProcessId -eq $core.pid -and $process.Name -ieq 'powershell.exe' -and [int]$process.ProcessId -gt 0 -and [int]$process.ProcessId -ne $core.pid) 'NEW_PROBE_PARENT'
@@ -96,13 +128,17 @@ function NewFilteredInventory($inventory){
   }
   Need ($process.ExecutablePath -ieq $profile.shell.path -and (NewProbeArgvAllowed (Tokens ([string]$process.CommandLine)))) 'NEW_PROBE_ARGV'
   $pin=[pscustomobject]@{pid=[int]$process.ProcessId;parentPid=[int]$process.ParentProcessId;nodePath=$profile.shell.path;ownerSid=$core.ownerSid;commandLine=[string]$process.CommandLine;creationTime=$born.ToString('o')}
-  try{$matches=Identity $process $pin}catch{$fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$process.ProcessId) -ErrorAction Stop);if($fresh.Count -eq 0){throw 'P03_NEW_PROBE_EXIT_RECAPTURE'};throw}
-  Need $matches 'NEW_PROBE_IDENTITY'
+  $matches=$false;$vanished=$false
+  try{$matches=Identity $process $pin}catch{if(ObserverExactNotFound $_){$audits+=,(ObserverTryVanishedProbe $process $_ $rawSnapshot $protectedPids $script:newProbePolicy);$vanished=$true}else{$fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$process.ProcessId) -ErrorAction Stop);if($fresh.Count -eq 0){throw 'P03_NEW_PROBE_EXIT_RECAPTURE'};throw}}
+  Need ($matches -or $vanished) 'NEW_PROBE_IDENTITY'
   Need (@($inventory.allListeners|Where-Object{$_.OwningProcess -eq $process.ProcessId}).Count -eq 0) 'NEW_PROBE_LISTENER'
-  Need (@($inventory.all|Where-Object{$_.ParentProcessId -eq $process.ProcessId}).Count -eq 0) 'NEW_PROBE_DESCENDANT'
+  foreach($child in @($inventory.all|Where-Object{$_.ParentProcessId -eq $process.ProcessId}|Sort-Object CreationDate -Descending)){$audit=NewProbeConsole $child $process $rawSnapshot $protectedPids;if($null -ne $audit){$audits+=,$audit};$excluded+=,[int]$child.ProcessId}
   $excluded+=,[int]$process.ProcessId
  }
- return [pscustomobject]@{all=@($inventory.all|Where-Object{$_.ProcessId -notin $excluded});allListeners=$inventory.allListeners;listeners=$inventory.listeners;instances=$inventory.instances}
+ ObserverAssertVanishedAudits $audits $rawSnapshot $script:newProbePolicy
+ $script:newFrameVanishedAudits+=@($audits)
+ if($audits.Count){$script:newFrameAuditSnapshots+=,[pscustomobject]@{audits=$audits;rawSnapshot=$rawSnapshot}}
+ return [pscustomobject]@{all=@($inventory.all|Where-Object{$_.ProcessId -notin $excluded});allListeners=$inventory.allListeners;listeners=$inventory.listeners;instances=$inventory.instances;vanishedAuxiliaries=$audits}
 }
 function Inventory{
  for($attempt=0;$attempt -lt 3;$attempt++){try{return NewFilteredInventory (NewRawInventory)}catch{if($_.Exception.Message -cne 'P03_NEW_PROBE_EXIT_RECAPTURE'){throw};if($attempt -eq 2){throw 'P03_NEW_PROBE_EXIT_RECAPTURE_EXHAUSTED'}}}
@@ -112,26 +148,55 @@ function NewAssertTasks{
  Need (@($profile.tasks).Count -eq 2 -and (@($profile.tasks|ForEach-Object{$_.name}|Sort-Object)-join '|') -ceq (($names|Sort-Object)-join '|')) 'NEW_TASK_NAMES'
  foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq 4 -and (XmlHash ([string]$task.Xml)) -ceq $entry.newXmlSha256) 'NEW_TASK_XML'}
 }
+function NewFullOwner($evidence){
+ # The fixed 13b supervisor requires LAN listeners for API4184, CRM62700 and
+ # Hub5234. Its manifest-pinned entry is checked by NewPrepareProbeSource.
+ # Candidate identity/receipt/source admission and Health remain the fe code.
+ TaskPhase 'new';$seen=CandidateInventory $evidence
+ Need ($seen.selected.Count -eq 10 -and $seen.inventory.instances.Count -eq 2 -and $seen.inventory.listeners.Count -eq 11) 'NEW_OWNER_INCOMPLETE'
+ $bindings=@{
+  hub=@('5234|127.0.0.1','5234|192.168.1.46');erpApi=@('4184|127.0.0.1','4184|192.168.1.46')
+  crmServer=@('62700|127.0.0.1','62700|192.168.1.46','62701|127.0.0.1');erpNative=@('4186|127.0.0.1')
+  crmNativeOrder=@('62704|127.0.0.1');crmCatalog=@('62702|127.0.0.1');crmOrders=@('62703|127.0.0.1')
+  coreSupervisor=@();terminalWatcher=@();hubWatcher=@()
+ }
+ foreach($row in $seen.selected){
+  Need ($bindings.ContainsKey([string]$row.role)) 'NEW_ROLE'
+  $expected=@($bindings[$row.role]);$actual=@($seen.inventory.allListeners|Where-Object{$_.OwningProcess -eq $row.pid})
+  Need ($actual.Count -eq $expected.Count -and @($row.bindings).Count -eq $expected.Count) 'NEW_ROLE_BINDING_COUNT'
+  foreach($pair in $expected){$parts=$pair.Split('|');$port=[int]$parts[0];$address=$parts[1]
+   Need (@($actual|Where-Object{$_.LocalPort -eq $port -and $_.LocalAddress -ceq $address}).Count -eq 1 -and @($row.bindings|Where-Object{$_.port -eq $port -and $_.address -ceq $address}).Count -eq 1) 'NEW_ROLE_BINDING'
+  }
+ }
+ Health $seen.selected 'new'
+ $stable=[ordered]@{processes=@($seen.selected|Sort-Object pid);instances=@($seen.inventory.instances|ForEach-Object{[ordered]@{name=[string]$_.Name;pid=[int]$_.EnginePID;guid=[string]$_.InstanceGuid}}|Sort-Object name)}
+ return (Hash ([Text.UTF8Encoding]::new($false).GetBytes(($stable|ConvertTo-Json -Depth 12 -Compress))))
+}
 function NewFrame($evidence){
+ $script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@()
  NewAuthority;NewAssertTasks
  $digest=NewFullOwner $evidence
  ProtectedProcesses (Inventory);NewAssertTasks
+ # Recheck each audit against its original raw descendant links and a fresh
+ # global inventory; audit rows never become active owner or stop identities.
+ foreach($auditFrame in $script:newFrameAuditSnapshots){ObserverAssertVanishedAudits $auditFrame.audits $auditFrame.rawSnapshot $script:newProbePolicy}
  Need ($digest -cmatch '\A[a-f0-9]{64}\z') 'NEW_OBSERVER_DIGEST';return $digest
 }
 function ObserveNewOwner($evidence){
- if($Mode -ceq 'DryRun'){$digest=NewFrame $evidence;return [ordered]@{status='NEW_OWNER_OBSERVATION_DRY_RUN';identityDigest=$digest;mutationExecuted=$false}}
- $deadline=(NewNow).AddMinutes(10);$stableSince=$null;$stableDigest=$null
+ if($Mode -ceq 'DryRun'){$digest=NewFrame $evidence;return [ordered]@{status='NEW_OWNER_OBSERVATION_DRY_RUN';identityDigest=$digest;sourceObserverSha256=$SourceObserverSha256;vanishedAuxiliaries=$script:newFrameVanishedAudits;mutationExecuted=$false}}
+ $deadline=(NewNow).AddMinutes(10);$stableSince=$null;$stableDigest=$null;$lastFailureCode='P03_NEW_OWNER_NO_STABLE_FRAME'
  while((NewNow) -lt $deadline){
-  $digest=$null;try{$digest=NewFrame $evidence}catch{$stableSince=$null;$stableDigest=$null}
+  $digest=$null;try{$digest=NewFrame $evidence}catch{$stableSince=$null;$stableDigest=$null;$safe=[regex]::Match($_.Exception.Message,'\AP03_[A-Z_]{1,100}\z').Value;$lastFailureCode=if($safe){$safe}else{'P03_NEW_OWNER_FRAME_UNCLASSIFIED'}}
   if($null -ne $digest){if($null -eq $stableSince -or $digest -cne $stableDigest){$stableSince=NewNow;$stableDigest=$digest};$now=NewNow
-   if(($now-$stableSince).TotalSeconds -ge 30 -and $now -lt $deadline){NewAuthority;return [ordered]@{status='NEW_OWNER_OBSERVED_READY';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;candidateSha256=$CandidateSha256;engineSha256=$engineSha;identityDigest=$stableDigest;observedAt=(NewNow).ToString('o');sourceProof=$script:newProbeSource;stableSeconds=30;mutationExecuted=$false}}
+   if(($now-$stableSince).TotalSeconds -ge 30 -and $now -lt $deadline){NewAuthority;return [ordered]@{status='NEW_OWNER_OBSERVED_READY';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;candidateSha256=$CandidateSha256;engineSha256=$engineSha;sourceObserverSha256=$SourceObserverSha256;identityDigest=$stableDigest;observedAt=(NewNow).ToString('o');sourceProof=$script:newProbeSource;vanishedAuxiliaries=$script:newFrameVanishedAudits;stableSeconds=30;mutationExecuted=$false}}
   }
   Start-Sleep -Milliseconds 500
  }
- throw 'P03_NEW_OWNER_NOT_STABLE'
+ throw ('P03_NEW_OWNER_NOT_STABLE_'+$lastFailureCode)
 }
 NewAuthority
 $evidence=AdmitCandidate
 Need (@($evidence.processes).Count -eq 10 -and @($evidence.processes|Select-Object -ExpandProperty role -Unique).Count -eq 10) 'NEW_CANDIDATE_COUNT'
 $script:newCandidateIdentities=[pscustomobject]@{};foreach($row in $evidence.processes){$script:newCandidateIdentities|Add-Member NoteProperty $row.role $row}
+$script:newProbePolicy=ObserverInitializeProbePolicy $profile $before $script:newCandidateIdentities 'New' ([pscustomobject]@{path=$EnginePath;sha256=$engineSha}) ([pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256})
 ObserveNewOwner $evidence|ConvertTo-Json -Depth 10 -Compress

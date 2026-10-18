@@ -27,10 +27,16 @@ const sameIdentity=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','comman
 export function pr54SafeFailure(error){const text=String(error?.message??'')+' '+String(error?.stderr??'');const fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];if(/FullyQualifiedErrorId\s*:\s*HRESULT 0x80041002,Microsoft\.Management\.Infrastructure\.CimCmdlets\.InvokeCimMethodCommand(?:\s|$)/i.test(String(error?.stderr??'')))return 'P03_OBSERVER_CIM_OBJECT_NOT_FOUND';return ['ENOENT','EACCES','ENAMETOOLONG','ETIMEDOUT','EPIPE'].includes(error?.code)?error.code:'UNCLASSIFIED_IO_FAILURE';}
 // A probe can exit between the frozen observer's CIM list and owner read. A
 // retry obtains a whole new observation; no partial frame is reused or admitted.
-export async function pr54CollectPhysicalObservation(collect){
+export async function pr54CollectPhysicalObservation(collect,stage='PHYSICAL'){
+ need(['PHYSICAL','REFERENCE_OBSERVER','SUCCESSOR_INSPECT','SUCCESSOR_CAPTURE'].includes(stage),'COLLECTION_STAGE');
  for(let attempt=0;attempt<3;attempt++){
-  try{return await collect();}catch(error){if(!['P03_PROCESS_IDENTITY_UNAVAILABLE','P03_OBSERVER_CIM_OBJECT_NOT_FOUND'].includes(pr54SafeFailure(error))||attempt===2)throw error;}
+  try{return await collect();}catch(error){if(!['P03_PROCESS_IDENTITY_UNAVAILABLE','P03_OBSERVER_CIM_OBJECT_NOT_FOUND'].includes(pr54SafeFailure(error))||attempt===2){if(error&&typeof error==='object'&&Object.isExtensible(error))error.p03ObservationStage=stage;throw error;}}
  }
+}
+export function assertPr54ObservationAuthority(frame,proposal){
+ need(typeof proposal==='boolean'&&frame&&typeof frame==='object','OBSERVER_AUTHORITY');
+ need(proposal?frame.collectionAuthority==='CANDIDATE_PROPOSAL_ONLY':frame.collectionAuthority!=='CANDIDATE_PROPOSAL_ONLY','OBSERVER_AUTHORITY');
+ return frame;
 }
 export function pr54StopObservationSummary(seen,before,profile){const old=[...Object.values(before.identities),...profile.oldWatchers];return {tasks:seen.tasks.map(t=>({name:t.name,state:t.state})),runningInstances:seen.runningInstances.length,remainingOld:old.filter(e=>seen.processes.some(p=>sameIdentity(p,e))).map(e=>e.pid),watcherMatches:seen.processes.filter(p=>/watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1/i.test(p.commandLine)).map(p=>({pid:p.pid,parentPid:p.parentPid,captured:old.some(e=>sameIdentity(p,e))})),consoleParents:seen.processes.filter(p=>typeof p.nodePath==='string'&&p.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe').map(p=>({pid:p.pid,parentPid:p.parentPid,parentPresent:seen.processes.some(q=>q.pid===p.parentPid),parentCaptured:old.some(q=>q.pid===p.parentPid)}))};}
 // Preliminary classification only. The sealed physical engine must independently
@@ -122,12 +128,18 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  need(rehearsal.engineSha256===engineRef.sha256&&rehearsal.engine?.sha256===engineRef.sha256,'SAME_REHEARSED_ENGINE_REQUIRED');
  const sharedArgs=['-Environment','Shared','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256];
  async function engine(action,extra=[]){pin(engineRef);pin(profileRef);pin(beforeRef);const r=await run(shell,['-NoProfile','-NonInteractive','-File',engineRef.path,...sharedArgs,'-Mode',action,...extra],{...opts,timeout:900000});need(!r.stderr,'ENGINE_STDERR');return JSON.parse(r.stdout);}
- async function observeRef(ref){return pr54CollectPhysicalObservation(async()=>{pin(ref);const r=await run(shell,['-NoProfile','-NonInteractive','-File',ref.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256],opts);need(!r.stderr,'OBSERVER_STDERR');return JSON.parse(r.stdout);});}
- async function inspectOldOwnerPhysical(){
+ function observationPolicyArgs(engine=engineRef,helper=recoveryHelperRef){
+  if(predecessorRef===null)return [];
+  pin(profileRef);pin(beforeRef);pin(engine);pin(helper);
+  return ['-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-EnginePath',engine.path,'-EngineSha256',engine.sha256,'-RecoveryHelperPath',helper.path,'-RecoveryHelperSha256',helper.sha256];
+ }
+ async function observeRef(ref){return pr54CollectPhysicalObservation(async()=>{pin(ref);const r=await run(shell,['-NoProfile','-NonInteractive','-File',ref.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,...observationPolicyArgs()],opts);need(!r.stderr,'OBSERVER_STDERR');return assertPr54ObservationAuthority(JSON.parse(r.stdout),false);},'REFERENCE_OBSERVER');}
+ async function inspectOldOwnerPhysical(){return pr54CollectPhysicalObservation(async()=>{
   pin(successorDrainerRef);pin(recoveryHelperRef);pin(engineRef);
   const r=await run(shell,['-NoProfile','-NonInteractive','-File',successorDrainerRef.path,'-Mode','Inspect',...sharedArgs.slice(2),'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256],{...opts,timeout:180000});need(!r.stderr,'SUCCESSOR_INSPECT_STDERR');const frame=JSON.parse(r.stdout);
   need(frame.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&frame.profileSha256===profileRef.sha256&&frame.beforeSha256===beforeRef.sha256&&frame.engineSha256===engineRef.sha256&&frame.recoveryHelperSha256===recoveryHelperRef.sha256&&Date.now()-Date.parse(frame.observedAt)>=0&&Date.now()-Date.parse(frame.observedAt)<60000&&frame.oldIdentities?.length===8&&frame.oldWatchers?.length===2,'SUCCESSOR_INSPECT_FRAME');
   need(Object.values(before.identities).every(p=>frame.oldIdentities.some(q=>sameIdentity(p,q)))&&profile.oldWatchers.every(p=>frame.oldWatchers.some(q=>sameIdentity(p,q))),'SUCCESSOR_INSPECT_IDENTITY');return frame;
+ },'SUCCESSOR_INSPECT');
  }
  async function inspectSuccessor(observed){
   need(predecessorRef!==null&&engineRef.sha256===PR54_REHEARSED_ENGINE_SHA,'SUCCESSOR_ENGINE');
@@ -167,7 +179,16 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  const frozen={};for(const [name,ref] of [['engine',engineRef],['observer',observerRef],['invariance',invarianceScriptRef],['backup',backupRef]]){const file=path.win32.join(transitionDir,path.win32.basename(ref.path));frozen[name]=await protectedWrite(file,pin(ref));}
  if(predecessorRef!==null)for(const [name,ref]of [['drainer',successorDrainerRef],['pausedHelper',recoveryHelperRef],['newObserver',newOwnerObserverRef]])frozen[name]=await protectedWrite(path.win32.join(transitionDir,path.win32.basename(ref.path)),pin(ref));
  async function protectedWrite(file,bytes){need(predecessorRef===null||file!==globalOwnerLock,'PREDECESSOR_IMMUTABLE');assertPr54WriteScope(file,transitionDir,globalOwnerLock,predecessorRef?PR54_SUCCESSOR_CLAIM_PATH:null);noReparseAncestors(file);const sha256=hash(bytes);await psPayload(pr54ProtectedWriteProgram(file,sha256),bytes);const ref={path:file,sha256};pin(ref);return ref;}
- async function physical(){return pr54CollectPhysicalObservation(async()=>{pin(frozen.observer);const r=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.observer.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256],opts);need(!r.stderr,'OBSERVER_STDERR');return JSON.parse(r.stdout);});}
+ async function physical(){return pr54CollectPhysicalObservation(async()=>{
+  pin(frozen.observer);
+  // A role-only proposal is permitted only after this controller actually
+  // requested NEW task startup. It cannot admit or stop an OLD owner. The
+  // independent NEW observer still proves the complete raw inventory below.
+  const proposal=predecessorRef!==null&&startAttempted;
+  const r=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.observer.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,...observationPolicyArgs(frozen.engine,frozen.pausedHelper),...(proposal?['-Purpose','CandidateProposal']:[])],opts);
+  need(!r.stderr,'OBSERVER_STDERR');const frame=JSON.parse(r.stdout);
+  return assertPr54ObservationAuthority(frame,proposal);
+ });}
  async function taskState(kind,state){const value=await physical();return names.every(name=>{const t=value.tasks.find(t=>t.name===name),pin=profile.tasks.find(t=>t.name===name);return t&&t.state===state&&hash(Buffer.from(t.xml))===pin[kind+'XmlSha256'];});}
  async function empty(){
   const seen=await physical();const clear=seen.bindings.length===0&&seen.runningInstances.length===0&&!seen.processes.some(p=>[...profile.packages.map(x=>x.root),'watch-terminal-completion-logon.ps1','watch-hub-after-erp.ps1'].some(x=>p.commandLine.toLowerCase().includes(x.toLowerCase())));
@@ -198,17 +219,18 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  }
  async function useFrozenEngine(action,extra=[]){pin(frozen.engine);const r=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.engine.path,...sharedArgs,'-Mode',action,...extra],{...opts,timeout:900000});need(!r.stderr,'ENGINE_STDERR');return JSON.parse(r.stdout);}
  let successorClaimRef=null,successorSnapshotRef=null,successorDrainProof=null;
- async function successorWorker(action,extra=[]){
+ async function successorWorker(action,extra=[]){const collect=async()=>{
   pin(frozen.drainer);pin(frozen.pausedHelper);pin(frozen.engine);pin(successorClaimRef);
   const args=['-Mode',action,...sharedArgs.filter((_,i)=>i>1),'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.pausedHelper.path,'-RecoveryHelperSha256',frozen.pausedHelper.sha256,'-ClaimPath',successorClaimRef.path,'-ClaimSha256',successorClaimRef.sha256,...extra];
   const result=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.drainer.path,...args],{...opts,timeout:180000});need(!result.stderr,'SUCCESSOR_DRAIN_STDERR');return JSON.parse(result.stdout);
+ };return action==='Capture'?pr54CollectPhysicalObservation(collect,'SUCCESSOR_CAPTURE'):collect();
  }
  async function observeNewOwner(ref,leaf){
   if(predecessorRef===null)return useFrozenEngine('PreflightNew',['-CandidatePath',ref.path,'-CandidateSha256',ref.sha256]);
-  pin(frozen.newObserver);pin(frozen.engine);pin(frozen.pausedHelper);pin(ref);
-  const result=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.newObserver.path,'-Mode','Observe',...sharedArgs.slice(2),'-CandidatePath',ref.path,'-CandidateSha256',ref.sha256,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.pausedHelper.path,'-RecoveryHelperSha256',frozen.pausedHelper.sha256],{...opts,timeout:900000});
+  pin(frozen.newObserver);pin(frozen.engine);pin(frozen.pausedHelper);pin(frozen.observer);pin(ref);
+  const result=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.newObserver.path,'-Mode','Observe',...sharedArgs.slice(2),'-CandidatePath',ref.path,'-CandidateSha256',ref.sha256,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.pausedHelper.path,'-RecoveryHelperSha256',frozen.pausedHelper.sha256,'-SourceObserverPath',frozen.observer.path,'-SourceObserverSha256',frozen.observer.sha256],{...opts,timeout:900000});
   need(!result.stderr,'NEW_OBSERVER_STDERR');const proof=JSON.parse(result.stdout);
-  need(proof.status==='NEW_OWNER_OBSERVED_READY'&&proof.profileSha256===profileRef.sha256&&proof.beforeSha256===beforeRef.sha256&&proof.candidateSha256===ref.sha256&&proof.engineSha256===frozen.engine.sha256&&proof.stableSeconds>=30&&proof.mutationExecuted===false&&proof.sourceProof?.supervisorSourceCommit===before.profile.supervisorSource&&proof.sourceProof?.supervisorManifestSha256===before.profile.supervisorManifest,'NEW_OBSERVER_PROOF');
+  need(proof.status==='NEW_OWNER_OBSERVED_READY'&&proof.profileSha256===profileRef.sha256&&proof.beforeSha256===beforeRef.sha256&&proof.candidateSha256===ref.sha256&&proof.engineSha256===frozen.engine.sha256&&proof.sourceObserverSha256===frozen.observer.sha256&&proof.stableSeconds>=30&&proof.mutationExecuted===false&&proof.sourceProof?.supervisorSourceCommit===before.profile.supervisorSource&&proof.sourceProof?.supervisorManifestSha256===before.profile.supervisorManifest,'NEW_OBSERVER_PROOF');
   await protectedWrite(path.win32.join(transitionDir,leaf),jsonBytes(proof));return proof;
  }
  const callbacks={plan:before.plan,
@@ -234,7 +256,7 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
   readback:async()=>{const deadline=Date.now()+600000;let capture=null;while(Date.now()<deadline){const seen=await physical();if((predecessorRef===null?selectPr54CandidateProcesses:proposePr54CandidateProcesses)(seen,profile).length===10&&new Set(seen.bindings.map(b=>b.port)).size===8&&seen.bindings.every(b=>ports.includes(b.port))&&seen.runningInstances.length===2){capture=await captureCandidate();candidateRef=capture.ref;break;}await new Promise(r=>setTimeout(r,1000));}need(capture!==null,'NEW_READBACK_TIMEOUT');const ready=await observeNewOwner(capture.ref,'new-owner-readback-initial.json');need(ready.status===(predecessorRef===null?'NEW_PHYSICAL_PREFLIGHT':'NEW_OWNER_OBSERVED_READY')&&ready.stableSeconds>=30&&ready.mutationExecuted===false,'NEW_READBACK');pin(frozen.invariance);const post=await run(shell,['-NoProfile','-NonInteractive','-File',frozen.invariance.path,'-Mode','Capture','-Phase','Post'],{...opts,timeout:3600000});need(!post.stderr,'POST_CAPTURE_STDERR');const proof=JSON.parse(post.stdout);need(proof.phase==='Post'&&proof.criticalTablesHashed===51&&proof.dbccCheckdbPassed===true,'POST_PROOF');const postSnapshotPath='C:\\Sirket\\ERP\\backups\\P03-20261018-140002\\invariance-readonly\\restored-snapshot.json',postBytes=fs.readFileSync(postSnapshotPath);const equal=comparePr54InvarianceSnapshots(pre,JSON.parse(postBytes));await protectedWrite(path.win32.join(transitionDir,'invariance-comparison.json'),jsonBytes({...equal,preSnapshotRef,postSnapshotRef:{path:postSnapshotPath,sha256:hash(postBytes)}}));const final=await captureCandidate();candidateRef=final.ref;const finalProof=await observeNewOwner(final.ref,'new-owner-readback-final.json');need(finalProof.status===(predecessorRef===null?'NEW_PHYSICAL_PREFLIGHT':'NEW_OWNER_OBSERVED_READY')&&finalProof.stableSeconds>=30&&finalProof.mutationExecuted===false,'FINAL_READBACK');return true;},
   restoreOldActions:async()=>{await guardProtected();need(await empty(),'RESTORE_EMPTY');for(const name of names)await changeAction(name,'old');return true;},
  };
- for(const callbackName of ['admit','stopTasks','tasksStopped']){const actual=callbacks[callbackName];callbacks[callbackName]=async(...args)=>{const started=Date.now();try{const result=await actual(...args);if(callbackName!=='admit'&&result!==true)lastCallbackFailure??={callback:callbackName,reason:'CALLBACK_RETURNED_FALSE',elapsedMs:Date.now()-started};return result;}catch(error){lastCallbackFailure??={callback:callbackName,reason:pr54SafeFailure(error),elapsedMs:Date.now()-started};throw error;}};}
+ for(const callbackName of ['admit','stopTasks','tasksStopped']){const actual=callbacks[callbackName];callbacks[callbackName]=async(...args)=>{const started=Date.now();try{const result=await actual(...args);if(callbackName!=='admit'&&result!==true)lastCallbackFailure??={callback:callbackName,reason:'CALLBACK_RETURNED_FALSE',elapsedMs:Date.now()-started};return result;}catch(error){lastCallbackFailure??={callback:callbackName,reason:pr54SafeFailure(error),elapsedMs:Date.now()-started,observationStage:error?.p03ObservationStage??'NONE'};throw error;}};}
  async function recoverBeforeStart(){
   need(taskStopAttempted&&!startAttempted&&admittedOld,'PRESTART_RECOVERY_SCOPE');
   await guardProtected();let current=await physical();admitPr54PrestartRecovery({profile,before,admittedOld,current});
@@ -265,5 +287,5 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  // never stop core invisibly inside another role's callback. Probe quiescence
  // remains a separate physical gate before stopping the remaining OLD apps.
  try{return {status:'COMPLETE',...(await (predecessorRef===null?runP03OwnerTransition:runP03CoreFirstOwnerTransition)(callbacks)),transitionDirectory:transitionDir,...(successorClaimRef?{successorClaimRef}:{})};}
- catch(error){if(lastCallbackFailure){try{await protectedWrite(path.win32.join(transitionDir,'io-failure-diagnostic.json'),jsonBytes({...lastCallbackFailure,phase:error.phase??'UNKNOWN',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));}catch{}}if(error.startAttempted||startAttempted){try{const candidate=await captureCandidate();candidateRef=candidate.ref;const recovered=await useFrozenEngine('StopNew',['-CandidatePath',candidate.ref.path,'-CandidateSha256',candidate.ref.sha256]);need(recovered.status==='RECOVERED_OLD_ACTIONS','STOP_NEW_RECOVERY');const restored=await useFrozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','ROLLBACK_OLD');return {status:'FAILED_ROLLED_BACK_OLD_READY',failurePhase:error.phase??'READBACK',transitionDirectory:transitionDir};}catch{return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',transitionDirectory:transitionDir,candidateRef};}}if(taskStopAttempted&&!startAttempted){try{return await recoverBeforeStart();}catch(recoveryError){return {failureDiagnostic:lastCallbackFailure,recoveryReason:pr54SafeFailure(recoveryError),status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',transitionDirectory:transitionDir,candidateRef,recoveryPath:'PRESTART_RECOVERY_REFUSED'};}}return {status:'STOPPED_BEFORE_START',transitionDirectory:transitionDir,failurePhase:error.phase??'ADMISSION'};}
+ catch(error){lastCallbackFailure??={callback:'TRANSITION',reason:pr54SafeFailure(error),elapsedMs:null,observationStage:error?.p03ObservationStage??'NONE'};if(lastCallbackFailure){try{await protectedWrite(path.win32.join(transitionDir,'io-failure-diagnostic.json'),jsonBytes({...lastCallbackFailure,phase:error.phase??'UNKNOWN',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));}catch{}}if(error.startAttempted||startAttempted){try{const candidate=await captureCandidate();candidateRef=candidate.ref;const recovered=await useFrozenEngine('StopNew',['-CandidatePath',candidate.ref.path,'-CandidateSha256',candidate.ref.sha256]);need(recovered.status==='RECOVERED_OLD_ACTIONS','STOP_NEW_RECOVERY');const restored=await useFrozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','ROLLBACK_OLD');return {status:'FAILED_ROLLED_BACK_OLD_READY',failurePhase:error.phase??'READBACK',transitionDirectory:transitionDir};}catch(recoveryError){return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',failureDiagnostic:lastCallbackFailure,recoveryReason:pr54SafeFailure(recoveryError),transitionDirectory:transitionDir,candidateRef};}}if(taskStopAttempted&&!startAttempted){try{return await recoverBeforeStart();}catch(recoveryError){return {failureDiagnostic:lastCallbackFailure,recoveryReason:pr54SafeFailure(recoveryError),status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',transitionDirectory:transitionDir,candidateRef,recoveryPath:'PRESTART_RECOVERY_REFUSED'};}}return {status:'STOPPED_BEFORE_START',transitionDirectory:transitionDir,failurePhase:error.phase??'ADMISSION'};}
 }
