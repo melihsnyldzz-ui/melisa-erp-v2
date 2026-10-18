@@ -6,6 +6,8 @@ import { createVegaProductStorage } from '../services/vegaProductStorage.js';
 import { normalizePage, verifyDetail, quantity, currency, priceRows } from '../modules/vega/vegaReadModel.js';
 import { dayRange, istanbulDay, operationPage, readiness, readPaths, documentCard, documentSummary, completionSteps } from './liveDataModel.js';
 import './liveData.css';
+import './officeLayout.css';
+import './officeAccessibility.js';
 import dailySnapshot from './dailySnapshot.json';
 import accountSnapshot from './accountSnapshot.json';
 import {createWorkCatalog} from './workCatalog.js';
@@ -107,12 +109,13 @@ function createNativeApprovals({root,session,navigate}){
  async function refresh(){const token=++generation;root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="status">Bekleyen işler açılıyor…</p></section>';try{
   const view=nativeApprovalSummary(validateWorkHome(await session.home()));if(!active||!root.isConnected||token!==generation)return;
   const text=view.pendingCount===null?(view.status==='forbidden'?'Onayları görüntüleme yetkiniz yok.':'Bekleyen işler şu anda okunamıyor.'):`${view.pendingCount.toLocaleString('tr-TR')} kayıt kontrol bekliyor.`;
-  root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Onaylar</h1><p class="sub">Bekleyen kayıtları kaynak bölümünde inceleyin.</p></div><button class="btn" data-approval-refresh>Yenile</button></div><section class="card panel" style="padding:20px"><p role="status">${esc(text)}</p><p>Bu özet, yetkiniz kapsamındaki mal kabulü, sayım ve iade kayıtlarını kapsar. İndirim kararları ve birleşik karar geçmişi bu özete dahil değildir.</p><div class="actions">${view.links.map(l=>`<button class="btn" data-approval-source="${l.screen}">${l.label}</button>`).join('')}</div><p class="sub">Kayıt ayrıntısını ve karar yetkisini ilgili bölümden kontrol edin.</p></section>`;
+  root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Onaylar</h1><p class="sub">Bekleyen kayıtları kaynak bölümünde inceleyin.</p></div><button class="btn" data-approval-refresh>Yenile</button></div><section class="card panel" style="padding:20px"><p role="status">${esc(text)}</p><p>Bu özet, yetkiniz kapsamındaki mal kabulü, sayım ve iade kayıtlarını kapsar. İndirim kararları ve birleşik karar geçmişi bu özete dahil değildir.</p><div class="office-approval-links">${view.links.map(l=>`<article class="office-approval-source"><h2>${l.label}</h2><p>${l.screen==='goods'?'Personelin gönderdiği teslimatları inceleyin.':l.screen==='count'?'Fiziksel adetleri ve fark nedenlerini inceleyin.':'Kaynak belgeyi, iade miktarını ve nedenini inceleyin.'}</p><button class="btn" data-approval-source="${l.screen}">${l.label}</button></article>`).join('')}</div><p class="sub">Kayıt ayrıntısını ve karar yetkisini ilgili bölümden kontrol edin.</p></section>`;
   root.querySelector('[data-approval-refresh]').onclick=refresh;root.querySelectorAll('[data-approval-source]').forEach(b=>b.onclick=()=>navigate(b.dataset.approvalSource));
  }catch{if(active&&root.isConnected&&token===generation){root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="alert">Bekleyen işler şu anda okunamıyor. Yenileyerek tekrar deneyin.</p><button class="btn" data-approval-refresh>Yenile</button></section>';root.querySelector('[data-approval-refresh]').onclick=refresh;}}}
  return {mount(){active=true;refresh();},dispose(){active=false;generation++;}};
 }
 function mount(){
+ document.body.classList.add('office-layout');
  disposeCopyActors();dispose();disposeReadOnlyNavigation();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
  let catalogUI=null;
  const clearReadOnlyNavigation=installReadOnlyNavigation({host:window,root,page,isCurrent:()=>workflow.screen()===page,beforeNavigate:()=>page!=='stock'||catalogUI?.requestClose?.()!==false});disposeReadOnlyNavigation=clearReadOnlyNavigation;

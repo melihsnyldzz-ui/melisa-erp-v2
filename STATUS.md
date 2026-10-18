@@ -1,3 +1,9 @@
+## 18 Ekim — v75 ekran düzeni güncel teknik adayda
+
+PR52 exact `676c4d086864ecc53315145341665d16dc5fd40d` tabanından `codex/erp-office-layout-v75-20261018`: İş sırası, mal kabul/alış, müşteri bakiyesi–fiş kalan ayrımı, tahsilat, iade/onay sunumu mevcut API controller'larına uyarlandı. 264/264 birleşik hedefli offline test, derleme ve bağımsız ikinci inceleme GO; kasa ayrıntısı yenileme ve görünür sayım uyarısı regresyonları düzeltildi. Exact-head CI feature PR Checks'te ayrı izlenir. Yeni browser/dar ekran kontrolü yönetilen önizleme `bwrap` ortam hatası nedeniyle NOT_RUN; önceki v75 görüntüleri yeni aday kanıtı değil.
+
+Yalnız kaynak bütünleştirmesi: native/API ortak belge aktarımı, gönderen adı/saat eksikleri, iki satırlı native mal kabul sınırı, ortak TEST kurulumu/normal GUI/cihaz/insan kabulü açık. Mevcut journal/yetki/default-off/TRY500 ve C06 kurtarma korunur; SQL/runtime/gerçek ticari yazı/main merge yok.49/25 ve kapanış sayıları değişmedi. [Kapsam ve kanıt](docs/evidence/erp/2026-10-18-office-layout-v75.md).
+
 ## 18 Ekim — ERP09 belirsiz tahsilat ve iptal doğrulaması
 
 PR50 `c36e38d7` exact CI39077428145 SUCCESS tabanı korunur. Yeni kaynakta seçili SOURCE iptal yanıtının tutarı çağrı öncesindeki özgün ödeme tutarıyla da eşleşir; yanıtın iki kopyasının birlikte yanlış olması kabul edilmez. İlk istek sonrası sonucu belirsiz kalan kaydın tekrarında403/404/409 gibi retler önceki işlem yapılmadı kanıtı sayılmaz; aynı pending UUID yenileme/yeniden açma sonrasında korunur. İlk kesin ret yeni önizlemeyi engellemez; generic tahsilat davranışı değişmedi.
@@ -17,6 +23,8 @@ PR45 (`2910efb3f5fbdd4bcf3fcf3802cd78863175273b`) kaynak/test akışı PR47 (`51
 Bu yalnız kaynak bütünleştirmesidir. Backend varsayılan kapalı, native TRY/500 ve seçili müşteri/hesap sınırları aynı; genel müşteri/döviz tahsilatı tamamlanmadı. SQL/servis/kurulum/gerçek GUI/cihaz/insan kabulü veya main merge yok. Özgün49ERP/25CRM ve renk sayıları aynı. Vega migrasyonu en sonda. [Kanıt](docs/evidence/erp/2026-10-18-collection-ui-integration.md).
 
 ## Sıradaki iş
+
+18 Ekim — **Aktif dar ekran bütünleştirme adımı:** Sahip ERP ana ajanı; mevcut B01/B03–B06/C01–C02/C05/C08/C10–C11 sunumu PR52 üzerine taşındı. Kaynak bitiş koşulu264hedefli test+build+bağımsız inceleme+feature PR/exact CI; kanıt [v75 port kaydı](docs/evidence/erp/2026-10-18-office-layout-v75.md). Sonraki iş19Ekim ortak TEST kimliği/erişim ve P03 tek-owner güvenli kurulum/readback bağımlılığı; sonra yeni adayda normal ekran smoke ve belge/rol eksiklerinin özgün kabul kayıtlarına bağlanması. Browser/mobile bu oturumda önizleme ortam hatasıyla NOT_RUN. Önceki P03 Apply NO-GO ve C07 metadata/genel tahsilat bağımlılıkları aşağıda korunur; yeni Goal/ana kapanış yok.
 
 18 Ekim — **Birleşik teknik kaynak adayı:** PR42 Hub açılış düzeltmesi, PR43 tedarikçi metadata inceleme aracı, PR44 müşteri iletişim kurtarması ve PR46 dar tahsilat adaptörü aynı ağaçta toplanır. Bu aday tam ERP bitişi veya yayın onayı değildir. C07 tedarikçi iletişim yazıcısı mevcut hedef şeması/öncül modüller okunmadan tamamlanamaz; PR43 yalnız bu bağımlılığı çözecek salt okunur aracı sağlar. Genel müşteri/döviz tahsilat kapsamı ve özgün insan kabulü satırları açık kalır. Mevcut49/25 sayımları ve en-son migrasyon sırası korunur.
 

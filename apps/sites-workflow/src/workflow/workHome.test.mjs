@@ -12,7 +12,7 @@ test('home rejects unsafe navigation, invented permissions, inaccessible totals 
  assert.equal(homeShortcuts.length,6);assert.deepEqual(homeShortcuts.map(s=>s.label),['Mal Kabul','Satış','Tahsilat','Ürün & Stok','Müşteriler','Tedarikçiler']);
 });
 async function controller(){const source=(await readFile(new URL('./workHome.js',import.meta.url),'utf8')).replace("import './workHome.css';",'').replace("'./workHomeModel.mjs'",JSON.stringify(new URL('./workHomeModel.mjs',import.meta.url).href));return (await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))).createWorkHome;}
-function root(){const nodes=new Map();return {isConnected:true,innerHTML:'',querySelector(k){if(!nodes.has(k))nodes.set(k,{});return nodes.get(k);},querySelectorAll(k){const prop=k==='[data-home-shortcut]'?'homeShortcut':'homeTask',pattern=k==='[data-home-shortcut]'?/data-home-shortcut="([^"]+)"/g:/data-home-task="([^"]+)"/g;return [...this.innerHTML.matchAll(pattern)].map(m=>{const n=this.querySelector(k+m[1]);n.dataset={[prop]:m[1]};return n;});}};}
+function root(){const nodes=new Map();return {isConnected:true,innerHTML:'',querySelector(k){if(!nodes.has(k))nodes.set(k,{});return nodes.get(k);},querySelectorAll(k){const prop=k==='[data-home-shortcut]'?'homeShortcut':k==='[data-home-queue]'?'homeQueue':'homeTask',pattern=k==='[data-home-shortcut]'?/data-home-shortcut="([^"]+)"/g:k==='[data-home-queue]'?/data-home-queue="([^"]+)"/g:/data-home-task="([^"]+)"/g;return [...this.innerHTML.matchAll(pattern)].map(m=>{const n=this.querySelector(k+m[1]);n.dataset={[prop]:m[1]};return n;});}};}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 test('inbound home binds actual count/purchase tasks without guessing money or granting personnel finance',()=>{
  const base=dto(),summary={capabilities:{canView:true,canViewPurchase:false,canViewSupplier:false},countDrafts:[{id:'1',state:'needs_review'}],receipts:[{id:'2',state:'pending'}],drafts:[]};const next=mergeInboundHome(base,summary);
@@ -126,3 +126,13 @@ test('unmatched inbound record has a disabled record-specific explanation; exact
 test('invalid daily scope metadata fails closed with no report shortcut or previously shown totals',async()=>onBusinessHome(async(data)=>{
  const create=await controller(),r=root(),screens=[];const ui=create({root:r,user:{permissions:['sales.view']},session:{home:async()=>data,reports:async()=>{}},navigate:s=>screens.push(s)});ui.mount();await tick();const click=r.querySelector('[data-home-reports]').onclick;assert.match(r.innerHTML,/Günlük akış özeti/);data.meta.dailySelectionReady='true';await ui.refresh();assert.match(r.innerHTML,/İş sırası şu anda açılamıyor/);assert.doesNotMatch(r.innerHTML,/Günlük akış özeti|data-home-reports|12,34 USD|[a-f]{64}/);click();assert.deepEqual(screens,[]);ui.dispose();
 }));
+
+
+test('office queue cards recheck current capabilities and readiness before opening native workspaces',async()=>{
+ const create=await controller(),r=root(),d=dto(),screens=[];let fail=false;
+ const ui=create({root:r,session:{home:async()=>{if(fail)throw Error('unavailable');return d;}},navigate:screen=>screens.push(screen)});ui.mount();await tick();
+ const buttons=r.querySelectorAll('[data-home-queue]');assert.deepEqual(buttons.map(b=>b.dataset.homeQueue),['goods','approvals','sales','collections']);
+ buttons.forEach(b=>b.onclick());assert.deepEqual(screens,['goods','approvals','receipts','collections']);
+ d.capabilities.goods=false;d.navigationReady.goods=false;buttons[0].onclick();d.navigationReady.sales=false;buttons[2].onclick();assert.equal(screens.length,4);
+ fail=true;await ui.refresh();buttons.forEach(b=>b.onclick());assert.equal(screens.length,4);assert.doesNotMatch(r.innerHTML,/12,34 USD/);ui.dispose();buttons.forEach(b=>b.onclick());assert.equal(screens.length,4);
+});
