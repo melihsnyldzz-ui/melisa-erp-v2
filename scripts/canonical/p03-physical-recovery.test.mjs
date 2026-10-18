@@ -234,3 +234,17 @@ test('failure diagnostic records bounded type/line and hides arbitrary exception
  const code=`$ErrorActionPreference='Stop';${fn};try{throw 'secret-diagnostic-text'}catch{FailureDiagnostic $_|ConvertTo-Json -Compress}`;
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/sourceLine/);assert.match(out,/P03_PHYSICAL_UNCLASSIFIED/);assert.doesNotMatch(out,/secret-diagnostic-text/);
 });
+
+test('post-COM parent snapshot exit is accepted only with cached birth and fresh PID absence',windows,()=>{
+ const src=readFileSync(rollback,'utf8');const fn=src.slice(src.indexOf('function CandidateParentSnapshot('),src.indexOf('function CandidateInventory('));
+ const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ function Need($c,$code){if(-not $c){throw ('P03_PHYSICAL_'+$code)}}
+ function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction);throw 'CIM_PARENT_DISAPPEARED'}
+ function Get-CimInstance{param($ClassName,$Filter,$ErrorAction);return $script:fresh}
+ ${fn}
+ $birth=[DateTime]::Parse('2026-10-18T00:00:00Z').ToUniversalTime();$snapshot=@([pscustomobject]@{ProcessId=10;CreationDate=$birth});$script:tasksStopRequested=$true;$script:parentPins=@{10=$birth};$script:fresh=@()
+ 'GONE='+@(CandidateParentSnapshot $snapshot 10).Count
+ $script:fresh=@([pscustomobject]@{ProcessId=10;CreationDate=$birth.AddSeconds(1)});try{CandidateParentSnapshot $snapshot 10}catch{$_.Exception.Message}
+ $script:fresh=@();$script:tasksStopRequested=$false;try{CandidateParentSnapshot $snapshot 10}catch{$_.Exception.Message}`;
+ const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/GONE=0/);assert.match(out,/CANDIDATE_PARENT_EXIT_RACE_UNPROVEN/);assert.match(out,/CIM_PARENT_DISAPPEARED/);
+});

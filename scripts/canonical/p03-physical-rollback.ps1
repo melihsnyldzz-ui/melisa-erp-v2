@@ -333,6 +333,16 @@ function WaitConsoleAbsence{
  do{$current=Inventory;foreach($p in $current.all){Need (-not ($p.ParentProcessId -in $script:capturedCandidatePids -or $script:consolePins.ContainsKey([int]$p.ParentProcessId)) -or $script:consolePins.ContainsKey([int]$p.ProcessId)) 'CONSOLE_UNKNOWN_DESCENDANT'};$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
  Need $false 'CONSOLE_NOT_ABSENT'
 }
+function CandidateParentSnapshot($snapshot,[int]$parentPid){
+ if(@($snapshot).Count -ne 1){return @($snapshot)}
+ try{$sid=Invoke-CimMethod -InputObject $snapshot[0] -MethodName GetOwnerSid -ErrorAction Stop;return [pscustomobject]@{process=$snapshot[0];sid=$sid}}catch{
+  if(-not $script:tasksStopRequested -or -not $script:parentPins.ContainsKey($parentPid)){throw}
+  Need ($snapshot[0].CreationDate.ToUniversalTime().Ticks -eq $script:parentPins[$parentPid].Ticks) 'CANDIDATE_PARENT_REUSED'
+  $fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+$parentPid) -ErrorAction Stop)
+  Need ($fresh.Count -eq 0) 'CANDIDATE_PARENT_EXIT_RACE_UNPROVEN'
+  return @()
+ }
+}
 function CandidateInventory($evidence){
  $script:capturedCandidatePids=@($evidence.processes|ForEach-Object{[int]$_.pid})
  $inventory=Inventory;ProtectedProcesses $inventory
@@ -357,7 +367,10 @@ function CandidateInventory($evidence){
   $parent=@($inventory.all|Where-Object{$_.ProcessId -eq $expected.parentPid})
   $hubParentBirth=if($expected.role -ceq 'hub' -and -not $isRehearsal){HubLineage $evidence $expected $inventory}else{$null}
   if($parent.Count -eq 1){
-   $parentSid=Invoke-CimMethod -InputObject $parent[0] -MethodName GetOwnerSid -ErrorAction Stop
+   $parentProof=@(CandidateParentSnapshot $parent ([int]$expected.parentPid))
+   if($parentProof.Count -eq 0){$parent=@()}else{$parent=@($parentProof[0].process);$parentSid=$parentProof[0].sid}
+  }
+  if($parent.Count -eq 1){
    if($expected.role -cin @('terminalWatcher','hubWatcher')){
     $service=@(Get-CimInstance Win32_Service -Filter "Name='Schedule'" -ErrorAction Stop)
     $pathAvailable=$parent[0].ExecutablePath -ieq 'C:\Windows\System32\svchost.exe' -and $parent[0].CommandLine -ieq 'C:\Windows\system32\svchost.exe -k netsvcs -p'
