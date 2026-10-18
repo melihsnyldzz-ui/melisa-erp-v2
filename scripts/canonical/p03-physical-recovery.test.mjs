@@ -68,7 +68,7 @@ function candidateHarness(foreign,oldPid=false,protectedPid=false){
  const harness=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
  function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
  function ProtectedProcesses($inventory){}
- function ConsoleAuxiliaries($inventory,$selected){return @()}
+ function ConsoleAuxiliaries($inventory,$selected){$script:consolePins=@{};return @()}
  $owner='S-1-5-21-test';$isRehearsal=$false;$profile=[pscustomobject]@{oldWatchers=@([pscustomobject]@{pid=1},[pscustomobject]@{pid=2});candidateRules=@();packages=@();protectedProcesses=@([pscustomobject]@{kind='ProtectedSqlService';pid=6180})}
  $before=[pscustomobject]@{identities=[pscustomobject]@{}}
  $evidence=[pscustomobject]@{processes=@(${protectedPid?"[pscustomobject]@{pid=6180;role='erpNative';ownerSid='S-1-5-21-test'}":oldPid?"[pscustomobject]@{pid=1;role='coreSupervisor';ownerSid='S-1-5-21-test'}":""});receipts=@()}
@@ -221,3 +221,9 @@ test('console auxiliaries require exact signed binary, selected parent and zero 
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/11/);assert.match(out,/CONSOLE_LISTENER/);assert.match(out,/CONSOLE_SOURCE/);
 });
 
+
+test('observer retains orphan descendants of captured exited old process and watcher PIDs',windows,()=>{
+ const src=readFileSync(script,'utf8').replaceAll('\r\n','\n');const start=src.indexOf(' do{\n  $selectedPids=');const end=src.indexOf(' $processes=@()',start);assert.ok(start>=0&&end>start);const closure=src.slice(start,end);
+ const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$pids=@(10,20);$selected=@();$all=@([pscustomobject]@{ProcessId=11;ParentProcessId=10},[pscustomobject]@{ProcessId=12;ParentProcessId=11},[pscustomobject]@{ProcessId=21;ParentProcessId=20},[pscustomobject]@{ProcessId=99;ParentProcessId=1});${closure};$selected.ProcessId -join ','`;
+ const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/11,21,12/);assert.doesNotMatch(out,/99/);
+});

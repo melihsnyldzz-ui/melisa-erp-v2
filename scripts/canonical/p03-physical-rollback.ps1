@@ -322,10 +322,11 @@ function ConsoleAuxiliaries($inventory,$selected){
 }
 function WaitConsoleAbsence{
  $until=[DateTime]::UtcNow.AddSeconds(15)
- do{$current=Inventory;$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
+ do{$current=Inventory;foreach($p in $current.all){Need (-not ($p.ParentProcessId -in $script:capturedCandidatePids -or $script:consolePins.ContainsKey([int]$p.ParentProcessId)) -or $script:consolePins.ContainsKey([int]$p.ProcessId)) 'CONSOLE_UNKNOWN_DESCENDANT'};$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
  Need $false 'CONSOLE_NOT_ABSENT'
 }
 function CandidateInventory($evidence){
+ $script:capturedCandidatePids=@($evidence.processes|ForEach-Object{[int]$_.pid})
  $inventory=Inventory;ProtectedProcesses $inventory
  Need (@($profile.oldWatchers).Count -eq 2) 'OLD_WATCHER_PINS'
  $oldPids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})
@@ -390,6 +391,8 @@ function CandidateInventory($evidence){
  foreach($listener in $inventory.listeners){Need (@($selected|Where-Object{$_.pid -eq $listener.OwningProcess -and @($_.bindings|Where-Object{$_.port -eq $listener.LocalPort -and $_.address -ceq $listener.LocalAddress}).Count -eq 1}).Count -eq 1) 'FOREIGN_LISTENER'}
  $auxiliaryPids=@(ConsoleAuxiliaries $inventory $selected)
  $relevantPids=[Collections.Generic.HashSet[int]]::new()
+ foreach($captured in @($evidence.processes)){[void]$relevantPids.Add([int]$captured.pid)}
+ foreach($capturedPid in @($script:consolePins.Keys)){[void]$relevantPids.Add([int]$capturedPid)}
  foreach($p in $inventory.all){
   $relevant=$p.ProcessId -in $oldPids -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or (IsWatcherCommand ([string]$p.CommandLine))
   foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){$relevant=$true}}

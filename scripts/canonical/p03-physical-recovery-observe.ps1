@@ -58,6 +58,7 @@ try{
  # Full processes are retained only in memory; emitted command lines are limited
  # to the P03 release roots/watchers, old identities and target listener owners.
  $pids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})
+ $pids+=@($before.tasks|ForEach-Object{if($_.PSObject.Properties.Name -contains 'enginePid'){[int]$_.enginePid}})
  $pids+=@($instances|ForEach-Object{$_.enginePid})
  $bindings=@($listeners|Where-Object{$_.LocalPort -in $ports}|ForEach-Object{[ordered]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress;pid=[int]$_.OwningProcess}})
  $pids+=@($bindings|ForEach-Object{$_.pid})
@@ -65,7 +66,7 @@ try{
  # Include every descendant of selected application processes; never add their
  # OS ancestors (Schedule's parent would otherwise encompass the whole host).
  do{
-  $selectedPids=@($selected|ForEach-Object{[int]$_.ProcessId})
+  $selectedPids=@($pids)+@($selected|ForEach-Object{[int]$_.ProcessId})
   $children=@($all|Where-Object{$_.ParentProcessId -in $selectedPids -and $_.ProcessId -notin $selectedPids})
   $selected+= $children
  }while($children.Count -gt 0)

@@ -2,9 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {assertPr54SharedProfile,admitPr54PrestartRecovery,comparePr54InvarianceSnapshots,PR54_PROTECT_SQL_CONNECTION} from './p03-pr54-shared-owner-io.mjs';
+import {assertPr54SharedProfile,admitPr54PrestartRecovery,classifyPr54Auxiliary,selectPr54CandidateProcesses,comparePr54InvarianceSnapshots,PR54_PROTECT_SQL_CONNECTION} from './p03-pr54-shared-owner-io.mjs';
 import {p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+function auxiliary(parent){return {pid:900,parentPid:parent.pid,ownerSid:parent.ownerSid,nodePath:'C:\\Windows\\System32\\conhost.exe',commandLine:'\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4',creationTime:'2026-10-18T10:00:01.1234567Z',bindings:[]};}
+test('only bounded console auxiliary with exact parent owner birth and no listener is preliminary classified',()=>{
+ const parent={pid:500,ownerSid:'S-1-5-21-2170750028-1005938530-2568122015-1001',creationTime:'2026-10-18T10:00:00.1234567Z'},a=auxiliary(parent);
+ assert.equal(classifyPr54Auxiliary(a,[parent],[]),true);
+ assert.equal(classifyPr54Auxiliary({...a,nodePath:'C:\\WINDOWS\\system32\\conhost.exe'},[parent],[]),true);
+ for(const change of [p=>p.nodePath='C:\\foreign\\conhost.exe',p=>p.commandLine+=' foreign',p=>p.ownerSid='S-1-5-18',p=>p.parentPid=999,p=>p.creationTime='2026-10-18T10:00:00.1234566Z',p=>p.bindings=[{port:1}]]){const bad=structuredClone(a);change(bad);assert.equal(classifyPr54Auxiliary(bad,[parent],[]),false);}
+ assert.equal(classifyPr54Auxiliary(a,[parent],[{pid:a.pid,port:1}]),false);
+ const main={...parent,nodePath:'node.exe',commandLine:'node.exe exact'},profile={protectedProcesses:[],candidateRules:[{role:'erpApi',nodePath:main.nodePath,commandLine:main.commandLine}]};
+ assert.equal(selectPr54CandidateProcesses({processes:[main,a],bindings:[]},profile).length,1);
+ assert.throws(()=>selectPr54CandidateProcesses({processes:[main,{...a,commandLine:'foreign'}],bindings:[]},profile));
+});
+test('ten exact applications plus actual CIM-cased console selects ten and rejects unknown siblings',()=>{
+ const ownerSid='S-1-5-21-2170750028-1005938530-2568122015-1001';
+ const apps=Array.from({length:10},(_,i)=>({pid:500+i,parentPid:499,nodePath:'C:\\pinned\\node.exe',ownerSid,commandLine:'node.exe exact-'+i,creationTime:'2026-10-18T10:00:00.1234567Z'}));
+ const profile={protectedProcesses:[],candidateRules:apps.map((p,i)=>({role:'role'+i,nodePath:p.nodePath,commandLine:p.commandLine}))};
+ const console={...auxiliary(apps[0]),nodePath:'C:\\WINDOWS\\system32\\conhost.exe'},seen={processes:[...apps,console],bindings:[]};
+ assert.equal(selectPr54CandidateProcesses(seen,profile).length,10);
+ assert.throws(()=>selectPr54CandidateProcesses({...seen,processes:[...seen.processes,{...console,pid:901,nodePath:'C:\\other\\conhost.exe'}]},profile));
+});
+test('prestart auxiliary must retain admitted identity and currently captured old parent',()=>{
+ const f=prestartFixture(),a=auxiliary(f.current.processes[0]);f.current.processes.push(a);f.admittedOld.processes=structuredClone(f.current.processes);assert.equal(admitPr54PrestartRecovery(f),true);
+ for(const change of [x=>x.current.processes.at(-1).creationTime='2026-10-18T10:00:01.1234568Z',x=>x.current.processes.at(-1).parentPid=999,x=>x.current.processes.at(-1).commandLine+=' foreign',x=>x.current.processes.shift(),x=>x.admittedOld.processes.pop()]){const bad=structuredClone(f);change(bad);assert.throws(()=>admitPr54PrestartRecovery(bad));}
+});
 test('SQL protect-only connection retains exactly one instance separator',()=>{
  assert.equal(PR54_PROTECT_SQL_CONNECTION.split(';')[0],'Server=Semih\\MELISADEV');
  assert.equal(PR54_PROTECT_SQL_CONNECTION.split(';')[1],'Database=master');
