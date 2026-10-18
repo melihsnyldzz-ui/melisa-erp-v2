@@ -1,4 +1,12 @@
-## 18 Ekim 21:18 — PR54 sahiplik okuyucusu; eski TEST çalışıyor
+## 18 Ekim — PR54 yeni aday açıldı; son kurulum doğrulaması sürüyor
+
+Tek gerçek successor Apply `7b0821959737f1da0427b17a7dfd4685`, exact kontrol kaynağı `40bb1b30a491634726035a6b1499baeb2e265dfe` ile çalıştı; PR CI39154149126/push39154146034 SUCCESS. Eski core/probe/konsol engeli kontrollü geçişte aşıldı; iki NEW görev21:37TR'de başladı. ERP e59e07ab / supervisor13bdf75a / CRM6bc82e6 uygulamaları aynı DB02 kopyasında açıldı. Normal ERP50ürün/kart/fotoğraf/stok/döviz, CRM taslak ekranı ve Hub gerçek tarayıcıda görüldü. Mevcut TEST İlker ve CRM TEST ADMIN oturumları kullanıldı; personel/insan kabulü değildir. Hub kısayolları adres doğrulaması nedeniyle kapalıdır.
+
+Tam NEW readback21:52TR'de başarısız oldu; controller `QUARANTINED_REQUIRES_ROOT_INSPECTION`, kurtarma `P03_PHYSICAL_ACL` ile intent/stop öncesinde reddedildi. Aynı10NEW süreç ve11binding korunur; ikinci Apply/restart veya kilit silme yok. Altı runtime receipt'in inherited owner/SYSTEM/Administrators3ACE'si, exact byte/fileID/UID/COM/XML/port CAS ve held handle ile yalnız protected owner+SYSTEM2ACE'ye daraltıldı; içerik/owner/group/parent/süreç değişmedi.11 hedefli PS5 test+bağımsız kaynak ve actual artifact incelemesi PASS. Private result SHA `c4a146d9a1cca866dc5274404fdd819f6bc6478ea34e80e2877d427cb8119d52`.
+
+Son salt okunur kontrolde aynı ACL uyumsuzluğu iki ortak TEST config artifact'inde kesinleşti. Yalnız bu iki exact path/hash için aynı algoritmanın ayrı ConfigArtifacts kapsamı hazırlanır; config içerikleri, eski/frozen kayıtlar ve kullanıcı yetkileri değiştirilmez. **Henüz final NEW30sn/Post51tablo kıyası ve tamamlanmış kurulum PASS yok.** [Ayrıntı](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).49/25 ve insan kabulü aynı; LIVE/Vega/T1/main/ticari yazı yok.
+
+## 18 Ekim 21:18 — PR54 sahiplik okuyucusu; tarihli önceki durum
 
 Eski owner'ın19:04:51TR gerçek geç kararlılık kanıtı korunur. Kontrol kaynağı6b62e1dd, kapanmış probe/konsol için source/argv/parent/birth/global CIM/kernel/listener yokluğunu ayrı `ownerVerified:false` audit olarak doğrular; erişim reddi veya yaşayan kimlik atlanmaz. Windows shell'in gerçek imzalı hardlink'i ve CIM'in gerçek generic CLR HRESULT + exact native FQID birleşimi hedefli testlerle desteklendi. NEW okuyucu13b kaynağının gerçek11loopback/LAN binding sözleşmesine bağlıdır; yeni yetki/ağ adresi açılmaz. Exact PR39152931261/push39152927873 CI SUCCESS.
 
@@ -54,7 +62,7 @@ Bu yalnız kaynak bütünleştirmesidir. Backend varsayılan kapalı, native TRY
 
 ## Sıradaki iş
 
-18 Ekim21:18 — **Aktif P03 ortak TEST kurulum adımı:** Sahip ERP ana ajanı. Eski owner'ın geç kararlılık kanıtı tamam; yeni e59/13b/6bc aday için son Apply35a claim/start öncesi worker transient readback'te güvenle durdu. Worker okuma sırası düzeltmesi/hedefli test/bağımsız inceleme hazır; sıradaki işlem exact CI→taze profile tek-owner kurulum→ilk/son NEW30sn ve Post51tablo kıyası→normal ERP/CRM/Hub GUI. Bitince aynı GitHub raporu güncellenir; insan/cihaz kabulü otomatik kapanmaz, başka finish işine bu kullanıcı talimatı içinde geçilmez. Aynı işin ikinci Apply'ı eşzamanlı başlatılmaz.
+18 Ekim — **Aktif P03 son kurulum doğrulaması:** Sahip ERP ana ajanı. Apply7b yeni e59/13b/6bc adayı gerçekten açtı; normal ERP/CRM/Hub açılışı görüldü, son tam owner readback ACL uyumsuzluğuyla durdu. Altı receipt ACL sertleştirmesi actual PASS. Sıradaki işlem yalnız iki ortak config artifact'inin exact kaynak/CI ve yazmasız ön kontrol sonrası DACL sertleştirmesi→aynı çalışan nesilde ayrı ilk/son NEW30sn→Post51tablo kıyası→normal ekran son kontrolü→aynı GitHub raporu. Orijinal FAILED/QUARANTINED/claim ve frozen kaynak korunur; tekrar Apply/restart/restore/reset yok. İnsan/cihaz kabulü otomatik kapanmaz; bu talimatta başka finish işine geçilmez.
 
 18 Ekim — **Önceki dar ekran bütünleştirme kaydı:** Sahip ERP ana ajanı; mevcut B01/B03–B06/C01–C02/C05/C08/C10–C11 sunumu PR52 üzerine taşındı. Kaynak bitiş koşulu264hedefli test+build+bağımsız inceleme+feature PR/exact CI; kanıt [v75 port kaydı](docs/evidence/erp/2026-10-18-office-layout-v75.md). Sonraki iş19Ekim ortak TEST kimliği/erişim ve P03 tek-owner güvenli kurulum/readback bağımlılığı; sonra yeni adayda normal ekran smoke ve belge/rol eksiklerinin özgün kabul kayıtlarına bağlanması. Browser/mobile bu oturumda önizleme ortam hatasıyla NOT_RUN. Önceki P03 Apply NO-GO ve C07 metadata/genel tahsilat bağımlılıkları aşağıda korunur; yeni Goal/ana kapanış yok.
 
