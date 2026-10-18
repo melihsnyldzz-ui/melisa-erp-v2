@@ -26,9 +26,27 @@ function FixtureDirectory($path,$ids){
  [void][IO.Directory]::CreateDirectory($path);$acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false)
  foreach($id in $ids){[void]$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($id),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};Set-Acl -LiteralPath $path -AclObject $acl
 }
+function FixtureCurrentOwner($acl){
+ $access=$acl.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access);$protected=$acl.AreAccessRulesProtected
+ $acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner))
+ if($acl.AreAccessRulesProtected-ne$protected-or$acl.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access)-cne$access){throw 'FIXTURE_OWNER_CHANGED_DACL'}
+ return $acl
+}
+function FixtureFile($path,[byte[]]$bytes){
+ $full=[IO.Path]::GetFullPath($path);$root=[IO.Path]::GetFullPath($testRoot)+[IO.Path]::DirectorySeparatorChar
+ if(-not$full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){throw 'FIXTURE_FILE_SCOPE'}
+ [IO.File]::WriteAllBytes($full,$bytes)
+ $acl=Get-Acl -LiteralPath $full;$access=$acl.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access);$protected=$acl.AreAccessRulesProtected
+ # Elevated Windows CI tokens may choose Builtin Administrators as default
+ # owner. Give only these disposable files the same explicit user owner as
+ # production requires; inherited ACEs and protection remain byte-equivalent.
+ Set-Acl -LiteralPath $full -AclObject (FixtureCurrentOwner $acl)
+ $readback=Get-Acl -LiteralPath $full
+ if($readback.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne$owner-or$readback.AreAccessRulesProtected-ne$protected-or$readback.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access)-cne$access){throw 'FIXTURE_FILE_OWNER_READBACK'}
+}
 FixtureDirectory $testRoot @($owner,'S-1-5-18','S-1-5-32-544')
 $script:receiptRoot=$testRoot;$script:dir=Join-Path $testRoot 'evidence';FixtureDirectory $dir @($owner,'S-1-5-18')
-$script:receiptPaths=@{};foreach($role in $roles){$path=Join-Path $receiptRoot ($role+'.json');$receiptPaths[$role]=$path;[IO.File]::WriteAllText($path,('fixture-bytes-'+$role),[Text.UTF8Encoding]::new($false))}
+$script:receiptPaths=@{};foreach($role in $roles){$path=Join-Path $receiptRoot ($role+'.json');$receiptPaths[$role]=$path;FixtureFile $path ([Text.UTF8Encoding]::new($false).GetBytes('fixture-bytes-'+$role))}
 $script:parentSddl=(Get-Acl -LiteralPath $receiptRoot).GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::All)
 $script:Mode='Inspect';$script:run='fixture-run';$script:scopeCalls=0;$script:scopeFailAt=0
 $script:profileRef=@{path='fixture-profile';sha256=('a'*64)};$script:beforeRef=@{path='fixture-before';sha256=('b'*64)};$script:originalRef=@{path='fixture-original';sha256=('c'*64)};$script:claimRef=@{path='fixture-claim';sha256=('d'*64)};$script:failureRef=@{path='fixture-failure';sha256=('e'*64)};$script:outcomeRef=@{path='fixture-outcome';sha256=('f'*64)};$script:CandidatePath='fixture-candidate';$script:CandidateSha256='0'*64
@@ -50,6 +68,18 @@ test('receipt repair is literal run7b, Inspect default and held-handle ACL only 
 test('PS5 disposable Inspect holds six files without ACL/content/evidence writes and releases every handle',windows,()=>{
  const out=run(`${definitions}\n${disposable}\ntry{$beforeHashes=@($roles|ForEach-Object{(Get-FileHash -LiteralPath $receiptPaths[$_] -Algorithm SHA256).Hash});$result=RaclRun;'STATUS='+$result.status;'MUTATION='+$result.mutationExecuted;'FILES='+$result.files.Count;'EVIDENCE='+@(Get-ChildItem -LiteralPath $dir).Count;foreach($role in $roles){RaclAcl (Get-Acl -LiteralPath $receiptPaths[$role]) 'Inherited3'};'ALL_INHERITED=PASS';$afterHashes=@($roles|ForEach-Object{(Get-FileHash -LiteralPath $receiptPaths[$_] -Algorithm SHA256).Hash});if(($beforeHashes-join'|')-cne($afterHashes-join'|')){throw 'FIXTURE_CHANGED_BYTES'};'CONTENT=PASS'}finally{CleanupFixture}`);
  for(const x of ['STATUS=RECEIPT_ACL_INSPECTED','MUTATION=False','FILES=6','EVIDENCE=0','ALL_INHERITED=PASS','CONTENT=PASS'])assert.ok(out.includes(x),out);
+});
+
+test('elevated-token default Administrators owner simulation fails production guard until fixture-only user ownership without DACL changes',windows,()=>{
+ const out=run(`${definitions}\n${disposable}\ntry{
+$simulated=[Security.AccessControl.FileSecurity]::new();$simulated.SetSecurityDescriptorSddlForm(('O:BAG:BAD:AI(A;ID;FA;;;'+$owner+')(A;ID;FA;;;SY)(A;ID;FA;;;BA)'))
+'DEFAULT_OWNER='+$simulated.GetOwner([Security.Principal.SecurityIdentifier]).Value;Rejected 'default-Administrators-owner' {RaclAcl $simulated 'Inherited3'}
+$beforeAccess=$simulated.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access);$normalized=FixtureCurrentOwner $simulated;RaclAcl $normalized 'Inherited3'
+if($normalized.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access)-cne$beforeAccess){throw 'FIXTURE_DACL_CHANGED'};'USER_OWNER=PASS';'INHERITED_DACL=PASS'
+foreach($role in $roles){$acl=Get-Acl -LiteralPath $receiptPaths[$role];RaclAcl $acl 'Inherited3'};'ALL_REAL_DISPOSABLE_FILES=PASS'
+Rejected 'outside-temp-namespace' {FixtureFile 'C:\outside-fixture.json' ([byte[]]@(1))}
+}finally{CleanupFixture}`);
+ for(const x of ['DEFAULT_OWNER=S-1-5-32-544','REJECTED=default-Administrators-owner','USER_OWNER=PASS','INHERITED_DACL=PASS','ALL_REAL_DISPOSABLE_FILES=PASS','REJECTED=outside-temp-namespace'])assert.ok(out.includes(x),out);
 });
 
 test('PS5 real held handles block replacement/write, harden only DACL to explicit owner+SYSTEM, and persist once-only proofs',windows,()=>{
@@ -174,7 +204,7 @@ test('entry age fifty-nine seconds survives elapsed wall time while every later 
 const configFixture=String.raw`
 function FixtureConfigs{
  $script:configRefs=@{}
- foreach($key in @('operation','nativeOrder')){$path=Join-Path $receiptRoot ($key+'-offline.json');$bytes=[Text.Encoding]::UTF8.GetBytes(('OFFLINE_PRIVATE_SENTINEL_NOT_JSON_'+$key));[IO.File]::WriteAllBytes($path,$bytes);$configRefs[$key]=[pscustomobject]@{path=$path;sha256=(RaclHash $bytes)}}
+ foreach($key in @('operation','nativeOrder')){$path=Join-Path $receiptRoot ($key+'-offline.json');$bytes=[Text.Encoding]::UTF8.GetBytes(('OFFLINE_PRIVATE_SENTINEL_NOT_JSON_'+$key));FixtureFile $path $bytes;$configRefs[$key]=[pscustomobject]@{path=$path;sha256=(RaclHash $bytes)}}
  $settings=[pscustomobject]@{components=[pscustomobject]@{erpApiNative=[pscustomobject]@{config=$configRefs.operation};nativeOrder=[pscustomobject]@{config=$configRefs.nativeOrder}};privateSources=[pscustomobject]@{operationConfig=$configRefs.operation;nativeOrderConfig=$configRefs.nativeOrder}}
  $script:oldSettings=$settings|ConvertTo-Json -Depth 8 -Compress|ConvertFrom-Json;$script:newSettings=$settings|ConvertTo-Json -Depth 8 -Compress|ConvertFrom-Json
  $script:profile=[pscustomobject]@{candidateRules=@(@('erpApi','erpNative','hub')|ForEach-Object{[pscustomobject]@{role=$_;config=$configRefs.operation}})+@([pscustomobject]@{role='crmNativeOrder';config=$configRefs.nativeOrder})}

@@ -1,3 +1,6 @@
+# Independently reviewed 2026-10-18: three public Git commit IDs and release-manifest SHA256 pins, no credential.
+28c29bb5b56bc9275285a99f4cae8dc53dbbd4e0:scripts/canonical/p03-pr54-receipt-acl.ps1:generic-api-key:161
+
 # Exact false positives independently reviewed on 2026-10-03; no broad exclusions.
 # Independently reviewed 2026-10-11 against historical source and HEAD 1a14a33.
 # Synthetic provenance/source identifiers and a public scope identifier, not credentials.
