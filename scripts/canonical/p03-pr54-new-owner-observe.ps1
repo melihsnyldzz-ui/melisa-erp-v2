@@ -38,7 +38,7 @@ function ImportNewObserverFunctions([byte[]]$bytes,[string[]]$only=@()){
  if($errors.Count){throw 'P03_NEW_OBSERVER_PARSE'}
  $definitions=@($ast.FindAll({param($node)$node -is [Management.Automation.Language.FunctionDefinitionAst]},$false))
  if($only.Count){foreach($name in $only){if(@($definitions|Where-Object{$_.Name -ceq $name}).Count -ne 1){throw 'P03_NEW_OBSERVER_FUNCTION'}};$definitions=@($definitions|Where-Object{$_.Name -cin $only})}
- foreach($definition in $definitions){$name=if($definition.Name -ceq 'Inventory'){'NewRawInventory'}else{$definition.Name};. ([scriptblock]::Create('function script:'+$name+$definition.Extent.Text.Substring(('function '+$definition.Name).Length)))}
+ foreach($definition in $definitions){if($definition.Name -ceq 'HubLineage'){$script:newFrozenHubLineageBody=$definition.Body.Extent.Text};$name=if($definition.Name -ceq 'Inventory'){'NewRawInventory'}else{$definition.Name};. ([scriptblock]::Create('function script:'+$name+$definition.Extent.Text.Substring(('function '+$definition.Name).Length)))}
 }
 function ImportSharedObserverFunctions([byte[]]$bytes){
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$tokens,[ref]$errors)
@@ -76,6 +76,79 @@ function NewPrepareProbeSource{
  NoReparse $profile.shell.path;Need ($profile.shell.path -ceq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and (Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'NEW_PROBE_SHELL'
  $script:newProbeSource=[ordered]@{supervisorSourceCommit=$manifest.sourceCommit;supervisorManifestSha256=$supervisor.manifestSha256;supervisorEntrySha256=$entries[0].sha256;probePath=$probe;probeSha256=$files[0].sha256;shellSha256=$profile.shell.sha256;recoveryHelperSha256=$RecoveryHelperSha256}
 }
+function NewHubHandleInfo($stream){
+ if(-not ('P03NewHubFileIdentity' -as [type])){Add-Type -TypeDefinition @'
+using System;using System.Runtime.InteropServices;using Microsoft.Win32.SafeHandles;
+public static class P03NewHubFileIdentity {
+ [StructLayout(LayoutKind.Sequential)] public struct Info { public uint Attributes,CreationLow,CreationHigh,AccessLow,AccessHigh,WriteLow,WriteHigh,Volume,SizeHigh,SizeLow,Links,IndexHigh,IndexLow; }
+ [DllImport("kernel32.dll",SetLastError=true)] public static extern bool GetFileInformationByHandle(SafeFileHandle h,out Info info);
+}
+'@}
+ $info=New-Object P03NewHubFileIdentity+Info
+ Need ([P03NewHubFileIdentity]::GetFileInformationByHandle($stream.SafeFileHandle,[ref]$info) -and ($info.Attributes -band 0x410) -eq 0) 'NEW_HUB_SHELL_FILE'
+ return [ordered]@{volume=$info.Volume;indexHigh=$info.IndexHigh;indexLow=$info.IndexLow}
+}
+function NewHubOpenShell([string]$path){return [IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)}
+function NewHubShellIdentity([string]$actual,[string]$expected){
+ $canonical='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+ Need ($profile.shell.path -ceq $canonical -and $expected -ceq $canonical -and [string]::Equals($actual,$canonical,[StringComparison]::OrdinalIgnoreCase)) 'NEW_HUB_SHELL_PATH'
+ # The existing binary/reparse/signer policy still applies. Hold both names
+ # read-only with write/delete sharing denied, then compare OS file IDs and
+ # hashes from these handles, never from rewritten lineage evidence.
+ foreach($path in @($actual,$expected)){ObserverPolicyBinary ([pscustomobject]@{path=$path;sha256=$profile.shell.sha256})}
+ $left=$null;$right=$null
+ try{
+  $left=NewHubOpenShell $actual;$right=NewHubOpenShell $expected
+  $a=NewHubHandleInfo $left;$b=NewHubHandleInfo $right
+  Need (($a|ConvertTo-Json -Compress) -ceq ($b|ConvertTo-Json -Compress)) 'NEW_HUB_SHELL_FILE_ID'
+  foreach($stream in @($left,$right)){
+   Need ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'NEW_HUB_SHELL_SIZE'
+   $digest=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($digest.ComputeHash($stream)).Replace('-','').ToLowerInvariant()}finally{$digest.Dispose()}
+   Need ($hash -ceq $profile.shell.sha256) 'NEW_HUB_SHELL_HASH'
+  }
+ }finally{if($null -ne $right){$right.Dispose()};if($null -ne $left){$left.Dispose()}}
+}
+function NewHubLauncherArgsAllowed($actual,$expected){
+ $canonical='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+ if(@($actual).Count -ne 17 -or @($expected).Count -ne 17 -or $expected[0] -cne $canonical -or -not [string]::Equals([string]$actual[0],$canonical,[StringComparison]::OrdinalIgnoreCase)){return $false}
+ for($index=1;$index -lt 17;$index++){if($actual[$index] -cne $expected[$index]){return $false}}
+ NewHubShellIdentity $actual[0] $expected[0]
+ return $true
+}
+function NewHubLineage($evidence,$expected,$inventory){
+ $refs=@($evidence.receipts|Where-Object{$_.role -ceq 'hub'});Need ($refs.Count -eq 1) 'HUB_RECEIPT_COUNT'
+ $ref=$refs[0];$root=Join-Path $newSettings.runtimeDirectory 'hub-web'
+ Need ([IO.Path]::GetDirectoryName($ref.path) -ceq $root -and [IO.Path]::GetDirectoryName($ref.lineagePath) -ceq $root) 'HUB_RECEIPT_ROOT'
+ $lineage=Json (ReadPinned $ref.lineagePath $ref.lineageSha256);$rec=Json (ReadPinned $ref.path $ref.sha256)
+ $pin=$newSettings.components.hub;$watchers=@($evidence.processes|Where-Object{$_.role -ceq 'hubWatcher'});Need ($watchers.Count -eq 1) 'HUB_WATCHER_REF'
+ $watcher=$watchers[0];$launcher=$lineage.launcher
+ $oldPids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})
+ Need ([int]$launcher.pid -notin $oldPids) 'HUB_OLD_LAUNCHER_PID'
+ Need ($lineage.schemaVersion -eq 1 -and $lineage.run -cmatch '\A[a-f0-9]{32}\z' -and [int]$lineage.attempt -ge 0 -and [int]$lineage.attempt -le 3 -and $lineage.ownerSid -ceq $owner -and $lineage.sourceCommit -ceq $pin.sourceCommit -and $lineage.packageRoot -ceq $pin.packageRoot -and $lineage.manifestSha256 -ceq $pin.manifestSha256 -and $lineage.nodeSha256 -ceq $newSettings.node.sha256) 'HUB_LINEAGE_SOURCE'
+ Need ($ref.lineagePath -ceq (Join-Path $root ('hub-web-lineage-'+$lineage.run+'-'+$lineage.attempt+'.json')) -and $ref.path -ceq (Join-Path $root ('hub-web-process-'+$lineage.run+'-'+$lineage.attempt+'.json'))) 'HUB_RECEIPT_NAMES'
+ Need ($lineage.watcher.pid -eq $watcher.pid -and $lineage.watcher.birth -ceq $watcher.creationTime -and $lineage.watcher.sid -ceq $owner -and $lineage.watcher.argv -ceq $watcher.commandLine -and $launcher.parentPid -eq $watcher.pid -and $launcher.pid -eq $expected.parentPid -and $launcher.sid -ceq $owner -and [DateTime]::Parse($launcher.birth) -gt [DateTime]::Parse($watcher.creationTime)) 'HUB_LINEAGE_PARENT'
+ $watcherActual=@($inventory.all|Where-Object{$_.ProcessId -eq $watcher.pid})
+ Need (($watcherActual.Count -eq 1 -and (Identity $watcherActual[0] $watcher)) -or ($watcherActual.Count -eq 0 -and $script:tasksStopRequested -and $script:watcherPins.ContainsKey([int]$watcher.pid))) 'HUB_WATCHER_PHYSICAL'
+ $launcherArgs=@('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $pin.packageRoot 'scripts\canonical\start-hub-web.ps1'),'-StartupConfigPath',$pin.config.path,'-Action','Start','-RunId',$lineage.run,'-Attempt',[string]$lineage.attempt)
+ Need (NewHubLauncherArgsAllowed (Tokens $launcher.argv) $launcherArgs) 'HUB_LAUNCHER_ARGV'
+ Need ($lineage.node.pid -eq $expected.pid -and $lineage.node.birth -ceq $expected.creationTime -and $lineage.node.sid -ceq $owner -and $lineage.node.argv -ceq $expected.commandLine -and [DateTime]::Parse($expected.creationTime) -gt [DateTime]::Parse($launcher.birth)) 'HUB_NODE_LINEAGE'
+ Need ($lineage.startupConfig.path -ceq $pin.config.path -and $lineage.startupConfig.sha256 -ceq $pin.config.sha256 -and $lineage.operationConfig.path -ceq $newSettings.privateSources.operationConfig.path -and $lineage.operationConfig.sha256 -ceq $newSettings.privateSources.operationConfig.sha256 -and $lineage.hubConfig.path -ceq $newSettings.privateSources.hubPinConfig.path -and $lineage.hubConfig.sha256 -ceq $newSettings.privateSources.hubPinConfig.sha256) 'HUB_CONFIG_LINEAGE'
+ Need ($rec.pid -eq $expected.pid -and $rec.run -ceq $lineage.run -and $rec.attempt -eq $lineage.attempt -and $rec.sourceCommit -ceq $pin.sourceCommit -and $rec.packageRoot -ceq $pin.packageRoot -and $rec.port -eq 5234 -and $rec.lineagePath -ceq $ref.lineagePath -and $rec.lineageSha256 -ceq $ref.lineageSha256 -and $rec.startedAt -ceq $lineage.startedAt -and [DateTime]::Parse($rec.startedAt) -ge [DateTime]::Parse($expected.creationTime)) 'HUB_POINTER_LINEAGE'
+ Need (@($lineage.bindings).Count -eq @($expected.bindings).Count) 'HUB_LINEAGE_BINDINGS'
+ foreach($b in $expected.bindings){Need (@($lineage.bindings|Where-Object{$_.pid -eq $expected.pid -and $_.port -eq $b.port -and $_.address -ceq $b.address}).Count -eq 1) 'HUB_LINEAGE_BINDING'}
+ return [DateTime]::Parse($launcher.birth).ToUniversalTime()
+}
+function NewAssertHubLineageEquivalence{
+ $old='Need (((Tokens $launcher.argv)|ConvertTo-Json -Compress) -ceq ($launcherArgs|ConvertTo-Json -Compress)) ''HUB_LAUNCHER_ARGV'''
+ $replacement='Need (NewHubLauncherArgsAllowed (Tokens $launcher.argv) $launcherArgs) ''HUB_LAUNCHER_ARGV'''
+ Need ([regex]::Matches($script:newFrozenHubLineageBody,[regex]::Escape($old)).Count -eq 1) 'NEW_HUB_LINEAGE_SOURCE'
+ $expected=$script:newFrozenHubLineageBody.Replace($old,$replacement).Replace("`r`n","`n").Trim()
+ $definition=(Get-Command NewHubLineage -CommandType Function).ScriptBlock.Ast
+ Need ($definition -is [Management.Automation.Language.FunctionDefinitionAst] -and $definition.Name -ceq 'NewHubLineage') 'NEW_HUB_LINEAGE_DEFINITION'
+ $actual=$definition.Body.Extent.Text.Replace("`r`n","`n").Trim()
+ Need ($actual -ceq $expected) 'NEW_HUB_LINEAGE_EQUIVALENCE'
+}
+function HubLineage($evidence,$expected,$inventory){return NewHubLineage $evidence $expected $inventory}
 function NewAuthority{
  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($CandidatePath,$CandidateSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($SourceObserverPath,$SourceObserverSha256))){[void](ReadPinned $pin[0] $pin[1])}
  Need ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne '639e2da815e1e7ac0f1c0d04d7f7bdc3' -and $ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json')) -and $EnginePath -ceq (Join-Path $dir 'p03-physical-rollback.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'NEW_OBSERVER_PATH'
@@ -194,6 +267,7 @@ function ObserveNewOwner($evidence){
  }
  throw ('P03_NEW_OWNER_NOT_STABLE_'+$lastFailureCode)
 }
+NewAssertHubLineageEquivalence
 NewAuthority
 $evidence=AdmitCandidate
 Need (@($evidence.processes).Count -eq 10 -and @($evidence.processes|Select-Object -ExpandProperty role -Unique).Count -eq 10) 'NEW_CANDIDATE_COUNT'

@@ -270,3 +270,80 @@ $script:now=[DateTime]::Parse('2026-10-18T18:00:00Z');function NewFrame($e){thro
 try{ObserveNewOwner ([pscustomobject]@{})|Out-Null}catch{'UNKNOWN='+$_.Exception.Message}`);
  assert.match(out,/FIXED=P03_NEW_OWNER_NOT_STABLE_P03_PHYSICAL_NEW_ROLE_BINDING/);assert.match(out,/UNKNOWN=P03_NEW_OWNER_NOT_STABLE_P03_NEW_OWNER_FRAME_UNCLASSIFIED/);assert.doesNotMatch(out,/private-sentinel|secret\/path|token/);
 });
+
+test('NEW Hub lineage body preserves every frozen FE check except the explicit executable-token comparator',windows,()=>{
+ const out=run(`${fixture}\n${extract(['NewHubLineage','NewAssertHubLineageEquivalence'])}\n$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(engine)},[ref]$t,[ref]$e);$d=@($a.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'HubLineage'},$true));$script:newFrozenHubLineageBody=$d[0].Body.Extent.Text;NewAssertHubLineageEquivalence;'EQUIVALENT=PASS';$script:newFrozenHubLineageBody=$script:newFrozenHubLineageBody.Replace('HUB_CONFIG_LINEAGE','OTHER_CHECK');ExpectRejected 'other-frozen-check-drift' {NewAssertHubLineageEquivalence}`);
+ assert.match(out,/EQUIVALENT=PASS/);assert.match(out,/REJECTED=other-frozen-check-drift/);
+});
+
+const hubArgs=String.raw`
+$script:expected=@('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File','C:\fixture\scripts\canonical\start-hub-web.ps1','-StartupConfigPath','C:\fixture\startup.json','-Action','Start','-RunId',('a'*32),'-Attempt','0')
+$script:shellChecks=0
+function NewHubShellIdentity($actual,$canonical){$script:shellChecks++;Need ($profile.shell.path-ceq$canonical-and[string]::Equals($actual,$canonical,[StringComparison]::OrdinalIgnoreCase)) 'FIXTURE_SHELL_POLICY'}
+`;
+test('Hub launcher permits only token-zero Windows case equivalence and keeps all sixteen remaining tokens exact',windows,()=>{
+ const out=run(`${fixture}\n${extract(['NewHubLauncherArgsAllowed'])}\n${hubArgs}\n${String.raw`
+$actual=$expected.Clone();if(-not(NewHubLauncherArgsAllowed $actual $expected)){throw 'FIXTURE_EXACT_REJECTED'};'EXACT=PASS'
+$actual[0]=$actual[0].Replace('Windows','WINDOWS');if(-not(NewHubLauncherArgsAllowed $actual $expected)){throw 'FIXTURE_CASE_REJECTED'};'WINDOWS_CASE=PASS'
+foreach($kind in @('script','config','flag','runID','attempt','order','extra','missing','dot','short','UNC','other','slash')){
+ $actual=$expected.Clone()
+ switch($kind){'script'{$actual[8]=$actual[8].ToUpperInvariant()}'config'{$actual[10]=$actual[10].ToUpperInvariant()}'flag'{$actual[1]='-noprofile'}'runID'{$actual[14]='A'*32}'attempt'{$actual[16]='1'}'order'{$actual[1]='-NonInteractive';$actual[2]='-NoProfile'}'extra'{$actual+=,'extra'}'missing'{$actual=@($actual[0..15])}'dot'{$actual[0]='C:\Windows\System32\..\System32\WindowsPowerShell\v1.0\powershell.exe'}'short'{$actual[0]='C:\Windows\System32\WINDOW~1\v1.0\powershell.exe'}'UNC'{$actual[0]='\\localhost\C$\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'}'other'{$actual[0]='C:\elsewhere\powershell.exe'}'slash'{$actual[0]=$actual[0].Replace('\','/')}}
+ if(NewHubLauncherArgsAllowed $actual $expected){throw ('FIXTURE_ACCEPTED_'+$kind)};'REJECTED='+$kind
+};'SHELL_CHECKS='+$shellChecks
+`}`);
+ assert.match(out,/EXACT=PASS/);assert.match(out,/WINDOWS_CASE=PASS/);for(const n of ['script','config','flag','runID','attempt','order','extra','missing','dot','short','UNC','other','slash'])assert.match(out,new RegExp('REJECTED='+n));assert.match(out,/SHELL_CHECKS=2/);
+});
+
+test('Hub case-equivalent executable still requires pinned binary policy, same held OS file ID and both held hashes',windows,()=>{
+ const out=run(`${fixture}\n${extract(['NewHubShellIdentity'])}\n${String.raw`
+$script:shellBytes=[byte[]]@(1,2,3,4);$profile.shell.sha256=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($shellBytes)).Replace('-','').ToLowerInvariant()
+function ResetShell{$script:opened=@();$script:policyCalls=0;$script:infoCalls=0;$script:policyDenied=$false;$script:idDrift=$false;$script:hashDrift=$false}
+function ObserverPolicyBinary($ref){$script:policyCalls++;Need (-not$script:policyDenied-and$ref.sha256-ceq$profile.shell.sha256) 'FIXTURE_BINARY_POLICY'}
+function NewHubOpenShell($path){$bytes=$script:shellBytes;if($script:hashDrift-and$script:opened.Count-eq1){$bytes=[byte[]]@(9,9)};$stream=[IO.MemoryStream]::new($bytes);$script:opened+=,$stream;return $stream}
+function NewHubHandleInfo($stream){$script:infoCalls++;return [ordered]@{volume=1;indexHigh=0;indexLow=if($script:idDrift-and$script:infoCalls-eq2){2}else{1}}}
+ResetShell;NewHubShellIdentity 'C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe' $profile.shell.path;'POLICY_CALLS='+$policyCalls;'FILE_ID_CALLS='+$infoCalls;'DISPOSED='+@($opened|Where-Object{-not$_.CanRead}).Count
+ResetShell;$script:policyDenied=$true;ExpectRejected 'source-reparse-or-signer-policy' {NewHubShellIdentity $profile.shell.path $profile.shell.path}
+ResetShell;$script:idDrift=$true;ExpectRejected 'OS-file-ID' {NewHubShellIdentity $profile.shell.path $profile.shell.path};'ID_FAIL_DISPOSED='+@($opened|Where-Object{-not$_.CanRead}).Count
+ResetShell;$script:hashDrift=$true;ExpectRejected 'held-hash-drift' {NewHubShellIdentity $profile.shell.path $profile.shell.path};'HASH_FAIL_DISPOSED='+@($opened|Where-Object{-not$_.CanRead}).Count
+`}`);
+ assert.match(out,/POLICY_CALLS=2/);assert.match(out,/FILE_ID_CALLS=2/);assert.match(out,/DISPOSED=2/);for(const n of ['source-reparse-or-signer-policy','OS-file-ID','held-hash-drift'])assert.match(out,new RegExp('REJECTED='+n));assert.match(out,/ID_FAIL_DISPOSED=2/);assert.match(out,/HASH_FAIL_DISPOSED=2/);
+});
+
+test('actual pinned FE import, equivalence guard and HubLineage routing accept raw case-only evidence while frozen comparison rejects',windows,()=>{
+ const out=run(`${fixture}\n${extract(['ImportNewObserverFunctions'])}\n$engineBytes=[IO.File]::ReadAllBytes(${q(engine)});$digest=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($engineBytes)).Replace('-','').ToLowerInvariant();if($digest-cne'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'){throw 'FIXTURE_ENGINE_PIN'};ImportNewObserverFunctions $engineBytes @('Need','Tokens','Json','Identity','HubLineage')\n${extract(['NewHubLineage','HubLineage','NewAssertHubLineageEquivalence','NewHubLauncherArgsAllowed'])}\n${String.raw`
+NewAssertHubLineageEquivalence
+. ([scriptblock]::Create('function FrozenHubLineage($evidence,$expected,$inventory)'+$script:newFrozenHubLineageBody))
+$script:shellChecks=0;function NewHubShellIdentity($actual,$expected){$script:shellChecks++;Need ([string]::Equals($actual,$expected,[StringComparison]::OrdinalIgnoreCase)) 'FIXTURE_BINARY_POLICY'}
+$profile.oldWatchers=@();$script:tasksStopRequested=$false;$script:watcherPins=@{}
+$pin=[pscustomobject]@{packageRoot='C:\fixture\hub-package';sourceCommit=('a'*40);manifestSha256=('b'*64);config=[pscustomobject]@{path='C:\fixture\startup.json';sha256=('c'*64)}}
+$script:newSettings=[pscustomobject]@{runtimeDirectory='C:\fixture\runtime';components=[pscustomobject]@{hub=$pin};node=[pscustomobject]@{sha256=('d'*64)};privateSources=[pscustomobject]@{operationConfig=[pscustomobject]@{path='C:\fixture\operation.json';sha256=('e'*64)};hubPinConfig=[pscustomobject]@{path='C:\fixture\hub.json';sha256=('f'*64)}}}
+$watcher=[pscustomobject]@{role='hubWatcher';pid=1000;parentPid=900;ownerSid=$owner;nodePath=$profile.shell.path;commandLine='watcher pinned exact';creationTime='2026-10-18T17:00:00.0000000Z'}
+$hub=[pscustomobject]@{role='hub';pid=2000;parentPid=1500;ownerSid=$owner;nodePath='C:\fixture\node.exe';commandLine='node hub pinned exact';creationTime='2026-10-18T17:00:02.0000000Z';bindings=@([pscustomobject]@{port=5234;address='127.0.0.1'},[pscustomobject]@{port=5234;address='192.168.1.46'})}
+$runId='a'*32;$root=Join-Path $newSettings.runtimeDirectory 'hub-web';$ref=[pscustomobject]@{role='hub';path=(Join-Path $root ('hub-web-process-'+$runId+'-0.json'));sha256=('1'*64);lineagePath=(Join-Path $root ('hub-web-lineage-'+$runId+'-0.json'));lineageSha256=('2'*64)}
+$tokens=@('C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $pin.packageRoot 'scripts\canonical\start-hub-web.ps1'),'-StartupConfigPath',$pin.config.path,'-Action','Start','-RunId',$runId,'-Attempt','0')
+$launcherArgv=(@($tokens|ForEach-Object{'"'+$_+'"'})-join' ')
+$script:lineage=[pscustomobject]@{schemaVersion=1;run=$runId;attempt=0;ownerSid=$owner;sourceCommit=$pin.sourceCommit;packageRoot=$pin.packageRoot;manifestSha256=$pin.manifestSha256;nodeSha256=$newSettings.node.sha256;watcher=[pscustomobject]@{pid=$watcher.pid;birth=$watcher.creationTime;sid=$owner;argv=$watcher.commandLine};launcher=[pscustomobject]@{pid=1500;parentPid=$watcher.pid;sid=$owner;birth='2026-10-18T17:00:01.0000000Z';argv=$launcherArgv};node=[pscustomobject]@{pid=$hub.pid;birth=$hub.creationTime;sid=$owner;argv=$hub.commandLine};startupConfig=[pscustomobject]@{path=$pin.config.path;sha256=$pin.config.sha256};operationConfig=[pscustomobject]@{path=$newSettings.privateSources.operationConfig.path;sha256=$newSettings.privateSources.operationConfig.sha256};hubConfig=[pscustomobject]@{path=$newSettings.privateSources.hubPinConfig.path;sha256=$newSettings.privateSources.hubPinConfig.sha256};startedAt=$hub.creationTime;bindings=@($hub.bindings|ForEach-Object{[pscustomobject]@{pid=$hub.pid;port=$_.port;address=$_.address}})}
+$script:pointer=[pscustomobject]@{pid=$hub.pid;run=$runId;attempt=0;sourceCommit=$pin.sourceCommit;packageRoot=$pin.packageRoot;port=5234;lineagePath=$ref.lineagePath;lineageSha256=$ref.lineageSha256;startedAt=$lineage.startedAt}
+$evidence=[pscustomobject]@{processes=@($hub,$watcher);receipts=@($ref)};$inventory=[pscustomobject]@{all=@([pscustomobject]@{ProcessId=$watcher.pid;ParentProcessId=$watcher.parentPid;ExecutablePath=$watcher.nodePath;CommandLine=$watcher.commandLine;CreationDate=[DateTime]::Parse($watcher.creationTime).ToUniversalTime();OwnerSid=$owner})}
+function ReadPinned($path,$sha){if($path-ceq$ref.lineagePath-and$sha-ceq$ref.lineageSha256){return ,[Text.Encoding]::UTF8.GetBytes(($script:lineage|ConvertTo-Json -Depth 12 -Compress))};if($path-ceq$ref.path-and$sha-ceq$ref.sha256){return ,[Text.Encoding]::UTF8.GetBytes(($script:pointer|ConvertTo-Json -Depth 12 -Compress))};throw 'FIXTURE_UNPINNED_READ'}
+$raw=$lineage|ConvertTo-Json -Depth 12 -Compress
+ExpectRejected 'frozen-case-sensitive' {FrozenHubLineage $evidence $hub $inventory}
+$birth=HubLineage $evidence $hub $inventory;'ROUTED_BIRTH='+$birth.ToUniversalTime().ToString('o');'SHELL_CHECKS='+$shellChecks
+if(($lineage|ConvertTo-Json -Depth 12 -Compress)-cne$raw){throw 'FIXTURE_LINEAGE_MUTATED'};'RAW_UNCHANGED=PASS'
+$lineage.operationConfig.sha256='0'*64;ExpectRejected 'non-argv-config-check' {HubLineage $evidence $hub $inventory};$lineage.operationConfig.sha256=$newSettings.privateSources.operationConfig.sha256
+$pointer.pid=999;ExpectRejected 'non-argv-pointer-check' {HubLineage $evidence $hub $inventory}
+`}`);
+ for(const n of ['frozen-case-sensitive','non-argv-config-check','non-argv-pointer-check'])assert.match(out,new RegExp('REJECTED='+n));assert.match(out,/ROUTED_BIRTH=2026-10-18T17:00:01.0000000Z/);assert.match(out,/SHELL_CHECKS=1/);assert.match(out,/RAW_UNCHANGED=PASS/);
+});
+
+test('PS5 OS file identity primitive distinguishes different disposable files and agrees for two held handles of one file',windows,()=>{
+ const out=run(`${fixture}\n${extract(['NewHubHandleInfo'])}\n${String.raw`
+$root=Join-Path ([IO.Path]::GetTempPath()) ('p03-new-hub-file-'+[Guid]::NewGuid().ToString('N'));[void][IO.Directory]::CreateDirectory($root);$streams=@()
+try{
+ $one=Join-Path $root 'one.bin';$two=Join-Path $root 'two.bin';[IO.File]::WriteAllBytes($one,[byte[]]@(1));[IO.File]::WriteAllBytes($two,[byte[]]@(1))
+ foreach($path in @($one,$one,$two)){$streams+=,[IO.File]::Open($path,'Open','Read','Read')}
+ $ids=@($streams|ForEach-Object{(NewHubHandleInfo $_)|ConvertTo-Json -Compress});if($ids[0]-cne$ids[1]-or$ids[0]-ceq$ids[2]){throw 'FIXTURE_OS_FILE_ID'};'OS_FILE_ID=PASS'
+}finally{foreach($stream in $streams){$stream.Dispose()};$resolved=[IO.Path]::GetFullPath($root);if(-not$resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase)-or[IO.Path]::GetFileName($resolved)-notmatch'^p03-new-hub-file-[a-f0-9]{32}$'){throw 'FIXTURE_TEMP_SCOPE'};[IO.Directory]::Delete($resolved,$true)}
+`}`);
+ assert.match(out,/OS_FILE_ID=PASS/);
+});
