@@ -42,7 +42,6 @@ try{
  $ports=if($rehearsal){@(4284,4286,5334,62710,62711,62712,62713,62714)}else{@(4184,4186,5234,62700,62701,62702,62703,62704)}
  $started=[DateTime]::UtcNow.ToString('o')
  # Unfiltered source inventories: selectors belong to the independently reviewed classifier.
- $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
  $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
  $schedule=New-Object -ComObject Schedule.Service
  $schedule.Connect()
@@ -55,6 +54,9 @@ try{
  }
  $tasks=@()
  foreach($name in $names){$t=$folder.GetTask($name);$xml=[string]$t.Xml;$tasks+=,[ordered]@{name=$name;state=[int]$t.State;xml=$xml}}
+ # Collect processes after the slower listener/COM/XML reads, immediately
+ # before selecting and authenticating their still-live identities.
+ $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
  # Full processes are retained only in memory; emitted command lines are limited
  # to the P03 release roots/watchers, old identities and target listener owners.
  $pids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})
@@ -71,7 +73,10 @@ try{
   $selected+= $children
  }while($children.Count -gt 0)
  $processes=@()
- foreach($p in $selected){
+ # Read the newest identities first so short-lived probe children are less
+ # likely to exit while older parents are queried. Every selected row and
+ # every owner/binary/command check is still required; no failure is skipped.
+ foreach($p in @($selected|Sort-Object CreationDate -Descending)){
   $sid=Invoke-CimMethod -InputObject $p -MethodName GetOwnerSid -ErrorAction Stop
   if($sid.ReturnValue -ne 0 -or -not $sid.Sid -or -not $p.ExecutablePath -or -not $p.CommandLine){throw 'P03_PROCESS_IDENTITY_UNAVAILABLE'}
   $processes+=,[ordered]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;ownerSid=[string]$sid.Sid;nodePath=[string]$p.ExecutablePath;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o')}
