@@ -108,7 +108,7 @@ test('rehearsal role binding detects extra listeners and accepts only its fixed 
  assert.match(rehearsalBindingsHarness(declared,actual),/ACCEPTED/);
  assert.match(rehearsalBindingsHarness(declared,[...actual,{OwningProcess:42,LocalPort:4999,LocalAddress:'127.0.0.1'}]),/REHEARSAL_ACTUAL_BINDING_COUNT/);
 });
-function rehearsalTaskHarness(badArgs=false,badPrincipal=false,omitRunLevel=false){
+function rehearsalTaskHarness(badArgs=false,badPrincipal=false,omitRunLevel=false,actualXml=null){
  const source=readFileSync(rollback,'utf8');
  const fn=source.slice(source.indexOf('function RehearsalTaskAction('),source.indexOf('function VerifyRehearsalClone'));
  const tokens=source.slice(source.indexOf('function Tokens('),source.indexOf('function VerifyRule('));
@@ -124,6 +124,7 @@ function rehearsalTaskHarness(badArgs=false,badPrincipal=false,omitRunLevel=fals
  $args='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$pkg+'\\p03-rehearsal-watch-core.ps1" -StartupConfigPath "C:\\fixture-settings-old.json" -StartupConfigSha256 '+('b'*64)
  ${badArgs?"$args='-NoProfile -File C:\\Sirket\\ERP\\releases\\live\\start.ps1'":""}
  $xml='<Task><Principals><Principal><UserId>S-1-5-21-fixture</UserId><LogonType>InteractiveToken</LogonType>${omitRunLevel?'':`<RunLevel>${badPrincipal?'HighestAvailable':'LeastPrivilege'}</RunLevel>`}</Principal></Principals><Triggers/><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><Enabled>true</Enabled></Settings><Actions><Exec><Command>C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($args)+'</Arguments><WorkingDirectory>'+$pkg+'</WorkingDirectory></Exec></Actions></Task>'
+ ${actualXml?"$xml=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+Buffer.from(actualXml).toString('base64')+"'))":''}
  try{RehearsalTaskAction $xml 'old' $names[0];'ACCEPTED'}catch{$_.Exception.Message}`;
  return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8'});
 }
@@ -179,4 +180,25 @@ test('new shared readback requires nine bindings for eight ports including both 
 test('rehearsal task accepts omitted RunLevel as Limited and still rejects Highest',windows,()=>{
  assert.match(rehearsalTaskHarness(false,false,true),/ACCEPTED/);
  assert.match(rehearsalTaskHarness(false,true,false),/REHEARSAL_TASK_PRINCIPAL_SETTINGS/);
+});
+
+// Sanitized Windows-exported task XML from actual run93cb: omitted Enabled and RunLevel.
+const actualExportedTaskXml="<?xml version=\"1.0\" encoding=\"UTF-16\"?>\r\n<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\r\n  <RegistrationInfo>\r\n    <Description>P03 isolated SQL-free OS recovery rehearsal</Description>\r\n    <URI>\\Melisa-P03-Rehearsal-Core</URI>\r\n  </RegistrationInfo>\r\n  <Principals>\r\n    <Principal id=\"Author\">\r\n      <UserId>S-1-5-21-fixture</UserId>\r\n      <LogonType>InteractiveToken</LogonType>\r\n    </Principal>\r\n  </Principals>\r\n  <Settings>\r\n    <DisallowStartIfOnBatteries>true</DisallowStartIfOnBatteries>\r\n    <StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>\r\n    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>\r\n    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\r\n    <IdleSettings>\r\n      <Duration>PT10M</Duration>\r\n      <WaitTimeout>PT1H</WaitTimeout>\r\n      <StopOnIdleEnd>true</StopOnIdleEnd>\r\n      <RestartOnIdle>false</RestartOnIdle>\r\n    </IdleSettings>\r\n  </Settings>\r\n  <Triggers />\r\n  <Actions Context=\"Author\">\r\n    <Exec>\r\n      <Command>C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe</Command>\r\n      <Arguments>-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File \"C:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-11111111111111111111111111111111\\packages\\old\\p03-rehearsal-watch-core.ps1\" -StartupConfigPath \"C:\\fixture-settings-old.json\" -StartupConfigSha256 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</Arguments>\r\n      <WorkingDirectory>C:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-11111111111111111111111111111111\\packages\\old</WorkingDirectory>\r\n    </Exec>\r\n  </Actions>\r\n</Task>";
+test('actual exported task XML semantic defaults are accepted, explicit disable/elevation rejected',windows,()=>{
+ assert.match(rehearsalTaskHarness(false,false,false,actualExportedTaskXml),/ACCEPTED/);
+ for(const xml of [actualExportedTaskXml.replace('</Settings>','<Enabled>false</Enabled></Settings>'),actualExportedTaskXml.replace('</Principal>','<RunLevel>HighestAvailable</RunLevel></Principal>')]){assert.match(rehearsalTaskHarness(false,false,false,xml),/REHEARSAL_TASK_PRINCIPAL_SETTINGS/);}
+});
+
+test('CRM manifest source uses its explicit v1 TEST repository schema rather than ERP sourceCommit',windows,()=>{
+ const source=readFileSync(rollback,'utf8');const fn=source.slice(source.indexOf('function PackageManifestSource('),source.indexOf('function RehearsalTaskAction('));
+ const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ function Need($c,$code){if(-not $c){throw ('P03_PHYSICAL_'+$code)}}
+ ${fn}
+ $isRehearsal=$false;$oldSettings=[pscustomobject]@{components=[pscustomobject]@{crm=[pscustomobject]@{packageRoot='C:\\crm-old'}}};$newSettings=$oldSettings;$pkg=[pscustomobject]@{root='C:\\crm-old'}
+ $m='{"schemaVersion":1,"kind":"melisa-crm-test-package","environment":"TEST","source":{"repository":"https://github.com/melihsnyldzz-ui/melisa-crm.git","commit":"439b63db8376a6b9d3ac8baa625ed98367022623","tree":"0e58a21cdb2f20015ee8ac5db4ddb285bb3f3f5e"}}'|ConvertFrom-Json
+ PackageManifestSource $m $pkg
+ $m.environment='LIVE';try{PackageManifestSource $m $pkg}catch{$_.Exception.Message}
+ $pkg.root='C:\\erp';try{PackageManifestSource $m $pkg}catch{$_.Exception.Message}`;
+ const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});
+ assert.match(out,/439b63db8376a6b9d3ac8baa625ed98367022623/);assert.match(out,/CRM_MANIFEST_SCHEMA/);assert.match(out,/MANIFEST_SOURCE_SCHEMA/);
 });

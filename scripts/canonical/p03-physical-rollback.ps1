@@ -107,20 +107,35 @@ function RehearsalBindings([string]$role,$process,$inventory){
  Need ($actual.Count -eq $expectedPorts.Count) 'REHEARSAL_ACTUAL_BINDING_COUNT'
  foreach($port in $expectedPorts){Need (@($actual|Where-Object{$_.LocalPort -eq $port -and $_.LocalAddress -ceq '127.0.0.1'}).Count -eq 1) 'REHEARSAL_ACTUAL_BINDING'}
 }
+function PackageManifestSource($manifest,$pkg){
+ $isCrm=(-not $isRehearsal -and ($pkg.root -ceq $oldSettings.components.crm.packageRoot -or $pkg.root -ceq $newSettings.components.crm.packageRoot))
+ if($isCrm){
+  Need ($manifest.PSObject.Properties.Name -ccontains 'schemaVersion' -and $manifest.schemaVersion -eq 1 -and $manifest.kind -ceq 'melisa-crm-test-package' -and $manifest.environment -ceq 'TEST' -and $manifest.source.repository -ceq 'https://github.com/melihsnyldzz-ui/melisa-crm.git' -and $manifest.source.commit -cmatch '\A[a-f0-9]{40}\z' -and -not ($manifest.PSObject.Properties.Name -ccontains 'sourceCommit')) 'CRM_MANIFEST_SCHEMA'
+  return [string]$manifest.source.commit
+ }
+ Need ($manifest.PSObject.Properties.Name -ccontains 'sourceCommit') 'MANIFEST_SOURCE_SCHEMA'
+ return [string]$manifest.sourceCommit
+}
 function RehearsalTaskAction([string]$xml,[string]$generation,[string]$name){
  if(-not $isRehearsal){return}
+ try{
  Need ($xml -notmatch '<!DOCTYPE|<!ENTITY') 'REHEARSAL_XML_ENTITY'
  try{[xml]$doc=$xml}catch{throw 'P03_PHYSICAL_REHEARSAL_TASK_XML'}
- $runLevels=$doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']/*[local-name()='RunLevel']")
- Need ($runLevels.Count -le 1) 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
- $limitedRunLevel=($runLevels.Count -eq 0 -or $runLevels[0].InnerText -ceq 'LeastPrivilege')
+ function XmlValue([string]$xpath,[string]$default,[bool]$required=$false){
+  $nodes=$doc.SelectNodes($xpath);Need ($nodes.Count -le 1 -and (-not $required -or $nodes.Count -eq 1)) 'REHEARSAL_TASK_XML_SHAPE'
+  if($nodes.Count -eq 0){return $default};return [string]$nodes[0].InnerText
+ }
+ $principal="/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']"
+ $settings="/*[local-name()='Task']/*[local-name()='Settings']"
+ $exec="/*[local-name()='Task']/*[local-name()='Actions']/*[local-name()='Exec']"
  $component=if($generation -ceq 'old'){$oldSettings.supervisor}else{$newSettings.supervisor};$ref=if($generation -ceq 'old'){$profile.oldSettings}else{$profile.newSettings}
  $leaf=if($name -ceq $names[0]){'p03-rehearsal-watch-core.ps1'}else{'p03-rehearsal-watch-hub.ps1'}
  $expected=@('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $component.packageRoot $leaf),'-StartupConfigPath',$ref.path,'-StartupConfigSha256',$ref.sha256)
- Need ($name -cin $names -and @($doc.Task.Actions.ChildNodes).Count -eq 1 -and $doc.Task.Principals.Principal.UserId -ceq $owner -and $doc.Task.Actions.Exec.Command -ceq $expected[0] -and $doc.Task.Actions.Exec.WorkingDirectory -ceq $component.packageRoot) 'REHEARSAL_TASK_ACTION'
- Need ($doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']").Count -eq 1 -and $doc.Task.Principals.Principal.LogonType -ceq 'InteractiveToken' -and $limitedRunLevel -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Triggers']/*").Count -eq 0 -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Settings']/*[local-name()='RestartOnFailure']").Count -eq 0 -and $doc.Task.Settings.MultipleInstancesPolicy -ceq 'IgnoreNew' -and $doc.Task.Settings.Enabled -ceq 'true') 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
- Need (((Tokens ('"'+$doc.Task.Actions.Exec.Command+'" '+$doc.Task.Actions.Exec.Arguments))|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)) 'REHEARSAL_TASK_ARGV'
+ Need ($name -cin $names -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Actions']/*").Count -eq 1 -and (XmlValue ($principal+"/*[local-name()='UserId']") '' $true) -ceq $owner -and (XmlValue ($exec+"/*[local-name()='Command']") '' $true) -ceq $expected[0] -and (XmlValue ($exec+"/*[local-name()='WorkingDirectory']") '' $true) -ceq $component.packageRoot) 'REHEARSAL_TASK_ACTION'
+ Need ($doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']").Count -eq 1 -and (XmlValue ($principal+"/*[local-name()='LogonType']") '' $true) -ceq 'InteractiveToken' -and ((XmlValue ($principal+"/*[local-name()='RunLevel']") 'LeastPrivilege') -ceq 'LeastPrivilege') -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Triggers']/*").Count -eq 0 -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Settings']/*[local-name()='RestartOnFailure']").Count -eq 0 -and (XmlValue ($settings+"/*[local-name()='MultipleInstancesPolicy']") 'IgnoreNew') -ceq 'IgnoreNew' -and (XmlValue ($settings+"/*[local-name()='Enabled']") 'true') -ceq 'true') 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
+ Need (((Tokens ('"'+(XmlValue ($exec+"/*[local-name()='Command']") '' $true)+'" '+(XmlValue ($exec+"/*[local-name()='Arguments']") '' $true)))|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)) 'REHEARSAL_TASK_ARGV'
  Need ($profile.shell.path -ceq $expected[0]) 'REHEARSAL_TASK_SHELL';NoReparse $profile.shell.path;Need ((Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'REHEARSAL_TASK_SHELL_HASH'
+ }catch{if($_.Exception.Message -cmatch '^P03_PHYSICAL_'){throw};throw 'P03_PHYSICAL_REHEARSAL_TASK_XML_SHAPE'}
 }
 function VerifyRehearsalClone{
  if(-not $isRehearsal){return}
@@ -498,7 +513,7 @@ foreach($pkg in $profile.packages){
  NoReparse $pkg.manifestPath
  Need ([IO.Path]::GetFullPath($pkg.manifestPath) -ceq (Join-Path $pkg.root 'release-manifest.json')) 'MANIFEST_PATH'
  $manifestBytes=[IO.File]::ReadAllBytes($pkg.manifestPath);Need ((Hash $manifestBytes) -ceq $pkg.manifestSha256) 'MANIFEST_HASH';$manifest=Json $manifestBytes
- Need ($manifest.sourceCommit -ceq $pkg.sourceCommit) 'MANIFEST_SOURCE'
+ Need ((PackageManifestSource $manifest $pkg) -ceq $pkg.sourceCommit) 'MANIFEST_SOURCE'
  Need (@($manifest.files).Count -gt 0) 'MANIFEST_EMPTY'
  foreach($file in $manifest.files){
   $filePath=[IO.Path]::GetFullPath((Join-Path $pkg.root $file.path));Need ($filePath.StartsWith($pkg.root+'\',[StringComparison]::OrdinalIgnoreCase)) 'PACKAGE_ESCAPE';NoReparse $filePath
