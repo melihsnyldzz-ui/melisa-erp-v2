@@ -10,6 +10,8 @@ Bu yalnız kaynak bütünleştirmesidir. Backend varsayılan kapalı, native TRY
 
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
+18 Ekim — P03 kısmi başlangıç aday kimliği saf kaynak `7d2d05f`, 9 test, bağımsız koşullu GO ve exact push/PR CI SUCCESS; yabancı/önceki PID ve Hub/COM/port sapmaları reddedilir, `stopPermitted:false`. Gerçek filtresiz OS gözlemi, kısmi kurtarma ve kurulum yok; P03 🟡/özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
+
 18 Ekim — P03 ERP1a/CRM6bc/supervisorba65/e442 yeni OS callback v3 kaynağı `3e26eaf` 18 test, bağımsız GO ve exact iki CI SUCCESS; eski profil korunur. Fiziksel before-image/kurtarma/kurulum/GUI yok; P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
 
 18 Ekim — P03 ayrı kurtarma günlüğü okuyucu ve CAS/ilk niyet belirsizliği kaynakta `cf0110e`/`e0005b2` ile kapatıldı; 80 ilgili P03 testinin platforma uygun CI bağlantısı `4145dde`, exact push/PR SUCCESS ve bağımsız kaynak incelemesi GO. Gerçek OS collector/kurtarma çağıranı/kurulum yok; P03 🟡 ve özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).

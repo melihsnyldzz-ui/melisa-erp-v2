@@ -1,5 +1,45 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
 
+## 18 Ekim — taze DB02 yedeği ve geri dönüş dosyaları; PR53 kurulumu NO-GO
+
+Kullanıcının açık TEST yedek/geri dönüş hazırlığı ve koşullu kurulum talimatıyla
+yalnız DB02 üzerinde yeni COPY_ONLY/CHECKSUM yedeği alındı. Exact sunucu/DB/iki
+mantıksal dosya ve SQL kimliği doğrulandı. C boş alanı253,9GB, muhafazakâr gereksinim
+25,8GB: önceki kapasite engeli bu gözlem için kalktı. Yeni
+`scripts/canonical/p03-test-backup.ps1` bağımsız salt okunur incelemede yalnız yedek
+işlemi için GO aldı; kaynak restore/DDL/DML/restart/deploy çalıştırmaz.
+
+Korumalı yerel kanıt: `C:/Sirket/ERP/backups/P03-20261018-121000/`.
+`DB02_COPY_ONLY.bak`9.272.360.960 bayt; SHA256
+`3a5a142b9d2341a6a73d95c8e18104d3f7be189bc8d29421fc41cb0fde931e97`.
+BackupSetGUID `53624858-a2d3-47a5-93ff-c7d057924e86`; UTC09:16:28–09:17:11.
+HEADERONLY exactDB/copyonly/checksum/type/damage ve VERIFYONLY WITH CHECKSUM geçti.
+Bu ayrı DB restore provası veya bağımsız cihaz kopyası değildir.
+
+`runtime-before/` yalnız owner+SYSTEM ACL ile mevcut be8 ayarı, privateSources,
+crmPrivateFiles/dependencyLocks ve altı süreç makbuzundan19 dosyayı hash ile
+yedekledi; iki görev XML'i saklandı. UTC09:18:39 son kontrolünde kaynak/kopya19hash,
+ikiXML ve yedi listenerPID/binding aynı;4184/4186/5234 sağlığı aynıDB02/copye16b/
+T1false ve eski f5 paketini gösteriyor. Task action/TESTconfig/servis değişmedi.
+
+**Kurulum NO-GO:** Fiziksel stopper `stopAvailable:false`;14callback bekleyen
+recovery assembly tam Windows yürütücüsü değil. Before-image oluşturucunun
+LocalAppData yolu ile recovery'nin beklediği reports/v3 yolu aynı ham hash/referans
+zincirine bağlanmamış. Eski action'ları geri getirip boş portta biten recovery,
+eski TEST'i yeniden çalışır doğrulayan rollback değildir. PR53 exact
+`7abf962a6446eb3a800babd5b54312a8b913d814`, ERP1a'dan25commit ileride ve gerekli
+stack API düzeltmelerini de içeriyor; ERP1a/CRM6bc/ba65/e442 pinleri kullanılamaz.
+Yeni immutable paket/sonlu profil ile fiziksel recovery/readback/releaseGO gerekir.
+PR53 exactCI başarılı; yeni kurulum/normal ekran/insan kabulü yapılmadı. BackupGO
+kurulumGO sayılmadı. ÇalışanTEST stop/restart, ticariSQLyazı, LIVE/Vega çağrısı0;
+özgün49/9/39/1 ve USER_ACCEPTANCE aynı.
+
+## 18 Ekim — kısmi START kimliği kaynak kanıtı, fiziksel durdurma kapalı
+
+[PR41 `7d2d05f`](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/7d2d05f461fce2695352ca295ab69a064939255c) ilk veya ikinci TaskScheduler başlangıcı yarıda kaldığında eksik rolleri tam kurulum saymadan, bildirilen her yeni süreci ERP1a/CRM6bc/supervisorba65/e442 sabitleriyle koşullu sınıflandırır. Eski on PID'yi, yabancı dinleyiciyi, çift COM örneğini, yanlış owner/argv/birth ve ham receipt SHA/ACL/Hub lineage sapmalarını reddeder; Schedule servisinin bu hostta görülen açık access-denied/CIM-empty işaretini ayrı kabul eder. `stopPermitted:false` ve replay izni yok. 9/9 hedefli test, bağımsız salt okunur kaynak incelemesi **yalnız koşullu GO**, exact [push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39077234512)/[PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39077239027) SUCCESS.
+
+Özel salt okunur kısmi envanter dönüştürücüsü yalnız çağıranın ham verisiyle sentetik test edildi. Kaynak `processScope` etiketi, gerçek CIM/COM/port toplamasının eksiksizliğini fiziksel olarak kanıtlamaz; süreç durdurma yetkisi veya ortak TEST Apply sonucu çıkarılmaz. Pinli filtresiz Windows toplayıcısı, kısmi START için exact-owner stop/karantina ve ayrı dayanıklı recovery çağıranı, DB02 değişmezliği/rollback ve Hub oluşturma-anı kanıtı hâlâ açık. Eski f5/439/2bf görevlere veya SQL/ticari veriye bu alt adımda yazı0; normal GUI/cihaz/insan kabulü ayrı.
+
 ## 18 Ekim — yeni profil callback ve kalan fiziksel geçiş
 
 [PR41 `3e26eaf`](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/3e26eafb474f6df986c0c236586385af377e7248) önceki e0e/c401 callback'ine dokunmadan ERP1a/CRM6bc/supervisorba65/e442 için ayrı v3 kaynak kapısı ekledi. Harici SHA ile sabitlenmiş korumalı before-image ham baytları, be8 eski ayarı, exact paket/source/manifest pinleri, DB02/T1false/owner, durdurma sonrası gerçek Windows `Ready` durumu, boş COM görev örnekleri ve watcher envanteri, stop tamamlandıktan sonraki gözlem zamanı ve belirsiz action yazısında fail-closed yol hedefli sentetik testlerle sınandı. 18/18 callback+geçiş testi, bağımsız salt okunur inceleme GO, exact [push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39073231309)/[PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39073234286) SUCCESS.
