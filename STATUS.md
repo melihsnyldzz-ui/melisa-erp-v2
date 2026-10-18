@@ -1,3 +1,9 @@
+## 18 Ekim — PR53 ortak TEST adayı; etkinleştirme NO-GO
+
+PR53 exact7abf962 ve P03 kaynakları ayrı feature dalında birleşti. Seçili uygulama e59e07abf7ae2567cdc2adb93811fe29e0032fe5, manifest2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7; exact uygulama CI39116671327 SUCCESS. Supervisor13bdf75a032ae8f694354a2e57b6ed382aec2f17, manifest195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624; exact CI39116974204 SUCCESS. CRM6bc/e276 aynı. Sonlu e59 hazırlayıcı b6 CI39117369619 SUCCESS; Windows writer modül yükleme düzeltmesi78760528 ve5 hedef test/bağımsız kaynak GO ayrı teslimdir. Bu kaynaklar kurulum değildir.
+
+18 Ekim ayrı SQL restore salt okunur ONLINE ve tam DBCC CHECKDB geçti; gerçek kayıt PR41 kaynak2c6ca36 ve mevcut ortak TEST kanıt belgesindedir. Fiziksel servis recovery helperları ortak TEST görev/portlarına sabit: ayrı sandbox üzerinde gerçek partial-start→StopNew→RollbackOld provası desteklenmiyor. Uzun51TABLOCK veri taraması busy TEST üzerinde tekrarlanmadı. Bu yüzden PR53 etkinleştirme NO-GO; çalışan f5/439/2bf TEST korunur. Kaynak/pasif hazırlık, kurulum, normal GUI ve insan kabulü ayrıdır; LIVE/main merge/gerçek ticari işlem yok.
+
 ## 18 Ekim — v75 ekran düzeni güncel teknik adayda
 
 PR52 exact `676c4d086864ecc53315145341665d16dc5fd40d` tabanından `codex/erp-office-layout-v75-20261018`: İş sırası, mal kabul/alış, müşteri bakiyesi–fiş kalan ayrımı, tahsilat, iade/onay sunumu mevcut API controller'larına uyarlandı. 264/264 birleşik hedefli offline test, derleme ve bağımsız ikinci inceleme GO; kasa ayrıntısı yenileme ve görünür sayım uyarısı regresyonları düzeltildi. Exact-head CI feature PR Checks'te ayrı izlenir. Yeni browser/dar ekran kontrolü yönetilen önizleme `bwrap` ortam hatası nedeniyle NOT_RUN; önceki v75 görüntüleri yeni aday kanıtı değil.
