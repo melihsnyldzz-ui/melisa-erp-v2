@@ -38,6 +38,9 @@ test('whole physical observation recaptures only the frozen transient identity e
  const frame={processes:[{pid:123}],tasks:[{state:4}],bindings:[{port:4184}]};let calls=0;
  const recovered=await pr54CollectPhysicalObservation(async()=>{calls++;if(calls===1)throw Object.assign(Error('redacted'),{stderr:'P03_PROCESS_IDENTITY_UNAVAILABLE'});return frame;});
  assert.equal(calls,2);assert.equal(recovered,frame);
+ const cimFailure=Object.assign(Error('private'),{stderr:'FullyQualifiedErrorId : HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand\r\n'});let cimCalls=0;
+ assert.equal(pr54SafeFailure(cimFailure),'P03_OBSERVER_CIM_OBJECT_NOT_FOUND');assert.equal(await pr54CollectPhysicalObservation(async()=>{if(++cimCalls===1)throw cimFailure;return frame;}),frame);assert.equal(cimCalls,2);
+ for(const stderr of ['FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand','FullyQualifiedErrorId : HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand','unrelated 0x80041002 not found']){let attempts=0;const error=Object.assign(Error('private'),{stderr});assert.equal(pr54SafeFailure(error),'UNCLASSIFIED_IO_FAILURE');await assert.rejects(pr54CollectPhysicalObservation(async()=>{attempts++;throw error;}),e=>e===error);assert.equal(attempts,1);}
  for(const code of ['P03_OWNER','P03_BEFORE_HASH','P03_SHARED_FOREIGN_CANDIDATE','ETIMEDOUT']){
   let rejectedCalls=0;const failure=Error(code);await assert.rejects(pr54CollectPhysicalObservation(async()=>{rejectedCalls++;throw failure;}),error=>error===failure);assert.equal(rejectedCalls,1);
  }

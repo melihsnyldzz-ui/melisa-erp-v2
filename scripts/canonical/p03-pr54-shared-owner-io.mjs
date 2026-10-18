@@ -24,12 +24,12 @@ function pin(ref){need(ref&&/^[a-f0-9]{64}$/.test(ref.sha256),'PIN_FORMAT');cons
 function read(ref){return JSON.parse(pin(ref));}
 const preciseTime=value=>typeof value==='string'?value.replace(/(\.\d{6})Z$/,(_,digits)=>digits+'0Z'):null;
 const sameIdentity=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','commandLine'].every(k=>a[k]===b[k])&&preciseTime(a.creationTime)===preciseTime(b.creationTime);
-export function pr54SafeFailure(error){const text=String(error?.message??'')+' '+String(error?.stderr??'');const fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];return ['ENOENT','EACCES','ENAMETOOLONG','ETIMEDOUT','EPIPE'].includes(error?.code)?error.code:'UNCLASSIFIED_IO_FAILURE';}
+export function pr54SafeFailure(error){const text=String(error?.message??'')+' '+String(error?.stderr??'');const fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];if(/FullyQualifiedErrorId\s*:\s*HRESULT 0x80041002,Microsoft\.Management\.Infrastructure\.CimCmdlets\.InvokeCimMethodCommand(?:\s|$)/i.test(String(error?.stderr??'')))return 'P03_OBSERVER_CIM_OBJECT_NOT_FOUND';return ['ENOENT','EACCES','ENAMETOOLONG','ETIMEDOUT','EPIPE'].includes(error?.code)?error.code:'UNCLASSIFIED_IO_FAILURE';}
 // A probe can exit between the frozen observer's CIM list and owner read. A
 // retry obtains a whole new observation; no partial frame is reused or admitted.
 export async function pr54CollectPhysicalObservation(collect){
  for(let attempt=0;attempt<3;attempt++){
-  try{return await collect();}catch(error){if(pr54SafeFailure(error)!=='P03_PROCESS_IDENTITY_UNAVAILABLE'||attempt===2)throw error;}
+  try{return await collect();}catch(error){if(!['P03_PROCESS_IDENTITY_UNAVAILABLE','P03_OBSERVER_CIM_OBJECT_NOT_FOUND'].includes(pr54SafeFailure(error))||attempt===2)throw error;}
  }
 }
 export function pr54StopObservationSummary(seen,before,profile){const old=[...Object.values(before.identities),...profile.oldWatchers];return {tasks:seen.tasks.map(t=>({name:t.name,state:t.state})),runningInstances:seen.runningInstances.length,remainingOld:old.filter(e=>seen.processes.some(p=>sameIdentity(p,e))).map(e=>e.pid),watcherMatches:seen.processes.filter(p=>/watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1/i.test(p.commandLine)).map(p=>({pid:p.pid,parentPid:p.parentPid,captured:old.some(e=>sameIdentity(p,e))})),consoleParents:seen.processes.filter(p=>typeof p.nodePath==='string'&&p.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe').map(p=>({pid:p.pid,parentPid:p.parentPid,parentPresent:seen.processes.some(q=>q.pid===p.parentPid),parentCaptured:old.some(q=>q.pid===p.parentPid)}))};}
