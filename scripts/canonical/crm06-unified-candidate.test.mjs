@@ -127,6 +127,7 @@ test('unified scheduled PowerShell Hub entry preserves the exact case-sensitive 
  expected.push({config:runtime+'\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json',source:unifiedSource});
  expected.push({config:crm06StaffSuccessorProfile('6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','erp-crm-integrated-20261017').nextPaths.settings,source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'});
  expected.push({config:crm06StaffSuccessorProfile('6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','erp-crm-hub-lineage-20261017').nextPaths.settings,source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'});
+ expected.push({config:crm06StaffSuccessorProfile('6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','erp-crm-pr53-20261018').nextPaths.settings,source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'});
  assert.deepEqual(pairs,expected);for(const pair of pairs)assert.equal(assertErpHubProfile(pair.config,pair.source),true);
  assert.equal(block[1].replace(pattern,'').replace(/default \{throw 'ERP_HUB_WAIT_CONFIG_SCOPE'\}/,'').trim(),'');
  const next=expected.at(-1);assert(!pairs.some(pair=>pair.config===next.config.toUpperCase()));assert(!pairs.some(pair=>pair.config===next.config+'-other'));
