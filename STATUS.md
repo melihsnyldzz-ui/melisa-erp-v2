@@ -1,3 +1,7 @@
+## 18 Ekim — PR54 konsol düzeltmesi hazır; gerçek kurtarma sırada
+
+Dar paused OLD helper düzeltmesi, durmuş53356 watcher'ının exact42036 konsolunu ayrı doğrular; sekiz OLD stop hedefi ve donmuşfe motoru korunur. Önceki başarısız intent/failure değişmeden sabitlenir, yeni console-recovery girişinin CreateNew kanıtları ayrıdır. Root18/18Windows test/bağımsız GO, gerçek salt okunur DryRun8OLD+2console ve mutation=false. Kaynak exact CI, gerçek kurtarma, iki tam gözetmen readback'i ve mevcut e59/13b/6bc adayın kurulumu henüz ayrı bekler. Global639kilidi silinmez; tek-successor devir hazırlığı sürer. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md). Aşağıdaki17:46 sonuç önceki gerçek durumdur; insan PASS/sayaç artışı yok.
+
 ## 18 Ekim — PR54: izole geri dönüş PASS; ortak TEST kurulumu ENGELLİ
 
 Recovery motoru artık ayrı literal rehearsal görev/portlarını destekliyor. Aynıfe053 motoruyla gerçek SQL'siz partial-start→StopNew→RollbackOld→30snRESTORED_READY ve tekrar rollback reddi PASS; izole SQL restore/DBCC ve Pre COPY_ONLY yedeği ayrı PASS. Bu, gerçek ERP uygulaması rollback veya yeni aday kurulum kabulü değildir.

@@ -1,4 +1,12 @@
 # P02/P03 — Hazır ERP ve CRM kaynaklarının ortak TEST teslimi
+
+## 18 Ekim — PR54 tarihsel konsol için dar kurtarma düzeltmesi
+
+Kullanıcının PR54'ten devam talimatıyla eski watcher53356'nın portsuz ve Microsoft imzalı conhost42036 çocuğu için ayrı, tek kimlikli admission eklendi. Mühürlü639 profil/before zinciri, exact PID/parent/doğum/SID/argv, c861 binary/signature ve listener yokluğu doğrulanır. Genel yardımcı kabulü açılmaz; uygulama stop hedefleri aynı sekiz OLD roldür, conhost doğrudan öldürülmez. Konsolun doğal yokluğu bütün bağlı OLD uygulamalar çıktıktan sonra doğrulanır. İlk ve ara envanterler aynı watcher/yardımcı descendant kapsamını kullanır.
+
+Önceki failed intent/failure ham hashleri ve core-cut/result yokluğu yetki zincirine bağlandı; eski dosyalar değiştirilmez. Yeni giriş ayrı create-only `paused-old-console-recovery-*` kanıtlarıdır. Kısa ömürlü readonly monitor probe eksik metadata ile gerçekten çıkmışsa yalnız tüm envanter yeniden okunur; canlı, yabancı veya PID reuse durumu reddedilir. Donmuş fiziksel motor fe053 değişmedi.
+
+Önce4failing fixture, son root18/18Windows hedefli test ve bağımsız inceleme GO; yeni10test ve mevcut8test Windows hosted CI adımına bağlandı. Gerçek salt okunur DryRun:8OLD/1normalconsole/1tarihselconsole/probe0, mutationExecuted=false. Bu kaynak/ön kontrol kanıtı **gerçek Recover veya TEST kurulumu değildir**. Sonraki kontrollü kurtarma, iki gözetmen/COM/receipt/kararlılık ve yeni aday kurulumu ayrı geri okunacaktır. Mevcut global639 kilidi/journal korunur; sonraki Apply için tek-successor devir hazırlığı sürer. İnsan kabulü ve özgün49/25 sayıları değişmedi.
 ## 18 Ekim — PR54 son durum: izole geri dönüş PASS; ortak TEST kurulumu ENGELLİ
 
 **Yeni aday kurulmadı, yeni ekran kontrolü yapılmadı.** Çalışan eski TEST'in sekiz süreç kimliği ve mevcut port sahipleri korundu. Ancak iki eski gözetmen görevi durduruldu ve **Ready / COM0** kaldı; tam eski gözetmen düzeninin geri geldiği doğrulanmadı. Bu durum servislerin çalışmasıyla aynı kabul değildir. Kullanıcının "geçmezse çalışan TEST'i koru" koşuluyla başka uygulama durdurma, kör tekrar Apply veya kilit silme yapılmadı.

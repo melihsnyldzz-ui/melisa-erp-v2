@@ -34,15 +34,18 @@ $pins=@(
  @('transition.lock','aa00995da40dd5d2c4f5d5c6a9f3d71624e86e6ea3843aabc37197e714b1a1f4'),
  @('event-0000.json','fd09519005b519dbb953e6d030f66cf8e6c586bf15bd27043ce9d5dccec056a2'),
  @('event-0001.json','52e907db361e7aeb1e89976734cdccedab1a435747914ae48c9e73dbe12d72fa'),
+ @('paused-old-recovery-intent.json','6eb43d46509faeb8bef1b740c19d8410a33699232137a27576522be02f68f263'),
+ @('paused-old-recovery-failed.json','6bf3d88d0c866ae0c7c1f83df044e9b64f427e1565be6f82f5f6bbca8e0241b8'),
  @('p03-physical-recovery-observe.ps1','04f0039ad959fe7cdd1329cedf9bed0130c00d1f70a80352ab120cee0a5fb9a9'))
 function Authority{
  [void](BootPin $ProfilePath $ProfileSha256);[void](BootPin $BeforeImagePath $BeforeImageSha256);[void](BootPin $engine $engineSha)
  foreach($pin in $pins){$path=if($pin[0] -ceq 'p03-pr54-shared-owner.lock.json'){Join-Path $base $pin[0]}else{Join-Path $dir $pin[0]};[void](BootPin $path $pin[1])}
  Need (@(Get-ChildItem -LiteralPath $dir -Filter 'event-*.json' -File).Count -eq 2) 'PAUSED_TRANSITION_ADVANCED'
  Need (@(Get-ChildItem -LiteralPath $profile.journalDirectory -Force).Count -eq 0) 'PAUSED_ENGINE_JOURNAL'
+ Need (-not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-core-cut-observation.json')) -and -not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-recovery-result.json'))) 'PAUSED_PRIOR_NO_CORE_CUT'
 }
 function WriteEvidence([string]$leaf,$value){
- Need ($leaf -cin @('paused-old-recovery-intent.json','paused-old-recovery-failed.json','paused-old-recovery-result.json','paused-old-core-cut-observation.json')) 'PAUSED_WRITE_SCOPE'
+ Need ($leaf -cin @('paused-old-console-recovery-intent.json','paused-old-console-recovery-failed.json','paused-old-console-recovery-result.json','paused-old-console-core-cut-observation.json')) 'PAUSED_WRITE_SCOPE'
  $target=Join-Path $dir $leaf;Need (-not (Test-Path -LiteralPath $target)) 'PAUSED_ONCE'
  $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12 -Compress))
  $acl=[Security.AccessControl.FileSecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false)
@@ -54,6 +57,32 @@ $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$sc
 $script:tasksStopRequested=$false;$script:consolePins=@{};$script:parentPins=@{};$script:watcherPins=@{}
 $order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')
 $script:probePins=@{};$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false
+$script:legacyConsolePins=@{}
+function LegacyConsoleAuxiliaries($inv){
+ # One historical watcher child only. Never turn a missing parent into general
+ # admission, and never add this console to application stop targets.
+ $allowed=@();$rows=@($inv.all|Where-Object{$_.ProcessId -eq 42036})
+ if($rows.Count -eq 0){return $allowed}
+ Need ($rows.Count -eq 1) 'PAUSED_LEGACY_CONSOLE_COUNT';$p=$rows[0]
+ $watchers=@($profile.oldWatchers|Where-Object{$_.pid -eq 53356});Need ($watchers.Count -eq 1) 'PAUSED_LEGACY_WATCHER_PIN';$watcher=$watchers[0]
+ Need (@($inv.all|Where-Object{$_.ProcessId -eq $watcher.pid}).Count -eq 0) 'PAUSED_LEGACY_WATCHER_REUSED'
+ $core=$before.identities.coreSupervisor
+ Need ($core.parentPid -eq $watcher.pid -and $core.ownerSid -ceq $watcher.ownerSid -and [DateTime]::Parse($watcher.creationTime).ToUniversalTime() -le [DateTime]::Parse($core.creationTime).ToUniversalTime()) 'PAUSED_LEGACY_WATCHER_CHAIN'
+ $binary='C:\Windows\System32\conhost.exe'
+ $pin=[pscustomobject]@{pid=42036;parentPid=53356;nodePath=$binary;ownerSid=$watcher.ownerSid;commandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';creationTime='2026-10-16T22:56:21.0862000Z'}
+ Need ([DateTime]::Parse($watcher.creationTime).ToUniversalTime() -le [DateTime]::Parse($pin.creationTime).ToUniversalTime() -and [DateTime]::Parse($pin.creationTime).ToUniversalTime() -le [DateTime]::Parse($core.creationTime).ToUniversalTime() -and [DateTime]::Parse($core.creationTime).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime()) 'PAUSED_LEGACY_TIME_CHAIN'
+ Need ($p.Name -ieq 'conhost.exe' -and (Identity $p $pin)) 'PAUSED_LEGACY_CONSOLE_IDENTITY'
+ NoReparse $binary;Need ((Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq 'c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac') 'PAUSED_LEGACY_CONSOLE_BINARY'
+ $signature=Get-AuthenticodeSignature -LiteralPath $binary;Need ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -ceq 'CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US') 'PAUSED_LEGACY_CONSOLE_SIGNATURE'
+ Need (@($inv.allListeners|Where-Object{$_.OwningProcess -eq $pin.pid}).Count -eq 0) 'PAUSED_LEGACY_CONSOLE_LISTENER'
+ if($script:legacyConsolePins.ContainsKey(42036)){Need (($script:legacyConsolePins[42036]|ConvertTo-Json -Compress) -ceq ($pin|ConvertTo-Json -Compress)) 'PAUSED_LEGACY_CONSOLE_PIN_CHANGED'}else{$script:legacyConsolePins[42036]=$pin}
+ return ,42036
+}
+function WaitLegacyConsoleAbsence{
+ $until=[DateTime]::UtcNow.AddSeconds(20)
+ do{$inv=PausedRemaining;$live=@($inv.all|Where-Object{$_.ProcessId -in @($script:legacyConsolePins.Keys)});if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
+ Need $false 'PAUSED_LEGACY_CONSOLE_NOT_ABSENT'
+}
 function SourceBytes([string]$path,[string]$sha){NoReparse $path;$f=[IO.File]::Open($path,'Open','Read','None');try{$m=[IO.MemoryStream]::new();$f.CopyTo($m);$b=$m.ToArray();Need ((Hash $b) -ceq $sha) 'PAUSED_PROBE_SOURCE_HASH';return ,$b}finally{$f.Dispose()}}
 function ProbeArgumentsAllowed($argv,[string]$probe){
    foreach($role in @('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')){
@@ -82,7 +111,12 @@ function ProbeAuxiliaries($inv){
   Need ((-not $script:coreQuiesced -and -not $script:probeAdmissionFrozen) -or $known) 'PAUSED_NEW_PROBE_AFTER_CORE_EXIT'
   if($known){$pin=$script:probePins[[int]$p.ProcessId]}else{
    $parent=@($inv.all|Where-Object{$_.ProcessId -eq $core.pid});Need ($parent.Count -eq 1 -and (Identity $parent[0] $core)) 'PAUSED_PROBE_PARENT'
-   Need ($p.ExecutablePath -ceq $profile.shell.path -and $p.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($core.creationTime).ToUniversalTime()) 'PAUSED_PROBE_BINARY'
+   $sourceMatches=$p.ExecutablePath -ceq $profile.shell.path -and $p.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($core.creationTime).ToUniversalTime()
+   if((-not $p.ExecutablePath -or -not $p.CommandLine) -and (-not $p.ExecutablePath -or $p.ExecutablePath -ceq $profile.shell.path)){
+    $fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$p.ProcessId) -ErrorAction Stop)
+    if($fresh.Count -eq 0 -and $p.ParentProcessId -eq $core.pid -and $p.Name -ieq 'powershell.exe' -and $p.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($core.creationTime).ToUniversalTime()){throw 'P03_PAUSED_PROBE_EXIT_RECAPTURE'}
+   }
+   Need $sourceMatches 'PAUSED_PROBE_BINARY'
    $argv=Tokens ([string]$p.CommandLine);$matched=ProbeArgumentsAllowed $argv $probe
    Need $matched 'PAUSED_PROBE_ARGV'
    $pin=[pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=[string]$p.ExecutablePath;ownerSid=$core.ownerSid;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o')}
@@ -109,9 +143,9 @@ function PausedOldCore{
  $expected=@($selected|ForEach-Object{$e=$_;foreach($b in $e.bindings){[pscustomobject]@{port=$b.port;address=$b.address;pid=$e.pid}}})
  Need ($inv.listeners.Count -eq $expected.Count) 'PAUSED_BINDING_COUNT'
  foreach($b in $expected){Need (@($inv.listeners|Where-Object{$_.LocalPort -eq $b.port -and $_.LocalAddress -ceq $b.address -and $_.OwningProcess -eq $b.pid}).Count -eq 1) 'PAUSED_BINDING'}
- $probes=@(ProbeAuxiliaries $inv);$aux=@(ConsoleAuxiliaries $inv @($selected+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
+ $probes=@(ProbeAuxiliaries $inv);$aux=@(ConsoleAuxiliaries $inv @($selected+$probes));$aux+=@($probes|ForEach-Object{$_.pid});$aux+=@(LegacyConsoleAuxiliaries $inv)
  # All descendants remain relevant even if a captured parent has just disappeared.
- $relevant=[Collections.Generic.HashSet[int]]::new();foreach($e in $selected){[void]$relevant.Add([int]$e.pid)}
+ $relevant=[Collections.Generic.HashSet[int]]::new();foreach($e in $selected){[void]$relevant.Add([int]$e.pid)};foreach($w in $profile.oldWatchers){[void]$relevant.Add([int]$w.pid)};foreach($pidValue in @($script:legacyConsolePins.Keys)){[void]$relevant.Add([int]$pidValue)}
  foreach($p in $inv.all){foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){[void]$relevant.Add([int]$p.ProcessId)}};if(IsWatcherCommand ([string]$p.CommandLine)){[void]$relevant.Add([int]$p.ProcessId)}}
  do{$added=$false;foreach($p in $inv.all){if($relevant.Contains([int]$p.ParentProcessId) -and $relevant.Add([int]$p.ProcessId)){$added=$true}}}while($added)
  foreach($p in $inv.all){if($relevant.Contains([int]$p.ProcessId)){Need ($p.ProcessId -in @($selected|ForEach-Object{$_.pid}) -or $p.ProcessId -in $aux) 'PAUSED_FOREIGN_PROCESS'}}
@@ -121,8 +155,9 @@ function PausedRemaining{for($attempt=0;$attempt -lt 3;$attempt++){try{return Pa
 function PausedRemainingCore{
  Authority;PrepareProbeSource;$inv=PausedTasks;ProtectedProcesses $inv;$selected=@()
  foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});if($e.pid -in $script:drainedPids){Need ($p.Count -eq 0) 'PAUSED_DRAINED_PID_REAPPEARED';continue};Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'PAUSED_REMAINING_IDENTITY';$selected+=,$e}
- $probes=@(ProbeAuxiliaries $inv);$aux=@(ConsoleAuxiliaries $inv @($selected+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
- $relevant=[Collections.Generic.HashSet[int]]::new();foreach($e in $before.identities.PSObject.Properties){[void]$relevant.Add([int]$e.Value.pid)};foreach($w in $profile.oldWatchers){[void]$relevant.Add([int]$w.pid)};foreach($pidValue in @($script:consolePins.Keys)+@($script:probePins.Keys)){[void]$relevant.Add([int]$pidValue)}
+ foreach($w in $profile.oldWatchers){Need (@($inv.all|Where-Object{$_.ProcessId -eq $w.pid}).Count -eq 0) 'PAUSED_WATCHER_REUSED'}
+ $probes=@(ProbeAuxiliaries $inv);$aux=@(ConsoleAuxiliaries $inv @($selected+$probes));$aux+=@($probes|ForEach-Object{$_.pid});$aux+=@(LegacyConsoleAuxiliaries $inv)
+ $relevant=[Collections.Generic.HashSet[int]]::new();foreach($e in $before.identities.PSObject.Properties){[void]$relevant.Add([int]$e.Value.pid)};foreach($w in $profile.oldWatchers){[void]$relevant.Add([int]$w.pid)};foreach($pidValue in @($script:consolePins.Keys)+@($script:probePins.Keys)+@($script:legacyConsolePins.Keys)){[void]$relevant.Add([int]$pidValue)}
  foreach($p in $inv.all){foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){[void]$relevant.Add([int]$p.ProcessId)}};if(IsWatcherCommand ([string]$p.CommandLine)){[void]$relevant.Add([int]$p.ProcessId)}}
  do{$added=$false;foreach($p in $inv.all){if($relevant.Contains([int]$p.ParentProcessId) -and $relevant.Add([int]$p.ProcessId)){$added=$true}}}while($added)
  foreach($p in $inv.all){if($relevant.Contains([int]$p.ProcessId)){Need ($p.ProcessId -in @($selected|ForEach-Object{$_.pid}) -or $p.ProcessId -in $aux) 'PAUSED_DRAIN_FOREIGN_PROCESS'}}
@@ -133,15 +168,15 @@ function PausedRemainingCore{
 }
 function PausedEmpty{
  $inv=Inventory;ProtectedProcesses $inv;AssertEmpty $inv
- $captured=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})+@($script:consolePins.Keys)+@($script:probePins.Keys)
+ $captured=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})+@($script:consolePins.Keys)+@($script:probePins.Keys)+@($script:legacyConsolePins.Keys)
  foreach($p in $inv.all){Need ($p.ProcessId -notin $captured -and $p.ParentProcessId -notin $captured) 'PAUSED_OLD_DESCENDANT_REMAINS'}
 }
 $selected=PausedOld
-if($Mode -ceq 'DryRun'){[ordered]@{status='PAUSED_OLD_RECOVERY_DRY_RUN';mutationExecuted=$false;oldRoles=$selected.Count;auxiliaryCount=$script:consolePins.Count;authenticatedProbeCount=$script:probePins.Count;engineSha256=$engineSha}|ConvertTo-Json;return}
-Need (-not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-recovery-intent.json'))) 'PAUSED_ONCE'
+if($Mode -ceq 'DryRun'){[ordered]@{status='PAUSED_OLD_RECOVERY_DRY_RUN';mutationExecuted=$false;oldRoles=$selected.Count;auxiliaryCount=$script:consolePins.Count;legacyAuxiliaryCount=$script:legacyConsolePins.Count;authenticatedProbeCount=$script:probePins.Count;engineSha256=$engineSha}|ConvertTo-Json;return}
+Need (-not (Test-Path -LiteralPath (Join-Path $dir 'paused-old-console-recovery-intent.json'))) 'PAUSED_ONCE'
 $intentWritten=$false
 try{
- WriteEvidence 'paused-old-recovery-intent.json' ([ordered]@{event='PAUSED_OLD_RECOVERY_INTENT';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;observedAt=[DateTime]::UtcNow.ToString('o');oldPids=@($selected|ForEach-Object{$_.pid});consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values)})
+ WriteEvidence 'paused-old-console-recovery-intent.json' ([ordered]@{event='PAUSED_OLD_CONSOLE_RECOVERY_INTENT';priorIntentSha256='6eb43d46509faeb8bef1b740c19d8410a33699232137a27576522be02f68f263';priorFailureSha256='6bf3d88d0c866ae0c7c1f83df044e9b64f427e1565be6f82f5f6bbca8e0241b8';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;observedAt=[DateTime]::UtcNow.ToString('o');oldPids=@($selected|ForEach-Object{$_.pid});consolePins=@($script:consolePins.Values);legacyConsolePins=@($script:legacyConsolePins.Values);probePins=@($script:probePins.Values)})
  $intentWritten=$true;$script:drainedPids=@()
  foreach($role in $order){$inv=PausedRemaining;$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'PAUSED_DRAIN_IDENTITY';[void](ReadPinned $profile.stopper.path '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d')
   $proof=[ordered]@{pid=$e.pid;parentPid=$e.parentPid;nodePath=$e.nodePath;ownerSid=$e.ownerSid;commandLine=$e.commandLine;creationTime=[DateTime]::Parse($e.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')}
@@ -149,7 +184,7 @@ try{
   $codeHandle=[IO.File]::Open($profile.stopper.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
   try{$codeMemory=[IO.MemoryStream]::new();$codeHandle.CopyTo($codeMemory);Need ((Hash $codeMemory.ToArray()) -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'PAUSED_HELD_STOPPER'
    if($role -ceq 'coreSupervisor'){
-    WriteEvidence 'paused-old-core-cut-observation.json' ([ordered]@{event='PAUSED_OLD_CORE_CUT_OBSERVATION';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;observedAt=[DateTime]::UtcNow.ToString('o');core=$e;probePins=@($script:probePins.Values);consolePins=@($script:consolePins.Values)})
+    WriteEvidence 'paused-old-console-core-cut-observation.json' ([ordered]@{event='PAUSED_OLD_CORE_CUT_OBSERVATION';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;observedAt=[DateTime]::UtcNow.ToString('o');core=$e;probePins=@($script:probePins.Values);consolePins=@($script:consolePins.Values);legacyConsolePins=@($script:legacyConsolePins.Values)})
     $actualCore=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$e.pid) -ErrorAction Stop);Need ($actualCore.Count -eq 1 -and (Identity $actualCore[0] $e)) 'PAUSED_CORE_PRECUT_IDENTITY'
    }
    $result=& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'  -NoProfile -NonInteractive -File $profile.stopper.path -ExpectedJsonBase64 ([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress))))
@@ -163,7 +198,7 @@ try{
    Need ($liveProbes.Count -eq 0) 'PAUSED_PROBE_NOT_ABSENT'
   }
  }
- $script:capturedCandidatePids=@($selected|ForEach-Object{$_.pid});WaitConsoleAbsence;PausedEmpty;Authority
+ $script:capturedCandidatePids=@($selected|ForEach-Object{$_.pid});WaitLegacyConsoleAbsence;WaitConsoleAbsence;PausedEmpty;Authority
  foreach($entry in $profile.tasks){PausedEmpty;$t=$folder.GetTask($entry.name);Need ([int]$t.State -eq 3 -and (XmlHash ([string]$t.Xml)) -ceq $entry.oldXmlSha256) 'PAUSED_ACTION_CAS';[void]$folder.RegisterTask($entry.name,$entry.newXml,4,$owner,$null,3,$null);Need ((XmlHash ([string]$folder.GetTask($entry.name).Xml)) -ceq $entry.newXmlSha256) 'PAUSED_ACTION_READBACK'}
  # Candidate is ACTUALLY empty; no synthetic processes, receipts, COM or recovery events.
  PausedEmpty;$candidatePath=Join-Path $base ('MelisaERP-P03-candidate-'+[Guid]::NewGuid().ToString('N')+'.json')
@@ -175,6 +210,6 @@ try{
  $common=@{Environment='Shared';ProfilePath=$ProfilePath;ProfileSha256=$ProfileSha256;BeforeImagePath=$BeforeImagePath;BeforeImageSha256=$BeforeImageSha256}
  [void](ReadPinned $engine $engineSha);$recovered=(& $engine @common -Mode StopNew -CandidatePath $candidatePath -CandidateSha256 $candidateSha)|ConvertFrom-Json;Need ($recovered.status -ceq 'RECOVERED_OLD_ACTIONS') 'PAUSED_ENGINE_RECOVERY'
  [void](ReadPinned $engine $engineSha);$ready=(& $engine @common -Mode RollbackOld -RecoveryTailSha256 $recovered.journalTailSha256)|ConvertFrom-Json;Need ($ready.status -ceq 'RESTORED_READY' -and $ready.stableSeconds -ge 30) 'PAUSED_RESTORED'
- WriteEvidence 'paused-old-recovery-result.json' ([ordered]@{status='PAUSED_OLD_RESTORED_READY';engineSha256=$engineSha;candidateSha256=$candidateSha;recoveryTailSha256=$ready.journalTailSha256;stableSeconds=$ready.stableSeconds;newGenerationStarted=$false;locksRetained=$true})
+ WriteEvidence 'paused-old-console-recovery-result.json' ([ordered]@{status='PAUSED_OLD_RESTORED_READY';engineSha256=$engineSha;candidateSha256=$candidateSha;recoveryTailSha256=$ready.journalTailSha256;stableSeconds=$ready.stableSeconds;newGenerationStarted=$false;locksRetained=$true})
  [ordered]@{status='PAUSED_OLD_RESTORED_READY';stableSeconds=30;newGenerationStarted=$false;locksRetained=$true}|ConvertTo-Json
-}catch{if($intentWritten){try{WriteEvidence 'paused-old-recovery-failed.json' (FailureDiagnostic $_)}catch{}};throw}
+}catch{if($intentWritten){try{WriteEvidence 'paused-old-console-recovery-failed.json' (FailureDiagnostic $_)}catch{}};throw}
