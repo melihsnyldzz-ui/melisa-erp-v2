@@ -108,7 +108,7 @@ test('rehearsal role binding detects extra listeners and accepts only its fixed 
  assert.match(rehearsalBindingsHarness(declared,actual),/ACCEPTED/);
  assert.match(rehearsalBindingsHarness(declared,[...actual,{OwningProcess:42,LocalPort:4999,LocalAddress:'127.0.0.1'}]),/REHEARSAL_ACTUAL_BINDING_COUNT/);
 });
-function rehearsalTaskHarness(badArgs=false,badPrincipal=false){
+function rehearsalTaskHarness(badArgs=false,badPrincipal=false,omitRunLevel=false){
  const source=readFileSync(rollback,'utf8');
  const fn=source.slice(source.indexOf('function RehearsalTaskAction('),source.indexOf('function VerifyRehearsalClone'));
  const tokens=source.slice(source.indexOf('function Tokens('),source.indexOf('function VerifyRule('));
@@ -123,7 +123,7 @@ function rehearsalTaskHarness(badArgs=false,badPrincipal=false){
  $profile=[pscustomobject]@{oldSettings=[pscustomobject]@{path='C:\\fixture-settings-old.json';sha256=('b'*64)};shell=[pscustomobject]@{path='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';sha256=('a'*64)}}
  $args='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$pkg+'\\p03-rehearsal-watch-core.ps1" -StartupConfigPath "C:\\fixture-settings-old.json" -StartupConfigSha256 '+('b'*64)
  ${badArgs?"$args='-NoProfile -File C:\\Sirket\\ERP\\releases\\live\\start.ps1'":""}
- $xml='<Task><Principals><Principal><UserId>S-1-5-21-fixture</UserId><LogonType>InteractiveToken</LogonType><RunLevel>${badPrincipal?'HighestAvailable':'LeastPrivilege'}</RunLevel></Principal></Principals><Triggers/><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><Enabled>true</Enabled></Settings><Actions><Exec><Command>C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($args)+'</Arguments><WorkingDirectory>'+$pkg+'</WorkingDirectory></Exec></Actions></Task>'
+ $xml='<Task><Principals><Principal><UserId>S-1-5-21-fixture</UserId><LogonType>InteractiveToken</LogonType>${omitRunLevel?'':`<RunLevel>${badPrincipal?'HighestAvailable':'LeastPrivilege'}</RunLevel>`}</Principal></Principals><Triggers/><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><Enabled>true</Enabled></Settings><Actions><Exec><Command>C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($args)+'</Arguments><WorkingDirectory>'+$pkg+'</WorkingDirectory></Exec></Actions></Task>'
  try{RehearsalTaskAction $xml 'old' $names[0];'ACCEPTED'}catch{$_.Exception.Message}`;
  return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8'});
 }
@@ -136,7 +136,7 @@ test('rehearsal task rejects elevation even with otherwise matching executable a
 });
 test('rehearsal mode rejects a shared before-image path before any profile read or mutation',windows,()=>{
  assert.throws(()=>execFileSync(shell,['-NoProfile','-NonInteractive','-File',rollback,'-Environment','Rehearsal',
-  '-ProfilePath','C:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-profile-'+ '1'.repeat(32)+'.json',
+  '-ProfilePath','C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-profile-'+ '1'.repeat(32)+'.json',
   '-ProfileSha256','a'.repeat(64),'-BeforeImagePath','C:\\Windows\\win.ini','-BeforeImageSha256','b'.repeat(64)],{encoding:'utf8',stdio:'pipe'}),
   error=>/P03_PHYSICAL_PROFILE_PATH|P03_PHYSICAL_OWNER/.test(error.stderr));
 });
@@ -146,7 +146,7 @@ function admissionHarness(ageSeconds){
  function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
  function Json($value){return $value}
  function ReadPinned($path,$sha){return [pscustomobject]@{schemaVersion='melisa-p03-physical-candidate.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;processes=@();observedAt=$invokedAtUtc.AddSeconds(${-ageSeconds}).ToString('o')}}
- $isRehearsal=$false;$CandidatePath='C:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-candidate-${'1'.repeat(32)}.json';$CandidateSha256='${'a'.repeat(64)}';$ProfileSha256='${'b'.repeat(64)}';$BeforeImageSha256='${'c'.repeat(64)}';$invokedAtUtc=[DateTime]::UtcNow.AddMinutes(-3)
+ $isRehearsal=$false;$CandidatePath='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-${'1'.repeat(32)}.json';$CandidateSha256='${'a'.repeat(64)}';$ProfileSha256='${'b'.repeat(64)}';$BeforeImageSha256='${'c'.repeat(64)}';$invokedAtUtc=[DateTime]::UtcNow.AddMinutes(-3)
  ${fn}
  try{$r=AdmitCandidate;'ADMITTED'}catch{$_.Exception.Message}`;
  return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8'});
@@ -174,4 +174,9 @@ function fullSharedHarness(listenerCount){
 test('new shared readback requires nine bindings for eight ports including both Hub addresses',windows,()=>{
  assert.match(fullSharedHarness(9),/DIGEST=a{64}/);
  const incomplete=fullSharedHarness(8);assert.match(incomplete,/NEW_OWNER_INCOMPLETE/);assert.match(incomplete,/HEALTH_CALLS=0/);
+});
+
+test('rehearsal task accepts omitted RunLevel as Limited and still rejects Highest',windows,()=>{
+ assert.match(rehearsalTaskHarness(false,false,true),/ACCEPTED/);
+ assert.match(rehearsalTaskHarness(false,true,false),/REHEARSAL_TASK_PRINCIPAL_SETTINGS/);
 });

@@ -10,7 +10,7 @@ $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_OWNER'}
 $resolved=[IO.Path]::GetFullPath($BeforeImagePath)
 $rehearsal=$Environment -ceq 'Rehearsal'
-$pattern=if($rehearsal){'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\before\.json\z'}else{'\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z'}
+$pattern=if($rehearsal){'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\before\.json\z'}else{'\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z'}
 if($resolved -cnotmatch $pattern){throw 'P03_BEFORE_PATH'}
 $runRoot=if($rehearsal){[IO.Path]::GetDirectoryName($resolved)}else{$null}
 for($part=$resolved;$part;$part=[IO.Path]::GetDirectoryName($part)){

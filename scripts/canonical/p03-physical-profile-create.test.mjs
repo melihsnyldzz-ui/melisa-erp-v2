@@ -24,6 +24,8 @@ test('builder binds both envelopes to the same before-image raw bytes and normal
  assert.equal(hash(beforeBytes),profile.beforeImage.sha256);assert.equal(result.summary.beforeImage.path,profile.beforeImage.path);
  assert.deepEqual(before.identities.coreSupervisor.bindings,[]);assert.equal(profile.candidateRules.length,10);assert.equal(profile.candidateRules.find(x=>x.role==='coreSupervisor').receipt,null);
  assert.equal(before.newConfig.sha256,input.newSettingsRef.sha256);assert.equal(result.summary.runtimeMutation,false);
+ assert.equal(profile.stopper.path,'C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-stopper-'+input.runId+'.ps1');
+ assert.equal(profile.stopper.sha256,'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d');
 });
 test('builder rejects an ERP manifest from another candidate',()=>{
  const input=fixture();input.newSettings.components.erpApiNative.manifestSha256='0'.repeat(64);
@@ -60,4 +62,12 @@ test('typed SQL capture source parses without executing SQL', {skip:process.plat
  const encoded=Buffer.from(P03_SQL_SERVICE_CAPTURE_PS).toString('base64');
  const code="$errors=$null;$tokens=$null;$source=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+encoded+"'));[void][System.Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'PARSE_ERROR'};'PARSE_OK'";
  assert.equal(execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'}).trim(),'PARSE_OK');
+});
+test('protected writer rejects execution of the inherited original stopper before creating any files', {skip:process.platform!=='win32'},()=>{
+ const runId='f'.repeat(32),root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018',beforePath=root+'\\MelisaERP-P03-before-'+runId+'.json';
+ const before=Buffer.from(JSON.stringify({schemaVersion:'melisa-p03-owner-observation.v3',runId,ownerSid:'S-1-5-21-2170750028-1005938530-2568122015-1001',database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02',actualT1:false,observedAt:new Date().toISOString()}));
+ const profile=Buffer.from(JSON.stringify({schemaVersion:'melisa-p03-physical-profile.v1',beforeImage:{path:beforePath,sha256:hash(before)},journalDirectory:root+'\\MelisaERP-P03-recovery-'+runId,stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'}}));
+ const request={runId,before:{bytesBase64:before.toString('base64'),sha256:hash(before)},profile:{bytesBase64:profile.toString('base64'),sha256:hash(profile)},stopper:{bytesBase64:Buffer.alloc(200).toString('base64'),sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'}};
+ const source=fileURLToPath(new URL('./p03-physical-profile-create.ps1',import.meta.url));
+ assert.throws(()=>execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-File',source],{input:JSON.stringify(request),encoding:'utf8',stdio:['pipe','pipe','pipe']}),error=>/P03_CREATE_STOPPER_SCOPE|P03_CREATE_OWNER/.test(error.stderr));
 });

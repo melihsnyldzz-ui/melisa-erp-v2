@@ -110,19 +110,28 @@ function RehearsalBindings([string]$role,$process,$inventory){
 function RehearsalTaskAction([string]$xml,[string]$generation,[string]$name){
  if(-not $isRehearsal){return}
  Need ($xml -notmatch '<!DOCTYPE|<!ENTITY') 'REHEARSAL_XML_ENTITY'
- [xml]$doc=$xml;$component=if($generation -ceq 'old'){$oldSettings.supervisor}else{$newSettings.supervisor};$ref=if($generation -ceq 'old'){$profile.oldSettings}else{$profile.newSettings}
+ try{[xml]$doc=$xml}catch{throw 'P03_PHYSICAL_REHEARSAL_TASK_XML'}
+ $runLevels=$doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']/*[local-name()='RunLevel']")
+ Need ($runLevels.Count -le 1) 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
+ $limitedRunLevel=($runLevels.Count -eq 0 -or $runLevels[0].InnerText -ceq 'LeastPrivilege')
+ $component=if($generation -ceq 'old'){$oldSettings.supervisor}else{$newSettings.supervisor};$ref=if($generation -ceq 'old'){$profile.oldSettings}else{$profile.newSettings}
  $leaf=if($name -ceq $names[0]){'p03-rehearsal-watch-core.ps1'}else{'p03-rehearsal-watch-hub.ps1'}
  $expected=@('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $component.packageRoot $leaf),'-StartupConfigPath',$ref.path,'-StartupConfigSha256',$ref.sha256)
  Need ($name -cin $names -and @($doc.Task.Actions.ChildNodes).Count -eq 1 -and $doc.Task.Principals.Principal.UserId -ceq $owner -and $doc.Task.Actions.Exec.Command -ceq $expected[0] -and $doc.Task.Actions.Exec.WorkingDirectory -ceq $component.packageRoot) 'REHEARSAL_TASK_ACTION'
- Need ($doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']").Count -eq 1 -and $doc.Task.Principals.Principal.LogonType -ceq 'InteractiveToken' -and $doc.Task.Principals.Principal.RunLevel -ceq 'LeastPrivilege' -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Triggers']/*").Count -eq 0 -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Settings']/*[local-name()='RestartOnFailure']").Count -eq 0 -and $doc.Task.Settings.MultipleInstancesPolicy -ceq 'IgnoreNew' -and $doc.Task.Settings.Enabled -ceq 'true') 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
+ Need ($doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']").Count -eq 1 -and $doc.Task.Principals.Principal.LogonType -ceq 'InteractiveToken' -and $limitedRunLevel -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Triggers']/*").Count -eq 0 -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Settings']/*[local-name()='RestartOnFailure']").Count -eq 0 -and $doc.Task.Settings.MultipleInstancesPolicy -ceq 'IgnoreNew' -and $doc.Task.Settings.Enabled -ceq 'true') 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
  Need (((Tokens ('"'+$doc.Task.Actions.Exec.Command+'" '+$doc.Task.Actions.Exec.Arguments))|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)) 'REHEARSAL_TASK_ARGV'
  Need ($profile.shell.path -ceq $expected[0]) 'REHEARSAL_TASK_SHELL';NoReparse $profile.shell.path;Need ((Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'REHEARSAL_TASK_SHELL_HASH'
 }
 function VerifyRehearsalClone{
  if(-not $isRehearsal){return}
  $originalProof='C:\Sirket\ERP\backups\P03-20261018-121000\isolated-restore-v4\restore-rehearsal-verified.json'
- Need ($profile.cloneProof.path -cin @($originalProof,(Join-Path $runRoot 'clone-proof.json'))) 'CLONE_PROOF_PATH'
- [void](ReadPinned $originalProof $profile.cloneProof.sha256)
+ $originalSha='e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353'
+ Need ($profile.cloneProof.path -ceq (Join-Path $runRoot 'clone-proof.json') -and $profile.cloneProof.sha256 -ceq $originalSha) 'CLONE_PROOF_PATH'
+ # This immutable backup evidence has a SQL-service ACE. It is an artifact,
+ # not a private profile. Verify its fixed bytes without changing its ACL.
+ NoReparse $originalProof
+ $proofStream=[IO.File]::Open($originalProof,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+ try{Need ($proofStream.Length -gt 100 -and $proofStream.Length -le 65536) 'CLONE_PROOF_SIZE';$memory=[IO.MemoryStream]::new();$proofStream.CopyTo($memory);Need ((Hash $memory.ToArray()) -ceq $originalSha) 'CLONE_ORIGINAL_HASH'}finally{$proofStream.Dispose()}
  $proof=Json (ReadPinned $profile.cloneProof.path $profile.cloneProof.sha256)
  Need ($proof.restored -ceq $true -and $proof.readOnly -ceq $true -and $proof.dbccCheckdbPassed -ceq $true -and $proof.cloneDatabase -ceq $database -and $proof.sourceDatabase -ceq 'MELISA_ERP_CRM_SHARED_TEST_20261009_02') 'CLONE_RESTORE_PROOF'
  $connection=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=MELISA_ERP_P03_RESTORE_TEST_20261018_01;Integrated Security=True;Connect Timeout=5;Application Name=MelisaP03RecoveryRehearsalReadOnly')
@@ -373,7 +382,7 @@ function Health($expectedOwners,[ValidateSet('old','new')][string]$generation='o
  }
 }
 function AdmitCandidate{
- if($isRehearsal){Need ([IO.Path]::GetFullPath($CandidatePath) -ceq (Join-Path $runRoot 'candidate.json')) 'CANDIDATE_PATH'}else{Need ([IO.Path]::GetFullPath($CandidatePath) -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-candidate-[a-f0-9]{32}\.json\z') 'CANDIDATE_PATH'}
+ if($isRehearsal){Need ([IO.Path]::GetFullPath($CandidatePath) -ceq (Join-Path $runRoot 'candidate.json')) 'CANDIDATE_PATH'}else{Need ([IO.Path]::GetFullPath($CandidatePath) -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-[a-f0-9]{32}\.json\z') 'CANDIDATE_PATH'}
  $value=Json (ReadPinned $CandidatePath $CandidateSha256)
  Need ($value.schemaVersion -ceq 'melisa-p03-physical-candidate.v1' -and $value.profileSha256 -ceq $ProfileSha256 -and $value.beforeSha256 -ceq $BeforeImageSha256 -and @($value.processes).Count -le 10) 'CANDIDATE_SCOPE'
  if($isRehearsal){Need ($value.environment -ceq 'P03_REHEARSAL') 'CANDIDATE_ENVIRONMENT'}
@@ -435,8 +444,8 @@ if($isRehearsal){
  $runRoot=[IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($ProfilePath))
  Need ([IO.Path]::GetFullPath($BeforeImagePath) -ceq (Join-Path $runRoot 'before.json')) 'BEFORE_PATH'
 }else{
- Need ([IO.Path]::GetFullPath($ProfilePath) -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-profile-[a-f0-9]{32}\.json\z') 'PROFILE_PATH'
- Need ([IO.Path]::GetFullPath($BeforeImagePath) -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z') 'BEFORE_PATH'
+ Need ([IO.Path]::GetFullPath($ProfilePath) -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-profile-[a-f0-9]{32}\.json\z') 'PROFILE_PATH'
+ Need ([IO.Path]::GetFullPath($BeforeImagePath) -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z') 'BEFORE_PATH'
 }
 $profile=Json (ReadPinned $ProfilePath $ProfileSha256)
 $before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256)
@@ -497,6 +506,9 @@ foreach($pkg in $profile.packages){
  }
 }
 [void](ReadPinned $profile.businessDigest.path $profile.businessDigest.sha256)
+$expectedStopper=if($isRehearsal){Join-Path $runRoot 'stop-exact-observed-process.ps1'}else{Join-Path ([IO.Path]::GetDirectoryName($BeforeImagePath)) ([IO.Path]::GetFileName($BeforeImagePath).Replace('MelisaERP-P03-before-','MelisaERP-P03-stopper-').Replace('.json','.ps1'))}
+Need ($profile.stopper.path -ceq $expectedStopper -and $profile.stopper.sha256 -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'STOPPER_PIN'
+[void](ReadPinned $profile.stopper.path $profile.stopper.sha256)
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 if($Mode -ceq 'PreflightOld'){
  $inventory=Inventory;ProtectedProcesses $inventory;AssertTasks 4
@@ -525,9 +537,9 @@ if($Mode -ceq 'StopNew'){
  $evidence=$admittedCandidate;[void](ReadPinned $CandidatePath $CandidateSha256)
  Need (@($profile.candidateRules).Count -eq 10 -and @($profile.candidateRules.role|Sort-Object -Unique).Count -eq 10) 'CANDIDATE_RULES'
  Need ((@($profile.candidateRules.role|Sort-Object)-join '|') -ceq ((@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','terminalWatcher','hubWatcher','coreSupervisor')|Sort-Object)-join '|')) 'CANDIDATE_ROLE_SET'
- Need ($profile.stopper.path -ceq 'C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014\stop-exact-observed-process.ps1' -and $profile.stopper.sha256 -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'STOPPER_PIN'
+ Need ($profile.stopper.path -ceq $expectedStopper -and $profile.stopper.sha256 -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'STOPPER_PIN'
  [void](ReadPinned $profile.stopper.path $profile.stopper.sha256)
- if($isRehearsal){Need ($profile.journalDirectory -ceq (Join-Path $runRoot 'recovery')) 'JOURNAL_PATH'}else{Need ($profile.journalDirectory -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'}
+ if($isRehearsal){Need ($profile.journalDirectory -ceq (Join-Path $runRoot 'recovery')) 'JOURNAL_PATH'}else{Need ($profile.journalDirectory -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'}
  Protected $profile.journalDirectory
  # Admission completes before creating any durable intent or stopping a task.
  TaskPhase 'new';$admitted=CandidateInventory $evidence
@@ -588,7 +600,7 @@ if($Mode -ceq 'StopNew'){
 }
 # Journal is a local protected directory; every record is raw-byte hash linked.
 Need ($RecoveryTailSha256 -cmatch '\A[a-f0-9]{64}\z') 'RECOVERY_TAIL'
-if($isRehearsal){Need ($profile.journalDirectory -ceq (Join-Path $runRoot 'recovery')) 'JOURNAL_PATH'}else{Need ($profile.journalDirectory -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'}
+if($isRehearsal){Need ($profile.journalDirectory -ceq (Join-Path $runRoot 'recovery')) 'JOURNAL_PATH'}else{Need ($profile.journalDirectory -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'}
 Protected $profile.journalDirectory
 $journalLock=[IO.File]::Open((Join-Path $profile.journalDirectory 'rollback.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
 $rollbackAttempted=$false

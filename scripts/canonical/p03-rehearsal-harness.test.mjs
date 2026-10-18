@@ -24,6 +24,10 @@ test('physical harness uses same recovery engine and preserves honest proof scop
  assert.equal((source.match(/\$engineResult=\(& \$engineRef\.path @common/g)??[]).length,3);
  assert.equal((source.match(/'ENGINE_PHASE_PIN'/g)??[]).length,3);
  assert.doesNotMatch(source,/& \$request\.engine\.path/);
+ assert.match(source,/NoReparse \$stopperSource;\$stopperBytes=\[IO\.File\]::ReadAllBytes\(\$stopperSource\)/);
+ assert.match(source,/\$stopperRef=WriteNew \(Join-Path \$runRoot 'stop-exact-observed-process\.ps1'\) \$stopperBytes/);
+ assert.match(source,/\$stopper=\$stopperRef\.path/);assert.match(source,/'STOPPER_EACH_STOP_PIN';\$result=& \$stopper /);
+ assert.ok(source.indexOf("'STOPPER_COPY_HASH'")<source.indexOf("Journal 'REGISTER_OLD_TASKS_INTENT'"));
  assert.ok(source.indexOf("if($Mode-ceq'DryRun')")<source.indexOf('DirectoryNew $root'));
 });
 test('rehearsal scripts parse without creating tasks, files or processes',{skip:process.platform!=='win32'},()=>{
@@ -61,4 +65,11 @@ test('driver trap classifies a real controlled refusal without leaking raw error
  const command=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);$trap=$a.EndBlock.Traps[0].Extent.Text;. ([scriptblock]::Create($trap+[Environment]::NewLine+"throw 'P03_REHEARSAL_CONTROLLED_REFUSAL'"))`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
  assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_REHEARSAL_CONTROLLED_REFUSAL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+\r?\n$/);assert.doesNotMatch(result.stderr,/CLIXML|At line|CategoryInfo/);
+});
+
+test('wrapped physical-engine refusal retains only the fixed inner P03 code',{skip:process.platform!=='win32'},()=>{
+ const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
+ const command=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);$trap=$a.EndBlock.Traps[0].Extent.Text;. ([scriptblock]::Create($trap+[Environment]::NewLine+"throw [InvalidOperationException]::new('wrapped action: P03_PHYSICAL_ACL private-sentinel-value')"))`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_PHYSICAL_ACL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+\r?\n$/);assert.doesNotMatch(result.stderr,/private-sentinel-value|wrapped action|CLIXML/);
 });

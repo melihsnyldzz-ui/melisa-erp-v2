@@ -1,7 +1,7 @@
 param([ValidateSet('DryRun','Run')][string]$Mode='DryRun')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-trap{$kind=$_.Exception.GetType().Name;if($kind-cnotin@('MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException')){$kind='OtherException'};$site=$_.Exception.TargetSite;$method=if($null-ne$site){$site.Name}else{'UnknownMethod'};if($method-cnotin@('Invoke','InvokeMethod','CreateDirectory','Write','Flush','AddAccessRule','SetOwner','CheckActionPreference')){$method='UnknownMethod'};$code=if([string]$_.Exception.Message-cmatch'\AP03_[A-Z_]+\z'){[string]$_.Exception.Message}else{'P03_REHEARSAL_EXECUTION_REJECTED'};[Console]::Error.WriteLine(($code+' TYPE_'+$kind+' METHOD_'+$method));exit 1}
+trap{$kind=$_.Exception.GetType().Name;if($kind-cnotin@('MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException')){$kind='OtherException'};$site=$_.Exception.TargetSite;$method=if($null-ne$site){$site.Name}else{'UnknownMethod'};if($method-cnotin@('Invoke','InvokeMethod','CreateDirectory','Write','Flush','AddAccessRule','SetOwner','CheckActionPreference')){$method='UnknownMethod'};$code=if([string]$_.Exception.Message-cmatch'\bP03_[A-Z_]+\b'){$Matches[0]}else{'P03_REHEARSAL_EXECUTION_REJECTED'};[Console]::Error.WriteLine(($code+' TYPE_'+$kind+' METHOD_'+$method));exit 1}
 foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop}
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $root='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018'
@@ -14,7 +14,7 @@ $protectedPorts=@(4184,4186,5234,62700,62701,62702,62703,62704,4144,4146,5194)
 $roles=@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor')
 $db='MELISA_ERP_P03_RESTORE_TEST_20261018_01'
 $copy='P03-RECOVERY-REHEARSAL-20261018'
-$stopper='C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014\stop-exact-observed-process.ps1'
+$stopperSource='C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014\stop-exact-observed-process.ps1'
 $stopperSha='79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'
 function Need($v,[string]$code){if(-not$v){throw ('P03_REHEARSAL_'+$code)}}
 function Hash([byte[]]$bytes){[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}
@@ -95,6 +95,7 @@ if(-not(Test-Path -LiteralPath $root)){DirectoryNew $root}
 $runId=[guid]::NewGuid().ToString('N');$runRoot=Join-Path $root ('run-'+$runId);DirectoryNew $runRoot;$script:seq=0
 foreach($leaf in @('packages','packages\old','packages\new','receipts-old','receipts-new','recovery')){DirectoryNew (Join-Path $runRoot $leaf)}
 $engineRef=WriteNew (Join-Path $runRoot 'recovery-engine.ps1') ([IO.File]::ReadAllBytes($request.engine.path));Need ($engineRef.sha256-ceq$request.engine.sha256) 'ENGINE_COPY_HASH'
+NoReparse $stopperSource;$stopperBytes=[IO.File]::ReadAllBytes($stopperSource);Need ((Hash $stopperBytes)-ceq$stopperSha) 'STOPPER_SOURCE_HASH';$stopperRef=WriteNew (Join-Path $runRoot 'stop-exact-observed-process.ps1') $stopperBytes;Need ($stopperRef.sha256-ceq$stopperSha) 'STOPPER_COPY_HASH';$stopper=$stopperRef.path
 $cloneProof=WriteNew (Join-Path $runRoot 'clone-proof.json') ([IO.File]::ReadAllBytes($request.cloneProof.path));Need ($cloneProof.sha256-ceq$request.cloneProof.sha256) 'CLONE_PROOF_COPY'
 $settings=@{};$packagePins=@();$fixtureSource=([string]($request.files|Where-Object{$_.name-ceq'p03-rehearsal-fixture.mjs'}).sha256).Substring(0,40)
 foreach($generation in @('old','new')){
@@ -121,12 +122,13 @@ $profileRef=WriteNew (Join-Path $runRoot 'profile.json') (Bytes $profile)
 $common=@('-Environment','Rehearsal','-ProfilePath',$profileRef.path,'-ProfileSha256',$profileRef.sha256,'-BeforeImagePath',$beforeRef.path,'-BeforeImageSha256',$beforeRef.sha256)
 Need ((Get-FileHash -LiteralPath $engineRef.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$engineRef.sha256) 'ENGINE_PHASE_PIN'
 $engineResult=(& $engineRef.path @common -Mode PreflightOld)|ConvertFrom-Json;Need ($engineResult.status-ceq'OLD_PHYSICAL_PREFLIGHT') 'OLD_PREFLIGHT'
+Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_PRESTOP_PIN'
 Journal 'STOP_OLD_FIXTURE_INTENT'
 $fresh=Snapshot;Need ((Hash (Bytes (ProtectedSnapshot)))-ceq$protectedBeforeSha) 'PROTECTED_BEFORE_STOP'
 foreach($entry in $old.tasks){$now=@($fresh.tasks|Where-Object{$_.name-ceq$entry.name});Need ($now.Count-eq1-and$now[0].state-eq4-and$now[0].xml-ceq$entry.xml-and$now[0].enginePid-eq$entry.enginePid-and$now[0].instanceGuid-ceq$entry.instanceGuid) 'OLD_TASK_INSTANCE_CAS'}
 foreach($role in $roles){$actual=@($fresh.processes|Where-Object{$_.role-ceq$role});Need ($actual.Count-eq1-and(($actual[0]|ConvertTo-Json -Depth 8 -Compress)-ceq($identities[$role]|ConvertTo-Json -Depth 8 -Compress))) 'OLD_PROCESS_CAS'}
 $active=$schedule.GetRunningTasks(1);$exact=@();foreach($entry in $old.tasks){$match=@();for($i=1;$i-le$active.Count;$i++){$r=$active.Item($i);if($r.Name-ceq$entry.name){$match+=,$r}};Need ($match.Count-eq1-and$match[0].InstanceGuid-ceq$entry.instanceGuid-and$match[0].EnginePID-eq$entry.enginePid) 'COM_INSTANCE_CAS';$exact+=,$match[0]};foreach($instance in $exact){$instance.Stop()}
-foreach($role in $roles){$v=$identities[$role];$proof=[ordered]@{pid=$v.pid;parentPid=$v.parentPid;nodePath=$v.nodePath;ownerSid=$v.ownerSid;commandLine=$v.commandLine;creationTime=([string]$v.creationTime-replace'(\.\d{6})0Z$','$1Z')};$encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress)));$result=& $stopper -ExpectedJsonBase64 $encoded;Need ($result-cin@('EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE')) 'OLD_EXACT_STOP'}
+foreach($role in $roles){$v=$identities[$role];$proof=[ordered]@{pid=$v.pid;parentPid=$v.parentPid;nodePath=$v.nodePath;ownerSid=$v.ownerSid;commandLine=$v.commandLine;creationTime=([string]$v.creationTime-replace'(\.\d{6})0Z$','$1Z')};$encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress)));Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_EACH_STOP_PIN';$result=& $stopper -ExpectedJsonBase64 $encoded;Need ($result-cin@('EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE')) 'OLD_EXACT_STOP'}
 $stopUntil=[DateTime]::UtcNow.AddSeconds(20)
  do{$stopState=Snapshot;$orphanWatchers=@(Get-CimInstance Win32_Process|Where-Object{([string]$_.CommandLine).IndexOf($runRoot,[StringComparison]::OrdinalIgnoreCase)-ge0-and[string]$_.CommandLine-match'p03-rehearsal-watch-(?:core|hub)\.ps1'});if(@($stopState.tasks|Where-Object{$_.state-ne3}).Count-eq0-and$stopState.watchers.Count-eq0-and$orphanWatchers.Count-eq0){break};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$stopUntil)
  Need (@($stopState.tasks|Where-Object{$_.state-ne3}).Count-eq0-and$stopState.watchers.Count-eq0-and$orphanWatchers.Count-eq0) 'OLD_TASK_STOP_NOT_PROVEN'

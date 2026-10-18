@@ -9,12 +9,14 @@ const DB='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
 const OLD='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json';
 const OLD_SHA='be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96';
+const STOPPER_ORIGINAL='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1';
+const STOPPER_SHA='79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d';
 const COLLECTOR='C:\\Sirket\\ERP\\reports\\p03-owner-inspect-20261017.mjs';
 const COLLECTOR_SHA='bb7469010862e9704ce23ca168a591b866e0b646ec548115ea3f2b15c300064c';
 const NEW='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json';
 const TASKS=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
 const ROLES=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
-const ROOT='C:\\Users\\Xaser\\AppData\\Local';
+const ROOT='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const need=(x,code)=>{if(!x)throw Error('P03_PROFILE_CREATE_'+code);};
 const win=x=>path.win32.normalize(x);
@@ -118,6 +120,9 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
   if(packages.has(root.toLowerCase()))need(JSON.stringify(packages.get(root.toLowerCase()))===JSON.stringify(row),'PACKAGE_CONFLICT');packages.set(root.toLowerCase(),row);
  }
  const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:OWNER,database:DB,beforeImage:beforeRef,oldSettings:{path:OLD,sha256:OLD_SHA},newSettings:newSettingsRef,packages:[...packages.values()],stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'},tasks,candidateRules,oldWatchers:extras.oldWatchers,protectedProcesses:extras.protectedProcesses,businessDigest,journalDirectory:path.win32.join(ROOT,'MelisaERP-P03-recovery-'+runId),shell:{path:SHELL,sha256:shellSha256},health:[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:oldSettings.components.erpApiNative.sourceCommit}))};
+ // Execute only a new protected copy; the original runtime code and its
+ // inherited ACL remain untouched. Its payload is independently pinned below.
+ profile.stopper={path:path.win32.join(ROOT,'MelisaERP-P03-stopper-'+runId+'.ps1'),sha256:STOPPER_SHA};
  profile.candidateHealth=[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:newSettings.components.erpApiNative.sourceCommit}));
  const profileBytes=encode(profile);
  return {runId,before:{bytesBase64:beforeBytes.toString('base64'),sha256:beforeRef.sha256},profile:{bytesBase64:profileBytes.toString('base64'),sha256:hash(profileBytes)},summary:{runId,beforeImage:beforeRef,profile:{path:path.win32.join(ROOT,'MelisaERP-P03-profile-'+runId+'.json'),sha256:hash(profileBytes)},journalDirectory:profile.journalDirectory,candidateSources:{erp:erp.sourceCommit,crm:crm.sourceCommit,supervisor:sup.sourceCommit},runtimeMutation:false}};
@@ -135,6 +140,7 @@ async function main(){
  const extras=JSON.parse(ps(`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$s=New-Object -ComObject Schedule.Service;$s.Connect();$folder=$s.GetFolder('\\');$runs=$s.GetRunningTasks(1);$tasks=@();$watch=@();foreach($name in $names){$t=$folder.GetTask($name);if([int]$t.State -ne 4){throw 'TASK_NOT_RUNNING'};$tasks+=,[ordered]@{name=$name;xml=[string]$t.Xml};$found=@();for($i=1;$i -le $runs.Count;$i++){$r=$runs.Item($i);if($r.Name -ceq $name){$found+=,$r}};if($found.Count -ne 1){throw 'TASK_INSTANCE'};$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$found[0].EnginePID);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'WATCHER_OWNER'};$watch+=,[ordered]@{role=$(if($name -ceq $names[0]){'terminalWatcher'}else{'hubWatcher'});pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};$ids=@(Get-NetTCPConnection -State Listen|Where-Object LocalPort -in 4144,4146,5194|ForEach-Object OwningProcess);$ids+=@(Get-CimInstance Win32_Process -Filter "Name='sqlservr.exe'"|ForEach-Object ProcessId);$protected=@();foreach($id in @($ids|Sort-Object -Unique)){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$id);if($p.Name -ceq 'sqlservr.exe'){$protected+=,(Get-P03ProtectedSqlService $p);continue};$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'PROTECTED_OWNER'};$protected+=,[ordered]@{name=$p.Name;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};[ordered]@{observedAt=[DateTime]::UtcNow.ToString('o');tasks=$tasks;oldWatchers=$watch;protectedProcesses=$protected}|ConvertTo-Json -Depth 12 -Compress`));
  const last=await captureP03OwnerObservation();need(JSON.stringify(first.identities)===JSON.stringify(last.identities)&&JSON.stringify(first.tasks)===JSON.stringify(last.tasks),'OBSERVATION_DRIFT');
  const request=buildP03PhysicalProfile({oldObservation:last,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId:crypto.randomBytes(16).toString('hex'),shellSha256:hash(fs.readFileSync(SHELL))});
+ request.stopper={sha256:STOPPER_SHA,bytesBase64:pin({path:STOPPER_ORIGINAL,sha256:STOPPER_SHA}).toString('base64')};
  if(mode==='DryRun'){process.stdout.write(JSON.stringify({status:'DRY_RUN_ONLY',...request.summary,created:false},null,2)+'\n');return;}
  const writer=fileURLToPath(new URL('./p03-physical-profile-create.ps1',import.meta.url));
  const result=execFileSync(SHELL,['-NoProfile','-NonInteractive','-File',writer],{windowsHide:true,input:JSON.stringify(request),timeout:30000,maxBuffer:1024*1024,encoding:'utf8'});
